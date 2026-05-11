@@ -31,7 +31,7 @@ All sources feed one enrichment and scoring pipeline, but source attribution sta
 
 ## V1 Scope
 
-- New Streamlit dashboard.
+- New Streamlit dashboard delivered in implementation phases.
 - Live REST polling only, no WebSocket.
 - Snapshot replay from Postgres.
 - UW flow feed plus TradingView shared watchlist source tabs.
@@ -44,6 +44,16 @@ All sources feed one enrichment and scoring pipeline, but source attribution sta
 - Full option surface capability, but tiered by default to reduce requests.
 - Raw API payload archive plus normalized relational tables.
 
+V1 is a product scope, not a single coding step. Implementation should be phased:
+
+1. Layout shell with fixture-backed view models.
+2. Postgres schema, migrations, and snapshot load/save contracts.
+3. UW API client, request audit, pagination, and normalization.
+4. UW flow source and TradingView shared watchlist source ingestion.
+5. Scoring, structure ideas, and source attribution.
+6. Tracking and conservative OI/IV reconciliation.
+7. Targeted deep surface refresh and Surface Explorer.
+
 ## Deferred Scope
 
 - Markout tables and dashboards.
@@ -54,6 +64,7 @@ All sources feed one enrichment and scoring pipeline, but source attribution sta
 - WebSocket upgrade.
 - TradingView authenticated/session scraping.
 - Automated trading or order placement.
+- Full historical backfill from UW unless the account has the required historical option trades add-on.
 
 ## Streamlit Views
 
@@ -68,6 +79,23 @@ Show polling feed of unusual option flow. Include filters for premium, ask/bid s
 ### TradingView Watchlists
 
 Render one tab per shared watchlist source. Each tab shows imported symbols, latest UW enrichment, top contracts/expiries, IV rank changes, OI changes, and structure candidates.
+
+TradingView shared watchlists remain external sources of truth. V1 should not edit or maintain local watchlists. Each source definition contains:
+
+- Source label.
+- Owner/person label when useful.
+- Shared URL.
+- Enabled/disabled flag.
+
+Each import run writes:
+
+- Source URL and source label.
+- Parse timestamp.
+- Imported symbols.
+- Failed or ignored symbols.
+- Parser status and error message when applicable.
+
+A TradingView parse failure must not block UW flow polling. The affected source tab should show the failure state and preserve the last successfully imported symbols when available.
 
 ### Tracked Contracts
 
@@ -136,6 +164,27 @@ Expected core tables in schema `uw_scan`:
 
 Use indexes on `run_id`, `ticker`, `option_symbol`, `market_date`, `fetched_at`, `expiry`, `strike`, and `(ticker, expiry, strike)`.
 
+Schema changes should use explicit migrations. V1 can use SQL migration files or Alembic, but it must include:
+
+- Idempotent `CREATE SCHEMA IF NOT EXISTS uw_scan`.
+- Schema version tracking table.
+- Repeatable local setup command.
+- Test path that creates the schema in a test database and can be rerun safely.
+
+Numeric values from UW must be parsed into typed columns. Many UW fields are returned as strings, so normalization should:
+
+- Use Decimal-compatible parsing for money, price, IV, greeks, OI, volume, and exposure fields.
+- Preserve nulls rather than coercing missing values to zero.
+- Keep the original raw string only in the raw audit payload.
+- Record parser errors in request/source audit rows without crashing the whole run.
+
+All stored rows that represent observed market data should include both:
+
+- `fetched_at_utc`: when the app received the data.
+- `market_date`: the market date the data represents.
+
+Rows tied to option flow should also include the trade/event timestamp from UW when available. OI-related rows should preserve any UW-provided current/previous date fields because OI is not truly live intraday.
+
 ## Scoring And Tracking
 
 The scoring engine starts from the extracted scan logic in `legacy-unusual-whales/docs/scan-logic-from-skill.md`.
@@ -169,7 +218,18 @@ Tracking is hybrid:
 - Allow manual pinning from the UI.
 - Reconcile later OI and IV snapshots against the original flow to classify likely opening, closing, rolling, fading, hedge, or unknown.
 
-OI is not truly live intraday. The app should make this explicit and reconcile next-session OI changes when available.
+OI is not truly live intraday. The app should make this explicit and reconcile next-session OI changes when available. Reconciliation should be conservative by default and use `unknown` unless evidence is strong.
+
+V1 reconciliation heuristics:
+
+- `likely_opening`: same contract OI increases after the flow by a meaningful amount and direction/side evidence is consistent with opening interest.
+- `likely_closing`: same contract OI falls after large volume and price/side evidence is consistent with closing interest.
+- `likely_rolling`: source contract OI falls while a nearby expiry or strike in the same ticker/side gains OI in the same reconciliation window.
+- `fading`: original flow had high volume but no meaningful OI follow-through after next-session OI is available.
+- `hedge`: flow conflicts with broader ticker/expiry context or occurs near known catalyst/earnings windows where hedge interpretation is more plausible.
+- `unknown`: evidence is incomplete, stale, contradictory, or below thresholds.
+
+Thresholds should be configurable, but v1 should start with conservative defaults such as requiring OI change to exceed both an absolute contract threshold and a percentage of observed flow volume.
 
 ## Structure Ideas
 
@@ -220,7 +280,7 @@ UW can query full greeks by expiry and strike. It exposes delta, gamma, theta, v
 - OI Change: https://api.unusualwhales.com/docs/operations/PublicApi.TickerController.oi_change
 - OI Per Expiry: https://api.unusualwhales.com/docs/operations/PublicApi.TickerController.oi_per_expiry
 - OI Per Strike: https://api.unusualwhales.com/docs/operations/PublicApi.TickerController.oi_per_strike
-- Volume And OI Per Expiry: https://api.unusualwhales.com/docs/operations/PublicApi.TickerController.volume_oi_per_expiry
+- Volume And OI Per Expiry: https://api.unusualwhales.com/docs/operations/PublicApi.TickerController.vol_oi_per_expiry
 
 ### Volatility, Skew, And VRP Proxy
 
@@ -236,14 +296,25 @@ UW provides IV rank, IV history, IV/RV stats, term structure, interpolated IV, i
 ### Max Pain, Dark Pool, Shorts
 
 - Max Pain: https://api.unusualwhales.com/docs/operations/PublicApi.TickerController.max_pain
-- Recent Darkpool Trades: https://api.unusualwhales.com/docs/operations/PublicApi.DarkpoolController.recent
-- Ticker Darkpool Trades: https://api.unusualwhales.com/docs/operations/PublicApi.DarkpoolController.ticker
+- Recent Darkpool Trades: https://api.unusualwhales.com/docs/operations/PublicApi.DarkpoolController.darkpool_recent
+- Ticker Darkpool Trades: https://api.unusualwhales.com/docs/operations/PublicApi.DarkpoolController.darkpool_ticker
 - Short Screener: https://api.unusualwhales.com/docs/operations/PublicApi.ShortController.short_screener
 - Short Data: https://api.unusualwhales.com/docs/operations/PublicApi.ShortController.short_data
 
 ## Request Minimization Strategy
 
 UW is mostly ticker-scoped rather than broad batch-scoped, so v1 should use a tiered acquisition planner.
+
+The app should expose request caps in the sidebar or config so polling cannot accidentally explode into full-surface scans for every source ticker. Initial defaults:
+
+- Max UW flow rows consumed per polling cycle: 100.
+- Max TradingView symbols imported per source: 200.
+- Max watchlist tickers enriched per cycle: 50.
+- Max deep-surface tickers per cycle: 8.
+- Max important expiries per ticker for greeks/exposure: 4.
+- Max option-contract pages per ticker in normal mode: 2.
+- Full surface refresh requires explicit user action or a high-confidence tracking rule.
+- Concurrency should be bounded and retry/backoff should respect UW rate-limit responses.
 
 Tier 1: broad discovery
 
@@ -272,6 +343,10 @@ Tier 4: tracking refresh
 - Avoid re-fetching unchanged `(endpoint, params, market_date)` combinations inside the same polling cycle.
 
 Persist request fingerprints so repeated runs can reuse cached data where appropriate.
+
+Request fingerprints should include endpoint, normalized parameters, market date, source run, and API version/base URL. Within a polling cycle, duplicate fingerprints should be skipped. Across cycles, cached data can be reused only when the endpoint data is not expected to change intraday or when the user is replaying a snapshot.
+
+Historical analysis has a hard data availability boundary. Without UW's historical option trades add-on, backtests and markouts can only use data captured by this app going forward plus any historical endpoints available under the current subscription.
 
 ## Error Handling
 
