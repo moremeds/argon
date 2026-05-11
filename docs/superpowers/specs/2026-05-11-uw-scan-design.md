@@ -8,16 +8,19 @@ Build a Streamlit app that shows potential options opportunities from Unusual Wh
 
 This is not a trade execution system. It presents evidence, structure candidates, warnings, and tracking context.
 
-## Implementation Status
+## Reset Status
 
-The repository now includes the planned Python/Streamlit scaffold, fixture and live dashboard modes, request-budget preview, TradingView parsing contracts, UW endpoint registry, request audit helpers, option normalizers, SQL migration foundation, V1 schema expansion, capped request planner, scoring rules, structure ideas, conservative OI reconciliation, live UW flow polling, live per-ticker enrichment, computed stock analysis reports, and Postgres snapshot save/load paths.
+This repository was reset on 2026-05-11 after a prior implementation attempt was scrapped. The prior attempt produced a thorough imitation of a working scanner — typed, tested, modular — but failed three of the spec's core requirements:
 
-The app defaults to live polling when `UW_SCAN_API_KEY` is configured. Live verification has fetched 100 UW flow rows, built computed analyses for a capped set of top-premium tickers, saved a live run to local Postgres, and browser-verified the Streamlit live view. V1 remains incomplete: TradingView ingestion is not operationally wired into live runs, many normalized endpoint tables are defined but not populated, full raw API audit persistence is not connected to the live pipeline, and the analysis/scoring model is still a first-pass heuristic rather than the full desired research workflow.
+1. Schema tables existed but were not populated by the live pipeline (`raw_payloads`, `api_request_audit`, `option_contract_snapshots`, greeks, exposures, and most others).
+2. Pipe-delimited TEXT columns were used in place of normalized relational shape, in direct violation of this spec's primary storage rule.
+3. TradingView shared watchlists were "degraded" — the spec's source of truth was offline.
+
+The new plan rebuilds V1 from scratch using vertical slices. Each slice ships one end-to-end working feature with real persistence, real Postgres tests, and full error surfacing. The two report formats below are the canonical output contracts; all data infrastructure exists to produce them. See `docs/superpowers/plans/2026-05-11-uw-scan-rebuild-plan.md` for the slice-by-slice plan.
 
 ## Repository And Database
 
-- Local repo: `/Users/moremeds/projects/unusual-whales`
-- Python layout: use conventional `src/uw_scan/` package modules, `app/` for Streamlit entrypoints, `tests/` for tests, and `docs/` for specs/plans.
+- Python layout: conventional `src/uw_scan/` package modules, `app/` for Streamlit entrypoints, `tests/` for tests, and `docs/` for specs/plans.
 - Dependency manager: `uv`
 - Postgres database: `option_wizard`
 - Postgres schema: `uw_scan`
@@ -56,15 +59,201 @@ All sources feed one enrichment and scoring pipeline, but source attribution sta
 - Full option surface capability with required tiered acquisition to reduce requests.
 - Raw API payload archive plus normalized relational tables.
 
-V1 is a required product scope delivered in ordered implementation slices:
+V1 is delivered as **vertical slices**, each shipping one end-to-end working feature (UI → pipeline → API → persistence → reload) with full Implementation Guardrail compliance. Slice ordering, file ownership, and exit gates are owned by `docs/superpowers/plans/2026-05-11-uw-scan-rebuild-plan.md`. Horizontal-layer planning (build all clients, then all storage, then all UI) is explicitly rejected as the failure mode that produced the prior reset.
 
-1. Layout shell with fixture-backed view models.
-2. Postgres schema, migrations, and snapshot load/save contracts.
-3. UW API client, request audit, pagination, and normalization.
-4. UW flow source and TradingView shared watchlist source ingestion.
-5. Scoring, structure ideas, and source attribution.
-6. Tracking and conservative OI/IV reconciliation.
-7. Targeted deep surface refresh and Surface Explorer.
+## Report Formats
+
+V1 has two canonical report outputs. These are the contracts the implementation must satisfy. All data infrastructure (endpoints, normalizers, storage tables, scoring rules) exists to produce them. If a field is shown in either example, the rebuild plan must answer: which UW endpoint supplies it, which table persists it, and which derivation produces it.
+
+### Single-Stock Analysis Card
+
+Per-ticker deep-dive showing market structure, volatility, flow and positioning, VRP assessment, and a defined-risk trade plan. Rendered as a Streamlit section. This is the Slice 1 deliverable.
+
+```
+TSLA — $380.88 — BUY
+
+TSLA sits just above the GEX flip at $376 in positive gamma territory, but a
+massive $100M gamma wall at $382.50 caps immediate upside. Bullish flow (+$524M
+net premium) and historically cheap IV (rank 3.37) favor buying calls for a
+breakout above the wall. Short interest below average supports accumulation thesis.
+
+Score              +31/100
+IV Rank            3.4/100
+IV / HV            42.0% / 31.1%
+Skew               Put skew (1.4%)
+Term Structure     Contango (normal)
+Vol Regime         Low (rank 3.4)
+Net Premium (1d)   +$524.3M
+C/P Ratio          0.94
+GEX Flip           $376.25 (above)
+Short Int          43.7% [T+1]
+OI Signal          Bullish [T+1]
+Data               3/24/2026
+
+Scenarios
+  Break $382.50 wall → $392-$400 target
+  $375–$385 range-bound (GEX pinning)
+  Lose $370 support → $360 gap fill
+
+Conviction         B — Moderate | Top: Cheap IV + bullish flow
+Risk               $382.50 GEX wall may cap upside
+Watch              Break above $382.50 with volume
+
+Market Structure (score: +8/28)
+  Strike   | Net GEX        | Level
+  ---------+----------------+-------------
+  $382.50  | +$100.4M       | RESIST ★
+  $392.50  | +$28.2M        | RESIST
+  $400     | +$20.7M        | RESIST
+  $376.25  | ~0             | FLIP ◀
+  $375     | -$17.9M        | SUPPORT
+  $370     | -$44.2M        | SUPPORT ★
+  $350     | -$42.8M        | SUPPORT
+
+  GEX Flip           $376.25 — 1.2% below live price $380.88
+  Dealer Positioning Positive Gamma — dealers sell rallies, buy dips
+  Volume DEX         $380 saw $152.5M vol gamma
+  Charm Bias         Neutral at current level; negative above $400
+  Vanna Bias         Positive above $400 — vol drop would push price up
+
+Volatility (score: +8/28)
+  IV / HV            42.0% / 31.1% (spread: +10.9%)
+  IV Rank            3.4/100 (extremely cheap)
+  52w IV Range       39.3% – 107.2%
+  52w RV Range       28.5% – 112.9%
+  VRP                7.6% (thin premium)
+  Skew               Put skew — 25δ Put ~41.6% vs Call ~40.2% (Δ1.4%)
+  Term Structure     Contango (20 expirations)
+                     Near: 38.6% (11 DTE) → Mid: 41.5% (29 DTE) → Far: 45.0% (91 DTE)
+
+Flow & Positioning (+8/24 + +7/20)
+  Net Premium        +$524.3M
+  Bull / Bear Prem   $2.29B / $1.77B
+  C/P Ratio          0.94
+  Dark Pool          $2.3M (8 prints) — no conviction
+  Top Expiries       Mar 20: +$463M (0DTE opex) | Apr 17: +$94M (29 DTE)
+                     May 15: -$11M | Dec 2028: -$17M (LEAPS)
+  Short Interest     Ratio 43.7% (z: -0.78, below average)
+  OI Changes
+    Strike  | Call Vol  | Put Vol
+    --------+-----------+----------
+    $385    | 136,564   | 56,586    ← call heavy
+    $390    | 114,894   | 52,794    ← call heavy
+    $380    | 106,881   | 167,016   ← put heavy
+  Bias: Bullish above $385
+  Squeeze Risk: Low (TSLA too liquid for traditional squeeze)
+
+VRP Assessment — DO NOT SELL
+  IV rank at 3.4/100 is near the 52-week floor — options are historically cheap.
+  VRP z-score 0.28 is below entry threshold. Worst time to sell premium.
+  VRP          7.6% (IV 42.0% − RV 31.1%)
+  Z-Score      0.28
+  IV Pctile    3.4/100
+  Term Struct  Contango (ratio 0.86)
+  GEX Regime   Positive — dealers stabilizing
+  Signal       DO NOT SELL
+  Reason       Failed: VRP z-score < 0.5, IV rank < 30
+
+Bull Call Spread — TSLA
+  Buy $385 Call / Sell $400 Call — Apr 17, 2026 (24 DTE)
+  Est. Debit         ~$6.40
+  Max Profit         ~$8.60
+  Max Loss           ~$6.40
+  R:R                1.34:1
+  IV at Entry        ~42% (rank 3.4)
+
+  Reasoning: IV rank 3.4 makes this the cheapest TSLA vol in a year — ideal for
+  buying premium. The $382.50 GEX wall is massive resistance, but +$524M net
+  premium and bullish OI above $385 suggest institutional positioning for a move
+  higher. Breakout above $382.50 would target $392.50 and $400 GEX walls.
+
+Management Plan
+  • Take profit: $393-$395 (~50% of max profit)
+  • Stop loss: ~$3.20 (50% of debit)
+  • GEX stop: Close if TSLA closes below $370
+  • Time stop: Review Apr 3 (14 DTE) · Close by Apr 10 (7 DTE)
+```
+
+### Full Scan Report
+
+Market-wide screening across a universe (TradingView shared watchlist or hardcoded fallback), classifying tickers into setup types, ranking by conviction score, surfacing day-over-day flow reversals, and identifying a single top pick with secondary watchlist. This is the Slice 2 deliverable, with day-over-day deltas added in Slice 3.
+
+```
+UW Full Scan — Mar 20, 2026
+Full scan completed — Mar 20 2026 ~7:40 AM ET
+
+Screened 40 tickers via net-premium API (Mar 19 flow data) → 15 showed
+significant one-sided flow → 8 classified into setup types.
+
+Dark pool cross-referenced: NVDA (6 prints, $1.87M) and ORCL (4 prints, $2.28M)
+flagged as multi-signal confluence.
+
+Notable shift: ORCL and MSTR both reversed from heavily bearish (Mar 18) to
+bullish (Mar 19). TSLA maintains massive +$658M bullish flow for second
+consecutive day.
+
+Scan Mode          Full (all 6 signal tiers)
+Data Date          Mar 19 flow + Mar 20 DP
+Market Context     IVs near 52w lows across board
+
+Setup Candidates (8 found)
+  Ticker | Type      | Score | Key Metric            | IV Rank
+  -------+-----------+-------+-----------------------+--------
+  TSLA   | C (Bull)  | 5/5   | +$658M net, IV=0!     | 0.0
+  ORCL   | F (C+E)   | 4/5   | +$96M + 4 DP $2.3M    | 45.0
+  NVDA   | F (C+E)   | 4/5   | +$19M + 6 DP $1.9M    | 15.6
+  MU     | A (Earn)  | 4/5   | IV 65.7 + $1B prem    | 65.7
+  MSTR   | C (Bull)  | 4/5   | +$187M (reversed!)    | 27.8
+  COIN   | C (Bull)  | 3/5   | +$88M net, CP 1.16    | 35.1
+  META   | C (Bear)  | 3/5   | -$105M net prem       | 15.7
+  AMZN   | C (Bull)  | 3/5   | +$11M, CP 2.03        | 17.6
+
+Setup Type Legend
+  A = Earnings IV Crush
+  C = Deep Conviction
+  E = Dark Pool
+  F = Multi-Signal Confluence
+
+Day-over-Day Changes
+  ORCL  Flipped from -$196M (Mar 18) to +$96M (Mar 19) — massive reversal
+  MSTR  Flipped from -$200M to +$187M — crypto sentiment shift
+  TSLA  Sustained +$658M bullish for 2nd day — rare persistence
+
+Top Pick: TSLA — Type C (Deep Conviction Bull, 5/5)
+  Tesla dominates with the most extreme bullish signal in the scan: +$658M net
+  premium with IV Rank at literal zero (52-week low). Rare combination — massive
+  institutional bullish flow meeting historically cheap options.
+
+  Signals
+    • Deep Conviction Flow: +$658M net premium (top in universe)
+    • IV at 52w floor: Rank 0 — options cheapest they've been all year
+    • Dark Pool: 4 prints totaling $755K
+    • GEX: Price on $380 support, flip at $381.25, resistance $395-$410
+
+  Suggested Setup    Bull Call Spread $382.50/$395 — Apr 17 (28 DTE)
+  Position Size      3% max portfolio · 1% max loss
+
+Secondary Picks
+  ORCL (Type F)  Flow reversal -$196M → +$96M, 4 DP prints ($2.28M). Bull call
+                 spread candidate.
+  NVDA (Type F)  6 DP prints ($1.87M), +$19M flow, C/P 1.83, IV Rank 15.6 cheap.
+                 Target $185 GEX resistance.
+  MU   (Type A)  IV Rank 65.7 + $1B premium. Earnings event. Iron Condor at
+                 implied move width, or directional Bull Call.
+```
+
+### Setup Type Taxonomy
+
+Four setup classifications drive the scan's `Type` column and the suggested-structure logic. Each ships in a defined slice:
+
+| Code | Setup | Trigger | Slice |
+|---|---|---|---|
+| **C** | Deep Conviction Directional | Large single-sided net premium (≥ configurable threshold) with directional flow agreement (ask-side aggression, vol > OI, single-leg dominant) | S1, S2 |
+| **F** | Multi-Signal Confluence | Two or more of (C, dark pool ≥ threshold, opening-interest build, IV anomaly) in the same ticker on the same date | S2 |
+| **A** | Earnings IV Crush | Elevated IV rank (≥ 60) within N trading days of a known earnings date | S3 (requires earnings calendar source) |
+| **E** | Dark Pool | Significant dark pool prints (≥ configurable count and notional) corroborating equity-side accumulation | S3 (requires darkpool persistence) |
+
+V1 deliberately limits to these four; additional categories (skew anomalies, squeeze setups, GEX pinning) are noted as scoring confirmations but not promoted to top-level types until reports demand them.
 
 ## Deferred Scope
 
@@ -423,6 +612,34 @@ Validated against current public documentation on 2026-05-11:
 - `uv sync --extra postgres` is valid for optional dependencies, and `dev` dependencies belong in `[dependency-groups]` where `uv` syncs the default dev group.
 - Browser verification needs `uv run playwright install chromium` before Playwright-backed checks, and Streamlit should be started with `uv run streamlit run app/streamlit_app.py`.
 
+## Implementation Guardrails
+
+These rules close specific regression paths observed in the prior implementation attempt. They are non-negotiable for V1 and are enforced by CI tests where possible.
+
+1. **No field-name fallback chains in normalizers.** Read the exact key from a validated UW sample payload (saved under `docs/uw-samples/`), raise on absence. Banned pattern: `_first(record, "volume", "total_volume", "size", "volume_oi_ratio")` — silently coercing a missing field to a semantically different field is worse than a `KeyError`.
+
+2. **No `except Exception:` that swallows the message.** Production code logs `repr(exc)` plus full traceback; user-facing surfaces show enough information for the user to act. Banned pattern: `f"failed: {type(exc).__name__}"`.
+
+3. **No silent fallback to fixtures in production paths.** If live data fails, the report errors loudly with the cause. Fixtures exist only inside `tests/`. The app must not be able to render a dashboard from fake data without explicit user opt-in.
+
+4. **Persistence is part of "done."** Every API response writes to `raw_payloads` plus `api_request_audit`. Every normalized row writes to its typed table. A CI integration test asserts row counts in every populated table after a live-shaped run. A slice is not done if its tables are empty.
+
+5. **No fake-cursor tests for storage code.** Integration tests run against a real Postgres (local `option_wizard` DB with isolated test schema per pytest session). String-contains assertions on SQL strings are banned. Tests persist real rows through the repository, query them back, and assert semantic correctness.
+
+6. **Rate limiter enforces, doesn't just display.** A token-bucket limiter honors UW rate limits and `Retry-After` on 429 responses. The sidebar budget preview reflects actual enforcement state, not estimation theater.
+
+7. **No premature modules.** A module exists only when its content is needed by the current slice. Target: roughly 15 source files for the whole V1. A file under 50 lines is a code smell and should be inlined unless it has a clear independent purpose.
+
+8. **No dead UI controls.** Every Streamlit sidebar input is captured into a typed `RunSettings` (or equivalent) object that flows to the pipeline. A CI test renders the app under `streamlit.testing` and asserts every control affects pipeline state.
+
+9. **SQL arrays, not pipe-joined strings.** Multi-valued columns (`setup_types`, `confirmations`, `warnings`) use `TEXT[]` / `INTEGER[]`. Banned pattern: `"|".join(...)` for storing list data.
+
+10. **Date column semantics are explicit.** Every date and timestamp column carries a SQL comment describing what it represents (`market_date` = trading date the data represents; `fetched_at_utc` = when this app received the row; `event_timestamp_utc` = trade execution time when supplied by UW). A CI test asserts at least one persisted run has `market_date != expiry`.
+
+11. **Endpoint shapes are pinned to saved samples.** S0 of the rebuild plan saves a real UW payload per endpoint under `docs/uw-samples/<endpoint>.json`. Normalizers are unit-tested against those samples. If UW changes a response shape, S0 is re-run, the sample updates, and tests fail until the normalizer is updated. No normalizer ships without a corresponding sample.
+
+12. **Report contracts come before infrastructure.** Each slice ships at least one user-visible piece of the Single-Stock Card or Full Scan Report defined above. A slice that builds only infrastructure with no visible output is not a valid slice.
+
 ## Error Handling
 
 - Missing UW API key: allow snapshot mode and show setup instructions.
@@ -466,9 +683,6 @@ Browser/UI verification:
 
 ## First Layout Direction
 
-The first Streamlit layout should implement the shell before full data integration:
+Slice 1 ships the Single-Stock Card as the first user-visible deliverable. Layout sequencing is owned by the rebuild plan; this spec defines only the contracts (Report Formats above) and the guardrails (Implementation Guardrails above) the layout must satisfy.
 
-- Sidebar controls for run mode, polling interval, UW API key status, TradingView shared URLs, thresholds, run scan, save snapshot, and load snapshot.
-- Tabs: Top Opportunities, UW Flow Feed, TradingView Watchlists, Tracked Contracts, Surface Explorer, Snapshots.
-- Mock or fixture-backed tables/cards matching the final data model.
-- No real trading logic hidden in the UI layer; the layout consumes typed view models.
+See `docs/superpowers/plans/2026-05-11-uw-scan-rebuild-plan.md` for slice-by-slice layout sequencing, file ownership, and exit gates.
