@@ -411,7 +411,7 @@ Append:
 | Foundation layout | View models, fixture UI, request budget, TradingView parser contract, schema foundation |
 | Data ingestion | UW endpoint registry, audit, normalization, schema expansion, request planner |
 | Opportunity layer | Scoring, structure ideas, tracking reconciliation, pipeline boundary, Streamlit mode wiring |
-| Production hardening | Real Postgres integration test execution, live UW smoke tests, browser-rendered TradingView fallback if static parsing fails |
+| Production hardening | Real Postgres integration test execution, live UW smoke tests, browser-rendered TradingView fallback when static parsing fails |
 ```
 
 - [ ] **Step 2: Run safety checks**
@@ -434,6 +434,6 @@ git commit -m "Document UW scan v1 phase coverage"
 ## Plan Self-Review Checklist
 
 - Spec coverage: Covers opportunity-side gaps from the design: scoring, structures, tracking reconciliation, and UI pipeline boundary.
-- Known remaining gaps: Real Postgres integration test execution, live UW API smoke tests, and browser-rendered TradingView fallback are production hardening after these v1 slices.
+- Required production hardening after these v1 slices: real Postgres integration test execution, live UW API smoke tests, and browser-rendered TradingView fallback when static parsing fails.
 - Red-flag scan: No secret token is included. The plan uses `UW_SCAN_API_KEY` only as an environment variable name.
 - Execution gate: Run only after foundation and data-ingestion plans pass.

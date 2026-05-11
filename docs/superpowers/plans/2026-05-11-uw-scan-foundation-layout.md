@@ -25,7 +25,7 @@ This plan implements Phase 1 from the design spec and the validation pieces need
 - Adds tests that inspect migration content and core schema grains.
 - Adds browser-level UI verification on top of unit tests.
 
-This plan does not use the provided Unusual Whales token directly and does not commit it. Live UW API calls come in a later plan after the client and audit path are implemented.
+This plan does not use the provided Unusual Whales token directly and does not commit it. Live UW API calls are required v1 scope and are implemented by the data-ingestion plan after the client and audit path exist.
 
 Do not add top-level one-off scripts. Place implementation under logical `src/uw_scan/` subpackages and Streamlit entrypoints under `app/`.
 
@@ -252,7 +252,7 @@ Put the real Unusual Whales token in `.env` as `UW_SCAN_API_KEY`. Do not commit 
 uv run streamlit run app/streamlit_app.py
 ```
 
-The first layout uses fixture data only. Live UW polling is added in a later phase.
+The first layout uses fixture data only. Live UW polling is required v1 scope and is implemented by the data-ingestion plan.
 ```
 
 - [ ] **Step 4: Create package config implementation**
@@ -409,7 +409,6 @@ class SourceFeed(BaseModel):
     label: str
     kind: SourceKind
     url: HttpUrl | None = None
-    enabled: bool = True
     status: str = "ready"
 
 
@@ -542,10 +541,9 @@ def demo_dashboard() -> DashboardViewModel:
         label="portfolio(update daily)",
         kind=SourceKind.TRADINGVIEW,
         url="https://www.tradingview.com/watchlists/326877343/",
-        enabled=True,
         status="sample static page needs parser spike",
     )
-    uw_source = SourceFeed(label="UW Flow Poll", kind=SourceKind.UW_FLOW, enabled=True)
+    uw_source = SourceFeed(label="UW Flow Poll", kind=SourceKind.UW_FLOW, status="ready")
 
     return DashboardViewModel(
         generated_at_utc=generated_at,
@@ -1280,9 +1278,9 @@ def render_sidebar(config: UwScanConfig):
     st.sidebar.text_input("TradingView shared URL", value="https://www.tradingview.com/watchlists/326877343/")
     st.sidebar.number_input("Max requests per cycle", min_value=25, max_value=1000, value=config.max_requests_per_cycle, step=25)
     st.sidebar.caption("UW API key: configured" if config.api_key else "UW API key: not configured")
-    st.sidebar.button("Run scan", disabled=mode == "Fixture")
-    st.sidebar.button("Save snapshot", disabled=True)
-    st.sidebar.button("Load snapshot", disabled=True)
+    st.sidebar.button("Run scan")
+    st.sidebar.button("Save snapshot")
+    st.sidebar.button("Load snapshot")
     return mode
 
 
@@ -1406,7 +1404,7 @@ Modify `README.md` so it includes:
 
 The current implementation is fixture-backed. It verifies the dashboard shape, config loading, request-budget preview, TradingView parser contract, and schema migration foundation.
 
-Live UW API polling is intentionally deferred until the request audit and normalization layer are implemented.
+Live UW API polling is required v1 scope and is implemented after the request audit and normalization layer are in place.
 ```
 
 - [ ] **Step 2: Run full verification**
@@ -1436,7 +1434,7 @@ git commit -m "Document UW scan foundation phase"
 
 ## Plan Self-Review Checklist
 
-- Spec coverage: This plan covers the first layout, secret handling, config, TradingView parser spike, request-budget planner, schema migration foundation, typed relational grains, raw payload storage decision, and fixture-backed UI. It does not implement live UW API calls, live Postgres persistence, scoring rules, tracking reconciliation, or deep surface retrieval; those are later implementation plans.
+- Spec coverage: This plan covers the first layout, secret handling, config, TradingView parser spike, request-budget planner, schema migration foundation, typed relational grains, raw payload storage decision, and fixture-backed UI. Required v1 work for live UW API calls, live Postgres persistence, scoring rules, tracking reconciliation, and deep surface retrieval is covered by the data-ingestion and opportunity-layer plans.
 - Red-flag scan: The plan intentionally avoids committed secret values. No committed secret token appears in the plan.
 - Type consistency: `DashboardViewModel`, `RequestBudgetSummary`, `UwScanConfig`, and parser result names are defined before use.
 - Execution gate: After this plan passes, write the next plan for live UW client plus request audit and normalization.

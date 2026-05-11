@@ -901,6 +901,6 @@ git commit -m "Add capped request planner"
 ## Plan Self-Review Checklist
 
 - Spec coverage: Covers data-side gaps from the design: live endpoint registry, request fingerprints, raw payload compression, normalizers, full schema expansion, and capped request planning.
-- Known remaining gaps: opportunity scoring, structure ideas, tracking reconciliation, snapshot replay wiring, and Streamlit live-mode wiring are covered by `2026-05-11-uw-scan-opportunity-layer.md`.
+- Required remaining v1 scope: opportunity scoring, structure ideas, tracking reconciliation, snapshot replay wiring, and Streamlit live-mode wiring are covered by `2026-05-11-uw-scan-opportunity-layer.md`.
 - Red-flag scan: No secret token is included. The plan uses `UW_SCAN_API_KEY` only as an environment variable name.
 - Execution gate: Run only after the foundation/layout plan passes.

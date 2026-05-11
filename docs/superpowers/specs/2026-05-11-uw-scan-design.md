@@ -47,10 +47,10 @@ All sources feed one enrichment and scoring pipeline, but source attribution sta
 - OI/IV reconciliation labels: likely opening, closing, rolling, fading, hedge, or unknown.
 - Opportunity scoring from the extracted scan logic.
 - Suggested trade structures without sizing.
-- Full option surface capability, but tiered by default to reduce requests.
+- Full option surface capability with required tiered acquisition to reduce requests.
 - Raw API payload archive plus normalized relational tables.
 
-V1 is a product scope, not a single coding step. Implementation should be phased:
+V1 is a required product scope delivered in ordered implementation slices:
 
 1. Layout shell with fixture-backed view models.
 2. Postgres schema, migrations, and snapshot load/save contracts.
@@ -91,7 +91,7 @@ TradingView shared watchlists remain external sources of truth. V1 should not ed
 - Source label.
 - Owner/person label when useful.
 - Shared URL.
-- Enabled/disabled flag.
+- Source type and status.
 
 Each import run writes:
 
@@ -107,7 +107,7 @@ Sample source for validation:
 
 - `https://www.tradingview.com/watchlists/326877343/`
 
-Initial review of that URL shows the static HTML can expose watchlist metadata such as the page title, but not necessarily the watchlist symbols. The implementation plan must include a Phase 0 spike that proves symbol extraction from one or more real shared URLs before the app relies on TradingView ingestion. If static parsing fails, the v1 parser can use a browser-rendered retrieval strategy or mark the source as failed while the UW flow source continues.
+Initial review of that URL shows the static HTML can expose watchlist metadata such as the page title, but not necessarily the watchlist symbols. The implementation plan must prove symbol extraction from one or more real shared URLs before the app relies on TradingView ingestion. If static parsing fails, v1 must use a browser-rendered retrieval strategy or mark only that source as failed while the UW flow source continues.
 
 ### Tracked Contracts
 
@@ -128,7 +128,7 @@ Saved polling runs, reloadable as-of views, source metadata, and run status.
 - `uw_scan.ingest`: polling runs, dedupe, batch planning, and acquisition tiers.
 - `uw_scan.normalize`: converts UW/TradingView responses into typed domain rows.
 - `uw_scan.storage`: Postgres schema creation, inserts, loads, and snapshot queries.
-- `uw_scan.scoring`: conviction score, setup classification, confirmation flags, and warnings.
+- `uw_scan.scoring`: conviction score, setup classification, confirmation signals, and warnings.
 - `uw_scan.tracking`: tracked contract/expiry lifecycle and OI/IV reconciliation.
 - `uw_scan.structures`: trade structure idea selection without sizing.
 - `uw_scan.ui`: Streamlit views.
@@ -364,7 +364,7 @@ The app should expose request caps in the sidebar or config so polling cannot ac
 - Max deep-surface tickers per cycle: 8.
 - Max important expiries per ticker for greeks/exposure: 4.
 - Max option-contract pages per ticker in normal mode: 2.
-- Full surface refresh requires explicit user action or a high-confidence tracking rule.
+- Full surface refresh is required for selected high-confidence tracked tickers and can also be triggered by explicit user action.
 - Concurrency should be bounded and retry/backoff should respect UW rate-limit responses.
 
 Before a live run, the UI should show a request-budget preview with estimated calls by tier. The planner should enforce a hard `max_requests_per_cycle` default of 250 and stop lower-priority enrichment before exceeding it.
