@@ -1,0 +1,14 @@
+.DS_Store
+.env
+.env.*
+!.env.example
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.streamlit/secrets.toml
+.superpowers/
+.worktrees/
+*.egg-info/
