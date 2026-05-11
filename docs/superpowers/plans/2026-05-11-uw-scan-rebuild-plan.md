@@ -27,6 +27,49 @@
 - Each slice's exit gate must include passing integration tests against real Postgres, not fake cursors.
 - Setup type rollout: S1 = C only; S2 adds F; S3 adds A + E.
 - The Streamlit "Surface Explorer" tab is **not** a separate deliverable — its data is rendered inline as the Market Structure section of the Single-Stock Card (S1).
+- **Slice dependencies:** S2 hard-depends on S1. S3 hard-depends on S2 (day-over-day requires ≥ 2 days of S2-persisted scan data). S4 hard-depends on S2 (replaces hardcoded universe). **S5 hard-depends on S1 only**; S3's day-over-day data enriches reconciliation context but is not required (S5 can run after S1+S2). S6 hard-depends on all prior slices.
+- **CI workflow ownership:** S1 creates `.github/workflows/ci.yml` with the initial gate (ruff + pytest + integration tests). S6 *extends* the same workflow file with pyright, coverage gate, secret scan, and the Implementation Guardrails grep checks. Only one `ci.yml` exists across V1.
+
+---
+
+## Canonical Table Inventory
+
+The spec's "Storage Model" enumerates V1 tables. The plan's slice ordering populates them across S1-S6. This single table is the source of truth — any future drift between spec and plan is reconciled here first.
+
+| Table | Source | Owning slice | Notes |
+|---|---|---|---|
+| `scan_runs` | spec | S1 | One row per polling/snapshot run |
+| `source_feeds` | spec | S4 | TradingView watchlist source definitions |
+| `source_imports` | spec | S4 | One row per (run, source, symbol) |
+| `api_request_audit` | spec | S1 | Every UW request, every run |
+| `raw_payloads` | spec | S1 | Compressed BYTEA bodies linked from audit |
+| `flow_events` | spec | S1 | Normalized UW flow rows |
+| `option_contract_snapshots` | spec | S1 | Contract-level IV/OI/volume/prices |
+| `option_surface_snapshots` | spec | **S6** | Surface pagination metadata — S1 doesn't paginate full surface, so this lands when S6 adds the full-surface refresh path |
+| `greeks_by_expiry_strike` | spec | S1 | Delta/gamma/theta/vega/rho/vanna/charm |
+| `exposures_by_expiry_strike` | spec | S1 | GEX/DEX/vanna/charm exposures |
+| `oi_by_expiry` | spec | **S6** | Per-expiry OI aggregates — S1 uses per-strike only; S6 adds the per-expiry view |
+| `oi_by_strike` | spec | S1 | Per-strike OI |
+| `oi_change_events` | spec | S1 | Contract-level OI deltas |
+| `iv_rank_history` | spec | S1 | IV rank + IV rank deltas |
+| `iv_term_snapshots` | spec | S1 | Term structure |
+| `interpolated_iv_snapshots` | spec | S1 | Standard tenor IV + percentile |
+| `realized_volatility_history` | spec | S1 | RV + stock price |
+| `risk_reversal_skew_history` | spec | S1 | 25Δ skew |
+| `max_pain_by_expiry` | spec | S1 | Max pain |
+| `dark_pool_events` | spec | S1 | Dark pool prints |
+| `short_interest_snapshots` | spec | S1 | Short interest / utilization / DTC |
+| `tracked_items` | spec | S5 | Tracked contracts + expiry groups |
+| `tracking_observations` | spec | S5 | OI/IV observations for tracked items |
+| `opportunity_scores` | spec | S1 | Score + setup_types[] + warnings[] |
+| `structure_ideas` | spec | S1 | Suggested structures per opportunity |
+| `volatility_stats_history` | **new (plan)** | S1 | Persisted output of `/volatility/stats` — the spec mentions the endpoint at "UW API Capability Matrix" but did not enumerate a dedicated table. Plan adds it so IV/HV history is queryable without parsing raw payloads. |
+| `scan_universe` | **new (plan)** | S2 | Per-run snapshot of which tickers were screened. Required for S3's day-over-day comparisons. |
+| `scan_results` | **new (plan)** | S2 | Per-run scan-level setup classifications and rankings. Distinct from `opportunity_scores` (which is per-flow-row); `scan_results` is per-ticker-per-scan. |
+| `flow_daily_summary` | **new (plan)** | S3 | Materialized day-level net-premium / bull-bear / C/P aggregates per ticker. Enables day-over-day deltas without re-aggregating from `flow_events`. |
+| `earnings_dates` | **new (plan)** | S3 | Earnings calendar source data for Setup Type A classification. |
+
+**Total: 25 spec tables + 5 plan-introduced tables = 30.** The plan-introduced tables are explicitly justified above. If S6 reaches and still has empty `option_surface_snapshots` or `oi_by_expiry`, document the deferral with rationale in `DEFERRED.md` rather than silently dropping them.
 
 ---
 
@@ -98,11 +141,10 @@ docs/
 **Why TDD does not apply here:** S0 produces sample payloads, not behavior. There is nothing to write a test for until the samples exist. S1 begins TDD.
 
 **Files:**
-- Create: `scripts/s0_probe_endpoint.py` (throwaway probe script, deleted after S0)
+- Create: `scripts/s0_probe_endpoint.py` — reproducible probe tooling. Kept after S0 so the sample set can be re-captured when UW changes endpoint shapes. (AGENTS.md prohibits *monolithic* top-level scripts that contain business logic; a one-purpose probe utility under `scripts/` is an explicit exception. Future production code stays under `src/uw_scan/`.)
 - Create: `docs/uw-samples/.gitkeep`
 - Create: `docs/uw-samples/<endpoint-slug>.json` (one per endpoint)
 - Create: `docs/uw-samples/README.md` (summary of findings + surprises)
-- Modify: `.gitignore` (ensure scripts/ is not ignored; ensure `.env` stays ignored)
 
 **Endpoints to probe (16 + 1 bulk screener):**
 
@@ -114,7 +156,7 @@ docs/
 | 4 | realized_volatility | `/api/stock/{ticker}/volatility/realized` | — | 52w RV range, RV value |
 | 5 | term_structure | `/api/stock/{ticker}/volatility/term-structure` | — | Term structure section |
 | 6 | interpolated_iv | `/api/stock/{ticker}/interpolated-iv` | — | IV percentile, implied move |
-| 7 | skew | `/api/stock/{ticker}/historical-risk-reversal-skew` | — | 25Δ skew |
+| 7 | skew | `/api/stock/{ticker}/historical-risk-reversal-skew` | `expiry=YYYY-MM-DD`, `delta=25` | 25Δ skew (UW OpenAPI: both params required) |
 | 8 | greek_exposure | `/api/stock/{ticker}/greek-exposure/strike-expiry` | `expiry=YYYY-MM-DD` | GEX levels table |
 | 9 | spot_exposures | `/api/stock/{ticker}/spot-exposures/expiry-strike` | `expirations[]=YYYY-MM-DD` | DEX, vanna, charm bias |
 | 10 | greeks | `/api/stock/{ticker}/greeks` | `expiry=YYYY-MM-DD` | Greeks for vanna/charm |
@@ -123,7 +165,8 @@ docs/
 | 13 | max_pain | `/api/stock/{ticker}/max-pain` | — | Max pain context |
 | 14 | option_contracts | `/api/stock/{ticker}/option-contracts` | `limit=50` | Contract mid for trade plan economics + spot derivation |
 | 15 | darkpool_ticker | `/api/darkpool/{ticker}` | — | Dark pool prints |
-| 16 | short_data | `/api/shorts/{ticker}/data` | — | Short Int field (path TBD — confirm in S0) |
+| 16 | short_data | `/api/shorts/{ticker}/data` | — | Short Int field (path verified against UW OpenAPI) |
+| 16b | option_contracts (by symbol) | `/api/stock/{ticker}/option-contracts` | `option_symbol[]=<OCC1>,<OCC2>` | Exact-contract refresh for S1 trade plan strikes — second probe of the same endpoint with a different param set |
 | 17 | bulk net-premium | unknown | — | S2 scan over universe — **research only**, may not exist |
 
 **Test ticker:** TSLA (matches the example report in the spec, has all data types populated).
@@ -144,8 +187,10 @@ touch /Users/chenxi/projects/unusual-whales/docs/uw-samples/.gitkeep
 
 - [ ] **Step 2: Verify**
 
-Run: `ls /Users/chenxi/projects/unusual-whales/docs/uw-samples/`
-Expected: `.gitkeep`
+Run: `test -f /Users/chenxi/projects/unusual-whales/docs/uw-samples/.gitkeep && echo ok`
+Expected: `ok`
+
+(Note: bare `ls` hides dotfiles by default, so `.gitkeep` would not appear. `test -f` is unambiguous.)
 
 ---
 
@@ -165,7 +210,7 @@ Create `scripts/s0_probe_endpoint.py` with this content:
 ```python
 """S0 endpoint probe — saves real UW payloads to docs/uw-samples/.
 
-Throwaway script. Deleted at end of S0.
+Reproducible. Re-run when UW changes endpoint shapes.
 
 Usage:
     UW_SCAN_API_KEY=... uv run python scripts/s0_probe_endpoint.py <slug>
@@ -188,15 +233,22 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 SAMPLES_DIR = REPO_ROOT / "docs" / "uw-samples"
 TICKER = "TSLA"
 BASE_URL = "https://api.unusualwhales.com"
+SKEW_DELTA = 25  # UW historical-risk-reversal-skew requires a delta; 25 is the standard 25Δ point.
 
 
 def _next_friday(today: date) -> str:
+    """Return the next Friday's date as ISO string. If today IS Friday, return today + 7."""
     days_ahead = (4 - today.weekday()) % 7 or 7
     return (today + timedelta(days=days_ahead)).isoformat()
 
 
 EXPIRY = _next_friday(date.today())
 
+# Each entry: slug → (endpoint_path, params_dict).
+# `option_contracts` is probed twice: once ticker-scoped, once option_symbol[]-scoped,
+# because S1 needs both shapes (broad surface + exact-contract refresh for trade plan economics).
+# The option_symbol[] probe uses two placeholder OCC strings — fix them after the first
+# probe of `option_contracts` reveals real symbols.
 ENDPOINTS: dict[str, tuple[str, dict[str, object]]] = {
     "flow_alerts":          ("/api/option-trades/flow-alerts",                    {"limit": 100}),
     "iv_rank":              (f"/api/stock/{TICKER}/iv-rank",                      {}),
@@ -204,7 +256,7 @@ ENDPOINTS: dict[str, tuple[str, dict[str, object]]] = {
     "realized_volatility":  (f"/api/stock/{TICKER}/volatility/realized",          {}),
     "term_structure":       (f"/api/stock/{TICKER}/volatility/term-structure",    {}),
     "interpolated_iv":      (f"/api/stock/{TICKER}/interpolated-iv",              {}),
-    "skew":                 (f"/api/stock/{TICKER}/historical-risk-reversal-skew",{}),
+    "skew":                 (f"/api/stock/{TICKER}/historical-risk-reversal-skew",{"expiry": EXPIRY, "delta": SKEW_DELTA}),
     "greek_exposure":       (f"/api/stock/{TICKER}/greek-exposure/strike-expiry", {"expiry": EXPIRY}),
     "spot_exposures":       (f"/api/stock/{TICKER}/spot-exposures/expiry-strike", {"expirations[]": [EXPIRY]}),
     "greeks":               (f"/api/stock/{TICKER}/greeks",                       {"expiry": EXPIRY}),
@@ -212,48 +264,73 @@ ENDPOINTS: dict[str, tuple[str, dict[str, object]]] = {
     "oi_change":            (f"/api/stock/{TICKER}/oi-change",                    {}),
     "max_pain":             (f"/api/stock/{TICKER}/max-pain",                     {}),
     "option_contracts":     (f"/api/stock/{TICKER}/option-contracts",             {"limit": 50}),
+    "option_contracts_by_symbol": (f"/api/stock/{TICKER}/option-contracts",       {"option_symbol[]": ["TSLA260417C00385000", "TSLA260417C00400000"]}),
     "darkpool_ticker":      (f"/api/darkpool/{TICKER}",                           {}),
     "short_data":           (f"/api/shorts/{TICKER}/data",                        {}),
 }
 
 
-def probe(slug: str) -> None:
+def _save(out: Path, payload: dict[str, object]) -> None:
+    SAMPLES_DIR.mkdir(parents=True, exist_ok=True)
+    out.write_text(json.dumps(payload, indent=2, default=str))
+
+
+def probe(slug: str, client: httpx.Client, api_key: str) -> None:
     if slug not in ENDPOINTS:
         sys.exit(f"unknown slug: {slug!r}. Known: {sorted(ENDPOINTS)}")
-    api_key = os.environ.get("UW_SCAN_API_KEY")
-    if not api_key:
-        sys.exit("UW_SCAN_API_KEY not set")
 
     endpoint, params = ENDPOINTS[slug]
     url = f"{BASE_URL}{endpoint}"
-    with httpx.Client(timeout=30.0) as client:
-        resp = client.get(url, params=params, headers={"Authorization": f"Bearer {api_key}"})
-    out = SAMPLES_DIR / f"{slug}.json"
-    SAMPLES_DIR.mkdir(parents=True, exist_ok=True)
-    record = {
+    resp = client.get(url, params=params, headers={"Authorization": f"Bearer {api_key}"})
+
+    # Save body even when JSON decoding fails — undocumented error payloads are
+    # exactly what S0 needs to capture.
+    content_type = resp.headers.get("content-type", "")
+    body: object
+    json_parse_error: str | None = None
+    if content_type.startswith("application/json"):
+        try:
+            body = resp.json()
+        except ValueError as exc:
+            body = resp.text
+            json_parse_error = repr(exc)
+    else:
+        body = resp.text
+
+    record: dict[str, object] = {
         "endpoint": endpoint,
-        "params": {k: v for k, v in params.items()},
+        "params": dict(params),
         "status_code": resp.status_code,
         "headers": dict(resp.headers),
-        "body": resp.json() if resp.headers.get("content-type", "").startswith("application/json") else resp.text,
+        "body": body,
     }
-    out.write_text(json.dumps(record, indent=2, default=str))
-    print(f"{slug:24s} {resp.status_code}  →  {out.relative_to(REPO_ROOT)}")
+    if json_parse_error is not None:
+        record["json_parse_error"] = json_parse_error
+
+    out = SAMPLES_DIR / f"{slug}.json"
+    _save(out, record)
+    print(f"{slug:32s} {resp.status_code}  →  {out.relative_to(REPO_ROOT)}")
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser()
-    parser.add_argument("slug", nargs="?")
-    parser.add_argument("--all", action="store_true")
+    parser = argparse.ArgumentParser(description="Probe a UW endpoint and save its real payload.")
+    group = parser.add_mutually_exclusive_group(required=True)
+    group.add_argument("slug", nargs="?", default=None, help="endpoint slug (see ENDPOINTS keys)")
+    group.add_argument("--all", action="store_true", help="probe every endpoint in ENDPOINTS")
     args = parser.parse_args()
 
-    if args.all:
-        for slug in ENDPOINTS:
-            probe(slug)
-    elif args.slug:
-        probe(args.slug)
-    else:
-        parser.print_help()
+    if not args.all and not args.slug:
+        parser.error("provide a slug or --all")
+
+    api_key = os.environ.get("UW_SCAN_API_KEY")
+    if not api_key:
+        sys.exit("UW_SCAN_API_KEY not set in environment")
+
+    # Pool one client for the whole run — connection reuse matters when probing 17+ endpoints.
+    with httpx.Client(timeout=30.0) as client:
+        targets = list(ENDPOINTS) if args.all else [args.slug]
+        for slug in targets:
+            probe(slug, client, api_key)
 
 
 if __name__ == "__main__":
@@ -267,7 +344,9 @@ Expected: `ok`
 
 ---
 
-### Task S0.3: Configure the API key
+### Task S0.3: Configure the API key — **[HUMAN-GATE]**
+
+> **Subagent execution must pause here and prompt the user.** A subagent has no UW API token and cannot complete Step 2. The user types the token themselves (or runs the `echo` command below directly). Resume to S0.4 only after this task closes.
 
 **Files:**
 - Modify: `/Users/chenxi/projects/unusual-whales/.env` (do NOT commit)
@@ -279,9 +358,15 @@ cd /Users/chenxi/projects/unusual-whales
 [ -f .env ] || cp .env.example .env
 ```
 
-- [ ] **Step 2: Add the real UW API key to `.env`**
+- [ ] **Step 2: Write the real UW API key into `.env`** *(user action)*
 
-Open `.env` and set `UW_SCAN_API_KEY=<real-token>`. Confirm `.env` is in `.gitignore`:
+The user runs this themselves with their real token (or edits `.env` in an editor):
+
+```bash
+echo "UW_SCAN_API_KEY=<real-token-here>" >> /Users/chenxi/projects/unusual-whales/.env
+```
+
+Then verify `.env` is gitignored:
 
 ```bash
 grep -q '^\.env$' .gitignore && echo "ok: .env is gitignored" || echo "FIX: add .env to .gitignore"
@@ -291,7 +376,7 @@ Expected: `ok: .env is gitignored`
 
 ---
 
-### Task S0.4: Probe one endpoint (smoke test the probe)
+### Task S0.4: Smoke-test the probe against one endpoint
 
 - [ ] **Step 1: Source env and probe flow_alerts**
 
@@ -301,23 +386,21 @@ set -a; source .env; set +a
 uv run python scripts/s0_probe_endpoint.py flow_alerts
 ```
 
-Expected: `flow_alerts              200  →  docs/uw-samples/flow_alerts.json`
+Expected: `flow_alerts                      200  →  docs/uw-samples/flow_alerts.json`
 
-If status is not 200, STOP. Read the saved JSON to see the actual error and fix auth / URL before continuing.
+If status is not 200, STOP. Read the saved JSON to see the actual error (the body is preserved even on non-200) and fix auth / URL before continuing.
 
-- [ ] **Step 2: Inspect the payload shape**
+- [ ] **Step 2: Confirm the payload was written and is parseable**
 
 ```bash
-jq 'keys' docs/uw-samples/flow_alerts.json
-jq '.body | type' docs/uw-samples/flow_alerts.json
-jq '.body | if type == "array" then .[0] | keys elif type == "object" then keys else . end' docs/uw-samples/flow_alerts.json
+jq '.status_code, (.body | type)' docs/uw-samples/flow_alerts.json
 ```
 
-Note the top-level shape (list vs `{data: [...]}` etc) and the keys of the first row. Record them for the README in Task S0.6.
+Expected: `200` on the first line, then `array` or `object`. If `jq` errors, the script's JSON-decode fallback may have produced a string body — check the file for `json_parse_error` and resolve before continuing.
 
 ---
 
-### Task S0.5: Probe all remaining endpoints
+### Task S0.5: Probe every remaining endpoint
 
 - [ ] **Step 1: Run --all**
 
@@ -327,136 +410,179 @@ set -a; source .env; set +a
 uv run python scripts/s0_probe_endpoint.py --all
 ```
 
-Expected: 16 lines, one per endpoint. Status codes should be 200 or documented (401, 403, 404, 422 etc with explanation).
+Expected: ~17 lines printed (16 base endpoints + the `option_contracts_by_symbol` second-probe variant). Status codes should be 200, or one of {401, 403, 404, 422} with a body that documents the cause.
 
-- [ ] **Step 2: Verify all 16 JSON files exist**
+- [ ] **Step 2: Verify the expected number of JSON files exist**
 
 ```bash
 ls docs/uw-samples/*.json | wc -l
 ```
 
-Expected: `16`
+Expected: `17` (16 endpoints + `option_contracts_by_symbol`; or higher if S0.7 adds bulk-screener candidates first).
 
-- [ ] **Step 3: Per endpoint, inspect the body shape**
+---
 
-For each `docs/uw-samples/*.json`, run:
+### Task S0.6: Generate the per-endpoint shape summary
+
+One jq pipeline produces a markdown summary of every saved payload. The output goes into the Findings README in S0.8.
+
+- [ ] **Step 1: Generate shape summary as a markdown file**
 
 ```bash
-jq -r '"\(input_filename): status=\(.status_code) type=\(.body | type) keys=\(.body | if type == "array" then .[0] | keys elif type == "object" then keys else "scalar" end)"' docs/uw-samples/*.json
+cd /Users/chenxi/projects/unusual-whales
+{
+  for f in docs/uw-samples/*.json; do
+    slug=$(basename "$f" .json)
+    echo "### ${slug}"
+    jq -r '
+      "- Path: `\(.endpoint)`",
+      "- Status: \(.status_code)",
+      "- Params: `\(.params | tostring)`",
+      "- Body type: \(.body | type)",
+      "- Top-level keys: \(.body | if type == "array" then (.[0] // {}) | keys | join(", ") elif type == "object" then keys | join(", ") else "scalar" end)",
+      "- Pagination hints: \(.body | if type == "object" then [.next_page?, .has_more?, .total?, .page?] | map(select(. != null)) | tostring else "n/a" end)",
+      (if .json_parse_error then "- JSON parse error: \(.json_parse_error)" else empty end)
+    ' "$f"
+    echo
+  done
+} > docs/uw-samples/_shape-summary.md
+wc -l docs/uw-samples/_shape-summary.md
 ```
 
-Note any 4xx/5xx responses. These need a Findings entry in S0.6.
+Expected: line count > 100 (six lines × 17 endpoints minimum, plus headers and blanks).
+
+- [ ] **Step 2: Inspect the summary for any non-200 responses**
+
+```bash
+grep -nE "Status: (4|5)[0-9]{2}" docs/uw-samples/_shape-summary.md
+```
+
+For each non-200 hit, read the body in `docs/uw-samples/<slug>.json` and note the cause (auth, entitlement, required-param, etc) — this becomes a per-endpoint "Surprises" note in S0.8.
 
 ---
 
-### Task S0.6: Research bulk net-premium screener
+### Task S0.7a: Research the bulk net-premium screener
 
-The Full Scan (S2) needs cross-ticker net premium ranking over ~40 tickers. Per-ticker fanout is expensive. UW may or may not have a bulk endpoint.
+The Full Scan (S2) needs cross-ticker net premium ranking over ~40 tickers. Per-ticker fanout costs ~40 × calls; a bulk endpoint, if it exists, is much cheaper.
 
-- [ ] **Step 1: Search UW public API docs for a bulk screener**
+- [ ] **Step 1: Search the UW OpenAPI for bulk candidates**
 
-Open https://api.unusualwhales.com/docs in a browser. Search for endpoints matching:
-- "net-prem-ticks" / "net-premium"
-- "screener" / "scanner"
-- "group-flow" / "market-flow"
-- "spike" / "alerts"
+```bash
+# Open the OpenAPI in the browser, or curl + grep:
+curl -s https://api.unusualwhales.com/api/openapi | jq '.paths | keys[]' | grep -iE "net-prem|screener|scanner|group-flow|market-flow|spike|gainers|movers"
+```
 
-For each candidate found, note: path, params, whether it returns multi-ticker, expected use.
+For each match, note: path, required params, whether it returns multi-ticker, expected use.
 
-- [ ] **Step 2: Probe each candidate (if any)**
+- [ ] **Step 2: Add candidates to the probe script and run them**
 
-Add the candidate to `ENDPOINTS` in `scripts/s0_probe_endpoint.py`, rerun the probe for it, save the payload as `docs/uw-samples/bulk_net_premium_<candidate>.json`.
+For each candidate path, add an entry to the `ENDPOINTS` dict in `scripts/s0_probe_endpoint.py` (slug prefix `bulk_`), then:
 
-- [ ] **Step 3: Record the answer**
+```bash
+uv run python scripts/s0_probe_endpoint.py --all
+```
 
-The S0.7 README must answer: "Is there a bulk net-premium endpoint? If yes, name and shape. If no, S2 will fan out per-ticker — estimated request cost: ~40 × calls per ticker."
+Expected: every candidate produces a sample in `docs/uw-samples/bulk_<slug>.json`.
+
+### Task S0.7b: Record the S2-cost conclusion
+
+- [ ] **Step 1: Write the bulk-screener conclusion line**
+
+In a scratch file (`/tmp/s0-bulk-finding.txt`) write **one** of these conclusions, with the cited endpoint or cost estimate:
+
+- `BULK_FOUND: <endpoint path> returns net premium for N tickers per call.`
+- `NO_BULK: S2 will fan out per-ticker. Estimated cost = <tickers> × <calls/ticker> ≈ <N> requests per scan cycle.`
+
+This single line is pasted into the Findings README in S0.8.
 
 ---
 
-### Task S0.7: Write the Findings README
+### Task S0.8a: Author the Findings README header + meta sections
 
 **Files:**
 - Create: `docs/uw-samples/README.md`
 
-- [ ] **Step 1: Author the README**
+- [ ] **Step 1: Create the README with header, ticker, auth observations, and open questions sections**
 
-Use this exact structure:
+Substitute today's date into the placeholder:
 
-```markdown
+```bash
+TODAY=$(date +%Y-%m-%d)
+cat > docs/uw-samples/README.md <<EOF
 # UW Endpoint Sample Payloads
 
-These payloads were captured on YYYY-MM-DD by `scripts/s0_probe_endpoint.py`
-against the live UW API using a real API key. They serve as the contract tests
-for normalizers: every normalizer in `src/uw_scan/normalize.py` is unit-tested
-against the corresponding sample here.
+Captured on ${TODAY} by \`scripts/s0_probe_endpoint.py\` against the live UW API.
+These payloads serve as the contract tests for normalizers: every normalizer in
+\`src/uw_scan/normalize.py\` is unit-tested against the corresponding sample here.
 
-If UW changes a response shape, the affected sample must be re-captured,
-the failing normalizer test inspected, and the normalizer updated.
+If UW changes a response shape, the affected sample is re-captured, the failing
+normalizer test is inspected, and the normalizer is updated.
 
 ## Test ticker
 
-TSLA. Selected because it has populated values in every field of the
+TSLA — selected because it has populated values in every field of the
 Single-Stock Card example in the spec.
 
 ## Per-endpoint shape summary
 
-For each endpoint:
-- Top-level body type
-- Top-level keys (if object) or first-row keys (if list)
-- Pagination indicators (next_page, total, has_more, etc)
-- Notable surprises
+(see _shape-summary.md for the mechanical jq output; supplement here with surprises only)
 
-### flow_alerts
-- Path: `/api/option-trades/flow-alerts`
-- Status: 200
-- Body type: <list | object>
-- Top-level structure: <fill in from jq>
-- Per-row keys: <fill in from jq>
-- Pagination: <yes/no — describe>
-- Surprises: <e.g. "premium is returned as a string, not a number">
+EOF
+```
 
-### iv_rank
-- Path: `/api/stock/TSLA/iv-rank`
-- ... (same template)
+- [ ] **Step 2: Append the auth + rate-limit + open-questions sections from observations**
 
-(repeat for all 16 endpoints)
+Append to `docs/uw-samples/README.md`:
 
+```markdown
 ## Bulk net-premium screener research
 
-- Searched UW public API docs for: net-prem-ticks, screener, group-flow, market-flow, spike.
-- Found: <YES with endpoint X / NO>.
-- S2 implication: <"Use bulk endpoint X" / "S2 will fan out per-ticker — estimated cost N requests per scan">.
+(paste the single conclusion line from /tmp/s0-bulk-finding.txt produced in S0.7b)
 
 ## Auth + rate limit observations
 
 - Header used: `Authorization: Bearer <token>`
-- Rate limit headers observed: <X-RateLimit-Limit, X-RateLimit-Remaining, Retry-After — list any present>
-- 429 behavior: <observed or not during the spike>
+- Rate-limit headers observed: (inspect any `docs/uw-samples/*.json` `.headers` for keys like `x-ratelimit-*`, `retry-after`)
+- 429 behavior: (observed during probe / not observed)
 
 ## Open questions for S1
 
-List anything that surprised us and needs design attention before S1 starts.
-For example:
-- "Greeks endpoint returns vanna/charm for the requested expiry only, not aggregated"
-- "spot-exposures requires expirations[] not expiry — array syntax"
-- "Short data path may be /api/shorts/{ticker}/data or /api/stock/{ticker}/short-data — confirm"
+(none / one bullet per surprise that needs design attention before S1)
 ```
 
-- [ ] **Step 2: Fill in every section from the actual saved samples**
+The author fills the parenthesized items from concrete observations. No template ellipses, no `<fill in>` markers.
 
-Use `jq` against each file in `docs/uw-samples/*.json` to extract the shape info and paste it into the README. Every endpoint subsection must be filled in — no placeholders.
+### Task S0.8b: Append per-endpoint shape sections
 
-- [ ] **Step 3: Verify no `TBD`, `TODO`, or `<fill in>` left in the README**
+- [ ] **Step 1: Inline the generated shape summary**
 
 ```bash
-grep -nE "TBD|TODO|FIXME|<fill in>|<yes/no>|<same template>" docs/uw-samples/README.md && echo "FAIL: placeholders remain" || echo "ok: no placeholders"
+cd /Users/chenxi/projects/unusual-whales
+cat docs/uw-samples/_shape-summary.md >> docs/uw-samples/README.md
 ```
 
-Expected: `ok: no placeholders`
+- [ ] **Step 2: For each endpoint subsection in the README, add a single `- Surprises:` line**
+
+For each `### <slug>` heading already in the README from the previous step, append one line manually:
+
+- If the endpoint behaved as expected: `- Surprises: none`
+- If something was unexpected: `- Surprises: <concrete observation>` (e.g. `premium returned as string not number`, `pagination via opaque cursor, not page number`, `409 returned when expiry is a holiday`, etc.)
+
+This is the only manual content — every other line in the per-endpoint section came from jq.
+
+### Task S0.8c: Verify the README has no placeholders
+
+- [ ] **Step 1: Run the expanded placeholder scan**
+
+```bash
+grep -nE "TBD|TODO|FIXME|<fill in>|<yes/no>|<same template>|same template|repeat for all|\\.\\.\\." docs/uw-samples/README.md && echo "FAIL: placeholders remain" || echo "ok: no placeholders"
+```
+
+Expected: `ok: no placeholders`. If FAIL, edit the file to remove or fill the flagged lines, then re-run.
 
 ---
 
-### Task S0.8: Commit S0 outputs
+### Task S0.9: Commit S0 outputs and verify exit gate
 
 - [ ] **Step 1: Stage and commit**
 
@@ -472,21 +598,23 @@ git commit -m "S0: capture real UW endpoint samples + shape findings"
 
 ```bash
 git show --stat HEAD
-git show HEAD -- docs/uw-samples/ | grep -iE "Bearer|token|api[_-]?key" | head -20
+git show HEAD -- docs/uw-samples/ | grep -iE "Bearer|token|api[_-]?key|sk-[A-Za-z0-9]" | head -20
 ```
 
-Expected: no API key, no Bearer token, no secret patterns in the diff. If any appear, `git reset HEAD~1`, scrub the file, recommit.
+Expected: no API key, no Bearer token, no `sk-`-prefixed strings, no other secret patterns. If any appear, `git reset HEAD~1`, scrub the file, re-stage, recommit.
 
-- [ ] **Step 3: S0 exit gate**
+- [ ] **Step 3: Confirm the S0 exit gate**
 
-Confirm:
-- [x] `docs/uw-samples/README.md` exists and contains a per-endpoint shape summary for all 16 endpoints.
-- [x] `docs/uw-samples/*.json` has 16 (or more, with bulk screener) sample payloads.
-- [x] All non-200 responses are explained in the README.
-- [x] No secrets in the commit.
-- [x] Bulk net-premium endpoint question is answered (yes-with-name OR no-with-cost-estimate).
+All items below must be true. They are unchecked because the subagent or user reading this checks them by inspection at commit time.
 
-If any item fails, fix before opening the S0 PR.
+- [ ] `docs/uw-samples/README.md` exists and has a `### <slug>` section for every endpoint in `_shape-summary.md`.
+- [ ] `docs/uw-samples/*.json` has ≥ 17 sample payloads.
+- [ ] Every non-200 response is documented with cause in the README.
+- [ ] No secrets in the commit (Step 2 produced no matches).
+- [ ] Bulk net-premium endpoint question is answered (either `BULK_FOUND` or `NO_BULK` with cost estimate).
+- [ ] Placeholder scan (Task S0.8c Step 1) returned `ok: no placeholders`.
+
+If any item is false, fix before opening the S0 PR.
 
 ---
 
@@ -520,9 +648,19 @@ If any item fails, fix before opening the S0 PR.
 **Exit gate (concrete):**
 1. `uv run pytest tests/unit/ tests/integration/` passes against a freshly-created test schema in local Postgres.
 2. `uv run streamlit run app/streamlit_app.py` launches; entering a real ticker with `UW_SCAN_API_KEY` set produces the TSLA-style Card sections (header, market structure, volatility, flow, VRP, trade plan).
-3. After a live run, `psql option_wizard -c "SELECT count(*) FROM uw_scan.raw_payloads"` returns ≥ 16 rows (one per endpoint).
+3. After **one** live run for a single ticker, the following row counts hold in `uw_scan` schema (verified by an integration test, not just `psql`):
+   - `scan_runs ≥ 1`
+   - `raw_payloads ≥ 16` (one per probed endpoint family)
+   - `api_request_audit ≥ 16`
+   - `flow_events ≥ 1`
+   - `iv_rank_history = 1`, `volatility_stats_history = 1`, `realized_volatility_history = 1`, `iv_term_snapshots ≥ 1`, `interpolated_iv_snapshots ≥ 1`, `risk_reversal_skew_history ≥ 1`
+   - `greeks_by_expiry_strike ≥ 1`, `exposures_by_expiry_strike ≥ 1`
+   - `oi_by_strike ≥ 1`, `oi_change_events ≥ 1`, `max_pain_by_expiry ≥ 1`
+   - `option_contract_snapshots ≥ 1`, `dark_pool_events ≥ 0` (≥ 1 if ticker had DP prints that day), `short_interest_snapshots = 1`
+   - `opportunity_scores ≥ 1`, `structure_ideas ≥ 1`
+   - **Tables explicitly NOT populated in S1 (deferred): `option_surface_snapshots`, `oi_by_expiry`** — S6 picks these up. Integration test asserts row count = 0 (so a later slice can detect when they start being populated).
 4. After "Save snapshot" → "Load snapshot" cycle, the rendered card is semantically equivalent (same scoring, same trade plan strikes, same warnings).
-5. Implementation Guardrail tests pass: no pipe-joined strings (CI grep), no `except Exception:` that hides messages (CI grep), no field-name fallback chains in normalizers (`normalize.py` unit tests fail loudly on missing keys).
+5. Implementation Guardrail tests pass: no pipe-joined strings (CI grep), no `except Exception:` blocks that lack `repr(exc)` or `logging.exception()` (CI AST check), no field-name fallback chains in normalizers (`normalize.py` unit tests fail loudly on missing keys).
 
 **S1 full task breakdown is deferred to the start of S1.** When S0 closes, re-invoke `superpowers:writing-plans` with the updated spec + S0 findings to write `docs/superpowers/plans/2026-MM-DD-uw-scan-s1.md`.
 
@@ -532,7 +670,7 @@ If any item fails, fix before opening the S0 PR.
 
 **Goal:** Multi-ticker scan over a hardcoded universe (S4 will replace with TradingView). For each ticker, compute net premium for the date, classify into types C and F (Multi-Signal), rank by conviction score, render Full Scan card with Top Pick deep-dive (reuses S1's Single-Stock Card).
 
-**Net-premium acquisition strategy:** Determined by S0.6 finding. Either bulk endpoint or fanout.
+**Net-premium acquisition strategy:** Determined by S0.7a/b findings. Either bulk endpoint or per-ticker fanout.
 
 **New files:**
 - `src/uw_scan/reports/scan.py`
@@ -610,12 +748,12 @@ If any item fails, fix before opening the S0 PR.
 | Guardrail | Enforcement |
 |---|---|
 | 1. No field-name fallback chains | `normalize.py` unit tests against `docs/uw-samples/*.json` use exact key lookups; missing key → test fail. CI grep bans `_first(`-style helpers in `src/`. |
-| 2. No `except Exception:` swallowing messages | CI grep bans `type(exc).__name__` pattern in `src/` and `app/`. All caught exceptions log `repr(exc)` + traceback. |
-| 3. No silent fixture fallback in production | `src/` does not import from `tests/fixtures/`. Live pipeline raises typed `LiveDataUnavailable` exception instead of returning fixtures. |
-| 4. Persistence is part of done | Integration test `test_pipeline_e2e` asserts row counts in every populated table after a real-shape run. |
+| 2. No `except Exception:` swallowing messages | **AST check, not grep.** A small `scripts/_lint_except.py` (added in S1) walks `src/` and `app/` via `ast`, flags any `ExceptHandler` whose body does not call `logging.exception(...)`, `logger.exception(...)`, or reference `repr(exc)` / `traceback`. CI runs it as `uv run python scripts/_lint_except.py src app`. Grep alone misses `except Exception: pass` and overflags valid handlers. |
+| 3. No silent fixture fallback in production | `src/` does not import from `tests/fixtures/`. Live pipeline raises typed `LiveDataUnavailable` exception instead of returning fixtures. CI grep: `grep -rE "from uw_scan\\.fixtures\|from tests" src/ app/` must return empty. |
+| 4. Persistence is part of done | Each slice's exit gate enumerates **explicit per-table minimum row counts** (see S1 exit gate above for the template). Integration test `test_pipeline_e2e` asserts each named table meets its minimum *and* that explicitly-deferred tables (e.g. S1's `option_surface_snapshots`, `oi_by_expiry`) have row count = 0. "Populated tables only" is rejected — that is tautological. |
 | 5. No fake-cursor tests | CI grep bans class names matching `_FakeCursor` / `_FakeConnection` in `tests/integration/`. Integration tests use `pytest-postgresql` fixtures only. |
 | 6. Rate limiter enforces | `test_rate_limiter` asserts that exceeding budget raises; sidebar widget reads live state from limiter, not config. |
-| 7. No premature modules | CI check: report `wc -l src/uw_scan/**/*.py`; any file under 30 LOC flagged for inline review. |
+| 7. No premature modules | CI check: any file under **50 LOC** in `src/uw_scan/**/*.py` fails the build unless tagged with `# pragma: standalone` (for migrations, `__init__.py`, etc). Threshold matches the spec's "file under 50 lines is a code smell" wording. |
 | 8. No dead UI controls | `streamlit.testing` test renders sidebar, mutates each input, asserts `RunSettings` reflects the change. |
 | 9. SQL arrays not pipe strings | CI grep bans `"|".join(` near SQL execute calls in `src/`. Migrations use `TEXT[]` for multi-valued columns. |
 | 10. Date column semantics explicit | Migration SQL files have `COMMENT ON COLUMN` for every date/timestamp column. Integration test asserts `market_date != expiry` for at least one persisted row. |
@@ -642,7 +780,7 @@ If any item fails, fix before opening the S0 PR.
 | Streamlit Views | Single-Stock = S1. Flow Feed = S1 sidebar/tab. TV Watchlists = S4. Tracked = S5. Surface Explorer = inline in S1 Card (NOT a separate tab — explicit design decision). Snapshots = S1. |
 | Architecture | File Structure section. |
 | Data Flow | Pipeline.py in S1. |
-| Storage Model (22 tables) | S1 = 20 tables, S2 = +2, S3 = +2, S4 = +2, S5 = +2. S6 fills any remaining. |
+| Storage Model (25 spec tables + 5 plan-introduced = 30) | See "Canonical Table Inventory" above. S1 = 20, S2 = +2, S3 = +2, S4 = +2, S5 = +2, S6 = +2 (option_surface_snapshots, oi_by_expiry). |
 | Scoring And Tracking | S1 (C scoring), S5 (tracking + reconciliation). |
 | Structure Ideas | S1 (bull call spread for type C); other structures may need later slices. |
 | UW API Capability Matrix | S0 probes every endpoint. |
@@ -653,12 +791,11 @@ If any item fails, fix before opening the S0 PR.
 | Testing | tests/{unit,integration,live} structure in File Structure section. |
 | First Layout Direction | S1 (Single-Stock Card is the first slice). |
 
-**Placeholder scan:** Search performed for "TBD", "TODO", "FIXME", "fill in later", "similar to". Found exactly three intentional uses:
+**Placeholder scan:** Search performed for "TBD", "TODO", "FIXME", "fill in later", "similar to", "..." (literal ellipsis), "same template", "repeat for all". Found exactly two intentional uses:
 - "S3 Open question for S3 start: which earnings calendar?" — intentional, not a placeholder; the question is the work product.
 - "S1 full task breakdown is deferred" — intentional, by design; each slice gets its own detailed plan at its start.
-- Short data path "(path TBD — confirm in S0)" — intentional, S0.5/S0.7 will confirm.
 
-No anti-pattern placeholders remain.
+The prior "Short data path TBD" note has been removed — Codex verified the path against the UW OpenAPI during review. No anti-pattern placeholders remain.
 
 **Type consistency check:** Method/class names referenced across slices: `SingleStockReport`, `ScanReport`, `RunSettings`, `UwApiClient`, `LiveDataUnavailable`. All used consistently. No `clearLayers / clearFullLayers` style drift detected.
 
@@ -668,8 +805,8 @@ No anti-pattern placeholders remain.
 
 After this plan is committed, S0 should be executed next. Two options:
 
-**1. Subagent-Driven (recommended for S0)** — Each of S0.1-S0.8 dispatched to a fresh subagent. Fast, isolated, easy to review per-task.
+**1. Subagent-Driven (recommended for S0)** — Each of S0.1-S0.9 dispatched to a fresh subagent. Fast, isolated, easy to review per-task. **Note:** S0.3 is a `[HUMAN-GATE]` — subagent execution must pause there and surface a prompt for the user to write `.env` themselves.
 
-**2. Inline Execution** — Run S0.1-S0.8 in the current session with checkpoints. Best when the user wants to watch shape findings emerge live.
+**2. Inline Execution** — Run S0.1-S0.9 in the current session with checkpoints. Best when the user wants to watch shape findings emerge live.
 
 For S1+ slices, re-invoke `superpowers:writing-plans` to produce a slice-specific detailed plan before execution begins. Do not start S1 from this outline alone.
