@@ -412,6 +412,7 @@ Validated against current public documentation on 2026-05-11:
 - UW OI tracking is supported by `oi-change`, `oi-per-expiry`, `oi-per-strike`, and `volume-oi-expiry`.
 - UW volatility tracking is supported by `iv-rank`, `volatility/stats`, `interpolated-iv`, `volatility/realized`, and `volatility/term-structure`. Named VRP was still not found as a public endpoint, so VRP remains a derived proxy from IV and realized volatility.
 - UW greeks and exposure coverage is supported by `greeks`, `greek-exposure/strike-expiry`, and `spot-exposures/expiry-strike`. The websocket GEX channel exists but is plan-gated, so v1 remains REST polling only.
+- Greeks and exposure endpoints are ticker-scoped but not ticker-only. `greeks` and `greek-exposure/strike-expiry` require an `expiry` query parameter; `spot-exposures/expiry-strike` requires `expirations[]`. The request planner must expand deep-surface calls per important expiry.
 - The sample TradingView shared URL returned page metadata in static HTML, but symbols were not visible in the fetched HTML. Static parsing, browser-rendered retrieval, and per-source failure states are required in v1.
 - `uv sync --extra postgres` is valid for optional dependencies, and `dev` dependencies belong in `[dependency-groups]` where `uv` syncs the default dev group.
 - Browser verification needs `uv run playwright install chromium` before Playwright-backed checks, and Streamlit should be started with `uv run streamlit run app/streamlit_app.py`.

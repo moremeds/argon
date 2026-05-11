@@ -820,6 +820,8 @@ def test_call_plan_dedupes_tickers_and_respects_cap():
     assert plan.total_requests <= 20
     assert plan.unique_tickers == ["AMD", "NVDA"]
     assert plan.unique_option_symbols == ["NVDA260619C00650000"]
+    tracking_calls = [call for call in plan.calls if call.tier == "tracking"]
+    assert tracking_calls[0].ticker == "NVDA"
 
 
 def test_call_plan_marks_truncated_when_cap_exceeded():
@@ -828,6 +830,21 @@ def test_call_plan_marks_truncated_when_cap_exceeded():
     plan = build_call_plan(candidates, market_date="2026-05-11", config=config)
     assert plan.truncated is True
     assert plan.total_requests == 5
+
+
+def test_call_plan_expands_deep_surface_by_important_expiry():
+    config = UwScanConfig(max_requests_per_cycle=50, max_deep_surface_tickers=1, max_expiries_per_ticker=2)
+    candidates = [SourceCandidate(ticker="NVDA", option_symbol=None, source_label="UW")]
+    plan = build_call_plan(
+        candidates,
+        market_date="2026-05-11",
+        config=config,
+        important_expiries_by_ticker={"NVDA": ["2026-06-19", "2026-09-18", "2027-01-15"]},
+    )
+    deep_calls = [call for call in plan.calls if call.tier == "deep_surface"]
+    assert len(deep_calls) == 6
+    assert {call.expiry for call in deep_calls} == {"2026-06-19", "2026-09-18"}
+    assert all(call.ticker == "NVDA" for call in deep_calls)
 ```
 
 - [ ] **Step 2: Run test to verify failure**
@@ -867,6 +884,7 @@ class PlannedCall:
     endpoint_name: str
     ticker: str | None = None
     option_symbol: str | None = None
+    expiry: str | None = None
 
 
 @dataclass(frozen=True)
@@ -879,15 +897,37 @@ class CallPlan:
     truncated: bool
 
 
-def build_call_plan(candidates: list[SourceCandidate], *, market_date: str, config: UwScanConfig) -> CallPlan:
+def build_call_plan(
+    candidates: list[SourceCandidate],
+    *,
+    market_date: str,
+    config: UwScanConfig,
+    important_expiries_by_ticker: dict[str, list[str]] | None = None,
+) -> CallPlan:
     tickers = sorted({candidate.ticker.upper() for candidate in candidates})
-    option_symbols = sorted({candidate.option_symbol for candidate in candidates if candidate.option_symbol})
+    contract_tickers = {
+        candidate.option_symbol: candidate.ticker.upper()
+        for candidate in candidates
+        if candidate.option_symbol
+    }
+    option_symbols = sorted(contract_tickers)
+    important_expiries = {
+        ticker.upper(): expiries[: config.max_expiries_per_ticker]
+        for ticker, expiries in (important_expiries_by_ticker or {}).items()
+    }
     calls: list[PlannedCall] = [
         PlannedCall(tier="discovery", endpoint_name="flow_alerts"),
         PlannedCall(tier="discovery", endpoint_name="tradingview_import"),
     ]
     for symbol in option_symbols:
-        calls.append(PlannedCall(tier="tracking", endpoint_name="option_contracts", option_symbol=symbol))
+        calls.append(
+            PlannedCall(
+                tier="tracking",
+                endpoint_name="option_contracts",
+                ticker=contract_tickers[symbol],
+                option_symbol=symbol,
+            )
+        )
     for ticker in tickers[: config.max_watchlist_tickers]:
         calls.extend(
             [
@@ -906,13 +946,14 @@ def build_call_plan(candidates: list[SourceCandidate], *, market_date: str, conf
             ]
         )
     for ticker in tickers[: config.max_deep_surface_tickers]:
-        calls.extend(
-            [
-                PlannedCall(tier="deep_surface", endpoint_name="greeks", ticker=ticker),
-                PlannedCall(tier="deep_surface", endpoint_name="greek_exposure_by_strike_expiry", ticker=ticker),
-                PlannedCall(tier="deep_surface", endpoint_name="spot_exposures_by_strike_expiry", ticker=ticker),
-            ]
-        )
+        for expiry in important_expiries.get(ticker, []):
+            calls.extend(
+                [
+                    PlannedCall(tier="deep_surface", endpoint_name="greeks", ticker=ticker, expiry=expiry),
+                    PlannedCall(tier="deep_surface", endpoint_name="greek_exposure_by_strike_expiry", ticker=ticker, expiry=expiry),
+                    PlannedCall(tier="deep_surface", endpoint_name="spot_exposures_by_strike_expiry", ticker=ticker, expiry=expiry),
+                ]
+            )
     truncated = len(calls) > config.max_requests_per_cycle
     calls = calls[: config.max_requests_per_cycle]
     return CallPlan(
