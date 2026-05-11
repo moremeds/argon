@@ -8,6 +8,12 @@ Build a Streamlit app that shows potential options opportunities from Unusual Wh
 
 This is not a trade execution system. It presents evidence, structure candidates, warnings, and tracking context.
 
+## Implementation Status
+
+The repository now includes the planned Python/Streamlit scaffold, fixture and live dashboard modes, request-budget preview, TradingView parsing contracts, UW endpoint registry, request audit helpers, option normalizers, SQL migration foundation, V1 schema expansion, capped request planner, scoring rules, structure ideas, conservative OI reconciliation, live UW flow polling, live per-ticker enrichment, computed stock analysis reports, and Postgres snapshot save/load paths.
+
+The app defaults to live polling when `UW_SCAN_API_KEY` is configured. Live verification has fetched 100 UW flow rows, built computed analyses for a capped set of top-premium tickers, saved a live run to local Postgres, and browser-verified the Streamlit live view. V1 remains incomplete: TradingView ingestion is not operationally wired into live runs, many normalized endpoint tables are defined but not populated, full raw API audit persistence is not connected to the live pipeline, and the analysis/scoring model is still a first-pass heuristic rather than the full desired research workflow.
+
 ## Repository And Database
 
 - Local repo: `/Users/moremeds/projects/unusual-whales`
