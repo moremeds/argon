@@ -1,0 +1,1370 @@
+{
+  "endpoint": "/api/stock/TSLA/historical-risk-reversal-skew",
+  "params": {
+    "expiry": "2026-05-15",
+    "delta": 25
+  },
+  "status_code": 200,
+  "headers": {
+    "access-control-allow-credentials": "true",
+    "access-control-allow-origin": "*",
+    "access-control-expose-headers": "",
+    "cache-control": "max-age=0, private, must-revalidate",
+    "content-encoding": "gzip",
+    "content-type": "application/json; charset=utf-8",
+    "date": "Mon, 11 May 2026 17:28:01 GMT",
+    "server": "Cowboy",
+    "vary": "accept-encoding",
+    "x-request-id": "GK6S9IdMi0CBsG4B9zLC",
+    "x-uw-daily-req-count": "772",
+    "x-uw-minute-req-counter": "8",
+    "x-uw-req-per-minute-remaining": "112",
+    "x-uw-req-per-minute-reset": "49948",
+    "x-uw-token-req-limit": "20000",
+    "via": "1.1 google",
+    "alt-svc": "h3=\":443\"; ma=2592000",
+    "transfer-encoding": "chunked"
+  },
+  "body": {
+    "data": [
+      {
+        "date": "2025-06-23",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "-0.098884191954542"
+      },
+      {
+        "date": "2025-06-24",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "-0.0945978755572491"
+      },
+      {
+        "date": "2025-06-25",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "-0.094280439335293"
+      },
+      {
+        "date": "2025-06-26",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "-0.091915350217593"
+      },
+      {
+        "date": "2025-06-27",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "-0.092384197129296"
+      },
+      {
+        "date": "2025-06-30",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "-0.0907084848078711"
+      },
+      {
+        "date": "2025-07-01",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "-0.0880665300387981"
+      },
+      {
+        "date": "2025-07-02",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "-0.095079413569125"
+      },
+      {
+        "date": "2025-07-03",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "-0.0924359909174369"
+      },
+      {
+        "date": "2025-07-07",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "-0.091469881184241"
+      },
+      {
+        "date": "2025-07-08",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "-0.086959497992426"
+      },
+      {
+        "date": "2025-07-09",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "-0.079616029406979"
+      },
+      {
+        "date": "2025-07-10",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "-0.096086147856136"
+      },
+      {
+        "date": "2025-07-11",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "-0.096905989832479"
+      },
+      {
+        "date": "2025-07-14",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "-0.0977272152502711"
+      },
+      {
+        "date": "2025-07-15",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "-0.092803402747408"
+      },
+      {
+        "date": "2025-07-16",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "-0.097563328358862"
+      },
+      {
+        "date": "2025-07-17",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "-0.096214111543645"
+      },
+      {
+        "date": "2025-07-18",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "-0.098676049480149"
+      },
+      {
+        "date": "2025-07-21",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "-0.099434897861319"
+      },
+      {
+        "date": "2025-07-22",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "-0.0999757763317101"
+      },
+      {
+        "date": "2025-07-23",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "-0.100350408910832"
+      },
+      {
+        "date": "2025-07-24",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "-0.088171905795348"
+      },
+      {
+        "date": "2025-07-25",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "-0.09784653862042"
+      },
+      {
+        "date": "2025-07-28",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "-0.097612069972616"
+      },
+      {
+        "date": "2025-07-29",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "-0.0906797504526081"
+      },
+      {
+        "date": "2025-07-30",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "-0.09036488524297"
+      },
+      {
+        "date": "2025-07-31",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "-0.083021861517209"
+      },
+      {
+        "date": "2025-08-01",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "-0.073542927233921"
+      },
+      {
+        "date": "2025-08-04",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "-0.071712272738723"
+      },
+      {
+        "date": "2025-08-05",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "-0.0745580423864671"
+      },
+      {
+        "date": "2025-08-06",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "-0.082077389990637"
+      },
+      {
+        "date": "2025-08-07",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "-0.082197664040962"
+      },
+      {
+        "date": "2025-08-08",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "-0.0911892856699981"
+      },
+      {
+        "date": "2025-08-11",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "-0.100609872590829"
+      },
+      {
+        "date": "2025-08-12",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "-0.097742811373981"
+      },
+      {
+        "date": "2025-08-13",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "-0.09342018474443"
+      },
+      {
+        "date": "2025-08-14",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "-0.093052638866131"
+      },
+      {
+        "date": "2025-08-15",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "-0.086797926183685"
+      },
+      {
+        "date": "2025-08-18",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "-0.087670404917417"
+      },
+      {
+        "date": "2025-08-19",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "-0.085623129236191"
+      },
+      {
+        "date": "2025-08-20",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "-0.08150924086235"
+      },
+      {
+        "date": "2025-08-21",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "-0.078443052800707"
+      },
+      {
+        "date": "2025-08-22",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "-0.091946014243022"
+      },
+      {
+        "date": "2025-08-25",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "-0.0929264141315991"
+      },
+      {
+        "date": "2025-08-26",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "-0.096977282206267"
+      },
+      {
+        "date": "2025-08-27",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "-0.094699496614021"
+      },
+      {
+        "date": "2025-08-28",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "-0.089534724345027"
+      },
+      {
+        "date": "2025-08-29",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "-0.082818261172133"
+      },
+      {
+        "date": "2025-09-02",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "-0.08190619878812"
+      },
+      {
+        "date": "2025-09-03",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "-0.0903912799431649"
+      },
+      {
+        "date": "2025-09-04",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "-0.088755750196316"
+      },
+      {
+        "date": "2025-09-05",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "-0.096042696793013"
+      },
+      {
+        "date": "2025-09-08",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "-0.089370817504704"
+      },
+      {
+        "date": "2025-09-09",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "-0.090680542658338"
+      },
+      {
+        "date": "2025-09-10",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "-0.094136040525549"
+      },
+      {
+        "date": "2025-09-11",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "-0.1004330062956861"
+      },
+      {
+        "date": "2025-09-12",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "-0.103919252347217"
+      },
+      {
+        "date": "2025-09-15",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "-0.1084968590477909"
+      },
+      {
+        "date": "2025-09-16",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "-0.1100166093038221"
+      },
+      {
+        "date": "2025-09-17",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "-0.105312544088834"
+      },
+      {
+        "date": "2025-09-18",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "-0.102703805307075"
+      },
+      {
+        "date": "2025-09-19",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "-0.1025048331538809"
+      },
+      {
+        "date": "2025-09-22",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "-0.1046245503147559"
+      },
+      {
+        "date": "2025-09-23",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "-0.096368530921834"
+      },
+      {
+        "date": "2025-09-24",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "-0.100928589515124"
+      },
+      {
+        "date": "2025-09-25",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "-0.095748802615893"
+      },
+      {
+        "date": "2025-09-26",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "-0.096260118891749"
+      },
+      {
+        "date": "2025-09-29",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "-0.0938779006030049"
+      },
+      {
+        "date": "2025-09-30",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "-0.092719533698138"
+      },
+      {
+        "date": "2025-10-01",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "-0.093435971258245"
+      },
+      {
+        "date": "2025-10-02",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "-0.088609050975165"
+      },
+      {
+        "date": "2025-10-03",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "-0.087222022758285"
+      },
+      {
+        "date": "2025-10-06",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "-0.093745486626437"
+      },
+      {
+        "date": "2025-10-07",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "-0.086859095279052"
+      },
+      {
+        "date": "2025-10-08",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "-0.088530165637841"
+      },
+      {
+        "date": "2025-10-09",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "-0.09018412736189"
+      },
+      {
+        "date": "2025-10-10",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "-0.064252035040569"
+      },
+      {
+        "date": "2025-10-13",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "-0.072438679858326"
+      },
+      {
+        "date": "2025-10-14",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "-0.06590647321093"
+      },
+      {
+        "date": "2025-10-15",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "-0.071529454852845"
+      },
+      {
+        "date": "2025-10-16",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "-0.062914876262851"
+      },
+      {
+        "date": "2025-10-17",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "-0.068774935118144"
+      },
+      {
+        "date": "2025-10-20",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "-0.067943288492852"
+      },
+      {
+        "date": "2025-10-21",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "-0.0691787176487729"
+      },
+      {
+        "date": "2025-10-22",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "-0.067637063520677"
+      },
+      {
+        "date": "2025-10-23",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "-0.073456736482684"
+      },
+      {
+        "date": "2025-10-24",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "-0.069416718275979"
+      },
+      {
+        "date": "2025-10-27",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "-0.071155007711067"
+      },
+      {
+        "date": "2025-10-28",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "-0.075773990512933"
+      },
+      {
+        "date": "2025-10-29",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "-0.076235488677448"
+      },
+      {
+        "date": "2025-10-30",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "-0.071932601710633"
+      },
+      {
+        "date": "2025-10-31",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "-0.0766256047264411"
+      },
+      {
+        "date": "2025-11-03",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "-0.0805436333853491"
+      },
+      {
+        "date": "2025-11-04",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "-0.0811630598340131"
+      },
+      {
+        "date": "2025-11-05",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "-0.08115557635989"
+      },
+      {
+        "date": "2025-11-06",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "-0.0803250239553129"
+      },
+      {
+        "date": "2025-11-07",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "-0.0765730186771769"
+      },
+      {
+        "date": "2025-11-10",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "-0.078286938121239"
+      },
+      {
+        "date": "2025-11-11",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "-0.07836624133958"
+      },
+      {
+        "date": "2025-11-12",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "-0.0793132258221531"
+      },
+      {
+        "date": "2025-11-13",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "-0.067391173511969"
+      },
+      {
+        "date": "2025-11-14",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "-0.067580119333488"
+      },
+      {
+        "date": "2025-11-17",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "-0.0671054342395641"
+      },
+      {
+        "date": "2025-11-18",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "-0.063035841594342"
+      },
+      {
+        "date": "2025-11-19",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "-0.064576852791459"
+      },
+      {
+        "date": "2025-11-20",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "-0.0568696921943029"
+      },
+      {
+        "date": "2025-11-21",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "-0.0473783164068851"
+      },
+      {
+        "date": "2025-11-24",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "-0.064429721558274"
+      },
+      {
+        "date": "2025-11-25",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "-0.061111470741404"
+      },
+      {
+        "date": "2025-11-26",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "-0.065881549872409"
+      },
+      {
+        "date": "2025-11-28",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "-0.062574680530845"
+      },
+      {
+        "date": "2025-12-01",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "-0.060414151799258"
+      },
+      {
+        "date": "2025-12-02",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "-0.060138416453142"
+      },
+      {
+        "date": "2025-12-03",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "-0.061766800341878"
+      },
+      {
+        "date": "2025-12-04",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "-0.063560929219464"
+      },
+      {
+        "date": "2025-12-05",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "-0.063298697833303"
+      },
+      {
+        "date": "2025-12-08",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "-0.063243273204372"
+      },
+      {
+        "date": "2025-12-09",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "-0.061325649347182"
+      },
+      {
+        "date": "2025-12-10",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "-0.066043282994555"
+      },
+      {
+        "date": "2025-12-11",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "-0.06750297559508"
+      },
+      {
+        "date": "2025-12-12",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "-0.07078888921995"
+      },
+      {
+        "date": "2025-12-15",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "-0.071691436985309"
+      },
+      {
+        "date": "2025-12-16",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "-0.072942781473919"
+      },
+      {
+        "date": "2025-12-17",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "-0.0615601227949341"
+      },
+      {
+        "date": "2025-12-18",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "-0.065664817952183"
+      },
+      {
+        "date": "2025-12-19",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "-0.0665039899593081"
+      },
+      {
+        "date": "2025-12-22",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "-0.0602133042040129"
+      },
+      {
+        "date": "2025-12-23",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "-0.061967797692256"
+      },
+      {
+        "date": "2025-12-24",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "-0.060969691625677"
+      },
+      {
+        "date": "2025-12-26",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "-0.0559179445737"
+      },
+      {
+        "date": "2025-12-29",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "-0.051341767601966"
+      },
+      {
+        "date": "2025-12-30",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "-0.048706105693365"
+      },
+      {
+        "date": "2025-12-31",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "-0.04487480326509197"
+      },
+      {
+        "date": "2026-01-02",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "-0.03568772731718606"
+      },
+      {
+        "date": "2026-01-05",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "-0.03937287180718402"
+      },
+      {
+        "date": "2026-01-06",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "-0.03868330779033202"
+      },
+      {
+        "date": "2026-01-07",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "-0.03517289541156798"
+      },
+      {
+        "date": "2026-01-08",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "-0.03938423382316797"
+      },
+      {
+        "date": "2026-01-09",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "-0.03916169697217403"
+      },
+      {
+        "date": "2026-01-12",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "-0.04294934729976296"
+      },
+      {
+        "date": "2026-01-13",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "-0.036370357222752"
+      },
+      {
+        "date": "2026-01-14",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "-0.03275308755727296"
+      },
+      {
+        "date": "2026-01-15",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "-0.04026392596970796"
+      },
+      {
+        "date": "2026-01-16",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "-0.03539711106191401"
+      },
+      {
+        "date": "2026-01-20",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "-0.01984295719158896"
+      },
+      {
+        "date": "2026-01-21",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "-0.02517427941400002"
+      },
+      {
+        "date": "2026-01-22",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "-0.040100339052559"
+      },
+      {
+        "date": "2026-01-23",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "-0.03924109249215302"
+      },
+      {
+        "date": "2026-01-26",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "-0.03699717163873206"
+      },
+      {
+        "date": "2026-01-27",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "-0.03529823261607901"
+      },
+      {
+        "date": "2026-01-28",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "-0.03955311721284804"
+      },
+      {
+        "date": "2026-01-29",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "-0.02299658435082003"
+      },
+      {
+        "date": "2026-01-30",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "-0.03358048504792799"
+      },
+      {
+        "date": "2026-02-02",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "-0.030152915646942"
+      },
+      {
+        "date": "2026-02-03",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "-0.02483230958566302"
+      },
+      {
+        "date": "2026-02-04",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "-0.01228942651978199"
+      },
+      {
+        "date": "2026-02-05",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "0.002453446930390069"
+      },
+      {
+        "date": "2026-02-06",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "-0.007359554157781"
+      },
+      {
+        "date": "2026-02-09",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "-0.017047109555274"
+      },
+      {
+        "date": "2026-02-10",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "-0.01253410501769897"
+      },
+      {
+        "date": "2026-02-11",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "-0.01804719596576798"
+      },
+      {
+        "date": "2026-02-12",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "-0.001862836399557033"
+      },
+      {
+        "date": "2026-02-13",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "-0.00506917793040101"
+      },
+      {
+        "date": "2026-02-17",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "0.002917956363100993"
+      },
+      {
+        "date": "2026-02-18",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "0.004011251777337022"
+      },
+      {
+        "date": "2026-02-19",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "0.002936232419971041"
+      },
+      {
+        "date": "2026-02-20",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "-0.0001416199175300337"
+      },
+      {
+        "date": "2026-02-23",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "0.00868322220884699"
+      },
+      {
+        "date": "2026-02-24",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "0.000641204623158975"
+      },
+      {
+        "date": "2026-02-25",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "-0.005346215056861"
+      },
+      {
+        "date": "2026-02-26",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "-0.002115375360870031"
+      },
+      {
+        "date": "2026-02-27",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "0.005834382703643"
+      },
+      {
+        "date": "2026-03-02",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "-0.002773915410962002"
+      },
+      {
+        "date": "2026-03-03",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "0.02132967698167104"
+      },
+      {
+        "date": "2026-03-04",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "0.011794903994437"
+      },
+      {
+        "date": "2026-03-05",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "0.01480226980779797"
+      },
+      {
+        "date": "2026-03-06",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "0.03324284204771005"
+      },
+      {
+        "date": "2026-03-09",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "0.03274143317232603"
+      },
+      {
+        "date": "2026-03-10",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "0.029603653988589"
+      },
+      {
+        "date": "2026-03-11",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "0.03108688890108502"
+      },
+      {
+        "date": "2026-03-12",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "0.03564229292792298"
+      },
+      {
+        "date": "2026-03-13",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "0.04183021036733597"
+      },
+      {
+        "date": "2026-03-16",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "0.03724406405240605"
+      },
+      {
+        "date": "2026-03-17",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "0.029042075335871"
+      },
+      {
+        "date": "2026-03-18",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "0.04171778077045302"
+      },
+      {
+        "date": "2026-03-19",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "0.04721380098596"
+      },
+      {
+        "date": "2026-03-20",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "0.05281680584005"
+      },
+      {
+        "date": "2026-03-23",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "0.04073123937719603"
+      },
+      {
+        "date": "2026-03-24",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "0.04219065816593004"
+      },
+      {
+        "date": "2026-03-25",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "0.042550831166419"
+      },
+      {
+        "date": "2026-03-26",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "0.050731444111699"
+      },
+      {
+        "date": "2026-03-27",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "0.052910081282573"
+      },
+      {
+        "date": "2026-03-30",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "0.056417017875704"
+      },
+      {
+        "date": "2026-03-31",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "0.048642904485118"
+      },
+      {
+        "date": "2026-04-01",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "0.047902962981693"
+      },
+      {
+        "date": "2026-04-02",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "0.05342155985011"
+      },
+      {
+        "date": "2026-04-06",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "0.04145145675177897"
+      },
+      {
+        "date": "2026-04-07",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "0.03714559423630703"
+      },
+      {
+        "date": "2026-04-08",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "0.03351091913582299"
+      },
+      {
+        "date": "2026-04-09",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "0.01586845772033102"
+      },
+      {
+        "date": "2026-04-10",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "0.01105340153699502"
+      },
+      {
+        "date": "2026-04-13",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "0.01213492075940398"
+      },
+      {
+        "date": "2026-04-14",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "0.000904316740212019"
+      },
+      {
+        "date": "2026-04-15",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "-0.01774502039646803"
+      },
+      {
+        "date": "2026-04-16",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "-0.01725044846047003"
+      },
+      {
+        "date": "2026-04-17",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "-0.01675050804246503"
+      },
+      {
+        "date": "2026-04-20",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "-0.01647198350269202"
+      },
+      {
+        "date": "2026-04-21",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "-0.01466456332872701"
+      },
+      {
+        "date": "2026-04-22",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "-0.02202731289278404"
+      },
+      {
+        "date": "2026-04-23",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "-0.01422674135723601"
+      },
+      {
+        "date": "2026-04-24",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "-0.011464216611976"
+      },
+      {
+        "date": "2026-04-27",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "-0.01113592689757398"
+      },
+      {
+        "date": "2026-04-28",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "-0.01649160953275497"
+      },
+      {
+        "date": "2026-04-29",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "-0.01755838526567499"
+      },
+      {
+        "date": "2026-04-30",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "-0.01649445828396301"
+      },
+      {
+        "date": "2026-05-01",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "-0.008943394165559"
+      },
+      {
+        "date": "2026-05-04",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "-0.01192378284708001"
+      },
+      {
+        "date": "2026-05-05",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "-0.01741553481736302"
+      },
+      {
+        "date": "2026-05-06",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "-0.01843307455445004"
+      },
+      {
+        "date": "2026-05-07",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "-0.027927720675062"
+      },
+      {
+        "date": "2026-05-08",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "-0.035242769735022"
+      },
+      {
+        "date": "2026-05-11",
+        "ticker": "TSLA",
+        "delta": 25,
+        "risk_reversal": "-0.071188196909275"
+      }
+    ]
+  }
+}

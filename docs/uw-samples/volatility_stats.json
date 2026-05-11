@@ -1,0 +1,37 @@
+{
+  "endpoint": "/api/stock/TSLA/volatility/stats",
+  "params": {},
+  "status_code": 200,
+  "headers": {
+    "access-control-allow-credentials": "true",
+    "access-control-allow-origin": "*",
+    "access-control-expose-headers": "",
+    "cache-control": "max-age=0, private, must-revalidate",
+    "content-length": "206",
+    "content-type": "application/json; charset=utf-8",
+    "date": "Mon, 11 May 2026 17:28:00 GMT",
+    "server": "Cowboy",
+    "vary": "accept-encoding",
+    "x-request-id": "GK6S9FNne5CsOo8CDqCB",
+    "x-uw-daily-req-count": "768",
+    "x-uw-minute-req-counter": "4",
+    "x-uw-req-per-minute-remaining": "116",
+    "x-uw-req-per-minute-reset": "50819",
+    "x-uw-token-req-limit": "20000",
+    "via": "1.1 google",
+    "alt-svc": "h3=\":443\"; ma=2592000"
+  },
+  "body": {
+    "data": {
+      "date": "2026-05-11",
+      "ticker": "TSLA",
+      "iv": "0.471874879045002",
+      "iv_low": "0.389589191481746",
+      "iv_high": "0.778322156284606",
+      "iv_rank": "21.7405",
+      "rv": "0.395888",
+      "rv_low": "0.285293",
+      "rv_high": "0.80359"
+    }
+  }
+}

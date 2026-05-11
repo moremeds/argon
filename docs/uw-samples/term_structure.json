@@ -1,0 +1,254 @@
+{
+  "endpoint": "/api/stock/TSLA/volatility/term-structure",
+  "params": {},
+  "status_code": 200,
+  "headers": {
+    "access-control-allow-credentials": "true",
+    "access-control-allow-origin": "*",
+    "access-control-expose-headers": "",
+    "cache-control": "max-age=0, private, must-revalidate",
+    "content-encoding": "gzip",
+    "content-type": "application/json; charset=utf-8",
+    "date": "Mon, 11 May 2026 17:28:00 GMT",
+    "server": "Cowboy",
+    "vary": "accept-encoding",
+    "x-request-id": "GK6S9G3ihO_m4iYBVPBG",
+    "x-uw-daily-req-count": "770",
+    "x-uw-minute-req-counter": "6",
+    "x-uw-req-per-minute-remaining": "114",
+    "x-uw-req-per-minute-reset": "50372",
+    "x-uw-token-req-limit": "20000",
+    "via": "1.1 google",
+    "alt-svc": "h3=\":443\"; ma=2592000",
+    "transfer-encoding": "chunked"
+  },
+  "body": {
+    "data": [
+      {
+        "date": "2026-05-11",
+        "ticker": "TSLA",
+        "expiry": "2026-05-11",
+        "volatility": "0.776904973353282",
+        "dte": 0,
+        "implied_move": "3.969725280607774",
+        "implied_move_perc": "0.00902143860453861"
+      },
+      {
+        "date": "2026-05-11",
+        "ticker": "TSLA",
+        "expiry": "2026-05-13",
+        "volatility": "0.59318434299795",
+        "dte": 2,
+        "implied_move": "13.45181718159057",
+        "implied_move_perc": "0.03057006070823552"
+      },
+      {
+        "date": "2026-05-11",
+        "ticker": "TSLA",
+        "expiry": "2026-05-15",
+        "volatility": "0.582631287012551",
+        "dte": 4,
+        "implied_move": "18.44500263524366",
+        "implied_move_perc": "0.04191737389165812"
+      },
+      {
+        "date": "2026-05-11",
+        "ticker": "TSLA",
+        "expiry": "2026-05-18",
+        "volatility": "0.497106877580603",
+        "dte": 7,
+        "implied_move": "20.70136531178054",
+        "implied_move_perc": "0.0470450932971766"
+      },
+      {
+        "date": "2026-05-11",
+        "ticker": "TSLA",
+        "expiry": "2026-05-20",
+        "volatility": "0.506186039500818",
+        "dte": 9,
+        "implied_move": "23.8601601568708",
+        "implied_move_perc": "0.0542236438882019"
+      },
+      {
+        "date": "2026-05-11",
+        "ticker": "TSLA",
+        "expiry": "2026-05-22",
+        "volatility": "0.514830376421022",
+        "dte": 11,
+        "implied_move": "26.79825447831772",
+        "implied_move_perc": "0.0609006393127363"
+      },
+      {
+        "date": "2026-05-11",
+        "ticker": "TSLA",
+        "expiry": "2026-05-26",
+        "volatility": "0.473999821886259",
+        "dte": 15,
+        "implied_move": "28.7732637721056",
+        "implied_move_perc": "0.0653889662945401"
+      },
+      {
+        "date": "2026-05-11",
+        "ticker": "TSLA",
+        "expiry": "2026-05-29",
+        "volatility": "0.480333583359593",
+        "dte": 18,
+        "implied_move": "31.91891164758705",
+        "implied_move_perc": "0.0725376396092357"
+      },
+      {
+        "date": "2026-05-11",
+        "ticker": "TSLA",
+        "expiry": "2026-06-05",
+        "volatility": "0.473694177916907",
+        "dte": 25,
+        "implied_move": "37.05990832057714",
+        "implied_move_perc": "0.0842208626468804"
+      },
+      {
+        "date": "2026-05-11",
+        "ticker": "TSLA",
+        "expiry": "2026-06-12",
+        "volatility": "0.471874879045002",
+        "dte": 32,
+        "implied_move": "41.7406634701499",
+        "implied_move_perc": "0.094858159240433"
+      },
+      {
+        "date": "2026-05-11",
+        "ticker": "TSLA",
+        "expiry": "2026-06-18",
+        "volatility": "0.47251181614505",
+        "dte": 38,
+        "implied_move": "45.5281148252638",
+        "implied_move_perc": "0.1034653694256691"
+      },
+      {
+        "date": "2026-05-11",
+        "ticker": "TSLA",
+        "expiry": "2026-06-26",
+        "volatility": "0.469689832095827",
+        "dte": 46,
+        "implied_move": "49.7710892123715",
+        "implied_move_perc": "0.1131077830004597"
+      },
+      {
+        "date": "2026-05-11",
+        "ticker": "TSLA",
+        "expiry": "2026-07-17",
+        "volatility": "0.472854559926772",
+        "dte": 67,
+        "implied_move": "60.4158937859597",
+        "implied_move_perc": "0.1372987393336485"
+      },
+      {
+        "date": "2026-05-11",
+        "ticker": "TSLA",
+        "expiry": "2026-08-21",
+        "volatility": "0.490394046103863",
+        "dte": 102,
+        "implied_move": "77.2030091151122",
+        "implied_move_perc": "0.1754176096853835"
+      },
+      {
+        "date": "2026-05-11",
+        "ticker": "TSLA",
+        "expiry": "2026-09-18",
+        "volatility": "0.488349177861965",
+        "dte": 130,
+        "implied_move": "86.7194231475083",
+        "implied_move_perc": "0.19707508616981"
+      },
+      {
+        "date": "2026-05-11",
+        "ticker": "TSLA",
+        "expiry": "2026-10-16",
+        "volatility": "0.490817568263698",
+        "dte": 158,
+        "implied_move": "96.0009363439431",
+        "implied_move_perc": "0.2181678811468043"
+      },
+      {
+        "date": "2026-05-11",
+        "ticker": "TSLA",
+        "expiry": "2026-11-20",
+        "volatility": "0.498490927555954",
+        "dte": 193,
+        "implied_move": "107.6426507602705",
+        "implied_move_perc": "0.244581353926385"
+      },
+      {
+        "date": "2026-05-11",
+        "ticker": "TSLA",
+        "expiry": "2026-12-18",
+        "volatility": "0.494922474912047",
+        "dte": 221,
+        "implied_move": "114.2727370502076",
+        "implied_move_perc": "0.2596916432749216"
+      },
+      {
+        "date": "2026-05-11",
+        "ticker": "TSLA",
+        "expiry": "2027-01-15",
+        "volatility": "0.492711774551188",
+        "dte": 249,
+        "implied_move": "120.6597322407362",
+        "implied_move_perc": "0.2741582492385677"
+      },
+      {
+        "date": "2026-05-11",
+        "ticker": "TSLA",
+        "expiry": "2027-03-19",
+        "volatility": "0.495871365808905",
+        "dte": 312,
+        "implied_move": "135.6524389163134",
+        "implied_move_perc": "0.3082240816185265"
+      },
+      {
+        "date": "2026-05-11",
+        "ticker": "TSLA",
+        "expiry": "2027-06-17",
+        "volatility": "0.499491251381225",
+        "dte": 402,
+        "implied_move": "154.6633019808982",
+        "implied_move_perc": "0.3514816226734628"
+      },
+      {
+        "date": "2026-05-11",
+        "ticker": "TSLA",
+        "expiry": "2027-12-17",
+        "volatility": "0.503582118548307",
+        "dte": 585,
+        "implied_move": "187.0073977868088",
+        "implied_move_perc": "0.4249855187636383"
+      },
+      {
+        "date": "2026-05-11",
+        "ticker": "TSLA",
+        "expiry": "2028-01-21",
+        "volatility": "0.503366707846341",
+        "dte": 620,
+        "implied_move": "192.2286851381291",
+        "implied_move_perc": "0.436851207179583"
+      },
+      {
+        "date": "2026-05-11",
+        "ticker": "TSLA",
+        "expiry": "2028-06-16",
+        "volatility": "0.503212981803649",
+        "dte": 767,
+        "implied_move": "212.7514397086611",
+        "implied_move_perc": "0.483405367725647"
+      },
+      {
+        "date": "2026-05-11",
+        "ticker": "TSLA",
+        "expiry": "2028-12-15",
+        "volatility": "0.499759605965848",
+        "dte": 949,
+        "implied_move": "233.7625748365104",
+        "implied_move_perc": "0.531239460631786"
+      }
+    ]
+  }
+}
