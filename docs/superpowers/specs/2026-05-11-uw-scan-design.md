@@ -11,6 +11,8 @@ This is not a trade execution system. It presents evidence, structure candidates
 ## Repository And Database
 
 - Local repo: `/Users/moremeds/projects/unusual-whales`
+- Python layout: use conventional `src/uw_scan/` package modules, `app/` for Streamlit entrypoints, `tests/` for tests, and `docs/` for specs/plans.
+- Dependency manager: `uv`
 - Postgres database: `option_wizard`
 - Postgres schema: `uw_scan`
 - Environment prefix: `UW_SCAN_`
@@ -20,6 +22,8 @@ This is not a trade execution system. It presents evidence, structure candidates
 The app should not rely on JSON for analysis. All queryable data must be flattened into typed relational tables with usable numeric, timestamp, ticker, option symbol, expiry, strike, side, and source columns. JSON/JSONB is allowed for raw audit payloads and small `extra` fields only.
 
 Secrets must never be committed. The Unusual Whales token is supplied at runtime through `UW_SCAN_API_KEY`. The repo should include a `.env.example` with sample keys only and a `.gitignore` entry for real `.env` files.
+
+Do not create monolithic scripts. Executable entrypoints belong under `app/`; implementation code belongs under logical package subdirectories such as `src/uw_scan/api/`, `src/uw_scan/ingest/`, `src/uw_scan/storage/`, `src/uw_scan/sources/`, and scoring/tracking modules.
 
 ## Product Shape
 
@@ -431,6 +435,12 @@ UI smoke tests:
 - Main tabs render.
 - Snapshot mode works without UW API key.
 - A mocked polling run populates Top Opportunities, UW Flow Feed, TradingView Watchlists, Tracked Contracts, Surface Explorer, and Snapshots.
+
+Browser/UI verification:
+
+- In addition to unit and integration tests, every Streamlit UI milestone needs a browser-level check with Playwright MCP or Browser Use.
+- Start Streamlit with `uv run streamlit run app/streamlit_app.py`, open the local URL, verify the six main tabs are visible, and capture a screenshot or equivalent browser observation.
+- UI verification failures block completion even if unit tests pass.
 
 ## First Layout Direction
 

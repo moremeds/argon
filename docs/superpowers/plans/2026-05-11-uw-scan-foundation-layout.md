@@ -6,7 +6,7 @@
 
 **Architecture:** This first plan intentionally avoids live UW ingestion and live database writes until the integration boundaries are proven. It creates a fixture-backed Streamlit UI that consumes typed view models, a deterministic request-budget planner, a TradingView shared-watchlist parser contract, and SQL migrations that define the `uw_scan` schema grains.
 
-**Tech Stack:** Python 3.11+, Streamlit, pandas, pydantic, httpx, pytest, psycopg optional for later database integration, Postgres SQL migrations.
+**Tech Stack:** Python 3.11+, uv, Streamlit, pandas, pydantic, httpx, pytest, psycopg optional for later database integration, Postgres SQL migrations, Playwright/browser verification.
 
 ---
 
@@ -15,6 +15,7 @@
 This plan implements Phase 1 from the design spec and the validation pieces needed before Phase 2:
 
 - Creates the repo package scaffold.
+- Uses conventional Python layout with implementation under `src/uw_scan/` and Streamlit entrypoints under `app/`.
 - Adds `.env.example` without secrets.
 - Defines typed view models and fixtures.
 - Adds a first Streamlit layout using fixtures only.
@@ -22,8 +23,11 @@ This plan implements Phase 1 from the design spec and the validation pieces need
 - Adds a TradingView parser contract and tests with fixtures.
 - Adds SQL migration files for `option_wizard.uw_scan` schema foundation.
 - Adds tests that inspect migration content and core schema grains.
+- Adds browser-level UI verification on top of unit tests.
 
 This plan does not use the provided Unusual Whales token directly and does not commit it. Live UW API calls come in a later plan after the client and audit path are implemented.
+
+Do not add top-level one-off scripts. Place implementation under logical `src/uw_scan/` subpackages and Streamlit entrypoints under `app/`.
 
 ## File Structure
 
@@ -146,7 +150,7 @@ def test_config_reads_environment_overrides(monkeypatch):
 Run:
 
 ```bash
-pytest tests/test_config.py -v
+uv run pytest tests/test_config.py -v
 ```
 
 Expected: FAIL with `ModuleNotFoundError: No module named 'uw_scan'`.
@@ -205,6 +209,7 @@ requires-python = ">=3.11"
 dependencies = [
   "httpx>=0.27",
   "pandas>=2.2",
+  "playwright>=1.44",
   "pydantic>=2.7",
   "streamlit>=1.35",
 ]
@@ -235,9 +240,7 @@ Streamlit dashboard for spotting and tracking options opportunities from Unusual
 ## Local Setup
 
 ```bash
-python -m venv .venv
-source .venv/bin/activate
-pip install -e ".[dev,postgres]"
+uv sync --extra dev --extra postgres
 cp .env.example .env
 ```
 
@@ -246,7 +249,7 @@ Put the real Unusual Whales token in `.env` as `UW_SCAN_API_KEY`. Do not commit 
 ## First Layout
 
 ```bash
-streamlit run app/streamlit_app.py
+uv run streamlit run app/streamlit_app.py
 ```
 
 The first layout uses fixture data only. Live UW polling is added in a later phase.
@@ -320,7 +323,7 @@ class UwScanConfig:
 Run:
 
 ```bash
-pytest tests/test_config.py -v
+uv run pytest tests/test_config.py -v
 ```
 
 Expected: PASS.
@@ -371,7 +374,7 @@ def test_opportunity_fixture_contains_structure_without_sizing():
 Run:
 
 ```bash
-pytest tests/test_fixtures.py -v
+uv run pytest tests/test_fixtures.py -v
 ```
 
 Expected: FAIL with `ModuleNotFoundError` or missing `uw_scan.fixtures`.
@@ -666,7 +669,7 @@ def demo_dashboard() -> DashboardViewModel:
 Run:
 
 ```bash
-pytest tests/test_fixtures.py -v
+uv run pytest tests/test_fixtures.py -v
 ```
 
 Expected: PASS.
@@ -729,7 +732,7 @@ def test_request_budget_caps_large_run():
 Run:
 
 ```bash
-pytest tests/test_request_budget.py -v
+uv run pytest tests/test_request_budget.py -v
 ```
 
 Expected: FAIL with missing `uw_scan.request_budget`.
@@ -783,7 +786,7 @@ def estimate_request_budget(
 Run:
 
 ```bash
-pytest tests/test_request_budget.py -v
+uv run pytest tests/test_request_budget.py -v
 ```
 
 Expected: PASS.
@@ -851,7 +854,7 @@ def test_parse_static_page_without_symbols_returns_nonblocking_failure():
 Run:
 
 ```bash
-pytest tests/test_tradingview_parser.py -v
+uv run pytest tests/test_tradingview_parser.py -v
 ```
 
 Expected: FAIL with missing source module.
@@ -945,7 +948,7 @@ def parse_tradingview_watchlist_html(html: str, *, source_url: str) -> TradingVi
 Run:
 
 ```bash
-pytest tests/test_tradingview_parser.py -v
+uv run pytest tests/test_tradingview_parser.py -v
 ```
 
 Expected: PASS.
@@ -1022,7 +1025,7 @@ def test_migration_defines_core_uniqueness_grains():
 Run:
 
 ```bash
-pytest tests/test_migration_sql.py -v
+uv run pytest tests/test_migration_sql.py -v
 ```
 
 Expected: FAIL because migration file does not exist.
@@ -1184,7 +1187,7 @@ ON CONFLICT (version) DO NOTHING;
 Run:
 
 ```bash
-pytest tests/test_migration_sql.py -v
+uv run pytest tests/test_migration_sql.py -v
 ```
 
 Expected: PASS.
@@ -1221,7 +1224,7 @@ def test_streamlit_app_imports_without_running_server():
 Run:
 
 ```bash
-pytest tests/test_streamlit_smoke.py -v
+uv run pytest tests/test_streamlit_smoke.py -v
 ```
 
 Expected: FAIL because `app.streamlit_app` does not exist.
@@ -1345,7 +1348,7 @@ if __name__ == "__main__":
 Run:
 
 ```bash
-pytest tests/test_streamlit_smoke.py -v
+uv run pytest tests/test_streamlit_smoke.py -v
 ```
 
 Expected: PASS.
@@ -1355,7 +1358,7 @@ Expected: PASS.
 Run:
 
 ```bash
-pytest -v
+uv run pytest -v
 ```
 
 Expected: PASS for all tests created in this plan.
@@ -1365,12 +1368,23 @@ Expected: PASS for all tests created in this plan.
 Run:
 
 ```bash
-streamlit run app/streamlit_app.py
+uv run streamlit run app/streamlit_app.py
 ```
 
 Expected: Streamlit prints a local URL and the page renders six tabs using fixture data.
 
-- [ ] **Step 7: Commit first layout**
+- [ ] **Step 7: Verify the UI in a browser**
+
+Use Playwright MCP or Browser Use to open the local Streamlit URL from Step 6. Verify:
+
+- Page title or H1 includes `UW Opportunity Scanner`.
+- Tabs are visible: `Top Opportunities`, `UW Flow Feed`, `TradingView Watchlists`, `Tracked Contracts`, `Surface Explorer`, `Snapshots`.
+- Metrics are visible: estimated requests, flow rows, watchlist symbols, deep surface capped.
+- Screenshot or browser observation confirms the layout is not blank.
+
+Expected: browser verification passes before commit.
+
+- [ ] **Step 8: Commit first layout**
 
 ```bash
 git add app/streamlit_app.py tests/test_streamlit_smoke.py
@@ -1400,7 +1414,7 @@ Live UW API polling is intentionally deferred until the request audit and normal
 Run:
 
 ```bash
-pytest -v
+uv run pytest -v
 ```
 
 Expected: PASS.

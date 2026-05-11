@@ -6,7 +6,7 @@
 
 **Architecture:** Keep opportunity logic in pure services so it can be tested without Streamlit. Streamlit calls a pipeline boundary that can serve fixture, live, or snapshot modes. Tracking and scoring consume normalized rows and return typed view models.
 
-**Tech Stack:** Python 3.11+, pydantic, pandas, Streamlit, pytest.
+**Tech Stack:** Python 3.11+, uv, pydantic, pandas, Streamlit, pytest, Playwright/browser verification.
 
 ---
 
@@ -16,6 +16,8 @@ Complete:
 
 - `docs/superpowers/plans/2026-05-11-uw-scan-foundation-layout.md`
 - `docs/superpowers/plans/2026-05-11-uw-scan-data-ingestion.md`
+
+Keep all code in logical `src/uw_scan/` subpackages. Do not add top-level one-off scripts.
 
 ## Files
 
@@ -95,7 +97,7 @@ def test_suggest_iron_condor_for_high_iv_earnings():
 
 - [ ] **Step 2: Run tests to verify failure**
 
-Run: `pytest tests/test_scoring.py tests/test_structures.py -v`
+Run: `uv run pytest tests/test_scoring.py tests/test_structures.py -v`
 
 Expected: FAIL with missing modules.
 
@@ -177,11 +179,13 @@ def suggest_structure(*, direction: SignalDirection, setup_types: list[str], iv_
     )
 ```
 
-- [ ] **Step 5: Verify and commit**
+- [ ] **Step 5: Run pipeline tests**
 
-Run: `pytest tests/test_scoring.py tests/test_structures.py -v`
+Run: `uv run pytest tests/test_scoring.py tests/test_structures.py -v`
 
 Expected: PASS.
+
+- [ ] **Step 7: Commit pipeline wiring**
 
 Commit:
 
@@ -218,7 +222,7 @@ def test_reconcile_unknown_on_conflict():
 
 - [ ] **Step 2: Run test to verify failure**
 
-Run: `pytest tests/test_tracking.py -v`
+Run: `uv run pytest tests/test_tracking.py -v`
 
 Expected: FAIL with missing tracking module.
 
@@ -255,7 +259,7 @@ def reconcile_oi_change(*, flow_volume: int, previous_oi: int | None, current_oi
 
 - [ ] **Step 4: Verify and commit**
 
-Run: `pytest tests/test_tracking.py -v`
+Run: `uv run pytest tests/test_tracking.py -v`
 
 Expected: PASS.
 
@@ -305,7 +309,7 @@ def test_streamlit_app_uses_pipeline_boundary():
 
 - [ ] **Step 2: Run tests to verify failure**
 
-Run: `pytest tests/test_pipeline.py tests/test_streamlit_live_wiring.py -v`
+Run: `uv run pytest tests/test_pipeline.py tests/test_streamlit_live_wiring.py -v`
 
 Expected: FAIL with missing pipeline boundary or direct fixture call in app.
 
@@ -362,9 +366,26 @@ dashboard = run_fixture_pipeline(config)
 
 - [ ] **Step 5: Verify and commit**
 
-Run: `pytest tests/test_pipeline.py tests/test_streamlit_live_wiring.py -v`
+Run: `uv run pytest tests/test_pipeline.py tests/test_streamlit_live_wiring.py -v`
 
 Expected: PASS.
+
+- [ ] **Step 6: Verify Streamlit UI in a browser**
+
+Run:
+
+```bash
+uv run streamlit run app/streamlit_app.py
+```
+
+Use Playwright MCP or Browser Use to open the local URL. Verify:
+
+- The page renders without Streamlit exceptions.
+- The six main tabs are visible.
+- The request-budget metrics still render after pipeline wiring.
+- Top Opportunities still shows fixture-backed opportunities.
+
+Expected: browser verification passes and confirms the UI is nonblank.
 
 Commit:
 
@@ -399,7 +420,7 @@ Run a local secret scan for the actual UW token value supplied at runtime. Do no
 
 Expected: no output.
 
-Run: `pytest -v`
+Run: `uv run pytest -v`
 
 Expected: PASS.
 

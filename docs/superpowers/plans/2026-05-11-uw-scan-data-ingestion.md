@@ -6,13 +6,15 @@
 
 **Architecture:** Keep external IO behind small modules. The UW API client only fetches and fingerprints responses; audit helpers compress raw payloads; normalizers turn stringly UW payloads into typed rows; SQL migrations define relational query tables; the planner bounds request volume before live polling.
 
-**Tech Stack:** Python 3.11+, httpx, pydantic, pytest, psycopg 3, Postgres SQL migrations.
+**Tech Stack:** Python 3.11+, uv, httpx, pydantic, pytest, psycopg 3, Postgres SQL migrations.
 
 ---
 
 ## Prerequisites
 
 Complete `docs/superpowers/plans/2026-05-11-uw-scan-foundation-layout.md` first. Do not commit the Unusual Whales token; use `UW_SCAN_API_KEY` at runtime.
+
+Keep all code in logical `src/uw_scan/` subpackages. Do not add top-level one-off scripts.
 
 ## Files
 
@@ -82,7 +84,7 @@ def test_request_fingerprint_is_stable():
 
 - [ ] **Step 2: Run test to verify failure**
 
-Run: `pytest tests/test_api_client.py -v`
+Run: `uv run pytest tests/test_api_client.py -v`
 
 Expected: FAIL with missing `uw_scan.api`.
 
@@ -209,7 +211,7 @@ class UwApiClient:
 
 - [ ] **Step 5: Verify and commit**
 
-Run: `pytest tests/test_api_client.py -v`
+Run: `uv run pytest tests/test_api_client.py -v`
 
 Expected: PASS.
 
@@ -248,7 +250,7 @@ def test_sha256_text_is_stable():
 
 - [ ] **Step 2: Run test to verify failure**
 
-Run: `pytest tests/test_audit.py -v`
+Run: `uv run pytest tests/test_audit.py -v`
 
 Expected: FAIL with missing `uw_scan.audit`.
 
@@ -293,7 +295,7 @@ def compress_json_payload(payload: Any) -> CompressedPayload:
 
 - [ ] **Step 4: Verify and commit**
 
-Run: `pytest tests/test_audit.py -v`
+Run: `uv run pytest tests/test_audit.py -v`
 
 Expected: PASS.
 
@@ -368,7 +370,7 @@ def test_normalize_oi_by_expiry_maps_calls_and_puts():
 
 - [ ] **Step 2: Run test to verify failure**
 
-Run: `pytest tests/test_normalize_options.py -v`
+Run: `uv run pytest tests/test_normalize_options.py -v`
 
 Expected: FAIL with missing normalizer module or model classes.
 
@@ -488,7 +490,7 @@ def normalize_oi_by_expiry(*, run_id: str, ticker: str, market_date: str, fetche
 
 - [ ] **Step 5: Verify and commit**
 
-Run: `pytest tests/test_normalize_options.py -v`
+Run: `uv run pytest tests/test_normalize_options.py -v`
 
 Expected: PASS.
 
@@ -545,7 +547,7 @@ def test_v1_expansion_records_schema_version():
 
 - [ ] **Step 2: Run test to verify failure**
 
-Run: `pytest tests/test_repository_sql.py -v`
+Run: `uv run pytest tests/test_repository_sql.py -v`
 
 Expected: FAIL because migration file does not exist.
 
@@ -756,7 +758,7 @@ ON CONFLICT (version) DO NOTHING;
 
 - [ ] **Step 4: Verify and commit**
 
-Run: `pytest tests/test_repository_sql.py -v`
+Run: `uv run pytest tests/test_repository_sql.py -v`
 
 Expected: PASS.
 
@@ -806,7 +808,7 @@ def test_call_plan_marks_truncated_when_cap_exceeded():
 
 - [ ] **Step 2: Run test to verify failure**
 
-Run: `pytest tests/test_request_planner.py -v`
+Run: `uv run pytest tests/test_request_planner.py -v`
 
 Expected: FAIL with missing ingest planner.
 
@@ -885,7 +887,7 @@ def build_call_plan(candidates: list[SourceCandidate], *, market_date: str, conf
 
 - [ ] **Step 4: Verify and commit**
 
-Run: `pytest tests/test_request_planner.py -v`
+Run: `uv run pytest tests/test_request_planner.py -v`
 
 Expected: PASS.
 
