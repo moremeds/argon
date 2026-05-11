@@ -107,7 +107,7 @@ Sample source for validation:
 
 - `https://www.tradingview.com/watchlists/326877343/`
 
-Initial review of that URL shows the static HTML can expose watchlist metadata such as the page title, but not necessarily the watchlist symbols. The implementation plan must prove symbol extraction from one or more real shared URLs before the app relies on TradingView ingestion. If static parsing fails, v1 must use a browser-rendered retrieval strategy or mark only that source as failed while the UW flow source continues.
+Initial review of that URL shows the static HTML can expose watchlist metadata such as the page title, but not necessarily the watchlist symbols. The implementation plan must prove symbol extraction from one or more real shared URLs before the app relies on TradingView ingestion. If static parsing fails, v1 must try browser-rendered retrieval; only if rendered retrieval also fails should that source be marked degraded while the UW flow source continues.
 
 ### Tracked Contracts
 
@@ -371,7 +371,8 @@ Before a live run, the UI should show a request-budget preview with estimated ca
 
 Tier 1: broad discovery
 
-- Poll available broad flow endpoints such as flow alerts and full tape.
+- Poll live broad flow endpoints such as flow alerts.
+- Treat full tape as dated archive/backfill retrieval (`/api/option-trades/full-tape/{date}`), not as a normal live polling call.
 - Import TradingView shared watchlist symbols.
 - Deduplicate ticker, option symbol, expiry, and source rows.
 
@@ -400,6 +401,20 @@ Persist request fingerprints so repeated runs can reuse cached data when endpoin
 Request fingerprints should include endpoint, normalized parameters, market date, source run, and API version/base URL. Within a polling cycle, duplicate fingerprints should be skipped. Across cycles, cached data can be reused only when the endpoint data is not expected to change intraday or when the user is replaying a snapshot.
 
 Historical analysis has a hard data availability boundary. Without UW's historical option trades add-on, backtests and markouts can only use data captured by this app going forward plus any historical endpoints available under the current subscription.
+
+## External Validation Notes
+
+Validated against current public documentation on 2026-05-11:
+
+- UW Flow Alerts remains a live REST discovery endpoint at `/api/option-trades/flow-alerts`, with filters for ticker, premium, size, volume, OI, and opening-trade logic.
+- UW Full Tape is date-scoped at `/api/option-trades/full-tape/{date}` with a required `YYYY-MM-DD` market date. It should be used for archive/backfill, not as a live polling source.
+- UW option surface capture is ticker-scoped. `option-chains` lists contract symbols and `option-contracts` returns paginated contract snapshots under `/api/stock/{ticker}/option-contracts` with `option_symbol[]`, `limit`, and `page` filters.
+- UW OI tracking is supported by `oi-change`, `oi-per-expiry`, `oi-per-strike`, and `volume-oi-expiry`.
+- UW volatility tracking is supported by `iv-rank`, `volatility/stats`, `interpolated-iv`, `volatility/realized`, and `volatility/term-structure`. Named VRP was still not found as a public endpoint, so VRP remains a derived proxy from IV and realized volatility.
+- UW greeks and exposure coverage is supported by `greeks`, `greek-exposure/strike-expiry`, and `spot-exposures/expiry-strike`. The websocket GEX channel exists but is plan-gated, so v1 remains REST polling only.
+- The sample TradingView shared URL returned page metadata in static HTML, but symbols were not visible in the fetched HTML. Static parsing, browser-rendered retrieval, and per-source failure states are required in v1.
+- `uv sync --extra postgres` is valid for optional dependencies, and `dev` dependencies belong in `[dependency-groups]` where `uv` syncs the default dev group.
+- Browser verification needs `uv run playwright install chromium` before Playwright-backed checks, and Streamlit should be started with `uv run streamlit run app/streamlit_app.py`.
 
 ## Error Handling
 

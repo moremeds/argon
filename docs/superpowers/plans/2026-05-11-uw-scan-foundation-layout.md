@@ -2,9 +2,9 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Build the first working Streamlit layout shell, typed view-model layer, fixture data, request-budget planner, TradingView parser spike, and database migration foundation for the Unusual Whales opportunity scanner.
+**Goal:** Build the first working Streamlit layout shell, typed view-model layer, fixture data, request-budget planner, TradingView watchlist adapter, and database migration foundation for the Unusual Whales opportunity scanner.
 
-**Architecture:** This first plan intentionally avoids live UW ingestion and live database writes until the integration boundaries are proven. It creates a fixture-backed Streamlit UI that consumes typed view models, a deterministic request-budget planner, a TradingView shared-watchlist parser contract, and SQL migrations that define the `uw_scan` schema grains.
+**Architecture:** This first plan intentionally avoids live UW ingestion and live database writes until the integration boundaries are proven. It creates a fixture-backed Streamlit UI that consumes typed view models, a deterministic request-budget planner, a TradingView shared-watchlist adapter with static and browser-rendered parsing paths, and SQL migrations that define the `uw_scan` schema grains.
 
 **Tech Stack:** Python 3.11+, uv, Streamlit, pandas, pydantic, httpx, pytest, psycopg optional for later database integration, Postgres SQL migrations, Playwright/browser verification.
 
@@ -20,7 +20,7 @@ This plan implements Phase 1 from the design spec and the validation pieces need
 - Defines typed view models and fixtures.
 - Adds a first Streamlit layout using fixtures only.
 - Adds a request-budget planner and tests.
-- Adds a TradingView parser contract and tests with fixtures.
+- Adds a TradingView watchlist adapter and tests with static and rendered fixtures.
 - Adds SQL migration files for `option_wizard.uw_scan` schema foundation.
 - Adds tests that inspect migration content and core schema grains.
 - Adds browser-level UI verification on top of unit tests.
@@ -62,7 +62,10 @@ Do not add top-level one-off scripts. Place implementation under logical `src/uw
   Pure request-budget estimator and cap enforcement.
 
 - Create: `src/uw_scan/sources/tradingview.py`  
-  Shared-watchlist parser contract. Static HTML parsing succeeds only when symbols are exposed in embedded JSON or text fixtures; otherwise returns a nonblocking failure result.
+  Shared-watchlist parser contract. Static HTML parsing succeeds only when symbols are exposed in embedded JSON or text fixtures; otherwise returns a nonblocking failure result for the browser fallback.
+
+- Create: `src/uw_scan/sources/tradingview_browser.py`
+  Browser-rendered watchlist parsing fallback used when TradingView shared pages do not expose symbols in static HTML.
 
 - Create: `src/uw_scan/sources/__init__.py`  
   Source package marker.
@@ -83,7 +86,7 @@ Do not add top-level one-off scripts. Place implementation under logical `src/uw
   Request-budget and cap-enforcement tests.
 
 - Create: `tests/test_tradingview_parser.py`  
-  TradingView parser contract tests.
+  TradingView adapter tests.
 
 - Create: `tests/test_migration_sql.py`  
   SQL migration content tests for schema, raw payload storage, and uniqueness grains.
@@ -215,11 +218,14 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-dev = [
-  "pytest>=8.2",
-]
 postgres = [
   "psycopg[binary]>=3.2",
+]
+
+[dependency-groups]
+dev = [
+  "pytest>=8.2",
+  "pytest-playwright>=0.5",
 ]
 
 [tool.setuptools.packages.find]
@@ -240,7 +246,8 @@ Streamlit dashboard for spotting and tracking options opportunities from Unusual
 ## Local Setup
 
 ```bash
-uv sync --extra dev --extra postgres
+uv sync --extra postgres
+uv run playwright install chromium
 cp .env.example .env
 ```
 
@@ -541,7 +548,7 @@ def demo_dashboard() -> DashboardViewModel:
         label="portfolio(update daily)",
         kind=SourceKind.TRADINGVIEW,
         url="https://www.tradingview.com/watchlists/326877343/",
-        status="sample static page needs parser spike",
+        status="sample static page needs browser fallback",
     )
     uw_source = SourceFeed(label="UW Flow Poll", kind=SourceKind.UW_FLOW, status="ready")
 
@@ -699,7 +706,7 @@ def test_request_budget_estimates_normal_run_under_cap():
 
     budget = estimate_request_budget(
         flow_rows=50,
-        watchlist_symbols=20,
+        watchlist_symbols=15,
         deep_surface_tickers=3,
         important_expiries_per_ticker=2,
         config=config,
@@ -759,8 +766,9 @@ def estimate_request_budget(
     capped_deep_tickers = min(deep_surface_tickers, config.max_deep_surface_tickers)
     capped_expiries = min(important_expiries_per_ticker, config.max_expiries_per_ticker)
 
+    # Live flow discovery plus TradingView watchlist import. Full tape is dated archive/backfill.
     discovery = 2
-    enrichment = capped_watchlist_symbols * 4
+    enrichment = capped_watchlist_symbols * 12
     exact_contract_refresh = max(1, capped_flow_rows // 25)
     deep_surface = capped_deep_tickers * (1 + capped_expiries * 2)
 
@@ -796,11 +804,12 @@ git add src/uw_scan/request_budget.py tests/test_request_budget.py
 git commit -m "Add request budget planner"
 ```
 
-## Task 4: TradingView Shared Watchlist Parser Spike
+## Task 4: TradingView Shared Watchlist Adapter
 
 **Files:**
 - Create: `src/uw_scan/sources/__init__.py`
 - Create: `src/uw_scan/sources/tradingview.py`
+- Create: `src/uw_scan/sources/tradingview_browser.py`
 - Test: `tests/test_tradingview_parser.py`
 
 - [ ] **Step 1: Write TradingView parser tests**
@@ -809,6 +818,7 @@ Create `tests/test_tradingview_parser.py`:
 
 ```python
 from uw_scan.sources.tradingview import parse_tradingview_watchlist_html
+from uw_scan.sources.tradingview_browser import parse_tradingview_rendered_html
 
 
 def test_parse_embedded_symbols_from_fixture_html():
@@ -845,6 +855,25 @@ def test_parse_static_page_without_symbols_returns_nonblocking_failure():
     assert result.symbols == []
     assert result.status == "no_symbols_found"
     assert "browser-rendered retrieval" in result.message
+
+
+def test_parse_rendered_page_symbols_from_accessible_text():
+    html = """
+    <html>
+      <head><title>portfolio(update daily) — TradingView</title></head>
+      <body>
+        <span>NASDAQ:NVDA</span><span>NASDAQ:AMD</span><span>NYSE:TSLA</span>
+      </body>
+    </html>
+    """
+
+    result = parse_tradingview_rendered_html(
+        html,
+        source_url="https://www.tradingview.com/watchlists/326877343/",
+    )
+
+    assert result.status == "ok"
+    assert result.symbols == ["NVDA", "AMD", "TSLA"]
 ```
 
 - [ ] **Step 2: Run tests to verify failure**
@@ -857,7 +886,7 @@ uv run pytest tests/test_tradingview_parser.py -v
 
 Expected: FAIL with missing source module.
 
-- [ ] **Step 3: Implement parser contract**
+- [ ] **Step 3: Implement static parser contract**
 
 Create `src/uw_scan/sources/__init__.py`:
 
@@ -941,7 +970,50 @@ def parse_tradingview_watchlist_html(html: str, *, source_url: str) -> TradingVi
     )
 ```
 
-- [ ] **Step 4: Run parser tests**
+- [ ] **Step 4: Implement browser-rendered parser fallback**
+
+Create `src/uw_scan/sources/tradingview_browser.py`:
+
+```python
+from __future__ import annotations
+
+import re
+
+from .tradingview import TradingViewParseResult, _clean_symbol, _title_label
+
+
+_TV_SYMBOL_RE = re.compile(r"\b(?:NASDAQ|NYSE|AMEX|ARCA|CBOE|OTC|NASDAQCM|NASDAQGS):([A-Z0-9._-]{1,12})\b")
+
+
+def parse_tradingview_rendered_html(html: str, *, source_url: str) -> TradingViewParseResult:
+    label = _title_label(html)
+    symbols: list[str] = []
+    for match in _TV_SYMBOL_RE.finditer(html.upper()):
+        cleaned = _clean_symbol(match.group(0))
+        if cleaned and cleaned not in symbols:
+            symbols.append(cleaned)
+    if symbols:
+        return TradingViewParseResult(
+            source_url=source_url,
+            source_label=label,
+            symbols=symbols,
+            failed_symbols=[],
+            status="ok",
+            message=f"Parsed {len(symbols)} symbols from browser-rendered HTML.",
+        )
+    return TradingViewParseResult(
+        source_url=source_url,
+        source_label=label,
+        symbols=[],
+        failed_symbols=[],
+        status="no_symbols_found",
+        message="Browser-rendered TradingView page did not expose symbols.",
+    )
+```
+
+The live adapter should first try static HTTP parsing. If no symbols are found, it must render the shared watchlist with Playwright Chromium, pass the rendered HTML through `parse_tradingview_rendered_html`, and mark only that source degraded if both paths fail.
+
+- [ ] **Step 5: Run parser tests**
 
 Run:
 
@@ -951,12 +1023,12 @@ uv run pytest tests/test_tradingview_parser.py -v
 
 Expected: PASS.
 
-- [ ] **Step 5: Manual validation command for sample URL**
+- [ ] **Step 6: Manual validation command for sample URL**
 
-Run this command only to inspect the current public page behavior:
+Run this command to inspect the current public page behavior and exercise the static parse path:
 
 ```bash
-python - <<'PY'
+uv run python - <<'PY'
 import httpx
 from uw_scan.sources.tradingview import parse_tradingview_watchlist_html
 
@@ -967,13 +1039,13 @@ print(result)
 PY
 ```
 
-Expected: likely `status='no_symbols_found'` for static HTML. If symbols appear, record the result in the implementation notes and add a fixture in the same commit.
+Expected: likely `status='no_symbols_found'` for static HTML. Then use Playwright MCP or Browser Use against the same URL to verify whether symbols are visible after rendering. If rendered symbols are visible, persist that observation in implementation notes and keep the browser fallback enabled. If not, the source tab must show a degraded TradingView source while UW flow polling continues.
 
-- [ ] **Step 6: Commit parser spike**
+- [ ] **Step 7: Commit watchlist adapter**
 
 ```bash
-git add src/uw_scan/sources/__init__.py src/uw_scan/sources/tradingview.py tests/test_tradingview_parser.py
-git commit -m "Add TradingView parser contract"
+git add src/uw_scan/sources/__init__.py src/uw_scan/sources/tradingview.py src/uw_scan/sources/tradingview_browser.py tests/test_tradingview_parser.py
+git commit -m "Add TradingView watchlist adapter"
 ```
 
 ## Task 5: Postgres Schema Migration Foundation
@@ -1402,7 +1474,7 @@ Modify `README.md` so it includes:
 ```markdown
 ## Current Phase
 
-The current implementation is fixture-backed. It verifies the dashboard shape, config loading, request-budget preview, TradingView parser contract, and schema migration foundation.
+The current implementation is fixture-backed. It verifies the dashboard shape, config loading, request-budget preview, TradingView watchlist adapter contract, and schema migration foundation.
 
 Live UW API polling is required v1 scope and is implemented after the request audit and normalization layer are in place.
 ```
@@ -1434,7 +1506,7 @@ git commit -m "Document UW scan foundation phase"
 
 ## Plan Self-Review Checklist
 
-- Spec coverage: This plan covers the first layout, secret handling, config, TradingView parser spike, request-budget planner, schema migration foundation, typed relational grains, raw payload storage decision, and fixture-backed UI. Required v1 work for live UW API calls, live Postgres persistence, scoring rules, tracking reconciliation, and deep surface retrieval is covered by the data-ingestion and opportunity-layer plans.
+- Spec coverage: This plan covers the first layout, secret handling, config, TradingView static/browser watchlist adapter, request-budget planner, schema migration foundation, typed relational grains, raw payload storage decision, and fixture-backed UI. Required v1 work for live UW API calls, live Postgres persistence, scoring rules, tracking reconciliation, and deep surface retrieval is covered by the data-ingestion and opportunity-layer plans.
 - Red-flag scan: The plan intentionally avoids committed secret values. No committed secret token appears in the plan.
 - Type consistency: `DashboardViewModel`, `RequestBudgetSummary`, `UwScanConfig`, and parser result names are defined before use.
 - Execution gate: After this plan passes, write the next plan for live UW client plus request audit and normalization.

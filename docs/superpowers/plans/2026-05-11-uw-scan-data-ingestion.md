@@ -53,10 +53,22 @@ from uw_scan.api.endpoints import UwEndpoint
 
 def test_endpoint_paths_match_documented_operations():
     assert UwEndpoint.FLOW_ALERTS.path == "/api/option-trades/flow-alerts"
-    assert UwEndpoint.FULL_TAPE.path == "/api/option-trades/full-tape"
-    assert UwEndpoint.OPTION_CONTRACTS.path == "/api/option-contracts"
+    assert UwEndpoint.FULL_TAPE.path == "/api/option-trades/full-tape/{date}"
+    assert UwEndpoint.OPTION_CHAINS.path == "/api/stock/{ticker}/option-chains"
+    assert UwEndpoint.OPTION_CONTRACTS.path == "/api/stock/{ticker}/option-contracts"
+    assert UwEndpoint.OI_CHANGE.path == "/api/stock/{ticker}/oi-change"
     assert UwEndpoint.OI_PER_EXPIRY.path == "/api/stock/{ticker}/oi-per-expiry"
-    assert UwEndpoint.VOL_OI_PER_EXPIRY.path == "/api/stock/{ticker}/vol-oi-per-expiry"
+    assert UwEndpoint.OI_PER_STRIKE.path == "/api/stock/{ticker}/oi-per-strike"
+    assert UwEndpoint.VOL_OI_PER_EXPIRY.path == "/api/stock/{ticker}/option/volume-oi-expiry"
+    assert UwEndpoint.IV_RANK.path == "/api/stock/{ticker}/iv-rank"
+    assert UwEndpoint.VOLATILITY_STATS.path == "/api/stock/{ticker}/volatility/stats"
+    assert UwEndpoint.INTERPOLATED_IV.path == "/api/stock/{ticker}/interpolated-iv"
+    assert UwEndpoint.REALIZED_VOLATILITY.path == "/api/stock/{ticker}/volatility/realized"
+    assert UwEndpoint.IV_TERM_STRUCTURE.path == "/api/stock/{ticker}/volatility/term-structure"
+    assert UwEndpoint.GREEKS.path == "/api/stock/{ticker}/greeks"
+    assert UwEndpoint.GREEK_EXPOSURE_BY_STRIKE_EXPIRY.path == "/api/stock/{ticker}/greek-exposure/strike-expiry"
+    assert UwEndpoint.SPOT_EXPOSURES_BY_STRIKE_EXPIRY.path == "/api/stock/{ticker}/spot-exposures/expiry-strike"
+    assert UwEndpoint.MAX_PAIN.path == "/api/stock/{ticker}/max-pain"
     assert UwEndpoint.DARKPOOL_RECENT.path == "/api/darkpool/recent"
     assert UwEndpoint.DARKPOOL_TICKER.path == "/api/darkpool/{ticker}"
 
@@ -67,13 +79,13 @@ def test_normalize_params_sorts_keys_and_list_values():
 
 def test_request_fingerprint_is_stable():
     first = build_request_fingerprint(
-        endpoint="/api/option-contracts",
+        endpoint="/api/stock/NVDA/option-contracts",
         params={"option_symbol": ["NVDA260619C00650000", "AMD260619C00210000"]},
         market_date="2026-05-11",
         api_base_url="https://api.unusualwhales.com",
     )
     second = build_request_fingerprint(
-        endpoint="/api/option-contracts",
+        endpoint="/api/stock/NVDA/option-contracts",
         params={"option_symbol": ["AMD260619C00210000", "NVDA260619C00650000"]},
         market_date="2026-05-11",
         api_base_url="https://api.unusualwhales.com",
@@ -114,10 +126,22 @@ class EndpointDef:
 
 class UwEndpoint(Enum):
     FLOW_ALERTS = EndpointDef("flow_alerts", "/api/option-trades/flow-alerts", "https://api.unusualwhales.com/docs/operations/PublicApi.OptionTradeController.flow_alerts")
-    FULL_TAPE = EndpointDef("full_tape", "/api/option-trades/full-tape", "https://api.unusualwhales.com/docs/operations/PublicApi.OptionTradeController.full_tape")
-    OPTION_CONTRACTS = EndpointDef("option_contracts", "/api/option-contracts", "https://api.unusualwhales.com/docs/operations/PublicApi.OptionContractController.option_contracts")
+    FULL_TAPE = EndpointDef("full_tape", "/api/option-trades/full-tape/{date}", "https://api.unusualwhales.com/docs/operations/PublicApi.OptionTradeController.full_tape")
+    OPTION_CHAINS = EndpointDef("option_chains", "/api/stock/{ticker}/option-chains", "https://api.unusualwhales.com/docs/operations/PublicApi.TickerController.option_chains")
+    OPTION_CONTRACTS = EndpointDef("option_contracts", "/api/stock/{ticker}/option-contracts", "https://api.unusualwhales.com/docs/operations/PublicApi.OptionContractController.option_contracts")
+    OI_CHANGE = EndpointDef("oi_change", "/api/stock/{ticker}/oi-change", "https://api.unusualwhales.com/docs/operations/PublicApi.TickerController.oi_change")
     OI_PER_EXPIRY = EndpointDef("oi_per_expiry", "/api/stock/{ticker}/oi-per-expiry", "https://api.unusualwhales.com/docs/operations/PublicApi.TickerController.oi_per_expiry")
-    VOL_OI_PER_EXPIRY = EndpointDef("vol_oi_per_expiry", "/api/stock/{ticker}/vol-oi-per-expiry", "https://api.unusualwhales.com/docs/operations/PublicApi.TickerController.vol_oi_per_expiry")
+    OI_PER_STRIKE = EndpointDef("oi_per_strike", "/api/stock/{ticker}/oi-per-strike", "https://api.unusualwhales.com/docs/operations/PublicApi.TickerController.oi_per_strike")
+    VOL_OI_PER_EXPIRY = EndpointDef("vol_oi_per_expiry", "/api/stock/{ticker}/option/volume-oi-expiry", "https://api.unusualwhales.com/docs/operations/PublicApi.TickerController.vol_oi_per_expiry")
+    IV_RANK = EndpointDef("iv_rank", "/api/stock/{ticker}/iv-rank", "https://api.unusualwhales.com/docs/operations/PublicApi.TickerController.iv_rank")
+    VOLATILITY_STATS = EndpointDef("volatility_stats", "/api/stock/{ticker}/volatility/stats", "https://api.unusualwhales.com/docs/operations/PublicApi.TickerController.volatility_stats")
+    INTERPOLATED_IV = EndpointDef("interpolated_iv", "/api/stock/{ticker}/interpolated-iv", "https://api.unusualwhales.com/docs/operations/PublicApi.TickerController.interpolated_iv")
+    REALIZED_VOLATILITY = EndpointDef("realized_volatility", "/api/stock/{ticker}/volatility/realized", "https://api.unusualwhales.com/docs/operations/PublicApi.TickerController.realized_volatility")
+    IV_TERM_STRUCTURE = EndpointDef("iv_term_structure", "/api/stock/{ticker}/volatility/term-structure", "https://api.unusualwhales.com/docs/operations/PublicApi.TickerController.implied_volatility_term_structure")
+    GREEKS = EndpointDef("greeks", "/api/stock/{ticker}/greeks", "https://api.unusualwhales.com/docs/operations/PublicApi.TickerController.greeks")
+    GREEK_EXPOSURE_BY_STRIKE_EXPIRY = EndpointDef("greek_exposure_by_strike_expiry", "/api/stock/{ticker}/greek-exposure/strike-expiry", "https://api.unusualwhales.com/docs/operations/PublicApi.TickerController.greek_exposure_by_strike_expiry")
+    SPOT_EXPOSURES_BY_STRIKE_EXPIRY = EndpointDef("spot_exposures_by_strike_expiry", "/api/stock/{ticker}/spot-exposures/expiry-strike", "https://api.unusualwhales.com/docs/operations/PublicApi.TickerController.spot_exposures_by_strike_expiry_v2")
+    MAX_PAIN = EndpointDef("max_pain", "/api/stock/{ticker}/max-pain", "https://api.unusualwhales.com/docs/operations/PublicApi.TickerController.max_pain")
     DARKPOOL_RECENT = EndpointDef("darkpool_recent", "/api/darkpool/recent", "https://api.unusualwhales.com/docs/operations/PublicApi.DarkpoolController.darkpool_recent")
     DARKPOOL_TICKER = EndpointDef("darkpool_ticker", "/api/darkpool/{ticker}", "https://api.unusualwhales.com/docs/operations/PublicApi.DarkpoolController.darkpool_ticker")
 
@@ -860,17 +884,33 @@ def build_call_plan(candidates: list[SourceCandidate], *, market_date: str, conf
     option_symbols = sorted({candidate.option_symbol for candidate in candidates if candidate.option_symbol})
     calls: list[PlannedCall] = [
         PlannedCall(tier="discovery", endpoint_name="flow_alerts"),
-        PlannedCall(tier="discovery", endpoint_name="full_tape"),
+        PlannedCall(tier="discovery", endpoint_name="tradingview_import"),
     ]
     for symbol in option_symbols:
         calls.append(PlannedCall(tier="tracking", endpoint_name="option_contracts", option_symbol=symbol))
     for ticker in tickers[: config.max_watchlist_tickers]:
         calls.extend(
             [
+                PlannedCall(tier="enrichment", endpoint_name="option_chains", ticker=ticker),
                 PlannedCall(tier="enrichment", endpoint_name="option_contracts", ticker=ticker),
+                PlannedCall(tier="enrichment", endpoint_name="oi_change", ticker=ticker),
                 PlannedCall(tier="enrichment", endpoint_name="oi_per_expiry", ticker=ticker),
+                PlannedCall(tier="enrichment", endpoint_name="oi_per_strike", ticker=ticker),
+                PlannedCall(tier="enrichment", endpoint_name="vol_oi_per_expiry", ticker=ticker),
                 PlannedCall(tier="enrichment", endpoint_name="max_pain", ticker=ticker),
                 PlannedCall(tier="enrichment", endpoint_name="iv_rank", ticker=ticker),
+                PlannedCall(tier="enrichment", endpoint_name="volatility_stats", ticker=ticker),
+                PlannedCall(tier="enrichment", endpoint_name="interpolated_iv", ticker=ticker),
+                PlannedCall(tier="enrichment", endpoint_name="realized_volatility", ticker=ticker),
+                PlannedCall(tier="enrichment", endpoint_name="iv_term_structure", ticker=ticker),
+            ]
+        )
+    for ticker in tickers[: config.max_deep_surface_tickers]:
+        calls.extend(
+            [
+                PlannedCall(tier="deep_surface", endpoint_name="greeks", ticker=ticker),
+                PlannedCall(tier="deep_surface", endpoint_name="greek_exposure_by_strike_expiry", ticker=ticker),
+                PlannedCall(tier="deep_surface", endpoint_name="spot_exposures_by_strike_expiry", ticker=ticker),
             ]
         )
     truncated = len(calls) > config.max_requests_per_cycle
