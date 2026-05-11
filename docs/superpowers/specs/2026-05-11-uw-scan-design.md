@@ -255,6 +255,8 @@ Four setup classifications drive the scan's `Type` column and the suggested-stru
 
 V1 deliberately limits to these four; additional categories (skew anomalies, squeeze setups, GEX pinning) are noted as scoring confirmations but not promoted to top-level types until reports demand them.
 
+**Precedence when a ticker matches multiple types:** F (Multi-Signal Confluence) takes precedence over its constituents. A ticker that qualifies for both C and E is labeled F, with constituents shown in parentheses (e.g. `F (C+E)`). The Type A (Earnings) classification is orthogonal to F: when a ticker matches A and any of C/E/F, it is labeled `A` (earnings dominates because the IV-crush dynamic is the decision driver), with confluence notes preserved in the conviction commentary.
+
 ## Deferred Scope
 
 - Markout tables and dashboards.

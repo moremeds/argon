@@ -15,10 +15,11 @@ Source code lands in the repository as slices ship. Until S0 (endpoint validatio
 
 ```bash
 uv sync --extra postgres
-uv run playwright install chromium
 cp .env.example .env
 # Put the real UW token in .env as UW_SCAN_API_KEY. Do not commit .env.
 ```
+
+Playwright (used by S4's TradingView parser) installs on demand later via `uv run playwright install chromium` — not required for S0 through S3.
 
 ## Database
 
