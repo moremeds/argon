@@ -19,6 +19,8 @@ This is not a trade execution system. It presents evidence, structure candidates
 
 The app should not rely on JSON for analysis. All queryable data must be flattened into typed relational tables with usable numeric, timestamp, ticker, option symbol, expiry, strike, side, and source columns. JSON/JSONB is allowed for raw audit payloads and small `extra` fields only.
 
+Secrets must never be committed. The Unusual Whales token is supplied at runtime through `UW_SCAN_API_KEY`. The repo should include a `.env.example` with sample keys only and a `.gitignore` entry for real `.env` files.
+
 ## Product Shape
 
 Use a dual-source opportunity engine:
@@ -97,6 +99,12 @@ Each import run writes:
 
 A TradingView parse failure must not block UW flow polling. The affected source tab should show the failure state and preserve the last successfully imported symbols when available.
 
+Sample source for validation:
+
+- `https://www.tradingview.com/watchlists/326877343/`
+
+Initial review of that URL shows the static HTML can expose watchlist metadata such as the page title, but not necessarily the watchlist symbols. The implementation plan must include a Phase 0 spike that proves symbol extraction from one or more real shared URLs before the app relies on TradingView ingestion. If static parsing fails, the v1 parser can use a browser-rendered retrieval strategy or mark the source as failed while the UW flow source continues.
+
 ### Tracked Contracts
 
 Show exact contracts and expiry/tenor groups under watch. Include OI/IV reconciliation status and history.
@@ -164,6 +172,34 @@ Expected core tables in schema `uw_scan`:
 
 Use indexes on `run_id`, `ticker`, `option_symbol`, `market_date`, `fetched_at`, `expiry`, `strike`, and `(ticker, expiry, strike)`.
 
+Table grains and uniqueness rules:
+
+- `scan_runs`: one row per logical polling/snapshot run.
+- `source_feeds`: one row per configured source feed.
+- `source_imports`: one row per `run_id + source_feed_id + symbol_or_contract`.
+- `api_request_audit`: one row per executed or skipped request fingerprint per run.
+- `raw_payloads`: one row per successful or failed response payload linked to `api_request_audit`.
+- `flow_events`: one row per normalized UW flow event or unique trade row per run.
+- `option_contract_snapshots`: one row per `run_id + option_symbol + fetched_at_utc`.
+- `option_surface_snapshots`: one row per `run_id + ticker + market_date + expiry + page_number`.
+- `greeks_by_expiry_strike`: one row per `run_id + ticker + market_date + expiry + strike`.
+- `exposures_by_expiry_strike`: one row per `run_id + ticker + market_date + expiry + strike`.
+- `oi_by_expiry`: one row per `run_id + ticker + market_date + expiry`.
+- `oi_by_strike`: one row per `run_id + ticker + market_date + strike`.
+- `oi_change_events`: one row per `run_id + option_symbol + oi_change_date` where UW supplies contract-level OI changes.
+- `iv_rank_history`: one row per `ticker + market_date`.
+- `iv_term_snapshots`: one row per `run_id + ticker + market_date + expiry`.
+- `interpolated_iv_snapshots`: one row per `run_id + ticker + market_date + dte_bucket`.
+- `realized_volatility_history`: one row per `ticker + market_date + window`.
+- `risk_reversal_skew_history`: one row per `ticker + market_date + expiry + delta`.
+- `max_pain_by_expiry`: one row per `run_id + ticker + market_date + expiry`.
+- `dark_pool_events`: one row per normalized dark pool trade/print id per run.
+- `short_interest_snapshots`: one row per `run_id + ticker + market_date`.
+- `tracked_items`: one row per tracked contract or expiry/tenor group.
+- `tracking_observations`: one row per `tracked_item_id + observed_at_utc + metric_family`.
+- `opportunity_scores`: one row per scored candidate per run.
+- `structure_ideas`: one row per opportunity score and structure type.
+
 Schema changes should use explicit migrations. V1 can use SQL migration files or Alembic, but it must include:
 
 - Idempotent `CREATE SCHEMA IF NOT EXISTS uw_scan`.
@@ -184,6 +220,8 @@ All stored rows that represent observed market data should include both:
 - `market_date`: the market date the data represents.
 
 Rows tied to option flow should also include the trade/event timestamp from UW when available. OI-related rows should preserve any UW-provided current/previous date fields because OI is not truly live intraday.
+
+Raw payload storage should use compressed `BYTEA` by default, linked from `api_request_audit` by `raw_payload_id`. Store `content_encoding`, `content_sha256`, `request_fingerprint`, `response_status`, and `payload_size_bytes`. Typed relational tables are the query surface; raw payload rows are retained for replay/debugging and parser upgrades.
 
 ## Scoring And Tracking
 
@@ -231,6 +269,15 @@ V1 reconciliation heuristics:
 
 Thresholds should be configurable, but v1 should start with conservative defaults such as requiring OI change to exceed both an absolute contract threshold and a percentage of observed flow volume.
 
+Initial reconciliation defaults:
+
+- `min_abs_oi_change`: 100 contracts.
+- `min_oi_change_pct_of_flow_volume`: 0.25.
+- `roll_strike_distance_pct`: 0.10 from underlying spot for nearby strike matching.
+- `roll_expiry_window_days`: 45 calendar days from source expiry.
+- `reconciliation_wait`: next available OI date after the flow date.
+- `unknown_on_conflict`: true.
+
 ## Structure Ideas
 
 V1 includes trade structure candidates but no sizing. Each structure idea must include a reason and invalidation/warning notes.
@@ -242,7 +289,7 @@ Example mapping:
 - High IV / earnings IV crush: defined-risk credit spread or iron condor candidate.
 - Squeeze setup: small defined-risk call spread or call fly candidate.
 - GEX pinning / max pain: iron fly or short premium candidate around pin when liquidity is acceptable.
-- Skew/vol anomaly: calendar/diagonal or risk reversal candidate where appropriate.
+- Skew/vol anomaly: calendar/diagonal or risk reversal candidate when skew and tenor evidence supports it.
 
 Position sizing is deferred. Portfolio-aware sizing is a later phase.
 
@@ -316,6 +363,8 @@ The app should expose request caps in the sidebar or config so polling cannot ac
 - Full surface refresh requires explicit user action or a high-confidence tracking rule.
 - Concurrency should be bounded and retry/backoff should respect UW rate-limit responses.
 
+Before a live run, the UI should show a request-budget preview with estimated calls by tier. The planner should enforce a hard `max_requests_per_cycle` default of 250 and stop lower-priority enrichment before exceeding it.
+
 Tier 1: broad discovery
 
 - Poll available broad flow endpoints such as flow alerts and full tape.
@@ -342,7 +391,7 @@ Tier 4: tracking refresh
 - Refresh OI/IV/greeks for important expiries and strikes.
 - Avoid re-fetching unchanged `(endpoint, params, market_date)` combinations inside the same polling cycle.
 
-Persist request fingerprints so repeated runs can reuse cached data where appropriate.
+Persist request fingerprints so repeated runs can reuse cached data when endpoint volatility and snapshot mode allow reuse.
 
 Request fingerprints should include endpoint, normalized parameters, market date, source run, and API version/base URL. Within a polling cycle, duplicate fingerprints should be skipped. Across cycles, cached data can be reused only when the endpoint data is not expected to change intraday or when the user is replaying a snapshot.
 
