@@ -14,20 +14,20 @@
 
 | Slice | Ships | Endpoints touched | Tables populated | Exit Gate |
 |---|---|---|---|---|
-| **S0** | Endpoint validation spike — real UW payload sample per endpoint, response-shape documentation. Throwaway script, no production code. | ~16 read endpoints + bulk-screener probe | none | All endpoints needed for the Single-Stock Card return verified payloads saved as JSON; shape notes committed. |
+| **S0** | Endpoint validation spike — real UW payload sample per endpoint, response-shape documentation. Probe script under `scripts/`, no production code. | ~16 read endpoints + bulk-screener probe | none | All endpoints needed for the Single-Stock Card return verified payloads saved as JSON; shape notes committed. |
 | **S1** | Single-Stock Analysis Card for one user-entered ticker, rendered end-to-end with real data, persisted to typed tables, reloadable from snapshot. | flow-alerts, iv-rank, vol-stats, realized-vol, term-structure, interpolated-iv, skew, greek-exposure/strike-expiry, spot-exposures, greeks, oi-per-strike, oi-change, max-pain, option-contracts, darkpool/ticker, short-data | scan_runs, raw_payloads, api_request_audit, flow_events, iv_rank_history, volatility_stats_history, realized_volatility_history, iv_term_snapshots, interpolated_iv_snapshots, risk_reversal_skew_history, greeks_by_expiry_strike, exposures_by_expiry_strike, oi_by_strike, oi_change_events, max_pain_by_expiry, option_contract_snapshots, dark_pool_events, short_interest_snapshots, opportunity_scores, structure_ideas | TSLA-style card renders for any ticker with API key configured. 100% of API responses written to `raw_payloads` + `api_request_audit`. Snapshot save → reload produces semantically-equivalent card. Integration tests against real Postgres pass. Setup type C (Deep Conviction) classification works. |
 | **S2** | Full Scan Report over a hardcoded universe of ~40 tickers, ranking by conviction score, classifying into types C and F (Multi-Signal). Day-over-day deferred. | adds bulk-screener (if discovered in S0) or per-ticker net-premium fanout | adds: scan_universe, scan_results | Full Scan card renders for a date with persisted ticker universe. Top Pick deep-dive reuses S1's Single-Stock Card. Setup type F classification works. |
 | **S3** | Day-over-day flow reversal detection. Earnings calendar source for Type A. Dark Pool persistence for Type E. | adds earnings calendar (TBD source) | adds: flow_daily_summary, earnings_dates | Scan card shows "ORCL flipped from -$196M to +$96M" style deltas. Type A and E classifications work. Requires ≥ 2 days of persisted scan data. |
 | **S4** | TradingView shared watchlist as universe source for the scan. Static parser → browser-rendered parser → degraded state. | none new (TradingView is non-API) | adds: source_feeds, source_imports | Two real shared TradingView URLs parse end-to-end. Failure preserves last-good symbols. Scan card respects TradingView universe. |
 | **S5** | Tracking + OI/IV reconciliation. Auto-track high-conviction picks; manual pin from UI. Reconciliation labels (opening/closing/rolling/fading/hedge/unknown). | none new | adds: tracked_items, tracking_observations | Two-session test: scan on day 1 → tracked items written → reconciliation on day 2 → correct label written. |
-| **S6** | Hardening: structured logging with run_id, request-fingerprint cache across runs, full request-budget enforcement, max_pain/short interest/skew completion, CI workflows (ruff + pyright + pytest + coverage gates). | none new | none new | 1-hour live polling session with no degraded states. All 22 spec tables either populated or explicitly deferred to V2. CI gates green on every PR. |
+| **S6** | Hardening: structured logging with run_id, request-fingerprint cache across runs, full request-budget enforcement, remaining-table completion (`option_surface_snapshots`, `oi_by_expiry`), CI workflows extended (ruff + pyright + pytest + coverage gates). | none new | adds: `option_surface_snapshots`, `oi_by_expiry` | 1-hour live polling session with no degraded states. All 30 V1 tables (25 spec + 5 plan-introduced) either populated or explicitly deferred to V2 in `DEFERRED.md`. CI gates green on every PR. |
 
 **Notes:**
 - Each slice merges to `master` (or `main` — whichever this repo currently uses) via PR. No direct push.
 - Each slice's exit gate must include passing integration tests against real Postgres, not fake cursors.
 - Setup type rollout: S1 = C only; S2 adds F; S3 adds A + E.
 - The Streamlit "Surface Explorer" tab is **not** a separate deliverable — its data is rendered inline as the Market Structure section of the Single-Stock Card (S1).
-- **Slice dependencies:** S2 hard-depends on S1. S3 hard-depends on S2 (day-over-day requires ≥ 2 days of S2-persisted scan data). S4 hard-depends on S2 (replaces hardcoded universe). **S5 hard-depends on S1 only**; S3's day-over-day data enriches reconciliation context but is not required (S5 can run after S1+S2). S6 hard-depends on all prior slices.
+- **Slice dependencies:** S2 hard-depends on S1. S3 hard-depends on S2 (day-over-day requires ≥ 2 days of S2-persisted scan data). S4 hard-depends on S2 (replaces hardcoded universe). **S5 hard-depends on S2** (tracking top-N picks per scan requires the scan to exist); S3's day-over-day data enriches reconciliation context but is not required (S5 can run after S2 alone). S6 hard-depends on all prior slices.
 - **CI workflow ownership:** S1 creates `.github/workflows/ci.yml` with the initial gate (ruff + pytest + integration tests). S6 *extends* the same workflow file with pyright, coverage gate, secret scan, and the Implementation Guardrails grep checks. Only one `ci.yml` exists across V1.
 
 ---
@@ -104,6 +104,7 @@ src/uw_scan/
       003_s3_daily_summary.sql    (added in S3)
       004_s4_source_feeds.sql     (added in S4)
       005_s5_tracking.sql         (added in S5)
+      006_s6_remaining_tables.sql (added in S6; option_surface_snapshots, oi_by_expiry)
   scoring.py                      Conviction score + setup classification (C in S1, F in S2, A/E in S3).
   reports/
     __init__.py                   (empty)
@@ -139,6 +140,8 @@ docs/
 **Goal:** Pin down the exact response shape of every UW endpoint the V1 reports need by hitting them with a real key and saving the payloads. No production code; the output is *data*.
 
 **Why TDD does not apply here:** S0 produces sample payloads, not behavior. There is nothing to write a test for until the samples exist. S1 begins TDD.
+
+**Prerequisites:** `jq` (used in S0.4 Step 2, S0.5b, S0.6, S0.7a). Verify with `which jq && jq --version`. macOS: `brew install jq`.
 
 **Files:**
 - Create: `scripts/s0_probe_endpoint.py` — reproducible probe tooling. Kept after S0 so the sample set can be re-captured when UW changes endpoint shapes. (AGENTS.md prohibits *monolithic* top-level scripts that contain business logic; a one-purpose probe utility under `scripts/` is an explicit exception. Future production code stays under `src/uw_scan/`.)
@@ -410,7 +413,7 @@ set -a; source .env; set +a
 uv run python scripts/s0_probe_endpoint.py --all
 ```
 
-Expected: ~17 lines printed (16 base endpoints + the `option_contracts_by_symbol` second-probe variant). Status codes should be 200, or one of {401, 403, 404, 422} with a body that documents the cause.
+Expected: ~17 lines printed (16 base endpoints + the `option_contracts_by_symbol` second-probe variant). Status codes should be 200, or one of {401, 403, 404, 422} with a body that documents the cause. The `option_contracts_by_symbol` probe specifically may return 404 on this first run because the script uses placeholder OCC strings — that's expected and gets fixed in S0.5b.
 
 - [ ] **Step 2: Verify the expected number of JSON files exist**
 
@@ -418,7 +421,41 @@ Expected: ~17 lines printed (16 base endpoints + the `option_contracts_by_symbol
 ls docs/uw-samples/*.json | wc -l
 ```
 
-Expected: `17` (16 endpoints + `option_contracts_by_symbol`; or higher if S0.7 adds bulk-screener candidates first).
+Expected: `17` (16 endpoints + `option_contracts_by_symbol`; the count grows on subsequent reruns after S0.7a adds bulk-screener candidates).
+
+---
+
+### Task S0.5b: Replace placeholder OCC symbols with real ones and re-probe
+
+The `option_contracts_by_symbol` probe in S0.5 ran with placeholder strings (`TSLA260417C00385000`, `TSLA260417C00400000`). S1's trade plan economics need a real exact-contract refresh shape — so re-probe with symbols pulled from the broad `option_contracts` sample we just captured.
+
+- [ ] **Step 1: Extract two real OCC symbols from the broad option_contracts sample**
+
+```bash
+cd /Users/chenxi/projects/unusual-whales
+jq -r '
+  .body
+  | if type == "array" then .[0:2]
+    elif type == "object" then (.data // .results // .contracts // []) [0:2]
+    else [] end
+  | map(.option_symbol // .symbol // .contract // empty)
+  | @csv
+' docs/uw-samples/option_contracts.json
+```
+
+Expected: two real OCC-format strings, comma-separated. If empty, inspect the body manually and pick any two contract symbols visible in the payload.
+
+- [ ] **Step 2: Update the placeholder OCCs in `scripts/s0_probe_endpoint.py`**
+
+Replace the two placeholder strings in the `option_contracts_by_symbol` entry of the `ENDPOINTS` dict with the two real symbols from Step 1.
+
+- [ ] **Step 3: Re-probe just that one slug**
+
+```bash
+uv run python scripts/s0_probe_endpoint.py option_contracts_by_symbol
+```
+
+Expected: `option_contracts_by_symbol      200  →  docs/uw-samples/option_contracts_by_symbol.json`. The saved payload now reflects the real exact-contract response shape, not a 404.
 
 ---
 
@@ -643,7 +680,8 @@ If any item is false, fix before opening the S0 PR.
 - `tests/integration/test_repository_real_pg.py`
 - `tests/integration/test_pipeline_e2e.py`
 - `tests/live/test_uw_smoke.py` (`@pytest.mark.live`)
-- `.github/workflows/ci.yml`
+- `scripts/_lint_except.py` (AST check enforcing Guardrail 2 — see Implementation Guardrails table)
+- `.github/workflows/ci.yml` (initial form; S6 extends)
 
 **Exit gate (concrete):**
 1. `uv run pytest tests/unit/ tests/integration/` passes against a freshly-created test schema in local Postgres.
@@ -730,16 +768,19 @@ If any item is false, fix before opening the S0 PR.
 
 ## Slice 6: Hardening + Operational Completeness
 
-**Goal:** Ship-ready operational maturity. Structured logging with `run_id` correlation. Request-fingerprint cache across runs. Full request-budget enforcement (not just display). Fill in any remaining V1 schema tables (max_pain history, short interest snapshots, risk_reversal skew history, etc). CI gates green.
+**Goal:** Ship-ready operational maturity. Structured logging with `run_id` correlation. Request-fingerprint cache across runs. Full request-budget enforcement (not just display). Fill in the two remaining V1 spec tables not populated by S1-S5: `option_surface_snapshots` and `oi_by_expiry`. CI gates extended to full form.
 
 **New files:**
 - `src/uw_scan/logging.py`
 - `src/uw_scan/cache.py` (request fingerprint cache)
-- `.github/workflows/ci.yml` (final form: ruff + pyright + pytest + coverage + secret scan)
+- `src/uw_scan/storage/migrations/006_s6_remaining_tables.sql` (populates `option_surface_snapshots`, `oi_by_expiry`)
 - `tests/integration/test_request_budget_enforcement.py`
 - `tests/integration/test_fingerprint_cache.py`
 
-**Exit gate:** 1-hour live polling session produces zero degraded states. All Implementation Guardrails enforced by automated CI checks. All V1 spec tables either populated by the live pipeline or explicitly deferred-to-V2 in a `DEFERRED.md` doc with rationale per table.
+**Modified files:**
+- `.github/workflows/ci.yml` — extends the S1-created workflow with pyright, coverage gate, secret scan, and the Implementation Guardrails grep / AST checks.
+
+**Exit gate:** 1-hour live polling session produces zero degraded states. All Implementation Guardrails enforced by automated CI checks. All 30 V1 tables (25 spec + 5 plan-introduced) either populated by the live pipeline or explicitly deferred-to-V2 in a `DEFERRED.md` doc with rationale per table.
 
 ---
 
@@ -753,7 +794,7 @@ If any item is false, fix before opening the S0 PR.
 | 4. Persistence is part of done | Each slice's exit gate enumerates **explicit per-table minimum row counts** (see S1 exit gate above for the template). Integration test `test_pipeline_e2e` asserts each named table meets its minimum *and* that explicitly-deferred tables (e.g. S1's `option_surface_snapshots`, `oi_by_expiry`) have row count = 0. "Populated tables only" is rejected — that is tautological. |
 | 5. No fake-cursor tests | CI grep bans class names matching `_FakeCursor` / `_FakeConnection` in `tests/integration/`. Integration tests use `pytest-postgresql` fixtures only. |
 | 6. Rate limiter enforces | `test_rate_limiter` asserts that exceeding budget raises; sidebar widget reads live state from limiter, not config. |
-| 7. No premature modules | CI check: any file under **50 LOC** in `src/uw_scan/**/*.py` fails the build unless tagged with `# pragma: standalone` (for migrations, `__init__.py`, etc). Threshold matches the spec's "file under 50 lines is a code smell" wording. |
+| 7. No premature modules | CI check: any Python file under **50 LOC** in `src/uw_scan/**/*.py` fails the build, EXCEPT (a) `__init__.py` files (empty or re-export only — auto-exempt by filename), and (b) files whose first non-shebang line is the literal comment `# pragma: standalone` (escape hatch for genuinely-tiny standalone helpers). The CI check is `scripts/_lint_loc.py` (added in S6). Threshold matches the spec's "file under 50 lines is a code smell" wording. |
 | 8. No dead UI controls | `streamlit.testing` test renders sidebar, mutates each input, asserts `RunSettings` reflects the change. |
 | 9. SQL arrays not pipe strings | CI grep bans `"|".join(` near SQL execute calls in `src/`. Migrations use `TEXT[]` for multi-valued columns. |
 | 10. Date column semantics explicit | Migration SQL files have `COMMENT ON COLUMN` for every date/timestamp column. Integration test asserts `market_date != expiry` for at least one persisted row. |
@@ -805,8 +846,8 @@ The prior "Short data path TBD" note has been removed — Codex verified the pat
 
 After this plan is committed, S0 should be executed next. Two options:
 
-**1. Subagent-Driven (recommended for S0)** — Each of S0.1-S0.9 dispatched to a fresh subagent. Fast, isolated, easy to review per-task. **Note:** S0.3 is a `[HUMAN-GATE]` — subagent execution must pause there and surface a prompt for the user to write `.env` themselves.
+**1. Subagent-Driven (recommended for S0)** — Each of the 13 atomic tasks (S0.1, S0.2, S0.3, S0.4, S0.5, S0.5b, S0.6, S0.7a, S0.7b, S0.8a, S0.8b, S0.8c, S0.9) dispatched to a fresh subagent. Fast, isolated, easy to review per-task. **Note:** S0.3 is a `[HUMAN-GATE]` — subagent execution must pause there and surface a prompt for the user to write `.env` themselves.
 
-**2. Inline Execution** — Run S0.1-S0.9 in the current session with checkpoints. Best when the user wants to watch shape findings emerge live.
+**2. Inline Execution** — Run the 13 tasks in the current session with checkpoints. Best when the user wants to watch shape findings emerge live.
 
 For S1+ slices, re-invoke `superpowers:writing-plans` to produce a slice-specific detailed plan before execution begins. Do not start S1 from this outline alone.
