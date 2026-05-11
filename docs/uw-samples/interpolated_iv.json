@@ -1,0 +1,92 @@
+{
+  "endpoint": "/api/stock/TSLA/interpolated-iv",
+  "params": {},
+  "status_code": 200,
+  "headers": {
+    "access-control-allow-credentials": "true",
+    "access-control-allow-origin": "*",
+    "access-control-expose-headers": "",
+    "cache-control": "max-age=0, private, must-revalidate",
+    "content-encoding": "gzip",
+    "content-type": "application/json; charset=utf-8",
+    "date": "Mon, 11 May 2026 17:28:01 GMT",
+    "server": "Cowboy",
+    "vary": "accept-encoding",
+    "x-request-id": "GK6S9HqV9sw4kgICG3TB",
+    "x-uw-daily-req-count": "771",
+    "x-uw-minute-req-counter": "7",
+    "x-uw-req-per-minute-remaining": "113",
+    "x-uw-req-per-minute-reset": "50161",
+    "x-uw-token-req-limit": "20000",
+    "via": "1.1 google",
+    "alt-svc": "h3=\":443\"; ma=2592000",
+    "transfer-encoding": "chunked"
+  },
+  "body": {
+    "data": [
+      {
+        "date": "2026-05-11",
+        "days": 1,
+        "percentile": "0.717",
+        "volatility": "0.781",
+        "implied_move_perc": "0.01"
+      },
+      {
+        "date": "2026-05-11",
+        "days": 5,
+        "percentile": "0.755",
+        "volatility": "0.594",
+        "implied_move_perc": "0.03"
+      },
+      {
+        "date": "2026-05-11",
+        "days": 7,
+        "percentile": "0.832",
+        "volatility": "0.584",
+        "implied_move_perc": "0.042"
+      },
+      {
+        "date": "2026-05-11",
+        "days": 14,
+        "percentile": "0.678",
+        "volatility": "0.514",
+        "implied_move_perc": "0.06"
+      },
+      {
+        "date": "2026-05-11",
+        "days": 30,
+        "percentile": "0.549",
+        "volatility": "0.474",
+        "implied_move_perc": "0.092"
+      },
+      {
+        "date": "2026-05-11",
+        "days": 60,
+        "percentile": "0.435",
+        "volatility": "0.47",
+        "implied_move_perc": "0.129"
+      },
+      {
+        "date": "2026-05-11",
+        "days": 90,
+        "percentile": "0.491",
+        "volatility": "0.484",
+        "implied_move_perc": "0.162"
+      },
+      {
+        "date": "2026-05-11",
+        "days": 180,
+        "percentile": "0.421",
+        "volatility": "0.495",
+        "implied_move_perc": "0.234"
+      },
+      {
+        "date": "2026-05-11",
+        "days": 365,
+        "percentile": "0.274",
+        "volatility": "0.498",
+        "implied_move_perc": "0.334"
+      }
+    ]
+  }
+}

@@ -1,0 +1,1786 @@
+{
+  "endpoint": "/api/stock/TSLA/volatility/realized",
+  "params": {},
+  "status_code": 200,
+  "headers": {
+    "access-control-allow-credentials": "true",
+    "access-control-allow-origin": "*",
+    "access-control-expose-headers": "",
+    "cache-control": "max-age=0, private, must-revalidate",
+    "content-encoding": "gzip",
+    "content-type": "application/json; charset=utf-8",
+    "date": "Mon, 11 May 2026 17:28:00 GMT",
+    "server": "Cowboy",
+    "vary": "accept-encoding",
+    "x-request-id": "GK6S9GBEPTurXo8CDqVB",
+    "x-uw-daily-req-count": "769",
+    "x-uw-minute-req-counter": "5",
+    "x-uw-req-per-minute-remaining": "115",
+    "x-uw-req-per-minute-reset": "50603",
+    "x-uw-token-req-limit": "20000",
+    "via": "1.1 google",
+    "alt-svc": "h3=\":443\"; ma=2592000",
+    "transfer-encoding": "chunked"
+  },
+  "body": {
+    "data": [
+      {
+        "date": "2025-05-12",
+        "price": "318.38",
+        "implied_volatility": "0.594000",
+        "realized_volatility": "0.773599",
+        "unshifted_rv_date": "2025-06-10"
+      },
+      {
+        "date": "2025-05-13",
+        "price": "334.07",
+        "implied_volatility": "0.600000",
+        "realized_volatility": "0.740904",
+        "unshifted_rv_date": "2025-06-11"
+      },
+      {
+        "date": "2025-05-14",
+        "price": "347.68",
+        "implied_volatility": "0.617000",
+        "realized_volatility": "0.724757",
+        "unshifted_rv_date": "2025-06-12"
+      },
+      {
+        "date": "2025-05-15",
+        "price": "342.82",
+        "implied_volatility": "0.598000",
+        "realized_volatility": "0.713181",
+        "unshifted_rv_date": "2025-06-13"
+      },
+      {
+        "date": "2025-05-16",
+        "price": "349.98",
+        "implied_volatility": "0.595000",
+        "realized_volatility": "0.71374",
+        "unshifted_rv_date": "2025-06-16"
+      },
+      {
+        "date": "2025-05-19",
+        "price": "342.09",
+        "implied_volatility": "0.600000",
+        "realized_volatility": "0.720334",
+        "unshifted_rv_date": "2025-06-17"
+      },
+      {
+        "date": "2025-05-20",
+        "price": "343.82",
+        "implied_volatility": "0.601000",
+        "realized_volatility": "0.721224",
+        "unshifted_rv_date": "2025-06-18"
+      },
+      {
+        "date": "2025-05-21",
+        "price": "334.62",
+        "implied_volatility": "0.602000",
+        "realized_volatility": "0.720708",
+        "unshifted_rv_date": "2025-06-20"
+      },
+      {
+        "date": "2025-05-22",
+        "price": "341.04",
+        "implied_volatility": "0.595000",
+        "realized_volatility": "0.768562",
+        "unshifted_rv_date": "2025-06-23"
+      },
+      {
+        "date": "2025-05-23",
+        "price": "339.34",
+        "implied_volatility": "0.601000",
+        "realized_volatility": "0.770792",
+        "unshifted_rv_date": "2025-06-24"
+      },
+      {
+        "date": "2025-05-27",
+        "price": "362.89",
+        "implied_volatility": "0.635000",
+        "realized_volatility": "0.782189",
+        "unshifted_rv_date": "2025-06-25"
+      },
+      {
+        "date": "2025-05-28",
+        "price": "356.90",
+        "implied_volatility": "0.623000",
+        "realized_volatility": "0.741178",
+        "unshifted_rv_date": "2025-06-26"
+      },
+      {
+        "date": "2025-05-29",
+        "price": "358.43",
+        "implied_volatility": "0.618000",
+        "realized_volatility": "0.740014",
+        "unshifted_rv_date": "2025-06-27"
+      },
+      {
+        "date": "2025-05-30",
+        "price": "346.46",
+        "implied_volatility": "0.609000",
+        "realized_volatility": "0.740823",
+        "unshifted_rv_date": "2025-06-30"
+      },
+      {
+        "date": "2025-06-02",
+        "price": "342.69",
+        "implied_volatility": "0.609000",
+        "realized_volatility": "0.754217",
+        "unshifted_rv_date": "2025-07-01"
+      },
+      {
+        "date": "2025-06-03",
+        "price": "344.27",
+        "implied_volatility": "0.615000",
+        "realized_volatility": "0.777778",
+        "unshifted_rv_date": "2025-07-02"
+      },
+      {
+        "date": "2025-06-04",
+        "price": "332.05",
+        "implied_volatility": "0.622000",
+        "realized_volatility": "0.777225",
+        "unshifted_rv_date": "2025-07-03"
+      },
+      {
+        "date": "2025-06-05",
+        "price": "284.70",
+        "implied_volatility": "0.773000",
+        "realized_volatility": "0.80359",
+        "unshifted_rv_date": "2025-07-07"
+      },
+      {
+        "date": "2025-06-06",
+        "price": "295.14",
+        "implied_volatility": "0.669000",
+        "realized_volatility": "0.597747",
+        "unshifted_rv_date": "2025-07-08"
+      },
+      {
+        "date": "2025-06-09",
+        "price": "308.58",
+        "implied_volatility": "0.637000",
+        "realized_volatility": "0.585407",
+        "unshifted_rv_date": "2025-07-09"
+      },
+      {
+        "date": "2025-06-10",
+        "price": "326.09",
+        "implied_volatility": "0.631000",
+        "realized_volatility": "0.587222",
+        "unshifted_rv_date": "2025-07-10"
+      },
+      {
+        "date": "2025-06-11",
+        "price": "326.43",
+        "implied_volatility": "0.626000",
+        "realized_volatility": "0.554053",
+        "unshifted_rv_date": "2025-07-11"
+      },
+      {
+        "date": "2025-06-12",
+        "price": "319.11",
+        "implied_volatility": "0.615000",
+        "realized_volatility": "0.555735",
+        "unshifted_rv_date": "2025-07-14"
+      },
+      {
+        "date": "2025-06-13",
+        "price": "325.31",
+        "implied_volatility": "0.640000",
+        "realized_volatility": "0.554462",
+        "unshifted_rv_date": "2025-07-15"
+      },
+      {
+        "date": "2025-06-16",
+        "price": "329.13",
+        "implied_volatility": "0.621000",
+        "realized_volatility": "0.563802",
+        "unshifted_rv_date": "2025-07-16"
+      },
+      {
+        "date": "2025-06-17",
+        "price": "316.35",
+        "implied_volatility": "0.627000",
+        "realized_volatility": "0.562438",
+        "unshifted_rv_date": "2025-07-17"
+      },
+      {
+        "date": "2025-06-18",
+        "price": "322.05",
+        "implied_volatility": "0.613000",
+        "realized_volatility": "0.555337",
+        "unshifted_rv_date": "2025-07-18"
+      },
+      {
+        "date": "2025-06-20",
+        "price": "322.16",
+        "implied_volatility": "0.604000",
+        "realized_volatility": "0.55275",
+        "unshifted_rv_date": "2025-07-21"
+      },
+      {
+        "date": "2025-06-23",
+        "price": "348.68",
+        "implied_volatility": "0.655000",
+        "realized_volatility": "0.55382",
+        "unshifted_rv_date": "2025-07-22"
+      },
+      {
+        "date": "2025-06-24",
+        "price": "340.47",
+        "implied_volatility": "0.635000",
+        "realized_volatility": "0.476723",
+        "unshifted_rv_date": "2025-07-23"
+      },
+      {
+        "date": "2025-06-25",
+        "price": "327.55",
+        "implied_volatility": "0.639000",
+        "realized_volatility": "0.554867",
+        "unshifted_rv_date": "2025-07-24"
+      },
+      {
+        "date": "2025-06-26",
+        "price": "325.78",
+        "implied_volatility": "0.621000",
+        "realized_volatility": "0.55597",
+        "unshifted_rv_date": "2025-07-25"
+      },
+      {
+        "date": "2025-06-27",
+        "price": "323.63",
+        "implied_volatility": "0.608000",
+        "realized_volatility": "0.566014",
+        "unshifted_rv_date": "2025-07-28"
+      },
+      {
+        "date": "2025-06-30",
+        "price": "317.66",
+        "implied_volatility": "0.614000",
+        "realized_volatility": "0.567467",
+        "unshifted_rv_date": "2025-07-29"
+      },
+      {
+        "date": "2025-07-01",
+        "price": "300.71",
+        "implied_volatility": "0.631000",
+        "realized_volatility": "0.56429",
+        "unshifted_rv_date": "2025-07-30"
+      },
+      {
+        "date": "2025-07-02",
+        "price": "315.65",
+        "implied_volatility": "0.606000",
+        "realized_volatility": "0.543412",
+        "unshifted_rv_date": "2025-07-31"
+      },
+      {
+        "date": "2025-07-03",
+        "price": "315.35",
+        "implied_volatility": "0.587000",
+        "realized_volatility": "0.518719",
+        "unshifted_rv_date": "2025-08-01"
+      },
+      {
+        "date": "2025-07-07",
+        "price": "293.94",
+        "implied_volatility": "0.615000",
+        "realized_volatility": "0.525222",
+        "unshifted_rv_date": "2025-08-04"
+      },
+      {
+        "date": "2025-07-08",
+        "price": "297.81",
+        "implied_volatility": "0.596000",
+        "realized_volatility": "0.4608",
+        "unshifted_rv_date": "2025-08-05"
+      },
+      {
+        "date": "2025-07-09",
+        "price": "295.88",
+        "implied_volatility": "0.562000",
+        "realized_volatility": "0.473959",
+        "unshifted_rv_date": "2025-08-06"
+      },
+      {
+        "date": "2025-07-10",
+        "price": "309.87",
+        "implied_volatility": "0.564000",
+        "realized_volatility": "0.472608",
+        "unshifted_rv_date": "2025-08-07"
+      },
+      {
+        "date": "2025-07-11",
+        "price": "313.51",
+        "implied_volatility": "0.557000",
+        "realized_volatility": "0.452822",
+        "unshifted_rv_date": "2025-08-08"
+      },
+      {
+        "date": "2025-07-14",
+        "price": "316.90",
+        "implied_volatility": "0.556000",
+        "realized_volatility": "0.460436",
+        "unshifted_rv_date": "2025-08-11"
+      },
+      {
+        "date": "2025-07-15",
+        "price": "310.78",
+        "implied_volatility": "0.558000",
+        "realized_volatility": "0.459566",
+        "unshifted_rv_date": "2025-08-12"
+      },
+      {
+        "date": "2025-07-16",
+        "price": "321.67",
+        "implied_volatility": "0.549000",
+        "realized_volatility": "0.453007",
+        "unshifted_rv_date": "2025-08-13"
+      },
+      {
+        "date": "2025-07-17",
+        "price": "319.41",
+        "implied_volatility": "0.542000",
+        "realized_volatility": "0.442071",
+        "unshifted_rv_date": "2025-08-14"
+      },
+      {
+        "date": "2025-07-18",
+        "price": "329.65",
+        "implied_volatility": "0.543000",
+        "realized_volatility": "0.44491",
+        "unshifted_rv_date": "2025-08-15"
+      },
+      {
+        "date": "2025-07-21",
+        "price": "328.49",
+        "implied_volatility": "0.558000",
+        "realized_volatility": "0.434065",
+        "unshifted_rv_date": "2025-08-18"
+      },
+      {
+        "date": "2025-07-22",
+        "price": "332.11",
+        "implied_volatility": "0.562000",
+        "realized_volatility": "0.438543",
+        "unshifted_rv_date": "2025-08-19"
+      },
+      {
+        "date": "2025-07-23",
+        "price": "332.56",
+        "implied_volatility": "0.558000",
+        "realized_volatility": "0.440327",
+        "unshifted_rv_date": "2025-08-20"
+      },
+      {
+        "date": "2025-07-24",
+        "price": "305.30",
+        "implied_volatility": "0.466000",
+        "realized_volatility": "0.441798",
+        "unshifted_rv_date": "2025-08-21"
+      },
+      {
+        "date": "2025-07-25",
+        "price": "316.06",
+        "implied_volatility": "0.462000",
+        "realized_volatility": "0.377774",
+        "unshifted_rv_date": "2025-08-22"
+      },
+      {
+        "date": "2025-07-28",
+        "price": "325.59",
+        "implied_volatility": "0.464000",
+        "realized_volatility": "0.366178",
+        "unshifted_rv_date": "2025-08-25"
+      },
+      {
+        "date": "2025-07-29",
+        "price": "321.20",
+        "implied_volatility": "0.464000",
+        "realized_volatility": "0.356623",
+        "unshifted_rv_date": "2025-08-26"
+      },
+      {
+        "date": "2025-07-30",
+        "price": "319.04",
+        "implied_volatility": "0.457000",
+        "realized_volatility": "0.353064",
+        "unshifted_rv_date": "2025-08-27"
+      },
+      {
+        "date": "2025-07-31",
+        "price": "308.27",
+        "implied_volatility": "0.469000",
+        "realized_volatility": "0.354811",
+        "unshifted_rv_date": "2025-08-28"
+      },
+      {
+        "date": "2025-08-01",
+        "price": "302.63",
+        "implied_volatility": "0.485000",
+        "realized_volatility": "0.355775",
+        "unshifted_rv_date": "2025-08-29"
+      },
+      {
+        "date": "2025-08-04",
+        "price": "309.26",
+        "implied_volatility": "0.463000",
+        "realized_volatility": "0.352849",
+        "unshifted_rv_date": "2025-09-02"
+      },
+      {
+        "date": "2025-08-05",
+        "price": "308.72",
+        "implied_volatility": "0.457000",
+        "realized_volatility": "0.349056",
+        "unshifted_rv_date": "2025-09-03"
+      },
+      {
+        "date": "2025-08-06",
+        "price": "319.91",
+        "implied_volatility": "0.442000",
+        "realized_volatility": "0.350058",
+        "unshifted_rv_date": "2025-09-04"
+      },
+      {
+        "date": "2025-08-07",
+        "price": "322.27",
+        "implied_volatility": "0.442000",
+        "realized_volatility": "0.350024",
+        "unshifted_rv_date": "2025-09-05"
+      },
+      {
+        "date": "2025-08-08",
+        "price": "329.65",
+        "implied_volatility": "0.441000",
+        "realized_volatility": "0.354897",
+        "unshifted_rv_date": "2025-09-08"
+      },
+      {
+        "date": "2025-08-11",
+        "price": "339.03",
+        "implied_volatility": "0.458000",
+        "realized_volatility": "0.347968",
+        "unshifted_rv_date": "2025-09-09"
+      },
+      {
+        "date": "2025-08-12",
+        "price": "340.84",
+        "implied_volatility": "0.443000",
+        "realized_volatility": "0.335285",
+        "unshifted_rv_date": "2025-09-10"
+      },
+      {
+        "date": "2025-08-13",
+        "price": "339.38",
+        "implied_volatility": "0.449000",
+        "realized_volatility": "0.389937",
+        "unshifted_rv_date": "2025-09-11"
+      },
+      {
+        "date": "2025-08-14",
+        "price": "335.58",
+        "implied_volatility": "0.438000",
+        "realized_volatility": "0.452855",
+        "unshifted_rv_date": "2025-09-12"
+      },
+      {
+        "date": "2025-08-15",
+        "price": "330.56",
+        "implied_volatility": "0.435000",
+        "realized_volatility": "0.457328",
+        "unshifted_rv_date": "2025-09-15"
+      },
+      {
+        "date": "2025-08-18",
+        "price": "335.16",
+        "implied_volatility": "0.432000",
+        "realized_volatility": "0.451947",
+        "unshifted_rv_date": "2025-09-16"
+      },
+      {
+        "date": "2025-08-19",
+        "price": "329.31",
+        "implied_volatility": "0.444000",
+        "realized_volatility": "0.451991",
+        "unshifted_rv_date": "2025-09-17"
+      },
+      {
+        "date": "2025-08-20",
+        "price": "323.90",
+        "implied_volatility": "0.445000",
+        "realized_volatility": "0.455651",
+        "unshifted_rv_date": "2025-09-18"
+      },
+      {
+        "date": "2025-08-21",
+        "price": "320.11",
+        "implied_volatility": "0.452000",
+        "realized_volatility": "0.444872",
+        "unshifted_rv_date": "2025-09-19"
+      },
+      {
+        "date": "2025-08-22",
+        "price": "340.01",
+        "implied_volatility": "0.452000",
+        "realized_volatility": "0.435964",
+        "unshifted_rv_date": "2025-09-22"
+      },
+      {
+        "date": "2025-08-25",
+        "price": "346.60",
+        "implied_volatility": "0.469000",
+        "realized_volatility": "0.417664",
+        "unshifted_rv_date": "2025-09-23"
+      },
+      {
+        "date": "2025-08-26",
+        "price": "351.67",
+        "implied_volatility": "0.467000",
+        "realized_volatility": "0.428157",
+        "unshifted_rv_date": "2025-09-24"
+      },
+      {
+        "date": "2025-08-27",
+        "price": "349.60",
+        "implied_volatility": "0.456000",
+        "realized_volatility": "0.471046",
+        "unshifted_rv_date": "2025-09-25"
+      },
+      {
+        "date": "2025-08-28",
+        "price": "345.98",
+        "implied_volatility": "0.437000",
+        "realized_volatility": "0.478677",
+        "unshifted_rv_date": "2025-09-26"
+      },
+      {
+        "date": "2025-08-29",
+        "price": "333.87",
+        "implied_volatility": "0.432000",
+        "realized_volatility": "0.47268",
+        "unshifted_rv_date": "2025-09-29"
+      },
+      {
+        "date": "2025-09-02",
+        "price": "329.36",
+        "implied_volatility": "0.468000",
+        "realized_volatility": "0.441784",
+        "unshifted_rv_date": "2025-09-30"
+      },
+      {
+        "date": "2025-09-03",
+        "price": "334.09",
+        "implied_volatility": "0.472000",
+        "realized_volatility": "0.434699",
+        "unshifted_rv_date": "2025-10-01"
+      },
+      {
+        "date": "2025-09-04",
+        "price": "338.53",
+        "implied_volatility": "0.458000",
+        "realized_volatility": "0.495056",
+        "unshifted_rv_date": "2025-10-02"
+      },
+      {
+        "date": "2025-09-05",
+        "price": "350.84",
+        "implied_volatility": "0.472000",
+        "realized_volatility": "0.503622",
+        "unshifted_rv_date": "2025-10-03"
+      },
+      {
+        "date": "2025-09-08",
+        "price": "346.4",
+        "implied_volatility": "0.470000",
+        "realized_volatility": "0.517826",
+        "unshifted_rv_date": "2025-10-06"
+      },
+      {
+        "date": "2025-09-09",
+        "price": "346.97",
+        "implied_volatility": "0.457000",
+        "realized_volatility": "0.549618",
+        "unshifted_rv_date": "2025-10-07"
+      },
+      {
+        "date": "2025-09-10",
+        "price": "347.79",
+        "implied_volatility": "0.463000",
+        "realized_volatility": "0.548012",
+        "unshifted_rv_date": "2025-10-08"
+      },
+      {
+        "date": "2025-09-11",
+        "price": "368.81",
+        "implied_volatility": "0.496000",
+        "realized_volatility": "0.550961",
+        "unshifted_rv_date": "2025-10-09"
+      },
+      {
+        "date": "2025-09-12",
+        "price": "395.94",
+        "implied_volatility": "0.546000",
+        "realized_volatility": "0.563347",
+        "unshifted_rv_date": "2025-10-10"
+      },
+      {
+        "date": "2025-09-15",
+        "price": "410.04",
+        "implied_volatility": "0.573000",
+        "realized_volatility": "0.539081",
+        "unshifted_rv_date": "2025-10-13"
+      },
+      {
+        "date": "2025-09-16",
+        "price": "421.62",
+        "implied_volatility": "0.560000",
+        "realized_volatility": "0.531477",
+        "unshifted_rv_date": "2025-10-14"
+      },
+      {
+        "date": "2025-09-17",
+        "price": "425.86",
+        "implied_volatility": "0.560000",
+        "realized_volatility": "0.525097",
+        "unshifted_rv_date": "2025-10-15"
+      },
+      {
+        "date": "2025-09-18",
+        "price": "416.85",
+        "implied_volatility": "0.556000",
+        "realized_volatility": "0.527184",
+        "unshifted_rv_date": "2025-10-16"
+      },
+      {
+        "date": "2025-09-19",
+        "price": "426.07",
+        "implied_volatility": "0.555000",
+        "realized_volatility": "0.527065",
+        "unshifted_rv_date": "2025-10-17"
+      },
+      {
+        "date": "2025-09-22",
+        "price": "434.21",
+        "implied_volatility": "0.604000",
+        "realized_volatility": "0.525536",
+        "unshifted_rv_date": "2025-10-20"
+      },
+      {
+        "date": "2025-09-23",
+        "price": "425.85",
+        "implied_volatility": "0.605000",
+        "realized_volatility": "0.523942",
+        "unshifted_rv_date": "2025-10-21"
+      },
+      {
+        "date": "2025-09-24",
+        "price": "442.79",
+        "implied_volatility": "0.616000",
+        "realized_volatility": "0.519952",
+        "unshifted_rv_date": "2025-10-22"
+      },
+      {
+        "date": "2025-09-25",
+        "price": "423.39",
+        "implied_volatility": "0.610000",
+        "realized_volatility": "0.507834",
+        "unshifted_rv_date": "2025-10-23"
+      },
+      {
+        "date": "2025-09-26",
+        "price": "440.4",
+        "implied_volatility": "0.615000",
+        "realized_volatility": "0.497559",
+        "unshifted_rv_date": "2025-10-24"
+      },
+      {
+        "date": "2025-09-29",
+        "price": "443.21",
+        "implied_volatility": "0.631000",
+        "realized_volatility": "0.500075",
+        "unshifted_rv_date": "2025-10-27"
+      },
+      {
+        "date": "2025-09-30",
+        "price": "444.72",
+        "implied_volatility": "0.630000",
+        "realized_volatility": "0.503262",
+        "unshifted_rv_date": "2025-10-28"
+      },
+      {
+        "date": "2025-10-01",
+        "price": "459.46",
+        "implied_volatility": "0.627000",
+        "realized_volatility": "0.503233",
+        "unshifted_rv_date": "2025-10-29"
+      },
+      {
+        "date": "2025-10-02",
+        "price": "436",
+        "implied_volatility": "0.621000",
+        "realized_volatility": "0.517851",
+        "unshifted_rv_date": "2025-10-30"
+      },
+      {
+        "date": "2025-10-03",
+        "price": "429.83",
+        "implied_volatility": "0.614000",
+        "realized_volatility": "0.500109",
+        "unshifted_rv_date": "2025-10-31"
+      },
+      {
+        "date": "2025-10-06",
+        "price": "453.25",
+        "implied_volatility": "0.648000",
+        "realized_volatility": "0.502693",
+        "unshifted_rv_date": "2025-11-03"
+      },
+      {
+        "date": "2025-10-07",
+        "price": "433.09",
+        "implied_volatility": "0.634000",
+        "realized_volatility": "0.506665",
+        "unshifted_rv_date": "2025-11-04"
+      },
+      {
+        "date": "2025-10-08",
+        "price": "438.69",
+        "implied_volatility": "0.610000",
+        "realized_volatility": "0.497793",
+        "unshifted_rv_date": "2025-11-05"
+      },
+      {
+        "date": "2025-10-09",
+        "price": "435.54",
+        "implied_volatility": "0.592000",
+        "realized_volatility": "0.513386",
+        "unshifted_rv_date": "2025-11-06"
+      },
+      {
+        "date": "2025-10-10",
+        "price": "413.49",
+        "implied_volatility": "0.621000",
+        "realized_volatility": "0.530413",
+        "unshifted_rv_date": "2025-11-07"
+      },
+      {
+        "date": "2025-10-13",
+        "price": "435.9",
+        "implied_volatility": "0.602000",
+        "realized_volatility": "0.510072",
+        "unshifted_rv_date": "2025-11-10"
+      },
+      {
+        "date": "2025-10-14",
+        "price": "429.24",
+        "implied_volatility": "0.594000",
+        "realized_volatility": "0.480054",
+        "unshifted_rv_date": "2025-11-11"
+      },
+      {
+        "date": "2025-10-15",
+        "price": "435.15",
+        "implied_volatility": "0.599000",
+        "realized_volatility": "0.482479",
+        "unshifted_rv_date": "2025-11-12"
+      },
+      {
+        "date": "2025-10-16",
+        "price": "428.75",
+        "implied_volatility": "0.614000",
+        "realized_volatility": "0.535156",
+        "unshifted_rv_date": "2025-11-13"
+      },
+      {
+        "date": "2025-10-17",
+        "price": "439.31",
+        "implied_volatility": "0.601000",
+        "realized_volatility": "0.534342",
+        "unshifted_rv_date": "2025-11-14"
+      },
+      {
+        "date": "2025-10-20",
+        "price": "447.43",
+        "implied_volatility": "0.602000",
+        "realized_volatility": "0.527886",
+        "unshifted_rv_date": "2025-11-17"
+      },
+      {
+        "date": "2025-10-21",
+        "price": "442.6",
+        "implied_volatility": "0.594000",
+        "realized_volatility": "0.524326",
+        "unshifted_rv_date": "2025-11-18"
+      },
+      {
+        "date": "2025-10-22",
+        "price": "438.97",
+        "implied_volatility": "0.592000",
+        "realized_volatility": "0.525547",
+        "unshifted_rv_date": "2025-11-19"
+      },
+      {
+        "date": "2025-10-23",
+        "price": "448.98",
+        "implied_volatility": "0.547000",
+        "realized_volatility": "0.529056",
+        "unshifted_rv_date": "2025-11-20"
+      },
+      {
+        "date": "2025-10-24",
+        "price": "433.72",
+        "implied_volatility": "0.509000",
+        "realized_volatility": "0.519498",
+        "unshifted_rv_date": "2025-11-21"
+      },
+      {
+        "date": "2025-10-27",
+        "price": "452.42",
+        "implied_volatility": "0.530000",
+        "realized_volatility": "0.565054",
+        "unshifted_rv_date": "2025-11-24"
+      },
+      {
+        "date": "2025-10-28",
+        "price": "460.55",
+        "implied_volatility": "0.546000",
+        "realized_volatility": "0.543542",
+        "unshifted_rv_date": "2025-11-25"
+      },
+      {
+        "date": "2025-10-29",
+        "price": "461.51",
+        "implied_volatility": "0.543000",
+        "realized_volatility": "0.543082",
+        "unshifted_rv_date": "2025-11-26"
+      },
+      {
+        "date": "2025-10-30",
+        "price": "440.1",
+        "implied_volatility": "0.520000",
+        "realized_volatility": "0.544446",
+        "unshifted_rv_date": "2025-11-28"
+      },
+      {
+        "date": "2025-10-31",
+        "price": "456.56",
+        "implied_volatility": "0.544000",
+        "realized_volatility": "0.520241",
+        "unshifted_rv_date": "2025-12-01"
+      },
+      {
+        "date": "2025-11-03",
+        "price": "468.37",
+        "implied_volatility": "0.560000",
+        "realized_volatility": "0.50173",
+        "unshifted_rv_date": "2025-12-02"
+      },
+      {
+        "date": "2025-11-04",
+        "price": "444.26",
+        "implied_volatility": "0.564000",
+        "realized_volatility": "0.514704",
+        "unshifted_rv_date": "2025-12-03"
+      },
+      {
+        "date": "2025-11-05",
+        "price": "462.07",
+        "implied_volatility": "0.574000",
+        "realized_volatility": "0.483939",
+        "unshifted_rv_date": "2025-12-04"
+      },
+      {
+        "date": "2025-11-06",
+        "price": "445.91",
+        "implied_volatility": "0.611000",
+        "realized_volatility": "0.463573",
+        "unshifted_rv_date": "2025-12-05"
+      },
+      {
+        "date": "2025-11-07",
+        "price": "429.52",
+        "implied_volatility": "0.549000",
+        "realized_volatility": "0.462353",
+        "unshifted_rv_date": "2025-12-08"
+      },
+      {
+        "date": "2025-11-10",
+        "price": "445.23",
+        "implied_volatility": "0.533000",
+        "realized_volatility": "0.44467",
+        "unshifted_rv_date": "2025-12-09"
+      },
+      {
+        "date": "2025-11-11",
+        "price": "439.62",
+        "implied_volatility": "0.509000",
+        "realized_volatility": "0.429522",
+        "unshifted_rv_date": "2025-12-10"
+      },
+      {
+        "date": "2025-11-12",
+        "price": "430.6",
+        "implied_volatility": "0.496000",
+        "realized_volatility": "0.428594",
+        "unshifted_rv_date": "2025-12-11"
+      },
+      {
+        "date": "2025-11-13",
+        "price": "401.99",
+        "implied_volatility": "0.542000",
+        "realized_volatility": "0.430349",
+        "unshifted_rv_date": "2025-12-12"
+      },
+      {
+        "date": "2025-11-14",
+        "price": "404.35",
+        "implied_volatility": "0.509000",
+        "realized_volatility": "0.355128",
+        "unshifted_rv_date": "2025-12-15"
+      },
+      {
+        "date": "2025-11-17",
+        "price": "408.92",
+        "implied_volatility": "0.529000",
+        "realized_volatility": "0.363561",
+        "unshifted_rv_date": "2025-12-16"
+      },
+      {
+        "date": "2025-11-18",
+        "price": "401.25",
+        "implied_volatility": "0.548000",
+        "realized_volatility": "0.412718",
+        "unshifted_rv_date": "2025-12-17"
+      },
+      {
+        "date": "2025-11-19",
+        "price": "403.99",
+        "implied_volatility": "0.542000",
+        "realized_volatility": "0.412447",
+        "unshifted_rv_date": "2025-12-18"
+      },
+      {
+        "date": "2025-11-20",
+        "price": "395.23",
+        "implied_volatility": "0.583000",
+        "realized_volatility": "0.414962",
+        "unshifted_rv_date": "2025-12-19"
+      },
+      {
+        "date": "2025-11-21",
+        "price": "391.09",
+        "implied_volatility": "0.548000",
+        "realized_volatility": "0.400616",
+        "unshifted_rv_date": "2025-12-22"
+      },
+      {
+        "date": "2025-11-24",
+        "price": "417.78",
+        "implied_volatility": "0.520000",
+        "realized_volatility": "0.398171",
+        "unshifted_rv_date": "2025-12-23"
+      },
+      {
+        "date": "2025-11-25",
+        "price": "419.4",
+        "implied_volatility": "0.492000",
+        "realized_volatility": "0.343883",
+        "unshifted_rv_date": "2025-12-24"
+      },
+      {
+        "date": "2025-11-26",
+        "price": "426.58",
+        "implied_volatility": "0.461000",
+        "realized_volatility": "0.357619",
+        "unshifted_rv_date": "2025-12-26"
+      },
+      {
+        "date": "2025-11-28",
+        "price": "430.17",
+        "implied_volatility": "0.451000",
+        "realized_volatility": "0.379841",
+        "unshifted_rv_date": "2025-12-29"
+      },
+      {
+        "date": "2025-12-01",
+        "price": "430.14",
+        "implied_volatility": "0.462000",
+        "realized_volatility": "0.38279",
+        "unshifted_rv_date": "2025-12-30"
+      },
+      {
+        "date": "2025-12-02",
+        "price": "429.24",
+        "implied_volatility": "0.448000",
+        "realized_volatility": "0.385531",
+        "unshifted_rv_date": "2025-12-31"
+      },
+      {
+        "date": "2025-12-03",
+        "price": "446.74",
+        "implied_volatility": "0.466000",
+        "realized_volatility": "0.39753",
+        "unshifted_rv_date": "2026-01-02"
+      },
+      {
+        "date": "2025-12-04",
+        "price": "454.53",
+        "implied_volatility": "0.457000",
+        "realized_volatility": "0.387227",
+        "unshifted_rv_date": "2026-01-05"
+      },
+      {
+        "date": "2025-12-05",
+        "price": "455",
+        "implied_volatility": "0.446000",
+        "realized_volatility": "0.408972",
+        "unshifted_rv_date": "2026-01-06"
+      },
+      {
+        "date": "2025-12-08",
+        "price": "439.58",
+        "implied_volatility": "0.461000",
+        "realized_volatility": "0.408922",
+        "unshifted_rv_date": "2026-01-07"
+      },
+      {
+        "date": "2025-12-09",
+        "price": "445.17",
+        "implied_volatility": "0.453000",
+        "realized_volatility": "0.393969",
+        "unshifted_rv_date": "2026-01-08"
+      },
+      {
+        "date": "2025-12-10",
+        "price": "451.45",
+        "implied_volatility": "0.459000",
+        "realized_volatility": "0.398485",
+        "unshifted_rv_date": "2026-01-09"
+      },
+      {
+        "date": "2025-12-11",
+        "price": "446.89",
+        "implied_volatility": "0.445000",
+        "realized_volatility": "0.396502",
+        "unshifted_rv_date": "2026-01-12"
+      },
+      {
+        "date": "2025-12-12",
+        "price": "458.96",
+        "implied_volatility": "0.464000",
+        "realized_volatility": "0.395172",
+        "unshifted_rv_date": "2026-01-13"
+      },
+      {
+        "date": "2025-12-15",
+        "price": "475.31",
+        "implied_volatility": "0.492000",
+        "realized_volatility": "0.387399",
+        "unshifted_rv_date": "2026-01-14"
+      },
+      {
+        "date": "2025-12-16",
+        "price": "489.88",
+        "implied_volatility": "0.504000",
+        "realized_volatility": "0.363276",
+        "unshifted_rv_date": "2026-01-15"
+      },
+      {
+        "date": "2025-12-17",
+        "price": "467.26",
+        "implied_volatility": "0.489000",
+        "realized_volatility": "0.341749",
+        "unshifted_rv_date": "2026-01-16"
+      },
+      {
+        "date": "2025-12-18",
+        "price": "483.37",
+        "implied_volatility": "0.481000",
+        "realized_volatility": "0.334864",
+        "unshifted_rv_date": "2026-01-20"
+      },
+      {
+        "date": "2025-12-19",
+        "price": "481.2",
+        "implied_volatility": "0.461000",
+        "realized_volatility": "0.327642",
+        "unshifted_rv_date": "2026-01-21"
+      },
+      {
+        "date": "2025-12-22",
+        "price": "488.73",
+        "implied_volatility": "0.454000",
+        "realized_volatility": "0.364534",
+        "unshifted_rv_date": "2026-01-22"
+      },
+      {
+        "date": "2025-12-23",
+        "price": "485.56",
+        "implied_volatility": "0.427000",
+        "realized_volatility": "0.358249",
+        "unshifted_rv_date": "2026-01-23"
+      },
+      {
+        "date": "2025-12-24",
+        "price": "485.4",
+        "implied_volatility": "0.415000",
+        "realized_volatility": "0.370414",
+        "unshifted_rv_date": "2026-01-26"
+      },
+      {
+        "date": "2025-12-26",
+        "price": "475.19",
+        "implied_volatility": "0.409000",
+        "realized_volatility": "0.370431",
+        "unshifted_rv_date": "2026-01-27"
+      },
+      {
+        "date": "2025-12-29",
+        "price": "459.64",
+        "implied_volatility": "0.477000",
+        "realized_volatility": "0.366697",
+        "unshifted_rv_date": "2026-01-28"
+      },
+      {
+        "date": "2025-12-30",
+        "price": "454.43",
+        "implied_volatility": "0.485000",
+        "realized_volatility": "0.368897",
+        "unshifted_rv_date": "2026-01-29"
+      },
+      {
+        "date": "2025-12-31",
+        "price": "449.72",
+        "implied_volatility": "0.489000",
+        "realized_volatility": "0.389467",
+        "unshifted_rv_date": "2026-01-30"
+      },
+      {
+        "date": "2026-01-02",
+        "price": "438.07",
+        "implied_volatility": "0.478000",
+        "realized_volatility": "0.393475",
+        "unshifted_rv_date": "2026-02-02"
+      },
+      {
+        "date": "2026-01-05",
+        "price": "451.67",
+        "implied_volatility": "0.484000",
+        "realized_volatility": "0.38438",
+        "unshifted_rv_date": "2026-02-03"
+      },
+      {
+        "date": "2026-01-06",
+        "price": "432.96",
+        "implied_volatility": "0.489000",
+        "realized_volatility": "0.385992",
+        "unshifted_rv_date": "2026-02-04"
+      },
+      {
+        "date": "2026-01-07",
+        "price": "431.41",
+        "implied_volatility": "0.479000",
+        "realized_volatility": "0.366738",
+        "unshifted_rv_date": "2026-02-05"
+      },
+      {
+        "date": "2026-01-08",
+        "price": "435.8",
+        "implied_volatility": "0.475000",
+        "realized_volatility": "0.390189",
+        "unshifted_rv_date": "2026-02-06"
+      },
+      {
+        "date": "2026-01-09",
+        "price": "445.01",
+        "implied_volatility": "0.461000",
+        "realized_volatility": "0.392533",
+        "unshifted_rv_date": "2026-02-09"
+      },
+      {
+        "date": "2026-01-12",
+        "price": "448.96",
+        "implied_volatility": "0.475000",
+        "realized_volatility": "0.390989",
+        "unshifted_rv_date": "2026-02-10"
+      },
+      {
+        "date": "2026-01-13",
+        "price": "447.2",
+        "implied_volatility": "0.479000",
+        "realized_volatility": "0.390471",
+        "unshifted_rv_date": "2026-02-11"
+      },
+      {
+        "date": "2026-01-14",
+        "price": "439.2",
+        "implied_volatility": "0.474000",
+        "realized_volatility": "0.3996",
+        "unshifted_rv_date": "2026-02-12"
+      },
+      {
+        "date": "2026-01-15",
+        "price": "438.57",
+        "implied_volatility": "0.471000",
+        "realized_volatility": "0.396107",
+        "unshifted_rv_date": "2026-02-13"
+      },
+      {
+        "date": "2026-01-16",
+        "price": "437.5",
+        "implied_volatility": "0.448000",
+        "realized_volatility": "0.398997",
+        "unshifted_rv_date": "2026-02-17"
+      },
+      {
+        "date": "2026-01-20",
+        "price": "419.25",
+        "implied_volatility": "0.486000",
+        "realized_volatility": "0.399335",
+        "unshifted_rv_date": "2026-02-18"
+      },
+      {
+        "date": "2026-01-21",
+        "price": "431.44",
+        "implied_volatility": "0.458000",
+        "realized_volatility": "0.372459",
+        "unshifted_rv_date": "2026-02-19"
+      },
+      {
+        "date": "2026-01-22",
+        "price": "449.36",
+        "implied_volatility": "0.469000",
+        "realized_volatility": "0.356751",
+        "unshifted_rv_date": "2026-02-20"
+      },
+      {
+        "date": "2026-01-23",
+        "price": "449.06",
+        "implied_volatility": "0.462000",
+        "realized_volatility": "0.33241",
+        "unshifted_rv_date": "2026-02-23"
+      },
+      {
+        "date": "2026-01-26",
+        "price": "435.2",
+        "implied_volatility": "0.476000",
+        "realized_volatility": "0.34721",
+        "unshifted_rv_date": "2026-02-24"
+      },
+      {
+        "date": "2026-01-27",
+        "price": "430.9",
+        "implied_volatility": "0.470000",
+        "realized_volatility": "0.342087",
+        "unshifted_rv_date": "2026-02-25"
+      },
+      {
+        "date": "2026-01-28",
+        "price": "431.46",
+        "implied_volatility": "0.467000",
+        "realized_volatility": "0.347844",
+        "unshifted_rv_date": "2026-02-26"
+      },
+      {
+        "date": "2026-01-29",
+        "price": "416.56",
+        "implied_volatility": "0.429000",
+        "realized_volatility": "0.350098",
+        "unshifted_rv_date": "2026-02-27"
+      },
+      {
+        "date": "2026-01-30",
+        "price": "430.41",
+        "implied_volatility": "0.426000",
+        "realized_volatility": "0.330549",
+        "unshifted_rv_date": "2026-03-02"
+      },
+      {
+        "date": "2026-02-02",
+        "price": "421.81",
+        "implied_volatility": "0.422000",
+        "realized_volatility": "0.316992",
+        "unshifted_rv_date": "2026-03-03"
+      },
+      {
+        "date": "2026-02-03",
+        "price": "421.96",
+        "implied_volatility": "0.430000",
+        "realized_volatility": "0.338415",
+        "unshifted_rv_date": "2026-03-04"
+      },
+      {
+        "date": "2026-02-04",
+        "price": "406.01",
+        "implied_volatility": "0.456000",
+        "realized_volatility": "0.337951",
+        "unshifted_rv_date": "2026-03-05"
+      },
+      {
+        "date": "2026-02-05",
+        "price": "397.21",
+        "implied_volatility": "0.472000",
+        "realized_volatility": "0.320065",
+        "unshifted_rv_date": "2026-03-06"
+      },
+      {
+        "date": "2026-02-06",
+        "price": "411.11",
+        "implied_volatility": "0.426000",
+        "realized_volatility": "0.31106",
+        "unshifted_rv_date": "2026-03-09"
+      },
+      {
+        "date": "2026-02-09",
+        "price": "417.32",
+        "implied_volatility": "0.417000",
+        "realized_volatility": "0.285293",
+        "unshifted_rv_date": "2026-03-10"
+      },
+      {
+        "date": "2026-02-10",
+        "price": "425.21",
+        "implied_volatility": "0.417000",
+        "realized_volatility": "0.290665",
+        "unshifted_rv_date": "2026-03-11"
+      },
+      {
+        "date": "2026-02-11",
+        "price": "428.27",
+        "implied_volatility": "0.412000",
+        "realized_volatility": "0.299799",
+        "unshifted_rv_date": "2026-03-12"
+      },
+      {
+        "date": "2026-02-12",
+        "price": "417.07",
+        "implied_volatility": "0.440000",
+        "realized_volatility": "0.298018",
+        "unshifted_rv_date": "2026-03-13"
+      },
+      {
+        "date": "2026-02-13",
+        "price": "417.44",
+        "implied_volatility": "0.429000",
+        "realized_volatility": "0.291003",
+        "unshifted_rv_date": "2026-03-16"
+      },
+      {
+        "date": "2026-02-17",
+        "price": "410.63",
+        "implied_volatility": "0.443000",
+        "realized_volatility": "0.29375",
+        "unshifted_rv_date": "2026-03-17"
+      },
+      {
+        "date": "2026-02-18",
+        "price": "411.32",
+        "implied_volatility": "0.427000",
+        "realized_volatility": "0.293666",
+        "unshifted_rv_date": "2026-03-18"
+      },
+      {
+        "date": "2026-02-19",
+        "price": "411.71",
+        "implied_volatility": "0.421000",
+        "realized_volatility": "0.311472",
+        "unshifted_rv_date": "2026-03-19"
+      },
+      {
+        "date": "2026-02-20",
+        "price": "411.82",
+        "implied_volatility": "0.405000",
+        "realized_volatility": "0.326645",
+        "unshifted_rv_date": "2026-03-20"
+      },
+      {
+        "date": "2026-02-23",
+        "price": "399.83",
+        "implied_volatility": "0.432000",
+        "realized_volatility": "0.354341",
+        "unshifted_rv_date": "2026-03-23"
+      },
+      {
+        "date": "2026-02-24",
+        "price": "409.38",
+        "implied_volatility": "0.415000",
+        "realized_volatility": "0.342887",
+        "unshifted_rv_date": "2026-03-24"
+      },
+      {
+        "date": "2026-02-25",
+        "price": "417.4",
+        "implied_volatility": "0.409000",
+        "realized_volatility": "0.332041",
+        "unshifted_rv_date": "2026-03-25"
+      },
+      {
+        "date": "2026-02-26",
+        "price": "408.58",
+        "implied_volatility": "0.396000",
+        "realized_volatility": "0.340904",
+        "unshifted_rv_date": "2026-03-26"
+      },
+      {
+        "date": "2026-02-27",
+        "price": "402.51",
+        "implied_volatility": "0.412000",
+        "realized_volatility": "0.346112",
+        "unshifted_rv_date": "2026-03-27"
+      },
+      {
+        "date": "2026-03-02",
+        "price": "403.32",
+        "implied_volatility": "0.424000",
+        "realized_volatility": "0.347245",
+        "unshifted_rv_date": "2026-03-30"
+      },
+      {
+        "date": "2026-03-03",
+        "price": "392.43",
+        "implied_volatility": "0.445000",
+        "realized_volatility": "0.389611",
+        "unshifted_rv_date": "2026-03-31"
+      },
+      {
+        "date": "2026-03-04",
+        "price": "405.94",
+        "implied_volatility": "0.429000",
+        "realized_volatility": "0.392235",
+        "unshifted_rv_date": "2026-04-01"
+      },
+      {
+        "date": "2026-03-05",
+        "price": "405.55",
+        "implied_volatility": "0.420000",
+        "realized_volatility": "0.413214",
+        "unshifted_rv_date": "2026-04-02"
+      },
+      {
+        "date": "2026-03-06",
+        "price": "396.73",
+        "implied_volatility": "0.459000",
+        "realized_volatility": "0.416425",
+        "unshifted_rv_date": "2026-04-06"
+      },
+      {
+        "date": "2026-03-09",
+        "price": "398.68",
+        "implied_volatility": "0.437000",
+        "realized_volatility": "0.414658",
+        "unshifted_rv_date": "2026-04-07"
+      },
+      {
+        "date": "2026-03-10",
+        "price": "399.235",
+        "implied_volatility": "0.438000",
+        "realized_volatility": "0.412717",
+        "unshifted_rv_date": "2026-04-08"
+      },
+      {
+        "date": "2026-03-11",
+        "price": "407.82",
+        "implied_volatility": "0.430000",
+        "realized_volatility": "0.414674",
+        "unshifted_rv_date": "2026-04-09"
+      },
+      {
+        "date": "2026-03-12",
+        "price": "395.01",
+        "implied_volatility": "0.457000",
+        "realized_volatility": "0.406395",
+        "unshifted_rv_date": "2026-04-10"
+      },
+      {
+        "date": "2026-03-13",
+        "price": "391.2",
+        "implied_volatility": "0.459000",
+        "realized_volatility": "0.400476",
+        "unshifted_rv_date": "2026-04-13"
+      },
+      {
+        "date": "2026-03-16",
+        "price": "395.56",
+        "implied_volatility": "0.434000",
+        "realized_volatility": "0.421279",
+        "unshifted_rv_date": "2026-04-14"
+      },
+      {
+        "date": "2026-03-17",
+        "price": "399.27",
+        "implied_volatility": "0.393000",
+        "realized_volatility": "0.497361",
+        "unshifted_rv_date": "2026-04-15"
+      },
+      {
+        "date": "2026-03-18",
+        "price": "392.78",
+        "implied_volatility": "0.412000",
+        "realized_volatility": "0.496327",
+        "unshifted_rv_date": "2026-04-16"
+      },
+      {
+        "date": "2026-03-19",
+        "price": "380.3",
+        "implied_volatility": "0.420000",
+        "realized_volatility": "0.504235",
+        "unshifted_rv_date": "2026-04-17"
+      },
+      {
+        "date": "2026-03-20",
+        "price": "367.96",
+        "implied_volatility": "0.443000",
+        "realized_volatility": "0.496021",
+        "unshifted_rv_date": "2026-04-20"
+      },
+      {
+        "date": "2026-03-23",
+        "price": "380.85",
+        "implied_volatility": "0.437000",
+        "realized_volatility": "0.484182",
+        "unshifted_rv_date": "2026-04-21"
+      },
+      {
+        "date": "2026-03-24",
+        "price": "383.03",
+        "implied_volatility": "0.441000",
+        "realized_volatility": "0.469989",
+        "unshifted_rv_date": "2026-04-22"
+      },
+      {
+        "date": "2026-03-25",
+        "price": "385.95",
+        "implied_volatility": "0.446000",
+        "realized_volatility": "0.486914",
+        "unshifted_rv_date": "2026-04-23"
+      },
+      {
+        "date": "2026-03-26",
+        "price": "372.11",
+        "implied_volatility": "0.471000",
+        "realized_volatility": "0.486462",
+        "unshifted_rv_date": "2026-04-24"
+      },
+      {
+        "date": "2026-03-27",
+        "price": "361.83",
+        "implied_volatility": "0.491000",
+        "realized_volatility": "0.469677",
+        "unshifted_rv_date": "2026-04-27"
+      },
+      {
+        "date": "2026-03-30",
+        "price": "355.28",
+        "implied_volatility": "0.503000",
+        "realized_volatility": "0.458965",
+        "unshifted_rv_date": "2026-04-28"
+      },
+      {
+        "date": "2026-03-31",
+        "price": "371.75",
+        "implied_volatility": "0.470000",
+        "realized_volatility": "0.45479",
+        "unshifted_rv_date": "2026-04-29"
+      },
+      {
+        "date": "2026-04-01",
+        "price": "381.26",
+        "implied_volatility": "0.456000",
+        "realized_volatility": "0.434447",
+        "unshifted_rv_date": "2026-04-30"
+      },
+      {
+        "date": "2026-04-02",
+        "price": "360.59",
+        "implied_volatility": "0.467000",
+        "realized_volatility": "0.433651",
+        "unshifted_rv_date": "2026-05-01"
+      },
+      {
+        "date": "2026-04-06",
+        "price": "352.82",
+        "implied_volatility": "0.471000",
+        "realized_volatility": "0.380991",
+        "unshifted_rv_date": "2026-05-04"
+      },
+      {
+        "date": "2026-04-07",
+        "price": "346.65",
+        "implied_volatility": "0.487000",
+        "realized_volatility": "0.372256",
+        "unshifted_rv_date": "2026-05-05"
+      },
+      {
+        "date": "2026-04-08",
+        "price": "343.25",
+        "implied_volatility": "0.490000",
+        "realized_volatility": "0.368108",
+        "unshifted_rv_date": "2026-05-06"
+      },
+      {
+        "date": "2026-04-09",
+        "price": "345.62",
+        "implied_volatility": "0.481000",
+        "realized_volatility": "0.373524",
+        "unshifted_rv_date": "2026-05-07"
+      },
+      {
+        "date": "2026-04-10",
+        "price": "348.95",
+        "implied_volatility": "0.465000",
+        "realized_volatility": "0.388152",
+        "unshifted_rv_date": "2026-05-08"
+      },
+      {
+        "date": "2026-04-13",
+        "price": "352.42",
+        "implied_volatility": "0.467000",
+        "realized_volatility": "0.395888",
+        "unshifted_rv_date": "2026-05-11"
+      },
+      {
+        "date": "2026-04-14",
+        "price": "364.2",
+        "implied_volatility": "0.465000",
+        "realized_volatility": null,
+        "unshifted_rv_date": null
+      },
+      {
+        "date": "2026-04-15",
+        "price": "391.95",
+        "implied_volatility": "0.500000",
+        "realized_volatility": null,
+        "unshifted_rv_date": null
+      },
+      {
+        "date": "2026-04-16",
+        "price": "388.9",
+        "implied_volatility": "0.477000",
+        "realized_volatility": null,
+        "unshifted_rv_date": null
+      },
+      {
+        "date": "2026-04-17",
+        "price": "400.62",
+        "implied_volatility": "0.463000",
+        "realized_volatility": null,
+        "unshifted_rv_date": null
+      },
+      {
+        "date": "2026-04-20",
+        "price": "392.5",
+        "implied_volatility": "0.459000",
+        "realized_volatility": null,
+        "unshifted_rv_date": null
+      },
+      {
+        "date": "2026-04-21",
+        "price": "386.42",
+        "implied_volatility": "0.472000",
+        "realized_volatility": null,
+        "unshifted_rv_date": null
+      },
+      {
+        "date": "2026-04-22",
+        "price": "387.51",
+        "implied_volatility": "0.466000",
+        "realized_volatility": null,
+        "unshifted_rv_date": null
+      },
+      {
+        "date": "2026-04-23",
+        "price": "373.72",
+        "implied_volatility": "0.418000",
+        "realized_volatility": null,
+        "unshifted_rv_date": null
+      },
+      {
+        "date": "2026-04-24",
+        "price": "376.3",
+        "implied_volatility": "0.407000",
+        "realized_volatility": null,
+        "unshifted_rv_date": null
+      },
+      {
+        "date": "2026-04-27",
+        "price": "378.67",
+        "implied_volatility": "0.415000",
+        "realized_volatility": null,
+        "unshifted_rv_date": null
+      },
+      {
+        "date": "2026-04-28",
+        "price": "376.02",
+        "implied_volatility": "0.403000",
+        "realized_volatility": null,
+        "unshifted_rv_date": null
+      },
+      {
+        "date": "2026-04-29",
+        "price": "372.8",
+        "implied_volatility": "0.390000",
+        "realized_volatility": null,
+        "unshifted_rv_date": null
+      },
+      {
+        "date": "2026-04-30",
+        "price": "381.63",
+        "implied_volatility": "0.394000",
+        "realized_volatility": null,
+        "unshifted_rv_date": null
+      },
+      {
+        "date": "2026-05-01",
+        "price": "390.82",
+        "implied_volatility": "0.400000",
+        "realized_volatility": null,
+        "unshifted_rv_date": null
+      },
+      {
+        "date": "2026-05-04",
+        "price": "392.51",
+        "implied_volatility": "0.414000",
+        "realized_volatility": null,
+        "unshifted_rv_date": null
+      },
+      {
+        "date": "2026-05-05",
+        "price": "389.37",
+        "implied_volatility": "0.409000",
+        "realized_volatility": null,
+        "unshifted_rv_date": null
+      },
+      {
+        "date": "2026-05-06",
+        "price": "398.73",
+        "implied_volatility": "0.410000",
+        "realized_volatility": null,
+        "unshifted_rv_date": null
+      },
+      {
+        "date": "2026-05-07",
+        "price": "411.79",
+        "implied_volatility": "0.418000",
+        "realized_volatility": null,
+        "unshifted_rv_date": null
+      },
+      {
+        "date": "2026-05-08",
+        "price": "428.35",
+        "implied_volatility": "0.424000",
+        "realized_volatility": null,
+        "unshifted_rv_date": null
+      },
+      {
+        "date": "2026-05-11",
+        "price": "439.9575",
+        "implied_volatility": "0.474000",
+        "realized_volatility": null,
+        "unshifted_rv_date": null
+      }
+    ]
+  }
+}

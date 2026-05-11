@@ -1,0 +1,28 @@
+{
+  "endpoint": "/api/market/movers",
+  "params": {},
+  "status_code": 403,
+  "headers": {
+    "access-control-allow-credentials": "true",
+    "access-control-allow-origin": "*",
+    "access-control-expose-headers": "",
+    "cache-control": "max-age=0, private, must-revalidate",
+    "content-length": "239",
+    "content-type": "application/json",
+    "date": "Mon, 11 May 2026 17:29:54 GMT",
+    "server": "Cowboy",
+    "vary": "accept-encoding",
+    "x-request-id": "GK6TDtk9LXcS2OEBvN0F",
+    "x-uw-daily-req-count": "785",
+    "x-uw-minute-req-counter": "3",
+    "x-uw-req-per-minute-remaining": "117",
+    "x-uw-req-per-minute-reset": "44469",
+    "x-uw-token-req-limit": "20000",
+    "via": "1.1 google",
+    "alt-svc": "h3=\":443\"; ma=2592000"
+  },
+  "body": {
+    "code": "advanced_tier_required",
+    "message": "This endpoint requires the Advanced API tier or higher. Visit https://unusualwhales.com/settings/api-dashboard?utm_source=api&utm_campaign=json_msg to upgrade, or contact dev@unusualwhales.com."
+  }
+}

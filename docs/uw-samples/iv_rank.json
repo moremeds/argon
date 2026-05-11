@@ -1,0 +1,64 @@
+{
+  "endpoint": "/api/stock/TSLA/iv-rank",
+  "params": {},
+  "status_code": 200,
+  "headers": {
+    "access-control-allow-credentials": "true",
+    "access-control-allow-origin": "*",
+    "access-control-expose-headers": "",
+    "cache-control": "max-age=0, private, must-revalidate",
+    "content-encoding": "gzip",
+    "content-type": "application/json; charset=utf-8",
+    "date": "Mon, 11 May 2026 17:28:00 GMT",
+    "server": "Cowboy",
+    "vary": "accept-encoding",
+    "x-request-id": "GK6S9EcgIZ0PgVMB2fFE",
+    "x-uw-daily-req-count": "767",
+    "x-uw-minute-req-counter": "3",
+    "x-uw-req-per-minute-remaining": "117",
+    "x-uw-req-per-minute-reset": "51025",
+    "x-uw-token-req-limit": "20000",
+    "via": "1.1 google",
+    "alt-svc": "h3=\":443\"; ma=2592000",
+    "transfer-encoding": "chunked"
+  },
+  "body": {
+    "data": [
+      {
+        "close": "389.37",
+        "date": "2026-05-05",
+        "updated_at": "2026-05-05T22:35:25.960411Z",
+        "volatility": "0.4096",
+        "iv_rank_1y": "5.1532"
+      },
+      {
+        "close": "398.73",
+        "date": "2026-05-06",
+        "updated_at": "2026-05-06T22:35:25.165647Z",
+        "volatility": "0.4114",
+        "iv_rank_1y": "5.6092"
+      },
+      {
+        "close": "411.79",
+        "date": "2026-05-07",
+        "updated_at": "2026-05-07T22:35:24.868822Z",
+        "volatility": "0.4207",
+        "iv_rank_1y": "8.002"
+      },
+      {
+        "close": "428.35",
+        "date": "2026-05-08",
+        "updated_at": "2026-05-08T22:35:26.109616Z",
+        "volatility": "0.4236",
+        "iv_rank_1y": "8.7561"
+      },
+      {
+        "close": "439.8747",
+        "date": "2026-05-11",
+        "updated_at": "2026-05-11T16:35:37.364269Z",
+        "volatility": "0.4741",
+        "iv_rank_1y": "21.7405"
+      }
+    ]
+  }
+}
