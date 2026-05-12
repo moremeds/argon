@@ -164,8 +164,8 @@ class UwClient:
         if reset_raw is not None:
             try:
                 wait_s = min(65.0, max(1.0, float(reset_raw)))
-            except ValueError:
-                pass
+            except ValueError as exc:
+                logger.debug("failed to parse reset_raw=%r: %s", reset_raw, repr(exc))
         logger.warning(
             "uw minute_remaining=%s under threshold %s, sleeping %.1fs",
             rem,

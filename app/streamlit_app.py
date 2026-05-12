@@ -41,6 +41,7 @@ def _settings() -> Settings | None:
     try:
         return Settings.from_env()
     except RuntimeError as exc:
+        logging.exception("Settings.from_env failed: %s", repr(exc))
         st.error(f"Config error: {exc}")
         return None
 

@@ -5,6 +5,7 @@ Pure function: reads from Repository (already-persisted tables), never the live 
 
 from __future__ import annotations
 
+import logging
 from datetime import UTC, datetime
 from datetime import date as _date
 from decimal import Decimal
@@ -249,7 +250,10 @@ def _build_trade_plan(
         # OCC: TSLA260511C00440000 → last 8 digits = strike * 1000
         try:
             return Decimal(sym[-8:]) / Decimal("1000")
-        except Exception:  # noqa: BLE001
+        except (ValueError, ArithmeticError) as exc:
+            logging.getLogger(__name__).debug(
+                "strike parse failed for %r: %s", sym, repr(exc)
+            )
             return None
 
     def _expiry_from_symbol(sym: str) -> _date | None:
@@ -262,7 +266,10 @@ def _build_trade_plan(
             mm = int(ymd[2:4])
             dd = int(ymd[4:6])
             return _date(yy, mm, dd)
-        except Exception:  # noqa: BLE001
+        except (ValueError, IndexError) as exc:
+            logging.getLogger(__name__).debug(
+                "expiry parse failed for %r: %s", sym, repr(exc)
+            )
             return None
 
     if direction == "bull":
