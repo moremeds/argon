@@ -12,7 +12,6 @@ dependencies = [
   "pandas>=2.2",
   "playwright>=1.44",
   "pydantic>=2.7",
-  "streamlit>=1.35",
 ]
 
 [project.optional-dependencies]
