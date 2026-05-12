@@ -460,6 +460,7 @@ git commit -m "chore: scaffold api/, worker/, cards/, sources/ sub-packages"
     "autoprefixer": "^10.4.20",
     "eslint": "^9.21.0",
     "eslint-config-next": "^16.1.6",
+    "jsdom": "^25.0.1",
     "openapi-typescript": "^7.5.0",
     "postcss": "^8.4.47",
     "prettier": "^3.8.1",
@@ -1982,7 +1983,7 @@ def test_strike_gex_curve_persisted_and_round_trips():
     with psycopg.connect(settings.db_dsn()) as conn:
         repo = Repository(conn, schema=settings.db_schema)
         # Insert a fake run with a curve payload
-        run_id = repo.start_scan_run(ticker="ZZTEST", scan_type="single_stock")
+        run_id = repo.insert_scan_run(ticker="ZZTEST")
         repo.set_strike_gex_curve(run_id, [
             {"strike": "100", "expiry": "2026-05-30", "net_gex": "12.5",
              "call_gex": "20", "put_gex": "-7.5"},
@@ -3507,16 +3508,57 @@ def test_health_ok_when_recent_scan(client, seeded_db_with_fresh_run):
 
 ```python
 # tests/integration/api/conftest.py
+import os
 import pytest
 from fastapi.testclient import TestClient
 
+import psycopg
+
 from uw_scan.api.server import create_app
+from uw_scan.api.deps import get_repo, get_settings
+from uw_scan.config import Settings
+from uw_scan.storage.repository import Repository
+
+
+def _test_settings() -> Settings:
+    """Same isolation contract as the migration-test fixture — refuses to fall
+    through to the developer's real DB."""
+    test_db = os.environ.get("UW_SCAN_TEST_DB_NAME")
+    if not test_db:
+        pytest.fail(
+            "UW_SCAN_TEST_DB_NAME not set; refusing to point the API client at the working DB.",
+            pytrace=False,
+        )
+    return Settings.from_env().model_copy(update={"db_name": test_db})
 
 
 @pytest.fixture
-def client() -> TestClient:
+def client(seeded_db_empty_cards) -> TestClient:
+    """TestClient bound to the isolated test DB via FastAPI dependency_overrides.
+
+    Without these overrides, route handlers would resolve get_repo() →
+    Settings.from_env() → developer's real `option_wizard` DB. The overrides
+    point every request at the same test DB the fixtures populate.
+    """
+    settings = _test_settings()
     app = create_app()
-    return TestClient(app)
+
+    def _override_settings() -> Settings:
+        return settings
+
+    def _override_repo():
+        conn = psycopg.connect(settings.db_dsn())
+        try:
+            yield Repository(conn, schema=settings.db_schema)
+        finally:
+            conn.close()
+
+    app.dependency_overrides[get_settings] = _override_settings
+    app.dependency_overrides[get_repo] = _override_repo
+    try:
+        yield TestClient(app)
+    finally:
+        app.dependency_overrides.clear()
 
 
 # NOTE: these fixtures are also consumed by tests in tests/integration/worker/
@@ -3569,7 +3611,7 @@ def seeded_db_with_cards(seeded_db_empty_cards):
     repo = seeded_db_empty_cards
     from datetime import datetime, timezone
     from decimal import Decimal
-    run_id = repo.start_scan_run(ticker="TSLA", scan_type="single_stock")
+    run_id = repo.insert_scan_run(ticker="TSLA")
     repo.finish_scan_run(run_id, status="ok")
     repo.upsert_watchlist_card(
         ticker="TSLA", run_id=run_id,
@@ -5152,7 +5194,12 @@ async function _fetch<T>(path: string, init?: RequestInit): Promise<T> {
   if (!r.ok) {
     throw new Error(`API ${r.status} for ${path}: ${await r.text()}`);
   }
-  return r.json() as Promise<T>;
+  // FastAPI returns 204 No Content with an empty body for DELETE; calling
+  // r.json() on an empty body throws SyntaxError. Special-case empty responses.
+  if (r.status === 204) return undefined as unknown as T;
+  const text = await r.text();
+  if (!text) return undefined as unknown as T;
+  return JSON.parse(text) as T;
 }
 
 export const api = {
@@ -6587,12 +6634,24 @@ export default defineConfig({
     baseURL: "http://127.0.0.1:3001",
     screenshot: "only-on-failure",
   },
-  webServer: {
-    command: "npm run dev",
-    url: "http://127.0.0.1:3001",
-    reuseExistingServer: true,
-    timeout: 60_000,
-  },
+  // Two webServers: the /watchlist page is a server component that fetches
+  // FastAPI during SSR, so the API must be up before Next responds to a request.
+  // Playwright supports `webServer` as an array — both must report healthy
+  // before tests start.
+  webServer: [
+    {
+      command: "npm run dev",
+      url: "http://127.0.0.1:3001",
+      reuseExistingServer: true,
+      timeout: 60_000,
+    },
+    {
+      command: "uv run --project .. uvicorn uw_scan.api.server:app --host 127.0.0.1 --port 8400",
+      url: "http://127.0.0.1:8400/api/health",
+      reuseExistingServer: true,
+      timeout: 60_000,
+    },
+  ],
 });
 ```
 
