@@ -738,7 +738,7 @@ S0 is now complete. The repo has the new shape; nothing functional has changed y
 
 ## Slice S1 — DB migrations + watchlist seed
 
-**Goal:** Add the 5 new tables (`watchlist`, `watchlist_card`, `daily_ohlc`, `intraday_quote`, `pcr_history`, `jobs`) and the `single_stock_runs.strike_gex_curve` JSONB column. Seed `watchlist` from the 54-ticker JSON. Integration test verifies the migration roundtrip against a real local Postgres.
+**Goal:** Add the 5 new tables (`watchlist`, `watchlist_card`, `daily_ohlc`, `intraday_quote`, `pcr_history`, `jobs`) and the `scan_runs.strike_gex_curve` JSONB column. Seed `watchlist` from the 54-ticker JSON. Integration test verifies the migration roundtrip against a real local Postgres.
 
 ### Task S1.1 — Inspect the existing migration runner
 
@@ -791,7 +791,7 @@ CREATE INDEX IF NOT EXISTS idx_watchlist_active
 -- 2. Latest denormalized card row per ticker
 CREATE TABLE IF NOT EXISTS watchlist_card (
   ticker            TEXT PRIMARY KEY REFERENCES watchlist(ticker),
-  run_id            BIGINT NOT NULL REFERENCES single_stock_runs(run_id) ON DELETE RESTRICT,
+  run_id            BIGINT NOT NULL REFERENCES scan_runs(run_id) ON DELETE RESTRICT,
   scanned_at        TIMESTAMPTZ NOT NULL,
   spot              NUMERIC(18,4),
   spot_quoted_at    TIMESTAMPTZ,
@@ -905,9 +905,9 @@ git commit -m "feat(db): migration 003 — watchlist + card + ohlc + intraday + 
 -- 004_strike_gex_curve.sql — persist per-strike, per-expiry GEX as JSONB on each scan run.
 SET search_path TO uw_scan;
 
-ALTER TABLE single_stock_runs
+ALTER TABLE scan_runs
   ADD COLUMN IF NOT EXISTS strike_gex_curve JSONB;
-COMMENT ON COLUMN single_stock_runs.strike_gex_curve IS
+COMMENT ON COLUMN scan_runs.strike_gex_curve IS
   'Per-strike, per-expiry GEX curve. Array of {strike, expiry, net_gex, call_gex, put_gex}. Nullable; old rows pre-006 stay valid.';
 ```
 
@@ -918,7 +918,7 @@ psql "$(uv run python -c 'from uw_scan.config import Settings; print(Settings.fr
   -f src/uw_scan/storage/migrations/004_strike_gex_curve.sql
 
 psql "$(uv run python -c 'from uw_scan.config import Settings; print(Settings.from_env().db_dsn())')" \
-  -c "\d+ uw_scan.single_stock_runs" | grep strike_gex_curve
+  -c "\d+ uw_scan.scan_runs" | grep strike_gex_curve
 ```
 
 Expected: column appears as `jsonb`.
@@ -927,7 +927,7 @@ Expected: column appears as `jsonb`.
 
 ```bash
 git add src/uw_scan/storage/migrations/004_strike_gex_curve.sql
-git commit -m "feat(db): migration 004 — single_stock_runs.strike_gex_curve JSONB"
+git commit -m "feat(db): migration 004 — scan_runs.strike_gex_curve JSONB"
 ```
 
 ### Task S1.4 — Write migration `005_jobs_table.sql`
@@ -1132,9 +1132,15 @@ git commit -m "feat: scripts/migrate.sh applies SQL migrations in order"
 - [ ] **Step 1: Write the failing test**
 
 ```python
-"""Verify migrations 003-006 produce the expected schema and seed against a real local Postgres."""
+"""Verify migrations 003-006 produce the expected schema and seed against an
+ISOLATED test database — never against the developer's real `option_wizard` DB.
+
+Requires `UW_SCAN_TEST_DB_NAME` env var to point at a dedicated test database
+(e.g. `option_wizard_test`). The fixture refuses to run if it isn't set, so
+running `pytest` cannot destroy local scan data by accident."""
 from __future__ import annotations
 
+import os
 import subprocess
 from pathlib import Path
 
@@ -1147,18 +1153,44 @@ from uw_scan.config import Settings
 REPO_ROOT = Path(__file__).resolve().parents[3]
 
 
+def _test_settings() -> Settings:
+    """Return a Settings instance pointing at the isolated test DB.
+
+    HARD REQUIREMENT: the developer must set UW_SCAN_TEST_DB_NAME to a database
+    name that is NOT their working `option_wizard` DB. The fixture refuses to
+    run otherwise — protects against `DROP SCHEMA` against the wrong target.
+    """
+    test_db = os.environ.get("UW_SCAN_TEST_DB_NAME")
+    if not test_db:
+        pytest.fail(
+            "UW_SCAN_TEST_DB_NAME is not set. Create a dedicated test DB "
+            "(e.g. `createdb option_wizard_test`) and export "
+            "`UW_SCAN_TEST_DB_NAME=option_wizard_test` before running pytest. "
+            "This fixture refuses to operate on the working DB because it "
+            "performs `DROP SCHEMA uw_scan CASCADE`.",
+            pytrace=False,
+        )
+    base = Settings.from_env()
+    # Build a fresh Settings instance that overrides only the DB name.
+    return base.model_copy(update={"db_name": test_db})
+
+
 @pytest.fixture
 def fresh_schema():
-    """DROP + CREATE uw_scan schema, then re-apply all migrations. Yields a connection."""
-    settings = Settings.from_env()
+    """DROP + CREATE uw_scan schema on the TEST database, then re-apply all
+    migrations. Yields a connection."""
+    settings = _test_settings()
     with psycopg.connect(settings.db_dsn(), autocommit=True) as conn:
         with conn.cursor() as cur:
             cur.execute("DROP SCHEMA IF EXISTS uw_scan CASCADE")
             cur.execute("CREATE SCHEMA uw_scan")
+    # Pass the test DB through to the migration runner via env override.
+    env = {**os.environ, "UW_SCAN_DB_NAME": settings.db_name}
     subprocess.run(
         ["bash", str(REPO_ROOT / "scripts/migrate.sh")],
         check=True,
         cwd=REPO_ROOT,
+        env=env,
     )
     with psycopg.connect(settings.db_dsn()) as conn:
         yield conn
@@ -1182,7 +1214,7 @@ def test_strike_gex_curve_column_added(fresh_schema):
         cur.execute("""
             SELECT data_type FROM information_schema.columns
             WHERE table_schema='uw_scan'
-              AND table_name='single_stock_runs'
+              AND table_name='scan_runs'
               AND column_name='strike_gex_curve'
         """)
         row = cur.fetchone()
@@ -1197,7 +1229,7 @@ def test_watchlist_seeded(fresh_schema):
     assert count == 54
 
 
-def test_watchlist_card_fk_to_single_stock_runs(fresh_schema):
+def test_watchlist_card_fk_to_scan_runs(fresh_schema):
     with fresh_schema.cursor() as cur:
         cur.execute("""
             SELECT confrelid::regclass::text
@@ -1211,7 +1243,7 @@ def test_watchlist_card_fk_to_single_stock_runs(fresh_schema):
               )
         """)
         targets = [row[0] for row in cur.fetchall()]
-    assert "uw_scan.single_stock_runs" in targets, \
+    assert "uw_scan.scan_runs" in targets, \
         f"watchlist_card.run_id FK missing or wrong target: {targets}"
 
 
@@ -1925,7 +1957,7 @@ git commit -m "feat(sources): fetch_bulk_screener_ticker — per-ticker screener
 `tests/integration/test_pipeline_strike_gex.py`:
 
 ```python
-"""After run_single_stock, single_stock_runs.strike_gex_curve should be populated
+"""After run_single_stock, scan_runs.strike_gex_curve should be populated
 and assemble_single_stock_report should round-trip it into the report."""
 from decimal import Decimal
 from unittest.mock import patch
@@ -1974,7 +2006,7 @@ In `repository.py`:
         """Persist the per-strike, per-expiry GEX curve as JSONB on the run row."""
         with self.conn.cursor() as cur:
             cur.execute(
-                f"UPDATE {self.schema}.single_stock_runs SET strike_gex_curve=%s WHERE run_id=%s",
+                f"UPDATE {self.schema}.scan_runs SET strike_gex_curve=%s WHERE run_id=%s",
                 (psycopg.types.json.Json(curve), run_id),
             )
         self.conn.commit()
@@ -1982,7 +2014,7 @@ In `repository.py`:
     def get_strike_gex_curve(self, run_id: int) -> list[dict]:
         with self.conn.cursor() as cur:
             cur.execute(
-                f"SELECT strike_gex_curve FROM {self.schema}.single_stock_runs WHERE run_id=%s",
+                f"SELECT strike_gex_curve FROM {self.schema}.scan_runs WHERE run_id=%s",
                 (run_id,),
             )
             row = cur.fetchone()
@@ -2201,13 +2233,13 @@ Add `from uw_scan.models import MarketAggregates` at the top.
 
 - [ ] **Step 2: Add `Repository.set_aggregates` (writes JSONB to a new column or to an `aggregates` table)**
 
-The simplest path: add another nullable JSONB column to `single_stock_runs` via a 7th migration.
+The simplest path: add another nullable JSONB column to `scan_runs` via a 7th migration.
 
 `src/uw_scan/storage/migrations/007_aggregates_column.sql`:
 
 ```sql
 SET search_path TO uw_scan;
-ALTER TABLE single_stock_runs ADD COLUMN IF NOT EXISTS aggregates JSONB;
+ALTER TABLE scan_runs ADD COLUMN IF NOT EXISTS aggregates JSONB;
 ```
 
 Apply:
@@ -2222,7 +2254,7 @@ Repository:
     def set_aggregates(self, run_id: int, agg: "MarketAggregates") -> None:
         with self.conn.cursor() as cur:
             cur.execute(
-                f"UPDATE {self.schema}.single_stock_runs SET aggregates=%s WHERE run_id=%s",
+                f"UPDATE {self.schema}.scan_runs SET aggregates=%s WHERE run_id=%s",
                 (psycopg.types.json.Json(agg.model_dump(mode="json")), run_id),
             )
         self.conn.commit()
@@ -2230,7 +2262,7 @@ Repository:
     def get_aggregates(self, run_id: int) -> "MarketAggregates | None":
         with self.conn.cursor() as cur:
             cur.execute(
-                f"SELECT aggregates FROM {self.schema}.single_stock_runs WHERE run_id=%s",
+                f"SELECT aggregates FROM {self.schema}.scan_runs WHERE run_id=%s",
                 (run_id,),
             )
             row = cur.fetchone()
@@ -3488,19 +3520,33 @@ def client() -> TestClient:
 
 @pytest.fixture
 def seeded_db_empty_cards():
-    """Repository against a freshly-migrated DB with the 54-ticker watchlist
-    seeded but ZERO watchlist_card rows. Used to verify scan / refresh inserts."""
+    """Repository against a freshly-migrated TEST DB with the 54-ticker watchlist
+    seeded but ZERO watchlist_card rows. Used to verify scan / refresh inserts.
+
+    HARD REQUIREMENT: UW_SCAN_TEST_DB_NAME must be set (see tests/integration/
+    storage/test_migrations.py `_test_settings` docstring). Refuses to run
+    otherwise — never operates on the developer's working DB.
+    """
+    import os
     import subprocess
     from pathlib import Path
     import psycopg
     from uw_scan.config import Settings
     from uw_scan.storage.repository import Repository
     REPO_ROOT = Path(__file__).resolve().parents[3]
-    settings = Settings.from_env()
+    test_db = os.environ.get("UW_SCAN_TEST_DB_NAME")
+    if not test_db:
+        pytest.fail(
+            "UW_SCAN_TEST_DB_NAME not set; refusing to run a destructive fixture "
+            "against the working DB.",
+            pytrace=False,
+        )
+    settings = Settings.from_env().model_copy(update={"db_name": test_db})
     with psycopg.connect(settings.db_dsn(), autocommit=True) as c, c.cursor() as cur:
         cur.execute("DROP SCHEMA IF EXISTS uw_scan CASCADE; CREATE SCHEMA uw_scan")
+    env = {**os.environ, "UW_SCAN_DB_NAME": settings.db_name}
     subprocess.run(["bash", str(REPO_ROOT / "scripts/migrate.sh")],
-                   check=True, cwd=REPO_ROOT)
+                   check=True, cwd=REPO_ROOT, env=env)
     conn = psycopg.connect(settings.db_dsn())
     try:
         yield Repository(conn, schema=settings.db_schema)
@@ -3510,7 +3556,7 @@ def seeded_db_empty_cards():
 
 @pytest.fixture
 def seeded_db_with_cards(seeded_db_empty_cards):
-    """Seeded DB + a fake single_stock_runs row + one watchlist_card row for TSLA.
+    """Seeded DB + a fake scan_runs row + one watchlist_card row for TSLA.
     Used by tests that need to read cards back through the API."""
     repo = seeded_db_empty_cards
     from datetime import datetime, timezone
@@ -3603,7 +3649,7 @@ Add `Repository.get_last_full_scan_finished_at()`:
         with self.conn.cursor() as cur:
             cur.execute(
                 f"""
-                SELECT MAX(finished_at) FROM {self.schema}.single_stock_runs
+                SELECT MAX(finished_at) FROM {self.schema}.scan_runs
                 WHERE status='ok'
                 """
             )
@@ -3838,7 +3884,7 @@ def test_get_watchlist_filters_by_freshness(client, seeded_db_with_cards):
 Add the `seeded_db_empty_cards` and `seeded_db_with_cards` fixtures to `conftest.py` — they should:
 
 1. Run all migrations against a fresh test DB (use a separate schema or DB).
-2. For `seeded_db_with_cards`, also insert a fake `single_stock_runs` row + a fake `watchlist_card` row for one or two seed tickers.
+2. For `seeded_db_with_cards`, also insert a fake `scan_runs` row + a fake `watchlist_card` row for one or two seed tickers.
 
 (Implementation detail of fixture: it depends on the conftest pattern already in `tests/integration/`. Reuse what's there if possible; otherwise add a `pytest.fixture(scope="session")` that wraps `scripts/migrate.sh`.)
 
@@ -4948,6 +4994,18 @@ export function fmtDecimal(v: number | null | undefined, digits = 2): string {
     maximumFractionDigits: digits,
   });
 }
+
+/**
+ * Coerce an unknown API value to `number | null` *preserving zero*.
+ * `Number(x) || null` is wrong: it converts a legitimate 0 (zero return,
+ * zero aggression, flat skew, etc.) into `null`, which the UI then
+ * renders as a missing value instead of "0".
+ */
+export function toNum(v: unknown): number | null {
+  if (v === null || v === undefined || v === "") return null;
+  const n = typeof v === "number" ? v : Number(v);
+  return Number.isFinite(n) ? n : null;
+}
 ```
 
 - [ ] **Step 4: Freshness helper with tests**
@@ -5712,7 +5770,7 @@ import { AggressionGauge } from "./AggressionGauge";
 import { GammaBlock } from "./GammaBlock";
 import { SkewBlock } from "./SkewBlock";
 import { PositioningBlock } from "./PositioningBlock";
-import { fmtPct, fmtDecimal } from "@/lib/formatters";
+import { fmtPct, fmtDecimal, toNum } from "@/lib/formatters";
 import { bucketFreshness } from "@/lib/freshness";
 
 type Props = { card: any; sparkline: number[] };
@@ -5739,10 +5797,10 @@ export function TickerCard({ card, sparkline }: Props) {
         </div>
         <div style={{ textAlign: "right" }}>
           <div style={{ fontSize: 16, fontWeight: 700 }}>
-            {fmtPct(Number(card.iv_atm) || null, 1)}
+            {fmtPct(toNum(card.iv_atm), 1)}
           </div>
           <div style={{ fontSize: 9, color: "var(--text-muted)" }}>
-            IVR {fmtDecimal(card.iv_rank ?? null, 0)}
+            IVR {fmtDecimal(toNum(card.iv_rank), 0)}
           </div>
         </div>
       </div>
@@ -5750,33 +5808,34 @@ export function TickerCard({ card, sparkline }: Props) {
       {/* Setup */}
       <SetupBadge type={card.setup?.type ?? null} direction={card.setup?.direction ?? null} />
 
-      {/* Sparkline + returns + gauge */}
+      {/* Sparkline + returns + gauge — `toNum` preserves legitimate zero values
+          (Number(0) || null would clobber them to null). */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: 8, alignItems: "center", margin: "8px 0" }}>
         <SparklineRow
           closes={sparkline}
-          ret_1d={Number(card.returns?.d1) || null}
-          ret_1w={Number(card.returns?.w1) || null}
-          ret_30d={Number(card.returns?.d30) || null}
+          ret_1d={toNum(card.returns?.d1)}
+          ret_1w={toNum(card.returns?.w1)}
+          ret_30d={toNum(card.returns?.d30)}
         />
-        <AggressionGauge value={Number(card.aggression_pct) || null} />
+        <AggressionGauge value={toNum(card.aggression_pct)} />
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 8 }}>
         <GammaBlock
-          flip_distance={Number(card.gamma.flip_distance) || null}
-          flip_price={Number(card.gamma.flip_price) || null}
-          per_1pct_move={Number(card.gamma.per_1pct_move) || null}
-          max_strike={Number(card.gamma.max_strike) || null}
-          expiring_pct={Number(card.gamma.expiring_pct) || null}
+          flip_distance={toNum(card.gamma.flip_distance)}
+          flip_price={toNum(card.gamma.flip_price)}
+          per_1pct_move={toNum(card.gamma.per_1pct_move)}
+          max_strike={toNum(card.gamma.max_strike)}
+          expiring_pct={toNum(card.gamma.expiring_pct)}
           expiring_date={card.gamma.expiring_date ?? null}
         />
-        <SkewBlock rr25d_30dte={Number(card.skew.rr25d_30dte) || null} />
+        <SkewBlock rr25d_30dte={toNum(card.skew.rr25d_30dte)} />
         <PositioningBlock
           call_oi={card.positioning.call_oi ?? null}
           put_oi={card.positioning.put_oi ?? null}
-          pcr_oi={Number(card.positioning.pcr_oi) || null}
-          pcr_vol={Number(card.positioning.pcr_vol) || null}
-          pcr_delta_30d={Number(card.positioning.pcr_delta_30d) || null}
+          pcr_oi={toNum(card.positioning.pcr_oi)}
+          pcr_vol={toNum(card.positioning.pcr_vol)}
+          pcr_delta_30d={toNum(card.positioning.pcr_delta_30d)}
         />
       </div>
     </Link>
@@ -5915,6 +5974,7 @@ export function TabBar({ ticker }: { ticker: string }) {
 import { api } from "@/lib/api";
 import { DetailHeader } from "@/components/stock/DetailHeader";
 import { TabBar } from "@/components/stock/TabBar";
+import { toNum } from "@/lib/formatters";
 
 export default async function StockLayout({
   children,
@@ -5931,13 +5991,13 @@ export default async function StockLayout({
     <main style={{ minHeight: "100vh", background: "var(--bg-base)" }}>
       <DetailHeader
         ticker={report.ticker}
-        spot={Number(report.market_structure.spot) || null}
-        iv_atm={Number(report.volatility.iv) || null}
+        spot={toNum(report.market_structure.spot)}
+        iv_atm={toNum(report.volatility.iv)}
         spotQuotedAt={null}      // wired from intraday_quote in a future enhancement
         scannedAt={report.generated_at}
         setupType={report.setup?.setup_type ?? null}
         setupDirection={report.setup?.direction ?? null}
-        setupScore={Number(report.setup?.score) || null}
+        setupScore={toNum(report.setup?.score)}
       />
       <TabBar ticker={ticker} />
       <div style={{ padding: 16 }}>{children}</div>
@@ -6138,7 +6198,7 @@ export default async function TabPage({
 // web/components/stock/tabs/MarketStructureTab.tsx
 import { MetricGrid, Metric } from "../panels/MetricGrid";
 import { DataTable } from "../panels/DataTable";
-import { fmtDecimal } from "@/lib/formatters";
+import { fmtDecimal, toNum } from "@/lib/formatters";
 
 export function MarketStructureTab({ report }: { report: any }) {
   const m = report.market_structure;
@@ -6146,10 +6206,10 @@ export function MarketStructureTab({ report }: { report: any }) {
     <div>
       <h3 style={{ fontFamily: "var(--font-mono)", fontSize: 10, color: "var(--text-secondary)", letterSpacing: 1, textTransform: "uppercase" }}>Gamma Exposure</h3>
       <MetricGrid cols={4}>
-        <Metric label="Net GEX" value={fmtDecimal(Number(m.net_gex) || null, 0)} />
-        <Metric label="Call GEX" value={fmtDecimal(Number(m.total_call_gex) || null, 0)} />
-        <Metric label="Put GEX"  value={fmtDecimal(Number(m.total_put_gex)  || null, 0)} />
-        <Metric label="Max Pain (nearest)" value={`$${fmtDecimal(Number(m.max_pain) || null, 2)}`} />
+        <Metric label="Net GEX" value={fmtDecimal(toNum(m.net_gex), 0)} />
+        <Metric label="Call GEX" value={fmtDecimal(toNum(m.total_call_gex), 0)} />
+        <Metric label="Put GEX"  value={fmtDecimal(toNum(m.total_put_gex), 0)} />
+        <Metric label="Max Pain (nearest)" value={`$${fmtDecimal(toNum(m.max_pain), 2)}`} />
       </MetricGrid>
 
       <h3 style={{ marginTop: 24, fontFamily: "var(--font-mono)", fontSize: 10, color: "var(--text-secondary)", letterSpacing: 1, textTransform: "uppercase" }}>Top OI Strikes</h3>
@@ -6489,7 +6549,7 @@ test("watchlist → detail → tab → rescan", async ({ page }) => {
 
 - [ ] **Step 3: Pre-seed the DB so the watchlist renders**
 
-Document the prereq in a comment at the top of the spec: "Requires `bash scripts/migrate.sh` + at least one `single_stock_runs` row + `watchlist_card` row. Run `uv run python -m uw_scan.worker.jobs.full_scan` once before E2E if cards are missing."
+Document the prereq in a comment at the top of the spec: "Requires `bash scripts/migrate.sh` + at least one `scan_runs` row + `watchlist_card` row. Run `uv run python -m uw_scan.worker.jobs.full_scan` once before E2E if cards are missing."
 
 - [ ] **Step 4: Run**
 

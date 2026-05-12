@@ -26,7 +26,7 @@ Streamlit is retired in this rework — no parity gate, no dual-run, no migratio
 - **Multi-user / auth.** Single-user local-host tool, mirrors `xenon` and `apex` deployment model. No Clerk, no session state.
 - **Mobile-first.** Responsive grid down to single-column at narrow widths is fine, but the design target is wide-screen desktop (≥1440px).
 - **Theme toggle.** Dark mode only. The Market Pulse reference, xenon's design system, and the screen-density requirements all assume dark.
-- **Backwards compatibility** with persisted Streamlit-era run rows (rows in `single_stock_runs` written before the schema additions are still readable — new fields default null — but no UI re-renders them in the old layout).
+- **Backwards compatibility** with persisted Streamlit-era run rows (rows in `scan_runs` written before the schema additions are still readable — new fields default null — but no UI re-renders them in the old layout).
 
 ## 3. Architecture
 
@@ -89,7 +89,7 @@ CREATE INDEX idx_watchlist_active
 -- 4.1.2 Latest denormalised card row per ticker (the grid payload)
 CREATE TABLE uw_scan.watchlist_card (
   ticker            TEXT PRIMARY KEY REFERENCES uw_scan.watchlist(ticker),
-  run_id            BIGINT NOT NULL REFERENCES uw_scan.single_stock_runs(run_id)
+  run_id            BIGINT NOT NULL REFERENCES uw_scan.scan_runs(run_id)
                        ON DELETE RESTRICT,     -- card row is meaningless without its source run
   scanned_at        TIMESTAMPTZ NOT NULL,      -- when the full UW scan ran
   spot              NUMERIC(18,4),
@@ -189,11 +189,11 @@ CREATE INDEX idx_jobs_queued
 -- Persist the per-strike GEX curve so card-row derivation can compute the flip
 -- point and max-GEX strike, and the detail page can render the GEX chart from
 -- the same source.
-ALTER TABLE uw_scan.single_stock_runs
+ALTER TABLE uw_scan.scan_runs
   ADD COLUMN strike_gex_curve JSONB;           -- nullable; old rows stay valid
 ```
 
-Old `single_stock_runs` rows survive untouched. New fields default to NULL; the card-derivation function returns NULL for downstream fields when their inputs are missing.
+Old `scan_runs` rows survive untouched. New fields default to NULL; the card-derivation function returns NULL for downstream fields when their inputs are missing.
 
 ### 4.3 Watchlist seed
 
@@ -267,7 +267,7 @@ User clicks Rescan on TSLA card
 Frontend polls GET /api/jobs/{job_id} every 1000 ms
 Scheduler worker's ad-hoc-job loop (1s tick) picks up queued rows,
   marks them 'running', runs run_single_stock(ticker), writes
-  single_stock_runs row, recomputes watchlist_card row, sets
+  scan_runs row, recomputes watchlist_card row, sets
   jobs.status='done' + jobs.run_id=...
 Frontend sees status='done' → calls router.refresh() → server component
   re-fetches /api/watchlist → grid updates in place
@@ -477,7 +477,7 @@ APScheduler running in a dedicated worker process (`python -m uw_scan.worker.sch
 | Job | Trigger (default) | What it does | UW cost |
 |---|---|---|---|
 | **Spot refresh** | every `UW_SCAN_SPOT_REFRESH_SECONDS` (default 300, RTH only) | Fetch massive.io intraday quote for every active watchlist ticker. Upsert `intraday_quote`. Recompute spot-derived `watchlist_card` fields: `spot`, `spot_quoted_at`, `spot_source`, `ret_1d`, `ret_1w`, `ret_30d`, `gex_per_1pct_move`, `gex_flip_distance` | none |
-| **Full scan** | `UW_SCAN_FULL_SCAN_CRON` (default `*/60 9-16 * * 1-5` ET, plus `15 16 * * 1-5` EOD) | For every active watchlist ticker, run `run_single_stock`. Persist `single_stock_runs` + `strike_gex_curve` + full `watchlist_card` row. Append `pcr_history` row | ~54 ticker calls per run |
+| **Full scan** | `UW_SCAN_FULL_SCAN_CRON` (default `*/60 9-16 * * 1-5` ET, plus `15 16 * * 1-5` EOD) | For every active watchlist ticker, run `run_single_stock`. Persist `scan_runs` + `strike_gex_curve` + full `watchlist_card` row. Append `pcr_history` row | ~54 ticker calls per run |
 | **Daily OHLC pull** | `UW_SCAN_OHLC_PULL_CRON` (default `30 17 * * 1-5` ET) | Fetch massive.io daily OHLC for every active watchlist ticker; upsert into `daily_ohlc`. Recompute `ret_1w`, `ret_30d` on the card | none |
 
 All times in `UW_SCAN_RTH_TZ` (default `America/New_York`).
@@ -509,7 +509,7 @@ massive_io_base_url: str = "https://api.massive.io"   # placeholder — confirme
 
 The S1 pipeline (`src/uw_scan/pipeline.py:run_single_stock`) and `SingleStockReport` need additive changes:
 
-1. **Persist `strike_gex_curve` JSONB.** Already aggregated during S1 (the pipeline computes `total_call_gex` / `total_put_gex` / `net_gex` from per-strike data); we just keep the per-strike list and persist it on `single_stock_runs`. Required for `gex_flip_*`, `max_gex_strike`, `gex_expiring_*`, and the detail page's GEX chart.
+1. **Persist `strike_gex_curve` JSONB.** Already aggregated during S1 (the pipeline computes `total_call_gex` / `total_put_gex` / `net_gex` from per-strike data); we just keep the per-strike list and persist it on `scan_runs`. Required for `gex_flip_*`, `max_gex_strike`, `gex_expiring_*`, and the detail page's GEX chart.
 
 2. **Fetch per-ticker bulk-screener row.** Call `/api/screener/stocks?ticker=...` (same endpoint S2 uses) during S1. Add fields to a new `MarketAggregates` sub-model on `SingleStockReport`:
    - `call_oi_total`, `put_oi_total`
@@ -532,7 +532,7 @@ The S1 pipeline (`src/uw_scan/pipeline.py:run_single_stock`) and `SingleStockRep
    ```
    The provider is injected into the scheduler jobs. Tests use a recorded-fixture impl.
 
-These changes are all **additive to `SingleStockReport`**. Old `single_stock_runs` rows remain valid; new fields default null. Pipeline contracts in the archived spec are preserved.
+These changes are all **additive to `SingleStockReport`**. Old `scan_runs` rows remain valid; new fields default null. Pipeline contracts in the archived spec are preserved.
 
 ## 10. Frontend tab rendering (detail page)
 
@@ -578,7 +578,7 @@ The archived spec's guardrails (real Postgres for integration; no fake cursors; 
 | # | Slice | Deliverable | Depends on |
 |---|---|---|---|
 | **S0** | Repo cleanup + new package skeleton | §12 cleanup actions; empty Next.js scaffold under `web/`; `scripts/dev.sh`; CI updated to lint/test both Python and TS | — |
-| **S1** | DB migrations + watchlist seed | All §4 tables + the `single_stock_runs.strike_gex_curve` column add. Seed `watchlist` from `data/watchlist_seed.json` (54 tickers). Integration test verifies migration roundtrip | S0 |
+| **S1** | DB migrations + watchlist seed | All §4 tables + the `scan_runs.strike_gex_curve` column add. Seed `watchlist` from `data/watchlist_seed.json` (54 tickers). Integration test verifies migration roundtrip | S0 |
 | **S2** | Pipeline extensions | (1) persist `strike_gex_curve`, (2) fetch per-ticker bulk-screener row + new `MarketAggregates` model, (3) verify/normalise `skew_25d` to 30 DTE, (4) `pcr_history` writer | S1 |
 | **S3** | Massive.io provider + sources module | `OhlcProvider` interface + `MassiveIoOhlcProvider` + fixture-backed test provider. **Includes S0-style spike against the live API to confirm endpoints, auth, response shape.** | S0 |
 | **S4** | Card-row derivation | `compute_watchlist_card_row()` pure function + full unit coverage; helper module `src/uw_scan/cards/` | S2, S3 |
