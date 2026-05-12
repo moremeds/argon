@@ -1160,6 +1160,11 @@ def _test_settings() -> Settings:
     HARD REQUIREMENT: the developer must set UW_SCAN_TEST_DB_NAME to a database
     name that is NOT their working `option_wizard` DB. The fixture refuses to
     run otherwise — protects against `DROP SCHEMA` against the wrong target.
+
+    DB-only tests (migrations, repository) don't need a UW API key. We inject
+    a dummy `UW_SCAN_API_KEY` before calling `Settings.from_env()` so the
+    `RuntimeError("UW_SCAN_API_KEY is not set")` from config.py doesn't fail
+    fresh dev/CI environments.
     """
     test_db = os.environ.get("UW_SCAN_TEST_DB_NAME")
     if not test_db:
@@ -1171,6 +1176,7 @@ def _test_settings() -> Settings:
             "performs `DROP SCHEMA uw_scan CASCADE`.",
             pytrace=False,
         )
+    os.environ.setdefault("UW_SCAN_API_KEY", "test-dummy-not-used-by-db-tests")
     base = Settings.from_env()
     # Build a fresh Settings instance that overrides only the DB name.
     return base.model_copy(update={"db_name": test_db})
@@ -1301,11 +1307,24 @@ from uw_scan.storage.repository import Repository
 
 @pytest.fixture
 def repo():
-    settings = Settings.from_env()
+    """Repository against the isolated test DB (UW_SCAN_TEST_DB_NAME required).
+
+    Repository methods commit internally, so a post-yield rollback won't undo
+    writes. Each test's writes ARE persisted — that's why we run them against
+    the test DB. The next migration-resetting fixture (`fresh_schema` or
+    `seeded_db_empty_cards`) wipes the schema between test classes, which is
+    where state is cleaned up.
+    """
+    import os
+    test_db = os.environ.get("UW_SCAN_TEST_DB_NAME")
+    if not test_db:
+        pytest.fail(
+            "UW_SCAN_TEST_DB_NAME not set; refusing to commit to the working DB.",
+            pytrace=False,
+        )
+    settings = Settings.from_env().model_copy(update={"db_name": test_db})
     with psycopg.connect(settings.db_dsn()) as conn:
-        r = Repository(conn, schema=settings.db_schema)
-        yield r
-        conn.rollback()  # tests run inside a transaction we can rollback
+        yield Repository(conn, schema=settings.db_schema)
 
 
 def test_list_active_watchlist_excludes_soft_deleted(repo):
@@ -2719,7 +2738,12 @@ class Settings(BaseModel):
 And in `from_env`:
 
 ```python
-            massive_api_key=SecretStr(os.environ.get("MASSIVE_API_KEY", "")) or None,
+            # SecretStr("") is truthy and not None, which would silently let the
+            # scheduler instantiate a Massive client with a blank bearer token and
+            # generate a stream of 401s. Coerce blank to None BEFORE wrapping.
+            massive_api_key=(
+                SecretStr(_mkey) if (_mkey := os.environ.get("MASSIVE_API_KEY", "").strip()) else None
+            ),
             massive_base_url=os.environ.get("MASSIVE_BASE_URL", "https://api.massive.com"),
 ```
 
@@ -3522,13 +3546,15 @@ from uw_scan.storage.repository import Repository
 
 def _test_settings() -> Settings:
     """Same isolation contract as the migration-test fixture — refuses to fall
-    through to the developer's real DB."""
+    through to the developer's real DB. Injects a dummy UW_SCAN_API_KEY for
+    DB-only tests that never call UW."""
     test_db = os.environ.get("UW_SCAN_TEST_DB_NAME")
     if not test_db:
         pytest.fail(
             "UW_SCAN_TEST_DB_NAME not set; refusing to point the API client at the working DB.",
             pytrace=False,
         )
+    os.environ.setdefault("UW_SCAN_API_KEY", "test-dummy-not-used-by-db-tests")
     return Settings.from_env().model_copy(update={"db_name": test_db})
 
 
@@ -3848,11 +3874,12 @@ class SetupBlock(BaseModel):
 
 
 class ReturnsBlock(BaseModel):
-    d1: Optional[Decimal] = Field(None, alias="ret_1d")
-    w1: Optional[Decimal] = Field(None, alias="ret_1w")
-    d30: Optional[Decimal] = Field(None, alias="ret_30d")
-
-    model_config = {"populate_by_name": True}
+    """Wire shape matches the spec / frontend contract: d1 / w1 / d30. No aliases —
+    FastAPI would otherwise serialize the alias as the JSON key and break the
+    frontend payload contract."""
+    d1: Optional[Decimal] = None
+    w1: Optional[Decimal] = None
+    d30: Optional[Decimal] = None
 
 
 class GammaBlock(BaseModel):
@@ -4035,7 +4062,7 @@ def _card_to_response(row, sector: str, pinned: bool, sort_rank: int) -> Watchli
         iv_atm=row.iv_atm, iv_rank=row.iv_rank,
         setup=SetupBlock(type=row.setup_type, direction=row.setup_direction, score=row.setup_score),
         aggression_pct=row.aggression_pct,
-        returns=ReturnsBlock(ret_1d=row.ret_1d, ret_1w=row.ret_1w, ret_30d=row.ret_30d),
+        returns=ReturnsBlock(d1=row.ret_1d, w1=row.ret_1w, d30=row.ret_30d),
         gamma=GammaBlock(
             flip_distance=row.gex_flip_distance, flip_price=row.gex_flip_price,
             per_1pct_move=row.gex_per_1pct_move, max_strike=row.max_gex_strike,
