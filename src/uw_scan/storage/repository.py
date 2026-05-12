@@ -7,6 +7,8 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Iterable
+from dataclasses import dataclass
+from datetime import date as _date
 from datetime import datetime
 from decimal import Decimal
 from typing import Any
@@ -15,6 +17,83 @@ import psycopg
 from psycopg.types.json import Jsonb
 
 from .. import models
+
+
+@dataclass(frozen=True)
+class WatchlistRow:
+    ticker: str
+    sector: str
+    notes: str | None
+    pinned: bool
+    sort_rank: int
+    added_at: datetime
+    removed_at: datetime | None
+
+
+@dataclass(frozen=True)
+class DailyOhlcRow:
+    ticker: str
+    date: _date
+    open: Decimal | None
+    high: Decimal | None
+    low: Decimal | None
+    close: Decimal
+    volume: int | None
+    source: str
+    fetched_at: datetime
+
+
+@dataclass(frozen=True)
+class IntradayQuoteRow:
+    ticker: str
+    price: Decimal
+    quoted_at: datetime
+    fetched_at: datetime
+
+
+@dataclass(frozen=True)
+class PcrHistoryRow:
+    ticker: str
+    snapshot_date: _date
+    pcr_oi: Decimal | None
+    pcr_vol: Decimal | None
+
+
+@dataclass(frozen=True)
+class JobRow:
+    id: Any
+    ticker: str
+    status: str
+    run_id: int | None
+    error: str | None
+    requested_at: datetime
+    started_at: datetime | None
+    finished_at: datetime | None
+
+
+class WatchlistCardRow:
+    """Variable-shaped: 25+ fields, many nullable. Wraps a dict for forward-compat
+    when the card schema grows. Use .from_db(row, cursor.description) to construct."""
+
+    def __init__(self, data: dict):
+        self._data = data
+
+    def __getattr__(self, name: str):
+        try:
+            data = object.__getattribute__(self, "_data")
+        except AttributeError as e:
+            raise AttributeError(name) from e
+        if name in data:
+            return data[name]
+        raise AttributeError(name)
+
+    @classmethod
+    def from_db(cls, row: tuple, description) -> "WatchlistCardRow":
+        return cls({col.name: val for col, val in zip(description, row, strict=False)})
+
+    def to_dict(self) -> dict:
+        return dict(self._data)
+
 
 logger = logging.getLogger(__name__)
 
@@ -1080,6 +1159,323 @@ class Repository:
             row = cur.fetchone()
             return int(row[0]) if row else 0
 
+    # ------------------------------------------------------------------
+    # S3+: watchlist CRUD
+    # ------------------------------------------------------------------
+    def list_active_watchlist(self) -> list[WatchlistRow]:
+        with self._conn.cursor() as cur:
+            cur.execute(
+                f"""
+                SELECT ticker, sector, notes, pinned, sort_rank, added_at, removed_at
+                FROM {self._schema}.watchlist
+                WHERE removed_at IS NULL
+                ORDER BY sort_rank, ticker
+                """
+            )
+            return [WatchlistRow(*row) for row in cur.fetchall()]
+
+    def add_watchlist_ticker(
+        self,
+        *,
+        ticker: str,
+        sector: str,
+        notes: str | None = None,
+        sort_rank: int = 0,
+        pinned: bool = False,
+    ) -> None:
+        with self._conn.cursor() as cur:
+            cur.execute(
+                f"""
+                INSERT INTO {self._schema}.watchlist
+                  (ticker, sector, notes, sort_rank, pinned)
+                VALUES (%s, %s, %s, %s, %s)
+                ON CONFLICT (ticker) DO UPDATE
+                  SET sector=EXCLUDED.sector, notes=EXCLUDED.notes,
+                      sort_rank=EXCLUDED.sort_rank, pinned=EXCLUDED.pinned,
+                      removed_at=NULL
+                """,
+                (ticker, sector, notes, sort_rank, pinned),
+            )
+        self._conn.commit()
+
+    def soft_delete_watchlist_ticker(self, ticker: str) -> None:
+        with self._conn.cursor() as cur:
+            cur.execute(
+                f"UPDATE {self._schema}.watchlist SET removed_at=NOW() WHERE ticker=%s",
+                (ticker,),
+            )
+        self._conn.commit()
+
+    def patch_watchlist_ticker(
+        self,
+        ticker: str,
+        *,
+        sector: str | None = None,
+        notes: str | None = None,
+        pinned: bool | None = None,
+        sort_rank: int | None = None,
+    ) -> None:
+        sets: list[str] = []
+        vals: list[Any] = []
+        for col, val in (
+            ("sector", sector),
+            ("notes", notes),
+            ("pinned", pinned),
+            ("sort_rank", sort_rank),
+        ):
+            if val is not None:
+                sets.append(f"{col}=%s")
+                vals.append(val)
+        if not sets:
+            return
+        vals.append(ticker)
+        with self._conn.cursor() as cur:
+            cur.execute(
+                f"UPDATE {self._schema}.watchlist SET {', '.join(sets)} WHERE ticker=%s",
+                vals,
+            )
+        self._conn.commit()
+
+    # ---- watchlist_card ----
+    def upsert_watchlist_card(
+        self,
+        *,
+        ticker: str,
+        run_id: int,
+        scanned_at: datetime,
+        spot: Decimal | None = None,
+        **fields: Any,
+    ) -> None:
+        """Insert or replace the per-ticker card row.
+
+        `updated_at` is DB-owned (default NOW() on insert; refreshed by the
+        conflict branch). It is NOT part of the column list, so INSERT cols
+        and VALUES placeholders have matching arity.
+        """
+        cols = ["ticker", "run_id", "scanned_at", "spot", *fields.keys()]
+        vals = [ticker, run_id, scanned_at, spot, *fields.values()]
+        placeholders = ", ".join(["%s"] * len(cols))
+        updates = ", ".join(f"{c}=EXCLUDED.{c}" for c in cols if c != "ticker")
+        with self._conn.cursor() as cur:
+            cur.execute(
+                f"""
+                INSERT INTO {self._schema}.watchlist_card ({", ".join(cols)})
+                VALUES ({placeholders})
+                ON CONFLICT (ticker) DO UPDATE SET {updates}, updated_at=NOW()
+                """,
+                vals,
+            )
+        self._conn.commit()
+
+    def get_watchlist_card(self, ticker: str) -> WatchlistCardRow | None:
+        with self._conn.cursor() as cur:
+            cur.execute(
+                f"SELECT * FROM {self._schema}.watchlist_card WHERE ticker=%s",
+                (ticker,),
+            )
+            row = cur.fetchone()
+            return WatchlistCardRow.from_db(row, cur.description) if row else None
+
+    def list_watchlist_cards(self) -> list[WatchlistCardRow]:
+        with self._conn.cursor() as cur:
+            cur.execute(
+                f"""
+                SELECT c.*, w.sector, w.pinned, w.sort_rank
+                FROM {self._schema}.watchlist_card c
+                JOIN {self._schema}.watchlist w ON w.ticker = c.ticker
+                WHERE w.removed_at IS NULL
+                ORDER BY w.pinned DESC, w.sort_rank, c.ticker
+                """
+            )
+            return [
+                WatchlistCardRow.from_db(row, cur.description) for row in cur.fetchall()
+            ]
+
+    # ---- daily_ohlc ----
+    def upsert_daily_ohlc(
+        self,
+        *,
+        ticker: str,
+        date: _date,
+        open: Decimal | None,
+        high: Decimal | None,
+        low: Decimal | None,
+        close: Decimal,
+        volume: int | None,
+        source: str,
+    ) -> None:
+        with self._conn.cursor() as cur:
+            cur.execute(
+                f"""
+                INSERT INTO {self._schema}.daily_ohlc
+                  (ticker, date, open, high, low, close, volume, source)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                ON CONFLICT (ticker, date) DO UPDATE
+                  SET open=EXCLUDED.open, high=EXCLUDED.high, low=EXCLUDED.low,
+                      close=EXCLUDED.close, volume=EXCLUDED.volume,
+                      source=EXCLUDED.source, fetched_at=NOW()
+                """,
+                (ticker, date, open, high, low, close, volume, source),
+            )
+        self._conn.commit()
+
+    def list_daily_ohlc(self, ticker: str, *, limit: int = 30) -> list[DailyOhlcRow]:
+        with self._conn.cursor() as cur:
+            cur.execute(
+                f"""
+                SELECT ticker, date, open, high, low, close, volume, source, fetched_at
+                FROM {self._schema}.daily_ohlc
+                WHERE ticker=%s
+                ORDER BY date DESC
+                LIMIT %s
+                """,
+                (ticker, limit),
+            )
+            return [DailyOhlcRow(*row) for row in cur.fetchall()]
+
+    # ---- intraday_quote ----
+    def upsert_intraday_quote(
+        self, ticker: str, price: Decimal, quoted_at: datetime
+    ) -> None:
+        with self._conn.cursor() as cur:
+            cur.execute(
+                f"""
+                INSERT INTO {self._schema}.intraday_quote (ticker, price, quoted_at)
+                VALUES (%s, %s, %s)
+                ON CONFLICT (ticker) DO UPDATE
+                  SET price=EXCLUDED.price, quoted_at=EXCLUDED.quoted_at, fetched_at=NOW()
+                """,
+                (ticker, price, quoted_at),
+            )
+        self._conn.commit()
+
+    def get_intraday_quote(self, ticker: str) -> IntradayQuoteRow | None:
+        with self._conn.cursor() as cur:
+            cur.execute(
+                f"""
+                SELECT ticker, price, quoted_at, fetched_at
+                FROM {self._schema}.intraday_quote WHERE ticker=%s
+                """,
+                (ticker,),
+            )
+            row = cur.fetchone()
+            return IntradayQuoteRow(*row) if row else None
+
+    # ---- pcr_history ----
+    def append_pcr_history(
+        self,
+        ticker: str,
+        snapshot_date: _date,
+        pcr_oi: Decimal | None,
+        pcr_vol: Decimal | None,
+    ) -> None:
+        with self._conn.cursor() as cur:
+            cur.execute(
+                f"""
+                INSERT INTO {self._schema}.pcr_history (ticker, snapshot_date, pcr_oi, pcr_vol)
+                VALUES (%s, %s, %s, %s)
+                ON CONFLICT (ticker, snapshot_date) DO UPDATE
+                  SET pcr_oi=EXCLUDED.pcr_oi, pcr_vol=EXCLUDED.pcr_vol
+                """,
+                (ticker, snapshot_date, pcr_oi, pcr_vol),
+            )
+        self._conn.commit()
+
+    def get_pcr_history_30d_ago(
+        self, ticker: str, today: _date
+    ) -> PcrHistoryRow | None:
+        with self._conn.cursor() as cur:
+            cur.execute(
+                f"""
+                SELECT ticker, snapshot_date, pcr_oi, pcr_vol
+                FROM {self._schema}.pcr_history
+                WHERE ticker=%s AND snapshot_date <= %s - INTERVAL '30 days'
+                ORDER BY snapshot_date DESC
+                LIMIT 1
+                """,
+                (ticker, today),
+            )
+            row = cur.fetchone()
+            return PcrHistoryRow(*row) if row else None
+
+    # ---- jobs ----
+    def enqueue_rescan_job(self, ticker: str) -> str:
+        with self._conn.cursor() as cur:
+            cur.execute(
+                f"""
+                INSERT INTO {self._schema}.jobs (ticker, status)
+                VALUES (%s, 'queued') RETURNING id
+                """,
+                (ticker,),
+            )
+            row = cur.fetchone()
+            assert row is not None
+            job_id = row[0]
+        self._conn.commit()
+        return str(job_id)
+
+    def claim_next_queued_job(self) -> JobRow | None:
+        with self._conn.cursor() as cur:
+            cur.execute(
+                f"""
+                UPDATE {self._schema}.jobs
+                SET status='running', started_at=NOW()
+                WHERE id = (
+                  SELECT id FROM {self._schema}.jobs
+                  WHERE status='queued'
+                  ORDER BY requested_at
+                  FOR UPDATE SKIP LOCKED
+                  LIMIT 1
+                )
+                RETURNING id, ticker, status, run_id, error, requested_at, started_at, finished_at
+                """
+            )
+            row = cur.fetchone()
+        self._conn.commit()
+        return JobRow(*row) if row else None
+
+    def mark_job_done(self, job_id: str, run_id: int) -> None:
+        with self._conn.cursor() as cur:
+            cur.execute(
+                f"""
+                UPDATE {self._schema}.jobs
+                SET status='done', run_id=%s, finished_at=NOW() WHERE id=%s
+                """,
+                (run_id, job_id),
+            )
+        self._conn.commit()
+
+    def mark_job_failed(self, job_id: str, error: str) -> None:
+        with self._conn.cursor() as cur:
+            cur.execute(
+                f"""
+                UPDATE {self._schema}.jobs
+                SET status='failed', error=%s, finished_at=NOW() WHERE id=%s
+                """,
+                (error[:2000], job_id),
+            )
+        self._conn.commit()
+
+    def get_job(self, job_id: str) -> JobRow | None:
+        with self._conn.cursor() as cur:
+            cur.execute(
+                f"""
+                SELECT id, ticker, status, run_id, error, requested_at, started_at, finished_at
+                FROM {self._schema}.jobs WHERE id=%s
+                """,
+                (job_id,),
+            )
+            row = cur.fetchone()
+            return JobRow(*row) if row else None
+
 
 # Re-export for convenience
-__all__ = ["Repository"]
+__all__ = [
+    "Repository",
+    "WatchlistRow",
+    "WatchlistCardRow",
+    "DailyOhlcRow",
+    "IntradayQuoteRow",
+    "PcrHistoryRow",
+    "JobRow",
+]
