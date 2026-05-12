@@ -409,6 +409,7 @@ def assemble_single_stock_report(
         )
         for row in curve_raw
     ]
+    aggregates = repo.get_aggregates(run_id)
 
     return SingleStockReport(
         run_id=run_id,
@@ -426,6 +427,7 @@ def assemble_single_stock_report(
         max_pain_rows=max_pain_rows,
         oi_change_top=oi_change_top,
         strike_gex_curve=strike_gex_curve,
+        aggregates=aggregates,
     )
 
 

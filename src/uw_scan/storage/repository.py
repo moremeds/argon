@@ -1456,6 +1456,41 @@ class Repository:
             )
         self._conn.commit()
 
+    # ---- aggregates (JSONB on scan_runs) ----
+    def set_aggregates(self, run_id: int, agg: "models.MarketAggregates") -> None:
+        with self._conn.cursor() as cur:
+            cur.execute(
+                f"UPDATE {self._schema}.scan_runs SET aggregates=%s WHERE run_id=%s",
+                (Jsonb(agg.model_dump(mode="json")), run_id),
+            )
+        self._conn.commit()
+
+    def get_aggregates(self, run_id: int) -> "models.MarketAggregates | None":
+        with self._conn.cursor() as cur:
+            cur.execute(
+                f"SELECT aggregates FROM {self._schema}.scan_runs WHERE run_id=%s",
+                (run_id,),
+            )
+            row = cur.fetchone()
+        if not row or not row[0]:
+            return None
+        return models.MarketAggregates.model_validate(row[0])
+
+    def get_pcr_history_row(
+        self, ticker: str, snapshot_date: _date
+    ) -> PcrHistoryRow | None:
+        with self._conn.cursor() as cur:
+            cur.execute(
+                f"""
+                SELECT ticker, snapshot_date, pcr_oi, pcr_vol
+                FROM {self._schema}.pcr_history
+                WHERE ticker=%s AND snapshot_date=%s
+                """,
+                (ticker, snapshot_date),
+            )
+            row = cur.fetchone()
+        return PcrHistoryRow(*row) if row else None
+
     # ---- strike_gex_curve (JSONB on scan_runs) ----
     def set_strike_gex_curve(self, run_id: int, curve: list[dict]) -> None:
         """Persist the per-strike, per-expiry GEX curve as JSONB on the run row."""

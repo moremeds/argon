@@ -15,7 +15,7 @@ import psycopg
 from . import normalize, scoring
 from .api.client import LiveDataUnavailable, UwClient
 from .config import Settings
-from .models import ScanReport, ScanTickerResult, SingleStockReport
+from .models import MarketAggregates, ScanReport, ScanTickerResult, SingleStockReport
 from .reports.scan import assemble_scan_report
 from .reports.single_stock import (
     assemble_single_stock_report,
@@ -207,6 +207,41 @@ def run_single_stock(
                 legs_dicts,
                 report.trade_plan.rationale,
             )
+
+        # 18. Per-ticker bulk-screener — feeds MarketAggregates on the report.
+        screener_row = uw_sources.fetch_bulk_screener_ticker(
+            client, repo, run_id, ticker
+        )
+        if screener_row is not None:
+            pcr_vol = None
+            if screener_row.put_volume and screener_row.call_volume:
+                pcr_vol = Decimal(screener_row.put_volume) / Decimal(
+                    screener_row.call_volume
+                )
+            aggregates = MarketAggregates(
+                call_oi_total=screener_row.call_open_interest,
+                put_oi_total=screener_row.put_open_interest,
+                call_volume_total=screener_row.call_volume,
+                put_volume_total=screener_row.put_volume,
+                call_volume_ask_side=screener_row.call_volume_ask_side,
+                call_volume_bid_side=screener_row.call_volume_bid_side,
+                put_volume_ask_side=screener_row.put_volume_ask_side,
+                put_volume_bid_side=screener_row.put_volume_bid_side,
+                pcr_oi=screener_row.put_call_ratio,
+                pcr_vol=pcr_vol,
+                iv30d=screener_row.iv30d,
+            )
+            report.aggregates = aggregates
+            repo.set_aggregates(run_id, aggregates)
+
+            # 19. Append PCR snapshot for 30d-delta computation later.
+            if aggregates.pcr_oi is not None or aggregates.pcr_vol is not None:
+                repo.append_pcr_history(
+                    ticker=ticker,
+                    snapshot_date=_date.today(),
+                    pcr_oi=aggregates.pcr_oi,
+                    pcr_vol=aggregates.pcr_vol,
+                )
 
         repo.finish_scan_run(run_id, status="ok")
         repo.conn.commit()
