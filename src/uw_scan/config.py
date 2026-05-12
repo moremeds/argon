@@ -47,6 +47,14 @@ class Settings(BaseModel):
     max_requests_per_minute: int = 110
     request_timeout_seconds: float = 30.0
     base_url: str = "https://api.unusualwhales.com"
+    # Scheduler — consumed by uw_scan.worker.scheduler and uw_scan.api.routers.health
+    spot_refresh_seconds: int = 300
+    full_scan_cron: str = "*/60 9-16 * * 1-5"
+    ohlc_pull_cron: str = "30 17 * * 1-5"
+    rth_tz: str = "America/New_York"
+    # OHLC provider (massive.com)
+    massive_api_key: SecretStr | None = None
+    massive_base_url: str = "https://api.massive.com"
 
     @classmethod
     def from_env(cls, env_path: Path | None = None) -> "Settings":
@@ -77,6 +85,25 @@ class Settings(BaseModel):
             ),
             base_url=os.environ.get(
                 "UW_SCAN_BASE_URL", "https://api.unusualwhales.com"
+            ),
+            spot_refresh_seconds=int(
+                os.environ.get("UW_SCAN_SPOT_REFRESH_SECONDS", "300")
+            ),
+            full_scan_cron=os.environ.get(
+                "UW_SCAN_FULL_SCAN_CRON", "*/60 9-16 * * 1-5"
+            ),
+            ohlc_pull_cron=os.environ.get("UW_SCAN_OHLC_PULL_CRON", "30 17 * * 1-5"),
+            rth_tz=os.environ.get("UW_SCAN_RTH_TZ", "America/New_York"),
+            # SecretStr("") is truthy and not None — would silently allow the
+            # scheduler to instantiate a Massive client with a blank bearer and
+            # generate a stream of 401s. Coerce blank to None before wrapping.
+            massive_api_key=(
+                SecretStr(_mkey)
+                if (_mkey := os.environ.get("MASSIVE_API_KEY", "").strip())
+                else None
+            ),
+            massive_base_url=os.environ.get(
+                "MASSIVE_BASE_URL", "https://api.massive.com"
             ),
         )
 
