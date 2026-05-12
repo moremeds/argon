@@ -2624,7 +2624,28 @@ class MassiveOhlcProvider:
         return bars
 
     def fetch_intraday_quote(self, ticker: str) -> IntradayQuote | None:
-        path = f"/v3/quotes/{ticker}"
+        """Latest 15-min-delayed intraday price.
+
+        IMPORTANT: massive.com's `/v3/quotes/{ticker}` endpoint is gated behind
+        a paid plan tier we don't have (returns 403 NOT_AUTHORIZED on the keys
+        we ship with). Spike on 2026-05-12 confirmed that `/v2/aggs/ticker/{t}
+        /range/1/minute/{from}/{to}` returns the same data shape with
+        `"status":"DELAYED"`, available on the lower tier. We use the close of
+        the latest minute bar as the 15-min-delayed price — same semantic as
+        a delayed quote, same payment tier, fewer endpoints to authenticate
+        against.
+
+        Range: ~today through tomorrow (UTC), `sort=desc&limit=1` returns the
+        single most-recent minute bar regardless of whether we're inside RTH.
+        """
+        from datetime import date, timedelta
+        today = date.today()
+        tomorrow = today + timedelta(days=1)
+        path = (
+            f"/v2/aggs/ticker/{ticker}/range/1/minute/"
+            f"{today.isoformat()}/{tomorrow.isoformat()}"
+            f"?sort=desc&limit=1"
+        )
         r = self._client.get(path)
         if r.status_code == 404:
             return None
@@ -2634,33 +2655,16 @@ class MassiveOhlcProvider:
         if not results:
             return None
         latest = results[0]
-        # Resolve the price using a precedence rule that matches what a trader
-        # would expect from a quote payload:
-        #   1) trade price (`P` / `p`) if present — single source of truth
-        #   2) midpoint of (ask, bid) when BOTH are present — avoids ask-side bias
-        #   3) one-sided fallback (`ap` then `bp`) only if just one is present
-        trade_price = latest.get("P") or latest.get("p")
-        ap, bp = latest.get("ap"), latest.get("bp")
-        if trade_price is not None:
-            price = trade_price
-        elif ap is not None and bp is not None:
-            price = (Decimal(str(ap)) + Decimal(str(bp))) / Decimal("2")
-        elif ap is not None:
-            price = ap
-        elif bp is not None:
-            price = bp
-        else:
-            price = None
-        t_ns = latest.get("t") or latest.get("participant_timestamp")
-        if price is None or t_ns is None:
+        # Minute-bar payload shape: {v, vw, o, c, h, l, t, n}. `c` is the close
+        # of the bar — the most recent published price. `t` is ms epoch.
+        c = latest.get("c")
+        t_ms = latest.get("t")
+        if c is None or t_ms is None:
             return None
-        # Polygon quotes report nanoseconds; massive may report ns or ms — try both.
-        t_int = int(t_ns)
-        seconds = t_int / 1_000_000_000 if t_int > 10**14 else t_int / 1000
         return IntradayQuote(
             ticker=ticker,
-            price=Decimal(str(price)),
-            quoted_at=datetime.fromtimestamp(seconds, tz=timezone.utc),
+            price=Decimal(str(c)),
+            quoted_at=datetime.fromtimestamp(int(t_ms) / 1000, tz=timezone.utc),
         )
 ```
 
@@ -2710,16 +2714,31 @@ def test_fetch_daily_empty():
     assert bars == []
 
 
-def test_fetch_intraday_quote():
+def test_fetch_intraday_quote_uses_latest_minute_bar():
+    """Quotes endpoint is gated on our tier; we use the most-recent minute
+    aggregate's close as a 15-min-delayed intraday price."""
     def handler(req):
+        # Verify the parameters: range/1/minute/{today}/{tomorrow}?sort=desc&limit=1
+        assert "/v2/aggs/ticker/TSLA/range/1/minute/" in req.url.path
+        assert req.url.params.get("sort") == "desc"
+        assert req.url.params.get("limit") == "1"
         return httpx.Response(200, json={
-            "results": [{"P": 445.12, "t": 1746210000000000000}]
+            "ticker": "TSLA",
+            "status": "DELAYED",
+            "results": [{"v": 16472, "vw": 444.99, "o": 444.50, "c": 445.12,
+                         "h": 445.50, "l": 444.20, "t": 1746210000000, "n": 575}],
         })
     p = _provider_with(handler)
     q = p.fetch_intraday_quote("TSLA")
     assert q is not None
     assert q.price == Decimal("445.12")
     assert q.quoted_at.tzinfo is timezone.utc
+
+
+def test_fetch_intraday_quote_empty_results():
+    """No bar in the requested range (e.g. weekend, ticker halted)."""
+    p = _provider_with(lambda req: httpx.Response(200, json={"results": []}))
+    assert p.fetch_intraday_quote("ZZZZ") is None
 
 
 def test_fetch_intraday_quote_404():

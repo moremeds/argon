@@ -595,7 +595,11 @@ Critical-path: S0 → S1 → S2 → S4 → S5 → S6 (then frontend tier from S7
 
 ## 14. Open questions
 
-1. **massive.io API surface.** I have not verified the actual endpoint shape, auth model, rate limits, or whether the intraday quote is 15-minute delayed as the user described. S3 starts with a discovery spike that resolves this. If massive.io turns out to be unsuitable, the `OhlcProvider` interface lets us swap to polygon/eodhd/Yahoo without touching the rest of the system. (The project CLAUDE.md forbids Yahoo as a *primary* data source — fallback is acceptable.)
+1. **massive.com API surface — RESOLVED 2026-05-12.** Spike against a live key confirmed:
+   - Base URL: `https://api.massive.com` (not `.io`).
+   - Auth: `Authorization: Bearer <key>`.
+   - Daily OHLC: `GET /v2/aggs/ticker/{ticker}/range/1/day/{from}/{to}` → 200, Polygon-shaped `{results:[{v,vw,o,c,h,l,t,n}, ...]}` with ms-epoch `t`.
+   - Intraday quotes (`/v3/quotes/{ticker}`): **403 NOT_AUTHORIZED on our tier.** Substitute: latest-minute aggregate via `/v2/aggs/ticker/{t}/range/1/minute/{from}/{to}?sort=desc&limit=1`, payload tagged `"status":"DELAYED"`. The latest minute bar's close serves as a 15-min-delayed intraday price (same semantic as the quotes endpoint, same delay, available on our tier). `MassiveOhlcProvider.fetch_intraday_quote` calls this minute-aggregate path; see plan S3.2 for the implementation. If we later upgrade to a tier that includes `/v3/quotes`, swap is local to that one method.
 2. **Current `volatility.skew_25d` DTE.** Need to read `pipeline.py` and `sources/` to determine which expiry's 25Δ RR is currently persisted to that field. Resolved in S0 or early S2.
 3. **Migration runner.** Migration files follow the existing `00N_<topic>.sql` convention in `src/uw_scan/storage/migrations/`. S1 must verify how those files are actually applied today (a Python runner in `Repository`? a shell script? manual `psql`?) and reuse the same mechanism.
 4. **Watchlist sort persistence.** The `sort_rank` column allows drag-to-reorder, but the v1 UI may not implement drag-and-drop. Default sort: pinned first, then alphabetical within sector. Confirm before S8.
