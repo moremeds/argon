@@ -197,7 +197,7 @@ Old `single_stock_runs` rows survive untouched. New fields default to NULL; the 
 
 ### 4.3 Watchlist seed
 
-The 54-ticker JSON pasted in the brainstorming session is stored in-repo at `data/watchlist_seed.json`. A one-shot migration (`src/uw_scan/storage/migrations/0002_seed_watchlist.sql` or a Python script invoked from the migration) inserts rows. After that, the JSON is **reference only** — DB is canonical.
+The 54-ticker JSON pasted in the brainstorming session is stored in-repo at `data/watchlist_seed.json`. A one-shot migration (`src/uw_scan/storage/migrations/006_seed_watchlist.sql` — numbering continues from the planned `003`–`005` sequence above) inserts rows. After that, the JSON is **reference only** — DB is canonical.
 
 ## 5. API surface
 
@@ -394,7 +394,7 @@ lib/
 ### 6.5 Data-fetching pattern
 
 - **Watchlist landing**: server component, `await fetch(API + '/watchlist', { cache: 'no-store' })`. No client-side data fetching. Filter state in URL → server re-renders on navigation.
-- **Detail page**: server component, fetches `/api/stock/{ticker}` once per ticker route hit. Tab segments are children of the ticker route, so swapping tabs does not re-fetch the report (Next.js keeps the parent layout's RSC payload).
+- **Detail page**: each tab's `page.tsx` is a server component that fetches `/api/stock/{ticker}` via a shared loader `getStockReport(ticker)` wrapped in `react.cache()` (Next.js App Router does **not** pass a layout's fetched data into child page components, so each tab page is responsible for its own fetch). The `react.cache()` wrapper dedupes the call within a single render pass; cross-navigation tab swaps DO re-fetch — this is acceptable because FastAPI is on localhost (sub-10ms reads) and the scheduler is the freshness layer. If round-trip latency becomes a concern, promote `getStockReport` to a `unstable_cache`-backed loader with a short TTL.
 - **Rescan polling**: only client-side fetch in the app. `useEffect` + `setInterval` + `router.refresh()` on completion. No SWR / React Query.
 - All `fetch()` to FastAPI uses `cache: 'no-store'`. The scheduler is the cache layer; Next.js's default `fetch` deduplication would mask fresh writes.
 
@@ -431,7 +431,7 @@ All three returns use the **current intraday price** as the numerator, so they r
 | `gex_flip_distance` | derived | `(flip_price - spot) / spot` | flip null |
 | `gex_per_1pct_move` | `report.market_structure.net_gex`, `spot` | `net_gex * 0.01 * spot` | either null |
 | `max_gex_strike` | `strike_gex_curve` | `argmax(\|net_gex\|)` over strikes | empty curve |
-| `gex_expiring_pct` | `strike_gex_curve` bucketed by expiry | `\|net_gex@nearest_exp\| / \|sum net_gex\|` | empty curve |
+| `gex_expiring_pct` | `strike_gex_curve` bucketed by expiry | `\|net_gex@nearest_exp\| / sum(\|net_gex_by_expiry\|)` (denominator is sum of absolute values, never zero unless every bucket is exactly zero) | empty curve, **or** sum-of-absolutes = 0 (no GEX anywhere) |
 | `gex_expiring_date` | `strike_gex_curve` | nearest expiry present | empty curve |
 | `skew_25d_30dte` | `report.volatility.skew_25d` | direct, **with S0 verification** | UW returns null |
 | `call_oi_total`, `put_oi_total` | `report` (to be exposed from `BulkScreenerRow.call_open_interest` / `put_open_interest`) | direct | UW returns null |
