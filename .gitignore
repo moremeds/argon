@@ -12,3 +12,7 @@ __pycache__/
 .superpowers/
 .worktrees/
 *.egg-info/
+
+# Playwright MCP artifacts
+.playwright-mcp/
+*.png

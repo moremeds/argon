@@ -1,0 +1,90 @@
+"""Pydantic-managed environment settings for the UW scanner."""
+
+from __future__ import annotations
+
+import logging
+import os
+from pathlib import Path
+
+from pydantic import BaseModel, Field, SecretStr
+
+logger = logging.getLogger(__name__)
+
+
+def _load_dotenv(env_path: Path) -> None:
+    """Minimal .env loader. We deliberately do not depend on python-dotenv.
+
+    Reads KEY=VALUE lines, ignores comments and blanks, only sets keys that are
+    not already present in the process environment. This makes `set -a; source .env`
+    take precedence over our own loader.
+    """
+    if not env_path.exists():
+        return
+    try:
+        for raw in env_path.read_text().splitlines():
+            line = raw.strip()
+            if not line or line.startswith("#") or "=" not in line:
+                continue
+            key, _, value = line.partition("=")
+            key = key.strip()
+            value = value.strip().strip('"').strip("'")
+            if key and key not in os.environ:
+                os.environ[key] = value
+    except OSError as exc:
+        logger.exception("failed to read .env file %s: %s", env_path, repr(exc))
+
+
+class Settings(BaseModel):
+    """Strongly-typed configuration. Raises on missing required fields."""
+
+    api_key: SecretStr = Field(...)
+    db_host: str = "127.0.0.1"
+    db_port: int = 5432
+    db_name: str = "option_wizard"
+    db_schema: str = "uw_scan"
+    db_user: str = "chenxi"
+    db_password: SecretStr = SecretStr("")
+    max_requests_per_minute: int = 110
+    request_timeout_seconds: float = 30.0
+    base_url: str = "https://api.unusualwhales.com"
+
+    @classmethod
+    def from_env(cls, env_path: Path | None = None) -> "Settings":
+        """Load Settings from process env, auto-loading .env at repo root if present."""
+        if env_path is None:
+            env_path = Path(__file__).resolve().parents[2] / ".env"
+        _load_dotenv(env_path)
+
+        api_key = os.environ.get("UW_SCAN_API_KEY", "").strip()
+        if not api_key:
+            raise RuntimeError(
+                "UW_SCAN_API_KEY is not set. Add it to .env or export it before running."
+            )
+
+        return cls(
+            api_key=SecretStr(api_key),
+            db_host=os.environ.get("UW_SCAN_DB_HOST", "127.0.0.1"),
+            db_port=int(os.environ.get("UW_SCAN_DB_PORT", "5432")),
+            db_name=os.environ.get("UW_SCAN_DB_NAME", "option_wizard"),
+            db_schema=os.environ.get("UW_SCAN_DB_SCHEMA", "uw_scan"),
+            db_user=os.environ.get("UW_SCAN_DB_USER", "") or "chenxi",
+            db_password=SecretStr(os.environ.get("UW_SCAN_DB_PASSWORD", "")),
+            max_requests_per_minute=int(
+                os.environ.get("UW_SCAN_MAX_REQUESTS_PER_MINUTE", "110")
+            ),
+            request_timeout_seconds=float(
+                os.environ.get("UW_SCAN_REQUEST_TIMEOUT_SECONDS", "30")
+            ),
+            base_url=os.environ.get(
+                "UW_SCAN_BASE_URL", "https://api.unusualwhales.com"
+            ),
+        )
+
+    def db_dsn(self) -> str:
+        """Return a libpq-style DSN. Password omitted when blank (peer/trust auth)."""
+        pw = self.db_password.get_secret_value()
+        password_clause = f" password={pw}" if pw else ""
+        return (
+            f"host={self.db_host} port={self.db_port} dbname={self.db_name} "
+            f"user={self.db_user}{password_clause}"
+        )
