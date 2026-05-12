@@ -52,7 +52,7 @@ export function TickerCard({ card, sparkline }: Props) {
             marginBottom: 6,
           }}
         >
-          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+          <div style={{ display: "flex", alignItems: "baseline", gap: 6 }}>
             <span
               style={{
                 width: 6,
@@ -63,6 +63,17 @@ export function TickerCard({ card, sparkline }: Props) {
               }}
             />
             <span style={{ fontSize: 16, fontWeight: 700 }}>{card.ticker}</span>
+            <span
+              style={{
+                fontSize: 13,
+                color: "var(--text-secondary)",
+                fontWeight: 500,
+              }}
+            >
+              {toNum(card.spot) != null
+                ? `$${fmtDecimal(toNum(card.spot), 2)}`
+                : "—"}
+            </span>
           </div>
           <div style={{ textAlign: "right" }}>
             <div style={{ fontSize: 16, fontWeight: 700 }}>
