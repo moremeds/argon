@@ -121,9 +121,21 @@ export function TickerCard({ card, sparkline }: Props) {
         style={{
           marginTop: 8,
           display: "flex",
-          justifyContent: "flex-end",
+          justifyContent: "space-between",
+          alignItems: "center",
         }}
       >
+        <span
+          style={{
+            fontSize: 9,
+            color: "var(--text-muted)",
+            fontFamily: "var(--font-mono)",
+          }}
+          title={new Date(card.scanned_at).toISOString()}
+          suppressHydrationWarning
+        >
+          updated {new Date(card.scanned_at).toLocaleTimeString()}
+        </span>
         <RescanButton ticker={card.ticker} />
       </div>
     </div>

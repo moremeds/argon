@@ -32,6 +32,18 @@ def enqueue_rescan(ticker: str, repo: Repository = Depends(get_repo)) -> JobStat
     return _to_status(job)
 
 
+@router.post("/watchlist/rescan-all", status_code=202, response_model=list[JobStatus])
+def enqueue_rescan_all(repo: Repository = Depends(get_repo)) -> list[JobStatus]:
+    """Enqueue a rescan job for every active watchlist ticker."""
+    out: list[JobStatus] = []
+    for row in repo.list_active_watchlist():
+        job_id = repo.enqueue_rescan_job(row.ticker)
+        job = repo.get_job(job_id)
+        if job is not None:
+            out.append(_to_status(job))
+    return out
+
+
 @router.get("/jobs/{job_id}", response_model=JobStatus)
 def get_job(job_id: str, repo: Repository = Depends(get_repo)) -> JobStatus:
     job = repo.get_job(job_id)

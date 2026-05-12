@@ -478,6 +478,32 @@
         }
       }
     },
+    "/api/watchlist/rescan-all": {
+      "post": {
+        "tags": [
+          "jobs"
+        ],
+        "summary": "Enqueue Rescan All",
+        "description": "Enqueue a rescan job for every active watchlist ticker.",
+        "operationId": "enqueue_rescan_all_api_watchlist_rescan_all_post",
+        "responses": {
+          "202": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/JobStatus"
+                  },
+                  "type": "array",
+                  "title": "Response Enqueue Rescan All Api Watchlist Rescan All Post"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/jobs/{job_id}": {
       "get": {
         "tags": [

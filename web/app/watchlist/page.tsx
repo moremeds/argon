@@ -2,6 +2,7 @@ import { api } from "@/lib/api";
 import { CardGrid } from "@/components/watchlist/CardGrid";
 import { FilterBar } from "@/components/watchlist/FilterBar";
 import { AddTickerDialog } from "@/components/watchlist/AddTickerDialog";
+import { ScanAllButton } from "@/components/shared/ScanAllButton";
 
 export default async function WatchlistPage({
   searchParams,
@@ -59,6 +60,7 @@ export default async function WatchlistPage({
               ? `scheduler: ${Math.round(data.scheduler_lag_seconds)}s lag`
               : "scheduler: unknown"}
           </span>
+          <ScanAllButton />
           <AddTickerDialog />
         </div>
       </header>

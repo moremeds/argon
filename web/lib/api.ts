@@ -46,6 +46,8 @@ export const api = {
     _fetch<OhlcResponse>(`/api/ohlc/${ticker}?days=${days}`),
   rescan: (ticker: string): Promise<JobStatus> =>
     _fetch<JobStatus>(`/api/watchlist/${ticker}/rescan`, { method: "POST" }),
+  rescanAll: (): Promise<JobStatus[]> =>
+    _fetch<JobStatus[]>(`/api/watchlist/rescan-all`, { method: "POST" }),
   job: (jobId: string): Promise<JobStatus> =>
     _fetch<JobStatus>(`/api/jobs/${jobId}`),
   addTicker: (body: {
