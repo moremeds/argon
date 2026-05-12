@@ -14,8 +14,21 @@ export default async function WatchlistPage({
   if (sp.fresh) qs.set("fresh_within_minutes", sp.fresh);
   const data = await api.watchlist(qs);
 
+  const sparklineEntries = await Promise.all(
+    data.tickers.map(async (t) => {
+      try {
+        const bars = await api.ohlc(t.ticker, 30);
+        return [t.ticker, bars.map((b) => Number(b.close))] as const;
+      } catch {
+        return [t.ticker, [] as number[]] as const;
+      }
+    }),
+  );
+  const sparklines: Record<string, number[]> =
+    Object.fromEntries(sparklineEntries);
+
   return (
-    <main style={{ padding: "24px", maxWidth: 1600, margin: "0 auto" }}>
+    <main style={{ padding: 24, maxWidth: 1600, margin: "0 auto" }}>
       <header
         style={{
           display: "flex",
@@ -46,7 +59,7 @@ export default async function WatchlistPage({
         </span>
       </header>
       <FilterBar current={sp} />
-      <CardGrid data={data} />
+      <CardGrid data={data} sparklines={sparklines} />
     </main>
   );
 }

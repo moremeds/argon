@@ -5,7 +5,13 @@ import { TickerCard } from "./TickerCard";
 type WatchlistCard = components["schemas"]["WatchlistCard"];
 type WatchlistResponse = components["schemas"]["WatchlistResponse"];
 
-export function CardGrid({ data }: { data: WatchlistResponse }) {
+export function CardGrid({
+  data,
+  sparklines,
+}: {
+  data: WatchlistResponse;
+  sparklines: Record<string, number[]>;
+}) {
   const grouped = new Map<string, WatchlistCard[]>();
   for (const t of data.tickers) {
     const arr = grouped.get(t.sector) ?? [];
@@ -42,7 +48,11 @@ export function CardGrid({ data }: { data: WatchlistResponse }) {
             }}
           >
             {tickers.map((t) => (
-              <TickerCard key={t.ticker} card={t} />
+              <TickerCard
+                key={t.ticker}
+                card={t}
+                sparkline={sparklines[t.ticker] ?? []}
+              />
             ))}
           </div>
         </section>
