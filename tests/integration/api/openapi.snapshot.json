@@ -2534,8 +2534,15 @@
             "title": "Spot Source"
           },
           "scanned_at": {
-            "type": "string",
-            "format": "date-time",
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Scanned At"
           },
           "iv_atm": {
@@ -2596,7 +2603,6 @@
           "sector",
           "pinned",
           "sort_rank",
-          "scanned_at",
           "setup",
           "returns",
           "gamma",

@@ -142,10 +142,16 @@ export function TickerCard({ card, sparkline }: Props) {
             color: "var(--text-muted)",
             fontFamily: "var(--font-mono)",
           }}
-          title={new Date(card.scanned_at).toISOString()}
+          title={
+            card.scanned_at
+              ? new Date(card.scanned_at).toISOString()
+              : "not scanned yet"
+          }
           suppressHydrationWarning
         >
-          updated {new Date(card.scanned_at).toLocaleTimeString()}
+          {card.scanned_at
+            ? `updated ${new Date(card.scanned_at).toLocaleTimeString()}`
+            : "not scanned"}
         </span>
         <RescanButton ticker={card.ticker} />
       </div>

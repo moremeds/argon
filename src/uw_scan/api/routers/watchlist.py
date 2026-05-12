@@ -93,7 +93,10 @@ def get_watchlist(
     for r in rows:
         if sector and r.sector != sector:
             continue
-        if cutoff is not None and r.scanned_at < cutoff:
+        # `scanned_at` is None for tickers that haven't been scanned yet
+        # (LEFT JOIN from watchlist). A fresh-within filter naturally
+        # excludes them; an unfiltered request keeps them as placeholders.
+        if cutoff is not None and (r.scanned_at is None or r.scanned_at < cutoff):
             continue
         if setup is not None:
             if setup.upper() == "NEUTRAL":
@@ -106,9 +109,10 @@ def get_watchlist(
                     continue
         out.append(_card_to_response(r))
 
+    scanned_times = [c.scanned_at for c in out if c.scanned_at is not None]
     return WatchlistResponse(
-        scanned_at_min=min((c.scanned_at for c in out), default=None),
-        scanned_at_max=max((c.scanned_at for c in out), default=None),
+        scanned_at_min=min(scanned_times, default=None),
+        scanned_at_max=max(scanned_times, default=None),
         scheduler_lag_seconds=None,
         tickers=out,
     )

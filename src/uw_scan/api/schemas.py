@@ -56,7 +56,9 @@ class WatchlistCard(BaseModel):
     spot: Decimal | None = None
     spot_quoted_at: datetime | None = None
     spot_source: str | None = None
-    scanned_at: datetime
+    # Null when the ticker is in the active watchlist but no full_scan has
+    # produced a card row yet — UI renders a "no data yet" placeholder.
+    scanned_at: datetime | None = None
 
     iv_atm: Decimal | None = None
     iv_rank: Decimal | None = None

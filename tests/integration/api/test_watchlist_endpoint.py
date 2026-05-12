@@ -3,11 +3,20 @@
 from __future__ import annotations
 
 
-def test_get_watchlist_returns_empty_when_no_cards(client, seeded_db_empty_cards):
+def test_get_watchlist_returns_placeholders_when_no_cards(
+    client, seeded_db_empty_cards
+):
+    """All active watchlist tickers appear even before they have card rows —
+    LEFT JOIN from watchlist so the UI can render 'not scanned yet'
+    placeholders instead of an empty grid."""
     r = client.get("/api/watchlist")
     assert r.status_code == 200
     body = r.json()
-    assert body["tickers"] == []
+    assert len(body["tickers"]) >= 1
+    for card in body["tickers"]:
+        assert "ticker" in card and "sector" in card
+        # No scan run → scanned_at is null.
+        assert card["scanned_at"] is None
 
 
 def test_get_watchlist_returns_seeded_cards(client, seeded_db_with_cards):
@@ -15,10 +24,12 @@ def test_get_watchlist_returns_seeded_cards(client, seeded_db_with_cards):
     assert r.status_code == 200
     body = r.json()
     assert len(body["tickers"]) >= 1
-    card = body["tickers"][0]
+    # At least one ticker is fully scanned.
+    scanned = [c for c in body["tickers"] if c["scanned_at"] is not None]
+    assert len(scanned) >= 1
+    card = scanned[0]
     for key in ("ticker", "sector", "setup", "returns", "gamma", "skew", "positioning"):
         assert key in card
-    assert card["scanned_at"] is not None
 
 
 def test_get_watchlist_filters_by_sector(client, seeded_db_with_cards):

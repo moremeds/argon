@@ -701,11 +701,8 @@ export interface components {
             spot_quoted_at?: string | null;
             /** Spot Source */
             spot_source?: string | null;
-            /**
-             * Scanned At
-             * Format: date-time
-             */
-            scanned_at: string;
+            /** Scanned At */
+            scanned_at?: string | null;
             /** Iv Atm */
             iv_atm?: string | null;
             /** Iv Rank */

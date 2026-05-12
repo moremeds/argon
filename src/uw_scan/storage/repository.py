@@ -1314,14 +1314,38 @@ class Repository:
             return WatchlistCardRow.from_db(row, cur.description) if row else None
 
     def list_watchlist_cards(self) -> list[WatchlistCardRow]:
+        """Return one row per active watchlist ticker.
+
+        LEFT JOIN from watchlist → watchlist_card so tickers that haven't been
+        scanned yet still appear (with scan-derived fields = None). The page
+        renders them as 'no data' placeholders, which is preferable to making
+        them invisible while a full_scan is still chewing through the queue.
+        Also LEFT JOINs intraday_quotes so a 15-min-delayed spot price shows
+        up even before the first full scan for that ticker.
+        """
         with self._conn.cursor() as cur:
             cur.execute(
                 f"""
-                SELECT c.*, w.sector, w.pinned, w.sort_rank
-                FROM {self._schema}.watchlist_card c
-                JOIN {self._schema}.watchlist w ON w.ticker = c.ticker
+                SELECT
+                  w.ticker, w.sector, w.pinned, w.sort_rank,
+                  c.run_id, c.scanned_at,
+                  COALESCE(c.spot, q.price)                                AS spot,
+                  COALESCE(c.spot_quoted_at, q.quoted_at)                  AS spot_quoted_at,
+                  COALESCE(c.spot_source, CASE WHEN q.price IS NOT NULL THEN 'massive.com_intraday' END) AS spot_source,
+                  c.iv_atm, c.iv_rank,
+                  c.setup_type, c.setup_direction, c.setup_score,
+                  c.aggression_pct,
+                  c.ret_1d, c.ret_1w, c.ret_30d,
+                  c.gex_flip_distance, c.gex_flip_price, c.gex_per_1pct_move,
+                  c.max_gex_strike, c.gex_expiring_pct, c.gex_expiring_date,
+                  c.skew_25d_30dte,
+                  c.call_oi_total, c.put_oi_total, c.pcr_oi, c.pcr_vol,
+                  c.pcr_delta_30d
+                FROM {self._schema}.watchlist w
+                LEFT JOIN {self._schema}.watchlist_card c ON w.ticker = c.ticker
+                LEFT JOIN {self._schema}.intraday_quote q ON w.ticker = q.ticker
                 WHERE w.removed_at IS NULL
-                ORDER BY w.pinned DESC, w.sort_rank, c.ticker
+                ORDER BY w.pinned DESC, w.sort_rank, w.ticker
                 """
             )
             return [
