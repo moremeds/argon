@@ -13,7 +13,6 @@ from pathlib import Path
 
 import psycopg
 import pytest
-
 from uw_scan.config import Settings
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
@@ -100,7 +99,8 @@ def test_watchlist_seeded(fresh_schema):
         row = cur.fetchone()
         assert row is not None
         count = row[0]
-    assert count == 54
+    # 006 seeds 54 base tickers; 008 adds 36 more = 90 active rows.
+    assert count == 90
 
 
 def test_watchlist_card_fk_to_scan_runs(fresh_schema):

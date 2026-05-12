@@ -1,60 +1,546 @@
 {
   "last_updated": "2026-05-12",
-  "note": "Reference copy of the canonical watchlist seed. The SQL migration src/uw_scan/storage/migrations/006_seed_watchlist.sql is authoritative — edit there and re-export here.",
+  "note": "Reference copy of the canonical watchlist seed. Migrations 006_seed_watchlist.sql and 008_extend_watchlist.sql are authoritative \u2014 edit there and re-export here.",
   "tickers": [
-    { "ticker": "AAPL",  "sector": "Technology",             "notes": "M7", "sort_rank": 1 },
-    { "ticker": "MSFT",  "sector": "Technology",             "notes": "M7", "sort_rank": 2 },
-    { "ticker": "NVDA",  "sector": "Technology",             "notes": "M7", "sort_rank": 3 },
-    { "ticker": "AMZN",  "sector": "Consumer Discretionary", "notes": "M7", "sort_rank": 4 },
-    { "ticker": "META",  "sector": "Communication Services", "notes": "M7", "sort_rank": 5 },
-    { "ticker": "GOOGL", "sector": "Communication Services", "notes": "M7", "sort_rank": 6 },
-    { "ticker": "TSLA",  "sector": "Consumer Discretionary", "notes": "M7", "sort_rank": 7 },
-    { "ticker": "AMD",   "sector": "Technology",             "notes": "Semiconductor", "sort_rank": 10 },
-    { "ticker": "AVGO",  "sector": "Technology",             "notes": "Semiconductor", "sort_rank": 11 },
-    { "ticker": "INTC",  "sector": "Technology",             "notes": "Semiconductor", "sort_rank": 12 },
-    { "ticker": "MU",    "sector": "Technology",             "notes": "Semiconductor — memory", "sort_rank": 13 },
-    { "ticker": "MRVL",  "sector": "Technology",             "notes": "Semiconductor — custom silicon", "sort_rank": 14 },
-    { "ticker": "TSM",   "sector": "Technology",             "notes": "Semiconductor — foundry", "sort_rank": 15 },
-    { "ticker": "QCOM",  "sector": "Technology",             "notes": "Semiconductor — mobile", "sort_rank": 16 },
-    { "ticker": "CRWV",  "sector": "Technology",             "notes": "Semiconductor — AI inference", "sort_rank": 17 },
-    { "ticker": "NBIS",  "sector": "Technology",             "notes": "Semiconductor — data center", "sort_rank": 18 },
-    { "ticker": "IREN",  "sector": "Technology",             "notes": "Semiconductor — data center / mining", "sort_rank": 19 },
-    { "ticker": "CRDO",  "sector": "Technology",             "notes": "Semiconductor — connectivity", "sort_rank": 20 },
-    { "ticker": "SNDK",  "sector": "Technology",             "notes": "Semiconductor — storage", "sort_rank": 21 },
-    { "ticker": "LITE",  "sector": "Technology",             "notes": "Semiconductor — photonics", "sort_rank": 22 },
-    { "ticker": "GLW",   "sector": "Technology",             "notes": "Semiconductor — optical fiber", "sort_rank": 23 },
-    { "ticker": "NOK",   "sector": "Technology",             "notes": "Semiconductor — telecom infra", "sort_rank": 24 },
-    { "ticker": "TSEM",  "sector": "Technology",             "notes": "Semiconductor — foundry", "sort_rank": 25 },
-    { "ticker": "PLTR",  "sector": "Technology",             "notes": "Growth / tech — data analytics", "sort_rank": 30 },
-    { "ticker": "HIMS",  "sector": "Healthcare",             "notes": "Growth / tech — telehealth", "sort_rank": 31 },
-    { "ticker": "HOOD",  "sector": "Financials",             "notes": "Growth / tech — fintech", "sort_rank": 32 },
-    { "ticker": "SOFI",  "sector": "Financials",             "notes": "Growth / tech — fintech", "sort_rank": 33 },
-    { "ticker": "ASTS",  "sector": "Communication Services", "notes": "Growth / tech — satellite", "sort_rank": 34 },
-    { "ticker": "RKLB",  "sector": "Industrials",            "notes": "Growth / tech — space", "sort_rank": 35 },
-    { "ticker": "NET",   "sector": "Technology",             "notes": "Growth / tech — cloud infra", "sort_rank": 36 },
-    { "ticker": "PANW",  "sector": "Technology",             "notes": "Growth / tech — cybersecurity", "sort_rank": 37 },
-    { "ticker": "BKSY",  "sector": "Technology",             "notes": "Growth / tech — geospatial", "sort_rank": 38 },
-    { "ticker": "KO",    "sector": "Consumer Staples",       "notes": "Industrials / value", "sort_rank": 40 },
-    { "ticker": "MCD",   "sector": "Consumer Discretionary", "notes": "Industrials / value", "sort_rank": 41 },
-    { "ticker": "LLY",   "sector": "Healthcare",             "notes": "Industrials / value — pharma", "sort_rank": 42 },
-    { "ticker": "JPM",   "sector": "Financials",             "notes": "Industrials / value — bank", "sort_rank": 43 },
-    { "ticker": "GS",    "sector": "Financials",             "notes": "Industrials / value — bank", "sort_rank": 44 },
-    { "ticker": "BA",    "sector": "Industrials",            "notes": "Industrials / value — aerospace", "sort_rank": 45 },
-    { "ticker": "COST",  "sector": "Consumer Staples",       "notes": "Industrials / value — retail", "sort_rank": 46 },
-    { "ticker": "WMT",   "sector": "Consumer Staples",       "notes": "Industrials / value — retail", "sort_rank": 47 },
-    { "ticker": "MS",    "sector": "Financials",             "notes": "Industrials / value — bank", "sort_rank": 48 },
-    { "ticker": "DAL",   "sector": "Industrials",            "notes": "Industrials / value — airline", "sort_rank": 49 },
-    { "ticker": "XOM",   "sector": "Energy",                 "notes": "Industrials / value — energy", "sort_rank": 50 },
-    { "ticker": "OXY",   "sector": "Energy",                 "notes": "Industrials / value — energy", "sort_rank": 51 },
-    { "ticker": "CVX",   "sector": "Energy",                 "notes": "Industrials / value — energy", "sort_rank": 52 },
-    { "ticker": "CRS",   "sector": "Industrials",            "notes": "Industrials / value — specialty alloys", "sort_rank": 53 },
-    { "ticker": "FLY",   "sector": "Industrials",            "notes": "Industrials / value — aircraft leasing", "sort_rank": 54 },
-    { "ticker": "PL",    "sector": "Technology",             "notes": "Industrials / value — satellite imaging", "sort_rank": 55 },
-    { "ticker": "COIN",  "sector": "Financials",             "notes": "Crypto proxy", "sort_rank": 60 },
-    { "ticker": "MSTR",  "sector": "Technology",             "notes": "Crypto proxy — BTC treasury", "sort_rank": 61 },
-    { "ticker": "CRCL",  "sector": "Financials",             "notes": "Crypto proxy — USDC issuer", "sort_rank": 62 },
-    { "ticker": "SPY",   "sector": "ETF",                    "notes": "Broad market ETF", "sort_rank": 70 },
-    { "ticker": "QQQ",   "sector": "ETF",                    "notes": "Nasdaq 100 ETF", "sort_rank": 71 },
-    { "ticker": "IWM",   "sector": "ETF",                    "notes": "Russell 2000 ETF", "sort_rank": 72 }
+    {
+      "ticker": "AAPL",
+      "sector": "Technology",
+      "notes": "M7",
+      "sort_rank": 1
+    },
+    {
+      "ticker": "MSFT",
+      "sector": "Technology",
+      "notes": "M7",
+      "sort_rank": 2
+    },
+    {
+      "ticker": "NVDA",
+      "sector": "Technology",
+      "notes": "M7",
+      "sort_rank": 3
+    },
+    {
+      "ticker": "AMZN",
+      "sector": "Consumer Discretionary",
+      "notes": "M7",
+      "sort_rank": 4
+    },
+    {
+      "ticker": "META",
+      "sector": "Communication Services",
+      "notes": "M7",
+      "sort_rank": 5
+    },
+    {
+      "ticker": "GOOGL",
+      "sector": "Communication Services",
+      "notes": "M7",
+      "sort_rank": 6
+    },
+    {
+      "ticker": "TSLA",
+      "sector": "Consumer Discretionary",
+      "notes": "M7",
+      "sort_rank": 7
+    },
+    {
+      "ticker": "ORCL",
+      "sector": "Technology",
+      "notes": "Mega-cap \u2014 enterprise / cloud",
+      "sort_rank": 8
+    },
+    {
+      "ticker": "CRM",
+      "sector": "Technology",
+      "notes": "Mega-cap \u2014 SaaS / CRM",
+      "sort_rank": 9
+    },
+    {
+      "ticker": "AMD",
+      "sector": "Technology",
+      "notes": "Semiconductor",
+      "sort_rank": 10
+    },
+    {
+      "ticker": "AVGO",
+      "sector": "Technology",
+      "notes": "Semiconductor",
+      "sort_rank": 11
+    },
+    {
+      "ticker": "INTC",
+      "sector": "Technology",
+      "notes": "Semiconductor",
+      "sort_rank": 12
+    },
+    {
+      "ticker": "MU",
+      "sector": "Technology",
+      "notes": "Semiconductor \u2014 memory",
+      "sort_rank": 13
+    },
+    {
+      "ticker": "MRVL",
+      "sector": "Technology",
+      "notes": "Semiconductor \u2014 custom silicon",
+      "sort_rank": 14
+    },
+    {
+      "ticker": "TSM",
+      "sector": "Technology",
+      "notes": "Semiconductor \u2014 foundry",
+      "sort_rank": 15
+    },
+    {
+      "ticker": "QCOM",
+      "sector": "Technology",
+      "notes": "Semiconductor \u2014 mobile",
+      "sort_rank": 16
+    },
+    {
+      "ticker": "CRWV",
+      "sector": "Technology",
+      "notes": "Semiconductor \u2014 AI inference",
+      "sort_rank": 17
+    },
+    {
+      "ticker": "NBIS",
+      "sector": "Technology",
+      "notes": "Semiconductor \u2014 data center",
+      "sort_rank": 18
+    },
+    {
+      "ticker": "ANET",
+      "sector": "Technology",
+      "notes": "Semiconductor \u2014 data-center networking",
+      "sort_rank": 19
+    },
+    {
+      "ticker": "IREN",
+      "sector": "Technology",
+      "notes": "Semiconductor \u2014 data center / mining",
+      "sort_rank": 19
+    },
+    {
+      "ticker": "CRDO",
+      "sector": "Technology",
+      "notes": "Semiconductor \u2014 connectivity",
+      "sort_rank": 20
+    },
+    {
+      "ticker": "SNDK",
+      "sector": "Technology",
+      "notes": "Semiconductor \u2014 storage",
+      "sort_rank": 21
+    },
+    {
+      "ticker": "LITE",
+      "sector": "Technology",
+      "notes": "Semiconductor \u2014 photonics",
+      "sort_rank": 22
+    },
+    {
+      "ticker": "GLW",
+      "sector": "Technology",
+      "notes": "Semiconductor \u2014 optical fiber",
+      "sort_rank": 23
+    },
+    {
+      "ticker": "NOK",
+      "sector": "Technology",
+      "notes": "Semiconductor \u2014 telecom infra",
+      "sort_rank": 24
+    },
+    {
+      "ticker": "TSEM",
+      "sector": "Technology",
+      "notes": "Semiconductor \u2014 foundry",
+      "sort_rank": 25
+    },
+    {
+      "ticker": "ARM",
+      "sector": "Technology",
+      "notes": "Semiconductor \u2014 IP licensing",
+      "sort_rank": 26
+    },
+    {
+      "ticker": "ASML",
+      "sector": "Technology",
+      "notes": "Semiconductor \u2014 lithography",
+      "sort_rank": 27
+    },
+    {
+      "ticker": "TXN",
+      "sector": "Technology",
+      "notes": "Semiconductor \u2014 analog",
+      "sort_rank": 28
+    },
+    {
+      "ticker": "SMCI",
+      "sector": "Technology",
+      "notes": "Semiconductor \u2014 AI servers",
+      "sort_rank": 29
+    },
+    {
+      "ticker": "PLTR",
+      "sector": "Technology",
+      "notes": "Growth / tech \u2014 data analytics",
+      "sort_rank": 30
+    },
+    {
+      "ticker": "HIMS",
+      "sector": "Healthcare",
+      "notes": "Growth / tech \u2014 telehealth",
+      "sort_rank": 31
+    },
+    {
+      "ticker": "HOOD",
+      "sector": "Financials",
+      "notes": "Growth / tech \u2014 fintech",
+      "sort_rank": 32
+    },
+    {
+      "ticker": "SOFI",
+      "sector": "Financials",
+      "notes": "Growth / tech \u2014 fintech",
+      "sort_rank": 33
+    },
+    {
+      "ticker": "ASTS",
+      "sector": "Communication Services",
+      "notes": "Growth / tech \u2014 satellite",
+      "sort_rank": 34
+    },
+    {
+      "ticker": "RKLB",
+      "sector": "Industrials",
+      "notes": "Growth / tech \u2014 space",
+      "sort_rank": 35
+    },
+    {
+      "ticker": "NET",
+      "sector": "Technology",
+      "notes": "Growth / tech \u2014 cloud infra",
+      "sort_rank": 36
+    },
+    {
+      "ticker": "CRWD",
+      "sector": "Technology",
+      "notes": "Growth / tech \u2014 cybersecurity",
+      "sort_rank": 37
+    },
+    {
+      "ticker": "PANW",
+      "sector": "Technology",
+      "notes": "Growth / tech \u2014 cybersecurity",
+      "sort_rank": 37
+    },
+    {
+      "ticker": "BKSY",
+      "sector": "Technology",
+      "notes": "Growth / tech \u2014 geospatial",
+      "sort_rank": 38
+    },
+    {
+      "ticker": "DDOG",
+      "sector": "Technology",
+      "notes": "Growth / tech \u2014 observability",
+      "sort_rank": 38
+    },
+    {
+      "ticker": "SNOW",
+      "sector": "Technology",
+      "notes": "Growth / tech \u2014 data cloud",
+      "sort_rank": 39
+    },
+    {
+      "ticker": "ZS",
+      "sector": "Technology",
+      "notes": "Growth / tech \u2014 cybersecurity",
+      "sort_rank": 39
+    },
+    {
+      "ticker": "KO",
+      "sector": "Consumer Staples",
+      "notes": "Industrials / value",
+      "sort_rank": 40
+    },
+    {
+      "ticker": "MCD",
+      "sector": "Consumer Discretionary",
+      "notes": "Industrials / value",
+      "sort_rank": 41
+    },
+    {
+      "ticker": "LLY",
+      "sector": "Healthcare",
+      "notes": "Industrials / value \u2014 pharma",
+      "sort_rank": 42
+    },
+    {
+      "ticker": "JPM",
+      "sector": "Financials",
+      "notes": "Industrials / value \u2014 bank",
+      "sort_rank": 43
+    },
+    {
+      "ticker": "GS",
+      "sector": "Financials",
+      "notes": "Industrials / value \u2014 bank",
+      "sort_rank": 44
+    },
+    {
+      "ticker": "BA",
+      "sector": "Industrials",
+      "notes": "Industrials / value \u2014 aerospace",
+      "sort_rank": 45
+    },
+    {
+      "ticker": "COST",
+      "sector": "Consumer Staples",
+      "notes": "Industrials / value \u2014 retail",
+      "sort_rank": 46
+    },
+    {
+      "ticker": "WMT",
+      "sector": "Consumer Staples",
+      "notes": "Industrials / value \u2014 retail",
+      "sort_rank": 47
+    },
+    {
+      "ticker": "MS",
+      "sector": "Financials",
+      "notes": "Industrials / value \u2014 bank",
+      "sort_rank": 48
+    },
+    {
+      "ticker": "DAL",
+      "sector": "Industrials",
+      "notes": "Industrials / value \u2014 airline",
+      "sort_rank": 49
+    },
+    {
+      "ticker": "LMT",
+      "sector": "Industrials",
+      "notes": "Industrials / value \u2014 defense",
+      "sort_rank": 50
+    },
+    {
+      "ticker": "XOM",
+      "sector": "Energy",
+      "notes": "Industrials / value \u2014 energy",
+      "sort_rank": 50
+    },
+    {
+      "ticker": "OXY",
+      "sector": "Energy",
+      "notes": "Industrials / value \u2014 energy",
+      "sort_rank": 51
+    },
+    {
+      "ticker": "RTX",
+      "sector": "Industrials",
+      "notes": "Industrials / value \u2014 defense",
+      "sort_rank": 51
+    },
+    {
+      "ticker": "CVX",
+      "sector": "Energy",
+      "notes": "Industrials / value \u2014 energy",
+      "sort_rank": 52
+    },
+    {
+      "ticker": "CRS",
+      "sector": "Industrials",
+      "notes": "Industrials / value \u2014 specialty alloys",
+      "sort_rank": 53
+    },
+    {
+      "ticker": "FLY",
+      "sector": "Industrials",
+      "notes": "Industrials / value \u2014 aircraft leasing",
+      "sort_rank": 54
+    },
+    {
+      "ticker": "PL",
+      "sector": "Technology",
+      "notes": "Industrials / value \u2014 satellite imaging",
+      "sort_rank": 55
+    },
+    {
+      "ticker": "BAC",
+      "sector": "Financials",
+      "notes": "Industrials / value \u2014 bank",
+      "sort_rank": 56
+    },
+    {
+      "ticker": "WFC",
+      "sector": "Financials",
+      "notes": "Industrials / value \u2014 bank",
+      "sort_rank": 57
+    },
+    {
+      "ticker": "BLK",
+      "sector": "Financials",
+      "notes": "Industrials / value \u2014 asset manager",
+      "sort_rank": 58
+    },
+    {
+      "ticker": "NKE",
+      "sector": "Consumer Discretionary",
+      "notes": "Industrials / value \u2014 apparel",
+      "sort_rank": 59
+    },
+    {
+      "ticker": "COIN",
+      "sector": "Financials",
+      "notes": "Crypto proxy",
+      "sort_rank": 60
+    },
+    {
+      "ticker": "DIS",
+      "sector": "Communication Services",
+      "notes": "Industrials / value \u2014 media",
+      "sort_rank": 60
+    },
+    {
+      "ticker": "HD",
+      "sector": "Consumer Discretionary",
+      "notes": "Industrials / value \u2014 retail",
+      "sort_rank": 61
+    },
+    {
+      "ticker": "MSTR",
+      "sector": "Technology",
+      "notes": "Crypto proxy \u2014 BTC treasury",
+      "sort_rank": 61
+    },
+    {
+      "ticker": "CRCL",
+      "sector": "Financials",
+      "notes": "Crypto proxy \u2014 USDC issuer",
+      "sort_rank": 62
+    },
+    {
+      "ticker": "SBUX",
+      "sector": "Consumer Discretionary",
+      "notes": "Industrials / value \u2014 retail",
+      "sort_rank": 62
+    },
+    {
+      "ticker": "MARA",
+      "sector": "Financials",
+      "notes": "Crypto proxy \u2014 BTC mining",
+      "sort_rank": 63
+    },
+    {
+      "ticker": "TGT",
+      "sector": "Consumer Staples",
+      "notes": "Industrials / value \u2014 retail",
+      "sort_rank": 63
+    },
+    {
+      "ticker": "PFE",
+      "sector": "Healthcare",
+      "notes": "Industrials / value \u2014 pharma",
+      "sort_rank": 64
+    },
+    {
+      "ticker": "RIOT",
+      "sector": "Financials",
+      "notes": "Crypto proxy \u2014 BTC mining",
+      "sort_rank": 64
+    },
+    {
+      "ticker": "JNJ",
+      "sector": "Healthcare",
+      "notes": "Industrials / value \u2014 pharma",
+      "sort_rank": 65
+    },
+    {
+      "ticker": "MRK",
+      "sector": "Healthcare",
+      "notes": "Industrials / value \u2014 pharma",
+      "sort_rank": 66
+    },
+    {
+      "ticker": "ABBV",
+      "sector": "Healthcare",
+      "notes": "Industrials / value \u2014 pharma",
+      "sort_rank": 67
+    },
+    {
+      "ticker": "T",
+      "sector": "Communication Services",
+      "notes": "Industrials / value \u2014 telco",
+      "sort_rank": 68
+    },
+    {
+      "ticker": "VZ",
+      "sector": "Communication Services",
+      "notes": "Industrials / value \u2014 telco",
+      "sort_rank": 69
+    },
+    {
+      "ticker": "SPY",
+      "sector": "ETF",
+      "notes": "Broad market ETF",
+      "sort_rank": 70
+    },
+    {
+      "ticker": "QQQ",
+      "sector": "ETF",
+      "notes": "Nasdaq 100 ETF",
+      "sort_rank": 71
+    },
+    {
+      "ticker": "IWM",
+      "sector": "ETF",
+      "notes": "Russell 2000 ETF",
+      "sort_rank": 72
+    },
+    {
+      "ticker": "DIA",
+      "sector": "ETF",
+      "notes": "Dow Jones ETF",
+      "sort_rank": 73
+    },
+    {
+      "ticker": "SMH",
+      "sector": "ETF",
+      "notes": "Semiconductor ETF",
+      "sort_rank": 74
+    },
+    {
+      "ticker": "XLE",
+      "sector": "ETF",
+      "notes": "Energy sector ETF",
+      "sort_rank": 75
+    },
+    {
+      "ticker": "XLF",
+      "sector": "ETF",
+      "notes": "Financial sector ETF",
+      "sort_rank": 76
+    },
+    {
+      "ticker": "TLT",
+      "sector": "ETF",
+      "notes": "20Y+ Treasury ETF",
+      "sort_rank": 77
+    },
+    {
+      "ticker": "GLD",
+      "sector": "ETF",
+      "notes": "Gold ETF",
+      "sort_rank": 78
+    },
+    {
+      "ticker": "ARKK",
+      "sector": "ETF",
+      "notes": "ARK Innovation ETF",
+      "sort_rank": 79
+    }
   ]
 }
