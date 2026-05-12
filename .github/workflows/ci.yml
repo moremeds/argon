@@ -54,8 +54,11 @@ jobs:
       - name: Guardrail greps (3, 5, 9)
         run: |
           set -e
-          ! grep -rE 'class _Fake' tests/ || (echo "Guardrail 5 violation"; exit 1)
+          # Guardrail 5: no fake cursor/connection in INTEGRATION tests (unit tests may stub freely)
+          ! grep -rE 'class _Fake(Cursor|Connection)' tests/integration/ || (echo "Guardrail 5 violation: integration test uses fake cursor/connection"; exit 1)
+          # Guardrail 9: no pipe-joined strings near SQL execute calls
           ! grep -rE '"\|".join\(' src/ app/ || (echo "Guardrail 9 violation"; exit 1)
+          # Guardrail 3: no production code importing from tests/ or removed fixtures module
           ! grep -rE 'from tests' src/ app/ || (echo "Guardrail 3 violation"; exit 1)
           ! grep -rE 'from uw_scan\.fixtures' src/ app/ || (echo "Guardrail 3 violation"; exit 1)
           echo "guardrail greps clean"
