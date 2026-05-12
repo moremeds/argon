@@ -5,7 +5,7 @@ import { test, expect } from "@playwright/test";
 
 test("watchlist → detail → tab → rescan", async ({ page }) => {
   await page.goto("/watchlist");
-  await expect(page.getByText("WATCHLIST")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "WATCHLIST" })).toBeVisible();
 
   const firstCard = page.locator("a[href^='/stock/']").first();
   const href = await firstCard.getAttribute("href");
@@ -18,8 +18,16 @@ test("watchlist → detail → tab → rescan", async ({ page }) => {
   await expect(page).toHaveURL(new RegExp(`/stock/${ticker}/flow`));
 
   await page.goto("/watchlist");
-  await page.locator("button:has-text('rescan')").first().click();
-  await expect(page.locator("button:has-text('queued')").first()).toBeVisible({
-    timeout: 3000,
-  });
+  // The button's text changes after click (rescan → queued… → running… →
+  // done), so locating by initial text won't survive the click. The card
+  // exposes its link via aria-label="<TICKER> detail"; the RescanButton is
+  // a sibling of the link inside the same card wrapper.
+  const card = page
+    .locator("a[aria-label$='detail']")
+    .first()
+    .locator("xpath=..");
+  const rescan = card.locator("button").first();
+  await expect(rescan).toHaveText("rescan");
+  await rescan.click();
+  await expect(rescan).toHaveText(/queued|running|done/, { timeout: 5000 });
 });

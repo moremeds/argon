@@ -12,10 +12,12 @@ export default defineConfig({
   // entries to report healthy before starting tests.
   webServer: [
     {
-      command: "npm run dev",
+      // Production start (next start) — dev mode's HMR WebSocket fails in
+      // Playwright's headless Chromium and blocks React hydration.
+      command: "npm run start",
       url: "http://127.0.0.1:3001",
       reuseExistingServer: true,
-      timeout: 60_000,
+      timeout: 120_000,
     },
     {
       command:
