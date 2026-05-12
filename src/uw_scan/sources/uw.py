@@ -328,8 +328,19 @@ def fetch_bulk_screener_ticker(
     Thin wrapper over `fetch_bulk_screener` — inherits audit / raw payload
     persistence and the canonical normalize path. Returns `None` when the
     screener has no row for the ticker.
+
+    Calls the lower-level _fetch_json directly to avoid `fetch_bulk_screener`'s
+    `is_s_p_500=true` default, which would filter out everything except the 500.
+    The opposite default (`is_s_p_500=false`) is just as wrong — it filters out
+    S&P 500 names like AAPL/MSFT/NVDA. We want the ticker either way.
     """
-    rows = fetch_bulk_screener(
-        client, repo, run_id, ticker=ticker, is_s_p_500="false", limit=1
+    body = _fetch_json(
+        client,
+        repo,
+        run_id,
+        EndpointSlug.BULK_SCREENER_STOCKS,
+        None,
+        params={"ticker": ticker, "limit": 1},
     )
+    rows = normalize.normalize_bulk_screener(body)
     return rows[0] if rows else None
