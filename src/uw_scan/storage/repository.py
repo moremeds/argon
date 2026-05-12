@@ -1148,6 +1148,43 @@ class Repository:
             cols = [d.name for d in cur.description or []]
             return [dict(zip(cols, row, strict=False)) for row in cur.fetchall()]
 
+    def get_last_full_scan_finished_at(self) -> datetime | None:
+        """Latest scan_runs.finished_at where status='ok'. Used by /api/health."""
+        with self._conn.cursor() as cur:
+            cur.execute(
+                f"""
+                SELECT MAX(finished_at) FROM {self._schema}.scan_runs
+                WHERE status='ok' AND finished_at IS NOT NULL
+                """
+            )
+            row = cur.fetchone()
+        return row[0] if row and row[0] else None
+
+    def list_runs_for_ticker(
+        self, ticker: str, limit: int = 50
+    ) -> list[dict[str, Any]]:
+        """Return recent scan_runs rows for a ticker, newest first."""
+        with self._conn.cursor() as cur:
+            cur.execute(
+                f"""
+                SELECT run_id, started_at, finished_at, status
+                FROM {self._schema}.scan_runs
+                WHERE ticker = %s
+                ORDER BY run_id DESC
+                LIMIT %s
+                """,
+                (ticker.upper(), limit),
+            )
+            return [
+                {
+                    "run_id": int(row[0]),
+                    "scanned_at": row[1],
+                    "finished_at": row[2],
+                    "status": row[3],
+                }
+                for row in cur.fetchall()
+            ]
+
     def latest_scan_run_id(self) -> int:
         """Return the highest run_id that has scan_results rows, or 0 if none."""
         sql = (
