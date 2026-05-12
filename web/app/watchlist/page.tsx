@@ -20,7 +20,10 @@ export default async function WatchlistPage({
     data.tickers.map(async (t) => {
       try {
         const bars = await api.ohlc(t.ticker, 30);
-        return [t.ticker, bars.map((b) => Number(b.close))] as const;
+        // /api/ohlc returns newest-first; sparkline draws left-to-right
+        // chronological, so reverse to oldest-first.
+        const closes = bars.map((b) => Number(b.close)).reverse();
+        return [t.ticker, closes] as const;
       } catch {
         return [t.ticker, [] as number[]] as const;
       }
