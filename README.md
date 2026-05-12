@@ -1,25 +1,31 @@
 # Unusual Whales Opportunity Scanner
 
-Streamlit-based opportunity scanner for Unusual Whales options flow data. Produces two canonical reports: a per-ticker analysis card (market structure, volatility, flow, VRP assessment, defined-risk trade plan) and a market-wide scan card (setup classification, day-over-day flow reversals, top pick + secondaries).
+Per-ticker options analytics, watchlist-driven. Next.js (web) + FastAPI (API) + APScheduler (worker) backed by Postgres, sourced from Unusual Whales and massive.com.
 
 ## Status
 
-This repository was reset on 2026-05-11. The prior implementation was scrapped; the rebuild starts from the contracts defined in the spec.
+Active rework (2026-05-12) replaces the Streamlit prototype with a card-grid watchlist landing page and a regime-style detail page. Backend is additive on top of the existing `src/uw_scan/` pipeline; the prior Streamlit UI has been archived.
 
-- Spec: [`docs/superpowers/specs/2026-05-11-uw-scan-design.md`](docs/superpowers/specs/2026-05-11-uw-scan-design.md) — canonical report formats and implementation guardrails.
-- Plan: [`docs/superpowers/plans/2026-05-11-uw-scan-rebuild-plan.md`](docs/superpowers/plans/2026-05-11-uw-scan-rebuild-plan.md) — slice-by-slice rebuild plan.
+- Spec: [`docs/superpowers/specs/2026-05-12-uw-watchlist-ui-rework-design.md`](docs/superpowers/specs/2026-05-12-uw-watchlist-ui-rework-design.md)
+- Plan: [`docs/superpowers/plans/2026-05-12-uw-watchlist-ui-rework-plan.md`](docs/superpowers/plans/2026-05-12-uw-watchlist-ui-rework-plan.md)
 
 ## Local Setup
-
-Source code lands in the repository as slices ship. Until S0 (endpoint validation spike) lands, the only setup is dependency installation:
 
 ```bash
 uv sync --extra postgres
 cp .env.example .env
-# Put the real UW token in .env as UW_SCAN_API_KEY. Do not commit .env.
+# Fill in UW_SCAN_API_KEY and MASSIVE_API_KEY.
+
+# Apply migrations against the local Postgres `option_wizard.uw_scan` schema:
+bash scripts/migrate.sh
+
+# Boot all three processes:
+bash scripts/dev.sh
 ```
 
-Playwright (used by S4's TradingView parser) installs on demand later via `uv run playwright install chromium` — not required for S0 through S3.
+Next.js dev server: <http://127.0.0.1:3001>
+FastAPI dev server: <http://127.0.0.1:8400>
+FastAPI OpenAPI: <http://127.0.0.1:8400/openapi.json>
 
 ## Database
 
