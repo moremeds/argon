@@ -9,6 +9,7 @@ import { SkewBlock } from "./SkewBlock";
 import { PositioningBlock } from "./PositioningBlock";
 import { fmtPct, fmtDecimal, toNum } from "@/lib/formatters";
 import { bucketFreshness } from "@/lib/freshness";
+import { RescanButton } from "@/components/shared/RescanButton";
 
 type Card = components["schemas"]["WatchlistCard"];
 type Props = { card: Card; sparkline: number[] };
@@ -106,6 +107,13 @@ export function TickerCard({ card, sparkline }: Props) {
           pcr_vol={toNum(card.positioning.pcr_vol)}
           pcr_delta_30d={toNum(card.positioning.pcr_delta_30d)}
         />
+      </div>
+
+      <div
+        style={{ marginTop: 8, display: "flex", justifyContent: "flex-end" }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <RescanButton ticker={card.ticker} />
       </div>
     </Link>
   );

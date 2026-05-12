@@ -1,6 +1,7 @@
 import { api } from "@/lib/api";
 import { CardGrid } from "@/components/watchlist/CardGrid";
 import { FilterBar } from "@/components/watchlist/FilterBar";
+import { AddTickerDialog } from "@/components/watchlist/AddTickerDialog";
 
 export default async function WatchlistPage({
   searchParams,
@@ -46,17 +47,20 @@ export default async function WatchlistPage({
         >
           WATCHLIST
         </h1>
-        <span
-          style={{
-            color: "var(--text-muted)",
-            fontSize: 12,
-            fontFamily: "var(--font-mono)",
-          }}
-        >
-          {data.scheduler_lag_seconds != null
-            ? `scheduler: ${Math.round(data.scheduler_lag_seconds)}s lag`
-            : "scheduler: unknown"}
-        </span>
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <span
+            style={{
+              color: "var(--text-muted)",
+              fontSize: 12,
+              fontFamily: "var(--font-mono)",
+            }}
+          >
+            {data.scheduler_lag_seconds != null
+              ? `scheduler: ${Math.round(data.scheduler_lag_seconds)}s lag`
+              : "scheduler: unknown"}
+          </span>
+          <AddTickerDialog />
+        </div>
       </header>
       <FilterBar current={sp} />
       <CardGrid data={data} sparklines={sparklines} />
