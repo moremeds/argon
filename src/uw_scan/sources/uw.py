@@ -315,3 +315,21 @@ def fetch_bulk_screener(
         params=params,
     )
     return normalize.normalize_bulk_screener(body)
+
+
+def fetch_bulk_screener_ticker(
+    client: UwClient,
+    repo: Repository,
+    run_id: int,
+    ticker: str,
+) -> BulkScreenerRow | None:
+    """Fetch one row from `/api/screener/stocks` scoped to a single ticker.
+
+    Thin wrapper over `fetch_bulk_screener` — inherits audit / raw payload
+    persistence and the canonical normalize path. Returns `None` when the
+    screener has no row for the ticker.
+    """
+    rows = fetch_bulk_screener(
+        client, repo, run_id, ticker=ticker, is_s_p_500="false", limit=1
+    )
+    return rows[0] if rows else None
