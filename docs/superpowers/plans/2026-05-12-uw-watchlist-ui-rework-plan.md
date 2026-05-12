@@ -1378,7 +1378,7 @@ Open `src/uw_scan/storage/repository.py` and add the following methods (preserve
         with self.conn.cursor() as cur:
             cur.execute(f"""
                 SELECT ticker, sector, notes, pinned, sort_rank, added_at, removed_at
-                FROM {self.schema}.watchlist
+                FROM {self._schema}.watchlist
                 WHERE removed_at IS NULL
                 ORDER BY sort_rank, ticker
             """)
@@ -1390,7 +1390,7 @@ Open `src/uw_scan/storage/repository.py` and add the following methods (preserve
     ) -> None:
         with self.conn.cursor() as cur:
             cur.execute(f"""
-                INSERT INTO {self.schema}.watchlist
+                INSERT INTO {self._schema}.watchlist
                   (ticker, sector, notes, sort_rank, pinned)
                 VALUES (%s, %s, %s, %s, %s)
                 ON CONFLICT (ticker) DO UPDATE
@@ -1403,7 +1403,7 @@ Open `src/uw_scan/storage/repository.py` and add the following methods (preserve
     def soft_delete_watchlist_ticker(self, ticker: str) -> None:
         with self.conn.cursor() as cur:
             cur.execute(
-                f"UPDATE {self.schema}.watchlist SET removed_at=NOW() WHERE ticker=%s",
+                f"UPDATE {self._schema}.watchlist SET removed_at=NOW() WHERE ticker=%s",
                 (ticker,),
             )
         self.conn.commit()
@@ -1426,7 +1426,7 @@ Open `src/uw_scan/storage/repository.py` and add the following methods (preserve
         vals.append(ticker)
         with self.conn.cursor() as cur:
             cur.execute(
-                f"UPDATE {self.schema}.watchlist SET {', '.join(sets)} WHERE ticker=%s",
+                f"UPDATE {self._schema}.watchlist SET {', '.join(sets)} WHERE ticker=%s",
                 vals,
             )
         self.conn.commit()
@@ -1434,6 +1434,12 @@ Open `src/uw_scan/storage/repository.py` and add the following methods (preserve
     # ---- watchlist_card ----
     def upsert_watchlist_card(self, *, ticker: str, run_id: int,
                               scanned_at, spot=None, **fields) -> None:
+        """Insert or replace the per-ticker card row.
+
+        `updated_at` is owned by the DB (default NOW() at insert; refreshed in
+        the conflict branch). It is NOT part of the column list passed in here —
+        the parameterized INSERT and VALUES must therefore have matching arity.
+        """
         cols = ["ticker", "run_id", "scanned_at", "spot", *fields.keys()]
         vals = [ticker, run_id, scanned_at, spot, *fields.values()]
         placeholders = ", ".join(["%s"] * len(cols))
@@ -1441,8 +1447,8 @@ Open `src/uw_scan/storage/repository.py` and add the following methods (preserve
         with self.conn.cursor() as cur:
             cur.execute(
                 f"""
-                INSERT INTO {self.schema}.watchlist_card ({', '.join(cols)}, updated_at)
-                VALUES ({placeholders}, NOW())
+                INSERT INTO {self._schema}.watchlist_card ({', '.join(cols)})
+                VALUES ({placeholders})
                 ON CONFLICT (ticker) DO UPDATE SET {updates}, updated_at=NOW()
                 """,
                 vals,
@@ -1452,7 +1458,7 @@ Open `src/uw_scan/storage/repository.py` and add the following methods (preserve
     def get_watchlist_card(self, ticker: str) -> "WatchlistCardRow | None":
         with self.conn.cursor() as cur:
             cur.execute(
-                f"SELECT * FROM {self.schema}.watchlist_card WHERE ticker=%s",
+                f"SELECT * FROM {self._schema}.watchlist_card WHERE ticker=%s",
                 (ticker,),
             )
             row = cur.fetchone()
@@ -1463,8 +1469,8 @@ Open `src/uw_scan/storage/repository.py` and add the following methods (preserve
             cur.execute(
                 f"""
                 SELECT c.*, w.sector, w.pinned, w.sort_rank
-                FROM {self.schema}.watchlist_card c
-                JOIN {self.schema}.watchlist w ON w.ticker = c.ticker
+                FROM {self._schema}.watchlist_card c
+                JOIN {self._schema}.watchlist w ON w.ticker = c.ticker
                 WHERE w.removed_at IS NULL
                 ORDER BY w.pinned DESC, w.sort_rank, c.ticker
                 """
@@ -1477,7 +1483,7 @@ Open `src/uw_scan/storage/repository.py` and add the following methods (preserve
         with self.conn.cursor() as cur:
             cur.execute(
                 f"""
-                INSERT INTO {self.schema}.daily_ohlc
+                INSERT INTO {self._schema}.daily_ohlc
                   (ticker, date, open, high, low, close, volume, source)
                 VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
                 ON CONFLICT (ticker, date) DO UPDATE
@@ -1494,7 +1500,7 @@ Open `src/uw_scan/storage/repository.py` and add the following methods (preserve
             cur.execute(
                 f"""
                 SELECT ticker, date, open, high, low, close, volume, source, fetched_at
-                FROM {self.schema}.daily_ohlc
+                FROM {self._schema}.daily_ohlc
                 WHERE ticker=%s
                 ORDER BY date DESC
                 LIMIT %s
@@ -1508,7 +1514,7 @@ Open `src/uw_scan/storage/repository.py` and add the following methods (preserve
         with self.conn.cursor() as cur:
             cur.execute(
                 f"""
-                INSERT INTO {self.schema}.intraday_quote (ticker, price, quoted_at)
+                INSERT INTO {self._schema}.intraday_quote (ticker, price, quoted_at)
                 VALUES (%s, %s, %s)
                 ON CONFLICT (ticker) DO UPDATE
                   SET price=EXCLUDED.price, quoted_at=EXCLUDED.quoted_at, fetched_at=NOW()
@@ -1520,7 +1526,7 @@ Open `src/uw_scan/storage/repository.py` and add the following methods (preserve
     def get_intraday_quote(self, ticker: str) -> "IntradayQuoteRow | None":
         with self.conn.cursor() as cur:
             cur.execute(
-                f"SELECT ticker, price, quoted_at, fetched_at FROM {self.schema}.intraday_quote WHERE ticker=%s",
+                f"SELECT ticker, price, quoted_at, fetched_at FROM {self._schema}.intraday_quote WHERE ticker=%s",
                 (ticker,),
             )
             row = cur.fetchone()
@@ -1531,7 +1537,7 @@ Open `src/uw_scan/storage/repository.py` and add the following methods (preserve
         with self.conn.cursor() as cur:
             cur.execute(
                 f"""
-                INSERT INTO {self.schema}.pcr_history (ticker, snapshot_date, pcr_oi, pcr_vol)
+                INSERT INTO {self._schema}.pcr_history (ticker, snapshot_date, pcr_oi, pcr_vol)
                 VALUES (%s, %s, %s, %s)
                 ON CONFLICT (ticker, snapshot_date) DO UPDATE
                   SET pcr_oi=EXCLUDED.pcr_oi, pcr_vol=EXCLUDED.pcr_vol
@@ -1545,7 +1551,7 @@ Open `src/uw_scan/storage/repository.py` and add the following methods (preserve
             cur.execute(
                 f"""
                 SELECT ticker, snapshot_date, pcr_oi, pcr_vol
-                FROM {self.schema}.pcr_history
+                FROM {self._schema}.pcr_history
                 WHERE ticker=%s AND snapshot_date <= %s - INTERVAL '30 days'
                 ORDER BY snapshot_date DESC
                 LIMIT 1
@@ -1559,7 +1565,7 @@ Open `src/uw_scan/storage/repository.py` and add the following methods (preserve
     def enqueue_rescan_job(self, ticker: str) -> str:
         with self.conn.cursor() as cur:
             cur.execute(
-                f"INSERT INTO {self.schema}.jobs (ticker, status) VALUES (%s, 'queued') RETURNING id",
+                f"INSERT INTO {self._schema}.jobs (ticker, status) VALUES (%s, 'queued') RETURNING id",
                 (ticker,),
             )
             job_id = cur.fetchone()[0]
@@ -1570,10 +1576,10 @@ Open `src/uw_scan/storage/repository.py` and add the following methods (preserve
         with self.conn.cursor() as cur:
             cur.execute(
                 f"""
-                UPDATE {self.schema}.jobs
+                UPDATE {self._schema}.jobs
                 SET status='running', started_at=NOW()
                 WHERE id = (
-                  SELECT id FROM {self.schema}.jobs
+                  SELECT id FROM {self._schema}.jobs
                   WHERE status='queued'
                   ORDER BY requested_at
                   FOR UPDATE SKIP LOCKED
@@ -1589,7 +1595,7 @@ Open `src/uw_scan/storage/repository.py` and add the following methods (preserve
     def mark_job_done(self, job_id: str, run_id: int) -> None:
         with self.conn.cursor() as cur:
             cur.execute(
-                f"UPDATE {self.schema}.jobs SET status='done', run_id=%s, finished_at=NOW() WHERE id=%s",
+                f"UPDATE {self._schema}.jobs SET status='done', run_id=%s, finished_at=NOW() WHERE id=%s",
                 (run_id, job_id),
             )
         self.conn.commit()
@@ -1597,7 +1603,7 @@ Open `src/uw_scan/storage/repository.py` and add the following methods (preserve
     def mark_job_failed(self, job_id: str, error: str) -> None:
         with self.conn.cursor() as cur:
             cur.execute(
-                f"UPDATE {self.schema}.jobs SET status='failed', error=%s, finished_at=NOW() WHERE id=%s",
+                f"UPDATE {self._schema}.jobs SET status='failed', error=%s, finished_at=NOW() WHERE id=%s",
                 (error[:2000], job_id),
             )
         self.conn.commit()
@@ -1607,7 +1613,7 @@ Open `src/uw_scan/storage/repository.py` and add the following methods (preserve
             cur.execute(
                 f"""
                 SELECT id, ticker, status, run_id, error, requested_at, started_at, finished_at
-                FROM {self.schema}.jobs WHERE id=%s
+                FROM {self._schema}.jobs WHERE id=%s
                 """,
                 (job_id,),
             )
@@ -2006,7 +2012,7 @@ In `repository.py`:
         """Persist the per-strike, per-expiry GEX curve as JSONB on the run row."""
         with self.conn.cursor() as cur:
             cur.execute(
-                f"UPDATE {self.schema}.scan_runs SET strike_gex_curve=%s WHERE run_id=%s",
+                f"UPDATE {self._schema}.scan_runs SET strike_gex_curve=%s WHERE run_id=%s",
                 (psycopg.types.json.Json(curve), run_id),
             )
         self.conn.commit()
@@ -2014,7 +2020,7 @@ In `repository.py`:
     def get_strike_gex_curve(self, run_id: int) -> list[dict]:
         with self.conn.cursor() as cur:
             cur.execute(
-                f"SELECT strike_gex_curve FROM {self.schema}.scan_runs WHERE run_id=%s",
+                f"SELECT strike_gex_curve FROM {self._schema}.scan_runs WHERE run_id=%s",
                 (run_id,),
             )
             row = cur.fetchone()
@@ -2254,7 +2260,7 @@ Repository:
     def set_aggregates(self, run_id: int, agg: "MarketAggregates") -> None:
         with self.conn.cursor() as cur:
             cur.execute(
-                f"UPDATE {self.schema}.scan_runs SET aggregates=%s WHERE run_id=%s",
+                f"UPDATE {self._schema}.scan_runs SET aggregates=%s WHERE run_id=%s",
                 (psycopg.types.json.Json(agg.model_dump(mode="json")), run_id),
             )
         self.conn.commit()
@@ -2262,7 +2268,7 @@ Repository:
     def get_aggregates(self, run_id: int) -> "MarketAggregates | None":
         with self.conn.cursor() as cur:
             cur.execute(
-                f"SELECT aggregates FROM {self.schema}.scan_runs WHERE run_id=%s",
+                f"SELECT aggregates FROM {self._schema}.scan_runs WHERE run_id=%s",
                 (run_id,),
             )
             row = cur.fetchone()
@@ -3486,13 +3492,15 @@ S4 done.
 
 ```python
 # tests/integration/api/test_health.py
-def test_health_ok(client):
+def test_health_ok_when_recent_scan(client, seeded_db_with_fresh_run):
+    """A scan_runs row finished_at within 2× interval → ok=True."""
     r = client.get("/api/health")
     assert r.status_code == 200
     body = r.json()
     assert body["ok"] is True
-    assert "db" in body
-    assert "scheduler_lag_seconds" in body  # nullable when scheduler hasn't run yet
+    assert body["db"] == "up"
+    assert body["scheduler_lag_seconds"] is not None
+    assert body["last_full_scan_at"] is not None
 ```
 
 - [ ] **Step 2: Write `conftest.py` (shared FastAPI test fixture)**
@@ -3608,10 +3616,12 @@ def get_repo() -> Generator[Repository, None, None]:
 from datetime import datetime, timezone
 from typing import Optional
 
+from apscheduler.triggers.cron import CronTrigger
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 
-from uw_scan.api.deps import get_repo
+from uw_scan.api.deps import get_repo, get_settings
+from uw_scan.config import Settings
 from uw_scan.storage.repository import Repository
 
 router = APIRouter()
@@ -3622,25 +3632,90 @@ class HealthResponse(BaseModel):
     db: str
     scheduler_lag_seconds: Optional[float] = None
     last_full_scan_at: Optional[datetime] = None
+    reason: Optional[str] = None  # human-readable when ok=False
+
+
+def _full_scan_interval_seconds(cron_expr: str, tz: str) -> float:
+    """Approximate the typical interval between two adjacent firings of the
+    full-scan cron. Used to decide what counts as "stale".
+
+    APScheduler exposes `get_next_fire_time(previous, now)`, so we get two
+    consecutive firings starting from now and measure the gap. For the
+    default `*/60 9-16 * * 1-5`, that's ~3600 seconds inside RTH and
+    ~17 hours overnight; we use the *RTH* interval as the threshold so
+    after-hours doesn't accidentally mark the system unhealthy.
+    """
+    trig = CronTrigger.from_crontab(cron_expr, timezone=tz)
+    # Anchor at a known weekday RTH moment to measure the in-RTH gap.
+    anchor = datetime(2026, 5, 12, 10, 0, tzinfo=timezone.utc)  # Tue 06:00 ET ≈ 10:00 UTC
+    a = trig.get_next_fire_time(None, anchor)
+    if a is None:
+        return 3600.0
+    b = trig.get_next_fire_time(a, a)
+    return (b - a).total_seconds() if b else 3600.0
 
 
 @router.get("/health", response_model=HealthResponse)
-def health(repo: Repository = Depends(get_repo)) -> HealthResponse:
+def health(
+    repo: Repository = Depends(get_repo),
+    settings: Settings = Depends(get_settings),
+) -> HealthResponse:
     db_status = "up"
     try:
         with repo.conn.cursor() as cur:
             cur.execute("SELECT 1")
             cur.fetchone()
     except Exception as e:  # noqa: BLE001
-        return HealthResponse(ok=False, db=f"down: {e!r}")
+        return HealthResponse(
+            ok=False, db=f"down: {e!r}",
+            reason="database unreachable",
+        )
 
     last_scan = repo.get_last_full_scan_finished_at()
-    lag = (datetime.now(timezone.utc) - last_scan).total_seconds() if last_scan else None
+    if last_scan is None:
+        return HealthResponse(
+            ok=False, db=db_status,
+            scheduler_lag_seconds=None, last_full_scan_at=None,
+            reason="no successful full scan yet",
+        )
+
+    lag = (datetime.now(timezone.utc) - last_scan).total_seconds()
+    threshold = 2.0 * _full_scan_interval_seconds(
+        settings.full_scan_cron, settings.rth_tz,
+    )
+    if lag > threshold:
+        return HealthResponse(
+            ok=False, db=db_status,
+            scheduler_lag_seconds=lag, last_full_scan_at=last_scan,
+            reason=f"scheduler lag {lag:.0f}s exceeds 2× interval ({threshold:.0f}s)",
+        )
+
     return HealthResponse(
         ok=True, db=db_status,
         scheduler_lag_seconds=lag, last_full_scan_at=last_scan,
     )
 ```
+
+Update the failing test in `test_health.py` to cover the new contract:
+
+```python
+def test_health_unhealthy_when_no_scans(client, seeded_db_empty_cards):
+    """Fresh DB with no scan_runs rows → /api/health must report ok=False."""
+    r = client.get("/api/health")
+    body = r.json()
+    assert body["ok"] is False
+    assert "no successful full scan" in (body.get("reason") or "")
+
+
+def test_health_unhealthy_when_lag_exceeds_2x_interval(client, seeded_db_with_stale_run):
+    """A scan_runs row finished_at > 2× interval ago → ok=False."""
+    r = client.get("/api/health")
+    body = r.json()
+    assert body["ok"] is False
+    assert "exceeds" in (body.get("reason") or "")
+```
+
+Add a `seeded_db_with_stale_run` fixture to `conftest.py` that inserts a `scan_runs` row with `finished_at` set to `now - 6 hours` (well beyond 2× of the hourly default).
 
 Add `Repository.get_last_full_scan_finished_at()`:
 
@@ -3649,7 +3724,7 @@ Add `Repository.get_last_full_scan_finished_at()`:
         with self.conn.cursor() as cur:
             cur.execute(
                 f"""
-                SELECT MAX(finished_at) FROM {self.schema}.scan_runs
+                SELECT MAX(finished_at) FROM {self._schema}.scan_runs
                 WHERE status='ok'
                 """
             )
