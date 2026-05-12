@@ -1,0 +1,222 @@
+"""Pipeline orchestration for the Single-Stock Card.
+
+Sequential fetches → persist raw + audit + typed → assemble report → score → persist.
+"""
+
+from __future__ import annotations
+
+import logging
+from datetime import date as _date
+from datetime import timedelta
+from decimal import Decimal
+
+import psycopg
+
+from . import normalize, scoring
+from .api.client import LiveDataUnavailable, UwClient
+from .config import Settings
+from .models import SingleStockReport
+from .reports.single_stock import (
+    assemble_single_stock_report,
+    build_trade_plan_for_report,
+)
+from .sources import uw as uw_sources
+from .storage.repository import Repository
+
+logger = logging.getLogger(__name__)
+
+
+def _next_friday(today: _date) -> _date:
+    """Pick the next Friday (today + 1..7 days)."""
+    days_ahead = (4 - today.weekday()) % 7 or 7
+    return today + timedelta(days=days_ahead)
+
+
+def run_single_stock(
+    ticker: str, client: UwClient, repo: Repository
+) -> SingleStockReport:
+    """Run the full S1 pipeline against UW for `ticker` and persist everything."""
+    ticker = ticker.upper()
+    run_id = repo.insert_scan_run(ticker)
+    logger.info("started scan run %d for %s", run_id, ticker)
+
+    try:
+        # 1. Flow alerts (filtered to this ticker via param)
+        flow_alerts = uw_sources.fetch_flow_alerts(client, repo, run_id, ticker)
+        # Defensive: keep only this ticker
+        ticker_alerts = [a for a in flow_alerts if a.ticker == ticker]
+        repo.insert_flow_events(run_id, ticker, ticker_alerts)
+
+        # 2. IV rank (time series)
+        iv_rank_rows = uw_sources.fetch_iv_rank(client, repo, run_id, ticker)
+        repo.upsert_iv_rank_rows(ticker, iv_rank_rows)
+
+        # 3. Vol stats
+        vol_stats_rows = uw_sources.fetch_volatility_stats(client, repo, run_id, ticker)
+        repo.upsert_volatility_stats_rows(vol_stats_rows)
+
+        # 4. Realized vol (time series)
+        rv_rows = uw_sources.fetch_realized_volatility(client, repo, run_id, ticker)
+        repo.upsert_realized_vol_rows(ticker, rv_rows)
+
+        # 5. Term structure
+        term_rows = uw_sources.fetch_term_structure(client, repo, run_id, ticker)
+        repo.insert_iv_term_rows(run_id, term_rows)
+
+        # 6. Interpolated IV
+        interp_rows = uw_sources.fetch_interpolated_iv(client, repo, run_id, ticker)
+        repo.insert_interpolated_iv_rows(run_id, ticker, interp_rows)
+
+        # Pick the nearest expiry from term structure for expiry-required calls.
+        nearest_expiry: _date | None = None
+        if term_rows:
+            sorted_term = sorted(term_rows, key=lambda r: r.expiry)
+            nearest_expiry = sorted_term[0].expiry
+        if nearest_expiry is None:
+            nearest_expiry = _next_friday(_date.today())
+        expiry_str = nearest_expiry.isoformat()
+
+        # 7. Skew
+        skew_rows = uw_sources.fetch_skew(client, repo, run_id, ticker, expiry_str)
+        repo.upsert_skew_rows(ticker, skew_rows)
+
+        # 8. Greek exposure (strike-expiry)
+        ge_rows = uw_sources.fetch_greek_exposure(
+            client, repo, run_id, ticker, expiry_str
+        )
+        repo.insert_greek_exposure_rows(run_id, ticker, ge_rows)
+
+        # 9. Spot exposures (we already persisted in 8 via exposures table; spot row stored only as raw + audit)
+        _ = uw_sources.fetch_spot_exposures(client, repo, run_id, ticker, expiry_str)
+
+        # 10. Greeks
+        greeks_rows = uw_sources.fetch_greeks(client, repo, run_id, ticker, expiry_str)
+        repo.insert_greeks_rows(run_id, ticker, greeks_rows)
+
+        # 11. OI per strike
+        oi_strike_rows = uw_sources.fetch_oi_per_strike(client, repo, run_id, ticker)
+        repo.upsert_oi_per_strike_rows(ticker, oi_strike_rows)
+
+        # 12. OI change
+        oi_change_rows = uw_sources.fetch_oi_change(client, repo, run_id, ticker)
+        repo.insert_oi_change_rows(run_id, oi_change_rows)
+
+        # 13. Max pain
+        max_pain_rows = uw_sources.fetch_max_pain(client, repo, run_id, ticker)
+        # market_date for max pain — use nearest_expiry as date hint isn't in row
+        market_date = _date.today()
+        repo.insert_max_pain_rows(run_id, ticker, market_date, max_pain_rows)
+
+        # 14. Option contracts (broad)
+        contracts = uw_sources.fetch_option_contracts(client, repo, run_id, ticker)
+        repo.insert_option_contract_rows(run_id, ticker, contracts)
+
+        # 15. Option contracts by symbol (pick 2 ATM contracts from previous batch)
+        if contracts:
+            picks = [c.option_symbol for c in contracts[:2]]
+            refined = uw_sources.fetch_option_contracts_by_symbol(
+                client, repo, run_id, ticker, picks
+            )
+            repo.insert_option_contract_rows(run_id, ticker, refined)
+
+        # 16. Dark pool
+        dp_rows = uw_sources.fetch_darkpool_ticker(client, repo, run_id, ticker)
+        repo.insert_dark_pool_rows(run_id, dp_rows)
+
+        # 17. Short data — pick latest snapshot only
+        short_rows = uw_sources.fetch_short_data(client, repo, run_id, ticker)
+        latest_short = normalize.latest_by_timestamp(short_rows)
+        if latest_short is not None:
+            repo.insert_short_interest_snapshot(run_id, latest_short)
+
+        # Assemble report
+        report = assemble_single_stock_report(ticker, run_id, repo)
+
+        # Score + persist
+        setup = scoring.classify_setup_c(report)
+        if setup is not None:
+            report.setup = setup
+            # Build trade plan from contract snapshots in DB
+            contract_rows = repo.fetch_option_contracts(run_id, ticker)
+            trade_plan = build_trade_plan_for_report(report, contract_rows)
+            if trade_plan is not None:
+                report.trade_plan = trade_plan
+
+        # Persist opportunity_scores — always at least one row per run
+        if setup is not None:
+            score_val = setup.score
+            setup_types = [setup.setup_type]
+            direction = setup.direction
+            confirmations = setup.confirmations
+            warnings = setup.warnings
+            notes = setup.notes
+        else:
+            score_val = Decimal("0")
+            setup_types = []
+            direction = None
+            confirmations = []
+            warnings = ["did not meet Type C criteria"]
+            notes = "no classification"
+
+        repo.insert_opportunity_score(
+            run_id,
+            ticker,
+            score_val,
+            setup_types,
+            direction,
+            confirmations,
+            warnings,
+            notes,
+        )
+
+        # Structure idea — always emit at least the bull-call-spread sketch when bull setup
+        if report.trade_plan is not None:
+            legs_dicts = [
+                {
+                    "option_symbol": leg.option_symbol,
+                    "side": leg.side,
+                    "strike": str(leg.strike),
+                    "expiry": leg.expiry.isoformat(),
+                    "mid": str(leg.mid) if leg.mid is not None else None,
+                }
+                for leg in report.trade_plan.legs
+            ]
+            repo.insert_structure_idea(
+                run_id,
+                ticker,
+                report.trade_plan.structure,
+                legs_dicts,
+                report.trade_plan.rationale,
+            )
+
+        repo.finish_scan_run(run_id, status="ok")
+        repo.conn.commit()
+        logger.info("finished scan run %d for %s", run_id, ticker)
+        return report
+
+    except Exception as exc:  # noqa: BLE001
+        repo.conn.rollback()
+        repo.finish_scan_run(run_id, status=f"failed: {repr(exc)[:200]}")
+        repo.conn.commit()
+        logger.exception("scan run %d failed: %s", run_id, repr(exc))
+        raise
+
+
+def run_single_stock_for_ticker_via_env(ticker: str) -> SingleStockReport:
+    """Convenience entry — load Settings, open client + DB conn, run pipeline."""
+    settings = Settings.from_env()
+    if not settings.api_key.get_secret_value():
+        raise LiveDataUnavailable(
+            "UW_SCAN_API_KEY missing — refusing to fabricate data."
+        )
+    conn = psycopg.connect(settings.db_dsn())
+    try:
+        repo = Repository(conn, schema=settings.db_schema)
+        with UwClient(
+            api_key=settings.api_key.get_secret_value(),
+            base_url=settings.base_url,
+            timeout=settings.request_timeout_seconds,
+        ) as client:
+            return run_single_stock(ticker, client, repo)
+    finally:
+        conn.close()

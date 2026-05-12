@@ -24,6 +24,8 @@ postgres = [
 dev = [
   "pytest>=8.2",
   "pytest-playwright>=0.5",
+  "pytest-postgresql>=6",
+  "ruff>=0.5",
 ]
 
 [tool.setuptools.packages.find]
@@ -32,3 +34,6 @@ where = ["src"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["src", "."]
+markers = [
+  "live: hits the real UW API; requires UW_SCAN_API_KEY",
+]
