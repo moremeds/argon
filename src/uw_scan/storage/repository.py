@@ -38,6 +38,17 @@ class Repository:
     # ------------------------------------------------------------------
     # scan_runs
     # ------------------------------------------------------------------
+    def latest_run_id(self, ticker: str) -> int:
+        """Return the highest run_id for `ticker`, or 0 if none."""
+        with self._conn.cursor() as cur:
+            cur.execute(
+                f"SELECT run_id FROM {self._schema}.scan_runs "
+                "WHERE ticker = %s ORDER BY run_id DESC LIMIT 1",
+                (ticker.upper(),),
+            )
+            row = cur.fetchone()
+            return int(row[0]) if row else 0
+
     def insert_scan_run(self, ticker: str, notes: str = "") -> int:
         sql = (
             f"INSERT INTO {self._schema}.scan_runs (ticker, notes) "

@@ -78,8 +78,8 @@ def main() -> None:
 
     if run_clicked:
         with st.spinner(f"Running live pipeline for {ticker}…"):
+            conn = _open_conn(settings)
             try:
-                conn = _open_conn(settings)
                 repo = Repository(conn, schema=settings.db_schema)
                 with UwClient(
                     api_key=settings.api_key.get_secret_value(),
@@ -87,7 +87,6 @@ def main() -> None:
                     timeout=settings.request_timeout_seconds,
                 ) as client:
                     report = run_single_stock(ticker, client, repo)
-                conn.close()
                 st.success(f"Run {report.run_id} complete for {ticker}.")
                 render_single_stock(report)
             except LiveDataUnavailable as exc:
@@ -96,15 +95,15 @@ def main() -> None:
             except Exception as exc:  # noqa: BLE001
                 logging.exception("pipeline failed: %s", repr(exc))
                 st.error(f"Pipeline failed: {exc!r}")
+            finally:
+                conn.close()
         return
 
     if load_clicked or manual_run_id:
         conn = _open_conn(settings)
-        repo = Repository(conn, schema=settings.db_schema)
         try:
-            run_id = (
-                int(manual_run_id) if manual_run_id else _latest_run_id(repo, ticker)
-            )
+            repo = Repository(conn, schema=settings.db_schema)
+            run_id = int(manual_run_id) if manual_run_id else repo.latest_run_id(ticker)
             if run_id == 0:
                 st.warning(f"No prior runs found for {ticker}.")
             else:
@@ -113,17 +112,6 @@ def main() -> None:
                 render_single_stock(report)
         finally:
             conn.close()
-
-
-def _latest_run_id(repo: Repository, ticker: str) -> int:
-    with repo.conn.cursor() as cur:
-        cur.execute(
-            f"SELECT run_id FROM {repo._schema}.scan_runs "  # noqa: SLF001
-            "WHERE ticker = %s ORDER BY run_id DESC LIMIT 1",
-            (ticker,),
-        )
-        row = cur.fetchone()
-        return int(row[0]) if row else 0
 
 
 if __name__ == "__main__":

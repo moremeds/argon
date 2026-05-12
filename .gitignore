@@ -16,3 +16,4 @@ __pycache__/
 # Playwright MCP artifacts
 .playwright-mcp/
 *.png
+.claude/

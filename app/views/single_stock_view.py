@@ -84,13 +84,15 @@ def render(report: SingleStockReport) -> None:
                 [
                     {
                         "expiry": r.expiry,
-                        "max_pain": float(r.max_pain) if r.max_pain else None,
-                        "close": float(r.close) if r.close else None,
+                        "max_pain": float(r.max_pain)
+                        if r.max_pain is not None
+                        else None,
+                        "close": float(r.close) if r.close is not None else None,
                         "upper_strike": float(r.next_upper_strike)
-                        if r.next_upper_strike
+                        if r.next_upper_strike is not None
                         else None,
                         "lower_strike": float(r.next_lower_strike)
-                        if r.next_lower_strike
+                        if r.next_lower_strike is not None
                         else None,
                     }
                     for r in report.max_pain_rows
@@ -145,14 +147,14 @@ def render(report: SingleStockReport) -> None:
                         "id": a.id[:8],
                         "type": a.type,
                         "expiry": a.expiry,
-                        "strike": float(a.strike) if a.strike else None,
-                        "price": float(a.price) if a.price else None,
+                        "strike": float(a.strike) if a.strike is not None else None,
+                        "price": float(a.price) if a.price is not None else None,
                         "total_size": a.total_size,
                         "total_premium": float(a.total_premium)
-                        if a.total_premium
+                        if a.total_premium is not None
                         else None,
                         "vol_oi": float(a.volume_oi_ratio)
-                        if a.volume_oi_ratio
+                        if a.volume_oi_ratio is not None
                         else None,
                         "rule": a.alert_rule,
                     }
@@ -197,7 +199,7 @@ def render(report: SingleStockReport) -> None:
                         "symbol": leg.option_symbol,
                         "strike": float(leg.strike),
                         "expiry": leg.expiry,
-                        "mid": float(leg.mid) if leg.mid else None,
+                        "mid": float(leg.mid) if leg.mid is not None else None,
                     }
                     for leg in tp.legs
                 ]
@@ -216,7 +218,9 @@ def render(report: SingleStockReport) -> None:
                         "symbol": r.option_symbol,
                         "curr_oi": r.curr_oi,
                         "oi_diff": r.oi_diff_plain,
-                        "oi_change": float(r.oi_change) if r.oi_change else None,
+                        "oi_change": float(r.oi_change)
+                        if r.oi_change is not None
+                        else None,
                         "volume": r.volume,
                         "rnk": r.rnk,
                     }
