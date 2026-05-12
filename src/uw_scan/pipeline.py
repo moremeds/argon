@@ -88,6 +88,23 @@ def run_single_stock(
         )
         repo.insert_greek_exposure_rows(run_id, ticker, ge_rows)
 
+        # 8b. Persist the per-strike, per-expiry GEX curve as JSONB on the run row
+        curve: list[dict] = []
+        for r in ge_rows:
+            net = None
+            if r.call_gex is not None or r.put_gex is not None:
+                net = str((r.call_gex or 0) + (r.put_gex or 0))
+            curve.append(
+                {
+                    "strike": str(r.strike),
+                    "expiry": r.expiry.isoformat(),
+                    "net_gex": net,
+                    "call_gex": str(r.call_gex) if r.call_gex is not None else None,
+                    "put_gex": str(r.put_gex) if r.put_gex is not None else None,
+                }
+            )
+        repo.set_strike_gex_curve(run_id, curve)
+
         # 9. Spot exposures (we already persisted in 8 via exposures table; spot row stored only as raw + audit)
         _ = uw_sources.fetch_spot_exposures(client, repo, run_id, ticker, expiry_str)
 

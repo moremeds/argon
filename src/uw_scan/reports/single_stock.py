@@ -18,6 +18,7 @@ from ..models import (
     OiChangeRow,
     ShortDataRow,
     SingleStockReport,
+    StrikeGexBucket,
     TradePlan,
     TradePlanLeg,
     VolatilityProfile,
@@ -391,6 +392,24 @@ def assemble_single_stock_report(
     short_data = _build_short_data_model(repo.fetch_short_interest_snapshot(run_id))
     oi_change_top = _build_oi_change_models(repo.fetch_oi_change_top(run_id, limit=10))
 
+    curve_raw = repo.get_strike_gex_curve(run_id)
+    strike_gex_curve = [
+        StrikeGexBucket(
+            strike=Decimal(str(row["strike"])),
+            expiry=_date.fromisoformat(row["expiry"]),
+            net_gex=Decimal(str(row["net_gex"]))
+            if row.get("net_gex") is not None
+            else None,
+            call_gex=Decimal(str(row["call_gex"]))
+            if row.get("call_gex") is not None
+            else None,
+            put_gex=Decimal(str(row["put_gex"]))
+            if row.get("put_gex") is not None
+            else None,
+        )
+        for row in curve_raw
+    ]
+
     return SingleStockReport(
         run_id=run_id,
         ticker=ticker,
@@ -406,6 +425,7 @@ def assemble_single_stock_report(
         short_data=short_data,
         max_pain_rows=max_pain_rows,
         oi_change_top=oi_change_top,
+        strike_gex_curve=strike_gex_curve,
     )
 
 

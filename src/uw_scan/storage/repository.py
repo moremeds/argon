@@ -1456,6 +1456,25 @@ class Repository:
             )
         self._conn.commit()
 
+    # ---- strike_gex_curve (JSONB on scan_runs) ----
+    def set_strike_gex_curve(self, run_id: int, curve: list[dict]) -> None:
+        """Persist the per-strike, per-expiry GEX curve as JSONB on the run row."""
+        with self._conn.cursor() as cur:
+            cur.execute(
+                f"UPDATE {self._schema}.scan_runs SET strike_gex_curve=%s WHERE run_id=%s",
+                (Jsonb(curve), run_id),
+            )
+        self._conn.commit()
+
+    def get_strike_gex_curve(self, run_id: int) -> list[dict]:
+        with self._conn.cursor() as cur:
+            cur.execute(
+                f"SELECT strike_gex_curve FROM {self._schema}.scan_runs WHERE run_id=%s",
+                (run_id,),
+            )
+            row = cur.fetchone()
+        return row[0] if row and row[0] else []
+
     def get_job(self, job_id: str) -> JobRow | None:
         with self._conn.cursor() as cur:
             cur.execute(
