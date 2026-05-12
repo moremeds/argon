@@ -215,6 +215,40 @@ def test_normalize_bulk_screener_present_but_not_used():
     assert payload["status_code"] == 200
 
 
+def test_normalize_bulk_screener():
+    """S2 bulk screener normalizer: returns 100 typed rows with Decimal-cast numerics."""
+    body = _load("bulk_screener_stocks_sp500")
+    rows = normalize.normalize_bulk_screener(body)
+    assert len(rows) == 100
+
+    by_ticker = {r.ticker: r for r in rows}
+    # NVDA appears in the sample (verified via inspection).
+    assert "NVDA" in by_ticker
+    nvda = by_ticker["NVDA"]
+    assert nvda.sector == "Technology"
+    assert nvda.iv_rank is not None
+    assert isinstance(nvda.iv_rank, Decimal)
+    assert nvda.net_call_premium is not None
+    assert isinstance(nvda.net_call_premium, Decimal)
+    assert nvda.total_open_interest is not None
+    assert nvda.total_open_interest > 0
+    # TSLA should also be present in S&P 500 screener result.
+    assert "TSLA" in by_ticker
+    tsla = by_ticker["TSLA"]
+    assert isinstance(tsla.iv_rank, Decimal)
+    assert tsla.next_earnings_date is None or hasattr(tsla.next_earnings_date, "year")
+
+
+def test_normalize_bulk_screener_missing_data_raises():
+    with pytest.raises(normalize.NormalizationError):
+        normalize.normalize_bulk_screener({"oops": []})
+
+
+def test_normalize_bulk_screener_wrong_type_raises():
+    with pytest.raises(normalize.NormalizationError):
+        normalize.normalize_bulk_screener({"data": "not-a-list"})
+
+
 # ---------------------------------------------------------------------------
 # Negative tests: strict key access
 # ---------------------------------------------------------------------------

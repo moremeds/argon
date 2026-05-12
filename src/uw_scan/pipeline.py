@@ -15,11 +15,13 @@ import psycopg
 from . import normalize, scoring
 from .api.client import LiveDataUnavailable, UwClient
 from .config import Settings
-from .models import SingleStockReport
+from .models import ScanReport, ScanTickerResult, SingleStockReport
+from .reports.scan import assemble_scan_report
 from .reports.single_stock import (
     assemble_single_stock_report,
     build_trade_plan_for_report,
 )
+from .scan_universe import S2_UNIVERSE
 from .sources import uw as uw_sources
 from .storage.repository import Repository
 
@@ -199,6 +201,138 @@ def run_single_stock(
         repo.finish_scan_run(run_id, status=f"failed: {repr(exc)[:200]}")
         repo.conn.commit()
         logger.exception("scan run %d failed: %s", run_id, repr(exc))
+        raise
+
+
+def _build_scan_result(row, setup, signals) -> ScanTickerResult:
+    """Shape a screener row + classification into a ScanTickerResult."""
+    net_premium = None
+    ncp = row.net_call_premium
+    npp = row.net_put_premium
+    if ncp is not None or npp is not None:
+        ncp_d = ncp if ncp is not None else Decimal("0")
+        npp_d = npp if npp is not None else Decimal("0")
+        net_premium = ncp_d - npp_d
+
+    if setup is None:
+        return ScanTickerResult(
+            ticker=row.ticker,
+            setup_type=None,
+            label=None,
+            direction=None,
+            score=Decimal("0"),
+            net_premium=net_premium,
+            net_call_premium=row.net_call_premium,
+            net_put_premium=row.net_put_premium,
+            iv_rank=row.iv_rank,
+            sector=row.sector,
+            relative_volume=row.relative_volume,
+            gex_net_change=row.gex_net_change,
+            variance_risk_premium=row.variance_risk_premium,
+            total_open_interest=row.total_open_interest,
+            next_earnings_date=row.next_earnings_date,
+            signals_present=list(signals),
+            confirmations=[],
+            warnings=["did not meet Type C or Type F"],
+            notes="unclassified",
+            screener_row=row,
+        )
+
+    return ScanTickerResult(
+        ticker=row.ticker,
+        setup_type=setup.setup_type,
+        label=setup.label,
+        direction=setup.direction,
+        score=setup.score,
+        net_premium=net_premium,
+        net_call_premium=row.net_call_premium,
+        net_put_premium=row.net_put_premium,
+        iv_rank=row.iv_rank,
+        sector=row.sector,
+        relative_volume=row.relative_volume,
+        gex_net_change=row.gex_net_change,
+        variance_risk_premium=row.variance_risk_premium,
+        total_open_interest=row.total_open_interest,
+        next_earnings_date=row.next_earnings_date,
+        signals_present=list(signals),
+        confirmations=list(setup.confirmations),
+        warnings=list(setup.warnings),
+        notes=setup.notes,
+        screener_row=row,
+    )
+
+
+def run_full_scan(
+    client: UwClient,
+    repo: Repository,
+    universe: tuple[str, ...] | list[str] | None = None,
+) -> ScanReport:
+    """Run the S2 Full Scan: bulk screener → filter to universe → score → persist.
+
+    A single `/api/screener/stocks` call returns up to 100 S&P 500 tickers; this
+    function filters the response to the requested universe, classifies each row
+    (Type F preferred, Type C fallback, else unclassified), persists scan_universe
+    and scan_results, and returns the assembled ScanReport.
+    """
+    use_universe = tuple(universe) if universe is not None else S2_UNIVERSE
+    universe_set = {t.upper() for t in use_universe}
+
+    # Reuse the scan_runs table; mark this run with a synthetic ticker label.
+    run_id = repo.insert_scan_run("__FULL_SCAN__", notes="S2 full scan")
+    logger.info(
+        "started full scan run %d (universe size=%d)", run_id, len(universe_set)
+    )
+
+    try:
+        repo.insert_scan_universe(run_id, list(use_universe))
+
+        rows = uw_sources.fetch_bulk_screener(client, repo, run_id)
+        by_ticker = {r.ticker.upper(): r for r in rows}
+
+        matched = [(t, by_ticker[t]) for t in universe_set if t in by_ticker]
+        dropped = sorted(universe_set - set(by_ticker.keys()))
+        if dropped:
+            logger.warning(
+                "scan run %d: %d universe tickers absent from screener response: %s",
+                run_id,
+                len(dropped),
+                dropped,
+            )
+
+        results: list[ScanTickerResult] = []
+        for _ticker, row in matched:
+            f_setup = scoring.classify_setup_f(row)
+            if f_setup is not None:
+                signals = scoring.detect_f_signals(row)
+                results.append(_build_scan_result(row, f_setup, signals))
+                continue
+            c_setup = scoring.classify_setup_c_from_row(row)
+            if c_setup is not None:
+                results.append(_build_scan_result(row, c_setup, []))
+                continue
+            # Unclassified — still emit a row for visibility / ranking.
+            results.append(_build_scan_result(row, None, []))
+
+        # Rank by score desc, then ticker asc for determinism
+        results.sort(key=lambda r: (-r.score, r.ticker))
+
+        repo.insert_scan_results(run_id, results)
+        repo.finish_scan_run(run_id, status="ok")
+        repo.conn.commit()
+        logger.info(
+            "finished full scan run %d: %d/%d tickers classified",
+            run_id,
+            sum(1 for r in results if r.setup_type is not None),
+            len(results),
+        )
+
+        return assemble_scan_report(run_id, repo)
+
+    except Exception as exc:  # noqa: BLE001
+        repo.conn.rollback()
+        repo.finish_scan_run(run_id, status=f"failed: {repr(exc)[:200]}")
+        repo.conn.commit()
+        logger.exception("full scan run %d failed: %s", run_id, repr(exc))
         raise
 
 

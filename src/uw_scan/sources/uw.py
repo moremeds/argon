@@ -14,6 +14,7 @@ from .. import normalize
 from ..api.client import UwClient
 from ..api.endpoints import EndpointSlug, build_path
 from ..models import (
+    BulkScreenerRow,
     DarkPoolPrint,
     FlowAlert,
     GreekExposureRow,
@@ -288,3 +289,29 @@ def fetch_short_data(
 ) -> list[ShortDataRow]:
     body = _fetch_json(client, repo, run_id, EndpointSlug.SHORT_DATA, ticker)
     return normalize.normalize_short_data(body)
+
+
+def fetch_bulk_screener(
+    client: UwClient,
+    repo: Repository,
+    run_id: int,
+    **params: Any,
+) -> list[BulkScreenerRow]:
+    """Fetch `/api/screener/stocks`. Persists raw + audit. Returns typed rows.
+
+    Default params: `is_s_p_500=true`, `limit=100` (matches saved S0 sample).
+    Caller can override via kwargs.
+    """
+    if "is_s_p_500" not in params:
+        params["is_s_p_500"] = "true"
+    if "limit" not in params:
+        params["limit"] = 100
+    body = _fetch_json(
+        client,
+        repo,
+        run_id,
+        EndpointSlug.BULK_SCREENER_STOCKS,
+        None,
+        params=params,
+    )
+    return normalize.normalize_bulk_screener(body)
