@@ -937,6 +937,149 @@ class Repository:
         with self._conn.cursor() as cur:
             cur.execute(sql_text)
 
+    # ------------------------------------------------------------------
+    # S2: scan_universe + scan_results
+    # ------------------------------------------------------------------
+    def insert_scan_universe(
+        self,
+        run_id: int,
+        tickers: Iterable[str],
+        source: str = "hardcoded_s2",
+    ) -> int:
+        rows = [t.upper() for t in tickers]
+        if not rows:
+            return 0
+        sql = (
+            f"INSERT INTO {self._schema}.scan_universe (run_id, ticker, source) "
+            "VALUES (%s, %s, %s) "
+            "ON CONFLICT (run_id, ticker) DO NOTHING"
+        )
+        with self._conn.cursor() as cur:
+            for t in rows:
+                cur.execute(sql, (run_id, t, source))
+        return len(rows)
+
+    def insert_scan_results(
+        self,
+        run_id: int,
+        results: Iterable[models.ScanTickerResult],
+    ) -> int:
+        rows = list(results)
+        if not rows:
+            return 0
+        sql = (
+            f"INSERT INTO {self._schema}.scan_results ("
+            "run_id, ticker, market_date, setup_type, direction, score, "
+            "net_call_premium, net_put_premium, net_premium, "
+            "bullish_premium, bearish_premium, call_premium, put_premium, "
+            "put_call_ratio, iv_rank, volatility, iv30d, "
+            "implied_move, implied_move_perc, "
+            "gex_net_change, gex_ratio, variance_risk_premium, "
+            "total_open_interest, relative_volume, next_earnings_date, "
+            "sector, marketcap, "
+            "signals_present, confirmations, warnings, notes) "
+            "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, "
+            "%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) "
+            "ON CONFLICT (run_id, ticker) DO UPDATE SET "
+            "setup_type=EXCLUDED.setup_type, direction=EXCLUDED.direction, "
+            "score=EXCLUDED.score, signals_present=EXCLUDED.signals_present, "
+            "confirmations=EXCLUDED.confirmations, warnings=EXCLUDED.warnings, "
+            "notes=EXCLUDED.notes"
+        )
+        with self._conn.cursor() as cur:
+            for r in rows:
+                sr = r.screener_row
+                market_date = sr.date if sr is not None else None
+                volatility = sr.volatility if sr is not None else None
+                iv30d = sr.iv30d if sr is not None else None
+                implied_move = sr.implied_move if sr is not None else None
+                implied_move_perc = sr.implied_move_perc if sr is not None else None
+                gex_ratio = sr.gex_ratio if sr is not None else None
+                bullish_premium = sr.bullish_premium if sr is not None else None
+                bearish_premium = sr.bearish_premium if sr is not None else None
+                call_premium = sr.call_premium if sr is not None else None
+                put_premium = sr.put_premium if sr is not None else None
+                put_call_ratio = sr.put_call_ratio if sr is not None else None
+                marketcap = sr.marketcap if sr is not None else None
+                cur.execute(
+                    sql,
+                    (
+                        run_id,
+                        r.ticker,
+                        market_date,
+                        r.setup_type,
+                        r.direction,
+                        r.score,
+                        r.net_call_premium,
+                        r.net_put_premium,
+                        r.net_premium,
+                        bullish_premium,
+                        bearish_premium,
+                        call_premium,
+                        put_premium,
+                        put_call_ratio,
+                        r.iv_rank,
+                        volatility,
+                        iv30d,
+                        implied_move,
+                        implied_move_perc,
+                        r.gex_net_change,
+                        gex_ratio,
+                        r.variance_risk_premium,
+                        r.total_open_interest,
+                        r.relative_volume,
+                        r.next_earnings_date,
+                        r.sector,
+                        marketcap,
+                        list(r.signals_present),
+                        list(r.confirmations),
+                        list(r.warnings),
+                        r.notes,
+                    ),
+                )
+        return len(rows)
+
+    def fetch_scan_universe(self, run_id: int) -> list[dict[str, Any]]:
+        sql = (
+            f"SELECT ticker, source FROM {self._schema}.scan_universe "
+            "WHERE run_id = %s ORDER BY ticker"
+        )
+        with self._conn.cursor() as cur:
+            cur.execute(sql, (run_id,))
+            cols = [d.name for d in cur.description or []]
+            return [dict(zip(cols, row, strict=False)) for row in cur.fetchall()]
+
+    def fetch_scan_results(self, run_id: int) -> list[dict[str, Any]]:
+        sql = (
+            f"SELECT run_id, ticker, market_date, setup_type, direction, score, "
+            "net_call_premium, net_put_premium, net_premium, "
+            "bullish_premium, bearish_premium, call_premium, put_premium, "
+            "put_call_ratio, iv_rank, volatility, iv30d, "
+            "implied_move, implied_move_perc, "
+            "gex_net_change, gex_ratio, variance_risk_premium, "
+            "total_open_interest, relative_volume, next_earnings_date, "
+            "sector, marketcap, "
+            "signals_present, confirmations, warnings, notes "
+            f"FROM {self._schema}.scan_results "
+            "WHERE run_id = %s "
+            "ORDER BY score DESC, ticker ASC"
+        )
+        with self._conn.cursor() as cur:
+            cur.execute(sql, (run_id,))
+            cols = [d.name for d in cur.description or []]
+            return [dict(zip(cols, row, strict=False)) for row in cur.fetchall()]
+
+    def latest_scan_run_id(self) -> int:
+        """Return the highest run_id that has scan_results rows, or 0 if none."""
+        sql = (
+            f"SELECT run_id FROM {self._schema}.scan_results "
+            "ORDER BY run_id DESC LIMIT 1"
+        )
+        with self._conn.cursor() as cur:
+            cur.execute(sql)
+            row = cur.fetchone()
+            return int(row[0]) if row else 0
+
 
 # Re-export for convenience
 __all__ = ["Repository"]

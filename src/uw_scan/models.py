@@ -338,6 +338,114 @@ class SetupClassification(_UwBase):
     notes: str = ""
 
 
+# ---------------------------------------------------------------------------
+# Bulk screener row (S2) — `/api/screener/stocks`
+# ---------------------------------------------------------------------------
+class BulkScreenerRow(_UwBase):
+    ticker: str
+    date: _date | None = None
+    sector: str | None = None
+    issue_type: str | None = None
+    full_name: str | None = None
+    is_index: bool | None = None
+    er_time: str | None = None
+    next_earnings_date: _date | None = None
+    next_dividend_date: _date | None = None
+    marketcap: Decimal | None = None
+    # Prices / volume
+    close: Decimal | None = None
+    prev_close: Decimal | None = None
+    high: Decimal | None = None
+    low: Decimal | None = None
+    week_52_high: Decimal | None = None
+    week_52_low: Decimal | None = None
+    stock_volume: int | None = None
+    avg30_volume: Decimal | None = None
+    relative_volume: Decimal | None = None
+    # Premiums
+    call_premium: Decimal | None = None
+    put_premium: Decimal | None = None
+    net_call_premium: Decimal | None = None
+    net_put_premium: Decimal | None = None
+    bullish_premium: Decimal | None = None
+    bearish_premium: Decimal | None = None
+    # Flow context
+    put_call_ratio: Decimal | None = None
+    call_volume: int | None = None
+    put_volume: int | None = None
+    call_volume_ask_side: int | None = None
+    call_volume_bid_side: int | None = None
+    put_volume_ask_side: int | None = None
+    put_volume_bid_side: int | None = None
+    # OI
+    call_open_interest: int | None = None
+    put_open_interest: int | None = None
+    total_open_interest: int | None = None
+    prev_call_oi: int | None = None
+    prev_put_oi: int | None = None
+    # IV / vol
+    iv_rank: Decimal | None = None
+    iv30d: Decimal | None = None
+    iv30d_1d: Decimal | None = None
+    iv30d_1w: Decimal | None = None
+    iv30d_1m: Decimal | None = None
+    volatility: Decimal | None = None
+    volatility_7: Decimal | None = None
+    volatility_30: Decimal | None = None
+    realized_volatility: Decimal | None = None
+    variance_risk_premium: Decimal | None = None
+    # Implied move
+    implied_move: Decimal | None = None
+    implied_move_7: Decimal | None = None
+    implied_move_30: Decimal | None = None
+    implied_move_perc: Decimal | None = None
+    implied_move_perc_7: Decimal | None = None
+    implied_move_perc_30: Decimal | None = None
+    # GEX
+    gex_net_change: Decimal | None = None
+    gex_ratio: Decimal | None = None
+    gex_perc_change: Decimal | None = None
+    cum_dir_delta: int | None = None
+    cum_dir_gamma: int | None = None
+    cum_dir_vega: int | None = None
+
+
+class ScanTickerResult(_UwBase):
+    """One row in the Full Scan output. Ranked by `score` desc."""
+
+    ticker: str
+    setup_type: str | None = None  # "C", "F", or None
+    label: str | None = None
+    direction: str | None = None
+    score: Decimal = Decimal("0")
+    net_premium: Decimal | None = None
+    net_call_premium: Decimal | None = None
+    net_put_premium: Decimal | None = None
+    iv_rank: Decimal | None = None
+    sector: str | None = None
+    relative_volume: Decimal | None = None
+    gex_net_change: Decimal | None = None
+    variance_risk_premium: Decimal | None = None
+    total_open_interest: int | None = None
+    next_earnings_date: _date | None = None
+    signals_present: list[str] = []
+    confirmations: list[str] = []
+    warnings: list[str] = []
+    notes: str = ""
+    screener_row: BulkScreenerRow | None = None
+
+
+class ScanReport(_UwBase):
+    run_id: int
+    generated_at: datetime
+    scan_date: _date | None = None
+    universe_size: int
+    universe_returned: int
+    results: list[ScanTickerResult] = []
+    dropped_tickers: list[str] = []
+    top_pick: str | None = None
+
+
 class SingleStockReport(_UwBase):
     run_id: int
     ticker: str

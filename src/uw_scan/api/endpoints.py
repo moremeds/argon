@@ -29,6 +29,7 @@ class EndpointSlug(StrEnum):
     OPTION_CONTRACTS_BY_SYMBOL = "option_contracts_by_symbol"
     DARKPOOL_TICKER = "darkpool_ticker"
     SHORT_DATA = "short_data"
+    BULK_SCREENER_STOCKS = "bulk_screener_stocks"
 
 
 @dataclass(frozen=True)
@@ -97,6 +98,9 @@ REGISTRY: dict[EndpointSlug, Endpoint] = {
     ),
     EndpointSlug.SHORT_DATA: Endpoint(
         EndpointSlug.SHORT_DATA, "/api/shorts/{ticker}/data", ()
+    ),
+    EndpointSlug.BULK_SCREENER_STOCKS: Endpoint(
+        EndpointSlug.BULK_SCREENER_STOCKS, "/api/screener/stocks", ()
     ),
 }
 

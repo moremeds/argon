@@ -9,6 +9,7 @@ from __future__ import annotations
 from decimal import Decimal
 
 from .models import (
+    BulkScreenerRow,
     DarkPoolPrint,
     FlowAlert,
     GreekExposureRow,
@@ -152,6 +153,28 @@ def normalize_short_data(payload: dict) -> list[ShortDataRow]:
     """Intraday snapshots — multiple rows per day. Caller picks latest by timestamp."""
     rows = _data_list(payload)
     return [ShortDataRow(**r) for r in rows]
+
+
+def normalize_bulk_screener(payload: dict) -> list[BulkScreenerRow]:
+    """Normalize `/api/screener/stocks` response.
+
+    Verified against `docs/uw-samples/bulk_screener_stocks_sp500.json`: body has
+    `{"data": [...]}` envelope. Strict — raises NormalizationError otherwise.
+    """
+    if not isinstance(payload, dict):
+        raise NormalizationError(
+            f"bulk_screener payload expected dict, got {type(payload).__name__}"
+        )
+    if "data" not in payload:
+        raise NormalizationError(
+            f"bulk_screener payload missing 'data' key; got {list(payload.keys())}"
+        )
+    raw = payload["data"]
+    if not isinstance(raw, list):
+        raise NormalizationError(
+            f"bulk_screener payload['data'] expected list, got {type(raw).__name__}"
+        )
+    return [BulkScreenerRow(**r) for r in raw]
 
 
 # ---------------------------------------------------------------------------
