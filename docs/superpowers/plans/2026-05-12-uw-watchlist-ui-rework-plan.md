@@ -2634,14 +2634,23 @@ class MassiveOhlcProvider:
         if not results:
             return None
         latest = results[0]
-        # The exact key names are spike-confirmed; fallback chain handles either
-        # "P" (Polygon-ish) or "ap"/"bp" mid:
-        price = (
-            latest.get("P")
-            or latest.get("p")
-            or latest.get("ap")
-            or latest.get("bp")
-        )
+        # Resolve the price using a precedence rule that matches what a trader
+        # would expect from a quote payload:
+        #   1) trade price (`P` / `p`) if present — single source of truth
+        #   2) midpoint of (ask, bid) when BOTH are present — avoids ask-side bias
+        #   3) one-sided fallback (`ap` then `bp`) only if just one is present
+        trade_price = latest.get("P") or latest.get("p")
+        ap, bp = latest.get("ap"), latest.get("bp")
+        if trade_price is not None:
+            price = trade_price
+        elif ap is not None and bp is not None:
+            price = (Decimal(str(ap)) + Decimal(str(bp))) / Decimal("2")
+        elif ap is not None:
+            price = ap
+        elif bp is not None:
+            price = bp
+        else:
+            price = None
         t_ns = latest.get("t") or latest.get("participant_timestamp")
         if price is None or t_ns is None:
             return None
@@ -2724,13 +2733,19 @@ Run: `uv run pytest tests/unit/sources/test_ohlc_provider.py -v`
 
 If FAIL before implementation, ensure `src/uw_scan/sources/ohlc.py` is committed in the same step. After implementation: PASS.
 
-- [ ] **Step 4: Add config fields**
+- [ ] **Step 4: Add ALL new config fields used by S5/S6**
 
 In `src/uw_scan/config.py`:
 
 ```python
 class Settings(BaseModel):
     # ... existing fields ...
+    # Scheduler — consumed by uw_scan.worker.scheduler and uw_scan.api.routers.health
+    spot_refresh_seconds: int = 300
+    full_scan_cron: str = "*/60 9-16 * * 1-5"
+    ohlc_pull_cron: str = "30 17 * * 1-5"
+    rth_tz: str = "America/New_York"
+    # OHLC provider (massive.com)
     massive_api_key: SecretStr | None = None
     massive_base_url: str = "https://api.massive.com"
 ```
@@ -2738,6 +2753,10 @@ class Settings(BaseModel):
 And in `from_env`:
 
 ```python
+            spot_refresh_seconds=int(os.environ.get("UW_SCAN_SPOT_REFRESH_SECONDS", "300")),
+            full_scan_cron=os.environ.get("UW_SCAN_FULL_SCAN_CRON", "*/60 9-16 * * 1-5"),
+            ohlc_pull_cron=os.environ.get("UW_SCAN_OHLC_PULL_CRON", "30 17 * * 1-5"),
+            rth_tz=os.environ.get("UW_SCAN_RTH_TZ", "America/New_York"),
             # SecretStr("") is truthy and not None, which would silently let the
             # scheduler instantiate a Massive client with a blank bearer token and
             # generate a stream of 401s. Coerce blank to None BEFORE wrapping.
@@ -2746,6 +2765,12 @@ And in `from_env`:
             ),
             massive_base_url=os.environ.get("MASSIVE_BASE_URL", "https://api.massive.com"),
 ```
+
+**IMPORTANT:** all four scheduler fields (`spot_refresh_seconds`, `full_scan_cron`,
+`ohlc_pull_cron`, `rth_tz`) MUST land in this step, even though they're not used
+until S5/S6. The `/api/health` endpoint reads `full_scan_cron` and `rth_tz`;
+omitting them here would make S5.1's tests fail with `AttributeError` before
+S6 lands.
 
 Update `.env.example`:
 
@@ -3427,6 +3452,10 @@ def compute_watchlist_card_row(
     """Map a SingleStockReport (+ supporting data) onto the watchlist_card schema."""
     spot = intraday.price if intraday is not None else report.market_structure.spot
     spot_source = "massive.com_intraday" if intraday is not None else "uw_scan"
+    # When the intraday quote is unavailable, fall back to the scan's own
+    # generated_at so the card still surfaces *when* the spot value was sourced
+    # rather than rendering "—" for the freshness chip.
+    spot_quoted_at = intraday.quoted_at if intraday is not None else report.generated_at
 
     returns = compute_returns(ohlc_history, intraday.price if intraday else None)
     flip_strike = _gex.find_flip_strike(report.strike_gex_curve)
@@ -3447,7 +3476,7 @@ def compute_watchlist_card_row(
         "scanned_at": report.generated_at,
 
         "spot": spot,
-        "spot_quoted_at": intraday.quoted_at if intraday else None,
+        "spot_quoted_at": spot_quoted_at,
         "spot_source": spot_source,
 
         "iv_atm": report.volatility.iv,
