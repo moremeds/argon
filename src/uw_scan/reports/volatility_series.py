@@ -90,7 +90,8 @@ def _dec(v: Any) -> Decimal | None:
         return None
     try:
         return Decimal(str(v))
-    except Exception:
+    except Exception as exc:
+        log.debug("decimal coercion skipped for %r: %s", v, repr(exc))
         return None
 
 

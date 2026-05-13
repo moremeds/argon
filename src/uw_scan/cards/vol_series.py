@@ -7,9 +7,12 @@ pandas DataFrame with named columns. No DB access, no IO. The orchestrator
 
 from __future__ import annotations
 
+import logging
 import math
 
 import pandas as pd
+
+log = logging.getLogger(__name__)
 
 
 def compute_vrp_series(
@@ -126,7 +129,8 @@ def compute_stock_spy_corr(
                 return float("nan")
             p = float(prev)
             c = float(curr)
-        except (TypeError, ValueError):
+        except (TypeError, ValueError) as exc:
+            log.debug("log-return coercion skipped: %s", repr(exc))
             return float("nan")
         if not (p > 0 and c > 0):
             return float("nan")
