@@ -194,6 +194,17 @@ class OiChangeRow(_UwBase):
     days_of_vol_greater_than_oi: int | None = None
     percentage_of_total: Decimal | None = None
     rnk: int | None = None
+    # Aggressor / premium breakdown — populated from UW oi-change payload.
+    # See spec 2026-05-13-flow-tab-merge-design.md §4 for ASK% derivation.
+    prev_ask_volume: int | None = None
+    prev_bid_volume: int | None = None
+    prev_mid_volume: int | None = None
+    prev_neutral_volume: int | None = None
+    prev_multi_leg_volume: int | None = None
+    prev_stock_multi_leg_volume: int | None = None
+    prev_total_premium: Decimal | None = None
+    last_ask: Decimal | None = None
+    last_bid: Decimal | None = None
 
 
 class MaxPainRow(_UwBase):

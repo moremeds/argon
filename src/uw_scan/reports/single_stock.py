@@ -391,7 +391,9 @@ def assemble_single_stock_report(
 
     dp_count, dp_notional = repo.fetch_dark_pool_summary(run_id)
     short_data = _build_short_data_model(repo.fetch_short_interest_snapshot(run_id))
-    oi_change_top = _build_oi_change_models(repo.fetch_oi_change_top(run_id, limit=10))
+    # Pull a wider candidate set so the UI can re-sort by notional without
+    # losing high-notional rows outside the rank-ordered first 10.
+    oi_change_top = _build_oi_change_models(repo.fetch_oi_change_top(run_id, limit=50))
 
     curve_raw = repo.get_strike_gex_curve(run_id)
     strike_gex_curve = [

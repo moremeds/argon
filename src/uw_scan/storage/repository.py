@@ -691,10 +691,14 @@ class Repository:
         sql = (
             f"INSERT INTO {self._schema}.oi_change_events "
             "(run_id, underlying_symbol, option_symbol, curr_date, last_date, "
-            "curr_oi, last_oi, oi_diff_plain, oi_change, volume, trades, "
-            "avg_price, last_fill, days_of_oi_increases, days_of_vol_greater_than_oi, "
-            "percentage_of_total, rnk) "
-            "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) "
+            " curr_oi, last_oi, oi_diff_plain, oi_change, volume, trades, "
+            " avg_price, last_fill, days_of_oi_increases, days_of_vol_greater_than_oi, "
+            " percentage_of_total, rnk, "
+            " prev_ask_volume, prev_bid_volume, prev_mid_volume, prev_neutral_volume, "
+            " prev_multi_leg_volume, prev_stock_multi_leg_volume, "
+            " prev_total_premium, last_ask, last_bid) "
+            "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, "
+            "        %s, %s, %s, %s, %s, %s, %s, %s, %s) "
             "ON CONFLICT (run_id, option_symbol) DO NOTHING"
         )
         with self._conn.cursor() as cur:
@@ -719,6 +723,15 @@ class Repository:
                         r.days_of_vol_greater_than_oi,
                         r.percentage_of_total,
                         r.rnk,
+                        r.prev_ask_volume,
+                        r.prev_bid_volume,
+                        r.prev_mid_volume,
+                        r.prev_neutral_volume,
+                        r.prev_multi_leg_volume,
+                        r.prev_stock_multi_leg_volume,
+                        r.prev_total_premium,
+                        r.last_ask,
+                        r.last_bid,
                     ),
                 )
         return len(rows)
@@ -1087,14 +1100,23 @@ class Repository:
         )[:limit]
         return [Decimal(str(r[0])) for r in calls], [Decimal(str(r[0])) for r in puts]
 
-    def fetch_oi_change_top(self, run_id: int, limit: int = 10) -> list[dict[str, Any]]:
+    def fetch_oi_change_top(self, run_id: int, limit: int = 50) -> list[dict[str, Any]]:
+        """Return a candidate set wider than the UI's top-N so the frontend
+        can re-sort by notional (volume * avg_price * 100) without losing
+        high-notional rows that sit outside the rank-ordered first 10."""
+
         sql = (
             f"SELECT underlying_symbol, option_symbol, curr_date, last_date, "
             "curr_oi, last_oi, oi_diff_plain, oi_change, volume, trades, "
             "avg_price, last_fill, days_of_oi_increases, days_of_vol_greater_than_oi, "
-            "percentage_of_total, rnk "
+            "percentage_of_total, rnk, "
+            "prev_ask_volume, prev_bid_volume, prev_mid_volume, prev_neutral_volume, "
+            "prev_multi_leg_volume, prev_stock_multi_leg_volume, "
+            "prev_total_premium, last_ask, last_bid "
             f"FROM {self._schema}.oi_change_events "
-            "WHERE run_id = %s ORDER BY rnk ASC NULLS LAST LIMIT %s"
+            "WHERE run_id = %s "
+            "ORDER BY (COALESCE(volume, 0) * COALESCE(avg_price, 0)) DESC NULLS LAST, rnk ASC "
+            "LIMIT %s"
         )
         with self._conn.cursor() as cur:
             cur.execute(sql, (run_id, limit))
