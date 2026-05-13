@@ -253,6 +253,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/stock/{ticker}/trade-insights/ai-analysis/latest": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Latest Trade Insights Ai Analysis */
+        get: operations["get_latest_trade_insights_ai_analysis_api_stock__ticker__trade_insights_ai_analysis_latest_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/stock/{ticker}/trade-insights/ai-analysis/{analysis_id}": {
         parameters: {
             query?: never;
@@ -2516,6 +2533,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["TradeInsightAiAnalysisResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_latest_trade_insights_ai_analysis_api_stock__ticker__trade_insights_ai_analysis_latest_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                ticker: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TradeInsightAiAnalysisResponse"] | null;
                 };
             };
             /** @description Validation Error */

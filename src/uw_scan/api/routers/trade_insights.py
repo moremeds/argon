@@ -56,7 +56,9 @@ def _build_curve(raw: list[dict]) -> list[StrikeGexBucket]:
     ]
 
 
-def _build_stock_history_response(ticker: str, repo: Repository) -> StockHistoryResponse:
+def _build_stock_history_response(
+    ticker: str, repo: Repository
+) -> StockHistoryResponse:
     rows: list[StockHistoryRow] = []
     for r in repo.fetch_stock_history_rollup(ticker, limit=30):
         curve = _build_curve(r["strike_gex_curve"] or [])
@@ -179,7 +181,9 @@ def post_trade_insights_ai_analysis(
     )
     stock_report = assemble_single_stock_report(t, run_id, repo)
     stock_history = _build_stock_history_response(t, repo)
-    backfill_status = (repo.get_volatility_backfill_status(t) or {}).get("status") or "ready"
+    backfill_status = (repo.get_volatility_backfill_status(t) or {}).get(
+        "status"
+    ) or "ready"
     volatility = assemble_volatility_series(
         ticker=t,
         repo=repo,
@@ -223,6 +227,20 @@ def post_trade_insights_ai_analysis(
     row = repo.get_trade_insight_ai_analysis(analysis_id, ticker=t)
     assert row is not None
     return _row_to_ai_response(row, reused=False)
+
+
+@router.get(
+    "/stock/{ticker}/trade-insights/ai-analysis/latest",
+    response_model=TradeInsightAiAnalysisResponse | None,
+)
+def get_latest_trade_insights_ai_analysis(
+    ticker: str,
+    repo: Repository = Depends(get_repo),
+) -> TradeInsightAiAnalysisResponse | None:
+    row = repo.find_latest_succeeded_trade_insight_ai_analysis(ticker=ticker.upper())
+    if row is None:
+        return None
+    return _row_to_ai_response(row)
 
 
 @router.get(

@@ -5833,6 +5833,56 @@
         ]
       }
     },
+    "/api/stock/{ticker}/trade-insights/ai-analysis/latest": {
+      "get": {
+        "operationId": "get_latest_trade_insights_ai_analysis_api_stock__ticker__trade_insights_ai_analysis_latest_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "ticker",
+            "required": true,
+            "schema": {
+              "title": "Ticker",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/TradeInsightAiAnalysisResponse"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "title": "Response Get Latest Trade Insights Ai Analysis Api Stock  Ticker  Trade Insights Ai Analysis Latest Get"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Latest Trade Insights Ai Analysis",
+        "tags": [
+          "trade-insights"
+        ]
+      }
+    },
     "/api/stock/{ticker}/trade-insights/ai-analysis/{analysis_id}": {
       "get": {
         "operationId": "get_trade_insights_ai_analysis_api_stock__ticker__trade_insights_ai_analysis__analysis_id__get",

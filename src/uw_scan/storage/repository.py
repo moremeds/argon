@@ -1198,7 +1198,9 @@ class Repository:
             cols = [d.name for d in cur.description or []]
             return [dict(zip(cols, row, strict=False)) for row in cur.fetchall()]
 
-    def fetch_option_contracts_rich(self, run_id: int, ticker: str) -> list[dict[str, Any]]:
+    def fetch_option_contracts_rich(
+        self, run_id: int, ticker: str
+    ) -> list[dict[str, Any]]:
         sql = (
             f"SELECT option_symbol, last_price, nbbo_bid, nbbo_ask, "
             "implied_volatility, open_interest, prev_oi, volume, ask_volume, "
@@ -1361,6 +1363,25 @@ class Repository:
                 sql,
                 (ticker.upper(), analysis_input_hash, prompt_version, model),
             )
+            row = cur.fetchone()
+            if row is None:
+                return None
+            cols = [d.name for d in cur.description or []]
+            return dict(zip(cols, row, strict=False))
+
+    def find_latest_succeeded_trade_insight_ai_analysis(
+        self,
+        *,
+        ticker: str,
+    ) -> dict[str, Any] | None:
+        sql = (
+            f"SELECT * FROM {self._schema}.trade_insight_ai_analyses "
+            "WHERE ticker = %s AND status = 'succeeded' "
+            "ORDER BY finished_at DESC NULLS LAST, requested_at DESC "
+            "LIMIT 1"
+        )
+        with self._conn.cursor() as cur:
+            cur.execute(sql, (ticker.upper(),))
             row = cur.fetchone()
             if row is None:
                 return None

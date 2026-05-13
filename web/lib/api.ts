@@ -13,7 +13,7 @@ type Json<
         responses: { 202: { content: { "application/json": infer T } } };
       }
     ? T
-  : never;
+    : never;
 
 type WatchlistResponse = Json<"/api/watchlist", "get">;
 type SingleStockReport = Json<"/api/stock/{ticker}", "get">;
@@ -77,6 +77,12 @@ export const api = {
   ): Promise<TradeInsightsAiAnalysisResponse> =>
     _fetch<TradeInsightsAiAnalysisResponse>(
       `/api/stock/${ticker}/trade-insights/ai-analysis/${analysisId}`,
+    ),
+  tradeInsightsAiAnalysisLatest: (
+    ticker: string,
+  ): Promise<TradeInsightsAiAnalysisResponse | null> =>
+    _fetch<TradeInsightsAiAnalysisResponse | null>(
+      `/api/stock/${ticker}/trade-insights/ai-analysis/latest`,
     ),
   ohlc: (ticker: string, days = 30): Promise<OhlcResponse> =>
     _fetch<OhlcResponse>(`/api/ohlc/${ticker}?days=${days}`),

@@ -33,17 +33,22 @@ _VOLATILE_HASH_KEYS = {
 def _to_decimal(value: Any) -> Decimal:
     try:
         return Decimal(str(value))
-    except Exception:
+    except Exception as exc:
+        _coerce_error = repr(exc)
         return Decimal("0")
 
 
-def _sorted_recent(rows: list[dict[str, Any]], limit: int, key: str = "date") -> list[dict[str, Any]]:
+def _sorted_recent(
+    rows: list[dict[str, Any]], limit: int, key: str = "date"
+) -> list[dict[str, Any]]:
     if not rows:
         return []
     return sorted(rows, key=lambda row: str(row.get(key) or ""))[-limit:]
 
 
-def _sorted_front(rows: list[dict[str, Any]], limit: int, key: str = "expiry") -> list[dict[str, Any]]:
+def _sorted_front(
+    rows: list[dict[str, Any]], limit: int, key: str = "expiry"
+) -> list[dict[str, Any]]:
     if not rows:
         return []
     return sorted(rows, key=lambda row: str(row.get(key) or ""))[:limit]
@@ -84,7 +89,9 @@ def _prune_strike_gex_curve(
     return list(by_key.values())
 
 
-def _downsample_smile_points(points: list[dict[str, Any]], limit: int = 25) -> list[dict[str, Any]]:
+def _downsample_smile_points(
+    points: list[dict[str, Any]], limit: int = 25
+) -> list[dict[str, Any]]:
     if len(points) <= limit:
         return sorted(points, key=lambda row: _to_decimal(row.get("strike")))
     sorted_points = sorted(points, key=lambda row: _to_decimal(row.get("strike")))
@@ -157,9 +164,9 @@ def build_trade_insights_ai_analysis_input(
     """Build the bounded deterministic payload captured at POST time."""
 
     market_structure_levels = stock_report_payload.get("market_structure_levels") or {}
-    spot = (
-        stock_report_payload.get("market_structure") or {}
-    ).get("spot") or volatility_series_payload.get("spot")
+    spot = (stock_report_payload.get("market_structure") or {}).get(
+        "spot"
+    ) or volatility_series_payload.get("spot")
     missing_data: list[str] = []
 
     stock_history_rows = _sorted_recent(
@@ -221,7 +228,8 @@ def build_trade_insights_ai_analysis_input(
             },
             "volatility": {
                 "as_of": volatility_series_payload.get("as_of"),
-                "backfill_status": volatility_series_payload.get("backfill_status") or "ready",
+                "backfill_status": volatility_series_payload.get("backfill_status")
+                or "ready",
                 "header": volatility_series_payload.get("header") or {},
                 "term_structure": _sorted_front(
                     list(volatility_series_payload.get("term_structure") or []),
@@ -241,7 +249,8 @@ def build_trade_insights_ai_analysis_input(
                     list(volatility_series_payload.get("rv_spy_corr") or []),
                     90,
                 ),
-                "regime_quadrant": volatility_series_payload.get("regime_quadrant") or {},
+                "regime_quadrant": volatility_series_payload.get("regime_quadrant")
+                or {},
                 "divergence": _sorted_recent(
                     list(volatility_series_payload.get("divergence") or []),
                     20,
@@ -375,7 +384,9 @@ def build_trade_insights_ai_prompt_payload(
     produced_at: datetime,
 ) -> dict[str, Any]:
     payload = dict(analysis_input)
-    payload["analysis_input_hash"] = hash_trade_insights_ai_analysis_input(analysis_input)
+    payload["analysis_input_hash"] = hash_trade_insights_ai_analysis_input(
+        analysis_input
+    )
     payload["analysis_produced_at"] = _iso_z(produced_at)
     return payload
 
@@ -402,8 +413,20 @@ def build_trade_insights_ai_prompt(prompt_payload: dict[str, Any]) -> str:
     )
 
 
+def _coerce_strict_schema(node: Any) -> Any:
+    if isinstance(node, dict):
+        coerced = {key: _coerce_strict_schema(value) for key, value in node.items()}
+        if "properties" in coerced and isinstance(coerced["properties"], dict):
+            coerced["additionalProperties"] = False
+            coerced["required"] = list(coerced["properties"].keys())
+        return coerced
+    if isinstance(node, list):
+        return [_coerce_strict_schema(item) for item in node]
+    return node
+
+
 def trade_insights_ai_output_schema() -> dict[str, Any]:
-    return TradeInsightAiOutcome.model_json_schema()
+    return _coerce_strict_schema(TradeInsightAiOutcome.model_json_schema())
 
 
 _IMPERATIVE_PHRASES = (
@@ -424,12 +447,19 @@ def _candidate_map(deterministic_payload: dict[str, Any]) -> dict[str, dict[str,
     }
 
 
+_PATH_PART_INDEX_RE = re.compile(r"\[\d+\]")
+
+
 def _path_family_exists(path: str, deterministic_payload: dict[str, Any]) -> bool:
-    parts = path.split(".")
-    if len(parts) < 3 or parts[0] != "tabs":
+    parts = [_PATH_PART_INDEX_RE.sub("", p) for p in path.split(".") if p]
+    if not parts:
         return False
     node: Any = deterministic_payload
     for part in parts[:3]:
+        if isinstance(node, list):
+            if not node or not isinstance(node[0], dict):
+                return False
+            node = node[0]
         if not isinstance(node, dict) or part not in node:
             return False
         node = node[part]
@@ -458,7 +488,9 @@ def _validate_source_path_item(
     if not source_path:
         if _mentions_missing_data(item_payload):
             return
-        raise ValueError("source_path is required unless the item is a missing-data note")
+        raise ValueError(
+            "source_path is required unless the item is a missing-data note"
+        )
     lowered = source_path.lower()
     for unavailable in ("charm", "vanna", "short_interest"):
         if unavailable in lowered and not _missing_data_mentions(outcome, unavailable):
@@ -499,18 +531,21 @@ def validate_trade_insights_ai_outcome(
     )
     expected_produced_at = _iso_z(produced_at)
     if _iso_z(parsed.analysis_produced_at) != expected_produced_at:
-        raise ValueError("analysis_produced_at does not match worker-produced timestamp")
+        raise ValueError(
+            "analysis_produced_at does not match worker-produced timestamp"
+        )
     if parsed.schema_version != PROMPT_VERSION:
         raise ValueError("schema_version does not match prompt version")
     if parsed.ticker != deterministic_payload.get("ticker"):
         raise ValueError("ticker does not match deterministic payload")
     if parsed.snapshot.run_id != deterministic_payload.get("run_id"):
         raise ValueError("snapshot.run_id does not match deterministic payload")
-    if (
-        parsed.snapshot.trade_insights_input_hash
-        != deterministic_payload.get("trade_insights_input_hash")
+    if parsed.snapshot.trade_insights_input_hash != deterministic_payload.get(
+        "trade_insights_input_hash"
     ):
-        raise ValueError("trade_insights_input_hash does not match deterministic payload")
+        raise ValueError(
+            "trade_insights_input_hash does not match deterministic payload"
+        )
     expected_hash = hash_trade_insights_ai_analysis_input(deterministic_payload)
     if parsed.snapshot.analysis_input_hash != expected_hash:
         raise ValueError("analysis_input_hash does not match deterministic payload")
@@ -519,8 +554,13 @@ def validate_trade_insights_ai_outcome(
     for item in [*parsed.best_expressions, *parsed.rejected_ideas]:
         if item.idea_id not in candidates:
             raise ValueError(f"unknown idea_id referenced: {item.idea_id}")
-    if parsed.preferred_expression is not None and parsed.preferred_expression.idea_id not in candidates:
-        raise ValueError(f"unknown idea_id referenced: {parsed.preferred_expression.idea_id}")
+    if (
+        parsed.preferred_expression is not None
+        and parsed.preferred_expression.idea_id not in candidates
+    ):
+        raise ValueError(
+            f"unknown idea_id referenced: {parsed.preferred_expression.idea_id}"
+        )
 
     echo_items = list(parsed.best_expressions)
     if parsed.preferred_expression is not None:
@@ -613,7 +653,9 @@ def render_trade_insights_ai_markdown(outcome: TradeInsightAiOutcome) -> str:
             lines.append(expression.subtitle)
         lines.append(f"Why: {expression.why}")
         lines.append(f"Status: {expression.status_observed}")
-        lines.append(f"Risk flags: {', '.join(expression.risk_flags_observed) or 'none'}")
+        lines.append(
+            f"Risk flags: {', '.join(expression.risk_flags_observed) or 'none'}"
+        )
         for note in expression.management_notes:
             lines.append(f"- {note}")
 
