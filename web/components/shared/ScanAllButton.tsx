@@ -13,7 +13,16 @@ export function ScanAllButton() {
 
   useEffect(() => {
     if (phase !== "polling" || pendingIds.length === 0) return;
+    // Bail after 10 min so a zombie 'running' job can't keep this polling
+    // indefinitely. A full 97-ticker scan typically finishes well under this.
+    const startedAt = Date.now();
     const t = setInterval(async () => {
+      if (Date.now() - startedAt > 600_000) {
+        clearInterval(t);
+        setPhase("failed");
+        router.refresh();
+        return;
+      }
       try {
         const results = await Promise.all(
           pendingIds.map((id) => api.job(id).catch(() => null)),

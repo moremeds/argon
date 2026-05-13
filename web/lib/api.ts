@@ -15,6 +15,7 @@ type WatchlistResponse = Json<"/api/watchlist", "get">;
 type SingleStockReport = Json<"/api/stock/{ticker}", "get">;
 type JobStatus = Json<"/api/jobs/{job_id}", "get">;
 type OhlcResponse = Json<"/api/ohlc/{ticker}", "get">;
+type HealthResponse = Json<"/api/health", "get">;
 
 async function _fetch<T>(path: string, init?: RequestInit): Promise<T> {
   const r = await fetch(`${API}${path}`, {
@@ -50,6 +51,7 @@ export const api = {
     _fetch<JobStatus[]>(`/api/watchlist/rescan-all`, { method: "POST" }),
   job: (jobId: string): Promise<JobStatus> =>
     _fetch<JobStatus>(`/api/jobs/${jobId}`),
+  health: (): Promise<HealthResponse> => _fetch<HealthResponse>(`/api/health`),
   addTicker: (body: {
     ticker: string;
     sector: string;
