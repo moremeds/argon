@@ -3391,6 +3391,991 @@
         "title": "TermStructureExpiryRow",
         "type": "object"
       },
+      "TradeInsightAiAnalysisRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "force_rerun": {
+            "default": false,
+            "title": "Force Rerun",
+            "type": "boolean"
+          }
+        },
+        "title": "TradeInsightAiAnalysisRequest",
+        "type": "object"
+      },
+      "TradeInsightAiAnalysisResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "analysis_id": {
+            "format": "uuid",
+            "title": "Analysis Id",
+            "type": "string"
+          },
+          "analysis_input_hash": {
+            "title": "Analysis Input Hash",
+            "type": "string"
+          },
+          "error_message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error Message"
+          },
+          "finished_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Finished At"
+          },
+          "markdown": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Markdown"
+          },
+          "model": {
+            "title": "Model",
+            "type": "string"
+          },
+          "outcome": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TradeInsightAiOutcome"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "produced_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Produced At"
+          },
+          "prompt_version": {
+            "title": "Prompt Version",
+            "type": "string"
+          },
+          "requested_at": {
+            "format": "date-time",
+            "title": "Requested At",
+            "type": "string"
+          },
+          "reused": {
+            "default": false,
+            "title": "Reused",
+            "type": "boolean"
+          },
+          "run_id": {
+            "title": "Run Id",
+            "type": "integer"
+          },
+          "started_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Started At"
+          },
+          "status": {
+            "enum": [
+              "queued",
+              "running",
+              "succeeded",
+              "failed"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "ticker": {
+            "title": "Ticker",
+            "type": "string"
+          },
+          "trade_insights_input_hash": {
+            "title": "Trade Insights Input Hash",
+            "type": "string"
+          }
+        },
+        "required": [
+          "analysis_id",
+          "ticker",
+          "run_id",
+          "trade_insights_input_hash",
+          "analysis_input_hash",
+          "model",
+          "prompt_version",
+          "status",
+          "requested_at"
+        ],
+        "title": "TradeInsightAiAnalysisResponse",
+        "type": "object"
+      },
+      "TradeInsightAiBestExpression": {
+        "additionalProperties": false,
+        "properties": {
+          "caveats": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Caveats",
+            "type": "array"
+          },
+          "idea_id": {
+            "title": "Idea Id",
+            "type": "string"
+          },
+          "risk_flags_observed": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Risk Flags Observed",
+            "type": "array"
+          },
+          "role": {
+            "title": "Role",
+            "type": "string"
+          },
+          "status_observed": {
+            "title": "Status Observed",
+            "type": "string"
+          },
+          "structure": {
+            "title": "Structure",
+            "type": "string"
+          },
+          "why": {
+            "title": "Why",
+            "type": "string"
+          }
+        },
+        "required": [
+          "idea_id",
+          "structure",
+          "role",
+          "why",
+          "status_observed"
+        ],
+        "title": "TradeInsightAiBestExpression",
+        "type": "object"
+      },
+      "TradeInsightAiConflict": {
+        "additionalProperties": false,
+        "properties": {
+          "affected_idea_ids": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Affected Idea Ids",
+            "type": "array"
+          },
+          "description": {
+            "title": "Description",
+            "type": "string"
+          },
+          "lens": {
+            "title": "Lens",
+            "type": "string"
+          },
+          "severity": {
+            "title": "Severity",
+            "type": "string"
+          }
+        },
+        "required": [
+          "lens",
+          "severity",
+          "description"
+        ],
+        "title": "TradeInsightAiConflict",
+        "type": "object"
+      },
+      "TradeInsightAiDominantRead": {
+        "additionalProperties": false,
+        "properties": {
+          "confidence_commentary": {
+            "title": "Confidence Commentary",
+            "type": "string"
+          },
+          "data_quality_commentary": {
+            "title": "Data Quality Commentary",
+            "type": "string"
+          },
+          "headline": {
+            "title": "Headline",
+            "type": "string"
+          },
+          "summary": {
+            "title": "Summary",
+            "type": "string"
+          }
+        },
+        "required": [
+          "headline",
+          "summary",
+          "confidence_commentary",
+          "data_quality_commentary"
+        ],
+        "title": "TradeInsightAiDominantRead",
+        "type": "object"
+      },
+      "TradeInsightAiGuardrails": {
+        "additionalProperties": false,
+        "properties": {
+          "no_executable_recommendations": {
+            "title": "No Executable Recommendations",
+            "type": "boolean"
+          },
+          "risk_flags_preserved": {
+            "title": "Risk Flags Preserved",
+            "type": "boolean"
+          },
+          "statuses_preserved": {
+            "title": "Statuses Preserved",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "statuses_preserved",
+          "risk_flags_preserved",
+          "no_executable_recommendations"
+        ],
+        "title": "TradeInsightAiGuardrails",
+        "type": "object"
+      },
+      "TradeInsightAiHeadline": {
+        "additionalProperties": false,
+        "properties": {
+          "conviction": {
+            "title": "Conviction",
+            "type": "string"
+          },
+          "conviction_label": {
+            "title": "Conviction Label",
+            "type": "string"
+          },
+          "primary_risk": {
+            "title": "Primary Risk",
+            "type": "string"
+          },
+          "score": {
+            "title": "Score",
+            "type": "integer"
+          },
+          "score_scale": {
+            "default": 100,
+            "title": "Score Scale",
+            "type": "integer"
+          },
+          "stance": {
+            "enum": [
+              "bullish",
+              "bearish",
+              "neutral",
+              "mixed",
+              "wait"
+            ],
+            "title": "Stance",
+            "type": "string"
+          },
+          "stance_label": {
+            "title": "Stance Label",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "top_reason": {
+            "title": "Top Reason",
+            "type": "string"
+          },
+          "watch_trigger": {
+            "title": "Watch Trigger",
+            "type": "string"
+          }
+        },
+        "required": [
+          "title",
+          "stance",
+          "stance_label",
+          "score",
+          "conviction",
+          "conviction_label",
+          "top_reason",
+          "primary_risk",
+          "watch_trigger"
+        ],
+        "title": "TradeInsightAiHeadline",
+        "type": "object"
+      },
+      "TradeInsightAiHighlight": {
+        "additionalProperties": false,
+        "properties": {
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "note": {
+            "default": "",
+            "title": "Note",
+            "type": "string"
+          },
+          "source_path": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Path"
+          },
+          "value": {
+            "title": "Value",
+            "type": "string"
+          }
+        },
+        "required": [
+          "label",
+          "value"
+        ],
+        "title": "TradeInsightAiHighlight",
+        "type": "object"
+      },
+      "TradeInsightAiLevel": {
+        "additionalProperties": false,
+        "properties": {
+          "importance": {
+            "default": "normal",
+            "title": "Importance",
+            "type": "string"
+          },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "note": {
+            "default": "",
+            "title": "Note",
+            "type": "string"
+          },
+          "price": {
+            "title": "Price",
+            "type": "string"
+          },
+          "source_path": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Path"
+          },
+          "value": {
+            "title": "Value",
+            "type": "string"
+          }
+        },
+        "required": [
+          "price",
+          "kind",
+          "value"
+        ],
+        "title": "TradeInsightAiLevel",
+        "type": "object"
+      },
+      "TradeInsightAiMetricCard": {
+        "additionalProperties": false,
+        "properties": {
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "note": {
+            "default": "",
+            "title": "Note",
+            "type": "string"
+          },
+          "source_path": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Path"
+          },
+          "tone": {
+            "default": "neutral",
+            "title": "Tone",
+            "type": "string"
+          },
+          "value": {
+            "title": "Value",
+            "type": "string"
+          }
+        },
+        "required": [
+          "label",
+          "value"
+        ],
+        "title": "TradeInsightAiMetricCard",
+        "type": "object"
+      },
+      "TradeInsightAiOutcome": {
+        "additionalProperties": false,
+        "properties": {
+          "analysis_produced_at": {
+            "format": "date-time",
+            "title": "Analysis Produced At",
+            "type": "string"
+          },
+          "best_expressions": {
+            "items": {
+              "$ref": "#/components/schemas/TradeInsightAiBestExpression"
+            },
+            "title": "Best Expressions",
+            "type": "array"
+          },
+          "conflicts": {
+            "items": {
+              "$ref": "#/components/schemas/TradeInsightAiConflict"
+            },
+            "title": "Conflicts",
+            "type": "array"
+          },
+          "dominant_read": {
+            "$ref": "#/components/schemas/TradeInsightAiDominantRead"
+          },
+          "guardrails": {
+            "$ref": "#/components/schemas/TradeInsightAiGuardrails"
+          },
+          "headline": {
+            "$ref": "#/components/schemas/TradeInsightAiHeadline"
+          },
+          "metric_cards": {
+            "items": {
+              "$ref": "#/components/schemas/TradeInsightAiMetricCard"
+            },
+            "title": "Metric Cards",
+            "type": "array"
+          },
+          "missing_data": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Missing Data",
+            "type": "array"
+          },
+          "preferred_expression": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TradeInsightAiPreferredExpression"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "rejected_ideas": {
+            "items": {
+              "$ref": "#/components/schemas/TradeInsightAiRejectedIdea"
+            },
+            "title": "Rejected Ideas",
+            "type": "array"
+          },
+          "rendering": {
+            "$ref": "#/components/schemas/TradeInsightAiRendering"
+          },
+          "required_checks": {
+            "items": {
+              "$ref": "#/components/schemas/TradeInsightAiRequiredCheck"
+            },
+            "title": "Required Checks",
+            "type": "array"
+          },
+          "scenario_cards": {
+            "items": {
+              "$ref": "#/components/schemas/TradeInsightAiScenarioCard"
+            },
+            "title": "Scenario Cards",
+            "type": "array"
+          },
+          "schema_version": {
+            "title": "Schema Version",
+            "type": "string"
+          },
+          "score_breakdown": {
+            "items": {
+              "$ref": "#/components/schemas/TradeInsightAiScoreBreakdown"
+            },
+            "title": "Score Breakdown",
+            "type": "array"
+          },
+          "section_cards": {
+            "$ref": "#/components/schemas/TradeInsightAiSectionCards"
+          },
+          "snapshot": {
+            "$ref": "#/components/schemas/TradeInsightAiSnapshotMeta"
+          },
+          "ticker": {
+            "title": "Ticker",
+            "type": "string"
+          },
+          "underlying_price": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Underlying Price"
+          },
+          "vrp_assessment": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TradeInsightAiVrpAssessment"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "schema_version",
+          "analysis_produced_at",
+          "ticker",
+          "snapshot",
+          "headline",
+          "metric_cards",
+          "scenario_cards",
+          "score_breakdown",
+          "section_cards",
+          "dominant_read",
+          "rendering",
+          "guardrails"
+        ],
+        "title": "TradeInsightAiOutcome",
+        "type": "object"
+      },
+      "TradeInsightAiPreferredExpression": {
+        "additionalProperties": false,
+        "properties": {
+          "estimated_entry": {
+            "default": "",
+            "title": "Estimated Entry",
+            "type": "string"
+          },
+          "idea_id": {
+            "title": "Idea Id",
+            "type": "string"
+          },
+          "management_notes": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Management Notes",
+            "type": "array"
+          },
+          "max_loss_observed": {
+            "default": "",
+            "title": "Max Loss Observed",
+            "type": "string"
+          },
+          "max_profit_observed": {
+            "default": "",
+            "title": "Max Profit Observed",
+            "type": "string"
+          },
+          "reward_risk": {
+            "default": "",
+            "title": "Reward Risk",
+            "type": "string"
+          },
+          "risk_flags_observed": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Risk Flags Observed",
+            "type": "array"
+          },
+          "status_observed": {
+            "title": "Status Observed",
+            "type": "string"
+          },
+          "structure": {
+            "title": "Structure",
+            "type": "string"
+          },
+          "subtitle": {
+            "default": "",
+            "title": "Subtitle",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "why": {
+            "title": "Why",
+            "type": "string"
+          }
+        },
+        "required": [
+          "idea_id",
+          "structure",
+          "title",
+          "why",
+          "status_observed"
+        ],
+        "title": "TradeInsightAiPreferredExpression",
+        "type": "object"
+      },
+      "TradeInsightAiRejectedIdea": {
+        "additionalProperties": false,
+        "properties": {
+          "idea_id": {
+            "title": "Idea Id",
+            "type": "string"
+          },
+          "reason": {
+            "title": "Reason",
+            "type": "string"
+          },
+          "structure": {
+            "title": "Structure",
+            "type": "string"
+          }
+        },
+        "required": [
+          "idea_id",
+          "structure",
+          "reason"
+        ],
+        "title": "TradeInsightAiRejectedIdea",
+        "type": "object"
+      },
+      "TradeInsightAiRendering": {
+        "additionalProperties": false,
+        "properties": {
+          "card_order": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Card Order",
+            "type": "array"
+          },
+          "disclaimer": {
+            "title": "Disclaimer",
+            "type": "string"
+          }
+        },
+        "required": [
+          "disclaimer"
+        ],
+        "title": "TradeInsightAiRendering",
+        "type": "object"
+      },
+      "TradeInsightAiRequiredCheck": {
+        "additionalProperties": false,
+        "properties": {
+          "blocks_sizing": {
+            "default": true,
+            "title": "Blocks Sizing",
+            "type": "boolean"
+          },
+          "check": {
+            "title": "Check",
+            "type": "string"
+          },
+          "reason": {
+            "title": "Reason",
+            "type": "string"
+          },
+          "source": {
+            "default": "",
+            "title": "Source",
+            "type": "string"
+          }
+        },
+        "required": [
+          "check",
+          "reason"
+        ],
+        "title": "TradeInsightAiRequiredCheck",
+        "type": "object"
+      },
+      "TradeInsightAiScenarioCard": {
+        "additionalProperties": false,
+        "properties": {
+          "case": {
+            "anyOf": [
+              {
+                "enum": [
+                  "upside",
+                  "base",
+                  "downside"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "title": "Case"
+          },
+          "description": {
+            "title": "Description",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "tone": {
+            "default": "neutral",
+            "title": "Tone",
+            "type": "string"
+          }
+        },
+        "required": [
+          "case",
+          "title",
+          "description"
+        ],
+        "title": "TradeInsightAiScenarioCard",
+        "type": "object"
+      },
+      "TradeInsightAiScoreBreakdown": {
+        "additionalProperties": false,
+        "properties": {
+          "max_score": {
+            "title": "Max Score",
+            "type": "integer"
+          },
+          "score": {
+            "title": "Score",
+            "type": "integer"
+          },
+          "section": {
+            "title": "Section",
+            "type": "string"
+          },
+          "summary": {
+            "title": "Summary",
+            "type": "string"
+          }
+        },
+        "required": [
+          "section",
+          "score",
+          "max_score",
+          "summary"
+        ],
+        "title": "TradeInsightAiScoreBreakdown",
+        "type": "object"
+      },
+      "TradeInsightAiSectionCard": {
+        "additionalProperties": false,
+        "properties": {
+          "data_quality": {
+            "default": "unknown",
+            "title": "Data Quality",
+            "type": "string"
+          },
+          "highlights": {
+            "items": {
+              "$ref": "#/components/schemas/TradeInsightAiHighlight"
+            },
+            "title": "Highlights",
+            "type": "array"
+          },
+          "levels": {
+            "items": {
+              "$ref": "#/components/schemas/TradeInsightAiLevel"
+            },
+            "title": "Levels",
+            "type": "array"
+          },
+          "max_score": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Score"
+          },
+          "score": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Score"
+          },
+          "summary": {
+            "title": "Summary",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "title",
+          "summary"
+        ],
+        "title": "TradeInsightAiSectionCard",
+        "type": "object"
+      },
+      "TradeInsightAiSectionCards": {
+        "additionalProperties": false,
+        "properties": {
+          "flow_positioning": {
+            "$ref": "#/components/schemas/TradeInsightAiSectionCard"
+          },
+          "market_structure": {
+            "$ref": "#/components/schemas/TradeInsightAiSectionCard"
+          },
+          "volatility": {
+            "$ref": "#/components/schemas/TradeInsightAiSectionCard"
+          }
+        },
+        "required": [
+          "market_structure",
+          "volatility",
+          "flow_positioning"
+        ],
+        "title": "TradeInsightAiSectionCards",
+        "type": "object"
+      },
+      "TradeInsightAiSnapshotMeta": {
+        "additionalProperties": false,
+        "properties": {
+          "analysis_input_hash": {
+            "title": "Analysis Input Hash",
+            "type": "string"
+          },
+          "data_as_of": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Data As Of"
+          },
+          "freshness_label": {
+            "default": "unknown",
+            "title": "Freshness Label",
+            "type": "string"
+          },
+          "run_id": {
+            "title": "Run Id",
+            "type": "integer"
+          },
+          "source_notes": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Source Notes",
+            "type": "array"
+          },
+          "trade_insights_input_hash": {
+            "title": "Trade Insights Input Hash",
+            "type": "string"
+          }
+        },
+        "required": [
+          "run_id",
+          "trade_insights_input_hash",
+          "analysis_input_hash"
+        ],
+        "title": "TradeInsightAiSnapshotMeta",
+        "type": "object"
+      },
+      "TradeInsightAiVrpAssessment": {
+        "additionalProperties": false,
+        "properties": {
+          "metrics": {
+            "items": {
+              "$ref": "#/components/schemas/TradeInsightAiMetricCard"
+            },
+            "title": "Metrics",
+            "type": "array"
+          },
+          "reason": {
+            "title": "Reason",
+            "type": "string"
+          },
+          "signal": {
+            "title": "Signal",
+            "type": "string"
+          },
+          "summary": {
+            "title": "Summary",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "signal",
+          "title",
+          "summary",
+          "reason"
+        ],
+        "title": "TradeInsightAiVrpAssessment",
+        "type": "object"
+      },
       "TradeInsightsHeader": {
         "properties": {
           "badges": {
@@ -4784,6 +5769,116 @@
           }
         },
         "summary": "Get Trade Insights",
+        "tags": [
+          "trade-insights"
+        ]
+      }
+    },
+    "/api/stock/{ticker}/trade-insights/ai-analysis": {
+      "post": {
+        "operationId": "post_trade_insights_ai_analysis_api_stock__ticker__trade_insights_ai_analysis_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "ticker",
+            "required": true,
+            "schema": {
+              "title": "Ticker",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/TradeInsightAiAnalysisRequest"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Request"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TradeInsightAiAnalysisResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Post Trade Insights Ai Analysis",
+        "tags": [
+          "trade-insights"
+        ]
+      }
+    },
+    "/api/stock/{ticker}/trade-insights/ai-analysis/{analysis_id}": {
+      "get": {
+        "operationId": "get_trade_insights_ai_analysis_api_stock__ticker__trade_insights_ai_analysis__analysis_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "ticker",
+            "required": true,
+            "schema": {
+              "title": "Ticker",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "analysis_id",
+            "required": true,
+            "schema": {
+              "title": "Analysis Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TradeInsightAiAnalysisResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Trade Insights Ai Analysis",
         "tags": [
           "trade-insights"
         ]

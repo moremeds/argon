@@ -7,7 +7,9 @@ from pydantic import ValidationError
 from uw_scan.models import (
     TradeInsightAiAnalysisResponse,
     TradeInsightAiOutcome,
+    VolHeaderBlock,
 )
+from uw_scan.reports.volatility_series import assemble_volatility_series
 from uw_scan.reports.trade_insights_ai import (
     PROMPT_VERSION,
     build_trade_insights_ai_analysis_input,
@@ -664,3 +666,113 @@ def test_render_trade_insights_ai_markdown_uses_structured_sections():
     assert "Bull Call Spread" in markdown
     assert "Confirm event calendar" in markdown
     assert "No event calendar data" in markdown
+
+
+class _FakeVolRepo:
+    def __init__(self, rv_rows: list[dict] | None = None):
+        self.rv_rows = rv_rows if rv_rows is not None else [
+            {
+                "market_date": "2026-03-20",
+                "price": "100",
+                "implied_volatility": "0.40",
+                "realized_volatility": "0.30",
+            },
+            {
+                "market_date": "2026-03-21",
+                "price": "101",
+                "implied_volatility": "0.41",
+                "realized_volatility": "0.31",
+            },
+        ]
+        self.conn = self
+        self.commits = 0
+
+    def commit(self):
+        self.commits += 1
+
+    def fetch_realized_vol_history(self, ticker, days=365):
+        return list(self.rv_rows)
+
+    def fetch_index_ohlc_series(self, ticker):
+        return []
+
+    def fetch_realized_vol_latest(self, ticker):
+        return {"price": "101"} if self.rv_rows else {}
+
+
+def test_assemble_volatility_series_read_only_mode_skips_derived_persistence(
+    monkeypatch,
+):
+    repo = _FakeVolRepo()
+    calls = {"vrp": 0, "analytics": 0}
+
+    monkeypatch.setattr(
+        "uw_scan.reports.volatility_series._build_header",
+        lambda repo, ticker: VolHeaderBlock(iv="0.41", rv="0.31"),
+    )
+    monkeypatch.setattr(
+        "uw_scan.reports.volatility_series._build_term_structure",
+        lambda repo, ticker: [],
+    )
+    monkeypatch.setattr(
+        "uw_scan.reports.volatility_series._build_smile",
+        lambda repo, ticker: [],
+    )
+    monkeypatch.setattr(
+        "uw_scan.reports.volatility_series.persist_vrp_daily",
+        lambda *args: calls.__setitem__("vrp", calls["vrp"] + 1),
+    )
+    monkeypatch.setattr(
+        "uw_scan.reports.volatility_series.persist_stock_analytics",
+        lambda *args: calls.__setitem__("analytics", calls["analytics"] + 1),
+    )
+
+    default_response = assemble_volatility_series(ticker="TSLA", repo=repo)
+    read_only_response = assemble_volatility_series(
+        ticker="TSLA",
+        repo=repo,
+        persist_derived=False,
+    )
+
+    assert default_response.model_dump(mode="json") == read_only_response.model_dump(mode="json")
+    assert calls == {"vrp": 1, "analytics": 1}
+    assert repo.commits == 1
+
+
+def test_assemble_volatility_series_read_only_mode_accepts_empty_history(
+    monkeypatch,
+):
+    repo = _FakeVolRepo(rv_rows=[])
+    monkeypatch.setattr(
+        "uw_scan.reports.volatility_series._build_header",
+        lambda repo, ticker: VolHeaderBlock(),
+    )
+    monkeypatch.setattr(
+        "uw_scan.reports.volatility_series._build_term_structure",
+        lambda repo, ticker: [],
+    )
+    monkeypatch.setattr(
+        "uw_scan.reports.volatility_series._build_smile",
+        lambda repo, ticker: [],
+    )
+    monkeypatch.setattr(
+        "uw_scan.reports.volatility_series.persist_vrp_daily",
+        lambda *args: pytest.fail("read-only mode should not persist VRP"),
+    )
+    monkeypatch.setattr(
+        "uw_scan.reports.volatility_series.persist_stock_analytics",
+        lambda *args: pytest.fail("read-only mode should not persist analytics"),
+    )
+
+    response = assemble_volatility_series(
+        ticker="TSLA",
+        repo=repo,
+        backfill_status="missing",
+        persist_derived=False,
+    )
+
+    assert response.ticker == "TSLA"
+    assert response.backfill_status == "missing"
+    assert response.hv_iv_history == []
+    assert response.vrp_spread == []
+    assert repo.commits == 0
