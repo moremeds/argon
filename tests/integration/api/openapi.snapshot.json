@@ -1,608 +1,9 @@
 {
-  "openapi": "3.1.0",
-  "info": {
-    "title": "UW Watchlist API",
-    "version": "0.1.0"
-  },
-  "paths": {
-    "/api/health": {
-      "get": {
-        "tags": [
-          "health"
-        ],
-        "summary": "Health",
-        "operationId": "health_api_health_get",
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HealthResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/watchlist": {
-      "get": {
-        "tags": [
-          "watchlist"
-        ],
-        "summary": "Get Watchlist",
-        "operationId": "get_watchlist_api_watchlist_get",
-        "parameters": [
-          {
-            "name": "sector",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Sector"
-            }
-          },
-          {
-            "name": "setup",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "description": "e.g. 'C-bull', 'C-bear', 'F-MULTI', 'NEUTRAL'",
-              "title": "Setup"
-            },
-            "description": "e.g. 'C-bull', 'C-bear', 'F-MULTI', 'NEUTRAL'"
-          },
-          {
-            "name": "fresh_within_minutes",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "integer",
-                  "minimum": 1
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Fresh Within Minutes"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/WatchlistResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      },
-      "post": {
-        "tags": [
-          "watchlist"
-        ],
-        "summary": "Post Watchlist",
-        "operationId": "post_watchlist_api_watchlist_post",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/WatchlistMutation"
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Post Watchlist Api Watchlist Post"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/watchlist/{ticker}": {
-      "delete": {
-        "tags": [
-          "watchlist"
-        ],
-        "summary": "Delete Watchlist",
-        "operationId": "delete_watchlist_api_watchlist__ticker__delete",
-        "parameters": [
-          {
-            "name": "ticker",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Ticker"
-            }
-          }
-        ],
-        "responses": {
-          "204": {
-            "description": "Successful Response"
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      },
-      "patch": {
-        "tags": [
-          "watchlist"
-        ],
-        "summary": "Patch Watchlist",
-        "operationId": "patch_watchlist_api_watchlist__ticker__patch",
-        "parameters": [
-          {
-            "name": "ticker",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Ticker"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/WatchlistPatch"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Patch Watchlist Api Watchlist  Ticker  Patch"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/stock/{ticker}": {
-      "get": {
-        "tags": [
-          "stock"
-        ],
-        "summary": "Get Stock",
-        "operationId": "get_stock_api_stock__ticker__get",
-        "parameters": [
-          {
-            "name": "ticker",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Ticker"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/SingleStockReport"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/stock/{ticker}/history": {
-      "get": {
-        "tags": [
-          "stock"
-        ],
-        "summary": "Get Stock History",
-        "description": "Daily rollup for the Market Structure tab's history table.\n\nOne row per trading day, sorted newest-first. Today's row may have\nspot=None if the post-close OHLC pull hasn't fired yet.",
-        "operationId": "get_stock_history_api_stock__ticker__history_get",
-        "parameters": [
-          {
-            "name": "ticker",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Ticker"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/StockHistoryResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/stock/{ticker}/runs": {
-      "get": {
-        "tags": [
-          "stock"
-        ],
-        "summary": "List Runs",
-        "operationId": "list_runs_api_stock__ticker__runs_get",
-        "parameters": [
-          {
-            "name": "ticker",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Ticker"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "type": "object",
-                    "additionalProperties": true
-                  },
-                  "title": "Response List Runs Api Stock  Ticker  Runs Get"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/stock/{ticker}/runs/{run_id}": {
-      "get": {
-        "tags": [
-          "stock"
-        ],
-        "summary": "Get Specific Run",
-        "operationId": "get_specific_run_api_stock__ticker__runs__run_id__get",
-        "parameters": [
-          {
-            "name": "ticker",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Ticker"
-            }
-          },
-          {
-            "name": "run_id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "title": "Run Id"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/SingleStockReport"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/ohlc/{ticker}": {
-      "get": {
-        "tags": [
-          "ohlc"
-        ],
-        "summary": "Get Ohlc",
-        "operationId": "get_ohlc_api_ohlc__ticker__get",
-        "parameters": [
-          {
-            "name": "ticker",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Ticker"
-            }
-          },
-          {
-            "name": "days",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "integer",
-              "maximum": 365,
-              "minimum": 1,
-              "default": 30,
-              "title": "Days"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/OhlcRow"
-                  },
-                  "title": "Response Get Ohlc Api Ohlc  Ticker  Get"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/watchlist/{ticker}/rescan": {
-      "post": {
-        "tags": [
-          "jobs"
-        ],
-        "summary": "Enqueue Rescan",
-        "operationId": "enqueue_rescan_api_watchlist__ticker__rescan_post",
-        "parameters": [
-          {
-            "name": "ticker",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Ticker"
-            }
-          }
-        ],
-        "responses": {
-          "202": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/JobStatus"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/watchlist/rescan-all": {
-      "post": {
-        "tags": [
-          "jobs"
-        ],
-        "summary": "Enqueue Rescan All",
-        "description": "Enqueue a rescan job for every active watchlist ticker.",
-        "operationId": "enqueue_rescan_all_api_watchlist_rescan_all_post",
-        "responses": {
-          "202": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "items": {
-                    "$ref": "#/components/schemas/JobStatus"
-                  },
-                  "type": "array",
-                  "title": "Response Enqueue Rescan All Api Watchlist Rescan All Post"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/jobs/{job_id}": {
-      "get": {
-        "tags": [
-          "jobs"
-        ],
-        "summary": "Get Job",
-        "operationId": "get_job_api_jobs__job_id__get",
-        "parameters": [
-          {
-            "name": "job_id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Job Id"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/JobStatus"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    }
-  },
   "components": {
     "schemas": {
       "FlowAlert": {
         "properties": {
-          "id": {
-            "type": "string",
-            "title": "Id"
-          },
-          "ticker": {
-            "type": "string",
-            "title": "Ticker"
-          },
-          "option_chain": {
+          "alert_rule": {
             "anyOf": [
               {
                 "type": "string"
@@ -611,149 +12,9 @@
                 "type": "null"
               }
             ],
-            "title": "Option Chain"
+            "title": "Alert Rule"
           },
-          "type": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Type"
-          },
-          "expiry": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "date"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Expiry"
-          },
-          "strike": {
-            "anyOf": [
-              {
-                "type": "string",
-                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Strike"
-          },
-          "price": {
-            "anyOf": [
-              {
-                "type": "string",
-                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Price"
-          },
-          "underlying_price": {
-            "anyOf": [
-              {
-                "type": "string",
-                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Underlying Price"
-          },
-          "total_size": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Total Size"
-          },
-          "total_premium": {
-            "anyOf": [
-              {
-                "type": "string",
-                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Total Premium"
-          },
-          "total_ask_side_prem": {
-            "anyOf": [
-              {
-                "type": "string",
-                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Total Ask Side Prem"
-          },
-          "total_bid_side_prem": {
-            "anyOf": [
-              {
-                "type": "string",
-                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Total Bid Side Prem"
-          },
-          "volume": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Volume"
-          },
-          "open_interest": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Open Interest"
-          },
-          "volume_oi_ratio": {
-            "anyOf": [
-              {
-                "type": "string",
-                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Volume Oi Ratio"
-          },
-          "has_sweep": {
+          "all_opening_trades": {
             "anyOf": [
               {
                 "type": "boolean"
@@ -762,7 +23,31 @@
                 "type": "null"
               }
             ],
-            "title": "Has Sweep"
+            "title": "All Opening Trades"
+          },
+          "created_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Created At"
+          },
+          "expiry": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expiry"
           },
           "has_floor": {
             "anyOf": [
@@ -786,7 +71,7 @@
             ],
             "title": "Has Multileg"
           },
-          "all_opening_trades": {
+          "has_sweep": {
             "anyOf": [
               {
                 "type": "boolean"
@@ -795,33 +80,13 @@
                 "type": "null"
               }
             ],
-            "title": "All Opening Trades"
+            "title": "Has Sweep"
           },
-          "iv_start": {
-            "anyOf": [
-              {
-                "type": "string",
-                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Iv Start"
+          "id": {
+            "title": "Id",
+            "type": "string"
           },
-          "iv_end": {
-            "anyOf": [
-              {
-                "type": "string",
-                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Iv End"
-          },
-          "alert_rule": {
+          "issue_type": {
             "anyOf": [
               {
                 "type": "string"
@@ -830,7 +95,77 @@
                 "type": "null"
               }
             ],
-            "title": "Alert Rule"
+            "title": "Issue Type"
+          },
+          "iv_end": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Iv End"
+          },
+          "iv_start": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Iv Start"
+          },
+          "next_earnings_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Earnings Date"
+          },
+          "open_interest": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Open Interest"
+          },
+          "option_chain": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Option Chain"
+          },
+          "price": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Price"
           },
           "rule_id": {
             "anyOf": [
@@ -854,7 +189,70 @@
             ],
             "title": "Sector"
           },
-          "issue_type": {
+          "strike": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Strike"
+          },
+          "ticker": {
+            "title": "Ticker",
+            "type": "string"
+          },
+          "total_ask_side_prem": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Total Ask Side Prem"
+          },
+          "total_bid_side_prem": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Total Bid Side Prem"
+          },
+          "total_premium": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Total Premium"
+          },
+          "total_size": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Total Size"
+          },
+          "type": {
             "anyOf": [
               {
                 "type": "string"
@@ -863,85 +261,95 @@
                 "type": "null"
               }
             ],
-            "title": "Issue Type"
+            "title": "Type"
           },
-          "next_earnings_date": {
+          "underlying_price": {
             "anyOf": [
               {
-                "type": "string",
-                "format": "date"
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Next Earnings Date"
+            "title": "Underlying Price"
           },
-          "created_at": {
+          "volume": {
             "anyOf": [
               {
-                "type": "string",
-                "format": "date-time"
+                "type": "integer"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Created At"
+            "title": "Volume"
+          },
+          "volume_oi_ratio": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Volume Oi Ratio"
           }
         },
-        "type": "object",
         "required": [
           "id",
           "ticker"
         ],
-        "title": "FlowAlert"
+        "title": "FlowAlert",
+        "type": "object"
       },
       "FlowSnapshot": {
         "properties": {
-          "ticker": {
-            "type": "string",
-            "title": "Ticker"
-          },
-          "flow_count": {
-            "type": "integer",
-            "title": "Flow Count"
-          },
-          "net_premium": {
-            "type": "string",
+          "ask_side_premium": {
             "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
-            "title": "Net Premium"
-          },
-          "bull_premium": {
-            "type": "string",
-            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
-            "title": "Bull Premium"
+            "title": "Ask Side Premium",
+            "type": "string"
           },
           "bear_premium": {
-            "type": "string",
             "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
-            "title": "Bear Premium"
-          },
-          "ask_side_premium": {
-            "type": "string",
-            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
-            "title": "Ask Side Premium"
+            "title": "Bear Premium",
+            "type": "string"
           },
           "bid_side_premium": {
-            "type": "string",
             "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
-            "title": "Bid Side Premium"
+            "title": "Bid Side Premium",
+            "type": "string"
+          },
+          "bull_premium": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Bull Premium",
+            "type": "string"
+          },
+          "flow_count": {
+            "title": "Flow Count",
+            "type": "integer"
+          },
+          "net_premium": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Net Premium",
+            "type": "string"
+          },
+          "ticker": {
+            "title": "Ticker",
+            "type": "string"
           },
           "top_alerts": {
+            "default": [],
             "items": {
               "$ref": "#/components/schemas/FlowAlert"
             },
-            "type": "array",
             "title": "Top Alerts",
-            "default": []
+            "type": "array"
           }
         },
-        "type": "object",
         "required": [
           "ticker",
           "flow_count",
@@ -951,15 +359,40 @@
           "ask_side_premium",
           "bid_side_premium"
         ],
-        "title": "FlowSnapshot"
+        "title": "FlowSnapshot",
+        "type": "object"
       },
       "GammaBlock": {
         "properties": {
+          "expiring_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expiring Date"
+          },
+          "expiring_pct": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expiring Pct"
+          },
           "flip_distance": {
             "anyOf": [
               {
-                "type": "string",
-                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
               },
               {
                 "type": "null"
@@ -970,8 +403,8 @@
           "flip_price": {
             "anyOf": [
               {
-                "type": "string",
-                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
               },
               {
                 "type": "null"
@@ -979,23 +412,11 @@
             ],
             "title": "Flip Price"
           },
-          "per_1pct_move": {
-            "anyOf": [
-              {
-                "type": "string",
-                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Per 1Pct Move"
-          },
           "max_strike": {
             "anyOf": [
               {
-                "type": "string",
-                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
               },
               {
                 "type": "null"
@@ -1003,46 +424,42 @@
             ],
             "title": "Max Strike"
           },
-          "expiring_pct": {
+          "per_1pct_move": {
             "anyOf": [
               {
-                "type": "string",
-                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Expiring Pct"
-          },
-          "expiring_date": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "date"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Expiring Date"
+            "title": "Per 1Pct Move"
           }
         },
-        "type": "object",
-        "title": "GammaBlock"
+        "title": "GammaBlock",
+        "type": "object"
       },
       "GexLevel": {
+        "description": "One labeled level on the GEX curve (e.g. CALL WALL, PUT WALL, MAX MAGNET).\n\n`gamma_per_dollar` is the per-strike net_gex used as the \"$N per $1\" sensitivity\nfigure on the tile \u2014 the dollar value of dealer hedging triggered by a $1 move.",
         "properties": {
-          "strike": {
-            "type": "string",
-            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
-            "title": "Strike"
+          "gamma_per_dollar": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Gamma Per Dollar"
           },
           "net_gex": {
             "anyOf": [
               {
-                "type": "string",
-                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
               },
               {
                 "type": "null"
@@ -1053,8 +470,8 @@
           "pct_from_spot": {
             "anyOf": [
               {
-                "type": "string",
-                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
               },
               {
                 "type": "null"
@@ -1062,25 +479,17 @@
             ],
             "title": "Pct From Spot"
           },
-          "gamma_per_dollar": {
-            "anyOf": [
-              {
-                "type": "string",
-                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Gamma Per Dollar"
+          "strike": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Strike",
+            "type": "string"
           }
         },
-        "type": "object",
         "required": [
           "strike"
         ],
         "title": "GexLevel",
-        "description": "One labeled level on the GEX curve (e.g. CALL WALL, PUT WALL, MAX MAGNET).\n\n`gamma_per_dollar` is the per-strike net_gex used as the \"$N per $1\" sensitivity\nfigure on the tile \u2014 the dollar value of dealer hedging triggered by a $1 move."
+        "type": "object"
       },
       "HTTPValidationError": {
         "properties": {
@@ -1088,94 +497,29 @@
             "items": {
               "$ref": "#/components/schemas/ValidationError"
             },
-            "type": "array",
-            "title": "Detail"
+            "title": "Detail",
+            "type": "array"
           }
         },
-        "type": "object",
-        "title": "HTTPValidationError"
+        "title": "HTTPValidationError",
+        "type": "object"
       },
       "HealthResponse": {
         "properties": {
-          "ok": {
-            "type": "boolean",
-            "title": "Ok"
+          "cache_hit_pct": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cache Hit Pct"
           },
           "db": {
-            "type": "string",
-            "title": "Db"
-          },
-          "scheduler_lag_seconds": {
-            "anyOf": [
-              {
-                "type": "number"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Scheduler Lag Seconds"
-          },
-          "last_full_scan_at": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "date-time"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Last Full Scan At"
-          },
-          "reason": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Reason"
-          },
-          "worker_lag_seconds": {
-            "anyOf": [
-              {
-                "type": "number"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Worker Lag Seconds"
-          },
-          "watchlist_size": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Watchlist Size"
-          },
-          "source": {
-            "type": "string",
-            "title": "Source",
-            "default": "massive.com"
-          },
-          "latency_p95_ms": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Latency P95 Ms"
+            "title": "Db",
+            "type": "string"
           },
           "http_2xx": {
             "anyOf": [
@@ -1210,6 +554,60 @@
             ],
             "title": "Http 5Xx"
           },
+          "last_full_scan_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Full Scan At"
+          },
+          "latency_p95_ms": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Latency P95 Ms"
+          },
+          "ok": {
+            "title": "Ok",
+            "type": "boolean"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          },
+          "scheduler_lag_seconds": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Scheduler Lag Seconds"
+          },
+          "source": {
+            "default": "massive.com",
+            "title": "Source",
+            "type": "string"
+          },
           "uw_today": {
             "anyOf": [
               {
@@ -1221,7 +619,18 @@
             ],
             "title": "Uw Today"
           },
-          "cache_hit_pct": {
+          "watchlist_size": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Watchlist Size"
+          },
+          "worker_lag_seconds": {
             "anyOf": [
               {
                 "type": "number"
@@ -1230,25 +639,49 @@
                 "type": "null"
               }
             ],
-            "title": "Cache Hit Pct"
+            "title": "Worker Lag Seconds"
           }
         },
-        "type": "object",
         "required": [
           "ok",
           "db"
         ],
-        "title": "HealthResponse"
+        "title": "HealthResponse",
+        "type": "object"
       },
       "JobStatus": {
         "properties": {
-          "job_id": {
-            "type": "string",
-            "title": "Job Id"
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
           },
-          "status": {
-            "type": "string",
-            "title": "Status"
+          "finished_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Finished At"
+          },
+          "job_id": {
+            "title": "Job Id",
+            "type": "string"
+          },
+          "requested_at": {
+            "format": "date-time",
+            "title": "Requested At",
+            "type": "string"
           },
           "run_id": {
             "anyOf": [
@@ -1261,27 +694,11 @@
             ],
             "title": "Run Id"
           },
-          "error": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Error"
-          },
-          "requested_at": {
-            "type": "string",
-            "format": "date-time",
-            "title": "Requested At"
-          },
           "started_at": {
             "anyOf": [
               {
-                "type": "string",
-                "format": "date-time"
+                "format": "date-time",
+                "type": "string"
               },
               {
                 "type": "null"
@@ -1289,28 +706,21 @@
             ],
             "title": "Started At"
           },
-          "finished_at": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "date-time"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Finished At"
+          "status": {
+            "title": "Status",
+            "type": "string"
           }
         },
-        "type": "object",
         "required": [
           "job_id",
           "status",
           "requested_at"
         ],
-        "title": "JobStatus"
+        "title": "JobStatus",
+        "type": "object"
       },
       "MarketAggregates": {
+        "description": "Per-ticker aggregate fields sourced from the bulk-screener endpoint.\n\nPopulated by pipeline.run_single_stock alongside the existing per-section\nsub-models. Feeds the watchlist card POSITIONING and SKEW blocks.",
         "properties": {
           "call_oi_total": {
             "anyOf": [
@@ -1322,39 +732,6 @@
               }
             ],
             "title": "Call Oi Total"
-          },
-          "put_oi_total": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Put Oi Total"
-          },
-          "call_volume_total": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Call Volume Total"
-          },
-          "put_volume_total": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Put Volume Total"
           },
           "call_volume_ask_side": {
             "anyOf": [
@@ -1378,6 +755,64 @@
             ],
             "title": "Call Volume Bid Side"
           },
+          "call_volume_total": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Call Volume Total"
+          },
+          "iv30d": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Iv30D"
+          },
+          "pcr_oi": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pcr Oi"
+          },
+          "pcr_vol": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pcr Vol"
+          },
+          "put_oi_total": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Put Oi Total"
+          },
           "put_volume_ask_side": {
             "anyOf": [
               {
@@ -1400,138 +835,28 @@
             ],
             "title": "Put Volume Bid Side"
           },
-          "pcr_oi": {
+          "put_volume_total": {
             "anyOf": [
               {
-                "type": "string",
-                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+                "type": "integer"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Pcr Oi"
-          },
-          "pcr_vol": {
-            "anyOf": [
-              {
-                "type": "string",
-                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Pcr Vol"
-          },
-          "iv30d": {
-            "anyOf": [
-              {
-                "type": "string",
-                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Iv30D"
+            "title": "Put Volume Total"
           }
         },
-        "type": "object",
         "title": "MarketAggregates",
-        "description": "Per-ticker aggregate fields sourced from the bulk-screener endpoint.\n\nPopulated by pipeline.run_single_stock alongside the existing per-section\nsub-models. Feeds the watchlist card POSITIONING and SKEW blocks."
+        "type": "object"
       },
       "MarketStructure": {
         "properties": {
-          "spot": {
-            "anyOf": [
-              {
-                "type": "string",
-                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Spot"
-          },
-          "nearest_expiry": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "date"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Nearest Expiry"
-          },
-          "total_call_gex": {
-            "anyOf": [
-              {
-                "type": "string",
-                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Total Call Gex"
-          },
-          "total_put_gex": {
-            "anyOf": [
-              {
-                "type": "string",
-                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Total Put Gex"
-          },
-          "net_gex": {
-            "anyOf": [
-              {
-                "type": "string",
-                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Net Gex"
-          },
-          "total_call_dex_oi": {
-            "anyOf": [
-              {
-                "type": "string",
-                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Total Call Dex Oi"
-          },
-          "total_put_dex_oi": {
-            "anyOf": [
-              {
-                "type": "string",
-                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Total Put Dex Oi"
-          },
           "max_pain": {
             "anyOf": [
               {
-                "type": "string",
-                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
               },
               {
                 "type": "null"
@@ -1539,40 +864,115 @@
             ],
             "title": "Max Pain"
           },
-          "top_call_oi_strikes": {
-            "items": {
-              "type": "string",
-              "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
-            },
-            "type": "array",
-            "title": "Top Call Oi Strikes",
-            "default": []
-          },
-          "top_put_oi_strikes": {
-            "items": {
-              "type": "string",
-              "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
-            },
-            "type": "array",
-            "title": "Top Put Oi Strikes",
-            "default": []
-          }
-        },
-        "type": "object",
-        "title": "MarketStructure"
-      },
-      "MarketStructureLevels": {
-        "properties": {
-          "gex_flip": {
+          "nearest_expiry": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/GexLevel"
+                "format": "date",
+                "type": "string"
               },
               {
                 "type": "null"
               }
-            ]
+            ],
+            "title": "Nearest Expiry"
           },
+          "net_gex": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Net Gex"
+          },
+          "spot": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Spot"
+          },
+          "top_call_oi_strikes": {
+            "default": [],
+            "items": {
+              "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+              "type": "string"
+            },
+            "title": "Top Call Oi Strikes",
+            "type": "array"
+          },
+          "top_put_oi_strikes": {
+            "default": [],
+            "items": {
+              "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+              "type": "string"
+            },
+            "title": "Top Put Oi Strikes",
+            "type": "array"
+          },
+          "total_call_dex_oi": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Total Call Dex Oi"
+          },
+          "total_call_gex": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Total Call Gex"
+          },
+          "total_put_dex_oi": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Total Put Dex Oi"
+          },
+          "total_put_gex": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Total Put Gex"
+          }
+        },
+        "title": "MarketStructure",
+        "type": "object"
+      },
+      "MarketStructureLevels": {
+        "description": "Derived strike-level reference points used by the Market Structure tab.\n\nConventions follow FlashAlpha / SpotGamma:\n  - gex_flip: lowest strike where running cumulative net_gex flips sign\n  - call_wall: strike with largest call-side gamma (typically above spot)\n  - put_wall: strike with largest put-side gamma magnitude (typically below spot)\n  - max_magnet: strike with largest positive net_gex above spot (pulls price up)\n  - second_magnet: strike with second-largest positive net_gex above spot\n  - max_accel: strike with most-negative net_gex below the flip (movement accelerator)",
+        "properties": {
           "call_wall": {
             "anyOf": [
               {
@@ -1583,7 +983,17 @@
               }
             ]
           },
-          "put_wall": {
+          "gex_flip": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/GexLevel"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "max_accel": {
             "anyOf": [
               {
                 "$ref": "#/components/schemas/GexLevel"
@@ -1603,6 +1013,16 @@
               }
             ]
           },
+          "put_wall": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/GexLevel"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "second_magnet": {
             "anyOf": [
               {
@@ -1612,46 +1032,18 @@
                 "type": "null"
               }
             ]
-          },
-          "max_accel": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/GexLevel"
-              },
-              {
-                "type": "null"
-              }
-            ]
           }
         },
-        "type": "object",
         "title": "MarketStructureLevels",
-        "description": "Derived strike-level reference points used by the Market Structure tab.\n\nConventions follow FlashAlpha / SpotGamma:\n  - gex_flip: lowest strike where running cumulative net_gex flips sign\n  - call_wall: strike with largest call-side gamma (typically above spot)\n  - put_wall: strike with largest put-side gamma magnitude (typically below spot)\n  - max_magnet: strike with largest positive net_gex above spot (pulls price up)\n  - second_magnet: strike with second-largest positive net_gex above spot\n  - max_accel: strike with most-negative net_gex below the flip (movement accelerator)"
+        "type": "object"
       },
       "MaxPainRow": {
         "properties": {
-          "expiry": {
-            "type": "string",
-            "format": "date",
-            "title": "Expiry"
-          },
-          "max_pain": {
-            "anyOf": [
-              {
-                "type": "string",
-                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Max Pain"
-          },
           "close": {
             "anyOf": [
               {
-                "type": "string",
-                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
               },
               {
                 "type": "null"
@@ -1659,23 +1051,40 @@
             ],
             "title": "Close"
           },
-          "open": {
+          "expiry": {
+            "format": "date",
+            "title": "Expiry",
+            "type": "string"
+          },
+          "max_pain": {
             "anyOf": [
               {
-                "type": "string",
-                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Open"
+            "title": "Max Pain"
+          },
+          "next_lower_strike": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Lower Strike"
           },
           "next_upper_strike": {
             "anyOf": [
               {
-                "type": "string",
-                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
               },
               {
                 "type": "null"
@@ -1683,49 +1092,42 @@
             ],
             "title": "Next Upper Strike"
           },
-          "next_lower_strike": {
-            "anyOf": [
-              {
-                "type": "string",
-                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Next Lower Strike"
-          }
-        },
-        "type": "object",
-        "required": [
-          "expiry"
-        ],
-        "title": "MaxPainRow"
-      },
-      "OhlcRow": {
-        "properties": {
-          "date": {
-            "type": "string",
-            "format": "date",
-            "title": "Date"
-          },
           "open": {
             "anyOf": [
               {
-                "type": "string",
-                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
               },
               {
                 "type": "null"
               }
             ],
             "title": "Open"
+          }
+        },
+        "required": [
+          "expiry"
+        ],
+        "title": "MaxPainRow",
+        "type": "object"
+      },
+      "OhlcRow": {
+        "properties": {
+          "close": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Close",
+            "type": "string"
+          },
+          "date": {
+            "format": "date",
+            "title": "Date",
+            "type": "string"
           },
           "high": {
             "anyOf": [
               {
-                "type": "string",
-                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
               },
               {
                 "type": "null"
@@ -1736,8 +1138,8 @@
           "low": {
             "anyOf": [
               {
-                "type": "string",
-                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
               },
               {
                 "type": "null"
@@ -1745,10 +1147,17 @@
             ],
             "title": "Low"
           },
-          "close": {
-            "type": "string",
-            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
-            "title": "Close"
+          "open": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Open"
           },
           "volume": {
             "anyOf": [
@@ -1762,46 +1171,38 @@
             "title": "Volume"
           }
         },
-        "type": "object",
         "required": [
           "date",
           "close"
         ],
-        "title": "OhlcRow"
+        "title": "OhlcRow",
+        "type": "object"
       },
       "OiChangeRow": {
         "properties": {
-          "underlying_symbol": {
-            "type": "string",
-            "title": "Underlying Symbol"
-          },
-          "option_symbol": {
-            "type": "string",
-            "title": "Option Symbol"
+          "avg_price": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Avg Price"
           },
           "curr_date": {
             "anyOf": [
               {
-                "type": "string",
-                "format": "date"
+                "format": "date",
+                "type": "string"
               },
               {
                 "type": "null"
               }
             ],
             "title": "Curr Date"
-          },
-          "last_date": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "date"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Last Date"
           },
           "curr_oi": {
             "anyOf": [
@@ -1813,86 +1214,6 @@
               }
             ],
             "title": "Curr Oi"
-          },
-          "last_oi": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Last Oi"
-          },
-          "oi_diff_plain": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Oi Diff Plain"
-          },
-          "oi_change": {
-            "anyOf": [
-              {
-                "type": "string",
-                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Oi Change"
-          },
-          "volume": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Volume"
-          },
-          "trades": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Trades"
-          },
-          "avg_price": {
-            "anyOf": [
-              {
-                "type": "string",
-                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Avg Price"
-          },
-          "last_fill": {
-            "anyOf": [
-              {
-                "type": "string",
-                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Last Fill"
           },
           "days_of_oi_increases": {
             "anyOf": [
@@ -1916,11 +1237,73 @@
             ],
             "title": "Days Of Vol Greater Than Oi"
           },
+          "last_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Date"
+          },
+          "last_fill": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Fill"
+          },
+          "last_oi": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Oi"
+          },
+          "oi_change": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Oi Change"
+          },
+          "oi_diff_plain": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Oi Diff Plain"
+          },
+          "option_symbol": {
+            "title": "Option Symbol",
+            "type": "string"
+          },
           "percentage_of_total": {
             "anyOf": [
               {
-                "type": "string",
-                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
               },
               {
                 "type": "null"
@@ -1938,14 +1321,40 @@
               }
             ],
             "title": "Rnk"
+          },
+          "trades": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Trades"
+          },
+          "underlying_symbol": {
+            "title": "Underlying Symbol",
+            "type": "string"
+          },
+          "volume": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Volume"
           }
         },
-        "type": "object",
         "required": [
           "underlying_symbol",
           "option_symbol"
         ],
-        "title": "OiChangeRow"
+        "title": "OiChangeRow",
+        "type": "object"
       },
       "PositioningBlock": {
         "properties": {
@@ -1960,22 +1369,23 @@
             ],
             "title": "Call Oi"
           },
-          "put_oi": {
+          "pcr_delta_30d": {
             "anyOf": [
               {
-                "type": "integer"
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Put Oi"
+            "title": "Pcr Delta 30D"
           },
           "pcr_oi": {
             "anyOf": [
               {
-                "type": "string",
-                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
               },
               {
                 "type": "null"
@@ -1986,8 +1396,8 @@
           "pcr_vol": {
             "anyOf": [
               {
-                "type": "string",
-                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
               },
               {
                 "type": "null"
@@ -1995,29 +1405,29 @@
             ],
             "title": "Pcr Vol"
           },
-          "pcr_delta_30d": {
+          "put_oi": {
             "anyOf": [
               {
-                "type": "string",
-                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+                "type": "integer"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Pcr Delta 30D"
+            "title": "Put Oi"
           }
         },
-        "type": "object",
-        "title": "PositioningBlock"
+        "title": "PositioningBlock",
+        "type": "object"
       },
       "ReturnsBlock": {
+        "description": "Wire shape: d1 / w1 / d30. No aliases \u2014 FastAPI would otherwise serialize\nthem as JSON keys and break the frontend contract.",
         "properties": {
           "d1": {
             "anyOf": [
               {
-                "type": "string",
-                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
               },
               {
                 "type": "null"
@@ -2025,37 +1435,59 @@
             ],
             "title": "D1"
           },
-          "w1": {
-            "anyOf": [
-              {
-                "type": "string",
-                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "W1"
-          },
           "d30": {
             "anyOf": [
               {
-                "type": "string",
-                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
               },
               {
                 "type": "null"
               }
             ],
             "title": "D30"
+          },
+          "w1": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "W1"
           }
         },
-        "type": "object",
         "title": "ReturnsBlock",
-        "description": "Wire shape: d1 / w1 / d30. No aliases \u2014 FastAPI would otherwise serialize\nthem as JSON keys and break the frontend contract."
+        "type": "object"
       },
       "SetupBlock": {
         "properties": {
+          "direction": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Direction"
+          },
+          "score": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Score"
+          },
           "type": {
             "anyOf": [
               {
@@ -2066,94 +1498,74 @@
               }
             ],
             "title": "Type"
-          },
-          "direction": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Direction"
-          },
-          "score": {
-            "anyOf": [
-              {
-                "type": "string",
-                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Score"
           }
         },
-        "type": "object",
-        "title": "SetupBlock"
+        "title": "SetupBlock",
+        "type": "object"
       },
       "SetupClassification": {
         "properties": {
-          "setup_type": {
-            "type": "string",
-            "title": "Setup Type"
-          },
-          "label": {
-            "type": "string",
-            "title": "Label"
+          "confirmations": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Confirmations",
+            "type": "array"
           },
           "direction": {
-            "type": "string",
-            "title": "Direction"
+            "title": "Direction",
+            "type": "string"
           },
-          "score": {
-            "type": "string",
-            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
-            "title": "Score"
-          },
-          "confirmations": {
-            "items": {
-              "type": "string"
-            },
-            "type": "array",
-            "title": "Confirmations",
-            "default": []
-          },
-          "warnings": {
-            "items": {
-              "type": "string"
-            },
-            "type": "array",
-            "title": "Warnings",
-            "default": []
+          "label": {
+            "title": "Label",
+            "type": "string"
           },
           "notes": {
-            "type": "string",
+            "default": "",
             "title": "Notes",
-            "default": ""
+            "type": "string"
+          },
+          "score": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Score",
+            "type": "string"
+          },
+          "setup_type": {
+            "title": "Setup Type",
+            "type": "string"
+          },
+          "warnings": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Warnings",
+            "type": "array"
           }
         },
-        "type": "object",
         "required": [
           "setup_type",
           "label",
           "direction",
           "score"
         ],
-        "title": "SetupClassification"
+        "title": "SetupClassification",
+        "type": "object"
       },
       "ShortDataRow": {
         "properties": {
-          "symbol": {
-            "type": "string",
-            "title": "Symbol"
-          },
-          "timestamp": {
-            "type": "string",
-            "format": "date-time",
-            "title": "Timestamp"
+          "fee_rate": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fee Rate"
           },
           "name": {
             "anyOf": [
@@ -2166,6 +1578,18 @@
             ],
             "title": "Name"
           },
+          "rebate_rate": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rebate Rate"
+          },
           "short_shares_available": {
             "anyOf": [
               {
@@ -2177,69 +1601,92 @@
             ],
             "title": "Short Shares Available"
           },
-          "fee_rate": {
-            "anyOf": [
-              {
-                "type": "string",
-                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Fee Rate"
+          "symbol": {
+            "title": "Symbol",
+            "type": "string"
           },
-          "rebate_rate": {
-            "anyOf": [
-              {
-                "type": "string",
-                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Rebate Rate"
+          "timestamp": {
+            "format": "date-time",
+            "title": "Timestamp",
+            "type": "string"
           }
         },
-        "type": "object",
         "required": [
           "symbol",
           "timestamp"
         ],
-        "title": "ShortDataRow"
+        "title": "ShortDataRow",
+        "type": "object"
       },
       "SingleStockReport": {
         "properties": {
-          "run_id": {
-            "type": "integer",
-            "title": "Run Id"
+          "aggregates": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/MarketAggregates"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
-          "ticker": {
-            "type": "string",
-            "title": "Ticker"
+          "dark_pool_notional": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dark Pool Notional"
           },
-          "generated_at": {
-            "type": "string",
-            "format": "date-time",
-            "title": "Generated At"
-          },
-          "short_int_note": {
-            "type": "string",
-            "title": "Short Int Note",
-            "default": "n/a (UW endpoint does not expose %)"
-          },
-          "market_structure": {
-            "$ref": "#/components/schemas/MarketStructure"
-          },
-          "volatility": {
-            "$ref": "#/components/schemas/VolatilityProfile"
+          "dark_pool_print_count": {
+            "default": 0,
+            "title": "Dark Pool Print Count",
+            "type": "integer"
           },
           "flow": {
             "$ref": "#/components/schemas/FlowSnapshot"
           },
-          "vrp": {
-            "$ref": "#/components/schemas/VRPAssessment"
+          "generated_at": {
+            "format": "date-time",
+            "title": "Generated At",
+            "type": "string"
+          },
+          "market_structure": {
+            "$ref": "#/components/schemas/MarketStructure"
+          },
+          "market_structure_levels": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/MarketStructureLevels"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "max_pain_rows": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/MaxPainRow"
+            },
+            "title": "Max Pain Rows",
+            "type": "array"
+          },
+          "oi_change_top": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/OiChangeRow"
+            },
+            "title": "Oi Change Top",
+            "type": "array"
+          },
+          "run_id": {
+            "title": "Run Id",
+            "type": "integer"
           },
           "setup": {
             "anyOf": [
@@ -2251,33 +1698,6 @@
               }
             ]
           },
-          "trade_plan": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/TradePlan"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "dark_pool_notional": {
-            "anyOf": [
-              {
-                "type": "string",
-                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Dark Pool Notional"
-          },
-          "dark_pool_print_count": {
-            "type": "integer",
-            "title": "Dark Pool Print Count",
-            "default": 0
-          },
           "short_data": {
             "anyOf": [
               {
@@ -2288,52 +1708,40 @@
               }
             ]
           },
-          "max_pain_rows": {
-            "items": {
-              "$ref": "#/components/schemas/MaxPainRow"
-            },
-            "type": "array",
-            "title": "Max Pain Rows",
-            "default": []
-          },
-          "oi_change_top": {
-            "items": {
-              "$ref": "#/components/schemas/OiChangeRow"
-            },
-            "type": "array",
-            "title": "Oi Change Top",
-            "default": []
-          },
-          "aggregates": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/MarketAggregates"
-              },
-              {
-                "type": "null"
-              }
-            ]
+          "short_int_note": {
+            "default": "n/a (UW endpoint does not expose %)",
+            "title": "Short Int Note",
+            "type": "string"
           },
           "strike_gex_curve": {
+            "default": [],
             "items": {
               "$ref": "#/components/schemas/StrikeGexBucket"
             },
-            "type": "array",
             "title": "Strike Gex Curve",
-            "default": []
+            "type": "array"
           },
-          "market_structure_levels": {
+          "ticker": {
+            "title": "Ticker",
+            "type": "string"
+          },
+          "trade_plan": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/MarketStructureLevels"
+                "$ref": "#/components/schemas/TradePlan"
               },
               {
                 "type": "null"
               }
             ]
+          },
+          "volatility": {
+            "$ref": "#/components/schemas/VolatilityProfile"
+          },
+          "vrp": {
+            "$ref": "#/components/schemas/VRPAssessment"
           }
         },
-        "type": "object",
         "required": [
           "run_id",
           "ticker",
@@ -2343,15 +1751,16 @@
           "flow",
           "vrp"
         ],
-        "title": "SingleStockReport"
+        "title": "SingleStockReport",
+        "type": "object"
       },
       "SkewBlock": {
         "properties": {
           "rr25d_30dte": {
             "anyOf": [
               {
-                "type": "string",
-                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
               },
               {
                 "type": "null"
@@ -2360,54 +1769,43 @@
             "title": "Rr25D 30Dte"
           }
         },
-        "type": "object",
-        "title": "SkewBlock"
+        "title": "SkewBlock",
+        "type": "object"
       },
       "StockHistoryResponse": {
         "properties": {
-          "ticker": {
-            "type": "string",
-            "title": "Ticker"
-          },
           "rows": {
+            "default": [],
             "items": {
               "$ref": "#/components/schemas/StockHistoryRow"
             },
-            "type": "array",
             "title": "Rows",
-            "default": []
+            "type": "array"
+          },
+          "ticker": {
+            "title": "Ticker",
+            "type": "string"
           }
         },
-        "type": "object",
         "required": [
           "ticker"
         ],
-        "title": "StockHistoryResponse"
+        "title": "StockHistoryResponse",
+        "type": "object"
       },
       "StockHistoryRow": {
+        "description": "One per-trading-day rollup of a ticker's market structure.\n\nBuilt from the latest successful scan_run on that date. spot comes from\ndaily_ohlc.close so it's a stable end-of-day reference (NULL for the\ncurrent trading day until the OHLC pull fires post-close).",
         "properties": {
-          "market_date": {
-            "type": "string",
-            "format": "date",
-            "title": "Market Date"
-          },
-          "spot": {
-            "anyOf": [
-              {
-                "type": "string",
-                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Spot"
+          "bias": {
+            "default": "NEUTRAL",
+            "title": "Bias",
+            "type": "string"
           },
           "gex_flip": {
             "anyOf": [
               {
-                "type": "string",
-                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
               },
               {
                 "type": "null"
@@ -2415,35 +1813,11 @@
             ],
             "title": "Gex Flip"
           },
-          "net_gex": {
-            "anyOf": [
-              {
-                "type": "string",
-                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Net Gex"
-          },
-          "net_dex": {
-            "anyOf": [
-              {
-                "type": "string",
-                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Net Dex"
-          },
           "iv30d": {
             "anyOf": [
               {
-                "type": "string",
-                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
               },
               {
                 "type": "null"
@@ -2451,48 +1825,28 @@
             ],
             "title": "Iv30D"
           },
-          "pcr_vol": {
+          "market_date": {
+            "format": "date",
+            "title": "Market Date",
+            "type": "string"
+          },
+          "net_dex": {
             "anyOf": [
               {
-                "type": "string",
-                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Pcr Vol"
-          },
-          "bias": {
-            "type": "string",
-            "title": "Bias",
-            "default": "NEUTRAL"
-          }
-        },
-        "type": "object",
-        "required": [
-          "market_date"
-        ],
-        "title": "StockHistoryRow",
-        "description": "One per-trading-day rollup of a ticker's market structure.\n\nBuilt from the latest successful scan_run on that date. spot comes from\ndaily_ohlc.close so it's a stable end-of-day reference (NULL for the\ncurrent trading day until the OHLC pull fires post-close)."
-      },
-      "StrikeGexBucket": {
-        "properties": {
-          "strike": {
-            "type": "string",
-            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
-            "title": "Strike"
-          },
-          "expiry": {
-            "type": "string",
-            "format": "date",
-            "title": "Expiry"
+            "title": "Net Dex"
           },
           "net_gex": {
             "anyOf": [
               {
-                "type": "string",
-                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
               },
               {
                 "type": "null"
@@ -2500,11 +1854,45 @@
             ],
             "title": "Net Gex"
           },
+          "pcr_vol": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pcr Vol"
+          },
+          "spot": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Spot"
+          }
+        },
+        "required": [
+          "market_date"
+        ],
+        "title": "StockHistoryRow",
+        "type": "object"
+      },
+      "StrikeGexBucket": {
+        "description": "One row of the per-strike, per-expiry GEX curve persisted on each scan run.",
+        "properties": {
           "call_gex": {
             "anyOf": [
               {
-                "type": "string",
-                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
               },
               {
                 "type": "null"
@@ -2512,54 +1900,67 @@
             ],
             "title": "Call Gex"
           },
+          "expiry": {
+            "format": "date",
+            "title": "Expiry",
+            "type": "string"
+          },
+          "net_gex": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Net Gex"
+          },
           "put_gex": {
             "anyOf": [
               {
-                "type": "string",
-                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
               },
               {
                 "type": "null"
               }
             ],
             "title": "Put Gex"
+          },
+          "strike": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Strike",
+            "type": "string"
           }
         },
-        "type": "object",
         "required": [
           "strike",
           "expiry"
         ],
         "title": "StrikeGexBucket",
-        "description": "One row of the per-strike, per-expiry GEX curve persisted on each scan run."
+        "type": "object"
       },
       "TradePlan": {
         "properties": {
-          "structure": {
-            "type": "string",
-            "title": "Structure"
-          },
           "direction": {
-            "type": "string",
-            "title": "Direction"
+            "title": "Direction",
+            "type": "string"
           },
           "legs": {
+            "default": [],
             "items": {
               "$ref": "#/components/schemas/TradePlanLeg"
             },
-            "type": "array",
             "title": "Legs",
-            "default": []
-          },
-          "rationale": {
-            "type": "string",
-            "title": "Rationale"
+            "type": "array"
           },
           "max_loss": {
             "anyOf": [
               {
-                "type": "string",
-                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
               },
               {
                 "type": "null"
@@ -2570,98 +1971,113 @@
           "max_profit": {
             "anyOf": [
               {
-                "type": "string",
-                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
               },
               {
                 "type": "null"
               }
             ],
             "title": "Max Profit"
+          },
+          "rationale": {
+            "title": "Rationale",
+            "type": "string"
+          },
+          "structure": {
+            "title": "Structure",
+            "type": "string"
           }
         },
-        "type": "object",
         "required": [
           "structure",
           "direction",
           "rationale"
         ],
-        "title": "TradePlan"
+        "title": "TradePlan",
+        "type": "object"
       },
       "TradePlanLeg": {
         "properties": {
-          "option_symbol": {
-            "type": "string",
-            "title": "Option Symbol"
-          },
-          "side": {
-            "type": "string",
-            "title": "Side"
-          },
-          "strike": {
-            "type": "string",
-            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
-            "title": "Strike"
-          },
           "expiry": {
-            "type": "string",
             "format": "date",
-            "title": "Expiry"
+            "title": "Expiry",
+            "type": "string"
           },
           "mid": {
             "anyOf": [
               {
-                "type": "string",
-                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
               },
               {
                 "type": "null"
               }
             ],
             "title": "Mid"
+          },
+          "option_symbol": {
+            "title": "Option Symbol",
+            "type": "string"
+          },
+          "side": {
+            "title": "Side",
+            "type": "string"
+          },
+          "strike": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Strike",
+            "type": "string"
           }
         },
-        "type": "object",
         "required": [
           "option_symbol",
           "side",
           "strike",
           "expiry"
         ],
-        "title": "TradePlanLeg"
+        "title": "TradePlanLeg",
+        "type": "object"
       },
       "VRPAssessment": {
         "properties": {
+          "note": {
+            "title": "Note",
+            "type": "string"
+          },
+          "signal": {
+            "title": "Signal",
+            "type": "string"
+          },
           "vrp": {
             "anyOf": [
               {
-                "type": "string",
-                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
               },
               {
                 "type": "null"
               }
             ],
             "title": "Vrp"
-          },
-          "signal": {
-            "type": "string",
-            "title": "Signal"
-          },
-          "note": {
-            "type": "string",
-            "title": "Note"
           }
         },
-        "type": "object",
         "required": [
           "signal",
           "note"
         ],
-        "title": "VRPAssessment"
+        "title": "VRPAssessment",
+        "type": "object"
       },
       "ValidationError": {
         "properties": {
+          "ctx": {
+            "title": "Context",
+            "type": "object"
+          },
+          "input": {
+            "title": "Input"
+          },
           "loc": {
             "items": {
               "anyOf": [
@@ -2673,148 +2089,33 @@
                 }
               ]
             },
-            "type": "array",
-            "title": "Location"
+            "title": "Location",
+            "type": "array"
           },
           "msg": {
-            "type": "string",
-            "title": "Message"
+            "title": "Message",
+            "type": "string"
           },
           "type": {
-            "type": "string",
-            "title": "Error Type"
-          },
-          "input": {
-            "title": "Input"
-          },
-          "ctx": {
-            "type": "object",
-            "title": "Context"
+            "title": "Error Type",
+            "type": "string"
           }
         },
-        "type": "object",
         "required": [
           "loc",
           "msg",
           "type"
         ],
-        "title": "ValidationError"
+        "title": "ValidationError",
+        "type": "object"
       },
       "VolatilityProfile": {
         "properties": {
-          "iv": {
-            "anyOf": [
-              {
-                "type": "string",
-                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Iv"
-          },
-          "iv_rank": {
-            "anyOf": [
-              {
-                "type": "string",
-                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Iv Rank"
-          },
-          "iv_low_52w": {
-            "anyOf": [
-              {
-                "type": "string",
-                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Iv Low 52W"
-          },
-          "iv_high_52w": {
-            "anyOf": [
-              {
-                "type": "string",
-                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Iv High 52W"
-          },
-          "rv": {
-            "anyOf": [
-              {
-                "type": "string",
-                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Rv"
-          },
-          "rv_low_52w": {
-            "anyOf": [
-              {
-                "type": "string",
-                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Rv Low 52W"
-          },
-          "rv_high_52w": {
-            "anyOf": [
-              {
-                "type": "string",
-                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Rv High 52W"
-          },
-          "iv_rank_1y": {
-            "anyOf": [
-              {
-                "type": "string",
-                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Iv Rank 1Y"
-          },
-          "iv_percentile_30d": {
-            "anyOf": [
-              {
-                "type": "string",
-                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Iv Percentile 30D"
-          },
           "implied_move_30d_perc": {
             "anyOf": [
               {
-                "type": "string",
-                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
               },
               {
                 "type": "null"
@@ -2822,11 +2123,119 @@
             ],
             "title": "Implied Move 30D Perc"
           },
+          "iv": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Iv"
+          },
+          "iv_high_52w": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Iv High 52W"
+          },
+          "iv_low_52w": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Iv Low 52W"
+          },
+          "iv_percentile_30d": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Iv Percentile 30D"
+          },
+          "iv_rank": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Iv Rank"
+          },
+          "iv_rank_1y": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Iv Rank 1Y"
+          },
+          "rv": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rv"
+          },
+          "rv_high_52w": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rv High 52W"
+          },
+          "rv_low_52w": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rv Low 52W"
+          },
           "skew_25d": {
             "anyOf": [
               {
-                "type": "string",
-                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
               },
               {
                 "type": "null"
@@ -2835,51 +2244,110 @@
             "title": "Skew 25D"
           },
           "term_dte_to_iv": {
+            "default": [],
             "items": {
+              "maxItems": 2,
+              "minItems": 2,
               "prefixItems": [
                 {
                   "type": "integer"
                 },
                 {
-                  "type": "string",
-                  "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+                  "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                  "type": "string"
                 }
               ],
-              "type": "array",
-              "maxItems": 2,
-              "minItems": 2
+              "type": "array"
             },
-            "type": "array",
             "title": "Term Dte To Iv",
-            "default": []
+            "type": "array"
           }
         },
-        "type": "object",
-        "title": "VolatilityProfile"
+        "title": "VolatilityProfile",
+        "type": "object"
       },
       "WatchlistCard": {
         "properties": {
-          "ticker": {
-            "type": "string",
-            "title": "Ticker"
+          "aggression_pct": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Aggression Pct"
           },
-          "sector": {
-            "type": "string",
-            "title": "Sector"
+          "gamma": {
+            "$ref": "#/components/schemas/GammaBlock"
+          },
+          "iv_atm": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Iv Atm"
+          },
+          "iv_rank": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Iv Rank"
           },
           "pinned": {
-            "type": "boolean",
-            "title": "Pinned"
+            "title": "Pinned",
+            "type": "boolean"
+          },
+          "positioning": {
+            "$ref": "#/components/schemas/PositioningBlock"
+          },
+          "returns": {
+            "$ref": "#/components/schemas/ReturnsBlock"
+          },
+          "scanned_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Scanned At"
+          },
+          "sector": {
+            "title": "Sector",
+            "type": "string"
+          },
+          "setup": {
+            "$ref": "#/components/schemas/SetupBlock"
+          },
+          "skew": {
+            "$ref": "#/components/schemas/SkewBlock"
           },
           "sort_rank": {
-            "type": "integer",
-            "title": "Sort Rank"
+            "title": "Sort Rank",
+            "type": "integer"
           },
           "spot": {
             "anyOf": [
               {
-                "type": "string",
-                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
               },
               {
                 "type": "null"
@@ -2890,8 +2358,8 @@
           "spot_quoted_at": {
             "anyOf": [
               {
-                "type": "string",
-                "format": "date-time"
+                "format": "date-time",
+                "type": "string"
               },
               {
                 "type": "null"
@@ -2910,71 +2378,11 @@
             ],
             "title": "Spot Source"
           },
-          "scanned_at": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "date-time"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Scanned At"
-          },
-          "iv_atm": {
-            "anyOf": [
-              {
-                "type": "string",
-                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Iv Atm"
-          },
-          "iv_rank": {
-            "anyOf": [
-              {
-                "type": "string",
-                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Iv Rank"
-          },
-          "setup": {
-            "$ref": "#/components/schemas/SetupBlock"
-          },
-          "aggression_pct": {
-            "anyOf": [
-              {
-                "type": "string",
-                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Aggression Pct"
-          },
-          "returns": {
-            "$ref": "#/components/schemas/ReturnsBlock"
-          },
-          "gamma": {
-            "$ref": "#/components/schemas/GammaBlock"
-          },
-          "skew": {
-            "$ref": "#/components/schemas/SkewBlock"
-          },
-          "positioning": {
-            "$ref": "#/components/schemas/PositioningBlock"
+          "ticker": {
+            "title": "Ticker",
+            "type": "string"
           }
         },
-        "type": "object",
         "required": [
           "ticker",
           "sector",
@@ -2986,18 +2394,11 @@
           "skew",
           "positioning"
         ],
-        "title": "WatchlistCard"
+        "title": "WatchlistCard",
+        "type": "object"
       },
       "WatchlistMutation": {
         "properties": {
-          "ticker": {
-            "type": "string",
-            "title": "Ticker"
-          },
-          "sector": {
-            "type": "string",
-            "title": "Sector"
-          },
           "notes": {
             "anyOf": [
               {
@@ -3010,36 +2411,33 @@
             "title": "Notes"
           },
           "pinned": {
-            "type": "boolean",
+            "default": false,
             "title": "Pinned",
-            "default": false
+            "type": "boolean"
+          },
+          "sector": {
+            "title": "Sector",
+            "type": "string"
           },
           "sort_rank": {
-            "type": "integer",
+            "default": 0,
             "title": "Sort Rank",
-            "default": 0
+            "type": "integer"
+          },
+          "ticker": {
+            "title": "Ticker",
+            "type": "string"
           }
         },
-        "type": "object",
         "required": [
           "ticker",
           "sector"
         ],
-        "title": "WatchlistMutation"
+        "title": "WatchlistMutation",
+        "type": "object"
       },
       "WatchlistPatch": {
         "properties": {
-          "sector": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Sector"
-          },
           "notes": {
             "anyOf": [
               {
@@ -3062,6 +2460,17 @@
             ],
             "title": "Pinned"
           },
+          "sector": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sector"
+          },
           "sort_rank": {
             "anyOf": [
               {
@@ -3074,34 +2483,34 @@
             "title": "Sort Rank"
           }
         },
-        "type": "object",
-        "title": "WatchlistPatch"
+        "title": "WatchlistPatch",
+        "type": "object"
       },
       "WatchlistResponse": {
         "properties": {
-          "scanned_at_min": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "date-time"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Scanned At Min"
-          },
           "scanned_at_max": {
             "anyOf": [
               {
-                "type": "string",
-                "format": "date-time"
+                "format": "date-time",
+                "type": "string"
               },
               {
                 "type": "null"
               }
             ],
             "title": "Scanned At Max"
+          },
+          "scanned_at_min": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Scanned At Min"
           },
           "scheduler_lag_seconds": {
             "anyOf": [
@@ -3118,15 +2527,609 @@
             "items": {
               "$ref": "#/components/schemas/WatchlistCard"
             },
-            "type": "array",
-            "title": "Tickers"
+            "title": "Tickers",
+            "type": "array"
           }
         },
-        "type": "object",
         "required": [
           "tickers"
         ],
-        "title": "WatchlistResponse"
+        "title": "WatchlistResponse",
+        "type": "object"
+      }
+    }
+  },
+  "info": {
+    "title": "UW Watchlist API",
+    "version": "0.1.0"
+  },
+  "openapi": "3.1.0",
+  "paths": {
+    "/api/health": {
+      "get": {
+        "operationId": "health_api_health_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Health",
+        "tags": [
+          "health"
+        ]
+      }
+    },
+    "/api/jobs/{job_id}": {
+      "get": {
+        "operationId": "get_job_api_jobs__job_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "job_id",
+            "required": true,
+            "schema": {
+              "title": "Job Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobStatus"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Job",
+        "tags": [
+          "jobs"
+        ]
+      }
+    },
+    "/api/ohlc/{ticker}": {
+      "get": {
+        "operationId": "get_ohlc_api_ohlc__ticker__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "ticker",
+            "required": true,
+            "schema": {
+              "title": "Ticker",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "days",
+            "required": false,
+            "schema": {
+              "default": 30,
+              "maximum": 365,
+              "minimum": 1,
+              "title": "Days",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/OhlcRow"
+                  },
+                  "title": "Response Get Ohlc Api Ohlc  Ticker  Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Ohlc",
+        "tags": [
+          "ohlc"
+        ]
+      }
+    },
+    "/api/stock/{ticker}": {
+      "get": {
+        "operationId": "get_stock_api_stock__ticker__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "ticker",
+            "required": true,
+            "schema": {
+              "title": "Ticker",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SingleStockReport"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Stock",
+        "tags": [
+          "stock"
+        ]
+      }
+    },
+    "/api/stock/{ticker}/history": {
+      "get": {
+        "description": "Daily rollup for the Market Structure tab's history table.\n\nOne row per trading day, sorted newest-first. Today's row may have\nspot=None if the post-close OHLC pull hasn't fired yet.",
+        "operationId": "get_stock_history_api_stock__ticker__history_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "ticker",
+            "required": true,
+            "schema": {
+              "title": "Ticker",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StockHistoryResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Stock History",
+        "tags": [
+          "stock"
+        ]
+      }
+    },
+    "/api/stock/{ticker}/runs": {
+      "get": {
+        "operationId": "list_runs_api_stock__ticker__runs_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "ticker",
+            "required": true,
+            "schema": {
+              "title": "Ticker",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "additionalProperties": true,
+                    "type": "object"
+                  },
+                  "title": "Response List Runs Api Stock  Ticker  Runs Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Runs",
+        "tags": [
+          "stock"
+        ]
+      }
+    },
+    "/api/stock/{ticker}/runs/{run_id}": {
+      "get": {
+        "operationId": "get_specific_run_api_stock__ticker__runs__run_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "ticker",
+            "required": true,
+            "schema": {
+              "title": "Ticker",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "run_id",
+            "required": true,
+            "schema": {
+              "title": "Run Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SingleStockReport"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Specific Run",
+        "tags": [
+          "stock"
+        ]
+      }
+    },
+    "/api/stock/{ticker}/volatility/series": {
+      "get": {}
+    },
+    "/api/watchlist": {
+      "get": {
+        "operationId": "get_watchlist_api_watchlist_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "sector",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Sector"
+            }
+          },
+          {
+            "description": "e.g. 'C-bull', 'C-bear', 'F-MULTI', 'NEUTRAL'",
+            "in": "query",
+            "name": "setup",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "e.g. 'C-bull', 'C-bear', 'F-MULTI', 'NEUTRAL'",
+              "title": "Setup"
+            }
+          },
+          {
+            "in": "query",
+            "name": "fresh_within_minutes",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "minimum": 1,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Fresh Within Minutes"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WatchlistResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Watchlist",
+        "tags": [
+          "watchlist"
+        ]
+      },
+      "post": {
+        "operationId": "post_watchlist_api_watchlist_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WatchlistMutation"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Post Watchlist Api Watchlist Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Post Watchlist",
+        "tags": [
+          "watchlist"
+        ]
+      }
+    },
+    "/api/watchlist/rescan-all": {
+      "post": {
+        "description": "Enqueue a rescan job for every active watchlist ticker.",
+        "operationId": "enqueue_rescan_all_api_watchlist_rescan_all_post",
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/JobStatus"
+                  },
+                  "title": "Response Enqueue Rescan All Api Watchlist Rescan All Post",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Enqueue Rescan All",
+        "tags": [
+          "jobs"
+        ]
+      }
+    },
+    "/api/watchlist/{ticker}": {
+      "delete": {
+        "operationId": "delete_watchlist_api_watchlist__ticker__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "ticker",
+            "required": true,
+            "schema": {
+              "title": "Ticker",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Delete Watchlist",
+        "tags": [
+          "watchlist"
+        ]
+      },
+      "patch": {
+        "operationId": "patch_watchlist_api_watchlist__ticker__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "ticker",
+            "required": true,
+            "schema": {
+              "title": "Ticker",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WatchlistPatch"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Patch Watchlist Api Watchlist  Ticker  Patch",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Patch Watchlist",
+        "tags": [
+          "watchlist"
+        ]
+      }
+    },
+    "/api/watchlist/{ticker}/rescan": {
+      "post": {
+        "operationId": "enqueue_rescan_api_watchlist__ticker__rescan_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "ticker",
+            "required": true,
+            "schema": {
+              "title": "Ticker",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobStatus"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Enqueue Rescan",
+        "tags": [
+          "jobs"
+        ]
       }
     }
   }

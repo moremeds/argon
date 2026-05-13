@@ -6,7 +6,6 @@ const TABS = [
   ["market-structure", "Market Structure"],
   ["volatility", "Volatility"],
   ["flow", "Flow"],
-  ["vrp", "VRP"],
   ["trade-plan", "Trade Plan"],
   ["tables", "Tables"],
 ] as const;

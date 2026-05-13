@@ -144,7 +144,7 @@ def _build_market_structure(
     )
 
 
-def _build_volatility_profile(
+def build_volatility_profile(
     repo: Repository, run_id: int, ticker: str
 ) -> VolatilityProfile:
     iv_rank_row = repo.fetch_iv_rank_latest(ticker) or {}
@@ -178,7 +178,7 @@ def _build_volatility_profile(
     )
 
 
-def _build_vrp(vol: VolatilityProfile) -> VRPAssessment:
+def build_vrp(vol: VolatilityProfile) -> VRPAssessment:
     if vol.iv is None or vol.rv is None:
         return VRPAssessment(vrp=None, signal="unknown", note="IV or RV unavailable")
     vrp = vol.iv - vol.rv
@@ -386,8 +386,8 @@ def assemble_single_stock_report(
         )
 
     market_structure = _build_market_structure(repo, run_id, ticker, max_pain_rows)
-    vol = _build_volatility_profile(repo, run_id, ticker)
-    vrp = _build_vrp(vol)
+    vol = build_volatility_profile(repo, run_id, ticker)
+    vrp = build_vrp(vol)
 
     dp_count, dp_notional = repo.fetch_dark_pool_summary(run_id)
     short_data = _build_short_data_model(repo.fetch_short_interest_snapshot(run_id))
