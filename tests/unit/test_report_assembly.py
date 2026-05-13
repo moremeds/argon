@@ -179,6 +179,12 @@ class _StubRepo:
     def fetch_option_contracts(self, run_id: int, ticker: str) -> list[dict]:
         return []
 
+    def get_strike_gex_curve(self, run_id: int) -> list[dict]:
+        return []
+
+    def get_aggregates(self, run_id: int):
+        return None
+
 
 def test_assemble_single_stock_report_populates_sections():
     repo = _StubRepo()

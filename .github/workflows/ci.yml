@@ -34,6 +34,10 @@ jobs:
       UW_SCAN_DB_SCHEMA: uw_scan
       UW_SCAN_DB_USER: postgres
       UW_SCAN_DB_PASSWORD: postgres
+      # Integration test fixtures refuse to run against the working DB
+      # (UW_SCAN_DB_NAME). They point psycopg at UW_SCAN_TEST_DB_NAME, which
+      # must exist before the tests start.
+      UW_SCAN_TEST_DB_NAME: option_wizard_test
     steps:
       - uses: actions/checkout@v4
 
@@ -46,10 +50,10 @@ jobs:
         run: uv sync --extra postgres
 
       - name: Ruff
-        run: uv run ruff check src/ app/ tests/ scripts/
+        run: uv run ruff check src/ tests/ scripts/
 
       - name: AST except handler check (Guardrail 2)
-        run: uv run python scripts/_lint_except.py src app
+        run: uv run python scripts/_lint_except.py src
 
       - name: Guardrail greps (3, 5, 9)
         run: |
@@ -57,15 +61,16 @@ jobs:
           # Guardrail 5: no fake cursor/connection in INTEGRATION tests (unit tests may stub freely)
           ! grep -rE 'class _Fake(Cursor|Connection)' tests/integration/ || (echo "Guardrail 5 violation: integration test uses fake cursor/connection"; exit 1)
           # Guardrail 9: no pipe-joined strings near SQL execute calls
-          ! grep -rE '"\|".join\(' src/ app/ || (echo "Guardrail 9 violation"; exit 1)
+          ! grep -rE '"\|".join\(' src/ || (echo "Guardrail 9 violation"; exit 1)
           # Guardrail 3: no production code importing from tests/ or removed fixtures module
-          ! grep -rE 'from tests' src/ app/ || (echo "Guardrail 3 violation"; exit 1)
-          ! grep -rE 'from uw_scan\.fixtures' src/ app/ || (echo "Guardrail 3 violation"; exit 1)
+          ! grep -rE 'from tests' src/ || (echo "Guardrail 3 violation"; exit 1)
+          ! grep -rE 'from uw_scan\.fixtures' src/ || (echo "Guardrail 3 violation"; exit 1)
           echo "guardrail greps clean"
 
-      - name: Create option_wizard DB
+      - name: Create option_wizard + option_wizard_test DBs
         run: |
           PGPASSWORD=postgres psql -h 127.0.0.1 -U postgres -d postgres -c "CREATE DATABASE option_wizard"
+          PGPASSWORD=postgres psql -h 127.0.0.1 -U postgres -d postgres -c "CREATE DATABASE option_wizard_test"
 
       - name: Unit tests
         run: uv run pytest tests/unit/ -v

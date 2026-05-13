@@ -446,6 +446,36 @@ class ScanReport(_UwBase):
     top_pick: str | None = None
 
 
+class MarketAggregates(_UwBase):
+    """Per-ticker aggregate fields sourced from the bulk-screener endpoint.
+
+    Populated by pipeline.run_single_stock alongside the existing per-section
+    sub-models. Feeds the watchlist card POSITIONING and SKEW blocks.
+    """
+
+    call_oi_total: int | None = None
+    put_oi_total: int | None = None
+    call_volume_total: int | None = None
+    put_volume_total: int | None = None
+    call_volume_ask_side: int | None = None
+    call_volume_bid_side: int | None = None
+    put_volume_ask_side: int | None = None
+    put_volume_bid_side: int | None = None
+    pcr_oi: Decimal | None = None
+    pcr_vol: Decimal | None = None
+    iv30d: Decimal | None = None
+
+
+class StrikeGexBucket(_UwBase):
+    """One row of the per-strike, per-expiry GEX curve persisted on each scan run."""
+
+    strike: Decimal
+    expiry: _date
+    net_gex: Decimal | None = None
+    call_gex: Decimal | None = None
+    put_gex: Decimal | None = None
+
+
 class SingleStockReport(_UwBase):
     run_id: int
     ticker: str
@@ -462,3 +492,5 @@ class SingleStockReport(_UwBase):
     short_data: ShortDataRow | None = None
     max_pain_rows: list[MaxPainRow] = []
     oi_change_top: list[OiChangeRow] = []
+    aggregates: MarketAggregates | None = None
+    strike_gex_curve: list[StrikeGexBucket] = []
