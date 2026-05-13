@@ -219,10 +219,106 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/stock/{ticker}/trade-insights": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Trade Insights */
+        get: operations["get_trade_insights_api_stock__ticker__trade_insights_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** CandidateStructure */
+        CandidateStructure: {
+            /** Idea Id */
+            idea_id: string;
+            /** Structure */
+            structure: string;
+            /** Thesis */
+            thesis: string;
+            /** Expression Type */
+            expression_type: string;
+            /**
+             * Legs
+             * @default []
+             */
+            legs: components["schemas"]["InsightLeg"][];
+            /** Net Credit Debit */
+            net_credit_debit?: string | null;
+            /** Max Profit */
+            max_profit?: string | null;
+            /** Max Loss */
+            max_loss?: string | null;
+            /**
+             * Breakevens
+             * @default []
+             */
+            breakevens: string[];
+            /**
+             * Profit Zone
+             * @default
+             */
+            profit_zone: string;
+            /**
+             * Edge Source
+             * @default
+             */
+            edge_source: string;
+            /**
+             * Risk Flags
+             * @default []
+             */
+            risk_flags: string[];
+            /** Rank */
+            rank: number;
+            /**
+             * Status
+             * @default candidate
+             */
+            status: string;
+        };
+        /** ChainFlowReadRow */
+        ChainFlowReadRow: {
+            /** Strike */
+            strike: string;
+            /** Call Volume */
+            call_volume?: number | null;
+            /** Call Open Interest */
+            call_open_interest?: number | null;
+            /** Put Volume */
+            put_volume?: number | null;
+            /** Put Open Interest */
+            put_open_interest?: number | null;
+            /** Call Put Volume Ratio */
+            call_put_volume_ratio?: string | null;
+            /**
+             * Volume Oi Note
+             * @default
+             */
+            volume_oi_note: string;
+            /**
+             * Read
+             * @default
+             */
+            read: string;
+            /**
+             * Requires T1 Oi Confirmation
+             * @default false
+             */
+            requires_t1_oi_confirmation: boolean;
+        };
         /** DivergencePoint */
         DivergencePoint: {
             /**
@@ -384,6 +480,75 @@ export interface components {
             uw_today?: number | null;
             /** Cache Hit Pct */
             cache_hit_pct?: number | null;
+        };
+        /** InsightBadge */
+        InsightBadge: {
+            /** Code */
+            code: string;
+            /** Label */
+            label: string;
+            /**
+             * Severity
+             * @default info
+             */
+            severity: string;
+        };
+        /** InsightLeg */
+        InsightLeg: {
+            /** Side */
+            side: string;
+            /** Option Symbol */
+            option_symbol: string;
+            /** Option Right */
+            option_right: string;
+            /**
+             * Expiry
+             * Format: date
+             */
+            expiry: string;
+            /** Strike */
+            strike: string;
+            /** Mid */
+            mid?: string | null;
+        };
+        /** InsightSignalRow */
+        InsightSignalRow: {
+            /** Lens */
+            lens: string;
+            /** Read */
+            read: string;
+            /**
+             * Evidence
+             * @default []
+             */
+            evidence: string[];
+            /**
+             * Conflicts
+             * @default []
+             */
+            conflicts: string[];
+        };
+        /** InsightsSynthesis */
+        InsightsSynthesis: {
+            /**
+             * Dominant Story
+             * @default
+             */
+            dominant_story: string;
+            /** Preferred Idea Id */
+            preferred_idea_id?: string | null;
+            /** Best Risk Reward Idea Id */
+            best_risk_reward_idea_id?: string | null;
+            /**
+             * Avoid
+             * @default []
+             */
+            avoid: string[];
+            /**
+             * Required Before Sizing
+             * @default []
+             */
+            required_before_sizing: string[];
         };
         /** IvHistogramBin */
         IvHistogramBin: {
@@ -920,6 +1085,61 @@ export interface components {
             /** Iv */
             iv?: string | null;
         };
+        /** SourceReconciliation */
+        SourceReconciliation: {
+            /**
+             * Status
+             * @default UNKNOWN
+             */
+            status: string;
+            /**
+             * Headline
+             * @default Source reconciliation unavailable
+             */
+            headline: string;
+            /** Primary Iv Source */
+            primary_iv_source?: string | null;
+            /** Relative Shape Source */
+            relative_shape_source?: string | null;
+            /**
+             * Rows
+             * @default []
+             */
+            rows: components["schemas"]["SourceReconciliationRow"][];
+            /**
+             * Decision
+             * @default Use deterministic data only where source agreement is understood.
+             */
+            decision: string;
+        };
+        /** SourceReconciliationRow */
+        SourceReconciliationRow: {
+            /** Source Pair */
+            source_pair: string;
+            /**
+             * Price Agreement
+             * @default
+             */
+            price_agreement: string;
+            /**
+             * Iv Agreement
+             * @default
+             */
+            iv_agreement: string;
+            /**
+             * Decision
+             * @default
+             */
+            decision: string;
+            /** Strike */
+            strike?: string | null;
+            /** Source A Call Iv */
+            source_a_call_iv?: string | null;
+            /** Source B Call Iv */
+            source_b_call_iv?: string | null;
+            /** Iv Diff */
+            iv_diff?: string | null;
+        };
         /** StockHistoryResponse */
         StockHistoryResponse: {
             /** Ticker */
@@ -981,6 +1201,27 @@ export interface components {
             /** Put Gex */
             put_gex?: string | null;
         };
+        /** TermMoveRow */
+        TermMoveRow: {
+            /**
+             * Expiry
+             * Format: date
+             */
+            expiry: string;
+            /** Dte */
+            dte?: number | null;
+            /** Atm Straddle */
+            atm_straddle?: string | null;
+            /** Implied Move Perc */
+            implied_move_perc?: string | null;
+            /** Daily Implied Move Perc */
+            daily_implied_move_perc?: string | null;
+            /**
+             * Read
+             * @default
+             */
+            read: string;
+        };
         /** TermStructureExpiryRow */
         TermStructureExpiryRow: {
             /**
@@ -1004,6 +1245,91 @@ export interface components {
             strikes: {
                 [key: string]: string;
             };
+        };
+        /** TradeInsightsHeader */
+        TradeInsightsHeader: {
+            /**
+             * Dominant Bias
+             * @default NEUTRAL
+             */
+            dominant_bias: string;
+            /**
+             * Primary Setup
+             * @default NO_CLEAR_SETUP
+             */
+            primary_setup: string;
+            /**
+             * Confidence Label
+             * @default LOW
+             */
+            confidence_label: string;
+            /**
+             * Data Quality Label
+             * @default INSUFFICIENT
+             */
+            data_quality_label: string;
+            /**
+             * Idea Count
+             * @default 0
+             */
+            idea_count: number;
+            /** Preferred Idea Id */
+            preferred_idea_id?: string | null;
+            /**
+             * Badges
+             * @default []
+             */
+            badges: components["schemas"]["InsightBadge"][];
+        };
+        /** TradeInsightsResponse */
+        TradeInsightsResponse: {
+            /** Ticker */
+            ticker: string;
+            /** As Of */
+            as_of?: string | null;
+            /**
+             * Mode
+             * @default research
+             */
+            mode: string;
+            header: components["schemas"]["TradeInsightsHeader"];
+            /**
+             * @default {
+             *       "status": "UNKNOWN",
+             *       "headline": "Source reconciliation unavailable",
+             *       "rows": [],
+             *       "decision": "Use deterministic data only where source agreement is understood."
+             *     }
+             */
+            source_reconciliation: components["schemas"]["SourceReconciliation"];
+            /**
+             * Signal Stack
+             * @default []
+             */
+            signal_stack: components["schemas"]["InsightSignalRow"][];
+            /**
+             * Flow Table
+             * @default []
+             */
+            flow_table: components["schemas"]["ChainFlowReadRow"][];
+            /**
+             * Term Structure Table
+             * @default []
+             */
+            term_structure_table: components["schemas"]["TermMoveRow"][];
+            /**
+             * Candidate Structures
+             * @default []
+             */
+            candidate_structures: components["schemas"]["CandidateStructure"][];
+            /**
+             * @default {
+             *       "dominant_story": "",
+             *       "avoid": [],
+             *       "required_before_sizing": []
+             *     }
+             */
+            synthesis: components["schemas"]["InsightsSynthesis"];
         };
         /** TradePlan */
         TradePlan: {
@@ -1710,6 +2036,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["VolatilitySeriesResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_trade_insights_api_stock__ticker__trade_insights_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                ticker: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TradeInsightsResponse"];
                 };
             };
             /** @description Validation Error */
