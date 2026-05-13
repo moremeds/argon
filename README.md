@@ -1,32 +1,109 @@
 # Unusual Whales Opportunity Scanner
 
-Per-ticker options analytics, watchlist-driven. Next.js (web) + FastAPI (API) + APScheduler (worker) backed by Postgres, sourced from Unusual Whales and massive.com.
+Per-ticker options analytics, watchlist-driven. A worker pulls flow, gamma, IV surface, and OHLC into Postgres; a Next.js UI turns that into two views — a **dashboard** for triage across the watchlist and a **stock page** for the why behind each name.
 
-## Status
+Data: Unusual Whales (flow, IV, GEX) + massive.com (OHLC). Postgres `option_wizard.uw_scan`.
 
-Active rework (2026-05-12) replaces the Streamlit prototype with a card-grid watchlist landing page and a regime-style detail page. Backend is additive on top of the existing `src/uw_scan/` pipeline; the prior Streamlit UI has been archived.
+---
 
-- Spec: [`docs/superpowers/specs/2026-05-12-uw-watchlist-ui-rework-design.md`](docs/superpowers/specs/2026-05-12-uw-watchlist-ui-rework-design.md)
-- Plan: [`docs/superpowers/plans/2026-05-12-uw-watchlist-ui-rework-plan.md`](docs/superpowers/plans/2026-05-12-uw-watchlist-ui-rework-plan.md)
+## Dashboard — triage across the watchlist
 
-## Local Setup
+`http://127.0.0.1:3001/`
+
+![Dashboard](docs/screenshots/dashboard.png)
+
+A grid of ticker cards, one per name on the watchlist. Filter by sector / setup / freshness. Each card is a one-glance read of "is this stock worth opening today?"
+
+### What a card shows
+
+![Single ticker card](docs/screenshots/dashboard-card.png)
+
+| Block | What it tells you |
+|---|---|
+| **Header** — ticker, last, day % | Spot + intraday move. Color = sign of the day. |
+| **Setup badge** (`NEUTRAL` / `MOMENTUM` / `MEAN-REVERT` / …) | Classifier output from the latest scan. |
+| **IVR** (top-right) | IV Rank (0–100). High = expensive options today vs the last year. |
+| **Sparkline + 1d/1w/30d** | 30-session close path; quick read on trend and drawdown. |
+| **Flow aggression dial** | 0–100 score from UW flow alerts — how aggressive today's prints are (size, premium, urgency). |
+| **GAMMA block** | GEX flip distance + flip price, GEX per 1% move, max GEX strike, % of total GEX expiring soon. Tells you where dealers will push price. |
+| **SKEW (30d) / 25Δ RR** | Risk reversal — sign and magnitude of put-vs-call demand. |
+| **POSITIONING** | Raw call/put counts + put/call ratios (OI, volume, 30d Δ). Bar shows balance at a glance. |
+
+Cards refresh on the worker's full-scan cron (`0 9-16 * * 1-5` ET) and on demand via the **rescan** button.
+
+---
+
+## Stock page — the why behind a single name
+
+`http://127.0.0.1:3001/stock/<TICKER>` — five tabs.
+
+### Market Structure (default)
+
+![Market Structure tab](docs/screenshots/stock-market-structure.png)
+
+The dealer-positioning view. Built from UW spot-exposure and per-strike GEX.
+
+- **Top row tiles** — spot, GEX flip, net GEX (gamma at spot), net DEX (delta at spot), IV 30d, vol P/C
+- **Level tiles** — GEX flip support, max magnet, secondary magnet, max acceleration zone, put wall
+- **Expected range bar** — today's expected high/low vs flip + close, scaled to IV
+- **Directional bias panel** — classifier reasoning (above/below flip, net GEX sign, magnet pull)
+- **GEX profile chart** — net gamma by strike, with call/put walls labeled. Where dealers buy or sell to delta-hedge.
+
+### Volatility
+
+![Volatility tab](docs/screenshots/stock-volatility.png)
+
+The IV-surface view. Today's snapshot tiles on top, analytical time series below.
+
+**Today's snapshot:** VRP (IV minus realized — the vol risk premium), ATM IV, RV, IV Rank, IV %ile 30d, implied move 30d, 52w highs/lows for IV and RV, 25Δ skew.
+
+**Analytical series:**
+- **IV / IV-of-IV** — level of IV and volatility of IV (regime stability)
+- **RV / SPY-corr 1M** — realized vol vs rolling correlation to SPY (idio vs systematic)
+- **Regime Quadrant** — 20 sessions plotted by (IV-z, RV-corr) with a corr-cutoff divider; the active dot is today
+- **IV-z vs RV-z** — 20-session standardized overlay
+- **Smile** — today's IV by strike, one curve per expiration date, spot marker
+- **Term Structure** — ATM IV by expiry out to next year-end
+- **VRP Spread Panel** — IV (fwd ~30d) vs RV (trailing 21d); the lag is the VRP
+- **IV Percentile Distribution** — where today sits in the 1y IV histogram
+
+A backfill kicks automatically the first time you open the tab for a ticker; subsequent loads serve from Postgres.
+
+### Flow, Trade Plan, Tables
+
+- **Flow** — UW flow alerts and dark pool prints for the day, filterable
+- **Trade Plan** — defined-risk structure suggestions consistent with the regime + IV surface
+- **Tables** — raw rows behind the views (greek exposure, OI per strike, max pain, …) for verification
+
+---
+
+## Run it
 
 ```bash
 uv sync --extra postgres
-cp .env.example .env
-# Fill in UW_SCAN_API_KEY and MASSIVE_API_KEY.
+cp .env.example .env       # fill UW_SCAN_API_KEY + MASSIVE_API_KEY
 
-# Apply migrations against the local Postgres `option_wizard.uw_scan` schema:
-bash scripts/migrate.sh
-
-# Boot all three processes:
-bash scripts/dev.sh
+bash scripts/migrate.sh    # idempotent SQL migrations against option_wizard.uw_scan
+bash scripts/dev.sh        # next (3001) + fastapi (8400) + worker, concurrent
 ```
 
-Next.js dev server: <http://127.0.0.1:3001>
-FastAPI dev server: <http://127.0.0.1:8400>
-FastAPI OpenAPI: <http://127.0.0.1:8400/openapi.json>
+- Web: <http://127.0.0.1:3001>
+- API: <http://127.0.0.1:8400>
+- OpenAPI: <http://127.0.0.1:8400/openapi.json>
 
-## Database
+## Architecture in one breath
 
-Local Postgres database `option_wizard`, schema `uw_scan`. Migrations and integration tests run against a real local Postgres — fake cursors are explicitly banned (see Implementation Guardrails in the spec).
+```
+UW + massive.com  →  worker (APScheduler, src/uw_scan/worker)
+                  →  Postgres uw_scan.*
+                  →  FastAPI (src/uw_scan/api, port 8400)
+                  →  Next.js 16 + React 19 (web/, port 3001)
+```
+
+Three processes, one database, one schema. The worker is the only writer; the API is read-only; mutations cross through `/api/jobs` and are drained by the worker's 1s rescan loop.
+
+Details by layer live in the `CLAUDE.md` files under `src/uw_scan/`, `web/`, and `tests/`.
+
+## Status
+
+Active rework (2026-05-12 onward) — Streamlit prototype replaced with a card-grid dashboard and a tabbed regime-style detail page. Specs and plans live under [`docs/superpowers/`](docs/superpowers/).
