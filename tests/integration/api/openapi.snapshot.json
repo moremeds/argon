@@ -1,6 +1,238 @@
 {
   "components": {
     "schemas": {
+      "CandidateStructure": {
+        "properties": {
+          "breakevens": {
+            "default": [],
+            "items": {
+              "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+              "type": "string"
+            },
+            "title": "Breakevens",
+            "type": "array"
+          },
+          "edge_source": {
+            "default": "",
+            "title": "Edge Source",
+            "type": "string"
+          },
+          "expression_type": {
+            "title": "Expression Type",
+            "type": "string"
+          },
+          "idea_id": {
+            "title": "Idea Id",
+            "type": "string"
+          },
+          "legs": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/InsightLeg"
+            },
+            "title": "Legs",
+            "type": "array"
+          },
+          "max_loss": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Loss"
+          },
+          "max_profit": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Profit"
+          },
+          "net_credit_debit": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Net Credit Debit"
+          },
+          "profit_zone": {
+            "default": "",
+            "title": "Profit Zone",
+            "type": "string"
+          },
+          "rank": {
+            "title": "Rank",
+            "type": "integer"
+          },
+          "risk_flags": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Risk Flags",
+            "type": "array"
+          },
+          "status": {
+            "default": "candidate",
+            "title": "Status",
+            "type": "string"
+          },
+          "structure": {
+            "title": "Structure",
+            "type": "string"
+          },
+          "thesis": {
+            "title": "Thesis",
+            "type": "string"
+          }
+        },
+        "required": [
+          "idea_id",
+          "structure",
+          "thesis",
+          "expression_type",
+          "rank"
+        ],
+        "title": "CandidateStructure",
+        "type": "object"
+      },
+      "ChainFlowReadRow": {
+        "properties": {
+          "call_open_interest": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Call Open Interest"
+          },
+          "call_put_volume_ratio": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Call Put Volume Ratio"
+          },
+          "call_volume": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Call Volume"
+          },
+          "put_open_interest": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Put Open Interest"
+          },
+          "put_volume": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Put Volume"
+          },
+          "read": {
+            "default": "",
+            "title": "Read",
+            "type": "string"
+          },
+          "requires_t1_oi_confirmation": {
+            "default": false,
+            "title": "Requires T1 Oi Confirmation",
+            "type": "boolean"
+          },
+          "strike": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Strike",
+            "type": "string"
+          },
+          "volume_oi_note": {
+            "default": "",
+            "title": "Volume Oi Note",
+            "type": "string"
+          }
+        },
+        "required": [
+          "strike"
+        ],
+        "title": "ChainFlowReadRow",
+        "type": "object"
+      },
+      "DivergencePoint": {
+        "properties": {
+          "date": {
+            "format": "date",
+            "title": "Date",
+            "type": "string"
+          },
+          "iv_z": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Iv Z"
+          },
+          "rv_z": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rv Z"
+          }
+        },
+        "required": [
+          "date"
+        ],
+        "title": "DivergencePoint",
+        "type": "object"
+      },
       "FlowAlert": {
         "properties": {
           "alert_rule": {
@@ -649,6 +881,298 @@
         "title": "HealthResponse",
         "type": "object"
       },
+      "InsightBadge": {
+        "properties": {
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "severity": {
+            "default": "info",
+            "title": "Severity",
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "label"
+        ],
+        "title": "InsightBadge",
+        "type": "object"
+      },
+      "InsightLeg": {
+        "properties": {
+          "expiry": {
+            "format": "date",
+            "title": "Expiry",
+            "type": "string"
+          },
+          "mid": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mid"
+          },
+          "option_right": {
+            "title": "Option Right",
+            "type": "string"
+          },
+          "option_symbol": {
+            "title": "Option Symbol",
+            "type": "string"
+          },
+          "side": {
+            "title": "Side",
+            "type": "string"
+          },
+          "strike": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Strike",
+            "type": "string"
+          }
+        },
+        "required": [
+          "side",
+          "option_symbol",
+          "option_right",
+          "expiry",
+          "strike"
+        ],
+        "title": "InsightLeg",
+        "type": "object"
+      },
+      "InsightSignalRow": {
+        "properties": {
+          "conflicts": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Conflicts",
+            "type": "array"
+          },
+          "evidence": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Evidence",
+            "type": "array"
+          },
+          "lens": {
+            "title": "Lens",
+            "type": "string"
+          },
+          "read": {
+            "title": "Read",
+            "type": "string"
+          }
+        },
+        "required": [
+          "lens",
+          "read"
+        ],
+        "title": "InsightSignalRow",
+        "type": "object"
+      },
+      "InsightsSynthesis": {
+        "properties": {
+          "avoid": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Avoid",
+            "type": "array"
+          },
+          "best_risk_reward_idea_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Best Risk Reward Idea Id"
+          },
+          "dominant_story": {
+            "default": "",
+            "title": "Dominant Story",
+            "type": "string"
+          },
+          "preferred_idea_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Preferred Idea Id"
+          },
+          "required_before_sizing": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Required Before Sizing",
+            "type": "array"
+          }
+        },
+        "title": "InsightsSynthesis",
+        "type": "object"
+      },
+      "IvHistogramBin": {
+        "properties": {
+          "count": {
+            "title": "Count",
+            "type": "integer"
+          },
+          "hi": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Hi",
+            "type": "string"
+          },
+          "lo": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Lo",
+            "type": "string"
+          }
+        },
+        "required": [
+          "lo",
+          "hi",
+          "count"
+        ],
+        "title": "IvHistogramBin",
+        "type": "object"
+      },
+      "IvHvPoint": {
+        "properties": {
+          "date": {
+            "format": "date",
+            "title": "Date",
+            "type": "string"
+          },
+          "iv": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Iv"
+          },
+          "rv": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rv"
+          }
+        },
+        "required": [
+          "date"
+        ],
+        "title": "IvHvPoint",
+        "type": "object"
+      },
+      "IvOfIvPoint": {
+        "properties": {
+          "date": {
+            "format": "date",
+            "title": "Date",
+            "type": "string"
+          },
+          "iv": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Iv"
+          },
+          "iv_of_iv_20": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Iv Of Iv 20"
+          }
+        },
+        "required": [
+          "date"
+        ],
+        "title": "IvOfIvPoint",
+        "type": "object"
+      },
+      "IvPercentileDistribution": {
+        "properties": {
+          "bins": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/IvHistogramBin"
+            },
+            "title": "Bins",
+            "type": "array"
+          },
+          "current_iv": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Current Iv"
+          },
+          "current_pctile": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Current Pctile"
+          }
+        },
+        "title": "IvPercentileDistribution",
+        "type": "object"
+      },
       "JobStatus": {
         "properties": {
           "error": {
@@ -1180,6 +1704,17 @@
       },
       "OiChangeRow": {
         "properties": {
+          "ask_volume": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ask Volume"
+          },
           "avg_price": {
             "anyOf": [
               {
@@ -1191,6 +1726,17 @@
               }
             ],
             "title": "Avg Price"
+          },
+          "bid_volume": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Bid Volume"
           },
           "curr_date": {
             "anyOf": [
@@ -1237,6 +1783,30 @@
             ],
             "title": "Days Of Vol Greater Than Oi"
           },
+          "last_ask": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Ask"
+          },
+          "last_bid": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Bid"
+          },
           "last_date": {
             "anyOf": [
               {
@@ -1271,6 +1841,28 @@
               }
             ],
             "title": "Last Oi"
+          },
+          "mid_volume": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mid Volume"
+          },
+          "no_side_volume": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "No Side Volume"
           },
           "oi_change": {
             "anyOf": [
@@ -1310,6 +1902,84 @@
               }
             ],
             "title": "Percentage Of Total"
+          },
+          "prev_ask_volume": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Prev Ask Volume"
+          },
+          "prev_bid_volume": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Prev Bid Volume"
+          },
+          "prev_mid_volume": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Prev Mid Volume"
+          },
+          "prev_multi_leg_volume": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Prev Multi Leg Volume"
+          },
+          "prev_neutral_volume": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Prev Neutral Volume"
+          },
+          "prev_stock_multi_leg_volume": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Prev Stock Multi Leg Volume"
+          },
+          "prev_total_premium": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Prev Total Premium"
           },
           "rnk": {
             "anyOf": [
@@ -1354,6 +2024,318 @@
           "option_symbol"
         ],
         "title": "OiChangeRow",
+        "type": "object"
+      },
+      "OptionChainPerStrikeRow": {
+        "description": "Aggregated (expiry, strike) snapshot \u2014 both volume and OI in one row.\n\nBacks both strike-profile charts (Volume and OI variants).",
+        "properties": {
+          "call_oi": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Call Oi"
+          },
+          "call_volume": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Call Volume"
+          },
+          "expiry": {
+            "format": "date",
+            "title": "Expiry",
+            "type": "string"
+          },
+          "put_oi": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Put Oi"
+          },
+          "put_volume": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Put Volume"
+          },
+          "strike": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Strike",
+            "type": "string"
+          }
+        },
+        "required": [
+          "expiry",
+          "strike"
+        ],
+        "title": "OptionChainPerStrikeRow",
+        "type": "object"
+      },
+      "OptionsDailyRow": {
+        "description": "One row per trading day from UW /options-volume.\n\n``bullish_premium`` here is whole-tape (UW), distinct from the\nalert-scoped :class:`FlowSnapshot.bull_premium`. Do not cross-plot.",
+        "properties": {
+          "avg_30_day_call_volume": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Avg 30 Day Call Volume"
+          },
+          "avg_30_day_put_volume": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Avg 30 Day Put Volume"
+          },
+          "avg_3_day_call_volume": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Avg 3 Day Call Volume"
+          },
+          "avg_3_day_put_volume": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Avg 3 Day Put Volume"
+          },
+          "avg_7_day_call_volume": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Avg 7 Day Call Volume"
+          },
+          "avg_7_day_put_volume": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Avg 7 Day Put Volume"
+          },
+          "bearish_premium": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Bearish Premium"
+          },
+          "bullish_premium": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Bullish Premium"
+          },
+          "call_open_interest": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Call Open Interest"
+          },
+          "call_premium": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Call Premium"
+          },
+          "call_volume": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Call Volume"
+          },
+          "call_volume_ask_side": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Call Volume Ask Side"
+          },
+          "call_volume_bid_side": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Call Volume Bid Side"
+          },
+          "date": {
+            "format": "date",
+            "title": "Date",
+            "type": "string"
+          },
+          "net_call_premium": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Net Call Premium"
+          },
+          "net_put_premium": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Net Put Premium"
+          },
+          "put_open_interest": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Put Open Interest"
+          },
+          "put_premium": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Put Premium"
+          },
+          "put_volume": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Put Volume"
+          },
+          "put_volume_ask_side": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Put Volume Ask Side"
+          },
+          "put_volume_bid_side": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Put Volume Bid Side"
+          }
+        },
+        "required": [
+          "date"
+        ],
+        "title": "OptionsDailyRow",
         "type": "object"
       },
       "PositioningBlock": {
@@ -1420,6 +2402,123 @@
         "title": "PositioningBlock",
         "type": "object"
       },
+      "RegimeQuadrantBlock": {
+        "properties": {
+          "cutoff_corr": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cutoff Corr"
+          },
+          "latest": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RegimeQuadrantLatest"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "points": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/RegimeQuadrantPoint"
+            },
+            "title": "Points",
+            "type": "array"
+          }
+        },
+        "title": "RegimeQuadrantBlock",
+        "type": "object"
+      },
+      "RegimeQuadrantLatest": {
+        "properties": {
+          "date": {
+            "format": "date",
+            "title": "Date",
+            "type": "string"
+          },
+          "rvol_pctile": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rvol Pctile"
+          },
+          "spy_corr_21": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Spy Corr 21"
+          },
+          "state": {
+            "default": "",
+            "title": "State",
+            "type": "string"
+          }
+        },
+        "required": [
+          "date"
+        ],
+        "title": "RegimeQuadrantLatest",
+        "type": "object"
+      },
+      "RegimeQuadrantPoint": {
+        "properties": {
+          "date": {
+            "format": "date",
+            "title": "Date",
+            "type": "string"
+          },
+          "rvol_pctile": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rvol Pctile"
+          },
+          "spy_corr_21": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Spy Corr 21"
+          }
+        },
+        "required": [
+          "date"
+        ],
+        "title": "RegimeQuadrantPoint",
+        "type": "object"
+      },
       "ReturnsBlock": {
         "description": "Wire shape: d1 / w1 / d30. No aliases \u2014 FastAPI would otherwise serialize\nthem as JSON keys and break the frontend contract.",
         "properties": {
@@ -1461,6 +2560,44 @@
           }
         },
         "title": "ReturnsBlock",
+        "type": "object"
+      },
+      "RvCorrPoint": {
+        "properties": {
+          "date": {
+            "format": "date",
+            "title": "Date",
+            "type": "string"
+          },
+          "rv": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rv"
+          },
+          "spy_corr_21": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Spy Corr 21"
+          }
+        },
+        "required": [
+          "date"
+        ],
+        "title": "RvCorrPoint",
         "type": "object"
       },
       "SetupBlock": {
@@ -1676,12 +2813,40 @@
             "title": "Max Pain Rows",
             "type": "array"
           },
+          "next_earnings_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Earnings Date"
+          },
           "oi_change_top": {
             "default": [],
             "items": {
               "$ref": "#/components/schemas/OiChangeRow"
             },
             "title": "Oi Change Top",
+            "type": "array"
+          },
+          "option_chain_per_strike": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/OptionChainPerStrikeRow"
+            },
+            "title": "Option Chain Per Strike",
+            "type": "array"
+          },
+          "options_timeline": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/OptionsDailyRow"
+            },
+            "title": "Options Timeline",
             "type": "array"
           },
           "run_id": {
@@ -1770,6 +2935,181 @@
           }
         },
         "title": "SkewBlock",
+        "type": "object"
+      },
+      "SmileExpiryCurve": {
+        "properties": {
+          "expiry": {
+            "format": "date",
+            "title": "Expiry",
+            "type": "string"
+          },
+          "points": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/SmilePoint"
+            },
+            "title": "Points",
+            "type": "array"
+          }
+        },
+        "required": [
+          "expiry"
+        ],
+        "title": "SmileExpiryCurve",
+        "type": "object"
+      },
+      "SmilePoint": {
+        "properties": {
+          "iv": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Iv"
+          },
+          "strike": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Strike",
+            "type": "string"
+          }
+        },
+        "required": [
+          "strike"
+        ],
+        "title": "SmilePoint",
+        "type": "object"
+      },
+      "SourceReconciliation": {
+        "properties": {
+          "decision": {
+            "default": "Use deterministic data only where source agreement is understood.",
+            "title": "Decision",
+            "type": "string"
+          },
+          "headline": {
+            "default": "Source reconciliation unavailable",
+            "title": "Headline",
+            "type": "string"
+          },
+          "primary_iv_source": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Primary Iv Source"
+          },
+          "relative_shape_source": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Relative Shape Source"
+          },
+          "rows": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/SourceReconciliationRow"
+            },
+            "title": "Rows",
+            "type": "array"
+          },
+          "status": {
+            "default": "UNKNOWN",
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "title": "SourceReconciliation",
+        "type": "object"
+      },
+      "SourceReconciliationRow": {
+        "properties": {
+          "decision": {
+            "default": "",
+            "title": "Decision",
+            "type": "string"
+          },
+          "iv_agreement": {
+            "default": "",
+            "title": "Iv Agreement",
+            "type": "string"
+          },
+          "iv_diff": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Iv Diff"
+          },
+          "price_agreement": {
+            "default": "",
+            "title": "Price Agreement",
+            "type": "string"
+          },
+          "source_a_call_iv": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source A Call Iv"
+          },
+          "source_b_call_iv": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source B Call Iv"
+          },
+          "source_pair": {
+            "title": "Source Pair",
+            "type": "string"
+          },
+          "strike": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Strike"
+          }
+        },
+        "required": [
+          "source_pair"
+        ],
+        "title": "SourceReconciliationRow",
         "type": "object"
       },
       "StockHistoryResponse": {
@@ -1942,6 +3282,248 @@
         "title": "StrikeGexBucket",
         "type": "object"
       },
+      "TermMoveRow": {
+        "properties": {
+          "atm_straddle": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Atm Straddle"
+          },
+          "daily_implied_move_perc": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Daily Implied Move Perc"
+          },
+          "dte": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dte"
+          },
+          "expiry": {
+            "format": "date",
+            "title": "Expiry",
+            "type": "string"
+          },
+          "implied_move_perc": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Implied Move Perc"
+          },
+          "read": {
+            "default": "",
+            "title": "Read",
+            "type": "string"
+          }
+        },
+        "required": [
+          "expiry"
+        ],
+        "title": "TermMoveRow",
+        "type": "object"
+      },
+      "TermStructureExpiryRow": {
+        "properties": {
+          "by_strike": {
+            "additionalProperties": {
+              "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+              "type": "string"
+            },
+            "default": {},
+            "title": "By Strike",
+            "type": "object"
+          },
+          "dte": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dte"
+          },
+          "expiry": {
+            "format": "date",
+            "title": "Expiry",
+            "type": "string"
+          },
+          "strikes": {
+            "additionalProperties": {
+              "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+              "type": "string"
+            },
+            "default": {},
+            "title": "Strikes",
+            "type": "object"
+          }
+        },
+        "required": [
+          "expiry"
+        ],
+        "title": "TermStructureExpiryRow",
+        "type": "object"
+      },
+      "TradeInsightsHeader": {
+        "properties": {
+          "badges": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/InsightBadge"
+            },
+            "title": "Badges",
+            "type": "array"
+          },
+          "confidence_label": {
+            "default": "LOW",
+            "title": "Confidence Label",
+            "type": "string"
+          },
+          "data_quality_label": {
+            "default": "INSUFFICIENT",
+            "title": "Data Quality Label",
+            "type": "string"
+          },
+          "dominant_bias": {
+            "default": "NEUTRAL",
+            "title": "Dominant Bias",
+            "type": "string"
+          },
+          "idea_count": {
+            "default": 0,
+            "title": "Idea Count",
+            "type": "integer"
+          },
+          "preferred_idea_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Preferred Idea Id"
+          },
+          "primary_setup": {
+            "default": "NO_CLEAR_SETUP",
+            "title": "Primary Setup",
+            "type": "string"
+          }
+        },
+        "title": "TradeInsightsHeader",
+        "type": "object"
+      },
+      "TradeInsightsResponse": {
+        "properties": {
+          "as_of": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "As Of"
+          },
+          "candidate_structures": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/CandidateStructure"
+            },
+            "title": "Candidate Structures",
+            "type": "array"
+          },
+          "flow_table": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/ChainFlowReadRow"
+            },
+            "title": "Flow Table",
+            "type": "array"
+          },
+          "header": {
+            "$ref": "#/components/schemas/TradeInsightsHeader"
+          },
+          "mode": {
+            "default": "research",
+            "title": "Mode",
+            "type": "string"
+          },
+          "signal_stack": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/InsightSignalRow"
+            },
+            "title": "Signal Stack",
+            "type": "array"
+          },
+          "source_reconciliation": {
+            "$ref": "#/components/schemas/SourceReconciliation",
+            "default": {
+              "decision": "Use deterministic data only where source agreement is understood.",
+              "headline": "Source reconciliation unavailable",
+              "rows": [],
+              "status": "UNKNOWN"
+            }
+          },
+          "synthesis": {
+            "$ref": "#/components/schemas/InsightsSynthesis",
+            "default": {
+              "avoid": [],
+              "dominant_story": "",
+              "required_before_sizing": []
+            }
+          },
+          "term_structure_table": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/TermMoveRow"
+            },
+            "title": "Term Structure Table",
+            "type": "array"
+          },
+          "ticker": {
+            "title": "Ticker",
+            "type": "string"
+          }
+        },
+        "required": [
+          "ticker",
+          "header"
+        ],
+        "title": "TradeInsightsResponse",
+        "type": "object"
+      },
       "TradePlan": {
         "properties": {
           "direction": {
@@ -2109,6 +3691,166 @@
         "title": "ValidationError",
         "type": "object"
       },
+      "VolHeaderBlock": {
+        "properties": {
+          "implied_move_30d_perc": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Implied Move 30D Perc"
+          },
+          "iv": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Iv"
+          },
+          "iv_high_52w": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Iv High 52W"
+          },
+          "iv_low_52w": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Iv Low 52W"
+          },
+          "iv_percentile_30d": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Iv Percentile 30D"
+          },
+          "iv_rank": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Iv Rank"
+          },
+          "iv_rank_1y": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Iv Rank 1Y"
+          },
+          "rv": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rv"
+          },
+          "rv_high_52w": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rv High 52W"
+          },
+          "rv_low_52w": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rv Low 52W"
+          },
+          "skew_25d": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Skew 25D"
+          },
+          "vrp": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vrp"
+          },
+          "vrp_note": {
+            "default": "",
+            "title": "Vrp Note",
+            "type": "string"
+          },
+          "vrp_signal": {
+            "default": "",
+            "title": "Vrp Signal",
+            "type": "string"
+          }
+        },
+        "title": "VolHeaderBlock",
+        "type": "object"
+      },
       "VolatilityProfile": {
         "properties": {
           "implied_move_30d_perc": {
@@ -2264,6 +4006,162 @@
           }
         },
         "title": "VolatilityProfile",
+        "type": "object"
+      },
+      "VolatilitySeriesResponse": {
+        "properties": {
+          "as_of": {
+            "format": "date",
+            "title": "As Of",
+            "type": "string"
+          },
+          "backfill_status": {
+            "title": "Backfill Status",
+            "type": "string"
+          },
+          "divergence": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/DivergencePoint"
+            },
+            "title": "Divergence",
+            "type": "array"
+          },
+          "divergence_headline": {
+            "default": "",
+            "title": "Divergence Headline",
+            "type": "string"
+          },
+          "header": {
+            "$ref": "#/components/schemas/VolHeaderBlock"
+          },
+          "hv_iv_history": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/IvHvPoint"
+            },
+            "title": "Hv Iv History",
+            "type": "array"
+          },
+          "iv_of_iv": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/IvOfIvPoint"
+            },
+            "title": "Iv Of Iv",
+            "type": "array"
+          },
+          "iv_percentile_distribution": {
+            "$ref": "#/components/schemas/IvPercentileDistribution",
+            "default": {
+              "bins": []
+            }
+          },
+          "regime_quadrant": {
+            "$ref": "#/components/schemas/RegimeQuadrantBlock",
+            "default": {
+              "points": []
+            }
+          },
+          "rv_spy_corr": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/RvCorrPoint"
+            },
+            "title": "Rv Spy Corr",
+            "type": "array"
+          },
+          "smile": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/SmileExpiryCurve"
+            },
+            "title": "Smile",
+            "type": "array"
+          },
+          "spot": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Spot"
+          },
+          "term_structure": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/TermStructureExpiryRow"
+            },
+            "title": "Term Structure",
+            "type": "array"
+          },
+          "ticker": {
+            "title": "Ticker",
+            "type": "string"
+          },
+          "vrp_spread": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/VrpDailyPoint"
+            },
+            "title": "Vrp Spread",
+            "type": "array"
+          },
+          "vrp_spread_headline": {
+            "default": "",
+            "title": "Vrp Spread Headline",
+            "type": "string"
+          }
+        },
+        "required": [
+          "ticker",
+          "as_of",
+          "backfill_status",
+          "header"
+        ],
+        "title": "VolatilitySeriesResponse",
+        "type": "object"
+      },
+      "VrpDailyPoint": {
+        "properties": {
+          "date": {
+            "format": "date",
+            "title": "Date",
+            "type": "string"
+          },
+          "vrp": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vrp"
+          },
+          "vrp_z_20": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vrp Z 20"
+          }
+        },
+        "required": [
+          "date"
+        ],
+        "title": "VrpDailyPoint",
         "type": "object"
       },
       "WatchlistCard": {
@@ -2849,8 +4747,89 @@
         ]
       }
     },
+    "/api/stock/{ticker}/trade-insights": {
+      "get": {
+        "operationId": "get_trade_insights_api_stock__ticker__trade_insights_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "ticker",
+            "required": true,
+            "schema": {
+              "title": "Ticker",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TradeInsightsResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Trade Insights",
+        "tags": [
+          "trade-insights"
+        ]
+      }
+    },
     "/api/stock/{ticker}/volatility/series": {
-      "get": {}
+      "get": {
+        "operationId": "get_volatility_series_api_stock__ticker__volatility_series_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "ticker",
+            "required": true,
+            "schema": {
+              "title": "Ticker",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VolatilitySeriesResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Volatility Series",
+        "tags": [
+          "volatility"
+        ]
+      }
     },
     "/api/watchlist": {
       "get": {
