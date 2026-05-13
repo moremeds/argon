@@ -3,9 +3,10 @@ import { api } from "@/lib/api";
 import { MarketStructureTab } from "@/components/stock/tabs/MarketStructureTab";
 import { VolatilityTab } from "@/components/stock/tabs/VolatilityTab";
 import { FlowTab } from "@/components/stock/tabs/FlowTab";
+import { TradeInsightsTab } from "@/components/stock/tabs/TradeInsightsTab";
 import { TradePlanTab } from "@/components/stock/tabs/TradePlanTab";
 
-const TABS = {
+const REPORT_TABS = {
   "market-structure": MarketStructureTab,
   volatility: VolatilityTab,
   flow: FlowTab,
@@ -18,8 +19,12 @@ export default async function TabPage({
   params: Promise<{ ticker: string; tab: string }>;
 }) {
   const { ticker, tab } = await params;
-  const Component = TABS[tab as keyof typeof TABS];
+  if (tab === "trade-insights") {
+    return <TradeInsightsTab ticker={ticker} />;
+  }
+  const Component = REPORT_TABS[tab as keyof typeof REPORT_TABS];
   if (!Component) notFound();
+
   const report = await api.stock(ticker);
   return <Component report={report} />;
 }
