@@ -52,7 +52,7 @@ def health(
     except Exception as e:  # noqa: BLE001
         return HealthResponse(
             ok=False,
-            db=f"down: {e!r}",
+            db=f"down: {repr(e)}",
             reason="database unreachable",
         )
 

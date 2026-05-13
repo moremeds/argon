@@ -9,7 +9,6 @@ from __future__ import annotations
 
 import os
 import subprocess
-from datetime import datetime, timezone
 from decimal import Decimal
 from pathlib import Path
 
@@ -17,7 +16,6 @@ import psycopg
 import pytest
 
 from uw_scan.config import Settings
-from uw_scan.reports.single_stock import assemble_single_stock_report
 from uw_scan.storage.repository import Repository
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
