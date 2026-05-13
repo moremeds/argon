@@ -28,7 +28,8 @@ def _parse_occ(symbol: str) -> tuple[date, str, Decimal] | None:
     year = 2000 + yy if yy < 80 else 1900 + yy
     try:
         expiry = date(year, int(m["mm"]), int(m["dd"]))
-    except ValueError:
+    except ValueError as exc:
+        logger.debug("invalid OCC date %s: %s", symbol, repr(exc))
         return None
     strike = Decimal(m["strike"]) / Decimal(1000)
     return expiry, m["type"], strike
