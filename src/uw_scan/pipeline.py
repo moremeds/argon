@@ -21,6 +21,11 @@ from .reports.single_stock import (
     assemble_single_stock_report,
     build_trade_plan_for_report,
 )
+from .reports.trade_insights import (
+    ASSEMBLER_VERSION,
+    _stable_payload_hash,
+    assemble_trade_insights,
+)
 from .scan_universe import S2_UNIVERSE
 from .sources import uw as uw_sources
 from .storage.repository import Repository
@@ -32,6 +37,35 @@ def _next_friday(today: _date) -> _date:
     """Pick the next Friday (today + 1..7 days)."""
     days_ahead = (4 - today.weekday()) % 7 or 7
     return today + timedelta(days=days_ahead)
+
+
+def _persist_trade_insights_for_run(
+    *,
+    repo: Repository,
+    report: SingleStockReport,
+) -> None:
+    response = assemble_trade_insights(
+        ticker=report.ticker,
+        run_id=report.run_id,
+        repo=repo,
+        as_of=report.generated_at,
+        spot=report.market_structure.spot,
+    )
+    payload = response.model_dump(mode="json")
+    snapshot_id = repo.upsert_trade_insight_snapshot(
+        run_id=report.run_id,
+        ticker=report.ticker,
+        as_of=response.as_of,
+        assembler_version=ASSEMBLER_VERSION,
+        input_hash=_stable_payload_hash(payload),
+        payload=payload,
+    )
+    repo.replace_trade_insight_candidates(
+        snapshot_id=snapshot_id,
+        run_id=report.run_id,
+        ticker=report.ticker,
+        candidates=payload["candidate_structures"],
+    )
 
 
 def run_single_stock(
@@ -242,6 +276,16 @@ def run_single_stock(
                     pcr_oi=aggregates.pcr_oi,
                     pcr_vol=aggregates.pcr_vol,
                 )
+
+        try:
+            _persist_trade_insights_for_run(repo=repo, report=report)
+        except Exception as exc:  # noqa: BLE001 — research-log only; never block a scan
+            logger.warning(
+                "trade_insights persistence failed for %s run_id=%s: %s",
+                report.ticker,
+                report.run_id,
+                repr(exc),
+            )
 
         repo.finish_scan_run(run_id, status="ok")
         repo.conn.commit()
