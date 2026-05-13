@@ -7,6 +7,7 @@ export type TermStructureRow = {
   expiry: string;
   dte?: number | null;
   by_strike: Record<string, string | number | null>;
+  strikes?: Record<string, string | number | null>;
 };
 
 const STRIKE_COLORS: Record<string, string> = {
@@ -57,11 +58,15 @@ export function TermStructureChart({ data }: { data: TermStructureRow[] }) {
   return (
     <AnalyticalSeriesPanel title="Term Structure" subtitle="IV by DTE">
       <div style={{ display: "flex", gap: 12, fontSize: 10, marginBottom: 4 }}>
-        {ORDERED_STRIKES.map((k) => (
-          <span key={k} style={{ color: STRIKE_COLORS[k] }}>
-            — {k}
-          </span>
-        ))}
+        {ORDERED_STRIKES.map((k) => {
+          const s = toNum(data[0]?.strikes?.[k]);
+          return (
+            <span key={k} style={{ color: STRIKE_COLORS[k] }}>
+              — {k}
+              {s != null ? ` ($${s.toFixed(2)})` : ""}
+            </span>
+          );
+        })}
       </div>
       <svg viewBox={`0 0 ${W} ${H}`} width="100%" height={H} role="img">
         {ORDERED_STRIKES.map((label) => {

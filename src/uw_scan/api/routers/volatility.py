@@ -76,14 +76,21 @@ def _kick_backfill(ticker: str) -> None:
                 if run_id == 0:
                     run_id = repo.insert_scan_run(ticker, notes="volatility_backfill")
                     conn.commit()
+                # Cache all expiries from today through Dec 31 of NEXT calendar
+                # year (full forward-vol curve through year-end+1), capped at
+                # 40 maturities to bound API + smile volume.
+                year_end = date(datetime.now(timezone.utc).year + 1, 12, 31)
                 term_rows = repo.fetch_iv_term_rows(run_id, ticker)
                 if term_rows:
                     expiries = [
                         r["expiry"].isoformat()
-                        for r in sorted(term_rows, key=lambda r: r["expiry"])[:4]
-                    ]
+                        for r in sorted(term_rows, key=lambda r: r["expiry"])
+                        if r["expiry"] <= year_end
+                    ][:40]
                 else:
-                    expiries = [d.isoformat() for d in _next_fridays(4)]
+                    expiries = [
+                        d.isoformat() for d in _next_fridays(40) if d <= year_end
+                    ]
                 status = run_volatility_backfill(
                     client=client,
                     repo=repo,

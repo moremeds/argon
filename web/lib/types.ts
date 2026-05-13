@@ -622,6 +622,8 @@ export interface components {
              */
             points: components["schemas"]["RegimeQuadrantPoint"][];
             latest?: components["schemas"]["RegimeQuadrantLatest"] | null;
+            /** Cutoff Corr */
+            cutoff_corr?: string | null;
         };
         /** RegimeQuadrantLatest */
         RegimeQuadrantLatest: {
@@ -880,6 +882,13 @@ export interface components {
             by_strike: {
                 [key: string]: string;
             };
+            /**
+             * Strikes
+             * @default {}
+             */
+            strikes: {
+                [key: string]: string;
+            };
         };
         /** TradePlan */
         TradePlan: {
@@ -1076,6 +1085,8 @@ export interface components {
              * @default
              */
             vrp_spread_headline: string;
+            /** Spot */
+            spot?: string | null;
         };
         /** VrpDailyPoint */
         VrpDailyPoint: {

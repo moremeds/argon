@@ -96,6 +96,30 @@ describe("TermStructureChart", () => {
             expiry: "2026-05-15",
             dte: 2,
             by_strike: { ATM: "0.58", "ATM+1": "0.54" },
+            strikes: { ATM: "400", "ATM+1": "405" },
+          },
+          {
+            expiry: "2026-05-22",
+            dte: 9,
+            by_strike: { ATM: "0.55" },
+            strikes: { ATM: "402.50" },
+          },
+        ]}
+      />,
+    );
+    // Legend renders strike from front-month expiry (data[0]) when present.
+    expect(screen.getByText(/— ATM \(\$400\.00\)/)).toBeDefined();
+    expect(screen.getByText(/— ATM\+1 \(\$405\.00\)/)).toBeDefined();
+  });
+
+  it("falls back to bare label when strikes map is absent", () => {
+    render(
+      <TermStructureChart
+        data={[
+          {
+            expiry: "2026-05-15",
+            dte: 2,
+            by_strike: { ATM: "0.58" },
           },
           {
             expiry: "2026-05-22",
@@ -142,6 +166,59 @@ describe("SmileChart", () => {
       />,
     );
     expect(screen.getByText(/2026-05-15/)).toBeDefined();
+  });
+
+  it("draws a spot marker when spot is within strike range", () => {
+    render(
+      <SmileChart
+        spot="402.5"
+        data={[
+          {
+            expiry: "2026-05-15",
+            points: [
+              { strike: "400", iv: "0.70" },
+              { strike: "405", iv: "0.65" },
+              { strike: "410", iv: "0.68" },
+            ],
+          },
+        ]}
+      />,
+    );
+    expect(screen.getByText(/spot \$402\.50/)).toBeDefined();
+  });
+
+  it("omits the spot marker when spot is missing or out of range", () => {
+    const { rerender } = render(
+      <SmileChart
+        data={[
+          {
+            expiry: "2026-05-15",
+            points: [
+              { strike: "400", iv: "0.70" },
+              { strike: "410", iv: "0.65" },
+              { strike: "420", iv: "0.68" },
+            ],
+          },
+        ]}
+      />,
+    );
+    expect(screen.queryByText(/spot \$/)).toBeNull();
+    rerender(
+      <SmileChart
+        spot="999"
+        data={[
+          {
+            expiry: "2026-05-15",
+            points: [
+              { strike: "400", iv: "0.70" },
+              { strike: "410", iv: "0.65" },
+              { strike: "420", iv: "0.68" },
+            ],
+          },
+        ]}
+      />,
+    );
+    expect(screen.queryByText(/spot \$/)).toBeNull();
   });
 
   it("empty state when no curves", () => {

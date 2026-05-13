@@ -79,7 +79,7 @@ export function VolatilityTabClient({
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
         <TermStructureChart data={series.term_structure} />
-        <SmileChart data={series.smile} />
+        <SmileChart data={series.smile} spot={series.spot} />
         <HvIvChart data={series.hv_iv_history} />
         <IvPercentileDistribution data={series.iv_percentile_distribution} />
       </div>

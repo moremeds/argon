@@ -70,7 +70,11 @@ def test_volatility_series_empty_response_shape_is_safe(client, seeded_db_empty_
     r = client.get("/api/stock/NEWTKR/volatility/series")
     body = r.json()
     # Empty defaults present, not None.
-    assert body["regime_quadrant"] == {"points": [], "latest": None}
+    assert body["regime_quadrant"] == {
+        "points": [],
+        "latest": None,
+        "cutoff_corr": None,
+    }
     assert body["iv_percentile_distribution"]["bins"] == []
     assert body["term_structure"] == []
     assert body["smile"] == []

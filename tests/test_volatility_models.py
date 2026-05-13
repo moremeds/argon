@@ -56,8 +56,13 @@ def test_term_structure_row_with_strike_map():
         expiry=date(2026, 5, 15),
         dte=2,
         by_strike={"ATM": Decimal("0.58"), "ATM+1": Decimal("0.54")},
+        strikes={"ATM": Decimal("400"), "ATM+1": Decimal("405")},
     )
     assert row.by_strike["ATM"] == Decimal("0.58")
+    assert row.strikes["ATM"] == Decimal("400")
+    # Defaults to empty when omitted (backward-compatible with older snapshots).
+    bare = TermStructureExpiryRow(expiry=date(2026, 5, 15))
+    assert bare.strikes == {}
 
 
 def test_iv_hv_and_vrp_and_regime_points():

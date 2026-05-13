@@ -8,6 +8,7 @@ backfill routine that pulls UW source data on first request.
 from __future__ import annotations
 
 import logging
+import math
 from datetime import date as _date
 from decimal import Decimal
 from typing import Any
@@ -45,6 +46,41 @@ log = logging.getLogger(__name__)
 
 
 # ----------------------------- helpers --------------------------------------
+
+
+def _fill_rv_from_price(rv_rows: list[dict], *, window: int = 21) -> list[dict]:
+    """Where UW lacks realized_volatility, derive it from the price column.
+
+    UW's RV endpoint commonly trails by several weeks. The price column is
+    fully populated, so we can compute 21d annualized stdev of log returns
+    locally — same convention as compute_rvol_and_percentile — and use it
+    to fill the gap. Does not overwrite UW's own RV when present (UW values
+    are authoritative; this is only fallback).
+
+    Returns a NEW list of dicts; input is not mutated.
+    """
+    if not rv_rows:
+        return list(rv_rows)
+    out = [dict(r) for r in rv_rows]
+    prices = [
+        float(r["price"]) if r.get("price") is not None else float("nan") for r in out
+    ]
+    # Daily log returns, rolling 21d stdev × sqrt(252).
+    log_rets: list[float] = [float("nan")]
+    for i in range(1, len(prices)):
+        prev, curr = prices[i - 1], prices[i]
+        if prev > 0 and curr > 0:
+            log_rets.append(math.log(curr / prev))
+        else:
+            log_rets.append(float("nan"))
+    s = pd.Series(log_rets)
+    rolling_std = s.rolling(window, min_periods=window).std() * math.sqrt(252)
+    for i, r in enumerate(out):
+        if r.get("realized_volatility") is None:
+            v = rolling_std.iloc[i]
+            if pd.notna(v):
+                r["realized_volatility"] = float(v)
+    return out
 
 
 def _dec(v: Any) -> Decimal | None:
@@ -187,6 +223,10 @@ def _build_regime_quadrant(
         spy_corr_21=float(last["spy_corr_21"]),
         median_corr=median,
     )
+    # Surface the cutoff used by classify_regime_state so the chart can draw its
+    # horizontal divider exactly where the classifier splits the quadrants
+    # (review observation #5: visual cutoff at y=0 disagreed with classifier).
+    cutoff = _dec(median if median is not None else 0.5)
     return RegimeQuadrantBlock(
         points=points,
         latest=RegimeQuadrantLatest(
@@ -195,6 +235,7 @@ def _build_regime_quadrant(
             spy_corr_21=_dec(last["spy_corr_21"]),
             state=state,
         ),
+        cutoff_corr=cutoff,
     )
 
 
@@ -242,8 +283,13 @@ def _build_term_structure(
         by_expiry.setdefault(r["expiry"], []).append(r)
 
     today = _date.today()
+    # Show expiries through Dec 31 of NEXT year so the term structure spans
+    # the full forward-vol curve out to year-end+1.
+    year_end = _date(today.year + 1, 12, 31)
     out: list[TermStructureExpiryRow] = []
     for expiry, rows in sorted(by_expiry.items()):
+        if expiry > year_end:
+            continue
         rows.sort(key=lambda r: r["strike"])
         strikes = [r["strike"] for r in rows]
         atm_idx = min(
@@ -251,26 +297,80 @@ def _build_term_structure(
             key=lambda i: abs(_dec(strikes[i]) - spot_val),
         )
         ladder: dict[str, Decimal] = {}
+        strikes_at: dict[str, Decimal] = {}
         for offset, label in ((-2, "ATM-2"), (-1, "ATM-1"), (0, "ATM"), (1, "ATM+1")):
             idx = atm_idx + offset
             if 0 <= idx < len(rows) and rows[idx].get("iv") is not None:
                 ladder[label] = _dec(rows[idx]["iv"])
+                strikes_at[label] = _dec(rows[idx]["strike"])
         dte = (expiry - today).days
-        out.append(TermStructureExpiryRow(expiry=expiry, dte=dte, by_strike=ladder))
+        out.append(
+            TermStructureExpiryRow(
+                expiry=expiry, dte=dte, by_strike=ladder, strikes=strikes_at
+            )
+        )
     return out
+
+
+def _trim_flat_wings(points: list[SmilePoint]) -> list[SmilePoint]:
+    """Drop leading/trailing runs of identical IV from a strike-sorted curve.
+
+    Secondary defense: when UW emits the same Decimal value across wing
+    strikes (genuinely stale quotes), strip those duplicate runs. Real
+    smiles never have leading or trailing runs of bit-identical IV.
+    """
+    n = len(points)
+    if n < 3:
+        return list(points)
+    pts = sorted(points, key=lambda p: p.strike)
+    lo = 0
+    while lo + 1 < n and pts[lo].iv is not None and pts[lo].iv == pts[lo + 1].iv:
+        lo += 1
+    hi = n - 1
+    while hi - 1 > lo and pts[hi].iv is not None and pts[hi].iv == pts[hi - 1].iv:
+        hi -= 1
+    return pts[lo : hi + 1]
+
+
+def _clip_smile_to_spot_range(
+    points: list[SmilePoint],
+    spot: Decimal | None,
+    *,
+    frac: Decimal = Decimal("0.35"),
+) -> list[SmilePoint]:
+    """Keep strikes within ±frac of spot; drop deep-OTM noise that
+    visually crowds the chart even when IVs are technically distinct.
+
+    Falls back to the full curve if spot is unknown or the clip would
+    leave fewer than 3 points (degenerate empty smile is worse than
+    a noisy one).
+    """
+    if spot is None or spot <= 0 or len(points) < 3:
+        return list(points)
+    lo = spot * (Decimal("1") - frac)
+    hi = spot * (Decimal("1") + frac)
+    clipped = [p for p in points if lo <= p.strike <= hi]
+    return clipped if len(clipped) >= 3 else list(points)
 
 
 def _build_smile(repo: Repository, ticker: str) -> list[SmileExpiryCurve]:
     rows = repo.fetch_iv_smile_latest(ticker)
     if not rows:
         return []
+    rv_latest = repo.fetch_realized_vol_latest(ticker) or {}
+    spot = _dec(rv_latest.get("price"))
+
     by_expiry: dict[_date, list[SmilePoint]] = {}
     for r in rows:
         by_expiry.setdefault(r["expiry"], []).append(
             SmilePoint(strike=r["strike"], iv=_dec(r["iv"]))
         )
     return [
-        SmileExpiryCurve(expiry=ex, points=pts) for ex, pts in sorted(by_expiry.items())
+        SmileExpiryCurve(
+            expiry=ex,
+            points=_trim_flat_wings(_clip_smile_to_spot_range(pts, spot)),
+        )
+        for ex, pts in sorted(by_expiry.items())
     ]
 
 
@@ -288,7 +388,7 @@ def assemble_volatility_series(
     header = _build_header(repo, ticker)
     today = _date.today()
 
-    rv_history = repo.fetch_realized_vol_history(ticker, days=365)
+    rv_history = _fill_rv_from_price(repo.fetch_realized_vol_history(ticker, days=365))
     spy_history = repo.fetch_index_ohlc_series("SPY")
 
     hv_iv = [
@@ -358,6 +458,9 @@ def assemble_volatility_series(
     ]
     divergence_headline = _divergence_headline(z_df)
 
+    rv_latest = repo.fetch_realized_vol_latest(ticker) or {}
+    spot_dec = _dec(rv_latest.get("price"))
+
     return VolatilitySeriesResponse(
         ticker=ticker,
         as_of=today,
@@ -374,6 +477,7 @@ def assemble_volatility_series(
         divergence_headline=divergence_headline,
         vrp_spread=vrp_spread,
         vrp_spread_headline=vrp_spread_headline,
+        spot=spot_dec,
     )
 
 
@@ -402,7 +506,9 @@ def run_volatility_backfill(
 
         today = _date.today()
         smile_rows: list[dict] = []
-        for ex in nearest_expiries[:4]:
+        # Pull smile/term snapshot for every expiry the caller supplied (already
+        # bounded by the router to ≤ year-end and capped at 15 maturities).
+        for ex in nearest_expiries:
             cached = repo.fetch_greeks_rows_for_smile(
                 ticker=ticker,
                 market_date=today,

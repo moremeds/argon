@@ -12,7 +12,10 @@ export type HvIvPoint = {
 export function HvIvChart({ data }: { data: HvIvPoint[] }) {
   if (data.length < 2) {
     return (
-      <AnalyticalSeriesPanel title="HV / IV" subtitle="Daily, last ~1y">
+      <AnalyticalSeriesPanel
+        title="HV / IV"
+        subtitle="IV (fwd ~30d) vs RV (trailing 21d) — lag is the VRP"
+      >
         <div style={{ color: "var(--text-muted)", fontSize: 11 }}>
           Insufficient history (need ≥2d, have {data.length}d)
         </div>
@@ -27,7 +30,10 @@ export function HvIvChart({ data }: { data: HvIvPoint[] }) {
   const domain = finiteDomain([...ivs, ...rvs]);
   if (!domain) {
     return (
-      <AnalyticalSeriesPanel title="HV / IV" subtitle="Daily, last ~1y">
+      <AnalyticalSeriesPanel
+        title="HV / IV"
+        subtitle="IV (fwd ~30d) vs RV (trailing 21d) — lag is the VRP"
+      >
         <div style={{ color: "var(--text-muted)", fontSize: 11 }}>
           Insufficient finite history
         </div>
@@ -48,7 +54,10 @@ export function HvIvChart({ data }: { data: HvIvPoint[] }) {
       .filter(([, vy]) => Number.isFinite(vy)),
   );
   return (
-    <AnalyticalSeriesPanel title="HV / IV" subtitle="Daily, last ~1y">
+    <AnalyticalSeriesPanel
+      title="HV / IV"
+      subtitle="IV (fwd ~30d) vs RV (trailing 21d) — lag is the VRP"
+    >
       <div style={{ display: "flex", gap: 12, fontSize: 10, marginBottom: 4 }}>
         <span style={{ color: "var(--accent-bg)" }}>— IV</span>
         <span style={{ color: "var(--accent-warm)" }}>— RV</span>

@@ -577,6 +577,7 @@ class TermStructureExpiryRow(_UwBase):
     expiry: _date
     dte: int | None = None
     by_strike: dict[str, Decimal] = {}
+    strikes: dict[str, Decimal] = {}
 
 
 class SmilePoint(_UwBase):
@@ -635,6 +636,7 @@ class RegimeQuadrantLatest(_UwBase):
 class RegimeQuadrantBlock(_UwBase):
     points: list[RegimeQuadrantPoint] = []
     latest: RegimeQuadrantLatest | None = None
+    cutoff_corr: Decimal | None = None
 
 
 class DivergencePoint(_UwBase):
@@ -665,3 +667,4 @@ class VolatilitySeriesResponse(_UwBase):
     divergence_headline: str = ""
     vrp_spread: list[VrpDailyPoint] = []
     vrp_spread_headline: str = ""
+    spot: Decimal | None = None

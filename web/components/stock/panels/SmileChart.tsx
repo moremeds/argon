@@ -20,10 +20,18 @@ const COLORS = [
   "var(--accent-vivid)",
 ];
 
-export function SmileChart({ data }: { data: SmileExpiryCurve[] }) {
+const SUBTITLE = "Today's IV by strike — one curve per expiration date";
+
+export function SmileChart({
+  data,
+  spot,
+}: {
+  data: SmileExpiryCurve[];
+  spot?: string | number | null | undefined;
+}) {
   if (data.length === 0) {
     return (
-      <AnalyticalSeriesPanel title="Smile" subtitle="IV by strike">
+      <AnalyticalSeriesPanel title="Smile" subtitle={SUBTITLE}>
         <div style={{ color: "var(--text-muted)", fontSize: 11 }}>
           No smile data
         </div>
@@ -45,13 +53,16 @@ export function SmileChart({ data }: { data: SmileExpiryCurve[] }) {
   const ivDomain = finiteDomain(allIvs);
   if (!strikeDomain || !ivDomain) {
     return (
-      <AnalyticalSeriesPanel title="Smile" subtitle="IV by strike">
+      <AnalyticalSeriesPanel title="Smile" subtitle={SUBTITLE}>
         <div style={{ color: "var(--text-muted)", fontSize: 11 }}>
           Insufficient finite smile data
         </div>
       </AnalyticalSeriesPanel>
     );
   }
+  const spotNum = toNum(spot);
+  const spotInRange =
+    spotNum != null && spotNum >= strikeDomain.lo && spotNum <= strikeDomain.hi;
   const W = 400;
   const H = 220;
   const M = { top: 8, right: 16, bottom: 24, left: 36 };
@@ -62,7 +73,7 @@ export function SmileChart({ data }: { data: SmileExpiryCurve[] }) {
   const y = linearScale([ivDomain.lo, ivDomain.hi], [H - M.bottom, M.top]);
 
   return (
-    <AnalyticalSeriesPanel title="Smile" subtitle="IV by strike">
+    <AnalyticalSeriesPanel title="Smile" subtitle={SUBTITLE}>
       <div style={{ display: "flex", gap: 12, fontSize: 10, marginBottom: 4 }}>
         {data.slice(0, COLORS.length).map((c, i) => (
           <span key={c.expiry} style={{ color: COLORS[i] }}>
@@ -71,6 +82,27 @@ export function SmileChart({ data }: { data: SmileExpiryCurve[] }) {
         ))}
       </div>
       <svg viewBox={`0 0 ${W} ${H}`} width="100%" height={H} role="img">
+        {spotInRange && (
+          <g>
+            <line
+              x1={x(spotNum!)}
+              x2={x(spotNum!)}
+              y1={M.top}
+              y2={H - M.bottom}
+              stroke="var(--text-muted)"
+              strokeDasharray="2,3"
+              strokeWidth={1}
+            />
+            <text
+              x={x(spotNum!) + 3}
+              y={M.top + 9}
+              fontSize={9}
+              fill="var(--text-muted)"
+            >
+              spot ${spotNum!.toFixed(2)}
+            </text>
+          </g>
+        )}
         {data.slice(0, COLORS.length).map((curve, i) => {
           const pts: Point[] = curve.points
             .map((p) => {

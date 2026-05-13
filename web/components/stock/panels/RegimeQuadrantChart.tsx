@@ -17,13 +17,33 @@ export type RegimeQuadrantLatest = {
 export type RegimeQuadrantBlock = {
   points: RegimeQuadrantPoint[];
   latest?: RegimeQuadrantLatest | null;
+  cutoff_corr?: string | number | null | undefined;
 };
 
-const STATE_LABELS: Record<string, { label: string; corner: string }> = {
-  GOLDILOCKS: { label: "Goldilocks", corner: "bl" },
-  FRAGILE_CALM: { label: "Fragile Calm", corner: "tl" },
-  STOCK_PICKER: { label: "Stock Picker", corner: "br" },
-  SYSTEMIC_PANIC: { label: "Systemic Panic", corner: "tr" },
+const STATE_LABELS: Record<
+  string,
+  { label: string; corner: string; gloss: string }
+> = {
+  GOLDILOCKS: {
+    label: "Goldilocks",
+    corner: "bl",
+    gloss: "low vol, low corr — calm, idiosyncratic",
+  },
+  FRAGILE_CALM: {
+    label: "Fragile Calm",
+    corner: "tl",
+    gloss: "low vol, high corr — quiet but tape-driven",
+  },
+  STOCK_PICKER: {
+    label: "Stock Picker",
+    corner: "br",
+    gloss: "high vol, low corr — name-specific dispersion",
+  },
+  SYSTEMIC_PANIC: {
+    label: "Systemic Panic",
+    corner: "tr",
+    gloss: "high vol, high corr — broad de-risking",
+  },
 };
 
 export function RegimeQuadrantChart({ data }: { data: RegimeQuadrantBlock }) {
@@ -51,6 +71,10 @@ export function RegimeQuadrantChart({ data }: { data: RegimeQuadrantBlock }) {
     M.top + (1 - (Math.max(-1, Math.min(1, v)) + 1) / 2) * innerH;
 
   const latestState = data.latest?.state ?? "";
+  const cutoff = toNum(data.cutoff_corr);
+  // Draw the horizontal divider at the classifier's actual cutoff (median corr,
+  // or 0.5 fallback). Drawing at y(0) created a visual/state mismatch (#5).
+  const cutoffY = cutoff != null ? y(cutoff) : y(0);
 
   return (
     <AnalyticalSeriesPanel title="Regime Quadrant" subtitle="20 sessions">
@@ -66,11 +90,22 @@ export function RegimeQuadrantChart({ data }: { data: RegimeQuadrantBlock }) {
         <line
           x1={M.left}
           x2={W - M.right}
-          y1={y(0)}
-          y2={y(0)}
+          y1={cutoffY}
+          y2={cutoffY}
           stroke="var(--chart-grid)"
           strokeDasharray="2,3"
         />
+        {cutoff != null && (
+          <text
+            x={W - M.right - 4}
+            y={cutoffY - 3}
+            fontSize={8}
+            textAnchor="end"
+            fill="var(--text-muted)"
+          >
+            corr cutoff = {cutoff.toFixed(2)}
+          </text>
+        )}
         <text
           x={M.left + 4}
           y={M.top + 10}
@@ -136,10 +171,11 @@ export function RegimeQuadrantChart({ data }: { data: RegimeQuadrantBlock }) {
           0 RVOL %ile 100
         </text>
       </svg>
-      <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+      <div style={{ display: "flex", gap: 8, marginTop: 8, flexWrap: "wrap" }}>
         {Object.entries(STATE_LABELS).map(([key, v]) => (
           <span
             key={key}
+            title={v.gloss}
             style={{
               fontFamily: "var(--font-mono)",
               fontSize: 10,
@@ -152,11 +188,24 @@ export function RegimeQuadrantChart({ data }: { data: RegimeQuadrantBlock }) {
                 key === latestState
                   ? "var(--accent-text)"
                   : "var(--text-muted)",
+              cursor: "help",
             }}
           >
             {v.label}
           </span>
         ))}
+      </div>
+      <div
+        style={{
+          marginTop: 6,
+          fontSize: 10,
+          color: "var(--text-muted)",
+          lineHeight: 1.4,
+        }}
+      >
+        {latestState && STATE_LABELS[latestState]
+          ? `${STATE_LABELS[latestState].label}: ${STATE_LABELS[latestState].gloss}`
+          : "Hover a tile for the meaning of each quadrant."}
       </div>
     </AnalyticalSeriesPanel>
   );
