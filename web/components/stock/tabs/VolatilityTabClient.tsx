@@ -77,13 +77,6 @@ export function VolatilityTabClient({
         </div>
       )}
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-        <TermStructureChart data={series.term_structure} />
-        <SmileChart data={series.smile} spot={series.spot} />
-        <HvIvChart data={series.hv_iv_history} />
-        <IvPercentileDistribution data={series.iv_percentile_distribution} />
-      </div>
-
       <div
         style={{
           fontFamily: "var(--font-mono)",
@@ -105,6 +98,26 @@ export function VolatilityTabClient({
           data={series.divergence}
           headline={series.divergence_headline}
         />
+      </div>
+
+      <div
+        style={{
+          fontFamily: "var(--font-mono)",
+          fontSize: 9,
+          letterSpacing: 1,
+          color: "var(--text-muted)",
+          textTransform: "uppercase",
+          marginTop: 4,
+        }}
+      >
+        Today's snapshot
+      </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+        <TermStructureChart data={series.term_structure} />
+        <SmileChart data={series.smile} spot={series.spot} />
+        <HvIvChart data={series.hv_iv_history} />
+        <IvPercentileDistribution data={series.iv_percentile_distribution} />
       </div>
 
       <VrpSpreadPanel
