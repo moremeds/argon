@@ -217,6 +217,202 @@ git commit -m "ui: add --accent-vol, --accent-warm, --accent-vivid tokens for vo
 
 ---
 
+### Task 0.4: End-to-end dry-run validation script
+
+**Purpose** — before any subagent picks up implementation tasks, exercise
+every backend code path with seeded synthetic data and verify the
+`VolatilitySeriesResponse` is well-formed and free of runtime errors. This
+script is a one-shot harness, NOT a regression test — it lives under
+`scripts/` and is intended to be re-run after big changes during
+implementation, then deleted once the proper integration tests in Task
+4.5 / 4.5b / 4.2 are passing.
+
+**Files:**
+- Create: `scripts/dry_run_volatility_endpoint.py`
+
+- [ ] **Step 1: Write the script**
+
+```python
+"""End-to-end dry-run for the Volatility Tab v2 endpoint.
+
+Seeds a single test ticker with synthetic IV/RV history, SPY OHLC, an
+iv_smile snapshot, and a backfill_status row → runs assemble_volatility_series
+locally (no FastAPI, no UW) → prints the response shape + pretty-prints
+critical fields → exits non-zero if any panel is empty when it shouldn't be.
+
+Run: `UW_SCAN_TEST_DB_NAME=option_wizard_test \
+      uv run python scripts/dry_run_volatility_endpoint.py`
+"""
+
+from __future__ import annotations
+
+import logging
+import math
+import os
+import sys
+from contextlib import closing
+from datetime import date, timedelta
+from decimal import Decimal
+
+import psycopg
+
+from uw_scan.config import Settings
+from uw_scan.models import GreeksRow, RealizedVolRow
+from uw_scan.reports.volatility_series import assemble_volatility_series
+from uw_scan.sources.ohlc import OhlcBar
+from uw_scan.storage.repository import Repository
+
+logging.basicConfig(level=logging.INFO, format="%(asctime)s %(message)s")
+log = logging.getLogger("dry_run_vol")
+
+TICKER = "DRYRUN"
+
+
+def _seed(repo: Repository) -> int:
+    base = date.today() - timedelta(days=120)
+    run_id = repo.insert_scan_run(TICKER, notes="dry_run")
+
+    # 120 days of RV/IV — enough for every rolling window (252 percentile
+    # window stays None; 20/21-day windows are dense).
+    rv_rows: list[RealizedVolRow] = []
+    spy_bars: list[OhlcBar] = []
+    for i in range(120):
+        d = base + timedelta(days=i)
+        iv = 0.50 + 0.05 * math.sin(i / 5)
+        rv_val = 0.40 + 0.04 * math.cos(i / 6)
+        rv_rows.append(RealizedVolRow(
+            date=d,
+            price=Decimal(str(100 + i * 0.3 + math.sin(i / 4) * 2)),
+            implied_volatility=Decimal(str(round(iv, 4))),
+            realized_volatility=Decimal(str(round(rv_val, 4))),
+        ))
+        spy_bars.append(OhlcBar(
+            ticker="SPY", date=d, open=None, high=None, low=None,
+            close=Decimal(str(500 + i * 1.5 + math.cos(i / 4) * 5)),
+            volume=None,
+        ))
+    repo.upsert_realized_vol_rows(TICKER, rv_rows)
+    repo.upsert_index_ohlc_rows(spy_bars)
+
+    # Smile: 5 strikes across one expiry so the term-ladder pivot has
+    # ATM-2 / ATM-1 / ATM / ATM+1 to draw.
+    expiry = date.today() + timedelta(days=7)
+    last_price = float(rv_rows[-1].price)
+    smile_strikes = [last_price - 4, last_price - 2, last_price,
+                     last_price + 2, last_price + 4]
+    repo.upsert_iv_smile_rows([
+        {"ticker": TICKER, "market_date": date.today(),
+         "expiry": expiry, "strike": Decimal(str(round(s, 2))),
+         "iv": Decimal(str(round(0.55 + 0.01 * abs(s - last_price), 4)))}
+        for s in smile_strikes
+    ])
+
+    # Greeks → primes greeks_by_expiry_strike so the cache-first smile path
+    # in run_volatility_backfill is exercised.
+    repo.insert_greeks_rows(run_id, TICKER, [
+        GreeksRow(
+            date=date.today(), expiry=expiry, strike=Decimal(str(round(s, 2))),
+            call_volatility=Decimal("0.55"),
+            put_volatility=Decimal("0.57"),
+        )
+        for s in smile_strikes
+    ])
+    repo.conn.commit()
+    return run_id
+
+
+def _assert(condition: bool, message: str) -> None:
+    if not condition:
+        log.error("FAIL: %s", message)
+        sys.exit(1)
+    log.info("OK   %s", message)
+
+
+def main() -> int:
+    if not os.environ.get("UW_SCAN_TEST_DB_NAME"):
+        log.error("UW_SCAN_TEST_DB_NAME must be set — refusing to write into "
+                  "the working DB.")
+        return 2
+    settings = Settings.from_env().model_copy(
+        update={"db_name": os.environ["UW_SCAN_TEST_DB_NAME"]},
+    )
+    with closing(psycopg.connect(settings.db_dsn())) as conn:
+        repo = Repository(conn, schema=settings.db_schema)
+        _seed(repo)
+        resp = assemble_volatility_series(ticker=TICKER, repo=repo)
+
+    log.info("=== response shape ===")
+    log.info("ticker=%s as_of=%s backfill_status=%s",
+             resp.ticker, resp.as_of, resp.backfill_status)
+    log.info("header: iv=%s rv=%s vrp=%s signal=%s",
+             resp.header.iv, resp.header.rv, resp.header.vrp,
+             resp.header.vrp_signal)
+    log.info("hv_iv_history rows=%d", len(resp.hv_iv_history))
+    log.info("term_structure expiries=%d (first ladder=%s)",
+             len(resp.term_structure),
+             resp.term_structure[0].by_strike if resp.term_structure else {})
+    log.info("smile expiries=%d", len(resp.smile))
+    log.info("iv_of_iv rows=%d  rv_spy_corr rows=%d",
+             len(resp.iv_of_iv), len(resp.rv_spy_corr))
+    log.info("regime_quadrant points=%d latest=%s",
+             len(resp.regime_quadrant.points),
+             resp.regime_quadrant.latest.state if resp.regime_quadrant.latest
+             else "(none)")
+    log.info("divergence rows=%d headline=%s",
+             len(resp.divergence), resp.divergence_headline)
+    log.info("vrp_spread rows=%d headline=%s",
+             len(resp.vrp_spread), resp.vrp_spread_headline)
+
+    # Critical assertions — each panel that SHOULD be populated must be.
+    _assert(resp.header.iv is not None, "header.iv populated")
+    _assert(resp.header.vrp is not None, "header.vrp populated")
+    _assert(len(resp.hv_iv_history) >= 90, "hv_iv_history ≥ 90 rows")
+    _assert(len(resp.term_structure) >= 1, "term_structure has ≥ 1 expiry")
+    _assert("ATM" in resp.term_structure[0].by_strike,
+            "term_structure[0] has an ATM strike")
+    _assert(len(resp.smile) >= 1, "smile has ≥ 1 expiry curve")
+    _assert(len(resp.iv_of_iv) > 0, "iv_of_iv populated")
+    _assert(len(resp.rv_spy_corr) > 0, "rv_spy_corr populated")
+    _assert(resp.regime_quadrant.latest is not None,
+            "regime_quadrant.latest populated")
+    _assert(len(resp.divergence) > 0, "divergence populated")
+    _assert(resp.divergence_headline.endswith("σ"),
+            "divergence_headline ends with σ")
+    _assert(len(resp.vrp_spread) > 0, "vrp_spread populated")
+
+    log.info("=== ALL ASSERTIONS PASSED ===")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
+```
+
+- [ ] **Step 2: Run after each major implementation phase**
+
+The script is the implementation team's smoke test — run it after:
+- Phase 1 (repo helpers + models exist)
+- Phase 2 (derivers exist)
+- Phase 4 (orchestrator wired)
+- Phase 8 (worker jobs added; should still pass with no changes)
+
+Run: `UW_SCAN_TEST_DB_NAME=option_wizard_test bash scripts/migrate.sh && \
+      UW_SCAN_TEST_DB_NAME=option_wizard_test \
+      uv run python scripts/dry_run_volatility_endpoint.py`
+
+Expected: every assertion logs `OK`, exit 0. If anything fails, the line
+identifies which panel/code-path is broken before the proper test suite
+even runs.
+
+- [ ] **Step 3: Commit (script only — no callers yet)**
+
+```bash
+git add scripts/dry_run_volatility_endpoint.py
+git commit -m "scripts: end-to-end dry-run for volatility series endpoint"
+```
+
+---
+
 ## Phase 1 — Backend models & repo helpers
 
 > **Test-location convention (applies to every DB-backed task in this plan)**
@@ -2656,17 +2852,49 @@ def _next_fridays(n: int, *, today: date | None = None) -> list[date]:
     return [first + timedelta(days=7 * i) for i in range(n)]
 
 
+_LOCK_KEY_SQL = (
+    "('x' || substr(md5('vol_backfill:' || %s), 1, 16))::bit(64)::bigint"
+)
+
+
+def _try_acquire_backfill_lock(conn: psycopg.Connection, ticker: str) -> bool:
+    """Session-scoped advisory lock. True = lock acquired, False = busy.
+    Held until _release_backfill_lock(...) regardless of transactions."""
+    with conn.cursor() as cur:
+        cur.execute(f"SELECT pg_try_advisory_lock({_LOCK_KEY_SQL})", (ticker,))
+        return bool(cur.fetchone()[0])
+
+
+def _release_backfill_lock(conn: psycopg.Connection, ticker: str) -> None:
+    with conn.cursor() as cur:
+        cur.execute(f"SELECT pg_advisory_unlock({_LOCK_KEY_SQL})", (ticker,))
+
+
 def _kick_backfill(ticker: str) -> None:
     """Run the UW backfill out-of-band. Owns its own repo + client.
+
+    Single-flight is enforced by a session-scoped `pg_advisory_lock` keyed
+    on `md5('vol_backfill:{ticker}')`. The lock is held across the entire
+    backfill (multiple commits) and released in `finally`. Concurrent
+    requests for the same ticker either see status='running' on the
+    endpoint side, or — if they slip past the row check — bounce off this
+    lock here. The endpoint's 5-min staleness check is the secondary layer
+    that auto-recovers if a worker dies without releasing.
 
     Uses the canonical settings + connection pattern from api/deps.py:14-25
     and worker/scheduler.py:33-46.
     """
+    settings = get_settings()
+    conn = psycopg.connect(settings.db_dsn())
     try:
-        settings = get_settings()  # cached Settings.from_env()
-        with closing(psycopg.connect(settings.db_dsn())) as conn:
+        if not _try_acquire_backfill_lock(conn, ticker):
+            log.info(
+                "volatility backfill for %s already in flight elsewhere",
+                ticker,
+            )
+            return
+        try:
             repo = Repository(conn, schema=settings.db_schema)
-            # Mark backfill as running (single-flight, see Task 4.5b).
             repo.upsert_volatility_backfill_status(ticker, status="running")
             conn.commit()
             with UwClient(
@@ -2698,20 +2926,28 @@ def _kick_backfill(ticker: str) -> None:
                 ticker, status=status,  # "ready" or "failed"
             )
             conn.commit()
-    except Exception as exc:
-        log.exception("background backfill failed for %s", ticker)
-        # Best-effort status update — own short connection so we don't carry
-        # a poisoned transaction.
-        try:
-            settings = get_settings()
-            with closing(psycopg.connect(settings.db_dsn())) as conn:
+        except Exception as exc:
+            log.exception("background backfill failed for %s", ticker)
+            # Rollback the poisoned txn, then record the failure on the
+            # SAME lock-holding connection so single-flight is preserved.
+            try:
+                conn.rollback()
                 Repository(conn, schema=settings.db_schema)\
                     .upsert_volatility_backfill_status(
                         ticker, status="failed", error_message=repr(exc),
                     )
                 conn.commit()
+            except Exception:
+                log.exception(
+                    "could not record failed backfill status for %s",
+                    ticker,
+                )
+    finally:
+        try:
+            _release_backfill_lock(conn, ticker)
         except Exception:
-            log.exception("could not record failed backfill status for %s", ticker)
+            log.exception("could not release backfill lock for %s", ticker)
+        conn.close()
 
 
 @router.get(
@@ -2950,7 +3186,12 @@ git commit -m "types: regen openapi types for volatility series endpoint"
 
 ```ts
 import { describe, it, expect } from "vitest";
-import { linearScale, pathFromPoints, niceTicks } from "@/lib/svgChart";
+import {
+  linearScale,
+  pathFromPoints,
+  niceTicks,
+  finiteDomain,
+} from "@/lib/svgChart";
 
 describe("svgChart helpers", () => {
   it("linearScale maps domain to range", () => {
@@ -2973,6 +3214,25 @@ describe("svgChart helpers", () => {
     expect(ticks.length).toBeGreaterThanOrEqual(4);
     expect(ticks[0]).toBeLessThanOrEqual(0);
     expect(ticks[ticks.length - 1]).toBeGreaterThanOrEqual(100);
+  });
+
+  describe("finiteDomain — NaN-safety helper", () => {
+    it("returns min/max of finite values only", () => {
+      const d = finiteDomain([1, NaN, 2, null, 3, undefined, 5] as number[]);
+      expect(d).toEqual({ lo: 1, hi: 5, count: 4 });
+    });
+
+    it("returns null when fewer than two finite values", () => {
+      expect(finiteDomain([])).toBeNull();
+      expect(finiteDomain([NaN, null] as unknown as number[])).toBeNull();
+      expect(finiteDomain([5])).toBeNull();
+    });
+
+    it("treats Infinity as non-finite", () => {
+      expect(finiteDomain([Infinity, -Infinity, 1, 2])).toEqual(
+        { lo: 1, hi: 2, count: 2 },
+      );
+    });
   });
 });
 ```
@@ -3016,6 +3276,29 @@ export function niceTicks(min: number, max: number, count = 5): number[] {
   const out: number[] = [];
   for (let v = start; v <= end + 1e-9; v += adjusted) out.push(v);
   return out;
+}
+
+/** Compute a y-axis domain safely from possibly-null/NaN values.
+ *
+ * Every chart panel in Phase 6 must use this — passing raw arrays with
+ * null entries to Math.min/Math.max produces NaN scales and blank
+ * SVG paths (review finding I6). Returns null when there are fewer
+ * than 2 finite values; callers render an empty-state in that case. */
+export function finiteDomain(
+  values: ReadonlyArray<number | null | undefined>,
+): { lo: number; hi: number; count: number } | null {
+  let lo = Infinity;
+  let hi = -Infinity;
+  let count = 0;
+  for (const v of values) {
+    if (v == null) continue;
+    if (!Number.isFinite(v)) continue;
+    if (v < lo) lo = v;
+    if (v > hi) hi = v;
+    count += 1;
+  }
+  if (count < 2) return null;
+  return { lo, hi, count };
 }
 ```
 
@@ -3174,11 +3457,14 @@ git commit -m "ui: AnalyticalSeriesPanel — shared chart shell (matches image 1
 
 > All panel components are server components by default. They accept their slice of the `VolatilitySeriesResponse` and render a single SVG (or a histogram of divs). Width is `100%` of the container; the parent `VolatilityTab` sets the grid. Use `400` width × `260` height internally for the SVG viewBox — keeps math consistent across panels.
 >
-> **NaN-safety rule (applies to every chart panel below).** Always filter to
-> finite values before computing domain (`Math.min(...finite)`). Series will
-> contain `null`/`undefined` entries from days with missing IV/RV/correlation
-> — a single null in a `Math.min(...arr)` call poisons the entire scale with
-> `NaN` and produces blank paths + "NaN%" axis labels (review finding I6).
+> **NaN-safety rule (mandatory in every chart panel below).** Every panel
+> MUST compute its y-axis domain via `finiteDomain(values)` from
+> `web/lib/svgChart.ts` (Task 5.1) — NEVER call `Math.min` / `Math.max`
+> directly on a raw values array. Series contain `null` entries from days
+> with missing IV/RV/correlation; a single null poisons `Math.min` with
+> `NaN` and produces blank SVG paths + "NaN%" axis labels (review I6).
+> Each panel test MUST include a "partial-null data" case — see Task 6.4
+> for the reference test pattern; copy it verbatim into every panel test.
 
 ### Task 6.1: `VolMetricsCard`
 
@@ -3379,6 +3665,24 @@ describe("HvIvChart", () => {
     render(<HvIvChart data={[]} />);
     expect(screen.getByText(/insufficient/i)).toBeInTheDocument();
   });
+
+  // Reference NaN-safety test — replicate into EVERY panel test (panels
+  // 6.2-6.10), substituting the panel's own props shape. Ensures the
+  // finiteDomain() rule is honoured and that null entries do not produce
+  // "NaN%" in the rendered SVG (review I6 + Phase 6 preamble).
+  it("survives partial-null rows without NaN leakage", () => {
+    const { container } = render(
+      <HvIvChart
+        data={[
+          { date: "2026-05-11", iv: "0.50", rv: null },
+          { date: "2026-05-12", iv: null, rv: "0.41" },
+          { date: "2026-05-13", iv: "0.51", rv: "0.42" },
+        ]}
+      />,
+    );
+    // The rendered DOM must not contain the literal string "NaN".
+    expect(container.textContent ?? "").not.toMatch(/NaN/);
+  });
 });
 ```
 
@@ -3392,7 +3696,7 @@ Run: `cd web && npm test -- <ComponentName>`
 
 ```tsx
 import { AnalyticalSeriesPanel } from "./AnalyticalSeriesPanel";
-import { linearScale, pathFromPoints } from "@/lib/svgChart";
+import { finiteDomain, linearScale, pathFromPoints } from "@/lib/svgChart";
 import { toNum } from "@/lib/formatters";
 
 export function HvIvChart({
@@ -3410,12 +3714,13 @@ export function HvIvChart({
     );
   }
   const W = 400, H = 260, M = { top: 8, right: 16, bottom: 24, left: 36 };
-  const ivs = data.map((d) => toNum(d.iv) ?? NaN);
-  const rvs = data.map((d) => toNum(d.rv) ?? NaN);
-  // Filter to finite values before computing domain — null/NaN entries
-  // poison Math.min/max with NaN and produce blank charts (review finding I6).
-  const finite = [...ivs, ...rvs].filter((v) => Number.isFinite(v));
-  if (finite.length < 2) {
+  const ivs = data.map((d) => toNum(d.iv));
+  const rvs = data.map((d) => toNum(d.rv));
+  // ALWAYS go through finiteDomain — direct Math.min/max with null entries
+  // poisons the scale with NaN and renders blank SVG paths (review I6).
+  // Pattern is shared by all 9 panels; never inline Math.min/max here.
+  const domain = finiteDomain([...ivs, ...rvs]);
+  if (!domain) {
     return (
       <AnalyticalSeriesPanel title="HV / IV" subtitle="Analytical time series">
         <div style={{ color: "var(--text-muted)", fontSize: 11 }}>
@@ -3424,8 +3729,7 @@ export function HvIvChart({
       </AnalyticalSeriesPanel>
     );
   }
-  const lo = Math.min(...finite);
-  const hi = Math.max(...finite);
+  const { lo, hi } = domain;
   const x = linearScale([0, data.length - 1], [M.left, W - M.right]);
   const y = linearScale([lo, hi], [H - M.bottom, M.top]);
   const ivPath = pathFromPoints(
@@ -4039,6 +4343,19 @@ EOF
 ---
 
 ## Self-review (post-write, post-fix, post-tribunal 2026-05-13)
+
+Push-to-95 confidence items applied (post final-review):
+- **#1 Dry-run script** — `scripts/dry_run_volatility_endpoint.py` exercises
+  every backend code path with seeded synthetic data; ~12 assertions; run
+  after each phase to catch regressions before the full test suite.
+- **#2 `finiteDomain` helper** — shared utility in `web/lib/svgChart.ts`
+  + Phase 6 preamble mandates its use across all 9 panels + a "partial-null
+  rows" reference test enforces "no NaN in DOM" per panel.
+- **#3 Advisory lock** — `_kick_backfill` now wraps the whole run in a
+  session-scoped `pg_try_advisory_lock` keyed on `md5('vol_backfill:<ticker>')`,
+  released in `finally`. Concurrent kicks for the same ticker bounce off the
+  lock instead of double-spending UW quota. The endpoint's 5-min staleness
+  check is the secondary recovery for crashed workers.
 
 This plan went through four review passes:
 
