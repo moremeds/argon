@@ -48,8 +48,8 @@ export const SNAPSHOT_TOOLTIPS: Record<string, TooltipCopy> = {
   },
   sharesAvail: {
     definition:
-      "Hard-to-borrow availability. Falling availability + rising fee rate is the classic short-squeeze setup.",
-    benchmark: "<100k shares for a mid-cap is tight.",
+      "Hard-to-borrow availability. Falling availability + rising fee rate is the classic short-squeeze setup. UW caps the value at 10,000,000 — easy-to-borrow large caps display as 10M+.",
+    benchmark: "<100k shares for a mid-cap is tight; 10M+ = unconstrained.",
   },
   feeRate: {
     definition: "Borrow fee for shorting this stock (% annualized).",

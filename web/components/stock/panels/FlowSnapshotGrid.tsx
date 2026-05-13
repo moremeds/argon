@@ -1,7 +1,25 @@
 import type { components } from "@/lib/types";
 import { fmtDecimal, fmtSigned, toNum } from "@/lib/formatters";
-import { AnalyticalSeriesPanel } from "./AnalyticalSeriesPanel";
 import { SNAPSHOT_TOOLTIPS, type TooltipCopy } from "./snapshotTooltips";
+
+// UW caps share-availability inventory at 10M. Anything at that exact value
+// is "easy borrow, true count unknown" — surface as 10M+ rather than a
+// misleadingly precise number.
+const SHARES_AVAIL_CAP = 10_000_000;
+function fmtSharesAvail(v: number | null | undefined): string {
+  if (v == null) return "—";
+  if (v >= SHARES_AVAIL_CAP) return "10M+";
+  return fmtDecimal(v, 0);
+}
+
+const SECTION_HEADING: React.CSSProperties = {
+  fontFamily: "var(--font-mono)",
+  fontSize: 12,
+  letterSpacing: 1.5,
+  textTransform: "uppercase",
+  color: "var(--text-muted)",
+  margin: "0 0 8px 0",
+};
 
 type Report = components["schemas"]["SingleStockReport"];
 type ShortData = NonNullable<Report["short_data"]>;
@@ -50,8 +68,9 @@ export function FlowSnapshotGrid({ flow, darkPool, shortData }: Props) {
   const netPrem = toNum(flow.net_premium);
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-      <AnalyticalSeriesPanel title="Options Flow">
+    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+      <section>
+        <h3 style={SECTION_HEADING}>Options Flow</h3>
         <div
           style={{
             display: "grid",
@@ -93,9 +112,10 @@ export function FlowSnapshotGrid({ flow, darkPool, shortData }: Props) {
             value={fmtDecimal(toNum(flow.bid_side_premium), 0)}
           />
         </div>
-      </AnalyticalSeriesPanel>
+      </section>
 
-      <AnalyticalSeriesPanel title="Dark Pool & Short Interest">
+      <section>
+        <h3 style={SECTION_HEADING}>Dark Pool & Short Interest</h3>
         <div
           style={{
             display: "grid",
@@ -116,7 +136,7 @@ export function FlowSnapshotGrid({ flow, darkPool, shortData }: Props) {
           <Tile
             label="Shares Avail"
             tip="sharesAvail"
-            value={fmtDecimal(shortData?.short_shares_available ?? null, 0)}
+            value={fmtSharesAvail(shortData?.short_shares_available ?? null)}
           />
           <Tile
             label="Fee Rate"
@@ -129,7 +149,7 @@ export function FlowSnapshotGrid({ flow, darkPool, shortData }: Props) {
             value={fmtDecimal(toNum(shortData?.rebate_rate ?? null), 4)}
           />
         </div>
-      </AnalyticalSeriesPanel>
+      </section>
     </div>
   );
 }
