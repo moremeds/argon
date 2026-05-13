@@ -51,7 +51,11 @@ export function StrikeProfilePanel({
   const x = linearScale([minStrike, maxStrike], [PAD.left, PAD.left + innerW]);
   const yCall = linearScale([0, maxBar], [HEIGHT / 2, PAD.top]); // up
   const yPut = linearScale([0, maxBar], [HEIGHT / 2, HEIGHT - PAD.bottom]); // down
-  const barW = Math.max(2, innerW / Math.max(sorted.length, 1) - 2);
+  // Proportional gap (55% of slot). OI panels typically render 2-3× more
+  // populated strikes than volume panels — both bars AND gaps shrink as
+  // density rises, so a generous gap factor preserves visual breathing
+  // room even on the densest OI views.
+  const barW = Math.max(1.5, (innerW / Math.max(sorted.length, 1)) * 0.45);
 
   // Bucket math: calls ITM when strike < spot; puts ITM when strike > spot.
   // ATM (strike == spot) routes to OTM for both — matches the panel's spec.
