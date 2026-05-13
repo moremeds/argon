@@ -31,17 +31,16 @@ export function FlowTab({ report }: { report: Report }) {
     [report.option_chain_per_strike],
   );
 
+  // Stored chain rows are already filtered to dte ≥ 0 in
+  // aggregate_chain_per_strike, so every expiry here is today-or-future.
+  // Computing "today" in the client was the source of an SSR/CSR hydration
+  // mismatch (Date()-based render-time state) — drop it.
   const expiries = useMemo(
     () => Array.from(new Set(chain.map((r) => r.expiry))).sort(),
     [chain],
   );
-  const today = new Date().toISOString().slice(0, 10);
-  const futureExpiries = useMemo(
-    () => expiries.filter((e) => e >= today),
-    [expiries, today],
-  );
   const [selectedExpiries, setSelectedExpiries] = useState<string[]>(() =>
-    futureExpiries.slice(0, 4),
+    expiries.slice(0, 4),
   );
   const [strikeRangePct, setStrikeRangePct] = useState<number>(0.3);
 
@@ -66,7 +65,7 @@ export function FlowTab({ report }: { report: Report }) {
       {chain.length > 0 ? (
         <section style={{ display: "flex", flexDirection: "column", gap: 12 }}>
           <ProfileControls
-            futureExpiries={futureExpiries}
+            expiries={expiries}
             selectedExpiries={selectedExpiries}
             onToggleExpiry={(e) =>
               setSelectedExpiries((prev) =>
@@ -126,13 +125,13 @@ export function FlowTab({ report }: { report: Report }) {
 }
 
 function ProfileControls({
-  futureExpiries,
+  expiries,
   selectedExpiries,
   onToggleExpiry,
   strikeRangePct,
   onStrikeRangeChange,
 }: {
-  futureExpiries: string[];
+  expiries: string[];
   selectedExpiries: string[];
   onToggleExpiry: (expiry: string) => void;
   strikeRangePct: number;
@@ -157,7 +156,7 @@ function ProfileControls({
       >
         EXPIRIES:
       </span>
-      {futureExpiries.map((e) => {
+      {expiries.map((e) => {
         const active = selectedExpiries.includes(e);
         return (
           <button

@@ -83,7 +83,7 @@ export function StrikeProfilePanel({
         viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
         style={{ width: "100%", height: "auto" }}
       >
-        <title>{title}: calls (green, above 0) / puts (red, below 0)</title>
+        <title>{`${title}: calls (green, above 0) / puts (red, below 0)`}</title>
         {/* zero line */}
         <line
           x1={PAD.left}

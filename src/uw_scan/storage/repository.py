@@ -118,11 +118,20 @@ class Repository:
     # scan_runs
     # ------------------------------------------------------------------
     def latest_run_id(self, ticker: str) -> int:
-        """Return the highest run_id for `ticker`, or 0 if none."""
+        """Return the highest full-scan run_id for `ticker`, or 0 if none.
+
+        Excludes runs created by ``flow_data_refresh`` — that job populates
+        ticker-keyed tables only (options_volume_daily, option_chain_per_strike)
+        and its scan_runs row would otherwise shadow the actual full-scan run
+        the report assembler needs for flow_alerts / oi_change_top / GEX /
+        volatility data, which are all keyed by run_id.
+        """
         with self._conn.cursor() as cur:
             cur.execute(
                 f"SELECT run_id FROM {self._schema}.scan_runs "
-                "WHERE ticker = %s ORDER BY run_id DESC LIMIT 1",
+                "WHERE ticker = %s "
+                "  AND (notes IS DISTINCT FROM 'flow_data_refresh') "
+                "ORDER BY run_id DESC LIMIT 1",
                 (ticker.upper(),),
             )
             row = cur.fetchone()

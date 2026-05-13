@@ -67,6 +67,21 @@ def test_option_chain_per_strike_round_trip(seeded_db_empty_cards) -> None:
     assert rows[0].put_oi == 8_000
 
 
+def test_latest_run_id_skips_flow_data_refresh_runs(seeded_db_empty_cards) -> None:
+    """flow_data_refresh writes a scan_runs row that must NOT shadow the real
+    full-scan run the report assembler relies on for flow_alerts / GEX / vol.
+    """
+    repo = seeded_db_empty_cards
+    full_run = repo.insert_scan_run("GOOGL", notes="full_scan")
+    repo.finish_scan_run(full_run, status="ok")
+    refresh_run = repo.insert_scan_run("GOOGL", notes="flow_data_refresh")
+    repo.finish_scan_run(refresh_run, status="ok")
+    repo.conn.commit()
+
+    assert refresh_run > full_run  # sanity: refresh would otherwise win on run_id
+    assert repo.latest_run_id("GOOGL") == full_run
+
+
 def test_option_chain_per_strike_returns_only_latest_snapshot(
     seeded_db_empty_cards,
 ) -> None:
