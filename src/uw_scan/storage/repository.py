@@ -1198,6 +1198,34 @@ class Repository:
             cols = [d.name for d in cur.description or []]
             return [dict(zip(cols, row, strict=False)) for row in cur.fetchall()]
 
+    def fetch_option_contracts_rich(self, run_id: int, ticker: str) -> list[dict[str, Any]]:
+        sql = (
+            f"SELECT option_symbol, last_price, nbbo_bid, nbbo_ask, "
+            "implied_volatility, open_interest, prev_oi, volume, ask_volume, "
+            "bid_volume, mid_volume, multi_leg_volume, stock_multi_leg_volume, "
+            "floor_volume, sweep_volume, no_side_volume, avg_price, high_price, "
+            "low_price, total_premium "
+            f"FROM {self._schema}.option_contract_snapshots "
+            "WHERE run_id = %s AND ticker = %s "
+            "ORDER BY total_premium DESC NULLS LAST"
+        )
+        with self._conn.cursor() as cur:
+            cur.execute(sql, (run_id, ticker))
+            cols = [d.name for d in cur.description or []]
+            return [dict(zip(cols, row, strict=False)) for row in cur.fetchall()]
+
+    def fetch_iv_term_rows(self, run_id: int, ticker: str) -> list[dict[str, Any]]:
+        sql = (
+            f"SELECT expiry, dte, volatility, implied_move, implied_move_perc "
+            f"FROM {self._schema}.iv_term_snapshots "
+            "WHERE run_id = %s AND ticker = %s "
+            "ORDER BY expiry ASC"
+        )
+        with self._conn.cursor() as cur:
+            cur.execute(sql, (run_id, ticker.upper()))
+            cols = [d.name for d in cur.description or []]
+            return [dict(zip(cols, row, strict=False)) for row in cur.fetchall()]
+
     def upsert_trade_insight_snapshot(
         self,
         *,
