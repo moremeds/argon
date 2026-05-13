@@ -476,6 +476,62 @@ class StrikeGexBucket(_UwBase):
     put_gex: Decimal | None = None
 
 
+class GexLevel(_UwBase):
+    """One labeled level on the GEX curve (e.g. CALL WALL, PUT WALL, MAX MAGNET).
+
+    `gamma_per_dollar` is the per-strike net_gex used as the "$N per $1" sensitivity
+    figure on the tile — the dollar value of dealer hedging triggered by a $1 move.
+    """
+
+    strike: Decimal
+    net_gex: Decimal | None = None
+    pct_from_spot: Decimal | None = None
+    gamma_per_dollar: Decimal | None = None
+
+
+class MarketStructureLevels(_UwBase):
+    """Derived strike-level reference points used by the Market Structure tab.
+
+    Conventions follow FlashAlpha / SpotGamma:
+      - gex_flip: lowest strike where running cumulative net_gex flips sign
+      - call_wall: strike with largest call-side gamma (typically above spot)
+      - put_wall: strike with largest put-side gamma magnitude (typically below spot)
+      - max_magnet: strike with largest positive net_gex above spot (pulls price up)
+      - second_magnet: strike with second-largest positive net_gex above spot
+      - max_accel: strike with most-negative net_gex below the flip (movement accelerator)
+    """
+
+    gex_flip: GexLevel | None = None
+    call_wall: GexLevel | None = None
+    put_wall: GexLevel | None = None
+    max_magnet: GexLevel | None = None
+    second_magnet: GexLevel | None = None
+    max_accel: GexLevel | None = None
+
+
+class StockHistoryRow(_UwBase):
+    """One per-trading-day rollup of a ticker's market structure.
+
+    Built from the latest successful scan_run on that date. spot comes from
+    daily_ohlc.close so it's a stable end-of-day reference (NULL for the
+    current trading day until the OHLC pull fires post-close).
+    """
+
+    market_date: _date
+    spot: Decimal | None = None
+    gex_flip: Decimal | None = None
+    net_gex: Decimal | None = None
+    net_dex: Decimal | None = None
+    iv30d: Decimal | None = None
+    pcr_vol: Decimal | None = None
+    bias: str = "NEUTRAL"
+
+
+class StockHistoryResponse(_UwBase):
+    ticker: str
+    rows: list[StockHistoryRow] = []
+
+
 class SingleStockReport(_UwBase):
     run_id: int
     ticker: str
@@ -494,3 +550,4 @@ class SingleStockReport(_UwBase):
     oi_change_top: list[OiChangeRow] = []
     aggregates: MarketAggregates | None = None
     strike_gex_curve: list[StrikeGexBucket] = []
+    market_structure_levels: MarketStructureLevels | None = None

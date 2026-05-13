@@ -6,7 +6,26 @@ from collections import defaultdict
 from datetime import date
 from decimal import Decimal
 
-from uw_scan.models import StrikeGexBucket
+from uw_scan.models import GexLevel, MarketStructureLevels, StrikeGexBucket
+
+
+def _aggregate_per_strike(
+    curve: list[StrikeGexBucket],
+) -> dict[Decimal, tuple[Decimal, Decimal, Decimal]]:
+    """Sum each strike's gamma fields across expiries. Returns
+    {strike -> (net_gex, call_gex, put_gex)}."""
+    net: dict[Decimal, Decimal] = defaultdict(lambda: Decimal("0"))
+    call: dict[Decimal, Decimal] = defaultdict(lambda: Decimal("0"))
+    put: dict[Decimal, Decimal] = defaultdict(lambda: Decimal("0"))
+    for b in curve:
+        if b.net_gex is not None:
+            net[b.strike] += b.net_gex
+        if b.call_gex is not None:
+            call[b.strike] += b.call_gex
+        if b.put_gex is not None:
+            put[b.strike] += b.put_gex
+    strikes = set(net) | set(call) | set(put)
+    return {s: (net[s], call[s], put[s]) for s in strikes}
 
 
 def find_flip_strike(curve: list[StrikeGexBucket]) -> Decimal | None:
@@ -71,3 +90,100 @@ def nearest_expiry(curve: list[StrikeGexBucket]) -> date | None:
     if not curve:
         return None
     return min(b.expiry for b in curve)
+
+
+def _make_level(
+    strike: Decimal,
+    spot: Decimal | None,
+    net_gex: Decimal,
+) -> GexLevel:
+    pct = ((strike - spot) / spot) if spot else None
+    return GexLevel(
+        strike=strike,
+        net_gex=net_gex,
+        pct_from_spot=pct,
+        gamma_per_dollar=net_gex,
+    )
+
+
+def compute_market_structure_levels(
+    curve: list[StrikeGexBucket],
+    spot: Decimal | None,
+) -> MarketStructureLevels:
+    """Derive the 6 reference levels used by the Market Structure tab.
+
+    See MarketStructureLevels docstring for definitions. All None when the curve
+    is empty or spot is missing.
+    """
+    levels = MarketStructureLevels()
+    if not curve or spot is None:
+        return levels
+
+    agg = _aggregate_per_strike(curve)
+    if not agg:
+        return levels
+
+    flip_strike = find_flip_strike(curve)
+    if flip_strike is not None and flip_strike in agg:
+        levels.gex_flip = _make_level(flip_strike, spot, agg[flip_strike][0])
+
+    # CALL WALL: largest call-side gamma — typically above spot, acts as resistance.
+    call_candidates = [(s, c) for s, (_, c, _) in agg.items() if c > 0]
+    if call_candidates:
+        s, _ = max(call_candidates, key=lambda kv: kv[1])
+        levels.call_wall = _make_level(s, spot, agg[s][0])
+
+    # PUT WALL: largest put-side gamma magnitude — typically below spot, acts as support.
+    # put_gex is stored as a positive magnitude in our data; if it's signed, abs() handles both.
+    put_candidates = [(s, p) for s, (_, _, p) in agg.items() if p != 0]
+    if put_candidates:
+        s, _ = max(put_candidates, key=lambda kv: abs(kv[1]))
+        levels.put_wall = _make_level(s, spot, agg[s][0])
+
+    # MAGNETS: positive net_gex strikes ABOVE spot, ranked by net_gex desc.
+    above_pos = sorted(
+        ((s, n) for s, (n, _, _) in agg.items() if s > spot and n > 0),
+        key=lambda kv: kv[1],
+        reverse=True,
+    )
+    if above_pos:
+        levels.max_magnet = _make_level(above_pos[0][0], spot, above_pos[0][1])
+    if len(above_pos) > 1:
+        levels.second_magnet = _make_level(above_pos[1][0], spot, above_pos[1][1])
+
+    # MAX ACCEL: most-negative net_gex below the flip (where moves accelerate).
+    # Falls back to "below spot" when there's no flip yet.
+    floor = flip_strike if flip_strike is not None else spot
+    below_neg = sorted(
+        ((s, n) for s, (n, _, _) in agg.items() if s < floor and n < 0),
+        key=lambda kv: kv[1],
+    )
+    if below_neg:
+        levels.max_accel = _make_level(below_neg[0][0], spot, below_neg[0][1])
+
+    return levels
+
+
+def classify_bias(
+    spot: Decimal | None,
+    gex_flip: Decimal | None,
+    net_gex: Decimal | None,
+) -> str:
+    """Directional regime label from spot relative to flip + net gamma sign.
+
+    BULL = above flip + positive gamma (stabilizing).
+    BEAR = below flip + negative gamma (destabilizing).
+    CAUTIOUS_BULL / CAUTIOUS_BEAR = direction matches, gamma sign doesn't.
+    NEUTRAL = any input missing.
+    """
+    if spot is None or gex_flip is None or net_gex is None:
+        return "NEUTRAL"
+    above = spot > gex_flip
+    stabilizing = net_gex > 0
+    if above and stabilizing:
+        return "BULL"
+    if not above and not stabilizing:
+        return "BEAR"
+    if above:
+        return "CAUTIOUS_BULL"
+    return "CAUTIOUS_BEAR"
