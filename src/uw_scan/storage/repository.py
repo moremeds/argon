@@ -148,6 +148,25 @@ class Repository:
             cur.execute(sql, (status, run_id))
 
     # ------------------------------------------------------------------
+    # advisory locks (single-flight worker jobs)
+    # ------------------------------------------------------------------
+    def try_advisory_lock(self, key: int) -> bool:
+        """Session-scoped ``pg_try_advisory_lock``; returns True if acquired.
+
+        Mirror the precedent in ``api/routers/volatility.py``. Always pair with
+        :meth:`release_advisory_lock` in a ``finally`` block.
+        """
+
+        with self._conn.cursor() as cur:
+            cur.execute("SELECT pg_try_advisory_lock(%s)", (key,))
+            row = cur.fetchone()
+            return bool(row and row[0])
+
+    def release_advisory_lock(self, key: int) -> None:
+        with self._conn.cursor() as cur:
+            cur.execute("SELECT pg_advisory_unlock(%s)", (key,))
+
+    # ------------------------------------------------------------------
     # api_request_audit + raw_payloads
     # ------------------------------------------------------------------
     def insert_audit_row(
@@ -637,6 +656,22 @@ class Repository:
                     ),
                 )
         return len(rows)
+
+    def delete_option_chain_per_strike(self, ticker: str, snapshot_date: _date) -> int:
+        """Delete same-day rows before re-upserting a refreshed snapshot.
+
+        Without this, a shrinking chain (fewer active strikes than last run)
+        would leave stale rows in place since UPSERT only touches the keys
+        present in the new batch.
+        """
+
+        with self._conn.cursor() as cur:
+            cur.execute(
+                f"DELETE FROM {self._schema}.option_chain_per_strike "
+                f"WHERE ticker = %s AND snapshot_date = %s",
+                (ticker, snapshot_date),
+            )
+            return cur.rowcount or 0
 
     def get_options_timeline(
         self, ticker: str, lookback_days: int = 180
