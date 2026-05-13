@@ -280,6 +280,49 @@
         }
       }
     },
+    "/api/stock/{ticker}/history": {
+      "get": {
+        "tags": [
+          "stock"
+        ],
+        "summary": "Get Stock History",
+        "description": "Daily rollup for the Market Structure tab's history table.\n\nOne row per trading day, sorted newest-first. Today's row may have\nspot=None if the post-close OHLC pull hasn't fired yet.",
+        "operationId": "get_stock_history_api_stock__ticker__history_get",
+        "parameters": [
+          {
+            "name": "ticker",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Ticker"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StockHistoryResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/stock/{ticker}/runs": {
       "get": {
         "tags": [
@@ -988,6 +1031,57 @@
         "type": "object",
         "title": "GammaBlock"
       },
+      "GexLevel": {
+        "properties": {
+          "strike": {
+            "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Strike"
+          },
+          "net_gex": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Net Gex"
+          },
+          "pct_from_spot": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pct From Spot"
+          },
+          "gamma_per_dollar": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Gamma Per Dollar"
+          }
+        },
+        "type": "object",
+        "required": [
+          "strike"
+        ],
+        "title": "GexLevel",
+        "description": "One labeled level on the GEX curve (e.g. CALL WALL, PUT WALL, MAX MAGNET).\n\n`gamma_per_dollar` is the per-strike net_gex used as the \"$N per $1\" sensitivity\nfigure on the tile \u2014 the dollar value of dealer hedging triggered by a $1 move."
+      },
       "HTTPValidationError": {
         "properties": {
           "detail": {
@@ -1044,6 +1138,99 @@
               }
             ],
             "title": "Reason"
+          },
+          "worker_lag_seconds": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Worker Lag Seconds"
+          },
+          "watchlist_size": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Watchlist Size"
+          },
+          "source": {
+            "type": "string",
+            "title": "Source",
+            "default": "massive.com"
+          },
+          "latency_p95_ms": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Latency P95 Ms"
+          },
+          "http_2xx": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Http 2Xx"
+          },
+          "http_4xx": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Http 4Xx"
+          },
+          "http_5xx": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Http 5Xx"
+          },
+          "uw_today": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Uw Today"
+          },
+          "cache_hit_pct": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cache Hit Pct"
           }
         },
         "type": "object",
@@ -1373,6 +1560,73 @@
         },
         "type": "object",
         "title": "MarketStructure"
+      },
+      "MarketStructureLevels": {
+        "properties": {
+          "gex_flip": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/GexLevel"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "call_wall": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/GexLevel"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "put_wall": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/GexLevel"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "max_magnet": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/GexLevel"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "second_magnet": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/GexLevel"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "max_accel": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/GexLevel"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "type": "object",
+        "title": "MarketStructureLevels",
+        "description": "Derived strike-level reference points used by the Market Structure tab.\n\nConventions follow FlashAlpha / SpotGamma:\n  - gex_flip: lowest strike where running cumulative net_gex flips sign\n  - call_wall: strike with largest call-side gamma (typically above spot)\n  - put_wall: strike with largest put-side gamma magnitude (typically below spot)\n  - max_magnet: strike with largest positive net_gex above spot (pulls price up)\n  - second_magnet: strike with second-largest positive net_gex above spot\n  - max_accel: strike with most-negative net_gex below the flip (movement accelerator)"
       },
       "MaxPainRow": {
         "properties": {
@@ -2067,6 +2321,16 @@
             "type": "array",
             "title": "Strike Gex Curve",
             "default": []
+          },
+          "market_structure_levels": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/MarketStructureLevels"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "type": "object",
@@ -2098,6 +2362,119 @@
         },
         "type": "object",
         "title": "SkewBlock"
+      },
+      "StockHistoryResponse": {
+        "properties": {
+          "ticker": {
+            "type": "string",
+            "title": "Ticker"
+          },
+          "rows": {
+            "items": {
+              "$ref": "#/components/schemas/StockHistoryRow"
+            },
+            "type": "array",
+            "title": "Rows",
+            "default": []
+          }
+        },
+        "type": "object",
+        "required": [
+          "ticker"
+        ],
+        "title": "StockHistoryResponse"
+      },
+      "StockHistoryRow": {
+        "properties": {
+          "market_date": {
+            "type": "string",
+            "format": "date",
+            "title": "Market Date"
+          },
+          "spot": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Spot"
+          },
+          "gex_flip": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Gex Flip"
+          },
+          "net_gex": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Net Gex"
+          },
+          "net_dex": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Net Dex"
+          },
+          "iv30d": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Iv30D"
+          },
+          "pcr_vol": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pcr Vol"
+          },
+          "bias": {
+            "type": "string",
+            "title": "Bias",
+            "default": "NEUTRAL"
+          }
+        },
+        "type": "object",
+        "required": [
+          "market_date"
+        ],
+        "title": "StockHistoryRow",
+        "description": "One per-trading-day rollup of a ticker's market structure.\n\nBuilt from the latest successful scan_run on that date. spot comes from\ndaily_ohlc.close so it's a stable end-of-day reference (NULL for the\ncurrent trading day until the OHLC pull fires post-close)."
       },
       "StrikeGexBucket": {
         "properties": {

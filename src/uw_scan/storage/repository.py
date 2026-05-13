@@ -1552,6 +1552,52 @@ class Repository:
             row = cur.fetchone()
         return PcrHistoryRow(*row) if row else None
 
+    # ---- stock history rollup (for Market Structure history table) ----
+    def fetch_stock_history_rollup(self, ticker: str, limit: int = 30) -> list[dict]:
+        """One row per trading day, latest successful scan_run on that date.
+
+        Joins to daily_ohlc for end-of-day spot. Returns dicts shaped for
+        api.routers.stock to wrap in StockHistoryRow models.
+        """
+        with self._conn.cursor() as cur:
+            cur.execute(
+                f"""
+                WITH daily_runs AS (
+                    SELECT DISTINCT ON (started_at::date)
+                        started_at::date AS market_date,
+                        strike_gex_curve,
+                        aggregates
+                    FROM {self._schema}.scan_runs
+                    WHERE ticker = %s
+                      AND status = 'ok'
+                      AND strike_gex_curve IS NOT NULL
+                    ORDER BY started_at::date DESC, started_at DESC
+                )
+                SELECT
+                    r.market_date,
+                    d.close AS spot,
+                    r.aggregates->>'iv30d' AS iv30d,
+                    r.aggregates->>'pcr_vol' AS pcr_vol,
+                    r.strike_gex_curve
+                FROM daily_runs r
+                LEFT JOIN {self._schema}.daily_ohlc d
+                  ON d.ticker = %s AND d.date = r.market_date
+                ORDER BY r.market_date DESC
+                LIMIT %s
+                """,
+                (ticker, ticker, limit),
+            )
+            return [
+                {
+                    "market_date": row[0],
+                    "spot": row[1],
+                    "iv30d": row[2],
+                    "pcr_vol": row[3],
+                    "strike_gex_curve": row[4],
+                }
+                for row in cur.fetchall()
+            ]
+
     # ---- watchlist count (for HealthPanel) ----
     def count_active_watchlist(self) -> int:
         with self._conn.cursor() as cur:

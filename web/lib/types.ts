@@ -74,6 +74,29 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/stock/{ticker}/history": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Stock History
+         * @description Daily rollup for the Market Structure tab's history table.
+         *
+         *     One row per trading day, sorted newest-first. Today's row may have
+         *     spot=None if the post-close OHLC pull hasn't fired yet.
+         */
+        get: operations["get_stock_history_api_stock__ticker__history_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/stock/{ticker}/runs": {
         parameters: {
             query?: never;
@@ -277,6 +300,23 @@ export interface components {
             /** Expiring Date */
             expiring_date?: string | null;
         };
+        /**
+         * GexLevel
+         * @description One labeled level on the GEX curve (e.g. CALL WALL, PUT WALL, MAX MAGNET).
+         *
+         *     `gamma_per_dollar` is the per-strike net_gex used as the "$N per $1" sensitivity
+         *     figure on the tile — the dollar value of dealer hedging triggered by a $1 move.
+         */
+        GexLevel: {
+            /** Strike */
+            strike: string;
+            /** Net Gex */
+            net_gex?: string | null;
+            /** Pct From Spot */
+            pct_from_spot?: string | null;
+            /** Gamma Per Dollar */
+            gamma_per_dollar?: string | null;
+        };
         /** HTTPValidationError */
         HTTPValidationError: {
             /** Detail */
@@ -395,6 +435,26 @@ export interface components {
              * @default []
              */
             top_put_oi_strikes: string[];
+        };
+        /**
+         * MarketStructureLevels
+         * @description Derived strike-level reference points used by the Market Structure tab.
+         *
+         *     Conventions follow FlashAlpha / SpotGamma:
+         *       - gex_flip: lowest strike where running cumulative net_gex flips sign
+         *       - call_wall: strike with largest call-side gamma (typically above spot)
+         *       - put_wall: strike with largest put-side gamma magnitude (typically below spot)
+         *       - max_magnet: strike with largest positive net_gex above spot (pulls price up)
+         *       - second_magnet: strike with second-largest positive net_gex above spot
+         *       - max_accel: strike with most-negative net_gex below the flip (movement accelerator)
+         */
+        MarketStructureLevels: {
+            gex_flip?: components["schemas"]["GexLevel"] | null;
+            call_wall?: components["schemas"]["GexLevel"] | null;
+            put_wall?: components["schemas"]["GexLevel"] | null;
+            max_magnet?: components["schemas"]["GexLevel"] | null;
+            second_magnet?: components["schemas"]["GexLevel"] | null;
+            max_accel?: components["schemas"]["GexLevel"] | null;
         };
         /** MaxPainRow */
         MaxPainRow: {
@@ -592,11 +652,54 @@ export interface components {
              * @default []
              */
             strike_gex_curve: components["schemas"]["StrikeGexBucket"][];
+            market_structure_levels?: components["schemas"]["MarketStructureLevels"] | null;
         };
         /** SkewBlock */
         SkewBlock: {
             /** Rr25D 30Dte */
             rr25d_30dte?: string | null;
+        };
+        /** StockHistoryResponse */
+        StockHistoryResponse: {
+            /** Ticker */
+            ticker: string;
+            /**
+             * Rows
+             * @default []
+             */
+            rows: components["schemas"]["StockHistoryRow"][];
+        };
+        /**
+         * StockHistoryRow
+         * @description One per-trading-day rollup of a ticker's market structure.
+         *
+         *     Built from the latest successful scan_run on that date. spot comes from
+         *     daily_ohlc.close so it's a stable end-of-day reference (NULL for the
+         *     current trading day until the OHLC pull fires post-close).
+         */
+        StockHistoryRow: {
+            /**
+             * Market Date
+             * Format: date
+             */
+            market_date: string;
+            /** Spot */
+            spot?: string | null;
+            /** Gex Flip */
+            gex_flip?: string | null;
+            /** Net Gex */
+            net_gex?: string | null;
+            /** Net Dex */
+            net_dex?: string | null;
+            /** Iv30D */
+            iv30d?: string | null;
+            /** Pcr Vol */
+            pcr_vol?: string | null;
+            /**
+             * Bias
+             * @default NEUTRAL
+             */
+            bias: string;
         };
         /**
          * StrikeGexBucket
@@ -959,6 +1062,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SingleStockReport"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_stock_history_api_stock__ticker__history_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                ticker: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StockHistoryResponse"];
                 };
             };
             /** @description Validation Error */

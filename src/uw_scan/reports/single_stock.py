@@ -10,6 +10,7 @@ from datetime import UTC, datetime
 from datetime import date as _date
 from decimal import Decimal
 
+from ..cards.gex import compute_market_structure_levels
 from ..models import (
     FlowAlert,
     FlowSnapshot,
@@ -411,6 +412,10 @@ def assemble_single_stock_report(
     ]
     aggregates = repo.get_aggregates(run_id)
 
+    market_structure_levels = compute_market_structure_levels(
+        strike_gex_curve, market_structure.spot
+    )
+
     return SingleStockReport(
         run_id=run_id,
         ticker=ticker,
@@ -428,6 +433,7 @@ def assemble_single_stock_report(
         oi_change_top=oi_change_top,
         strike_gex_curve=strike_gex_curve,
         aggregates=aggregates,
+        market_structure_levels=market_structure_levels,
     )
 
 
