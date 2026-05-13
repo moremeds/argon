@@ -600,6 +600,109 @@ export interface components {
             percentage_of_total?: string | null;
             /** Rnk */
             rnk?: number | null;
+            /** Prev Ask Volume */
+            prev_ask_volume?: number | null;
+            /** Prev Bid Volume */
+            prev_bid_volume?: number | null;
+            /** Prev Mid Volume */
+            prev_mid_volume?: number | null;
+            /** Prev Neutral Volume */
+            prev_neutral_volume?: number | null;
+            /** Prev Multi Leg Volume */
+            prev_multi_leg_volume?: number | null;
+            /** Prev Stock Multi Leg Volume */
+            prev_stock_multi_leg_volume?: number | null;
+            /** Prev Total Premium */
+            prev_total_premium?: string | null;
+            /** Last Ask */
+            last_ask?: string | null;
+            /** Last Bid */
+            last_bid?: string | null;
+            /** Ask Volume */
+            ask_volume?: number | null;
+            /** Bid Volume */
+            bid_volume?: number | null;
+            /** Mid Volume */
+            mid_volume?: number | null;
+            /** No Side Volume */
+            no_side_volume?: number | null;
+        };
+        /**
+         * OptionChainPerStrikeRow
+         * @description Aggregated (expiry, strike) snapshot — both volume and OI in one row.
+         *
+         *     Backs both strike-profile charts (Volume and OI variants).
+         */
+        OptionChainPerStrikeRow: {
+            /**
+             * Expiry
+             * Format: date
+             */
+            expiry: string;
+            /** Strike */
+            strike: string;
+            /** Call Volume */
+            call_volume?: number | null;
+            /** Put Volume */
+            put_volume?: number | null;
+            /** Call Oi */
+            call_oi?: number | null;
+            /** Put Oi */
+            put_oi?: number | null;
+        };
+        /**
+         * OptionsDailyRow
+         * @description One row per trading day from UW /options-volume.
+         *
+         *     ``bullish_premium`` here is whole-tape (UW), distinct from the
+         *     alert-scoped :class:`FlowSnapshot.bull_premium`. Do not cross-plot.
+         */
+        OptionsDailyRow: {
+            /**
+             * Date
+             * Format: date
+             */
+            date: string;
+            /** Call Volume */
+            call_volume?: number | null;
+            /** Put Volume */
+            put_volume?: number | null;
+            /** Call Volume Ask Side */
+            call_volume_ask_side?: number | null;
+            /** Call Volume Bid Side */
+            call_volume_bid_side?: number | null;
+            /** Put Volume Ask Side */
+            put_volume_ask_side?: number | null;
+            /** Put Volume Bid Side */
+            put_volume_bid_side?: number | null;
+            /** Call Premium */
+            call_premium?: string | null;
+            /** Put Premium */
+            put_premium?: string | null;
+            /** Net Call Premium */
+            net_call_premium?: string | null;
+            /** Net Put Premium */
+            net_put_premium?: string | null;
+            /** Bullish Premium */
+            bullish_premium?: string | null;
+            /** Bearish Premium */
+            bearish_premium?: string | null;
+            /** Call Open Interest */
+            call_open_interest?: number | null;
+            /** Put Open Interest */
+            put_open_interest?: number | null;
+            /** Avg 3 Day Call Volume */
+            avg_3_day_call_volume?: string | null;
+            /** Avg 3 Day Put Volume */
+            avg_3_day_put_volume?: string | null;
+            /** Avg 7 Day Call Volume */
+            avg_7_day_call_volume?: string | null;
+            /** Avg 7 Day Put Volume */
+            avg_7_day_put_volume?: string | null;
+            /** Avg 30 Day Call Volume */
+            avg_30_day_call_volume?: string | null;
+            /** Avg 30 Day Put Volume */
+            avg_30_day_put_volume?: string | null;
         };
         /** PositioningBlock */
         PositioningBlock: {
@@ -779,6 +882,18 @@ export interface components {
              */
             strike_gex_curve: components["schemas"]["StrikeGexBucket"][];
             market_structure_levels?: components["schemas"]["MarketStructureLevels"] | null;
+            /**
+             * Options Timeline
+             * @default []
+             */
+            options_timeline: components["schemas"]["OptionsDailyRow"][];
+            /**
+             * Option Chain Per Strike
+             * @default []
+             */
+            option_chain_per_strike: components["schemas"]["OptionChainPerStrikeRow"][];
+            /** Next Earnings Date */
+            next_earnings_date?: string | null;
         };
         /** SkewBlock */
         SkewBlock: {

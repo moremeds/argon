@@ -24,6 +24,11 @@ describe("fmtMoney", () => {
   it("handles negative", () => {
     expect(fmtMoney(-50_000_000)).toBe("-$50,000,000");
   });
+  it("prefixes positives with + when signed", () => {
+    expect(fmtMoney(1_748_151, { signed: true })).toBe("+$1,748,151");
+    expect(fmtMoney(-50_000_000, { signed: true })).toBe("-$50,000,000");
+    expect(fmtMoney(0, { signed: true })).toBe("+$0");
+  });
 });
 
 describe("fmtSigned", () => {

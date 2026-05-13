@@ -7,7 +7,6 @@ const TABS = [
   ["volatility", "Volatility"],
   ["flow", "Flow"],
   ["trade-plan", "Trade Plan"],
-  ["tables", "Tables"],
 ] as const;
 
 export function TabBar({ ticker }: { ticker: string }) {

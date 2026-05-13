@@ -17,6 +17,7 @@ from uw_scan.api.client import UwClient
 from uw_scan.config import Settings
 from uw_scan.sources.ohlc import MassiveOhlcProvider
 from uw_scan.storage.repository import Repository
+from uw_scan.worker.jobs.flow_data_refresh import flow_data_refresh
 from uw_scan.worker.jobs.full_scan import full_scan_once
 from uw_scan.worker.jobs.ohlc_pull import ohlc_pull_once
 from uw_scan.worker.jobs.rescan_loop import rescan_tick
@@ -139,6 +140,11 @@ def main() -> int:
         with _repo(settings) as repo:
             nightly_vol_analytics_rollup(repo=repo)
 
+    def _flow_data_refresh() -> None:
+        with _uw_client(settings) as uw:
+            with _repo(settings) as repo:
+                flow_data_refresh(repo=repo, client=uw, settings=settings)
+
     sched.add_job(
         _spot_refresh,
         IntervalTrigger(seconds=settings.spot_refresh_seconds),
@@ -175,6 +181,12 @@ def main() -> int:
         CronTrigger.from_crontab("0 18 * * 1-5", timezone=settings.rth_tz),
         id="nightly_vol_analytics_rollup",
         name="Nightly vol analytics rollup",
+    )
+    sched.add_job(
+        _flow_data_refresh,
+        CronTrigger.from_crontab("15 18 * * 1-5", timezone=settings.rth_tz),
+        id="nightly_flow_data_refresh",
+        name="Nightly Flow tab data refresh",
     )
 
     def _stop(_sig, _frame):

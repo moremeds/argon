@@ -8,11 +8,15 @@ export function fmtSigned(v: number | null | undefined, digits = 2): string {
   return `${v >= 0 ? "+" : ""}${v.toFixed(digits)}`;
 }
 
-export function fmtMoney(v: number | null | undefined): string {
+export function fmtMoney(
+  v: number | null | undefined,
+  opts: { signed?: boolean } = {},
+): string {
   if (v == null || !Number.isFinite(v)) return "—";
   const abs = Math.abs(v);
   const fmt = abs.toLocaleString("en-US", { maximumFractionDigits: 0 });
-  return v < 0 ? `-$${fmt}` : `$${fmt}`;
+  if (v < 0) return `-$${fmt}`;
+  return opts.signed ? `+$${fmt}` : `$${fmt}`;
 }
 
 export function fmtDecimal(v: number | null | undefined, digits = 2): string {

@@ -118,11 +118,20 @@ class Repository:
     # scan_runs
     # ------------------------------------------------------------------
     def latest_run_id(self, ticker: str) -> int:
-        """Return the highest run_id for `ticker`, or 0 if none."""
+        """Return the highest full-scan run_id for `ticker`, or 0 if none.
+
+        Excludes runs created by ``flow_data_refresh`` — that job populates
+        ticker-keyed tables only (options_volume_daily, option_chain_per_strike)
+        and its scan_runs row would otherwise shadow the actual full-scan run
+        the report assembler needs for flow_alerts / oi_change_top / GEX /
+        volatility data, which are all keyed by run_id.
+        """
         with self._conn.cursor() as cur:
             cur.execute(
                 f"SELECT run_id FROM {self._schema}.scan_runs "
-                "WHERE ticker = %s ORDER BY run_id DESC LIMIT 1",
+                "WHERE ticker = %s "
+                "  AND (notes IS DISTINCT FROM 'flow_data_refresh') "
+                "ORDER BY run_id DESC LIMIT 1",
                 (ticker.upper(),),
             )
             row = cur.fetchone()
@@ -146,6 +155,25 @@ class Repository:
         )
         with self._conn.cursor() as cur:
             cur.execute(sql, (status, run_id))
+
+    # ------------------------------------------------------------------
+    # advisory locks (single-flight worker jobs)
+    # ------------------------------------------------------------------
+    def try_advisory_lock(self, key: int) -> bool:
+        """Session-scoped ``pg_try_advisory_lock``; returns True if acquired.
+
+        Mirror the precedent in ``api/routers/volatility.py``. Always pair with
+        :meth:`release_advisory_lock` in a ``finally`` block.
+        """
+
+        with self._conn.cursor() as cur:
+            cur.execute("SELECT pg_try_advisory_lock(%s)", (key,))
+            row = cur.fetchone()
+            return bool(row and row[0])
+
+    def release_advisory_lock(self, key: int) -> None:
+        with self._conn.cursor() as cur:
+            cur.execute("SELECT pg_advisory_unlock(%s)", (key,))
 
     # ------------------------------------------------------------------
     # api_request_audit + raw_payloads
@@ -533,6 +561,171 @@ class Repository:
                 )
         return len(rows)
 
+    def upsert_options_volume_daily(
+        self, ticker: str, rows: Iterable[models.OptionsDailyRow]
+    ) -> int:
+        rows = list(rows)
+        if not rows:
+            return 0
+        sql = (
+            f"INSERT INTO {self._schema}.options_volume_daily "
+            "(ticker, trade_date, call_volume, put_volume, "
+            " call_volume_ask_side, call_volume_bid_side, "
+            " put_volume_ask_side, put_volume_bid_side, "
+            " call_premium, put_premium, net_call_premium, net_put_premium, "
+            " bullish_premium, bearish_premium, "
+            " call_open_interest, put_open_interest, "
+            " avg_3_day_call_volume, avg_3_day_put_volume, "
+            " avg_7_day_call_volume, avg_7_day_put_volume, "
+            " avg_30_day_call_volume, avg_30_day_put_volume) "
+            "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, "
+            "        %s, %s, %s, %s, %s, %s, %s, %s) "
+            "ON CONFLICT (ticker, trade_date) DO UPDATE SET "
+            "call_volume=EXCLUDED.call_volume, put_volume=EXCLUDED.put_volume, "
+            "call_volume_ask_side=EXCLUDED.call_volume_ask_side, "
+            "call_volume_bid_side=EXCLUDED.call_volume_bid_side, "
+            "put_volume_ask_side=EXCLUDED.put_volume_ask_side, "
+            "put_volume_bid_side=EXCLUDED.put_volume_bid_side, "
+            "call_premium=EXCLUDED.call_premium, put_premium=EXCLUDED.put_premium, "
+            "net_call_premium=EXCLUDED.net_call_premium, "
+            "net_put_premium=EXCLUDED.net_put_premium, "
+            "bullish_premium=EXCLUDED.bullish_premium, "
+            "bearish_premium=EXCLUDED.bearish_premium, "
+            "call_open_interest=EXCLUDED.call_open_interest, "
+            "put_open_interest=EXCLUDED.put_open_interest, "
+            "avg_3_day_call_volume=EXCLUDED.avg_3_day_call_volume, "
+            "avg_3_day_put_volume=EXCLUDED.avg_3_day_put_volume, "
+            "avg_7_day_call_volume=EXCLUDED.avg_7_day_call_volume, "
+            "avg_7_day_put_volume=EXCLUDED.avg_7_day_put_volume, "
+            "avg_30_day_call_volume=EXCLUDED.avg_30_day_call_volume, "
+            "avg_30_day_put_volume=EXCLUDED.avg_30_day_put_volume"
+        )
+        with self._conn.cursor() as cur:
+            for r in rows:
+                cur.execute(
+                    sql,
+                    (
+                        ticker,
+                        r.date,
+                        r.call_volume,
+                        r.put_volume,
+                        r.call_volume_ask_side,
+                        r.call_volume_bid_side,
+                        r.put_volume_ask_side,
+                        r.put_volume_bid_side,
+                        r.call_premium,
+                        r.put_premium,
+                        r.net_call_premium,
+                        r.net_put_premium,
+                        r.bullish_premium,
+                        r.bearish_premium,
+                        r.call_open_interest,
+                        r.put_open_interest,
+                        r.avg_3_day_call_volume,
+                        r.avg_3_day_put_volume,
+                        r.avg_7_day_call_volume,
+                        r.avg_7_day_put_volume,
+                        r.avg_30_day_call_volume,
+                        r.avg_30_day_put_volume,
+                    ),
+                )
+        return len(rows)
+
+    def upsert_option_chain_per_strike(
+        self,
+        ticker: str,
+        snapshot_date: _date,
+        rows: Iterable[models.OptionChainPerStrikeRow],
+    ) -> int:
+        rows = list(rows)
+        if not rows:
+            return 0
+        sql = (
+            f"INSERT INTO {self._schema}.option_chain_per_strike "
+            "(ticker, snapshot_date, expiry, strike, "
+            " call_volume, put_volume, call_oi, put_oi) "
+            "VALUES (%s, %s, %s, %s, %s, %s, %s, %s) "
+            "ON CONFLICT (ticker, snapshot_date, expiry, strike) DO UPDATE SET "
+            "call_volume=EXCLUDED.call_volume, put_volume=EXCLUDED.put_volume, "
+            "call_oi=EXCLUDED.call_oi, put_oi=EXCLUDED.put_oi"
+        )
+        with self._conn.cursor() as cur:
+            for r in rows:
+                cur.execute(
+                    sql,
+                    (
+                        ticker,
+                        snapshot_date,
+                        r.expiry,
+                        r.strike,
+                        r.call_volume,
+                        r.put_volume,
+                        r.call_oi,
+                        r.put_oi,
+                    ),
+                )
+        return len(rows)
+
+    def delete_option_chain_per_strike(self, ticker: str, snapshot_date: _date) -> int:
+        """Delete same-day rows before re-upserting a refreshed snapshot.
+
+        Without this, a shrinking chain (fewer active strikes than last run)
+        would leave stale rows in place since UPSERT only touches the keys
+        present in the new batch.
+        """
+
+        with self._conn.cursor() as cur:
+            cur.execute(
+                f"DELETE FROM {self._schema}.option_chain_per_strike "
+                f"WHERE ticker = %s AND snapshot_date = %s",
+                (ticker, snapshot_date),
+            )
+            return cur.rowcount or 0
+
+    def get_options_timeline(
+        self, ticker: str, lookback_days: int = 180
+    ) -> list[models.OptionsDailyRow]:
+        sql = (
+            f"SELECT trade_date AS date, call_volume, put_volume, "
+            f"call_volume_ask_side, call_volume_bid_side, "
+            f"put_volume_ask_side, put_volume_bid_side, "
+            f"call_premium, put_premium, net_call_premium, net_put_premium, "
+            f"bullish_premium, bearish_premium, "
+            f"call_open_interest, put_open_interest, "
+            f"avg_3_day_call_volume, avg_3_day_put_volume, "
+            f"avg_7_day_call_volume, avg_7_day_put_volume, "
+            f"avg_30_day_call_volume, avg_30_day_put_volume "
+            f"FROM {self._schema}.options_volume_daily "
+            f"WHERE ticker = %s AND trade_date >= (CURRENT_DATE - %s::int) "
+            f"ORDER BY trade_date ASC"
+        )
+        with self._conn.cursor() as cur:
+            cur.execute(sql, (ticker, lookback_days))
+            cols = [c.name for c in cur.description]
+            return [
+                models.OptionsDailyRow(**dict(zip(cols, row, strict=True)))
+                for row in cur.fetchall()
+            ]
+
+    def get_option_chain_per_strike(
+        self, ticker: str
+    ) -> list[models.OptionChainPerStrikeRow]:
+        sql = (
+            f"SELECT expiry, strike, call_volume, put_volume, call_oi, put_oi "
+            f"FROM {self._schema}.option_chain_per_strike "
+            f"WHERE ticker = %s AND snapshot_date = ("
+            f"  SELECT MAX(snapshot_date) FROM {self._schema}.option_chain_per_strike "
+            f"  WHERE ticker = %s) "
+            f"ORDER BY expiry, strike"
+        )
+        with self._conn.cursor() as cur:
+            cur.execute(sql, (ticker, ticker))
+            cols = [c.name for c in cur.description]
+            return [
+                models.OptionChainPerStrikeRow(**dict(zip(cols, row, strict=True)))
+                for row in cur.fetchall()
+            ]
+
     def insert_oi_change_rows(
         self, run_id: int, rows: Iterable[models.OiChangeRow]
     ) -> int:
@@ -542,10 +735,14 @@ class Repository:
         sql = (
             f"INSERT INTO {self._schema}.oi_change_events "
             "(run_id, underlying_symbol, option_symbol, curr_date, last_date, "
-            "curr_oi, last_oi, oi_diff_plain, oi_change, volume, trades, "
-            "avg_price, last_fill, days_of_oi_increases, days_of_vol_greater_than_oi, "
-            "percentage_of_total, rnk) "
-            "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) "
+            " curr_oi, last_oi, oi_diff_plain, oi_change, volume, trades, "
+            " avg_price, last_fill, days_of_oi_increases, days_of_vol_greater_than_oi, "
+            " percentage_of_total, rnk, "
+            " prev_ask_volume, prev_bid_volume, prev_mid_volume, prev_neutral_volume, "
+            " prev_multi_leg_volume, prev_stock_multi_leg_volume, "
+            " prev_total_premium, last_ask, last_bid) "
+            "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, "
+            "        %s, %s, %s, %s, %s, %s, %s, %s, %s) "
             "ON CONFLICT (run_id, option_symbol) DO NOTHING"
         )
         with self._conn.cursor() as cur:
@@ -570,6 +767,15 @@ class Repository:
                         r.days_of_vol_greater_than_oi,
                         r.percentage_of_total,
                         r.rnk,
+                        r.prev_ask_volume,
+                        r.prev_bid_volume,
+                        r.prev_mid_volume,
+                        r.prev_neutral_volume,
+                        r.prev_multi_leg_volume,
+                        r.prev_stock_multi_leg_volume,
+                        r.prev_total_premium,
+                        r.last_ask,
+                        r.last_bid,
                     ),
                 )
         return len(rows)
@@ -938,14 +1144,30 @@ class Repository:
         )[:limit]
         return [Decimal(str(r[0])) for r in calls], [Decimal(str(r[0])) for r in puts]
 
-    def fetch_oi_change_top(self, run_id: int, limit: int = 10) -> list[dict[str, Any]]:
+    def fetch_oi_change_top(self, run_id: int, limit: int = 50) -> list[dict[str, Any]]:
+        """Return a candidate set wider than the UI's top-N so the frontend
+        can re-sort by notional (volume * avg_price * 100) without losing
+        high-notional rows that sit outside the rank-ordered first 10."""
+
+        # LEFT JOIN option_contract_snapshots to surface today's ask/bid/mid
+        # breakdown — /oi-change never returns prev_* side volumes (all NULL),
+        # so per-contract aggressor classification has to come from
+        # /option-contracts via this join.
         sql = (
-            f"SELECT underlying_symbol, option_symbol, curr_date, last_date, "
-            "curr_oi, last_oi, oi_diff_plain, oi_change, volume, trades, "
-            "avg_price, last_fill, days_of_oi_increases, days_of_vol_greater_than_oi, "
-            "percentage_of_total, rnk "
-            f"FROM {self._schema}.oi_change_events "
-            "WHERE run_id = %s ORDER BY rnk ASC NULLS LAST LIMIT %s"
+            f"SELECT e.underlying_symbol, e.option_symbol, e.curr_date, e.last_date, "
+            "e.curr_oi, e.last_oi, e.oi_diff_plain, e.oi_change, e.volume, e.trades, "
+            "e.avg_price, e.last_fill, e.days_of_oi_increases, e.days_of_vol_greater_than_oi, "
+            "e.percentage_of_total, e.rnk, "
+            "e.prev_ask_volume, e.prev_bid_volume, e.prev_mid_volume, e.prev_neutral_volume, "
+            "e.prev_multi_leg_volume, e.prev_stock_multi_leg_volume, "
+            "e.prev_total_premium, e.last_ask, e.last_bid, "
+            "s.ask_volume, s.bid_volume, s.mid_volume, s.no_side_volume "
+            f"FROM {self._schema}.oi_change_events e "
+            f"LEFT JOIN {self._schema}.option_contract_snapshots s "
+            "  ON s.run_id = e.run_id AND s.option_symbol = e.option_symbol "
+            "WHERE e.run_id = %s "
+            "ORDER BY (COALESCE(e.volume, 0) * COALESCE(e.avg_price, 0)) DESC NULLS LAST, e.rnk ASC "
+            "LIMIT %s"
         )
         with self._conn.cursor() as cur:
             cur.execute(sql, (run_id, limit))

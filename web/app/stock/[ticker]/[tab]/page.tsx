@@ -4,14 +4,12 @@ import { MarketStructureTab } from "@/components/stock/tabs/MarketStructureTab";
 import { VolatilityTab } from "@/components/stock/tabs/VolatilityTab";
 import { FlowTab } from "@/components/stock/tabs/FlowTab";
 import { TradePlanTab } from "@/components/stock/tabs/TradePlanTab";
-import { TablesTab } from "@/components/stock/tabs/TablesTab";
 
 const TABS = {
   "market-structure": MarketStructureTab,
   volatility: VolatilityTab,
   flow: FlowTab,
   "trade-plan": TradePlanTab,
-  tables: TablesTab,
 } as const;
 
 export default async function TabPage({

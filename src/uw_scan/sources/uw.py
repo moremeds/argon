@@ -25,6 +25,7 @@ from ..models import (
     OiChangeRow,
     OiPerStrikeRow,
     OptionContractRow,
+    OptionsDailyRow,
     RealizedVolRow,
     ShortDataRow,
     SkewRow,
@@ -246,7 +247,7 @@ def fetch_option_contracts(
     repo: Repository,
     run_id: int,
     ticker: str,
-    limit: int = 50,
+    limit: int = 500,
 ) -> list[OptionContractRow]:
     body = _fetch_json(
         client,
@@ -275,6 +276,24 @@ def fetch_option_contracts_by_symbol(
         params={"option_symbol[]": option_symbols},
     )
     return normalize.normalize_option_contracts_by_symbol(body)
+
+
+def fetch_options_volume_daily(
+    client: UwClient,
+    repo: Repository,
+    run_id: int,
+    ticker: str,
+    limit: int = 200,
+) -> list[OptionsDailyRow]:
+    body = _fetch_json(
+        client,
+        repo,
+        run_id,
+        EndpointSlug.OPTIONS_VOLUME_DAILY,
+        ticker,
+        params={"limit": limit},
+    )
+    return normalize.normalize_options_volume_daily(body)
 
 
 def fetch_darkpool_ticker(

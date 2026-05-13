@@ -215,6 +215,10 @@ def _build_oi_change_models(rows: list[dict]) -> list[OiChangeRow]:
                 days_of_vol_greater_than_oi=r.get("days_of_vol_greater_than_oi"),
                 percentage_of_total=_to_decimal(r.get("percentage_of_total")),
                 rnk=r.get("rnk"),
+                ask_volume=r.get("ask_volume"),
+                bid_volume=r.get("bid_volume"),
+                mid_volume=r.get("mid_volume"),
+                no_side_volume=r.get("no_side_volume"),
             )
         )
     return out
@@ -391,7 +395,9 @@ def assemble_single_stock_report(
 
     dp_count, dp_notional = repo.fetch_dark_pool_summary(run_id)
     short_data = _build_short_data_model(repo.fetch_short_interest_snapshot(run_id))
-    oi_change_top = _build_oi_change_models(repo.fetch_oi_change_top(run_id, limit=10))
+    # Pull a wider candidate set so the UI can re-sort by notional without
+    # losing high-notional rows outside the rank-ordered first 10.
+    oi_change_top = _build_oi_change_models(repo.fetch_oi_change_top(run_id, limit=50))
 
     curve_raw = repo.get_strike_gex_curve(run_id)
     strike_gex_curve = [
@@ -416,6 +422,18 @@ def assemble_single_stock_report(
         strike_gex_curve, market_structure.spot
     )
 
+    options_timeline = repo.get_options_timeline(ticker, lookback_days=180)
+    option_chain_per_strike = repo.get_option_chain_per_strike(ticker)
+    # UW returns next_earnings_date per FlowAlert row; promote once.
+    next_earnings_date = next(
+        (
+            a.next_earnings_date
+            for a in flow.top_alerts
+            if a.next_earnings_date is not None
+        ),
+        None,
+    )
+
     return SingleStockReport(
         run_id=run_id,
         ticker=ticker,
@@ -434,6 +452,9 @@ def assemble_single_stock_report(
         strike_gex_curve=strike_gex_curve,
         aggregates=aggregates,
         market_structure_levels=market_structure_levels,
+        options_timeline=options_timeline,
+        option_chain_per_strike=option_chain_per_strike,
+        next_earnings_date=next_earnings_date,
     )
 
 

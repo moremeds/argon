@@ -20,6 +20,7 @@ from .models import (
     OiChangeRow,
     OiPerStrikeRow,
     OptionContractRow,
+    OptionsDailyRow,
     RealizedVolRow,
     ShortDataRow,
     SkewRow,
@@ -137,6 +138,11 @@ def normalize_max_pain(payload: dict) -> list[MaxPainRow]:
 def normalize_option_contracts(payload: dict) -> list[OptionContractRow]:
     rows = _data_list(payload)
     return [OptionContractRow(**r) for r in rows]
+
+
+def normalize_options_volume_daily(payload: dict) -> list[OptionsDailyRow]:
+    rows = _data_list(payload)
+    return [OptionsDailyRow(**r) for r in rows]
 
 
 def normalize_option_contracts_by_symbol(payload: dict) -> list[OptionContractRow]:
