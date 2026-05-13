@@ -8,6 +8,16 @@ from uw_scan.models import (
     TradeInsightAiAnalysisResponse,
     TradeInsightAiOutcome,
 )
+from uw_scan.reports.trade_insights_ai import (
+    PROMPT_VERSION,
+    build_trade_insights_ai_analysis_input,
+    build_trade_insights_ai_prompt,
+    build_trade_insights_ai_prompt_payload,
+    hash_trade_insights_ai_analysis_input,
+    render_trade_insights_ai_markdown,
+    trade_insights_ai_output_schema,
+    validate_trade_insights_ai_outcome,
+)
 
 
 def _sample_outcome() -> dict:
@@ -229,3 +239,428 @@ def test_trade_insight_ai_analysis_response_includes_queue_and_hash_fields():
     assert body["produced_at"] is None
     assert body["outcome"] is None
     assert body["markdown"] is None
+
+
+def _source_payloads() -> dict[str, dict]:
+    strike_rows = [
+        {
+            "expiry": "2026-05-15",
+            "strike": str(300 + i),
+            "net_gex": str(((-1) ** i) * (i + 1) * 1000),
+            "call_gex": str(i * 100),
+            "put_gex": str(-i * 50),
+        }
+        for i in range(50)
+    ]
+    chain_rows = [
+        {
+            "expiry": "2026-05-15",
+            "strike": str(300 + i),
+            "call_volume": i,
+            "put_volume": 120 - i,
+            "call_open_interest": i * 2,
+            "put_open_interest": (120 - i) * 2,
+        }
+        for i in range(140)
+    ]
+    return {
+        "stock_report": {
+            "ticker": "TSLA",
+            "generated_at": "2026-05-13T20:00:00Z",
+            "market_structure": {
+                "spot": "380.88",
+                "net_gex": "1000000",
+                "max_pain": "375",
+            },
+            "market_structure_levels": {
+                "gex_flip": {"strike": "376.25", "net_gex": "0"},
+                "call_wall": {"strike": "382.5", "net_gex": "100400000"},
+                "put_wall": {"strike": "370", "net_gex": "-44200000"},
+            },
+            "strike_gex_curve": strike_rows,
+            "max_pain_rows": [
+                {"expiry": f"2026-06-{day:02d}", "max_pain": "375"}
+                for day in range(1, 15)
+            ],
+            "flow": {
+                "alert_count": 4,
+                "net_premium": "524300000",
+                "bull_premium": "2290000000",
+                "bear_premium": "1770000000",
+                "top_alerts": [{"id": str(i)} for i in range(10)],
+            },
+            "dark_pool_print_count": 8,
+            "dark_pool_notional": "2300000",
+            "short_data": {
+                "short_shares_available": 1200000,
+                "fee_rate": "0.35",
+                "snapshot_at": "2026-03-23T21:00:00Z",
+            },
+            "options_timeline": [
+                {"date": f"2026-03-{day:02d}", "call_volume": day}
+                for day in range(1, 71)
+            ],
+            "option_chain_per_strike": chain_rows,
+            "oi_change_top": [{"option_symbol": f"TSLA{i}", "volume": i} for i in range(50)],
+            "aggregates": {
+                "call_volume_total": 1000,
+                "put_volume_total": 900,
+                "pcr_volume": "0.9",
+                "iv30d": "0.42",
+            },
+            "next_earnings_date": "2026-04-22",
+        },
+        "stock_history": {
+            "ticker": "TSLA",
+            "rows": [
+                {
+                    "date": f"2026-02-{day:02d}",
+                    "spot": str(350 + day),
+                    "gex_flip": "376",
+                    "net_gex": str(day),
+                    "net_dex": str(day * 2),
+                    "iv30d": "0.42",
+                    "pcr_volume": "0.94",
+                    "bias": "mixed",
+                }
+                for day in range(1, 36)
+            ],
+        },
+        "volatility": {
+            "ticker": "TSLA",
+            "as_of": "2026-05-13",
+            "backfill_status": "ready",
+            "header": {
+                "iv": "0.42",
+                "rv": "0.311",
+                "iv_rank": "3.4",
+                "skew_25d": "0.014",
+                "vrp": "0.076",
+                "vrp_signal": "thin",
+            },
+            "term_structure": [
+                {"expiry": f"2026-06-{day:02d}", "dte": day, "atm_iv": "0.40"}
+                for day in range(1, 25)
+            ],
+            "smile": [
+                {
+                    "expiry": f"2026-06-{day:02d}",
+                    "points": [
+                        {"strike": str(300 + i), "iv": "0.40"}
+                        for i in range(30)
+                    ],
+                }
+                for day in range(1, 8)
+            ],
+            "hv_iv_history": [
+                {"date": f"2026-01-{(i % 28) + 1:02d}", "iv": "0.42", "rv": "0.31"}
+                for i in range(95)
+            ],
+            "iv_percentile_distribution": {"current_iv": "0.42", "current_percentile": "0.034"},
+            "iv_of_iv": [{"date": str(i), "value": "0.1"} for i in range(95)],
+            "rv_spy_corr": [{"date": str(i), "value": "0.5"} for i in range(95)],
+            "regime_quadrant": {"latest": {"label": "low_vol"}},
+            "divergence": [{"date": str(i), "value": "0.01"} for i in range(25)],
+            "divergence_headline": "No major divergence",
+            "vrp_spread": [{"date": str(i), "vrp": "0.01"} for i in range(35)],
+            "vrp_spread_headline": "Thin premium",
+            "spot": "380.88",
+        },
+        "trade_insights": {
+            "ticker": "TSLA",
+            "as_of": "2026-05-13T20:01:00Z",
+            "header": {
+                "dominant_bias": "BULLISH",
+                "primary_setup": "CHEAP_VOL_BREAKOUT",
+                "confidence_label": "MEDIUM",
+                "data_quality_label": "MIXED",
+                "idea_count": 1,
+                "preferred_idea_id": None,
+            },
+            "source_reconciliation": {"status": "UNKNOWN"},
+            "signal_stack": [{"lens": "flow", "read": "bullish", "evidence": []}],
+            "flow_table": [{"strike": "385", "read": "Call demand concentrated"}],
+            "term_structure_table": [{"expiry": "2026-05-15", "read": "Front elevated"}],
+            "candidate_structures": [
+                {
+                    "idea_id": "A",
+                    "structure": "bull_call_spread",
+                    "status": "needs_check",
+                    "risk_flags": ["verify_bid_ask"],
+                    "max_loss": "6.40",
+                    "max_profit": "8.60",
+                    "rank": 1,
+                },
+                {
+                    "idea_id": "C",
+                    "structure": "long_straddle",
+                    "status": "needs_check",
+                    "risk_flags": [],
+                    "max_loss": "12.00",
+                    "max_profit": None,
+                    "rank": 3,
+                }
+            ],
+            "synthesis": {
+                "dominant_story": "Cheap vol with bullish flow near resistance.",
+                "preferred_idea_id": None,
+                "required_before_sizing": ["Confirm event calendar"],
+            },
+        },
+    }
+
+
+def _analysis_input(**overrides):
+    payloads = _source_payloads()
+    payloads.update(overrides)
+    return build_trade_insights_ai_analysis_input(
+        ticker="TSLA",
+        run_id=123,
+        trade_insights_input_hash="sha256-trade-insights",
+        trade_insights_payload=payloads["trade_insights"],
+        stock_report_payload=payloads["stock_report"],
+        stock_history_payload=payloads["stock_history"],
+        volatility_series_payload=payloads["volatility"],
+    )
+
+
+def _sample_outcome_for(deterministic_payload: dict) -> dict:
+    payload = _sample_outcome()
+    payload["snapshot"]["run_id"] = deterministic_payload["run_id"]
+    payload["snapshot"]["trade_insights_input_hash"] = deterministic_payload[
+        "trade_insights_input_hash"
+    ]
+    payload["snapshot"]["analysis_input_hash"] = hash_trade_insights_ai_analysis_input(
+        deterministic_payload
+    )
+    return payload
+
+
+def test_build_trade_insights_ai_analysis_input_uses_real_tab_payload_fields():
+    analysis_input = _analysis_input()
+
+    assert analysis_input["prompt_version"] == PROMPT_VERSION
+    assert analysis_input["tabs"]["market_structure"]["market_structure"]["spot"] == "380.88"
+    assert analysis_input["tabs"]["volatility"]["header"]["iv_rank"] == "3.4"
+    assert analysis_input["tabs"]["flow"]["flow"]["net_premium"] == "524300000"
+    assert analysis_input["tabs"]["positioning"]["short_data"]["fee_rate"] == "0.35"
+    assert analysis_input["tabs"]["positioning"]["aggregates"]["pcr_volume"] == "0.9"
+    assert analysis_input["tabs"]["trade_insights"]["synthesis"]["dominant_story"]
+    assert analysis_input["candidate_structures"][0]["idea_id"] == "A"
+    assert analysis_input["event_data_known"] is False
+
+
+def test_trade_insights_ai_analysis_hash_is_stable_and_ignores_volatile_times():
+    first = _analysis_input()
+    payloads = _source_payloads()
+    payloads["stock_report"]["generated_at"] = "2026-05-14T20:00:00Z"
+    payloads["volatility"]["as_of"] = "2026-05-14"
+    payloads["trade_insights"]["as_of"] = "2026-05-14T20:01:00Z"
+    second = _analysis_input(
+        stock_report=payloads["stock_report"],
+        volatility=payloads["volatility"],
+        trade_insights=payloads["trade_insights"],
+    )
+
+    assert hash_trade_insights_ai_analysis_input(first) == hash_trade_insights_ai_analysis_input(second)
+
+    prompt_payload = build_trade_insights_ai_prompt_payload(
+        first,
+        produced_at=datetime(2026, 3, 24, 20, 18, 42, tzinfo=timezone.utc),
+    )
+    changed_prompt_payload = {
+        **prompt_payload,
+        "analysis_produced_at": "2026-03-25T20:18:42Z",
+    }
+    assert hash_trade_insights_ai_analysis_input(prompt_payload) == hash_trade_insights_ai_analysis_input(
+        changed_prompt_payload
+    )
+
+
+def test_trade_insights_ai_analysis_hash_changes_for_each_deterministic_lens():
+    base_hash = hash_trade_insights_ai_analysis_input(_analysis_input())
+
+    for key, mutate in [
+        ("stock_report", lambda p: p["market_structure"].update({"net_gex": "changed"})),
+        ("volatility", lambda p: p["header"].update({"iv_rank": "55"})),
+        ("stock_report", lambda p: p["flow"].update({"net_premium": "1"})),
+        ("stock_report", lambda p: p["short_data"].update({"fee_rate": "9.99"})),
+        ("trade_insights", lambda p: p["synthesis"].update({"dominant_story": "changed"})),
+    ]:
+        payloads = _source_payloads()
+        mutate(payloads[key])
+        changed = _analysis_input(
+            stock_report=payloads["stock_report"],
+            volatility=payloads["volatility"],
+            trade_insights=payloads["trade_insights"],
+        )
+        assert hash_trade_insights_ai_analysis_input(changed) != base_hash
+
+
+def test_trade_insights_ai_prompt_prunes_long_arrays_and_allows_empty_history():
+    analysis_input = _analysis_input()
+
+    assert len(analysis_input["tabs"]["market_structure"]["stock_history"]["rows"]) == 30
+    assert len(analysis_input["tabs"]["market_structure"]["strike_gex_curve"]) <= 43
+    assert len(analysis_input["tabs"]["market_structure"]["max_pain_rows"]) == 12
+    assert len(analysis_input["tabs"]["volatility"]["term_structure"]) == 20
+    assert len(analysis_input["tabs"]["volatility"]["smile"]) == 6
+    assert all(len(curve["points"]) <= 25 for curve in analysis_input["tabs"]["volatility"]["smile"])
+    assert len(analysis_input["tabs"]["volatility"]["hv_iv_history"]) == 90
+    assert len(analysis_input["tabs"]["flow"]["options_timeline"]) == 60
+    assert len(analysis_input["tabs"]["flow"]["option_chain_per_strike"]) == 120
+
+    payloads = _source_payloads()
+    payloads["stock_history"]["rows"] = []
+    payloads["volatility"]["hv_iv_history"] = []
+    payloads["volatility"]["vrp_spread"] = []
+    degraded = _analysis_input(
+        stock_history=payloads["stock_history"],
+        volatility=payloads["volatility"],
+    )
+    assert degraded["tabs"]["market_structure"]["stock_history"]["rows"] == []
+    assert degraded["tabs"]["volatility"]["hv_iv_history"] == []
+    assert any("stock_history.rows" in note for note in degraded["missing_data"])
+    assert any("volatility.hv_iv_history" in note for note in degraded["missing_data"])
+
+
+def test_trade_insights_ai_prompt_payload_and_prompt_are_card_oriented_guarded():
+    analysis_input = _analysis_input()
+    produced_at = datetime(2026, 3, 24, 20, 18, 42, tzinfo=timezone.utc)
+
+    prompt_payload = build_trade_insights_ai_prompt_payload(
+        analysis_input,
+        produced_at=produced_at,
+    )
+    prompt = build_trade_insights_ai_prompt(prompt_payload)
+
+    assert prompt_payload["analysis_produced_at"] == "2026-03-24T20:18:42Z"
+    assert prompt_payload["analysis_input_hash"] == hash_trade_insights_ai_analysis_input(analysis_input)
+    assert "Analyze only the supplied combined deterministic prompt payload" in prompt
+    assert "Do not fetch outside data" in prompt
+    assert "Market Structure, Volatility, Flow, and positioning" in prompt
+    assert "compact card-oriented" in prompt
+    assert "Preserve every candidate status" in prompt
+    assert "Emit only JSON" in prompt
+    assert '"tabs"' in prompt
+
+
+def test_trade_insights_ai_output_schema_requires_structured_sections():
+    schema = trade_insights_ai_output_schema()
+
+    assert schema["title"] == "TradeInsightAiOutcome"
+    required = set(schema["required"])
+    assert {
+        "metric_cards",
+        "scenario_cards",
+        "score_breakdown",
+        "section_cards",
+        "dominant_read",
+        "guardrails",
+    } <= required
+    assert schema["additionalProperties"] is False
+
+
+def test_validate_trade_insights_ai_outcome_rejects_candidate_guardrail_drift():
+    deterministic = _analysis_input()
+    produced_at = datetime(2026, 3, 24, 20, 18, 42, tzinfo=timezone.utc)
+
+    bad_idea = _sample_outcome_for(deterministic)
+    bad_idea["best_expressions"][0]["idea_id"] = "UNKNOWN"
+    with pytest.raises(ValueError, match="unknown idea_id"):
+        validate_trade_insights_ai_outcome(bad_idea, deterministic, produced_at=produced_at)
+
+    bad_status = _sample_outcome_for(deterministic)
+    bad_status["preferred_expression"]["status_observed"] = "ready"
+    with pytest.raises(ValueError, match="status_observed"):
+        validate_trade_insights_ai_outcome(bad_status, deterministic, produced_at=produced_at)
+
+    bad_flags = _sample_outcome_for(deterministic)
+    bad_flags["preferred_expression"]["risk_flags_observed"] = []
+    with pytest.raises(ValueError, match="risk_flags_observed"):
+        validate_trade_insights_ai_outcome(bad_flags, deterministic, produced_at=produced_at)
+
+    bad_guardrails = _sample_outcome_for(deterministic)
+    bad_guardrails["guardrails"]["statuses_preserved"] = False
+    with pytest.raises(ValueError, match="guardrails"):
+        validate_trade_insights_ai_outcome(bad_guardrails, deterministic, produced_at=produced_at)
+
+
+def test_validate_trade_insights_ai_outcome_rejects_time_and_section_mismatches():
+    deterministic = _analysis_input()
+    produced_at = datetime(2026, 3, 24, 20, 18, 42, tzinfo=timezone.utc)
+
+    bad_time = _sample_outcome_for(deterministic)
+    bad_time["analysis_produced_at"] = "2026-03-24T20:19:42Z"
+    with pytest.raises(ValueError, match="analysis_produced_at"):
+        validate_trade_insights_ai_outcome(bad_time, deterministic, produced_at=produced_at)
+
+    missing_section = _sample_outcome_for(deterministic)
+    del missing_section["section_cards"]["flow_positioning"]
+    with pytest.raises(ValidationError):
+        validate_trade_insights_ai_outcome(
+            missing_section,
+            deterministic,
+            produced_at=produced_at,
+        )
+
+
+def test_validate_trade_insights_ai_outcome_rejects_source_path_problems():
+    deterministic = _analysis_input()
+    produced_at = datetime(2026, 3, 24, 20, 18, 42, tzinfo=timezone.utc)
+
+    unavailable = _sample_outcome_for(deterministic)
+    unavailable["metric_cards"][0]["source_path"] = "tabs.market_structure.charm_summary"
+    with pytest.raises(ValueError, match="unavailable"):
+        validate_trade_insights_ai_outcome(unavailable, deterministic, produced_at=produced_at)
+
+    missing_source_path = _sample_outcome_for(deterministic)
+    missing_source_path["metric_cards"][0]["source_path"] = None
+    with pytest.raises(ValueError, match="source_path"):
+        validate_trade_insights_ai_outcome(
+            missing_source_path,
+            deterministic,
+            produced_at=produced_at,
+        )
+
+    bad_prefix = _sample_outcome_for(deterministic)
+    bad_prefix["metric_cards"][0]["source_path"] = "tabs.flow.not_a_real_family"
+    with pytest.raises(ValueError, match="source_path"):
+        validate_trade_insights_ai_outcome(bad_prefix, deterministic, produced_at=produced_at)
+
+
+def test_validate_trade_insights_ai_outcome_rejects_field_aware_imperatives():
+    deterministic = _analysis_input()
+    produced_at = datetime(2026, 3, 24, 20, 18, 42, tzinfo=timezone.utc)
+
+    allowed = _sample_outcome_for(deterministic)
+    allowed["headline"]["stance_label"] = "BUY setup"
+    assert validate_trade_insights_ai_outcome(allowed, deterministic, produced_at=produced_at)
+
+    rejected = _sample_outcome_for(deterministic)
+    rejected["preferred_expression"]["title"] = "Buy now"
+    with pytest.raises(ValueError, match="imperative"):
+        validate_trade_insights_ai_outcome(rejected, deterministic, produced_at=produced_at)
+
+
+def test_render_trade_insights_ai_markdown_uses_structured_sections():
+    deterministic = _analysis_input()
+    produced_at = datetime(2026, 3, 24, 20, 18, 42, tzinfo=timezone.utc)
+    outcome = validate_trade_insights_ai_outcome(
+        _sample_outcome_for(deterministic),
+        deterministic,
+        produced_at=produced_at,
+    )
+
+    markdown = render_trade_insights_ai_markdown(outcome)
+
+    assert "TSLA near gamma resistance" in markdown
+    assert "IV Rank" in markdown
+    assert "Break $382.50 wall" in markdown
+    assert "Market Structure" in markdown
+    assert "Volatility" in markdown
+    assert "Flow & Positioning" in markdown
+    assert "VRP Assessment" in markdown
+    assert "Bull Call Spread" in markdown
+    assert "Confirm event calendar" in markdown
+    assert "No event calendar data" in markdown
