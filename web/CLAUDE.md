@@ -1,0 +1,47 @@
+# web — Next.js 16 frontend
+
+Argon dark theme, terminal aesthetic. Mono labels uppercase, hand-rolled SVG charts (no chart library).
+
+## Stack
+
+- Next.js 16 + React 19 (RSC by default, `"use client"` for interactivity)
+- TypeScript, strict
+- `@fontsource/inter` (sans) + `@fontsource/ibm-plex-mono` (mono)
+- Vitest (unit) + Playwright (e2e)
+- Types generated from FastAPI: `npm run gen:types` → `lib/types.ts`
+
+## Layout
+
+```
+web/
+├── app/                 # Next.js App Router (pages, layouts, RSC)
+├── components/          # React components
+│   ├── shared/          # Sidebar, HealthPanel, RescanButton, ScanAllButton
+│   ├── watchlist/       # CardGrid + TickerCard + filters
+│   └── stock/           # Detail page tabs + panels
+├── lib/                 # api.ts, formatters, types.ts (generated)
+└── tests/               # unit (vitest) + e2e (playwright)
+```
+
+## Conventions
+
+- **Server Components for data fetching.** Pages call `api.*` at render time. Push `"use client"` to the leaf interactive component, not the page.
+- **`export const dynamic = "force-dynamic"`** on pages that read `searchParams` and need to bypass the RSC Router Cache (see `app/page.tsx` — filter chip clicks).
+- **Hand-rolled SVG.** Helpers live in `lib/svgChart.ts` (`linearScale`, `finiteDomain`, `pathFromPoints`). Don't pull in `recharts` / `d3` / `visx`.
+- **Inline styles + CSS variables** (`var(--bg-panel)`, `var(--text-muted)`, etc.) — no styled-components, no CSS-in-JS lib. Tailwind config exists but is unused for component styling.
+- **Mono label style:** 10px, letter-spacing 1.5, uppercase, `var(--text-muted)`. Value: 22px bold mono, primary color. See the `Tile` component in `components/stock/panels/VolMetricsCard.tsx` for the canonical pattern.
+- **Formatters** (`lib/formatters.ts`): `fmtPct`, `fmtSigned`, `fmtDecimal`, `toNum`. Use these — they handle null/string/number uniformly.
+- **Never trust scale.** UW returns `iv_rank` 0–100 but `percentile` 0–1. Re-check the contract when wiring a new tile.
+
+## Commands
+
+```bash
+npm run dev          # next dev (port 3001)
+npm run typecheck    # tsc --noEmit
+npm run lint
+npm run test         # vitest
+npm run test:e2e     # playwright
+npm run gen:types    # regenerate lib/types.ts from FastAPI openapi.json
+```
+
+After any backend model change, run `gen:types` and commit the diff. `lib/types.ts` is checked in (47 KB) — drift between API and client = bug.
