@@ -1,12 +1,16 @@
+"use client";
+import { useMemo, useState } from "react";
 import type { components } from "@/lib/types";
 import { FlowSnapshotGrid } from "../panels/FlowSnapshotGrid";
 import { FlowTimelinePanel } from "../panels/FlowTimelinePanel";
 import { OiMoversTable } from "../panels/OiMoversTable";
+import { StrikeProfilePanel } from "../panels/StrikeProfilePanel";
 import { TopAlertsTable } from "../panels/TopAlertsTable";
 import { toNum } from "@/lib/formatters";
 
 type Report = components["schemas"]["SingleStockReport"];
 type OptionsDailyRow = components["schemas"]["OptionsDailyRow"];
+type ChainRow = components["schemas"]["OptionChainPerStrikeRow"];
 
 const SECTION_HEADING: React.CSSProperties = {
   fontFamily: "var(--font-mono)",
@@ -22,6 +26,24 @@ export function FlowTab({ report }: { report: Report }) {
   // (matches MarketStructureTab/VolatilityTab) so the dispatcher needs no
   // changes when wiring this tab.
   const spot = toNum(report.market_structure?.spot) ?? 0;
+  const chain = useMemo<ChainRow[]>(
+    () => report.option_chain_per_strike ?? [],
+    [report.option_chain_per_strike],
+  );
+
+  const expiries = useMemo(
+    () => Array.from(new Set(chain.map((r) => r.expiry))).sort(),
+    [chain],
+  );
+  const today = new Date().toISOString().slice(0, 10);
+  const futureExpiries = useMemo(
+    () => expiries.filter((e) => e >= today),
+    [expiries, today],
+  );
+  const [selectedExpiries, setSelectedExpiries] = useState<string[]>(() =>
+    futureExpiries.slice(0, 4),
+  );
+  const [strikeRangePct, setStrikeRangePct] = useState<number>(0.3);
 
   return (
     <div
@@ -41,6 +63,55 @@ export function FlowTab({ report }: { report: Report }) {
         nextEarnings={report.next_earnings_date ?? null}
       />
 
+      {chain.length > 0 ? (
+        <section style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          <ProfileControls
+            futureExpiries={futureExpiries}
+            selectedExpiries={selectedExpiries}
+            onToggleExpiry={(e) =>
+              setSelectedExpiries((prev) =>
+                prev.includes(e) ? prev.filter((x) => x !== e) : [...prev, e],
+              )
+            }
+            strikeRangePct={strikeRangePct}
+            onStrikeRangeChange={setStrikeRangePct}
+          />
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "1fr 1fr",
+              gap: 16,
+            }}
+          >
+            <StrikeProfilePanel
+              title="VOLUME BY STRIKE"
+              metric="volume"
+              rows={chain}
+              selectedExpiries={selectedExpiries}
+              strikeRangePct={strikeRangePct}
+              spot={spot}
+            />
+            <StrikeProfilePanel
+              title="OI BY STRIKE"
+              metric="oi"
+              rows={chain}
+              selectedExpiries={selectedExpiries}
+              strikeRangePct={strikeRangePct}
+              spot={spot}
+            />
+          </div>
+        </section>
+      ) : (
+        <div
+          style={{
+            fontFamily: "var(--font-mono)",
+            color: "var(--text-muted)",
+          }}
+        >
+          NO CHAIN DATA
+        </div>
+      )}
+
       <section>
         <h3 style={SECTION_HEADING}>Top Alerts</h3>
         <TopAlertsTable alerts={report.flow.top_alerts ?? []} />
@@ -50,6 +121,92 @@ export function FlowTab({ report }: { report: Report }) {
         <h3 style={SECTION_HEADING}>OI Change — Top Movers</h3>
         <OiMoversTable rows={report.oi_change_top ?? []} spot={spot} />
       </section>
+    </div>
+  );
+}
+
+function ProfileControls({
+  futureExpiries,
+  selectedExpiries,
+  onToggleExpiry,
+  strikeRangePct,
+  onStrikeRangeChange,
+}: {
+  futureExpiries: string[];
+  selectedExpiries: string[];
+  onToggleExpiry: (expiry: string) => void;
+  strikeRangePct: number;
+  onStrikeRangeChange: (v: number) => void;
+}) {
+  return (
+    <div
+      style={{
+        display: "flex",
+        gap: 12,
+        flexWrap: "wrap",
+        alignItems: "center",
+      }}
+    >
+      <span
+        style={{
+          fontFamily: "var(--font-mono)",
+          fontSize: 10,
+          letterSpacing: 1.5,
+          color: "var(--text-muted)",
+        }}
+      >
+        EXPIRIES:
+      </span>
+      {futureExpiries.map((e) => {
+        const active = selectedExpiries.includes(e);
+        return (
+          <button
+            key={e}
+            onClick={() => onToggleExpiry(e)}
+            style={{
+              fontFamily: "var(--font-mono)",
+              fontSize: 11,
+              padding: "2px 8px",
+              border: active
+                ? "1px solid var(--accent-bg)"
+                : "1px solid var(--border-dim)",
+              background: active ? "var(--accent-bg)" : "transparent",
+              color: active ? "var(--bg-panel)" : "var(--text-primary)",
+              cursor: "pointer",
+            }}
+          >
+            {e}
+          </button>
+        );
+      })}
+      <span
+        style={{
+          fontFamily: "var(--font-mono)",
+          fontSize: 10,
+          letterSpacing: 1.5,
+          color: "var(--text-muted)",
+          marginLeft: 16,
+        }}
+      >
+        STRIKE RANGE:
+      </span>
+      <select
+        value={strikeRangePct}
+        onChange={(e) => onStrikeRangeChange(Number(e.target.value))}
+        style={{
+          fontFamily: "var(--font-mono)",
+          fontSize: 11,
+          background: "var(--bg-panel)",
+          color: "var(--text-primary)",
+          border: "1px solid var(--border-dim)",
+          padding: "2px 8px",
+        }}
+      >
+        <option value={0.15}>±15%</option>
+        <option value={0.3}>±30%</option>
+        <option value={0.6}>±60%</option>
+        <option value={9.99}>All</option>
+      </select>
     </div>
   );
 }
