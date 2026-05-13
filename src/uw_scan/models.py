@@ -231,6 +231,50 @@ class OptionContractRow(_UwBase):
     total_premium: Decimal | None = None
 
 
+class OptionsDailyRow(_UwBase):
+    """One row per trading day from UW /options-volume.
+
+    ``bullish_premium`` here is whole-tape (UW), distinct from the
+    alert-scoped :class:`FlowSnapshot.bull_premium`. Do not cross-plot.
+    """
+
+    date: _date
+    call_volume: int | None = None
+    put_volume: int | None = None
+    call_volume_ask_side: int | None = None
+    call_volume_bid_side: int | None = None
+    put_volume_ask_side: int | None = None
+    put_volume_bid_side: int | None = None
+    call_premium: Decimal | None = None
+    put_premium: Decimal | None = None
+    net_call_premium: Decimal | None = None
+    net_put_premium: Decimal | None = None
+    bullish_premium: Decimal | None = None
+    bearish_premium: Decimal | None = None
+    call_open_interest: int | None = None
+    put_open_interest: int | None = None
+    avg_3_day_call_volume: Decimal | None = None
+    avg_3_day_put_volume: Decimal | None = None
+    avg_7_day_call_volume: Decimal | None = None
+    avg_7_day_put_volume: Decimal | None = None
+    avg_30_day_call_volume: Decimal | None = None
+    avg_30_day_put_volume: Decimal | None = None
+
+
+class OptionChainPerStrikeRow(_UwBase):
+    """Aggregated (expiry, strike) snapshot — both volume and OI in one row.
+
+    Backs both strike-profile charts (Volume and OI variants).
+    """
+
+    expiry: _date
+    strike: Decimal
+    call_volume: int | None = None
+    put_volume: int | None = None
+    call_oi: int | None = None
+    put_oi: int | None = None
+
+
 # ---------------------------------------------------------------------------
 # Dark pool / short data
 # ---------------------------------------------------------------------------

@@ -533,6 +533,155 @@ class Repository:
                 )
         return len(rows)
 
+    def upsert_options_volume_daily(
+        self, ticker: str, rows: Iterable[models.OptionsDailyRow]
+    ) -> int:
+        rows = list(rows)
+        if not rows:
+            return 0
+        sql = (
+            f"INSERT INTO {self._schema}.options_volume_daily "
+            "(ticker, trade_date, call_volume, put_volume, "
+            " call_volume_ask_side, call_volume_bid_side, "
+            " put_volume_ask_side, put_volume_bid_side, "
+            " call_premium, put_premium, net_call_premium, net_put_premium, "
+            " bullish_premium, bearish_premium, "
+            " call_open_interest, put_open_interest, "
+            " avg_3_day_call_volume, avg_3_day_put_volume, "
+            " avg_7_day_call_volume, avg_7_day_put_volume, "
+            " avg_30_day_call_volume, avg_30_day_put_volume) "
+            "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, "
+            "        %s, %s, %s, %s, %s, %s, %s, %s) "
+            "ON CONFLICT (ticker, trade_date) DO UPDATE SET "
+            "call_volume=EXCLUDED.call_volume, put_volume=EXCLUDED.put_volume, "
+            "call_volume_ask_side=EXCLUDED.call_volume_ask_side, "
+            "call_volume_bid_side=EXCLUDED.call_volume_bid_side, "
+            "put_volume_ask_side=EXCLUDED.put_volume_ask_side, "
+            "put_volume_bid_side=EXCLUDED.put_volume_bid_side, "
+            "call_premium=EXCLUDED.call_premium, put_premium=EXCLUDED.put_premium, "
+            "net_call_premium=EXCLUDED.net_call_premium, "
+            "net_put_premium=EXCLUDED.net_put_premium, "
+            "bullish_premium=EXCLUDED.bullish_premium, "
+            "bearish_premium=EXCLUDED.bearish_premium, "
+            "call_open_interest=EXCLUDED.call_open_interest, "
+            "put_open_interest=EXCLUDED.put_open_interest, "
+            "avg_3_day_call_volume=EXCLUDED.avg_3_day_call_volume, "
+            "avg_3_day_put_volume=EXCLUDED.avg_3_day_put_volume, "
+            "avg_7_day_call_volume=EXCLUDED.avg_7_day_call_volume, "
+            "avg_7_day_put_volume=EXCLUDED.avg_7_day_put_volume, "
+            "avg_30_day_call_volume=EXCLUDED.avg_30_day_call_volume, "
+            "avg_30_day_put_volume=EXCLUDED.avg_30_day_put_volume"
+        )
+        with self._conn.cursor() as cur:
+            for r in rows:
+                cur.execute(
+                    sql,
+                    (
+                        ticker,
+                        r.date,
+                        r.call_volume,
+                        r.put_volume,
+                        r.call_volume_ask_side,
+                        r.call_volume_bid_side,
+                        r.put_volume_ask_side,
+                        r.put_volume_bid_side,
+                        r.call_premium,
+                        r.put_premium,
+                        r.net_call_premium,
+                        r.net_put_premium,
+                        r.bullish_premium,
+                        r.bearish_premium,
+                        r.call_open_interest,
+                        r.put_open_interest,
+                        r.avg_3_day_call_volume,
+                        r.avg_3_day_put_volume,
+                        r.avg_7_day_call_volume,
+                        r.avg_7_day_put_volume,
+                        r.avg_30_day_call_volume,
+                        r.avg_30_day_put_volume,
+                    ),
+                )
+        return len(rows)
+
+    def upsert_option_chain_per_strike(
+        self,
+        ticker: str,
+        snapshot_date: _date,
+        rows: Iterable[models.OptionChainPerStrikeRow],
+    ) -> int:
+        rows = list(rows)
+        if not rows:
+            return 0
+        sql = (
+            f"INSERT INTO {self._schema}.option_chain_per_strike "
+            "(ticker, snapshot_date, expiry, strike, "
+            " call_volume, put_volume, call_oi, put_oi) "
+            "VALUES (%s, %s, %s, %s, %s, %s, %s, %s) "
+            "ON CONFLICT (ticker, snapshot_date, expiry, strike) DO UPDATE SET "
+            "call_volume=EXCLUDED.call_volume, put_volume=EXCLUDED.put_volume, "
+            "call_oi=EXCLUDED.call_oi, put_oi=EXCLUDED.put_oi"
+        )
+        with self._conn.cursor() as cur:
+            for r in rows:
+                cur.execute(
+                    sql,
+                    (
+                        ticker,
+                        snapshot_date,
+                        r.expiry,
+                        r.strike,
+                        r.call_volume,
+                        r.put_volume,
+                        r.call_oi,
+                        r.put_oi,
+                    ),
+                )
+        return len(rows)
+
+    def get_options_timeline(
+        self, ticker: str, lookback_days: int = 180
+    ) -> list[models.OptionsDailyRow]:
+        sql = (
+            f"SELECT trade_date AS date, call_volume, put_volume, "
+            f"call_volume_ask_side, call_volume_bid_side, "
+            f"put_volume_ask_side, put_volume_bid_side, "
+            f"call_premium, put_premium, net_call_premium, net_put_premium, "
+            f"bullish_premium, bearish_premium, "
+            f"call_open_interest, put_open_interest, "
+            f"avg_3_day_call_volume, avg_3_day_put_volume, "
+            f"avg_7_day_call_volume, avg_7_day_put_volume, "
+            f"avg_30_day_call_volume, avg_30_day_put_volume "
+            f"FROM {self._schema}.options_volume_daily "
+            f"WHERE ticker = %s AND trade_date >= (CURRENT_DATE - %s::int) "
+            f"ORDER BY trade_date ASC"
+        )
+        with self._conn.cursor() as cur:
+            cur.execute(sql, (ticker, lookback_days))
+            cols = [c.name for c in cur.description]
+            return [
+                models.OptionsDailyRow(**dict(zip(cols, row, strict=True)))
+                for row in cur.fetchall()
+            ]
+
+    def get_option_chain_per_strike(
+        self, ticker: str
+    ) -> list[models.OptionChainPerStrikeRow]:
+        sql = (
+            f"SELECT expiry, strike, call_volume, put_volume, call_oi, put_oi "
+            f"FROM {self._schema}.option_chain_per_strike "
+            f"WHERE ticker = %s AND snapshot_date = ("
+            f"  SELECT MAX(snapshot_date) FROM {self._schema}.option_chain_per_strike "
+            f"  WHERE ticker = %s) "
+            f"ORDER BY expiry, strike"
+        )
+        with self._conn.cursor() as cur:
+            cur.execute(sql, (ticker, ticker))
+            cols = [c.name for c in cur.description]
+            return [
+                models.OptionChainPerStrikeRow(**dict(zip(cols, row, strict=True)))
+                for row in cur.fetchall()
+            ]
+
     def insert_oi_change_rows(
         self, run_id: int, rows: Iterable[models.OiChangeRow]
     ) -> int:
