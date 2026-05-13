@@ -89,6 +89,8 @@ describe("Trade Insights detail panels", () => {
         ]}
       />,
     );
+    expect(screen.getByText("CHAIN / FLOW HIGHLIGHTS")).toBeDefined();
+    expect(screen.getByText("Call / Put volume")).toBeDefined();
     expect(screen.getByText(/next-day OI/i)).toBeDefined();
   });
 
@@ -107,6 +109,8 @@ describe("Trade Insights detail panels", () => {
         ]}
       />,
     );
+    expect(screen.getByText("TERM / MOVE HIGHLIGHTS")).toBeDefined();
+    expect(screen.getByText("Curve read")).toBeDefined();
     expect(screen.getByText("2026-05-15")).toBeDefined();
     expect(screen.getByText("Front elevated")).toBeDefined();
   });

@@ -16,12 +16,12 @@ export async function TradeInsightsTab({ ticker }: { ticker: string }) {
         <SourceReconciliationPanel reconciliation={insights.source_reconciliation} />
         <SignalStackPanel rows={insights.signal_stack} />
       </div>
+      <CandidateStructuresPanel candidates={insights.candidate_structures} />
+      <InsightsSynthesisPanel synthesis={insights.synthesis} />
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
         <ChainFlowReadPanel rows={insights.flow_table} />
         <TermMovePanel rows={insights.term_structure_table} />
       </div>
-      <CandidateStructuresPanel candidates={insights.candidate_structures} />
-      <InsightsSynthesisPanel synthesis={insights.synthesis} />
     </div>
   );
 }
