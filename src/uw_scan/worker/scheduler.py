@@ -22,6 +22,7 @@ from uw_scan.worker.jobs.full_scan import full_scan_once
 from uw_scan.worker.jobs.ohlc_pull import ohlc_pull_once
 from uw_scan.worker.jobs.rescan_loop import rescan_tick
 from uw_scan.worker.jobs.spot_refresh import spot_refresh_once
+from uw_scan.worker.jobs.trade_insights_ai import trade_insights_ai_tick
 from uw_scan.worker.volatility_jobs import (
     daily_spy_ohlc_refresh,
     nightly_vol_analytics_rollup,
@@ -145,6 +146,9 @@ def main() -> int:
             with _repo(settings) as repo:
                 flow_data_refresh(repo=repo, client=uw, settings=settings)
 
+    def _trade_insights_ai_tick() -> None:
+        trade_insights_ai_tick(settings)
+
     sched.add_job(
         _spot_refresh,
         IntervalTrigger(seconds=settings.spot_refresh_seconds),
@@ -188,6 +192,16 @@ def main() -> int:
         id="nightly_flow_data_refresh",
         name="Nightly Flow tab data refresh",
     )
+    if settings.trade_insights_ai_enabled:
+        sched.add_job(
+            _trade_insights_ai_tick,
+            IntervalTrigger(seconds=settings.trade_insights_ai_poll_seconds),
+            id="trade_insights_ai_tick",
+            name="Trade Insights AI analysis poll",
+            max_instances=1,
+            coalesce=True,
+            misfire_grace_time=max(30, settings.trade_insights_ai_poll_seconds * 5),
+        )
 
     def _stop(_sig, _frame):
         logger.info("received signal, shutting down scheduler")
