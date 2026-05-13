@@ -1214,18 +1214,6 @@ class Repository:
             cols = [d.name for d in cur.description or []]
             return [dict(zip(cols, row, strict=False)) for row in cur.fetchall()]
 
-    def fetch_iv_term_rows(self, run_id: int, ticker: str) -> list[dict[str, Any]]:
-        sql = (
-            f"SELECT expiry, dte, volatility, implied_move, implied_move_perc "
-            f"FROM {self._schema}.iv_term_snapshots "
-            "WHERE run_id = %s AND ticker = %s "
-            "ORDER BY expiry ASC"
-        )
-        with self._conn.cursor() as cur:
-            cur.execute(sql, (run_id, ticker.upper()))
-            cols = [d.name for d in cur.description or []]
-            return [dict(zip(cols, row, strict=False)) for row in cur.fetchall()]
-
     def upsert_trade_insight_snapshot(
         self,
         *,

@@ -8,7 +8,7 @@ strings, normalizers cast.
 from __future__ import annotations
 
 from datetime import date as _date
-from datetime import date, datetime
+from datetime import datetime
 from decimal import Decimal
 
 from pydantic import BaseModel, ConfigDict

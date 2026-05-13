@@ -7,6 +7,13 @@ from uw_scan.models import (
     TradeInsightsHeader,
     TradeInsightsResponse,
 )
+from uw_scan.reports.trade_insights import (
+    ParsedOptionSymbol,
+    _credit_spread_math,
+    _mid,
+    assemble_trade_insights,
+    parse_option_symbol,
+)
 
 
 def test_trade_insights_response_serializes_required_shape():
@@ -46,15 +53,6 @@ def test_trade_insights_response_serializes_required_shape():
     assert body["header"]["dominant_bias"] == "NEUTRAL_SHORT_VOL"
     assert body["candidate_structures"][0]["legs"][0]["strike"] == "430"
     assert body["source_reconciliation"]["status"] == "UNKNOWN"
-
-
-from uw_scan.reports.trade_insights import (
-    ParsedOptionSymbol,
-    _credit_spread_math,
-    _mid,
-    assemble_trade_insights,
-    parse_option_symbol,
-)
 
 
 def test_parse_option_symbol_occ_style():
