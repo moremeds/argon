@@ -2,8 +2,12 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
+import { CandidateStructuresPanel } from "@/components/stock/panels/CandidateStructuresPanel";
+import { ChainFlowReadPanel } from "@/components/stock/panels/ChainFlowReadPanel";
+import { InsightsSynthesisPanel } from "@/components/stock/panels/InsightsSynthesisPanel";
 import { SignalStackPanel } from "@/components/stock/panels/SignalStackPanel";
 import { SourceReconciliationPanel } from "@/components/stock/panels/SourceReconciliationPanel";
+import { TermMovePanel } from "@/components/stock/panels/TermMovePanel";
 import { TradeInsightsBiasBanner } from "@/components/stock/panels/TradeInsightsBiasBanner";
 
 describe("TradeInsightsBiasBanner", () => {
@@ -63,5 +67,89 @@ describe("SignalStackPanel", () => {
     );
     expect(screen.getByText("VOL_LEVEL")).toBeDefined();
     expect(screen.getByText("proxy available")).toBeDefined();
+  });
+});
+
+describe("Trade Insights detail panels", () => {
+  it("renders flow table T+1 caveat", () => {
+    render(
+      <ChainFlowReadPanel
+        rows={[
+          {
+            strike: "430",
+            call_volume: 1500,
+            call_open_interest: 1000,
+            put_volume: 600,
+            put_open_interest: 700,
+            call_put_volume_ratio: "2.5",
+            volume_oi_note: "Volume > OI; confirm with next-day OI",
+            read: "Call demand concentrated",
+            requires_t1_oi_confirmation: true,
+          },
+        ]}
+      />,
+    );
+    expect(screen.getByText(/next-day OI/i)).toBeDefined();
+  });
+
+  it("renders term move rows", () => {
+    render(
+      <TermMovePanel
+        rows={[
+          {
+            expiry: "2026-05-15",
+            dte: 4,
+            atm_straddle: null,
+            implied_move_perc: "0.048",
+            daily_implied_move_perc: "0.012",
+            read: "Front elevated",
+          },
+        ]}
+      />,
+    );
+    expect(screen.getByText("2026-05-15")).toBeDefined();
+    expect(screen.getByText("Front elevated")).toBeDefined();
+  });
+
+  it("renders candidate max loss", () => {
+    render(
+      <CandidateStructuresPanel
+        candidates={[
+          {
+            idea_id: "A",
+            structure: "call_credit_spread",
+            thesis: "Defined-risk short-call premium candidate.",
+            expression_type: "SHORT_VOL",
+            legs: [],
+            net_credit_debit: "1.25",
+            max_profit: "1.25",
+            max_loss: "3.75",
+            breakevens: [],
+            profit_zone: "Underlying below 430",
+            edge_source: "IV-RV spread / theta",
+            risk_flags: ["bullish_flow_can_break_call_side"],
+            rank: 1,
+            status: "candidate",
+          },
+        ]}
+      />,
+    );
+    expect(screen.getByText(/Max loss/i)).toBeDefined();
+    expect(screen.getByText("$3.75")).toBeDefined();
+  });
+
+  it("renders synthesis required checks", () => {
+    render(
+      <InsightsSynthesisPanel
+        synthesis={{
+          dominant_story: "Research-grade ideas built from current chain.",
+          preferred_idea_id: "A",
+          best_risk_reward_idea_id: "A",
+          avoid: ["Naked short options"],
+          required_before_sizing: ["Confirm event calendar"],
+        }}
+      />,
+    );
+    expect(screen.getByText(/Confirm event calendar/)).toBeDefined();
   });
 });
