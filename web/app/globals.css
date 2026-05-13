@@ -58,6 +58,9 @@
   --performance-chart-grid: var(--chart-grid);
   --performance-chart-benchmark: var(--chart-series-comparison);
   --performance-chart-meta-bg: rgba(21, 28, 34, 0.45);
+  --accent-vol: #8b5cf6;
+  --accent-warm: #f5a623;
+  --accent-vivid: #d946a8;
 }
 
 [data-theme="light"] {
