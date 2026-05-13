@@ -34,6 +34,10 @@ jobs:
       UW_SCAN_DB_SCHEMA: uw_scan
       UW_SCAN_DB_USER: postgres
       UW_SCAN_DB_PASSWORD: postgres
+      # Integration test fixtures refuse to run against the working DB
+      # (UW_SCAN_DB_NAME). They point psycopg at UW_SCAN_TEST_DB_NAME, which
+      # must exist before the tests start.
+      UW_SCAN_TEST_DB_NAME: option_wizard_test
     steps:
       - uses: actions/checkout@v4
 
@@ -63,9 +67,10 @@ jobs:
           ! grep -rE 'from uw_scan\.fixtures' src/ || (echo "Guardrail 3 violation"; exit 1)
           echo "guardrail greps clean"
 
-      - name: Create option_wizard DB
+      - name: Create option_wizard + option_wizard_test DBs
         run: |
           PGPASSWORD=postgres psql -h 127.0.0.1 -U postgres -d postgres -c "CREATE DATABASE option_wizard"
+          PGPASSWORD=postgres psql -h 127.0.0.1 -U postgres -d postgres -c "CREATE DATABASE option_wizard_test"
 
       - name: Unit tests
         run: uv run pytest tests/unit/ -v
