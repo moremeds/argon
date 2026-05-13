@@ -1,87 +1,48 @@
 import type { components } from "@/lib/types";
-import { MetricGrid, Metric } from "../panels/MetricGrid";
-import { DataTable } from "../panels/DataTable";
-import { fmtMoney, toNum } from "@/lib/formatters";
+import { FlowSnapshotGrid } from "../panels/FlowSnapshotGrid";
+import { OiMoversTable } from "../panels/OiMoversTable";
+import { TopAlertsTable } from "../panels/TopAlertsTable";
+import { toNum } from "@/lib/formatters";
 
 type Report = components["schemas"]["SingleStockReport"];
-type FlowAlert = components["schemas"]["FlowAlert"];
+
+const SECTION_HEADING: React.CSSProperties = {
+  fontFamily: "var(--font-mono)",
+  fontSize: 12,
+  letterSpacing: 1.5,
+  textTransform: "uppercase",
+  color: "var(--text-muted)",
+  margin: "8px 0",
+};
 
 export function FlowTab({ report }: { report: Report }) {
-  const f = report.flow;
-  return (
-    <div>
-      <h3
-        style={{
-          fontFamily: "var(--font-mono)",
-          fontSize: 10,
-          color: "var(--text-secondary)",
-          letterSpacing: 1,
-          textTransform: "uppercase",
-        }}
-      >
-        Flow Snapshot
-      </h3>
-      <MetricGrid cols={3}>
-        <Metric label="Alerts" value={f.flow_count} />
-        <Metric label="Net Premium" value={fmtMoney(toNum(f.net_premium))} />
-        <Metric label="Bull Premium" value={fmtMoney(toNum(f.bull_premium))} />
-        <Metric label="Bear Premium" value={fmtMoney(toNum(f.bear_premium))} />
-        <Metric
-          label="Ask-side Premium"
-          value={fmtMoney(toNum(f.ask_side_premium))}
-        />
-        <Metric
-          label="Bid-side Premium"
-          value={fmtMoney(toNum(f.bid_side_premium))}
-        />
-      </MetricGrid>
+  // Derive spot from the report itself — keeps FlowTab's signature single-prop
+  // (matches MarketStructureTab/VolatilityTab) so the dispatcher needs no
+  // changes when wiring this tab.
+  const spot = toNum(report.market_structure?.spot) ?? 0;
 
-      {f.top_alerts.length > 0 && (
-        <>
-          <h3
-            style={{
-              marginTop: 24,
-              fontFamily: "var(--font-mono)",
-              fontSize: 10,
-              color: "var(--text-secondary)",
-              letterSpacing: 1,
-              textTransform: "uppercase",
-            }}
-          >
-            Top Alerts
-          </h3>
-          <DataTable<FlowAlert>
-            rows={f.top_alerts}
-            columns={[
-              {
-                key: "id",
-                label: "ID",
-                render: (v) => String(v).slice(0, 8),
-              },
-              { key: "type", label: "Type" },
-              { key: "expiry", label: "Expiry" },
-              {
-                key: "strike",
-                label: "Strike",
-                render: (v) => (v != null ? `$${v}` : "—"),
-              },
-              {
-                key: "price",
-                label: "Price",
-                render: (v) => (v != null ? `$${v}` : "—"),
-              },
-              { key: "total_size", label: "Size" },
-              {
-                key: "total_premium",
-                label: "Premium",
-                render: (v) => fmtMoney(toNum(v)),
-              },
-              { key: "volume_oi_ratio", label: "Vol/OI" },
-              { key: "alert_rule", label: "Rule" },
-            ]}
-          />
-        </>
-      )}
+  return (
+    <div
+      style={{ display: "flex", flexDirection: "column", gap: 24, padding: 16 }}
+    >
+      <FlowSnapshotGrid
+        flow={report.flow}
+        darkPool={{
+          prints: report.dark_pool_print_count,
+          notional: report.dark_pool_notional,
+        }}
+        shortData={report.short_data ?? null}
+      />
+
+      <section>
+        <h3 style={SECTION_HEADING}>Top Alerts</h3>
+        <TopAlertsTable alerts={report.flow.top_alerts ?? []} />
+      </section>
+
+      <section>
+        <h3 style={SECTION_HEADING}>OI Change — Top Movers</h3>
+        <OiMoversTable rows={report.oi_change_top ?? []} spot={spot} />
+      </section>
     </div>
   );
 }
