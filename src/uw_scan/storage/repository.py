@@ -1198,6 +1198,112 @@ class Repository:
             cols = [d.name for d in cur.description or []]
             return [dict(zip(cols, row, strict=False)) for row in cur.fetchall()]
 
+    def fetch_option_contracts_rich(self, run_id: int, ticker: str) -> list[dict[str, Any]]:
+        sql = (
+            f"SELECT option_symbol, last_price, nbbo_bid, nbbo_ask, "
+            "implied_volatility, open_interest, prev_oi, volume, ask_volume, "
+            "bid_volume, mid_volume, multi_leg_volume, stock_multi_leg_volume, "
+            "floor_volume, sweep_volume, no_side_volume, avg_price, high_price, "
+            "low_price, total_premium "
+            f"FROM {self._schema}.option_contract_snapshots "
+            "WHERE run_id = %s AND ticker = %s "
+            "ORDER BY total_premium DESC NULLS LAST"
+        )
+        with self._conn.cursor() as cur:
+            cur.execute(sql, (run_id, ticker))
+            cols = [d.name for d in cur.description or []]
+            return [dict(zip(cols, row, strict=False)) for row in cur.fetchall()]
+
+    def upsert_trade_insight_snapshot(
+        self,
+        *,
+        run_id: int,
+        ticker: str,
+        as_of: datetime | None,
+        assembler_version: str,
+        input_hash: str,
+        payload: dict[str, Any],
+    ) -> int:
+        header = payload.get("header") or {}
+        source_reconciliation = payload.get("source_reconciliation") or {}
+        sql = (
+            f"INSERT INTO {self._schema}.trade_insight_snapshots "
+            "(run_id, ticker, as_of, assembler_version, input_hash, "
+            "source_reconciliation_status, confidence_label, data_quality_label, "
+            "preferred_idea_id, payload_jsonb) "
+            "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s) "
+            "ON CONFLICT (run_id, ticker, assembler_version, input_hash) "
+            "DO UPDATE SET payload_jsonb=EXCLUDED.payload_jsonb, "
+            "source_reconciliation_status=EXCLUDED.source_reconciliation_status, "
+            "confidence_label=EXCLUDED.confidence_label, "
+            "data_quality_label=EXCLUDED.data_quality_label, "
+            "preferred_idea_id=EXCLUDED.preferred_idea_id "
+            "RETURNING snapshot_id"
+        )
+        with self._conn.cursor() as cur:
+            cur.execute(
+                sql,
+                (
+                    run_id,
+                    ticker.upper(),
+                    as_of,
+                    assembler_version,
+                    input_hash,
+                    source_reconciliation.get("status"),
+                    header.get("confidence_label"),
+                    header.get("data_quality_label"),
+                    header.get("preferred_idea_id"),
+                    Jsonb(payload),
+                ),
+            )
+            row = cur.fetchone()
+        assert row is not None
+        return int(row[0])
+
+    def replace_trade_insight_candidates(
+        self,
+        *,
+        snapshot_id: int,
+        run_id: int,
+        ticker: str,
+        candidates: list[dict[str, Any]],
+    ) -> int:
+        delete_sql = (
+            f"DELETE FROM {self._schema}.trade_insight_candidates "
+            "WHERE snapshot_id = %s"
+        )
+        insert_sql = (
+            f"INSERT INTO {self._schema}.trade_insight_candidates "
+            "(snapshot_id, idea_id, ticker, run_id, structure, expression_type, rank, "
+            "status, net_credit_debit, max_profit, max_loss, edge_source, risk_flags, "
+            "legs_jsonb, candidate_jsonb) "
+            "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"
+        )
+        with self._conn.cursor() as cur:
+            cur.execute(delete_sql, (snapshot_id,))
+            for c in candidates:
+                cur.execute(
+                    insert_sql,
+                    (
+                        snapshot_id,
+                        c["idea_id"],
+                        ticker.upper(),
+                        run_id,
+                        c["structure"],
+                        c.get("expression_type"),
+                        c["rank"],
+                        c["status"],
+                        c.get("net_credit_debit"),
+                        c.get("max_profit"),
+                        c.get("max_loss"),
+                        c.get("edge_source"),
+                        list(c.get("risk_flags") or []),
+                        Jsonb(c.get("legs") or []),
+                        Jsonb(c),
+                    ),
+                )
+        return len(candidates)
+
     def fetch_dark_pool_summary(self, run_id: int) -> tuple[int, Decimal]:
         sql = (
             f"SELECT COUNT(*), COALESCE(SUM(premium), 0) "
