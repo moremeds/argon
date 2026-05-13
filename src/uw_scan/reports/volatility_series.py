@@ -383,9 +383,10 @@ def assemble_volatility_series(
     ticker: str,
     repo: Repository,
     backfill_status: str = "ready",
+    persist_derived: bool = True,
 ) -> VolatilitySeriesResponse:
     """Read cached + derive on-the-fly; never hits UW. Side effect: persist
-    derived series so subsequent calls are pure reads."""
+    derived series so subsequent calls are pure reads unless persist_derived=False."""
     header = _build_header(repo, ticker)
     today = _date.today()
 
@@ -414,9 +415,10 @@ def assemble_volatility_series(
     )
     z_df = vol_series.compute_iv_rv_z_overlay(rv_history)
 
-    persist_vrp_daily(repo, ticker, vrp_df)
-    persist_stock_analytics(repo, ticker, iv_of_iv_df, rvol_df, corr_df)
-    repo.conn.commit()
+    if persist_derived:
+        persist_vrp_daily(repo, ticker, vrp_df)
+        persist_stock_analytics(repo, ticker, iv_of_iv_df, rvol_df, corr_df)
+        repo.conn.commit()
 
     vrp_spread = [
         VrpDailyPoint(

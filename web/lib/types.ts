@@ -236,6 +236,57 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/stock/{ticker}/trade-insights/ai-analysis": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Post Trade Insights Ai Analysis */
+        post: operations["post_trade_insights_ai_analysis_api_stock__ticker__trade_insights_ai_analysis_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/stock/{ticker}/trade-insights/ai-analysis/latest": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Latest Trade Insights Ai Analysis */
+        get: operations["get_latest_trade_insights_ai_analysis_api_stock__ticker__trade_insights_ai_analysis_latest_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/stock/{ticker}/trade-insights/ai-analysis/{analysis_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Trade Insights Ai Analysis */
+        get: operations["get_trade_insights_ai_analysis_api_stock__ticker__trade_insights_ai_analysis__analysis_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1246,6 +1297,386 @@ export interface components {
                 [key: string]: string;
             };
         };
+        /** TradeInsightAiAnalysisRequest */
+        TradeInsightAiAnalysisRequest: {
+            /**
+             * Force Rerun
+             * @default false
+             */
+            force_rerun: boolean;
+        };
+        /** TradeInsightAiAnalysisResponse */
+        TradeInsightAiAnalysisResponse: {
+            /**
+             * Analysis Id
+             * Format: uuid
+             */
+            analysis_id: string;
+            /** Ticker */
+            ticker: string;
+            /** Run Id */
+            run_id: number;
+            /** Trade Insights Input Hash */
+            trade_insights_input_hash: string;
+            /** Analysis Input Hash */
+            analysis_input_hash: string;
+            /** Model */
+            model: string;
+            /** Prompt Version */
+            prompt_version: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "queued" | "running" | "succeeded" | "failed";
+            /** Produced At */
+            produced_at?: string | null;
+            outcome?: components["schemas"]["TradeInsightAiOutcome"] | null;
+            /** Markdown */
+            markdown?: string | null;
+            /** Error Message */
+            error_message?: string | null;
+            /**
+             * Requested At
+             * Format: date-time
+             */
+            requested_at: string;
+            /** Started At */
+            started_at?: string | null;
+            /** Finished At */
+            finished_at?: string | null;
+            /**
+             * Reused
+             * @default false
+             */
+            reused: boolean;
+        };
+        /** TradeInsightAiBestExpression */
+        TradeInsightAiBestExpression: {
+            /** Idea Id */
+            idea_id: string;
+            /** Structure */
+            structure: string;
+            /** Role */
+            role: string;
+            /** Why */
+            why: string;
+            /** Caveats */
+            caveats?: string[];
+            /** Status Observed */
+            status_observed: string;
+            /** Risk Flags Observed */
+            risk_flags_observed?: string[];
+        };
+        /** TradeInsightAiConflict */
+        TradeInsightAiConflict: {
+            /** Lens */
+            lens: string;
+            /** Severity */
+            severity: string;
+            /** Description */
+            description: string;
+            /** Affected Idea Ids */
+            affected_idea_ids?: string[];
+        };
+        /** TradeInsightAiDominantRead */
+        TradeInsightAiDominantRead: {
+            /** Headline */
+            headline: string;
+            /** Summary */
+            summary: string;
+            /** Confidence Commentary */
+            confidence_commentary: string;
+            /** Data Quality Commentary */
+            data_quality_commentary: string;
+        };
+        /** TradeInsightAiGuardrails */
+        TradeInsightAiGuardrails: {
+            /** Statuses Preserved */
+            statuses_preserved: boolean;
+            /** Risk Flags Preserved */
+            risk_flags_preserved: boolean;
+            /** No Executable Recommendations */
+            no_executable_recommendations: boolean;
+        };
+        /** TradeInsightAiHeadline */
+        TradeInsightAiHeadline: {
+            /** Title */
+            title: string;
+            /**
+             * Stance
+             * @enum {string}
+             */
+            stance: "bullish" | "bearish" | "neutral" | "mixed" | "wait";
+            /** Stance Label */
+            stance_label: string;
+            /** Score */
+            score: number;
+            /**
+             * Score Scale
+             * @default 100
+             */
+            score_scale: number;
+            /** Conviction */
+            conviction: string;
+            /** Conviction Label */
+            conviction_label: string;
+            /** Top Reason */
+            top_reason: string;
+            /** Primary Risk */
+            primary_risk: string;
+            /** Watch Trigger */
+            watch_trigger: string;
+        };
+        /** TradeInsightAiHighlight */
+        TradeInsightAiHighlight: {
+            /** Label */
+            label: string;
+            /** Value */
+            value: string;
+            /** Source Path */
+            source_path?: string | null;
+            /**
+             * Note
+             * @default
+             */
+            note: string;
+        };
+        /** TradeInsightAiLevel */
+        TradeInsightAiLevel: {
+            /** Price */
+            price: string;
+            /** Kind */
+            kind: string;
+            /** Value */
+            value: string;
+            /**
+             * Importance
+             * @default normal
+             */
+            importance: string;
+            /** Source Path */
+            source_path?: string | null;
+            /**
+             * Note
+             * @default
+             */
+            note: string;
+        };
+        /** TradeInsightAiMetricCard */
+        TradeInsightAiMetricCard: {
+            /** Label */
+            label: string;
+            /** Value */
+            value: string;
+            /**
+             * Tone
+             * @default neutral
+             */
+            tone: string;
+            /** Source Path */
+            source_path?: string | null;
+            /**
+             * Note
+             * @default
+             */
+            note: string;
+        };
+        /** TradeInsightAiOutcome */
+        TradeInsightAiOutcome: {
+            /** Schema Version */
+            schema_version: string;
+            /**
+             * Analysis Produced At
+             * Format: date-time
+             */
+            analysis_produced_at: string;
+            /** Ticker */
+            ticker: string;
+            /** Underlying Price */
+            underlying_price?: string | null;
+            snapshot: components["schemas"]["TradeInsightAiSnapshotMeta"];
+            headline: components["schemas"]["TradeInsightAiHeadline"];
+            /** Metric Cards */
+            metric_cards: components["schemas"]["TradeInsightAiMetricCard"][];
+            /** Scenario Cards */
+            scenario_cards: components["schemas"]["TradeInsightAiScenarioCard"][];
+            /** Score Breakdown */
+            score_breakdown: components["schemas"]["TradeInsightAiScoreBreakdown"][];
+            section_cards: components["schemas"]["TradeInsightAiSectionCards"];
+            vrp_assessment?: components["schemas"]["TradeInsightAiVrpAssessment"] | null;
+            preferred_expression?: components["schemas"]["TradeInsightAiPreferredExpression"] | null;
+            dominant_read: components["schemas"]["TradeInsightAiDominantRead"];
+            /** Best Expressions */
+            best_expressions?: components["schemas"]["TradeInsightAiBestExpression"][];
+            /** Conflicts */
+            conflicts?: components["schemas"]["TradeInsightAiConflict"][];
+            /** Required Checks */
+            required_checks?: components["schemas"]["TradeInsightAiRequiredCheck"][];
+            /** Rejected Ideas */
+            rejected_ideas?: components["schemas"]["TradeInsightAiRejectedIdea"][];
+            /** Missing Data */
+            missing_data?: string[];
+            rendering: components["schemas"]["TradeInsightAiRendering"];
+            guardrails: components["schemas"]["TradeInsightAiGuardrails"];
+        };
+        /** TradeInsightAiPreferredExpression */
+        TradeInsightAiPreferredExpression: {
+            /** Idea Id */
+            idea_id: string;
+            /** Structure */
+            structure: string;
+            /** Title */
+            title: string;
+            /**
+             * Subtitle
+             * @default
+             */
+            subtitle: string;
+            /**
+             * Estimated Entry
+             * @default
+             */
+            estimated_entry: string;
+            /**
+             * Max Profit Observed
+             * @default
+             */
+            max_profit_observed: string;
+            /**
+             * Max Loss Observed
+             * @default
+             */
+            max_loss_observed: string;
+            /**
+             * Reward Risk
+             * @default
+             */
+            reward_risk: string;
+            /** Why */
+            why: string;
+            /** Management Notes */
+            management_notes?: string[];
+            /** Status Observed */
+            status_observed: string;
+            /** Risk Flags Observed */
+            risk_flags_observed?: string[];
+        };
+        /** TradeInsightAiRejectedIdea */
+        TradeInsightAiRejectedIdea: {
+            /** Idea Id */
+            idea_id: string;
+            /** Structure */
+            structure: string;
+            /** Reason */
+            reason: string;
+        };
+        /** TradeInsightAiRendering */
+        TradeInsightAiRendering: {
+            /** Disclaimer */
+            disclaimer: string;
+            /** Card Order */
+            card_order?: string[];
+        };
+        /** TradeInsightAiRequiredCheck */
+        TradeInsightAiRequiredCheck: {
+            /** Check */
+            check: string;
+            /** Reason */
+            reason: string;
+            /**
+             * Blocks Sizing
+             * @default true
+             */
+            blocks_sizing: boolean;
+            /**
+             * Source
+             * @default
+             */
+            source: string;
+        };
+        /** TradeInsightAiScenarioCard */
+        TradeInsightAiScenarioCard: {
+            /** Case */
+            case: ("upside" | "base" | "downside") | string;
+            /**
+             * Tone
+             * @default neutral
+             */
+            tone: string;
+            /** Title */
+            title: string;
+            /** Description */
+            description: string;
+        };
+        /** TradeInsightAiScoreBreakdown */
+        TradeInsightAiScoreBreakdown: {
+            /** Section */
+            section: string;
+            /** Score */
+            score: number;
+            /** Max Score */
+            max_score: number;
+            /** Summary */
+            summary: string;
+        };
+        /** TradeInsightAiSectionCard */
+        TradeInsightAiSectionCard: {
+            /** Title */
+            title: string;
+            /** Score */
+            score?: number | null;
+            /** Max Score */
+            max_score?: number | null;
+            /** Summary */
+            summary: string;
+            /** Highlights */
+            highlights?: components["schemas"]["TradeInsightAiHighlight"][];
+            /** Levels */
+            levels?: components["schemas"]["TradeInsightAiLevel"][];
+            /**
+             * Data Quality
+             * @default unknown
+             */
+            data_quality: string;
+        };
+        /** TradeInsightAiSectionCards */
+        TradeInsightAiSectionCards: {
+            market_structure: components["schemas"]["TradeInsightAiSectionCard"];
+            volatility: components["schemas"]["TradeInsightAiSectionCard"];
+            flow_positioning: components["schemas"]["TradeInsightAiSectionCard"];
+        };
+        /** TradeInsightAiSnapshotMeta */
+        TradeInsightAiSnapshotMeta: {
+            /** Run Id */
+            run_id: number;
+            /** Trade Insights Input Hash */
+            trade_insights_input_hash: string;
+            /** Analysis Input Hash */
+            analysis_input_hash: string;
+            /** Data As Of */
+            data_as_of?: string | null;
+            /**
+             * Freshness Label
+             * @default unknown
+             */
+            freshness_label: string;
+            /** Source Notes */
+            source_notes?: string[];
+        };
+        /** TradeInsightAiVrpAssessment */
+        TradeInsightAiVrpAssessment: {
+            /** Signal */
+            signal: string;
+            /** Title */
+            title: string;
+            /** Summary */
+            summary: string;
+            /** Metrics */
+            metrics?: components["schemas"]["TradeInsightAiMetricCard"][];
+            /** Reason */
+            reason: string;
+        };
         /** TradeInsightsHeader */
         TradeInsightsHeader: {
             /**
@@ -2067,6 +2498,104 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["TradeInsightsResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    post_trade_insights_ai_analysis_api_stock__ticker__trade_insights_ai_analysis_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                ticker: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["TradeInsightAiAnalysisRequest"] | null;
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TradeInsightAiAnalysisResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_latest_trade_insights_ai_analysis_api_stock__ticker__trade_insights_ai_analysis_latest_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                ticker: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TradeInsightAiAnalysisResponse"] | null;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_trade_insights_ai_analysis_api_stock__ticker__trade_insights_ai_analysis__analysis_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                ticker: string;
+                analysis_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TradeInsightAiAnalysisResponse"];
                 };
             };
             /** @description Validation Error */

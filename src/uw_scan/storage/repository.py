@@ -1198,7 +1198,9 @@ class Repository:
             cols = [d.name for d in cur.description or []]
             return [dict(zip(cols, row, strict=False)) for row in cur.fetchall()]
 
-    def fetch_option_contracts_rich(self, run_id: int, ticker: str) -> list[dict[str, Any]]:
+    def fetch_option_contracts_rich(
+        self, run_id: int, ticker: str
+    ) -> list[dict[str, Any]]:
         sql = (
             f"SELECT option_symbol, last_price, nbbo_bid, nbbo_ask, "
             "implied_volatility, open_interest, prev_oi, volume, ask_volume, "
@@ -1303,6 +1305,287 @@ class Repository:
                     ),
                 )
         return len(candidates)
+
+    def fetch_trade_insight_snapshot(self, snapshot_id: int) -> dict[str, Any] | None:
+        sql = (
+            f"SELECT * FROM {self._schema}.trade_insight_snapshots "
+            "WHERE snapshot_id = %s"
+        )
+        with self._conn.cursor() as cur:
+            cur.execute(sql, (snapshot_id,))
+            row = cur.fetchone()
+            if row is None:
+                return None
+            cols = [d.name for d in cur.description or []]
+            return dict(zip(cols, row, strict=False))
+
+    def fetch_latest_trade_insight_snapshot_for_hash(
+        self,
+        *,
+        ticker: str,
+        input_hash: str,
+        assembler_version: str,
+    ) -> dict[str, Any] | None:
+        sql = (
+            f"SELECT * FROM {self._schema}.trade_insight_snapshots "
+            "WHERE ticker = %s AND input_hash = %s AND assembler_version = %s "
+            "ORDER BY created_at DESC, snapshot_id DESC "
+            "LIMIT 1"
+        )
+        with self._conn.cursor() as cur:
+            cur.execute(sql, (ticker.upper(), input_hash, assembler_version))
+            row = cur.fetchone()
+            if row is None:
+                return None
+            cols = [d.name for d in cur.description or []]
+            return dict(zip(cols, row, strict=False))
+
+    def find_completed_trade_insight_ai_analysis(
+        self,
+        *,
+        ticker: str,
+        analysis_input_hash: str,
+        prompt_version: str,
+        model: str,
+    ) -> dict[str, Any] | None:
+        sql = (
+            f"SELECT * FROM {self._schema}.trade_insight_ai_analyses "
+            "WHERE ticker = %s "
+            "AND analysis_input_hash = %s "
+            "AND prompt_version = %s "
+            "AND model = %s "
+            "AND status = 'succeeded' "
+            "ORDER BY finished_at DESC NULLS LAST, requested_at DESC "
+            "LIMIT 1"
+        )
+        with self._conn.cursor() as cur:
+            cur.execute(
+                sql,
+                (ticker.upper(), analysis_input_hash, prompt_version, model),
+            )
+            row = cur.fetchone()
+            if row is None:
+                return None
+            cols = [d.name for d in cur.description or []]
+            return dict(zip(cols, row, strict=False))
+
+    def find_reusable_trade_insight_ai_analysis(
+        self,
+        *,
+        ticker: str,
+        analysis_input_hash: str,
+        prompt_version: str,
+        model: str,
+    ) -> dict[str, Any] | None:
+        sql = (
+            f"SELECT * FROM {self._schema}.trade_insight_ai_analyses "
+            "WHERE ticker = %s "
+            "AND analysis_input_hash = %s "
+            "AND prompt_version = %s "
+            "AND model = %s "
+            "AND status IN ('queued', 'running', 'succeeded') "
+            "ORDER BY "
+            "  CASE status WHEN 'succeeded' THEN 0 WHEN 'running' THEN 1 ELSE 2 END, "
+            "  finished_at DESC NULLS LAST, "
+            "  started_at DESC NULLS LAST, "
+            "  requested_at DESC "
+            "LIMIT 1"
+        )
+        with self._conn.cursor() as cur:
+            cur.execute(
+                sql,
+                (ticker.upper(), analysis_input_hash, prompt_version, model),
+            )
+            row = cur.fetchone()
+            if row is None:
+                return None
+            cols = [d.name for d in cur.description or []]
+            return dict(zip(cols, row, strict=False))
+
+    def find_latest_succeeded_trade_insight_ai_analysis(
+        self,
+        *,
+        ticker: str,
+    ) -> dict[str, Any] | None:
+        sql = (
+            f"SELECT * FROM {self._schema}.trade_insight_ai_analyses "
+            "WHERE ticker = %s AND status = 'succeeded' "
+            "ORDER BY finished_at DESC NULLS LAST, requested_at DESC "
+            "LIMIT 1"
+        )
+        with self._conn.cursor() as cur:
+            cur.execute(sql, (ticker.upper(),))
+            row = cur.fetchone()
+            if row is None:
+                return None
+            cols = [d.name for d in cur.description or []]
+            return dict(zip(cols, row, strict=False))
+
+    def enqueue_trade_insight_ai_analysis(
+        self,
+        *,
+        snapshot_id: int,
+        ticker: str,
+        run_id: int,
+        trade_insights_input_hash: str,
+        analysis_input_hash: str,
+        analysis_input: dict[str, Any],
+        prompt_version: str,
+        model: str,
+    ) -> str:
+        sql = (
+            f"INSERT INTO {self._schema}.trade_insight_ai_analyses "
+            "(snapshot_id, ticker, run_id, trade_insights_input_hash, "
+            "analysis_input_hash, analysis_input_jsonb, prompt_version, model, status) "
+            "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, 'queued') "
+            "ON CONFLICT (ticker, analysis_input_hash, prompt_version, model) "
+            "WHERE status IN ('queued', 'running') "
+            "DO NOTHING "
+            "RETURNING analysis_id"
+        )
+        with self._conn.cursor() as cur:
+            cur.execute(
+                sql,
+                (
+                    snapshot_id,
+                    ticker.upper(),
+                    run_id,
+                    trade_insights_input_hash,
+                    analysis_input_hash,
+                    Jsonb(analysis_input),
+                    prompt_version,
+                    model,
+                ),
+            )
+            row = cur.fetchone()
+            if row is None:
+                cur.execute(
+                    f"SELECT analysis_id FROM {self._schema}.trade_insight_ai_analyses "
+                    "WHERE ticker = %s "
+                    "AND analysis_input_hash = %s "
+                    "AND prompt_version = %s "
+                    "AND model = %s "
+                    "AND status IN ('queued', 'running') "
+                    "ORDER BY started_at DESC NULLS LAST, requested_at DESC "
+                    "LIMIT 1",
+                    (ticker.upper(), analysis_input_hash, prompt_version, model),
+                )
+                row = cur.fetchone()
+        assert row is not None
+        return str(row[0])
+
+    def claim_next_trade_insight_ai_analysis(
+        self,
+        *,
+        stale_running_before: datetime | None = None,
+    ) -> dict[str, Any] | None:
+        sql = (
+            f"UPDATE {self._schema}.trade_insight_ai_analyses "
+            "SET status = 'running', started_at = now(), finished_at = NULL, error_message = NULL "
+            "WHERE analysis_id = ("
+            f"  SELECT analysis_id FROM {self._schema}.trade_insight_ai_analyses "
+            "  WHERE status = 'queued' "
+            "     OR ("
+            "       status = 'running' "
+            "       AND %s::timestamptz IS NOT NULL "
+            "       AND (started_at IS NULL OR started_at < %s::timestamptz)"
+            "     ) "
+            "  ORDER BY CASE WHEN status = 'running' THEN 0 ELSE 1 END, requested_at "
+            "  FOR UPDATE SKIP LOCKED "
+            "  LIMIT 1"
+            ") "
+            "RETURNING *"
+        )
+        with self._conn.cursor() as cur:
+            cur.execute(sql, (stale_running_before, stale_running_before))
+            row = cur.fetchone()
+            if row is None:
+                return None
+            cols = [d.name for d in cur.description or []]
+            return dict(zip(cols, row, strict=False))
+
+    def prepare_trade_insight_ai_analysis(
+        self,
+        analysis_id: str,
+        *,
+        prompt_text: str,
+        prompt_payload: dict[str, Any],
+        output_schema: dict[str, Any],
+        produced_at: datetime,
+    ) -> None:
+        sql = (
+            f"UPDATE {self._schema}.trade_insight_ai_analyses "
+            "SET prompt_text = %s, "
+            "prompt_payload_jsonb = %s, "
+            "output_schema_jsonb = %s, "
+            "produced_at = %s "
+            "WHERE analysis_id = %s"
+        )
+        with self._conn.cursor() as cur:
+            cur.execute(
+                sql,
+                (
+                    prompt_text,
+                    Jsonb(prompt_payload),
+                    Jsonb(output_schema),
+                    produced_at,
+                    analysis_id,
+                ),
+            )
+
+    def complete_trade_insight_ai_analysis(
+        self,
+        analysis_id: str,
+        *,
+        outcome: dict[str, Any],
+        markdown: str,
+    ) -> None:
+        sql = (
+            f"UPDATE {self._schema}.trade_insight_ai_analyses "
+            "SET status = 'succeeded', "
+            "outcome_jsonb = %s, "
+            "markdown = %s, "
+            "error_message = NULL, "
+            "finished_at = now() "
+            "WHERE analysis_id = %s"
+        )
+        with self._conn.cursor() as cur:
+            cur.execute(sql, (Jsonb(outcome), markdown, analysis_id))
+
+    def fail_trade_insight_ai_analysis(
+        self,
+        analysis_id: str,
+        error_message: str,
+    ) -> None:
+        sql = (
+            f"UPDATE {self._schema}.trade_insight_ai_analyses "
+            "SET status = 'failed', "
+            "error_message = %s, "
+            "finished_at = now() "
+            "WHERE analysis_id = %s"
+        )
+        with self._conn.cursor() as cur:
+            cur.execute(sql, (error_message[:4000], analysis_id))
+
+    def get_trade_insight_ai_analysis(
+        self,
+        analysis_id: str,
+        ticker: str | None = None,
+    ) -> dict[str, Any] | None:
+        sql = f"SELECT * FROM {self._schema}.trade_insight_ai_analyses WHERE analysis_id = %s"
+        params: tuple[Any, ...]
+        if ticker is not None:
+            sql += " AND ticker = %s"
+            params = (analysis_id, ticker.upper())
+        else:
+            params = (analysis_id,)
+        with self._conn.cursor() as cur:
+            cur.execute(sql, params)
+            row = cur.fetchone()
+            if row is None:
+                return None
+            cols = [d.name for d in cur.description or []]
+            return dict(zip(cols, row, strict=False))
 
     def fetch_dark_pool_summary(self, run_id: int) -> tuple[int, Decimal]:
         sql = (

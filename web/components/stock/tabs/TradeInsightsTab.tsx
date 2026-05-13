@@ -5,6 +5,7 @@ import { InsightsSynthesisPanel } from "../panels/InsightsSynthesisPanel";
 import { SignalStackPanel } from "../panels/SignalStackPanel";
 import { SourceReconciliationPanel } from "../panels/SourceReconciliationPanel";
 import { TermMovePanel } from "../panels/TermMovePanel";
+import { TradeInsightsAiAnalysisPanel } from "../panels/TradeInsightsAiAnalysisPanel";
 import { TradeInsightsBiasBanner } from "../panels/TradeInsightsBiasBanner";
 
 export async function TradeInsightsTab({ ticker }: { ticker: string }) {
@@ -18,6 +19,7 @@ export async function TradeInsightsTab({ ticker }: { ticker: string }) {
       </div>
       <CandidateStructuresPanel candidates={insights.candidate_structures} />
       <InsightsSynthesisPanel synthesis={insights.synthesis} />
+      <TradeInsightsAiAnalysisPanel ticker={ticker} />
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
         <ChainFlowReadPanel rows={insights.flow_table} />
         <TermMovePanel rows={insights.term_structure_table} />

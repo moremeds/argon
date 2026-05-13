@@ -31,12 +31,25 @@ cd web && npm run test            # vitest
 cd web && npm run gen:types       # regenerate types.ts after API change
 ```
 
+## Trade Insights AI (V1.5)
+
+Local Codex CLI is the only model execution path for Trade Insights AI analysis. The API queues persisted `trade_insight_ai_analyses` rows; the worker runs `codex exec` in a read-only sandbox and stores the exact prompt, prompt payload, output schema, produced timestamp, structured outcome, and Markdown audit view.
+
+Environment:
+
+- `TRADE_INSIGHTS_AI_ENABLED` — enable the worker/API path when true
+- `TRADE_INSIGHTS_AI_MODEL` — optional Codex model; blank means local Codex default and rows store `codex-default`
+- `TRADE_INSIGHTS_AI_TIMEOUT_SECONDS` — subprocess timeout, default 90
+- `TRADE_INSIGHTS_AI_MAX_OUTPUT_BYTES` — structured output cap, default 262144
+- `TRADE_INSIGHTS_AI_POLL_SECONDS` — worker polling interval, default 3
+
 ## Standing rules
 
 - **uv only** — `uv run pytest`, never `pytest` directly
 - **Persist analytical results to Postgres** — vol/scan/regime outputs land in tables, never in-memory-only
 - **No naked shorts** in any strategy/trade-plan code — defined-risk only
 - **Data source priority**: IB → UW → FMP → massive (OHLC). Yahoo is banned
+- **No secrets to local Codex subprocesses** — do not pass UW/FMP/Massive keys, DB credentials, or unrelated app secrets to `codex exec`
 - **Never commit without an explicit user request.** Draft first, wait
 - **Always open a PR before merging to main.** `git push origin main` is forbidden
 - **Never add `Co-Authored-By: Claude` trailers** to commits
@@ -52,7 +65,9 @@ cd web && npm run gen:types       # regenerate types.ts after API change
 | API surface | `src/uw_scan/api/server.py` + `routers/*` |
 | Persistence | `src/uw_scan/storage/repository.py` (one method per query) |
 | Scheduled jobs | `src/uw_scan/worker/scheduler.py` |
-| UW endpoints | `src/uw_scan/api/endpoints.py` + `sources/uw.py` |
+| UW endpoints (integrated) | `src/uw_scan/api/endpoints.py` + `sources/uw.py` |
+| UW API reference (full surface) | `docs/uw-samples/unusual_whales_api.md` (human-readable) + `docs/uw-samples/unusual_whales_api_spec.yaml` (OpenAPI) — consult before adding any new UW fetcher |
+| UW sample payloads | `docs/uw-samples/*.json` — real responses for each integrated endpoint, with `_shape-summary.md` |
 | Volatility derivers | `src/uw_scan/cards/vol_series.py`, `reports/volatility_series.py` |
 | Stock detail page | `web/app/stock/[ticker]/page.tsx` + `components/stock/tabs/*` |
 | Watchlist landing | `web/app/page.tsx` + `components/watchlist/CardGrid.tsx` |

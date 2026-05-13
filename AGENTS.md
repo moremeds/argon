@@ -1,44 +1,73 @@
-# Repository Guidelines
+# CLAUDE.md
 
-## Project Structure & Module Organization
+Guidance for Claude Code working in this repo. Subdirectory `CLAUDE.md` files cover layer-specific rules.
 
-This repository currently contains planning and handover documentation for a Streamlit-based Unusual Whales opportunity scanner. Keep source work organized around the planned structure:
+## What this is
 
-- `docs/`: handover, design specs, and implementation plans.
-- `docs/superpowers/specs/`: validated product and architecture specs.
-- `docs/superpowers/plans/`: step-by-step implementation plans.
-- `src/uw_scan/`: future Python package code.
-- `app/`: future Streamlit entrypoint, expected at `app/streamlit_app.py`.
-- `tests/`: future unit and integration tests.
+Per-ticker options analytics, watchlist-driven. Three processes share a single Postgres:
 
-Do not add monolithic top-level scripts. New runtime code should live in package modules under `src/uw_scan/`.
+- **Next.js 16 web** (`web/`, port 3001) — Argon dark theme, RSC for landing pages, client islands for tabs
+- **FastAPI** (`src/uw_scan/api/`, port 8400) — read-only over the warm store, mutations only via `/jobs`
+- **APScheduler worker** (`src/uw_scan/worker/`) — full-scan / OHLC / spot-refresh / rescan-poll / nightly vol rollup
 
-## Build, Test, and Development Commands
+Postgres `option_wizard` DB, schema `uw_scan`. UW (Unusual Whales) is the primary data source; massive.com supplies OHLC. **Never fall back to Yahoo.**
 
-Use `uv` for dependency management and execution.
+## Tech stack
 
-- `uv sync --extra postgres`: install project dependencies, including Postgres support once `pyproject.toml` exists.
-- `uv run pytest`: run the Python test suite.
-- `uv run streamlit run app/streamlit_app.py`: start the local scanner UI.
-- `uv run playwright install chromium`: install Chromium for browser-level UI verification.
-- `git diff --check HEAD`: check staged and unstaged changes for whitespace errors.
+- Python 3.13 via `uv` only (no bare `python`/`pip`/activated venvs)
+- FastAPI + Pydantic v2, psycopg 3, APScheduler 3
+- Next.js 16 + React 19, TypeScript, hand-rolled SVG charts (no chart library)
+- Vitest + Playwright (web), pytest + pytest-postgresql (Python)
+- Types flow API → client via `openapi-typescript` → `web/lib/types.ts`
 
-If a command is not yet available, add the required project metadata or tests as part of the relevant implementation plan.
+## Daily commands
 
-## Coding Style & Naming Conventions
+```bash
+uv sync --extra postgres          # install
+bash scripts/migrate.sh           # apply SQL migrations (idempotent)
+bash scripts/dev.sh               # run all three processes
+uv run pytest                     # python tests
+cd web && npm run test            # vitest
+cd web && npm run gen:types       # regenerate types.ts after API change
+```
 
-Follow Python conventions with typed, focused modules. Use snake_case for files, functions, variables, and database table names; use PascalCase for classes and dataclasses. Keep configuration in environment variables, not hardcoded constants. Prefer small modules for API clients, persistence, scoring, and UI state rather than broad utility files.
+## Trade Insights AI (V1.5)
 
-## Testing Guidelines
+Local Codex CLI is the only model execution path for Trade Insights AI analysis. The API queues persisted `trade_insight_ai_analyses` rows; the worker runs `codex exec` in a read-only sandbox and stores the exact prompt, prompt payload, output schema, produced timestamp, structured outcome, and Markdown audit view.
 
-Use `pytest` for unit and integration coverage. Place tests in `tests/` with names like `test_config.py` or `test_tradingview_adapter.py`. For UI work, run Streamlit locally and verify key flows with Browser Use or Playwright. Persistence changes should include tests for normalized relational writes against the `uw_scan` schema.
+Environment:
 
-## Commit & Pull Request Guidelines
+- `TRADE_INSIGHTS_AI_ENABLED` — enable the worker/API path when true
+- `TRADE_INSIGHTS_AI_MODEL` — optional Codex model; blank means local Codex default and rows store `codex-default`
+- `TRADE_INSIGHTS_AI_TIMEOUT_SECONDS` — subprocess timeout, default 90
+- `TRADE_INSIGHTS_AI_MAX_OUTPUT_BYTES` — structured output cap, default 262144
+- `TRADE_INSIGHTS_AI_POLL_SECONDS` — worker polling interval, default 3
 
-Recent commits use short imperative summaries, for example `Add UW scan handover` and `Require uv and browser UI verification`. Continue that style: concise, present-tense, and focused on one change.
+## Standing rules
 
-Pull requests should include a summary, verification commands run, linked issue or plan document, and screenshots for Streamlit UI changes. Mention any skipped verification with the reason.
+- **uv only** — `uv run pytest`, never `pytest` directly
+- **Persist analytical results to Postgres** — vol/scan/regime outputs land in tables, never in-memory-only
+- **No naked shorts** in any strategy/trade-plan code — defined-risk only
+- **Data source priority**: IB → UW → FMP → massive (OHLC). Yahoo is banned
+- **No secrets to local Codex subprocesses** — do not pass UW/FMP/Massive keys, DB credentials, or unrelated app secrets to `codex exec`
+- **Never commit without an explicit user request.** Draft first, wait
+- **Always open a PR before merging to main.** `git push origin main` is forbidden
+- **Never add `Co-Authored-By: Claude` trailers** to commits
+- **Migrations are idempotent** (`IF NOT EXISTS`, `ON CONFLICT DO NOTHING`). No tracking table — re-running is a no-op
+- **Live API tests** are marked `live` and need `UW_SCAN_API_KEY`; default `pytest` excludes them
+- **AGENTS.md** still lives at the root for Codex; keep both files in sync when policy changes
 
-## Security & Configuration Tips
+## Where to look first
 
-Never commit API tokens or secrets. Use `UW_SCAN_API_KEY=...` in the environment. Local Postgres work should target database `option_wizard` and schema `uw_scan`. Raw payload storage is only for compressed audit/replay data; queryable data should be normalized relational tables.
+| Need | Look at |
+|---|---|
+| Active specs / plans | `docs/superpowers/specs/`, `docs/superpowers/plans/` |
+| API surface | `src/uw_scan/api/server.py` + `routers/*` |
+| Persistence | `src/uw_scan/storage/repository.py` (one method per query) |
+| Scheduled jobs | `src/uw_scan/worker/scheduler.py` |
+| UW endpoints (integrated) | `src/uw_scan/api/endpoints.py` + `sources/uw.py` |
+| UW API reference (full surface) | `docs/uw-samples/unusual_whales_api.md` (human-readable) + `docs/uw-samples/unusual_whales_api_spec.yaml` (OpenAPI) — consult before adding any new UW fetcher |
+| UW sample payloads | `docs/uw-samples/*.json` — real responses for each integrated endpoint, with `_shape-summary.md` |
+| Volatility derivers | `src/uw_scan/cards/vol_series.py`, `reports/volatility_series.py` |
+| Stock detail page | `web/app/stock/[ticker]/page.tsx` + `components/stock/tabs/*` |
+| Watchlist landing | `web/app/page.tsx` + `components/watchlist/CardGrid.tsx` |

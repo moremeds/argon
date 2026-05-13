@@ -9,7 +9,11 @@ type Json<
   responses: { 200: { content: { "application/json": infer T } } };
 }
   ? T
-  : never;
+  : paths[P][M] extends {
+        responses: { 202: { content: { "application/json": infer T } } };
+      }
+    ? T
+    : never;
 
 type WatchlistResponse = Json<"/api/watchlist", "get">;
 type SingleStockReport = Json<"/api/stock/{ticker}", "get">;
@@ -22,6 +26,10 @@ type VolatilitySeriesResponse = Json<
   "get"
 >;
 type TradeInsightsResponse = Json<"/api/stock/{ticker}/trade-insights", "get">;
+type TradeInsightsAiAnalysisResponse = Json<
+  "/api/stock/{ticker}/trade-insights/ai-analysis",
+  "post"
+>;
 
 async function _fetch<T>(path: string, init?: RequestInit): Promise<T> {
   const r = await fetch(`${API}${path}`, {
@@ -55,6 +63,27 @@ export const api = {
     _fetch<VolatilitySeriesResponse>(`/api/stock/${ticker}/volatility/series`),
   tradeInsights: (ticker: string): Promise<TradeInsightsResponse> =>
     _fetch<TradeInsightsResponse>(`/api/stock/${ticker}/trade-insights`),
+  tradeInsightsAiAnalysis: (
+    ticker: string,
+    body: { force_rerun?: boolean } = {},
+  ): Promise<TradeInsightsAiAnalysisResponse> =>
+    _fetch<TradeInsightsAiAnalysisResponse>(
+      `/api/stock/${ticker}/trade-insights/ai-analysis`,
+      { method: "POST", body: JSON.stringify(body) },
+    ),
+  tradeInsightsAiAnalysisStatus: (
+    ticker: string,
+    analysisId: string,
+  ): Promise<TradeInsightsAiAnalysisResponse> =>
+    _fetch<TradeInsightsAiAnalysisResponse>(
+      `/api/stock/${ticker}/trade-insights/ai-analysis/${analysisId}`,
+    ),
+  tradeInsightsAiAnalysisLatest: (
+    ticker: string,
+  ): Promise<TradeInsightsAiAnalysisResponse | null> =>
+    _fetch<TradeInsightsAiAnalysisResponse | null>(
+      `/api/stock/${ticker}/trade-insights/ai-analysis/latest`,
+    ),
   ohlc: (ticker: string, days = 30): Promise<OhlcResponse> =>
     _fetch<OhlcResponse>(`/api/ohlc/${ticker}?days=${days}`),
   rescan: (ticker: string): Promise<JobStatus> =>
@@ -93,6 +122,7 @@ export type {
   JobStatus,
   OhlcResponse,
   SingleStockReport,
+  TradeInsightsAiAnalysisResponse,
   TradeInsightsResponse,
   VolatilitySeriesResponse,
   WatchlistResponse,
