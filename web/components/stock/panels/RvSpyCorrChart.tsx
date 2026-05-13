@@ -5,8 +5,8 @@ import { AnalyticalSeriesPanel } from "./AnalyticalSeriesPanel";
 
 export type RvCorrPoint = {
   date: string;
-  rv: string | number | null;
-  spy_corr_21: string | number | null;
+  rv?: string | number | null | undefined;
+  spy_corr_21?: string | number | null | undefined;
 };
 
 export function RvSpyCorrChart({ data }: { data: RvCorrPoint[] }) {

@@ -17,6 +17,10 @@ type StockHistoryResponse = Json<"/api/stock/{ticker}/history", "get">;
 type JobStatus = Json<"/api/jobs/{job_id}", "get">;
 type OhlcResponse = Json<"/api/ohlc/{ticker}", "get">;
 type HealthResponse = Json<"/api/health", "get">;
+type VolatilitySeriesResponse = Json<
+  "/api/stock/{ticker}/volatility/series",
+  "get"
+>;
 
 async function _fetch<T>(path: string, init?: RequestInit): Promise<T> {
   const r = await fetch(`${API}${path}`, {
@@ -46,6 +50,8 @@ export const api = {
     _fetch<SingleStockReport>(`/api/stock/${ticker}`),
   stockHistory: (ticker: string): Promise<StockHistoryResponse> =>
     _fetch<StockHistoryResponse>(`/api/stock/${ticker}/history`),
+  volatilitySeries: (ticker: string): Promise<VolatilitySeriesResponse> =>
+    _fetch<VolatilitySeriesResponse>(`/api/stock/${ticker}/volatility/series`),
   ohlc: (ticker: string, days = 30): Promise<OhlcResponse> =>
     _fetch<OhlcResponse>(`/api/ohlc/${ticker}?days=${days}`),
   rescan: (ticker: string): Promise<JobStatus> =>
@@ -80,4 +86,10 @@ export const api = {
     }),
 };
 
-export type { WatchlistResponse, SingleStockReport, JobStatus, OhlcResponse };
+export type {
+  JobStatus,
+  OhlcResponse,
+  SingleStockReport,
+  VolatilitySeriesResponse,
+  WatchlistResponse,
+};

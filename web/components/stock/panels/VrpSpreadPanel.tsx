@@ -5,8 +5,8 @@ import { AnalyticalSeriesPanel } from "./AnalyticalSeriesPanel";
 
 export type VrpDailyPoint = {
   date: string;
-  vrp: string | number | null;
-  vrp_z_20: string | number | null;
+  vrp?: string | number | null | undefined;
+  vrp_z_20?: string | number | null | undefined;
 };
 
 export function VrpSpreadPanel({

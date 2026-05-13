@@ -5,8 +5,8 @@ import { AnalyticalSeriesPanel } from "./AnalyticalSeriesPanel";
 
 export type HvIvPoint = {
   date: string;
-  iv: string | number | null;
-  rv: string | number | null;
+  iv?: string | number | null | undefined;
+  rv?: string | number | null | undefined;
 };
 
 export function HvIvChart({ data }: { data: HvIvPoint[] }) {

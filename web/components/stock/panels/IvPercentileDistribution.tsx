@@ -9,8 +9,8 @@ export type IvHistogramBin = {
 
 export type IvPercentileDist = {
   bins: IvHistogramBin[];
-  current_iv?: string | number | null;
-  current_pctile?: string | number | null;
+  current_iv?: string | number | null | undefined;
+  current_pctile?: string | number | null | undefined;
 };
 
 export function IvPercentileDistribution({ data }: { data: IvPercentileDist }) {

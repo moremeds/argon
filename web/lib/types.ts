@@ -202,10 +202,39 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/stock/{ticker}/volatility/series": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Volatility Series */
+        get: operations["get_volatility_series_api_stock__ticker__volatility_series_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** DivergencePoint */
+        DivergencePoint: {
+            /**
+             * Date
+             * Format: date
+             */
+            date: string;
+            /** Iv Z */
+            iv_z?: string | null;
+            /** Rv Z */
+            rv_z?: string | null;
+        };
         /** FlowAlert */
         FlowAlert: {
             /** Id */
@@ -355,6 +384,51 @@ export interface components {
             uw_today?: number | null;
             /** Cache Hit Pct */
             cache_hit_pct?: number | null;
+        };
+        /** IvHistogramBin */
+        IvHistogramBin: {
+            /** Lo */
+            lo: string;
+            /** Hi */
+            hi: string;
+            /** Count */
+            count: number;
+        };
+        /** IvHvPoint */
+        IvHvPoint: {
+            /**
+             * Date
+             * Format: date
+             */
+            date: string;
+            /** Iv */
+            iv?: string | null;
+            /** Rv */
+            rv?: string | null;
+        };
+        /** IvOfIvPoint */
+        IvOfIvPoint: {
+            /**
+             * Date
+             * Format: date
+             */
+            date: string;
+            /** Iv */
+            iv?: string | null;
+            /** Iv Of Iv 20 */
+            iv_of_iv_20?: string | null;
+        };
+        /** IvPercentileDistribution */
+        IvPercentileDistribution: {
+            /**
+             * Bins
+             * @default []
+             */
+            bins: components["schemas"]["IvHistogramBin"][];
+            /** Current Iv */
+            current_iv?: string | null;
+            /** Current Pctile */
+            current_pctile?: string | null;
         };
         /** JobStatus */
         JobStatus: {
@@ -540,6 +614,44 @@ export interface components {
             /** Pcr Delta 30D */
             pcr_delta_30d?: string | null;
         };
+        /** RegimeQuadrantBlock */
+        RegimeQuadrantBlock: {
+            /**
+             * Points
+             * @default []
+             */
+            points: components["schemas"]["RegimeQuadrantPoint"][];
+            latest?: components["schemas"]["RegimeQuadrantLatest"] | null;
+        };
+        /** RegimeQuadrantLatest */
+        RegimeQuadrantLatest: {
+            /**
+             * Date
+             * Format: date
+             */
+            date: string;
+            /** Rvol Pctile */
+            rvol_pctile?: string | null;
+            /** Spy Corr 21 */
+            spy_corr_21?: string | null;
+            /**
+             * State
+             * @default
+             */
+            state: string;
+        };
+        /** RegimeQuadrantPoint */
+        RegimeQuadrantPoint: {
+            /**
+             * Date
+             * Format: date
+             */
+            date: string;
+            /** Rvol Pctile */
+            rvol_pctile?: string | null;
+            /** Spy Corr 21 */
+            spy_corr_21?: string | null;
+        };
         /**
          * ReturnsBlock
          * @description Wire shape: d1 / w1 / d30. No aliases — FastAPI would otherwise serialize
@@ -552,6 +664,18 @@ export interface components {
             w1?: string | null;
             /** D30 */
             d30?: string | null;
+        };
+        /** RvCorrPoint */
+        RvCorrPoint: {
+            /**
+             * Date
+             * Format: date
+             */
+            date: string;
+            /** Rv */
+            rv?: string | null;
+            /** Spy Corr 21 */
+            spy_corr_21?: string | null;
         };
         /** SetupBlock */
         SetupBlock: {
@@ -659,6 +783,26 @@ export interface components {
             /** Rr25D 30Dte */
             rr25d_30dte?: string | null;
         };
+        /** SmileExpiryCurve */
+        SmileExpiryCurve: {
+            /**
+             * Expiry
+             * Format: date
+             */
+            expiry: string;
+            /**
+             * Points
+             * @default []
+             */
+            points: components["schemas"]["SmilePoint"][];
+        };
+        /** SmilePoint */
+        SmilePoint: {
+            /** Strike */
+            strike: string;
+            /** Iv */
+            iv?: string | null;
+        };
         /** StockHistoryResponse */
         StockHistoryResponse: {
             /** Ticker */
@@ -720,6 +864,23 @@ export interface components {
             /** Put Gex */
             put_gex?: string | null;
         };
+        /** TermStructureExpiryRow */
+        TermStructureExpiryRow: {
+            /**
+             * Expiry
+             * Format: date
+             */
+            expiry: string;
+            /** Dte */
+            dte?: number | null;
+            /**
+             * By Strike
+             * @default {}
+             */
+            by_strike: {
+                [key: string]: string;
+            };
+        };
         /** TradePlan */
         TradePlan: {
             /** Structure */
@@ -776,6 +937,43 @@ export interface components {
             /** Context */
             ctx?: Record<string, never>;
         };
+        /** VolHeaderBlock */
+        VolHeaderBlock: {
+            /** Iv */
+            iv?: string | null;
+            /** Rv */
+            rv?: string | null;
+            /** Iv Rank */
+            iv_rank?: string | null;
+            /** Iv Rank 1Y */
+            iv_rank_1y?: string | null;
+            /** Iv Low 52W */
+            iv_low_52w?: string | null;
+            /** Iv High 52W */
+            iv_high_52w?: string | null;
+            /** Rv Low 52W */
+            rv_low_52w?: string | null;
+            /** Rv High 52W */
+            rv_high_52w?: string | null;
+            /** Iv Percentile 30D */
+            iv_percentile_30d?: string | null;
+            /** Implied Move 30D Perc */
+            implied_move_30d_perc?: string | null;
+            /** Skew 25D */
+            skew_25d?: string | null;
+            /** Vrp */
+            vrp?: string | null;
+            /**
+             * Vrp Signal
+             * @default
+             */
+            vrp_signal: string;
+            /**
+             * Vrp Note
+             * @default
+             */
+            vrp_note: string;
+        };
         /** VolatilityProfile */
         VolatilityProfile: {
             /** Iv */
@@ -808,6 +1006,88 @@ export interface components {
                 number,
                 string
             ][];
+        };
+        /** VolatilitySeriesResponse */
+        VolatilitySeriesResponse: {
+            /** Ticker */
+            ticker: string;
+            /**
+             * As Of
+             * Format: date
+             */
+            as_of: string;
+            /** Backfill Status */
+            backfill_status: string;
+            header: components["schemas"]["VolHeaderBlock"];
+            /**
+             * Term Structure
+             * @default []
+             */
+            term_structure: components["schemas"]["TermStructureExpiryRow"][];
+            /**
+             * Smile
+             * @default []
+             */
+            smile: components["schemas"]["SmileExpiryCurve"][];
+            /**
+             * Hv Iv History
+             * @default []
+             */
+            hv_iv_history: components["schemas"]["IvHvPoint"][];
+            /**
+             * @default {
+             *       "bins": []
+             *     }
+             */
+            iv_percentile_distribution: components["schemas"]["IvPercentileDistribution"];
+            /**
+             * Iv Of Iv
+             * @default []
+             */
+            iv_of_iv: components["schemas"]["IvOfIvPoint"][];
+            /**
+             * Rv Spy Corr
+             * @default []
+             */
+            rv_spy_corr: components["schemas"]["RvCorrPoint"][];
+            /**
+             * @default {
+             *       "points": []
+             *     }
+             */
+            regime_quadrant: components["schemas"]["RegimeQuadrantBlock"];
+            /**
+             * Divergence
+             * @default []
+             */
+            divergence: components["schemas"]["DivergencePoint"][];
+            /**
+             * Divergence Headline
+             * @default
+             */
+            divergence_headline: string;
+            /**
+             * Vrp Spread
+             * @default []
+             */
+            vrp_spread: components["schemas"]["VrpDailyPoint"][];
+            /**
+             * Vrp Spread Headline
+             * @default
+             */
+            vrp_spread_headline: string;
+        };
+        /** VrpDailyPoint */
+        VrpDailyPoint: {
+            /**
+             * Date
+             * Format: date
+             */
+            date: string;
+            /** Vrp */
+            vrp?: string | null;
+            /** Vrp Z 20 */
+            vrp_z_20?: string | null;
         };
         /** WatchlistCard */
         WatchlistCard: {
@@ -1273,6 +1553,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["JobStatus"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_volatility_series_api_stock__ticker__volatility_series_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                ticker: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VolatilitySeriesResponse"];
                 };
             };
             /** @description Validation Error */

@@ -3,20 +3,20 @@ import { AnalyticalSeriesPanel } from "./AnalyticalSeriesPanel";
 
 export type RegimeQuadrantPoint = {
   date: string;
-  rvol_pctile: string | number | null;
-  spy_corr_21: string | number | null;
+  rvol_pctile?: string | number | null | undefined;
+  spy_corr_21?: string | number | null | undefined;
 };
 
 export type RegimeQuadrantLatest = {
   date: string;
-  rvol_pctile: string | number | null;
-  spy_corr_21: string | number | null;
+  rvol_pctile?: string | number | null | undefined;
+  spy_corr_21?: string | number | null | undefined;
   state: string;
 };
 
 export type RegimeQuadrantBlock = {
   points: RegimeQuadrantPoint[];
-  latest: RegimeQuadrantLatest | null;
+  latest?: RegimeQuadrantLatest | null;
 };
 
 const STATE_LABELS: Record<string, { label: string; corner: string }> = {

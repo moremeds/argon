@@ -5,8 +5,8 @@ import { AnalyticalSeriesPanel } from "./AnalyticalSeriesPanel";
 
 export type DivergencePoint = {
   date: string;
-  iv_z: string | number | null;
-  rv_z: string | number | null;
+  iv_z?: string | number | null | undefined;
+  rv_z?: string | number | null | undefined;
 };
 
 export function DivergenceOverlay({

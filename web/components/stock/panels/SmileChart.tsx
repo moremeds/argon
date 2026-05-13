@@ -5,7 +5,7 @@ import { AnalyticalSeriesPanel } from "./AnalyticalSeriesPanel";
 
 export type SmilePoint = {
   strike: string | number;
-  iv: string | number | null;
+  iv?: string | number | null | undefined;
 };
 
 export type SmileExpiryCurve = {
