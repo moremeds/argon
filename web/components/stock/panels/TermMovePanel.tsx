@@ -79,6 +79,15 @@ export function TermMovePanel({ rows }: { rows: Row[] }) {
         ? "Back elevated"
         : "Flat / unclear";
   const highlightedRows = byExpiry.slice(0, 6);
+  const frontMove = fmtPercent(front.implied_move_perc);
+  const frontDailyText = frontDaily == null ? "-" : fmtPercent(frontDaily);
+  const backDailyText = backDaily == null ? null : fmtPercent(backDaily);
+  const termRead =
+    curveRead === "Front elevated" && backDailyText
+      ? `Front expiry (${front.expiry}, ${front.dte ?? "?"} DTE) implies ${frontMove} total, or ${frontDailyText} per day, above the next expiry at ${backDailyText} per day.`
+      : curveRead === "Back elevated" && backDailyText
+        ? `Front expiry implies ${frontDailyText} per day, below the next expiry at ${backDailyText} per day, so term pressure is farther out.`
+        : `Front expiry implies ${frontMove} total, or ${frontDailyText} per day. The curve does not show a clear front/back edge.`;
 
   return (
     <InsightPanel
@@ -87,8 +96,17 @@ export function TermMovePanel({ rows }: { rows: Row[] }) {
     >
       <div
         style={{
+          color: "var(--text-primary)",
+          fontSize: 13,
+          lineHeight: 1.5,
+        }}
+      >
+        {termRead}
+      </div>
+      <div
+        style={{
           display: "grid",
-          gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+          gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))",
           gap: 8,
         }}
       >
@@ -110,17 +128,24 @@ export function TermMovePanel({ rows }: { rows: Row[] }) {
           }
         />
       </div>
-      <DataTable
-        rows={highlightedRows as unknown as Record<string, unknown>[]}
-        columns={[
-          { key: "expiry", label: "Expiry" },
-          { key: "dte", label: "DTE" },
-          { key: "atm_straddle", label: "ATM Straddle", render: fmtMoney },
-          { key: "implied_move_perc", label: "Move", render: fmtPercent },
-          { key: "daily_implied_move_perc", label: "Daily", render: fmtPercent },
-          { key: "read", label: "Read" },
-        ]}
-      />
+      <details style={{ fontFamily: "var(--font-mono)", fontSize: 11 }}>
+        <summary style={{ color: "var(--text-secondary)", cursor: "pointer" }}>
+          Show highlighted expiry rows
+        </summary>
+        <div style={{ marginTop: 8 }}>
+          <DataTable
+            rows={highlightedRows as unknown as Record<string, unknown>[]}
+            columns={[
+              { key: "expiry", label: "Expiry" },
+              { key: "dte", label: "DTE" },
+              { key: "atm_straddle", label: "ATM Straddle", render: fmtMoney },
+              { key: "implied_move_perc", label: "Move", render: fmtPercent },
+              { key: "daily_implied_move_perc", label: "Daily", render: fmtPercent },
+              { key: "read", label: "Read" },
+            ]}
+          />
+        </div>
+      </details>
     </InsightPanel>
   );
 }

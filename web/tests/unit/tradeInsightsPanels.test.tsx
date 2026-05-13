@@ -91,7 +91,9 @@ describe("Trade Insights detail panels", () => {
     );
     expect(screen.getByText("CHAIN / FLOW HIGHLIGHTS")).toBeDefined();
     expect(screen.getByText("Call / Put volume")).toBeDefined();
-    expect(screen.getByText(/next-day OI/i)).toBeDefined();
+    expect(screen.getByText(/flow leans call-heavy/i)).toBeDefined();
+    expect(screen.getByText("Show highlighted strike rows")).toBeDefined();
+    expect(screen.getAllByText(/next-day OI/i).length).toBeGreaterThan(0);
   });
 
   it("renders term move rows", () => {
@@ -111,6 +113,8 @@ describe("Trade Insights detail panels", () => {
     );
     expect(screen.getByText("TERM / MOVE HIGHLIGHTS")).toBeDefined();
     expect(screen.getByText("Curve read")).toBeDefined();
+    expect(screen.getByText(/front expiry/i)).toBeDefined();
+    expect(screen.getByText("Show highlighted expiry rows")).toBeDefined();
     expect(screen.getByText("2026-05-15")).toBeDefined();
     expect(screen.getByText("Front elevated")).toBeDefined();
   });

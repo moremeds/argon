@@ -86,6 +86,21 @@ export function ChainFlowReadPanel({ rows }: { rows: Row[] }) {
       return bScore - aScore;
     })
     .slice(0, 8);
+  const flowRead =
+    tapeRatio == null
+      ? "Put volume is unavailable, so call/put balance is inconclusive."
+      : tapeRatio >= 1.2
+        ? `Calls traded ${tapeRatio.toFixed(2)}x puts across available rows, so flow leans call-heavy.`
+        : tapeRatio <= 0.8
+          ? `Calls traded ${tapeRatio.toFixed(2)}x puts across available rows, so flow leans put-heavy.`
+          : `Call and put volume are roughly balanced at ${tapeRatio.toFixed(2)}x.`;
+  const activityRead = strongest
+    ? `The busiest strike is ${strongest.strike}, which is the first place to inspect for pinning or crowding.`
+    : "No single strike stands out from the available rows.";
+  const confirmationRead =
+    t1Count > 0
+      ? `${t1Count} strike${t1Count === 1 ? " needs" : "s need"} next-day OI confirmation before treating volume as new positioning.`
+      : "No highlighted strikes need next-day OI confirmation.";
 
   return (
     <InsightPanel
@@ -94,8 +109,17 @@ export function ChainFlowReadPanel({ rows }: { rows: Row[] }) {
     >
       <div
         style={{
+          color: "var(--text-primary)",
+          fontSize: 13,
+          lineHeight: 1.5,
+        }}
+      >
+        {flowRead} {activityRead} {confirmationRead}
+      </div>
+      <div
+        style={{
           display: "grid",
-          gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+          gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))",
           gap: 8,
         }}
       >
@@ -114,19 +138,26 @@ export function ChainFlowReadPanel({ rows }: { rows: Row[] }) {
           tone={t1Count > 0 ? "warning" : "neutral"}
         />
       </div>
-      <DataTable
-        rows={highlightedRows as unknown as Record<string, unknown>[]}
-        columns={[
-          { key: "strike", label: "Strike" },
-          { key: "call_volume", label: "Call Vol" },
-          { key: "call_open_interest", label: "Call OI" },
-          { key: "put_volume", label: "Put Vol" },
-          { key: "put_open_interest", label: "Put OI" },
-          { key: "call_put_volume_ratio", label: "C/P", render: fmtRatio },
-          { key: "volume_oi_note", label: "Vol/OI Note" },
-          { key: "read", label: "Read" },
-        ]}
-      />
+      <details style={{ fontFamily: "var(--font-mono)", fontSize: 11 }}>
+        <summary style={{ color: "var(--text-secondary)", cursor: "pointer" }}>
+          Show highlighted strike rows
+        </summary>
+        <div style={{ marginTop: 8 }}>
+          <DataTable
+            rows={highlightedRows as unknown as Record<string, unknown>[]}
+            columns={[
+              { key: "strike", label: "Strike" },
+              { key: "call_volume", label: "Call Vol" },
+              { key: "call_open_interest", label: "Call OI" },
+              { key: "put_volume", label: "Put Vol" },
+              { key: "put_open_interest", label: "Put OI" },
+              { key: "call_put_volume_ratio", label: "C/P", render: fmtRatio },
+              { key: "volume_oi_note", label: "Vol/OI Note" },
+              { key: "read", label: "Read" },
+            ]}
+          />
+        </div>
+      </details>
     </InsightPanel>
   );
 }
