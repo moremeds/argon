@@ -145,9 +145,9 @@ COMMIT;
 
 - [ ] **Step 2: Apply migration to dev DB**
 
-Run: `uv run python -m uw_scan.storage.migrations.runner` (or whatever invocation the README documents; if unsure run `grep -R "migrations" scripts/ src/uw_scan/storage/ | head -20` first).
+Run: `bash scripts/migrate.sh` (verified runner — reads every `.sql` under `src/uw_scan/storage/migrations/` in lexical order; idempotent).
 
-Expected: command exits 0; `psql option_wizard -c "\dt uw_scan.*" | grep -E 'index_ohlc_daily|iv_smile_snapshots|vrp_daily|stock_analytics_daily'` lists all four.
+Expected: stdout shows `Applying src/uw_scan/storage/migrations/014_volatility_v2_tables.sql...`; then `psql option_wizard -c "\dt uw_scan.*" | grep -E 'index_ohlc_daily|iv_smile_snapshots|vrp_daily|stock_analytics_daily|volatility_backfill_status'` lists all five new tables.
 
 - [ ] **Step 3: Commit**
 
@@ -1935,8 +1935,18 @@ def test_assemble_full_series_with_seeded_history(repo):
     repo.upsert_realized_vol_rows("TSLA", rv_rows)
     repo.upsert_index_ohlc_rows(spy_bars)
 
+    # Seed at least 4 strikes per expiry for the term-ladder pivot.
+    repo.upsert_iv_smile_rows([
+        {"ticker": "TSLA", "market_date": base,
+         "expiry": base + timedelta(days=7),
+         "strike": Decimal(str(s)), "iv": Decimal("0.55")}
+        for s in (98, 100, 102, 104, 106)
+    ])
+    repo.conn.commit()
+
     resp = assemble_volatility_series(ticker="TSLA", repo=repo)
     assert len(resp.hv_iv_history) == 60
+    # Empty-default blocks, never None (review finding I5).
     assert resp.iv_percentile_distribution is not None
     assert len(resp.iv_of_iv) > 0
     assert len(resp.rv_spy_corr) > 0
@@ -1949,6 +1959,12 @@ def test_assemble_full_series_with_seeded_history(repo):
     assert len(resp.divergence) > 0
     assert resp.divergence_headline.endswith("σ")
     assert resp.vrp_spread_headline  # non-empty
+
+    # Term-structure ladder (review finding C4 + G6) — at minimum ATM must
+    # be present; depending on where spot lands, ATM-1 / ATM+1 also appear.
+    assert resp.term_structure, "term_structure should have at least one expiry"
+    first = resp.term_structure[0]
+    assert "ATM" in first.by_strike, "ATM strike must always be present"
 ```
 
 - [ ] **Step 2: Run test to verify it fails**
@@ -1994,9 +2010,11 @@ def assemble_volatility_series(
     z_df = vol_series.compute_iv_rv_z_overlay(rv_history)
 
     # Persist derived series (per standing rule). Convert NaN → None.
-    _persist_vrp_daily(repo, ticker, vrp_df)
-    _persist_stock_analytics(repo, ticker, iv_of_iv_df, rvol_df, corr_df)
-    repo._conn.commit()
+    # Both helpers are PUBLIC (no underscore) — they are imported by the
+    # worker module too, so cross-module use is part of their contract.
+    persist_vrp_daily(repo, ticker, vrp_df)
+    persist_stock_analytics(repo, ticker, iv_of_iv_df, rvol_df, corr_df)
+    repo.conn.commit()
 
     # Build response from the persisted+derived frames.
     vrp_spread = [
@@ -2082,7 +2100,7 @@ def _build_iv_percentile_distribution(
     )
 
 
-def _persist_vrp_daily(repo: Repository, ticker: str, df: pd.DataFrame) -> None:
+def persist_vrp_daily(repo: Repository, ticker: str, df: pd.DataFrame) -> None:
     rows = [
         {"ticker": ticker, "market_date": r.market_date,
          "iv": _dec(r.iv), "rv": _dec(r.rv),
@@ -2093,7 +2111,7 @@ def _persist_vrp_daily(repo: Repository, ticker: str, df: pd.DataFrame) -> None:
         repo.upsert_vrp_daily_rows(rows)
 
 
-def _persist_stock_analytics(
+def persist_stock_analytics(
     repo: Repository, ticker: str,
     iv_of_iv_df: pd.DataFrame,
     rvol_df: pd.DataFrame,
@@ -2192,10 +2210,11 @@ def _build_term_structure(
     if not smile_rows:
         return []
 
-    spot = _dec(repo.fetch_volatility_stats_latest(ticker) or {}).get  # noqa
-    # Spot lives in market_structure, not vol_stats. Pull it from latest run.
-    spot_row = repo.fetch_market_structure_spot(ticker)
-    spot_val = _dec(spot_row.get("spot")) if spot_row else None
+    # Spot = latest daily close from realized_volatility_history.price.
+    # `price` is the underlying close for that market_date (verified in the
+    # repository's existing fetch_realized_vol_latest helper).
+    rv_latest = repo.fetch_realized_vol_latest(ticker) or {}
+    spot_val = _dec(rv_latest.get("price"))
     if spot_val is None:
         # Fall back to ATM = strike closest to median of all observed strikes.
         all_strikes = sorted({_dec(r["strike"]) for r in smile_rows if r.get("strike")})
@@ -2232,13 +2251,10 @@ def _build_term_structure(
     return out
 ```
 
-**Note for the implementer:** `repo.fetch_market_structure_spot(ticker)` is a
-new minimal read helper — add it alongside the other latest-row helpers in
-`repository.py`. Single-row SELECT of `spot` from the latest `watchlist_card`
-or whatever existing storage holds the latest spot (locate via
-`grep -n "spot\b" src/uw_scan/storage/repository.py | head`). If a suitable
-helper already exists (`fetch_watchlist_card_for_ticker` returns `.spot`
-maybe), use it directly instead of adding a new method.
+**Note for the implementer:** spot comes from
+`fetch_realized_vol_latest(ticker)["price"]` — the price column in
+`realized_volatility_history` is the underlying daily close (verified in
+the row model `RealizedVolRow.price`). No new repo helper needed.
 
 
 def _build_smile(repo: Repository, ticker: str) -> list[SmileExpiryCurve]:
@@ -2508,7 +2524,7 @@ def run_volatility_backfill(
         #    (The next assemble_volatility_series call will do this lazily;
         #    we don't need to recompute here, but committing the transaction
         #    is essential so the next read sees the new rows.)
-        repo._conn.commit()
+        repo.conn.commit()
         return "ready"
     except Exception:
         log.exception("volatility backfill failed for %s", ticker)
@@ -2542,23 +2558,17 @@ git commit -m "reports: run_volatility_backfill (realized + skew + greeks → sm
 from datetime import date, timedelta
 from decimal import Decimal
 
-from fastapi.testclient import TestClient
-
-from uw_scan.api.deps import get_repo
-from uw_scan.api.server import create_app
 from uw_scan.models import RealizedVolRow
 
 
-def _client_with_repo(repo) -> TestClient:
-    """TestClient that always returns the seeded fixture repo from the
-    `get_repo` dependency. Mirrors the watchlist endpoint tests."""
-    app = create_app()
-    app.dependency_overrides[get_repo] = lambda: repo
-    return TestClient(app)
-
-
-def test_volatility_series_endpoint_ready_when_history_present(repo):
-    # Seed enough history to clear the 90-row threshold.
+def test_volatility_series_endpoint_ready_when_history_present(
+    client, seeded_db_empty_cards,
+):
+    """Reuses the existing `client` fixture from
+    tests/integration/api/conftest.py:34 — it already overrides both
+    `get_repo` and `get_settings` so we don't have to recreate the wiring.
+    The `seeded_db_empty_cards` fixture from tests/integration/conftest.py:50
+    gives us the same Repository the client is wired to (same DSN)."""
     rv_rows = [
         RealizedVolRow(
             date=date(2026, 1, 1) + timedelta(days=i),
@@ -2568,9 +2578,9 @@ def test_volatility_series_endpoint_ready_when_history_present(repo):
         )
         for i in range(100)
     ]
-    repo.upsert_realized_vol_rows("TSLA", rv_rows)
+    seeded_db_empty_cards.upsert_realized_vol_rows("TSLA", rv_rows)
+    seeded_db_empty_cards.conn.commit()
 
-    client = _client_with_repo(repo)
     r = client.get("/api/stock/TSLA/volatility/series")
     assert r.status_code == 200
     body = r.json()
@@ -2580,15 +2590,19 @@ def test_volatility_series_endpoint_ready_when_history_present(repo):
     assert "hv_iv_history" in body
 
 
-def test_volatility_series_endpoint_kicks_off_backfill_when_history_thin(repo):
-    client = _client_with_repo(repo)
+def test_volatility_series_endpoint_kicks_off_backfill_when_history_thin(
+    client, seeded_db_empty_cards,
+):
     r = client.get("/api/stock/UNSEEDED/volatility/series")
     assert r.status_code == 200
     body = r.json()
     assert body["backfill_status"] == "running"
 ```
 
-The `repo` fixture is the standard one shipped by `tests/conftest.py` (used by every other repo test in the suite — `grep -n "def repo" tests/conftest.py` to confirm before running).
+NB: both fixtures need to point at the same test DB. The `client` fixture
+and `seeded_db_empty_cards` both call `_test_settings()` which reads
+`UW_SCAN_TEST_DB_NAME`; the values therefore line up automatically when
+that env var is set for the test run.
 
 - [ ] **Step 2: Run test to verify it fails**
 
@@ -3808,7 +3822,7 @@ def daily_spy_ohlc_refresh(
     with MassiveOhlcProvider(api_key=api_key) as prov:
         bars = prov.fetch_daily("SPY", start=start, end=today)
     repo.upsert_index_ohlc_rows(bars)
-    repo._conn.commit()
+    repo.conn.commit()
     log.info("daily_spy_ohlc_refresh: upserted %d rows", len(bars))
 
 
@@ -3833,15 +3847,16 @@ def nightly_vol_analytics_rollup(*, repo: Repository) -> None:
              for r in rv_history],
             spy_history,
         )
-        # Reuse the orchestrator's persist helpers — import inline to avoid
-        # circular imports at module load.
+        # Reuse the orchestrator's public persist helpers (G3 — promoted from
+        # underscore-private so cross-module use is part of the contract).
+        # Inline import avoids circular imports at module load.
         from uw_scan.reports.volatility_series import (
-            _persist_stock_analytics,
-            _persist_vrp_daily,
+            persist_stock_analytics,
+            persist_vrp_daily,
         )
-        _persist_vrp_daily(repo, ticker, vrp_df)
-        _persist_stock_analytics(repo, ticker, iv_of_iv_df, rvol_df, corr_df)
-    repo._conn.commit()
+        persist_vrp_daily(repo, ticker, vrp_df)
+        persist_stock_analytics(repo, ticker, iv_of_iv_df, rvol_df, corr_df)
+    repo.conn.commit()
     log.info("nightly_vol_analytics_rollup complete for %d tickers", len(tickers))
 ```
 
@@ -4025,11 +4040,30 @@ EOF
 
 ## Self-review (post-write, post-fix, post-tribunal 2026-05-13)
 
-This plan went through three review passes:
+This plan went through four review passes:
 
 1. **Initial self-review** — patched 12 symbol-name and ddof issues.
 2. **Tribunal review (Codex + Gemini + Claude)** — surfaced 19 additional
    findings (5 critical, 11 important, 2 minor). All applied.
+3. **Final-review self-pass** — caught 6 new issues that the tribunal patches
+   themselves had introduced or left unaddressed (see "Final-review fixes"
+   block below). All applied.
+
+Final-review fixes:
+- **G1** `_build_term_structure` had dead code + referenced nonexistent
+  `fetch_market_structure_spot`. Now uses `realized_vol_latest["price"]` as
+  the spot anchor — the underlying close column we already fetch.
+- **G2** Migration runner: `bash scripts/migrate.sh` (verified at
+  `scripts/migrate.sh`), not a Python module path.
+- **G3** `persist_vrp_daily` / `persist_stock_analytics` promoted from
+  underscore-private — they're imported across modules by the worker.
+- **G4** All `repo._conn.commit()` references switched to the public
+  `repo.conn` property (verified at repository.py:113).
+- **G5** Endpoint test now reuses `client` fixture from
+  `tests/integration/api/conftest.py:34` — which overrides BOTH `get_repo`
+  and `get_settings` so `Settings.from_env()` doesn't fire mid-request.
+- **G6** Task 4.2 full-series test now seeds `iv_smile_snapshots` and
+  asserts `term_structure[0].by_strike["ATM"]` exists.
 
 Tribunal fixes applied inline (see git log of this file for the diff):
 - **C1** Backfill now captures and persists fetched rows (`upsert_realized_vol_rows`, `upsert_skew_rows`, `insert_greeks_rows`) — pipeline.py:61-113 pattern.
