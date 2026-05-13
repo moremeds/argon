@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { FlowSnapshotGrid } from "@/components/stock/panels/FlowSnapshotGrid";
 
@@ -50,7 +50,7 @@ describe("FlowSnapshotGrid", () => {
     }
   });
 
-  it("shows tooltip definition + benchmark in the DOM", () => {
+  it("reveals tooltip definition + benchmark on hover, hides on mouseleave", () => {
     render(
       <FlowSnapshotGrid
         flow={FIXTURE_FLOW}
@@ -58,7 +58,16 @@ describe("FlowSnapshotGrid", () => {
         shortData={null}
       />,
     );
+    // Closed by default — hover-gated.
+    expect(screen.queryByText(/UW flow alerts/)).toBeNull();
+
+    const trigger = screen.getByLabelText("Alerts explanation")
+      .parentElement as HTMLElement;
+    fireEvent.mouseEnter(trigger);
     expect(screen.getByText(/UW flow alerts/)).toBeTruthy();
     expect(screen.getByText(/Median active ticker/)).toBeTruthy();
+
+    fireEvent.mouseLeave(trigger);
+    expect(screen.queryByText(/UW flow alerts/)).toBeNull();
   });
 });

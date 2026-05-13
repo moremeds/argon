@@ -1,5 +1,8 @@
+"use client";
+
+import { useState } from "react";
 import type { components } from "@/lib/types";
-import { fmtDecimal, fmtSigned, toNum } from "@/lib/formatters";
+import { fmtDecimal, fmtMoney, toNum } from "@/lib/formatters";
 import { SNAPSHOT_TOOLTIPS, type TooltipCopy } from "./snapshotTooltips";
 
 // UW caps share-availability inventory at 10M. Anything at that exact value
@@ -86,30 +89,30 @@ export function FlowSnapshotGrid({ flow, darkPool, shortData }: Props) {
           <Tile
             label="Net Premium"
             tip="netPremium"
-            value={fmtSigned(netPrem, 0)}
+            value={fmtMoney(netPrem, { signed: true })}
             valueColor={netPremiumColor(netPrem)}
           />
           <Tile
             label="Bull Premium"
             tip="bullPremium"
-            value={fmtDecimal(toNum(flow.bull_premium), 0)}
+            value={fmtMoney(toNum(flow.bull_premium))}
             valueColor="var(--positive)"
           />
           <Tile
             label="Bear Premium"
             tip="bearPremium"
-            value={fmtDecimal(toNum(flow.bear_premium), 0)}
+            value={fmtMoney(toNum(flow.bear_premium))}
             valueColor="var(--negative)"
           />
           <Tile
             label="Ask Premium"
             tip="askPremium"
-            value={fmtDecimal(toNum(flow.ask_side_premium), 0)}
+            value={fmtMoney(toNum(flow.ask_side_premium))}
           />
           <Tile
             label="Bid Premium"
             tip="bidPremium"
-            value={fmtDecimal(toNum(flow.bid_side_premium), 0)}
+            value={fmtMoney(toNum(flow.bid_side_premium))}
           />
         </div>
       </section>
@@ -131,7 +134,7 @@ export function FlowSnapshotGrid({ flow, darkPool, shortData }: Props) {
           <Tile
             label="DP Notional"
             tip="darkPoolNotional"
-            value={fmtDecimal(toNum(darkPool.notional), 0)}
+            value={fmtMoney(toNum(darkPool.notional))}
           />
           <Tile
             label="Shares Avail"
@@ -166,15 +169,19 @@ function Tile({
   valueColor?: string;
 }) {
   const t: TooltipCopy = SNAPSHOT_TOOLTIPS[tip];
+  const [open, setOpen] = useState(false);
   return (
     <div style={tileStyle}>
       <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
         <span style={labelStyle}>{label}</span>
-        <details style={{ display: "inline-block", position: "relative" }}>
-          <summary
+        <span
+          onMouseEnter={() => setOpen(true)}
+          onMouseLeave={() => setOpen(false)}
+          style={{ display: "inline-block", position: "relative" }}
+        >
+          <span
             aria-label={`${label} explanation`}
             style={{
-              listStyle: "none",
               cursor: "help",
               fontSize: 10,
               color: "var(--text-muted)",
@@ -188,25 +195,32 @@ function Tile({
             }}
           >
             i
-          </summary>
-          <div
-            style={{
-              position: "absolute",
-              zIndex: 10,
-              background: "var(--bg-panel)",
-              border: "1px solid var(--border-dim)",
-              padding: 8,
-              maxWidth: 280,
-              fontSize: 11,
-              color: "var(--text-primary)",
-            }}
-          >
-            <p style={{ margin: 0 }}>{t.definition}</p>
-            <p style={{ margin: "4px 0 0 0", color: "var(--text-secondary)" }}>
-              {t.benchmark}
-            </p>
-          </div>
-        </details>
+          </span>
+          {open && (
+            <div
+              style={{
+                position: "absolute",
+                top: 18,
+                left: 0,
+                zIndex: 10,
+                background: "var(--bg-panel)",
+                border: "1px solid var(--border-dim)",
+                padding: 8,
+                width: 360,
+                fontSize: 11,
+                lineHeight: 1.4,
+                color: "var(--text-primary)",
+              }}
+            >
+              <p style={{ margin: 0 }}>{t.definition}</p>
+              <p
+                style={{ margin: "4px 0 0 0", color: "var(--text-secondary)" }}
+              >
+                {t.benchmark}
+              </p>
+            </div>
+          )}
+        </span>
       </div>
       <div style={{ ...valueStyle, color: valueColor ?? valueStyle.color }}>
         {value}
