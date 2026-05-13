@@ -1369,6 +1369,39 @@ class Repository:
             cols = [d.name for d in cur.description or []]
             return dict(zip(cols, row, strict=False))
 
+    def find_reusable_trade_insight_ai_analysis(
+        self,
+        *,
+        ticker: str,
+        analysis_input_hash: str,
+        prompt_version: str,
+        model: str,
+    ) -> dict[str, Any] | None:
+        sql = (
+            f"SELECT * FROM {self._schema}.trade_insight_ai_analyses "
+            "WHERE ticker = %s "
+            "AND analysis_input_hash = %s "
+            "AND prompt_version = %s "
+            "AND model = %s "
+            "AND status IN ('queued', 'running', 'succeeded') "
+            "ORDER BY "
+            "  CASE status WHEN 'succeeded' THEN 0 WHEN 'running' THEN 1 ELSE 2 END, "
+            "  finished_at DESC NULLS LAST, "
+            "  started_at DESC NULLS LAST, "
+            "  requested_at DESC "
+            "LIMIT 1"
+        )
+        with self._conn.cursor() as cur:
+            cur.execute(
+                sql,
+                (ticker.upper(), analysis_input_hash, prompt_version, model),
+            )
+            row = cur.fetchone()
+            if row is None:
+                return None
+            cols = [d.name for d in cur.description or []]
+            return dict(zip(cols, row, strict=False))
+
     def find_latest_succeeded_trade_insight_ai_analysis(
         self,
         *,
@@ -1405,6 +1438,9 @@ class Repository:
             "(snapshot_id, ticker, run_id, trade_insights_input_hash, "
             "analysis_input_hash, analysis_input_jsonb, prompt_version, model, status) "
             "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, 'queued') "
+            "ON CONFLICT (ticker, analysis_input_hash, prompt_version, model) "
+            "WHERE status IN ('queued', 'running') "
+            "DO NOTHING "
             "RETURNING analysis_id"
         )
         with self._conn.cursor() as cur:
@@ -1422,24 +1458,46 @@ class Repository:
                 ),
             )
             row = cur.fetchone()
+            if row is None:
+                cur.execute(
+                    f"SELECT analysis_id FROM {self._schema}.trade_insight_ai_analyses "
+                    "WHERE ticker = %s "
+                    "AND analysis_input_hash = %s "
+                    "AND prompt_version = %s "
+                    "AND model = %s "
+                    "AND status IN ('queued', 'running') "
+                    "ORDER BY started_at DESC NULLS LAST, requested_at DESC "
+                    "LIMIT 1",
+                    (ticker.upper(), analysis_input_hash, prompt_version, model),
+                )
+                row = cur.fetchone()
         assert row is not None
         return str(row[0])
 
-    def claim_next_trade_insight_ai_analysis(self) -> dict[str, Any] | None:
+    def claim_next_trade_insight_ai_analysis(
+        self,
+        *,
+        stale_running_before: datetime | None = None,
+    ) -> dict[str, Any] | None:
         sql = (
             f"UPDATE {self._schema}.trade_insight_ai_analyses "
-            "SET status = 'running', started_at = now() "
+            "SET status = 'running', started_at = now(), finished_at = NULL, error_message = NULL "
             "WHERE analysis_id = ("
             f"  SELECT analysis_id FROM {self._schema}.trade_insight_ai_analyses "
             "  WHERE status = 'queued' "
-            "  ORDER BY requested_at "
+            "     OR ("
+            "       status = 'running' "
+            "       AND %s::timestamptz IS NOT NULL "
+            "       AND (started_at IS NULL OR started_at < %s::timestamptz)"
+            "     ) "
+            "  ORDER BY CASE WHEN status = 'running' THEN 0 ELSE 1 END, requested_at "
             "  FOR UPDATE SKIP LOCKED "
             "  LIMIT 1"
             ") "
             "RETURNING *"
         )
         with self._conn.cursor() as cur:
-            cur.execute(sql)
+            cur.execute(sql, (stale_running_before, stale_running_before))
             row = cur.fetchone()
             if row is None:
                 return None

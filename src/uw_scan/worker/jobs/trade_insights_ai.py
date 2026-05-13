@@ -6,7 +6,7 @@ import json
 import os
 import subprocess
 import tempfile
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 
@@ -145,7 +145,12 @@ def trade_insights_ai_tick(settings: Settings) -> bool:
     prompt_payload: dict[str, Any] | None = None
     try:
         repo.upsert_heartbeat("trade_insights_ai_tick")
-        row = repo.claim_next_trade_insight_ai_analysis()
+        stale_running_before = datetime.now(timezone.utc) - timedelta(
+            seconds=settings.trade_insights_ai_timeout_seconds + 60
+        )
+        row = repo.claim_next_trade_insight_ai_analysis(
+            stale_running_before=stale_running_before
+        )
         if row is None:
             repo.conn.commit()
             return False

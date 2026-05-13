@@ -630,6 +630,11 @@ def test_validate_trade_insights_ai_outcome_rejects_source_path_problems():
     with pytest.raises(ValueError, match="source_path"):
         validate_trade_insights_ai_outcome(bad_prefix, deterministic, produced_at=produced_at)
 
+    bad_leaf = _sample_outcome_for(deterministic)
+    bad_leaf["metric_cards"][0]["source_path"] = "tabs.volatility.header.not_real"
+    with pytest.raises(ValueError, match="source_path"):
+        validate_trade_insights_ai_outcome(bad_leaf, deterministic, produced_at=produced_at)
+
 
 def test_validate_trade_insights_ai_outcome_rejects_field_aware_imperatives():
     deterministic = _analysis_input()

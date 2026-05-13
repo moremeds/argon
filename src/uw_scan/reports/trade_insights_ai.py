@@ -455,8 +455,8 @@ def _path_family_exists(path: str, deterministic_payload: dict[str, Any]) -> boo
     if not parts:
         return False
     node: Any = deterministic_payload
-    for part in parts[:3]:
-        if isinstance(node, list):
+    for part in parts:
+        while isinstance(node, list):
             if not node or not isinstance(node[0], dict):
                 return False
             node = node[0]

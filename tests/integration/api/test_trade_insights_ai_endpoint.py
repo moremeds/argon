@@ -190,6 +190,40 @@ def test_trade_insights_ai_post_queues_and_get_fetches_status(
     assert client.get(f"/api/stock/AAPL/trade-insights/ai-analysis/{body['analysis_id']}").status_code == 404
 
 
+def test_trade_insights_ai_post_reuses_active_analysis_for_same_input(
+    seeded_db_empty_cards,
+    monkeypatch,
+):
+    repo = seeded_db_empty_cards
+    _seed_run(repo)
+    _patch_api_sources(monkeypatch)
+    client = _client_for_settings(_settings_for_repo(repo))
+
+    first = client.post("/api/stock/TSLA/trade-insights/ai-analysis", json={}).json()
+    second = client.post("/api/stock/TSLA/trade-insights/ai-analysis", json={}).json()
+
+    assert second["analysis_id"] == first["analysis_id"]
+    assert second["status"] == "queued"
+    assert second["reused"] is True
+    with repo.conn.cursor() as cur:
+        cur.execute(f"SELECT count(*) FROM {repo._schema}.trade_insight_ai_analyses")
+        assert cur.fetchone()[0] == 1
+
+
+def test_trade_insights_ai_get_rejects_malformed_analysis_id(
+    seeded_db_empty_cards,
+    monkeypatch,
+):
+    repo = seeded_db_empty_cards
+    _seed_run(repo)
+    _patch_api_sources(monkeypatch)
+    client = _client_for_settings(_settings_for_repo(repo))
+
+    response = client.get("/api/stock/TSLA/trade-insights/ai-analysis/not-a-uuid")
+
+    assert response.status_code == 422
+
+
 def test_trade_insights_ai_post_reuses_success_and_force_rerun_creates_new(
     seeded_db_empty_cards,
     monkeypatch,

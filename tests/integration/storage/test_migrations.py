@@ -225,9 +225,16 @@ def test_trade_insight_ai_analysis_schema(fresh_schema):
         """)
         indexes = {row[0]: row[1] for row in cur.fetchall()}
         assert "idx_trade_insight_ai_analyses_queue" in indexes
+        assert "idx_trade_insight_ai_analyses_active_reuse" in indexes
         assert "idx_trade_insight_ai_analyses_succeeded_reuse" in indexes
         assert "status" in indexes["idx_trade_insight_ai_analyses_queue"]
         assert "requested_at" in indexes["idx_trade_insight_ai_analyses_queue"]
+        assert "analysis_input_hash" in indexes[
+            "idx_trade_insight_ai_analyses_active_reuse"
+        ]
+        assert "status = ANY" in indexes[
+            "idx_trade_insight_ai_analyses_active_reuse"
+        ] or "status IN" in indexes["idx_trade_insight_ai_analyses_active_reuse"]
         assert "analysis_input_hash" in indexes[
             "idx_trade_insight_ai_analyses_succeeded_reuse"
         ]

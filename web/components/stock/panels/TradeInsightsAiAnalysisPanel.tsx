@@ -312,26 +312,41 @@ export function TradeInsightsAiAnalysisPanel({ ticker }: { ticker: string }) {
   const [loading, setLoading] = useState(false);
   const [unavailable, setUnavailable] = useState(false);
   const hydratedRef = useRef<string | null>(null);
+  const requestTokenRef = useRef(0);
 
   useEffect(() => {
+    const token = ++requestTokenRef.current;
     if (hydratedRef.current === ticker) return;
     hydratedRef.current = ticker;
     setAnalysis(null);
+    setLoading(false);
+    setUnavailable(false);
     let cancelled = false;
     void (async () => {
       try {
         const latest = await api.tradeInsightsAiAnalysisLatest(ticker);
-        if (!cancelled && latest) setAnalysis(latest);
+        if (!cancelled && requestTokenRef.current === token && latest) {
+          setAnalysis(latest);
+        }
       } catch (err) {
-        if (!cancelled && String(err).includes("503")) setUnavailable(true);
+        if (
+          !cancelled &&
+          requestTokenRef.current === token &&
+          String(err).includes("503")
+        ) {
+          setUnavailable(true);
+        }
       }
     })();
     return () => {
       cancelled = true;
+      requestTokenRef.current += 1;
     };
   }, [ticker]);
 
   async function run(force_rerun = false) {
+    const token = ++requestTokenRef.current;
+    const isCurrentRequest = () => requestTokenRef.current === token;
     setLoading(true);
     setUnavailable(false);
     try {
@@ -339,6 +354,7 @@ export function TradeInsightsAiAnalysisPanel({ ticker }: { ticker: string }) {
         ticker,
         force_rerun ? { force_rerun } : {},
       );
+      if (!isCurrentRequest()) return;
       setAnalysis(started);
       let current = started;
       let elapsedMs = 0;
@@ -350,24 +366,29 @@ export function TradeInsightsAiAnalysisPanel({ ticker }: { ticker: string }) {
           ticker,
           started.analysis_id,
         );
+        if (!isCurrentRequest()) return;
         setAnalysis(current);
         if (current.status === "queued" || current.status === "running") {
           await new Promise((r) => setTimeout(r, intervalMs));
+          if (!isCurrentRequest()) return;
           elapsedMs += intervalMs;
         }
       }
     } catch (err) {
+      if (!isCurrentRequest()) return;
       if (String(err).includes("503")) {
         setUnavailable(true);
       } else {
-        setAnalysis({
-          ...analysis,
+        setAnalysis((currentAnalysis) => ({
+          ...currentAnalysis,
           status: "failed",
           error_message: String(err),
-        } as TradeInsightsAiAnalysisResponse);
+        }) as TradeInsightsAiAnalysisResponse);
       }
     } finally {
-      setLoading(false);
+      if (isCurrentRequest()) {
+        setLoading(false);
+      }
     }
   }
 

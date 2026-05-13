@@ -162,11 +162,22 @@ def test_changed_analysis_input_hash_does_not_reuse_completed_row(
     assert found is None
 
 
-def test_force_rerun_can_enqueue_new_row_for_same_hash(seeded_db_empty_cards):
+def test_enqueue_reuses_active_row_for_same_hash(seeded_db_empty_cards):
     repo = seeded_db_empty_cards
     run_id, snapshot_id = _create_snapshot(repo)
 
     first_id = _enqueue(repo, snapshot_id=snapshot_id, run_id=run_id)
+    second_id = _enqueue(repo, snapshot_id=snapshot_id, run_id=run_id)
+
+    assert first_id == second_id
+
+
+def test_failed_analysis_can_enqueue_new_row_for_same_hash(seeded_db_empty_cards):
+    repo = seeded_db_empty_cards
+    run_id, snapshot_id = _create_snapshot(repo)
+
+    first_id = _enqueue(repo, snapshot_id=snapshot_id, run_id=run_id)
+    repo.fail_trade_insight_ai_analysis(first_id, "codex failed")
     second_id = _enqueue(repo, snapshot_id=snapshot_id, run_id=run_id)
 
     assert first_id != second_id
@@ -185,6 +196,31 @@ def test_claim_transitions_next_queued_analysis_to_running(seeded_db_empty_cards
     assert claimed["started_at"] is not None
     row = repo.get_trade_insight_ai_analysis(analysis_id)
     assert row["status"] == "running"
+
+
+def test_claim_reclaims_stale_running_analysis(seeded_db_empty_cards):
+    repo = seeded_db_empty_cards
+    run_id, snapshot_id = _create_snapshot(repo)
+    analysis_id = _enqueue(repo, snapshot_id=snapshot_id, run_id=run_id)
+    stale_started_at = datetime.now(timezone.utc) - timedelta(minutes=10)
+    with repo.conn.cursor() as cur:
+        cur.execute(
+            f"""
+            UPDATE {repo._schema}.trade_insight_ai_analyses
+            SET status='running', started_at=%s
+            WHERE analysis_id=%s
+            """,
+            (stale_started_at, analysis_id),
+        )
+
+    claimed = repo.claim_next_trade_insight_ai_analysis(
+        stale_running_before=datetime.now(timezone.utc) - timedelta(minutes=5)
+    )
+
+    assert claimed is not None
+    assert str(claimed["analysis_id"]) == analysis_id
+    assert claimed["status"] == "running"
+    assert claimed["started_at"] > stale_started_at
 
 
 def test_complete_stores_outcome_markdown_and_preserves_produced_at(

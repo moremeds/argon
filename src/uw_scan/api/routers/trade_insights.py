@@ -203,7 +203,7 @@ def post_trade_insights_ai_analysis(
     model_label = settings.trade_insights_ai_model.strip() or "codex-default"
 
     if not force_rerun:
-        reused = repo.find_completed_trade_insight_ai_analysis(
+        reused = repo.find_reusable_trade_insight_ai_analysis(
             ticker=t,
             analysis_input_hash=analysis_hash,
             prompt_version=PROMPT_VERSION,
@@ -249,10 +249,10 @@ def get_latest_trade_insights_ai_analysis(
 )
 def get_trade_insights_ai_analysis(
     ticker: str,
-    analysis_id: str,
+    analysis_id: UUID,
     repo: Repository = Depends(get_repo),
 ) -> TradeInsightAiAnalysisResponse:
-    row = repo.get_trade_insight_ai_analysis(analysis_id, ticker=ticker.upper())
+    row = repo.get_trade_insight_ai_analysis(str(analysis_id), ticker=ticker.upper())
     if row is None:
         raise HTTPException(status_code=404, detail="AI analysis not found")
     return _row_to_ai_response(row)

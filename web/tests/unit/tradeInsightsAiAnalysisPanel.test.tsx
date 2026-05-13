@@ -1,5 +1,5 @@
 /* @vitest-environment jsdom */
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { TradeInsightsAiAnalysisPanel } from "@/components/stock/panels/TradeInsightsAiAnalysisPanel";
@@ -192,6 +192,14 @@ function succeededResponse(): TradeInsightsAiAnalysisResponse {
   };
 }
 
+function deferred<T>() {
+  let resolve!: (value: T) => void;
+  const promise = new Promise<T>((r) => {
+    resolve = r;
+  });
+  return { promise, resolve };
+}
+
 describe("TradeInsightsAiAnalysisPanel", () => {
   beforeEach(() => {
     vi.mocked(api.tradeInsightsAiAnalysis).mockReset();
@@ -264,5 +272,34 @@ describe("TradeInsightsAiAnalysisPanel", () => {
 
     expect(await screen.findByText(/codex timed out/i)).toBeDefined();
     expect(screen.getByText("Retry")).toBeDefined();
+  });
+
+  it("ignores in-flight poll results after ticker changes", async () => {
+    const status = deferred<TradeInsightsAiAnalysisResponse>();
+    vi.mocked(api.tradeInsightsAiAnalysis).mockResolvedValueOnce(baseResponse);
+    vi.mocked(api.tradeInsightsAiAnalysisStatus).mockReturnValueOnce(
+      status.promise,
+    );
+    const { rerender } = render(<TradeInsightsAiAnalysisPanel ticker="TSLA" />);
+
+    fireEvent.click(screen.getByText("Run AI Analysis"));
+    await waitFor(() =>
+      expect(api.tradeInsightsAiAnalysisStatus).toHaveBeenCalledWith(
+        "TSLA",
+        baseResponse.analysis_id,
+      ),
+    );
+
+    rerender(<TradeInsightsAiAnalysisPanel ticker="AAPL" />);
+    await act(async () => {
+      status.resolve(succeededResponse());
+      await status.promise;
+    });
+
+    expect(
+      screen.queryByText(
+        "TSLA near gamma resistance with cheap vol and bullish flow",
+      ),
+    ).toBeNull();
   });
 });
