@@ -14,6 +14,10 @@ logger = logging.getLogger(__name__)
 def rescan_tick(repo, uw_client, ohlc_provider: OhlcProvider) -> bool:
     """Process one queued rescan. Returns True if a job ran, False if the queue was empty."""
     _ = ohlc_provider  # unused here; cards derive uses repo's persisted OHLC
+    # Heartbeat unconditionally — this loop fires every 1s, so its liveness
+    # is the closest signal we have to "worker is up." Sidebar HealthPanel
+    # reads now() - last_beat_at to render the worker dot.
+    repo.upsert_heartbeat("rescan_tick")
     job = repo.claim_next_queued_job()
     if job is None:
         return False

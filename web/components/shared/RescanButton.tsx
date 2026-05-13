@@ -12,7 +12,15 @@ export function RescanButton({ ticker }: { ticker: string }) {
 
   useEffect(() => {
     if (!jobId) return;
+    // Self-cancel after 60s so a zombie 'running' job (worker crashed mid-scan)
+    // doesn't keep polling forever and refreshing the page.
+    const startedAt = Date.now();
     const t = setInterval(async () => {
+      if (Date.now() - startedAt > 60_000) {
+        clearInterval(t);
+        setStatus("failed");
+        return;
+      }
       try {
         const r = await api.job(jobId);
         setStatus(r.status as Status);

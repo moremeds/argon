@@ -6,16 +6,41 @@ import "@fontsource/ibm-plex-mono/400.css";
 import "@fontsource/ibm-plex-mono/500.css";
 import "@fontsource/ibm-plex-mono/700.css";
 import "./globals.css";
+import { Sidebar } from "@/components/shared/Sidebar";
 
 export const metadata = {
-  title: "UW Watchlist",
+  title: "Argon",
   description: "Per-ticker options analytics, watchlist-driven",
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
     <html lang="en" data-theme="dark">
-      <body style={{ fontFamily: "var(--font-sans)" }}>{children}</body>
+      <body
+        style={{
+          fontFamily: "var(--font-sans)",
+          margin: 0,
+          overflow: "hidden",
+        }}
+      >
+        <div style={{ display: "flex", height: "100vh" }}>
+          <Sidebar />
+          <main
+            style={{
+              flex: 1,
+              minWidth: 0,
+              height: "100vh",
+              overflowY: "auto",
+            }}
+          >
+            {children}
+          </main>
+        </div>
+      </body>
     </html>
   );
 }

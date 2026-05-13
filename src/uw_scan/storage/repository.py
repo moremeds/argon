@@ -1552,6 +1552,37 @@ class Repository:
             row = cur.fetchone()
         return PcrHistoryRow(*row) if row else None
 
+    # ---- watchlist count (for HealthPanel) ----
+    def count_active_watchlist(self) -> int:
+        with self._conn.cursor() as cur:
+            cur.execute(
+                f"SELECT COUNT(*) FROM {self._schema}.watchlist WHERE removed_at IS NULL"
+            )
+            row = cur.fetchone()
+        return int(row[0]) if row else 0
+
+    # ---- worker_heartbeat ----
+    def upsert_heartbeat(self, job_name: str) -> None:
+        with self._conn.cursor() as cur:
+            cur.execute(
+                f"""
+                INSERT INTO {self._schema}.worker_heartbeat (job_name, last_beat_at)
+                VALUES (%s, now())
+                ON CONFLICT (job_name) DO UPDATE SET last_beat_at = now()
+                """,
+                (job_name,),
+            )
+        self._conn.commit()
+
+    def get_heartbeat(self, job_name: str) -> datetime | None:
+        with self._conn.cursor() as cur:
+            cur.execute(
+                f"SELECT last_beat_at FROM {self._schema}.worker_heartbeat WHERE job_name=%s",
+                (job_name,),
+            )
+            row = cur.fetchone()
+        return row[0] if row else None
+
     # ---- strike_gex_curve (JSONB on scan_runs) ----
     def set_strike_gex_curve(self, run_id: int, curve: list[dict]) -> None:
         """Persist the per-strike, per-expiry GEX curve as JSONB on the run row."""

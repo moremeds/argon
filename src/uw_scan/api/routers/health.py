@@ -21,6 +21,19 @@ class HealthResponse(BaseModel):
     scheduler_lag_seconds: float | None = None
     last_full_scan_at: datetime | None = None
     reason: str | None = None
+    # Extra fields surfaced in the sidebar HealthPanel. Decoupled from the
+    # ok/reason gating above so a benign "no scans yet" still returns lag /
+    # watchlist size for the UI.
+    worker_lag_seconds: float | None = None
+    watchlist_size: int | None = None
+    source: str = "massive.com"
+    # Placeholders — wired up when we add request-metric collection.
+    latency_p95_ms: int | None = None
+    http_2xx: int | None = None
+    http_4xx: int | None = None
+    http_5xx: int | None = None
+    uw_today: int | None = None
+    cache_hit_pct: float | None = None
 
 
 def _full_scan_interval_seconds(cron_expr: str, tz: str) -> float:
@@ -56,12 +69,24 @@ def health(
             reason="database unreachable",
         )
 
+    # Sidebar fields — always populated when DB is up so the panel renders
+    # correctly even before the first full scan has fired.
+    heartbeat = repo.get_heartbeat("rescan_tick")
+    worker_lag = (
+        (datetime.now(timezone.utc) - heartbeat).total_seconds()
+        if heartbeat is not None
+        else None
+    )
+    watchlist_size = repo.count_active_watchlist()
+
     last_scan = repo.get_last_full_scan_finished_at()
     if last_scan is None:
         return HealthResponse(
             ok=False,
             db=db_status,
             reason="no successful full scan yet",
+            worker_lag_seconds=worker_lag,
+            watchlist_size=watchlist_size,
         )
 
     lag = (datetime.now(timezone.utc) - last_scan).total_seconds()
@@ -75,6 +100,8 @@ def health(
             scheduler_lag_seconds=lag,
             last_full_scan_at=last_scan,
             reason=f"scheduler lag {lag:.0f}s exceeds 2x interval ({threshold:.0f}s)",
+            worker_lag_seconds=worker_lag,
+            watchlist_size=watchlist_size,
         )
 
     return HealthResponse(
@@ -82,4 +109,6 @@ def health(
         db=db_status,
         scheduler_lag_seconds=lag,
         last_full_scan_at=last_scan,
+        worker_lag_seconds=worker_lag,
+        watchlist_size=watchlist_size,
     )

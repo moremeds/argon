@@ -294,6 +294,27 @@ export interface components {
             last_full_scan_at?: string | null;
             /** Reason */
             reason?: string | null;
+            /** Worker Lag Seconds */
+            worker_lag_seconds?: number | null;
+            /** Watchlist Size */
+            watchlist_size?: number | null;
+            /**
+             * Source
+             * @default massive.com
+             */
+            source: string;
+            /** Latency P95 Ms */
+            latency_p95_ms?: number | null;
+            /** Http 2Xx */
+            http_2xx?: number | null;
+            /** Http 4Xx */
+            http_4xx?: number | null;
+            /** Http 5Xx */
+            http_5xx?: number | null;
+            /** Uw Today */
+            uw_today?: number | null;
+            /** Cache Hit Pct */
+            cache_hit_pct?: number | null;
         };
         /** JobStatus */
         JobStatus: {
