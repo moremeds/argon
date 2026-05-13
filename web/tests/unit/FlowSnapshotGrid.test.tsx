@@ -31,18 +31,20 @@ describe("FlowSnapshotGrid", () => {
       />,
     );
 
+    // Labels are stored Title Case in the DOM; CSS text-transform uppercases
+    // them visually.
     for (const label of [
-      "ALERTS",
-      "NET PREMIUM",
-      "BULL PREMIUM",
-      "BEAR PREMIUM",
-      "ASK PREMIUM",
-      "BID PREMIUM",
-      "DARK POOL PRINTS",
-      "DARK POOL NOTIONAL",
-      "SHARES AVAIL",
-      "FEE RATE",
-      "REBATE RATE",
+      "Alerts",
+      "Net Premium",
+      "Bull Premium",
+      "Bear Premium",
+      "Ask Premium",
+      "Bid Premium",
+      "DP Prints",
+      "DP Notional",
+      "Shares Avail",
+      "Fee Rate",
+      "Rebate Rate",
     ]) {
       expect(screen.getByText(label)).toBeTruthy();
     }

@@ -205,6 +205,15 @@ class OiChangeRow(_UwBase):
     prev_total_premium: Decimal | None = None
     last_ask: Decimal | None = None
     last_bid: Decimal | None = None
+    # Today's side breakdown — joined from option_contract_snapshots on
+    # (run_id, option_symbol). The /oi-change endpoint never returns
+    # prev_ask_volume etc. (all NULL), so per-contract aggressor data must
+    # come from /option-contracts. The frontend uses ask vs bid to classify
+    # BUY/SELL CALL/PUT intent on +ΔOI rows.
+    ask_volume: int | None = None
+    bid_volume: int | None = None
+    mid_volume: int | None = None
+    no_side_volume: int | None = None
 
 
 class MaxPainRow(_UwBase):

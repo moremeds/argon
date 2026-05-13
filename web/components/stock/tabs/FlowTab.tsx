@@ -31,6 +31,27 @@ export function FlowTab({ report }: { report: Report }) {
     [report.option_chain_per_strike],
   );
 
+  // Cross-reference indexes for the two tables. Alerts key by `option_chain`
+  // (OCC), OI movers key by `option_symbol` (OCC) — same alphabet.
+  const alerts = report.flow.top_alerts ?? [];
+  const oiMovers = report.oi_change_top ?? [];
+  const alertCountBySymbol = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const a of alerts) {
+      if (!a.option_chain) continue;
+      m.set(a.option_chain, (m.get(a.option_chain) ?? 0) + 1);
+    }
+    return m;
+  }, [alerts]);
+  const oiDiffBySymbol = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const r of oiMovers) {
+      if (!r.option_symbol || r.oi_diff_plain == null) continue;
+      m.set(r.option_symbol, r.oi_diff_plain);
+    }
+    return m;
+  }, [oiMovers]);
+
   // Stored chain rows are already filtered to dte ≥ 0 in
   // aggregate_chain_per_strike, so every expiry here is today-or-future.
   // Computing "today" in the client was the source of an SSR/CSR hydration
@@ -113,12 +134,16 @@ export function FlowTab({ report }: { report: Report }) {
 
       <section>
         <h3 style={SECTION_HEADING}>Top Alerts</h3>
-        <TopAlertsTable alerts={report.flow.top_alerts ?? []} />
+        <TopAlertsTable alerts={alerts} oiMoverIndex={oiDiffBySymbol} />
       </section>
 
       <section>
         <h3 style={SECTION_HEADING}>OI Change — Top Movers</h3>
-        <OiMoversTable rows={report.oi_change_top ?? []} spot={spot} />
+        <OiMoversTable
+          rows={oiMovers}
+          spot={spot}
+          alertIndex={alertCountBySymbol}
+        />
       </section>
     </div>
   );

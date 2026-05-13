@@ -1,5 +1,6 @@
 import type { components } from "@/lib/types";
 import { fmtDecimal, fmtSigned, toNum } from "@/lib/formatters";
+import { AnalyticalSeriesPanel } from "./AnalyticalSeriesPanel";
 import { SNAPSHOT_TOOLTIPS, type TooltipCopy } from "./snapshotTooltips";
 
 type Report = components["schemas"]["SingleStockReport"];
@@ -11,79 +12,124 @@ type Props = {
   shortData: ShortData | null;
 };
 
+const tileStyle: React.CSSProperties = {
+  background: "var(--bg-panel)",
+  border: "1px solid var(--border-dim)",
+  borderRadius: 4,
+  padding: "12px 14px",
+  display: "flex",
+  flexDirection: "column",
+  gap: 6,
+  minWidth: 0,
+};
+
+const labelStyle: React.CSSProperties = {
+  fontFamily: "var(--font-mono)",
+  fontSize: 10,
+  letterSpacing: 1.5,
+  textTransform: "uppercase",
+  color: "var(--text-muted)",
+};
+
+const valueStyle: React.CSSProperties = {
+  fontFamily: "var(--font-mono)",
+  fontWeight: 700,
+  fontSize: 22,
+  color: "var(--text-primary)",
+  lineHeight: 1,
+};
+
+function netPremiumColor(v: number | null): string {
+  if (v == null) return "var(--text-primary)";
+  if (v > 0) return "var(--positive)";
+  if (v < 0) return "var(--negative)";
+  return "var(--text-primary)";
+}
+
 export function FlowSnapshotGrid({ flow, darkPool, shortData }: Props) {
+  const netPrem = toNum(flow.net_premium);
+
   return (
-    <div
-      role="region"
-      aria-label="Flow snapshot"
-      style={{
-        display: "grid",
-        gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
-        gap: 12,
-        padding: 16,
-        background: "var(--bg-panel)",
-        border: "1px solid var(--border-dim)",
-      }}
-    >
-      <Tile
-        label="ALERTS"
-        tip="alerts"
-        value={fmtDecimal(flow.flow_count, 0)}
-      />
-      <Tile
-        label="NET PREMIUM"
-        tip="netPremium"
-        value={fmtSigned(toNum(flow.net_premium), 0)}
-      />
-      <Tile
-        label="BULL PREMIUM"
-        tip="bullPremium"
-        value={fmtDecimal(toNum(flow.bull_premium), 0)}
-      />
+    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+      <AnalyticalSeriesPanel title="Options Flow">
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(6, minmax(0, 1fr))",
+            gap: 12,
+          }}
+        >
+          <Tile
+            label="Alerts"
+            tip="alerts"
+            value={fmtDecimal(flow.flow_count, 0)}
+          />
+          <Tile
+            label="Net Premium"
+            tip="netPremium"
+            value={fmtSigned(netPrem, 0)}
+            valueColor={netPremiumColor(netPrem)}
+          />
+          <Tile
+            label="Bull Premium"
+            tip="bullPremium"
+            value={fmtDecimal(toNum(flow.bull_premium), 0)}
+            valueColor="var(--positive)"
+          />
+          <Tile
+            label="Bear Premium"
+            tip="bearPremium"
+            value={fmtDecimal(toNum(flow.bear_premium), 0)}
+            valueColor="var(--negative)"
+          />
+          <Tile
+            label="Ask Premium"
+            tip="askPremium"
+            value={fmtDecimal(toNum(flow.ask_side_premium), 0)}
+          />
+          <Tile
+            label="Bid Premium"
+            tip="bidPremium"
+            value={fmtDecimal(toNum(flow.bid_side_premium), 0)}
+          />
+        </div>
+      </AnalyticalSeriesPanel>
 
-      <Tile
-        label="BEAR PREMIUM"
-        tip="bearPremium"
-        value={fmtDecimal(toNum(flow.bear_premium), 0)}
-      />
-      <Tile
-        label="ASK PREMIUM"
-        tip="askPremium"
-        value={fmtDecimal(toNum(flow.ask_side_premium), 0)}
-      />
-      <Tile
-        label="BID PREMIUM"
-        tip="bidPremium"
-        value={fmtDecimal(toNum(flow.bid_side_premium), 0)}
-      />
-
-      <Tile
-        label="DARK POOL PRINTS"
-        tip="darkPoolPrints"
-        value={fmtDecimal(darkPool.prints, 0)}
-      />
-      <Tile
-        label="DARK POOL NOTIONAL"
-        tip="darkPoolNotional"
-        value={fmtDecimal(toNum(darkPool.notional), 0)}
-      />
-      <div />
-
-      <Tile
-        label="SHARES AVAIL"
-        tip="sharesAvail"
-        value={fmtDecimal(shortData?.short_shares_available ?? null, 0)}
-      />
-      <Tile
-        label="FEE RATE"
-        tip="feeRate"
-        value={fmtDecimal(toNum(shortData?.fee_rate ?? null), 4)}
-      />
-      <Tile
-        label="REBATE RATE"
-        tip="rebateRate"
-        value={fmtDecimal(toNum(shortData?.rebate_rate ?? null), 4)}
-      />
+      <AnalyticalSeriesPanel title="Dark Pool & Short Interest">
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(5, minmax(0, 1fr))",
+            gap: 12,
+          }}
+        >
+          <Tile
+            label="DP Prints"
+            tip="darkPoolPrints"
+            value={fmtDecimal(darkPool.prints, 0)}
+          />
+          <Tile
+            label="DP Notional"
+            tip="darkPoolNotional"
+            value={fmtDecimal(toNum(darkPool.notional), 0)}
+          />
+          <Tile
+            label="Shares Avail"
+            tip="sharesAvail"
+            value={fmtDecimal(shortData?.short_shares_available ?? null, 0)}
+          />
+          <Tile
+            label="Fee Rate"
+            tip="feeRate"
+            value={fmtDecimal(toNum(shortData?.fee_rate ?? null), 4)}
+          />
+          <Tile
+            label="Rebate Rate"
+            tip="rebateRate"
+            value={fmtDecimal(toNum(shortData?.rebate_rate ?? null), 4)}
+          />
+        </div>
+      </AnalyticalSeriesPanel>
     </div>
   );
 }
@@ -92,26 +138,18 @@ function Tile({
   label,
   tip,
   value,
+  valueColor,
 }: {
   label: string;
   tip: keyof typeof SNAPSHOT_TOOLTIPS;
   value: string;
+  valueColor?: string;
 }) {
   const t: TooltipCopy = SNAPSHOT_TOOLTIPS[tip];
   return (
-    <div>
+    <div style={tileStyle}>
       <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-        <span
-          style={{
-            fontFamily: "var(--font-mono)",
-            fontSize: 10,
-            letterSpacing: 1.5,
-            color: "var(--text-muted)",
-            textTransform: "uppercase",
-          }}
-        >
-          {label}
-        </span>
+        <span style={labelStyle}>{label}</span>
         <details style={{ display: "inline-block", position: "relative" }}>
           <summary
             aria-label={`${label} explanation`}
@@ -150,14 +188,7 @@ function Tile({
           </div>
         </details>
       </div>
-      <div
-        style={{
-          fontFamily: "var(--font-mono)",
-          fontSize: 22,
-          fontWeight: 700,
-          color: "var(--text-primary)",
-        }}
-      >
+      <div style={{ ...valueStyle, color: valueColor ?? valueStyle.color }}>
         {value}
       </div>
     </div>

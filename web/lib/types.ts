@@ -618,6 +618,14 @@ export interface components {
             last_ask?: string | null;
             /** Last Bid */
             last_bid?: string | null;
+            /** Ask Volume */
+            ask_volume?: number | null;
+            /** Bid Volume */
+            bid_volume?: number | null;
+            /** Mid Volume */
+            mid_volume?: number | null;
+            /** No Side Volume */
+            no_side_volume?: number | null;
         };
         /**
          * OptionChainPerStrikeRow

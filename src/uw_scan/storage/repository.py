@@ -1149,17 +1149,24 @@ class Repository:
         can re-sort by notional (volume * avg_price * 100) without losing
         high-notional rows that sit outside the rank-ordered first 10."""
 
+        # LEFT JOIN option_contract_snapshots to surface today's ask/bid/mid
+        # breakdown — /oi-change never returns prev_* side volumes (all NULL),
+        # so per-contract aggressor classification has to come from
+        # /option-contracts via this join.
         sql = (
-            f"SELECT underlying_symbol, option_symbol, curr_date, last_date, "
-            "curr_oi, last_oi, oi_diff_plain, oi_change, volume, trades, "
-            "avg_price, last_fill, days_of_oi_increases, days_of_vol_greater_than_oi, "
-            "percentage_of_total, rnk, "
-            "prev_ask_volume, prev_bid_volume, prev_mid_volume, prev_neutral_volume, "
-            "prev_multi_leg_volume, prev_stock_multi_leg_volume, "
-            "prev_total_premium, last_ask, last_bid "
-            f"FROM {self._schema}.oi_change_events "
-            "WHERE run_id = %s "
-            "ORDER BY (COALESCE(volume, 0) * COALESCE(avg_price, 0)) DESC NULLS LAST, rnk ASC "
+            f"SELECT e.underlying_symbol, e.option_symbol, e.curr_date, e.last_date, "
+            "e.curr_oi, e.last_oi, e.oi_diff_plain, e.oi_change, e.volume, e.trades, "
+            "e.avg_price, e.last_fill, e.days_of_oi_increases, e.days_of_vol_greater_than_oi, "
+            "e.percentage_of_total, e.rnk, "
+            "e.prev_ask_volume, e.prev_bid_volume, e.prev_mid_volume, e.prev_neutral_volume, "
+            "e.prev_multi_leg_volume, e.prev_stock_multi_leg_volume, "
+            "e.prev_total_premium, e.last_ask, e.last_bid, "
+            "s.ask_volume, s.bid_volume, s.mid_volume, s.no_side_volume "
+            f"FROM {self._schema}.oi_change_events e "
+            f"LEFT JOIN {self._schema}.option_contract_snapshots s "
+            "  ON s.run_id = e.run_id AND s.option_symbol = e.option_symbol "
+            "WHERE e.run_id = %s "
+            "ORDER BY (COALESCE(e.volume, 0) * COALESCE(e.avg_price, 0)) DESC NULLS LAST, e.rnk ASC "
             "LIMIT %s"
         )
         with self._conn.cursor() as cur:

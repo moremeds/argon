@@ -215,6 +215,10 @@ def _build_oi_change_models(rows: list[dict]) -> list[OiChangeRow]:
                 days_of_vol_greater_than_oi=r.get("days_of_vol_greater_than_oi"),
                 percentage_of_total=_to_decimal(r.get("percentage_of_total")),
                 rnk=r.get("rnk"),
+                ask_volume=r.get("ask_volume"),
+                bid_volume=r.get("bid_volume"),
+                mid_volume=r.get("mid_volume"),
+                no_side_volume=r.get("no_side_volume"),
             )
         )
     return out
