@@ -154,7 +154,7 @@ All four new tables follow the existing `ticker, market_date` PK convention. Bac
 
 The smile needs per-strike IV across multiple expiries. Reuses the **already-wired** `fetch_greeks(client, repo, run_id, ticker, expiry)` for each of the nearest 4 expiries. The Market Structure tab already calls these for GEX so most data is already on disk in `greeks_by_expiry_strike`. The new `iv_smile_snapshots` materialises just `iv = avg(call_volatility, put_volatility)` per (date, expiry, strike) from that table — no extra UW calls when the GEX worker has run today.
 
-If the freshest available data is stale (>1 trading day old), the API endpoint kicks off a fresh greeks pull for the nearest 4 expiries before returning. Background pulls are gated by an in-process lock to avoid stampedes.
+If the freshest available data is stale (>1 trading day old), the API endpoint **enqueues a background task** to fetch fresh greeks for the nearest 4 expiries via `FastAPI BackgroundTasks` (same mechanism as the realised-vol backfill) and immediately returns the cached snapshot. The frontend's polling loop (§7.4) picks up the refreshed smile on a subsequent poll. The orchestrator itself never blocks on UW calls. Stampede protection comes from the `volatility_backfill_status` table (single-flight + persisted state, see §4.4).
 
 ### 4.4 Backfill on first request
 
@@ -327,7 +327,7 @@ web/components/stock/panels/
 └── VrpSpreadPanel.tsx           # Full-width bars + smoothed-line bottom panel
 ```
 
-All chart components share a small primitive `AnalyticalSeriesPanel.tsx` that enforces the visual language (uppercase mono header, dim subheading, dark `--bg-panel` background, `--border-dim` border, padding). Charts themselves use Recharts (already in the dependency tree from the watchlist work) or a thin SVG-only renderer for the simpler ones.
+All chart components share a small primitive `AnalyticalSeriesPanel.tsx` that enforces the visual language (uppercase mono header, dim subheading, dark `--bg-panel` background, `--border-dim` border, padding). Charts themselves are **hand-rolled SVG** — there is no chart library in `web/package.json` and the existing `GexProfileChart.tsx` follows the same hand-rolled-SVG pattern. A small shared `web/lib/svgChart.ts` provides `linearScale` / `pathFromPoints` / `niceTicks` helpers.
 
 ### 7.3 Colors
 

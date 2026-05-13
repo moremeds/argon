@@ -130,6 +130,16 @@ CREATE TABLE IF NOT EXISTS uw_scan.stock_analytics_daily (
     PRIMARY KEY (ticker, market_date)
 );
 
+-- Backfill state machine (review finding I1) — gives us persisted
+-- running/ready/failed plus single-flight via the started_at timestamp.
+CREATE TABLE IF NOT EXISTS uw_scan.volatility_backfill_status (
+    ticker          TEXT PRIMARY KEY,
+    status          TEXT NOT NULL CHECK (status IN ('running','ready','failed')),
+    started_at      TIMESTAMPTZ,
+    finished_at     TIMESTAMPTZ,
+    error_message   TEXT
+);
+
 COMMIT;
 ```
 
@@ -209,6 +219,22 @@ git commit -m "ui: add --accent-vol, --accent-warm, --accent-vivid tokens for vo
 
 ## Phase 1 — Backend models & repo helpers
 
+> **Test-location convention (applies to every DB-backed task in this plan)**
+>
+> Every test that touches Postgres must live under `tests/integration/...`.
+> Use the existing fixtures defined in `tests/integration/conftest.py`:
+> - `seeded_db_empty_cards` — fresh-migrated test DB, no scan data
+> - `seeded_db_with_cards` — adds one scan_run + watchlist_card row
+>
+> Wherever a test below uses a parameter named `repo`, **rename it to
+> `seeded_db_empty_cards`** (or use `repo = seeded_db_empty_cards` as the
+> first line). The bare `repo` fixture in `tests/conftest.py` does NOT exist
+> (review finding I10).
+>
+> The test DB requires `UW_SCAN_TEST_DB_NAME` to be set in the environment.
+> Test invocations therefore look like:
+> `UW_SCAN_TEST_DB_NAME=option_wizard_test uv run pytest tests/integration/...`
+
 ### Task 1.1: Add `VolatilitySeriesResponse` Pydantic models
 
 **Files:**
@@ -267,6 +293,7 @@ def test_smile_expiry_curve():
     )
     assert curve.expiry == date(2026, 5, 15)
     assert len(curve.points) == 1
+    # dte intentionally absent — derived from VolatilitySeriesResponse.as_of.
 
 
 def test_term_structure_row_with_strike_map():
@@ -335,7 +362,8 @@ class SmilePoint(_UwBase):
 
 class SmileExpiryCurve(_UwBase):
     expiry: _date
-    dte: int | None = None
+    # NB: dte is derivable from expiry + VolatilitySeriesResponse.as_of —
+    # not stored on the curve to keep the JSON shape minimal (review M2).
     points: list[SmilePoint] = []
 
 
@@ -400,6 +428,11 @@ class VrpDailyPoint(_UwBase):
 
 
 class VolatilitySeriesResponse(_UwBase):
+    """
+    Defaults are EMPTY OBJECTS, not None. The frontend dereferences
+    `regime_quadrant.points` and `iv_percentile_distribution.bins` directly,
+    so nullable blocks would crash panels (review finding I5).
+    """
     ticker: str
     as_of: _date
     backfill_status: str  # "running" | "ready" | "failed"
@@ -407,10 +440,13 @@ class VolatilitySeriesResponse(_UwBase):
     term_structure: list[TermStructureExpiryRow] = []
     smile: list[SmileExpiryCurve] = []
     hv_iv_history: list[IvHvPoint] = []
-    iv_percentile_distribution: IvPercentileDistribution | None = None
+    # Default to an empty IvPercentileDistribution() instead of None — the
+    # frontend reads .bins / .current_iv unconditionally.
+    iv_percentile_distribution: IvPercentileDistribution = IvPercentileDistribution()
     iv_of_iv: list[IvOfIvPoint] = []
     rv_spy_corr: list[RvCorrPoint] = []
-    regime_quadrant: RegimeQuadrantBlock | None = None
+    # Same reasoning: empty RegimeQuadrantBlock() default.
+    regime_quadrant: RegimeQuadrantBlock = RegimeQuadrantBlock()
     divergence: list[DivergencePoint] = []
     divergence_headline: str = ""
     vrp_spread: list[VrpDailyPoint] = []
@@ -818,7 +854,11 @@ them today, avoiding a redundant UW call.
 
 **Files:**
 - Modify: `src/uw_scan/storage/repository.py`
-- Test: `tests/test_repository_greeks_for_smile.py` (new)
+- Test: `tests/integration/storage/test_repository_greeks_for_smile.py` (new)
+
+> All DB-backed tests in this plan live under `tests/integration/...` and use
+> the `seeded_db_empty_cards` fixture defined in `tests/integration/conftest.py`.
+> There is NO bare `repo` fixture at `tests/conftest.py` (review finding I10).
 
 - [ ] **Step 1: Write the failing test**
 
@@ -829,27 +869,45 @@ from decimal import Decimal
 from uw_scan.storage.repository import Repository
 
 
-def test_fetch_greeks_rows_for_smile_returns_today_only(repo: Repository):
-    # Assume the GEX path has inserted today's rows for expiry 2026-05-15.
-    # Use whichever existing helper writes greeks_by_expiry_strike (look it up:
-    # `grep -n "insert_greeks_rows\|greeks_by_expiry_strike" repository.py`).
-    # The test seeds two rows: one for today + expiry under test, one for
-    # yesterday. The fetcher must return only today's row.
+def test_fetch_greeks_rows_for_smile_returns_today_only(seeded_db_empty_cards):
+    # Real signature (repository.py:465): insert_greeks_rows(run_id, ticker,
+    # rows: Iterable[GreeksRow]). The market_date column is populated from
+    # each GreeksRow.date — not a parameter to the helper.
+    from uw_scan.models import GreeksRow
+    repo = seeded_db_empty_cards
     today = date.today()
-    repo.insert_greeks_rows(run_id=1, ticker="TSLA", market_date=today, rows=[
-        {"expiry": date(2026, 5, 15), "strike": Decimal("400"),
-         "call_volatility": Decimal("0.70"), "put_volatility": Decimal("0.74")},
+    run_id = repo.insert_scan_run(ticker="TSLA")
+    repo.insert_greeks_rows(run_id, "TSLA", [
+        GreeksRow(
+            date=today, expiry=date(2026, 5, 15),
+            strike=Decimal("400"),
+            call_volatility=Decimal("0.70"),
+            put_volatility=Decimal("0.74"),
+        ),
+        # Same expiry, different strike — should also come back.
+        GreeksRow(
+            date=today, expiry=date(2026, 5, 15),
+            strike=Decimal("405"),
+            call_volatility=Decimal("0.66"),
+            put_volatility=Decimal("0.68"),
+        ),
+        # Different expiry — should be filtered out.
+        GreeksRow(
+            date=today, expiry=date(2026, 5, 22),
+            strike=Decimal("400"),
+            call_volatility=Decimal("0.55"),
+            put_volatility=Decimal("0.57"),
+        ),
     ])
+    repo.conn.commit()
     out = repo.fetch_greeks_rows_for_smile(
         ticker="TSLA", market_date=today, expiry=date(2026, 5, 15),
     )
-    assert len(out) == 1
+    assert len(out) == 2
     assert out[0]["strike"] == Decimal("400")
+    assert out[1]["strike"] == Decimal("405")
     assert out[0]["call_volatility"] == Decimal("0.70")
 ```
-
-Adapt the `insert_greeks_rows` call to whatever signature already exists in
-`repository.py` — do not invent a new write helper.
 
 - [ ] **Step 2: Run test to verify it fails**
 
@@ -924,7 +982,7 @@ def test_history_reads(repo: Repository):
                     rv=Decimal("0.41"), rv_low=Decimal("0.09"),
                     rv_high=Decimal("0.37")),
     ])
-    assert repo.count_realized_vol_history("TSLA") == 2
+    assert repo.count_realized_vol_history("TSLA", days=365) == 2
 
     rv_rows = repo.fetch_realized_vol_history("TSLA", days=365)
     assert len(rv_rows) == 2
@@ -935,7 +993,7 @@ def test_history_reads(repo: Repository):
     assert stats[0]["iv_rank"] == Decimal("41")
 ```
 
-The signatures `insert_realized_volatility_rows` and `insert_volatility_stats_rows` already exist (Task 1.x discovers them via `grep -n "def insert_" src/uw_scan/storage/repository.py`). If the existing names differ, adjust the test to use the actual names — do not invent new inserts.
+The verified existing helpers are `upsert_realized_vol_rows(ticker, rows)` and `upsert_volatility_stats_rows(rows)` — both `Iterable` of the corresponding Pydantic row model. Do not invent new write helpers.
 
 - [ ] **Step 2: Run test to verify it fails**
 
@@ -947,13 +1005,19 @@ Expected: AttributeError on the new fetch/count helpers.
 Append to `repository.py`:
 
 ```python
-    def count_realized_vol_history(self, ticker: str) -> int:
+    def count_realized_vol_history(
+        self, ticker: str, *, days: int = 365,
+    ) -> int:
+        """Count rows within the freshness window. Stale rows do not count
+        toward 'ready' — a ticker with old rows but no recent data must
+        still trigger a backfill (review finding I11)."""
         sql = (
             f"SELECT count(*) FROM {self._schema}.realized_volatility_history "
-            "WHERE ticker = %s"
+            f"WHERE ticker = %s "
+            f"  AND market_date >= (CURRENT_DATE - (%s || ' days')::interval)"
         )
         with self._conn.cursor() as cur:
-            cur.execute(sql, (ticker,))
+            cur.execute(sql, (ticker, days))
             return int(cur.fetchone()[0])
 
     def fetch_realized_vol_history(
@@ -1385,6 +1449,11 @@ def compute_stock_spy_corr(
     """Pearson correlation between stock log-returns and SPY log-returns,
     rolling `window` days.
 
+    Returns are computed PER SYMBOL on their own calendar first (so a missing
+    SPY date does not turn the adjacent stock return into a multi-day return,
+    review finding I3), then merged by date so the correlation only consumes
+    pairs of true single-day returns.
+
     Stock rows: `market_date`, `price` (from realized_volatility_history).
     SPY rows: `market_date`, `close` (from index_ohlc_daily).
     Output: `market_date`, `spy_corr_21`.
@@ -1394,18 +1463,33 @@ def compute_stock_spy_corr(
     if stock.empty or spy.empty:
         return pd.DataFrame(columns=["market_date", "spy_corr_21"])
 
-    stock = stock.rename(columns={"price": "stock_close"})
-    spy = spy.rename(columns={"close": "spy_close"})
-    df = stock.merge(spy[["market_date", "spy_close"]], on="market_date", how="inner")
-    df = df.sort_values("market_date").reset_index(drop=True)
-    df["stock_close"] = pd.to_numeric(df["stock_close"], errors="coerce")
-    df["spy_close"] = pd.to_numeric(df["spy_close"], errors="coerce")
-    df["stock_ret"] = (df["stock_close"] / df["stock_close"].shift(1)).apply(
-        lambda x: math.log(x) if x and x > 0 else float("nan")
-    )
-    df["spy_ret"] = (df["spy_close"] / df["spy_close"].shift(1)).apply(
-        lambda x: math.log(x) if x and x > 0 else float("nan")
-    )
+    def _log_ret(prev: float, curr: float) -> float:
+        if not (prev and curr and prev > 0 and curr > 0):
+            return float("nan")
+        return math.log(curr / prev)
+
+    stock = stock.sort_values("market_date").reset_index(drop=True)
+    stock["price"] = pd.to_numeric(stock["price"], errors="coerce")
+    stock["stock_ret"] = [
+        _log_ret(p, c) for p, c in zip(
+            [None, *stock["price"].iloc[:-1]], stock["price"]
+        )
+    ]
+
+    spy = spy.sort_values("market_date").reset_index(drop=True)
+    spy["close"] = pd.to_numeric(spy["close"], errors="coerce")
+    spy["spy_ret"] = [
+        _log_ret(p, c) for p, c in zip(
+            [None, *spy["close"].iloc[:-1]], spy["close"]
+        )
+    ]
+
+    # Merge AFTER computing single-day returns — dates without a matching SPY
+    # bar are dropped, but the surrounding returns stay clean.
+    df = stock[["market_date", "stock_ret"]].merge(
+        spy[["market_date", "spy_ret"]], on="market_date", how="inner",
+    ).sort_values("market_date").reset_index(drop=True)
+
     df["spy_corr_21"] = (
         df["stock_ret"].rolling(window, min_periods=window)
         .corr(df["spy_ret"])
@@ -1584,7 +1668,7 @@ from datetime import date, timedelta
 
 import psycopg
 
-from uw_scan.config import load_settings
+from uw_scan.config import Settings
 from uw_scan.sources.ohlc import MassiveOhlcProvider
 from uw_scan.storage.repository import Repository
 
@@ -1598,7 +1682,8 @@ def main() -> int:
     parser.add_argument("--ticker", default="SPY")
     args = parser.parse_args()
 
-    settings = load_settings()
+    # Canonical settings factory — config.py:60 exposes Settings.from_env().
+    settings = Settings.from_env()
     if settings.massive_api_key is None:
         log.error("MASSIVE_API_KEY env var not set")
         return 1
@@ -1608,13 +1693,16 @@ def main() -> int:
     start = end - timedelta(days=args.years * 365)
     log.info("Fetching %s daily bars %s → %s", args.ticker, start, end)
 
-    with MassiveOhlcProvider(api_key=api_key) as prov:
+    with MassiveOhlcProvider(
+        api_key=api_key, base_url=settings.massive_base_url,
+    ) as prov:
         bars = prov.fetch_daily(args.ticker, start=start, end=end)
     log.info("Fetched %d bars", len(bars))
 
-    # Construction pattern mirrors src/uw_scan/api/deps.py — psycopg connection
-    # passed in, schema parameterised from settings.
-    with closing(psycopg.connect(settings.database_url)) as conn:
+    # Construction mirrors src/uw_scan/api/deps.py:19-25 — psycopg connection
+    # passed in, schema parameterised from settings. NB: settings exposes
+    # db_dsn() (a method), not database_url (an attribute).
+    with closing(psycopg.connect(settings.db_dsn())) as conn:
         repo = Repository(conn, schema=settings.db_schema)
         n = repo.upsert_index_ohlc_rows(bars)
         conn.commit()
@@ -1625,8 +1713,6 @@ def main() -> int:
 if __name__ == "__main__":
     sys.exit(main())
 ```
-
-If `load_settings` / `database_url` / `db_schema` field names differ in `src/uw_scan/config.py`, adapt the names accordingly — but do NOT invent a `Repository.connect()` classmethod (it doesn't exist; the canonical construction is `Repository(conn, schema=...)` as in `api/deps.py:23`).
 
 - [ ] **Step 3: Run the script in dev**
 
@@ -1730,37 +1816,34 @@ def _dec(v: Any) -> Decimal | None:
 
 
 def _build_header(repo: Repository, ticker: str) -> VolHeaderBlock:
-    """Compose the merged-tab header block from cached latest snapshots.
+    """Compose the merged-tab header.
 
-    The single-stock report's `_build_vrp(VolatilityProfile)` is the canonical
-    VRP rule, so we delegate to it. Step 3 of this task promotes that helper
-    from `_build_vrp` to `build_vrp` (drops the leading underscore) so it can
-    be imported here without a re-implementation.
+    Source of truth for the IV/RV/rank/percentile/move/skew fields is the
+    existing `_build_volatility_profile` in `single_stock.py:147` — it
+    already wires fetch_iv_rank_latest, fetch_volatility_stats_latest,
+    fetch_realized_vol_latest, fetch_interpolated_iv_30d, fetch_skew_latest,
+    and fetch_iv_term_rows. Step 3 of this task promotes both helpers to
+    public symbols (`build_volatility_profile`, `build_vrp`) so we can
+    delegate without duplicating the rules.
     """
-    from uw_scan.models import VolatilityProfile
-    from uw_scan.reports.single_stock import build_vrp
+    from uw_scan.reports.single_stock import build_volatility_profile, build_vrp
 
-    stats = repo.fetch_volatility_stats_latest(ticker) or {}
-    rv = repo.fetch_realized_vol_latest(ticker) or {}
-    skew = repo.fetch_skew_latest(ticker) or {}
-
-    iv = _dec(stats.get("iv")) or _dec(rv.get("implied_volatility"))
-    rv_val = _dec(stats.get("rv")) or _dec(rv.get("realized_volatility"))
-    vrp_in = VolatilityProfile(iv=iv, rv=rv_val)
-    vrp_block = build_vrp(vrp_in)  # VRPAssessment
+    run_id = repo.latest_run_id(ticker)
+    vol = build_volatility_profile(repo, run_id, ticker)
+    vrp_block = build_vrp(vol)  # VRPAssessment — same rule as the existing tab
 
     return VolHeaderBlock(
-        iv=iv,
-        rv=rv_val,
-        iv_rank=_dec(stats.get("iv_rank")),
-        # iv_rank_1y is not in volatility_stats_history; left None for now.
-        # The iv_rank endpoint stores it in iv_rank_history — wiring is a
-        # follow-up; the header degrades gracefully.
-        iv_low_52w=_dec(stats.get("iv_low")),
-        iv_high_52w=_dec(stats.get("iv_high")),
-        rv_low_52w=_dec(stats.get("rv_low")),
-        rv_high_52w=_dec(stats.get("rv_high")),
-        skew_25d=_dec(skew.get("risk_reversal")),
+        iv=vol.iv,
+        rv=vol.rv,
+        iv_rank=vol.iv_rank,
+        iv_rank_1y=vol.iv_rank_1y,
+        iv_low_52w=vol.iv_low_52w,
+        iv_high_52w=vol.iv_high_52w,
+        rv_low_52w=vol.rv_low_52w,
+        rv_high_52w=vol.rv_high_52w,
+        iv_percentile_30d=vol.iv_percentile_30d,
+        implied_move_30d_perc=vol.implied_move_30d_perc,
+        skew_25d=vol.skew_25d,
         vrp=vrp_block.vrp,
         vrp_signal=vrp_block.signal,
         vrp_note=vrp_block.note,
@@ -1785,7 +1868,14 @@ def assemble_volatility_series(
     )
 ```
 
-**Note for the implementer:** the canonical VRP rule today lives in `src/uw_scan/reports/single_stock.py` as the private `_build_vrp(vol: VolatilityProfile) -> VRPAssessment`. Before completing this task, **rename it to `build_vrp`** (drop the underscore) in `single_stock.py` and update its in-file call site (around line 390). One additional edit, zero behaviour change — surfacing the helper is necessary to avoid duplicating the rule in this new module.
+**Note for the implementer:** the canonical helpers today live in
+`src/uw_scan/reports/single_stock.py` as private `_build_volatility_profile`
+(line 147) and `_build_vrp` (line 181). Before completing this task,
+**rename both to drop the underscore** (`build_volatility_profile`,
+`build_vrp`) and update their in-file call sites (around lines 386 and 390).
+Two trivial renames, zero behaviour change — surfacing them is the only way
+to avoid duplicating the IV/RV/rank/percentile/move/skew + VRP rules in this
+new module (review finding C5).
 
 - [ ] **Step 4: Run test to verify it passes**
 
@@ -1965,6 +2055,7 @@ def _build_iv_percentile_distribution(
     ivs = [float(r["implied_volatility"]) for r in rv_history
            if r["implied_volatility"] is not None]
     if not ivs:
+        # Empty default — never None — per review finding I5.
         return IvPercentileDistribution()
     lo, hi = min(ivs), max(ivs)
     if lo == hi:
@@ -2033,6 +2124,7 @@ def _build_regime_quadrant(
         subset=["rvol_pctile", "spy_corr_21"]
     )
     if merged.empty:
+        # Returns the empty default — never None — per review finding I5.
         return RegimeQuadrantBlock()
     points = [
         RegimeQuadrantPoint(date=r.market_date,
@@ -2041,10 +2133,12 @@ def _build_regime_quadrant(
         for r in merged.tail(20).itertuples()
     ]
     last = merged.iloc[-1]
-    # Trailing 252-day median of spy_corr_21 — or None if not enough history.
+    # Trailing 252-day median of spy_corr_21 — per spec §6.5. None until we
+    # have a full year of valid correlations (review finding I4).
+    valid_corr = merged["spy_corr_21"].dropna()
     median = (
-        float(merged["spy_corr_21"].tail(252).median())
-        if len(merged) >= 30 else None
+        float(valid_corr.tail(252).median())
+        if len(valid_corr) >= 252 else None
     )
     state = vol_series.classify_regime_state(
         rvol_pctile=float(last["rvol_pctile"]),
@@ -2088,19 +2182,63 @@ def _divergence_headline(df: pd.DataFrame) -> str:
 def _build_term_structure(
     repo: Repository, ticker: str,
 ) -> list[TermStructureExpiryRow]:
-    run_id = repo.latest_run_id(ticker)
-    if run_id == 0:
+    """Spec §3 requires four lines per term-structure chart: ATM-2 / ATM-1 /
+    ATM / ATM+1. We derive these by pivoting iv_smile_snapshots — for each
+    expiry, find the strike closest to spot (ATM) and pick the two
+    surrounding strikes on either side (the strike grid is sorted by the
+    smile fetcher).
+    """
+    smile_rows = repo.fetch_iv_smile_latest(ticker)
+    if not smile_rows:
         return []
-    rows = repo.fetch_iv_term_rows(run_id, ticker)
-    # For now expose ATM only — Task 4.3 wires per-strike ladder once
-    # iv_smile_snapshots populated.
-    return [
-        TermStructureExpiryRow(
-            expiry=r["expiry"], dte=r.get("dte"),
-            by_strike={"ATM": _dec(r.get("volatility"))} if r.get("volatility") else {},
+
+    spot = _dec(repo.fetch_volatility_stats_latest(ticker) or {}).get  # noqa
+    # Spot lives in market_structure, not vol_stats. Pull it from latest run.
+    spot_row = repo.fetch_market_structure_spot(ticker)
+    spot_val = _dec(spot_row.get("spot")) if spot_row else None
+    if spot_val is None:
+        # Fall back to ATM = strike closest to median of all observed strikes.
+        all_strikes = sorted({_dec(r["strike"]) for r in smile_rows if r.get("strike")})
+        if not all_strikes:
+            return []
+        spot_val = all_strikes[len(all_strikes) // 2]
+
+    # Group by expiry.
+    by_expiry: dict[date, list[dict]] = {}
+    for r in smile_rows:
+        by_expiry.setdefault(r["expiry"], []).append(r)
+
+    today = date.today()
+    out: list[TermStructureExpiryRow] = []
+    for expiry, rows in sorted(by_expiry.items()):
+        # Sort by strike ascending.
+        rows.sort(key=lambda r: r["strike"])
+        # Find ATM index (strike closest to spot).
+        strikes = [r["strike"] for r in rows]
+        atm_idx = min(
+            range(len(strikes)),
+            key=lambda i: abs(_dec(strikes[i]) - spot_val),
         )
-        for r in rows
-    ]
+        # Pick ATM-2, ATM-1, ATM, ATM+1 with safe bounds.
+        ladder: dict[str, Decimal] = {}
+        for offset, label in (-2, "ATM-2"), (-1, "ATM-1"), (0, "ATM"), (1, "ATM+1"):
+            idx = atm_idx + offset
+            if 0 <= idx < len(rows) and rows[idx].get("iv") is not None:
+                ladder[label] = _dec(rows[idx]["iv"])
+        dte = (expiry - today).days
+        out.append(TermStructureExpiryRow(
+            expiry=expiry, dte=dte, by_strike=ladder,
+        ))
+    return out
+```
+
+**Note for the implementer:** `repo.fetch_market_structure_spot(ticker)` is a
+new minimal read helper — add it alongside the other latest-row helpers in
+`repository.py`. Single-row SELECT of `spot` from the latest `watchlist_card`
+or whatever existing storage holds the latest spot (locate via
+`grep -n "spot\b" src/uw_scan/storage/repository.py | head`). If a suitable
+helper already exists (`fetch_watchlist_card_for_ticker` returns `.spot`
+maybe), use it directly instead of adding a new method.
 
 
 def _build_smile(repo: Repository, ticker: str) -> list[SmileExpiryCurve]:
@@ -2235,19 +2373,35 @@ from unittest.mock import MagicMock
 from uw_scan.reports.volatility_series import run_volatility_backfill
 
 
-def test_backfill_invokes_uw_fetchers_and_smile_builder(repo, monkeypatch):
+def test_backfill_invokes_uw_fetchers_and_persists_typed_rows(repo, monkeypatch):
+    """Verifies the fix for review finding C1: fetchers return typed rows
+    that must be persisted by the backfill orchestrator (see pipeline.py)."""
+    from datetime import date
+    from decimal import Decimal
+    from uw_scan.models import GreeksRow, RealizedVolRow, SkewRow
+
     fake_client = MagicMock()
-    calls: list[str] = []
 
     def _fake_realized(client, repo_, run_id, ticker):
-        calls.append(f"realized:{ticker}")
-        return []
+        return [RealizedVolRow(
+            date=date(2026, 5, 13), price=Decimal("400"),
+            implied_volatility=Decimal("0.50"),
+            realized_volatility=Decimal("0.40"),
+        )]
     def _fake_skew(client, repo_, run_id, ticker, expiry, delta=25):
-        calls.append(f"skew:{ticker}:{expiry}:{delta}")
-        return []
+        return [SkewRow(
+            ticker=ticker, date=date(2026, 5, 13), delta=delta,
+            expiry=date.fromisoformat(expiry),
+            risk_reversal=Decimal("-0.008"),
+        )]
     def _fake_greeks(client, repo_, run_id, ticker, expiry):
-        calls.append(f"greeks:{ticker}:{expiry}")
-        return []
+        return [GreeksRow(
+            date=date(2026, 5, 13),
+            expiry=date.fromisoformat(expiry),
+            strike=Decimal("400"),
+            call_volatility=Decimal("0.70"),
+            put_volatility=Decimal("0.74"),
+        )]
 
     monkeypatch.setattr(
         "uw_scan.reports.volatility_series.fetch_realized_volatility",
@@ -2265,10 +2419,11 @@ def test_backfill_invokes_uw_fetchers_and_smile_builder(repo, monkeypatch):
         nearest_expiries=["2026-05-15", "2026-05-22"],
     )
     assert status == "ready"
-    assert "realized:TSLA" in calls
-    assert any(c.startswith("skew:TSLA:") for c in calls)
-    assert "greeks:TSLA:2026-05-15" in calls
-    assert "greeks:TSLA:2026-05-22" in calls
+    # Persistence assertions — the bug we're guarding against.
+    assert repo.count_realized_vol_history("TSLA", days=365) >= 1
+    assert repo.fetch_skew_latest("TSLA") is not None
+    # iv_smile_snapshots was populated.
+    assert len(repo.fetch_iv_smile_latest("TSLA")) >= 2
 ```
 
 - [ ] **Step 2: Run test to verify it fails**
@@ -2304,18 +2459,29 @@ def run_volatility_backfill(
     Safe to re-run — every write is idempotent.
     """
     try:
+        # IMPORTANT: the UW source fetchers (uw_scan.sources.uw.*) only
+        # normalize and write the raw audit/payload row. Persistence of typed
+        # rows into the *_history tables is the CALLER'S responsibility — see
+        # pipeline.py:61-113 for the canonical pattern. We follow it here.
+
         # 1. Realised vol history (single call, returns whole series).
-        fetch_realized_volatility(client, repo, run_id, ticker)
+        rv_rows = fetch_realized_volatility(client, repo, run_id, ticker)
+        if rv_rows:
+            repo.upsert_realized_vol_rows(ticker, rv_rows)
 
         # 2. Skew for each nearest expiry (small loop).
         for ex in nearest_expiries[:2]:
-            fetch_skew(client, repo, run_id, ticker, expiry=ex, delta=25)
+            skew_rows = fetch_skew(
+                client, repo, run_id, ticker, expiry=ex, delta=25,
+            )
+            if skew_rows:
+                repo.upsert_skew_rows(ticker, skew_rows)
 
         # 3. Greeks for each of the 4 nearest expiries → pivot → smile rows.
         #    Cache-first per spec §4.3: if greeks_by_expiry_strike already
         #    has rows for today's date + this expiry, skip the UW call and
-        #    pivot the cached rows. Otherwise fetch and persist via the
-        #    existing fetcher path.
+        #    pivot the cached rows. Otherwise fetch, persist via the
+        #    existing insert_greeks_rows helper, and pivot.
         from datetime import date as _date
         today = _date.today()
         smile_rows = []
@@ -2327,6 +2493,9 @@ def run_volatility_backfill(
                 greeks_dicts = cached
             else:
                 grs = fetch_greeks(client, repo, run_id, ticker, expiry=ex)
+                # Persist the typed rows — pipeline.py:113 pattern.
+                if grs:
+                    repo.insert_greeks_rows(run_id, ticker, grs)
                 greeks_dicts = [g.model_dump() for g in grs]
             smile_rows.extend(build_iv_smile_snapshot_rows(
                 ticker=ticker, market_date=today,
@@ -2437,13 +2606,14 @@ from __future__ import annotations
 
 import logging
 from contextlib import closing
+from datetime import date, timedelta
 
 import psycopg
 from fastapi import APIRouter, BackgroundTasks, Depends
 
-from uw_scan.api.deps import get_repo
 from uw_scan.api.client import UwClient
-from uw_scan.config import load_settings
+from uw_scan.api.deps import get_repo, get_settings
+from uw_scan.config import Settings
 from uw_scan.models import VolatilitySeriesResponse
 from uw_scan.reports.volatility_series import (
     assemble_volatility_series,
@@ -2458,31 +2628,76 @@ log = logging.getLogger(__name__)
 HISTORY_THRESHOLD_DAYS = 90
 
 
+def _next_fridays(n: int, *, today: date | None = None) -> list[date]:
+    """Return the next n Friday dates from today (inclusive if today is Fri).
+
+    Used as a fresh-ticker fallback when iv_term_snapshots is empty for the
+    new scan_run we just inserted. Mirrors the _next_friday helper already in
+    pipeline.py:78.
+    """
+    today = today or date.today()
+    # Monday=0 … Sunday=6 → Friday=4. Days until next Friday (0 if today is Fri).
+    days = (4 - today.weekday()) % 7
+    first = today + timedelta(days=days)
+    return [first + timedelta(days=7 * i) for i in range(n)]
+
+
 def _kick_backfill(ticker: str) -> None:
-    """Run the UW backfill out-of-band. Owns its own repo + client."""
+    """Run the UW backfill out-of-band. Owns its own repo + client.
+
+    Uses the canonical settings + connection pattern from api/deps.py:14-25
+    and worker/scheduler.py:33-46.
+    """
     try:
-        settings = load_settings()
-        with closing(psycopg.connect(settings.database_url)) as conn:
+        settings = get_settings()  # cached Settings.from_env()
+        with closing(psycopg.connect(settings.db_dsn())) as conn:
             repo = Repository(conn, schema=settings.db_schema)
-            with UwClient(api_key=settings.uw_api_key.get_secret_value()) as client:
+            # Mark backfill as running (single-flight, see Task 4.5b).
+            repo.upsert_volatility_backfill_status(ticker, status="running")
+            conn.commit()
+            with UwClient(
+                api_key=settings.api_key.get_secret_value(),
+                base_url=settings.base_url,
+                timeout=settings.request_timeout_seconds,
+            ) as client:
                 run_id = repo.latest_run_id(ticker)
                 if run_id == 0:
-                    run_id = repo.insert_scan_run(ticker, notes="volatility_backfill")
+                    run_id = repo.insert_scan_run(
+                        ticker, notes="volatility_backfill",
+                    )
                     conn.commit()
-                # Derive nearest expiries from cached term snapshots — there is
-                # no `fetch_nearest_expiries` helper; iv_term_snapshots already
-                # gives us (expiry asc) for the latest run_id.
+                # Derive nearest expiries from cached term snapshots.
                 term_rows = repo.fetch_iv_term_rows(run_id, ticker)
-                expiries = [
-                    r["expiry"].isoformat()
-                    for r in sorted(term_rows, key=lambda r: r["expiry"])[:4]
-                ]
-                run_volatility_backfill(
+                if term_rows:
+                    expiries = [
+                        r["expiry"].isoformat()
+                        for r in sorted(term_rows, key=lambda r: r["expiry"])[:4]
+                    ]
+                else:
+                    # Fresh ticker fallback — pipeline.py:78 pattern.
+                    expiries = [d.isoformat() for d in _next_fridays(4)]
+                status = run_volatility_backfill(
                     client=client, repo=repo, run_id=run_id, ticker=ticker,
                     nearest_expiries=expiries,
                 )
-    except Exception:
+            repo.upsert_volatility_backfill_status(
+                ticker, status=status,  # "ready" or "failed"
+            )
+            conn.commit()
+    except Exception as exc:
         log.exception("background backfill failed for %s", ticker)
+        # Best-effort status update — own short connection so we don't carry
+        # a poisoned transaction.
+        try:
+            settings = get_settings()
+            with closing(psycopg.connect(settings.db_dsn())) as conn:
+                Repository(conn, schema=settings.db_schema)\
+                    .upsert_volatility_backfill_status(
+                        ticker, status="failed", error_message=repr(exc),
+                    )
+                conn.commit()
+        except Exception:
+            log.exception("could not record failed backfill status for %s", ticker)
 
 
 @router.get(
@@ -2495,11 +2710,32 @@ def get_volatility_series(
     repo: Repository = Depends(get_repo),
 ) -> VolatilitySeriesResponse:
     t = ticker.upper()
-    history_rows = repo.count_realized_vol_history(t)
+    # Freshness-aware history count (review finding I11). Stale rows do not
+    # count toward "ready" — a ticker with 100 rows >90d old is NOT ready.
+    history_fresh = repo.count_realized_vol_history(t, days=HISTORY_THRESHOLD_DAYS)
+    persisted = repo.fetch_volatility_backfill_status(t)
+
+    # Three states the response can take:
+    #   ready     — recent history present, no work in flight
+    #   running   — work in flight; will not enqueue duplicate
+    #   failed    — last run failed and we have NO usable history
     status = "ready"
-    if history_rows < HISTORY_THRESHOLD_DAYS:
-        status = "running"
-        background_tasks.add_task(_kick_backfill, t)
+    if history_fresh < HISTORY_THRESHOLD_DAYS:
+        if persisted and persisted["status"] == "running":
+            # Single-flight: a previous request already enqueued. Treat as
+            # stale if it has been running for >5 minutes — re-enqueue.
+            from datetime import datetime, timezone, timedelta
+            started = persisted.get("started_at")
+            if started and started < datetime.now(timezone.utc) - timedelta(minutes=5):
+                status = "running"
+                background_tasks.add_task(_kick_backfill, t)
+            else:
+                status = "running"
+        elif persisted and persisted["status"] == "failed":
+            status = "failed"  # surface, do not retry automatically on poll
+        else:
+            status = "running"
+            background_tasks.add_task(_kick_backfill, t)
     return assemble_volatility_series(
         ticker=t, repo=repo, backfill_status=status,
     )
@@ -2529,6 +2765,119 @@ Expected: 2 passed.
 ```bash
 git add src/uw_scan/api/routers/volatility.py src/uw_scan/api/server.py tests/test_volatility_endpoint.py
 git commit -m "api: GET /api/stock/{ticker}/volatility/series + background backfill"
+```
+
+---
+
+### Task 4.5b: Repo helpers for `volatility_backfill_status`
+
+Adds the persistence layer for the backfill state machine (review finding I1).
+
+**Files:**
+- Modify: `src/uw_scan/storage/repository.py`
+- Test: `tests/integration/storage/test_repository_backfill_status.py` (new)
+
+- [ ] **Step 1: Write the failing test**
+
+```python
+from datetime import datetime, timezone
+
+import pytest
+
+from uw_scan.storage.repository import Repository
+
+
+def test_upsert_and_fetch_backfill_status(seeded_db_empty_cards):
+    repo = seeded_db_empty_cards
+    assert repo.fetch_volatility_backfill_status("TSLA") is None
+
+    repo.upsert_volatility_backfill_status("TSLA", status="running")
+    repo.conn.commit()
+    row = repo.fetch_volatility_backfill_status("TSLA")
+    assert row["status"] == "running"
+    assert row["started_at"] is not None
+    assert row["finished_at"] is None
+    assert row["error_message"] is None
+
+    repo.upsert_volatility_backfill_status("TSLA", status="ready")
+    repo.conn.commit()
+    row = repo.fetch_volatility_backfill_status("TSLA")
+    assert row["status"] == "ready"
+    assert row["finished_at"] is not None
+
+    repo.upsert_volatility_backfill_status(
+        "TSLA", status="failed", error_message="boom",
+    )
+    repo.conn.commit()
+    row = repo.fetch_volatility_backfill_status("TSLA")
+    assert row["status"] == "failed"
+    assert row["error_message"] == "boom"
+```
+
+- [ ] **Step 2: Run test to verify it fails**
+
+Run: `UW_SCAN_TEST_DB_NAME=option_wizard_test uv run pytest tests/integration/storage/test_repository_backfill_status.py -v`
+Expected: AttributeError on the new helpers.
+
+- [ ] **Step 3: Add the helpers**
+
+```python
+    def upsert_volatility_backfill_status(
+        self, ticker: str, *, status: str,
+        error_message: str | None = None,
+    ) -> None:
+        # On 'running': set started_at = now, clear finished_at + error.
+        # On 'ready' / 'failed': leave started_at as-is, set finished_at = now.
+        if status == "running":
+            sql = (
+                f"INSERT INTO {self._schema}.volatility_backfill_status "
+                "(ticker, status, started_at, finished_at, error_message) "
+                "VALUES (%s, 'running', now(), NULL, NULL) "
+                "ON CONFLICT (ticker) DO UPDATE SET "
+                "status = 'running', started_at = now(), "
+                "finished_at = NULL, error_message = NULL"
+            )
+            params: tuple[Any, ...] = (ticker,)
+        else:
+            sql = (
+                f"INSERT INTO {self._schema}.volatility_backfill_status "
+                "(ticker, status, started_at, finished_at, error_message) "
+                "VALUES (%s, %s, now(), now(), %s) "
+                "ON CONFLICT (ticker) DO UPDATE SET "
+                "status = EXCLUDED.status, finished_at = now(), "
+                "error_message = EXCLUDED.error_message"
+            )
+            params = (ticker, status, error_message)
+        with self._conn.cursor() as cur:
+            cur.execute(sql, params)
+
+    def fetch_volatility_backfill_status(
+        self, ticker: str,
+    ) -> dict[str, Any] | None:
+        sql = (
+            f"SELECT ticker, status, started_at, finished_at, error_message "
+            f"FROM {self._schema}.volatility_backfill_status "
+            "WHERE ticker = %s"
+        )
+        with self._conn.cursor() as cur:
+            cur.execute(sql, (ticker,))
+            row = cur.fetchone()
+            if row is None:
+                return None
+            cols = [d.name for d in cur.description or []]
+            return dict(zip(cols, row, strict=False))
+```
+
+- [ ] **Step 4: Run test to verify it passes**
+
+Run: `UW_SCAN_TEST_DB_NAME=option_wizard_test uv run pytest tests/integration/storage/test_repository_backfill_status.py -v`
+Expected: 1 passed.
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add src/uw_scan/storage/repository.py tests/integration/storage/test_repository_backfill_status.py
+git commit -m "repo: volatility_backfill_status upsert/fetch (single-flight + failed state)"
 ```
 
 ---
@@ -2810,6 +3159,12 @@ git commit -m "ui: AnalyticalSeriesPanel — shared chart shell (matches image 1
 ## Phase 6 — Frontend panels (one task per panel)
 
 > All panel components are server components by default. They accept their slice of the `VolatilitySeriesResponse` and render a single SVG (or a histogram of divs). Width is `100%` of the container; the parent `VolatilityTab` sets the grid. Use `400` width × `260` height internally for the SVG viewBox — keeps math consistent across panels.
+>
+> **NaN-safety rule (applies to every chart panel below).** Always filter to
+> finite values before computing domain (`Math.min(...finite)`). Series will
+> contain `null`/`undefined` entries from days with missing IV/RV/correlation
+> — a single null in a `Math.min(...arr)` call poisons the entire scale with
+> `NaN` and produces blank paths + "NaN%" axis labels (review finding I6).
 
 ### Task 6.1: `VolMetricsCard`
 
@@ -3043,8 +3398,20 @@ export function HvIvChart({
   const W = 400, H = 260, M = { top: 8, right: 16, bottom: 24, left: 36 };
   const ivs = data.map((d) => toNum(d.iv) ?? NaN);
   const rvs = data.map((d) => toNum(d.rv) ?? NaN);
-  const lo = Math.min(...ivs, ...rvs);
-  const hi = Math.max(...ivs, ...rvs);
+  // Filter to finite values before computing domain — null/NaN entries
+  // poison Math.min/max with NaN and produce blank charts (review finding I6).
+  const finite = [...ivs, ...rvs].filter((v) => Number.isFinite(v));
+  if (finite.length < 2) {
+    return (
+      <AnalyticalSeriesPanel title="HV / IV" subtitle="Analytical time series">
+        <div style={{ color: "var(--text-muted)", fontSize: 11 }}>
+          Insufficient finite history
+        </div>
+      </AnalyticalSeriesPanel>
+    );
+  }
+  const lo = Math.min(...finite);
+  const hi = Math.max(...finite);
   const x = linearScale([0, data.length - 1], [M.left, W - M.right]);
   const y = linearScale([lo, hi], [H - M.bottom, M.top]);
   const ivPath = pathFromPoints(
@@ -3104,26 +3471,30 @@ Repeat steps 1-5 for each of the nine panels in the table above. **Do not batch 
 **Files:**
 - Modify: `web/lib/api.ts`
 
-- [ ] **Step 1: Add the helper**
+- [ ] **Step 1: Add the typed helper**
 
-Inside the `export const api = { … }` object, after `stockHistory`:
+First, near the other typed aliases at the top of `web/lib/api.ts`, add:
 
 ```ts
-  volatilitySeries: (ticker: string) =>
-    _fetch<Json<"/api/stock/{ticker}/volatility/series", "get">>(
+type VolatilitySeriesResponse = Json<
+  "/api/stock/{ticker}/volatility/series",
+  "get"
+>;
+```
+
+Then inside the `export const api = { … }` object, after `stockHistory`:
+
+```ts
+  volatilitySeries: (ticker: string): Promise<VolatilitySeriesResponse> =>
+    _fetch<VolatilitySeriesResponse>(
       `/api/stock/${ticker}/volatility/series`,
     ),
 ```
 
-Add a `VolatilitySeriesResponse` type alias near the existing ones:
-
-```ts
-type VolatilitySeriesResponse = Json<
-  "/api/stock/{ticker}/volatility/series", "get"
->;
-```
-
-And re-export it from the bottom export list.
+Finally, append `VolatilitySeriesResponse` to the bottom `export type { … }`
+list so panel components and `VolatilityTabClient` can import the same alias
+without re-deriving it from `components["schemas"]`. This matches the
+existing pattern in the file (see `SingleStockReport`, `OhlcResponse`).
 
 - [ ] **Step 2: Verify typecheck**
 
@@ -3139,14 +3510,41 @@ git commit -m "api: volatilitySeries client helper"
 
 ---
 
-### Task 7.2: Rewrite `VolatilityTab.tsx`
+### Task 7.2: Rewrite `VolatilityTab.tsx` + add polling client component
+
+To honour spec §7.4 (poll every 5s up to 60s while `backfill_status` is
+running, review finding I7), the tab is split into:
+
+- **`VolatilityTab.tsx`** — async server component, fetches once for SSR and
+  hands the initial `VolatilitySeriesResponse` to the client component.
+- **`VolatilityTabClient.tsx`** — `"use client"` component that owns the
+  polling loop and renders every panel.
 
 **Files:**
 - Modify: `web/components/stock/tabs/VolatilityTab.tsx`
+- Create: `web/components/stock/tabs/VolatilityTabClient.tsx`
 
-- [ ] **Step 1: Replace the file contents**
+- [ ] **Step 1: Replace `VolatilityTab.tsx` with a thin server shell**
 
 ```tsx
+import { api } from "@/lib/api";
+import type { components } from "@/lib/types";
+import { VolatilityTabClient } from "./VolatilityTabClient";
+
+type Report = components["schemas"]["SingleStockReport"];
+
+export async function VolatilityTab({ report }: { report: Report }) {
+  const initial = await api.volatilitySeries(report.ticker);
+  return <VolatilityTabClient ticker={report.ticker} initial={initial} />;
+}
+```
+
+- [ ] **Step 2: Create the client component**
+
+```tsx
+"use client";
+
+import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
 import type { components } from "@/lib/types";
 import { VolMetricsCard } from "../panels/VolMetricsCard";
@@ -3160,32 +3558,64 @@ import { RegimeQuadrantChart } from "../panels/RegimeQuadrantChart";
 import { DivergenceOverlay } from "../panels/DivergenceOverlay";
 import { VrpSpreadPanel } from "../panels/VrpSpreadPanel";
 
-type Report = components["schemas"]["SingleStockReport"];
+type Series = components["schemas"]["VolatilitySeriesResponse"];
 
-export async function VolatilityTab({ report }: { report: Report }) {
-  const series = await api.volatilitySeries(report.ticker);
-  const buildingMsg =
+// Spec §7.4: poll every 5s for up to 60s while backfill is running.
+const POLL_INTERVAL_MS = 5_000;
+const POLL_BUDGET_MS = 60_000;
+
+export function VolatilityTabClient({
+  ticker,
+  initial,
+}: {
+  ticker: string;
+  initial: Series;
+}) {
+  const [series, setSeries] = useState<Series>(initial);
+
+  useEffect(() => {
+    if (series.backfill_status !== "running") return;
+    let elapsed = 0;
+    const id = setInterval(async () => {
+      elapsed += POLL_INTERVAL_MS;
+      try {
+        const next = await api.volatilitySeries(ticker);
+        setSeries(next);
+        if (next.backfill_status !== "running" || elapsed >= POLL_BUDGET_MS) {
+          clearInterval(id);
+        }
+      } catch {
+        // Transient error — keep polling until the budget runs out.
+        if (elapsed >= POLL_BUDGET_MS) clearInterval(id);
+      }
+    }, POLL_INTERVAL_MS);
+    return () => clearInterval(id);
+  }, [ticker, series.backfill_status]);
+
+  const banner =
     series.backfill_status === "running"
-      ? "Building 1-year history… (≤30s)"
-      : null;
+      ? { text: "Building 1-year history… (≤30s)", color: "var(--warning)" }
+      : series.backfill_status === "failed"
+        ? { text: "Backfill failed — retry by refreshing.", color: "var(--negative)" }
+        : null;
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
       <VolMetricsCard header={series.header} />
 
-      {buildingMsg && (
+      {banner && (
         <div
           style={{
             padding: 8,
             background: "var(--bg-panel)",
-            border: "1px dashed var(--warning)",
+            border: `1px dashed ${banner.color}`,
             borderRadius: 4,
             fontFamily: "var(--font-mono)",
             fontSize: 11,
-            color: "var(--warning)",
+            color: banner.color,
           }}
         >
-          {buildingMsg}
+          {banner.text}
         </div>
       )}
 
@@ -3227,8 +3657,6 @@ export async function VolatilityTab({ report }: { report: Report }) {
   );
 }
 ```
-
-If the tab page passes `report` as a prop but doesn't yet `await` async server components, confirm by reading `web/app/stock/[ticker]/[tab]/page.tsx`. The watchlist rework already supports async server components for the Market Structure tab; the same pattern works here.
 
 - [ ] **Step 2: Verify typecheck**
 
@@ -3367,8 +3795,15 @@ from uw_scan.storage.repository import Repository
 log = logging.getLogger(__name__)
 
 
-def daily_spy_ohlc_refresh(*, repo: Repository, api_key: str) -> None:
-    today = date.today()
+def daily_spy_ohlc_refresh(
+    *, repo: Repository, api_key: str, tz: str = "America/New_York",
+) -> None:
+    # ET-anchored date — the runtime host may be in any timezone (e.g. HKT),
+    # so date.today() would compute the wrong market date around the
+    # day-rollover boundary (review finding I8).
+    from datetime import datetime
+    from zoneinfo import ZoneInfo
+    today = datetime.now(ZoneInfo(tz)).date()
     start = today - timedelta(days=2)
     with MassiveOhlcProvider(api_key=api_key) as prov:
         bars = prov.fetch_daily("SPY", start=start, end=today)
@@ -3443,24 +3878,50 @@ from uw_scan.worker.volatility_jobs import (
     nightly_vol_analytics_rollup,
 )
 
+def _spy_ohlc_refresh() -> None:
+    """Inner closure mirrors the pattern around scheduler.py:90-101 — owns a
+    short-lived repo via the `_repo(settings)` context manager and a short
+    `_ohlc_provider(settings)` lifecycle."""
+    provider = _ohlc_provider(settings)
+    if provider is None:
+        return
+    try:
+        with _repo(settings) as repo:
+            daily_spy_ohlc_refresh(
+                repo=repo,
+                api_key=settings.massive_api_key.get_secret_value(),
+                tz=settings.rth_tz,
+            )
+    finally:
+        provider.close()
+
+
+def _vol_analytics_rollup() -> None:
+    with _repo(settings) as repo:
+        nightly_vol_analytics_rollup(repo=repo)
+
+
+# Use ET cron strings via from_crontab + settings.rth_tz — same shape as
+# existing full_scan_cron/ohlc_pull_cron. Hard-coded UTC offsets would break
+# on DST (review finding I9).
 sched.add_job(
-    func=lambda: daily_spy_ohlc_refresh(
-        repo=_repo_factory(),
-        api_key=settings.massive_api_key.get_secret_value(),
-    ),
-    trigger=CronTrigger(hour=20, minute=30, timezone="UTC"),  # 16:30 ET
+    _spy_ohlc_refresh,
+    CronTrigger.from_crontab("30 16 * * 1-5", timezone=settings.rth_tz),
     id="daily_spy_ohlc_refresh",
-    replace_existing=True,
+    name="Daily SPY OHLC refresh",
 )
 sched.add_job(
-    func=lambda: nightly_vol_analytics_rollup(repo=_repo_factory()),
-    trigger=CronTrigger(hour=22, minute=0, timezone="UTC"),  # 18:00 ET
+    _vol_analytics_rollup,
+    CronTrigger.from_crontab("0 18 * * 1-5", timezone=settings.rth_tz),
     id="nightly_vol_analytics_rollup",
-    replace_existing=True,
+    name="Nightly vol analytics rollup",
 )
 ```
 
-The existing `scheduler.py` already imports `CronTrigger` and constructs a per-call repo via a context manager (see lines 30-40 of that file — verified in self-review). Reuse that exact construction style — if it's `with _repo_scope() as repo:` wrap each job body the same way; do NOT capture a long-lived repo object in a closure because connection lifetime is owned by the surrounding `with` block.
+The `_repo(settings)` context manager and `_ohlc_provider(settings)` helpers
+already exist in `src/uw_scan/worker/scheduler.py` (lines 32-56) — the new
+jobs reuse them exactly. Do NOT capture a long-lived repo in a closure;
+connection lifetime is owned by the surrounding `with` block.
 
 - [ ] **Step 3: Manually verify**
 
@@ -3562,16 +4023,35 @@ EOF
 
 ---
 
-## Self-review (post-write, post-fix 2026-05-13)
+## Self-review (post-write, post-fix, post-tribunal 2026-05-13)
 
-After the initial write I ran a second pass with reads against the actual
-codebase and patched 12 findings — symbol-name drift (`Repository.connect`,
-`insert_realized_volatility_rows`, `build_vrp_block`, `fetch_watchlist_tickers`,
-`build_app` vs `create_app`), a ddof math bug in the pandas derivers (was
-`ddof=0`, must be default `ddof=1` so tests pass), a missing cache-first path
-for the smile builder (spec §4.3), and explicit empty-state copy for the
-two SPY-dependent panels (spec §7.4). See git history of this file for the
-edit log.
+This plan went through three review passes:
+
+1. **Initial self-review** — patched 12 symbol-name and ddof issues.
+2. **Tribunal review (Codex + Gemini + Claude)** — surfaced 19 additional
+   findings (5 critical, 11 important, 2 minor). All applied.
+
+Tribunal fixes applied inline (see git log of this file for the diff):
+- **C1** Backfill now captures and persists fetched rows (`upsert_realized_vol_rows`, `upsert_skew_rows`, `insert_greeks_rows`) — pipeline.py:61-113 pattern.
+- **C2** Config API names corrected throughout (`Settings.from_env()`, `settings.db_dsn()`, `settings.api_key`, `get_settings()`).
+- **C3** `insert_greeks_rows` test now uses the real signature `(run_id, ticker, rows: Iterable[GreeksRow])`.
+- **C4** Term-structure ladder ATM-2/-1/ATM/+1 derived by pivoting `iv_smile_snapshots`.
+- **C5** Header reuses `build_volatility_profile` (promoted from underscore) — no field is dropped.
+- **I1** New `volatility_backfill_status` table + repo helpers; endpoint enforces single-flight + 5-min staleness retry.
+- **I2** Fresh-ticker bootstrap uses `_next_fridays(4)` fallback (pipeline.py:78 pattern).
+- **I3** Correlation now computes returns per-symbol on each calendar before merging.
+- **I4** Regime median uses trailing 252 valid correlations (was incorrectly 30).
+- **I5** `iv_percentile_distribution` and `regime_quadrant` are non-nullable with empty defaults.
+- **I6** All chart panels filter to finite values before computing scale domain.
+- **I7** Tab split into server component (SSR) + client component (`VolatilityTabClient`) that polls every 5s up to 60s.
+- **I8** Worker uses `datetime.now(ZoneInfo(settings.rth_tz)).date()` for market dates.
+- **I9** Scheduler uses `CronTrigger.from_crontab(..., timezone=settings.rth_tz)` — DST-safe.
+- **I10** All DB tests live under `tests/integration/` and use `seeded_db_empty_cards` (the bare `repo` fixture doesn't exist).
+- **I11** `count_realized_vol_history` takes a `days` parameter; stale rows no longer count as ready.
+- **I12** Spec amended to clarify smile-staleness path uses `BackgroundTasks`, not a blocking refresh.
+- **I13** Spec amended to say "hand-rolled SVG" (Recharts is not in `package.json`).
+- **I14** `web/lib/api.ts` adds the `VolatilitySeriesResponse = Json<...>` alias before the helper.
+- **M1, M2** Wording cleanups.
 
 Coverage walkthrough:
 
