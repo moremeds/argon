@@ -137,3 +137,100 @@ def test_jobs_status_check_constraint(fresh_schema):
                 ("TEST", "bogus_status"),
             )
             fresh_schema.commit()
+
+
+def test_trade_insight_ai_analysis_schema(fresh_schema):
+    with fresh_schema.cursor() as cur:
+        cur.execute("""
+            SELECT to_regclass('uw_scan.trade_insight_ai_analyses')
+        """)
+        assert cur.fetchone()[0] == "uw_scan.trade_insight_ai_analyses"
+
+        cur.execute("""
+            SELECT column_name
+            FROM information_schema.columns
+            WHERE table_schema = 'uw_scan'
+              AND table_name = 'trade_insight_ai_analyses'
+        """)
+        columns = {row[0] for row in cur.fetchall()}
+        assert {
+            "trade_insights_input_hash",
+            "analysis_input_hash",
+            "analysis_input_jsonb",
+            "prompt_text",
+            "prompt_payload_jsonb",
+            "output_schema_jsonb",
+            "produced_at",
+        } <= columns
+
+        cur.execute("""
+            INSERT INTO uw_scan.scan_runs(ticker, status)
+            VALUES ('TSLA', 'finished')
+            RETURNING run_id
+        """)
+        run_id = cur.fetchone()[0]
+        cur.execute(
+            """
+            INSERT INTO uw_scan.trade_insight_snapshots(
+                run_id,
+                ticker,
+                assembler_version,
+                input_hash,
+                payload_jsonb
+            )
+            VALUES (%s, 'TSLA', 'trade-insights-v1', 'ti-hash', '{}'::jsonb)
+            RETURNING snapshot_id
+            """,
+            (run_id,),
+        )
+        snapshot_id = cur.fetchone()[0]
+        fresh_schema.commit()
+
+        with pytest.raises(psycopg.errors.CheckViolation):
+            cur.execute(
+                """
+                INSERT INTO uw_scan.trade_insight_ai_analyses(
+                    snapshot_id,
+                    ticker,
+                    run_id,
+                    trade_insights_input_hash,
+                    analysis_input_hash,
+                    analysis_input_jsonb,
+                    model,
+                    prompt_version,
+                    status
+                )
+                VALUES (
+                    %s,
+                    'TSLA',
+                    %s,
+                    'ti-hash',
+                    'ai-hash',
+                    '{}'::jsonb,
+                    'codex-default',
+                    'trade-insights-ai-v1',
+                    'invalid'
+                )
+                """,
+                (snapshot_id, run_id),
+            )
+            fresh_schema.commit()
+        fresh_schema.rollback()
+
+        cur.execute("""
+            SELECT indexname, indexdef
+            FROM pg_indexes
+            WHERE schemaname = 'uw_scan'
+              AND tablename = 'trade_insight_ai_analyses'
+        """)
+        indexes = {row[0]: row[1] for row in cur.fetchall()}
+        assert "idx_trade_insight_ai_analyses_queue" in indexes
+        assert "idx_trade_insight_ai_analyses_succeeded_reuse" in indexes
+        assert "status" in indexes["idx_trade_insight_ai_analyses_queue"]
+        assert "requested_at" in indexes["idx_trade_insight_ai_analyses_queue"]
+        assert "analysis_input_hash" in indexes[
+            "idx_trade_insight_ai_analyses_succeeded_reuse"
+        ]
+        assert "status = 'succeeded'" in indexes[
+            "idx_trade_insight_ai_analyses_succeeded_reuse"
+        ]
