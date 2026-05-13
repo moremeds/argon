@@ -21,6 +21,10 @@ from uw_scan.worker.jobs.full_scan import full_scan_once
 from uw_scan.worker.jobs.ohlc_pull import ohlc_pull_once
 from uw_scan.worker.jobs.rescan_loop import rescan_tick
 from uw_scan.worker.jobs.spot_refresh import spot_refresh_once
+from uw_scan.worker.volatility_jobs import (
+    daily_spy_ohlc_refresh,
+    nightly_vol_analytics_rollup,
+)
 
 logging.basicConfig(
     level=logging.INFO,
@@ -120,6 +124,21 @@ def main() -> int:
             finally:
                 ohlc.close()
 
+    def _spy_ohlc_refresh() -> None:
+        if settings.massive_api_key is None:
+            logger.warning("MASSIVE_API_KEY not set; skipping SPY refresh")
+            return
+        with _repo(settings) as repo:
+            daily_spy_ohlc_refresh(
+                repo=repo,
+                api_key=settings.massive_api_key.get_secret_value(),
+                tz=settings.rth_tz,
+            )
+
+    def _vol_analytics_rollup() -> None:
+        with _repo(settings) as repo:
+            nightly_vol_analytics_rollup(repo=repo)
+
     sched.add_job(
         _spot_refresh,
         IntervalTrigger(seconds=settings.spot_refresh_seconds),
@@ -143,6 +162,19 @@ def main() -> int:
         IntervalTrigger(seconds=1),
         id="rescan_tick",
         name="Ad-hoc rescan poll",
+    )
+    # Volatility tab v2 jobs — ET-anchored via from_crontab (review I9).
+    sched.add_job(
+        _spy_ohlc_refresh,
+        CronTrigger.from_crontab("30 16 * * 1-5", timezone=settings.rth_tz),
+        id="daily_spy_ohlc_refresh",
+        name="Daily SPY OHLC refresh",
+    )
+    sched.add_job(
+        _vol_analytics_rollup,
+        CronTrigger.from_crontab("0 18 * * 1-5", timezone=settings.rth_tz),
+        id="nightly_vol_analytics_rollup",
+        name="Nightly vol analytics rollup",
     )
 
     def _stop(_sig, _frame):
