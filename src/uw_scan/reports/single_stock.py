@@ -418,6 +418,18 @@ def assemble_single_stock_report(
         strike_gex_curve, market_structure.spot
     )
 
+    options_timeline = repo.get_options_timeline(ticker, lookback_days=180)
+    option_chain_per_strike = repo.get_option_chain_per_strike(ticker)
+    # UW returns next_earnings_date per FlowAlert row; promote once.
+    next_earnings_date = next(
+        (
+            a.next_earnings_date
+            for a in flow.top_alerts
+            if a.next_earnings_date is not None
+        ),
+        None,
+    )
+
     return SingleStockReport(
         run_id=run_id,
         ticker=ticker,
@@ -436,6 +448,9 @@ def assemble_single_stock_report(
         strike_gex_curve=strike_gex_curve,
         aggregates=aggregates,
         market_structure_levels=market_structure_levels,
+        options_timeline=options_timeline,
+        option_chain_per_strike=option_chain_per_strike,
+        next_earnings_date=next_earnings_date,
     )
 
 

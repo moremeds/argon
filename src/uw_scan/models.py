@@ -606,6 +606,11 @@ class SingleStockReport(_UwBase):
     aggregates: MarketAggregates | None = None
     strike_gex_curve: list[StrikeGexBucket] = []
     market_structure_levels: MarketStructureLevels | None = None
+    options_timeline: list[OptionsDailyRow] = []
+    option_chain_per_strike: list[OptionChainPerStrikeRow] = []
+    # Promoted from FlowAlert.next_earnings_date so the Volume-timeline panel
+    # can render the earnings marker without iterating alerts on the client.
+    next_earnings_date: _date | None = None
 
 
 # ---------------------------------------------------------------------------

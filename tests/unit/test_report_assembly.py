@@ -185,6 +185,38 @@ class _StubRepo:
     def get_aggregates(self, run_id: int):
         return None
 
+    def get_options_timeline(self, ticker: str, lookback_days: int = 180):
+        from uw_scan.models import OptionsDailyRow
+
+        return [
+            OptionsDailyRow(
+                date=_date(2026, 5, 11),
+                call_volume=900,
+                put_volume=300,
+                avg_30_day_call_volume=Decimal("950.5"),
+            ),
+            OptionsDailyRow(
+                date=_date(2026, 5, 12),
+                call_volume=1_000,
+                put_volume=400,
+                avg_30_day_call_volume=Decimal("960.0"),
+            ),
+        ]
+
+    def get_option_chain_per_strike(self, ticker: str):
+        from uw_scan.models import OptionChainPerStrikeRow
+
+        return [
+            OptionChainPerStrikeRow(
+                expiry=_date(2026, 6, 19),
+                strike=Decimal("440"),
+                call_volume=500,
+                put_volume=300,
+                call_oi=10_000,
+                put_oi=8_000,
+            )
+        ]
+
 
 def test_assemble_single_stock_report_populates_sections():
     repo = _StubRepo()
@@ -236,3 +268,12 @@ def test_assemble_single_stock_report_populates_sections():
 
     # Short-Int field note from spec
     assert "n/a" in report.short_int_note
+
+    # Flow tab merge — new sections from the assembler
+    assert len(report.options_timeline) == 2
+    assert report.options_timeline[-1].call_volume == 1_000
+    assert report.options_timeline[-1].avg_30_day_call_volume == Decimal("960.0")
+    assert len(report.option_chain_per_strike) == 1
+    assert report.option_chain_per_strike[0].call_oi == 10_000
+    # next_earnings_date promoted from the flow alert
+    assert report.next_earnings_date == _date(2026, 7, 1)
