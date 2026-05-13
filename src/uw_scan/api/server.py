@@ -5,7 +5,7 @@ from __future__ import annotations
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from uw_scan.api.routers import health, jobs, ohlc, stock, watchlist
+from uw_scan.api.routers import health, jobs, ohlc, stock, volatility, watchlist
 
 
 def create_app() -> FastAPI:
@@ -24,6 +24,7 @@ def create_app() -> FastAPI:
     app.include_router(stock.router, prefix="/api", tags=["stock"])
     app.include_router(ohlc.router, prefix="/api", tags=["ohlc"])
     app.include_router(jobs.router, prefix="/api", tags=["jobs"])
+    app.include_router(volatility.router, prefix="/api", tags=["volatility"])
     return app
 
 
