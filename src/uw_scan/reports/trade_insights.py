@@ -54,7 +54,8 @@ def parse_option_symbol(symbol: str) -> ParsedOptionSymbol | None:
     try:
         expiry = date(2000 + int(ymd[:2]), int(ymd[2:4]), int(ymd[4:6]))
         strike = Decimal(str(int(strike_raw))) / Decimal("1000")
-    except (ValueError, ArithmeticError):
+    except (ValueError, ArithmeticError) as exc:
+        _parse_error = repr(exc)
         return None
     return ParsedOptionSymbol(root=root, expiry=expiry, right=right, strike=strike)
 
