@@ -2,7 +2,7 @@ export const dynamic = "force-dynamic";
 
 export default function ScannerPage() {
   return (
-    <main style={{ padding: 24, maxWidth: 1600, margin: "0 auto" }}>
+    <div style={{ padding: 24, maxWidth: 1600, margin: "0 auto" }}>
       <h1
         style={{
           fontFamily: "var(--font-mono)",
@@ -26,6 +26,6 @@ export default function ScannerPage() {
       >
         scanner — coming soon
       </div>
-    </main>
+    </div>
   );
 }

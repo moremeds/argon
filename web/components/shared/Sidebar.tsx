@@ -20,7 +20,8 @@ export function Sidebar() {
         borderRight: "1px solid var(--border-dim)",
         display: "flex",
         flexDirection: "column",
-        minHeight: "100vh",
+        height: "100vh",
+        overflowY: "auto",
       }}
     >
       <div

@@ -35,7 +35,7 @@ export default async function DashboardPage({
     Object.fromEntries(sparklineEntries);
 
   return (
-    <main style={{ padding: 24, maxWidth: 1600, margin: "0 auto" }}>
+    <div style={{ padding: 24, maxWidth: 1600, margin: "0 auto" }}>
       <header
         style={{
           display: "flex",
@@ -60,6 +60,6 @@ export default async function DashboardPage({
       </header>
       <FilterBar current={sp} />
       <CardGrid data={data} sparklines={sparklines} />
-    </main>
+    </div>
   );
 }

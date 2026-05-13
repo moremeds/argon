@@ -20,10 +20,25 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" data-theme="dark">
-      <body style={{ fontFamily: "var(--font-sans)", margin: 0 }}>
-        <div style={{ display: "flex", minHeight: "100vh" }}>
+      <body
+        style={{
+          fontFamily: "var(--font-sans)",
+          margin: 0,
+          overflow: "hidden",
+        }}
+      >
+        <div style={{ display: "flex", height: "100vh" }}>
           <Sidebar />
-          <div style={{ flex: 1, minWidth: 0 }}>{children}</div>
+          <main
+            style={{
+              flex: 1,
+              minWidth: 0,
+              height: "100vh",
+              overflowY: "auto",
+            }}
+          >
+            {children}
+          </main>
         </div>
       </body>
     </html>

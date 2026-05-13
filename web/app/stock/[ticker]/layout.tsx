@@ -14,7 +14,7 @@ export default async function StockLayout({
   const report = await api.stock(ticker);
 
   return (
-    <main style={{ minHeight: "100vh", background: "var(--bg-base)" }}>
+    <div style={{ minHeight: "100%", background: "var(--bg-base)" }}>
       <DetailHeader
         ticker={report.ticker}
         spot={toNum(report.market_structure.spot)}
@@ -27,6 +27,6 @@ export default async function StockLayout({
       />
       <TabBar ticker={ticker} />
       <div style={{ padding: 16 }}>{children}</div>
-    </main>
+    </div>
   );
 }
