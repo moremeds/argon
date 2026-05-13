@@ -8,7 +8,6 @@ panels from running out of data 3 weeks before today.
 
 from __future__ import annotations
 
-import math
 from datetime import date, timedelta
 
 from uw_scan.reports.volatility_series import _fill_rv_from_price
@@ -27,9 +26,7 @@ def _walk(prices: list[float], start: date = date(2026, 1, 1)) -> list[dict]:
 
 
 def test_fills_recent_null_rv_from_price():
-    # 25 days of constant-ish returns (~1% daily move alternating sign).
-    prices = [100.0 * (1.01 if i % 2 == 0 else 1 / 1.01) ** 1 for i in range(25)]
-    # Build cumulative product so we get a real price walk.
+    # 25 days of a real price walk with ~1% daily moves alternating sign.
     cum = [100.0]
     for i in range(1, 25):
         cum.append(cum[-1] * (1.01 if i % 2 == 0 else 1 / 1.01))
