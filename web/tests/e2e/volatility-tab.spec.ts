@@ -1,9 +1,9 @@
-// Volatility Tab v2 — end-to-end smoke. Requires the dev DB to have at
-// least one ticker with >=90 days of realized_volatility_history and SPY
-// rows in index_ohlc_daily (see scripts/seed_spy_ohlc.py).
+// Volatility Tab v2 — end-to-end smoke. Requires the dev DB to be seeded with
+// scripts/dry_run_volatility_endpoint.py, which creates a synthetic DRYRUN
+// ticker with IV/RV history, SPY rows, smile data, and greeks.
 import { expect, test } from "@playwright/test";
 
-const TICKER = "TSLA";
+const TICKER = "DRYRUN";
 
 test("volatility tab renders all panels with no NaN / no console errors", async ({
   page,
@@ -49,6 +49,9 @@ test("volatility tab renders all panels with no NaN / no console errors", async 
 test("VRP tab route is removed", async ({ page }) => {
   await page.goto(`/stock/${TICKER}/vrp`);
   await expect(page.getByRole("heading", { name: "404" })).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "This page could not be found." }),
+  ).toBeVisible();
 });
 
 // Fresh-ticker backfill flow is covered by the backend integration test

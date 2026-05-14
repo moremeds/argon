@@ -2402,6 +2402,401 @@
         "title": "PositioningBlock",
         "type": "object"
       },
+      "ProviderUsageBreakdownResponse": {
+        "properties": {
+          "provider_day_end": {
+            "format": "date-time",
+            "title": "Provider Day End",
+            "type": "string"
+          },
+          "provider_day_start": {
+            "format": "date-time",
+            "title": "Provider Day Start",
+            "type": "string"
+          },
+          "rows": {
+            "items": {
+              "$ref": "#/components/schemas/ProviderUsageBreakdownRow"
+            },
+            "title": "Rows",
+            "type": "array"
+          }
+        },
+        "required": [
+          "provider_day_start",
+          "provider_day_end",
+          "rows"
+        ],
+        "title": "ProviderUsageBreakdownResponse",
+        "type": "object"
+      },
+      "ProviderUsageBreakdownRow": {
+        "properties": {
+          "http_2xx": {
+            "title": "Http 2Xx",
+            "type": "integer"
+          },
+          "http_3xx": {
+            "title": "Http 3Xx",
+            "type": "integer"
+          },
+          "http_4xx": {
+            "title": "Http 4Xx",
+            "type": "integer"
+          },
+          "http_5xx": {
+            "title": "Http 5Xx",
+            "type": "integer"
+          },
+          "key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Key"
+          },
+          "latency_p95_ms": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Latency P95 Ms"
+          },
+          "total_requests": {
+            "title": "Total Requests",
+            "type": "integer"
+          },
+          "transport_errors": {
+            "title": "Transport Errors",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "key",
+          "total_requests",
+          "http_2xx",
+          "http_3xx",
+          "http_4xx",
+          "http_5xx",
+          "transport_errors",
+          "latency_p95_ms"
+        ],
+        "title": "ProviderUsageBreakdownRow",
+        "type": "object"
+      },
+      "ProviderUsageRequestRow": {
+        "properties": {
+          "attempt": {
+            "title": "Attempt",
+            "type": "integer"
+          },
+          "endpoint_key": {
+            "title": "Endpoint Key",
+            "type": "string"
+          },
+          "error_message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error Message"
+          },
+          "job_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Job Name"
+          },
+          "latency_ms": {
+            "title": "Latency Ms",
+            "type": "integer"
+          },
+          "method": {
+            "title": "Method",
+            "type": "string"
+          },
+          "official_daily_count": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Official Daily Count"
+          },
+          "official_daily_limit": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Official Daily Limit"
+          },
+          "official_minute_remaining": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Official Minute Remaining"
+          },
+          "official_minute_reset": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Official Minute Reset"
+          },
+          "params": {
+            "additionalProperties": true,
+            "title": "Params",
+            "type": "object"
+          },
+          "path": {
+            "title": "Path",
+            "type": "string"
+          },
+          "provider": {
+            "title": "Provider",
+            "type": "string"
+          },
+          "provider_request_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Provider Request Id"
+          },
+          "request_finished_at": {
+            "format": "date-time",
+            "title": "Request Finished At",
+            "type": "string"
+          },
+          "request_id": {
+            "title": "Request Id",
+            "type": "integer"
+          },
+          "request_started_at": {
+            "format": "date-time",
+            "title": "Request Started At",
+            "type": "string"
+          },
+          "run_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Run Id"
+          },
+          "status_code": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Status Code"
+          },
+          "status_family": {
+            "title": "Status Family",
+            "type": "string"
+          },
+          "ticker": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ticker"
+          }
+        },
+        "required": [
+          "request_id",
+          "provider",
+          "endpoint_key",
+          "method",
+          "path",
+          "ticker",
+          "params",
+          "status_code",
+          "status_family",
+          "request_started_at",
+          "request_finished_at",
+          "latency_ms",
+          "attempt",
+          "run_id",
+          "job_name",
+          "provider_request_id",
+          "official_daily_count",
+          "official_daily_limit",
+          "official_minute_remaining",
+          "official_minute_reset",
+          "error_message"
+        ],
+        "title": "ProviderUsageRequestRow",
+        "type": "object"
+      },
+      "ProviderUsageRequestsResponse": {
+        "properties": {
+          "limit": {
+            "title": "Limit",
+            "type": "integer"
+          },
+          "provider_day_end": {
+            "format": "date-time",
+            "title": "Provider Day End",
+            "type": "string"
+          },
+          "provider_day_start": {
+            "format": "date-time",
+            "title": "Provider Day Start",
+            "type": "string"
+          },
+          "rows": {
+            "items": {
+              "$ref": "#/components/schemas/ProviderUsageRequestRow"
+            },
+            "title": "Rows",
+            "type": "array"
+          }
+        },
+        "required": [
+          "provider_day_start",
+          "provider_day_end",
+          "limit",
+          "rows"
+        ],
+        "title": "ProviderUsageRequestsResponse",
+        "type": "object"
+      },
+      "ProviderUsageSummaryResponse": {
+        "properties": {
+          "http_2xx": {
+            "title": "Http 2Xx",
+            "type": "integer"
+          },
+          "http_3xx": {
+            "title": "Http 3Xx",
+            "type": "integer"
+          },
+          "http_4xx": {
+            "title": "Http 4Xx",
+            "type": "integer"
+          },
+          "http_5xx": {
+            "title": "Http 5Xx",
+            "type": "integer"
+          },
+          "latency_p95_ms": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Latency P95 Ms"
+          },
+          "provider_day_end": {
+            "format": "date-time",
+            "title": "Provider Day End",
+            "type": "string"
+          },
+          "provider_day_start": {
+            "format": "date-time",
+            "title": "Provider Day Start",
+            "type": "string"
+          },
+          "total_requests": {
+            "title": "Total Requests",
+            "type": "integer"
+          },
+          "transport_errors": {
+            "title": "Transport Errors",
+            "type": "integer"
+          },
+          "uw_latest_daily_count": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Uw Latest Daily Count"
+          },
+          "uw_latest_daily_limit": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Uw Latest Daily Limit"
+          }
+        },
+        "required": [
+          "provider_day_start",
+          "provider_day_end",
+          "total_requests",
+          "http_2xx",
+          "http_3xx",
+          "http_4xx",
+          "http_5xx",
+          "transport_errors",
+          "latency_p95_ms",
+          "uw_latest_daily_count",
+          "uw_latest_daily_limit"
+        ],
+        "title": "ProviderUsageSummaryResponse",
+        "type": "object"
+      },
       "RegimeQuadrantBlock": {
         "properties": {
           "cutoff_corr": {
@@ -5549,6 +5944,248 @@
         ]
       }
     },
+    "/api/provider-usage/endpoints": {
+      "get": {
+        "operationId": "provider_usage_endpoints_api_provider_usage_endpoints_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "provider",
+            "required": false,
+            "schema": {
+              "default": "all",
+              "enum": [
+                "uw",
+                "massive",
+                "all"
+              ],
+              "title": "Provider",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProviderUsageBreakdownResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Provider Usage Endpoints",
+        "tags": [
+          "provider-usage"
+        ]
+      }
+    },
+    "/api/provider-usage/requests": {
+      "get": {
+        "operationId": "provider_usage_requests_api_provider_usage_requests_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "provider",
+            "required": false,
+            "schema": {
+              "default": "all",
+              "enum": [
+                "uw",
+                "massive",
+                "all"
+              ],
+              "title": "Provider",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "ticker",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Ticker"
+            }
+          },
+          {
+            "in": "query",
+            "name": "status_family",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "2xx",
+                    "3xx",
+                    "4xx",
+                    "5xx",
+                    "transport_error"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status Family"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProviderUsageRequestsResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Provider Usage Requests",
+        "tags": [
+          "provider-usage"
+        ]
+      }
+    },
+    "/api/provider-usage/summary": {
+      "get": {
+        "operationId": "provider_usage_summary_api_provider_usage_summary_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "provider",
+            "required": false,
+            "schema": {
+              "default": "all",
+              "enum": [
+                "uw",
+                "massive",
+                "all"
+              ],
+              "title": "Provider",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProviderUsageSummaryResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Provider Usage Summary",
+        "tags": [
+          "provider-usage"
+        ]
+      }
+    },
+    "/api/provider-usage/tickers": {
+      "get": {
+        "operationId": "provider_usage_tickers_api_provider_usage_tickers_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "provider",
+            "required": false,
+            "schema": {
+              "default": "all",
+              "enum": [
+                "uw",
+                "massive",
+                "all"
+              ],
+              "title": "Provider",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProviderUsageBreakdownResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Provider Usage Tickers",
+        "tags": [
+          "provider-usage"
+        ]
+      }
+    },
     "/api/stock/{ticker}": {
       "get": {
         "operationId": "get_stock_api_stock__ticker__get",
@@ -5901,6 +6538,7 @@
             "name": "analysis_id",
             "required": true,
             "schema": {
+              "format": "uuid",
               "title": "Analysis Id",
               "type": "string"
             }

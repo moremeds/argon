@@ -10,7 +10,7 @@ from pydantic import BaseModel
 
 from uw_scan.api.deps import get_repo, get_settings
 from uw_scan.config import Settings
-from uw_scan.storage.repository import Repository
+from uw_scan.storage.repository import Repository, provider_day_bounds
 
 router = APIRouter()
 
@@ -78,6 +78,17 @@ def health(
         else None
     )
     watchlist_size = repo.count_active_watchlist()
+    provider_day_start, provider_day_end = provider_day_bounds()
+    provider_usage = repo.get_external_api_usage_summary(
+        None, provider_day_start, provider_day_end
+    )
+    provider_fields = {
+        "latency_p95_ms": provider_usage.latency_p95_ms,
+        "http_2xx": provider_usage.http_2xx,
+        "http_4xx": provider_usage.http_4xx,
+        "http_5xx": provider_usage.http_5xx,
+        "uw_today": provider_usage.uw_latest_daily_count,
+    }
 
     last_scan = repo.get_last_full_scan_finished_at()
     if last_scan is None:
@@ -87,6 +98,7 @@ def health(
             reason="no successful full scan yet",
             worker_lag_seconds=worker_lag,
             watchlist_size=watchlist_size,
+            **provider_fields,
         )
 
     lag = (datetime.now(timezone.utc) - last_scan).total_seconds()
@@ -102,6 +114,7 @@ def health(
             reason=f"scheduler lag {lag:.0f}s exceeds 2x interval ({threshold:.0f}s)",
             worker_lag_seconds=worker_lag,
             watchlist_size=watchlist_size,
+            **provider_fields,
         )
 
     return HealthResponse(
@@ -111,4 +124,5 @@ def health(
         last_full_scan_at=last_scan,
         worker_lag_seconds=worker_lag,
         watchlist_size=watchlist_size,
+        **provider_fields,
     )
