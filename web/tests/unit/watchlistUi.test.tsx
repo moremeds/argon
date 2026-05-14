@@ -1,12 +1,22 @@
 /* @vitest-environment jsdom */
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
+import { AddTickerDialog } from "@/components/watchlist/AddTickerDialog";
 import { TickerCard } from "@/components/watchlist/TickerCard";
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ refresh: vi.fn() }),
 }));
+
+function installDialogPolyfill() {
+  HTMLDialogElement.prototype.showModal = function showModal() {
+    this.open = true;
+  };
+  HTMLDialogElement.prototype.close = function close() {
+    this.open = false;
+  };
+}
 
 const card = {
   ticker: "TSLA",
@@ -50,5 +60,20 @@ describe("TickerCard", () => {
     expect(screen.getByText(/analytics /).textContent).toMatch(
       /2026.*\d{2}:\d{2}:\d{2}.*(?:UTC|GMT|[A-Z]{2,5})/,
     );
+  });
+});
+
+describe("AddTickerDialog", () => {
+  it("closes when the backdrop is clicked", () => {
+    installDialogPolyfill();
+    render(<AddTickerDialog />);
+
+    fireEvent.click(screen.getByRole("button", { name: /\+ ticker/i }));
+    const dialog = screen.getByRole("dialog", { name: /add ticker/i });
+    expect(dialog).toHaveProperty("open", true);
+
+    fireEvent.click(dialog);
+
+    expect(dialog).toHaveProperty("open", false);
   });
 });
