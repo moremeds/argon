@@ -9,8 +9,30 @@ const emptyWatchlist: WatchlistResponse = {
   tickers: [],
 };
 
+async function mapWithConcurrency<T, R>(
+  items: T[],
+  limit: number,
+  fn: (item: T) => Promise<R>,
+): Promise<R[]> {
+  const results = new Array<R>(items.length);
+  let next = 0;
+  const workers = Array.from(
+    { length: Math.min(Math.max(limit, 1), items.length) },
+    async () => {
+      while (next < items.length) {
+        const index = next;
+        next += 1;
+        results[index] = await fn(items[index]);
+      }
+    },
+  );
+  await Promise.all(workers);
+  return results;
+}
+
 export async function loadDashboardData(
   qs: URLSearchParams,
+  sparklineConcurrency = 6,
 ): Promise<{
   data: WatchlistResponse;
   sparklines: SparklineMap;
@@ -23,8 +45,10 @@ export async function loadDashboardData(
     return { data: emptyWatchlist, sparklines: {}, apiUnavailable: true };
   }
 
-  const sparklineEntries = await Promise.all(
-    data.tickers.map(async (t) => {
+  const sparklineEntries = await mapWithConcurrency(
+    data.tickers,
+    sparklineConcurrency,
+    async (t) => {
       try {
         const bars = await api.ohlc(t.ticker, 30);
         const closes = bars.map((b) => Number(b.close)).reverse();
@@ -32,7 +56,7 @@ export async function loadDashboardData(
       } catch {
         return [t.ticker, [] as number[]] as const;
       }
-    }),
+    },
   );
 
   return {
