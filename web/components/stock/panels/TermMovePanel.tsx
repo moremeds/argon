@@ -4,7 +4,6 @@ import { InsightPanel, InsightStatusBanner } from "./InsightPanel";
 
 type Row = TradeInsightsResponse["term_structure_table"][number];
 
-const fmtMoney = (v: unknown) => (v == null ? "-" : `$${Number(v).toFixed(2)}`);
 const fmtPercent = (v: unknown) =>
   v == null ? "-" : `${(Number(v) * 100).toFixed(2)}%`;
 const n = (v: string | number | null | undefined) => (v == null ? null : Number(v));
@@ -29,9 +28,10 @@ function Highlight({
       style={{
         border: "1px solid var(--border-dim)",
         borderRadius: 4,
-        padding: 10,
+        background: "var(--bg-base)",
+        padding: "9px 10px",
         display: "grid",
-        gap: 4,
+        gap: 5,
       }}
     >
       <div
@@ -44,10 +44,62 @@ function Highlight({
       >
         {label}
       </div>
-      <div style={{ color, fontFamily: "var(--font-mono)", fontSize: 13 }}>
+      <div style={{ color, fontFamily: "var(--font-mono)", fontSize: 14 }}>
         {value}
       </div>
     </div>
+  );
+}
+
+function DrillDown({ rows }: { rows: Row[] }) {
+  return (
+    <details
+      style={{
+        borderTop: "1px solid var(--border-dim)",
+        paddingTop: 10,
+      }}
+    >
+      <summary
+        style={{
+          cursor: "pointer",
+          color: "var(--text-secondary)",
+          fontFamily: "var(--font-mono)",
+          fontSize: 11,
+        }}
+      >
+        Show highlighted expiry rows
+      </summary>
+      <div
+        style={{
+          marginTop: 10,
+          maxHeight: 260,
+          overflow: "auto",
+          border: "1px solid var(--border-dim)",
+          background: "var(--bg-base)",
+        }}
+      >
+        <DataTable<Row>
+          rows={rows}
+          nowrap
+          columns={[
+            { key: "expiry", label: "Expiry" },
+            { key: "dte", label: "DTE" },
+            { key: "atm_straddle", label: "ATM straddle" },
+            {
+              key: "implied_move_perc",
+              label: "Move",
+              render: (value) => fmtPercent(value),
+            },
+            {
+              key: "daily_implied_move_perc",
+              label: "Daily",
+              render: (value) => fmtPercent(value),
+            },
+            { key: "read", label: "Read" },
+          ]}
+        />
+      </div>
+    </details>
   );
 }
 
@@ -78,7 +130,8 @@ export function TermMovePanel({ rows }: { rows: Row[] }) {
       : frontDaily != null && backDaily != null && frontDaily < backDaily
         ? "Back elevated"
         : "Flat / unclear";
-  const highlightedRows = byExpiry.slice(0, 6);
+  const highlightedCount = Math.min(rows.length, 6);
+  const highlightedRows = byExpiry.slice(0, highlightedCount);
   const frontMove = fmtPercent(front.implied_move_perc);
   const frontDailyText = frontDaily == null ? "-" : fmtPercent(frontDaily);
   const backDailyText = backDaily == null ? null : fmtPercent(backDaily);
@@ -92,13 +145,14 @@ export function TermMovePanel({ rows }: { rows: Row[] }) {
   return (
     <InsightPanel
       heading="TERM / MOVE HIGHLIGHTS"
-      subheading={`Showing ${highlightedRows.length} expiries from ${rows.length} rows`}
+      subheading={`${highlightedCount} expiries from ${rows.length} rows`}
     >
       <div
         style={{
-          color: "var(--text-primary)",
+          color: "var(--text-secondary)",
           fontSize: 13,
-          lineHeight: 1.5,
+          lineHeight: 1.55,
+          minHeight: 78,
         }}
       >
         {termRead}
@@ -106,8 +160,8 @@ export function TermMovePanel({ rows }: { rows: Row[] }) {
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))",
-          gap: 8,
+          gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+          gap: 10,
         }}
       >
         <Highlight
@@ -128,24 +182,7 @@ export function TermMovePanel({ rows }: { rows: Row[] }) {
           }
         />
       </div>
-      <details style={{ fontFamily: "var(--font-mono)", fontSize: 11 }}>
-        <summary style={{ color: "var(--text-secondary)", cursor: "pointer" }}>
-          Show highlighted expiry rows
-        </summary>
-        <div style={{ marginTop: 8 }}>
-          <DataTable
-            rows={highlightedRows as unknown as Record<string, unknown>[]}
-            columns={[
-              { key: "expiry", label: "Expiry" },
-              { key: "dte", label: "DTE" },
-              { key: "atm_straddle", label: "ATM Straddle", render: fmtMoney },
-              { key: "implied_move_perc", label: "Move", render: fmtPercent },
-              { key: "daily_implied_move_perc", label: "Daily", render: fmtPercent },
-              { key: "read", label: "Read" },
-            ]}
-          />
-        </div>
-      </details>
+      <DrillDown rows={highlightedRows} />
     </InsightPanel>
   );
 }

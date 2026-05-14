@@ -4,20 +4,21 @@ const sectionHeading: CSSProperties = {
   fontFamily: "var(--font-mono)",
   fontSize: 9,
   color: "var(--text-muted)",
-  letterSpacing: 1,
+  letterSpacing: 0.8,
   textTransform: "uppercase",
-  marginTop: 4,
 };
 
 export function InsightPanel({
   heading,
   subheading,
   children,
+  action,
   fullBleed = false,
 }: {
   heading: string;
   subheading?: string;
   children: ReactNode;
+  action?: ReactNode;
   fullBleed?: boolean;
 }) {
   return (
@@ -26,27 +27,40 @@ export function InsightPanel({
         border: "1px solid var(--border-dim)",
         borderRadius: 4,
         background: "var(--bg-panel)",
-        padding: fullBleed ? 0 : 16,
+        padding: fullBleed ? 0 : 18,
         display: "flex",
         flexDirection: "column",
-        gap: 8,
+        gap: 12,
+        height: "100%",
+        minWidth: 0,
       }}
     >
-      <div style={{ padding: fullBleed ? "16px 16px 0" : 0 }}>
-        <div style={sectionHeading}>{heading}</div>
+      <div style={{ padding: fullBleed ? "18px 18px 0" : 0 }}>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "flex-start",
+            gap: 12,
+          }}
+        >
+          <div style={sectionHeading}>{heading}</div>
+          {action}
+        </div>
         {subheading && (
           <div
             style={{
-              fontFamily: "var(--font-mono)",
-              fontSize: 12,
+              fontSize: 13,
+              lineHeight: 1.45,
               color: "var(--text-primary)",
+              marginTop: 5,
             }}
           >
             {subheading}
           </div>
         )}
       </div>
-      <div style={{ padding: fullBleed ? "0 16px 16px" : 0 }}>{children}</div>
+      <div style={{ padding: fullBleed ? "0 18px 18px" : 0 }}>{children}</div>
     </section>
   );
 }

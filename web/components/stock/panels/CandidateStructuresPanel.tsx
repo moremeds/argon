@@ -5,6 +5,8 @@ type Candidate = TradeInsightsResponse["candidate_structures"][number];
 
 const fmtMoney = (v: string | number | null | undefined) =>
   v == null ? "-" : `$${Number(v).toFixed(2)}`;
+const readable = (value: string | null | undefined) =>
+  (value ?? "unknown").replaceAll("_", " ");
 
 function Metric({ label, value }: { label: string; value: string }) {
   return (
@@ -43,9 +45,9 @@ export function CandidateStructuresPanel({
     <InsightPanel heading="CANDIDATE STRUCTURES">
       <div
         style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
-          gap: 8,
+          display: "flex",
+          flexDirection: "column",
+          gap: 12,
         }}
       >
         {candidates.map((candidate) => (
@@ -54,30 +56,49 @@ export function CandidateStructuresPanel({
             style={{
               border: "1px solid var(--border-dim)",
               borderRadius: 4,
-              padding: 12,
+              background: "var(--bg-base)",
+              padding: 14,
               display: "grid",
-              gap: 8,
+              gap: 12,
             }}
           >
             <div
               style={{
-                display: "flex",
-                justifyContent: "space-between",
-                gap: 8,
-                fontFamily: "var(--font-mono)",
+                display: "grid",
+                gridTemplateColumns: "minmax(0, 1fr) auto",
+                gap: 12,
+                alignItems: "start",
               }}
             >
-              <div style={{ color: "var(--text-primary)", fontSize: 13 }}>
-                {candidate.idea_id}. {candidate.structure}
+              <div>
+                <div style={{ color: "var(--text-primary)", fontSize: 14, fontWeight: 700 }}>
+                  {candidate.idea_id}. {readable(candidate.structure)}
+                </div>
+                <div style={{ color: "var(--text-secondary)", fontSize: 12, lineHeight: 1.5 }}>
+                  {candidate.thesis}
+                </div>
               </div>
-              <div style={{ color: "var(--text-secondary)", fontSize: 11 }}>
-                {candidate.status}
+              <div
+                style={{
+                  border: "1px solid var(--border-dim)",
+                  color: "var(--text-secondary)",
+                  fontFamily: "var(--font-mono)",
+                  fontSize: 10,
+                  padding: "4px 7px",
+                  textTransform: "uppercase",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {readable(candidate.status)}
               </div>
             </div>
-            <div style={{ color: "var(--text-secondary)", fontSize: 12 }}>
-              {candidate.thesis}
-            </div>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 150px), 1fr))",
+                gap: "12px 18px",
+              }}
+            >
               <Metric label="Credit / Debit" value={fmtMoney(candidate.net_credit_debit)} />
               <Metric label="Max profit" value={fmtMoney(candidate.max_profit)} />
               <Metric label="Max loss" value={fmtMoney(candidate.max_loss)} />
@@ -94,22 +115,23 @@ export function CandidateStructuresPanel({
                 {candidate.profit_zone}
               </div>
             )}
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-              {candidate.risk_flags.map((flag) => (
-                <span
-                  key={flag}
-                  style={{
-                    border: "1px solid var(--border-dim)",
-                    color: "var(--warning)",
-                    padding: "3px 6px",
-                    fontFamily: "var(--font-mono)",
-                    fontSize: 10,
-                  }}
-                >
-                  {flag}
-                </span>
-              ))}
-            </div>
+            {candidate.risk_flags.length > 0 && (
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "auto minmax(0, 1fr)",
+                  gap: 8,
+                  alignItems: "start",
+                  color: "var(--warning)",
+                  fontFamily: "var(--font-mono)",
+                  fontSize: 11,
+                  lineHeight: 1.4,
+                }}
+              >
+                <span aria-hidden="true">!</span>
+                <span>{candidate.risk_flags.map(readable).join("; ")}</span>
+              </div>
+            )}
           </section>
         ))}
       </div>
