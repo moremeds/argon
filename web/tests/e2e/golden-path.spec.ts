@@ -3,9 +3,9 @@
 // cards are missing — an empty grid will fail the locator on the first card.
 import { test, expect } from "@playwright/test";
 
-test("watchlist → detail → tab → rescan", async ({ page }) => {
-  await page.goto("/watchlist");
-  await expect(page.getByRole("heading", { name: "WATCHLIST" })).toBeVisible();
+test("dashboard → detail → tab → rescan", async ({ page }) => {
+  await page.goto("/");
+  await expect(page.getByRole("heading", { name: "DASHBOARD" })).toBeVisible();
 
   const firstCard = page.locator("a[href^='/stock/']").first();
   const href = await firstCard.getAttribute("href");
@@ -17,7 +17,7 @@ test("watchlist → detail → tab → rescan", async ({ page }) => {
   await page.getByRole("link", { name: /flow/i }).click();
   await expect(page).toHaveURL(new RegExp(`/stock/${ticker}/flow`));
 
-  await page.goto("/watchlist");
+  await page.goto("/");
   // The button's text changes after click (rescan → queued… → running… →
   // done), so locating by initial text won't survive the click. The card
   // exposes its link via aria-label="<TICKER> detail"; the RescanButton is
