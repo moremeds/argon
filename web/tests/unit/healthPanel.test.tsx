@@ -39,15 +39,19 @@ describe("HealthPanel", () => {
       http_5xx: 1,
       uw_today: 40,
       cache_hit_pct: null,
+      record_health_ok: true,
+      record_health: [],
     });
 
     render(<HealthPanel />);
 
     await waitFor(() => expect(screen.getByText("API")).toBeTruthy());
     expect(screen.getByText("Scheduler")).toBeTruthy();
-    expect(screen.getByText("Rescan")).toBeTruthy();
-    expect(screen.getByText("Spot Job")).toBeTruthy();
-    expect(screen.getByText("Spot Age")).toBeTruthy();
+    expect(screen.getByText("UW Worker")).toBeTruthy();
+    expect(screen.getByText("Massive Worker")).toBeTruthy();
+    expect(screen.getByText("Query Coverage")).toBeTruthy();
+    expect(screen.getByText("OK")).toBeTruthy();
+    expect(screen.getByText("Last spot")).toBeTruthy();
     expect(screen.getByText("1m")).toBeTruthy();
     expect(screen.getAllByText("ONLINE").length).toBeGreaterThanOrEqual(3);
     expect(screen.getByText("STALE")).toBeTruthy();
@@ -84,6 +88,8 @@ describe("HealthPanel", () => {
       http_5xx: null,
       uw_today: null,
       cache_hit_pct: null,
+      record_health_ok: null,
+      record_health: [],
     });
 
     render(<HealthPanel />);
@@ -116,6 +122,8 @@ describe("HealthPanel", () => {
         http_5xx: 1,
         uw_today: 40,
         cache_hit_pct: null,
+        record_health_ok: true,
+        record_health: [],
       })
       .mockResolvedValueOnce({
         ok: true,
@@ -139,19 +147,76 @@ describe("HealthPanel", () => {
         http_5xx: 2,
         uw_today: null,
         cache_hit_pct: null,
+        record_health_ok: true,
+        record_health: [],
       });
 
     render(<HealthPanel />);
 
-    await waitFor(() => expect(api.health).toHaveBeenCalledWith("uw"));
+    await waitFor(() =>
+      expect(api.health).toHaveBeenCalledWith("uw", {
+        recordMinCoverage: 0.9,
+        recordWindowHours: 8,
+      }),
+    );
     fireEvent.change(screen.getByRole("combobox", { name: "Source" }), {
       target: { value: "massive" },
     });
 
-    await waitFor(() => expect(api.health).toHaveBeenCalledWith("massive"));
+    await waitFor(() =>
+      expect(api.health).toHaveBeenCalledWith("massive", {
+        recordMinCoverage: 0.9,
+        recordWindowHours: 8,
+      }),
+    );
     expect(screen.getByText("Massive.com")).toBeTruthy();
     expect(screen.getByText("55ms")).toBeTruthy();
     expect(screen.getByText("10")).toBeTruthy();
     expect(screen.getByText("2")).toBeTruthy();
+  });
+
+  it("renders a compact query coverage alert when DB coverage is low", async () => {
+    vi.mocked(api.health).mockResolvedValue({
+      ok: false,
+      db: "up",
+      scheduler_lag_seconds: 12,
+      last_full_scan_at: "2026-05-14T14:20:42Z",
+      reason: "record coverage below expected: flow_events",
+      worker_lag_seconds: 1,
+      scheduler_heartbeat_lag_seconds: 1,
+      scheduler_heartbeat_name: "worker",
+      rescan_heartbeat_lag_seconds: 1,
+      spot_refresh_heartbeat_lag_seconds: 1,
+      spot_quote_lag_seconds: 60,
+      latest_spot_quote_at: "2026-05-14T14:19:42Z",
+      latest_spot_quote_fetched_at: "2026-05-14T14:20:42Z",
+      watchlist_size: 97,
+      source: "UnusualWhales",
+      latency_p95_ms: 88,
+      http_2xx: 120,
+      http_4xx: 0,
+      http_5xx: 0,
+      uw_today: 40,
+      cache_hit_pct: null,
+      record_health_ok: false,
+      record_health: [
+        {
+          table: "flow_events",
+          window_start: "2026-05-14T06:20:42Z",
+          expected_tickers: 97,
+          expected_min_tickers: 88,
+          actual_tickers: 20,
+          expected_min_rows: 88,
+          actual_rows: 1234,
+          latest_at: "2026-05-14T14:20:42Z",
+          ok: false,
+        },
+      ],
+    });
+
+    render(<HealthPanel />);
+
+    await waitFor(() => expect(screen.getByText("Query Coverage")).toBeTruthy());
+    expect(screen.getByText("ALERT")).toBeTruthy();
   });
 });

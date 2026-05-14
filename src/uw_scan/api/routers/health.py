@@ -2,12 +2,12 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Annotated, Literal
 
 from apscheduler.triggers.cron import CronTrigger
-from fastapi import APIRouter, Depends, Query
-from pydantic import BaseModel
+from fastapi import APIRouter, Depends, HTTPException, Query
+from pydantic import BaseModel, Field
 
 from uw_scan.api.deps import get_repo, get_settings
 from uw_scan.config import Settings
@@ -47,6 +47,20 @@ class HealthResponse(BaseModel):
     http_5xx: int | None = None
     uw_today: int | None = None
     cache_hit_pct: float | None = None
+    record_health_ok: bool | None = None
+    record_health: list["RecordHealthCheck"] = Field(default_factory=list)
+
+
+class RecordHealthCheck(BaseModel):
+    table: str
+    window_start: datetime
+    expected_tickers: int
+    expected_min_tickers: int
+    actual_tickers: int
+    expected_min_rows: int
+    actual_rows: int
+    latest_at: datetime | None = None
+    ok: bool
 
 
 def _full_scan_interval_seconds(cron_expr: str, tz: str) -> float:
@@ -65,9 +79,19 @@ def _full_scan_interval_seconds(cron_expr: str, tz: str) -> float:
     return (b - a).total_seconds() if b else 3600.0
 
 
+def _parse_record_tables(record_tables: str | None) -> list[str] | None:
+    if record_tables is None:
+        return None
+    selected = [item.strip() for item in record_tables.split(",") if item.strip()]
+    return selected or None
+
+
 @router.get("/health", response_model=HealthResponse)
 def health(
     source: Annotated[HealthSource, Query()] = "uw",
+    record_window_hours: Annotated[float | None, Query(ge=0.1, le=168)] = None,
+    record_min_coverage: Annotated[float, Query(ge=0.0, le=1.0)] = 0.9,
+    record_tables: Annotated[str | None, Query()] = None,
     repo: Repository = Depends(get_repo),
     settings: Settings = Depends(get_settings),
 ) -> HealthResponse:
@@ -135,6 +159,40 @@ def health(
         "latest_spot_quote_at": latest_spot_quote_at,
         "latest_spot_quote_fetched_at": latest_spot_quote_fetched_at,
     }
+    record_fields = {"record_health_ok": None, "record_health": []}
+    record_reason = None
+    if record_window_hours is not None:
+        try:
+            record_rows = repo.list_record_health(
+                since=now_utc - timedelta(hours=record_window_hours),
+                expected_tickers=watchlist_size,
+                min_coverage=record_min_coverage,
+                tables=_parse_record_tables(record_tables),
+            )
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+        record_health = [
+            RecordHealthCheck(
+                table=row.table,
+                window_start=row.window_start,
+                expected_tickers=row.expected_tickers,
+                expected_min_tickers=row.expected_min_tickers,
+                actual_tickers=row.actual_tickers,
+                expected_min_rows=row.expected_min_rows,
+                actual_rows=row.actual_rows,
+                latest_at=row.latest_at,
+                ok=row.ok,
+            )
+            for row in record_rows
+        ]
+        record_ok = all(check.ok for check in record_health)
+        record_fields = {
+            "record_health_ok": record_ok,
+            "record_health": record_health,
+        }
+        if not record_ok:
+            failing = ", ".join(check.table for check in record_health if not check.ok)
+            record_reason = f"record coverage below expected: {failing}"
 
     last_scan = repo.get_last_full_scan_finished_at()
     if last_scan is None:
@@ -145,6 +203,7 @@ def health(
             watchlist_size=watchlist_size,
             **provider_fields,
             **heartbeat_fields,
+            **record_fields,
         )
 
     lag = (now_utc - last_scan).total_seconds()
@@ -161,6 +220,20 @@ def health(
             watchlist_size=watchlist_size,
             **provider_fields,
             **heartbeat_fields,
+            **record_fields,
+        )
+
+    if record_reason is not None:
+        return HealthResponse(
+            ok=False,
+            db=db_status,
+            scheduler_lag_seconds=lag,
+            last_full_scan_at=last_scan,
+            reason=record_reason,
+            watchlist_size=watchlist_size,
+            **provider_fields,
+            **heartbeat_fields,
+            **record_fields,
         )
 
     return HealthResponse(
@@ -171,4 +244,5 @@ def health(
         watchlist_size=watchlist_size,
         **provider_fields,
         **heartbeat_fields,
+        **record_fields,
     )

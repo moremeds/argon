@@ -6,6 +6,7 @@ One method per insert/select. No `**kwargs` splatting from arbitrary dicts.
 from __future__ import annotations
 
 import logging
+import math
 from collections.abc import Iterable
 from dataclasses import dataclass
 from datetime import date as _date
@@ -15,6 +16,7 @@ from typing import Any
 from zoneinfo import ZoneInfo
 
 import psycopg
+from psycopg import sql as psql
 from psycopg.types.json import Jsonb
 
 from .. import models
@@ -120,6 +122,40 @@ class ExternalApiRequestRow:
     official_minute_remaining: int | None
     official_minute_reset: str | None
     error_message: str | None
+
+
+@dataclass(frozen=True)
+class RecordHealthRow:
+    table: str
+    window_start: datetime
+    expected_tickers: int
+    expected_min_tickers: int
+    actual_tickers: int
+    expected_min_rows: int
+    actual_rows: int
+    latest_at: datetime | None
+    ok: bool
+
+
+_RECORD_HEALTH_TIMESTAMP_COLUMNS = ("updated_at", "inserted_at")
+_RECORD_HEALTH_TICKER_COLUMNS = ("ticker", "underlying_symbol")
+_RECORD_HEALTH_EXCLUDED_TABLES = {
+    # Request logs and orchestration tables are covered by provider usage /
+    # scheduler health, not per-ticker persisted data coverage.
+    "external_api_requests",
+    "scan_results",
+    "scan_universe",
+    # Not watchlist-scoped periodic UW source tables.
+    "index_ohlc_daily",
+    "opportunity_scores",
+    "structure_ideas",
+    # Derived/backfill tables that do not update for every ticker each RTH window.
+    "iv_smile_snapshots",
+    "oi_by_expiry",
+    "option_surface_snapshots",
+    "stock_analytics_daily",
+    "vrp_daily",
+}
 
 
 class WatchlistCardRow:
@@ -2620,6 +2656,104 @@ class Repository:
             )
             row = cur.fetchone()
         return int(row[0]) if row else 0
+
+    def _discover_record_health_rules(self) -> dict[str, tuple[str, str, int]]:
+        with self._conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT table_name, array_agg(column_name::text ORDER BY ordinal_position)
+                FROM information_schema.columns
+                WHERE table_schema = %s
+                GROUP BY table_name
+                ORDER BY table_name
+                """,
+                (self._schema,),
+            )
+            discovered: dict[str, tuple[str, str, int]] = {}
+            for table, column_list in cur.fetchall():
+                table_name = str(table)
+                if table_name in _RECORD_HEALTH_EXCLUDED_TABLES:
+                    continue
+                columns = set(column_list or [])
+                timestamp_col = next(
+                    (
+                        column
+                        for column in _RECORD_HEALTH_TIMESTAMP_COLUMNS
+                        if column in columns
+                    ),
+                    None,
+                )
+                ticker_col = next(
+                    (
+                        column
+                        for column in _RECORD_HEALTH_TICKER_COLUMNS
+                        if column in columns
+                    ),
+                    None,
+                )
+                if timestamp_col is not None and ticker_col is not None:
+                    discovered[table_name] = (timestamp_col, ticker_col, 1)
+            return discovered
+
+    def list_record_health(
+        self,
+        *,
+        since: datetime,
+        expected_tickers: int,
+        min_coverage: float = 0.9,
+        tables: Iterable[str] | None = None,
+    ) -> list[RecordHealthRow]:
+        rules = self._discover_record_health_rules()
+        selected = list(tables) if tables is not None else list(rules)
+        unknown = sorted(set(selected) - set(rules))
+        if unknown:
+            raise ValueError(f"unknown record health table(s): {', '.join(unknown)}")
+
+        expected_min_tickers = (
+            0 if expected_tickers <= 0 else math.ceil(expected_tickers * min_coverage)
+        )
+        rows: list[RecordHealthRow] = []
+        with self._conn.cursor() as cur:
+            for table in selected:
+                timestamp_col, ticker_col, min_rows_per_ticker = rules[table]
+                cur.execute(
+                    psql.SQL(
+                        """
+                        SELECT
+                            COUNT(*)::int AS actual_rows,
+                            COUNT(DISTINCT {ticker_col})::int AS actual_tickers,
+                            MAX({timestamp_col}) AS latest_at
+                        FROM {schema}.{table}
+                        WHERE {timestamp_col} >= %s
+                        """
+                    ).format(
+                        schema=psql.Identifier(self._schema),
+                        table=psql.Identifier(table),
+                        timestamp_col=psql.Identifier(timestamp_col),
+                        ticker_col=psql.Identifier(ticker_col),
+                    ),
+                    (since,),
+                )
+                actual_rows, actual_tickers, latest_at = cur.fetchone() or (0, 0, None)
+                expected_min_rows = expected_min_tickers * min_rows_per_ticker
+                ok = (
+                    int(actual_tickers or 0) >= expected_min_tickers
+                    and int(actual_rows or 0) >= expected_min_rows
+                )
+                rows.append(
+                    RecordHealthRow(
+                        table=table,
+                        window_start=since,
+                        expected_tickers=expected_tickers,
+                        expected_min_tickers=expected_min_tickers,
+                        actual_tickers=int(actual_tickers or 0),
+                        expected_min_rows=expected_min_rows,
+                        actual_rows=int(actual_rows or 0),
+                        latest_at=latest_at,
+                        ok=ok,
+                    )
+                )
+        return rows
 
     # ---- worker_heartbeat ----
     def upsert_heartbeat(self, job_name: str) -> None:

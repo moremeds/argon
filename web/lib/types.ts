@@ -613,6 +613,10 @@ export interface components {
             uw_today?: number | null;
             /** Cache Hit Pct */
             cache_hit_pct?: number | null;
+            /** Record Health Ok */
+            record_health_ok?: boolean | null;
+            /** Record Health */
+            record_health?: components["schemas"]["RecordHealthCheck"][];
         };
         /** InsightBadge */
         InsightBadge: {
@@ -1149,6 +1153,30 @@ export interface components {
             uw_latest_daily_count: number | null;
             /** Uw Latest Daily Limit */
             uw_latest_daily_limit: number | null;
+        };
+        /** RecordHealthCheck */
+        RecordHealthCheck: {
+            /** Table */
+            table: string;
+            /**
+             * Window Start
+             * Format: date-time
+             */
+            window_start: string;
+            /** Expected Tickers */
+            expected_tickers: number;
+            /** Expected Min Tickers */
+            expected_min_tickers: number;
+            /** Actual Tickers */
+            actual_tickers: number;
+            /** Expected Min Rows */
+            expected_min_rows: number;
+            /** Actual Rows */
+            actual_rows: number;
+            /** Latest At */
+            latest_at?: string | null;
+            /** Ok */
+            ok: boolean;
         };
         /** RegimeQuadrantBlock */
         RegimeQuadrantBlock: {
@@ -2285,6 +2313,9 @@ export interface operations {
         parameters: {
             query?: {
                 source?: "uw" | "massive";
+                record_window_hours?: number | null;
+                record_min_coverage?: number;
+                record_tables?: string | null;
             };
             header?: never;
             path?: never;
