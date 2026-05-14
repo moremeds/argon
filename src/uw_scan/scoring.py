@@ -2,12 +2,12 @@
 
 Type C — Deep Conviction Directional (S1, single-stock context):
 - Net premium magnitude ≥ NET_PREMIUM_THRESHOLD ($5M default)
-- For bull: IV rank ≥ IV_RANK_HIGH (70) — vol mean-reversion + directional
-- For bear: IV rank ≤ IV_RANK_LOW (30)
+- Direction is determined by signed option flow, not IV rank
+- Flow imbalance must be material versus total observed option premium
 - ≥ 1 corroborating signal (dark pool size, OI build)
 
 Type F — Multi-Signal Confluence (S2, scan-row context):
-- Base: same flow + IV-rank gate as Type C
+- Base: same material flow + imbalance gate as Type C
 - PLUS ≥ 2 of: GEX-vs-OI shift, VRP magnitude, relative volume, flow polarization
 
 F takes precedence over C in the scan context.
@@ -20,8 +20,7 @@ from decimal import Decimal
 from .models import BulkScreenerRow, SetupClassification, SingleStockReport
 
 NET_PREMIUM_THRESHOLD = Decimal("5000000")  # $5M
-IV_RANK_HIGH = Decimal("70")
-IV_RANK_LOW = Decimal("30")
+FLOW_IMBALANCE_THRESHOLD = Decimal("0.20")
 DARK_POOL_NOTIONAL_THRESHOLD = Decimal("100000000")  # $100M
 MIN_OI_BUILD_COUNT = 1
 
@@ -35,6 +34,56 @@ F_MIN_SIGNALS = 2
 
 def _direction_from_flow(net_premium: Decimal) -> str:
     return "bull" if net_premium >= 0 else "bear"
+
+
+def _flow_imbalance(net_premium: Decimal, total_premium: Decimal | None) -> Decimal | None:
+    if total_premium is None:
+        return None
+    total = abs(total_premium)
+    if total <= 0:
+        return None
+    return abs(net_premium) / total
+
+
+def _row_total_premium(row: BulkScreenerRow) -> Decimal | None:
+    if row.call_premium is not None or row.put_premium is not None:
+        return abs(row.call_premium or Decimal("0")) + abs(
+            row.put_premium or Decimal("0")
+        )
+    if row.net_call_premium is not None or row.net_put_premium is not None:
+        return abs(row.net_call_premium or Decimal("0")) + abs(
+            row.net_put_premium or Decimal("0")
+        )
+    return None
+
+
+def _flow_context(
+    *,
+    net_premium: Decimal,
+    total_premium: Decimal | None,
+    iv_rank: Decimal | None,
+) -> tuple[bool, list[str], list[str], Decimal]:
+    confirmations = [
+        f"net premium = ${abs(net_premium):,.0f} "
+        f"({_direction_from_flow(net_premium)})"
+    ]
+    warnings: list[str] = []
+
+    imbalance = _flow_imbalance(net_premium, total_premium)
+    if imbalance is not None:
+        confirmations.append(f"flow imbalance = {imbalance:.2%}")
+        if imbalance < FLOW_IMBALANCE_THRESHOLD:
+            return False, confirmations, warnings, imbalance
+    else:
+        warnings.append("flow premium denominator unavailable; imbalance gate skipped")
+        imbalance = Decimal("0")
+
+    if iv_rank is None:
+        warnings.append("iv_rank unavailable; direction uses flow, not IV rank")
+    else:
+        confirmations.append(f"iv_rank = {iv_rank} (structure context only)")
+
+    return True, confirmations, warnings, imbalance
 
 
 def _row_net_premium(row: BulkScreenerRow) -> Decimal | None:
@@ -53,58 +102,46 @@ def _row_net_premium(row: BulkScreenerRow) -> Decimal | None:
     return ncp - npp
 
 
-def _check_c_base(row: BulkScreenerRow) -> tuple[bool, str | None, list[str]]:
+def _check_c_base(
+    row: BulkScreenerRow,
+) -> tuple[bool, str | None, list[str], list[str], Decimal]:
     """Check whether a screener row meets Type C base criteria.
 
-    Returns (ok, direction, confirmations). When ok is False, direction may still
-    be set but confirmations is empty.
+    When ok is False, direction may still be set if signed flow was available.
     """
     net_premium = _row_net_premium(row)
     if net_premium is None:
-        return False, None, []
+        return False, None, [], [], Decimal("0")
     abs_net = abs(net_premium)
     if abs_net < NET_PREMIUM_THRESHOLD:
-        return False, None, []
+        return False, None, [], [], Decimal("0")
     direction = _direction_from_flow(net_premium)
-    iv_rank = row.iv_rank
-    if iv_rank is None:
-        return False, direction, []
-    if direction == "bull" and iv_rank < IV_RANK_HIGH:
-        return False, direction, []
-    if direction == "bear" and iv_rank > IV_RANK_LOW:
-        return False, direction, []
-    confirmations = [
-        f"net premium = ${abs_net:,.0f} ({direction})",
-        f"iv_rank = {iv_rank}",
-    ]
-    return True, direction, confirmations
+    ok, confirmations, warnings, imbalance = _flow_context(
+        net_premium=net_premium,
+        total_premium=_row_total_premium(row),
+        iv_rank=row.iv_rank,
+    )
+    if not ok:
+        return False, direction, confirmations, warnings, imbalance
+    return True, direction, confirmations, warnings, imbalance
 
 
 def classify_setup_c(report: SingleStockReport) -> SetupClassification | None:
     """Classify the report as Type C (Deep Conviction) if criteria met. Else None."""
     net_premium = report.flow.net_premium
     abs_net = abs(net_premium)
-    iv_rank = report.volatility.iv_rank
-    confirmations: list[str] = []
-    warnings: list[str] = []
 
     if abs_net < NET_PREMIUM_THRESHOLD:
         return None
 
     direction = _direction_from_flow(net_premium)
-
-    if iv_rank is None:
-        warnings.append("iv_rank unavailable")
-        # Don't classify without IV rank
+    ok, confirmations, warnings, imbalance = _flow_context(
+        net_premium=net_premium,
+        total_premium=report.flow.bull_premium + report.flow.bear_premium,
+        iv_rank=report.volatility.iv_rank,
+    )
+    if not ok:
         return None
-
-    if direction == "bull" and iv_rank < IV_RANK_HIGH:
-        return None
-    if direction == "bear" and iv_rank > IV_RANK_LOW:
-        return None
-
-    confirmations.append(f"net premium = ${abs_net:,.0f} ({direction})")
-    confirmations.append(f"iv_rank = {iv_rank}")
 
     # At least one corroborating signal
     corroborated = False
@@ -129,15 +166,10 @@ def classify_setup_c(report: SingleStockReport) -> SetupClassification | None:
 
     # Score: weighted blend, capped at 5.0
     premium_score = min(Decimal("3"), abs_net / Decimal("100000000") * Decimal("3"))
-    ivr_score = Decimal("0")
-    if direction == "bull":
-        ivr_score = (iv_rank - IV_RANK_HIGH) / Decimal("30") * Decimal("1")
-    else:
-        ivr_score = (IV_RANK_LOW - iv_rank) / Decimal("30") * Decimal("1")
-    ivr_score = max(Decimal("0"), min(Decimal("1"), ivr_score))
+    flow_score = max(Decimal("0"), min(Decimal("1"), imbalance))
     corr_score = Decimal("1") if corroborated else Decimal("0")
 
-    raw = premium_score + ivr_score + corr_score
+    raw = premium_score + flow_score + corr_score
     score = min(Decimal("5"), max(Decimal("0"), raw))
 
     return SetupClassification(
@@ -148,8 +180,9 @@ def classify_setup_c(report: SingleStockReport) -> SetupClassification | None:
         confirmations=confirmations,
         warnings=warnings,
         notes=(
-            f"Type C: |net premium| ≥ ${NET_PREMIUM_THRESHOLD:,.0f}, IV rank "
-            f"thresholds met for {direction}, corroborated by "
+            f"Type C: |net premium| ≥ ${NET_PREMIUM_THRESHOLD:,.0f}, "
+            f"flow imbalance ≥ {FLOW_IMBALANCE_THRESHOLD:.0%} for {direction}, "
+            f"corroborated by "
             f"{'dark pool' if report.dark_pool_notional and report.dark_pool_notional >= DARK_POOL_NOTIONAL_THRESHOLD else 'OI build'}."
         ),
     )
@@ -201,7 +234,7 @@ def classify_setup_f(row: BulkScreenerRow) -> SetupClassification | None:
     over C in the scan context — callers should call this BEFORE the C-only
     fallback when ranking screener rows.
     """
-    ok, direction, confirmations = _check_c_base(row)
+    ok, direction, confirmations, warnings, imbalance = _check_c_base(row)
     if not ok or direction is None:
         return None
 
@@ -209,20 +242,15 @@ def classify_setup_f(row: BulkScreenerRow) -> SetupClassification | None:
     if len(signals) < F_MIN_SIGNALS:
         return None
 
-    # Score: blend net-premium magnitude, IV-rank distance, and signal count.
+    # Score: blend net-premium magnitude, flow quality, and signal count.
     net_premium = _row_net_premium(row) or Decimal("0")
     abs_net = abs(net_premium)
-    iv_rank = row.iv_rank or Decimal("0")
 
     premium_score = min(Decimal("2"), abs_net / Decimal("100000000") * Decimal("2"))
-    if direction == "bull":
-        ivr_score = (iv_rank - IV_RANK_HIGH) / Decimal("30") * Decimal("1")
-    else:
-        ivr_score = (IV_RANK_LOW - iv_rank) / Decimal("30") * Decimal("1")
-    ivr_score = max(Decimal("0"), min(Decimal("1"), ivr_score))
+    flow_score = max(Decimal("0"), min(Decimal("1"), imbalance))
     signal_score = min(Decimal("2"), Decimal(len(signals)) * Decimal("0.5"))
 
-    raw = premium_score + ivr_score + signal_score + Decimal("1")  # +1 base for F
+    raw = premium_score + flow_score + signal_score + Decimal("1")  # +1 base for F
     score = min(Decimal("6"), max(Decimal("0"), raw))
 
     confs = list(confirmations) + [f"{len(signals)} corroborating signals: {signals}"]
@@ -233,7 +261,7 @@ def classify_setup_f(row: BulkScreenerRow) -> SetupClassification | None:
         direction=direction,
         score=score,
         confirmations=confs,
-        warnings=[],
+        warnings=warnings,
         notes=(
             f"Type F: Type C base met ({direction}), plus {len(signals)} of 4 "
             f"corroborating signals (need ≥ {F_MIN_SIGNALS})."
@@ -246,24 +274,19 @@ def classify_setup_c_from_row(row: BulkScreenerRow) -> SetupClassification | Non
 
     Used in the Full Scan as the fallback when Type F doesn't qualify. Scan-row
     Type C does NOT check dark pool / OI build (those are S3 fanout); the C
-    base check (premium + IV rank) is sufficient at the scan level.
+    base check (premium magnitude + flow imbalance) is sufficient at scan level.
     """
-    ok, direction, confirmations = _check_c_base(row)
+    ok, direction, confirmations, warnings, imbalance = _check_c_base(row)
     if not ok or direction is None:
         return None
 
     net_premium = _row_net_premium(row) or Decimal("0")
     abs_net = abs(net_premium)
-    iv_rank = row.iv_rank or Decimal("0")
 
     premium_score = min(Decimal("3"), abs_net / Decimal("100000000") * Decimal("3"))
-    if direction == "bull":
-        ivr_score = (iv_rank - IV_RANK_HIGH) / Decimal("30") * Decimal("1")
-    else:
-        ivr_score = (IV_RANK_LOW - iv_rank) / Decimal("30") * Decimal("1")
-    ivr_score = max(Decimal("0"), min(Decimal("1"), ivr_score))
+    flow_score = max(Decimal("0"), min(Decimal("1"), imbalance))
 
-    raw = premium_score + ivr_score
+    raw = premium_score + flow_score
     score = min(Decimal("4"), max(Decimal("0"), raw))
 
     return SetupClassification(
@@ -272,9 +295,9 @@ def classify_setup_c_from_row(row: BulkScreenerRow) -> SetupClassification | Non
         direction=direction,
         score=score,
         confirmations=confirmations,
-        warnings=[],
+        warnings=warnings,
         notes=(
             f"Type C (scan-row): |net premium| ≥ ${NET_PREMIUM_THRESHOLD:,.0f}, "
-            f"IV rank gate met for {direction}."
+            f"flow imbalance ≥ {FLOW_IMBALANCE_THRESHOLD:.0%} for {direction}."
         ),
     )

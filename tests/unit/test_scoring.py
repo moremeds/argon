@@ -37,6 +37,8 @@ def _mk_report(
     dark_pool_notional: Decimal | None = None,
     oi_change_top_count: int = 0,
 ) -> SingleStockReport:
+    bull_premium = max(net_premium, Decimal("0"))
+    bear_premium = abs(min(net_premium, Decimal("0")))
     return SingleStockReport(
         run_id=1,
         ticker="TSLA",
@@ -47,9 +49,9 @@ def _mk_report(
             ticker="TSLA",
             flow_count=10,
             net_premium=net_premium,
-            bull_premium=Decimal("10000000"),
-            bear_premium=Decimal("0"),
-            ask_side_premium=Decimal("0"),
+            bull_premium=bull_premium,
+            bear_premium=bear_premium,
+            ask_side_premium=abs(net_premium),
             bid_side_premium=Decimal("0"),
         ),
         vrp=VRPAssessment(vrp=None, signal="unknown", note=""),
@@ -92,23 +94,28 @@ def test_low_premium_returns_none():
     assert classify_setup_c(r) is None
 
 
-def test_wrong_direction_iv_rank_returns_none():
-    # Bull flow but low IV rank → no C
+def test_low_iv_rank_does_not_veto_bull_direction():
     r = _mk_report(
         net_premium=Decimal("20000000"),
         iv_rank=Decimal("20"),
         dark_pool_notional=Decimal("500000000"),
     )
-    assert classify_setup_c(r) is None
+    setup = classify_setup_c(r)
+    assert setup is not None
+    assert setup.direction == "bull"
+    assert any("iv_rank = 20" in c for c in setup.confirmations)
 
 
-def test_missing_iv_rank_returns_none():
+def test_missing_iv_rank_does_not_veto_strong_flow():
     r = _mk_report(
         net_premium=Decimal("20000000"),
         iv_rank=None,
         dark_pool_notional=Decimal("500000000"),
     )
-    assert classify_setup_c(r) is None
+    setup = classify_setup_c(r)
+    assert setup is not None
+    assert setup.direction == "bull"
+    assert "iv_rank unavailable; direction uses flow, not IV rank" in setup.warnings
 
 
 def test_no_corroborating_signal_returns_none():
@@ -148,11 +155,15 @@ def _mk_row(
     total_open_interest: int | None = 1_000_000,
     variance_risk_premium: Decimal | None = None,
     relative_volume: Decimal | None = None,
+    call_premium: Decimal | None = Decimal("100000000"),
+    put_premium: Decimal | None = Decimal("0"),
 ) -> BulkScreenerRow:
     return BulkScreenerRow(
         ticker=ticker,
         net_call_premium=net_call_premium,
         net_put_premium=net_put_premium,
+        call_premium=call_premium,
+        put_premium=put_premium,
         iv_rank=iv_rank,
         gex_net_change=gex_net_change,
         total_open_interest=total_open_interest,
@@ -211,8 +222,8 @@ def test_classify_setup_f_base_miss_returns_none():
     assert classify_setup_f(row) is None
 
 
-def test_classify_setup_f_iv_rank_gate_returns_none():
-    """Bull flow but low IV rank → no F."""
+def test_classify_setup_f_low_iv_rank_still_qualifies_on_flow_and_signals():
+    """Bull flow with low IV rank can still be F; IV rank is structure context."""
     row = _mk_row(
         net_call_premium=Decimal("100000000"),
         net_put_premium=Decimal("0"),
@@ -222,7 +233,10 @@ def test_classify_setup_f_iv_rank_gate_returns_none():
         variance_risk_premium=Decimal("-0.10"),
         relative_volume=Decimal("3.0"),
     )
-    assert classify_setup_f(row) is None
+    setup = classify_setup_f(row)
+    assert setup is not None
+    assert setup.setup_type == "F"
+    assert setup.direction == "bull"
 
 
 def test_classify_setup_f_bear_with_signals():
@@ -250,7 +264,10 @@ def test_classify_setup_f_missing_iv_rank_returns_none():
         total_open_interest=1_000_000,
         variance_risk_premium=Decimal("-0.10"),
     )
-    assert classify_setup_f(row) is None
+    setup = classify_setup_f(row)
+    assert setup is not None
+    assert setup.direction == "bull"
+    assert "iv_rank unavailable; direction uses flow, not IV rank" in setup.warnings
 
 
 def test_detect_f_signals_counts_correctly():
@@ -278,6 +295,17 @@ def test_classify_setup_c_from_row_qualifies():
     assert setup is not None
     assert setup.setup_type == "C"
     assert setup.direction == "bull"
+
+
+def test_classify_setup_c_from_row_rejects_weak_flow_imbalance():
+    row = _mk_row(
+        net_call_premium=Decimal("105000000"),
+        net_put_premium=Decimal("95000000"),
+        call_premium=Decimal("105000000"),
+        put_premium=Decimal("95000000"),
+        iv_rank=Decimal("90"),
+    )
+    assert classify_setup_c_from_row(row) is None
 
 
 def test_classify_setup_c_from_row_below_premium():

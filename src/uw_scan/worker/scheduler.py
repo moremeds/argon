@@ -109,6 +109,7 @@ def _ohlc_provider(
     return MassiveOhlcProvider(
         api_key=settings.massive_api_key.get_secret_value(),
         base_url=settings.massive_base_url,
+        timeout=settings.request_timeout_seconds,
         telemetry_recorder=telemetry_recorder,
         job_name=job_name,
     )
