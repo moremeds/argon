@@ -96,6 +96,15 @@ def test_fetch_intraday_quote_uses_latest_minute_bar():
     assert q.quoted_at.tzinfo is timezone.utc
 
 
+def test_fetch_intraday_quote_uses_supplied_market_date():
+    def handler(req):
+        assert req.url.path == "/v2/aggs/ticker/TSLA/range/1/minute/2026-05-13/2026-05-14"
+        return httpx.Response(200, json={"results": []})
+
+    p = _provider_with(handler)
+    assert p.fetch_intraday_quote("TSLA", market_date=date(2026, 5, 13)) is None
+
+
 def test_fetch_intraday_quote_empty_results():
     p = _provider_with(lambda req: httpx.Response(200, json={"results": []}))
     assert p.fetch_intraday_quote("ZZZZ") is None

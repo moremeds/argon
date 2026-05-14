@@ -10,6 +10,7 @@ the card row. The next full scan resets them — acceptable per spec.
 from __future__ import annotations
 
 import logging
+from datetime import date
 
 from uw_scan.cards.returns import compute_returns
 from uw_scan.sources.ohlc import OhlcProvider
@@ -17,12 +18,17 @@ from uw_scan.sources.ohlc import OhlcProvider
 logger = logging.getLogger(__name__)
 
 
-def spot_refresh_once(repo, provider: OhlcProvider) -> int:
+def spot_refresh_once(
+    repo,
+    provider: OhlcProvider,
+    *,
+    market_date: date | None = None,
+) -> int:
     """One pass over the active watchlist. Returns the number of cards updated."""
     updated = 0
     for w in repo.list_active_watchlist():
         try:
-            quote = provider.fetch_intraday_quote(w.ticker)
+            quote = provider.fetch_intraday_quote(w.ticker, market_date=market_date)
             if quote is None:
                 continue
             repo.upsert_intraday_quote(w.ticker, quote.price, quote.quoted_at)
