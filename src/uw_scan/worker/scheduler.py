@@ -11,6 +11,7 @@ from datetime import date, datetime, time
 from zoneinfo import ZoneInfo
 
 import psycopg
+from apscheduler.schedulers import SchedulerNotRunningError
 from apscheduler.schedulers.blocking import BlockingScheduler
 from apscheduler.triggers.cron import CronTrigger
 from apscheduler.triggers.interval import IntervalTrigger
@@ -221,9 +222,18 @@ def main() -> int:
             misfire_grace_time=max(30, settings.trade_insights_ai_poll_seconds * 5),
         )
 
+    stopping = False
+
     def _stop(_sig, _frame):
+        nonlocal stopping
+        if stopping:
+            sys.exit(0)
+        stopping = True
         logger.info("received signal, shutting down scheduler")
-        sched.shutdown(wait=False)
+        try:
+            sched.shutdown(wait=False)
+        except SchedulerNotRunningError:
+            pass
         sys.exit(0)
 
     signal.signal(signal.SIGTERM, _stop)
