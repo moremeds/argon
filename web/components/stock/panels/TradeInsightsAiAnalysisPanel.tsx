@@ -395,7 +395,7 @@ function OutcomeGrid({ outcome }: { outcome: Outcome }) {
         >
           <SectionSummaryCard
             section={outcome.section_cards.market_structure}
-            tone="positive"
+            tone={toneFromText(outcome.section_cards.market_structure.summary)}
           />
           <SectionSummaryCard
             section={outcome.section_cards.volatility}
@@ -554,9 +554,24 @@ export function TradeInsightsAiAnalysisPanel({ ticker }: { ticker: string }) {
           setAnalysis(latest);
           if (isInFlight(latest)) {
             setLoading(true);
-            await pollAnalysis(latest, token);
-            if (!cancelled && requestTokenRef.current === token) {
-              setLoading(false);
+            try {
+              await pollAnalysis(latest, token);
+            } catch (err) {
+              if (!cancelled && requestTokenRef.current === token) {
+                if (String(err).includes("503")) {
+                  setUnavailable(true);
+                } else {
+                  setAnalysis((currentAnalysis) => ({
+                    ...currentAnalysis,
+                    status: "failed",
+                    error_message: String(err),
+                  }) as TradeInsightsAiAnalysisResponse);
+                }
+              }
+            } finally {
+              if (!cancelled && requestTokenRef.current === token) {
+                setLoading(false);
+              }
             }
           }
         }

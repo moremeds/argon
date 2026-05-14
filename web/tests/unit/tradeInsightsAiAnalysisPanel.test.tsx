@@ -284,6 +284,23 @@ describe("TradeInsightsAiAnalysisPanel", () => {
     expect(screen.getAllByText(/2026-03-24/).length).toBeGreaterThan(0);
   });
 
+  it("derives market structure card tone from the AI read", async () => {
+    const bearish = succeededResponse();
+    if (bearish.outcome) {
+      bearish.outcome.section_cards.market_structure.summary =
+        "Bearish below the GEX flip.";
+    }
+    vi.mocked(api.tradeInsightsAiAnalysis).mockResolvedValueOnce(baseResponse);
+    vi.mocked(api.tradeInsightsAiAnalysisStatus).mockResolvedValueOnce(bearish);
+    render(<TradeInsightsAiAnalysisPanel ticker="TSLA" />);
+
+    fireEvent.click(screen.getByText("Run AI Analysis"));
+
+    const topGrid = await screen.findByTestId("ai-analysis-upper-card-grid");
+    const marketCard = topGrid.firstElementChild as HTMLElement;
+    expect(marketCard.style.borderLeft).toContain("var(--negative)");
+  });
+
   it("hydrates the latest saved analysis under StrictMode effect replay", async () => {
     vi.mocked(api.tradeInsightsAiAnalysisLatest).mockResolvedValue(
       succeededResponse(),
@@ -323,6 +340,22 @@ describe("TradeInsightsAiAnalysisPanel", () => {
       await status.promise;
     });
     expect(await screen.findByText("BUY setup")).toBeDefined();
+    expect(api.tradeInsightsAiAnalysis).not.toHaveBeenCalled();
+  });
+
+  it("surfaces resume polling failures with retry affordance", async () => {
+    vi.mocked(api.tradeInsightsAiAnalysisLatest).mockResolvedValueOnce(baseResponse);
+    vi.mocked(api.tradeInsightsAiAnalysisStatus).mockRejectedValueOnce(
+      new Error("API 500 for /ai-analysis/status: worker unavailable"),
+    );
+
+    render(<TradeInsightsAiAnalysisPanel ticker="TSLA" />);
+
+    expect(
+      await screen.findByText(/worker unavailable/i),
+    ).toBeDefined();
+    expect(screen.getByText("Retry")).toBeDefined();
+    expect(screen.queryByText(/AI analysis queued/i)).toBeNull();
     expect(api.tradeInsightsAiAnalysis).not.toHaveBeenCalled();
   });
 

@@ -32,6 +32,7 @@ STRATEGY_FAMILY_IDS = frozenset(
         "no_trade",
     }
 )
+PREFERRED_STRATEGY_FAMILY_IDS = STRATEGY_FAMILY_IDS - {"short_strangle"}
 FINAL_RATING_VALUES = ("A", "B", "C", "D", "F")
 
 MARKET_INTELLIGENCE_PROMPT = """You are an institutional options strategist, market-structure analyst, and risk manager.
@@ -605,6 +606,10 @@ def build_trade_insights_ai_analysis_input(
 
     trade_candidates = list(trade_insights_payload.get("candidate_structures") or [])
     synthesis = trade_insights_payload.get("synthesis") or {}
+    next_earnings_date = stock_report_payload.get("next_earnings_date")
+    event_data_known = next_earnings_date is not None
+    if not event_data_known:
+        missing_data.append("tabs.positioning.next_earnings_date is empty")
 
     analysis_input: dict[str, Any] = {
         "prompt_version": PROMPT_VERSION,
@@ -695,13 +700,13 @@ def build_trade_insights_ai_analysis_input(
                     :50
                 ],
                 "aggregates": stock_report_payload.get("aggregates") or {},
-                "next_earnings_date": stock_report_payload.get("next_earnings_date"),
+                "next_earnings_date": next_earnings_date,
             },
             "trade_insights": trade_insights_payload,
         },
         "candidate_structures": trade_candidates,
         "required_before_sizing": list(synthesis.get("required_before_sizing") or []),
-        "event_data_known": False,
+        "event_data_known": event_data_known,
         "data_freshness": _build_data_freshness(
             stock_history_rows=stock_history_rows,
             hv_iv_history=hv_iv_history,
@@ -834,10 +839,12 @@ def build_trade_insights_ai_prompt(prompt_payload: dict[str, Any]) -> str:
         "selection rejects, and rendering.disclaimer/final text for research-only framing.\n"
         "For preferred_expression, best_expressions, and rejected_ideas idea_id fields, use "
         "a supplied candidate_structures idea_id when referencing a deterministic candidate. "
-        "When referencing a strategy family from Strategy Selection Logic instead, use only "
-        f"one canonical strategy id from {sorted(STRATEGY_FAMILY_IDS)}. For strategy-family "
+        "When referencing a strategy family from Strategy Selection Logic in "
+        "preferred_expression or best_expressions, use only one canonical strategy id "
+        f"from {sorted(PREFERRED_STRATEGY_FAMILY_IDS)}. For strategy-family "
         "preferred_expression or best_expressions entries, set status_observed to "
-        "strategy_review and risk_flags_observed to [].\n"
+        "strategy_review and risk_flags_observed to []. rejected_ideas may reference "
+        f"any canonical strategy id from {sorted(STRATEGY_FAMILY_IDS)}.\n"
         f"Put only one final rating letter from {list(FINAL_RATING_VALUES)} in "
         "headline.conviction; put the explanatory rating text in "
         "headline.conviction_label.\n"
@@ -882,6 +889,16 @@ _IMPERATIVE_PHRASES = (
     "place this order",
     "size this position",
 )
+_IMPERATIVE_PATTERNS = tuple(
+    re.compile(pattern, re.I)
+    for pattern in (
+        r"\byou\s+should\s+(?:buy|sell|enter|open|execute)\b",
+        r"\bmust\s+(?:buy|sell|enter|open|execute)\b",
+        r"\b(?:take|open)\s+this\s+trade\b",
+        r"\b(?:place|send)\s+(?:this|the|an?)\s+order\b",
+        r"\bgo\s+(?:long|short)\s+now\b",
+    )
+)
 
 
 def _candidate_map(deterministic_payload: dict[str, Any]) -> dict[str, dict[str, Any]]:
@@ -903,16 +920,20 @@ def _path_family_exists(path: str, deterministic_payload: dict[str, Any]) -> boo
     parts = [_PATH_PART_INDEX_RE.sub("", p) for p in path.split(".") if p]
     if not parts:
         return False
-    node: Any = deterministic_payload
-    for part in parts:
-        while isinstance(node, list):
-            if not node or not isinstance(node[0], dict):
-                return False
-            node = node[0]
-        if not isinstance(node, dict) or part not in node:
+    return _path_parts_exist(deterministic_payload, parts)
+
+
+def _path_parts_exist(node: Any, parts: list[str]) -> bool:
+    if not parts:
+        return True
+    if isinstance(node, list):
+        if not node:
             return False
-        node = node[part]
-    return True
+        return any(_path_parts_exist(item, parts) for item in node)
+    part = parts[0]
+    if not isinstance(node, dict) or part not in node:
+        return False
+    return _path_parts_exist(node[part], parts[1:])
 
 
 def _mentions_missing_data(item: Any) -> bool:
@@ -963,6 +984,9 @@ def _reject_imperative_text(outcome: TradeInsightAiOutcome) -> None:
     for phrase in _IMPERATIVE_PHRASES:
         if re.search(rf"(^|[.!?]\s+){re.escape(phrase)}\b", free_text, re.I):
             raise ValueError(f"imperative trade instruction rejected: {phrase}")
+    for pattern in _IMPERATIVE_PATTERNS:
+        if pattern.search(free_text):
+            raise ValueError("imperative trade instruction rejected")
 
 
 def validate_trade_insights_ai_outcome(
@@ -1018,6 +1042,10 @@ def validate_trade_insights_ai_outcome(
         echo_items.append(parsed.preferred_expression)
     for item in echo_items:
         if item.idea_id in STRATEGY_FAMILY_IDS:
+            if item.idea_id not in PREFERRED_STRATEGY_FAMILY_IDS:
+                raise ValueError(
+                    f"undefined-risk strategy family cannot be preferred: {item.idea_id}"
+                )
             if item.status_observed != "strategy_review":
                 raise ValueError(
                     f"strategy status_observed must be strategy_review for {item.idea_id}"
@@ -1032,6 +1060,11 @@ def validate_trade_insights_ai_outcome(
             raise ValueError(f"status_observed changed for idea_id {item.idea_id}")
         if item.risk_flags_observed != list(candidate.get("risk_flags") or []):
             raise ValueError(f"risk_flags_observed changed for idea_id {item.idea_id}")
+
+    for conflict in parsed.conflicts:
+        for idea_id in conflict.affected_idea_ids:
+            if not _known_idea_id(idea_id, candidates):
+                raise ValueError(f"unknown idea_id referenced: {idea_id}")
 
     if not (
         parsed.guardrails.statuses_preserved

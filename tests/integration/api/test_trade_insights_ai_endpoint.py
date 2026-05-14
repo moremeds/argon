@@ -190,6 +190,41 @@ def test_trade_insights_ai_post_queues_and_get_fetches_status(
     assert client.get(f"/api/stock/AAPL/trade-insights/ai-analysis/{body['analysis_id']}").status_code == 404
 
 
+def test_trade_insights_ai_latest_resumes_active_progress(
+    seeded_db_empty_cards,
+    monkeypatch,
+):
+    repo = seeded_db_empty_cards
+    _seed_run(repo)
+    _patch_api_sources(monkeypatch)
+    client = _client_for_settings(_settings_for_repo(repo))
+
+    first = client.post("/api/stock/TSLA/trade-insights/ai-analysis", json={}).json()
+    latest = client.get("/api/stock/TSLA/trade-insights/ai-analysis/latest")
+
+    assert latest.status_code == 200
+    assert latest.json()["analysis_id"] == first["analysis_id"]
+    assert latest.json()["status"] == "queued"
+
+    row = repo.get_trade_insight_ai_analysis(first["analysis_id"], ticker="TSLA")
+    assert row is not None
+    repo.complete_trade_insight_ai_analysis(
+        first["analysis_id"],
+        outcome=_sample_outcome_for(row["analysis_input_jsonb"]),
+        markdown="done",
+    )
+    repo.conn.commit()
+    forced = client.post(
+        "/api/stock/TSLA/trade-insights/ai-analysis",
+        json={"force_rerun": True},
+    ).json()
+    latest_after_rerun = client.get("/api/stock/TSLA/trade-insights/ai-analysis/latest")
+
+    assert latest_after_rerun.status_code == 200
+    assert latest_after_rerun.json()["analysis_id"] == forced["analysis_id"]
+    assert latest_after_rerun.json()["status"] == "queued"
+
+
 def test_trade_insights_ai_post_reuses_active_analysis_for_same_input(
     seeded_db_empty_cards,
     monkeypatch,
