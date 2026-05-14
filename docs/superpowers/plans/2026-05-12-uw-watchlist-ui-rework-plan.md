@@ -2761,7 +2761,7 @@ class Settings(BaseModel):
     # ... existing fields ...
     # Scheduler — consumed by uw_scan.worker.scheduler and uw_scan.api.routers.health
     spot_refresh_seconds: int = 300
-    full_scan_cron: str = "*/60 9-16 * * 1-5"
+    full_scan_cron: str = "0 5-16 * * 1-5"
     ohlc_pull_cron: str = "30 17 * * 1-5"
     rth_tz: str = "America/New_York"
     # OHLC provider (massive.com)
@@ -2773,7 +2773,7 @@ And in `from_env`:
 
 ```python
             spot_refresh_seconds=int(os.environ.get("UW_SCAN_SPOT_REFRESH_SECONDS", "300")),
-            full_scan_cron=os.environ.get("UW_SCAN_FULL_SCAN_CRON", "*/60 9-16 * * 1-5"),
+            full_scan_cron=os.environ.get("UW_SCAN_FULL_SCAN_CRON", "0 5-16 * * 1-5"),
             ohlc_pull_cron=os.environ.get("UW_SCAN_OHLC_PULL_CRON", "30 17 * * 1-5"),
             rth_tz=os.environ.get("UW_SCAN_RTH_TZ", "America/New_York"),
             # SecretStr("") is truthy and not None, which would silently let the
@@ -3757,7 +3757,7 @@ def _full_scan_interval_seconds(cron_expr: str, tz: str) -> float:
 
     APScheduler exposes `get_next_fire_time(previous, now)`, so we get two
     consecutive firings starting from now and measure the gap. For the
-    default `*/60 9-16 * * 1-5`, that's ~3600 seconds inside RTH and
+    default `0 5-16 * * 1-5`, that's ~3600 seconds inside the scan window and
     ~17 hours overnight; we use the *RTH* interval as the threshold so
     after-hours doesn't accidentally mark the system unhealthy.
     """
@@ -5026,7 +5026,7 @@ if __name__ == "__main__":
 
 - [ ] **Step 2: Add `tzdata` is already in pyproject (S0.4). Verify the cron expression parses**
 
-Run: `uv run python -c "from apscheduler.triggers.cron import CronTrigger; CronTrigger.from_crontab('*/60 9-16 * * 1-5', timezone='America/New_York')"`
+Run: `uv run python -c "from apscheduler.triggers.cron import CronTrigger; CronTrigger.from_crontab('0 5-16 * * 1-5', timezone='America/New_York')"`
 Expected: no error.
 
 - [ ] **Step 3: Smoke-boot the scheduler for ~5 seconds, then SIGTERM**
@@ -6789,4 +6789,3 @@ After all 12 slices land, run these checks:
 - [ ] **Streamlit gone:** `find . -path ./node_modules -prune -o -name "streamlit_app.py" -print` is empty; `pyproject.toml` has no `streamlit` entry.
 - [ ] **Specs archived:** `ls docs/superpowers/archive/specs/ docs/superpowers/archive/plans/` lists the four moved files.
 - [ ] **Health is honest:** kill the worker; `/api/health` reports `ok:false` after the configured lag threshold; `/watchlist` shows a warning banner.
-

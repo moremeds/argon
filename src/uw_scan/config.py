@@ -56,7 +56,7 @@ class Settings(BaseModel):
     base_url: str = "https://api.unusualwhales.com"
     # Scheduler — consumed by uw_scan.worker.scheduler and uw_scan.api.routers.health
     spot_refresh_seconds: int = 300
-    full_scan_cron: str = "0 9-16 * * 1-5"
+    full_scan_cron: str = "0 5-16 * * 1-5"
     ohlc_pull_cron: str = "30 17 * * 1-5"
     rth_tz: str = "America/New_York"
     # OHLC provider (massive.com)
@@ -102,7 +102,7 @@ class Settings(BaseModel):
             spot_refresh_seconds=int(
                 os.environ.get("UW_SCAN_SPOT_REFRESH_SECONDS", "300")
             ),
-            full_scan_cron=os.environ.get("UW_SCAN_FULL_SCAN_CRON", "0 9-16 * * 1-5"),
+            full_scan_cron=os.environ.get("UW_SCAN_FULL_SCAN_CRON", "0 5-16 * * 1-5"),
             ohlc_pull_cron=os.environ.get("UW_SCAN_OHLC_PULL_CRON", "30 17 * * 1-5"),
             rth_tz=os.environ.get("UW_SCAN_RTH_TZ", "America/New_York"),
             # SecretStr("") is truthy and not None — would silently allow the

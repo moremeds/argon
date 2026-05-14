@@ -477,7 +477,7 @@ APScheduler running in a dedicated worker process (`python -m uw_scan.worker.sch
 | Job | Trigger (default) | What it does | UW cost |
 |---|---|---|---|
 | **Spot refresh** | every `UW_SCAN_SPOT_REFRESH_SECONDS` (default 300, RTH only) | Fetch massive.io intraday quote for every active watchlist ticker. Upsert `intraday_quote`. Recompute spot-derived `watchlist_card` fields: `spot`, `spot_quoted_at`, `spot_source`, `ret_1d`, `ret_1w`, `ret_30d`, `gex_per_1pct_move`, `gex_flip_distance` | none |
-| **Full scan** | `UW_SCAN_FULL_SCAN_CRON` (default `*/60 9-16 * * 1-5` ET, plus `15 16 * * 1-5` EOD) | For every active watchlist ticker, run `run_single_stock`. Persist `scan_runs` + `strike_gex_curve` + full `watchlist_card` row. Append `pcr_history` row | ~54 ticker calls per run |
+| **Full scan** | `UW_SCAN_FULL_SCAN_CRON` (default `0 5-16 * * 1-5` ET) | For active watchlist tickers with no card data or card data older than 8h, run `run_single_stock`. Persist `scan_runs` + `strike_gex_curve` + full `watchlist_card` row. Append `pcr_history` row. Explicit rescans bypass this freshness guard | bounded by missing/stale tickers |
 | **Daily OHLC pull** | `UW_SCAN_OHLC_PULL_CRON` (default `30 17 * * 1-5` ET) | Fetch massive.io daily OHLC for every active watchlist ticker; upsert into `daily_ohlc`. Recompute `ret_1w`, `ret_30d` on the card | none |
 
 All times in `UW_SCAN_RTH_TZ` (default `America/New_York`).
@@ -492,7 +492,7 @@ Added to `src/uw_scan/config.py` `Settings`:
 
 ```python
 spot_refresh_seconds: int = 300
-full_scan_cron: str = "*/60 9-16 * * 1-5"
+full_scan_cron: str = "0 5-16 * * 1-5"
 ohlc_pull_cron: str = "30 17 * * 1-5"
 rth_tz: str = "America/New_York"
 massive_io_api_key: SecretStr | None = None

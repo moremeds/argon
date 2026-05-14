@@ -102,6 +102,75 @@ def test_full_scan_writes_card_for_active_tickers(seeded_db_empty_cards):
     assert card.spot == Decimal("445")
 
 
+def test_full_scan_skips_tickers_with_fresh_persisted_data(seeded_db_with_cards):
+    from uw_scan.worker.jobs.full_scan import full_scan_once
+
+    repo = seeded_db_with_cards
+    real_run_id = repo.insert_scan_run("AAPL")
+    repo.finish_scan_run(real_run_id, status="ok")
+    called: list[str] = []
+
+    def fake_report(ticker, *_a, **_k):
+        called.append(ticker)
+        return _stub_report(ticker, run_id=real_run_id)
+
+    with patch(
+        "uw_scan.worker.jobs.full_scan.run_single_stock",
+        side_effect=fake_report,
+    ):
+        full_scan_once(
+            repo,
+            MagicMock(),
+            MagicMock(),
+            now=datetime.now(timezone.utc),
+            stale_after=timedelta(hours=8),
+        )
+
+    assert "TSLA" not in called
+    assert called
+
+
+def test_full_scan_refreshes_tickers_with_stale_persisted_data(
+    seeded_db_with_cards,
+):
+    from uw_scan.worker.jobs.full_scan import full_scan_once
+
+    repo = seeded_db_with_cards
+    now = datetime.now(timezone.utc)
+    with repo.conn.cursor() as cur:
+        cur.execute(
+            f"""
+            UPDATE {repo._schema}.watchlist_card
+            SET scanned_at=%s
+            WHERE ticker='TSLA'
+            """,
+            (now - timedelta(hours=8, seconds=1),),
+        )
+    repo.conn.commit()
+
+    real_run_id = repo.insert_scan_run("TSLA")
+    repo.finish_scan_run(real_run_id, status="ok")
+    called: list[str] = []
+
+    def fake_report(ticker, *_a, **_k):
+        called.append(ticker)
+        return _stub_report(ticker, run_id=real_run_id)
+
+    with patch(
+        "uw_scan.worker.jobs.full_scan.run_single_stock",
+        side_effect=fake_report,
+    ):
+        full_scan_once(
+            repo,
+            MagicMock(),
+            MagicMock(),
+            now=now,
+            stale_after=timedelta(hours=8),
+        )
+
+    assert "TSLA" in called
+
+
 # ---- ohlc_pull -----------------------------------------------------------
 
 

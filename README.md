@@ -29,7 +29,7 @@ A grid of ticker cards, one per name on the watchlist. Filter by sector / setup 
 | **SKEW (30d) / 25Δ RR** | Risk reversal — sign and magnitude of put-vs-call demand. |
 | **POSITIONING** | Raw call/put counts + put/call ratios (OI, volume, 30d Δ). Bar shows balance at a glance. |
 
-Cards refresh on the worker's full-scan cron (`0 9-16 * * 1-5` ET) and on demand via the **rescan** button.
+Cards refresh on the worker's full-scan cron (`0 5-16 * * 1-5` ET) and on demand via the **rescan** button. Automatic UW scans only query tickers with no persisted card data or card data older than 8 hours; explicit rescans always run.
 
 ---
 
