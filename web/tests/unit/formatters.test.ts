@@ -47,12 +47,12 @@ describe("fmtDecimal", () => {
 });
 
 describe("fmtDateTimeWithZone", () => {
-  it("renders a full date, time, and timezone", () => {
+  it("renders a compact date, time, and timezone", () => {
     const formatted = fmtDateTimeWithZone("2026-05-14T00:54:48Z");
-    expect(formatted).toContain("2026");
-    expect(formatted).toContain("May");
-    expect(formatted).toMatch(/\d{2}:\d{2}:\d{2}/);
-    expect(formatted).toMatch(/\b(?:UTC|GMT|[A-Z]{2,5})/);
+    expect(formatted).toMatch(
+      /^\d{4}\/\d{2}\/\d{2} \d{2}:\d{2}:\d{2} (?:GMT[+-]\d{1,2}|UTC|[A-Z]{2,5})$/,
+    );
+    expect(formatted).not.toContain("May");
   });
 
   it("renders a dash for missing timestamps", () => {

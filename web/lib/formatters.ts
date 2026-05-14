@@ -33,16 +33,19 @@ export function fmtDateTimeWithZone(
   if (!iso) return "—";
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return "—";
-  return new Intl.DateTimeFormat("en-US", {
+  const parts = new Intl.DateTimeFormat("en-US", {
     year: "numeric",
-    month: "short",
+    month: "2-digit",
     day: "2-digit",
     hour: "2-digit",
     minute: "2-digit",
     second: "2-digit",
     hour12: false,
     timeZoneName: "short",
-  }).format(d);
+  }).formatToParts(d);
+  const value = (type: Intl.DateTimeFormatPartTypes) =>
+    parts.find((part) => part.type === type)?.value ?? "";
+  return `${value("year")}/${value("month")}/${value("day")} ${value("hour")}:${value("minute")}:${value("second")} ${value("timeZoneName")}`;
 }
 
 /**
