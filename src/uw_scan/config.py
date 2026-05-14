@@ -65,7 +65,7 @@ class Settings(BaseModel):
     # Trade Insights V1.5 local Codex analysis
     trade_insights_ai_enabled: bool = False
     trade_insights_ai_model: str = ""
-    trade_insights_ai_timeout_seconds: float = 90.0
+    trade_insights_ai_timeout_seconds: float = 300.0
     trade_insights_ai_max_output_bytes: int = 262144
     trade_insights_ai_poll_seconds: int = 3
 
@@ -119,7 +119,7 @@ class Settings(BaseModel):
             trade_insights_ai_enabled=_env_bool("TRADE_INSIGHTS_AI_ENABLED", False),
             trade_insights_ai_model=os.environ.get("TRADE_INSIGHTS_AI_MODEL", ""),
             trade_insights_ai_timeout_seconds=float(
-                os.environ.get("TRADE_INSIGHTS_AI_TIMEOUT_SECONDS", "90.0")
+                os.environ.get("TRADE_INSIGHTS_AI_TIMEOUT_SECONDS", "300.0")
             ),
             trade_insights_ai_max_output_bytes=int(
                 os.environ.get("TRADE_INSIGHTS_AI_MAX_OUTPUT_BYTES", "262144")

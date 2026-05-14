@@ -235,9 +235,15 @@ def post_trade_insights_ai_analysis(
 )
 def get_latest_trade_insights_ai_analysis(
     ticker: str,
+    settings: Settings = Depends(get_settings),
     repo: Repository = Depends(get_repo),
 ) -> TradeInsightAiAnalysisResponse | None:
-    row = repo.find_latest_succeeded_trade_insight_ai_analysis(ticker=ticker.upper())
+    model_label = settings.trade_insights_ai_model.strip() or "codex-default"
+    row = repo.find_latest_trade_insight_ai_analysis(
+        ticker=ticker.upper(),
+        prompt_version=PROMPT_VERSION,
+        model=model_label,
+    )
     if row is None:
         return None
     return _row_to_ai_response(row)

@@ -14,6 +14,7 @@ import psycopg
 
 from uw_scan.config import Settings
 from uw_scan.reports.trade_insights_ai import (
+    PROMPT_VERSION,
     build_trade_insights_ai_prompt,
     build_trade_insights_ai_prompt_payload,
     render_trade_insights_ai_markdown,
@@ -155,6 +156,13 @@ def trade_insights_ai_tick(settings: Settings) -> bool:
             repo.conn.commit()
             return False
         analysis_id = str(row["analysis_id"])
+        if row["prompt_version"] != PROMPT_VERSION:
+            repo.fail_trade_insight_ai_analysis(
+                analysis_id,
+                f"obsolete prompt_version {row['prompt_version']} superseded by {PROMPT_VERSION}",
+            )
+            repo.conn.commit()
+            return True
         analysis_input = dict(row["analysis_input_jsonb"])
         produced_at = datetime.now(timezone.utc)
         prompt_payload = build_trade_insights_ai_prompt_payload(

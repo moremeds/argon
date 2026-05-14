@@ -39,7 +39,7 @@ Environment:
 
 - `TRADE_INSIGHTS_AI_ENABLED` — enable the worker/API path when true
 - `TRADE_INSIGHTS_AI_MODEL` — optional Codex model; blank means local Codex default and rows store `codex-default`
-- `TRADE_INSIGHTS_AI_TIMEOUT_SECONDS` — subprocess timeout, default 90
+- `TRADE_INSIGHTS_AI_TIMEOUT_SECONDS` — subprocess timeout, default 300
 - `TRADE_INSIGHTS_AI_MAX_OUTPUT_BYTES` — structured output cap, default 262144
 - `TRADE_INSIGHTS_AI_POLL_SECONDS` — worker polling interval, default 3
 

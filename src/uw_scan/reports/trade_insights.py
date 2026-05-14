@@ -420,12 +420,9 @@ def assemble_trade_insights(
     flow_rows = _build_flow_table(contracts)
     term_rows = _build_term_rows(repo.fetch_iv_term_rows(run_id, ticker), contracts, spot)
     candidates = _build_candidates(contracts, spot)
-    # V1 intentionally hardcodes event_data_known=False so every candidate ends
-    # as `needs_check` and `preferred_idea_id` stays None. The earnings/dividend
-    # plumbing exists upstream (flow_events.next_earnings_date,
-    # SingleStockReport.next_earnings_date) but is not wired through to this
-    # assembler in V1. A follow-up patch should read those fields and flip the
-    # gate when both are present and outside all candidate expiries.
+    # Event data is still not wired through this assembler, so it stays visible
+    # as a required pre-sizing check. It should not suppress the research read
+    # or erase the best defined-risk candidate.
     event_data_known = False
     liquidity_ready = bool(contracts) and all(c.max_loss is not None for c in candidates)
 
@@ -475,16 +472,10 @@ def assemble_trade_insights(
         ),
     ]
 
-    can_prefer = (
-        bool(candidates)
-        and event_data_known
-        and liquidity_ready
-        and source_reconciliation.status != "UNKNOWN"
-    )
-    if not can_prefer:
-        for candidate in candidates:
-            candidate.status = "needs_check"
+    can_prefer = bool(candidates) and liquidity_ready
     preferred = candidates[0].idea_id if can_prefer else None
+    for candidate in candidates:
+        candidate.status = "preferred" if candidate.idea_id == preferred else "candidate"
     return TradeInsightsResponse(
         ticker=ticker,
         as_of=as_of,
@@ -503,12 +494,17 @@ def assemble_trade_insights(
         term_structure_table=term_rows,
         candidate_structures=candidates,
         synthesis=InsightsSynthesis(
-            dominant_story="Deterministic research-grade ideas built from current chain, flow, and term data."
+            dominant_story=(
+                f"Research-grade setup favors candidate {preferred}; event, source, and "
+                "liquidity checks remain pre-sizing controls."
+            )
+            if preferred
+            else "Deterministic research-grade ideas built from current chain, flow, and term data."
             if candidates
             else "Insufficient option-chain data for structure generation.",
             preferred_idea_id=preferred,
             best_risk_reward_idea_id=preferred,
-            avoid=["Naked short options", "Executable recommendation language"],
+            avoid=["Naked short options", "Undefined-risk short-vol structures"],
             required_before_sizing=[
                 "Confirm event calendar through all expiries",
                 "Confirm bid/ask width and open interest",
