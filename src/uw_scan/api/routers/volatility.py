@@ -16,6 +16,7 @@ from uw_scan.reports.volatility_series import (
     run_volatility_backfill,
 )
 from uw_scan.storage.repository import Repository
+from uw_scan.storage.provider_usage import ExternalApiRequestRecorder
 
 router = APIRouter()
 log = logging.getLogger(__name__)
@@ -67,37 +68,42 @@ def _kick_backfill(ticker: str) -> None:
                 started_at=datetime.now(timezone.utc),
             )
             conn.commit()
-            with UwClient(
-                api_key=settings.api_key.get_secret_value(),
-                base_url=settings.base_url,
-                timeout=settings.request_timeout_seconds,
-            ) as client:
-                run_id = repo.latest_run_id(ticker)
-                if run_id == 0:
-                    run_id = repo.insert_scan_run(ticker, notes="volatility_backfill")
-                    conn.commit()
-                # Cache all expiries from today through Dec 31 of NEXT calendar
-                # year (full forward-vol curve through year-end+1), capped at
-                # 40 maturities to bound API + smile volume.
-                year_end = date(datetime.now(timezone.utc).year + 1, 12, 31)
-                term_rows = repo.fetch_iv_term_rows(run_id, ticker)
-                if term_rows:
-                    expiries = [
-                        r["expiry"].isoformat()
-                        for r in sorted(term_rows, key=lambda r: r["expiry"])
-                        if r["expiry"] <= year_end
-                    ][:40]
-                else:
-                    expiries = [
-                        d.isoformat() for d in _next_fridays(40) if d <= year_end
-                    ]
-                status = run_volatility_backfill(
-                    client=client,
-                    repo=repo,
-                    run_id=run_id,
-                    ticker=ticker,
-                    nearest_expiries=expiries,
-                )
+            with ExternalApiRequestRecorder(
+                settings.db_dsn(), schema=settings.db_schema
+            ) as recorder:
+                with UwClient(
+                    api_key=settings.api_key.get_secret_value(),
+                    base_url=settings.base_url,
+                    timeout=settings.request_timeout_seconds,
+                    telemetry_recorder=recorder,
+                    job_name="volatility_backfill",
+                ) as client:
+                    run_id = repo.latest_run_id(ticker)
+                    if run_id == 0:
+                        run_id = repo.insert_scan_run(ticker, notes="volatility_backfill")
+                        conn.commit()
+                    # Cache all expiries from today through Dec 31 of NEXT calendar
+                    # year (full forward-vol curve through year-end+1), capped at
+                    # 40 maturities to bound API + smile volume.
+                    year_end = date(datetime.now(timezone.utc).year + 1, 12, 31)
+                    term_rows = repo.fetch_iv_term_rows(run_id, ticker)
+                    if term_rows:
+                        expiries = [
+                            r["expiry"].isoformat()
+                            for r in sorted(term_rows, key=lambda r: r["expiry"])
+                            if r["expiry"] <= year_end
+                        ][:40]
+                    else:
+                        expiries = [
+                            d.isoformat() for d in _next_fridays(40) if d <= year_end
+                        ]
+                    status = run_volatility_backfill(
+                        client=client,
+                        repo=repo,
+                        run_id=run_id,
+                        ticker=ticker,
+                        nearest_expiries=expiries,
+                    )
             repo.upsert_volatility_backfill_status(
                 ticker=ticker,
                 status=status,

@@ -45,7 +45,7 @@ export function TickerCard({ card, sparkline }: Props) {
       }}
     >
       <Link
-        href={`/stock/${card.ticker}`}
+        href={`/stock/${card.ticker}/market-structure`}
         aria-label={`${card.ticker} detail`}
         style={{ ...linkReset, display: "block" }}
       >

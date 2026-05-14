@@ -74,6 +74,7 @@ def test_all_new_tables_exist(fresh_schema):
         "intraday_quote",
         "pcr_history",
         "jobs",
+        "external_api_requests",
     }
     with fresh_schema.cursor() as cur:
         cur.execute("SELECT tablename FROM pg_tables WHERE schemaname='uw_scan'")
@@ -241,3 +242,68 @@ def test_trade_insight_ai_analysis_schema(fresh_schema):
         assert "status = 'succeeded'" in indexes[
             "idx_trade_insight_ai_analyses_succeeded_reuse"
         ]
+
+
+def test_external_api_requests_schema(fresh_schema):
+    with fresh_schema.cursor() as cur:
+        cur.execute("""
+            SELECT column_name
+            FROM information_schema.columns
+            WHERE table_schema = 'uw_scan'
+              AND table_name = 'external_api_requests'
+        """)
+        columns = {row[0] for row in cur.fetchall()}
+        assert {
+            "request_id",
+            "provider",
+            "endpoint_key",
+            "method",
+            "path_template",
+            "path",
+            "ticker",
+            "params_json",
+            "status_code",
+            "status_family",
+            "request_started_at",
+            "request_finished_at",
+            "latency_ms",
+            "attempt",
+            "run_id",
+            "job_name",
+            "provider_request_id",
+            "official_daily_count",
+            "official_daily_limit",
+            "official_minute_remaining",
+            "official_minute_reset",
+            "error_message",
+            "inserted_at",
+        } <= columns
+
+        cur.execute("""
+            SELECT conname
+            FROM pg_constraint
+            WHERE conrelid = 'uw_scan.external_api_requests'::regclass
+              AND contype = 'c'
+        """)
+        constraints = {row[0] for row in cur.fetchall()}
+        assert {
+            "external_api_requests_provider_check",
+            "external_api_requests_method_check",
+            "external_api_requests_status_family_check",
+            "external_api_requests_latency_nonnegative_check",
+            "external_api_requests_attempt_nonnegative_check",
+        } <= constraints
+
+        cur.execute("""
+            SELECT indexname
+            FROM pg_indexes
+            WHERE schemaname = 'uw_scan'
+              AND tablename = 'external_api_requests'
+        """)
+        indexes = {row[0] for row in cur.fetchall()}
+        assert {
+            "external_api_requests_provider_started_idx",
+            "external_api_requests_provider_ticker_started_idx",
+            "external_api_requests_provider_endpoint_started_idx",
+            "external_api_requests_provider_status_started_idx",
+        } <= indexes

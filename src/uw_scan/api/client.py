@@ -10,8 +10,12 @@ from __future__ import annotations
 import logging
 import time
 from dataclasses import dataclass
+from datetime import UTC, datetime
 
 import httpx
+
+from uw_scan.storage.provider_usage import ExternalApiRequestEvent
+from uw_scan.storage.repository import redact_params, status_family_for
 
 from .endpoints import REGISTRY, Endpoint, EndpointSlug, build_path
 
@@ -51,6 +55,8 @@ class UwClient:
         base_url: str = "https://api.unusualwhales.com",
         timeout: float = 30.0,
         max_retries: int = 3,
+        telemetry_recorder: object | None = None,
+        job_name: str | None = None,
     ) -> None:
         if not api_key:
             raise LiveDataUnavailable("UW API key is empty")
@@ -60,6 +66,8 @@ class UwClient:
         self.max_retries = max_retries
         self._client = httpx.Client(timeout=timeout)
         self.rate_limit = RateLimitState()
+        self._telemetry_recorder = telemetry_recorder
+        self._job_name = job_name
 
     def close(self) -> None:
         self._client.close()
@@ -78,6 +86,7 @@ class UwClient:
         slug: EndpointSlug,
         ticker: str | None = None,
         params: dict[str, object] | None = None,
+        run_id: int | None = None,
     ) -> tuple[httpx.Response, dict[str, str]]:
         """Make a GET request; returns (response, header_snapshot)."""
         ep: Endpoint = REGISTRY[slug]
@@ -92,6 +101,7 @@ class UwClient:
 
         last_exc: Exception | None = None
         for attempt in range(self.max_retries + 1):
+            started_at = datetime.now(UTC)
             try:
                 resp = self._client.get(
                     url,
@@ -99,14 +109,44 @@ class UwClient:
                     headers={"Authorization": f"Bearer {self._api_key}"},
                 )
             except httpx.HTTPError as exc:
+                finished_at = datetime.now(UTC)
                 last_exc = exc
                 logger.exception(
                     "transport error on %s attempt %d: %s", slug, attempt, repr(exc)
+                )
+                self._record_request(
+                    slug=slug,
+                    ep=ep,
+                    path=path,
+                    ticker=ticker,
+                    params=params,
+                    status_code=None,
+                    status_family="transport_error",
+                    started_at=started_at,
+                    finished_at=finished_at,
+                    attempt=attempt,
+                    run_id=run_id,
+                    error_message=str(exc),
                 )
                 self._backoff(attempt)
                 continue
 
             self._absorb_headers(resp)
+            finished_at = datetime.now(UTC)
+            self._record_request(
+                slug=slug,
+                ep=ep,
+                path=path,
+                ticker=ticker,
+                params=params,
+                status_code=resp.status_code,
+                status_family=status_family_for(resp.status_code),
+                started_at=started_at,
+                finished_at=finished_at,
+                attempt=attempt,
+                run_id=run_id,
+                error_message=resp.text if resp.status_code >= 400 else None,
+            )
 
             if resp.status_code == 429 or 500 <= resp.status_code < 600:
                 logger.warning(
@@ -134,6 +174,56 @@ class UwClient:
     # ------------------------------------------------------------------
     # Helpers
     # ------------------------------------------------------------------
+    def _record_request(
+        self,
+        *,
+        slug: EndpointSlug,
+        ep: Endpoint,
+        path: str,
+        ticker: str | None,
+        params: dict[str, object],
+        status_code: int | None,
+        status_family: str,
+        started_at: datetime,
+        finished_at: datetime,
+        attempt: int,
+        run_id: int | None,
+        error_message: str | None,
+    ) -> None:
+        if self._telemetry_recorder is None:
+            return
+        latency_ms = max(0, int((finished_at - started_at).total_seconds() * 1000))
+        event = ExternalApiRequestEvent(
+            provider="uw",
+            endpoint_key=slug.value,
+            method="GET",
+            path_template=ep.path_template,
+            path=path,
+            ticker=ticker.upper() if ticker else None,
+            params=redact_params(params),
+            status_code=status_code,
+            status_family=status_family,
+            started_at=started_at,
+            finished_at=finished_at,
+            latency_ms=latency_ms,
+            attempt=attempt,
+            run_id=run_id,
+            job_name=self._job_name,
+            official_daily_count=self.rate_limit.daily_count,
+            official_daily_limit=self.rate_limit.daily_limit,
+            official_minute_remaining=self.rate_limit.minute_remaining,
+            official_minute_reset=self.rate_limit.minute_reset,
+            error_message=error_message[:1000] if error_message else None,
+        )
+        try:
+            self._telemetry_recorder.record(event)  # type: ignore[attr-defined]
+        except Exception as exc:
+            logger.exception(
+                "failed to emit UW request telemetry for %s: %s",
+                slug,
+                repr(exc),
+            )
+
     def _absorb_headers(self, resp: httpx.Response) -> None:
         h = resp.headers
         try:

@@ -219,6 +219,74 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/provider-usage/summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Provider Usage Summary */
+        get: operations["provider_usage_summary_api_provider_usage_summary_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/provider-usage/endpoints": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Provider Usage Endpoints */
+        get: operations["provider_usage_endpoints_api_provider_usage_endpoints_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/provider-usage/tickers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Provider Usage Tickers */
+        get: operations["provider_usage_tickers_api_provider_usage_tickers_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/provider-usage/requests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Provider Usage Requests */
+        get: operations["provider_usage_requests_api_provider_usage_requests_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/stock/{ticker}/trade-insights": {
         parameters: {
             query?: never;
@@ -932,6 +1000,141 @@ export interface components {
             pcr_vol?: string | null;
             /** Pcr Delta 30D */
             pcr_delta_30d?: string | null;
+        };
+        /** ProviderUsageBreakdownResponse */
+        ProviderUsageBreakdownResponse: {
+            /**
+             * Provider Day Start
+             * Format: date-time
+             */
+            provider_day_start: string;
+            /**
+             * Provider Day End
+             * Format: date-time
+             */
+            provider_day_end: string;
+            /** Rows */
+            rows: components["schemas"]["ProviderUsageBreakdownRow"][];
+        };
+        /** ProviderUsageBreakdownRow */
+        ProviderUsageBreakdownRow: {
+            /** Key */
+            key: string | null;
+            /** Total Requests */
+            total_requests: number;
+            /** Http 2Xx */
+            http_2xx: number;
+            /** Http 3Xx */
+            http_3xx: number;
+            /** Http 4Xx */
+            http_4xx: number;
+            /** Http 5Xx */
+            http_5xx: number;
+            /** Transport Errors */
+            transport_errors: number;
+            /** Latency P95 Ms */
+            latency_p95_ms: number | null;
+        };
+        /** ProviderUsageRequestRow */
+        ProviderUsageRequestRow: {
+            /** Request Id */
+            request_id: number;
+            /** Provider */
+            provider: string;
+            /** Endpoint Key */
+            endpoint_key: string;
+            /** Method */
+            method: string;
+            /** Path */
+            path: string;
+            /** Ticker */
+            ticker: string | null;
+            /** Params */
+            params: {
+                [key: string]: unknown;
+            };
+            /** Status Code */
+            status_code: number | null;
+            /** Status Family */
+            status_family: string;
+            /**
+             * Request Started At
+             * Format: date-time
+             */
+            request_started_at: string;
+            /**
+             * Request Finished At
+             * Format: date-time
+             */
+            request_finished_at: string;
+            /** Latency Ms */
+            latency_ms: number;
+            /** Attempt */
+            attempt: number;
+            /** Run Id */
+            run_id: number | null;
+            /** Job Name */
+            job_name: string | null;
+            /** Provider Request Id */
+            provider_request_id: string | null;
+            /** Official Daily Count */
+            official_daily_count: number | null;
+            /** Official Daily Limit */
+            official_daily_limit: number | null;
+            /** Official Minute Remaining */
+            official_minute_remaining: number | null;
+            /** Official Minute Reset */
+            official_minute_reset: string | null;
+            /** Error Message */
+            error_message: string | null;
+        };
+        /** ProviderUsageRequestsResponse */
+        ProviderUsageRequestsResponse: {
+            /**
+             * Provider Day Start
+             * Format: date-time
+             */
+            provider_day_start: string;
+            /**
+             * Provider Day End
+             * Format: date-time
+             */
+            provider_day_end: string;
+            /** Limit */
+            limit: number;
+            /** Rows */
+            rows: components["schemas"]["ProviderUsageRequestRow"][];
+        };
+        /** ProviderUsageSummaryResponse */
+        ProviderUsageSummaryResponse: {
+            /**
+             * Provider Day Start
+             * Format: date-time
+             */
+            provider_day_start: string;
+            /**
+             * Provider Day End
+             * Format: date-time
+             */
+            provider_day_end: string;
+            /** Total Requests */
+            total_requests: number;
+            /** Http 2Xx */
+            http_2xx: number;
+            /** Http 3Xx */
+            http_3xx: number;
+            /** Http 4Xx */
+            http_4xx: number;
+            /** Http 5Xx */
+            http_5xx: number;
+            /** Transport Errors */
+            transport_errors: number;
+            /** Latency P95 Ms */
+            latency_p95_ms: number | null;
+            /** Uw Latest Daily Count */
+            uw_latest_daily_count: number | null;
+            /** Uw Latest Daily Limit */
+            uw_latest_daily_limit: number | null;
         };
         /** RegimeQuadrantBlock */
         RegimeQuadrantBlock: {
@@ -2471,6 +2674,133 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["VolatilitySeriesResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    provider_usage_summary_api_provider_usage_summary_get: {
+        parameters: {
+            query?: {
+                provider?: "uw" | "massive" | "all";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProviderUsageSummaryResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    provider_usage_endpoints_api_provider_usage_endpoints_get: {
+        parameters: {
+            query?: {
+                provider?: "uw" | "massive" | "all";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProviderUsageBreakdownResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    provider_usage_tickers_api_provider_usage_tickers_get: {
+        parameters: {
+            query?: {
+                provider?: "uw" | "massive" | "all";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProviderUsageBreakdownResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    provider_usage_requests_api_provider_usage_requests_get: {
+        parameters: {
+            query?: {
+                provider?: "uw" | "massive" | "all";
+                ticker?: string | null;
+                status_family?: ("2xx" | "3xx" | "4xx" | "5xx" | "transport_error") | null;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProviderUsageRequestsResponse"];
                 };
             };
             /** @description Validation Error */

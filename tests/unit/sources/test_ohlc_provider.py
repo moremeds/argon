@@ -6,12 +6,26 @@ from datetime import date, timezone
 from decimal import Decimal
 
 import httpx
+import pytest
 
 from uw_scan.sources.ohlc import MassiveOhlcProvider
 
 
-def _provider_with(handler) -> MassiveOhlcProvider:
-    p = MassiveOhlcProvider(api_key="test", base_url="https://api.massive.com")
+class Recorder:
+    def __init__(self) -> None:
+        self.events = []
+
+    def record(self, event):
+        self.events.append(event)
+
+
+def _provider_with(handler, recorder: Recorder | None = None) -> MassiveOhlcProvider:
+    p = MassiveOhlcProvider(
+        api_key="test",
+        base_url="https://api.massive.com",
+        telemetry_recorder=recorder,
+        job_name="unit",
+    )
     p._client = httpx.Client(
         transport=httpx.MockTransport(handler),
         headers={"Authorization": "Bearer test"},
@@ -21,12 +35,15 @@ def _provider_with(handler) -> MassiveOhlcProvider:
 
 
 def test_fetch_daily_returns_bars():
+    recorder = Recorder()
+
     def handler(req):
         assert req.url.path == "/v2/aggs/ticker/AAPL/range/1/day/2026-04-01/2026-05-01"
         return httpx.Response(
             200,
             json={
                 "ticker": "AAPL",
+                "request_id": "req-daily",
                 "results": [
                     {
                         "t": 1746057600000,
@@ -48,11 +65,18 @@ def test_fetch_daily_returns_bars():
             },
         )
 
-    p = _provider_with(handler)
+    p = _provider_with(handler, recorder)
     bars = p.fetch_daily("AAPL", date(2026, 4, 1), date(2026, 5, 1))
     assert len(bars) == 2
     assert bars[0].close == Decimal("101.25")
     assert bars[1].volume == 9876543
+    assert len(recorder.events) == 1
+    assert recorder.events[0].provider == "massive"
+    assert recorder.events[0].endpoint_key == "daily_ohlc"
+    assert recorder.events[0].ticker == "AAPL"
+    assert recorder.events[0].status_code == 200
+    assert recorder.events[0].status_family == "2xx"
+    assert recorder.events[0].provider_request_id == "req-daily"
 
 
 def test_fetch_daily_empty():
@@ -65,6 +89,8 @@ def test_fetch_intraday_quote_uses_latest_minute_bar():
     """Quotes endpoint is gated on our tier; use the most-recent minute
     aggregate close as a 15-min-delayed intraday price."""
 
+    recorder = Recorder()
+
     def handler(req):
         assert "/v2/aggs/ticker/TSLA/range/1/minute/" in req.url.path
         assert req.url.params.get("sort") == "desc"
@@ -74,6 +100,7 @@ def test_fetch_intraday_quote_uses_latest_minute_bar():
             json={
                 "ticker": "TSLA",
                 "status": "DELAYED",
+                "request_id": "req-quote",
                 "results": [
                     {
                         "v": 16472,
@@ -89,11 +116,15 @@ def test_fetch_intraday_quote_uses_latest_minute_bar():
             },
         )
 
-    p = _provider_with(handler)
+    p = _provider_with(handler, recorder)
     q = p.fetch_intraday_quote("TSLA")
     assert q is not None
     assert q.price == Decimal("445.12")
     assert q.quoted_at.tzinfo is timezone.utc
+    assert len(recorder.events) == 1
+    assert recorder.events[0].endpoint_key == "intraday_quote"
+    assert recorder.events[0].status_family == "2xx"
+    assert recorder.events[0].provider_request_id == "req-quote"
 
 
 def test_fetch_intraday_quote_uses_supplied_market_date():
@@ -111,5 +142,22 @@ def test_fetch_intraday_quote_empty_results():
 
 
 def test_fetch_intraday_quote_404():
-    p = _provider_with(lambda req: httpx.Response(404, json={}))
+    recorder = Recorder()
+    p = _provider_with(lambda req: httpx.Response(404, json={}), recorder)
     assert p.fetch_intraday_quote("UNKNOWN") is None
+    assert len(recorder.events) == 1
+    assert recorder.events[0].status_code == 404
+    assert recorder.events[0].status_family == "4xx"
+
+
+def test_fetch_daily_records_raised_http_error():
+    recorder = Recorder()
+    p = _provider_with(lambda req: httpx.Response(500, text="down"), recorder)
+
+    with pytest.raises(httpx.HTTPStatusError):
+        p.fetch_daily("AAPL", date(2026, 4, 1), date(2026, 5, 1))
+
+    assert len(recorder.events) == 1
+    assert recorder.events[0].status_code == 500
+    assert recorder.events[0].status_family == "5xx"
+    assert "down" in (recorder.events[0].error_message or "")

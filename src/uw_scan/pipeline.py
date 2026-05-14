@@ -29,6 +29,7 @@ from .reports.trade_insights import (
 from .scan_universe import S2_UNIVERSE
 from .sources import uw as uw_sources
 from .storage.repository import Repository
+from .storage.provider_usage import ExternalApiRequestRecorder
 
 logger = logging.getLogger(__name__)
 
@@ -442,11 +443,16 @@ def run_single_stock_for_ticker_via_env(ticker: str) -> SingleStockReport:
     conn = psycopg.connect(settings.db_dsn())
     try:
         repo = Repository(conn, schema=settings.db_schema)
-        with UwClient(
-            api_key=settings.api_key.get_secret_value(),
-            base_url=settings.base_url,
-            timeout=settings.request_timeout_seconds,
-        ) as client:
-            return run_single_stock(ticker, client, repo)
+        with ExternalApiRequestRecorder(
+            settings.db_dsn(), schema=settings.db_schema
+        ) as recorder:
+            with UwClient(
+                api_key=settings.api_key.get_secret_value(),
+                base_url=settings.base_url,
+                timeout=settings.request_timeout_seconds,
+                telemetry_recorder=recorder,
+                job_name="run_single_stock_via_env",
+            ) as client:
+                return run_single_stock(ticker, client, repo)
     finally:
         conn.close()

@@ -55,18 +55,28 @@ def test_volatility_series_endpoint_ready_when_fresh_history_present(
 
 
 def test_volatility_series_endpoint_kicks_off_backfill_when_history_thin(
-    client, seeded_db_empty_cards
+    client, seeded_db_empty_cards, monkeypatch
 ):
     """No history at all → backfill_status == 'running'."""
+    monkeypatch.setattr(
+        "uw_scan.api.routers.volatility._kick_backfill",
+        lambda _ticker: None,
+    )
     r = client.get("/api/stock/UNSEEDED/volatility/series")
     assert r.status_code == 200
     body = r.json()
     assert body["backfill_status"] == "running"
 
 
-def test_volatility_series_empty_response_shape_is_safe(client, seeded_db_empty_cards):
+def test_volatility_series_empty_response_shape_is_safe(
+    client, seeded_db_empty_cards, monkeypatch
+):
     """Even with zero history, response defaults are non-None blocks
     (frontend dereferences .points / .bins directly — review I5)."""
+    monkeypatch.setattr(
+        "uw_scan.api.routers.volatility._kick_backfill",
+        lambda _ticker: None,
+    )
     r = client.get("/api/stock/NEWTKR/volatility/series")
     body = r.json()
     # Empty defaults present, not None.

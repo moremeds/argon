@@ -8,6 +8,7 @@ from functools import lru_cache
 import psycopg
 
 from uw_scan.config import Settings
+from uw_scan.storage.provider_usage import ExternalApiRequestRecorder
 from uw_scan.storage.repository import Repository
 
 
@@ -23,3 +24,12 @@ def get_repo() -> Generator[Repository, None, None]:
         yield Repository(conn, schema=settings.db_schema)
     finally:
         conn.close()
+
+
+def get_external_api_recorder() -> Generator[ExternalApiRequestRecorder, None, None]:
+    settings = get_settings()
+    recorder = ExternalApiRequestRecorder(settings.db_dsn(), schema=settings.db_schema)
+    try:
+        yield recorder
+    finally:
+        recorder.close()

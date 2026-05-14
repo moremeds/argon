@@ -19,6 +19,7 @@ from apscheduler.triggers.interval import IntervalTrigger
 from uw_scan.api.client import UwClient
 from uw_scan.config import Settings
 from uw_scan.sources.ohlc import MassiveOhlcProvider
+from uw_scan.storage.provider_usage import ExternalApiRequestRecorder
 from uw_scan.storage.repository import Repository
 from uw_scan.worker.jobs.flow_data_refresh import flow_data_refresh
 from uw_scan.worker.jobs.full_scan import full_scan_once
@@ -58,21 +59,44 @@ def _repo(settings: Settings) -> Iterator[Repository]:
         conn.close()
 
 
-def _uw_client(settings: Settings) -> UwClient:
+@contextmanager
+def _external_api_recorder(settings: Settings) -> Iterator[ExternalApiRequestRecorder]:
+    recorder = ExternalApiRequestRecorder(settings.db_dsn(), schema=settings.db_schema)
+    try:
+        yield recorder
+    finally:
+        recorder.close()
+
+
+def _uw_client(
+    settings: Settings,
+    *,
+    telemetry_recorder: ExternalApiRequestRecorder | None = None,
+    job_name: str | None = None,
+) -> UwClient:
     return UwClient(
         api_key=settings.api_key.get_secret_value(),
         base_url=settings.base_url,
         timeout=settings.request_timeout_seconds,
+        telemetry_recorder=telemetry_recorder,
+        job_name=job_name,
     )
 
 
-def _ohlc_provider(settings: Settings) -> MassiveOhlcProvider | None:
+def _ohlc_provider(
+    settings: Settings,
+    *,
+    telemetry_recorder: ExternalApiRequestRecorder | None = None,
+    job_name: str | None = None,
+) -> MassiveOhlcProvider | None:
     if settings.massive_api_key is None:
         logger.warning("MASSIVE_API_KEY not set; OHLC jobs are no-ops")
         return None
     return MassiveOhlcProvider(
         api_key=settings.massive_api_key.get_secret_value(),
         base_url=settings.massive_base_url,
+        telemetry_recorder=telemetry_recorder,
+        job_name=job_name,
     )
 
 
@@ -105,65 +129,96 @@ def main() -> int:
         if market_date is None:
             logger.debug("spot_refresh skipped outside market hours")
             return
-        provider = _ohlc_provider(settings)
-        if provider is None:
-            return
-        try:
-            with _repo(settings) as repo:
-                n = spot_refresh_once(repo, provider, market_date=market_date)
-                logger.info("spot_refresh updated %d cards", n)
-        finally:
-            provider.close()
+        with _external_api_recorder(settings) as recorder:
+            provider = _ohlc_provider(
+                settings, telemetry_recorder=recorder, job_name="spot_refresh"
+            )
+            if provider is None:
+                return
+            try:
+                with _repo(settings) as repo:
+                    n = spot_refresh_once(repo, provider, market_date=market_date)
+                    logger.info("spot_refresh updated %d cards", n)
+            finally:
+                provider.close()
 
     def _full_scan() -> None:
-        with _uw_client(settings) as uw:
-            ohlc = _ohlc_provider(settings) or _NoOhlc()
-            try:
-                with _repo(settings) as repo:
-                    n = full_scan_once(repo, uw, ohlc)
-                    logger.info("full_scan completed %d tickers", n)
-            finally:
-                ohlc.close()
+        with _external_api_recorder(settings) as recorder:
+            with _uw_client(
+                settings, telemetry_recorder=recorder, job_name="full_scan"
+            ) as uw:
+                ohlc = (
+                    _ohlc_provider(
+                        settings,
+                        telemetry_recorder=recorder,
+                        job_name="full_scan",
+                    )
+                    or _NoOhlc()
+                )
+                try:
+                    with _repo(settings) as repo:
+                        n = full_scan_once(repo, uw, ohlc)
+                        logger.info("full_scan completed %d tickers", n)
+                finally:
+                    ohlc.close()
 
     def _ohlc_pull() -> None:
-        provider = _ohlc_provider(settings)
-        if provider is None:
-            return
-        try:
-            with _repo(settings) as repo:
-                n = ohlc_pull_once(repo, provider)
-                logger.info("ohlc_pull refreshed %d tickers", n)
-        finally:
-            provider.close()
-
-    def _rescan() -> None:
-        with _uw_client(settings) as uw:
-            ohlc = _ohlc_provider(settings) or _NoOhlc()
+        with _external_api_recorder(settings) as recorder:
+            provider = _ohlc_provider(
+                settings, telemetry_recorder=recorder, job_name="ohlc_pull"
+            )
+            if provider is None:
+                return
             try:
                 with _repo(settings) as repo:
-                    rescan_tick(repo, uw, ohlc)
+                    n = ohlc_pull_once(repo, provider)
+                    logger.info("ohlc_pull refreshed %d tickers", n)
             finally:
-                ohlc.close()
+                provider.close()
+
+    def _rescan() -> None:
+        with _external_api_recorder(settings) as recorder:
+            with _uw_client(
+                settings, telemetry_recorder=recorder, job_name="rescan_tick"
+            ) as uw:
+                ohlc = (
+                    _ohlc_provider(
+                        settings,
+                        telemetry_recorder=recorder,
+                        job_name="rescan_tick",
+                    )
+                    or _NoOhlc()
+                )
+                try:
+                    with _repo(settings) as repo:
+                        rescan_tick(repo, uw, ohlc)
+                finally:
+                    ohlc.close()
 
     def _spy_ohlc_refresh() -> None:
         if settings.massive_api_key is None:
             logger.warning("MASSIVE_API_KEY not set; skipping SPY refresh")
             return
-        with _repo(settings) as repo:
-            daily_spy_ohlc_refresh(
-                repo=repo,
-                api_key=settings.massive_api_key.get_secret_value(),
-                tz=settings.rth_tz,
-            )
+        with _external_api_recorder(settings) as recorder:
+            with _repo(settings) as repo:
+                daily_spy_ohlc_refresh(
+                    repo=repo,
+                    api_key=settings.massive_api_key.get_secret_value(),
+                    tz=settings.rth_tz,
+                    telemetry_recorder=recorder,
+                )
 
     def _vol_analytics_rollup() -> None:
         with _repo(settings) as repo:
             nightly_vol_analytics_rollup(repo=repo)
 
     def _flow_data_refresh() -> None:
-        with _uw_client(settings) as uw:
-            with _repo(settings) as repo:
-                flow_data_refresh(repo=repo, client=uw, settings=settings)
+        with _external_api_recorder(settings) as recorder:
+            with _uw_client(
+                settings, telemetry_recorder=recorder, job_name="flow_data_refresh"
+            ) as uw:
+                with _repo(settings) as repo:
+                    flow_data_refresh(repo=repo, client=uw, settings=settings)
 
     def _trade_insights_ai_tick() -> None:
         trade_insights_ai_tick(settings)

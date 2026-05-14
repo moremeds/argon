@@ -78,7 +78,7 @@ def _fetch_json(
 ) -> dict:
     path = build_path(slug, ticker)
     started = datetime.now(UTC)
-    resp, _hdrs = client.get(slug, ticker=ticker, params=params)
+    resp, _hdrs = client.get(slug, ticker=ticker, params=params, run_id=run_id)
     finished = datetime.now(UTC)
     body = resp.json()
     _persist_audit(

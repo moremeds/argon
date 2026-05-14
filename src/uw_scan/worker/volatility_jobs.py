@@ -14,6 +14,7 @@ from zoneinfo import ZoneInfo
 
 from uw_scan.cards import vol_series
 from uw_scan.sources.ohlc import MassiveOhlcProvider
+from uw_scan.storage.provider_usage import ExternalApiRequestRecorder
 from uw_scan.storage.repository import Repository
 
 log = logging.getLogger(__name__)
@@ -24,12 +25,17 @@ def daily_spy_ohlc_refresh(
     repo: Repository,
     api_key: str,
     tz: str = "America/New_York",
+    telemetry_recorder: ExternalApiRequestRecorder | None = None,
 ) -> None:
     """ET-anchored — host may live in any timezone (e.g. HKT), so date.today()
     would compute the wrong market date around the rollover (review I8)."""
     today = datetime.now(ZoneInfo(tz)).date()
     start = today - timedelta(days=2)
-    with MassiveOhlcProvider(api_key=api_key) as prov:
+    with MassiveOhlcProvider(
+        api_key=api_key,
+        telemetry_recorder=telemetry_recorder,
+        job_name="daily_spy_ohlc_refresh",
+    ) as prov:
         bars = prov.fetch_daily("SPY", start=start, end=today)
     repo.upsert_index_ohlc_rows(bars)
     repo.conn.commit()

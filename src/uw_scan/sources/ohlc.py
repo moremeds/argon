@@ -8,11 +8,14 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
-from datetime import date, datetime, timedelta, timezone
+from datetime import UTC, date, datetime, timedelta, timezone
 from decimal import Decimal
-from typing import Protocol
+from typing import Any, Protocol
 
 import httpx
+
+from uw_scan.storage.provider_usage import ExternalApiRequestEvent
+from uw_scan.storage.repository import redact_params, status_family_for
 
 logger = logging.getLogger(__name__)
 
@@ -57,12 +60,16 @@ class MassiveOhlcProvider:
         api_key: str,
         base_url: str = "https://api.massive.com",
         timeout: float = 10.0,
+        telemetry_recorder: object | None = None,
+        job_name: str | None = None,
     ) -> None:
         self._client = httpx.Client(
             base_url=base_url,
             headers={"Authorization": f"Bearer {api_key}"},
             timeout=timeout,
         )
+        self._telemetry_recorder = telemetry_recorder
+        self._job_name = job_name
 
     def close(self) -> None:
         self._client.close()
@@ -78,7 +85,12 @@ class MassiveOhlcProvider:
             f"/v2/aggs/ticker/{ticker}/range/1/day/"
             f"{start.isoformat()}/{end.isoformat()}"
         )
-        r = self._client.get(path)
+        r = self._get_with_telemetry(
+            endpoint_key="daily_ohlc",
+            path_template="/v2/aggs/ticker/{ticker}/range/1/day/{from}/{to}",
+            path=path,
+            ticker=ticker,
+        )
         r.raise_for_status()
         payload = r.json()
         results = payload.get("results") or []
@@ -117,7 +129,13 @@ class MassiveOhlcProvider:
             f"/v2/aggs/ticker/{ticker}/range/1/minute/"
             f"{today.isoformat()}/{tomorrow.isoformat()}"
         )
-        r = self._client.get(path, params={"sort": "desc", "limit": 1})
+        r = self._get_with_telemetry(
+            endpoint_key="intraday_quote",
+            path_template="/v2/aggs/ticker/{ticker}/range/1/minute/{from}/{to}",
+            path=path,
+            ticker=ticker,
+            params={"sort": "desc", "limit": 1},
+        )
         if r.status_code == 404:
             return None
         r.raise_for_status()
@@ -135,3 +153,99 @@ class MassiveOhlcProvider:
             price=Decimal(str(c)),
             quoted_at=datetime.fromtimestamp(int(t_ms) / 1000, tz=timezone.utc),
         )
+
+    def _get_with_telemetry(
+        self,
+        *,
+        endpoint_key: str,
+        path_template: str,
+        path: str,
+        ticker: str,
+        params: dict[str, object] | None = None,
+    ) -> httpx.Response:
+        started_at = datetime.now(UTC)
+        try:
+            response = self._client.get(path, params=params)
+        except httpx.HTTPError as exc:
+            finished_at = datetime.now(UTC)
+            self._record_request(
+                endpoint_key=endpoint_key,
+                path_template=path_template,
+                path=path,
+                ticker=ticker,
+                params=params,
+                status_code=None,
+                started_at=started_at,
+                finished_at=finished_at,
+                provider_request_id=None,
+                error_message=str(exc),
+            )
+            raise
+        finished_at = datetime.now(UTC)
+        provider_request_id = self._extract_request_id(response)
+        self._record_request(
+            endpoint_key=endpoint_key,
+            path_template=path_template,
+            path=path,
+            ticker=ticker,
+            params=params,
+            status_code=response.status_code,
+            started_at=started_at,
+            finished_at=finished_at,
+            provider_request_id=provider_request_id,
+            error_message=response.text if response.status_code >= 400 else None,
+        )
+        return response
+
+    def _record_request(
+        self,
+        *,
+        endpoint_key: str,
+        path_template: str,
+        path: str,
+        ticker: str,
+        params: dict[str, object] | None,
+        status_code: int | None,
+        started_at: datetime,
+        finished_at: datetime,
+        provider_request_id: str | None,
+        error_message: str | None,
+    ) -> None:
+        if self._telemetry_recorder is None:
+            return
+        event = ExternalApiRequestEvent(
+            provider="massive",
+            endpoint_key=endpoint_key,
+            method="GET",
+            path_template=path_template,
+            path=path,
+            ticker=ticker.upper(),
+            params=redact_params(params),
+            status_code=status_code,
+            status_family=status_family_for(status_code),
+            started_at=started_at,
+            finished_at=finished_at,
+            latency_ms=max(0, int((finished_at - started_at).total_seconds() * 1000)),
+            job_name=self._job_name,
+            provider_request_id=provider_request_id,
+            error_message=error_message[:1000] if error_message else None,
+        )
+        try:
+            self._telemetry_recorder.record(event)  # type: ignore[attr-defined]
+        except Exception as exc:
+            logger.exception(
+                "failed to emit Massive request telemetry for %s: %s",
+                endpoint_key,
+                repr(exc),
+            )
+
+    def _extract_request_id(self, response: httpx.Response) -> str | None:
+        try:
+            payload: Any = response.json()
+        except ValueError:
+            return None
+        if isinstance(payload, dict):
+            request_id = payload.get("request_id")
+            if request_id is not None:
+                return str(request_id)
+        return None
