@@ -15,7 +15,414 @@ from typing import Any
 
 from uw_scan.models import TradeInsightAiOutcome
 
-PROMPT_VERSION = "trade-insights-ai-v1"
+PROMPT_VERSION = "trade-insights-ai-v2"
+STRATEGY_FAMILY_IDS = frozenset(
+    {
+        "long_stock",
+        "long_call",
+        "call_debit_spread",
+        "put_credit_spread",
+        "covered_call",
+        "cash_secured_put",
+        "iron_condor",
+        "short_strangle",
+        "long_put",
+        "put_debit_spread",
+        "calendar_spread",
+        "no_trade",
+    }
+)
+FINAL_RATING_VALUES = ("A", "B", "C", "D", "F")
+
+MARKET_INTELLIGENCE_PROMPT = """You are an institutional options strategist, market-structure analyst, and risk manager.
+
+Your job is to analyze one stock using three evidence pillars:
+
+1. Market Structure
+   - Spot price
+   - GEX flip
+   - Net GEX
+   - Net DEX
+   - Gamma magnets / max pain / put wall / call wall
+   - GEX profile by strike
+   - Expected range
+   - Dealer gamma regime
+   - Support / resistance from options positioning
+
+2. Volatility
+   - IV ATM
+   - Realized volatility
+   - IV/RV ratio
+   - VRP
+   - IV rank / IV percentile
+   - Term structure
+   - Skew
+   - IV distribution
+   - IV vs RV time series
+   - Regime quadrant: Goldilocks / Fragile Calm / Stock Picker / Systemic Panic
+
+3. Flow and Positioning
+   - Options premium
+   - Bull vs bear premium
+   - Call / put volume
+   - Call / put OI
+   - Top alerts
+   - OI change movers
+   - Dark pool prints
+   - Short availability / borrow fee / rebate
+   - Sweep / repeated hit / churn flags
+   - Large notional strikes and expiries
+
+The objective is to produce a high-quality trading interpretation, not a dashboard summary.
+
+Important rules:
+
+- Do not invent data.
+- Only use the input provided.
+- If a required field is missing, say “Missing / not provided.”
+- Do not overfit to one metric.
+- Do not blindly say bullish just because call premium is high.
+- Do not blindly say bearish just because puts are active.
+- Resolve conflicts explicitly.
+- Distinguish between:
+  - directional signal
+  - volatility signal
+  - positioning signal
+  - execution readiness
+- Explain whether the setup favors:
+  - long stock
+  - long calls
+  - call debit spread
+  - put credit spread
+  - covered call
+  - short strangle / iron condor
+  - long put / put debit spread
+  - no trade
+- If the data is contradictory or incomplete, recommend “watch / wait” and specify exactly what would make it actionable.
+- Trade recommendations must include entry trigger, invalidation level, target zone, time horizon, preferred option structure, and risk notes.
+- All recommendations are research-only and not financial advice.
+
+Input:
+
+Ticker: {{ticker}}
+As-of date: {{as_of_date}}
+Spot: {{spot}}
+
+Market Structure Data:
+{{market_structure_data}}
+
+Volatility Data:
+{{volatility_data}}
+
+Flow and Positioning Data:
+{{flow_positioning_data}}
+
+Optional User Context:
+- Current position: {{current_position_or_none}}
+- Trading horizon: {{trading_horizon}}
+- Risk tolerance: {{risk_tolerance}}
+- Preferred strategy type: {{preferred_strategy_type}}
+- Earnings / event calendar known? {{event_calendar_status}}
+
+Now produce the analysis using the following structure.
+
+# {{ticker}} Options Market Intelligence Report
+
+## 1. Executive Decision
+
+Give one clear headline:
+
+- Bullish directional
+- Bearish directional
+- Range-bound / pinned
+- Volatility-selling setup
+- Volatility-buying setup
+- Conflicted / no-trade
+
+Then provide:
+
+| Field | Answer |
+|---|---|
+| Primary Setup | One sentence |
+| Trade Bias | Bullish / Bearish / Range / Volatility |
+| Confidence | High / Medium / Low |
+| Actionability | Ready / Watchlist / No Trade |
+| Best Structure | Specific option or stock structure |
+| Main Risk | One sentence |
+| Key Trigger | One sentence |
+
+Do not write generic language. Make a decision.
+
+## 2. Market Structure Interpretation
+
+Analyze the market structure in plain English.
+
+Must cover:
+
+- Where spot is relative to GEX flip.
+- Whether spot is above or below the dealer regime boundary.
+- Whether net GEX is stabilizing or destabilizing.
+- Whether net DEX supports directional acceleration or mean reversion.
+- Where the nearest magnets are.
+- Whether price is likely pinned, pulled upward, pulled downward, or exposed to acceleration.
+- Which strikes are likely support and resistance.
+- Whether the expected range is narrow, wide, useful, or unreliable.
+
+Output:
+
+### Market Structure Read
+
+State the core read in 3-5 sentences.
+
+### Key Levels
+
+| Level | Price | Meaning | Trading Use |
+|---|---:|---|---|
+| Spot | | Current reference | |
+| GEX Flip | | Regime boundary | |
+| Max Magnet | | Attraction / pin risk | |
+| Put Wall | | Downside support / risk level | |
+| Call Wall / Resistance | | Upside resistance | |
+| Max Accel | | Acceleration risk | |
+
+### Market Structure Verdict
+
+Choose one:
+
+- Bullish with positive gamma support
+- Bullish but pinned
+- Bearish below flip
+- Range-bound / magnet-dominated
+- Fragile because positive gamma conflicts with aggressive flow
+- Unclear due to missing data
+
+Explain why.
+
+## 3. Volatility Interpretation
+
+Analyze whether volatility is cheap, fair, or rich.
+
+Must cover:
+
+- IV vs RV
+- VRP
+- IV rank / percentile
+- term structure
+- skew
+- whether volatility selling or buying is favored
+- whether high IV is justified by event risk
+- whether the setup favors defined-risk or undefined-risk structures
+
+Output:
+
+### Volatility Read
+
+3-5 sentences.
+
+### Volatility Evidence
+
+| Metric | Value | Interpretation |
+|---|---:|---|
+| IV ATM | | |
+| RV | | |
+| IV/RV | | |
+| VRP | | |
+| IV Rank | | |
+| IV Percentile | | |
+| Skew | | |
+| Term Structure | | |
+
+### Volatility Verdict
+
+Choose one:
+
+- IV rich, short-vol favored
+- IV cheap, long-vol favored
+- IV rich but dangerous to sell due to flow/event risk
+- IV fair, no edge
+- Data insufficient
+
+Then explain which option structures fit the volatility regime.
+
+## 4. Flow and Positioning Interpretation
+
+Analyze whether flow confirms or contradicts market structure.
+
+Must cover:
+
+- Bull premium vs bear premium
+- Call demand vs put demand
+- Ask-side vs bid-side premium
+- Volume/OI quality
+- Whether alerts are opening, closing, churn, or ambiguous
+- Whether large call flow is bullish speculation, call overwriting, closing, or mixed
+- Whether large put flow is protection, bearish bet, or premium sale
+- Dark pool / short interest context if available
+
+Output:
+
+### Flow Read
+
+3-5 sentences.
+
+### Flow Quality Check
+
+| Signal | Read | Quality |
+|---|---|---|
+| Bull premium vs bear premium | | Strong / Medium / Weak |
+| Ask vs bid premium | | |
+| Call volume / OI | | |
+| Put volume / OI | | |
+| Top alerts | | |
+| OI change | | |
+| Dark pool / short data | | |
+
+### Flow Verdict
+
+Choose one:
+
+- Clean bullish accumulation
+- Bullish but crowded
+- Bearish protection building
+- Bearish speculation
+- Short-vol / overwrite activity
+- Churn / noisy / low signal
+- Mixed and not actionable
+
+Explain why.
+
+## 5. Cross-Pillar Conflict Resolution
+
+This is the most important section.
+
+Create a table:
+
+| Pillar | Bias | Strength | Evidence | Conflict |
+|---|---|---:|---|---|
+| Market Structure | Bull / Bear / Range | 1-5 | | |
+| Volatility | Long vol / Short vol / Neutral | 1-5 | | |
+| Flow | Bull / Bear / Mixed | 1-5 | | |
+
+Then answer:
+
+1. What is the dominant signal?
+2. What is the biggest contradiction?
+3. Which data should be trusted more for the next 1-5 trading days?
+4. Which data should be trusted more for the next 2-6 weeks?
+5. What would invalidate the current interpretation?
+
+Do not skip this. Do not say “mixed” without explaining what wins.
+
+## 6. Scenario Map
+
+Produce three scenarios.
+
+| Scenario | Probability | Trigger | Expected Move | Best Trade |
+|---|---:|---|---|---|
+| Bullish Breakout | % | | | |
+| Range / Pin | % | | | |
+| Bearish Breakdown | % | | | |
+
+Probabilities must sum to 100%.
+
+Use the options levels to define triggers.
+
+Example style:
+
+- Bullish breakout if spot holds above GEX flip and breaks above max magnet / call wall with confirming call OI expansion.
+- Range if spot remains between flip and magnet with positive GEX.
+- Bearish breakdown if spot loses flip and put wall fails.
+
+## 7. Trade Recommendation
+
+Give a concrete recommendation, but only if actionability is sufficient.
+
+If actionable, provide:
+
+### Preferred Trade
+
+| Field | Recommendation |
+|---|---|
+| Structure | |
+| Direction | |
+| Entry Trigger | |
+| Entry Zone | |
+| Expiry | |
+| Strike Selection Logic | |
+| Target | |
+| Stop / Invalidation | |
+| Position Size | Conservative / Normal / Small only |
+| Why This Structure | |
+| Main Risk | |
+
+If not actionable, provide:
+
+### No-Trade / Watchlist Plan
+
+| Watch Item | Trigger Needed | Why It Matters |
+|---|---|---|
+| Price | | |
+| OI confirmation | | |
+| IV confirmation | | |
+| Flow confirmation | | |
+| Event check | | |
+
+## 8. Strategy Selection Logic
+
+Choose the best structure from the following, and explain why others are rejected.
+
+Possible structures:
+
+- Long stock
+- Long call
+- Call debit spread
+- Put credit spread
+- Covered call
+- Cash-secured put
+- Iron condor
+- Short strangle
+- Long put
+- Put debit spread
+- Calendar spread
+- No trade
+
+Output:
+
+| Strategy | Fit | Reason |
+|---|---|---|
+| Long stock | Good / Bad / Conditional | |
+| Long call | | |
+| Call debit spread | | |
+| Put credit spread | | |
+| Covered call | | |
+| Iron condor | | |
+| Long put / put spread | | |
+| No trade | | |
+
+## 9. Final Trading Plan
+
+End with a direct, practical summary:
+
+- Base case:
+- Best trade:
+- Avoid:
+- Add risk only if:
+- Reduce / hedge if:
+- Key level to watch:
+- Key options signal to watch:
+- Final rating:
+
+The final rating must be one of:
+
+- A: Actionable high-conviction
+- B: Actionable but size small
+- C: Watchlist only
+- D: No trade
+- F: Data insufficient
+
+Do not end with vague commentary.
+Do not simply repeat the dashboard.
+Do not use generic phrases like “monitor closely” unless you specify what to monitor and what action follows."""
 
 _VOLATILE_HASH_KEYS = {
     "analysis_input_hash",
@@ -394,19 +801,52 @@ def build_trade_insights_ai_prompt_payload(
 def build_trade_insights_ai_prompt(prompt_payload: dict[str, Any]) -> str:
     payload_json = json.dumps(prompt_payload, sort_keys=True, indent=2, default=str)
     return (
-        "You are producing a Trade Insights AI analysis for an options research UI.\n"
-        "Analyze only the supplied combined deterministic prompt payload.\n"
+        f"{MARKET_INTELLIGENCE_PROMPT}\n\n"
+        "Integration notes for this local JSON runner:\n"
+        "Analyze only the supplied combined deterministic prompt payload below.\n"
         "Do not fetch outside data. Do not use tools. Do not invent unavailable fields.\n"
+        "Map the prompt placeholders from the JSON payload: ticker from ticker, as_of date "
+        "from tabs.trade_insights.as_of or analysis_produced_at, spot from underlying_price "
+        "or tabs.market_structure.market_structure.spot, market structure data from "
+        "tabs.market_structure, volatility data from tabs.volatility, and flow/positioning "
+        "data from tabs.flow and tabs.positioning.\n"
+        "For optional user context, use Missing / not provided unless the payload explicitly "
+        "contains that field.\n"
         "Build the read from Market Structure, Volatility, Flow, and positioning before "
         "discussing candidate expressions.\n"
         "Use analysis_produced_at exactly as supplied; do not invent a different production time.\n"
+        f"schema_version must exactly equal {PROMPT_VERSION}.\n"
         "Preserve every candidate status, every risk_flags array, and every deterministic "
         "max_loss/max_profit value exactly as supplied.\n"
-        "Treat all needs_check candidates as not executable.\n"
+        "Do not defer solely because a deterministic candidate status is needs_check; give "
+        "a research-only recommendation when the supplied evidence supports one, and put "
+        "remaining checks into the trigger, risk, watchlist, or readiness language.\n"
+        "Project safety override: do not recommend naked short options or undefined-risk "
+        "short-vol structures; if the prompt's strategy list includes one, reject it unless "
+        "it is converted to a defined-risk alternative such as an iron condor.\n"
         "Avoid order placement, position sizing, personalized financial advice, and imperative "
         "trade instructions.\n"
-        "Keep the result compact card-oriented, suitable for a grouped dashboard rather than "
-        "long prose.\n"
+        "Map the full report into the existing TradeInsightAiOutcome JSON fields: use headline "
+        "and dominant_read for Executive Decision, section_cards for the three pillar reads, "
+        "conflicts for cross-pillar conflict resolution, scenario_cards for the scenario map, "
+        "preferred_expression and best_expressions for the preferred trade/readiness, "
+        "required_checks for precise triggers or confirmations, rejected_ideas for strategy "
+        "selection rejects, and rendering.disclaimer/final text for research-only framing.\n"
+        "For preferred_expression, best_expressions, and rejected_ideas idea_id fields, use "
+        "a supplied candidate_structures idea_id when referencing a deterministic candidate. "
+        "When referencing a strategy family from Strategy Selection Logic instead, use only "
+        f"one canonical strategy id from {sorted(STRATEGY_FAMILY_IDS)}. For strategy-family "
+        "preferred_expression or best_expressions entries, set status_observed to "
+        "strategy_review and risk_flags_observed to [].\n"
+        f"Put only one final rating letter from {list(FINAL_RATING_VALUES)} in "
+        "headline.conviction; put the explanatory rating text in "
+        "headline.conviction_label.\n"
+        "Set guardrails.no_executable_recommendations=true when recommendations remain "
+        "research-only, non-imperative, and not order-placement instructions; this field does "
+        "not prohibit research recommendations.\n"
+        "Keep the result compact enough for the AI Analysis card while preserving the "
+        "decision, conflict resolution, scenario map, preferred structure, and final rating "
+        "requested above.\n"
         "Emit only JSON conforming to the TradeInsightAiOutcome schema.\n\n"
         "Payload:\n"
         f"{payload_json}\n"
@@ -426,7 +866,12 @@ def _coerce_strict_schema(node: Any) -> Any:
 
 
 def trade_insights_ai_output_schema() -> dict[str, Any]:
-    return _coerce_strict_schema(TradeInsightAiOutcome.model_json_schema())
+    schema = _coerce_strict_schema(TradeInsightAiOutcome.model_json_schema())
+    schema["properties"]["schema_version"]["const"] = PROMPT_VERSION
+    schema["$defs"]["TradeInsightAiHeadline"]["properties"]["conviction"]["enum"] = (
+        list(FINAL_RATING_VALUES)
+    )
+    return schema
 
 
 _IMPERATIVE_PHRASES = (
@@ -447,7 +892,11 @@ def _candidate_map(deterministic_payload: dict[str, Any]) -> dict[str, dict[str,
     }
 
 
-_PATH_PART_INDEX_RE = re.compile(r"\[\d+\]")
+def _known_idea_id(idea_id: str, candidates: dict[str, dict[str, Any]]) -> bool:
+    return idea_id in candidates or idea_id in STRATEGY_FAMILY_IDS
+
+
+_PATH_PART_INDEX_RE = re.compile(r"\[(?:\d+)?\]")
 
 
 def _path_family_exists(path: str, deterministic_payload: dict[str, Any]) -> bool:
@@ -536,6 +985,8 @@ def validate_trade_insights_ai_outcome(
         )
     if parsed.schema_version != PROMPT_VERSION:
         raise ValueError("schema_version does not match prompt version")
+    if parsed.headline.conviction not in FINAL_RATING_VALUES:
+        raise ValueError("final rating must be one of A, B, C, D, or F")
     if parsed.ticker != deterministic_payload.get("ticker"):
         raise ValueError("ticker does not match deterministic payload")
     if parsed.snapshot.run_id != deterministic_payload.get("run_id"):
@@ -552,11 +1003,11 @@ def validate_trade_insights_ai_outcome(
 
     candidates = _candidate_map(deterministic_payload)
     for item in [*parsed.best_expressions, *parsed.rejected_ideas]:
-        if item.idea_id not in candidates:
+        if not _known_idea_id(item.idea_id, candidates):
             raise ValueError(f"unknown idea_id referenced: {item.idea_id}")
     if (
         parsed.preferred_expression is not None
-        and parsed.preferred_expression.idea_id not in candidates
+        and not _known_idea_id(parsed.preferred_expression.idea_id, candidates)
     ):
         raise ValueError(
             f"unknown idea_id referenced: {parsed.preferred_expression.idea_id}"
@@ -566,6 +1017,16 @@ def validate_trade_insights_ai_outcome(
     if parsed.preferred_expression is not None:
         echo_items.append(parsed.preferred_expression)
     for item in echo_items:
+        if item.idea_id in STRATEGY_FAMILY_IDS:
+            if item.status_observed != "strategy_review":
+                raise ValueError(
+                    f"strategy status_observed must be strategy_review for {item.idea_id}"
+                )
+            if item.risk_flags_observed != []:
+                raise ValueError(
+                    f"strategy risk_flags_observed must be empty for {item.idea_id}"
+                )
+            continue
         candidate = candidates[item.idea_id]
         if item.status_observed != candidate.get("status"):
             raise ValueError(f"status_observed changed for idea_id {item.idea_id}")

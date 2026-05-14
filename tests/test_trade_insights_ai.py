@@ -25,7 +25,7 @@ from uw_scan.reports.trade_insights_ai import (
 def _sample_outcome() -> dict:
     produced_at = "2026-03-24T20:18:42Z"
     return {
-        "schema_version": "trade-insights-ai-v1",
+        "schema_version": PROMPT_VERSION,
         "analysis_produced_at": produced_at,
         "ticker": "TSLA",
         "underlying_price": "$380.88",
@@ -228,7 +228,7 @@ def test_trade_insight_ai_analysis_response_includes_queue_and_hash_fields():
         trade_insights_input_hash="sha256-trade-insights",
         analysis_input_hash="sha256-combined",
         model="codex-default",
-        prompt_version="trade-insights-ai-v1",
+        prompt_version=PROMPT_VERSION,
         status="queued",
         requested_at=datetime(2026, 3, 24, 20, 0, tzinfo=timezone.utc),
     )
@@ -526,7 +526,7 @@ def test_trade_insights_ai_prompt_prunes_long_arrays_and_allows_empty_history():
     assert any("volatility.hv_iv_history" in note for note in degraded["missing_data"])
 
 
-def test_trade_insights_ai_prompt_payload_and_prompt_are_card_oriented_guarded():
+def test_trade_insights_ai_prompt_payload_and_prompt_are_recommendation_oriented_guarded():
     analysis_input = _analysis_input()
     produced_at = datetime(2026, 3, 24, 20, 18, 42, tzinfo=timezone.utc)
 
@@ -538,11 +538,24 @@ def test_trade_insights_ai_prompt_payload_and_prompt_are_card_oriented_guarded()
 
     assert prompt_payload["analysis_produced_at"] == "2026-03-24T20:18:42Z"
     assert prompt_payload["analysis_input_hash"] == hash_trade_insights_ai_analysis_input(analysis_input)
+    assert "You are an institutional options strategist, market-structure analyst, and risk manager." in prompt
     assert "Analyze only the supplied combined deterministic prompt payload" in prompt
     assert "Do not fetch outside data" in prompt
-    assert "Market Structure, Volatility, Flow, and positioning" in prompt
-    assert "compact card-oriented" in prompt
+    assert "1. Market Structure" in prompt
+    assert "2. Volatility" in prompt
+    assert "3. Flow and Positioning" in prompt
+    assert "The objective is to produce a high-quality trading interpretation, not a dashboard summary." in prompt
+    assert "Trade recommendations must include entry trigger" in prompt
+    assert "Do not defer solely because a deterministic candidate status is needs_check" in prompt
+    assert "All recommendations are research-only and not financial advice." in prompt
+    assert f"schema_version must exactly equal {PROMPT_VERSION}" in prompt
+    assert "Map the full report into the existing TradeInsightAiOutcome JSON fields" in prompt
+    assert "does not prohibit research recommendations" in prompt
+    assert "# {{ticker}} Options Market Intelligence Report" in prompt
+    assert "## 5. Cross-Pillar Conflict Resolution" in prompt
+    assert "The final rating must be one of:" in prompt
     assert "Preserve every candidate status" in prompt
+    assert "Treat all needs_check candidates as not executable" not in prompt
     assert "Emit only JSON" in prompt
     assert '"tabs"' in prompt
 
@@ -551,6 +564,14 @@ def test_trade_insights_ai_output_schema_requires_structured_sections():
     schema = trade_insights_ai_output_schema()
 
     assert schema["title"] == "TradeInsightAiOutcome"
+    assert schema["properties"]["schema_version"]["const"] == PROMPT_VERSION
+    assert schema["$defs"]["TradeInsightAiHeadline"]["properties"]["conviction"]["enum"] == [
+        "A",
+        "B",
+        "C",
+        "D",
+        "F",
+    ]
     required = set(schema["required"])
     assert {
         "metric_cards",
@@ -586,6 +607,38 @@ def test_validate_trade_insights_ai_outcome_rejects_candidate_guardrail_drift():
     bad_guardrails["guardrails"]["statuses_preserved"] = False
     with pytest.raises(ValueError, match="guardrails"):
         validate_trade_insights_ai_outcome(bad_guardrails, deterministic, produced_at=produced_at)
+
+    bad_rating = _sample_outcome_for(deterministic)
+    bad_rating["headline"]["conviction"] = "Medium-low actionable conviction"
+    with pytest.raises(ValueError, match="final rating"):
+        validate_trade_insights_ai_outcome(bad_rating, deterministic, produced_at=produced_at)
+
+
+def test_validate_trade_insights_ai_outcome_allows_strategy_family_ids():
+    deterministic = _analysis_input()
+    produced_at = datetime(2026, 3, 24, 20, 18, 42, tzinfo=timezone.utc)
+
+    strategy_read = _sample_outcome_for(deterministic)
+    strategy_read["preferred_expression"]["idea_id"] = "long_stock"
+    strategy_read["preferred_expression"]["structure"] = "long_stock"
+    strategy_read["preferred_expression"]["status_observed"] = "strategy_review"
+    strategy_read["preferred_expression"]["risk_flags_observed"] = []
+    strategy_read["best_expressions"][0]["idea_id"] = "long_stock"
+    strategy_read["best_expressions"][0]["structure"] = "long_stock"
+    strategy_read["best_expressions"][0]["status_observed"] = "strategy_review"
+    strategy_read["best_expressions"][0]["risk_flags_observed"] = []
+    strategy_read["rejected_ideas"][0]["idea_id"] = "short_strangle"
+    strategy_read["rejected_ideas"][0]["structure"] = "short_strangle"
+
+    parsed = validate_trade_insights_ai_outcome(
+        strategy_read,
+        deterministic,
+        produced_at=produced_at,
+    )
+
+    assert parsed.preferred_expression is not None
+    assert parsed.preferred_expression.idea_id == "long_stock"
+    assert parsed.best_expressions[0].status_observed == "strategy_review"
 
 
 def test_validate_trade_insights_ai_outcome_rejects_time_and_section_mismatches():
@@ -634,6 +687,23 @@ def test_validate_trade_insights_ai_outcome_rejects_source_path_problems():
     bad_leaf["metric_cards"][0]["source_path"] = "tabs.volatility.header.not_real"
     with pytest.raises(ValueError, match="source_path"):
         validate_trade_insights_ai_outcome(bad_leaf, deterministic, produced_at=produced_at)
+
+
+def test_validate_trade_insights_ai_outcome_accepts_array_family_source_paths():
+    deterministic = _analysis_input()
+    produced_at = datetime(2026, 3, 24, 20, 18, 42, tzinfo=timezone.utc)
+    wildcard_path = _sample_outcome_for(deterministic)
+    wildcard_path["metric_cards"][0]["source_path"] = (
+        "tabs.market_structure.stock_history.rows[].net_dex"
+    )
+
+    parsed = validate_trade_insights_ai_outcome(
+        wildcard_path,
+        deterministic,
+        produced_at=produced_at,
+    )
+
+    assert parsed.metric_cards[0].source_path.endswith("rows[].net_dex")
 
 
 def test_validate_trade_insights_ai_outcome_rejects_field_aware_imperatives():

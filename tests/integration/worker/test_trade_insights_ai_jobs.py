@@ -6,6 +6,7 @@ import psycopg
 
 from tests.test_trade_insights_ai import _analysis_input, _sample_outcome_for
 from uw_scan.config import Settings
+from uw_scan.reports.trade_insights_ai import PROMPT_VERSION
 from uw_scan.storage.repository import Repository
 from uw_scan.worker.jobs.trade_insights_ai import (
     TradeInsightsAiRunnerError,
@@ -46,7 +47,11 @@ def _create_snapshot(repo: Repository):
     return run_id, snapshot_id
 
 
-def _enqueue_analysis(repo: Repository) -> tuple[str, dict]:
+def _enqueue_analysis(
+    repo: Repository,
+    *,
+    prompt_version: str = PROMPT_VERSION,
+) -> tuple[str, dict]:
     run_id, snapshot_id = _create_snapshot(repo)
     analysis_input = _analysis_input()
     analysis_input["stored_marker"] = "queued-payload"
@@ -57,7 +62,7 @@ def _enqueue_analysis(repo: Repository) -> tuple[str, dict]:
         trade_insights_input_hash=analysis_input["trade_insights_input_hash"],
         analysis_input_hash=analysis_input["analysis_input_hash"],
         analysis_input=analysis_input,
-        prompt_version="trade-insights-ai-v1",
+        prompt_version=prompt_version,
         model="codex-default",
     )
     repo.conn.commit()
@@ -135,6 +140,35 @@ def test_trade_insights_ai_tick_marks_invalid_output_failed(
     row = repo.get_trade_insight_ai_analysis(analysis_id, ticker="TSLA")
     assert row["status"] == "failed"
     assert row["error_message"]
+
+
+def test_trade_insights_ai_tick_marks_obsolete_prompt_version_failed(
+    seeded_db_empty_cards,
+    monkeypatch,
+):
+    repo = seeded_db_empty_cards
+    settings = _settings_for_repo(repo)
+    analysis_id, _analysis_input_payload = _enqueue_analysis(
+        repo,
+        prompt_version="trade-insights-ai-v1",
+    )
+    runner_called = False
+
+    def fake_runner(*_args, **_kwargs):
+        nonlocal runner_called
+        runner_called = True
+        return {}
+
+    monkeypatch.setattr(
+        "uw_scan.worker.jobs.trade_insights_ai.run_codex_trade_insights_analysis",
+        fake_runner,
+    )
+
+    assert trade_insights_ai_tick(settings) is True
+    row = repo.get_trade_insight_ai_analysis(analysis_id, ticker="TSLA")
+    assert row["status"] == "failed"
+    assert "obsolete prompt_version" in row["error_message"]
+    assert runner_called is False
 
 
 def test_trade_insights_ai_tick_marks_mismatched_produced_at_failed(

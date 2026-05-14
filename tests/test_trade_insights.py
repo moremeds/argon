@@ -169,9 +169,17 @@ def test_assemble_trade_insights_builds_research_response():
         "calendar_spread",
     }.issubset({c.structure for c in response.candidate_structures})
     assert response.source_reconciliation.status == "UNKNOWN"
-    assert response.header.preferred_idea_id is None
-    assert response.synthesis.preferred_idea_id is None
-    assert all(c.status == "needs_check" for c in response.candidate_structures)
+    assert response.header.preferred_idea_id == "A"
+    assert response.synthesis.preferred_idea_id == "A"
+    assert response.synthesis.best_risk_reward_idea_id == "A"
+    assert response.candidate_structures[0].status == "preferred"
+    assert all(
+        c.status in {"preferred", "candidate"}
+        for c in response.candidate_structures
+    )
+    assert not any(c.status == "needs_check" for c in response.candidate_structures)
+    assert "Executable recommendation language" not in response.synthesis.avoid
+    assert "Confirm event calendar through all expiries" in response.synthesis.required_before_sizing
 
 
 def test_iron_condor_max_loss_matches_width_minus_total_credit():

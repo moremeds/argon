@@ -1,8 +1,12 @@
 /* @vitest-environment jsdom */
+import { StrictMode } from "react";
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { TradeInsightsAiAnalysisPanel } from "@/components/stock/panels/TradeInsightsAiAnalysisPanel";
+import {
+  AI_ANALYSIS_POLL_MAX_MS,
+  TradeInsightsAiAnalysisPanel,
+} from "@/components/stock/panels/TradeInsightsAiAnalysisPanel";
 import { api, type TradeInsightsAiAnalysisResponse } from "@/lib/api";
 
 vi.mock("@/lib/api", async () => {
@@ -214,6 +218,10 @@ describe("TradeInsightsAiAnalysisPanel", () => {
     expect(screen.getByText("Run AI Analysis")).toBeDefined();
   });
 
+  it("keeps polling long enough for the deeper local Codex prompt", () => {
+    expect(AI_ANALYSIS_POLL_MAX_MS).toBe(10 * 60 * 1000);
+  });
+
   it("shows unavailable state when POST returns disabled", async () => {
     vi.mocked(api.tradeInsightsAiAnalysis).mockRejectedValueOnce(
       new Error("API 503 for /ai-analysis: disabled"),
@@ -249,8 +257,24 @@ describe("TradeInsightsAiAnalysisPanel", () => {
     expect(screen.getByText("Volatility")).toBeDefined();
     expect(screen.getByText("Flow & Positioning")).toBeDefined();
     expect(screen.getByText("VRP Assessment")).toBeDefined();
+    const cardGrid = screen.getByTestId("ai-analysis-card-grid");
+    const topGrid = screen.getByTestId("ai-analysis-upper-card-grid");
+    const lowerGrid = screen.getByTestId("ai-analysis-lower-card-grid");
+    expect(topGrid.style.gridTemplateColumns).toBe(
+      "repeat(3, minmax(0, 1fr))",
+    );
+    expect(lowerGrid.style.gridTemplateColumns).toBe(
+      "minmax(0, 0.95fr) minmax(0, 0.9fr) minmax(0, 1.15fr)",
+    );
+    expect(cardGrid.style.gap).toBe("12px");
+    expect(topGrid.style.alignItems).toBe("stretch");
+    expect(lowerGrid.style.alignItems).toBe("stretch");
     expect(screen.getByText("Bull Call Spread - TSLA")).toBeDefined();
-    expect(screen.getByText("Confirm event calendar")).toBeDefined();
+    expect(screen.getByText("Trade Setup Readiness")).toBeDefined();
+    expect(screen.getByText("Validation Checklist")).toBeDefined();
+    expect(screen.getByText("Price paths to watch")).toBeDefined();
+    expect(screen.getByText("Must confirm before sizing")).toBeDefined();
+    expect(screen.getAllByText("Confirm event calendar").length).toBeGreaterThan(0);
     expect(
       screen.getByText("No event calendar data in deterministic payload."),
     ).toBeDefined();
@@ -258,6 +282,48 @@ describe("TradeInsightsAiAnalysisPanel", () => {
       screen.getByText(/Generated analysis from local Codex/i),
     ).toBeDefined();
     expect(screen.getAllByText(/2026-03-24/).length).toBeGreaterThan(0);
+  });
+
+  it("hydrates the latest saved analysis under StrictMode effect replay", async () => {
+    vi.mocked(api.tradeInsightsAiAnalysisLatest).mockResolvedValue(
+      succeededResponse(),
+    );
+
+    render(
+      <StrictMode>
+        <TradeInsightsAiAnalysisPanel ticker="TSLA" />
+      </StrictMode>,
+    );
+
+    expect(
+      await screen.findByText(
+        "TSLA near gamma resistance with cheap vol and bullish flow",
+      ),
+    ).toBeDefined();
+  });
+
+  it("resumes polling the latest queued analysis after remount", async () => {
+    const status = deferred<TradeInsightsAiAnalysisResponse>();
+    vi.mocked(api.tradeInsightsAiAnalysisLatest).mockResolvedValueOnce(baseResponse);
+    vi.mocked(api.tradeInsightsAiAnalysisStatus).mockReturnValueOnce(
+      status.promise,
+    );
+
+    render(<TradeInsightsAiAnalysisPanel ticker="TSLA" />);
+
+    expect(await screen.findByText(/AI analysis queued/i)).toBeDefined();
+    await waitFor(() =>
+      expect(api.tradeInsightsAiAnalysisStatus).toHaveBeenCalledWith(
+        "TSLA",
+        baseResponse.analysis_id,
+      ),
+    );
+    await act(async () => {
+      status.resolve(succeededResponse());
+      await status.promise;
+    });
+    expect(await screen.findByText("BUY setup")).toBeDefined();
+    expect(api.tradeInsightsAiAnalysis).not.toHaveBeenCalled();
   });
 
   it("renders failed status with retry affordance", async () => {

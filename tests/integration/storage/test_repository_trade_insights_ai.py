@@ -140,6 +140,35 @@ def test_find_completed_trade_insight_ai_analysis_reuses_most_recent_success(
     assert found["markdown"] == "new"
 
 
+def test_find_latest_trade_insight_ai_analysis_prefers_active_progress(
+    seeded_db_empty_cards,
+):
+    repo = seeded_db_empty_cards
+    run_id, snapshot_id = _create_snapshot(repo)
+    succeeded_id = _enqueue(repo, snapshot_id=snapshot_id, run_id=run_id)
+    repo.complete_trade_insight_ai_analysis(
+        succeeded_id,
+        outcome={"schema_version": "trade-insights-ai-v1"},
+        markdown="done",
+    )
+    queued_id = _enqueue(
+        repo,
+        snapshot_id=snapshot_id,
+        run_id=run_id,
+        analysis_input_hash="new-ai-hash",
+    )
+
+    found = repo.find_latest_trade_insight_ai_analysis(
+        ticker="TSLA",
+        prompt_version="trade-insights-ai-v1",
+        model="codex-default",
+    )
+
+    assert found is not None
+    assert str(found["analysis_id"]) == queued_id
+    assert found["status"] == "queued"
+
+
 def test_changed_analysis_input_hash_does_not_reuse_completed_row(
     seeded_db_empty_cards,
 ):

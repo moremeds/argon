@@ -1768,6 +1768,34 @@ class Repository:
             cols = [d.name for d in cur.description or []]
             return dict(zip(cols, row, strict=False))
 
+    def find_latest_trade_insight_ai_analysis(
+        self,
+        *,
+        ticker: str,
+        prompt_version: str,
+        model: str,
+    ) -> dict[str, Any] | None:
+        sql = (
+            f"SELECT * FROM {self._schema}.trade_insight_ai_analyses "
+            "WHERE ticker = %s "
+            "AND prompt_version = %s "
+            "AND model = %s "
+            "AND status IN ('queued', 'running', 'succeeded') "
+            "ORDER BY "
+            "  CASE status WHEN 'running' THEN 0 WHEN 'queued' THEN 1 ELSE 2 END, "
+            "  started_at DESC NULLS LAST, "
+            "  requested_at DESC, "
+            "  finished_at DESC NULLS LAST "
+            "LIMIT 1"
+        )
+        with self._conn.cursor() as cur:
+            cur.execute(sql, (ticker.upper(), prompt_version, model))
+            row = cur.fetchone()
+            if row is None:
+                return None
+            cols = [d.name for d in cur.description or []]
+            return dict(zip(cols, row, strict=False))
+
     def enqueue_trade_insight_ai_analysis(
         self,
         *,
