@@ -1062,6 +1062,10 @@ export interface components {
              * Format: date-time
              */
             generated_at: string;
+            /** Spot Quoted At */
+            spot_quoted_at?: string | null;
+            /** Spot Source */
+            spot_source?: string | null;
             /**
              * Short Int Note
              * @default n/a (UW endpoint does not expose %)

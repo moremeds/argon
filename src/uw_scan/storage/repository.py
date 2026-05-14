@@ -1940,9 +1940,24 @@ class Repository:
                 SELECT
                   w.ticker, w.sector, w.pinned, w.sort_rank,
                   c.run_id, c.scanned_at,
-                  COALESCE(c.spot, q.price)                                AS spot,
-                  COALESCE(c.spot_quoted_at, q.quoted_at)                  AS spot_quoted_at,
-                  COALESCE(c.spot_source, CASE WHEN q.price IS NOT NULL THEN 'massive.com_intraday' END) AS spot_source,
+                  CASE
+                    WHEN q.price IS NOT NULL
+                      AND (c.spot_quoted_at IS NULL OR q.quoted_at >= c.spot_quoted_at)
+                      THEN q.price
+                    ELSE c.spot
+                  END                                                       AS spot,
+                  CASE
+                    WHEN q.price IS NOT NULL
+                      AND (c.spot_quoted_at IS NULL OR q.quoted_at >= c.spot_quoted_at)
+                      THEN q.quoted_at
+                    ELSE c.spot_quoted_at
+                  END                                                       AS spot_quoted_at,
+                  CASE
+                    WHEN q.price IS NOT NULL
+                      AND (c.spot_quoted_at IS NULL OR q.quoted_at >= c.spot_quoted_at)
+                      THEN 'massive.com_intraday'
+                    ELSE c.spot_source
+                  END                                                       AS spot_source,
                   c.iv_atm, c.iv_rank,
                   c.setup_type, c.setup_direction, c.setup_score,
                   c.aggression_pct,

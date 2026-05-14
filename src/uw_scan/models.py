@@ -602,6 +602,8 @@ class SingleStockReport(_UwBase):
     run_id: int
     ticker: str
     generated_at: datetime
+    spot_quoted_at: datetime | None = None
+    spot_source: str | None = None
     short_int_note: str = "n/a (UW endpoint does not expose %)"
     market_structure: MarketStructure
     volatility: VolatilityProfile

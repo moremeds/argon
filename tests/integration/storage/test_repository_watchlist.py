@@ -91,6 +91,29 @@ def test_upsert_watchlist_card_idempotent(repo):
     assert card.spot == Decimal("101.0000")
 
 
+def test_list_watchlist_cards_prefers_newer_intraday_quote(repo):
+    repo.add_watchlist_ticker(ticker="ZZTEST", sector="ETF", notes="t")
+    run_id = repo.insert_scan_run("ZZTEST", notes="t")
+    repo.upsert_watchlist_card(
+        ticker="ZZTEST",
+        run_id=run_id,
+        scanned_at=datetime(2026, 5, 13, 20, 0, tzinfo=timezone.utc),
+        spot=Decimal("100.00"),
+        spot_quoted_at=datetime(2026, 5, 13, 20, 0, tzinfo=timezone.utc),
+        spot_source="uw_scan",
+    )
+    repo.upsert_intraday_quote(
+        "ZZTEST",
+        Decimal("101.25"),
+        datetime(2026, 5, 13, 20, 15, tzinfo=timezone.utc),
+    )
+
+    cards = {card.ticker: card for card in repo.list_watchlist_cards()}
+
+    assert cards["ZZTEST"].spot == Decimal("101.2500")
+    assert cards["ZZTEST"].spot_source == "massive.com_intraday"
+
+
 def test_upsert_daily_ohlc_dedupe_by_date(repo):
     repo.upsert_daily_ohlc(
         ticker="ZZTEST",
