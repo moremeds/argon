@@ -52,7 +52,6 @@ Environment:
 - **No secrets to local Codex subprocesses** — do not pass UW/FMP/Massive keys, DB credentials, or unrelated app secrets to `codex exec`
 - **Never commit without an explicit user request.** Draft first, wait
 - **Always open a PR before merging to main.** `git push origin main` is forbidden
-- **Branch names** use `feat/` for feature work by default; do not default to a `codex/` prefix
 - **Never add `Co-Authored-By: Claude` trailers** to commits
 - **Migrations are idempotent** (`IF NOT EXISTS`, `ON CONFLICT DO NOTHING`). No tracking table — re-running is a no-op
 - **Live API tests** are marked `live` and need `UW_SCAN_API_KEY`; default `pytest` excludes them
