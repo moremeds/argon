@@ -20,6 +20,7 @@ const rowStyle: React.CSSProperties = {
 };
 const valStyle: React.CSSProperties = {
   color: "var(--text-secondary)",
+  whiteSpace: "nowrap",
 };
 
 function dash(v: number | string | null | undefined, suffix = ""): string {

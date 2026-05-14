@@ -50,9 +50,17 @@ describe("fmtDateTimeWithZone", () => {
   it("renders a compact date, time, and timezone", () => {
     const formatted = fmtDateTimeWithZone("2026-05-14T00:54:48Z");
     expect(formatted).toMatch(
-      /^\d{4}\/\d{2}\/\d{2} \d{2}:\d{2}:\d{2} (?:GMT[+-]\d{1,2}|UTC|[A-Z]{2,5})$/,
+      /^\d{4}\/\d{2}\/\d{2} \d{2}:\d{2}:\d{2} (?:GMT[+-]\d{1,2}|UTC|HKG|[A-Z]{2,5})$/,
     );
     expect(formatted).not.toContain("May");
+  });
+
+  it("uses HKG as the compact label for Hong Kong time", () => {
+    expect(
+      fmtDateTimeWithZone("2026-05-14T00:54:48Z", {
+        timeZone: "Asia/Hong_Kong",
+      }),
+    ).toBe("2026/05/14 08:54:48 HKG");
   });
 
   it("renders a dash for missing timestamps", () => {

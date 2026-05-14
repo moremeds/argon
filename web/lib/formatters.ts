@@ -29,6 +29,7 @@ export function fmtDecimal(v: number | null | undefined, digits = 2): string {
 
 export function fmtDateTimeWithZone(
   iso: string | null | undefined,
+  opts: { timeZone?: string } = {},
 ): string {
   if (!iso) return "—";
   const d = new Date(iso);
@@ -42,10 +43,13 @@ export function fmtDateTimeWithZone(
     second: "2-digit",
     hour12: false,
     timeZoneName: "short",
+    ...(opts.timeZone ? { timeZone: opts.timeZone } : {}),
   }).formatToParts(d);
   const value = (type: Intl.DateTimeFormatPartTypes) =>
     parts.find((part) => part.type === type)?.value ?? "";
-  return `${value("year")}/${value("month")}/${value("day")} ${value("hour")}:${value("minute")}:${value("second")} ${value("timeZoneName")}`;
+  const timeZoneName = value("timeZoneName");
+  const compactZone = timeZoneName === "GMT+8" ? "HKG" : timeZoneName;
+  return `${value("year")}/${value("month")}/${value("day")} ${value("hour")}:${value("minute")}:${value("second")} ${compactZone}`;
 }
 
 /**
