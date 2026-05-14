@@ -232,8 +232,8 @@ def main() -> int:
         logger.info("received signal, shutting down scheduler")
         try:
             sched.shutdown(wait=False)
-        except SchedulerNotRunningError:
-            pass
+        except SchedulerNotRunningError as exc:
+            logger.debug("scheduler already stopped during shutdown: %s", repr(exc))
         sys.exit(0)
 
     signal.signal(signal.SIGTERM, _stop)
