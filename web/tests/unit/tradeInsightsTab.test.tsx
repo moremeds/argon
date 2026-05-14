@@ -80,32 +80,26 @@ describe("TradeInsightsTab", () => {
     vi.mocked(api.tradeInsightsAiAnalysisLatest).mockResolvedValue(null);
   });
 
-  it("orders header, AI analysis, chain and term highlights, synthesis, then lower details", async () => {
+  it("orders header, AI analysis, evidence highlights, then deterministic decision panels", async () => {
     render(await TradeInsightsTab({ ticker: "TSLA" }));
 
-    const header = screen.getByText("TRADE_INSIGHTS_RESEARCH");
+    const header = screen.getByText("Trade Insights Research");
+    const synthesis = screen.getByText("SYNTHESIS");
+    const candidates = screen.getByText("CANDIDATE STRUCTURES");
     const aiAnalysis = screen.getByText("AI ANALYSIS");
     const flowHighlights = screen.getByText("CHAIN / FLOW HIGHLIGHTS");
     const termHighlights = screen.getByText("TERM / MOVE HIGHLIGHTS");
-    const synthesis = screen.getByText("SYNTHESIS / NEXT CHECKS");
     const sourceReconciliation = screen.getByText("SOURCE RECONCILIATION");
     const signalStack = screen.getByText("SIGNAL STACK");
-    const candidates = screen.getByText("CANDIDATE STRUCTURES");
-    const upperPairedGrid = screen.getByTestId("trade-insights-upper-pair");
-    const lowerPairedGrid = screen.getByTestId("trade-insights-lower-pair");
+    const evidenceGrid = screen.getByTestId("trade-insights-evidence-grid");
 
     expect(comesBefore(header, aiAnalysis)).toBe(true);
     expect(comesBefore(aiAnalysis, flowHighlights)).toBe(true);
     expect(comesBefore(flowHighlights, termHighlights)).toBe(true);
-    expect(comesBefore(termHighlights, synthesis)).toBe(true);
-    expect(comesBefore(synthesis, sourceReconciliation)).toBe(true);
+    expect(comesBefore(termHighlights, sourceReconciliation)).toBe(true);
     expect(comesBefore(sourceReconciliation, signalStack)).toBe(true);
-    expect(comesBefore(signalStack, candidates)).toBe(true);
-    expect(upperPairedGrid.style.gridAutoRows).toBe("1fr");
-    expect(upperPairedGrid.style.alignItems).toBe("stretch");
-    expect(lowerPairedGrid.style.gridTemplateColumns).toBe(
-      "minmax(0, 1.15fr) minmax(0, 0.85fr)",
-    );
-    expect(lowerPairedGrid.style.gridAutoRows).toBe("1fr");
+    expect(comesBefore(signalStack, synthesis)).toBe(true);
+    expect(comesBefore(synthesis, candidates)).toBe(true);
+    expect(evidenceGrid.className).toBe("trade-insights-evidence-grid");
   });
 });

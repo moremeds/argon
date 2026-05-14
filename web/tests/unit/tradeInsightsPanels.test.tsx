@@ -28,7 +28,8 @@ describe("TradeInsightsBiasBanner", () => {
     // The parent layout's <DetailHeader> already renders the ticker, so the
     // banner intentionally does NOT — assert absence to lock that contract in.
     expect(screen.queryByText("TSLA")).toBeNull();
-    expect(screen.getByText("TRADE_INSIGHTS_RESEARCH")).toBeDefined();
+    expect(screen.getByText("Trade Insights Research")).toBeDefined();
+    expect(screen.getByText("Neutral Short Vol")).toBeDefined();
     expect(screen.getByText("Defined-risk only")).toBeDefined();
   });
 });
@@ -115,8 +116,8 @@ describe("Trade Insights detail panels", () => {
     expect(screen.getByText("Curve read")).toBeDefined();
     expect(screen.getByText(/front expiry/i)).toBeDefined();
     expect(screen.getByText("Show highlighted expiry rows")).toBeDefined();
-    expect(screen.getByText("2026-05-15")).toBeDefined();
-    expect(screen.getByText("Front elevated")).toBeDefined();
+    expect(screen.getAllByText(/2026-05-15/).length).toBeGreaterThan(0);
+    expect(screen.getByText("Flat / unclear")).toBeDefined();
   });
 
   it("renders candidate max loss", () => {

@@ -1,6 +1,7 @@
-export function DataTable<T extends Record<string, unknown>>({
+export function DataTable<T extends object>({
   rows,
   columns,
+  nowrap = false,
 }: {
   rows: T[];
   columns: {
@@ -8,6 +9,7 @@ export function DataTable<T extends Record<string, unknown>>({
     label: string;
     render?: (v: T[keyof T], row: T) => React.ReactNode;
   }[];
+  nowrap?: boolean;
 }) {
   if (rows.length === 0)
     return (
@@ -32,6 +34,7 @@ export function DataTable<T extends Record<string, unknown>>({
                 padding: "4px 8px",
                 color: "var(--text-muted)",
                 borderBottom: "1px solid var(--border-dim)",
+                whiteSpace: nowrap ? "nowrap" : undefined,
               }}
             >
               {c.label}
@@ -43,7 +46,14 @@ export function DataTable<T extends Record<string, unknown>>({
         {rows.map((r, i) => (
           <tr key={i} style={{ borderBottom: "1px solid var(--border-dim)" }}>
             {columns.map((c) => (
-              <td key={String(c.key)} style={{ padding: "4px 8px" }}>
+              <td
+                key={String(c.key)}
+                style={{
+                  padding: "4px 8px",
+                  verticalAlign: "top",
+                  whiteSpace: nowrap ? "nowrap" : undefined,
+                }}
+              >
                 {c.render ? c.render(r[c.key], r) : String(r[c.key] ?? "—")}
               </td>
             ))}

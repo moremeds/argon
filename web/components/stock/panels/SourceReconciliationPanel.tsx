@@ -1,6 +1,5 @@
 import type { TradeInsightsResponse } from "@/lib/api";
-import { DataTable } from "./DataTable";
-import { InsightPanel, InsightStatusBanner } from "./InsightPanel";
+import { InsightPanel } from "./InsightPanel";
 
 type Reconciliation = TradeInsightsResponse["source_reconciliation"];
 
@@ -11,26 +10,51 @@ export function SourceReconciliationPanel({
 }) {
   return (
     <InsightPanel heading="SOURCE RECONCILIATION">
-      <div style={{ fontFamily: "var(--font-mono)", fontSize: 12 }}>
-        <div style={{ color: "var(--text-primary)", marginBottom: 4 }}>
+      <div style={{ fontSize: 13, lineHeight: 1.55 }}>
+        <div style={{ color: "var(--text-primary)", fontWeight: 700, marginBottom: 6 }}>
           {reconciliation.headline}
         </div>
-        <div style={{ color: "var(--text-secondary)", marginBottom: 12 }}>
+        <div style={{ color: "var(--text-secondary)" }}>
           {reconciliation.decision}
         </div>
       </div>
       {reconciliation.rows.length > 0 ? (
-        <DataTable
-          rows={reconciliation.rows as unknown as Record<string, unknown>[]}
-          columns={[
-            { key: "source_pair", label: "Source Pair" },
-            { key: "price_agreement", label: "Price" },
-            { key: "iv_agreement", label: "IV" },
-            { key: "decision", label: "Decision" },
-          ]}
-        />
+        <div
+          style={{
+            display: "grid",
+            gap: 8,
+            fontFamily: "var(--font-mono)",
+            fontSize: 11,
+          }}
+        >
+          {reconciliation.rows.slice(0, 3).map((row) => (
+            <div
+              key={`${row.source_pair}-${row.decision}`}
+              style={{
+                border: "1px solid var(--border-dim)",
+                background: "var(--bg-base)",
+                padding: "8px 10px",
+                display: "grid",
+                gap: 4,
+              }}
+            >
+              <div style={{ color: "var(--text-primary)" }}>{row.source_pair}</div>
+              <div style={{ color: "var(--text-secondary)" }}>
+                Price {row.price_agreement}; IV {row.iv_agreement}; {row.decision}
+              </div>
+            </div>
+          ))}
+        </div>
       ) : (
-        <InsightStatusBanner text="No source reconciliation data" severity="info" />
+        <div
+          style={{
+            color: "var(--text-muted)",
+            fontFamily: "var(--font-mono)",
+            fontSize: 11,
+          }}
+        >
+          No source reconciliation rows available.
+        </div>
       )}
     </InsightPanel>
   );

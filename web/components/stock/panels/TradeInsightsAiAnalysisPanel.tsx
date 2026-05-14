@@ -102,6 +102,39 @@ function SmallHeading({ children }: { children: ReactNode }) {
   );
 }
 
+function ActionButton({
+  children,
+  disabled,
+  compact = false,
+  onClick,
+}: {
+  children: ReactNode;
+  disabled?: boolean;
+  compact?: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      style={{
+        justifySelf: "start",
+        border: "1px solid var(--border-dim)",
+        borderRadius: 4,
+        background: disabled ? "var(--bg-panel)" : "var(--bg-base)",
+        color: disabled ? "var(--text-muted)" : "var(--text-primary)",
+        cursor: disabled ? "not-allowed" : "pointer",
+        fontFamily: "var(--font-mono)",
+        fontSize: compact ? 10 : 11,
+        padding: compact ? "5px 8px" : "7px 10px",
+      }}
+    >
+      {children}
+    </button>
+  );
+}
+
 function CompactNote({ label, value }: { label: string; value: string }) {
   return (
     <div
@@ -133,9 +166,8 @@ function AnalysisCard({
   return (
     <div
       style={{
-        border: "1px solid var(--border-dim)",
+        border: `1px solid ${tone === "neutral" ? "var(--border-dim)" : toneColor(tone)}`,
         borderRadius: 4,
-        borderLeft: `6px solid ${toneColor(tone)}`,
         background: "var(--bg-panel)",
         height: "100%",
         minHeight: 0,
@@ -147,15 +179,29 @@ function AnalysisCard({
       }}
     >
       <div>
-        <div
-          style={{
-            color: "var(--text-primary)",
-            fontSize: 15,
-            fontWeight: 700,
-            lineHeight: 1.25,
-          }}
-        >
-          {title}
+        <div style={{ display: "flex", justifyContent: "space-between", gap: 10 }}>
+          <div
+            style={{
+              color: "var(--text-primary)",
+              fontSize: 15,
+              fontWeight: 700,
+              lineHeight: 1.25,
+            }}
+          >
+            {title}
+          </div>
+          {tone !== "neutral" && (
+            <span
+              aria-label={`${tone} signal`}
+              style={{
+                width: 8,
+                height: 8,
+                marginTop: 5,
+                flex: "0 0 auto",
+                background: toneColor(tone),
+              }}
+            />
+          )}
         </div>
         {subtitle && (
           <div
@@ -306,10 +352,9 @@ function OutcomeGrid({ outcome }: { outcome: Outcome }) {
     <div style={{ display: "grid", gap: 14 }}>
       <div
         style={{
-          border: "1px solid var(--border-dim)",
-          borderLeft: `6px solid ${toneColor(toneFromText(outcome.headline.stance_label))}`,
+          border: `1px solid ${toneColor(toneFromText(outcome.headline.stance_label))}`,
           borderRadius: 4,
-          padding: "12px 14px",
+          padding: "14px 16px",
           background: "var(--bg-panel)",
         }}
       >
@@ -357,7 +402,7 @@ function OutcomeGrid({ outcome }: { outcome: Outcome }) {
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+            gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 240px), 1fr))",
             gap: 8,
             marginTop: 10,
           }}
@@ -388,7 +433,7 @@ function OutcomeGrid({ outcome }: { outcome: Outcome }) {
           data-testid="ai-analysis-upper-card-grid"
           style={{
             display: "grid",
-            gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+            gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 240px), 1fr))",
             alignItems: "stretch",
             gap: 12,
           }}
@@ -410,7 +455,7 @@ function OutcomeGrid({ outcome }: { outcome: Outcome }) {
           data-testid="ai-analysis-lower-card-grid"
           style={{
             display: "grid",
-            gridTemplateColumns: "minmax(0, 0.95fr) minmax(0, 0.9fr) minmax(0, 1.15fr)",
+            gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 260px), 1fr))",
             alignItems: "stretch",
             gap: 12,
           }}
@@ -623,10 +668,24 @@ export function TradeInsightsAiAnalysisPanel({ ticker }: { ticker: string }) {
   }
 
   const failed = analysis?.status === "failed";
+  const canRun = !unavailable && (!analysis || failed || analysis.status === "succeeded");
+  const forceRun = Boolean(analysis && (failed || analysis.status === "succeeded"));
+  const actionLabel =
+    loading
+      ? "Running..."
+      : failed
+        ? "Retry"
+        : "Run Analysis";
   return (
     <InsightPanel
       heading="AI ANALYSIS"
-      subheading="Generated commentary from local Codex"
+      action={
+        canRun ? (
+          <ActionButton compact onClick={() => run(forceRun)} disabled={loading}>
+            {actionLabel}
+          </ActionButton>
+        ) : undefined
+      }
     >
       <div style={{ display: "grid", gap: 12 }}>
         {unavailable && (
@@ -634,11 +693,6 @@ export function TradeInsightsAiAnalysisPanel({ ticker }: { ticker: string }) {
             text="Local Codex AI analysis is not enabled for this environment."
             severity="info"
           />
-        )}
-        {!analysis && !unavailable && (
-          <button type="button" onClick={() => run()} disabled={loading}>
-            {loading ? "Running..." : "Run AI Analysis"}
-          </button>
         )}
         {analysis && isInFlight(analysis) ? (
           <InsightStatusBanner
@@ -652,9 +706,6 @@ export function TradeInsightsAiAnalysisPanel({ ticker }: { ticker: string }) {
               text={analysis.error_message ?? "AI analysis failed"}
               severity="negative"
             />
-            <button type="button" onClick={() => run(true)} disabled={loading}>
-              Retry
-            </button>
           </>
         )}
         {analysis?.status === "succeeded" && analysis.outcome && (

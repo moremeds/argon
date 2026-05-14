@@ -12,16 +12,23 @@ export function SignalStackPanel({ rows }: { rows: Row[] }) {
             key={row.lens}
             style={{
               display: "grid",
-              gridTemplateColumns: "140px 1fr",
+              gridTemplateColumns: "96px 1fr",
               gap: 12,
+              alignItems: "start",
             }}
           >
-            <div style={{ fontFamily: "var(--font-mono)", fontSize: 12 }}>
+            <div
+              style={{
+                color: "var(--text-muted)",
+                fontFamily: "var(--font-mono)",
+                fontSize: 11,
+              }}
+            >
               {row.lens}
             </div>
             <div>
               <div style={{ fontWeight: 600 }}>{row.read}</div>
-              <div style={{ color: "var(--text-secondary)", fontSize: 12 }}>
+              <div style={{ color: "var(--text-secondary)", fontSize: 12, lineHeight: 1.4 }}>
                 {row.evidence.join(" | ")}
               </div>
             </div>

@@ -215,7 +215,10 @@ describe("TradeInsightsAiAnalysisPanel", () => {
   it("shows the initial run control", () => {
     render(<TradeInsightsAiAnalysisPanel ticker="TSLA" />);
     expect(screen.getByText("AI ANALYSIS")).toBeDefined();
-    expect(screen.getByText("Run AI Analysis")).toBeDefined();
+    expect(screen.getByText("Run Analysis")).toBeDefined();
+    expect(
+      screen.queryByText("Generated commentary from local Codex"),
+    ).toBeNull();
   });
 
   it("keeps polling long enough for the deeper local Codex prompt", () => {
@@ -228,7 +231,7 @@ describe("TradeInsightsAiAnalysisPanel", () => {
     );
     render(<TradeInsightsAiAnalysisPanel ticker="TSLA" />);
 
-    fireEvent.click(screen.getByText("Run AI Analysis"));
+    fireEvent.click(screen.getByText("Run Analysis"));
 
     expect(await screen.findByText(/not enabled/i)).toBeDefined();
   });
@@ -240,7 +243,7 @@ describe("TradeInsightsAiAnalysisPanel", () => {
     );
     render(<TradeInsightsAiAnalysisPanel ticker="TSLA" />);
 
-    fireEvent.click(screen.getByText("Run AI Analysis"));
+    fireEvent.click(screen.getByText("Run Analysis"));
 
     await waitFor(() =>
       expect(api.tradeInsightsAiAnalysis).toHaveBeenCalledWith("TSLA", {}),
@@ -261,10 +264,10 @@ describe("TradeInsightsAiAnalysisPanel", () => {
     const topGrid = screen.getByTestId("ai-analysis-upper-card-grid");
     const lowerGrid = screen.getByTestId("ai-analysis-lower-card-grid");
     expect(topGrid.style.gridTemplateColumns).toBe(
-      "repeat(3, minmax(0, 1fr))",
+      "repeat(auto-fit, minmax(min(100%, 240px), 1fr))",
     );
     expect(lowerGrid.style.gridTemplateColumns).toBe(
-      "minmax(0, 0.95fr) minmax(0, 0.9fr) minmax(0, 1.15fr)",
+      "repeat(auto-fit, minmax(min(100%, 260px), 1fr))",
     );
     expect(cardGrid.style.gap).toBe("12px");
     expect(topGrid.style.alignItems).toBe("stretch");
@@ -281,6 +284,7 @@ describe("TradeInsightsAiAnalysisPanel", () => {
     expect(
       screen.getByText(/Generated analysis from local Codex/i),
     ).toBeDefined();
+    expect(screen.getByText("Run Analysis")).toBeDefined();
     expect(screen.getAllByText(/2026-03-24/).length).toBeGreaterThan(0);
   });
 
@@ -294,11 +298,11 @@ describe("TradeInsightsAiAnalysisPanel", () => {
     vi.mocked(api.tradeInsightsAiAnalysisStatus).mockResolvedValueOnce(bearish);
     render(<TradeInsightsAiAnalysisPanel ticker="TSLA" />);
 
-    fireEvent.click(screen.getByText("Run AI Analysis"));
+    fireEvent.click(screen.getByText("Run Analysis"));
 
     const topGrid = await screen.findByTestId("ai-analysis-upper-card-grid");
     const marketCard = topGrid.firstElementChild as HTMLElement;
-    expect(marketCard.style.borderLeft).toContain("var(--negative)");
+    expect(marketCard.style.border).toContain("var(--negative)");
   });
 
   it("hydrates the latest saved analysis under StrictMode effect replay", async () => {
@@ -317,6 +321,26 @@ describe("TradeInsightsAiAnalysisPanel", () => {
         "TSLA near gamma resistance with cheap vol and bullish flow",
       ),
     ).toBeDefined();
+    expect(screen.getByText("Run Analysis")).toBeDefined();
+  });
+
+  it("allows a fresh run after a saved result is produced", async () => {
+    vi.mocked(api.tradeInsightsAiAnalysisLatest).mockResolvedValueOnce(
+      succeededResponse(),
+    );
+    vi.mocked(api.tradeInsightsAiAnalysis).mockResolvedValueOnce(
+      succeededResponse(),
+    );
+
+    render(<TradeInsightsAiAnalysisPanel ticker="TSLA" />);
+
+    fireEvent.click(await screen.findByText("Run Analysis"));
+
+    await waitFor(() =>
+      expect(api.tradeInsightsAiAnalysis).toHaveBeenCalledWith("TSLA", {
+        force_rerun: true,
+      }),
+    );
   });
 
   it("resumes polling the latest queued analysis after remount", async () => {
@@ -367,7 +391,7 @@ describe("TradeInsightsAiAnalysisPanel", () => {
     });
     render(<TradeInsightsAiAnalysisPanel ticker="TSLA" />);
 
-    fireEvent.click(screen.getByText("Run AI Analysis"));
+    fireEvent.click(screen.getByText("Run Analysis"));
 
     expect(await screen.findByText(/codex timed out/i)).toBeDefined();
     expect(screen.getByText("Retry")).toBeDefined();
@@ -381,7 +405,7 @@ describe("TradeInsightsAiAnalysisPanel", () => {
     );
     const { rerender } = render(<TradeInsightsAiAnalysisPanel ticker="TSLA" />);
 
-    fireEvent.click(screen.getByText("Run AI Analysis"));
+    fireEvent.click(screen.getByText("Run Analysis"));
     await waitFor(() =>
       expect(api.tradeInsightsAiAnalysisStatus).toHaveBeenCalledWith(
         "TSLA",
