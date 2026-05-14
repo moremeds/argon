@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  fmtDateTimeWithZone,
   fmtDecimal,
   fmtMoney,
   fmtPct,
@@ -42,6 +43,20 @@ describe("fmtDecimal", () => {
   it("formats with configurable digits", () => {
     expect(fmtDecimal(81256, 0)).toBe("81,256");
     expect(fmtDecimal(0.691, 4)).toBe("0.6910");
+  });
+});
+
+describe("fmtDateTimeWithZone", () => {
+  it("renders a full date, time, and timezone", () => {
+    const formatted = fmtDateTimeWithZone("2026-05-14T00:54:48Z");
+    expect(formatted).toContain("2026");
+    expect(formatted).toContain("May");
+    expect(formatted).toMatch(/\d{2}:\d{2}:\d{2}/);
+    expect(formatted).toMatch(/\b(?:UTC|GMT|[A-Z]{2,5})/);
+  });
+
+  it("renders a dash for missing timestamps", () => {
+    expect(fmtDateTimeWithZone(null)).toBe("—");
   });
 });
 

@@ -1,6 +1,10 @@
 import Link from "next/link";
 import { SetupBadge } from "@/components/watchlist/SetupBadge";
-import { fmtDecimal, fmtSigned } from "@/lib/formatters";
+import {
+  fmtDateTimeWithZone,
+  fmtDecimal,
+  fmtSigned,
+} from "@/lib/formatters";
 
 type Props = {
   ticker: string;
@@ -27,7 +31,7 @@ export function DetailHeader(p: Props) {
     >
       <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
         <Link
-          href="/watchlist"
+          href="/"
           style={{ color: "var(--text-muted)", fontSize: 12 }}
         >
           ← back
@@ -60,12 +64,10 @@ export function DetailHeader(p: Props) {
         }}
       >
         <div>
-          spot:{" "}
-          {p.spotQuotedAt ? new Date(p.spotQuotedAt).toLocaleTimeString() : "—"}
+          spot: {fmtDateTimeWithZone(p.spotQuotedAt)}
         </div>
         <div>
-          analytics:{" "}
-          {p.scannedAt ? new Date(p.scannedAt).toLocaleTimeString() : "—"}
+          analytics: {fmtDateTimeWithZone(p.scannedAt)}
         </div>
       </div>
     </header>
