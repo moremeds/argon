@@ -3,12 +3,17 @@
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel
 
 from uw_scan.api.deps import get_repo
 from uw_scan.api.schemas import JobStatus
 from uw_scan.storage.repository import Repository
 
 router = APIRouter()
+
+
+class RescanAllRequest(BaseModel):
+    confirmed: bool = False
 
 
 def _to_status(job) -> JobStatus:
@@ -33,8 +38,15 @@ def enqueue_rescan(ticker: str, repo: Repository = Depends(get_repo)) -> JobStat
 
 
 @router.post("/watchlist/rescan-all", status_code=202, response_model=list[JobStatus])
-def enqueue_rescan_all(repo: Repository = Depends(get_repo)) -> list[JobStatus]:
+def enqueue_rescan_all(
+    payload: RescanAllRequest | None = None,
+    repo: Repository = Depends(get_repo),
+) -> list[JobStatus]:
     """Enqueue a rescan job for every active watchlist ticker."""
+    if payload is None or not payload.confirmed:
+        raise HTTPException(
+            status_code=400, detail="rescan-all requires explicit confirmation"
+        )
     out: list[JobStatus] = []
     for row in repo.list_active_watchlist():
         job_id = repo.enqueue_rescan_job(row.ticker)

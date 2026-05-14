@@ -53,65 +53,28 @@ export function AddTickerDialog() {
       <dialog
         ref={ref}
         aria-label="Add ticker"
+        className="uw-dialog uw-dialog-compact"
         onClick={(e) => {
           if (e.target === e.currentTarget) close();
-        }}
-        style={{
-          padding: 0,
-          background: "var(--bg-panel)",
-          color: "var(--text-primary)",
-          border: "1px solid var(--border-dim)",
-          borderRadius: 4,
-          boxShadow: "0 24px 64px rgba(0, 0, 0, 0.36)",
         }}
       >
         <form
           onSubmit={submit}
           onClick={(e) => e.stopPropagation()}
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            gap: 12,
-            minWidth: 320,
-            padding: 16,
-          }}
+          className="uw-dialog-panel"
         >
-          <div
-            style={{
-              fontFamily: "var(--font-mono)",
-              fontSize: 12,
-              fontWeight: 700,
-              letterSpacing: 1,
-              textTransform: "uppercase",
-            }}
-          >
-            Add Ticker
-          </div>
+          <div className="uw-dialog-title">Add Ticker</div>
           <input
             required
             placeholder="TICKER"
             value={ticker}
             onChange={(e) => setTicker(e.target.value)}
-            style={{
-              fontFamily: "var(--font-mono)",
-              padding: "8px 10px",
-              background: "var(--bg-base)",
-              color: "var(--text-primary)",
-              border: "1px solid var(--border-dim)",
-              borderRadius: 3,
-            }}
+            className="uw-dialog-field"
           />
           <select
             value={sector}
             onChange={(e) => setSector(e.target.value)}
-            style={{
-              fontFamily: "var(--font-mono)",
-              padding: "8px 10px",
-              background: "var(--bg-base)",
-              color: "var(--text-primary)",
-              border: "1px solid var(--border-dim)",
-              borderRadius: 3,
-            }}
+            className="uw-dialog-field"
           >
             {SECTORS.map((s) => (
               <option key={s} value={s}>
@@ -123,50 +86,19 @@ export function AddTickerDialog() {
             placeholder="notes (optional)"
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
-            style={{
-              fontFamily: "var(--font-mono)",
-              padding: "8px 10px",
-              background: "var(--bg-base)",
-              color: "var(--text-primary)",
-              border: "1px solid var(--border-dim)",
-              borderRadius: 3,
-            }}
+            className="uw-dialog-field"
           />
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "flex-end",
-              gap: 8,
-            }}
-          >
+          <div className="uw-dialog-actions">
             <button
               type="button"
               onClick={close}
-              style={{
-                padding: "6px 10px",
-                fontFamily: "var(--font-mono)",
-                fontSize: 11,
-                background: "transparent",
-                color: "var(--text-secondary)",
-                border: "1px solid var(--border-dim)",
-                borderRadius: 3,
-                cursor: "pointer",
-              }}
+              className="uw-dialog-button uw-dialog-button-secondary"
             >
               Cancel
             </button>
             <button
               type="submit"
-              style={{
-                padding: "6px 12px",
-                fontFamily: "var(--font-mono)",
-                fontSize: 11,
-                background: "var(--accent-bg)",
-                color: "var(--accent-text)",
-                border: 0,
-                borderRadius: 3,
-                cursor: "pointer",
-              }}
+              className="uw-dialog-button uw-dialog-button-primary"
             >
               Add
             </button>

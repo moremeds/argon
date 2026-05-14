@@ -92,7 +92,10 @@ export const api = {
   rescan: (ticker: string): Promise<JobStatus> =>
     _fetch<JobStatus>(`/api/watchlist/${ticker}/rescan`, { method: "POST" }),
   rescanAll: (): Promise<JobStatus[]> =>
-    _fetch<JobStatus[]>(`/api/watchlist/rescan-all`, { method: "POST" }),
+    _fetch<JobStatus[]>(`/api/watchlist/rescan-all`, {
+      method: "POST",
+      body: JSON.stringify({ confirmed: true }),
+    }),
   job: (jobId: string): Promise<JobStatus> =>
     _fetch<JobStatus>(`/api/jobs/${jobId}`),
   health: (source: HealthSource = "uw"): Promise<HealthResponse> =>

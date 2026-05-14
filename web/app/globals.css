@@ -156,6 +156,143 @@ dialog::backdrop {
   background: rgba(10, 15, 20, 0.72);
 }
 
+.uw-dialog {
+  position: fixed;
+  inset: 50% auto auto 50%;
+  transform: translate(-50%, -50%);
+  width: min(414px, calc(100vw - 32px));
+  max-width: calc(100vw - 32px);
+  margin: 0;
+  padding: 0;
+  background: transparent;
+  color: var(--text-primary);
+  border: 0;
+}
+
+.uw-dialog-compact {
+  width: min(290px, calc(100vw - 32px));
+}
+
+.uw-dialog-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 13px;
+  width: 100%;
+  padding: 21px 22px 18px;
+  background: var(--bg-panel);
+  border: 1px solid var(--border-dim);
+  border-radius: 4px;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.44);
+}
+
+.uw-dialog-title {
+  font-family: var(--font-mono);
+  font-size: 17px;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.uw-dialog-copy {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1.55;
+  color: var(--text-secondary);
+}
+
+.uw-dialog-field {
+  min-height: 52px;
+  padding: 0 14px;
+  background: var(--bg-base);
+  color: var(--text-primary);
+  border: 1px solid var(--border-dim);
+  border-radius: 4px;
+  font-family: var(--font-mono);
+  font-size: 20px;
+  line-height: 1.2;
+}
+
+.uw-dialog-compact .uw-dialog-panel {
+  gap: 9px;
+  padding: 15px 15px 13px;
+}
+
+.uw-dialog-compact .uw-dialog-title {
+  font-size: 13px;
+}
+
+.uw-dialog-compact .uw-dialog-field {
+  min-height: 36px;
+  padding: 0 10px;
+  font-size: 14px;
+}
+
+.uw-dialog-field::placeholder {
+  color: var(--text-muted);
+  opacity: 1;
+}
+
+.uw-dialog-field:focus {
+  outline: 2px solid var(--text-primary);
+  outline-offset: 2px;
+}
+
+.uw-dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 2px;
+}
+
+.uw-dialog-button {
+  min-width: 52px;
+  min-height: 34px;
+  padding: 0 12px;
+  border-radius: 4px;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.uw-dialog-button-secondary {
+  background: transparent;
+  color: var(--text-secondary);
+  border: 1px solid var(--border-dim);
+}
+
+.uw-dialog-button-primary {
+  background: var(--accent-bg);
+  color: var(--accent-text);
+  border: 0;
+}
+
+@media (max-width: 640px) {
+  .uw-dialog-panel {
+    gap: 12px;
+    padding: 18px 16px 16px;
+  }
+
+  .uw-dialog-title {
+    font-size: 16px;
+  }
+
+  .uw-dialog-copy {
+    font-size: 12px;
+  }
+
+  .uw-dialog-field {
+    min-height: 44px;
+    font-size: 16px;
+  }
+
+  .uw-dialog-button {
+    min-height: 34px;
+    font-size: 13px;
+  }
+}
+
 html,
 body,
 #__next {

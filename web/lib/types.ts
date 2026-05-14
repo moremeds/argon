@@ -6,10 +6,7 @@
 export interface paths {
     "/api/health": {
         parameters: {
-            query?: {
-                /** @default uw */
-                source?: "uw" | "massive";
-            };
+            query?: never;
             header?: never;
             path?: never;
             cookie?: never;
@@ -599,10 +596,10 @@ export interface components {
             latest_spot_quote_fetched_at?: string | null;
             /** Watchlist Size */
             watchlist_size?: number | null;
-             /**
-              * Source
+            /**
+             * Source
              * @default UnusualWhales
-              */
+             */
             source: string;
             /** Latency P95 Ms */
             latency_p95_ms?: number | null;
@@ -1192,6 +1189,14 @@ export interface components {
             rvol_pctile?: string | null;
             /** Spy Corr 21 */
             spy_corr_21?: string | null;
+        };
+        /** RescanAllRequest */
+        RescanAllRequest: {
+            /**
+             * Confirmed
+             * @default false
+             */
+            confirmed: boolean;
         };
         /**
          * ReturnsBlock
@@ -2279,7 +2284,6 @@ export interface operations {
     health_api_health_get: {
         parameters: {
             query?: {
-                /** @default uw */
                 source?: "uw" | "massive";
             };
             header?: never;
@@ -2295,6 +2299,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HealthResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
@@ -2632,7 +2645,11 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["RescanAllRequest"] | null;
+            };
+        };
         responses: {
             /** @description Successful Response */
             202: {
@@ -2641,6 +2658,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["JobStatus"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
