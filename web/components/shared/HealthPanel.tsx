@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
+import { fmtDateTimeWithZone } from "@/lib/formatters";
 import type { components } from "@/lib/types";
 
 type Health = components["schemas"]["HealthResponse"];
@@ -19,16 +20,12 @@ const rowStyle: React.CSSProperties = {
 };
 const valStyle: React.CSSProperties = {
   color: "var(--text-secondary)",
+  whiteSpace: "nowrap",
 };
 
 function dash(v: number | string | null | undefined, suffix = ""): string {
   if (v == null || v === "") return "—";
   return `${v}${suffix}`;
-}
-
-function timeOnly(iso: string | null | undefined): string {
-  if (!iso) return "—";
-  return new Date(iso).toLocaleTimeString(undefined, { hour12: false });
 }
 
 export function HealthPanel() {
@@ -86,7 +83,7 @@ export function HealthPanel() {
       </div>
       <div style={rowStyle}>
         <span>Last Scan</span>
-        <span style={valStyle}>{timeOnly(h?.last_full_scan_at)}</span>
+        <span style={valStyle}>{fmtDateTimeWithZone(h?.last_full_scan_at)}</span>
       </div>
       <div style={rowStyle}>
         <span>Source</span>

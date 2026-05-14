@@ -1,8 +1,8 @@
-import { api } from "@/lib/api";
 import { CardGrid } from "@/components/watchlist/CardGrid";
 import { FilterBar } from "@/components/watchlist/FilterBar";
 import { AddTickerDialog } from "@/components/watchlist/AddTickerDialog";
 import { ScanAllButton } from "@/components/shared/ScanAllButton";
+import { loadDashboardData } from "@/lib/dashboardData";
 
 // Skip the Router Cache so sector/setup chip clicks refetch with new
 // searchParams instead of reusing the unfiltered RSC payload.
@@ -18,21 +18,7 @@ export default async function DashboardPage({
   if (sp.sector) qs.set("sector", sp.sector);
   if (sp.setup) qs.set("setup", sp.setup);
   if (sp.fresh) qs.set("fresh_within_minutes", sp.fresh);
-  const data = await api.watchlist(qs);
-
-  const sparklineEntries = await Promise.all(
-    data.tickers.map(async (t) => {
-      try {
-        const bars = await api.ohlc(t.ticker, 30);
-        const closes = bars.map((b) => Number(b.close)).reverse();
-        return [t.ticker, closes] as const;
-      } catch {
-        return [t.ticker, [] as number[]] as const;
-      }
-    }),
-  );
-  const sparklines: Record<string, number[]> =
-    Object.fromEntries(sparklineEntries);
+  const { data, sparklines, apiUnavailable } = await loadDashboardData(qs);
 
   return (
     <div style={{ padding: 24, maxWidth: 1600, margin: "0 auto" }}>
@@ -58,6 +44,21 @@ export default async function DashboardPage({
           <AddTickerDialog />
         </div>
       </header>
+      {apiUnavailable && (
+        <div
+          style={{
+            marginBottom: 12,
+            padding: "10px 12px",
+            border: "1px solid var(--border-dim)",
+            background: "var(--bg-panel)",
+            color: "var(--warning)",
+            fontFamily: "var(--font-mono)",
+            fontSize: 11,
+          }}
+        >
+          API unavailable. Start-up is still warming; refresh when the API is ready.
+        </div>
+      )}
       <FilterBar current={sp} />
       <CardGrid data={data} sparklines={sparklines} />
     </div>

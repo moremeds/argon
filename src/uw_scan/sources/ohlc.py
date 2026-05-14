@@ -37,7 +37,9 @@ class IntradayQuote:
 
 class OhlcProvider(Protocol):
     def fetch_daily(self, ticker: str, start: date, end: date) -> list[OhlcBar]: ...
-    def fetch_intraday_quote(self, ticker: str) -> IntradayQuote | None: ...
+    def fetch_intraday_quote(
+        self, ticker: str, *, market_date: date | None = None
+    ) -> IntradayQuote | None: ...
 
 
 class MassiveOhlcProvider:
@@ -99,7 +101,9 @@ class MassiveOhlcProvider:
             )
         return bars
 
-    def fetch_intraday_quote(self, ticker: str) -> IntradayQuote | None:
+    def fetch_intraday_quote(
+        self, ticker: str, *, market_date: date | None = None
+    ) -> IntradayQuote | None:
         """Latest 15-min-delayed intraday price.
 
         massive.com's /v3/quotes endpoint requires a paid plan; on our tier it
@@ -107,7 +111,7 @@ class MassiveOhlcProvider:
         and returns the same data shape with status="DELAYED". Spike on
         2026-05-12 verified the substitution.
         """
-        today = date.today()
+        today = market_date or datetime.now(timezone.utc).date()
         tomorrow = today + timedelta(days=1)
         path = (
             f"/v2/aggs/ticker/{ticker}/range/1/minute/"

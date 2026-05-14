@@ -43,7 +43,7 @@ def test_spot_refresh_updates_quote_and_card(seeded_db_with_cards):
     from uw_scan.worker.jobs.spot_refresh import spot_refresh_once
 
     fake = MagicMock()
-    fake.fetch_intraday_quote.side_effect = lambda t: IntradayQuote(
+    fake.fetch_intraday_quote.side_effect = lambda t, **_kw: IntradayQuote(
         ticker=t,
         price=Decimal("999.99"),
         quoted_at=datetime(2026, 5, 8, 13, 0, tzinfo=timezone.utc),
@@ -63,6 +63,20 @@ def test_spot_refresh_skips_when_no_quote(seeded_db_with_cards):
     fake = MagicMock()
     fake.fetch_intraday_quote.return_value = None
     assert spot_refresh_once(seeded_db_with_cards, fake) == 0
+
+
+def test_spot_refresh_passes_market_date_to_provider(seeded_db_with_cards):
+    from uw_scan.worker.jobs.spot_refresh import spot_refresh_once
+
+    fake = MagicMock()
+    fake.fetch_intraday_quote.return_value = None
+    spot_refresh_once(
+        seeded_db_with_cards,
+        fake,
+        market_date=date(2026, 5, 13),
+    )
+
+    fake.fetch_intraday_quote.assert_any_call("TSLA", market_date=date(2026, 5, 13))
 
 
 # ---- full_scan -----------------------------------------------------------

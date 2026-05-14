@@ -27,6 +27,31 @@ export function fmtDecimal(v: number | null | undefined, digits = 2): string {
   });
 }
 
+export function fmtDateTimeWithZone(
+  iso: string | null | undefined,
+  opts: { timeZone?: string } = {},
+): string {
+  if (!iso) return "—";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "—";
+  const parts = new Intl.DateTimeFormat("en-US", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false,
+    timeZoneName: "short",
+    ...(opts.timeZone ? { timeZone: opts.timeZone } : {}),
+  }).formatToParts(d);
+  const value = (type: Intl.DateTimeFormatPartTypes) =>
+    parts.find((part) => part.type === type)?.value ?? "";
+  const timeZoneName = value("timeZoneName");
+  const compactZone = timeZoneName === "GMT+8" ? "HKG" : timeZoneName;
+  return `${value("year")}/${value("month")}/${value("day")} ${value("hour")}:${value("minute")}:${value("second")} ${compactZone}`;
+}
+
 /**
  * Coerce an unknown API value to `number | null` *preserving zero*.
  * `Number(x) || null` is wrong: 0 collapses to null, then the UI renders

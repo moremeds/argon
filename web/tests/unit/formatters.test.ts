@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  fmtDateTimeWithZone,
   fmtDecimal,
   fmtMoney,
   fmtPct,
@@ -42,6 +43,28 @@ describe("fmtDecimal", () => {
   it("formats with configurable digits", () => {
     expect(fmtDecimal(81256, 0)).toBe("81,256");
     expect(fmtDecimal(0.691, 4)).toBe("0.6910");
+  });
+});
+
+describe("fmtDateTimeWithZone", () => {
+  it("renders a compact date, time, and timezone", () => {
+    const formatted = fmtDateTimeWithZone("2026-05-14T00:54:48Z");
+    expect(formatted).toMatch(
+      /^\d{4}\/\d{2}\/\d{2} \d{2}:\d{2}:\d{2} (?:GMT[+-]\d{1,2}|UTC|HKG|[A-Z]{2,5})$/,
+    );
+    expect(formatted).not.toContain("May");
+  });
+
+  it("uses HKG as the compact label for Hong Kong time", () => {
+    expect(
+      fmtDateTimeWithZone("2026-05-14T00:54:48Z", {
+        timeZone: "Asia/Hong_Kong",
+      }),
+    ).toBe("2026/05/14 08:54:48 HKG");
+  });
+
+  it("renders a dash for missing timestamps", () => {
+    expect(fmtDateTimeWithZone(null)).toBe("—");
   });
 });
 

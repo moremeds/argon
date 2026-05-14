@@ -7,7 +7,12 @@ import { AggressionGauge } from "./AggressionGauge";
 import { GammaBlock } from "./GammaBlock";
 import { SkewBlock } from "./SkewBlock";
 import { PositioningBlock } from "./PositioningBlock";
-import { fmtPct, fmtDecimal, toNum } from "@/lib/formatters";
+import {
+  fmtPct,
+  fmtDecimal,
+  fmtDateTimeWithZone,
+  toNum,
+} from "@/lib/formatters";
 import { bucketFreshness } from "@/lib/freshness";
 import { RescanButton } from "@/components/shared/RescanButton";
 
@@ -136,23 +141,21 @@ export function TickerCard({ card, sparkline }: Props) {
           alignItems: "center",
         }}
       >
-        <span
+        <div
           style={{
             fontSize: 9,
             color: "var(--text-muted)",
             fontFamily: "var(--font-mono)",
+            lineHeight: 1.35,
           }}
-          title={
-            card.scanned_at
-              ? new Date(card.scanned_at).toISOString()
-              : "not scanned yet"
-          }
           suppressHydrationWarning
         >
-          {card.scanned_at
-            ? `updated ${new Date(card.scanned_at).toLocaleTimeString()}`
-            : "not scanned"}
-        </span>
+          <div>spot {fmtDateTimeWithZone(card.spot_quoted_at)}</div>
+          <div>
+            analytics{" "}
+            {card.scanned_at ? fmtDateTimeWithZone(card.scanned_at) : "not scanned"}
+          </div>
+        </div>
         <RescanButton ticker={card.ticker} />
       </div>
     </div>

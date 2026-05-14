@@ -46,7 +46,7 @@ def get_stock(ticker: str, repo: Repository = Depends(get_repo)) -> SingleStockR
     run_id = repo.latest_run_id(t)
     if run_id == 0:
         raise HTTPException(status_code=404, detail=f"no runs for {t}")
-    return assemble_single_stock_report(t, run_id, repo)
+    return _with_latest_spot(assemble_single_stock_report(t, run_id, repo), repo)
 
 
 @router.get("/stock/{ticker}/history", response_model=StockHistoryResponse)
@@ -90,4 +90,30 @@ def list_runs(ticker: str, repo: Repository = Depends(get_repo)) -> list[dict]:
 def get_specific_run(
     ticker: str, run_id: int, repo: Repository = Depends(get_repo)
 ) -> SingleStockReport:
-    return assemble_single_stock_report(ticker.upper(), run_id, repo)
+    report = assemble_single_stock_report(ticker.upper(), run_id, repo)
+    return _with_latest_spot(report, repo)
+
+
+def _with_latest_spot(report: SingleStockReport, repo: Repository) -> SingleStockReport:
+    """Keep the detail header aligned with the dashboard card's delayed quote."""
+    card = repo.get_watchlist_card(report.ticker)
+    quote = repo.get_intraday_quote(report.ticker)
+
+    best_spot = report.market_structure.spot
+    best_at = report.spot_quoted_at or report.generated_at
+    best_source = report.spot_source or "uw_scan"
+
+    if card is not None and card.spot is not None:
+        best_spot = card.spot
+        best_at = card.spot_quoted_at or best_at
+        best_source = card.spot_source or best_source
+
+    if quote is not None and (best_at is None or quote.quoted_at >= best_at):
+        best_spot = quote.price
+        best_at = quote.quoted_at
+        best_source = "massive.com_intraday"
+
+    report.market_structure.spot = best_spot
+    report.spot_quoted_at = best_at
+    report.spot_source = best_source
+    return report

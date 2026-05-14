@@ -19,7 +19,7 @@ export default async function StockLayout({
         ticker={report.ticker}
         spot={toNum(report.market_structure.spot)}
         iv_atm={toNum(report.volatility.iv)}
-        spotQuotedAt={null}
+        spotQuotedAt={report.spot_quoted_at ?? null}
         scannedAt={report.generated_at}
         setupType={report.setup?.setup_type ?? null}
         setupDirection={report.setup?.direction ?? null}

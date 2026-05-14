@@ -152,6 +152,10 @@
   border-radius: 0;
 }
 
+dialog::backdrop {
+  background: rgba(10, 15, 20, 0.72);
+}
+
 html,
 body,
 #__next {

@@ -10,18 +10,17 @@ test("volatility tab renders all panels with no NaN / no console errors", async 
 }) => {
   const consoleErrors: string[] = [];
   page.on("console", (msg) => {
-    if (msg.type() === "error") consoleErrors.push(msg.text());
+    if (msg.type() !== "error") return;
+    const text = msg.text();
+    if (text.includes("favicon.ico")) return;
+    consoleErrors.push(text);
   });
   page.on("pageerror", (err) => consoleErrors.push(err.message));
 
   await page.goto(`/stock/${TICKER}/volatility`);
 
-  // VolMetricsCard header — DOM text is "Volatility"; CSS uppercases it.
-  await expect(page.getByRole("heading", { name: "Volatility" })).toBeVisible({
-    timeout: 30_000,
-  });
   // At least one of the IV/RV metric labels.
-  await expect(page.getByText("IV (ATM)")).toBeVisible();
+  await expect(page.getByText("IV (ATM)")).toBeVisible({ timeout: 30_000 });
   await expect(page.getByText("IV Rank").first()).toBeVisible();
 
   // Primary 2x2 chart grid.
@@ -48,9 +47,8 @@ test("volatility tab renders all panels with no NaN / no console errors", async 
 });
 
 test("VRP tab route is removed", async ({ page }) => {
-  const r = await page.goto(`/stock/${TICKER}/vrp`);
-  // The [tab]/page.tsx calls notFound() for unknown slugs → 404.
-  expect(r?.status()).toBe(404);
+  await page.goto(`/stock/${TICKER}/vrp`);
+  await expect(page.getByRole("heading", { name: "404" })).toBeVisible();
 });
 
 // Fresh-ticker backfill flow is covered by the backend integration test

@@ -7,8 +7,11 @@ import signal
 import sys
 from collections.abc import Iterator
 from contextlib import contextmanager
+from datetime import date, datetime, time
+from zoneinfo import ZoneInfo
 
 import psycopg
+from apscheduler.schedulers import SchedulerNotRunningError
 from apscheduler.schedulers.blocking import BlockingScheduler
 from apscheduler.triggers.cron import CronTrigger
 from apscheduler.triggers.interval import IntervalTrigger
@@ -33,6 +36,17 @@ logging.basicConfig(
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
 )
 logger = logging.getLogger("uw_scan.worker")
+
+
+def _spot_refresh_market_date(now: datetime) -> date | None:
+    """Return the ET market date when delayed minute bars are worth polling."""
+    local = now if now.tzinfo is not None else now.replace(tzinfo=ZoneInfo("UTC"))
+    if local.weekday() >= 5:
+        return None
+    current = local.time()
+    if time(9, 30) <= current <= time(16, 15):
+        return local.date()
+    return None
 
 
 @contextmanager
@@ -86,12 +100,17 @@ def main() -> int:
     sched = BlockingScheduler(timezone=settings.rth_tz)
 
     def _spot_refresh() -> None:
+        now = datetime.now(ZoneInfo(settings.rth_tz))
+        market_date = _spot_refresh_market_date(now)
+        if market_date is None:
+            logger.debug("spot_refresh skipped outside market hours")
+            return
         provider = _ohlc_provider(settings)
         if provider is None:
             return
         try:
             with _repo(settings) as repo:
-                n = spot_refresh_once(repo, provider)
+                n = spot_refresh_once(repo, provider, market_date=market_date)
                 logger.info("spot_refresh updated %d cards", n)
         finally:
             provider.close()
@@ -203,9 +222,18 @@ def main() -> int:
             misfire_grace_time=max(30, settings.trade_insights_ai_poll_seconds * 5),
         )
 
+    stopping = False
+
     def _stop(_sig, _frame):
+        nonlocal stopping
+        if stopping:
+            sys.exit(0)
+        stopping = True
         logger.info("received signal, shutting down scheduler")
-        sched.shutdown(wait=False)
+        try:
+            sched.shutdown(wait=False)
+        except SchedulerNotRunningError as exc:
+            logger.debug("scheduler already stopped during shutdown: %s", repr(exc))
         sys.exit(0)
 
     signal.signal(signal.SIGTERM, _stop)
