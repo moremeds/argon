@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
+from decimal import Decimal
 
 
 def test_health_ok_when_recent_scan(client, seeded_db_with_cards):
@@ -44,6 +45,26 @@ def test_health_reports_rescan_heartbeat_separately(client, seeded_db_empty_card
     assert body["scheduler_heartbeat_name"] in {"trade_insights_ai_tick", "rescan_tick"}
     assert body["rescan_heartbeat_lag_seconds"] is not None
     assert body["rescan_heartbeat_lag_seconds"] < 5
+
+
+def test_health_reports_spot_refresh_and_quote_freshness(client, seeded_db_empty_cards):
+    seeded_db_empty_cards.upsert_heartbeat("spot_refresh")
+    seeded_db_empty_cards.upsert_intraday_quote(
+        "AAPL",
+        Decimal("298.40"),
+        datetime.now(UTC),
+    )
+
+    r = client.get("/api/health")
+
+    assert r.status_code == 200
+    body = r.json()
+    assert body["spot_refresh_heartbeat_lag_seconds"] is not None
+    assert body["spot_refresh_heartbeat_lag_seconds"] < 5
+    assert body["spot_quote_lag_seconds"] is not None
+    assert body["spot_quote_lag_seconds"] < 5
+    assert body["latest_spot_quote_at"] is not None
+    assert body["latest_spot_quote_fetched_at"] is not None
 
 
 def test_health_includes_uw_provider_usage_stats(client, seeded_db_empty_cards):

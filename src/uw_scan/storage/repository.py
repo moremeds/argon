@@ -2395,6 +2395,19 @@ class Repository:
             row = cur.fetchone()
             return IntradayQuoteRow(*row) if row else None
 
+    def get_latest_intraday_quote_times(self) -> tuple[datetime, datetime] | None:
+        with self._conn.cursor() as cur:
+            cur.execute(
+                f"""
+                SELECT MAX(quoted_at), MAX(fetched_at)
+                FROM {self._schema}.intraday_quote
+                """
+            )
+            row = cur.fetchone()
+        if row and row[0] is not None and row[1] is not None:
+            return (row[0], row[1])
+        return None
+
     # ---- pcr_history ----
     def append_pcr_history(
         self,

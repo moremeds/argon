@@ -35,6 +35,10 @@ class HealthResponse(BaseModel):
     scheduler_heartbeat_lag_seconds: float | None = None
     scheduler_heartbeat_name: str | None = None
     rescan_heartbeat_lag_seconds: float | None = None
+    spot_refresh_heartbeat_lag_seconds: float | None = None
+    spot_quote_lag_seconds: float | None = None
+    latest_spot_quote_at: datetime | None = None
+    latest_spot_quote_fetched_at: datetime | None = None
     watchlist_size: int | None = None
     source: str = "UnusualWhales"
     latency_p95_ms: int | None = None
@@ -95,6 +99,19 @@ def health(
         if rescan_heartbeat is not None
         else None
     )
+    spot_refresh_heartbeat = repo.get_heartbeat("spot_refresh")
+    spot_refresh_heartbeat_lag = (
+        (now_utc - spot_refresh_heartbeat).total_seconds()
+        if spot_refresh_heartbeat is not None
+        else None
+    )
+    latest_spot_quote_at = None
+    latest_spot_quote_fetched_at = None
+    spot_quote_lag = None
+    latest_spot_quote_times = repo.get_latest_intraday_quote_times()
+    if latest_spot_quote_times is not None:
+        latest_spot_quote_at, latest_spot_quote_fetched_at = latest_spot_quote_times
+        spot_quote_lag = (now_utc - latest_spot_quote_fetched_at).total_seconds()
     watchlist_size = repo.count_active_watchlist()
     provider_day_start, provider_day_end = provider_day_bounds()
     provider_usage = repo.get_external_api_usage_summary(
@@ -113,6 +130,10 @@ def health(
         "scheduler_heartbeat_lag_seconds": scheduler_heartbeat_lag,
         "scheduler_heartbeat_name": scheduler_heartbeat_name,
         "rescan_heartbeat_lag_seconds": rescan_heartbeat_lag,
+        "spot_refresh_heartbeat_lag_seconds": spot_refresh_heartbeat_lag,
+        "spot_quote_lag_seconds": spot_quote_lag,
+        "latest_spot_quote_at": latest_spot_quote_at,
+        "latest_spot_quote_fetched_at": latest_spot_quote_fetched_at,
     }
 
     last_scan = repo.get_last_full_scan_finished_at()

@@ -589,6 +589,14 @@ export interface components {
             scheduler_heartbeat_name?: string | null;
             /** Rescan Heartbeat Lag Seconds */
             rescan_heartbeat_lag_seconds?: number | null;
+            /** Spot Refresh Heartbeat Lag Seconds */
+            spot_refresh_heartbeat_lag_seconds?: number | null;
+            /** Spot Quote Lag Seconds */
+            spot_quote_lag_seconds?: number | null;
+            /** Latest Spot Quote At */
+            latest_spot_quote_at?: string | null;
+            /** Latest Spot Quote Fetched At */
+            latest_spot_quote_fetched_at?: string | null;
             /** Watchlist Size */
             watchlist_size?: number | null;
              /**

@@ -27,6 +27,10 @@ describe("HealthPanel", () => {
       scheduler_heartbeat_lag_seconds: 1,
       scheduler_heartbeat_name: "worker",
       rescan_heartbeat_lag_seconds: 8,
+      spot_refresh_heartbeat_lag_seconds: 240,
+      spot_quote_lag_seconds: 60,
+      latest_spot_quote_at: "2026-05-14T14:19:42Z",
+      latest_spot_quote_fetched_at: "2026-05-14T14:20:42Z",
       watchlist_size: 97,
       source: "UnusualWhales",
       latency_p95_ms: 88,
@@ -42,7 +46,10 @@ describe("HealthPanel", () => {
     await waitFor(() => expect(screen.getByText("API")).toBeTruthy());
     expect(screen.getByText("Scheduler")).toBeTruthy();
     expect(screen.getByText("Rescan")).toBeTruthy();
-    expect(screen.getAllByText("ONLINE").length).toBeGreaterThanOrEqual(2);
+    expect(screen.getByText("Spot Job")).toBeTruthy();
+    expect(screen.getByText("Spot Age")).toBeTruthy();
+    expect(screen.getByText("1m")).toBeTruthy();
+    expect(screen.getAllByText("ONLINE").length).toBeGreaterThanOrEqual(3);
     expect(screen.getByText("STALE")).toBeTruthy();
     expect(screen.getByText("05/14 22:20 HKG")).toBeTruthy();
     expect(screen.queryByText("2026/05/14 22:20:42 HKG")).toBeNull();
@@ -65,6 +72,10 @@ describe("HealthPanel", () => {
       scheduler_heartbeat_lag_seconds: null,
       scheduler_heartbeat_name: null,
       rescan_heartbeat_lag_seconds: null,
+      spot_refresh_heartbeat_lag_seconds: null,
+      spot_quote_lag_seconds: null,
+      latest_spot_quote_at: null,
+      latest_spot_quote_fetched_at: null,
       watchlist_size: null,
       source: "UnusualWhales",
       latency_p95_ms: null,
@@ -93,6 +104,10 @@ describe("HealthPanel", () => {
         scheduler_heartbeat_lag_seconds: 1,
         scheduler_heartbeat_name: "worker",
         rescan_heartbeat_lag_seconds: 1,
+        spot_refresh_heartbeat_lag_seconds: 1,
+        spot_quote_lag_seconds: 60,
+        latest_spot_quote_at: "2026-05-14T14:19:42Z",
+        latest_spot_quote_fetched_at: "2026-05-14T14:20:42Z",
         watchlist_size: 97,
         source: "UnusualWhales",
         latency_p95_ms: 88,
@@ -112,6 +127,10 @@ describe("HealthPanel", () => {
         scheduler_heartbeat_lag_seconds: 1,
         scheduler_heartbeat_name: "worker",
         rescan_heartbeat_lag_seconds: 1,
+        spot_refresh_heartbeat_lag_seconds: 1,
+        spot_quote_lag_seconds: 60,
+        latest_spot_quote_at: "2026-05-14T14:19:42Z",
+        latest_spot_quote_fetched_at: "2026-05-14T14:20:42Z",
         watchlist_size: 97,
         source: "Massive.com",
         latency_p95_ms: 55,

@@ -8,6 +8,7 @@ type Health = components["schemas"]["HealthResponse"];
 type ProviderSource = "uw" | "massive";
 
 const HEARTBEAT_HEALTHY_LAG_S = 5;
+const SPOT_REFRESH_HEALTHY_LAG_S = 660;
 
 const rowStyle: React.CSSProperties = {
   display: "flex",
@@ -58,12 +59,23 @@ function fmtSidebarDateTime(iso: string | null | undefined): string {
 
 function heartbeatStatus(
   lagSeconds: number | null | undefined,
+  healthyLagSeconds = HEARTBEAT_HEALTHY_LAG_S,
 ): { label: "ONLINE" | "STALE" | "UNKNOWN"; color: string } {
   if (lagSeconds == null) return { label: "UNKNOWN", color: "var(--warning)" };
-  if (lagSeconds <= HEARTBEAT_HEALTHY_LAG_S) {
+  if (lagSeconds <= healthyLagSeconds) {
     return { label: "ONLINE", color: "var(--positive)" };
   }
   return { label: "STALE", color: "var(--warning)" };
+}
+
+function fmtDuration(seconds: number | null | undefined): string {
+  if (seconds == null) return "—";
+  const s = Math.max(0, Math.round(seconds));
+  if (s < 60) return `${s}s`;
+  const minutes = Math.round(s / 60);
+  if (minutes < 60) return `${minutes}m`;
+  const hours = Math.round(minutes / 60);
+  return `${hours}h`;
 }
 
 function StatusRow({
@@ -119,6 +131,10 @@ export function HealthPanel() {
       : { label: "ONLINE", color: "var(--positive)" };
   const schedulerStatus = heartbeatStatus(h?.scheduler_heartbeat_lag_seconds);
   const rescanStatus = heartbeatStatus(h?.rescan_heartbeat_lag_seconds);
+  const spotRefreshStatus = heartbeatStatus(
+    h?.spot_refresh_heartbeat_lag_seconds,
+    SPOT_REFRESH_HEALTHY_LAG_S,
+  );
 
   return (
     <div
@@ -130,6 +146,16 @@ export function HealthPanel() {
       <StatusRow label="API" status={apiStatus} />
       <StatusRow label="Scheduler" status={schedulerStatus} />
       <StatusRow label="Rescan" status={rescanStatus} />
+      <StatusRow label="Spot Job" status={spotRefreshStatus} />
+      <div style={rowStyle}>
+        <span style={labelStyle}>Spot Age</span>
+        <span
+          style={valStyle}
+          title={`Quote ${fmtDateTimeWithZone(h?.latest_spot_quote_at)} / fetched ${fmtDateTimeWithZone(h?.latest_spot_quote_fetched_at)}`}
+        >
+          {fmtDuration(h?.spot_quote_lag_seconds)}
+        </span>
+      </div>
       <div style={rowStyle}>
         <span style={labelStyle}>Last Scan</span>
         <span style={valStyle} title={fmtDateTimeWithZone(h?.last_full_scan_at)}>

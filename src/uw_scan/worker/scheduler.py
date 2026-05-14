@@ -45,7 +45,7 @@ def _spot_refresh_market_date(now: datetime) -> date | None:
     if local.weekday() >= 5:
         return None
     current = local.time()
-    if time(9, 30) <= current <= time(16, 15):
+    if time(9, 30) <= current <= time(20, 15):
         return local.date()
     return None
 
@@ -140,6 +140,8 @@ def main() -> int:
     def _spot_refresh() -> None:
         now = datetime.now(ZoneInfo(settings.rth_tz))
         market_date = _spot_refresh_market_date(now)
+        with _repo(settings) as repo:
+            repo.upsert_heartbeat("spot_refresh")
         if market_date is None:
             logger.debug("spot_refresh skipped outside market hours")
             return

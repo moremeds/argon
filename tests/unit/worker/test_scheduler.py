@@ -17,6 +17,12 @@ def test_spot_refresh_market_date_skips_after_hours() -> None:
     assert _spot_refresh_market_date(now) is None
 
 
+def test_spot_refresh_market_date_allows_delayed_after_hours() -> None:
+    now = datetime(2026, 5, 13, 19, 59, tzinfo=ZoneInfo("America/New_York"))
+
+    assert _spot_refresh_market_date(now).isoformat() == "2026-05-13"
+
+
 def test_spot_refresh_market_date_uses_rth_date() -> None:
     now = datetime(2026, 5, 13, 10, 0, tzinfo=ZoneInfo("America/New_York"))
 

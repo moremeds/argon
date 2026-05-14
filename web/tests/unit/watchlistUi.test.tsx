@@ -61,6 +61,14 @@ describe("TickerCard", () => {
       /2026.*\d{2}:\d{2}:\d{2}.*(?:UTC|GMT|[A-Z]{2,5})/,
     );
   });
+
+  it("renders timestamps as compact card metadata", () => {
+    render(<TickerCard card={card} sparkline={[440, 445]} />);
+
+    const timestampBlock = screen.getByText(/spot /).parentElement;
+
+    expect(timestampBlock).toHaveProperty("style.fontSize", "8px");
+  });
 });
 
 describe("AddTickerDialog", () => {
