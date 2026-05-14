@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 import os
 import subprocess
+from dataclasses import replace
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -59,6 +60,32 @@ def _event() -> ExternalApiRequestEvent:
         latency_ms=42,
         official_daily_count=15,
     )
+
+
+def test_recorder_keeps_run_id_when_scan_run_is_uncommitted(settings: Settings):
+    main_conn = psycopg.connect(settings.db_dsn())
+    try:
+        main_repo = Repository(main_conn)
+        run_id = main_repo.insert_scan_run("TSLA")
+
+        with ExternalApiRequestRecorder(
+            settings.db_dsn(), schema=settings.db_schema
+        ) as recorder:
+            recorder.record(replace(_event(), run_id=run_id))
+
+        main_conn.rollback()
+    finally:
+        main_conn.close()
+
+    with psycopg.connect(settings.db_dsn()) as conn:
+        rows = Repository(conn).list_external_api_requests(
+            provider="uw",
+            start=datetime(2026, 5, 14, 0, 0, tzinfo=UTC),
+            end=datetime(2026, 5, 15, 0, 0, tzinfo=UTC),
+        )
+
+    assert len(rows) == 1
+    assert rows[0].run_id == run_id
 
 
 def test_recorder_inserts_through_autocommit_connection(settings: Settings):
