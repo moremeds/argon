@@ -15,7 +15,7 @@ CREATE TABLE IF NOT EXISTS uw_scan.external_api_requests (
     request_finished_at TIMESTAMPTZ NOT NULL,
     latency_ms INTEGER NOT NULL,
     attempt INTEGER NOT NULL DEFAULT 0,
-    run_id BIGINT REFERENCES uw_scan.scan_runs(run_id) ON DELETE SET NULL,
+    run_id BIGINT,
     job_name TEXT,
     provider_request_id TEXT,
     official_daily_count INTEGER,

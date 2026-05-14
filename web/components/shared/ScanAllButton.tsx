@@ -1,11 +1,12 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { api } from "@/lib/api";
 
 type Phase = "idle" | "enqueueing" | "polling" | "done" | "failed";
 
 export function ScanAllButton() {
+  const ref = useRef<HTMLDialogElement>(null);
   const router = useRouter();
   const [phase, setPhase] = useState<Phase>("idle");
   const [pendingIds, setPendingIds] = useState<string[]>([]);
@@ -45,6 +46,7 @@ export function ScanAllButton() {
   }, [phase, pendingIds, router]);
 
   const start = async () => {
+    ref.current?.close();
     setPhase("enqueueing");
     try {
       const jobs = await api.rescanAll();
@@ -70,21 +72,56 @@ export function ScanAllButton() {
             : "✗ failed";
 
   return (
-    <button
-      onClick={start}
-      disabled={phase === "enqueueing" || phase === "polling"}
-      style={{
-        padding: "4px 10px",
-        fontFamily: "var(--font-mono)",
-        fontSize: 11,
-        background: "transparent",
-        color: "var(--text-secondary)",
-        border: "1px solid var(--border-dim)",
-        borderRadius: 3,
-        cursor: phase === "polling" ? "wait" : "pointer",
-      }}
-    >
-      {label}
-    </button>
+    <>
+      <button
+        onClick={() => ref.current?.showModal()}
+        disabled={phase === "enqueueing" || phase === "polling"}
+        style={{
+          padding: "4px 10px",
+          fontFamily: "var(--font-mono)",
+          fontSize: 11,
+          background: "transparent",
+          color: "var(--text-secondary)",
+          border: "1px solid var(--border-dim)",
+          borderRadius: 3,
+          cursor: phase === "polling" ? "wait" : "pointer",
+        }}
+      >
+        {label}
+      </button>
+      <dialog
+        ref={ref}
+        aria-label="Scan all confirmation"
+        className="uw-dialog"
+        onClick={(e) => {
+          if (e.target === e.currentTarget) ref.current?.close();
+        }}
+      >
+        <div className="uw-dialog-panel" onClick={(e) => e.stopPropagation()}>
+          <div className="uw-dialog-title">Scan All</div>
+          <div className="uw-dialog-copy">
+            Run a deep UW rescan for every active watchlist ticker. This can use
+            a large number of provider requests.
+          </div>
+          <div className="uw-dialog-actions">
+            <button
+              type="button"
+              className="uw-dialog-button uw-dialog-button-secondary"
+              onClick={() => ref.current?.close()}
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              className="uw-dialog-button uw-dialog-button-primary"
+              aria-label="Confirm scan all"
+              onClick={start}
+            >
+              Scan all
+            </button>
+          </div>
+        </div>
+      </dialog>
+    </>
   );
 }

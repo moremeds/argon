@@ -1,13 +1,28 @@
 /* @vitest-environment jsdom */
-import { fireEvent, render, screen } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
+import { ScanAllButton } from "@/components/shared/ScanAllButton";
 import { AddTickerDialog } from "@/components/watchlist/AddTickerDialog";
 import { TickerCard } from "@/components/watchlist/TickerCard";
+import { api } from "@/lib/api";
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ refresh: vi.fn() }),
 }));
+
+vi.mock("@/lib/api", () => ({
+  api: {
+    rescanAll: vi.fn(),
+    job: vi.fn(),
+  },
+}));
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+  vi.mocked(api.rescanAll).mockReset();
+  vi.mocked(api.job).mockReset();
+});
 
 function installDialogPolyfill() {
   HTMLDialogElement.prototype.showModal = function showModal() {
@@ -61,6 +76,14 @@ describe("TickerCard", () => {
       /2026.*\d{2}:\d{2}:\d{2}.*(?:UTC|GMT|[A-Z]{2,5})/,
     );
   });
+
+  it("renders timestamps as compact card metadata", () => {
+    render(<TickerCard card={card} sparkline={[440, 445]} />);
+
+    const timestampBlock = screen.getByText(/spot /).parentElement;
+
+    expect(timestampBlock).toHaveProperty("style.fontSize", "8px");
+  });
 });
 
 describe("AddTickerDialog", () => {
@@ -75,5 +98,43 @@ describe("AddTickerDialog", () => {
     fireEvent.click(dialog);
 
     expect(dialog).toHaveProperty("open", false);
+  });
+});
+
+describe("ScanAllButton", () => {
+  it("opens a confirmation dialog before enqueueing a watchlist scan", () => {
+    installDialogPolyfill();
+    render(<ScanAllButton />);
+
+    fireEvent.click(screen.getByRole("button", { name: /scan all/i }));
+
+    expect(screen.getByRole("dialog", { name: /scan all/i })).toHaveProperty(
+      "open",
+      true,
+    );
+    expect(api.rescanAll).not.toHaveBeenCalled();
+  });
+
+  it("does not enqueue a watchlist scan when the confirmation is cancelled", () => {
+    installDialogPolyfill();
+    render(<ScanAllButton />);
+
+    fireEvent.click(screen.getByRole("button", { name: /scan all/i }));
+    fireEvent.click(screen.getByRole("button", { name: /cancel/i }));
+
+    expect(api.rescanAll).not.toHaveBeenCalled();
+  });
+
+  it("enqueues a watchlist scan after dialog confirmation", async () => {
+    installDialogPolyfill();
+    vi.mocked(api.rescanAll).mockResolvedValue([]);
+    render(<ScanAllButton />);
+
+    fireEvent.click(screen.getByRole("button", { name: /scan all/i }));
+    fireEvent.click(screen.getByRole("button", { name: /confirm scan all/i }));
+
+    await waitFor(() => {
+      expect(api.rescanAll).toHaveBeenCalledOnce();
+    });
   });
 });

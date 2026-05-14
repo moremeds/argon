@@ -143,10 +143,10 @@ export function TickerCard({ card, sparkline }: Props) {
       >
         <div
           style={{
-            fontSize: 9,
+            fontSize: 8,
             color: "var(--text-muted)",
             fontFamily: "var(--font-mono)",
-            lineHeight: 1.35,
+            lineHeight: 1.25,
           }}
           suppressHydrationWarning
         >

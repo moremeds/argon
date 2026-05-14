@@ -3,19 +3,48 @@
 from __future__ import annotations
 
 import logging
+from datetime import datetime, timedelta, timezone
 
 from uw_scan.cards.derive import compute_watchlist_card_row
 from uw_scan.pipeline import run_single_stock
 from uw_scan.sources.ohlc import OhlcProvider
 
 logger = logging.getLogger(__name__)
+DEFAULT_STALE_AFTER = timedelta(hours=8)
 
 
-def full_scan_once(repo, uw_client, ohlc_provider: OhlcProvider) -> int:
-    """Run the UW deep-scan for every active watchlist ticker and rebuild cards."""
+def _is_missing_or_stale(
+    scanned_at: datetime | None, *, now: datetime, stale_after: timedelta
+) -> bool:
+    if scanned_at is None:
+        return True
+    scanned = scanned_at
+    if scanned.tzinfo is None:
+        scanned = scanned.replace(tzinfo=timezone.utc)
+    current = now if now.tzinfo is not None else now.replace(tzinfo=timezone.utc)
+    return current.astimezone(timezone.utc) - scanned.astimezone(
+        timezone.utc
+    ) > stale_after
+
+
+def full_scan_once(
+    repo,
+    uw_client,
+    ohlc_provider: OhlcProvider,
+    *,
+    now: datetime | None = None,
+    stale_after: timedelta = DEFAULT_STALE_AFTER,
+) -> int:
+    """Run UW deep scans only for active tickers missing data or older than max age."""
     _ = ohlc_provider  # currently OHLC is pulled separately; reserved for future
+    current = now or datetime.now(timezone.utc)
     completed = 0
-    for w in repo.list_active_watchlist():
+    for w in repo.list_watchlist_cards():
+        if not _is_missing_or_stale(
+            w.scanned_at, now=current, stale_after=stale_after
+        ):
+            logger.debug("full_scan skipped fresh persisted data for %s", w.ticker)
+            continue
         try:
             report = run_single_stock(w.ticker, uw_client, repo)
             history = repo.list_daily_ohlc(w.ticker, limit=40)

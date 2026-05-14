@@ -580,11 +580,25 @@ export interface components {
             reason?: string | null;
             /** Worker Lag Seconds */
             worker_lag_seconds?: number | null;
+            /** Scheduler Heartbeat Lag Seconds */
+            scheduler_heartbeat_lag_seconds?: number | null;
+            /** Scheduler Heartbeat Name */
+            scheduler_heartbeat_name?: string | null;
+            /** Rescan Heartbeat Lag Seconds */
+            rescan_heartbeat_lag_seconds?: number | null;
+            /** Spot Refresh Heartbeat Lag Seconds */
+            spot_refresh_heartbeat_lag_seconds?: number | null;
+            /** Spot Quote Lag Seconds */
+            spot_quote_lag_seconds?: number | null;
+            /** Latest Spot Quote At */
+            latest_spot_quote_at?: string | null;
+            /** Latest Spot Quote Fetched At */
+            latest_spot_quote_fetched_at?: string | null;
             /** Watchlist Size */
             watchlist_size?: number | null;
             /**
              * Source
-             * @default massive.com
+             * @default UnusualWhales
              */
             source: string;
             /** Latency P95 Ms */
@@ -1175,6 +1189,14 @@ export interface components {
             rvol_pctile?: string | null;
             /** Spy Corr 21 */
             spy_corr_21?: string | null;
+        };
+        /** RescanAllRequest */
+        RescanAllRequest: {
+            /**
+             * Confirmed
+             * @default false
+             */
+            confirmed: boolean;
         };
         /**
          * ReturnsBlock
@@ -2261,7 +2283,9 @@ export type $defs = Record<string, never>;
 export interface operations {
     health_api_health_get: {
         parameters: {
-            query?: never;
+            query?: {
+                source?: "uw" | "massive";
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -2275,6 +2299,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HealthResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
@@ -2612,7 +2645,11 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["RescanAllRequest"] | null;
+            };
+        };
         responses: {
             /** @description Successful Response */
             202: {
@@ -2621,6 +2658,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["JobStatus"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

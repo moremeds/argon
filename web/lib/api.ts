@@ -21,6 +21,9 @@ type StockHistoryResponse = Json<"/api/stock/{ticker}/history", "get">;
 type JobStatus = Json<"/api/jobs/{job_id}", "get">;
 type OhlcResponse = Json<"/api/ohlc/{ticker}", "get">;
 type HealthResponse = Json<"/api/health", "get">;
+type HealthSource = NonNullable<
+  paths["/api/health"]["get"]["parameters"]["query"]
+>["source"];
 type VolatilitySeriesResponse = Json<
   "/api/stock/{ticker}/volatility/series",
   "get"
@@ -89,10 +92,14 @@ export const api = {
   rescan: (ticker: string): Promise<JobStatus> =>
     _fetch<JobStatus>(`/api/watchlist/${ticker}/rescan`, { method: "POST" }),
   rescanAll: (): Promise<JobStatus[]> =>
-    _fetch<JobStatus[]>(`/api/watchlist/rescan-all`, { method: "POST" }),
+    _fetch<JobStatus[]>(`/api/watchlist/rescan-all`, {
+      method: "POST",
+      body: JSON.stringify({ confirmed: true }),
+    }),
   job: (jobId: string): Promise<JobStatus> =>
     _fetch<JobStatus>(`/api/jobs/${jobId}`),
-  health: (): Promise<HealthResponse> => _fetch<HealthResponse>(`/api/health`),
+  health: (source: HealthSource = "uw"): Promise<HealthResponse> =>
+    _fetch<HealthResponse>(`/api/health?source=${source}`),
   addTicker: (body: {
     ticker: string;
     sector: string;

@@ -54,6 +54,22 @@ def test_post_rescan_enqueues_job(client, seeded_db_with_cards):
     assert body["status"] == "queued"
 
 
+def test_post_rescan_all_requires_explicit_confirmation(client, seeded_db_with_cards):
+    r = client.post("/api/watchlist/rescan-all")
+
+    assert r.status_code == 400
+    assert r.json()["detail"] == "rescan-all requires explicit confirmation"
+
+
+def test_post_rescan_all_enqueues_when_confirmed(client, seeded_db_with_cards):
+    r = client.post("/api/watchlist/rescan-all", json={"confirmed": True})
+
+    assert r.status_code == 202
+    body = r.json()
+    assert body
+    assert all(job["status"] == "queued" for job in body)
+
+
 def test_get_job_status(client, seeded_db_with_cards):
     enqueued = client.post("/api/watchlist/TSLA/rescan").json()
     r = client.get(f"/api/jobs/{enqueued['job_id']}")
