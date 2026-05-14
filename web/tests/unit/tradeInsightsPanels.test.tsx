@@ -21,7 +21,13 @@ describe("TradeInsightsBiasBanner", () => {
           data_quality_label: "MIXED",
           idea_count: 1,
           preferred_idea_id: null,
-          badges: [{ code: "DEFINED_RISK_ONLY", label: "Defined-risk only", severity: "info" }],
+          badges: [
+            {
+              code: "DEFINED_RISK_ONLY",
+              label: "Defined-risk only",
+              severity: "info",
+            },
+          ],
         }}
       />,
     );
@@ -49,6 +55,55 @@ describe("SourceReconciliationPanel", () => {
       />,
     );
     expect(screen.getByText(/chain-derived values/i)).toBeDefined();
+  });
+
+  it("shows an overflow affordance instead of silently dropping source rows", () => {
+    render(
+      <SourceReconciliationPanel
+        reconciliation={{
+          status: "MIXED",
+          headline: "Source reconciliation rows available",
+          primary_iv_source: "chain",
+          relative_shape_source: "vendor",
+          rows: [
+            {
+              source_pair: "chain/vendor-a",
+              price_agreement: "ok",
+              iv_agreement: "ok",
+              decision: "use chain",
+            },
+            {
+              source_pair: "chain/vendor-b",
+              price_agreement: "ok",
+              iv_agreement: "wide",
+              decision: "review",
+            },
+            {
+              source_pair: "chain/vendor-c",
+              price_agreement: "ok",
+              iv_agreement: "ok",
+              decision: "use chain",
+            },
+            {
+              source_pair: "chain/vendor-d",
+              price_agreement: "wide",
+              iv_agreement: "wide",
+              decision: "review",
+            },
+            {
+              source_pair: "chain/vendor-e",
+              price_agreement: "ok",
+              iv_agreement: "missing",
+              decision: "review",
+            },
+          ],
+          decision: "Prefer chain-derived IV.",
+        }}
+      />,
+    );
+
+    expect(screen.getByText("Show 2 more source rows")).toBeDefined();
+    expect(screen.getByText("chain/vendor-e")).toBeDefined();
   });
 });
 
@@ -97,6 +152,42 @@ describe("Trade Insights detail panels", () => {
     expect(screen.getAllByText(/next-day OI/i).length).toBeGreaterThan(0);
   });
 
+  it("ranks highlighted strike rows by activity instead of input order", () => {
+    const quietRows = Array.from({ length: 8 }, (_, index) => ({
+      strike: String(300 + index * 5),
+      call_volume: 1,
+      call_open_interest: 1,
+      put_volume: 1,
+      put_open_interest: 1,
+      call_put_volume_ratio: "1",
+      volume_oi_note: "No volume/OI anomaly",
+      read: "Quiet flow",
+      requires_t1_oi_confirmation: false,
+    }));
+
+    render(
+      <ChainFlowReadPanel
+        rows={[
+          ...quietRows,
+          {
+            strike: "950",
+            call_volume: 5000,
+            call_open_interest: 10,
+            put_volume: 100,
+            put_open_interest: 20,
+            call_put_volume_ratio: "50",
+            volume_oi_note: "Volume > OI; confirm with next-day OI",
+            read: "Call demand concentrated",
+            requires_t1_oi_confirmation: true,
+          },
+        ]}
+      />,
+    );
+
+    expect(screen.getByText("950")).toBeDefined();
+    expect(screen.getByText("Call demand concentrated")).toBeDefined();
+  });
+
   it("renders term move rows", () => {
     render(
       <TermMovePanel
@@ -104,7 +195,7 @@ describe("Trade Insights detail panels", () => {
           {
             expiry: "2026-05-15",
             dte: 4,
-            atm_straddle: null,
+            atm_straddle: "0.53",
             implied_move_perc: "0.048",
             daily_implied_move_perc: "0.012",
             read: "Front elevated",
@@ -117,6 +208,7 @@ describe("Trade Insights detail panels", () => {
     expect(screen.getByText(/front expiry/i)).toBeDefined();
     expect(screen.getByText("Show highlighted expiry rows")).toBeDefined();
     expect(screen.getAllByText(/2026-05-15/).length).toBeGreaterThan(0);
+    expect(screen.getByText("$0.53")).toBeDefined();
     expect(screen.getByText("Flat / unclear")).toBeDefined();
   });
 

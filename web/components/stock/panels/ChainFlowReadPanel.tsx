@@ -4,7 +4,8 @@ import { InsightPanel, InsightStatusBanner } from "./InsightPanel";
 
 type Row = TradeInsightsResponse["flow_table"][number];
 
-const n = (v: string | number | null | undefined) => (v == null ? 0 : Number(v));
+const n = (v: string | number | null | undefined) =>
+  v == null ? 0 : Number(v);
 
 function Highlight({
   label,
@@ -99,14 +100,21 @@ export function ChainFlowReadPanel({ rows }: { rows: Row[] }) {
   if (rows.length === 0) {
     return (
       <InsightPanel heading="CHAIN / FLOW READ">
-        <InsightStatusBanner text="No option chain rows for this run" severity="info" />
+        <InsightStatusBanner
+          text="No option chain rows for this run"
+          severity="info"
+        />
       </InsightPanel>
     );
   }
 
-  const totalCallVolume = rows.reduce((sum, row) => sum + n(row.call_volume), 0);
+  const totalCallVolume = rows.reduce(
+    (sum, row) => sum + n(row.call_volume),
+    0,
+  );
   const totalPutVolume = rows.reduce((sum, row) => sum + n(row.put_volume), 0);
-  const tapeRatio = totalPutVolume > 0 ? totalCallVolume / totalPutVolume : null;
+  const tapeRatio =
+    totalPutVolume > 0 ? totalCallVolume / totalPutVolume : null;
   const t1Count = rows.filter((row) => row.requires_t1_oi_confirmation).length;
   const strongest = [...rows].sort(
     (a, b) =>
@@ -119,8 +127,20 @@ export function ChainFlowReadPanel({ rows }: { rows: Row[] }) {
         n(a.call_open_interest) +
         n(a.put_open_interest)),
   )[0];
-  const highlightedCount = Math.min(rows.length, 8);
-  const highlightedRows = rows.slice(0, highlightedCount);
+  const highlightedRows = [...rows]
+    .sort((a, b) => {
+      const bScore =
+        n(b.call_volume) +
+        n(b.put_volume) +
+        (b.requires_t1_oi_confirmation ? 100000 : 0);
+      const aScore =
+        n(a.call_volume) +
+        n(a.put_volume) +
+        (a.requires_t1_oi_confirmation ? 100000 : 0);
+      return bScore - aScore;
+    })
+    .slice(0, 8);
+  const highlightedCount = highlightedRows.length;
   const flowRead =
     tapeRatio == null
       ? "Put volume is unavailable, so call/put balance is inconclusive."
@@ -161,7 +181,11 @@ export function ChainFlowReadPanel({ rows }: { rows: Row[] }) {
       >
         <Highlight
           label="Call / Put volume"
-          value={tapeRatio == null ? "Put volume unavailable" : `${tapeRatio.toFixed(2)}x`}
+          value={
+            tapeRatio == null
+              ? "Put volume unavailable"
+              : `${tapeRatio.toFixed(2)}x`
+          }
           tone={tapeRatio != null && tapeRatio > 1 ? "positive" : "neutral"}
         />
         <Highlight

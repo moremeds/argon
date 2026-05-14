@@ -28,7 +28,13 @@ export function SignalStackPanel({ rows }: { rows: Row[] }) {
             </div>
             <div>
               <div style={{ fontWeight: 600 }}>{row.read}</div>
-              <div style={{ color: "var(--text-secondary)", fontSize: 12, lineHeight: 1.4 }}>
+              <div
+                style={{
+                  color: "var(--text-secondary)",
+                  fontSize: 12,
+                  lineHeight: 1.4,
+                }}
+              >
                 {row.evidence.join(" | ")}
               </div>
             </div>

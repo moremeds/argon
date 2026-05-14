@@ -33,7 +33,6 @@ export function VrpSpreadPanel({
   const H = 220;
   const M = { top: 8, right: 24, bottom: 24, left: 48 };
   const innerW = W - M.left - M.right;
-  const innerH = H - M.top - M.bottom;
   const barCount = data.length;
   const barW = innerW / barCount;
   const vrps = data.map((d) => toNum(d.vrp));

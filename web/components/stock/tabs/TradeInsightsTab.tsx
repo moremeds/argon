@@ -20,7 +20,9 @@ export async function TradeInsightsTab({ ticker }: { ticker: string }) {
       >
         <ChainFlowReadPanel rows={insights.flow_table} />
         <TermMovePanel rows={insights.term_structure_table} />
-        <SourceReconciliationPanel reconciliation={insights.source_reconciliation} />
+        <SourceReconciliationPanel
+          reconciliation={insights.source_reconciliation}
+        />
         <SignalStackPanel rows={insights.signal_stack} />
       </div>
       <InsightsSynthesisPanel synthesis={insights.synthesis} />

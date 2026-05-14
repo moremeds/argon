@@ -71,7 +71,9 @@ function mockInsights(): TradeInsightsResponse {
 }
 
 function comesBefore(a: HTMLElement, b: HTMLElement): boolean {
-  return Boolean(a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING);
+  return Boolean(
+    a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING,
+  );
 }
 
 describe("TradeInsightsTab", () => {

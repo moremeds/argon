@@ -33,8 +33,14 @@ export function FlowTab({ report }: { report: Report }) {
 
   // Cross-reference indexes for the two tables. Alerts key by `option_chain`
   // (OCC), OI movers key by `option_symbol` (OCC) — same alphabet.
-  const alerts = report.flow.top_alerts ?? [];
-  const oiMovers = report.oi_change_top ?? [];
+  const alerts = useMemo(
+    () => report.flow.top_alerts ?? [],
+    [report.flow.top_alerts],
+  );
+  const oiMovers = useMemo(
+    () => report.oi_change_top ?? [],
+    [report.oi_change_top],
+  );
   const alertCountBySymbol = useMemo(() => {
     const m = new Map<string, number>();
     for (const a of alerts) {

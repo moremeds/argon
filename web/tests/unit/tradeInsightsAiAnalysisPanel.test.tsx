@@ -1,6 +1,12 @@
 /* @vitest-environment jsdom */
 import { StrictMode } from "react";
-import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
@@ -277,7 +283,9 @@ describe("TradeInsightsAiAnalysisPanel", () => {
     expect(screen.getByText("Validation Checklist")).toBeDefined();
     expect(screen.getByText("Price paths to watch")).toBeDefined();
     expect(screen.getByText("Must confirm before sizing")).toBeDefined();
-    expect(screen.getAllByText("Confirm event calendar").length).toBeGreaterThan(0);
+    expect(
+      screen.getAllByText("Confirm event calendar").length,
+    ).toBeGreaterThan(0);
     expect(
       screen.getByText("No event calendar data in deterministic payload."),
     ).toBeDefined();
@@ -345,7 +353,9 @@ describe("TradeInsightsAiAnalysisPanel", () => {
 
   it("resumes polling the latest queued analysis after remount", async () => {
     const status = deferred<TradeInsightsAiAnalysisResponse>();
-    vi.mocked(api.tradeInsightsAiAnalysisLatest).mockResolvedValueOnce(baseResponse);
+    vi.mocked(api.tradeInsightsAiAnalysisLatest).mockResolvedValueOnce(
+      baseResponse,
+    );
     vi.mocked(api.tradeInsightsAiAnalysisStatus).mockReturnValueOnce(
       status.promise,
     );
@@ -367,23 +377,24 @@ describe("TradeInsightsAiAnalysisPanel", () => {
     expect(api.tradeInsightsAiAnalysis).not.toHaveBeenCalled();
   });
 
-  it("surfaces resume polling failures with retry affordance", async () => {
-    vi.mocked(api.tradeInsightsAiAnalysisLatest).mockResolvedValueOnce(baseResponse);
+  it("surfaces resume polling failures with the standard run control", async () => {
+    vi.mocked(api.tradeInsightsAiAnalysisLatest).mockResolvedValueOnce(
+      baseResponse,
+    );
     vi.mocked(api.tradeInsightsAiAnalysisStatus).mockRejectedValueOnce(
       new Error("API 500 for /ai-analysis/status: worker unavailable"),
     );
 
     render(<TradeInsightsAiAnalysisPanel ticker="TSLA" />);
 
-    expect(
-      await screen.findByText(/worker unavailable/i),
-    ).toBeDefined();
-    expect(screen.getByText("Retry")).toBeDefined();
+    expect(await screen.findByText(/worker unavailable/i)).toBeDefined();
+    expect(screen.getByText("Run Analysis")).toBeDefined();
+    expect(screen.queryByText("Retry")).toBeNull();
     expect(screen.queryByText(/AI analysis queued/i)).toBeNull();
     expect(api.tradeInsightsAiAnalysis).not.toHaveBeenCalled();
   });
 
-  it("renders failed status with retry affordance", async () => {
+  it("renders failed status with the standard run control", async () => {
     vi.mocked(api.tradeInsightsAiAnalysis).mockResolvedValueOnce({
       ...baseResponse,
       status: "failed",
@@ -394,7 +405,8 @@ describe("TradeInsightsAiAnalysisPanel", () => {
     fireEvent.click(screen.getByText("Run Analysis"));
 
     expect(await screen.findByText(/codex timed out/i)).toBeDefined();
-    expect(screen.getByText("Retry")).toBeDefined();
+    expect(screen.getByText("Run Analysis")).toBeDefined();
+    expect(screen.queryByText("Retry")).toBeNull();
   });
 
   it("ignores in-flight poll results after ticker changes", async () => {

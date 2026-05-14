@@ -110,7 +110,7 @@ export function VolatilityTabClient({
           marginTop: 4,
         }}
       >
-        Today's snapshot
+        Today&apos;s snapshot
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
