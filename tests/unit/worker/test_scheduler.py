@@ -1,10 +1,14 @@
 from __future__ import annotations
 
-from datetime import datetime
 from contextlib import contextmanager
+from datetime import datetime
 from zoneinfo import ZoneInfo
 
+from pydantic import SecretStr
+
+from uw_scan.config import Settings
 from uw_scan.worker.scheduler import (
+    _ohlc_provider,
     _record_worker_heartbeat,
     _spot_refresh_market_date,
     _uw_auto_request_allowed,
@@ -67,3 +71,24 @@ def test_record_worker_heartbeat_uses_dedicated_worker_key(monkeypatch) -> None:
     _record_worker_heartbeat(object())
 
     assert calls == ["worker"]
+
+
+def test_ohlc_provider_uses_configured_request_timeout(monkeypatch) -> None:
+    captured: dict[str, object] = {}
+
+    class FakeProvider:
+        def __init__(self, **kwargs) -> None:
+            captured.update(kwargs)
+
+    monkeypatch.setattr("uw_scan.worker.scheduler.MassiveOhlcProvider", FakeProvider)
+
+    settings = Settings(
+        api_key="uw",
+        massive_api_key=SecretStr("massive"),
+        request_timeout_seconds=42.0,
+    )
+
+    provider = _ohlc_provider(settings)
+
+    assert provider is not None
+    assert captured["timeout"] == 42.0
