@@ -913,7 +913,7 @@ def _known_idea_id(idea_id: str, candidates: dict[str, dict[str, Any]]) -> bool:
     return idea_id in candidates or idea_id in STRATEGY_FAMILY_IDS
 
 
-_PATH_PART_INDEX_RE = re.compile(r"\[(?:\d+)?\]")
+_PATH_PART_INDEX_RE = re.compile(r"\[-?\d*\]")
 
 
 def _path_family_exists(path: str, deterministic_payload: dict[str, Any]) -> bool:
