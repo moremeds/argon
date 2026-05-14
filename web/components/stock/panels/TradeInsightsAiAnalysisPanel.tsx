@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
 
 import { api, type TradeInsightsAiAnalysisResponse } from "@/lib/api";
@@ -96,7 +96,9 @@ function isInFlight(analysis: TradeInsightsAiAnalysisResponse): boolean {
 
 function SmallHeading({ children }: { children: ReactNode }) {
   return (
-    <div style={{ color: "var(--text-primary)", fontSize: 12, fontWeight: 700 }}>
+    <div
+      style={{ color: "var(--text-primary)", fontSize: 12, fontWeight: 700 }}
+    >
       {children}
     </div>
   );
@@ -145,7 +147,13 @@ function CompactNote({ label, value }: { label: string; value: string }) {
       }}
     >
       <SmallHeading>{label}</SmallHeading>
-      <div style={{ color: "var(--text-secondary)", fontSize: 12, lineHeight: 1.4 }}>
+      <div
+        style={{
+          color: "var(--text-secondary)",
+          fontSize: 12,
+          lineHeight: 1.4,
+        }}
+      >
         {plainText(clipped(value, 110))}
       </div>
     </div>
@@ -179,7 +187,9 @@ function AnalysisCard({
       }}
     >
       <div>
-        <div style={{ display: "flex", justifyContent: "space-between", gap: 10 }}>
+        <div
+          style={{ display: "flex", justifyContent: "space-between", gap: 10 }}
+        >
           <div
             style={{
               color: "var(--text-primary)",
@@ -268,7 +278,10 @@ function BulletList({
   return (
     <div style={{ display: "grid", gap: 5 }}>
       {visible.map((item) => (
-        <div key={item} style={{ color: "var(--text-secondary)", fontSize: 12 }}>
+        <div
+          key={item}
+          style={{ color: "var(--text-secondary)", fontSize: 12 }}
+        >
           {plainText(item)}
         </div>
       ))}
@@ -312,7 +325,8 @@ function SectionSummaryCard({
 }) {
   const highlights = [
     ...(section.highlights ?? []).map(
-      (item) => `${item.label}: ${tidy(item.value)}${item.note ? ` · ${item.note}` : ""}`,
+      (item) =>
+        `${item.label}: ${tidy(item.value)}${item.note ? ` · ${item.note}` : ""}`,
     ),
     ...(section.levels ?? []).map(
       (level) =>
@@ -322,7 +336,11 @@ function SectionSummaryCard({
     ),
   ];
   return (
-    <AnalysisCard title={section.title} subtitle={scoreText(section)} tone={tone}>
+    <AnalysisCard
+      title={section.title}
+      subtitle={scoreText(section)}
+      tone={tone}
+    >
       <div
         style={{
           color: "var(--text-primary)",
@@ -344,7 +362,9 @@ function OutcomeGrid({ outcome }: { outcome: Outcome }) {
     label: card.label,
     value: card.value,
   }));
-  const requiredChecks = (outcome.required_checks ?? []).map((item) => item.check);
+  const requiredChecks = (outcome.required_checks ?? []).map(
+    (item) => item.check,
+  );
   const conflicts = (outcome.conflicts ?? []).map((item) => item.description);
   const missing = outcome.missing_data ?? [];
 
@@ -379,7 +399,9 @@ function OutcomeGrid({ outcome }: { outcome: Outcome }) {
             marginTop: 8,
           }}
         >
-          {plainText(outcome.dominant_read?.summary ?? outcome.headline.top_reason)}
+          {plainText(
+            outcome.dominant_read?.summary ?? outcome.headline.top_reason,
+          )}
         </div>
         <KeyValueGrid
           items={[
@@ -402,13 +424,20 @@ function OutcomeGrid({ outcome }: { outcome: Outcome }) {
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 240px), 1fr))",
+            gridTemplateColumns:
+              "repeat(auto-fit, minmax(min(100%, 240px), 1fr))",
             gap: 8,
             marginTop: 10,
           }}
         >
-          <CompactNote label="Primary Risk" value={outcome.headline.primary_risk} />
-          <CompactNote label="Trigger To Watch" value={outcome.headline.watch_trigger} />
+          <CompactNote
+            label="Primary Risk"
+            value={outcome.headline.primary_risk}
+          />
+          <CompactNote
+            label="Trigger To Watch"
+            value={outcome.headline.watch_trigger}
+          />
         </div>
         <div
           style={{
@@ -418,7 +447,8 @@ function OutcomeGrid({ outcome }: { outcome: Outcome }) {
             marginTop: 10,
           }}
         >
-          Generated analysis from local Codex · {outcome.analysis_produced_at.slice(0, 10)} · Not financial advice
+          Generated analysis from local Codex ·{" "}
+          {outcome.analysis_produced_at.slice(0, 10)} · Not financial advice
         </div>
       </div>
 
@@ -433,7 +463,8 @@ function OutcomeGrid({ outcome }: { outcome: Outcome }) {
           data-testid="ai-analysis-upper-card-grid"
           style={{
             display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 240px), 1fr))",
+            gridTemplateColumns:
+              "repeat(auto-fit, minmax(min(100%, 240px), 1fr))",
             alignItems: "stretch",
             gap: 12,
           }}
@@ -455,7 +486,8 @@ function OutcomeGrid({ outcome }: { outcome: Outcome }) {
           data-testid="ai-analysis-lower-card-grid"
           style={{
             display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 260px), 1fr))",
+            gridTemplateColumns:
+              "repeat(auto-fit, minmax(min(100%, 260px), 1fr))",
             alignItems: "stretch",
             gap: 12,
           }}
@@ -474,15 +506,18 @@ function OutcomeGrid({ outcome }: { outcome: Outcome }) {
               }}
             >
               {plainText(
-                outcome.vrp_assessment?.summary ?? "No VRP assessment supplied.",
+                outcome.vrp_assessment?.summary ??
+                  "No VRP assessment supplied.",
               )}
             </div>
             {outcome.vrp_assessment?.metrics?.length ? (
               <KeyValueGrid
-                items={outcome.vrp_assessment.metrics.slice(0, 6).map((metric) => ({
-                  label: metric.label,
-                  value: metric.value,
-                }))}
+                items={outcome.vrp_assessment.metrics
+                  .slice(0, 6)
+                  .map((metric) => ({
+                    label: metric.label,
+                    value: metric.value,
+                  }))}
               />
             ) : null}
             {requiredChecks.length > 0 && (
@@ -512,7 +547,10 @@ function OutcomeGrid({ outcome }: { outcome: Outcome }) {
                   items={[
                     { label: "Structure", value: preferred.structure },
                     { label: "Entry", value: preferred.estimated_entry },
-                    { label: "Max Profit", value: preferred.max_profit_observed },
+                    {
+                      label: "Max Profit",
+                      value: preferred.max_profit_observed,
+                    },
                     { label: "Max Loss", value: preferred.max_loss_observed },
                     { label: "R:R", value: preferred.reward_risk },
                     { label: "Status", value: preferred.status_observed },
@@ -521,7 +559,10 @@ function OutcomeGrid({ outcome }: { outcome: Outcome }) {
                 <div style={{ color: "var(--text-primary)", fontSize: 13 }}>
                   {plainText(preferred.why)}
                 </div>
-                <BulletList items={preferred.management_notes ?? []} limit={3} />
+                <BulletList
+                  items={preferred.management_notes ?? []}
+                  limit={3}
+                />
               </>
             ) : (
               <div style={{ color: "var(--text-secondary)", fontSize: 12 }}>
@@ -561,30 +602,30 @@ export function TradeInsightsAiAnalysisPanel({ ticker }: { ticker: string }) {
   const [unavailable, setUnavailable] = useState(false);
   const requestTokenRef = useRef(0);
 
-  async function pollAnalysis(
-    started: TradeInsightsAiAnalysisResponse,
-    token: number,
-  ) {
-    const isCurrentRequest = () => requestTokenRef.current === token;
-    let current = started;
-    let elapsedMs = 0;
-    const intervalMs = 3000;
-    const maxMs = AI_ANALYSIS_POLL_MAX_MS;
-    while (isInFlight(current)) {
-      if (elapsedMs >= maxMs) break;
-      current = await api.tradeInsightsAiAnalysisStatus(
-        ticker,
-        started.analysis_id,
-      );
-      if (!isCurrentRequest()) return;
-      setAnalysis(current);
-      if (isInFlight(current)) {
-        await new Promise((r) => setTimeout(r, intervalMs));
+  const pollAnalysis = useCallback(
+    async (started: TradeInsightsAiAnalysisResponse, token: number) => {
+      const isCurrentRequest = () => requestTokenRef.current === token;
+      let current = started;
+      let elapsedMs = 0;
+      const intervalMs = 3000;
+      const maxMs = AI_ANALYSIS_POLL_MAX_MS;
+      while (isInFlight(current)) {
+        if (elapsedMs >= maxMs) break;
+        current = await api.tradeInsightsAiAnalysisStatus(
+          ticker,
+          started.analysis_id,
+        );
         if (!isCurrentRequest()) return;
-        elapsedMs += intervalMs;
+        setAnalysis(current);
+        if (isInFlight(current)) {
+          await new Promise((r) => setTimeout(r, intervalMs));
+          if (!isCurrentRequest()) return;
+          elapsedMs += intervalMs;
+        }
       }
-    }
-  }
+    },
+    [ticker],
+  );
 
   useEffect(() => {
     const token = ++requestTokenRef.current;
@@ -606,11 +647,14 @@ export function TradeInsightsAiAnalysisPanel({ ticker }: { ticker: string }) {
                 if (String(err).includes("503")) {
                   setUnavailable(true);
                 } else {
-                  setAnalysis((currentAnalysis) => ({
-                    ...currentAnalysis,
-                    status: "failed",
-                    error_message: String(err),
-                  }) as TradeInsightsAiAnalysisResponse);
+                  setAnalysis(
+                    (currentAnalysis) =>
+                      ({
+                        ...currentAnalysis,
+                        status: "failed",
+                        error_message: String(err),
+                      }) as TradeInsightsAiAnalysisResponse,
+                  );
                 }
               }
             } finally {
@@ -634,7 +678,7 @@ export function TradeInsightsAiAnalysisPanel({ ticker }: { ticker: string }) {
       cancelled = true;
       requestTokenRef.current += 1;
     };
-  }, [ticker]);
+  }, [pollAnalysis, ticker]);
 
   async function run(force_rerun = false) {
     const token = ++requestTokenRef.current;
@@ -654,11 +698,14 @@ export function TradeInsightsAiAnalysisPanel({ ticker }: { ticker: string }) {
       if (String(err).includes("503")) {
         setUnavailable(true);
       } else {
-        setAnalysis((currentAnalysis) => ({
-          ...currentAnalysis,
-          status: "failed",
-          error_message: String(err),
-        }) as TradeInsightsAiAnalysisResponse);
+        setAnalysis(
+          (currentAnalysis) =>
+            ({
+              ...currentAnalysis,
+              status: "failed",
+              error_message: String(err),
+            }) as TradeInsightsAiAnalysisResponse,
+        );
       }
     } finally {
       if (isCurrentRequest()) {
@@ -668,20 +715,22 @@ export function TradeInsightsAiAnalysisPanel({ ticker }: { ticker: string }) {
   }
 
   const failed = analysis?.status === "failed";
-  const canRun = !unavailable && (!analysis || failed || analysis.status === "succeeded");
-  const forceRun = Boolean(analysis && (failed || analysis.status === "succeeded"));
-  const actionLabel =
-    loading
-      ? "Running..."
-      : failed
-        ? "Retry"
-        : "Run Analysis";
+  const canRun =
+    !unavailable && (!analysis || failed || analysis.status === "succeeded");
+  const forceRun = Boolean(
+    analysis && (failed || analysis.status === "succeeded"),
+  );
+  const actionLabel = loading ? "Running..." : "Run Analysis";
   return (
     <InsightPanel
       heading="AI ANALYSIS"
       action={
         canRun ? (
-          <ActionButton compact onClick={() => run(forceRun)} disabled={loading}>
+          <ActionButton
+            compact
+            onClick={() => run(forceRun)}
+            disabled={loading}
+          >
             {actionLabel}
           </ActionButton>
         ) : undefined

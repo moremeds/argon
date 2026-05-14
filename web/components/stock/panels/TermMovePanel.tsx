@@ -4,9 +4,11 @@ import { InsightPanel, InsightStatusBanner } from "./InsightPanel";
 
 type Row = TradeInsightsResponse["term_structure_table"][number];
 
+const fmtMoney = (v: unknown) => (v == null ? "-" : `$${Number(v).toFixed(2)}`);
 const fmtPercent = (v: unknown) =>
   v == null ? "-" : `${(Number(v) * 100).toFixed(2)}%`;
-const n = (v: string | number | null | undefined) => (v == null ? null : Number(v));
+const n = (v: string | number | null | undefined) =>
+  v == null ? null : Number(v);
 
 function Highlight({
   label,
@@ -84,7 +86,11 @@ function DrillDown({ rows }: { rows: Row[] }) {
           columns={[
             { key: "expiry", label: "Expiry" },
             { key: "dte", label: "DTE" },
-            { key: "atm_straddle", label: "ATM straddle" },
+            {
+              key: "atm_straddle",
+              label: "ATM straddle",
+              render: (value) => fmtMoney(value),
+            },
             {
               key: "implied_move_perc",
               label: "Move",
@@ -107,7 +113,10 @@ export function TermMovePanel({ rows }: { rows: Row[] }) {
   if (rows.length === 0) {
     return (
       <InsightPanel heading="TERM STRUCTURE / IMPLIED MOVE">
-        <InsightStatusBanner text="No iv_term_snapshots for this run" severity="info" />
+        <InsightStatusBanner
+          text="No iv_term_snapshots for this run"
+          severity="info"
+        />
       </InsightPanel>
     );
   }
@@ -120,7 +129,9 @@ export function TermMovePanel({ rows }: { rows: Row[] }) {
   const front = byExpiry[0];
   const back = byExpiry.find((row) => row.expiry !== front.expiry) ?? null;
   const highestDaily = [...rows].sort(
-    (a, b) => (n(b.daily_implied_move_perc) ?? -1) - (n(a.daily_implied_move_perc) ?? -1),
+    (a, b) =>
+      (n(b.daily_implied_move_perc) ?? -1) -
+      (n(a.daily_implied_move_perc) ?? -1),
   )[0];
   const frontDaily = n(front.daily_implied_move_perc);
   const backDaily = back ? n(back.daily_implied_move_perc) : null;

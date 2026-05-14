@@ -21,7 +21,9 @@ function Metric({ label, value }: { label: string; value: string }) {
       >
         {label}
       </div>
-      <div style={{ color: "var(--text-primary)", fontFamily: "var(--font-mono)" }}>
+      <div
+        style={{ color: "var(--text-primary)", fontFamily: "var(--font-mono)" }}
+      >
         {value}
       </div>
     </div>
@@ -36,7 +38,10 @@ export function CandidateStructuresPanel({
   if (candidates.length === 0) {
     return (
       <InsightPanel heading="CANDIDATE STRUCTURES">
-        <InsightStatusBanner text="No candidate structures generated" severity="info" />
+        <InsightStatusBanner
+          text="No candidate structures generated"
+          severity="info"
+        />
       </InsightPanel>
     );
   }
@@ -71,10 +76,22 @@ export function CandidateStructuresPanel({
               }}
             >
               <div>
-                <div style={{ color: "var(--text-primary)", fontSize: 14, fontWeight: 700 }}>
+                <div
+                  style={{
+                    color: "var(--text-primary)",
+                    fontSize: 14,
+                    fontWeight: 700,
+                  }}
+                >
                   {candidate.idea_id}. {readable(candidate.structure)}
                 </div>
-                <div style={{ color: "var(--text-secondary)", fontSize: 12, lineHeight: 1.5 }}>
+                <div
+                  style={{
+                    color: "var(--text-secondary)",
+                    fontSize: 12,
+                    lineHeight: 1.5,
+                  }}
+                >
                   {candidate.thesis}
                 </div>
               </div>
@@ -95,12 +112,19 @@ export function CandidateStructuresPanel({
             <div
               style={{
                 display: "grid",
-                gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 150px), 1fr))",
+                gridTemplateColumns:
+                  "repeat(auto-fit, minmax(min(100%, 150px), 1fr))",
                 gap: "12px 18px",
               }}
             >
-              <Metric label="Credit / Debit" value={fmtMoney(candidate.net_credit_debit)} />
-              <Metric label="Max profit" value={fmtMoney(candidate.max_profit)} />
+              <Metric
+                label="Credit / Debit"
+                value={fmtMoney(candidate.net_credit_debit)}
+              />
+              <Metric
+                label="Max profit"
+                value={fmtMoney(candidate.max_profit)}
+              />
               <Metric label="Max loss" value={fmtMoney(candidate.max_loss)} />
               <Metric label="Rank" value={String(candidate.rank)} />
             </div>

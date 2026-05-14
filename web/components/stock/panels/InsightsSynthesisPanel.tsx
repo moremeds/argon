@@ -23,7 +23,11 @@ function ListBlock({ title, items }: { title: string; items: string[] }) {
           {items.map((item) => (
             <div
               key={item}
-              style={{ color: "var(--text-secondary)", fontSize: 12, lineHeight: 1.35 }}
+              style={{
+                color: "var(--text-secondary)",
+                fontSize: 12,
+                lineHeight: 1.35,
+              }}
             >
               {item}
             </div>
@@ -34,7 +38,11 @@ function ListBlock({ title, items }: { title: string; items: string[] }) {
   );
 }
 
-export function InsightsSynthesisPanel({ synthesis }: { synthesis: Synthesis }) {
+export function InsightsSynthesisPanel({
+  synthesis,
+}: {
+  synthesis: Synthesis;
+}) {
   return (
     <InsightPanel heading="SYNTHESIS" subheading={synthesis.dominant_story}>
       <div style={{ display: "grid", gap: 14 }}>
@@ -56,7 +64,9 @@ export function InsightsSynthesisPanel({ synthesis }: { synthesis: Synthesis }) 
             }}
           >
             <div>
-              <div style={{ color: "var(--text-muted)", fontSize: 10 }}>Preferred</div>
+              <div style={{ color: "var(--text-muted)", fontSize: 10 }}>
+                Preferred
+              </div>
               <div style={{ color: "var(--text-primary)" }}>
                 {synthesis.preferred_idea_id ?? "None"}
               </div>
@@ -71,7 +81,10 @@ export function InsightsSynthesisPanel({ synthesis }: { synthesis: Synthesis }) 
             </div>
           </div>
           <ListBlock title="Avoid" items={synthesis.avoid} />
-          <ListBlock title="Required before sizing" items={synthesis.required_before_sizing} />
+          <ListBlock
+            title="Required before sizing"
+            items={synthesis.required_before_sizing}
+          />
         </div>
       </div>
     </InsightPanel>
