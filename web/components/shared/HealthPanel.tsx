@@ -9,6 +9,8 @@ type ProviderSource = "uw" | "massive";
 
 const HEARTBEAT_HEALTHY_LAG_S = 5;
 const SPOT_REFRESH_HEALTHY_LAG_S = 660;
+const RECORD_WINDOW_HOURS = 8;
+const RECORD_MIN_COVERAGE = 0.9;
 
 const rowStyle: React.CSSProperties = {
   display: "flex",
@@ -68,6 +70,14 @@ function heartbeatStatus(
   return { label: "STALE", color: "var(--warning)" };
 }
 
+function recordHealthStatus(
+  ok: boolean | null | undefined,
+): { label: "OK" | "ALERT" | "UNKNOWN"; color: string } {
+  if (ok == null) return { label: "UNKNOWN", color: "var(--warning)" };
+  if (ok) return { label: "OK", color: "var(--positive)" };
+  return { label: "ALERT", color: "var(--negative)" };
+}
+
 function fmtDuration(seconds: number | null | undefined): string {
   if (seconds == null) return "—";
   const s = Math.max(0, Math.round(seconds));
@@ -111,7 +121,10 @@ export function HealthPanel() {
     let cancelled = false;
     const fetchOnce = async () => {
       try {
-        const r = await api.health(source);
+        const r = await api.health(source, {
+          recordMinCoverage: RECORD_MIN_COVERAGE,
+          recordWindowHours: RECORD_WINDOW_HOURS,
+        });
         if (!cancelled) setH(r);
       } catch {
         if (!cancelled) setH(null);
@@ -135,6 +148,7 @@ export function HealthPanel() {
     h?.spot_refresh_heartbeat_lag_seconds,
     SPOT_REFRESH_HEALTHY_LAG_S,
   );
+  const recordsStatus = recordHealthStatus(h?.record_health_ok);
 
   return (
     <div
@@ -145,10 +159,11 @@ export function HealthPanel() {
     >
       <StatusRow label="API" status={apiStatus} />
       <StatusRow label="Scheduler" status={schedulerStatus} />
-      <StatusRow label="Rescan" status={rescanStatus} />
-      <StatusRow label="Spot Job" status={spotRefreshStatus} />
+      <StatusRow label="UW Worker" status={rescanStatus} />
+      <StatusRow label="Massive Worker" status={spotRefreshStatus} />
+      <StatusRow label="Query Coverage" status={recordsStatus} />
       <div style={rowStyle}>
-        <span style={labelStyle}>Spot Age</span>
+        <span style={labelStyle}>Last spot</span>
         <span
           style={valStyle}
           title={`Quote ${fmtDateTimeWithZone(h?.latest_spot_quote_at)} / fetched ${fmtDateTimeWithZone(h?.latest_spot_quote_fetched_at)}`}

@@ -158,6 +158,89 @@ def test_health_includes_massive_provider_usage_stats_when_source_is_massive(
     assert body["uw_today"] is None
 
 
+def test_health_record_check_alerts_on_low_recent_ticker_coverage(
+    client, seeded_db_with_cards
+):
+    r = client.get(
+        "/api/health?record_window_hours=8&record_min_coverage=0.9"
+        "&record_tables=watchlist_card"
+    )
+
+    assert r.status_code == 200
+    body = r.json()
+    assert body["ok"] is False
+    assert body["record_health_ok"] is False
+    assert "record coverage below expected" in body["reason"]
+    card_check = next(
+        check for check in body["record_health"] if check["table"] == "watchlist_card"
+    )
+    assert card_check["actual_tickers"] == 1
+    assert card_check["expected_tickers"] == seeded_db_with_cards.count_active_watchlist()
+    assert card_check["ok"] is False
+
+
+def test_health_record_check_passes_when_selected_table_covers_watchlist(
+    client, seeded_db_empty_cards
+):
+    repo = seeded_db_empty_cards
+    now = datetime.now(UTC)
+    for row in repo.list_watchlist_cards():
+        run_id = repo.insert_scan_run(ticker=row.ticker)
+        repo.finish_scan_run(run_id, status="ok")
+        repo.upsert_watchlist_card(
+            ticker=row.ticker,
+            run_id=run_id,
+            scanned_at=now,
+            spot=Decimal("100.00"),
+        )
+
+    r = client.get("/api/health?record_window_hours=8&record_tables=watchlist_card")
+
+    assert r.status_code == 200
+    body = r.json()
+    assert body["ok"] is True
+    assert body["record_health_ok"] is True
+    assert body["record_health"][0]["table"] == "watchlist_card"
+    assert body["record_health"][0]["actual_tickers"] == repo.count_active_watchlist()
+
+
+def test_health_record_check_discovers_new_ticker_timestamp_tables(
+    client, seeded_db_empty_cards
+):
+    repo = seeded_db_empty_cards
+    now = datetime.now(UTC)
+    with repo.conn.cursor() as cur:
+        cur.execute(
+            f"""
+            CREATE TABLE {repo._schema}.synthetic_endpoint_snapshots (
+                ticker text NOT NULL,
+                inserted_at timestamptz NOT NULL DEFAULT now()
+            )
+            """
+        )
+        cur.executemany(
+            f"""
+            INSERT INTO {repo._schema}.synthetic_endpoint_snapshots
+                (ticker, inserted_at)
+            VALUES (%s, %s)
+            """,
+            [(row.ticker, now) for row in repo.list_watchlist_cards()],
+        )
+    repo.conn.commit()
+
+    r = client.get(
+        "/api/health?record_window_hours=8"
+        "&record_tables=synthetic_endpoint_snapshots"
+    )
+
+    assert r.status_code == 200
+    body = r.json()
+    synthetic = body["record_health"][0]
+    assert synthetic["table"] == "synthetic_endpoint_snapshots"
+    assert synthetic["ok"] is True
+    assert synthetic["actual_tickers"] == repo.count_active_watchlist()
+
+
 def test_health_unhealthy_when_no_scans(client, seeded_db_empty_cards):
     r = client.get("/api/health")
     body = r.json()

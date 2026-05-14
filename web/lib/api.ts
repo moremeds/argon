@@ -24,6 +24,10 @@ type HealthResponse = Json<"/api/health", "get">;
 type HealthSource = NonNullable<
   paths["/api/health"]["get"]["parameters"]["query"]
 >["source"];
+type HealthOptions = {
+  recordWindowHours?: number;
+  recordMinCoverage?: number;
+};
 type VolatilitySeriesResponse = Json<
   "/api/stock/{ticker}/volatility/series",
   "get"
@@ -98,8 +102,19 @@ export const api = {
     }),
   job: (jobId: string): Promise<JobStatus> =>
     _fetch<JobStatus>(`/api/jobs/${jobId}`),
-  health: (source: HealthSource = "uw"): Promise<HealthResponse> =>
-    _fetch<HealthResponse>(`/api/health?source=${source}`),
+  health: (
+    source: HealthSource = "uw",
+    options: HealthOptions = {},
+  ): Promise<HealthResponse> => {
+    const params = new URLSearchParams({ source: source ?? "uw" });
+    if (options.recordWindowHours != null) {
+      params.set("record_window_hours", String(options.recordWindowHours));
+    }
+    if (options.recordMinCoverage != null) {
+      params.set("record_min_coverage", String(options.recordMinCoverage));
+    }
+    return _fetch<HealthResponse>(`/api/health?${params.toString()}`);
+  },
   addTicker: (body: {
     ticker: string;
     sector: string;
