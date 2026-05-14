@@ -242,7 +242,8 @@ class MassiveOhlcProvider:
     def _extract_request_id(self, response: httpx.Response) -> str | None:
         try:
             payload: Any = response.json()
-        except ValueError:
+        except ValueError as exc:
+            logger.debug("Massive response did not include JSON: %s", repr(exc))
             return None
         if isinstance(payload, dict):
             request_id = payload.get("request_id")
