@@ -50,6 +50,20 @@ def _spot_refresh_market_date(now: datetime) -> date | None:
     return None
 
 
+def _uw_auto_request_allowed(now: datetime) -> bool:
+    """Return True during the weekday ET window where scheduled flow refresh may run."""
+    local = now if now.tzinfo is not None else now.replace(tzinfo=ZoneInfo("UTC"))
+    if local.weekday() >= 5:
+        return False
+    current = local.time()
+    return time(5, 0) <= current < time(20, 0)
+
+
+def _record_worker_heartbeat(settings: Settings) -> None:
+    with _repo(settings) as repo:
+        repo.upsert_heartbeat("worker")
+
+
 @contextmanager
 def _repo(settings: Settings) -> Iterator[Repository]:
     conn = psycopg.connect(settings.db_dsn())
@@ -213,6 +227,9 @@ def main() -> int:
             nightly_vol_analytics_rollup(repo=repo)
 
     def _flow_data_refresh() -> None:
+        if not _uw_auto_request_allowed(datetime.now(ZoneInfo(settings.rth_tz))):
+            logger.info("flow_data_refresh skipped outside UW flow refresh window")
+            return
         with _external_api_recorder(settings) as recorder:
             with _uw_client(
                 settings, telemetry_recorder=recorder, job_name="flow_data_refresh"
@@ -223,6 +240,14 @@ def main() -> int:
     def _trade_insights_ai_tick() -> None:
         trade_insights_ai_tick(settings)
 
+    sched.add_job(
+        lambda: _record_worker_heartbeat(settings),
+        IntervalTrigger(seconds=1),
+        id="worker_heartbeat",
+        name="Worker heartbeat",
+        max_instances=1,
+        coalesce=True,
+    )
     sched.add_job(
         _spot_refresh,
         IntervalTrigger(seconds=settings.spot_refresh_seconds),

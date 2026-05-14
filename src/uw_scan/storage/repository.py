@@ -2602,6 +2602,19 @@ class Repository:
             row = cur.fetchone()
         return row[0] if row else None
 
+    def get_latest_heartbeat(self) -> tuple[str, datetime] | None:
+        with self._conn.cursor() as cur:
+            cur.execute(
+                f"""
+                SELECT job_name, last_beat_at
+                FROM {self._schema}.worker_heartbeat
+                ORDER BY last_beat_at DESC
+                LIMIT 1
+                """
+            )
+            row = cur.fetchone()
+        return (str(row[0]), row[1]) if row else None
+
     # ---- strike_gex_curve (JSONB on scan_runs) ----
     def set_strike_gex_curve(self, run_id: int, curve: list[dict]) -> None:
         """Persist the per-strike, per-expiry GEX curve as JSONB on the run row."""

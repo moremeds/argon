@@ -6,7 +6,10 @@
 export interface paths {
     "/api/health": {
         parameters: {
-            query?: never;
+            query?: {
+                /** @default uw */
+                source?: "uw" | "massive";
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -580,12 +583,18 @@ export interface components {
             reason?: string | null;
             /** Worker Lag Seconds */
             worker_lag_seconds?: number | null;
+            /** Scheduler Heartbeat Lag Seconds */
+            scheduler_heartbeat_lag_seconds?: number | null;
+            /** Scheduler Heartbeat Name */
+            scheduler_heartbeat_name?: string | null;
+            /** Rescan Heartbeat Lag Seconds */
+            rescan_heartbeat_lag_seconds?: number | null;
             /** Watchlist Size */
             watchlist_size?: number | null;
-            /**
-             * Source
-             * @default massive.com
-             */
+             /**
+              * Source
+             * @default UnusualWhales
+              */
             source: string;
             /** Latency P95 Ms */
             latency_p95_ms?: number | null;
@@ -2261,7 +2270,10 @@ export type $defs = Record<string, never>;
 export interface operations {
     health_api_health_get: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @default uw */
+                source?: "uw" | "massive";
+            };
             header?: never;
             path?: never;
             cookie?: never;
