@@ -103,7 +103,7 @@ def _snapshot_ticker(
     n_term = repo.insert_iv_term_rows(run_id, term_rows)
 
     interp_rows = fetch_interpolated_iv(client, repo, run_id, ticker)
-    n_iv = repo.insert_interpolated_iv_rows(run_id, interp_rows)
+    n_iv = repo.insert_interpolated_iv_rows(run_id, ticker, interp_rows)
 
     logger.info(
         "cockpit_daily_snapshot: %s series rv=%d ivrank=%d term=%d interp=%d",

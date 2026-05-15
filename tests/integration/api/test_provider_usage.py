@@ -1,9 +1,12 @@
 from __future__ import annotations
 
-from datetime import UTC, datetime
+from datetime import timedelta
+
+from uw_scan.storage.repository import provider_day_bounds
 
 
 def _seed_provider_usage(repo):
+    started_at = provider_day_bounds()[0] + timedelta(hours=1)
     for endpoint, ticker, status_code, status_family, latency in [
         ("iv_rank", "TSLA", 200, "2xx", 20),
         ("greek_exposure", "TSLA", 429, "4xx", 30),
@@ -19,8 +22,8 @@ def _seed_provider_usage(repo):
             params={"ticker": ticker},
             status_code=status_code,
             status_family=status_family,
-            started_at=datetime(2026, 5, 14, 14, 0, tzinfo=UTC),
-            finished_at=datetime(2026, 5, 14, 14, 0, tzinfo=UTC),
+            started_at=started_at,
+            finished_at=started_at,
             latency_ms=latency,
             official_daily_count=7 if provider == "uw" else None,
             official_daily_limit=1000 if provider == "uw" else None,
