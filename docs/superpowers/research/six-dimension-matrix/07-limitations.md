@@ -219,9 +219,81 @@ This is the **single largest threat to v1 product viability**. Strategy 1 (short
 
 ---
 
+## Limitation 08 — Per-dimension credibility is uneven, and the joint 6-dim claim is unvalidated
+
+### Framework statement
+
+The framework presents the matrix as a unified 6-dimension reading whose joint consistency check ("all 6 same direction") is the primary trade-gate. This presentation implies the six dimensions deliver guidance of comparable credibility. **They do not** — neither in literature backing nor in v1 data plumbing.
+
+### Why it's true
+
+Two separate effects, often conflated:
+
+**(a) Per-dimension credibility varies by literature depth.** Skew, term structure, and VRP each have decades of peer-reviewed empirical support for the *direction* of their signal (compressed skew → tail-hedge demand falling, contango → carry available, etc.). Vanna and Charm have solid academic support for the *mechanism* (dealer rebalance, OPEX pinning) but the framework's *direction-mapping rules* (the 4 conditional vanna readings, the pin-distance thresholds) are the framework author's synthesis of GPP 2009 + intraday flow data — not directly claimed by GPP. IM-event-percentile and 4-footprint Flow are operationally meaningful concepts but require infrastructure (event calendar, classifier) the framework assumes exists.
+
+**(b) The joint claim is the framework author's contribution, not literature.** The specific assertion *"6 dimensions agreeing predicts forward returns better than any single dimension"* — including the §0.2 tolerance bands (5/6 + 1 neutral, 4/6 with cluster-coverage override) — does not appear in any cited paper. It is a reasonable hypothesis derived from the dimensions' partial collinearity (per Limitation #1) but it is **not validated**. Validation requires forward data the current UW subscription cannot supply historically (see `reviews/2026-05-15-uw-history-spike.md`).
+
+### Literature validation
+
+What is in the literature, dimension by dimension:
+
+| Dim | Per-dim direction claim that holds | Joint-signal claim |
+|---|---|---|
+| Skew | Tail-hedge demand drives 25Δ RR; Bates 1991, BKM 2003 | Not claimed jointly |
+| Term | Curve shape distinguishes idiosyncratic from systemic; Mixon 2007, Johnson 2017 | Not claimed jointly |
+| VRP | Long-run positive premium; carry harvestable in mean; Carr-Wu 2009, BTZ 2009 | Not claimed jointly |
+| Vanna | Dealer rebalance produces flow signature; GPP 2009 | The 4 conditional readings are synthesis, not literature |
+| Charm | OPEX pinning is real; Ni-Pearson-Poteshman 2005, Baltussen 2021 | The pin classifier specifics are synthesis |
+| IM | √(2/π) coefficient is real; Brenner-Subrahmanyam 1988 | Event-percentile interpretation is synthesis |
+| Flow | Aggressor inference is studied; Easley-O'Hara-Srinivas 1998, Savickas-Wilson 2003 | 4-footprint taxonomy is synthesis |
+
+The joint claim — *the matrix as a whole* — is unvalidated. Each per-dimension *direction* claim is well-supported individually.
+
+### v1 plumbing gap compounds this
+
+The v1 Cockpit (per plan `2026-05-15-cockpit-matrix-plan.md`) ships with:
+
+- **High-credibility, fully plumbed**: Skew, Term, VRP (proxy). These deliver the academically-cited guidance directly.
+- **Medium-credibility, simplified plumbing**: Vanna (EOD only, no intraday flow-color overlay), Charm (v1 proxy without OI-clustering refinement). These deliver direction labels but at lower confidence than literature mechanism alone implies.
+- **Always `stale` in v1**: IM (no event calendar), Flow (no footprint classifier). These do not contribute to the consistency count.
+
+**Effective dim count in v1: 5, not 6.** The matrix is honest about this — IM and Flow are labeled `stale`, not `neutral`. The consistency tier table evaluates against the fresh-dim denominator. The State tab displays "5 fresh dims, N agree", not "6/6". This is documented in the plan §"v1 dimensional coverage".
+
+### Mitigation
+
+The matrix is mis-read if interpreted as a *trade oracle* (the joint-claim framing). It is correctly-read as a *dashboard of market-state descriptors*, with these guarantees:
+
+**What the product credibly delivers in v1**:
+
+- *"Is tail-hedge demand expanding or compressing vs the 180-day window?"* — Skew, high confidence
+- *"Is the curve pricing event risk or systemic risk?"* — Term 4-state classifier, high confidence
+- *"Is short-vol carry available and within historical band?"* — VRP proxy + z-score, high confidence
+- *"Where does dealer positioning concentrate for the nearest expiry?"* — Vanna/Charm strike profiles, medium confidence as visualization; lower confidence as classification
+- *"Is there a high-OI strike near spot at OPEX?"* — Charm v1 proxy, medium confidence
+- *"Are the available dimensions telling a consistent or conflicting story?"* — Joint consistency tier, **experimental**, read as "signal loudness" not "trade recommendation"
+
+**What it does not credibly deliver in v1**:
+
+- Position sizing or entry/exit triggers
+- Intraday signals (Phase 1 cadence is EOD-only)
+- Single-name guidance (universe is SPX/SPY/QQQ/IWM only per Limitation #4)
+- Validated joint-6-dim edge claim — that question is open until month 6+ when ~125 trading days of `matrix_state_snapshots` exist and the pre-committed evaluation cells (plan Phase 6 §"Pre-committed evaluation cells") have power
+- IM event-percentile guidance until the event calendar table is built
+- Footprint-classified flow until the 4-footprint classifier is built
+
+**Communication discipline**:
+
+- State tab displays the consistency tier with explicit "experimental" labeling and a denominator showing fresh-dim count
+- Cockpit AI (when built) is constrained to cite per-dim sources, never to claim "the matrix is bullish/bearish" as if the joint reading were validated
+- Trade-plan generation is explicitly out of scope; the product offers no order tickets and no position sizing
+
+This limitation is the most important one to internalize when reading the Cockpit: **per-dim guidance is credible; the joint reading is experimental.** Treat the product accordingly.
+
+---
+
 ## Cross-cutting consequence
 
-The seven limitations together imply a **specific operating envelope** for the matrix:
+The eight limitations together imply a **specific operating envelope** for the matrix:
 
 | Allowed | Disallowed / requires caution |
 |---|---|
@@ -231,8 +303,9 @@ The seven limitations together imply a **specific operating envelope** for the m
 | Decision tree's mandatory invalidation rule | "Naked" matrix signals without invalidation lines |
 | Flow signals corroborated by a non-flow dimension | Flow signals from low-liquidity strikes / multi-leg block trades |
 | Dealer-flow inference for *sign* | Dealer-flow inference for precise *magnitude* |
+| Per-dim guidance (skew / term / VRP especially) | Joint-6-dim consistency tier as a trade recommendation — read as experimental signal-loudness only (per Limitation #8) |
 
-The matrix's takeaway #02 — *"true risk management = NO-TRADE when 6 conflict"* — is the meta-mitigation: the matrix is most useful as a *trade-blocker*, not a trade-generator.
+The matrix's takeaway #02 — *"true risk management = NO-TRADE when 6 conflict"* — is the meta-mitigation: the matrix is most useful as a *trade-blocker*, not a trade-generator. Limitation #8 sharpens this further: even the per-dim *guidance* the matrix produces is what credibly ships in v1; the joint reading is an unvalidated overlay.
 
 ---
 

@@ -291,6 +291,6 @@ Full mapping with concrete file paths in [`08-implementation-gaps.md`](08-implem
 | [`04-term-structure.md`](04-term-structure.md) | Term structure: 4 states · vol-crush prediction · VIX futures literature · UW mapping |
 | [`05-implied-move-and-flow.md`](05-implied-move-and-flow.md) | IM (0.8× straddle/spot) · 4 flow footprints · microstructure literature · aggressor-side caveats |
 | [`06-vrp.md`](06-vrp.md) | VRP: strict vs proxy · 3 sources · literature · long-run regime |
-| [`07-limitations.md`](07-limitations.md) | Seven limitations validated against literature |
+| [`07-limitations.md`](07-limitations.md) | Eight limitations validated against literature (incl. v1-specific per-dim credibility caveat) |
 | [`08-implementation-gaps.md`](08-implementation-gaps.md) | Cross-reference with `uw_scan` — data / API / UI / derivations per dimension |
 | [`09-backtest-plan.md`](09-backtest-plan.md) | Backtest proposals: universe · data · strategies per scenario · metrics · falsification |
