@@ -14,7 +14,7 @@ const FIXTURE_FLOW = {
 } as unknown as Parameters<typeof FlowSnapshotGrid>[0]["flow"];
 
 describe("FlowSnapshotGrid", () => {
-  it("renders all 11 snapshot tile labels", () => {
+  it("renders premium, dark-pool, and short-interest labels without the capped alert card", () => {
     render(
       <FlowSnapshotGrid
         flow={FIXTURE_FLOW}
@@ -34,7 +34,6 @@ describe("FlowSnapshotGrid", () => {
     // Labels are stored Title Case in the DOM; CSS text-transform uppercases
     // them visually.
     for (const label of [
-      "Alerts",
       "Net Premium",
       "Bull Premium",
       "Bear Premium",
@@ -48,6 +47,7 @@ describe("FlowSnapshotGrid", () => {
     ]) {
       expect(screen.getByText(label)).toBeTruthy();
     }
+    expect(screen.queryByText("Alerts")).toBeNull();
   });
 
   it("reveals tooltip definition + benchmark on hover, hides on mouseleave", () => {
@@ -59,15 +59,15 @@ describe("FlowSnapshotGrid", () => {
       />,
     );
     // Closed by default — hover-gated.
-    expect(screen.queryByText(/UW flow alerts/)).toBeNull();
+    expect(screen.queryByText(/aggregate alert flow/)).toBeNull();
 
-    const trigger = screen.getByLabelText("Alerts explanation")
+    const trigger = screen.getByLabelText("Net Premium explanation")
       .parentElement as HTMLElement;
     fireEvent.mouseEnter(trigger);
-    expect(screen.getByText(/UW flow alerts/)).toBeTruthy();
-    expect(screen.getByText(/Median active ticker/)).toBeTruthy();
+    expect(screen.getByText(/aggregate alert flow/)).toBeTruthy();
+    expect(screen.getByText(/bull\/bear ratio/)).toBeTruthy();
 
     fireEvent.mouseLeave(trigger);
-    expect(screen.queryByText(/UW flow alerts/)).toBeNull();
+    expect(screen.queryByText(/aggregate alert flow/)).toBeNull();
   });
 });

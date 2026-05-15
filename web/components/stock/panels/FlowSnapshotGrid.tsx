@@ -77,15 +77,10 @@ export function FlowSnapshotGrid({ flow, darkPool, shortData }: Props) {
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: "repeat(6, minmax(0, 1fr))",
+            gridTemplateColumns: "repeat(5, minmax(0, 1fr))",
             gap: 12,
           }}
         >
-          <Tile
-            label="Alerts"
-            tip="alerts"
-            value={fmtDecimal(flow.flow_count, 0)}
-          />
           <Tile
             label="Net Premium"
             tip="netPremium"

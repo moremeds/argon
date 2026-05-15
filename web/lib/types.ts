@@ -513,6 +513,20 @@ export interface components {
             ticker: string;
             /** Flow Count */
             flow_count: number;
+            /**
+             * Flow Count Is Limited
+             * @default false
+             */
+            flow_count_is_limited: boolean;
+            /** Flow Count 30D Avg */
+            flow_count_30d_avg?: string | null;
+            /** Flow Count Vs 30D Avg */
+            flow_count_vs_30d_avg?: string | null;
+            /**
+             * Flow Count 30D Days
+             * @default 0
+             */
+            flow_count_30d_days: number;
             /** Net Premium */
             net_premium: string;
             /** Bull Premium */

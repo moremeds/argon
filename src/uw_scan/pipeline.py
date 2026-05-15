@@ -33,6 +33,8 @@ from .storage.provider_usage import ExternalApiRequestRecorder
 
 logger = logging.getLogger(__name__)
 
+FLOW_ALERT_LIMIT = 100
+
 
 def _next_friday(today: _date) -> _date:
     """Pick the next Friday (today + 1..7 days)."""
@@ -79,10 +81,18 @@ def run_single_stock(
 
     try:
         # 1. Flow alerts (filtered to this ticker via param)
-        flow_alerts = uw_sources.fetch_flow_alerts(client, repo, run_id, ticker)
+        flow_alerts = uw_sources.fetch_flow_alerts(
+            client, repo, run_id, ticker, limit=FLOW_ALERT_LIMIT
+        )
         # Defensive: keep only this ticker
         ticker_alerts = [a for a in flow_alerts if a.ticker == ticker]
         repo.insert_flow_events(run_id, ticker, ticker_alerts)
+        repo.upsert_flow_alerts_daily_rollup(
+            run_id=run_id,
+            ticker=ticker,
+            alerts=ticker_alerts,
+            alert_limit=FLOW_ALERT_LIMIT,
+        )
 
         # 2. IV rank (time series)
         iv_rank_rows = uw_sources.fetch_iv_rank(client, repo, run_id, ticker)

@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import logging
 import math
+from collections import Counter
 from collections.abc import Iterable
 from dataclasses import dataclass
 from datetime import date as _date
@@ -671,6 +672,86 @@ class Repository:
                     ),
                 )
         return len(rows)
+
+    def upsert_flow_alerts_daily_rollup(
+        self,
+        *,
+        run_id: int,
+        ticker: str,
+        alerts: Iterable[models.FlowAlert],
+        alert_limit: int,
+        trade_date: _date | None = None,
+    ) -> None:
+        rows = list(alerts)
+        if trade_date is None:
+            trade_date = self._flow_alert_trade_date(rows)
+
+        bull_premium = Decimal("0")
+        bear_premium = Decimal("0")
+        ask_side_premium = Decimal("0")
+        bid_side_premium = Decimal("0")
+        total_premium = Decimal("0")
+        rules: Counter[str] = Counter()
+
+        for row in rows:
+            premium = row.total_premium or Decimal("0")
+            total_premium += premium
+            opt_type = (row.type or "").lower()
+            if opt_type == "call":
+                bull_premium += premium
+            elif opt_type == "put":
+                bear_premium += premium
+            ask_side_premium += row.total_ask_side_prem or Decimal("0")
+            bid_side_premium += row.total_bid_side_prem or Decimal("0")
+            if row.alert_rule:
+                rules[row.alert_rule] += 1
+
+        top_alert_rule = rules.most_common(1)[0][0] if rules else None
+
+        sql = (
+            f"INSERT INTO {self._schema}.flow_alerts_daily_rollup ("
+            "ticker, trade_date, run_id, alert_count, alert_count_is_limited, "
+            "total_premium, bull_premium, bear_premium, ask_side_premium, "
+            "bid_side_premium, top_alert_rule) "
+            "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) "
+            "ON CONFLICT (ticker, trade_date) DO UPDATE SET "
+            "run_id=EXCLUDED.run_id, alert_count=EXCLUDED.alert_count, "
+            "alert_count_is_limited=EXCLUDED.alert_count_is_limited, "
+            "total_premium=EXCLUDED.total_premium, "
+            "bull_premium=EXCLUDED.bull_premium, "
+            "bear_premium=EXCLUDED.bear_premium, "
+            "ask_side_premium=EXCLUDED.ask_side_premium, "
+            "bid_side_premium=EXCLUDED.bid_side_premium, "
+            "top_alert_rule=EXCLUDED.top_alert_rule, updated_at=now()"
+        )
+        with self._conn.cursor() as cur:
+            cur.execute(
+                sql,
+                (
+                    ticker.upper(),
+                    trade_date,
+                    run_id,
+                    len(rows),
+                    len(rows) >= alert_limit,
+                    total_premium,
+                    bull_premium,
+                    bear_premium,
+                    ask_side_premium,
+                    bid_side_premium,
+                    top_alert_rule,
+                ),
+            )
+
+    def _flow_alert_trade_date(self, rows: list[models.FlowAlert]) -> _date:
+        market_tz = ZoneInfo("America/New_York")
+        for row in rows:
+            if row.created_at is None:
+                continue
+            created_at = row.created_at
+            if created_at.tzinfo is None:
+                created_at = created_at.replace(tzinfo=market_tz)
+            return created_at.astimezone(market_tz).date()
+        return datetime.now(market_tz).date()
 
     # ------------------------------------------------------------------
     # Time-series history (UPSERT by (ticker, market_date))
@@ -1398,6 +1479,40 @@ class Repository:
             cur.execute(sql, (run_id, ticker.upper()))
             cols = [d.name for d in cur.description or []]
             return [dict(zip(cols, row, strict=False)) for row in cur.fetchall()]
+
+    def fetch_flow_alerts_daily_baseline(
+        self, run_id: int, ticker: str, lookback_days: int = 30
+    ) -> dict[str, Any] | None:
+        sql = (
+            "WITH current_rollup AS ("
+            f"SELECT ticker, trade_date, alert_count, alert_count_is_limited "
+            f"FROM {self._schema}.flow_alerts_daily_rollup "
+            "WHERE run_id = %s AND ticker = %s "
+            "ORDER BY trade_date DESC LIMIT 1"
+            "), history AS ("
+            f"SELECT h.alert_count "
+            f"FROM {self._schema}.flow_alerts_daily_rollup h "
+            "JOIN current_rollup c ON c.ticker = h.ticker "
+            "WHERE h.trade_date < c.trade_date "
+            "AND h.trade_date >= c.trade_date - (%s::int * INTERVAL '1 day')"
+            ") "
+            "SELECT c.alert_count, c.alert_count_is_limited, "
+            "AVG(h.alert_count)::numeric AS avg_30d_alert_count, "
+            "CASE WHEN AVG(h.alert_count) > 0 "
+            "THEN ROUND(c.alert_count::numeric / AVG(h.alert_count)::numeric, 16) "
+            "ELSE NULL END AS flow_count_vs_30d_avg, "
+            "COUNT(h.alert_count)::int AS baseline_days "
+            "FROM current_rollup c "
+            "LEFT JOIN history h ON true "
+            "GROUP BY c.alert_count, c.alert_count_is_limited"
+        )
+        with self._conn.cursor() as cur:
+            cur.execute(sql, (run_id, ticker.upper(), lookback_days))
+            row = cur.fetchone()
+            if row is None:
+                return None
+            cols = [d.name for d in cur.description or []]
+            return dict(zip(cols, row, strict=False))
 
     def fetch_iv_rank_latest(self, ticker: str) -> dict[str, Any] | None:
         sql = (
