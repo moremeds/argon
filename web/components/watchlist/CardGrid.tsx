@@ -29,6 +29,9 @@ function sizeValue(card: WatchlistCard) {
 }
 
 function compareCards(a: WatchlistCard, b: WatchlistCard) {
+  const pinDiff = Number(b.pinned) - Number(a.pinned);
+  if (pinDiff !== 0) return pinDiff;
+
   const aSize = sizeValue(a);
   const bSize = sizeValue(b);
   if (aSize !== null && bSize !== null && aSize !== bSize) {
@@ -36,11 +39,8 @@ function compareCards(a: WatchlistCard, b: WatchlistCard) {
   }
   if (aSize !== null) return -1;
   if (bSize !== null) return 1;
-  return (
-    Number(b.pinned) - Number(a.pinned) ||
-    a.sort_rank - b.sort_rank ||
-    a.ticker.localeCompare(b.ticker)
-  );
+
+  return a.sort_rank - b.sort_rank || a.ticker.localeCompare(b.ticker);
 }
 
 export function CardGrid({
