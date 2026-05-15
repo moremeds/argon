@@ -1,5 +1,7 @@
 # 6-Dimension Options Matrix — Research Set
 
+> **Start here for execution**: [`../../plans/2026-05-15-cockpit-matrix-plan.md`](../../plans/2026-05-15-cockpit-matrix-plan.md) is the single actionable plan that supersedes the per-doc build sequences in `08 §4` and `09 §9`. The 10 research docs in this directory are background reference — read them when the plan points you to a specific section, not front-to-back.
+
 **Status**: research idea (2026-05-14). Source: FutureAlpha podcast Season 02 Episode 10 finale.
 
 ## Product direction (2026-05-14 decision)
@@ -25,7 +27,7 @@ Codex review of §0 operational definitions: [`reviews/2026-05-15-codex-section0
 
 1. **[`00-overview.md`](00-overview.md)** — Framework summary, 4-step decision tree, 3 scenarios, position translation, takeaways. **Start here.**
 2. **[`01-vanna.md`](01-vanna.md)** through **[`06-vrp.md`](06-vrp.md)** — Per-dimension deep dives with definition, framework reading, academic citations (verified), misreadings, single-name caveats, current `uw_scan` mapping, derived metrics required.
-3. **[`07-limitations.md`](07-limitations.md)** — 7 limitations validated against literature (collinearity, stress correlation breakdown, data lag, single-name vs index, flow ≠ ground truth, you're not the dealer, 0DTE intraday hijacking).
+3. **[`07-limitations.md`](07-limitations.md)** — 8 limitations validated against literature (collinearity, stress correlation breakdown, data lag, single-name vs index, flow ≠ ground truth, you're not the dealer, 0DTE intraday hijacking, **per-dim credibility uneven + joint claim unvalidated**).
 4. **[`08-implementation-gaps.md`](08-implementation-gaps.md)** — Cross-reference with current `uw_scan` setup. Per-dimension file paths. Recommended build sequence. New tables required.
 5. **[`09-backtest-plan.md`](09-backtest-plan.md)** — Falsification criteria, 4 strategies, robustness tests, phasing, open research questions.
 
