@@ -32,6 +32,23 @@ def test_get_watchlist_returns_seeded_cards(client, seeded_db_with_cards):
         assert key in card
 
 
+def test_get_watchlist_includes_queue_summary_and_card_status(
+    client, seeded_db_with_cards
+):
+    job = client.post("/api/watchlist/TSLA/rescan").json()
+
+    r = client.get("/api/watchlist")
+
+    assert r.status_code == 200
+    body = r.json()
+    assert body["queue"]["total"] == 1
+    assert body["queue"]["queued"] == 1
+    tsla = next(card for card in body["tickers"] if card["ticker"] == "TSLA")
+    assert tsla["queue"]["job_id"] == job["job_id"]
+    assert tsla["queue"]["status"] == "queued"
+    assert tsla["queue"]["queue_position"] == 1
+
+
 def test_get_watchlist_filters_by_sector(client, seeded_db_with_cards):
     r = client.get("/api/watchlist?sector=Technology")
     assert r.status_code == 200

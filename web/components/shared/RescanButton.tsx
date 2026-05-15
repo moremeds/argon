@@ -2,13 +2,28 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { api } from "@/lib/api";
+import type { components } from "@/lib/types";
 
 type Status = "idle" | "queued" | "running" | "done" | "failed";
+type QueueStatus = components["schemas"]["QueueStatus"];
 
-export function RescanButton({ ticker }: { ticker: string }) {
+export function RescanButton({
+  ticker,
+  initialJob,
+}: {
+  ticker: string;
+  initialJob?: QueueStatus | null;
+}) {
   const router = useRouter();
-  const [jobId, setJobId] = useState<string | null>(null);
-  const [status, setStatus] = useState<Status>("idle");
+  const [jobId, setJobId] = useState<string | null>(initialJob?.job_id ?? null);
+  const [status, setStatus] = useState<Status>(
+    (initialJob?.status as Status | undefined) ?? "idle",
+  );
+
+  useEffect(() => {
+    setJobId(initialJob?.job_id ?? null);
+    setStatus((initialJob?.status as Status | undefined) ?? "idle");
+  }, [initialJob?.job_id, initialJob?.status]);
 
   useEffect(() => {
     if (!jobId) return;
@@ -41,8 +56,14 @@ export function RescanButton({ ticker }: { ticker: string }) {
         e.preventDefault();
         e.stopPropagation();
         setStatus("queued");
-        const r = await api.rescan(ticker);
-        setJobId(r.job_id);
+        try {
+          const r = await api.rescan(ticker);
+          setStatus(r.status as Status);
+          setJobId(r.job_id);
+        } catch (err) {
+          console.error(err);
+          setStatus("failed");
+        }
       }}
       disabled={status === "queued" || status === "running"}
       style={{

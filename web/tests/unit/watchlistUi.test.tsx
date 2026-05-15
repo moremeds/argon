@@ -1,8 +1,9 @@
 /* @vitest-environment jsdom */
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { ScanAllButton } from "@/components/shared/ScanAllButton";
+import { QueueProgress } from "@/components/shared/QueueProgress";
 import { AddTickerDialog } from "@/components/watchlist/AddTickerDialog";
 import { TickerCard } from "@/components/watchlist/TickerCard";
 import { api } from "@/lib/api";
@@ -13,13 +14,18 @@ vi.mock("next/navigation", () => ({
 
 vi.mock("@/lib/api", () => ({
   api: {
+    watchlist: vi.fn(),
+    rescan: vi.fn(),
     rescanAll: vi.fn(),
     job: vi.fn(),
   },
 }));
 
 afterEach(() => {
+  vi.useRealTimers();
   vi.unstubAllGlobals();
+  vi.mocked(api.watchlist).mockReset();
+  vi.mocked(api.rescan).mockReset();
   vi.mocked(api.rescanAll).mockReset();
   vi.mocked(api.job).mockReset();
 });
@@ -98,6 +104,86 @@ describe("TickerCard", () => {
     fireEvent.click(screen.getByRole("button", { name: /soxx detail/i }));
 
     expect(screen.getByText("SOXX is not ready")).not.toBeNull();
+  });
+
+  it("shows active queue status on the card", () => {
+    render(
+      <TickerCard
+        card={{
+          ...card,
+          queue: {
+            job_id: "00000000-0000-0000-0000-000000000001",
+            status: "queued",
+            queue_position: 4,
+            requested_at: "2026-05-16T00:13:17Z",
+            started_at: null,
+          },
+        }}
+        sparkline={[440, 445]}
+      />,
+    );
+
+    expect(screen.getByText("queued #4")).not.toBeNull();
+  });
+});
+
+describe("QueueProgress", () => {
+  it("shows running and queued rescan progress", () => {
+    render(
+      <QueueProgress
+        queue={{
+          total: 8,
+          queued: 6,
+          running: 2,
+          oldest_requested_at: "2026-05-16T00:13:17Z",
+        }}
+      />,
+    );
+
+    const progress = screen.getByRole("progressbar", {
+      name: /rescan queue/i,
+    });
+    expect(progress.getAttribute("aria-valuenow")).toBe("2");
+    expect(progress.getAttribute("aria-valuemax")).toBe("8");
+    expect(screen.getByText("2 running · 6 queued")).not.toBeNull();
+  });
+
+  it("discovers queue work that starts after the dashboard loaded idle", async () => {
+    vi.useFakeTimers();
+    vi.mocked(api.watchlist).mockResolvedValueOnce({
+      scanned_at_min: null,
+      scanned_at_max: null,
+      scheduler_lag_seconds: null,
+      queue: {
+        total: 1,
+        queued: 1,
+        running: 0,
+        oldest_requested_at: "2026-05-16T00:13:17Z",
+      },
+      tickers: [],
+    });
+
+    render(
+      <QueueProgress
+        queue={{
+          total: 0,
+          queued: 0,
+          running: 0,
+          oldest_requested_at: null,
+        }}
+      />,
+    );
+
+    expect(screen.getByText("idle")).not.toBeNull();
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(5000);
+    });
+
+    expect(api.watchlist).toHaveBeenCalledOnce();
+    expect(screen.getByText("0 running · 1 queued")).not.toBeNull();
+
+    vi.useRealTimers();
   });
 });
 

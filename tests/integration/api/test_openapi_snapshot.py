@@ -20,3 +20,7 @@ def test_openapi_paths_match_snapshot(client):
             assert method in current["paths"][path], (
                 f"Method {method.upper()} {path} removed from OpenAPI"
             )
+    assert current["components"]["schemas"] == expected["components"]["schemas"], (
+        "OpenAPI schemas changed — regenerate tests/integration/api/openapi.snapshot.json "
+        "if the change is intentional."
+    )

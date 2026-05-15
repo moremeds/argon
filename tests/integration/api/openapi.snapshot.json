@@ -564,6 +564,40 @@
             "title": "Flow Count",
             "type": "integer"
           },
+          "flow_count_30d_avg": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Flow Count 30D Avg"
+          },
+          "flow_count_30d_days": {
+            "default": 0,
+            "title": "Flow Count 30D Days",
+            "type": "integer"
+          },
+          "flow_count_is_limited": {
+            "default": false,
+            "title": "Flow Count Is Limited",
+            "type": "boolean"
+          },
+          "flow_count_vs_30d_avg": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Flow Count Vs 30D Avg"
+          },
           "net_premium": {
             "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
             "title": "Net Premium",
@@ -572,6 +606,17 @@
           "ticker": {
             "title": "Ticker",
             "type": "string"
+          },
+          "top_alert_rule": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Top Alert Rule"
           },
           "top_alerts": {
             "default": [],
@@ -809,6 +854,30 @@
             ],
             "title": "Latency P95 Ms"
           },
+          "latest_spot_quote_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Latest Spot Quote At"
+          },
+          "latest_spot_quote_fetched_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Latest Spot Quote Fetched At"
+          },
           "ok": {
             "title": "Ok",
             "type": "boolean"
@@ -824,6 +893,57 @@
             ],
             "title": "Reason"
           },
+          "record_health": {
+            "items": {
+              "$ref": "#/components/schemas/RecordHealthCheck"
+            },
+            "title": "Record Health",
+            "type": "array"
+          },
+          "record_health_ok": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Record Health Ok"
+          },
+          "rescan_heartbeat_lag_seconds": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rescan Heartbeat Lag Seconds"
+          },
+          "scheduler_heartbeat_lag_seconds": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Scheduler Heartbeat Lag Seconds"
+          },
+          "scheduler_heartbeat_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Scheduler Heartbeat Name"
+          },
           "scheduler_lag_seconds": {
             "anyOf": [
               {
@@ -836,9 +956,31 @@
             "title": "Scheduler Lag Seconds"
           },
           "source": {
-            "default": "massive.com",
+            "default": "UnusualWhales",
             "title": "Source",
             "type": "string"
+          },
+          "spot_quote_lag_seconds": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Spot Quote Lag Seconds"
+          },
+          "spot_refresh_heartbeat_lag_seconds": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Spot Refresh Heartbeat Lag Seconds"
           },
           "uw_today": {
             "anyOf": [
@@ -2797,6 +2939,141 @@
         "title": "ProviderUsageSummaryResponse",
         "type": "object"
       },
+      "QueueStatus": {
+        "properties": {
+          "job_id": {
+            "title": "Job Id",
+            "type": "string"
+          },
+          "queue_position": {
+            "title": "Queue Position",
+            "type": "integer"
+          },
+          "requested_at": {
+            "format": "date-time",
+            "title": "Requested At",
+            "type": "string"
+          },
+          "started_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Started At"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "job_id",
+          "status",
+          "queue_position",
+          "requested_at"
+        ],
+        "title": "QueueStatus",
+        "type": "object"
+      },
+      "QueueSummary": {
+        "properties": {
+          "oldest_requested_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Oldest Requested At"
+          },
+          "queued": {
+            "default": 0,
+            "title": "Queued",
+            "type": "integer"
+          },
+          "running": {
+            "default": 0,
+            "title": "Running",
+            "type": "integer"
+          },
+          "total": {
+            "default": 0,
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "title": "QueueSummary",
+        "type": "object"
+      },
+      "RecordHealthCheck": {
+        "properties": {
+          "actual_rows": {
+            "title": "Actual Rows",
+            "type": "integer"
+          },
+          "actual_tickers": {
+            "title": "Actual Tickers",
+            "type": "integer"
+          },
+          "expected_min_rows": {
+            "title": "Expected Min Rows",
+            "type": "integer"
+          },
+          "expected_min_tickers": {
+            "title": "Expected Min Tickers",
+            "type": "integer"
+          },
+          "expected_tickers": {
+            "title": "Expected Tickers",
+            "type": "integer"
+          },
+          "latest_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Latest At"
+          },
+          "ok": {
+            "title": "Ok",
+            "type": "boolean"
+          },
+          "table": {
+            "title": "Table",
+            "type": "string"
+          },
+          "window_start": {
+            "format": "date-time",
+            "title": "Window Start",
+            "type": "string"
+          }
+        },
+        "required": [
+          "table",
+          "window_start",
+          "expected_tickers",
+          "expected_min_tickers",
+          "actual_tickers",
+          "expected_min_rows",
+          "actual_rows",
+          "ok"
+        ],
+        "title": "RecordHealthCheck",
+        "type": "object"
+      },
       "RegimeQuadrantBlock": {
         "properties": {
           "cutoff_corr": {
@@ -2912,6 +3189,17 @@
           "date"
         ],
         "title": "RegimeQuadrantPoint",
+        "type": "object"
+      },
+      "RescanAllRequest": {
+        "properties": {
+          "confirmed": {
+            "default": false,
+            "title": "Confirmed",
+            "type": "boolean"
+          }
+        },
+        "title": "RescanAllRequest",
         "type": "object"
       },
       "ReturnsBlock": {
@@ -3272,6 +3560,29 @@
             "default": "n/a (UW endpoint does not expose %)",
             "title": "Short Int Note",
             "type": "string"
+          },
+          "spot_quoted_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Spot Quoted At"
+          },
+          "spot_source": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Spot Source"
           },
           "strike_gex_curve": {
             "default": [],
@@ -5592,6 +5903,16 @@
           "positioning": {
             "$ref": "#/components/schemas/PositioningBlock"
           },
+          "queue": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/QueueStatus"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "returns": {
             "$ref": "#/components/schemas/ReturnsBlock"
           },
@@ -5766,6 +6087,9 @@
       },
       "WatchlistResponse": {
         "properties": {
+          "queue": {
+            "$ref": "#/components/schemas/QueueSummary"
+          },
           "scanned_at_max": {
             "anyOf": [
               {
@@ -5826,6 +6150,68 @@
     "/api/health": {
       "get": {
         "operationId": "health_api_health_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "source",
+            "required": false,
+            "schema": {
+              "default": "uw",
+              "enum": [
+                "uw",
+                "massive"
+              ],
+              "title": "Source",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "record_window_hours",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maximum": 168,
+                  "minimum": 0.1,
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Record Window Hours"
+            }
+          },
+          {
+            "in": "query",
+            "name": "record_min_coverage",
+            "required": false,
+            "schema": {
+              "default": 0.9,
+              "maximum": 1.0,
+              "minimum": 0.0,
+              "title": "Record Min Coverage",
+              "type": "number"
+            }
+          },
+          {
+            "in": "query",
+            "name": "record_tables",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Record Tables"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "content": {
@@ -5836,6 +6222,16 @@
               }
             },
             "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
           }
         },
         "summary": "Health",
@@ -6743,6 +7139,23 @@
       "post": {
         "description": "Enqueue a rescan job for every active watchlist ticker.",
         "operationId": "enqueue_rescan_all_api_watchlist_rescan_all_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/RescanAllRequest"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Payload"
+              }
+            }
+          }
+        },
         "responses": {
           "202": {
             "content": {
@@ -6757,6 +7170,16 @@
               }
             },
             "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
           }
         },
         "summary": "Enqueue Rescan All",

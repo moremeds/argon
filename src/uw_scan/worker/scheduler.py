@@ -37,6 +37,7 @@ logging.basicConfig(
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
 )
 logger = logging.getLogger("uw_scan.worker")
+RESCAN_WORKER_CONCURRENCY = 2
 
 
 def _spot_refresh_market_date(now: datetime) -> date | None:
@@ -274,6 +275,7 @@ def main() -> int:
         IntervalTrigger(seconds=1),
         id="rescan_tick",
         name="Ad-hoc rescan poll",
+        max_instances=RESCAN_WORKER_CONCURRENCY,
     )
     # Volatility tab v2 jobs — ET-anchored via from_crontab (review I9).
     sched.add_job(
