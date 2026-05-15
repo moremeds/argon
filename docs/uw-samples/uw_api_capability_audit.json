@@ -1,0 +1,7103 @@
+{
+  "operations": [
+    {
+      "access_result": "accessible",
+      "backfill_hint": "historical-selector",
+      "body_kind": "object:data-list",
+      "data_count": 1,
+      "docs_entitlement_hint": "not-marked",
+      "elapsed_ms": 212.1,
+      "error": null,
+      "historical_params": [
+        "newer_than",
+        "older_than"
+      ],
+      "message": null,
+      "method": "GET",
+      "operation_id": "PublicApi.AlertsController.alerts",
+      "path": "/api/alerts",
+      "required_path_params": [],
+      "required_query_params": [],
+      "sample_keys": [
+        "created_at",
+        "id",
+        "meta",
+        "name",
+        "noti_type",
+        "symbol",
+        "symbol_type",
+        "tape_time",
+        "user_noti_config_id"
+      ],
+      "sample_notes": [],
+      "sample_path": "/api/alerts",
+      "sample_query": [
+        [
+          "limit",
+          1
+        ]
+      ],
+      "status_code": 200,
+      "summary": "Alerts",
+      "tags": [
+        "alerts"
+      ]
+    },
+    {
+      "access_result": "accessible",
+      "backfill_hint": "snapshot-or-reference",
+      "body_kind": "object:data-list",
+      "data_count": 2,
+      "docs_entitlement_hint": "not-marked",
+      "elapsed_ms": 214.6,
+      "error": null,
+      "historical_params": [],
+      "message": null,
+      "method": "GET",
+      "operation_id": "PublicApi.AlertsController.configs",
+      "path": "/api/alerts/configuration",
+      "required_path_params": [],
+      "required_query_params": [],
+      "sample_keys": [
+        "config",
+        "created_at",
+        "description",
+        "id",
+        "mobile_only",
+        "name",
+        "noti_type",
+        "status",
+        "updated_at",
+        "wants_email"
+      ],
+      "sample_notes": [],
+      "sample_path": "/api/alerts/configuration",
+      "sample_query": [],
+      "status_code": 200,
+      "summary": "Alert configurations",
+      "tags": [
+        "alerts"
+      ]
+    },
+    {
+      "access_result": "gated",
+      "backfill_hint": "snapshot-or-reference",
+      "body_kind": "object",
+      "data_count": null,
+      "docs_entitlement_hint": "advanced+-docs",
+      "elapsed_ms": 219.5,
+      "error": null,
+      "historical_params": [],
+      "message": "This endpoint requires the Advanced API tier or higher. Visit https://unusualwhales.com/settings/api-dashboard?utm_source=api&utm_campaign=json_msg to upgrade, or contact dev@unusualwhales.com.",
+      "method": "GET",
+      "operation_id": "PublicApi.IntelController.analytics_sliding",
+      "path": "/api/analytics/sliding",
+      "required_path_params": [],
+      "required_query_params": [
+        "symbols",
+        "range",
+        "calculations"
+      ],
+      "sample_keys": [
+        "code",
+        "message"
+      ],
+      "sample_notes": [],
+      "sample_path": "/api/analytics/sliding",
+      "sample_query": [
+        [
+          "symbols",
+          "TSLA,AAPL"
+        ],
+        [
+          "range",
+          "1month"
+        ],
+        [
+          "calculations",
+          "correlation"
+        ]
+      ],
+      "status_code": 403,
+      "summary": "Sliding-Window Analytics",
+      "tags": [
+        "intel"
+      ]
+    },
+    {
+      "access_result": "gated",
+      "backfill_hint": "snapshot-or-reference",
+      "body_kind": "object",
+      "data_count": null,
+      "docs_entitlement_hint": "advanced+-docs",
+      "elapsed_ms": 205.4,
+      "error": null,
+      "historical_params": [],
+      "message": "This endpoint requires the Advanced API tier or higher. Visit https://unusualwhales.com/settings/api-dashboard?utm_source=api&utm_campaign=json_msg to upgrade, or contact dev@unusualwhales.com.",
+      "method": "GET",
+      "operation_id": "PublicApi.IntelController.analytics_window",
+      "path": "/api/analytics/window",
+      "required_path_params": [],
+      "required_query_params": [
+        "symbols",
+        "range",
+        "calculations"
+      ],
+      "sample_keys": [
+        "code",
+        "message"
+      ],
+      "sample_notes": [],
+      "sample_path": "/api/analytics/window",
+      "sample_query": [
+        [
+          "symbols",
+          "TSLA,AAPL"
+        ],
+        [
+          "range",
+          "1month"
+        ],
+        [
+          "calculations",
+          "correlation"
+        ]
+      ],
+      "status_code": 403,
+      "summary": "Fixed-Window Analytics",
+      "tags": [
+        "intel"
+      ]
+    },
+    {
+      "access_result": "gated",
+      "backfill_hint": "recent-or-calendar",
+      "body_kind": "object",
+      "data_count": null,
+      "docs_entitlement_hint": "advanced+-docs",
+      "elapsed_ms": 203.0,
+      "error": null,
+      "historical_params": [],
+      "message": "This endpoint requires the Advanced API tier or higher. Visit https://unusualwhales.com/settings/api-dashboard?utm_source=api&utm_campaign=json_msg to upgrade, or contact dev@unusualwhales.com.",
+      "method": "GET",
+      "operation_id": "PublicApi.IntelController.ipo_calendar",
+      "path": "/api/calendar/ipo",
+      "required_path_params": [],
+      "required_query_params": [],
+      "sample_keys": [
+        "code",
+        "message"
+      ],
+      "sample_notes": [],
+      "sample_path": "/api/calendar/ipo",
+      "sample_query": [],
+      "status_code": 403,
+      "summary": "IPO Calendar",
+      "tags": [
+        "intel"
+      ]
+    },
+    {
+      "access_result": "gated",
+      "backfill_hint": "snapshot-or-reference",
+      "body_kind": "object",
+      "data_count": null,
+      "docs_entitlement_hint": "advanced+-docs",
+      "elapsed_ms": 205.2,
+      "error": null,
+      "historical_params": [],
+      "message": "This endpoint requires the Advanced API tier or higher. Visit https://unusualwhales.com/settings/api-dashboard?utm_source=api&utm_campaign=json_msg to upgrade, or contact dev@unusualwhales.com.",
+      "method": "GET",
+      "operation_id": "PublicApi.CommoditiesController.show",
+      "path": "/api/commodities/{name}",
+      "required_path_params": [
+        "name"
+      ],
+      "required_query_params": [],
+      "sample_keys": [
+        "code",
+        "message"
+      ],
+      "sample_notes": [],
+      "sample_path": "/api/commodities/wti",
+      "sample_query": [],
+      "status_code": 403,
+      "summary": "Commodity Series",
+      "tags": [
+        "commodities"
+      ]
+    },
+    {
+      "access_result": "gated",
+      "backfill_hint": "historical-selector",
+      "body_kind": "object",
+      "data_count": null,
+      "docs_entitlement_hint": "advanced+-docs",
+      "elapsed_ms": 204.8,
+      "error": null,
+      "historical_params": [
+        "date"
+      ],
+      "message": "This endpoint requires the Advanced API tier or higher. Visit https://unusualwhales.com/settings/api-dashboard?utm_source=api&utm_campaign=json_msg to upgrade, or contact dev@unusualwhales.com.",
+      "method": "GET",
+      "operation_id": "PublicApi.IntelController.listings",
+      "path": "/api/companies/listings",
+      "required_path_params": [],
+      "required_query_params": [],
+      "sample_keys": [
+        "code",
+        "message"
+      ],
+      "sample_notes": [],
+      "sample_path": "/api/companies/listings",
+      "sample_query": [
+        [
+          "date",
+          "2026-05-14"
+        ]
+      ],
+      "status_code": 403,
+      "summary": "Active or Delisted Securities",
+      "tags": [
+        "intel"
+      ]
+    },
+    {
+      "access_result": "gated",
+      "backfill_hint": "snapshot-or-reference",
+      "body_kind": "object",
+      "data_count": null,
+      "docs_entitlement_hint": "advanced+-docs",
+      "elapsed_ms": 203.2,
+      "error": null,
+      "historical_params": [],
+      "message": "This endpoint requires the Advanced API tier or higher. Visit https://unusualwhales.com/settings/api-dashboard?utm_source=api&utm_campaign=json_msg to upgrade, or contact dev@unusualwhales.com.",
+      "method": "GET",
+      "operation_id": "PublicApi.CompaniesController.dividends",
+      "path": "/api/companies/{ticker}/dividends",
+      "required_path_params": [
+        "ticker"
+      ],
+      "required_query_params": [],
+      "sample_keys": [
+        "code",
+        "message"
+      ],
+      "sample_notes": [],
+      "sample_path": "/api/companies/TSLA/dividends",
+      "sample_query": [],
+      "status_code": 403,
+      "summary": "Company Dividends",
+      "tags": [
+        "companies"
+      ]
+    },
+    {
+      "access_result": "gated",
+      "backfill_hint": "recent-or-calendar",
+      "body_kind": "object",
+      "data_count": null,
+      "docs_entitlement_hint": "advanced+-docs",
+      "elapsed_ms": 205.3,
+      "error": null,
+      "historical_params": [],
+      "message": "This endpoint requires the Advanced API tier or higher. Visit https://unusualwhales.com/settings/api-dashboard?utm_source=api&utm_campaign=json_msg to upgrade, or contact dev@unusualwhales.com.",
+      "method": "GET",
+      "operation_id": "PublicApi.CompaniesController.earnings_estimates",
+      "path": "/api/companies/{ticker}/earnings-estimates",
+      "required_path_params": [
+        "ticker"
+      ],
+      "required_query_params": [],
+      "sample_keys": [
+        "code",
+        "message"
+      ],
+      "sample_notes": [],
+      "sample_path": "/api/companies/TSLA/earnings-estimates",
+      "sample_query": [],
+      "status_code": 403,
+      "summary": "Forward Earnings Estimates",
+      "tags": [
+        "companies"
+      ]
+    },
+    {
+      "access_result": "gated",
+      "backfill_hint": "snapshot-or-reference",
+      "body_kind": "object",
+      "data_count": null,
+      "docs_entitlement_hint": "advanced+-docs",
+      "elapsed_ms": 202.3,
+      "error": null,
+      "historical_params": [],
+      "message": "This endpoint requires the Advanced API tier or higher. Visit https://unusualwhales.com/settings/api-dashboard?utm_source=api&utm_campaign=json_msg to upgrade, or contact dev@unusualwhales.com.",
+      "method": "GET",
+      "operation_id": "PublicApi.CompaniesController.profile",
+      "path": "/api/companies/{ticker}/profile",
+      "required_path_params": [
+        "ticker"
+      ],
+      "required_query_params": [],
+      "sample_keys": [
+        "code",
+        "message"
+      ],
+      "sample_notes": [],
+      "sample_path": "/api/companies/TSLA/profile",
+      "sample_query": [],
+      "status_code": 403,
+      "summary": "Company Profile",
+      "tags": [
+        "companies"
+      ]
+    },
+    {
+      "access_result": "gated",
+      "backfill_hint": "snapshot-or-reference",
+      "body_kind": "object",
+      "data_count": null,
+      "docs_entitlement_hint": "advanced+-docs",
+      "elapsed_ms": 201.0,
+      "error": null,
+      "historical_params": [],
+      "message": "This endpoint requires the Advanced API tier or higher. Visit https://unusualwhales.com/settings/api-dashboard?utm_source=api&utm_campaign=json_msg to upgrade, or contact dev@unusualwhales.com.",
+      "method": "GET",
+      "operation_id": "PublicApi.CompaniesController.splits",
+      "path": "/api/companies/{ticker}/splits",
+      "required_path_params": [
+        "ticker"
+      ],
+      "required_query_params": [],
+      "sample_keys": [
+        "code",
+        "message"
+      ],
+      "sample_notes": [],
+      "sample_path": "/api/companies/TSLA/splits",
+      "sample_query": [],
+      "status_code": 403,
+      "summary": "Company Stock Splits",
+      "tags": [
+        "companies"
+      ]
+    },
+    {
+      "access_result": "gated",
+      "backfill_hint": "snapshot-or-reference",
+      "body_kind": "object",
+      "data_count": null,
+      "docs_entitlement_hint": "advanced+-docs",
+      "elapsed_ms": 200.6,
+      "error": null,
+      "historical_params": [],
+      "message": "This endpoint requires the Advanced API tier or higher. Visit https://unusualwhales.com/settings/api-dashboard?utm_source=api&utm_campaign=json_msg to upgrade, or contact dev@unusualwhales.com.",
+      "method": "GET",
+      "operation_id": "PublicApi.CompaniesController.transcript",
+      "path": "/api/companies/{ticker}/transcripts/{quarter}",
+      "required_path_params": [
+        "ticker",
+        "quarter"
+      ],
+      "required_query_params": [],
+      "sample_keys": [
+        "code",
+        "message"
+      ],
+      "sample_notes": [],
+      "sample_path": "/api/companies/TSLA/transcripts/2024-Q1",
+      "sample_query": [],
+      "status_code": 403,
+      "summary": "Earnings Call Transcript",
+      "tags": [
+        "companies"
+      ]
+    },
+    {
+      "access_result": "accessible",
+      "backfill_hint": "historical-selector",
+      "body_kind": "object:data-list",
+      "data_count": 1,
+      "docs_entitlement_hint": "not-marked",
+      "elapsed_ms": 229.9,
+      "error": null,
+      "historical_params": [
+        "date"
+      ],
+      "message": null,
+      "method": "GET",
+      "operation_id": "PublicApi.CongressController.congress_trader",
+      "path": "/api/congress/congress-trader",
+      "required_path_params": [],
+      "required_query_params": [],
+      "sample_keys": [
+        "amounts",
+        "filed_at_date",
+        "is_active",
+        "issuer",
+        "member_type",
+        "name",
+        "notes",
+        "politician_id",
+        "reporter",
+        "ticker",
+        "transaction_date",
+        "txn_type"
+      ],
+      "sample_notes": [],
+      "sample_path": "/api/congress/congress-trader",
+      "sample_query": [
+        [
+          "limit",
+          1
+        ],
+        [
+          "date",
+          "2026-05-14"
+        ]
+      ],
+      "status_code": 200,
+      "summary": "Recent Reports By Trader",
+      "tags": [
+        "congress"
+      ]
+    },
+    {
+      "access_result": "accessible",
+      "backfill_hint": "historical-selector",
+      "body_kind": "object:data-list",
+      "data_count": 1,
+      "docs_entitlement_hint": "not-marked",
+      "elapsed_ms": 233.4,
+      "error": null,
+      "historical_params": [
+        "date"
+      ],
+      "message": null,
+      "method": "GET",
+      "operation_id": "PublicApi.CongressController.congress_late_reports",
+      "path": "/api/congress/late-reports",
+      "required_path_params": [],
+      "required_query_params": [],
+      "sample_keys": [
+        "amounts",
+        "filed_at_date",
+        "is_active",
+        "issuer",
+        "member_type",
+        "name",
+        "notes",
+        "politician_id",
+        "reporter",
+        "ticker",
+        "transaction_date",
+        "txn_type"
+      ],
+      "sample_notes": [],
+      "sample_path": "/api/congress/late-reports",
+      "sample_query": [
+        [
+          "limit",
+          1
+        ],
+        [
+          "date",
+          "2026-05-14"
+        ]
+      ],
+      "status_code": 200,
+      "summary": "Recent Late Reports",
+      "tags": [
+        "congress"
+      ]
+    },
+    {
+      "access_result": "accessible",
+      "backfill_hint": "snapshot-or-reference",
+      "body_kind": "object:data-list",
+      "data_count": 400,
+      "docs_entitlement_hint": "not-marked",
+      "elapsed_ms": 327.4,
+      "error": null,
+      "historical_params": [],
+      "message": null,
+      "method": "GET",
+      "operation_id": "PublicApi.CongressController.congress_politicians",
+      "path": "/api/congress/politicians",
+      "required_path_params": [],
+      "required_query_params": [],
+      "sample_keys": [
+        "bioguide_id",
+        "chamber",
+        "district",
+        "first_trade_date",
+        "gender",
+        "last_trade_date",
+        "name",
+        "party",
+        "politician_id",
+        "trade_count"
+      ],
+      "sample_notes": [],
+      "sample_path": "/api/congress/politicians",
+      "sample_query": [],
+      "status_code": 200,
+      "summary": "List of Politicians with Trade Data",
+      "tags": [
+        "congress"
+      ]
+    },
+    {
+      "access_result": "accessible",
+      "backfill_hint": "historical-selector",
+      "body_kind": "object:data-list",
+      "data_count": 1,
+      "docs_entitlement_hint": "not-marked",
+      "elapsed_ms": 243.7,
+      "error": null,
+      "historical_params": [
+        "date"
+      ],
+      "message": null,
+      "method": "GET",
+      "operation_id": "PublicApi.CongressController.congress_recent_trades",
+      "path": "/api/congress/recent-trades",
+      "required_path_params": [],
+      "required_query_params": [],
+      "sample_keys": [
+        "amounts",
+        "filed_at_date",
+        "is_active",
+        "issuer",
+        "member_type",
+        "name",
+        "notes",
+        "politician_id",
+        "reporter",
+        "ticker",
+        "transaction_date",
+        "txn_type"
+      ],
+      "sample_notes": [],
+      "sample_path": "/api/congress/recent-trades",
+      "sample_query": [
+        [
+          "limit",
+          1
+        ],
+        [
+          "date",
+          "2026-05-14"
+        ]
+      ],
+      "status_code": 200,
+      "summary": "Recent Congress Trades",
+      "tags": [
+        "congress"
+      ]
+    },
+    {
+      "access_result": "gated",
+      "backfill_hint": "snapshot-or-reference",
+      "body_kind": "object",
+      "data_count": null,
+      "docs_entitlement_hint": "premium-docs",
+      "elapsed_ms": 200.3,
+      "error": null,
+      "historical_params": [],
+      "message": "Missing access for unusual trades. This is a premium endpoint. Contact dev@unusualwhales.com",
+      "method": "GET",
+      "operation_id": "PublicApi.UnusualTradesController.recent",
+      "path": "/api/congress/unusual-trades",
+      "required_path_params": [],
+      "required_query_params": [],
+      "sample_keys": [
+        "msg",
+        "path",
+        "query",
+        "url"
+      ],
+      "sample_notes": [],
+      "sample_path": "/api/congress/unusual-trades",
+      "sample_query": [
+        [
+          "limit",
+          1
+        ]
+      ],
+      "status_code": 422,
+      "summary": "Unusual Congressional Trades",
+      "tags": [
+        "unusual_trades"
+      ]
+    },
+    {
+      "access_result": "gated",
+      "backfill_hint": "snapshot-or-reference",
+      "body_kind": "object",
+      "data_count": null,
+      "docs_entitlement_hint": "premium-docs",
+      "elapsed_ms": 204.2,
+      "error": null,
+      "historical_params": [],
+      "message": "Missing access for unusual trades. This is a premium endpoint. Contact dev@unusualwhales.com",
+      "method": "GET",
+      "operation_id": "PublicApi.UnusualTradesController.by_tickers",
+      "path": "/api/congress/unusual-trades/by-tickers",
+      "required_path_params": [],
+      "required_query_params": [],
+      "sample_keys": [
+        "msg",
+        "path",
+        "query",
+        "url"
+      ],
+      "sample_notes": [],
+      "sample_path": "/api/congress/unusual-trades/by-tickers",
+      "sample_query": [
+        [
+          "limit",
+          1
+        ]
+      ],
+      "status_code": 422,
+      "summary": "Unusual Trades by Ticker",
+      "tags": [
+        "unusual_trades"
+      ]
+    },
+    {
+      "access_result": "gated",
+      "backfill_hint": "snapshot-or-reference",
+      "body_kind": "object",
+      "data_count": null,
+      "docs_entitlement_hint": "premium-docs",
+      "elapsed_ms": 204.5,
+      "error": null,
+      "historical_params": [],
+      "message": "Missing access for unusual trades. This is a premium endpoint. Contact dev@unusualwhales.com",
+      "method": "GET",
+      "operation_id": "PublicApi.UnusualTradesController.chart_data",
+      "path": "/api/congress/unusual-trades/chart-data",
+      "required_path_params": [],
+      "required_query_params": [],
+      "sample_keys": [
+        "msg",
+        "path",
+        "query",
+        "url"
+      ],
+      "sample_notes": [],
+      "sample_path": "/api/congress/unusual-trades/chart-data",
+      "sample_query": [],
+      "status_code": 422,
+      "summary": "Unusual Trades Chart Data",
+      "tags": [
+        "unusual_trades"
+      ]
+    },
+    {
+      "access_result": "gated",
+      "backfill_hint": "snapshot-or-reference",
+      "body_kind": "object",
+      "data_count": null,
+      "docs_entitlement_hint": "premium-docs",
+      "elapsed_ms": 204.7,
+      "error": null,
+      "historical_params": [],
+      "message": "Missing access for unusual trades. This is a premium endpoint. Contact dev@unusualwhales.com",
+      "method": "GET",
+      "operation_id": "PublicApi.UnusualTradesController.stats",
+      "path": "/api/congress/unusual-trades/stats",
+      "required_path_params": [],
+      "required_query_params": [],
+      "sample_keys": [
+        "msg",
+        "path",
+        "query",
+        "url"
+      ],
+      "sample_notes": [],
+      "sample_path": "/api/congress/unusual-trades/stats",
+      "sample_query": [],
+      "status_code": 422,
+      "summary": "Unusual Trades Aggregate Stats",
+      "tags": [
+        "unusual_trades"
+      ]
+    },
+    {
+      "access_result": "accessible",
+      "backfill_hint": "snapshot-or-reference",
+      "body_kind": "object:data-list",
+      "data_count": 1,
+      "docs_entitlement_hint": "not-marked",
+      "elapsed_ms": 205.7,
+      "error": null,
+      "historical_params": [],
+      "message": null,
+      "method": "GET",
+      "operation_id": "PublicApi.CryptoController.whale_transactions",
+      "path": "/api/crypto/whale-transactions",
+      "required_path_params": [],
+      "required_query_params": [],
+      "sample_keys": [
+        "amount_formatted",
+        "blockchain",
+        "from_address",
+        "id",
+        "timestamp",
+        "to_address",
+        "token_name",
+        "token_symbol",
+        "transaction_hash",
+        "transaction_type",
+        "usd_value",
+        "whale_score"
+      ],
+      "sample_notes": [],
+      "sample_path": "/api/crypto/whale-transactions",
+      "sample_query": [
+        [
+          "limit",
+          1
+        ]
+      ],
+      "status_code": 200,
+      "summary": "Crypto Whale Transactions",
+      "tags": [
+        "crypto"
+      ]
+    },
+    {
+      "access_result": "accessible",
+      "backfill_hint": "recent-or-calendar",
+      "body_kind": "object:data-list",
+      "data_count": 1,
+      "docs_entitlement_hint": "not-marked",
+      "elapsed_ms": 202.9,
+      "error": null,
+      "historical_params": [],
+      "message": null,
+      "method": "GET",
+      "operation_id": "PublicApi.CryptoController.whales_recent",
+      "path": "/api/crypto/whales/recent",
+      "required_path_params": [],
+      "required_query_params": [],
+      "sample_keys": [
+        "exchange",
+        "id",
+        "pair",
+        "price",
+        "side",
+        "size",
+        "symbol",
+        "total",
+        "whaled_at"
+      ],
+      "sample_notes": [],
+      "sample_path": "/api/crypto/whales/recent",
+      "sample_query": [
+        [
+          "limit",
+          1
+        ]
+      ],
+      "status_code": 200,
+      "summary": "Recent Crypto Whale Trades",
+      "tags": [
+        "crypto"
+      ]
+    },
+    {
+      "access_result": "accessible",
+      "backfill_hint": "historical-selector",
+      "body_kind": "object:data-list",
+      "data_count": 1,
+      "docs_entitlement_hint": "not-marked",
+      "elapsed_ms": 214.0,
+      "error": null,
+      "historical_params": [
+        "date"
+      ],
+      "message": null,
+      "method": "GET",
+      "operation_id": "PublicApi.CryptoController.ohlc",
+      "path": "/api/crypto/{pair}/ohlc/{candle_size}",
+      "required_path_params": [
+        "pair",
+        "candle_size"
+      ],
+      "required_query_params": [],
+      "sample_keys": [
+        "close",
+        "high",
+        "low",
+        "open",
+        "pair",
+        "start_time",
+        "timestamp",
+        "volume"
+      ],
+      "sample_notes": [],
+      "sample_path": "/api/crypto/BTC-USD/ohlc/1m",
+      "sample_query": [
+        [
+          "limit",
+          1
+        ],
+        [
+          "date",
+          "2026-05-14"
+        ]
+      ],
+      "status_code": 200,
+      "summary": "Crypto OHLC Candles",
+      "tags": [
+        "crypto"
+      ]
+    },
+    {
+      "access_result": "accessible",
+      "backfill_hint": "snapshot-or-reference",
+      "body_kind": "object:data-object",
+      "data_count": null,
+      "docs_entitlement_hint": "not-marked",
+      "elapsed_ms": 208.9,
+      "error": null,
+      "historical_params": [],
+      "message": null,
+      "method": "GET",
+      "operation_id": "PublicApi.CryptoController.state",
+      "path": "/api/crypto/{pair}/state",
+      "required_path_params": [
+        "pair"
+      ],
+      "required_query_params": [],
+      "sample_keys": [
+        "close_24h",
+        "date",
+        "high_24h",
+        "low_24h",
+        "open_24h",
+        "pair",
+        "timestamp",
+        "volume_24h"
+      ],
+      "sample_notes": [],
+      "sample_path": "/api/crypto/BTC-USD/state",
+      "sample_query": [],
+      "status_code": 200,
+      "summary": "Crypto Pair State",
+      "tags": [
+        "crypto"
+      ]
+    },
+    {
+      "access_result": "accessible",
+      "backfill_hint": "historical-selector",
+      "body_kind": "object:data-list",
+      "data_count": 1,
+      "docs_entitlement_hint": "websocket-docs",
+      "elapsed_ms": 212.8,
+      "error": null,
+      "historical_params": [
+        "date"
+      ],
+      "message": null,
+      "method": "GET",
+      "operation_id": "PublicApi.DarkpoolController.darkpool_recent",
+      "path": "/api/darkpool/recent",
+      "required_path_params": [],
+      "required_query_params": [],
+      "sample_keys": [
+        "canceled",
+        "executed_at",
+        "ext_hour_sold_codes",
+        "market_center",
+        "nbbo_ask",
+        "nbbo_ask_quantity",
+        "nbbo_bid",
+        "nbbo_bid_quantity",
+        "premium",
+        "price",
+        "sale_cond_codes",
+        "size",
+        "ticker",
+        "tracking_id",
+        "trade_code",
+        "trade_settlement"
+      ],
+      "sample_notes": [],
+      "sample_path": "/api/darkpool/recent",
+      "sample_query": [
+        [
+          "limit",
+          1
+        ],
+        [
+          "date",
+          "2026-05-14"
+        ]
+      ],
+      "status_code": 200,
+      "summary": "Recent Darkpool Trades",
+      "tags": [
+        "darkpool"
+      ]
+    },
+    {
+      "access_result": "accessible",
+      "backfill_hint": "historical-selector",
+      "body_kind": "object:data-list",
+      "data_count": 1,
+      "docs_entitlement_hint": "websocket-docs",
+      "elapsed_ms": 209.4,
+      "error": null,
+      "historical_params": [
+        "date",
+        "newer_than",
+        "older_than"
+      ],
+      "message": null,
+      "method": "GET",
+      "operation_id": "PublicApi.DarkpoolController.darkpool_ticker",
+      "path": "/api/darkpool/{ticker}",
+      "required_path_params": [
+        "ticker"
+      ],
+      "required_query_params": [],
+      "sample_keys": [
+        "canceled",
+        "executed_at",
+        "ext_hour_sold_codes",
+        "market_center",
+        "nbbo_ask",
+        "nbbo_ask_quantity",
+        "nbbo_bid",
+        "nbbo_bid_quantity",
+        "premium",
+        "price",
+        "sale_cond_codes",
+        "size",
+        "ticker",
+        "tracking_id",
+        "trade_code",
+        "trade_settlement"
+      ],
+      "sample_notes": [],
+      "sample_path": "/api/darkpool/TSLA",
+      "sample_query": [
+        [
+          "date",
+          "2026-05-14"
+        ],
+        [
+          "limit",
+          1
+        ]
+      ],
+      "status_code": 200,
+      "summary": "Ticker Darkpool Trades",
+      "tags": [
+        "darkpool"
+      ]
+    },
+    {
+      "access_result": "gated",
+      "backfill_hint": "historical-path",
+      "body_kind": "object",
+      "data_count": null,
+      "docs_entitlement_hint": "advanced+-docs",
+      "elapsed_ms": 209.0,
+      "error": null,
+      "historical_params": [],
+      "message": "This endpoint requires the Advanced API tier or higher. Visit https://unusualwhales.com/settings/api-dashboard?utm_source=api&utm_campaign=json_msg to upgrade, or contact dev@unusualwhales.com.",
+      "method": "GET",
+      "operation_id": "PublicApi.DigitalCurrenciesController.history",
+      "path": "/api/digital-currencies/history",
+      "required_path_params": [],
+      "required_query_params": [
+        "symbol",
+        "market"
+      ],
+      "sample_keys": [
+        "code",
+        "message"
+      ],
+      "sample_notes": [],
+      "sample_path": "/api/digital-currencies/history",
+      "sample_query": [
+        [
+          "symbol",
+          "BTC"
+        ],
+        [
+          "market",
+          "USD"
+        ]
+      ],
+      "status_code": 403,
+      "summary": "Digital Currency Historical Series",
+      "tags": [
+        "digital_currencies"
+      ]
+    },
+    {
+      "access_result": "gated",
+      "backfill_hint": "historical-path",
+      "body_kind": "object",
+      "data_count": null,
+      "docs_entitlement_hint": "advanced+-docs",
+      "elapsed_ms": 203.0,
+      "error": null,
+      "historical_params": [],
+      "message": "This endpoint requires the Advanced API tier or higher. Visit https://unusualwhales.com/settings/api-dashboard?utm_source=api&utm_campaign=json_msg to upgrade, or contact dev@unusualwhales.com.",
+      "method": "GET",
+      "operation_id": "PublicApi.DigitalCurrenciesController.intraday",
+      "path": "/api/digital-currencies/intraday",
+      "required_path_params": [],
+      "required_query_params": [
+        "symbol",
+        "market"
+      ],
+      "sample_keys": [
+        "code",
+        "message"
+      ],
+      "sample_notes": [],
+      "sample_path": "/api/digital-currencies/intraday",
+      "sample_query": [
+        [
+          "symbol",
+          "BTC"
+        ],
+        [
+          "market",
+          "USD"
+        ]
+      ],
+      "status_code": 403,
+      "summary": "Digital Currency Intraday Series",
+      "tags": [
+        "digital_currencies"
+      ]
+    },
+    {
+      "access_result": "accessible",
+      "backfill_hint": "historical-selector",
+      "body_kind": "object:data-list",
+      "data_count": 1,
+      "docs_entitlement_hint": "not-marked",
+      "elapsed_ms": 222.5,
+      "error": null,
+      "historical_params": [
+        "date"
+      ],
+      "message": null,
+      "method": "GET",
+      "operation_id": "PublicApi.EarningsController.afterhours",
+      "path": "/api/earnings/afterhours",
+      "required_path_params": [],
+      "required_query_params": [],
+      "sample_keys": [
+        "actual_eps",
+        "continent",
+        "country_code",
+        "country_name",
+        "ending_fiscal_quarter",
+        "expected_move",
+        "expected_move_perc",
+        "full_name",
+        "has_options",
+        "is_s_p_500",
+        "marketcap",
+        "post_earnings_close",
+        "post_earnings_date",
+        "pre_earnings_close",
+        "pre_earnings_date",
+        "reaction"
+      ],
+      "sample_notes": [],
+      "sample_path": "/api/earnings/afterhours",
+      "sample_query": [
+        [
+          "date",
+          "2026-05-14"
+        ],
+        [
+          "limit",
+          1
+        ]
+      ],
+      "status_code": 200,
+      "summary": "Afterhours",
+      "tags": [
+        "earnings"
+      ]
+    },
+    {
+      "access_result": "accessible",
+      "backfill_hint": "historical-selector",
+      "body_kind": "object:data-list",
+      "data_count": 1,
+      "docs_entitlement_hint": "not-marked",
+      "elapsed_ms": 221.8,
+      "error": null,
+      "historical_params": [
+        "date"
+      ],
+      "message": null,
+      "method": "GET",
+      "operation_id": "PublicApi.EarningsController.premarket",
+      "path": "/api/earnings/premarket",
+      "required_path_params": [],
+      "required_query_params": [],
+      "sample_keys": [
+        "actual_eps",
+        "continent",
+        "country_code",
+        "country_name",
+        "ending_fiscal_quarter",
+        "expected_move",
+        "expected_move_perc",
+        "full_name",
+        "has_options",
+        "is_s_p_500",
+        "marketcap",
+        "post_earnings_close",
+        "post_earnings_date",
+        "pre_earnings_close",
+        "pre_earnings_date",
+        "reaction"
+      ],
+      "sample_notes": [],
+      "sample_path": "/api/earnings/premarket",
+      "sample_query": [
+        [
+          "date",
+          "2026-05-14"
+        ],
+        [
+          "limit",
+          1
+        ]
+      ],
+      "status_code": 200,
+      "summary": "Premarket",
+      "tags": [
+        "earnings"
+      ]
+    },
+    {
+      "access_result": "accessible",
+      "backfill_hint": "recent-or-calendar",
+      "body_kind": "object:data-list",
+      "data_count": 64,
+      "docs_entitlement_hint": "not-marked",
+      "elapsed_ms": 235.5,
+      "error": null,
+      "historical_params": [],
+      "message": null,
+      "method": "GET",
+      "operation_id": "PublicApi.EarningsController.ticker",
+      "path": "/api/earnings/{ticker}",
+      "required_path_params": [
+        "ticker"
+      ],
+      "required_query_params": [],
+      "sample_keys": [
+        "actual_eps",
+        "ending_fiscal_quarter",
+        "expected_move",
+        "expected_move_perc",
+        "long_straddle_1d",
+        "long_straddle_1w",
+        "post_earnings_move_1d",
+        "post_earnings_move_1w",
+        "post_earnings_move_2w",
+        "post_earnings_move_3d",
+        "pre_earnings_move_1d",
+        "pre_earnings_move_1w",
+        "pre_earnings_move_2w",
+        "pre_earnings_move_3d",
+        "report_date",
+        "report_time"
+      ],
+      "sample_notes": [],
+      "sample_path": "/api/earnings/TSLA",
+      "sample_query": [],
+      "status_code": 200,
+      "summary": "Historical Ticker Earnings",
+      "tags": [
+        "earnings"
+      ]
+    },
+    {
+      "access_result": "gated",
+      "backfill_hint": "snapshot-or-reference",
+      "body_kind": "object",
+      "data_count": null,
+      "docs_entitlement_hint": "advanced+-docs",
+      "elapsed_ms": 212.7,
+      "error": null,
+      "historical_params": [],
+      "message": "This endpoint requires the Advanced API tier or higher. Visit https://unusualwhales.com/settings/api-dashboard?utm_source=api&utm_campaign=json_msg to upgrade, or contact dev@unusualwhales.com.",
+      "method": "GET",
+      "operation_id": "PublicApi.EconomyController.show",
+      "path": "/api/economy/{indicator}",
+      "required_path_params": [
+        "indicator"
+      ],
+      "required_query_params": [],
+      "sample_keys": [
+        "code",
+        "message"
+      ],
+      "sample_notes": [],
+      "sample_path": "/api/economy/cpi",
+      "sample_query": [],
+      "status_code": 403,
+      "summary": "Economic Indicator",
+      "tags": [
+        "economy"
+      ]
+    },
+    {
+      "access_result": "accessible",
+      "backfill_hint": "snapshot-or-reference",
+      "body_kind": "object:data-list",
+      "data_count": 23,
+      "docs_entitlement_hint": "not-marked",
+      "elapsed_ms": 212.0,
+      "error": null,
+      "historical_params": [],
+      "message": null,
+      "method": "GET",
+      "operation_id": "PublicApi.EtfController.exposure",
+      "path": "/api/etfs/{ticker}/exposure",
+      "required_path_params": [
+        "ticker"
+      ],
+      "required_query_params": [],
+      "sample_keys": [
+        "etf",
+        "full_name",
+        "last_price",
+        "prev_price",
+        "shares",
+        "weight"
+      ],
+      "sample_notes": [],
+      "sample_path": "/api/etfs/SPY/exposure",
+      "sample_query": [],
+      "status_code": 200,
+      "summary": "Exposure",
+      "tags": [
+        "etfs"
+      ]
+    },
+    {
+      "access_result": "accessible",
+      "backfill_hint": "snapshot-or-reference",
+      "body_kind": "object:data-list",
+      "data_count": 250,
+      "docs_entitlement_hint": "not-marked",
+      "elapsed_ms": 333.4,
+      "error": null,
+      "historical_params": [],
+      "message": null,
+      "method": "GET",
+      "operation_id": "PublicApi.EtfController.holdings",
+      "path": "/api/etfs/{ticker}/holdings",
+      "required_path_params": [
+        "ticker"
+      ],
+      "required_query_params": [],
+      "sample_keys": [
+        "avg30_volume",
+        "bearish_premium",
+        "bullish_premium",
+        "call_premium",
+        "call_volume",
+        "close",
+        "continent",
+        "country_code",
+        "country_name",
+        "cusip",
+        "etf",
+        "has_options",
+        "high",
+        "isin",
+        "low",
+        "name"
+      ],
+      "sample_notes": [],
+      "sample_path": "/api/etfs/SPY/holdings",
+      "sample_query": [],
+      "status_code": 200,
+      "summary": "Holdings",
+      "tags": [
+        "etfs"
+      ]
+    },
+    {
+      "access_result": "accessible",
+      "backfill_hint": "historical-selector",
+      "body_kind": "object:data-list",
+      "data_count": 22,
+      "docs_entitlement_hint": "not-marked",
+      "elapsed_ms": 267.0,
+      "error": null,
+      "historical_params": [
+        "start_date",
+        "end_date"
+      ],
+      "message": null,
+      "method": "GET",
+      "operation_id": "PublicApi.EtfController.in_outflow",
+      "path": "/api/etfs/{ticker}/in-outflow",
+      "required_path_params": [
+        "ticker"
+      ],
+      "required_query_params": [],
+      "sample_keys": [
+        "change",
+        "change_prem",
+        "close",
+        "date",
+        "expiration_cycle",
+        "is_fomc",
+        "volume"
+      ],
+      "sample_notes": [],
+      "sample_path": "/api/etfs/SPY/in-outflow",
+      "sample_query": [
+        [
+          "start_date",
+          "2026-04-14"
+        ],
+        [
+          "end_date",
+          "2026-05-14"
+        ]
+      ],
+      "status_code": 200,
+      "summary": "Inflow & Outflow",
+      "tags": [
+        "etfs"
+      ]
+    },
+    {
+      "access_result": "accessible",
+      "backfill_hint": "snapshot-or-reference",
+      "body_kind": "object:data-object",
+      "data_count": null,
+      "docs_entitlement_hint": "not-marked",
+      "elapsed_ms": 215.2,
+      "error": null,
+      "historical_params": [],
+      "message": null,
+      "method": "GET",
+      "operation_id": "PublicApi.EtfController.info",
+      "path": "/api/etfs/{ticker}/info",
+      "required_path_params": [
+        "ticker"
+      ],
+      "required_query_params": [],
+      "sample_keys": [
+        "aum",
+        "avg30_volume",
+        "call_vol",
+        "description",
+        "domicile",
+        "etf_company",
+        "expense_ratio",
+        "has_options",
+        "holdings_count",
+        "inception_date",
+        "name",
+        "opt_vol",
+        "put_vol",
+        "stock_vol",
+        "website"
+      ],
+      "sample_notes": [],
+      "sample_path": "/api/etfs/SPY/info",
+      "sample_query": [],
+      "status_code": 200,
+      "summary": "Information",
+      "tags": [
+        "etfs"
+      ]
+    },
+    {
+      "access_result": "accessible",
+      "backfill_hint": "snapshot-or-reference",
+      "body_kind": "object",
+      "data_count": null,
+      "docs_entitlement_hint": "not-marked",
+      "elapsed_ms": 202.9,
+      "error": null,
+      "historical_params": [],
+      "message": null,
+      "method": "GET",
+      "operation_id": "PublicApi.EtfController.weights",
+      "path": "/api/etfs/{ticker}/weights",
+      "required_path_params": [
+        "ticker"
+      ],
+      "required_query_params": [],
+      "sample_keys": [
+        "country",
+        "sector"
+      ],
+      "sample_notes": [],
+      "sample_path": "/api/etfs/SPY/weights",
+      "sample_query": [],
+      "status_code": 200,
+      "summary": "Sector & Country weights",
+      "tags": [
+        "etfs"
+      ]
+    },
+    {
+      "access_result": "gated",
+      "backfill_hint": "historical-path",
+      "body_kind": "object",
+      "data_count": null,
+      "docs_entitlement_hint": "advanced+-docs",
+      "elapsed_ms": 212.1,
+      "error": null,
+      "historical_params": [],
+      "message": "This endpoint requires the Advanced API tier or higher. Visit https://unusualwhales.com/settings/api-dashboard?utm_source=api&utm_campaign=json_msg to upgrade, or contact dev@unusualwhales.com.",
+      "method": "GET",
+      "operation_id": "PublicApi.ForexController.history",
+      "path": "/api/forex/history",
+      "required_path_params": [],
+      "required_query_params": [
+        "from",
+        "to"
+      ],
+      "sample_keys": [
+        "code",
+        "message"
+      ],
+      "sample_notes": [],
+      "sample_path": "/api/forex/history",
+      "sample_query": [
+        [
+          "from",
+          "USD"
+        ],
+        [
+          "to",
+          "EUR"
+        ]
+      ],
+      "status_code": 403,
+      "summary": "FX Historical Series",
+      "tags": [
+        "forex"
+      ]
+    },
+    {
+      "access_result": "gated",
+      "backfill_hint": "historical-path",
+      "body_kind": "object",
+      "data_count": null,
+      "docs_entitlement_hint": "advanced+-docs",
+      "elapsed_ms": 200.8,
+      "error": null,
+      "historical_params": [],
+      "message": "This endpoint requires the Advanced API tier or higher. Visit https://unusualwhales.com/settings/api-dashboard?utm_source=api&utm_campaign=json_msg to upgrade, or contact dev@unusualwhales.com.",
+      "method": "GET",
+      "operation_id": "PublicApi.ForexController.intraday",
+      "path": "/api/forex/intraday",
+      "required_path_params": [],
+      "required_query_params": [
+        "from",
+        "to"
+      ],
+      "sample_keys": [
+        "code",
+        "message"
+      ],
+      "sample_notes": [],
+      "sample_path": "/api/forex/intraday",
+      "sample_query": [
+        [
+          "from",
+          "USD"
+        ],
+        [
+          "to",
+          "EUR"
+        ]
+      ],
+      "status_code": 403,
+      "summary": "FX Intraday Series",
+      "tags": [
+        "forex"
+      ]
+    },
+    {
+      "access_result": "gated",
+      "backfill_hint": "snapshot-or-reference",
+      "body_kind": "object",
+      "data_count": null,
+      "docs_entitlement_hint": "advanced+-docs",
+      "elapsed_ms": 199.8,
+      "error": null,
+      "historical_params": [],
+      "message": "This endpoint requires the Advanced API tier or higher. Visit https://unusualwhales.com/settings/api-dashboard?utm_source=api&utm_campaign=json_msg to upgrade, or contact dev@unusualwhales.com.",
+      "method": "GET",
+      "operation_id": "PublicApi.ForexController.rate",
+      "path": "/api/forex/rate",
+      "required_path_params": [],
+      "required_query_params": [
+        "from",
+        "to"
+      ],
+      "sample_keys": [
+        "code",
+        "message"
+      ],
+      "sample_notes": [],
+      "sample_path": "/api/forex/rate",
+      "sample_query": [
+        [
+          "from",
+          "USD"
+        ],
+        [
+          "to",
+          "EUR"
+        ]
+      ],
+      "status_code": 403,
+      "summary": "FX Spot Rate",
+      "tags": [
+        "forex"
+      ]
+    },
+    {
+      "access_result": "accessible",
+      "backfill_hint": "historical-selector",
+      "body_kind": "object:data-list",
+      "data_count": 394,
+      "docs_entitlement_hint": "not-marked",
+      "elapsed_ms": 407.5,
+      "error": null,
+      "historical_params": [
+        "date"
+      ],
+      "message": null,
+      "method": "GET",
+      "operation_id": "PublicApi.GroupFlowController.greek_flow",
+      "path": "/api/group-flow/{flow_group}/greek-flow",
+      "required_path_params": [
+        "flow_group"
+      ],
+      "required_query_params": [],
+      "sample_keys": [
+        "dir_delta_flow",
+        "dir_vega_flow",
+        "flow_group",
+        "net_call_premium",
+        "net_call_volume",
+        "net_put_premium",
+        "net_put_volume",
+        "otm_dir_delta_flow",
+        "otm_dir_vega_flow",
+        "otm_net_call_premium",
+        "otm_net_call_volume",
+        "otm_net_put_premium",
+        "otm_net_put_volume",
+        "otm_total_delta_flow",
+        "otm_total_vega_flow",
+        "timestamp"
+      ],
+      "sample_notes": [],
+      "sample_path": "/api/group-flow/technology/greek-flow",
+      "sample_query": [
+        [
+          "date",
+          "2026-05-14"
+        ]
+      ],
+      "status_code": 200,
+      "summary": "Greek flow",
+      "tags": [
+        "group_flow"
+      ]
+    },
+    {
+      "access_result": "accessible",
+      "backfill_hint": "historical-selector",
+      "body_kind": "object:data-list",
+      "data_count": 391,
+      "docs_entitlement_hint": "not-marked",
+      "elapsed_ms": 4485.4,
+      "error": null,
+      "historical_params": [
+        "date"
+      ],
+      "message": null,
+      "method": "GET",
+      "operation_id": "PublicApi.GroupFlowController.greek_flow_expiry",
+      "path": "/api/group-flow/{flow_group}/greek-flow/{expiry}",
+      "required_path_params": [
+        "flow_group",
+        "expiry"
+      ],
+      "required_query_params": [],
+      "sample_keys": [
+        "dir_delta_flow",
+        "dir_vega_flow",
+        "expiry",
+        "flow_group",
+        "net_call_premium",
+        "net_call_volume",
+        "net_put_premium",
+        "net_put_volume",
+        "otm_dir_delta_flow",
+        "otm_dir_vega_flow",
+        "otm_total_delta_flow",
+        "otm_total_vega_flow",
+        "timestamp",
+        "total_delta_flow",
+        "total_vega_flow",
+        "transactions"
+      ],
+      "sample_notes": [],
+      "sample_path": "/api/group-flow/technology/greek-flow/2026-05-22",
+      "sample_query": [
+        [
+          "date",
+          "2026-05-14"
+        ]
+      ],
+      "status_code": 200,
+      "summary": "Greek flow by expiry",
+      "tags": [
+        "group_flow"
+      ]
+    },
+    {
+      "access_result": "accessible",
+      "backfill_hint": "historical-selector",
+      "body_kind": "object:data-list",
+      "data_count": 1,
+      "docs_entitlement_hint": "not-marked",
+      "elapsed_ms": 293.1,
+      "error": null,
+      "historical_params": [
+        "start_date",
+        "end_date"
+      ],
+      "message": null,
+      "method": "GET",
+      "operation_id": "PublicApi.InsiderController.transactions",
+      "path": "/api/insider/transactions",
+      "required_path_params": [],
+      "required_query_params": [],
+      "sample_keys": [
+        "amount",
+        "date_excercisable",
+        "director_indirect",
+        "expiration_date",
+        "filing_date",
+        "formtype",
+        "id",
+        "ids",
+        "is_10b5_1",
+        "is_director",
+        "is_officer",
+        "is_s_p_500",
+        "is_ten_percent_owner",
+        "marketcap",
+        "natureofownership",
+        "next_earnings_date"
+      ],
+      "sample_notes": [],
+      "sample_path": "/api/insider/transactions",
+      "sample_query": [
+        [
+          "limit",
+          1
+        ],
+        [
+          "start_date",
+          "2026-04-14"
+        ],
+        [
+          "end_date",
+          "2026-05-14"
+        ]
+      ],
+      "status_code": 200,
+      "summary": "Transactions",
+      "tags": [
+        "insiders"
+      ]
+    },
+    {
+      "access_result": "accessible",
+      "backfill_hint": "snapshot-or-reference",
+      "body_kind": "object:data-list",
+      "data_count": 1,
+      "docs_entitlement_hint": "not-marked",
+      "elapsed_ms": 202.8,
+      "error": null,
+      "historical_params": [],
+      "message": null,
+      "method": "GET",
+      "operation_id": "PublicApi.InsiderController.sector_flow",
+      "path": "/api/insider/{sector}/sector-flow",
+      "required_path_params": [
+        "sector"
+      ],
+      "required_query_params": [],
+      "sample_keys": [
+        "buy_sell",
+        "date",
+        "premium",
+        "premium_10b5",
+        "sector",
+        "transactions",
+        "transactions_10b5",
+        "uniq_insiders",
+        "uniq_insiders_10b5",
+        "uniq_tickers",
+        "uniq_tickers_10b5",
+        "volume",
+        "volume_10b5"
+      ],
+      "sample_notes": [],
+      "sample_path": "/api/insider/Technology/sector-flow",
+      "sample_query": [
+        [
+          "limit",
+          1
+        ]
+      ],
+      "status_code": 200,
+      "summary": "Sector Flow",
+      "tags": [
+        "insiders"
+      ]
+    },
+    {
+      "access_result": "accessible",
+      "backfill_hint": "snapshot-or-reference",
+      "body_kind": "object:data-list",
+      "data_count": 31,
+      "docs_entitlement_hint": "not-marked",
+      "elapsed_ms": 207.0,
+      "error": null,
+      "historical_params": [],
+      "message": null,
+      "method": "GET",
+      "operation_id": "PublicApi.InsiderController.insiders",
+      "path": "/api/insider/{ticker}",
+      "required_path_params": [
+        "ticker"
+      ],
+      "required_query_params": [],
+      "sample_keys": [
+        "cik",
+        "display_name",
+        "id",
+        "is_person",
+        "logo_url",
+        "name",
+        "name_slug",
+        "social_links",
+        "ticker"
+      ],
+      "sample_notes": [],
+      "sample_path": "/api/insider/TSLA",
+      "sample_query": [],
+      "status_code": 200,
+      "summary": "Insiders",
+      "tags": [
+        "insiders"
+      ]
+    },
+    {
+      "access_result": "accessible",
+      "backfill_hint": "snapshot-or-reference",
+      "body_kind": "object:data-list",
+      "data_count": 1,
+      "docs_entitlement_hint": "not-marked",
+      "elapsed_ms": 202.9,
+      "error": null,
+      "historical_params": [],
+      "message": null,
+      "method": "GET",
+      "operation_id": "PublicApi.InsiderController.ticker_flow",
+      "path": "/api/insider/{ticker}/ticker-flow",
+      "required_path_params": [
+        "ticker"
+      ],
+      "required_query_params": [],
+      "sample_keys": [
+        "avg_price",
+        "avg_price_10b5",
+        "buy_sell",
+        "date",
+        "premium",
+        "premium_10b5",
+        "ticker",
+        "transactions",
+        "transactions_10b5",
+        "uniq_insiders",
+        "uniq_insiders_10b5",
+        "volume",
+        "volume_10b5"
+      ],
+      "sample_notes": [],
+      "sample_path": "/api/insider/TSLA/ticker-flow",
+      "sample_query": [
+        [
+          "limit",
+          1
+        ]
+      ],
+      "status_code": 200,
+      "summary": "Ticker Flow",
+      "tags": [
+        "insiders"
+      ]
+    },
+    {
+      "access_result": "accessible",
+      "backfill_hint": "historical-selector",
+      "body_kind": "object:data-list",
+      "data_count": 1,
+      "docs_entitlement_hint": "not-marked",
+      "elapsed_ms": 222.6,
+      "error": null,
+      "historical_params": [
+        "date"
+      ],
+      "message": null,
+      "method": "GET",
+      "operation_id": "PublicApi.InstitutionController.activity",
+      "path": "/api/institution/{name}/activity",
+      "required_path_params": [
+        "name"
+      ],
+      "required_query_params": [],
+      "sample_keys": [
+        "avg_price",
+        "buy_price",
+        "close",
+        "filing_date",
+        "price_on_filing",
+        "price_on_report",
+        "put_call",
+        "report_date",
+        "security_type",
+        "sell_price",
+        "shares_outstanding",
+        "ticker",
+        "units",
+        "units_change"
+      ],
+      "sample_notes": [],
+      "sample_path": "/api/institution/Berkshire%20Hathaway%20Inc/activity",
+      "sample_query": [
+        [
+          "date",
+          "2026-05-14"
+        ],
+        [
+          "limit",
+          1
+        ]
+      ],
+      "status_code": 200,
+      "summary": "Institutional Activity (Deprecated)",
+      "tags": [
+        "institution"
+      ]
+    },
+    {
+      "access_result": "accessible",
+      "backfill_hint": "historical-selector",
+      "body_kind": "object:data-list",
+      "data_count": 0,
+      "docs_entitlement_hint": "not-marked",
+      "elapsed_ms": 221.3,
+      "error": null,
+      "historical_params": [
+        "start_date",
+        "end_date"
+      ],
+      "message": null,
+      "method": "GET",
+      "operation_id": "PublicApi.InstitutionController.activity_v2",
+      "path": "/api/institution/{name}/activity/v2",
+      "required_path_params": [
+        "name"
+      ],
+      "required_query_params": [],
+      "sample_keys": [],
+      "sample_notes": [],
+      "sample_path": "/api/institution/Berkshire%20Hathaway%20Inc/activity/v2",
+      "sample_query": [
+        [
+          "start_date",
+          "2026-04-14"
+        ],
+        [
+          "end_date",
+          "2026-05-14"
+        ],
+        [
+          "limit",
+          1
+        ]
+      ],
+      "status_code": 200,
+      "summary": "Institutional Activity",
+      "tags": [
+        "institution"
+      ]
+    },
+    {
+      "access_result": "accessible",
+      "backfill_hint": "historical-selector",
+      "body_kind": "object:data-list",
+      "data_count": 0,
+      "docs_entitlement_hint": "not-marked",
+      "elapsed_ms": 223.9,
+      "error": null,
+      "historical_params": [
+        "date",
+        "start_date",
+        "end_date"
+      ],
+      "message": null,
+      "method": "GET",
+      "operation_id": "PublicApi.InstitutionController.holdings",
+      "path": "/api/institution/{name}/holdings",
+      "required_path_params": [
+        "name"
+      ],
+      "required_query_params": [],
+      "sample_keys": [],
+      "sample_notes": [],
+      "sample_path": "/api/institution/Berkshire%20Hathaway%20Inc/holdings",
+      "sample_query": [
+        [
+          "date",
+          "2026-05-14"
+        ],
+        [
+          "start_date",
+          "2026-04-14"
+        ],
+        [
+          "end_date",
+          "2026-05-14"
+        ],
+        [
+          "limit",
+          1
+        ]
+      ],
+      "status_code": 200,
+      "summary": "Institutional Holdings",
+      "tags": [
+        "institution"
+      ]
+    },
+    {
+      "access_result": "accessible",
+      "backfill_hint": "historical-selector",
+      "body_kind": "object:data-list",
+      "data_count": 1,
+      "docs_entitlement_hint": "not-marked",
+      "elapsed_ms": 211.7,
+      "error": null,
+      "historical_params": [
+        "date"
+      ],
+      "message": null,
+      "method": "GET",
+      "operation_id": "PublicApi.InstitutionController.sectors",
+      "path": "/api/institution/{name}/sectors",
+      "required_path_params": [
+        "name"
+      ],
+      "required_query_params": [],
+      "sample_keys": [
+        "positions",
+        "positions_closed",
+        "positions_decreased",
+        "positions_increased",
+        "report_date",
+        "sector",
+        "value"
+      ],
+      "sample_notes": [],
+      "sample_path": "/api/institution/Berkshire%20Hathaway%20Inc/sectors",
+      "sample_query": [
+        [
+          "date",
+          "2026-05-14"
+        ],
+        [
+          "limit",
+          1
+        ]
+      ],
+      "status_code": 200,
+      "summary": "Sector Exposure",
+      "tags": [
+        "institution"
+      ]
+    },
+    {
+      "access_result": "accessible",
+      "backfill_hint": "historical-selector",
+      "body_kind": "object:data-list",
+      "data_count": 0,
+      "docs_entitlement_hint": "not-marked",
+      "elapsed_ms": 213.1,
+      "error": null,
+      "historical_params": [
+        "date",
+        "start_date",
+        "end_date"
+      ],
+      "message": null,
+      "method": "GET",
+      "operation_id": "PublicApi.InstitutionController.ownership",
+      "path": "/api/institution/{ticker}/ownership",
+      "required_path_params": [
+        "ticker"
+      ],
+      "required_query_params": [],
+      "sample_keys": [],
+      "sample_notes": [],
+      "sample_path": "/api/institution/TSLA/ownership",
+      "sample_query": [
+        [
+          "date",
+          "2026-05-14"
+        ],
+        [
+          "start_date",
+          "2026-04-14"
+        ],
+        [
+          "end_date",
+          "2026-05-14"
+        ],
+        [
+          "limit",
+          1
+        ]
+      ],
+      "status_code": 200,
+      "summary": "Institutional Ownership",
+      "tags": [
+        "institution"
+      ]
+    },
+    {
+      "access_result": "accessible",
+      "backfill_hint": "snapshot-or-reference",
+      "body_kind": "object:data-list",
+      "data_count": 1,
+      "docs_entitlement_hint": "not-marked",
+      "elapsed_ms": 301.6,
+      "error": null,
+      "historical_params": [],
+      "message": null,
+      "method": "GET",
+      "operation_id": "PublicApi.InstitutionController.list",
+      "path": "/api/institutions",
+      "required_path_params": [],
+      "required_query_params": [],
+      "sample_keys": [
+        "buy_value",
+        "call_holdings",
+        "call_value",
+        "cik",
+        "date",
+        "debt_holdings",
+        "debt_value",
+        "description",
+        "filing_date",
+        "founder_img_url",
+        "fund_holdings",
+        "fund_value",
+        "is_hedge_fund",
+        "logo_url",
+        "name",
+        "name_changes"
+      ],
+      "sample_notes": [],
+      "sample_path": "/api/institutions",
+      "sample_query": [
+        [
+          "limit",
+          1
+        ]
+      ],
+      "status_code": 200,
+      "summary": "List of Institutions",
+      "tags": [
+        "institution"
+      ]
+    },
+    {
+      "access_result": "accessible",
+      "backfill_hint": "historical-selector",
+      "body_kind": "object:data-list",
+      "data_count": 1,
+      "docs_entitlement_hint": "not-marked",
+      "elapsed_ms": 295.5,
+      "error": null,
+      "historical_params": [
+        "date"
+      ],
+      "message": null,
+      "method": "GET",
+      "operation_id": "PublicApi.InstitutionController.latest_filings",
+      "path": "/api/institutions/latest_filings",
+      "required_path_params": [],
+      "required_query_params": [],
+      "sample_keys": [
+        "cik",
+        "filing_date",
+        "is_hedge_fund",
+        "name",
+        "people",
+        "short_name",
+        "tags"
+      ],
+      "sample_notes": [],
+      "sample_path": "/api/institutions/latest_filings",
+      "sample_query": [
+        [
+          "date",
+          "2026-05-14"
+        ],
+        [
+          "limit",
+          1
+        ]
+      ],
+      "status_code": 200,
+      "summary": "Latest Filings",
+      "tags": [
+        "institution"
+      ]
+    },
+    {
+      "access_result": "accessible",
+      "backfill_hint": "historical-selector",
+      "body_kind": "object:data-list",
+      "data_count": 1,
+      "docs_entitlement_hint": "not-marked",
+      "elapsed_ms": 205.1,
+      "error": null,
+      "historical_params": [
+        "date"
+      ],
+      "message": null,
+      "method": "GET",
+      "operation_id": "PublicApi.LitFlowController.lit_flow_recent",
+      "path": "/api/lit-flow/recent",
+      "required_path_params": [],
+      "required_query_params": [],
+      "sample_keys": [
+        "canceled",
+        "executed_at",
+        "ext_hour_sold_codes",
+        "market_center",
+        "nbbo_ask",
+        "nbbo_ask_quantity",
+        "nbbo_bid",
+        "nbbo_bid_quantity",
+        "premium",
+        "price",
+        "sale_cond_codes",
+        "size",
+        "ticker",
+        "tracking_id",
+        "trade_code",
+        "trade_settlement"
+      ],
+      "sample_notes": [],
+      "sample_path": "/api/lit-flow/recent",
+      "sample_query": [
+        [
+          "limit",
+          1
+        ],
+        [
+          "date",
+          "2026-05-14"
+        ]
+      ],
+      "status_code": 200,
+      "summary": "Recent Lit Flow Trades",
+      "tags": [
+        "lit-flow"
+      ]
+    },
+    {
+      "access_result": "accessible",
+      "backfill_hint": "historical-selector",
+      "body_kind": "object:data-list",
+      "data_count": 1,
+      "docs_entitlement_hint": "not-marked",
+      "elapsed_ms": 214.4,
+      "error": null,
+      "historical_params": [
+        "date",
+        "newer_than",
+        "older_than"
+      ],
+      "message": null,
+      "method": "GET",
+      "operation_id": "PublicApi.LitFlowController.lit_flow_ticker",
+      "path": "/api/lit-flow/{ticker}",
+      "required_path_params": [
+        "ticker"
+      ],
+      "required_query_params": [],
+      "sample_keys": [
+        "canceled",
+        "executed_at",
+        "ext_hour_sold_codes",
+        "market_center",
+        "nbbo_ask",
+        "nbbo_ask_quantity",
+        "nbbo_bid",
+        "nbbo_bid_quantity",
+        "premium",
+        "price",
+        "sale_cond_codes",
+        "size",
+        "ticker",
+        "tracking_id",
+        "trade_code",
+        "trade_settlement"
+      ],
+      "sample_notes": [],
+      "sample_path": "/api/lit-flow/TSLA",
+      "sample_query": [
+        [
+          "date",
+          "2026-05-14"
+        ],
+        [
+          "limit",
+          1
+        ]
+      ],
+      "status_code": 200,
+      "summary": "Ticker Lit Flow Trades",
+      "tags": [
+        "lit-flow"
+      ]
+    },
+    {
+      "access_result": "accessible",
+      "backfill_hint": "historical-selector",
+      "body_kind": "object:data-list",
+      "data_count": 2,
+      "docs_entitlement_hint": "not-marked",
+      "elapsed_ms": 200.6,
+      "error": null,
+      "historical_params": [
+        "start_date",
+        "end_date"
+      ],
+      "message": null,
+      "method": "GET",
+      "operation_id": "PublicApi.MarketController.correlations",
+      "path": "/api/market/correlations",
+      "required_path_params": [],
+      "required_query_params": [
+        "tickers"
+      ],
+      "sample_keys": [
+        "correlation",
+        "fst",
+        "max_date",
+        "min_date",
+        "rows",
+        "snd"
+      ],
+      "sample_notes": [],
+      "sample_path": "/api/market/correlations",
+      "sample_query": [
+        [
+          "tickers",
+          "TSLA,AAPL"
+        ],
+        [
+          "start_date",
+          "2026-04-14"
+        ],
+        [
+          "end_date",
+          "2026-05-14"
+        ]
+      ],
+      "status_code": 200,
+      "summary": "Correlations",
+      "tags": [
+        "market"
+      ]
+    },
+    {
+      "access_result": "accessible",
+      "backfill_hint": "recent-or-calendar",
+      "body_kind": "object:data-list",
+      "data_count": 36,
+      "docs_entitlement_hint": "not-marked",
+      "elapsed_ms": 205.8,
+      "error": null,
+      "historical_params": [],
+      "message": null,
+      "method": "GET",
+      "operation_id": "PublicApi.MarketController.events",
+      "path": "/api/market/economic-calendar",
+      "required_path_params": [],
+      "required_query_params": [],
+      "sample_keys": [
+        "event",
+        "forecast",
+        "prev",
+        "reported_period",
+        "time",
+        "type"
+      ],
+      "sample_notes": [],
+      "sample_path": "/api/market/economic-calendar",
+      "sample_query": [],
+      "status_code": 200,
+      "summary": "Economic calendar",
+      "tags": [
+        "market"
+      ]
+    },
+    {
+      "access_result": "accessible",
+      "backfill_hint": "recent-or-calendar",
+      "body_kind": "object:data-list",
+      "data_count": 1,
+      "docs_entitlement_hint": "not-marked",
+      "elapsed_ms": 216.1,
+      "error": null,
+      "historical_params": [],
+      "message": null,
+      "method": "GET",
+      "operation_id": "PublicApi.MarketController.fda_calendar",
+      "path": "/api/market/fda-calendar",
+      "required_path_params": [],
+      "required_query_params": [],
+      "sample_keys": [
+        "benzinga_id",
+        "catalyst",
+        "commentary",
+        "created_at",
+        "date_string",
+        "description",
+        "drug",
+        "end_date",
+        "event_type",
+        "has_options",
+        "indication",
+        "marketcap",
+        "nic_number",
+        "notes",
+        "outcome",
+        "outcome_brief"
+      ],
+      "sample_notes": [],
+      "sample_path": "/api/market/fda-calendar",
+      "sample_query": [
+        [
+          "limit",
+          1
+        ]
+      ],
+      "status_code": 200,
+      "summary": "FDA Calendar",
+      "tags": [
+        "market"
+      ]
+    },
+    {
+      "access_result": "accessible",
+      "backfill_hint": "snapshot-or-reference",
+      "body_kind": "object:data-list",
+      "data_count": 1,
+      "docs_entitlement_hint": "not-marked",
+      "elapsed_ms": 199.5,
+      "error": null,
+      "historical_params": [],
+      "message": null,
+      "method": "GET",
+      "operation_id": "PublicApi.MarketController.insider_buy_sells",
+      "path": "/api/market/insider-buy-sells",
+      "required_path_params": [],
+      "required_query_params": [],
+      "sample_keys": [
+        "filing_date",
+        "purchases",
+        "purchases_notional",
+        "sells",
+        "sells_notional"
+      ],
+      "sample_notes": [],
+      "sample_path": "/api/market/insider-buy-sells",
+      "sample_query": [
+        [
+          "limit",
+          1
+        ]
+      ],
+      "status_code": 200,
+      "summary": "Total Insider Buy & Sells",
+      "tags": [
+        "market"
+      ]
+    },
+    {
+      "access_result": "accessible",
+      "backfill_hint": "historical-selector",
+      "body_kind": "object:data-list",
+      "data_count": 81,
+      "docs_entitlement_hint": "websocket-docs",
+      "elapsed_ms": 209.8,
+      "error": null,
+      "historical_params": [
+        "date"
+      ],
+      "message": null,
+      "method": "GET",
+      "operation_id": "PublicApi.MarketController.market_tide",
+      "path": "/api/market/market-tide",
+      "required_path_params": [],
+      "required_query_params": [],
+      "sample_keys": [
+        "date",
+        "net_call_premium",
+        "net_put_premium",
+        "net_volume",
+        "timestamp"
+      ],
+      "sample_notes": [],
+      "sample_path": "/api/market/market-tide",
+      "sample_query": [
+        [
+          "date",
+          "2026-05-14"
+        ]
+      ],
+      "status_code": 200,
+      "summary": "Market Tide",
+      "tags": [
+        "market"
+      ]
+    },
+    {
+      "access_result": "gated",
+      "backfill_hint": "snapshot-or-reference",
+      "body_kind": "object",
+      "data_count": null,
+      "docs_entitlement_hint": "advanced+-docs",
+      "elapsed_ms": 205.5,
+      "error": null,
+      "historical_params": [],
+      "message": "This endpoint requires the Advanced API tier or higher. Visit https://unusualwhales.com/settings/api-dashboard?utm_source=api&utm_campaign=json_msg to upgrade, or contact dev@unusualwhales.com.",
+      "method": "GET",
+      "operation_id": "PublicApi.IntelController.movers",
+      "path": "/api/market/movers",
+      "required_path_params": [],
+      "required_query_params": [],
+      "sample_keys": [
+        "code",
+        "message"
+      ],
+      "sample_notes": [],
+      "sample_path": "/api/market/movers",
+      "sample_query": [],
+      "status_code": 403,
+      "summary": "Top Movers",
+      "tags": [
+        "intel"
+      ]
+    },
+    {
+      "access_result": "accessible",
+      "backfill_hint": "historical-selector",
+      "body_kind": "object:data-list",
+      "data_count": 1,
+      "docs_entitlement_hint": "not-marked",
+      "elapsed_ms": 200.5,
+      "error": null,
+      "historical_params": [
+        "date"
+      ],
+      "message": null,
+      "method": "GET",
+      "operation_id": "PublicApi.MarketController.oi_change",
+      "path": "/api/market/oi-change",
+      "required_path_params": [],
+      "required_query_params": [],
+      "sample_keys": [
+        "avg_price",
+        "curr_date",
+        "curr_oi",
+        "days_of_oi_increases",
+        "days_of_vol_greater_than_oi",
+        "last_ask",
+        "last_bid",
+        "last_date",
+        "last_fill",
+        "last_oi",
+        "oi_change",
+        "oi_diff_plain",
+        "option_symbol",
+        "percentage_of_total",
+        "prev_ask_volume",
+        "prev_bid_volume"
+      ],
+      "sample_notes": [],
+      "sample_path": "/api/market/oi-change",
+      "sample_query": [
+        [
+          "date",
+          "2026-05-14"
+        ],
+        [
+          "limit",
+          1
+        ]
+      ],
+      "status_code": 200,
+      "summary": "OI Change",
+      "tags": [
+        "market"
+      ]
+    },
+    {
+      "access_result": "accessible",
+      "backfill_hint": "snapshot-or-reference",
+      "body_kind": "object:data-list",
+      "data_count": 12,
+      "docs_entitlement_hint": "not-marked",
+      "elapsed_ms": 205.8,
+      "error": null,
+      "historical_params": [],
+      "message": null,
+      "method": "GET",
+      "operation_id": "PublicApi.MarketController.sector_etfs",
+      "path": "/api/market/sector-etfs",
+      "required_path_params": [],
+      "required_query_params": [],
+      "sample_keys": [
+        "avg30_call_volume",
+        "avg30_put_volume",
+        "avg30_stock_volume",
+        "avg_30_day_call_volume",
+        "avg_30_day_put_volume",
+        "avg_7_day_call_volume",
+        "avg_7_day_put_volume",
+        "bearish_premium",
+        "bullish_premium",
+        "call_premium",
+        "call_volume",
+        "full_name",
+        "high",
+        "in_out_flow",
+        "last",
+        "low"
+      ],
+      "sample_notes": [],
+      "sample_path": "/api/market/sector-etfs",
+      "sample_query": [],
+      "status_code": 200,
+      "summary": "Sector Etfs",
+      "tags": [
+        "market"
+      ]
+    },
+    {
+      "access_result": "accessible",
+      "backfill_hint": "historical-selector",
+      "body_kind": "object:data-list",
+      "data_count": 1,
+      "docs_entitlement_hint": "not-marked",
+      "elapsed_ms": 214.0,
+      "error": null,
+      "historical_params": [
+        "date"
+      ],
+      "message": null,
+      "method": "GET",
+      "operation_id": "PublicApi.MarketController.top_net_impact",
+      "path": "/api/market/top-net-impact",
+      "required_path_params": [],
+      "required_query_params": [],
+      "sample_keys": [
+        "net_premium",
+        "ticker"
+      ],
+      "sample_notes": [],
+      "sample_path": "/api/market/top-net-impact",
+      "sample_query": [
+        [
+          "date",
+          "2026-05-14"
+        ],
+        [
+          "limit",
+          1
+        ]
+      ],
+      "status_code": 200,
+      "summary": "Top Net Impact",
+      "tags": [
+        "market"
+      ]
+    },
+    {
+      "access_result": "accessible",
+      "backfill_hint": "snapshot-or-reference",
+      "body_kind": "object:data-list",
+      "data_count": 1,
+      "docs_entitlement_hint": "not-marked",
+      "elapsed_ms": 193.9,
+      "error": null,
+      "historical_params": [],
+      "message": null,
+      "method": "GET",
+      "operation_id": "PublicApi.MarketController.total_options_volume",
+      "path": "/api/market/total-options-volume",
+      "required_path_params": [],
+      "required_query_params": [],
+      "sample_keys": [
+        "call_premium",
+        "call_volume",
+        "date",
+        "put_premium",
+        "put_volume"
+      ],
+      "sample_notes": [],
+      "sample_path": "/api/market/total-options-volume",
+      "sample_query": [
+        [
+          "limit",
+          1
+        ]
+      ],
+      "status_code": 200,
+      "summary": "Total Options Volume",
+      "tags": [
+        "market"
+      ]
+    },
+    {
+      "access_result": "accessible",
+      "backfill_hint": "historical-selector",
+      "body_kind": "object:data-list",
+      "data_count": 394,
+      "docs_entitlement_hint": "not-marked",
+      "elapsed_ms": 224.8,
+      "error": null,
+      "historical_params": [
+        "date"
+      ],
+      "message": null,
+      "method": "GET",
+      "operation_id": "PublicApi.MarketController.sec_indst",
+      "path": "/api/market/{sector}/sector-tide",
+      "required_path_params": [
+        "sector"
+      ],
+      "required_query_params": [],
+      "sample_keys": [
+        "date",
+        "net_call_premium",
+        "net_put_premium",
+        "net_volume",
+        "timestamp"
+      ],
+      "sample_notes": [],
+      "sample_path": "/api/market/Technology/sector-tide",
+      "sample_query": [
+        [
+          "date",
+          "2026-05-14"
+        ]
+      ],
+      "status_code": 200,
+      "summary": "Sector Tide",
+      "tags": [
+        "market"
+      ]
+    },
+    {
+      "access_result": "accessible",
+      "backfill_hint": "historical-selector",
+      "body_kind": "object:data-list",
+      "data_count": 390,
+      "docs_entitlement_hint": "not-marked",
+      "elapsed_ms": 229.2,
+      "error": null,
+      "historical_params": [
+        "date"
+      ],
+      "message": null,
+      "method": "GET",
+      "operation_id": "PublicApi.MarketController.etf_tide",
+      "path": "/api/market/{ticker}/etf-tide",
+      "required_path_params": [
+        "ticker"
+      ],
+      "required_query_params": [],
+      "sample_keys": [
+        "date",
+        "net_call_premium",
+        "net_put_premium",
+        "net_volume",
+        "timestamp",
+        "underlying_price"
+      ],
+      "sample_notes": [],
+      "sample_path": "/api/market/SPY/etf-tide",
+      "sample_query": [
+        [
+          "date",
+          "2026-05-14"
+        ]
+      ],
+      "status_code": 200,
+      "summary": "ETF Tide",
+      "tags": [
+        "market"
+      ]
+    },
+    {
+      "access_result": "accessible",
+      "backfill_hint": "historical-selector",
+      "body_kind": "object:data-list",
+      "data_count": 1,
+      "docs_entitlement_hint": "not-marked",
+      "elapsed_ms": 232.3,
+      "error": null,
+      "historical_params": [
+        "date"
+      ],
+      "message": null,
+      "method": "GET",
+      "operation_id": "PublicApi.NetFlowController.expiry",
+      "path": "/api/net-flow/expiry",
+      "required_path_params": [],
+      "required_query_params": [],
+      "sample_keys": [
+        "data",
+        "moneyness",
+        "tide_type"
+      ],
+      "sample_notes": [],
+      "sample_path": "/api/net-flow/expiry",
+      "sample_query": [
+        [
+          "date",
+          "2026-05-14"
+        ]
+      ],
+      "status_code": 200,
+      "summary": "Net Flow Expiry",
+      "tags": [
+        "market"
+      ]
+    },
+    {
+      "access_result": "accessible",
+      "backfill_hint": "snapshot-or-reference",
+      "body_kind": "object:data-list",
+      "data_count": 1,
+      "docs_entitlement_hint": "not-marked",
+      "elapsed_ms": 202.0,
+      "error": null,
+      "historical_params": [],
+      "message": null,
+      "method": "GET",
+      "operation_id": "PublicApi.NewsController.headlines",
+      "path": "/api/news/headlines",
+      "required_path_params": [],
+      "required_query_params": [],
+      "sample_keys": [
+        "created_at",
+        "headline",
+        "is_major",
+        "meta",
+        "sentiment",
+        "source",
+        "tags",
+        "tickers"
+      ],
+      "sample_notes": [],
+      "sample_path": "/api/news/headlines",
+      "sample_query": [
+        [
+          "limit",
+          1
+        ]
+      ],
+      "status_code": 200,
+      "summary": "News Headlines",
+      "tags": [
+        "news"
+      ]
+    },
+    {
+      "access_result": "accessible",
+      "backfill_hint": "historical-selector",
+      "body_kind": "object:data-list",
+      "data_count": 1,
+      "docs_entitlement_hint": "not-marked",
+      "elapsed_ms": 221.0,
+      "error": null,
+      "historical_params": [
+        "date"
+      ],
+      "message": null,
+      "method": "GET",
+      "operation_id": "PublicApi.OptionContractController.flow",
+      "path": "/api/option-contract/{id}/flow",
+      "required_path_params": [
+        "id"
+      ],
+      "required_query_params": [],
+      "sample_keys": [
+        "ask_vol",
+        "bid_vol",
+        "canceled",
+        "delta",
+        "er_time",
+        "ewma_nbbo_ask",
+        "ewma_nbbo_bid",
+        "exchange",
+        "executed_at",
+        "expiry",
+        "flow_alert_id",
+        "full_name",
+        "gamma",
+        "id",
+        "implied_volatility",
+        "industry_type"
+      ],
+      "sample_notes": [],
+      "sample_path": "/api/option-contract/TSLA260515C00450000/flow",
+      "sample_query": [
+        [
+          "limit",
+          1
+        ],
+        [
+          "date",
+          "2026-05-14"
+        ]
+      ],
+      "status_code": 200,
+      "summary": "Flow Data",
+      "tags": [
+        "option-contract"
+      ]
+    },
+    {
+      "access_result": "accessible",
+      "backfill_hint": "historical-path",
+      "body_kind": "object",
+      "data_count": null,
+      "docs_entitlement_hint": "not-marked",
+      "elapsed_ms": 200.8,
+      "error": null,
+      "historical_params": [],
+      "message": null,
+      "method": "GET",
+      "operation_id": "PublicApi.OptionContractController.history",
+      "path": "/api/option-contract/{id}/historic",
+      "required_path_params": [
+        "id"
+      ],
+      "required_query_params": [],
+      "sample_keys": [
+        "chains",
+        "etf_holdings"
+      ],
+      "sample_notes": [],
+      "sample_path": "/api/option-contract/TSLA260515C00450000/historic",
+      "sample_query": [
+        [
+          "limit",
+          1
+        ]
+      ],
+      "status_code": 200,
+      "summary": "Historic Data",
+      "tags": [
+        "option-contract"
+      ]
+    },
+    {
+      "access_result": "accessible",
+      "backfill_hint": "historical-selector",
+      "body_kind": "object:data-list",
+      "data_count": 390,
+      "docs_entitlement_hint": "not-marked",
+      "elapsed_ms": 264.0,
+      "error": null,
+      "historical_params": [
+        "date"
+      ],
+      "message": null,
+      "method": "GET",
+      "operation_id": "PublicApi.OptionContractController.intraday",
+      "path": "/api/option-contract/{id}/intraday",
+      "required_path_params": [
+        "id"
+      ],
+      "required_query_params": [],
+      "sample_keys": [
+        "avg_price",
+        "close",
+        "high",
+        "iv_high",
+        "iv_low",
+        "low",
+        "open",
+        "premium_ask_side",
+        "premium_bid_side",
+        "premium_mid_side",
+        "premium_no_side",
+        "start_time",
+        "volume_ask_side",
+        "volume_bid_side",
+        "volume_mid_side",
+        "volume_multi"
+      ],
+      "sample_notes": [],
+      "sample_path": "/api/option-contract/TSLA260515C00450000/intraday",
+      "sample_query": [
+        [
+          "date",
+          "2026-05-14"
+        ]
+      ],
+      "status_code": 200,
+      "summary": "Intraday Data",
+      "tags": [
+        "option-contract"
+      ]
+    },
+    {
+      "access_result": "accessible",
+      "backfill_hint": "historical-selector",
+      "body_kind": "object:data-list",
+      "data_count": 495,
+      "docs_entitlement_hint": "not-marked",
+      "elapsed_ms": 217.6,
+      "error": null,
+      "historical_params": [
+        "date"
+      ],
+      "message": null,
+      "method": "GET",
+      "operation_id": "PublicApi.OptionContractController.volume_profile",
+      "path": "/api/option-contract/{id}/volume-profile",
+      "required_path_params": [
+        "id"
+      ],
+      "required_query_params": [],
+      "sample_keys": [
+        "ask_vol",
+        "bid_vol",
+        "cross_vol",
+        "date",
+        "floor_vol",
+        "mid_vol",
+        "multi_vol",
+        "price",
+        "sweep_vol",
+        "transactions",
+        "volume"
+      ],
+      "sample_notes": [],
+      "sample_path": "/api/option-contract/TSLA260515C00450000/volume-profile",
+      "sample_query": [
+        [
+          "date",
+          "2026-05-14"
+        ]
+      ],
+      "status_code": 200,
+      "summary": "Volume Profile",
+      "tags": [
+        "option-contract"
+      ]
+    },
+    {
+      "access_result": "accessible",
+      "backfill_hint": "historical-selector",
+      "body_kind": "object:data-list",
+      "data_count": 1,
+      "docs_entitlement_hint": "websocket-docs",
+      "elapsed_ms": 200.5,
+      "error": null,
+      "historical_params": [
+        "newer_than",
+        "older_than"
+      ],
+      "message": null,
+      "method": "GET",
+      "operation_id": "PublicApi.OptionTradeController.flow_alerts",
+      "path": "/api/option-trades/flow-alerts",
+      "required_path_params": [],
+      "required_query_params": [],
+      "sample_keys": [
+        "alert_rule",
+        "all_opening_trades",
+        "ask",
+        "bid",
+        "created_at",
+        "end_time",
+        "er_time",
+        "expiry",
+        "expiry_count",
+        "has_floor",
+        "has_multileg",
+        "has_singleleg",
+        "has_sweep",
+        "id",
+        "issue_type",
+        "iv_end"
+      ],
+      "sample_notes": [],
+      "sample_path": "/api/option-trades/flow-alerts",
+      "sample_query": [
+        [
+          "limit",
+          1
+        ]
+      ],
+      "status_code": 200,
+      "summary": "Flow Alerts",
+      "tags": [
+        "option-trade"
+      ]
+    },
+    {
+      "access_result": "accessible",
+      "backfill_hint": "historical-selector",
+      "body_kind": "object",
+      "data_count": null,
+      "docs_entitlement_hint": "not-marked",
+      "elapsed_ms": 209.0,
+      "error": null,
+      "historical_params": [
+        "older_than"
+      ],
+      "message": null,
+      "method": "GET",
+      "operation_id": "PublicApi.OptionTradeController.flow_alert",
+      "path": "/api/option-trades/flow-alerts/{id}",
+      "required_path_params": [
+        "id"
+      ],
+      "required_query_params": [],
+      "sample_keys": [
+        "alert",
+        "has_more",
+        "trades"
+      ],
+      "sample_notes": [],
+      "sample_path": "/api/option-trades/flow-alerts/f4b3db59-856f-4827-a3b9-9806b2729056",
+      "sample_query": [],
+      "status_code": 200,
+      "summary": "Flow Alert by ID",
+      "tags": [
+        "option-trade"
+      ]
+    },
+    {
+      "access_result": "gated",
+      "backfill_hint": "archive-gated",
+      "body_kind": "object",
+      "data_count": null,
+      "docs_entitlement_hint": "advanced-docs",
+      "elapsed_ms": 199.8,
+      "error": null,
+      "historical_params": [
+        "date"
+      ],
+      "message": "Missing access for full tape. This endpoint is available with the API Advanced subscription: https://unusualwhales.com/checkout?plan=api_advanced&interval=monthly&utm_source=api&utm_campaign=json_msg",
+      "method": "GET",
+      "operation_id": "PublicApi.OptionTradeController.full_tape",
+      "path": "/api/option-trades/full-tape/{date}",
+      "required_path_params": [
+        "date"
+      ],
+      "required_query_params": [],
+      "sample_keys": [
+        "msg",
+        "path",
+        "query",
+        "url"
+      ],
+      "sample_notes": [],
+      "sample_path": "/api/option-trades/full-tape/2026-05-14",
+      "sample_query": [],
+      "status_code": 422,
+      "summary": "Full Tape",
+      "tags": [
+        "option-trade"
+      ]
+    },
+    {
+      "access_result": "gated",
+      "backfill_hint": "snapshot-or-reference",
+      "body_kind": "object",
+      "data_count": null,
+      "docs_entitlement_hint": "enterprise-docs",
+      "elapsed_ms": 204.0,
+      "error": null,
+      "historical_params": [],
+      "message": "Missing access for politician ports. This is an enterprise only endpoint. Contact dev@unusualwhales.com",
+      "method": "GET",
+      "operation_id": "PublicApi.PoliticianPortfoliosController.disclosures",
+      "path": "/api/politician-portfolios/disclosures",
+      "required_path_params": [],
+      "required_query_params": [],
+      "sample_keys": [
+        "msg",
+        "path",
+        "query",
+        "url"
+      ],
+      "sample_notes": [],
+      "sample_path": "/api/politician-portfolios/disclosures",
+      "sample_query": [],
+      "status_code": 422,
+      "summary": "Annual Disclosures List",
+      "tags": [
+        "politician_portfolios"
+      ]
+    },
+    {
+      "access_result": "gated",
+      "backfill_hint": "snapshot-or-reference",
+      "body_kind": "object",
+      "data_count": null,
+      "docs_entitlement_hint": "enterprise-docs",
+      "elapsed_ms": 197.2,
+      "error": null,
+      "historical_params": [],
+      "message": "Missing access for politician ports. This is an enterprise only endpoint. Contact dev@unusualwhales.com",
+      "method": "GET",
+      "operation_id": "PublicApi.PoliticianPortfoliosController.holds_ticker",
+      "path": "/api/politician-portfolios/holders/{ticker}",
+      "required_path_params": [
+        "ticker"
+      ],
+      "required_query_params": [],
+      "sample_keys": [
+        "msg",
+        "path",
+        "query",
+        "url"
+      ],
+      "sample_notes": [],
+      "sample_path": "/api/politician-portfolios/holders/TSLA",
+      "sample_query": [],
+      "status_code": 422,
+      "summary": "Politician Portfolio Holders by Ticker",
+      "tags": [
+        "politician_portfolios"
+      ]
+    },
+    {
+      "access_result": "gated",
+      "backfill_hint": "snapshot-or-reference",
+      "body_kind": "object",
+      "data_count": null,
+      "docs_entitlement_hint": "enterprise-docs",
+      "elapsed_ms": 196.4,
+      "error": null,
+      "historical_params": [],
+      "message": "Missing access for politician ports. This is an enterprise only endpoint. Contact dev@unusualwhales.com",
+      "method": "GET",
+      "operation_id": "PublicApi.PoliticianPortfoliosController.people",
+      "path": "/api/politician-portfolios/people",
+      "required_path_params": [],
+      "required_query_params": [],
+      "sample_keys": [
+        "msg",
+        "path",
+        "query",
+        "url"
+      ],
+      "sample_notes": [],
+      "sample_path": "/api/politician-portfolios/people",
+      "sample_query": [],
+      "status_code": 422,
+      "summary": "Politicians List",
+      "tags": [
+        "politician_portfolios"
+      ]
+    },
+    {
+      "access_result": "accessible",
+      "backfill_hint": "historical-selector",
+      "body_kind": "object:data-list",
+      "data_count": 1,
+      "docs_entitlement_hint": "enterprise-docs",
+      "elapsed_ms": 246.0,
+      "error": null,
+      "historical_params": [
+        "date"
+      ],
+      "message": null,
+      "method": "GET",
+      "operation_id": "PublicApi.PoliticianPortfoliosController.recent_trades",
+      "path": "/api/politician-portfolios/recent_trades",
+      "required_path_params": [],
+      "required_query_params": [],
+      "sample_keys": [
+        "amounts",
+        "filed_at_date",
+        "is_active",
+        "issuer",
+        "member_type",
+        "name",
+        "notes",
+        "politician_id",
+        "reporter",
+        "security_type",
+        "ticker",
+        "transaction_date",
+        "txn_type"
+      ],
+      "sample_notes": [],
+      "sample_path": "/api/politician-portfolios/recent_trades",
+      "sample_query": [
+        [
+          "limit",
+          1
+        ],
+        [
+          "date",
+          "2026-05-14"
+        ]
+      ],
+      "status_code": 200,
+      "summary": "Politician Trades",
+      "tags": [
+        "politician_portfolios"
+      ]
+    },
+    {
+      "access_result": "gated",
+      "backfill_hint": "snapshot-or-reference",
+      "body_kind": "object",
+      "data_count": null,
+      "docs_entitlement_hint": "enterprise-docs",
+      "elapsed_ms": 201.3,
+      "error": null,
+      "historical_params": [],
+      "message": "Missing access for politician ports. This is an enterprise only endpoint. Contact dev@unusualwhales.com",
+      "method": "GET",
+      "operation_id": "PublicApi.PoliticianPortfoliosController.portfolios",
+      "path": "/api/politician-portfolios/{politician_id}",
+      "required_path_params": [
+        "politician_id"
+      ],
+      "required_query_params": [],
+      "sample_keys": [
+        "msg",
+        "path",
+        "query",
+        "url"
+      ],
+      "sample_notes": [],
+      "sample_path": "/api/politician-portfolios/e138f347-ae92-4cfb-8f41-7036ff09a213",
+      "sample_query": [],
+      "status_code": 422,
+      "summary": "Politician Portfolios",
+      "tags": [
+        "politician_portfolios"
+      ]
+    },
+    {
+      "access_result": "accessible",
+      "backfill_hint": "snapshot-or-reference",
+      "body_kind": "object:data-object",
+      "data_count": null,
+      "docs_entitlement_hint": "not-marked",
+      "elapsed_ms": 335.8,
+      "error": null,
+      "historical_params": [],
+      "message": null,
+      "method": "GET",
+      "operation_id": "PublicApi.PredictionController.insiders",
+      "path": "/api/predictions/insiders",
+      "required_path_params": [],
+      "required_query_params": [],
+      "sample_keys": [
+        "categories",
+        "data",
+        "tag_info"
+      ],
+      "sample_notes": [],
+      "sample_path": "/api/predictions/insiders",
+      "sample_query": [],
+      "status_code": 200,
+      "summary": "Prediction Market Insiders",
+      "tags": [
+        "predictions"
+      ]
+    },
+    {
+      "access_result": "accessible",
+      "backfill_hint": "snapshot-or-reference",
+      "body_kind": "object:data-object",
+      "data_count": null,
+      "docs_entitlement_hint": "not-marked",
+      "elapsed_ms": 1012.9,
+      "error": null,
+      "historical_params": [],
+      "message": null,
+      "method": "GET",
+      "operation_id": "PublicApi.PredictionController.market",
+      "path": "/api/predictions/market/{asset_id}",
+      "required_path_params": [
+        "asset_id"
+      ],
+      "required_query_params": [],
+      "sample_keys": [
+        "active",
+        "asset_id",
+        "category",
+        "closed",
+        "contrarian_whale_trades",
+        "description",
+        "end_date",
+        "image",
+        "insiders",
+        "liquidity",
+        "mci",
+        "outcome_assets",
+        "outcome_index",
+        "outcomes",
+        "question",
+        "question_type"
+      ],
+      "sample_notes": [],
+      "sample_path": "/api/predictions/market/59252515735652674747158950210016502214756531287333895140318848923768750410355",
+      "sample_query": [],
+      "status_code": 200,
+      "summary": "Prediction Market Details",
+      "tags": [
+        "predictions"
+      ]
+    },
+    {
+      "access_result": "accessible",
+      "backfill_hint": "snapshot-or-reference",
+      "body_kind": "object:data-object",
+      "data_count": null,
+      "docs_entitlement_hint": "not-marked",
+      "elapsed_ms": 212.5,
+      "error": null,
+      "historical_params": [],
+      "message": null,
+      "method": "GET",
+      "operation_id": "PublicApi.PredictionController.liquidity",
+      "path": "/api/predictions/market/{asset_id}/liquidity",
+      "required_path_params": [
+        "asset_id"
+      ],
+      "required_query_params": [],
+      "sample_keys": [
+        "ask_liquidity",
+        "asks",
+        "asset_id",
+        "best_ask",
+        "best_bid",
+        "bid_liquidity",
+        "bids",
+        "mid_price",
+        "spread",
+        "timestamp",
+        "total_liquidity"
+      ],
+      "sample_notes": [],
+      "sample_path": "/api/predictions/market/59252515735652674747158950210016502214756531287333895140318848923768750410355/liquidity",
+      "sample_query": [],
+      "status_code": 200,
+      "summary": "Prediction Market Liquidity",
+      "tags": [
+        "predictions"
+      ]
+    },
+    {
+      "access_result": "accessible",
+      "backfill_hint": "snapshot-or-reference",
+      "body_kind": "object:data-list",
+      "data_count": 50,
+      "docs_entitlement_hint": "not-marked",
+      "elapsed_ms": 4724.2,
+      "error": null,
+      "historical_params": [],
+      "message": null,
+      "method": "GET",
+      "operation_id": "PublicApi.PredictionController.positions",
+      "path": "/api/predictions/market/{asset_id}/positions",
+      "required_path_params": [
+        "asset_id"
+      ],
+      "required_query_params": [],
+      "sample_keys": [
+        "amount",
+        "avg_price",
+        "category_num_markets",
+        "category_score",
+        "category_sum_invested",
+        "category_sum_pnl",
+        "category_win_rate",
+        "invested_usd",
+        "position_start_at",
+        "realized_pnl",
+        "smart_score",
+        "tags",
+        "total_bought",
+        "total_invested_usd",
+        "updated_at",
+        "user_address"
+      ],
+      "sample_notes": [],
+      "sample_path": "/api/predictions/market/59252515735652674747158950210016502214756531287333895140318848923768750410355/positions",
+      "sample_query": [],
+      "status_code": 200,
+      "summary": "Prediction Market Positions",
+      "tags": [
+        "predictions"
+      ]
+    },
+    {
+      "access_result": "accessible",
+      "backfill_hint": "snapshot-or-reference",
+      "body_kind": "object:data-list",
+      "data_count": 5,
+      "docs_entitlement_hint": "not-marked",
+      "elapsed_ms": 498.4,
+      "error": null,
+      "historical_params": [],
+      "message": null,
+      "method": "GET",
+      "operation_id": "PublicApi.PredictionController.search_users",
+      "path": "/api/predictions/search-users",
+      "required_path_params": [],
+      "required_query_params": [
+        "q"
+      ],
+      "sample_keys": [
+        "address",
+        "name"
+      ],
+      "sample_notes": [],
+      "sample_path": "/api/predictions/search-users",
+      "sample_query": [
+        [
+          "q",
+          "trump"
+        ]
+      ],
+      "status_code": 200,
+      "summary": "Search Prediction Market Users",
+      "tags": [
+        "predictions"
+      ]
+    },
+    {
+      "access_result": "accessible",
+      "backfill_hint": "snapshot-or-reference",
+      "body_kind": "object:data-object",
+      "data_count": null,
+      "docs_entitlement_hint": "not-marked",
+      "elapsed_ms": 322.7,
+      "error": null,
+      "historical_params": [],
+      "message": null,
+      "method": "GET",
+      "operation_id": "PublicApi.PredictionController.smart_money",
+      "path": "/api/predictions/smart-money",
+      "required_path_params": [],
+      "required_query_params": [],
+      "sample_keys": [
+        "categories",
+        "data"
+      ],
+      "sample_notes": [],
+      "sample_path": "/api/predictions/smart-money",
+      "sample_query": [],
+      "status_code": 200,
+      "summary": "Prediction Smart Money",
+      "tags": [
+        "predictions"
+      ]
+    },
+    {
+      "access_result": "accessible",
+      "backfill_hint": "snapshot-or-reference",
+      "body_kind": "object:data-object",
+      "data_count": null,
+      "docs_entitlement_hint": "not-marked",
+      "elapsed_ms": 224.6,
+      "error": null,
+      "historical_params": [],
+      "message": null,
+      "method": "GET",
+      "operation_id": "PublicApi.PredictionController.unusual",
+      "path": "/api/predictions/unusual",
+      "required_path_params": [],
+      "required_query_params": [],
+      "sample_keys": [
+        "categories",
+        "data"
+      ],
+      "sample_notes": [],
+      "sample_path": "/api/predictions/unusual",
+      "sample_query": [
+        [
+          "limit",
+          1
+        ]
+      ],
+      "status_code": 200,
+      "summary": "Unusual Prediction Markets",
+      "tags": [
+        "predictions"
+      ]
+    },
+    {
+      "access_result": "sample-invalid",
+      "backfill_hint": "snapshot-or-reference",
+      "body_kind": "object",
+      "data_count": null,
+      "docs_entitlement_hint": "not-marked",
+      "elapsed_ms": 214.2,
+      "error": null,
+      "historical_params": [],
+      "message": "HashDive API error: 400",
+      "method": "GET",
+      "operation_id": "PublicApi.PredictionController.user",
+      "path": "/api/predictions/user/{user_id}",
+      "required_path_params": [
+        "user_id"
+      ],
+      "required_query_params": [],
+      "sample_keys": [
+        "error"
+      ],
+      "sample_notes": [],
+      "sample_path": "/api/predictions/user/polymarket",
+      "sample_query": [],
+      "status_code": 422,
+      "summary": "Prediction Market User",
+      "tags": [
+        "predictions"
+      ]
+    },
+    {
+      "access_result": "accessible",
+      "backfill_hint": "snapshot-or-reference",
+      "body_kind": "object:data-object",
+      "data_count": null,
+      "docs_entitlement_hint": "not-marked",
+      "elapsed_ms": 861.7,
+      "error": null,
+      "historical_params": [],
+      "message": null,
+      "method": "GET",
+      "operation_id": "PublicApi.PredictionController.whales",
+      "path": "/api/predictions/whales",
+      "required_path_params": [],
+      "required_query_params": [],
+      "sample_keys": [
+        "categories",
+        "data"
+      ],
+      "sample_notes": [],
+      "sample_path": "/api/predictions/whales",
+      "sample_query": [],
+      "status_code": 200,
+      "summary": "Prediction Market Whales",
+      "tags": [
+        "predictions"
+      ]
+    },
+    {
+      "access_result": "gated",
+      "backfill_hint": "snapshot-or-reference",
+      "body_kind": "object",
+      "data_count": null,
+      "docs_entitlement_hint": "premium-docs",
+      "elapsed_ms": 198.0,
+      "error": null,
+      "historical_params": [],
+      "message": "Missing access for private markets. This is a premium endpoint. Contact dev@unusualwhales.com",
+      "method": "GET",
+      "operation_id": "PublicApi.PrivateMarketsController.companies",
+      "path": "/api/private-markets/companies",
+      "required_path_params": [],
+      "required_query_params": [],
+      "sample_keys": [
+        "msg",
+        "path",
+        "query",
+        "url"
+      ],
+      "sample_notes": [],
+      "sample_path": "/api/private-markets/companies",
+      "sample_query": [
+        [
+          "limit",
+          1
+        ]
+      ],
+      "status_code": 422,
+      "summary": "List Private Markets Companies",
+      "tags": [
+        "private_markets"
+      ]
+    },
+    {
+      "access_result": "gated",
+      "backfill_hint": "snapshot-or-reference",
+      "body_kind": "object",
+      "data_count": null,
+      "docs_entitlement_hint": "premium-docs",
+      "elapsed_ms": 201.0,
+      "error": null,
+      "historical_params": [],
+      "message": "Missing access for private markets. This is a premium endpoint. Contact dev@unusualwhales.com",
+      "method": "GET",
+      "operation_id": "PublicApi.PrivateMarketsController.company_profile",
+      "path": "/api/private-markets/companies/{npm_ticker}",
+      "required_path_params": [
+        "npm_ticker"
+      ],
+      "required_query_params": [],
+      "sample_keys": [
+        "msg",
+        "path",
+        "query",
+        "url"
+      ],
+      "sample_notes": [],
+      "sample_path": "/api/private-markets/companies/STRIPE",
+      "sample_query": [],
+      "status_code": 422,
+      "summary": "Private Markets Company Profile",
+      "tags": [
+        "private_markets"
+      ]
+    },
+    {
+      "access_result": "gated",
+      "backfill_hint": "snapshot-or-reference",
+      "body_kind": "object",
+      "data_count": null,
+      "docs_entitlement_hint": "premium-docs",
+      "elapsed_ms": 196.8,
+      "error": null,
+      "historical_params": [],
+      "message": "Missing access for private markets. This is a premium endpoint. Contact dev@unusualwhales.com",
+      "method": "GET",
+      "operation_id": "PublicApi.PrivateMarketsController.funding",
+      "path": "/api/private-markets/companies/{npm_ticker}/funding",
+      "required_path_params": [
+        "npm_ticker"
+      ],
+      "required_query_params": [],
+      "sample_keys": [
+        "msg",
+        "path",
+        "query",
+        "url"
+      ],
+      "sample_notes": [],
+      "sample_path": "/api/private-markets/companies/STRIPE/funding",
+      "sample_query": [
+        [
+          "limit",
+          1
+        ]
+      ],
+      "status_code": 422,
+      "summary": "Private Markets Funding Rounds",
+      "tags": [
+        "private_markets"
+      ]
+    },
+    {
+      "access_result": "gated",
+      "backfill_hint": "snapshot-or-reference",
+      "body_kind": "object",
+      "data_count": null,
+      "docs_entitlement_hint": "premium-docs",
+      "elapsed_ms": 213.4,
+      "error": null,
+      "historical_params": [],
+      "message": "Missing access for private markets. This is a premium endpoint. Contact dev@unusualwhales.com",
+      "method": "GET",
+      "operation_id": "PublicApi.PrivateMarketsController.investors",
+      "path": "/api/private-markets/companies/{npm_ticker}/investors",
+      "required_path_params": [
+        "npm_ticker"
+      ],
+      "required_query_params": [],
+      "sample_keys": [
+        "msg",
+        "path",
+        "query",
+        "url"
+      ],
+      "sample_notes": [],
+      "sample_path": "/api/private-markets/companies/STRIPE/investors",
+      "sample_query": [
+        [
+          "limit",
+          1
+        ]
+      ],
+      "status_code": 422,
+      "summary": "Private Markets Investors for Company",
+      "tags": [
+        "private_markets"
+      ]
+    },
+    {
+      "access_result": "gated",
+      "backfill_hint": "snapshot-or-reference",
+      "body_kind": "object",
+      "data_count": null,
+      "docs_entitlement_hint": "premium-docs",
+      "elapsed_ms": 207.3,
+      "error": null,
+      "historical_params": [],
+      "message": "Missing access for private markets. This is a premium endpoint. Contact dev@unusualwhales.com",
+      "method": "GET",
+      "operation_id": "PublicApi.PrivateMarketsController.management",
+      "path": "/api/private-markets/companies/{npm_ticker}/management",
+      "required_path_params": [
+        "npm_ticker"
+      ],
+      "required_query_params": [],
+      "sample_keys": [
+        "msg",
+        "path",
+        "query",
+        "url"
+      ],
+      "sample_notes": [],
+      "sample_path": "/api/private-markets/companies/STRIPE/management",
+      "sample_query": [
+        [
+          "limit",
+          1
+        ]
+      ],
+      "status_code": 422,
+      "summary": "Private Markets Management",
+      "tags": [
+        "private_markets"
+      ]
+    },
+    {
+      "access_result": "gated",
+      "backfill_hint": "historical-selector",
+      "body_kind": "object",
+      "data_count": null,
+      "docs_entitlement_hint": "premium-docs",
+      "elapsed_ms": 198.6,
+      "error": null,
+      "historical_params": [
+        "start_date",
+        "end_date"
+      ],
+      "message": "Missing access for private markets. This is a premium endpoint. Contact dev@unusualwhales.com",
+      "method": "GET",
+      "operation_id": "PublicApi.PrivateMarketsController.pricing",
+      "path": "/api/private-markets/companies/{npm_ticker}/pricing",
+      "required_path_params": [
+        "npm_ticker"
+      ],
+      "required_query_params": [],
+      "sample_keys": [
+        "msg",
+        "path",
+        "query",
+        "url"
+      ],
+      "sample_notes": [],
+      "sample_path": "/api/private-markets/companies/STRIPE/pricing",
+      "sample_query": [
+        [
+          "start_date",
+          "2026-04-14"
+        ],
+        [
+          "end_date",
+          "2026-05-14"
+        ],
+        [
+          "limit",
+          1
+        ]
+      ],
+      "status_code": 422,
+      "summary": "Private Markets Pricing History",
+      "tags": [
+        "private_markets"
+      ]
+    },
+    {
+      "access_result": "gated",
+      "backfill_hint": "snapshot-or-reference",
+      "body_kind": "object",
+      "data_count": null,
+      "docs_entitlement_hint": "premium-docs",
+      "elapsed_ms": 204.4,
+      "error": null,
+      "historical_params": [],
+      "message": "Missing access for private markets. This is a premium endpoint. Contact dev@unusualwhales.com",
+      "method": "GET",
+      "operation_id": "PublicApi.PrivateMarketsController.top_investors",
+      "path": "/api/private-markets/investors",
+      "required_path_params": [],
+      "required_query_params": [],
+      "sample_keys": [
+        "msg",
+        "path",
+        "query",
+        "url"
+      ],
+      "sample_notes": [],
+      "sample_path": "/api/private-markets/investors",
+      "sample_query": [
+        [
+          "limit",
+          1
+        ]
+      ],
+      "status_code": 422,
+      "summary": "Top Private Markets Investors",
+      "tags": [
+        "private_markets"
+      ]
+    },
+    {
+      "access_result": "gated",
+      "backfill_hint": "snapshot-or-reference",
+      "body_kind": "object",
+      "data_count": null,
+      "docs_entitlement_hint": "premium-docs",
+      "elapsed_ms": 198.9,
+      "error": null,
+      "historical_params": [],
+      "message": "Missing access for private markets. This is a premium endpoint. Contact dev@unusualwhales.com",
+      "method": "GET",
+      "operation_id": "PublicApi.PrivateMarketsController.investor_profile",
+      "path": "/api/private-markets/investors/{name}",
+      "required_path_params": [
+        "name"
+      ],
+      "required_query_params": [],
+      "sample_keys": [
+        "msg",
+        "path",
+        "query",
+        "url"
+      ],
+      "sample_notes": [],
+      "sample_path": "/api/private-markets/investors/Berkshire%20Hathaway%20Inc",
+      "sample_query": [],
+      "status_code": 422,
+      "summary": "Private Markets Investor Profile",
+      "tags": [
+        "private_markets"
+      ]
+    },
+    {
+      "access_result": "gated",
+      "backfill_hint": "snapshot-or-reference",
+      "body_kind": "object",
+      "data_count": null,
+      "docs_entitlement_hint": "premium-docs",
+      "elapsed_ms": 204.7,
+      "error": null,
+      "historical_params": [],
+      "message": "Missing access for private markets. This is a premium endpoint. Contact dev@unusualwhales.com",
+      "method": "GET",
+      "operation_id": "PublicApi.PrivateMarketsController.search",
+      "path": "/api/private-markets/search",
+      "required_path_params": [],
+      "required_query_params": [
+        "query"
+      ],
+      "sample_keys": [
+        "msg",
+        "path",
+        "query",
+        "url"
+      ],
+      "sample_notes": [],
+      "sample_path": "/api/private-markets/search",
+      "sample_query": [
+        [
+          "query",
+          "stripe"
+        ],
+        [
+          "limit",
+          1
+        ]
+      ],
+      "status_code": 422,
+      "summary": "Search Private Markets",
+      "tags": [
+        "private_markets"
+      ]
+    },
+    {
+      "access_result": "accessible",
+      "backfill_hint": "snapshot-or-reference",
+      "body_kind": "object:data-list",
+      "data_count": 1,
+      "docs_entitlement_hint": "not-marked",
+      "elapsed_ms": 200.7,
+      "error": null,
+      "historical_params": [],
+      "message": null,
+      "method": "GET",
+      "operation_id": "PublicApi.ScreenerController.analyst_ratings",
+      "path": "/api/screener/analysts",
+      "required_path_params": [],
+      "required_query_params": [],
+      "sample_keys": [
+        "action",
+        "analyst_name",
+        "firm",
+        "recommendation",
+        "sector",
+        "target",
+        "ticker",
+        "timestamp"
+      ],
+      "sample_notes": [],
+      "sample_path": "/api/screener/analysts",
+      "sample_query": [
+        [
+          "limit",
+          1
+        ]
+      ],
+      "status_code": 200,
+      "summary": "Analyst Rating",
+      "tags": [
+        "screener"
+      ]
+    },
+    {
+      "access_result": "accessible",
+      "backfill_hint": "snapshot-or-current-chain",
+      "body_kind": "object:data-list",
+      "data_count": 1,
+      "docs_entitlement_hint": "websocket-docs",
+      "elapsed_ms": 212.2,
+      "error": null,
+      "historical_params": [
+        "date"
+      ],
+      "message": null,
+      "method": "GET",
+      "operation_id": "PublicApi.ScreenerController.contract_screener",
+      "path": "/api/screener/option-contracts",
+      "required_path_params": [],
+      "required_query_params": [],
+      "sample_keys": [
+        "ask_side_perc_7_day",
+        "ask_side_volume",
+        "avg_price",
+        "bid_side_perc_7_day",
+        "bid_side_volume",
+        "chain_prev_close",
+        "close",
+        "cross_volume",
+        "days_of_oi_increases",
+        "days_of_vol_greater_than_oi",
+        "delta",
+        "er_time",
+        "floor_volume",
+        "gamma",
+        "high",
+        "is_new"
+      ],
+      "sample_notes": [],
+      "sample_path": "/api/screener/option-contracts",
+      "sample_query": [
+        [
+          "limit",
+          1
+        ],
+        [
+          "date",
+          "2026-05-14"
+        ]
+      ],
+      "status_code": 200,
+      "summary": "Hottest Chains",
+      "tags": [
+        "screener"
+      ]
+    },
+    {
+      "access_result": "accessible",
+      "backfill_hint": "historical-selector",
+      "body_kind": "object:data-list",
+      "data_count": 50,
+      "docs_entitlement_hint": "not-marked",
+      "elapsed_ms": 256.0,
+      "error": null,
+      "historical_params": [
+        "date"
+      ],
+      "message": null,
+      "method": "GET",
+      "operation_id": "PublicApi.ScreenerController.stock_screener",
+      "path": "/api/screener/stocks",
+      "required_path_params": [],
+      "required_query_params": [],
+      "sample_keys": [
+        "avg30_volume",
+        "avg_30_day_call_oi",
+        "avg_30_day_call_volume",
+        "avg_30_day_put_oi",
+        "avg_30_day_put_volume",
+        "avg_3_day_call_volume",
+        "avg_3_day_put_volume",
+        "avg_7_day_call_volume",
+        "avg_7_day_put_volume",
+        "bearish_premium",
+        "bullish_premium",
+        "call_open_interest",
+        "call_premium",
+        "call_volume",
+        "call_volume_ask_side",
+        "call_volume_bid_side"
+      ],
+      "sample_notes": [],
+      "sample_path": "/api/screener/stocks",
+      "sample_query": [
+        [
+          "date",
+          "2026-05-14"
+        ]
+      ],
+      "status_code": 200,
+      "summary": "Stock Screener",
+      "tags": [
+        "screener"
+      ]
+    },
+    {
+      "access_result": "accessible",
+      "backfill_hint": "snapshot-or-reference",
+      "body_kind": "object:data-list",
+      "data_count": 168,
+      "docs_entitlement_hint": "not-marked",
+      "elapsed_ms": 209.1,
+      "error": null,
+      "historical_params": [],
+      "message": null,
+      "method": "GET",
+      "operation_id": "PublicApi.SeasonalityController.market_seasonality",
+      "path": "/api/seasonality/market",
+      "required_path_params": [],
+      "required_query_params": [],
+      "sample_keys": [
+        "avg_change",
+        "max_change",
+        "median_change",
+        "min_change",
+        "month",
+        "positive_closes",
+        "positive_months_perc",
+        "ticker",
+        "years"
+      ],
+      "sample_notes": [],
+      "sample_path": "/api/seasonality/market",
+      "sample_query": [],
+      "status_code": 200,
+      "summary": "Market Seasonality",
+      "tags": [
+        "seasonality"
+      ]
+    },
+    {
+      "access_result": "accessible",
+      "backfill_hint": "snapshot-or-reference",
+      "body_kind": "object:data-list",
+      "data_count": 1,
+      "docs_entitlement_hint": "not-marked",
+      "elapsed_ms": 213.4,
+      "error": null,
+      "historical_params": [],
+      "message": null,
+      "method": "GET",
+      "operation_id": "PublicApi.SeasonalityController.month_performers",
+      "path": "/api/seasonality/{month}/performers",
+      "required_path_params": [
+        "month"
+      ],
+      "required_query_params": [],
+      "sample_keys": [
+        "avg_change",
+        "marketcap",
+        "max_change",
+        "median_change",
+        "min_change",
+        "month",
+        "positive_closes",
+        "positive_months_perc",
+        "sector",
+        "ticker",
+        "years"
+      ],
+      "sample_notes": [],
+      "sample_path": "/api/seasonality/5/performers",
+      "sample_query": [
+        [
+          "limit",
+          1
+        ]
+      ],
+      "status_code": 200,
+      "summary": "Month Performers",
+      "tags": [
+        "seasonality"
+      ]
+    },
+    {
+      "access_result": "accessible",
+      "backfill_hint": "snapshot-or-reference",
+      "body_kind": "object:data-list",
+      "data_count": 12,
+      "docs_entitlement_hint": "not-marked",
+      "elapsed_ms": 212.4,
+      "error": null,
+      "historical_params": [],
+      "message": null,
+      "method": "GET",
+      "operation_id": "PublicApi.SeasonalityController.monthly",
+      "path": "/api/seasonality/{ticker}/monthly",
+      "required_path_params": [
+        "ticker"
+      ],
+      "required_query_params": [],
+      "sample_keys": [
+        "avg_change",
+        "marketcap",
+        "max_change",
+        "median_change",
+        "min_change",
+        "month",
+        "positive_closes",
+        "positive_months_perc",
+        "sector",
+        "ticker",
+        "years"
+      ],
+      "sample_notes": [],
+      "sample_path": "/api/seasonality/TSLA/monthly",
+      "sample_query": [],
+      "status_code": 200,
+      "summary": "Average return per month",
+      "tags": [
+        "seasonality"
+      ]
+    },
+    {
+      "access_result": "accessible",
+      "backfill_hint": "snapshot-or-reference",
+      "body_kind": "object:data-list",
+      "data_count": 191,
+      "docs_entitlement_hint": "not-marked",
+      "elapsed_ms": 203.1,
+      "error": null,
+      "historical_params": [],
+      "message": null,
+      "method": "GET",
+      "operation_id": "PublicApi.SeasonalityController.year_month",
+      "path": "/api/seasonality/{ticker}/year-month",
+      "required_path_params": [
+        "ticker"
+      ],
+      "required_query_params": [],
+      "sample_keys": [
+        "change",
+        "close",
+        "month",
+        "open",
+        "year"
+      ],
+      "sample_notes": [],
+      "sample_path": "/api/seasonality/TSLA/year-month",
+      "sample_query": [],
+      "status_code": 200,
+      "summary": "Price change per month per year",
+      "tags": [
+        "seasonality"
+      ]
+    },
+    {
+      "access_result": "accessible",
+      "backfill_hint": "snapshot-or-reference",
+      "body_kind": "object:data-list",
+      "data_count": 50,
+      "docs_entitlement_hint": "not-marked",
+      "elapsed_ms": 217.6,
+      "error": null,
+      "historical_params": [],
+      "message": null,
+      "method": "GET",
+      "operation_id": "PublicApi.ShortController.short_screener",
+      "path": "/api/short_screener",
+      "required_path_params": [],
+      "required_query_params": [],
+      "sample_keys": [
+        "days_to_cover",
+        "fee_rate",
+        "market_date",
+        "rebate_rate",
+        "short_interest",
+        "short_shares_available",
+        "si_float",
+        "si_float_with_synth_long_pct_of_total_shares",
+        "symbol",
+        "total_float"
+      ],
+      "sample_notes": [],
+      "sample_path": "/api/short_screener",
+      "sample_query": [
+        [
+          "limit",
+          1
+        ]
+      ],
+      "status_code": 200,
+      "summary": "Short Screener",
+      "tags": [
+        "short"
+      ]
+    },
+    {
+      "access_result": "accessible",
+      "backfill_hint": "historical-selector",
+      "body_kind": "object:data-list",
+      "data_count": 1000,
+      "docs_entitlement_hint": "not-marked",
+      "elapsed_ms": 234.1,
+      "error": null,
+      "historical_params": [
+        "newer_than",
+        "older_than"
+      ],
+      "message": null,
+      "method": "GET",
+      "operation_id": "PublicApi.ShortController.short_data",
+      "path": "/api/shorts/{ticker}/data",
+      "required_path_params": [
+        "ticker"
+      ],
+      "required_query_params": [],
+      "sample_keys": [
+        "fee_rate",
+        "name",
+        "rebate_rate",
+        "short_shares_available",
+        "symbol",
+        "timestamp"
+      ],
+      "sample_notes": [],
+      "sample_path": "/api/shorts/TSLA/data",
+      "sample_query": [],
+      "status_code": 200,
+      "summary": "Short Data",
+      "tags": [
+        "short"
+      ]
+    },
+    {
+      "access_result": "accessible",
+      "backfill_hint": "snapshot-or-reference",
+      "body_kind": "object:data-list",
+      "data_count": 728,
+      "docs_entitlement_hint": "not-marked",
+      "elapsed_ms": 209.3,
+      "error": null,
+      "historical_params": [],
+      "message": null,
+      "method": "GET",
+      "operation_id": "PublicApi.ShortController.failures_to_deliver",
+      "path": "/api/shorts/{ticker}/ftds",
+      "required_path_params": [
+        "ticker"
+      ],
+      "required_query_params": [],
+      "sample_keys": [
+        "date",
+        "price",
+        "quantity"
+      ],
+      "sample_notes": [],
+      "sample_path": "/api/shorts/TSLA/ftds",
+      "sample_query": [],
+      "status_code": 200,
+      "summary": "Failures to Deliver",
+      "tags": [
+        "short"
+      ]
+    },
+    {
+      "access_result": "accessible",
+      "backfill_hint": "snapshot-or-reference",
+      "body_kind": "object:data-list",
+      "data_count": 19,
+      "docs_entitlement_hint": "not-marked",
+      "elapsed_ms": 208.4,
+      "error": null,
+      "historical_params": [],
+      "message": null,
+      "method": "GET",
+      "operation_id": "PublicApi.ShortController.short_interest_and_float",
+      "path": "/api/shorts/{ticker}/interest-float",
+      "required_path_params": [
+        "ticker"
+      ],
+      "required_query_params": [],
+      "sample_keys": [
+        "created_at",
+        "days_to_cover_returned",
+        "market_date",
+        "percent_returned",
+        "si_float_returned",
+        "symbol",
+        "total_float_returned"
+      ],
+      "sample_notes": [],
+      "sample_path": "/api/shorts/TSLA/interest-float",
+      "sample_query": [],
+      "status_code": 200,
+      "summary": "V1 Short Interest and Float (Deprecated)",
+      "tags": [
+        "short"
+      ]
+    },
+    {
+      "access_result": "accessible",
+      "backfill_hint": "snapshot-or-reference",
+      "body_kind": "object:data-list",
+      "data_count": 117,
+      "docs_entitlement_hint": "not-marked",
+      "elapsed_ms": 211.1,
+      "error": null,
+      "historical_params": [],
+      "message": null,
+      "method": "GET",
+      "operation_id": "PublicApi.ShortController.short_interest_and_float_v2",
+      "path": "/api/shorts/{ticker}/interest-float/v2",
+      "required_path_params": [
+        "ticker"
+      ],
+      "required_query_params": [],
+      "sample_keys": [
+        "days_to_cover",
+        "fee_rate",
+        "market_date",
+        "rebate_rate",
+        "short_interest",
+        "short_shares_available",
+        "si_float",
+        "si_float_with_synth_long_pct_of_total_shares",
+        "symbol",
+        "total_float"
+      ],
+      "sample_notes": [],
+      "sample_path": "/api/shorts/TSLA/interest-float/v2",
+      "sample_query": [],
+      "status_code": 200,
+      "summary": "V2 Short Interest and Float",
+      "tags": [
+        "short"
+      ]
+    },
+    {
+      "access_result": "accessible",
+      "backfill_hint": "snapshot-or-reference",
+      "body_kind": "object",
+      "data_count": null,
+      "docs_entitlement_hint": "not-marked",
+      "elapsed_ms": 221.7,
+      "error": null,
+      "historical_params": [],
+      "message": null,
+      "method": "GET",
+      "operation_id": "PublicApi.ShortController.short_volume_and_ratio",
+      "path": "/api/shorts/{ticker}/volume-and-ratio",
+      "required_path_params": [
+        "ticker"
+      ],
+      "required_query_params": [],
+      "sample_keys": [
+        "si"
+      ],
+      "sample_notes": [],
+      "sample_path": "/api/shorts/TSLA/volume-and-ratio",
+      "sample_query": [],
+      "status_code": 200,
+      "summary": "Short Volume and Ratio",
+      "tags": [
+        "short"
+      ]
+    },
+    {
+      "access_result": "accessible",
+      "backfill_hint": "historical-selector",
+      "body_kind": "object:data-list",
+      "data_count": 500,
+      "docs_entitlement_hint": "not-marked",
+      "elapsed_ms": 237.4,
+      "error": null,
+      "historical_params": [
+        "newer_than",
+        "older_than"
+      ],
+      "message": null,
+      "method": "GET",
+      "operation_id": "PublicApi.ShortController.short_volume_by_exchange",
+      "path": "/api/shorts/{ticker}/volumes-by-exchange",
+      "required_path_params": [
+        "ticker"
+      ],
+      "required_query_params": [],
+      "sample_keys": [
+        "created_at",
+        "date",
+        "exchange_name",
+        "id",
+        "market_center",
+        "short_volume",
+        "symbol",
+        "total_volume"
+      ],
+      "sample_notes": [],
+      "sample_path": "/api/shorts/TSLA/volumes-by-exchange",
+      "sample_query": [],
+      "status_code": 200,
+      "summary": "Short Volume By Exchange",
+      "tags": [
+        "short"
+      ]
+    },
+    {
+      "access_result": "accessible",
+      "backfill_hint": "live-only",
+      "body_kind": "object:data-list",
+      "data_count": 0,
+      "docs_entitlement_hint": "websocket-docs",
+      "elapsed_ms": 209.5,
+      "error": null,
+      "historical_params": [],
+      "message": null,
+      "method": "GET",
+      "operation_id": "PublicApi.SocketController.channels",
+      "path": "/api/socket",
+      "required_path_params": [],
+      "required_query_params": [],
+      "sample_keys": [],
+      "sample_notes": [],
+      "sample_path": "/api/socket",
+      "sample_query": [],
+      "status_code": 200,
+      "summary": "WebSocket channels",
+      "tags": [
+        "websocket"
+      ]
+    },
+    {
+      "access_result": "accessible",
+      "backfill_hint": "live-only",
+      "body_kind": "object:data-list",
+      "data_count": 0,
+      "docs_entitlement_hint": "advanced-docs",
+      "elapsed_ms": 197.0,
+      "error": null,
+      "historical_params": [],
+      "message": null,
+      "method": "GET",
+      "operation_id": "PublicApi.SocketController.contract_screener",
+      "path": "/api/socket/contract_screener",
+      "required_path_params": [],
+      "required_query_params": [],
+      "sample_keys": [],
+      "sample_notes": [],
+      "sample_path": "/api/socket/contract_screener",
+      "sample_query": [],
+      "status_code": 200,
+      "summary": "Contract screener",
+      "tags": [
+        "websocket"
+      ]
+    },
+    {
+      "access_result": "accessible",
+      "backfill_hint": "live-only",
+      "body_kind": "object:data-list",
+      "data_count": 0,
+      "docs_entitlement_hint": "advanced-docs",
+      "elapsed_ms": 212.3,
+      "error": null,
+      "historical_params": [],
+      "message": null,
+      "method": "GET",
+      "operation_id": "PublicApi.SocketController.custom_alerts",
+      "path": "/api/socket/custom_alerts",
+      "required_path_params": [],
+      "required_query_params": [],
+      "sample_keys": [],
+      "sample_notes": [],
+      "sample_path": "/api/socket/custom_alerts",
+      "sample_query": [],
+      "status_code": 200,
+      "summary": "Custom alerts",
+      "tags": [
+        "websocket"
+      ]
+    },
+    {
+      "access_result": "accessible",
+      "backfill_hint": "live-only",
+      "body_kind": "object:data-list",
+      "data_count": 0,
+      "docs_entitlement_hint": "advanced-docs",
+      "elapsed_ms": 204.7,
+      "error": null,
+      "historical_params": [],
+      "message": null,
+      "method": "GET",
+      "operation_id": "PublicApi.SocketController.flow_alerts",
+      "path": "/api/socket/flow_alerts",
+      "required_path_params": [],
+      "required_query_params": [],
+      "sample_keys": [],
+      "sample_notes": [],
+      "sample_path": "/api/socket/flow_alerts",
+      "sample_query": [],
+      "status_code": 200,
+      "summary": "Flow alerts",
+      "tags": [
+        "websocket"
+      ]
+    },
+    {
+      "access_result": "accessible",
+      "backfill_hint": "live-only",
+      "body_kind": "object:data-list",
+      "data_count": 0,
+      "docs_entitlement_hint": "advanced-docs",
+      "elapsed_ms": 205.4,
+      "error": null,
+      "historical_params": [],
+      "message": null,
+      "method": "GET",
+      "operation_id": "PublicApi.SocketController.gex",
+      "path": "/api/socket/gex",
+      "required_path_params": [],
+      "required_query_params": [],
+      "sample_keys": [],
+      "sample_notes": [],
+      "sample_path": "/api/socket/gex",
+      "sample_query": [],
+      "status_code": 200,
+      "summary": "GEX",
+      "tags": [
+        "websocket"
+      ]
+    },
+    {
+      "access_result": "accessible",
+      "backfill_hint": "live-only",
+      "body_kind": "object:data-list",
+      "data_count": 0,
+      "docs_entitlement_hint": "advanced-docs",
+      "elapsed_ms": 196.6,
+      "error": null,
+      "historical_params": [],
+      "message": null,
+      "method": "GET",
+      "operation_id": "PublicApi.SocketController.interval_flow",
+      "path": "/api/socket/interval_flow",
+      "required_path_params": [],
+      "required_query_params": [],
+      "sample_keys": [],
+      "sample_notes": [],
+      "sample_path": "/api/socket/interval_flow",
+      "sample_query": [],
+      "status_code": 200,
+      "summary": "Ticker Interval flow",
+      "tags": [
+        "websocket"
+      ]
+    },
+    {
+      "access_result": "accessible",
+      "backfill_hint": "live-only",
+      "body_kind": "object:data-list",
+      "data_count": 0,
+      "docs_entitlement_hint": "advanced-docs",
+      "elapsed_ms": 199.3,
+      "error": null,
+      "historical_params": [],
+      "message": null,
+      "method": "GET",
+      "operation_id": "PublicApi.SocketController.lit_trades",
+      "path": "/api/socket/lit_trades",
+      "required_path_params": [],
+      "required_query_params": [],
+      "sample_keys": [],
+      "sample_notes": [],
+      "sample_path": "/api/socket/lit_trades",
+      "sample_query": [],
+      "status_code": 200,
+      "summary": "Lit trades",
+      "tags": [
+        "websocket"
+      ]
+    },
+    {
+      "access_result": "accessible",
+      "backfill_hint": "live-only",
+      "body_kind": "object:data-list",
+      "data_count": 0,
+      "docs_entitlement_hint": "advanced-docs",
+      "elapsed_ms": 215.3,
+      "error": null,
+      "historical_params": [],
+      "message": null,
+      "method": "GET",
+      "operation_id": "PublicApi.SocketController.market_tide",
+      "path": "/api/socket/market_tide",
+      "required_path_params": [],
+      "required_query_params": [],
+      "sample_keys": [],
+      "sample_notes": [],
+      "sample_path": "/api/socket/market_tide",
+      "sample_query": [],
+      "status_code": 200,
+      "summary": "Market tide",
+      "tags": [
+        "websocket"
+      ]
+    },
+    {
+      "access_result": "accessible",
+      "backfill_hint": "live-only",
+      "body_kind": "object:data-list",
+      "data_count": 0,
+      "docs_entitlement_hint": "advanced-docs",
+      "elapsed_ms": 198.4,
+      "error": null,
+      "historical_params": [],
+      "message": null,
+      "method": "GET",
+      "operation_id": "PublicApi.SocketController.net_flow",
+      "path": "/api/socket/net_flow",
+      "required_path_params": [],
+      "required_query_params": [],
+      "sample_keys": [],
+      "sample_notes": [],
+      "sample_path": "/api/socket/net_flow",
+      "sample_query": [],
+      "status_code": 200,
+      "summary": "Net flow",
+      "tags": [
+        "websocket"
+      ]
+    },
+    {
+      "access_result": "accessible",
+      "backfill_hint": "live-only",
+      "body_kind": "object:data-list",
+      "data_count": 0,
+      "docs_entitlement_hint": "advanced-docs",
+      "elapsed_ms": 199.4,
+      "error": null,
+      "historical_params": [],
+      "message": null,
+      "method": "GET",
+      "operation_id": "PublicApi.SocketController.news",
+      "path": "/api/socket/news",
+      "required_path_params": [],
+      "required_query_params": [],
+      "sample_keys": [],
+      "sample_notes": [],
+      "sample_path": "/api/socket/news",
+      "sample_query": [],
+      "status_code": 200,
+      "summary": "News",
+      "tags": [
+        "websocket"
+      ]
+    },
+    {
+      "access_result": "accessible",
+      "backfill_hint": "live-only",
+      "body_kind": "object:data-list",
+      "data_count": 0,
+      "docs_entitlement_hint": "advanced-docs",
+      "elapsed_ms": 209.2,
+      "error": null,
+      "historical_params": [],
+      "message": null,
+      "method": "GET",
+      "operation_id": "PublicApi.SocketController.off_lit_trades",
+      "path": "/api/socket/off_lit_trades",
+      "required_path_params": [],
+      "required_query_params": [],
+      "sample_keys": [],
+      "sample_notes": [],
+      "sample_path": "/api/socket/off_lit_trades",
+      "sample_query": [],
+      "status_code": 200,
+      "summary": "Off-lit trades",
+      "tags": [
+        "websocket"
+      ]
+    },
+    {
+      "access_result": "accessible",
+      "backfill_hint": "live-only",
+      "body_kind": "object:data-list",
+      "data_count": 0,
+      "docs_entitlement_hint": "advanced-docs",
+      "elapsed_ms": 200.6,
+      "error": null,
+      "historical_params": [],
+      "message": null,
+      "method": "GET",
+      "operation_id": "PublicApi.SocketController.option_trades",
+      "path": "/api/socket/option_trades",
+      "required_path_params": [],
+      "required_query_params": [],
+      "sample_keys": [],
+      "sample_notes": [],
+      "sample_path": "/api/socket/option_trades",
+      "sample_query": [],
+      "status_code": 200,
+      "summary": "Option trades",
+      "tags": [
+        "websocket"
+      ]
+    },
+    {
+      "access_result": "accessible",
+      "backfill_hint": "live-only",
+      "body_kind": "object:data-list",
+      "data_count": 0,
+      "docs_entitlement_hint": "advanced-docs",
+      "elapsed_ms": 207.7,
+      "error": null,
+      "historical_params": [],
+      "message": null,
+      "method": "GET",
+      "operation_id": "PublicApi.SocketController.price",
+      "path": "/api/socket/price",
+      "required_path_params": [],
+      "required_query_params": [],
+      "sample_keys": [],
+      "sample_notes": [],
+      "sample_path": "/api/socket/price",
+      "sample_query": [],
+      "status_code": 200,
+      "summary": "Price",
+      "tags": [
+        "websocket"
+      ]
+    },
+    {
+      "access_result": "accessible",
+      "backfill_hint": "live-only",
+      "body_kind": "object:data-list",
+      "data_count": 0,
+      "docs_entitlement_hint": "advanced-docs",
+      "elapsed_ms": 203.4,
+      "error": null,
+      "historical_params": [],
+      "message": null,
+      "method": "GET",
+      "operation_id": "PublicApi.SocketController.trading_halts",
+      "path": "/api/socket/trading_halts",
+      "required_path_params": [],
+      "required_query_params": [],
+      "sample_keys": [],
+      "sample_notes": [],
+      "sample_path": "/api/socket/trading_halts",
+      "sample_query": [],
+      "status_code": 200,
+      "summary": "Trading halts",
+      "tags": [
+        "websocket"
+      ]
+    },
+    {
+      "access_result": "accessible",
+      "backfill_hint": "snapshot-or-reference",
+      "body_kind": "object:data-list",
+      "data_count": 17566,
+      "docs_entitlement_hint": "not-marked",
+      "elapsed_ms": 333.4,
+      "error": null,
+      "historical_params": [],
+      "message": null,
+      "method": "GET",
+      "operation_id": "PublicApi.StockDirectoryController.ticker_exchanges",
+      "path": "/api/stock-directory/ticker-exchanges",
+      "required_path_params": [],
+      "required_query_params": [],
+      "sample_keys": [
+        "exchange",
+        "ticker"
+      ],
+      "sample_notes": [],
+      "sample_path": "/api/stock-directory/ticker-exchanges",
+      "sample_query": [],
+      "status_code": 200,
+      "summary": "Ticker Exchange Mapping",
+      "tags": [
+        "stock-directory"
+      ]
+    },
+    {
+      "access_result": "accessible",
+      "backfill_hint": "snapshot-or-reference",
+      "body_kind": "object:data-list",
+      "data_count": 1168,
+      "docs_entitlement_hint": "not-marked",
+      "elapsed_ms": 217.7,
+      "error": null,
+      "historical_params": [],
+      "message": null,
+      "method": "GET",
+      "operation_id": "PublicApi.TickerController.companies_in_sector",
+      "path": "/api/stock/{sector}/tickers",
+      "required_path_params": [
+        "sector"
+      ],
+      "required_query_params": [],
+      "sample_keys": [],
+      "sample_notes": [],
+      "sample_path": "/api/stock/Technology/tickers",
+      "sample_query": [],
+      "status_code": 200,
+      "summary": "Companies in Sector",
+      "tags": [
+        "stock"
+      ]
+    },
+    {
+      "access_result": "accessible",
+      "backfill_hint": "snapshot-or-reference",
+      "body_kind": "object:data-list",
+      "data_count": 2,
+      "docs_entitlement_hint": "not-marked",
+      "elapsed_ms": 226.2,
+      "error": null,
+      "historical_params": [],
+      "message": null,
+      "method": "GET",
+      "operation_id": "PublicApi.TickerController.atm_chains",
+      "path": "/api/stock/{ticker}/atm-chains",
+      "required_path_params": [
+        "ticker"
+      ],
+      "required_query_params": [
+        "expirations[]"
+      ],
+      "sample_keys": [
+        "ask",
+        "ask_side_volume",
+        "avg_price",
+        "bid",
+        "bid_side_volume",
+        "chain_prev_close",
+        "close",
+        "cross_volume",
+        "date",
+        "er_time",
+        "floor_volume",
+        "high",
+        "iv",
+        "low",
+        "mid_volume",
+        "multileg_volume"
+      ],
+      "sample_notes": [],
+      "sample_path": "/api/stock/TSLA/atm-chains",
+      "sample_query": [
+        [
+          "expirations[]",
+          "2026-05-22"
+        ]
+      ],
+      "status_code": 200,
+      "summary": "ATM Chains",
+      "tags": [
+        "stock"
+      ]
+    },
+    {
+      "access_result": "accessible",
+      "backfill_hint": "snapshot-or-reference",
+      "body_kind": "object:data-list",
+      "data_count": 94,
+      "docs_entitlement_hint": "not-marked",
+      "elapsed_ms": 225.1,
+      "error": null,
+      "historical_params": [],
+      "message": null,
+      "method": "GET",
+      "operation_id": "PublicApi.AvFundamentalController.balance_sheets",
+      "path": "/api/stock/{ticker}/balance-sheets",
+      "required_path_params": [
+        "ticker"
+      ],
+      "required_query_params": [],
+      "sample_keys": [
+        "accumulated_depreciation_amortization_ppe",
+        "capital_lease_obligations",
+        "cash_and_cash_equivalents",
+        "cash_and_short_term_investments",
+        "common_stock",
+        "common_stock_shares_outstanding",
+        "current_accounts_payable",
+        "current_debt",
+        "current_long_term_debt",
+        "current_net_receivables",
+        "deferred_revenue",
+        "fiscal_date_ending",
+        "goodwill",
+        "inserted_at",
+        "intangible_assets",
+        "intangible_assets_excluding_goodwill"
+      ],
+      "sample_notes": [],
+      "sample_path": "/api/stock/TSLA/balance-sheets",
+      "sample_query": [],
+      "status_code": 200,
+      "summary": "Balance Sheets",
+      "tags": [
+        "stock"
+      ]
+    },
+    {
+      "access_result": "accessible",
+      "backfill_hint": "snapshot-or-reference",
+      "body_kind": "object:data-list",
+      "data_count": 94,
+      "docs_entitlement_hint": "not-marked",
+      "elapsed_ms": 209.9,
+      "error": null,
+      "historical_params": [],
+      "message": null,
+      "method": "GET",
+      "operation_id": "PublicApi.AvFundamentalController.cash_flows",
+      "path": "/api/stock/{ticker}/cash-flows",
+      "required_path_params": [
+        "ticker"
+      ],
+      "required_query_params": [],
+      "sample_keys": [
+        "capital_expenditures",
+        "cashflow_from_financing",
+        "cashflow_from_investment",
+        "change_in_cash_and_cash_equivalents",
+        "change_in_exchange_rate",
+        "change_in_inventory",
+        "change_in_operating_assets",
+        "change_in_operating_liabilities",
+        "change_in_receivables",
+        "depreciation_depletion_and_amortization",
+        "dividend_payout",
+        "dividend_payout_common_stock",
+        "dividend_payout_preferred_stock",
+        "fiscal_date_ending",
+        "inserted_at",
+        "net_income"
+      ],
+      "sample_notes": [],
+      "sample_path": "/api/stock/TSLA/cash-flows",
+      "sample_query": [],
+      "status_code": 200,
+      "summary": "Cash Flow Statements",
+      "tags": [
+        "stock"
+      ]
+    },
+    {
+      "access_result": "accessible",
+      "backfill_hint": "recent-or-calendar",
+      "body_kind": "object:data-list",
+      "data_count": 82,
+      "docs_entitlement_hint": "not-marked",
+      "elapsed_ms": 212.1,
+      "error": null,
+      "historical_params": [],
+      "message": null,
+      "method": "GET",
+      "operation_id": "PublicApi.AvFundamentalController.earnings",
+      "path": "/api/stock/{ticker}/earnings",
+      "required_path_params": [
+        "ticker"
+      ],
+      "required_query_params": [],
+      "sample_keys": [
+        "estimated_eps",
+        "fiscal_date_ending",
+        "inserted_at",
+        "report_date",
+        "report_time",
+        "report_type",
+        "reported_eps",
+        "surprise",
+        "surprise_percentage",
+        "ticker",
+        "updated_at"
+      ],
+      "sample_notes": [],
+      "sample_path": "/api/stock/TSLA/earnings",
+      "sample_query": [],
+      "status_code": 200,
+      "summary": "Earnings History",
+      "tags": [
+        "stock"
+      ]
+    },
+    {
+      "access_result": "accessible",
+      "backfill_hint": "historical-selector",
+      "body_kind": "object:data-list",
+      "data_count": 24,
+      "docs_entitlement_hint": "not-marked",
+      "elapsed_ms": 209.4,
+      "error": null,
+      "historical_params": [
+        "date"
+      ],
+      "message": null,
+      "method": "GET",
+      "operation_id": "PublicApi.OptionContractController.expiry_breakdown",
+      "path": "/api/stock/{ticker}/expiry-breakdown",
+      "required_path_params": [
+        "ticker"
+      ],
+      "required_query_params": [],
+      "sample_keys": [
+        "chains",
+        "expires",
+        "open_interest",
+        "volume"
+      ],
+      "sample_notes": [],
+      "sample_path": "/api/stock/TSLA/expiry-breakdown",
+      "sample_query": [
+        [
+          "date",
+          "2026-05-14"
+        ]
+      ],
+      "status_code": 200,
+      "summary": "Expiry Breakdown",
+      "tags": [
+        "option-contract"
+      ]
+    },
+    {
+      "access_result": "accessible",
+      "backfill_hint": "snapshot-or-reference",
+      "body_kind": "object:data-object",
+      "data_count": null,
+      "docs_entitlement_hint": "not-marked",
+      "elapsed_ms": 248.6,
+      "error": null,
+      "historical_params": [],
+      "message": null,
+      "method": "GET",
+      "operation_id": "PublicApi.AvFundamentalController.financials",
+      "path": "/api/stock/{ticker}/financials",
+      "required_path_params": [
+        "ticker"
+      ],
+      "required_query_params": [],
+      "sample_keys": [
+        "balance_sheets",
+        "cash_flows",
+        "earnings",
+        "income_statements"
+      ],
+      "sample_notes": [],
+      "sample_path": "/api/stock/TSLA/financials",
+      "sample_query": [],
+      "status_code": 200,
+      "summary": "Full Financials",
+      "tags": [
+        "stock"
+      ]
+    },
+    {
+      "access_result": "accessible",
+      "backfill_hint": "snapshot-or-reference",
+      "body_kind": "object:data-list",
+      "data_count": 1,
+      "docs_entitlement_hint": "not-marked",
+      "elapsed_ms": 206.3,
+      "error": null,
+      "historical_params": [],
+      "message": null,
+      "method": "GET",
+      "operation_id": "PublicApi.TickerController.flow_alerts",
+      "path": "/api/stock/{ticker}/flow-alerts",
+      "required_path_params": [
+        "ticker"
+      ],
+      "required_query_params": [],
+      "sample_keys": [
+        "alert_rule",
+        "all_opening_trades",
+        "created_at",
+        "expiry",
+        "expiry_count",
+        "has_floor",
+        "has_multileg",
+        "has_singleleg",
+        "has_sweep",
+        "iv_end",
+        "iv_start",
+        "open_interest",
+        "option_chain",
+        "price",
+        "strike",
+        "ticker"
+      ],
+      "sample_notes": [],
+      "sample_path": "/api/stock/TSLA/flow-alerts",
+      "sample_query": [
+        [
+          "limit",
+          1
+        ]
+      ],
+      "status_code": 200,
+      "summary": "Flow Alerts",
+      "tags": [
+        "stock"
+      ]
+    },
+    {
+      "access_result": "accessible",
+      "backfill_hint": "snapshot-or-reference",
+      "body_kind": "list",
+      "data_count": 24,
+      "docs_entitlement_hint": "not-marked",
+      "elapsed_ms": 209.0,
+      "error": null,
+      "historical_params": [],
+      "message": null,
+      "method": "GET",
+      "operation_id": "PublicApi.TickerController.flow_per_expiry",
+      "path": "/api/stock/{ticker}/flow-per-expiry",
+      "required_path_params": [
+        "ticker"
+      ],
+      "required_query_params": [],
+      "sample_keys": [
+        "call_otm_premium",
+        "call_otm_trades",
+        "call_otm_volume",
+        "call_premium",
+        "call_premium_ask_side",
+        "call_premium_bid_side",
+        "call_trades",
+        "call_volume",
+        "call_volume_ask_side",
+        "call_volume_bid_side",
+        "date",
+        "expiry",
+        "put_otm_premium",
+        "put_otm_trades",
+        "put_otm_volume",
+        "put_premium"
+      ],
+      "sample_notes": [],
+      "sample_path": "/api/stock/TSLA/flow-per-expiry",
+      "sample_query": [],
+      "status_code": 200,
+      "summary": "Flow per expiry",
+      "tags": [
+        "stock"
+      ]
+    },
+    {
+      "access_result": "accessible",
+      "backfill_hint": "historical-selector",
+      "body_kind": "list",
+      "data_count": 213,
+      "docs_entitlement_hint": "not-marked",
+      "elapsed_ms": 226.7,
+      "error": null,
+      "historical_params": [
+        "date"
+      ],
+      "message": null,
+      "method": "GET",
+      "operation_id": "PublicApi.TickerController.flow_per_strike",
+      "path": "/api/stock/{ticker}/flow-per-strike",
+      "required_path_params": [
+        "ticker"
+      ],
+      "required_query_params": [],
+      "sample_keys": [
+        "call_otm_premium",
+        "call_otm_trades",
+        "call_otm_volume",
+        "call_premium",
+        "call_premium_ask_side",
+        "call_premium_bid_side",
+        "call_trades",
+        "call_volume",
+        "call_volume_ask_side",
+        "call_volume_bid_side",
+        "date",
+        "put_otm_premium",
+        "put_otm_trades",
+        "put_otm_volume",
+        "put_premium",
+        "put_premium_ask_side"
+      ],
+      "sample_notes": [],
+      "sample_path": "/api/stock/TSLA/flow-per-strike",
+      "sample_query": [
+        [
+          "date",
+          "2026-05-14"
+        ]
+      ],
+      "status_code": 200,
+      "summary": "Flow per strike",
+      "tags": [
+        "stock"
+      ]
+    },
+    {
+      "access_result": "accessible",
+      "backfill_hint": "historical-selector",
+      "body_kind": "object:data-list",
+      "data_count": 2579,
+      "docs_entitlement_hint": "not-marked",
+      "elapsed_ms": 575.5,
+      "error": null,
+      "historical_params": [
+        "date"
+      ],
+      "message": null,
+      "method": "GET",
+      "operation_id": "PublicApi.TickerController.flow_per_strike_intraday",
+      "path": "/api/stock/{ticker}/flow-per-strike-intraday",
+      "required_path_params": [
+        "ticker"
+      ],
+      "required_query_params": [],
+      "sample_keys": [
+        "call_premium",
+        "call_premium_ask_side",
+        "call_premium_bid_side",
+        "call_trades",
+        "call_volume",
+        "call_volume_ask_side",
+        "call_volume_bid_side",
+        "date",
+        "net_premium",
+        "put_premium",
+        "put_premium_ask_side",
+        "put_premium_bid_side",
+        "put_trades",
+        "put_volume",
+        "put_volume_ask_side",
+        "put_volume_bid_side"
+      ],
+      "sample_notes": [],
+      "sample_path": "/api/stock/TSLA/flow-per-strike-intraday",
+      "sample_query": [
+        [
+          "date",
+          "2026-05-14"
+        ]
+      ],
+      "status_code": 200,
+      "summary": "Flow per strike intraday",
+      "tags": [
+        "stock"
+      ]
+    },
+    {
+      "access_result": "accessible",
+      "backfill_hint": "recent-or-calendar",
+      "body_kind": "list",
+      "data_count": 50,
+      "docs_entitlement_hint": "not-marked",
+      "elapsed_ms": 239.3,
+      "error": null,
+      "historical_params": [],
+      "message": null,
+      "method": "GET",
+      "operation_id": "PublicApi.TickerController.flow_recent",
+      "path": "/api/stock/{ticker}/flow-recent",
+      "required_path_params": [
+        "ticker"
+      ],
+      "required_query_params": [],
+      "sample_keys": [
+        "ask_vol",
+        "bid_vol",
+        "canceled",
+        "delta",
+        "er_time",
+        "ewma_nbbo_ask",
+        "ewma_nbbo_bid",
+        "exchange",
+        "executed_at",
+        "expiry",
+        "flow_alert_id",
+        "full_name",
+        "gamma",
+        "id",
+        "implied_volatility",
+        "industry_type"
+      ],
+      "sample_notes": [],
+      "sample_path": "/api/stock/TSLA/flow-recent",
+      "sample_query": [],
+      "status_code": 200,
+      "summary": "Recent flows",
+      "tags": [
+        "stock"
+      ]
+    },
+    {
+      "access_result": "accessible",
+      "backfill_hint": "snapshot-or-reference",
+      "body_kind": "object:data-object",
+      "data_count": null,
+      "docs_entitlement_hint": "not-marked",
+      "elapsed_ms": 219.0,
+      "error": null,
+      "historical_params": [],
+      "message": null,
+      "method": "GET",
+      "operation_id": "PublicApi.FundamentalController.show",
+      "path": "/api/stock/{ticker}/fundamental-breakdown",
+      "required_path_params": [
+        "ticker"
+      ],
+      "required_query_params": [],
+      "sample_keys": [
+        "annual_only",
+        "general",
+        "rev_breakdown"
+      ],
+      "sample_notes": [],
+      "sample_path": "/api/stock/TSLA/fundamental-breakdown",
+      "sample_query": [],
+      "status_code": 200,
+      "summary": "Fundamental Breakdown",
+      "tags": [
+        "stock"
+      ]
+    },
+    {
+      "access_result": "accessible",
+      "backfill_hint": "historical-selector",
+      "body_kind": "object:data-list",
+      "data_count": 250,
+      "docs_entitlement_hint": "not-marked",
+      "elapsed_ms": 220.3,
+      "error": null,
+      "historical_params": [
+        "date"
+      ],
+      "message": null,
+      "method": "GET",
+      "operation_id": "PublicApi.TickerController.greek_exposure",
+      "path": "/api/stock/{ticker}/greek-exposure",
+      "required_path_params": [
+        "ticker"
+      ],
+      "required_query_params": [],
+      "sample_keys": [
+        "call_charm",
+        "call_delta",
+        "call_gamma",
+        "call_vanna",
+        "date",
+        "put_charm",
+        "put_delta",
+        "put_gamma",
+        "put_vanna"
+      ],
+      "sample_notes": [],
+      "sample_path": "/api/stock/TSLA/greek-exposure",
+      "sample_query": [
+        [
+          "date",
+          "2026-05-14"
+        ]
+      ],
+      "status_code": 200,
+      "summary": "Greek Exposure",
+      "tags": [
+        "Gex/Greeks"
+      ]
+    },
+    {
+      "access_result": "accessible",
+      "backfill_hint": "historical-selector",
+      "body_kind": "object:data-list",
+      "data_count": 24,
+      "docs_entitlement_hint": "not-marked",
+      "elapsed_ms": 202.4,
+      "error": null,
+      "historical_params": [
+        "date"
+      ],
+      "message": null,
+      "method": "GET",
+      "operation_id": "PublicApi.TickerController.greek_exposure_by_expiry",
+      "path": "/api/stock/{ticker}/greek-exposure/expiry",
+      "required_path_params": [
+        "ticker"
+      ],
+      "required_query_params": [],
+      "sample_keys": [
+        "call_charm",
+        "call_delta",
+        "call_gex",
+        "call_vanna",
+        "date",
+        "dte",
+        "expiry",
+        "put_charm",
+        "put_delta",
+        "put_gex",
+        "put_vanna"
+      ],
+      "sample_notes": [],
+      "sample_path": "/api/stock/TSLA/greek-exposure/expiry",
+      "sample_query": [
+        [
+          "date",
+          "2026-05-14"
+        ]
+      ],
+      "status_code": 200,
+      "summary": "Greek Exposure By Expiry",
+      "tags": [
+        "Gex/Greeks"
+      ]
+    },
+    {
+      "access_result": "accessible",
+      "backfill_hint": "historical-selector",
+      "body_kind": "object:data-list",
+      "data_count": 219,
+      "docs_entitlement_hint": "not-marked",
+      "elapsed_ms": 219.0,
+      "error": null,
+      "historical_params": [
+        "date"
+      ],
+      "message": null,
+      "method": "GET",
+      "operation_id": "PublicApi.TickerController.greek_exposure_by_strike",
+      "path": "/api/stock/{ticker}/greek-exposure/strike",
+      "required_path_params": [
+        "ticker"
+      ],
+      "required_query_params": [],
+      "sample_keys": [
+        "call_charm",
+        "call_delta",
+        "call_gex",
+        "call_vanna",
+        "date",
+        "put_charm",
+        "put_delta",
+        "put_gex",
+        "put_vanna",
+        "strike"
+      ],
+      "sample_notes": [],
+      "sample_path": "/api/stock/TSLA/greek-exposure/strike",
+      "sample_query": [
+        [
+          "date",
+          "2026-05-14"
+        ]
+      ],
+      "status_code": 200,
+      "summary": "Greek Exposure By Strike",
+      "tags": [
+        "Gex/Greeks"
+      ]
+    },
+    {
+      "access_result": "accessible",
+      "backfill_hint": "historical-selector",
+      "body_kind": "object:data-list",
+      "data_count": 165,
+      "docs_entitlement_hint": "not-marked",
+      "elapsed_ms": 215.2,
+      "error": null,
+      "historical_params": [
+        "date"
+      ],
+      "message": null,
+      "method": "GET",
+      "operation_id": "PublicApi.TickerController.greek_exposure_by_strike_expiry",
+      "path": "/api/stock/{ticker}/greek-exposure/strike-expiry",
+      "required_path_params": [
+        "ticker"
+      ],
+      "required_query_params": [
+        "expiry"
+      ],
+      "sample_keys": [
+        "call_charm",
+        "call_delta",
+        "call_gex",
+        "call_vanna",
+        "date",
+        "dte",
+        "expiry",
+        "put_charm",
+        "put_delta",
+        "put_gex",
+        "put_vanna",
+        "strike"
+      ],
+      "sample_notes": [],
+      "sample_path": "/api/stock/TSLA/greek-exposure/strike-expiry",
+      "sample_query": [
+        [
+          "date",
+          "2026-05-14"
+        ],
+        [
+          "expiry",
+          "2026-05-22"
+        ]
+      ],
+      "status_code": 200,
+      "summary": "Greek Exposure By Strike And Expiry",
+      "tags": [
+        "Gex/Greeks"
+      ]
+    },
+    {
+      "access_result": "accessible",
+      "backfill_hint": "historical-selector",
+      "body_kind": "object:data-list",
+      "data_count": 391,
+      "docs_entitlement_hint": "not-marked",
+      "elapsed_ms": 258.0,
+      "error": null,
+      "historical_params": [
+        "date"
+      ],
+      "message": null,
+      "method": "GET",
+      "operation_id": "PublicApi.TickerController.greek_flow",
+      "path": "/api/stock/{ticker}/greek-flow",
+      "required_path_params": [
+        "ticker"
+      ],
+      "required_query_params": [],
+      "sample_keys": [
+        "dir_delta_flow",
+        "dir_vega_flow",
+        "otm_dir_delta_flow",
+        "otm_dir_vega_flow",
+        "otm_total_delta_flow",
+        "otm_total_vega_flow",
+        "ticker",
+        "timestamp",
+        "total_delta_flow",
+        "total_vega_flow",
+        "transactions",
+        "volume"
+      ],
+      "sample_notes": [],
+      "sample_path": "/api/stock/TSLA/greek-flow",
+      "sample_query": [
+        [
+          "date",
+          "2026-05-14"
+        ]
+      ],
+      "status_code": 200,
+      "summary": "Greek flow",
+      "tags": [
+        "Gex/Greeks"
+      ]
+    },
+    {
+      "access_result": "accessible",
+      "backfill_hint": "historical-selector",
+      "body_kind": "object:data-list",
+      "data_count": 390,
+      "docs_entitlement_hint": "not-marked",
+      "elapsed_ms": 299.0,
+      "error": null,
+      "historical_params": [
+        "date"
+      ],
+      "message": null,
+      "method": "GET",
+      "operation_id": "PublicApi.TickerController.greek_flow_expiry",
+      "path": "/api/stock/{ticker}/greek-flow/{expiry}",
+      "required_path_params": [
+        "ticker",
+        "expiry"
+      ],
+      "required_query_params": [],
+      "sample_keys": [
+        "dir_delta_flow",
+        "dir_vega_flow",
+        "expiry",
+        "otm_dir_delta_flow",
+        "otm_dir_vega_flow",
+        "otm_total_delta_flow",
+        "otm_total_vega_flow",
+        "ticker",
+        "timestamp",
+        "total_delta_flow",
+        "total_vega_flow",
+        "transactions",
+        "volume"
+      ],
+      "sample_notes": [],
+      "sample_path": "/api/stock/TSLA/greek-flow/2026-05-22",
+      "sample_query": [
+        [
+          "date",
+          "2026-05-14"
+        ]
+      ],
+      "status_code": 200,
+      "summary": "Greek flow by expiry",
+      "tags": [
+        "Gex/Greeks"
+      ]
+    },
+    {
+      "access_result": "accessible",
+      "backfill_hint": "historical-selector",
+      "body_kind": "object:data-list",
+      "data_count": 166,
+      "docs_entitlement_hint": "not-marked",
+      "elapsed_ms": 239.1,
+      "error": null,
+      "historical_params": [
+        "date"
+      ],
+      "message": null,
+      "method": "GET",
+      "operation_id": "PublicApi.TickerController.greeks",
+      "path": "/api/stock/{ticker}/greeks",
+      "required_path_params": [
+        "ticker"
+      ],
+      "required_query_params": [
+        "expiry"
+      ],
+      "sample_keys": [
+        "call_charm",
+        "call_delta",
+        "call_gamma",
+        "call_option_symbol",
+        "call_rho",
+        "call_theta",
+        "call_vanna",
+        "call_vega",
+        "call_volatility",
+        "date",
+        "expiry",
+        "put_charm",
+        "put_delta",
+        "put_gamma",
+        "put_option_symbol",
+        "put_rho"
+      ],
+      "sample_notes": [],
+      "sample_path": "/api/stock/TSLA/greeks",
+      "sample_query": [
+        [
+          "date",
+          "2026-05-14"
+        ],
+        [
+          "expiry",
+          "2026-05-22"
+        ]
+      ],
+      "status_code": 200,
+      "summary": "Greeks",
+      "tags": [
+        "stock"
+      ]
+    },
+    {
+      "access_result": "accessible",
+      "backfill_hint": "historical-selector",
+      "body_kind": "object:data-list",
+      "data_count": 30,
+      "docs_entitlement_hint": "not-marked",
+      "elapsed_ms": 203.2,
+      "error": null,
+      "historical_params": [
+        "date"
+      ],
+      "message": null,
+      "method": "GET",
+      "operation_id": "PublicApi.TickerController.historical_risk_reversal_skew",
+      "path": "/api/stock/{ticker}/historical-risk-reversal-skew",
+      "required_path_params": [
+        "ticker"
+      ],
+      "required_query_params": [
+        "expiry",
+        "delta"
+      ],
+      "sample_keys": [
+        "date",
+        "delta",
+        "risk_reversal",
+        "ticker"
+      ],
+      "sample_notes": [],
+      "sample_path": "/api/stock/TSLA/historical-risk-reversal-skew",
+      "sample_query": [
+        [
+          "date",
+          "2026-05-14"
+        ],
+        [
+          "expiry",
+          "2026-05-22"
+        ],
+        [
+          "delta",
+          25
+        ]
+      ],
+      "status_code": 200,
+      "summary": "Historical Risk Reversal Skew",
+      "tags": [
+        "stock"
+      ]
+    },
+    {
+      "access_result": "accessible",
+      "backfill_hint": "snapshot-or-reference",
+      "body_kind": "object:data-list",
+      "data_count": 94,
+      "docs_entitlement_hint": "not-marked",
+      "elapsed_ms": 214.3,
+      "error": null,
+      "historical_params": [],
+      "message": null,
+      "method": "GET",
+      "operation_id": "PublicApi.AvFundamentalController.income_statements",
+      "path": "/api/stock/{ticker}/income-statements",
+      "required_path_params": [
+        "ticker"
+      ],
+      "required_query_params": [],
+      "sample_keys": [
+        "comprehensive_income_net_of_tax",
+        "cost_of_goods_and_services_sold",
+        "cost_of_revenue",
+        "depreciation",
+        "depreciation_and_amortization",
+        "ebit",
+        "ebitda",
+        "fiscal_date_ending",
+        "gross_profit",
+        "income_before_tax",
+        "income_tax_expense",
+        "inserted_at",
+        "interest_and_debt_expense",
+        "interest_expense",
+        "interest_income",
+        "investment_income_net"
+      ],
+      "sample_notes": [],
+      "sample_path": "/api/stock/TSLA/income-statements",
+      "sample_query": [],
+      "status_code": 200,
+      "summary": "Income Statements",
+      "tags": [
+        "stock"
+      ]
+    },
+    {
+      "access_result": "accessible",
+      "backfill_hint": "snapshot-or-reference",
+      "body_kind": "object:data-object",
+      "data_count": null,
+      "docs_entitlement_hint": "not-marked",
+      "elapsed_ms": 199.6,
+      "error": null,
+      "historical_params": [],
+      "message": null,
+      "method": "GET",
+      "operation_id": "PublicApi.TickerController.info",
+      "path": "/api/stock/{ticker}/info",
+      "required_path_params": [
+        "ticker"
+      ],
+      "required_query_params": [],
+      "sample_keys": [
+        "announce_time",
+        "avg30_volume",
+        "beta",
+        "full_name",
+        "has_dividend",
+        "has_earnings_history",
+        "has_investment_arm",
+        "has_options",
+        "issue_type",
+        "logo",
+        "marketcap",
+        "marketcap_size",
+        "next_earnings_date",
+        "outstanding",
+        "sector",
+        "short_description"
+      ],
+      "sample_notes": [],
+      "sample_path": "/api/stock/TSLA/info",
+      "sample_query": [],
+      "status_code": 200,
+      "summary": "Information",
+      "tags": [
+        "stock"
+      ]
+    },
+    {
+      "access_result": "accessible",
+      "backfill_hint": "snapshot-or-reference",
+      "body_kind": "object:data-list",
+      "data_count": 615,
+      "docs_entitlement_hint": "not-marked",
+      "elapsed_ms": 247.2,
+      "error": null,
+      "historical_params": [],
+      "message": null,
+      "method": "GET",
+      "operation_id": "PublicApi.TickerController.insider_buy_sell",
+      "path": "/api/stock/{ticker}/insider-buy-sells",
+      "required_path_params": [
+        "ticker"
+      ],
+      "required_query_params": [],
+      "sample_keys": [
+        "filing_date",
+        "purchases",
+        "purchases_notional",
+        "sells",
+        "sells_notional"
+      ],
+      "sample_notes": [],
+      "sample_path": "/api/stock/TSLA/insider-buy-sells",
+      "sample_query": [],
+      "status_code": 200,
+      "summary": "Insider buy & sells",
+      "tags": [
+        "stock"
+      ]
+    },
+    {
+      "access_result": "accessible",
+      "backfill_hint": "historical-selector",
+      "body_kind": "object:data-list",
+      "data_count": 9,
+      "docs_entitlement_hint": "not-marked",
+      "elapsed_ms": 205.1,
+      "error": null,
+      "historical_params": [
+        "date"
+      ],
+      "message": null,
+      "method": "GET",
+      "operation_id": "PublicApi.TickerController.interpolated_iv",
+      "path": "/api/stock/{ticker}/interpolated-iv",
+      "required_path_params": [
+        "ticker"
+      ],
+      "required_query_params": [],
+      "sample_keys": [
+        "date",
+        "days",
+        "implied_move_perc",
+        "percentile",
+        "volatility"
+      ],
+      "sample_notes": [],
+      "sample_path": "/api/stock/TSLA/interpolated-iv",
+      "sample_query": [
+        [
+          "date",
+          "2026-05-14"
+        ]
+      ],
+      "status_code": 200,
+      "summary": "Interpolated IV",
+      "tags": [
+        "stock"
+      ]
+    },
+    {
+      "access_result": "accessible",
+      "backfill_hint": "historical-selector",
+      "body_kind": "object:data-list",
+      "data_count": 5,
+      "docs_entitlement_hint": "not-marked",
+      "elapsed_ms": 202.3,
+      "error": null,
+      "historical_params": [
+        "date"
+      ],
+      "message": null,
+      "method": "GET",
+      "operation_id": "PublicApi.TickerController.iv_rank",
+      "path": "/api/stock/{ticker}/iv-rank",
+      "required_path_params": [
+        "ticker"
+      ],
+      "required_query_params": [],
+      "sample_keys": [
+        "close",
+        "date",
+        "iv_rank_1y",
+        "updated_at",
+        "volatility"
+      ],
+      "sample_notes": [],
+      "sample_path": "/api/stock/TSLA/iv-rank",
+      "sample_query": [
+        [
+          "date",
+          "2026-05-14"
+        ]
+      ],
+      "status_code": 200,
+      "summary": "IV Rank",
+      "tags": [
+        "stock"
+      ]
+    },
+    {
+      "access_result": "accessible",
+      "backfill_hint": "historical-selector",
+      "body_kind": "object:data-list",
+      "data_count": 24,
+      "docs_entitlement_hint": "not-marked",
+      "elapsed_ms": 204.8,
+      "error": null,
+      "historical_params": [
+        "date"
+      ],
+      "message": null,
+      "method": "GET",
+      "operation_id": "PublicApi.TickerController.max_pain",
+      "path": "/api/stock/{ticker}/max-pain",
+      "required_path_params": [
+        "ticker"
+      ],
+      "required_query_params": [],
+      "sample_keys": [
+        "close",
+        "expiry",
+        "max_pain",
+        "next_lower_strike",
+        "next_upper_strike",
+        "open"
+      ],
+      "sample_notes": [],
+      "sample_path": "/api/stock/TSLA/max-pain",
+      "sample_query": [
+        [
+          "date",
+          "2026-05-14"
+        ]
+      ],
+      "status_code": 200,
+      "summary": "Max Pain",
+      "tags": [
+        "stock"
+      ]
+    },
+    {
+      "access_result": "accessible",
+      "backfill_hint": "historical-selector",
+      "body_kind": "object:data-list",
+      "data_count": 391,
+      "docs_entitlement_hint": "not-marked",
+      "elapsed_ms": 233.7,
+      "error": null,
+      "historical_params": [
+        "date"
+      ],
+      "message": null,
+      "method": "GET",
+      "operation_id": "PublicApi.TickerController.net_prem_ticks",
+      "path": "/api/stock/{ticker}/net-prem-ticks",
+      "required_path_params": [
+        "ticker"
+      ],
+      "required_query_params": [],
+      "sample_keys": [
+        "call_volume",
+        "call_volume_ask_side",
+        "call_volume_bid_side",
+        "date",
+        "net_call_premium",
+        "net_call_volume",
+        "net_delta",
+        "net_put_premium",
+        "net_put_volume",
+        "put_volume",
+        "put_volume_ask_side",
+        "put_volume_bid_side",
+        "tape_time"
+      ],
+      "sample_notes": [],
+      "sample_path": "/api/stock/TSLA/net-prem-ticks",
+      "sample_query": [
+        [
+          "date",
+          "2026-05-14"
+        ]
+      ],
+      "status_code": 200,
+      "summary": "Call/Put Net/Vol Ticks",
+      "tags": [
+        "stock"
+      ]
+    },
+    {
+      "access_result": "accessible",
+      "backfill_hint": "historical-selector",
+      "body_kind": "object:data-list",
+      "data_count": 390,
+      "docs_entitlement_hint": "not-marked",
+      "elapsed_ms": 241.1,
+      "error": null,
+      "historical_params": [
+        "date"
+      ],
+      "message": null,
+      "method": "GET",
+      "operation_id": "PublicApi.TickerController.nope",
+      "path": "/api/stock/{ticker}/nope",
+      "required_path_params": [
+        "ticker"
+      ],
+      "required_query_params": [],
+      "sample_keys": [
+        "call_delta",
+        "call_fill_delta",
+        "call_vol",
+        "nope",
+        "nope_fill",
+        "put_delta",
+        "put_fill_delta",
+        "put_vol",
+        "stock_vol",
+        "timestamp"
+      ],
+      "sample_notes": [],
+      "sample_path": "/api/stock/TSLA/nope",
+      "sample_query": [
+        [
+          "date",
+          "2026-05-14"
+        ]
+      ],
+      "status_code": 200,
+      "summary": "Nope",
+      "tags": [
+        "stock"
+      ]
+    },
+    {
+      "access_result": "accessible",
+      "backfill_hint": "historical-selector",
+      "body_kind": "object:data-list",
+      "data_count": 1,
+      "docs_entitlement_hint": "not-marked",
+      "elapsed_ms": 223.7,
+      "error": null,
+      "historical_params": [
+        "end_date",
+        "date"
+      ],
+      "message": null,
+      "method": "GET",
+      "operation_id": "PublicApi.TickerController.ohlc",
+      "path": "/api/stock/{ticker}/ohlc/{candle_size}",
+      "required_path_params": [
+        "ticker",
+        "candle_size"
+      ],
+      "required_query_params": [],
+      "sample_keys": [
+        "close",
+        "end_time",
+        "high",
+        "low",
+        "market_time",
+        "open",
+        "start_time",
+        "total_volume",
+        "volume"
+      ],
+      "sample_notes": [],
+      "sample_path": "/api/stock/TSLA/ohlc/1m",
+      "sample_query": [
+        [
+          "end_date",
+          "2026-05-14"
+        ],
+        [
+          "date",
+          "2026-05-14"
+        ],
+        [
+          "limit",
+          1
+        ]
+      ],
+      "status_code": 200,
+      "summary": "OHLC",
+      "tags": [
+        "stock"
+      ]
+    },
+    {
+      "access_result": "accessible",
+      "backfill_hint": "historical-selector",
+      "body_kind": "object:data-list",
+      "data_count": 1,
+      "docs_entitlement_hint": "not-marked",
+      "elapsed_ms": 201.8,
+      "error": null,
+      "historical_params": [
+        "date"
+      ],
+      "message": null,
+      "method": "GET",
+      "operation_id": "PublicApi.TickerController.oi_change",
+      "path": "/api/stock/{ticker}/oi-change",
+      "required_path_params": [
+        "ticker"
+      ],
+      "required_query_params": [],
+      "sample_keys": [
+        "avg_price",
+        "curr_date",
+        "curr_oi",
+        "days_of_oi_increases",
+        "days_of_vol_greater_than_oi",
+        "last_ask",
+        "last_bid",
+        "last_date",
+        "last_fill",
+        "last_oi",
+        "oi_change",
+        "oi_diff_plain",
+        "option_symbol",
+        "percentage_of_total",
+        "prev_ask_volume",
+        "prev_bid_volume"
+      ],
+      "sample_notes": [],
+      "sample_path": "/api/stock/TSLA/oi-change",
+      "sample_query": [
+        [
+          "date",
+          "2026-05-14"
+        ],
+        [
+          "limit",
+          1
+        ]
+      ],
+      "status_code": 200,
+      "summary": "OI Change",
+      "tags": [
+        "stock"
+      ]
+    },
+    {
+      "access_result": "accessible",
+      "backfill_hint": "historical-selector",
+      "body_kind": "object:data-list",
+      "data_count": 24,
+      "docs_entitlement_hint": "not-marked",
+      "elapsed_ms": 199.9,
+      "error": null,
+      "historical_params": [
+        "date"
+      ],
+      "message": null,
+      "method": "GET",
+      "operation_id": "PublicApi.TickerController.oi_per_expiry",
+      "path": "/api/stock/{ticker}/oi-per-expiry",
+      "required_path_params": [
+        "ticker"
+      ],
+      "required_query_params": [],
+      "sample_keys": [
+        "call_oi",
+        "date",
+        "expiry",
+        "put_oi"
+      ],
+      "sample_notes": [],
+      "sample_path": "/api/stock/TSLA/oi-per-expiry",
+      "sample_query": [
+        [
+          "date",
+          "2026-05-14"
+        ]
+      ],
+      "status_code": 200,
+      "summary": "OI per Expiry",
+      "tags": [
+        "stock"
+      ]
+    },
+    {
+      "access_result": "accessible",
+      "backfill_hint": "historical-selector",
+      "body_kind": "object:data-list",
+      "data_count": 219,
+      "docs_entitlement_hint": "not-marked",
+      "elapsed_ms": 206.1,
+      "error": null,
+      "historical_params": [
+        "date"
+      ],
+      "message": null,
+      "method": "GET",
+      "operation_id": "PublicApi.TickerController.oi_per_strike",
+      "path": "/api/stock/{ticker}/oi-per-strike",
+      "required_path_params": [
+        "ticker"
+      ],
+      "required_query_params": [],
+      "sample_keys": [
+        "call_oi",
+        "date",
+        "put_oi",
+        "strike"
+      ],
+      "sample_notes": [],
+      "sample_path": "/api/stock/TSLA/oi-per-strike",
+      "sample_query": [
+        [
+          "date",
+          "2026-05-14"
+        ]
+      ],
+      "status_code": 200,
+      "summary": "OI per Strike",
+      "tags": [
+        "stock"
+      ]
+    },
+    {
+      "access_result": "accessible",
+      "backfill_hint": "snapshot-or-current-chain",
+      "body_kind": "object:data-list",
+      "data_count": 6192,
+      "docs_entitlement_hint": "not-marked",
+      "elapsed_ms": 240.3,
+      "error": null,
+      "historical_params": [
+        "date"
+      ],
+      "message": null,
+      "method": "GET",
+      "operation_id": "PublicApi.TickerController.option_chains",
+      "path": "/api/stock/{ticker}/option-chains",
+      "required_path_params": [
+        "ticker"
+      ],
+      "required_query_params": [],
+      "sample_keys": [],
+      "sample_notes": [],
+      "sample_path": "/api/stock/TSLA/option-chains",
+      "sample_query": [
+        [
+          "date",
+          "2026-05-14"
+        ]
+      ],
+      "status_code": 200,
+      "summary": "Option Chains",
+      "tags": [
+        "stock"
+      ]
+    },
+    {
+      "access_result": "accessible",
+      "backfill_hint": "snapshot-or-current-chain",
+      "body_kind": "object:data-list",
+      "data_count": 1,
+      "docs_entitlement_hint": "not-marked",
+      "elapsed_ms": 209.7,
+      "error": null,
+      "historical_params": [],
+      "message": null,
+      "method": "GET",
+      "operation_id": "PublicApi.OptionContractController.option_contracts",
+      "path": "/api/stock/{ticker}/option-contracts",
+      "required_path_params": [
+        "ticker"
+      ],
+      "required_query_params": [],
+      "sample_keys": [
+        "ask_volume",
+        "avg_price",
+        "bid_volume",
+        "floor_volume",
+        "high_price",
+        "implied_volatility",
+        "last_price",
+        "low_price",
+        "mid_volume",
+        "multi_leg_volume",
+        "nbbo_ask",
+        "nbbo_bid",
+        "no_side_volume",
+        "open_interest",
+        "option_symbol",
+        "prev_oi"
+      ],
+      "sample_notes": [],
+      "sample_path": "/api/stock/TSLA/option-contracts",
+      "sample_query": [
+        [
+          "limit",
+          1
+        ]
+      ],
+      "status_code": 200,
+      "summary": "Option contracts",
+      "tags": [
+        "option-contract"
+      ]
+    },
+    {
+      "access_result": "accessible",
+      "backfill_hint": "historical-selector",
+      "body_kind": "object:data-list",
+      "data_count": 14233,
+      "docs_entitlement_hint": "not-marked",
+      "elapsed_ms": 376.0,
+      "error": null,
+      "historical_params": [
+        "date"
+      ],
+      "message": null,
+      "method": "GET",
+      "operation_id": "PublicApi.TickerController.option_price_level",
+      "path": "/api/stock/{ticker}/option/stock-price-levels",
+      "required_path_params": [
+        "ticker"
+      ],
+      "required_query_params": [],
+      "sample_keys": [
+        "call_volume",
+        "price",
+        "put_volume"
+      ],
+      "sample_notes": [],
+      "sample_path": "/api/stock/TSLA/option/stock-price-levels",
+      "sample_query": [
+        [
+          "date",
+          "2026-05-14"
+        ]
+      ],
+      "status_code": 200,
+      "summary": "Option Price Levels",
+      "tags": [
+        "stock"
+      ]
+    },
+    {
+      "access_result": "accessible",
+      "backfill_hint": "historical-selector",
+      "body_kind": "object:data-list",
+      "data_count": 24,
+      "docs_entitlement_hint": "not-marked",
+      "elapsed_ms": 212.3,
+      "error": null,
+      "historical_params": [
+        "date"
+      ],
+      "message": null,
+      "method": "GET",
+      "operation_id": "PublicApi.TickerController.vol_oi_per_expiry",
+      "path": "/api/stock/{ticker}/option/volume-oi-expiry",
+      "required_path_params": [
+        "ticker"
+      ],
+      "required_query_params": [],
+      "sample_keys": [
+        "expires",
+        "oi",
+        "volume"
+      ],
+      "sample_notes": [],
+      "sample_path": "/api/stock/TSLA/option/volume-oi-expiry",
+      "sample_query": [
+        [
+          "date",
+          "2026-05-14"
+        ]
+      ],
+      "status_code": 200,
+      "summary": "Volume & OI per Expiry",
+      "tags": [
+        "stock"
+      ]
+    },
+    {
+      "access_result": "accessible",
+      "backfill_hint": "snapshot-or-reference",
+      "body_kind": "object:data-list",
+      "data_count": 1,
+      "docs_entitlement_hint": "not-marked",
+      "elapsed_ms": 200.5,
+      "error": null,
+      "historical_params": [],
+      "message": null,
+      "method": "GET",
+      "operation_id": "PublicApi.TickerController.options_volume",
+      "path": "/api/stock/{ticker}/options-volume",
+      "required_path_params": [
+        "ticker"
+      ],
+      "required_query_params": [],
+      "sample_keys": [
+        "avg_30_day_call_volume",
+        "avg_30_day_put_volume",
+        "avg_3_day_call_volume",
+        "avg_3_day_put_volume",
+        "avg_7_day_call_volume",
+        "avg_7_day_put_volume",
+        "bearish_premium",
+        "bullish_premium",
+        "call_open_interest",
+        "call_premium",
+        "call_volume",
+        "call_volume_ask_side",
+        "call_volume_bid_side",
+        "date",
+        "net_call_premium",
+        "net_put_premium"
+      ],
+      "sample_notes": [],
+      "sample_path": "/api/stock/TSLA/options-volume",
+      "sample_query": [
+        [
+          "limit",
+          1
+        ]
+      ],
+      "status_code": 200,
+      "summary": "Options Volume",
+      "tags": [
+        "stock"
+      ]
+    },
+    {
+      "access_result": "gated",
+      "backfill_hint": "snapshot-or-reference",
+      "body_kind": "object",
+      "data_count": null,
+      "docs_entitlement_hint": "not-marked",
+      "elapsed_ms": 202.0,
+      "error": null,
+      "historical_params": [],
+      "message": "Missing access for ownership endpoint. This is an enterprise only endpoint. Contact dev@unusualwhales.com",
+      "method": "GET",
+      "operation_id": "PublicApi.TickerController.ownership",
+      "path": "/api/stock/{ticker}/ownership",
+      "required_path_params": [
+        "ticker"
+      ],
+      "required_query_params": [],
+      "sample_keys": [
+        "msg",
+        "path",
+        "query",
+        "url"
+      ],
+      "sample_notes": [],
+      "sample_path": "/api/stock/TSLA/ownership",
+      "sample_query": [
+        [
+          "limit",
+          1
+        ]
+      ],
+      "status_code": 422,
+      "summary": "Ownership",
+      "tags": [
+        "stock"
+      ]
+    },
+    {
+      "access_result": "accessible",
+      "backfill_hint": "historical-selector",
+      "body_kind": "object:data-list",
+      "data_count": 548,
+      "docs_entitlement_hint": "not-marked",
+      "elapsed_ms": 257.3,
+      "error": null,
+      "historical_params": [
+        "date"
+      ],
+      "message": null,
+      "method": "GET",
+      "operation_id": "PublicApi.TickerController.spot_exposures_one_minute",
+      "path": "/api/stock/{ticker}/spot-exposures",
+      "required_path_params": [
+        "ticker"
+      ],
+      "required_query_params": [],
+      "sample_keys": [
+        "charm_per_one_percent_move_dir",
+        "charm_per_one_percent_move_oi",
+        "charm_per_one_percent_move_vol",
+        "gamma_per_one_percent_move_dir",
+        "gamma_per_one_percent_move_oi",
+        "gamma_per_one_percent_move_vol",
+        "price",
+        "start_time",
+        "ticker",
+        "ticker_id",
+        "time",
+        "vanna_per_one_percent_move_dir",
+        "vanna_per_one_percent_move_oi",
+        "vanna_per_one_percent_move_vol"
+      ],
+      "sample_notes": [],
+      "sample_path": "/api/stock/TSLA/spot-exposures",
+      "sample_query": [
+        [
+          "date",
+          "2026-05-14"
+        ]
+      ],
+      "status_code": 200,
+      "summary": "Spot GEX exposures per 1min",
+      "tags": [
+        "Gex/Greeks"
+      ]
+    },
+    {
+      "access_result": "accessible",
+      "backfill_hint": "historical-selector",
+      "body_kind": "object:data-list",
+      "data_count": 1,
+      "docs_entitlement_hint": "not-marked",
+      "elapsed_ms": 200.8,
+      "error": null,
+      "historical_params": [
+        "date"
+      ],
+      "message": null,
+      "method": "GET",
+      "operation_id": "PublicApi.TickerController.spot_exposures_by_strike_expiry_v2",
+      "path": "/api/stock/{ticker}/spot-exposures/expiry-strike",
+      "required_path_params": [
+        "ticker"
+      ],
+      "required_query_params": [
+        "expirations[]"
+      ],
+      "sample_keys": [
+        "call_charm_ask",
+        "call_charm_bid",
+        "call_charm_oi",
+        "call_charm_vol",
+        "call_delta_ask",
+        "call_delta_bid",
+        "call_delta_oi",
+        "call_delta_vol",
+        "call_gamma_ask",
+        "call_gamma_bid",
+        "call_gamma_oi",
+        "call_gamma_vol",
+        "call_vanna_ask",
+        "call_vanna_bid",
+        "call_vanna_oi",
+        "call_vanna_vol"
+      ],
+      "sample_notes": [],
+      "sample_path": "/api/stock/TSLA/spot-exposures/expiry-strike",
+      "sample_query": [
+        [
+          "expirations[]",
+          "2026-05-22"
+        ],
+        [
+          "date",
+          "2026-05-14"
+        ],
+        [
+          "limit",
+          1
+        ]
+      ],
+      "status_code": 200,
+      "summary": "Spot GEX exposures by strike & expiry",
+      "tags": [
+        "Gex/Greeks"
+      ]
+    },
+    {
+      "access_result": "accessible",
+      "backfill_hint": "historical-selector",
+      "body_kind": "object:data-list",
+      "data_count": 1,
+      "docs_entitlement_hint": "not-marked",
+      "elapsed_ms": 221.3,
+      "error": null,
+      "historical_params": [
+        "date"
+      ],
+      "message": null,
+      "method": "GET",
+      "operation_id": "PublicApi.TickerController.spot_exposures_by_strike",
+      "path": "/api/stock/{ticker}/spot-exposures/strike",
+      "required_path_params": [
+        "ticker"
+      ],
+      "required_query_params": [],
+      "sample_keys": [
+        "call_charm_ask",
+        "call_charm_bid",
+        "call_charm_oi",
+        "call_charm_vol",
+        "call_delta_ask",
+        "call_delta_bid",
+        "call_delta_oi",
+        "call_delta_vol",
+        "call_gamma_ask",
+        "call_gamma_bid",
+        "call_gamma_oi",
+        "call_gamma_vol",
+        "call_vanna_ask",
+        "call_vanna_bid",
+        "call_vanna_oi",
+        "call_vanna_vol"
+      ],
+      "sample_notes": [],
+      "sample_path": "/api/stock/TSLA/spot-exposures/strike",
+      "sample_query": [
+        [
+          "date",
+          "2026-05-14"
+        ],
+        [
+          "limit",
+          1
+        ]
+      ],
+      "status_code": 200,
+      "summary": "Spot GEX exposures by strike",
+      "tags": [
+        "Gex/Greeks"
+      ]
+    },
+    {
+      "access_result": "accessible",
+      "backfill_hint": "historical-selector",
+      "body_kind": "object:data-list",
+      "data_count": 165,
+      "docs_entitlement_hint": "not-marked",
+      "elapsed_ms": 238.5,
+      "error": null,
+      "historical_params": [
+        "date"
+      ],
+      "message": null,
+      "method": "GET",
+      "operation_id": "PublicApi.TickerController.spot_exposures_by_strike_expiry",
+      "path": "/api/stock/{ticker}/spot-exposures/{expiry}/strike",
+      "required_path_params": [
+        "ticker",
+        "expiry"
+      ],
+      "required_query_params": [],
+      "sample_keys": [
+        "call_charm_ask",
+        "call_charm_bid",
+        "call_charm_oi",
+        "call_charm_vol",
+        "call_delta_ask",
+        "call_delta_bid",
+        "call_delta_oi",
+        "call_delta_vol",
+        "call_gamma_ask",
+        "call_gamma_bid",
+        "call_gamma_oi",
+        "call_gamma_vol",
+        "call_vanna_ask",
+        "call_vanna_bid",
+        "call_vanna_oi",
+        "call_vanna_vol"
+      ],
+      "sample_notes": [],
+      "sample_path": "/api/stock/TSLA/spot-exposures/2026-05-22/strike",
+      "sample_query": [
+        [
+          "date",
+          "2026-05-14"
+        ]
+      ],
+      "status_code": 200,
+      "summary": "Spot GEX exposures by strike & expiry (Deprecated)",
+      "tags": [
+        "Gex/Greeks"
+      ]
+    },
+    {
+      "access_result": "accessible",
+      "backfill_hint": "snapshot-or-reference",
+      "body_kind": "object:data-object",
+      "data_count": null,
+      "docs_entitlement_hint": "not-marked",
+      "elapsed_ms": 199.9,
+      "error": null,
+      "historical_params": [],
+      "message": null,
+      "method": "GET",
+      "operation_id": "PublicApi.TickerController.last_stock_state",
+      "path": "/api/stock/{ticker}/stock-state",
+      "required_path_params": [
+        "ticker"
+      ],
+      "required_query_params": [],
+      "sample_keys": [
+        "close",
+        "high",
+        "low",
+        "market_time",
+        "open",
+        "prev_close",
+        "tape_time",
+        "total_volume",
+        "volume"
+      ],
+      "sample_notes": [],
+      "sample_path": "/api/stock/TSLA/stock-state",
+      "sample_query": [],
+      "status_code": 200,
+      "summary": "Stock State",
+      "tags": [
+        "stock"
+      ]
+    },
+    {
+      "access_result": "accessible",
+      "backfill_hint": "historical-selector",
+      "body_kind": "object:data-list",
+      "data_count": 53062,
+      "docs_entitlement_hint": "not-marked",
+      "elapsed_ms": 739.4,
+      "error": null,
+      "historical_params": [
+        "date"
+      ],
+      "message": null,
+      "method": "GET",
+      "operation_id": "PublicApi.TickerController.stock_volume_price_level",
+      "path": "/api/stock/{ticker}/stock-volume-price-levels",
+      "required_path_params": [
+        "ticker"
+      ],
+      "required_query_params": [],
+      "sample_keys": [
+        "lit_vol",
+        "off_vol",
+        "price"
+      ],
+      "sample_notes": [],
+      "sample_path": "/api/stock/TSLA/stock-volume-price-levels",
+      "sample_query": [
+        [
+          "date",
+          "2026-05-14"
+        ]
+      ],
+      "status_code": 200,
+      "summary": "Off/Lit Price Levels",
+      "tags": [
+        "stock"
+      ]
+    },
+    {
+      "access_result": "accessible",
+      "backfill_hint": "snapshot-or-reference",
+      "body_kind": "object:data-list",
+      "data_count": 251,
+      "docs_entitlement_hint": "not-marked",
+      "elapsed_ms": 210.1,
+      "error": null,
+      "historical_params": [],
+      "message": null,
+      "method": "GET",
+      "operation_id": "PublicApi.AvFundamentalController.technical_indicator",
+      "path": "/api/stock/{ticker}/technical-indicator/{function}",
+      "required_path_params": [
+        "ticker",
+        "function"
+      ],
+      "required_query_params": [],
+      "sample_keys": [
+        "date",
+        "indicator",
+        "interval",
+        "series_type",
+        "ticker",
+        "time_period",
+        "values"
+      ],
+      "sample_notes": [],
+      "sample_path": "/api/stock/TSLA/technical-indicator/RSI",
+      "sample_query": [],
+      "status_code": 200,
+      "summary": "Technical Indicator",
+      "tags": [
+        "stock"
+      ]
+    },
+    {
+      "access_result": "accessible",
+      "backfill_hint": "historical-selector",
+      "body_kind": "object:data-list",
+      "data_count": 251,
+      "docs_entitlement_hint": "not-marked",
+      "elapsed_ms": 212.4,
+      "error": null,
+      "historical_params": [
+        "date"
+      ],
+      "message": null,
+      "method": "GET",
+      "operation_id": "PublicApi.TickerController.realized_volatility",
+      "path": "/api/stock/{ticker}/volatility/realized",
+      "required_path_params": [
+        "ticker"
+      ],
+      "required_query_params": [],
+      "sample_keys": [
+        "date",
+        "implied_volatility",
+        "price",
+        "realized_volatility",
+        "unshifted_rv_date"
+      ],
+      "sample_notes": [],
+      "sample_path": "/api/stock/TSLA/volatility/realized",
+      "sample_query": [
+        [
+          "date",
+          "2026-05-14"
+        ]
+      ],
+      "status_code": 200,
+      "summary": "Realized Volatility",
+      "tags": [
+        "stock"
+      ]
+    },
+    {
+      "access_result": "accessible",
+      "backfill_hint": "historical-selector",
+      "body_kind": "object:data-object",
+      "data_count": null,
+      "docs_entitlement_hint": "not-marked",
+      "elapsed_ms": 209.9,
+      "error": null,
+      "historical_params": [
+        "date"
+      ],
+      "message": null,
+      "method": "GET",
+      "operation_id": "PublicApi.TickerController.volatility_stats",
+      "path": "/api/stock/{ticker}/volatility/stats",
+      "required_path_params": [
+        "ticker"
+      ],
+      "required_query_params": [],
+      "sample_keys": [
+        "date",
+        "iv",
+        "iv_high",
+        "iv_low",
+        "iv_rank",
+        "rv",
+        "rv_high",
+        "rv_low",
+        "ticker"
+      ],
+      "sample_notes": [],
+      "sample_path": "/api/stock/TSLA/volatility/stats",
+      "sample_query": [
+        [
+          "date",
+          "2026-05-14"
+        ]
+      ],
+      "status_code": 200,
+      "summary": "Volatility Statistics",
+      "tags": [
+        "stock"
+      ]
+    },
+    {
+      "access_result": "accessible",
+      "backfill_hint": "historical-selector",
+      "body_kind": "object:data-list",
+      "data_count": 24,
+      "docs_entitlement_hint": "not-marked",
+      "elapsed_ms": 203.4,
+      "error": null,
+      "historical_params": [
+        "date"
+      ],
+      "message": null,
+      "method": "GET",
+      "operation_id": "PublicApi.TickerController.implied_volatility_term_structure",
+      "path": "/api/stock/{ticker}/volatility/term-structure",
+      "required_path_params": [
+        "ticker"
+      ],
+      "required_query_params": [],
+      "sample_keys": [
+        "date",
+        "dte",
+        "expiry",
+        "implied_move",
+        "implied_move_perc",
+        "ticker",
+        "volatility"
+      ],
+      "sample_notes": [],
+      "sample_path": "/api/stock/TSLA/volatility/term-structure",
+      "sample_query": [
+        [
+          "date",
+          "2026-05-14"
+        ]
+      ],
+      "status_code": 200,
+      "summary": "Implied Volatility Term Structure",
+      "tags": [
+        "stock"
+      ]
+    }
+  ],
+  "summary": {
+    "access_counts": {
+      "accessible": 140,
+      "gated": 36,
+      "sample-invalid": 1
+    },
+    "backfill_counts": {
+      "archive-gated": 1,
+      "historical-path": 5,
+      "historical-selector": 69,
+      "live-only": 14,
+      "recent-or-calendar": 8,
+      "snapshot-or-current-chain": 3,
+      "snapshot-or-reference": 77
+    },
+    "docs_entitlement_counts": {
+      "advanced+-docs": 17,
+      "advanced-docs": 14,
+      "enterprise-docs": 5,
+      "not-marked": 122,
+      "premium-docs": 13,
+      "websocket-docs": 6
+    },
+    "generated_at": "2026-05-15T04:03:56.879439+00:00",
+    "live": true,
+    "operation_count": 177,
+    "spec_source": "https://api.unusualwhales.com/api/openapi",
+    "status_counts": {
+      "200": 140,
+      "403": 17,
+      "422": 20
+    }
+  }
+}

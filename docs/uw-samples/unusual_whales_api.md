@@ -335,6 +335,118 @@ The `UW_TOKEN` environment variable should contain your API key.
 
 ---
 
+## Exhaustive API Surface Audit
+
+Verified against the official OpenAPI document at
+`https://api.unusualwhales.com/api/openapi` and live-probed with the current
+local API key on 2026-05-15.
+
+- The live official OpenAPI currently exposes **177 GET operations**. The local
+  YAML spec has been refreshed to that official surface.
+- Live audit result with the current key: **140 accessible**, **36 gated**, and
+  **1 unresolved sample-invalid** operation.
+- Generated evidence:
+  - `docs/uw-samples/uw_api_capability_audit.json` stores the machine-readable
+    status, sample request, response shape summary, entitlement hint, and
+    backfill classification for every operation.
+  - `docs/uw-samples/uw_api_capability_audit.md` stores the complete
+    human-readable operation matrix.
+
+Current-key accessible families include standard alerts/configuration metadata,
+standard congressional trades, crypto whale/price endpoints, dark pool/off-lit
+and lit flow, earnings, ETF data, group flow, insider data, institution data,
+core market endpoints, net flow, news, option-contract data, option flow alerts,
+recent politician trades, prediction-market aggregate endpoints, screeners,
+seasonality, short-interest data, socket metadata, and broad stock/options/
+Greek/volatility/fundamental endpoints.
+
+The only unresolved sample is `/api/predictions/user/{user_id}`: the generated
+sample returned `422 HashDive API error: 400`, so entitlement for that specific
+operation remains unknown until we have a real prediction-market user id sample.
+
+---
+
+## Advanced / Gated Feature Spectrum
+
+Verified against official docs and the exhaustive live audit with the current
+local API key on 2026-05-15. The current key is **not** Advanced: Advanced+
+probes returned `403` with "This endpoint requires the Advanced API tier or
+higher." Premium/enterprise groups returned missing-access `422` responses.
+
+| Tier / scope | Feature area | Endpoint examples | Live probe / docs result |
+|---|---|---|---|
+| Current/basic API | Core options, dark pool, stock, Greek, volatility, crypto, ETF, institution, insider, standard congressional, screeners, seasonality, shorts, prediction aggregates, socket metadata | 140 audited GET operations returned `200` | Available with current key; see the capability audit matrix for every path. |
+| Advanced+ | Forex | `/api/forex/rate`, `/api/forex/history`, `/api/forex/intraday` | Official operation docs say "Requires Advanced+ tier"; current key returned `403`. |
+| Advanced+ | Commodities | `/api/commodities/{name}` for `wti`, `brent`, `natural-gas`, `copper`, `aluminum`, `wheat`, `corn`, `cotton`, `sugar`, `coffee`, `all-commodities` | Official operation docs say Advanced+; current key returned `403`. |
+| Advanced+ | US macro/economy series | `/api/economy/{indicator}` for `gdp`, `gdp-per-capita`, `treasury-yield`, `fed-funds`, `cpi`, `inflation`, `retail-sales`, `durables`, `unemployment`, `payrolls` | Official operation docs say Advanced+; current key returned `403`. |
+| Advanced+ | Digital currency series | `/api/digital-currencies/history`, `/api/digital-currencies/intraday` | Official operation docs say Advanced+; current key returned `403`. |
+| Advanced+ | Company fundamentals / listings extras | `/api/companies/listings`, `/api/companies/{ticker}/profile`, `/api/companies/{ticker}/dividends`, `/api/companies/{ticker}/splits`, `/api/companies/{ticker}/earnings-estimates`, `/api/companies/{ticker}/transcripts/{quarter}` | Current key returned `403` requiring Advanced API tier or higher. |
+| Advanced+ | Market intelligence extras | `/api/market/movers`, `/api/calendar/ipo`, `/api/analytics/sliding`, `/api/analytics/window` | Current key returned `403` requiring Advanced API tier or higher. |
+| Advanced API / websocket scope | Personal-use WebSocket streaming | `option_trades`, `flow-alerts`, `price:{TICKER}`, `news`, `lit_trades`, `off_lit_trades`, `gex:*`, `market_tide`, `net_flow:*`, `interval_flow`, `contract_screener`, `trading_halts`, `custom_alerts` | Socket metadata endpoints returned `200`; official docs still mark personal-use streaming access as Advanced plan scope. |
+| Advanced API | Full tape archive | `/api/option-trades/full-tape/{date}` | Official docs say Advanced API and last 3 trading days; current key returned `422 Missing access for full tape`. |
+| Premium | Congressional unusual-trade products | `/api/congress/unusual-trades`, `/api/congress/unusual-trades/by-tickers`, `/api/congress/unusual-trades/chart-data`, `/api/congress/unusual-trades/stats` | Current key returned `422 Missing access for unusual trades`; response says premium endpoint. |
+| Premium | Private markets | `/api/private-markets/*` | Current key returned `422 Missing access for private markets`; response says premium endpoint. |
+| Enterprise / Professional | Redistribution/custom solutions, politician portfolio endpoints, stock ownership | `/api/politician-portfolios/*`, `/api/stock/{ticker}/ownership` | Current key returned enterprise-only missing-access responses. |
+| Enterprise Startup + Kafka | Kafka event streaming | `stream.unusualwhales.com:9083` topics such as flow alerts | UW Kafka page advertises replay from offsets, consumer groups, 72h retention, REST quota, websocket access, and real-time Kafka access. |
+
+---
+
+## Backfill / Historical Query Notes
+
+Verified against the live UW API with the current local API key on 2026-05-15.
+This section documents source capability only; the app does not yet have a
+general-purpose backfill runner for missed scan windows.
+
+The exhaustive audit classifies **69 operations** as having explicit historical
+selectors (`date`, `newer_than`, `older_than`, `start_date`, or `end_date`) and
+**5 additional operations** as historical by path shape. This is broader than
+the endpoints currently integrated into `uw_scan`; use the capability matrix
+before adding new fetchers.
+
+### Account-Level Lookback Observed
+
+- Date-parameter endpoints returned live data for `2026-04-14` and `2026-04-15`.
+- The same endpoints rejected `2026-03-13` and `2025-05-14` with `403` and the
+  message: earliest available date is `2026-04-01 (30 trading days)`.
+- Treat "30 Day historical look back" on the plan page as **30 trading days** for
+  date-based endpoints, subject to endpoint-specific rules.
+- Timestamp-cursor flow alerts behaved differently: `/api/option-trades/flow-alerts`
+  returned data through `2026-04-15T20:00:00Z`; requesting
+  `older_than=2026-04-14T20:00:00Z` returned an empty `data` array, not a 403.
+
+### Confirmed Backfillable Endpoint Groups
+
+| Data group | Endpoint(s) | Historical selector | Live probe result | Backfill note |
+|---|---|---|---|---|
+| Flow alerts | `/api/option-trades/flow-alerts` | `newer_than`, `older_than`, `limit` | `200`, incident window `2026-05-14T17:47:31Z..20:00:00Z` returned rows | Cursor/page by timestamp; persist by `alert_id`. Confirmed near 30-day edge on `2026-04-15`; `2026-04-14` returned empty. |
+| Dark pool / off-lit prints | `/api/darkpool/{ticker}` | `date` or `newer_than`/`older_than`, plus `limit` | `200` for `TSLA` on `2026-04-14` and for incident timestamp window | Date-based lookback confirmed as 30 trading days for this key. |
+| Strike flow | `/api/stock/{ticker}/flow-per-strike` | `date` | `200` for `TSLA` on `2026-04-14`; `403` for `2026-03-13` | Daily aggregate can be repaired by market date. |
+| Intraday strike flow | `/api/stock/{ticker}/flow-per-strike-intraday` | `date` | `200`, `TSLA` on `2026-05-14` returned 1-minute rows from market open through close | Useful for missed intraday windows, but endpoint returns the whole market date. |
+| Greeks by expiry | `/api/stock/{ticker}/greeks` | `date`, `expiry` | `200` for `TSLA`, `date=2026-04-14`, `expiry=2026-05-15`; `403` for `2026-03-13` | Requires choosing expiry dates for the backfill run. |
+| GEX strike/expiry | `/api/stock/{ticker}/greek-exposure/strike-expiry` | `date`, `expiry` | `200` for `TSLA`, `date=2026-04-14`, `expiry=2026-05-15`; `403` for `2026-03-13` | Same expiry-selection requirement as greeks. |
+| Spot GEX by expiry/strike | `/api/stock/{ticker}/spot-exposures/expiry-strike` | `date`, `expirations[]`, paging/filter params | `200` for `TSLA`, `date=2026-05-14`, `expirations[]=2026-05-15` | Official docs note data is available since `2025-01-16`, but current key/date-window limits still apply. |
+| OI by strike | `/api/stock/{ticker}/oi-per-strike` | `date` | `200` for `TSLA` on `2026-04-14`; `403` for `2026-03-13` | Daily snapshot repair by market date. |
+| Max pain | `/api/stock/{ticker}/max-pain` | `date` | `200` for `TSLA`, `date=2026-05-14` | Daily expiry-level snapshot. |
+| IV rank | `/api/stock/{ticker}/iv-rank` | `date` | `200` for `date=2026-04-14`, response included a small trailing series ending on that date; `403` for `2026-03-13` | Endpoint returns a trailing slice ending at `date`, not just one row. |
+| Volatility stats | `/api/stock/{ticker}/volatility/stats` | `date` | `200` object for `TSLA`, `date=2026-04-14`; `403` for `2026-03-13` | One object per requested market date. |
+| Realized volatility | `/api/stock/{ticker}/volatility/realized` | `date`, optional `timeframe` | `200` for `date=2026-04-14`, response returned about 250 rows ending on that date | Historical series endpoint; date parameter anchors the returned series. |
+| Term structure | `/api/stock/{ticker}/volatility/term-structure` | `date` | `200` for `TSLA`, `date=2026-04-14`; `403` for `2026-03-13` | Daily expiry term snapshot. |
+| Historical risk-reversal skew | `/api/stock/{ticker}/historical-risk-reversal-skew` | `date`, `expiry`, `delta` | `200` for `TSLA`, `date=2026-05-14`, `expiry=2026-05-15`, `delta=25`, returned a historical series ending on date | Backfill must pick expiry/delta combinations. |
+| Options volume history | `/api/stock/{ticker}/options-volume` | `limit` | `200`, `limit=5` returned recent daily rows | Current repo uses this as a multi-day pull; no direct `date` selector observed in the integrated fetcher. |
+
+### Not Currently Backfillable With This Key / Setup
+
+- `/api/option-trades/full-tape/{date}` returned `422` with "Missing access for
+  full tape"; official docs mark it as Advanced API / websocket-scope access.
+- `/api/stock/{ticker}/option-contracts` returned the current chain snapshot and
+  is not a historical date repair path in the current fetcher.
+- WebSocket channels are live streaming only for this app; use REST endpoints
+  above for repair/backfill.
+- `matrix_state_snapshots` is app-derived and currently empty; it cannot be
+  repaired from UW directly until the app-side derivation job is implemented.
+
+---
+
 ## Script → Endpoint Mapping
 
 Which scripts use which UW endpoints:
