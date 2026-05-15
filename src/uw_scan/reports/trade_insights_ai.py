@@ -914,6 +914,22 @@ def _known_idea_id(idea_id: str, candidates: dict[str, dict[str, Any]]) -> bool:
 
 
 _PATH_PART_INDEX_RE = re.compile(r"\[-?\d*\]")
+_SOURCE_PATH_ALIASES = (
+    (
+        "tabs.market_structure.market_structure.stock_history.",
+        "tabs.market_structure.stock_history.",
+    ),
+)
+
+
+def _canonical_source_path(path: str, deterministic_payload: dict[str, Any]) -> str:
+    for invalid_prefix, canonical_prefix in _SOURCE_PATH_ALIASES:
+        if not path.startswith(invalid_prefix):
+            continue
+        candidate = f"{canonical_prefix}{path.removeprefix(invalid_prefix)}"
+        if _path_family_exists(candidate, deterministic_payload):
+            return candidate
+    return path
 
 
 def _path_family_exists(path: str, deterministic_payload: dict[str, Any]) -> bool:
@@ -965,6 +981,10 @@ def _validate_source_path_item(
     for unavailable in ("charm", "vanna", "short_interest"):
         if unavailable in lowered and not _missing_data_mentions(outcome, unavailable):
             raise ValueError(f"unavailable source field referenced: {source_path}")
+    canonical_source_path = _canonical_source_path(source_path, deterministic_payload)
+    if canonical_source_path != source_path:
+        item.source_path = canonical_source_path
+        source_path = canonical_source_path
     if not _path_family_exists(source_path, deterministic_payload):
         raise ValueError(f"source_path prefix does not exist: {source_path}")
 

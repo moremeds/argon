@@ -27,6 +27,8 @@ from ..models import (
 )
 from ..storage.repository import Repository
 
+FLOW_ALERT_FETCH_LIMIT = 100
+
 
 def _to_decimal(value: object) -> Decimal | None:
     if value is None:
@@ -42,7 +44,9 @@ def _safe_get(d: dict | None, key: str):
     return d.get(key)
 
 
-def _build_flow_snapshot(ticker: str, flow_rows: list[dict]) -> FlowSnapshot:
+def _build_flow_snapshot(
+    ticker: str, flow_rows: list[dict], baseline: dict | None = None
+) -> FlowSnapshot:
     bull_premium = Decimal("0")
     bear_premium = Decimal("0")
     ask_side = Decimal("0")
@@ -95,6 +99,14 @@ def _build_flow_snapshot(ticker: str, flow_rows: list[dict]) -> FlowSnapshot:
     return FlowSnapshot(
         ticker=ticker,
         flow_count=len(flow_rows),
+        flow_count_is_limited=bool(_safe_get(baseline, "alert_count_is_limited"))
+        or len(flow_rows) >= FLOW_ALERT_FETCH_LIMIT,
+        flow_count_30d_avg=_to_decimal(_safe_get(baseline, "avg_30d_alert_count")),
+        flow_count_vs_30d_avg=_to_decimal(
+            _safe_get(baseline, "flow_count_vs_30d_avg")
+        ),
+        flow_count_30d_days=int(_safe_get(baseline, "baseline_days") or 0),
+        top_alert_rule=_safe_get(baseline, "top_alert_rule"),
         net_premium=net_premium,
         bull_premium=bull_premium,
         bear_premium=bear_premium,
@@ -373,7 +385,8 @@ def assemble_single_stock_report(
     """Build a SingleStockReport from persisted run data."""
     ticker = ticker.upper()
     flow_rows = repo.fetch_flow_alerts_for_ticker(run_id, ticker)
-    flow = _build_flow_snapshot(ticker, flow_rows)
+    baseline = repo.fetch_flow_alerts_daily_baseline(run_id, ticker)
+    flow = _build_flow_snapshot(ticker, flow_rows, baseline)
 
     max_pain_rows_raw = repo.fetch_max_pain_rows(run_id, ticker)
     max_pain_rows: list[MaxPainRow] = []

@@ -363,6 +363,11 @@ class VolatilityProfile(_UwBase):
 class FlowSnapshot(_UwBase):
     ticker: str
     flow_count: int
+    flow_count_is_limited: bool = False
+    flow_count_30d_avg: Decimal | None = None
+    flow_count_vs_30d_avg: Decimal | None = None
+    flow_count_30d_days: int = 0
+    top_alert_rule: str | None = None
     net_premium: Decimal
     bull_premium: Decimal
     bear_premium: Decimal

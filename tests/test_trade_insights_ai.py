@@ -751,6 +751,26 @@ def test_validate_trade_insights_ai_outcome_accepts_array_family_source_paths():
     assert parsed.metric_cards[0].source_path.endswith("rows[].net_dex")
 
 
+def test_validate_trade_insights_ai_outcome_canonicalizes_nested_stock_history_path():
+    deterministic = _analysis_input()
+    produced_at = datetime(2026, 3, 24, 20, 18, 42, tzinfo=timezone.utc)
+    nested_path = _sample_outcome_for(deterministic)
+    nested_path["metric_cards"][0]["source_path"] = (
+        "tabs.market_structure.market_structure.stock_history.rows[0].net_dex"
+    )
+
+    parsed = validate_trade_insights_ai_outcome(
+        nested_path,
+        deterministic,
+        produced_at=produced_at,
+    )
+
+    assert (
+        parsed.metric_cards[0].source_path
+        == "tabs.market_structure.stock_history.rows[0].net_dex"
+    )
+
+
 def test_validate_trade_insights_ai_outcome_accepts_negative_array_source_paths():
     deterministic = _analysis_input()
     produced_at = datetime(2026, 3, 24, 20, 18, 42, tzinfo=timezone.utc)

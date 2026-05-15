@@ -2,6 +2,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { components } from "@/lib/types";
 import { FlowSnapshotGrid } from "../panels/FlowSnapshotGrid";
+import { FlowAlertSummary } from "../panels/FlowAlertSummary";
 import { FlowTimelinePanel } from "../panels/FlowTimelinePanel";
 import { OiMoversTable } from "../panels/OiMoversTable";
 import { StrikeProfilePanel } from "../panels/StrikeProfilePanel";
@@ -135,7 +136,18 @@ export function FlowTab({ report }: { report: Report }) {
       )}
 
       <section>
-        <h3 style={SECTION_HEADING}>Top Alerts</h3>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "baseline",
+            justifyContent: "space-between",
+            gap: 16,
+            margin: "8px 0",
+          }}
+        >
+          <h3 style={{ ...SECTION_HEADING, margin: 0 }}>Top Alerts</h3>
+          <FlowAlertSummary flow={report.flow} />
+        </div>
         <TopAlertsTable alerts={alerts} oiMoverIndex={oiDiffBySymbol} />
       </section>
 
