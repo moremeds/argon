@@ -84,9 +84,13 @@ def cockpit_daily_snapshot(
                         state = build_matrix_state(
                             deriver_repo, ticker=ticker, market_date=market_date
                         )
-                        # TODO(phase-5): persist threshold_version after
-                        # migration 023 adds the column.
                         deriver_repo.upsert_matrix_state_snapshot(state)
+                        deriver_repo.persist_vrp_30d_settlements(
+                            ticker=ticker, market_date=market_date
+                        )
+                        deriver_repo.persist_cockpit_dealer_signals(
+                            ticker=ticker, market_date=market_date
+                        )
                         deriver_conn.commit()
                 except Exception as deriver_exc:  # noqa: BLE001
                     logger.exception(

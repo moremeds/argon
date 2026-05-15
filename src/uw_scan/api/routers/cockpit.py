@@ -44,6 +44,23 @@ def _state_for(
     return state
 
 
+def _tab_market_date_for(
+    ticker: str,
+    *,
+    asof: _date | None,
+    repo: Repository,
+) -> _date:
+    if asof is not None:
+        return asof
+    source_date = repo.fetch_latest_cockpit_source_market_date(ticker=ticker)
+    if source_date is not None:
+        return source_date
+    state = repo.fetch_latest_matrix_state_snapshot(ticker=ticker)
+    if state is not None:
+        return state.market_date
+    raise HTTPException(status_code=404, detail=f"no Cockpit source data for {ticker}")
+
+
 @router.get("/cockpit/{ticker}/state", response_model=CockpitStateResponse)
 def get_cockpit_state(
     ticker: str,
@@ -68,12 +85,15 @@ def get_cockpit_dealer(
     settings: Settings = Depends(get_settings),
 ) -> CockpitDealerResponse:
     t = _guard_ticker(ticker, settings)
-    state = _state_for(t, asof=asof, repo=repo)
+    market_date = _tab_market_date_for(t, asof=asof, repo=repo)
     return CockpitDealerResponse(
         ticker=t,
-        market_date=state.market_date,
+        market_date=market_date,
+        metrics=repo.fetch_cockpit_dealer_metrics(
+            ticker=t, market_date=market_date
+        ),
         points=repo.fetch_cockpit_dealer_points(
-            ticker=t, market_date=state.market_date
+            ticker=t, market_date=market_date
         ),
     )
 
@@ -86,10 +106,10 @@ def get_cockpit_surface(
     settings: Settings = Depends(get_settings),
 ) -> CockpitSurfaceResponse:
     t = _guard_ticker(ticker, settings)
-    state = _state_for(t, asof=asof, repo=repo)
-    skew, term = repo.fetch_cockpit_surface(ticker=t, market_date=state.market_date)
+    market_date = _tab_market_date_for(t, asof=asof, repo=repo)
+    skew, term = repo.fetch_cockpit_surface(ticker=t, market_date=market_date)
     return CockpitSurfaceResponse(
-        ticker=t, market_date=state.market_date, skew=skew, term=term
+        ticker=t, market_date=market_date, skew=skew, term=term
     )
 
 
@@ -101,13 +121,13 @@ def get_cockpit_flow_im(
     settings: Settings = Depends(get_settings),
 ) -> CockpitFlowImResponse:
     t = _guard_ticker(ticker, settings)
-    state = _state_for(t, asof=asof, repo=repo)
+    market_date = _tab_market_date_for(t, asof=asof, repo=repo)
     return CockpitFlowImResponse(
         ticker=t,
-        market_date=state.market_date,
+        market_date=market_date,
         alerts=repo.fetch_cockpit_flow_alerts(ticker=t),
         implied_moves=repo.fetch_cockpit_implied_moves(
-            ticker=t, market_date=state.market_date
+            ticker=t, market_date=market_date
         ),
     )
 
@@ -120,9 +140,9 @@ def get_cockpit_vrp(
     settings: Settings = Depends(get_settings),
 ) -> CockpitVrpResponse:
     t = _guard_ticker(ticker, settings)
-    state = _state_for(t, asof=asof, repo=repo)
+    market_date = _tab_market_date_for(t, asof=asof, repo=repo)
     return CockpitVrpResponse(
         ticker=t,
-        market_date=state.market_date,
-        points=repo.fetch_cockpit_vrp_points(ticker=t, market_date=state.market_date),
+        market_date=market_date,
+        points=repo.fetch_cockpit_vrp_points(ticker=t, market_date=market_date),
     )

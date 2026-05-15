@@ -22,6 +22,7 @@ logger = logging.getLogger(__name__)
 EXPECTED_FRESH_DIMS_V1 = frozenset({"vanna", "charm", "skew", "term", "vrp"})
 _DIRECTIONAL = {"vol_up", "vol_down"}
 _CONTENT_TIERS = {"strict", "strong", "weak"}
+EXPECTED_ABS_MOVE_FACTOR = Decimal("0.7979")
 
 
 @dataclass(frozen=True)
@@ -32,6 +33,7 @@ class MatrixInputs:
     charm_state: MatrixDirection
     skew_state: MatrixDirection
     term_state: MatrixDirection
+    threshold_version: int = 1
     im_state: MatrixDirection = "stale"
     flow_state: MatrixDirection = "stale"
     vrp_state: MatrixDirection = "stale"
@@ -46,11 +48,32 @@ class MatrixInputs:
     implied_move_pct: Decimal | None = None
     front_iv: Decimal | None = None
     back_iv: Decimal | None = None
+    front_back_spread: Decimal | None = None
     pin_distance_sigma: Decimal | None = None
     vrp_sign_flip_status: bool | Literal["insufficient_history"] = (
         "insufficient_history"
     )
     vrp_sign_flip_aligned_days: int = 0
+    vanna_conditional_reading: (
+        Literal["grind_up", "reverse_selloff", "reflexive_sell_pressure", "weak_noise"]
+        | None
+    ) = None
+    directional_imbalance_3d: Decimal | None = None
+    vanna_oi_change_bias: Literal["call_oi_build", "put_oi_build", "mixed"] | None = None
+    charm_regime: (
+        Literal["operative_magnet", "broken_magnet", "opex_vortex", "neutral"] | None
+    ) = None
+    charm_stress_override: bool = False
+    skew_25d_5d_change: Decimal | None = None
+    skew_regime: Literal["smirk", "accelerated", "crash_smile", "neutral"] | None = None
+    skew_term_structure: Decimal | None = None
+    single_point_bump_pct: Decimal | None = None
+    full_curve_slope_pct: Decimal | None = None
+    term_johnson_slope_pc1: Decimal | None = None
+    atm_straddle_mid: Decimal | None = None
+    implied_move_expected_abs: Decimal | None = None
+    implied_move_event_percentile: Decimal | None = None
+    vrp_zscore_252d: Decimal | None = None
     dim5_stale_wins: bool = True
 
 
@@ -101,8 +124,12 @@ def build_matrix_state(
 ) -> MatrixState:
     """Build a deterministic matrix snapshot from persisted source tables."""
 
-    _ = threshold_version  # TODO(phase-5): persist after migration 023.
-    inputs = _read_inputs(repo, ticker=ticker.upper(), market_date=market_date)
+    inputs = _read_inputs(
+        repo,
+        ticker=ticker.upper(),
+        market_date=market_date,
+        threshold_version=threshold_version,
+    )
     return build_matrix_state_from_inputs(inputs)
 
 
@@ -159,6 +186,7 @@ def build_matrix_state_from_inputs(inputs: MatrixInputs) -> MatrixState:
     return MatrixState(
         ticker=inputs.ticker.upper(),
         market_date=inputs.market_date,
+        threshold_version=inputs.threshold_version,
         vanna_state=inputs.vanna_state,
         charm_state=inputs.charm_state,
         skew_state=inputs.skew_state,
@@ -177,7 +205,25 @@ def build_matrix_state_from_inputs(inputs: MatrixInputs) -> MatrixState:
         implied_move_pct=inputs.implied_move_pct,
         front_iv=inputs.front_iv,
         back_iv=inputs.back_iv,
+        front_back_spread=inputs.front_back_spread,
         pin_distance_sigma=inputs.pin_distance_sigma,
+        vrp_sign_flip_status=inputs.vrp_sign_flip_status,
+        vrp_sign_flip_aligned_days=inputs.vrp_sign_flip_aligned_days,
+        vanna_conditional_reading=inputs.vanna_conditional_reading,
+        directional_imbalance_3d=inputs.directional_imbalance_3d,
+        vanna_oi_change_bias=inputs.vanna_oi_change_bias,
+        charm_regime=inputs.charm_regime,
+        charm_stress_override=inputs.charm_stress_override,
+        skew_25d_5d_change=inputs.skew_25d_5d_change,
+        skew_regime=inputs.skew_regime,
+        skew_term_structure=inputs.skew_term_structure,
+        single_point_bump_pct=inputs.single_point_bump_pct,
+        full_curve_slope_pct=inputs.full_curve_slope_pct,
+        term_johnson_slope_pc1=inputs.term_johnson_slope_pc1,
+        atm_straddle_mid=inputs.atm_straddle_mid,
+        implied_move_expected_abs=inputs.implied_move_expected_abs,
+        implied_move_event_percentile=inputs.implied_move_event_percentile,
+        vrp_zscore_252d=inputs.vrp_zscore_252d,
     )
 
 
@@ -235,16 +281,24 @@ def _log_vrp_sign_flip(
     )
 
 
-def _read_inputs(repo: Repository, *, ticker: str, market_date: date) -> MatrixInputs:
+def _read_inputs(
+    repo: Repository, *, ticker: str, market_date: date, threshold_version: int
+) -> MatrixInputs:
     greeks = repo.fetch_matrix_greeks_rows(ticker=ticker, market_date=market_date)
-    exposures = repo.fetch_matrix_exposure_rows(ticker=ticker, market_date=market_date)
-    skew_rows = repo.fetch_matrix_skew_history(ticker=ticker, market_date=market_date)
-    term_rows = repo.fetch_matrix_term_rows(ticker=ticker, market_date=market_date)
-    iv_rows = repo.fetch_matrix_interpolated_iv_history(
+    straddle_mid_rows = repo.fetch_matrix_straddle_mid_rows(
         ticker=ticker, market_date=market_date
     )
-    rv_rows = repo.fetch_matrix_realized_vol_history(
+    exposures = repo.fetch_matrix_exposure_rows(ticker=ticker, market_date=market_date)
+    skew_rows = repo.fetch_matrix_skew_history(ticker=ticker, market_date=market_date)
+    skew_expiry_rows = repo.fetch_matrix_skew_expiry_rows(
         ticker=ticker, market_date=market_date
+    )
+    term_rows = repo.fetch_matrix_term_rows(ticker=ticker, market_date=market_date)
+    iv_rows = repo.fetch_matrix_interpolated_iv_history(
+        ticker=ticker, market_date=market_date, days=300
+    )
+    rv_rows = repo.fetch_matrix_realized_vol_history(
+        ticker=ticker, market_date=market_date, days=300
     )
     chain_rows = repo.fetch_matrix_option_chain_rows(
         ticker=ticker, market_date=market_date
@@ -253,11 +307,20 @@ def _read_inputs(repo: Repository, *, ticker: str, market_date: date) -> MatrixI
     iv_30d = _latest_iv_30d(iv_rows, market_date)
     rv_30d = _latest_rv_30d(rv_rows, market_date)
     spot = _latest_spot(rv_rows, market_date)
+    atm_straddle_mid = _atm_straddle_mid(straddle_mid_rows, spot=spot)
     skew_fresh = _has_row_for_date(skew_rows, market_date)
     skew_z = _zscore_for_date(skew_rows, "risk_reversal", market_date, 180)
-    vrp, vrp_z = _vrp_values(iv_rows, rv_rows, market_date)
+    skew_change = _skew_change_for_date(skew_rows, market_date, days=5)
+    skew_regime = _skew_regime(skew_z, skew_change)
+    skew_term = _skew_term_structure(skew_expiry_rows)
+    vrp, vrp_z = _vrp_values(iv_rows, rv_rows, market_date, window=60)
+    _vrp_current, vrp_z_252 = _vrp_values(iv_rows, rv_rows, market_date, window=252)
     sign_flip_status, aligned_days = _vrp_sign_flip_status(iv_rows, rv_rows)
-    term_state, term_classification, front_iv, back_iv = _term_state(term_rows)
+    term_metrics = _term_metrics(term_rows)
+    term_state = term_metrics["state"]
+    term_classification = term_metrics["classification"]
+    front_iv = term_metrics["front_iv"]
+    back_iv = term_metrics["back_iv"]
     skew_state = (
         _state_from_z(skew_z, up_state="vol_up", down_state="vol_down")
         if skew_z is not None
@@ -266,7 +329,7 @@ def _read_inputs(repo: Repository, *, ticker: str, market_date: date) -> MatrixI
         else "stale"
     )
     vanna_state = _vanna_state(greeks, exposures)
-    charm_state, pin_sigma = _charm_state(
+    charm_state, pin_sigma, charm_regime, charm_stress_override = _charm_state(
         has_greeks=bool(greeks),
         chain_rows=chain_rows,
         spot=spot,
@@ -275,6 +338,9 @@ def _read_inputs(repo: Repository, *, ticker: str, market_date: date) -> MatrixI
         term_state=term_state,
         skew_state=skew_state,
         market_date=market_date,
+    )
+    dealer_metrics = repo.fetch_cockpit_dealer_metrics(
+        ticker=ticker, market_date=market_date
     )
     vrp_state = (
         _state_from_z(vrp_z, up_state="vol_down", down_state="vol_up")
@@ -287,6 +353,7 @@ def _read_inputs(repo: Repository, *, ticker: str, market_date: date) -> MatrixI
     return MatrixInputs(
         ticker=ticker,
         market_date=market_date,
+        threshold_version=threshold_version,
         vanna_state=vanna_state,
         charm_state=charm_state,
         skew_state=skew_state,
@@ -298,12 +365,37 @@ def _read_inputs(repo: Repository, *, ticker: str, market_date: date) -> MatrixI
         rv_30d=rv_30d,
         vrp=vrp,
         vrp_zscore_60d=vrp_z,
+        vrp_zscore_252d=vrp_z_252,
         implied_move_pct=_latest_implied_move_pct(iv_rows, market_date),
         front_iv=front_iv,
         back_iv=back_iv,
+        front_back_spread=term_metrics["front_back_spread"],
         pin_distance_sigma=pin_sigma,
         vrp_sign_flip_status=sign_flip_status,
         vrp_sign_flip_aligned_days=aligned_days,
+        directional_imbalance_3d=dealer_metrics.directional_imbalance_3d,
+        vanna_oi_change_bias=_oi_change_bias(
+            repo.fetch_matrix_oi_change_rows(ticker=ticker, market_date=market_date)
+        ),
+        vanna_conditional_reading=_vanna_conditional_reading(
+            iv_30d_delta_5d=dealer_metrics.iv_30d_delta_5d,
+            directional_imbalance_3d=dealer_metrics.directional_imbalance_3d,
+            flow_color=dealer_metrics.flow_color_lookback_3d,
+            net_gamma_sign=dealer_metrics.net_gamma_sign,
+        ),
+        charm_regime=charm_regime,
+        charm_stress_override=charm_stress_override,
+        skew_25d_5d_change=skew_change,
+        skew_regime=skew_regime,
+        skew_term_structure=skew_term,
+        single_point_bump_pct=term_metrics["single_point_bump_pct"],
+        full_curve_slope_pct=term_metrics["full_curve_slope_pct"],
+        term_johnson_slope_pc1=term_metrics["term_johnson_slope_pc1"],
+        atm_straddle_mid=atm_straddle_mid,
+        implied_move_expected_abs=_implied_move_expected_abs(
+            term_rows, atm_straddle_mid=atm_straddle_mid, spot=spot
+        ),
+        implied_move_event_percentile=None,
     )
 
 
@@ -335,24 +427,33 @@ def _charm_state(
     term_state: MatrixDirection,
     skew_state: MatrixDirection,
     market_date: date,
-) -> tuple[MatrixDirection, Decimal | None]:
+) -> tuple[MatrixDirection, Decimal | None, str | None, bool]:
     if not has_greeks:
-        return "stale", None
+        return "stale", None, None, False
     candidate = _nearest_high_oi_strike(chain_rows, spot=spot, market_date=market_date)
     if candidate is None:
-        return "neutral", None
+        return "neutral", None, "neutral", False
     expiry, strike = candidate
     pin_sigma = pin_distance_sigma_v1(spot, strike, rv_30d, (expiry - market_date).days)
     if pin_sigma is None or iv_30d is None:
-        return "neutral", pin_sigma
-    if pin_sigma < Decimal("1.0") and iv_30d < Decimal("0.35"):
-        return "vol_down", pin_sigma
+        return "neutral", pin_sigma, "neutral", False
     high_vol = rv_30d is not None and iv_30d > rv_30d * Decimal("1.25")
-    if high_vol and (
-        term_state == "vol_up" or skew_state == "vol_up" or pin_sigma > Decimal("2.0")
-    ):
-        return "vol_up", pin_sigma
-    return "neutral", pin_sigma
+    stress_override = bool(
+        high_vol
+        and (
+            term_state == "vol_up"
+            or skew_state == "vol_up"
+            or pin_sigma > Decimal("2.0")
+        )
+    )
+    dte = (expiry - market_date).days
+    if pin_sigma < Decimal("1.0") and iv_30d < Decimal("0.35"):
+        regime = "opex_vortex" if dte <= 1 and pin_sigma < Decimal("0.5") else "operative_magnet"
+        return "vol_down", pin_sigma, regime, False
+    if stress_override:
+        regime = "opex_vortex" if dte <= 1 else "broken_magnet"
+        return "vol_up", pin_sigma, regime, True
+    return "neutral", pin_sigma, "neutral", False
 
 
 def _nearest_high_oi_strike(
@@ -384,19 +485,95 @@ def _nearest_high_oi_strike(
 def _term_state(
     rows: list[dict],
 ) -> tuple[MatrixDirection, str | None, Decimal | None, Decimal | None]:
+    metrics = _term_metrics(rows)
+    return (
+        metrics["state"],
+        metrics["classification"],
+        metrics["front_iv"],
+        metrics["back_iv"],
+    )
+
+
+def _term_metrics(rows: list[dict]) -> dict:
     if not rows:
-        return "stale", None, None, None
+        return _empty_term_metrics("stale")
     vols = [row for row in rows if row.get("volatility") is not None]
     if len(vols) < 2:
-        return "vol_up", "mixed", None, None
+        out = _empty_term_metrics("vol_up")
+        out["classification"] = "mixed"
+        return out
     vols = sorted(vols, key=lambda row: (row.get("dte") is None, row.get("dte") or 0))
     front = Decimal(str(vols[0]["volatility"]))
     back = Decimal(str(vols[-1]["volatility"]))
+    single_bump = _single_point_bump_pct(vols)
+    slope = _full_curve_slope_pct(vols)
+    classification: str
+    state: MatrixDirection
     if front <= back:
-        return "vol_down", "contango", front, back
-    if back > 0 and front / back >= Decimal("1.15"):
-        return "vol_up", "liquidity_back", front, back
-    return "vol_down", "event_back", front, back
+        state = "vol_down"
+        classification = "contango"
+    elif single_bump is not None and single_bump >= Decimal("0.15"):
+        state = "vol_down"
+        classification = "event_back"
+    elif back > 0 and front / back >= Decimal("1.15"):
+        state = "vol_up"
+        classification = "liquidity_back"
+    else:
+        state = "vol_down"
+        classification = "event_back"
+    return {
+        "state": state,
+        "classification": classification,
+        "front_iv": front,
+        "back_iv": back,
+        "front_back_spread": back - front,
+        "single_point_bump_pct": single_bump,
+        "full_curve_slope_pct": slope,
+        # V1 proxy for the research PC1 slope; full rolling PCA belongs to Phase 5.
+        "term_johnson_slope_pc1": slope,
+    }
+
+
+def _empty_term_metrics(state: MatrixDirection) -> dict:
+    return {
+        "state": state,
+        "classification": None,
+        "front_iv": None,
+        "back_iv": None,
+        "front_back_spread": None,
+        "single_point_bump_pct": None,
+        "full_curve_slope_pct": None,
+        "term_johnson_slope_pc1": None,
+    }
+
+
+def _single_point_bump_pct(rows: list[dict]) -> Decimal | None:
+    if len(rows) < 2:
+        return None
+    vols = [Decimal(str(row["volatility"])) for row in rows]
+    dtes = [row.get("dte") for row in rows]
+    max_index = max(range(len(vols)), key=lambda i: vols[i])
+    if max_index == len(vols) - 1:
+        return Decimal("0")
+    baseline_values = [value for i, value in enumerate(vols) if i != max_index]
+    baseline = sum(baseline_values) / Decimal(len(baseline_values))
+    if baseline <= 0:
+        return None
+    if dtes[max_index] is None:
+        return None
+    bump = (vols[max_index] - baseline) / baseline
+    return bump if bump > 0 else Decimal("0")
+
+
+def _full_curve_slope_pct(rows: list[dict]) -> Decimal | None:
+    if len(rows) < 2:
+        return None
+    vols = [Decimal(str(row["volatility"])) for row in rows]
+    front = vols[0]
+    back = vols[-1]
+    if front <= 0:
+        return None
+    return (back - front) / front
 
 
 def _state_from_z(
@@ -463,14 +640,63 @@ def _zscore_for_date(
     return (values[-1] - mean) / variance.sqrt()
 
 
+def _skew_change_for_date(
+    rows: list[dict], market_date: date, *, days: int
+) -> Decimal | None:
+    current = _row_for_date(rows, market_date)
+    if current is None or current.get("risk_reversal") is None:
+        return None
+    prior_cutoff = market_date.toordinal() - days
+    prior_rows = [
+        row
+        for row in rows
+        if row.get("market_date") is not None
+        and row.get("market_date").toordinal() <= prior_cutoff
+        and row.get("risk_reversal") is not None
+    ]
+    if not prior_rows:
+        return None
+    prior = prior_rows[-1]
+    return Decimal(str(current["risk_reversal"])) - Decimal(str(prior["risk_reversal"]))
+
+
+def _skew_regime(
+    zscore: Decimal | None, change_5d: Decimal | None
+) -> Literal["smirk", "accelerated", "crash_smile", "neutral"] | None:
+    if zscore is None and change_5d is None:
+        return None
+    z = zscore or Decimal(0)
+    change = change_5d or Decimal(0)
+    if z <= Decimal("-3") and change <= Decimal("-10"):
+        return "crash_smile"
+    if abs(change) >= Decimal("2") or abs(z) >= Decimal("1.5"):
+        return "accelerated"
+    if z < 0:
+        return "smirk"
+    return "neutral"
+
+
+def _skew_term_structure(rows: list[dict]) -> Decimal | None:
+    values = [
+        Decimal(str(row["risk_reversal"]))
+        for row in sorted(
+            rows, key=lambda row: (row.get("expiry") is None, row.get("expiry"))
+        )
+        if row.get("risk_reversal") is not None
+    ]
+    if len(values) < 2:
+        return None
+    return values[0] - values[-1]
+
+
 def _vrp_values(
-    iv_rows: list[dict], rv_rows: list[dict], market_date: date
+    iv_rows: list[dict], rv_rows: list[dict], market_date: date, *, window: int
 ) -> tuple[Decimal | None, Decimal | None]:
     series = _joined_vrp_series(iv_rows, rv_rows)
     current = next((value for day, value in reversed(series) if day == market_date), None)
     if current is None:
         return None, None
-    values = [value for day, value in series if day <= market_date][-60:]
+    values = [value for day, value in series if day <= market_date][-window:]
     if len(values) < 2:
         return current, None
     mean = sum(values) / Decimal(len(values))
@@ -509,3 +735,82 @@ def _joined_vrp_series(iv_rows: list[dict], rv_rows: list[dict]) -> list[tuple[d
             continue
         series.append((day, Decimal(str(iv)) - Decimal(str(rv))))
     return sorted(series, key=lambda item: item[0])
+
+
+def _atm_straddle_mid(rows: list[dict], *, spot: Decimal | None) -> Decimal | None:
+    candidates = []
+    for row in rows:
+        call_mid = row.get("call_mid")
+        put_mid = row.get("put_mid")
+        strike = row.get("strike")
+        expiry = row.get("expiry")
+        if call_mid is None or put_mid is None or strike is None:
+            continue
+        distance = abs(Decimal(str(strike)) - spot) if spot is not None else Decimal(0)
+        candidates.append((expiry, distance, Decimal(str(call_mid)) + Decimal(str(put_mid))))
+    if not candidates:
+        return None
+    _expiry, _distance, straddle = min(
+        candidates, key=lambda item: (item[0] is None, item[0], item[1])
+    )
+    return straddle
+
+
+def _implied_move_expected_abs(
+    rows: list[dict], *, atm_straddle_mid: Decimal | None, spot: Decimal | None
+) -> Decimal | None:
+    if atm_straddle_mid is not None and spot is not None and spot > 0:
+        return (atm_straddle_mid / spot) * EXPECTED_ABS_MOVE_FACTOR
+    ordered = [
+        row
+        for row in sorted(rows, key=lambda row: (row.get("dte") is None, row.get("dte") or 0))
+        if row.get("implied_move_perc") is not None
+    ]
+    if not ordered:
+        return None
+    return Decimal(str(ordered[0]["implied_move_perc"])) * EXPECTED_ABS_MOVE_FACTOR
+
+
+def _vanna_conditional_reading(
+    *,
+    iv_30d_delta_5d: Decimal | None,
+    directional_imbalance_3d: Decimal | None,
+    flow_color: str | None,
+    net_gamma_sign: str | None,
+) -> Literal["grind_up", "reverse_selloff", "reflexive_sell_pressure", "weak_noise"]:
+    if iv_30d_delta_5d is None or net_gamma_sign is None:
+        return "weak_noise"
+    flow_is_put = flow_color == "put_heavy" or (
+        directional_imbalance_3d is not None and directional_imbalance_3d < 0
+    )
+    flow_is_call = flow_color == "call_heavy" or (
+        directional_imbalance_3d is not None and directional_imbalance_3d > 0
+    )
+    if iv_30d_delta_5d < 0 and flow_is_put and net_gamma_sign == "positive":
+        return "grind_up"
+    if iv_30d_delta_5d < 0 and flow_is_call and net_gamma_sign == "positive":
+        return "reverse_selloff"
+    if iv_30d_delta_5d > 0 and flow_is_put and net_gamma_sign == "negative":
+        return "reflexive_sell_pressure"
+    return "weak_noise"
+
+
+def _oi_change_bias(
+    rows: list[dict],
+) -> Literal["call_oi_build", "put_oi_build", "mixed"] | None:
+    call_oi = Decimal(0)
+    put_oi = Decimal(0)
+    for row in rows:
+        symbol = str(row.get("option_symbol") or "")
+        diff = Decimal(row.get("oi_diff_plain") or 0)
+        if "C" in symbol[-9:]:
+            call_oi += diff
+        elif "P" in symbol[-9:]:
+            put_oi += diff
+    if call_oi == 0 and put_oi == 0:
+        return None
+    if call_oi > put_oi:
+        return "call_oi_build"
+    if put_oi > call_oi:
+        return "put_oi_build"
+    return "mixed"

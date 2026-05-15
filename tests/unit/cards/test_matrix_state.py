@@ -5,7 +5,12 @@ from decimal import Decimal
 
 import pytest
 
-from uw_scan.cards.matrix_state import MatrixInputs, build_matrix_state_from_inputs
+from uw_scan.cards.matrix_state import (
+    MatrixInputs,
+    _implied_move_expected_abs,
+    _term_metrics,
+    build_matrix_state_from_inputs,
+)
 
 
 BASE_DAY = date(2026, 5, 15)
@@ -193,3 +198,24 @@ def test_stale_dims_are_excluded_from_denominator() -> None:
     )
 
     assert state.consistency_tier == "strict"
+
+
+def test_expected_abs_move_fallback_applies_factor_once() -> None:
+    value = _implied_move_expected_abs(
+        [{"dte": 7, "implied_move_perc": Decimal("0.08")}],
+        atm_straddle_mid=None,
+        spot=Decimal("100"),
+    )
+
+    assert value == Decimal("0.063832")
+
+
+def test_term_metrics_materialize_front_back_spread() -> None:
+    metrics = _term_metrics(
+        [
+            {"dte": 7, "volatility": Decimal("0.24")},
+            {"dte": 30, "volatility": Decimal("0.30")},
+        ]
+    )
+
+    assert metrics["front_back_spread"] == Decimal("0.06")

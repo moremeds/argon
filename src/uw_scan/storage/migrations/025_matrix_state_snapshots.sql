@@ -1,4 +1,4 @@
--- 022_matrix_state_snapshots.sql — Cockpit 6-dimension matrix state.
+-- 025_matrix_state_snapshots.sql — Cockpit 6-dimension matrix state.
 -- See docs/superpowers/research/six-dimension-matrix/00-overview.md §0
 -- for the direction-mapping, consistency-tier, and cluster-coverage rules
 -- that produce the rows in this table.
@@ -10,6 +10,7 @@ BEGIN;
 CREATE TABLE IF NOT EXISTS uw_scan.matrix_state_snapshots (
     ticker              TEXT NOT NULL,
     market_date         DATE NOT NULL,
+    threshold_version   INTEGER NOT NULL DEFAULT 1,
     -- 6-dim directional labels per 00-overview.md §0.1.
     -- Each label is one of: 'vol_up' | 'vol_down' | 'neutral' | 'stale'.
     -- Flow combines the IM and Flow sub-readings per §0.1 footnote.
@@ -43,6 +44,7 @@ CREATE TABLE IF NOT EXISTS uw_scan.matrix_state_snapshots (
     implied_move_pct     NUMERIC,
     front_iv             NUMERIC,
     back_iv              NUMERIC,
+    front_back_spread    NUMERIC,
     pin_distance_sigma   NUMERIC,
     -- Provenance
     source              TEXT NOT NULL DEFAULT 'cockpit_daily_snapshot',
@@ -50,6 +52,10 @@ CREATE TABLE IF NOT EXISTS uw_scan.matrix_state_snapshots (
     inserted_at         TIMESTAMPTZ NOT NULL DEFAULT now(),
     PRIMARY KEY (ticker, market_date)
 );
+
+ALTER TABLE uw_scan.matrix_state_snapshots
+    ADD COLUMN IF NOT EXISTS threshold_version INTEGER NOT NULL DEFAULT 1,
+    ADD COLUMN IF NOT EXISTS front_back_spread NUMERIC;
 
 COMMENT ON TABLE uw_scan.matrix_state_snapshots
     IS '6-dimension matrix state, one row per (ticker, market_date). '
@@ -68,6 +74,12 @@ COMMENT ON COLUMN uw_scan.matrix_state_snapshots.cluster_coverage_ok
 COMMENT ON COLUMN uw_scan.matrix_state_snapshots.term_classification
     IS 'Categorical term-structure state. Independent of vol-direction '
        'label because Strategy 1 requires event_back AND vol_down.';
+
+COMMENT ON COLUMN uw_scan.matrix_state_snapshots.threshold_version
+    IS 'Threshold/config version used to derive this matrix state for replay.';
+
+COMMENT ON COLUMN uw_scan.matrix_state_snapshots.front_back_spread
+    IS 'Back minus front ATM IV term spread; positive means contango.';
 
 -- Reverse-chrono lookup for the most recent state per ticker.
 CREATE INDEX IF NOT EXISTS idx_matrix_state_snapshots_recent

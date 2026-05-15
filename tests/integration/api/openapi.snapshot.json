@@ -195,6 +195,252 @@
         "title": "ChainFlowReadRow",
         "type": "object"
       },
+      "CockpitDealerMetrics": {
+        "properties": {
+          "charm_regime": {
+            "anyOf": [
+              {
+                "enum": [
+                  "operative_magnet",
+                  "broken_magnet",
+                  "opex_vortex",
+                  "neutral"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Charm Regime"
+          },
+          "charm_stress_override": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Charm Stress Override"
+          },
+          "dealer_net_charm_proxy": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dealer Net Charm Proxy"
+          },
+          "dealer_net_vanna_proxy": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dealer Net Vanna Proxy"
+          },
+          "directional_imbalance_3d": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Directional Imbalance 3D"
+          },
+          "flow_call_premium_3d": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Flow Call Premium 3D"
+          },
+          "flow_color_lookback_3d": {
+            "anyOf": [
+              {
+                "enum": [
+                  "put_heavy",
+                  "call_heavy",
+                  "neutral"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Flow Color Lookback 3D"
+          },
+          "flow_put_premium_3d": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Flow Put Premium 3D"
+          },
+          "gamma_regime": {
+            "anyOf": [
+              {
+                "enum": [
+                  "long_gamma",
+                  "short_gamma",
+                  "neutral"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Gamma Regime"
+          },
+          "iv_30d_delta_5d": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Iv 30D Delta 5D"
+          },
+          "net_gamma": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Net Gamma"
+          },
+          "net_gamma_sign": {
+            "anyOf": [
+              {
+                "enum": [
+                  "positive",
+                  "negative",
+                  "neutral"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Net Gamma Sign"
+          },
+          "pin_candidate_expiry": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pin Candidate Expiry"
+          },
+          "pin_candidate_strike": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pin Candidate Strike"
+          },
+          "pin_distance_sigma": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pin Distance Sigma"
+          },
+          "pin_regime_flag": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pin Regime Flag"
+          },
+          "vanna_conditional_reading": {
+            "anyOf": [
+              {
+                "enum": [
+                  "grind_up",
+                  "reverse_selloff",
+                  "reflexive_sell_pressure",
+                  "weak_noise"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vanna Conditional Reading"
+          },
+          "vanna_oi_change_bias": {
+            "anyOf": [
+              {
+                "enum": [
+                  "call_oi_build",
+                  "put_oi_build",
+                  "mixed"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vanna Oi Change Bias"
+          }
+        },
+        "title": "CockpitDealerMetrics",
+        "type": "object"
+      },
       "CockpitDealerPoint": {
         "properties": {
           "call_charm": {
@@ -318,6 +564,9 @@
             "title": "Market Date",
             "type": "string"
           },
+          "metrics": {
+            "$ref": "#/components/schemas/CockpitDealerMetrics"
+          },
           "points": {
             "items": {
               "$ref": "#/components/schemas/CockpitDealerPoint"
@@ -339,9 +588,43 @@
       },
       "CockpitFlowAlert": {
         "properties": {
+          "aggressor_label_confidence": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Aggressor Label Confidence"
+          },
           "alert_id": {
             "title": "Alert Id",
             "type": "string"
+          },
+          "alert_rule": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Alert Rule"
+          },
+          "all_opening_trades": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "All Opening Trades"
           },
           "created_at": {
             "anyOf": [
@@ -366,6 +649,57 @@
               }
             ],
             "title": "Expiry"
+          },
+          "flow_footprint_label": {
+            "anyOf": [
+              {
+                "enum": [
+                  "directional_whale",
+                  "hedge_flow",
+                  "dealer_hedge",
+                  "gamma_scalper",
+                  "unclassified"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Flow Footprint Label"
+          },
+          "has_floor": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Has Floor"
+          },
+          "has_multileg": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Has Multileg"
+          },
+          "has_sweep": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Has Sweep"
           },
           "open_interest": {
             "anyOf": [
@@ -504,6 +838,18 @@
           "days": {
             "title": "Days",
             "type": "integer"
+          },
+          "implied_move_expected_abs": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Implied Move Expected Abs"
           },
           "implied_move_perc": {
             "anyOf": [
@@ -658,6 +1004,18 @@
             "format": "date",
             "title": "Expiry",
             "type": "string"
+          },
+          "implied_move_expected_abs": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Implied Move Expected Abs"
           },
           "implied_move_perc": {
             "anyOf": [
@@ -818,6 +1176,18 @@
       },
       "FlowAlert": {
         "properties": {
+          "aggressor_label_confidence": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Aggressor Label Confidence"
+          },
           "alert_rule": {
             "anyOf": [
               {
@@ -863,6 +1233,24 @@
               }
             ],
             "title": "Expiry"
+          },
+          "flow_footprint_label": {
+            "anyOf": [
+              {
+                "enum": [
+                  "directional_whale",
+                  "hedge_flow",
+                  "dealer_hedge",
+                  "gamma_scalper",
+                  "unclassified"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Flow Footprint Label"
           },
           "has_floor": {
             "anyOf": [
@@ -2446,6 +2834,18 @@
       },
       "MatrixState": {
         "properties": {
+          "atm_straddle_mid": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Atm Straddle Mid"
+          },
           "back_iv": {
             "anyOf": [
               {
@@ -2458,6 +2858,23 @@
             ],
             "title": "Back Iv"
           },
+          "charm_regime": {
+            "anyOf": [
+              {
+                "enum": [
+                  "operative_magnet",
+                  "broken_magnet",
+                  "opex_vortex",
+                  "neutral"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Charm Regime"
+          },
           "charm_state": {
             "enum": [
               "vol_up",
@@ -2467,6 +2884,11 @@
             ],
             "title": "Charm State",
             "type": "string"
+          },
+          "charm_stress_override": {
+            "default": false,
+            "title": "Charm Stress Override",
+            "type": "boolean"
           },
           "cluster_coverage_ok": {
             "title": "Cluster Coverage Ok",
@@ -2483,6 +2905,18 @@
             "title": "Consistency Tier",
             "type": "string"
           },
+          "directional_imbalance_3d": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Directional Imbalance 3D"
+          },
           "flow_state": {
             "enum": [
               "vol_up",
@@ -2492,6 +2926,18 @@
             ],
             "title": "Flow State",
             "type": "string"
+          },
+          "front_back_spread": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Front Back Spread"
           },
           "front_iv": {
             "anyOf": [
@@ -2505,6 +2951,18 @@
             ],
             "title": "Front Iv"
           },
+          "full_curve_slope_pct": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Full Curve Slope Pct"
+          },
           "im_state": {
             "enum": [
               "vol_up",
@@ -2514,6 +2972,30 @@
             ],
             "title": "Im State",
             "type": "string"
+          },
+          "implied_move_event_percentile": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Implied Move Event Percentile"
+          },
+          "implied_move_expected_abs": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Implied Move Expected Abs"
           },
           "implied_move_pct": {
             "anyOf": [
@@ -2568,6 +3050,30 @@
             ],
             "title": "Rv 30D"
           },
+          "single_point_bump_pct": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Single Point Bump Pct"
+          },
+          "skew_25d_5d_change": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Skew 25D 5D Change"
+          },
           "skew_25d_zscore_180d": {
             "anyOf": [
               {
@@ -2580,6 +3086,23 @@
             ],
             "title": "Skew 25D Zscore 180D"
           },
+          "skew_regime": {
+            "anyOf": [
+              {
+                "enum": [
+                  "smirk",
+                  "accelerated",
+                  "crash_smile",
+                  "neutral"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Skew Regime"
+          },
           "skew_state": {
             "enum": [
               "vol_up",
@@ -2589,6 +3112,18 @@
             ],
             "title": "Skew State",
             "type": "string"
+          },
+          "skew_term_structure": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Skew Term Structure"
           },
           "term_classification": {
             "anyOf": [
@@ -2607,6 +3142,18 @@
             ],
             "title": "Term Classification"
           },
+          "term_johnson_slope_pc1": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Term Johnson Slope Pc1"
+          },
           "term_state": {
             "enum": [
               "vol_up",
@@ -2617,9 +3164,47 @@
             "title": "Term State",
             "type": "string"
           },
+          "threshold_version": {
+            "default": 1,
+            "title": "Threshold Version",
+            "type": "integer"
+          },
           "ticker": {
             "title": "Ticker",
             "type": "string"
+          },
+          "vanna_conditional_reading": {
+            "anyOf": [
+              {
+                "enum": [
+                  "grind_up",
+                  "reverse_selloff",
+                  "reflexive_sell_pressure",
+                  "weak_noise"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vanna Conditional Reading"
+          },
+          "vanna_oi_change_bias": {
+            "anyOf": [
+              {
+                "enum": [
+                  "call_oi_build",
+                  "put_oi_build",
+                  "mixed"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vanna Oi Change Bias"
           },
           "vanna_state": {
             "enum": [
@@ -2643,6 +3228,24 @@
             ],
             "title": "Vrp"
           },
+          "vrp_sign_flip_aligned_days": {
+            "default": 0,
+            "title": "Vrp Sign Flip Aligned Days",
+            "type": "integer"
+          },
+          "vrp_sign_flip_status": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "const": "insufficient_history",
+                "type": "string"
+              }
+            ],
+            "default": "insufficient_history",
+            "title": "Vrp Sign Flip Status"
+          },
           "vrp_state": {
             "enum": [
               "vol_up",
@@ -2652,6 +3255,18 @@
             ],
             "title": "Vrp State",
             "type": "string"
+          },
+          "vrp_zscore_252d": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vrp Zscore 252D"
           },
           "vrp_zscore_60d": {
             "anyOf": [
