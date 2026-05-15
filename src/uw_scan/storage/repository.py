@@ -1494,6 +1494,92 @@ class Repository:
             cols = [d.name for d in cur.description or []]
             return models.MatrixState(**dict(zip(cols, row, strict=False)))
 
+    def fetch_latest_matrix_state_snapshot(
+        self, *, ticker: str
+    ) -> models.MatrixState | None:
+        sql = (
+            "SELECT ticker, market_date, vanna_state, charm_state, skew_state, "
+            "term_state, im_state, flow_state, vrp_state, consistency_tier, "
+            "cluster_coverage_ok, term_classification, skew_25d_zscore_180d, "
+            "iv_atm_30d, rv_30d, vrp, vrp_zscore_60d, implied_move_pct, "
+            "front_iv, back_iv, pin_distance_sigma "
+            f"FROM {self._schema}.matrix_state_snapshots "
+            "WHERE ticker = %s ORDER BY market_date DESC LIMIT 1"
+        )
+        with self._conn.cursor() as cur:
+            cur.execute(sql, (ticker,))
+            row = cur.fetchone()
+            if row is None:
+                return None
+            cols = [d.name for d in cur.description or []]
+            return models.MatrixState(**dict(zip(cols, row, strict=False)))
+
+    def fetch_matrix_source_freshness(
+        self, *, ticker: str, market_date: _date
+    ) -> models.MatrixSourceFreshness:
+        return models.MatrixSourceFreshness(
+            vanna_charm=self._latest_inserted_at(
+                "greeks_by_expiry_strike", ticker=ticker, date_column="market_date",
+                market_date=market_date,
+            ),
+            skew=self._latest_inserted_at(
+                "risk_reversal_skew_history", ticker=ticker, date_column="market_date",
+                market_date=market_date,
+            ),
+            term=self._latest_inserted_at(
+                "iv_term_snapshots", ticker=ticker, date_column="market_date",
+                market_date=market_date,
+            ),
+            im_vrp=self._latest_inserted_at(
+                "interpolated_iv_snapshots", ticker=ticker, date_column="market_date",
+                market_date=market_date,
+            ),
+            vrp_rv=self._latest_inserted_at(
+                "realized_volatility_history", ticker=ticker, date_column="market_date",
+                market_date=market_date,
+            ),
+            oi=self._latest_inserted_at(
+                "option_chain_per_strike", ticker=ticker, date_column="snapshot_date",
+                market_date=market_date, timestamp_column="fetched_at",
+            ),
+        )
+
+    def _latest_inserted_at(
+        self,
+        table: str,
+        *,
+        ticker: str,
+        date_column: str,
+        market_date: _date,
+        timestamp_column: str = "inserted_at",
+    ) -> datetime | None:
+        allowed = {
+            "greeks_by_expiry_strike",
+            "risk_reversal_skew_history",
+            "iv_term_snapshots",
+            "interpolated_iv_snapshots",
+            "realized_volatility_history",
+            "option_chain_per_strike",
+        }
+        if (
+            table not in allowed
+            or date_column not in {"market_date", "snapshot_date"}
+            or timestamp_column not in {"inserted_at", "fetched_at"}
+        ):
+            raise ValueError(f"unsupported matrix freshness source: {table}")
+        with self._conn.cursor() as cur:
+            cur.execute(
+                psql.SQL("SELECT max({}) FROM {} WHERE ticker = %s AND {} = %s")
+                .format(
+                    psql.Identifier(timestamp_column),
+                    psql.Identifier(self._schema, table),
+                    psql.Identifier(date_column),
+                ),
+                (ticker, market_date),
+            )
+            row = cur.fetchone()
+            return row[0] if row else None
+
     def insert_oi_change_rows(
         self, run_id: int, rows: Iterable[models.OiChangeRow]
     ) -> int:

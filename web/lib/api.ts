@@ -37,13 +37,19 @@ type TradeInsightsAiAnalysisResponse = Json<
   "/api/stock/{ticker}/trade-insights/ai-analysis",
   "post"
 >;
+type CockpitStateResponse = Json<"/api/cockpit/{ticker}/state", "get">;
 
-async function _fetch<T>(path: string, init?: RequestInit): Promise<T> {
+async function _fetch<T>(
+  path: string,
+  init?: RequestInit,
+  options: { allow404?: boolean } = {},
+): Promise<T> {
   const r = await fetch(`${API}${path}`, {
     ...init,
     headers: { "Content-Type": "application/json", ...(init?.headers ?? {}) },
     cache: "no-store",
   });
+  if (options.allow404 && r.status === 404) return null as T;
   if (!r.ok) {
     throw new Error(`API ${r.status} for ${path}: ${await r.text()}`);
   }
@@ -68,6 +74,17 @@ export const api = {
     _fetch<StockHistoryResponse>(`/api/stock/${ticker}/history`),
   volatilitySeries: (ticker: string): Promise<VolatilitySeriesResponse> =>
     _fetch<VolatilitySeriesResponse>(`/api/stock/${ticker}/volatility/series`),
+  cockpitState: (
+    ticker: string,
+    asof?: string,
+  ): Promise<CockpitStateResponse | null> => {
+    const q = asof ? `?asof=${encodeURIComponent(asof)}` : "";
+    return _fetch<CockpitStateResponse | null>(
+      `/api/cockpit/${ticker}/state${q}`,
+      undefined,
+      { allow404: true },
+    );
+  },
   tradeInsights: (ticker: string): Promise<TradeInsightsResponse> =>
     _fetch<TradeInsightsResponse>(`/api/stock/${ticker}/trade-insights`),
   tradeInsightsAiAnalysis: (
@@ -142,6 +159,7 @@ export const api = {
 
 export type {
   JobStatus,
+  CockpitStateResponse,
   OhlcResponse,
   SingleStockReport,
   TradeInsightsAiAnalysisResponse,

@@ -195,6 +195,22 @@
         "title": "ChainFlowReadRow",
         "type": "object"
       },
+      "CockpitStateResponse": {
+        "properties": {
+          "freshness": {
+            "$ref": "#/components/schemas/MatrixSourceFreshness"
+          },
+          "state": {
+            "$ref": "#/components/schemas/MatrixState"
+          }
+        },
+        "required": [
+          "state",
+          "freshness"
+        ],
+        "title": "CockpitStateResponse",
+        "type": "object"
+      },
       "DivergencePoint": {
         "properties": {
           "date": {
@@ -1781,6 +1797,322 @@
           }
         },
         "title": "MarketStructureLevels",
+        "type": "object"
+      },
+      "MatrixSourceFreshness": {
+        "properties": {
+          "im_vrp": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Im Vrp"
+          },
+          "oi": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Oi"
+          },
+          "skew": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Skew"
+          },
+          "term": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Term"
+          },
+          "vanna_charm": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vanna Charm"
+          },
+          "vrp_rv": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vrp Rv"
+          }
+        },
+        "title": "MatrixSourceFreshness",
+        "type": "object"
+      },
+      "MatrixState": {
+        "properties": {
+          "back_iv": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Back Iv"
+          },
+          "charm_state": {
+            "enum": [
+              "vol_up",
+              "vol_down",
+              "neutral",
+              "stale"
+            ],
+            "title": "Charm State",
+            "type": "string"
+          },
+          "cluster_coverage_ok": {
+            "title": "Cluster Coverage Ok",
+            "type": "boolean"
+          },
+          "consistency_tier": {
+            "enum": [
+              "strict",
+              "strong",
+              "weak",
+              "no_trade",
+              "insufficient_data"
+            ],
+            "title": "Consistency Tier",
+            "type": "string"
+          },
+          "flow_state": {
+            "enum": [
+              "vol_up",
+              "vol_down",
+              "neutral",
+              "stale"
+            ],
+            "title": "Flow State",
+            "type": "string"
+          },
+          "front_iv": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Front Iv"
+          },
+          "im_state": {
+            "enum": [
+              "vol_up",
+              "vol_down",
+              "neutral",
+              "stale"
+            ],
+            "title": "Im State",
+            "type": "string"
+          },
+          "implied_move_pct": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Implied Move Pct"
+          },
+          "iv_atm_30d": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Iv Atm 30D"
+          },
+          "market_date": {
+            "format": "date",
+            "title": "Market Date",
+            "type": "string"
+          },
+          "pin_distance_sigma": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pin Distance Sigma"
+          },
+          "rv_30d": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rv 30D"
+          },
+          "skew_25d_zscore_180d": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Skew 25D Zscore 180D"
+          },
+          "skew_state": {
+            "enum": [
+              "vol_up",
+              "vol_down",
+              "neutral",
+              "stale"
+            ],
+            "title": "Skew State",
+            "type": "string"
+          },
+          "term_classification": {
+            "anyOf": [
+              {
+                "enum": [
+                  "contango",
+                  "event_back",
+                  "liquidity_back",
+                  "mixed"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Term Classification"
+          },
+          "term_state": {
+            "enum": [
+              "vol_up",
+              "vol_down",
+              "neutral",
+              "stale"
+            ],
+            "title": "Term State",
+            "type": "string"
+          },
+          "ticker": {
+            "title": "Ticker",
+            "type": "string"
+          },
+          "vanna_state": {
+            "enum": [
+              "vol_up",
+              "vol_down",
+              "neutral",
+              "stale"
+            ],
+            "title": "Vanna State",
+            "type": "string"
+          },
+          "vrp": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vrp"
+          },
+          "vrp_state": {
+            "enum": [
+              "vol_up",
+              "vol_down",
+              "neutral",
+              "stale"
+            ],
+            "title": "Vrp State",
+            "type": "string"
+          },
+          "vrp_zscore_60d": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vrp Zscore 60D"
+          }
+        },
+        "required": [
+          "ticker",
+          "market_date",
+          "vanna_state",
+          "charm_state",
+          "skew_state",
+          "term_state",
+          "im_state",
+          "flow_state",
+          "vrp_state",
+          "consistency_tier",
+          "cluster_coverage_ok"
+        ],
+        "title": "MatrixState",
         "type": "object"
       },
       "MaxPainRow": {
@@ -6306,6 +6638,65 @@
   },
   "openapi": "3.1.0",
   "paths": {
+    "/api/cockpit/{ticker}/state": {
+      "get": {
+        "operationId": "get_cockpit_state_api_cockpit__ticker__state_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "ticker",
+            "required": true,
+            "schema": {
+              "title": "Ticker",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "asof",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Asof"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CockpitStateResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Cockpit State",
+        "tags": [
+          "cockpit"
+        ]
+      }
+    },
     "/api/health": {
       "get": {
         "operationId": "health_api_health_get",

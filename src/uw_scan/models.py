@@ -441,6 +441,20 @@ class MatrixState(_UwBase):
     pin_distance_sigma: Decimal | None = None
 
 
+class MatrixSourceFreshness(_UwBase):
+    vanna_charm: datetime | None = None
+    skew: datetime | None = None
+    term: datetime | None = None
+    im_vrp: datetime | None = None
+    vrp_rv: datetime | None = None
+    oi: datetime | None = None
+
+
+class CockpitStateResponse(_UwBase):
+    state: MatrixState
+    freshness: MatrixSourceFreshness
+
+
 # ---------------------------------------------------------------------------
 # Bulk screener row (S2) — `/api/screener/stocks`
 # ---------------------------------------------------------------------------
