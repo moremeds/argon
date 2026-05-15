@@ -1,4 +1,3 @@
-"use client";
 import type { components } from "@/lib/types";
 import { toNum } from "@/lib/formatters";
 import { PRIORITY_SECTORS } from "./sectorGroups";
