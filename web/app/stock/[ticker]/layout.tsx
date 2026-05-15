@@ -1,7 +1,9 @@
 import { api } from "@/lib/api";
 import { DetailHeader } from "@/components/stock/DetailHeader";
+import { StockNotReadyDialog } from "@/components/stock/StockNotReadyDialog";
 import { TabBar } from "@/components/stock/TabBar";
 import { toNum } from "@/lib/formatters";
+import { isStockReportNotReadyError } from "@/lib/stockNotReady";
 
 export default async function StockLayout({
   children,
@@ -11,7 +13,15 @@ export default async function StockLayout({
   params: Promise<{ ticker: string }>;
 }) {
   const { ticker } = await params;
-  const report = await api.stock(ticker);
+  let report;
+  try {
+    report = await api.stock(ticker);
+  } catch (error) {
+    if (isStockReportNotReadyError(error, ticker)) {
+      return <StockNotReadyDialog ticker={ticker} />;
+    }
+    throw error;
+  }
 
   return (
     <div style={{ minHeight: "100%", background: "var(--bg-base)" }}>
