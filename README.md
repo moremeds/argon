@@ -84,7 +84,7 @@ uv sync --extra postgres
 cp .env.example .env       # fill UW_SCAN_API_KEY + MASSIVE_API_KEY
 
 bash scripts/migrate.sh    # idempotent SQL migrations against option_wizard.uw_scan
-bash scripts/dev.sh        # next (3001) + fastapi (8400) + worker, concurrent
+bash scripts/dev.sh        # next (3001) + fastapi (8400) + 2 UW workers + 2 massive workers
 ```
 
 - Web: <http://127.0.0.1:3001>
@@ -94,13 +94,13 @@ bash scripts/dev.sh        # next (3001) + fastapi (8400) + worker, concurrent
 ## Architecture in one breath
 
 ```
-UW + massive.com  →  worker (APScheduler, src/uw_scan/worker)
+UW + massive.com  →  sharded workers (APScheduler, src/uw_scan/worker)
                   →  Postgres uw_scan.*
                   →  FastAPI (src/uw_scan/api, port 8400)
                   →  Next.js 16 + React 19 (web/, port 3001)
 ```
 
-Three processes, one database, one schema. The worker is the only writer; the API is read-only; mutations cross through `/api/jobs` and are drained by the worker's 1s rescan loop.
+Six dev processes, one database, one schema. UW workers own UW scan/rescan/flow jobs; massive workers own spot/OHLC jobs. Per-ticker loops use stable shard ownership and rescans use DB claiming, so parallel workers do not duplicate provider work. The workers are the only writers; the API is read-only; mutations cross through `/api/jobs` and are drained by the UW workers' 1s rescan loop.
 
 Details by layer live in the `CLAUDE.md` files under `src/uw_scan/`, `web/`, and `tests/`.
 

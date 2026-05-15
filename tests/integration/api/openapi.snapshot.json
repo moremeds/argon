@@ -783,6 +783,17 @@
       },
       "HealthResponse": {
         "properties": {
+          "avg_scan_duration_seconds": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Avg Scan Duration Seconds"
+          },
           "cache_hit_pct": {
             "anyOf": [
               {
@@ -808,6 +819,17 @@
               }
             ],
             "title": "Http 2Xx"
+          },
+          "http_429": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Http 429"
           },
           "http_4xx": {
             "anyOf": [
@@ -882,6 +904,17 @@
             "title": "Ok",
             "type": "boolean"
           },
+          "queue_drain_rate_per_minute": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Queue Drain Rate Per Minute"
+          },
           "reason": {
             "anyOf": [
               {
@@ -910,6 +943,17 @@
               }
             ],
             "title": "Record Health Ok"
+          },
+          "requests_per_minute": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Requests Per Minute"
           },
           "rescan_heartbeat_lag_seconds": {
             "anyOf": [
@@ -982,6 +1026,11 @@
             ],
             "title": "Spot Refresh Heartbeat Lag Seconds"
           },
+          "throughput_window_minutes": {
+            "default": 15,
+            "title": "Throughput Window Minutes",
+            "type": "integer"
+          },
           "uw_today": {
             "anyOf": [
               {
@@ -1014,6 +1063,13 @@
               }
             ],
             "title": "Worker Lag Seconds"
+          },
+          "workers": {
+            "items": {
+              "$ref": "#/components/schemas/WorkerHealth"
+            },
+            "title": "Workers",
+            "type": "array"
           }
         },
         "required": [
@@ -6137,6 +6193,61 @@
           "tickers"
         ],
         "title": "WatchlistResponse",
+        "type": "object"
+      },
+      "WorkerHealth": {
+        "properties": {
+          "heartbeat_name": {
+            "title": "Heartbeat Name",
+            "type": "string"
+          },
+          "index": {
+            "title": "Index",
+            "type": "integer"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "lag_seconds": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lag Seconds"
+          },
+          "last_beat_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Beat At"
+          },
+          "role": {
+            "enum": [
+              "uw",
+              "massive"
+            ],
+            "title": "Role",
+            "type": "string"
+          }
+        },
+        "required": [
+          "label",
+          "role",
+          "index",
+          "heartbeat_name"
+        ],
+        "title": "WorkerHealth",
         "type": "object"
       }
     }

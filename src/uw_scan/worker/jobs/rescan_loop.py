@@ -3,12 +3,14 @@
 from __future__ import annotations
 
 import logging
+from datetime import timedelta
 
 from uw_scan.cards.derive import compute_watchlist_card_row
 from uw_scan.pipeline import run_single_stock
 from uw_scan.sources.ohlc import OhlcProvider
 
 logger = logging.getLogger(__name__)
+STALE_RUNNING_AFTER = timedelta(minutes=30)
 
 
 def rescan_tick(repo, uw_client, ohlc_provider: OhlcProvider) -> bool:
@@ -18,6 +20,9 @@ def rescan_tick(repo, uw_client, ohlc_provider: OhlcProvider) -> bool:
     # is the closest signal we have to "worker is up." Sidebar HealthPanel
     # reads now() - last_beat_at to render the worker dot.
     repo.upsert_heartbeat("rescan_tick")
+    recovered = repo.requeue_stale_running_jobs(STALE_RUNNING_AFTER)
+    if recovered:
+        logger.warning("rescan_tick requeued %d stale running jobs", recovered)
     job = repo.claim_next_queued_job()
     if job is None:
         return False

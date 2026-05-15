@@ -4,6 +4,7 @@ OHLC provider and upsert into uw_scan.daily_ohlc."""
 from __future__ import annotations
 
 import logging
+from collections.abc import Callable
 from datetime import date, timedelta
 
 from uw_scan.sources.ohlc import OhlcProvider
@@ -11,11 +12,20 @@ from uw_scan.sources.ohlc import OhlcProvider
 logger = logging.getLogger(__name__)
 
 
-def ohlc_pull_once(repo, provider: OhlcProvider, lookback_days: int = 40) -> int:
+def ohlc_pull_once(
+    repo,
+    provider: OhlcProvider,
+    lookback_days: int = 40,
+    *,
+    ticker_filter: Callable[[str], bool] | None = None,
+) -> int:
     completed = 0
     end = date.today()
     start = end - timedelta(days=lookback_days * 2)  # weekend/holiday buffer
     for w in repo.list_active_watchlist():
+        if ticker_filter is not None and not ticker_filter(w.ticker):
+            logger.debug("ohlc_pull skipped %s outside this worker shard", w.ticker)
+            continue
         try:
             bars = provider.fetch_daily(w.ticker, start, end)
             for bar in bars:

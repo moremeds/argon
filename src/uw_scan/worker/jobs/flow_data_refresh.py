@@ -16,6 +16,7 @@ Per-ticker semantics:
 from __future__ import annotations
 
 import logging
+from collections.abc import Callable
 from datetime import datetime
 from decimal import Decimal
 from zoneinfo import ZoneInfo
@@ -35,11 +36,16 @@ OPTIONS_VOLUME_LOOKBACK = 200
 
 
 def flow_data_refresh(
-    *, repo: Repository, client: UwClient, settings: Settings
+    *,
+    repo: Repository,
+    client: UwClient,
+    settings: Settings,
+    ticker_filter: Callable[[str], bool] | None = None,
+    lock_key: int = FLOW_REFRESH_LOCK,
 ) -> None:
     """Refresh Flow-tab tables for every watchlist ticker."""
 
-    if not repo.try_advisory_lock(FLOW_REFRESH_LOCK):
+    if not repo.try_advisory_lock(lock_key):
         logger.info("flow_data_refresh: lock held; skipping this tick")
         return
 
@@ -50,6 +56,11 @@ def flow_data_refresh(
         cards = repo.list_watchlist_cards()
         for card in cards:
             ticker = card.ticker
+            if ticker_filter is not None and not ticker_filter(ticker):
+                logger.debug(
+                    "flow_data_refresh: %s skipped outside this worker shard", ticker
+                )
+                continue
             run_id = repo.insert_scan_run(ticker, notes="flow_data_refresh")
             try:
                 vol_rows = fetch_options_volume_daily(
@@ -95,4 +106,4 @@ def flow_data_refresh(
                 repo.conn.rollback()
                 logger.exception("flow_data_refresh: %s failed: %r", ticker, exc)
     finally:
-        repo.release_advisory_lock(FLOW_REFRESH_LOCK)
+        repo.release_advisory_lock(lock_key)

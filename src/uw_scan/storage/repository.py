@@ -109,6 +109,15 @@ class ExternalApiBreakdownRow:
 
 
 @dataclass(frozen=True)
+class ThroughputSummaryRow:
+    window_minutes: float
+    requests_per_minute: float
+    http_429: int
+    avg_scan_duration_seconds: float | None
+    queue_drain_rate_per_minute: float
+
+
+@dataclass(frozen=True)
 class ExternalApiRequestRow:
     request_id: int
     provider: str
@@ -250,6 +259,12 @@ def _nullable_int(value: Any) -> int | None:
     if value is None:
         return None
     return int(round(float(value)))
+
+
+def _nullable_float(value: Any) -> float | None:
+    if value is None:
+        return None
+    return float(value)
 
 
 class Repository:
@@ -495,6 +510,65 @@ class Repository:
             latency_p95_ms=_nullable_int(row[6]),
             uw_latest_daily_count=row[7],
             uw_latest_daily_limit=row[8],
+        )
+
+    def get_throughput_summary(
+        self, provider: str | None, start: datetime, end: datetime
+    ) -> ThroughputSummaryRow:
+        provider_filter = None if provider in (None, "all") else provider
+        window_minutes = max((end - start).total_seconds() / 60.0, 1 / 60)
+        with self._conn.cursor() as cur:
+            cur.execute(
+                f"""
+                SELECT
+                  count(*)::int AS total_requests,
+                  count(*) FILTER (WHERE status_code = 429)::int AS http_429
+                FROM {self._schema}.external_api_requests
+                WHERE request_started_at >= %s
+                  AND request_started_at < %s
+                  AND (%s::text IS NULL OR provider = %s)
+                """,
+                (start, end, provider_filter, provider_filter),
+            )
+            request_row = cur.fetchone()
+            assert request_row is not None
+
+            cur.execute(
+                f"""
+                SELECT avg(extract(epoch FROM finished_at - started_at))
+                FROM {self._schema}.scan_runs
+                WHERE finished_at >= %s
+                  AND finished_at < %s
+                  AND finished_at IS NOT NULL
+                  AND started_at IS NOT NULL
+                  AND (notes IS DISTINCT FROM 'flow_data_refresh')
+                """,
+                (start, end),
+            )
+            scan_row = cur.fetchone()
+            assert scan_row is not None
+
+            cur.execute(
+                f"""
+                SELECT count(*)::int
+                FROM {self._schema}.jobs
+                WHERE finished_at >= %s
+                  AND finished_at < %s
+                  AND status IN ('done', 'failed')
+                """,
+                (start, end),
+            )
+            queue_row = cur.fetchone()
+            assert queue_row is not None
+
+        total_requests = int(request_row[0])
+        drained_jobs = int(queue_row[0])
+        return ThroughputSummaryRow(
+            window_minutes=window_minutes,
+            requests_per_minute=total_requests / window_minutes,
+            http_429=int(request_row[1]),
+            avg_scan_duration_seconds=_nullable_float(scan_row[0]),
+            queue_drain_rate_per_minute=drained_jobs / window_minutes,
         )
 
     def list_external_api_endpoint_usage(
@@ -2690,6 +2764,21 @@ class Repository:
         self._conn.commit()
         return JobRow(*row) if row else None
 
+    def requeue_stale_running_jobs(self, older_than: timedelta) -> int:
+        with self._conn.cursor() as cur:
+            cur.execute(
+                f"""
+                UPDATE {self._schema}.jobs
+                SET status='queued', started_at=NULL, error=NULL
+                WHERE status='running'
+                  AND started_at < NOW() - %s
+                """,
+                (older_than,),
+            )
+            count = cur.rowcount
+        self._conn.commit()
+        return count
+
     def mark_job_done(self, job_id: str, run_id: int) -> None:
         with self._conn.cursor() as cur:
             cur.execute(
@@ -3276,4 +3365,5 @@ __all__ = [
     "PcrHistoryRow",
     "JobRow",
     "RescanQueueSummaryRow",
+    "ThroughputSummaryRow",
 ]

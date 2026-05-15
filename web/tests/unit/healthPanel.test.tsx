@@ -39,27 +39,73 @@ describe("HealthPanel", () => {
       http_5xx: 1,
       uw_today: 40,
       cache_hit_pct: null,
+      throughput_window_minutes: 15,
+      requests_per_minute: 12.4,
+      http_429: 2,
+      avg_scan_duration_seconds: 125,
+      queue_drain_rate_per_minute: 1.6,
       record_health_ok: true,
       record_health: [],
+      workers: [
+        {
+          label: "UW 1",
+          role: "uw",
+          index: 0,
+          heartbeat_name: "worker:uw:0",
+          lag_seconds: 1,
+          last_beat_at: "2026-05-14T14:20:41Z",
+        },
+        {
+          label: "UW 2",
+          role: "uw",
+          index: 1,
+          heartbeat_name: "worker:uw:1",
+          lag_seconds: null,
+          last_beat_at: null,
+        },
+        {
+          label: "Massive 1",
+          role: "massive",
+          index: 0,
+          heartbeat_name: "worker:massive:0",
+          lag_seconds: 240,
+          last_beat_at: "2026-05-14T14:16:42Z",
+        },
+        {
+          label: "Massive 2",
+          role: "massive",
+          index: 1,
+          heartbeat_name: "worker:massive:1",
+          lag_seconds: 700,
+          last_beat_at: "2026-05-14T14:09:02Z",
+        },
+      ],
     });
 
     render(<HealthPanel />);
 
     await waitFor(() => expect(screen.getByText("API")).toBeTruthy());
     expect(screen.getByText("Scheduler")).toBeTruthy();
-    expect(screen.getByText("UW Worker")).toBeTruthy();
-    expect(screen.getByText("Massive Worker")).toBeTruthy();
+    expect(screen.getByText("UW Workers")).toBeTruthy();
+    expect(screen.getByText("Massive Workers")).toBeTruthy();
+    expect(screen.queryByText("UW 1")).toBeNull();
+    expect(screen.queryByText("Massive 1")).toBeNull();
+    expect(screen.queryByText("UW Worker")).toBeNull();
     expect(screen.getByText("Query Coverage")).toBeTruthy();
     expect(screen.getByText("OK")).toBeTruthy();
     expect(screen.getByText("Last spot")).toBeTruthy();
-    expect(screen.getByText("1m")).toBeTruthy();
-    expect(screen.getAllByText("ONLINE").length).toBeGreaterThanOrEqual(3);
-    expect(screen.getByText("STALE")).toBeTruthy();
+    expect(screen.getAllByText("1m").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText("ONLINE").length).toBeGreaterThanOrEqual(2);
+    expect(screen.getAllByText("1/2")).toHaveLength(2);
     expect(screen.getByText("05/14 22:20 HKG")).toBeTruthy();
     expect(screen.queryByText("2026/05/14 22:20:42 HKG")).toBeNull();
     expect(screen.getByDisplayValue("UnusualWhales")).toBeTruthy();
     expect(screen.getByText("UnusualWhales")).toBeTruthy();
     expect(screen.getByText("88ms")).toBeTruthy();
+    expect(screen.getByText("12.4/m")).toBeTruthy();
+    expect(screen.getByText("2")).toBeTruthy();
+    expect(screen.getByText("2m")).toBeTruthy();
+    expect(screen.getByText("1.6/m")).toBeTruthy();
     expect(screen.getByText("120")).toBeTruthy();
     expect(screen.getByText("3")).toBeTruthy();
     expect(screen.getByText("1")).toBeTruthy();
@@ -88,8 +134,10 @@ describe("HealthPanel", () => {
       http_5xx: null,
       uw_today: null,
       cache_hit_pct: null,
+      throughput_window_minutes: 15,
       record_health_ok: null,
       record_health: [],
+      workers: [],
     });
 
     render(<HealthPanel />);
@@ -122,6 +170,7 @@ describe("HealthPanel", () => {
         http_5xx: 1,
         uw_today: 40,
         cache_hit_pct: null,
+        throughput_window_minutes: 15,
         record_health_ok: true,
         record_health: [],
       })
@@ -147,6 +196,7 @@ describe("HealthPanel", () => {
         http_5xx: 2,
         uw_today: null,
         cache_hit_pct: null,
+        throughput_window_minutes: 15,
         record_health_ok: true,
         record_health: [],
       });
@@ -198,6 +248,7 @@ describe("HealthPanel", () => {
       http_5xx: 0,
       uw_today: 40,
       cache_hit_pct: null,
+      throughput_window_minutes: 15,
       record_health_ok: false,
       record_health: [
         {

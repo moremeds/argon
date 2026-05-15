@@ -25,7 +25,7 @@ Postgres `option_wizard` DB, schema `uw_scan`. UW (Unusual Whales) is the primar
 ```bash
 uv sync --extra postgres          # install
 bash scripts/migrate.sh           # apply SQL migrations (idempotent)
-bash scripts/dev.sh               # run all three processes
+bash scripts/dev.sh               # run web, API, 2 UW workers, and 2 massive workers
 uv run pytest                     # python tests
 cd web && npm run test            # vitest
 cd web && npm run gen:types       # regenerate types.ts after API change

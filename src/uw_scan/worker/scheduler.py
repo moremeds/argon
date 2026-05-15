@@ -5,9 +5,11 @@ from __future__ import annotations
 import logging
 import signal
 import sys
-from collections.abc import Iterator
+import zlib
+from collections.abc import Callable, Iterator
 from contextlib import contextmanager
 from datetime import date, datetime, time
+from typing import Literal
 from zoneinfo import ZoneInfo
 
 import psycopg
@@ -38,6 +40,8 @@ logging.basicConfig(
 )
 logger = logging.getLogger("uw_scan.worker")
 RESCAN_WORKER_CONCURRENCY = 2
+WorkerGroup = Literal["uw", "massive", "ai"]
+WORKER_ROLES: set[str] = {"all", "uw", "massive"}
 
 
 def _spot_refresh_market_date(now: datetime) -> date | None:
@@ -60,9 +64,77 @@ def _uw_auto_request_allowed(now: datetime) -> bool:
     return time(5, 0) <= current < time(20, 0)
 
 
+def _validate_worker_settings(settings: Settings) -> None:
+    role = settings.worker_role.lower()
+    if role not in WORKER_ROLES:
+        raise RuntimeError(
+            "UW_SCAN_WORKER_ROLE must be one of: all, uw, massive "
+            f"(got {settings.worker_role!r})"
+        )
+    if settings.worker_count < 1:
+        raise RuntimeError("UW_SCAN_WORKER_COUNT must be >= 1")
+    if settings.worker_index < 0 or settings.worker_index >= settings.worker_count:
+        raise RuntimeError(
+            "UW_SCAN_WORKER_INDEX must be between 0 and "
+            f"{settings.worker_count - 1} (got {settings.worker_index})"
+        )
+
+
+def _worker_groups(settings: Settings) -> set[WorkerGroup]:
+    role = settings.worker_role.lower()
+    if role == "all":
+        return {"uw", "massive", "ai"}
+    if role == "uw":
+        return {"uw"}
+    if role == "massive":
+        return {"massive"}
+    raise RuntimeError(
+        "UW_SCAN_WORKER_ROLE must be one of: all, uw, massive "
+        f"(got {settings.worker_role!r})"
+    )
+
+
+def _worker_owns_ticker(ticker: str, *, index: int, count: int) -> bool:
+    if count <= 1:
+        return True
+    normalized = ticker.strip().upper().encode("utf-8")
+    return zlib.crc32(normalized) % count == index
+
+
+def _ticker_shard_filter(settings: Settings) -> Callable[[str], bool]:
+    _validate_worker_settings(settings)
+    return lambda ticker: _worker_owns_ticker(
+        ticker, index=settings.worker_index, count=settings.worker_count
+    )
+
+
+def _rescan_worker_concurrency(settings: Settings) -> int:
+    if settings.worker_role.lower() == "uw" and settings.worker_count > 1:
+        return 1
+    return RESCAN_WORKER_CONCURRENCY
+
+
+def _is_primary_worker(settings: Settings) -> bool:
+    return settings.worker_role.lower() == "all" or settings.worker_index == 0
+
+
+def _worker_label(settings: Settings) -> str:
+    role = settings.worker_role.lower()
+    if role == "all":
+        return "all"
+    return f"{role}-{settings.worker_index}-of-{settings.worker_count}"
+
+
+def _worker_heartbeat_name(settings: Settings) -> str:
+    role = settings.worker_role.lower()
+    if role == "all":
+        return "worker"
+    return f"worker:{role}:{settings.worker_index}"
+
+
 def _record_worker_heartbeat(settings: Settings) -> None:
     with _repo(settings) as repo:
-        repo.upsert_heartbeat("worker")
+        repo.upsert_heartbeat(_worker_heartbeat_name(settings))
 
 
 @contextmanager
@@ -137,6 +209,9 @@ class _NoOhlc:
 
 def main() -> int:
     settings = Settings.from_env()
+    _validate_worker_settings(settings)
+    groups = _worker_groups(settings)
+    ticker_filter = _ticker_shard_filter(settings)
     sched = BlockingScheduler(timezone=settings.rth_tz)
 
     def _spot_refresh() -> None:
@@ -155,7 +230,12 @@ def main() -> int:
                 return
             try:
                 with _repo(settings) as repo:
-                    n = spot_refresh_once(repo, provider, market_date=market_date)
+                    n = spot_refresh_once(
+                        repo,
+                        provider,
+                        market_date=market_date,
+                        ticker_filter=ticker_filter,
+                    )
                     logger.info("spot_refresh updated %d cards", n)
             finally:
                 provider.close()
@@ -165,20 +245,11 @@ def main() -> int:
             with _uw_client(
                 settings, telemetry_recorder=recorder, job_name="full_scan"
             ) as uw:
-                ohlc = (
-                    _ohlc_provider(
-                        settings,
-                        telemetry_recorder=recorder,
-                        job_name="full_scan",
+                with _repo(settings) as repo:
+                    n = full_scan_once(
+                        repo, uw, _NoOhlc(), ticker_filter=ticker_filter
                     )
-                    or _NoOhlc()
-                )
-                try:
-                    with _repo(settings) as repo:
-                        n = full_scan_once(repo, uw, ohlc)
-                        logger.info("full_scan completed %d tickers", n)
-                finally:
-                    ohlc.close()
+                    logger.info("full_scan completed %d tickers", n)
 
     def _ohlc_pull() -> None:
         with _external_api_recorder(settings) as recorder:
@@ -189,7 +260,7 @@ def main() -> int:
                 return
             try:
                 with _repo(settings) as repo:
-                    n = ohlc_pull_once(repo, provider)
+                    n = ohlc_pull_once(repo, provider, ticker_filter=ticker_filter)
                     logger.info("ohlc_pull refreshed %d tickers", n)
             finally:
                 provider.close()
@@ -199,19 +270,8 @@ def main() -> int:
             with _uw_client(
                 settings, telemetry_recorder=recorder, job_name="rescan_tick"
             ) as uw:
-                ohlc = (
-                    _ohlc_provider(
-                        settings,
-                        telemetry_recorder=recorder,
-                        job_name="rescan_tick",
-                    )
-                    or _NoOhlc()
-                )
-                try:
-                    with _repo(settings) as repo:
-                        rescan_tick(repo, uw, ohlc)
-                finally:
-                    ohlc.close()
+                with _repo(settings) as repo:
+                    rescan_tick(repo, uw, _NoOhlc())
 
     def _spy_ohlc_refresh() -> None:
         if settings.massive_api_key is None:
@@ -239,7 +299,13 @@ def main() -> int:
                 settings, telemetry_recorder=recorder, job_name="flow_data_refresh"
             ) as uw:
                 with _repo(settings) as repo:
-                    flow_data_refresh(repo=repo, client=uw, settings=settings)
+                    flow_data_refresh(
+                        repo=repo,
+                        client=uw,
+                        settings=settings,
+                        ticker_filter=ticker_filter,
+                        lock_key=91501 + settings.worker_index,
+                    )
 
     def _trade_insights_ai_tick() -> None:
         trade_insights_ai_tick(settings)
@@ -252,51 +318,56 @@ def main() -> int:
         max_instances=1,
         coalesce=True,
     )
-    sched.add_job(
-        _spot_refresh,
-        IntervalTrigger(seconds=settings.spot_refresh_seconds),
-        id="spot_refresh",
-        name="Spot refresh",
-    )
-    sched.add_job(
-        _full_scan,
-        CronTrigger.from_crontab(settings.full_scan_cron, timezone=settings.rth_tz),
-        id="full_scan",
-        name="Full UW scan",
-    )
-    sched.add_job(
-        _ohlc_pull,
-        CronTrigger.from_crontab(settings.ohlc_pull_cron, timezone=settings.rth_tz),
-        id="ohlc_pull",
-        name="Daily OHLC pull",
-    )
-    sched.add_job(
-        _rescan,
-        IntervalTrigger(seconds=1),
-        id="rescan_tick",
-        name="Ad-hoc rescan poll",
-        max_instances=RESCAN_WORKER_CONCURRENCY,
-    )
-    # Volatility tab v2 jobs — ET-anchored via from_crontab (review I9).
-    sched.add_job(
-        _spy_ohlc_refresh,
-        CronTrigger.from_crontab("30 16 * * 1-5", timezone=settings.rth_tz),
-        id="daily_spy_ohlc_refresh",
-        name="Daily SPY OHLC refresh",
-    )
-    sched.add_job(
-        _vol_analytics_rollup,
-        CronTrigger.from_crontab("0 18 * * 1-5", timezone=settings.rth_tz),
-        id="nightly_vol_analytics_rollup",
-        name="Nightly vol analytics rollup",
-    )
-    sched.add_job(
-        _flow_data_refresh,
-        CronTrigger.from_crontab("15 18 * * 1-5", timezone=settings.rth_tz),
-        id="nightly_flow_data_refresh",
-        name="Nightly Flow tab data refresh",
-    )
-    if settings.trade_insights_ai_enabled:
+    if "massive" in groups:
+        sched.add_job(
+            _spot_refresh,
+            IntervalTrigger(seconds=settings.spot_refresh_seconds),
+            id="spot_refresh",
+            name="Spot refresh",
+        )
+        sched.add_job(
+            _ohlc_pull,
+            CronTrigger.from_crontab(settings.ohlc_pull_cron, timezone=settings.rth_tz),
+            id="ohlc_pull",
+            name="Daily OHLC pull",
+        )
+        if _is_primary_worker(settings):
+            # Volatility tab v2 jobs — ET-anchored via from_crontab (review I9).
+            sched.add_job(
+                _spy_ohlc_refresh,
+                CronTrigger.from_crontab("30 16 * * 1-5", timezone=settings.rth_tz),
+                id="daily_spy_ohlc_refresh",
+                name="Daily SPY OHLC refresh",
+            )
+            sched.add_job(
+                _vol_analytics_rollup,
+                CronTrigger.from_crontab("0 18 * * 1-5", timezone=settings.rth_tz),
+                id="nightly_vol_analytics_rollup",
+                name="Nightly vol analytics rollup",
+            )
+
+    if "uw" in groups:
+        sched.add_job(
+            _full_scan,
+            CronTrigger.from_crontab(settings.full_scan_cron, timezone=settings.rth_tz),
+            id="full_scan",
+            name="Full UW scan",
+        )
+        sched.add_job(
+            _rescan,
+            IntervalTrigger(seconds=1),
+            id="rescan_tick",
+            name="Ad-hoc rescan poll",
+            max_instances=_rescan_worker_concurrency(settings),
+        )
+        sched.add_job(
+            _flow_data_refresh,
+            CronTrigger.from_crontab("15 18 * * 1-5", timezone=settings.rth_tz),
+            id="nightly_flow_data_refresh",
+            name="Nightly Flow tab data refresh",
+        )
+
+    if "ai" in groups and settings.trade_insights_ai_enabled:
         sched.add_job(
             _trade_insights_ai_tick,
             IntervalTrigger(seconds=settings.trade_insights_ai_poll_seconds),
@@ -324,7 +395,7 @@ def main() -> int:
     signal.signal(signal.SIGTERM, _stop)
     signal.signal(signal.SIGINT, _stop)
 
-    logger.info("scheduler started")
+    logger.info("scheduler started role=%s groups=%s", _worker_label(settings), groups)
     sched.start()
     return 0
 

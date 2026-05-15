@@ -5,6 +5,7 @@ import { fmtDateTimeWithZone } from "@/lib/formatters";
 import type { components } from "@/lib/types";
 
 type Health = components["schemas"]["HealthResponse"];
+type WorkerHealth = NonNullable<Health["workers"]>[number];
 type ProviderSource = "uw" | "massive";
 
 const HEARTBEAT_HEALTHY_LAG_S = 5;
@@ -78,6 +79,22 @@ function recordHealthStatus(
   return { label: "ALERT", color: "var(--negative)" };
 }
 
+function workerGroupStatus(workers: WorkerHealth[]): { label: string; color: string } {
+  if (workers.length === 0) return { label: "UNKNOWN", color: "var(--warning)" };
+  const online = workers.filter((worker) => {
+    const healthyLag =
+      worker.role === "massive" ? SPOT_REFRESH_HEALTHY_LAG_S : HEARTBEAT_HEALTHY_LAG_S;
+    return heartbeatStatus(worker.lag_seconds, healthyLag).label === "ONLINE";
+  }).length;
+  if (online === workers.length) {
+    return { label: `${online}/${workers.length}`, color: "var(--positive)" };
+  }
+  if (online === 0) {
+    return { label: `${online}/${workers.length}`, color: "var(--negative)" };
+  }
+  return { label: `${online}/${workers.length}`, color: "var(--warning)" };
+}
+
 function fmtDuration(seconds: number | null | undefined): string {
   if (seconds == null) return "—";
   const s = Math.max(0, Math.round(seconds));
@@ -86,6 +103,11 @@ function fmtDuration(seconds: number | null | undefined): string {
   if (minutes < 60) return `${minutes}m`;
   const hours = Math.round(minutes / 60);
   return `${hours}h`;
+}
+
+function fmtRate(value: number | null | undefined): string {
+  if (value == null) return "—";
+  return `${Number(value.toFixed(1))}/m`;
 }
 
 function StatusRow({
@@ -148,6 +170,9 @@ export function HealthPanel() {
     h?.spot_refresh_heartbeat_lag_seconds,
     SPOT_REFRESH_HEALTHY_LAG_S,
   );
+  const workerRows = h?.workers ?? [];
+  const uwWorkers = workerRows.filter((worker) => worker.role === "uw");
+  const massiveWorkers = workerRows.filter((worker) => worker.role === "massive");
   const recordsStatus = recordHealthStatus(h?.record_health_ok);
 
   return (
@@ -159,8 +184,17 @@ export function HealthPanel() {
     >
       <StatusRow label="API" status={apiStatus} />
       <StatusRow label="Scheduler" status={schedulerStatus} />
-      <StatusRow label="UW Worker" status={rescanStatus} />
-      <StatusRow label="Massive Worker" status={spotRefreshStatus} />
+      {workerRows.length > 0 ? (
+        <>
+          <StatusRow label="UW Workers" status={workerGroupStatus(uwWorkers)} />
+          <StatusRow label="Massive Workers" status={workerGroupStatus(massiveWorkers)} />
+        </>
+      ) : (
+        <>
+          <StatusRow label="UW Worker" status={rescanStatus} />
+          <StatusRow label="Massive Worker" status={spotRefreshStatus} />
+        </>
+      )}
       <StatusRow label="Query Coverage" status={recordsStatus} />
       <div style={rowStyle}>
         <span style={labelStyle}>Last spot</span>
@@ -206,6 +240,22 @@ export function HealthPanel() {
       <div style={rowStyle}>
         <span style={labelStyle}>Latency p95</span>
         <span style={valStyle}>{dash(h?.latency_p95_ms, "ms")}</span>
+      </div>
+      <div style={rowStyle}>
+        <span style={labelStyle}>Req/min</span>
+        <span style={valStyle}>{fmtRate(h?.requests_per_minute)}</span>
+      </div>
+      <div style={rowStyle}>
+        <span style={labelStyle}>429</span>
+        <span style={valStyle}>{dash(h?.http_429)}</span>
+      </div>
+      <div style={rowStyle}>
+        <span style={labelStyle}>Scan avg</span>
+        <span style={valStyle}>{fmtDuration(h?.avg_scan_duration_seconds)}</span>
+      </div>
+      <div style={rowStyle}>
+        <span style={labelStyle}>Queue/min</span>
+        <span style={valStyle}>{fmtRate(h?.queue_drain_rate_per_minute)}</span>
       </div>
       <div style={rowStyle}>
         <span style={labelStyle}>2xx</span>
