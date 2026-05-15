@@ -30,3 +30,5 @@ export const SECTOR_ROWS: { label: string; items: string[] }[] = [
 export const WATCHLIST_SECTORS = SECTOR_ROWS.flatMap((row) =>
   row.items.filter((item) => item !== "All"),
 );
+
+export const PRIORITY_SECTORS = ["ETF", "M7", "Semiconductor"] as const;

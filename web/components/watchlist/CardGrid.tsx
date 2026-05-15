@@ -1,12 +1,11 @@
 "use client";
 import type { components } from "@/lib/types";
 import { toNum } from "@/lib/formatters";
+import { PRIORITY_SECTORS } from "./sectorGroups";
 import { TickerCard } from "./TickerCard";
 
 type WatchlistCard = components["schemas"]["WatchlistCard"];
 type WatchlistResponse = components["schemas"]["WatchlistResponse"];
-
-const PRIORITY_SECTORS = ["ETF", "M7", "Semiconductor"] as const;
 
 function sectorRank(sector: string, tickers: WatchlistCard[]) {
   const priority = PRIORITY_SECTORS.indexOf(
