@@ -481,6 +481,13 @@ class BulkScreenerRow(_UwBase):
     cum_dir_vega: int | None = None
 
 
+class EtfInfo(_UwBase):
+    aum: Decimal | None = None
+    name: str | None = None
+    avg30_volume: Decimal | None = None
+    has_options: bool | None = None
+
+
 class ScanTickerResult(_UwBase):
     """One row in the Full Scan output. Ranked by `score` desc."""
 
@@ -535,6 +542,8 @@ class MarketAggregates(_UwBase):
     pcr_oi: Decimal | None = None
     pcr_vol: Decimal | None = None
     iv30d: Decimal | None = None
+    market_cap: Decimal | None = None
+    aum: Decimal | None = None
 
 
 class StrikeGexBucket(_UwBase):

@@ -5,6 +5,44 @@ import { TickerCard } from "./TickerCard";
 type WatchlistCard = components["schemas"]["WatchlistCard"];
 type WatchlistResponse = components["schemas"]["WatchlistResponse"];
 
+const PRIORITY_SECTORS = ["ETF", "M7", "Semiconductor"] as const;
+
+function sectorRank(sector: string, tickers: WatchlistCard[]) {
+  const priority = PRIORITY_SECTORS.indexOf(
+    sector as (typeof PRIORITY_SECTORS)[number],
+  );
+  if (priority >= 0) return priority;
+  return (
+    PRIORITY_SECTORS.length +
+    Math.min(...tickers.map((t) => t.sort_rank), Number.MAX_SAFE_INTEGER)
+  );
+}
+
+function sizeValue(card: WatchlistCard) {
+  const raw =
+    card.sector === "ETF"
+      ? (card.aum ?? card.market_cap)
+      : (card.market_cap ?? card.aum);
+  if (raw == null) return null;
+  const value = Number(raw);
+  return Number.isFinite(value) ? value : null;
+}
+
+function compareCards(a: WatchlistCard, b: WatchlistCard) {
+  const aSize = sizeValue(a);
+  const bSize = sizeValue(b);
+  if (aSize !== null && bSize !== null && aSize !== bSize) {
+    return bSize - aSize;
+  }
+  if (aSize !== null) return -1;
+  if (bSize !== null) return 1;
+  return (
+    Number(b.pinned) - Number(a.pinned) ||
+    a.sort_rank - b.sort_rank ||
+    a.ticker.localeCompare(b.ticker)
+  );
+}
+
 export function CardGrid({
   data,
   sparklines,
@@ -19,12 +57,17 @@ export function CardGrid({
     grouped.set(t.sector, arr);
   }
   for (const arr of grouped.values()) {
-    arr.sort((a, b) => Number(b.pinned) - Number(a.pinned));
+    arr.sort(compareCards);
   }
+  const groupedEntries = [...grouped.entries()].sort(
+    ([sectorA, tickersA], [sectorB, tickersB]) =>
+      sectorRank(sectorA, tickersA) - sectorRank(sectorB, tickersB) ||
+      sectorA.localeCompare(sectorB),
+  );
 
   return (
     <div>
-      {[...grouped.entries()].map(([sector, tickers]) => (
+      {groupedEntries.map(([sector, tickers]) => (
         <section key={sector} style={{ marginBottom: 28 }}>
           <h2
             style={{

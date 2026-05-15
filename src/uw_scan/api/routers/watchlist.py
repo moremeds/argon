@@ -47,6 +47,8 @@ def _card_to_response(row: WatchlistCardRow) -> WatchlistCard:
         scanned_at=row.scanned_at,
         iv_atm=row.iv_atm,
         iv_rank=row.iv_rank,
+        market_cap=row.market_cap,
+        aum=row.aum,
         setup=SetupBlock(
             type=row.setup_type,
             direction=row.setup_direction,

@@ -11,6 +11,7 @@ from decimal import Decimal
 from .models import (
     BulkScreenerRow,
     DarkPoolPrint,
+    EtfInfo,
     FlowAlert,
     GreekExposureRow,
     GreeksRow,
@@ -181,6 +182,19 @@ def normalize_bulk_screener(payload: dict) -> list[BulkScreenerRow]:
             f"bulk_screener payload['data'] expected list, got {type(raw).__name__}"
         )
     return [BulkScreenerRow(**r) for r in raw]
+
+
+def normalize_etf_info(payload: dict) -> EtfInfo:
+    if "data" not in payload:
+        raise NormalizationError(
+            f"etf_info payload missing 'data' key; got {list(payload.keys())}"
+        )
+    raw = payload["data"]
+    if not isinstance(raw, dict):
+        raise NormalizationError(
+            f"etf_info payload['data'] expected object, got {type(raw).__name__}"
+        )
+    return EtfInfo(**raw)
 
 
 # ---------------------------------------------------------------------------

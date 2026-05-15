@@ -2554,6 +2554,38 @@ class Repository:
                     ) AS queue_position
                   FROM {self._schema}.jobs
                   WHERE status IN ('queued', 'running')
+                ),
+                latest_market_caps AS (
+                  SELECT DISTINCT ON (ticker)
+                    ticker,
+                    marketcap
+                  FROM {self._schema}.scan_results
+                  WHERE marketcap IS NOT NULL
+                  ORDER BY ticker, run_id DESC
+                ),
+                latest_screener_sizes AS (
+                  SELECT DISTINCT ON (r.ticker)
+                    r.ticker,
+                    p.payload_jsonb->'data'->0->>'marketcap' AS market_cap
+                  FROM {self._schema}.scan_runs r
+                  JOIN {self._schema}.api_request_audit a ON r.run_id = a.run_id
+                  JOIN {self._schema}.raw_payloads p ON a.audit_id = p.audit_id
+                  WHERE a.endpoint_slug = 'bulk_screener_stocks'
+                    AND jsonb_typeof(p.payload_jsonb->'data') = 'array'
+                    AND p.payload_jsonb->'data'->0->>'marketcap' IS NOT NULL
+                  ORDER BY r.ticker, r.run_id DESC
+                ),
+                latest_etf_aum AS (
+                  SELECT DISTINCT ON (r.ticker)
+                    r.ticker,
+                    p.payload_jsonb->'data'->>'aum' AS aum
+                  FROM {self._schema}.scan_runs r
+                  JOIN {self._schema}.api_request_audit a ON r.run_id = a.run_id
+                  JOIN {self._schema}.raw_payloads p ON a.audit_id = p.audit_id
+                  WHERE a.endpoint_slug = 'etf_info'
+                    AND jsonb_typeof(p.payload_jsonb->'data') = 'object'
+                    AND p.payload_jsonb->'data'->>'aum' IS NOT NULL
+                  ORDER BY r.ticker, r.run_id DESC
                 )
                 SELECT
                   w.ticker, w.sector, w.pinned, w.sort_rank,
@@ -2580,6 +2612,12 @@ class Repository:
                   c.setup_type, c.setup_direction, c.setup_score,
                   c.aggression_pct,
                   c.ret_1d, c.ret_1w, c.ret_30d,
+                  COALESCE(
+                    sr.aggregates->>'market_cap',
+                    lmc.marketcap::text,
+                    lss.market_cap
+                  ) AS market_cap,
+                  COALESCE(sr.aggregates->>'aum', lea.aum) AS aum,
                   c.gex_flip_distance, c.gex_flip_price, c.gex_per_1pct_move,
                   c.max_gex_strike, c.gex_expiring_pct, c.gex_expiring_date,
                   c.skew_25d_30dte,
@@ -2592,6 +2630,10 @@ class Repository:
                   j.started_at AS active_job_started_at
                 FROM {self._schema}.watchlist w
                 LEFT JOIN {self._schema}.watchlist_card c ON w.ticker = c.ticker
+                LEFT JOIN {self._schema}.scan_runs sr ON c.run_id = sr.run_id
+                LEFT JOIN latest_market_caps lmc ON w.ticker = lmc.ticker
+                LEFT JOIN latest_screener_sizes lss ON w.ticker = lss.ticker
+                LEFT JOIN latest_etf_aum lea ON w.ticker = lea.ticker
                 LEFT JOIN {self._schema}.intraday_quote q ON w.ticker = q.ticker
                 LEFT JOIN active_jobs j ON w.ticker = j.ticker
                 WHERE w.removed_at IS NULL

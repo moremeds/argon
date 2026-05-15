@@ -16,6 +16,7 @@ from ..api.endpoints import EndpointSlug, build_path
 from ..models import (
     BulkScreenerRow,
     DarkPoolPrint,
+    EtfInfo,
     FlowAlert,
     GreekExposureRow,
     GreeksRow,
@@ -363,3 +364,13 @@ def fetch_bulk_screener_ticker(
     )
     rows = normalize.normalize_bulk_screener(body)
     return rows[0] if rows else None
+
+
+def fetch_etf_info(
+    client: UwClient,
+    repo: Repository,
+    run_id: int,
+    ticker: str,
+) -> EtfInfo:
+    body = _fetch_json(client, repo, run_id, EndpointSlug.ETF_INFO, ticker)
+    return normalize.normalize_etf_info(body)

@@ -791,6 +791,8 @@ export interface components {
          *     sub-models. Feeds the watchlist card POSITIONING and SKEW blocks.
          */
         MarketAggregates: {
+            /** Aum */
+            aum?: string | null;
             /** Call Oi Total */
             call_oi_total?: number | null;
             /** Call Volume Ask Side */
@@ -801,6 +803,8 @@ export interface components {
             call_volume_total?: number | null;
             /** Iv30D */
             iv30d?: string | null;
+            /** Market Cap */
+            market_cap?: string | null;
             /** Pcr Oi */
             pcr_oi?: string | null;
             /** Pcr Vol */
@@ -2300,11 +2304,15 @@ export interface components {
         WatchlistCard: {
             /** Aggression Pct */
             aggression_pct?: string | null;
+            /** Aum */
+            aum?: string | null;
             gamma: components["schemas"]["GammaBlock"];
             /** Iv Atm */
             iv_atm?: string | null;
             /** Iv Rank */
             iv_rank?: string | null;
+            /** Market Cap */
+            market_cap?: string | null;
             /** Pinned */
             pinned: boolean;
             positioning: components["schemas"]["PositioningBlock"];
