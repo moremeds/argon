@@ -584,12 +584,16 @@ export interface components {
         };
         /** HealthResponse */
         HealthResponse: {
+            /** Avg Scan Duration Seconds */
+            avg_scan_duration_seconds?: number | null;
             /** Cache Hit Pct */
             cache_hit_pct?: number | null;
             /** Db */
             db: string;
             /** Http 2Xx */
             http_2xx?: number | null;
+            /** Http 429 */
+            http_429?: number | null;
             /** Http 4Xx */
             http_4xx?: number | null;
             /** Http 5Xx */
@@ -604,12 +608,16 @@ export interface components {
             latest_spot_quote_fetched_at?: string | null;
             /** Ok */
             ok: boolean;
+            /** Queue Drain Rate Per Minute */
+            queue_drain_rate_per_minute?: number | null;
             /** Reason */
             reason?: string | null;
             /** Record Health */
             record_health?: components["schemas"]["RecordHealthCheck"][];
             /** Record Health Ok */
             record_health_ok?: boolean | null;
+            /** Requests Per Minute */
+            requests_per_minute?: number | null;
             /** Rescan Heartbeat Lag Seconds */
             rescan_heartbeat_lag_seconds?: number | null;
             /** Scheduler Heartbeat Lag Seconds */
@@ -627,6 +635,11 @@ export interface components {
             spot_quote_lag_seconds?: number | null;
             /** Spot Refresh Heartbeat Lag Seconds */
             spot_refresh_heartbeat_lag_seconds?: number | null;
+            /**
+             * Throughput Window Minutes
+             * @default 15
+             */
+            throughput_window_minutes: number;
             /** Uw Today */
             uw_today?: number | null;
             /** Watchlist Size */

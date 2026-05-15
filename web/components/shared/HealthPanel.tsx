@@ -105,6 +105,11 @@ function fmtDuration(seconds: number | null | undefined): string {
   return `${hours}h`;
 }
 
+function fmtRate(value: number | null | undefined): string {
+  if (value == null) return "—";
+  return `${Number(value.toFixed(1))}/m`;
+}
+
 function StatusRow({
   label,
   status,
@@ -235,6 +240,22 @@ export function HealthPanel() {
       <div style={rowStyle}>
         <span style={labelStyle}>Latency p95</span>
         <span style={valStyle}>{dash(h?.latency_p95_ms, "ms")}</span>
+      </div>
+      <div style={rowStyle}>
+        <span style={labelStyle}>Req/min</span>
+        <span style={valStyle}>{fmtRate(h?.requests_per_minute)}</span>
+      </div>
+      <div style={rowStyle}>
+        <span style={labelStyle}>429</span>
+        <span style={valStyle}>{dash(h?.http_429)}</span>
+      </div>
+      <div style={rowStyle}>
+        <span style={labelStyle}>Scan avg</span>
+        <span style={valStyle}>{fmtDuration(h?.avg_scan_duration_seconds)}</span>
+      </div>
+      <div style={rowStyle}>
+        <span style={labelStyle}>Queue/min</span>
+        <span style={valStyle}>{fmtRate(h?.queue_drain_rate_per_minute)}</span>
       </div>
       <div style={rowStyle}>
         <span style={labelStyle}>2xx</span>

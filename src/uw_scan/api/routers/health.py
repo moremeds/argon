@@ -16,6 +16,7 @@ from uw_scan.storage.repository import Repository, provider_day_bounds
 router = APIRouter()
 
 HealthSource = Literal["uw", "massive"]
+THROUGHPUT_WINDOW_MINUTES = 15
 
 
 def _source_label(source: HealthSource) -> str:
@@ -47,6 +48,11 @@ class HealthResponse(BaseModel):
     http_5xx: int | None = None
     uw_today: int | None = None
     cache_hit_pct: float | None = None
+    throughput_window_minutes: int = THROUGHPUT_WINDOW_MINUTES
+    requests_per_minute: float | None = None
+    http_429: int | None = None
+    avg_scan_duration_seconds: float | None = None
+    queue_drain_rate_per_minute: float | None = None
     record_health_ok: bool | None = None
     record_health: list["RecordHealthCheck"] = Field(default_factory=list)
     workers: list["WorkerHealth"] = Field(default_factory=list)
@@ -189,6 +195,11 @@ def health(
     provider_usage = repo.get_external_api_usage_summary(
         source, provider_day_start, provider_day_end
     )
+    throughput = repo.get_throughput_summary(
+        source,
+        now_utc - timedelta(minutes=THROUGHPUT_WINDOW_MINUTES),
+        now_utc,
+    )
     provider_fields = {
         "source": _source_label(source),
         "latency_p95_ms": provider_usage.latency_p95_ms,
@@ -196,6 +207,11 @@ def health(
         "http_4xx": provider_usage.http_4xx,
         "http_5xx": provider_usage.http_5xx,
         "uw_today": provider_usage.uw_latest_daily_count,
+        "throughput_window_minutes": THROUGHPUT_WINDOW_MINUTES,
+        "requests_per_minute": throughput.requests_per_minute,
+        "http_429": throughput.http_429,
+        "avg_scan_duration_seconds": throughput.avg_scan_duration_seconds,
+        "queue_drain_rate_per_minute": throughput.queue_drain_rate_per_minute,
     }
     heartbeat_fields = {
         "worker_lag_seconds": scheduler_heartbeat_lag,

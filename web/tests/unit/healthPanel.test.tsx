@@ -39,6 +39,11 @@ describe("HealthPanel", () => {
       http_5xx: 1,
       uw_today: 40,
       cache_hit_pct: null,
+      throughput_window_minutes: 15,
+      requests_per_minute: 12.4,
+      http_429: 2,
+      avg_scan_duration_seconds: 125,
+      queue_drain_rate_per_minute: 1.6,
       record_health_ok: true,
       record_health: [],
       workers: [
@@ -89,7 +94,7 @@ describe("HealthPanel", () => {
     expect(screen.getByText("Query Coverage")).toBeTruthy();
     expect(screen.getByText("OK")).toBeTruthy();
     expect(screen.getByText("Last spot")).toBeTruthy();
-    expect(screen.getByText("1m")).toBeTruthy();
+    expect(screen.getAllByText("1m").length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText("ONLINE").length).toBeGreaterThanOrEqual(2);
     expect(screen.getAllByText("1/2")).toHaveLength(2);
     expect(screen.getByText("05/14 22:20 HKG")).toBeTruthy();
@@ -97,6 +102,10 @@ describe("HealthPanel", () => {
     expect(screen.getByDisplayValue("UnusualWhales")).toBeTruthy();
     expect(screen.getByText("UnusualWhales")).toBeTruthy();
     expect(screen.getByText("88ms")).toBeTruthy();
+    expect(screen.getByText("12.4/m")).toBeTruthy();
+    expect(screen.getByText("2")).toBeTruthy();
+    expect(screen.getByText("2m")).toBeTruthy();
+    expect(screen.getByText("1.6/m")).toBeTruthy();
     expect(screen.getByText("120")).toBeTruthy();
     expect(screen.getByText("3")).toBeTruthy();
     expect(screen.getByText("1")).toBeTruthy();
@@ -125,6 +134,7 @@ describe("HealthPanel", () => {
       http_5xx: null,
       uw_today: null,
       cache_hit_pct: null,
+      throughput_window_minutes: 15,
       record_health_ok: null,
       record_health: [],
       workers: [],
@@ -160,6 +170,7 @@ describe("HealthPanel", () => {
         http_5xx: 1,
         uw_today: 40,
         cache_hit_pct: null,
+        throughput_window_minutes: 15,
         record_health_ok: true,
         record_health: [],
       })
@@ -185,6 +196,7 @@ describe("HealthPanel", () => {
         http_5xx: 2,
         uw_today: null,
         cache_hit_pct: null,
+        throughput_window_minutes: 15,
         record_health_ok: true,
         record_health: [],
       });
@@ -236,6 +248,7 @@ describe("HealthPanel", () => {
       http_5xx: 0,
       uw_today: 40,
       cache_hit_pct: null,
+      throughput_window_minutes: 15,
       record_health_ok: false,
       record_health: [
         {

@@ -141,6 +141,43 @@ def test_health_includes_uw_provider_usage_stats(client, seeded_db_empty_cards):
     assert body["uw_today"] == 33
 
 
+def test_health_includes_throughput_metrics(client, seeded_db_with_cards):
+    now = datetime.now(UTC)
+    seeded_db_with_cards.insert_external_api_request(
+        provider="uw",
+        endpoint_key="iv_rank",
+        method="GET",
+        path="/api/stock/TSLA/iv-rank",
+        ticker="TSLA",
+        params={},
+        status_code=429,
+        status_family="4xx",
+        started_at=now,
+        finished_at=now,
+        latency_ms=25,
+    )
+    with seeded_db_with_cards.conn.cursor() as cur:
+        cur.execute(
+            f"""
+            INSERT INTO {seeded_db_with_cards._schema}.jobs
+              (ticker, status, requested_at, started_at, finished_at)
+            VALUES ('TSLA', 'done', %s, %s, %s)
+            """,
+            (now, now, now),
+        )
+    seeded_db_with_cards.conn.commit()
+
+    r = client.get("/api/health")
+
+    assert r.status_code == 200
+    body = r.json()
+    assert body["throughput_window_minutes"] == 15
+    assert body["requests_per_minute"] > 0
+    assert body["http_429"] == 1
+    assert body["avg_scan_duration_seconds"] is not None
+    assert body["queue_drain_rate_per_minute"] > 0
+
+
 def test_health_includes_massive_provider_usage_stats_when_source_is_massive(
     client, seeded_db_empty_cards
 ):
