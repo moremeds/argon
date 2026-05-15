@@ -1,5 +1,6 @@
 "use client";
 import type { components } from "@/lib/types";
+import { toNum } from "@/lib/formatters";
 import { TickerCard } from "./TickerCard";
 
 type WatchlistCard = components["schemas"]["WatchlistCard"];
@@ -23,9 +24,7 @@ function sizeValue(card: WatchlistCard) {
     card.sector === "ETF"
       ? (card.aum ?? card.market_cap)
       : (card.market_cap ?? card.aum);
-  if (raw == null) return null;
-  const value = Number(raw);
-  return Number.isFinite(value) ? value : null;
+  return toNum(raw);
 }
 
 function compareCards(a: WatchlistCard, b: WatchlistCard) {
