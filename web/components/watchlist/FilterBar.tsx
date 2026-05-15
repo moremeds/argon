@@ -1,37 +1,7 @@
 "use client";
 import { useState, type CSSProperties } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-
-// Sector chips arranged in labeled sub-rows by relevance.
-// "All" lives on the Index row as the universal reset.
-const SECTOR_ROWS: { label: string; items: string[] }[] = [
-  { label: "Index", items: ["All", "ETF"] },
-  {
-    label: "AI/Tech",
-    items: [
-      "M7",
-      "Semiconductor",
-      "Memory",
-      "Optical",
-      "NeoCloud",
-      "Power",
-      "SaaS",
-      "Networking",
-    ],
-  },
-  { label: "Thematic", items: ["Crypto", "Fintech", "Space", "Defense"] },
-  {
-    label: "Defensive",
-    items: [
-      "Healthcare",
-      "Energy",
-      "Banks",
-      "Consumer",
-      "Telecom-Media",
-      "Airlines",
-    ],
-  },
-];
+import { SECTOR_ROWS } from "./sectorGroups";
 
 const SETUPS = ["All", "C-bull", "C-bear", "F-MULTI", "NEUTRAL"];
 

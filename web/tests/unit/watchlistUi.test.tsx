@@ -84,9 +84,53 @@ describe("TickerCard", () => {
 
     expect(timestampBlock).toHaveProperty("style.fontSize", "8px");
   });
+
+  it("shows an in-place not-ready popup for an unscanned ticker", () => {
+    render(
+      <TickerCard
+        card={{ ...card, ticker: "SOXX", scanned_at: null }}
+        sparkline={[]}
+      />,
+    );
+
+    expect(screen.queryByRole("link", { name: /soxx detail/i })).toBeNull();
+
+    fireEvent.click(screen.getByRole("button", { name: /soxx detail/i }));
+
+    expect(screen.getByText("SOXX is not ready")).not.toBeNull();
+  });
 });
 
 describe("AddTickerDialog", () => {
+  it("uses the current dashboard sector grouping in the sector menu", () => {
+    installDialogPolyfill();
+    render(<AddTickerDialog />);
+
+    fireEvent.click(screen.getByRole("button", { name: /\+ ticker/i }));
+
+    expect(screen.queryByRole("combobox")).toBeNull();
+    expect(screen.getByRole("button", { name: /sector etf/i })).not.toBeNull();
+
+    fireEvent.click(screen.getByRole("button", { name: /sector etf/i }));
+
+    expect(screen.getByText("Index")).not.toBeNull();
+    expect(screen.getByText("AI/Tech")).not.toBeNull();
+    expect(screen.getByText("Thematic")).not.toBeNull();
+    expect(screen.getByText("Defensive")).not.toBeNull();
+    expect(screen.getByRole("option", { name: "ETF" })).not.toBeNull();
+    expect(screen.getByRole("option", { name: "M7" })).not.toBeNull();
+    expect(screen.getByRole("option", { name: "NeoCloud" })).not.toBeNull();
+    expect(screen.getByRole("option", { name: "Power" })).not.toBeNull();
+    expect(screen.getByRole("option", { name: "Airlines" })).not.toBeNull();
+    expect(screen.queryByRole("option", { name: "Technology" })).toBeNull();
+    expect(screen.queryByRole("option", { name: "All" })).toBeNull();
+
+    fireEvent.click(screen.getByRole("option", { name: "Power" }));
+
+    expect(screen.getByRole("button", { name: /sector power/i })).not.toBeNull();
+    expect(screen.queryByRole("listbox")).toBeNull();
+  });
+
   it("closes when the backdrop is clicked", () => {
     installDialogPolyfill();
     render(<AddTickerDialog />);
