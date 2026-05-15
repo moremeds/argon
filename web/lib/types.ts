@@ -1170,6 +1170,42 @@ export interface components {
             /** Uw Latest Daily Limit */
             uw_latest_daily_limit: number | null;
         };
+        /** QueueStatus */
+        QueueStatus: {
+            /** Job Id */
+            job_id: string;
+            /** Status */
+            status: string;
+            /** Queue Position */
+            queue_position: number;
+            /**
+             * Requested At
+             * Format: date-time
+             */
+            requested_at: string;
+            /** Started At */
+            started_at?: string | null;
+        };
+        /** QueueSummary */
+        QueueSummary: {
+            /**
+             * Total
+             * @default 0
+             */
+            total: number;
+            /**
+             * Queued
+             * @default 0
+             */
+            queued: number;
+            /**
+             * Running
+             * @default 0
+             */
+            running: number;
+            /** Oldest Requested At */
+            oldest_requested_at?: string | null;
+        };
         /** RecordHealthCheck */
         RecordHealthCheck: {
             /** Table */
@@ -2274,6 +2310,7 @@ export interface components {
             gamma: components["schemas"]["GammaBlock"];
             skew: components["schemas"]["SkewBlock"];
             positioning: components["schemas"]["PositioningBlock"];
+            queue?: components["schemas"]["QueueStatus"] | null;
         };
         /** WatchlistMutation */
         WatchlistMutation: {
@@ -2313,6 +2350,14 @@ export interface components {
             scanned_at_max?: string | null;
             /** Scheduler Lag Seconds */
             scheduler_lag_seconds?: number | null;
+            /**
+             * @default {
+             *       "total": 0,
+             *       "queued": 0,
+             *       "running": 0
+             *     }
+             */
+            queue: components["schemas"]["QueueSummary"];
             /** Tickers */
             tickers: components["schemas"]["WatchlistCard"][];
         };

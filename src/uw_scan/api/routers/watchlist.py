@@ -10,6 +10,8 @@ from uw_scan.api.deps import get_repo
 from uw_scan.api.schemas import (
     GammaBlock,
     PositioningBlock,
+    QueueStatus,
+    QueueSummary,
     ReturnsBlock,
     SetupBlock,
     SkewBlock,
@@ -25,6 +27,15 @@ router = APIRouter()
 
 def _card_to_response(row: WatchlistCardRow) -> WatchlistCard:
     """Map a joined watchlist_card + watchlist row to the API shape."""
+    queue = None
+    if row.active_job_id is not None:
+        queue = QueueStatus(
+            job_id=str(row.active_job_id),
+            status=row.active_job_status,
+            queue_position=row.active_job_queue_position,
+            requested_at=row.active_job_requested_at,
+            started_at=row.active_job_started_at,
+        )
     return WatchlistCard(
         ticker=row.ticker,
         sector=row.sector,
@@ -59,6 +70,7 @@ def _card_to_response(row: WatchlistCardRow) -> WatchlistCard:
             pcr_vol=row.pcr_vol,
             pcr_delta_30d=row.pcr_delta_30d,
         ),
+        queue=queue,
     )
 
 
@@ -110,10 +122,17 @@ def get_watchlist(
         out.append(_card_to_response(r))
 
     scanned_times = [c.scanned_at for c in out if c.scanned_at is not None]
+    queue = repo.get_rescan_queue_summary()
     return WatchlistResponse(
         scanned_at_min=min(scanned_times, default=None),
         scanned_at_max=max(scanned_times, default=None),
         scheduler_lag_seconds=None,
+        queue=QueueSummary(
+            total=queue.total,
+            queued=queue.queued,
+            running=queue.running,
+            oldest_requested_at=queue.oldest_requested_at,
+        ),
         tickers=out,
     )
 

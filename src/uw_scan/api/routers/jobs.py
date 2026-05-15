@@ -30,7 +30,7 @@ def _to_status(job) -> JobStatus:
 
 @router.post("/watchlist/{ticker}/rescan", status_code=202, response_model=JobStatus)
 def enqueue_rescan(ticker: str, repo: Repository = Depends(get_repo)) -> JobStatus:
-    job_id = repo.enqueue_rescan_job(ticker.upper())
+    job_id = repo.enqueue_rescan_job(ticker.upper(), priority=10)
     job = repo.get_job(job_id)
     if job is None:
         raise HTTPException(status_code=500, detail="job not persisted")

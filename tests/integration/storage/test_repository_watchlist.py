@@ -149,3 +149,47 @@ def test_enqueue_and_claim_job(repo):
     assert str(claimed.id) == job_id
     assert claimed.status == "running"
     assert repo.claim_next_queued_job() is None
+
+
+def test_enqueue_rescan_job_reuses_first_active_job(repo):
+    repo.add_watchlist_ticker(ticker="ZZTEST", sector="ETF", notes="t")
+
+    first_id = repo.enqueue_rescan_job("ZZTEST")
+    second_id = repo.enqueue_rescan_job("ZZTEST")
+
+    assert second_id == first_id
+    with repo.conn.cursor() as cur:
+        cur.execute(
+            """
+            SELECT count(*)
+            FROM uw_scan.jobs
+            WHERE ticker='ZZTEST' AND status IN ('queued', 'running')
+            """
+        )
+        assert cur.fetchone()[0] == 1
+
+
+def test_card_list_includes_active_queue_status(repo):
+    repo.add_watchlist_ticker(ticker="ZZTEST", sector="ETF", notes="t")
+    job_id = repo.enqueue_rescan_job("ZZTEST")
+
+    cards = {card.ticker: card for card in repo.list_watchlist_cards()}
+
+    queued = cards["ZZTEST"]
+    assert str(queued.active_job_id) == job_id
+    assert queued.active_job_status == "queued"
+    assert queued.active_job_queue_position == 1
+
+
+def test_queue_summary_counts_active_jobs(repo):
+    repo.add_watchlist_ticker(ticker="ZZTEST", sector="ETF", notes="t")
+    repo.add_watchlist_ticker(ticker="ZZALT", sector="ETF", notes="t")
+    repo.enqueue_rescan_job("ZZTEST")
+    repo.enqueue_rescan_job("ZZALT")
+    repo.claim_next_queued_job()
+
+    summary = repo.get_rescan_queue_summary()
+
+    assert summary.total == 2
+    assert summary.running == 1
+    assert summary.queued == 1

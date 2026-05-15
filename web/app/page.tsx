@@ -1,6 +1,7 @@
 import { CardGrid } from "@/components/watchlist/CardGrid";
 import { FilterBar } from "@/components/watchlist/FilterBar";
 import { AddTickerDialog } from "@/components/watchlist/AddTickerDialog";
+import { QueueProgress } from "@/components/shared/QueueProgress";
 import { ScanAllButton } from "@/components/shared/ScanAllButton";
 import { loadDashboardData } from "@/lib/dashboardData";
 
@@ -40,6 +41,7 @@ export default async function DashboardPage({
           DASHBOARD
         </h1>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <QueueProgress queue={data.queue} />
           <ScanAllButton />
           <AddTickerDialog />
         </div>

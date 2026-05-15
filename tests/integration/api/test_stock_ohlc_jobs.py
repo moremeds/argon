@@ -54,6 +54,14 @@ def test_post_rescan_enqueues_job(client, seeded_db_with_cards):
     assert body["status"] == "queued"
 
 
+def test_post_rescan_reuses_existing_active_job(client, seeded_db_with_cards):
+    first = client.post("/api/watchlist/TSLA/rescan").json()
+    second = client.post("/api/watchlist/TSLA/rescan").json()
+
+    assert second["job_id"] == first["job_id"]
+    assert second["status"] == "queued"
+
+
 def test_post_rescan_all_requires_explicit_confirmation(client, seeded_db_with_cards):
     r = client.post("/api/watchlist/rescan-all")
 

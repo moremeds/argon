@@ -76,6 +76,14 @@ class JobRow:
 
 
 @dataclass(frozen=True)
+class RescanQueueSummaryRow:
+    total: int
+    queued: int
+    running: int
+    oldest_requested_at: datetime | None
+
+
+@dataclass(frozen=True)
 class ExternalApiUsageSummary:
     total_requests: int
     http_2xx: int
@@ -2464,6 +2472,15 @@ class Repository:
         with self._conn.cursor() as cur:
             cur.execute(
                 f"""
+                WITH active_jobs AS (
+                  SELECT
+                    id, ticker, status, requested_at, started_at,
+                    row_number() OVER (
+                      ORDER BY priority DESC, requested_at ASC, id ASC
+                    ) AS queue_position
+                  FROM {self._schema}.jobs
+                  WHERE status IN ('queued', 'running')
+                )
                 SELECT
                   w.ticker, w.sector, w.pinned, w.sort_rank,
                   c.run_id, c.scanned_at,
@@ -2493,10 +2510,16 @@ class Repository:
                   c.max_gex_strike, c.gex_expiring_pct, c.gex_expiring_date,
                   c.skew_25d_30dte,
                   c.call_oi_total, c.put_oi_total, c.pcr_oi, c.pcr_vol,
-                  c.pcr_delta_30d
+                  c.pcr_delta_30d,
+                  j.id AS active_job_id,
+                  j.status AS active_job_status,
+                  j.queue_position AS active_job_queue_position,
+                  j.requested_at AS active_job_requested_at,
+                  j.started_at AS active_job_started_at
                 FROM {self._schema}.watchlist w
                 LEFT JOIN {self._schema}.watchlist_card c ON w.ticker = c.ticker
                 LEFT JOIN {self._schema}.intraday_quote q ON w.ticker = q.ticker
+                LEFT JOIN active_jobs j ON w.ticker = j.ticker
                 WHERE w.removed_at IS NULL
                 ORDER BY w.pinned DESC, w.sort_rank, w.ticker
                 """
@@ -2626,14 +2649,20 @@ class Repository:
             return PcrHistoryRow(*row) if row else None
 
     # ---- jobs ----
-    def enqueue_rescan_job(self, ticker: str) -> str:
+    def enqueue_rescan_job(self, ticker: str, *, priority: int = 0) -> str:
         with self._conn.cursor() as cur:
             cur.execute(
                 f"""
-                INSERT INTO {self._schema}.jobs (ticker, status)
-                VALUES (%s, 'queued') RETURNING id
+                INSERT INTO {self._schema}.jobs (ticker, status, priority)
+                VALUES (%s, 'queued', %s)
+                ON CONFLICT (ticker) WHERE status IN ('queued', 'running')
+                DO UPDATE SET priority = GREATEST(
+                    {self._schema}.jobs.priority,
+                    EXCLUDED.priority
+                )
+                RETURNING id
                 """,
-                (ticker,),
+                (ticker, priority),
             )
             row = cur.fetchone()
             assert row is not None
@@ -2650,7 +2679,7 @@ class Repository:
                 WHERE id = (
                   SELECT id FROM {self._schema}.jobs
                   WHERE status='queued'
-                  ORDER BY requested_at
+                  ORDER BY priority DESC, requested_at ASC, id ASC
                   FOR UPDATE SKIP LOCKED
                   LIMIT 1
                 )
@@ -2682,6 +2711,29 @@ class Repository:
                 (error[:2000], job_id),
             )
         self._conn.commit()
+
+    def get_rescan_queue_summary(self) -> RescanQueueSummaryRow:
+        with self._conn.cursor() as cur:
+            cur.execute(
+                f"""
+                SELECT
+                  count(*) FILTER (WHERE status IN ('queued', 'running')) AS total,
+                  count(*) FILTER (WHERE status = 'queued') AS queued,
+                  count(*) FILTER (WHERE status = 'running') AS running,
+                  min(requested_at) FILTER (
+                    WHERE status IN ('queued', 'running')
+                  ) AS oldest_requested_at
+                FROM {self._schema}.jobs
+                """
+            )
+            row = cur.fetchone()
+        assert row is not None
+        return RescanQueueSummaryRow(
+            total=row[0],
+            queued=row[1],
+            running=row[2],
+            oldest_requested_at=row[3],
+        )
 
     # ---- aggregates (JSONB on scan_runs) ----
     def set_aggregates(self, run_id: int, agg: "models.MarketAggregates") -> None:
@@ -3223,4 +3275,5 @@ __all__ = [
     "IntradayQuoteRow",
     "PcrHistoryRow",
     "JobRow",
+    "RescanQueueSummaryRow",
 ]

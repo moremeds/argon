@@ -8,7 +8,7 @@ from __future__ import annotations
 from datetime import date, datetime
 from decimal import Decimal
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class SetupBlock(BaseModel):
@@ -47,6 +47,14 @@ class PositioningBlock(BaseModel):
     pcr_delta_30d: Decimal | None = None
 
 
+class QueueStatus(BaseModel):
+    job_id: str
+    status: str
+    queue_position: int
+    requested_at: datetime
+    started_at: datetime | None = None
+
+
 class WatchlistCard(BaseModel):
     ticker: str
     sector: str
@@ -69,12 +77,21 @@ class WatchlistCard(BaseModel):
     gamma: GammaBlock
     skew: SkewBlock
     positioning: PositioningBlock
+    queue: QueueStatus | None = None
+
+
+class QueueSummary(BaseModel):
+    total: int = 0
+    queued: int = 0
+    running: int = 0
+    oldest_requested_at: datetime | None = None
 
 
 class WatchlistResponse(BaseModel):
     scanned_at_min: datetime | None = None
     scanned_at_max: datetime | None = None
     scheduler_lag_seconds: float | None = None
+    queue: QueueSummary = Field(default_factory=QueueSummary)
     tickers: list[WatchlistCard]
 
 

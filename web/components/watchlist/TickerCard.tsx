@@ -36,6 +36,12 @@ export function TickerCard({ card, sparkline }: Props) {
         ? "var(--warning)"
         : "var(--negative)";
   const isReady = card.scanned_at != null;
+  const queueLabel =
+    card.queue == null
+      ? null
+      : card.queue.status === "running"
+        ? "running"
+        : `${card.queue.status} #${card.queue.queue_position}`;
 
   const detailContent = (
     <>
@@ -186,8 +192,11 @@ export function TickerCard({ card, sparkline }: Props) {
             analytics{" "}
             {card.scanned_at ? fmtDateTimeWithZone(card.scanned_at) : "not scanned"}
           </div>
+          {queueLabel && (
+            <div style={{ color: "var(--warning)" }}>{queueLabel}</div>
+          )}
         </div>
-        <RescanButton ticker={card.ticker} />
+        <RescanButton ticker={card.ticker} initialJob={card.queue ?? null} />
       </div>
       {showNotReady && (
         <StockNotReadyDialog

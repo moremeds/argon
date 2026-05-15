@@ -8,6 +8,7 @@ from pydantic import SecretStr
 
 from uw_scan.config import Settings
 from uw_scan.worker.scheduler import (
+    RESCAN_WORKER_CONCURRENCY,
     _ohlc_provider,
     _record_worker_heartbeat,
     _spot_refresh_market_date,
@@ -92,3 +93,7 @@ def test_ohlc_provider_uses_configured_request_timeout(monkeypatch) -> None:
 
     assert provider is not None
     assert captured["timeout"] == 42.0
+
+
+def test_rescan_worker_concurrency_is_two() -> None:
+    assert RESCAN_WORKER_CONCURRENCY == 2
