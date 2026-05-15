@@ -1,4 +1,4 @@
-import type { CockpitVrpResponse } from "@/lib/api";
+import type { CockpitStateResponse, CockpitVrpResponse } from "@/lib/api";
 import type React from "react";
 import { fmtDecimal, fmtSigned, toNum } from "@/lib/formatters";
 import {
@@ -13,9 +13,11 @@ import {
 export function CockpitVrpTab({
   ticker,
   data,
+  stateData,
 }: {
   ticker: string;
   data: CockpitVrpResponse | null;
+  stateData?: CockpitStateResponse | null;
 }) {
   if (!data) {
     return (
@@ -26,7 +28,8 @@ export function CockpitVrpTab({
     );
   }
 
-  const vrpValues = data.points
+  const points = data.points ?? [];
+  const vrpValues = points
     .map((point) => toNum(point.vrp))
     .filter((value): value is number => value != null);
   const stats = meanStd(vrpValues);
@@ -38,7 +41,8 @@ export function CockpitVrpTab({
           color: "rgba(245,166,35,0.12)",
         }
       : undefined;
-  const latest = data.points[data.points.length - 1] ?? null;
+  const latest = points[points.length - 1] ?? null;
+  const state = stateData?.state ?? null;
 
   return (
     <div style={{ display: "grid", gap: 16 }}>
@@ -58,6 +62,21 @@ export function CockpitVrpTab({
             label="IV rank"
             value={fmtDecimal(toNum(latest?.iv_rank_1y), 2)}
           />
+          <Metric
+            label="VRP Z 60D"
+            value={fmtSigned(toNum(state?.vrp_zscore_60d), 2)}
+          />
+          <Metric
+            label="VRP Z 252D"
+            value={fmtSigned(toNum(state?.vrp_zscore_252d), 2)}
+          />
+          <Metric
+            label="SIGN FLIP"
+            value={formatSignFlip(
+              state?.vrp_sign_flip_status,
+              state?.vrp_sign_flip_aligned_days,
+            )}
+          />
         </div>
         <h2 style={panelTitleStyle}>VRP Timeline</h2>
         <MultiLineChart
@@ -66,7 +85,7 @@ export function CockpitVrpTab({
             {
               label: "IV - RV",
               color: "var(--accent-bg)",
-              points: data.points.map((point) => ({
+              points: points.map((point) => ({
                 x: new Date(point.market_date).getTime(),
                 y: toNum(point.vrp),
               })),
@@ -74,7 +93,7 @@ export function CockpitVrpTab({
             {
               label: "IV",
               color: "var(--warning)",
-              points: data.points.map((point) => ({
+              points: points.map((point) => ({
                 x: new Date(point.market_date).getTime(),
                 y: toNum(point.iv),
               })),
@@ -82,7 +101,7 @@ export function CockpitVrpTab({
             {
               label: "RV",
               color: "var(--negative)",
-              points: data.points.map((point) => ({
+              points: points.map((point) => ({
                 x: new Date(point.market_date).getTime(),
                 y: toNum(point.rv),
               })),
@@ -107,7 +126,7 @@ export function CockpitVrpTab({
               </tr>
             </thead>
             <tbody>
-              {data.points.slice(-18).map((point) => {
+              {points.slice(-18).map((point) => {
                 const vrp = toNum(point.vrp);
                 const z =
                   vrp != null && stats.std > 0
@@ -126,7 +145,7 @@ export function CockpitVrpTab({
                   </tr>
                 );
               })}
-              {!data.points.length ? (
+              {!points.length ? (
                 <tr>
                   <td style={tdStyle} colSpan={6}>
                     -
@@ -139,6 +158,17 @@ export function CockpitVrpTab({
       </section>
     </div>
   );
+}
+
+function formatSignFlip(
+  status: boolean | "insufficient_history" | undefined,
+  alignedDays: number | undefined,
+): string {
+  const suffix = alignedDays == null ? "" : ` ${alignedDays}/30`;
+  if (status === true) return `YES${suffix}`;
+  if (status === false) return `NO${suffix}`;
+  if (status === "insufficient_history") return `INSUFFICIENT${suffix}`;
+  return "-";
 }
 
 function Metric({ label, value }: { label: string; value: string }) {

@@ -1,4 +1,4 @@
-import type { CockpitSurfaceResponse } from "@/lib/api";
+import type { CockpitStateResponse, CockpitSurfaceResponse } from "@/lib/api";
 import type React from "react";
 import { fmtDecimal, fmtSigned, toNum } from "@/lib/formatters";
 import {
@@ -13,9 +13,11 @@ import {
 export function CockpitSurfaceTab({
   ticker,
   data,
+  stateData,
 }: {
   ticker: string;
   data: CockpitSurfaceResponse | null;
+  stateData?: CockpitStateResponse | null;
 }) {
   if (!data) {
     return (
@@ -26,11 +28,14 @@ export function CockpitSurfaceTab({
     );
   }
 
-  const skewPoints = data.skew.map((point) => ({
+  const skew = data.skew ?? [];
+  const term = data.term ?? [];
+  const state = stateData?.state ?? null;
+  const skewPoints = skew.map((point) => ({
     x: new Date(point.market_date).getTime(),
     y: toNum(point.risk_reversal),
   }));
-  const termPoints = data.term
+  const termPoints = term
     .map((point) => ({
       x: toNum(point.dte) ?? new Date(point.expiry).getTime(),
       y: toNum(point.volatility),
@@ -39,6 +44,56 @@ export function CockpitSurfaceTab({
 
   return (
     <div style={{ display: "grid", gap: 16 }}>
+      {state ? (
+        <section style={panelStyle}>
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))",
+              gap: 10,
+            }}
+          >
+            <Metric
+              label="TERM CLASSIFICATION"
+              value={formatLabel(state.term_classification)}
+            />
+            <Metric
+              label="TERM STATE"
+              value={formatLabel(state.term_state)}
+            />
+            <Metric
+              label="SKEW Z 180D"
+              value={fmtSigned(toNum(state.skew_25d_zscore_180d), 2)}
+            />
+            <Metric
+              label="SKEW 5D CHANGE"
+              value={fmtSigned(toNum(state.skew_25d_5d_change), 2)}
+            />
+            <Metric label="SKEW REGIME" value={formatLabel(state.skew_regime)} />
+            <Metric
+              label="SKEW TERM"
+              value={fmtSigned(toNum(state.skew_term_structure), 2)}
+            />
+            <Metric
+              label="SINGLE BUMP"
+              value={fmtSigned(toNum(state.single_point_bump_pct), 2)}
+            />
+            <Metric
+              label="FRONT/BACK SPREAD"
+              value={fmtSigned(toNum(state.front_back_spread), 2)}
+            />
+            <Metric
+              label="CURVE SLOPE"
+              value={fmtSigned(toNum(state.full_curve_slope_pct), 2)}
+            />
+            <Metric
+              label="JOHNSON SLOPE"
+              value={fmtSigned(toNum(state.term_johnson_slope_pc1), 2)}
+            />
+          </div>
+        </section>
+      ) : null}
+
       <section style={panelStyle}>
         <h2 style={panelTitleStyle}>Skew Timeline</h2>
         <MultiLineChart
@@ -80,10 +135,11 @@ export function CockpitSurfaceTab({
                 <th style={thStyle}>DTE</th>
                 <th style={thStyle}>Value</th>
                 <th style={thStyle}>IM %</th>
+                <th style={thStyle}>E|Move|</th>
               </tr>
             </thead>
             <tbody>
-              {data.skew.slice(-8).map((point, index) => (
+              {skew.slice(-8).map((point, index) => (
                 <tr key={`skew-${point.market_date}-${index}`}>
                   <td style={tdStyle}>Skew</td>
                   <td style={tdStyle}>{point.market_date}</td>
@@ -93,9 +149,10 @@ export function CockpitSurfaceTab({
                     {fmtSigned(toNum(point.risk_reversal), 4)}
                   </td>
                   <td style={tdStyle}>-</td>
+                  <td style={tdStyle}>-</td>
                 </tr>
               ))}
-              {data.term.map((point, index) => (
+              {term.map((point, index) => (
                 <tr key={`term-${point.expiry}-${index}`}>
                   <td style={tdStyle}>Term</td>
                   <td style={tdStyle}>{data.market_date}</td>
@@ -105,11 +162,14 @@ export function CockpitSurfaceTab({
                   <td style={tdStyle}>
                     {fmtDecimal(toNum(point.implied_move_perc), 2)}
                   </td>
+                  <td style={tdStyle}>
+                    {fmtDecimal(toNum(point.implied_move_expected_abs), 4)}
+                  </td>
                 </tr>
               ))}
-              {!data.skew.length && !data.term.length ? (
+              {!skew.length && !term.length ? (
                 <tr>
-                  <td style={tdStyle} colSpan={6}>
+                  <td style={tdStyle} colSpan={7}>
                     -
                   </td>
                 </tr>
@@ -120,6 +180,47 @@ export function CockpitSurfaceTab({
       </section>
     </div>
   );
+}
+
+function Metric({ label, value }: { label: string; value: string }) {
+  return (
+    <div
+      style={{
+        border: "1px solid var(--border-dim)",
+        background: "var(--bg-panel-raised)",
+        padding: 12,
+        minHeight: 72,
+      }}
+    >
+      <div
+        style={{
+          color: "var(--text-muted)",
+          fontFamily: "var(--font-mono)",
+          fontSize: 10,
+          letterSpacing: 1.2,
+          textTransform: "uppercase",
+        }}
+      >
+        {label}
+      </div>
+      <div
+        style={{
+          marginTop: 8,
+          color: "var(--text-primary)",
+          fontFamily: "var(--font-mono)",
+          fontSize: 18,
+          fontWeight: 800,
+          letterSpacing: 0,
+        }}
+      >
+        {value}
+      </div>
+    </div>
+  );
+}
+
+function formatLabel(value: string | null | undefined): string {
+  return value ? value.replaceAll("_", " ").toUpperCase() : "-";
 }
 
 const emptyStyle: React.CSSProperties = {

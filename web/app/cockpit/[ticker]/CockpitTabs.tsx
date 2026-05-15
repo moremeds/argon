@@ -92,12 +92,18 @@ export function CockpitTabs({
         <CockpitDealerTab ticker={ticker} data={dealerData} />
       ) : null}
       {active === "surface" ? (
-        <CockpitSurfaceTab ticker={ticker} data={surfaceData} />
+        <CockpitSurfaceTab
+          ticker={ticker}
+          data={surfaceData}
+          stateData={stateData}
+        />
       ) : null}
       {active === "flow-im" ? (
         <CockpitFlowImTab ticker={ticker} data={flowImData} />
       ) : null}
-      {active === "vrp" ? <CockpitVrpTab ticker={ticker} data={vrpData} /> : null}
+      {active === "vrp" ? (
+        <CockpitVrpTab ticker={ticker} data={vrpData} stateData={stateData} />
+      ) : null}
     </div>
   );
 }

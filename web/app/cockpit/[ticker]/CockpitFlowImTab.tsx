@@ -31,7 +31,9 @@ export function CockpitFlowImTab({
     );
   }
 
-  const imSeries = data.implied_moves.map((point) => ({
+  const alerts = data.alerts ?? [];
+  const impliedMoves = data.implied_moves ?? [];
+  const imSeries = impliedMoves.map((point) => ({
     x: new Date(point.market_date).getTime(),
     y: toNum(point.implied_move_perc),
   }));
@@ -64,13 +66,17 @@ export function CockpitFlowImTab({
                 <th style={thStyle}>Premium</th>
                 <th style={thStyle}>Ask prem</th>
                 <th style={thStyle}>Bid prem</th>
+                <th style={thStyle}>Rule</th>
+                <th style={thStyle}>Flags</th>
+                <th style={thStyle}>Footprint</th>
+                <th style={thStyle}>Confidence</th>
                 <th style={thStyle}>Volume</th>
                 <th style={thStyle}>OI</th>
               </tr>
             </thead>
             <tbody>
-              {data.alerts.length ? (
-                data.alerts.map((alert, index) => (
+              {alerts.length ? (
+                alerts.map((alert, index) => (
                   <tr key={`${alert.alert_id}-${index}`}>
                     <td style={tdStyle}>
                       {fmtDateTimeWithZone(alert.created_at).slice(0, 16)}
@@ -88,6 +94,14 @@ export function CockpitFlowImTab({
                     <td style={tdStyle}>
                       {fmtMoney(toNum(alert.total_bid_side_prem))}
                     </td>
+                    <td style={tdStyle}>{alert.alert_rule ?? "-"}</td>
+                    <td style={tdStyle}>{formatFlowFlags(alert)}</td>
+                    <td style={tdStyle}>
+                      {formatLabel(alert.flow_footprint_label)}
+                    </td>
+                    <td style={tdStyle}>
+                      {fmtDecimal(toNum(alert.aggressor_label_confidence), 2)}
+                    </td>
                     <td style={tdStyle}>{fmtDecimal(toNum(alert.volume), 0)}</td>
                     <td style={tdStyle}>
                       {fmtDecimal(toNum(alert.open_interest), 0)}
@@ -96,7 +110,7 @@ export function CockpitFlowImTab({
                 ))
               ) : (
                 <tr>
-                  <td style={tdStyle} colSpan={7}>
+                  <td style={tdStyle} colSpan={11}>
                     -
                   </td>
                 </tr>
@@ -116,11 +130,12 @@ export function CockpitFlowImTab({
                 <th style={thStyle}>Days</th>
                 <th style={thStyle}>Vol</th>
                 <th style={thStyle}>IM %</th>
+                <th style={thStyle}>E|Move|</th>
                 <th style={thStyle}>Percentile</th>
               </tr>
             </thead>
             <tbody>
-              {data.implied_moves.slice(-12).map((point) => (
+              {impliedMoves.slice(-12).map((point) => (
                 <tr key={`${point.market_date}-${point.days}`}>
                   <td style={tdStyle}>{point.market_date}</td>
                   <td style={tdStyle}>{point.days}</td>
@@ -128,12 +143,15 @@ export function CockpitFlowImTab({
                   <td style={tdStyle}>
                     {fmtDecimal(toNum(point.implied_move_perc), 2)}
                   </td>
+                  <td style={tdStyle}>
+                    {fmtDecimal(toNum(point.implied_move_expected_abs), 4)}
+                  </td>
                   <td style={tdStyle}>{fmtDecimal(toNum(point.percentile), 2)}</td>
                 </tr>
               ))}
-              {!data.implied_moves.length ? (
+              {!impliedMoves.length ? (
                 <tr>
-                  <td style={tdStyle} colSpan={5}>
+                  <td style={tdStyle} colSpan={6}>
                     -
                   </td>
                 </tr>
@@ -144,6 +162,21 @@ export function CockpitFlowImTab({
       </section>
     </div>
   );
+}
+
+function formatLabel(value: string | null | undefined): string {
+  return value ? value.replaceAll("_", " ").toUpperCase() : "-";
+}
+
+function formatFlowFlags(
+  alert: NonNullable<NonNullable<CockpitFlowImResponse>["alerts"]>[number],
+): string {
+  const flags = [];
+  if (alert.has_sweep) flags.push("SWEEP");
+  if (alert.has_floor) flags.push("FLOOR");
+  if (alert.has_multileg) flags.push("MULTI");
+  if (alert.all_opening_trades) flags.push("OPEN");
+  return flags.length ? flags.join(" ") : "-";
 }
 
 const emptyStyle: React.CSSProperties = {

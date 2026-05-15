@@ -23,7 +23,18 @@ const INPUTS = [
   ["IM %", "implied_move_pct", "decimal"],
   ["Front IV", "front_iv", "decimal"],
   ["Back IV", "back_iv", "decimal"],
+  ["Front/back spread", "front_back_spread", "signed"],
   ["Pin sigma", "pin_distance_sigma", "decimal"],
+  ["Flow imbalance 3d", "directional_imbalance_3d", "signed"],
+  ["Skew 5d chg", "skew_25d_5d_change", "signed"],
+  ["Skew term", "skew_term_structure", "signed"],
+  ["Single bump", "single_point_bump_pct", "signed"],
+  ["Curve slope", "full_curve_slope_pct", "signed"],
+  ["Johnson slope", "term_johnson_slope_pc1", "signed"],
+  ["ATM straddle", "atm_straddle_mid", "decimal"],
+  ["Expected abs move", "implied_move_expected_abs", "decimal"],
+  ["Event percentile", "implied_move_event_percentile", "decimal"],
+  ["VRP z 252d", "vrp_zscore_252d", "signed"],
 ] as const;
 
 export function StateTab({
@@ -109,6 +120,44 @@ export function StateTab({
       </section>
 
       <section style={panelStyle}>
+        <div style={{ ...labelStyle, marginBottom: 12 }}>State gates</div>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))",
+            gap: 10,
+          }}
+        >
+          <InputTile
+            label="CLUSTER COVERAGE"
+            value={state.cluster_coverage_ok ? "OK" : "BLOCKED"}
+          />
+          <InputTile
+            label="THRESHOLD VERSION"
+            value={String(state.threshold_version)}
+          />
+          <InputTile
+            label="TERM CLASSIFICATION"
+            value={formatLabel(state.term_classification)}
+          />
+          <InputTile
+            label="VANNA READING"
+            value={formatLabel(state.vanna_conditional_reading)}
+          />
+          <InputTile
+            label="VANNA OI BIAS"
+            value={formatLabel(state.vanna_oi_change_bias)}
+          />
+          <InputTile label="CHARM REGIME" value={formatLabel(state.charm_regime)} />
+          <InputTile
+            label="CHARM STRESS"
+            value={state.charm_stress_override ? "YES" : "NO"}
+          />
+          <InputTile label="SKEW REGIME" value={formatLabel(state.skew_regime)} />
+        </div>
+      </section>
+
+      <section style={panelStyle}>
         <div style={{ ...labelStyle, marginBottom: 12 }}>Inputs</div>
         <details>
           <summary
@@ -147,6 +196,19 @@ export function StateTab({
       </section>
     </div>
   );
+}
+
+function InputTile({ label, value }: { label: string; value: string }) {
+  return (
+    <div style={inputTileStyle}>
+      <div style={labelStyle}>{label}</div>
+      <div style={inputValueStyle}>{value}</div>
+    </div>
+  );
+}
+
+function formatLabel(value: string | null | undefined): string {
+  return value ? value.replaceAll("_", " ").toUpperCase() : "-";
 }
 
 function DimensionCell({

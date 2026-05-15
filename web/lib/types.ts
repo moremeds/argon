@@ -523,6 +523,45 @@ export interface components {
              */
             volume_oi_note: string;
         };
+        /** CockpitDealerMetrics */
+        CockpitDealerMetrics: {
+            /** Charm Regime */
+            charm_regime?: ("operative_magnet" | "broken_magnet" | "opex_vortex" | "neutral") | null;
+            /** Charm Stress Override */
+            charm_stress_override?: boolean | null;
+            /** Dealer Net Charm Proxy */
+            dealer_net_charm_proxy?: string | null;
+            /** Dealer Net Vanna Proxy */
+            dealer_net_vanna_proxy?: string | null;
+            /** Directional Imbalance 3D */
+            directional_imbalance_3d?: string | null;
+            /** Flow Call Premium 3D */
+            flow_call_premium_3d?: string | null;
+            /** Flow Color Lookback 3D */
+            flow_color_lookback_3d?: ("put_heavy" | "call_heavy" | "neutral") | null;
+            /** Flow Put Premium 3D */
+            flow_put_premium_3d?: string | null;
+            /** Gamma Regime */
+            gamma_regime?: ("long_gamma" | "short_gamma" | "neutral") | null;
+            /** Iv 30D Delta 5D */
+            iv_30d_delta_5d?: string | null;
+            /** Net Gamma */
+            net_gamma?: string | null;
+            /** Net Gamma Sign */
+            net_gamma_sign?: ("positive" | "negative" | "neutral") | null;
+            /** Pin Candidate Expiry */
+            pin_candidate_expiry?: string | null;
+            /** Pin Candidate Strike */
+            pin_candidate_strike?: string | null;
+            /** Pin Distance Sigma */
+            pin_distance_sigma?: string | null;
+            /** Pin Regime Flag */
+            pin_regime_flag?: boolean | null;
+            /** Vanna Conditional Reading */
+            vanna_conditional_reading?: ("grind_up" | "reverse_selloff" | "reflexive_sell_pressure" | "weak_noise") | null;
+            /** Vanna Oi Change Bias */
+            vanna_oi_change_bias?: ("call_oi_build" | "put_oi_build" | "mixed") | null;
+        };
         /** CockpitDealerPoint */
         CockpitDealerPoint: {
             /** Call Charm */
@@ -556,6 +595,7 @@ export interface components {
              * Format: date
              */
             market_date: string;
+            metrics?: components["schemas"]["CockpitDealerMetrics"];
             /** Points */
             points?: components["schemas"]["CockpitDealerPoint"][];
             /** Ticker */
@@ -563,12 +603,26 @@ export interface components {
         };
         /** CockpitFlowAlert */
         CockpitFlowAlert: {
+            /** Aggressor Label Confidence */
+            aggressor_label_confidence?: string | null;
             /** Alert Id */
             alert_id: string;
+            /** Alert Rule */
+            alert_rule?: string | null;
+            /** All Opening Trades */
+            all_opening_trades?: boolean | null;
             /** Created At */
             created_at?: string | null;
             /** Expiry */
             expiry?: string | null;
+            /** Flow Footprint Label */
+            flow_footprint_label?: ("directional_whale" | "hedge_flow" | "dealer_hedge" | "gamma_scalper" | "unclassified") | null;
+            /** Has Floor */
+            has_floor?: boolean | null;
+            /** Has Multileg */
+            has_multileg?: boolean | null;
+            /** Has Sweep */
+            has_sweep?: boolean | null;
             /** Open Interest */
             open_interest?: number | null;
             /** Option Chain */
@@ -604,6 +658,8 @@ export interface components {
         CockpitImPoint: {
             /** Days */
             days: number;
+            /** Implied Move Expected Abs */
+            implied_move_expected_abs?: string | null;
             /** Implied Move Perc */
             implied_move_perc?: string | null;
             /**
@@ -656,6 +712,8 @@ export interface components {
              * Format: date
              */
             expiry: string;
+            /** Implied Move Expected Abs */
+            implied_move_expected_abs?: string | null;
             /** Implied Move Perc */
             implied_move_perc?: string | null;
             /** Volatility */
@@ -703,6 +761,8 @@ export interface components {
         };
         /** FlowAlert */
         FlowAlert: {
+            /** Aggressor Label Confidence */
+            aggressor_label_confidence?: string | null;
             /** Alert Rule */
             alert_rule?: string | null;
             /** All Opening Trades */
@@ -711,6 +771,8 @@ export interface components {
             created_at?: string | null;
             /** Expiry */
             expiry?: string | null;
+            /** Flow Footprint Label */
+            flow_footprint_label?: ("directional_whale" | "hedge_flow" | "dealer_hedge" | "gamma_scalper" | "unclassified") | null;
             /** Has Floor */
             has_floor?: boolean | null;
             /** Has Multileg */
@@ -1116,13 +1178,22 @@ export interface components {
         };
         /** MatrixState */
         MatrixState: {
+            /** Atm Straddle Mid */
+            atm_straddle_mid?: string | null;
             /** Back Iv */
             back_iv?: string | null;
+            /** Charm Regime */
+            charm_regime?: ("operative_magnet" | "broken_magnet" | "opex_vortex" | "neutral") | null;
             /**
              * Charm State
              * @enum {string}
              */
             charm_state: "vol_up" | "vol_down" | "neutral" | "stale";
+            /**
+             * Charm Stress Override
+             * @default false
+             */
+            charm_stress_override: boolean;
             /** Cluster Coverage Ok */
             cluster_coverage_ok: boolean;
             /**
@@ -1130,18 +1201,28 @@ export interface components {
              * @enum {string}
              */
             consistency_tier: "strict" | "strong" | "weak" | "no_trade" | "insufficient_data";
+            /** Directional Imbalance 3D */
+            directional_imbalance_3d?: string | null;
             /**
              * Flow State
              * @enum {string}
              */
             flow_state: "vol_up" | "vol_down" | "neutral" | "stale";
+            /** Front Back Spread */
+            front_back_spread?: string | null;
             /** Front Iv */
             front_iv?: string | null;
+            /** Full Curve Slope Pct */
+            full_curve_slope_pct?: string | null;
             /**
              * Im State
              * @enum {string}
              */
             im_state: "vol_up" | "vol_down" | "neutral" | "stale";
+            /** Implied Move Event Percentile */
+            implied_move_event_percentile?: string | null;
+            /** Implied Move Expected Abs */
+            implied_move_expected_abs?: string | null;
             /** Implied Move Pct */
             implied_move_pct?: string | null;
             /** Iv Atm 30D */
@@ -1155,22 +1236,41 @@ export interface components {
             pin_distance_sigma?: string | null;
             /** Rv 30D */
             rv_30d?: string | null;
+            /** Single Point Bump Pct */
+            single_point_bump_pct?: string | null;
+            /** Skew 25D 5D Change */
+            skew_25d_5d_change?: string | null;
             /** Skew 25D Zscore 180D */
             skew_25d_zscore_180d?: string | null;
+            /** Skew Regime */
+            skew_regime?: ("smirk" | "accelerated" | "crash_smile" | "neutral") | null;
             /**
              * Skew State
              * @enum {string}
              */
             skew_state: "vol_up" | "vol_down" | "neutral" | "stale";
+            /** Skew Term Structure */
+            skew_term_structure?: string | null;
             /** Term Classification */
             term_classification?: ("contango" | "event_back" | "liquidity_back" | "mixed") | null;
+            /** Term Johnson Slope Pc1 */
+            term_johnson_slope_pc1?: string | null;
             /**
              * Term State
              * @enum {string}
              */
             term_state: "vol_up" | "vol_down" | "neutral" | "stale";
+            /**
+             * Threshold Version
+             * @default 1
+             */
+            threshold_version: number;
             /** Ticker */
             ticker: string;
+            /** Vanna Conditional Reading */
+            vanna_conditional_reading?: ("grind_up" | "reverse_selloff" | "reflexive_sell_pressure" | "weak_noise") | null;
+            /** Vanna Oi Change Bias */
+            vanna_oi_change_bias?: ("call_oi_build" | "put_oi_build" | "mixed") | null;
             /**
              * Vanna State
              * @enum {string}
@@ -1179,10 +1279,22 @@ export interface components {
             /** Vrp */
             vrp?: string | null;
             /**
+             * Vrp Sign Flip Aligned Days
+             * @default 0
+             */
+            vrp_sign_flip_aligned_days: number;
+            /**
+             * Vrp Sign Flip Status
+             * @default insufficient_history
+             */
+            vrp_sign_flip_status: boolean | "insufficient_history";
+            /**
              * Vrp State
              * @enum {string}
              */
             vrp_state: "vol_up" | "vol_down" | "neutral" | "stale";
+            /** Vrp Zscore 252D */
+            vrp_zscore_252d?: string | null;
             /** Vrp Zscore 60D */
             vrp_zscore_60d?: string | null;
         };
