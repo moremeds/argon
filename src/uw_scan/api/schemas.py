@@ -70,6 +70,8 @@ class WatchlistCard(BaseModel):
 
     iv_atm: Decimal | None = None
     iv_rank: Decimal | None = None
+    market_cap: Decimal | None = None
+    aum: Decimal | None = None
 
     setup: SetupBlock
     aggression_pct: Decimal | None = None

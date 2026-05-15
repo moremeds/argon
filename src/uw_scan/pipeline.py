@@ -258,6 +258,13 @@ def run_single_stock(
             client, repo, run_id, ticker
         )
         if screener_row is not None:
+            etf_aum = None
+            if (screener_row.issue_type or "").upper() == "ETF":
+                try:
+                    etf_info = uw_sources.fetch_etf_info(client, repo, run_id, ticker)
+                    etf_aum = etf_info.aum
+                except Exception as exc:  # noqa: BLE001 — card sort hint only
+                    logger.warning("ETF info fetch failed for %s: %s", ticker, repr(exc))
             pcr_vol = None
             if screener_row.put_volume and screener_row.call_volume:
                 pcr_vol = Decimal(screener_row.put_volume) / Decimal(
@@ -275,6 +282,8 @@ def run_single_stock(
                 pcr_oi=screener_row.put_call_ratio,
                 pcr_vol=pcr_vol,
                 iv30d=screener_row.iv30d,
+                market_cap=screener_row.marketcap,
+                aum=etf_aum,
             )
             report.aggregates = aggregates
             repo.set_aggregates(run_id, aggregates)

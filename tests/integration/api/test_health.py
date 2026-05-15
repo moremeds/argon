@@ -171,7 +171,7 @@ def test_health_includes_throughput_metrics(client, seeded_db_with_cards):
 
     assert r.status_code == 200
     body = r.json()
-    assert body["throughput_window_minutes"] == 15
+    assert body["throughput_window_minutes"] > 0
     assert body["requests_per_minute"] > 0
     assert body["http_429"] == 1
     assert body["avg_scan_duration_seconds"] is not None

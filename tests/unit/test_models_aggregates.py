@@ -14,6 +14,8 @@ def test_market_aggregates_defaults_to_none():
     assert agg.put_oi_total is None
     assert agg.pcr_oi is None
     assert agg.pcr_vol is None
+    assert agg.market_cap is None
+    assert agg.aum is None
 
 
 def test_market_aggregates_construct_from_screener_fields():
@@ -29,9 +31,13 @@ def test_market_aggregates_construct_from_screener_fields():
         pcr_oi=Decimal("2.00"),
         pcr_vol=Decimal("1.60"),
         iv30d=Decimal("0.42"),
+        market_cap=Decimal("1500000000000"),
+        aum=Decimal("428887833900"),
     )
     assert agg.pcr_oi == Decimal("2.00")
     assert agg.iv30d == Decimal("0.42")
+    assert agg.market_cap == Decimal("1500000000000")
+    assert agg.aum == Decimal("428887833900")
 
 
 def test_strike_gex_bucket_round_trip():

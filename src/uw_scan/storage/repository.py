@@ -516,13 +516,13 @@ class Repository:
         self, provider: str | None, start: datetime, end: datetime
     ) -> ThroughputSummaryRow:
         provider_filter = None if provider in (None, "all") else provider
-        window_minutes = max((end - start).total_seconds() / 60.0, 1 / 60)
         with self._conn.cursor() as cur:
             cur.execute(
                 f"""
                 SELECT
                   count(*)::int AS total_requests,
-                  count(*) FILTER (WHERE status_code = 429)::int AS http_429
+                  count(*) FILTER (WHERE status_code = 429)::int AS http_429,
+                  min(request_started_at) AS first_request_at
                 FROM {self._schema}.external_api_requests
                 WHERE request_started_at >= %s
                   AND request_started_at < %s
@@ -536,6 +536,7 @@ class Repository:
             cur.execute(
                 f"""
                 SELECT avg(extract(epoch FROM finished_at - started_at))
+                     , min(started_at)
                 FROM {self._schema}.scan_runs
                 WHERE finished_at >= %s
                   AND finished_at < %s
@@ -550,7 +551,7 @@ class Repository:
 
             cur.execute(
                 f"""
-                SELECT count(*)::int
+                SELECT count(*)::int, min(requested_at)
                 FROM {self._schema}.jobs
                 WHERE finished_at >= %s
                   AND finished_at < %s
@@ -563,12 +564,16 @@ class Repository:
 
         total_requests = int(request_row[0])
         drained_jobs = int(queue_row[0])
+        active_starts = [request_row[2], scan_row[1], queue_row[1]]
+        first_activity = min((ts for ts in active_starts if ts is not None), default=start)
+        active_start = max(start, first_activity)
+        active_window_minutes = max((end - active_start).total_seconds() / 60.0, 1 / 60)
         return ThroughputSummaryRow(
-            window_minutes=window_minutes,
-            requests_per_minute=total_requests / window_minutes,
+            window_minutes=active_window_minutes,
+            requests_per_minute=total_requests / active_window_minutes,
             http_429=int(request_row[1]),
             avg_scan_duration_seconds=_nullable_float(scan_row[0]),
-            queue_drain_rate_per_minute=drained_jobs / window_minutes,
+            queue_drain_rate_per_minute=drained_jobs / active_window_minutes,
         )
 
     def list_external_api_endpoint_usage(
@@ -2554,6 +2559,38 @@ class Repository:
                     ) AS queue_position
                   FROM {self._schema}.jobs
                   WHERE status IN ('queued', 'running')
+                ),
+                latest_market_caps AS (
+                  SELECT DISTINCT ON (ticker)
+                    ticker,
+                    marketcap
+                  FROM {self._schema}.scan_results
+                  WHERE marketcap IS NOT NULL
+                  ORDER BY ticker, run_id DESC
+                ),
+                latest_screener_sizes AS (
+                  SELECT DISTINCT ON (r.ticker)
+                    r.ticker,
+                    p.payload_jsonb->'data'->0->>'marketcap' AS market_cap
+                  FROM {self._schema}.scan_runs r
+                  JOIN {self._schema}.api_request_audit a ON r.run_id = a.run_id
+                  JOIN {self._schema}.raw_payloads p ON a.audit_id = p.audit_id
+                  WHERE a.endpoint_slug = 'bulk_screener_stocks'
+                    AND jsonb_typeof(p.payload_jsonb->'data') = 'array'
+                    AND p.payload_jsonb->'data'->0->>'marketcap' IS NOT NULL
+                  ORDER BY r.ticker, r.run_id DESC
+                ),
+                latest_etf_aum AS (
+                  SELECT DISTINCT ON (r.ticker)
+                    r.ticker,
+                    p.payload_jsonb->'data'->>'aum' AS aum
+                  FROM {self._schema}.scan_runs r
+                  JOIN {self._schema}.api_request_audit a ON r.run_id = a.run_id
+                  JOIN {self._schema}.raw_payloads p ON a.audit_id = p.audit_id
+                  WHERE a.endpoint_slug = 'etf_info'
+                    AND jsonb_typeof(p.payload_jsonb->'data') = 'object'
+                    AND p.payload_jsonb->'data'->>'aum' IS NOT NULL
+                  ORDER BY r.ticker, r.run_id DESC
                 )
                 SELECT
                   w.ticker, w.sector, w.pinned, w.sort_rank,
@@ -2580,6 +2617,12 @@ class Repository:
                   c.setup_type, c.setup_direction, c.setup_score,
                   c.aggression_pct,
                   c.ret_1d, c.ret_1w, c.ret_30d,
+                  COALESCE(
+                    sr.aggregates->>'market_cap',
+                    lmc.marketcap::text,
+                    lss.market_cap
+                  ) AS market_cap,
+                  COALESCE(sr.aggregates->>'aum', lea.aum) AS aum,
                   c.gex_flip_distance, c.gex_flip_price, c.gex_per_1pct_move,
                   c.max_gex_strike, c.gex_expiring_pct, c.gex_expiring_date,
                   c.skew_25d_30dte,
@@ -2592,6 +2635,10 @@ class Repository:
                   j.started_at AS active_job_started_at
                 FROM {self._schema}.watchlist w
                 LEFT JOIN {self._schema}.watchlist_card c ON w.ticker = c.ticker
+                LEFT JOIN {self._schema}.scan_runs sr ON c.run_id = sr.run_id
+                LEFT JOIN latest_market_caps lmc ON w.ticker = lmc.ticker
+                LEFT JOIN latest_screener_sizes lss ON w.ticker = lss.ticker
+                LEFT JOIN latest_etf_aum lea ON w.ticker = lea.ticker
                 LEFT JOIN {self._schema}.intraday_quote q ON w.ticker = q.ticker
                 LEFT JOIN active_jobs j ON w.ticker = j.ticker
                 WHERE w.removed_at IS NULL

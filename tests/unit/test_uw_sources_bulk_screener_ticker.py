@@ -11,7 +11,7 @@ from __future__ import annotations
 from decimal import Decimal
 from unittest.mock import MagicMock, patch
 
-from uw_scan.models import BulkScreenerRow
+from uw_scan.models import BulkScreenerRow, EtfInfo
 from uw_scan.sources import uw as uw_sources
 
 
@@ -58,3 +58,18 @@ def test_fetch_bulk_screener_ticker_returns_none_when_empty():
             client, repo, run_id=42, ticker="ZZZZ"
         )
     assert row is None
+
+
+def test_fetch_etf_info_returns_aum():
+    client = MagicMock()
+    repo = MagicMock()
+    with patch.object(
+        uw_sources,
+        "_fetch_json",
+        return_value={"data": {"aum": "428887833900", "name": "SPDR S&P 500 ETF"}},
+    ) as mock_fetch:
+        row = uw_sources.fetch_etf_info(client, repo, run_id=42, ticker="SPY")
+
+    assert isinstance(row, EtfInfo)
+    assert row.aum == Decimal("428887833900")
+    assert mock_fetch.call_args.args[3] == uw_sources.EndpointSlug.ETF_INFO
