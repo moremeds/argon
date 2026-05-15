@@ -21,6 +21,7 @@ from uw_scan.config import Settings
 from uw_scan.sources.ohlc import MassiveOhlcProvider
 from uw_scan.storage.provider_usage import ExternalApiRequestRecorder
 from uw_scan.storage.repository import Repository
+from uw_scan.worker.jobs.cockpit_daily_snapshot import cockpit_daily_snapshot
 from uw_scan.worker.jobs.flow_data_refresh import flow_data_refresh
 from uw_scan.worker.jobs.full_scan import full_scan_once
 from uw_scan.worker.jobs.ohlc_pull import ohlc_pull_once
@@ -240,6 +241,16 @@ def main() -> int:
                 with _repo(settings) as repo:
                     flow_data_refresh(repo=repo, client=uw, settings=settings)
 
+    def _cockpit_daily_snapshot() -> None:
+        with _external_api_recorder(settings) as recorder:
+            with _uw_client(
+                settings,
+                telemetry_recorder=recorder,
+                job_name="cockpit_daily_snapshot",
+            ) as uw:
+                with _repo(settings) as repo:
+                    cockpit_daily_snapshot(repo=repo, client=uw, settings=settings)
+
     def _trade_insights_ai_tick() -> None:
         trade_insights_ai_tick(settings)
 
@@ -293,6 +304,14 @@ def main() -> int:
         CronTrigger.from_crontab("15 18 * * 1-5", timezone=settings.rth_tz),
         id="nightly_flow_data_refresh",
         name="Nightly Flow tab data refresh",
+    )
+    sched.add_job(
+        _cockpit_daily_snapshot,
+        CronTrigger.from_crontab(
+            settings.cockpit_snapshot_cron, timezone=settings.rth_tz
+        ),
+        id="cockpit_daily_snapshot",
+        name="Cockpit 6-dim matrix daily snapshot",
     )
     if settings.trade_insights_ai_enabled:
         sched.add_job(
