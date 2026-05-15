@@ -13,6 +13,7 @@ from uw_scan.worker.scheduler import (
     _record_worker_heartbeat,
     _spot_refresh_market_date,
     _uw_auto_request_allowed,
+    _worker_heartbeat_name,
 )
 
 
@@ -69,9 +70,32 @@ def test_record_worker_heartbeat_uses_dedicated_worker_key(monkeypatch) -> None:
 
     monkeypatch.setattr("uw_scan.worker.scheduler._repo", fake_repo)
 
-    _record_worker_heartbeat(object())
+    _record_worker_heartbeat(Settings(api_key="uw"))
 
     assert calls == ["worker"]
+
+
+def test_record_worker_heartbeat_uses_provider_worker_key(monkeypatch) -> None:
+    calls: list[str] = []
+
+    class Repo:
+        def upsert_heartbeat(self, job_name: str) -> None:
+            calls.append(job_name)
+
+    @contextmanager
+    def fake_repo(_settings):
+        yield Repo()
+
+    monkeypatch.setattr("uw_scan.worker.scheduler._repo", fake_repo)
+
+    settings = Settings(api_key="uw", worker_role="massive", worker_index=1, worker_count=2)
+    _record_worker_heartbeat(settings)
+
+    assert calls == ["worker:massive:1"]
+
+
+def test_worker_heartbeat_name_keeps_legacy_all_worker() -> None:
+    assert _worker_heartbeat_name(Settings(api_key="uw")) == "worker"
 
 
 def test_ohlc_provider_uses_configured_request_timeout(monkeypatch) -> None:

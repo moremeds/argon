@@ -59,6 +59,11 @@ class Settings(BaseModel):
     full_scan_cron: str = "0 5-16 * * 1-5"
     ohlc_pull_cron: str = "30 17 * * 1-5"
     rth_tz: str = "America/New_York"
+    worker_role: str = "all"
+    worker_index: int = 0
+    worker_count: int = 1
+    uw_worker_count: int = 0
+    massive_worker_count: int = 0
     # OHLC provider (massive.com)
     massive_api_key: SecretStr | None = None
     massive_base_url: str = "https://api.massive.com"
@@ -105,6 +110,13 @@ class Settings(BaseModel):
             full_scan_cron=os.environ.get("UW_SCAN_FULL_SCAN_CRON", "0 5-16 * * 1-5"),
             ohlc_pull_cron=os.environ.get("UW_SCAN_OHLC_PULL_CRON", "30 17 * * 1-5"),
             rth_tz=os.environ.get("UW_SCAN_RTH_TZ", "America/New_York"),
+            worker_role=os.environ.get("UW_SCAN_WORKER_ROLE", "all"),
+            worker_index=int(os.environ.get("UW_SCAN_WORKER_INDEX", "0")),
+            worker_count=int(os.environ.get("UW_SCAN_WORKER_COUNT", "1")),
+            uw_worker_count=int(os.environ.get("UW_SCAN_UW_WORKER_COUNT", "0")),
+            massive_worker_count=int(
+                os.environ.get("UW_SCAN_MASSIVE_WORKER_COUNT", "0")
+            ),
             # SecretStr("") is truthy and not None — would silently allow the
             # scheduler to instantiate a Massive client with a blank bearer and
             # generate a stream of 401s. Coerce blank to None before wrapping.

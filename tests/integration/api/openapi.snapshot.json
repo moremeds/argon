@@ -1014,6 +1014,13 @@
               }
             ],
             "title": "Worker Lag Seconds"
+          },
+          "workers": {
+            "items": {
+              "$ref": "#/components/schemas/WorkerHealth"
+            },
+            "title": "Workers",
+            "type": "array"
           }
         },
         "required": [
@@ -6137,6 +6144,61 @@
           "tickers"
         ],
         "title": "WatchlistResponse",
+        "type": "object"
+      },
+      "WorkerHealth": {
+        "properties": {
+          "heartbeat_name": {
+            "title": "Heartbeat Name",
+            "type": "string"
+          },
+          "index": {
+            "title": "Index",
+            "type": "integer"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "lag_seconds": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lag Seconds"
+          },
+          "last_beat_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Beat At"
+          },
+          "role": {
+            "enum": [
+              "uw",
+              "massive"
+            ],
+            "title": "Role",
+            "type": "string"
+          }
+        },
+        "required": [
+          "label",
+          "role",
+          "index",
+          "heartbeat_name"
+        ],
+        "title": "WorkerHealth",
         "type": "object"
       }
     }

@@ -9,6 +9,18 @@
 - `jobs/spot_refresh.py` — intraday spot price refresh
 - `volatility_jobs.py` — `daily_spy_ohlc_refresh`, `nightly_vol_analytics_rollup` (Volatility tab v2)
 
+## Worker roles
+
+Set `UW_SCAN_WORKER_ROLE=uw|massive|all`, `UW_SCAN_WORKER_INDEX`, and
+`UW_SCAN_WORKER_COUNT` to split provider work across processes.
+
+- `uw` workers run `full_scan`, `rescan_tick`, and `flow_data_refresh`.
+- `massive` workers run `spot_refresh`, `ohlc_pull`, and primary-worker-only
+  volatility OHLC/rollup jobs.
+- `all` preserves the legacy single scheduler shape.
+- Per-ticker scheduled jobs must use the scheduler-provided shard filter.
+  Rescans use DB claiming (`FOR UPDATE SKIP LOCKED`) and are not sharded.
+
 ## Schedule (all ET via `CronTrigger.from_crontab`)
 
 | Job | Trigger | Default |
@@ -24,6 +36,7 @@
 
 - **Every job opens its own conn** via `_repo(settings)` and closes it in `finally`. No long-lived connections — APScheduler runs jobs from a thread pool.
 - **MASSIVE_API_KEY can be unset.** Jobs that need it should no-op + warn (see `_spy_ohlc_refresh`). Never crash the scheduler.
+- **No duplicated provider work.** If a worker role can run in more than one process, loops over watchlist tickers must either use stable shard ownership or atomically claim queued work.
 - **ET timezone everywhere.** `CronTrigger.from_crontab(..., timezone=settings.rth_tz)`. Don't use UTC for trading-hour crons.
 - **Automatic UW scan freshness guard.** Full scan only queries tickers with no persisted card data or card data older than 8 hours. User-requested rescans always run.
 - **UW flow refresh window is weekdays 5:00am-7:59pm ET.** Flow-tab refresh skips outside that window.

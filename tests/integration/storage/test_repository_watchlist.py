@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import os
 import subprocess
-from datetime import date, datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal
 from pathlib import Path
 
@@ -193,3 +193,27 @@ def test_queue_summary_counts_active_jobs(repo):
     assert summary.total == 2
     assert summary.running == 1
     assert summary.queued == 1
+
+
+def test_requeue_stale_running_jobs(repo):
+    repo.add_watchlist_ticker(ticker="ZZTEST", sector="ETF", notes="t")
+    job_id = repo.enqueue_rescan_job("ZZTEST")
+    claimed = repo.claim_next_queued_job()
+    assert claimed is not None
+
+    with repo.conn.cursor() as cur:
+        cur.execute(
+            f"""
+            UPDATE {repo._schema}.jobs
+            SET started_at=NOW() - INTERVAL '31 minutes'
+            WHERE id=%s
+            """,
+            (job_id,),
+        )
+    repo.conn.commit()
+
+    assert repo.requeue_stale_running_jobs(timedelta(minutes=30)) == 1
+    job = repo.get_job(job_id)
+    assert job is not None
+    assert job.status == "queued"
+    assert job.started_at is None

@@ -2690,6 +2690,21 @@ class Repository:
         self._conn.commit()
         return JobRow(*row) if row else None
 
+    def requeue_stale_running_jobs(self, older_than: timedelta) -> int:
+        with self._conn.cursor() as cur:
+            cur.execute(
+                f"""
+                UPDATE {self._schema}.jobs
+                SET status='queued', started_at=NULL, error=NULL
+                WHERE status='running'
+                  AND started_at < NOW() - %s
+                """,
+                (older_than,),
+            )
+            count = cur.rowcount
+        self._conn.commit()
+        return count
+
     def mark_job_done(self, job_id: str, run_id: int) -> None:
         with self._conn.cursor() as cur:
             cur.execute(

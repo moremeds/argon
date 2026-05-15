@@ -5,6 +5,9 @@ from __future__ import annotations
 from datetime import UTC, datetime
 from decimal import Decimal
 
+from uw_scan.api.routers.health import health
+from uw_scan.config import Settings
+
 
 def test_health_ok_when_recent_scan(client, seeded_db_with_cards):
     seeded_db_with_cards.upsert_heartbeat("worker")
@@ -65,6 +68,32 @@ def test_health_reports_spot_refresh_and_quote_freshness(client, seeded_db_empty
     assert body["spot_quote_lag_seconds"] < 5
     assert body["latest_spot_quote_at"] is not None
     assert body["latest_spot_quote_fetched_at"] is not None
+
+
+def test_health_reports_expected_provider_workers(seeded_db_with_cards):
+    seeded_db_with_cards.upsert_heartbeat("worker:uw:0")
+    seeded_db_with_cards.upsert_heartbeat("worker:massive:1")
+
+    response = health(
+        repo=seeded_db_with_cards,
+        settings=Settings(
+            api_key="test",
+            uw_worker_count=2,
+            massive_worker_count=2,
+        ),
+    )
+
+    workers = {worker.heartbeat_name: worker for worker in response.workers}
+    assert set(workers) == {
+        "worker:uw:0",
+        "worker:uw:1",
+        "worker:massive:0",
+        "worker:massive:1",
+    }
+    assert workers["worker:uw:0"].label == "UW 1"
+    assert workers["worker:uw:0"].lag_seconds is not None
+    assert workers["worker:uw:1"].lag_seconds is None
+    assert workers["worker:massive:1"].label == "Massive 2"
 
 
 def test_health_includes_uw_provider_usage_stats(client, seeded_db_empty_cards):

@@ -226,6 +226,38 @@ def test_rescan_tick_claims_and_marks_done(seeded_db_with_cards):
     assert job.run_id == new_run_id
 
 
+def test_rescan_tick_recovers_stale_running_job(seeded_db_with_cards):
+    from uw_scan.worker.jobs.rescan_loop import rescan_tick
+
+    repo = seeded_db_with_cards
+    new_run_id = repo.insert_scan_run("TSLA")
+    repo.finish_scan_run(new_run_id, status="ok")
+    job_id = repo.enqueue_rescan_job("TSLA")
+    repo.claim_next_queued_job()
+    with repo.conn.cursor() as cur:
+        cur.execute(
+            f"""
+            UPDATE {repo._schema}.jobs
+            SET started_at=NOW() - INTERVAL '31 minutes'
+            WHERE id=%s
+            """,
+            (job_id,),
+        )
+    repo.conn.commit()
+
+    with patch(
+        "uw_scan.worker.jobs.rescan_loop.run_single_stock",
+        side_effect=lambda ticker, *_a, **_k: _stub_report(ticker, run_id=new_run_id),
+    ):
+        worked = rescan_tick(repo, MagicMock(), MagicMock())
+
+    assert worked is True
+    job = repo.get_job(job_id)
+    assert job is not None
+    assert job.status == "done"
+    assert job.run_id == new_run_id
+
+
 def test_rescan_tick_marks_failed_on_exception(seeded_db_with_cards):
     from uw_scan.worker.jobs.rescan_loop import rescan_tick
 

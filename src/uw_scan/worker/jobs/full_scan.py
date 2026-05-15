@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Callable
 from datetime import datetime, timedelta, timezone
 
 from uw_scan.cards.derive import compute_watchlist_card_row
@@ -34,12 +35,16 @@ def full_scan_once(
     *,
     now: datetime | None = None,
     stale_after: timedelta = DEFAULT_STALE_AFTER,
+    ticker_filter: Callable[[str], bool] | None = None,
 ) -> int:
     """Run UW deep scans only for active tickers missing data or older than max age."""
     _ = ohlc_provider  # currently OHLC is pulled separately; reserved for future
     current = now or datetime.now(timezone.utc)
     completed = 0
     for w in repo.list_watchlist_cards():
+        if ticker_filter is not None and not ticker_filter(w.ticker):
+            logger.debug("full_scan skipped %s outside this worker shard", w.ticker)
+            continue
         if not _is_missing_or_stale(
             w.scanned_at, now=current, stale_after=stale_after
         ):

@@ -10,6 +10,7 @@ the card row. The next full scan resets them — acceptable per spec.
 from __future__ import annotations
 
 import logging
+from collections.abc import Callable
 from datetime import date
 
 from uw_scan.cards.returns import compute_returns
@@ -23,10 +24,14 @@ def spot_refresh_once(
     provider: OhlcProvider,
     *,
     market_date: date | None = None,
+    ticker_filter: Callable[[str], bool] | None = None,
 ) -> int:
     """One pass over the active watchlist. Returns the number of cards updated."""
     updated = 0
     for w in repo.list_active_watchlist():
+        if ticker_filter is not None and not ticker_filter(w.ticker):
+            logger.debug("spot_refresh skipped %s outside this worker shard", w.ticker)
+            continue
         try:
             quote = provider.fetch_intraday_quote(w.ticker, market_date=market_date)
             if quote is None:

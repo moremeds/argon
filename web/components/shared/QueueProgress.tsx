@@ -5,22 +5,25 @@ import type { components } from "@/lib/types";
 import { api } from "@/lib/api";
 
 type QueueSummary = components["schemas"]["QueueSummary"];
+const EMPTY_QUEUE: QueueSummary = {
+  total: 0,
+  queued: 0,
+  running: 0,
+  oldest_requested_at: null,
+};
 
-export function QueueProgress({ queue }: { queue: QueueSummary }) {
+export function QueueProgress({ queue }: { queue?: QueueSummary }) {
   const router = useRouter();
-  const [current, setCurrent] = useState(queue);
-
-  useEffect(() => {
-    setCurrent(queue);
-  }, [queue.oldest_requested_at, queue.queued, queue.running, queue.total]);
+  const [current, setCurrent] = useState(queue ?? EMPTY_QUEUE);
 
   useEffect(() => {
     const delay = current.total > 0 ? 2500 : 5000;
     const t = setInterval(async () => {
       try {
         const next = await api.watchlist();
-        setCurrent(next.queue);
-        if (next.queue.total === 0) router.refresh();
+        const nextQueue = next.queue ?? EMPTY_QUEUE;
+        setCurrent(nextQueue);
+        if (nextQueue.total === 0) router.refresh();
       } catch (e) {
         console.error(e);
       }

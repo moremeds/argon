@@ -21,11 +21,6 @@ export function RescanButton({
   );
 
   useEffect(() => {
-    setJobId(initialJob?.job_id ?? null);
-    setStatus((initialJob?.status as Status | undefined) ?? "idle");
-  }, [initialJob?.job_id, initialJob?.status]);
-
-  useEffect(() => {
     if (!jobId) return;
     // Self-cancel after 60s so a zombie 'running' job (worker crashed mid-scan)
     // doesn't keep polling forever and refreshing the page.

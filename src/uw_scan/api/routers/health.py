@@ -49,6 +49,16 @@ class HealthResponse(BaseModel):
     cache_hit_pct: float | None = None
     record_health_ok: bool | None = None
     record_health: list["RecordHealthCheck"] = Field(default_factory=list)
+    workers: list["WorkerHealth"] = Field(default_factory=list)
+
+
+class WorkerHealth(BaseModel):
+    label: str
+    role: Literal["uw", "massive"]
+    index: int
+    heartbeat_name: str
+    lag_seconds: float | None = None
+    last_beat_at: datetime | None = None
 
 
 class RecordHealthCheck(BaseModel):
@@ -84,6 +94,38 @@ def _parse_record_tables(record_tables: str | None) -> list[str] | None:
         return None
     selected = [item.strip() for item in record_tables.split(",") if item.strip()]
     return selected or None
+
+
+def _worker_health_rows(
+    *,
+    repo: Repository,
+    now_utc: datetime,
+    uw_count: int,
+    massive_count: int,
+) -> list[WorkerHealth]:
+    rows: list[WorkerHealth] = []
+    for role, count, label_prefix in (
+        ("uw", uw_count, "UW"),
+        ("massive", massive_count, "Massive"),
+    ):
+        for index in range(max(0, count)):
+            heartbeat_name = f"worker:{role}:{index}"
+            last_beat_at = repo.get_heartbeat(heartbeat_name)
+            rows.append(
+                WorkerHealth(
+                    label=f"{label_prefix} {index + 1}",
+                    role=role,
+                    index=index,
+                    heartbeat_name=heartbeat_name,
+                    last_beat_at=last_beat_at,
+                    lag_seconds=(
+                        (now_utc - last_beat_at).total_seconds()
+                        if last_beat_at is not None
+                        else None
+                    ),
+                )
+            )
+    return rows
 
 
 @router.get("/health", response_model=HealthResponse)
@@ -137,6 +179,12 @@ def health(
         latest_spot_quote_at, latest_spot_quote_fetched_at = latest_spot_quote_times
         spot_quote_lag = (now_utc - latest_spot_quote_fetched_at).total_seconds()
     watchlist_size = repo.count_active_watchlist()
+    worker_health = _worker_health_rows(
+        repo=repo,
+        now_utc=now_utc,
+        uw_count=settings.uw_worker_count,
+        massive_count=settings.massive_worker_count,
+    )
     provider_day_start, provider_day_end = provider_day_bounds()
     provider_usage = repo.get_external_api_usage_summary(
         source, provider_day_start, provider_day_end
@@ -158,6 +206,7 @@ def health(
         "spot_quote_lag_seconds": spot_quote_lag,
         "latest_spot_quote_at": latest_spot_quote_at,
         "latest_spot_quote_fetched_at": latest_spot_quote_fetched_at,
+        "workers": worker_health,
     }
     record_fields = {"record_health_ok": None, "record_health": []}
     record_reason = None
