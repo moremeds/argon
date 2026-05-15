@@ -41,7 +41,10 @@ export function FlowAlertSummary({ flow }: { flow: Flow }) {
     (toNum(flow.bull_premium) ?? 0) + (toNum(flow.bear_premium) ?? 0);
   const items = [
     { label: alertCountLabel(flow), highlight: false },
-    { label: `Top rule ${topRule(flow.top_alerts ?? [])}`, highlight: false },
+    {
+      label: `Top rule ${flow.top_alert_rule ?? topRule(flow.top_alerts ?? [])}`,
+      highlight: false,
+    },
     { label: `Premium ${fmtMoney(alertPremium)}`, highlight: false },
     { label: askBidLabel(flow), highlight: false },
     { label: baselineLabel(flow), highlight: true },

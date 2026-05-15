@@ -62,6 +62,7 @@ def test_flow_alerts_daily_rollup_computes_30d_baseline(seeded_db_empty_cards):
 
     assert baseline["alert_count"] == 100
     assert baseline["alert_count_is_limited"] is True
+    assert baseline["top_alert_rule"] == "RepeatedHits"
     assert baseline["avg_30d_alert_count"] == Decimal("30.0000000000000000")
     assert baseline["flow_count_vs_30d_avg"] == Decimal("3.3333333333333333")
     assert baseline["baseline_days"] == 3

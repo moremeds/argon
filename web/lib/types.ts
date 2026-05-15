@@ -527,6 +527,8 @@ export interface components {
              * @default 0
              */
             flow_count_30d_days: number;
+            /** Top Alert Rule */
+            top_alert_rule?: string | null;
             /** Net Premium */
             net_premium: string;
             /** Bull Premium */

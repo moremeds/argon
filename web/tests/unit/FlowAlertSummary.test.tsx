@@ -9,6 +9,7 @@ const FLOW = {
   flow_count_30d_avg: "35.5",
   flow_count_vs_30d_avg: "2.8169",
   flow_count_30d_days: 20,
+  top_alert_rule: "RepeatedHits",
   net_premium: "62000000",
   bull_premium: "66000000",
   bear_premium: "4000000",

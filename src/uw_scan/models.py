@@ -367,6 +367,7 @@ class FlowSnapshot(_UwBase):
     flow_count_30d_avg: Decimal | None = None
     flow_count_vs_30d_avg: Decimal | None = None
     flow_count_30d_days: int = 0
+    top_alert_rule: str | None = None
     net_premium: Decimal
     bull_premium: Decimal
     bear_premium: Decimal

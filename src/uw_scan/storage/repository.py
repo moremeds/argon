@@ -1485,7 +1485,8 @@ class Repository:
     ) -> dict[str, Any] | None:
         sql = (
             "WITH current_rollup AS ("
-            f"SELECT ticker, trade_date, alert_count, alert_count_is_limited "
+            f"SELECT ticker, trade_date, alert_count, alert_count_is_limited, "
+            "top_alert_rule "
             f"FROM {self._schema}.flow_alerts_daily_rollup "
             "WHERE run_id = %s AND ticker = %s "
             "ORDER BY trade_date DESC LIMIT 1"
@@ -1496,7 +1497,7 @@ class Repository:
             "WHERE h.trade_date < c.trade_date "
             "AND h.trade_date >= c.trade_date - (%s::int * INTERVAL '1 day')"
             ") "
-            "SELECT c.alert_count, c.alert_count_is_limited, "
+            "SELECT c.alert_count, c.alert_count_is_limited, c.top_alert_rule, "
             "AVG(h.alert_count)::numeric AS avg_30d_alert_count, "
             "CASE WHEN AVG(h.alert_count) > 0 "
             "THEN ROUND(c.alert_count::numeric / AVG(h.alert_count)::numeric, 16) "
@@ -1504,7 +1505,7 @@ class Repository:
             "COUNT(h.alert_count)::int AS baseline_days "
             "FROM current_rollup c "
             "LEFT JOIN history h ON true "
-            "GROUP BY c.alert_count, c.alert_count_is_limited"
+            "GROUP BY c.alert_count, c.alert_count_is_limited, c.top_alert_rule"
         )
         with self._conn.cursor() as cur:
             cur.execute(sql, (run_id, ticker.upper(), lookback_days))

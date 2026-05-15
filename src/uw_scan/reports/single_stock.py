@@ -106,6 +106,7 @@ def _build_flow_snapshot(
             _safe_get(baseline, "flow_count_vs_30d_avg")
         ),
         flow_count_30d_days=int(_safe_get(baseline, "baseline_days") or 0),
+        top_alert_rule=_safe_get(baseline, "top_alert_rule"),
         net_premium=net_premium,
         bull_premium=bull_premium,
         bear_premium=bear_premium,

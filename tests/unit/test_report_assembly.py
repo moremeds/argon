@@ -61,6 +61,7 @@ class _StubRepo:
         return {
             "alert_count": 100,
             "alert_count_is_limited": True,
+            "top_alert_rule": "RepeatedHits",
             "avg_30d_alert_count": Decimal("35.50"),
             "flow_count_vs_30d_avg": Decimal("2.8169"),
             "baseline_days": 20,
@@ -243,6 +244,7 @@ def test_assemble_single_stock_report_populates_sections():
     assert report.flow.flow_count_30d_avg == Decimal("35.50")
     assert report.flow.flow_count_vs_30d_avg == Decimal("2.8169")
     assert report.flow.flow_count_30d_days == 20
+    assert report.flow.top_alert_rule == "RepeatedHits"
     assert report.flow.bull_premium == Decimal("22000")
     assert report.flow.bear_premium == Decimal("0")
     assert report.flow.net_premium == Decimal("22000")
