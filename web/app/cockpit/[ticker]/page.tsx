@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { api } from "@/lib/api";
-import { StateTab } from "./StateTab";
+import { CockpitTabs } from "./CockpitTabs";
 
 export const dynamic = "force-dynamic";
 
@@ -16,7 +16,14 @@ export default async function CockpitStatePage({
   const { ticker } = await params;
   const { asof } = await searchParams;
   const t = ticker.toUpperCase();
-  const data = await api.cockpitState(t, asof);
+  const [stateData, dealerData, surfaceData, flowImData, vrpData] =
+    await Promise.all([
+      api.cockpitState(t, asof),
+      api.cockpitDealer(t, asof),
+      api.cockpitSurface(t, asof),
+      api.cockpitFlowIm(t, asof),
+      api.cockpitVrp(t, asof),
+    ]);
 
   return (
     <div
@@ -83,7 +90,14 @@ export default async function CockpitStatePage({
           ))}
         </nav>
       </header>
-      <StateTab ticker={t} data={data} />
+      <CockpitTabs
+        ticker={t}
+        stateData={stateData}
+        dealerData={dealerData}
+        surfaceData={surfaceData}
+        flowImData={flowImData}
+        vrpData={vrpData}
+      />
     </div>
   );
 }

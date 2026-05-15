@@ -8,24 +8,7 @@ from uw_scan.models import MatrixState
 def test_cockpit_state_latest_returns_state_and_freshness(
     client, seeded_db_empty_cards
 ) -> None:
-    repo = seeded_db_empty_cards
-    repo.upsert_matrix_state_snapshot(
-        MatrixState(
-            ticker="SPY",
-            market_date=date(2026, 5, 15),
-            vanna_state="stale",
-            charm_state="stale",
-            skew_state="neutral",
-            term_state="vol_down",
-            im_state="stale",
-            flow_state="stale",
-            vrp_state="neutral",
-            consistency_tier="insufficient_data",
-            cluster_coverage_ok=False,
-            term_classification="contango",
-        )
-    )
-    repo.conn.commit()
+    _seed_state(seeded_db_empty_cards)
 
     r = client.get("/api/cockpit/SPY/state")
 
@@ -44,6 +27,29 @@ def test_cockpit_state_latest_returns_state_and_freshness(
     }
 
 
+def test_cockpit_phase4_tabs_return_read_models(client, seeded_db_empty_cards) -> None:
+    _seed_state(seeded_db_empty_cards)
+
+    dealer = client.get("/api/cockpit/SPY/dealer")
+    surface = client.get("/api/cockpit/SPY/surface")
+    flow_im = client.get("/api/cockpit/SPY/flow-im")
+    vrp = client.get("/api/cockpit/SPY/vrp")
+
+    assert dealer.status_code == 200
+    assert dealer.json()["points"] == []
+    assert surface.status_code == 200
+    assert set(surface.json()) == {"ticker", "market_date", "skew", "term"}
+    assert flow_im.status_code == 200
+    assert set(flow_im.json()) == {
+        "ticker",
+        "market_date",
+        "alerts",
+        "implied_moves",
+    }
+    assert vrp.status_code == 200
+    assert set(vrp.json()) == {"ticker", "market_date", "points"}
+
+
 def test_cockpit_state_rejects_ticker_outside_universe(client, seeded_db_empty_cards):
     r = client.get("/api/cockpit/TSLA/state")
 
@@ -56,3 +62,23 @@ def test_cockpit_state_missing_asof_returns_404(client, seeded_db_empty_cards):
 
     assert r.status_code == 404
     assert "no Cockpit state" in r.json()["detail"]
+
+
+def _seed_state(repo) -> None:
+    repo.upsert_matrix_state_snapshot(
+        MatrixState(
+            ticker="SPY",
+            market_date=date(2026, 5, 15),
+            vanna_state="stale",
+            charm_state="stale",
+            skew_state="neutral",
+            term_state="vol_down",
+            im_state="stale",
+            flow_state="stale",
+            vrp_state="neutral",
+            consistency_tier="insufficient_data",
+            cluster_coverage_ok=False,
+            term_classification="contango",
+        )
+    )
+    repo.conn.commit()

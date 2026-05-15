@@ -455,6 +455,88 @@ class CockpitStateResponse(_UwBase):
     freshness: MatrixSourceFreshness
 
 
+class CockpitDealerPoint(_UwBase):
+    expiry: _date
+    strike: Decimal
+    call_vanna: Decimal | None = None
+    put_vanna: Decimal | None = None
+    call_charm: Decimal | None = None
+    put_charm: Decimal | None = None
+    exposure_call_vanna: Decimal | None = None
+    exposure_put_vanna: Decimal | None = None
+    exposure_call_charm: Decimal | None = None
+    exposure_put_charm: Decimal | None = None
+
+
+class CockpitDealerResponse(_UwBase):
+    ticker: str
+    market_date: _date
+    points: list[CockpitDealerPoint] = Field(default_factory=list)
+
+
+class CockpitSkewPoint(_UwBase):
+    market_date: _date
+    expiry: _date | None = None
+    risk_reversal: Decimal | None = None
+
+
+class CockpitTermPoint(_UwBase):
+    expiry: _date
+    dte: int | None = None
+    volatility: Decimal | None = None
+    implied_move_perc: Decimal | None = None
+
+
+class CockpitSurfaceResponse(_UwBase):
+    ticker: str
+    market_date: _date
+    skew: list[CockpitSkewPoint] = Field(default_factory=list)
+    term: list[CockpitTermPoint] = Field(default_factory=list)
+
+
+class CockpitFlowAlert(_UwBase):
+    alert_id: str
+    option_chain: str | None = None
+    expiry: _date | None = None
+    strike: Decimal | None = None
+    option_type: str | None = None
+    total_premium: Decimal | None = None
+    volume: int | None = None
+    open_interest: int | None = None
+    total_ask_side_prem: Decimal | None = None
+    total_bid_side_prem: Decimal | None = None
+    created_at: datetime | None = None
+
+
+class CockpitImPoint(_UwBase):
+    market_date: _date
+    days: int
+    volatility: Decimal | None = None
+    implied_move_perc: Decimal | None = None
+    percentile: Decimal | None = None
+
+
+class CockpitFlowImResponse(_UwBase):
+    ticker: str
+    market_date: _date
+    alerts: list[CockpitFlowAlert] = Field(default_factory=list)
+    implied_moves: list[CockpitImPoint] = Field(default_factory=list)
+
+
+class CockpitVrpPoint(_UwBase):
+    market_date: _date
+    iv: Decimal | None = None
+    rv: Decimal | None = None
+    vrp: Decimal | None = None
+    iv_rank_1y: Decimal | None = None
+
+
+class CockpitVrpResponse(_UwBase):
+    ticker: str
+    market_date: _date
+    points: list[CockpitVrpPoint] = Field(default_factory=list)
+
+
 # ---------------------------------------------------------------------------
 # Bulk screener row (S2) — `/api/screener/stocks`
 # ---------------------------------------------------------------------------

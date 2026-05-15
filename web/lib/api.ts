@@ -38,6 +38,10 @@ type TradeInsightsAiAnalysisResponse = Json<
   "post"
 >;
 type CockpitStateResponse = Json<"/api/cockpit/{ticker}/state", "get">;
+type CockpitDealerResponse = Json<"/api/cockpit/{ticker}/dealer", "get">;
+type CockpitSurfaceResponse = Json<"/api/cockpit/{ticker}/surface", "get">;
+type CockpitFlowImResponse = Json<"/api/cockpit/{ticker}/flow-im", "get">;
+type CockpitVrpResponse = Json<"/api/cockpit/{ticker}/vrp", "get">;
 
 async function _fetch<T>(
   path: string,
@@ -81,6 +85,50 @@ export const api = {
     const q = asof ? `?asof=${encodeURIComponent(asof)}` : "";
     return _fetch<CockpitStateResponse | null>(
       `/api/cockpit/${ticker}/state${q}`,
+      undefined,
+      { allow404: true },
+    );
+  },
+  cockpitDealer: (
+    ticker: string,
+    asof?: string,
+  ): Promise<CockpitDealerResponse | null> => {
+    const q = asof ? `?asof=${encodeURIComponent(asof)}` : "";
+    return _fetch<CockpitDealerResponse | null>(
+      `/api/cockpit/${ticker}/dealer${q}`,
+      undefined,
+      { allow404: true },
+    );
+  },
+  cockpitSurface: (
+    ticker: string,
+    asof?: string,
+  ): Promise<CockpitSurfaceResponse | null> => {
+    const q = asof ? `?asof=${encodeURIComponent(asof)}` : "";
+    return _fetch<CockpitSurfaceResponse | null>(
+      `/api/cockpit/${ticker}/surface${q}`,
+      undefined,
+      { allow404: true },
+    );
+  },
+  cockpitFlowIm: (
+    ticker: string,
+    asof?: string,
+  ): Promise<CockpitFlowImResponse | null> => {
+    const q = asof ? `?asof=${encodeURIComponent(asof)}` : "";
+    return _fetch<CockpitFlowImResponse | null>(
+      `/api/cockpit/${ticker}/flow-im${q}`,
+      undefined,
+      { allow404: true },
+    );
+  },
+  cockpitVrp: (
+    ticker: string,
+    asof?: string,
+  ): Promise<CockpitVrpResponse | null> => {
+    const q = asof ? `?asof=${encodeURIComponent(asof)}` : "";
+    return _fetch<CockpitVrpResponse | null>(
+      `/api/cockpit/${ticker}/vrp${q}`,
       undefined,
       { allow404: true },
     );
@@ -158,8 +206,12 @@ export const api = {
 };
 
 export type {
+  CockpitDealerResponse,
+  CockpitFlowImResponse,
   JobStatus,
   CockpitStateResponse,
+  CockpitSurfaceResponse,
+  CockpitVrpResponse,
   OhlcResponse,
   SingleStockReport,
   TradeInsightsAiAnalysisResponse,

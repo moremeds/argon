@@ -1580,6 +1580,154 @@ class Repository:
             row = cur.fetchone()
             return row[0] if row else None
 
+    def fetch_cockpit_dealer_points(
+        self, *, ticker: str, market_date: _date
+    ) -> list[models.CockpitDealerPoint]:
+        greeks = self.fetch_matrix_greeks_rows(ticker=ticker, market_date=market_date)
+        exposures = self.fetch_matrix_exposure_rows(ticker=ticker, market_date=market_date)
+        exposure_by_key = {
+            (row["expiry"], row["strike"]): row
+            for row in exposures
+            if row.get("expiry") is not None and row.get("strike") is not None
+        }
+        points: list[models.CockpitDealerPoint] = []
+        for row in greeks:
+            key = (row["expiry"], row["strike"])
+            exposure = exposure_by_key.get(key, {})
+            points.append(
+                models.CockpitDealerPoint(
+                    expiry=row["expiry"],
+                    strike=row["strike"],
+                    call_vanna=row.get("call_vanna"),
+                    put_vanna=row.get("put_vanna"),
+                    call_charm=row.get("call_charm"),
+                    put_charm=row.get("put_charm"),
+                    exposure_call_vanna=exposure.get("call_vanna"),
+                    exposure_put_vanna=exposure.get("put_vanna"),
+                    exposure_call_charm=exposure.get("call_charm"),
+                    exposure_put_charm=exposure.get("put_charm"),
+                )
+            )
+        return points
+
+    def fetch_cockpit_surface(
+        self, *, ticker: str, market_date: _date
+    ) -> tuple[list[models.CockpitSkewPoint], list[models.CockpitTermPoint]]:
+        skew_rows = self.fetch_matrix_skew_history(ticker=ticker, market_date=market_date)
+        term_rows = self.fetch_matrix_term_rows(ticker=ticker, market_date=market_date)
+        skew = [
+            models.CockpitSkewPoint(
+                market_date=row["market_date"],
+                expiry=row.get("expiry"),
+                risk_reversal=row.get("risk_reversal"),
+            )
+            for row in skew_rows
+        ]
+        term = [
+            models.CockpitTermPoint(
+                expiry=row["expiry"],
+                dte=row.get("dte"),
+                volatility=row.get("volatility"),
+                implied_move_perc=row.get("implied_move_perc"),
+            )
+            for row in term_rows
+        ]
+        return skew, term
+
+    def fetch_cockpit_flow_alerts(
+        self, *, ticker: str, limit: int = 25
+    ) -> list[models.CockpitFlowAlert]:
+        sql = (
+            f"SELECT alert_id, ticker, option_chain, expiry, strike, option_type, "
+            "total_premium, total_ask_side_prem, total_bid_side_prem, "
+            "volume, open_interest, created_at "
+            f"FROM {self._schema}.flow_events "
+            "WHERE ticker = %s "
+            "ORDER BY created_at DESC NULLS LAST, total_premium DESC NULLS LAST "
+            "LIMIT %s"
+        )
+        with self._conn.cursor() as cur:
+            cur.execute(sql, (ticker.upper(), limit))
+            cols = [d.name for d in cur.description or []]
+            rows = [dict(zip(cols, row, strict=False)) for row in cur.fetchall()]
+        return [
+            models.CockpitFlowAlert(
+                alert_id=str(row["alert_id"]),
+                option_chain=row.get("option_chain"),
+                expiry=row.get("expiry"),
+                strike=row.get("strike"),
+                option_type=row.get("option_type"),
+                total_premium=row.get("total_premium"),
+                volume=row.get("volume"),
+                open_interest=row.get("open_interest"),
+                total_ask_side_prem=row.get("total_ask_side_prem"),
+                total_bid_side_prem=row.get("total_bid_side_prem"),
+                created_at=row.get("created_at"),
+            )
+            for row in rows
+        ]
+
+    def fetch_cockpit_implied_moves(
+        self, *, ticker: str, market_date: _date, days: int = 90
+    ) -> list[models.CockpitImPoint]:
+        rows = self.fetch_matrix_interpolated_iv_history(
+            ticker=ticker, market_date=market_date, days=days
+        )
+        return [
+            models.CockpitImPoint(
+                market_date=row["market_date"],
+                days=row["days"],
+                volatility=row.get("volatility"),
+                implied_move_perc=row.get("implied_move_perc"),
+                percentile=row.get("percentile"),
+            )
+            for row in rows
+        ]
+
+    def fetch_cockpit_vrp_points(
+        self, *, ticker: str, market_date: _date, days: int = 90
+    ) -> list[models.CockpitVrpPoint]:
+        rv_rows = self.fetch_matrix_realized_vol_history(
+            ticker=ticker, market_date=market_date, days=days
+        )
+        iv_rank_rows = self.fetch_iv_rank_history(
+            ticker=ticker, market_date=market_date, days=days
+        )
+        iv_rank_by_date = {
+            row["market_date"]: row.get("iv_rank_1y") for row in iv_rank_rows
+        }
+        return [
+            models.CockpitVrpPoint(
+                market_date=row["market_date"],
+                iv=row.get("implied_volatility"),
+                rv=row.get("realized_volatility"),
+                vrp=(
+                    row.get("implied_volatility") - row.get("realized_volatility")
+                    if row.get("implied_volatility") is not None
+                    and row.get("realized_volatility") is not None
+                    else None
+                ),
+                iv_rank_1y=iv_rank_by_date.get(row["market_date"]),
+            )
+            for row in rv_rows
+        ]
+
+    def fetch_iv_rank_history(
+        self, *, ticker: str, market_date: _date, days: int = 90
+    ) -> list[dict[str, Any]]:
+        sql = (
+            f"SELECT market_date, close, volatility, iv_rank_1y, updated_at_src "
+            f"FROM {self._schema}.iv_rank_history "
+            "WHERE ticker = %s "
+            "  AND market_date <= %s "
+            "  AND market_date >= (%s::date - (%s || ' days')::interval) "
+            "ORDER BY market_date ASC"
+        )
+        with self._conn.cursor() as cur:
+            cur.execute(sql, (ticker, market_date, market_date, days))
+            cols = [d.name for d in cur.description or []]
+            return [dict(zip(cols, row, strict=False)) for row in cur.fetchall()]
+
     def insert_oi_change_rows(
         self, run_id: int, rows: Iterable[models.OiChangeRow]
     ) -> int:
