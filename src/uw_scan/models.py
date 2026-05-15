@@ -404,6 +404,38 @@ class SetupClassification(_UwBase):
     notes: str = ""
 
 
+MatrixDirection = Literal["vol_up", "vol_down", "neutral", "stale"]
+MatrixConsistencyTier = Literal[
+    "strict", "strong", "weak", "no_trade", "insufficient_data"
+]
+
+
+class MatrixState(_UwBase):
+    ticker: str
+    market_date: _date
+    vanna_state: MatrixDirection
+    charm_state: MatrixDirection
+    skew_state: MatrixDirection
+    term_state: MatrixDirection
+    im_state: MatrixDirection
+    flow_state: MatrixDirection
+    vrp_state: MatrixDirection
+    consistency_tier: MatrixConsistencyTier
+    cluster_coverage_ok: bool
+    term_classification: (
+        Literal["contango", "event_back", "liquidity_back", "mixed"] | None
+    ) = None
+    skew_25d_zscore_180d: Decimal | None = None
+    iv_atm_30d: Decimal | None = None
+    rv_30d: Decimal | None = None
+    vrp: Decimal | None = None
+    vrp_zscore_60d: Decimal | None = None
+    implied_move_pct: Decimal | None = None
+    front_iv: Decimal | None = None
+    back_iv: Decimal | None = None
+    pin_distance_sigma: Decimal | None = None
+
+
 # ---------------------------------------------------------------------------
 # Bulk screener row (S2) — `/api/screener/stocks`
 # ---------------------------------------------------------------------------

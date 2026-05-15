@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import date
+from decimal import Decimal
 
 
 def test_snapshot_ticker_passes_ticker_to_interpolated_iv_insert(monkeypatch) -> None:
@@ -22,6 +23,20 @@ def test_snapshot_ticker_passes_ticker_to_interpolated_iv_insert(monkeypatch) ->
             captured["interp_args"] = (run_id, ticker, rows)
             return len(rows)
 
+        def get_intraday_quote(self, ticker):
+            return None
+
+        def fetch_realized_vol_latest(self, ticker):
+            return {"price": Decimal("500")}
+
+        def delete_option_chain_per_strike(self, ticker, market_date):
+            captured["delete_chain_args"] = (ticker, market_date)
+            return 0
+
+        def upsert_option_chain_per_strike(self, ticker, market_date, rows):
+            captured["chain_args"] = (ticker, market_date, rows)
+            return len(rows)
+
     monkeypatch.setattr(job, "fetch_realized_volatility", lambda *_args: ["rv"])
     monkeypatch.setattr(job, "fetch_iv_rank", lambda *_args: ["ivrank"])
     monkeypatch.setattr(job, "fetch_term_structure", lambda *_args: ["term"])
@@ -35,6 +50,9 @@ def test_snapshot_ticker_passes_ticker_to_interpolated_iv_insert(monkeypatch) ->
         ticker="SPY",
         market_date=date(2026, 5, 15),
         target_dtes=[0, 14, 30, 90],
+        oi_band_pct=Decimal("0.10"),
+        oi_max_dte=7,
     )
 
     assert captured["interp_args"] == (123, "SPY", ["interp"])
+    assert captured["delete_chain_args"] == ("SPY", date(2026, 5, 15))

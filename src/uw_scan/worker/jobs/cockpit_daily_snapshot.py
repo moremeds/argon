@@ -5,11 +5,8 @@ default), this job fetches the inputs the 6-dimension matrix needs and
 persists them to existing tables (``greeks_by_expiry_strike``,
 ``exposures_by_expiry_strike``, ``risk_reversal_skew_history``,
 ``iv_term_snapshots``, ``interpolated_iv_snapshots``,
-``realized_volatility_history``, ``iv_rank_history``).
-
-The matrix-state derivation that reads from these tables and writes the
-single-row daily label into ``matrix_state_snapshots`` is Phase 2 and
-lives in ``cards/matrix_state.py`` (TBD).
+``realized_volatility_history``, ``iv_rank_history``), then derives and
+persists one ``matrix_state_snapshots`` row per ticker.
 
 Per-ticker error semantics mirror ``flow_data_refresh``:
 - One ``scan_runs`` row per ticker so failures stay visible;
@@ -26,8 +23,11 @@ import logging
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
+import psycopg
+
 from uw_scan.api.client import UwClient
-from uw_scan.cards.option_chain import pick_target_expiries
+from uw_scan.cards.matrix_state import build_matrix_state
+from uw_scan.cards.option_chain import aggregate_chain_per_strike, pick_target_expiries
 from uw_scan.config import Settings
 from uw_scan.sources.uw import (
     fetch_greek_exposure,
@@ -71,9 +71,30 @@ def cockpit_daily_snapshot(
                     ticker=ticker,
                     market_date=market_date,
                     target_dtes=target_dtes,
+                    oi_band_pct=settings.cockpit_oi_band_pct,
+                    oi_max_dte=settings.cockpit_oi_max_dte,
                 )
                 repo.finish_scan_run(run_id, status="ok")
                 repo.conn.commit()
+                try:
+                    with psycopg.connect(settings.db_dsn()) as deriver_conn:
+                        deriver_repo = Repository(
+                            deriver_conn, schema=settings.db_schema
+                        )
+                        state = build_matrix_state(
+                            deriver_repo, ticker=ticker, market_date=market_date
+                        )
+                        # TODO(phase-5): persist threshold_version after
+                        # migration 023 adds the column.
+                        deriver_repo.upsert_matrix_state_snapshot(state)
+                        deriver_conn.commit()
+                except Exception as deriver_exc:  # noqa: BLE001
+                    logger.exception(
+                        "cockpit_daily_snapshot: %s deriver failed: %r",
+                        ticker,
+                        deriver_exc,
+                        extra={"deriver_failed": True},
+                    )
             except Exception as exc:  # noqa: BLE001
                 repo.conn.rollback()
                 logger.exception("cockpit_daily_snapshot: %s failed: %r", ticker, exc)
@@ -89,6 +110,8 @@ def _snapshot_ticker(
     ticker: str,
     market_date,
     target_dtes: list[int],
+    oi_band_pct,
+    oi_max_dte: int,
 ) -> None:
     """Fetch + persist the full Cockpit input set for a single ticker."""
 
@@ -117,6 +140,14 @@ def _snapshot_ticker(
     # 2. Per-expiry detail — pick expiries nearest each target DTE.
     contracts = fetch_option_contracts(
         client, repo, run_id, ticker, limit=OPTION_CONTRACTS_LIMIT
+    )
+    _persist_option_chain_per_strike(
+        repo=repo,
+        ticker=ticker,
+        market_date=market_date,
+        contracts=contracts,
+        oi_band_pct=oi_band_pct,
+        oi_max_dte=oi_max_dte,
     )
     expiries = pick_target_expiries(
         contracts, target_dtes=target_dtes, today=market_date
@@ -148,3 +179,36 @@ def _snapshot_ticker(
             n_e,
             n_s,
         )
+
+
+def _persist_option_chain_per_strike(
+    *,
+    repo: Repository,
+    ticker: str,
+    market_date,
+    contracts,
+    oi_band_pct,
+    oi_max_dte: int,
+) -> None:
+    quote = repo.get_intraday_quote(ticker)
+    spot = quote.price if quote is not None else None
+    if spot is None:
+        latest_rv = repo.fetch_realized_vol_latest(ticker)
+        spot = latest_rv.get("price") if latest_rv else None
+    if spot is None:
+        logger.warning(
+            "cockpit_daily_snapshot: %s no spot available, skipping OI chain",
+            ticker,
+        )
+        return
+
+    rows = aggregate_chain_per_strike(
+        contracts,
+        spot=spot,
+        max_pct_from_spot=oi_band_pct,
+        max_dte_days=oi_max_dte,
+        today=market_date,
+    )
+    repo.delete_option_chain_per_strike(ticker, market_date)
+    n_rows = repo.upsert_option_chain_per_strike(ticker, market_date, rows)
+    logger.info("cockpit_daily_snapshot: %s option_chain rows=%d", ticker, n_rows)

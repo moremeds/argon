@@ -1109,6 +1109,207 @@ class Repository:
                 for row in cur.fetchall()
             ]
 
+    # ------------------------------------------------------------------
+    # Cockpit matrix state source reads
+    # ------------------------------------------------------------------
+    def fetch_matrix_greeks_rows(
+        self, *, ticker: str, market_date: _date
+    ) -> list[dict[str, Any]]:
+        sql = (
+            f"SELECT expiry, strike, call_vanna, put_vanna, call_charm, put_charm "
+            f"FROM {self._schema}.greeks_by_expiry_strike "
+            "WHERE ticker = %s AND market_date = %s "
+            "  AND run_id = ("
+            f"    SELECT max(run_id) FROM {self._schema}.greeks_by_expiry_strike "
+            "    WHERE ticker = %s AND market_date = %s"
+            "  ) "
+            "ORDER BY expiry, strike"
+        )
+        with self._conn.cursor() as cur:
+            cur.execute(sql, (ticker, market_date, ticker, market_date))
+            cols = [d.name for d in cur.description or []]
+            return [dict(zip(cols, row, strict=False)) for row in cur.fetchall()]
+
+    def fetch_matrix_exposure_rows(
+        self, *, ticker: str, market_date: _date
+    ) -> list[dict[str, Any]]:
+        sql = (
+            f"SELECT expiry, strike, dte, call_vanna, put_vanna, call_charm, put_charm "
+            f"FROM {self._schema}.exposures_by_expiry_strike "
+            "WHERE ticker = %s AND market_date = %s "
+            "  AND run_id = ("
+            f"    SELECT max(run_id) FROM {self._schema}.exposures_by_expiry_strike "
+            "    WHERE ticker = %s AND market_date = %s"
+            "  ) "
+            "ORDER BY expiry, strike"
+        )
+        with self._conn.cursor() as cur:
+            cur.execute(sql, (ticker, market_date, ticker, market_date))
+            cols = [d.name for d in cur.description or []]
+            return [dict(zip(cols, row, strict=False)) for row in cur.fetchall()]
+
+    def fetch_matrix_option_chain_rows(
+        self, *, ticker: str, market_date: _date
+    ) -> list[dict[str, Any]]:
+        sql = (
+            f"SELECT expiry, strike, call_volume, put_volume, call_oi, put_oi "
+            f"FROM {self._schema}.option_chain_per_strike "
+            "WHERE ticker = %s AND snapshot_date = %s "
+            "ORDER BY expiry, strike"
+        )
+        with self._conn.cursor() as cur:
+            cur.execute(sql, (ticker, market_date))
+            cols = [d.name for d in cur.description or []]
+            return [dict(zip(cols, row, strict=False)) for row in cur.fetchall()]
+
+    def fetch_matrix_skew_history(
+        self, *, ticker: str, market_date: _date, days: int = 260
+    ) -> list[dict[str, Any]]:
+        sql = (
+            f"SELECT DISTINCT ON (market_date) market_date, delta, expiry, risk_reversal "
+            f"FROM {self._schema}.risk_reversal_skew_history "
+            "WHERE ticker = %s AND delta = 25 "
+            "  AND market_date <= %s "
+            "  AND market_date >= (%s::date - (%s || ' days')::interval) "
+            "ORDER BY market_date ASC, expiry ASC NULLS LAST"
+        )
+        with self._conn.cursor() as cur:
+            cur.execute(sql, (ticker, market_date, market_date, days))
+            cols = [d.name for d in cur.description or []]
+            return [dict(zip(cols, row, strict=False)) for row in cur.fetchall()]
+
+    def fetch_matrix_term_rows(
+        self, *, ticker: str, market_date: _date
+    ) -> list[dict[str, Any]]:
+        sql = (
+            f"SELECT expiry, dte, volatility, implied_move, implied_move_perc "
+            f"FROM {self._schema}.iv_term_snapshots "
+            "WHERE ticker = %s AND market_date = %s "
+            "  AND run_id = ("
+            f"    SELECT max(run_id) FROM {self._schema}.iv_term_snapshots "
+            "    WHERE ticker = %s AND market_date = %s"
+            "  ) "
+            "ORDER BY dte ASC NULLS LAST, expiry ASC"
+        )
+        with self._conn.cursor() as cur:
+            cur.execute(sql, (ticker, market_date, ticker, market_date))
+            cols = [d.name for d in cur.description or []]
+            return [dict(zip(cols, row, strict=False)) for row in cur.fetchall()]
+
+    def fetch_matrix_interpolated_iv_history(
+        self, *, ticker: str, market_date: _date, days: int = 90
+    ) -> list[dict[str, Any]]:
+        sql = (
+            "SELECT DISTINCT ON (market_date) "
+            "market_date, days, percentile, volatility, implied_move_perc "
+            f"FROM {self._schema}.interpolated_iv_snapshots "
+            "WHERE ticker = %s "
+            "  AND market_date <= %s "
+            "  AND market_date >= (%s::date - (%s || ' days')::interval) "
+            "ORDER BY market_date ASC, ABS(days - 30) ASC, run_id DESC"
+        )
+        with self._conn.cursor() as cur:
+            cur.execute(sql, (ticker, market_date, market_date, days))
+            cols = [d.name for d in cur.description or []]
+            return [dict(zip(cols, row, strict=False)) for row in cur.fetchall()]
+
+    def fetch_matrix_realized_vol_history(
+        self, *, ticker: str, market_date: _date, days: int = 90
+    ) -> list[dict[str, Any]]:
+        sql = (
+            f"SELECT market_date, price, implied_volatility, realized_volatility "
+            f"FROM {self._schema}.realized_volatility_history "
+            "WHERE ticker = %s "
+            "  AND market_date <= %s "
+            "  AND market_date >= (%s::date - (%s || ' days')::interval) "
+            "ORDER BY market_date ASC"
+        )
+        with self._conn.cursor() as cur:
+            cur.execute(sql, (ticker, market_date, market_date, days))
+            cols = [d.name for d in cur.description or []]
+            return [dict(zip(cols, row, strict=False)) for row in cur.fetchall()]
+
+    def upsert_matrix_state_snapshot(self, state: models.MatrixState) -> None:
+        sql = (
+            f"INSERT INTO {self._schema}.matrix_state_snapshots ("
+            "ticker, market_date, vanna_state, charm_state, skew_state, "
+            "term_state, im_state, flow_state, vrp_state, consistency_tier, "
+            "cluster_coverage_ok, term_classification, skew_25d_zscore_180d, "
+            "iv_atm_30d, rv_30d, vrp, vrp_zscore_60d, implied_move_pct, "
+            "front_iv, back_iv, pin_distance_sigma, generated_at"
+            ") VALUES ("
+            "%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, "
+            "%s, %s, %s, %s, %s, now()"
+            ") ON CONFLICT (ticker, market_date) DO UPDATE SET "
+            "vanna_state=EXCLUDED.vanna_state, "
+            "charm_state=EXCLUDED.charm_state, "
+            "skew_state=EXCLUDED.skew_state, "
+            "term_state=EXCLUDED.term_state, "
+            "im_state=EXCLUDED.im_state, "
+            "flow_state=EXCLUDED.flow_state, "
+            "vrp_state=EXCLUDED.vrp_state, "
+            "consistency_tier=EXCLUDED.consistency_tier, "
+            "cluster_coverage_ok=EXCLUDED.cluster_coverage_ok, "
+            "term_classification=EXCLUDED.term_classification, "
+            "skew_25d_zscore_180d=EXCLUDED.skew_25d_zscore_180d, "
+            "iv_atm_30d=EXCLUDED.iv_atm_30d, "
+            "rv_30d=EXCLUDED.rv_30d, "
+            "vrp=EXCLUDED.vrp, "
+            "vrp_zscore_60d=EXCLUDED.vrp_zscore_60d, "
+            "implied_move_pct=EXCLUDED.implied_move_pct, "
+            "front_iv=EXCLUDED.front_iv, "
+            "back_iv=EXCLUDED.back_iv, "
+            "pin_distance_sigma=EXCLUDED.pin_distance_sigma, "
+            "generated_at=now(), inserted_at=now()"
+        )
+        with self._conn.cursor() as cur:
+            cur.execute(
+                sql,
+                (
+                    state.ticker,
+                    state.market_date,
+                    state.vanna_state,
+                    state.charm_state,
+                    state.skew_state,
+                    state.term_state,
+                    state.im_state,
+                    state.flow_state,
+                    state.vrp_state,
+                    state.consistency_tier,
+                    state.cluster_coverage_ok,
+                    state.term_classification,
+                    state.skew_25d_zscore_180d,
+                    state.iv_atm_30d,
+                    state.rv_30d,
+                    state.vrp,
+                    state.vrp_zscore_60d,
+                    state.implied_move_pct,
+                    state.front_iv,
+                    state.back_iv,
+                    state.pin_distance_sigma,
+                ),
+            )
+
+    def fetch_matrix_state_snapshot(
+        self, *, ticker: str, market_date: _date
+    ) -> models.MatrixState | None:
+        sql = (
+            "SELECT ticker, market_date, vanna_state, charm_state, skew_state, "
+            "term_state, im_state, flow_state, vrp_state, consistency_tier, "
+            "cluster_coverage_ok, term_classification, skew_25d_zscore_180d, "
+            "iv_atm_30d, rv_30d, vrp, vrp_zscore_60d, implied_move_pct, "
+            "front_iv, back_iv, pin_distance_sigma "
+            f"FROM {self._schema}.matrix_state_snapshots "
+            "WHERE ticker = %s AND market_date = %s"
+        )
+        with self._conn.cursor() as cur:
+            cur.execute(sql, (ticker, market_date))
+            row = cur.fetchone()
+            if row is None:
+                return None
+            cols = [d.name for d in cur.description or []]
+            return models.MatrixState(**dict(zip(cols, row, strict=False)))
+
     def insert_oi_change_rows(
         self, run_id: int, rows: Iterable[models.OiChangeRow]
     ) -> int:

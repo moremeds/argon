@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 import os
+from decimal import Decimal
 from pathlib import Path
 
 from pydantic import BaseModel, Field, SecretStr
@@ -86,6 +87,8 @@ class Settings(BaseModel):
     cockpit_tickers: list[str] = ["SPX", "SPY", "QQQ", "IWM"]
     cockpit_snapshot_cron: str = "30 16 * * 1-5"
     cockpit_target_dtes: list[int] = [0, 14, 30, 90]
+    cockpit_oi_band_pct: Decimal = Decimal("0.10")
+    cockpit_oi_max_dte: int = 7
 
     @classmethod
     def from_env(cls, env_path: Path | None = None) -> "Settings":
@@ -154,6 +157,10 @@ class Settings(BaseModel):
             cockpit_target_dtes=_parse_int_csv_env(
                 "COCKPIT_TARGET_DTES", default=[0, 14, 30, 90]
             ),
+            cockpit_oi_band_pct=Decimal(
+                os.environ.get("COCKPIT_OI_BAND_PCT", "0.10")
+            ),
+            cockpit_oi_max_dte=int(os.environ.get("COCKPIT_OI_MAX_DTE", "7")),
         )
 
     def db_dsn(self) -> str:
