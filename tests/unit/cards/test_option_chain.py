@@ -3,7 +3,11 @@ from datetime import date
 from decimal import Decimal
 from pathlib import Path
 
-from uw_scan.cards.option_chain import _parse_occ, aggregate_chain_per_strike
+from uw_scan.cards.option_chain import (
+    _parse_occ,
+    aggregate_chain_per_strike,
+    pick_target_expiries,
+)
 from uw_scan.models import OptionContractRow
 from uw_scan.normalize import normalize_option_contracts
 
@@ -173,3 +177,59 @@ def test_aggregate_chain_per_strike_runs_on_captured_payload() -> None:
         assert pct <= Decimal("0.60")
     # Sorted by (expiry, strike)
     assert rows == sorted(rows, key=lambda r: (r.expiry, r.strike))
+
+
+# ---------------------------------------------------------------------------
+# Expiry-picker for Cockpit daily snapshot
+# ---------------------------------------------------------------------------
+def _c(symbol: str) -> OptionContractRow:
+    return OptionContractRow(option_symbol=symbol)
+
+
+def test_pick_target_expiries_picks_nearest_per_dte() -> None:
+    contracts = [
+        _c("SPY260515C00500000"),  # 2d out
+        _c("SPY260522C00500000"),  # 9d out
+        _c("SPY260612C00500000"),  # 30d out
+        _c("SPY260814C00500000"),  # 93d out
+    ]
+    picked = pick_target_expiries(
+        contracts, target_dtes=[0, 14, 30, 90], today=date(2026, 5, 13)
+    )
+    assert picked == [
+        date(2026, 5, 15),  # nearest to 0
+        date(2026, 5, 22),  # nearest to 14
+        date(2026, 6, 12),  # nearest to 30
+        date(2026, 8, 14),  # nearest to 90
+    ]
+
+
+def test_pick_target_expiries_dedupes_when_two_targets_land_on_same_expiry() -> None:
+    # If only one near-term expiry exists, multiple target_dtes collapse to it
+    contracts = [_c("SPY260515C00500000")]  # 2d out
+    picked = pick_target_expiries(
+        contracts, target_dtes=[0, 14], today=date(2026, 5, 13)
+    )
+    assert picked == [date(2026, 5, 15)]
+
+
+def test_pick_target_expiries_returns_empty_when_no_contracts() -> None:
+    assert pick_target_expiries([], target_dtes=[0, 30], today=date(2026, 5, 13)) == []
+
+
+def test_pick_target_expiries_drops_unparseable_symbols() -> None:
+    contracts = [
+        _c("garbage"),
+        _c("SPY260515C00500000"),
+    ]
+    picked = pick_target_expiries(contracts, target_dtes=[0], today=date(2026, 5, 13))
+    assert picked == [date(2026, 5, 15)]
+
+
+def test_pick_target_expiries_excludes_past_expiries() -> None:
+    contracts = [
+        _c("SPY260501C00500000"),  # past
+        _c("SPY260515C00500000"),  # future
+    ]
+    picked = pick_target_expiries(contracts, target_dtes=[0], today=date(2026, 5, 13))
+    assert picked == [date(2026, 5, 15)]
