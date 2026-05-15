@@ -637,7 +637,7 @@ export interface components {
             spot_refresh_heartbeat_lag_seconds?: number | null;
             /**
              * Throughput Window Minutes
-             * @default 15
+             * @default 0
              */
             throughput_window_minutes: number;
             /** Uw Today */

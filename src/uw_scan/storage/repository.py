@@ -516,13 +516,13 @@ class Repository:
         self, provider: str | None, start: datetime, end: datetime
     ) -> ThroughputSummaryRow:
         provider_filter = None if provider in (None, "all") else provider
-        window_minutes = max((end - start).total_seconds() / 60.0, 1 / 60)
         with self._conn.cursor() as cur:
             cur.execute(
                 f"""
                 SELECT
                   count(*)::int AS total_requests,
-                  count(*) FILTER (WHERE status_code = 429)::int AS http_429
+                  count(*) FILTER (WHERE status_code = 429)::int AS http_429,
+                  min(request_started_at) AS first_request_at
                 FROM {self._schema}.external_api_requests
                 WHERE request_started_at >= %s
                   AND request_started_at < %s
@@ -536,6 +536,7 @@ class Repository:
             cur.execute(
                 f"""
                 SELECT avg(extract(epoch FROM finished_at - started_at))
+                     , min(started_at)
                 FROM {self._schema}.scan_runs
                 WHERE finished_at >= %s
                   AND finished_at < %s
@@ -550,7 +551,7 @@ class Repository:
 
             cur.execute(
                 f"""
-                SELECT count(*)::int
+                SELECT count(*)::int, min(requested_at)
                 FROM {self._schema}.jobs
                 WHERE finished_at >= %s
                   AND finished_at < %s
@@ -563,12 +564,16 @@ class Repository:
 
         total_requests = int(request_row[0])
         drained_jobs = int(queue_row[0])
+        active_starts = [request_row[2], scan_row[1], queue_row[1]]
+        first_activity = min((ts for ts in active_starts if ts is not None), default=start)
+        active_start = max(start, first_activity)
+        active_window_minutes = max((end - active_start).total_seconds() / 60.0, 1 / 60)
         return ThroughputSummaryRow(
-            window_minutes=window_minutes,
-            requests_per_minute=total_requests / window_minutes,
+            window_minutes=active_window_minutes,
+            requests_per_minute=total_requests / active_window_minutes,
             http_429=int(request_row[1]),
             avg_scan_duration_seconds=_nullable_float(scan_row[0]),
-            queue_drain_rate_per_minute=drained_jobs / window_minutes,
+            queue_drain_rate_per_minute=drained_jobs / active_window_minutes,
         )
 
     def list_external_api_endpoint_usage(

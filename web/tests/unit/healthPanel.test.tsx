@@ -101,6 +101,9 @@ describe("HealthPanel", () => {
     expect(screen.queryByText("2026/05/14 22:20:42 HKG")).toBeNull();
     expect(screen.getByDisplayValue("UnusualWhales")).toBeTruthy();
     expect(screen.getByText("UnusualWhales")).toBeTruthy();
+    expect(screen.queryByText("Cache Hit")).toBeNull();
+    expect(screen.getByText("Req avg/min")).toBeTruthy();
+    expect(screen.getByText("Queue avg/min")).toBeTruthy();
     expect(screen.getByText("88ms")).toBeTruthy();
     expect(screen.getByText("12.4/m")).toBeTruthy();
     expect(screen.getByText("2")).toBeTruthy();

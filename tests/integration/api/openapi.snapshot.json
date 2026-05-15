@@ -1027,9 +1027,9 @@
             "title": "Spot Refresh Heartbeat Lag Seconds"
           },
           "throughput_window_minutes": {
-            "default": 15,
+            "default": 0.0,
             "title": "Throughput Window Minutes",
-            "type": "integer"
+            "type": "number"
           },
           "uw_today": {
             "anyOf": [

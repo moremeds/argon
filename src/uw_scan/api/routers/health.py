@@ -16,7 +16,6 @@ from uw_scan.storage.repository import Repository, provider_day_bounds
 router = APIRouter()
 
 HealthSource = Literal["uw", "massive"]
-THROUGHPUT_WINDOW_MINUTES = 15
 
 
 def _source_label(source: HealthSource) -> str:
@@ -48,7 +47,7 @@ class HealthResponse(BaseModel):
     http_5xx: int | None = None
     uw_today: int | None = None
     cache_hit_pct: float | None = None
-    throughput_window_minutes: int = THROUGHPUT_WINDOW_MINUTES
+    throughput_window_minutes: float = 0.0
     requests_per_minute: float | None = None
     http_429: int | None = None
     avg_scan_duration_seconds: float | None = None
@@ -197,7 +196,7 @@ def health(
     )
     throughput = repo.get_throughput_summary(
         source,
-        now_utc - timedelta(minutes=THROUGHPUT_WINDOW_MINUTES),
+        provider_day_start,
         now_utc,
     )
     provider_fields = {
@@ -207,7 +206,7 @@ def health(
         "http_4xx": provider_usage.http_4xx,
         "http_5xx": provider_usage.http_5xx,
         "uw_today": provider_usage.uw_latest_daily_count,
-        "throughput_window_minutes": THROUGHPUT_WINDOW_MINUTES,
+        "throughput_window_minutes": throughput.window_minutes,
         "requests_per_minute": throughput.requests_per_minute,
         "http_429": throughput.http_429,
         "avg_scan_duration_seconds": throughput.avg_scan_duration_seconds,

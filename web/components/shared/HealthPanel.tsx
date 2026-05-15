@@ -234,15 +234,11 @@ export function HealthPanel() {
         <span style={valStyle}>{dash(h?.watchlist_size)}</span>
       </div>
       <div style={rowStyle}>
-        <span style={labelStyle}>Cache Hit</span>
-        <span style={valStyle}>{dash(h?.cache_hit_pct, "%")}</span>
-      </div>
-      <div style={rowStyle}>
         <span style={labelStyle}>Latency p95</span>
         <span style={valStyle}>{dash(h?.latency_p95_ms, "ms")}</span>
       </div>
       <div style={rowStyle}>
-        <span style={labelStyle}>Req/min</span>
+        <span style={labelStyle}>Req avg/min</span>
         <span style={valStyle}>{fmtRate(h?.requests_per_minute)}</span>
       </div>
       <div style={rowStyle}>
@@ -254,7 +250,7 @@ export function HealthPanel() {
         <span style={valStyle}>{fmtDuration(h?.avg_scan_duration_seconds)}</span>
       </div>
       <div style={rowStyle}>
-        <span style={labelStyle}>Queue/min</span>
+        <span style={labelStyle}>Queue avg/min</span>
         <span style={valStyle}>{fmtRate(h?.queue_drain_rate_per_minute)}</span>
       </div>
       <div style={rowStyle}>
