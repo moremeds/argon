@@ -20,10 +20,11 @@ export function QueueProgress({ queue }: { queue?: QueueSummary }) {
     const delay = current.total > 0 ? 2500 : 5000;
     const t = setInterval(async () => {
       try {
-        const next = await api.watchlist();
-        const nextQueue = next.queue ?? EMPTY_QUEUE;
+        const nextQueue = await api.queueSummary();
         setCurrent(nextQueue);
-        if (nextQueue.total === 0) router.refresh();
+        // Trigger an RSC refresh only on the active→drained transition so we
+        // pull updated cards once; idle ticks should not refresh the page.
+        if (nextQueue.total === 0 && current.total > 0) router.refresh();
       } catch (e) {
         console.error(e);
       }

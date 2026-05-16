@@ -7,8 +7,13 @@ from __future__ import annotations
 
 from datetime import date, datetime
 from decimal import Decimal
+from typing import Literal
 
 from pydantic import BaseModel, Field
+
+# Rescan-jobs lifecycle vocabulary, shared by QueueStatus + JobStatus.
+# Source of truth is the worker / repository (see repository.py mark_job_*).
+QueueStatusValue = Literal["queued", "running", "done", "failed"]
 
 
 class SetupBlock(BaseModel):
@@ -49,7 +54,7 @@ class PositioningBlock(BaseModel):
 
 class QueueStatus(BaseModel):
     job_id: str
-    status: str
+    status: QueueStatusValue
     queue_position: int
     requested_at: datetime
     started_at: datetime | None = None
@@ -114,7 +119,7 @@ class WatchlistPatch(BaseModel):
 
 class JobStatus(BaseModel):
     job_id: str
-    status: str
+    status: QueueStatusValue
     run_id: int | None = None
     error: str | None = None
     requested_at: datetime
