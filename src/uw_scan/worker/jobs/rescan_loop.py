@@ -35,9 +35,9 @@ def rescan_tick(repo, uw_client, ohlc_provider: OhlcProvider) -> bool:
         )
         card_row = compute_watchlist_card_row(report, history, intraday, prior_pcr)
         repo.upsert_watchlist_card(**card_row)
-        repo.mark_job_done(str(job.id), report.run_id)
+        repo.mark_job_done(str(job.id), report.run_id, job.claim_token)
         return True
     except Exception as exc:  # noqa: BLE001
         logger.exception("rescan job %s failed: %s", job.id, repr(exc))
-        repo.mark_job_failed(str(job.id), repr(exc))
+        repo.mark_job_failed(str(job.id), repr(exc), job.claim_token)
         return True

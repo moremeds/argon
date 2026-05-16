@@ -73,6 +73,7 @@ class JobRow:
     requested_at: datetime
     started_at: datetime | None
     finished_at: datetime | None
+    claim_token: Any = None  # UUID, set on claim, gates mark_job_done/failed
 
 
 @dataclass(frozen=True)
@@ -2811,7 +2812,9 @@ class Repository:
             cur.execute(
                 f"""
                 UPDATE {self._schema}.jobs
-                SET status='running', started_at=NOW()
+                SET status='running',
+                    started_at=NOW(),
+                    claim_token=gen_random_uuid()
                 WHERE id = (
                   SELECT id FROM {self._schema}.jobs
                   WHERE status='queued'
@@ -2819,7 +2822,8 @@ class Repository:
                   FOR UPDATE SKIP LOCKED
                   LIMIT 1
                 )
-                RETURNING id, ticker, status, run_id, error, requested_at, started_at, finished_at
+                RETURNING id, ticker, status, run_id, error,
+                          requested_at, started_at, finished_at, claim_token
                 """
             )
             row = cur.fetchone()
@@ -2827,11 +2831,17 @@ class Repository:
         return JobRow(*row) if row else None
 
     def requeue_stale_running_jobs(self, older_than: timedelta) -> int:
+        # Clear claim_token so the original worker's stored token will not
+        # match anything if/when it tries mark_job_done later (review
+        # 2026-05-16, B1; claim-token approach per codex review).
         with self._conn.cursor() as cur:
             cur.execute(
                 f"""
                 UPDATE {self._schema}.jobs
-                SET status='queued', started_at=NULL, error=NULL
+                SET status='queued',
+                    started_at=NULL,
+                    error=NULL,
+                    claim_token=NULL
                 WHERE status='running'
                   AND started_at < NOW() - %s
                 """,
@@ -2841,26 +2851,44 @@ class Repository:
         self._conn.commit()
         return count
 
-    def mark_job_done(self, job_id: str, run_id: int) -> None:
+    def mark_job_done(self, job_id: str, run_id: int, claim_token: Any) -> None:
+        # Claim-token guard against the requeue race (review 2026-05-16, B1):
+        # if requeue_stale_running_jobs cleared our token, or another worker
+        # has since reclaimed (with a fresh token), our update must be rejected.
         with self._conn.cursor() as cur:
             cur.execute(
                 f"""
                 UPDATE {self._schema}.jobs
-                SET status='done', run_id=%s, finished_at=NOW() WHERE id=%s
+                SET status='done', run_id=%s, finished_at=NOW()
+                WHERE id=%s AND claim_token=%s
                 """,
-                (run_id, job_id),
+                (run_id, job_id, claim_token),
             )
+            if cur.rowcount == 0:
+                logger.warning(
+                    "mark_job_done lost claim on job_id=%s "
+                    "(token mismatch; another worker may have reclaimed)",
+                    job_id,
+                )
         self._conn.commit()
 
-    def mark_job_failed(self, job_id: str, error: str) -> None:
+    def mark_job_failed(self, job_id: str, error: str, claim_token: Any) -> None:
+        # Claim-token guard (review 2026-05-16, B1).
         with self._conn.cursor() as cur:
             cur.execute(
                 f"""
                 UPDATE {self._schema}.jobs
-                SET status='failed', error=%s, finished_at=NOW() WHERE id=%s
+                SET status='failed', error=%s, finished_at=NOW()
+                WHERE id=%s AND claim_token=%s
                 """,
-                (error[:2000], job_id),
+                (error[:2000], job_id, claim_token),
             )
+            if cur.rowcount == 0:
+                logger.warning(
+                    "mark_job_failed lost claim on job_id=%s "
+                    "(token mismatch; another worker may have reclaimed)",
+                    job_id,
+                )
         self._conn.commit()
 
     def get_rescan_queue_summary(self) -> RescanQueueSummaryRow:
@@ -3132,7 +3160,8 @@ class Repository:
         with self._conn.cursor() as cur:
             cur.execute(
                 f"""
-                SELECT id, ticker, status, run_id, error, requested_at, started_at, finished_at
+                SELECT id, ticker, status, run_id, error,
+                       requested_at, started_at, finished_at, claim_token
                 FROM {self._schema}.jobs WHERE id=%s
                 """,
                 (job_id,),
