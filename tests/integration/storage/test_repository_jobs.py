@@ -103,6 +103,36 @@ def test_mark_job_done_no_op_when_job_was_reclaimed(repo: Repository):
     assert final.run_id == new_run_id
 
 
+def test_enqueue_rescan_job_refreshes_requested_at_on_dedup(repo: Repository):
+    """N2: a second enqueue for the same active ticker must bump requested_at,
+    so the UI's queue-position sort (tie-broken by requested_at ASC) reflects
+    the most recent click — not the first."""
+    import time
+
+    first_id = repo.enqueue_rescan_job("AAPL", priority=0)
+    first = repo.get_job(first_id)
+    assert first is not None
+    first_requested = first.requested_at
+
+    # Force a measurable gap so the timestamp comparison can't be a tie.
+    time.sleep(0.05)
+
+    second_id = repo.enqueue_rescan_job("AAPL", priority=5)
+    assert second_id == first_id  # dedup hit the same row
+    second = repo.get_job(second_id)
+    assert second is not None
+    assert second.requested_at > first_requested
+    # Verify GREATEST(priority) behavior preserved — read priority directly
+    # since JobRow doesn't project it.
+    with repo.conn.cursor() as cur:
+        cur.execute(
+            f"SELECT priority FROM {repo._schema}.jobs WHERE id=%s", (second_id,)
+        )
+        row = cur.fetchone()
+    assert row is not None
+    assert row[0] == 5
+
+
 def test_mark_job_failed_no_op_when_token_mismatch(repo: Repository):
     """Mirror of the above for mark_job_failed."""
     job_id = repo.enqueue_rescan_job("TSLA")

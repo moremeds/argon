@@ -2793,10 +2793,12 @@ class Repository:
                 INSERT INTO {self._schema}.jobs (ticker, status, priority)
                 VALUES (%s, 'queued', %s)
                 ON CONFLICT (ticker) WHERE status IN ('queued', 'running')
-                DO UPDATE SET priority = GREATEST(
-                    {self._schema}.jobs.priority,
-                    EXCLUDED.priority
-                )
+                DO UPDATE SET
+                    priority = GREATEST(
+                        {self._schema}.jobs.priority,
+                        EXCLUDED.priority
+                    ),
+                    requested_at = EXCLUDED.requested_at
                 RETURNING id
                 """,
                 (ticker, priority),
