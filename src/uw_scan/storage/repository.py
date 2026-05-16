@@ -21,6 +21,7 @@ from psycopg import sql as psql
 from psycopg.types.json import Jsonb
 
 from .. import models
+from ._base import _BaseMixin
 
 # Pure helpers live in _helpers.py since the PR-1 split. provider_day_bounds,
 # status_family_for, and redact_params are imported from this module by
@@ -328,16 +329,12 @@ _RECORD_HEALTH_EXCLUDED_TABLES = {
 logger = logging.getLogger(__name__)
 
 
-class Repository:
-    """Repository wraps a psycopg connection and exposes typed CRUD."""
+class Repository(_BaseMixin):
+    """Repository wraps a psycopg connection and exposes typed CRUD.
 
-    def __init__(self, conn: psycopg.Connection, schema: str = "uw_scan") -> None:
-        self._conn = conn
-        self._schema = schema
-
-    @property
-    def conn(self) -> psycopg.Connection:
-        return self._conn
+    Inherits __init__ and the conn property from _BaseMixin. As PR-1/2/3
+    progress this class will gain per-domain mixins (_AuditMixin,
+    _FlowMixin, ...); _BaseMixin stays LAST in the inheritance list."""
 
     # ------------------------------------------------------------------
     # scan_runs
