@@ -9,7 +9,6 @@ from uw_scan.models import (
     TradeInsightAiOutcome,
     VolHeaderBlock,
 )
-from uw_scan.reports.volatility_series import assemble_volatility_series
 from uw_scan.reports.trade_insights_ai import (
     PROMPT_VERSION,
     build_trade_insights_ai_analysis_input,
@@ -20,6 +19,7 @@ from uw_scan.reports.trade_insights_ai import (
     trade_insights_ai_output_schema,
     validate_trade_insights_ai_outcome,
 )
+from uw_scan.reports.volatility_series import assemble_volatility_series
 
 
 def _sample_outcome() -> dict:
@@ -303,7 +303,9 @@ def _source_payloads() -> dict[str, dict]:
                 for day in range(1, 71)
             ],
             "option_chain_per_strike": chain_rows,
-            "oi_change_top": [{"option_symbol": f"TSLA{i}", "volume": i} for i in range(50)],
+            "oi_change_top": [
+                {"option_symbol": f"TSLA{i}", "volume": i} for i in range(50)
+            ],
             "aggregates": {
                 "call_volume_total": 1000,
                 "put_volume_total": 900,
@@ -348,8 +350,7 @@ def _source_payloads() -> dict[str, dict]:
                 {
                     "expiry": f"2026-06-{day:02d}",
                     "points": [
-                        {"strike": str(300 + i), "iv": "0.40"}
-                        for i in range(30)
+                        {"strike": str(300 + i), "iv": "0.40"} for i in range(30)
                     ],
                 }
                 for day in range(1, 8)
@@ -358,7 +359,10 @@ def _source_payloads() -> dict[str, dict]:
                 {"date": f"2026-01-{(i % 28) + 1:02d}", "iv": "0.42", "rv": "0.31"}
                 for i in range(95)
             ],
-            "iv_percentile_distribution": {"current_iv": "0.42", "current_percentile": "0.034"},
+            "iv_percentile_distribution": {
+                "current_iv": "0.42",
+                "current_percentile": "0.034",
+            },
             "iv_of_iv": [{"date": str(i), "value": "0.1"} for i in range(95)],
             "rv_spy_corr": [{"date": str(i), "value": "0.5"} for i in range(95)],
             "regime_quadrant": {"latest": {"label": "low_vol"}},
@@ -382,7 +386,9 @@ def _source_payloads() -> dict[str, dict]:
             "source_reconciliation": {"status": "UNKNOWN"},
             "signal_stack": [{"lens": "flow", "read": "bullish", "evidence": []}],
             "flow_table": [{"strike": "385", "read": "Call demand concentrated"}],
-            "term_structure_table": [{"expiry": "2026-05-15", "read": "Front elevated"}],
+            "term_structure_table": [
+                {"expiry": "2026-05-15", "read": "Front elevated"}
+            ],
             "candidate_structures": [
                 {
                     "idea_id": "A",
@@ -401,7 +407,7 @@ def _source_payloads() -> dict[str, dict]:
                     "max_loss": "12.00",
                     "max_profit": None,
                     "rank": 3,
-                }
+                },
             ],
             "synthesis": {
                 "dominant_story": "Cheap vol with bullish flow near resistance.",
@@ -442,7 +448,10 @@ def test_build_trade_insights_ai_analysis_input_uses_real_tab_payload_fields():
     analysis_input = _analysis_input()
 
     assert analysis_input["prompt_version"] == PROMPT_VERSION
-    assert analysis_input["tabs"]["market_structure"]["market_structure"]["spot"] == "380.88"
+    assert (
+        analysis_input["tabs"]["market_structure"]["market_structure"]["spot"]
+        == "380.88"
+    )
     assert analysis_input["tabs"]["volatility"]["header"]["iv_rank"] == "3.4"
     assert analysis_input["tabs"]["flow"]["flow"]["net_premium"] == "524300000"
     assert analysis_input["tabs"]["positioning"]["short_data"]["fee_rate"] == "0.35"
@@ -464,7 +473,9 @@ def test_trade_insights_ai_analysis_hash_is_stable_and_ignores_volatile_times():
         trade_insights=payloads["trade_insights"],
     )
 
-    assert hash_trade_insights_ai_analysis_input(first) == hash_trade_insights_ai_analysis_input(second)
+    assert hash_trade_insights_ai_analysis_input(
+        first
+    ) == hash_trade_insights_ai_analysis_input(second)
 
     prompt_payload = build_trade_insights_ai_prompt_payload(
         first,
@@ -474,20 +485,26 @@ def test_trade_insights_ai_analysis_hash_is_stable_and_ignores_volatile_times():
         **prompt_payload,
         "analysis_produced_at": "2026-03-25T20:18:42Z",
     }
-    assert hash_trade_insights_ai_analysis_input(prompt_payload) == hash_trade_insights_ai_analysis_input(
-        changed_prompt_payload
-    )
+    assert hash_trade_insights_ai_analysis_input(
+        prompt_payload
+    ) == hash_trade_insights_ai_analysis_input(changed_prompt_payload)
 
 
 def test_trade_insights_ai_analysis_hash_changes_for_each_deterministic_lens():
     base_hash = hash_trade_insights_ai_analysis_input(_analysis_input())
 
     for key, mutate in [
-        ("stock_report", lambda p: p["market_structure"].update({"net_gex": "changed"})),
+        (
+            "stock_report",
+            lambda p: p["market_structure"].update({"net_gex": "changed"}),
+        ),
         ("volatility", lambda p: p["header"].update({"iv_rank": "55"})),
         ("stock_report", lambda p: p["flow"].update({"net_premium": "1"})),
         ("stock_report", lambda p: p["short_data"].update({"fee_rate": "9.99"})),
-        ("trade_insights", lambda p: p["synthesis"].update({"dominant_story": "changed"})),
+        (
+            "trade_insights",
+            lambda p: p["synthesis"].update({"dominant_story": "changed"}),
+        ),
     ]:
         payloads = _source_payloads()
         mutate(payloads[key])
@@ -502,12 +519,17 @@ def test_trade_insights_ai_analysis_hash_changes_for_each_deterministic_lens():
 def test_trade_insights_ai_prompt_prunes_long_arrays_and_allows_empty_history():
     analysis_input = _analysis_input()
 
-    assert len(analysis_input["tabs"]["market_structure"]["stock_history"]["rows"]) == 30
+    assert (
+        len(analysis_input["tabs"]["market_structure"]["stock_history"]["rows"]) == 30
+    )
     assert len(analysis_input["tabs"]["market_structure"]["strike_gex_curve"]) <= 43
     assert len(analysis_input["tabs"]["market_structure"]["max_pain_rows"]) == 12
     assert len(analysis_input["tabs"]["volatility"]["term_structure"]) == 20
     assert len(analysis_input["tabs"]["volatility"]["smile"]) == 6
-    assert all(len(curve["points"]) <= 25 for curve in analysis_input["tabs"]["volatility"]["smile"])
+    assert all(
+        len(curve["points"]) <= 25
+        for curve in analysis_input["tabs"]["volatility"]["smile"]
+    )
     assert len(analysis_input["tabs"]["volatility"]["hv_iv_history"]) == 90
     assert len(analysis_input["tabs"]["flow"]["options_timeline"]) == 60
     assert len(analysis_input["tabs"]["flow"]["option_chain_per_strike"]) == 120
@@ -540,19 +562,33 @@ def test_trade_insights_ai_prompt_payload_and_prompt_are_recommendation_oriented
     prompt = build_trade_insights_ai_prompt(prompt_payload)
 
     assert prompt_payload["analysis_produced_at"] == "2026-03-24T20:18:42Z"
-    assert prompt_payload["analysis_input_hash"] == hash_trade_insights_ai_analysis_input(analysis_input)
-    assert "You are an institutional options strategist, market-structure analyst, and risk manager." in prompt
+    assert prompt_payload[
+        "analysis_input_hash"
+    ] == hash_trade_insights_ai_analysis_input(analysis_input)
+    assert (
+        "You are an institutional options strategist, market-structure analyst, and risk manager."
+        in prompt
+    )
     assert "Analyze only the supplied combined deterministic prompt payload" in prompt
     assert "Do not fetch outside data" in prompt
     assert "1. Market Structure" in prompt
     assert "2. Volatility" in prompt
     assert "3. Flow and Positioning" in prompt
-    assert "The objective is to produce a high-quality trading interpretation, not a dashboard summary." in prompt
+    assert (
+        "The objective is to produce a high-quality trading interpretation, not a dashboard summary."
+        in prompt
+    )
     assert "Trade recommendations must include entry trigger" in prompt
-    assert "Do not defer solely because a deterministic candidate status is needs_check" in prompt
+    assert (
+        "Do not defer solely because a deterministic candidate status is needs_check"
+        in prompt
+    )
     assert "All recommendations are research-only and not financial advice." in prompt
     assert f"schema_version must exactly equal {PROMPT_VERSION}" in prompt
-    assert "Map the full report into the existing TradeInsightAiOutcome JSON fields" in prompt
+    assert (
+        "Map the full report into the existing TradeInsightAiOutcome JSON fields"
+        in prompt
+    )
     assert "does not prohibit research recommendations" in prompt
     assert "# {{ticker}} Options Market Intelligence Report" in prompt
     assert "## 5. Cross-Pillar Conflict Resolution" in prompt
@@ -568,7 +604,9 @@ def test_trade_insights_ai_output_schema_requires_structured_sections():
 
     assert schema["title"] == "TradeInsightAiOutcome"
     assert schema["properties"]["schema_version"]["const"] == PROMPT_VERSION
-    assert schema["$defs"]["TradeInsightAiHeadline"]["properties"]["conviction"]["enum"] == [
+    assert schema["$defs"]["TradeInsightAiHeadline"]["properties"]["conviction"][
+        "enum"
+    ] == [
         "A",
         "B",
         "C",
@@ -594,27 +632,37 @@ def test_validate_trade_insights_ai_outcome_rejects_candidate_guardrail_drift():
     bad_idea = _sample_outcome_for(deterministic)
     bad_idea["best_expressions"][0]["idea_id"] = "UNKNOWN"
     with pytest.raises(ValueError, match="unknown idea_id"):
-        validate_trade_insights_ai_outcome(bad_idea, deterministic, produced_at=produced_at)
+        validate_trade_insights_ai_outcome(
+            bad_idea, deterministic, produced_at=produced_at
+        )
 
     bad_status = _sample_outcome_for(deterministic)
     bad_status["preferred_expression"]["status_observed"] = "ready"
     with pytest.raises(ValueError, match="status_observed"):
-        validate_trade_insights_ai_outcome(bad_status, deterministic, produced_at=produced_at)
+        validate_trade_insights_ai_outcome(
+            bad_status, deterministic, produced_at=produced_at
+        )
 
     bad_flags = _sample_outcome_for(deterministic)
     bad_flags["preferred_expression"]["risk_flags_observed"] = []
     with pytest.raises(ValueError, match="risk_flags_observed"):
-        validate_trade_insights_ai_outcome(bad_flags, deterministic, produced_at=produced_at)
+        validate_trade_insights_ai_outcome(
+            bad_flags, deterministic, produced_at=produced_at
+        )
 
     bad_guardrails = _sample_outcome_for(deterministic)
     bad_guardrails["guardrails"]["statuses_preserved"] = False
     with pytest.raises(ValueError, match="guardrails"):
-        validate_trade_insights_ai_outcome(bad_guardrails, deterministic, produced_at=produced_at)
+        validate_trade_insights_ai_outcome(
+            bad_guardrails, deterministic, produced_at=produced_at
+        )
 
     bad_rating = _sample_outcome_for(deterministic)
     bad_rating["headline"]["conviction"] = "Medium-low actionable conviction"
     with pytest.raises(ValueError, match="final rating"):
-        validate_trade_insights_ai_outcome(bad_rating, deterministic, produced_at=produced_at)
+        validate_trade_insights_ai_outcome(
+            bad_rating, deterministic, produced_at=produced_at
+        )
 
     bad_conflict_ref = _sample_outcome_for(deterministic)
     bad_conflict_ref["conflicts"][0]["affected_idea_ids"] = ["UNKNOWN"]
@@ -674,9 +722,7 @@ def test_validate_trade_insights_ai_outcome_rejects_undefined_risk_preferred_str
     best_short_strangle = _sample_outcome_for(deterministic)
     best_short_strangle["best_expressions"][0]["idea_id"] = "short_strangle"
     best_short_strangle["best_expressions"][0]["structure"] = "short_strangle"
-    best_short_strangle["best_expressions"][0]["status_observed"] = (
-        "strategy_review"
-    )
+    best_short_strangle["best_expressions"][0]["status_observed"] = "strategy_review"
     best_short_strangle["best_expressions"][0]["risk_flags_observed"] = []
     with pytest.raises(ValueError, match="undefined-risk"):
         validate_trade_insights_ai_outcome(
@@ -693,7 +739,9 @@ def test_validate_trade_insights_ai_outcome_rejects_time_and_section_mismatches(
     bad_time = _sample_outcome_for(deterministic)
     bad_time["analysis_produced_at"] = "2026-03-24T20:19:42Z"
     with pytest.raises(ValueError, match="analysis_produced_at"):
-        validate_trade_insights_ai_outcome(bad_time, deterministic, produced_at=produced_at)
+        validate_trade_insights_ai_outcome(
+            bad_time, deterministic, produced_at=produced_at
+        )
 
     missing_section = _sample_outcome_for(deterministic)
     del missing_section["section_cards"]["flow_positioning"]
@@ -710,9 +758,13 @@ def test_validate_trade_insights_ai_outcome_rejects_source_path_problems():
     produced_at = datetime(2026, 3, 24, 20, 18, 42, tzinfo=timezone.utc)
 
     unavailable = _sample_outcome_for(deterministic)
-    unavailable["metric_cards"][0]["source_path"] = "tabs.market_structure.charm_summary"
+    unavailable["metric_cards"][0]["source_path"] = (
+        "tabs.market_structure.charm_summary"
+    )
     with pytest.raises(ValueError, match="unavailable"):
-        validate_trade_insights_ai_outcome(unavailable, deterministic, produced_at=produced_at)
+        validate_trade_insights_ai_outcome(
+            unavailable, deterministic, produced_at=produced_at
+        )
 
     missing_source_path = _sample_outcome_for(deterministic)
     missing_source_path["metric_cards"][0]["source_path"] = None
@@ -726,12 +778,16 @@ def test_validate_trade_insights_ai_outcome_rejects_source_path_problems():
     bad_prefix = _sample_outcome_for(deterministic)
     bad_prefix["metric_cards"][0]["source_path"] = "tabs.flow.not_a_real_family"
     with pytest.raises(ValueError, match="source_path"):
-        validate_trade_insights_ai_outcome(bad_prefix, deterministic, produced_at=produced_at)
+        validate_trade_insights_ai_outcome(
+            bad_prefix, deterministic, produced_at=produced_at
+        )
 
     bad_leaf = _sample_outcome_for(deterministic)
     bad_leaf["metric_cards"][0]["source_path"] = "tabs.volatility.header.not_real"
     with pytest.raises(ValueError, match="source_path"):
-        validate_trade_insights_ai_outcome(bad_leaf, deterministic, produced_at=produced_at)
+        validate_trade_insights_ai_outcome(
+            bad_leaf, deterministic, produced_at=produced_at
+        )
 
 
 def test_validate_trade_insights_ai_outcome_accepts_array_family_source_paths():
@@ -799,8 +855,8 @@ def test_validate_trade_insights_ai_outcome_accepts_sparse_array_source_paths():
         "call_open_interest",
         None,
     )
-    sparse_path["snapshot"]["analysis_input_hash"] = hash_trade_insights_ai_analysis_input(
-        deterministic
+    sparse_path["snapshot"]["analysis_input_hash"] = (
+        hash_trade_insights_ai_analysis_input(deterministic)
     )
 
     parsed = validate_trade_insights_ai_outcome(
@@ -818,12 +874,16 @@ def test_validate_trade_insights_ai_outcome_rejects_field_aware_imperatives():
 
     allowed = _sample_outcome_for(deterministic)
     allowed["headline"]["stance_label"] = "BUY setup"
-    assert validate_trade_insights_ai_outcome(allowed, deterministic, produced_at=produced_at)
+    assert validate_trade_insights_ai_outcome(
+        allowed, deterministic, produced_at=produced_at
+    )
 
     rejected = _sample_outcome_for(deterministic)
     rejected["preferred_expression"]["title"] = "Buy now"
     with pytest.raises(ValueError, match="imperative"):
-        validate_trade_insights_ai_outcome(rejected, deterministic, produced_at=produced_at)
+        validate_trade_insights_ai_outcome(
+            rejected, deterministic, produced_at=produced_at
+        )
 
     advice_order = _sample_outcome_for(deterministic)
     advice_order["preferred_expression"]["why"] = (
@@ -862,20 +922,24 @@ def test_render_trade_insights_ai_markdown_uses_structured_sections():
 
 class _FakeVolRepo:
     def __init__(self, rv_rows: list[dict] | None = None):
-        self.rv_rows = rv_rows if rv_rows is not None else [
-            {
-                "market_date": "2026-03-20",
-                "price": "100",
-                "implied_volatility": "0.40",
-                "realized_volatility": "0.30",
-            },
-            {
-                "market_date": "2026-03-21",
-                "price": "101",
-                "implied_volatility": "0.41",
-                "realized_volatility": "0.31",
-            },
-        ]
+        self.rv_rows = (
+            rv_rows
+            if rv_rows is not None
+            else [
+                {
+                    "market_date": "2026-03-20",
+                    "price": "100",
+                    "implied_volatility": "0.40",
+                    "realized_volatility": "0.30",
+                },
+                {
+                    "market_date": "2026-03-21",
+                    "price": "101",
+                    "implied_volatility": "0.41",
+                    "realized_volatility": "0.31",
+                },
+            ]
+        )
         self.conn = self
         self.commits = 0
 
@@ -926,7 +990,9 @@ def test_assemble_volatility_series_read_only_mode_skips_derived_persistence(
         persist_derived=False,
     )
 
-    assert default_response.model_dump(mode="json") == read_only_response.model_dump(mode="json")
+    assert default_response.model_dump(mode="json") == read_only_response.model_dump(
+        mode="json"
+    )
     assert calls == {"vrp": 1, "analytics": 1}
     assert repo.commits == 1
 
@@ -968,3 +1034,22 @@ def test_assemble_volatility_series_read_only_mode_accepts_empty_history(
     assert response.hv_iv_history == []
     assert response.vrp_spread == []
     assert repo.commits == 0
+
+
+def test_to_decimal_returns_none_for_invalid_input():
+    """R1: _to_decimal previously returned Decimal('0') on any conversion
+    failure (including the very common case of a missing dict key returning
+    None from .get()). It must return None instead so call sites can decide
+    explicitly between 'treat as 0' and 'sort to end'."""
+    from decimal import Decimal
+
+    from uw_scan.reports.trade_insights_ai import _to_decimal
+
+    assert _to_decimal(None) is None
+    assert _to_decimal("not a number") is None
+    assert _to_decimal("") is None
+
+    # Valid inputs still coerce.
+    assert _to_decimal("3.14") == Decimal("3.14")
+    assert _to_decimal(42) == Decimal(42)
+    assert _to_decimal(Decimal("1.5")) == Decimal("1.5")

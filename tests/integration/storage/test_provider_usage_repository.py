@@ -91,7 +91,9 @@ def test_external_api_request_roundtrip(repo: Repository):
     )
 
 
-def test_external_api_usage_summary_counts_latency_and_latest_official(repo: Repository):
+def test_external_api_usage_summary_counts_latency_and_latest_official(
+    repo: Repository,
+):
     start = datetime(2026, 5, 14, 0, 0, tzinfo=UTC)
     end = datetime(2026, 5, 15, 0, 0, tzinfo=UTC)
 
@@ -265,3 +267,62 @@ def test_external_api_usage_breakdowns_and_request_filters(repo: Repository):
     assert len(request_rows) == 1
     assert request_rows[0].endpoint_key == "greek_exposure"
     assert request_rows[0].params == {"ticker": "TSLA"}
+
+
+def test_get_throughput_summary_returns_none_for_non_uw_provider(repo: Repository):
+    """B2: scan_runs and jobs are UW-only data sources. When the caller asks
+    about a provider that isn't UW (e.g., 'massive'), don't return UW values
+    labelled as that provider's. Return None for the UW-derived fields."""
+    start = datetime(2026, 5, 14, 14, 0, tzinfo=UTC)
+    end = datetime(2026, 5, 14, 14, 15, tzinfo=UTC)
+    massive_ts = start + timedelta(minutes=5)
+
+    repo.insert_external_api_request(
+        provider="massive",
+        endpoint_key="agg_intraday",
+        method="GET",
+        path="/v2/aggs/ticker/AAPL/range/1/minute/2026-05-16/2026-05-16",
+        ticker="AAPL",
+        params={},
+        status_code=200,
+        status_family="2xx",
+        started_at=massive_ts,
+        finished_at=massive_ts,
+        latency_ms=42,
+        job_name="spot_refresh",
+    )
+
+    # Seed UW scan_runs + jobs in the same window so a missing provider filter
+    # would 'leak' UW values into the massive response.
+    with repo.conn.cursor() as cur:
+        cur.execute(
+            f"""
+            INSERT INTO {repo._schema}.scan_runs
+              (ticker, started_at, finished_at, status, notes)
+            VALUES ('TSLA', %s, %s, 'ok', '')
+            """,
+            (start, start + timedelta(seconds=60)),
+        )
+        cur.execute(
+            f"""
+            INSERT INTO {repo._schema}.jobs
+              (ticker, status, requested_at, started_at, finished_at)
+            VALUES ('TSLA', 'done', %s, %s, %s)
+            """,
+            (start, start, start + timedelta(minutes=2)),
+        )
+    repo.conn.commit()
+
+    summary = repo.get_throughput_summary("massive", start, end)
+
+    assert summary.avg_scan_duration_seconds is None, (
+        "avg_scan_duration_seconds is derived from scan_runs (UW-only) — "
+        "must not be returned under provider='massive'"
+    )
+    assert summary.queue_drain_rate_per_minute is None, (
+        "queue_drain_rate_per_minute is derived from jobs (UW rescans only) — "
+        "must not be returned under provider='massive'"
+    )
+    # The HTTP-request-derived fields are still reported for massive.
+    assert summary.requests_per_minute > 0
+    assert summary.http_429 == 0
