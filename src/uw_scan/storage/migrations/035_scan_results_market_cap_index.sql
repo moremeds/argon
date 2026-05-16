@@ -1,4 +1,6 @@
--- 028_scan_results_market_cap_index.sql — N6 from backend code review.
+-- 035_scan_results_market_cap_index.sql — N6 from backend code review.
+-- (Originally numbered 028; renumbered to 035 after rebase against main
+-- which had landed 028-034 in the cockpit-matrix branch.)
 --
 -- The watchlist endpoint's latest_market_caps CTE does:
 --   SELECT DISTINCT ON (ticker) ticker, marketcap
