@@ -217,3 +217,57 @@ def test_requeue_stale_running_jobs(repo):
     assert job is not None
     assert job.status == "queued"
     assert job.started_at is None
+
+
+def test_list_watchlist_cards_with_queue_summary_matches_standalone(repo):
+    """N8: the folded summary must equal what get_rescan_queue_summary returns
+    when the watchlist has rows. Used by /api/watchlist to collapse 2 DB
+    queries into 1 in the common path.
+
+    Note: migrations 006-011 seed ~96 production tickers into the watchlist,
+    so we use ZZ-prefixed sentinel tickers to assert specific card presence
+    and verify summary equality against get_rescan_queue_summary."""
+    repo.add_watchlist_ticker(ticker="ZZTEST", sector="ETF", notes="t")
+    repo.add_watchlist_ticker(ticker="ZZALT", sector="ETF", notes="t")
+    repo.enqueue_rescan_job("ZZTEST")
+    repo.enqueue_rescan_job("ZZALT")
+
+    rows, summary_inline = repo.list_watchlist_cards_with_queue_summary()
+    summary_standalone = repo.get_rescan_queue_summary()
+
+    by_ticker = {card.ticker: card for card in rows}
+    assert "ZZTEST" in by_ticker
+    assert "ZZALT" in by_ticker
+
+    assert summary_inline.total == summary_standalone.total
+    assert summary_inline.queued == summary_standalone.queued
+    assert summary_inline.running == summary_standalone.running
+    assert summary_inline.oldest_requested_at == summary_standalone.oldest_requested_at
+
+
+def test_list_watchlist_cards_with_queue_summary_empty_watchlist_active_jobs(repo):
+    """Codex ISSUE-3: 'empty' watchlist (all rows soft-deleted) + active jobs
+    must still report real summary counts. CROSS JOIN drops all rows when no
+    watchlist row passes the WHERE removed_at IS NULL filter, so the method
+    falls back to get_rescan_queue_summary.
+
+    FK jobs.ticker → watchlist.ticker requires the ticker to exist in the
+    watchlist table (regardless of removed_at), so we enqueue jobs against
+    seeded tickers, then soft-delete every watchlist row to simulate the
+    'no visible cards' state."""
+    # Pick two tickers that are guaranteed seeded (migrations 006-011).
+    repo.enqueue_rescan_job("AAPL")
+    repo.enqueue_rescan_job("MSFT")
+
+    # Now soft-delete the entire watchlist so list_watchlist_cards returns 0.
+    with repo.conn.cursor() as cur:
+        cur.execute(f"UPDATE {repo._schema}.watchlist SET removed_at = NOW()")
+    repo.conn.commit()
+
+    rows, summary = repo.list_watchlist_cards_with_queue_summary()
+
+    assert rows == []
+    assert summary.total == 2  # NOT zero — regression guard
+    assert summary.queued == 2
+    assert summary.running == 0
+    assert summary.oldest_requested_at is not None

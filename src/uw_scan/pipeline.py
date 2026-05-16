@@ -28,12 +28,45 @@ from .reports.trade_insights import (
 )
 from .scan_universe import S2_UNIVERSE
 from .sources import uw as uw_sources
-from .storage.repository import Repository
 from .storage.provider_usage import ExternalApiRequestRecorder
+from .storage.repository import Repository
 
 logger = logging.getLogger(__name__)
 
 FLOW_ALERT_LIMIT = 100
+
+# A1 from backend code review addendum: cache ETF AUM lookups to skip the
+# per-scan /etf_info UW round trip. AUM moves weekly at most.
+ETF_AUM_TTL = timedelta(days=7)
+
+
+def _get_or_fetch_etf_aum(
+    *,
+    ticker: str,
+    repo: Repository,
+    client: UwClient,
+    run_id: int,
+) -> Decimal | None:
+    """Cache-or-fetch ETF AUM. Returns the cached value when fresh, otherwise
+    fetches from UW, upserts the result, and returns it. Returns None when
+    both cache and fetch yield no value (caller treats this as 'no AUM data',
+    which demotes the ticker in the sort)."""
+    cached = repo.get_recent_etf_aum(ticker, max_age=ETF_AUM_TTL)
+    if cached is not None:
+        return cached
+    try:
+        etf_info = uw_sources.fetch_etf_info(client, repo, run_id, ticker)
+    except Exception as exc:  # noqa: BLE001 — card sort hint only; never break scan
+        logger.warning(
+            "ETF info fetch failed for %s: %s — using None aum (sort will demote)",
+            ticker,
+            repr(exc),
+        )
+        return None
+    aum = etf_info.aum
+    if aum is not None:
+        repo.upsert_etf_aum(ticker, aum)
+    return aum
 
 
 def _next_friday(today: _date) -> _date:
@@ -260,11 +293,12 @@ def run_single_stock(
         if screener_row is not None:
             etf_aum = None
             if (screener_row.issue_type or "").upper() == "ETF":
-                try:
-                    etf_info = uw_sources.fetch_etf_info(client, repo, run_id, ticker)
-                    etf_aum = etf_info.aum
-                except Exception as exc:  # noqa: BLE001 — card sort hint only
-                    logger.warning("ETF info fetch failed for %s: %s", ticker, repr(exc))
+                etf_aum = _get_or_fetch_etf_aum(
+                    ticker=ticker,
+                    repo=repo,
+                    client=client,
+                    run_id=run_id,
+                )
             pcr_vol = None
             if screener_row.put_volume and screener_row.call_volume:
                 pcr_vol = Decimal(screener_row.put_volume) / Decimal(
