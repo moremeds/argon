@@ -1,5 +1,11 @@
 /* @vitest-environment jsdom */
-import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { ScanAllButton } from "@/components/shared/ScanAllButton";
@@ -18,6 +24,7 @@ vi.mock("@/lib/api", () => ({
     rescan: vi.fn(),
     rescanAll: vi.fn(),
     job: vi.fn(),
+    patchTicker: vi.fn(),
   },
 }));
 
@@ -28,6 +35,7 @@ afterEach(() => {
   vi.mocked(api.rescan).mockReset();
   vi.mocked(api.rescanAll).mockReset();
   vi.mocked(api.job).mockReset();
+  vi.mocked(api.patchTicker).mockReset();
 });
 
 function installDialogPolyfill() {
@@ -213,7 +221,9 @@ describe("AddTickerDialog", () => {
 
     fireEvent.click(screen.getByRole("option", { name: "Power" }));
 
-    expect(screen.getByRole("button", { name: /sector power/i })).not.toBeNull();
+    expect(
+      screen.getByRole("button", { name: /sector power/i }),
+    ).not.toBeNull();
     expect(screen.queryByRole("listbox")).toBeNull();
   });
 

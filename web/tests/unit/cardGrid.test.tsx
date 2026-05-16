@@ -105,4 +105,58 @@ describe("CardGrid", () => {
       ["HUT"],
     ]);
   });
+
+  it("places pinned cards first within their sector regardless of size", () => {
+    render(
+      <CardGrid
+        data={{
+          scanned_at_min: null,
+          scanned_at_max: null,
+          scheduler_lag_seconds: null,
+          queue: { total: 0, queued: 0, running: 0, oldest_requested_at: null },
+          tickers: [
+            { ...card("AAPL", "M7", 201, "3000"), pinned: false },
+            { ...card("TSLA", "M7", 206, "900"), pinned: true },
+          ],
+        }}
+        sparklines={{}}
+      />,
+    );
+
+    const section = screen
+      .getByRole("heading")
+      .closest("section") as HTMLElement;
+    const order = within(section)
+      .getAllByTestId("ticker-card")
+      .map((el) => el.textContent);
+
+    expect(order).toEqual(["TSLA", "AAPL"]);
+  });
+
+  it("breaks final ties alphabetically by ticker when nothing else differs", () => {
+    render(
+      <CardGrid
+        data={{
+          scanned_at_min: null,
+          scanned_at_max: null,
+          scheduler_lag_seconds: null,
+          queue: { total: 0, queued: 0, running: 0, oldest_requested_at: null },
+          tickers: [
+            card("ZZZ", "ETF", 100, null),
+            card("AAA", "ETF", 100, null),
+          ],
+        }}
+        sparklines={{}}
+      />,
+    );
+
+    const section = screen
+      .getByRole("heading")
+      .closest("section") as HTMLElement;
+    const order = within(section)
+      .getAllByTestId("ticker-card")
+      .map((el) => el.textContent);
+
+    expect(order).toEqual(["AAA", "ZZZ"]);
+  });
 });

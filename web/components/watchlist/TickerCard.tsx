@@ -17,6 +17,7 @@ import {
 } from "@/lib/formatters";
 import { bucketFreshness } from "@/lib/freshness";
 import { RescanButton } from "@/components/shared/RescanButton";
+import { PinButton } from "./PinButton";
 
 type Card = components["schemas"]["WatchlistCard"];
 type Props = { card: Card; sparkline: number[] };
@@ -190,13 +191,18 @@ export function TickerCard({ card, sparkline }: Props) {
           <div>spot {fmtDateTimeWithZone(card.spot_quoted_at)}</div>
           <div>
             analytics{" "}
-            {card.scanned_at ? fmtDateTimeWithZone(card.scanned_at) : "not scanned"}
+            {card.scanned_at
+              ? fmtDateTimeWithZone(card.scanned_at)
+              : "not scanned"}
           </div>
           {queueLabel && (
             <div style={{ color: "var(--warning)" }}>{queueLabel}</div>
           )}
         </div>
-        <RescanButton ticker={card.ticker} initialJob={card.queue ?? null} />
+        <div style={{ display: "flex", alignItems: "center" }}>
+          <PinButton ticker={card.ticker} pinned={card.pinned} />
+          <RescanButton ticker={card.ticker} initialJob={card.queue ?? null} />
+        </div>
       </div>
       {showNotReady && (
         <StockNotReadyDialog

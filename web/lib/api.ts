@@ -37,13 +37,23 @@ type TradeInsightsAiAnalysisResponse = Json<
   "/api/stock/{ticker}/trade-insights/ai-analysis",
   "post"
 >;
+type CockpitStateResponse = Json<"/api/cockpit/{ticker}/state", "get">;
+type CockpitDealerResponse = Json<"/api/cockpit/{ticker}/dealer", "get">;
+type CockpitSurfaceResponse = Json<"/api/cockpit/{ticker}/surface", "get">;
+type CockpitFlowImResponse = Json<"/api/cockpit/{ticker}/flow-im", "get">;
+type CockpitVrpResponse = Json<"/api/cockpit/{ticker}/vrp", "get">;
 
-async function _fetch<T>(path: string, init?: RequestInit): Promise<T> {
+async function _fetch<T>(
+  path: string,
+  init?: RequestInit,
+  options: { allow404?: boolean } = {},
+): Promise<T> {
   const r = await fetch(`${API}${path}`, {
     ...init,
     headers: { "Content-Type": "application/json", ...(init?.headers ?? {}) },
     cache: "no-store",
   });
+  if (options.allow404 && r.status === 404) return null as T;
   if (!r.ok) {
     throw new Error(`API ${r.status} for ${path}: ${await r.text()}`);
   }
@@ -68,6 +78,61 @@ export const api = {
     _fetch<StockHistoryResponse>(`/api/stock/${ticker}/history`),
   volatilitySeries: (ticker: string): Promise<VolatilitySeriesResponse> =>
     _fetch<VolatilitySeriesResponse>(`/api/stock/${ticker}/volatility/series`),
+  cockpitState: (
+    ticker: string,
+    asof?: string,
+  ): Promise<CockpitStateResponse | null> => {
+    const q = asof ? `?asof=${encodeURIComponent(asof)}` : "";
+    return _fetch<CockpitStateResponse | null>(
+      `/api/cockpit/${ticker}/state${q}`,
+      undefined,
+      { allow404: true },
+    );
+  },
+  cockpitDealer: (
+    ticker: string,
+    asof?: string,
+  ): Promise<CockpitDealerResponse | null> => {
+    const q = asof ? `?asof=${encodeURIComponent(asof)}` : "";
+    return _fetch<CockpitDealerResponse | null>(
+      `/api/cockpit/${ticker}/dealer${q}`,
+      undefined,
+      { allow404: true },
+    );
+  },
+  cockpitSurface: (
+    ticker: string,
+    asof?: string,
+  ): Promise<CockpitSurfaceResponse | null> => {
+    const q = asof ? `?asof=${encodeURIComponent(asof)}` : "";
+    return _fetch<CockpitSurfaceResponse | null>(
+      `/api/cockpit/${ticker}/surface${q}`,
+      undefined,
+      { allow404: true },
+    );
+  },
+  cockpitFlowIm: (
+    ticker: string,
+    asof?: string,
+  ): Promise<CockpitFlowImResponse | null> => {
+    const q = asof ? `?asof=${encodeURIComponent(asof)}` : "";
+    return _fetch<CockpitFlowImResponse | null>(
+      `/api/cockpit/${ticker}/flow-im${q}`,
+      undefined,
+      { allow404: true },
+    );
+  },
+  cockpitVrp: (
+    ticker: string,
+    asof?: string,
+  ): Promise<CockpitVrpResponse | null> => {
+    const q = asof ? `?asof=${encodeURIComponent(asof)}` : "";
+    return _fetch<CockpitVrpResponse | null>(
+      `/api/cockpit/${ticker}/vrp${q}`,
+      undefined,
+      { allow404: true },
+    );
+  },
   tradeInsights: (ticker: string): Promise<TradeInsightsResponse> =>
     _fetch<TradeInsightsResponse>(`/api/stock/${ticker}/trade-insights`),
   tradeInsightsAiAnalysis: (
@@ -141,7 +206,12 @@ export const api = {
 };
 
 export type {
+  CockpitDealerResponse,
+  CockpitFlowImResponse,
   JobStatus,
+  CockpitStateResponse,
+  CockpitSurfaceResponse,
+  CockpitVrpResponse,
   OhlcResponse,
   SingleStockReport,
   TradeInsightsAiAnalysisResponse,

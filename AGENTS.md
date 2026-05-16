@@ -51,6 +51,7 @@ Environment:
 - **Data source priority**: IB → UW → FMP → massive (OHLC). Yahoo is banned
 - **No secrets to local Codex subprocesses** — do not pass UW/FMP/Massive keys, DB credentials, or unrelated app secrets to `codex exec`
 - **Never commit without an explicit user request.** Draft first, wait
+- **Big projects use milestone commits** — when the user has explicitly requested commits for a large project/task, commit each closed milestone after its relevant verification before continuing
 - **Always open a PR before merging to main.** `git push origin main` is forbidden
 - **Branch names** default to type prefixes: `feat/` for features, `fix/` for bug fixes, `chore/` for maintenance, and `misc/` for other work. Do not default to a `codex/` prefix
 - **Never add `Co-Authored-By: Claude` trailers** to commits

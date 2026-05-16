@@ -7,6 +7,7 @@ Implementation Guardrails — every assertion below hits a real DB.
 
 from __future__ import annotations
 
+import subprocess
 from datetime import UTC, date, datetime
 from decimal import Decimal
 from pathlib import Path
@@ -21,8 +22,6 @@ from uw_scan.storage.repository import Repository
 MIGRATIONS_DIR = (
     Path(__file__).resolve().parents[2] / "src" / "uw_scan" / "storage" / "migrations"
 )
-MIGRATION_PATH = MIGRATIONS_DIR / "001_s1_core_tables.sql"
-S2_MIGRATION_PATH = MIGRATIONS_DIR / "002_s2_scan_tables.sql"
 
 postgresql_my_proc = factories.postgresql_proc(load=[])
 postgresql_my = factories.postgresql("postgresql_my_proc")
@@ -30,20 +29,26 @@ postgresql_my = factories.postgresql("postgresql_my_proc")
 
 @pytest.fixture
 def repo(postgresql_my):
-    """Open a psycopg connection to the isolated test DB and apply the S1 migration."""
+    """Open a psycopg connection to the isolated test DB and apply every migration
+    in lexical order — same order `scripts/migrate.sh` uses in prod/dev. Tests on
+    this fixture see the current schema, not a frozen S1+S2 snapshot.
+    """
     dsn = (
         f"host={postgresql_my.info.host} port={postgresql_my.info.port} "
         f"dbname={postgresql_my.info.dbname} user={postgresql_my.info.user}"
     )
     if postgresql_my.info.password:
         dsn += f" password={postgresql_my.info.password}"
+    # Apply migrations via psql, the same way scripts/migrate.sh does in
+    # prod/dev. psycopg wraps multi-statement execute() calls in implicit
+    # transactions, which breaks statements like DROP INDEX CONCURRENTLY.
+    for sql_path in sorted(MIGRATIONS_DIR.glob("*.sql")):
+        subprocess.run(
+            ["psql", dsn, "-v", "ON_ERROR_STOP=1", "-f", str(sql_path)],
+            check=True,
+            capture_output=True,
+        )
     conn = psycopg.connect(dsn)
-    migration_sql = MIGRATION_PATH.read_text()
-    s2_migration_sql = S2_MIGRATION_PATH.read_text()
-    with conn.cursor() as cur:
-        cur.execute(migration_sql)
-        cur.execute(s2_migration_sql)
-    conn.commit()
     r = Repository(conn, schema="uw_scan")
     try:
         yield r
