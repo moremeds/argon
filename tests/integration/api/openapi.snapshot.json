@@ -9127,6 +9127,28 @@
         ]
       }
     },
+    "/api/watchlist/queue": {
+      "get": {
+        "description": "Lightweight queue snapshot for the dashboard's QueueProgress widget.\n\nReturns only the rescan-queue summary \u2014 no card joins, no meta. Designed\nfor the 2.5s polling loop in QueueProgress so the dashboard doesn't\nrefetch the full watchlist payload every tick.",
+        "operationId": "get_watchlist_queue_api_watchlist_queue_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueSummary"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Get Watchlist Queue",
+        "tags": [
+          "watchlist"
+        ]
+      }
+    },
     "/api/watchlist/rescan-all": {
       "post": {
         "description": "Enqueue a rescan job for every active watchlist ticker.",

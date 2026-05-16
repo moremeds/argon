@@ -39,6 +39,30 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/watchlist/queue": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Watchlist Queue
+         * @description Lightweight queue snapshot for the dashboard's QueueProgress widget.
+         *
+         *     Returns only the rescan-queue summary — no card joins, no meta. Designed
+         *     for the 2.5s polling loop in QueueProgress so the dashboard doesn't
+         *     refetch the full watchlist payload every tick.
+         */
+        get: operations["get_watchlist_queue_api_watchlist_queue_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/watchlist/{ticker}": {
         parameters: {
             query?: never;
@@ -2961,6 +2985,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_watchlist_queue_api_watchlist_queue_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["QueueSummary"];
                 };
             };
         };

@@ -139,6 +139,23 @@ def get_watchlist(
     )
 
 
+@router.get("/watchlist/queue", response_model=QueueSummary)
+def get_watchlist_queue(repo: Repository = Depends(get_repo)) -> QueueSummary:
+    """Lightweight queue snapshot for the dashboard's QueueProgress widget.
+
+    Returns only the rescan-queue summary — no card joins, no meta. Designed
+    for the 2.5s polling loop in QueueProgress so the dashboard doesn't
+    refetch the full watchlist payload every tick.
+    """
+    q = repo.get_rescan_queue_summary()
+    return QueueSummary(
+        total=q.total,
+        queued=q.queued,
+        running=q.running,
+        oldest_requested_at=q.oldest_requested_at,
+    )
+
+
 @router.post("/watchlist", status_code=201)
 def post_watchlist(
     body: WatchlistMutation,

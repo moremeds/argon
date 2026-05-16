@@ -21,6 +21,7 @@ vi.mock("next/navigation", () => ({
 vi.mock("@/lib/api", () => ({
   api: {
     watchlist: vi.fn(),
+    queueSummary: vi.fn(),
     rescan: vi.fn(),
     rescanAll: vi.fn(),
     job: vi.fn(),
@@ -32,6 +33,7 @@ afterEach(() => {
   vi.useRealTimers();
   vi.unstubAllGlobals();
   vi.mocked(api.watchlist).mockReset();
+  vi.mocked(api.queueSummary).mockReset();
   vi.mocked(api.rescan).mockReset();
   vi.mocked(api.rescanAll).mockReset();
   vi.mocked(api.job).mockReset();
@@ -158,17 +160,11 @@ describe("QueueProgress", () => {
 
   it("discovers queue work that starts after the dashboard loaded idle", async () => {
     vi.useFakeTimers();
-    vi.mocked(api.watchlist).mockResolvedValueOnce({
-      scanned_at_min: null,
-      scanned_at_max: null,
-      scheduler_lag_seconds: null,
-      queue: {
-        total: 1,
-        queued: 1,
-        running: 0,
-        oldest_requested_at: "2026-05-16T00:13:17Z",
-      },
-      tickers: [],
+    vi.mocked(api.queueSummary).mockResolvedValueOnce({
+      total: 1,
+      queued: 1,
+      running: 0,
+      oldest_requested_at: "2026-05-16T00:13:17Z",
     });
 
     render(
@@ -188,7 +184,8 @@ describe("QueueProgress", () => {
       await vi.advanceTimersByTimeAsync(5000);
     });
 
-    expect(api.watchlist).toHaveBeenCalledOnce();
+    expect(api.queueSummary).toHaveBeenCalledOnce();
+    expect(api.watchlist).not.toHaveBeenCalled();
     expect(screen.getByText("0 running · 1 queued")).not.toBeNull();
 
     vi.useRealTimers();
