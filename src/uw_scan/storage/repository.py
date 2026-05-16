@@ -178,8 +178,63 @@ _RECORD_HEALTH_EXCLUDED_TABLES = {
 
 
 class WatchlistCardRow:
-    """Variable-shaped: 25+ fields, many nullable. Wraps a dict for forward-compat
-    when the card schema grows. Use .from_db(row, cursor.description) to construct."""
+    """Variable-shaped: 37 fields in the list shape, fewer in single-row shape.
+
+    Two constructors:
+      - from_list_row(row, desc) — strict, validates against _LIST_FIELDS.
+        Use this in list_watchlist_cards so SELECT-alias typos fail loudly.
+      - from_db(row, desc) — lenient, accepts any column set.
+        Use this in get_watchlist_card which does SELECT * FROM watchlist_card
+        and returns a different column shape (no watchlist fields, has updated_at).
+    """
+
+    # Canonical column list returned by list_watchlist_cards. Keep in sync
+    # with the SELECT projection in that method — drift is caught at the
+    # first /api/watchlist request thanks to from_list_row's validation.
+    _LIST_FIELDS: frozenset[str] = frozenset(
+        {
+            # watchlist
+            "ticker",
+            "sector",
+            "pinned",
+            "sort_rank",
+            # card metadata
+            "run_id",
+            "scanned_at",
+            "spot",
+            "spot_quoted_at",
+            "spot_source",
+            "iv_atm",
+            "iv_rank",
+            "setup_type",
+            "setup_direction",
+            "setup_score",
+            "aggression_pct",
+            "ret_1d",
+            "ret_1w",
+            "ret_30d",
+            "market_cap",
+            "aum",
+            "gex_flip_distance",
+            "gex_flip_price",
+            "gex_per_1pct_move",
+            "max_gex_strike",
+            "gex_expiring_pct",
+            "gex_expiring_date",
+            "skew_25d_30dte",
+            "call_oi_total",
+            "put_oi_total",
+            "pcr_oi",
+            "pcr_vol",
+            "pcr_delta_30d",
+            # active job columns (LEFT JOIN — all nullable)
+            "active_job_id",
+            "active_job_status",
+            "active_job_queue_position",
+            "active_job_requested_at",
+            "active_job_started_at",
+        }
+    )
 
     def __init__(self, data: dict):
         self._data = data
@@ -195,7 +250,33 @@ class WatchlistCardRow:
 
     @classmethod
     def from_db(cls, row: tuple, description) -> "WatchlistCardRow":
+        """Lenient: accept whatever columns the cursor returned. Used by
+        get_watchlist_card (SELECT *)."""
         return cls({col.name: val for col, val in zip(description, row, strict=False)})
+
+    @classmethod
+    def from_list_row(cls, row: tuple, description) -> "WatchlistCardRow":
+        """Strict: validate against _LIST_FIELDS. Use only for the
+        list_watchlist_cards projection so SELECT-alias typos fail loudly."""
+        names = [col.name for col in description]
+        if len(set(names)) != len(names):
+            raise ValueError(
+                f"WatchlistCardRow.from_list_row got duplicate column(s) in description: {names}"
+            )
+        seen = set(names)
+        unknown = seen - cls._LIST_FIELDS
+        if unknown:
+            raise ValueError(
+                f"WatchlistCardRow.from_list_row got unknown column(s): {sorted(unknown)}. "
+                f"Add to _LIST_FIELDS if the SELECT was intentionally extended."
+            )
+        missing = cls._LIST_FIELDS - seen
+        if missing:
+            raise ValueError(
+                f"WatchlistCardRow.from_list_row missing column(s): {sorted(missing)}. "
+                f"Either restore them to the SELECT or remove from _LIST_FIELDS."
+            )
+        return cls({name: val for name, val in zip(names, row, strict=False)})
 
     def to_dict(self) -> dict:
         return dict(self._data)
@@ -2662,7 +2743,8 @@ class Repository:
                 """
             )
             return [
-                WatchlistCardRow.from_db(row, cur.description) for row in cur.fetchall()
+                WatchlistCardRow.from_list_row(row, cur.description)
+                for row in cur.fetchall()
             ]
 
     # ---- daily_ohlc ----
