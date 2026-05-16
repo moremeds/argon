@@ -225,9 +225,7 @@ def provider_day_bounds(now: datetime | None = None) -> tuple[datetime, datetime
     return reset, reset + timedelta(days=1)
 
 
-def status_family_for(
-    status_code: int | None, *, transport_error: bool = False
-) -> str:
+def status_family_for(status_code: int | None, *, transport_error: bool = False) -> str:
     if transport_error:
         return "transport_error"
     if status_code is None:
@@ -531,7 +529,6 @@ class Repository:
                 (start, end, provider_filter, provider_filter),
             )
             request_row = cur.fetchone()
-            assert request_row is not None
 
             cur.execute(
                 f"""
@@ -547,7 +544,6 @@ class Repository:
                 (start, end),
             )
             scan_row = cur.fetchone()
-            assert scan_row is not None
 
             cur.execute(
                 f"""
@@ -560,12 +556,13 @@ class Repository:
                 (start, end),
             )
             queue_row = cur.fetchone()
-            assert queue_row is not None
 
         total_requests = int(request_row[0])
         drained_jobs = int(queue_row[0])
         active_starts = [request_row[2], scan_row[1], queue_row[1]]
-        first_activity = min((ts for ts in active_starts if ts is not None), default=start)
+        first_activity = min(
+            (ts for ts in active_starts if ts is not None), default=start
+        )
         active_start = max(start, first_activity)
         active_window_minutes = max((end - active_start).total_seconds() / 60.0, 1 / 60)
         return ThroughputSummaryRow(
