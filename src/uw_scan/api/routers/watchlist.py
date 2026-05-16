@@ -86,7 +86,7 @@ def get_watchlist(
     fresh_within_minutes: int | None = Query(None, ge=1),
     repo: Repository = Depends(get_repo),
 ) -> WatchlistResponse:
-    rows = repo.list_watchlist_cards()
+    rows, queue = repo.list_watchlist_cards_with_queue_summary()
     cutoff = (
         datetime.now(timezone.utc) - timedelta(minutes=fresh_within_minutes)
         if fresh_within_minutes
@@ -124,7 +124,6 @@ def get_watchlist(
         out.append(_card_to_response(r))
 
     scanned_times = [c.scanned_at for c in out if c.scanned_at is not None]
-    queue = repo.get_rescan_queue_summary()
     return WatchlistResponse(
         scanned_at_min=min(scanned_times, default=None),
         scanned_at_max=max(scanned_times, default=None),

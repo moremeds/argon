@@ -2747,6 +2747,164 @@ class Repository:
                 for row in cur.fetchall()
             ]
 
+    def list_watchlist_cards_with_queue_summary(
+        self,
+    ) -> tuple[list[WatchlistCardRow], RescanQueueSummaryRow]:
+        """Variant of list_watchlist_cards that also returns the rescan queue
+        summary in a single round trip. Used by /api/watchlist to collapse
+        2 DB queries into 1 in the common path.
+
+        Edge case: when the watchlist is empty, CROSS JOIN summary drops all
+        rows even if jobs exist — fall back to standalone summary query to
+        preserve today's behavior (1 query in steady state, 2 in the
+        empty-watchlist edge case).
+        """
+        with self._conn.cursor() as cur:
+            cur.execute(
+                f"""
+                WITH active_jobs AS (
+                  SELECT
+                    id, ticker, status, requested_at, started_at,
+                    row_number() OVER (
+                      ORDER BY priority DESC, requested_at ASC, id ASC
+                    ) AS queue_position
+                  FROM {self._schema}.jobs
+                  WHERE status IN ('queued', 'running')
+                ),
+                summary AS (
+                  SELECT
+                    count(*)                                     AS s_total,
+                    count(*) FILTER (WHERE status = 'queued')    AS s_queued,
+                    count(*) FILTER (WHERE status = 'running')   AS s_running,
+                    min(requested_at)                            AS s_oldest
+                  FROM active_jobs
+                ),
+                latest_market_caps AS (
+                  SELECT DISTINCT ON (ticker)
+                    ticker,
+                    marketcap
+                  FROM {self._schema}.scan_results
+                  WHERE marketcap IS NOT NULL
+                  ORDER BY ticker, run_id DESC
+                ),
+                latest_screener_sizes AS (
+                  SELECT DISTINCT ON (r.ticker)
+                    r.ticker,
+                    p.payload_jsonb->'data'->0->>'marketcap' AS market_cap
+                  FROM {self._schema}.scan_runs r
+                  JOIN {self._schema}.api_request_audit a ON r.run_id = a.run_id
+                  JOIN {self._schema}.raw_payloads p ON a.audit_id = p.audit_id
+                  WHERE a.endpoint_slug = 'bulk_screener_stocks'
+                    AND jsonb_typeof(p.payload_jsonb->'data') = 'array'
+                    AND p.payload_jsonb->'data'->0->>'marketcap' IS NOT NULL
+                  ORDER BY r.ticker, r.run_id DESC
+                ),
+                latest_etf_aum AS (
+                  SELECT DISTINCT ON (r.ticker)
+                    r.ticker,
+                    p.payload_jsonb->'data'->>'aum' AS aum
+                  FROM {self._schema}.scan_runs r
+                  JOIN {self._schema}.api_request_audit a ON r.run_id = a.run_id
+                  JOIN {self._schema}.raw_payloads p ON a.audit_id = p.audit_id
+                  WHERE a.endpoint_slug = 'etf_info'
+                    AND jsonb_typeof(p.payload_jsonb->'data') = 'object'
+                    AND p.payload_jsonb->'data'->>'aum' IS NOT NULL
+                  ORDER BY r.ticker, r.run_id DESC
+                )
+                SELECT
+                  w.ticker, w.sector, w.pinned, w.sort_rank,
+                  c.run_id, c.scanned_at,
+                  CASE
+                    WHEN q.price IS NOT NULL
+                      AND (c.spot_quoted_at IS NULL OR q.quoted_at >= c.spot_quoted_at)
+                      THEN q.price
+                    ELSE c.spot
+                  END                                                       AS spot,
+                  CASE
+                    WHEN q.price IS NOT NULL
+                      AND (c.spot_quoted_at IS NULL OR q.quoted_at >= c.spot_quoted_at)
+                      THEN q.quoted_at
+                    ELSE c.spot_quoted_at
+                  END                                                       AS spot_quoted_at,
+                  CASE
+                    WHEN q.price IS NOT NULL
+                      AND (c.spot_quoted_at IS NULL OR q.quoted_at >= c.spot_quoted_at)
+                      THEN 'massive.com_intraday'
+                    ELSE c.spot_source
+                  END                                                       AS spot_source,
+                  c.iv_atm, c.iv_rank,
+                  c.setup_type, c.setup_direction, c.setup_score,
+                  c.aggression_pct,
+                  c.ret_1d, c.ret_1w, c.ret_30d,
+                  COALESCE(
+                    sr.aggregates->>'market_cap',
+                    lmc.marketcap::text,
+                    lss.market_cap
+                  ) AS market_cap,
+                  COALESCE(sr.aggregates->>'aum', lea.aum) AS aum,
+                  c.gex_flip_distance, c.gex_flip_price, c.gex_per_1pct_move,
+                  c.max_gex_strike, c.gex_expiring_pct, c.gex_expiring_date,
+                  c.skew_25d_30dte,
+                  c.call_oi_total, c.put_oi_total, c.pcr_oi, c.pcr_vol,
+                  c.pcr_delta_30d,
+                  j.id AS active_job_id,
+                  j.status AS active_job_status,
+                  j.queue_position AS active_job_queue_position,
+                  j.requested_at AS active_job_requested_at,
+                  j.started_at AS active_job_started_at,
+                  sm.s_total, sm.s_queued, sm.s_running, sm.s_oldest
+                FROM {self._schema}.watchlist w
+                LEFT JOIN {self._schema}.watchlist_card c ON w.ticker = c.ticker
+                LEFT JOIN {self._schema}.scan_runs sr ON c.run_id = sr.run_id
+                LEFT JOIN latest_market_caps lmc ON w.ticker = lmc.ticker
+                LEFT JOIN latest_screener_sizes lss ON w.ticker = lss.ticker
+                LEFT JOIN latest_etf_aum lea ON w.ticker = lea.ticker
+                LEFT JOIN {self._schema}.intraday_quote q ON w.ticker = q.ticker
+                LEFT JOIN active_jobs j ON w.ticker = j.ticker
+                CROSS JOIN summary sm
+                WHERE w.removed_at IS NULL
+                ORDER BY w.pinned DESC, w.sort_rank, w.ticker
+                """
+            )
+            all_rows = cur.fetchall()
+            description = cur.description
+
+        if not all_rows:
+            # Empty watchlist: CROSS JOIN drops all rows even if active jobs
+            # exist. Fall back to standalone summary to preserve today's
+            # behavior (Codex review ISSUE-3 regression guard).
+            return [], self.get_rescan_queue_summary()
+
+        # The SELECT projects 37 card columns plus 4 summary columns
+        # (s_total, s_queued, s_running, s_oldest). Look up by name to be
+        # robust to a future hand reordering the projection.
+        col_idx = {col.name: i for i, col in enumerate(description)}
+        summary_col_names = {"s_total", "s_queued", "s_running", "s_oldest"}
+
+        first = all_rows[0]
+        summary = RescanQueueSummaryRow(
+            total=first[col_idx["s_total"]] or 0,
+            queued=first[col_idx["s_queued"]] or 0,
+            running=first[col_idx["s_running"]] or 0,
+            oldest_requested_at=first[col_idx["s_oldest"]],
+        )
+
+        # Strip the 4 summary columns before constructing the strict
+        # WatchlistCardRow. Filter by name (not by trailing position) so a
+        # future reordering of the SELECT projection doesn't silently break.
+        card_positions = [
+            i for i, col in enumerate(description) if col.name not in summary_col_names
+        ]
+        card_cols = [description[i] for i in card_positions]
+        cards = [
+            WatchlistCardRow.from_list_row(
+                tuple(row[i] for i in card_positions),
+                card_cols,
+            )
+            for row in all_rows
+        ]
+        return cards, summary
+
     # ---- daily_ohlc ----
     def upsert_daily_ohlc(
         self,
