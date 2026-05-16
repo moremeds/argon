@@ -6,32 +6,80 @@ One method per insert/select. No `**kwargs` splatting from arbitrary dicts.
 from __future__ import annotations
 
 import logging
-import math
-from collections import Counter
 from collections.abc import Iterable
-from dataclasses import dataclass
 from datetime import date as _date
 from datetime import datetime, timedelta
 from decimal import Decimal
 from typing import Any
-from zoneinfo import ZoneInfo
 
-import psycopg
 from psycopg import sql as psql
 from psycopg.types.json import Jsonb
 
 from .. import models
+from ._base import _BaseMixin
 
+# Pure helpers live in _helpers.py since the PR-1 split. provider_day_bounds,
+# status_family_for, and redact_params are imported from this module by
+# sources/ohlc.py, api/client.py, api/routers/health.py, api/routers/provider_usage.py,
+# and tests — keep them re-exported.
+from ._helpers import (
+    _nullable_float,
+    _nullable_int,
+    provider_day_bounds,
+    redact_params,
+    status_family_for,
+)
+from .audit import _AuditMixin
 
-@dataclass(frozen=True)
-class WatchlistRow:
-    ticker: str
-    sector: str
-    notes: str | None
-    pinned: bool
-    sort_rank: int
-    added_at: datetime
-    removed_at: datetime | None
+# noqa: F401 below — _aggressor_label_confidence and _flow_footprint_label
+# are re-exports for scripts/backfill_flow_footprint.py which imports them
+# from uw_scan.storage.repository. Removing them would break the script.
+from .flow import (
+    _aggressor_label_confidence,  # noqa: F401
+    _flow_footprint_label,  # noqa: F401
+    _FlowMixin,
+)
+from .health import _HealthMixin
+from .jobs import _JobsMixin
+from .market_data import _MarketDataMixin
+
+# Row dataclasses live in rows.py since the PR-1 split. Re-exported here so
+# existing callers (`from uw_scan.storage.repository import JobRow`) continue
+# to work without changing import paths.
+from .rows import (
+    DailyOhlcRow,
+    ExternalApiBreakdownRow,
+    ExternalApiRequestRow,
+    ExternalApiUsageSummary,
+    IntradayQuoteRow,
+    JobRow,
+    PcrHistoryRow,
+    RecordHealthRow,
+    RescanQueueSummaryRow,
+    ThroughputSummaryRow,
+    WatchlistCardRow,
+    WatchlistRow,
+)
+from .scan_outputs import _ScanOutputsMixin
+
+__all__ = [
+    "Repository",
+    "DailyOhlcRow",
+    "ExternalApiBreakdownRow",
+    "ExternalApiRequestRow",
+    "ExternalApiUsageSummary",
+    "IntradayQuoteRow",
+    "JobRow",
+    "PcrHistoryRow",
+    "RecordHealthRow",
+    "RescanQueueSummaryRow",
+    "ThroughputSummaryRow",
+    "WatchlistCardRow",
+    "WatchlistRow",
+    "provider_day_bounds",
+    "redact_params",
+    "status_family_for",
+]
 
 
 def _row_for_date(
@@ -217,36 +265,6 @@ def _oi_change_bias(rows: list[dict[str, Any]]) -> str | None:
     return "mixed"
 
 
-def _flow_footprint_label(row: models.FlowAlert) -> str:
-    ask = row.total_ask_side_prem or Decimal(0)
-    bid = row.total_bid_side_prem or Decimal(0)
-    total = row.total_premium or ask + bid
-    ask_ratio = ask / total if total and total > 0 else None
-    if row.has_sweep and ask_ratio is not None and ask_ratio >= Decimal("0.65"):
-        return "directional_whale"
-    if row.has_multileg:
-        return "hedge_flow"
-    if row.has_floor:
-        return "dealer_hedge"
-    if ask_ratio is not None and Decimal("0.40") <= ask_ratio <= Decimal("0.60"):
-        return "gamma_scalper"
-    return "unclassified"
-
-
-def _aggressor_label_confidence(row: models.FlowAlert) -> Decimal | None:
-    ask = row.total_ask_side_prem or Decimal(0)
-    bid = row.total_bid_side_prem or Decimal(0)
-    total = row.total_premium or ask + bid
-    if total is None or total <= 0:
-        return None
-    dominant_side_ratio = max(ask, bid) / total
-    structure_penalty = Decimal("0.05") if row.has_multileg else Decimal(0)
-    confidence = min(
-        Decimal("1"), max(Decimal("0"), dominant_side_ratio - structure_penalty)
-    )
-    return confidence.quantize(Decimal("0.01"))
-
-
 def _vrp_sign_flip_status_for_db(value: bool | str | None) -> str | None:
     if value is True:
         return "true"
@@ -263,329 +281,26 @@ def _vrp_sign_flip_status_from_db(value: Any) -> bool | str:
     return value or "insufficient_history"
 
 
-@dataclass(frozen=True)
-class DailyOhlcRow:
-    ticker: str
-    date: _date
-    open: Decimal | None
-    high: Decimal | None
-    low: Decimal | None
-    close: Decimal
-    volume: int | None
-    source: str
-    fetched_at: datetime
-
-
-@dataclass(frozen=True)
-class IntradayQuoteRow:
-    ticker: str
-    price: Decimal
-    quoted_at: datetime
-    fetched_at: datetime
-
-
-@dataclass(frozen=True)
-class PcrHistoryRow:
-    ticker: str
-    snapshot_date: _date
-    pcr_oi: Decimal | None
-    pcr_vol: Decimal | None
-
-
-@dataclass(frozen=True)
-class JobRow:
-    id: Any
-    ticker: str
-    status: str
-    run_id: int | None
-    error: str | None
-    requested_at: datetime
-    started_at: datetime | None
-    finished_at: datetime | None
-    claim_token: Any = None  # UUID, set on claim, gates mark_job_done/failed
-
-
-@dataclass(frozen=True)
-class RescanQueueSummaryRow:
-    total: int
-    queued: int
-    running: int
-    oldest_requested_at: datetime | None
-
-
-@dataclass(frozen=True)
-class ExternalApiUsageSummary:
-    total_requests: int
-    http_2xx: int
-    http_3xx: int
-    http_4xx: int
-    http_5xx: int
-    transport_errors: int
-    latency_p95_ms: int | None
-    uw_latest_daily_count: int | None
-    uw_latest_daily_limit: int | None
-
-
-@dataclass(frozen=True)
-class ExternalApiBreakdownRow:
-    key: str | None
-    total_requests: int
-    http_2xx: int
-    http_3xx: int
-    http_4xx: int
-    http_5xx: int
-    transport_errors: int
-    latency_p95_ms: int | None
-
-
-@dataclass(frozen=True)
-class ThroughputSummaryRow:
-    window_minutes: float
-    requests_per_minute: float
-    http_429: int
-    avg_scan_duration_seconds: float | None
-    queue_drain_rate_per_minute: float | None
-
-
-@dataclass(frozen=True)
-class ExternalApiRequestRow:
-    request_id: int
-    provider: str
-    endpoint_key: str
-    method: str
-    path: str
-    ticker: str | None
-    params: dict[str, Any]
-    status_code: int | None
-    status_family: str
-    request_started_at: datetime
-    request_finished_at: datetime
-    latency_ms: int
-    attempt: int
-    run_id: int | None
-    job_name: str | None
-    provider_request_id: str | None
-    official_daily_count: int | None
-    official_daily_limit: int | None
-    official_minute_remaining: int | None
-    official_minute_reset: str | None
-    error_message: str | None
-
-
-@dataclass(frozen=True)
-class RecordHealthRow:
-    table: str
-    window_start: datetime
-    expected_tickers: int
-    expected_min_tickers: int
-    actual_tickers: int
-    expected_min_rows: int
-    actual_rows: int
-    latest_at: datetime | None
-    ok: bool
-
-
-_RECORD_HEALTH_TIMESTAMP_COLUMNS = ("updated_at", "inserted_at")
-_RECORD_HEALTH_TICKER_COLUMNS = ("ticker", "underlying_symbol")
-_RECORD_HEALTH_EXCLUDED_TABLES = {
-    # Request logs and orchestration tables are covered by provider usage /
-    # scheduler health, not per-ticker persisted data coverage.
-    "external_api_requests",
-    "scan_results",
-    "scan_universe",
-    # Not watchlist-scoped periodic UW source tables.
-    "index_ohlc_daily",
-    "opportunity_scores",
-    "structure_ideas",
-    # Derived/backfill tables that do not update for every ticker each RTH window.
-    "iv_smile_snapshots",
-    "oi_by_expiry",
-    "option_surface_snapshots",
-    "stock_analytics_daily",
-    "vrp_daily",
-}
-
-
-class WatchlistCardRow:
-    """Variable-shaped: 37 fields in the list shape, fewer in single-row shape.
-
-    Two constructors:
-      - from_list_row(row, desc) — strict, validates against _LIST_FIELDS.
-        Use this in list_watchlist_cards so SELECT-alias typos fail loudly.
-      - from_db(row, desc) — lenient, accepts any column set.
-        Use this in get_watchlist_card which does SELECT * FROM watchlist_card
-        and returns a different column shape (no watchlist fields, has updated_at).
-    """
-
-    # Canonical column list returned by list_watchlist_cards. Keep in sync
-    # with the SELECT projection in that method — drift is caught at the
-    # first /api/watchlist request thanks to from_list_row's validation.
-    _LIST_FIELDS: frozenset[str] = frozenset(
-        {
-            # watchlist
-            "ticker",
-            "sector",
-            "pinned",
-            "sort_rank",
-            # card metadata
-            "run_id",
-            "scanned_at",
-            "spot",
-            "spot_quoted_at",
-            "spot_source",
-            "iv_atm",
-            "iv_rank",
-            "setup_type",
-            "setup_direction",
-            "setup_score",
-            "aggression_pct",
-            "ret_1d",
-            "ret_1w",
-            "ret_30d",
-            "market_cap",
-            "aum",
-            "gex_flip_distance",
-            "gex_flip_price",
-            "gex_per_1pct_move",
-            "max_gex_strike",
-            "gex_expiring_pct",
-            "gex_expiring_date",
-            "skew_25d_30dte",
-            "call_oi_total",
-            "put_oi_total",
-            "pcr_oi",
-            "pcr_vol",
-            "pcr_delta_30d",
-            # active job columns (LEFT JOIN — all nullable)
-            "active_job_id",
-            "active_job_status",
-            "active_job_queue_position",
-            "active_job_requested_at",
-            "active_job_started_at",
-        }
-    )
-
-    def __init__(self, data: dict):
-        self._data = data
-
-    def __getattr__(self, name: str):
-        try:
-            data = object.__getattribute__(self, "_data")
-        except AttributeError as e:
-            raise AttributeError(name) from e
-        if name in data:
-            return data[name]
-        raise AttributeError(name)
-
-    @classmethod
-    def from_db(cls, row: tuple, description) -> "WatchlistCardRow":
-        """Lenient: accept whatever columns the cursor returned. Used by
-        get_watchlist_card (SELECT *)."""
-        return cls({col.name: val for col, val in zip(description, row, strict=False)})
-
-    @classmethod
-    def from_list_row(cls, row: tuple, description) -> "WatchlistCardRow":
-        """Strict: validate against _LIST_FIELDS. Use only for the
-        list_watchlist_cards projection so SELECT-alias typos fail loudly."""
-        names = [col.name for col in description]
-        if len(set(names)) != len(names):
-            raise ValueError(
-                f"WatchlistCardRow.from_list_row got duplicate column(s) in description: {names}"
-            )
-        seen = set(names)
-        unknown = seen - cls._LIST_FIELDS
-        if unknown:
-            raise ValueError(
-                f"WatchlistCardRow.from_list_row got unknown column(s): {sorted(unknown)}. "
-                f"Add to _LIST_FIELDS if the SELECT was intentionally extended."
-            )
-        missing = cls._LIST_FIELDS - seen
-        if missing:
-            raise ValueError(
-                f"WatchlistCardRow.from_list_row missing column(s): {sorted(missing)}. "
-                f"Either restore them to the SELECT or remove from _LIST_FIELDS."
-            )
-        return cls({name: val for name, val in zip(names, row, strict=False)})
-
-    def to_dict(self) -> dict:
-        return dict(self._data)
+# _RECORD_HEALTH_* constants moved to health.py with _HealthMixin
 
 
 logger = logging.getLogger(__name__)
-_PROVIDER_DAY_TZ = ZoneInfo("America/New_York")
-_REDACTED_PARAM_KEYS = {
-    "apikey",
-    "api_key",
-    "authorization",
-    "auth",
-    "token",
-}
 
 
-def _d(value: Decimal | None) -> Any:
-    """psycopg handles Decimal natively; keep this for symmetry with other casters."""
-    return value
+class Repository(
+    _AuditMixin,
+    _FlowMixin,
+    _HealthMixin,
+    _JobsMixin,
+    _MarketDataMixin,
+    _ScanOutputsMixin,
+    _BaseMixin,
+):
+    """Repository wraps a psycopg connection and exposes typed CRUD.
 
-
-def provider_day_bounds(now: datetime | None = None) -> tuple[datetime, datetime]:
-    current = now or datetime.now(tz=_PROVIDER_DAY_TZ)
-    local = current.astimezone(_PROVIDER_DAY_TZ)
-    reset = local.replace(hour=20, minute=0, second=0, microsecond=0)
-    if local < reset:
-        reset -= timedelta(days=1)
-    return reset, reset + timedelta(days=1)
-
-
-def status_family_for(status_code: int | None, *, transport_error: bool = False) -> str:
-    if transport_error:
-        return "transport_error"
-    if status_code is None:
-        return "transport_error"
-    if 200 <= status_code <= 299:
-        return "2xx"
-    if 300 <= status_code <= 399:
-        return "3xx"
-    if 400 <= status_code <= 499:
-        return "4xx"
-    if 500 <= status_code <= 599:
-        return "5xx"
-    return "transport_error"
-
-
-def redact_params(params: dict[str, object] | None) -> dict[str, object]:
-    redacted: dict[str, object] = {}
-    for key, value in (params or {}).items():
-        if key.lower() in _REDACTED_PARAM_KEYS:
-            continue
-        if isinstance(value, str) and len(value) > 256:
-            redacted[key] = value[:253] + "..."
-        else:
-            redacted[key] = value
-    return redacted
-
-
-def _nullable_int(value: Any) -> int | None:
-    if value is None:
-        return None
-    return int(round(float(value)))
-
-
-def _nullable_float(value: Any) -> float | None:
-    if value is None:
-        return None
-    return float(value)
-
-
-class Repository:
-    """Repository wraps a psycopg connection and exposes typed CRUD."""
-
-    def __init__(self, conn: psycopg.Connection, schema: str = "uw_scan") -> None:
-        self._conn = conn
-        self._schema = schema
-
-    @property
-    def conn(self) -> psycopg.Connection:
-        return self._conn
+    Inherits __init__ and the conn property from _BaseMixin. As PR-1/2/3
+    progress this class will gain per-domain mixins (_AuditMixin,
+    _FlowMixin, ...); _BaseMixin stays LAST in the inheritance list."""
 
     # ------------------------------------------------------------------
     # scan_runs
@@ -647,62 +362,6 @@ class Repository:
     def release_advisory_lock(self, key: int) -> None:
         with self._conn.cursor() as cur:
             cur.execute("SELECT pg_advisory_unlock(%s)", (key,))
-
-    # ------------------------------------------------------------------
-    # api_request_audit + raw_payloads
-    # ------------------------------------------------------------------
-    def insert_audit_row(
-        self,
-        run_id: int,
-        endpoint_slug: str,
-        endpoint_path: str,
-        params: dict[str, Any],
-        status_code: int,
-        started_at: datetime,
-        finished_at: datetime,
-        daily_req_count: int | None,
-        minute_req_remaining: int | None,
-        minute_req_reset: str | None,
-        error_message: str | None = None,
-    ) -> int:
-        sql = (
-            f"INSERT INTO {self._schema}.api_request_audit ("
-            "run_id, endpoint_slug, endpoint_path, params_json, status_code, "
-            "request_started_at, request_finished_at, daily_req_count, "
-            "minute_req_remaining, minute_req_reset, error_message) "
-            "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) RETURNING audit_id"
-        )
-        with self._conn.cursor() as cur:
-            cur.execute(
-                sql,
-                (
-                    run_id,
-                    endpoint_slug,
-                    endpoint_path,
-                    Jsonb(params),
-                    status_code,
-                    started_at,
-                    finished_at,
-                    daily_req_count,
-                    minute_req_remaining,
-                    minute_req_reset,
-                    error_message,
-                ),
-            )
-            row = cur.fetchone()
-        assert row is not None
-        return int(row[0])
-
-    def insert_raw_payload(self, audit_id: int, payload: dict | list) -> int:
-        sql = (
-            f"INSERT INTO {self._schema}.raw_payloads (audit_id, payload_jsonb) "
-            "VALUES (%s, %s) RETURNING payload_id"
-        )
-        with self._conn.cursor() as cur:
-            cur.execute(sql, (audit_id, Jsonb(payload)))
-            row = cur.fetchone()
-        assert row is not None
-        return int(row[0])
 
     # ------------------------------------------------------------------
     # external_api_requests
@@ -1028,148 +687,8 @@ class Repository:
             for row in rows
         ]
 
-    # ------------------------------------------------------------------
-    # flow_events
-    # ------------------------------------------------------------------
-    def insert_flow_events(
-        self, run_id: int, ticker: str, alerts: Iterable[models.FlowAlert]
-    ) -> int:
-        rows = list(alerts)
-        if not rows:
-            return 0
-        sql = (
-            f"INSERT INTO {self._schema}.flow_events ("
-            "run_id, alert_id, ticker, option_chain, expiry, strike, option_type, "
-            "price, underlying_price, total_size, total_premium, "
-            "total_ask_side_prem, total_bid_side_prem, volume, open_interest, "
-            "volume_oi_ratio, has_sweep, has_floor, has_multileg, "
-            "all_opening_trades, iv_start, iv_end, alert_rule, "
-            "flow_footprint_label, aggressor_label_confidence, "
-            "rule_id, sector, issue_type, next_earnings_date, created_at) VALUES ("
-            "%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, "
-            "%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) "
-            "ON CONFLICT (run_id, alert_id) DO NOTHING"
-        )
-        with self._conn.cursor() as cur:
-            for r in rows:
-                cur.execute(
-                    sql,
-                    (
-                        run_id,
-                        r.id,
-                        r.ticker,
-                        r.option_chain,
-                        r.expiry,
-                        r.strike,
-                        r.type,
-                        r.price,
-                        r.underlying_price,
-                        r.total_size,
-                        r.total_premium,
-                        r.total_ask_side_prem,
-                        r.total_bid_side_prem,
-                        r.volume,
-                        r.open_interest,
-                        r.volume_oi_ratio,
-                        r.has_sweep,
-                        r.has_floor,
-                        r.has_multileg,
-                        r.all_opening_trades,
-                        r.iv_start,
-                        r.iv_end,
-                        r.alert_rule,
-                        r.flow_footprint_label or _flow_footprint_label(r),
-                        r.aggressor_label_confidence
-                        if r.aggressor_label_confidence is not None
-                        else _aggressor_label_confidence(r),
-                        r.rule_id,
-                        r.sector,
-                        r.issue_type,
-                        r.next_earnings_date,
-                        r.created_at,
-                    ),
-                )
-        return len(rows)
-
-    def upsert_flow_alerts_daily_rollup(
-        self,
-        *,
-        run_id: int,
-        ticker: str,
-        alerts: Iterable[models.FlowAlert],
-        alert_limit: int,
-        trade_date: _date | None = None,
-    ) -> None:
-        rows = list(alerts)
-        if trade_date is None:
-            trade_date = self._flow_alert_trade_date(rows)
-
-        bull_premium = Decimal("0")
-        bear_premium = Decimal("0")
-        ask_side_premium = Decimal("0")
-        bid_side_premium = Decimal("0")
-        total_premium = Decimal("0")
-        rules: Counter[str] = Counter()
-
-        for row in rows:
-            premium = row.total_premium or Decimal("0")
-            total_premium += premium
-            opt_type = (row.type or "").lower()
-            if opt_type == "call":
-                bull_premium += premium
-            elif opt_type == "put":
-                bear_premium += premium
-            ask_side_premium += row.total_ask_side_prem or Decimal("0")
-            bid_side_premium += row.total_bid_side_prem or Decimal("0")
-            if row.alert_rule:
-                rules[row.alert_rule] += 1
-
-        top_alert_rule = rules.most_common(1)[0][0] if rules else None
-
-        sql = (
-            f"INSERT INTO {self._schema}.flow_alerts_daily_rollup ("
-            "ticker, trade_date, run_id, alert_count, alert_count_is_limited, "
-            "total_premium, bull_premium, bear_premium, ask_side_premium, "
-            "bid_side_premium, top_alert_rule) "
-            "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) "
-            "ON CONFLICT (ticker, trade_date) DO UPDATE SET "
-            "run_id=EXCLUDED.run_id, alert_count=EXCLUDED.alert_count, "
-            "alert_count_is_limited=EXCLUDED.alert_count_is_limited, "
-            "total_premium=EXCLUDED.total_premium, "
-            "bull_premium=EXCLUDED.bull_premium, "
-            "bear_premium=EXCLUDED.bear_premium, "
-            "ask_side_premium=EXCLUDED.ask_side_premium, "
-            "bid_side_premium=EXCLUDED.bid_side_premium, "
-            "top_alert_rule=EXCLUDED.top_alert_rule, updated_at=now()"
-        )
-        with self._conn.cursor() as cur:
-            cur.execute(
-                sql,
-                (
-                    ticker.upper(),
-                    trade_date,
-                    run_id,
-                    len(rows),
-                    len(rows) >= alert_limit,
-                    total_premium,
-                    bull_premium,
-                    bear_premium,
-                    ask_side_premium,
-                    bid_side_premium,
-                    top_alert_rule,
-                ),
-            )
-
-    def _flow_alert_trade_date(self, rows: list[models.FlowAlert]) -> _date:
-        market_tz = ZoneInfo("America/New_York")
-        for row in rows:
-            if row.created_at is None:
-                continue
-            created_at = row.created_at
-            if created_at.tzinfo is None:
-                created_at = created_at.replace(tzinfo=market_tz)
-            return created_at.astimezone(market_tz).date()
-        return datetime.now(market_tz).date()
+    # flow_events + flow_alerts_daily_rollup methods moved to _FlowMixin
+    # _flow_alert_trade_date is now module-level in flow.py (doesn't use self)
 
     # ------------------------------------------------------------------
     # Time-series history (UPSERT by (ticker, market_date))
@@ -3024,66 +2543,6 @@ class Repository:
         return 1
 
     # ------------------------------------------------------------------
-    # opportunity_scores + structure_ideas
-    # ------------------------------------------------------------------
-    def insert_opportunity_score(
-        self,
-        run_id: int,
-        ticker: str,
-        score: Decimal,
-        setup_types: list[str],
-        direction: str | None,
-        confirmations: list[str],
-        warnings: list[str],
-        notes: str,
-    ) -> int:
-        sql = (
-            f"INSERT INTO {self._schema}.opportunity_scores "
-            "(run_id, ticker, score, setup_types, direction, confirmations, "
-            "warnings, notes) "
-            "VALUES (%s, %s, %s, %s, %s, %s, %s, %s) RETURNING score_id"
-        )
-        with self._conn.cursor() as cur:
-            cur.execute(
-                sql,
-                (
-                    run_id,
-                    ticker,
-                    score,
-                    setup_types,
-                    direction,
-                    confirmations,
-                    warnings,
-                    notes,
-                ),
-            )
-            row = cur.fetchone()
-        assert row is not None
-        return int(row[0])
-
-    def insert_structure_idea(
-        self,
-        run_id: int,
-        ticker: str,
-        structure: str,
-        legs: list[dict[str, Any]],
-        rationale: str,
-    ) -> int:
-        sql = (
-            f"INSERT INTO {self._schema}.structure_ideas "
-            "(run_id, ticker, structure, legs_json, rationale) "
-            "VALUES (%s, %s, %s, %s, %s) RETURNING idea_id"
-        )
-        with self._conn.cursor() as cur:
-            cur.execute(
-                sql,
-                (run_id, ticker, structure, Jsonb(legs), rationale),
-            )
-            row = cur.fetchone()
-        assert row is not None
-        return int(row[0])
-
-    # ------------------------------------------------------------------
     # SELECT helpers — used by reports/single_stock.py
     # ------------------------------------------------------------------
     def fetch_flow_alerts_for_ticker(
@@ -4346,286 +3805,10 @@ class Repository:
         ]
         return cards, summary
 
-    # ---- daily_ohlc ----
-    def upsert_daily_ohlc(
-        self,
-        *,
-        ticker: str,
-        date: _date,
-        open: Decimal | None,
-        high: Decimal | None,
-        low: Decimal | None,
-        close: Decimal,
-        volume: int | None,
-        source: str,
-    ) -> None:
-        with self._conn.cursor() as cur:
-            cur.execute(
-                f"""
-                INSERT INTO {self._schema}.daily_ohlc
-                  (ticker, date, open, high, low, close, volume, source)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
-                ON CONFLICT (ticker, date) DO UPDATE
-                  SET open=EXCLUDED.open, high=EXCLUDED.high, low=EXCLUDED.low,
-                      close=EXCLUDED.close, volume=EXCLUDED.volume,
-                      source=EXCLUDED.source, fetched_at=NOW()
-                """,
-                (ticker, date, open, high, low, close, volume, source),
-            )
-        self._conn.commit()
+    # daily_ohlc / intraday_quote / pcr_history methods moved to _MarketDataMixin
 
-    def list_daily_ohlc(self, ticker: str, *, limit: int = 30) -> list[DailyOhlcRow]:
-        with self._conn.cursor() as cur:
-            cur.execute(
-                f"""
-                SELECT ticker, date, open, high, low, close, volume, source, fetched_at
-                FROM {self._schema}.daily_ohlc
-                WHERE ticker=%s
-                ORDER BY date DESC
-                LIMIT %s
-                """,
-                (ticker, limit),
-            )
-            return [DailyOhlcRow(*row) for row in cur.fetchall()]
-
-    # ---- intraday_quote ----
-    def upsert_intraday_quote(
-        self, ticker: str, price: Decimal, quoted_at: datetime
-    ) -> None:
-        with self._conn.cursor() as cur:
-            cur.execute(
-                f"""
-                INSERT INTO {self._schema}.intraday_quote (ticker, price, quoted_at)
-                VALUES (%s, %s, %s)
-                ON CONFLICT (ticker) DO UPDATE
-                  SET price=EXCLUDED.price, quoted_at=EXCLUDED.quoted_at, fetched_at=NOW()
-                """,
-                (ticker, price, quoted_at),
-            )
-        self._conn.commit()
-
-    def get_intraday_quote(self, ticker: str) -> IntradayQuoteRow | None:
-        with self._conn.cursor() as cur:
-            cur.execute(
-                f"""
-                SELECT ticker, price, quoted_at, fetched_at
-                FROM {self._schema}.intraday_quote WHERE ticker=%s
-                """,
-                (ticker,),
-            )
-            row = cur.fetchone()
-            return IntradayQuoteRow(*row) if row else None
-
-    def get_latest_intraday_quote_times(self) -> tuple[datetime, datetime] | None:
-        with self._conn.cursor() as cur:
-            cur.execute(
-                f"""
-                SELECT MAX(quoted_at), MAX(fetched_at)
-                FROM {self._schema}.intraday_quote
-                """
-            )
-            row = cur.fetchone()
-        if row and row[0] is not None and row[1] is not None:
-            return (row[0], row[1])
-        return None
-
-    # ---- pcr_history ----
-    def append_pcr_history(
-        self,
-        ticker: str,
-        snapshot_date: _date,
-        pcr_oi: Decimal | None,
-        pcr_vol: Decimal | None,
-    ) -> None:
-        with self._conn.cursor() as cur:
-            cur.execute(
-                f"""
-                INSERT INTO {self._schema}.pcr_history (ticker, snapshot_date, pcr_oi, pcr_vol)
-                VALUES (%s, %s, %s, %s)
-                ON CONFLICT (ticker, snapshot_date) DO UPDATE
-                  SET pcr_oi=EXCLUDED.pcr_oi, pcr_vol=EXCLUDED.pcr_vol
-                """,
-                (ticker, snapshot_date, pcr_oi, pcr_vol),
-            )
-        self._conn.commit()
-
-    def get_pcr_history_30d_ago(
-        self, ticker: str, today: _date
-    ) -> PcrHistoryRow | None:
-        with self._conn.cursor() as cur:
-            cur.execute(
-                f"""
-                SELECT ticker, snapshot_date, pcr_oi, pcr_vol
-                FROM {self._schema}.pcr_history
-                WHERE ticker=%s AND snapshot_date <= %s - INTERVAL '30 days'
-                ORDER BY snapshot_date DESC
-                LIMIT 1
-                """,
-                (ticker, today),
-            )
-            row = cur.fetchone()
-            return PcrHistoryRow(*row) if row else None
-
-    # ---- jobs ----
-    def enqueue_rescan_job(self, ticker: str, *, priority: int = 0) -> str:
-        with self._conn.cursor() as cur:
-            cur.execute(
-                f"""
-                INSERT INTO {self._schema}.jobs (ticker, status, priority)
-                VALUES (%s, 'queued', %s)
-                ON CONFLICT (ticker) WHERE status IN ('queued', 'running')
-                DO UPDATE SET
-                    priority = GREATEST(
-                        {self._schema}.jobs.priority,
-                        EXCLUDED.priority
-                    ),
-                    requested_at = EXCLUDED.requested_at
-                RETURNING id
-                """,
-                (ticker, priority),
-            )
-            row = cur.fetchone()
-            assert row is not None
-            job_id = row[0]
-        self._conn.commit()
-        return str(job_id)
-
-    def claim_next_queued_job(self) -> JobRow | None:
-        with self._conn.cursor() as cur:
-            cur.execute(
-                f"""
-                UPDATE {self._schema}.jobs
-                SET status='running',
-                    started_at=NOW(),
-                    claim_token=gen_random_uuid()
-                WHERE id = (
-                  SELECT id FROM {self._schema}.jobs
-                  WHERE status='queued'
-                  ORDER BY priority DESC, requested_at ASC, id ASC
-                  FOR UPDATE SKIP LOCKED
-                  LIMIT 1
-                )
-                RETURNING id, ticker, status, run_id, error,
-                          requested_at, started_at, finished_at, claim_token
-                """
-            )
-            row = cur.fetchone()
-        self._conn.commit()
-        return JobRow(*row) if row else None
-
-    def requeue_stale_running_jobs(self, older_than: timedelta) -> int:
-        # Clear claim_token so the original worker's stored token will not
-        # match anything if/when it tries mark_job_done later (review
-        # 2026-05-16, B1; claim-token approach per codex review).
-        with self._conn.cursor() as cur:
-            cur.execute(
-                f"""
-                UPDATE {self._schema}.jobs
-                SET status='queued',
-                    started_at=NULL,
-                    error=NULL,
-                    claim_token=NULL
-                WHERE status='running'
-                  AND started_at < NOW() - %s
-                """,
-                (older_than,),
-            )
-            count = cur.rowcount
-        self._conn.commit()
-        return count
-
-    def mark_job_done(self, job_id: str, run_id: int, claim_token: Any) -> None:
-        # Claim-token guard against the requeue race (review 2026-05-16, B1):
-        # if requeue_stale_running_jobs cleared our token, or another worker
-        # has since reclaimed (with a fresh token), our update must be rejected.
-        with self._conn.cursor() as cur:
-            cur.execute(
-                f"""
-                UPDATE {self._schema}.jobs
-                SET status='done', run_id=%s, finished_at=NOW()
-                WHERE id=%s AND claim_token=%s
-                """,
-                (run_id, job_id, claim_token),
-            )
-            if cur.rowcount == 0:
-                logger.warning(
-                    "mark_job_done lost claim on job_id=%s "
-                    "(token mismatch; another worker may have reclaimed)",
-                    job_id,
-                )
-        self._conn.commit()
-
-    def mark_job_failed(self, job_id: str, error: str, claim_token: Any) -> None:
-        # Claim-token guard (review 2026-05-16, B1).
-        with self._conn.cursor() as cur:
-            cur.execute(
-                f"""
-                UPDATE {self._schema}.jobs
-                SET status='failed', error=%s, finished_at=NOW()
-                WHERE id=%s AND claim_token=%s
-                """,
-                (error[:2000], job_id, claim_token),
-            )
-            if cur.rowcount == 0:
-                logger.warning(
-                    "mark_job_failed lost claim on job_id=%s "
-                    "(token mismatch; another worker may have reclaimed)",
-                    job_id,
-                )
-        self._conn.commit()
-
-    def get_rescan_queue_summary(self) -> RescanQueueSummaryRow:
-        with self._conn.cursor() as cur:
-            cur.execute(
-                f"""
-                SELECT
-                  count(*) FILTER (WHERE status IN ('queued', 'running')) AS total,
-                  count(*) FILTER (WHERE status = 'queued') AS queued,
-                  count(*) FILTER (WHERE status = 'running') AS running,
-                  min(requested_at) FILTER (
-                    WHERE status IN ('queued', 'running')
-                  ) AS oldest_requested_at
-                FROM {self._schema}.jobs
-                """
-            )
-            row = cur.fetchone()
-        assert row is not None
-        return RescanQueueSummaryRow(
-            total=row[0],
-            queued=row[1],
-            running=row[2],
-            oldest_requested_at=row[3],
-        )
-
-    # ---- etf_aum_cache (A1 review fix: skip per-scan UW round trip) ----
-    def get_recent_etf_aum(self, ticker: str, *, max_age: timedelta) -> Decimal | None:
-        """Return cached AUM if fetched within max_age, else None.
-        None means the caller should fetch fresh (cache miss or stale)."""
-        ticker = ticker.upper()  # cache keys are canonical UPPER
-        with self._conn.cursor() as cur:
-            cur.execute(
-                f"""
-                SELECT aum FROM {self._schema}.etf_aum_cache
-                WHERE ticker = %s AND fetched_at > NOW() - %s
-                """,
-                (ticker, max_age),
-            )
-            row = cur.fetchone()
-        return row[0] if row else None
-
-    def upsert_etf_aum(self, ticker: str, aum: Decimal) -> None:
-        ticker = ticker.upper()
-        with self._conn.cursor() as cur:
-            cur.execute(
-                f"""
-                INSERT INTO {self._schema}.etf_aum_cache (ticker, aum, fetched_at)
-                VALUES (%s, %s, NOW())
-                ON CONFLICT (ticker) DO UPDATE
-                  SET aum = EXCLUDED.aum, fetched_at = EXCLUDED.fetched_at
-                """,
-                (ticker, aum),
-            )
-        self._conn.commit()
+    # jobs queue methods moved to _JobsMixin
+    # etf_aum_cache methods moved to _MarketDataMixin
 
     # ---- aggregates (JSONB on scan_runs) ----
     def set_aggregates(self, run_id: int, agg: "models.MarketAggregates") -> None:
@@ -4647,208 +3830,9 @@ class Repository:
             return None
         return models.MarketAggregates.model_validate(row[0])
 
-    def get_pcr_history_row(
-        self, ticker: str, snapshot_date: _date
-    ) -> PcrHistoryRow | None:
-        with self._conn.cursor() as cur:
-            cur.execute(
-                f"""
-                SELECT ticker, snapshot_date, pcr_oi, pcr_vol
-                FROM {self._schema}.pcr_history
-                WHERE ticker=%s AND snapshot_date=%s
-                """,
-                (ticker, snapshot_date),
-            )
-            row = cur.fetchone()
-        return PcrHistoryRow(*row) if row else None
+    # get_pcr_history_row moved to _MarketDataMixin
 
-    # ---- stock history rollup (for Market Structure history table) ----
-    def fetch_stock_history_rollup(self, ticker: str, limit: int = 30) -> list[dict]:
-        """One row per trading day, latest successful scan_run on that date.
-
-        Joins to daily_ohlc for end-of-day spot. Returns dicts shaped for
-        api.routers.stock to wrap in StockHistoryRow models.
-        """
-        with self._conn.cursor() as cur:
-            cur.execute(
-                f"""
-                WITH daily_runs AS (
-                    SELECT DISTINCT ON (started_at::date)
-                        started_at::date AS market_date,
-                        strike_gex_curve,
-                        aggregates
-                    FROM {self._schema}.scan_runs
-                    WHERE ticker = %s
-                      AND status = 'ok'
-                      AND strike_gex_curve IS NOT NULL
-                    ORDER BY started_at::date DESC, started_at DESC
-                )
-                SELECT
-                    r.market_date,
-                    d.close AS spot,
-                    r.aggregates->>'iv30d' AS iv30d,
-                    r.aggregates->>'pcr_vol' AS pcr_vol,
-                    r.strike_gex_curve
-                FROM daily_runs r
-                LEFT JOIN {self._schema}.daily_ohlc d
-                  ON d.ticker = %s AND d.date = r.market_date
-                ORDER BY r.market_date DESC
-                LIMIT %s
-                """,
-                (ticker, ticker, limit),
-            )
-            return [
-                {
-                    "market_date": row[0],
-                    "spot": row[1],
-                    "iv30d": row[2],
-                    "pcr_vol": row[3],
-                    "strike_gex_curve": row[4],
-                }
-                for row in cur.fetchall()
-            ]
-
-    # ---- watchlist count (for HealthPanel) ----
-    def count_active_watchlist(self) -> int:
-        with self._conn.cursor() as cur:
-            cur.execute(
-                f"SELECT COUNT(*) FROM {self._schema}.watchlist WHERE removed_at IS NULL"
-            )
-            row = cur.fetchone()
-        return int(row[0]) if row else 0
-
-    def _discover_record_health_rules(self) -> dict[str, tuple[str, str, int]]:
-        with self._conn.cursor() as cur:
-            cur.execute(
-                """
-                SELECT table_name, array_agg(column_name::text ORDER BY ordinal_position)
-                FROM information_schema.columns
-                WHERE table_schema = %s
-                GROUP BY table_name
-                ORDER BY table_name
-                """,
-                (self._schema,),
-            )
-            discovered: dict[str, tuple[str, str, int]] = {}
-            for table, column_list in cur.fetchall():
-                table_name = str(table)
-                if table_name in _RECORD_HEALTH_EXCLUDED_TABLES:
-                    continue
-                columns = set(column_list or [])
-                timestamp_col = next(
-                    (
-                        column
-                        for column in _RECORD_HEALTH_TIMESTAMP_COLUMNS
-                        if column in columns
-                    ),
-                    None,
-                )
-                ticker_col = next(
-                    (
-                        column
-                        for column in _RECORD_HEALTH_TICKER_COLUMNS
-                        if column in columns
-                    ),
-                    None,
-                )
-                if timestamp_col is not None and ticker_col is not None:
-                    discovered[table_name] = (timestamp_col, ticker_col, 1)
-            return discovered
-
-    def list_record_health(
-        self,
-        *,
-        since: datetime,
-        expected_tickers: int,
-        min_coverage: float = 0.9,
-        tables: Iterable[str] | None = None,
-    ) -> list[RecordHealthRow]:
-        rules = self._discover_record_health_rules()
-        selected = list(tables) if tables is not None else list(rules)
-        unknown = sorted(set(selected) - set(rules))
-        if unknown:
-            raise ValueError(f"unknown record health table(s): {', '.join(unknown)}")
-
-        expected_min_tickers = (
-            0 if expected_tickers <= 0 else math.ceil(expected_tickers * min_coverage)
-        )
-        rows: list[RecordHealthRow] = []
-        with self._conn.cursor() as cur:
-            for table in selected:
-                timestamp_col, ticker_col, min_rows_per_ticker = rules[table]
-                cur.execute(
-                    psql.SQL(
-                        """
-                        SELECT
-                            COUNT(*)::int AS actual_rows,
-                            COUNT(DISTINCT {ticker_col})::int AS actual_tickers,
-                            MAX({timestamp_col}) AS latest_at
-                        FROM {schema}.{table}
-                        WHERE {timestamp_col} >= %s
-                        """
-                    ).format(
-                        schema=psql.Identifier(self._schema),
-                        table=psql.Identifier(table),
-                        timestamp_col=psql.Identifier(timestamp_col),
-                        ticker_col=psql.Identifier(ticker_col),
-                    ),
-                    (since,),
-                )
-                actual_rows, actual_tickers, latest_at = cur.fetchone() or (0, 0, None)
-                expected_min_rows = expected_min_tickers * min_rows_per_ticker
-                ok = (
-                    int(actual_tickers or 0) >= expected_min_tickers
-                    and int(actual_rows or 0) >= expected_min_rows
-                )
-                rows.append(
-                    RecordHealthRow(
-                        table=table,
-                        window_start=since,
-                        expected_tickers=expected_tickers,
-                        expected_min_tickers=expected_min_tickers,
-                        actual_tickers=int(actual_tickers or 0),
-                        expected_min_rows=expected_min_rows,
-                        actual_rows=int(actual_rows or 0),
-                        latest_at=latest_at,
-                        ok=ok,
-                    )
-                )
-        return rows
-
-    # ---- worker_heartbeat ----
-    def upsert_heartbeat(self, job_name: str) -> None:
-        with self._conn.cursor() as cur:
-            cur.execute(
-                f"""
-                INSERT INTO {self._schema}.worker_heartbeat (job_name, last_beat_at)
-                VALUES (%s, now())
-                ON CONFLICT (job_name) DO UPDATE SET last_beat_at = now()
-                """,
-                (job_name,),
-            )
-        self._conn.commit()
-
-    def get_heartbeat(self, job_name: str) -> datetime | None:
-        with self._conn.cursor() as cur:
-            cur.execute(
-                f"SELECT last_beat_at FROM {self._schema}.worker_heartbeat WHERE job_name=%s",
-                (job_name,),
-            )
-            row = cur.fetchone()
-        return row[0] if row else None
-
-    def get_latest_heartbeat(self) -> tuple[str, datetime] | None:
-        with self._conn.cursor() as cur:
-            cur.execute(
-                f"""
-                SELECT job_name, last_beat_at
-                FROM {self._schema}.worker_heartbeat
-                ORDER BY last_beat_at DESC
-                LIMIT 1
-                """
-            )
-            row = cur.fetchone()
-        return (str(row[0]), row[1]) if row else None
+    # stock_history_rollup, watchlist count, record health, heartbeat methods moved to _HealthMixin
 
     # ---- strike_gex_curve (JSONB on scan_runs) ----
     def set_strike_gex_curve(self, run_id: int, curve: list[dict]) -> None:
@@ -4869,18 +3853,7 @@ class Repository:
             row = cur.fetchone()
         return row[0] if row and row[0] else []
 
-    def get_job(self, job_id: str) -> JobRow | None:
-        with self._conn.cursor() as cur:
-            cur.execute(
-                f"""
-                SELECT id, ticker, status, run_id, error,
-                       requested_at, started_at, finished_at, claim_token
-                FROM {self._schema}.jobs WHERE id=%s
-                """,
-                (job_id,),
-            )
-            row = cur.fetchone()
-            return JobRow(*row) if row else None
+    # get_job moved to _JobsMixin
 
     # ---- Volatility Tab v2 helpers (spec 2026-05-13) ----
 
