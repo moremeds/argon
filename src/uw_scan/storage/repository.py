@@ -56,6 +56,7 @@ from .rows import (
     WatchlistCardRow,
     WatchlistRow,
 )
+from .scan_outputs import _ScanOutputsMixin
 
 __all__ = [
     "Repository",
@@ -330,7 +331,7 @@ _RECORD_HEALTH_EXCLUDED_TABLES = {
 logger = logging.getLogger(__name__)
 
 
-class Repository(_AuditMixin, _BaseMixin):
+class Repository(_AuditMixin, _ScanOutputsMixin, _BaseMixin):
     """Repository wraps a psycopg connection and exposes typed CRUD.
 
     Inherits __init__ and the conn property from _BaseMixin. As PR-1/2/3
@@ -2716,66 +2717,6 @@ class Repository(_AuditMixin, _BaseMixin):
                 ),
             )
         return 1
-
-    # ------------------------------------------------------------------
-    # opportunity_scores + structure_ideas
-    # ------------------------------------------------------------------
-    def insert_opportunity_score(
-        self,
-        run_id: int,
-        ticker: str,
-        score: Decimal,
-        setup_types: list[str],
-        direction: str | None,
-        confirmations: list[str],
-        warnings: list[str],
-        notes: str,
-    ) -> int:
-        sql = (
-            f"INSERT INTO {self._schema}.opportunity_scores "
-            "(run_id, ticker, score, setup_types, direction, confirmations, "
-            "warnings, notes) "
-            "VALUES (%s, %s, %s, %s, %s, %s, %s, %s) RETURNING score_id"
-        )
-        with self._conn.cursor() as cur:
-            cur.execute(
-                sql,
-                (
-                    run_id,
-                    ticker,
-                    score,
-                    setup_types,
-                    direction,
-                    confirmations,
-                    warnings,
-                    notes,
-                ),
-            )
-            row = cur.fetchone()
-        assert row is not None
-        return int(row[0])
-
-    def insert_structure_idea(
-        self,
-        run_id: int,
-        ticker: str,
-        structure: str,
-        legs: list[dict[str, Any]],
-        rationale: str,
-    ) -> int:
-        sql = (
-            f"INSERT INTO {self._schema}.structure_ideas "
-            "(run_id, ticker, structure, legs_json, rationale) "
-            "VALUES (%s, %s, %s, %s, %s) RETURNING idea_id"
-        )
-        with self._conn.cursor() as cur:
-            cur.execute(
-                sql,
-                (run_id, ticker, structure, Jsonb(legs), rationale),
-            )
-            row = cur.fetchone()
-        assert row is not None
-        return int(row[0])
 
     # ------------------------------------------------------------------
     # SELECT helpers — used by reports/single_stock.py
