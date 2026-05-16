@@ -59,7 +59,9 @@ class MatrixInputs:
         | None
     ) = None
     directional_imbalance_3d: Decimal | None = None
-    vanna_oi_change_bias: Literal["call_oi_build", "put_oi_build", "mixed"] | None = None
+    vanna_oi_change_bias: Literal["call_oi_build", "put_oi_build", "mixed"] | None = (
+        None
+    )
     charm_regime: (
         Literal["operative_magnet", "broken_magnet", "opex_vortex", "neutral"] | None
     ) = None
@@ -399,9 +401,7 @@ def _read_inputs(
     )
 
 
-def _vanna_state(
-    greeks: list[dict], exposures: list[dict]
-) -> MatrixDirection:
+def _vanna_state(greeks: list[dict], exposures: list[dict]) -> MatrixDirection:
     if not greeks:
         return "stale"
     if not exposures:
@@ -448,7 +448,11 @@ def _charm_state(
     )
     dte = (expiry - market_date).days
     if pin_sigma < Decimal("1.0") and iv_30d < Decimal("0.35"):
-        regime = "opex_vortex" if dte <= 1 and pin_sigma < Decimal("0.5") else "operative_magnet"
+        regime = (
+            "opex_vortex"
+            if dte <= 1 and pin_sigma < Decimal("0.5")
+            else "operative_magnet"
+        )
         return "vol_down", pin_sigma, regime, False
     if stress_override:
         regime = "opex_vortex" if dte <= 1 else "broken_magnet"
@@ -468,7 +472,9 @@ def _nearest_high_oi_strike(
         if expiry is None or strike is None:
             continue
         dte = (expiry - market_date).days
-        if dte < 0 or dte > 5:
+        # 0-DTE makes pin_distance_sigma_v1 degenerate (sqrt(0) → 0).
+        # Skip same-day so we pick the next available expiry.
+        if dte <= 0 or dte > 5:
             continue
         if abs(strike - spot) / spot > Decimal("0.02"):
             continue
@@ -478,7 +484,9 @@ def _nearest_high_oi_strike(
         return None
     nearest_expiry = min(expiry for expiry, _strike, _oi in filtered)
     expiry_rows = [row for row in filtered if row[0] == nearest_expiry]
-    expiry, strike, _oi = max(expiry_rows, key=lambda row: (row[2], -abs(row[1] - spot)))
+    expiry, strike, _oi = max(
+        expiry_rows, key=lambda row: (row[2], -abs(row[1] - spot))
+    )
     return expiry, strike
 
 
@@ -603,13 +611,29 @@ def _latest_implied_move_pct(rows: list[dict], market_date: date) -> Decimal | N
 
 
 def _latest_rv_30d(rows: list[dict], market_date: date) -> Decimal | None:
-    row = _row_for_date(rows, market_date)
-    return None if row is None else row.get("realized_volatility")
+    # UW returns realized_volatility as NULL for the most recent ~3 days
+    # (RV is a backward-looking aggregate). Walk back to the latest non-null
+    # RV value at or before market_date so derived state fields don't all
+    # silently go null on the day the snapshot is run.
+    for row in reversed(rows):
+        if row.get("market_date") is None or row["market_date"] > market_date:
+            continue
+        rv = row.get("realized_volatility")
+        if rv is not None:
+            return rv
+    return None
 
 
 def _latest_spot(rows: list[dict], market_date: date) -> Decimal | None:
-    row = _row_for_date(rows, market_date)
-    return None if row is None else row.get("price")
+    # Same fallback pattern as _latest_rv_30d: prices may be missing on the
+    # most recent date if UW's series lags. Walk back to the latest non-null.
+    for row in reversed(rows):
+        if row.get("market_date") is None or row["market_date"] > market_date:
+            continue
+        price = row.get("price")
+        if price is not None:
+            return price
+    return None
 
 
 def _row_for_date(rows: list[dict], market_date: date) -> dict | None:
@@ -631,7 +655,9 @@ def _zscore_for_date(
         for row in rows
         if row.get("market_date") <= market_date and row.get(key) is not None
     ][-window:]
-    if len(values) < 2 or not any(row.get("market_date") == market_date for row in rows):
+    if len(values) < 2 or not any(
+        row.get("market_date") == market_date for row in rows
+    ):
         return None
     mean = sum(values) / Decimal(len(values))
     variance = sum((value - mean) ** 2 for value in values) / Decimal(len(values))
@@ -693,7 +719,12 @@ def _vrp_values(
     iv_rows: list[dict], rv_rows: list[dict], market_date: date, *, window: int
 ) -> tuple[Decimal | None, Decimal | None]:
     series = _joined_vrp_series(iv_rows, rv_rows)
-    current = next((value for day, value in reversed(series) if day == market_date), None)
+    # UW's RV endpoint returns null for the most recent ~3 days, so the
+    # joined IV-RV series typically has no row for today. Use the latest
+    # point at-or-before market_date instead of requiring exact match.
+    current = next(
+        (value for day, value in reversed(series) if day <= market_date), None
+    )
     if current is None:
         return None, None
     values = [value for day, value in series if day <= market_date][-window:]
@@ -720,18 +751,27 @@ def _vrp_sign_flip_status(
     return any(prev != cur for prev, cur in zip(non_zero, non_zero[1:])), aligned_days
 
 
-def _joined_vrp_series(iv_rows: list[dict], rv_rows: list[dict]) -> list[tuple[date, Decimal]]:
-    rv_by_day = {
-        row.get("market_date"): row.get("realized_volatility")
-        for row in rv_rows
-        if row.get("market_date") is not None
+def _joined_vrp_series(
+    iv_rows: list[dict], rv_rows: list[dict]
+) -> list[tuple[date, Decimal]]:
+    # interpolated_iv_snapshots is sparse (4 most recent days), while
+    # realized_volatility_history carries `implied_volatility` for every day.
+    # Combine both sources so VRP can be computed across the full RV history.
+    iv_by_day = {
+        row.get("market_date"): row.get("volatility")
+        for row in iv_rows
+        if row.get("market_date") is not None and row.get("volatility") is not None
     }
     series = []
-    for row in iv_rows:
+    for row in rv_rows:
         day = row.get("market_date")
-        iv = row.get("volatility")
-        rv = rv_by_day.get(day)
-        if day is None or iv is None or rv is None:
+        rv = row.get("realized_volatility")
+        if day is None or rv is None:
+            continue
+        iv = iv_by_day.get(day)
+        if iv is None:
+            iv = row.get("implied_volatility")
+        if iv is None:
             continue
         series.append((day, Decimal(str(iv)) - Decimal(str(rv))))
     return sorted(series, key=lambda item: item[0])
@@ -747,7 +787,9 @@ def _atm_straddle_mid(rows: list[dict], *, spot: Decimal | None) -> Decimal | No
         if call_mid is None or put_mid is None or strike is None:
             continue
         distance = abs(Decimal(str(strike)) - spot) if spot is not None else Decimal(0)
-        candidates.append((expiry, distance, Decimal(str(call_mid)) + Decimal(str(put_mid))))
+        candidates.append(
+            (expiry, distance, Decimal(str(call_mid)) + Decimal(str(put_mid)))
+        )
     if not candidates:
         return None
     _expiry, _distance, straddle = min(
@@ -763,7 +805,9 @@ def _implied_move_expected_abs(
         return (atm_straddle_mid / spot) * EXPECTED_ABS_MOVE_FACTOR
     ordered = [
         row
-        for row in sorted(rows, key=lambda row: (row.get("dte") is None, row.get("dte") or 0))
+        for row in sorted(
+            rows, key=lambda row: (row.get("dte") is None, row.get("dte") or 0)
+        )
         if row.get("implied_move_perc") is not None
     ]
     if not ordered:

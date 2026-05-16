@@ -404,6 +404,18 @@
             ],
             "title": "Pin Regime Flag"
           },
+          "pin_source_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pin Source Date"
+          },
           "vanna_conditional_reading": {
             "anyOf": [
               {

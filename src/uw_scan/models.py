@@ -502,6 +502,7 @@ class CockpitDealerPoint(_UwBase):
 class CockpitDealerMetrics(_UwBase):
     pin_candidate_strike: Decimal | None = None
     pin_candidate_expiry: _date | None = None
+    pin_source_date: _date | None = None
     pin_distance_sigma: Decimal | None = None
     pin_regime_flag: bool | None = None
     dealer_net_vanna_proxy: Decimal | None = None
@@ -540,6 +541,7 @@ class CharmSignal(_UwBase):
     market_date: _date
     pin_candidate_strike: Decimal | None = None
     pin_candidate_expiry: _date | None = None
+    pin_source_date: _date | None = None
     pin_distance_sigma: Decimal | None = None
     pin_regime_flag: bool | None = None
     dealer_net_charm_proxy: Decimal | None = None

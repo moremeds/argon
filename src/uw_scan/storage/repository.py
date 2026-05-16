@@ -34,14 +34,18 @@ class WatchlistRow:
     removed_at: datetime | None
 
 
-def _row_for_date(rows: list[dict[str, Any]], market_date: _date) -> dict[str, Any] | None:
+def _row_for_date(
+    rows: list[dict[str, Any]], market_date: _date
+) -> dict[str, Any] | None:
     for row in rows:
         if row.get("market_date") == market_date:
             return row
     return None
 
 
-def _iv_delta_5d(*, iv_rows: list[dict[str, Any]], market_date: _date) -> Decimal | None:
+def _iv_delta_5d(
+    *, iv_rows: list[dict[str, Any]], market_date: _date
+) -> Decimal | None:
     current = _row_for_date(iv_rows, market_date)
     if current is None or current.get("volatility") is None:
         return None
@@ -75,8 +79,10 @@ def _pin_candidate(
         if dte <= 0 or dte > 5:
             continue
         strike_dec = Decimal(str(strike))
-        if spot is not None and spot > 0 and abs(strike_dec - spot) / spot > Decimal(
-            "0.02"
+        if (
+            spot is not None
+            and spot > 0
+            and abs(strike_dec - spot) / spot > Decimal("0.02")
         ):
             continue
         oi = int(row.get("call_oi") or 0) + int(row.get("put_oi") or 0)
@@ -186,7 +192,9 @@ def _charm_regime(
             else "operative_magnet"
         )
     if stress_override:
-        return "opex_vortex" if pin_dte is not None and pin_dte <= 1 else "broken_magnet"
+        return (
+            "opex_vortex" if pin_dte is not None and pin_dte <= 1 else "broken_magnet"
+        )
     return "neutral"
 
 
@@ -1588,13 +1596,16 @@ class Repository:
         self, *, ticker: str, market_date: _date
     ) -> list[dict[str, Any]]:
         sql = (
-            f"SELECT expiry, strike, call_volume, put_volume, call_oi, put_oi "
+            f"SELECT snapshot_date, expiry, strike, call_volume, put_volume, call_oi, put_oi "
             f"FROM {self._schema}.option_chain_per_strike "
-            "WHERE ticker = %s AND snapshot_date = %s "
+            "WHERE ticker = %s AND snapshot_date = ("
+            f"  SELECT max(snapshot_date) FROM {self._schema}.option_chain_per_strike "
+            "  WHERE ticker = %s AND snapshot_date <= %s"
+            ") "
             "ORDER BY expiry, strike"
         )
         with self._conn.cursor() as cur:
-            cur.execute(sql, (ticker, market_date))
+            cur.execute(sql, (ticker, ticker, market_date))
             cols = [d.name for d in cur.description or []]
             return [dict(zip(cols, row, strict=False)) for row in cur.fetchall()]
 
@@ -1703,9 +1714,7 @@ class Repository:
             rv_row = cur.fetchone()
             settlement_date = rv_row[0] if rv_row else None
             rv_subsequent = rv_row[1] if rv_row else None
-            vrp_strict = (
-                iv_30d - rv_subsequent if rv_subsequent is not None else None
-            )
+            vrp_strict = iv_30d - rv_subsequent if rv_subsequent is not None else None
             cur.execute(
                 f"INSERT INTO {self._schema}.vrp_30d_settlements ("
                 "ticker, market_date, iv_30d, settlement_date, rv_subsequent, "
@@ -1935,28 +1944,42 @@ class Repository:
     ) -> models.MatrixSourceFreshness:
         return models.MatrixSourceFreshness(
             vanna_charm=self._latest_inserted_at(
-                "greeks_by_expiry_strike", ticker=ticker, date_column="market_date",
+                "greeks_by_expiry_strike",
+                ticker=ticker,
+                date_column="market_date",
                 market_date=market_date,
             ),
             skew=self._latest_inserted_at(
-                "risk_reversal_skew_history", ticker=ticker, date_column="market_date",
+                "risk_reversal_skew_history",
+                ticker=ticker,
+                date_column="market_date",
                 market_date=market_date,
             ),
             term=self._latest_inserted_at(
-                "iv_term_snapshots", ticker=ticker, date_column="market_date",
+                "iv_term_snapshots",
+                ticker=ticker,
+                date_column="market_date",
                 market_date=market_date,
             ),
             im_vrp=self._latest_inserted_at(
-                "interpolated_iv_snapshots", ticker=ticker, date_column="market_date",
+                "interpolated_iv_snapshots",
+                ticker=ticker,
+                date_column="market_date",
                 market_date=market_date,
             ),
             vrp_rv=self._latest_inserted_at(
-                "realized_volatility_history", ticker=ticker, date_column="market_date",
+                "realized_volatility_history",
+                ticker=ticker,
+                date_column="market_date",
                 market_date=market_date,
             ),
             oi=self._latest_inserted_at(
-                "option_chain_per_strike", ticker=ticker, date_column="snapshot_date",
-                market_date=market_date, timestamp_column="fetched_at",
+                "option_chain_per_strike",
+                ticker=ticker,
+                date_column="snapshot_date",
+                market_date=market_date,
+                timestamp_column="fetched_at",
+                comparison="<=",
             ),
         )
 
@@ -2004,6 +2027,7 @@ class Repository:
         date_column: str,
         market_date: _date,
         timestamp_column: str = "inserted_at",
+        comparison: str = "=",
     ) -> datetime | None:
         allowed = {
             "greeks_by_expiry_strike",
@@ -2015,14 +2039,18 @@ class Repository:
         }
         if (
             table not in allowed
+            or comparison not in {"=", "<="}
             or date_column not in {"market_date", "snapshot_date"}
             or timestamp_column not in {"inserted_at", "fetched_at"}
         ):
             raise ValueError(f"unsupported matrix freshness source: {table}")
         with self._conn.cursor() as cur:
             cur.execute(
-                psql.SQL("SELECT max({}) FROM {} WHERE ticker = %s AND {} = %s")
-                .format(
+                psql.SQL(
+                    "SELECT max({}) FROM {} WHERE ticker = %s AND {} "
+                    + comparison
+                    + " %s"
+                ).format(
                     psql.Identifier(timestamp_column),
                     psql.Identifier(self._schema, table),
                     psql.Identifier(date_column),
@@ -2036,7 +2064,9 @@ class Repository:
         self, *, ticker: str, market_date: _date
     ) -> list[models.CockpitDealerPoint]:
         greeks = self.fetch_matrix_greeks_rows(ticker=ticker, market_date=market_date)
-        exposures = self.fetch_matrix_exposure_rows(ticker=ticker, market_date=market_date)
+        exposures = self.fetch_matrix_exposure_rows(
+            ticker=ticker, market_date=market_date
+        )
         exposure_by_key = {
             (row["expiry"], row["strike"]): row
             for row in exposures
@@ -2121,14 +2151,15 @@ class Repository:
     def upsert_charm_signal(self, signal: models.CharmSignal) -> None:
         sql = (
             f"INSERT INTO {self._schema}.charm_signals ("
-            "ticker, market_date, pin_candidate_strike, pin_candidate_expiry, "
+            "ticker, market_date, pin_candidate_strike, pin_candidate_expiry, pin_source_date, "
             "pin_distance_sigma, pin_regime_flag, dealer_net_charm_proxy, "
             "net_gamma, net_gamma_sign, gamma_regime, charm_regime, "
             "charm_stress_override, generated_at"
-            ") VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, COALESCE(%s, now())) "
+            ") VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, COALESCE(%s, now())) "
             "ON CONFLICT (ticker, market_date) DO UPDATE SET "
             "pin_candidate_strike=EXCLUDED.pin_candidate_strike, "
             "pin_candidate_expiry=EXCLUDED.pin_candidate_expiry, "
+            "pin_source_date=EXCLUDED.pin_source_date, "
             "pin_distance_sigma=EXCLUDED.pin_distance_sigma, "
             "pin_regime_flag=EXCLUDED.pin_regime_flag, "
             "dealer_net_charm_proxy=EXCLUDED.dealer_net_charm_proxy, "
@@ -2147,6 +2178,7 @@ class Repository:
                     signal.market_date,
                     signal.pin_candidate_strike,
                     signal.pin_candidate_expiry,
+                    signal.pin_source_date,
                     signal.pin_distance_sigma,
                     signal.pin_regime_flag,
                     signal.dealer_net_charm_proxy,
@@ -2164,7 +2196,7 @@ class Repository:
     ) -> models.CharmSignal | None:
         sql = (
             "SELECT ticker, market_date, pin_candidate_strike, pin_candidate_expiry, "
-            "pin_distance_sigma, pin_regime_flag, dealer_net_charm_proxy, "
+            "pin_source_date, pin_distance_sigma, pin_regime_flag, dealer_net_charm_proxy, "
             "net_gamma, net_gamma_sign, gamma_regime, charm_regime, "
             "charm_stress_override, generated_at, inserted_at "
             f"FROM {self._schema}.charm_signals "
@@ -2205,6 +2237,7 @@ class Repository:
                 market_date=market_date,
                 pin_candidate_strike=metrics.pin_candidate_strike,
                 pin_candidate_expiry=metrics.pin_candidate_expiry,
+                pin_source_date=metrics.pin_source_date,
                 pin_distance_sigma=metrics.pin_distance_sigma,
                 pin_regime_flag=metrics.pin_regime_flag,
                 dealer_net_charm_proxy=metrics.dealer_net_charm_proxy,
@@ -2223,84 +2256,103 @@ class Repository:
     ) -> models.CockpitDealerMetrics:
         vanna = self.fetch_vanna_signal(ticker=ticker, market_date=market_date)
         charm = self.fetch_charm_signal(ticker=ticker, market_date=market_date)
-        computed = (
-            None
-            if vanna is not None and charm is not None
-            else self._compute_cockpit_dealer_metrics(
-                ticker=ticker, market_date=market_date
-            )
+        computed = self._compute_cockpit_dealer_metrics(
+            ticker=ticker, market_date=market_date
         )
         return models.CockpitDealerMetrics(
             pin_candidate_strike=(
-                charm.pin_candidate_strike if charm is not None else computed.pin_candidate_strike
+                charm.pin_candidate_strike
+                if charm is not None and charm.pin_candidate_strike is not None
+                else computed.pin_candidate_strike
             ),
             pin_candidate_expiry=(
-                charm.pin_candidate_expiry if charm is not None else computed.pin_candidate_expiry
+                charm.pin_candidate_expiry
+                if charm is not None and charm.pin_candidate_expiry is not None
+                else computed.pin_candidate_expiry
+            ),
+            pin_source_date=(
+                charm.pin_source_date
+                if charm is not None and charm.pin_source_date is not None
+                else computed.pin_source_date
             ),
             pin_distance_sigma=(
-                charm.pin_distance_sigma if charm is not None else computed.pin_distance_sigma
+                charm.pin_distance_sigma
+                if charm is not None and charm.pin_distance_sigma is not None
+                else computed.pin_distance_sigma
             ),
             pin_regime_flag=(
-                charm.pin_regime_flag if charm is not None else computed.pin_regime_flag
+                charm.pin_regime_flag
+                if charm is not None and charm.pin_regime_flag is not None
+                else computed.pin_regime_flag
             ),
             dealer_net_vanna_proxy=(
                 vanna.dealer_net_vanna_proxy
-                if vanna is not None
+                if vanna is not None and vanna.dealer_net_vanna_proxy is not None
                 else computed.dealer_net_vanna_proxy
             ),
             dealer_net_charm_proxy=(
                 charm.dealer_net_charm_proxy
-                if charm is not None
+                if charm is not None and charm.dealer_net_charm_proxy is not None
                 else computed.dealer_net_charm_proxy
             ),
             flow_color_lookback_3d=(
                 vanna.flow_color_lookback_3d
-                if vanna is not None
+                if vanna is not None and vanna.flow_color_lookback_3d is not None
                 else computed.flow_color_lookback_3d
             ),
             flow_put_premium_3d=(
                 vanna.flow_put_premium_3d
-                if vanna is not None
+                if vanna is not None and vanna.flow_put_premium_3d is not None
                 else computed.flow_put_premium_3d
             ),
             flow_call_premium_3d=(
                 vanna.flow_call_premium_3d
-                if vanna is not None
+                if vanna is not None and vanna.flow_call_premium_3d is not None
                 else computed.flow_call_premium_3d
             ),
             iv_30d_delta_5d=(
                 vanna.iv_30d_delta_5d
-                if vanna is not None
+                if vanna is not None and vanna.iv_30d_delta_5d is not None
                 else computed.iv_30d_delta_5d
             ),
-            net_gamma=charm.net_gamma if charm is not None else computed.net_gamma,
+            net_gamma=(
+                charm.net_gamma
+                if charm is not None and charm.net_gamma is not None
+                else computed.net_gamma
+            ),
             net_gamma_sign=(
-                charm.net_gamma_sign if charm is not None else computed.net_gamma_sign
+                charm.net_gamma_sign
+                if charm is not None and charm.net_gamma_sign is not None
+                else computed.net_gamma_sign
             ),
             gamma_regime=(
-                charm.gamma_regime if charm is not None else computed.gamma_regime
+                charm.gamma_regime
+                if charm is not None and charm.gamma_regime is not None
+                else computed.gamma_regime
             ),
             vanna_conditional_reading=(
                 vanna.vanna_conditional_reading
-                if vanna is not None
+                if vanna is not None and vanna.vanna_conditional_reading is not None
                 else computed.vanna_conditional_reading
             ),
             directional_imbalance_3d=(
                 vanna.directional_imbalance_3d
-                if vanna is not None
+                if vanna is not None and vanna.directional_imbalance_3d is not None
                 else computed.directional_imbalance_3d
             ),
             vanna_oi_change_bias=(
                 vanna.vanna_oi_change_bias
-                if vanna is not None
+                if vanna is not None and vanna.vanna_oi_change_bias is not None
                 else computed.vanna_oi_change_bias
             ),
             charm_regime=(
-                charm.charm_regime if charm is not None else computed.charm_regime
+                charm.charm_regime
+                if charm is not None and charm.charm_regime is not None
+                else computed.charm_regime
             ),
             charm_stress_override=(
                 charm.charm_stress_override
-                if charm is not None
+                if charm is not None and charm.charm_stress_override is not None
                 else computed.charm_stress_override
             ),
         )
@@ -2314,6 +2366,14 @@ class Repository:
         )
         chain_rows = self.fetch_matrix_option_chain_rows(
             ticker=ticker, market_date=market_date
+        )
+        pin_source_date = max(
+            (
+                row["snapshot_date"]
+                for row in chain_rows
+                if row.get("snapshot_date") is not None
+            ),
+            default=None,
         )
         iv_rows = self.fetch_matrix_interpolated_iv_history(
             ticker=ticker, market_date=market_date, days=10
@@ -2346,12 +2406,9 @@ class Repository:
                 ) * Decimal(100)
                 vanna_seen = True
             expiry = row.get("expiry")
-            near_expiry = (
-                expiry is not None and 0 <= (expiry - market_date).days <= 5
-            )
+            near_expiry = expiry is not None and 0 <= (expiry - market_date).days <= 5
             if near_expiry and (
-                row.get("call_charm") is not None
-                or row.get("put_charm") is not None
+                row.get("call_charm") is not None or row.get("put_charm") is not None
             ):
                 dealer_net_charm += (
                     (row.get("call_charm") or Decimal(0)) * call_oi
@@ -2364,8 +2421,7 @@ class Repository:
                 (row.get("call_vanna") or Decimal(0))
                 + (row.get("put_vanna") or Decimal(0))
                 for row in exposures
-                if row.get("call_vanna") is not None
-                or row.get("put_vanna") is not None
+                if row.get("call_vanna") is not None or row.get("put_vanna") is not None
             )
             if exposure_vanna is not None:
                 dealer_net_vanna = exposure_vanna
@@ -2452,6 +2508,7 @@ class Repository:
         return models.CockpitDealerMetrics(
             pin_candidate_strike=pin[1] if pin is not None else None,
             pin_candidate_expiry=pin[0] if pin is not None else None,
+            pin_source_date=pin_source_date,
             pin_distance_sigma=pin_distance_sigma,
             pin_regime_flag=pin_regime if pin is not None else None,
             dealer_net_vanna_proxy=dealer_net_vanna if vanna_seen else None,
@@ -2541,7 +2598,9 @@ class Repository:
     def fetch_cockpit_surface(
         self, *, ticker: str, market_date: _date
     ) -> tuple[list[models.CockpitSkewPoint], list[models.CockpitTermPoint]]:
-        skew_rows = self.fetch_matrix_skew_history(ticker=ticker, market_date=market_date)
+        skew_rows = self.fetch_matrix_skew_history(
+            ticker=ticker, market_date=market_date
+        )
         term_rows = self.fetch_matrix_term_rows(ticker=ticker, market_date=market_date)
         skew = [
             models.CockpitSkewPoint(
@@ -2621,6 +2680,11 @@ class Repository:
                 days=row["days"],
                 volatility=row.get("volatility"),
                 implied_move_perc=row.get("implied_move_perc"),
+                implied_move_expected_abs=(
+                    Decimal(str(row["implied_move_perc"])) * Decimal("0.7979")
+                    if row.get("implied_move_perc") is not None
+                    else None
+                ),
                 percentile=row.get("percentile"),
             )
             for row in rows

@@ -108,6 +108,33 @@ def test_cockpit_flow_im_exposes_flow_alert_classifier_inputs(
     assert Decimal(alert["aggressor_label_confidence"]) == Decimal("0.75")
 
 
+def test_cockpit_flow_im_exposes_expected_abs_move(
+    client, seeded_db_empty_cards
+) -> None:
+    repo = seeded_db_empty_cards
+    _seed_state(repo)
+    run_id = repo.insert_scan_run("SPY", notes="cockpit expected abs move")
+    repo.insert_interpolated_iv_rows(
+        run_id,
+        "SPY",
+        [
+            InterpolatedIvRow(
+                date=date(2026, 5, 15),
+                days=30,
+                volatility=Decimal("0.20"),
+                implied_move_perc=Decimal("0.02"),
+            ),
+        ],
+    )
+    repo.conn.commit()
+
+    r = client.get("/api/cockpit/SPY/flow-im")
+
+    assert r.status_code == 200
+    point = r.json()["implied_moves"][0]
+    assert Decimal(point["implied_move_expected_abs"]) == Decimal("0.015958")
+
+
 def test_cockpit_tabs_use_source_date_without_state_snapshot(
     client, seeded_db_empty_cards
 ) -> None:
@@ -250,6 +277,97 @@ def test_cockpit_tabs_use_source_date_without_state_snapshot(
     assert Decimal(point["exposure_put_vanna"]) == Decimal("-20")
     assert Decimal(point["exposure_call_charm"]) == Decimal("30")
     assert Decimal(point["exposure_put_charm"]) == Decimal("-40")
+
+
+def test_cockpit_dealer_pin_uses_latest_oi_snapshot_and_marks_source_date(
+    client, seeded_db_empty_cards
+) -> None:
+    repo = seeded_db_empty_cards
+    run_id = repo.insert_scan_run("QQQ", notes="cockpit stale oi pin")
+    repo.insert_greeks_rows(
+        run_id,
+        "QQQ",
+        [
+            GreeksRow(
+                date=date(2026, 5, 15),
+                expiry=date(2026, 5, 18),
+                strike=Decimal("500"),
+                call_vanna=Decimal("1"),
+                put_vanna=Decimal("1"),
+                call_charm=Decimal("1"),
+                put_charm=Decimal("1"),
+            )
+        ],
+    )
+    repo.upsert_realized_vol_rows(
+        "QQQ",
+        [
+            RealizedVolRow(
+                date=date(2026, 5, 15),
+                price=Decimal("500"),
+                implied_volatility=Decimal("0.20"),
+            )
+        ],
+    )
+    repo.insert_interpolated_iv_rows(
+        run_id,
+        "QQQ",
+        [
+            InterpolatedIvRow(
+                date=date(2026, 5, 15),
+                days=30,
+                volatility=Decimal("0.20"),
+            )
+        ],
+    )
+    repo.upsert_option_chain_per_strike(
+        "QQQ",
+        date(2026, 5, 14),
+        [
+            OptionChainPerStrikeRow(
+                expiry=date(2026, 5, 18),
+                strike=Decimal("500"),
+                call_oi=1000,
+                put_oi=1000,
+            )
+        ],
+    )
+    repo.conn.commit()
+
+    dealer = client.get("/api/cockpit/QQQ/dealer")
+
+    assert dealer.status_code == 200
+    metrics = dealer.json()["metrics"]
+    assert Decimal(metrics["pin_candidate_strike"]) == Decimal("500")
+    assert metrics["pin_candidate_expiry"] == "2026-05-18"
+    assert metrics["pin_source_date"] == "2026-05-14"
+    assert Decimal(metrics["pin_distance_sigma"]) == Decimal("0")
+    assert metrics["pin_regime_flag"] is False
+
+
+def test_cockpit_freshness_oi_reports_stale_snapshot(
+    seeded_db_empty_cards,
+) -> None:
+    repo = seeded_db_empty_cards
+    repo.upsert_option_chain_per_strike(
+        "QQQ",
+        date(2026, 5, 14),
+        [
+            OptionChainPerStrikeRow(
+                expiry=date(2026, 5, 18),
+                strike=Decimal("500"),
+                call_oi=1000,
+                put_oi=1000,
+            )
+        ],
+    )
+    repo.conn.commit()
+
+    freshness = repo.fetch_matrix_source_freshness(
+        ticker="QQQ", market_date=date(2026, 5, 15)
+    )
+
+    assert freshness.oi is not None
 
 
 def test_cockpit_dealer_metrics_use_exposure_fallback_without_chain_oi(

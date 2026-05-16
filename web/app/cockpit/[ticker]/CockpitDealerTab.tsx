@@ -42,7 +42,7 @@ export function CockpitDealerTab({
     <div style={{ display: "grid", gap: 16 }}>
       <section style={panelStyle}>
         <h2 style={panelTitleStyle}>Dealer</h2>
-        <SignalGrid metrics={metrics} />
+        <SignalGrid metrics={metrics} marketDate={data.market_date} />
         {primaryExpiry ? (
           <div
             style={{
@@ -227,7 +227,13 @@ export function CockpitDealerTab({
   );
 }
 
-function SignalGrid({ metrics }: { metrics: Partial<DealerMetrics> }) {
+function SignalGrid({
+  metrics,
+  marketDate,
+}: {
+  metrics: Partial<DealerMetrics>;
+  marketDate: string;
+}) {
   return (
     <div
       style={{
@@ -238,6 +244,10 @@ function SignalGrid({ metrics }: { metrics: Partial<DealerMetrics> }) {
       }}
     >
       <Metric label="Pin strike" value={formatPinCandidate(metrics)} />
+      <Metric
+        label="Pin source"
+        value={formatPinSource(metrics.pin_source_date, marketDate)}
+      />
       <Metric
         label="Pin sigma"
         value={formatWithSuffix(toNum(metrics.pin_distance_sigma), "sigma", 2)}
@@ -344,6 +354,14 @@ function formatPinCandidate(metrics: Partial<DealerMetrics>): string {
   return `${strike} @ ${metrics.pin_candidate_expiry}`;
 }
 
+function formatPinSource(
+  sourceDate: string | null | undefined,
+  marketDate: string,
+): string {
+  if (!sourceDate) return "NO OI SOURCE";
+  return sourceDate === marketDate ? sourceDate : `${sourceDate} STALE`;
+}
+
 function formatWithSuffix(
   value: number | null,
   suffix: string,
@@ -354,7 +372,7 @@ function formatWithSuffix(
 }
 
 function formatVolPointDelta(value: number | null): string {
-  if (value == null || !Number.isFinite(value)) return "—";
+  if (value == null || !Number.isFinite(value)) return "NO 5D BASELINE";
   return `${fmtSigned(value * 100, 1)} vol pts`;
 }
 
