@@ -43,3 +43,23 @@ Set `UW_SCAN_WORKER_ROLE=uw|massive|all`, `UW_SCAN_WORKER_INDEX`, and
 - **Idempotent.** A job that runs twice in a minute (e.g., after a restart) must produce the same DB state.
 - **No business logic in `scheduler.py`** — it just wires triggers to functions. Heavy lifting lives in `jobs/*.py` and `volatility_jobs.py`.
 - **Signals: SIGTERM/SIGINT** trigger `sched.shutdown(wait=False)` then `sys.exit(0)`. Don't introduce blocking cleanup.
+
+## Provider concurrency model
+
+The sharded worker design (`c6544cb`) splits ticker work across N UW workers,
+each holding its own per-worker advisory lock (`lock_key=91501 + worker_index`).
+This is intentional and preserves single-worker semantics within each shard —
+but it has two implications operators should know:
+
+1. **UW request rate scales with `UW_SCAN_WORKER_COUNT`.** During the nightly
+   flow refresh window (weekdays 5:00am–7:59pm ET), peak UW QPS is `N × baseline`
+   where `N = UW_SCAN_WORKER_COUNT`. Budget UW rate limits accordingly. If you
+   start hitting 429s, lower the worker count or stagger the cron triggers
+   rather than converting back to a global lock — the speedup is the point.
+
+2. **OHLC pulls are owned by dedicated jobs, not by `full_scan`/`rescan`.**
+   `_full_scan` and `_rescan` in `scheduler.py` pass `_NoOhlc()` (a no-op
+   provider) to `full_scan_once` / `rescan_tick`. OHLC fetches happen only in
+   `_ohlc_pull` (daily) and `_spot_refresh` (interval). If "massive provider
+   reachability" health signals look quiet from a UW worker, that is by design
+   — check the massive-role worker instead.

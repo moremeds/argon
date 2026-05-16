@@ -246,9 +246,10 @@ def main() -> int:
                 settings, telemetry_recorder=recorder, job_name="full_scan"
             ) as uw:
                 with _repo(settings) as repo:
-                    n = full_scan_once(
-                        repo, uw, _NoOhlc(), ticker_filter=ticker_filter
-                    )
+                    # _NoOhlc() is intentional: OHLC fetches are owned by
+                    # _ohlc_pull / _spot_refresh. See worker/CLAUDE.md
+                    # "Provider concurrency model".
+                    n = full_scan_once(repo, uw, _NoOhlc(), ticker_filter=ticker_filter)
                     logger.info("full_scan completed %d tickers", n)
 
     def _ohlc_pull() -> None:
@@ -271,6 +272,9 @@ def main() -> int:
                 settings, telemetry_recorder=recorder, job_name="rescan_tick"
             ) as uw:
                 with _repo(settings) as repo:
+                    # _NoOhlc() is intentional: OHLC fetches are owned by
+                    # _ohlc_pull / _spot_refresh. See worker/CLAUDE.md
+                    # "Provider concurrency model".
                     rescan_tick(repo, uw, _NoOhlc())
 
     def _spy_ohlc_refresh() -> None:
