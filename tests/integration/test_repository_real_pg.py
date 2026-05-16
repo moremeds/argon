@@ -21,8 +21,6 @@ from uw_scan.storage.repository import Repository
 MIGRATIONS_DIR = (
     Path(__file__).resolve().parents[2] / "src" / "uw_scan" / "storage" / "migrations"
 )
-MIGRATION_PATH = MIGRATIONS_DIR / "001_s1_core_tables.sql"
-S2_MIGRATION_PATH = MIGRATIONS_DIR / "002_s2_scan_tables.sql"
 
 postgresql_my_proc = factories.postgresql_proc(load=[])
 postgresql_my = factories.postgresql("postgresql_my_proc")
@@ -30,7 +28,10 @@ postgresql_my = factories.postgresql("postgresql_my_proc")
 
 @pytest.fixture
 def repo(postgresql_my):
-    """Open a psycopg connection to the isolated test DB and apply the S1 migration."""
+    """Open a psycopg connection to the isolated test DB and apply every migration
+    in lexical order — same order `scripts/migrate.sh` uses in prod/dev. Tests on
+    this fixture see the current schema, not a frozen S1+S2 snapshot.
+    """
     dsn = (
         f"host={postgresql_my.info.host} port={postgresql_my.info.port} "
         f"dbname={postgresql_my.info.dbname} user={postgresql_my.info.user}"
@@ -38,11 +39,9 @@ def repo(postgresql_my):
     if postgresql_my.info.password:
         dsn += f" password={postgresql_my.info.password}"
     conn = psycopg.connect(dsn)
-    migration_sql = MIGRATION_PATH.read_text()
-    s2_migration_sql = S2_MIGRATION_PATH.read_text()
     with conn.cursor() as cur:
-        cur.execute(migration_sql)
-        cur.execute(s2_migration_sql)
+        for sql_path in sorted(MIGRATIONS_DIR.glob("*.sql")):
+            cur.execute(sql_path.read_text())
     conn.commit()
     r = Repository(conn, schema="uw_scan")
     try:
