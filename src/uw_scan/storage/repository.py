@@ -114,7 +114,7 @@ class ThroughputSummaryRow:
     requests_per_minute: float
     http_429: int
     avg_scan_duration_seconds: float | None
-    queue_drain_rate_per_minute: float
+    queue_drain_rate_per_minute: float | None
 
 
 @dataclass(frozen=True)
@@ -514,6 +514,11 @@ class Repository:
         self, provider: str | None, start: datetime, end: datetime
     ) -> ThroughputSummaryRow:
         provider_filter = None if provider in (None, "all") else provider
+        # scan_runs and jobs do not carry a provider column — both are UW-only
+        # sources. When the caller asks about a non-UW provider, return None
+        # for those fields rather than UW values mislabelled (review 2026-05-16, B2).
+        is_uw_scoped = provider_filter is None or provider_filter == "uw"
+
         with self._conn.cursor() as cur:
             cur.execute(
                 f"""
@@ -530,36 +535,47 @@ class Repository:
             )
             request_row = cur.fetchone()
 
-            cur.execute(
-                f"""
-                SELECT avg(extract(epoch FROM finished_at - started_at))
-                     , min(started_at)
-                FROM {self._schema}.scan_runs
-                WHERE finished_at >= %s
-                  AND finished_at < %s
-                  AND finished_at IS NOT NULL
-                  AND started_at IS NOT NULL
-                  AND (notes IS DISTINCT FROM 'flow_data_refresh')
-                """,
-                (start, end),
-            )
-            scan_row = cur.fetchone()
+            scan_avg: float | None = None
+            scan_first: datetime | None = None
+            if is_uw_scoped:
+                cur.execute(
+                    f"""
+                    SELECT avg(extract(epoch FROM finished_at - started_at))
+                         , min(started_at)
+                    FROM {self._schema}.scan_runs
+                    WHERE finished_at >= %s
+                      AND finished_at < %s
+                      AND finished_at IS NOT NULL
+                      AND started_at IS NOT NULL
+                      AND (notes IS DISTINCT FROM 'flow_data_refresh')
+                    """,
+                    (start, end),
+                )
+                scan_row = cur.fetchone()
+                if scan_row is not None:
+                    scan_avg = _nullable_float(scan_row[0])
+                    scan_first = scan_row[1]
 
-            cur.execute(
-                f"""
-                SELECT count(*)::int, min(requested_at)
-                FROM {self._schema}.jobs
-                WHERE finished_at >= %s
-                  AND finished_at < %s
-                  AND status IN ('done', 'failed')
-                """,
-                (start, end),
-            )
-            queue_row = cur.fetchone()
+            queue_count: int | None = None
+            queue_first: datetime | None = None
+            if is_uw_scoped:
+                cur.execute(
+                    f"""
+                    SELECT count(*)::int, min(requested_at)
+                    FROM {self._schema}.jobs
+                    WHERE finished_at >= %s
+                      AND finished_at < %s
+                      AND status IN ('done', 'failed')
+                    """,
+                    (start, end),
+                )
+                queue_row = cur.fetchone()
+                if queue_row is not None:
+                    queue_count = int(queue_row[0])
+                    queue_first = queue_row[1]
 
         total_requests = int(request_row[0])
-        drained_jobs = int(queue_row[0])
-        active_starts = [request_row[2], scan_row[1], queue_row[1]]
+        active_starts = [request_row[2], scan_first, queue_first]
         first_activity = min(
             (ts for ts in active_starts if ts is not None), default=start
         )
@@ -569,8 +585,10 @@ class Repository:
             window_minutes=active_window_minutes,
             requests_per_minute=total_requests / active_window_minutes,
             http_429=int(request_row[1]),
-            avg_scan_duration_seconds=_nullable_float(scan_row[0]),
-            queue_drain_rate_per_minute=drained_jobs / active_window_minutes,
+            avg_scan_duration_seconds=scan_avg,
+            queue_drain_rate_per_minute=(
+                queue_count / active_window_minutes if queue_count is not None else None
+            ),
         )
 
     def list_external_api_endpoint_usage(
