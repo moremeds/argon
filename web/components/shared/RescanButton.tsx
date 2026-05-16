@@ -46,6 +46,7 @@ export function RescanButton({
 
   return (
     <button
+      aria-label={`rescan ${ticker}`}
       onClick={async (e) => {
         e.preventDefault();
         e.stopPropagation();
