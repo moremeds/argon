@@ -3156,6 +3156,36 @@ class Repository:
             oldest_requested_at=row[3],
         )
 
+    # ---- etf_aum_cache (A1 review fix: skip per-scan UW round trip) ----
+    def get_recent_etf_aum(self, ticker: str, *, max_age: timedelta) -> Decimal | None:
+        """Return cached AUM if fetched within max_age, else None.
+        None means the caller should fetch fresh (cache miss or stale)."""
+        ticker = ticker.upper()  # cache keys are canonical UPPER
+        with self._conn.cursor() as cur:
+            cur.execute(
+                f"""
+                SELECT aum FROM {self._schema}.etf_aum_cache
+                WHERE ticker = %s AND fetched_at > NOW() - %s
+                """,
+                (ticker, max_age),
+            )
+            row = cur.fetchone()
+        return row[0] if row else None
+
+    def upsert_etf_aum(self, ticker: str, aum: Decimal) -> None:
+        ticker = ticker.upper()
+        with self._conn.cursor() as cur:
+            cur.execute(
+                f"""
+                INSERT INTO {self._schema}.etf_aum_cache (ticker, aum, fetched_at)
+                VALUES (%s, %s, NOW())
+                ON CONFLICT (ticker) DO UPDATE
+                  SET aum = EXCLUDED.aum, fetched_at = EXCLUDED.fetched_at
+                """,
+                (ticker, aum),
+            )
+        self._conn.commit()
+
     # ---- aggregates (JSONB on scan_runs) ----
     def set_aggregates(self, run_id: int, agg: "models.MarketAggregates") -> None:
         with self._conn.cursor() as cur:
