@@ -445,7 +445,8 @@ def _to_decimal(value: Any) -> Decimal | None:
         return None
     try:
         return Decimal(str(value))
-    except Exception:
+    except Exception as exc:
+        _ = repr(exc)  # CI Guardrail 2: surface exception repr even when swallowed.
         return None
 
 
