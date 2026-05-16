@@ -440,6 +440,111 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/regime/gex": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Gex */
+        get: operations["get_gex_api_regime_gex_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/regime/gex/scan": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Trigger Gex Scan
+         * @description Run a GEX scan synchronously against UW and persist.
+         */
+        post: operations["trigger_gex_scan_api_regime_gex_scan_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/regime": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Regime */
+        get: operations["get_regime_api_regime_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/regime/scan": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Trigger Cri Scan */
+        post: operations["trigger_cri_scan_api_regime_scan_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/regime/vcg": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Vcg */
+        get: operations["get_vcg_api_regime_vcg_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/regime/vcg/scan": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Trigger Vcg Scan */
+        post: operations["trigger_vcg_scan_api_regime_vcg_scan_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -875,22 +980,184 @@ export interface components {
             /** Expiring Date */
             expiring_date?: string | null;
         };
-        /**
-         * GexLevel
-         * @description One labeled level on the GEX curve (e.g. CALL WALL, PUT WALL, MAX MAGNET).
-         *
-         *     `gamma_per_dollar` is the per-strike net_gex used as the "$N per $1" sensitivity
-         *     figure on the tile — the dollar value of dealer hedging triggered by a $1 move.
-         */
-        GexLevel: {
+        /** GexBias */
+        GexBias: {
+            /** Direction */
+            direction?: string | null;
+            /** Reasons */
+            reasons?: string[];
+            /** Days Above Flip */
+            days_above_flip?: number | null;
+            /** Flip Migration */
+            flip_migration?: components["schemas"]["GexFlipMigrationEntry"][];
+        };
+        /** GexBucket */
+        GexBucket: {
             /** Strike */
-            strike: string;
+            strike?: number | null;
+            /** Call Gex */
+            call_gex?: number | null;
+            /** Put Gex */
+            put_gex?: number | null;
             /** Net Gex */
-            net_gex?: string | null;
+            net_gex?: number | null;
             /** Pct From Spot */
-            pct_from_spot?: string | null;
-            /** Gamma Per Dollar */
-            gamma_per_dollar?: string | null;
+            pct_from_spot?: number | null;
+            /** Tag */
+            tag?: string | null;
+        };
+        /** GexExpectedRange */
+        GexExpectedRange: {
+            /** Low */
+            low?: number | null;
+            /** High */
+            high?: number | null;
+            /** Iv 1D */
+            iv_1d?: number | null;
+        };
+        /** GexFlipMigrationEntry */
+        GexFlipMigrationEntry: {
+            /** Date */
+            date: string;
+            /** Flip */
+            flip?: number | null;
+        };
+        /** GexHistoryEntry */
+        GexHistoryEntry: {
+            /** Date */
+            date: string;
+            /** Net Gex */
+            net_gex?: number | null;
+            /** Net Dex */
+            net_dex?: number | null;
+            /** Gex Flip */
+            gex_flip?: number | null;
+            /** Spot */
+            spot?: number | null;
+            /** Atm Iv */
+            atm_iv?: number | null;
+            /** Vol Pc */
+            vol_pc?: number | null;
+            /** Bias */
+            bias?: string | null;
+        };
+        /** GexIvData */
+        GexIvData: {
+            /** Iv30D */
+            iv30d?: number | null;
+            /** Iv Rank */
+            iv_rank?: number | null;
+            /** Hv30 */
+            hv30?: number | null;
+            /** Mq Iv30D */
+            mq_iv30d?: number | null;
+            /** Mq Iv Rank */
+            mq_iv_rank?: string | null;
+            /** Source */
+            source?: string | null;
+        };
+        /** GexLevels */
+        GexLevels: {
+            gex_flip?: components["schemas"]["uw_scan__api__schemas__GexLevel"] | null;
+            max_magnet?: components["schemas"]["uw_scan__api__schemas__GexLevel"] | null;
+            second_magnet?: components["schemas"]["uw_scan__api__schemas__GexLevel"] | null;
+            max_accelerator?: components["schemas"]["uw_scan__api__schemas__GexLevel"] | null;
+            put_wall?: components["schemas"]["uw_scan__api__schemas__GexLevel"] | null;
+            call_wall?: components["schemas"]["uw_scan__api__schemas__GexLevel"] | null;
+        };
+        /** GexMqLevels */
+        GexMqLevels: {
+            /** Source Date */
+            source_date?: string | null;
+            /** Spot */
+            spot?: number | null;
+            /** Hvl */
+            hvl?: number | null;
+            /** Call Resistance All */
+            call_resistance_all?: number | null;
+            /** Call Resistance 0Dte */
+            call_resistance_0dte?: number | null;
+            /** Put Support All */
+            put_support_all?: number | null;
+            /** Put Support 0Dte */
+            put_support_0dte?: number | null;
+            /** Expected High */
+            expected_high?: number | null;
+            /** Expected Low */
+            expected_low?: number | null;
+            /** Distance To Hvl Pct */
+            distance_to_hvl_pct?: string | null;
+            /** Iv30D */
+            iv30d?: number | null;
+            /** Hv30 */
+            hv30?: number | null;
+            /** Iv Rank */
+            iv_rank?: string | null;
+            /** Top Gex Strikes */
+            top_gex_strikes?: number[];
+        };
+        /** GexResponse */
+        GexResponse: {
+            /**
+             * Scan Time
+             * @default
+             */
+            scan_time: string;
+            /**
+             * Market Open
+             * @default false
+             */
+            market_open: boolean;
+            /**
+             * Ticker
+             * @default SPX
+             */
+            ticker: string;
+            /** Spot */
+            spot?: number | null;
+            /** Close */
+            close?: number | null;
+            /** Day Change */
+            day_change?: number | null;
+            /** Day Change Pct */
+            day_change_pct?: number | null;
+            /** Data Date */
+            data_date?: string | null;
+            /** Net Gex */
+            net_gex?: number | null;
+            /** Net Dex */
+            net_dex?: number | null;
+            /** Atm Iv */
+            atm_iv?: number | null;
+            /** Vol Pc */
+            vol_pc?: number | null;
+            levels?: components["schemas"]["GexLevels"];
+            /** Profile */
+            profile?: components["schemas"]["GexBucket"][];
+            expected_range?: components["schemas"]["GexExpectedRange"];
+            bias?: components["schemas"]["GexBias"];
+            /** History */
+            history?: components["schemas"]["GexHistoryEntry"][];
+            iv?: components["schemas"]["GexIvData"] | null;
+            mq?: components["schemas"]["GexMqLevels"] | null;
+            source_delta?: components["schemas"]["GexSourceDelta"] | null;
+        };
+        /** GexSourceDelta */
+        GexSourceDelta: {
+            flip_vs_hvl?: components["schemas"]["GexSourceDeltaEntry"] | null;
+            put_wall_vs_support_all?: components["schemas"]["GexSourceDeltaEntry"] | null;
+            put_wall_vs_support_0dte?: components["schemas"]["GexSourceDeltaEntry"] | null;
+            call_wall_vs_resistance_all?: components["schemas"]["GexSourceDeltaEntry"] | null;
+            call_wall_vs_resistance_0dte?: components["schemas"]["GexSourceDeltaEntry"] | null;
+        };
+        /** GexSourceDeltaEntry */
+        GexSourceDeltaEntry: {
+            /** Uw */
+            uw?: number | null;
+            /** Mq */
+            mq?: number | null;
+            /** Delta */
+            delta?: number | null;
         };
         /** HTTPValidationError */
         HTTPValidationError: {
@@ -1175,12 +1442,12 @@ export interface components {
          *       - max_accel: strike with most-negative net_gex below the flip (movement accelerator)
          */
         MarketStructureLevels: {
-            gex_flip?: components["schemas"]["GexLevel"] | null;
-            call_wall?: components["schemas"]["GexLevel"] | null;
-            put_wall?: components["schemas"]["GexLevel"] | null;
-            max_magnet?: components["schemas"]["GexLevel"] | null;
-            second_magnet?: components["schemas"]["GexLevel"] | null;
-            max_accel?: components["schemas"]["GexLevel"] | null;
+            gex_flip?: components["schemas"]["uw_scan__models__GexLevel"] | null;
+            call_wall?: components["schemas"]["uw_scan__models__GexLevel"] | null;
+            put_wall?: components["schemas"]["uw_scan__models__GexLevel"] | null;
+            max_magnet?: components["schemas"]["uw_scan__models__GexLevel"] | null;
+            second_magnet?: components["schemas"]["uw_scan__models__GexLevel"] | null;
+            max_accel?: components["schemas"]["uw_scan__models__GexLevel"] | null;
         };
         /** MatrixSourceFreshness */
         MatrixSourceFreshness: {
@@ -1700,6 +1967,34 @@ export interface components {
             latest_at?: string | null;
             /** Ok */
             ok: boolean;
+        };
+        /**
+         * RegimePendingResponse
+         * @description Sentinel for CRI/VCG endpoints until IB-via-R2 reader lands.
+         */
+        RegimePendingResponse: {
+            /**
+             * Status
+             * @default pending
+             * @constant
+             */
+            status: "pending";
+            /**
+             * Scanner
+             * @enum {string}
+             */
+            scanner: "cri" | "vcg";
+            /**
+             * Reason
+             * @default ib_via_r2_not_wired
+             * @constant
+             */
+            reason: "ib_via_r2_not_wired";
+            /**
+             * Message
+             * @default Data source pending. CRI/VCG require VIX/VVIX/COR1M from the IB-via-R2 reader (separate project).
+             */
+            message: string;
         };
         /** RegimeQuadrantBlock */
         RegimeQuadrantBlock: {
@@ -2847,6 +3142,34 @@ export interface components {
             /** Last Beat At */
             last_beat_at?: string | null;
         };
+        /** GexLevel */
+        uw_scan__api__schemas__GexLevel: {
+            /** Strike */
+            strike?: number | null;
+            /** Gamma */
+            gamma?: number | null;
+            /** Distance */
+            distance?: number | null;
+            /** Distance Pct */
+            distance_pct?: number | null;
+        };
+        /**
+         * GexLevel
+         * @description One labeled level on the GEX curve (e.g. CALL WALL, PUT WALL, MAX MAGNET).
+         *
+         *     `gamma_per_dollar` is the per-strike net_gex used as the "$N per $1" sensitivity
+         *     figure on the tile — the dollar value of dealer hedging triggered by a $1 move.
+         */
+        uw_scan__models__GexLevel: {
+            /** Strike */
+            strike: string;
+            /** Net Gex */
+            net_gex?: string | null;
+            /** Pct From Spot */
+            pct_from_spot?: string | null;
+            /** Gamma Per Dollar */
+            gamma_per_dollar?: string | null;
+        };
     };
     responses: never;
     parameters: never;
@@ -3728,6 +4051,150 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_gex_api_regime_gex_get: {
+        parameters: {
+            query?: {
+                ticker?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GexResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    trigger_gex_scan_api_regime_gex_scan_post: {
+        parameters: {
+            query?: {
+                ticker?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_regime_api_regime_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RegimePendingResponse"];
+                };
+            };
+        };
+    };
+    trigger_cri_scan_api_regime_scan_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RegimePendingResponse"];
+                };
+            };
+        };
+    };
+    get_vcg_api_regime_vcg_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RegimePendingResponse"];
+                };
+            };
+        };
+    };
+    trigger_vcg_scan_api_regime_vcg_scan_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RegimePendingResponse"];
                 };
             };
         };

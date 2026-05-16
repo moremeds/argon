@@ -2,7 +2,7 @@ import type { components } from "@/lib/types";
 import { toNum } from "@/lib/formatters";
 
 type Report = components["schemas"]["SingleStockReport"];
-type Level = components["schemas"]["GexLevel"];
+type Level = components["schemas"]["uw_scan__models__GexLevel"];
 
 const tileStyle: React.CSSProperties = {
   background: "var(--bg-panel)",
