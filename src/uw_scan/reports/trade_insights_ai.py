@@ -438,12 +438,25 @@ _VOLATILE_HASH_KEYS = {
 }
 
 
-def _to_decimal(value: Any) -> Decimal:
+def _to_decimal(value: Any) -> Decimal | None:
+    """Coerce to Decimal or return None. Never silently returns 0 on bad input —
+    callers must explicitly opt in via _to_decimal_or_zero when 0 is correct."""
+    if value is None:
+        return None
     try:
         return Decimal(str(value))
-    except Exception as exc:
-        _coerce_error = repr(exc)
-        return Decimal("0")
+    except Exception:
+        return None
+
+
+def _to_decimal_or_zero(value: Any) -> Decimal:
+    """Coerce to Decimal, falling back to Decimal(0) for None / unparseable
+    input. Use this AT CALL SITES where the existing semantics treat missing
+    data as zero (sums, abs-distance sort keys whose missing-data behavior is
+    'rank as small/center'). Documenting the choice at the call site makes
+    the silent-zero coercion explicit instead of hidden in the helper."""
+    coerced = _to_decimal(value)
+    return coerced if coerced is not None else Decimal(0)
 
 
 def _sorted_recent(
@@ -488,7 +501,7 @@ def _prune_strike_gex_curve(
     named = _named_level_strikes(levels)
     top = sorted(
         rows,
-        key=lambda row: abs(_to_decimal(row.get("net_gex"))),
+        key=lambda row: abs(_to_decimal_or_zero(row.get("net_gex"))),
         reverse=True,
     )[:40]
     by_key: dict[tuple[str, str], dict[str, Any]] = {}
@@ -501,8 +514,10 @@ def _downsample_smile_points(
     points: list[dict[str, Any]], limit: int = 25
 ) -> list[dict[str, Any]]:
     if len(points) <= limit:
-        return sorted(points, key=lambda row: _to_decimal(row.get("strike")))
-    sorted_points = sorted(points, key=lambda row: _to_decimal(row.get("strike")))
+        return sorted(points, key=lambda row: _to_decimal_or_zero(row.get("strike")))
+    sorted_points = sorted(
+        points, key=lambda row: _to_decimal_or_zero(row.get("strike"))
+    )
     if limit <= 1:
         return sorted_points[:limit]
     step = (len(sorted_points) - 1) / (limit - 1)
@@ -512,7 +527,7 @@ def _downsample_smile_points(
 
 def _combined_chain_interest(row: dict[str, Any]) -> Decimal:
     keys = ("call_volume", "put_volume", "call_open_interest", "put_open_interest")
-    return sum((_to_decimal(row.get(key)) for key in keys), Decimal("0"))
+    return sum((_to_decimal_or_zero(row.get(key)) for key in keys), Decimal("0"))
 
 
 def _prune_chain_rows(
@@ -528,7 +543,9 @@ def _prune_chain_rows(
         return top
     near_spot = sorted(
         rows,
-        key=lambda row: abs(_to_decimal(row.get("strike")) - _to_decimal(spot)),
+        key=lambda row: abs(
+            _to_decimal_or_zero(row.get("strike")) - _to_decimal_or_zero(spot)
+        ),
     )[:20]
     by_key: dict[tuple[str, str], dict[str, Any]] = {}
     for row in [*near_spot, *top]:
@@ -1049,9 +1066,8 @@ def validate_trade_insights_ai_outcome(
     for item in [*parsed.best_expressions, *parsed.rejected_ideas]:
         if not _known_idea_id(item.idea_id, candidates):
             raise ValueError(f"unknown idea_id referenced: {item.idea_id}")
-    if (
-        parsed.preferred_expression is not None
-        and not _known_idea_id(parsed.preferred_expression.idea_id, candidates)
+    if parsed.preferred_expression is not None and not _known_idea_id(
+        parsed.preferred_expression.idea_id, candidates
     ):
         raise ValueError(
             f"unknown idea_id referenced: {parsed.preferred_expression.idea_id}"
