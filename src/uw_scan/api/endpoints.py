@@ -20,6 +20,8 @@ class EndpointSlug(StrEnum):
     INTERPOLATED_IV = "interpolated_iv"
     SKEW = "skew"
     GREEK_EXPOSURE = "greek_exposure"
+    GREEK_EXPOSURE_BY_STRIKE = "greek_exposure_by_strike"
+    GREEK_EXPOSURE_HISTORY = "greek_exposure_history"
     SPOT_EXPOSURES = "spot_exposures"
     GREEKS = "greeks"
     OI_PER_STRIKE = "oi_per_strike"
@@ -69,6 +71,16 @@ REGISTRY: dict[EndpointSlug, Endpoint] = {
         EndpointSlug.GREEK_EXPOSURE,
         "/api/stock/{ticker}/greek-exposure/strike-expiry",
         ("expiry",),
+    ),
+    EndpointSlug.GREEK_EXPOSURE_BY_STRIKE: Endpoint(
+        EndpointSlug.GREEK_EXPOSURE_BY_STRIKE,
+        "/api/stock/{ticker}/greek-exposure/strike",
+        (),
+    ),
+    EndpointSlug.GREEK_EXPOSURE_HISTORY: Endpoint(
+        EndpointSlug.GREEK_EXPOSURE_HISTORY,
+        "/api/stock/{ticker}/greek-exposure",
+        (),
     ),
     EndpointSlug.SPOT_EXPOSURES: Endpoint(
         EndpointSlug.SPOT_EXPOSURES,

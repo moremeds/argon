@@ -186,6 +186,46 @@ def fetch_greek_exposure(
     return normalize.normalize_greek_exposure(body)
 
 
+def fetch_greek_exposure_by_strike(
+    client: UwClient,
+    repo: Repository,
+    run_id: int,
+    ticker: str,
+) -> dict:
+    """Fetch /api/stock/{ticker}/greek-exposure/strike — aggregated per-strike GEX.
+
+    Returns the raw body; scanner consumes ``body["data"]`` as a list of rows
+    with string-valued ``strike``, ``call_gex``, ``put_gex``, ``call_delta``,
+    ``put_delta`` fields (caller does ``float()`` casting).
+    """
+    return _fetch_json(
+        client,
+        repo,
+        run_id,
+        EndpointSlug.GREEK_EXPOSURE_BY_STRIKE,
+        ticker,
+    )
+
+
+def fetch_greek_exposure_history(
+    client: UwClient,
+    repo: Repository,
+    run_id: int,
+    ticker: str,
+) -> dict:
+    """Fetch /api/stock/{ticker}/greek-exposure — aggregate GEX over time.
+
+    Used for net_dex computation and (eventually) historical bias trend.
+    """
+    return _fetch_json(
+        client,
+        repo,
+        run_id,
+        EndpointSlug.GREEK_EXPOSURE_HISTORY,
+        ticker,
+    )
+
+
 def fetch_spot_exposures(
     client: UwClient,
     repo: Repository,
