@@ -325,6 +325,28 @@ def main() -> int:
     def _trade_insights_ai_tick() -> None:
         trade_insights_ai_tick(settings)
 
+    def _regime_gex_scan() -> None:
+        # Weekday gate — UW data only meaningful during regular sessions.
+        if datetime.now(ZoneInfo(settings.rth_tz)).weekday() >= 5:
+            logger.info("regime_gex_scan_skipped_weekend")
+            return
+        from uw_scan.scanners import gex as gex_scanner
+
+        with _external_api_recorder(settings) as recorder:
+            with _uw_client(
+                settings, telemetry_recorder=recorder, job_name="regime_gex_scan"
+            ) as uw:
+                with _repo(settings) as repo:
+                    for ticker in settings.gex_scan_tickers:
+                        try:
+                            gex_scanner.run(uw, repo, ticker=ticker)
+                        except Exception as exc:
+                            logger.warning(
+                                "regime_gex_scan_failed ticker=%s err=%s",
+                                ticker,
+                                repr(exc),
+                            )
+
     sched.add_job(
         lambda: _record_worker_heartbeat(settings),
         IntervalTrigger(seconds=1),
@@ -392,6 +414,16 @@ def main() -> int:
                 ),
                 id="cockpit_daily_snapshot",
                 name="Cockpit 6-dim matrix daily snapshot",
+            )
+            # Regime / GEX scan — refreshes gex_snapshots every N minutes.
+            # Primary-uw-only to avoid duplicate UW spend across shards.
+            sched.add_job(
+                _regime_gex_scan,
+                IntervalTrigger(minutes=settings.gex_scan_interval_minutes),
+                id="regime_gex_scan",
+                name="Regime GEX scan (UW)",
+                max_instances=1,
+                coalesce=True,
             )
 
     if "ai" in groups and settings.trade_insights_ai_enabled:

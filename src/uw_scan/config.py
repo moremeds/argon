@@ -94,6 +94,9 @@ class Settings(BaseModel):
     cockpit_target_dtes: list[int] = [0, 14, 30, 90]
     cockpit_oi_band_pct: Decimal = Decimal("0.10")
     cockpit_oi_max_dte: int = 7
+    # Regime / GEX scanner (port from xenon — ships GEX live; CRI/VCG pending)
+    gex_scan_tickers: list[str] = ["SPX", "SPY"]
+    gex_scan_interval_minutes: int = 5
 
     @classmethod
     def from_env(cls, env_path: Path | None = None) -> "Settings":
@@ -169,10 +172,12 @@ class Settings(BaseModel):
             cockpit_target_dtes=_parse_int_csv_env(
                 "COCKPIT_TARGET_DTES", default=[0, 14, 30, 90]
             ),
-            cockpit_oi_band_pct=Decimal(
-                os.environ.get("COCKPIT_OI_BAND_PCT", "0.10")
-            ),
+            cockpit_oi_band_pct=Decimal(os.environ.get("COCKPIT_OI_BAND_PCT", "0.10")),
             cockpit_oi_max_dte=int(os.environ.get("COCKPIT_OI_MAX_DTE", "7")),
+            gex_scan_tickers=_parse_csv_env("GEX_SCAN_TICKERS", default=["SPX", "SPY"]),
+            gex_scan_interval_minutes=int(
+                os.environ.get("GEX_SCAN_INTERVAL_MINUTES", "5")
+            ),
         )
 
     def db_dsn(self) -> str:
