@@ -1082,8 +1082,11 @@ export interface components {
         JobStatus: {
             /** Job Id */
             job_id: string;
-            /** Status */
-            status: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "queued" | "running" | "done" | "failed";
             /** Run Id */
             run_id?: number | null;
             /** Error */
@@ -1645,8 +1648,11 @@ export interface components {
         QueueStatus: {
             /** Job Id */
             job_id: string;
-            /** Status */
-            status: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "queued" | "running" | "done" | "failed";
             /** Queue Position */
             queue_position: number;
             /**

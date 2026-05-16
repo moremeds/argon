@@ -4,8 +4,9 @@ import { useRouter } from "next/navigation";
 import { api } from "@/lib/api";
 import type { components } from "@/lib/types";
 
-type Status = "idle" | "queued" | "running" | "done" | "failed";
 type QueueStatus = components["schemas"]["QueueStatus"];
+type BackendStatus = QueueStatus["status"];
+type UiStatus = BackendStatus | "idle";
 
 export function RescanButton({
   ticker,
@@ -16,9 +17,7 @@ export function RescanButton({
 }) {
   const router = useRouter();
   const [jobId, setJobId] = useState<string | null>(initialJob?.job_id ?? null);
-  const [status, setStatus] = useState<Status>(
-    (initialJob?.status as Status | undefined) ?? "idle",
-  );
+  const [status, setStatus] = useState<UiStatus>(initialJob?.status ?? "idle");
 
   useEffect(() => {
     if (!jobId) return;
@@ -33,7 +32,7 @@ export function RescanButton({
       }
       try {
         const r = await api.job(jobId);
-        setStatus(r.status as Status);
+        setStatus(r.status);
         if (r.status === "done" || r.status === "failed") {
           clearInterval(t);
           if (r.status === "done") router.refresh();
@@ -53,7 +52,7 @@ export function RescanButton({
         setStatus("queued");
         try {
           const r = await api.rescan(ticker);
-          setStatus(r.status as Status);
+          setStatus(r.status);
           setJobId(r.job_id);
         } catch (err) {
           console.error(err);

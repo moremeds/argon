@@ -2412,6 +2412,12 @@
             "title": "Started At"
           },
           "status": {
+            "enum": [
+              "queued",
+              "running",
+              "done",
+              "failed"
+            ],
             "title": "Status",
             "type": "string"
           }
@@ -2427,6 +2433,18 @@
       "MarketAggregates": {
         "description": "Per-ticker aggregate fields sourced from the bulk-screener endpoint.\n\nPopulated by pipeline.run_single_stock alongside the existing per-section\nsub-models. Feeds the watchlist card POSITIONING and SKEW blocks.",
         "properties": {
+          "aum": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Aum"
+          },
           "call_oi_total": {
             "anyOf": [
               {
@@ -2494,18 +2512,6 @@
               }
             ],
             "title": "Market Cap"
-          },
-          "aum": {
-            "anyOf": [
-              {
-                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Aum"
           },
           "pcr_oi": {
             "anyOf": [
@@ -4573,6 +4579,12 @@
             "title": "Started At"
           },
           "status": {
+            "enum": [
+              "queued",
+              "running",
+              "done",
+              "failed"
+            ],
             "title": "Status",
             "type": "string"
           }
@@ -7475,6 +7487,18 @@
             ],
             "title": "Aggression Pct"
           },
+          "aum": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Aum"
+          },
           "gamma": {
             "$ref": "#/components/schemas/GammaBlock"
           },
@@ -7513,18 +7537,6 @@
               }
             ],
             "title": "Market Cap"
-          },
-          "aum": {
-            "anyOf": [
-              {
-                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Aum"
           },
           "pinned": {
             "title": "Pinned",
