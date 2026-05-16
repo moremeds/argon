@@ -22,6 +22,21 @@ from psycopg.types.json import Jsonb
 
 from .. import models
 
+# Pure helpers live in _helpers.py since the PR-1 split. provider_day_bounds,
+# status_family_for, and redact_params are imported from this module by
+# sources/ohlc.py, api/client.py, api/routers/health.py, api/routers/provider_usage.py,
+# and tests — keep them re-exported.
+from ._helpers import (
+    _PROVIDER_DAY_TZ,
+    _REDACTED_PARAM_KEYS,
+    _d,
+    _nullable_float,
+    _nullable_int,
+    provider_day_bounds,
+    redact_params,
+    status_family_for,
+)
+
 # Row dataclasses live in rows.py since the PR-1 split. Re-exported here so
 # existing callers (`from uw_scan.storage.repository import JobRow`) continue
 # to work without changing import paths.
@@ -54,6 +69,9 @@ __all__ = [
     "ThroughputSummaryRow",
     "WatchlistCardRow",
     "WatchlistRow",
+    "provider_day_bounds",
+    "redact_params",
+    "status_family_for",
 ]
 
 
@@ -308,68 +326,6 @@ _RECORD_HEALTH_EXCLUDED_TABLES = {
 
 
 logger = logging.getLogger(__name__)
-_PROVIDER_DAY_TZ = ZoneInfo("America/New_York")
-_REDACTED_PARAM_KEYS = {
-    "apikey",
-    "api_key",
-    "authorization",
-    "auth",
-    "token",
-}
-
-
-def _d(value: Decimal | None) -> Any:
-    """psycopg handles Decimal natively; keep this for symmetry with other casters."""
-    return value
-
-
-def provider_day_bounds(now: datetime | None = None) -> tuple[datetime, datetime]:
-    current = now or datetime.now(tz=_PROVIDER_DAY_TZ)
-    local = current.astimezone(_PROVIDER_DAY_TZ)
-    reset = local.replace(hour=20, minute=0, second=0, microsecond=0)
-    if local < reset:
-        reset -= timedelta(days=1)
-    return reset, reset + timedelta(days=1)
-
-
-def status_family_for(status_code: int | None, *, transport_error: bool = False) -> str:
-    if transport_error:
-        return "transport_error"
-    if status_code is None:
-        return "transport_error"
-    if 200 <= status_code <= 299:
-        return "2xx"
-    if 300 <= status_code <= 399:
-        return "3xx"
-    if 400 <= status_code <= 499:
-        return "4xx"
-    if 500 <= status_code <= 599:
-        return "5xx"
-    return "transport_error"
-
-
-def redact_params(params: dict[str, object] | None) -> dict[str, object]:
-    redacted: dict[str, object] = {}
-    for key, value in (params or {}).items():
-        if key.lower() in _REDACTED_PARAM_KEYS:
-            continue
-        if isinstance(value, str) and len(value) > 256:
-            redacted[key] = value[:253] + "..."
-        else:
-            redacted[key] = value
-    return redacted
-
-
-def _nullable_int(value: Any) -> int | None:
-    if value is None:
-        return None
-    return int(round(float(value)))
-
-
-def _nullable_float(value: Any) -> float | None:
-    if value is None:
-        return None
-    return float(value)
 
 
 class Repository:
