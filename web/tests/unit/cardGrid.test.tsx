@@ -133,6 +133,34 @@ describe("CardGrid", () => {
     expect(order).toEqual(["TSLA", "AAPL"]);
   });
 
+  it("orders non-priority sectors by their members' max market cap (descending)", () => {
+    render(
+      <CardGrid
+        data={{
+          scanned_at_min: null,
+          scanned_at_max: null,
+          scheduler_lag_seconds: null,
+          queue: { total: 0, queued: 0, running: 0, oldest_requested_at: null },
+          tickers: [
+            // sort_rank says Banks first (400 < 420), but Healthcare has the
+            // bigger member by size (500B vs 1B) so the new ordering puts it
+            // ahead. Priority prefix (ETF) stays first either way.
+            card("XLF", "Banks", 400, "1000000000"),
+            card("JNJ", "Healthcare", 420, "500000000000"),
+            card("SPY", "ETF", 101, "300000000000"),
+          ],
+        }}
+        sparklines={{}}
+      />,
+    );
+
+    expect(screen.getAllByRole("heading").map((h) => h.textContent)).toEqual([
+      "ETF · 1",
+      "Healthcare · 1",
+      "Banks · 1",
+    ]);
+  });
+
   it("breaks final ties alphabetically by ticker when nothing else differs", () => {
     render(
       <CardGrid
