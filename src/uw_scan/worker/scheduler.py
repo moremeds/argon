@@ -23,6 +23,7 @@ from uw_scan.config import Settings
 from uw_scan.sources.ohlc import MassiveOhlcProvider
 from uw_scan.storage.provider_usage import ExternalApiRequestRecorder
 from uw_scan.storage.repository import Repository
+from uw_scan.worker.jobs.cockpit_daily_snapshot import cockpit_daily_snapshot
 from uw_scan.worker.jobs.flow_data_refresh import flow_data_refresh
 from uw_scan.worker.jobs.full_scan import full_scan_once
 from uw_scan.worker.jobs.ohlc_pull import ohlc_pull_once
@@ -246,9 +247,7 @@ def main() -> int:
                 settings, telemetry_recorder=recorder, job_name="full_scan"
             ) as uw:
                 with _repo(settings) as repo:
-                    n = full_scan_once(
-                        repo, uw, _NoOhlc(), ticker_filter=ticker_filter
-                    )
+                    n = full_scan_once(repo, uw, _NoOhlc(), ticker_filter=ticker_filter)
                     logger.info("full_scan completed %d tickers", n)
 
     def _ohlc_pull() -> None:
@@ -306,6 +305,16 @@ def main() -> int:
                         ticker_filter=ticker_filter,
                         lock_key=91501 + settings.worker_index,
                     )
+
+    def _cockpit_daily_snapshot() -> None:
+        with _external_api_recorder(settings) as recorder:
+            with _uw_client(
+                settings,
+                telemetry_recorder=recorder,
+                job_name="cockpit_daily_snapshot",
+            ) as uw:
+                with _repo(settings) as repo:
+                    cockpit_daily_snapshot(repo=repo, client=uw, settings=settings)
 
     def _trade_insights_ai_tick() -> None:
         trade_insights_ai_tick(settings)
@@ -366,6 +375,18 @@ def main() -> int:
             id="nightly_flow_data_refresh",
             name="Nightly Flow tab data refresh",
         )
+        if _is_primary_worker(settings):
+            # Cockpit nightly snapshot — UW-bound (greeks/IV/RV/skew) and
+            # single-flight via pg_try_advisory_lock; only the primary uw
+            # worker schedules it to avoid duplicate UW spend.
+            sched.add_job(
+                _cockpit_daily_snapshot,
+                CronTrigger.from_crontab(
+                    settings.cockpit_snapshot_cron, timezone=settings.rth_tz
+                ),
+                id="cockpit_daily_snapshot",
+                name="Cockpit 6-dim matrix daily snapshot",
+            )
 
     if "ai" in groups and settings.trade_insights_ai_enabled:
         sched.add_job(

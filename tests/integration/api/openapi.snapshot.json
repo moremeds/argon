@@ -195,14 +195,296 @@
         "title": "ChainFlowReadRow",
         "type": "object"
       },
-      "DivergencePoint": {
+      "CockpitDealerMetrics": {
         "properties": {
-          "date": {
+          "charm_regime": {
+            "anyOf": [
+              {
+                "enum": [
+                  "operative_magnet",
+                  "broken_magnet",
+                  "opex_vortex",
+                  "neutral"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Charm Regime"
+          },
+          "charm_stress_override": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Charm Stress Override"
+          },
+          "dealer_net_charm_proxy": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dealer Net Charm Proxy"
+          },
+          "dealer_net_vanna_proxy": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dealer Net Vanna Proxy"
+          },
+          "directional_imbalance_3d": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Directional Imbalance 3D"
+          },
+          "flow_call_premium_3d": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Flow Call Premium 3D"
+          },
+          "flow_color_lookback_3d": {
+            "anyOf": [
+              {
+                "enum": [
+                  "put_heavy",
+                  "call_heavy",
+                  "neutral"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Flow Color Lookback 3D"
+          },
+          "flow_put_premium_3d": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Flow Put Premium 3D"
+          },
+          "gamma_regime": {
+            "anyOf": [
+              {
+                "enum": [
+                  "long_gamma",
+                  "short_gamma",
+                  "neutral"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Gamma Regime"
+          },
+          "iv_30d_delta_5d": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Iv 30D Delta 5D"
+          },
+          "net_gamma": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Net Gamma"
+          },
+          "net_gamma_sign": {
+            "anyOf": [
+              {
+                "enum": [
+                  "positive",
+                  "negative",
+                  "neutral"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Net Gamma Sign"
+          },
+          "pin_candidate_expiry": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pin Candidate Expiry"
+          },
+          "pin_candidate_strike": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pin Candidate Strike"
+          },
+          "pin_distance_sigma": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pin Distance Sigma"
+          },
+          "pin_regime_flag": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pin Regime Flag"
+          },
+          "pin_source_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pin Source Date"
+          },
+          "vanna_conditional_reading": {
+            "anyOf": [
+              {
+                "enum": [
+                  "grind_up",
+                  "reverse_selloff",
+                  "reflexive_sell_pressure",
+                  "weak_noise"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vanna Conditional Reading"
+          },
+          "vanna_oi_change_bias": {
+            "anyOf": [
+              {
+                "enum": [
+                  "call_oi_build",
+                  "put_oi_build",
+                  "mixed"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vanna Oi Change Bias"
+          }
+        },
+        "title": "CockpitDealerMetrics",
+        "type": "object"
+      },
+      "CockpitDealerPoint": {
+        "properties": {
+          "call_charm": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Call Charm"
+          },
+          "call_vanna": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Call Vanna"
+          },
+          "expiry": {
             "format": "date",
-            "title": "Date",
+            "title": "Expiry",
             "type": "string"
           },
-          "iv_z": {
+          "exposure_call_charm": {
             "anyOf": [
               {
                 "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
@@ -212,9 +494,9 @@
                 "type": "null"
               }
             ],
-            "title": "Iv Z"
+            "title": "Exposure Call Charm"
           },
-          "rv_z": {
+          "exposure_call_vanna": {
             "anyOf": [
               {
                 "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
@@ -224,17 +506,116 @@
                 "type": "null"
               }
             ],
-            "title": "Rv Z"
+            "title": "Exposure Call Vanna"
+          },
+          "exposure_put_charm": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Exposure Put Charm"
+          },
+          "exposure_put_vanna": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Exposure Put Vanna"
+          },
+          "put_charm": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Put Charm"
+          },
+          "put_vanna": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Put Vanna"
+          },
+          "strike": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Strike",
+            "type": "string"
           }
         },
         "required": [
-          "date"
+          "expiry",
+          "strike"
         ],
-        "title": "DivergencePoint",
+        "title": "CockpitDealerPoint",
         "type": "object"
       },
-      "FlowAlert": {
+      "CockpitDealerResponse": {
         "properties": {
+          "market_date": {
+            "format": "date",
+            "title": "Market Date",
+            "type": "string"
+          },
+          "metrics": {
+            "$ref": "#/components/schemas/CockpitDealerMetrics"
+          },
+          "points": {
+            "items": {
+              "$ref": "#/components/schemas/CockpitDealerPoint"
+            },
+            "title": "Points",
+            "type": "array"
+          },
+          "ticker": {
+            "title": "Ticker",
+            "type": "string"
+          }
+        },
+        "required": [
+          "ticker",
+          "market_date"
+        ],
+        "title": "CockpitDealerResponse",
+        "type": "object"
+      },
+      "CockpitFlowAlert": {
+        "properties": {
+          "aggressor_label_confidence": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Aggressor Label Confidence"
+          },
+          "alert_id": {
+            "title": "Alert Id",
+            "type": "string"
+          },
           "alert_rule": {
             "anyOf": [
               {
@@ -280,6 +661,608 @@
               }
             ],
             "title": "Expiry"
+          },
+          "flow_footprint_label": {
+            "anyOf": [
+              {
+                "enum": [
+                  "directional_whale",
+                  "hedge_flow",
+                  "dealer_hedge",
+                  "gamma_scalper",
+                  "unclassified"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Flow Footprint Label"
+          },
+          "has_floor": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Has Floor"
+          },
+          "has_multileg": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Has Multileg"
+          },
+          "has_sweep": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Has Sweep"
+          },
+          "open_interest": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Open Interest"
+          },
+          "option_chain": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Option Chain"
+          },
+          "option_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Option Type"
+          },
+          "strike": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Strike"
+          },
+          "total_ask_side_prem": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Total Ask Side Prem"
+          },
+          "total_bid_side_prem": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Total Bid Side Prem"
+          },
+          "total_premium": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Total Premium"
+          },
+          "volume": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Volume"
+          }
+        },
+        "required": [
+          "alert_id"
+        ],
+        "title": "CockpitFlowAlert",
+        "type": "object"
+      },
+      "CockpitFlowImResponse": {
+        "properties": {
+          "alerts": {
+            "items": {
+              "$ref": "#/components/schemas/CockpitFlowAlert"
+            },
+            "title": "Alerts",
+            "type": "array"
+          },
+          "implied_moves": {
+            "items": {
+              "$ref": "#/components/schemas/CockpitImPoint"
+            },
+            "title": "Implied Moves",
+            "type": "array"
+          },
+          "market_date": {
+            "format": "date",
+            "title": "Market Date",
+            "type": "string"
+          },
+          "ticker": {
+            "title": "Ticker",
+            "type": "string"
+          }
+        },
+        "required": [
+          "ticker",
+          "market_date"
+        ],
+        "title": "CockpitFlowImResponse",
+        "type": "object"
+      },
+      "CockpitImPoint": {
+        "properties": {
+          "days": {
+            "title": "Days",
+            "type": "integer"
+          },
+          "implied_move_expected_abs": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Implied Move Expected Abs"
+          },
+          "implied_move_perc": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Implied Move Perc"
+          },
+          "market_date": {
+            "format": "date",
+            "title": "Market Date",
+            "type": "string"
+          },
+          "percentile": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Percentile"
+          },
+          "volatility": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Volatility"
+          }
+        },
+        "required": [
+          "market_date",
+          "days"
+        ],
+        "title": "CockpitImPoint",
+        "type": "object"
+      },
+      "CockpitSkewPoint": {
+        "properties": {
+          "expiry": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expiry"
+          },
+          "market_date": {
+            "format": "date",
+            "title": "Market Date",
+            "type": "string"
+          },
+          "risk_reversal": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Risk Reversal"
+          }
+        },
+        "required": [
+          "market_date"
+        ],
+        "title": "CockpitSkewPoint",
+        "type": "object"
+      },
+      "CockpitStateResponse": {
+        "properties": {
+          "freshness": {
+            "$ref": "#/components/schemas/MatrixSourceFreshness"
+          },
+          "state": {
+            "$ref": "#/components/schemas/MatrixState"
+          }
+        },
+        "required": [
+          "state",
+          "freshness"
+        ],
+        "title": "CockpitStateResponse",
+        "type": "object"
+      },
+      "CockpitSurfaceResponse": {
+        "properties": {
+          "market_date": {
+            "format": "date",
+            "title": "Market Date",
+            "type": "string"
+          },
+          "skew": {
+            "items": {
+              "$ref": "#/components/schemas/CockpitSkewPoint"
+            },
+            "title": "Skew",
+            "type": "array"
+          },
+          "term": {
+            "items": {
+              "$ref": "#/components/schemas/CockpitTermPoint"
+            },
+            "title": "Term",
+            "type": "array"
+          },
+          "ticker": {
+            "title": "Ticker",
+            "type": "string"
+          }
+        },
+        "required": [
+          "ticker",
+          "market_date"
+        ],
+        "title": "CockpitSurfaceResponse",
+        "type": "object"
+      },
+      "CockpitTermPoint": {
+        "properties": {
+          "dte": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dte"
+          },
+          "expiry": {
+            "format": "date",
+            "title": "Expiry",
+            "type": "string"
+          },
+          "implied_move_expected_abs": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Implied Move Expected Abs"
+          },
+          "implied_move_perc": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Implied Move Perc"
+          },
+          "volatility": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Volatility"
+          }
+        },
+        "required": [
+          "expiry"
+        ],
+        "title": "CockpitTermPoint",
+        "type": "object"
+      },
+      "CockpitVrpPoint": {
+        "properties": {
+          "iv": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Iv"
+          },
+          "iv_rank_1y": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Iv Rank 1Y"
+          },
+          "market_date": {
+            "format": "date",
+            "title": "Market Date",
+            "type": "string"
+          },
+          "rv": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rv"
+          },
+          "vrp": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vrp"
+          }
+        },
+        "required": [
+          "market_date"
+        ],
+        "title": "CockpitVrpPoint",
+        "type": "object"
+      },
+      "CockpitVrpResponse": {
+        "properties": {
+          "market_date": {
+            "format": "date",
+            "title": "Market Date",
+            "type": "string"
+          },
+          "points": {
+            "items": {
+              "$ref": "#/components/schemas/CockpitVrpPoint"
+            },
+            "title": "Points",
+            "type": "array"
+          },
+          "ticker": {
+            "title": "Ticker",
+            "type": "string"
+          }
+        },
+        "required": [
+          "ticker",
+          "market_date"
+        ],
+        "title": "CockpitVrpResponse",
+        "type": "object"
+      },
+      "DivergencePoint": {
+        "properties": {
+          "date": {
+            "format": "date",
+            "title": "Date",
+            "type": "string"
+          },
+          "iv_z": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Iv Z"
+          },
+          "rv_z": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rv Z"
+          }
+        },
+        "required": [
+          "date"
+        ],
+        "title": "DivergencePoint",
+        "type": "object"
+      },
+      "FlowAlert": {
+        "properties": {
+          "aggressor_label_confidence": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Aggressor Label Confidence"
+          },
+          "alert_rule": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Alert Rule"
+          },
+          "all_opening_trades": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "All Opening Trades"
+          },
+          "created_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Created At"
+          },
+          "expiry": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expiry"
+          },
+          "flow_footprint_label": {
+            "anyOf": [
+              {
+                "enum": [
+                  "directional_whale",
+                  "hedge_flow",
+                  "dealer_hedge",
+                  "gamma_scalper",
+                  "unclassified"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Flow Footprint Label"
           },
           "has_floor": {
             "anyOf": [
@@ -1781,6 +2764,549 @@
           }
         },
         "title": "MarketStructureLevels",
+        "type": "object"
+      },
+      "MatrixSourceFreshness": {
+        "properties": {
+          "im_vrp": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Im Vrp"
+          },
+          "oi": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Oi"
+          },
+          "skew": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Skew"
+          },
+          "term": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Term"
+          },
+          "vanna_charm": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vanna Charm"
+          },
+          "vrp_rv": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vrp Rv"
+          }
+        },
+        "title": "MatrixSourceFreshness",
+        "type": "object"
+      },
+      "MatrixState": {
+        "properties": {
+          "atm_straddle_mid": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Atm Straddle Mid"
+          },
+          "back_iv": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Back Iv"
+          },
+          "charm_regime": {
+            "anyOf": [
+              {
+                "enum": [
+                  "operative_magnet",
+                  "broken_magnet",
+                  "opex_vortex",
+                  "neutral"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Charm Regime"
+          },
+          "charm_state": {
+            "enum": [
+              "vol_up",
+              "vol_down",
+              "neutral",
+              "stale"
+            ],
+            "title": "Charm State",
+            "type": "string"
+          },
+          "charm_stress_override": {
+            "default": false,
+            "title": "Charm Stress Override",
+            "type": "boolean"
+          },
+          "cluster_coverage_ok": {
+            "title": "Cluster Coverage Ok",
+            "type": "boolean"
+          },
+          "consistency_tier": {
+            "enum": [
+              "strict",
+              "strong",
+              "weak",
+              "no_trade",
+              "insufficient_data"
+            ],
+            "title": "Consistency Tier",
+            "type": "string"
+          },
+          "directional_imbalance_3d": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Directional Imbalance 3D"
+          },
+          "flow_state": {
+            "enum": [
+              "vol_up",
+              "vol_down",
+              "neutral",
+              "stale"
+            ],
+            "title": "Flow State",
+            "type": "string"
+          },
+          "front_back_spread": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Front Back Spread"
+          },
+          "front_iv": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Front Iv"
+          },
+          "full_curve_slope_pct": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Full Curve Slope Pct"
+          },
+          "im_state": {
+            "enum": [
+              "vol_up",
+              "vol_down",
+              "neutral",
+              "stale"
+            ],
+            "title": "Im State",
+            "type": "string"
+          },
+          "implied_move_event_percentile": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Implied Move Event Percentile"
+          },
+          "implied_move_expected_abs": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Implied Move Expected Abs"
+          },
+          "implied_move_pct": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Implied Move Pct"
+          },
+          "iv_atm_30d": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Iv Atm 30D"
+          },
+          "market_date": {
+            "format": "date",
+            "title": "Market Date",
+            "type": "string"
+          },
+          "pin_distance_sigma": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pin Distance Sigma"
+          },
+          "rv_30d": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rv 30D"
+          },
+          "single_point_bump_pct": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Single Point Bump Pct"
+          },
+          "skew_25d_5d_change": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Skew 25D 5D Change"
+          },
+          "skew_25d_zscore_180d": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Skew 25D Zscore 180D"
+          },
+          "skew_regime": {
+            "anyOf": [
+              {
+                "enum": [
+                  "smirk",
+                  "accelerated",
+                  "crash_smile",
+                  "neutral"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Skew Regime"
+          },
+          "skew_state": {
+            "enum": [
+              "vol_up",
+              "vol_down",
+              "neutral",
+              "stale"
+            ],
+            "title": "Skew State",
+            "type": "string"
+          },
+          "skew_term_structure": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Skew Term Structure"
+          },
+          "term_classification": {
+            "anyOf": [
+              {
+                "enum": [
+                  "contango",
+                  "event_back",
+                  "liquidity_back",
+                  "mixed"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Term Classification"
+          },
+          "term_johnson_slope_pc1": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Term Johnson Slope Pc1"
+          },
+          "term_state": {
+            "enum": [
+              "vol_up",
+              "vol_down",
+              "neutral",
+              "stale"
+            ],
+            "title": "Term State",
+            "type": "string"
+          },
+          "threshold_version": {
+            "default": 1,
+            "title": "Threshold Version",
+            "type": "integer"
+          },
+          "ticker": {
+            "title": "Ticker",
+            "type": "string"
+          },
+          "vanna_conditional_reading": {
+            "anyOf": [
+              {
+                "enum": [
+                  "grind_up",
+                  "reverse_selloff",
+                  "reflexive_sell_pressure",
+                  "weak_noise"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vanna Conditional Reading"
+          },
+          "vanna_oi_change_bias": {
+            "anyOf": [
+              {
+                "enum": [
+                  "call_oi_build",
+                  "put_oi_build",
+                  "mixed"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vanna Oi Change Bias"
+          },
+          "vanna_state": {
+            "enum": [
+              "vol_up",
+              "vol_down",
+              "neutral",
+              "stale"
+            ],
+            "title": "Vanna State",
+            "type": "string"
+          },
+          "vrp": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vrp"
+          },
+          "vrp_sign_flip_aligned_days": {
+            "default": 0,
+            "title": "Vrp Sign Flip Aligned Days",
+            "type": "integer"
+          },
+          "vrp_sign_flip_status": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "const": "insufficient_history",
+                "type": "string"
+              }
+            ],
+            "default": "insufficient_history",
+            "title": "Vrp Sign Flip Status"
+          },
+          "vrp_state": {
+            "enum": [
+              "vol_up",
+              "vol_down",
+              "neutral",
+              "stale"
+            ],
+            "title": "Vrp State",
+            "type": "string"
+          },
+          "vrp_zscore_252d": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vrp Zscore 252D"
+          },
+          "vrp_zscore_60d": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vrp Zscore 60D"
+          }
+        },
+        "required": [
+          "ticker",
+          "market_date",
+          "vanna_state",
+          "charm_state",
+          "skew_state",
+          "term_state",
+          "im_state",
+          "flow_state",
+          "vrp_state",
+          "consistency_tier",
+          "cluster_coverage_ok"
+        ],
+        "title": "MatrixState",
         "type": "object"
       },
       "MaxPainRow": {
@@ -6306,6 +7832,301 @@
   },
   "openapi": "3.1.0",
   "paths": {
+    "/api/cockpit/{ticker}/dealer": {
+      "get": {
+        "operationId": "get_cockpit_dealer_api_cockpit__ticker__dealer_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "ticker",
+            "required": true,
+            "schema": {
+              "title": "Ticker",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "asof",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Asof"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CockpitDealerResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Cockpit Dealer",
+        "tags": [
+          "cockpit"
+        ]
+      }
+    },
+    "/api/cockpit/{ticker}/flow-im": {
+      "get": {
+        "operationId": "get_cockpit_flow_im_api_cockpit__ticker__flow_im_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "ticker",
+            "required": true,
+            "schema": {
+              "title": "Ticker",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "asof",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Asof"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CockpitFlowImResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Cockpit Flow Im",
+        "tags": [
+          "cockpit"
+        ]
+      }
+    },
+    "/api/cockpit/{ticker}/state": {
+      "get": {
+        "operationId": "get_cockpit_state_api_cockpit__ticker__state_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "ticker",
+            "required": true,
+            "schema": {
+              "title": "Ticker",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "asof",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Asof"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CockpitStateResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Cockpit State",
+        "tags": [
+          "cockpit"
+        ]
+      }
+    },
+    "/api/cockpit/{ticker}/surface": {
+      "get": {
+        "operationId": "get_cockpit_surface_api_cockpit__ticker__surface_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "ticker",
+            "required": true,
+            "schema": {
+              "title": "Ticker",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "asof",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Asof"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CockpitSurfaceResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Cockpit Surface",
+        "tags": [
+          "cockpit"
+        ]
+      }
+    },
+    "/api/cockpit/{ticker}/vrp": {
+      "get": {
+        "operationId": "get_cockpit_vrp_api_cockpit__ticker__vrp_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "ticker",
+            "required": true,
+            "schema": {
+              "title": "Ticker",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "asof",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Asof"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CockpitVrpResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Cockpit Vrp",
+        "tags": [
+          "cockpit"
+        ]
+      }
+    },
     "/api/health": {
       "get": {
         "operationId": "health_api_health_get",

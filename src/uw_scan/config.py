@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 import os
+from decimal import Decimal
 from pathlib import Path
 
 from pydantic import BaseModel, Field, SecretStr
@@ -16,6 +17,20 @@ def _env_bool(name: str, default: bool = False) -> bool:
     if raw is None:
         return default
     return raw.strip().lower() in {"1", "true", "yes", "on"}
+
+
+def _parse_csv_env(name: str, *, default: list[str]) -> list[str]:
+    raw = os.environ.get(name)
+    if raw is None or not raw.strip():
+        return list(default)
+    return [item.strip().upper() for item in raw.split(",") if item.strip()]
+
+
+def _parse_int_csv_env(name: str, *, default: list[int]) -> list[int]:
+    raw = os.environ.get(name)
+    if raw is None or not raw.strip():
+        return list(default)
+    return [int(item.strip()) for item in raw.split(",") if item.strip()]
 
 
 def _load_dotenv(env_path: Path) -> None:
@@ -73,6 +88,12 @@ class Settings(BaseModel):
     trade_insights_ai_timeout_seconds: float = 300.0
     trade_insights_ai_max_output_bytes: int = 262144
     trade_insights_ai_poll_seconds: int = 3
+    # Cockpit (6-dim matrix) — see docs/superpowers/research/six-dimension-matrix/
+    cockpit_tickers: list[str] = ["SPX", "SPY", "QQQ", "IWM"]
+    cockpit_snapshot_cron: str = "30 16 * * 1-5"
+    cockpit_target_dtes: list[int] = [0, 14, 30, 90]
+    cockpit_oi_band_pct: Decimal = Decimal("0.10")
+    cockpit_oi_max_dte: int = 7
 
     @classmethod
     def from_env(cls, env_path: Path | None = None) -> "Settings":
@@ -139,6 +160,19 @@ class Settings(BaseModel):
             trade_insights_ai_poll_seconds=int(
                 os.environ.get("TRADE_INSIGHTS_AI_POLL_SECONDS", "3")
             ),
+            cockpit_tickers=_parse_csv_env(
+                "COCKPIT_TICKERS", default=["SPX", "SPY", "QQQ", "IWM"]
+            ),
+            cockpit_snapshot_cron=os.environ.get(
+                "COCKPIT_SNAPSHOT_CRON", "30 16 * * 1-5"
+            ),
+            cockpit_target_dtes=_parse_int_csv_env(
+                "COCKPIT_TARGET_DTES", default=[0, 14, 30, 90]
+            ),
+            cockpit_oi_band_pct=Decimal(
+                os.environ.get("COCKPIT_OI_BAND_PCT", "0.10")
+            ),
+            cockpit_oi_max_dte=int(os.environ.get("COCKPIT_OI_MAX_DTE", "7")),
         )
 
     def db_dsn(self) -> str:

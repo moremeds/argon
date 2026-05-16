@@ -20,6 +20,37 @@ _OCC_RE = re.compile(
 )
 
 
+def pick_target_expiries(
+    contracts: Iterable[OptionContractRow],
+    *,
+    target_dtes: Iterable[int],
+    today: date,
+) -> list[date]:
+    """Return the available expiries closest to each target DTE.
+
+    Result is sorted, deduplicated, and bounded to expiries that actually
+    exist in the contracts list. If a target DTE has no candidate (e.g.,
+    0DTE on a ticker without daily expiries), it is skipped silently.
+    """
+    available = sorted(
+        {
+            parsed[0]
+            for c in contracts
+            if (parsed := _parse_occ(c.option_symbol)) is not None
+            and parsed[0] >= today
+        }
+    )
+    if not available:
+        return []
+    picked: set[date] = set()
+    for dte in sorted(set(target_dtes)):
+        if dte < 0:
+            continue
+        nearest = min(available, key=lambda e: abs((e - today).days - dte))
+        picked.add(nearest)
+    return sorted(picked)
+
+
 def _parse_occ(symbol: str) -> tuple[date, str, Decimal] | None:
     m = _OCC_RE.match(symbol)
     if not m:
