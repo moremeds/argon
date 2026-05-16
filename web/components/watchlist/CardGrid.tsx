@@ -1,11 +1,10 @@
-"use client";
 import type { components } from "@/lib/types";
+import { toNum } from "@/lib/formatters";
+import { PRIORITY_SECTORS } from "./sectorGroups";
 import { TickerCard } from "./TickerCard";
 
 type WatchlistCard = components["schemas"]["WatchlistCard"];
 type WatchlistResponse = components["schemas"]["WatchlistResponse"];
-
-const PRIORITY_SECTORS = ["ETF", "M7", "Semiconductor"] as const;
 
 function sectorRank(sector: string, tickers: WatchlistCard[]) {
   const priority = PRIORITY_SECTORS.indexOf(
@@ -23,12 +22,13 @@ function sizeValue(card: WatchlistCard) {
     card.sector === "ETF"
       ? (card.aum ?? card.market_cap)
       : (card.market_cap ?? card.aum);
-  if (raw == null) return null;
-  const value = Number(raw);
-  return Number.isFinite(value) ? value : null;
+  return toNum(raw);
 }
 
 function compareCards(a: WatchlistCard, b: WatchlistCard) {
+  const pinDiff = Number(b.pinned) - Number(a.pinned);
+  if (pinDiff !== 0) return pinDiff;
+
   const aSize = sizeValue(a);
   const bSize = sizeValue(b);
   if (aSize !== null && bSize !== null && aSize !== bSize) {
@@ -36,11 +36,8 @@ function compareCards(a: WatchlistCard, b: WatchlistCard) {
   }
   if (aSize !== null) return -1;
   if (bSize !== null) return 1;
-  return (
-    Number(b.pinned) - Number(a.pinned) ||
-    a.sort_rank - b.sort_rank ||
-    a.ticker.localeCompare(b.ticker)
-  );
+
+  return a.sort_rank - b.sort_rank || a.ticker.localeCompare(b.ticker);
 }
 
 export function CardGrid({
