@@ -944,10 +944,25 @@ export interface components {
             uw_today?: number | null;
             /** Cache Hit Pct */
             cache_hit_pct?: number | null;
+            /**
+             * Throughput Window Minutes
+             * @default 0
+             */
+            throughput_window_minutes: number;
+            /** Requests Per Minute */
+            requests_per_minute?: number | null;
+            /** Http 429 */
+            http_429?: number | null;
+            /** Avg Scan Duration Seconds */
+            avg_scan_duration_seconds?: number | null;
+            /** Queue Drain Rate Per Minute */
+            queue_drain_rate_per_minute?: number | null;
             /** Record Health Ok */
             record_health_ok?: boolean | null;
             /** Record Health */
             record_health?: components["schemas"]["RecordHealthCheck"][];
+            /** Workers */
+            workers?: components["schemas"]["WorkerHealth"][];
         };
         /** InsightBadge */
         InsightBadge: {
@@ -1113,6 +1128,10 @@ export interface components {
             pcr_vol?: string | null;
             /** Iv30D */
             iv30d?: string | null;
+            /** Market Cap */
+            market_cap?: string | null;
+            /** Aum */
+            aum?: string | null;
         };
         /** MarketStructure */
         MarketStructure: {
@@ -2755,6 +2774,10 @@ export interface components {
             iv_atm?: string | null;
             /** Iv Rank */
             iv_rank?: string | null;
+            /** Market Cap */
+            market_cap?: string | null;
+            /** Aum */
+            aum?: string | null;
             setup: components["schemas"]["SetupBlock"];
             /** Aggression Pct */
             aggression_pct?: string | null;
@@ -2805,6 +2828,24 @@ export interface components {
             queue?: components["schemas"]["QueueSummary"];
             /** Tickers */
             tickers: components["schemas"]["WatchlistCard"][];
+        };
+        /** WorkerHealth */
+        WorkerHealth: {
+            /** Label */
+            label: string;
+            /**
+             * Role
+             * @enum {string}
+             */
+            role: "uw" | "massive";
+            /** Index */
+            index: number;
+            /** Heartbeat Name */
+            heartbeat_name: string;
+            /** Lag Seconds */
+            lag_seconds?: number | null;
+            /** Last Beat At */
+            last_beat_at?: string | null;
         };
     };
     responses: never;
