@@ -1,4 +1,4 @@
--- 028_cockpit_research_fields.sql — persist remaining Cockpit research features.
+-- 031_cockpit_research_fields.sql — persist remaining Cockpit research features.
 
 SET search_path TO uw_scan, public;
 

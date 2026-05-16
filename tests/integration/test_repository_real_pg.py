@@ -7,6 +7,7 @@ Implementation Guardrails — every assertion below hits a real DB.
 
 from __future__ import annotations
 
+import subprocess
 from datetime import UTC, date, datetime
 from decimal import Decimal
 from pathlib import Path
@@ -38,11 +39,16 @@ def repo(postgresql_my):
     )
     if postgresql_my.info.password:
         dsn += f" password={postgresql_my.info.password}"
+    # Apply migrations via psql, the same way scripts/migrate.sh does in
+    # prod/dev. psycopg wraps multi-statement execute() calls in implicit
+    # transactions, which breaks statements like DROP INDEX CONCURRENTLY.
+    for sql_path in sorted(MIGRATIONS_DIR.glob("*.sql")):
+        subprocess.run(
+            ["psql", dsn, "-v", "ON_ERROR_STOP=1", "-f", str(sql_path)],
+            check=True,
+            capture_output=True,
+        )
     conn = psycopg.connect(dsn)
-    with conn.cursor() as cur:
-        for sql_path in sorted(MIGRATIONS_DIR.glob("*.sql")):
-            cur.execute(sql_path.read_text())
-    conn.commit()
     r = Repository(conn, schema="uw_scan")
     try:
         yield r

@@ -1,4 +1,4 @@
--- 029_charm_signal_pin_source_date.sql — mark stale OI-chain source for pin metrics.
+-- 032_charm_signal_pin_source_date.sql — mark stale OI-chain source for pin metrics.
 
 SET search_path TO uw_scan, public;
 

@@ -1,4 +1,4 @@
--- 030_add_spx_to_watchlist.sql
+-- 033_add_spx_to_watchlist.sql
 --
 -- Add SPX (S&P 500 cash index, weekly options trade as SPXW symbols) to the
 -- watchlist so flow_data_refresh and full_scan ingest its flow_alerts and

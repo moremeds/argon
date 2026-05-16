@@ -1,6 +1,6 @@
--- 031_remove_spx_from_watchlist.sql — reverse 030.
+-- 034_remove_spx_from_watchlist.sql — reverse 033.
 --
--- Adding SPX to the watchlist (migration 030) made flow_data_refresh and
+-- Adding SPX to the watchlist (migration 033) made flow_data_refresh and
 -- full_scan ingest its flow_alerts and option_chain_per_strike, which closed
 -- two cockpit data gaps. But it also exposed SPX to every watchlist-driven
 -- view (landing page cards, scanner, sector grouping), which assumes ETF/stock

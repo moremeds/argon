@@ -1,4 +1,4 @@
--- 027_matrix_state_vrp_sign_flip.sql — persist VRP sign-flip override inputs.
+-- 030_matrix_state_vrp_sign_flip.sql — persist VRP sign-flip override inputs.
 
 SET search_path TO uw_scan, public;
 
