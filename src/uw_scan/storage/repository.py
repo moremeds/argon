@@ -6,17 +6,12 @@ One method per insert/select. No `**kwargs` splatting from arbitrary dicts.
 from __future__ import annotations
 
 import logging
-import math
-from collections import Counter
 from collections.abc import Iterable
-from dataclasses import dataclass
 from datetime import date as _date
 from datetime import datetime, timedelta
 from decimal import Decimal
 from typing import Any
-from zoneinfo import ZoneInfo
 
-import psycopg
 from psycopg import sql as psql
 from psycopg.types.json import Jsonb
 
@@ -28,9 +23,6 @@ from ._base import _BaseMixin
 # sources/ohlc.py, api/client.py, api/routers/health.py, api/routers/provider_usage.py,
 # and tests — keep them re-exported.
 from ._helpers import (
-    _PROVIDER_DAY_TZ,
-    _REDACTED_PARAM_KEYS,
-    _d,
     _nullable_float,
     _nullable_int,
     provider_day_bounds,
@@ -38,7 +30,15 @@ from ._helpers import (
     status_family_for,
 )
 from .audit import _AuditMixin
-from .flow import _aggressor_label_confidence, _flow_footprint_label, _FlowMixin
+
+# noqa: F401 below — _aggressor_label_confidence and _flow_footprint_label
+# are re-exports for scripts/backfill_flow_footprint.py which imports them
+# from uw_scan.storage.repository. Removing them would break the script.
+from .flow import (
+    _aggressor_label_confidence,  # noqa: F401
+    _flow_footprint_label,  # noqa: F401
+    _FlowMixin,
+)
 from .health import _HealthMixin
 from .jobs import _JobsMixin
 from .market_data import _MarketDataMixin
