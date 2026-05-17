@@ -61,8 +61,8 @@ describe("useCri", () => {
     await waitFor(() => {
       expect(result.current.data).not.toBeNull();
     });
-    expect(result.current.data?.cri.level).toBe("ELEVATED");
-    expect(result.current.data?.cri.score).toBe(33.4);
+    expect(result.current.data?.cri?.level).toBe("ELEVATED");
+    expect(result.current.data?.cri?.score).toBe(33.4);
     expect(result.current.lastSync).toBe("2026-05-15T20:30:00+00:00");
   });
 
