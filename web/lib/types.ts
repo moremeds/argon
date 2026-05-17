@@ -520,7 +520,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Trigger Cri Scan */
+        /**
+         * Trigger Cri Scan
+         * @description Run a CRI scan synchronously off the warm store; persist a snapshot.
+         */
         post: operations["trigger_cri_scan_api_regime_scan_post"];
         delete?: never;
         options?: never;
@@ -870,6 +873,194 @@ export interface components {
             market_date: string;
             /** Points */
             points?: components["schemas"]["CockpitVrpPoint"][];
+        };
+        /** CrashTriggerBlock */
+        CrashTriggerBlock: {
+            /**
+             * Fired
+             * @default false
+             */
+            fired: boolean;
+            /**
+             * Triggered
+             * @default false
+             */
+            triggered: boolean;
+            conditions?: components["schemas"]["CrashTriggerConditions"];
+            values?: components["schemas"]["CrashTriggerValues"];
+        };
+        /** CrashTriggerConditions */
+        CrashTriggerConditions: {
+            /**
+             * Spx Below 100D Ma
+             * @default false
+             */
+            spx_below_100d_ma: boolean;
+            /**
+             * Realized Vol Gt 25
+             * @default false
+             */
+            realized_vol_gt_25: boolean;
+            /**
+             * Cor1M Gt 60
+             * @default false
+             */
+            cor1m_gt_60: boolean;
+        };
+        /** CrashTriggerValues */
+        CrashTriggerValues: {
+            /** Realized Vol */
+            realized_vol?: number | null;
+            /** Cor1M */
+            cor1m?: number | null;
+        };
+        /** CriBlock */
+        CriBlock: {
+            /**
+             * Score
+             * @default 0
+             */
+            score: number;
+            /**
+             * Level
+             * @default LOW
+             * @enum {string}
+             */
+            level: "LOW" | "ELEVATED" | "HIGH" | "CRITICAL";
+            components?: components["schemas"]["CriComponents"];
+        };
+        /**
+         * CriComponents
+         * @description Four 0-25 component scores summed into the composite 0-100.
+         */
+        CriComponents: {
+            /**
+             * Vix
+             * @default 0
+             */
+            vix: number;
+            /**
+             * Vvix
+             * @default 0
+             */
+            vvix: number;
+            /**
+             * Correlation
+             * @default 0
+             */
+            correlation: number;
+            /**
+             * Momentum
+             * @default 0
+             */
+            momentum: number;
+        };
+        /** CriHistoryEntry */
+        CriHistoryEntry: {
+            /** Date */
+            date: string;
+            /** Vix */
+            vix?: number | null;
+            /** Vvix */
+            vvix?: number | null;
+            /** Spy */
+            spy?: number | null;
+            /** Cor1M */
+            cor1m?: number | null;
+            /** Realized Vol */
+            realized_vol?: number | null;
+            /** Spx Vs Ma Pct */
+            spx_vs_ma_pct?: number | null;
+            /** Vix 5D Roc */
+            vix_5d_roc?: number | null;
+        };
+        /**
+         * CriResponse
+         * @description Crash Risk Indicator snapshot (latest scan).
+         */
+        CriResponse: {
+            /**
+             * Status
+             * @default empty
+             * @enum {string}
+             */
+            status: "ok" | "empty";
+            /**
+             * Scan Time
+             * @default
+             */
+            scan_time: string;
+            /** Date */
+            date?: string | null;
+            /** Vix */
+            vix?: number | null;
+            /** Vvix */
+            vvix?: number | null;
+            /** Spy */
+            spy?: number | null;
+            /** Vix 5D Roc */
+            vix_5d_roc?: number | null;
+            /** Vvix Vix Ratio */
+            vvix_vix_ratio?: number | null;
+            /** Spx 100D Ma */
+            spx_100d_ma?: number | null;
+            /** Spx Distance Pct */
+            spx_distance_pct?: number | null;
+            /** Cor1M */
+            cor1m?: number | null;
+            /** Cor1M Previous Close */
+            cor1m_previous_close?: number | null;
+            /** Cor1M 5D Change */
+            cor1m_5d_change?: number | null;
+            /** Realized Vol */
+            realized_vol?: number | null;
+            cri?: components["schemas"]["CriBlock"];
+            cta?: components["schemas"]["CtaBlock"];
+            crash_trigger?: components["schemas"]["CrashTriggerBlock"];
+            /** History */
+            history?: components["schemas"]["CriHistoryEntry"][];
+            /** Spy Closes */
+            spy_closes?: number[];
+        };
+        /**
+         * CriScanResponse
+         * @description Response body for POST /api/regime/scan.
+         */
+        CriScanResponse: {
+            /**
+             * Status
+             * @default ok
+             * @enum {string}
+             */
+            status: "ok" | "skipped";
+            /**
+             * Scanner
+             * @default cri
+             * @constant
+             */
+            scanner: "cri";
+            /** Row Id */
+            row_id?: number | null;
+            /** Reason */
+            reason?: string | null;
+        };
+        /** CtaBlock */
+        CtaBlock: {
+            /** Realized Vol */
+            realized_vol?: number | null;
+            /** Exposure Pct */
+            exposure_pct?: number | null;
+            /** Forced Reduction Pct */
+            forced_reduction_pct?: number | null;
+            /**
+             * Forced Reduction
+             * @default false
+             */
+            forced_reduction: boolean;
+            /** Est Selling Bn */
+            est_selling_bn?: number | null;
+            /** Selling Usd B */
+            selling_usd_b?: number | null;
         };
         /** DivergencePoint */
         DivergencePoint: {
@@ -4216,7 +4407,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["RegimePendingResponse"];
+                    "application/json": components["schemas"]["CriResponse"];
                 };
             };
         };
@@ -4236,7 +4427,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["RegimePendingResponse"];
+                    "application/json": components["schemas"]["CriScanResponse"];
                 };
             };
         };
