@@ -55,9 +55,10 @@ def test_gex_response_round_trip_with_full_xenon_shape():
 
 
 def test_regime_pending_response_shape():
-    payload = RegimePendingResponse(scanner="cri").model_dump()
+    # VCG is the only remaining pending scanner; CRI is live as of 040.
+    payload = RegimePendingResponse(scanner="vcg").model_dump()
     assert payload["status"] == "pending"
-    assert payload["scanner"] == "cri"
+    assert payload["scanner"] == "vcg"
     assert payload["reason"] == "ib_via_r2_not_wired"
 
 

@@ -342,3 +342,95 @@ class VolBackdropResponse(BaseModel):
     term_structure_ratio: float | None = None  # VIX / VIX3M, latest close
     term_structure_state: str | None = None  # "contango" | "backwardation"
     as_of: date | None = None
+
+
+# ─── CRI (Crash Risk Indicator) ──────────────────────────────────
+
+
+class CriComponents(BaseModel):
+    """Four 0-25 component scores summed into the composite 0-100."""
+
+    vix: float = 0.0
+    vvix: float = 0.0
+    correlation: float = 0.0
+    momentum: float = 0.0
+
+
+class CriBlock(BaseModel):
+    score: float = 0.0
+    level: Literal["LOW", "ELEVATED", "HIGH", "CRITICAL"] = "LOW"
+    components: CriComponents = Field(default_factory=CriComponents)
+
+
+class CtaBlock(BaseModel):
+    realized_vol: float | None = None
+    exposure_pct: float | None = None
+    forced_reduction_pct: float | None = None
+    forced_reduction: bool = False
+    est_selling_bn: float | None = None
+    selling_usd_b: float | None = None
+
+
+class CrashTriggerConditions(BaseModel):
+    spx_below_100d_ma: bool = False
+    realized_vol_gt_25: bool = False
+    cor1m_gt_60: bool = False
+
+
+class CrashTriggerValues(BaseModel):
+    realized_vol: float | None = None
+    cor1m: float | None = None
+
+
+class CrashTriggerBlock(BaseModel):
+    fired: bool = False
+    triggered: bool = False
+    conditions: CrashTriggerConditions = Field(default_factory=CrashTriggerConditions)
+    values: CrashTriggerValues = Field(default_factory=CrashTriggerValues)
+
+
+class CriHistoryEntry(BaseModel):
+    date: str
+    vix: float | None = None
+    vvix: float | None = None
+    spy: float | None = None
+    cor1m: float | None = None
+    realized_vol: float | None = None
+    spx_vs_ma_pct: float | None = None
+    vix_5d_roc: float | None = None
+
+
+class CriResponse(BaseModel):
+    """Crash Risk Indicator snapshot (latest scan)."""
+
+    status: Literal["ok", "empty"] = "empty"
+    scan_time: str = ""
+    date: str | None = None
+    vix: float | None = None
+    vvix: float | None = None
+    spy: float | None = None
+    vix_5d_roc: float | None = None
+    vvix_vix_ratio: float | None = None
+    spx_100d_ma: float | None = None
+    spx_distance_pct: float | None = None
+    cor1m: float | None = None
+    cor1m_previous_close: float | None = None
+    cor1m_5d_change: float | None = None
+    realized_vol: float | None = None
+    cri: CriBlock = Field(default_factory=CriBlock)
+    cta: CtaBlock = Field(default_factory=CtaBlock)
+    crash_trigger: CrashTriggerBlock = Field(default_factory=CrashTriggerBlock)
+    history: list[CriHistoryEntry] = Field(default_factory=list)
+    spy_closes: list[float] = Field(default_factory=list)
+
+
+EMPTY_CRI_RESPONSE = CriResponse()
+
+
+class CriScanResponse(BaseModel):
+    """Response body for POST /api/regime/scan."""
+
+    status: Literal["ok", "skipped"] = "ok"
+    scanner: Literal["cri"] = "cri"
+    row_id: int | None = None
+    reason: str | None = None

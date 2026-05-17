@@ -1,4 +1,4 @@
-"""/regime — GEX live (UW-driven), CRI/VCG pending IB-via-R2 reader."""
+"""/regime — GEX + CRI live, VCG still pending."""
 
 from __future__ import annotations
 
@@ -11,14 +11,19 @@ from fastapi import APIRouter, Depends, Query
 from uw_scan.api.client import UwClient
 from uw_scan.api.deps import get_repo, get_settings
 from uw_scan.api.schemas import (
+    EMPTY_CRI_RESPONSE,
     EMPTY_GEX_RESPONSE,
+    CriResponse,
+    CriScanResponse,
     GexHistoryEntry,
     GexResponse,
     RegimePendingResponse,
     VolBackdropResponse,
 )
 from uw_scan.config import Settings
+from uw_scan.scanners import cri as cri_scanner
 from uw_scan.scanners import gex as gex_scanner
+from uw_scan.storage.cri_snapshot_repository import CriSnapshotRepository
 from uw_scan.storage.greek_exposure_repository import GreekExposureDailyRepository
 from uw_scan.storage.repository import Repository
 from uw_scan.storage.vol_index_repository import VolIndexRepository
@@ -150,17 +155,29 @@ def get_vol_backdrop(
     )
 
 
-# ─── CRI (pending) ───────────────────────────────────────────────
+# ─── CRI (live) ──────────────────────────────────────────────────
 
 
-@router.get("", response_model=RegimePendingResponse)
-def get_regime() -> RegimePendingResponse:
-    return RegimePendingResponse(scanner="cri")
+@router.get("", response_model=CriResponse)
+def get_regime(
+    repo: Annotated[Repository, Depends(get_repo)],
+) -> CriResponse:
+    snap_repo = CriSnapshotRepository(repo.conn, schema=repo._schema)
+    latest = snap_repo.fetch_latest()
+    if latest is None:
+        return EMPTY_CRI_RESPONSE.model_copy(deep=True)
+    return CriResponse.model_validate({"status": "ok", **latest})
 
 
-@router.post("/scan", status_code=202, response_model=RegimePendingResponse)
-def trigger_cri_scan() -> RegimePendingResponse:
-    return RegimePendingResponse(scanner="cri")
+@router.post("/scan", status_code=202, response_model=CriScanResponse)
+def trigger_cri_scan(
+    repo: Annotated[Repository, Depends(get_repo)],
+) -> CriScanResponse:
+    """Run a CRI scan synchronously off the warm store; persist a snapshot."""
+    row_id = cri_scanner.run(repo.conn, schema=repo._schema)
+    if row_id is None:
+        return CriScanResponse(status="skipped", reason="thin_data")
+    return CriScanResponse(status="ok", row_id=row_id)
 
 
 # ─── VCG (pending) ───────────────────────────────────────────────

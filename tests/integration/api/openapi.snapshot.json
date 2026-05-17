@@ -1148,6 +1148,505 @@
         "title": "CockpitVrpResponse",
         "type": "object"
       },
+      "CrashTriggerBlock": {
+        "properties": {
+          "conditions": {
+            "$ref": "#/components/schemas/CrashTriggerConditions"
+          },
+          "fired": {
+            "default": false,
+            "title": "Fired",
+            "type": "boolean"
+          },
+          "triggered": {
+            "default": false,
+            "title": "Triggered",
+            "type": "boolean"
+          },
+          "values": {
+            "$ref": "#/components/schemas/CrashTriggerValues"
+          }
+        },
+        "title": "CrashTriggerBlock",
+        "type": "object"
+      },
+      "CrashTriggerConditions": {
+        "properties": {
+          "cor1m_gt_60": {
+            "default": false,
+            "title": "Cor1M Gt 60",
+            "type": "boolean"
+          },
+          "realized_vol_gt_25": {
+            "default": false,
+            "title": "Realized Vol Gt 25",
+            "type": "boolean"
+          },
+          "spx_below_100d_ma": {
+            "default": false,
+            "title": "Spx Below 100D Ma",
+            "type": "boolean"
+          }
+        },
+        "title": "CrashTriggerConditions",
+        "type": "object"
+      },
+      "CrashTriggerValues": {
+        "properties": {
+          "cor1m": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cor1M"
+          },
+          "realized_vol": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Realized Vol"
+          }
+        },
+        "title": "CrashTriggerValues",
+        "type": "object"
+      },
+      "CriBlock": {
+        "properties": {
+          "components": {
+            "$ref": "#/components/schemas/CriComponents"
+          },
+          "level": {
+            "default": "LOW",
+            "enum": [
+              "LOW",
+              "ELEVATED",
+              "HIGH",
+              "CRITICAL"
+            ],
+            "title": "Level",
+            "type": "string"
+          },
+          "score": {
+            "default": 0.0,
+            "title": "Score",
+            "type": "number"
+          }
+        },
+        "title": "CriBlock",
+        "type": "object"
+      },
+      "CriComponents": {
+        "description": "Four 0-25 component scores summed into the composite 0-100.",
+        "properties": {
+          "correlation": {
+            "default": 0.0,
+            "title": "Correlation",
+            "type": "number"
+          },
+          "momentum": {
+            "default": 0.0,
+            "title": "Momentum",
+            "type": "number"
+          },
+          "vix": {
+            "default": 0.0,
+            "title": "Vix",
+            "type": "number"
+          },
+          "vvix": {
+            "default": 0.0,
+            "title": "Vvix",
+            "type": "number"
+          }
+        },
+        "title": "CriComponents",
+        "type": "object"
+      },
+      "CriHistoryEntry": {
+        "properties": {
+          "cor1m": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cor1M"
+          },
+          "date": {
+            "title": "Date",
+            "type": "string"
+          },
+          "realized_vol": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Realized Vol"
+          },
+          "spx_vs_ma_pct": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Spx Vs Ma Pct"
+          },
+          "spy": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Spy"
+          },
+          "vix": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vix"
+          },
+          "vix_5d_roc": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vix 5D Roc"
+          },
+          "vvix": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vvix"
+          }
+        },
+        "required": [
+          "date"
+        ],
+        "title": "CriHistoryEntry",
+        "type": "object"
+      },
+      "CriResponse": {
+        "description": "Crash Risk Indicator snapshot (latest scan).",
+        "properties": {
+          "cor1m": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cor1M"
+          },
+          "cor1m_5d_change": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cor1M 5D Change"
+          },
+          "cor1m_previous_close": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cor1M Previous Close"
+          },
+          "crash_trigger": {
+            "$ref": "#/components/schemas/CrashTriggerBlock"
+          },
+          "cri": {
+            "$ref": "#/components/schemas/CriBlock"
+          },
+          "cta": {
+            "$ref": "#/components/schemas/CtaBlock"
+          },
+          "date": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Date"
+          },
+          "history": {
+            "items": {
+              "$ref": "#/components/schemas/CriHistoryEntry"
+            },
+            "title": "History",
+            "type": "array"
+          },
+          "realized_vol": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Realized Vol"
+          },
+          "scan_time": {
+            "default": "",
+            "title": "Scan Time",
+            "type": "string"
+          },
+          "spx_100d_ma": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Spx 100D Ma"
+          },
+          "spx_distance_pct": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Spx Distance Pct"
+          },
+          "spy": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Spy"
+          },
+          "spy_closes": {
+            "items": {
+              "type": "number"
+            },
+            "title": "Spy Closes",
+            "type": "array"
+          },
+          "status": {
+            "default": "empty",
+            "enum": [
+              "ok",
+              "empty"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "vix": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vix"
+          },
+          "vix_5d_roc": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vix 5D Roc"
+          },
+          "vvix": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vvix"
+          },
+          "vvix_vix_ratio": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vvix Vix Ratio"
+          }
+        },
+        "title": "CriResponse",
+        "type": "object"
+      },
+      "CriScanResponse": {
+        "description": "Response body for POST /api/regime/scan.",
+        "properties": {
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          },
+          "row_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Row Id"
+          },
+          "scanner": {
+            "const": "cri",
+            "default": "cri",
+            "title": "Scanner",
+            "type": "string"
+          },
+          "status": {
+            "default": "ok",
+            "enum": [
+              "ok",
+              "skipped"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "title": "CriScanResponse",
+        "type": "object"
+      },
+      "CtaBlock": {
+        "properties": {
+          "est_selling_bn": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Est Selling Bn"
+          },
+          "exposure_pct": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Exposure Pct"
+          },
+          "forced_reduction": {
+            "default": false,
+            "title": "Forced Reduction",
+            "type": "boolean"
+          },
+          "forced_reduction_pct": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Forced Reduction Pct"
+          },
+          "realized_vol": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Realized Vol"
+          },
+          "selling_usd_b": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Selling Usd B"
+          }
+        },
+        "title": "CtaBlock",
+        "type": "object"
+      },
       "DivergencePoint": {
         "properties": {
           "date": {
@@ -9598,7 +10097,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/RegimePendingResponse"
+                  "$ref": "#/components/schemas/CriResponse"
                 }
               }
             },
@@ -9702,13 +10201,14 @@
     },
     "/api/regime/scan": {
       "post": {
+        "description": "Run a CRI scan synchronously off the warm store; persist a snapshot.",
         "operationId": "trigger_cri_scan_api_regime_scan_post",
         "responses": {
           "202": {
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/RegimePendingResponse"
+                  "$ref": "#/components/schemas/CriScanResponse"
                 }
               }
             },
