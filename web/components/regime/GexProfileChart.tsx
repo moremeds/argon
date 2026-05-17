@@ -40,11 +40,14 @@ export default function GexProfileChart({
   const chartData = useMemo(() => {
     if (!profile.length) return { buckets: [], maxAbs: 1 };
     const maxAbs = Math.max(...profile.map((b) => Math.abs(b.net_gex)), 1);
-    return { buckets: profile, maxAbs };
+    // Higher strikes at top (orderbook orientation). API returns ascending;
+    // reverse here so presentation order matches reader intuition.
+    const buckets = [...profile].sort((a, b) => b.strike - a.strike);
+    return { buckets, maxAbs };
   }, [profile]);
 
   const barHeight = 22;
-  const labelWidth = 80;
+  const labelWidth = 110;
   const rightLabelWidth = 160;
   const chartWidth = 600;
   const barAreaWidth = chartWidth - labelWidth - rightLabelWidth;

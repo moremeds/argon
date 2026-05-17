@@ -81,6 +81,10 @@ export type GexData = {
   ticker: string;
   spot: number;
   close: number | null;
+  prev_close: number | null;
+  market_time: string | null;
+  tape_time: string | null;
+  spot_source: string | null;
   day_change: number | null;
   day_change_pct: number | null;
   data_date: string;

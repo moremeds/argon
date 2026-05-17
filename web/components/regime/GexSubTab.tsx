@@ -84,6 +84,72 @@ function levelColor(gamma: number | undefined): string {
   return gamma >= 0 ? "var(--signal-core)" : "var(--fault)";
 }
 
+/* ─── Spot freshness pill ─────────────────────────────── */
+
+/**
+ * Render "LIVE", "Xm ago", or "Xh ago" based on age of `tape_time`.
+ * Color: green ≤2m, warning ≤15m, muted-warm ≤60m, muted thereafter.
+ * Returns null if tape_time is missing/invalid — caller renders nothing.
+ *
+ * Re-renders are driven by the GEX poll cycle (every N seconds); we don't
+ * run a clock interval, which keeps this trivially pure.
+ */
+export function SpotFreshnessPill({
+  tapeTime,
+  nowMs,
+}: {
+  tapeTime: string | null | undefined;
+  /** Injectable for tests; defaults to Date.now(). */
+  nowMs?: number;
+}) {
+  if (!tapeTime) return null;
+  const t = Date.parse(tapeTime);
+  if (Number.isNaN(t)) return null;
+  const now = nowMs ?? Date.now();
+  const ageMin = Math.max(0, Math.floor((now - t) / 60000));
+
+  let label: string;
+  let color: string;
+  let bg: string;
+  if (ageMin <= 2) {
+    label = "LIVE";
+    color = "var(--signal-core)";
+    bg = "rgba(15,110,86,0.18)";
+  } else if (ageMin < 60) {
+    label = `${ageMin}m ago`;
+    color = ageMin <= 15 ? "var(--warning)" : "var(--text-secondary)";
+    bg = ageMin <= 15 ? "rgba(245,166,35,0.15)" : "rgba(148,163,184,0.12)";
+  } else if (ageMin < 60 * 24) {
+    const hrs = Math.floor(ageMin / 60);
+    label = `${hrs}h ago`;
+    color = "var(--text-muted)";
+    bg = "rgba(148,163,184,0.10)";
+  } else {
+    const days = Math.floor(ageMin / (60 * 24));
+    label = `${days}d ago`;
+    color = "var(--text-muted)";
+    bg = "rgba(148,163,184,0.10)";
+  }
+
+  return (
+    <span
+      data-testid="spot-freshness-pill"
+      style={{
+        background: bg,
+        color,
+        fontSize: 9,
+        fontWeight: 500,
+        padding: "1px 5px",
+        borderRadius: 2,
+        letterSpacing: "0.06em",
+      }}
+      title={`Last tick at ${tapeTime}`}
+    >
+      {label}
+    </span>
+  );
+}
+
 /* ─── Level Card ──────────────────────────────────────── */
 
 function LevelCard({
@@ -729,11 +795,22 @@ export default function GexSubTab({ marketState }: GexSubTabProps) {
         <div className="gex-metrics-row">
           <MetricCard
             label="SPOT"
+            badge={<SpotFreshnessPill tapeTime={data.tape_time} />}
             value={fmtPrice(data.spot)}
             sub={
-              data.day_change != null
-                ? `${data.day_change >= 0 ? "+" : ""}${fmtPrice(data.day_change)} (${fmtPct(data.day_change_pct)})`
-                : undefined
+              data.day_change != null ? (
+                <span
+                  style={{
+                    color:
+                      data.day_change >= 0
+                        ? "var(--positive)"
+                        : "var(--negative)",
+                  }}
+                >
+                  {data.day_change >= 0 ? "+" : ""}
+                  {fmtPrice(data.day_change)} ({fmtPct(data.day_change_pct)})
+                </span>
+              ) : undefined
             }
           />
           <MetricCard

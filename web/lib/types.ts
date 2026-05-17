@@ -1117,6 +1117,14 @@ export interface components {
             spot?: number | null;
             /** Close */
             close?: number | null;
+            /** Prev Close */
+            prev_close?: number | null;
+            /** Market Time */
+            market_time?: string | null;
+            /** Tape Time */
+            tape_time?: string | null;
+            /** Spot Source */
+            spot_source?: string | null;
             /** Day Change */
             day_change?: number | null;
             /** Day Change Pct */

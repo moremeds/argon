@@ -281,6 +281,10 @@ class GexResponse(BaseModel):
     ticker: str = "SPX"
     spot: float | None = None
     close: float | None = None
+    prev_close: float | None = None
+    market_time: str | None = None
+    tape_time: str | None = None
+    spot_source: str | None = None
     day_change: float | None = None
     day_change_pct: float | None = None
     data_date: str | None = None
@@ -300,6 +304,7 @@ class GexResponse(BaseModel):
     _coerce_floats = field_validator(
         "spot",
         "close",
+        "prev_close",
         "day_change",
         "day_change_pct",
         "net_gex",

@@ -226,6 +226,31 @@ def fetch_greek_exposure_history(
     )
 
 
+def fetch_stock_state(
+    client: UwClient,
+    repo: Repository,
+    run_id: int,
+    ticker: str,
+) -> dict:
+    """Fetch /api/stock/{ticker}/stock-state — last trade snapshot.
+
+    Returns the body envelope; ``body["data"]`` carries
+    ``close, prev_close, open, high, low, volume, total_volume, market_time, tape_time``.
+
+    Works uniformly for indices (SPX) and ETFs (SPY/QQQ/IWM). For SPX,
+    ``volume`` and ``total_volume`` are 0 by design (indices don't trade), and
+    ``market_time`` stays "regular" past 16:00 ET because SPX has no postmarket
+    — use ``tape_time`` to judge freshness, not ``market_time``.
+    """
+    return _fetch_json(
+        client,
+        repo,
+        run_id,
+        EndpointSlug.STOCK_STATE,
+        ticker,
+    )
+
+
 def fetch_spot_exposures(
     client: UwClient,
     repo: Repository,

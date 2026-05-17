@@ -7,8 +7,10 @@ Differences from xenon:
 - No CLI; no HTML rendering.
 - This repo's UW pattern threads ``run_id`` from ``repo.insert_scan_run(...)``
   through every fetcher for audit trail.
-- Spot source: only iv_rank ``close`` (UW ``/stock/{ticker}/info`` not wired;
-  Yahoo banned). ``compute_days_above_flip`` set to 0 in v1 (no history reader).
+- Spot source: ``/stock/{ticker}/stock-state`` (intraday) with iv_rank.close as
+  EOD fallback (xenon uses /stock-state; ``/info`` returns only metadata, no
+  price). Yahoo banned. ``compute_days_above_flip`` set to 0 in v1 (no history
+  reader).
 """
 
 from __future__ import annotations
@@ -347,10 +349,11 @@ def fetch_iv_rank(iv_rank_rows: list[dict[str, Any]]) -> float | None:
 
 
 def fetch_spot_price(iv_rank_rows: list[dict[str, Any]]) -> float | None:
-    """Spot from latest iv_rank row's ``close`` field.
+    """EOD fallback spot from latest iv_rank row's ``close`` field.
 
-    xenon's primary source (UW /stock/{ticker}/info) is not wired in this repo.
-    Yahoo fallback is banned. iv_rank.close is the surviving path.
+    ``stock-state`` (intraday) is the primary spot source; this lags by hours
+    because iv_rank updates once per day at ~22:35 UTC. Kept as graceful
+    fallback when ``stock-state`` errors. Yahoo banned project-wide.
     """
     row = _latest_iv_rank_row(iv_rank_rows)
     if row is None:
@@ -359,6 +362,37 @@ def fetch_spot_price(iv_rank_rows: list[dict[str, Any]]) -> float | None:
     try:
         return float(p) if p is not None else None
     except (TypeError, ValueError):
+        return None
+
+
+def fetch_stock_state_snapshot(
+    client: UwClient, repo: Repository, run_id: int, ticker: str
+) -> dict[str, Any] | None:
+    """Live spot snapshot from /stock-state. Returns None on any failure.
+
+    Normalized keys: ``spot, prev_close, market_time, tape_time, source``.
+    ``source`` is always ``"stock_state"`` when this returns a dict — callers
+    use it to distinguish from the iv_rank fallback in the payload.
+    """
+    try:
+        body = uw_source.fetch_stock_state(client, repo, run_id, ticker)
+        data = body.get("data") if isinstance(body, dict) else None
+        if not isinstance(data, dict):
+            return None
+        close = data.get("close")
+        if close is None:
+            return None
+        return {
+            "spot": float(close),
+            "prev_close": float(data["prev_close"])
+            if data.get("prev_close") is not None
+            else None,
+            "market_time": data.get("market_time"),
+            "tape_time": data.get("tape_time"),
+            "source": "stock_state",
+        }
+    except Exception as exc:
+        log.warning("stock_state_fetch_failed ticker=%s err=%s", ticker, repr(exc))
         return None
 
 
@@ -401,7 +435,19 @@ def run(client: UwClient, repo: Repository, ticker: str = "SPX") -> int:
 
     try:
         iv_rows = fetch_iv_rank_rows(client, repo, run_id, ticker)
-        spot = fetch_spot_price(iv_rows)
+        snapshot = fetch_stock_state_snapshot(client, repo, run_id, ticker)
+        if snapshot is not None:
+            spot = snapshot["spot"]
+            prev_close = snapshot["prev_close"]
+            market_time = snapshot["market_time"]
+            tape_time = snapshot["tape_time"]
+            spot_source = snapshot["source"]
+        else:
+            spot = fetch_spot_price(iv_rows)
+            prev_close = None
+            market_time = None
+            tape_time = None
+            spot_source = "iv_rank_eod" if spot is not None else None
         if spot is None:
             log.warning("gex_scan_aborted_no_spot ticker=%s run_id=%d", ticker, run_id)
             repo.finish_scan_run(run_id, status="error")
@@ -443,13 +489,23 @@ def run(client: UwClient, repo: Repository, ticker: str = "SPX") -> int:
             levels = dict(levels)
             levels["gex_flip"] = None
 
+        day_change = round(spot - prev_close, 4) if prev_close is not None else None
+        day_change_pct = (
+            round((spot - prev_close) / prev_close * 100, 4)
+            if prev_close is not None and prev_close != 0
+            else None
+        )
         payload: dict[str, Any] = {
             "scan_time": datetime.now(timezone.utc).isoformat(),
             "ticker": ticker,
             "spot": spot,
             "close": spot,
-            "day_change": None,
-            "day_change_pct": None,
+            "prev_close": prev_close,
+            "market_time": market_time,
+            "tape_time": tape_time,
+            "spot_source": spot_source,
+            "day_change": day_change,
+            "day_change_pct": day_change_pct,
             "data_date": datetime.now(timezone.utc).date().isoformat(),
             "net_gex": net_gex,
             "net_dex": net_dex,

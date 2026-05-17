@@ -34,6 +34,7 @@ class EndpointSlug(StrEnum):
     BULK_SCREENER_STOCKS = "bulk_screener_stocks"
     ETF_INFO = "etf_info"
     OPTIONS_VOLUME_DAILY = "options_volume_daily"
+    STOCK_STATE = "stock_state"
 
 
 @dataclass(frozen=True)
@@ -122,6 +123,11 @@ REGISTRY: dict[EndpointSlug, Endpoint] = {
     EndpointSlug.OPTIONS_VOLUME_DAILY: Endpoint(
         EndpointSlug.OPTIONS_VOLUME_DAILY,
         "/api/stock/{ticker}/options-volume",
+        (),
+    ),
+    EndpointSlug.STOCK_STATE: Endpoint(
+        EndpointSlug.STOCK_STATE,
+        "/api/stock/{ticker}/stock-state",
         (),
     ),
 }

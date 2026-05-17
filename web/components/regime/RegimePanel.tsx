@@ -8,9 +8,9 @@ import PendingSubTab from "./PendingSubTab";
 type RegimeTab = "cri" | "vcg" | "gex";
 
 const TABS: { id: RegimeTab; label: string }[] = [
+  { id: "gex", label: "GEX" },
   { id: "cri", label: "CRI" },
   { id: "vcg", label: "VCG" },
-  { id: "gex", label: "GEX" },
 ];
 
 const CRI_DESC =
