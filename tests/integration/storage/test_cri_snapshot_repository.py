@@ -1,4 +1,3 @@
-from datetime import date, datetime, timezone
 
 import pytest
 from uw_scan.storage.cri_snapshot_repository import CriSnapshotRepository
