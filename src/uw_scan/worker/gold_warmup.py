@@ -44,9 +44,10 @@ def main() -> int:
     logger.info("gold_warmup: starting (db=%s)", settings.db_name)
 
     # Warmup pulls 5y of FRED/GPR history so correlations (60/126/252/504D)
-    # have enough overlap with GLD_CLOSE. Routine daily jobs stick with the
-    # 45-day default to keep ingest cheap.
+    # have enough overlap with GLD_CLOSE. WGC ETF workbooks preserve history
+    # back to 2003, so warmup uses a deeper holdings window than daily refresh.
     LONG_LOOKBACK_DAYS = 1825
+    ETF_HOLDINGS_FULL_HISTORY_DAYS = 365 * 30
 
     steps: list[tuple[str, Callable[[], None]]] = [
         (
@@ -91,6 +92,7 @@ def main() -> int:
                 ),
                 wgc_workbook_path=settings.wgc_etf_flows_workbook_path or None,
                 lookback_days=45,
+                holdings_lookback_days=ETF_HOLDINGS_FULL_HISTORY_DAYS,
             ),
         ),
         ("COMEX vault daily", lambda: gold_comex_vault_ingest_job(dsn=dsn)),

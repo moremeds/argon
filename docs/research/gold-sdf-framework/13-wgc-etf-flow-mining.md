@@ -230,3 +230,10 @@ be treated as interchangeable.
    lens input, not as trade sizing.
 4. Compare GLD daily flow to WGC monthly global demand to calibrate when GLD is
    a good proxy and when it is misleading.
+5. Explore ETF flow further as its own Lens 1 research thread:
+   - identify whether flow breadth, regional rotation, or concentration changes
+     add signal beyond headline global demand
+   - test whether Asian ETF accumulation behaves differently from North American
+     and European ETF flow in the post-2022 sample
+   - define which ETF-flow metrics should become persisted cockpit fields versus
+     research-only diagnostics
