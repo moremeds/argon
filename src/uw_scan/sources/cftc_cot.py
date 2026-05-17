@@ -26,7 +26,16 @@ from uw_scan.storage.repository import redact_params, status_family_for
 logger = logging.getLogger(__name__)
 
 CFTC_GOLD_DISAGG_URL = (
-    # Placeholder — replace with the disaggregated gold endpoint at install time.
+    # DEFERRED 2026-05-17: this placeholder still points at the FINANCIAL
+    # futures report (FinFutWk.txt) which does NOT contain gold positions —
+    # gold lives under "Disaggregated Commitments of Traders, Futures-Only"
+    # for commodities. The right wiring is either:
+    #   (1) download the year-zip from
+    #       www.cftc.gov/sites/default/files/files/dea/history/com_disagg_xls_<YYYY>.zip
+    #       and filter market_name == "GOLD" with disaggregated column names, OR
+    #   (2) use Socrata API at publicreporting.cftc.gov for the same dataset.
+    # Until then the parse loop yields 0 rows (column names don't match) and
+    # cot_gold_weekly stays empty — flagged for follow-up.
     "https://www.cftc.gov/dea/newcot/FinFutWk.txt"
 )
 

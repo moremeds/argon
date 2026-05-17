@@ -97,24 +97,13 @@ def test_gold_lbma_vault_ingest_writes_inventory(fresh_db: Settings) -> None:
     assert rows[0]["vault_oz"] == Decimal("274086000")
 
 
-def test_gold_wgc_cb_ingest_writes_reserves(fresh_db: Settings) -> None:
-    sample = [
-        CbReserveRow(
-            country_iso3="CHN",
-            obs_month=date(2026, 4, 1),
-            reserves_t=Decimal("2235.0"),
-            bucket="strategic_accumulator",
-            is_reported=True,
-            is_estimated=False,
-        )
-    ]
-    with patch("uw_scan.worker.jobs.gold_jobs.WgcCbProvider") as MockProvider:
-        MockProvider.return_value.__enter__.return_value.fetch_monthly.return_value = (
-            sample
-        )
-        gold_wgc_cb_ingest_job(dsn=fresh_db.db_dsn())
+def test_gold_wgc_cb_ingest_is_noop_deferred(fresh_db: Settings) -> None:
+    # WGC retired the anonymous CSV endpoint on 2026-05-17; the job is now a
+    # documented no-op until an authenticated download is wired. The test
+    # asserts the contract: no DB writes, no exceptions, no DB connection.
+    gold_wgc_cb_ingest_job(dsn=fresh_db.db_dsn())
 
     with psycopg.connect(fresh_db.db_dsn()) as conn:
         repo = Repository(conn, schema=fresh_db.db_schema)
         rows = repo.fetch_cb_gold_reserves_monthly(bucket="strategic_accumulator")
-    assert any(r["country_iso3"] == "CHN" for r in rows)
+    assert rows == []

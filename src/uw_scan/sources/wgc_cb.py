@@ -1,7 +1,17 @@
 """World Gold Council monthly central-bank gold reserves.
 
-Source: gold.org/goldhub/data/monthly-central-bank-statistics
-CSV columns observed: Country, Month, Tonnes, Reported, Estimated.
+DEFERRED 2026-05-17: WGC retired the anonymous CSV endpoint
+(gold.org/goldhub/data/monthly-central-bank-statistics.csv → 404). All
+downloads now sit behind a Goldhub login (verified 2026-05-17). The provider
+is kept as-is so re-wiring to an authenticated download / IMF IFS fallback
+is a one-source change rather than a structural refactor.
+
+When picking it up: the structural lens's CB tiles
+(cb_strategic_12m_sum_t / cb_tactical_12m_sum_t / cb_diversifier_12m_sum_t)
+stay null until this lands, and `cb_gold_reserves_monthly` stays empty.
+
+Source (deferred): gold.org/goldhub/data/gold-reserves-by-country
+CSV columns observed pre-retirement: Country, Month, Tonnes, Reported, Estimated.
 ISO3 mapping in COUNTRY_ISO3 — extend as new countries appear.
 """
 
