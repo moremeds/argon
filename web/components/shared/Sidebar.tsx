@@ -1,13 +1,14 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Radar, ScanLine } from "lucide-react";
+import { Coins, LayoutDashboard, Radar, ScanLine } from "lucide-react";
 import { HealthPanel } from "./HealthPanel";
 
 const NAV = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
   { href: "/scanner", label: "Scanner", icon: ScanLine },
   { href: "/cockpit/SPY", label: "Cockpit", icon: Radar },
+  { href: "/gold", label: "Gold", icon: Coins },
 ];
 
 export function Sidebar() {
