@@ -88,6 +88,16 @@ def _seed_minimum(repo: Repository, today: date) -> None:
         "FRED",
         None,
     )
+    repo.insert_etf_holdings_daily(
+        ticker="GLD",
+        obs_date=today,
+        holdings_oz=Decimal("32150746.6"),
+        shares_out=None,
+        nav_per_share=Decimal("420.50"),
+        premium_pct=Decimal("0.01"),
+        as_of=datetime.now(UTC),
+        source="SPDR",
+    )
 
 
 def test_orchestrator_writes_posture_row(repo: Repository) -> None:
@@ -112,6 +122,8 @@ def test_orchestrator_writes_posture_row(repo: Repository) -> None:
         "SUSPENDED",
         "DEGRADED",
     }
+    assert row["gld_history_jsonb"][-1]["obs_date"] == today.isoformat()
+    assert Decimal(row["gld_history_jsonb"][-1]["value"]) == Decimal("1000")
 
 
 def test_orchestrator_idempotent_same_inputs(repo: Repository) -> None:

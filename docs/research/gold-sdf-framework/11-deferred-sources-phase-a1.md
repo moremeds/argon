@@ -30,6 +30,12 @@
 
 ## D2 — ETF holdings (GLD / IAU / GLDM / PHYS)
 
+**2026-05-17 partial re-wire:** UW `/api/etfs/{ticker}/in-outflow` is accessible for GLD/IAU/GLDM under the current entitlement window (~30 trading days) and can populate `gld_30d_net_flow_t`. UW `/api/etfs/GLD/holdings` returns `data: []` and `GLD/info` reports `holdings_count: 0`, so it does **not** provide absolute bullion ounces/tonnes.
+
+**2026-05-17 GLD holdings re-wire:** SPDR's current archive endpoint is `https://api.spdrgoldshares.com/api/v1/historical-archive?product=gld&exchange=NYSE&lang=en`. It returns `US_GLD_Archive_EN.xlsx` with daily `Total Ounces of Gold in the Trust`, `Tonnes of Gold`, NAV/share, premium/discount, and GLD close back to inception. This now populates `gld_holdings_t` and the Lens 1 holdings-vs-price chart on warmup/daily scheduled ingest.
+
+**2026-05-17 WGC Goldhub monthly re-wire:** The WGC ETF-flows page (`https://www.gold.org/goldhub/research/etf-flows`) exposes monthly `ETF_Flows_*.xlsx` downloads. Anonymous `curl` returns 403, but an authenticated Goldhub browser session can download the workbook. The workbook's monthly sheets contain ETF holdings, demand, and fund flows back to 2003. The code path now supports either `WGC_GOLDHUB_COOKIE` for scheduled authenticated downloads or `WGC_ETF_FLOWS_WORKBOOK_PATH` for a local exported workbook/directory. Local authenticated scrape loaded 78 workbooks into `wgc_etf_monthly`: 1,338,260 rows, 234 tickers, 2003-03-31 through 2026-03-31. See [12-wgc-etf-flow-corpus.md](./12-wgc-etf-flow-corpus.md). This is a monthly safety net for non-GLD absolute holdings, not a replacement for SPDR's daily GLD archive.
+
 **Designed for:** Lens 1 structural — `gld_holdings_t`, `gld_30d_net_flow_t`, plus the dual-axis Lens 1 chart showing oz-held vs price.
 
 **Designed source:** Each fund manager's published holdings page (anonymous JSON / CSV).
@@ -45,14 +51,15 @@
 
 **Re-wire options:**
 
-1. **Per-manager re-discovery** — each issuer has a current download path under a refreshed CMS. SPDR's current path is HTML-scraped (their JSON moved). Lowest signal-to-effort because each one is brittle.
-2. **ETF.com / ETFDB scraping** — third-party aggregators publish daily holdings tables. Adds a dependency on a third party who can also rotate URLs.
-3. **Bloomberg / Refinitiv** — paid feed, deterministic. Not justified for one factor.
-4. **SEC N-PORT filings** — every '40-Act ETF files holdings monthly via N-PORT. The XML is parseable and the schedule is fixed. Lower granularity (monthly not daily) but the most durable.
+1. **SPDR historical archive API for GLD** — current path is `api.spdrgoldshares.com/api/v1/historical-archive?product=gld&exchange=NYSE&lang=en`; daily XLSX archive, suitable for startup backfill and once-daily refresh. Landed for GLD on 2026-05-17.
+2. **WGC Goldhub ETF-flows workbook** — authenticated monthly XLSX with GLD/IAU/GLDM/PHYS holdings in tonnes and fund-flow panels. Landed as an authenticated/export-backed parser on 2026-05-17.
+3. **ETF.com / ETFDB scraping** — third-party aggregators publish daily holdings tables. Adds a dependency on a third party who can also rotate URLs.
+4. **Bloomberg / Refinitiv** — paid feed, deterministic. Not justified for one factor.
+5. **SEC N-PORT filings** — every '40-Act ETF files holdings monthly via N-PORT. The XML is parseable and the schedule is fixed. Lower granularity (monthly not daily) but the most durable.
 
 **Signal value:** **Medium-high.** ETF flows are the easiest-to-observe component of the structural posture. 30d net flow is one of the inputs the dashboard surfaces most prominently; the v1 Lens 1 dual-axis chart is half-functional without GLD holdings.
 
-**Recommended for v2:** SPDR scrape for GLD (highest AUM, highest signal) + SEC N-PORT for the rest as a monthly safety net. Per-manager re-discovery for IAU/PHYS/GLDM only if signal calibration shows they materially improve the structural composite.
+**Recommended for v2:** Keep SPDR archive as canonical GLD absolute-holdings source. Use WGC Goldhub monthly files for IAU/PHYS/GLDM while authenticated access is available; keep SEC N-PORT as the open-data fallback if Goldhub session ops become brittle.
 
 ---
 

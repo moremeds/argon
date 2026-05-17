@@ -423,7 +423,16 @@ def main() -> int:
         gold_gpr_ingest_job(dsn=settings.db_dsn())
 
     def _gold_etf_holdings_ingest() -> None:
-        gold_etf_holdings_ingest_job(dsn=settings.db_dsn())
+        gold_etf_holdings_ingest_job(
+            dsn=settings.db_dsn(),
+            uw_api_key=settings.api_key.get_secret_value(),
+            wgc_goldhub_cookie=(
+                settings.wgc_goldhub_cookie.get_secret_value()
+                if settings.wgc_goldhub_cookie is not None
+                else None
+            ),
+            wgc_workbook_path=settings.wgc_etf_flows_workbook_path or None,
+        )
 
     def _gold_comex_vault_ingest() -> None:
         gold_comex_vault_ingest_job(dsn=settings.db_dsn())

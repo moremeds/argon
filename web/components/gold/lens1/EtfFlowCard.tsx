@@ -16,6 +16,9 @@ function fmt(v: string | number | null | undefined, digits = 1): string {
 
 export function EtfFlowCard({ structural }: { structural: S }) {
   const flow = Number(structural.gld_30d_net_flow_t);
+  const holdings = Number(structural.gld_holdings_t);
+  const hasReportedHoldings =
+    structural.gld_holdings_t != null && Number.isFinite(holdings);
   const tone =
     !Number.isFinite(flow) || flow === 0
       ? "default"
@@ -23,12 +26,15 @@ export function EtfFlowCard({ structural }: { structural: S }) {
         ? "positive"
         : "negative";
   const sign = Number.isFinite(flow) && flow > 0 ? "+" : "";
+  const sub = hasReportedHoldings
+    ? `GLD ${fmt(structural.gld_holdings_t)} tonnes held · reported holdings`
+    : "holdings unavailable · flow converted from UW GLD share flow";
   return (
     <Tile
       label="GLD FLOW · 30D NET"
       tone={tone}
-      value={`${sign}${fmt(structural.gld_30d_net_flow_t)} T`}
-      sub={`GLD ${fmt(structural.gld_holdings_t)} T held`}
+      value={`${sign}${fmt(structural.gld_30d_net_flow_t)} tonnes`}
+      sub={sub}
     />
   );
 }

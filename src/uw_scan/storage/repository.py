@@ -39,6 +39,7 @@ from .flow import (
     _flow_footprint_label,  # noqa: F401
     _FlowMixin,
 )
+from .gold_etf import _GoldEtfMixin
 from .health import _HealthMixin
 from .jobs import _JobsMixin
 from .market_data import _MarketDataMixin
@@ -290,6 +291,7 @@ logger = logging.getLogger(__name__)
 class Repository(
     _AuditMixin,
     _FlowMixin,
+    _GoldEtfMixin,
     _HealthMixin,
     _JobsMixin,
     _MarketDataMixin,

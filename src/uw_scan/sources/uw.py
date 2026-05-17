@@ -16,6 +16,7 @@ from ..api.endpoints import EndpointSlug, build_path
 from ..models import (
     BulkScreenerRow,
     DarkPoolPrint,
+    EtfInOutflowRow,
     EtfInfo,
     FlowAlert,
     GreekExposureRow,
@@ -439,3 +440,23 @@ def fetch_etf_info(
 ) -> EtfInfo:
     body = _fetch_json(client, repo, run_id, EndpointSlug.ETF_INFO, ticker)
     return normalize.normalize_etf_info(body)
+
+
+def fetch_etf_in_outflow(
+    client: UwClient,
+    repo: Repository,
+    run_id: int,
+    ticker: str,
+    *,
+    start_date: str,
+    end_date: str,
+) -> list[EtfInOutflowRow]:
+    body = _fetch_json(
+        client,
+        repo,
+        run_id,
+        EndpointSlug.ETF_IN_OUTFLOW,
+        ticker,
+        params={"start_date": start_date, "end_date": end_date},
+    )
+    return normalize.normalize_etf_in_outflow(body, ticker=ticker)

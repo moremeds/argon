@@ -117,6 +117,35 @@ describe("GoldCompassLayout", () => {
     expect(screen.getByText(/GOLD COMPASS/)).toBeTruthy();
   });
 
+  it("labels GLD ETF flow units and source clearly", () => {
+    render(<GoldCompassLayout state={FIXTURE} />);
+    expect(screen.getByText("-12.4 tonnes")).toBeTruthy();
+    expect(screen.getByText(/872.5 tonnes held/)).toBeTruthy();
+    expect(screen.getByText(/reported holdings/)).toBeTruthy();
+  });
+
+  it("spells out central-bank reserve units", () => {
+    render(<GoldCompassLayout state={FIXTURE} />);
+    expect(screen.getAllByText(/210 tonnes/).length).toBeGreaterThan(0);
+    expect(screen.getByText(/TACTICAL 12 tonnes/)).toBeTruthy();
+    expect(screen.getByText(/DIVERSIFIER 34 tonnes/)).toBeTruthy();
+  });
+
+  it("labels converted UW flow clearly when holdings are unavailable", () => {
+    const state: State = {
+      ...FIXTURE,
+      structural: {
+        ...FIXTURE.structural,
+        gld_holdings_t: null,
+        gld_30d_net_flow_t: "-11.0038",
+      },
+    };
+    render(<GoldCompassLayout state={state} />);
+    expect(screen.getByText("-11.0 tonnes")).toBeTruthy();
+    expect(screen.getByText(/converted from UW GLD share flow/)).toBeTruthy();
+    expect(screen.getByText(/holdings unavailable/)).toBeTruthy();
+  });
+
   it("uses posture language only (no buy/sell/long/short)", () => {
     const { container } = render(<GoldCompassLayout state={FIXTURE} />);
     const text = (container.textContent ?? "").toLowerCase();

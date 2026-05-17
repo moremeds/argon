@@ -33,6 +33,7 @@ class EndpointSlug(StrEnum):
     SHORT_DATA = "short_data"
     BULK_SCREENER_STOCKS = "bulk_screener_stocks"
     ETF_INFO = "etf_info"
+    ETF_IN_OUTFLOW = "etf_in_outflow"
     OPTIONS_VOLUME_DAILY = "options_volume_daily"
     STOCK_STATE = "stock_state"
 
@@ -119,6 +120,9 @@ REGISTRY: dict[EndpointSlug, Endpoint] = {
     ),
     EndpointSlug.ETF_INFO: Endpoint(
         EndpointSlug.ETF_INFO, "/api/etfs/{ticker}/info", ()
+    ),
+    EndpointSlug.ETF_IN_OUTFLOW: Endpoint(
+        EndpointSlug.ETF_IN_OUTFLOW, "/api/etfs/{ticker}/in-outflow", ()
     ),
     EndpointSlug.OPTIONS_VOLUME_DAILY: Endpoint(
         EndpointSlug.OPTIONS_VOLUME_DAILY,
