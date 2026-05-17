@@ -1,4 +1,4 @@
-"""/regime — GEX + CRI live, VCG still pending."""
+"""/regime — GEX, CRI, and VCG (all live)."""
 
 from __future__ import annotations
 
@@ -13,19 +13,23 @@ from uw_scan.api.deps import get_repo, get_settings
 from uw_scan.api.schemas import (
     EMPTY_CRI_RESPONSE,
     EMPTY_GEX_RESPONSE,
+    EMPTY_VCG_RESPONSE,
     CriResponse,
     CriScanResponse,
     GexHistoryEntry,
     GexResponse,
-    RegimePendingResponse,
+    VcgResponse,
+    VcgScanResponse,
     VolBackdropResponse,
 )
 from uw_scan.config import Settings
 from uw_scan.scanners import cri as cri_scanner
 from uw_scan.scanners import gex as gex_scanner
+from uw_scan.scanners import vcg as vcg_scanner
 from uw_scan.storage.cri_snapshot_repository import CriSnapshotRepository
 from uw_scan.storage.greek_exposure_repository import GreekExposureDailyRepository
 from uw_scan.storage.repository import Repository
+from uw_scan.storage.vcg_snapshot_repository import VcgSnapshotRepository
 from uw_scan.storage.vol_index_repository import VolIndexRepository
 
 router = APIRouter(prefix="/regime")
@@ -180,14 +184,31 @@ def trigger_cri_scan(
     return CriScanResponse(status="ok", row_id=row_id)
 
 
-# ─── VCG (pending) ───────────────────────────────────────────────
+# ─── VCG (live) ──────────────────────────────────────────────────
 
 
-@router.get("/vcg", response_model=RegimePendingResponse)
-def get_vcg() -> RegimePendingResponse:
-    return RegimePendingResponse(scanner="vcg")
+@router.get("/vcg", response_model=VcgResponse)
+def get_vcg(
+    repo: Annotated[Repository, Depends(get_repo)],
+    proxy: str = Query("HYG"),
+) -> VcgResponse:
+    snap_repo = VcgSnapshotRepository(repo.conn, schema=repo._schema)
+    latest = snap_repo.fetch_latest(proxy=proxy.upper())
+    if latest is None:
+        empty = EMPTY_VCG_RESPONSE.model_copy(deep=True)
+        empty.credit_proxy = proxy.upper()
+        return empty
+    return VcgResponse.model_validate({"status": "ok", **latest})
 
 
-@router.post("/vcg/scan", status_code=202, response_model=RegimePendingResponse)
-def trigger_vcg_scan() -> RegimePendingResponse:
-    return RegimePendingResponse(scanner="vcg")
+@router.post("/vcg/scan", status_code=202, response_model=VcgScanResponse)
+def trigger_vcg_scan(
+    repo: Annotated[Repository, Depends(get_repo)],
+    proxy: str = Query("HYG"),
+) -> VcgScanResponse:
+    """Run a VCG scan synchronously off the warm store; persist a snapshot."""
+    proxy_upper = proxy.upper()
+    row_id = vcg_scanner.run(repo.conn, proxy=proxy_upper, schema=repo._schema)
+    if row_id is None:
+        return VcgScanResponse(status="skipped", proxy=proxy_upper, reason="thin_data")
+    return VcgScanResponse(status="ok", proxy=proxy_upper, row_id=row_id)

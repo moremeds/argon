@@ -1,4 +1,4 @@
-from uw_scan.api.schemas import EMPTY_GEX_RESPONSE, GexResponse, RegimePendingResponse
+from uw_scan.api.schemas import EMPTY_GEX_RESPONSE, GexResponse
 
 
 def test_empty_gex_response_uses_profile_not_buckets():
@@ -52,14 +52,6 @@ def test_gex_response_round_trip_with_full_xenon_shape():
     assert parsed.spot == 5800.12
     assert parsed.bias.direction == "BEAR"
     assert parsed.profile[0].strike == 5750
-
-
-def test_regime_pending_response_shape():
-    # VCG is the only remaining pending scanner; CRI is live as of 040.
-    payload = RegimePendingResponse(scanner="vcg").model_dump()
-    assert payload["status"] == "pending"
-    assert payload["scanner"] == "vcg"
-    assert payload["reason"] == "ib_via_r2_not_wired"
 
 
 def test_gex_response_coerces_string_numerics():

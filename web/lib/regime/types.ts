@@ -13,6 +13,3 @@ export type MqLevels = components["schemas"]["GexMqLevels"];
 export type SourceDelta = components["schemas"]["GexSourceDelta"];
 export type SourceDeltaEntry = components["schemas"]["GexSourceDeltaEntry"];
 export type IvData = components["schemas"]["GexIvData"];
-
-export type RegimePendingResponse =
-  components["schemas"]["RegimePendingResponse"];

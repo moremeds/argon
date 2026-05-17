@@ -2,6 +2,7 @@ from fastapi.testclient import TestClient
 
 from uw_scan.storage.cri_snapshot_repository import CriSnapshotRepository
 from uw_scan.storage.repository import Repository
+from uw_scan.storage.vcg_snapshot_repository import VcgSnapshotRepository
 
 
 def test_get_gex_returns_empty_shape_when_no_data(
@@ -104,11 +105,120 @@ def test_get_cri_returns_payload_when_snapshot_exists(
     assert body["crash_trigger"]["conditions"]["spx_below_100d_ma"] is True
 
 
-def test_get_vcg_returns_pending_sentinel(client: TestClient) -> None:
+def test_get_vcg_returns_empty_when_no_snapshot(
+    client: TestClient, monkeypatch
+) -> None:
+    monkeypatch.setattr(
+        VcgSnapshotRepository, "fetch_latest", lambda self, *, proxy=None: None
+    )
     r = client.get("/api/regime/vcg")
+    assert r.status_code == 200
     body = r.json()
-    assert body["status"] == "pending"
+    assert body["status"] == "empty"
+    assert body["credit_proxy"] == "HYG"
+    assert body["history"] == []
+    assert body["signal"]["interpretation"] == "NORMAL"
+
+
+def test_get_vcg_uppercases_proxy_param(client: TestClient, monkeypatch) -> None:
+    seen = {}
+
+    def stub(self, *, proxy=None):
+        seen["proxy"] = proxy
+        return None
+
+    monkeypatch.setattr(VcgSnapshotRepository, "fetch_latest", stub)
+    client.get("/api/regime/vcg?proxy=jnk")
+    assert seen["proxy"] == "JNK"
+
+
+def test_get_vcg_returns_payload_when_snapshot_exists(
+    client: TestClient, monkeypatch
+) -> None:
+    def stub(self, *, proxy=None):
+        return {
+            "date": "2026-05-15",
+            "credit_proxy": "HYG",
+            "scan_time": "2026-05-15T20:30:00+00:00",
+            "signal": {
+                "vcg": 2.85,
+                "vcg_adj": 2.85,
+                "residual": -0.0012,
+                "beta1_vvix": -0.05,
+                "beta2_vix": -0.03,
+                "alpha": 0.0001,
+                "vix": 30.2,
+                "vvix": 125.0,
+                "credit_price": 78.4,
+                "credit_5d_return_pct": -1.2,
+                "ro": 1,
+                "edr": 1,
+                "tier": 1,
+                "bounce": 0,
+                "vvix_severity": "extreme",
+                "sign_ok": True,
+                "sign_suppressed": False,
+                "pi_panic": 0.0,
+                "regime": "DIVERGENCE",
+                "interpretation": "RISK_OFF",
+                "attribution": {
+                    "vvix_pct": 60.0,
+                    "vix_pct": 40.0,
+                    "vvix_component": -0.001,
+                    "vix_component": -0.0006,
+                    "model_implied": -0.00159,
+                },
+            },
+            "history": [],
+        }
+
+    monkeypatch.setattr(VcgSnapshotRepository, "fetch_latest", stub)
+    r = client.get("/api/regime/vcg")
+    assert r.status_code == 200
+    body = r.json()
+    assert body["status"] == "ok"
+    assert body["credit_proxy"] == "HYG"
+    assert body["signal"]["vcg"] == 2.85
+    assert body["signal"]["interpretation"] == "RISK_OFF"
+    assert body["signal"]["tier"] == 1
+    assert body["signal"]["attribution"]["vvix_pct"] == 60.0
+
+
+def test_post_vcg_scan_runs_scanner(client: TestClient, monkeypatch) -> None:
+    calls = []
+
+    def _stub_run(conn_arg, *, proxy="HYG", schema="uw_scan"):
+        calls.append(
+            ("conn_passed" if conn_arg is not None else "no_conn", proxy, schema)
+        )
+        return 77
+
+    monkeypatch.setattr("uw_scan.scanners.vcg.run", _stub_run)
+    r = client.post("/api/regime/vcg/scan?proxy=jnk")
+    assert r.status_code == 202
+    body = r.json()
+    assert body["status"] == "ok"
     assert body["scanner"] == "vcg"
+    assert body["proxy"] == "JNK"
+    assert body["row_id"] == 77
+    assert calls[0][0] == "conn_passed"
+    assert calls[0][1] == "JNK"
+
+
+def test_post_vcg_scan_returns_skipped_on_thin_data(
+    client: TestClient, monkeypatch
+) -> None:
+    monkeypatch.setattr(
+        "uw_scan.scanners.vcg.run",
+        lambda conn, *, proxy="HYG", schema="uw_scan": None,
+    )
+    r = client.post("/api/regime/vcg/scan")
+    assert r.status_code == 202
+    body = r.json()
+    assert body["status"] == "skipped"
+    assert body["reason"] == "thin_data"
+    assert body["proxy"] == "HYG"
+    assert body["row_id"] is None
 
 
 def test_post_gex_scan_runs_scanner(client: TestClient, monkeypatch) -> None:

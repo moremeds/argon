@@ -6001,41 +6001,6 @@
         "title": "RecordHealthCheck",
         "type": "object"
       },
-      "RegimePendingResponse": {
-        "description": "Sentinel for CRI/VCG endpoints until IB-via-R2 reader lands.",
-        "properties": {
-          "message": {
-            "default": "Data source pending. CRI/VCG require VIX/VVIX/COR1M from the IB-via-R2 reader (separate project).",
-            "title": "Message",
-            "type": "string"
-          },
-          "reason": {
-            "const": "ib_via_r2_not_wired",
-            "default": "ib_via_r2_not_wired",
-            "title": "Reason",
-            "type": "string"
-          },
-          "scanner": {
-            "enum": [
-              "cri",
-              "vcg"
-            ],
-            "title": "Scanner",
-            "type": "string"
-          },
-          "status": {
-            "const": "pending",
-            "default": "pending",
-            "title": "Status",
-            "type": "string"
-          }
-        },
-        "required": [
-          "scanner"
-        ],
-        "title": "RegimePendingResponse",
-        "type": "object"
-      },
       "RegimeQuadrantBlock": {
         "properties": {
           "cutoff_corr": {
@@ -8344,6 +8309,413 @@
         "title": "ValidationError",
         "type": "object"
       },
+      "VcgAttribution": {
+        "properties": {
+          "model_implied": {
+            "default": 0.0,
+            "title": "Model Implied",
+            "type": "number"
+          },
+          "vix_component": {
+            "default": 0.0,
+            "title": "Vix Component",
+            "type": "number"
+          },
+          "vix_pct": {
+            "default": 0.0,
+            "title": "Vix Pct",
+            "type": "number"
+          },
+          "vvix_component": {
+            "default": 0.0,
+            "title": "Vvix Component",
+            "type": "number"
+          },
+          "vvix_pct": {
+            "default": 0.0,
+            "title": "Vvix Pct",
+            "type": "number"
+          }
+        },
+        "title": "VcgAttribution",
+        "type": "object"
+      },
+      "VcgHistoryEntry": {
+        "properties": {
+          "beta1": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Beta1"
+          },
+          "beta2": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Beta2"
+          },
+          "bounce": {
+            "default": 0,
+            "title": "Bounce",
+            "type": "integer"
+          },
+          "credit": {
+            "default": 0.0,
+            "title": "Credit",
+            "type": "number"
+          },
+          "date": {
+            "title": "Date",
+            "type": "string"
+          },
+          "edr": {
+            "default": 0,
+            "title": "Edr",
+            "type": "integer"
+          },
+          "residual": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Residual"
+          },
+          "ro": {
+            "default": 0,
+            "title": "Ro",
+            "type": "integer"
+          },
+          "tier": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tier"
+          },
+          "vcg": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vcg"
+          },
+          "vcg_adj": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vcg Adj"
+          },
+          "vix": {
+            "default": 0.0,
+            "title": "Vix",
+            "type": "number"
+          },
+          "vvix": {
+            "default": 0.0,
+            "title": "Vvix",
+            "type": "number"
+          }
+        },
+        "required": [
+          "date"
+        ],
+        "title": "VcgHistoryEntry",
+        "type": "object"
+      },
+      "VcgResponse": {
+        "description": "Volatility-Credit Gap snapshot (latest scan).",
+        "properties": {
+          "credit_proxy": {
+            "default": "HYG",
+            "title": "Credit Proxy",
+            "type": "string"
+          },
+          "date": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Date"
+          },
+          "history": {
+            "items": {
+              "$ref": "#/components/schemas/VcgHistoryEntry"
+            },
+            "title": "History",
+            "type": "array"
+          },
+          "scan_time": {
+            "default": "",
+            "title": "Scan Time",
+            "type": "string"
+          },
+          "signal": {
+            "$ref": "#/components/schemas/VcgSignal"
+          },
+          "status": {
+            "default": "empty",
+            "enum": [
+              "ok",
+              "empty"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "title": "VcgResponse",
+        "type": "object"
+      },
+      "VcgScanResponse": {
+        "description": "Response body for POST /api/regime/vcg/scan.",
+        "properties": {
+          "proxy": {
+            "default": "HYG",
+            "title": "Proxy",
+            "type": "string"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          },
+          "row_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Row Id"
+          },
+          "scanner": {
+            "const": "vcg",
+            "default": "vcg",
+            "title": "Scanner",
+            "type": "string"
+          },
+          "status": {
+            "default": "ok",
+            "enum": [
+              "ok",
+              "skipped"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "title": "VcgScanResponse",
+        "type": "object"
+      },
+      "VcgSignal": {
+        "properties": {
+          "alpha": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Alpha"
+          },
+          "attribution": {
+            "$ref": "#/components/schemas/VcgAttribution"
+          },
+          "beta1_vvix": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Beta1 Vvix"
+          },
+          "beta2_vix": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Beta2 Vix"
+          },
+          "bounce": {
+            "default": 0,
+            "title": "Bounce",
+            "type": "integer"
+          },
+          "credit_5d_return_pct": {
+            "default": 0.0,
+            "title": "Credit 5D Return Pct",
+            "type": "number"
+          },
+          "credit_price": {
+            "default": 0.0,
+            "title": "Credit Price",
+            "type": "number"
+          },
+          "edr": {
+            "default": 0,
+            "title": "Edr",
+            "type": "integer"
+          },
+          "interpretation": {
+            "default": "NORMAL",
+            "enum": [
+              "RISK_OFF",
+              "EDR",
+              "WATCH",
+              "BOUNCE",
+              "NORMAL",
+              "SUPPRESSED",
+              "PANIC",
+              "INSUFFICIENT_DATA"
+            ],
+            "title": "Interpretation",
+            "type": "string"
+          },
+          "pi_panic": {
+            "default": 0.0,
+            "title": "Pi Panic",
+            "type": "number"
+          },
+          "regime": {
+            "default": "DIVERGENCE",
+            "enum": [
+              "PANIC",
+              "TRANSITION",
+              "DIVERGENCE"
+            ],
+            "title": "Regime",
+            "type": "string"
+          },
+          "residual": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Residual"
+          },
+          "ro": {
+            "default": 0,
+            "title": "Ro",
+            "type": "integer"
+          },
+          "sign_ok": {
+            "default": true,
+            "title": "Sign Ok",
+            "type": "boolean"
+          },
+          "sign_suppressed": {
+            "default": false,
+            "title": "Sign Suppressed",
+            "type": "boolean"
+          },
+          "tier": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tier"
+          },
+          "vcg": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vcg"
+          },
+          "vcg_adj": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vcg Adj"
+          },
+          "vix": {
+            "default": 0.0,
+            "title": "Vix",
+            "type": "number"
+          },
+          "vvix": {
+            "default": 0.0,
+            "title": "Vvix",
+            "type": "number"
+          },
+          "vvix_severity": {
+            "default": "moderate",
+            "enum": [
+              "extreme",
+              "elevated",
+              "moderate"
+            ],
+            "title": "Vvix Severity",
+            "type": "string"
+          }
+        },
+        "title": "VcgSignal",
+        "type": "object"
+      },
       "VolBackdropPoint": {
         "properties": {
           "close": {
@@ -10224,16 +10596,38 @@
     "/api/regime/vcg": {
       "get": {
         "operationId": "get_vcg_api_regime_vcg_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "proxy",
+            "required": false,
+            "schema": {
+              "default": "HYG",
+              "title": "Proxy",
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/RegimePendingResponse"
+                  "$ref": "#/components/schemas/VcgResponse"
                 }
               }
             },
             "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
           }
         },
         "summary": "Get Vcg",
@@ -10244,17 +10638,40 @@
     },
     "/api/regime/vcg/scan": {
       "post": {
+        "description": "Run a VCG scan synchronously off the warm store; persist a snapshot.",
         "operationId": "trigger_vcg_scan_api_regime_vcg_scan_post",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "proxy",
+            "required": false,
+            "schema": {
+              "default": "HYG",
+              "title": "Proxy",
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "202": {
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/RegimePendingResponse"
+                  "$ref": "#/components/schemas/VcgScanResponse"
                 }
               }
             },
             "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
           }
         },
         "summary": "Trigger Vcg Scan",

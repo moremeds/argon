@@ -318,18 +318,6 @@ class GexResponse(BaseModel):
 EMPTY_GEX_RESPONSE = GexResponse()
 
 
-class RegimePendingResponse(BaseModel):
-    """Sentinel for CRI/VCG endpoints until IB-via-R2 reader lands."""
-
-    status: Literal["pending"] = "pending"
-    scanner: Literal["cri", "vcg"]
-    reason: Literal["ib_via_r2_not_wired"] = "ib_via_r2_not_wired"
-    message: str = (
-        "Data source pending. CRI/VCG require VIX/VVIX/COR1M from the "
-        "IB-via-R2 reader (separate project)."
-    )
-
-
 class VolBackdropPoint(BaseModel):
     date: date
     close: float
@@ -432,5 +420,89 @@ class CriScanResponse(BaseModel):
 
     status: Literal["ok", "skipped"] = "ok"
     scanner: Literal["cri"] = "cri"
+    row_id: int | None = None
+    reason: str | None = None
+
+
+# ─── VCG (Volatility-Credit Gap) ─────────────────────────────────
+
+
+class VcgAttribution(BaseModel):
+    vvix_pct: float = 0.0
+    vix_pct: float = 0.0
+    vvix_component: float = 0.0
+    vix_component: float = 0.0
+    model_implied: float = 0.0
+
+
+class VcgSignal(BaseModel):
+    vcg: float | None = None
+    vcg_adj: float | None = None
+    residual: float | None = None
+    beta1_vvix: float | None = None
+    beta2_vix: float | None = None
+    alpha: float | None = None
+    vix: float = 0.0
+    vvix: float = 0.0
+    credit_price: float = 0.0
+    credit_5d_return_pct: float = 0.0
+    ro: int = 0
+    edr: int = 0
+    tier: int | None = None
+    bounce: int = 0
+    vvix_severity: Literal["extreme", "elevated", "moderate"] = "moderate"
+    sign_ok: bool = True
+    sign_suppressed: bool = False
+    pi_panic: float = 0.0
+    regime: Literal["PANIC", "TRANSITION", "DIVERGENCE"] = "DIVERGENCE"
+    interpretation: Literal[
+        "RISK_OFF",
+        "EDR",
+        "WATCH",
+        "BOUNCE",
+        "NORMAL",
+        "SUPPRESSED",
+        "PANIC",
+        "INSUFFICIENT_DATA",
+    ] = "NORMAL"
+    attribution: VcgAttribution = Field(default_factory=VcgAttribution)
+
+
+class VcgHistoryEntry(BaseModel):
+    date: str
+    residual: float | None = None
+    vcg: float | None = None
+    vcg_adj: float | None = None
+    beta1: float | None = None
+    beta2: float | None = None
+    vix: float = 0.0
+    vvix: float = 0.0
+    credit: float = 0.0
+    ro: int = 0
+    edr: int = 0
+    tier: int | None = None
+    bounce: int = 0
+
+
+class VcgResponse(BaseModel):
+    """Volatility-Credit Gap snapshot (latest scan)."""
+
+    status: Literal["ok", "empty"] = "empty"
+    scan_time: str = ""
+    date: str | None = None
+    credit_proxy: str = "HYG"
+    signal: VcgSignal = Field(default_factory=VcgSignal)
+    history: list[VcgHistoryEntry] = Field(default_factory=list)
+
+
+EMPTY_VCG_RESPONSE = VcgResponse()
+
+
+class VcgScanResponse(BaseModel):
+    """Response body for POST /api/regime/vcg/scan."""
+
+    status: Literal["ok", "skipped"] = "ok"
+    scanner: Literal["vcg"] = "vcg"
+    proxy: str = "HYG"
     row_id: int | None = None
     reason: str | None = None
