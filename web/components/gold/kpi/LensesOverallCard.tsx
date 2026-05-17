@@ -18,15 +18,22 @@ export function LensesOverallCard({ state }: { state: State }) {
         <span
           style={{
             display: "flex",
-            gap: 6,
+            flexWrap: "wrap",
+            gap: "6px 8px",
             alignItems: "center",
-            fontSize: 14,
+            fontSize: 13,
+            lineHeight: 1.2,
           }}
         >
           {chips.map(([id, chip]) => (
             <span
               key={id}
-              style={{ display: "inline-flex", gap: 4, alignItems: "center" }}
+              style={{
+                display: "inline-flex",
+                gap: 4,
+                alignItems: "center",
+                whiteSpace: "nowrap",
+              }}
             >
               <span
                 style={{

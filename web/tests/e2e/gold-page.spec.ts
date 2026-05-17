@@ -14,8 +14,11 @@ test.describe("GOLD COMPASS /gold", () => {
 
     await page.goto("/gold");
 
-    // Wordmark + sub-mark
-    await expect(page.getByText(/GOLD COMPASS/i)).toBeVisible();
+    // Wordmark + sub-mark. The h1 is the final-render anchor (dev mode also
+    // briefly shows "Loading GOLD COMPASS…" so we have to target the heading).
+    await expect(
+      page.getByRole("heading", { name: /GOLD COMPASS/i }),
+    ).toBeVisible();
 
     // The five regions are aria-labelled by GoldCompassLayout. KPI strip is
     // tier 1; lens 1/2/3 follow; decomposition + correlation history is the

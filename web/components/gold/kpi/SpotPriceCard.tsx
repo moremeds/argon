@@ -21,7 +21,7 @@ export function SpotPriceCard({ spot }: { spot: Spot }) {
   const sign = deltaAbs > 0 ? "+" : "";
   return (
     <Tile
-      label="XAU / USD"
+      label="GLD ETF · USD"
       tone={tone}
       value={fmt(spot.last)}
       sub={
