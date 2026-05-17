@@ -7012,3 +7012,77 @@ tr {
     max-width: 100vw;
   }
 }
+
+/* ─── Regime page (ported from xenon 2026-05-16) ─────────────────── */
+
+.regime-page {
+  padding: 24px 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.regime-page-header {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border-dim);
+}
+
+.regime-page-header h1 {
+  font-family: var(--font-mono);
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.regime-page-subtitle {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-muted);
+  letter-spacing: 0.05em;
+  margin: 0;
+}
+
+.regime-pending {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 48px 24px;
+  gap: 12px;
+  color: var(--text-muted);
+  text-align: center;
+  background: var(--bg-panel);
+  border: 1px solid var(--border-dim);
+}
+
+.regime-pending h2 {
+  font-family: var(--font-mono);
+  font-size: 1.25rem;
+  font-weight: 500;
+  color: var(--text-primary);
+  letter-spacing: 0.05em;
+}
+
+.regime-pending p {
+  max-width: 480px;
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+.regime-pending-link {
+  font-size: 0.85rem;
+  opacity: 0.7;
+}
+
+.regime-pending code {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  background: var(--bg-hover);
+  padding: 1px 5px;
+  border-radius: 2px;
+}

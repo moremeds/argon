@@ -1148,6 +1148,505 @@
         "title": "CockpitVrpResponse",
         "type": "object"
       },
+      "CrashTriggerBlock": {
+        "properties": {
+          "conditions": {
+            "$ref": "#/components/schemas/CrashTriggerConditions"
+          },
+          "fired": {
+            "default": false,
+            "title": "Fired",
+            "type": "boolean"
+          },
+          "triggered": {
+            "default": false,
+            "title": "Triggered",
+            "type": "boolean"
+          },
+          "values": {
+            "$ref": "#/components/schemas/CrashTriggerValues"
+          }
+        },
+        "title": "CrashTriggerBlock",
+        "type": "object"
+      },
+      "CrashTriggerConditions": {
+        "properties": {
+          "cor1m_gt_60": {
+            "default": false,
+            "title": "Cor1M Gt 60",
+            "type": "boolean"
+          },
+          "realized_vol_gt_25": {
+            "default": false,
+            "title": "Realized Vol Gt 25",
+            "type": "boolean"
+          },
+          "spx_below_100d_ma": {
+            "default": false,
+            "title": "Spx Below 100D Ma",
+            "type": "boolean"
+          }
+        },
+        "title": "CrashTriggerConditions",
+        "type": "object"
+      },
+      "CrashTriggerValues": {
+        "properties": {
+          "cor1m": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cor1M"
+          },
+          "realized_vol": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Realized Vol"
+          }
+        },
+        "title": "CrashTriggerValues",
+        "type": "object"
+      },
+      "CriBlock": {
+        "properties": {
+          "components": {
+            "$ref": "#/components/schemas/CriComponents"
+          },
+          "level": {
+            "default": "LOW",
+            "enum": [
+              "LOW",
+              "ELEVATED",
+              "HIGH",
+              "CRITICAL"
+            ],
+            "title": "Level",
+            "type": "string"
+          },
+          "score": {
+            "default": 0.0,
+            "title": "Score",
+            "type": "number"
+          }
+        },
+        "title": "CriBlock",
+        "type": "object"
+      },
+      "CriComponents": {
+        "description": "Four 0-25 component scores summed into the composite 0-100.",
+        "properties": {
+          "correlation": {
+            "default": 0.0,
+            "title": "Correlation",
+            "type": "number"
+          },
+          "momentum": {
+            "default": 0.0,
+            "title": "Momentum",
+            "type": "number"
+          },
+          "vix": {
+            "default": 0.0,
+            "title": "Vix",
+            "type": "number"
+          },
+          "vvix": {
+            "default": 0.0,
+            "title": "Vvix",
+            "type": "number"
+          }
+        },
+        "title": "CriComponents",
+        "type": "object"
+      },
+      "CriHistoryEntry": {
+        "properties": {
+          "cor1m": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cor1M"
+          },
+          "date": {
+            "title": "Date",
+            "type": "string"
+          },
+          "realized_vol": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Realized Vol"
+          },
+          "spx_vs_ma_pct": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Spx Vs Ma Pct"
+          },
+          "spy": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Spy"
+          },
+          "vix": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vix"
+          },
+          "vix_5d_roc": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vix 5D Roc"
+          },
+          "vvix": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vvix"
+          }
+        },
+        "required": [
+          "date"
+        ],
+        "title": "CriHistoryEntry",
+        "type": "object"
+      },
+      "CriResponse": {
+        "description": "Crash Risk Indicator snapshot (latest scan).",
+        "properties": {
+          "cor1m": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cor1M"
+          },
+          "cor1m_5d_change": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cor1M 5D Change"
+          },
+          "cor1m_previous_close": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cor1M Previous Close"
+          },
+          "crash_trigger": {
+            "$ref": "#/components/schemas/CrashTriggerBlock"
+          },
+          "cri": {
+            "$ref": "#/components/schemas/CriBlock"
+          },
+          "cta": {
+            "$ref": "#/components/schemas/CtaBlock"
+          },
+          "date": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Date"
+          },
+          "history": {
+            "items": {
+              "$ref": "#/components/schemas/CriHistoryEntry"
+            },
+            "title": "History",
+            "type": "array"
+          },
+          "realized_vol": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Realized Vol"
+          },
+          "scan_time": {
+            "default": "",
+            "title": "Scan Time",
+            "type": "string"
+          },
+          "spx_100d_ma": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Spx 100D Ma"
+          },
+          "spx_distance_pct": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Spx Distance Pct"
+          },
+          "spy": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Spy"
+          },
+          "spy_closes": {
+            "items": {
+              "type": "number"
+            },
+            "title": "Spy Closes",
+            "type": "array"
+          },
+          "status": {
+            "default": "empty",
+            "enum": [
+              "ok",
+              "empty"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "vix": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vix"
+          },
+          "vix_5d_roc": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vix 5D Roc"
+          },
+          "vvix": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vvix"
+          },
+          "vvix_vix_ratio": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vvix Vix Ratio"
+          }
+        },
+        "title": "CriResponse",
+        "type": "object"
+      },
+      "CriScanResponse": {
+        "description": "Response body for POST /api/regime/scan.",
+        "properties": {
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          },
+          "row_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Row Id"
+          },
+          "scanner": {
+            "const": "cri",
+            "default": "cri",
+            "title": "Scanner",
+            "type": "string"
+          },
+          "status": {
+            "default": "ok",
+            "enum": [
+              "ok",
+              "skipped"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "title": "CriScanResponse",
+        "type": "object"
+      },
+      "CtaBlock": {
+        "properties": {
+          "est_selling_bn": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Est Selling Bn"
+          },
+          "exposure_pct": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Exposure Pct"
+          },
+          "forced_reduction": {
+            "default": false,
+            "title": "Forced Reduction",
+            "type": "boolean"
+          },
+          "forced_reduction_pct": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Forced Reduction Pct"
+          },
+          "realized_vol": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Realized Vol"
+          },
+          "selling_usd_b": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Selling Usd B"
+          }
+        },
+        "title": "CtaBlock",
+        "type": "object"
+      },
       "DivergencePoint": {
         "properties": {
           "date": {
@@ -1700,26 +2199,65 @@
         "title": "GammaBlock",
         "type": "object"
       },
-      "GexLevel": {
-        "description": "One labeled level on the GEX curve (e.g. CALL WALL, PUT WALL, MAX MAGNET).\n\n`gamma_per_dollar` is the per-strike net_gex used as the \"$N per $1\" sensitivity\nfigure on the tile \u2014 the dollar value of dealer hedging triggered by a $1 move.",
+      "GexBias": {
         "properties": {
-          "gamma_per_dollar": {
+          "days_above_flip": {
             "anyOf": [
               {
-                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Days Above Flip"
+          },
+          "direction": {
+            "anyOf": [
+              {
                 "type": "string"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Gamma Per Dollar"
+            "title": "Direction"
+          },
+          "flip_migration": {
+            "items": {
+              "$ref": "#/components/schemas/GexFlipMigrationEntry"
+            },
+            "title": "Flip Migration",
+            "type": "array"
+          },
+          "reasons": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Reasons",
+            "type": "array"
+          }
+        },
+        "title": "GexBias",
+        "type": "object"
+      },
+      "GexBucket": {
+        "properties": {
+          "call_gex": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Call Gex"
           },
           "net_gex": {
             "anyOf": [
               {
-                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
-                "type": "string"
+                "type": "number"
               },
               {
                 "type": "null"
@@ -1730,8 +2268,7 @@
           "pct_from_spot": {
             "anyOf": [
               {
-                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
-                "type": "string"
+                "type": "number"
               },
               {
                 "type": "null"
@@ -1739,16 +2276,800 @@
             ],
             "title": "Pct From Spot"
           },
+          "put_gex": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Put Gex"
+          },
           "strike": {
-            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
-            "title": "Strike",
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Strike"
+          },
+          "tag": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tag"
+          }
+        },
+        "title": "GexBucket",
+        "type": "object"
+      },
+      "GexExpectedRange": {
+        "properties": {
+          "high": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "High"
+          },
+          "iv_1d": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Iv 1D"
+          },
+          "low": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Low"
+          }
+        },
+        "title": "GexExpectedRange",
+        "type": "object"
+      },
+      "GexFlipMigrationEntry": {
+        "properties": {
+          "date": {
+            "title": "Date",
             "type": "string"
+          },
+          "flip": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Flip"
           }
         },
         "required": [
-          "strike"
+          "date"
         ],
-        "title": "GexLevel",
+        "title": "GexFlipMigrationEntry",
+        "type": "object"
+      },
+      "GexHistoryEntry": {
+        "properties": {
+          "atm_iv": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Atm Iv"
+          },
+          "bias": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Bias"
+          },
+          "date": {
+            "title": "Date",
+            "type": "string"
+          },
+          "gex_flip": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Gex Flip"
+          },
+          "net_dex": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Net Dex"
+          },
+          "net_gex": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Net Gex"
+          },
+          "spot": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Spot"
+          },
+          "vol_pc": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vol Pc"
+          }
+        },
+        "required": [
+          "date"
+        ],
+        "title": "GexHistoryEntry",
+        "type": "object"
+      },
+      "GexIvData": {
+        "properties": {
+          "hv30": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Hv30"
+          },
+          "iv30d": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Iv30D"
+          },
+          "iv_rank": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Iv Rank"
+          },
+          "mq_iv30d": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mq Iv30D"
+          },
+          "mq_iv_rank": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mq Iv Rank"
+          },
+          "source": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source"
+          }
+        },
+        "title": "GexIvData",
+        "type": "object"
+      },
+      "GexLevels": {
+        "properties": {
+          "call_wall": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/uw_scan__api__schemas__GexLevel"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "gex_flip": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/uw_scan__api__schemas__GexLevel"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "max_accelerator": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/uw_scan__api__schemas__GexLevel"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "max_magnet": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/uw_scan__api__schemas__GexLevel"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "put_wall": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/uw_scan__api__schemas__GexLevel"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "second_magnet": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/uw_scan__api__schemas__GexLevel"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "title": "GexLevels",
+        "type": "object"
+      },
+      "GexMqLevels": {
+        "properties": {
+          "call_resistance_0dte": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Call Resistance 0Dte"
+          },
+          "call_resistance_all": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Call Resistance All"
+          },
+          "distance_to_hvl_pct": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Distance To Hvl Pct"
+          },
+          "expected_high": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expected High"
+          },
+          "expected_low": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expected Low"
+          },
+          "hv30": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Hv30"
+          },
+          "hvl": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Hvl"
+          },
+          "iv30d": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Iv30D"
+          },
+          "iv_rank": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Iv Rank"
+          },
+          "put_support_0dte": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Put Support 0Dte"
+          },
+          "put_support_all": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Put Support All"
+          },
+          "source_date": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Date"
+          },
+          "spot": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Spot"
+          },
+          "top_gex_strikes": {
+            "items": {
+              "type": "number"
+            },
+            "title": "Top Gex Strikes",
+            "type": "array"
+          }
+        },
+        "title": "GexMqLevels",
+        "type": "object"
+      },
+      "GexResponse": {
+        "properties": {
+          "atm_iv": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Atm Iv"
+          },
+          "bias": {
+            "$ref": "#/components/schemas/GexBias"
+          },
+          "close": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Close"
+          },
+          "data_date": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Data Date"
+          },
+          "day_change": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Day Change"
+          },
+          "day_change_pct": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Day Change Pct"
+          },
+          "expected_range": {
+            "$ref": "#/components/schemas/GexExpectedRange"
+          },
+          "history": {
+            "items": {
+              "$ref": "#/components/schemas/GexHistoryEntry"
+            },
+            "title": "History",
+            "type": "array"
+          },
+          "iv": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/GexIvData"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "levels": {
+            "$ref": "#/components/schemas/GexLevels"
+          },
+          "market_open": {
+            "default": false,
+            "title": "Market Open",
+            "type": "boolean"
+          },
+          "market_time": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Market Time"
+          },
+          "mq": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/GexMqLevels"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "net_dex": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Net Dex"
+          },
+          "net_gex": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Net Gex"
+          },
+          "prev_close": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Prev Close"
+          },
+          "profile": {
+            "items": {
+              "$ref": "#/components/schemas/GexBucket"
+            },
+            "title": "Profile",
+            "type": "array"
+          },
+          "scan_time": {
+            "default": "",
+            "title": "Scan Time",
+            "type": "string"
+          },
+          "source_delta": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/GexSourceDelta"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "spot": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Spot"
+          },
+          "spot_source": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Spot Source"
+          },
+          "tape_time": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tape Time"
+          },
+          "ticker": {
+            "default": "SPX",
+            "title": "Ticker",
+            "type": "string"
+          },
+          "vol_pc": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vol Pc"
+          }
+        },
+        "title": "GexResponse",
+        "type": "object"
+      },
+      "GexSourceDelta": {
+        "properties": {
+          "call_wall_vs_resistance_0dte": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/GexSourceDeltaEntry"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "call_wall_vs_resistance_all": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/GexSourceDeltaEntry"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "flip_vs_hvl": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/GexSourceDeltaEntry"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "put_wall_vs_support_0dte": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/GexSourceDeltaEntry"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "put_wall_vs_support_all": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/GexSourceDeltaEntry"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "title": "GexSourceDelta",
+        "type": "object"
+      },
+      "GexSourceDeltaEntry": {
+        "properties": {
+          "delta": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Delta"
+          },
+          "mq": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mq"
+          },
+          "uw": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Uw"
+          }
+        },
+        "title": "GexSourceDeltaEntry",
         "type": "object"
       },
       "GoldCorrelationBand": {
@@ -3711,7 +5032,7 @@
           "call_wall": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/GexLevel"
+                "$ref": "#/components/schemas/uw_scan__models__GexLevel"
               },
               {
                 "type": "null"
@@ -3721,7 +5042,7 @@
           "gex_flip": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/GexLevel"
+                "$ref": "#/components/schemas/uw_scan__models__GexLevel"
               },
               {
                 "type": "null"
@@ -3731,7 +5052,7 @@
           "max_accel": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/GexLevel"
+                "$ref": "#/components/schemas/uw_scan__models__GexLevel"
               },
               {
                 "type": "null"
@@ -3741,7 +5062,7 @@
           "max_magnet": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/GexLevel"
+                "$ref": "#/components/schemas/uw_scan__models__GexLevel"
               },
               {
                 "type": "null"
@@ -3751,7 +5072,7 @@
           "put_wall": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/GexLevel"
+                "$ref": "#/components/schemas/uw_scan__models__GexLevel"
               },
               {
                 "type": "null"
@@ -3761,7 +5082,7 @@
           "second_magnet": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/GexLevel"
+                "$ref": "#/components/schemas/uw_scan__models__GexLevel"
               },
               {
                 "type": "null"
@@ -8000,6 +9321,483 @@
         "title": "ValidationError",
         "type": "object"
       },
+      "VcgAttribution": {
+        "properties": {
+          "model_implied": {
+            "default": 0.0,
+            "title": "Model Implied",
+            "type": "number"
+          },
+          "vix_component": {
+            "default": 0.0,
+            "title": "Vix Component",
+            "type": "number"
+          },
+          "vix_pct": {
+            "default": 0.0,
+            "title": "Vix Pct",
+            "type": "number"
+          },
+          "vvix_component": {
+            "default": 0.0,
+            "title": "Vvix Component",
+            "type": "number"
+          },
+          "vvix_pct": {
+            "default": 0.0,
+            "title": "Vvix Pct",
+            "type": "number"
+          }
+        },
+        "title": "VcgAttribution",
+        "type": "object"
+      },
+      "VcgHistoryEntry": {
+        "properties": {
+          "beta1": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Beta1"
+          },
+          "beta2": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Beta2"
+          },
+          "bounce": {
+            "default": 0,
+            "title": "Bounce",
+            "type": "integer"
+          },
+          "credit": {
+            "default": 0.0,
+            "title": "Credit",
+            "type": "number"
+          },
+          "date": {
+            "title": "Date",
+            "type": "string"
+          },
+          "edr": {
+            "default": 0,
+            "title": "Edr",
+            "type": "integer"
+          },
+          "residual": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Residual"
+          },
+          "ro": {
+            "default": 0,
+            "title": "Ro",
+            "type": "integer"
+          },
+          "tier": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tier"
+          },
+          "vcg": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vcg"
+          },
+          "vcg_adj": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vcg Adj"
+          },
+          "vix": {
+            "default": 0.0,
+            "title": "Vix",
+            "type": "number"
+          },
+          "vvix": {
+            "default": 0.0,
+            "title": "Vvix",
+            "type": "number"
+          }
+        },
+        "required": [
+          "date"
+        ],
+        "title": "VcgHistoryEntry",
+        "type": "object"
+      },
+      "VcgResponse": {
+        "description": "Volatility-Credit Gap snapshot (latest scan).",
+        "properties": {
+          "credit_proxy": {
+            "default": "HYG",
+            "title": "Credit Proxy",
+            "type": "string"
+          },
+          "date": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Date"
+          },
+          "history": {
+            "items": {
+              "$ref": "#/components/schemas/VcgHistoryEntry"
+            },
+            "title": "History",
+            "type": "array"
+          },
+          "scan_time": {
+            "default": "",
+            "title": "Scan Time",
+            "type": "string"
+          },
+          "signal": {
+            "$ref": "#/components/schemas/VcgSignal"
+          },
+          "status": {
+            "default": "empty",
+            "enum": [
+              "ok",
+              "empty"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "title": "VcgResponse",
+        "type": "object"
+      },
+      "VcgScanResponse": {
+        "description": "Response body for POST /api/regime/vcg/scan.",
+        "properties": {
+          "proxy": {
+            "default": "HYG",
+            "title": "Proxy",
+            "type": "string"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          },
+          "row_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Row Id"
+          },
+          "scanner": {
+            "const": "vcg",
+            "default": "vcg",
+            "title": "Scanner",
+            "type": "string"
+          },
+          "status": {
+            "default": "ok",
+            "enum": [
+              "ok",
+              "skipped"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "title": "VcgScanResponse",
+        "type": "object"
+      },
+      "VcgSignal": {
+        "properties": {
+          "alpha": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Alpha"
+          },
+          "attribution": {
+            "$ref": "#/components/schemas/VcgAttribution"
+          },
+          "beta1_vvix": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Beta1 Vvix"
+          },
+          "beta2_vix": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Beta2 Vix"
+          },
+          "bounce": {
+            "default": 0,
+            "title": "Bounce",
+            "type": "integer"
+          },
+          "credit_5d_return_pct": {
+            "default": 0.0,
+            "title": "Credit 5D Return Pct",
+            "type": "number"
+          },
+          "credit_price": {
+            "default": 0.0,
+            "title": "Credit Price",
+            "type": "number"
+          },
+          "edr": {
+            "default": 0,
+            "title": "Edr",
+            "type": "integer"
+          },
+          "interpretation": {
+            "default": "NORMAL",
+            "enum": [
+              "RISK_OFF",
+              "EDR",
+              "WATCH",
+              "BOUNCE",
+              "NORMAL",
+              "SUPPRESSED",
+              "PANIC",
+              "INSUFFICIENT_DATA"
+            ],
+            "title": "Interpretation",
+            "type": "string"
+          },
+          "pi_panic": {
+            "default": 0.0,
+            "title": "Pi Panic",
+            "type": "number"
+          },
+          "regime": {
+            "default": "DIVERGENCE",
+            "enum": [
+              "PANIC",
+              "TRANSITION",
+              "DIVERGENCE"
+            ],
+            "title": "Regime",
+            "type": "string"
+          },
+          "residual": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Residual"
+          },
+          "ro": {
+            "default": 0,
+            "title": "Ro",
+            "type": "integer"
+          },
+          "sign_ok": {
+            "default": true,
+            "title": "Sign Ok",
+            "type": "boolean"
+          },
+          "sign_suppressed": {
+            "default": false,
+            "title": "Sign Suppressed",
+            "type": "boolean"
+          },
+          "tier": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tier"
+          },
+          "vcg": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vcg"
+          },
+          "vcg_adj": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vcg Adj"
+          },
+          "vix": {
+            "default": 0.0,
+            "title": "Vix",
+            "type": "number"
+          },
+          "vvix": {
+            "default": 0.0,
+            "title": "Vvix",
+            "type": "number"
+          },
+          "vvix_severity": {
+            "default": "moderate",
+            "enum": [
+              "extreme",
+              "elevated",
+              "moderate"
+            ],
+            "title": "Vvix Severity",
+            "type": "string"
+          }
+        },
+        "title": "VcgSignal",
+        "type": "object"
+      },
+      "VolBackdropPoint": {
+        "properties": {
+          "close": {
+            "title": "Close",
+            "type": "number"
+          },
+          "date": {
+            "format": "date",
+            "title": "Date",
+            "type": "string"
+          }
+        },
+        "required": [
+          "date",
+          "close"
+        ],
+        "title": "VolBackdropPoint",
+        "type": "object"
+      },
+      "VolBackdropResponse": {
+        "description": "Vol-complex time series + VIX term-structure (regime page header strip).",
+        "properties": {
+          "as_of": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "As Of"
+          },
+          "series": {
+            "additionalProperties": {
+              "items": {
+                "$ref": "#/components/schemas/VolBackdropPoint"
+              },
+              "type": "array"
+            },
+            "title": "Series",
+            "type": "object"
+          },
+          "term_structure_ratio": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Term Structure Ratio"
+          },
+          "term_structure_state": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Term Structure State"
+          }
+        },
+        "title": "VolBackdropResponse",
+        "type": "object"
+      },
       "VolHeaderBlock": {
         "properties": {
           "implied_move_30d_perc": {
@@ -8834,6 +10632,107 @@
           "heartbeat_name"
         ],
         "title": "WorkerHealth",
+        "type": "object"
+      },
+      "uw_scan__api__schemas__GexLevel": {
+        "properties": {
+          "distance": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Distance"
+          },
+          "distance_pct": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Distance Pct"
+          },
+          "gamma": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Gamma"
+          },
+          "strike": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Strike"
+          }
+        },
+        "title": "GexLevel",
+        "type": "object"
+      },
+      "uw_scan__models__GexLevel": {
+        "description": "One labeled level on the GEX curve (e.g. CALL WALL, PUT WALL, MAX MAGNET).\n\n`gamma_per_dollar` is the per-strike net_gex used as the \"$N per $1\" sensitivity\nfigure on the tile \u2014 the dollar value of dealer hedging triggered by a $1 move.",
+        "properties": {
+          "gamma_per_dollar": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Gamma Per Dollar"
+          },
+          "net_gex": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Net Gex"
+          },
+          "pct_from_spot": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pct From Spot"
+          },
+          "strike": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Strike",
+            "type": "string"
+          }
+        },
+        "required": [
+          "strike"
+        ],
+        "title": "GexLevel",
         "type": "object"
       }
     }
@@ -9786,6 +11685,270 @@
         "summary": "Provider Usage Tickers",
         "tags": [
           "provider-usage"
+        ]
+      }
+    },
+    "/api/regime": {
+      "get": {
+        "operationId": "get_regime_api_regime_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CriResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Get Regime",
+        "tags": [
+          "regime"
+        ]
+      }
+    },
+    "/api/regime/gex": {
+      "get": {
+        "operationId": "get_gex_api_regime_gex_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "ticker",
+            "required": false,
+            "schema": {
+              "default": "SPX",
+              "title": "Ticker",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GexResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Gex",
+        "tags": [
+          "regime"
+        ]
+      }
+    },
+    "/api/regime/gex/scan": {
+      "post": {
+        "description": "Run a GEX scan synchronously against UW and persist.",
+        "operationId": "trigger_gex_scan_api_regime_gex_scan_post",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "ticker",
+            "required": false,
+            "schema": {
+              "default": "SPX",
+              "title": "Ticker",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Trigger Gex Scan Api Regime Gex Scan Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Trigger Gex Scan",
+        "tags": [
+          "regime"
+        ]
+      }
+    },
+    "/api/regime/scan": {
+      "post": {
+        "description": "Run a CRI scan synchronously off the warm store; persist a snapshot.",
+        "operationId": "trigger_cri_scan_api_regime_scan_post",
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CriScanResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Trigger Cri Scan",
+        "tags": [
+          "regime"
+        ]
+      }
+    },
+    "/api/regime/vcg": {
+      "get": {
+        "operationId": "get_vcg_api_regime_vcg_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "proxy",
+            "required": false,
+            "schema": {
+              "default": "HYG",
+              "title": "Proxy",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VcgResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Vcg",
+        "tags": [
+          "regime"
+        ]
+      }
+    },
+    "/api/regime/vcg/scan": {
+      "post": {
+        "description": "Run a VCG scan synchronously off the warm store; persist a snapshot.",
+        "operationId": "trigger_vcg_scan_api_regime_vcg_scan_post",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "proxy",
+            "required": false,
+            "schema": {
+              "default": "HYG",
+              "title": "Proxy",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VcgScanResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Trigger Vcg Scan",
+        "tags": [
+          "regime"
+        ]
+      }
+    },
+    "/api/regime/vol-backdrop": {
+      "get": {
+        "operationId": "get_vol_backdrop_api_regime_vol_backdrop_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "days",
+            "required": false,
+            "schema": {
+              "default": 90,
+              "maximum": 365,
+              "minimum": 5,
+              "title": "Days",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VolBackdropResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Vol Backdrop",
+        "tags": [
+          "regime"
         ]
       }
     },

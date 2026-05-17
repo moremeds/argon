@@ -94,6 +94,33 @@ class Settings(BaseModel):
     cockpit_target_dtes: list[int] = [0, 14, 30, 90]
     cockpit_oi_band_pct: Decimal = Decimal("0.10")
     cockpit_oi_max_dte: int = 7
+    # Regime / GEX scanner (port from xenon — ships GEX live; CRI/VCG pending)
+    gex_scan_tickers: list[str] = ["SPX", "SPY"]
+    gex_scan_interval_minutes: int = 5
+    # Parquet lake root for CBOE vol indices and SPX daily OHLC.
+    # Maintained by the peer ``market-data-warehouse`` project. Symbol subdirs
+    # are named ``symbol=<TICKER>`` with a ``1d.parquet`` payload inside.
+    lake_vol_index_root: Path = Field(
+        default=Path.home()
+        / "market-warehouse/data-lake/bronze/asset_class=volatility",
+        description=(
+            "Local parquet lake root for CBOE vol indices and SPX daily OHLC. "
+            "Symbol subdirs are named symbol=<TICKER>."
+        ),
+    )
+    # Parquet lake root for equity-asset credit-proxy ETFs (HYG, JNK, LQD),
+    # used by the VCG scanner. Same layout as the vol-index lake.
+    lake_credit_etf_root: Path = Field(
+        default=Path.home() / "market-warehouse/data-lake/bronze/asset_class=equity",
+        description=(
+            "Local parquet lake root for credit-proxy ETF daily OHLC "
+            "(HYG/JNK/LQD). Symbol subdirs are named symbol=<TICKER>."
+        ),
+    )
+    # Credit-proxy ETFs synced from the equity lake into vol_index_daily.
+    # The VCG scanner reads from this list; the first entry is the default
+    # proxy unless overridden by the API caller.
+    credit_etf_symbols: list[str] = ["HYG", "JNK", "LQD"]
 
     @classmethod
     def from_env(cls, env_path: Path | None = None) -> "Settings":
@@ -169,10 +196,30 @@ class Settings(BaseModel):
             cockpit_target_dtes=_parse_int_csv_env(
                 "COCKPIT_TARGET_DTES", default=[0, 14, 30, 90]
             ),
-            cockpit_oi_band_pct=Decimal(
-                os.environ.get("COCKPIT_OI_BAND_PCT", "0.10")
-            ),
+            cockpit_oi_band_pct=Decimal(os.environ.get("COCKPIT_OI_BAND_PCT", "0.10")),
             cockpit_oi_max_dte=int(os.environ.get("COCKPIT_OI_MAX_DTE", "7")),
+            gex_scan_tickers=_parse_csv_env("GEX_SCAN_TICKERS", default=["SPX", "SPY"]),
+            gex_scan_interval_minutes=int(
+                os.environ.get("GEX_SCAN_INTERVAL_MINUTES", "5")
+            ),
+            # Parquet-lake roots are env-overridable so deployments without
+            # the user's home-dir layout (containers, CI) can point at their
+            # own mount. Blank/unset → fall back to the field-level defaults.
+            lake_vol_index_root=(
+                Path(_lake_vol)
+                if (_lake_vol := os.environ.get("LAKE_VOL_INDEX_ROOT", "").strip())
+                else Path.home()
+                / "market-warehouse/data-lake/bronze/asset_class=volatility"
+            ),
+            lake_credit_etf_root=(
+                Path(_lake_credit)
+                if (_lake_credit := os.environ.get("LAKE_CREDIT_ETF_ROOT", "").strip())
+                else Path.home()
+                / "market-warehouse/data-lake/bronze/asset_class=equity"
+            ),
+            credit_etf_symbols=_parse_csv_env(
+                "CREDIT_ETF_SYMBOLS", default=["HYG", "JNK", "LQD"]
+            ),
         )
 
     def db_dsn(self) -> str:

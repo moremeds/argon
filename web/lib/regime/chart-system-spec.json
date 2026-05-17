@@ -1,0 +1,92 @@
+{
+  "version": "2026-03-11",
+  "surface": {
+    "backgroundVar": "--bg-panel",
+    "borderVar": "--border-dim",
+    "radiusPx": 4,
+    "paddingPx": 16,
+    "headerHeightPx": 32
+  },
+  "axis": {
+    "fontFamily": "IBM Plex Mono, monospace",
+    "fontSizePx": 10,
+    "trackingEm": 0.04,
+    "gridVar": "--chart-grid",
+    "axisVar": "--chart-axis",
+    "labelVar": "--chart-axis-muted"
+  },
+  "tooltip": {
+    "backgroundVar": "--chart-tooltip-bg",
+    "borderVar": "--chart-tooltip-border",
+    "shadow": "none"
+  },
+  "seriesRoles": {
+    "primary": {
+      "cssVar": "--signal-core",
+      "fallback": "#05AD98",
+      "description": "Primary structural signal"
+    },
+    "comparison": {
+      "cssVar": "--chart-series-comparison",
+      "fallback": "rgba(148, 163, 184, 0.72)",
+      "description": "Benchmark or baseline comparison"
+    },
+    "caution": {
+      "cssVar": "--warning",
+      "fallback": "#F5A623",
+      "description": "Caution or elevated risk"
+    },
+    "dislocation": {
+      "cssVar": "--dislocation",
+      "fallback": "#D946A8",
+      "description": "Structural dislocation"
+    },
+    "extreme": {
+      "cssVar": "--extreme",
+      "fallback": "#8B5CF6",
+      "description": "Extreme regime or rare state"
+    },
+    "fault": {
+      "cssVar": "--negative",
+      "fallback": "#E85D6C",
+      "description": "Operational fault or explicit downside exception"
+    },
+    "neutral": {
+      "cssVar": "--neutral",
+      "fallback": "#94A3B8",
+      "description": "Neutral supporting context"
+    }
+  },
+  "families": {
+    "live-trace": {
+      "label": "Live Trace",
+      "renderer": "canvas-adapter",
+      "interaction": "scrub",
+      "requiresAxes": false
+    },
+    "analytical-time-series": {
+      "label": "Analytical Time Series",
+      "renderer": "svg",
+      "interaction": "inspect",
+      "requiresAxes": true
+    },
+    "distribution-bar": {
+      "label": "Distribution Bar",
+      "renderer": "html-css-or-svg",
+      "interaction": "static",
+      "requiresAxes": false
+    },
+    "matrix-heatmap": {
+      "label": "Matrix Heatmap",
+      "renderer": "html-css-or-svg",
+      "interaction": "static",
+      "requiresAxes": false
+    }
+  },
+  "sanctionedRenderers": {
+    "canvas-adapter": "Allowed for high-frequency interactive traces where the interaction model is the main product value.",
+    "svg": "Default for operator charts that need shared frame, axis, and legend control.",
+    "d3-svg": "Allowed only when scale logic or interaction complexity materially exceeds the shared SVG primitives.",
+    "html-css-or-svg": "Allowed for compact bars, gauges, tables, and matrix layouts where DOM density is clearer than a plotted chart."
+  }
+}
