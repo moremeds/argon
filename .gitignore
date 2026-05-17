@@ -19,3 +19,6 @@ output/
 *.png
 !docs/screenshots/*.png
 .claude/
+
+# Local-only archives of completed plans/specs/reviews
+docs/**/archive/
