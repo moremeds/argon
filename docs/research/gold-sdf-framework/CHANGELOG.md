@@ -4,6 +4,16 @@ A running log of substantive changes to the research foundation, with rationale 
 
 ---
 
+## 2026-05-17 — Phase A1 ingestion field notes (deferred sources)
+
+**Source:** Implementation pass against the v1 plan in [09-data-sources-catalog.md](./09-data-sources-catalog.md).
+
+Five sources designed for anonymous CSV ingestion failed during the 2026-05-17 warmup (WGC CB reserves moved behind login, all four ETF holdings endpoints returned 301/404, COMEX scraping hit 403, the CFTC fetcher had a placeholder URL pointing at financial futures instead of commodities, and FRED's LBMA gold-fix series was retired). Each failure mode + concrete re-wire path documented in the new [11-deferred-sources-phase-a1.md](./11-deferred-sources-phase-a1.md). Sequencing recommendation included so the v2 pass can pick them up by signal-to-effort rather than rediscovering the failures.
+
+Key meta-observation: anonymous CSV endpoints in this domain have a ~12-month half-life. Sources that survived the 18 months between catalog and ingestion (GPR, LBMA) survived only because we found new endpoints during ingestion. v2 should bias toward IMF / SEC / Socrata APIs and an auth path for the canonical industry sources.
+
+---
+
 ## 2026-05-16 — Codex adversarial review response
 
 **Source:** [docs/reviews/2026-05-16-gold-research-codex-review.md](../../reviews/2026-05-16-gold-research-codex-review.md)

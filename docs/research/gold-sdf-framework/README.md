@@ -72,12 +72,15 @@ The lenses share variance. Position sizing should not double-count the same macr
 | Honest read of viviennaBTC's 8-factor model | [08-viviennabtc-factor-critique.md](./08-viviennabtc-factor-critique.md) |
 | What data feeds we'd need and what they cost | [09-data-sources-catalog.md](./09-data-sources-catalog.md) |
 | What's still unresolved | [10-open-research-questions.md](./10-open-research-questions.md) |
+| Phase A1 sources that need re-wiring in v2 | [11-deferred-sources-phase-a1.md](./11-deferred-sources-phase-a1.md) |
 
 ---
 
 ## Cost summary
 
 Roughly **$0 in new external data costs.** All required series are either free (FRED, GPR, exchange inventory reports, ETF disclosures, WGC CB statistics) or already paid for in this repo (massive.com OHLC, UW options). The cost is engineering time, not data subscriptions.
+
+**Phase A1 ingestion caveat (2026-05-17):** five of the eight anonymous-CSV sources designed for v1 had moved or paywalled by implementation time. See [11-deferred-sources-phase-a1.md](./11-deferred-sources-phase-a1.md) for the v2 re-wire plan (most-likely fix: lean on official APIs like Socrata/IMF/SEC N-PORT rather than scraping issuer pages).
 
 ---
 
