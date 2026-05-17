@@ -1,14 +1,13 @@
 """Phase A1 (Gold) — APScheduler job functions.
 
-8 jobs total (the UW gold-options snapshot is deferred per Task 9 — see
-src/uw_scan/sources/uw_gold_options.py for the wiring requirement before
-the corresponding job can be implemented):
+9 jobs total:
 
 - Daily (Tasks 23):
     gold_fred_ingest_job          — FRED CSV refresh, daily + monthly series
     gold_gpr_ingest_job           — Caldara-Iacoviello GPRD daily
     gold_etf_holdings_ingest_job  — GLD / IAU / GLDM / PHYS daily holdings
     gold_comex_vault_ingest_job   — COMEX gold-stocks daily
+    gold_uw_options_ingest_job    — GLD / GDX / IAU snapshot (Task 9)
 
 - Weekly + monthly (Task 24):
     gold_cftc_cot_ingest_job      — CFTC COT disaggregated weekly
@@ -31,6 +30,7 @@ from datetime import UTC, date, datetime, timedelta
 
 import psycopg
 
+from uw_scan.api.client import UwClient
 from uw_scan.reports.gold_posture import compute_and_persist_gold_posture
 from uw_scan.sources.cftc_cot import CftcCotProvider
 from uw_scan.sources.comex import ComexProvider
@@ -38,6 +38,10 @@ from uw_scan.sources.etf_holdings import EtfHoldingsProvider
 from uw_scan.sources.fred import FredProvider
 from uw_scan.sources.gpr import GprProvider
 from uw_scan.sources.lbma import LbmaProvider
+from uw_scan.sources.uw_gold_options import (
+    GOLD_OPTIONS_TICKERS,
+    fetch_gold_options_snapshot,
+)
 from uw_scan.sources.wgc_cb import WgcCbProvider
 from uw_scan.storage.repository import Repository
 
@@ -175,6 +179,66 @@ def gold_comex_vault_ingest_job(*, dsn: str) -> None:
                 )
         except Exception as exc:
             logger.exception("gold_comex_vault_ingest failed: %r", exc)
+        conn.commit()
+
+
+def gold_uw_options_ingest_job(
+    *,
+    dsn: str,
+    api_key: str,
+    base_url: str = "https://api.unusualwhales.com",
+    request_timeout: float = 30.0,
+    tickers: tuple[str, ...] = GOLD_OPTIONS_TICKERS,
+) -> None:
+    """Daily UW gold-options snapshot for GLD/GDX/IAU. Schedule: 17:15 ET.
+
+    Composes existing UW fetchers (interpolated_iv, oi_per_strike,
+    option_contracts, skew). One scan_run row groups the per-snapshot
+    audit rows; per-ticker exceptions are caught so a single failure
+    doesn't kill the batch.
+    """
+    now = datetime.now(UTC)
+    obs_date = date.today()
+    with (
+        psycopg.connect(dsn) as conn,
+        UwClient(
+            api_key=api_key,
+            base_url=base_url,
+            timeout=request_timeout,
+            job_name="gold_uw_options_ingest",
+        ) as client,
+    ):
+        repo = Repository(conn, schema="uw_scan")
+        run_id = repo.insert_scan_run(
+            ticker="GOLD",
+            notes=f"gold_options_snapshot:{obs_date.isoformat()}",
+        )
+        for ticker in tickers:
+            try:
+                snap = fetch_gold_options_snapshot(
+                    client=client,
+                    repo=repo,
+                    run_id=run_id,
+                    ticker=ticker,
+                    obs_date=obs_date,
+                )
+                repo.insert_uw_gold_options_daily(
+                    ticker=snap.ticker,
+                    obs_date=snap.obs_date,
+                    atm_iv_30d=snap.atm_iv_30d,
+                    atm_iv_60d=snap.atm_iv_60d,
+                    put_25d_iv_30d=snap.put_25d_iv_30d,
+                    call_25d_iv_30d=snap.call_25d_iv_30d,
+                    skew_25d_30d=snap.skew_25d_30d,
+                    put_call_oi_ratio=snap.put_call_oi_ratio,
+                    dealer_gamma_est=snap.dealer_gamma_est,
+                    as_of=now,
+                )
+            except Exception as exc:
+                logger.exception(
+                    "gold_uw_options_ingest: ticker=%s failed: %r", ticker, exc
+                )
+        repo.finish_scan_run(run_id, status="ok")
         conn.commit()
 
 
