@@ -108,6 +108,19 @@ class Settings(BaseModel):
             "Symbol subdirs are named symbol=<TICKER>."
         ),
     )
+    # Parquet lake root for equity-asset credit-proxy ETFs (HYG, JNK, LQD),
+    # used by the VCG scanner. Same layout as the vol-index lake.
+    lake_credit_etf_root: Path = Field(
+        default=Path.home() / "market-warehouse/data-lake/bronze/asset_class=equity",
+        description=(
+            "Local parquet lake root for credit-proxy ETF daily OHLC "
+            "(HYG/JNK/LQD). Symbol subdirs are named symbol=<TICKER>."
+        ),
+    )
+    # Credit-proxy ETFs synced from the equity lake into vol_index_daily.
+    # The VCG scanner reads from this list; the first entry is the default
+    # proxy unless overridden by the API caller.
+    credit_etf_symbols: list[str] = ["HYG", "JNK", "LQD"]
 
     @classmethod
     def from_env(cls, env_path: Path | None = None) -> "Settings":
@@ -188,6 +201,24 @@ class Settings(BaseModel):
             gex_scan_tickers=_parse_csv_env("GEX_SCAN_TICKERS", default=["SPX", "SPY"]),
             gex_scan_interval_minutes=int(
                 os.environ.get("GEX_SCAN_INTERVAL_MINUTES", "5")
+            ),
+            # Parquet-lake roots are env-overridable so deployments without
+            # the user's home-dir layout (containers, CI) can point at their
+            # own mount. Blank/unset → fall back to the field-level defaults.
+            lake_vol_index_root=(
+                Path(_lake_vol)
+                if (_lake_vol := os.environ.get("LAKE_VOL_INDEX_ROOT", "").strip())
+                else Path.home()
+                / "market-warehouse/data-lake/bronze/asset_class=volatility"
+            ),
+            lake_credit_etf_root=(
+                Path(_lake_credit)
+                if (_lake_credit := os.environ.get("LAKE_CREDIT_ETF_ROOT", "").strip())
+                else Path.home()
+                / "market-warehouse/data-lake/bronze/asset_class=equity"
+            ),
+            credit_etf_symbols=_parse_csv_env(
+                "CREDIT_ETF_SYMBOLS", default=["HYG", "JNK", "LQD"]
             ),
         )
 
