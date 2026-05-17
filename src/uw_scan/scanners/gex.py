@@ -445,6 +445,36 @@ def run(client: UwClient, repo: Repository, ticker: str = "SPX") -> int:
 
         strike_rows = fetch_strike_gex(client, repo, run_id, ticker)
         aggregate_rows = fetch_aggregate_gex(client, repo, run_id, ticker)
+        # Persist the daily tail for the regime history chart. We already
+        # have the parsed rows in aggregate_rows — no extra UW call. Failures
+        # here are non-fatal: the scan's primary outcome is the snapshot row.
+        try:
+            from uw_scan.storage.greek_exposure_repository import (
+                GreekExposureDailyRepository,
+            )
+
+            GreekExposureDailyRepository(repo.conn, schema=repo._schema).upsert_rows(
+                ticker,
+                [
+                    {
+                        "trade_date": h["date"],
+                        "call_gex": h["call_gex"],
+                        "put_gex": h["put_gex"],
+                        "call_delta": h["call_delta"],
+                        "put_delta": h["put_delta"],
+                        # JSONB needs a serializable form — date stays in
+                        # the trade_date column, so drop it from payload.
+                        "payload": {k: v for k, v in h.items() if k != "date"},
+                    }
+                    for h in aggregate_rows
+                ],
+            )
+        except Exception as exc:  # noqa: BLE001
+            log.warning(
+                "greek_exposure_daily_upsert_failed ticker=%s err=%s",
+                ticker,
+                repr(exc),
+            )
         atm_iv = fetch_atm_iv(iv_rows)
         iv_rank = fetch_iv_rank(iv_rows)
         vol_pc = fetch_vol_pc(client, repo, run_id, ticker)

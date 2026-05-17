@@ -209,3 +209,69 @@ def test_run_falls_back_to_iv_rank_when_stock_state_fails(
     assert payload["spot_source"] == "iv_rank_eod"
     assert payload["day_change"] is None
     assert payload["day_change_pct"] is None
+
+
+def test_run_persists_greek_exposure_daily_tail(
+    seeded_db_empty_cards: Repository,
+    mock_client: UwClient,
+    monkeypatch,
+) -> None:
+    """After a scan, the /greek-exposure history rows land in
+    uw_scan.greek_exposure_daily — via the shared parser util."""
+    from datetime import date
+
+    from uw_scan.storage.greek_exposure_repository import (
+        GreekExposureDailyRepository,
+    )
+
+    _stub_minimal_chain(monkeypatch)
+    monkeypatch.setattr(
+        gex_scanner, "fetch_stock_state_snapshot", lambda c, r, rid, t: None
+    )
+
+    # Override fetch_aggregate_gex (whose body now delegates to the shared
+    # parser util — see B1.5) to return rows the scanner will both use for
+    # net_dex AND persist into greek_exposure_daily.
+    fake_rows = [
+        {
+            "date": date(2026, 5, 13),
+            "call_gex": 2e9,
+            "put_gex": -1e9,
+            "call_delta": 1e7,
+            "put_delta": -1e6,
+            "net_gex": 1e9,
+            "net_dex": 9e6,
+        },
+        {
+            "date": date(2026, 5, 14),
+            "call_gex": 2.1e9,
+            "put_gex": -1.0e9,
+            "call_delta": 1.1e7,
+            "put_delta": -1.1e6,
+            "net_gex": 1.1e9,
+            "net_dex": 9.9e6,
+        },
+        {
+            "date": date(2026, 5, 15),
+            "call_gex": 1.9e9,
+            "put_gex": -1.0e9,
+            "call_delta": 0.9e7,
+            "put_delta": -0.9e6,
+            "net_gex": 0.9e9,
+            "net_dex": 8.1e6,
+        },
+    ]
+    monkeypatch.setattr(
+        gex_scanner, "fetch_aggregate_gex", lambda c, r, rid, t: fake_rows
+    )
+
+    gex_scanner.run(mock_client, seeded_db_empty_cards, ticker="SPX")
+
+    daily_repo = GreekExposureDailyRepository(
+        seeded_db_empty_cards.conn,
+        schema=seeded_db_empty_cards._schema,
+    )
+    rows = daily_repo.fetch_history("SPX", days=10)
+    assert len(rows) == 3
+    assert rows[-1]["call_gex"] == pytest.approx(1.9e9)
+    assert rows[-1]["net_gex"] == pytest.approx(0.9e9)  # generated column
