@@ -43,6 +43,7 @@ type CockpitDealerResponse = Json<"/api/cockpit/{ticker}/dealer", "get">;
 type CockpitSurfaceResponse = Json<"/api/cockpit/{ticker}/surface", "get">;
 type CockpitFlowImResponse = Json<"/api/cockpit/{ticker}/flow-im", "get">;
 type CockpitVrpResponse = Json<"/api/cockpit/{ticker}/vrp", "get">;
+type ScannerResponse = Json<"/api/scanner", "get">;
 
 async function _fetch<T>(
   path: string,
@@ -136,6 +137,12 @@ export const api = {
       { allow404: true },
     );
   },
+  scanner: (
+    params: URLSearchParams = new URLSearchParams(),
+  ): Promise<ScannerResponse> => {
+    const q = params.toString();
+    return _fetch<ScannerResponse>(`/api/scanner${q ? `?${q}` : ""}`);
+  },
   tradeInsights: (ticker: string): Promise<TradeInsightsResponse> =>
     _fetch<TradeInsightsResponse>(`/api/stock/${ticker}/trade-insights`),
   tradeInsightsAiAnalysis: (
@@ -216,6 +223,7 @@ export type {
   CockpitSurfaceResponse,
   CockpitVrpResponse,
   OhlcResponse,
+  ScannerResponse,
   SingleStockReport,
   TradeInsightsAiAnalysisResponse,
   TradeInsightsResponse,
