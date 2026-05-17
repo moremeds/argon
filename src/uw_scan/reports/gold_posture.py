@@ -173,6 +173,63 @@ def _pre_2022_band(
     }
 
 
+# ---- derived-metric helpers (new fields wired in 044) ----
+
+
+def _trailing_window(series: list[tuple[date, Decimal]], window: int) -> list[float]:
+    if len(series) < window:
+        return [float(v) for _, v in series]
+    return [float(v) for _, v in series[-window:]]
+
+
+def _rolling_z(series: list[tuple[date, Decimal]], window: int) -> Decimal | None:
+    """Z-score of the latest value vs the trailing `window`-day mean/std."""
+    if len(series) < window:
+        return None
+    vals = [float(v) for _, v in series[-window:]]
+    mean = statistics.fmean(vals)
+    std = statistics.pstdev(vals)
+    if std == 0:
+        return None
+    z = (vals[-1] - mean) / std
+    return Decimal(str(round(z, 4)))
+
+
+def _rolling_sigma(series: list[tuple[date, Decimal]], window: int) -> Decimal | None:
+    """Population stdev of the trailing `window`-day values."""
+    if len(series) < window:
+        return None
+    vals = [float(v) for _, v in series[-window:]]
+    std = statistics.pstdev(vals)
+    return Decimal(str(round(std, 4)))
+
+
+def _rank_percentile(series: list[tuple[date, Decimal]], window: int) -> Decimal | None:
+    """Where today's value sits within the trailing window (0..1)."""
+    if len(series) < 2:
+        return None
+    pool = _trailing_window(series, window)
+    if len(pool) < 2:
+        return None
+    latest = pool[-1]
+    leq = sum(1 for v in pool if v <= latest)
+    pct = leq / len(pool)
+    return Decimal(str(round(pct, 4)))
+
+
+# Conversion constants
+_OZ_PER_TONNE = Decimal("32150.7466")
+
+
+def _lbma_30d_momentum_t(inv_rows: list[dict[str, Any]]) -> Decimal | None:
+    """LBMA inventory is monthly; report last-month minus prior-month in tonnes."""
+    rows = [r for r in inv_rows if r.get("vault_oz") is not None]
+    if len(rows) < 2:
+        return None
+    delta_oz = Decimal(str(rows[-1]["vault_oz"])) - Decimal(str(rows[-2]["vault_oz"]))
+    return (delta_oz / _OZ_PER_TONNE).quantize(Decimal("0.1"))
+
+
 # ----- main orchestrator ------------------------------------------------------
 
 
@@ -368,6 +425,37 @@ def compute_and_persist_gold_posture(
         if ts is not None
     ]
 
+    # ---- derived metrics (044 extensions) ---------------------------------
+    # FX basket (DXY) z-score over the trailing year, plus 60d volatility.
+    fx_basket_dxy_z = _rolling_z(dxy_series, window=252)
+    dxy_60d_sigma = _rolling_sigma(dxy_series, window=60)
+    dxy_latest = dxy_series[-1][1] if dxy_series else None
+
+    # GPR latest value + 52w rank percentile.
+    gpr_latest = gpr_series[-1][1] if gpr_series else None
+    gpr_pct_52w = _rank_percentile(gpr_series, window=252)
+
+    # T5YIFR 52w rank percentile (latest already pulled above).
+    t5yifr_series = _series_to_tuples(t5yifr_rows, "obs_date")
+    t5yifr_pct_52w = _rank_percentile(t5yifr_series, window=252)
+
+    # LBMA vault: month-over-month delta in tonnes.
+    lbma_rows = repo.fetch_exchange_inventory_daily(
+        "LBMA", from_date=as_of - timedelta(days=400)
+    )
+    lbma_30d_momentum_t = _lbma_30d_momentum_t(lbma_rows)
+
+    # UW 25Δ skew — latest GLD snapshot (A1 stores the raw decimal; a sigma
+    # calibration needs more history than the 9 snapshots accumulated so far).
+    uw_25d_skew_sigma: Decimal | None = None
+    uw_gld_rows = repo.fetch_uw_gold_options_daily(
+        "GLD", from_date=as_of - timedelta(days=30)
+    )
+    if uw_gld_rows:
+        latest_skew = uw_gld_rows[-1].get("skew_25d_30d")
+        if latest_skew is not None:
+            uw_25d_skew_sigma = Decimal(str(latest_skew))
+
     decomposition_rows = _decomposition_rows_from_lenses(
         structural, cyclical, valuation
     )
@@ -433,5 +521,17 @@ def compute_and_persist_gold_posture(
         correlation_history_jsonb=correlation_history,
         gld_history_jsonb=gld_history_rows,
         gold_history_jsonb=gold_history_rows,
+        # 044 extensions
+        lbma_30d_momentum_t=lbma_30d_momentum_t,
+        uw_25d_skew_sigma=uw_25d_skew_sigma,
+        fx_basket_dxy_z=fx_basket_dxy_z,
+        xau_cny_premium_pct=None,
+        cb_52w_pct=None,
+        cot_mm_4w_change_sigma=None,
+        t5yifr_pct_52w=t5yifr_pct_52w,
+        dxy=dxy_latest,
+        dxy_60d_sigma=dxy_60d_sigma,
+        gpr_value=gpr_latest,
+        gpr_pct_52w=gpr_pct_52w,
     )
     logger.info("gold_posture: wrote row for %s, gauge_state=%s", as_of, gauge.state)

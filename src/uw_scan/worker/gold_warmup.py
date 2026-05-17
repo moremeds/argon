@@ -43,8 +43,20 @@ def main() -> int:
 
     logger.info("gold_warmup: starting (db=%s)", settings.db_name)
 
+    # Warmup pulls 5y of FRED/GPR history so correlations (60/126/252/504D)
+    # have enough overlap with GLD_CLOSE. Routine daily jobs stick with the
+    # 45-day default to keep ingest cheap.
+    LONG_LOOKBACK_DAYS = 1825
+
     steps: list[tuple[str, Callable[[], None]]] = [
-        ("FRED daily + monthly series", lambda: gold_fred_ingest_job(dsn=dsn)),
+        (
+            "FRED daily + monthly series (5y backfill)",
+            lambda: gold_fred_ingest_job(
+                dsn=dsn,
+                lookback_days=LONG_LOOKBACK_DAYS,
+                monthly_lookback_days=LONG_LOOKBACK_DAYS,
+            ),
+        ),
         (
             "Gold spot via massive (GLD daily bars)",
             lambda: (
@@ -63,7 +75,10 @@ def main() -> int:
                 )
             ),
         ),
-        ("GPR daily", lambda: gold_gpr_ingest_job(dsn=dsn)),
+        (
+            "GPR daily (5y backfill)",
+            lambda: gold_gpr_ingest_job(dsn=dsn, lookback_days=LONG_LOOKBACK_DAYS),
+        ),
         (
             "ETF holdings (GLD/IAU/GLDM/PHYS — best-effort)",
             lambda: gold_etf_holdings_ingest_job(dsn=dsn),

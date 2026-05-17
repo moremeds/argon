@@ -78,8 +78,18 @@ GOLD_SPOT_SERIES_ID = "GLD_CLOSE"
 # --- Daily jobs ---------------------------------------------------------------
 
 
-def gold_fred_ingest_job(*, dsn: str, series_ids: list[str] | None = None) -> None:
-    """Daily FRED refresh. Schedule: 17:00 ET."""
+def gold_fred_ingest_job(
+    *,
+    dsn: str,
+    series_ids: list[str] | None = None,
+    lookback_days: int = 45,
+    monthly_lookback_days: int = 400,
+) -> None:
+    """FRED refresh. Schedule: 17:00 ET daily with the default 45-day window.
+
+    The correlation gauge needs ~5y of overlap with GLD_CLOSE — the warmup CLI
+    overrides lookback_days=1825 for the initial backfill. ON CONFLICT keeps
+    the daily job idempotent regardless of window."""
     ids = series_ids or FRED_SERIES_DAILY
     monthly_ids = FRED_SERIES_MONTHLY
     now = datetime.now(UTC)
@@ -89,7 +99,7 @@ def gold_fred_ingest_job(*, dsn: str, series_ids: list[str] | None = None) -> No
             stored_sid = FRED_SERIES_ALIASES.get(sid, sid)
             try:
                 for obs in fred.fetch_series(
-                    sid, start=date.today() - timedelta(days=45)
+                    sid, start=date.today() - timedelta(days=lookback_days)
                 ):
                     repo.insert_macro_series_daily(
                         series_id=stored_sid,
@@ -105,7 +115,7 @@ def gold_fred_ingest_job(*, dsn: str, series_ids: list[str] | None = None) -> No
         for sid in monthly_ids:
             try:
                 for obs in fred.fetch_series(
-                    sid, start=date.today() - timedelta(days=400)
+                    sid, start=date.today() - timedelta(days=monthly_lookback_days)
                 ):
                     repo.insert_macro_series_monthly(
                         series_id=obs.series_id,
@@ -123,13 +133,18 @@ def gold_fred_ingest_job(*, dsn: str, series_ids: list[str] | None = None) -> No
         conn.commit()
 
 
-def gold_gpr_ingest_job(*, dsn: str) -> None:
-    """Daily GPR refresh. Schedule: 20:00 ET."""
+def gold_gpr_ingest_job(*, dsn: str, lookback_days: int = 45) -> None:
+    """GPR refresh. Schedule: 20:00 ET daily with the default 45-day window.
+
+    Warmup CLI overrides lookback_days for the initial backfill. Idempotent
+    via ON CONFLICT."""
     now = datetime.now(UTC)
     with psycopg.connect(dsn) as conn, GprProvider() as gpr:
         repo = Repository(conn, schema="uw_scan")
         try:
-            for obs in gpr.fetch_daily(start=date.today() - timedelta(days=45)):
+            for obs in gpr.fetch_daily(
+                start=date.today() - timedelta(days=lookback_days)
+            ):
                 repo.insert_macro_series_daily(
                     series_id="GPRD",
                     obs_date=obs.obs_date,

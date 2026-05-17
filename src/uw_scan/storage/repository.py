@@ -4672,6 +4672,18 @@ class Repository(
         correlation_history_jsonb: dict[str, Any] | None = None,
         gld_history_jsonb: list[dict[str, Any]] | None = None,
         gold_history_jsonb: list[dict[str, Any]] | None = None,
+        # 044 extensions — orchestrator-derived metrics from DXY/GPR/UW/LBMA series
+        lbma_30d_momentum_t: Decimal | None = None,
+        uw_25d_skew_sigma: Decimal | None = None,
+        fx_basket_dxy_z: Decimal | None = None,
+        xau_cny_premium_pct: Decimal | None = None,
+        cb_52w_pct: Decimal | None = None,
+        cot_mm_4w_change_sigma: Decimal | None = None,
+        t5yifr_pct_52w: Decimal | None = None,
+        dxy: Decimal | None = None,
+        dxy_60d_sigma: Decimal | None = None,
+        gpr_value: Decimal | None = None,
+        gpr_pct_52w: Decimal | None = None,
     ) -> None:
         with self._conn.cursor() as cur:
             cur.execute(
@@ -4695,7 +4707,12 @@ class Repository(
                   valuation_posture_chip,
                   spot_jsonb, data_freshness_jsonb,
                   decomposition_jsonb, correlation_history_jsonb,
-                  gld_history_jsonb, gold_history_jsonb
+                  gld_history_jsonb, gold_history_jsonb,
+                  lbma_30d_momentum_t, uw_25d_skew_sigma,
+                  fx_basket_dxy_z, xau_cny_premium_pct,
+                  cb_52w_pct, cot_mm_4w_change_sigma,
+                  t5yifr_pct_52w, dxy, dxy_60d_sigma,
+                  gpr_value, gpr_pct_52w
                 ) VALUES (
                   %s, %s, %s, %s, %s, %s, %s, %s, %s,
                   %s, %s, %s, %s, %s, %s, %s, %s, %s,
@@ -4704,7 +4721,8 @@ class Repository(
                   %s, %s, %s,
                   %s, %s,
                   %s, %s,
-                  %s, %s
+                  %s, %s,
+                  %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s
                 )
                 ON CONFLICT (obs_date, computed_at) DO NOTHING
                 """,
@@ -4757,6 +4775,17 @@ class Repository(
                     Jsonb(gold_history_jsonb)
                     if gold_history_jsonb is not None
                     else None,
+                    lbma_30d_momentum_t,
+                    uw_25d_skew_sigma,
+                    fx_basket_dxy_z,
+                    xau_cny_premium_pct,
+                    cb_52w_pct,
+                    cot_mm_4w_change_sigma,
+                    t5yifr_pct_52w,
+                    dxy,
+                    dxy_60d_sigma,
+                    gpr_value,
+                    gpr_pct_52w,
                 ),
             )
 
