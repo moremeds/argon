@@ -5185,6 +5185,28 @@ class Repository:
         out.setdefault("ticker", row_ticker)
         return out
 
+    def fetch_flip_strike_history(self, *, ticker: str, limit: int = 90) -> dict:
+        """Return ``{trade_date: gex_flip_strike}`` for the most recent N days.
+
+        Multiple snapshots per day may exist; the latest scan wins (max
+        ``scanned_at`` per ``data_date``). Days without a flip strike are
+        omitted — UI renders sparse.
+        """
+        sql = f"""
+            SELECT DISTINCT ON (data_date)
+                   data_date,
+                   level_gex_flip_strike::float8 AS flip
+              FROM {self._schema}.gex_snapshots
+             WHERE ticker = %s
+               AND data_date IS NOT NULL
+               AND level_gex_flip_strike IS NOT NULL
+             ORDER BY data_date DESC, scanned_at DESC
+             LIMIT %s
+        """
+        with self._conn.cursor() as cur:
+            cur.execute(sql, (ticker.upper(), limit))
+            return {row[0]: row[1] for row in cur.fetchall()}
+
     def upsert_gex_snapshot(
         self,
         *,
