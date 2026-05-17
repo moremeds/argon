@@ -28,9 +28,11 @@ PER-TICKER SCAN PIPELINE (existing, extended)
 worker dequeues rescan job
     → fetches UW data into existing tables
     → NEW: scanner.pipeline.run_detectors(repo, run_id, ticker)
-        → applies gates (earnings / liquidity / regime)
-        → runs 4 signal detectors
-        → runs context-flag detector(s)
+        → evaluates ALL 3 gates and records status (earnings, liquidity, regime)
+        → IF regime_gate == "block": write signal_gates row and stop
+        → ELSE: run 4 signal detectors + context-flag detector(s)
+          (earnings/liquidity advisory states are passed through to the candidate
+          but do NOT suppress detector emission — see §4)
         → writes results to uw_scan.signal_hits / signal_context_flags / signal_gates
     → finish_scan_run(run_id, status="ok")
 
@@ -81,7 +83,7 @@ Four signal detectors + one context flag. Field thresholds are direct ports of x
 | `\|moneyness\|` | ≤ 0.12 (close to ATM) |
 | `dte` | ≥ 6 |
 
-**Detector-level gate:** must NOT have earnings within 14 days (xenon checks this at the detector AND as a gate — defensive duplication preserved).
+**Detector-internal check:** must NOT have earnings within 14 days. This is intentionally redundant with the framework's `earnings_gate` (which is advisory for the framework but enforced *inside* this detector). Xenon preserves the same defensive duplication: even if `earnings_gate` is advisory, DCF itself returns `None` when earnings are within 14d so the detector can never emit a hit during the earnings window.
 
 **Score:** `0.5 + 0.5 × min(total_premium / $2,000,000, 1.0)` aggregated over all qualifying alerts.
 
@@ -162,9 +164,9 @@ Reason for the asymmetry: `earnings_iv_crush` REQUIRES earnings within 14d, so a
 | `liquidity_gate` | aggregate `option_volume ≥ 1000` over recent flow alerts | **advisory** — recorded only |
 | `regime_gate` | market regime ≠ R2 (risk-off) | **hard block** — candidate suppressed entirely |
 
-**Regime gate mapping (open question, must be resolved in spec):**
+**Regime gate mapping (proposed; final mapping resolved during implementation):**
 
-Xenon uses an R0/R1/R2 trichotomy. Unusual-whales uses GOLD COMPASS five-tier posture (shipped in PR #40 — exact tier names: see `cards/matrix_state.py` or the recent gold A1 commits). Proposed mapping, **to be confirmed by reading the actual posture enum during Task 1 of implementation**:
+Xenon uses an R0/R1/R2 trichotomy. Unusual-whales uses GOLD COMPASS five-tier posture (shipped in PR #40 — exact tier names: see `cards/matrix_state.py` or the recent gold A1 commits). Proposed starting mapping, **to be verified by reading the actual posture enum during implementation Task 1; update inline if names differ**:
 
 | GOLD posture | xenon equivalent |
 |---|---|
@@ -316,7 +318,7 @@ web/
 │   ├── page.tsx                          # MODIFIED — replaces stub; RSC, force-dynamic
 │   └── loading.tsx                       # NEW — tile-stack skeleton
 ├── components/scanner/                   # NEW directory
-│   ├── ScannerFilters.tsx                # "use client" — Type-F toggle, min-tier, sector chips
+│   ├── ScannerFilters.tsx                # "use client" — Type-F toggle, Tier-1-only toggle, sector chips
 │   ├── CandidateTile.tsx                 # one ranked candidate
 │   ├── SignalBadge.tsx                   # [DCF · tier 1 · $2.4M premium]
 │   ├── ContextFlagBadge.tsx              # flag: Extreme Fear
@@ -355,10 +357,12 @@ web/tests/
 ### `GET /api/scanner`
 
 **Query params:**
-- `min_tier`: `1 | 2` (default `2` — show all)
-- `type_f_only`: `true | false` (default `false`)
+- `tier_1_only`: `true | false` (default `false`) — when true, only show candidates that have at least one tier-1 signal hit (i.e., hide candidates whose only hits are tier-2 dark pool clusters)
+- `type_f_only`: `true | false` (default `false`) — when true, only show Type-F candidates (≥ 2 distinct non-DP signal types)
 - `sector`: optional sector filter (reuses watchlist sector groups)
 - `freshness_hours`: optional override (default from `SCANNER_FRESHNESS_HOURS` env, default 6)
+
+Tier semantics note: lower tier number = higher signal importance (xenon convention — tier 1 is the headline edge, tier 2 is confirmation-only). The boolean `tier_1_only` filter avoids the min/max-tier ambiguity that arises with numeric range params.
 
 **Response (Pydantic v2 model in `api/models/scanner.py`):**
 
@@ -376,6 +380,11 @@ class ScannerContextFlag(BaseModel):
     label: str
     value: Decimal | None
 
+class ScannerGatesStatus(BaseModel):
+    earnings: Literal["pass", "block"]    # advisory
+    liquidity: Literal["pass", "block"]   # advisory
+    regime: Literal["pass", "block"]      # candidate exists ⇒ regime is always "pass" here
+
 class ScannerCandidate(BaseModel):
     ticker: str
     spot: Decimal | None
@@ -385,6 +394,7 @@ class ScannerCandidate(BaseModel):
     final_score: Decimal
     hits: list[ScannerSignalHit]
     context_flags: list[ScannerContextFlag]
+    gates: ScannerGatesStatus            # advisory states for the candidate tile
     scanned_at: datetime
 
 class ScannerGatedTicker(BaseModel):
@@ -411,7 +421,7 @@ class ScannerResponse(BaseModel):
 ```
 SCANNER
 
-[Type F only ☐]  [Min tier: 1 ◉ 2 ◯ all ◯]   [sector chips from watchlist]
+[Type F only ☐]  [Tier 1 only ☐]   [sector chips from watchlist]
 
 ┌──────────────────────────────────────────────────────────────────┐
 │ * AAPL  $185.20                                       score 5.20 │
@@ -453,7 +463,7 @@ The GATED list **only contains regime-blocked tickers** (the sole hard-block gat
 
 - Tile click target: the "Evaluate →" link; entire tile not clickable (avoid accidental navigation when scanning)
 - Per-tile rescan button: reuse existing `<RescanButton ticker={ticker} initialJob={null} />` from `components/shared/RescanButton`
-- Filter chips: client-side URL param updates (`?type_f=1&min_tier=1`), same pattern as watchlist `FilterBar`
+- Filter chips: client-side URL param updates (`?type_f_only=true&tier_1_only=true`), same pattern as watchlist `FilterBar`
 - Page is `force-dynamic` — searchParams-driven, no Router Cache caching
 
 ---
