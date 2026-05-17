@@ -23,6 +23,7 @@ from typing import Any
 
 from uw_scan.api.client import UwClient
 from uw_scan.api.endpoints import EndpointSlug
+from uw_scan.cards.greek_exposure_history import parse_greek_exposure_history
 from uw_scan.sources import uw as uw_source
 from uw_scan.storage.repository import Repository
 
@@ -290,24 +291,13 @@ def fetch_strike_gex(
 def fetch_aggregate_gex(
     client: UwClient, repo: Repository, run_id: int, ticker: str
 ) -> list[dict[str, Any]]:
-    """Aggregate GEX time series (used for net_dex calculation)."""
+    """Aggregate GEX time series.
+
+    Delegates parsing to the shared ``cards/greek_exposure_history`` util so
+    the same logic is reused by the regime-page history persistence path.
+    """
     body = uw_source.fetch_greek_exposure_history(client, repo, run_id, ticker)
-    rows = body.get("data", []) or []
-    parsed = []
-    for r in rows:
-        try:
-            parsed.append(
-                {
-                    "date": r.get("date"),
-                    "call_gex": float(r.get("call_gex", 0) or 0),
-                    "put_gex": float(r.get("put_gex", 0) or 0),
-                    "call_delta": float(r.get("call_delta", 0) or 0),
-                    "put_delta": float(r.get("put_delta", 0) or 0),
-                }
-            )
-        except (KeyError, ValueError, TypeError):
-            continue
-    return parsed
+    return parse_greek_exposure_history(body)
 
 
 def fetch_iv_rank_rows(
