@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useMarketHours } from "@/lib/regime/useMarketHours";
+import CriSubTab from "./CriSubTab";
 import GexSubTab from "./GexSubTab";
 import PendingSubTab from "./PendingSubTab";
 
@@ -13,8 +14,6 @@ const TABS: { id: RegimeTab; label: string }[] = [
   { id: "vcg", label: "VCG" },
 ];
 
-const CRI_DESC =
-  "Crash Risk Indicator — composite score from VIX, VVIX, COR1M implied correlation, and SPX momentum. Renders when VIX/VVIX/COR1M data is wired.";
 const VCG_DESC =
   "Volatility-Credit Gap — rolling OLS residual between the vol complex (VIX/VVIX) and cash credit (HYG/JNK/LQD). Renders when VIX/VVIX data is wired.";
 
@@ -41,9 +40,7 @@ export default function RegimePanel() {
         ))}
       </div>
       {activeTab === "gex" && <GexSubTab marketState={marketState} />}
-      {activeTab === "cri" && (
-        <PendingSubTab name="CRI" description={CRI_DESC} />
-      )}
+      {activeTab === "cri" && <CriSubTab />}
       {activeTab === "vcg" && (
         <PendingSubTab name="VCG" description={VCG_DESC} />
       )}

@@ -4,9 +4,12 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import RegimePanel from "@/components/regime/RegimePanel";
 
-// Stub GexSubTab so this test doesn't depend on d3 / fetch internals.
+// Stub GexSubTab / CriSubTab so this test doesn't depend on chart / fetch internals.
 vi.mock("@/components/regime/GexSubTab", () => ({
   default: () => <div data-testid="gex-subtab-stub">GEX subtab</div>,
+}));
+vi.mock("@/components/regime/CriSubTab", () => ({
+  default: () => <div data-testid="cri-subtab-stub">CRI subtab</div>,
 }));
 
 beforeEach(() => {
@@ -29,11 +32,10 @@ describe("RegimePanel", () => {
     expect(screen.queryByTestId("gex-subtab-stub")).not.toBeNull();
   });
 
-  it("shows pending placeholder on CRI tab", () => {
+  it("renders CRI subtab when CRI tab clicked", () => {
     render(<RegimePanel />);
     fireEvent.click(screen.getByTestId("regime-tab-cri"));
-    expect(screen.queryByTestId("regime-pending-cri")).not.toBeNull();
-    expect(screen.queryByText(/coming soon/i)).not.toBeNull();
+    expect(screen.queryByTestId("cri-subtab-stub")).not.toBeNull();
   });
 
   it("shows pending placeholder on VCG tab", () => {

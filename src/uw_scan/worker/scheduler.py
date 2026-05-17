@@ -333,6 +333,18 @@ def main() -> int:
         with _repo(settings) as repo:
             run_vol_index_lake_sync(repo.conn, root=settings.lake_vol_index_root)
 
+    def _regime_cri_scan() -> None:
+        # Reads vol_index_daily + daily_ohlc; writes cri_snapshots. No external
+        # API spend. Append-only — running twice in an hour is harmless.
+        from uw_scan.scanners import cri as cri_scanner
+
+        with _repo(settings) as repo:
+            row_id = cri_scanner.run(repo.conn, schema=settings.db_schema)
+            if row_id is None:
+                logger.info("regime_cri_scan_skipped_thin_data")
+            else:
+                logger.info("regime_cri_scan_persisted row_id=%d", row_id)
+
     def _regime_gex_scan() -> None:
         # Weekday gate — UW data only meaningful during regular sessions.
         if datetime.now(ZoneInfo(settings.rth_tz)).weekday() >= 5:
@@ -453,6 +465,16 @@ def main() -> int:
             CronTrigger(hour=3, minute=15, timezone=settings.rth_tz),
             id="vol_index_lake_sync",
             name="Vol-complex parquet lake sync",
+            max_instances=1,
+            coalesce=True,
+        )
+        # CRI scan — refreshes cri_snapshots on the hour. Pure DB-read math,
+        # no provider spend. Append-only; safe to re-run.
+        sched.add_job(
+            _regime_cri_scan,
+            CronTrigger(minute=20, timezone=settings.rth_tz),
+            id="regime_cri_scan",
+            name="Regime CRI scan",
             max_instances=1,
             coalesce=True,
         )

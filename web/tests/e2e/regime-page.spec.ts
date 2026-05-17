@@ -9,10 +9,15 @@ test("/regime renders with three tabs and GEX default", async ({ page }) => {
   await expect(page.getByTestId("regime-tab-gex")).toHaveClass(/active/);
 });
 
-test("CRI tab shows pending placeholder", async ({ page }) => {
+test("CRI tab renders subtab — either empty state or populated cards", async ({
+  page,
+}) => {
   await page.goto("/regime");
   await page.getByTestId("regime-tab-cri").click();
-  await expect(page.getByText(/coming soon/i)).toBeVisible();
+  // After click, either CriSubTab loads (data path) or the empty placeholder appears.
+  await expect(
+    page.getByTestId("cri-subtab").or(page.getByTestId("cri-empty-state")),
+  ).toBeVisible({ timeout: 15_000 });
 });
 
 test("vol backdrop strip renders with four vol tiles + term structure", async ({
