@@ -89,7 +89,8 @@ def _history_points(blob: Any) -> list[GoldHistoryPoint]:
                     value=Decimal(str(row["value"])),
                 )
             )
-        except (KeyError, ValueError):
+        except (KeyError, ValueError) as exc:
+            logger.debug("history point parse skipped: %s", repr(exc))
             continue
     return out
 
@@ -108,7 +109,8 @@ def _correlation_points(blob: Any) -> list[GoldCorrelationPoint]:
                     value=Decimal(str(row["value"])),
                 )
             )
-        except (KeyError, ValueError):
+        except (KeyError, ValueError) as exc:
+            logger.debug("correlation point parse skipped: %s", repr(exc))
             continue
     return out
 
@@ -124,7 +126,8 @@ def _correlation_history(blob: Any) -> GoldCorrelationHistory:
                 mean=Decimal(str(band_blob["mean"])),
                 std=Decimal(str(band_blob["std"])),
             )
-        except (KeyError, ValueError):
+        except (KeyError, ValueError) as exc:
+            logger.debug("correlation band parse skipped: %s", repr(exc))
             band = None
     return GoldCorrelationHistory(
         gold_dfii10=_correlation_points(blob.get("gold_dfii10")),
@@ -149,7 +152,8 @@ def _decomposition_rows(blob: Any) -> list[GoldDecompositionRow]:
                     contribution=Decimal(str(row["contribution"])),
                 )
             )
-        except (KeyError, ValueError):
+        except (KeyError, ValueError) as exc:
+            logger.debug("decomposition row parse skipped: %s", repr(exc))
             continue
     return out
 
@@ -175,7 +179,8 @@ def _data_freshness(blob: Any) -> list[GoldDataFreshnessSource]:
                     stale_seconds=int(row.get("stale_seconds", 0)),
                 )
             )
-        except (KeyError, ValueError):
+        except (KeyError, ValueError) as exc:
+            logger.debug("data freshness row parse skipped: %s", repr(exc))
             continue
     return out
 
@@ -194,7 +199,8 @@ def _state_from_row(row: dict) -> GoldStateResponse:
                 obs_date=date.fromisoformat(obs_date_raw),
                 as_of=as_of_raw,
             )
-        except ValueError:
+        except ValueError as exc:
+            logger.debug("input provenance parse skipped: %s", repr(exc))
             continue
 
     return GoldStateResponse(

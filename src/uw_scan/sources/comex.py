@@ -158,7 +158,8 @@ def _parse_date(raw: str) -> date | None:
     for fmt in ("%m/%d/%Y", "%Y-%m-%d"):
         try:
             return datetime.strptime(raw, fmt).date()
-        except ValueError:
+        except ValueError as exc:
+            logger.debug("comex date parse fmt=%s skipped: %s", fmt, repr(exc))
             continue
     return None
 
@@ -168,5 +169,6 @@ def _dec(raw: str) -> Decimal | None:
         return None
     try:
         return Decimal(raw.replace(",", "").strip())
-    except (InvalidOperation, ValueError):
+    except (InvalidOperation, ValueError) as exc:
+        logger.debug("comex decimal parse skipped: %s", repr(exc))
         return None

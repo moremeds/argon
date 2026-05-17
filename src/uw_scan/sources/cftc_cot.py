@@ -94,7 +94,8 @@ class CftcCotProvider:
                 c_l = _dec(row.get("Prod_Merc_Positions_Long_ALL"))
                 c_s = _dec(row.get("Prod_Merc_Positions_Short_ALL"))
                 oi = _dec(row.get("Open_Interest_All"))
-            except (KeyError, ValueError, InvalidOperation):
+            except (KeyError, ValueError, InvalidOperation) as exc:
+                logger.debug("cftc cot row parse skipped: %s", repr(exc))
                 continue
             if start and obs < start:
                 continue
@@ -183,5 +184,6 @@ def _dec(raw: Any) -> Decimal | None:
         return None
     try:
         return Decimal(str(raw).replace(",", "").strip())
-    except (InvalidOperation, ValueError):
+    except (InvalidOperation, ValueError) as exc:
+        logger.debug("cftc decimal parse skipped: %s", repr(exc))
         return None

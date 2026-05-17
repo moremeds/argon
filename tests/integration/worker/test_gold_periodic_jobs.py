@@ -15,7 +15,6 @@ import pytest
 from uw_scan.config import Settings
 from uw_scan.sources.cftc_cot import CftcCotProvider, CotRow
 from uw_scan.sources.lbma import LbmaProvider, LbmaVaultRow
-from uw_scan.sources.wgc_cb import CbReserveRow
 from uw_scan.storage.repository import Repository
 from uw_scan.worker.jobs.gold_jobs import (
     gold_cftc_cot_ingest_job,

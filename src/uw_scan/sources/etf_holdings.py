@@ -254,7 +254,8 @@ def _parse_date(raw: str | None) -> date | None:
     for fmt in ("%Y-%m-%d", "%m/%d/%Y"):
         try:
             return datetime.strptime(raw, fmt).date()
-        except ValueError:
+        except ValueError as exc:
+            logger.debug("etf date parse fmt=%s skipped: %s", fmt, repr(exc))
             continue
     return None
 
@@ -264,5 +265,6 @@ def _dec(raw: Any) -> Decimal | None:
         return None
     try:
         return Decimal(str(raw).replace(",", ""))
-    except (InvalidOperation, ValueError):
+    except (InvalidOperation, ValueError) as exc:
+        logger.debug("etf decimal parse skipped: %s", repr(exc))
         return None

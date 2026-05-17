@@ -43,7 +43,6 @@ from uw_scan.sources.uw_gold_options import (
     GOLD_OPTIONS_TICKERS,
     fetch_gold_options_snapshot,
 )
-from uw_scan.sources.wgc_cb import WgcCbProvider
 from uw_scan.storage.repository import Repository
 
 logger = logging.getLogger(__name__)

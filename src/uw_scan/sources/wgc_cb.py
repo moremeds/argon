@@ -126,7 +126,8 @@ class WgcCbProvider:
                 reserves_t = (
                     Decimal(tonnes_raw.replace(",", "")) if tonnes_raw else None
                 )
-            except (ValueError, InvalidOperation):
+            except (ValueError, InvalidOperation) as exc:
+                logger.debug("wgc cb row parse skipped: %s", repr(exc))
                 continue
             if start and obs_month < start:
                 continue

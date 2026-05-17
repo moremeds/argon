@@ -115,7 +115,8 @@ def _rolling_corr_pairs(
         ys = [float(aligned[d][1]) for d in slice_dates]
         try:
             corr = statistics.correlation(xs, ys)
-        except statistics.StatisticsError:
+        except statistics.StatisticsError as exc:
+            logger.debug("rolling corr window skipped: %s", repr(exc))
             continue
         if corr != corr:  # NaN
             continue

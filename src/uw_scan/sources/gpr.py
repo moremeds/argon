@@ -9,7 +9,6 @@ Persists to uw_scan.macro_series_daily with series_id='GPRD'.
 
 from __future__ import annotations
 
-import io
 import logging
 from collections.abc import Callable
 from dataclasses import dataclass
