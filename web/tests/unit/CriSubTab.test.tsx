@@ -166,4 +166,13 @@ describe("CriSubTabView", () => {
       screen.getByTestId("regime-history-chart-rvol-cor1m"),
     ).not.toBeNull();
   });
+
+  it("renders the sortable history table beneath the charts", () => {
+    render(<CriSubTabView data={POPULATED} />);
+    const table = screen.getByTestId("cri-history-table");
+    expect(table).not.toBeNull();
+    // Header row + 2 data rows from POPULATED.history
+    expect(table.querySelectorAll("tbody tr").length).toBe(2);
+    expect(screen.getByTestId("cri-history-table-toggle")).not.toBeNull();
+  });
 });
