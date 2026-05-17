@@ -328,3 +328,17 @@ class RegimePendingResponse(BaseModel):
         "Data source pending. CRI/VCG require VIX/VVIX/COR1M from the "
         "IB-via-R2 reader (separate project)."
     )
+
+
+class VolBackdropPoint(BaseModel):
+    date: date
+    close: float
+
+
+class VolBackdropResponse(BaseModel):
+    """Vol-complex time series + VIX term-structure (regime page header strip)."""
+
+    series: dict[str, list[VolBackdropPoint]] = Field(default_factory=dict)
+    term_structure_ratio: float | None = None  # VIX / VIX3M, latest close
+    term_structure_state: str | None = None  # "contango" | "backwardation"
+    as_of: date | None = None

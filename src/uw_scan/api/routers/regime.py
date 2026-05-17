@@ -15,6 +15,7 @@ from uw_scan.api.schemas import (
     GexHistoryEntry,
     GexResponse,
     RegimePendingResponse,
+    VolBackdropResponse,
 )
 from uw_scan.config import Settings
 from uw_scan.scanners import gex as gex_scanner
@@ -111,6 +112,42 @@ def trigger_gex_scan(
         "ticker": ticker.upper(),
         "row_id": row_id,
     }
+
+
+# ─── Vol backdrop ────────────────────────────────────────────────
+
+_VOL_BACKDROP_SYMBOLS = ("VIX", "VIX3M", "VVIX", "COR1M")
+
+
+@router.get("/vol-backdrop", response_model=VolBackdropResponse)
+def get_vol_backdrop(
+    repo: Annotated[Repository, Depends(get_repo)],
+    days: int = Query(90, ge=5, le=365),
+) -> VolBackdropResponse:
+    v = VolIndexRepository(repo.conn, schema=repo._schema)
+    multi = v.fetch_multi_history(_VOL_BACKDROP_SYMBOLS, days=days)
+
+    series = {
+        sym: [{"date": r["trade_date"], "close": r["close"]} for r in rows]
+        for sym, rows in multi.items()
+    }
+
+    latest_vix = series["VIX"][-1]["close"] if series.get("VIX") else None
+    latest_vix3m = series["VIX3M"][-1]["close"] if series.get("VIX3M") else None
+    ratio = None
+    state = None
+    as_of = None
+    if latest_vix is not None and latest_vix3m:
+        ratio = latest_vix / latest_vix3m
+        state = "contango" if ratio < 1 else "backwardation"
+        as_of = series["VIX"][-1]["date"]
+
+    return VolBackdropResponse(
+        series=series,
+        term_structure_ratio=ratio,
+        term_structure_state=state,
+        as_of=as_of,
+    )
 
 
 # ─── CRI (pending) ───────────────────────────────────────────────

@@ -477,6 +477,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/regime/vol-backdrop": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Vol Backdrop */
+        get: operations["get_vol_backdrop_api_regime_vol_backdrop_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/regime": {
         parameters: {
             query?: never;
@@ -2901,6 +2918,32 @@ export interface components {
             /** Context */
             ctx?: Record<string, never>;
         };
+        /** VolBackdropPoint */
+        VolBackdropPoint: {
+            /**
+             * Date
+             * Format: date
+             */
+            date: string;
+            /** Close */
+            close: number;
+        };
+        /**
+         * VolBackdropResponse
+         * @description Vol-complex time series + VIX term-structure (regime page header strip).
+         */
+        VolBackdropResponse: {
+            /** Series */
+            series?: {
+                [key: string]: components["schemas"]["VolBackdropPoint"][];
+            };
+            /** Term Structure Ratio */
+            term_structure_ratio?: number | null;
+            /** Term Structure State */
+            term_structure_state?: string | null;
+            /** As Of */
+            as_of?: string | null;
+        };
         /** VolHeaderBlock */
         VolHeaderBlock: {
             /** Iv */
@@ -4114,6 +4157,37 @@ export interface operations {
                     "application/json": {
                         [key: string]: unknown;
                     };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_vol_backdrop_api_regime_vol_backdrop_get: {
+        parameters: {
+            query?: {
+                days?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VolBackdropResponse"];
                 };
             };
             /** @description Validation Error */
