@@ -1,4 +1,5 @@
 import RegimePanel from "@/components/regime/RegimePanel";
+import VolBackdropStrip from "@/components/regime/VolBackdropStrip";
 
 export const metadata = {
   title: "Regime — Unusual Whales",
@@ -14,6 +15,7 @@ export default function RegimePage() {
           Crash Risk Indicator · Vol-Curve Gauge · Gamma Exposure
         </p>
       </header>
+      <VolBackdropStrip />
       <RegimePanel />
     </main>
   );
