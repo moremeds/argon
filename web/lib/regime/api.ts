@@ -9,4 +9,5 @@ export const regimeApi = {
     `${API}/api/regime/gex?ticker=${encodeURIComponent(ticker)}`,
   gex_scan: (ticker: string) =>
     `${API}/api/regime/gex/scan?ticker=${encodeURIComponent(ticker)}`,
+  vol_backdrop: () => `${API}/api/regime/vol-backdrop`,
 } as const;
