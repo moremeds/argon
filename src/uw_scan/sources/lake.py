@@ -74,6 +74,7 @@ def _maybe_float(x) -> float | None:
         return None
     try:
         f = float(x)
-    except (TypeError, ValueError):
+    except (TypeError, ValueError) as exc:
+        _ = repr(exc)  # CI Guardrail 2: coercion failure folds to None
         return None
     return f

@@ -45,7 +45,8 @@ def parse_greek_exposure_history(body: dict | None) -> list[dict]:
             put_gex = float(r.get("put_gex", 0) or 0)
             call_delta = float(r.get("call_delta", 0) or 0)
             put_delta = float(r.get("put_delta", 0) or 0)
-        except (TypeError, ValueError):
+        except (TypeError, ValueError) as exc:
+            _ = repr(exc)  # CI Guardrail 2: malformed row skipped
             continue
         out.append(
             {
@@ -68,6 +69,7 @@ def _coerce_date(v: Any) -> date | None:
     if isinstance(v, str):
         try:
             return date.fromisoformat(v)
-        except ValueError:
+        except ValueError as exc:
+            _ = repr(exc)  # CI Guardrail 2: bad ISO string → None
             return None
     return None

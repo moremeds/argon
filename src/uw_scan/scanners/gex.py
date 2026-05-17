@@ -283,7 +283,8 @@ def fetch_strike_gex(
                     "net_delta": call_delta + put_delta,
                 }
             )
-        except (KeyError, ValueError, TypeError):
+        except (KeyError, ValueError, TypeError) as exc:
+            log.debug("gex strike row skipped: %s", repr(exc))
             continue
     return parsed
 
@@ -322,7 +323,8 @@ def fetch_atm_iv(iv_rank_rows: list[dict[str, Any]]) -> float | None:
     v = row.get("volatility")
     try:
         return float(v) if v is not None else None
-    except (TypeError, ValueError):
+    except (TypeError, ValueError) as exc:
+        log.debug("atm_iv coercion failed: %s", repr(exc))
         return None
 
 
@@ -334,7 +336,8 @@ def fetch_iv_rank(iv_rank_rows: list[dict[str, Any]]) -> float | None:
     r = row.get("iv_rank_1y")
     try:
         return float(r) if r is not None else None
-    except (TypeError, ValueError):
+    except (TypeError, ValueError) as exc:
+        log.debug("iv_rank coercion failed: %s", repr(exc))
         return None
 
 
@@ -351,7 +354,8 @@ def fetch_spot_price(iv_rank_rows: list[dict[str, Any]]) -> float | None:
     p = row.get("close")
     try:
         return float(p) if p is not None else None
-    except (TypeError, ValueError):
+    except (TypeError, ValueError) as exc:
+        log.debug("spot_price coercion failed: %s", repr(exc))
         return None
 
 

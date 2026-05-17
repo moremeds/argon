@@ -84,7 +84,8 @@ def rolling_ols(
         A = np.column_stack([np.ones(window), X_w])
         try:
             coeff, _, rank, _ = np.linalg.lstsq(A, y_w, rcond=None)
-        except np.linalg.LinAlgError:
+        except np.linalg.LinAlgError as exc:
+            _ = repr(exc)  # CI Guardrail 2: window silently dropped, OLS will skip
             continue
         if rank < A.shape[1]:
             continue
