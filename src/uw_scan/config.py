@@ -97,6 +97,17 @@ class Settings(BaseModel):
     # Regime / GEX scanner (port from xenon — ships GEX live; CRI/VCG pending)
     gex_scan_tickers: list[str] = ["SPX", "SPY"]
     gex_scan_interval_minutes: int = 5
+    # Parquet lake root for CBOE vol indices and SPX daily OHLC.
+    # Maintained by the peer ``market-data-warehouse`` project. Symbol subdirs
+    # are named ``symbol=<TICKER>`` with a ``1d.parquet`` payload inside.
+    lake_vol_index_root: Path = Field(
+        default=Path.home()
+        / "market-warehouse/data-lake/bronze/asset_class=volatility",
+        description=(
+            "Local parquet lake root for CBOE vol indices and SPX daily OHLC. "
+            "Symbol subdirs are named symbol=<TICKER>."
+        ),
+    )
 
     @classmethod
     def from_env(cls, env_path: Path | None = None) -> "Settings":
