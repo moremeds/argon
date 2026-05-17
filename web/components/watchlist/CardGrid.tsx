@@ -11,10 +11,29 @@ function sectorRank(sector: string, tickers: WatchlistCard[]) {
     sector as (typeof PRIORITY_SECTORS)[number],
   );
   if (priority >= 0) return priority;
-  return (
-    PRIORITY_SECTORS.length +
-    Math.min(...tickers.map((t) => t.sort_rank), Number.MAX_SAFE_INTEGER)
+
+  // Non-priority sectors: rank by max size of their members, so the sector
+  // that floats up is the one whose top card on display is biggest. Aligns
+  // sector ordering with `compareCards`'s within-section size ordering.
+  const maxSize = tickers.reduce<number>(
+    (m, t) => Math.max(m, sizeValue(t) ?? -Infinity),
+    -Infinity,
   );
+  if (maxSize === -Infinity) {
+    // All members unpriced — push past priced sectors but keep server-curated
+    // sort_rank as a stable fallback so unpriced sectors keep a deterministic
+    // relative order.
+    return (
+      PRIORITY_SECTORS.length +
+      Number.MAX_SAFE_INTEGER / 2 +
+      tickers.reduce<number>(
+        (m, t) => Math.min(m, t.sort_rank),
+        Number.MAX_SAFE_INTEGER,
+      )
+    );
+  }
+  // Subtract from a large constant so larger maxSize ⇒ smaller rank ⇒ earlier.
+  return PRIORITY_SECTORS.length + (Number.MAX_SAFE_INTEGER / 2 - maxSize);
 }
 
 function sizeValue(card: WatchlistCard) {

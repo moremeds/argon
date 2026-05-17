@@ -3072,6 +3072,1006 @@
         "title": "GexSourceDeltaEntry",
         "type": "object"
       },
+      "GoldCorrelationBand": {
+        "properties": {
+          "mean": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Mean",
+            "type": "string"
+          },
+          "std": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Std",
+            "type": "string"
+          }
+        },
+        "required": [
+          "mean",
+          "std"
+        ],
+        "title": "GoldCorrelationBand",
+        "type": "object"
+      },
+      "GoldCorrelationHistory": {
+        "description": "Tier 5 correlation-history panel inputs.",
+        "properties": {
+          "gold_dfii10": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/GoldCorrelationPoint"
+            },
+            "title": "Gold Dfii10",
+            "type": "array"
+          },
+          "gold_dxy": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/GoldCorrelationPoint"
+            },
+            "title": "Gold Dxy",
+            "type": "array"
+          },
+          "gold_gpr": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/GoldCorrelationPoint"
+            },
+            "title": "Gold Gpr",
+            "type": "array"
+          },
+          "pre_2022_band": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/GoldCorrelationBand"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "title": "GoldCorrelationHistory",
+        "type": "object"
+      },
+      "GoldCorrelationPoint": {
+        "properties": {
+          "obs_date": {
+            "format": "date",
+            "title": "Obs Date",
+            "type": "string"
+          },
+          "value": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Value",
+            "type": "string"
+          }
+        },
+        "required": [
+          "obs_date",
+          "value"
+        ],
+        "title": "GoldCorrelationPoint",
+        "type": "object"
+      },
+      "GoldCyclicalPostureModel": {
+        "properties": {
+          "cpi_yoy": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cpi Yoy"
+          },
+          "dfii10": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dfii10"
+          },
+          "dfii10_60d_change_bps": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dfii10 60D Change Bps"
+          },
+          "dxy": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dxy"
+          },
+          "dxy_60d_sigma": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dxy 60D Sigma"
+          },
+          "factors": {
+            "additionalProperties": {
+              "type": "number"
+            },
+            "default": {},
+            "title": "Factors",
+            "type": "object"
+          },
+          "gpr_pct_52w": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Gpr Pct 52W"
+          },
+          "gpr_value": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Gpr Value"
+          },
+          "narrative_text": {
+            "title": "Narrative Text",
+            "type": "string"
+          },
+          "posture_chip": {
+            "enum": [
+              "FAVORABLE",
+              "NEUTRAL",
+              "STRETCHED",
+              "SUSPENDED",
+              "DEGRADED"
+            ],
+            "title": "Posture Chip",
+            "type": "string"
+          },
+          "t5yifr": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "T5Yifr"
+          },
+          "t5yifr_pct_52w": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "T5Yifr Pct 52W"
+          },
+          "two_force_text": {
+            "$ref": "#/components/schemas/GoldTwoForceText"
+          },
+          "zone_label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Zone Label"
+          }
+        },
+        "required": [
+          "posture_chip",
+          "two_force_text",
+          "narrative_text"
+        ],
+        "title": "GoldCyclicalPostureModel",
+        "type": "object"
+      },
+      "GoldDataFreshnessSource": {
+        "description": "Per-source freshness for the Tier 1 Data Freshness card.",
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "last_as_of": {
+            "format": "date-time",
+            "title": "Last As Of",
+            "type": "string"
+          },
+          "stale_seconds": {
+            "title": "Stale Seconds",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "last_as_of",
+          "stale_seconds"
+        ],
+        "title": "GoldDataFreshnessSource",
+        "type": "object"
+      },
+      "GoldDecompositionRow": {
+        "description": "One row of the Tier 5 lens-decomposition bars.",
+        "properties": {
+          "contribution": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Contribution",
+            "type": "string"
+          },
+          "factor": {
+            "title": "Factor",
+            "type": "string"
+          },
+          "lens": {
+            "enum": [
+              "L1",
+              "L2",
+              "L3"
+            ],
+            "title": "Lens",
+            "type": "string"
+          }
+        },
+        "required": [
+          "lens",
+          "factor",
+          "contribution"
+        ],
+        "title": "GoldDecompositionRow",
+        "type": "object"
+      },
+      "GoldGaugeResponse": {
+        "properties": {
+          "current": {
+            "$ref": "#/components/schemas/GoldGaugeState"
+          },
+          "history_252d": {
+            "items": {
+              "$ref": "#/components/schemas/GoldGaugeTimeSeriesPoint"
+            },
+            "title": "History 252D",
+            "type": "array"
+          }
+        },
+        "required": [
+          "current",
+          "history_252d"
+        ],
+        "title": "GoldGaugeResponse",
+        "type": "object"
+      },
+      "GoldGaugeState": {
+        "properties": {
+          "corr_126d": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Corr 126D"
+          },
+          "corr_252d": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Corr 252D"
+          },
+          "corr_252d_returns": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Corr 252D Returns"
+          },
+          "corr_504d": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Corr 504D"
+          },
+          "corr_60d": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Corr 60D"
+          },
+          "state": {
+            "enum": [
+              "operative",
+              "partial",
+              "suspended"
+            ],
+            "title": "State",
+            "type": "string"
+          }
+        },
+        "required": [
+          "state"
+        ],
+        "title": "GoldGaugeState",
+        "type": "object"
+      },
+      "GoldGaugeTimeSeriesPoint": {
+        "properties": {
+          "corr_252d": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Corr 252D"
+          },
+          "obs_date": {
+            "format": "date",
+            "title": "Obs Date",
+            "type": "string"
+          }
+        },
+        "required": [
+          "obs_date",
+          "corr_252d"
+        ],
+        "title": "GoldGaugeTimeSeriesPoint",
+        "type": "object"
+      },
+      "GoldHistoryPoint": {
+        "properties": {
+          "obs_date": {
+            "format": "date",
+            "title": "Obs Date",
+            "type": "string"
+          },
+          "value": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Value",
+            "type": "string"
+          }
+        },
+        "required": [
+          "obs_date",
+          "value"
+        ],
+        "title": "GoldHistoryPoint",
+        "type": "object"
+      },
+      "GoldInputProvenance": {
+        "properties": {
+          "as_of": {
+            "format": "date-time",
+            "title": "As Of",
+            "type": "string"
+          },
+          "obs_date": {
+            "format": "date",
+            "title": "Obs Date",
+            "type": "string"
+          }
+        },
+        "required": [
+          "obs_date",
+          "as_of"
+        ],
+        "title": "GoldInputProvenance",
+        "type": "object"
+      },
+      "GoldInputSeriesPoint": {
+        "properties": {
+          "as_of": {
+            "format": "date-time",
+            "title": "As Of",
+            "type": "string"
+          },
+          "obs_date": {
+            "format": "date",
+            "title": "Obs Date",
+            "type": "string"
+          },
+          "release_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Release Date"
+          },
+          "value": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Value",
+            "type": "string"
+          }
+        },
+        "required": [
+          "obs_date",
+          "value",
+          "as_of"
+        ],
+        "title": "GoldInputSeriesPoint",
+        "type": "object"
+      },
+      "GoldInputSeriesResponse": {
+        "properties": {
+          "points": {
+            "items": {
+              "$ref": "#/components/schemas/GoldInputSeriesPoint"
+            },
+            "title": "Points",
+            "type": "array"
+          },
+          "series_id": {
+            "title": "Series Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "series_id",
+          "points"
+        ],
+        "title": "GoldInputSeriesResponse",
+        "type": "object"
+      },
+      "GoldLensResponse": {
+        "description": "Detail payload for one lens (richer than the summary in GoldStateResponse).",
+        "properties": {
+          "detail": {
+            "additionalProperties": {
+              "items": {
+                "$ref": "#/components/schemas/GoldInputSeriesPoint"
+              },
+              "type": "array"
+            },
+            "title": "Detail",
+            "type": "object"
+          },
+          "lens_id": {
+            "enum": [
+              "structural",
+              "cyclical",
+              "valuation"
+            ],
+            "title": "Lens Id",
+            "type": "string"
+          },
+          "posture": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/GoldStructuralPostureModel"
+              },
+              {
+                "$ref": "#/components/schemas/GoldCyclicalPostureModel"
+              },
+              {
+                "$ref": "#/components/schemas/GoldValuationPostureModel"
+              }
+            ],
+            "title": "Posture"
+          }
+        },
+        "required": [
+          "lens_id",
+          "posture",
+          "detail"
+        ],
+        "title": "GoldLensResponse",
+        "type": "object"
+      },
+      "GoldSpotTile": {
+        "description": "XAU/USD snapshot used by the Tier 1 KPI strip.",
+        "properties": {
+          "delta_abs": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Delta Abs",
+            "type": "string"
+          },
+          "delta_pct": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Delta Pct",
+            "type": "string"
+          },
+          "high": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "High",
+            "type": "string"
+          },
+          "last": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Last",
+            "type": "string"
+          },
+          "low": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Low",
+            "type": "string"
+          },
+          "open": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Open",
+            "type": "string"
+          }
+        },
+        "required": [
+          "last",
+          "delta_abs",
+          "delta_pct",
+          "high",
+          "low",
+          "open"
+        ],
+        "title": "GoldSpotTile",
+        "type": "object"
+      },
+      "GoldStateResponse": {
+        "properties": {
+          "computed_at": {
+            "format": "date-time",
+            "title": "Computed At",
+            "type": "string"
+          },
+          "correlation_history": {
+            "$ref": "#/components/schemas/GoldCorrelationHistory",
+            "default": {
+              "gold_dfii10": [],
+              "gold_dxy": [],
+              "gold_gpr": []
+            }
+          },
+          "cyclical": {
+            "$ref": "#/components/schemas/GoldCyclicalPostureModel"
+          },
+          "data_freshness": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/GoldDataFreshnessSource"
+            },
+            "title": "Data Freshness",
+            "type": "array"
+          },
+          "decomposition_rows": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/GoldDecompositionRow"
+            },
+            "title": "Decomposition Rows",
+            "type": "array"
+          },
+          "gauge": {
+            "$ref": "#/components/schemas/GoldGaugeState"
+          },
+          "inputs_used": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/GoldInputProvenance"
+            },
+            "title": "Inputs Used",
+            "type": "object"
+          },
+          "obs_date": {
+            "format": "date",
+            "title": "Obs Date",
+            "type": "string"
+          },
+          "spot": {
+            "$ref": "#/components/schemas/GoldSpotTile"
+          },
+          "structural": {
+            "$ref": "#/components/schemas/GoldStructuralPostureModel"
+          },
+          "valuation": {
+            "$ref": "#/components/schemas/GoldValuationPostureModel"
+          }
+        },
+        "required": [
+          "obs_date",
+          "computed_at",
+          "gauge",
+          "spot",
+          "structural",
+          "cyclical",
+          "valuation",
+          "inputs_used"
+        ],
+        "title": "GoldStateResponse",
+        "type": "object"
+      },
+      "GoldStructuralPostureModel": {
+        "properties": {
+          "cb_52w_pct": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cb 52W Pct"
+          },
+          "cb_diversifier_12m_sum_t": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cb Diversifier 12M Sum T"
+          },
+          "cb_strategic_12m_sum_t": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cb Strategic 12M Sum T"
+          },
+          "cb_tactical_12m_sum_t": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cb Tactical 12M Sum T"
+          },
+          "comex_20d_roc_pct": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Comex 20D Roc Pct"
+          },
+          "comex_registered_oz": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Comex Registered Oz"
+          },
+          "cot_mm_4w_change_sigma": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cot Mm 4W Change Sigma"
+          },
+          "cot_mm_net_pct": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cot Mm Net Pct"
+          },
+          "fx_basket_dxy_z": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fx Basket Dxy Z"
+          },
+          "gld_30d_net_flow_t": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Gld 30D Net Flow T"
+          },
+          "gld_history": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/GoldHistoryPoint"
+            },
+            "title": "Gld History",
+            "type": "array"
+          },
+          "gld_holdings_t": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Gld Holdings T"
+          },
+          "gold_history": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/GoldHistoryPoint"
+            },
+            "title": "Gold History",
+            "type": "array"
+          },
+          "lbma_30d_momentum_t": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lbma 30D Momentum T"
+          },
+          "narrative_text": {
+            "title": "Narrative Text",
+            "type": "string"
+          },
+          "posture_chip": {
+            "enum": [
+              "FAVORABLE",
+              "NEUTRAL",
+              "STRETCHED",
+              "SUSPENDED",
+              "DEGRADED"
+            ],
+            "title": "Posture Chip",
+            "type": "string"
+          },
+          "state_label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "State Label"
+          },
+          "uw_25d_skew_sigma": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Uw 25D Skew Sigma"
+          },
+          "xau_cny_premium_pct": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Xau Cny Premium Pct"
+          }
+        },
+        "required": [
+          "posture_chip",
+          "narrative_text"
+        ],
+        "title": "GoldStructuralPostureModel",
+        "type": "object"
+      },
+      "GoldTwoForceText": {
+        "properties": {
+          "discount_rate": {
+            "title": "Discount Rate",
+            "type": "string"
+          },
+          "hedge_demand": {
+            "title": "Hedge Demand",
+            "type": "string"
+          }
+        },
+        "required": [
+          "discount_rate",
+          "hedge_demand"
+        ],
+        "title": "GoldTwoForceText",
+        "type": "object"
+      },
+      "GoldValuationPostureModel": {
+        "properties": {
+          "flag": {
+            "enum": [
+              "Low",
+              "Moderate",
+              "High",
+              "Severe"
+            ],
+            "title": "Flag",
+            "type": "string"
+          },
+          "gold_m2_ratio_percentile": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Gold M2 Ratio Percentile"
+          },
+          "gold_oil_ratio_percentile": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Gold Oil Ratio Percentile"
+          },
+          "gold_spx_ratio_percentile": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Gold Spx Ratio Percentile"
+          },
+          "narrative_text": {
+            "title": "Narrative Text",
+            "type": "string"
+          },
+          "posture_chip": {
+            "enum": [
+              "FAVORABLE",
+              "NEUTRAL",
+              "STRETCHED",
+              "SUSPENDED",
+              "DEGRADED"
+            ],
+            "title": "Posture Chip",
+            "type": "string"
+          },
+          "real_price_percentile": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Real Price Percentile"
+          }
+        },
+        "required": [
+          "flag",
+          "posture_chip",
+          "narrative_text"
+        ],
+        "title": "GoldValuationPostureModel",
+        "type": "object"
+      },
       "HTTPValidationError": {
         "properties": {
           "detail": {
@@ -3733,6 +4733,12 @@
             "title": "Started At"
           },
           "status": {
+            "enum": [
+              "queued",
+              "running",
+              "done",
+              "failed"
+            ],
             "title": "Status",
             "type": "string"
           }
@@ -5894,6 +6900,12 @@
             "title": "Started At"
           },
           "status": {
+            "enum": [
+              "queued",
+              "running",
+              "done",
+              "failed"
+            ],
             "title": "Status",
             "type": "string"
           }
@@ -10026,6 +11038,221 @@
         ]
       }
     },
+    "/api/gold/gauge": {
+      "get": {
+        "operationId": "get_gauge_api_gold_gauge_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GoldGaugeResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Get Gauge",
+        "tags": [
+          "gold",
+          "gold"
+        ]
+      }
+    },
+    "/api/gold/inputs/{series_id}": {
+      "get": {
+        "operationId": "get_input_series_api_gold_inputs__series_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "series_id",
+            "required": true,
+            "schema": {
+              "title": "Series Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "from",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "From"
+            }
+          },
+          {
+            "in": "query",
+            "name": "to",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "To"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GoldInputSeriesResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Input Series",
+        "tags": [
+          "gold",
+          "gold"
+        ]
+      }
+    },
+    "/api/gold/lenses/{lens_id}": {
+      "get": {
+        "operationId": "get_lens_api_gold_lenses__lens_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "lens_id",
+            "required": true,
+            "schema": {
+              "enum": [
+                "structural",
+                "cyclical",
+                "valuation"
+              ],
+              "title": "Lens Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GoldLensResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Lens",
+        "tags": [
+          "gold",
+          "gold"
+        ]
+      }
+    },
+    "/api/gold/replay": {
+      "get": {
+        "operationId": "get_replay_api_gold_replay_get",
+        "parameters": [
+          {
+            "description": "Reconstruct posture for this obs_date",
+            "in": "query",
+            "name": "as_of",
+            "required": true,
+            "schema": {
+              "description": "Reconstruct posture for this obs_date",
+              "format": "date",
+              "title": "As Of",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GoldStateResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Replay",
+        "tags": [
+          "gold",
+          "gold"
+        ]
+      }
+    },
+    "/api/gold/state": {
+      "get": {
+        "operationId": "get_state_api_gold_state_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GoldStateResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Get State",
+        "tags": [
+          "gold",
+          "gold"
+        ]
+      }
+    },
     "/api/health": {
       "get": {
         "operationId": "health_api_health_get",
@@ -11273,6 +12500,28 @@
           }
         },
         "summary": "Post Watchlist",
+        "tags": [
+          "watchlist"
+        ]
+      }
+    },
+    "/api/watchlist/queue": {
+      "get": {
+        "description": "Lightweight queue snapshot for the dashboard's QueueProgress widget.\n\nReturns only the rescan-queue summary \u2014 no card joins, no meta. Designed\nfor the 2.5s polling loop in QueueProgress so the dashboard doesn't\nrefetch the full watchlist payload every tick.",
+        "operationId": "get_watchlist_queue_api_watchlist_queue_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueSummary"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Get Watchlist Queue",
         "tags": [
           "watchlist"
         ]
