@@ -43,13 +43,25 @@ class EtfHoldingsProvider:
     PHYS_URL = "https://sprott.com/api/v1/funds/phys/nav-history"
     PROVIDER = "etf_holdings"
 
+    DEFAULT_TIMEOUT_S = 60.0
+    MAX_RETRIES = 3
+    BROWSER_UA = (
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 13_0) "
+        "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
+    )
+
     def __init__(
         self,
         *,
-        timeout_s: float = 30.0,
+        timeout_s: float | None = None,
+        max_retries: int | None = None,
         record_request: RecordHook | None = None,
     ):
-        self._client = httpx.Client(timeout=timeout_s)
+        self._client = httpx.Client(
+            timeout=timeout_s if timeout_s is not None else self.DEFAULT_TIMEOUT_S,
+            headers={"User-Agent": self.BROWSER_UA},
+        )
+        self._max_retries = max_retries if max_retries is not None else self.MAX_RETRIES
         self._record_request_fn = record_request
 
     def close(self) -> None:
@@ -143,10 +155,45 @@ class EtfHoldingsProvider:
     def _get_with_telemetry(
         self, url: str, params: dict[str, Any], *, endpoint_key: str
     ) -> httpx.Response:
-        started_at = datetime.now(UTC)
-        try:
-            response = self._client.get(url, params=params)
-        except httpx.HTTPError as exc:
+        import time
+
+        last_exc: Exception | None = None
+        for attempt in range(self._max_retries):
+            started_at = datetime.now(UTC)
+            try:
+                response = self._client.get(url, params=params)
+            except (httpx.ReadTimeout, httpx.ConnectTimeout, httpx.ReadError) as exc:
+                finished_at = datetime.now(UTC)
+                self._record_request(
+                    self._build_event(
+                        url,
+                        params,
+                        endpoint_key,
+                        started_at,
+                        finished_at,
+                        status_code=None,
+                        error_message=f"attempt {attempt + 1}: {repr(exc)[:900]}",
+                    )
+                )
+                last_exc = exc
+                if attempt < self._max_retries - 1:
+                    time.sleep(2**attempt)
+                    continue
+                raise
+            except httpx.HTTPError as exc:
+                finished_at = datetime.now(UTC)
+                self._record_request(
+                    self._build_event(
+                        url,
+                        params,
+                        endpoint_key,
+                        started_at,
+                        finished_at,
+                        status_code=None,
+                        error_message=repr(exc)[:1000],
+                    )
+                )
+                raise
             finished_at = datetime.now(UTC)
             self._record_request(
                 self._build_event(
@@ -155,26 +202,15 @@ class EtfHoldingsProvider:
                     endpoint_key,
                     started_at,
                     finished_at,
-                    status_code=None,
-                    error_message=repr(exc)[:1000],
+                    status_code=response.status_code,
+                    error_message=(
+                        response.text[:1000] if response.status_code >= 400 else None
+                    ),
                 )
             )
-            raise
-        finished_at = datetime.now(UTC)
-        self._record_request(
-            self._build_event(
-                url,
-                params,
-                endpoint_key,
-                started_at,
-                finished_at,
-                status_code=response.status_code,
-                error_message=(
-                    response.text[:1000] if response.status_code >= 400 else None
-                ),
-            )
-        )
-        return response
+            return response
+        assert last_exc is not None
+        raise last_exc
 
     def _record_request(self, event: ExternalApiRequestEvent) -> None:
         if self._record_request_fn is not None:

@@ -40,13 +40,20 @@ class ComexProvider:
     ENDPOINT_KEY = "comex_gold_stocks_html"
     PROVIDER = "comex"
 
+    BROWSER_UA = (
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 13_0) "
+        "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
+    )
+
     def __init__(
         self,
         *,
-        timeout_s: float = 30.0,
+        timeout_s: float = 60.0,
         record_request: RecordHook | None = None,
     ):
-        self._client = httpx.Client(timeout=timeout_s)
+        self._client = httpx.Client(
+            timeout=timeout_s, headers={"User-Agent": self.BROWSER_UA}
+        )
         self._record_request_fn = record_request
 
     def close(self) -> None:
