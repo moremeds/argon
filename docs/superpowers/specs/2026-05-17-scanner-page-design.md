@@ -38,10 +38,12 @@ worker dequeues rescan job → run_single_stock(ticker, client, repo)
         → IF regime_gate == "block": write signal_gates row and stop
         → ELSE: run 4 signal detectors + pcr_sentiment context flag
         → writes results to uw_scan.signal_hits / signal_context_flags / signal_gates
-        → also tags scan_runs.notes with "scanner_emit=1" so the read query can
-          select scanner-producing runs (avoids the latest_run_id() ambiguity
-          across job types — see §8)
     → finish_scan_run(run_id, status="ok")
+
+    Note: scanner-producing runs are identified by the EXISTENCE of a
+    signal_gates row keyed by run_id — no notes-tagging needed. The read
+    query joins on signal_gates so non-scanner runs (flow_data_refresh,
+    cockpit_daily_snapshot) are naturally excluded. See §8.
 
 SCANNER PAGE READ PATH (new)
 ─────────────────────────────────────────────
@@ -50,7 +52,8 @@ user opens /scanner
         → for each watchlist ticker, find latest ok scan_run within
           last SCANNER_FRESHNESS_HOURS (default 3h — matches the existing
           bucketFreshness "stale" threshold in web/lib/freshness.ts)
-          AND scan_runs.notes LIKE '%scanner_emit=1%'  (only scanner-producing runs)
+          AND EXISTS (signal_gates WHERE run_id = scan_runs.run_id)
+          (only scanner-producing runs)
         → pull associated signal_hits / context_flags / gates
         → join watchlist_cards for spot price (ScannerCandidate.spot)
         → build ScanCandidate per ticker (regime-pass only)
@@ -449,7 +452,7 @@ web/tests/
 
 Tier semantics note: lower tier number = higher signal importance (xenon convention — tier 1 is the headline edge, tier 2 is confirmation-only). The boolean `tier_1_only` filter avoids the min/max-tier ambiguity that arises with numeric range params.
 
-**Query implementation:** select the latest `ok` `scan_runs` row per watchlist ticker within the freshness window, **filtered to scanner-producing runs** via `notes LIKE '%scanner_emit=1%'` (avoids selecting `flow_data_refresh` / `cockpit_daily_snapshot` runs that don't emit scanner rows — see §2). Then join `signal_hits` / `signal_context_flags` / `signal_gates` keyed by `(run_id, ticker)`, plus `watchlist_cards` for `spot`.
+**Query implementation:** select the latest `ok` `scan_runs` row per watchlist ticker within the freshness window, **filtered to scanner-producing runs** via `EXISTS (SELECT 1 FROM uw_scan.signal_gates WHERE run_id = scan_runs.run_id)` (avoids selecting `flow_data_refresh` / `cockpit_daily_snapshot` runs that don't emit scanner rows — see §2). Then join `signal_hits` / `signal_context_flags` / `signal_gates` keyed by `(run_id, ticker)`, plus `watchlist_cards` for `spot`. This approach (Codex tribunal ISSUE-6 recommendation) requires no schema changes and no mid-run `notes` UPDATE.
 
 **Source of `ScannerCandidate.spot`:** the existing `watchlist_cards.spot` column (already populated per ticker by the watchlist refresh path). The scanner endpoint joins on `watchlist_cards` to compose the response. The field is not part of xenon's `ScanCandidate` model — it's an unusual-whales-specific addition to render price on the tile without forcing the frontend to do a second fetch.
 
@@ -488,7 +491,8 @@ class ScannerCandidate(BaseModel):
 
 class ScannerGatedTicker(BaseModel):
     ticker: str
-    reason: Literal["regime_R2", "stale_scan"]   # only regime is hard-block; stale_scan = no recent ok run
+    reason: Literal["regime_block", "stale_scan"]
+    blocking_chip: Literal["SUSPENDED", "DEGRADED"] | None = None  # populated when reason="regime_block"; names match PostureChipState
     scanned_at: datetime | None
 
 class ScannerResponse(BaseModel):
@@ -526,8 +530,8 @@ SCANNER
 └──────────────────────────────────────────────────────────────────┘
 
 GATED (2 watchlist tickers excluded by regime gate)
-    AMD      regime R2 (DEFENSIVE)
-    INTC     regime R2 (CRISIS)
+    AMD      regime block (structural posture: SUSPENDED)
+    INTC     regime block (structural posture: DEGRADED)
 ```
 
 The GATED list **only contains regime-blocked tickers** (the sole hard-block gate). Earnings and liquidity advisory results appear on the candidate tiles themselves (e.g., `gates: earnings ✗ liq ✓ regime ✓` shows a candidate with earnings advisory failing but still listed). A ticker may simultaneously have an earnings advisory failure AND be a valid EIC candidate — that's the point of the design.
@@ -660,7 +664,7 @@ Suggested sequence for the implementation plan to flesh out task-by-task:
 2. **Scanner package skeleton** (`models.py`, `gates.py` with regime-gate using `repo.fetch_gold_posture_latest()`, `ranking.py` with `build_candidate` returning `None` on DP-only, empty `pipeline.py`).
 3. **`deep_conviction_flow` detector** + unit tests on derived `ask_side_ratio`, `moneyness`, `dte`, `next_earnings_date` paths (no new UW fetcher — `fetch_flow_alerts` already exists).
 4. **`dark_pool_accumulation` detector** with 5-day DB read via `signals_repository.fetch_dark_pool_window()` + unit tests on cluster detection edge cases.
-5. **Wire `scanner.pipeline.run_detectors` into `pipeline.run_single_stock`** as the final stage before `finish_scan_run`. Tag `scan_runs.notes` with `scanner_emit=1` so the read query can filter. NOT `flow_data_refresh` — that job doesn't fetch the required inputs.
+5. **Wire `scanner.pipeline.run_detectors` into `pipeline.run_single_stock`** as the final stage before `finish_scan_run`. Scanner-producing runs are identified by the existence of a `signal_gates` row keyed on `run_id` — no notes-tagging needed (the read query uses `EXISTS (signal_gates)` per §8). NOT `flow_data_refresh` — that job doesn't fetch the required inputs.
 6. **`GET /api/scanner` router** + response models in `api/models/scanner.py` + integration test (uses `pytest-postgresql`). Joins `signal_hits` + `signal_context_flags` + `signal_gates` + `watchlist_cards` for spot.
 7. **Scanner page UI** (`page.tsx` + components) + Vitest + Playwright smoke test. Replaces the stub.
 8. **`earnings_iv_crush` detector** using `iv_rank` field (not `iv_percentile_30d`). Add `sources/uw.fetch_earnings_by_ticker()` only if `next_earnings_date` proves insufficient on test data.
