@@ -12,6 +12,7 @@ from uw_scan.api.routers import (
     jobs,
     ohlc,
     provider_usage,
+    scanner,
     stock,
     trade_insights,
     volatility,
@@ -42,6 +43,7 @@ def create_app() -> FastAPI:
     app.include_router(provider_usage.router, prefix="/api", tags=["provider-usage"])
     app.include_router(trade_insights.router, prefix="/api", tags=["trade-insights"])
     app.include_router(gold.router, prefix="/api", tags=["gold"])
+    app.include_router(scanner.router, prefix="/api", tags=["scanner"])
     return app
 
 

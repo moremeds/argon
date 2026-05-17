@@ -549,6 +549,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/scanner": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Scanner */
+        get: operations["get_scanner_api_scanner_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -2231,6 +2248,115 @@ export interface components {
             rv?: string | null;
             /** Spy Corr 21 */
             spy_corr_21?: string | null;
+        };
+        /** ScannerCandidate */
+        ScannerCandidate: {
+            /** Ticker */
+            ticker: string;
+            /** Spot */
+            spot: string | null;
+            /** Is Type F */
+            is_type_f: boolean;
+            /** Raw Score */
+            raw_score: string;
+            /** Confluence Score */
+            confluence_score: string;
+            /** Final Score */
+            final_score: string;
+            /** Hits */
+            hits: components["schemas"]["ScannerSignalHit"][];
+            /** Context Flags */
+            context_flags: components["schemas"]["ScannerContextFlag"][];
+            gates: components["schemas"]["ScannerGatesStatus"];
+            /**
+             * Scanned At
+             * Format: date-time
+             */
+            scanned_at: string;
+        };
+        /** ScannerContextFlag */
+        ScannerContextFlag: {
+            /**
+             * Layer
+             * @constant
+             */
+            layer: "pcr_sentiment";
+            /** Label */
+            label: string;
+            /** Value */
+            value: string | null;
+        };
+        /** ScannerGatedTicker */
+        ScannerGatedTicker: {
+            /** Ticker */
+            ticker: string;
+            /**
+             * Reason
+             * @enum {string}
+             */
+            reason: "regime_block" | "stale_scan";
+            /** Blocking Chip */
+            blocking_chip?: ("SUSPENDED" | "DEGRADED") | null;
+            /** Scanned At */
+            scanned_at: string | null;
+        };
+        /** ScannerGatesStatus */
+        ScannerGatesStatus: {
+            /**
+             * Earnings
+             * @enum {string}
+             */
+            earnings: "pass" | "block";
+            /**
+             * Liquidity
+             * @enum {string}
+             */
+            liquidity: "pass" | "block";
+            /**
+             * Regime
+             * @enum {string}
+             */
+            regime: "pass" | "block";
+        };
+        /** ScannerResponse */
+        ScannerResponse: {
+            /** Scanned Universe Size */
+            scanned_universe_size: number;
+            /** Candidates With Hits */
+            candidates_with_hits: number;
+            /** Candidates */
+            candidates: components["schemas"]["ScannerCandidate"][];
+            /** Gated */
+            gated: components["schemas"]["ScannerGatedTicker"][];
+            /**
+             * Generated At
+             * Format: date-time
+             */
+            generated_at: string;
+        };
+        /** ScannerSignalHit */
+        ScannerSignalHit: {
+            /**
+             * Signal Type
+             * @enum {string}
+             */
+            signal_type: "deep_conviction_flow" | "dark_pool_accumulation" | "earnings_iv_crush" | "gex_pinning";
+            /**
+             * Tier
+             * @enum {integer}
+             */
+            tier: 1 | 2;
+            /** Score */
+            score: string;
+            /** Evidence */
+            evidence: {
+                [key: string]: unknown;
+            };
+            /**
+             * Freshness
+             * @enum {string}
+             */
+            freshness: "live" | "stale" | "unavailable";
         };
         /** SetupBlock */
         SetupBlock: {
@@ -4334,6 +4460,40 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["GoldStateResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_scanner_api_scanner_get: {
+        parameters: {
+            query?: {
+                tier_1_only?: boolean;
+                type_f_only?: boolean;
+                sector?: string | null;
+                freshness_hours?: number | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ScannerResponse"];
                 };
             };
             /** @description Validation Error */
