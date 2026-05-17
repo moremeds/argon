@@ -30,6 +30,7 @@ from uw_scan.worker.jobs.ohlc_pull import ohlc_pull_once
 from uw_scan.worker.jobs.rescan_loop import rescan_tick
 from uw_scan.worker.jobs.spot_refresh import spot_refresh_once
 from uw_scan.worker.jobs.trade_insights_ai import trade_insights_ai_tick
+from uw_scan.worker.jobs.vol_index_lake_sync import run_vol_index_lake_sync
 from uw_scan.worker.volatility_jobs import (
     daily_spy_ohlc_refresh,
     nightly_vol_analytics_rollup,
@@ -325,6 +326,13 @@ def main() -> int:
     def _trade_insights_ai_tick() -> None:
         trade_insights_ai_tick(settings)
 
+    def _vol_index_lake_sync() -> None:
+        # Parquet lake (~/market-warehouse/.../volatility) → vol_index_daily.
+        # Local I/O + Postgres only — no external API spend, no UW/Massive role
+        # binding required. Primary worker runs it to avoid duplicate upserts.
+        with _repo(settings) as repo:
+            run_vol_index_lake_sync(repo.conn, root=settings.lake_vol_index_root)
+
     def _regime_gex_scan() -> None:
         # Weekday gate — UW data only meaningful during regular sessions.
         if datetime.now(ZoneInfo(settings.rth_tz)).weekday() >= 5:
@@ -435,6 +443,18 @@ def main() -> int:
             max_instances=1,
             coalesce=True,
             misfire_grace_time=max(30, settings.trade_insights_ai_poll_seconds * 5),
+        )
+
+    if _is_primary_worker(settings):
+        # Vol-complex parquet lake sync — nightly, 03:15 ET. Local I/O only,
+        # no provider role required. Idempotent (UPSERT) so safe to re-run.
+        sched.add_job(
+            _vol_index_lake_sync,
+            CronTrigger(hour=3, minute=15, timezone=settings.rth_tz),
+            id="vol_index_lake_sync",
+            name="Vol-complex parquet lake sync",
+            max_instances=1,
+            coalesce=True,
         )
 
     stopping = False
