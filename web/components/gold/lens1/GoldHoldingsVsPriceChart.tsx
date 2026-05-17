@@ -33,10 +33,10 @@ function fmtPriceTick(v: number): string {
   return v.toFixed(2);
 }
 
-function fmtOzTick(v: number): string {
-  // GLD holdings_oz is a large number (oz). Show in millions with one decimal.
-  const m = v / 1_000_000;
-  return `${m.toFixed(1)}M`;
+function fmtTonnesTick(v: number): string {
+  return v.toLocaleString(undefined, {
+    maximumFractionDigits: 0,
+  });
 }
 
 type Hp = components["schemas"]["GoldHistoryPoint"];
@@ -207,7 +207,7 @@ export function GoldHoldingsVsPriceChart({
                 textAnchor="start"
                 fill="var(--warning, #f5a623)"
               >
-                {fmtOzTick(v)}
+                {fmtTonnesTick(v)}
               </text>
             </g>
           ))}
@@ -216,7 +216,7 @@ export function GoldHoldingsVsPriceChart({
         </text>
         {gldYScale && (
           <text x={padding.left + 60} y={10} fill="var(--warning, #f5a623)">
-            GLD (oz held)
+            GLD tonnes held
           </text>
         )}
       </g>

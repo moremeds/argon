@@ -82,6 +82,9 @@ class Settings(BaseModel):
     # OHLC provider (massive.com)
     massive_api_key: SecretStr | None = None
     massive_base_url: str = "https://api.massive.com"
+    # WGC Goldhub authenticated downloads. Keep secrets in environment only.
+    wgc_goldhub_cookie: SecretStr | None = None
+    wgc_etf_flows_workbook_path: str = ""
     # Trade Insights V1.5 local Codex analysis
     trade_insights_ai_enabled: bool = False
     trade_insights_ai_model: str = ""
@@ -149,6 +152,14 @@ class Settings(BaseModel):
             massive_base_url=os.environ.get(
                 "MASSIVE_BASE_URL", "https://api.massive.com"
             ),
+            wgc_goldhub_cookie=(
+                SecretStr(_wgc_cookie)
+                if (_wgc_cookie := os.environ.get("WGC_GOLDHUB_COOKIE", "").strip())
+                else None
+            ),
+            wgc_etf_flows_workbook_path=os.environ.get(
+                "WGC_ETF_FLOWS_WORKBOOK_PATH", ""
+            ).strip(),
             trade_insights_ai_enabled=_env_bool("TRADE_INSIGHTS_AI_ENABLED", False),
             trade_insights_ai_model=os.environ.get("TRADE_INSIGHTS_AI_MODEL", ""),
             trade_insights_ai_timeout_seconds=float(

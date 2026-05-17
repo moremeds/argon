@@ -27,6 +27,13 @@ class EtfHoldingSnapshot:
 
 
 @dataclass(frozen=True)
+class EtfFlowSnapshot:
+    ticker: str
+    obs_date: date
+    share_change: Decimal | None
+
+
+@dataclass(frozen=True)
 class InventorySnapshot:
     exchange: str
     obs_date: date
@@ -61,6 +68,10 @@ class StructuralPosture:
     narrative_text: str
 
 
+GLD_OZ_PER_SHARE_PROXY = Decimal("0.0931")
+TROY_OZ_PER_TONNE = Decimal("32150.7466")
+
+
 def _sum_by_bucket(
     cb_rows: list[CbReserveSnapshot], bucket: str, cutoff: date
 ) -> Decimal | None:
@@ -90,6 +101,7 @@ def compute_structural_posture(
     fx_rows: list[FxSnapshot],
     gold_series: list[tuple[date, Decimal]],
     as_of: date,
+    etf_flow_rows: list[EtfFlowSnapshot] | None = None,
 ) -> StructuralPosture:
     twelve_months_ago = as_of - timedelta(days=365)
 
@@ -102,13 +114,27 @@ def compute_structural_posture(
         key=lambda r: r.obs_date,
     )
     gld_now = gld_rows[-1].holdings_oz if gld_rows else None
-    gld_holdings_t = gld_now / Decimal("32150.7") if gld_now is not None else None
+    gld_holdings_t = gld_now / TROY_OZ_PER_TONNE if gld_now is not None else None
 
     if len(gld_rows) >= 30:
         delta_30d = gld_rows[-1].holdings_oz - gld_rows[-30].holdings_oz
-        gld_30d_net_flow_t = delta_30d / Decimal("32150.7")
+        gld_30d_net_flow_t = delta_30d / TROY_OZ_PER_TONNE
     else:
-        gld_30d_net_flow_t = None
+        flow_cutoff = as_of - timedelta(days=30)
+        gld_flow_shares = [
+            r.share_change
+            for r in (etf_flow_rows or [])
+            if r.ticker == "GLD"
+            and r.obs_date >= flow_cutoff
+            and r.obs_date <= as_of
+            and r.share_change is not None
+        ]
+        if gld_flow_shares:
+            gld_30d_net_flow_t = (
+                sum(gld_flow_shares, Decimal("0")) * GLD_OZ_PER_SHARE_PROXY
+            ) / TROY_OZ_PER_TONNE
+        else:
+            gld_30d_net_flow_t = None
 
     comex_rows = sorted(
         [
@@ -196,9 +222,9 @@ def _narrate_structural(
     else:
         parts.append("Structural posture mixed.")
     if cb_strat is not None:
-        parts.append(f"CB strategic accumulators 12m sum: {cb_strat:.0f}t.")
+        parts.append(f"CB strategic accumulators 12m sum: {cb_strat:.0f} tonnes.")
     if gld_flow is not None:
-        parts.append(f"GLD 30d net flow: {gld_flow:+.1f}t.")
+        parts.append(f"GLD 30d net flow: {gld_flow:+.1f} tonnes.")
     if comex_roc is not None:
         parts.append(f"COMEX registered 20d ROC: {comex_roc * 100:+.1f}%.")
     if cot_pct is not None:

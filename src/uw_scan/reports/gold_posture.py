@@ -22,6 +22,7 @@ from uw_scan.cards.regime_gauge import compute_correlation_gauge
 from uw_scan.cards.structural_flow import (
     CbReserveSnapshot,
     CotSnapshot,
+    EtfFlowSnapshot,
     EtfHoldingSnapshot,
     InventorySnapshot,
     compute_structural_posture,
@@ -268,6 +269,17 @@ def compute_and_persist_gold_posture(
         )
         for r in etf_db
     ]
+    etf_flow_db = repo.fetch_etf_flows_daily(
+        "GLD", from_date=as_of - timedelta(days=45), to_date=as_of
+    )
+    etf_flow_snapshots = [
+        EtfFlowSnapshot(
+            ticker="GLD",
+            obs_date=r["obs_date"],
+            share_change=r.get("share_change"),
+        )
+        for r in etf_flow_db
+    ]
     inv_db = repo.fetch_exchange_inventory_daily(
         "COMEX", from_date=as_of - timedelta(days=60)
     )
@@ -297,6 +309,7 @@ def compute_and_persist_gold_posture(
         fx_rows=[],
         gold_series=gold_series,
         as_of=as_of,
+        etf_flow_rows=etf_flow_snapshots,
     )
 
     cpi_rows = repo.fetch_macro_series_monthly(
@@ -461,7 +474,10 @@ def compute_and_persist_gold_posture(
         structural, cyclical, valuation
     )
     gld_history_rows = [
-        {"obs_date": r["obs_date"].isoformat(), "value": str(r["holdings_oz"])}
+        {
+            "obs_date": r["obs_date"].isoformat(),
+            "value": str(Decimal(str(r["holdings_oz"])) / _OZ_PER_TONNE),
+        }
         for r in etf_db
         if r["obs_date"] >= window5y_start and r.get("holdings_oz") is not None
     ]

@@ -16,6 +16,7 @@ from decimal import Decimal, InvalidOperation
 from typing import Any
 
 import httpx
+from openpyxl import load_workbook
 
 from uw_scan.storage.provider_usage import ExternalApiRequestEvent
 from uw_scan.storage.repository import redact_params, status_family_for
@@ -37,7 +38,8 @@ RecordHook = Callable[["EtfHoldingsProvider", ExternalApiRequestEvent], None]
 
 
 class EtfHoldingsProvider:
-    GLD_URL = "https://www.spdrgoldshares.com/usa/historical-data/"
+    GLD_URL = "https://api.spdrgoldshares.com/api/v1/historical-archive"
+    GLD_PARAMS = {"product": "gld", "exchange": "NYSE", "lang": "en"}
     GLDM_URL = "https://www.spdrgoldshares.com/usa/historical-data-gldm/"
     IAU_URL = "https://www.ishares.com/us/products/239561/iau-holdings.ajax"
     PHYS_URL = "https://sprott.com/api/v1/funds/phys/nav-history"
@@ -75,9 +77,11 @@ class EtfHoldingsProvider:
 
     def fetch_gld(self, *, start: date | None = None) -> list[EtfHoldingRow]:
         response = self._get_with_telemetry(
-            self.GLD_URL, {}, endpoint_key="spdr_gld_csv"
+            self.GLD_URL, self.GLD_PARAMS, endpoint_key="spdr_gld_archive"
         )
         response.raise_for_status()
+        if _looks_like_xlsx(response):
+            return self._parse_spdr_archive_xlsx("GLD", response.content, start)
         return self._parse_spdr_csv("GLD", response.text, start)
 
     def fetch_gldm(self, *, start: date | None = None) -> list[EtfHoldingRow]:
@@ -148,6 +152,47 @@ class EtfHoldingsProvider:
                     shares_out=None,
                     nav_per_share=_dec(row.get("NAV per Share (USD)")),
                     premium_pct=None,
+                )
+            )
+        return out
+
+    def _parse_spdr_archive_xlsx(
+        self, ticker: str, content: bytes, start: date | None
+    ) -> list[EtfHoldingRow]:
+        out: list[EtfHoldingRow] = []
+        workbook = load_workbook(io.BytesIO(content), read_only=True, data_only=True)
+        sheet_name = f"US {ticker} Historical Archive"
+        sheet = workbook[sheet_name] if sheet_name in workbook.sheetnames else None
+        if sheet is None:
+            logger.warning("spdr archive missing sheet %s", sheet_name)
+            return out
+
+        rows = sheet.iter_rows(values_only=True)
+        header = next(rows, None)
+        if header is None:
+            return out
+        columns = {str(value).strip(): idx for idx, value in enumerate(header) if value}
+        for row in rows:
+            d = _parse_date(_cell(row, columns, "Date"))
+            if d is None or (start and d < start):
+                continue
+            holdings_oz = _dec(_cell(row, columns, "Total Ounces of Gold in the Trust"))
+            if holdings_oz is None:
+                continue
+            out.append(
+                EtfHoldingRow(
+                    ticker=ticker,
+                    obs_date=d,
+                    holdings_oz=holdings_oz,
+                    shares_out=None,
+                    nav_per_share=_dec(_cell(row, columns, "NAV/Share at 10:30am NYT")),
+                    premium_pct=_dec(
+                        _cell(
+                            row,
+                            columns,
+                            "Premium/Discount of GLD Mid Point vs Indicative Value of GLD at 4:15pm NYT",
+                        )
+                    ),
                 )
             )
         return out
@@ -250,14 +295,33 @@ class EtfHoldingsProvider:
 def _parse_date(raw: str | None) -> date | None:
     if not raw:
         return None
-    raw = raw.strip()
-    for fmt in ("%Y-%m-%d", "%m/%d/%Y"):
+    if isinstance(raw, datetime):
+        return raw.date()
+    if isinstance(raw, date):
+        return raw
+    raw = str(raw).strip()
+    for fmt in ("%Y-%m-%d", "%m/%d/%Y", "%d-%b-%Y"):
         try:
             return datetime.strptime(raw, fmt).date()
         except ValueError as exc:
             logger.debug("etf date parse fmt=%s skipped: %s", fmt, repr(exc))
             continue
     return None
+
+
+def _looks_like_xlsx(response: httpx.Response) -> bool:
+    content_type = response.headers.get("content-type", "").lower()
+    return (
+        response.content.startswith(b"PK\x03\x04")
+        or "spreadsheetml.sheet" in content_type
+    )
+
+
+def _cell(row: tuple[Any, ...], columns: dict[str, int], name: str) -> Any:
+    idx = columns.get(name)
+    if idx is None or idx >= len(row):
+        return None
+    return row[idx]
 
 
 def _dec(raw: Any) -> Decimal | None:

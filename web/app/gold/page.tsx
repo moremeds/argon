@@ -7,7 +7,7 @@ async function fetchGoldState(): Promise<State | null> {
   const base = process.env.NEXT_PUBLIC_API_BASE ?? "http://127.0.0.1:8400";
   try {
     const res = await fetch(`${base}/api/gold/state`, {
-      next: { revalidate: 60 },
+      cache: "no-store",
     });
     if (!res.ok) return null;
     return (await res.json()) as State;

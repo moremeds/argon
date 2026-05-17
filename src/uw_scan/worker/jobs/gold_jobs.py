@@ -26,7 +26,9 @@ runs against that database, no scheduler required.
 from __future__ import annotations
 
 import logging
+from dataclasses import asdict
 from datetime import UTC, date, datetime, timedelta
+from pathlib import Path
 
 import psycopg
 
@@ -39,14 +41,18 @@ from uw_scan.sources.fred import FredProvider
 from uw_scan.sources.gpr import GprProvider
 from uw_scan.sources.lbma import LbmaProvider
 from uw_scan.sources.ohlc import MassiveOhlcProvider
+from uw_scan.sources import uw as uw_sources
 from uw_scan.sources.uw_gold_options import (
     GOLD_OPTIONS_TICKERS,
     fetch_gold_options_snapshot,
 )
+from uw_scan.sources.wgc_etf import TROY_OZ_PER_TONNE, WgcEtfProvider
 from uw_scan.storage.repository import Repository
 
 logger = logging.getLogger(__name__)
 
+
+GOLD_ETF_FLOW_TICKERS = ("GLD", "IAU", "GLDM")
 
 FRED_SERIES_DAILY = [
     "DFII10",
@@ -158,17 +164,24 @@ def gold_gpr_ingest_job(*, dsn: str, lookback_days: int = 45) -> None:
         conn.commit()
 
 
-def gold_etf_holdings_ingest_job(*, dsn: str) -> None:
+def gold_etf_holdings_ingest_job(
+    *,
+    dsn: str,
+    uw_api_key: str | None = None,
+    wgc_goldhub_cookie: str | None = None,
+    wgc_workbook_path: str | None = None,
+    lookback_days: int = 45,
+    holdings_lookback_days: int = 400,
+) -> None:
     """Daily ETF refresh (GLD/IAU/GLDM/PHYS). Schedule: 18:30 ET.
 
-    Best-effort: as of 2026-05-17 all four fund-manager scraping endpoints
-    return 301/404 (SPDR moved to /usa/gld/, BlackRock retired the .ajax
-    endpoint, Sprott changed their API path). Job runs and persists rows
-    for any ticker that still returns 200; other tickers fall through to
-    the per-ticker except. Re-wire each endpoint as the manager's site
-    stabilises — see sources/etf_holdings.py.
+    GLD uses SPDR's daily historical archive workbook. WGC Goldhub monthly
+    files backfill GLD/IAU/GLDM/PHYS when an authenticated cookie or exported
+    workbook path is provided. UW ETF in/outflow stays on a shorter lookback
+    because current entitlement only exposes recent history.
     """
     now = datetime.now(UTC)
+    holdings_start = date.today() - timedelta(days=holdings_lookback_days)
     with psycopg.connect(dsn) as conn, EtfHoldingsProvider() as etf:
         repo = Repository(conn, schema="uw_scan")
         for ticker, fetch_fn, source in [
@@ -178,7 +191,7 @@ def gold_etf_holdings_ingest_job(*, dsn: str) -> None:
             ("PHYS", etf.fetch_phys, "Sprott"),
         ]:
             try:
-                for row in fetch_fn(start=date.today() - timedelta(days=45)):
+                for row in fetch_fn(start=holdings_start):
                     repo.insert_etf_holdings_daily(
                         ticker=row.ticker,
                         obs_date=row.obs_date,
@@ -195,7 +208,105 @@ def gold_etf_holdings_ingest_job(*, dsn: str) -> None:
                     ticker,
                     repr(exc)[:200],
                 )
+        if wgc_goldhub_cookie or wgc_workbook_path:
+            try:
+                with WgcEtfProvider(cookie_header=wgc_goldhub_cookie) as wgc:
+                    if wgc_workbook_path:
+                        monthly_rows = []
+                        for workbook_path in _wgc_workbook_paths(wgc_workbook_path):
+                            monthly_rows.extend(
+                                wgc.parse_monthly_rows(
+                                    workbook_path.read_bytes(),
+                                    source_url=workbook_path.resolve().as_uri(),
+                                    source_label=workbook_path.name,
+                                    start=holdings_start,
+                                )
+                            )
+                    else:
+                        monthly_rows = wgc.fetch_monthly_rows(start=holdings_start)
+                    corpus_rows = 0
+                    for chunk in _chunks([asdict(row) for row in monthly_rows], 5000):
+                        corpus_rows += repo.insert_wgc_etf_monthly_rows(
+                            chunk, as_of=now, source="WGC"
+                        )
+                    holdings_rows = 0
+                    for row in monthly_rows:
+                        if (
+                            row.ticker in {"GLD", "IAU", "GLDM", "PHYS"}
+                            and row.holdings_tonnes is not None
+                        ):
+                            repo.insert_etf_holdings_daily(
+                                ticker=row.ticker,
+                                obs_date=row.obs_date,
+                                holdings_oz=row.holdings_tonnes * TROY_OZ_PER_TONNE,
+                                shares_out=None,
+                                nav_per_share=None,
+                                premium_pct=None,
+                                as_of=now,
+                                source="WGC",
+                            )
+                            holdings_rows += 1
+                    logger.info(
+                        "gold_etf_holdings_ingest: %s WGC monthly rows, %s holdings rows",
+                        corpus_rows,
+                        holdings_rows,
+                    )
+            except Exception as exc:
+                logger.warning("gold_etf_holdings_ingest: WGC skipped (%s)", repr(exc))
+        else:
+            logger.info("WGC Goldhub auth/export not provided; skipping WGC ETF ingest")
+        if uw_api_key:
+            start = (date.today() - timedelta(days=lookback_days)).isoformat()
+            end = date.today().isoformat()
+            with UwClient(
+                api_key=uw_api_key,
+                timeout=30.0,
+                job_name="gold_etf_in_outflow_ingest",
+            ) as client:
+                run_id = repo.insert_scan_run(
+                    ticker="GOLD",
+                    notes=f"gold_etf_in_outflow:{end}",
+                )
+                for ticker in GOLD_ETF_FLOW_TICKERS:
+                    try:
+                        for row in uw_sources.fetch_etf_in_outflow(
+                            client=client,
+                            repo=repo,
+                            run_id=run_id,
+                            ticker=ticker,
+                            start_date=start,
+                            end_date=end,
+                        ):
+                            repo.insert_etf_flows_daily(
+                                ticker=row.ticker,
+                                obs_date=row.date,
+                                share_change=row.change,
+                                premium_change_usd=row.change_prem,
+                                close=row.close,
+                                volume=row.volume,
+                                as_of=now,
+                                source="UW",
+                            )
+                    except Exception as exc:
+                        logger.warning(
+                            "gold_etf_in_outflow_ingest: %s skipped (%s)",
+                            ticker,
+                            repr(exc)[:200],
+                        )
+        else:
+            logger.info("UW API key not provided; skipping gold ETF in/outflow ingest")
         conn.commit()
+
+
+def _wgc_workbook_paths(raw_path: str) -> list[Path]:
+    path = Path(raw_path)
+    if path.is_dir():
+        return sorted(path.glob("*.xlsx"))
+    return [path]
+
+
+def _chunks(items: list[dict[str, object]], size: int) -> list[list[dict[str, object]]]:
+    return [items[idx : idx + size] for idx in range(0, len(items), size)]
 
 
 def gold_spot_ingest_job(

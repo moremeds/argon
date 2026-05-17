@@ -81,7 +81,17 @@ def main() -> int:
         ),
         (
             "ETF holdings (GLD/IAU/GLDM/PHYS — best-effort)",
-            lambda: gold_etf_holdings_ingest_job(dsn=dsn),
+            lambda: gold_etf_holdings_ingest_job(
+                dsn=dsn,
+                uw_api_key=settings.api_key.get_secret_value(),
+                wgc_goldhub_cookie=(
+                    settings.wgc_goldhub_cookie.get_secret_value()
+                    if settings.wgc_goldhub_cookie is not None
+                    else None
+                ),
+                wgc_workbook_path=settings.wgc_etf_flows_workbook_path or None,
+                lookback_days=45,
+            ),
         ),
         ("COMEX vault daily", lambda: gold_comex_vault_ingest_job(dsn=dsn)),
         ("CFTC COT weekly", lambda: gold_cftc_cot_ingest_job(dsn=dsn)),

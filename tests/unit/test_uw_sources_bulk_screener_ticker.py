@@ -73,3 +73,45 @@ def test_fetch_etf_info_returns_aum():
     assert isinstance(row, EtfInfo)
     assert row.aum == Decimal("428887833900")
     assert mock_fetch.call_args.args[3] == uw_sources.EndpointSlug.ETF_INFO
+
+
+def test_fetch_etf_in_outflow_returns_recent_flow_rows():
+    client = MagicMock()
+    repo = MagicMock()
+    with patch.object(
+        uw_sources,
+        "_fetch_json",
+        return_value={
+            "data": [
+                {
+                    "date": "2026-05-15",
+                    "change": -900000,
+                    "change_prem": "-375300000",
+                    "close": "417.29",
+                    "volume": 8801181,
+                    "expiration_cycle": "monthly",
+                    "is_fomc": False,
+                }
+            ]
+        },
+    ) as mock_fetch:
+        rows = uw_sources.fetch_etf_in_outflow(
+            client,
+            repo,
+            run_id=42,
+            ticker="GLD",
+            start_date="2026-04-02",
+            end_date="2026-05-17",
+        )
+
+    assert len(rows) == 1
+    assert rows[0].ticker == "GLD"
+    assert rows[0].date.isoformat() == "2026-05-15"
+    assert rows[0].change == Decimal("-900000")
+    assert rows[0].change_prem == Decimal("-375300000")
+    assert rows[0].close == Decimal("417.29")
+    assert mock_fetch.call_args.args[3] == uw_sources.EndpointSlug.ETF_IN_OUTFLOW
+    assert mock_fetch.call_args.kwargs["params"] == {
+        "start_date": "2026-04-02",
+        "end_date": "2026-05-17",
+    }

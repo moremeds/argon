@@ -62,6 +62,60 @@ def test_insert_and_fetch_etf_holdings_daily(repo: Repository) -> None:
     assert rows[0]["holdings_oz"] == Decimal("28047500.12")
 
 
+def test_insert_and_fetch_etf_flows_daily(repo: Repository) -> None:
+    as_of = datetime.now(UTC)
+    repo.insert_etf_flows_daily(
+        ticker="GLD",
+        obs_date=date(2026, 5, 15),
+        share_change=Decimal("-900000"),
+        premium_change_usd=Decimal("-375300000"),
+        close=Decimal("417.29"),
+        volume=Decimal("8801181"),
+        as_of=as_of,
+        source="UW",
+    )
+
+    rows = repo.fetch_etf_flows_daily("GLD", from_date=date(2026, 5, 1))
+
+    assert len(rows) == 1
+    assert rows[0]["obs_date"] == date(2026, 5, 15)
+    assert rows[0]["share_change"] == Decimal("-900000")
+    assert rows[0]["premium_change_usd"] == Decimal("-375300000")
+    assert rows[0]["source"] == "UW"
+
+
+def test_insert_and_fetch_wgc_etf_monthly(repo: Repository) -> None:
+    as_of = datetime.now(UTC)
+    repo.insert_wgc_etf_monthly(
+        ticker="GLD",
+        obs_date=date(2026, 3, 31),
+        fund_name="SPDR Gold Shares",
+        fund_type="ETF",
+        region="North America",
+        country="US",
+        gold_price_usd_oz=Decimal("2983.25"),
+        aggregate_ounces=Decimal("131428333.123"),
+        aggregate_holdings_tonnes=Decimal("4087.79194987"),
+        aggregate_value_usd=Decimal("606500000000"),
+        holdings_tonnes=Decimal("1046.9009356"),
+        demand_tonnes=Decimal("-54.13175268"),
+        flow_usd_mn=Decimal("-8426.7817"),
+        source_url="https://www.gold.org/download/file/20717/ETF_Flows_March_2026.xlsx",
+        source_label="ETF_Flows_March_2026.xlsx",
+        as_of=as_of,
+        source="WGC",
+    )
+
+    rows = repo.fetch_wgc_etf_monthly("GLD", from_date=date(2026, 1, 1))
+
+    assert len(rows) == 1
+    assert rows[0]["fund_name"] == "SPDR Gold Shares"
+    assert rows[0]["holdings_tonnes"] == Decimal("1046.9009356")
+    assert rows[0]["demand_tonnes"] == Decimal("-54.13175268")
+    assert rows[0]["flow_usd_mn"] == Decimal("-8426.7817")
+    assert rows[0]["source_url"].endswith("ETF_Flows_March_2026.xlsx")
+
+
 def test_insert_and_fetch_exchange_inventory_daily(repo: Repository) -> None:
     repo.insert_exchange_inventory_daily(
         exchange="COMEX",
