@@ -22,6 +22,7 @@ import {
 import { MarketState } from "@/lib/regime/useMarketHours";
 import InfoTooltip from "./InfoTooltip";
 import GexProfileChart from "./GexProfileChart";
+import { HistoryChart } from "./HistoryChart";
 import { MetricCard, SourceBadge } from "./ui/MetricCard";
 
 type GexSubTabProps = {
@@ -961,6 +962,9 @@ export default function GexSubTab({ marketState }: GexSubTabProps) {
             )}
           </div>
         </div>
+
+        {/* ── 90-day History Chart (net_gex / flip / spot) ── */}
+        <HistoryChart history={data.history} ticker={data.ticker} />
 
         {/* ── History Table ── */}
         <GexHistoryTable history={data.history} />
