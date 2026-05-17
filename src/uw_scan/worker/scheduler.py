@@ -34,6 +34,7 @@ from uw_scan.worker.jobs.gold_jobs import (
     gold_gpr_ingest_job,
     gold_lbma_vault_ingest_job,
     gold_posture_compute_job,
+    gold_spot_ingest_job,
     gold_uw_options_ingest_job,
     gold_wgc_cb_ingest_job,
 )
@@ -339,6 +340,16 @@ def main() -> int:
     def _gold_fred_ingest() -> None:
         gold_fred_ingest_job(dsn=settings.db_dsn())
 
+    def _gold_spot_ingest() -> None:
+        if settings.massive_api_key is None:
+            logger.warning("MASSIVE_API_KEY not set; skipping gold_spot_ingest")
+            return
+        gold_spot_ingest_job(
+            dsn=settings.db_dsn(),
+            api_key=settings.massive_api_key.get_secret_value(),
+            base_url=settings.massive_base_url,
+        )
+
     def _gold_gpr_ingest() -> None:
         gold_gpr_ingest_job(dsn=settings.db_dsn())
 
@@ -458,6 +469,12 @@ def main() -> int:
             CronTrigger.from_crontab("0 17 * * 1-5", timezone=settings.rth_tz),
             id="gold_fred_ingest",
             name="Gold: FRED daily refresh",
+        )
+        sched.add_job(
+            _gold_spot_ingest,
+            CronTrigger.from_crontab("5 17 * * 1-5", timezone=settings.rth_tz),
+            id="gold_spot_ingest",
+            name="Gold: spot price (GLD daily bars via massive)",
         )
         sched.add_job(
             _gold_uw_options_ingest,

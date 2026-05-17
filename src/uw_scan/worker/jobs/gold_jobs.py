@@ -38,6 +38,7 @@ from uw_scan.sources.etf_holdings import EtfHoldingsProvider
 from uw_scan.sources.fred import FredProvider
 from uw_scan.sources.gpr import GprProvider
 from uw_scan.sources.lbma import LbmaProvider
+from uw_scan.sources.ohlc import MassiveOhlcProvider
 from uw_scan.sources.uw_gold_options import (
     GOLD_OPTIONS_TICKERS,
     fetch_gold_options_snapshot,
@@ -64,6 +65,15 @@ FRED_SERIES_DAILY = [
 ]
 FRED_SERIES_MONTHLY = ["CPIAUCSL", "M2SL"]
 
+# Series we want stored under a canonical name different from FRED's ID.
+# (Currently empty — the LBMA AM/PM gold fix series GOLDAMGBD228NLBM /
+# GOLDPMGBD228NLBM both 404 from FRED as of 2026-05-17; gold spot is now
+# sourced from massive OHLC via gold_spot_ingest_job.)
+FRED_SERIES_ALIASES: dict[str, str] = {}
+
+GOLD_SPOT_TICKER = "GLD"
+GOLD_SPOT_SERIES_ID = "GLD_CLOSE"
+
 
 # --- Daily jobs ---------------------------------------------------------------
 
@@ -76,12 +86,13 @@ def gold_fred_ingest_job(*, dsn: str, series_ids: list[str] | None = None) -> No
     with psycopg.connect(dsn) as conn, FredProvider() as fred:
         repo = Repository(conn, schema="uw_scan")
         for sid in ids:
+            stored_sid = FRED_SERIES_ALIASES.get(sid, sid)
             try:
                 for obs in fred.fetch_series(
                     sid, start=date.today() - timedelta(days=45)
                 ):
                     repo.insert_macro_series_daily(
-                        series_id=obs.series_id,
+                        series_id=stored_sid,
                         obs_date=obs.obs_date,
                         value=obs.value,
                         as_of=now,
@@ -134,7 +145,15 @@ def gold_gpr_ingest_job(*, dsn: str) -> None:
 
 
 def gold_etf_holdings_ingest_job(*, dsn: str) -> None:
-    """Daily ETF refresh (GLD/IAU/GLDM/PHYS). Schedule: 18:30 ET."""
+    """Daily ETF refresh (GLD/IAU/GLDM/PHYS). Schedule: 18:30 ET.
+
+    Best-effort: as of 2026-05-17 all four fund-manager scraping endpoints
+    return 301/404 (SPDR moved to /usa/gld/, BlackRock retired the .ajax
+    endpoint, Sprott changed their API path). Job runs and persists rows
+    for any ticker that still returns 200; other tickers fall through to
+    the per-ticker except. Re-wire each endpoint as the manager's site
+    stabilises — see sources/etf_holdings.py.
+    """
     now = datetime.now(UTC)
     with psycopg.connect(dsn) as conn, EtfHoldingsProvider() as etf:
         repo = Repository(conn, schema="uw_scan")
@@ -157,12 +176,71 @@ def gold_etf_holdings_ingest_job(*, dsn: str) -> None:
                         source=source,
                     )
             except Exception as exc:
-                logger.exception("gold_etf_holdings_ingest: %s failed: %r", ticker, exc)
+                logger.warning(
+                    "gold_etf_holdings_ingest: %s skipped (%s)",
+                    ticker,
+                    repr(exc)[:200],
+                )
+        conn.commit()
+
+
+def gold_spot_ingest_job(
+    *,
+    dsn: str,
+    api_key: str,
+    base_url: str = "https://api.massive.com",
+    ticker: str = GOLD_SPOT_TICKER,
+    series_id: str = GOLD_SPOT_SERIES_ID,
+    lookback_days: int = 400,
+) -> None:
+    """Daily gold-spot ingest via massive OHLC. Schedule: 17:05 ET.
+
+    Pulls GLD daily bars from api.massive.com and persists `close` to
+    macro_series_daily under series_id='GLD_CLOSE' — the canonical name
+    the gold-posture orchestrator reads for the spot tile, valuation
+    percentiles, and correlation-history series. Replaces the retired
+    FRED LBMA gold-fix series.
+    """
+    now = datetime.now(UTC)
+    end = date.today()
+    start = end - timedelta(days=lookback_days)
+    with (
+        psycopg.connect(dsn) as conn,
+        MassiveOhlcProvider(api_key=api_key, base_url=base_url, timeout=60.0) as ohlc,
+    ):
+        repo = Repository(conn, schema="uw_scan")
+        try:
+            bars = ohlc.fetch_daily(ticker, start, end)
+            for bar in bars:
+                repo.insert_macro_series_daily(
+                    series_id=series_id,
+                    obs_date=bar.date,
+                    value=bar.close,
+                    as_of=now,
+                    release_date=None,
+                    source="MASSIVE",
+                    source_url=None,
+                )
+            logger.info(
+                "gold_spot_ingest: %s bars persisted under series_id=%s",
+                len(bars),
+                series_id,
+            )
+        except Exception as exc:
+            logger.exception("gold_spot_ingest failed: %r", exc)
         conn.commit()
 
 
 def gold_comex_vault_ingest_job(*, dsn: str) -> None:
-    """Daily COMEX vault. Schedule: 17:30 ET."""
+    """Daily COMEX vault. Schedule: 17:30 ET.
+
+    Best-effort: CME blocks anonymous scraping of
+    cmegroup.com/markets/metals/precious/gold-stocks.html (returns 403
+    as of 2026-05-17). Job runs with browser headers but falls through
+    if blocked. Re-wire via CME DataMine or another aggregator when one
+    is licensed — structural lens's comex_registered_oz stays null
+    until then.
+    """
     now = datetime.now(UTC)
     with psycopg.connect(dsn) as conn, ComexProvider() as comex:
         repo = Repository(conn, schema="uw_scan")
@@ -178,7 +256,10 @@ def gold_comex_vault_ingest_job(*, dsn: str) -> None:
                     source_url=ComexProvider.URL,
                 )
         except Exception as exc:
-            logger.exception("gold_comex_vault_ingest failed: %r", exc)
+            logger.warning(
+                "gold_comex_vault_ingest skipped (CME blocks scraping): %s",
+                repr(exc)[:200],
+            )
         conn.commit()
 
 
@@ -292,26 +373,17 @@ def gold_lbma_vault_ingest_job(*, dsn: str) -> None:
 
 
 def gold_wgc_cb_ingest_job(*, dsn: str) -> None:
-    """Monthly WGC CB reserves (8th business day of month)."""
-    now = datetime.now(UTC)
-    with psycopg.connect(dsn) as conn, WgcCbProvider() as wgc:
-        repo = Repository(conn, schema="uw_scan")
-        try:
-            for row in wgc.fetch_monthly(start=date.today() - timedelta(days=400)):
-                repo.insert_cb_gold_reserves_monthly(
-                    country_iso3=row.country_iso3,
-                    obs_month=row.obs_month,
-                    reserves_t=row.reserves_t,
-                    bucket=row.bucket,
-                    is_reported=row.is_reported,
-                    is_estimated=row.is_estimated,
-                    as_of=now,
-                    release_date=date.today(),
-                    source="WGC",
-                )
-        except Exception as exc:
-            logger.exception("gold_wgc_cb_ingest failed: %r", exc)
-        conn.commit()
+    """Monthly WGC CB reserves (8th business day of month).
+
+    DEFERRED — WGC retired the anonymous CSV endpoint (2026-05-17). Job is
+    a no-op until an authenticated download or IMF IFS fallback is wired;
+    see src/uw_scan/sources/wgc_cb.py docstring.
+    """
+    logger.info(
+        "gold_wgc_cb_ingest: skipped — WGC endpoint behind login since 2026-05-17 "
+        "(see sources/wgc_cb.py)"
+    )
+    return
 
 
 # --- Orchestrator job ---------------------------------------------------------
