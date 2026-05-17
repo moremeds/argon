@@ -15,6 +15,8 @@ export function useCri(): UseSyncReturn<CriResponse> {
   return useSyncHook<CriResponse>(
     {
       endpoint: regimeApi.cri(),
+      // GET reads from /api/regime; manual Sync Now must hit /api/regime/scan.
+      postEndpoint: regimeApi.cri_scan(),
       interval: 3_600_000, // 1h — CRI inputs (vol indices + SPY OHLC) update daily
       hasPost: true,
       extractTimestamp: (d) => d.scan_time || null,

@@ -14,6 +14,11 @@ const _syncCache = new Map<string, SyncCacheEntry>();
 
 type UseSyncConfig<T> = {
   endpoint: string;
+  // Optional POST target. When the GET / sync paths differ (e.g. CRI
+  // reads `/api/regime` but the scan path is `/api/regime/scan`), set
+  // this to the scan path so the manual Sync Now button actually fires.
+  // Defaults to `endpoint`.
+  postEndpoint?: string;
   interval?: number;
   hasPost?: boolean; // default true; false = GET-only polling
   extractTimestamp?: (data: T) => string | null;
@@ -38,6 +43,7 @@ export function useSyncHook<T>(
 ): UseSyncReturn<T> {
   const {
     endpoint,
+    postEndpoint,
     interval = DEFAULT_INTERVAL_MS,
     hasPost = true,
     extractTimestamp,
@@ -46,6 +52,7 @@ export function useSyncHook<T>(
     retryMethod = "POST",
     showBackgroundError = false,
   } = config;
+  const resolvedPostEndpoint = postEndpoint ?? endpoint;
 
   // Re-hydrate from the per-endpoint module-level cache so re-mounts
   // (e.g. user navigates away from /flow-analysis and back) display the
@@ -65,6 +72,12 @@ export function useSyncHook<T>(
   const didInitialSync = useRef(false);
   const didInitialRead = useRef(false);
   const initialLoadKeyRef = useRef<string | null>(null);
+  // Monotonic id for race-protection. Each call to executeRequest claims
+  // the next id (and overwrites latestRequestIdRef); when the awaited
+  // fetch resolves, we only commit state if no newer request has started
+  // in the meantime — prevents a slow background tick from clobbering a
+  // fresher manual Sync Now result.
+  const latestRequestIdRef = useRef(0);
   const requestRef = useRef<
     (method: RetryMethod, background?: boolean) => Promise<void>
   >(async () => {});
@@ -81,15 +94,34 @@ export function useSyncHook<T>(
       if (!background && method === "POST") {
         setSyncing(true);
       }
+      const myId = ++latestRequestIdRef.current;
       try {
-        const res = await fetch(endpoint, { method });
+        const url = method === "POST" ? resolvedPostEndpoint : endpoint;
+        const res = await fetch(url, { method });
         if (!res.ok) {
           const body = await res.json().catch(() => ({}));
           throw new Error(
             (body as { error?: string }).error ?? `Sync failed (${res.status})`,
           );
         }
-        const json = (await res.json()) as T;
+        // When the POST target differs from the GET endpoint, the POST
+        // response is a scan-status payload (e.g. {status, row_id}) — NOT the
+        // GET shape. Don't stuff that into `data`. Re-fetch the GET endpoint
+        // instead so the UI always renders against the persisted snapshot.
+        let json: T;
+        if (method === "POST" && resolvedPostEndpoint !== endpoint) {
+          await res.json().catch(() => ({}));
+          const refresh = await fetch(endpoint, { method: "GET" });
+          if (!refresh.ok) {
+            throw new Error(`Refresh after scan failed (${refresh.status})`);
+          }
+          json = (await refresh.json()) as T;
+        } else {
+          json = (await res.json()) as T;
+        }
+        // Drop the result if a newer request has already started — prevents
+        // a slow background tick from clobbering a fresher manual sync.
+        if (myId !== latestRequestIdRef.current) return;
         const stamp = extractTimestamp
           ? extractTimestamp(json)
           : new Date().toISOString();
@@ -105,6 +137,9 @@ export function useSyncHook<T>(
           }, retryIntervalMs);
         }
       } catch (err) {
+        // Same race guard for the error path — a superseded request shouldn't
+        // overwrite a fresher one's error/data state either.
+        if (myId !== latestRequestIdRef.current) return;
         // Only show error if we don't already have valid cached data —
         // unless the caller explicitly wants the stale view marked as degraded.
         setData((prev) => {
@@ -123,6 +158,7 @@ export function useSyncHook<T>(
       active,
       clearRetry,
       endpoint,
+      resolvedPostEndpoint,
       extractTimestamp,
       retryIntervalMs,
       retryMethod,

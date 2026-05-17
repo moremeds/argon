@@ -20,6 +20,16 @@ test("CRI tab renders subtab — either empty state or populated cards", async (
   ).toBeVisible({ timeout: 15_000 });
 });
 
+test("VCG tab renders subtab — either empty state or populated cards", async ({
+  page,
+}) => {
+  await page.goto("/regime");
+  await page.getByTestId("regime-tab-vcg").click();
+  await expect(
+    page.getByTestId("vcg-subtab").or(page.getByTestId("vcg-empty-state")),
+  ).toBeVisible({ timeout: 15_000 });
+});
+
 test("vol backdrop strip renders with four vol tiles + term structure", async ({
   page,
 }) => {

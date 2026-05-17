@@ -327,13 +327,44 @@ function CriHistoryTable({ history }: { history: CriHistoryEntry[] }) {
   );
 }
 
-export function CriSubTabView({ data }: { data: CriResponse | null }) {
+export function CriSubTabView({
+  data,
+  onSyncNow,
+  syncing = false,
+}: {
+  data: CriResponse | null;
+  onSyncNow?: () => void;
+  syncing?: boolean;
+}) {
   // Empty/loading state — mirrors xenon's "no CRI data" shield empty.
   if (!data || data.status === "empty") {
     return (
       <div className="regime-empty" data-testid="cri-empty-state">
         <Shield size={32} strokeWidth={1} />
         <p>No CRI data available. Click Sync Now to run a scan.</p>
+        {onSyncNow && (
+          <button
+            type="button"
+            onClick={onSyncNow}
+            disabled={syncing}
+            data-testid="cri-sync-now"
+            style={{
+              marginTop: "12px",
+              padding: "6px 14px",
+              fontFamily: "var(--font-mono)",
+              fontSize: "11px",
+              letterSpacing: "0.08em",
+              textTransform: "uppercase",
+              background: "var(--bg-panel-raised, var(--bg-panel))",
+              border: "1px solid var(--border-dim, var(--line-grid))",
+              color: "var(--text-primary)",
+              cursor: syncing ? "default" : "pointer",
+              opacity: syncing ? 0.6 : 1,
+            }}
+          >
+            {syncing ? "Syncing…" : "Sync Now"}
+          </button>
+        )}
       </div>
     );
   }
@@ -585,6 +616,6 @@ export function CriSubTabView({ data }: { data: CriResponse | null }) {
 }
 
 export default function CriSubTab() {
-  const { data } = useCri();
-  return <CriSubTabView data={data} />;
+  const { data, syncing, syncNow } = useCri();
+  return <CriSubTabView data={data} syncing={syncing} onSyncNow={syncNow} />;
 }

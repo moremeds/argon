@@ -4,12 +4,15 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import RegimePanel from "@/components/regime/RegimePanel";
 
-// Stub GexSubTab / CriSubTab so this test doesn't depend on chart / fetch internals.
+// Stub the sub-tabs so this test doesn't depend on chart / fetch internals.
 vi.mock("@/components/regime/GexSubTab", () => ({
   default: () => <div data-testid="gex-subtab-stub">GEX subtab</div>,
 }));
 vi.mock("@/components/regime/CriSubTab", () => ({
   default: () => <div data-testid="cri-subtab-stub">CRI subtab</div>,
+}));
+vi.mock("@/components/regime/VcgSubTab", () => ({
+  default: () => <div data-testid="vcg-subtab-stub">VCG subtab</div>,
 }));
 
 beforeEach(() => {
@@ -38,9 +41,9 @@ describe("RegimePanel", () => {
     expect(screen.queryByTestId("cri-subtab-stub")).not.toBeNull();
   });
 
-  it("shows pending placeholder on VCG tab", () => {
+  it("renders VCG subtab when VCG tab clicked", () => {
     render(<RegimePanel />);
     fireEvent.click(screen.getByTestId("regime-tab-vcg"));
-    expect(screen.queryByTestId("regime-pending-vcg")).not.toBeNull();
+    expect(screen.queryByTestId("vcg-subtab-stub")).not.toBeNull();
   });
 });
