@@ -1,6 +1,6 @@
 /* @vitest-environment jsdom */
 import { render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, beforeEach, afterEach, vi } from "vitest";
 
 import { CriSubTabView } from "@/components/regime/CriSubTab";
 import type { CriResponse } from "@/lib/regime/useCri";
@@ -15,6 +15,11 @@ const POPULATED: CriResponse = {
   cor1m: 10.8,
   spx_distance_pct: -2.5,
   realized_vol: 14.2,
+  vix_5d_roc: 2.5,
+  vvix_vix_ratio: 5.04,
+  spx_100d_ma: 605.0,
+  cor1m_previous_close: 10.5,
+  cor1m_5d_change: 0.6,
   cri: {
     score: 33.4,
     level: "ELEVATED",
@@ -82,6 +87,22 @@ const FIRED_TRIGGER: CriResponse = {
   },
 };
 
+// jsdom doesn't have ResizeObserver — stub one so CriHistoryChart can mount.
+beforeEach(() => {
+  vi.stubGlobal(
+    "ResizeObserver",
+    class {
+      observe() {}
+      unobserve() {}
+      disconnect() {}
+    },
+  );
+});
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+});
+
 describe("CriSubTabView", () => {
   it("renders empty placeholder when data is null", () => {
     render(<CriSubTabView data={null} />);
@@ -97,42 +118,52 @@ describe("CriSubTabView", () => {
     expect(screen.getByTestId("cri-empty-state")).not.toBeNull();
   });
 
-  it("renders score and level for populated data", () => {
+  it("renders hero score (no decimals) and level badge", () => {
     render(<CriSubTabView data={POPULATED} />);
-    expect(screen.getByTestId("cri-score").textContent).toContain("33.4");
+    // 33.4 → .toFixed(0) → "33"
+    expect(screen.getByTestId("cri-score").textContent).toBe("33");
     expect(screen.getByTestId("cri-level").textContent).toBe("ELEVATED");
   });
 
-  it("renders the four component bars", () => {
+  it("renders all four component bars (VIX/VVIX/CORRELATION/MOMENTUM)", () => {
     render(<CriSubTabView data={POPULATED} />);
-    expect(screen.getByText(/component scores/i)).not.toBeNull();
-    expect(screen.getByText("VIX")).not.toBeNull();
-    expect(screen.getByText("VVIX")).not.toBeNull();
-    expect(screen.getByText("COR1M")).not.toBeNull();
-    expect(screen.getByText("SPX MOM")).not.toBeNull();
+    expect(screen.getByText("CRI COMPONENTS")).not.toBeNull();
+    // Each component label is rendered inside the bar
+    expect(screen.getAllByText("VIX").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("VVIX").length).toBeGreaterThan(0);
+    expect(screen.getByText("CORRELATION")).not.toBeNull();
+    expect(screen.getByText("MOMENTUM")).not.toBeNull();
   });
 
-  it("renders SILENT crash trigger when not fired", () => {
+  it("renders INACTIVE crash trigger when not triggered", () => {
     render(<CriSubTabView data={POPULATED} />);
     expect(screen.getByTestId("crash-trigger-state").textContent).toBe(
-      "SILENT",
+      "INACTIVE",
     );
   });
 
-  it("renders FIRED crash trigger when triggered", () => {
+  it("renders TRIGGERED crash trigger when all three conditions fire", () => {
     render(<CriSubTabView data={FIRED_TRIGGER} />);
-    expect(screen.getByTestId("crash-trigger-state").textContent).toBe("FIRED");
+    expect(screen.getByTestId("crash-trigger-state").textContent).toBe(
+      "TRIGGERED",
+    );
   });
 
-  it("renders mini history chart when history rows exist", () => {
+  it("renders the 5-cell ticker strip", () => {
     render(<CriSubTabView data={POPULATED} />);
-    expect(screen.getByTestId("cri-mini-history")).not.toBeNull();
+    expect(screen.getByTestId("strip-vix")).not.toBeNull();
+    expect(screen.getByTestId("strip-vvix")).not.toBeNull();
+    expect(screen.getByTestId("strip-spy")).not.toBeNull();
+    expect(screen.getByTestId("strip-rvol")).not.toBeNull();
+    expect(screen.getByTestId("strip-cor1m")).not.toBeNull();
   });
 
-  it("renders CTA exposure card", () => {
+  it("renders the side-by-side 20-session history grid", () => {
     render(<CriSubTabView data={POPULATED} />);
-    expect(screen.getByText(/cta vol-target model/i)).not.toBeNull();
-    // 70.4 → fmtDecimal(_, 0) → "70%"
-    expect(screen.getByText("70%")).not.toBeNull();
+    expect(screen.getByTestId("regime-history-grid")).not.toBeNull();
+    expect(screen.getByTestId("regime-history-chart-vix-vvix")).not.toBeNull();
+    expect(
+      screen.getByTestId("regime-history-chart-rvol-cor1m"),
+    ).not.toBeNull();
   });
 });

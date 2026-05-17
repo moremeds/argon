@@ -1,455 +1,425 @@
 "use client";
 
-import { fmtDecimal } from "@/lib/formatters";
-import { finiteDomain, linearScale, pathFromPoints } from "@/lib/svgChart";
-import {
+import { useMemo } from "react";
+import { AlertTriangle, Check, Shield, X, Zap } from "lucide-react";
+
+import CriHistoryChart, {
+  type ChartSeries,
   type CriHistoryEntry,
-  type CriResponse,
-  useCri,
-} from "@/lib/regime/useCri";
+} from "./CriHistoryChart";
+import InfoTooltip from "./InfoTooltip";
+import {
+  DayChange,
+  LiveBadge,
+  PointChange,
+  RegimeStrip,
+  RegimeStripCell,
+} from "./RegimeStrip";
+import { type CriBlock, type CriResponse, useCri } from "@/lib/regime/useCri";
 
-const LEVEL_COLOR: Record<"LOW" | "ELEVATED" | "HIGH" | "CRITICAL", string> = {
-  LOW: "var(--positive)",
-  ELEVATED: "var(--accent-warm)",
-  HIGH: "var(--warning)",
-  CRITICAL: "var(--negative)",
+type CriLevel = "LOW" | "ELEVATED" | "HIGH" | "CRITICAL";
+
+const COMPONENT_TOOLTIPS: Record<string, string> = {
+  VIX: "CBOE Volatility Index — 30-day implied vol of SPX. Score rises as VIX exceeds 20 (elevated) and 30 (high).",
+  VVIX: "Vol-of-VIX — measures expected volatility of VIX itself. Score rises with absolute level and VVIX/VIX ratio >5.",
+  CORRELATION:
+    "Cboe 1-Month Implied Correlation Index (COR1M). High COR1M (>60) means large-cap S&P names are expected to move together.",
+  MOMENTUM:
+    "SPX distance below 100-day MA combined with VIX 5-day rate of change. Captures trend stress + vol acceleration.",
 };
 
-const COMPONENT_LABELS: Record<keyof CriComponentsShape, string> = {
-  vix: "VIX",
-  vvix: "VVIX",
-  correlation: "COR1M",
-  momentum: "SPX MOM",
+const SECTION_TOOLTIPS: Record<string, string> = {
+  "CRI COMPONENTS":
+    "Crash Risk Index broken into 4 sub-scores (0-25 each, 100 total). VIX/VVIX measure implied vol stress. Correlation tracks COR1M herding. Momentum captures SPX trend breakdown.",
+  "CRASH TRIGGER CONDITIONS":
+    "Three simultaneous conditions that signal a potential crash regime: SPX below 100d MA, realized vol > 25%, and COR1M > 60. All three must fire.",
+  "20-SESSION HISTORY":
+    "Left chart tracks VIX and VVIX. Right chart compares realized volatility with COR1M over the same window. Latest point is the most recent session.",
 };
 
-type CriComponentsShape = {
-  vix: number;
-  vvix: number;
-  correlation: number;
-  momentum: number;
-};
-
-function componentColor(score: number): string {
-  if (score < 12.5) return "var(--positive)";
-  if (score < 20) return "var(--accent-warm)";
-  return "var(--negative)";
+function levelColor(level: CriLevel): string {
+  switch (level) {
+    case "LOW":
+      return "var(--positive)";
+    case "ELEVATED":
+      return "var(--warning)";
+    case "HIGH":
+      return "var(--negative)";
+    case "CRITICAL":
+      return "var(--negative)";
+  }
 }
 
-function Tile({
+function fmt(v: number | null | undefined, decimals = 2): string {
+  if (v == null || !Number.isFinite(v)) return "---";
+  return v.toFixed(decimals);
+}
+
+function fmtPct(v: number | null | undefined, decimals = 2): string {
+  if (v == null || !Number.isFinite(v)) return "---";
+  return `${v >= 0 ? "+" : ""}${v.toFixed(decimals)}%`;
+}
+
+function fmtSigned(v: number | null | undefined, decimals = 2): string {
+  if (v == null || !Number.isFinite(v)) return "---";
+  return `${v >= 0 ? "+" : ""}${v.toFixed(decimals)}`;
+}
+
+function ComponentBar({
   label,
-  children,
-  hint,
+  score,
+  live,
 }: {
   label: string;
-  children: React.ReactNode;
-  hint?: string;
+  score: number;
+  live: boolean;
 }) {
+  const pct = (score / 25) * 100;
+  const barColor =
+    score < 8
+      ? "var(--positive)"
+      : score > 16
+        ? "var(--negative)"
+        : "var(--warning)";
+  const tooltip = COMPONENT_TOOLTIPS[label];
   return (
-    <div
-      title={hint}
-      style={{
-        padding: "12px 14px",
-        background: "var(--bg-panel)",
-        border: "1px solid var(--border-dim)",
-        borderRadius: 4,
-      }}
-    >
-      <div
-        style={{
-          fontSize: 10,
-          letterSpacing: "0.15em",
-          color: "var(--text-muted)",
-          textTransform: "uppercase",
-          marginBottom: 6,
-        }}
-      >
-        {label}
+    <div className="regime-component-bar">
+      <div className="regime-component-label">
+        <span style={{ flex: 1 }}>{label}</span>
+        {tooltip && <InfoTooltip text={tooltip} />}
+        <LiveBadge live={live} />
       </div>
-      {children}
-    </div>
-  );
-}
-
-function CompositeScore({ cri }: { cri: CriResponse["cri"] }) {
-  const score = cri?.score ?? 0;
-  const level = cri?.level ?? "LOW";
-  return (
-    <Tile label="Crash Risk Indicator">
-      <div style={{ display: "flex", alignItems: "baseline", gap: 12 }}>
+      <div className="regime-bar-track">
         <div
-          style={{
-            fontSize: 38,
-            fontWeight: 700,
-            fontFamily: "var(--font-mono)",
-            color: LEVEL_COLOR[level],
-            lineHeight: 1,
-          }}
-          data-testid="cri-score"
-        >
-          {fmtDecimal(score, 1)}
-        </div>
-        <div
-          style={{
-            fontSize: 12,
-            fontWeight: 600,
-            letterSpacing: "0.08em",
-            color: LEVEL_COLOR[level],
-            textTransform: "uppercase",
-          }}
-          data-testid="cri-level"
-        >
-          {level}
-        </div>
-        <div
-          style={{
-            fontSize: 11,
-            color: "var(--text-muted)",
-            marginLeft: "auto",
-          }}
-        >
-          / 100
-        </div>
-      </div>
-    </Tile>
-  );
-}
-
-function ComponentBar({ name, score }: { name: string; score: number }) {
-  const pct = Math.min(100, Math.max(0, (score / 25) * 100));
-  return (
-    <div
-      style={{
-        display: "grid",
-        gridTemplateColumns: "70px 1fr 44px",
-        alignItems: "center",
-        gap: 8,
-        marginBottom: 6,
-      }}
-    >
-      <div
-        style={{
-          fontSize: 10,
-          letterSpacing: "0.12em",
-          color: "var(--text-muted)",
-          textTransform: "uppercase",
-        }}
-      >
-        {name}
-      </div>
-      <div
-        style={{
-          position: "relative",
-          height: 8,
-          background: "var(--border-dim)",
-          borderRadius: 2,
-        }}
-      >
-        <div
-          style={{
-            position: "absolute",
-            top: 0,
-            left: 0,
-            width: `${pct}%`,
-            height: "100%",
-            background: componentColor(score),
-            borderRadius: 2,
-          }}
+          className="regime-bar-fill"
+          style={{ width: `${pct}%`, background: barColor }}
         />
       </div>
-      <div
-        style={{
-          fontSize: 11,
-          fontFamily: "var(--font-mono)",
-          color: "var(--text-primary)",
-          textAlign: "right",
-        }}
-      >
-        {fmtDecimal(score, 1)}
-      </div>
+      <div className="regime-component-score">{score.toFixed(1)}/25</div>
     </div>
   );
 }
 
-function ComponentBreakdown({
-  components,
+function TriggerRow({
+  label,
+  met,
+  value,
+  live,
 }: {
-  components: CriComponentsShape;
+  label: string;
+  met: boolean;
+  value: string;
+  live: boolean;
 }) {
   return (
-    <Tile label="Component Scores (each 0-25)">
-      <div style={{ marginTop: 4 }}>
-        {(Object.keys(COMPONENT_LABELS) as Array<keyof CriComponentsShape>).map(
-          (key) => (
-            <ComponentBar
-              key={key}
-              name={COMPONENT_LABELS[key]}
-              score={components[key] ?? 0}
-            />
-          ),
+    <div className="regime-trigger-row">
+      <div className="regime-trigger-icon">
+        {met ? (
+          <Check size={14} color="var(--positive)" />
+        ) : (
+          <X size={14} color="var(--negative)" />
         )}
       </div>
-    </Tile>
-  );
-}
-
-function CrashTriggerCard({
-  trigger,
-}: {
-  trigger: CriResponse["crash_trigger"];
-}) {
-  const fired = trigger?.fired ?? false;
-  const c = trigger?.conditions;
-  return (
-    <Tile label="Crash Trigger">
-      <div
-        style={{
-          fontSize: 16,
-          fontWeight: 600,
-          fontFamily: "var(--font-mono)",
-          color: fired ? "var(--negative)" : "var(--positive)",
-          marginBottom: 8,
-        }}
-        data-testid="crash-trigger-state"
-      >
-        {fired ? "FIRED" : "SILENT"}
-      </div>
-      <div
-        style={{
-          fontSize: 11,
-          color: "var(--text-secondary)",
-          lineHeight: 1.7,
-        }}
-      >
-        <ConditionRow
-          label="SPX < 100d MA"
-          on={c?.spx_below_100d_ma ?? false}
-        />
-        <ConditionRow
-          label="Realized vol > 25%"
-          on={c?.realized_vol_gt_25 ?? false}
-        />
-        <ConditionRow label="COR1M > 60" on={c?.cor1m_gt_60 ?? false} />
-      </div>
-    </Tile>
-  );
-}
-
-function ConditionRow({ label, on }: { label: string; on: boolean }) {
-  return (
-    <div style={{ display: "flex", justifyContent: "space-between" }}>
-      <span>{label}</span>
-      <span
-        style={{
-          color: on ? "var(--negative)" : "var(--text-muted)",
-          fontFamily: "var(--font-mono)",
-        }}
-      >
-        {on ? "ON" : "off"}
-      </span>
+      <div className="regime-trigger-label">{label}</div>
+      <div className="regime-trigger-value">{value}</div>
+      <LiveBadge live={live} />
     </div>
   );
 }
 
-function CtaCard({ cta }: { cta: CriResponse["cta"] }) {
-  const exposure = cta?.exposure_pct ?? null;
-  const reduction = cta?.forced_reduction_pct ?? null;
-  const selling = cta?.est_selling_bn ?? null;
-  return (
-    <Tile
-      label="CTA Vol-Target Model"
-      hint="vol_target=10% · max_exposure=200% · AUM=$350B"
-    >
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "1fr 1fr 1fr",
-          gap: 10,
-        }}
-      >
-        <Stat
-          label="Exposure"
-          value={exposure != null ? `${fmtDecimal(exposure, 0)}%` : "—"}
-          color={
-            exposure != null && exposure < 60
-              ? "var(--warning)"
-              : "var(--text-primary)"
-          }
-        />
-        <Stat
-          label="Forced Cut"
-          value={reduction != null ? `${fmtDecimal(reduction, 0)}%` : "—"}
-          color={
-            reduction != null && reduction > 0
-              ? "var(--negative)"
-              : "var(--positive)"
-          }
-        />
-        <Stat
-          label="Est. Selling"
-          value={selling != null ? `$${fmtDecimal(selling, 1)}B` : "—"}
-          color={
-            selling != null && selling > 0
-              ? "var(--negative)"
-              : "var(--text-primary)"
-          }
-        />
-      </div>
-    </Tile>
-  );
+// Pull prior-day values for DayChange from the history array (snapshot stored
+// the trailing 20 sessions including today). Today's close lives in the snapshot
+// scalars; "previous close" is history[history.length - 2][key].
+function prevClose(
+  history: CriHistoryEntry[] | undefined,
+  key: keyof CriHistoryEntry,
+): number | null {
+  if (!history || history.length < 2) return null;
+  const v = history[history.length - 2][key];
+  return typeof v === "number" && Number.isFinite(v) ? v : null;
 }
 
-function Stat({
-  label,
-  value,
-  color,
-}: {
-  label: string;
-  value: string;
-  color: string;
-}) {
-  return (
-    <div>
-      <div
-        style={{
-          fontSize: 10,
-          letterSpacing: "0.08em",
-          color: "var(--text-muted)",
-          textTransform: "uppercase",
-        }}
-      >
-        {label}
-      </div>
-      <div
-        style={{
-          fontSize: 16,
-          fontWeight: 600,
-          fontFamily: "var(--font-mono)",
-          color,
-        }}
-      >
-        {value}
-      </div>
-    </div>
-  );
-}
-
-const CHART_W = 760;
-const CHART_H = 160;
-const PAD = { top: 12, right: 56, bottom: 22, left: 56 };
-
-function MiniHistoryChart({ history }: { history: CriHistoryEntry[] }) {
-  if (!history.length) return null;
-
-  const xScale = linearScale(
-    [0, Math.max(history.length - 1, 1)],
-    [PAD.left, CHART_W - PAD.right],
-  );
-  const vixD = finiteDomain(history.map((h) => h.vix));
-  const corD = finiteDomain(history.map((h) => h.cor1m));
-  const yVix = vixD
-    ? linearScale([vixD.lo, vixD.hi], [CHART_H - PAD.bottom, PAD.top])
-    : null;
-  const yCor = corD
-    ? linearScale([corD.lo, corD.hi], [CHART_H - PAD.bottom, PAD.top])
-    : null;
-
-  const pathFor = (
-    pick: (h: CriHistoryEntry) => number | null | undefined,
-    y: ((v: number) => number) | null,
-  ) =>
-    y == null
-      ? ""
-      : pathFromPoints(
-          history
-            .map((h, i): [number, number] | null => {
-              const v = pick(h);
-              return v == null ? null : [xScale(i), y(v)];
-            })
-            .filter((p): p is [number, number] => p != null),
-        );
-
-  return (
-    <div style={{ marginTop: 12 }}>
-      <div
-        style={{
-          fontSize: 10,
-          letterSpacing: "0.15em",
-          color: "var(--text-muted)",
-          textTransform: "uppercase",
-          marginBottom: 4,
-        }}
-      >
-        20-day history · VIX (orange) · COR1M (blue)
-      </div>
-      <svg
-        role="img"
-        aria-label="CRI 20-day mini history"
-        viewBox={`0 0 ${CHART_W} ${CHART_H}`}
-        style={{ width: "100%", height: CHART_H, display: "block" }}
-        data-testid="cri-mini-history"
-      >
-        <title>CRI inputs — VIX and COR1M trailing 20 sessions</title>
-        <path
-          d={pathFor((h) => h.vix, yVix)}
-          fill="none"
-          stroke="var(--accent-warm)"
-          strokeWidth={1.4}
-        />
-        <path
-          d={pathFor((h) => h.cor1m, yCor)}
-          fill="none"
-          stroke="var(--accent-bg)"
-          strokeWidth={1.4}
-        />
-      </svg>
-    </div>
-  );
-}
+const VIX_VVIX_LEFT: ChartSeries = {
+  key: "vix",
+  label: "VIX",
+  color: "var(--signal-core, #05AD98)",
+  axis: "left",
+  format: (v) => v.toFixed(1),
+};
+const VIX_VVIX_RIGHT: ChartSeries = {
+  key: "vvix",
+  label: "VVIX",
+  color: "var(--extreme, #8B5CF6)",
+  axis: "right",
+  format: (v) => v.toFixed(0),
+};
+const RVOL_LEFT: ChartSeries = {
+  key: "realized_vol",
+  label: "RVOL",
+  color: "var(--warning, #F5A623)",
+  axis: "left",
+  format: (v) => `${v.toFixed(1)}%`,
+};
+const COR_RIGHT: ChartSeries = {
+  key: "cor1m",
+  label: "COR1M",
+  color: "var(--dislocation, #D946A8)",
+  axis: "right",
+  format: (v) => v.toFixed(1),
+};
 
 export function CriSubTabView({ data }: { data: CriResponse | null }) {
+  // Empty/loading state — mirrors xenon's "no CRI data" shield empty.
   if (!data || data.status === "empty") {
     return (
-      <div
-        data-testid="cri-empty-state"
-        style={{
-          padding: 32,
-          color: "var(--text-muted)",
-          fontFamily: "var(--font-mono)",
-          textTransform: "uppercase",
-          letterSpacing: "0.08em",
-        }}
-      >
-        No CRI snapshot yet — trigger a scan via POST /api/regime/scan.
+      <div className="regime-empty" data-testid="cri-empty-state">
+        <Shield size={32} strokeWidth={1} />
+        <p>No CRI data available. Click Sync Now to run a scan.</p>
       </div>
     );
   }
-  const cri = data.cri ?? {
+
+  const cri: CriBlock = data.cri ?? {
     score: 0,
-    level: "LOW" as const,
-    components: undefined,
+    level: "LOW",
+    components: { vix: 0, vvix: 0, correlation: 0, momentum: 0 },
   };
-  const components: CriComponentsShape = {
-    vix: cri.components?.vix ?? 0,
-    vvix: cri.components?.vvix ?? 0,
-    correlation: cri.components?.correlation ?? 0,
-    momentum: cri.components?.momentum ?? 0,
+  const level = cri.level as CriLevel;
+  const color = levelColor(level);
+  const components = cri.components ?? {
+    vix: 0,
+    vvix: 0,
+    correlation: 0,
+    momentum: 0,
   };
 
+  // We don't have IB live ticks in this project — all values are end-of-day.
+  // Drive the strip with the snapshot's scalars + history-derived prior closes.
+  const history = (data.history ?? []) as CriHistoryEntry[];
+  const vix = data.vix ?? null;
+  const vvix = data.vvix ?? null;
+  const spy = data.spy ?? null;
+  const cor1m = data.cor1m ?? null;
+  const realizedVol = data.realized_vol ?? null;
+
+  const vixClose = prevClose(history, "vix");
+  const vvixClose = prevClose(history, "vvix");
+  const spyClose = prevClose(history, "spy");
+  const cor1mPrevClose =
+    data.cor1m_previous_close ?? prevClose(history, "cor1m");
+
+  const corr5dChange = data.cor1m_5d_change ?? null;
+  const vvixVixRatio =
+    data.vvix_vix_ratio ?? (vix && vix > 0 && vvix != null ? vvix / vix : null);
+  const spxDistPct = data.spx_distance_pct ?? null;
+  const ma = data.spx_100d_ma ?? null;
+  const trigger = data.crash_trigger;
+  const triggered = trigger?.triggered ?? trigger?.fired ?? false;
+  const correlationTriggerMet =
+    trigger?.conditions?.cor1m_gt_60 ?? (cor1m != null && cor1m > 60);
+  const spxBelowMa = trigger?.conditions?.spx_below_100d_ma ?? false;
+  const rvolTriggerMet = trigger?.conditions?.realized_vol_gt_25 ?? false;
+
+  // Page is end-of-day in this project — never "live".
+  const live = false;
+  const lastSync = data.scan_time || null;
+
+  // History payload is the 20-session window (oldest → newest).
+  const liveValues = useMemo(() => ({}), []);
+
   return (
-    <div data-testid="cri-subtab">
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "1fr 1fr",
-          gap: 12,
-        }}
-      >
-        <CompositeScore cri={cri} />
-        <ComponentBreakdown components={components} />
-        <CrashTriggerCard trigger={data.crash_trigger} />
-        <CtaCard cta={data.cta} />
+    <div className="regime-panel" data-testid="cri-subtab">
+      {/* ── Row 1: Hero ───────────────────── */}
+      <div className="regime-hero">
+        <div className="regime-hero-score" style={{ color }}>
+          <span data-testid="cri-score">{cri.score.toFixed(0)}</span>
+          <span className="regime-hero-max">/100</span>
+        </div>
+        <div className="regime-hero-meta">
+          <span
+            className="regime-level-badge"
+            style={{
+              background: color,
+              color: level === "LOW" ? "#000" : "#fff",
+            }}
+            data-testid="cri-level"
+          >
+            {level}
+          </span>
+          <span
+            className="regime-live-dot"
+            style={{ background: "var(--text-muted)" }}
+          />
+          <span className="regime-hero-label">CACHED</span>
+          {lastSync && (
+            <span className="regime-hero-timestamp">
+              Last scan: {new Date(lastSync).toLocaleTimeString()}
+            </span>
+          )}
+        </div>
+        <div className="regime-hero-bar">
+          <div
+            className="regime-hero-bar-fill"
+            style={{ width: `${cri.score}%`, background: color }}
+          />
+        </div>
+        <div className="regime-hero-scale">
+          <span>LOW</span>
+          <span>ELEVATED</span>
+          <span>HIGH</span>
+          <span>CRITICAL</span>
+        </div>
       </div>
-      <MiniHistoryChart history={data.history ?? []} />
+
+      {/* ── Row 2: Live ticker strip (DAILY badges in our project) ── */}
+      <RegimeStrip>
+        <RegimeStripCell
+          testId="strip-vix"
+          label={
+            <>
+              VIX <LiveBadge live={live} />
+            </>
+          }
+          value={fmt(vix)}
+          change={<DayChange last={vix} close={vixClose} />}
+          sub={<>5d RoC: {fmtPct(data.vix_5d_roc, 1)}</>}
+        />
+        <RegimeStripCell
+          testId="strip-vvix"
+          label={
+            <>
+              VVIX <LiveBadge live={live} />
+            </>
+          }
+          value={fmt(vvix)}
+          change={<DayChange last={vvix} close={vvixClose} />}
+          sub={<>VVIX/VIX: {fmt(vvixVixRatio)}</>}
+        />
+        <RegimeStripCell
+          testId="strip-spy"
+          label={
+            <>
+              SPY <LiveBadge live={live} />
+            </>
+          }
+          value={`$${fmt(spy)}`}
+          change={<DayChange last={spy} close={spyClose} prefix="$" />}
+          sub={<>vs 100d MA: {fmtPct(spxDistPct)}</>}
+        />
+        <RegimeStripCell
+          testId="strip-rvol"
+          label={
+            <>
+              <span className="regime-strip-label-text-full">REALIZED VOL</span>
+              <span className="regime-strip-label-text-short">RVOL</span>
+              <LiveBadge live={live} />
+            </>
+          }
+          value={realizedVol != null ? `${fmt(realizedVol)}%` : "---"}
+          change={<PointChange change={null} suffix="%" label="intraday" />}
+          sub={<>20d annualized</>}
+        />
+        <RegimeStripCell
+          testId="strip-cor1m"
+          label={
+            <>
+              COR1M <LiveBadge live={live} />
+            </>
+          }
+          value={fmt(cor1m, 2)}
+          change={<DayChange last={cor1m} close={cor1mPrevClose} />}
+          sub={
+            <>{`5d chg: ${corr5dChange != null ? `${fmtSigned(corr5dChange)} pts` : "---"}`}</>
+          }
+        />
+      </RegimeStrip>
+
+      {/* ── Row 3+4: Components + Crash trigger ── */}
+      <div className="regime-detail-grid">
+        <div className="regime-components">
+          <div className="regime-panel-title">
+            <Zap size={12} />
+            CRI COMPONENTS
+            <InfoTooltip text={SECTION_TOOLTIPS["CRI COMPONENTS"]} />
+          </div>
+          <ComponentBar label="VIX" score={components.vix} live={live} />
+          <ComponentBar label="VVIX" score={components.vvix} live={live} />
+          <ComponentBar
+            label="CORRELATION"
+            score={components.correlation}
+            live={live}
+          />
+          <ComponentBar
+            label="MOMENTUM"
+            score={components.momentum}
+            live={live}
+          />
+        </div>
+        <div className="regime-triggers">
+          <div className="regime-panel-title">
+            <AlertTriangle size={12} />
+            CRASH TRIGGER CONDITIONS
+            <InfoTooltip text={SECTION_TOOLTIPS["CRASH TRIGGER CONDITIONS"]} />
+          </div>
+          <div
+            className={`regime-trigger-status ${triggered ? "regime-triggered" : ""}`}
+            data-testid="crash-trigger-state"
+          >
+            {triggered ? "TRIGGERED" : "INACTIVE"}
+          </div>
+          <TriggerRow
+            label="SPX < 100d MA"
+            met={spxBelowMa}
+            value={`${fmtPct(spxDistPct)} (MA: $${fmt(ma)})`}
+            live={live}
+          />
+          <TriggerRow
+            label="Realized Vol > 25%"
+            met={rvolTriggerMet}
+            value={realizedVol != null ? `${fmt(realizedVol)}%` : "---"}
+            live={live}
+          />
+          <TriggerRow
+            label="COR1M > 60"
+            met={correlationTriggerMet}
+            value={fmt(cor1m, 2)}
+            live={live}
+          />
+        </div>
+      </div>
+
+      {/* ── Row 5: 20-Session History (two charts side-by-side) ── */}
+      {history.length > 0 && (
+        <>
+          <div className="section-header" data-testid="regime-history-header">
+            <div className="section-title" data-testid="regime-history-title">
+              <span>20-SESSION HISTORY</span>
+              <InfoTooltip text={SECTION_TOOLTIPS["20-SESSION HISTORY"]} />
+            </div>
+          </div>
+          <div
+            className="regime-history-grid"
+            data-testid="regime-history-grid"
+          >
+            <div data-testid="regime-history-chart-vix-vvix">
+              <CriHistoryChart
+                history={history}
+                series={[VIX_VVIX_LEFT, VIX_VVIX_RIGHT]}
+                title="VIX / VVIX"
+                liveValues={liveValues}
+              />
+            </div>
+            <div data-testid="regime-history-chart-rvol-cor1m">
+              <CriHistoryChart
+                history={history}
+                series={[RVOL_LEFT, COR_RIGHT]}
+                title="REALIZED VOL / COR1M"
+                liveValues={liveValues}
+              />
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }
