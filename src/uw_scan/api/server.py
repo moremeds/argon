@@ -7,6 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from uw_scan.api.routers import (
     cockpit,
+    gold,
     health,
     jobs,
     ohlc,
@@ -40,6 +41,7 @@ def create_app() -> FastAPI:
     app.include_router(volatility.router, prefix="/api", tags=["volatility"])
     app.include_router(provider_usage.router, prefix="/api", tags=["provider-usage"])
     app.include_router(trade_insights.router, prefix="/api", tags=["trade-insights"])
+    app.include_router(gold.router, prefix="/api", tags=["gold"])
     return app
 
 

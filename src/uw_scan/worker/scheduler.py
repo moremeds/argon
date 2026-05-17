@@ -26,6 +26,18 @@ from uw_scan.storage.repository import Repository
 from uw_scan.worker.jobs.cockpit_daily_snapshot import cockpit_daily_snapshot
 from uw_scan.worker.jobs.flow_data_refresh import flow_data_refresh
 from uw_scan.worker.jobs.full_scan import full_scan_once
+from uw_scan.worker.jobs.gold_jobs import (
+    gold_cftc_cot_ingest_job,
+    gold_comex_vault_ingest_job,
+    gold_etf_holdings_ingest_job,
+    gold_fred_ingest_job,
+    gold_gpr_ingest_job,
+    gold_lbma_vault_ingest_job,
+    gold_posture_compute_job,
+    gold_spot_ingest_job,
+    gold_uw_options_ingest_job,
+    gold_wgc_cb_ingest_job,
+)
 from uw_scan.worker.jobs.ohlc_pull import ohlc_pull_once
 from uw_scan.worker.jobs.rescan_loop import rescan_tick
 from uw_scan.worker.jobs.spot_refresh import spot_refresh_once
@@ -325,6 +337,48 @@ def main() -> int:
     def _trade_insights_ai_tick() -> None:
         trade_insights_ai_tick(settings)
 
+    def _gold_fred_ingest() -> None:
+        gold_fred_ingest_job(dsn=settings.db_dsn())
+
+    def _gold_spot_ingest() -> None:
+        if settings.massive_api_key is None:
+            logger.warning("MASSIVE_API_KEY not set; skipping gold_spot_ingest")
+            return
+        gold_spot_ingest_job(
+            dsn=settings.db_dsn(),
+            api_key=settings.massive_api_key.get_secret_value(),
+            base_url=settings.massive_base_url,
+        )
+
+    def _gold_gpr_ingest() -> None:
+        gold_gpr_ingest_job(dsn=settings.db_dsn())
+
+    def _gold_etf_holdings_ingest() -> None:
+        gold_etf_holdings_ingest_job(dsn=settings.db_dsn())
+
+    def _gold_comex_vault_ingest() -> None:
+        gold_comex_vault_ingest_job(dsn=settings.db_dsn())
+
+    def _gold_uw_options_ingest() -> None:
+        gold_uw_options_ingest_job(
+            dsn=settings.db_dsn(),
+            api_key=settings.api_key.get_secret_value(),
+            base_url=settings.base_url,
+            request_timeout=settings.request_timeout_seconds,
+        )
+
+    def _gold_cftc_cot_ingest() -> None:
+        gold_cftc_cot_ingest_job(dsn=settings.db_dsn())
+
+    def _gold_lbma_vault_ingest() -> None:
+        gold_lbma_vault_ingest_job(dsn=settings.db_dsn())
+
+    def _gold_wgc_cb_ingest() -> None:
+        gold_wgc_cb_ingest_job(dsn=settings.db_dsn())
+
+    def _gold_posture_compute() -> None:
+        gold_posture_compute_job(dsn=settings.db_dsn())
+
     sched.add_job(
         lambda: _record_worker_heartbeat(settings),
         IntervalTrigger(seconds=1),
@@ -403,6 +457,72 @@ def main() -> int:
             max_instances=1,
             coalesce=True,
             misfire_grace_time=max(30, settings.trade_insights_ai_poll_seconds * 5),
+        )
+
+    if _is_primary_worker(settings):
+        # Phase A1 (Gold) — ET-anchored ingestion cascade then posture compute.
+        # All gold jobs run on the primary worker only: load is light, no
+        # sharding needed, and the UW options ingest (sole UW-bound job in
+        # this group) avoids duplicate UW spend.
+        sched.add_job(
+            _gold_fred_ingest,
+            CronTrigger.from_crontab("0 17 * * 1-5", timezone=settings.rth_tz),
+            id="gold_fred_ingest",
+            name="Gold: FRED daily refresh",
+        )
+        sched.add_job(
+            _gold_spot_ingest,
+            CronTrigger.from_crontab("5 17 * * 1-5", timezone=settings.rth_tz),
+            id="gold_spot_ingest",
+            name="Gold: spot price (GLD daily bars via massive)",
+        )
+        sched.add_job(
+            _gold_uw_options_ingest,
+            CronTrigger.from_crontab("15 17 * * 1-5", timezone=settings.rth_tz),
+            id="gold_uw_options_ingest",
+            name="Gold: UW options snapshot (GLD/GDX/IAU)",
+        )
+        sched.add_job(
+            _gold_comex_vault_ingest,
+            CronTrigger.from_crontab("30 17 * * 1-5", timezone=settings.rth_tz),
+            id="gold_comex_vault_ingest",
+            name="Gold: COMEX vault daily",
+        )
+        sched.add_job(
+            _gold_etf_holdings_ingest,
+            CronTrigger.from_crontab("30 18 * * 1-5", timezone=settings.rth_tz),
+            id="gold_etf_holdings_ingest",
+            name="Gold: ETF holdings daily (GLD/IAU/GLDM/PHYS)",
+        )
+        sched.add_job(
+            _gold_gpr_ingest,
+            CronTrigger.from_crontab("0 20 * * 1-5", timezone=settings.rth_tz),
+            id="gold_gpr_ingest",
+            name="Gold: GPR daily refresh",
+        )
+        sched.add_job(
+            _gold_posture_compute,
+            CronTrigger.from_crontab("0 21 * * 1-5", timezone=settings.rth_tz),
+            id="gold_posture_compute",
+            name="Gold: posture row compute (post-ingest)",
+        )
+        sched.add_job(
+            _gold_cftc_cot_ingest,
+            CronTrigger.from_crontab("0 17 * * 5", timezone=settings.rth_tz),
+            id="gold_cftc_cot_ingest",
+            name="Gold: CFTC COT weekly (Fridays)",
+        )
+        sched.add_job(
+            _gold_lbma_vault_ingest,
+            CronTrigger.from_crontab("0 17 8 * *", timezone=settings.rth_tz),
+            id="gold_lbma_vault_ingest",
+            name="Gold: LBMA vault monthly",
+        )
+        sched.add_job(
+            _gold_wgc_cb_ingest,
+            CronTrigger.from_crontab("0 17 10 * *", timezone=settings.rth_tz),
+            id="gold_wgc_cb_ingest",
+            name="Gold: WGC CB reserves monthly",
         )
 
     stopping = False

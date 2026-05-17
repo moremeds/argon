@@ -1,0 +1,451 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - banner [ref=e4]:
+      - generic [ref=e5]:
+        - generic [ref=e6]:
+          - generic [ref=e8]: Au
+          - generic [ref=e9]:
+            - generic [ref=e10]: Gold Monitor
+            - generic [ref=e11]: 黄金因子量化交易看板 · v1.0
+          - img [ref=e12]
+          - generic [ref=e14]:
+            - generic [ref=e15]: "R1:"
+            - text: 实际利率主导
+          - generic [ref=e16]:
+            - img [ref=e17]
+            - generic [ref=e21]: MOCK
+            - generic [ref=e22]: ·
+            - generic [ref=e23]: MOCK
+        - generic [ref=e24]:
+          - generic [ref=e25]:
+            - generic [ref=e26]:
+              - generic [ref=e27]: XAU/USD
+              - generic [ref=e28]: YAHOO-CHART
+            - generic [ref=e29]:
+              - generic [ref=e30]: $4561.50
+              - generic [ref=e31]: "-157.20"
+              - generic [ref=e32]: (-3.32%)
+            - generic [ref=e33]:
+              - generic [ref=e34]: H:4615.2
+              - generic [ref=e35]: L:4524.3
+              - generic [ref=e36]: O:4615.2
+          - generic [ref=e38]:
+            - generic [ref=e39]: 今日信号
+            - generic [ref=e40]: 做多
+          - generic [ref=e41]:
+            - generic [ref=e42]: 预测收益
+            - generic [ref=e43]: +0.72%
+          - generic [ref=e44]:
+            - generic [ref=e45]: 仓位热度
+            - generic [ref=e46]: 1.20%
+          - generic [ref=e47]:
+            - generic [ref=e48]: 当前回撤
+            - generic [ref=e49]: "-1.89%"
+        - generic [ref=e50]:
+          - generic [ref=e56]:
+            - img [ref=e57]
+            - generic [ref=e61]: VSTAR 已连接
+          - generic [ref=e62]:
+            - img [ref=e63]
+            - generic [ref=e65]: 00:58:52
+          - generic [ref=e66]:
+            - img [ref=e67]
+            - generic [ref=e69]: 1 警告
+          - link "VSTAR 开户交易" [ref=e70] [cursor=pointer]:
+            - /url: https://share.vstarau.com/sign-page/?lang=zh_CN&inviteCode=s7f5qfhy
+            - generic [ref=e71]: VSTAR
+            - generic [ref=e72]: 开户交易
+            - img [ref=e73]
+      - generic [ref=e75]:
+        - generic [ref=e76] [cursor=pointer]:
+          - generic [ref=e77]:
+            - generic [ref=e78]: F1
+            - generic [ref=e79]: IC 0.329
+          - generic [ref=e80]: 美元指数
+          - generic [ref=e81]: "-0.22"
+          - generic [ref=e82]:
+            - generic [ref=e83]: 120.89idx
+            - generic [ref=e84]:
+              - img [ref=e85]
+              - text: "+0.50"
+          - generic [ref=e89]:
+            - generic [ref=e90]: 52W 百分位
+            - generic [ref=e91]: 36%
+          - generic [ref=e94]: DXY中性，方向不明
+          - img [ref=e96]
+        - generic [ref=e97] [cursor=pointer]:
+          - generic [ref=e98]:
+            - generic [ref=e99]: F4
+            - generic [ref=e100]: IC -0.387
+          - generic [ref=e101]: 通胀预期
+          - generic [ref=e102]: "-0.05"
+          - generic [ref=e103]:
+            - generic [ref=e104]: 2.31%
+            - generic [ref=e105]:
+              - img [ref=e106]
+              - text: "+0.01"
+          - generic [ref=e110]:
+            - generic [ref=e111]: 52W 百分位
+            - generic [ref=e112]: 48%
+          - generic [ref=e115]: 通胀预期期限温和
+          - img [ref=e117]
+        - generic [ref=e118] [cursor=pointer]:
+          - generic [ref=e119]:
+            - generic [ref=e120]: F5
+            - generic [ref=e121]: IC 0.048
+          - generic [ref=e122]: 地缘政治风险
+          - generic [ref=e123]: "-0.11"
+          - generic [ref=e124]:
+            - generic [ref=e125]: 371.1GPR
+            - generic [ref=e126]:
+              - img [ref=e127]
+              - text: "+3.20"
+          - generic [ref=e131]:
+            - generic [ref=e132]: 52W 百分位
+            - generic [ref=e133]: 64%
+          - generic [ref=e136]: 地缘风险中性
+          - img [ref=e138]
+        - generic [ref=e139] [cursor=pointer]:
+          - generic [ref=e140]:
+            - generic [ref=e141]: F6
+            - generic [ref=e142]: IC -0.527
+          - generic [ref=e143]: 市场情绪
+          - generic [ref=e144]: "+0.28"
+          - generic [ref=e145]:
+            - generic [ref=e146]: 26.3GVZ
+            - generic [ref=e147]:
+              - img [ref=e148]
+              - text: "+0.90"
+          - generic [ref=e152]:
+            - generic [ref=e153]: 52W 百分位
+            - generic [ref=e154]: 72%
+          - generic [ref=e157]: GVZ极高，黄金恐慌溢价↑↑
+          - img [ref=e445]
+        - generic [ref=e162] [cursor=pointer]:
+          - generic [ref=e163]:
+            - generic [ref=e164]: F10
+            - generic [ref=e165]: IC 0.728
+          - generic [ref=e166]: 实际利率-通胀利差
+          - generic [ref=e167]: "-0.48"
+          - generic [ref=e168]:
+            - generic [ref=e169]: "-0.3%"
+            - generic [ref=e170]:
+              - img [ref=e171]
+              - text: "-0.04"
+          - generic [ref=e175]:
+            - generic [ref=e176]: 52W 百分位
+            - generic [ref=e177]: 55%
+          - generic [ref=e180]: 利差偏高，持有成本上升
+          - img [ref=e182]
+        - generic [ref=e185] [cursor=pointer]:
+          - generic [ref=e186]:
+            - generic [ref=e187]: F11
+            - generic [ref=e188]: IC -0.270
+          - generic [ref=e189]: 美元动量
+          - generic [ref=e190]: "+0.23"
+          - generic [ref=e191]:
+            - generic [ref=e192]: 1.07%
+            - generic [ref=e193]:
+              - img [ref=e194]
+              - text: "+0.12"
+          - generic [ref=e198]:
+            - generic [ref=e199]: 52W 百分位
+            - generic [ref=e200]: 68%
+          - generic [ref=e203]: 美元动量中性
+          - img [ref=e446]
+        - generic [ref=e208] [cursor=pointer]:
+          - generic [ref=e209]:
+            - generic [ref=e210]: F13
+            - generic [ref=e211]: IC -0.268
+          - generic [ref=e212]: 金价-矿业股背离
+          - generic [ref=e213]: "+0.15"
+          - generic [ref=e214]:
+            - generic [ref=e215]: 0.09z
+            - generic [ref=e216]:
+              - img [ref=e217]
+              - text: "+0.01"
+          - generic [ref=e221]:
+            - generic [ref=e222]: 52W 百分位
+            - generic [ref=e223]: 52%
+          - generic [ref=e226]: 金矿背离微弱，无明显信号
+          - img [ref=e228]
+        - generic [ref=e229] [cursor=pointer]:
+          - generic [ref=e230]:
+            - generic [ref=e231]: F14
+            - generic [ref=e232]: IC -0.174
+          - generic [ref=e233]: 波动率动量
+          - generic [ref=e234]: "-0.14"
+          - generic [ref=e235]:
+            - generic [ref=e236]: 15.2%
+            - generic [ref=e237]:
+              - img [ref=e238]
+              - text: "+0.50"
+          - generic [ref=e242]:
+            - generic [ref=e243]: 52W 百分位
+            - generic [ref=e244]: 65%
+          - generic [ref=e247]: 波动率动量中性
+          - img [ref=e447]
+    - generic [ref=e254]:
+      - generic [ref=e255]:
+        - generic [ref=e256]:
+          - img [ref=e448]
+          - generic [ref=e259]:
+            - generic [ref=e260]:
+              - generic [ref=e261]:
+                - img [ref=e262]
+                - text: 通胀重定价·通胀陷阱
+              - generic [ref=e265]:
+                - img [ref=e266]
+                - text: 22:46
+            - generic [ref=e269]: R3 紧缩体制 · 教育演示
+        - generic [ref=e270]:
+          - generic [ref=e271]:
+            - generic [ref=e272]: 同体制历史20日中位数收益
+            - generic [ref=e273]: "-4.49%"
+          - generic [ref=e275]:
+            - generic [ref=e276]: 分类置信度
+            - generic [ref=e277]: 100.0%
+          - generic [ref=e279]:
+            - generic [ref=e280]: 体制划分阈值
+            - generic [ref=e281]: ±0.8%
+        - generic [ref=e284]:
+          - generic [ref=e285]: Top 驱动因子
+          - generic [ref=e451]:
+            - generic [ref=e452]:
+              - generic [ref=e453]: 通胀预期 BEI
+              - generic [ref=e456]: "-3.7%"
+            - generic [ref=e457]:
+              - generic [ref=e458]: 金价-矿业股背离
+              - generic [ref=e461]: "-1.5%"
+            - generic [ref=e462]:
+              - generic [ref=e463]: 黄金波动率 GVZ
+              - generic [ref=e466]: "-0.5%"
+      - paragraph [ref=e287]: ⚠ 本页所有内容仅为基于历史数据的体制分类与统计演示，不构成任何投资建议、买卖指令或仓位推荐。投资决策请咨询持牌专业人士。
+    - generic [ref=e470]:
+      - generic [ref=e471]:
+        - img [ref=e473]
+        - generic [ref=e475]:
+          - generic [ref=e476]:
+            - text: 通胀机制判定
+            - generic [ref=e477]: (v2.1)
+          - generic [ref=e479]: 温和通胀陷阱
+          - generic [ref=e480]:
+            - generic [ref=e481]: "CPI: 3.68%"
+            - generic [ref=e482]: "T5YIFR: 2.28"
+            - generic [ref=e483]:
+              - text: "TIPS 60D:"
+              - generic [ref=e484]: +0.21pp
+      - generic [ref=e485]:
+        - generic [ref=e486]:
+          - generic [ref=e487]: 基准乘数
+          - generic [ref=e488]: "1.048"
+        - generic [ref=e489]:
+          - generic [ref=e490]: 通胀机制
+          - generic [ref=e491]: ×0.75
+        - img [ref=e492]
+        - generic [ref=e494]:
+          - generic [ref=e495]: 实际乘数
+          - generic [ref=e496]: "0.786"
+          - generic [ref=e497]: "-25.0%"
+        - generic [ref=e498]:
+          - generic [ref=e499]: 双力量
+          - generic [ref=e500]: 单一力量在工作
+          - generic [ref=e501]: 常规跟随
+      - generic [ref=e502]:
+        - generic [ref=e503]:
+          - generic [ref=e504]:
+            - img [ref=e505]
+            - generic [ref=e509]: A仓位
+          - generic [ref=e510]: 部分
+          - generic [ref=e511]: 反实际利率
+          - generic [ref=e512]: "0.62"
+        - generic [ref=e513]:
+          - generic [ref=e514]:
+            - img [ref=e515]
+            - generic [ref=e517]: B仓位
+          - generic [ref=e518]: 持有
+          - generic [ref=e519]: 尾部保险
+          - generic [ref=e520]: "1.73"
+    - generic [ref=e288]:
+      - generic [ref=e290]:
+        - generic [ref=e291]:
+          - button "SHAP 归因 · 瀑布图" [ref=e292] [cursor=pointer]:
+            - img [ref=e293]
+            - generic [ref=e294]: SHAP 归因
+            - generic [ref=e295]: · 瀑布图
+          - button "IC 追踪 · 信息系数" [ref=e296] [cursor=pointer]:
+            - img [ref=e297]
+            - generic [ref=e300]: IC 追踪
+            - generic [ref=e301]: · 信息系数
+          - button "Regime · 热力图" [ref=e302] [cursor=pointer]:
+            - img [ref=e303]
+            - generic [ref=e305]: Regime
+            - generic [ref=e306]: · 热力图
+          - button "相关性 · 矩阵" [ref=e307] [cursor=pointer]:
+            - img [ref=e308]
+            - generic [ref=e313]: 相关性
+            - generic [ref=e314]: · 矩阵
+          - button "净值曲线 · 账户表现" [ref=e315] [cursor=pointer]:
+            - img [ref=e316]
+            - generic [ref=e319]: 净值曲线
+            - generic [ref=e320]: · 账户表现
+        - generic [ref=e322]:
+          - generic [ref=e323]:
+            - generic [ref=e324]:
+              - heading "SHAP 因子归因瀑布图" [level=3] [ref=e325]
+              - paragraph [ref=e326]: 每日信号驱动因子分解 · 基准值 E[f(x)] = 0.00%
+            - generic [ref=e327]:
+              - generic [ref=e330]: 看多
+              - generic [ref=e333]: 看空
+          - generic [ref=e334]:
+            - generic [ref=e335]: 基准值
+            - generic [ref=e336]: 0.00%
+            - generic [ref=e338]: 预测值
+            - generic [ref=e339]: "-4.49%"
+          - generic [ref=e521]:
+            - generic [ref=e523] [cursor=pointer]:
+              - generic [ref=e524]:
+                - generic [ref=e525]: 通胀预期 BEI
+                - generic [ref=e526]: "Z: 2.57"
+              - generic [ref=e532]: "-3.71%"
+            - generic [ref=e534] [cursor=pointer]:
+              - generic [ref=e535]:
+                - generic [ref=e536]: 金价-矿业股背离
+                - generic [ref=e537]: "Z: 0.15"
+              - generic [ref=e543]: "-1.52%"
+            - generic [ref=e545] [cursor=pointer]:
+              - generic [ref=e546]:
+                - generic [ref=e547]: 黄金波动率 GVZ
+                - generic [ref=e548]: "Z: 0.28"
+              - generic [ref=e554]: "-0.50%"
+            - generic [ref=e556] [cursor=pointer]:
+              - generic [ref=e557]:
+                - generic [ref=e558]: 地缘政治风险 GPR
+                - generic [ref=e559]: "Z: -0.11"
+              - generic [ref=e565]: +0.16%
+            - generic [ref=e567] [cursor=pointer]:
+              - generic [ref=e568]:
+                - generic [ref=e569]: 波动率动量
+                - generic [ref=e570]: "Z: -0.14"
+              - generic [ref=e576]: "-0.09%"
+            - generic [ref=e578] [cursor=pointer]:
+              - generic [ref=e579]:
+                - generic [ref=e580]: 美元指数 DXY
+                - generic [ref=e581]: "Z: -1.68"
+              - generic [ref=e587]: +0.06%
+            - generic [ref=e589] [cursor=pointer]:
+              - generic [ref=e590]:
+                - generic [ref=e591]: 实际利率-通胀利差
+                - generic [ref=e592]: "Z: -0.48"
+              - generic [ref=e598]: +0.05%
+            - generic [ref=e600] [cursor=pointer]:
+              - generic [ref=e601]:
+                - generic [ref=e602]: 美元动量 20D
+                - generic [ref=e603]: "Z: 0.23"
+              - generic [ref=e609]: +0.02%
+          - generic [ref=e340]:
+            - generic [ref=e343]:
+              - generic [ref=e344]: 看多合计
+              - generic [ref=e345]: +0.29%
+            - generic [ref=e346]: "-4.49%"
+            - generic [ref=e348]:
+              - generic [ref=e349]: 看空合计
+              - generic [ref=e350]: "-5.81%"
+      - generic [ref=e353]:
+        - generic [ref=e354]:
+          - generic [ref=e355]:
+            - generic [ref=e610]:
+              - img [ref=e611]
+              - text: 持仓明细
+            - generic [ref=e613]: 1 笔活跃
+          - generic [ref=e615] [cursor=pointer]:
+            - generic [ref=e616]:
+              - generic [ref=e617]:
+                - img [ref=e619]
+                - generic [ref=e622]: POS-001
+                - generic [ref=e623]: 空 0手
+              - generic [ref=e624]:
+                - text: +$0
+                - generic [ref=e625]: (0.00%)
+            - generic [ref=e626]:
+              - generic [ref=e627]:
+                - text: 开仓
+                - generic [ref=e628]: $4681.90
+              - generic [ref=e629]: →
+              - generic [ref=e630]:
+                - text: 现价
+                - generic [ref=e631]: $4543.60
+              - generic [ref=e632]:
+                - img [ref=e633]
+                - text: 初始止损
+        - generic [ref=e356]:
+          - generic [ref=e357]:
+            - generic [ref=e358]:
+              - img [ref=e359]
+              - text: 回测账户
+            - generic [ref=e362]: 健康档
+          - generic [ref=e364]:
+            - generic [ref=e365]:
+              - generic [ref=e366]: 账户净值
+              - generic [ref=e367]: $101,272.60
+              - generic [ref=e368]: +$1272.60 (+1.27%)
+            - img [ref=e637]
+          - generic [ref=e371]:
+            - generic [ref=e372]:
+              - generic [ref=e373]:
+                - img [ref=e374]
+                - text: Portfolio Heat
+              - generic [ref=e376]: 0.00% / 2.00%
+            - generic [ref=e379]:
+              - generic [ref=e380]: 0%
+              - generic [ref=e381]: 1.8% 预警
+              - generic [ref=e382]: 2%
+          - generic [ref=e383]:
+            - generic [ref=e384]:
+              - generic [ref=e385]: Sharpe
+              - generic [ref=e386]: "2.02"
+            - generic [ref=e387]:
+              - generic [ref=e388]: 最大回撤
+              - generic [ref=e389]: "-0.36%"
+            - generic [ref=e390]:
+              - generic [ref=e391]: 胜率
+              - generic [ref=e392]: 25.8%
+          - generic [ref=e393]:
+            - generic [ref=e394]:
+              - generic [ref=e395]: Calmar
+              - generic [ref=e396]: "3.53"
+            - generic [ref=e397]:
+              - generic [ref=e398]: 盈亏比
+              - generic [ref=e399]: "1.06"
+            - generic [ref=e400]:
+              - generic [ref=e401]: 总交易
+              - generic [ref=e402]: "31"
+          - generic [ref=e403]:
+            - img [ref=e404]
+            - generic [ref=e408]: 当前回撤 0.36% · 风险乘数 1.0×
+    - contentinfo [ref=e413]:
+      - generic [ref=e414]:
+        - generic [ref=e415]:
+          - img [ref=e416]
+          - generic [ref=e418]: 模型健康
+        - generic [ref=e419]:
+          - img [ref=e420]
+          - generic [ref=e423]: XGBoost · 8因子
+        - generic [ref=e424]:
+          - img [ref=e425]
+          - generic [ref=e429]: Pipeline · 06:46
+        - generic [ref=e641]:
+          - img [ref=e642]
+          - generic [ref=e646]: IC=-0.14
+      - button "1 警告 3 条消息" [ref=e647] [cursor=pointer]:
+        - generic [ref=e431]:
+          - img [ref=e432]
+          - generic [ref=e434]: 1 警告
+        - generic [ref=e435]:
+          - img [ref=e436]
+          - generic [ref=e439]: 3 条消息
+      - generic [ref=e440]:
+        - generic [ref=e441]: 2026/05/17 00:58:52
+        - generic [ref=e442]: ·
+        - generic [ref=e443]: Gold Monitor v1.1
+  - alert [ref=e444]

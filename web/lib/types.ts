@@ -464,6 +464,91 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/gold/gauge": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Gauge */
+        get: operations["get_gauge_api_gold_gauge_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/gold/inputs/{series_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Input Series */
+        get: operations["get_input_series_api_gold_inputs__series_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/gold/state": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get State */
+        get: operations["get_state_api_gold_state_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/gold/lenses/{lens_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Lens */
+        get: operations["get_lens_api_gold_lenses__lens_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/gold/replay": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Replay */
+        get: operations["get_replay_api_gold_replay_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -915,6 +1000,349 @@ export interface components {
             pct_from_spot?: string | null;
             /** Gamma Per Dollar */
             gamma_per_dollar?: string | null;
+        };
+        /** GoldCorrelationBand */
+        GoldCorrelationBand: {
+            /** Mean */
+            mean: string;
+            /** Std */
+            std: string;
+        };
+        /**
+         * GoldCorrelationHistory
+         * @description Tier 5 correlation-history panel inputs.
+         */
+        GoldCorrelationHistory: {
+            /**
+             * Gold Dfii10
+             * @default []
+             */
+            gold_dfii10: components["schemas"]["GoldCorrelationPoint"][];
+            /**
+             * Gold Dxy
+             * @default []
+             */
+            gold_dxy: components["schemas"]["GoldCorrelationPoint"][];
+            /**
+             * Gold Gpr
+             * @default []
+             */
+            gold_gpr: components["schemas"]["GoldCorrelationPoint"][];
+            pre_2022_band?: components["schemas"]["GoldCorrelationBand"] | null;
+        };
+        /** GoldCorrelationPoint */
+        GoldCorrelationPoint: {
+            /**
+             * Obs Date
+             * Format: date
+             */
+            obs_date: string;
+            /** Value */
+            value: string;
+        };
+        /** GoldCyclicalPostureModel */
+        GoldCyclicalPostureModel: {
+            /** Zone Label */
+            zone_label?: string | null;
+            /**
+             * Posture Chip
+             * @enum {string}
+             */
+            posture_chip: "FAVORABLE" | "NEUTRAL" | "STRETCHED" | "SUSPENDED" | "DEGRADED";
+            /** Cpi Yoy */
+            cpi_yoy?: string | null;
+            /** T5Yifr */
+            t5yifr?: string | null;
+            /** T5Yifr Pct 52W */
+            t5yifr_pct_52w?: string | null;
+            /** Dfii10 */
+            dfii10?: string | null;
+            /** Dfii10 60D Change Bps */
+            dfii10_60d_change_bps?: string | null;
+            /** Dxy */
+            dxy?: string | null;
+            /** Dxy 60D Sigma */
+            dxy_60d_sigma?: string | null;
+            /** Gpr Value */
+            gpr_value?: string | null;
+            /** Gpr Pct 52W */
+            gpr_pct_52w?: string | null;
+            /**
+             * Factors
+             * @default {}
+             */
+            factors: {
+                [key: string]: number;
+            };
+            two_force_text: components["schemas"]["GoldTwoForceText"];
+            /** Narrative Text */
+            narrative_text: string;
+        };
+        /**
+         * GoldDataFreshnessSource
+         * @description Per-source freshness for the Tier 1 Data Freshness card.
+         */
+        GoldDataFreshnessSource: {
+            /** Id */
+            id: string;
+            /**
+             * Last As Of
+             * Format: date-time
+             */
+            last_as_of: string;
+            /** Stale Seconds */
+            stale_seconds: number;
+        };
+        /**
+         * GoldDecompositionRow
+         * @description One row of the Tier 5 lens-decomposition bars.
+         */
+        GoldDecompositionRow: {
+            /**
+             * Lens
+             * @enum {string}
+             */
+            lens: "L1" | "L2" | "L3";
+            /** Factor */
+            factor: string;
+            /** Contribution */
+            contribution: string;
+        };
+        /** GoldGaugeResponse */
+        GoldGaugeResponse: {
+            current: components["schemas"]["GoldGaugeState"];
+            /** History 252D */
+            history_252d: components["schemas"]["GoldGaugeTimeSeriesPoint"][];
+        };
+        /** GoldGaugeState */
+        GoldGaugeState: {
+            /** Corr 60D */
+            corr_60d?: string | null;
+            /** Corr 126D */
+            corr_126d?: string | null;
+            /** Corr 252D */
+            corr_252d?: string | null;
+            /** Corr 504D */
+            corr_504d?: string | null;
+            /** Corr 252D Returns */
+            corr_252d_returns?: string | null;
+            /**
+             * State
+             * @enum {string}
+             */
+            state: "operative" | "partial" | "suspended";
+        };
+        /** GoldGaugeTimeSeriesPoint */
+        GoldGaugeTimeSeriesPoint: {
+            /**
+             * Obs Date
+             * Format: date
+             */
+            obs_date: string;
+            /** Corr 252D */
+            corr_252d: string | null;
+        };
+        /** GoldHistoryPoint */
+        GoldHistoryPoint: {
+            /**
+             * Obs Date
+             * Format: date
+             */
+            obs_date: string;
+            /** Value */
+            value: string;
+        };
+        /** GoldInputProvenance */
+        GoldInputProvenance: {
+            /**
+             * Obs Date
+             * Format: date
+             */
+            obs_date: string;
+            /**
+             * As Of
+             * Format: date-time
+             */
+            as_of: string;
+        };
+        /** GoldInputSeriesPoint */
+        GoldInputSeriesPoint: {
+            /**
+             * Obs Date
+             * Format: date
+             */
+            obs_date: string;
+            /** Value */
+            value: string;
+            /**
+             * As Of
+             * Format: date-time
+             */
+            as_of: string;
+            /** Release Date */
+            release_date?: string | null;
+        };
+        /** GoldInputSeriesResponse */
+        GoldInputSeriesResponse: {
+            /** Series Id */
+            series_id: string;
+            /** Points */
+            points: components["schemas"]["GoldInputSeriesPoint"][];
+        };
+        /**
+         * GoldLensResponse
+         * @description Detail payload for one lens (richer than the summary in GoldStateResponse).
+         */
+        GoldLensResponse: {
+            /**
+             * Lens Id
+             * @enum {string}
+             */
+            lens_id: "structural" | "cyclical" | "valuation";
+            /** Posture */
+            posture: components["schemas"]["GoldStructuralPostureModel"] | components["schemas"]["GoldCyclicalPostureModel"] | components["schemas"]["GoldValuationPostureModel"];
+            /** Detail */
+            detail: {
+                [key: string]: components["schemas"]["GoldInputSeriesPoint"][];
+            };
+        };
+        /**
+         * GoldSpotTile
+         * @description XAU/USD snapshot used by the Tier 1 KPI strip.
+         */
+        GoldSpotTile: {
+            /** Last */
+            last: string;
+            /** Delta Abs */
+            delta_abs: string;
+            /** Delta Pct */
+            delta_pct: string;
+            /** High */
+            high: string;
+            /** Low */
+            low: string;
+            /** Open */
+            open: string;
+        };
+        /** GoldStateResponse */
+        GoldStateResponse: {
+            /**
+             * Obs Date
+             * Format: date
+             */
+            obs_date: string;
+            /**
+             * Computed At
+             * Format: date-time
+             */
+            computed_at: string;
+            gauge: components["schemas"]["GoldGaugeState"];
+            spot: components["schemas"]["GoldSpotTile"];
+            structural: components["schemas"]["GoldStructuralPostureModel"];
+            cyclical: components["schemas"]["GoldCyclicalPostureModel"];
+            valuation: components["schemas"]["GoldValuationPostureModel"];
+            /** Inputs Used */
+            inputs_used: {
+                [key: string]: components["schemas"]["GoldInputProvenance"];
+            };
+            /**
+             * Data Freshness
+             * @default []
+             */
+            data_freshness: components["schemas"]["GoldDataFreshnessSource"][];
+            /**
+             * Decomposition Rows
+             * @default []
+             */
+            decomposition_rows: components["schemas"]["GoldDecompositionRow"][];
+            /**
+             * @default {
+             *       "gold_dfii10": [],
+             *       "gold_dxy": [],
+             *       "gold_gpr": []
+             *     }
+             */
+            correlation_history: components["schemas"]["GoldCorrelationHistory"];
+        };
+        /** GoldStructuralPostureModel */
+        GoldStructuralPostureModel: {
+            /** State Label */
+            state_label?: string | null;
+            /**
+             * Posture Chip
+             * @enum {string}
+             */
+            posture_chip: "FAVORABLE" | "NEUTRAL" | "STRETCHED" | "SUSPENDED" | "DEGRADED";
+            /** Cb Strategic 12M Sum T */
+            cb_strategic_12m_sum_t?: string | null;
+            /** Cb Tactical 12M Sum T */
+            cb_tactical_12m_sum_t?: string | null;
+            /** Cb Diversifier 12M Sum T */
+            cb_diversifier_12m_sum_t?: string | null;
+            /** Cb 52W Pct */
+            cb_52w_pct?: string | null;
+            /** Gld Holdings T */
+            gld_holdings_t?: string | null;
+            /** Gld 30D Net Flow T */
+            gld_30d_net_flow_t?: string | null;
+            /** Comex Registered Oz */
+            comex_registered_oz?: string | null;
+            /** Comex 20D Roc Pct */
+            comex_20d_roc_pct?: string | null;
+            /** Lbma 30D Momentum T */
+            lbma_30d_momentum_t?: string | null;
+            /** Cot Mm Net Pct */
+            cot_mm_net_pct?: string | null;
+            /** Cot Mm 4W Change Sigma */
+            cot_mm_4w_change_sigma?: string | null;
+            /** Uw 25D Skew Sigma */
+            uw_25d_skew_sigma?: string | null;
+            /** Fx Basket Dxy Z */
+            fx_basket_dxy_z?: string | null;
+            /** Xau Cny Premium Pct */
+            xau_cny_premium_pct?: string | null;
+            /**
+             * Gld History
+             * @default []
+             */
+            gld_history: components["schemas"]["GoldHistoryPoint"][];
+            /**
+             * Gold History
+             * @default []
+             */
+            gold_history: components["schemas"]["GoldHistoryPoint"][];
+            /** Narrative Text */
+            narrative_text: string;
+        };
+        /** GoldTwoForceText */
+        GoldTwoForceText: {
+            /** Discount Rate */
+            discount_rate: string;
+            /** Hedge Demand */
+            hedge_demand: string;
+        };
+        /** GoldValuationPostureModel */
+        GoldValuationPostureModel: {
+            /**
+             * Flag
+             * @enum {string}
+             */
+            flag: "Low" | "Moderate" | "High" | "Severe";
+            /**
+             * Posture Chip
+             * @enum {string}
+             */
+            posture_chip: "FAVORABLE" | "NEUTRAL" | "STRETCHED" | "SUSPENDED" | "DEGRADED";
+            /** Real Price Percentile */
+            real_price_percentile?: string | null;
+            /** Gold M2 Ratio Percentile */
+            gold_m2_ratio_percentile?: string | null;
+            /** Gold Oil Ratio Percentile */
+            gold_oil_ratio_percentile?: string | null;
+            /** Gold Spx Ratio Percentile */
+            gold_spx_ratio_percentile?: string | null;
+            /** Narrative Text */
+            narrative_text: string;
         };
         /** HTTPValidationError */
         HTTPValidationError: {
@@ -3769,6 +4197,143 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["TradeInsightAiAnalysisResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_gauge_api_gold_gauge_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GoldGaugeResponse"];
+                };
+            };
+        };
+    };
+    get_input_series_api_gold_inputs__series_id__get: {
+        parameters: {
+            query?: {
+                from?: string | null;
+                to?: string | null;
+            };
+            header?: never;
+            path: {
+                series_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GoldInputSeriesResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_state_api_gold_state_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GoldStateResponse"];
+                };
+            };
+        };
+    };
+    get_lens_api_gold_lenses__lens_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                lens_id: "structural" | "cyclical" | "valuation";
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GoldLensResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_replay_api_gold_replay_get: {
+        parameters: {
+            query: {
+                /** @description Reconstruct posture for this obs_date */
+                as_of: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GoldStateResponse"];
                 };
             };
             /** @description Validation Error */

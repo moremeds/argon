@@ -1,0 +1,80 @@
+"""Worker job — gold_posture_compute_job (Task 25)."""
+
+from __future__ import annotations
+
+import os
+import subprocess
+from datetime import UTC, date, datetime, timedelta
+from decimal import Decimal
+from pathlib import Path
+
+import psycopg
+import pytest
+
+from uw_scan.config import Settings
+from uw_scan.storage.repository import Repository
+from uw_scan.worker.jobs.gold_jobs import gold_posture_compute_job
+
+REPO_ROOT = Path(__file__).resolve().parents[3]
+
+
+def _test_settings() -> Settings:
+    test_db = os.environ.get("UW_SCAN_TEST_DB_NAME")
+    if not test_db:
+        pytest.fail("UW_SCAN_TEST_DB_NAME is not set.", pytrace=False)
+    os.environ.setdefault("UW_SCAN_API_KEY", "test-dummy-not-used-by-db-tests")
+    return Settings.from_env().model_copy(update={"db_name": test_db})
+
+
+@pytest.fixture
+def fresh_db() -> Settings:
+    settings = _test_settings()
+    with psycopg.connect(settings.db_dsn(), autocommit=True) as conn:
+        with conn.cursor() as cur:
+            cur.execute("DROP SCHEMA IF EXISTS uw_scan CASCADE")
+            cur.execute("CREATE SCHEMA uw_scan")
+    env = {**os.environ, "UW_SCAN_DB_NAME": settings.db_name}
+    subprocess.run(
+        ["bash", str(REPO_ROOT / "scripts/migrate.sh")],
+        check=True,
+        cwd=REPO_ROOT,
+        env=env,
+    )
+    return settings
+
+
+def test_gold_posture_compute_writes_row(fresh_db: Settings) -> None:
+    target = date(2026, 5, 16)
+    with psycopg.connect(fresh_db.db_dsn()) as conn:
+        repo = Repository(conn, schema=fresh_db.db_schema)
+        base = target - timedelta(days=300)
+        for i in range(301):
+            d = base + timedelta(days=i)
+            repo.insert_macro_series_daily(
+                "GLD_CLOSE",
+                d,
+                Decimal(str(1800 + i * 0.5)),
+                datetime.combine(d, datetime.min.time(), tzinfo=UTC),
+                None,
+                "MASSIVE",
+                None,
+            )
+            repo.insert_macro_series_daily(
+                "DFII10",
+                d,
+                Decimal(str(2.0 - i * 0.005)),
+                datetime.combine(d, datetime.min.time(), tzinfo=UTC),
+                None,
+                "FRED",
+                None,
+            )
+        conn.commit()
+
+    gold_posture_compute_job(dsn=fresh_db.db_dsn(), as_of=target)
+
+    with psycopg.connect(fresh_db.db_dsn()) as conn:
+        repo = Repository(conn, schema=fresh_db.db_schema)
+        row = repo.fetch_gold_posture_latest()
+    assert row is not None
+    assert row["obs_date"] == target
+    assert row["gauge_state"] in {"operative", "partial", "suspended"}
