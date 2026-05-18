@@ -20,6 +20,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from uw_scan.api.deps import get_repo
 from uw_scan.cards.regime_gauge import compute_correlation_gauge
 from uw_scan.models import (
+    GoldCbCountryHistory,
     GoldCorrelationBand,
     GoldCorrelationHistory,
     GoldCorrelationPoint,
@@ -46,6 +47,36 @@ logger = logging.getLogger(__name__)
 
 # Mounted under `/api` by create_app(); final path is `/api/gold/*`.
 router = APIRouter(prefix="/gold", tags=["gold"])
+
+COUNTRY_NAMES = {
+    "ARG": "Argentina",
+    "AUS": "Australia",
+    "AUT": "Austria",
+    "AZE": "Azerbaijan",
+    "BRA": "Brazil",
+    "CHE": "Switzerland",
+    "CHN": "China",
+    "CZE": "Czechia",
+    "DEU": "Germany",
+    "EGY": "Egypt",
+    "FRA": "France",
+    "GBR": "United Kingdom",
+    "HUN": "Hungary",
+    "IND": "India",
+    "ITA": "Italy",
+    "JPN": "Japan",
+    "KAZ": "Kazakhstan",
+    "MEX": "Mexico",
+    "NLD": "Netherlands",
+    "PHL": "Philippines",
+    "POL": "Poland",
+    "QAT": "Qatar",
+    "RUS": "Russia",
+    "SGP": "Singapore",
+    "THA": "Thailand",
+    "TUR": "Turkey",
+    "USA": "United States",
+}
 
 
 # --------------------------------------------------------------------------
@@ -194,7 +225,47 @@ def _data_freshness(blob: Any) -> list[GoldDataFreshnessSource]:
     return out
 
 
-def _state_from_row(row: dict) -> GoldStateResponse:
+def _cb_country_history(
+    repo: Repository,
+    *,
+    as_of: date,
+    as_of_max: datetime,
+) -> list[GoldCbCountryHistory]:
+    rows = repo.fetch_cb_gold_reserves_history(to_month=as_of, as_of_max=as_of_max)
+    by_country: dict[str, list[dict]] = {}
+    for reserve_row in rows:
+        if reserve_row.get("reserves_t") is None:
+            continue
+        by_country.setdefault(reserve_row["country_iso3"], []).append(reserve_row)
+
+    out: list[GoldCbCountryHistory] = []
+    for country_iso3, country_rows in by_country.items():
+        ordered = sorted(country_rows, key=lambda r: r["obs_month"])
+        latest = ordered[-1]
+        out.append(
+            GoldCbCountryHistory(
+                country_iso3=country_iso3,
+                country_name=COUNTRY_NAMES.get(country_iso3, country_iso3),
+                bucket=latest["bucket"],
+                latest_reserves_t=latest.get("reserves_t"),
+                history=[
+                    GoldHistoryPoint(obs_date=r["obs_month"], value=r["reserves_t"])
+                    for r in ordered
+                    if r.get("reserves_t") is not None
+                ],
+            )
+        )
+    return sorted(
+        out,
+        key=lambda c: (-(c.latest_reserves_t or Decimal("0")), c.country_iso3),
+    )
+
+
+def _state_from_row(
+    row: dict,
+    *,
+    cb_country_history: list[GoldCbCountryHistory] | None = None,
+) -> GoldStateResponse:
     inputs_used: dict[str, GoldInputProvenance] = {}
     for sid, meta in (row.get("inputs_jsonb") or {}).items():
         if not isinstance(meta, dict):
@@ -243,6 +314,7 @@ def _state_from_row(row: dict) -> GoldStateResponse:
             xau_cny_premium_pct=row.get("xau_cny_premium_pct"),
             gld_history=_history_points(row.get("gld_history_jsonb")),
             gold_history=_history_points(row.get("gold_history_jsonb")),
+            cb_country_history=cb_country_history or [],
             narrative_text=row.get("structural_posture_text") or "",
         ),
         cyclical=GoldCyclicalPostureModel(
@@ -344,7 +416,12 @@ def get_state(repo: Repository = Depends(get_repo)) -> GoldStateResponse:
     row = repo.fetch_gold_posture_latest()
     if row is None:
         raise HTTPException(404, "no gold posture computed yet")
-    return _state_from_row(row)
+    return _state_from_row(
+        row,
+        cb_country_history=_cb_country_history(
+            repo, as_of=row["obs_date"], as_of_max=row["computed_at"]
+        ),
+    )
 
 
 @router.get("/lenses/{lens_id}", response_model=GoldLensResponse)
@@ -355,7 +432,12 @@ def get_lens(
     row = repo.fetch_gold_posture_latest()
     if row is None:
         raise HTTPException(404, "no gold posture computed yet")
-    state_resp = _state_from_row(row)
+    state_resp = _state_from_row(
+        row,
+        cb_country_history=_cb_country_history(
+            repo, as_of=row["obs_date"], as_of_max=row["computed_at"]
+        ),
+    )
 
     detail: dict[str, list[GoldInputSeriesPoint]] = {}
     if lens_id == "structural":
@@ -414,4 +496,9 @@ def get_replay(
     row = repo.fetch_gold_posture_for_obs_date(as_of)
     if row is None:
         raise HTTPException(404, f"no posture row for {as_of}")
-    return _state_from_row(row)
+    return _state_from_row(
+        row,
+        cb_country_history=_cb_country_history(
+            repo, as_of=row["obs_date"], as_of_max=row["computed_at"]
+        ),
+    )

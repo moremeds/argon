@@ -1688,6 +1688,22 @@ export interface components {
             /** History 252D */
             history_252d: components["schemas"]["GoldGaugeTimeSeriesPoint"][];
         };
+        /** GoldCbCountryHistory */
+        GoldCbCountryHistory: {
+            /** Country Iso3 */
+            country_iso3: string;
+            /** Country Name */
+            country_name: string;
+            /** Bucket */
+            bucket: string;
+            /** Latest Reserves T */
+            latest_reserves_t?: string | null;
+            /**
+             * History
+             * @default []
+             */
+            history: components["schemas"]["GoldHistoryPoint"][];
+        };
         /** GoldGaugeState */
         GoldGaugeState: {
             /** Corr 60D */
@@ -1885,6 +1901,11 @@ export interface components {
              * @default []
              */
             gold_history: components["schemas"]["GoldHistoryPoint"][];
+            /**
+             * Cb Country History
+             * @default []
+             */
+            cb_country_history: components["schemas"]["GoldCbCountryHistory"][];
             /** Narrative Text */
             narrative_text: string;
         };

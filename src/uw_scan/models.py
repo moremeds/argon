@@ -1330,6 +1330,14 @@ class GoldHistoryPoint(BaseModel):
     value: Decimal
 
 
+class GoldCbCountryHistory(BaseModel):
+    country_iso3: str
+    country_name: str
+    bucket: str
+    latest_reserves_t: Decimal | None = None
+    history: list[GoldHistoryPoint] = []
+
+
 class GoldSpotTile(BaseModel):
     """XAU/USD snapshot used by the Tier 1 KPI strip."""
 
@@ -1360,6 +1368,7 @@ class GoldStructuralPostureModel(BaseModel):
     xau_cny_premium_pct: Decimal | None = None
     gld_history: list[GoldHistoryPoint] = []
     gold_history: list[GoldHistoryPoint] = []
+    cb_country_history: list[GoldCbCountryHistory] = []
     narrative_text: str
 
 
