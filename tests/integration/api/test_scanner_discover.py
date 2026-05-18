@@ -4,6 +4,7 @@ the earnings_unknown_dropped counter."""
 from __future__ import annotations
 
 import os
+from types import SimpleNamespace
 from typing import Any
 
 import httpx
@@ -21,6 +22,11 @@ from uw_scan.storage.repository import Repository
 class _StubUwClient:
     def __init__(self, payload: dict[str, Any] | Exception) -> None:
         self._payload = payload
+        # _persist_audit reads client.rate_limit.{daily_count,minute_remaining,minute_reset}
+        # so the stub must carry the same shape as the real UwClient.
+        self.rate_limit = SimpleNamespace(
+            daily_count=0, minute_remaining=110, minute_reset=None
+        )
 
     def get(
         self,
@@ -60,9 +66,13 @@ def _ok_payload() -> dict[str, Any]:
                 "next_earnings_date": "2026-08-04",
             },
             {
-                # Will be dropped — next_earnings_date is missing
+                # Will be dropped — next_earnings_date is missing.
+                # Uses a fake ticker (NOT any real watchlist symbol) so the
+                # watchlist exclusion fires AFTER our earnings counter, not
+                # before — see test_watchlist_alert_with_unknown_earnings_does_not_count_as_dropped
+                # in tests/unit/scanner/test_discovery.py for the inverse case.
                 "id": "a2",
-                "ticker": "NVDA",
+                "ticker": "ZZQQ1",
                 "type": "call",
                 "strike": "120",
                 "underlying_price": "118",
@@ -152,7 +162,7 @@ def test_discover_happy_path_returns_candidates_and_writes_ok_run(
     assert body["source"] == "market_wide_flow_alerts"
     assert body["alerts_pulled"] == 2
     assert body["earnings_unknown_dropped"] == 1, (
-        "the NVDA alert with next_earnings_date=null must be counted"
+        "the ZZQQ1 alert with next_earnings_date=null must be counted"
     )
 
     ok_after, fail_after = _count_discover_runs(test_db)
