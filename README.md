@@ -77,6 +77,18 @@ A backfill kicks automatically the first time you open the tab for a ticker; sub
 
 ---
 
+## Other views
+
+| Route | What it is |
+|---|---|
+| `/scanner` | Detector-driven candidate list (DCF, Dark Pool, EIC, GEX) ranked by bias. Splits into **watchlist candidates** (full detector suite) and **discovered** tickers from the market-wide flow-alerts feed (DCF-only). |
+| `/regime` | Market-wide indicators ported from xenon — CRI (Crash Risk), VCG (Vol-Curve Gauge), and SPX GEX with profile chart. Vol-backdrop strip across the top. |
+| `/gold` | GOLD COMPASS five-tier cockpit on the gold complex (GLD, IAU, GDX, etc.) — physical/ETF/miner posture from WGC + ETF flow + dealer positioning. Has a `/gold/replay/<YYYY-MM-DD>` history view. |
+| `/cockpit/<TICKER>` | Index-only dealer-state research view (SPX / SPY / QQQ / IWM). Tabs: state, dealer, surface, flow-IM, VRP. Optional `?asof=YYYY-MM-DD` for historical snapshots. |
+| `/admin` | Health + scheduler controls. |
+
+---
+
 ## Run it
 
 ```bash

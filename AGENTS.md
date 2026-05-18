@@ -66,11 +66,17 @@ Environment:
 |---|---|
 | Active specs / plans | `docs/superpowers/specs/`, `docs/superpowers/plans/` |
 | API surface | `src/uw_scan/api/server.py` + `routers/*` |
-| Persistence | `src/uw_scan/storage/repository.py` (one method per query) |
+| Persistence — legacy mono-module | `src/uw_scan/storage/repository.py` (one method per query; 4,900+ lines; do not extend — split per [feedback_repository_split_threshold](.) ) |
+| Persistence — new leaf modules | `src/uw_scan/storage/{signals,cri_snapshot,vcg_snapshot,vol_index,greek_exposure,gold_etf,flow,health,jobs,market_data,scan_outputs,audit,provider_usage}_repository.py` (or `.py`). New domains go here, never appended to `repository.py` |
 | Scheduled jobs | `src/uw_scan/worker/scheduler.py` |
 | UW endpoints (integrated) | `src/uw_scan/api/endpoints.py` + `sources/uw.py` |
 | UW API reference (full surface) | `docs/uw-samples/unusual_whales_api.md` (human-readable) + `docs/uw-samples/unusual_whales_api_spec.yaml` (OpenAPI) — consult before adding any new UW fetcher |
 | UW sample payloads | `docs/uw-samples/*.json` — real responses for each integrated endpoint, with `_shape-summary.md` |
 | Volatility derivers | `src/uw_scan/cards/vol_series.py`, `reports/volatility_series.py` |
+| Scanner (detectors + ranking + discovery) | `src/uw_scan/scanner/` (pipeline, signals, ranking, discovery, gates, context) + `api/routers/scanner.py` + `web/app/scanner/page.tsx` |
+| Regime indicators (CRI / GEX / VCG) | `src/uw_scan/scanners/{cri,gex,vcg}.py` + `api/routers/regime.py` + `web/app/regime/page.tsx` + `web/components/regime/*` |
+| Gold Compass — code | `api/routers/gold.py` + `storage/gold_etf.py` + `worker/jobs/gold_jobs.py` + `sources/{fred,gpr,lbma,comex,etf_holdings,uw_gold_options,cftc_cot,wgc_etf,wgc_cb}.py` + `web/app/gold/page.tsx` (+ `gold/replay/[date]/`) + `web/components/gold/*` |
+| Gold Compass — research / sources docs | `docs/research/gold-sdf-framework/CLAUDE.md` (3-lens model, status vs. shipped, deferred sources) + `src/uw_scan/sources/CLAUDE.md` (per-source status + failure modes) |
+| Index dealer cockpit (SPX/SPY/QQQ/IWM) | `api/routers/cockpit.py` + `web/app/cockpit/[ticker]/page.tsx` |
 | Stock detail page | `web/app/stock/[ticker]/page.tsx` + `components/stock/tabs/*` |
 | Watchlist landing | `web/app/page.tsx` + `components/watchlist/CardGrid.tsx` |
