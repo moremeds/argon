@@ -490,13 +490,13 @@ def main() -> int:
             # Volatility tab v2 jobs — ET-anchored via from_crontab (review I9).
             sched.add_job(
                 _spy_ohlc_refresh,
-                CronTrigger.from_crontab("30 16 * * 1-5", timezone=settings.rth_tz),
+                CronTrigger.from_crontab("30 16 * * 0-4", timezone=settings.rth_tz),
                 id="daily_spy_ohlc_refresh",
                 name="Daily SPY OHLC refresh",
             )
             sched.add_job(
                 _vol_analytics_rollup,
-                CronTrigger.from_crontab("0 18 * * 1-5", timezone=settings.rth_tz),
+                CronTrigger.from_crontab("0 18 * * 0-4", timezone=settings.rth_tz),
                 id="nightly_vol_analytics_rollup",
                 name="Nightly vol analytics rollup",
             )
@@ -517,7 +517,7 @@ def main() -> int:
         )
         sched.add_job(
             _flow_data_refresh,
-            CronTrigger.from_crontab("15 18 * * 1-5", timezone=settings.rth_tz),
+            CronTrigger.from_crontab("15 18 * * 0-4", timezone=settings.rth_tz),
             id="nightly_flow_data_refresh",
             name="Nightly Flow tab data refresh",
         )
@@ -602,49 +602,49 @@ def main() -> int:
         # this group) avoids duplicate UW spend.
         sched.add_job(
             _gold_fred_ingest,
-            CronTrigger.from_crontab("0 17 * * 1-5", timezone=settings.rth_tz),
+            CronTrigger.from_crontab("0 17 * * 0-4", timezone=settings.rth_tz),
             id="gold_fred_ingest",
             name="Gold: FRED daily refresh",
         )
         sched.add_job(
             _gold_spot_ingest,
-            CronTrigger.from_crontab("5 17 * * 1-5", timezone=settings.rth_tz),
+            CronTrigger.from_crontab("5 17 * * 0-4", timezone=settings.rth_tz),
             id="gold_spot_ingest",
             name="Gold: spot price (GLD daily bars via massive)",
         )
         sched.add_job(
             _gold_uw_options_ingest,
-            CronTrigger.from_crontab("15 17 * * 1-5", timezone=settings.rth_tz),
+            CronTrigger.from_crontab("15 17 * * 0-4", timezone=settings.rth_tz),
             id="gold_uw_options_ingest",
             name="Gold: UW options snapshot (GLD/GDX/IAU)",
         )
         sched.add_job(
             _gold_comex_vault_ingest,
-            CronTrigger.from_crontab("30 17 * * 1-5", timezone=settings.rth_tz),
+            CronTrigger.from_crontab("30 17 * * 0-4", timezone=settings.rth_tz),
             id="gold_comex_vault_ingest",
             name="Gold: COMEX vault daily",
         )
         sched.add_job(
             _gold_etf_holdings_ingest,
-            CronTrigger.from_crontab("30 18 * * 1-5", timezone=settings.rth_tz),
+            CronTrigger.from_crontab("30 18 * * 0-4", timezone=settings.rth_tz),
             id="gold_etf_holdings_ingest",
             name="Gold: ETF holdings daily (GLD/IAU/GLDM/PHYS)",
         )
         sched.add_job(
             _gold_gpr_ingest,
-            CronTrigger.from_crontab("0 20 * * 1-5", timezone=settings.rth_tz),
+            CronTrigger.from_crontab("0 20 * * 0-4", timezone=settings.rth_tz),
             id="gold_gpr_ingest",
             name="Gold: GPR daily refresh",
         )
         sched.add_job(
             _gold_posture_compute,
-            CronTrigger.from_crontab("0 21 * * 1-5", timezone=settings.rth_tz),
+            CronTrigger.from_crontab("0 21 * * 0-4", timezone=settings.rth_tz),
             id="gold_posture_compute",
             name="Gold: posture row compute (post-ingest)",
         )
         sched.add_job(
             _gold_cftc_cot_ingest,
-            CronTrigger.from_crontab("0 17 * * 5", timezone=settings.rth_tz),
+            CronTrigger.from_crontab("0 17 * * 4", timezone=settings.rth_tz),
             id="gold_cftc_cot_ingest",
             name="Gold: CFTC COT weekly (Fridays)",
         )
