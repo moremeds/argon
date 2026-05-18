@@ -335,7 +335,8 @@ def _decimal_or_none(value: object) -> Decimal | None:
         return None
     try:
         return Decimal(str(value))
-    except (InvalidOperation, ValueError):
+    except (InvalidOperation, ValueError) as exc:
+        logger.debug("WGC reserve value parse skipped: %s", repr(exc))
         return None
 
 
