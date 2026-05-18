@@ -1656,13 +1656,16 @@ export interface components {
         GoldDataFreshnessSource: {
             /** Id */
             id: string;
-            /**
-             * Last As Of
-             * Format: date-time
-             */
-            last_as_of: string;
+            /** Last As Of */
+            last_as_of?: string | null;
             /** Stale Seconds */
-            stale_seconds: number;
+            stale_seconds?: number | null;
+            /**
+             * Status
+             * @default ok
+             * @enum {string}
+             */
+            status: "ok" | "missing";
         };
         /**
          * GoldDecompositionRow

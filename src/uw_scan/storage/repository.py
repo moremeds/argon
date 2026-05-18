@@ -4870,6 +4870,7 @@ class Repository(
                 """
                 SELECT *
                 FROM uw_scan.gold_posture_daily
+                WHERE row_status = 'active'
                 ORDER BY obs_date DESC, computed_at DESC
                 LIMIT 1
                 """,
@@ -4881,14 +4882,14 @@ class Repository(
             return dict(zip(cols, row, strict=True))
 
     def fetch_gold_posture_for_obs_date(self, obs_date: _date) -> dict[str, Any] | None:
-        """Replay discipline: return the FIRST-computed posture for an obs_date,
-        not the most recent recomputation."""
+        """Replay discipline: return the first non-invalidated posture row."""
         with self._conn.cursor() as cur:
             cur.execute(
                 """
                 SELECT *
                 FROM uw_scan.gold_posture_daily
                 WHERE obs_date = %s
+                  AND row_status = 'active'
                 ORDER BY computed_at ASC
                 LIMIT 1
                 """,

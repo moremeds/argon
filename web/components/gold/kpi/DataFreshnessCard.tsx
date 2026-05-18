@@ -21,19 +21,34 @@ export function DataFreshnessCard({ sources }: { sources: Source[] }) {
   if (sources.length === 0) {
     return <Tile label="DATA FRESHNESS" value="—" sub="No sources reporting" />;
   }
-  const worst = sources.reduce((acc, s) =>
-    s.stale_seconds > acc.stale_seconds ? s : acc,
+  const missing = sources.filter((s) => s.status === "missing");
+  const reporting = sources.filter(
+    (s) => s.status !== "missing" && s.stale_seconds != null,
   );
+  const worst = reporting.reduce<Source | null>(
+    (acc, s) =>
+      acc == null || (s.stale_seconds ?? 0) > (acc.stale_seconds ?? 0) ? s : acc,
+    null,
+  );
+  const value =
+    missing.length > 0
+      ? `${missing.length} missing`
+      : worst
+        ? `${ageLabel(worst.stale_seconds ?? 0)} · ${worst.id}`
+        : "—";
   return (
     <Tile
       label="DATA FRESHNESS"
-      tone={tone(worst.stale_seconds)}
-      value={`${ageLabel(worst.stale_seconds)} · ${worst.id}`}
+      tone={missing.length > 0 ? "negative" : tone(worst?.stale_seconds ?? 0)}
+      value={value}
       sub={
         <span style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
           {sources.map((s) => (
             <span key={s.id}>
-              {s.id} {ageLabel(s.stale_seconds)}
+              {s.id}{" "}
+              {s.status === "missing" || s.stale_seconds == null
+                ? "missing"
+                : ageLabel(s.stale_seconds)}
             </span>
           ))}
         </span>

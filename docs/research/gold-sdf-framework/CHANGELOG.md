@@ -4,6 +4,58 @@ A running log of substantive changes to the research foundation, with rationale 
 
 ---
 
+## 2026-05-18 — Live data-quality reconciliation
+
+**Source:** Local warm-store audit on branch `feat/gold-uw-etf-flows`.
+
+### Code Remediation Update
+
+The first implementation pass closed the local/provider issues that did not
+require a new licensed or alternate macro source:
+
+- CFTC COT ingestion now uses the official disaggregated futures-only commodity
+  feed for the current row and the CFTC Public Reporting Environment Socrata
+  dataset `72hh-3qpy` for 400-day history, filtered to gold contract `088691`.
+- `gold_posture_daily.cot_mm_4w_change_sigma` is now computed from persisted COT
+  history.
+- `wgc_etf_monthly_canonical` now provides latest-revision WGC rows; GLD
+  canonical count is 257 months versus 16,362 raw revision rows.
+- `data_freshness_jsonb` now carries `status=ok/missing` so unresolved sources
+  are visible instead of silently absent.
+- `gold_posture_compute_job()` defaults to the latest GLD market date, not
+  calendar today.
+- `gold_posture_daily` now has `row_status` / `superseded_reason`; normal latest
+  state and replay skip invalidated rows, while the audit rows remain in place.
+
+Remaining source decisions: IMF/IFS central-bank reserves, COMEX vaults, and UW
+options history/dealer-gamma semantics.
+
+The Phase A1 docs were updated to reflect the actual current data state rather
+than the initial handoff snapshot. GLD daily holdings and the WGC monthly ETF
+corpus are now available. The initial reconciliation noted COT, CB reserves,
+COMEX, freshness, and replay gaps; the implementation update above records
+which of those are now closed.
+
+### Changes
+
+- Added [14-data-quality-remediation.md](./14-data-quality-remediation.md) with
+  a source-by-source issue table, root causes, resolution order, and definition
+  of done.
+- Updated [README.md](./README.md) to point at the live data-quality caveat.
+- Updated [11-deferred-sources-phase-a1.md](./11-deferred-sources-phase-a1.md)
+  so GLD daily holdings and CFTC COT are no longer described as deferred, while
+  CB reserves and COMEX remain unresolved.
+- Updated [12-wgc-etf-flow-corpus.md](./12-wgc-etf-flow-corpus.md) and
+  [13-wgc-etf-flow-mining.md](./13-wgc-etf-flow-mining.md) to make WGC
+  canonicalization mandatory before factor use.
+- Updated [09-data-sources-catalog.md](./09-data-sources-catalog.md) to separate
+  working sources, blocked sources, authenticated/export-backed sources, and
+  sources needing alternate open-data rewires.
+- Updated [docs/handover/2026-05-17-gold-v2-codex-handover.md](../../handover/2026-05-17-gold-v2-codex-handover.md)
+  so future agents do not follow stale D2 guidance.
+
+---
+
 ## 2026-05-17 — Phase A1 ingestion field notes (deferred sources)
 
 **Source:** Implementation pass against the v1 plan in [09-data-sources-catalog.md](./09-data-sources-catalog.md).

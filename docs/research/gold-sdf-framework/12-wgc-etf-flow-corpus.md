@@ -30,7 +30,10 @@ It stores one row per `(ticker, obs_date, source_url)` with:
 - lineage: `source_url`, `source_label`, `as_of`, `source`
 
 Keeping `source_url` in the primary key preserves workbook revisions instead of
-flattening historical snapshots.
+flattening historical snapshots. This is intentional for audit lineage, but it
+means the raw table is not the right consumer surface for factor computation.
+Any model, chart, or research statistic should first canonicalize to one latest
+revision per `(ticker, obs_date)`.
 
 The ingest also bridges GLD/IAU/GLDM/PHYS monthly holdings into
 `etf_holdings_daily` with `source='WGC'`, so existing Lens 1 readers can use the
@@ -70,3 +73,32 @@ Local Postgres load result:
 - WGC bridge holdings rows: GLD 257, IAU 255, GLDM 94, PHYS 194
 
 Latest WGC workbook in this load: `20717_ETF_Flows_March_2026.xlsx`.
+
+## Canonicalization requirement
+
+The raw table preserves every workbook revision. A single fund-month can appear
+many times because later workbooks include historical rows. In the 2026-05-18
+local store, GLD has 16,362 raw rows for 257 distinct months across 78 source
+workbooks; some 2017-2018 months have 76 GLD rows.
+
+For research and product use, derive a canonical view first:
+
+```sql
+SELECT *
+FROM uw_scan.wgc_etf_monthly_canonical;
+```
+
+The implemented view ranks workbook revisions by the latest month present in
+each source workbook, then by ingest `as_of`, then by `source_url`. This avoids
+the bug where a lexicographically later older workbook can beat a newer revision
+when several exported workbooks are loaded in one ingest run.
+
+The canonical layer should be the only input to:
+
+- global and regional ETF demand totals,
+- ETF breadth metrics,
+- GLD share of global ETF holdings,
+- top-5 concentration,
+- any future Lens 1 WGC composite.
+
+The raw table remains the audit log.

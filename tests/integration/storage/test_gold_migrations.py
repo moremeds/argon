@@ -185,6 +185,8 @@ def test_gold_tables_created(fresh_schema):
             "correlation_history_jsonb",
             "gld_history_jsonb",
             "gold_history_jsonb",
+            "row_status",
+            "superseded_reason",
         },
     }
     for table, cols in expected.items():
@@ -237,3 +239,4 @@ def test_gold_posture_pk_and_index(fresh_schema):
         )
         idx = {row[0] for row in cur.fetchall()}
     assert "idx_gold_posture_daily_latest" in idx
+    assert "idx_gold_posture_daily_replay_active" in idx

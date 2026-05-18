@@ -2,19 +2,17 @@
 
 Source: cftc.gov public reports / API.
 We persist managed-money longs/shorts/net, commercials longs/shorts/net, OI.
-
-Note: CFTC_GOLD_DISAGG_URL is a placeholder; the worker job must pin the actual
-disaggregated gold (commodity code 088691) endpoint before being scheduled.
 """
 
 from __future__ import annotations
 
 import csv
 import io
+import json
 import logging
 from collections.abc import Callable
 from dataclasses import dataclass
-from datetime import UTC, date, datetime
+from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal, InvalidOperation
 from typing import Any
 
@@ -26,17 +24,29 @@ from uw_scan.storage.repository import redact_params, status_family_for
 logger = logging.getLogger(__name__)
 
 CFTC_GOLD_DISAGG_URL = (
-    # DEFERRED 2026-05-17: this placeholder still points at the FINANCIAL
-    # futures report (FinFutWk.txt) which does NOT contain gold positions —
-    # gold lives under "Disaggregated Commitments of Traders, Futures-Only"
-    # for commodities. The right wiring is either:
-    #   (1) download the year-zip from
-    #       www.cftc.gov/sites/default/files/files/dea/history/com_disagg_xls_<YYYY>.zip
-    #       and filter market_name == "GOLD" with disaggregated column names, OR
-    #   (2) use Socrata API at publicreporting.cftc.gov for the same dataset.
-    # Until then the parse loop yields 0 rows (column names don't match) and
-    # cot_gold_weekly stays empty — flagged for follow-up.
-    "https://www.cftc.gov/dea/newcot/FinFutWk.txt"
+    "https://www.cftc.gov/dea/newcot/f_disagg.txt"
+)
+CFTC_GOLD_DISAGG_HISTORY_URL = (
+    "https://publicreporting.cftc.gov/resource/72hh-3qpy.json"
+)
+CFTC_GOLD_CONTRACT_MARKET_CODE = "088691"
+
+_CURRENT_FIELD_NAMES = (
+    "Market_and_Exchange_Names",
+    "As_of_Date_In_Form_YYMMDD",
+    "Report_Date_as_YYYY-MM-DD",
+    "CFTC_Contract_Market_Code",
+    "CFTC_Market_Code",
+    "CFTC_Region_Code",
+    "CFTC_Commodity_Code",
+    "Open_Interest_All",
+    "Prod_Merc_Positions_Long_All",
+    "Prod_Merc_Positions_Short_All",
+    "Swap_Positions_Long_All",
+    "Swap__Positions_Short_All",
+    "Swap__Positions_Spread_All",
+    "M_Money_Positions_Long_All",
+    "M_Money_Positions_Short_All",
 )
 
 
@@ -58,7 +68,8 @@ RecordHook = Callable[["CftcCotProvider", ExternalApiRequestEvent], None]
 
 class CftcCotProvider:
     URL = CFTC_GOLD_DISAGG_URL
-    ENDPOINT_PATH = "/dea/newcot/FinFutWk.txt"
+    HISTORY_URL = CFTC_GOLD_DISAGG_HISTORY_URL
+    ENDPOINT_PATH = "/dea/newcot/f_disagg.txt"
     ENDPOINT_KEY = "cftc_cot_disagg_csv"
     PROVIDER = "cftc_cot"
 
@@ -81,39 +92,44 @@ class CftcCotProvider:
         self.close()
 
     def fetch_weekly(self, *, start: date | None = None) -> list[CotRow]:
+        if start is not None:
+            return self._fetch_history_weekly(start=start)
         response = self._get_with_telemetry(self.URL, {})
         response.raise_for_status()
         out: list[CotRow] = []
-        reader = csv.DictReader(io.StringIO(response.text))
-        for row in reader:
+        for row in _iter_disaggregated_rows(response.text):
+            contract_code = _field(row, "CFTC_Contract_Market_Code")
+            if contract_code and contract_code != CFTC_GOLD_CONTRACT_MARKET_CODE:
+                continue
             try:
-                obs = date.fromisoformat(row["Report_Date_as_YYYY-MM-DD"])
-                rel = date.fromisoformat(row["Report_Date_as_YYYY-MM-DD_Release"])
-                mm_l = _dec(row.get("M_Money_Positions_Long_All"))
-                mm_s = _dec(row.get("M_Money_Positions_Short_All"))
-                c_l = _dec(row.get("Prod_Merc_Positions_Long_ALL"))
-                c_s = _dec(row.get("Prod_Merc_Positions_Short_ALL"))
-                oi = _dec(row.get("Open_Interest_All"))
+                cot_row = _cot_row_from_mapping(row)
             except (KeyError, ValueError, InvalidOperation) as exc:
                 logger.debug("cftc cot row parse skipped: %s", repr(exc))
                 continue
-            if start and obs < start:
+            out.append(cot_row)
+        return out
+
+    def _fetch_history_weekly(self, *, start: date) -> list[CotRow]:
+        params = {
+            "$where": (
+                f'cftc_contract_market_code="{CFTC_GOLD_CONTRACT_MARKET_CODE}" '
+                f'AND report_date_as_yyyy_mm_dd >= "{start.isoformat()}T00:00:00"'
+            ),
+            "$order": "report_date_as_yyyy_mm_dd ASC",
+            "$limit": "5000",
+        }
+        response = self._get_with_telemetry(self.HISTORY_URL, params)
+        response.raise_for_status()
+        out: list[CotRow] = []
+        for row in json.loads(response.text):
+            contract_code = _field(row, "cftc_contract_market_code")
+            if contract_code != CFTC_GOLD_CONTRACT_MARKET_CODE:
                 continue
-            mm_n = (mm_l - mm_s) if mm_l is not None and mm_s is not None else None
-            c_n = (c_l - c_s) if c_l is not None and c_s is not None else None
-            out.append(
-                CotRow(
-                    obs_date=obs,
-                    release_date=rel,
-                    mm_long=mm_l,
-                    mm_short=mm_s,
-                    mm_net=mm_n,
-                    comm_long=c_l,
-                    comm_short=c_s,
-                    comm_net=c_n,
-                    open_interest=oi,
-                )
-            )
+            try:
+                out.append(_cot_row_from_mapping(row))
+            except (KeyError, ValueError, InvalidOperation) as exc:
+                logger.debug("cftc cot history row parse skipped: %s", repr(exc))
+                continue
         return out
 
     def _get_with_telemetry(self, url: str, params: dict[str, Any]) -> httpx.Response:
@@ -187,3 +203,68 @@ def _dec(raw: Any) -> Decimal | None:
     except (InvalidOperation, ValueError) as exc:
         logger.debug("cftc decimal parse skipped: %s", repr(exc))
         return None
+
+
+def _field(row: dict[str, Any], *names: str) -> str:
+    for name in names:
+        value = row.get(name)
+        if value is not None and value != "":
+            return str(value).strip()
+    return ""
+
+
+def _obs_date(row: dict[str, Any]) -> date:
+    raw = _field(row, "Report_Date_as_YYYY-MM-DD", "report_date_as_yyyy_mm_dd")
+    return date.fromisoformat(raw[:10])
+
+
+def _cot_row_from_mapping(row: dict[str, Any]) -> CotRow:
+    obs = _obs_date(row)
+    rel = _release_date(row, obs)
+    mm_l = _dec(_field(row, "M_Money_Positions_Long_All", "m_money_positions_long_all"))
+    mm_s = _dec(_field(row, "M_Money_Positions_Short_All", "m_money_positions_short_all"))
+    c_l = _dec(
+        _field(
+            row,
+            "Prod_Merc_Positions_Long_All",
+            "Prod_Merc_Positions_Long_ALL",
+            "prod_merc_positions_long",
+        )
+    )
+    c_s = _dec(
+        _field(
+            row,
+            "Prod_Merc_Positions_Short_All",
+            "Prod_Merc_Positions_Short_ALL",
+            "prod_merc_positions_short",
+        )
+    )
+    oi = _dec(_field(row, "Open_Interest_All", "open_interest_all"))
+    mm_n = (mm_l - mm_s) if mm_l is not None and mm_s is not None else None
+    c_n = (c_l - c_s) if c_l is not None and c_s is not None else None
+    return CotRow(
+        obs_date=obs,
+        release_date=rel,
+        mm_long=mm_l,
+        mm_short=mm_s,
+        mm_net=mm_n,
+        comm_long=c_l,
+        comm_short=c_s,
+        comm_net=c_n,
+        open_interest=oi,
+    )
+
+
+def _iter_disaggregated_rows(text: str) -> list[dict[str, str]]:
+    sample = text.lstrip()
+    first_line = sample.splitlines()[0] if sample else ""
+    if "Report_Date_as_YYYY-MM-DD" in first_line:
+        return list(csv.DictReader(io.StringIO(text)))
+    return list(csv.DictReader(io.StringIO(text), fieldnames=_CURRENT_FIELD_NAMES))
+
+
+def _release_date(row: dict[str, Any], obs: date) -> date:
+    raw = row.get("Report_Date_as_YYYY-MM-DD_Release")
+    if raw:
+        return date.fromisoformat(raw)
+    return obs + timedelta(days=3)

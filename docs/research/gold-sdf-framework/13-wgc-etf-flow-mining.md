@@ -18,7 +18,12 @@ Source: `uw_scan.wgc_etf_monthly`, loaded from 78 authenticated WGC Goldhub ETF
 workbooks. See [12-wgc-etf-flow-corpus.md](./12-wgc-etf-flow-corpus.md).
 
 For this note, rows were canonicalised to the latest workbook revision per
-`(ticker, obs_date)` using `source_url DESC`, then grouped monthly.
+`(ticker, obs_date)`, then grouped monthly.
+
+**2026-05-18 implementation note:** production callers should read
+`uw_scan.wgc_etf_monthly_canonical` / `repo.fetch_wgc_etf_monthly()`. The raw
+WGC table remains revision-preserving and intentionally much larger than the
+canonical fund-month panel.
 
 Canonical sample:
 
@@ -230,7 +235,10 @@ be treated as interchangeable.
    lens input, not as trade sizing.
 4. Compare GLD daily flow to WGC monthly global demand to calibrate when GLD is
    a good proxy and when it is misleading.
-5. Explore ETF flow further as its own Lens 1 research thread:
+5. Add the canonical WGC query/view described in
+   [12-wgc-etf-flow-corpus.md](./12-wgc-etf-flow-corpus.md) before wiring any
+   WGC-derived field into `/api/gold/state`.
+6. Explore ETF flow further as its own Lens 1 research thread:
    - identify whether flow breadth, regional rotation, or concentration changes
      add signal beyond headline global demand
    - test whether Asian ETF accumulation behaves differently from North American

@@ -124,6 +124,10 @@ def test_orchestrator_writes_posture_row(repo: Repository) -> None:
     }
     assert row["gld_history_jsonb"][-1]["obs_date"] == today.isoformat()
     assert Decimal(row["gld_history_jsonb"][-1]["value"]) == Decimal("1000")
+    freshness_by_id = {item["id"]: item for item in row["data_freshness_jsonb"]}
+    assert freshness_by_id["COMEX"]["status"] == "missing"
+    assert freshness_by_id["COT"]["status"] == "missing"
+    assert freshness_by_id["WGC"]["status"] == "missing"
 
 
 def test_orchestrator_idempotent_same_inputs(repo: Repository) -> None:

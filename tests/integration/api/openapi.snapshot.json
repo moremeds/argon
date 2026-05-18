@@ -3421,29 +3421,50 @@
         "type": "object"
       },
       "GoldDataFreshnessSource": {
-        "description": "Per-source freshness for the Tier 1 Data Freshness card.",
         "properties": {
           "id": {
-            "title": "Id",
-            "type": "string"
+            "type": "string",
+            "title": "Id"
           },
           "last_as_of": {
-            "format": "date-time",
-            "title": "Last As Of",
-            "type": "string"
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last As Of"
           },
           "stale_seconds": {
-            "title": "Stale Seconds",
-            "type": "integer"
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Stale Seconds"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "ok",
+              "missing"
+            ],
+            "title": "Status",
+            "default": "ok"
           }
         },
+        "type": "object",
         "required": [
-          "id",
-          "last_as_of",
-          "stale_seconds"
+          "id"
         ],
         "title": "GoldDataFreshnessSource",
-        "type": "object"
+        "description": "Per-source freshness for the Tier 1 Data Freshness card."
       },
       "GoldDecompositionRow": {
         "description": "One row of the Tier 5 lens-decomposition bars.",

@@ -82,7 +82,12 @@ const FIXTURE: State = {
     DFII10: { obs_date: "2026-05-16", as_of: "2026-05-17T00:00:00Z" },
   },
   data_freshness: [
-    { id: "FRED", last_as_of: "2026-05-17T00:00:00Z", stale_seconds: 60 },
+    {
+      id: "FRED",
+      last_as_of: "2026-05-17T00:00:00Z",
+      stale_seconds: 60,
+      status: "ok",
+    },
   ],
   decomposition_rows: [
     { lens: "L1", factor: "CB Δ12M", contribution: "1.4" },

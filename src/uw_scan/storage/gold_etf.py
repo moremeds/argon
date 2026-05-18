@@ -236,9 +236,9 @@ class _GoldEtfMixin:
                   gold_price_usd_oz, aggregate_ounces, aggregate_holdings_tonnes,
                   aggregate_value_usd, holdings_tonnes, demand_tonnes, flow_usd_mn,
                   source_url, source_label, as_of, source
-                FROM {self._schema}.wgc_etf_monthly
+                FROM {self._schema}.wgc_etf_monthly_canonical
                 WHERE {where}
-                ORDER BY obs_date ASC, as_of DESC, source_url DESC
+                ORDER BY obs_date ASC
                 """,
                 params,
             )

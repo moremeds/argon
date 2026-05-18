@@ -170,13 +170,22 @@ def _data_freshness(blob: Any) -> list[GoldDataFreshnessSource]:
             ts = (
                 ts_raw
                 if isinstance(ts_raw, datetime)
-                else datetime.fromisoformat(str(ts_raw).replace("Z", "+00:00"))
+                else (
+                    datetime.fromisoformat(str(ts_raw).replace("Z", "+00:00"))
+                    if ts_raw is not None
+                    else None
+                )
             )
             out.append(
                 GoldDataFreshnessSource(
                     id=row["id"],
                     last_as_of=ts,
-                    stale_seconds=int(row.get("stale_seconds", 0)),
+                    stale_seconds=(
+                        int(row["stale_seconds"])
+                        if row.get("stale_seconds") is not None
+                        else None
+                    ),
+                    status=row.get("status", "ok"),
                 )
             )
         except (KeyError, ValueError) as exc:

@@ -517,12 +517,19 @@ def gold_wgc_cb_ingest_job(*, dsn: str) -> None:
 def gold_posture_compute_job(*, dsn: str, as_of: date | None = None) -> None:
     """Compute and persist today's gold_posture_daily row. Schedule: 21:00 ET
     (after all ingest jobs complete)."""
-    target = as_of or date.today()
     with psycopg.connect(dsn) as conn:
         repo = Repository(conn, schema="uw_scan")
+        target = as_of or _latest_gold_market_date(repo)
         try:
             compute_and_persist_gold_posture(repo, as_of=target)
             conn.commit()
         except Exception as exc:
             logger.exception("gold_posture_compute failed: %r", exc)
             conn.rollback()
+
+
+def _latest_gold_market_date(repo: Repository) -> date:
+    rows = repo.fetch_macro_series_daily("GLD_CLOSE", to_date=date.today())
+    if not rows:
+        return date.today()
+    return rows[-1]["obs_date"]

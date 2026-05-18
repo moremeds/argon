@@ -1404,8 +1404,9 @@ class GoldDataFreshnessSource(BaseModel):
     """Per-source freshness for the Tier 1 Data Freshness card."""
 
     id: str
-    last_as_of: datetime
-    stale_seconds: int
+    last_as_of: datetime | None = None
+    stale_seconds: int | None = None
+    status: Literal["ok", "missing"] = "ok"
 
 
 class GoldDecompositionRow(BaseModel):
