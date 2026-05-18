@@ -1656,13 +1656,16 @@ export interface components {
         GoldDataFreshnessSource: {
             /** Id */
             id: string;
-            /**
-             * Last As Of
-             * Format: date-time
-             */
-            last_as_of: string;
+            /** Last As Of */
+            last_as_of?: string | null;
             /** Stale Seconds */
-            stale_seconds: number;
+            stale_seconds?: number | null;
+            /**
+             * Status
+             * @default ok
+             * @enum {string}
+             */
+            status: "ok" | "missing";
         };
         /**
          * GoldDecompositionRow
@@ -1684,6 +1687,22 @@ export interface components {
             current: components["schemas"]["GoldGaugeState"];
             /** History 252D */
             history_252d: components["schemas"]["GoldGaugeTimeSeriesPoint"][];
+        };
+        /** GoldCbCountryHistory */
+        GoldCbCountryHistory: {
+            /** Country Iso3 */
+            country_iso3: string;
+            /** Country Name */
+            country_name: string;
+            /** Bucket */
+            bucket: string;
+            /** Latest Reserves T */
+            latest_reserves_t?: string | null;
+            /**
+             * History
+             * @default []
+             */
+            history: components["schemas"]["GoldHistoryPoint"][];
         };
         /** GoldGaugeState */
         GoldGaugeState: {
@@ -1882,6 +1901,11 @@ export interface components {
              * @default []
              */
             gold_history: components["schemas"]["GoldHistoryPoint"][];
+            /**
+             * Cb Country History
+             * @default []
+             */
+            cb_country_history: components["schemas"]["GoldCbCountryHistory"][];
             /** Narrative Text */
             narrative_text: string;
         };

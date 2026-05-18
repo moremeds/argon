@@ -6,25 +6,29 @@
 
 **Why this file exists:** Five sources moved or paywalled between the design pass (April 2026) and the implementation pass (May 2026). Each was documented inline in the source file as a deferral, but operational and research context belongs here so the v2 plan can sequence them by effort × signal value rather than rediscovering each failure mode.
 
+**2026-05-18 live-state update:** this file is now paired with [14-data-quality-remediation.md](./14-data-quality-remediation.md), which records the current local DB state. GLD daily holdings, the WGC monthly ETF corpus, WGC canonicalization, COT current-row + 400-day history ingestion, WGC/IFS CB reserve workbook ingestion, freshness missing-source status, effective-market-date targeting, and replay invalidation have landed. COMEX remains unresolved.
+
 ---
 
 ## D1 — WGC Central Bank reserves (monthly)
 
 **Designed for:** Lens 1 structural — `cb_strategic_12m_sum_t`, `cb_tactical_12m_sum_t`, `cb_diversifier_12m_sum_t`, `cb_52w_pct`.
 
-**Designed source:** World Gold Council Goldhub CSV at `https://www.gold.org/...` (anonymous).
+**Designed source:** World Gold Council Goldhub central-bank downloads, sourced from IMF IFS plus WGC adjustments.
 
-**Phase A1 status:** **Anonymous endpoint retired 2026-05-17.** WGC moved Goldhub behind login. The fetcher in `src/uw_scan/sources/wgc_cb.py` is intact but the ingest job is a documented no-op (`gold_wgc_cb_ingest_job` logs an info line and returns).
+**Phase A1 status:** **Authenticated WGC workbook path wired 2026-05-18.** The old anonymous CSV still returns 404, but `src/uw_scan/sources/wgc_cb.py` can now parse the Goldhub quarterly reserves workbook from `WGC_CB_RESERVES_WORKBOOK_PATH` or fetch it with `WGC_GOLDHUB_COOKIE`.
 
 **Re-wire options (sorted by effort):**
 
-1. **IMF IFS direct** — central-bank gold reserves are reported through IMF International Financial Statistics. API endpoint at `https://data.imf.org/ifs` with an instant-issue key. Drops WGC's strategic/tactical/diversifier bucket classification (WGC bucket label is editorial); need to re-derive buckets or maintain a static mapping (~30 countries cover 95% of reported reserves).
+1. **IMF IFS direct** — central-bank gold reserves are reported through IMF International Financial Statistics. API endpoint at `https://data.imf.org/ifs` with an instant-issue key. Still useful as the long-run open-data path, but no longer blocking the local warm store.
 2. **World Bank Open Data** — `https://data.worldbank.org/indicator/FI.RES.XGLD.OZ` returns annual not monthly. Useful for cross-validation only.
 3. **Goldhub authenticated download** — register, store credentials in `.env`, change `wgc_cb.py` to send the session cookie. Lowest delta to existing code but adds a credential dependency.
 
 **Signal value:** **High.** CB reserves are the largest non-ETF physical sink and the dominant single factor in the post-2022 regime break thesis (see [03-post-2022-regime-break.md](./03-post-2022-regime-break.md) and Codex finding #1). The Lens 1 chart loses its anchor without it.
 
-**Recommended for v2:** IMF IFS direct. Avoids the auth-credential tax and keeps the source open-data.
+**Recommended for v2:** keep the WGC workbook parser as the near-term source; evaluate IMF IFS direct later if the Goldhub auth dependency becomes operationally painful.
+
+**2026-05-18 verification:** authenticated Playwright access to `https://www.gold.org/goldhub/data/gold-reserves-by-country` downloaded `Quarterly_gold_and_FX_Reserves_Q1_2026.xlsx`. The local warm store has 2,827 WGC CB reserve rows for 27 mapped bucket countries from 2000-03-31 through 2026-03-31. Latest posture rows now compute CB bucket 12m net changes instead of summing reserve levels.
 
 ---
 
@@ -32,9 +36,9 @@
 
 **2026-05-17 partial re-wire:** UW `/api/etfs/{ticker}/in-outflow` is accessible for GLD/IAU/GLDM under the current entitlement window (~30 trading days) and can populate `gld_30d_net_flow_t`. UW `/api/etfs/GLD/holdings` returns `data: []` and `GLD/info` reports `holdings_count: 0`, so it does **not** provide absolute bullion ounces/tonnes.
 
-**2026-05-17 GLD holdings re-wire:** SPDR's current archive endpoint is `https://api.spdrgoldshares.com/api/v1/historical-archive?product=gld&exchange=NYSE&lang=en`. It returns `US_GLD_Archive_EN.xlsx` with daily `Total Ounces of Gold in the Trust`, `Tonnes of Gold`, NAV/share, premium/discount, and GLD close back to inception. This now populates `gld_holdings_t` and the Lens 1 holdings-vs-price chart on warmup/daily scheduled ingest.
+**2026-05-17 GLD holdings re-wire:** SPDR's current archive endpoint is `https://api.spdrgoldshares.com/api/v1/historical-archive?product=gld&exchange=NYSE&lang=en`. It returns `US_GLD_Archive_EN.xlsx` with daily `Total Ounces of Gold in the Trust`, `Tonnes of Gold`, NAV/share, premium/discount, and GLD close back to inception. This now populates `gld_holdings_t` and the Lens 1 holdings-vs-price chart on warmup/daily scheduled ingest. GLD daily holdings are therefore no longer a deferred source.
 
-**2026-05-17 WGC Goldhub monthly re-wire:** The WGC ETF-flows page (`https://www.gold.org/goldhub/research/etf-flows`) exposes monthly `ETF_Flows_*.xlsx` downloads. Anonymous `curl` returns 403, but an authenticated Goldhub browser session can download the workbook. The workbook's monthly sheets contain ETF holdings, demand, and fund flows back to 2003. The code path now supports either `WGC_GOLDHUB_COOKIE` for scheduled authenticated downloads or `WGC_ETF_FLOWS_WORKBOOK_PATH` for a local exported workbook/directory. Local authenticated scrape loaded 78 workbooks into `wgc_etf_monthly`: 1,338,260 rows, 234 tickers, 2003-03-31 through 2026-03-31. See [12-wgc-etf-flow-corpus.md](./12-wgc-etf-flow-corpus.md). This is a monthly safety net for non-GLD absolute holdings, not a replacement for SPDR's daily GLD archive.
+**2026-05-17 WGC Goldhub monthly re-wire:** The WGC ETF-flows page (`https://www.gold.org/goldhub/research/etf-flows`) exposes monthly `ETF_Flows_*.xlsx` downloads. Anonymous `curl` returns 403, but an authenticated Goldhub browser session can download the workbook. The workbook's monthly sheets contain ETF holdings, demand, and fund flows back to 2003. The code path now supports either `WGC_GOLDHUB_COOKIE` for scheduled authenticated downloads or `WGC_ETF_FLOWS_WORKBOOK_PATH` for a local exported workbook/directory. Local authenticated scrape loaded 78 workbooks into `wgc_etf_monthly`: 1,338,260 raw revision-preserving rows, 234 tickers, 2003-03-31 through 2026-03-31. See [12-wgc-etf-flow-corpus.md](./12-wgc-etf-flow-corpus.md). This is a monthly safety net and breadth corpus; downstream consumers must canonicalize to the latest revision per `(ticker, obs_date)` before computing factors.
 
 **Designed for:** Lens 1 structural — `gld_holdings_t`, `gld_30d_net_flow_t`, plus the dual-axis Lens 1 chart showing oz-held vs price.
 
@@ -59,7 +63,7 @@
 
 **Signal value:** **Medium-high.** ETF flows are the easiest-to-observe component of the structural posture. 30d net flow is one of the inputs the dashboard surfaces most prominently; the v1 Lens 1 dual-axis chart is half-functional without GLD holdings.
 
-**Recommended for v2:** Keep SPDR archive as canonical GLD absolute-holdings source. Use WGC Goldhub monthly files for IAU/PHYS/GLDM while authenticated access is available; keep SEC N-PORT as the open-data fallback if Goldhub session ops become brittle.
+**Recommended for v2:** Keep SPDR archive as canonical GLD absolute-holdings source. Use WGC Goldhub monthly files for IAU/PHYS/GLDM and global breadth while authenticated access is available; add a canonical WGC view/query before promoting WGC breadth to production fields; keep SEC N-PORT as the open-data fallback if Goldhub session ops become brittle.
 
 ---
 
@@ -70,6 +74,8 @@
 **Designed source:** CME Group's daily Issues & Stops report (anonymous CSV).
 
 **Phase A1 status:** **CME returns 403 to anonymous scrapers as of 2026-05-17.** Bumping the timeout to 60s and adding a browser UA did not help. The fetcher in `src/uw_scan/sources/comex.py` is intact and logs a warning when the 403 lands.
+
+**2026-05-18 verification:** `exchange_inventory_daily` has LBMA rows but no COMEX rows. A live probe against the CME page still returns 403. Until calibration proves COMEX is material, do not let this optional source keep Lens 1 permanently degraded.
 
 **Re-wire options:**
 
@@ -90,7 +96,9 @@
 
 **Designed source:** `https://www.cftc.gov/dea/newcot/deacot.txt` or equivalent disaggregated commodities report.
 
-**Phase A1 status:** **Pointing at the wrong file.** The Phase A1 fetcher in `src/uw_scan/sources/cftc_cot.py` references `FinFutWk.txt` — that's the **financial** futures weekly report, not the commodities report. So even when the fetch succeeded, it pulled rates / equities / FX positioning, not gold.
+**Phase A1 status:** **Originally pointed at the wrong file.** The Phase A1 fetcher in `src/uw_scan/sources/cftc_cot.py` referenced `FinFutWk.txt` — that's the **financial** futures weekly report, not the commodities report. So even when the fetch succeeded, it pulled rates / equities / FX positioning, not gold.
+
+**2026-05-18 remediation:** the provider now reads the official CFTC disaggregated futures-only commodity feed at `/dea/newcot/f_disagg.txt` for the current row and the CFTC Public Reporting Environment Socrata dataset `72hh-3qpy` for history, filters gold contract market code `088691`, and the local store has 57 distinct observations from 2025-04-15 through 2026-05-12. The latest posture row writes both `cot_mm_net_pct` and `cot_mm_4w_change_sigma`.
 
 **Re-wire options:**
 
@@ -100,7 +108,7 @@
 
 **Signal value:** **High.** Codex finding #8 explicitly called this out as the largest single factor class missing from the original design. F18/F19/F20 in `04a-quant-model-spec.md` all consume COT MM net + 4w change. The Lens 1 posture currently degrades without it because the four-way composite is missing one corner.
 
-**Recommended for v2:** Socrata API. Cleaner than the zip and the JSON shape maps directly to `CotRow`. Should be the first deferred source to re-wire.
+**Recommended remaining work:** keep the Public Reporting Environment path as the canonical backfill path; use the annual disaggregated futures-only zip files as an offline fallback.
 
 ---
 
@@ -142,9 +150,9 @@
 
 | Order | Source | Path | Why this rank |
 |---|---|---|---|
-| 1 | D4 — CFTC COT | Socrata API at publicreporting.cftc.gov, commodity code 088691 | Highest signal (Codex #8); cleanest API; smallest code change |
-| 2 | D1 — WGC CB reserves | IMF IFS API | Largest unweighted contributor to Lens 1 structural posture; one credential, no scraping |
-| 3 | D2 — ETF holdings (GLD only) | SPDR HTML scrape + SEC N-PORT fallback | Half of the dual-axis chart; GLD alone is 80% of the signal |
+| Closed | D4 — CFTC COT | Socrata API at publicreporting.cftc.gov, commodity code 088691 | Landed with 400-day backfill and 4-week metric persistence |
+| 1 | D1 — WGC CB reserves | IMF IFS API | Largest remaining unweighted contributor to Lens 1 structural posture; one credential, no scraping |
+| 3 | D2 — ETF holdings/WGC canonicalization | SPDR daily GLD already landed; add canonical WGC monthly view + SEC N-PORT fallback | The raw WGC corpus is loaded but revision-heavy; production factors need canonical rows |
 | 4 | D5 — XAU spot | massive `XAU=` if available, else keep GLD labelled honestly | Display-only; not blocking model work |
 | 5 | D3 — COMEX | Playwright + UA spoof, or drop entirely | Only re-wire if calibration shows it moves R² >2% |
 | 6 | D2 — ETF holdings (IAU/GLDM/PHYS) | SEC N-PORT monthly | Diminishing return after GLD |

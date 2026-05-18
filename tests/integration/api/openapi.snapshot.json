@@ -3183,6 +3183,49 @@
         "title": "GexSourceDeltaEntry",
         "type": "object"
       },
+      "GoldCbCountryHistory": {
+        "properties": {
+          "bucket": {
+            "title": "Bucket",
+            "type": "string"
+          },
+          "country_iso3": {
+            "title": "Country Iso3",
+            "type": "string"
+          },
+          "country_name": {
+            "title": "Country Name",
+            "type": "string"
+          },
+          "history": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/GoldHistoryPoint"
+            },
+            "title": "History",
+            "type": "array"
+          },
+          "latest_reserves_t": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Latest Reserves T"
+          }
+        },
+        "required": [
+          "country_iso3",
+          "country_name",
+          "bucket"
+        ],
+        "title": "GoldCbCountryHistory",
+        "type": "object"
+      },
       "GoldCorrelationBand": {
         "properties": {
           "mean": {
@@ -3428,19 +3471,40 @@
             "type": "string"
           },
           "last_as_of": {
-            "format": "date-time",
-            "title": "Last As Of",
-            "type": "string"
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last As Of"
           },
           "stale_seconds": {
-            "title": "Stale Seconds",
-            "type": "integer"
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Stale Seconds"
+          },
+          "status": {
+            "default": "ok",
+            "enum": [
+              "ok",
+              "missing"
+            ],
+            "title": "Status",
+            "type": "string"
           }
         },
         "required": [
-          "id",
-          "last_as_of",
-          "stale_seconds"
+          "id"
         ],
         "title": "GoldDataFreshnessSource",
         "type": "object"
@@ -3874,6 +3938,14 @@
               }
             ],
             "title": "Cb 52W Pct"
+          },
+          "cb_country_history": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/GoldCbCountryHistory"
+            },
+            "title": "Cb Country History",
+            "type": "array"
           },
           "cb_diversifier_12m_sum_t": {
             "anyOf": [

@@ -98,7 +98,19 @@ def main() -> int:
         ("COMEX vault daily", lambda: gold_comex_vault_ingest_job(dsn=dsn)),
         ("CFTC COT weekly", lambda: gold_cftc_cot_ingest_job(dsn=dsn)),
         ("LBMA vault monthly", lambda: gold_lbma_vault_ingest_job(dsn=dsn)),
-        ("WGC CB reserves monthly (deferred)", lambda: gold_wgc_cb_ingest_job(dsn=dsn)),
+        (
+            "WGC CB reserves monthly",
+            lambda: gold_wgc_cb_ingest_job(
+                dsn=dsn,
+                wgc_goldhub_cookie=(
+                    settings.wgc_goldhub_cookie.get_secret_value()
+                    if settings.wgc_goldhub_cookie is not None
+                    else None
+                ),
+                wgc_workbook_path=settings.wgc_cb_reserves_workbook_path or None,
+                lookback_days=None,
+            ),
+        ),
         (
             "UW options snapshot (GLD/GDX/IAU)",
             lambda: gold_uw_options_ingest_job(

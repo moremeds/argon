@@ -27,13 +27,13 @@ export function EtfFlowCard({ structural }: { structural: S }) {
         : "negative";
   const sign = Number.isFinite(flow) && flow > 0 ? "+" : "";
   const sub = hasReportedHoldings
-    ? `GLD ${fmt(structural.gld_holdings_t)} tonnes held · reported holdings`
+    ? `current holdings ${fmt(structural.gld_holdings_t)} tonnes · 30D net flow`
     : "holdings unavailable · flow converted from UW GLD share flow";
   return (
     <Tile
-      label="GLD FLOW · 30D NET"
+      label="GLD ETF FLOW"
       tone={tone}
-      value={`${sign}${fmt(structural.gld_30d_net_flow_t)} tonnes`}
+      value={`${sign}${fmt(structural.gld_30d_net_flow_t)} t`}
       sub={sub}
     />
   );

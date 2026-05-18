@@ -44,6 +44,21 @@ def app_with_posture() -> TestClient:
     )
     with psycopg.connect(settings.db_dsn()) as conn:
         repo = Repository(conn, schema=settings.db_schema)
+        for obs_month, reserves_t in (
+            (date(2025, 3, 31), Decimal("2264.3")),
+            (date(2026, 3, 31), Decimal("2313.5")),
+        ):
+            repo.insert_cb_gold_reserves_monthly(
+                country_iso3="CHN",
+                obs_month=obs_month,
+                reserves_t=reserves_t,
+                bucket="strategic_accumulator",
+                is_reported=True,
+                is_estimated=False,
+                as_of=datetime(2026, 5, 16, tzinfo=UTC),
+                release_date=date(2026, 5, 1),
+                source="test",
+            )
         repo.insert_gold_posture_daily(
             obs_date=date(2026, 5, 16),
             computed_at=datetime(2026, 5, 17, tzinfo=UTC),
@@ -144,6 +159,8 @@ def test_state_endpoint_returns_latest_posture(
     assert body["cyclical"]["zone_label"] == "moderate-trap"
     # GOLD COMPASS extensions
     assert body["structural"]["posture_chip"] == "FAVORABLE"
+    assert body["structural"]["cb_country_history"][0]["country_iso3"] == "CHN"
+    assert len(body["structural"]["cb_country_history"][0]["history"]) == 2
     assert body["valuation"]["posture_chip"] == "STRETCHED"
     assert body["spot"]["last"] == "4561.50"
     assert len(body["decomposition_rows"]) == 1

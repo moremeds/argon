@@ -4549,6 +4549,44 @@ class Repository(
             cols = [c.name for c in cur.description]
             return [dict(zip(cols, r, strict=True)) for r in cur.fetchall()]
 
+    def fetch_cb_gold_reserves_history(
+        self,
+        *,
+        country_iso3: str | None = None,
+        from_month: _date | None = None,
+        to_month: _date | None = None,
+        as_of_max: datetime | None = None,
+    ) -> list[dict[str, Any]]:
+        clauses = ["TRUE"]
+        params: list[Any] = []
+        if country_iso3 is not None:
+            clauses.append("country_iso3 = %s")
+            params.append(country_iso3)
+        if from_month is not None:
+            clauses.append("obs_month >= %s")
+            params.append(from_month)
+        if to_month is not None:
+            clauses.append("obs_month <= %s")
+            params.append(to_month)
+        if as_of_max is not None:
+            clauses.append("as_of <= %s")
+            params.append(as_of_max)
+        where = " AND ".join(clauses)
+        with self._conn.cursor() as cur:
+            cur.execute(
+                f"""
+                SELECT DISTINCT ON (country_iso3, obs_month)
+                  country_iso3, obs_month, reserves_t, bucket,
+                  is_reported, is_estimated, as_of, release_date, source
+                FROM uw_scan.cb_gold_reserves_monthly
+                WHERE {where}
+                ORDER BY country_iso3, obs_month ASC, as_of DESC
+                """,
+                params,
+            )
+            cols = [c.name for c in cur.description]
+            return [dict(zip(cols, r, strict=True)) for r in cur.fetchall()]
+
     # ---- Gold (Phase A1) — CFTC COT ----
 
     def insert_cot_gold_weekly(
@@ -4870,6 +4908,7 @@ class Repository(
                 """
                 SELECT *
                 FROM uw_scan.gold_posture_daily
+                WHERE row_status = 'active'
                 ORDER BY obs_date DESC, computed_at DESC
                 LIMIT 1
                 """,
@@ -4881,14 +4920,14 @@ class Repository(
             return dict(zip(cols, row, strict=True))
 
     def fetch_gold_posture_for_obs_date(self, obs_date: _date) -> dict[str, Any] | None:
-        """Replay discipline: return the FIRST-computed posture for an obs_date,
-        not the most recent recomputation."""
+        """Replay discipline: return the first non-invalidated posture row."""
         with self._conn.cursor() as cur:
             cur.execute(
                 """
                 SELECT *
                 FROM uw_scan.gold_posture_daily
                 WHERE obs_date = %s
+                  AND row_status = 'active'
                 ORDER BY computed_at ASC
                 LIMIT 1
                 """,

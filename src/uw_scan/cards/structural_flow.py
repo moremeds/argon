@@ -72,17 +72,29 @@ GLD_OZ_PER_SHARE_PROXY = Decimal("0.0931")
 TROY_OZ_PER_TONNE = Decimal("32150.7466")
 
 
-def _sum_by_bucket(
-    cb_rows: list[CbReserveSnapshot], bucket: str, cutoff: date
+def _net_change_by_bucket(
+    cb_rows: list[CbReserveSnapshot], bucket: str, cutoff: date, as_of: date
 ) -> Decimal | None:
-    rows = [
-        r
-        for r in cb_rows
-        if r.bucket == bucket and r.obs_month >= cutoff and r.reserves_t is not None
-    ]
-    if not rows:
+    by_country: dict[str, list[CbReserveSnapshot]] = {}
+    for row in cb_rows:
+        if (
+            row.bucket == bucket
+            and cutoff <= row.obs_month <= as_of
+            and row.reserves_t is not None
+        ):
+            by_country.setdefault(row.country_iso3, []).append(row)
+    deltas: list[Decimal] = []
+    for rows in by_country.values():
+        ordered = sorted(rows, key=lambda r: r.obs_month)
+        if len(ordered) < 2:
+            continue
+        latest = ordered[-1].reserves_t
+        earliest = ordered[0].reserves_t
+        if latest is not None and earliest is not None:
+            deltas.append(latest - earliest)
+    if not deltas:
         return None
-    return sum((r.reserves_t for r in rows), Decimal("0"))
+    return sum(deltas, Decimal("0"))
 
 
 def _percentile(values: list[Decimal], target: Decimal) -> Decimal | None:
@@ -105,9 +117,15 @@ def compute_structural_posture(
 ) -> StructuralPosture:
     twelve_months_ago = as_of - timedelta(days=365)
 
-    cb_strat = _sum_by_bucket(cb_rows, "strategic_accumulator", twelve_months_ago)
-    cb_tact = _sum_by_bucket(cb_rows, "tactical_defender", twelve_months_ago)
-    cb_div = _sum_by_bucket(cb_rows, "reserve_diversifier", twelve_months_ago)
+    cb_strat = _net_change_by_bucket(
+        cb_rows, "strategic_accumulator", twelve_months_ago, as_of
+    )
+    cb_tact = _net_change_by_bucket(
+        cb_rows, "tactical_defender", twelve_months_ago, as_of
+    )
+    cb_div = _net_change_by_bucket(
+        cb_rows, "reserve_diversifier", twelve_months_ago, as_of
+    )
 
     gld_rows = sorted(
         [r for r in etf_rows if r.ticker == "GLD" and r.holdings_oz is not None],

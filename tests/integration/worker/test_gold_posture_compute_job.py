@@ -80,6 +80,44 @@ def test_gold_posture_compute_writes_row(fresh_db: Settings) -> None:
     assert row["gauge_state"] in {"operative", "partial", "suspended"}
 
 
+def test_gold_posture_compute_defaults_to_latest_gld_close_date(
+    fresh_db: Settings,
+) -> None:
+    latest_market_date = date(2026, 5, 15)
+    with psycopg.connect(fresh_db.db_dsn()) as conn:
+        repo = Repository(conn, schema=fresh_db.db_schema)
+        base = latest_market_date - timedelta(days=300)
+        for i in range(301):
+            d = base + timedelta(days=i)
+            repo.insert_macro_series_daily(
+                "GLD_CLOSE",
+                d,
+                Decimal(str(1800 + i * 0.5)),
+                datetime.combine(d, datetime.min.time(), tzinfo=UTC),
+                None,
+                "MASSIVE",
+                None,
+            )
+            repo.insert_macro_series_daily(
+                "DFII10",
+                d,
+                Decimal(str(2.0 - i * 0.005)),
+                datetime.combine(d, datetime.min.time(), tzinfo=UTC),
+                None,
+                "FRED",
+                None,
+            )
+        conn.commit()
+
+    gold_posture_compute_job(dsn=fresh_db.db_dsn())
+
+    with psycopg.connect(fresh_db.db_dsn()) as conn:
+        repo = Repository(conn, schema=fresh_db.db_schema)
+        row = repo.fetch_gold_posture_latest()
+    assert row is not None
+    assert row["obs_date"] == latest_market_date
+
+
 def test_gold_posture_compute_uses_uw_gld_flows(fresh_db: Settings) -> None:
     target = date(2026, 5, 16)
     with psycopg.connect(fresh_db.db_dsn()) as conn:

@@ -47,6 +47,7 @@ from uw_scan.sources.uw_gold_options import (
     fetch_gold_options_snapshot,
 )
 from uw_scan.sources.wgc_etf import TROY_OZ_PER_TONNE, WgcEtfProvider
+from uw_scan.sources.wgc_cb import WgcCbProvider
 from uw_scan.storage.repository import Repository
 
 logger = logging.getLogger(__name__)
@@ -497,18 +498,53 @@ def gold_lbma_vault_ingest_job(*, dsn: str) -> None:
         conn.commit()
 
 
-def gold_wgc_cb_ingest_job(*, dsn: str) -> None:
+def gold_wgc_cb_ingest_job(
+    *,
+    dsn: str,
+    wgc_goldhub_cookie: str | None = None,
+    wgc_workbook_path: str | None = None,
+    lookback_days: int | None = 400,
+) -> None:
     """Monthly WGC CB reserves (8th business day of month).
 
-    DEFERRED — WGC retired the anonymous CSV endpoint (2026-05-17). Job is
-    a no-op until an authenticated download or IMF IFS fallback is wired;
-    see src/uw_scan/sources/wgc_cb.py docstring.
+    WGC retired the anonymous CSV endpoint (2026-05-17). Use either
+    WGC_CB_RESERVES_WORKBOOK_PATH for a local authenticated export or
+    WGC_GOLDHUB_COOKIE for an authenticated Goldhub download.
     """
-    logger.info(
-        "gold_wgc_cb_ingest: skipped — WGC endpoint behind login since 2026-05-17 "
-        "(see sources/wgc_cb.py)"
-    )
-    return
+    if not wgc_goldhub_cookie and not wgc_workbook_path:
+        logger.info(
+            "gold_wgc_cb_ingest: skipped — set WGC_CB_RESERVES_WORKBOOK_PATH "
+            "or WGC_GOLDHUB_COOKIE"
+        )
+        return
+
+    now = datetime.now(UTC)
+    with psycopg.connect(dsn) as conn, WgcCbProvider(
+        cookie_header=wgc_goldhub_cookie,
+        workbook_path=wgc_workbook_path,
+    ) as wgc:
+        repo = Repository(conn, schema="uw_scan")
+        try:
+            start = date.today() - timedelta(days=lookback_days) if lookback_days else None
+            for row in wgc.fetch_monthly(start=start):
+                repo.insert_cb_gold_reserves_monthly(
+                    country_iso3=row.country_iso3,
+                    obs_month=row.obs_month,
+                    reserves_t=row.reserves_t,
+                    bucket=row.bucket,
+                    is_reported=row.is_reported,
+                    is_estimated=row.is_estimated,
+                    as_of=now,
+                    release_date=now.date(),
+                    source=(
+                        f"file:{wgc_workbook_path}"
+                        if wgc_workbook_path
+                        else WgcCbProvider.RESERVES_PAGE_URL
+                    ),
+                )
+        except Exception as exc:
+            logger.exception("gold_wgc_cb_ingest failed: %r", exc)
+        conn.commit()
 
 
 # --- Orchestrator job ---------------------------------------------------------
@@ -517,12 +553,19 @@ def gold_wgc_cb_ingest_job(*, dsn: str) -> None:
 def gold_posture_compute_job(*, dsn: str, as_of: date | None = None) -> None:
     """Compute and persist today's gold_posture_daily row. Schedule: 21:00 ET
     (after all ingest jobs complete)."""
-    target = as_of or date.today()
     with psycopg.connect(dsn) as conn:
         repo = Repository(conn, schema="uw_scan")
+        target = as_of or _latest_gold_market_date(repo)
         try:
             compute_and_persist_gold_posture(repo, as_of=target)
             conn.commit()
         except Exception as exc:
             logger.exception("gold_posture_compute failed: %r", exc)
             conn.rollback()
+
+
+def _latest_gold_market_date(repo: Repository) -> date:
+    rows = repo.fetch_macro_series_daily("GLD_CLOSE", to_date=date.today())
+    if not rows:
+        return date.today()
+    return rows[-1]["obs_date"]

@@ -6,6 +6,7 @@ from datetime import UTC, date, datetime
 from decimal import Decimal
 
 from uw_scan.models import (
+    GoldCbCountryHistory,
     GoldCorrelationBand,
     GoldCorrelationHistory,
     GoldCorrelationPoint,
@@ -65,6 +66,19 @@ def test_gold_state_response_round_trips():
             ],
             gold_history=[
                 GoldHistoryPoint(obs_date=date(2024, 6, 1), value=Decimal("2400")),
+            ],
+            cb_country_history=[
+                GoldCbCountryHistory(
+                    country_iso3="CHN",
+                    country_name="China",
+                    bucket="strategic_accumulator",
+                    latest_reserves_t=Decimal("2313.5"),
+                    history=[
+                        GoldHistoryPoint(
+                            obs_date=date(2026, 3, 31), value=Decimal("2313.5")
+                        )
+                    ],
+                )
             ],
             narrative_text="Structural bid intact.",
         ),
@@ -141,3 +155,4 @@ def test_gold_state_response_round_trips():
     assert "moderate-trap" in dumped
     assert "FAVORABLE" in dumped
     assert "L1" in dumped
+    assert "China" in dumped

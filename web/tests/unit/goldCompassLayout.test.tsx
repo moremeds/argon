@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
 vi.mock("next/navigation", () => ({
@@ -48,6 +48,28 @@ const FIXTURE: State = {
     xau_cny_premium_pct: "0.004",
     gld_history: [],
     gold_history: [],
+    cb_country_history: [
+      {
+        country_iso3: "CHN",
+        country_name: "China",
+        bucket: "strategic_accumulator",
+        latest_reserves_t: "2313.5",
+        history: [
+          { obs_date: "2000-03-31", value: "395.0" },
+          { obs_date: "2026-03-31", value: "2313.5" },
+        ],
+      },
+      {
+        country_iso3: "POL",
+        country_name: "Poland",
+        bucket: "reserve_diversifier",
+        latest_reserves_t: "581.6",
+        history: [
+          { obs_date: "2000-03-31", value: "102.9" },
+          { obs_date: "2026-03-31", value: "581.6" },
+        ],
+      },
+    ],
     narrative_text: "Structural bid intact.",
   },
   cyclical: {
@@ -82,7 +104,12 @@ const FIXTURE: State = {
     DFII10: { obs_date: "2026-05-16", as_of: "2026-05-17T00:00:00Z" },
   },
   data_freshness: [
-    { id: "FRED", last_as_of: "2026-05-17T00:00:00Z", stale_seconds: 60 },
+    {
+      id: "FRED",
+      last_as_of: "2026-05-17T00:00:00Z",
+      stale_seconds: 60,
+      status: "ok",
+    },
   ],
   decomposition_rows: [
     { lens: "L1", factor: "CB Δ12M", contribution: "1.4" },
@@ -119,9 +146,9 @@ describe("GoldCompassLayout", () => {
 
   it("labels GLD ETF flow units and source clearly", () => {
     render(<GoldCompassLayout state={FIXTURE} />);
-    expect(screen.getByText("-12.4 tonnes")).toBeTruthy();
-    expect(screen.getByText(/872.5 tonnes held/)).toBeTruthy();
-    expect(screen.getByText(/reported holdings/)).toBeTruthy();
+    expect(screen.getByText("-12.4 t")).toBeTruthy();
+    expect(screen.getByText(/current holdings 872.5 tonnes/)).toBeTruthy();
+    expect(screen.getByText(/30D net flow/)).toBeTruthy();
   });
 
   it("spells out central-bank reserve units", () => {
@@ -141,9 +168,18 @@ describe("GoldCompassLayout", () => {
       },
     };
     render(<GoldCompassLayout state={state} />);
-    expect(screen.getByText("-11.0 tonnes")).toBeTruthy();
+    expect(screen.getByText("-11.0 t")).toBeTruthy();
     expect(screen.getByText(/converted from UW GLD share flow/)).toBeTruthy();
     expect(screen.getByText(/holdings unavailable/)).toBeTruthy();
+  });
+
+  it("shows central-bank country reserve toggles", () => {
+    render(<GoldCompassLayout state={FIXTURE} />);
+    expect(screen.getByText(/Central bank reserves by country/)).toBeTruthy();
+    const chinaToggle = screen.getByLabelText("Toggle China");
+    expect(chinaToggle).toBeTruthy();
+    fireEvent.click(chinaToggle);
+    expect((chinaToggle as HTMLInputElement).checked).toBe(false);
   });
 
   it("uses posture language only (no buy/sell/long/short)", () => {

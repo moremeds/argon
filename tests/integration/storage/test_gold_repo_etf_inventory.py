@@ -116,6 +116,77 @@ def test_insert_and_fetch_wgc_etf_monthly(repo: Repository) -> None:
     assert rows[0]["source_url"].endswith("ETF_Flows_March_2026.xlsx")
 
 
+def test_fetch_wgc_etf_monthly_prefers_latest_workbook_revision(repo: Repository) -> None:
+    as_of = datetime.now(UTC)
+    repo.insert_wgc_etf_monthly(
+        ticker="GLD",
+        obs_date=date(2026, 3, 31),
+        fund_name="SPDR Gold Shares",
+        fund_type="ETF",
+        region="North America",
+        country="US",
+        gold_price_usd_oz=Decimal("2983.25"),
+        aggregate_ounces=None,
+        aggregate_holdings_tonnes=None,
+        aggregate_value_usd=None,
+        holdings_tonnes=Decimal("1040.0"),
+        demand_tonnes=Decimal("-10.0"),
+        flow_usd_mn=Decimal("-100.0"),
+        source_url="file:///wgc/ETF_Flows_March_2026.xlsx",
+        source_label="ETF_Flows_March_2026.xlsx",
+        as_of=as_of,
+        source="WGC",
+    )
+    repo.insert_wgc_etf_monthly(
+        ticker="GLD",
+        obs_date=date(2026, 3, 31),
+        fund_name="SPDR Gold Shares",
+        fund_type="ETF",
+        region="North America",
+        country="US",
+        gold_price_usd_oz=Decimal("2983.25"),
+        aggregate_ounces=None,
+        aggregate_holdings_tonnes=None,
+        aggregate_value_usd=None,
+        holdings_tonnes=Decimal("1042.5"),
+        demand_tonnes=Decimal("-7.5"),
+        flow_usd_mn=Decimal("-75.0"),
+        source_url="file:///wgc/ETF_Flows_April_2026.xlsx",
+        source_label="ETF_Flows_April_2026.xlsx",
+        as_of=as_of,
+        source="WGC",
+    )
+    repo.insert_wgc_etf_monthly(
+        ticker="GLD",
+        obs_date=date(2026, 4, 30),
+        fund_name="SPDR Gold Shares",
+        fund_type="ETF",
+        region="North America",
+        country="US",
+        gold_price_usd_oz=Decimal("3325.10"),
+        aggregate_ounces=None,
+        aggregate_holdings_tonnes=None,
+        aggregate_value_usd=None,
+        holdings_tonnes=Decimal("1050.0"),
+        demand_tonnes=Decimal("7.5"),
+        flow_usd_mn=Decimal("75.0"),
+        source_url="file:///wgc/ETF_Flows_April_2026.xlsx",
+        source_label="ETF_Flows_April_2026.xlsx",
+        as_of=as_of,
+        source="WGC",
+    )
+
+    rows = repo.fetch_wgc_etf_monthly(
+        "GLD",
+        from_date=date(2026, 3, 1),
+        to_date=date(2026, 3, 31),
+    )
+
+    assert len(rows) == 1
+    assert rows[0]["holdings_tonnes"] == Decimal("1042.5")
+    assert rows[0]["source_url"].endswith("ETF_Flows_April_2026.xlsx")
+
+
 def test_insert_and_fetch_exchange_inventory_daily(repo: Repository) -> None:
     repo.insert_exchange_inventory_daily(
         exchange="COMEX",

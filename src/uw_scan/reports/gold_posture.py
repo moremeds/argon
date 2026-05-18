@@ -219,6 +219,27 @@ def _rank_percentile(series: list[tuple[date, Decimal]], window: int) -> Decimal
     return Decimal(str(round(pct, 4)))
 
 
+def _cot_mm_4w_change_sigma(
+    cot_rows: list[CotSnapshot], *, as_of: date
+) -> Decimal | None:
+    """Z-score of latest managed-money net 4-week change vs trailing changes."""
+    rows = sorted(
+        [r for r in cot_rows if r.mm_net is not None and r.release_date <= as_of],
+        key=lambda r: r.release_date,
+    )
+    if len(rows) < 6:
+        return None
+    values = [float(r.mm_net) for r in rows]
+    changes = [values[idx] - values[idx - 4] for idx in range(4, len(values))]
+    if len(changes) < 2:
+        return None
+    mean = statistics.fmean(changes)
+    std = statistics.pstdev(changes)
+    if std == 0:
+        return None
+    return Decimal(str(round((changes[-1] - mean) / std, 4)))
+
+
 # Conversion constants
 _OZ_PER_TONNE = Decimal("32150.7466")
 
@@ -432,11 +453,11 @@ def compute_and_persist_gold_posture(
     data_freshness = [
         {
             "id": sid,
-            "last_as_of": ts.isoformat(),
-            "stale_seconds": _stale_seconds(ts, now),
+            "last_as_of": ts.isoformat() if ts is not None else None,
+            "stale_seconds": _stale_seconds(ts, now) if ts is not None else None,
+            "status": "ok" if ts is not None else "missing",
         }
         for sid, ts in data_freshness_inputs.items()
-        if ts is not None
     ]
 
     # ---- derived metrics (044 extensions) ---------------------------------
@@ -452,6 +473,7 @@ def compute_and_persist_gold_posture(
     # T5YIFR 52w rank percentile (latest already pulled above).
     t5yifr_series = _series_to_tuples(t5yifr_rows, "obs_date")
     t5yifr_pct_52w = _rank_percentile(t5yifr_series, window=252)
+    cot_mm_4w_change_sigma = _cot_mm_4w_change_sigma(cot_snapshots, as_of=as_of)
 
     # LBMA vault: month-over-month delta in tonnes.
     lbma_rows = repo.fetch_exchange_inventory_daily(
@@ -544,7 +566,7 @@ def compute_and_persist_gold_posture(
         fx_basket_dxy_z=fx_basket_dxy_z,
         xau_cny_premium_pct=None,
         cb_52w_pct=None,
-        cot_mm_4w_change_sigma=None,
+        cot_mm_4w_change_sigma=cot_mm_4w_change_sigma,
         t5yifr_pct_52w=t5yifr_pct_52w,
         dxy=dxy_latest,
         dxy_60d_sigma=dxy_60d_sigma,

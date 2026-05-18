@@ -31,3 +31,38 @@ CREATE INDEX IF NOT EXISTS idx_wgc_etf_monthly_lookup
 
 CREATE INDEX IF NOT EXISTS idx_wgc_etf_monthly_source
   ON uw_scan.wgc_etf_monthly (source_url, obs_date DESC);
+
+CREATE OR REPLACE VIEW uw_scan.wgc_etf_monthly_canonical AS
+WITH source_revisions AS (
+  SELECT
+    source_url,
+    max(obs_date) AS revision_obs_date
+  FROM uw_scan.wgc_etf_monthly
+  GROUP BY source_url
+)
+SELECT DISTINCT ON (w.ticker, w.obs_date)
+  w.ticker,
+  w.obs_date,
+  w.fund_name,
+  w.fund_type,
+  w.region,
+  w.country,
+  w.gold_price_usd_oz,
+  w.aggregate_ounces,
+  w.aggregate_holdings_tonnes,
+  w.aggregate_value_usd,
+  w.holdings_tonnes,
+  w.demand_tonnes,
+  w.flow_usd_mn,
+  w.source_url,
+  w.source_label,
+  w.as_of,
+  w.source
+FROM uw_scan.wgc_etf_monthly w
+JOIN source_revisions s ON s.source_url = w.source_url
+ORDER BY
+  w.ticker,
+  w.obs_date,
+  s.revision_obs_date DESC,
+  w.as_of DESC,
+  w.source_url DESC;

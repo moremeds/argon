@@ -23,13 +23,16 @@ A **shipped** Phase A1 of the GOLD COMPASS five-tier cockpit:
 
 **It also documents what's broken and why.** That's the most important thing you're inheriting. Five of the eight anonymous-CSV sources moved or paywalled between the catalog (April 2026) and the implementation (May 2026). Each failure mode has a concrete re-wire path. Read them before writing any code.
 
+**2026-05-18 update:** read `docs/research/gold-sdf-framework/14-data-quality-remediation.md` before executing this handoff literally. GLD daily holdings, the WGC monthly ETF corpus, WGC canonicalization, current + 400-day COT ingestion, WGC/IFS CB reserve workbook ingestion, freshness missing-source status, effective-market-date targeting, and replay invalidation have since landed. COMEX remains unresolved.
+
 ### Required reading order
 
 1. `CLAUDE.md` and `AGENTS.md` at the repo root — standing rules. The most important ones are restated below but the source of truth lives there.
 2. `docs/research/gold-sdf-framework/README.md` — the design brief.
 3. `docs/research/gold-sdf-framework/11-deferred-sources-phase-a1.md` — **start here for re-wire work**. Five sources, each with a concrete option list sorted by signal-to-effort.
-4. `docs/research/gold-sdf-framework/10-open-research-questions.md` — open questions Q1–Q24 from the design pass. Several are blocking v2 model work (post-2022 regime statistic replication; embargo calibration; deflated-Sharpe gates).
-5. `src/uw_scan/CLAUDE.md`, `src/uw_scan/storage/CLAUDE.md`, `src/uw_scan/worker/CLAUDE.md`, `src/uw_scan/api/CLAUDE.md`, `src/uw_scan/reports/CLAUDE.md`, `src/uw_scan/cards/CLAUDE.md`, `src/uw_scan/sources/CLAUDE.md` — layer-specific rules.
+4. `docs/research/gold-sdf-framework/14-data-quality-remediation.md` — current live data-quality gaps and closure sequence.
+5. `docs/research/gold-sdf-framework/10-open-research-questions.md` — open questions Q1–Q29 from the design pass. Several are blocking v2 model work (post-2022 regime statistic replication; embargo calibration; deflated-Sharpe gates).
+6. `src/uw_scan/CLAUDE.md`, `src/uw_scan/storage/CLAUDE.md`, `src/uw_scan/worker/CLAUDE.md`, `src/uw_scan/api/CLAUDE.md`, `src/uw_scan/reports/CLAUDE.md`, `src/uw_scan/cards/CLAUDE.md`, `src/uw_scan/sources/CLAUDE.md` — layer-specific rules.
 
 ---
 
@@ -58,15 +61,17 @@ Full context lives in `docs/research/gold-sdf-framework/11-deferred-sources-phas
 
 ### D4 — CFTC COT (Commitments of Traders)
 
-**Why first:** Highest signal-to-effort. Codex's own 2026-05-16 review (`docs/reviews/2026-05-16-gold-research-codex-review.md` finding #8) called this out as the largest single factor class missing from the design. The current fetcher in `src/uw_scan/sources/cftc_cot.py` is broken — its placeholder URL points at `FinFutWk.txt` (financial futures, not commodities). Lens 1 posture currently degrades because of this.
+**Status:** Closed in the 2026-05-18 remediation. The provider now uses the CFTC current disaggregated futures-only file for current fallback and the official Socrata dataset for 400-day history; the local DB has 57 distinct observations and the latest posture row writes `cot_mm_4w_change_sigma`.
+
+**Why it was first:** Highest signal-to-effort. Codex's own 2026-05-16 review (`docs/reviews/2026-05-16-gold-research-codex-review.md` finding #8) called this out as the largest single factor class missing from the design.
 
 **Path:** Switch to the official Socrata API at `publicreporting.cftc.gov`. Commodity code for gold is **088691** (verify against the Socrata schema). The JSON shape maps directly to the existing `CotRow` dataclass.
 
-**Concrete tasks:**
-1. Rewrite `src/uw_scan/sources/cftc_cot.py` to fetch from Socrata JSON instead of scraping `.txt`. Keep the `CotRow` shape and `CftcCotProvider` API.
-2. Update `tests/unit/sources/test_cftc_cot.py` with a Socrata-shaped fixture (existing test uses a `.txt` mock).
-3. Verify by running `gold_cftc_cot_ingest_job` against the live API and checking `repo.fetch_cot_gold_weekly()` returns rows for gold (not rates / equities).
-4. Orchestrator already maps `cot_mm_net_pct` and (newly) `cot_mm_4w_change_sigma` — once D4 returns rows, those tiles populate without orchestrator changes.
+**Closed tasks:**
+1. `src/uw_scan/sources/cftc_cot.py` fetches Socrata JSON when `start=` is supplied and keeps the existing `CotRow` shape.
+2. `tests/unit/sources/test_cftc_cot.py` covers Socrata history, current flat-file parsing, and non-gold filtering.
+3. Live `gold_cftc_cot_ingest_job` populated COT rows for gold, not rates/equities.
+4. Orchestrator now computes and persists `cot_mm_4w_change_sigma`.
 
 **Success criteria:** Lens 1 `cot_mm_net_pct` is non-null on `/api/gold/state`; integration test passes against the fresh DB; `gold_posture_daily.cot_mm_4w_change_sigma` is written.
 
@@ -74,33 +79,29 @@ Full context lives in `docs/research/gold-sdf-framework/11-deferred-sources-phas
 
 ### D1 — WGC CB reserves (Central Bank holdings)
 
-**Why second:** The largest physical-flow contributor to Lens 1, dominant in the post-2022 regime-break thesis. Phase A1 fetcher (`src/uw_scan/sources/wgc_cb.py`) is intact but the anonymous Goldhub CSV endpoint moved behind login on 2026-05-17 (the job is a documented no-op).
+**Why second:** The largest physical-flow contributor to Lens 1, dominant in the post-2022 regime-break thesis. The anonymous Goldhub CSV endpoint moved behind login on 2026-05-17.
 
-**Path (recommended):** Direct IMF International Financial Statistics. API at `https://data.imf.org/ifs` (instant-issue key). Drops WGC's editorial bucket classification (`strategic_accumulator` / `tactical` / `diversifier`) — re-derive buckets in a static mapping or treat them as a separate enrichment step.
+**2026-05-18 status:** resolved via WGC Goldhub authenticated workbook parsing. `src/uw_scan/sources/wgc_cb.py` now parses `Quarterly_gold_and_FX_Reserves_Q1_2026.xlsx`; `gold_wgc_cb_ingest_job` accepts `WGC_CB_RESERVES_WORKBOOK_PATH` or `WGC_GOLDHUB_COOKIE`; local `cb_gold_reserves_monthly` has 2,827 rows for 27 mapped bucket countries.
 
-**Concrete tasks:**
-1. Add a new `src/uw_scan/sources/imf_ifs.py` provider (don't reuse `wgc_cb.py` — different schema). Mirror the `WgcCbProvider` shape: returns a list of `CbReserveRow`-compatible rows.
-2. Add a `gold_imf_cb_ingest_job` to `src/uw_scan/worker/jobs/gold_jobs.py` (replace the `gold_wgc_cb_ingest_job` no-op or leave both for parallel comparison during the transition).
-3. Add a static bucket-classification mapping somewhere appropriate (consider `src/uw_scan/cards/cb_buckets.py`) — top ~30 countries cover 95% of reported reserves.
-4. Orchestrator already reads `cb_strategic_12m_sum_t` / `cb_tactical_12m_sum_t` / `cb_diversifier_12m_sum_t` from `structural` and (new in 044) `cb_52w_pct`. Once D1 returns rows, those tiles populate.
+**Remaining optional task:** evaluate direct IMF IFS later if Goldhub auth becomes operationally fragile.
 
-**Success criteria:** Lens 1 `cb_strategic_12m_sum_t` non-null on `/api/gold/state`. CB reserves chart populates. Russia post-2022 estimation + China under-reporting caveats surfaced as tooltips per `09-data-sources-catalog.md`.
+**Success criteria:** Lens 1 `cb_strategic_12m_sum_t` is non-null on `/api/gold/state`. Russia post-2022 estimation + China under-reporting caveats remain documented per `09-data-sources-catalog.md`.
 
 ---
 
-### D2a — GLD ETF holdings only (defer IAU/GLDM/PHYS to D6)
+### D2 — ETF holdings and WGC canonicalization
 
-**Why third:** Half of the Lens 1 dual-axis chart. GLD alone is ~80% of the signal. The dashboard already plots `gold_history` (price line) but `gld_history` is empty.
+**Why third:** Half of the Lens 1 dual-axis chart plus the new WGC global breadth corpus. GLD daily holdings now populate, but WGC monthly rows are revision-preserving and need a canonical consumer view before they become production factors.
 
-**Path:** SPDR HTML scrape for daily, SEC N-PORT XML for monthly fallback. SPDR moved the JSON to HTML — the fix is per-issuer scraping rather than swapping providers. Existing `src/uw_scan/sources/etf_holdings.py` has the right shape (`EtfHoldingRow`) but every fetch method (`fetch_gld`, `fetch_iau`, `fetch_gldm`, `fetch_phys`) returns 301/404.
+**Path:** Keep SPDR historical archive as canonical GLD daily holdings. Add a canonical WGC latest-revision query/view for monthly global/regional ETF breadth. Keep SEC N-PORT as the open-data fallback for non-GLD funds if Goldhub auth/export becomes brittle.
 
 **Concrete tasks:**
-1. Find SPDR's current GLD holdings page. As of 2026-05-17 the JSON moved; the HTML page at `…/usa/gld/` likely has a daily table. Use `httpx` + `BeautifulSoup` (already a dependency).
-2. Add SEC N-PORT as a fallback — every '40-Act ETF files holdings monthly. EDGAR full-text search for `0001354670` (SPDR Gold Shares CIK) → N-PORT filings → parse XML for `holdings_oz`.
-3. Update `fetch_gld` only; leave IAU/GLDM/PHYS marked as deferred for D6.
-4. Test by running `gold_etf_holdings_ingest_job` and confirming `repo.fetch_etf_holdings_daily("GLD")` returns rows.
+1. Add a canonical WGC query/view: latest revision per `(ticker, obs_date)`.
+2. Build global/regional ETF breadth metrics only from that canonical surface.
+3. Keep SPDR GLD daily holdings as the daily high-frequency proxy.
+4. Add SEC N-PORT fallback for non-GLD funds only if authenticated WGC operations fail.
 
-**Success criteria:** Lens 1 `gld_holdings_t` non-null; dual-axis chart shows both lines.
+**Success criteria:** Lens 1 `gld_holdings_t` remains non-null; WGC monthly consumers use canonical month counts rather than raw revision counts; global/regional breadth fields can be reproduced deterministically.
 
 ---
 
@@ -234,8 +235,8 @@ bash scripts/dev.sh                     # web + api + workers
 
 By the time GOLD v2 ships, the following should be true:
 
-1. **All 5 Lens 1 fields populated** (CB reserves, ETF holdings, COMEX, COT, UW skew sigma-calibrated).
-2. **Correlation gauge state = `operative`** (currently `partial`) — requires at least D4 + D1 to land.
+1. **All required Lens 1 fields populated or explicitly waived** (CB reserves, ETF holdings, COT, UW skew semantics; COMEX either populated or formally dropped from the required gate after calibration).
+2. **Correlation gauge state and structural chip are honest**: gauge state reflects the measured GLD/DFII10 regime; structural chip no longer degrades solely because optional COMEX is absent. D4 + D1 are required for the structural anchor, not necessarily for the gauge math.
 3. **Q20 replicated** with a published numeric result + dated reference range. Replaces the "directional claim from RBC" placeholder.
 4. **Backtest validation basket** (Q14) has concrete thresholds documented; first backtest run lands with all metrics computed.
 5. **Repository split PR-2/PR-3 merged** — `repository.py` back under 1000 lines; new gold methods live in `storage/gold_*_repository.py` or `_GoldMixin`s.
@@ -278,7 +279,7 @@ By the time GOLD v2 ships, the following should be true:
 
 1. Read everything in the "Required reading order" above (60–90 min).
 2. Run `bash scripts/migrate.sh` then `uv run python -m uw_scan.worker.gold_warmup` against your local DB — confirm `/api/gold/state` returns populated data exactly as A1 left it.
-3. Pick D4 (CFTC COT via Socrata). Verify the API shape, write the rewrite, add a test fixture, run the integration test, raise a draft PR.
-4. After D4 lands, do Q20 (post-2022 regime statistic replication) as a notebook + research note. That's the smallest research item with the highest leverage on the rest of the work.
+3. Pick D1 (central-bank reserves via IMF IFS) or COMEX depending on signal priority; D4 CFTC COT is already closed.
+4. After D1/COMEX source decisions, do Q20 (post-2022 regime statistic replication) as a notebook + research note. That's the smallest research item with the highest leverage on the rest of the work.
 
 Good luck. The infrastructure is solid — the failures are external, documented, and have concrete fixes.

@@ -98,6 +98,39 @@ def test_insert_and_fetch_gold_posture_latest(repo: Repository) -> None:
     assert latest["factors_jsonb"]["F5"] == 1.8
 
 
+def test_latest_skips_invalidated_rows(repo: Repository) -> None:
+    repo.insert_gold_posture_daily(
+        **_kwargs_for_posture(
+            obs_date=date(2026, 5, 10),
+            computed_at=datetime(2026, 5, 11, 21, tzinfo=UTC),
+            gauge_state="suspended",
+        )
+    )
+    repo.insert_gold_posture_daily(
+        **_kwargs_for_posture(
+            obs_date=date(2026, 5, 11),
+            computed_at=datetime(2026, 5, 12, 21, tzinfo=UTC),
+            gauge_state="partial",
+        )
+    )
+    with repo.conn.cursor() as cur:
+        cur.execute(
+            """
+            UPDATE uw_scan.gold_posture_daily
+            SET row_status = 'invalidated',
+                superseded_reason = 'test invalidation'
+            WHERE obs_date = %s
+            """,
+            (date(2026, 5, 11),),
+        )
+
+    latest = repo.fetch_gold_posture_latest()
+
+    assert latest is not None
+    assert latest["obs_date"] == date(2026, 5, 10)
+    assert latest["row_status"] == "active"
+
+
 def test_replay_returns_first_computed(repo: Repository) -> None:
     """Multiple computed_at rows for same obs_date → replay picks the FIRST one."""
     repo.insert_gold_posture_daily(
@@ -117,3 +150,36 @@ def test_replay_returns_first_computed(repo: Repository) -> None:
     row = repo.fetch_gold_posture_for_obs_date(date(2026, 5, 10))
     assert row is not None
     assert row["gauge_state"] == "suspended"  # FIRST-computed
+
+
+def test_replay_skips_invalidated_rows(repo: Repository) -> None:
+    repo.insert_gold_posture_daily(
+        **_kwargs_for_posture(
+            obs_date=date(2026, 5, 10),
+            computed_at=datetime(2026, 5, 11, 21, tzinfo=UTC),
+            gauge_state="suspended",
+        )
+    )
+    repo.insert_gold_posture_daily(
+        **_kwargs_for_posture(
+            obs_date=date(2026, 5, 10),
+            computed_at=datetime(2026, 5, 20, 21, tzinfo=UTC),
+            gauge_state="partial",
+        )
+    )
+    with repo.conn.cursor() as cur:
+        cur.execute(
+            """
+            UPDATE uw_scan.gold_posture_daily
+            SET row_status = 'invalidated',
+                superseded_reason = 'test invalidation'
+            WHERE obs_date = %s AND computed_at = %s
+            """,
+            (date(2026, 5, 10), datetime(2026, 5, 11, 21, tzinfo=UTC)),
+        )
+
+    row = repo.fetch_gold_posture_for_obs_date(date(2026, 5, 10))
+
+    assert row is not None
+    assert row["gauge_state"] == "partial"
+    assert row["row_status"] == "active"

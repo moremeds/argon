@@ -8,10 +8,13 @@ Consolidated reference for every data series the three-layer architecture relies
 
 | Cost class | Sources |
 |---|---|
-| **Free, no auth** | FRED CSV endpoint, GPR daily, LBMA monthly, SPDR/iShares ETF holdings, CME COMEX vault reports, BIS FX series, **CFTC COT reports** |
+| **Free, no auth** | FRED CSV endpoint, GPR daily, LBMA monthly, SPDR GLD historical archive, CFTC COT reports via the official commodity dataset, BIS FX series |
 | **Free, requires instant-issue key** | FRED JSON API |
 | **Already paid in this repo** | UW (options on GLD/GDX/IAU), massive.com (OHLC for GLD/GDX/IAU/SPX/futures) |
+| **Free but requires alternate/open-data re-wire** | IMF IFS for central-bank reserves, SEC N-PORT for non-GLD ETF fallback |
 | **Free but Chinese-language scraping** | Shanghai Gold Exchange (deferred to v2) |
+| **Free but currently blocked by scrape/access path** | CME COMEX vault reports |
+| **Free but Goldhub-authenticated/export-backed** | WGC ETF monthly workbook corpus |
 | **Discontinued** | LBMA GOFO (discontinued 2015; use COMEX/LBMA/SGE proxies instead) |
 | **Paid** | None required |
 
@@ -25,17 +28,24 @@ Consolidated reference for every data series the three-layer architecture relies
 
 | Field | Value |
 |---|---|
-| **Series** | Monthly per-country gold reserves (tonnes) |
-| **Source** | World Gold Council "Monthly central bank statistics", aggregated from IMF IFS |
-| **URL** | https://www.gold.org/goldhub/data/monthly-central-bank-statistics |
-| **Format** | CSV download |
+| **Series** | Quarterly per-country gold reserves (tonnes), used to derive 12m bucket net changes |
+| **Source** | WGC Goldhub authenticated workbook, sourced from IMF IFS plus WGC adjustments |
+| **URL** | https://www.gold.org/goldhub/data/gold-reserves-by-country |
+| **Format** | XLSX: `Quarterly_gold_and_FX_Reserves_Q1_2026.xlsx`; old anonymous CSV path returns 404 |
 | **Cost** | Free |
-| **Auth** | None |
-| **Cadence** | Monthly |
-| **Lag** | ~1 month after end-of-month |
-| **Coverage** | ~100 countries since 2000; selected back to 1950s |
+| **Auth** | Goldhub session cookie or manually exported local workbook |
+| **Cadence** | Quarterly |
+| **Lag** | ~1 month after quarter-end |
+| **Coverage** | Local warm store: 27 mapped bucket countries from Q1 2000 through Q1 2026 |
 | **Caveats** | Russia stopped reporting late 2022; China reports infrequently and is widely believed to under-report (industry estimates 2-3× reported figures) |
 | **Consumed by** | Layer 1 / structural posture |
+
+**Current implementation status (2026-05-18):** wired and locally populated from
+the authenticated WGC Goldhub workbook. `cb_gold_reserves_monthly` contains
+2,827 rows for 27 mapped bucket countries from 2000-03-31 through 2026-03-31.
+`gold_wgc_cb_ingest_job` accepts `WGC_CB_RESERVES_WORKBOOK_PATH` or
+`WGC_GOLDHUB_COOKIE`. See [14-data-quality-remediation.md](./14-data-quality-remediation.md)
+G3.
 
 ### ETF holdings
 
@@ -45,9 +55,13 @@ Consolidated reference for every data series the three-layer architecture relies
 | **IAU** (iShares Gold Trust) | BlackRock | Daily holdings | iShares.com investor relations | Daily | T+0 |
 | **GLDM** (SPDR Gold MiniShares) | State Street | Daily holdings | spdrgoldshares.com | Daily | T+0 |
 | **PHYS** (Sprott Physical Gold) | Sprott | Daily NAV, premium/discount | sprott.com | Daily | T+0 |
-| **Aggregate** | WGC | Weekly cross-fund total | gold.org/goldhub | Weekly | T+~5 days |
+| **Aggregate** | WGC | Monthly cross-fund holdings, demand, flow | gold.org/goldhub | Monthly | T+~5 days |
 
-All free, no auth, simple HTTP downloads. Consumed by Layer 1 / ETF flow regime gauge.
+GLD daily holdings are wired through the SPDR historical archive API. WGC ETF
+monthly files are authenticated/export-backed and revision-preserving; use a
+canonical latest-revision view before computing factors. Non-GLD daily issuer
+paths should be treated as deferred until SEC N-PORT or new issuer APIs are
+wired. Consumed by Layer 1 / ETF flow regime gauge.
 
 ### COMEX vault stocks
 
@@ -56,12 +70,16 @@ All free, no auth, simple HTTP downloads. Consumed by Layer 1 / ETF flow regime 
 | **Series** | Daily gold vault stocks: registered + eligible (oz) |
 | **Source** | CME Group daily metals depository report |
 | **URL** | https://www.cmegroup.com/markets/metals/precious/gold-stocks.html |
-| **Format** | HTML/JSON, can be parsed daily |
+| **Format** | HTML/JSON, but the current anonymous scrape is blocked |
 | **Cost** | Free |
-| **Auth** | None |
+| **Auth** | none documented, but current scrape returns 403 |
 | **Cadence** | Daily, end of NY business |
 | **Lag** | T+0 |
 | **Consumed by** | Layer 1 / inventory regime quadrant |
+
+**Current implementation status (2026-05-18):** unresolved. `COMEX` has zero
+rows in `exchange_inventory_daily`; decide whether to wire Playwright/licensed
+access or drop COMEX from the required Lens 1 gate after calibration.
 
 ### LBMA loco London
 
@@ -93,7 +111,11 @@ All free, no auth, simple HTTP downloads. Consumed by Layer 1 / ETF flow regime 
 | **Caveats** | Categories are coarse (managed-money / commercial / non-reportable); crowded spec longs can be trend-following rather than contrarian; release delay must be modeled |
 | **Consumed by** | Lens 1 / F18 (managed-money net percentile), F19 (commercials net percentile), F20 (managed-money 4-week change) |
 
-This is the **single largest factor-class omission** flagged by the Codex review. Adding COT is high-priority for v1 (or at minimum early v2).
+This is the **single largest factor-class omission** flagged by the Codex review. Adding COT is high-priority for the data-quality remediation pass.
+
+**Current implementation status (2026-05-18):** unresolved. The existing provider
+points at the financial futures report and returns zero gold rows. Re-wire to
+Socrata or the commodity disaggregated zip before using this field.
 
 ### UW options stress (GLD / GDX / IAU)
 
@@ -267,11 +289,14 @@ Engineering estimate: **6-10 days** for the data plumbing, **2-3 days** for the 
 
 ### Most reliable (use without hesitation)
 
-FRED macro series, LBMA fix, COMEX vault reports, SPDR/iShares ETF disclosures, Caldara-Iacoviello GPR. All published by institutions with strong reputational stakes; no recent quality concerns.
+FRED macro series, SPDR GLD historical archive, LBMA vault reports, Caldara-Iacoviello GPR. All are published by institutions with strong reputational stakes and have working ingestion paths in the current stack.
 
 ### Caveat-required
 
-- **WGC CB reserves**: Russia post-2022 estimated. China under-reports. Surface tooltips when these countries are highlighted.
+- **WGC/IMF CB reserves**: currently not populated. Once re-wired, Russia post-2022 estimated and China under-reports. Surface tooltips when these countries are highlighted.
+- **CFTC COT**: current weekly gold row is populated from the official disaggregated futures-only commodity feed; historical backfill is still needed before 4-week-change metrics are reliable. Release lag must be modeled.
+- **COMEX vault**: currently not populated because CME returns 403 to the current scrape. Treat as optional until calibrated.
+- **WGC ETF monthly corpus**: raw table preserves workbook revisions; consumers must use a canonical latest-revision view.
 - **PHYS NAV**: Sprott reports daily but premium/discount calculation has occasional methodology updates.
 - **TRY FX**: Turkish lira has had unconventional intervention episodes; FX rates from TCMB occasionally diverge from market rates during stress periods.
 

@@ -57,6 +57,7 @@ export function StructuralPanel({ structural }: { structural: S }) {
       <GoldHoldingsVsPriceChart
         goldHistory={structural.gold_history ?? []}
         gldHistory={structural.gld_history ?? []}
+        cbCountryHistory={structural.cb_country_history ?? []}
       />
 
       <div

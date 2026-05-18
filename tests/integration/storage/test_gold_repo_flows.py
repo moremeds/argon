@@ -47,21 +47,33 @@ def repo() -> Repository:
 
 
 def test_cb_reserves_round_trip(repo: Repository) -> None:
-    repo.insert_cb_gold_reserves_monthly(
-        country_iso3="CHN",
-        obs_month=date(2026, 4, 1),
-        reserves_t=Decimal("2235.0"),
-        bucket="strategic_accumulator",
-        is_reported=True,
-        is_estimated=False,
-        as_of=datetime.now(UTC),
-        release_date=date(2026, 5, 8),
-        source="WGC",
-    )
+    as_of = datetime.now(UTC)
+    for obs_month, reserves_t in (
+        (date(2025, 3, 31), Decimal("2200.0")),
+        (date(2026, 3, 31), Decimal("2235.0")),
+    ):
+        repo.insert_cb_gold_reserves_monthly(
+            country_iso3="CHN",
+            obs_month=obs_month,
+            reserves_t=reserves_t,
+            bucket="strategic_accumulator",
+            is_reported=True,
+            is_estimated=False,
+            as_of=as_of,
+            release_date=date(2026, 5, 8),
+            source="WGC",
+        )
     rows = repo.fetch_cb_gold_reserves_monthly(
         bucket="strategic_accumulator", from_month=date(2026, 1, 1)
     )
     assert any(r["country_iso3"] == "CHN" for r in rows)
+    history = repo.fetch_cb_gold_reserves_history(
+        country_iso3="CHN", to_month=date(2026, 3, 31), as_of_max=as_of
+    )
+    assert [r["obs_month"] for r in history] == [
+        date(2025, 3, 31),
+        date(2026, 3, 31),
+    ]
 
 
 def test_cot_round_trip_pins_release_date(repo: Repository) -> None:
