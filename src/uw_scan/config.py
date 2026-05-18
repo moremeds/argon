@@ -71,8 +71,8 @@ class Settings(BaseModel):
     base_url: str = "https://api.unusualwhales.com"
     # Scheduler — consumed by uw_scan.worker.scheduler and uw_scan.api.routers.health
     spot_refresh_seconds: int = 300
-    full_scan_cron: str = "0 5-16 * * 1-5"
-    ohlc_pull_cron: str = "30 17 * * 1-5"
+    full_scan_cron: str = "0 5-16 * * 0-4"
+    ohlc_pull_cron: str = "30 17 * * 0-4"
     rth_tz: str = "America/New_York"
     worker_role: str = "all"
     worker_index: int = 0
@@ -94,7 +94,7 @@ class Settings(BaseModel):
     trade_insights_ai_poll_seconds: int = 3
     # Cockpit (6-dim matrix) — see docs/superpowers/research/six-dimension-matrix/
     cockpit_tickers: list[str] = ["SPX", "SPY", "QQQ", "IWM"]
-    cockpit_snapshot_cron: str = "30 16 * * 1-5"
+    cockpit_snapshot_cron: str = "30 16 * * 0-4"
     cockpit_target_dtes: list[int] = [0, 14, 30, 90]
     cockpit_oi_band_pct: Decimal = Decimal("0.10")
     cockpit_oi_max_dte: int = 7
@@ -183,8 +183,8 @@ class Settings(BaseModel):
             spot_refresh_seconds=int(
                 os.environ.get("UW_SCAN_SPOT_REFRESH_SECONDS", "300")
             ),
-            full_scan_cron=os.environ.get("UW_SCAN_FULL_SCAN_CRON", "0 5-16 * * 1-5"),
-            ohlc_pull_cron=os.environ.get("UW_SCAN_OHLC_PULL_CRON", "30 17 * * 1-5"),
+            full_scan_cron=os.environ.get("UW_SCAN_FULL_SCAN_CRON", "0 5-16 * * 0-4"),
+            ohlc_pull_cron=os.environ.get("UW_SCAN_OHLC_PULL_CRON", "30 17 * * 0-4"),
             rth_tz=os.environ.get("UW_SCAN_RTH_TZ", "America/New_York"),
             worker_role=os.environ.get("UW_SCAN_WORKER_ROLE", "all"),
             worker_index=int(os.environ.get("UW_SCAN_WORKER_INDEX", "0")),
@@ -230,7 +230,7 @@ class Settings(BaseModel):
                 "COCKPIT_TICKERS", default=["SPX", "SPY", "QQQ", "IWM"]
             ),
             cockpit_snapshot_cron=os.environ.get(
-                "COCKPIT_SNAPSHOT_CRON", "30 16 * * 1-5"
+                "COCKPIT_SNAPSHOT_CRON", "30 16 * * 0-4"
             ),
             cockpit_target_dtes=_parse_int_csv_env(
                 "COCKPIT_TARGET_DTES", default=[0, 14, 30, 90]

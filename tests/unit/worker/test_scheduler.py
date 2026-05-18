@@ -2,8 +2,10 @@ from __future__ import annotations
 
 from contextlib import contextmanager
 from datetime import datetime
+from pathlib import Path
 from zoneinfo import ZoneInfo
 
+from apscheduler.triggers.cron import CronTrigger
 from pydantic import SecretStr
 
 from uw_scan.config import Settings
@@ -121,3 +123,36 @@ def test_ohlc_provider_uses_configured_request_timeout(monkeypatch) -> None:
 
 def test_rescan_worker_concurrency_is_two() -> None:
     assert RESCAN_WORKER_CONCURRENCY == 2
+
+
+def test_default_weekday_crons_include_monday_et() -> None:
+    settings = Settings(api_key="uw")
+    monday_et = datetime(2026, 5, 18, 13, 50, tzinfo=ZoneInfo(settings.rth_tz))
+
+    for expr in (
+        settings.full_scan_cron,
+        settings.ohlc_pull_cron,
+        settings.cockpit_snapshot_cron,
+    ):
+        trigger = CronTrigger.from_crontab(expr, timezone=settings.rth_tz)
+        next_fire = trigger.get_next_fire_time(None, monday_et)
+
+        assert next_fire is not None
+        assert next_fire.weekday() == 0
+        assert next_fire.date() == monday_et.date()
+
+
+def test_scheduler_cron_literals_do_not_use_apscheduler_tuesday_to_saturday_range() -> None:
+    repo_root = Path(__file__).resolve().parents[3]
+    production_sources = (
+        repo_root / "src/uw_scan/config.py",
+        repo_root / "src/uw_scan/worker/scheduler.py",
+    )
+
+    offenders = [
+        str(path.relative_to(repo_root))
+        for path in production_sources
+        if "* * 1-5" in path.read_text()
+    ]
+
+    assert offenders == []
