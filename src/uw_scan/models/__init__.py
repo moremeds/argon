@@ -24,41 +24,26 @@ from ._base import (
     VannaConditionalReading,
     _UwBase,
 )
+from .flow import (
+    DarkPoolPrint,
+    FlowAlert,
+    FlowSnapshot,
+    ShortDataRow,
+)
+from .greeks import GreekExposureRow, GreeksRow, SpotExposureRow
+from .options import (
+    MaxPainRow,
+    OiChangeRow,
+    OiPerStrikeRow,
+    OptionChainPerStrikeRow,
+    OptionContractRow,
+    OptionsDailyRow,
+)
 
 
 # ---------------------------------------------------------------------------
 # Flow alerts
 # ---------------------------------------------------------------------------
-class FlowAlert(_UwBase):
-    id: str
-    ticker: str
-    option_chain: str | None = None
-    type: str | None = None
-    expiry: _date | None = None
-    strike: Decimal | None = None
-    price: Decimal | None = None
-    underlying_price: Decimal | None = None
-    total_size: int | None = None
-    total_premium: Decimal | None = None
-    total_ask_side_prem: Decimal | None = None
-    total_bid_side_prem: Decimal | None = None
-    volume: int | None = None
-    open_interest: int | None = None
-    volume_oi_ratio: Decimal | None = None
-    has_sweep: bool | None = None
-    has_floor: bool | None = None
-    has_multileg: bool | None = None
-    all_opening_trades: bool | None = None
-    iv_start: Decimal | None = None
-    iv_end: Decimal | None = None
-    alert_rule: str | None = None
-    flow_footprint_label: FlowFootprintLabel | None = None
-    aggressor_label_confidence: Decimal | None = None
-    rule_id: str | None = None
-    sector: str | None = None
-    issue_type: str | None = None
-    next_earnings_date: _date | None = None
-    created_at: datetime | None = None
 
 
 # ---------------------------------------------------------------------------
@@ -121,220 +106,21 @@ class SkewRow(_UwBase):
 # ---------------------------------------------------------------------------
 # Greeks / exposures (per (date, expiry, strike))
 # ---------------------------------------------------------------------------
-class GreekExposureRow(_UwBase):
-    date: _date
-    expiry: _date
-    strike: Decimal
-    dte: int | None = None
-    call_delta: Decimal | None = None
-    put_delta: Decimal | None = None
-    call_gex: Decimal | None = None
-    put_gex: Decimal | None = None
-    call_vanna: Decimal | None = None
-    put_vanna: Decimal | None = None
-    call_charm: Decimal | None = None
-    put_charm: Decimal | None = None
-
-
-class SpotExposureRow(_UwBase):
-    ticker: str
-    date: _date
-    expiry: _date
-    strike: Decimal
-    price: Decimal | None = None
-    # Selective projection: take the _oi variant (per-strike open-interest weighted)
-    call_delta_oi: Decimal | None = None
-    put_delta_oi: Decimal | None = None
-    call_gamma_oi: Decimal | None = None
-    put_gamma_oi: Decimal | None = None
-    call_vanna_oi: Decimal | None = None
-    put_vanna_oi: Decimal | None = None
-    call_charm_oi: Decimal | None = None
-    put_charm_oi: Decimal | None = None
-
-
-class GreeksRow(_UwBase):
-    date: _date
-    expiry: _date
-    strike: Decimal
-    call_delta: Decimal | None = None
-    put_delta: Decimal | None = None
-    call_gamma: Decimal | None = None
-    put_gamma: Decimal | None = None
-    call_vega: Decimal | None = None
-    put_vega: Decimal | None = None
-    call_theta: Decimal | None = None
-    put_theta: Decimal | None = None
-    call_rho: Decimal | None = None
-    put_rho: Decimal | None = None
-    call_vanna: Decimal | None = None
-    put_vanna: Decimal | None = None
-    call_charm: Decimal | None = None
-    put_charm: Decimal | None = None
-    call_volatility: Decimal | None = None
-    put_volatility: Decimal | None = None
-    call_option_symbol: str | None = None
-    put_option_symbol: str | None = None
 
 
 # ---------------------------------------------------------------------------
 # OI / max pain
 # ---------------------------------------------------------------------------
-class OiPerStrikeRow(_UwBase):
-    date: _date
-    strike: Decimal
-    call_oi: int | None = None
-    put_oi: int | None = None
-
-
-class OiChangeRow(_UwBase):
-    underlying_symbol: str
-    option_symbol: str
-    curr_date: _date | None = None
-    last_date: _date | None = None
-    curr_oi: int | None = None
-    last_oi: int | None = None
-    oi_diff_plain: int | None = None
-    oi_change: Decimal | None = None
-    volume: int | None = None
-    trades: int | None = None
-    avg_price: Decimal | None = None
-    last_fill: Decimal | None = None
-    days_of_oi_increases: int | None = None
-    days_of_vol_greater_than_oi: int | None = None
-    percentage_of_total: Decimal | None = None
-    rnk: int | None = None
-    # Aggressor / premium breakdown — populated from UW oi-change payload.
-    # See spec 2026-05-13-flow-tab-merge-design.md §4 for ASK% derivation.
-    prev_ask_volume: int | None = None
-    prev_bid_volume: int | None = None
-    prev_mid_volume: int | None = None
-    prev_neutral_volume: int | None = None
-    prev_multi_leg_volume: int | None = None
-    prev_stock_multi_leg_volume: int | None = None
-    prev_total_premium: Decimal | None = None
-    last_ask: Decimal | None = None
-    last_bid: Decimal | None = None
-    # Today's side breakdown — joined from option_contract_snapshots on
-    # (run_id, option_symbol). The /oi-change endpoint never returns
-    # prev_ask_volume etc. (all NULL), so per-contract aggressor data must
-    # come from /option-contracts. The frontend uses ask vs bid to classify
-    # BUY/SELL CALL/PUT intent on +ΔOI rows.
-    ask_volume: int | None = None
-    bid_volume: int | None = None
-    mid_volume: int | None = None
-    no_side_volume: int | None = None
-
-
-class MaxPainRow(_UwBase):
-    expiry: _date
-    max_pain: Decimal | None = None
-    close: Decimal | None = None
-    open: Decimal | None = None
-    next_upper_strike: Decimal | None = None
-    next_lower_strike: Decimal | None = None
 
 
 # ---------------------------------------------------------------------------
 # Option contracts
 # ---------------------------------------------------------------------------
-class OptionContractRow(_UwBase):
-    option_symbol: str
-    last_price: Decimal | None = None
-    nbbo_bid: Decimal | None = None
-    nbbo_ask: Decimal | None = None
-    implied_volatility: Decimal | None = None
-    open_interest: int | None = None
-    prev_oi: int | None = None
-    volume: int | None = None
-    ask_volume: int | None = None
-    bid_volume: int | None = None
-    mid_volume: int | None = None
-    multi_leg_volume: int | None = None
-    stock_multi_leg_volume: int | None = None
-    floor_volume: int | None = None
-    sweep_volume: int | None = None
-    no_side_volume: int | None = None
-    avg_price: Decimal | None = None
-    high_price: Decimal | None = None
-    low_price: Decimal | None = None
-    total_premium: Decimal | None = None
-
-
-class OptionsDailyRow(_UwBase):
-    """One row per trading day from UW /options-volume.
-
-    ``bullish_premium`` here is whole-tape (UW), distinct from the
-    alert-scoped :class:`FlowSnapshot.bull_premium`. Do not cross-plot.
-    """
-
-    date: _date
-    call_volume: int | None = None
-    put_volume: int | None = None
-    call_volume_ask_side: int | None = None
-    call_volume_bid_side: int | None = None
-    put_volume_ask_side: int | None = None
-    put_volume_bid_side: int | None = None
-    call_premium: Decimal | None = None
-    put_premium: Decimal | None = None
-    net_call_premium: Decimal | None = None
-    net_put_premium: Decimal | None = None
-    bullish_premium: Decimal | None = None
-    bearish_premium: Decimal | None = None
-    call_open_interest: int | None = None
-    put_open_interest: int | None = None
-    avg_3_day_call_volume: Decimal | None = None
-    avg_3_day_put_volume: Decimal | None = None
-    avg_7_day_call_volume: Decimal | None = None
-    avg_7_day_put_volume: Decimal | None = None
-    avg_30_day_call_volume: Decimal | None = None
-    avg_30_day_put_volume: Decimal | None = None
-
-
-class OptionChainPerStrikeRow(_UwBase):
-    """Aggregated (expiry, strike) snapshot — both volume and OI in one row.
-
-    Backs both strike-profile charts (Volume and OI variants).
-    """
-
-    expiry: _date
-    strike: Decimal
-    call_volume: int | None = None
-    put_volume: int | None = None
-    call_oi: int | None = None
-    put_oi: int | None = None
 
 
 # ---------------------------------------------------------------------------
 # Dark pool / short data
 # ---------------------------------------------------------------------------
-class DarkPoolPrint(_UwBase):
-    ticker: str
-    tracking_id: int
-    executed_at: datetime | None = None
-    trf_executed_at: datetime | None = None
-    price: Decimal | None = None
-    size: int | None = None
-    premium: Decimal | None = None
-    nbbo_bid: Decimal | None = None
-    nbbo_ask: Decimal | None = None
-    nbbo_bid_quantity: int | None = None
-    nbbo_ask_quantity: int | None = None
-    market_center: str | None = None
-    sale_cond_codes: str | None = None
-    ext_hour_sold_codes: str | None = None
-    trade_code: str | None = None
-    trade_settlement: str | None = None
-    canceled: bool | None = None
-
-
-class ShortDataRow(_UwBase):
-    symbol: str
-    timestamp: datetime
-    name: str | None = None
-    short_shares_available: int | None = None
-    fee_rate: Decimal | None = None
-    rebate_rate: Decimal | None = None
 
 
 # ---------------------------------------------------------------------------
@@ -366,22 +152,6 @@ class VolatilityProfile(_UwBase):
     implied_move_30d_perc: Decimal | None = None
     skew_25d: Decimal | None = None
     term_dte_to_iv: list[tuple[int, Decimal]] = []
-
-
-class FlowSnapshot(_UwBase):
-    ticker: str
-    flow_count: int
-    flow_count_is_limited: bool = False
-    flow_count_30d_avg: Decimal | None = None
-    flow_count_vs_30d_avg: Decimal | None = None
-    flow_count_30d_days: int = 0
-    top_alert_rule: str | None = None
-    net_premium: Decimal
-    bull_premium: Decimal
-    bear_premium: Decimal
-    ask_side_premium: Decimal
-    bid_side_premium: Decimal
-    top_alerts: list[FlowAlert] = []
 
 
 class VRPAssessment(_UwBase):
