@@ -119,7 +119,11 @@ export default async function ScannerPage({
                 }}
               >
                 (outside your watchlist · DCF only · pulled from{" "}
-                {discover.alerts_pulled} alerts)
+                {discover.alerts_pulled} alerts
+                {discover.earnings_unknown_dropped > 0
+                  ? ` · ${discover.earnings_unknown_dropped} skipped for unknown earnings`
+                  : ""}
+                )
               </span>
             </span>
           </h2>

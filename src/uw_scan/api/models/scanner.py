@@ -89,3 +89,4 @@ class DiscoveryResponse(BaseModel):
     fetched_at: datetime
     source: Literal["market_wide_flow_alerts"] = "market_wide_flow_alerts"
     alerts_pulled: int
+    earnings_unknown_dropped: int = 0

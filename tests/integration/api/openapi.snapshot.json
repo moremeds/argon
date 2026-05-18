@@ -1733,6 +1733,11 @@
             "title": "Candidates",
             "type": "array"
           },
+          "earnings_unknown_dropped": {
+            "default": 0,
+            "title": "Earnings Unknown Dropped",
+            "type": "integer"
+          },
           "fetched_at": {
             "format": "date-time",
             "title": "Fetched At",

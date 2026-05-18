@@ -56,7 +56,7 @@ def test_groups_alerts_by_ticker_and_returns_one_candidate_per_ticker():
         _alert(ticker="NVDA"),  # same ticker, qualifies as 2 alerts
         _alert(ticker="AMD"),
     ]
-    out = discover_from_alerts(
+    out, _ = discover_from_alerts(
         alerts=alerts,
         today=TODAY,
         watchlist_tickers=set(),
@@ -73,7 +73,7 @@ def test_excludes_watchlist_tickers():
         _alert(ticker="NVDA"),
         _alert(ticker="UNKNOWN"),  # not on watchlist
     ]
-    out = discover_from_alerts(
+    out, _ = discover_from_alerts(
         alerts=alerts,
         today=TODAY,
         watchlist_tickers={"NVDA"},
@@ -84,7 +84,7 @@ def test_excludes_watchlist_tickers():
 
 def test_watchlist_match_is_case_insensitive():
     alerts = [_alert(ticker="nvda")]
-    out = discover_from_alerts(
+    out, _ = discover_from_alerts(
         alerts=alerts,
         today=TODAY,
         watchlist_tickers={"NVDA"},
@@ -97,7 +97,7 @@ def test_returns_empty_when_no_alerts_qualify_dcf():
     alerts = [
         _alert(ticker="LOWQ", total_premium="100000"),  # below min_premium
     ]
-    out = discover_from_alerts(
+    out, _ = discover_from_alerts(
         alerts=alerts,
         today=TODAY,
         watchlist_tickers=set(),
@@ -112,7 +112,7 @@ def test_sorts_by_dcf_score_descending_then_ticker_ascending():
         _alert(ticker="ZZZZ"),
         _alert(ticker="AAAA"),
     ]
-    out = discover_from_alerts(
+    out, _ = discover_from_alerts(
         alerts=alerts,
         today=TODAY,
         watchlist_tickers=set(),
@@ -130,7 +130,7 @@ def test_sorts_by_dcf_score_descending_then_ticker_ascending():
             total_bid_side_prem="1000000",
         ),
     ]
-    out = discover_from_alerts(
+    out, _ = discover_from_alerts(
         alerts=alerts,
         today=TODAY,
         watchlist_tickers=set(),
@@ -144,7 +144,7 @@ def test_carries_sector_and_latest_alert_at():
         _alert(ticker="META", sector="Comm Services", created_offset_min=0),
         _alert(ticker="META", sector="Comm Services", created_offset_min=15),
     ]
-    out = discover_from_alerts(
+    out, _ = discover_from_alerts(
         alerts=alerts,
         today=TODAY,
         watchlist_tickers=set(),
@@ -158,7 +158,7 @@ def test_carries_sector_and_latest_alert_at():
 
 def test_long_call_yields_bullish_bias_with_strength():
     alerts = [_alert(ticker="ABCD", option_type="call", total_premium="800000")]
-    out = discover_from_alerts(
+    out, _ = discover_from_alerts(
         alerts=alerts,
         today=TODAY,
         watchlist_tickers=set(),
@@ -171,7 +171,7 @@ def test_long_call_yields_bullish_bias_with_strength():
 
 def test_put_yields_bearish_bias():
     alerts = [_alert(ticker="XYZ", option_type="put")]
-    out = discover_from_alerts(
+    out, _ = discover_from_alerts(
         alerts=alerts,
         today=TODAY,
         watchlist_tickers=set(),
@@ -182,7 +182,7 @@ def test_put_yields_bearish_bias():
 
 def test_respects_limit():
     alerts = [_alert(ticker=f"T{i:02d}") for i in range(25)]
-    out = discover_from_alerts(
+    out, _ = discover_from_alerts(
         alerts=alerts,
         today=TODAY,
         watchlist_tickers=set(),
@@ -211,10 +211,82 @@ def test_drops_alerts_without_ticker():
             next_earnings_date=TODAY + timedelta(days=60),
         ),
     ]
-    out = discover_from_alerts(
+    out, _ = discover_from_alerts(
         alerts=alerts,
         today=TODAY,
         watchlist_tickers=set(),
         **DCF_KWARGS,
     )
     assert [c.ticker for c in out] == ["NVDA"]
+
+
+def test_counts_alerts_dropped_for_unknown_earnings():
+    """next_earnings_date=None alerts get blocked by DCF; counter exposes that."""
+    good = _alert(ticker="NVDA")
+    unknown = FlowAlert(
+        id="unknown-earn",
+        ticker="GOOG",
+        type="call",
+        strike=Decimal("100"),
+        underlying_price=Decimal("100"),
+        total_premium=Decimal("1000000"),
+        total_ask_side_prem=Decimal("900000"),
+        total_bid_side_prem=Decimal("100000"),
+        volume=2000,
+        open_interest=1000,
+        has_multileg=False,
+        expiry=TODAY + timedelta(days=30),
+        next_earnings_date=None,
+    )
+    unknown_2 = FlowAlert(
+        id="unknown-earn-2",
+        ticker="META",
+        type="call",
+        strike=Decimal("100"),
+        underlying_price=Decimal("100"),
+        total_premium=Decimal("1000000"),
+        total_ask_side_prem=Decimal("900000"),
+        total_bid_side_prem=Decimal("100000"),
+        volume=2000,
+        open_interest=1000,
+        has_multileg=False,
+        expiry=TODAY + timedelta(days=30),
+        next_earnings_date=None,
+    )
+    out, dropped = discover_from_alerts(
+        alerts=[good, unknown, unknown_2],
+        today=TODAY,
+        watchlist_tickers=set(),
+        **DCF_KWARGS,
+    )
+    assert [c.ticker for c in out] == ["NVDA"]
+    assert dropped == 2
+
+
+def test_watchlist_alert_with_unknown_earnings_does_not_count_as_dropped():
+    """Watchlist filter runs BEFORE the earnings check — those don't inflate the counter."""
+    alerts = [
+        FlowAlert(
+            id="watchlist-unknown",
+            ticker="AAPL",
+            type="call",
+            strike=Decimal("100"),
+            underlying_price=Decimal("100"),
+            total_premium=Decimal("1000000"),
+            total_ask_side_prem=Decimal("900000"),
+            total_bid_side_prem=Decimal("100000"),
+            volume=2000,
+            open_interest=1000,
+            has_multileg=False,
+            expiry=TODAY + timedelta(days=30),
+            next_earnings_date=None,
+        ),
+    ]
+    out, dropped = discover_from_alerts(
+        alerts=alerts,
+        today=TODAY,
+        watchlist_tickers={"AAPL"},
+        **DCF_KWARGS,
+    )
+    assert out == []
+    assert dropped == 0

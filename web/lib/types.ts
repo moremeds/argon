@@ -1253,6 +1253,11 @@ export interface components {
             source: "market_wide_flow_alerts";
             /** Alerts Pulled */
             alerts_pulled: number;
+            /**
+             * Earnings Unknown Dropped
+             * @default 0
+             */
+            earnings_unknown_dropped: number;
         };
         /** DivergencePoint */
         DivergencePoint: {

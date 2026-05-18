@@ -110,6 +110,10 @@ class Settings(BaseModel):
     # the same (those are about valid options, not conviction).
     scanner_discover_min_premium_usd: Decimal = Decimal("100000")
     scanner_discover_min_ask_side: Decimal = Decimal("0.65")
+    # /api/scanner/discover serves a cached re-derivation when a successful
+    # _DISCOVER run finished within this many seconds, so concurrent page loads
+    # / auto-refresh don't burst the UW rate budget. Set to 0 to disable.
+    scanner_discover_freshness_seconds: int = 30
     scanner_dp_min_print_premium_usd: Decimal = Decimal("1000000")
     scanner_dp_min_cluster_size: int = 3
     scanner_dp_price_spread_pct: Decimal = Decimal("0.5")
@@ -250,6 +254,9 @@ class Settings(BaseModel):
             ),
             scanner_discover_min_ask_side=Decimal(
                 os.environ.get("SCANNER_DISCOVER_MIN_ASK_SIDE", "0.65")
+            ),
+            scanner_discover_freshness_seconds=int(
+                os.environ.get("SCANNER_DISCOVER_FRESHNESS_SECONDS", "30")
             ),
             scanner_dp_min_print_premium_usd=Decimal(
                 os.environ.get("SCANNER_DP_MIN_PRINT_PREMIUM_USD", "1000000")
