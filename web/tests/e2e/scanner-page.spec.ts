@@ -10,7 +10,7 @@ test.describe("/scanner page", () => {
   test("filter chip toggles URL search param", async ({ page }) => {
     await page.goto("/scanner");
 
-    const typeFCheckbox = page.getByLabel("Type F only");
+    const typeFCheckbox = page.getByLabel("Multi-signal only");
     await typeFCheckbox.check();
 
     await expect(page).toHaveURL(/type_f_only=true/);
