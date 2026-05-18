@@ -2,11 +2,12 @@
 
 ## Files
 
-- `repository.py` — assembled `Repository` class. Composes per-domain mixins (see "Mixin pattern" below). Methods not yet extracted live directly on `Repository`; PR-2/PR-3 will move the rest.
+- `repository.py` — assembled `Repository` class. Composes per-domain mixins (see "Mixin pattern" below). It should remain a thin import/re-export shell.
 - `_base.py` — `_BaseMixin` (Repository `__init__` + `conn` property). MUST be LAST in MRO.
 - `_helpers.py` — pure utility functions (`_d`, `_nullable_int/float`, `provider_day_bounds`, `redact_params`, `status_family_for`).
 - `rows.py` — frozen `@dataclass` row types + `WatchlistCardRow`.
 - `audit.py` / `flow.py` / `health.py` / `jobs.py` / `market_data.py` / `scan_outputs.py` — per-domain mixins extracted in PR-1.
+- `cockpit.py` / `external_api.py` / `fetchers.py` / `gex.py` / `gold.py` / `matrix_state.py` / `options.py` / `scan_results.py` / `scan_runs.py` / `trade_insights_ai.py` / `volatility_raw.py` / `volatility_v2.py` / `watchlist.py` — per-domain mixins extracted in PR-2.
 - `provider_usage.py` — `ExternalApiRequestRecorder` (out-of-band telemetry writer). Not part of `Repository`.
 - `migrations/*.sql` — applied lexically by `scripts/migrate.sh`
 
@@ -16,11 +17,14 @@
 
 ```python
 class Repository(
-    _AuditMixin, _FlowMixin, _HealthMixin, _JobsMixin,
-    _MarketDataMixin, _ScanOutputsMixin,
+    _AuditMixin, _CockpitMixin, _ExternalApiMixin, _FetchersMixin,
+    _FlowMixin, _GexMixin, _GoldMixin, _GoldEtfMixin,
+    _HealthMixin, _JobsMixin, _MarketDataMixin, _MatrixStateMixin,
+    _OptionsMixin, _ScanOutputsMixin, _ScanResultsMixin, _ScanRunsMixin,
+    _TradeInsightsAiMixin, _VolatilityRawMixin, _VolatilityV2Mixin,
+    _WatchlistMixin,
     _BaseMixin,  # MUST be last — owns __init__ and the conn property
 ):
-    # PR-2/PR-3 will move the remaining methods to per-domain mixins.
     # New methods go in the appropriate mixin file, NOT here.
     ...
 ```
