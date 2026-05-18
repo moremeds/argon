@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import date as _date
 from decimal import Decimal
 
-from ._base import _UwBase
+from ._base import _preserve_public_module, _UwBase
 
 
 class OiPerStrikeRow(_UwBase):
@@ -123,3 +123,13 @@ class OptionChainPerStrikeRow(_UwBase):
     put_volume: int | None = None
     call_oi: int | None = None
     put_oi: int | None = None
+
+
+_preserve_public_module(
+    OiPerStrikeRow,
+    OiChangeRow,
+    MaxPainRow,
+    OptionContractRow,
+    OptionsDailyRow,
+    OptionChainPerStrikeRow,
+)

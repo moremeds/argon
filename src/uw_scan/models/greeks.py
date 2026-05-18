@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import date as _date
 from decimal import Decimal
 
-from ._base import _UwBase
+from ._base import _preserve_public_module, _UwBase
 
 
 class GreekExposureRow(_UwBase):
@@ -60,3 +60,10 @@ class GreeksRow(_UwBase):
     put_volatility: Decimal | None = None
     call_option_symbol: str | None = None
     put_option_symbol: str | None = None
+
+
+_preserve_public_module(
+    GreekExposureRow,
+    SpotExposureRow,
+    GreeksRow,
+)

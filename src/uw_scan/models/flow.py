@@ -6,7 +6,7 @@ from datetime import datetime
 from datetime import date as _date
 from decimal import Decimal
 
-from ._base import FlowFootprintLabel, _UwBase
+from ._base import _preserve_public_module, FlowFootprintLabel, _UwBase
 
 
 class FlowAlert(_UwBase):
@@ -81,3 +81,11 @@ class FlowSnapshot(_UwBase):
     ask_side_premium: Decimal
     bid_side_premium: Decimal
     top_alerts: list[FlowAlert] = []
+
+
+_preserve_public_module(
+    FlowAlert,
+    DarkPoolPrint,
+    ShortDataRow,
+    FlowSnapshot,
+)
