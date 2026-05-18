@@ -42,7 +42,8 @@ def _gamma(wall: dict[str, Any]) -> Decimal | None:
         return None
     try:
         return Decimal(str(raw))
-    except (ArithmeticError, ValueError):
+    except (ArithmeticError, ValueError) as exc:
+        _ = repr(exc)  # CI Guardrail 2: non-numeric net_gex/gamma → None
         return None
 
 
@@ -104,9 +105,9 @@ def detect(
     gamma = Decimal(pin["gamma"])
     distance_score = max(Decimal("0"), Decimal("1") - distance_pct)
     gamma_score = min(Decimal("1.0"), abs(gamma) / Decimal("10"))
-    score = (
-        Decimal("0.5") * distance_score + Decimal("0.5") * gamma_score
-    ).quantize(Decimal("0.01"))
+    score = (Decimal("0.5") * distance_score + Decimal("0.5") * gamma_score).quantize(
+        Decimal("0.01")
+    )
 
     return SignalHit(
         ticker=ticker.upper(),
