@@ -6,7 +6,7 @@
 
 **Why this file exists:** Five sources moved or paywalled between the design pass (April 2026) and the implementation pass (May 2026). Each was documented inline in the source file as a deferral, but operational and research context belongs here so the v2 plan can sequence them by effort × signal value rather than rediscovering each failure mode.
 
-**2026-05-18 live-state update:** this file is now paired with [14-data-quality-remediation.md](./14-data-quality-remediation.md), which records the current local DB state. GLD daily holdings, the WGC monthly ETF corpus, WGC canonicalization, COT current-row + 400-day history ingestion, freshness missing-source status, effective-market-date targeting, and replay invalidation have landed. CB reserves and COMEX remain unresolved.
+**2026-05-18 live-state update:** this file is now paired with [14-data-quality-remediation.md](./14-data-quality-remediation.md), which records the current local DB state. GLD daily holdings, the WGC monthly ETF corpus, WGC canonicalization, COT current-row + 400-day history ingestion, WGC/IFS CB reserve workbook ingestion, freshness missing-source status, effective-market-date targeting, and replay invalidation have landed. COMEX remains unresolved.
 
 ---
 
@@ -14,21 +14,21 @@
 
 **Designed for:** Lens 1 structural — `cb_strategic_12m_sum_t`, `cb_tactical_12m_sum_t`, `cb_diversifier_12m_sum_t`, `cb_52w_pct`.
 
-**Designed source:** World Gold Council Goldhub CSV at `https://www.gold.org/...` (anonymous).
+**Designed source:** World Gold Council Goldhub central-bank downloads, sourced from IMF IFS plus WGC adjustments.
 
-**Phase A1 status:** **Anonymous endpoint retired 2026-05-17.** WGC moved Goldhub behind login. The fetcher in `src/uw_scan/sources/wgc_cb.py` is intact but the ingest job is a documented no-op (`gold_wgc_cb_ingest_job` logs an info line and returns).
+**Phase A1 status:** **Authenticated WGC workbook path wired 2026-05-18.** The old anonymous CSV still returns 404, but `src/uw_scan/sources/wgc_cb.py` can now parse the Goldhub quarterly reserves workbook from `WGC_CB_RESERVES_WORKBOOK_PATH` or fetch it with `WGC_GOLDHUB_COOKIE`.
 
 **Re-wire options (sorted by effort):**
 
-1. **IMF IFS direct** — central-bank gold reserves are reported through IMF International Financial Statistics. API endpoint at `https://data.imf.org/ifs` with an instant-issue key. Drops WGC's strategic/tactical/diversifier bucket classification (WGC bucket label is editorial); need to re-derive buckets or maintain a static mapping (~30 countries cover 95% of reported reserves).
+1. **IMF IFS direct** — central-bank gold reserves are reported through IMF International Financial Statistics. API endpoint at `https://data.imf.org/ifs` with an instant-issue key. Still useful as the long-run open-data path, but no longer blocking the local warm store.
 2. **World Bank Open Data** — `https://data.worldbank.org/indicator/FI.RES.XGLD.OZ` returns annual not monthly. Useful for cross-validation only.
 3. **Goldhub authenticated download** — register, store credentials in `.env`, change `wgc_cb.py` to send the session cookie. Lowest delta to existing code but adds a credential dependency.
 
 **Signal value:** **High.** CB reserves are the largest non-ETF physical sink and the dominant single factor in the post-2022 regime break thesis (see [03-post-2022-regime-break.md](./03-post-2022-regime-break.md) and Codex finding #1). The Lens 1 chart loses its anchor without it.
 
-**Recommended for v2:** IMF IFS direct. Avoids the auth-credential tax and keeps the source open-data.
+**Recommended for v2:** keep the WGC workbook parser as the near-term source; evaluate IMF IFS direct later if the Goldhub auth dependency becomes operationally painful.
 
-**2026-05-18 verification:** `cb_gold_reserves_monthly` is still empty in the local warm store, and a live probe against the old WGC CSV returns 404. This is unresolved and remains the second highest-priority source after COT.
+**2026-05-18 verification:** authenticated Playwright access to `https://www.gold.org/goldhub/data/gold-reserves-by-country` downloaded `Quarterly_gold_and_FX_Reserves_Q1_2026.xlsx`. The local warm store has 2,827 WGC CB reserve rows for 27 mapped bucket countries from 2000-03-31 through 2026-03-31. Latest posture rows now compute CB bucket 12m net changes instead of summing reserve levels.
 
 ---
 

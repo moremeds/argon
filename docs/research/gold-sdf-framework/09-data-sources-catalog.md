@@ -28,21 +28,23 @@ Consolidated reference for every data series the three-layer architecture relies
 
 | Field | Value |
 |---|---|
-| **Series** | Monthly per-country gold reserves (tonnes) |
-| **Source** | IMF IFS direct preferred; WGC "Monthly central bank statistics" historical design path now behind Goldhub login |
-| **URL** | https://www.gold.org/goldhub/data/monthly-central-bank-statistics |
-| **Format** | IMF API once re-wired; old WGC anonymous CSV path returns 404 |
+| **Series** | Quarterly per-country gold reserves (tonnes), used to derive 12m bucket net changes |
+| **Source** | WGC Goldhub authenticated workbook, sourced from IMF IFS plus WGC adjustments |
+| **URL** | https://www.gold.org/goldhub/data/gold-reserves-by-country |
+| **Format** | XLSX: `Quarterly_gold_and_FX_Reserves_Q1_2026.xlsx`; old anonymous CSV path returns 404 |
 | **Cost** | Free |
-| **Auth** | IMF key or Goldhub session, depending path |
-| **Cadence** | Monthly |
-| **Lag** | ~1 month after end-of-month |
-| **Coverage** | ~100 countries since 2000; selected back to 1950s |
+| **Auth** | Goldhub session cookie or manually exported local workbook |
+| **Cadence** | Quarterly |
+| **Lag** | ~1 month after quarter-end |
+| **Coverage** | Local warm store: 27 mapped bucket countries from Q1 2000 through Q1 2026 |
 | **Caveats** | Russia stopped reporting late 2022; China reports infrequently and is widely believed to under-report (industry estimates 2-3× reported figures) |
 | **Consumed by** | Layer 1 / structural posture |
 
-**Current implementation status (2026-05-18):** unresolved. `cb_gold_reserves_monthly`
-is empty in the local warm store and the current `gold_wgc_cb_ingest_job` is a
-documented no-op. See [14-data-quality-remediation.md](./14-data-quality-remediation.md)
+**Current implementation status (2026-05-18):** wired and locally populated from
+the authenticated WGC Goldhub workbook. `cb_gold_reserves_monthly` contains
+2,827 rows for 27 mapped bucket countries from 2000-03-31 through 2026-03-31.
+`gold_wgc_cb_ingest_job` accepts `WGC_CB_RESERVES_WORKBOOK_PATH` or
+`WGC_GOLDHUB_COOKIE`. See [14-data-quality-remediation.md](./14-data-quality-remediation.md)
 G3.
 
 ### ETF holdings

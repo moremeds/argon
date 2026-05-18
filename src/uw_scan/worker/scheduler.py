@@ -452,7 +452,15 @@ def main() -> int:
         gold_lbma_vault_ingest_job(dsn=settings.db_dsn())
 
     def _gold_wgc_cb_ingest() -> None:
-        gold_wgc_cb_ingest_job(dsn=settings.db_dsn())
+        gold_wgc_cb_ingest_job(
+            dsn=settings.db_dsn(),
+            wgc_goldhub_cookie=(
+                settings.wgc_goldhub_cookie.get_secret_value()
+                if settings.wgc_goldhub_cookie is not None
+                else None
+            ),
+            wgc_workbook_path=settings.wgc_cb_reserves_workbook_path or None,
+        )
 
     def _gold_posture_compute() -> None:
         gold_posture_compute_job(dsn=settings.db_dsn())

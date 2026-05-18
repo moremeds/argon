@@ -43,8 +43,8 @@ which of those are now closed.
   of done.
 - Updated [README.md](./README.md) to point at the live data-quality caveat.
 - Updated [11-deferred-sources-phase-a1.md](./11-deferred-sources-phase-a1.md)
-  so GLD daily holdings and CFTC COT are no longer described as deferred, while
-  CB reserves and COMEX remain unresolved.
+  so GLD daily holdings, CFTC COT, and WGC/IFS CB reserves are no longer
+  described as deferred, while COMEX remains unresolved.
 - Updated [12-wgc-etf-flow-corpus.md](./12-wgc-etf-flow-corpus.md) and
   [13-wgc-etf-flow-mining.md](./13-wgc-etf-flow-mining.md) to make WGC
   canonicalization mandatory before factor use.

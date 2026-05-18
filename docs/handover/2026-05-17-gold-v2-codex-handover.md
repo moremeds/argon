@@ -23,7 +23,7 @@ A **shipped** Phase A1 of the GOLD COMPASS five-tier cockpit:
 
 **It also documents what's broken and why.** That's the most important thing you're inheriting. Five of the eight anonymous-CSV sources moved or paywalled between the catalog (April 2026) and the implementation (May 2026). Each failure mode has a concrete re-wire path. Read them before writing any code.
 
-**2026-05-18 update:** read `docs/research/gold-sdf-framework/14-data-quality-remediation.md` before executing this handoff literally. GLD daily holdings, the WGC monthly ETF corpus, WGC canonicalization, current + 400-day COT ingestion, freshness missing-source status, effective-market-date targeting, and replay invalidation have since landed. CB reserves and COMEX remain unresolved.
+**2026-05-18 update:** read `docs/research/gold-sdf-framework/14-data-quality-remediation.md` before executing this handoff literally. GLD daily holdings, the WGC monthly ETF corpus, WGC canonicalization, current + 400-day COT ingestion, WGC/IFS CB reserve workbook ingestion, freshness missing-source status, effective-market-date targeting, and replay invalidation have since landed. COMEX remains unresolved.
 
 ### Required reading order
 
@@ -79,17 +79,13 @@ Full context lives in `docs/research/gold-sdf-framework/11-deferred-sources-phas
 
 ### D1 — WGC CB reserves (Central Bank holdings)
 
-**Why second:** The largest physical-flow contributor to Lens 1, dominant in the post-2022 regime-break thesis. Phase A1 fetcher (`src/uw_scan/sources/wgc_cb.py`) is intact but the anonymous Goldhub CSV endpoint moved behind login on 2026-05-17 (the job is a documented no-op).
+**Why second:** The largest physical-flow contributor to Lens 1, dominant in the post-2022 regime-break thesis. The anonymous Goldhub CSV endpoint moved behind login on 2026-05-17.
 
-**Path (recommended):** Direct IMF International Financial Statistics. API at `https://data.imf.org/ifs` (instant-issue key). Drops WGC's editorial bucket classification (`strategic_accumulator` / `tactical` / `diversifier`) — re-derive buckets in a static mapping or treat them as a separate enrichment step.
+**2026-05-18 status:** resolved via WGC Goldhub authenticated workbook parsing. `src/uw_scan/sources/wgc_cb.py` now parses `Quarterly_gold_and_FX_Reserves_Q1_2026.xlsx`; `gold_wgc_cb_ingest_job` accepts `WGC_CB_RESERVES_WORKBOOK_PATH` or `WGC_GOLDHUB_COOKIE`; local `cb_gold_reserves_monthly` has 2,827 rows for 27 mapped bucket countries.
 
-**Concrete tasks:**
-1. Add a new `src/uw_scan/sources/imf_ifs.py` provider (don't reuse `wgc_cb.py` — different schema). Mirror the `WgcCbProvider` shape: returns a list of `CbReserveRow`-compatible rows.
-2. Add a `gold_imf_cb_ingest_job` to `src/uw_scan/worker/jobs/gold_jobs.py` (replace the `gold_wgc_cb_ingest_job` no-op or leave both for parallel comparison during the transition).
-3. Add a static bucket-classification mapping somewhere appropriate (consider `src/uw_scan/cards/cb_buckets.py`) — top ~30 countries cover 95% of reported reserves.
-4. Orchestrator already reads `cb_strategic_12m_sum_t` / `cb_tactical_12m_sum_t` / `cb_diversifier_12m_sum_t` from `structural` and (new in 044) `cb_52w_pct`. Once D1 returns rows, those tiles populate.
+**Remaining optional task:** evaluate direct IMF IFS later if Goldhub auth becomes operationally fragile.
 
-**Success criteria:** Lens 1 `cb_strategic_12m_sum_t` non-null on `/api/gold/state`. CB reserves chart populates. Russia post-2022 estimation + China under-reporting caveats surfaced as tooltips per `09-data-sources-catalog.md`.
+**Success criteria:** Lens 1 `cb_strategic_12m_sum_t` is non-null on `/api/gold/state`. Russia post-2022 estimation + China under-reporting caveats remain documented per `09-data-sources-catalog.md`.
 
 ---
 

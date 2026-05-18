@@ -85,6 +85,7 @@ class Settings(BaseModel):
     # WGC Goldhub authenticated downloads. Keep secrets in environment only.
     wgc_goldhub_cookie: SecretStr | None = None
     wgc_etf_flows_workbook_path: str = ""
+    wgc_cb_reserves_workbook_path: str = ""
     # Trade Insights V1.5 local Codex analysis
     trade_insights_ai_enabled: bool = False
     trade_insights_ai_model: str = ""
@@ -210,6 +211,9 @@ class Settings(BaseModel):
             ),
             wgc_etf_flows_workbook_path=os.environ.get(
                 "WGC_ETF_FLOWS_WORKBOOK_PATH", ""
+            ).strip(),
+            wgc_cb_reserves_workbook_path=os.environ.get(
+                "WGC_CB_RESERVES_WORKBOOK_PATH", ""
             ).strip(),
             trade_insights_ai_enabled=_env_bool("TRADE_INSIGHTS_AI_ENABLED", False),
             trade_insights_ai_model=os.environ.get("TRADE_INSIGHTS_AI_MODEL", ""),

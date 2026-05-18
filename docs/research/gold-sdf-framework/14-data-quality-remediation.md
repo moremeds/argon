@@ -22,15 +22,15 @@ Observed from the configured local Postgres store on 2026-05-18 HKG.
 | `wgc_etf_monthly` | 1,338,260 rows | 2026-03-31 | Historical workbook revisions create many rows per fund-month |
 | `exchange_inventory_daily` | 36 rows | LBMA 2026-04-01 | COMEX has zero rows |
 | `cot_gold_weekly` | 57 distinct obs dates | 2026-05-12 | Current + 400-day CFTC gold history populated from official CFTC sources |
-| `cb_gold_reserves_monthly` | 0 rows | none | WGC anonymous CB CSV is gone |
+| `cb_gold_reserves_monthly` | 2,827 rows | 2026-03-31 | WGC/IFS quarterly workbook, 27 mapped bucket countries |
 | `uw_gold_options_daily` | 12 rows | 2026-05-17 | Snapshot-only; dealer gamma null |
-| `gold_posture_daily` | 12 rows | active latest 2026-05-15 | Bad/non-market 2026-05-17 rows invalidated and retained for audit |
+| `gold_posture_daily` | 15 rows | active latest 2026-05-15 | Bad/non-market and pre-CB rows invalidated and retained for audit |
 
 Post-remediation latest active posture row: `obs_date=2026-05-15`,
 `gauge_state=partial`, `row_status=active`, `cot_mm_4w_change_sigma=0.1988`.
-Data freshness now includes explicit `status` for missing sources, and the local
-store has `active=3`, `invalidated=9` posture rows after replay cleanup and
-post-COT recomputes.
+Data freshness now includes explicit `status` for missing sources, and after the
+WGC CB load and level-sum invalidation the local posture store has `active=2`,
+`invalidated=13` rows.
 
 ## Implementation Status
 
@@ -40,7 +40,7 @@ As of the 2026-05-18 remediation pass:
 |---|---|---|
 | G1 non-trading posture | Closed for scheduled jobs | `gold_posture_compute_job()` defaults to latest `GLD_CLOSE`; non-market posture rows after latest GLD close are invalidated |
 | G2 COT empty/history incomplete | Closed | Provider reads CFTC current disaggregated futures-only `f_disagg.txt`; 400-day history reads official CFTC Public Reporting Environment dataset `72hh-3qpy`, filters gold contract `088691`, and local `cot_gold_weekly` has 57 distinct observations |
-| G3 CB reserves empty | Open | Requires IMF IFS source rewire; WGC anonymous CSV remains 404 |
+| G3 CB reserves empty | Closed | WGC Goldhub authenticated quarterly workbook parser and ingest path wired; local `cb_gold_reserves_monthly` has 2,827 rows for 27 mapped bucket countries |
 | G4 COMEX empty | Open / decision needed | CME anonymous scrape remains 403; calibrate before paying scrape/licensed-data cost |
 | G5 freshness hides missing | Partially closed | Freshness rows now include `status=ok/missing`; obs-date/cadence details are still a follow-up |
 | G6 WGC canonicalization | Closed | `wgc_etf_monthly_canonical` view reduces GLD from 16,362 raw rows to 257 canonical months |
@@ -94,25 +94,74 @@ the financial futures report, not the disaggregated commodities gold report.
 `gold_posture_daily` writes `cot_mm_net_pct=0.246` and
 `cot_mm_4w_change_sigma=0.1988`.
 
-### G3 — Central-bank reserves are empty
+### G3 — Central-bank reserves were empty
 
-**Evidence:** `cb_gold_reserves_monthly` has zero rows. A live probe against the
-old WGC CSV returns HTTP 404.
+**Evidence:** `cb_gold_reserves_monthly` had zero rows. A live probe against the
+old WGC CSV returned HTTP 404.
 
-**Root cause:** WGC retired the anonymous central-bank CSV path. The current job
-is intentionally a no-op.
+**Root cause:** WGC retired the anonymous central-bank CSV path. The replacement
+Goldhub files are authenticated XLSX downloads.
 
 **Resolution:**
 
-1. Add `src/uw_scan/sources/imf_ifs.py`.
-2. Map IMF gold-reserve observations into the existing CB reserve row shape.
-3. Reuse or extend `cards/cb_buckets.py` for strategic/tactical/diversifier
-   buckets; keep bucket logic separate from source ingestion.
-4. Keep the old WGC provider as a documented deferred/auth path only.
+1. Wire `src/uw_scan/sources/wgc_cb.py` to parse the authenticated WGC
+   quarterly reserves workbook.
+2. Let `gold_wgc_cb_ingest_job` read `WGC_CB_RESERVES_WORKBOOK_PATH` for local
+   exports or `WGC_GOLDHUB_COOKIE` for authenticated downloads.
+3. Populate `cb_gold_reserves_monthly` with WGC/IFS country-level reserve
+   levels, mapped to the existing bucket taxonomy.
+4. Fix structural posture to compute 12m bucket net changes from reserve levels
+   instead of summing repeated level observations.
 
-**Verification:** `cb_gold_reserves_monthly` has rows for key countries,
-`cb_strategic_12m_sum_t` is non-null, and CB caveats for China/Russia remain
-visible in docs/UI copy.
+**Verification:** local `cb_gold_reserves_monthly` now has 2,827 rows for 27
+mapped bucket countries from 2000-03-31 through 2026-03-31. Latest posture for
+2026-05-15 writes `cb_strategic_12m_sum_t=-79.3125`,
+`cb_tactical_12m_sum_t=48.4098`, `cb_diversifier_12m_sum_t=116.3423`, and
+bad level-sum replay rows are invalidated by migration 048.
+
+**Operator note — do not rediscover this source:** WGC's
+`gold-demand-by-country` page is useful for aggregate demand/supply and consumer
+country demand, but it is not the CB holdings source. The holdings source is:
+
+- Page: `https://www.gold.org/goldhub/data/gold-reserves-by-country`
+- Workbook: `Quarterly_gold_and_FX_Reserves_Q1_2026.xlsx`
+- Sheet consumed: `Gold (Tonnes)`
+- Local table: `uw_scan.cb_gold_reserves_monthly`
+
+Fast health check:
+
+```bash
+set -a; source /Users/chenxi/projects/unusual-whales/.env; set +a
+uv run python scripts/gold_cb_reserves_status.py
+uv run python scripts/gold_cb_reserves_status.py --country CHN
+```
+
+Equivalent SQL:
+
+```sql
+SELECT count(*) AS rows,
+       count(DISTINCT country_iso3) AS countries,
+       min(obs_month) AS first_month,
+       max(obs_month) AS latest_month
+FROM uw_scan.cb_gold_reserves_monthly;
+
+SELECT country_iso3, count(*) AS rows, min(obs_month), max(obs_month)
+FROM uw_scan.cb_gold_reserves_monthly
+GROUP BY country_iso3
+ORDER BY country_iso3;
+```
+
+Refresh options:
+
+1. Manual export path: download the latest WGC quarterly workbook from the
+   logged-in Goldhub page, then run the ingest with
+   `WGC_CB_RESERVES_WORKBOOK_PATH=/path/to/Quarterly_gold_and_FX_Reserves_*.xlsx`.
+2. Scheduled authenticated path: set `WGC_GOLDHUB_COOKIE` in the worker
+   environment. `gold_wgc_cb_ingest_job` will discover the latest quarterly XLSX
+   link from the Goldhub page and ingest it.
+3. Warmup/backfill path: `gold_warmup.py` passes `lookback_days=None` for this
+   source, so a local workbook refresh reloads the full quarterly history rather
+   than just the latest 400-day posture window.
 
 ### G4 — COMEX is empty
 

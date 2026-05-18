@@ -15,6 +15,7 @@ import pytest
 from uw_scan.config import Settings
 from uw_scan.sources.cftc_cot import CftcCotProvider, CotRow
 from uw_scan.sources.lbma import LbmaProvider, LbmaVaultRow
+from uw_scan.sources.wgc_cb import CbReserveRow
 from uw_scan.storage.repository import Repository
 from uw_scan.worker.jobs.gold_jobs import (
     gold_cftc_cot_ingest_job,
@@ -96,13 +97,42 @@ def test_gold_lbma_vault_ingest_writes_inventory(fresh_db: Settings) -> None:
     assert rows[0]["vault_oz"] == Decimal("274086000")
 
 
-def test_gold_wgc_cb_ingest_is_noop_deferred(fresh_db: Settings) -> None:
-    # WGC retired the anonymous CSV endpoint on 2026-05-17; the job is now a
-    # documented no-op until an authenticated download is wired. The test
-    # asserts the contract: no DB writes, no exceptions, no DB connection.
+def test_gold_wgc_cb_ingest_is_noop_without_auth_source(fresh_db: Settings) -> None:
     gold_wgc_cb_ingest_job(dsn=fresh_db.db_dsn())
 
     with psycopg.connect(fresh_db.db_dsn()) as conn:
         repo = Repository(conn, schema=fresh_db.db_schema)
         rows = repo.fetch_cb_gold_reserves_monthly(bucket="strategic_accumulator")
     assert rows == []
+
+
+def test_gold_wgc_cb_ingest_writes_authenticated_workbook_rows(
+    fresh_db: Settings,
+) -> None:
+    sample = [
+        CbReserveRow(
+            country_iso3="CHN",
+            obs_month=date(2026, 3, 31),
+            reserves_t=Decimal("2313.458368"),
+            bucket="strategic_accumulator",
+            is_reported=True,
+            is_estimated=False,
+        )
+    ]
+    with patch("uw_scan.worker.jobs.gold_jobs.WgcCbProvider") as MockProvider:
+        MockProvider.RESERVES_PAGE_URL = "https://www.gold.org/goldhub/data/gold-reserves-by-country"
+        MockProvider.return_value.__enter__.return_value.fetch_monthly.return_value = (
+            sample
+        )
+        gold_wgc_cb_ingest_job(
+            dsn=fresh_db.db_dsn(),
+            wgc_workbook_path="/tmp/Quarterly_gold_and_FX_Reserves_Q1_2026.xlsx",
+        )
+
+    with psycopg.connect(fresh_db.db_dsn()) as conn:
+        repo = Repository(conn, schema=fresh_db.db_schema)
+        rows = repo.fetch_cb_gold_reserves_monthly(bucket="strategic_accumulator")
+    assert len(rows) == 1
+    assert rows[0]["country_iso3"] == "CHN"
+    assert rows[0]["obs_month"] == date(2026, 3, 31)
+    assert rows[0]["reserves_t"] == Decimal("2313.458368")

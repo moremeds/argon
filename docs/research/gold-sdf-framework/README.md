@@ -83,7 +83,7 @@ Roughly **$0 in new external data costs.** All required series are either free (
 
 **Phase A1 ingestion caveat (2026-05-17):** five of the eight anonymous-CSV sources designed for v1 had moved or paywalled by implementation time. See [11-deferred-sources-phase-a1.md](./11-deferred-sources-phase-a1.md) for the v2 re-wire plan (most-likely fix: lean on official APIs like Socrata/IMF/SEC N-PORT rather than scraping issuer pages).
 
-**Live data-quality caveat (2026-05-18 HKG):** the local warm store now has GLD daily holdings, the WGC monthly ETF corpus, a canonical WGC view, and current + 400-day CFTC gold COT history. Latest posture is pinned to the latest GLD market date and known-bad 2026-05-17 posture rows are invalidated but retained for audit. Lens 1 is still degraded because central-bank reserves and COMEX remain unresolved. Treat the cockpit as a research/audit surface until the remaining checklist in [14-data-quality-remediation.md](./14-data-quality-remediation.md) is closed.
+**Live data-quality caveat (2026-05-18 HKG):** the local warm store now has GLD daily holdings, the WGC monthly ETF corpus, a canonical WGC view, current + 400-day CFTC gold COT history, and WGC/IFS central-bank reserve history for the mapped Lens 1 bucket countries. Latest posture is pinned to the latest GLD market date and known-bad replay rows are invalidated but retained for audit. Lens 1 is still degraded by the missing COMEX source; treat the cockpit as a research/audit surface until the remaining checklist in [14-data-quality-remediation.md](./14-data-quality-remediation.md) is closed.
 
 ---
 
