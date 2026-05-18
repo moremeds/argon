@@ -2,10 +2,29 @@
 
 The only place that talks to the outside world.
 
-## Files
+## Per-ticker sources (UW + OHLC)
 
 - `uw.py` — Unusual Whales fetchers. Every fetcher: call UW → write audit row → persist raw compressed payload → normalize → return typed model.
 - `ohlc.py` — `MassiveOhlcProvider` (Polygon-shaped REST). Daily bars + intraday quote.
+- `lake.py` — Parquet reader for `~/market-warehouse/data-lake`. Used by the nightly `vol_index_lake_sync` job. Pure I/O, no business logic.
+
+## Gold complex (Phase A1 + v2 corpus)
+
+Feeds the `/gold` GOLD COMPASS cockpit (`web/app/gold/`, `api/routers/gold.py`). The three-lens model (structural-flow / cyclical / valuation overlay) is documented in [`docs/research/gold-sdf-framework/`](../../../docs/research/gold-sdf-framework/) — read its CLAUDE.md before touching gold ingestion.
+
+| Source file | What it pulls | Status |
+|---|---|---|
+| `fred.py` | FRED CSV provider for daily + monthly macro series (reference pattern for the other A1 sources). Persists to `macro_series_daily`. | Live |
+| `gpr.py` | Caldara-Iacoviello Geopolitical Risk Index (GPRD) from matteoiacoviello.com. Publisher switched daily file from CSV → `.xls` (BIFF8) in 2024 — the old `/gpr_files/gpr_daily_recent.csv` path 404s. | Live |
+| `lbma.py` | LBMA monthly loco-London vault holdings. LBMA moved from a stable .csv URL to monthly-named .xlsx at `cdn.lbma.org.uk/downloads/LBMA-London-Vault-Holdings-Data-<Month-Year>.xlsx` — we scrape the listing page each run to discover the current URL. Gold column is in thousand troy oz; we multiply by 1000 to keep `vault_oz` in oz (consistent with COMEX). | Live |
+| `comex.py` | COMEX daily gold-stocks scraper from `cmegroup.com/markets/metals/precious/gold-stocks.html`. URL is subject to CME publishing changes — sanity-check before deploy. | Live |
+| `etf_holdings.py` | Per-fund daily holdings for GLD (SPDR), IAU (BlackRock), GLDM (SPDR), PHYS (Sprott). Each fund has its own endpoint and payload shape; normalised to `EtfHoldingRow`. | Live |
+| `uw_gold_options.py` | Gold-options snapshot for GLD/GDX/IAU. Composes existing UW fetchers (`interpolated_iv`, `oi_per_strike`, `option_contracts`, `skew`) into one snapshot row per (ticker, obs_date). | Live (A1 persists; A2 will consume) |
+| `cftc_cot.py` | CFTC Commitments of Traders disaggregated weekly report (commodity code `088691`). Managed-money + commercials longs/shorts/net, OI. `obs_date` = Tuesday position date, `release_date` = Friday publication. **Backtests must lag to release+3 trading days, never to obs_date.** | Live |
+| `wgc_etf.py` | World Gold Council monthly gold-ETF holdings workbook (Goldhub `Gold_ETF_flows_*.xlsx`). Per-fund holdings, demand, fund-flow with source-workbook lineage preserved. See `migrations/046_wgc_etf_monthly.sql` and `docs/research/gold-sdf-framework/12-wgc-etf-flow-corpus.md`. | Live (PR #42) |
+| `wgc_cb.py` | World Gold Council monthly central-bank gold reserves. | **Deferred** — WGC retired the anonymous CSV; downloads now sit behind a Goldhub login (verified 2026-05-17). Structural-lens CB tiles stay null and `cb_gold_reserves_monthly` stays empty until re-wired. See `docs/research/gold-sdf-framework/11-deferred-sources-phase-a1.md`. |
+
+Related migrations: `storage/migrations/041_gold_cot.sql` (COT), `046_wgc_etf_monthly.sql` (WGC ETF corpus). Repository: `storage/gold_etf.py`. Scheduler jobs: `worker/jobs/gold_jobs.py` (`gold_fred_ingest_job`, `gold_gpr_ingest_job`, `gold_lbma_vault_ingest_job`, `gold_comex_vault_ingest_job`, `gold_etf_holdings_ingest_job`, `gold_spot_ingest_job`, `gold_uw_options_ingest_job`, `gold_cftc_cot_ingest_job`, `gold_wgc_cb_ingest_job`, `gold_posture_compute_job`).
 
 ## Rules
 
@@ -15,3 +34,5 @@ The only place that talks to the outside world.
 - **Massive can be absent.** If `MASSIVE_API_KEY` is missing the worker uses `_NoOhlc` (null object). Don't crash the scheduler on a missing key.
 - **No retry logic here.** Backoff/retry lives in `api/client.py` (UW) — sources stay thin.
 - **Never add a Yahoo Finance source.** Project-wide rule — yfinance is for radon/other projects, not this one.
+- **Telemetry hook.** Gold sources accept a `record_request` callable that emits `ExternalApiRequestEvent` rows via `ExternalApiRequestRecorder` (production wiring) — keep it injectable for tests.
+- **Backtest lag rule for COT.** Always lag inputs to CFTC `release_date + 3 trading days`. Using `obs_date` (Tuesday position date) leaks look-ahead because the report is published Friday.
