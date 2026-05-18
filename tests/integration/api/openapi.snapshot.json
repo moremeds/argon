@@ -3183,6 +3183,49 @@
         "title": "GexSourceDeltaEntry",
         "type": "object"
       },
+      "GoldCbCountryHistory": {
+        "properties": {
+          "bucket": {
+            "title": "Bucket",
+            "type": "string"
+          },
+          "country_iso3": {
+            "title": "Country Iso3",
+            "type": "string"
+          },
+          "country_name": {
+            "title": "Country Name",
+            "type": "string"
+          },
+          "history": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/GoldHistoryPoint"
+            },
+            "title": "History",
+            "type": "array"
+          },
+          "latest_reserves_t": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Latest Reserves T"
+          }
+        },
+        "required": [
+          "country_iso3",
+          "country_name",
+          "bucket"
+        ],
+        "title": "GoldCbCountryHistory",
+        "type": "object"
+      },
       "GoldCorrelationBand": {
         "properties": {
           "mean": {
@@ -3421,16 +3464,17 @@
         "type": "object"
       },
       "GoldDataFreshnessSource": {
+        "description": "Per-source freshness for the Tier 1 Data Freshness card.",
         "properties": {
           "id": {
-            "type": "string",
-            "title": "Id"
+            "title": "Id",
+            "type": "string"
           },
           "last_as_of": {
             "anyOf": [
               {
-                "type": "string",
-                "format": "date-time"
+                "format": "date-time",
+                "type": "string"
               },
               {
                 "type": "null"
@@ -3450,21 +3494,20 @@
             "title": "Stale Seconds"
           },
           "status": {
-            "type": "string",
+            "default": "ok",
             "enum": [
               "ok",
               "missing"
             ],
             "title": "Status",
-            "default": "ok"
+            "type": "string"
           }
         },
-        "type": "object",
         "required": [
           "id"
         ],
         "title": "GoldDataFreshnessSource",
-        "description": "Per-source freshness for the Tier 1 Data Freshness card."
+        "type": "object"
       },
       "GoldDecompositionRow": {
         "description": "One row of the Tier 5 lens-decomposition bars.",
@@ -3895,6 +3938,14 @@
               }
             ],
             "title": "Cb 52W Pct"
+          },
+          "cb_country_history": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/GoldCbCountryHistory"
+            },
+            "title": "Cb Country History",
+            "type": "array"
           },
           "cb_diversifier_12m_sum_t": {
             "anyOf": [
