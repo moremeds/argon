@@ -58,6 +58,7 @@ Environment:
 - **Migrations are idempotent** (`IF NOT EXISTS`, `ON CONFLICT DO NOTHING`). No tracking table — re-running is a no-op
 - **Live API tests** are marked `live` and need `UW_SCAN_API_KEY`; default `pytest` excludes them
 - **Module size budget** — target <500 lines per Python file; at 1000+ lines stop adding methods and propose a split first. `repository.py` reached 5000+ lines because the line was never drawn — don't repeat. Split by domain seam (one module per cohesive set of methods), not by technical layer. Cite this rule in any PR that grows a file past 1000 lines without a split plan
+- **API model refactors preserve contract identity** — `src/uw_scan/models/` may be split by domain, but `from uw_scan.models import X`, `models.__all__`, Pydantic field/default/config surfaces, and OpenAPI component names must stay stable unless the PR is explicitly an API contract change. When moving Pydantic models out of the package root, preserve public model `__module__` metadata and run the export, field-surface, and OpenAPI snapshot checks before review
 - **AGENTS.md** still lives at the root for Codex; keep both files in sync when policy changes
 
 ## Where to look first
@@ -66,6 +67,7 @@ Environment:
 |---|---|
 | Active specs / plans | `docs/superpowers/specs/`, `docs/superpowers/plans/` |
 | API surface | `src/uw_scan/api/server.py` + `routers/*` |
+| API contract models | `src/uw_scan/models/` (`__init__.py` is export-only; implementations live in domain modules) |
 | Persistence — legacy mono-module | `src/uw_scan/storage/repository.py` (one method per query; 4,900+ lines; do not extend — split per [feedback_repository_split_threshold](.) ) |
 | Persistence — new leaf modules | `src/uw_scan/storage/{signals,cri_snapshot,vcg_snapshot,vol_index,greek_exposure,gold_etf,flow,health,jobs,market_data,scan_outputs,audit,provider_usage}_repository.py` (or `.py`). New domains go here, never appended to `repository.py` |
 | Scheduled jobs | `src/uw_scan/worker/scheduler.py` |

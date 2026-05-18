@@ -23,6 +23,7 @@ uw_scan/
 ## Conventions
 
 - **Models** in `models/` are the contract — FastAPI serializes them, frontend consumes them via generated types. Keep `models/__init__.py` as the public export surface and put implementations in domain modules. Any new field surfaces in `web/lib/types.ts` after `npm run gen:types`.
+- **Model moves must be schema-neutral unless explicitly scoped otherwise.** Preserve `from uw_scan.models import X`, update `__all__`, avoid importing from `uw_scan.models` or `from . import X` inside domain modules, and preserve public Pydantic model `__module__` metadata so OpenAPI component names do not drift. Verify with `tests/unit/test_models_exports.py`, the OpenAPI snapshot, and a field-surface comparison for large moves.
 - **`Decimal` over float** for prices, IV, RV, Greeks, scoring — see `_dec()` helpers in derivers.
 - **Logging:** `logger = logging.getLogger(__name__)` per module. Exception handlers log with `repr(exc)` or `.exception(...)` (CI Guardrail 2 enforces this — `if any(...): raise` is also fine).
 - **No fake cursors / mocked DB** in integration tests. Use `pytest-postgresql`.
