@@ -51,7 +51,9 @@ Environment:
 - **Data source priority**: IB → UW → FMP → massive (OHLC). Yahoo is banned
 - **No secrets to local Codex subprocesses** — do not pass UW/FMP/Massive keys, DB credentials, or unrelated app secrets to `codex exec`
 - **Never commit without an explicit user request.** Draft first, wait
+- **Big projects use milestone commits** — when the user has explicitly requested commits for a large project/task, commit each closed milestone after its relevant verification before continuing
 - **Always open a PR before merging to main.** `git push origin main` is forbidden
+- **Branch names** default to type prefixes: `feat/` for features, `fix/` for bug fixes, `chore/` for maintenance, and `misc/` for other work. Do not default to a `codex/` prefix
 - **Never add `Co-Authored-By: Claude` trailers** to commits
 - **Migrations are idempotent** (`IF NOT EXISTS`, `ON CONFLICT DO NOTHING`). No tracking table — re-running is a no-op
 - **Live API tests** are marked `live` and need `UW_SCAN_API_KEY`; default `pytest` excludes them
@@ -64,11 +66,16 @@ Environment:
 |---|---|
 | Active specs / plans | `docs/superpowers/specs/`, `docs/superpowers/plans/` |
 | API surface | `src/uw_scan/api/server.py` + `routers/*` |
-| Persistence | `src/uw_scan/storage/repository.py` (one method per query) |
+| Persistence — legacy mono-module | `src/uw_scan/storage/repository.py` (one method per query; 4,900+ lines; do not extend — split per [feedback_repository_split_threshold](.) ) |
+| Persistence — new leaf modules | `src/uw_scan/storage/{signals,cri_snapshot,vcg_snapshot,vol_index,greek_exposure,gold_etf,flow,health,jobs,market_data,scan_outputs,audit,provider_usage}_repository.py` (or `.py`). New domains go here, never appended to `repository.py` |
 | Scheduled jobs | `src/uw_scan/worker/scheduler.py` |
 | UW endpoints (integrated) | `src/uw_scan/api/endpoints.py` + `sources/uw.py` |
 | UW API reference (full surface) | `docs/uw-samples/unusual_whales_api.md` (human-readable) + `docs/uw-samples/unusual_whales_api_spec.yaml` (OpenAPI) — consult before adding any new UW fetcher |
 | UW sample payloads | `docs/uw-samples/*.json` — real responses for each integrated endpoint, with `_shape-summary.md` |
 | Volatility derivers | `src/uw_scan/cards/vol_series.py`, `reports/volatility_series.py` |
+| Scanner (detectors + ranking + discovery) | `src/uw_scan/scanner/` (pipeline, signals, ranking, discovery, gates, context) + `api/routers/scanner.py` + `web/app/scanner/page.tsx` |
+| Regime indicators (CRI / GEX / VCG) | `src/uw_scan/scanners/{cri,gex,vcg}.py` + `api/routers/regime.py` + `web/app/regime/page.tsx` + `web/components/regime/*` |
+| Gold Compass | `api/routers/gold.py` + `storage/gold_etf.py` + `web/app/gold/page.tsx` (+ `gold/replay/[date]/`) + `web/components/gold/*` |
+| Index dealer cockpit (SPX/SPY/QQQ/IWM) | `api/routers/cockpit.py` + `web/app/cockpit/[ticker]/page.tsx` |
 | Stock detail page | `web/app/stock/[ticker]/page.tsx` + `components/stock/tabs/*` |
 | Watchlist landing | `web/app/page.tsx` + `components/watchlist/CardGrid.tsx` |

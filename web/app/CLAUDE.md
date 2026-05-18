@@ -9,6 +9,11 @@ app/
 ├── stock/[ticker]/       # Per-ticker detail page
 │   ├── layout.tsx        # Header + TabBar
 │   └── page.tsx          # Tab router (Tables | Vol | Flow | TradePlan | Market Structure)
+├── scanner/              # /scanner — detector candidates + discovery (force-dynamic)
+├── regime/               # /regime — CRI + VCG + GEX (market-wide, ported from xenon)
+├── gold/                 # /gold — GOLD COMPASS five-tier cockpit
+│   └── replay/[date]/    # /gold/replay/<YYYY-MM-DD> — historical posture
+├── cockpit/[ticker]/     # /cockpit/<SPX|SPY|QQQ|IWM> — index dealer state research
 ├── watchlist/            # /watchlist (currently a thin variant of /)
 └── admin/                # /admin — health + scheduler controls
 ```
