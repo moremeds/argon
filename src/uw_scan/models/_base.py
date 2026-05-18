@@ -11,6 +11,9 @@ class _UwBase(BaseModel):
     model_config = ConfigDict(extra="ignore", frozen=False)
 
 
+_UwBase.__module__ = "uw_scan.models"
+
+
 def _preserve_public_module(*model_types: type[object]) -> None:
     for model_type in model_types:
         model_type.__module__ = "uw_scan.models"
