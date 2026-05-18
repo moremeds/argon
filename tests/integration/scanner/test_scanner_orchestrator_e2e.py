@@ -13,15 +13,18 @@ from uw_scan.scanner.pipeline import run_detectors
 from uw_scan.storage.repository import Repository
 from uw_scan.storage.signals_repository import SignalsRepository
 
-# UW_SCAN_API_KEY is required by Settings.from_env. The orchestrator
-# never reaches out to UW (everything reads from the test DB), so a
-# dummy value is fine.
-os.environ.setdefault("UW_SCAN_API_KEY", "test-dummy-unused")
-
 TODAY = date(2026, 5, 17)
 
 
 def _settings() -> Settings:
+    # UW_SCAN_API_KEY is required by Settings.from_env. The orchestrator
+    # never reaches out to UW (everything reads from the test DB), so a
+    # dummy value is fine. Set INSIDE the helper, not at module level —
+    # module-level pollution breaks pytest.mark.skipif decisions in
+    # tests/integration/test_pipeline_e2e.py and test_scan_e2e.py, which
+    # gate on `UW_SCAN_API_KEY` being unset (those skipifs are evaluated
+    # at module import, before any fixture runs).
+    os.environ.setdefault("UW_SCAN_API_KEY", "test-dummy-unused")
     return Settings.from_env()
 
 
