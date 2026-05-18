@@ -8,6 +8,7 @@ export function ScannerFilters() {
   const params = useSearchParams();
   const typeFOnly = params.get("type_f_only") === "true";
   const tier1Only = params.get("tier_1_only") === "true";
+  const hideDiscovered = params.get("hide_discovered") === "true";
 
   function toggle(key: string, value: boolean) {
     const next = new URLSearchParams(params.toString());
@@ -28,7 +29,10 @@ export function ScannerFilters() {
 
   return (
     <div style={{ marginBottom: 16 }}>
-      <label style={checkboxStyle}>
+      <label
+        style={checkboxStyle}
+        title="Show only tickers with 2+ distinct signals"
+      >
         <input
           key={`type-f-${typeFOnly}`}
           type="checkbox"
@@ -36,9 +40,12 @@ export function ScannerFilters() {
           onChange={(e) => toggle("type_f_only", e.target.checked)}
           style={{ marginRight: 6 }}
         />
-        Type F only
+        Multi-signal only
       </label>
-      <label style={checkboxStyle}>
+      <label
+        style={checkboxStyle}
+        title="Show only candidates with a high-conviction signal"
+      >
         <input
           key={`tier-1-${tier1Only}`}
           type="checkbox"
@@ -46,7 +53,20 @@ export function ScannerFilters() {
           onChange={(e) => toggle("tier_1_only", e.target.checked)}
           style={{ marginRight: 6 }}
         />
-        Tier 1 only
+        High-conviction only
+      </label>
+      <label
+        style={checkboxStyle}
+        title="Hide the DISCOVERED section (tickers outside your watchlist with strong flow)"
+      >
+        <input
+          key={`hide-disc-${hideDiscovered}`}
+          type="checkbox"
+          defaultChecked={hideDiscovered}
+          onChange={(e) => toggle("hide_discovered", e.target.checked)}
+          style={{ marginRight: 6 }}
+        />
+        Hide discovered
       </label>
     </div>
   );

@@ -566,6 +566,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/scanner/discover": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Scanner Discover
+         * @description Pull market-wide flow alerts, run DCF per ticker, exclude watchlist, top-N.
+         */
+        get: operations["get_scanner_discover_api_scanner_discover_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -874,6 +894,49 @@ export interface components {
             market_date: string;
             /** Points */
             points?: components["schemas"]["CockpitVrpPoint"][];
+        };
+        /**
+         * DiscoveryCandidate
+         * @description Non-watchlist ticker surfaced by the market-wide flow-alerts feed.
+         *
+         *     DCF-only — the deeper signals (DP, EIC, GEX) need per-ticker context that
+         *     requires a deep scan. Promote to the watchlist to get those.
+         */
+        DiscoveryCandidate: {
+            /** Ticker */
+            ticker: string;
+            hit: components["schemas"]["ScannerSignalHit"];
+            /**
+             * Bias
+             * @enum {string}
+             */
+            bias: "bullish" | "bearish" | "neutral" | "mixed";
+            /** Bias Strength */
+            bias_strength?: ("strong" | "moderate" | "weak") | null;
+            /** Alert Count */
+            alert_count: number;
+            /** Sector */
+            sector?: string | null;
+            /** Latest Alert At */
+            latest_alert_at?: string | null;
+        };
+        /** DiscoveryResponse */
+        DiscoveryResponse: {
+            /** Candidates */
+            candidates: components["schemas"]["DiscoveryCandidate"][];
+            /**
+             * Fetched At
+             * Format: date-time
+             */
+            fetched_at: string;
+            /**
+             * Source
+             * @default market_wide_flow_alerts
+             * @constant
+             */
+            source: "market_wide_flow_alerts";
+            /** Alerts Pulled */
+            alerts_pulled: number;
         };
         /** DivergencePoint */
         DivergencePoint: {
@@ -2268,6 +2331,20 @@ export interface components {
             /** Context Flags */
             context_flags: components["schemas"]["ScannerContextFlag"][];
             gates: components["schemas"]["ScannerGatesStatus"];
+            /**
+             * Bias
+             * @enum {string}
+             */
+            bias: "bullish" | "bearish" | "neutral" | "mixed";
+            /** Bias Strength */
+            bias_strength?: ("strong" | "moderate" | "weak") | null;
+            /**
+             * Setup
+             * @enum {string}
+             */
+            setup: "ready" | "caution" | "blocked";
+            /** Setup Reason */
+            setup_reason?: string | null;
             /**
              * Scanned At
              * Format: date-time
@@ -4494,6 +4571,38 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ScannerResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_scanner_discover_api_scanner_discover_get: {
+        parameters: {
+            query?: {
+                limit?: number;
+                alerts_limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DiscoveryResponse"];
                 };
             };
             /** @description Validation Error */

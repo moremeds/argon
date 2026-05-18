@@ -12,6 +12,14 @@ describe("bucketFreshness", () => {
   it("dead beyond 180 min", () => {
     expect(bucketFreshness("2026-05-12T05:00:00Z", now)).toBe("dead");
   });
+  it("accepts scanner-specific thresholds", () => {
+    expect(
+      bucketFreshness("2026-05-11T14:00:00Z", now, {
+        freshMinutes: 8 * 60,
+        staleMinutes: 72 * 60,
+      }),
+    ).toBe("stale");
+  });
   it("treats nulls as dead", () => {
     expect(bucketFreshness(null, now)).toBe("dead");
   });

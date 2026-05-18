@@ -44,6 +44,7 @@ type CockpitSurfaceResponse = Json<"/api/cockpit/{ticker}/surface", "get">;
 type CockpitFlowImResponse = Json<"/api/cockpit/{ticker}/flow-im", "get">;
 type CockpitVrpResponse = Json<"/api/cockpit/{ticker}/vrp", "get">;
 type ScannerResponse = Json<"/api/scanner", "get">;
+type ScannerDiscoverResponse = Json<"/api/scanner/discover", "get">;
 
 async function _fetch<T>(
   path: string,
@@ -143,6 +144,8 @@ export const api = {
     const q = params.toString();
     return _fetch<ScannerResponse>(`/api/scanner${q ? `?${q}` : ""}`);
   },
+  scannerDiscover: (limit = 20): Promise<ScannerDiscoverResponse> =>
+    _fetch<ScannerDiscoverResponse>(`/api/scanner/discover?limit=${limit}`),
   tradeInsights: (ticker: string): Promise<TradeInsightsResponse> =>
     _fetch<TradeInsightsResponse>(`/api/stock/${ticker}/trade-insights`),
   tradeInsightsAiAnalysis: (
