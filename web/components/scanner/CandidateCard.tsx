@@ -65,10 +65,10 @@ function setupTooltip(setup: Setup, reason: string | null | undefined): string {
   }
 }
 
-function freshnessLabel(scannedAt: string): string {
+function freshnessLabel(scannedAt: string, nowMs: number): string {
   const minutes = Math.max(
     0,
-    Math.round((Date.now() - new Date(scannedAt).getTime()) / 60_000),
+    Math.round((nowMs - new Date(scannedAt).getTime()) / 60_000),
   );
   if (minutes < 1) return "just now";
   if (minutes < 60) return `${minutes}m`;
@@ -138,10 +138,19 @@ function SetupPill({
   );
 }
 
-export function CandidateCard({ candidate }: { candidate: Candidate }) {
+export function CandidateCard({
+  candidate,
+  nowMs,
+}: {
+  candidate: Candidate;
+  // Optional only so jsdom unit tests can omit it. The /scanner RSC always
+  // passes this so SSR + client hydration agree on the relative-time label.
+  nowMs?: number;
+}) {
+  const anchor = nowMs ?? Date.now();
   const fresh = bucketFreshness(
     candidate.scanned_at,
-    new Date(),
+    new Date(anchor),
     SCANNER_FRESHNESS_THRESHOLDS,
   );
   const tickerColor = BIAS_COLOR[candidate.bias];
@@ -259,7 +268,7 @@ export function CandidateCard({ candidate }: { candidate: Candidate }) {
           color: "var(--text-muted)",
         }}
       >
-        <span>scanned {freshnessLabel(candidate.scanned_at)} ago</span>
+        <span>scanned {freshnessLabel(candidate.scanned_at, anchor)} ago</span>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <RescanButton ticker={candidate.ticker} initialJob={null} />
           <Link

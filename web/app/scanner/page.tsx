@@ -66,6 +66,10 @@ export default async function ScannerPage({
   ]);
 
   const grouped = groupByBias(data.candidates);
+  // Single render-time anchor so server-render and client-hydrate produce
+  // identical relative-time labels (avoids hydration mismatch — minute-rounded
+  // labels can differ across the few ms between SSR and hydration).
+  const nowMs = Date.now();
 
   return (
     <div style={{ padding: 24, maxWidth: 1600, margin: "0 auto" }}>
@@ -135,7 +139,7 @@ export default async function ScannerPage({
             }}
           >
             {discover.candidates.map((c) => (
-              <DiscoveredCard key={c.ticker} candidate={c} />
+              <DiscoveredCard key={c.ticker} candidate={c} nowMs={nowMs} />
             ))}
           </div>
         </section>
@@ -184,7 +188,7 @@ export default async function ScannerPage({
                 }}
               >
                 {section.map((c) => (
-                  <CandidateCard key={c.ticker} candidate={c} />
+                  <CandidateCard key={c.ticker} candidate={c} nowMs={nowMs} />
                 ))}
               </div>
             </section>

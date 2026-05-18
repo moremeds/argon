@@ -57,11 +57,11 @@ function BiasBadge({
   );
 }
 
-function freshnessLabel(iso: string | null | undefined): string {
+function freshnessLabel(iso: string | null | undefined, nowMs: number): string {
   if (!iso) return "unknown";
   const minutes = Math.max(
     0,
-    Math.round((Date.now() - new Date(iso).getTime()) / 60_000),
+    Math.round((nowMs - new Date(iso).getTime()) / 60_000),
   );
   if (minutes < 1) return "just now";
   if (minutes < 60) return `${minutes}m`;
@@ -69,7 +69,16 @@ function freshnessLabel(iso: string | null | undefined): string {
   return `${hours}h`;
 }
 
-export function DiscoveredCard({ candidate }: { candidate: Discovered }) {
+export function DiscoveredCard({
+  candidate,
+  nowMs,
+}: {
+  candidate: Discovered;
+  // Optional only so jsdom unit tests can omit it. The /scanner RSC always
+  // passes this so SSR + client hydration agree on the relative-time label.
+  nowMs?: number;
+}) {
+  const anchor = nowMs ?? Date.now();
   const router = useRouter();
   const [add, setAdd] = useState<AddState>("idle");
   const tickerColor = BIAS_COLOR[candidate.bias];
@@ -207,7 +216,7 @@ export function DiscoveredCard({ candidate }: { candidate: Discovered }) {
       >
         <span>
           {candidate.alert_count} alerts · last{" "}
-          {freshnessLabel(candidate.latest_alert_at)} ago
+          {freshnessLabel(candidate.latest_alert_at, anchor)} ago
         </span>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <button
