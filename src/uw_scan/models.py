@@ -718,6 +718,17 @@ class EtfInfo(_UwBase):
     has_options: bool | None = None
 
 
+class EtfInOutflowRow(_UwBase):
+    ticker: str
+    date: _date
+    change: Decimal | None = None
+    change_prem: Decimal | None = None
+    close: Decimal | None = None
+    volume: Decimal | None = None
+    expiration_cycle: str | None = None
+    is_fomc: bool | None = None
+
+
 class ScanTickerResult(_UwBase):
     """One row in the Full Scan output. Ranked by `score` desc."""
 

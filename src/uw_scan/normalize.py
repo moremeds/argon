@@ -11,6 +11,7 @@ from decimal import Decimal
 from .models import (
     BulkScreenerRow,
     DarkPoolPrint,
+    EtfInOutflowRow,
     EtfInfo,
     FlowAlert,
     GreekExposureRow,
@@ -195,6 +196,10 @@ def normalize_etf_info(payload: dict) -> EtfInfo:
             f"etf_info payload['data'] expected object, got {type(raw).__name__}"
         )
     return EtfInfo(**raw)
+
+
+def normalize_etf_in_outflow(payload: dict, *, ticker: str) -> list[EtfInOutflowRow]:
+    return [EtfInOutflowRow(ticker=ticker.upper(), **row) for row in _data_list(payload)]
 
 
 # ---------------------------------------------------------------------------

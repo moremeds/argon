@@ -82,6 +82,9 @@ class Settings(BaseModel):
     # OHLC provider (massive.com)
     massive_api_key: SecretStr | None = None
     massive_base_url: str = "https://api.massive.com"
+    # WGC Goldhub authenticated downloads. Keep secrets in environment only.
+    wgc_goldhub_cookie: SecretStr | None = None
+    wgc_etf_flows_workbook_path: str = ""
     # Trade Insights V1.5 local Codex analysis
     trade_insights_ai_enabled: bool = False
     trade_insights_ai_model: str = ""
@@ -114,6 +117,33 @@ class Settings(BaseModel):
     scanner_gex_pin_min_gamma: Decimal = Decimal("1.0")
     scanner_liquidity_min_option_volume: int = 1000
     scanner_earnings_window_days: int = 14
+    # Regime / GEX scanner (port from xenon — ships GEX live; CRI/VCG pending)
+    gex_scan_tickers: list[str] = ["SPX", "SPY"]
+    gex_scan_interval_minutes: int = 5
+    # Parquet lake root for CBOE vol indices and SPX daily OHLC.
+    # Maintained by the peer ``market-data-warehouse`` project. Symbol subdirs
+    # are named ``symbol=<TICKER>`` with a ``1d.parquet`` payload inside.
+    lake_vol_index_root: Path = Field(
+        default=Path.home()
+        / "market-warehouse/data-lake/bronze/asset_class=volatility",
+        description=(
+            "Local parquet lake root for CBOE vol indices and SPX daily OHLC. "
+            "Symbol subdirs are named symbol=<TICKER>."
+        ),
+    )
+    # Parquet lake root for equity-asset credit-proxy ETFs (HYG, JNK, LQD),
+    # used by the VCG scanner. Same layout as the vol-index lake.
+    lake_credit_etf_root: Path = Field(
+        default=Path.home() / "market-warehouse/data-lake/bronze/asset_class=equity",
+        description=(
+            "Local parquet lake root for credit-proxy ETF daily OHLC "
+            "(HYG/JNK/LQD). Symbol subdirs are named symbol=<TICKER>."
+        ),
+    )
+    # Credit-proxy ETFs synced from the equity lake into vol_index_daily.
+    # The VCG scanner reads from this list; the first entry is the default
+    # proxy unless overridden by the API caller.
+    credit_etf_symbols: list[str] = ["HYG", "JNK", "LQD"]
 
     @classmethod
     def from_env(cls, env_path: Path | None = None) -> "Settings":
@@ -169,6 +199,14 @@ class Settings(BaseModel):
             massive_base_url=os.environ.get(
                 "MASSIVE_BASE_URL", "https://api.massive.com"
             ),
+            wgc_goldhub_cookie=(
+                SecretStr(_wgc_cookie)
+                if (_wgc_cookie := os.environ.get("WGC_GOLDHUB_COOKIE", "").strip())
+                else None
+            ),
+            wgc_etf_flows_workbook_path=os.environ.get(
+                "WGC_ETF_FLOWS_WORKBOOK_PATH", ""
+            ).strip(),
             trade_insights_ai_enabled=_env_bool("TRADE_INSIGHTS_AI_ENABLED", False),
             trade_insights_ai_model=os.environ.get("TRADE_INSIGHTS_AI_MODEL", ""),
             trade_insights_ai_timeout_seconds=float(
@@ -233,6 +271,28 @@ class Settings(BaseModel):
             ),
             scanner_earnings_window_days=int(
                 os.environ.get("SCANNER_EARNINGS_WINDOW_DAYS", "14")
+            ),
+            gex_scan_tickers=_parse_csv_env("GEX_SCAN_TICKERS", default=["SPX", "SPY"]),
+            gex_scan_interval_minutes=int(
+                os.environ.get("GEX_SCAN_INTERVAL_MINUTES", "5")
+            ),
+            # Parquet-lake roots are env-overridable so deployments without
+            # the user's home-dir layout (containers, CI) can point at their
+            # own mount. Blank/unset → fall back to the field-level defaults.
+            lake_vol_index_root=(
+                Path(_lake_vol)
+                if (_lake_vol := os.environ.get("LAKE_VOL_INDEX_ROOT", "").strip())
+                else Path.home()
+                / "market-warehouse/data-lake/bronze/asset_class=volatility"
+            ),
+            lake_credit_etf_root=(
+                Path(_lake_credit)
+                if (_lake_credit := os.environ.get("LAKE_CREDIT_ETF_ROOT", "").strip())
+                else Path.home()
+                / "market-warehouse/data-lake/bronze/asset_class=equity"
+            ),
+            credit_etf_symbols=_parse_csv_env(
+                "CREDIT_ETF_SYMBOLS", default=["HYG", "JNK", "LQD"]
             ),
         )
 

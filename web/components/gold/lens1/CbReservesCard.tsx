@@ -18,12 +18,13 @@ export function CbReservesCard({ structural }: { structural: S }) {
   return (
     <Tile
       label="CB RESERVES · 12M ACCUM"
-      value={`${fmt(structural.cb_strategic_12m_sum_t)} T`}
+      value={`${fmt(structural.cb_strategic_12m_sum_t)} tonnes`}
       sub={
         <>
-          STRATEGIC {fmt(structural.cb_strategic_12m_sum_t)} · TACTICAL{" "}
-          {fmt(structural.cb_tactical_12m_sum_t)} · DIVERSIFIER{" "}
+          STRATEGIC {fmt(structural.cb_strategic_12m_sum_t)} tonnes · TACTICAL{" "}
+          {fmt(structural.cb_tactical_12m_sum_t)} tonnes · DIVERSIFIER{" "}
           {fmt(structural.cb_diversifier_12m_sum_t)}
+          {" tonnes"}
         </>
       }
     />

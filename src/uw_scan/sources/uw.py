@@ -16,6 +16,7 @@ from ..api.endpoints import EndpointSlug, build_path
 from ..models import (
     BulkScreenerRow,
     DarkPoolPrint,
+    EtfInOutflowRow,
     EtfInfo,
     FlowAlert,
     GreekExposureRow,
@@ -206,6 +207,71 @@ def fetch_greek_exposure(
     return normalize.normalize_greek_exposure(body)
 
 
+def fetch_greek_exposure_by_strike(
+    client: UwClient,
+    repo: Repository,
+    run_id: int,
+    ticker: str,
+) -> dict:
+    """Fetch /api/stock/{ticker}/greek-exposure/strike — aggregated per-strike GEX.
+
+    Returns the raw body; scanner consumes ``body["data"]`` as a list of rows
+    with string-valued ``strike``, ``call_gex``, ``put_gex``, ``call_delta``,
+    ``put_delta`` fields (caller does ``float()`` casting).
+    """
+    return _fetch_json(
+        client,
+        repo,
+        run_id,
+        EndpointSlug.GREEK_EXPOSURE_BY_STRIKE,
+        ticker,
+    )
+
+
+def fetch_greek_exposure_history(
+    client: UwClient,
+    repo: Repository,
+    run_id: int,
+    ticker: str,
+) -> dict:
+    """Fetch /api/stock/{ticker}/greek-exposure — aggregate GEX over time.
+
+    Used for net_dex computation and (eventually) historical bias trend.
+    """
+    return _fetch_json(
+        client,
+        repo,
+        run_id,
+        EndpointSlug.GREEK_EXPOSURE_HISTORY,
+        ticker,
+    )
+
+
+def fetch_stock_state(
+    client: UwClient,
+    repo: Repository,
+    run_id: int,
+    ticker: str,
+) -> dict:
+    """Fetch /api/stock/{ticker}/stock-state — last trade snapshot.
+
+    Returns the body envelope; ``body["data"]`` carries
+    ``close, prev_close, open, high, low, volume, total_volume, market_time, tape_time``.
+
+    Works uniformly for indices (SPX) and ETFs (SPY/QQQ/IWM). For SPX,
+    ``volume`` and ``total_volume`` are 0 by design (indices don't trade), and
+    ``market_time`` stays "regular" past 16:00 ET because SPX has no postmarket
+    — use ``tape_time`` to judge freshness, not ``market_time``.
+    """
+    return _fetch_json(
+        client,
+        repo,
+        run_id,
+        EndpointSlug.STOCK_STATE,
+        ticker,
+    )
+
+
 def fetch_spot_exposures(
     client: UwClient,
     repo: Repository,
@@ -394,3 +460,23 @@ def fetch_etf_info(
 ) -> EtfInfo:
     body = _fetch_json(client, repo, run_id, EndpointSlug.ETF_INFO, ticker)
     return normalize.normalize_etf_info(body)
+
+
+def fetch_etf_in_outflow(
+    client: UwClient,
+    repo: Repository,
+    run_id: int,
+    ticker: str,
+    *,
+    start_date: str,
+    end_date: str,
+) -> list[EtfInOutflowRow]:
+    body = _fetch_json(
+        client,
+        repo,
+        run_id,
+        EndpointSlug.ETF_IN_OUTFLOW,
+        ticker,
+        params={"start_date": start_date, "end_date": end_date},
+    )
+    return normalize.normalize_etf_in_outflow(body, ticker=ticker)

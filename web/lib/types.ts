@@ -464,6 +464,134 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/regime/gex": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Gex */
+        get: operations["get_gex_api_regime_gex_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/regime/gex/scan": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Trigger Gex Scan
+         * @description Run a GEX scan synchronously against UW and persist.
+         */
+        post: operations["trigger_gex_scan_api_regime_gex_scan_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/regime/vol-backdrop": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Vol Backdrop */
+        get: operations["get_vol_backdrop_api_regime_vol_backdrop_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/regime": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Regime */
+        get: operations["get_regime_api_regime_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/regime/scan": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Trigger Cri Scan
+         * @description Run a CRI scan synchronously off the warm store; persist a snapshot.
+         */
+        post: operations["trigger_cri_scan_api_regime_scan_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/regime/vcg": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Vcg */
+        get: operations["get_vcg_api_regime_vcg_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/regime/vcg/scan": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Trigger Vcg Scan
+         * @description Run a VCG scan synchronously off the warm store; persist a snapshot.
+         */
+        post: operations["trigger_vcg_scan_api_regime_vcg_scan_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/gold/gauge": {
         parameters: {
             query?: never;
@@ -895,6 +1023,194 @@ export interface components {
             /** Points */
             points?: components["schemas"]["CockpitVrpPoint"][];
         };
+        /** CrashTriggerBlock */
+        CrashTriggerBlock: {
+            /**
+             * Fired
+             * @default false
+             */
+            fired: boolean;
+            /**
+             * Triggered
+             * @default false
+             */
+            triggered: boolean;
+            conditions?: components["schemas"]["CrashTriggerConditions"];
+            values?: components["schemas"]["CrashTriggerValues"];
+        };
+        /** CrashTriggerConditions */
+        CrashTriggerConditions: {
+            /**
+             * Spx Below 100D Ma
+             * @default false
+             */
+            spx_below_100d_ma: boolean;
+            /**
+             * Realized Vol Gt 25
+             * @default false
+             */
+            realized_vol_gt_25: boolean;
+            /**
+             * Cor1M Gt 60
+             * @default false
+             */
+            cor1m_gt_60: boolean;
+        };
+        /** CrashTriggerValues */
+        CrashTriggerValues: {
+            /** Realized Vol */
+            realized_vol?: number | null;
+            /** Cor1M */
+            cor1m?: number | null;
+        };
+        /** CriBlock */
+        CriBlock: {
+            /**
+             * Score
+             * @default 0
+             */
+            score: number;
+            /**
+             * Level
+             * @default LOW
+             * @enum {string}
+             */
+            level: "LOW" | "ELEVATED" | "HIGH" | "CRITICAL";
+            components?: components["schemas"]["CriComponents"];
+        };
+        /**
+         * CriComponents
+         * @description Four 0-25 component scores summed into the composite 0-100.
+         */
+        CriComponents: {
+            /**
+             * Vix
+             * @default 0
+             */
+            vix: number;
+            /**
+             * Vvix
+             * @default 0
+             */
+            vvix: number;
+            /**
+             * Correlation
+             * @default 0
+             */
+            correlation: number;
+            /**
+             * Momentum
+             * @default 0
+             */
+            momentum: number;
+        };
+        /** CriHistoryEntry */
+        CriHistoryEntry: {
+            /** Date */
+            date: string;
+            /** Vix */
+            vix?: number | null;
+            /** Vvix */
+            vvix?: number | null;
+            /** Spy */
+            spy?: number | null;
+            /** Cor1M */
+            cor1m?: number | null;
+            /** Realized Vol */
+            realized_vol?: number | null;
+            /** Spx Vs Ma Pct */
+            spx_vs_ma_pct?: number | null;
+            /** Vix 5D Roc */
+            vix_5d_roc?: number | null;
+        };
+        /**
+         * CriResponse
+         * @description Crash Risk Indicator snapshot (latest scan).
+         */
+        CriResponse: {
+            /**
+             * Status
+             * @default empty
+             * @enum {string}
+             */
+            status: "ok" | "empty";
+            /**
+             * Scan Time
+             * @default
+             */
+            scan_time: string;
+            /** Date */
+            date?: string | null;
+            /** Vix */
+            vix?: number | null;
+            /** Vvix */
+            vvix?: number | null;
+            /** Spy */
+            spy?: number | null;
+            /** Vix 5D Roc */
+            vix_5d_roc?: number | null;
+            /** Vvix Vix Ratio */
+            vvix_vix_ratio?: number | null;
+            /** Spx 100D Ma */
+            spx_100d_ma?: number | null;
+            /** Spx Distance Pct */
+            spx_distance_pct?: number | null;
+            /** Cor1M */
+            cor1m?: number | null;
+            /** Cor1M Previous Close */
+            cor1m_previous_close?: number | null;
+            /** Cor1M 5D Change */
+            cor1m_5d_change?: number | null;
+            /** Realized Vol */
+            realized_vol?: number | null;
+            cri?: components["schemas"]["CriBlock"];
+            cta?: components["schemas"]["CtaBlock"];
+            crash_trigger?: components["schemas"]["CrashTriggerBlock"];
+            /** History */
+            history?: components["schemas"]["CriHistoryEntry"][];
+            /** Spy Closes */
+            spy_closes?: number[];
+        };
+        /**
+         * CriScanResponse
+         * @description Response body for POST /api/regime/scan.
+         */
+        CriScanResponse: {
+            /**
+             * Status
+             * @default ok
+             * @enum {string}
+             */
+            status: "ok" | "skipped";
+            /**
+             * Scanner
+             * @default cri
+             * @constant
+             */
+            scanner: "cri";
+            /** Row Id */
+            row_id?: number | null;
+            /** Reason */
+            reason?: string | null;
+        };
+        /** CtaBlock */
+        CtaBlock: {
+            /** Realized Vol */
+            realized_vol?: number | null;
+            /** Exposure Pct */
+            exposure_pct?: number | null;
+            /** Forced Reduction Pct */
+            forced_reduction_pct?: number | null;
+            /**
+             * Forced Reduction
+             * @default false
+             */
+            forced_reduction: boolean;
+            /** Est Selling Bn */
+            est_selling_bn?: number | null;
+            /** Selling Usd B */
+            selling_usd_b?: number | null;
+        };
         /**
          * DiscoveryCandidate
          * @description Non-watchlist ticker surfaced by the market-wide flow-alerts feed.
@@ -1064,22 +1380,192 @@ export interface components {
             /** Expiring Date */
             expiring_date?: string | null;
         };
-        /**
-         * GexLevel
-         * @description One labeled level on the GEX curve (e.g. CALL WALL, PUT WALL, MAX MAGNET).
-         *
-         *     `gamma_per_dollar` is the per-strike net_gex used as the "$N per $1" sensitivity
-         *     figure on the tile — the dollar value of dealer hedging triggered by a $1 move.
-         */
-        GexLevel: {
+        /** GexBias */
+        GexBias: {
+            /** Direction */
+            direction?: string | null;
+            /** Reasons */
+            reasons?: string[];
+            /** Days Above Flip */
+            days_above_flip?: number | null;
+            /** Flip Migration */
+            flip_migration?: components["schemas"]["GexFlipMigrationEntry"][];
+        };
+        /** GexBucket */
+        GexBucket: {
             /** Strike */
-            strike: string;
+            strike?: number | null;
+            /** Call Gex */
+            call_gex?: number | null;
+            /** Put Gex */
+            put_gex?: number | null;
             /** Net Gex */
-            net_gex?: string | null;
+            net_gex?: number | null;
             /** Pct From Spot */
-            pct_from_spot?: string | null;
-            /** Gamma Per Dollar */
-            gamma_per_dollar?: string | null;
+            pct_from_spot?: number | null;
+            /** Tag */
+            tag?: string | null;
+        };
+        /** GexExpectedRange */
+        GexExpectedRange: {
+            /** Low */
+            low?: number | null;
+            /** High */
+            high?: number | null;
+            /** Iv 1D */
+            iv_1d?: number | null;
+        };
+        /** GexFlipMigrationEntry */
+        GexFlipMigrationEntry: {
+            /** Date */
+            date: string;
+            /** Flip */
+            flip?: number | null;
+        };
+        /** GexHistoryEntry */
+        GexHistoryEntry: {
+            /** Date */
+            date: string;
+            /** Net Gex */
+            net_gex?: number | null;
+            /** Net Dex */
+            net_dex?: number | null;
+            /** Gex Flip */
+            gex_flip?: number | null;
+            /** Spot */
+            spot?: number | null;
+            /** Atm Iv */
+            atm_iv?: number | null;
+            /** Vol Pc */
+            vol_pc?: number | null;
+            /** Bias */
+            bias?: string | null;
+        };
+        /** GexIvData */
+        GexIvData: {
+            /** Iv30D */
+            iv30d?: number | null;
+            /** Iv Rank */
+            iv_rank?: number | null;
+            /** Hv30 */
+            hv30?: number | null;
+            /** Mq Iv30D */
+            mq_iv30d?: number | null;
+            /** Mq Iv Rank */
+            mq_iv_rank?: string | null;
+            /** Source */
+            source?: string | null;
+        };
+        /** GexLevels */
+        GexLevels: {
+            gex_flip?: components["schemas"]["uw_scan__api__schemas__GexLevel"] | null;
+            max_magnet?: components["schemas"]["uw_scan__api__schemas__GexLevel"] | null;
+            second_magnet?: components["schemas"]["uw_scan__api__schemas__GexLevel"] | null;
+            max_accelerator?: components["schemas"]["uw_scan__api__schemas__GexLevel"] | null;
+            put_wall?: components["schemas"]["uw_scan__api__schemas__GexLevel"] | null;
+            call_wall?: components["schemas"]["uw_scan__api__schemas__GexLevel"] | null;
+        };
+        /** GexMqLevels */
+        GexMqLevels: {
+            /** Source Date */
+            source_date?: string | null;
+            /** Spot */
+            spot?: number | null;
+            /** Hvl */
+            hvl?: number | null;
+            /** Call Resistance All */
+            call_resistance_all?: number | null;
+            /** Call Resistance 0Dte */
+            call_resistance_0dte?: number | null;
+            /** Put Support All */
+            put_support_all?: number | null;
+            /** Put Support 0Dte */
+            put_support_0dte?: number | null;
+            /** Expected High */
+            expected_high?: number | null;
+            /** Expected Low */
+            expected_low?: number | null;
+            /** Distance To Hvl Pct */
+            distance_to_hvl_pct?: string | null;
+            /** Iv30D */
+            iv30d?: number | null;
+            /** Hv30 */
+            hv30?: number | null;
+            /** Iv Rank */
+            iv_rank?: string | null;
+            /** Top Gex Strikes */
+            top_gex_strikes?: number[];
+        };
+        /** GexResponse */
+        GexResponse: {
+            /**
+             * Scan Time
+             * @default
+             */
+            scan_time: string;
+            /**
+             * Market Open
+             * @default false
+             */
+            market_open: boolean;
+            /**
+             * Ticker
+             * @default SPX
+             */
+            ticker: string;
+            /** Spot */
+            spot?: number | null;
+            /** Close */
+            close?: number | null;
+            /** Prev Close */
+            prev_close?: number | null;
+            /** Market Time */
+            market_time?: string | null;
+            /** Tape Time */
+            tape_time?: string | null;
+            /** Spot Source */
+            spot_source?: string | null;
+            /** Day Change */
+            day_change?: number | null;
+            /** Day Change Pct */
+            day_change_pct?: number | null;
+            /** Data Date */
+            data_date?: string | null;
+            /** Net Gex */
+            net_gex?: number | null;
+            /** Net Dex */
+            net_dex?: number | null;
+            /** Atm Iv */
+            atm_iv?: number | null;
+            /** Vol Pc */
+            vol_pc?: number | null;
+            levels?: components["schemas"]["GexLevels"];
+            /** Profile */
+            profile?: components["schemas"]["GexBucket"][];
+            expected_range?: components["schemas"]["GexExpectedRange"];
+            bias?: components["schemas"]["GexBias"];
+            /** History */
+            history?: components["schemas"]["GexHistoryEntry"][];
+            iv?: components["schemas"]["GexIvData"] | null;
+            mq?: components["schemas"]["GexMqLevels"] | null;
+            source_delta?: components["schemas"]["GexSourceDelta"] | null;
+        };
+        /** GexSourceDelta */
+        GexSourceDelta: {
+            flip_vs_hvl?: components["schemas"]["GexSourceDeltaEntry"] | null;
+            put_wall_vs_support_all?: components["schemas"]["GexSourceDeltaEntry"] | null;
+            put_wall_vs_support_0dte?: components["schemas"]["GexSourceDeltaEntry"] | null;
+            call_wall_vs_resistance_all?: components["schemas"]["GexSourceDeltaEntry"] | null;
+            call_wall_vs_resistance_0dte?: components["schemas"]["GexSourceDeltaEntry"] | null;
+        };
+        /** GexSourceDeltaEntry */
+        GexSourceDeltaEntry: {
+            /** Uw */
+            uw?: number | null;
+            /** Mq */
+            mq?: number | null;
+            /** Delta */
+            delta?: number | null;
         };
         /** GoldCorrelationBand */
         GoldCorrelationBand: {
@@ -1710,12 +2196,12 @@ export interface components {
          *       - max_accel: strike with most-negative net_gex below the flip (movement accelerator)
          */
         MarketStructureLevels: {
-            gex_flip?: components["schemas"]["GexLevel"] | null;
-            call_wall?: components["schemas"]["GexLevel"] | null;
-            put_wall?: components["schemas"]["GexLevel"] | null;
-            max_magnet?: components["schemas"]["GexLevel"] | null;
-            second_magnet?: components["schemas"]["GexLevel"] | null;
-            max_accel?: components["schemas"]["GexLevel"] | null;
+            gex_flip?: components["schemas"]["uw_scan__models__GexLevel"] | null;
+            call_wall?: components["schemas"]["uw_scan__models__GexLevel"] | null;
+            put_wall?: components["schemas"]["uw_scan__models__GexLevel"] | null;
+            max_magnet?: components["schemas"]["uw_scan__models__GexLevel"] | null;
+            second_magnet?: components["schemas"]["uw_scan__models__GexLevel"] | null;
+            max_accel?: components["schemas"]["uw_scan__models__GexLevel"] | null;
         };
         /** MatrixSourceFreshness */
         MatrixSourceFreshness: {
@@ -3259,6 +3745,247 @@ export interface components {
             /** Context */
             ctx?: Record<string, never>;
         };
+        /** VcgAttribution */
+        VcgAttribution: {
+            /**
+             * Vvix Pct
+             * @default 0
+             */
+            vvix_pct: number;
+            /**
+             * Vix Pct
+             * @default 0
+             */
+            vix_pct: number;
+            /**
+             * Vvix Component
+             * @default 0
+             */
+            vvix_component: number;
+            /**
+             * Vix Component
+             * @default 0
+             */
+            vix_component: number;
+            /**
+             * Model Implied
+             * @default 0
+             */
+            model_implied: number;
+        };
+        /** VcgHistoryEntry */
+        VcgHistoryEntry: {
+            /** Date */
+            date: string;
+            /** Residual */
+            residual?: number | null;
+            /** Vcg */
+            vcg?: number | null;
+            /** Vcg Adj */
+            vcg_adj?: number | null;
+            /** Beta1 */
+            beta1?: number | null;
+            /** Beta2 */
+            beta2?: number | null;
+            /**
+             * Vix
+             * @default 0
+             */
+            vix: number;
+            /**
+             * Vvix
+             * @default 0
+             */
+            vvix: number;
+            /**
+             * Credit
+             * @default 0
+             */
+            credit: number;
+            /**
+             * Ro
+             * @default 0
+             */
+            ro: number;
+            /**
+             * Edr
+             * @default 0
+             */
+            edr: number;
+            /** Tier */
+            tier?: number | null;
+            /**
+             * Bounce
+             * @default 0
+             */
+            bounce: number;
+        };
+        /**
+         * VcgResponse
+         * @description Volatility-Credit Gap snapshot (latest scan).
+         */
+        VcgResponse: {
+            /**
+             * Status
+             * @default empty
+             * @enum {string}
+             */
+            status: "ok" | "empty";
+            /**
+             * Scan Time
+             * @default
+             */
+            scan_time: string;
+            /** Date */
+            date?: string | null;
+            /**
+             * Credit Proxy
+             * @default HYG
+             */
+            credit_proxy: string;
+            signal?: components["schemas"]["VcgSignal"];
+            /** History */
+            history?: components["schemas"]["VcgHistoryEntry"][];
+        };
+        /**
+         * VcgScanResponse
+         * @description Response body for POST /api/regime/vcg/scan.
+         */
+        VcgScanResponse: {
+            /**
+             * Status
+             * @default ok
+             * @enum {string}
+             */
+            status: "ok" | "skipped";
+            /**
+             * Scanner
+             * @default vcg
+             * @constant
+             */
+            scanner: "vcg";
+            /**
+             * Proxy
+             * @default HYG
+             */
+            proxy: string;
+            /** Row Id */
+            row_id?: number | null;
+            /** Reason */
+            reason?: string | null;
+        };
+        /** VcgSignal */
+        VcgSignal: {
+            /** Vcg */
+            vcg?: number | null;
+            /** Vcg Adj */
+            vcg_adj?: number | null;
+            /** Residual */
+            residual?: number | null;
+            /** Beta1 Vvix */
+            beta1_vvix?: number | null;
+            /** Beta2 Vix */
+            beta2_vix?: number | null;
+            /** Alpha */
+            alpha?: number | null;
+            /**
+             * Vix
+             * @default 0
+             */
+            vix: number;
+            /**
+             * Vvix
+             * @default 0
+             */
+            vvix: number;
+            /**
+             * Credit Price
+             * @default 0
+             */
+            credit_price: number;
+            /**
+             * Credit 5D Return Pct
+             * @default 0
+             */
+            credit_5d_return_pct: number;
+            /**
+             * Ro
+             * @default 0
+             */
+            ro: number;
+            /**
+             * Edr
+             * @default 0
+             */
+            edr: number;
+            /** Tier */
+            tier?: number | null;
+            /**
+             * Bounce
+             * @default 0
+             */
+            bounce: number;
+            /**
+             * Vvix Severity
+             * @default moderate
+             * @enum {string}
+             */
+            vvix_severity: "extreme" | "elevated" | "moderate";
+            /**
+             * Sign Ok
+             * @default true
+             */
+            sign_ok: boolean;
+            /**
+             * Sign Suppressed
+             * @default false
+             */
+            sign_suppressed: boolean;
+            /**
+             * Pi Panic
+             * @default 0
+             */
+            pi_panic: number;
+            /**
+             * Regime
+             * @default DIVERGENCE
+             * @enum {string}
+             */
+            regime: "PANIC" | "TRANSITION" | "DIVERGENCE";
+            /**
+             * Interpretation
+             * @default NORMAL
+             * @enum {string}
+             */
+            interpretation: "RISK_OFF" | "EDR" | "WATCH" | "BOUNCE" | "NORMAL" | "SUPPRESSED" | "PANIC" | "INSUFFICIENT_DATA";
+            attribution?: components["schemas"]["VcgAttribution"];
+        };
+        /** VolBackdropPoint */
+        VolBackdropPoint: {
+            /**
+             * Date
+             * Format: date
+             */
+            date: string;
+            /** Close */
+            close: number;
+        };
+        /**
+         * VolBackdropResponse
+         * @description Vol-complex time series + VIX term-structure (regime page header strip).
+         */
+        VolBackdropResponse: {
+            /** Series */
+            series?: {
+                [key: string]: components["schemas"]["VolBackdropPoint"][];
+            };
+            /** Term Structure Ratio */
+            term_structure_ratio?: number | null;
+            /** Term Structure State */
+            term_structure_state?: string | null;
+            /** As Of */
+            as_of?: string | null;
+        };
         /** VolHeaderBlock */
         VolHeaderBlock: {
             /** Iv */
@@ -3507,6 +4234,34 @@ export interface components {
             lag_seconds?: number | null;
             /** Last Beat At */
             last_beat_at?: string | null;
+        };
+        /** GexLevel */
+        uw_scan__api__schemas__GexLevel: {
+            /** Strike */
+            strike?: number | null;
+            /** Gamma */
+            gamma?: number | null;
+            /** Distance */
+            distance?: number | null;
+            /** Distance Pct */
+            distance_pct?: number | null;
+        };
+        /**
+         * GexLevel
+         * @description One labeled level on the GEX curve (e.g. CALL WALL, PUT WALL, MAX MAGNET).
+         *
+         *     `gamma_per_dollar` is the per-strike net_gex used as the "$N per $1" sensitivity
+         *     figure on the tile — the dollar value of dealer hedging triggered by a $1 move.
+         */
+        uw_scan__models__GexLevel: {
+            /** Strike */
+            strike: string;
+            /** Net Gex */
+            net_gex?: string | null;
+            /** Pct From Spot */
+            pct_from_spot?: string | null;
+            /** Gamma Per Dollar */
+            gamma_per_dollar?: string | null;
         };
     };
     responses: never;
@@ -4400,6 +5155,203 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["TradeInsightAiAnalysisResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_gex_api_regime_gex_get: {
+        parameters: {
+            query?: {
+                ticker?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GexResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    trigger_gex_scan_api_regime_gex_scan_post: {
+        parameters: {
+            query?: {
+                ticker?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_vol_backdrop_api_regime_vol_backdrop_get: {
+        parameters: {
+            query?: {
+                days?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VolBackdropResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_regime_api_regime_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CriResponse"];
+                };
+            };
+        };
+    };
+    trigger_cri_scan_api_regime_scan_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CriScanResponse"];
+                };
+            };
+        };
+    };
+    get_vcg_api_regime_vcg_get: {
+        parameters: {
+            query?: {
+                proxy?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VcgResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    trigger_vcg_scan_api_regime_vcg_scan_post: {
+        parameters: {
+            query?: {
+                proxy?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VcgScanResponse"];
                 };
             };
             /** @description Validation Error */

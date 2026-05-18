@@ -24,6 +24,7 @@ from uw_scan.sources.ohlc import MassiveOhlcProvider
 from uw_scan.storage.provider_usage import ExternalApiRequestRecorder
 from uw_scan.storage.repository import Repository
 from uw_scan.worker.jobs.cockpit_daily_snapshot import cockpit_daily_snapshot
+from uw_scan.worker.jobs.credit_etf_lake_sync import run_credit_etf_lake_sync
 from uw_scan.worker.jobs.flow_data_refresh import flow_data_refresh
 from uw_scan.worker.jobs.full_scan import full_scan_once
 from uw_scan.worker.jobs.gold_jobs import (
@@ -42,6 +43,7 @@ from uw_scan.worker.jobs.ohlc_pull import ohlc_pull_once
 from uw_scan.worker.jobs.rescan_loop import rescan_tick
 from uw_scan.worker.jobs.spot_refresh import spot_refresh_once
 from uw_scan.worker.jobs.trade_insights_ai import trade_insights_ai_tick
+from uw_scan.worker.jobs.vol_index_lake_sync import run_vol_index_lake_sync
 from uw_scan.worker.volatility_jobs import (
     daily_spy_ohlc_refresh,
     nightly_vol_analytics_rollup,
@@ -337,6 +339,73 @@ def main() -> int:
     def _trade_insights_ai_tick() -> None:
         trade_insights_ai_tick(settings)
 
+    def _vol_index_lake_sync() -> None:
+        # Parquet lake (~/market-warehouse/.../volatility) → vol_index_daily.
+        # Local I/O + Postgres only — no external API spend, no UW/Massive role
+        # binding required. Primary worker runs it to avoid duplicate upserts.
+        with _repo(settings) as repo:
+            run_vol_index_lake_sync(repo.conn, root=settings.lake_vol_index_root)
+
+    def _credit_etf_lake_sync() -> None:
+        # Equity asset_class lake → vol_index_daily for the VCG credit proxies
+        # (HYG / JNK / LQD). Pure local I/O; same idempotency guarantees as the
+        # vol-complex sync. Primary worker only.
+        with _repo(settings) as repo:
+            run_credit_etf_lake_sync(
+                repo.conn,
+                root=settings.lake_credit_etf_root,
+                symbols=settings.credit_etf_symbols,
+            )
+
+    def _regime_vcg_scan() -> None:
+        # Reads vol_index_daily (VIX/VVIX + the credit proxies); writes
+        # vcg_snapshots. No external API spend. Append-only.
+        from uw_scan.scanners import vcg as vcg_scanner
+
+        proxy = settings.credit_etf_symbols[0] if settings.credit_etf_symbols else "HYG"
+        with _repo(settings) as repo:
+            row_id = vcg_scanner.run(repo.conn, proxy=proxy, schema=settings.db_schema)
+            if row_id is None:
+                logger.info("regime_vcg_scan_skipped_thin_data proxy=%s", proxy)
+            else:
+                logger.info(
+                    "regime_vcg_scan_persisted proxy=%s row_id=%d", proxy, row_id
+                )
+
+    def _regime_cri_scan() -> None:
+        # Reads vol_index_daily + daily_ohlc; writes cri_snapshots. No external
+        # API spend. Append-only — running twice in an hour is harmless.
+        from uw_scan.scanners import cri as cri_scanner
+
+        with _repo(settings) as repo:
+            row_id = cri_scanner.run(repo.conn, schema=settings.db_schema)
+            if row_id is None:
+                logger.info("regime_cri_scan_skipped_thin_data")
+            else:
+                logger.info("regime_cri_scan_persisted row_id=%d", row_id)
+
+    def _regime_gex_scan() -> None:
+        # Weekday gate — UW data only meaningful during regular sessions.
+        if datetime.now(ZoneInfo(settings.rth_tz)).weekday() >= 5:
+            logger.info("regime_gex_scan_skipped_weekend")
+            return
+        from uw_scan.scanners import gex as gex_scanner
+
+        with _external_api_recorder(settings) as recorder:
+            with _uw_client(
+                settings, telemetry_recorder=recorder, job_name="regime_gex_scan"
+            ) as uw:
+                with _repo(settings) as repo:
+                    for ticker in settings.gex_scan_tickers:
+                        try:
+                            gex_scanner.run(uw, repo, ticker=ticker)
+                        except Exception as exc:
+                            logger.warning(
+                                "regime_gex_scan_failed ticker=%s err=%s",
+                                ticker,
+                                repr(exc),
+                            )
+
     def _gold_fred_ingest() -> None:
         gold_fred_ingest_job(dsn=settings.db_dsn())
 
@@ -354,7 +423,16 @@ def main() -> int:
         gold_gpr_ingest_job(dsn=settings.db_dsn())
 
     def _gold_etf_holdings_ingest() -> None:
-        gold_etf_holdings_ingest_job(dsn=settings.db_dsn())
+        gold_etf_holdings_ingest_job(
+            dsn=settings.db_dsn(),
+            uw_api_key=settings.api_key.get_secret_value(),
+            wgc_goldhub_cookie=(
+                settings.wgc_goldhub_cookie.get_secret_value()
+                if settings.wgc_goldhub_cookie is not None
+                else None
+            ),
+            wgc_workbook_path=settings.wgc_etf_flows_workbook_path or None,
+        )
 
     def _gold_comex_vault_ingest() -> None:
         gold_comex_vault_ingest_job(dsn=settings.db_dsn())
@@ -447,6 +525,16 @@ def main() -> int:
                 id="cockpit_daily_snapshot",
                 name="Cockpit 6-dim matrix daily snapshot",
             )
+            # Regime / GEX scan — refreshes gex_snapshots every N minutes.
+            # Primary-uw-only to avoid duplicate UW spend across shards.
+            sched.add_job(
+                _regime_gex_scan,
+                IntervalTrigger(minutes=settings.gex_scan_interval_minutes),
+                id="regime_gex_scan",
+                name="Regime GEX scan (UW)",
+                max_instances=1,
+                coalesce=True,
+            )
 
     if "ai" in groups and settings.trade_insights_ai_enabled:
         sched.add_job(
@@ -460,6 +548,46 @@ def main() -> int:
         )
 
     if _is_primary_worker(settings):
+        # Vol-complex parquet lake sync — nightly, 03:15 ET. Local I/O only,
+        # no provider role required. Idempotent (UPSERT) so safe to re-run.
+        sched.add_job(
+            _vol_index_lake_sync,
+            CronTrigger(hour=3, minute=15, timezone=settings.rth_tz),
+            id="vol_index_lake_sync",
+            name="Vol-complex parquet lake sync",
+            max_instances=1,
+            coalesce=True,
+        )
+        # CRI scan — refreshes cri_snapshots on the hour. Pure DB-read math,
+        # no provider spend. Append-only; safe to re-run.
+        sched.add_job(
+            _regime_cri_scan,
+            CronTrigger(minute=20, timezone=settings.rth_tz),
+            id="regime_cri_scan",
+            name="Regime CRI scan",
+            max_instances=1,
+            coalesce=True,
+        )
+        # Credit ETF parquet lake sync — nightly, 03:20 ET. Mirrors the
+        # vol-complex sync but pulls HYG/JNK/LQD from asset_class=equity.
+        sched.add_job(
+            _credit_etf_lake_sync,
+            CronTrigger(hour=3, minute=20, timezone=settings.rth_tz),
+            id="credit_etf_lake_sync",
+            name="Credit-ETF parquet lake sync",
+            max_instances=1,
+            coalesce=True,
+        )
+        # VCG scan — refreshes vcg_snapshots on :25. Reads VIX/VVIX/<proxy>
+        # from vol_index_daily. Append-only.
+        sched.add_job(
+            _regime_vcg_scan,
+            CronTrigger(minute=25, timezone=settings.rth_tz),
+            id="regime_vcg_scan",
+            name="Regime VCG scan",
+            max_instances=1,
+            coalesce=True,
+        )
         # Phase A1 (Gold) — ET-anchored ingestion cascade then posture compute.
         # All gold jobs run on the primary worker only: load is light, no
         # sharding needed, and the UW options ingest (sole UW-bound job in

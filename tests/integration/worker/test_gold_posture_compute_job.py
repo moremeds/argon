@@ -78,3 +78,50 @@ def test_gold_posture_compute_writes_row(fresh_db: Settings) -> None:
     assert row is not None
     assert row["obs_date"] == target
     assert row["gauge_state"] in {"operative", "partial", "suspended"}
+
+
+def test_gold_posture_compute_uses_uw_gld_flows(fresh_db: Settings) -> None:
+    target = date(2026, 5, 16)
+    with psycopg.connect(fresh_db.db_dsn()) as conn:
+        repo = Repository(conn, schema=fresh_db.db_schema)
+        base = target - timedelta(days=300)
+        for i in range(301):
+            d = base + timedelta(days=i)
+            repo.insert_macro_series_daily(
+                "GLD_CLOSE",
+                d,
+                Decimal(str(1800 + i * 0.5)),
+                datetime.combine(d, datetime.min.time(), tzinfo=UTC),
+                None,
+                "MASSIVE",
+                None,
+            )
+            repo.insert_macro_series_daily(
+                "DFII10",
+                d,
+                Decimal(str(2.0 - i * 0.005)),
+                datetime.combine(d, datetime.min.time(), tzinfo=UTC),
+                None,
+                "FRED",
+                None,
+            )
+        repo.insert_etf_flows_daily(
+            ticker="GLD",
+            obs_date=date(2026, 5, 15),
+            share_change=Decimal("-900000"),
+            premium_change_usd=Decimal("-375300000"),
+            close=Decimal("417.29"),
+            volume=Decimal("8801181"),
+            as_of=datetime.now(UTC),
+            source="UW",
+        )
+        conn.commit()
+
+    gold_posture_compute_job(dsn=fresh_db.db_dsn(), as_of=target)
+
+    with psycopg.connect(fresh_db.db_dsn()) as conn:
+        repo = Repository(conn, schema=fresh_db.db_schema)
+        row = repo.fetch_gold_posture_latest()
+    assert row is not None
+    assert row["gld_holdings_t"] is None
+    assert row["gld_30d_net_flow_t"].quantize(Decimal("0.001")) == Decimal("-2.606")
