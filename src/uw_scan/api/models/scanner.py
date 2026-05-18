@@ -8,7 +8,6 @@ from typing import Any, Literal
 
 from pydantic import BaseModel
 
-
 SignalType = Literal[
     "deep_conviction_flow",
     "dark_pool_accumulation",
@@ -47,6 +46,10 @@ class ScannerCandidate(BaseModel):
     hits: list[ScannerSignalHit]
     context_flags: list[ScannerContextFlag]
     gates: ScannerGatesStatus
+    bias: Literal["bullish", "bearish", "neutral", "mixed"]
+    bias_strength: Literal["strong", "moderate", "weak"] | None = None
+    setup: Literal["ready", "caution", "blocked"]
+    setup_reason: str | None = None
     scanned_at: datetime
 
 
@@ -63,3 +66,26 @@ class ScannerResponse(BaseModel):
     candidates: list[ScannerCandidate]
     gated: list[ScannerGatedTicker]
     generated_at: datetime
+
+
+class DiscoveryCandidate(BaseModel):
+    """Non-watchlist ticker surfaced by the market-wide flow-alerts feed.
+
+    DCF-only — the deeper signals (DP, EIC, GEX) need per-ticker context that
+    requires a deep scan. Promote to the watchlist to get those.
+    """
+
+    ticker: str
+    hit: ScannerSignalHit
+    bias: Literal["bullish", "bearish", "neutral", "mixed"]
+    bias_strength: Literal["strong", "moderate", "weak"] | None = None
+    alert_count: int
+    sector: str | None = None
+    latest_alert_at: datetime | None = None
+
+
+class DiscoveryResponse(BaseModel):
+    candidates: list[DiscoveryCandidate]
+    fetched_at: datetime
+    source: Literal["market_wide_flow_alerts"] = "market_wide_flow_alerts"
+    alerts_pulled: int

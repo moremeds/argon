@@ -14,6 +14,7 @@ TODAY = date(2026, 5, 17)
 
 def _alert(
     *,
+    option_type="call",
     volume=2000,
     open_interest=1000,
     total_premium="800000",
@@ -28,7 +29,7 @@ def _alert(
     return FlowAlert(
         id="x",
         ticker="AAPL",
-        type="call",
+        type=option_type,
         strike=Decimal(strike),
         underlying_price=Decimal(underlying_price),
         total_premium=Decimal(total_premium),
@@ -64,6 +65,40 @@ def test_qualifying_single_alert_emits_hit():
     # 0.5 + 0.5 * min(800000 / 2000000, 1.0) = 0.5 + 0.2 = 0.7
     assert hit.score == Decimal("0.7")
     assert hit.evidence["qualifying_alerts"] == 1
+    assert hit.evidence["direction"] == "long"
+    assert hit.evidence["top_option_type"] == "call"
+
+
+def test_qualifying_put_alert_emits_short_direction():
+    hit = detect(
+        ticker="AAPL",
+        alerts=[_alert(option_type="put")],
+        today=TODAY,
+        min_premium_usd=Decimal("500000"),
+        min_ask_side=Decimal("0.80"),
+        max_moneyness=Decimal("0.12"),
+        min_dte=6,
+        earnings_window_days=14,
+    )
+    assert hit is not None
+    assert hit.evidence["direction"] == "short"
+    assert hit.evidence["top_option_type"] == "put"
+
+
+def test_qualifying_unknown_option_type_omits_direction():
+    hit = detect(
+        ticker="AAPL",
+        alerts=[_alert(option_type=None)],
+        today=TODAY,
+        min_premium_usd=Decimal("500000"),
+        min_ask_side=Decimal("0.80"),
+        max_moneyness=Decimal("0.12"),
+        min_dte=6,
+        earnings_window_days=14,
+    )
+    assert hit is not None
+    assert "direction" not in hit.evidence
+    assert hit.evidence["top_option_type"] is None
 
 
 def test_blocks_when_earnings_within_window():

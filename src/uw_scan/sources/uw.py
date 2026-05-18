@@ -114,6 +114,26 @@ def fetch_flow_alerts(
     return normalize.normalize_flow_alerts(body)
 
 
+def fetch_market_flow_alerts(
+    client: UwClient, repo: Repository, run_id: int, limit: int = 200
+) -> list[FlowAlert]:
+    """Market-wide flow alerts (no ticker filter) for the scanner's discovery feed.
+
+    Same endpoint and audit path as fetch_flow_alerts, but omits ticker_symbol so
+    UW returns alerts across the whole market. Each FlowAlert carries its own
+    ticker — discovery groups by it.
+    """
+    body = _fetch_json(
+        client,
+        repo,
+        run_id,
+        EndpointSlug.FLOW_ALERTS,
+        None,
+        params={"limit": limit},
+    )
+    return normalize.normalize_flow_alerts(body)
+
+
 def fetch_iv_rank(
     client: UwClient, repo: Repository, run_id: int, ticker: str
 ) -> list[IvRankRow]:

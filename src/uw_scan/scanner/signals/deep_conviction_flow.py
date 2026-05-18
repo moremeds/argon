@@ -16,6 +16,14 @@ from uw_scan.models import FlowAlert
 from uw_scan.scanner.models import SignalHit
 
 
+def _direction(option_type: str | None) -> str | None:
+    if option_type == "call":
+        return "long"
+    if option_type == "put":
+        return "short"
+    return None
+
+
 def _alert_qualifies(
     alert: FlowAlert,
     *,
@@ -109,19 +117,26 @@ def detect(
         (top_ask / (top_ask + top_bid)) if (top_ask + top_bid) > 0 else Decimal("0")
     )
     top_dte = (top.expiry - today).days if top.expiry else None
+    top_option_type = top.type
+
+    evidence = {
+        "qualifying_alerts": len(qualifying),
+        "total_premium": str(total_premium),
+        "top_strike": str(top.strike) if top.strike else None,
+        "top_expiry": top.expiry.isoformat() if top.expiry else None,
+        "top_option_type": top_option_type,
+        "top_ask_side_ratio": str(top_ratio),
+        "top_dte": top_dte,
+    }
+    direction = _direction(top_option_type)
+    if direction is not None:
+        evidence["direction"] = direction
 
     return SignalHit(
         ticker=ticker.upper(),
         signal_type="deep_conviction_flow",
         tier=1,
         score=score,
-        evidence={
-            "qualifying_alerts": len(qualifying),
-            "total_premium": str(total_premium),
-            "top_strike": str(top.strike) if top.strike else None,
-            "top_expiry": top.expiry.isoformat() if top.expiry else None,
-            "top_ask_side_ratio": str(top_ratio),
-            "top_dte": top_dte,
-        },
+        evidence=evidence,
         freshness="live",
     )

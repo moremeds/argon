@@ -1,16 +1,25 @@
-"""GET /api/scanner - read-only assembler over warm store."""
+"""GET /api/scanner - read-only assembler over warm store.
+
+GET /api/scanner/discover - live read-through of the market-wide flow-alerts
+feed. One UW request per call. No persistence beyond the standard audit row.
+"""
 
 from __future__ import annotations
 
 import logging
 from datetime import datetime, timezone
 from decimal import Decimal
-from typing import Any, Literal
+from typing import Any
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 
-from uw_scan.api.deps import get_repo, get_settings
+from uw_scan.api.client import UwClient
+from uw_scan.api.deps import get_repo, get_settings, get_uw_client
 from uw_scan.api.models.scanner import (
+    DiscoveryCandidate as RespDiscoveryCandidate,
+)
+from uw_scan.api.models.scanner import (
+    DiscoveryResponse,
     ScannerCandidate,
     ScannerContextFlag,
     ScannerGatedTicker,
@@ -19,12 +28,18 @@ from uw_scan.api.models.scanner import (
     ScannerSignalHit,
 )
 from uw_scan.config import Settings
+from uw_scan.scanner.discovery import discover_from_alerts
 from uw_scan.scanner.models import (
     ContextFlag as DCContextFlag,
+)
+from uw_scan.scanner.models import (
     ScanCandidate as DCScanCandidate,
+)
+from uw_scan.scanner.models import (
     SignalHit as DCSignalHit,
 )
 from uw_scan.scanner.ranking import build_candidate, rank_candidates
+from uw_scan.sources.uw import fetch_market_flow_alerts
 from uw_scan.storage.repository import Repository
 from uw_scan.storage.signals_repository import SignalsRepository
 
@@ -134,13 +149,8 @@ def get_scanner(
         scanned_universe_size = int(cur.fetchone()[0])
 
     candidates: list[DCScanCandidate] = []
+    # Kept for response compatibility; regime no longer suppresses scanner rows.
     gated: list[ScannerGatedTicker] = []
-
-    try:
-        posture_row = repo.fetch_gold_posture_latest()
-    except Exception:  # noqa: BLE001
-        posture_row = None
-    current_chip = posture_row.get("structural_posture_chip") if posture_row else None
 
     for row in latest:
         ticker = row["ticker"]
@@ -148,24 +158,16 @@ def get_scanner(
         if run_id is None:
             continue
 
-        gate = sigs.fetch_gate_for_run(run_id, ticker) or {
-            "earnings": "pass",
-            "liquidity": "pass",
-            "regime": "pass",
-        }
-        if gate["regime"] == "block":
-            chip: Literal["SUSPENDED", "DEGRADED"] | None = None
-            if current_chip in ("SUSPENDED", "DEGRADED"):
-                chip = current_chip  # type: ignore[assignment]
-            gated.append(
-                ScannerGatedTicker(
-                    ticker=ticker,
-                    reason="regime_block",
-                    blocking_chip=chip,
-                    scanned_at=row.get("scanned_at"),
-                )
-            )
-            continue
+        gate = dict(
+            sigs.fetch_gate_for_run(run_id, ticker)
+            or {
+                "earnings": "pass",
+                "liquidity": "pass",
+                "regime": "pass",
+            }
+        )
+        # Force pass even if a stale regime=block row was persisted by old code.
+        gate["regime"] = "pass"
 
         hit_rows = sigs.fetch_hits_for_run(run_id, ticker)
         flag_rows = sigs.fetch_context_flags_for_run(run_id, ticker)
@@ -213,6 +215,10 @@ def get_scanner(
                 liquidity=c.gates["liquidity"],  # type: ignore[arg-type]
                 regime=c.gates["regime"],  # type: ignore[arg-type]
             ),
+            bias=c.bias,
+            bias_strength=c.bias_strength,
+            setup=c.setup,
+            setup_reason=c.setup_reason,
             scanned_at=scanned_at_map.get(c.ticker) or _now_utc(),
         )
         for c in ranked
@@ -224,4 +230,80 @@ def get_scanner(
         candidates=response_candidates,
         gated=gated,
         generated_at=_now_utc(),
+    )
+
+
+_DISCOVER_SENTINEL_TICKER = "_DISCOVER"
+
+
+@router.get("/discover", response_model=DiscoveryResponse)
+def get_scanner_discover(
+    limit: int = Query(20, ge=1, le=50),
+    alerts_limit: int = Query(200, ge=50, le=500),
+    repo: Repository = Depends(get_repo),
+    client: UwClient = Depends(get_uw_client),
+    settings: Settings = Depends(get_settings),
+) -> DiscoveryResponse:
+    """Pull market-wide flow alerts, run DCF per ticker, exclude watchlist, top-N."""
+    today = datetime.now(timezone.utc).date()
+    # Sentinel ticker for the scan_runs row — discover is market-wide, not per-ticker,
+    # but the audit-first rule (sources/CLAUDE.md) requires a run_id.
+    run_id = repo.insert_scan_run(_DISCOVER_SENTINEL_TICKER, notes="scanner_discover")
+    try:
+        try:
+            alerts = fetch_market_flow_alerts(client, repo, run_id, limit=alerts_limit)
+        except Exception as exc:
+            logger.exception("scanner_discover fetch failed: %r", exc)
+            repo.finish_scan_run(run_id, status="fail")
+            repo.conn.commit()
+            raise HTTPException(
+                status_code=502, detail=f"market-wide flow-alerts fetch failed: {exc}"
+            ) from exc
+
+        watchlist_tickers = {r.ticker for r in repo.list_active_watchlist()}
+        # Discovery uses LOOSER premium + ask thresholds than the watchlist
+        # DCF — see config.py comment on scanner_discover_*. Moneyness/DTE/
+        # earnings stay the same: those filter for valid options, not conviction.
+        candidates = discover_from_alerts(
+            alerts=alerts,
+            today=today,
+            watchlist_tickers=watchlist_tickers,
+            min_premium_usd=settings.scanner_discover_min_premium_usd,
+            min_ask_side=settings.scanner_discover_min_ask_side,
+            max_moneyness=settings.scanner_dcf_max_moneyness,
+            min_dte=settings.scanner_dcf_min_dte,
+            earnings_window_days=settings.scanner_earnings_window_days,
+            limit=limit,
+        )
+
+        repo.finish_scan_run(run_id, status="ok")
+        repo.conn.commit()
+    except HTTPException:
+        raise
+    except Exception:
+        repo.finish_scan_run(run_id, status="fail")
+        repo.conn.commit()
+        raise
+
+    return DiscoveryResponse(
+        candidates=[
+            RespDiscoveryCandidate(
+                ticker=c.ticker,
+                hit=ScannerSignalHit(
+                    signal_type=c.hit.signal_type,  # type: ignore[arg-type]
+                    tier=c.hit.tier,
+                    score=c.hit.score,
+                    evidence=c.hit.evidence,
+                    freshness=c.hit.freshness,
+                ),
+                bias=c.bias,
+                bias_strength=c.bias_strength,
+                alert_count=c.alert_count,
+                sector=c.sector,
+                latest_alert_at=c.latest_alert_at,
+            )
+            for c in candidates
+        ],
+        fetched_at=_now_utc(),
+        alerts_pulled=len(alerts),
     )

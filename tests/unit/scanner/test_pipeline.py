@@ -30,7 +30,6 @@ class FakeRepo:
         self._iv_rank = kwargs.get("iv_rank")
         self._strike_gex_curve = kwargs.get("strike_gex_curve", [])
         self._spot = kwargs.get("spot")
-        self._posture = kwargs.get("posture")
         self._total_volume = kwargs.get("total_volume", 5000)
 
     def fetch_flow_events_for_run(self, run_id, ticker):
@@ -46,7 +45,7 @@ class FakeRepo:
         return self._spot
 
     def fetch_gold_posture_latest(self):
-        return self._posture
+        raise AssertionError("scanner pipeline must not read GOLD posture")
 
     def fetch_total_option_volume_for_run(self, run_id, ticker):
         return self._total_volume
@@ -92,9 +91,8 @@ def _qualifying_dcf_alert() -> FlowAlert:
     )
 
 
-def test_regime_block_writes_gate_and_returns_none():
+def test_suspended_gold_posture_does_not_block_scanner_candidate():
     repo = FakeRepo(
-        posture={"structural_posture_chip": "SUSPENDED"},
         flow_alerts=[_qualifying_dcf_alert()],
     )
     sigs = FakeSignalsRepo()
@@ -106,17 +104,14 @@ def test_regime_block_writes_gate_and_returns_none():
         ticker="AAPL",
         today=TODAY,
     )
-    assert out is None
+    assert out is not None
     assert len(sigs.gates) == 1
-    assert sigs.gates[0]["regime"] == "block"
-    # No hits emitted when regime blocks.
-    assert sigs.hits == []
-    assert sigs.flags == []
+    assert sigs.gates[0]["regime"] == "pass"
+    assert any(h["signal_type"] == "deep_conviction_flow" for h in sigs.hits)
 
 
 def test_dcf_only_run_emits_hit_and_gate():
     repo = FakeRepo(
-        posture={"structural_posture_chip": "NEUTRAL"},
         flow_alerts=[_qualifying_dcf_alert()],
         iv_rank=Decimal("40"),
         spot=Decimal("100"),
@@ -142,7 +137,6 @@ def test_dp_only_run_emits_no_candidate_but_writes_hit_and_gate():
     # DP fires but DCF does not -> no candidate returned, but the DP hit
     # is still persisted (the read query is responsible for filtering).
     repo = FakeRepo(
-        posture={"structural_posture_chip": "NEUTRAL"},
         flow_alerts=[],
     )
     sigs = FakeSignalsRepo()
@@ -168,14 +162,9 @@ def test_dp_only_run_emits_no_candidate_but_writes_hit_and_gate():
     assert len(sigs.gates) == 1
 
 
-def test_failing_gold_posture_fetch_does_not_crash_orchestrator(monkeypatch):
-    class BrokenRepo(FakeRepo):
-        def fetch_gold_posture_latest(self):
-            raise RuntimeError("DB hiccup")
-
-    repo = BrokenRepo(flow_alerts=[_qualifying_dcf_alert()], spot=Decimal("100"))
+def test_gold_posture_fetch_is_not_called():
+    repo = FakeRepo(flow_alerts=[_qualifying_dcf_alert()], spot=Decimal("100"))
     sigs = FakeSignalsRepo()
-    # Fail-open: orchestrator must catch and treat as NEUTRAL.
     out = run_detectors(
         repo=repo,
         signals_repo=sigs,

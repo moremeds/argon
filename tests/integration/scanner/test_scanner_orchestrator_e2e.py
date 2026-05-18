@@ -1,14 +1,12 @@
-"""End-to-end orchestrator: insert synthetic flow_events + a posture
-row into the test DB, call scanner.run_detectors directly against the
-real Repository, verify all three target tables are populated."""
+"""End-to-end orchestrator: insert synthetic flow_events into the test DB,
+call scanner.run_detectors directly against the real Repository, verify all
+three target tables are populated."""
 
 from __future__ import annotations
 
 import os
 from datetime import date, timedelta
 from decimal import Decimal
-
-from psycopg.types.json import Jsonb
 
 from uw_scan.config import Settings
 from uw_scan.scanner.pipeline import run_detectors
@@ -58,21 +56,9 @@ def _insert_qualifying_dcf_alert(conn, run_id: int, ticker: str) -> None:
         )
 
 
-def _insert_posture(conn, chip: str) -> None:
-    """Minimal gold_posture_daily row so fetch_gold_posture_latest() works."""
-    sql = """
-        INSERT INTO uw_scan.gold_posture_daily
-          (obs_date, computed_at, gauge_state, structural_posture_chip, inputs_jsonb)
-        VALUES (%s, NOW(), %s, %s, %s)
-    """
-    with conn.cursor() as cur:
-        cur.execute(sql, (TODAY, "test", chip, Jsonb({})))
-
-
 def test_e2e_dcf_only_writes_hit_and_gate(seeded_db_empty_cards):
     repo: Repository = seeded_db_empty_cards
     sigs = SignalsRepository(repo.conn, schema="uw_scan")
-    _insert_posture(repo.conn, "NEUTRAL")
     run_id = repo.insert_scan_run("AAPL")
     _insert_qualifying_dcf_alert(repo.conn, run_id, "AAPL")
     repo.conn.commit()
@@ -95,10 +81,11 @@ def test_e2e_dcf_only_writes_hit_and_gate(seeded_db_empty_cards):
     assert gate == {"earnings": "pass", "liquidity": "pass", "regime": "pass"}
 
 
-def test_e2e_suspended_posture_blocks_with_gate_recorded(seeded_db_empty_cards):
+def test_e2e_detector_does_not_require_gold_posture(
+    seeded_db_empty_cards,
+):
     repo: Repository = seeded_db_empty_cards
     sigs = SignalsRepository(repo.conn, schema="uw_scan")
-    _insert_posture(repo.conn, "SUSPENDED")
     run_id = repo.insert_scan_run("AAPL")
     _insert_qualifying_dcf_alert(repo.conn, run_id, "AAPL")
     repo.conn.commit()
@@ -113,8 +100,8 @@ def test_e2e_suspended_posture_blocks_with_gate_recorded(seeded_db_empty_cards):
     )
     repo.conn.commit()
 
-    assert cand is None
+    assert cand is not None
     gate = sigs.fetch_gate_for_run(run_id, "AAPL")
-    assert gate is not None and gate["regime"] == "block"
+    assert gate is not None and gate["regime"] == "pass"
     hits = sigs.fetch_hits_for_run(run_id, "AAPL")
-    assert hits == []
+    assert any(h["signal_type"] == "deep_conviction_flow" for h in hits)

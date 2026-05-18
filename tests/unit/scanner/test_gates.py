@@ -1,14 +1,10 @@
-"""Gate logic — earnings (advisory), liquidity (advisory), regime (hard)."""
+"""Gate logic — earnings/liquidity advisory, regime never hard-blocks."""
 
 from __future__ import annotations
 
 from datetime import date, timedelta
 
-from uw_scan.scanner.gates import (
-    earnings_gate,
-    liquidity_gate,
-    regime_gate,
-)
+from uw_scan.scanner.gates import earnings_gate, liquidity_gate
 
 
 TODAY = date(2026, 5, 17)
@@ -51,56 +47,3 @@ def test_liquidity_gate_blocks_below_threshold():
 
 def test_liquidity_gate_blocks_on_none():
     assert liquidity_gate(option_volume=None, min_volume=1000) == "block"
-
-
-def test_regime_gate_passes_on_favorable():
-    assert (
-        regime_gate(
-            structural_posture_chip="FAVORABLE",
-            block_chips=("SUSPENDED", "DEGRADED"),
-        )
-        == "pass"
-    )
-
-
-def test_regime_gate_blocks_on_suspended():
-    assert (
-        regime_gate(
-            structural_posture_chip="SUSPENDED",
-            block_chips=("SUSPENDED", "DEGRADED"),
-        )
-        == "block"
-    )
-
-
-def test_regime_gate_blocks_on_degraded():
-    assert (
-        regime_gate(
-            structural_posture_chip="DEGRADED",
-            block_chips=("SUSPENDED", "DEGRADED"),
-        )
-        == "block"
-    )
-
-
-def test_regime_gate_fails_open_on_missing_posture():
-    # Per spec §4: missing posture → treat as NEUTRAL (pass). The
-    # scanner must not freeze just because GOLD hasn't run yet.
-    assert (
-        regime_gate(
-            structural_posture_chip=None,
-            block_chips=("SUSPENDED", "DEGRADED"),
-        )
-        == "pass"
-    )
-
-
-def test_regime_gate_respects_custom_block_chips():
-    # Allow operator to widen blocking via env override.
-    assert (
-        regime_gate(
-            structural_posture_chip="STRETCHED",
-            block_chips=("STRETCHED", "SUSPENDED", "DEGRADED"),
-        )
-        == "block"
-    )

@@ -41,3 +41,24 @@ class ScanCandidate:
     final_score: Decimal
     is_type_f: bool
     gates: dict[str, str] = field(default_factory=dict)
+    bias: Literal["bullish", "bearish", "neutral", "mixed"] = "neutral"
+    bias_strength: Literal["strong", "moderate", "weak"] | None = None
+    setup: Literal["ready", "caution", "blocked"] = "ready"
+    setup_reason: str | None = None
+
+
+@dataclass(frozen=True)
+class DiscoveryCandidate:
+    """Non-watchlist ticker surfaced by the market-wide flow-alerts feed.
+
+    Carries only the DCF hit — Dark Pool, EIC, GEX need per-ticker context
+    (history, IV rank, GEX curve) we don't have without a deep scan.
+    """
+
+    ticker: str
+    hit: SignalHit
+    bias: Literal["bullish", "bearish", "neutral", "mixed"]
+    bias_strength: Literal["strong", "moderate", "weak"] | None
+    alert_count: int
+    sector: str | None
+    latest_alert_at: Any

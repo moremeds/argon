@@ -94,22 +94,25 @@ class Settings(BaseModel):
     cockpit_target_dtes: list[int] = [0, 14, 30, 90]
     cockpit_oi_band_pct: Decimal = Decimal("0.10")
     cockpit_oi_max_dte: int = 7
-    # Scanner (spec §10). Hits older than this fall to GATED reason=stale_scan;
-    # default matches bucketFreshness "stale" threshold (180min) in
-    # web/lib/freshness.ts so API window and UI label agree.
-    scanner_freshness_hours: int = 3
+    # Scanner (spec §10). Keep a wider weekend/overnight window so the page
+    # does not go blank when no fresh scans have run in the last market session.
+    scanner_freshness_hours: int = 72
     scanner_dp_lookback_days: int = 5
     scanner_dcf_min_premium_usd: Decimal = Decimal("500000")
     scanner_dcf_min_ask_side: Decimal = Decimal("0.80")
     scanner_dcf_max_moneyness: Decimal = Decimal("0.12")
     scanner_dcf_min_dte: int = 6
+    # Discovery uses a looser bar than the watchlist DCF — it answers "worth a
+    # look?" rather than "high-conviction trade." Moneyness/DTE/earnings stay
+    # the same (those are about valid options, not conviction).
+    scanner_discover_min_premium_usd: Decimal = Decimal("100000")
+    scanner_discover_min_ask_side: Decimal = Decimal("0.65")
     scanner_dp_min_print_premium_usd: Decimal = Decimal("1000000")
     scanner_dp_min_cluster_size: int = 3
     scanner_dp_price_spread_pct: Decimal = Decimal("0.5")
     scanner_eic_min_iv_rank: Decimal = Decimal("75.0")
     scanner_gex_pin_min_gamma: Decimal = Decimal("1.0")
     scanner_liquidity_min_option_volume: int = 1000
-    scanner_regime_block_chips: list[str] = ["SUSPENDED", "DEGRADED"]
     scanner_earnings_window_days: int = 14
 
     @classmethod
@@ -186,12 +189,10 @@ class Settings(BaseModel):
             cockpit_target_dtes=_parse_int_csv_env(
                 "COCKPIT_TARGET_DTES", default=[0, 14, 30, 90]
             ),
-            cockpit_oi_band_pct=Decimal(
-                os.environ.get("COCKPIT_OI_BAND_PCT", "0.10")
-            ),
+            cockpit_oi_band_pct=Decimal(os.environ.get("COCKPIT_OI_BAND_PCT", "0.10")),
             cockpit_oi_max_dte=int(os.environ.get("COCKPIT_OI_MAX_DTE", "7")),
             scanner_freshness_hours=int(
-                os.environ.get("SCANNER_FRESHNESS_HOURS", "3")
+                os.environ.get("SCANNER_FRESHNESS_HOURS", "72")
             ),
             scanner_dp_lookback_days=int(
                 os.environ.get("SCANNER_DP_LOOKBACK_DAYS", "5")
@@ -206,6 +207,12 @@ class Settings(BaseModel):
                 os.environ.get("SCANNER_DCF_MAX_MONEYNESS", "0.12")
             ),
             scanner_dcf_min_dte=int(os.environ.get("SCANNER_DCF_MIN_DTE", "6")),
+            scanner_discover_min_premium_usd=Decimal(
+                os.environ.get("SCANNER_DISCOVER_MIN_PREMIUM_USD", "100000")
+            ),
+            scanner_discover_min_ask_side=Decimal(
+                os.environ.get("SCANNER_DISCOVER_MIN_ASK_SIDE", "0.65")
+            ),
             scanner_dp_min_print_premium_usd=Decimal(
                 os.environ.get("SCANNER_DP_MIN_PRINT_PREMIUM_USD", "1000000")
             ),
@@ -223,9 +230,6 @@ class Settings(BaseModel):
             ),
             scanner_liquidity_min_option_volume=int(
                 os.environ.get("SCANNER_LIQUIDITY_MIN_OPTION_VOLUME", "1000")
-            ),
-            scanner_regime_block_chips=_parse_csv_env(
-                "SCANNER_REGIME_BLOCK_CHIPS", default=["SUSPENDED", "DEGRADED"]
             ),
             scanner_earnings_window_days=int(
                 os.environ.get("SCANNER_EARNINGS_WINDOW_DAYS", "14")

@@ -86,3 +86,35 @@ def test_type_f_only_filter_excludes_single_signal_candidate(
     assert r.status_code == 200
     candidates = r.json()["candidates"]
     assert all(c["ticker"] != "TSLA" for c in candidates)
+
+
+def test_regime_block_gate_row_is_ignored_by_scanner_endpoint(
+    client, seeded_db_with_cards
+):
+    repo: Repository = seeded_db_with_cards
+    sigs = SignalsRepository(repo.conn, schema="uw_scan")
+    run_id = repo.latest_run_id("TSLA")
+    sigs.upsert_signal_hit(
+        run_id=run_id,
+        ticker="TSLA",
+        signal_type="deep_conviction_flow",
+        tier=1,
+        score=Decimal("0.85"),
+        evidence={},
+        freshness="live",
+    )
+    sigs.upsert_gate(
+        run_id=run_id,
+        ticker="TSLA",
+        earnings="pass",
+        liquidity="pass",
+        regime="block",
+    )
+    repo.conn.commit()
+
+    r = client.get("/api/scanner")
+    assert r.status_code == 200
+    body = r.json()
+    assert body["gated"] == []
+    tsla = next(c for c in body["candidates"] if c["ticker"] == "TSLA")
+    assert tsla["gates"]["regime"] == "pass"

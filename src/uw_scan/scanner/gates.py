@@ -1,16 +1,12 @@
-"""Gates - pre-detection filters.
+"""Gates - pre-detection advisory filters.
 
-Only regime_gate is a hard block. earnings_gate and liquidity_gate are
-ADVISORY: their pass/block status is recorded per (run, ticker) and
-returned to the UI as a colored indicator, but they do NOT suppress
-the candidate. Reason: earnings_iv_crush REQUIRES earnings within 14d
-to fire - a hard earnings block would prevent EIC from ever emitting.
-(Spec §4.)
+Earnings and liquidity pass/block status is recorded per (run, ticker)
+and returned to the UI as a colored indicator, but they do NOT suppress
+the candidate. GOLD regime no longer hard-blocks scanner output.
 """
 
 from __future__ import annotations
 
-from collections.abc import Sequence
 from datetime import date
 from typing import Literal
 
@@ -43,18 +39,3 @@ def liquidity_gate(
     if option_volume is None:
         return "block"
     return "pass" if option_volume >= min_volume else "block"
-
-
-def regime_gate(
-    *,
-    structural_posture_chip: str | None,
-    block_chips: Sequence[str] = ("SUSPENDED", "DEGRADED"),
-) -> GateStatus:
-    """Hard. Block when GOLD COMPASS structural posture is in block_chips.
-
-    Fail-OPEN on missing posture - the scanner must not freeze just
-    because GOLD hasn't run yet today. (Spec §4 fail-open rule.)
-    """
-    if structural_posture_chip is None:
-        return "pass"
-    return "block" if structural_posture_chip in block_chips else "pass"

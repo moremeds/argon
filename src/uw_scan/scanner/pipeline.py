@@ -17,7 +17,7 @@ from typing import Any
 from uw_scan.config import Settings
 from uw_scan.models import FlowAlert
 from uw_scan.scanner.context import pcr_sentiment
-from uw_scan.scanner.gates import earnings_gate, liquidity_gate, regime_gate
+from uw_scan.scanner.gates import earnings_gate, liquidity_gate
 from uw_scan.scanner.models import ContextFlag, ScanCandidate, SignalHit
 from uw_scan.scanner.ranking import build_candidate
 from uw_scan.scanner.signals import (
@@ -30,20 +30,6 @@ from uw_scan.storage.repository import Repository
 from uw_scan.storage.signals_repository import SignalsRepository
 
 logger = logging.getLogger(__name__)
-
-
-def _fetch_structural_posture(repo: Repository | Any) -> str | None:
-    """Fail-open helper: returns None when posture lookup fails."""
-    try:
-        row = repo.fetch_gold_posture_latest()
-    except Exception as exc:  # noqa: BLE001
-        logger.warning(
-            "scanner: gold posture fetch failed (%s); regime fails open", repr(exc)
-        )
-        return None
-    if row is None:
-        return None
-    return row.get("structural_posture_chip")
 
 
 def _fetch_flow_alerts_for_run(
@@ -129,12 +115,8 @@ def run_detectors(
 ) -> ScanCandidate | None:
     """Run all detectors for one ticker, persist results, return candidate."""
     ticker = ticker.upper()
-
-    structural = _fetch_structural_posture(repo)
-    regime = regime_gate(
-        structural_posture_chip=structural,
-        block_chips=tuple(settings.scanner_regime_block_chips),
-    )
+    # GOLD posture is market-wide context, not a hard scanner veto.
+    regime = "pass"
 
     alerts = _fetch_flow_alerts_for_run(repo, run_id, ticker)
     next_earn = _next_earnings_for_run(alerts)
@@ -158,9 +140,6 @@ def run_detectors(
         regime=regime,
     )
 
-    if regime == "block":
-        return None
-
     hits: list[SignalHit] = []
 
     dcf = deep_conviction_flow.detect(
@@ -176,6 +155,8 @@ def run_detectors(
     if dcf is not None:
         hits.append(dcf)
 
+    spot = _fetch_spot_for_ticker(repo, ticker)
+
     dp_window = signals_repo.fetch_dark_pool_window(
         ticker, lookback_days=settings.scanner_dp_lookback_days
     )
@@ -185,6 +166,7 @@ def run_detectors(
         min_print_premium=settings.scanner_dp_min_print_premium_usd,
         min_cluster_size=settings.scanner_dp_min_cluster_size,
         price_spread_pct=settings.scanner_dp_price_spread_pct,
+        spot=spot,
     )
     if dp is not None:
         hits.append(dp)
@@ -201,7 +183,6 @@ def run_detectors(
     if eic is not None:
         hits.append(eic)
 
-    spot = _fetch_spot_for_ticker(repo, ticker)
     curve = _fetch_strike_gex_curve(repo, run_id)
     gex = gex_pinning.detect(
         ticker=ticker,
