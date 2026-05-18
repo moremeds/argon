@@ -8,6 +8,7 @@ one TSLA run.
 from __future__ import annotations
 
 import os
+import subprocess
 from pathlib import Path
 
 import psycopg
@@ -19,19 +20,37 @@ from uw_scan.pipeline import run_single_stock
 from uw_scan.storage.repository import Repository
 
 LIVE_MARK = pytest.mark.live
-MIGRATION_PATH = (
-    Path(__file__).resolve().parents[2]
-    / "src"
-    / "uw_scan"
-    / "storage"
-    / "migrations"
-    / "001_s1_core_tables.sql"
-)
+REPO_ROOT = Path(__file__).resolve().parents[2]
 
 
 def _has_live_key() -> bool:
     settings_env = os.environ.get("UW_SCAN_API_KEY", "")
     return bool(settings_env.strip())
+
+
+def _test_settings() -> Settings:
+    test_db = os.environ.get("UW_SCAN_TEST_DB_NAME")
+    if not test_db:
+        pytest.fail(
+            "UW_SCAN_TEST_DB_NAME not set; refusing to run live pipeline e2e "
+            "against the working DB.",
+            pytrace=False,
+        )
+    return Settings.from_env().model_copy(update={"db_name": test_db})
+
+
+def _reset_and_migrate(settings: Settings) -> None:
+    with psycopg.connect(settings.db_dsn(), autocommit=True) as conn:
+        with conn.cursor() as cur:
+            cur.execute("DROP SCHEMA IF EXISTS uw_scan CASCADE")
+            cur.execute("CREATE SCHEMA uw_scan")
+    env = {**os.environ, "UW_SCAN_DB_NAME": settings.db_name}
+    subprocess.run(
+        ["bash", str(REPO_ROOT / "scripts/migrate.sh")],
+        check=True,
+        cwd=REPO_ROOT,
+        env=env,
+    )
 
 
 pytestmark = pytest.mark.skipif(
@@ -46,24 +65,11 @@ def test_pipeline_e2e_tsla_exit_gate(tmp_path_factory):
     Uses the local `option_wizard` DB but a fresh schema (`uw_scan_e2e`) so this
     test does not collide with developer state.
     """
-    settings = Settings.from_env()
-
-    # Use an isolated schema so this test never interferes with hand-driven dev state.
-    schema = "uw_scan_e2e"
+    settings = _test_settings()
+    _reset_and_migrate(settings)
+    schema = "uw_scan"
     conn = psycopg.connect(settings.db_dsn())
     try:
-        with conn.cursor() as cur:
-            cur.execute(f"DROP SCHEMA IF EXISTS {schema} CASCADE")
-            cur.execute(f"CREATE SCHEMA {schema}")
-            # Re-target migration to the test schema by substituting the literal.
-            migration = MIGRATION_PATH.read_text().replace("uw_scan.", f"{schema}.")
-            migration = migration.replace(
-                f"CREATE SCHEMA IF NOT EXISTS {schema}",
-                f"-- schema {schema} created above",
-            )
-            cur.execute(migration)
-        conn.commit()
-
         repo = Repository(conn, schema=schema)
         with UwClient(
             api_key=settings.api_key.get_secret_value(),

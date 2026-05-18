@@ -1647,6 +1647,117 @@
         "title": "CtaBlock",
         "type": "object"
       },
+      "DiscoveryCandidate": {
+        "description": "Non-watchlist ticker surfaced by the market-wide flow-alerts feed.\n\nDCF-only \u2014 the deeper signals (DP, EIC, GEX) need per-ticker context that\nrequires a deep scan. Promote to the watchlist to get those.",
+        "properties": {
+          "alert_count": {
+            "title": "Alert Count",
+            "type": "integer"
+          },
+          "bias": {
+            "enum": [
+              "bullish",
+              "bearish",
+              "neutral",
+              "mixed"
+            ],
+            "title": "Bias",
+            "type": "string"
+          },
+          "bias_strength": {
+            "anyOf": [
+              {
+                "enum": [
+                  "strong",
+                  "moderate",
+                  "weak"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Bias Strength"
+          },
+          "hit": {
+            "$ref": "#/components/schemas/ScannerSignalHit"
+          },
+          "latest_alert_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Latest Alert At"
+          },
+          "sector": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sector"
+          },
+          "ticker": {
+            "title": "Ticker",
+            "type": "string"
+          }
+        },
+        "required": [
+          "ticker",
+          "hit",
+          "bias",
+          "alert_count"
+        ],
+        "title": "DiscoveryCandidate",
+        "type": "object"
+      },
+      "DiscoveryResponse": {
+        "properties": {
+          "alerts_pulled": {
+            "title": "Alerts Pulled",
+            "type": "integer"
+          },
+          "candidates": {
+            "items": {
+              "$ref": "#/components/schemas/DiscoveryCandidate"
+            },
+            "title": "Candidates",
+            "type": "array"
+          },
+          "earnings_unknown_dropped": {
+            "default": 0,
+            "title": "Earnings Unknown Dropped",
+            "type": "integer"
+          },
+          "fetched_at": {
+            "format": "date-time",
+            "title": "Fetched At",
+            "type": "string"
+          },
+          "source": {
+            "const": "market_wide_flow_alerts",
+            "default": "market_wide_flow_alerts",
+            "title": "Source",
+            "type": "string"
+          }
+        },
+        "required": [
+          "candidates",
+          "fetched_at",
+          "alerts_pulled"
+        ],
+        "title": "DiscoveryResponse",
+        "type": "object"
+      },
       "DivergencePoint": {
         "properties": {
           "date": {
@@ -7222,6 +7333,336 @@
         "title": "RvCorrPoint",
         "type": "object"
       },
+      "ScannerCandidate": {
+        "properties": {
+          "bias": {
+            "enum": [
+              "bullish",
+              "bearish",
+              "neutral",
+              "mixed"
+            ],
+            "title": "Bias",
+            "type": "string"
+          },
+          "bias_strength": {
+            "anyOf": [
+              {
+                "enum": [
+                  "strong",
+                  "moderate",
+                  "weak"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Bias Strength"
+          },
+          "confluence_score": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Confluence Score",
+            "type": "string"
+          },
+          "context_flags": {
+            "items": {
+              "$ref": "#/components/schemas/ScannerContextFlag"
+            },
+            "title": "Context Flags",
+            "type": "array"
+          },
+          "final_score": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Final Score",
+            "type": "string"
+          },
+          "gates": {
+            "$ref": "#/components/schemas/ScannerGatesStatus"
+          },
+          "hits": {
+            "items": {
+              "$ref": "#/components/schemas/ScannerSignalHit"
+            },
+            "title": "Hits",
+            "type": "array"
+          },
+          "is_type_f": {
+            "title": "Is Type F",
+            "type": "boolean"
+          },
+          "raw_score": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Raw Score",
+            "type": "string"
+          },
+          "scanned_at": {
+            "format": "date-time",
+            "title": "Scanned At",
+            "type": "string"
+          },
+          "setup": {
+            "enum": [
+              "ready",
+              "caution",
+              "blocked"
+            ],
+            "title": "Setup",
+            "type": "string"
+          },
+          "setup_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Setup Reason"
+          },
+          "spot": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Spot"
+          },
+          "ticker": {
+            "title": "Ticker",
+            "type": "string"
+          }
+        },
+        "required": [
+          "ticker",
+          "spot",
+          "is_type_f",
+          "raw_score",
+          "confluence_score",
+          "final_score",
+          "hits",
+          "context_flags",
+          "gates",
+          "bias",
+          "setup",
+          "scanned_at"
+        ],
+        "title": "ScannerCandidate",
+        "type": "object"
+      },
+      "ScannerContextFlag": {
+        "properties": {
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "layer": {
+            "const": "pcr_sentiment",
+            "title": "Layer",
+            "type": "string"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value"
+          }
+        },
+        "required": [
+          "layer",
+          "label",
+          "value"
+        ],
+        "title": "ScannerContextFlag",
+        "type": "object"
+      },
+      "ScannerGatedTicker": {
+        "properties": {
+          "blocking_chip": {
+            "anyOf": [
+              {
+                "enum": [
+                  "SUSPENDED",
+                  "DEGRADED"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Blocking Chip"
+          },
+          "reason": {
+            "enum": [
+              "regime_block",
+              "stale_scan"
+            ],
+            "title": "Reason",
+            "type": "string"
+          },
+          "scanned_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Scanned At"
+          },
+          "ticker": {
+            "title": "Ticker",
+            "type": "string"
+          }
+        },
+        "required": [
+          "ticker",
+          "reason",
+          "scanned_at"
+        ],
+        "title": "ScannerGatedTicker",
+        "type": "object"
+      },
+      "ScannerGatesStatus": {
+        "properties": {
+          "earnings": {
+            "enum": [
+              "pass",
+              "block"
+            ],
+            "title": "Earnings",
+            "type": "string"
+          },
+          "liquidity": {
+            "enum": [
+              "pass",
+              "block"
+            ],
+            "title": "Liquidity",
+            "type": "string"
+          },
+          "regime": {
+            "enum": [
+              "pass",
+              "block"
+            ],
+            "title": "Regime",
+            "type": "string"
+          }
+        },
+        "required": [
+          "earnings",
+          "liquidity",
+          "regime"
+        ],
+        "title": "ScannerGatesStatus",
+        "type": "object"
+      },
+      "ScannerResponse": {
+        "properties": {
+          "candidates": {
+            "items": {
+              "$ref": "#/components/schemas/ScannerCandidate"
+            },
+            "title": "Candidates",
+            "type": "array"
+          },
+          "candidates_with_hits": {
+            "title": "Candidates With Hits",
+            "type": "integer"
+          },
+          "gated": {
+            "items": {
+              "$ref": "#/components/schemas/ScannerGatedTicker"
+            },
+            "title": "Gated",
+            "type": "array"
+          },
+          "generated_at": {
+            "format": "date-time",
+            "title": "Generated At",
+            "type": "string"
+          },
+          "scanned_universe_size": {
+            "title": "Scanned Universe Size",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "scanned_universe_size",
+          "candidates_with_hits",
+          "candidates",
+          "gated",
+          "generated_at"
+        ],
+        "title": "ScannerResponse",
+        "type": "object"
+      },
+      "ScannerSignalHit": {
+        "properties": {
+          "evidence": {
+            "additionalProperties": true,
+            "title": "Evidence",
+            "type": "object"
+          },
+          "freshness": {
+            "enum": [
+              "live",
+              "stale",
+              "unavailable"
+            ],
+            "title": "Freshness",
+            "type": "string"
+          },
+          "score": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Score",
+            "type": "string"
+          },
+          "signal_type": {
+            "enum": [
+              "deep_conviction_flow",
+              "dark_pool_accumulation",
+              "earnings_iv_crush",
+              "gex_pinning"
+            ],
+            "title": "Signal Type",
+            "type": "string"
+          },
+          "tier": {
+            "enum": [
+              1,
+              2
+            ],
+            "title": "Tier",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "signal_type",
+          "tier",
+          "score",
+          "evidence",
+          "freshness"
+        ],
+        "title": "ScannerSignalHit",
+        "type": "object"
+      },
       "SetupBlock": {
         "properties": {
           "direction": {
@@ -11949,6 +12390,151 @@
         "summary": "Get Vol Backdrop",
         "tags": [
           "regime"
+        ]
+      }
+    },
+    "/api/scanner": {
+      "get": {
+        "operationId": "get_scanner_api_scanner_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "tier_1_only",
+            "required": false,
+            "schema": {
+              "default": false,
+              "title": "Tier 1 Only",
+              "type": "boolean"
+            }
+          },
+          {
+            "in": "query",
+            "name": "type_f_only",
+            "required": false,
+            "schema": {
+              "default": false,
+              "title": "Type F Only",
+              "type": "boolean"
+            }
+          },
+          {
+            "in": "query",
+            "name": "sector",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Sector"
+            }
+          },
+          {
+            "in": "query",
+            "name": "freshness_hours",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Freshness Hours"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScannerResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Scanner",
+        "tags": [
+          "scanner",
+          "scanner"
+        ]
+      }
+    },
+    "/api/scanner/discover": {
+      "get": {
+        "description": "Pull market-wide flow alerts, run DCF per ticker, exclude watchlist, top-N.",
+        "operationId": "get_scanner_discover_api_scanner_discover_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 20,
+              "maximum": 50,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "alerts_limit",
+            "required": false,
+            "schema": {
+              "default": 200,
+              "maximum": 500,
+              "minimum": 50,
+              "title": "Alerts Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DiscoveryResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Scanner Discover",
+        "tags": [
+          "scanner",
+          "scanner"
         ]
       }
     },

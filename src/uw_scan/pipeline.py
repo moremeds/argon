@@ -9,6 +9,7 @@ import logging
 from datetime import date as _date
 from datetime import timedelta
 from decimal import Decimal
+from functools import lru_cache
 
 import psycopg
 
@@ -27,9 +28,11 @@ from .reports.trade_insights import (
     assemble_trade_insights,
 )
 from .scan_universe import S2_UNIVERSE
+from .scanner.pipeline import run_detectors as run_scanner_detectors
 from .sources import uw as uw_sources
 from .storage.provider_usage import ExternalApiRequestRecorder
 from .storage.repository import Repository
+from .storage.signals_repository import SignalsRepository
 
 logger = logging.getLogger(__name__)
 
@@ -38,6 +41,12 @@ FLOW_ALERT_LIMIT = 100
 # A1 from backend code review addendum: cache ETF AUM lookups to skip the
 # per-scan /etf_info UW round trip. AUM moves weekly at most.
 ETF_AUM_TTL = timedelta(days=7)
+
+
+@lru_cache(maxsize=1)
+def _cached_scanner_settings() -> Settings:
+    """Cache Settings for the worker process so scanner setup is paid once."""
+    return Settings.from_env()
 
 
 def _get_or_fetch_etf_aum(
@@ -338,6 +347,36 @@ def run_single_stock(
                 "trade_insights persistence failed for %s run_id=%s: %s",
                 report.ticker,
                 report.run_id,
+                repr(exc),
+            )
+
+        # Scanner detectors run after UW data is persisted so they read from
+        # the warm store. Scanner failures should be visible but never block
+        # the base scan from finishing.
+        try:
+            settings = _cached_scanner_settings()
+            signals_repo = SignalsRepository(repo.conn, schema=settings.db_schema)
+            candidate = run_scanner_detectors(
+                repo=repo,
+                signals_repo=signals_repo,
+                settings=settings,
+                run_id=run_id,
+                ticker=ticker,
+                today=_date.today(),
+            )
+            if candidate is not None:
+                logger.info(
+                    "scanner: %s run_id=%d emitted candidate (type_f=%s, final=%s)",
+                    ticker,
+                    run_id,
+                    candidate.is_type_f,
+                    candidate.final_score,
+                )
+        except Exception as exc:  # noqa: BLE001 — never block the scan on scanner work
+            logger.exception(
+                "scanner detectors failed for %s run_id=%s: %s",
+                ticker,
+                run_id,
                 repr(exc),
             )
 
