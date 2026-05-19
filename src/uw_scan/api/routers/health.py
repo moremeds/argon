@@ -238,6 +238,9 @@ def health(
         try:
             record_rows = repo.list_record_health(
                 since=now_utc - timedelta(hours=record_window_hours),
+                # Daily tables (cockpit snapshot, nightly vol rollup) refresh
+                # once per day, so they need a 26h window to count as fresh.
+                daily_since=now_utc - timedelta(hours=26),
                 expected_tickers=watchlist_size,
                 min_coverage=record_min_coverage,
                 tables=_parse_record_tables(record_tables),
