@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import os
 import subprocess
-from datetime import date, timedelta
+from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 from io import BytesIO
 from pathlib import Path
@@ -29,6 +29,12 @@ from uw_scan.worker.jobs.gold_jobs import (
 )
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
+
+
+class _FixedDatetime(datetime):
+    @classmethod
+    def now(cls, tz=None):
+        return cls(2026, 5, 19, 12, 0, tzinfo=tz or UTC)
 
 
 def _write_wgc_etf_workbook(path: Path) -> None:
@@ -142,7 +148,9 @@ def test_gold_fred_ingest_writes_macro_series_daily(fresh_db: Settings) -> None:
     with patch("uw_scan.worker.jobs.gold_jobs.FredProvider") as MockProvider:
         instance = MockProvider.return_value.__enter__.return_value
         instance.fetch_series.return_value = sample
-        gold_fred_ingest_job(dsn=fresh_db.db_dsn(), series_ids=["DFII10"])
+        with patch("uw_scan.worker.jobs.gold_jobs.datetime", _FixedDatetime):
+            gold_fred_ingest_job(dsn=fresh_db.db_dsn(), series_ids=["DFII10"])
+            gold_fred_ingest_job(dsn=fresh_db.db_dsn(), series_ids=["DFII10"])
 
     with psycopg.connect(fresh_db.db_dsn()) as conn:
         repo = Repository(conn, schema=fresh_db.db_schema)
@@ -155,7 +163,9 @@ def test_gold_gpr_ingest_writes_macro_series_daily(fresh_db: Settings) -> None:
     with patch("uw_scan.worker.jobs.gold_jobs.GprProvider") as MockProvider:
         instance = MockProvider.return_value.__enter__.return_value
         instance.fetch_daily.return_value = sample
-        gold_gpr_ingest_job(dsn=fresh_db.db_dsn())
+        with patch("uw_scan.worker.jobs.gold_jobs.datetime", _FixedDatetime):
+            gold_gpr_ingest_job(dsn=fresh_db.db_dsn())
+            gold_gpr_ingest_job(dsn=fresh_db.db_dsn())
 
     with psycopg.connect(fresh_db.db_dsn()) as conn:
         repo = Repository(conn, schema=fresh_db.db_schema)
@@ -183,7 +193,9 @@ def test_gold_etf_holdings_ingest_writes_all_four_funds(
         instance.fetch_iau.return_value = one("IAU")
         instance.fetch_gldm.return_value = one("GLDM")
         instance.fetch_phys.return_value = one("PHYS")
-        gold_etf_holdings_ingest_job(dsn=fresh_db.db_dsn())
+        with patch("uw_scan.worker.jobs.gold_jobs.datetime", _FixedDatetime):
+            gold_etf_holdings_ingest_job(dsn=fresh_db.db_dsn())
+            gold_etf_holdings_ingest_job(dsn=fresh_db.db_dsn())
 
     with psycopg.connect(fresh_db.db_dsn()) as conn:
         repo = Repository(conn, schema=fresh_db.db_schema)
@@ -221,10 +233,15 @@ def test_gold_etf_holdings_ingest_reads_wgc_monthly_workbook(
         instance.fetch_gldm.return_value = []
         instance.fetch_phys.return_value = []
 
-        gold_etf_holdings_ingest_job(
-            dsn=fresh_db.db_dsn(),
-            wgc_workbook_path=str(workbook_path),
-        )
+        with patch("uw_scan.worker.jobs.gold_jobs.datetime", _FixedDatetime):
+            gold_etf_holdings_ingest_job(
+                dsn=fresh_db.db_dsn(),
+                wgc_workbook_path=str(workbook_path),
+            )
+            gold_etf_holdings_ingest_job(
+                dsn=fresh_db.db_dsn(),
+                wgc_workbook_path=str(workbook_path),
+            )
 
     with psycopg.connect(fresh_db.db_dsn()) as conn:
         repo = Repository(conn, schema=fresh_db.db_schema)
@@ -269,15 +286,19 @@ def test_gold_etf_holdings_ingest_writes_uw_etf_flows(
         instance.fetch_gldm.return_value = []
         instance.fetch_phys.return_value = []
 
-        gold_etf_holdings_ingest_job(
-            dsn=fresh_db.db_dsn(), uw_api_key="test-key", lookback_days=45
-        )
+        with patch("uw_scan.worker.jobs.gold_jobs.datetime", _FixedDatetime):
+            gold_etf_holdings_ingest_job(
+                dsn=fresh_db.db_dsn(), uw_api_key="test-key", lookback_days=45
+            )
+            gold_etf_holdings_ingest_job(
+                dsn=fresh_db.db_dsn(), uw_api_key="test-key", lookback_days=45
+            )
 
     assert [call.kwargs["ticker"] for call in mock_fetch.call_args_list] == [
         "GLD",
         "IAU",
         "GLDM",
-    ]
+    ] * 2
     with psycopg.connect(fresh_db.db_dsn()) as conn:
         repo = Repository(conn, schema=fresh_db.db_schema)
         rows = repo.fetch_etf_flows_daily("GLD")

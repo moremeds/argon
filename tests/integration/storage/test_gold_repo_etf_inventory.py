@@ -62,6 +62,44 @@ def test_insert_and_fetch_etf_holdings_daily(repo: Repository) -> None:
     assert rows[0]["holdings_oz"] == Decimal("28047500.12")
 
 
+def test_insert_etf_holdings_daily_rows_is_empty_safe_and_idempotent(
+    repo: Repository,
+) -> None:
+    as_of = datetime(2026, 5, 19, 12, tzinfo=UTC)
+    rows = [
+        {
+            "ticker": "GLD",
+            "obs_date": date(2026, 5, 14),
+            "holdings_oz": Decimal("28047500.12"),
+            "shares_out": None,
+            "nav_per_share": Decimal("234.50"),
+            "premium_pct": None,
+        },
+        {
+            "ticker": "GLD",
+            "obs_date": date(2026, 5, 15),
+            "holdings_oz": Decimal("28048500.12"),
+            "shares_out": None,
+            "nav_per_share": Decimal("235.50"),
+            "premium_pct": None,
+        },
+    ]
+
+    assert repo.insert_etf_holdings_daily_rows([], as_of=as_of, source="SPDR") == 0
+    assert repo.insert_etf_holdings_daily_rows(rows, as_of=as_of, source="SPDR") == 2
+    assert repo.insert_etf_holdings_daily_rows(rows, as_of=as_of, source="SPDR") == 2
+
+    fetched = repo.fetch_etf_holdings_daily("GLD", from_date=date(2026, 5, 1))
+    assert [row["obs_date"] for row in fetched] == [
+        date(2026, 5, 14),
+        date(2026, 5, 15),
+    ]
+    assert [row["holdings_oz"] for row in fetched] == [
+        Decimal("28047500.12"),
+        Decimal("28048500.12"),
+    ]
+
+
 def test_insert_and_fetch_etf_flows_daily(repo: Repository) -> None:
     as_of = datetime.now(UTC)
     repo.insert_etf_flows_daily(
@@ -82,6 +120,44 @@ def test_insert_and_fetch_etf_flows_daily(repo: Repository) -> None:
     assert rows[0]["share_change"] == Decimal("-900000")
     assert rows[0]["premium_change_usd"] == Decimal("-375300000")
     assert rows[0]["source"] == "UW"
+
+
+def test_insert_etf_flows_daily_rows_is_empty_safe_and_idempotent(
+    repo: Repository,
+) -> None:
+    as_of = datetime(2026, 5, 19, 12, tzinfo=UTC)
+    rows = [
+        {
+            "ticker": "gld",
+            "obs_date": date(2026, 5, 15),
+            "share_change": Decimal("-900000"),
+            "premium_change_usd": Decimal("-375300000"),
+            "close": Decimal("417.29"),
+            "volume": Decimal("8801181"),
+        },
+        {
+            "ticker": "GLD",
+            "obs_date": date(2026, 5, 16),
+            "share_change": Decimal("100000"),
+            "premium_change_usd": Decimal("42100000"),
+            "close": Decimal("421.00"),
+            "volume": Decimal("7801181"),
+        },
+    ]
+
+    assert repo.insert_etf_flows_daily_rows([], as_of=as_of, source="UW") == 0
+    assert repo.insert_etf_flows_daily_rows(rows, as_of=as_of, source="UW") == 2
+    assert repo.insert_etf_flows_daily_rows(rows, as_of=as_of, source="UW") == 2
+
+    fetched = repo.fetch_etf_flows_daily("GLD", from_date=date(2026, 5, 1))
+    assert [row["obs_date"] for row in fetched] == [
+        date(2026, 5, 15),
+        date(2026, 5, 16),
+    ]
+    assert [row["share_change"] for row in fetched] == [
+        Decimal("-900000"),
+        Decimal("100000"),
+    ]
 
 
 def test_insert_and_fetch_wgc_etf_monthly(repo: Repository) -> None:

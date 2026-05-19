@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import os
 import subprocess
-from datetime import date
+from datetime import UTC, date, datetime
 from decimal import Decimal
 from pathlib import Path
 from unittest.mock import patch
@@ -24,6 +24,12 @@ from uw_scan.worker.jobs.gold_jobs import (
 )
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
+
+
+class _FixedDatetime(datetime):
+    @classmethod
+    def now(cls, tz=None):
+        return cls(2026, 5, 19, 12, 0, tzinfo=tz or UTC)
 
 
 def _test_settings() -> Settings:
@@ -124,10 +130,15 @@ def test_gold_wgc_cb_ingest_writes_authenticated_workbook_rows(
         MockProvider.return_value.__enter__.return_value.fetch_monthly.return_value = (
             sample
         )
-        gold_wgc_cb_ingest_job(
-            dsn=fresh_db.db_dsn(),
-            wgc_workbook_path="/tmp/Quarterly_gold_and_FX_Reserves_Q1_2026.xlsx",
-        )
+        with patch("uw_scan.worker.jobs.gold_jobs.datetime", _FixedDatetime):
+            gold_wgc_cb_ingest_job(
+                dsn=fresh_db.db_dsn(),
+                wgc_workbook_path="/tmp/Quarterly_gold_and_FX_Reserves_Q1_2026.xlsx",
+            )
+            gold_wgc_cb_ingest_job(
+                dsn=fresh_db.db_dsn(),
+                wgc_workbook_path="/tmp/Quarterly_gold_and_FX_Reserves_Q1_2026.xlsx",
+            )
 
     with psycopg.connect(fresh_db.db_dsn()) as conn:
         repo = Repository(conn, schema=fresh_db.db_schema)

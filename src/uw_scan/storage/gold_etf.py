@@ -27,8 +27,45 @@ class _GoldEtfMixin:
         as_of: datetime,
         source: str,
     ) -> None:
+        self.insert_etf_flows_daily_rows(
+            [
+                {
+                    "ticker": ticker,
+                    "obs_date": obs_date,
+                    "share_change": share_change,
+                    "premium_change_usd": premium_change_usd,
+                    "close": close,
+                    "volume": volume,
+                }
+            ],
+            as_of=as_of,
+            source=source,
+        )
+
+    def insert_etf_flows_daily_rows(
+        self,
+        rows: Iterable[dict[str, Any]],
+        *,
+        as_of: datetime,
+        source: str,
+    ) -> int:
+        values = [
+            (
+                row["ticker"].upper(),
+                row["obs_date"],
+                row.get("share_change"),
+                row.get("premium_change_usd"),
+                row.get("close"),
+                row.get("volume"),
+                as_of,
+                source,
+            )
+            for row in rows
+        ]
+        if not values:
+            return 0
         with self._conn.cursor() as cur:
-            cur.execute(
+            cur.executemany(
                 f"""
                 INSERT INTO {self._schema}.etf_flows_daily
                   (ticker, obs_date, share_change, premium_change_usd, close,
@@ -36,17 +73,9 @@ class _GoldEtfMixin:
                 VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
                 ON CONFLICT (ticker, obs_date, as_of) DO NOTHING
                 """,
-                (
-                    ticker.upper(),
-                    obs_date,
-                    share_change,
-                    premium_change_usd,
-                    close,
-                    volume,
-                    as_of,
-                    source,
-                ),
+                values,
             )
+        return len(values)
 
     def fetch_etf_flows_daily(
         self,
