@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 
 from uw_scan.api.routers.health import health
@@ -256,7 +256,9 @@ def test_health_record_check_alerts_on_low_recent_ticker_coverage(
         check for check in body["record_health"] if check["table"] == "watchlist_card"
     )
     assert card_check["actual_tickers"] == 1
-    assert card_check["expected_tickers"] == seeded_db_with_cards.count_active_watchlist()
+    assert (
+        card_check["expected_tickers"] == seeded_db_with_cards.count_active_watchlist()
+    )
     assert card_check["ok"] is False
 
 
@@ -310,8 +312,7 @@ def test_health_record_check_discovers_new_ticker_timestamp_tables(
     repo.conn.commit()
 
     r = client.get(
-        "/api/health?record_window_hours=8"
-        "&record_tables=synthetic_endpoint_snapshots"
+        "/api/health?record_window_hours=8&record_tables=synthetic_endpoint_snapshots"
     )
 
     assert r.status_code == 200
@@ -320,6 +321,65 @@ def test_health_record_check_discovers_new_ticker_timestamp_tables(
     assert synthetic["table"] == "synthetic_endpoint_snapshots"
     assert synthetic["ok"] is True
     assert synthetic["actual_tickers"] == repo.count_active_watchlist()
+
+
+def test_health_daily_window_passes_nightly_table_aged_under_26h(
+    client, seeded_db_empty_cards
+):
+    """`iv_rank_history` is in _RECORD_HEALTH_DAILY_TABLES → 26h window
+    applies. Rows from 20h ago should count as fresh; 8h would fail."""
+    repo = seeded_db_empty_cards
+    aged = datetime.now(UTC) - timedelta(hours=20)
+    with repo.conn.cursor() as cur:
+        cur.executemany(
+            f"""
+            INSERT INTO {repo._schema}.iv_rank_history
+                (ticker, market_date, close, volatility, iv_rank_1y,
+                 updated_at_src, inserted_at)
+            VALUES (%s, %s, %s, %s, %s, %s, %s)
+            """,
+            [
+                (
+                    row.ticker,
+                    aged.date(),
+                    Decimal("100"),
+                    Decimal("0.3"),
+                    Decimal("50"),
+                    aged,
+                    aged,
+                )
+                for row in repo.list_watchlist_cards()
+            ],
+        )
+    repo.conn.commit()
+
+    r = client.get("/api/health?record_window_hours=8&record_tables=iv_rank_history")
+
+    assert r.status_code == 200
+    body = r.json()
+    row = body["record_health"][0]
+    assert row["table"] == "iv_rank_history"
+    assert row["ok"] is True, f"expected daily window pass at 20h, got {row}"
+    assert row["actual_tickers"] == repo.count_active_watchlist()
+
+
+def test_health_excluded_tables_omitted_from_record_health(
+    client, seeded_db_empty_cards
+):
+    """Cockpit-only + sparse tables should be filtered out of discovery so
+    they cannot trigger a false coverage alert."""
+    r = client.get("/api/health?record_window_hours=8")
+    body = r.json()
+    surfaced = {row["table"] for row in body["record_health"]}
+    excluded = {
+        "charm_signals",
+        "vanna_signals",
+        "matrix_state_snapshots",
+        "vrp_30d_settlements",
+        "signal_context_flags",
+    }
+    leaked = surfaced & excluded
+    assert not leaked, f"excluded tables leaked into record_health: {leaked}"
 
 
 def test_health_unhealthy_when_no_scans(client, seeded_db_empty_cards):

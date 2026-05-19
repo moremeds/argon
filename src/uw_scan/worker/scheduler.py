@@ -8,7 +8,7 @@ import sys
 import zlib
 from collections.abc import Callable, Iterator
 from contextlib import contextmanager
-from datetime import date, datetime, time
+from datetime import date, datetime, time, timedelta
 from typing import Literal
 from zoneinfo import ZoneInfo
 
@@ -266,7 +266,15 @@ def main() -> int:
                     # _NoOhlc() is intentional: OHLC fetches are owned by
                     # _ohlc_pull / _spot_refresh. See worker/CLAUDE.md
                     # "Provider concurrency model".
-                    n = full_scan_once(repo, uw, _NoOhlc(), ticker_filter=ticker_filter)
+                    n = full_scan_once(
+                        repo,
+                        uw,
+                        _NoOhlc(),
+                        ticker_filter=ticker_filter,
+                        stale_after=timedelta(
+                            hours=settings.full_scan_stale_after_hours
+                        ),
+                    )
                     logger.info("full_scan completed %d tickers", n)
 
     def _ohlc_pull() -> None:
@@ -504,12 +512,15 @@ def main() -> int:
             )
 
     if "uw" in groups:
-        sched.add_job(
-            _full_scan,
-            CronTrigger.from_crontab(settings.full_scan_cron, timezone=settings.rth_tz),
-            id="full_scan",
-            name="Full UW scan",
-        )
+        for idx, cron_expr in enumerate(settings.full_scan_crons):
+            sched.add_job(
+                _full_scan,
+                CronTrigger.from_crontab(cron_expr, timezone=settings.rth_tz),
+                id=f"full_scan_{idx}",
+                name=f"Full UW scan ({cron_expr})",
+                max_instances=1,
+                coalesce=True,
+            )
         sched.add_job(
             _rescan,
             IntervalTrigger(seconds=1),
