@@ -11132,7 +11132,8 @@
           "role": {
             "enum": [
               "uw",
-              "massive"
+              "massive",
+              "ai"
             ],
             "title": "Role",
             "type": "string"

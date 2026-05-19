@@ -59,7 +59,7 @@ class HealthResponse(BaseModel):
 
 class WorkerHealth(BaseModel):
     label: str
-    role: Literal["uw", "massive"]
+    role: Literal["uw", "massive", "ai"]
     index: int
     heartbeat_name: str
     lag_seconds: float | None = None
@@ -107,11 +107,13 @@ def _worker_health_rows(
     now_utc: datetime,
     uw_count: int,
     massive_count: int,
+    ai_count: int,
 ) -> list[WorkerHealth]:
     expected_workers: list[tuple[str, Literal["uw", "massive"], int, str]] = []
     for role, count, label_prefix in (
         ("uw", uw_count, "UW"),
         ("massive", massive_count, "Massive"),
+        ("ai", ai_count, "AI"),
     ):
         for index in range(max(0, count)):
             expected_workers.append(
@@ -198,6 +200,7 @@ def health(
         now_utc=now_utc,
         uw_count=settings.uw_worker_count,
         massive_count=settings.massive_worker_count,
+        ai_count=settings.ai_worker_count,
     )
     provider_day_start, provider_day_end = provider_day_bounds()
     provider_usage = repo.get_external_api_usage_summary(

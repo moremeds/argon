@@ -56,7 +56,7 @@ logging.basicConfig(
 logger = logging.getLogger("uw_scan.worker")
 RESCAN_WORKER_CONCURRENCY = 2
 WorkerGroup = Literal["uw", "massive", "ai"]
-WORKER_ROLES: set[str] = {"all", "uw", "massive"}
+WORKER_ROLES: set[str] = {"all", "uw", "massive", "ai"}
 
 
 def _spot_refresh_market_date(now: datetime) -> date | None:
@@ -103,8 +103,10 @@ def _worker_groups(settings: Settings) -> set[WorkerGroup]:
         return {"uw"}
     if role == "massive":
         return {"massive"}
+    if role == "ai":
+        return {"ai"}
     raise RuntimeError(
-        "UW_SCAN_WORKER_ROLE must be one of: all, uw, massive "
+        "UW_SCAN_WORKER_ROLE must be one of: all, uw, massive, ai "
         f"(got {settings.worker_role!r})"
     )
 
