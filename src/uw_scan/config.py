@@ -88,6 +88,10 @@ class Settings(BaseModel):
     # which uses ~85% of the 20k/day UW operator budget while keeping data
     # at most 1h stale. Coverage alert (8h window, 90% tickers) needs <=4.
     full_scan_stale_after_hours: int = 1
+    # Sliding-window for the per-table coverage check on tables that only
+    # update once per day (cockpit + nightly vol rollup). Anything below
+    # 24h would always alert on those tables; 26h gives a small grace gap.
+    record_health_daily_window_hours: int = 26
     ohlc_pull_cron: str = "30 17 * * 0-4"
     rth_tz: str = "America/New_York"
     worker_role: str = "all"
