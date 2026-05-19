@@ -1122,6 +1122,10 @@ export interface components {
             spx_vs_ma_pct?: number | null;
             /** Vix 5D Roc */
             vix_5d_roc?: number | null;
+            /** Vvix 5D Roc */
+            vvix_5d_roc?: number | null;
+            /** Cor1M 5D Change */
+            cor1m_5d_change?: number | null;
         };
         /**
          * CriResponse
@@ -1149,6 +1153,8 @@ export interface components {
             spy?: number | null;
             /** Vix 5D Roc */
             vix_5d_roc?: number | null;
+            /** Vvix 5D Roc */
+            vvix_5d_roc?: number | null;
             /** Vvix Vix Ratio */
             vvix_vix_ratio?: number | null;
             /** Spx 100D Ma */

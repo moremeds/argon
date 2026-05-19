@@ -1284,6 +1284,17 @@
             ],
             "title": "Cor1M"
           },
+          "cor1m_5d_change": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cor1M 5D Change"
+          },
           "date": {
             "title": "Date",
             "type": "string"
@@ -1353,6 +1364,17 @@
               }
             ],
             "title": "Vvix"
+          },
+          "vvix_5d_roc": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vvix 5D Roc"
           }
         },
         "required": [
@@ -1521,6 +1543,17 @@
               }
             ],
             "title": "Vvix"
+          },
+          "vvix_5d_roc": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vvix 5D Roc"
           },
           "vvix_vix_ratio": {
             "anyOf": [

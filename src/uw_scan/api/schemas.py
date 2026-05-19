@@ -391,6 +391,8 @@ class CriHistoryEntry(BaseModel):
     realized_vol: float | None = None
     spx_vs_ma_pct: float | None = None
     vix_5d_roc: float | None = None
+    vvix_5d_roc: float | None = None
+    cor1m_5d_change: float | None = None
 
 
 class CriResponse(BaseModel):
@@ -403,6 +405,7 @@ class CriResponse(BaseModel):
     vvix: float | None = None
     spy: float | None = None
     vix_5d_roc: float | None = None
+    vvix_5d_roc: float | None = None
     vvix_vix_ratio: float | None = None
     spx_100d_ma: float | None = None
     spx_distance_pct: float | None = None

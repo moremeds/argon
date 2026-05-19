@@ -107,6 +107,32 @@ def test_run_returns_none_when_data_is_thin(seeded_db_empty_cards) -> None:
     assert snap_repo.fetch_latest() is None
 
 
+def test_cri_scanner_emits_new_payload_fields(seeded_db_empty_cards) -> None:
+    """vvix_5d_roc + cor1m_5d_change must appear in the persisted snapshot so
+    the UI can compute prior-day component dots without falling back to 0."""
+    repo = seeded_db_empty_cards
+    conn = repo.conn
+    vol_repo = VolIndexRepository(conn, schema=repo._schema)
+
+    n = 140
+    start = date(2026, 1, 1)
+    _seed_vol(vol_repo, "VIX", [16.0] * n, start=start)
+    _seed_vol(vol_repo, "VVIX", [95.0] * n, start=start)
+    _seed_vol(vol_repo, "COR1M", [20.0] * n, start=start)
+    _seed_spy(repo, [450.0 + i * (150.0 / n) for i in range(n)], start=start)
+
+    cri_scanner.run(conn, schema=repo._schema)
+    snap_repo = CriSnapshotRepository(conn, schema=repo._schema)
+    latest = snap_repo.fetch_latest()
+    assert latest is not None
+
+    assert "vvix_5d_roc" in latest, "top-level vvix_5d_roc missing"
+    assert latest["history"], "history is empty — fixture broke"
+    last_row = latest["history"][-1]
+    assert "vvix_5d_roc" in last_row, "per-row vvix_5d_roc missing"
+    assert "cor1m_5d_change" in last_row, "per-row cor1m_5d_change missing"
+
+
 def test_run_returns_none_when_no_overlap(seeded_db_empty_cards) -> None:
     """VIX dates and SPY dates don't intersect → 0 aligned bars."""
     repo = seeded_db_empty_cards
