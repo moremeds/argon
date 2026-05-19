@@ -65,6 +65,7 @@ from .options import (
     OptionChainPerStrikeRow,
     OptionContractIntradayBucket,
     OptionContractRow,
+    OptionIntradayProfile,
     OptionsDailyRow,
 )
 from .scanner import (
@@ -174,6 +175,7 @@ __all__ = [
     "OptionsDailyRow",
     "OptionChainPerStrikeRow",
     "OptionContractIntradayBucket",
+    "OptionIntradayProfile",
     "DarkPoolPrint",
     "ShortDataRow",
     "MarketStructure",

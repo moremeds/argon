@@ -157,6 +157,27 @@ class OptionContractIntradayBucket(_UwBase):
     premium_no_side: Decimal | None = None
 
 
+class OptionIntradayProfile(_UwBase):
+    """Derived per-contract intraday tape view for the OI movers table.
+
+    Built by ``cards.intraday_profile.derive_intraday_profile`` from persisted
+    :class:`OptionContractIntradayBucket` rows. Volume here is side-aggregated
+    (ask + bid + mid + multi). The 12-point sparkline is a fixed-length
+    downsample so the UI renders a stable width regardless of how many
+    minute bars the contract actually had.
+    """
+
+    option_symbol: str
+    trade_date: _date
+    total_volume: int = 0
+    first_trade_time: datetime | None = None
+    last_trade_time: datetime | None = None
+    peak_window_start: datetime | None = None
+    peak_window_end: datetime | None = None
+    peak_window_share_pct: Decimal | None = None
+    sparkline: list[int] = []
+
+
 _preserve_public_module(
     OiPerStrikeRow,
     OiChangeRow,
@@ -165,4 +186,5 @@ _preserve_public_module(
     OptionsDailyRow,
     OptionChainPerStrikeRow,
     OptionContractIntradayBucket,
+    OptionIntradayProfile,
 )

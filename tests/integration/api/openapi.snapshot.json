@@ -6349,6 +6349,99 @@
         "title": "OptionChainPerStrikeRow",
         "type": "object"
       },
+      "OptionIntradayProfile": {
+        "description": "Derived per-contract intraday tape view for the OI movers table.\n\nBuilt by ``cards.intraday_profile.derive_intraday_profile`` from persisted\n:class:`OptionContractIntradayBucket` rows. Volume here is side-aggregated\n(ask + bid + mid + multi). The 12-point sparkline is a fixed-length\ndownsample so the UI renders a stable width regardless of how many\nminute bars the contract actually had.",
+        "properties": {
+          "first_trade_time": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "First Trade Time"
+          },
+          "last_trade_time": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Trade Time"
+          },
+          "option_symbol": {
+            "title": "Option Symbol",
+            "type": "string"
+          },
+          "peak_window_end": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Peak Window End"
+          },
+          "peak_window_share_pct": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Peak Window Share Pct"
+          },
+          "peak_window_start": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Peak Window Start"
+          },
+          "sparkline": {
+            "default": [],
+            "items": {
+              "type": "integer"
+            },
+            "title": "Sparkline",
+            "type": "array"
+          },
+          "total_volume": {
+            "default": 0,
+            "title": "Total Volume",
+            "type": "integer"
+          },
+          "trade_date": {
+            "format": "date",
+            "title": "Trade Date",
+            "type": "string"
+          }
+        },
+        "required": [
+          "option_symbol",
+          "trade_date"
+        ],
+        "title": "OptionIntradayProfile",
+        "type": "object"
+      },
       "OptionsDailyRow": {
         "description": "One row per trading day from UW /options-volume.\n\n``bullish_premium`` here is whole-tape (UW), distinct from the\nalert-scoped :class:`FlowSnapshot.bull_premium`. Do not cross-plot.",
         "properties": {
@@ -7959,6 +8052,14 @@
               }
             ],
             "title": "Next Earnings Date"
+          },
+          "oi_change_intraday_profiles": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/OptionIntradayProfile"
+            },
+            "title": "Oi Change Intraday Profiles",
+            "type": "array"
           },
           "oi_change_top": {
             "default": [],

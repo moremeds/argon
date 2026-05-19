@@ -11,12 +11,14 @@ from datetime import date as _date
 from decimal import Decimal
 
 from ..cards.gex import compute_market_structure_levels
+from ..cards.intraday_profile import derive_intraday_profile
 from ..models import (
     FlowAlert,
     FlowSnapshot,
     MarketStructure,
     MaxPainRow,
     OiChangeRow,
+    OptionIntradayProfile,
     ShortDataRow,
     SingleStockReport,
     StrikeGexBucket,
@@ -25,7 +27,12 @@ from ..models import (
     VolatilityProfile,
     VRPAssessment,
 )
+from ..storage.option_intraday_repository import OptionIntradayBucketRepository
 from ..storage.repository import Repository
+
+# How many of the top OI movers (post-notional sort) we derive an intraday
+# tape profile for. Matches the OiMoversTable.tsx slice() cap on the UI.
+OI_MOVERS_INTRADAY_TOP_N = 10
 
 FLOW_ALERT_FETCH_LIMIT = 100
 
@@ -102,9 +109,7 @@ def _build_flow_snapshot(
         flow_count_is_limited=bool(_safe_get(baseline, "alert_count_is_limited"))
         or len(flow_rows) >= FLOW_ALERT_FETCH_LIMIT,
         flow_count_30d_avg=_to_decimal(_safe_get(baseline, "avg_30d_alert_count")),
-        flow_count_vs_30d_avg=_to_decimal(
-            _safe_get(baseline, "flow_count_vs_30d_avg")
-        ),
+        flow_count_vs_30d_avg=_to_decimal(_safe_get(baseline, "flow_count_vs_30d_avg")),
         flow_count_30d_days=int(_safe_get(baseline, "baseline_days") or 0),
         top_alert_rule=_safe_get(baseline, "top_alert_rule"),
         net_premium=net_premium,
@@ -234,6 +239,36 @@ def _build_oi_change_models(rows: list[dict]) -> list[OiChangeRow]:
             )
         )
     return out
+
+
+def _build_intraday_profiles(
+    repo: Repository, top_rows: list[dict]
+) -> list[OptionIntradayProfile]:
+    """Derive one OptionIntradayProfile per top-N OI mover.
+
+    The worker job ``refresh_intraday_for_top_oi_movers`` is responsible for
+    populating the ``option_intraday_buckets`` cache; this read is a no-op
+    miss when that job hasn't fired yet (returns a zero-volume profile so
+    the UI can still render the row).
+    """
+    if not top_rows:
+        return []
+    intraday_repo = OptionIntradayBucketRepository(repo.conn, schema=repo._schema)
+    profiles: list[OptionIntradayProfile] = []
+    for row in top_rows:
+        option_symbol = row.get("option_symbol")
+        trade_date = row.get("curr_date")
+        if not option_symbol or trade_date is None:
+            continue
+        buckets = intraday_repo.fetch_buckets(option_symbol, trade_date)
+        profiles.append(
+            derive_intraday_profile(
+                option_symbol=option_symbol,
+                trade_date=trade_date,
+                buckets=buckets,
+            )
+        )
+    return profiles
 
 
 def _build_short_data_model(d: dict | None) -> ShortDataRow | None:
@@ -410,7 +445,11 @@ def assemble_single_stock_report(
     short_data = _build_short_data_model(repo.fetch_short_interest_snapshot(run_id))
     # Pull a wider candidate set so the UI can re-sort by notional without
     # losing high-notional rows outside the rank-ordered first 10.
-    oi_change_top = _build_oi_change_models(repo.fetch_oi_change_top(run_id, limit=50))
+    oi_change_raw = repo.fetch_oi_change_top(run_id, limit=50)
+    oi_change_top = _build_oi_change_models(oi_change_raw)
+    oi_change_intraday_profiles = _build_intraday_profiles(
+        repo, oi_change_raw[:OI_MOVERS_INTRADAY_TOP_N]
+    )
 
     curve_raw = repo.get_strike_gex_curve(run_id)
     strike_gex_curve = [
@@ -462,6 +501,7 @@ def assemble_single_stock_report(
         short_data=short_data,
         max_pain_rows=max_pain_rows,
         oi_change_top=oi_change_top,
+        oi_change_intraday_profiles=oi_change_intraday_profiles,
         strike_gex_curve=strike_gex_curve,
         aggregates=aggregates,
         market_structure_levels=market_structure_levels,
