@@ -71,7 +71,14 @@ class Settings(BaseModel):
     base_url: str = "https://api.unusualwhales.com"
     # Scheduler — consumed by uw_scan.worker.scheduler and uw_scan.api.routers.health
     spot_refresh_seconds: int = 300
-    full_scan_cron: str = "0 5-16 * * 0-4"
+    # Cron fires every :00 and :30 strictly during RTH (10:00-15:30 ET) so
+    # we never spend UW budget pre-market or after close. The freshness gate
+    # below means most fires no-op; only stale tickers re-scan.
+    full_scan_cron: str = "0,30 10-15 * * 0-4"
+    # Skip tickers refreshed within this many hours during full_scan. Lower =
+    # more UW spend, fresher data. Coverage alert (8h window, 90% tickers)
+    # needs at least 2 batches per 8h, so keep this <= 4.
+    full_scan_stale_after_hours: int = 4
     ohlc_pull_cron: str = "30 17 * * 0-4"
     rth_tz: str = "America/New_York"
     worker_role: str = "all"
@@ -183,7 +190,12 @@ class Settings(BaseModel):
             spot_refresh_seconds=int(
                 os.environ.get("UW_SCAN_SPOT_REFRESH_SECONDS", "300")
             ),
-            full_scan_cron=os.environ.get("UW_SCAN_FULL_SCAN_CRON", "0 5-16 * * 0-4"),
+            full_scan_cron=os.environ.get(
+                "UW_SCAN_FULL_SCAN_CRON", "0,30 10-15 * * 0-4"
+            ),
+            full_scan_stale_after_hours=int(
+                os.environ.get("UW_SCAN_FULL_SCAN_STALE_HOURS", "4")
+            ),
             ohlc_pull_cron=os.environ.get("UW_SCAN_OHLC_PULL_CRON", "30 17 * * 0-4"),
             rth_tz=os.environ.get("UW_SCAN_RTH_TZ", "America/New_York"),
             worker_role=os.environ.get("UW_SCAN_WORKER_ROLE", "all"),

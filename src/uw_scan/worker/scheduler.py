@@ -8,7 +8,7 @@ import sys
 import zlib
 from collections.abc import Callable, Iterator
 from contextlib import contextmanager
-from datetime import date, datetime, time
+from datetime import date, datetime, time, timedelta
 from typing import Literal
 from zoneinfo import ZoneInfo
 
@@ -264,7 +264,15 @@ def main() -> int:
                     # _NoOhlc() is intentional: OHLC fetches are owned by
                     # _ohlc_pull / _spot_refresh. See worker/CLAUDE.md
                     # "Provider concurrency model".
-                    n = full_scan_once(repo, uw, _NoOhlc(), ticker_filter=ticker_filter)
+                    n = full_scan_once(
+                        repo,
+                        uw,
+                        _NoOhlc(),
+                        ticker_filter=ticker_filter,
+                        stale_after=timedelta(
+                            hours=settings.full_scan_stale_after_hours
+                        ),
+                    )
                     logger.info("full_scan completed %d tickers", n)
 
     def _ohlc_pull() -> None:
