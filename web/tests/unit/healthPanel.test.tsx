@@ -1,5 +1,11 @@
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { HealthPanel } from "@/components/shared/HealthPanel";
 import { api } from "@/lib/api";
@@ -10,10 +16,38 @@ vi.mock("@/lib/api", () => ({
   },
 }));
 
+// The panel ships collapsed by default; existing assertions cover the
+// expanded surface, so we click open before each check.
+async function expandPanel() {
+  const toggle = await screen.findByRole("button", { name: /status/i });
+  fireEvent.click(toggle);
+}
+
 describe("HealthPanel", () => {
+  // jsdom in this toolchain ships an empty Storage prototype; stub a
+  // Map-backed shim so the panel's localStorage reads + writes work.
+  beforeEach(() => {
+    const store = new Map<string, string>();
+    vi.stubGlobal("localStorage", {
+      getItem: (k: string) => (store.has(k) ? store.get(k)! : null),
+      setItem: (k: string, v: string) => {
+        store.set(k, String(v));
+      },
+      removeItem: (k: string) => {
+        store.delete(k);
+      },
+      clear: () => store.clear(),
+      key: (i: number) => Array.from(store.keys())[i] ?? null,
+      get length() {
+        return store.size;
+      },
+    });
+  });
+
   afterEach(() => {
     cleanup();
     vi.clearAllMocks();
+    vi.unstubAllGlobals();
   });
 
   it("renders provider usage stats from health", async () => {
@@ -83,6 +117,7 @@ describe("HealthPanel", () => {
     });
 
     render(<HealthPanel />);
+    await expandPanel();
 
     await waitFor(() => expect(screen.getByText("API")).toBeTruthy());
     expect(screen.getByText("Scheduler")).toBeTruthy();
@@ -144,8 +179,11 @@ describe("HealthPanel", () => {
     });
 
     render(<HealthPanel />);
+    await expandPanel();
 
-    await waitFor(() => expect(screen.getAllByText("UNKNOWN").length).toBeGreaterThanOrEqual(2));
+    await waitFor(() =>
+      expect(screen.getAllByText("UNKNOWN").length).toBeGreaterThanOrEqual(2),
+    );
     expect(screen.getAllByText("—").length).toBeGreaterThanOrEqual(5);
   });
 
@@ -205,6 +243,7 @@ describe("HealthPanel", () => {
       });
 
     render(<HealthPanel />);
+    await expandPanel();
 
     await waitFor(() =>
       expect(api.health).toHaveBeenCalledWith("uw", {
@@ -269,8 +308,65 @@ describe("HealthPanel", () => {
     });
 
     render(<HealthPanel />);
+    await expandPanel();
 
-    await waitFor(() => expect(screen.getByText("Query Coverage")).toBeTruthy());
-    expect(screen.getByText("ALERT")).toBeTruthy();
+    await waitFor(() =>
+      expect(screen.getByText("Query Coverage")).toBeTruthy(),
+    );
+    // ALERT appears twice when records are unhealthy: once in the always-on
+    // summary chip at the top, once on the Query Coverage row.
+    expect(screen.getAllByText("ALERT").length).toBeGreaterThanOrEqual(1);
+  });
+
+  it("starts collapsed, hides the body, and toggles on click", async () => {
+    vi.mocked(api.health).mockResolvedValue({
+      ok: true,
+      db: "up",
+      scheduler_lag_seconds: 1,
+      last_full_scan_at: "2026-05-14T14:20:42Z",
+      reason: null,
+      worker_lag_seconds: 1,
+      scheduler_heartbeat_lag_seconds: 1,
+      scheduler_heartbeat_name: "worker",
+      rescan_heartbeat_lag_seconds: 1,
+      spot_refresh_heartbeat_lag_seconds: 1,
+      spot_quote_lag_seconds: 60,
+      latest_spot_quote_at: "2026-05-14T14:19:42Z",
+      latest_spot_quote_fetched_at: "2026-05-14T14:20:42Z",
+      watchlist_size: 97,
+      source: "UnusualWhales",
+      latency_p95_ms: 88,
+      http_2xx: 120,
+      http_4xx: 0,
+      http_5xx: 0,
+      uw_today: 40,
+      cache_hit_pct: null,
+      throughput_window_minutes: 15,
+      record_health_ok: true,
+      record_health: [],
+      workers: [],
+    });
+
+    render(<HealthPanel />);
+
+    // Collapsed by default — header button visible, body hidden.
+    const toggle = await screen.findByRole("button", { name: /status/i });
+    expect(toggle.getAttribute("aria-expanded")).toBe("false");
+    expect(screen.queryByText("Query Coverage")).toBeNull();
+    expect(screen.queryByText("Watchlist")).toBeNull();
+
+    fireEvent.click(toggle);
+
+    await waitFor(() =>
+      expect(screen.getByText("Query Coverage")).toBeTruthy(),
+    );
+    expect(toggle.getAttribute("aria-expanded")).toBe("true");
+
+    // Click again to collapse; localStorage persists the choice.
+    fireEvent.click(toggle);
+    await waitFor(() =>
+      expect(screen.queryByText("Query Coverage")).toBeNull(),
+    );
+    expect(window.localStorage.getItem("uw_health_collapsed")).toBe("1");
   });
 });

@@ -12,6 +12,7 @@ const HEARTBEAT_HEALTHY_LAG_S = 5;
 const SPOT_REFRESH_HEALTHY_LAG_S = 660;
 const RECORD_WINDOW_HOURS = 8;
 const RECORD_MIN_COVERAGE = 0.9;
+const COLLAPSED_STORAGE_KEY = "uw_health_collapsed";
 
 const rowStyle: React.CSSProperties = {
   display: "flex",
@@ -54,7 +55,9 @@ function dash(v: number | string | null | undefined, suffix = ""): string {
 function fmtSidebarDateTime(iso: string | null | undefined): string {
   const full = fmtDateTimeWithZone(iso);
   if (full === "—") return full;
-  const match = full.match(/^\d{4}\/(\d{2})\/(\d{2}) (\d{2}):(\d{2}):\d{2} (.+)$/);
+  const match = full.match(
+    /^\d{4}\/(\d{2})\/(\d{2}) (\d{2}):(\d{2}):\d{2} (.+)$/,
+  );
   if (!match) return full;
   const [, month, day, hour, minute, zone] = match;
   return `${month}/${day} ${hour}:${minute} ${zone}`;
@@ -71,19 +74,26 @@ function heartbeatStatus(
   return { label: "STALE", color: "var(--warning)" };
 }
 
-function recordHealthStatus(
-  ok: boolean | null | undefined,
-): { label: "OK" | "ALERT" | "UNKNOWN"; color: string } {
+function recordHealthStatus(ok: boolean | null | undefined): {
+  label: "OK" | "ALERT" | "UNKNOWN";
+  color: string;
+} {
   if (ok == null) return { label: "UNKNOWN", color: "var(--warning)" };
   if (ok) return { label: "OK", color: "var(--positive)" };
   return { label: "ALERT", color: "var(--negative)" };
 }
 
-function workerGroupStatus(workers: WorkerHealth[]): { label: string; color: string } {
-  if (workers.length === 0) return { label: "UNKNOWN", color: "var(--warning)" };
+function workerGroupStatus(workers: WorkerHealth[]): {
+  label: string;
+  color: string;
+} {
+  if (workers.length === 0)
+    return { label: "UNKNOWN", color: "var(--warning)" };
   const online = workers.filter((worker) => {
     const healthyLag =
-      worker.role === "massive" ? SPOT_REFRESH_HEALTHY_LAG_S : HEARTBEAT_HEALTHY_LAG_S;
+      worker.role === "massive"
+        ? SPOT_REFRESH_HEALTHY_LAG_S
+        : HEARTBEAT_HEALTHY_LAG_S;
     return heartbeatStatus(worker.lag_seconds, healthyLag).label === "ONLINE";
   }).length;
   if (online === workers.length) {
@@ -135,9 +145,55 @@ function StatusRow({
   );
 }
 
+// Worst-color summary for the collapsed header dot. Severity order matches
+// the var() palette: --negative > --warning > --positive. UNKNOWN states
+// are mapped to --warning by their producers, which is the behaviour we
+// want here too.
+function worstStatus(statuses: { color: string }[]): {
+  label: "OK" | "WARN" | "ALERT";
+  color: string;
+} {
+  const colors = statuses.map((s) => s.color);
+  if (colors.includes("var(--negative)"))
+    return { label: "ALERT", color: "var(--negative)" };
+  if (colors.includes("var(--warning)"))
+    return { label: "WARN", color: "var(--warning)" };
+  return { label: "OK", color: "var(--positive)" };
+}
+
+function readStoredCollapsed(): boolean {
+  if (typeof window === "undefined") return true;
+  try {
+    const stored = window.localStorage?.getItem(COLLAPSED_STORAGE_KEY);
+    if (stored == null) return true;
+    return stored === "1";
+  } catch {
+    return true;
+  }
+}
+
+function writeStoredCollapsed(value: boolean): void {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage?.setItem(COLLAPSED_STORAGE_KEY, value ? "1" : "0");
+  } catch {
+    // Quota exceeded / disabled storage — fall through and keep in-memory only.
+  }
+}
+
 export function HealthPanel() {
   const [h, setH] = useState<Health | null>(null);
   const [source, setSource] = useState<ProviderSource>("uw");
+  // Always start collapsed on server + first client render to avoid a
+  // hydration mismatch; the real localStorage value is read in an effect.
+  const [collapsed, setCollapsed] = useState<boolean>(true);
+
+  useEffect(() => {
+    // Syncing with localStorage requires a post-mount read; a lazy useState
+    // initializer would still see SSR's undefined window and skip hydration.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setCollapsed(readStoredCollapsed());
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -172,99 +228,177 @@ export function HealthPanel() {
   );
   const workerRows = h?.workers ?? [];
   const uwWorkers = workerRows.filter((worker) => worker.role === "uw");
-  const massiveWorkers = workerRows.filter((worker) => worker.role === "massive");
+  const massiveWorkers = workerRows.filter(
+    (worker) => worker.role === "massive",
+  );
   const recordsStatus = recordHealthStatus(h?.record_health_ok);
+  const summary = worstStatus(
+    workerRows.length > 0
+      ? [
+          apiStatus,
+          schedulerStatus,
+          workerGroupStatus(uwWorkers),
+          workerGroupStatus(massiveWorkers),
+          recordsStatus,
+        ]
+      : [
+          apiStatus,
+          schedulerStatus,
+          rescanStatus,
+          spotRefreshStatus,
+          recordsStatus,
+        ],
+  );
+
+  const toggle = () => {
+    setCollapsed((prev) => {
+      const next = !prev;
+      writeStoredCollapsed(next);
+      return next;
+    });
+  };
 
   return (
-    <div
-      style={{
-        borderTop: "1px solid var(--border-dim)",
-        padding: "12px 16px",
-      }}
-    >
-      <StatusRow label="API" status={apiStatus} />
-      <StatusRow label="Scheduler" status={schedulerStatus} />
-      {workerRows.length > 0 ? (
-        <>
-          <StatusRow label="UW Workers" status={workerGroupStatus(uwWorkers)} />
-          <StatusRow label="Massive Workers" status={workerGroupStatus(massiveWorkers)} />
-        </>
-      ) : (
-        <>
-          <StatusRow label="UW Worker" status={rescanStatus} />
-          <StatusRow label="Massive Worker" status={spotRefreshStatus} />
-        </>
-      )}
-      <StatusRow label="Query Coverage" status={recordsStatus} />
-      <div style={rowStyle}>
-        <span style={labelStyle}>Last spot</span>
-        <span
-          style={valStyle}
-          title={`Quote ${fmtDateTimeWithZone(h?.latest_spot_quote_at)} / fetched ${fmtDateTimeWithZone(h?.latest_spot_quote_fetched_at)}`}
-        >
-          {fmtDuration(h?.spot_quote_lag_seconds)}
-        </span>
-      </div>
-      <div style={rowStyle}>
-        <span style={labelStyle}>Last Scan</span>
-        <span style={valStyle} title={fmtDateTimeWithZone(h?.last_full_scan_at)}>
-          {fmtSidebarDateTime(h?.last_full_scan_at)}
-        </span>
-      </div>
-      <div style={rowStyle}>
-        <span style={labelStyle}>Source</span>
-        <select
-          aria-label="Source"
-          value={source}
-          onChange={(event) => setSource(event.target.value as ProviderSource)}
-          style={sourceSelectStyle}
-        >
-          <option value="uw">UnusualWhales</option>
-          <option value="massive">Massive.com</option>
-        </select>
-      </div>
-      <div
+    <div style={{ borderTop: "1px solid var(--border-dim)" }}>
+      <button
+        type="button"
+        onClick={toggle}
+        aria-expanded={!collapsed}
+        aria-controls="health-panel-body"
+        title={`Status: ${summary.label}. Click to ${collapsed ? "expand" : "collapse"}.`}
         style={{
-          borderTop: "1px solid var(--border-dim)",
-          margin: "8px 0",
+          width: "100%",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 8,
+          padding: "10px 16px",
+          background: "transparent",
+          border: "none",
+          color: "var(--text-secondary)",
+          cursor: "pointer",
+          fontFamily: "var(--font-mono)",
+          fontSize: 11,
+          letterSpacing: 1.5,
+          textTransform: "uppercase",
         }}
-      />
-      <div style={rowStyle}>
-        <span style={labelStyle}>Watchlist</span>
-        <span style={valStyle}>{dash(h?.watchlist_size)}</span>
-      </div>
-      <div style={rowStyle}>
-        <span style={labelStyle}>Latency p95</span>
-        <span style={valStyle}>{dash(h?.latency_p95_ms, "ms")}</span>
-      </div>
-      <div style={rowStyle}>
-        <span style={labelStyle}>Req avg/min</span>
-        <span style={valStyle}>{fmtRate(h?.requests_per_minute)}</span>
-      </div>
-      <div style={rowStyle}>
-        <span style={labelStyle}>429</span>
-        <span style={valStyle}>{dash(h?.http_429)}</span>
-      </div>
-      <div style={rowStyle}>
-        <span style={labelStyle}>Scan avg</span>
-        <span style={valStyle}>{fmtDuration(h?.avg_scan_duration_seconds)}</span>
-      </div>
-      <div style={rowStyle}>
-        <span style={labelStyle}>Queue avg/min</span>
-        <span style={valStyle}>{fmtRate(h?.queue_drain_rate_per_minute)}</span>
-      </div>
-      <div style={rowStyle}>
-        <span style={labelStyle}>2xx</span>
-        <span style={valStyle}>{dash(h?.http_2xx)}</span>
-      </div>
-      <div style={rowStyle}>
-        <span style={labelStyle}>4xx</span>
-        <span style={valStyle}>{dash(h?.http_4xx)}</span>
-      </div>
-      <div style={rowStyle}>
-        <span style={labelStyle}>5xx</span>
-        <span style={valStyle}>{dash(h?.http_5xx)}</span>
-      </div>
+      >
+        <span style={statusStyle}>
+          <span
+            style={{
+              width: 8,
+              height: 8,
+              background: summary.color,
+              display: "inline-block",
+            }}
+          />
+          <span style={{ color: "var(--text-muted)" }}>Status</span>
+          <span style={valStyle}>{summary.label}</span>
+        </span>
+        <span aria-hidden="true">{collapsed ? "▸" : "▾"}</span>
+      </button>
+      {!collapsed && (
+        <div id="health-panel-body" style={{ padding: "0 16px 12px 16px" }}>
+          <StatusRow label="API" status={apiStatus} />
+          <StatusRow label="Scheduler" status={schedulerStatus} />
+          {workerRows.length > 0 ? (
+            <>
+              <StatusRow
+                label="UW Workers"
+                status={workerGroupStatus(uwWorkers)}
+              />
+              <StatusRow
+                label="Massive Workers"
+                status={workerGroupStatus(massiveWorkers)}
+              />
+            </>
+          ) : (
+            <>
+              <StatusRow label="UW Worker" status={rescanStatus} />
+              <StatusRow label="Massive Worker" status={spotRefreshStatus} />
+            </>
+          )}
+          <StatusRow label="Query Coverage" status={recordsStatus} />
+          <div style={rowStyle}>
+            <span style={labelStyle}>Last spot</span>
+            <span
+              style={valStyle}
+              title={`Quote ${fmtDateTimeWithZone(h?.latest_spot_quote_at)} / fetched ${fmtDateTimeWithZone(h?.latest_spot_quote_fetched_at)}`}
+            >
+              {fmtDuration(h?.spot_quote_lag_seconds)}
+            </span>
+          </div>
+          <div style={rowStyle}>
+            <span style={labelStyle}>Last Scan</span>
+            <span
+              style={valStyle}
+              title={fmtDateTimeWithZone(h?.last_full_scan_at)}
+            >
+              {fmtSidebarDateTime(h?.last_full_scan_at)}
+            </span>
+          </div>
+          <div style={rowStyle}>
+            <span style={labelStyle}>Source</span>
+            <select
+              aria-label="Source"
+              value={source}
+              onChange={(event) =>
+                setSource(event.target.value as ProviderSource)
+              }
+              style={sourceSelectStyle}
+            >
+              <option value="uw">UnusualWhales</option>
+              <option value="massive">Massive.com</option>
+            </select>
+          </div>
+          <div
+            style={{
+              borderTop: "1px solid var(--border-dim)",
+              margin: "8px 0",
+            }}
+          />
+          <div style={rowStyle}>
+            <span style={labelStyle}>Watchlist</span>
+            <span style={valStyle}>{dash(h?.watchlist_size)}</span>
+          </div>
+          <div style={rowStyle}>
+            <span style={labelStyle}>Latency p95</span>
+            <span style={valStyle}>{dash(h?.latency_p95_ms, "ms")}</span>
+          </div>
+          <div style={rowStyle}>
+            <span style={labelStyle}>Req avg/min</span>
+            <span style={valStyle}>{fmtRate(h?.requests_per_minute)}</span>
+          </div>
+          <div style={rowStyle}>
+            <span style={labelStyle}>429</span>
+            <span style={valStyle}>{dash(h?.http_429)}</span>
+          </div>
+          <div style={rowStyle}>
+            <span style={labelStyle}>Scan avg</span>
+            <span style={valStyle}>
+              {fmtDuration(h?.avg_scan_duration_seconds)}
+            </span>
+          </div>
+          <div style={rowStyle}>
+            <span style={labelStyle}>Queue avg/min</span>
+            <span style={valStyle}>
+              {fmtRate(h?.queue_drain_rate_per_minute)}
+            </span>
+          </div>
+          <div style={rowStyle}>
+            <span style={labelStyle}>2xx</span>
+            <span style={valStyle}>{dash(h?.http_2xx)}</span>
+          </div>
+          <div style={rowStyle}>
+            <span style={labelStyle}>4xx</span>
+            <span style={valStyle}>{dash(h?.http_4xx)}</span>
+          </div>
+          <div style={rowStyle}>
+            <span style={labelStyle}>5xx</span>
+            <span style={valStyle}>{dash(h?.http_5xx)}</span>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
