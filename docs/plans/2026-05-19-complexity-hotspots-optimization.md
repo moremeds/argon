@@ -527,6 +527,8 @@ Milestone commits:
 - `22fcf74` — `perf(health): fetch worker heartbeats in bulk`
 - `ab6c0c8` — `perf(gold): batch ingest persistence writes`
 - `f5f864e` — `perf(web): memoize chart derivations`
+- `2637a30` — `docs(perf): record complexity optimization verification`
+- `36d052b` — `chore(perf): keep benchmark uv-invoked`
 
 Verification run from the worktree:
 
