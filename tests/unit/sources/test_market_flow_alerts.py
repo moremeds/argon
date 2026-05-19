@@ -32,6 +32,8 @@ class _FakeUwClient:
         ticker: str | None = None,
         params: dict[str, Any] | None = None,
         run_id: int | None = None,
+        *,
+        option_symbol: str | None = None,
     ) -> tuple[httpx.Response, dict[str, str]]:
         self.calls.append((slug, ticker, params))
         resp = httpx.Response(

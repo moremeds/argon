@@ -14,11 +14,43 @@ from decimal import Decimal
 from uw_scan.reports.single_stock import assemble_single_stock_report
 
 
+class _StubCursor:
+    """No-op cursor: SET search_path becomes a no-op; option_intraday_buckets
+    fetches return nothing so the assembler emits zero-volume profiles."""
+
+    description: list = []
+
+    def execute(self, *args, **kwargs) -> None:
+        return None
+
+    def fetchall(self) -> list:
+        return []
+
+    def __enter__(self) -> _StubCursor:
+        return self
+
+    def __exit__(self, *args) -> bool:
+        return False
+
+
+class _StubConn:
+    def cursor(self) -> _StubCursor:
+        return _StubCursor()
+
+
 class _StubRepo:
     """Minimal stand-in implementing the Repository methods used by report assembly."""
 
+    # Surface used by the new OptionIntradayBucketRepository code path in
+    # the assembler. We don't exercise intraday content here — the cards/
+    # unit suite already covers the deriver against fixture buckets.
+    conn: _StubConn
+    _schema: str
+
     def __init__(self) -> None:
         self.fetched: list[str] = []
+        self.conn = _StubConn()
+        self._schema = "uw_scan"
 
     def fetch_flow_alerts_for_ticker(self, run_id: int, ticker: str) -> list[dict]:
         self.fetched.append("flow")

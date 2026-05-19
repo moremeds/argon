@@ -87,6 +87,8 @@ class UwClient:
         ticker: str | None = None,
         params: dict[str, object] | None = None,
         run_id: int | None = None,
+        *,
+        option_symbol: str | None = None,
     ) -> tuple[httpx.Response, dict[str, str]]:
         """Make a GET request; returns (response, header_snapshot)."""
         ep: Endpoint = REGISTRY[slug]
@@ -95,7 +97,7 @@ class UwClient:
         if missing:
             raise ValueError(f"{slug}: missing required params: {missing}")
 
-        path = build_path(slug, ticker)
+        path = build_path(slug, ticker, option_symbol=option_symbol)
         url = f"{self.base_url}{path}"
         self._proactive_sleep()
 

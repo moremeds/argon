@@ -12,6 +12,7 @@ import { toNum } from "@/lib/formatters";
 type Report = components["schemas"]["SingleStockReport"];
 type OptionsDailyRow = components["schemas"]["OptionsDailyRow"];
 type ChainRow = components["schemas"]["OptionChainPerStrikeRow"];
+type IntradayProfile = components["schemas"]["OptionIntradayProfile"];
 
 const SECTION_HEADING: React.CSSProperties = {
   fontFamily: "var(--font-mono)",
@@ -42,6 +43,17 @@ export function FlowTab({ report }: { report: Report }) {
     () => report.oi_change_top ?? [],
     [report.oi_change_top],
   );
+  const intradayProfiles = useMemo(
+    () => report.oi_change_intraday_profiles ?? [],
+    [report.oi_change_intraday_profiles],
+  );
+  const profileBySymbol = useMemo(() => {
+    const m = new Map<string, IntradayProfile>();
+    for (const p of intradayProfiles) {
+      m.set(p.option_symbol, p);
+    }
+    return m;
+  }, [intradayProfiles]);
   const alertCountBySymbol = useMemo(() => {
     const m = new Map<string, number>();
     for (const a of alerts) {
@@ -157,6 +169,7 @@ export function FlowTab({ report }: { report: Report }) {
           rows={oiMovers}
           spot={spot}
           alertIndex={alertCountBySymbol}
+          profileIndex={profileBySymbol}
         />
       </section>
     </div>

@@ -34,6 +34,8 @@ class _StubUwClient:
         ticker: str | None = None,
         params: dict[str, Any] | None = None,
         run_id: int | None = None,
+        *,
+        option_symbol: str | None = None,
     ) -> tuple[httpx.Response, dict[str, str]]:
         if isinstance(self._payload, Exception):
             raise self._payload

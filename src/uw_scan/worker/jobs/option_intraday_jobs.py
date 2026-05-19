@@ -1,0 +1,129 @@
+"""Per-minute option-contract intraday refresh for top OI movers.
+
+For each watchlist ticker, finds the top-N option_symbols from the latest
+``oi_change_top`` snapshot and fetches UW's per-minute intraday bars for the
+session in which that OI built (``curr_date``). Persists raw 1-min buckets to
+``option_intraday_buckets`` for downstream derivation (peak window, sparkline,
+first/last trade) at API read time.
+
+UW's OI delta is daily and published premarket at ~6:45 ET; this job is
+scheduled at 9:00 ET so the new OI rows are present before we ask UW for the
+intraday that produced them.
+
+Single-flight via ``pg_try_advisory_lock``; per-ticker transactions commit on
+success and roll back on failure so one bad ticker can't poison the next.
+"""
+
+from __future__ import annotations
+
+import logging
+from collections.abc import Callable
+
+from uw_scan.api.client import UwClient
+from uw_scan.config import Settings
+from uw_scan.sources.uw import fetch_option_contract_intraday
+from uw_scan.storage.option_intraday_repository import OptionIntradayBucketRepository
+from uw_scan.storage.repository import Repository
+
+logger = logging.getLogger(__name__)
+
+INTRADAY_REFRESH_LOCK = 91502  # mnemonic: migration 049 + slot 02
+DEFAULT_TOP_N = 10
+
+
+def refresh_intraday_for_top_oi_movers(
+    *,
+    repo: Repository,
+    client: UwClient,
+    settings: Settings,
+    ticker_filter: Callable[[str], bool] | None = None,
+    top_n: int = DEFAULT_TOP_N,
+    lock_key: int = INTRADAY_REFRESH_LOCK,
+) -> dict[str, int]:
+    """Fetch and persist intraday buckets for each watchlist ticker's top OI movers.
+
+    Returns a small summary dict for logging:
+    ``{"tickers": ..., "contracts": ..., "buckets": ...}``.
+    """
+    if not repo.try_advisory_lock(lock_key):
+        logger.info("intraday_refresh: lock held; skipping this tick")
+        return {"tickers": 0, "contracts": 0, "buckets": 0}
+
+    intraday_repo = OptionIntradayBucketRepository(repo.conn, schema=settings.db_schema)
+    tickers_seen = 0
+    contracts_done = 0
+    buckets_written = 0
+
+    try:
+        cards = repo.list_watchlist_cards()
+        for card in cards:
+            ticker = card.ticker
+            if ticker_filter is not None and not ticker_filter(ticker):
+                logger.debug(
+                    "intraday_refresh: %s skipped outside this worker shard", ticker
+                )
+                continue
+            tickers_seen += 1
+
+            try:
+                latest_run = repo.latest_run_id(ticker)
+            except Exception as exc:
+                logger.warning(
+                    "intraday_refresh: %s latest_run_id failed: %s", ticker, repr(exc)
+                )
+                continue
+            if not latest_run:
+                logger.debug("intraday_refresh: %s has no completed run yet", ticker)
+                continue
+
+            top_rows = repo.fetch_oi_change_top(latest_run, limit=top_n)
+            if not top_rows:
+                logger.debug("intraday_refresh: %s no OI movers in latest run", ticker)
+                continue
+
+            run_id = repo.insert_scan_run(ticker, notes="intraday_refresh")
+            try:
+                for row in top_rows[:top_n]:
+                    option_symbol = row.get("option_symbol")
+                    trade_date = row.get("curr_date")
+                    if not option_symbol or trade_date is None:
+                        continue
+
+                    buckets = fetch_option_contract_intraday(
+                        client,
+                        repo,
+                        run_id,
+                        option_symbol,
+                        trade_date.isoformat(),
+                    )
+                    n = intraday_repo.upsert_buckets(option_symbol, trade_date, buckets)
+                    contracts_done += 1
+                    buckets_written += n
+                    logger.info(
+                        "intraday_refresh: %s %s %s buckets=%d",
+                        ticker,
+                        option_symbol,
+                        trade_date,
+                        n,
+                    )
+
+                repo.finish_scan_run(run_id, status="ok")
+                repo.conn.commit()
+            except Exception as exc:
+                repo.conn.rollback()
+                logger.exception("intraday_refresh: %s failed: %s", ticker, repr(exc))
+    finally:
+        repo.release_advisory_lock(lock_key)
+
+    summary = {
+        "tickers": tickers_seen,
+        "contracts": contracts_done,
+        "buckets": buckets_written,
+    }
+    logger.info(
+        "intraday_refresh complete tickers=%d contracts=%d buckets=%d",
+        summary["tickers"],
+        summary["contracts"],
+        summary["buckets"],
+    )
+    return summary

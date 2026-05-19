@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from datetime import date as _date
+from datetime import datetime
 from decimal import Decimal
 
 from ._base import _preserve_public_module, _UwBase
@@ -13,6 +14,7 @@ class OiPerStrikeRow(_UwBase):
     strike: Decimal
     call_oi: int | None = None
     put_oi: int | None = None
+
 
 class OiChangeRow(_UwBase):
     underlying_symbol: str
@@ -52,6 +54,7 @@ class OiChangeRow(_UwBase):
     mid_volume: int | None = None
     no_side_volume: int | None = None
 
+
 class MaxPainRow(_UwBase):
     expiry: _date
     max_pain: Decimal | None = None
@@ -59,6 +62,7 @@ class MaxPainRow(_UwBase):
     open: Decimal | None = None
     next_upper_strike: Decimal | None = None
     next_lower_strike: Decimal | None = None
+
 
 class OptionContractRow(_UwBase):
     option_symbol: str
@@ -81,6 +85,7 @@ class OptionContractRow(_UwBase):
     high_price: Decimal | None = None
     low_price: Decimal | None = None
     total_premium: Decimal | None = None
+
 
 class OptionsDailyRow(_UwBase):
     """One row per trading day from UW /options-volume.
@@ -111,6 +116,7 @@ class OptionsDailyRow(_UwBase):
     avg_30_day_call_volume: Decimal | None = None
     avg_30_day_put_volume: Decimal | None = None
 
+
 class OptionChainPerStrikeRow(_UwBase):
     """Aggregated (expiry, strike) snapshot — both volume and OI in one row.
 
@@ -125,6 +131,53 @@ class OptionChainPerStrikeRow(_UwBase):
     put_oi: int | None = None
 
 
+class OptionContractIntradayBucket(_UwBase):
+    """One-minute intraday bar for a single option contract.
+
+    Source: UW ``/api/option-contract/{option_symbol}/intraday?date=YYYY-MM-DD``.
+    ~390 buckets per contract per session. Used to derive the tape-window /
+    sparkline / first-last-trade view on the OI movers table.
+    """
+
+    start_time: datetime
+    open: Decimal | None = None
+    high: Decimal | None = None
+    low: Decimal | None = None
+    close: Decimal | None = None
+    avg_price: Decimal | None = None
+    iv_high: Decimal | None = None
+    iv_low: Decimal | None = None
+    volume_ask_side: int | None = None
+    volume_bid_side: int | None = None
+    volume_mid_side: int | None = None
+    volume_multi: int | None = None
+    premium_ask_side: Decimal | None = None
+    premium_bid_side: Decimal | None = None
+    premium_mid_side: Decimal | None = None
+    premium_no_side: Decimal | None = None
+
+
+class OptionIntradayProfile(_UwBase):
+    """Derived per-contract intraday tape view for the OI movers table.
+
+    Built by ``cards.intraday_profile.derive_intraday_profile`` from persisted
+    :class:`OptionContractIntradayBucket` rows. Volume here is side-aggregated
+    (ask + bid + mid + multi). The 12-point sparkline is a fixed-length
+    downsample so the UI renders a stable width regardless of how many
+    minute bars the contract actually had.
+    """
+
+    option_symbol: str
+    trade_date: _date
+    total_volume: int = 0
+    first_trade_time: datetime | None = None
+    last_trade_time: datetime | None = None
+    peak_window_start: datetime | None = None
+    peak_window_end: datetime | None = None
+    peak_window_share_pct: Decimal | None = None
+    sparkline: list[int] = []
+
+
 _preserve_public_module(
     OiPerStrikeRow,
     OiChangeRow,
@@ -132,4 +185,6 @@ _preserve_public_module(
     OptionContractRow,
     OptionsDailyRow,
     OptionChainPerStrikeRow,
+    OptionContractIntradayBucket,
+    OptionIntradayProfile,
 )

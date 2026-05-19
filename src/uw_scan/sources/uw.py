@@ -16,8 +16,8 @@ from ..api.endpoints import EndpointSlug, build_path
 from ..models import (
     BulkScreenerRow,
     DarkPoolPrint,
-    EtfInOutflowRow,
     EtfInfo,
+    EtfInOutflowRow,
     FlowAlert,
     GreekExposureRow,
     GreeksRow,
@@ -26,6 +26,7 @@ from ..models import (
     MaxPainRow,
     OiChangeRow,
     OiPerStrikeRow,
+    OptionContractIntradayBucket,
     OptionContractRow,
     OptionsDailyRow,
     RealizedVolRow,
@@ -77,10 +78,18 @@ def _fetch_json(
     slug: EndpointSlug,
     ticker: str | None,
     params: dict[str, Any] | None = None,
+    *,
+    option_symbol: str | None = None,
 ) -> dict:
-    path = build_path(slug, ticker)
+    path = build_path(slug, ticker, option_symbol=option_symbol)
     started = datetime.now(UTC)
-    resp, _hdrs = client.get(slug, ticker=ticker, params=params, run_id=run_id)
+    resp, _hdrs = client.get(
+        slug,
+        ticker=ticker,
+        params=params,
+        run_id=run_id,
+        option_symbol=option_symbol,
+    )
     finished = datetime.now(UTC)
     body = resp.json()
     _persist_audit(
@@ -363,6 +372,30 @@ def fetch_option_contracts_by_symbol(
         params={"option_symbol[]": option_symbols},
     )
     return normalize.normalize_option_contracts_by_symbol(body)
+
+
+def fetch_option_contract_intraday(
+    client: UwClient,
+    repo: Repository,
+    run_id: int,
+    option_symbol: str,
+    date: str,
+) -> list[OptionContractIntradayBucket]:
+    """Per-minute intraday bars for a single option contract on a given date.
+
+    UW's OI delta is daily (premarket-published); this endpoint is the only
+    way to see when the volume that built that OI actually printed.
+    """
+    body = _fetch_json(
+        client,
+        repo,
+        run_id,
+        EndpointSlug.OPTION_CONTRACT_INTRADAY,
+        None,
+        params={"date": date},
+        option_symbol=option_symbol,
+    )
+    return normalize.normalize_option_contract_intraday(body)
 
 
 def fetch_options_volume_daily(

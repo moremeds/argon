@@ -1,5 +1,10 @@
 import type { components } from "@/lib/types";
-import { fmtDecimal, toNum } from "@/lib/formatters";
+import {
+  fmtDecimal,
+  fmtRelativeAgo,
+  fmtTimeOfDay,
+  toNum,
+} from "@/lib/formatters";
 import { describeAlertRule, UW_ALERT_RULES } from "@/lib/uw-alert-rules";
 
 type Alert = components["schemas"]["FlowAlert"];
@@ -31,10 +36,13 @@ function typeColor(t: string | null | undefined): string {
 export function TopAlertsTable({
   alerts,
   oiMoverIndex,
+  now = new Date(),
 }: {
   alerts: Alert[];
   // option_symbol → oi_diff_plain, used to render the cross-ref ΔOI badge
   oiMoverIndex?: Map<string, number>;
+  // Injectable for tests; defaults to render-time wall clock.
+  now?: Date;
 }) {
   const rows: AlertWithMover[] = [...alerts]
     .sort(
@@ -57,6 +65,9 @@ export function TopAlertsTable({
     >
       <thead>
         <tr style={{ color: "var(--text-muted)", textAlign: "left" }}>
+          <th title="Tape time when this alert fired (your local timezone).">
+            TIME
+          </th>
           <th>TYPE</th>
           <th>EXPIRY</th>
           <th>STRIKE</th>
@@ -110,6 +121,25 @@ export function TopAlertsTable({
       <tbody>
         {rows.map((a) => (
           <tr key={a.id} style={{ borderTop: "1px solid var(--border-dim)" }}>
+            <td
+              title={a.created_at ?? undefined}
+              style={{ whiteSpace: "nowrap" }}
+            >
+              <span style={{ color: "var(--text-primary)" }}>
+                {fmtTimeOfDay(a.created_at)}
+              </span>
+              {a.created_at && (
+                <span
+                  style={{
+                    marginLeft: 6,
+                    color: "var(--text-muted)",
+                    fontSize: 10,
+                  }}
+                >
+                  · {fmtRelativeAgo(a.created_at, now)}
+                </span>
+              )}
+            </td>
             <td style={{ color: typeColor(a.type) }}>{a.type ?? "—"}</td>
             <td>{a.expiry ?? "—"}</td>
             <td>{fmtStrike(a.strike)}</td>

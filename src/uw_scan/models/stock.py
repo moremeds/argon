@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from datetime import datetime
 from datetime import date as _date
+from datetime import datetime
 from decimal import Decimal
 
 from ._base import _preserve_public_module, _UwBase
@@ -13,6 +13,7 @@ from .options import (
     MaxPainRow,
     OiChangeRow,
     OptionChainPerStrikeRow,
+    OptionIntradayProfile,
     OptionsDailyRow,
 )
 from .scanner import MarketAggregates, MarketStructureLevels, StrikeGexBucket
@@ -30,6 +31,7 @@ class MarketStructure(_UwBase):
     top_call_oi_strikes: list[Decimal] = []
     top_put_oi_strikes: list[Decimal] = []
 
+
 class VolatilityProfile(_UwBase):
     iv: Decimal | None = None
     iv_rank: Decimal | None = None
@@ -44,10 +46,12 @@ class VolatilityProfile(_UwBase):
     skew_25d: Decimal | None = None
     term_dte_to_iv: list[tuple[int, Decimal]] = []
 
+
 class VRPAssessment(_UwBase):
     vrp: Decimal | None = None
     signal: str
     note: str
+
 
 class TradePlanLeg(_UwBase):
     option_symbol: str
@@ -56,6 +60,7 @@ class TradePlanLeg(_UwBase):
     expiry: _date
     mid: Decimal | None = None
 
+
 class TradePlan(_UwBase):
     structure: str
     direction: str
@@ -63,6 +68,7 @@ class TradePlan(_UwBase):
     rationale: str
     max_loss: Decimal | None = None
     max_profit: Decimal | None = None
+
 
 class StockHistoryRow(_UwBase):
     """One per-trading-day rollup of a ticker's market structure.
@@ -81,9 +87,11 @@ class StockHistoryRow(_UwBase):
     pcr_vol: Decimal | None = None
     bias: str = "NEUTRAL"
 
+
 class StockHistoryResponse(_UwBase):
     ticker: str
     rows: list[StockHistoryRow] = []
+
 
 class SingleStockReport(_UwBase):
     run_id: int
@@ -103,6 +111,11 @@ class SingleStockReport(_UwBase):
     short_data: ShortDataRow | None = None
     max_pain_rows: list[MaxPainRow] = []
     oi_change_top: list[OiChangeRow] = []
+    # Per-contract intraday TAPE view (peak window, first/last trade,
+    # sparkline) for the top OI movers — derived from persisted UW
+    # per-minute intraday bars by ``cards.intraday_profile``. Empty when
+    # the intraday refresh job hasn't filled the cache yet.
+    oi_change_intraday_profiles: list[OptionIntradayProfile] = []
     aggregates: MarketAggregates | None = None
     strike_gex_curve: list[StrikeGexBucket] = []
     market_structure_levels: MarketStructureLevels | None = None

@@ -40,6 +40,9 @@ from uw_scan.worker.jobs.gold_jobs import (
     gold_wgc_cb_ingest_job,
 )
 from uw_scan.worker.jobs.ohlc_pull import ohlc_pull_once
+from uw_scan.worker.jobs.option_intraday_jobs import (
+    refresh_intraday_for_top_oi_movers,
+)
 from uw_scan.worker.jobs.rescan_loop import rescan_tick
 from uw_scan.worker.jobs.spot_refresh import spot_refresh_once
 from uw_scan.worker.jobs.trade_insights_ai import trade_insights_ai_tick
@@ -336,6 +339,25 @@ def main() -> int:
                         lock_key=91501 + settings.worker_index,
                     )
 
+    def _intraday_oi_refresh() -> None:
+        # UW publishes the OI delta premarket (~6:45 ET). At 9 ET we fetch
+        # the previous session's per-minute bars for each ticker's top
+        # OI movers so the API can derive the TAPE column (peak window /
+        # sparkline / first-last trade) without hitting UW at request time.
+        with _external_api_recorder(settings) as recorder:
+            with _uw_client(
+                settings,
+                telemetry_recorder=recorder,
+                job_name="intraday_oi_refresh",
+            ) as uw:
+                with _repo(settings) as repo:
+                    refresh_intraday_for_top_oi_movers(
+                        repo=repo,
+                        client=uw,
+                        settings=settings,
+                        ticker_filter=ticker_filter,
+                    )
+
     def _cockpit_daily_snapshot() -> None:
         with _external_api_recorder(settings) as recorder:
             with _uw_client(
@@ -535,6 +557,17 @@ def main() -> int:
             name="Nightly Flow tab data refresh",
         )
         if _is_primary_worker(settings):
+            # Intraday OI refresh — UW-bound, single-flight advisory lock,
+            # primary-uw-only to avoid duplicate UW spend across shards. Runs
+            # at 9 ET so UW's premarket OI publish has settled.
+            sched.add_job(
+                _intraday_oi_refresh,
+                CronTrigger.from_crontab("0 9 * * 0-4", timezone=settings.rth_tz),
+                id="intraday_oi_refresh",
+                name="Intraday OI mover refresh",
+                max_instances=1,
+                coalesce=True,
+            )
             # Cockpit nightly snapshot — UW-bound (greeks/IV/RV/skew) and
             # single-flight via pg_try_advisory_lock; only the primary uw
             # worker schedules it to avoid duplicate UW spend.
