@@ -28,6 +28,64 @@ const COMPONENT_TOOLTIPS: Record<string, string> = {
     "SPX distance below 100-day MA combined with VIX 5-day rate of change. Captures trend stress + vol acceleration.",
 };
 
+// Reference markers per component. Values are in *score units* (0–25 scale).
+// Keyed by the JSON component slot (matches cri.components keys), NOT the
+// display label — so renaming MOMENTUM → TREND BREAK doesn't silently break
+// the lookup. Source: docs/research/regime/cri-methodology.md §6.
+type ComponentSlot = "vix" | "vvix" | "correlation" | "momentum";
+const COMPONENT_REFERENCES: Record<
+  ComponentSlot,
+  { mid: { score: number; label: string } }
+> = {
+  vix: { mid: { score: 5.0, label: "VIX 23" } },
+  vvix: { mid: { score: 6.7, label: "VVIX 110" } },
+  correlation: { mid: { score: 13.0, label: "COR1M 60" } },
+  momentum: { mid: { score: 7.5, label: "-3% MA" } },
+};
+
+// Mirror the Python scoring math from src/uw_scan/cards/cri_scoring.py so we
+// can draw the prior-day dot on each ComponentBar. Floors/ceilings MUST match
+// cri-methodology.md §3.
+function priorComponentScore(
+  prior: CriHistoryEntry | undefined,
+  slot: ComponentSlot,
+): number | null {
+  if (!prior) return null;
+  const clip = (x: number, lo: number, hi: number) =>
+    Math.max(lo, Math.min(hi, x));
+  const round1 = (x: number) => Math.round(x * 10) / 10;
+  if (slot === "vix") {
+    if (prior.vix == null || prior.vix_5d_roc == null) return null;
+    const lvl = clip(((prior.vix - 15) / 25) * 15, 0, 15);
+    const roc = clip((Math.max(prior.vix_5d_roc, 0) / 60) * 10, 0, 10);
+    return round1(lvl + roc);
+  }
+  if (slot === "vvix") {
+    if (prior.vvix == null || prior.vix == null || prior.vix <= 0) return null;
+    const ratio = prior.vvix / prior.vix;
+    const lvl = clip(((prior.vvix - 85) / 45) * 12, 0, 12);
+    const r = clip(((ratio - 5) / 3) * 7, 0, 7);
+    // vvix_5d_roc was added recently — historical snapshots may not have it.
+    const rocRaw = prior.vvix_5d_roc ?? 0;
+    const roc = clip((Math.max(rocRaw, 0) / 25) * 6, 0, 6);
+    return round1(lvl + r + roc);
+  }
+  if (slot === "correlation") {
+    if (prior.cor1m == null) return null;
+    const lvl = clip(((prior.cor1m - 25) / 45) * 17, 0, 17);
+    const chg = prior.cor1m_5d_change ?? 0;
+    const spike = clip((Math.max(chg, 0) / 20) * 8, 0, 8);
+    return round1(lvl + spike);
+  }
+  if (slot === "momentum") {
+    if (prior.spx_vs_ma_pct == null) return null;
+    const d = prior.spx_vs_ma_pct;
+    if (d >= 0) return 0;
+    return round1((Math.min(Math.abs(d), 10) / 10) * 25);
+  }
+  return null;
+}
+
 const SECTION_TOOLTIPS: Record<string, string> = {
   "CRI COMPONENTS":
     "Crash Risk Index broken into 4 sub-scores (0-25 each, 100 total). VIX/VVIX measure implied vol stress. Correlation tracks COR1M herding. Momentum captures SPX trend breakdown.",
@@ -67,11 +125,15 @@ function fmtSigned(v: number | null | undefined, decimals = 2): string {
 
 function ComponentBar({
   label,
+  slot,
   score,
+  priorScore,
   live,
 }: {
   label: string;
+  slot: ComponentSlot;
   score: number;
+  priorScore?: number | null;
   live: boolean;
 }) {
   const pct = (score / 25) * 100;
@@ -82,6 +144,12 @@ function ComponentBar({
         ? "var(--negative)"
         : "var(--warning)";
   const tooltip = COMPONENT_TOOLTIPS[label];
+  const ref = COMPONENT_REFERENCES[slot];
+  const midPct = ref ? (ref.mid.score / 25) * 100 : null;
+  const priorPct =
+    priorScore != null && Number.isFinite(priorScore)
+      ? (Math.max(0, Math.min(25, priorScore)) / 25) * 100
+      : null;
   return (
     <div className="regime-component-bar">
       <div className="regime-component-label">
@@ -89,11 +157,43 @@ function ComponentBar({
         {tooltip && <InfoTooltip text={tooltip} />}
         <LiveBadge live={live} />
       </div>
-      <div className="regime-bar-track">
+      <div className="regime-bar-track" style={{ position: "relative" }}>
         <div
           className="regime-bar-fill"
           style={{ width: `${pct}%`, background: barColor }}
         />
+        {midPct != null && ref ? (
+          <div
+            className="regime-bar-tick"
+            style={{
+              position: "absolute",
+              left: `${midPct}%`,
+              top: 0,
+              bottom: 0,
+              width: 1,
+              background: "var(--text-muted)",
+              opacity: 0.5,
+            }}
+            title={ref.mid.label}
+          />
+        ) : null}
+        {priorPct != null ? (
+          <div
+            className="regime-bar-prior"
+            style={{
+              position: "absolute",
+              left: `${priorPct}%`,
+              top: "50%",
+              transform: "translate(-50%, -50%)",
+              width: 6,
+              height: 6,
+              borderRadius: "50%",
+              background: "var(--text-primary)",
+              opacity: 0.7,
+            }}
+            title={`Prior: ${(priorScore as number).toFixed(1)}`}
+          />
+        ) : null}
       </div>
       <div className="regime-component-score">{score.toFixed(1)}/25</div>
     </div>
@@ -416,6 +516,9 @@ export function CriSubTabView({
 
   // History payload is the 20-session window (oldest → newest).
   const liveValues = useMemo(() => ({}), []);
+  // Second-to-last row drives the prior-day dot on each ComponentBar.
+  const priorHistory =
+    history.length >= 2 ? history[history.length - 2] : undefined;
 
   return (
     <div className="regime-panel" data-testid="cri-subtab">
@@ -532,16 +635,32 @@ export function CriSubTabView({
             CRI COMPONENTS
             <InfoTooltip text={SECTION_TOOLTIPS["CRI COMPONENTS"]} />
           </div>
-          <ComponentBar label="VIX" score={components.vix} live={live} />
-          <ComponentBar label="VVIX" score={components.vvix} live={live} />
+          <ComponentBar
+            label="VIX"
+            slot="vix"
+            score={components.vix}
+            priorScore={priorComponentScore(priorHistory, "vix")}
+            live={live}
+          />
+          <ComponentBar
+            label="VVIX"
+            slot="vvix"
+            score={components.vvix}
+            priorScore={priorComponentScore(priorHistory, "vvix")}
+            live={live}
+          />
           <ComponentBar
             label="CORRELATION"
+            slot="correlation"
             score={components.correlation}
+            priorScore={priorComponentScore(priorHistory, "correlation")}
             live={live}
           />
           <ComponentBar
             label="MOMENTUM"
+            slot="momentum"
             score={components.momentum}
+            priorScore={priorComponentScore(priorHistory, "momentum")}
             live={live}
           />
         </div>
