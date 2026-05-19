@@ -264,6 +264,13 @@ def run_analysis(
     else:
         vix_5d_roc = 0.0
 
+    # VVIX 5-day RoC (%) — leading indicator of tail-hedging demand.
+    # See docs/research/regime/cri-methodology.md §3 (VVIX).
+    if len(vvix) >= 6 and vvix[-6] > 0:
+        vvix_5d_roc = (vvix[-1] / vvix[-6] - 1) * 100
+    else:
+        vvix_5d_roc = 0.0
+
     vvix_vix_ratio = vvix_now / vix_now if vix_now > 0 else float("nan")
 
     # SPX vs 100d MA (using SPY as the SPX proxy — UW/lake don't give us a
@@ -315,6 +322,14 @@ def run_analysis(
             day_vix_roc = (vix[i] / vix[i - 5] - 1) * 100
         else:
             day_vix_roc = 0.0
+        if i >= 5 and vvix[i - 5] > 0:
+            day_vvix_roc = (vvix[i] / vvix[i - 5] - 1) * 100
+        else:
+            day_vvix_roc = 0.0
+        if i >= 5 and not math.isnan(float(cor1m_values[i - 5])):
+            day_cor1m_5d_chg = float(cor1m_values[i]) - float(cor1m_values[i - 5])
+        else:
+            day_cor1m_5d_chg = 0.0
         if i >= VOL_WINDOW:
             day_rvol = compute_realized_vol(spy[: i + 1], VOL_WINDOW)
         else:
@@ -331,6 +346,8 @@ def run_analysis(
                 else None,
                 "spx_vs_ma_pct": round(float(day_dist), 2),
                 "vix_5d_roc": round(float(day_vix_roc), 1),
+                "vvix_5d_roc": round(float(day_vvix_roc), 1),
+                "cor1m_5d_change": round(float(day_cor1m_5d_chg), 2),
             }
         )
 
@@ -340,6 +357,7 @@ def run_analysis(
         "vvix": round(vvix_now, 2),
         "spy": round(spy_now, 2),
         "vix_5d_roc": round(float(vix_5d_roc), 1),
+        "vvix_5d_roc": round(float(vvix_5d_roc), 1),
         "vvix_vix_ratio": round(float(vvix_vix_ratio), 2)
         if not math.isnan(vvix_vix_ratio)
         else None,

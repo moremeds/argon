@@ -207,3 +207,23 @@ def test_run_analysis_history_dates_monotonic() -> None:
     out = run_analysis(aligned, dates)
     hist_dates = [h["date"] for h in out["history"]]
     assert hist_dates == sorted(hist_dates)
+
+
+def test_run_analysis_exposes_vvix_5d_roc() -> None:
+    """run_analysis should emit vvix_5d_roc alongside vix_5d_roc."""
+    n = 140
+    aligned = {
+        "VIX": np.full(n, 18.0),
+        "VVIX": np.linspace(80.0, 100.0, n),  # rising ~25% over the full window
+        "SPY": np.full(n, 500.0),
+        "COR1M": np.full(n, 30.0),
+    }
+    common_dates = [f"2024-01-{i:02d}" for i in range(1, n + 1)]
+    payload = run_analysis(aligned, common_dates)
+    assert "vvix_5d_roc" in payload
+    # Last 5 sessions of a 140-step linspace 80→100: 0.7%-ish RoC
+    assert 0.0 < payload["vvix_5d_roc"] < 2.0
+    # Per-row history must also carry the new fields used by the UI prior-dot
+    last_row = payload["history"][-1]
+    assert "vvix_5d_roc" in last_row
+    assert "cor1m_5d_change" in last_row
