@@ -1,10 +1,31 @@
 from __future__ import annotations
 
+import os
 from datetime import datetime, timedelta, timezone
 
 import psycopg
+import pytest
 
+from uw_scan.config import Settings
 from uw_scan.storage.repository import Repository
+
+
+def _test_db_dsn() -> str:
+    """Rebuild the test DSN from Settings (mirrors conftest._test_settings).
+
+    Cannot rely on `repo.conn.info.dsn` for opening a second connection: in
+    CI's pytest-postgresql setup, conn.info.dsn doesn't carry the auth
+    credentials that the original connect() pulled from environment.
+    """
+    test_db = os.environ.get("UW_SCAN_TEST_DB_NAME")
+    if not test_db:
+        pytest.fail(
+            "UW_SCAN_TEST_DB_NAME not set; refusing to point integration "
+            "tests at the working DB.",
+            pytrace=False,
+        )
+    os.environ.setdefault("UW_SCAN_API_KEY", "test-dummy-not-used-by-db-tests")
+    return Settings.from_env().model_copy(update={"db_name": test_db}).db_dsn()
 
 
 def _create_snapshot(repo, *, ticker: str = "TSLA", input_hash: str = "ti-hash"):
@@ -287,8 +308,7 @@ def test_two_concurrent_claimers_get_distinct_rows(seeded_db_empty_cards):
     repo.conn.commit()
 
     # Open a second connection on the same DSN — simulates a separate worker.
-    dsn = repo.conn.info.dsn
-    conn_b = psycopg.connect(dsn)
+    conn_b = psycopg.connect(_test_db_dsn())
     try:
         repo_b = Repository(conn_b, schema=repo._schema)
 
