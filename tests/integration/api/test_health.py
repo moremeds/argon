@@ -96,6 +96,21 @@ def test_health_reports_expected_provider_workers(seeded_db_with_cards):
     assert workers["worker:massive:1"].label == "Massive 2"
 
 
+def test_repository_get_heartbeats_returns_mapping_for_present_names(
+    seeded_db_empty_cards,
+):
+    seeded_db_empty_cards.upsert_heartbeat("worker:uw:0")
+    seeded_db_empty_cards.upsert_heartbeat("worker:massive:1")
+
+    heartbeats = seeded_db_empty_cards.get_heartbeats(
+        ["worker:uw:0", "worker:uw:1", "worker:massive:1"]
+    )
+
+    assert set(heartbeats) == {"worker:uw:0", "worker:massive:1"}
+    assert heartbeats["worker:uw:0"].tzinfo is not None
+    assert seeded_db_empty_cards.get_heartbeats([]) == {}
+
+
 def test_health_includes_uw_provider_usage_stats(client, seeded_db_empty_cards):
     now = datetime.now(UTC)
     seeded_db_empty_cards.insert_external_api_request(

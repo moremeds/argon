@@ -108,28 +108,37 @@ def _worker_health_rows(
     uw_count: int,
     massive_count: int,
 ) -> list[WorkerHealth]:
-    rows: list[WorkerHealth] = []
+    expected_workers: list[tuple[str, Literal["uw", "massive"], int, str]] = []
     for role, count, label_prefix in (
         ("uw", uw_count, "UW"),
         ("massive", massive_count, "Massive"),
     ):
         for index in range(max(0, count)):
-            heartbeat_name = f"worker:{role}:{index}"
-            last_beat_at = repo.get_heartbeat(heartbeat_name)
-            rows.append(
-                WorkerHealth(
-                    label=f"{label_prefix} {index + 1}",
-                    role=role,
-                    index=index,
-                    heartbeat_name=heartbeat_name,
-                    last_beat_at=last_beat_at,
-                    lag_seconds=(
-                        (now_utc - last_beat_at).total_seconds()
-                        if last_beat_at is not None
-                        else None
-                    ),
-                )
+            expected_workers.append(
+                (f"{label_prefix} {index + 1}", role, index, f"worker:{role}:{index}")
             )
+
+    heartbeats = repo.get_heartbeats(
+        heartbeat_name for _, _, _, heartbeat_name in expected_workers
+    )
+
+    rows: list[WorkerHealth] = []
+    for label, role, index, heartbeat_name in expected_workers:
+        last_beat_at = heartbeats.get(heartbeat_name)
+        rows.append(
+            WorkerHealth(
+                label=label,
+                role=role,
+                index=index,
+                heartbeat_name=heartbeat_name,
+                last_beat_at=last_beat_at,
+                lag_seconds=(
+                    (now_utc - last_beat_at).total_seconds()
+                    if last_beat_at is not None
+                    else None
+                ),
+            )
+        )
     return rows
 
 
