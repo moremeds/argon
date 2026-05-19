@@ -29,6 +29,7 @@ class EndpointSlug(StrEnum):
     MAX_PAIN = "max_pain"
     OPTION_CONTRACTS = "option_contracts"
     OPTION_CONTRACTS_BY_SYMBOL = "option_contracts_by_symbol"
+    OPTION_CONTRACT_INTRADAY = "option_contract_intraday"
     DARKPOOL_TICKER = "darkpool_ticker"
     SHORT_DATA = "short_data"
     BULK_SCREENER_STOCKS = "bulk_screener_stocks"
@@ -109,6 +110,11 @@ REGISTRY: dict[EndpointSlug, Endpoint] = {
         "/api/stock/{ticker}/option-contracts",
         ("option_symbol[]",),
     ),
+    EndpointSlug.OPTION_CONTRACT_INTRADAY: Endpoint(
+        EndpointSlug.OPTION_CONTRACT_INTRADAY,
+        "/api/option-contract/{option_symbol}/intraday",
+        ("date",),
+    ),
     EndpointSlug.DARKPOOL_TICKER: Endpoint(
         EndpointSlug.DARKPOOL_TICKER, "/api/darkpool/{ticker}", ()
     ),
@@ -137,11 +143,20 @@ REGISTRY: dict[EndpointSlug, Endpoint] = {
 }
 
 
-def build_path(slug: EndpointSlug, ticker: str | None = None) -> str:
-    """Render an endpoint path with optional ticker substitution."""
+def build_path(
+    slug: EndpointSlug,
+    ticker: str | None = None,
+    *,
+    option_symbol: str | None = None,
+) -> str:
+    """Render an endpoint path with optional ticker or option_symbol substitution."""
     template = REGISTRY[slug].path_template
     if "{ticker}" in template:
         if not ticker:
             raise ValueError(f"endpoint {slug} requires a ticker")
         return template.replace("{ticker}", ticker.upper())
+    if "{option_symbol}" in template:
+        if not option_symbol:
+            raise ValueError(f"endpoint {slug} requires an option_symbol")
+        return template.replace("{option_symbol}", option_symbol.upper())
     return template

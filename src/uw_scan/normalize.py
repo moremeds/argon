@@ -11,8 +11,8 @@ from decimal import Decimal
 from .models import (
     BulkScreenerRow,
     DarkPoolPrint,
-    EtfInOutflowRow,
     EtfInfo,
+    EtfInOutflowRow,
     FlowAlert,
     GreekExposureRow,
     GreeksRow,
@@ -21,6 +21,7 @@ from .models import (
     MaxPainRow,
     OiChangeRow,
     OiPerStrikeRow,
+    OptionContractIntradayBucket,
     OptionContractRow,
     OptionsDailyRow,
     RealizedVolRow,
@@ -152,6 +153,13 @@ def normalize_option_contracts_by_symbol(payload: dict) -> list[OptionContractRo
     return normalize_option_contracts(payload)
 
 
+def normalize_option_contract_intraday(
+    payload: dict,
+) -> list[OptionContractIntradayBucket]:
+    rows = _data_list(payload)
+    return [OptionContractIntradayBucket(**r) for r in rows]
+
+
 def normalize_darkpool_ticker(payload: dict) -> list[DarkPoolPrint]:
     rows = _data_list(payload)
     return [DarkPoolPrint(**r) for r in rows]
@@ -199,7 +207,9 @@ def normalize_etf_info(payload: dict) -> EtfInfo:
 
 
 def normalize_etf_in_outflow(payload: dict, *, ticker: str) -> list[EtfInOutflowRow]:
-    return [EtfInOutflowRow(ticker=ticker.upper(), **row) for row in _data_list(payload)]
+    return [
+        EtfInOutflowRow(ticker=ticker.upper(), **row) for row in _data_list(payload)
+    ]
 
 
 # ---------------------------------------------------------------------------
