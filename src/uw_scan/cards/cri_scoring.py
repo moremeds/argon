@@ -86,13 +86,28 @@ def score_vix_component(vix: float, vix_5d_roc: float) -> float:
     return float(np.clip(level_score + roc_score, 0.0, 25.0))
 
 
-def score_vvix_component(vvix: float, vvix_vix_ratio: float) -> float:
-    """Score VVIX component (0-25)."""
+def score_vvix_component(
+    vvix: float, vvix_vix_ratio: float, vvix_5d_roc: float
+) -> float:
+    """Score VVIX component (0-25).
+
+    Three sub-scores; see docs/research/regime/cri-methodology.md §3 for rationale.
+      - level  (0-12): VVIX absolute level, clipped 85→130
+      - ratio  (0-7):  VVIX/VIX ratio, clipped 5→8 (practitioner warning band)
+      - roc    (0-6):  VVIX 5d rate-of-change, one-sided, clipped 0→25%
+
+    NaN policy: missing VVIX or ratio collapses the whole score to 0
+    (calibration assumes both are present). NaN RoC is treated as 0 — it's
+    an enhancement, not a gate.
+    """
     if math.isnan(vvix) or math.isnan(vvix_vix_ratio):
         return 0.0
-    level_score = np.clip((vvix - 90.0) / (140.0 - 90.0) * 17.0, 0.0, 17.0)
-    ratio_score = np.clip((vvix_vix_ratio - 5.0) / (8.0 - 5.0) * 8.0, 0.0, 8.0)
-    return float(np.clip(level_score + ratio_score, 0.0, 25.0))
+    if math.isnan(vvix_5d_roc):
+        vvix_5d_roc = 0.0
+    level_score = np.clip((vvix - 85.0) / (130.0 - 85.0) * 12.0, 0.0, 12.0)
+    ratio_score = np.clip((vvix_vix_ratio - 5.0) / (8.0 - 5.0) * 7.0, 0.0, 7.0)
+    roc_score = np.clip(max(vvix_5d_roc, 0.0) / 25.0 * 6.0, 0.0, 6.0)
+    return float(np.clip(level_score + ratio_score + roc_score, 0.0, 25.0))
 
 
 def score_correlation_component(corr: float, corr_5d_change: float) -> float:
@@ -135,13 +150,14 @@ def compute_cri(
     vix_5d_roc: float,
     vvix: float,
     vvix_vix_ratio: float,
+    vvix_5d_roc: float,
     corr: float,
     corr_5d_change: float,
     spx_distance_pct: float,
 ) -> dict[str, Any]:
     """Composite 0-100 score from the four components."""
     vix_score = score_vix_component(vix, vix_5d_roc)
-    vvix_score = score_vvix_component(vvix, vvix_vix_ratio)
+    vvix_score = score_vvix_component(vvix, vvix_vix_ratio, vvix_5d_roc)
     corr_score = score_correlation_component(corr, corr_5d_change)
     momentum_score = score_momentum_component(spx_distance_pct)
     total = float(
@@ -296,6 +312,7 @@ def run_analysis(
         vix_5d_roc=float(vix_5d_roc),
         vvix=vvix_now,
         vvix_vix_ratio=float(vvix_vix_ratio),
+        vvix_5d_roc=float(vvix_5d_roc),
         corr=cor1m_now,
         corr_5d_change=cor1m_5d_change,
         spx_distance_pct=float(spx_distance_pct),

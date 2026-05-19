@@ -39,12 +39,40 @@ def test_score_vix_nan_returns_zero() -> None:
 
 
 def test_score_vvix_zero_at_baseline() -> None:
-    assert score_vvix_component(90.0, 5.0) == pytest.approx(0.0)
+    # VVIX 85, ratio 5.0, RoC 0 → all sub-scores 0
+    assert score_vvix_component(85.0, 5.0, 0.0) == pytest.approx(0.0)
 
 
 def test_score_vvix_max_at_extreme() -> None:
-    # VVIX 140 → level 17; ratio 8 → ratio 8; total 25
-    assert score_vvix_component(140.0, 8.0) == pytest.approx(25.0)
+    # VVIX 130 → level 12; ratio 8 → ratio 7; RoC 25 → roc 6; total 25
+    assert score_vvix_component(130.0, 8.0, 25.0) == pytest.approx(25.0)
+    assert score_vvix_component(200.0, 10.0, 50.0) == pytest.approx(25.0)
+
+
+def test_score_vvix_level_only() -> None:
+    # VVIX 110, ratio 5.0, RoC 0 → level only
+    # (110-85)/45 * 12 = 25/45 * 12 = 6.666...
+    assert score_vvix_component(110.0, 5.0, 0.0) == pytest.approx(6.67, abs=0.01)
+
+
+def test_score_vvix_roc_only() -> None:
+    # VVIX 85, ratio 5.0, RoC 12.5 → roc only
+    # 12.5/25 * 6 = 3.0
+    assert score_vvix_component(85.0, 5.0, 12.5) == pytest.approx(3.0, abs=0.01)
+
+
+def test_score_vvix_roc_one_sided() -> None:
+    # Negative RoC should not add (or subtract) any points
+    assert score_vvix_component(85.0, 5.0, -50.0) == pytest.approx(0.0)
+
+
+def test_score_vvix_nan_inputs() -> None:
+    assert score_vvix_component(float("nan"), 5.0, 0.0) == 0.0
+    assert score_vvix_component(95.0, float("nan"), 0.0) == 0.0
+    # NaN RoC should be treated as 0, not zero-out the whole score
+    assert score_vvix_component(110.0, 5.0, float("nan")) == pytest.approx(
+        6.67, abs=0.01
+    )
 
 
 def test_score_correlation_zero_below_threshold() -> None:
@@ -90,7 +118,8 @@ def test_compute_cri_calm_market_low() -> None:
         vix=14.0,
         vix_5d_roc=0.0,
         vvix=85.0,
-        vvix_vix_ratio=6.0,
+        vvix_vix_ratio=5.0,
+        vvix_5d_roc=0.0,
         corr=20.0,
         corr_5d_change=0.0,
         spx_distance_pct=5.0,
@@ -103,8 +132,9 @@ def test_compute_cri_critical_market() -> None:
     out = compute_cri(
         vix=40.0,
         vix_5d_roc=60.0,
-        vvix=140.0,
+        vvix=130.0,
         vvix_vix_ratio=8.0,
+        vvix_5d_roc=25.0,
         corr=70.0,
         corr_5d_change=20.0,
         spx_distance_pct=-12.0,
