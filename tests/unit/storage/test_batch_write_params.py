@@ -5,13 +5,16 @@ from decimal import Decimal
 
 from uw_scan import models
 from uw_scan.storage.flow import _flow_event_params
+from uw_scan.storage.flow import _FlowMixin
 from uw_scan.storage.options import (
+    _OptionsMixin,
     _greek_exposure_params,
     _greeks_params,
     _iv_term_params,
     _option_contract_params,
 )
 from uw_scan.storage.volatility_raw import (
+    _VolatilityRawMixin,
     _iv_rank_params,
     _realized_vol_params,
     _skew_params,
@@ -199,6 +202,196 @@ def test_options_param_builders_preserve_order_and_values():
             Decimal("36150"),
         )
     ]
+
+
+class _FakeCursor:
+    def __init__(self) -> None:
+        self.execute_calls: list[tuple[str, object | None]] = []
+        self.executemany_calls: list[tuple[str, list[tuple[object, ...]]]] = []
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *args):
+        return None
+
+    def execute(self, sql: str, params: object | None = None) -> None:
+        self.execute_calls.append((sql, params))
+
+    def executemany(self, sql: str, params: list[tuple[object, ...]]) -> None:
+        self.executemany_calls.append((sql, params))
+
+
+class _FakeConnection:
+    def __init__(self) -> None:
+        self.cursor_obj = _FakeCursor()
+
+    def cursor(self) -> _FakeCursor:
+        return self.cursor_obj
+
+
+class _FakeRepository(_OptionsMixin, _VolatilityRawMixin, _FlowMixin):
+    def __init__(self) -> None:
+        self._conn = _FakeConnection()
+        self._schema = "uw_scan"
+
+    @property
+    def fake_cursor(self) -> _FakeCursor:
+        return self._conn.cursor_obj
+
+
+def _sample_iv_rows() -> list[models.TermStructureRow]:
+    return [
+        models.TermStructureRow(
+            ticker="TSLA",
+            date=date(2026, 5, 18),
+            expiry=date(2026, 6, 19),
+            dte=32,
+            volatility=Decimal("0.42"),
+        ),
+        models.TermStructureRow(
+            ticker="TSLA",
+            date=date(2026, 5, 18),
+            expiry=date(2026, 7, 17),
+            dte=60,
+            volatility=Decimal("0.51"),
+        ),
+    ]
+
+
+def _sample_exposure_rows() -> list[models.GreekExposureRow]:
+    return [
+        models.GreekExposureRow(
+            date=date(2026, 5, 18),
+            expiry=date(2026, 6, 19),
+            strike=Decimal("450"),
+            dte=32,
+            call_gex=Decimal("1000"),
+        ),
+        models.GreekExposureRow(
+            date=date(2026, 5, 18),
+            expiry=date(2026, 6, 19),
+            strike=Decimal("460"),
+            dte=32,
+            call_gex=Decimal("1100"),
+        ),
+    ]
+
+
+def _sample_greeks_rows() -> list[models.GreeksRow]:
+    return [
+        models.GreeksRow(
+            date=date(2026, 5, 18),
+            expiry=date(2026, 6, 19),
+            strike=Decimal("450"),
+            call_delta=Decimal("0.51"),
+            put_delta=Decimal("-0.49"),
+        ),
+        models.GreeksRow(
+            date=date(2026, 5, 18),
+            expiry=date(2026, 6, 19),
+            strike=Decimal("460"),
+            call_delta=Decimal("0.45"),
+            put_delta=Decimal("-0.55"),
+        ),
+    ]
+
+
+def _sample_contract_rows() -> list[models.OptionContractRow]:
+    return [
+        models.OptionContractRow(
+            option_symbol="TSLA260619C00450000",
+            last_price=Decimal("12.1"),
+            volume=300,
+        ),
+        models.OptionContractRow(
+            option_symbol="TSLA260619P00450000",
+            last_price=Decimal("10.2"),
+            volume=200,
+        ),
+    ]
+
+
+def _sample_iv_rank_rows() -> list[models.IvRankRow]:
+    return [
+        models.IvRankRow(date=date(2026, 5, 18), close=Decimal("450")),
+        models.IvRankRow(date=date(2026, 5, 19), close=Decimal("455")),
+    ]
+
+
+def _sample_vol_stats_rows() -> list[models.VolStatsRow]:
+    return [
+        models.VolStatsRow(ticker="TSLA", date=date(2026, 5, 18), iv=Decimal("0.42")),
+        models.VolStatsRow(ticker="TSLA", date=date(2026, 5, 19), iv=Decimal("0.43")),
+    ]
+
+
+def _sample_realized_vol_rows() -> list[models.RealizedVolRow]:
+    return [
+        models.RealizedVolRow(date=date(2026, 5, 18), price=Decimal("450")),
+        models.RealizedVolRow(date=date(2026, 5, 19), price=Decimal("455")),
+    ]
+
+
+def _sample_skew_rows() -> list[models.SkewRow]:
+    return [
+        models.SkewRow(
+            ticker="TSLA",
+            date=date(2026, 5, 18),
+            delta=25,
+            expiry=date(2026, 6, 19),
+            risk_reversal=Decimal("-0.04"),
+        ),
+        models.SkewRow(
+            ticker="TSLA",
+            date=date(2026, 5, 18),
+            delta=25,
+            expiry=date(2026, 7, 17),
+            risk_reversal=Decimal("-0.05"),
+        ),
+    ]
+
+
+def _sample_flow_alerts() -> list[models.FlowAlert]:
+    return [
+        models.FlowAlert(
+            id="flow-1",
+            ticker="TSLA",
+            created_at=datetime(2026, 5, 18, 14, 30, tzinfo=UTC),
+            total_premium=Decimal("100"),
+        ),
+        models.FlowAlert(
+            id="flow-2",
+            ticker="TSLA",
+            created_at=datetime(2026, 5, 18, 14, 31, tzinfo=UTC),
+            total_premium=Decimal("200"),
+        ),
+    ]
+
+
+def _assert_single_executemany(repo: _FakeRepository, expected_count: int) -> None:
+    assert len(repo.fake_cursor.executemany_calls) == 1
+    assert len(repo.fake_cursor.executemany_calls[0][1]) == expected_count
+    assert repo.fake_cursor.execute_calls == []
+
+
+def test_batch_writer_methods_use_one_executemany_call_for_multi_row_inputs():
+    cases = [
+        lambda repo: repo.insert_iv_term_rows(1, _sample_iv_rows()),
+        lambda repo: repo.insert_greek_exposure_rows(1, "TSLA", _sample_exposure_rows()),
+        lambda repo: repo.insert_greeks_rows(1, "TSLA", _sample_greeks_rows()),
+        lambda repo: repo.insert_option_contract_rows(1, "TSLA", _sample_contract_rows()),
+        lambda repo: repo.upsert_iv_rank_rows("TSLA", _sample_iv_rank_rows()),
+        lambda repo: repo.upsert_volatility_stats_rows(_sample_vol_stats_rows()),
+        lambda repo: repo.upsert_realized_vol_rows("TSLA", _sample_realized_vol_rows()),
+        lambda repo: repo.upsert_skew_rows("TSLA", _sample_skew_rows()),
+        lambda repo: repo.insert_flow_events(1, "TSLA", _sample_flow_alerts()),
+    ]
+
+    for call_method in cases:
+        repo = _FakeRepository()
+        assert call_method(repo) == 2
+        _assert_single_executemany(repo, expected_count=2)
 
 
 def test_volatility_param_builders_preserve_order_and_values():

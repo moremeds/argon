@@ -194,6 +194,227 @@ def test_iv_rank_upsert_is_idempotent(repo: Repository):
     assert count == 2, "upsert duplicated rows"
 
 
+def test_batch_writer_methods_preserve_real_db_behavior(repo: Repository):
+    run_id = repo.insert_scan_run("TSLA")
+
+    assert repo.insert_iv_term_rows(run_id, []) == 0
+    assert repo.insert_greek_exposure_rows(run_id, "TSLA", []) == 0
+    assert repo.insert_greeks_rows(run_id, "TSLA", []) == 0
+    assert repo.insert_option_contract_rows(run_id, "TSLA", []) == 0
+    assert repo.upsert_iv_rank_rows("TSLA", []) == 0
+    assert repo.upsert_volatility_stats_rows([]) == 0
+    assert repo.upsert_realized_vol_rows("TSLA", []) == 0
+    assert repo.upsert_skew_rows("TSLA", []) == 0
+    assert repo.insert_flow_events(run_id, "TSLA", []) == 0
+
+    term_rows = [
+        models.TermStructureRow(
+            ticker="TSLA",
+            date=date(2026, 5, 18),
+            expiry=date(2026, 6, 19),
+            dte=32,
+            volatility=Decimal("0.42"),
+        ),
+        models.TermStructureRow(
+            ticker="TSLA",
+            date=date(2026, 5, 18),
+            expiry=date(2026, 7, 17),
+            dte=60,
+            volatility=Decimal("0.51"),
+        ),
+    ]
+    exposure_rows = [
+        models.GreekExposureRow(
+            date=date(2026, 5, 18),
+            expiry=date(2026, 6, 19),
+            strike=Decimal("450"),
+            call_gex=Decimal("1000"),
+        ),
+        models.GreekExposureRow(
+            date=date(2026, 5, 18),
+            expiry=date(2026, 6, 19),
+            strike=Decimal("460"),
+            call_gex=Decimal("1100"),
+        ),
+    ]
+    greeks_rows = [
+        models.GreeksRow(
+            date=date(2026, 5, 18),
+            expiry=date(2026, 6, 19),
+            strike=Decimal("450"),
+            call_delta=Decimal("0.51"),
+        ),
+        models.GreeksRow(
+            date=date(2026, 5, 18),
+            expiry=date(2026, 6, 19),
+            strike=Decimal("460"),
+            call_delta=Decimal("0.45"),
+        ),
+    ]
+    contract_rows = [
+        models.OptionContractRow(
+            option_symbol="TSLA260619C00450000",
+            last_price=Decimal("12.1"),
+            volume=300,
+        ),
+        models.OptionContractRow(
+            option_symbol="TSLA260619P00450000",
+            last_price=Decimal("10.2"),
+            volume=200,
+        ),
+    ]
+    iv_rank_rows = [
+        models.IvRankRow(date=date(2026, 5, 18), close=Decimal("450")),
+        models.IvRankRow(date=date(2026, 5, 19), close=Decimal("455")),
+    ]
+    vol_stats_rows = [
+        models.VolStatsRow(ticker="TSLA", date=date(2026, 5, 18), iv=Decimal("0.42")),
+        models.VolStatsRow(ticker="TSLA", date=date(2026, 5, 19), iv=Decimal("0.43")),
+    ]
+    realized_rows = [
+        models.RealizedVolRow(date=date(2026, 5, 18), price=Decimal("450")),
+        models.RealizedVolRow(date=date(2026, 5, 19), price=Decimal("455")),
+    ]
+    skew_rows = [
+        models.SkewRow(
+            ticker="TSLA",
+            date=date(2026, 5, 18),
+            delta=25,
+            expiry=date(2026, 6, 19),
+            risk_reversal=Decimal("-0.04"),
+        ),
+        models.SkewRow(
+            ticker="TSLA",
+            date=date(2026, 5, 18),
+            delta=25,
+            expiry=date(2026, 7, 17),
+            risk_reversal=Decimal("-0.05"),
+        ),
+    ]
+    flow_alerts = [
+        models.FlowAlert(
+            id="flow-1",
+            ticker="TSLA",
+            created_at=datetime(2026, 5, 18, 14, 30, tzinfo=UTC),
+            total_premium=Decimal("100"),
+        ),
+        models.FlowAlert(
+            id="flow-2",
+            ticker="TSLA",
+            created_at=datetime(2026, 5, 18, 14, 31, tzinfo=UTC),
+            total_premium=Decimal("200"),
+        ),
+    ]
+
+    writer_calls = [
+        lambda: repo.insert_iv_term_rows(run_id, term_rows),
+        lambda: repo.insert_greek_exposure_rows(run_id, "TSLA", exposure_rows),
+        lambda: repo.insert_greeks_rows(run_id, "TSLA", greeks_rows),
+        lambda: repo.insert_option_contract_rows(run_id, "TSLA", contract_rows),
+        lambda: repo.upsert_iv_rank_rows("TSLA", iv_rank_rows),
+        lambda: repo.upsert_volatility_stats_rows(vol_stats_rows),
+        lambda: repo.upsert_realized_vol_rows("TSLA", realized_rows),
+        lambda: repo.upsert_skew_rows("TSLA", skew_rows),
+        lambda: repo.insert_flow_events(run_id, "TSLA", flow_alerts),
+    ]
+    for call_writer in writer_calls:
+        assert call_writer() == 2
+        assert call_writer() == 2
+    repo.conn.commit()
+
+    with repo.conn.cursor() as cur:
+        cur.execute(
+            "SELECT expiry, volatility FROM uw_scan.iv_term_snapshots "
+            "WHERE run_id=%s ORDER BY expiry",
+            (run_id,),
+        )
+        assert cur.fetchall() == [
+            (date(2026, 6, 19), Decimal("0.42")),
+            (date(2026, 7, 17), Decimal("0.51")),
+        ]
+
+        cur.execute(
+            "SELECT strike, call_gex FROM uw_scan.exposures_by_expiry_strike "
+            "WHERE run_id=%s ORDER BY strike",
+            (run_id,),
+        )
+        assert cur.fetchall() == [
+            (Decimal("450"), Decimal("1000")),
+            (Decimal("460"), Decimal("1100")),
+        ]
+
+        cur.execute(
+            "SELECT strike, call_delta FROM uw_scan.greeks_by_expiry_strike "
+            "WHERE run_id=%s ORDER BY strike",
+            (run_id,),
+        )
+        assert cur.fetchall() == [
+            (Decimal("450"), Decimal("0.51")),
+            (Decimal("460"), Decimal("0.45")),
+        ]
+
+        cur.execute(
+            "SELECT option_symbol, last_price, volume "
+            "FROM uw_scan.option_contract_snapshots WHERE run_id=%s "
+            "ORDER BY option_symbol",
+            (run_id,),
+        )
+        assert cur.fetchall() == [
+            ("TSLA260619C00450000", Decimal("12.1"), 300),
+            ("TSLA260619P00450000", Decimal("10.2"), 200),
+        ]
+
+        cur.execute(
+            "SELECT market_date, close FROM uw_scan.iv_rank_history "
+            "WHERE ticker=%s ORDER BY market_date",
+            ("TSLA",),
+        )
+        assert cur.fetchall() == [
+            (date(2026, 5, 18), Decimal("450")),
+            (date(2026, 5, 19), Decimal("455")),
+        ]
+
+        cur.execute(
+            "SELECT market_date, iv FROM uw_scan.volatility_stats_history "
+            "WHERE ticker=%s ORDER BY market_date",
+            ("TSLA",),
+        )
+        assert cur.fetchall() == [
+            (date(2026, 5, 18), Decimal("0.42")),
+            (date(2026, 5, 19), Decimal("0.43")),
+        ]
+
+        cur.execute(
+            "SELECT market_date, price FROM uw_scan.realized_volatility_history "
+            "WHERE ticker=%s ORDER BY market_date",
+            ("TSLA",),
+        )
+        assert cur.fetchall() == [
+            (date(2026, 5, 18), Decimal("450")),
+            (date(2026, 5, 19), Decimal("455")),
+        ]
+
+        cur.execute(
+            "SELECT expiry, risk_reversal FROM uw_scan.risk_reversal_skew_history "
+            "WHERE ticker=%s ORDER BY expiry",
+            ("TSLA",),
+        )
+        assert cur.fetchall() == [
+            (date(2026, 6, 19), Decimal("-0.04")),
+            (date(2026, 7, 17), Decimal("-0.05")),
+        ]
+
+        cur.execute(
+            "SELECT alert_id, flow_footprint_label FROM uw_scan.flow_events "
+            "WHERE run_id=%s ORDER BY alert_id",
+            (run_id,),
+        )
+        assert cur.fetchall() == [
+            ("flow-1", "unclassified"),
+            ("flow-2", "unclassified"),
+        ]
+
+
 def test_opportunity_scores_persisted_with_text_array(repo: Repository):
     run_id = repo.insert_scan_run("TSLA")
     repo.insert_opportunity_score(

@@ -77,12 +77,9 @@ class _VolatilityRawMixin:
             "close=EXCLUDED.close, volatility=EXCLUDED.volatility, "
             "iv_rank_1y=EXCLUDED.iv_rank_1y, updated_at_src=EXCLUDED.updated_at_src"
         )
+        params = _iv_rank_params(ticker, rows)
         with self._conn.cursor() as cur:
-            for r in rows:
-                cur.execute(
-                    sql,
-                    (ticker, r.date, r.close, r.volatility, r.iv_rank_1y, r.updated_at),
-                )
+            cur.executemany(sql, params)
         return len(rows)
 
     def upsert_volatility_stats_rows(self, rows: Iterable[models.VolStatsRow]) -> int:
@@ -98,22 +95,9 @@ class _VolatilityRawMixin:
             "iv_rank=EXCLUDED.iv_rank, rv=EXCLUDED.rv, rv_low=EXCLUDED.rv_low, "
             "rv_high=EXCLUDED.rv_high"
         )
+        params = _volatility_stats_params(rows)
         with self._conn.cursor() as cur:
-            for r in rows:
-                cur.execute(
-                    sql,
-                    (
-                        r.ticker,
-                        r.date,
-                        r.iv,
-                        r.iv_low,
-                        r.iv_high,
-                        r.iv_rank,
-                        r.rv,
-                        r.rv_low,
-                        r.rv_high,
-                    ),
-                )
+            cur.executemany(sql, params)
         return len(rows)
 
     def upsert_realized_vol_rows(
@@ -131,19 +115,9 @@ class _VolatilityRawMixin:
             "realized_volatility=EXCLUDED.realized_volatility, "
             "unshifted_rv_date=EXCLUDED.unshifted_rv_date"
         )
+        params = _realized_vol_params(ticker, rows)
         with self._conn.cursor() as cur:
-            for r in rows:
-                cur.execute(
-                    sql,
-                    (
-                        ticker,
-                        r.date,
-                        r.price,
-                        r.implied_volatility,
-                        r.realized_volatility,
-                        r.unshifted_rv_date,
-                    ),
-                )
+            cur.executemany(sql, params)
         return len(rows)
 
     def upsert_skew_rows(self, ticker: str, rows: Iterable[models.SkewRow]) -> int:
@@ -157,12 +131,9 @@ class _VolatilityRawMixin:
             "ON CONFLICT (ticker, market_date, delta, expiry) DO UPDATE SET "
             "risk_reversal=EXCLUDED.risk_reversal"
         )
+        params = _skew_params(ticker, rows)
         with self._conn.cursor() as cur:
-            for r in rows:
-                cur.execute(
-                    sql,
-                    (ticker, r.date, r.delta, r.expiry, r.risk_reversal),
-                )
+            cur.executemany(sql, params)
         return len(rows)
 
     # ------------------------------------------------------------------

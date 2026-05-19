@@ -136,21 +136,9 @@ class _OptionsMixin:
             "VALUES (%s, %s, %s, %s, %s, %s, %s, %s) "
             "ON CONFLICT (run_id, ticker, expiry) DO NOTHING"
         )
+        params = _iv_term_params(run_id, rows)
         with self._conn.cursor() as cur:
-            for r in rows:
-                cur.execute(
-                    sql,
-                    (
-                        run_id,
-                        r.ticker,
-                        r.date,
-                        r.expiry,
-                        r.dte,
-                        r.volatility,
-                        r.implied_move,
-                        r.implied_move_perc,
-                    ),
-                )
+            cur.executemany(sql, params)
         return len(rows)
 
     def insert_interpolated_iv_rows(
@@ -195,27 +183,9 @@ class _OptionsMixin:
             "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) "
             "ON CONFLICT (run_id, ticker, expiry, strike) DO NOTHING"
         )
+        params = _greek_exposure_params(run_id, ticker, rows)
         with self._conn.cursor() as cur:
-            for r in rows:
-                cur.execute(
-                    sql,
-                    (
-                        run_id,
-                        ticker,
-                        r.date,
-                        r.expiry,
-                        r.strike,
-                        r.dte,
-                        r.call_delta,
-                        r.put_delta,
-                        r.call_gex,
-                        r.put_gex,
-                        r.call_vanna,
-                        r.put_vanna,
-                        r.call_charm,
-                        r.put_charm,
-                    ),
-                )
+            cur.executemany(sql, params)
         return len(rows)
 
     def insert_greeks_rows(
@@ -236,36 +206,9 @@ class _OptionsMixin:
             "%s, %s, %s, %s, %s, %s, %s, %s) "
             "ON CONFLICT (run_id, ticker, expiry, strike) DO NOTHING"
         )
+        params = _greeks_params(run_id, ticker, rows)
         with self._conn.cursor() as cur:
-            for r in rows:
-                cur.execute(
-                    sql,
-                    (
-                        run_id,
-                        ticker,
-                        r.date,
-                        r.expiry,
-                        r.strike,
-                        r.call_delta,
-                        r.put_delta,
-                        r.call_gamma,
-                        r.put_gamma,
-                        r.call_vega,
-                        r.put_vega,
-                        r.call_theta,
-                        r.put_theta,
-                        r.call_rho,
-                        r.put_rho,
-                        r.call_vanna,
-                        r.put_vanna,
-                        r.call_charm,
-                        r.put_charm,
-                        r.call_volatility,
-                        r.put_volatility,
-                        r.call_option_symbol,
-                        r.put_option_symbol,
-                    ),
-                )
+            cur.executemany(sql, params)
         return len(rows)
 
     def upsert_oi_per_strike_rows(
@@ -564,35 +507,9 @@ class _OptionsMixin:
             "%s, %s, %s, %s, %s, %s, %s) "
             "ON CONFLICT (run_id, option_symbol) DO NOTHING"
         )
+        params = _option_contract_params(run_id, ticker, rows)
         with self._conn.cursor() as cur:
-            for r in rows:
-                cur.execute(
-                    sql,
-                    (
-                        run_id,
-                        ticker,
-                        r.option_symbol,
-                        r.last_price,
-                        r.nbbo_bid,
-                        r.nbbo_ask,
-                        r.implied_volatility,
-                        r.open_interest,
-                        r.prev_oi,
-                        r.volume,
-                        r.ask_volume,
-                        r.bid_volume,
-                        r.mid_volume,
-                        r.multi_leg_volume,
-                        r.stock_multi_leg_volume,
-                        r.floor_volume,
-                        r.sweep_volume,
-                        r.no_side_volume,
-                        r.avg_price,
-                        r.high_price,
-                        r.low_price,
-                        r.total_premium,
-                    ),
-                )
+            cur.executemany(sql, params)
         return len(rows)
 
     def insert_dark_pool_rows(
