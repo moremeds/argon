@@ -21,11 +21,11 @@ type CriLevel = "LOW" | "ELEVATED" | "HIGH" | "CRITICAL";
 
 const COMPONENT_TOOLTIPS: Record<string, string> = {
   VIX: "CBOE Volatility Index — 30-day implied vol of SPX. Score rises as VIX exceeds 20 (elevated) and 30 (high).",
-  VVIX: "Vol-of-VIX — measures expected volatility of VIX itself. Score rises with absolute level and VVIX/VIX ratio >5.",
+  VVIX: "Vol-of-VIX — expected volatility of VIX itself. Three sub-scores: absolute level (85→130), VVIX/VIX ratio (5→8 = practitioner warning band), and 5-day rate-of-change (rising VVIX vs flat VIX is the canonical lead signal of tail-hedging demand).",
   CORRELATION:
     "Cboe 1-Month Implied Correlation Index (COR1M). High COR1M (>60) means large-cap S&P names are expected to move together.",
-  MOMENTUM:
-    "SPX distance below 100-day MA combined with VIX 5-day rate of change. Captures trend stress + vol acceleration.",
+  "TREND BREAK":
+    "SPX distance below the 100-day MA. One-sided: scores 0 when SPX is at or above the MA; saturates at -10% below. Designed to fire only on confirmed downtrends, not parabolic uptrends.",
 };
 
 // Reference markers per component. Values are in *score units* (0–25 scale).
@@ -88,7 +88,7 @@ function priorComponentScore(
 
 const SECTION_TOOLTIPS: Record<string, string> = {
   "CRI COMPONENTS":
-    "Crash Risk Index broken into 4 sub-scores (0-25 each, 100 total). VIX/VVIX measure implied vol stress. Correlation tracks COR1M herding. Momentum captures SPX trend breakdown.",
+    "Crash Risk Index broken into 4 sub-scores (0-25 each, 100 total). VIX/VVIX measure implied vol stress. Correlation tracks COR1M herding. Trend Break fires when SPX trades below its 100-day MA. See docs/research/regime/cri-methodology.md for calibration details.",
   "CRASH TRIGGER CONDITIONS":
     "Three simultaneous conditions that signal a potential crash regime: SPX below 100d MA, realized vol > 25%, and COR1M > 60. All three must fire.",
   "20-SESSION HISTORY":
@@ -657,7 +657,7 @@ export function CriSubTabView({
             live={live}
           />
           <ComponentBar
-            label="MOMENTUM"
+            label="TREND BREAK"
             slot="momentum"
             score={components.momentum}
             priorScore={priorComponentScore(priorHistory, "momentum")}

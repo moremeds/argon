@@ -125,14 +125,22 @@ describe("CriSubTabView", () => {
     expect(screen.getByTestId("cri-level").textContent).toBe("ELEVATED");
   });
 
-  it("renders all four component bars (VIX/VVIX/CORRELATION/MOMENTUM)", () => {
+  it("renders all four component bars (VIX/VVIX/CORRELATION/TREND BREAK)", () => {
     render(<CriSubTabView data={POPULATED} />);
     expect(screen.getByText("CRI COMPONENTS")).not.toBeNull();
     // Each component label is rendered inside the bar
     expect(screen.getAllByText("VIX").length).toBeGreaterThan(0);
     expect(screen.getAllByText("VVIX").length).toBeGreaterThan(0);
     expect(screen.getByText("CORRELATION")).not.toBeNull();
-    expect(screen.getByText("MOMENTUM")).not.toBeNull();
+    expect(screen.getByText("TREND BREAK")).not.toBeNull();
+  });
+
+  it("renders reference tick marks on each component bar", () => {
+    const { container } = render(<CriSubTabView data={POPULATED} />);
+    // Each ComponentBar emits one .regime-bar-tick child (the mid-mark).
+    // 4 component bars → exactly 4 ticks.
+    const ticks = container.querySelectorAll(".regime-bar-tick");
+    expect(ticks.length).toBe(4);
   });
 
   it("renders INACTIVE crash trigger when not triggered", () => {
