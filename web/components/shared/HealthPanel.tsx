@@ -54,7 +54,9 @@ function dash(v: number | string | null | undefined, suffix = ""): string {
 function fmtSidebarDateTime(iso: string | null | undefined): string {
   const full = fmtDateTimeWithZone(iso);
   if (full === "—") return full;
-  const match = full.match(/^\d{4}\/(\d{2})\/(\d{2}) (\d{2}):(\d{2}):\d{2} (.+)$/);
+  const match = full.match(
+    /^\d{4}\/(\d{2})\/(\d{2}) (\d{2}):(\d{2}):\d{2} (.+)$/,
+  );
   if (!match) return full;
   const [, month, day, hour, minute, zone] = match;
   return `${month}/${day} ${hour}:${minute} ${zone}`;
@@ -71,19 +73,26 @@ function heartbeatStatus(
   return { label: "STALE", color: "var(--warning)" };
 }
 
-function recordHealthStatus(
-  ok: boolean | null | undefined,
-): { label: "OK" | "ALERT" | "UNKNOWN"; color: string } {
+function recordHealthStatus(ok: boolean | null | undefined): {
+  label: "OK" | "ALERT" | "UNKNOWN";
+  color: string;
+} {
   if (ok == null) return { label: "UNKNOWN", color: "var(--warning)" };
   if (ok) return { label: "OK", color: "var(--positive)" };
   return { label: "ALERT", color: "var(--negative)" };
 }
 
-function workerGroupStatus(workers: WorkerHealth[]): { label: string; color: string } {
-  if (workers.length === 0) return { label: "UNKNOWN", color: "var(--warning)" };
+function workerGroupStatus(workers: WorkerHealth[]): {
+  label: string;
+  color: string;
+} {
+  if (workers.length === 0)
+    return { label: "UNKNOWN", color: "var(--warning)" };
   const online = workers.filter((worker) => {
     const healthyLag =
-      worker.role === "massive" ? SPOT_REFRESH_HEALTHY_LAG_S : HEARTBEAT_HEALTHY_LAG_S;
+      worker.role === "massive"
+        ? SPOT_REFRESH_HEALTHY_LAG_S
+        : HEARTBEAT_HEALTHY_LAG_S;
     return heartbeatStatus(worker.lag_seconds, healthyLag).label === "ONLINE";
   }).length;
   if (online === workers.length) {
@@ -172,7 +181,10 @@ export function HealthPanel() {
   );
   const workerRows = h?.workers ?? [];
   const uwWorkers = workerRows.filter((worker) => worker.role === "uw");
-  const massiveWorkers = workerRows.filter((worker) => worker.role === "massive");
+  const massiveWorkers = workerRows.filter(
+    (worker) => worker.role === "massive",
+  );
+  const aiWorkers = workerRows.filter((worker) => worker.role === "ai");
   const recordsStatus = recordHealthStatus(h?.record_health_ok);
 
   return (
@@ -187,7 +199,16 @@ export function HealthPanel() {
       {workerRows.length > 0 ? (
         <>
           <StatusRow label="UW Workers" status={workerGroupStatus(uwWorkers)} />
-          <StatusRow label="Massive Workers" status={workerGroupStatus(massiveWorkers)} />
+          <StatusRow
+            label="Massive Workers"
+            status={workerGroupStatus(massiveWorkers)}
+          />
+          {aiWorkers.length > 0 && (
+            <StatusRow
+              label="AI Workers"
+              status={workerGroupStatus(aiWorkers)}
+            />
+          )}
         </>
       ) : (
         <>
@@ -207,7 +228,10 @@ export function HealthPanel() {
       </div>
       <div style={rowStyle}>
         <span style={labelStyle}>Last Scan</span>
-        <span style={valStyle} title={fmtDateTimeWithZone(h?.last_full_scan_at)}>
+        <span
+          style={valStyle}
+          title={fmtDateTimeWithZone(h?.last_full_scan_at)}
+        >
           {fmtSidebarDateTime(h?.last_full_scan_at)}
         </span>
       </div>
@@ -247,7 +271,9 @@ export function HealthPanel() {
       </div>
       <div style={rowStyle}>
         <span style={labelStyle}>Scan avg</span>
-        <span style={valStyle}>{fmtDuration(h?.avg_scan_duration_seconds)}</span>
+        <span style={valStyle}>
+          {fmtDuration(h?.avg_scan_duration_seconds)}
+        </span>
       </div>
       <div style={rowStyle}>
         <span style={labelStyle}>Queue avg/min</span>

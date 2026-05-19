@@ -79,6 +79,7 @@ class Settings(BaseModel):
     worker_count: int = 1
     uw_worker_count: int = 0
     massive_worker_count: int = 0
+    ai_worker_count: int = 0
     # OHLC provider (massive.com)
     massive_api_key: SecretStr | None = None
     massive_base_url: str = "https://api.massive.com"
@@ -193,6 +194,7 @@ class Settings(BaseModel):
             massive_worker_count=int(
                 os.environ.get("UW_SCAN_MASSIVE_WORKER_COUNT", "0")
             ),
+            ai_worker_count=int(os.environ.get("UW_SCAN_AI_WORKER_COUNT", "0")),
             # SecretStr("") is truthy and not None — would silently allow the
             # scheduler to instantiate a Massive client with a blank bearer and
             # generate a stream of 401s. Coerce blank to None before wrapping.
