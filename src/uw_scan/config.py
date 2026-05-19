@@ -195,7 +195,7 @@ class Settings(BaseModel):
                 "UW_SCAN_FULL_SCAN_CRON", "0,30 10-15 * * 0-4"
             ),
             full_scan_stale_after_hours=int(
-                os.environ.get("UW_SCAN_FULL_SCAN_STALE_HOURS", "4")
+                os.environ.get("UW_SCAN_FULL_SCAN_STALE_HOURS", "1")
             ),
             ohlc_pull_cron=os.environ.get("UW_SCAN_OHLC_PULL_CRON", "30 17 * * 0-4"),
             rth_tz=os.environ.get("UW_SCAN_RTH_TZ", "America/New_York"),
