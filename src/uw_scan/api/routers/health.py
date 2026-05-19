@@ -280,9 +280,14 @@ def health(
         )
 
     lag = (now_utc - last_scan).total_seconds()
-    threshold = 2.0 * _full_scan_interval_seconds(
-        settings.full_scan_cron, settings.rth_tz
-    )
+    # Use the densest cron's interval — that's the operator's expectation of
+    # "how often should the scan fire?". A 30-min RTH cron sets the bar even
+    # if other crons (4am premarket, 4:30pm close) are sparser.
+    cron_intervals = [
+        _full_scan_interval_seconds(c, settings.rth_tz)
+        for c in settings.full_scan_crons
+    ]
+    threshold = 2.0 * min(cron_intervals)
     if lag > threshold:
         return HealthResponse(
             ok=False,

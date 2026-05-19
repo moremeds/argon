@@ -71,10 +71,18 @@ class Settings(BaseModel):
     base_url: str = "https://api.unusualwhales.com"
     # Scheduler — consumed by uw_scan.worker.scheduler and uw_scan.api.routers.health
     spot_refresh_seconds: int = 300
-    # Cron fires every :00 and :30 strictly during RTH (10:00-15:30 ET) so
-    # we never spend UW budget pre-market or after close. The freshness gate
-    # below means most fires no-op; only stale tickers re-scan.
-    full_scan_cron: str = "0,30 10-15 * * 0-4"
+    # Multiple crons so we hit: 04:00 ET premarket warm-up, 09:30 open,
+    # every :00 and :30 during RTH active hours, and the 16:00 + 16:30
+    # close-of-day batches. UW option data only updates during RTH, so
+    # outside-RTH fires are intentionally sparse. The freshness gate below
+    # still skips tickers that were refreshed within the last N hours.
+    full_scan_crons: list[str] = [
+        "0 4 * * 0-4",  # premarket warm-up
+        "30 9 * * 0-4",  # market open
+        "0,30 10-15 * * 0-4",  # every :00 and :30 during RTH active
+        "0 16 * * 0-4",  # 4pm close
+        "30 16 * * 0-4",  # 4:30pm last scan
+    ]
     # Skip tickers refreshed within this many hours during full_scan. With a
     # 30-min cron over the 6h RTH window, 1h freshness gives ~6 batches/day
     # which uses ~85% of the 20k/day UW operator budget while keeping data
@@ -191,9 +199,10 @@ class Settings(BaseModel):
             spot_refresh_seconds=int(
                 os.environ.get("UW_SCAN_SPOT_REFRESH_SECONDS", "300")
             ),
-            full_scan_cron=os.environ.get(
-                "UW_SCAN_FULL_SCAN_CRON", "0,30 10-15 * * 0-4"
-            ),
+            # full_scan_crons stays as the Pydantic default; not env-driven
+            # because cron expressions contain spaces (CSV parsing is fragile).
+            # Override by editing the Settings default if you need a different
+            # schedule.
             full_scan_stale_after_hours=int(
                 os.environ.get("UW_SCAN_FULL_SCAN_STALE_HOURS", "1")
             ),

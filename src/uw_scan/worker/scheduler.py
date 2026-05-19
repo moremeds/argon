@@ -510,12 +510,15 @@ def main() -> int:
             )
 
     if "uw" in groups:
-        sched.add_job(
-            _full_scan,
-            CronTrigger.from_crontab(settings.full_scan_cron, timezone=settings.rth_tz),
-            id="full_scan",
-            name="Full UW scan",
-        )
+        for idx, cron_expr in enumerate(settings.full_scan_crons):
+            sched.add_job(
+                _full_scan,
+                CronTrigger.from_crontab(cron_expr, timezone=settings.rth_tz),
+                id=f"full_scan_{idx}",
+                name=f"Full UW scan ({cron_expr})",
+                max_instances=1,
+                coalesce=True,
+            )
         sched.add_job(
             _rescan,
             IntervalTrigger(seconds=1),
