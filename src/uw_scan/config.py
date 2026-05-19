@@ -75,10 +75,11 @@ class Settings(BaseModel):
     # we never spend UW budget pre-market or after close. The freshness gate
     # below means most fires no-op; only stale tickers re-scan.
     full_scan_cron: str = "0,30 10-15 * * 0-4"
-    # Skip tickers refreshed within this many hours during full_scan. Lower =
-    # more UW spend, fresher data. Coverage alert (8h window, 90% tickers)
-    # needs at least 2 batches per 8h, so keep this <= 4.
-    full_scan_stale_after_hours: int = 4
+    # Skip tickers refreshed within this many hours during full_scan. With a
+    # 30-min cron over the 6h RTH window, 1h freshness gives ~6 batches/day
+    # which uses ~85% of the 20k/day UW operator budget while keeping data
+    # at most 1h stale. Coverage alert (8h window, 90% tickers) needs <=4.
+    full_scan_stale_after_hours: int = 1
     ohlc_pull_cron: str = "30 17 * * 0-4"
     rth_tz: str = "America/New_York"
     worker_role: str = "all"
