@@ -17,19 +17,27 @@ export function MultiLineChart({
   showZero = true,
   band,
   xLabel,
+  assumeSorted = false,
 }: {
   series: ChartSeries[];
   height?: number;
   showZero?: boolean;
   band?: { min: number; max: number; color: string };
   xLabel?: (x: number) => string;
+  assumeSorted?: boolean;
 }) {
   const cleanSeries = series.map((item) => ({
     ...item,
-    points: item.points
-      .filter((point) => Number.isFinite(point.x) && point.y != null)
-      .map((point) => ({ x: point.x, y: point.y as number }))
-      .sort((a, b) => a.x - b.x),
+    points: (
+      assumeSorted
+        ? item.points
+            .filter((point) => Number.isFinite(point.x) && point.y != null)
+            .map((point) => ({ x: point.x, y: point.y as number }))
+        : item.points
+            .filter((point) => Number.isFinite(point.x) && point.y != null)
+            .map((point) => ({ x: point.x, y: point.y as number }))
+            .sort((a, b) => a.x - b.x)
+    ),
   }));
   const all = cleanSeries.flatMap((item) => item.points);
   if (!all.length) {

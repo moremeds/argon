@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Iterable
 from datetime import date as _date
 from datetime import datetime
 from decimal import Decimal
@@ -26,16 +27,52 @@ class _GoldMixin:
         source: str,
         source_url: str | None,
     ) -> None:
+        self.insert_macro_series_daily_rows(
+            [
+                {
+                    "series_id": series_id,
+                    "obs_date": obs_date,
+                    "value": value,
+                    "release_date": release_date,
+                    "source_url": source_url,
+                }
+            ],
+            as_of=as_of,
+            source=source,
+        )
+
+    def insert_macro_series_daily_rows(
+        self,
+        rows: Iterable[dict[str, Any]],
+        *,
+        as_of: datetime,
+        source: str,
+    ) -> int:
+        values = [
+            (
+                row["series_id"],
+                row["obs_date"],
+                row["value"],
+                as_of,
+                row.get("release_date"),
+                source,
+                row.get("source_url"),
+            )
+            for row in rows
+        ]
+        if not values:
+            return 0
         with self._conn.cursor() as cur:
-            cur.execute(
+            cur.executemany(
                 """
                 INSERT INTO uw_scan.macro_series_daily
                   (series_id, obs_date, value, as_of, release_date, source, source_url)
                 VALUES (%s, %s, %s, %s, %s, %s, %s)
                 ON CONFLICT (series_id, obs_date, as_of) DO NOTHING
                 """,
-                (series_id, obs_date, value, as_of, release_date, source, source_url),
+                values,
             )
+        return len(values)
 
     def insert_macro_series_monthly(
         self,
@@ -47,16 +84,52 @@ class _GoldMixin:
         source: str,
         source_url: str | None,
     ) -> None:
+        self.insert_macro_series_monthly_rows(
+            [
+                {
+                    "series_id": series_id,
+                    "obs_month": obs_month,
+                    "value": value,
+                    "release_date": release_date,
+                    "source_url": source_url,
+                }
+            ],
+            as_of=as_of,
+            source=source,
+        )
+
+    def insert_macro_series_monthly_rows(
+        self,
+        rows: Iterable[dict[str, Any]],
+        *,
+        as_of: datetime,
+        source: str,
+    ) -> int:
+        values = [
+            (
+                row["series_id"],
+                row["obs_month"],
+                row["value"],
+                as_of,
+                row.get("release_date"),
+                source,
+                row.get("source_url"),
+            )
+            for row in rows
+        ]
+        if not values:
+            return 0
         with self._conn.cursor() as cur:
-            cur.execute(
+            cur.executemany(
                 """
                 INSERT INTO uw_scan.macro_series_monthly
                   (series_id, obs_month, value, as_of, release_date, source, source_url)
                 VALUES (%s, %s, %s, %s, %s, %s, %s)
                 ON CONFLICT (series_id, obs_month, as_of) DO NOTHING
                 """,
-                (series_id, obs_month, value, as_of, release_date, source, source_url),
+                values,
             )
+        return len(values)
 
     def fetch_macro_series_daily(
         self,
@@ -159,8 +232,45 @@ class _GoldMixin:
         as_of: datetime,
         source: str,
     ) -> None:
+        self.insert_etf_holdings_daily_rows(
+            [
+                {
+                    "ticker": ticker,
+                    "obs_date": obs_date,
+                    "holdings_oz": holdings_oz,
+                    "shares_out": shares_out,
+                    "nav_per_share": nav_per_share,
+                    "premium_pct": premium_pct,
+                }
+            ],
+            as_of=as_of,
+            source=source,
+        )
+
+    def insert_etf_holdings_daily_rows(
+        self,
+        rows: Iterable[dict[str, Any]],
+        *,
+        as_of: datetime,
+        source: str,
+    ) -> int:
+        values = [
+            (
+                row["ticker"],
+                row["obs_date"],
+                row.get("holdings_oz"),
+                row.get("shares_out"),
+                row.get("nav_per_share"),
+                row.get("premium_pct"),
+                as_of,
+                source,
+            )
+            for row in rows
+        ]
+        if not values:
+            return 0
         with self._conn.cursor() as cur:
-            cur.execute(
+            cur.executemany(
                 """
                 INSERT INTO uw_scan.etf_holdings_daily
                   (ticker, obs_date, holdings_oz, shares_out, nav_per_share,
@@ -168,17 +278,9 @@ class _GoldMixin:
                 VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
                 ON CONFLICT (ticker, obs_date, as_of) DO NOTHING
                 """,
-                (
-                    ticker,
-                    obs_date,
-                    holdings_oz,
-                    shares_out,
-                    nav_per_share,
-                    premium_pct,
-                    as_of,
-                    source,
-                ),
+                values,
             )
+        return len(values)
 
     def fetch_etf_holdings_daily(
         self,

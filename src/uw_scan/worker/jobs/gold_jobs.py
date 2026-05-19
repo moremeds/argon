@@ -104,34 +104,36 @@ def gold_fred_ingest_job(
         for sid in ids:
             stored_sid = FRED_SERIES_ALIASES.get(sid, sid)
             try:
-                for obs in fred.fetch_series(
-                    sid, start=date.today() - timedelta(days=lookback_days)
-                ):
-                    repo.insert_macro_series_daily(
-                        series_id=stored_sid,
-                        obs_date=obs.obs_date,
-                        value=obs.value,
-                        as_of=now,
-                        release_date=None,
-                        source="FRED",
-                        source_url=None,
+                rows = [
+                    {
+                        "series_id": stored_sid,
+                        "obs_date": obs.obs_date,
+                        "value": obs.value,
+                        "release_date": None,
+                        "source_url": None,
+                    }
+                    for obs in fred.fetch_series(
+                        sid, start=date.today() - timedelta(days=lookback_days)
                     )
+                ]
+                repo.insert_macro_series_daily_rows(rows, as_of=now, source="FRED")
             except Exception as exc:
                 logger.exception("gold_fred_ingest: series=%s failed: %r", sid, exc)
         for sid in monthly_ids:
             try:
-                for obs in fred.fetch_series(
-                    sid, start=date.today() - timedelta(days=monthly_lookback_days)
-                ):
-                    repo.insert_macro_series_monthly(
-                        series_id=obs.series_id,
-                        obs_month=date(obs.obs_date.year, obs.obs_date.month, 1),
-                        value=obs.value,
-                        as_of=now,
-                        release_date=None,
-                        source="FRED",
-                        source_url=None,
+                rows = [
+                    {
+                        "series_id": obs.series_id,
+                        "obs_month": date(obs.obs_date.year, obs.obs_date.month, 1),
+                        "value": obs.value,
+                        "release_date": None,
+                        "source_url": None,
+                    }
+                    for obs in fred.fetch_series(
+                        sid, start=date.today() - timedelta(days=monthly_lookback_days)
                     )
+                ]
+                repo.insert_macro_series_monthly_rows(rows, as_of=now, source="FRED")
             except Exception as exc:
                 logger.exception(
                     "gold_fred_ingest: monthly series=%s failed: %r", sid, exc
@@ -148,18 +150,19 @@ def gold_gpr_ingest_job(*, dsn: str, lookback_days: int = 45) -> None:
     with psycopg.connect(dsn) as conn, GprProvider() as gpr:
         repo = Repository(conn, schema="uw_scan")
         try:
-            for obs in gpr.fetch_daily(
-                start=date.today() - timedelta(days=lookback_days)
-            ):
-                repo.insert_macro_series_daily(
-                    series_id="GPRD",
-                    obs_date=obs.obs_date,
-                    value=obs.value,
-                    as_of=now,
-                    release_date=None,
-                    source="GPR",
-                    source_url="https://www.matteoiacoviello.com/gpr.htm",
+            rows = [
+                {
+                    "series_id": "GPRD",
+                    "obs_date": obs.obs_date,
+                    "value": obs.value,
+                    "release_date": None,
+                    "source_url": "https://www.matteoiacoviello.com/gpr.htm",
+                }
+                for obs in gpr.fetch_daily(
+                    start=date.today() - timedelta(days=lookback_days)
                 )
+            ]
+            repo.insert_macro_series_daily_rows(rows, as_of=now, source="GPR")
         except Exception as exc:
             logger.exception("gold_gpr_ingest failed: %r", exc)
         conn.commit()
@@ -192,17 +195,18 @@ def gold_etf_holdings_ingest_job(
             ("PHYS", etf.fetch_phys, "Sprott"),
         ]:
             try:
-                for row in fetch_fn(start=holdings_start):
-                    repo.insert_etf_holdings_daily(
-                        ticker=row.ticker,
-                        obs_date=row.obs_date,
-                        holdings_oz=row.holdings_oz,
-                        shares_out=row.shares_out,
-                        nav_per_share=row.nav_per_share,
-                        premium_pct=row.premium_pct,
-                        as_of=now,
-                        source=source,
-                    )
+                rows = [
+                    {
+                        "ticker": row.ticker,
+                        "obs_date": row.obs_date,
+                        "holdings_oz": row.holdings_oz,
+                        "shares_out": row.shares_out,
+                        "nav_per_share": row.nav_per_share,
+                        "premium_pct": row.premium_pct,
+                    }
+                    for row in fetch_fn(start=holdings_start)
+                ]
+                repo.insert_etf_holdings_daily_rows(rows, as_of=now, source=source)
             except Exception as exc:
                 logger.warning(
                     "gold_etf_holdings_ingest: %s skipped (%s)",
@@ -231,22 +235,27 @@ def gold_etf_holdings_ingest_job(
                             chunk, as_of=now, source="WGC"
                         )
                     holdings_rows = 0
+                    holdings_values = []
                     for row in monthly_rows:
                         if (
                             row.ticker in {"GLD", "IAU", "GLDM", "PHYS"}
                             and row.holdings_tonnes is not None
                         ):
-                            repo.insert_etf_holdings_daily(
-                                ticker=row.ticker,
-                                obs_date=row.obs_date,
-                                holdings_oz=row.holdings_tonnes * TROY_OZ_PER_TONNE,
-                                shares_out=None,
-                                nav_per_share=None,
-                                premium_pct=None,
-                                as_of=now,
-                                source="WGC",
+                            holdings_values.append(
+                                {
+                                    "ticker": row.ticker,
+                                    "obs_date": row.obs_date,
+                                    "holdings_oz": row.holdings_tonnes
+                                    * TROY_OZ_PER_TONNE,
+                                    "shares_out": None,
+                                    "nav_per_share": None,
+                                    "premium_pct": None,
+                                }
                             )
                             holdings_rows += 1
+                    repo.insert_etf_holdings_daily_rows(
+                        holdings_values, as_of=now, source="WGC"
+                    )
                     logger.info(
                         "gold_etf_holdings_ingest: %s WGC monthly rows, %s holdings rows",
                         corpus_rows,
@@ -270,24 +279,25 @@ def gold_etf_holdings_ingest_job(
                 )
                 for ticker in GOLD_ETF_FLOW_TICKERS:
                     try:
-                        for row in uw_sources.fetch_etf_in_outflow(
-                            client=client,
-                            repo=repo,
-                            run_id=run_id,
-                            ticker=ticker,
-                            start_date=start,
-                            end_date=end,
-                        ):
-                            repo.insert_etf_flows_daily(
-                                ticker=row.ticker,
-                                obs_date=row.date,
-                                share_change=row.change,
-                                premium_change_usd=row.change_prem,
-                                close=row.close,
-                                volume=row.volume,
-                                as_of=now,
-                                source="UW",
+                        rows = [
+                            {
+                                "ticker": row.ticker,
+                                "obs_date": row.date,
+                                "share_change": row.change,
+                                "premium_change_usd": row.change_prem,
+                                "close": row.close,
+                                "volume": row.volume,
+                            }
+                            for row in uw_sources.fetch_etf_in_outflow(
+                                client=client,
+                                repo=repo,
+                                run_id=run_id,
+                                ticker=ticker,
+                                start_date=start,
+                                end_date=end,
                             )
+                        ]
+                        repo.insert_etf_flows_daily_rows(rows, as_of=now, source="UW")
                     except Exception as exc:
                         logger.warning(
                             "gold_etf_in_outflow_ingest: %s skipped (%s)",
@@ -337,16 +347,20 @@ def gold_spot_ingest_job(
         repo = Repository(conn, schema="uw_scan")
         try:
             bars = ohlc.fetch_daily(ticker, start, end)
-            for bar in bars:
-                repo.insert_macro_series_daily(
-                    series_id=series_id,
-                    obs_date=bar.date,
-                    value=bar.close,
-                    as_of=now,
-                    release_date=None,
-                    source="MASSIVE",
-                    source_url=None,
-                )
+            repo.insert_macro_series_daily_rows(
+                [
+                    {
+                        "series_id": series_id,
+                        "obs_date": bar.date,
+                        "value": bar.close,
+                        "release_date": None,
+                        "source_url": None,
+                    }
+                    for bar in bars
+                ],
+                as_of=now,
+                source="MASSIVE",
+            )
             logger.info(
                 "gold_spot_ingest: %s bars persisted under series_id=%s",
                 len(bars),

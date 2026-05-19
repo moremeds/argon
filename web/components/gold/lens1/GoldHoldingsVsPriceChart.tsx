@@ -69,19 +69,14 @@ const CB_COLORS = [
   "#f59e0b",
 ];
 
+const CHART_PADDING = { top: 12, right: 56, bottom: 24, left: 48 } as const;
+
 function defaultSelected(countries: Country[]): string[] {
   const strategic = countries
     .filter((c) => c.bucket === "strategic_accumulator")
     .map((c) => c.country_iso3);
   if (strategic.length > 0) return strategic;
   return countries.slice(0, 4).map((c) => c.country_iso3);
-}
-
-function colorForCountry(countryIso3: string, countries: Country[]): string {
-  const idx = countries.findIndex(
-    (country) => country.country_iso3 === countryIso3,
-  );
-  return CB_COLORS[(idx < 0 ? 0 : idx) % CB_COLORS.length];
 }
 
 function fmtCountryTonnes(v: string | number | null | undefined): string {
@@ -105,8 +100,141 @@ export function GoldHoldingsVsPriceChart({
     () => new Set(selectedCountries),
     [selectedCountries],
   );
-  const visibleCountries = cbCountryHistory.filter((country) =>
-    selectedSet.has(country.country_iso3),
+  const visibleCountries = useMemo(
+    () =>
+      cbCountryHistory.filter((country) =>
+        selectedSet.has(country.country_iso3),
+      ),
+    [cbCountryHistory, selectedSet],
+  );
+  const countryColorByIso3 = useMemo(
+    () =>
+      new Map(
+        cbCountryHistory.map((country, index) => [
+          country.country_iso3,
+          CB_COLORS[index % CB_COLORS.length],
+        ]),
+      ),
+    [cbCountryHistory],
+  );
+
+  const padding = CHART_PADDING;
+  const innerW = width - padding.left - padding.right;
+  const innerH = height - padding.top - padding.bottom;
+
+  const cbHistoryPoints = useMemo(
+    () =>
+      visibleCountries.flatMap((country) =>
+        (country.history ?? []).map((p) => ({
+          t: new Date(p.obs_date).getTime(),
+          value: toNumber(p.value),
+        })),
+      ),
+    [visibleCountries],
+  );
+  const allDates = useMemo(
+    () => [
+      ...goldHistory.map((p) => new Date(p.obs_date).getTime()),
+      ...gldHistory.map((p) => new Date(p.obs_date).getTime()),
+      ...cbHistoryPoints.map((p) => p.t),
+    ],
+    [goldHistory, gldHistory, cbHistoryPoints],
+  );
+  const dateDomain = useMemo(() => finiteDomain(allDates), [allDates]);
+  const goldDomain = useMemo(
+    () => finiteDomain(goldHistory.map((p) => toNumber(p.value))),
+    [goldHistory],
+  );
+  const tonnesDomain = useMemo(
+    () =>
+      finiteDomain([
+        ...gldHistory.map((p) => toNumber(p.value)),
+        ...cbHistoryPoints.map((p) => p.value),
+      ]),
+    [gldHistory, cbHistoryPoints],
+  );
+  const xRange = useMemo<[number, number]>(
+    () => [padding.left, padding.left + innerW],
+    [innerW, padding.left],
+  );
+  const yRange = useMemo<[number, number]>(
+    () => [padding.top + innerH, padding.top],
+    [innerH, padding.top],
+  );
+
+  const canDrawTop = dateDomain != null && dateDomain.count >= 2;
+
+  const xScale = useMemo(
+    () =>
+      canDrawTop && dateDomain
+        ? linearScale([dateDomain.lo, dateDomain.hi], xRange)
+        : null,
+    [canDrawTop, dateDomain, xRange],
+  );
+  const goldYScale = useMemo(
+    () =>
+      canDrawTop && goldDomain
+        ? linearScale([goldDomain.lo, goldDomain.hi], yRange)
+        : null,
+    [canDrawTop, goldDomain, yRange],
+  );
+  const tonnesYScale = useMemo(
+    () =>
+      canDrawTop && tonnesDomain
+        ? linearScale([tonnesDomain.lo, tonnesDomain.hi], yRange)
+        : null,
+    [canDrawTop, tonnesDomain, yRange],
+  );
+
+  const goldPoints: Point[] = useMemo(
+    () =>
+      goldYScale
+        ? goldHistory.map((p) => [
+            xScale?.(new Date(p.obs_date).getTime()) ?? 0,
+            goldYScale(toNumber(p.value)),
+          ])
+        : [],
+    [goldHistory, goldYScale, xScale],
+  );
+
+  const gldPoints: Point[] = useMemo(
+    () =>
+      tonnesYScale
+        ? gldHistory.map((p) => [
+            xScale?.(new Date(p.obs_date).getTime()) ?? 0,
+            tonnesYScale(toNumber(p.value)),
+          ])
+        : [],
+    [gldHistory, tonnesYScale, xScale],
+  );
+  const cbCountryPoints = useMemo(
+    () =>
+      visibleCountries.map((country) => ({
+        country,
+        points: tonnesYScale
+          ? (country.history ?? []).map((p): Point => [
+              xScale?.(new Date(p.obs_date).getTime()) ?? 0,
+              tonnesYScale(toNumber(p.value)),
+            ])
+          : [],
+      })),
+    [visibleCountries, tonnesYScale, xScale],
+  );
+
+  const xTicks = useMemo(
+    () =>
+      canDrawTop && dateDomain
+        ? sampledTimeTicks(dateDomain.lo, dateDomain.hi, 6)
+        : [],
+    [canDrawTop, dateDomain],
+  );
+  const goldYTicks = useMemo(
+    () => (goldDomain ? niceTicks(goldDomain.lo, goldDomain.hi, 4) : []),
+    [goldDomain],
+  );
+  const tonnesYTicks = useMemo(
+    () => (tonnesDomain ? niceTicks(tonnesDomain.lo, tonnesDomain.hi, 4) : []),
+    [tonnesDomain],
   );
 
   if (
@@ -127,76 +255,6 @@ export function GoldHoldingsVsPriceChart({
       </div>
     );
   }
-
-  const padding = { top: 12, right: 56, bottom: 24, left: 48 };
-  const innerW = width - padding.left - padding.right;
-  const innerH = height - padding.top - padding.bottom;
-
-  const cbHistoryPoints = visibleCountries.flatMap((country) =>
-    (country.history ?? []).map((p) => ({
-      t: new Date(p.obs_date).getTime(),
-      value: toNumber(p.value),
-    })),
-  );
-  const allDates = [
-    ...goldHistory.map((p) => new Date(p.obs_date).getTime()),
-    ...gldHistory.map((p) => new Date(p.obs_date).getTime()),
-    ...cbHistoryPoints.map((p) => p.t),
-  ];
-  const dateDomain = finiteDomain(allDates);
-  const goldDomain = finiteDomain(goldHistory.map((p) => toNumber(p.value)));
-  const tonnesDomain = finiteDomain([
-    ...gldHistory.map((p) => toNumber(p.value)),
-    ...cbHistoryPoints.map((p) => p.value),
-  ]);
-  const xRange: [number, number] = [padding.left, padding.left + innerW];
-  const yRange: [number, number] = [padding.top + innerH, padding.top];
-
-  const canDrawTop = dateDomain != null && dateDomain.count >= 2;
-
-  const xScale = canDrawTop
-    ? linearScale([dateDomain.lo, dateDomain.hi], xRange)
-    : null;
-  const goldYScale = canDrawTop && goldDomain
-    ? linearScale([goldDomain.lo, goldDomain.hi], yRange)
-    : null;
-  const tonnesYScale = canDrawTop && tonnesDomain
-    ? linearScale([tonnesDomain.lo, tonnesDomain.hi], yRange)
-    : null;
-
-  const goldPoints: Point[] = goldYScale
-    ? goldHistory.map((p) => [
-        xScale?.(new Date(p.obs_date).getTime()) ?? 0,
-        goldYScale(toNumber(p.value)),
-      ])
-    : [];
-
-  const gldPoints: Point[] = tonnesYScale
-    ? gldHistory.map((p) => [
-        xScale?.(new Date(p.obs_date).getTime()) ?? 0,
-        tonnesYScale(toNumber(p.value)),
-      ])
-    : [];
-  const cbCountryPoints = visibleCountries.map((country) => ({
-    country,
-    points: tonnesYScale
-      ? (country.history ?? []).map((p): Point => [
-          xScale?.(new Date(p.obs_date).getTime()) ?? 0,
-          tonnesYScale(toNumber(p.value)),
-        ])
-      : [],
-  }));
-
-  const xTicks =
-    canDrawTop && dateDomain
-      ? sampledTimeTicks(dateDomain.lo, dateDomain.hi, 6)
-      : [];
-  const goldYTicks = goldDomain
-    ? niceTicks(goldDomain.lo, goldDomain.hi, 4)
-    : [];
-  const tonnesYTicks = tonnesDomain
-    ? niceTicks(tonnesDomain.lo, tonnesDomain.hi, 4)
-    : [];
 
   function toggleCountry(countryIso3: string) {
     setSelectedCountries((current) =>
@@ -259,7 +317,9 @@ export function GoldHoldingsVsPriceChart({
                 key={country.country_iso3}
                 d={pathFromPoints(points)}
                 fill="none"
-                stroke={colorForCountry(country.country_iso3, cbCountryHistory)}
+                stroke={
+                  countryColorByIso3.get(country.country_iso3) ?? CB_COLORS[0]
+                }
                 strokeWidth={1.2}
               />
             ))}
@@ -413,7 +473,8 @@ export function GoldHoldingsVsPriceChart({
                   style={{
                     width: 8,
                     height: 8,
-                    background: colorForCountry(country.country_iso3, cbCountryHistory),
+                    background:
+                      countryColorByIso3.get(country.country_iso3) ?? CB_COLORS[0],
                     display: "inline-block",
                   }}
                 />

@@ -217,6 +217,21 @@ class _HealthMixin:
             row = cur.fetchone()
         return row[0] if row else None
 
+    def get_heartbeats(self, job_names: Iterable[str]) -> dict[str, datetime]:
+        names = list(dict.fromkeys(job_names))
+        if not names:
+            return {}
+        with self._conn.cursor() as cur:
+            cur.execute(
+                f"""
+                SELECT job_name, last_beat_at
+                FROM {self._schema}.worker_heartbeat
+                WHERE job_name = ANY(%s)
+                """,
+                (names,),
+            )
+            return {row[0]: row[1] for row in cur.fetchall()}
+
     def get_latest_heartbeat(self) -> tuple[str, datetime] | None:
         with self._conn.cursor() as cur:
             cur.execute(
