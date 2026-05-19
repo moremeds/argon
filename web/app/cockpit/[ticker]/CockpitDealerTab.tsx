@@ -1,4 +1,5 @@
 import type { CockpitDealerResponse } from "@/lib/api";
+import { useMemo } from "react";
 import type React from "react";
 import { fmtDecimal, fmtMoney, fmtSigned, toNum } from "@/lib/formatters";
 import {
@@ -20,23 +21,85 @@ export function CockpitDealerTab({
   ticker: string;
   data: CockpitDealerResponse | null;
 }) {
-  if (!data) return <EmptyPanel ticker={ticker} />;
-
-  const points = data.points ?? [];
-  const metrics = data.metrics ?? {};
-  const groups = groupByExpiry(points).slice(0, 6);
+  const points = useMemo(() => data?.points ?? [], [data?.points]);
+  const metrics = useMemo(() => data?.metrics ?? {}, [data?.metrics]);
+  const groups = useMemo(() => groupByExpiry(points).slice(0, 6), [points]);
   const primaryGroup = groups[0] ?? null;
   const primaryExpiry = primaryGroup?.[0] ?? null;
-  const primaryPoints = primaryGroup?.[1] ?? [];
-  const primaryTotals = totals(primaryPoints);
-  const primaryPeaks = peaks(primaryPoints);
-  const expirySummaries = groups.map(([expiry, points]) => ({
-    expiry,
-    count: points.length,
-    ...totals(points),
-    ...peaks(points),
-  }));
-  const latest = points.slice(0, 12);
+  const primaryPoints = useMemo(() => primaryGroup?.[1] ?? [], [primaryGroup]);
+  const primaryTotals = useMemo(() => totals(primaryPoints), [primaryPoints]);
+  const primaryPeaks = useMemo(() => peaks(primaryPoints), [primaryPoints]);
+  const expirySummaries = useMemo(
+    () =>
+      groups.map(([expiry, points]) => ({
+        expiry,
+        count: points.length,
+        ...totals(points),
+        ...peaks(points),
+      })),
+    [groups],
+  );
+  const latest = useMemo(() => points.slice(0, 12), [points]);
+  const vannaSeries = useMemo(
+    () => [
+      {
+        label: "Call vanna",
+        color: "var(--accent-bg)",
+        points: primaryPoints.map((point) => ({
+          x: toNum(point.strike) ?? 0,
+          y: exposureValue(point, "call", "vanna"),
+        })),
+      },
+      {
+        label: "Put vanna",
+        color: "var(--negative)",
+        points: primaryPoints.map((point) => ({
+          x: toNum(point.strike) ?? 0,
+          y: exposureValue(point, "put", "vanna"),
+        })),
+      },
+      {
+        label: "Net vanna",
+        color: "var(--warning)",
+        points: primaryPoints.map((point) => ({
+          x: toNum(point.strike) ?? 0,
+          y: netValue(point, "vanna"),
+        })),
+      },
+    ],
+    [primaryPoints],
+  );
+  const charmSeries = useMemo(
+    () => [
+      {
+        label: "Call charm",
+        color: "var(--accent-bg)",
+        points: primaryPoints.map((point) => ({
+          x: toNum(point.strike) ?? 0,
+          y: exposureValue(point, "call", "charm"),
+        })),
+      },
+      {
+        label: "Put charm",
+        color: "var(--negative)",
+        points: primaryPoints.map((point) => ({
+          x: toNum(point.strike) ?? 0,
+          y: exposureValue(point, "put", "charm"),
+        })),
+      },
+      {
+        label: "Net charm",
+        color: "var(--warning)",
+        points: primaryPoints.map((point) => ({
+          x: toNum(point.strike) ?? 0,
+          y: netValue(point, "charm"),
+        })),
+      },
+    ],
+    [primaryPoints],
+  );
+
+  if (!data) return <EmptyPanel ticker={ticker} />;
 
   return (
     <div style={{ display: "grid", gap: 16 }}>
@@ -77,64 +140,16 @@ export function CockpitDealerTab({
             <div style={miniTitleStyle}>Vanna by strike</div>
             <MultiLineChart
               height={230}
-              series={[
-                {
-                  label: "Call vanna",
-                  color: "var(--accent-bg)",
-                  points: primaryPoints.map((point) => ({
-                    x: toNum(point.strike) ?? 0,
-                    y: exposureValue(point, "call", "vanna"),
-                  })),
-                },
-                {
-                  label: "Put vanna",
-                  color: "var(--negative)",
-                  points: primaryPoints.map((point) => ({
-                    x: toNum(point.strike) ?? 0,
-                    y: exposureValue(point, "put", "vanna"),
-                  })),
-                },
-                {
-                  label: "Net vanna",
-                  color: "var(--warning)",
-                  points: primaryPoints.map((point) => ({
-                    x: toNum(point.strike) ?? 0,
-                    y: netValue(point, "vanna"),
-                  })),
-                },
-              ]}
+              series={vannaSeries}
+              assumeSorted
             />
           </div>
           <div style={miniPanelStyle}>
             <div style={miniTitleStyle}>Charm by strike</div>
             <MultiLineChart
               height={230}
-              series={[
-                {
-                  label: "Call charm",
-                  color: "var(--accent-bg)",
-                  points: primaryPoints.map((point) => ({
-                    x: toNum(point.strike) ?? 0,
-                    y: exposureValue(point, "call", "charm"),
-                  })),
-                },
-                {
-                  label: "Put charm",
-                  color: "var(--negative)",
-                  points: primaryPoints.map((point) => ({
-                    x: toNum(point.strike) ?? 0,
-                    y: exposureValue(point, "put", "charm"),
-                  })),
-                },
-                {
-                  label: "Net charm",
-                  color: "var(--warning)",
-                  points: primaryPoints.map((point) => ({
-                    x: toNum(point.strike) ?? 0,
-                    y: netValue(point, "charm"),
-                  })),
-                },
-              ]}
+              series={charmSeries}
+              assumeSorted
             />
           </div>
         </div>
