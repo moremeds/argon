@@ -1,5 +1,5 @@
 import type { components } from "@/lib/types";
-import { fmtDecimal, fmtSigned, toNum } from "@/lib/formatters";
+import { fmtDecimal, fmtRelativeDay, fmtSigned, toNum } from "@/lib/formatters";
 import { parseOccSymbol } from "@/lib/occ";
 
 type OiRow = components["schemas"]["OiChangeRow"];
@@ -152,6 +152,9 @@ export function OiMoversTable({
     >
       <thead>
         <tr style={{ color: "var(--text-muted)", textAlign: "left" }}>
+          <th title="Trading date the ΔOI snapshot is from. OI moves are end-of-day aggregations, not intraday.">
+            AS OF
+          </th>
           <th>TYPE</th>
           <th>EXPIRY</th>
           <th>STRIKE</th>
@@ -178,6 +181,29 @@ export function OiMoversTable({
                 key={r.option_symbol}
                 style={{ borderTop: "1px solid var(--border-dim)" }}
               >
+                <td
+                  style={{ whiteSpace: "nowrap" }}
+                  title={
+                    r.last_date
+                      ? `Previous snapshot date: ${r.last_date}`
+                      : undefined
+                  }
+                >
+                  <span style={{ color: "var(--text-primary)" }}>
+                    {r.curr_date ?? "—"}
+                  </span>
+                  {r.curr_date && (
+                    <span
+                      style={{
+                        marginLeft: 6,
+                        color: "var(--text-muted)",
+                        fontSize: 10,
+                      }}
+                    >
+                      · {fmtRelativeDay(r.curr_date, today)}
+                    </span>
+                  )}
+                </td>
                 <td>{occ?.type ?? r.option_symbol}</td>
                 <td>{occ?.expiry ?? "—"}</td>
                 <td>{occ ? `$${occ.strike.toFixed(2)}` : "—"}</td>

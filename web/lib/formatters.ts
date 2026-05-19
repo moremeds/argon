@@ -27,6 +27,61 @@ export function fmtDecimal(v: number | null | undefined, digits = 2): string {
   });
 }
 
+export function fmtTimeOfDay(
+  iso: string | null | undefined,
+  opts: { timeZone?: string } = {},
+): string {
+  if (!iso) return "—";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "—";
+  return new Intl.DateTimeFormat("en-US", {
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false,
+    ...(opts.timeZone ? { timeZone: opts.timeZone } : {}),
+  }).format(d);
+}
+
+export function fmtRelativeAgo(
+  iso: string | null | undefined,
+  now: Date = new Date(),
+): string {
+  if (!iso) return "—";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "—";
+  const deltaMs = now.getTime() - d.getTime();
+  if (deltaMs < 0) return "in future";
+  const sec = Math.floor(deltaMs / 1000);
+  if (sec < 60) return `${sec}s ago`;
+  const min = Math.floor(sec / 60);
+  if (min < 60) return `${min}m ago`;
+  const hr = Math.floor(min / 60);
+  const remMin = min % 60;
+  if (hr < 24) return remMin === 0 ? `${hr}h ago` : `${hr}h ${remMin}m ago`;
+  const day = Math.floor(hr / 24);
+  return `${day}d ago`;
+}
+
+export function fmtRelativeDay(
+  iso: string | null | undefined,
+  today: Date = new Date(),
+): string {
+  if (!iso) return "—";
+  const d = new Date(`${iso.slice(0, 10)}T00:00:00Z`);
+  if (Number.isNaN(d.getTime())) return "—";
+  const todayUtc = Date.UTC(
+    today.getUTCFullYear(),
+    today.getUTCMonth(),
+    today.getUTCDate(),
+  );
+  const days = Math.round((todayUtc - d.getTime()) / 86_400_000);
+  if (days === 0) return "today";
+  if (days === 1) return "yesterday";
+  if (days > 1) return `${days}d ago`;
+  return "in future";
+}
+
 export function fmtDateTimeWithZone(
   iso: string | null | undefined,
   opts: { timeZone?: string } = {},

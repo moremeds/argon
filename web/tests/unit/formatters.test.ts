@@ -4,7 +4,10 @@ import {
   fmtDecimal,
   fmtMoney,
   fmtPct,
+  fmtRelativeAgo,
+  fmtRelativeDay,
   fmtSigned,
+  fmtTimeOfDay,
   toNum,
 } from "@/lib/formatters";
 
@@ -65,6 +68,65 @@ describe("fmtDateTimeWithZone", () => {
 
   it("renders a dash for missing timestamps", () => {
     expect(fmtDateTimeWithZone(null)).toBe("—");
+  });
+});
+
+describe("fmtTimeOfDay", () => {
+  it("renders HH:MM:SS for a fixed timezone", () => {
+    expect(
+      fmtTimeOfDay("2026-05-19T18:23:05Z", { timeZone: "America/New_York" }),
+    ).toBe("14:23:05");
+  });
+  it("returns em-dash for null / invalid", () => {
+    expect(fmtTimeOfDay(null)).toBe("—");
+    expect(fmtTimeOfDay("not a date")).toBe("—");
+  });
+});
+
+describe("fmtRelativeAgo", () => {
+  const NOW = new Date("2026-05-19T20:00:00Z");
+  it("seconds for sub-minute deltas", () => {
+    expect(fmtRelativeAgo("2026-05-19T19:59:45Z", NOW)).toBe("15s ago");
+  });
+  it("minutes for sub-hour deltas", () => {
+    expect(fmtRelativeAgo("2026-05-19T19:35:00Z", NOW)).toBe("25m ago");
+  });
+  it("hours-and-minutes for >=1h, <24h", () => {
+    expect(fmtRelativeAgo("2026-05-19T17:45:00Z", NOW)).toBe("2h 15m ago");
+  });
+  it("trims minutes when zero", () => {
+    expect(fmtRelativeAgo("2026-05-19T17:00:00Z", NOW)).toBe("3h ago");
+  });
+  it("days for >=24h", () => {
+    expect(fmtRelativeAgo("2026-05-17T20:00:00Z", NOW)).toBe("2d ago");
+  });
+  it("flags future timestamps explicitly", () => {
+    expect(fmtRelativeAgo("2026-05-19T21:00:00Z", NOW)).toBe("in future");
+  });
+  it("em-dash for null", () => {
+    expect(fmtRelativeAgo(null, NOW)).toBe("—");
+  });
+});
+
+describe("fmtRelativeDay", () => {
+  const TODAY = new Date("2026-05-19T14:00:00Z");
+  it("renders 'today' for same UTC date", () => {
+    expect(fmtRelativeDay("2026-05-19", TODAY)).toBe("today");
+  });
+  it("renders 'yesterday' for prior day", () => {
+    expect(fmtRelativeDay("2026-05-18", TODAY)).toBe("yesterday");
+  });
+  it("renders 'Nd ago' for older dates", () => {
+    expect(fmtRelativeDay("2026-05-15", TODAY)).toBe("4d ago");
+  });
+  it("flags future dates", () => {
+    expect(fmtRelativeDay("2026-05-20", TODAY)).toBe("in future");
+  });
+  it("accepts ISO datetimes (slices to date)", () => {
+    expect(fmtRelativeDay("2026-05-18T23:59:59Z", TODAY)).toBe("yesterday");
+  });
+  it("em-dash for null", () => {
+    expect(fmtRelativeDay(null, TODAY)).toBe("—");
   });
 });
 
