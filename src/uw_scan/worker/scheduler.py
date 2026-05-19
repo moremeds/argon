@@ -8,7 +8,7 @@ import sys
 import zlib
 from collections.abc import Callable, Iterator
 from contextlib import contextmanager
-from datetime import date, datetime, time
+from datetime import date, datetime, time, timedelta
 from typing import Literal
 from zoneinfo import ZoneInfo
 
@@ -56,7 +56,7 @@ logging.basicConfig(
 logger = logging.getLogger("uw_scan.worker")
 RESCAN_WORKER_CONCURRENCY = 2
 WorkerGroup = Literal["uw", "massive", "ai"]
-WORKER_ROLES: set[str] = {"all", "uw", "massive"}
+WORKER_ROLES: set[str] = {"all", "uw", "massive", "ai"}
 
 
 def _spot_refresh_market_date(now: datetime) -> date | None:
@@ -103,8 +103,10 @@ def _worker_groups(settings: Settings) -> set[WorkerGroup]:
         return {"uw"}
     if role == "massive":
         return {"massive"}
+    if role == "ai":
+        return {"ai"}
     raise RuntimeError(
-        "UW_SCAN_WORKER_ROLE must be one of: all, uw, massive "
+        "UW_SCAN_WORKER_ROLE must be one of: all, uw, massive, ai "
         f"(got {settings.worker_role!r})"
     )
 
@@ -264,7 +266,15 @@ def main() -> int:
                     # _NoOhlc() is intentional: OHLC fetches are owned by
                     # _ohlc_pull / _spot_refresh. See worker/CLAUDE.md
                     # "Provider concurrency model".
-                    n = full_scan_once(repo, uw, _NoOhlc(), ticker_filter=ticker_filter)
+                    n = full_scan_once(
+                        repo,
+                        uw,
+                        _NoOhlc(),
+                        ticker_filter=ticker_filter,
+                        stale_after=timedelta(
+                            hours=settings.full_scan_stale_after_hours
+                        ),
+                    )
                     logger.info("full_scan completed %d tickers", n)
 
     def _ohlc_pull() -> None:
@@ -502,12 +512,15 @@ def main() -> int:
             )
 
     if "uw" in groups:
-        sched.add_job(
-            _full_scan,
-            CronTrigger.from_crontab(settings.full_scan_cron, timezone=settings.rth_tz),
-            id="full_scan",
-            name="Full UW scan",
-        )
+        for idx, cron_expr in enumerate(settings.full_scan_crons):
+            sched.add_job(
+                _full_scan,
+                CronTrigger.from_crontab(cron_expr, timezone=settings.rth_tz),
+                id=f"full_scan_{idx}",
+                name=f"Full UW scan ({cron_expr})",
+                max_instances=1,
+                coalesce=True,
+            )
         sched.add_job(
             _rescan,
             IntervalTrigger(seconds=1),

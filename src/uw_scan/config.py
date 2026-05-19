@@ -71,7 +71,27 @@ class Settings(BaseModel):
     base_url: str = "https://api.unusualwhales.com"
     # Scheduler — consumed by uw_scan.worker.scheduler and uw_scan.api.routers.health
     spot_refresh_seconds: int = 300
-    full_scan_cron: str = "0 5-16 * * 0-4"
+    # Multiple crons so we hit: 04:00 ET premarket warm-up, 09:30 open,
+    # every :00 and :30 during RTH active hours, and the 16:00 + 16:30
+    # close-of-day batches. UW option data only updates during RTH, so
+    # outside-RTH fires are intentionally sparse. The freshness gate below
+    # still skips tickers that were refreshed within the last N hours.
+    full_scan_crons: list[str] = [
+        "0 4 * * 0-4",  # premarket warm-up
+        "30 9 * * 0-4",  # market open
+        "0,30 10-15 * * 0-4",  # every :00 and :30 during RTH active
+        "0 16 * * 0-4",  # 4pm close
+        "30 16 * * 0-4",  # 4:30pm last scan
+    ]
+    # Skip tickers refreshed within this many hours during full_scan. With a
+    # 30-min cron over the 6h RTH window, 1h freshness gives ~6 batches/day
+    # which uses ~85% of the 20k/day UW operator budget while keeping data
+    # at most 1h stale. Coverage alert (8h window, 90% tickers) needs <=4.
+    full_scan_stale_after_hours: int = 1
+    # Sliding-window for the per-table coverage check on tables that only
+    # update once per day (cockpit + nightly vol rollup). Anything below
+    # 24h would always alert on those tables; 26h gives a small grace gap.
+    record_health_daily_window_hours: int = 26
     ohlc_pull_cron: str = "30 17 * * 0-4"
     rth_tz: str = "America/New_York"
     worker_role: str = "all"
@@ -79,6 +99,7 @@ class Settings(BaseModel):
     worker_count: int = 1
     uw_worker_count: int = 0
     massive_worker_count: int = 0
+    ai_worker_count: int = 0
     # OHLC provider (massive.com)
     massive_api_key: SecretStr | None = None
     massive_base_url: str = "https://api.massive.com"
@@ -183,7 +204,13 @@ class Settings(BaseModel):
             spot_refresh_seconds=int(
                 os.environ.get("UW_SCAN_SPOT_REFRESH_SECONDS", "300")
             ),
-            full_scan_cron=os.environ.get("UW_SCAN_FULL_SCAN_CRON", "0 5-16 * * 0-4"),
+            # full_scan_crons stays as the Pydantic default; not env-driven
+            # because cron expressions contain spaces (CSV parsing is fragile).
+            # Override by editing the Settings default if you need a different
+            # schedule.
+            full_scan_stale_after_hours=int(
+                os.environ.get("UW_SCAN_FULL_SCAN_STALE_HOURS", "1")
+            ),
             ohlc_pull_cron=os.environ.get("UW_SCAN_OHLC_PULL_CRON", "30 17 * * 0-4"),
             rth_tz=os.environ.get("UW_SCAN_RTH_TZ", "America/New_York"),
             worker_role=os.environ.get("UW_SCAN_WORKER_ROLE", "all"),
@@ -193,6 +220,7 @@ class Settings(BaseModel):
             massive_worker_count=int(
                 os.environ.get("UW_SCAN_MASSIVE_WORKER_COUNT", "0")
             ),
+            ai_worker_count=int(os.environ.get("UW_SCAN_AI_WORKER_COUNT", "0")),
             # SecretStr("") is truthy and not None — would silently allow the
             # scheduler to instantiate a Massive client with a blank bearer and
             # generate a stream of 401s. Coerce blank to None before wrapping.

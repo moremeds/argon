@@ -1,6 +1,31 @@
 from __future__ import annotations
 
+import os
 from datetime import datetime, timedelta, timezone
+
+import psycopg
+import pytest
+
+from uw_scan.config import Settings
+from uw_scan.storage.repository import Repository
+
+
+def _test_db_dsn() -> str:
+    """Rebuild the test DSN from Settings (mirrors conftest._test_settings).
+
+    Cannot rely on `repo.conn.info.dsn` for opening a second connection: in
+    CI's pytest-postgresql setup, conn.info.dsn doesn't carry the auth
+    credentials that the original connect() pulled from environment.
+    """
+    test_db = os.environ.get("UW_SCAN_TEST_DB_NAME")
+    if not test_db:
+        pytest.fail(
+            "UW_SCAN_TEST_DB_NAME not set; refusing to point integration "
+            "tests at the working DB.",
+            pytrace=False,
+        )
+    os.environ.setdefault("UW_SCAN_API_KEY", "test-dummy-not-used-by-db-tests")
+    return Settings.from_env().model_copy(update={"db_name": test_db}).db_dsn()
 
 
 def _create_snapshot(repo, *, ticker: str = "TSLA", input_hash: str = "ti-hash"):
@@ -88,7 +113,9 @@ def test_prepare_trade_insight_ai_analysis_persists_audit_payloads(
 
     row = repo.get_trade_insight_ai_analysis(analysis_id)
     assert row["prompt_text"] == "Analyze this deterministic payload."
-    assert row["prompt_payload_jsonb"]["analysis_produced_at"] == produced_at.isoformat()
+    assert (
+        row["prompt_payload_jsonb"]["analysis_produced_at"] == produced_at.isoformat()
+    )
     assert row["output_schema_jsonb"] == {"type": "object"}
     assert row["produced_at"] == produced_at
 
@@ -250,6 +277,69 @@ def test_claim_reclaims_stale_running_analysis(seeded_db_empty_cards):
     assert str(claimed["analysis_id"]) == analysis_id
     assert claimed["status"] == "running"
     assert claimed["started_at"] > stale_started_at
+
+
+def test_two_concurrent_claimers_get_distinct_rows(seeded_db_empty_cards):
+    """Two `ai` workers on separate connections must not double-process.
+
+    PR #53 ships a second AI worker; correctness relies on
+    `claim_next_trade_insight_ai_analysis` using FOR UPDATE SKIP LOCKED so
+    the second claimer skips the row the first one just locked. Without
+    that, both workers would race on `status='queued'` reads and could both
+    flip the same row to running.
+    """
+    repo = seeded_db_empty_cards
+    run_id, snapshot_id = _create_snapshot(repo, ticker="TSLA", input_hash="ti-1")
+    id_a = _enqueue(
+        repo,
+        snapshot_id=snapshot_id,
+        run_id=run_id,
+        analysis_input_hash="ai-1",
+        analysis_input={"ticker": "TSLA", "tabs": {"flow": {"x": 1}}},
+    )
+    id_b = _enqueue(
+        repo,
+        snapshot_id=snapshot_id,
+        run_id=run_id,
+        analysis_input_hash="ai-2",
+        analysis_input={"ticker": "TSLA", "tabs": {"flow": {"x": 2}}},
+    )
+    assert id_a != id_b
+    repo.conn.commit()
+
+    # Open a second connection on the same DSN — simulates a separate worker.
+    conn_b = psycopg.connect(_test_db_dsn())
+    try:
+        repo_b = Repository(conn_b, schema=repo._schema)
+
+        # Claim from worker A — its inner SELECT FOR UPDATE locks one row.
+        claimed_a = repo.claim_next_trade_insight_ai_analysis()
+        # Claim from worker B BEFORE A commits — must SKIP the locked row
+        # and grab the other queued one (or return None if SKIP LOCKED is
+        # broken and B sees only the row A locked).
+        claimed_b = repo_b.claim_next_trade_insight_ai_analysis()
+
+        assert claimed_a is not None, "worker A should claim a row"
+        assert claimed_b is not None, (
+            "worker B should claim the OTHER row, not skip out — "
+            "FOR UPDATE SKIP LOCKED is the contract here"
+        )
+        assert str(claimed_a["analysis_id"]) != str(claimed_b["analysis_id"]), (
+            "two workers claimed the SAME row — concurrency invariant broken"
+        )
+        assert {str(claimed_a["analysis_id"]), str(claimed_b["analysis_id"])} == {
+            id_a,
+            id_b,
+        }
+
+        # Commit both so the third claim sees both as 'running'; with no
+        # queued or stale-running rows, it should return None.
+        repo.conn.commit()
+        repo_b.conn.commit()
+        third = repo.claim_next_trade_insight_ai_analysis()
+        assert third is None, "no more queued rows; third claim should be empty"
+    finally:
+        conn_b.close()
 
 
 def test_complete_stores_outcome_markdown_and_preserves_produced_at(

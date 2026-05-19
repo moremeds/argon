@@ -90,7 +90,9 @@ def test_record_worker_heartbeat_uses_provider_worker_key(monkeypatch) -> None:
 
     monkeypatch.setattr("uw_scan.worker.scheduler._repo", fake_repo)
 
-    settings = Settings(api_key="uw", worker_role="massive", worker_index=1, worker_count=2)
+    settings = Settings(
+        api_key="uw", worker_role="massive", worker_index=1, worker_count=2
+    )
     _record_worker_heartbeat(settings)
 
     assert calls == ["worker:massive:1"]
@@ -127,10 +129,12 @@ def test_rescan_worker_concurrency_is_two() -> None:
 
 def test_default_weekday_crons_include_monday_et() -> None:
     settings = Settings(api_key="uw")
-    monday_et = datetime(2026, 5, 18, 13, 50, tzinfo=ZoneInfo(settings.rth_tz))
+    # Anchor before the earliest cron (04:00 ET premarket warm-up) so every
+    # cron's "next fire" lands on the same Monday, including the 4am scan.
+    monday_et = datetime(2026, 5, 18, 3, 0, tzinfo=ZoneInfo(settings.rth_tz))
 
     for expr in (
-        settings.full_scan_cron,
+        *settings.full_scan_crons,
         settings.ohlc_pull_cron,
         settings.cockpit_snapshot_cron,
     ):
@@ -142,7 +146,9 @@ def test_default_weekday_crons_include_monday_et() -> None:
         assert next_fire.date() == monday_et.date()
 
 
-def test_scheduler_cron_literals_do_not_use_apscheduler_tuesday_to_saturday_range() -> None:
+def test_scheduler_cron_literals_do_not_use_apscheduler_tuesday_to_saturday_range() -> (
+    None
+):
     repo_root = Path(__file__).resolve().parents[3]
     production_sources = (
         repo_root / "src/uw_scan/config.py",

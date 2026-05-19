@@ -11,12 +11,20 @@
 
 ## Worker roles
 
-Set `UW_SCAN_WORKER_ROLE=uw|massive|all`, `UW_SCAN_WORKER_INDEX`, and
+Set `UW_SCAN_WORKER_ROLE=uw|massive|ai|all`, `UW_SCAN_WORKER_INDEX`, and
 `UW_SCAN_WORKER_COUNT` to split provider work across processes.
 
 - `uw` workers run `full_scan`, `rescan_tick`, and `flow_data_refresh`.
 - `massive` workers run `spot_refresh`, `ohlc_pull`, and primary-worker-only
   volatility OHLC/rollup jobs.
+- `ai` workers run only `trade_insights_ai_tick` (gated on
+  `TRADE_INSIGHTS_AI_ENABLED=true`). The tick claims rows via
+  `FOR UPDATE SKIP LOCKED`, so multiple `ai` workers safely process distinct
+  tickers in parallel — `UW_SCAN_WORKER_COUNT=2` doubles throughput when the
+  analysis queue has multiple tickers. Without an `ai` (or `all`) worker,
+  Trade Insights AI rows stay `queued` forever. Also export
+  `UW_SCAN_AI_WORKER_COUNT=N` to the API process so the health panel can
+  enumerate the AI worker heartbeats.
 - `all` preserves the legacy single scheduler shape.
 - Per-ticker scheduled jobs must use the scheduler-provided shard filter.
   Rescans use DB claiming (`FOR UPDATE SKIP LOCKED`) and are not sharded.

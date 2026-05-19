@@ -1572,6 +1572,22 @@ export interface components {
             /** Delta */
             delta?: number | null;
         };
+        /** GoldCbCountryHistory */
+        GoldCbCountryHistory: {
+            /** Country Iso3 */
+            country_iso3: string;
+            /** Country Name */
+            country_name: string;
+            /** Bucket */
+            bucket: string;
+            /** Latest Reserves T */
+            latest_reserves_t?: string | null;
+            /**
+             * History
+             * @default []
+             */
+            history: components["schemas"]["GoldHistoryPoint"][];
+        };
         /** GoldCorrelationBand */
         GoldCorrelationBand: {
             /** Mean */
@@ -1687,22 +1703,6 @@ export interface components {
             current: components["schemas"]["GoldGaugeState"];
             /** History 252D */
             history_252d: components["schemas"]["GoldGaugeTimeSeriesPoint"][];
-        };
-        /** GoldCbCountryHistory */
-        GoldCbCountryHistory: {
-            /** Country Iso3 */
-            country_iso3: string;
-            /** Country Name */
-            country_name: string;
-            /** Bucket */
-            bucket: string;
-            /** Latest Reserves T */
-            latest_reserves_t?: string | null;
-            /**
-             * History
-             * @default []
-             */
-            history: components["schemas"]["GoldHistoryPoint"][];
         };
         /** GoldGaugeState */
         GoldGaugeState: {
@@ -4254,7 +4254,7 @@ export interface components {
              * Role
              * @enum {string}
              */
-            role: "uw" | "massive";
+            role: "uw" | "massive" | "ai";
             /** Index */
             index: number;
             /** Heartbeat Name */

@@ -43,18 +43,13 @@ def test_ticker_shard_filter_is_disabled_for_single_worker() -> None:
 def test_worker_groups_split_provider_roles() -> None:
     assert _worker_groups(_settings(worker_role="uw")) == {"uw"}
     assert _worker_groups(_settings(worker_role="massive")) == {"massive"}
+    assert _worker_groups(_settings(worker_role="ai")) == {"ai"}
     assert _worker_groups(_settings(worker_role="all")) == {"uw", "massive", "ai"}
 
 
 def test_split_uw_workers_run_one_rescan_instance_each() -> None:
-    assert (
-        _rescan_worker_concurrency(_settings(worker_role="uw", worker_count=2))
-        == 1
-    )
-    assert (
-        _rescan_worker_concurrency(_settings(worker_role="all", worker_count=1))
-        == 2
-    )
+    assert _rescan_worker_concurrency(_settings(worker_role="uw", worker_count=2)) == 1
+    assert _rescan_worker_concurrency(_settings(worker_role="all", worker_count=1)) == 2
 
 
 def test_spot_refresh_respects_ticker_filter() -> None:

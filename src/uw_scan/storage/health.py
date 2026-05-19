@@ -35,6 +35,30 @@ _RECORD_HEALTH_EXCLUDED_TABLES = {
     "option_surface_snapshots",
     "stock_analytics_daily",
     "vrp_daily",
+    # Cockpit-only tables — populated for the 4 index tickers (SPX/SPY/QQQ/IWM)
+    # by `cockpit_daily_snapshot`, never for the full watchlist. Including
+    # them in watchlist coverage always reads "4/102 ALERT" which is false.
+    "charm_signals",
+    "vanna_signals",
+    "matrix_state_snapshots",
+    "vrp_30d_settlements",
+    # Structurally sparse: only tickers that pass scan gates get a context
+    # flag row. Even at full coverage this caps around 50-60% of the
+    # watchlist — a watchlist-wide threshold will never apply.
+    "signal_context_flags",
+}
+
+# Watchlist-wide tables populated once per day (nightly vol rollup at
+# 18:00 ET; daily skew + oi_by_strike snapshots). An 8h sliding window
+# will always fail them — they need a 24h+ window to count as fresh.
+_RECORD_HEALTH_DAILY_TABLES = {
+    # nightly_vol_analytics_rollup
+    "iv_rank_history",
+    "realized_volatility_history",
+    "volatility_stats_history",
+    # daily snapshots
+    "risk_reversal_skew_history",
+    "oi_by_strike",
 }
 
 
@@ -142,6 +166,7 @@ class _HealthMixin:
         expected_tickers: int,
         min_coverage: float = 0.9,
         tables: Iterable[str] | None = None,
+        daily_since: datetime | None = None,
     ) -> list[RecordHealthRow]:
         rules = self._discover_record_health_rules()
         selected = list(tables) if tables is not None else list(rules)
@@ -156,6 +181,15 @@ class _HealthMixin:
         with self._conn.cursor() as cur:
             for table in selected:
                 timestamp_col, ticker_col, min_rows_per_ticker = rules[table]
+                # Tables populated by once-per-day jobs (cockpit, vol rollup)
+                # cannot satisfy an 8h sliding window — they need a 24h+ one.
+                effective_since = (
+                    daily_since
+                    if (
+                        daily_since is not None and table in _RECORD_HEALTH_DAILY_TABLES
+                    )
+                    else since
+                )
                 cur.execute(
                     psql.SQL(
                         """
@@ -172,7 +206,7 @@ class _HealthMixin:
                         timestamp_col=psql.Identifier(timestamp_col),
                         ticker_col=psql.Identifier(ticker_col),
                     ),
-                    (since,),
+                    (effective_since,),
                 )
                 actual_rows, actual_tickers, latest_at = cur.fetchone() or (0, 0, None)
                 expected_min_rows = expected_min_tickers * min_rows_per_ticker
@@ -183,7 +217,7 @@ class _HealthMixin:
                 rows.append(
                     RecordHealthRow(
                         table=table,
-                        window_start=since,
+                        window_start=effective_since,
                         expected_tickers=expected_tickers,
                         expected_min_tickers=expected_min_tickers,
                         actual_tickers=int(actual_tickers or 0),

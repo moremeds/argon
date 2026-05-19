@@ -59,7 +59,7 @@ class HealthResponse(BaseModel):
 
 class WorkerHealth(BaseModel):
     label: str
-    role: Literal["uw", "massive"]
+    role: Literal["uw", "massive", "ai"]
     index: int
     heartbeat_name: str
     lag_seconds: float | None = None
@@ -78,20 +78,33 @@ class RecordHealthCheck(BaseModel):
     ok: bool
 
 
-def _full_scan_interval_seconds(cron_expr: str, tz: str) -> float:
-    """Two consecutive fires from an in-RTH anchor measure the typical gap.
+def _max_scheduler_gap_seconds(cron_exprs: list[str], tz: str) -> float:
+    """Largest expected silence between any two consecutive cron fires.
 
-    Anchored at Tue 10:00 UTC (≈ 06:00 ET) so the cron walks into RTH and
-    yields the in-session interval (the threshold we actually care about);
-    after-hours gaps would inflate the threshold and mask outages.
+    Walks 48h forward from a Tuesday anchor and unions all fire times across
+    the supplied crons. Returns the maximum gap between consecutive fires —
+    this is the "tolerated overnight silence." The scheduler-lag check
+    multiplies by 2, so the alert only fires if the scheduler is genuinely
+    missing at least two consecutive expected windows.
+
+    For the default 5-cron schedule (04:00 + 09:30 + 10:00-15:30 every :30 +
+    16:00 + 16:30 ET) the max gap is ~11.5h overnight; using min gap (30min)
+    would alert every night after market close.
     """
-    trig = CronTrigger.from_crontab(cron_expr, timezone=tz)
     anchor = datetime(2026, 5, 12, 10, 0, tzinfo=timezone.utc)
-    a = trig.get_next_fire_time(None, anchor)
-    if a is None:
+    end = anchor + timedelta(hours=48)
+    fires: list[datetime] = []
+    for expr in cron_exprs:
+        trig = CronTrigger.from_crontab(expr, timezone=tz)
+        cur = trig.get_next_fire_time(None, anchor)
+        while cur is not None and cur < end:
+            fires.append(cur)
+            cur = trig.get_next_fire_time(cur, cur)
+    if len(fires) < 2:
         return 3600.0
-    b = trig.get_next_fire_time(a, a)
-    return (b - a).total_seconds() if b else 3600.0
+    fires.sort()
+    gaps = [(b - a).total_seconds() for a, b in zip(fires, fires[1:])]
+    return max(gaps)
 
 
 def _parse_record_tables(record_tables: str | None) -> list[str] | None:
@@ -107,11 +120,13 @@ def _worker_health_rows(
     now_utc: datetime,
     uw_count: int,
     massive_count: int,
+    ai_count: int,
 ) -> list[WorkerHealth]:
     expected_workers: list[tuple[str, Literal["uw", "massive"], int, str]] = []
     for role, count, label_prefix in (
         ("uw", uw_count, "UW"),
         ("massive", massive_count, "Massive"),
+        ("ai", ai_count, "AI"),
     ):
         for index in range(max(0, count)):
             expected_workers.append(
@@ -198,6 +213,7 @@ def health(
         now_utc=now_utc,
         uw_count=settings.uw_worker_count,
         massive_count=settings.massive_worker_count,
+        ai_count=settings.ai_worker_count,
     )
     provider_day_start, provider_day_end = provider_day_bounds()
     provider_usage = repo.get_external_api_usage_summary(
@@ -238,6 +254,10 @@ def health(
         try:
             record_rows = repo.list_record_health(
                 since=now_utc - timedelta(hours=record_window_hours),
+                # Daily tables (nightly vol rollup, daily snapshots) refresh
+                # once per day, so they need a wider window to count as fresh.
+                daily_since=now_utc
+                - timedelta(hours=settings.record_health_daily_window_hours),
                 expected_tickers=watchlist_size,
                 min_coverage=record_min_coverage,
                 tables=_parse_record_tables(record_tables),
@@ -280,8 +300,11 @@ def health(
         )
 
     lag = (now_utc - last_scan).total_seconds()
-    threshold = 2.0 * _full_scan_interval_seconds(
-        settings.full_scan_cron, settings.rth_tz
+    # Use the LARGEST expected gap across all crons (typically the overnight
+    # gap between 16:30 and 04:00 next day). Threshold = 2x gap means the
+    # alert only fires when scheduler has missed at least 2 expected windows.
+    threshold = 2.0 * _max_scheduler_gap_seconds(
+        settings.full_scan_crons, settings.rth_tz
     )
     if lag > threshold:
         return HealthResponse(

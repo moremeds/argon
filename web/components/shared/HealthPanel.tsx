@@ -231,12 +231,7 @@ export function HealthPanel() {
   const massiveWorkers = workerRows.filter(
     (worker) => worker.role === "massive",
   );
-  // AI workers ship in a sibling PR that widens WorkerHealth.role to include
-  // "ai". Cast through string so this compiles regardless of merge order;
-  // once the role enum widens, this filter returns the real AI worker rows.
-  const aiWorkers = workerRows.filter(
-    (worker) => (worker.role as string) === "ai",
-  );
+  const aiWorkers = workerRows.filter((worker) => worker.role === "ai");
   const recordsStatus = recordHealthStatus(h?.record_health_ok);
   const summary = worstStatus(
     workerRows.length > 0
@@ -321,6 +316,12 @@ export function HealthPanel() {
                 label="Massive Workers"
                 status={workerGroupStatus(massiveWorkers)}
               />
+              {aiWorkers.length > 0 && (
+                <StatusRow
+                  label="AI Workers"
+                  status={workerGroupStatus(aiWorkers)}
+                />
+              )}
             </>
           ) : (
             <>

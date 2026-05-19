@@ -86,13 +86,14 @@ def latest_tsla_run_id(seeded_db_with_cards) -> int:
 
 @pytest.fixture
 def seeded_db_with_stale_run(seeded_db_empty_cards) -> Repository:
-    """A scan_runs row with finished_at = now - 6 hours.
+    """A scan_runs row with finished_at = now - 30 hours.
 
-    With the default hourly full_scan_cron, threshold = 2× ~1h = ~2h; 6h lag
-    should report unhealthy in /api/health.
+    Health threshold is 2× the LARGEST expected gap between cron fires (the
+    overnight 16:30→04:00 gap, ~11.5h). 30h lag clears that threshold and
+    represents a scheduler genuinely down through 2+ expected windows.
     """
     repo = seeded_db_empty_cards
-    stale = datetime.now(timezone.utc) - timedelta(hours=6)
+    stale = datetime.now(timezone.utc) - timedelta(hours=30)
     with repo.conn.cursor() as cur:
         cur.execute(
             f"""
