@@ -155,11 +155,15 @@ A prior-day score marker (small dot) sits on the track at the prior-day value so
 
 ## 8. Validation
 
-`scripts/backtest_cri.py` recomputes CRI for every day in `vol_index_daily` ∩ `daily_ohlc` (2006-05–2026-05). Output: `docs/research/regime/cri-backtest-2006-2026.{md,csv}` with:
-- Score distribution (mean, p25/50/75/90/95, histogram)
-- Level transition counts (LOW→ELEVATED, ELEVATED→HIGH, etc.)
-- Hit-rate against named crash dates: 2008-09-15 (Lehman), 2010-05-06 (flash crash), 2011-08-08 (US downgrade), 2015-08-24 (Black Monday China), 2018-02-05 (volmageddon), 2018-12-24 (Q4 selloff), 2020-02-28 / 2020-03-16 (COVID), 2022-06-13 (rate-hike vol)
+Two layers of validation exist:
 
-The backtest is **regenerated** when calibration changes and the diff is reviewed before merging.
+**(a) Warm-store backtest** — `scripts/backtest_cri.py` recomputes CRI for every day in `vol_index_daily` ∩ `daily_ohlc`. Output: `docs/research/regime/cri-backtest.{md,csv}` with:
+- Score distribution (mean, p25/50/75/90/95)
+- Level distribution (LOW/ELEVATED/HIGH/CRITICAL)
+- Hit-rate against named crash dates
 
-Out-of-sample validation against 20 years of daily data showed VIX raw level alone captures most of the predictive signal for 5%/20-day drawdowns; CRI's value is in being a structured, decomposable regime monitor rather than a strict alpha. Read `docs/research/regime/cri-validation.ipynb` Section 9 for the honest accuracy breakdown.
+The aligned window is bounded by the *shortest* series in the DB. `vol_index_daily` covers VIX 1990→2026, VVIX 2006→2026, COR1M 2006→2026, but `daily_ohlc[SPY]` is typically only the trailing 12-18 months unless backfilled — so the warm-store backtest is a **recent-history sanity check**, not a multi-cycle validation. Regenerate after any calibration change and review the diff before merging.
+
+**(b) 20y OOS validation** — `docs/research/regime/cri-validation.ipynb` is the canonical long-horizon test. It reads the parquet data lake at `~/market-warehouse/data-lake/bronze/asset_class=volatility/` for VIX/VVIX/COR1M and equity OHLC, runs a walk-forward split (train 2007-2015 / test 2016-2026), and reports ROC AUC + threshold-matched precision/recall against three crash-proxy labels (`label_dd5`, `label_vix30`, `label_dd10`).
+
+Honest finding from (b): VIX raw level alone captures most of the predictive signal for 5%/20-day drawdowns; CRI's value is in being a **structured, decomposable regime monitor** rather than a strict alpha generator. Read Section 9 of the notebook for the full accuracy breakdown and the caveats.
