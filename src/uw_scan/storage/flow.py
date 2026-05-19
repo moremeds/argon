@@ -16,6 +16,7 @@ from collections.abc import Iterable
 from datetime import date as _date
 from datetime import datetime
 from decimal import Decimal
+from typing import Any
 from zoneinfo import ZoneInfo
 
 import psycopg
@@ -65,6 +66,48 @@ def _flow_alert_trade_date(rows: list[models.FlowAlert]) -> _date:
             created_at = created_at.replace(tzinfo=market_tz)
         return created_at.astimezone(market_tz).date()
     return datetime.now(market_tz).date()
+
+
+def _flow_event_params(
+    run_id: int, rows: Iterable[models.FlowAlert]
+) -> list[tuple[Any, ...]]:
+    return [
+        (
+            run_id,
+            r.id,
+            r.ticker,
+            r.option_chain,
+            r.expiry,
+            r.strike,
+            r.type,
+            r.price,
+            r.underlying_price,
+            r.total_size,
+            r.total_premium,
+            r.total_ask_side_prem,
+            r.total_bid_side_prem,
+            r.volume,
+            r.open_interest,
+            r.volume_oi_ratio,
+            r.has_sweep,
+            r.has_floor,
+            r.has_multileg,
+            r.all_opening_trades,
+            r.iv_start,
+            r.iv_end,
+            r.alert_rule,
+            r.flow_footprint_label or _flow_footprint_label(r),
+            r.aggressor_label_confidence
+            if r.aggressor_label_confidence is not None
+            else _aggressor_label_confidence(r),
+            r.rule_id,
+            r.sector,
+            r.issue_type,
+            r.next_earnings_date,
+            r.created_at,
+        )
+        for r in rows
+    ]
 
 
 class _FlowMixin:

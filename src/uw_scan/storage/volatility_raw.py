@@ -3,10 +3,62 @@
 from __future__ import annotations
 
 from collections.abc import Iterable
+from typing import Any
 
 import psycopg
 
 from .. import models
+
+
+def _iv_rank_params(
+    ticker: str, rows: Iterable[models.IvRankRow]
+) -> list[tuple[Any, ...]]:
+    return [
+        (ticker, r.date, r.close, r.volatility, r.iv_rank_1y, r.updated_at)
+        for r in rows
+    ]
+
+
+def _volatility_stats_params(
+    rows: Iterable[models.VolStatsRow],
+) -> list[tuple[Any, ...]]:
+    return [
+        (
+            r.ticker,
+            r.date,
+            r.iv,
+            r.iv_low,
+            r.iv_high,
+            r.iv_rank,
+            r.rv,
+            r.rv_low,
+            r.rv_high,
+        )
+        for r in rows
+    ]
+
+
+def _realized_vol_params(
+    ticker: str, rows: Iterable[models.RealizedVolRow]
+) -> list[tuple[Any, ...]]:
+    return [
+        (
+            ticker,
+            r.date,
+            r.price,
+            r.implied_volatility,
+            r.realized_volatility,
+            r.unshifted_rv_date,
+        )
+        for r in rows
+    ]
+
+
+def _skew_params(ticker: str, rows: Iterable[models.SkewRow]) -> list[tuple[Any, ...]]:
+    return [
+        (ticker, r.date, r.delta, r.expiry, r.risk_reversal)
+        for r in rows
+    ]
 
 
 class _VolatilityRawMixin:
