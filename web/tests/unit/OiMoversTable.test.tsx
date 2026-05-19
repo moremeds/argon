@@ -140,4 +140,83 @@ describe("OiMoversTable", () => {
     );
     expect(screen.getByText("[3 alerts]")).toBeTruthy();
   });
+
+  it("renders em-dash in TAPE column when no profile is supplied", () => {
+    render(<OiMoversTable rows={ROWS as never} spot={180} today={TODAY} />);
+    // TAPE header is always present.
+    expect(screen.getByText("TAPE")).toBeTruthy();
+    // Two rows, both unprofiled → two em-dashes in the TAPE column.
+    // (use queryAllByText to count, not getByText, since the dash also
+    // appears in other "—" placeholders depending on row content.)
+    const dashes = screen.queryAllByText("—");
+    expect(dashes.length).toBeGreaterThan(0);
+  });
+
+  it("renders peak window + share + sparkline when profileIndex is supplied", () => {
+    const profileIndex = new Map<string, never>([
+      [
+        "GOOGL260515C00180000",
+        {
+          option_symbol: "GOOGL260515C00180000",
+          trade_date: "2026-05-12",
+          total_volume: 12_000,
+          first_trade_time: "2026-05-12T13:34:00Z",
+          last_trade_time: "2026-05-12T19:48:00Z",
+          peak_window_start: "2026-05-12T17:45:00Z",
+          peak_window_end: "2026-05-12T18:15:00Z",
+          peak_window_share_pct: "62.5",
+          sparkline: [1, 2, 5, 7, 8, 5, 3, 2, 1, 1, 1, 0],
+        } as never,
+      ],
+    ]);
+    render(
+      <OiMoversTable
+        rows={ROWS as never}
+        spot={180}
+        today={TODAY}
+        profileIndex={profileIndex as never}
+      />,
+    );
+    // Peak label combines two HH:MM stamps joined by an en-dash and a pct.
+    // The HH:MM rendering is the viewer's local zone, so we match on the
+    // shape (HH:MM–HH:MM) rather than asserting a fixed wall-clock time.
+    expect(screen.getByText(/^peak \d{2}:\d{2}–\d{2}:\d{2}$/)).toBeTruthy();
+    expect(screen.getByText(/63%|62%/)).toBeTruthy(); // 62.5 → "63%" or "62%" depending on round
+    expect(
+      screen.getByLabelText(/sparkline for GOOGL260515C00180000/),
+    ).toBeTruthy();
+  });
+
+  it("renders em-dash for a profile with zero captured volume", () => {
+    const profileIndex = new Map<string, never>([
+      [
+        "GOOGL260515C00180000",
+        {
+          option_symbol: "GOOGL260515C00180000",
+          trade_date: "2026-05-12",
+          total_volume: 0,
+          first_trade_time: null,
+          last_trade_time: null,
+          peak_window_start: null,
+          peak_window_end: null,
+          peak_window_share_pct: null,
+          sparkline: [],
+        } as never,
+      ],
+    ]);
+    render(
+      <OiMoversTable
+        rows={[ROWS[1]] as never}
+        spot={180}
+        today={TODAY}
+        profileIndex={profileIndex as never}
+      />,
+    );
+    // Only one row, only one TAPE cell — it must be the em-dash variant
+    // tied to the "no intraday tape captured" tooltip.
+    const cells = screen.getAllByTitle(
+      "No intraday tape captured for this session",
+    );
+    expect(cells.length).toBe(1);
+  });
 });

@@ -2490,6 +2490,45 @@ export interface components {
             put_oi?: number | null;
         };
         /**
+         * OptionIntradayProfile
+         * @description Derived per-contract intraday tape view for the OI movers table.
+         *
+         *     Built by ``cards.intraday_profile.derive_intraday_profile`` from persisted
+         *     :class:`OptionContractIntradayBucket` rows. Volume here is side-aggregated
+         *     (ask + bid + mid + multi). The 12-point sparkline is a fixed-length
+         *     downsample so the UI renders a stable width regardless of how many
+         *     minute bars the contract actually had.
+         */
+        OptionIntradayProfile: {
+            /** Option Symbol */
+            option_symbol: string;
+            /**
+             * Trade Date
+             * Format: date
+             */
+            trade_date: string;
+            /**
+             * Total Volume
+             * @default 0
+             */
+            total_volume: number;
+            /** First Trade Time */
+            first_trade_time?: string | null;
+            /** Last Trade Time */
+            last_trade_time?: string | null;
+            /** Peak Window Start */
+            peak_window_start?: string | null;
+            /** Peak Window End */
+            peak_window_end?: string | null;
+            /** Peak Window Share Pct */
+            peak_window_share_pct?: string | null;
+            /**
+             * Sparkline
+             * @default []
+             */
+            sparkline: number[];
+        };
+        /**
          * OptionsDailyRow
          * @description One row per trading day from UW /options-volume.
          *
@@ -3047,6 +3086,11 @@ export interface components {
              * @default []
              */
             oi_change_top: components["schemas"]["OiChangeRow"][];
+            /**
+             * Oi Change Intraday Profiles
+             * @default []
+             */
+            oi_change_intraday_profiles: components["schemas"]["OptionIntradayProfile"][];
             aggregates?: components["schemas"]["MarketAggregates"] | null;
             /**
              * Strike Gex Curve

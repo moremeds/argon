@@ -1,8 +1,16 @@
 import type { components } from "@/lib/types";
-import { fmtDecimal, fmtRelativeDay, fmtSigned, toNum } from "@/lib/formatters";
+import {
+  fmtDecimal,
+  fmtRelativeDay,
+  fmtSigned,
+  fmtTimeOfDay,
+  toNum,
+} from "@/lib/formatters";
 import { parseOccSymbol } from "@/lib/occ";
+import { Sparkline } from "./Sparkline";
 
 type OiRow = components["schemas"]["OiChangeRow"];
+type IntradayProfile = components["schemas"]["OptionIntradayProfile"];
 
 type Props = {
   rows: OiRow[];
@@ -10,7 +18,22 @@ type Props = {
   today?: Date;
   // option_symbol → count of flow alerts firing on this contract today.
   alertIndex?: Map<string, number>;
+  // option_symbol → derived per-contract intraday tape profile. Populated by
+  // the 9 AM ET worker job; absent until the first refresh for a ticker.
+  profileIndex?: Map<string, IntradayProfile>;
 };
+
+function fmtHm(iso: string | null | undefined): string {
+  if (!iso) return "—";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "—";
+  // HH:MM in the viewer's local zone — matches TopAlertsTable / fmtTimeOfDay.
+  return new Intl.DateTimeFormat("en-US", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).format(d);
+}
 
 const ASK_BID_DOMINANCE_THRESHOLD = 60;
 
@@ -111,6 +134,7 @@ export function OiMoversTable({
   spot,
   today = new Date(),
   alertIndex,
+  profileIndex,
 }: Props) {
   const sorted = rows
     .map((r) => {
@@ -154,6 +178,9 @@ export function OiMoversTable({
         <tr style={{ color: "var(--text-muted)", textAlign: "left" }}>
           <th title="Trading date the ΔOI snapshot is from. OI moves are end-of-day aggregations, not intraday.">
             AS OF
+          </th>
+          <th title="Per-minute tape view of the session that built this OI. Top line: peak 30-min window and its share of total volume. Bottom: first→last trade time with a 12-bar volume sparkline.">
+            TAPE
           </th>
           <th>TYPE</th>
           <th>EXPIRY</th>
@@ -204,6 +231,7 @@ export function OiMoversTable({
                     </span>
                   )}
                 </td>
+                <TapeCell profile={profileIndex?.get(r.option_symbol)} />
                 <td>{occ?.type ?? r.option_symbol}</td>
                 <td>{occ?.expiry ?? "—"}</td>
                 <td>{occ ? `$${occ.strike.toFixed(2)}` : "—"}</td>
@@ -250,5 +278,66 @@ export function OiMoversTable({
         )}
       </tbody>
     </table>
+  );
+}
+
+function TapeCell({ profile }: { profile: IntradayProfile | undefined }) {
+  // No profile yet (worker hasn't refreshed this contract) OR a profile
+  // with zero captured volume — render an em-dash so the column width is
+  // stable. The most common zero-volume case is an OI build that happened
+  // outside our captured intraday window (overnight, deep OTM block prints).
+  if (!profile || profile.total_volume <= 0) {
+    return (
+      <td
+        style={{ whiteSpace: "nowrap", color: "var(--text-muted)" }}
+        title={
+          profile
+            ? "No intraday tape captured for this session"
+            : "Intraday tape not yet refreshed"
+        }
+      >
+        —
+      </td>
+    );
+  }
+
+  const peakLabel =
+    profile.peak_window_start && profile.peak_window_end
+      ? `peak ${fmtHm(profile.peak_window_start)}–${fmtHm(profile.peak_window_end)}`
+      : null;
+  const pct = toNum(profile.peak_window_share_pct);
+  const pctLabel = pct != null ? ` (${pct.toFixed(0)}%)` : "";
+  const range =
+    profile.first_trade_time && profile.last_trade_time
+      ? `${fmtHm(profile.first_trade_time)}→${fmtTimeOfDay(profile.last_trade_time).slice(0, 5)}`
+      : null;
+
+  return (
+    <td
+      style={{ whiteSpace: "nowrap", lineHeight: 1.2 }}
+      title={`Total session volume: ${profile.total_volume.toLocaleString("en-US")}`}
+    >
+      {peakLabel && (
+        <div style={{ color: "var(--text-primary)" }}>
+          {peakLabel}
+          <span style={{ color: "var(--accent-warm)" }}>{pctLabel}</span>
+        </div>
+      )}
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 6,
+          color: "var(--text-muted)",
+          fontSize: 10,
+        }}
+      >
+        {range && <span>{range}</span>}
+        <Sparkline
+          values={profile.sparkline ?? []}
+          ariaLabel={`intraday volume sparkline for ${profile.option_symbol}`}
+        />
+      </div>
+    </td>
   );
 }
