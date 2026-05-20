@@ -17,6 +17,8 @@ from typing import Any
 import numpy as np
 
 from uw_scan.cards.mean_reversion import (
+    compute_pullback_20d,
+    compute_vix_delta_3d,
     compute_vrp,
     vix_vix3m_ratio,
     vix_zscore_30d,
@@ -25,6 +27,14 @@ from uw_scan.cards.mean_reversion import (
 # ── constants ─────────────────────────────────────────────────────
 MA_WINDOW = 100  # SPX moving average window
 VOL_WINDOW = 20  # Realized vol window (annualized)
+
+# Composite scoring contract version.
+# v1: original calibration (VIX floor 15, RoC denom 60; VVIX floor 85; trend-break
+#     0-25 single sub-score; saturates at -10% below 100d MA).
+# v2: SPX-over-SPY preference + mean-reversion fields (no scorer math change).
+# v3: VIX floor 13; VIX RoC denom 40; VVIX floor 80; Trend Break reshaped into
+#     structural (0-15, vs 100d MA) + tactical (0-10, vs 20d high, sat at -4%).
+COMPOSITE_VERSION = 3
 
 # CTA model parameters
 CTA_VOL_TARGET = 10.0  # 10% target volatility
@@ -84,11 +94,16 @@ def cor1m_level_and_change(cor1m_values: np.ndarray) -> tuple[float, float]:
 
 
 def score_vix_component(vix: float, vix_5d_roc: float) -> float:
-    """Score VIX component (0-25). vix_5d_roc is in %."""
+    """Score VIX component (0-25). vix_5d_roc is in %.
+
+    v3 calibration (2026-05-20): level floor lowered 15→13 so VIX in the
+    14-18 band picks up signal; RoC denom 60→40 so a +30% week saturates the
+    sub-score (a +40% week is the practical ceiling, +60% almost never).
+    """
     if math.isnan(vix) or math.isnan(vix_5d_roc):
         return 0.0
-    level_score = np.clip((vix - 15.0) / (40.0 - 15.0) * 15.0, 0.0, 15.0)
-    roc_score = np.clip(max(vix_5d_roc, 0.0) / 60.0 * 10.0, 0.0, 10.0)
+    level_score = np.clip((vix - 13.0) / (40.0 - 13.0) * 15.0, 0.0, 15.0)
+    roc_score = np.clip(max(vix_5d_roc, 0.0) / 40.0 * 10.0, 0.0, 10.0)
     return float(np.clip(level_score + roc_score, 0.0, 25.0))
 
 
@@ -110,7 +125,10 @@ def score_vvix_component(
         return 0.0
     if math.isnan(vvix_5d_roc):
         vvix_5d_roc = 0.0
-    level_score = np.clip((vvix - 85.0) / (130.0 - 85.0) * 12.0, 0.0, 12.0)
+    # v3 calibration: level floor lowered 85→80 to match the same tactical
+    # sensitivity the VIX scorer gained (VVIX rarely sits below 80; the prior
+    # 85 floor meant the entire 80-94 band was a dead zone).
+    level_score = np.clip((vvix - 80.0) / (130.0 - 80.0) * 12.0, 0.0, 12.0)
     ratio_score = np.clip((vvix_vix_ratio - 5.0) / (8.0 - 5.0) * 7.0, 0.0, 7.0)
     roc_score = np.clip(max(vvix_5d_roc, 0.0) / 25.0 * 6.0, 0.0, 6.0)
     return float(np.clip(level_score + ratio_score + roc_score, 0.0, 25.0))
@@ -127,13 +145,39 @@ def score_correlation_component(corr: float, corr_5d_change: float) -> float:
     return float(np.clip(level_score + spike_score, 0.0, 25.0))
 
 
-def score_momentum_component(spx_distance_pct: float) -> float:
-    """Score momentum component (0-25). Rises as SPX falls below 100d MA."""
-    if math.isnan(spx_distance_pct):
-        return 0.0
-    if spx_distance_pct >= 0:
-        return 0.0
-    return float(np.clip(abs(spx_distance_pct) / 10.0 * 25.0, 0.0, 25.0))
+def score_momentum_component(
+    spx_distance_pct: float,
+    pullback_20d_pct: float = 0.0,
+) -> float:
+    """Score Trend Break component (0-25) — structural + tactical (v3).
+
+    Structural sub-score (0-15): rises linearly with |SPX/SPX_100d_MA − 1|
+    when SPX is below the 100d MA, saturating at −10%. Captures regime
+    breakdown.
+
+    Tactical sub-score (0-10): rises linearly with the drawdown from the
+    trailing-20-session high, saturating at −4%. Fires even when SPX is
+    above the 100d MA — captures choppy multi-session sell-offs that
+    wouldn't have shown up in v1/v2.
+
+    Total = clip(structural + tactical, 0, 25). See
+    docs/research/regime/cri-methodology.md §3 (v3).
+    """
+    if math.isnan(spx_distance_pct) or spx_distance_pct >= 0:
+        structural = 0.0
+    else:
+        structural = float(np.clip(abs(spx_distance_pct) / 10.0 * 15.0, 0.0, 15.0))
+
+    if (
+        pullback_20d_pct is None
+        or math.isnan(pullback_20d_pct)
+        or pullback_20d_pct >= 0
+    ):
+        tactical = 0.0
+    else:
+        tactical = float(np.clip(abs(pullback_20d_pct) / 4.0 * 10.0, 0.0, 10.0))
+
+    return float(np.clip(structural + tactical, 0.0, 25.0))
 
 
 # ══════════════════════════════════════════════════════════════════
@@ -160,18 +204,24 @@ def compute_cri(
     corr: float,
     corr_5d_change: float,
     spx_distance_pct: float,
+    pullback_20d_pct: float = 0.0,
 ) -> dict[str, Any]:
-    """Composite 0-100 score from the four components."""
+    """Composite 0-100 score from the four components.
+
+    v3: the momentum component takes both structural (vs 100d MA) and
+    tactical (vs 20d high) inputs. See ``score_momentum_component``.
+    """
     vix_score = score_vix_component(vix, vix_5d_roc)
     vvix_score = score_vvix_component(vvix, vvix_vix_ratio, vvix_5d_roc)
     corr_score = score_correlation_component(corr, corr_5d_change)
-    momentum_score = score_momentum_component(spx_distance_pct)
+    momentum_score = score_momentum_component(spx_distance_pct, pullback_20d_pct)
     total = float(
         np.clip(vix_score + vvix_score + corr_score + momentum_score, 0.0, 100.0)
     )
     return {
         "score": round(total, 1),
         "level": cri_level(total),
+        "composite_version": COMPOSITE_VERSION,
         "components": {
             "vix": round(vix_score, 1),
             "vvix": round(vvix_score, 1),
@@ -332,6 +382,12 @@ def run_analysis(
     vix_z = vix_zscore_30d(vix)
     vix_ts_ratio = vix_vix3m_ratio(vix=vix_now, vix3m=vix3m_now)
 
+    # v3: tactical-pullback input for the trend-break component and the
+    # VIX-velocity tile in the UI.
+    pullback_20d_pct = compute_pullback_20d(spy)
+    vix_delta_3d = compute_vix_delta_3d(vix)
+    pullback_for_score = pullback_20d_pct if not math.isnan(pullback_20d_pct) else 0.0
+
     cri = compute_cri(
         vix=vix_now,
         vix_5d_roc=float(vix_5d_roc),
@@ -341,6 +397,7 @@ def run_analysis(
         corr=cor1m_now,
         corr_5d_change=cor1m_5d_change,
         spx_distance_pct=float(spx_distance_pct),
+        pullback_20d_pct=float(pullback_for_score),
     )
     cta = cta_exposure_model(realized_vol)
     trigger = crash_trigger(
@@ -376,6 +433,12 @@ def run_analysis(
             day_rvol = compute_realized_vol(spy[: i + 1], VOL_WINDOW)
         else:
             day_rvol = float("nan")
+        # v3: pullback from 20d rolling high — feeds the UI prior-dot for the
+        # tactical sub-score of Trend Break.
+        if i >= 19:  # need at least 20 closes
+            day_pullback = compute_pullback_20d(spy[: i + 1])
+        else:
+            day_pullback = float("nan")
         history.append(
             {
                 "date": common_dates[i],
@@ -390,6 +453,9 @@ def run_analysis(
                 "vix_5d_roc": round(float(day_vix_roc), 1),
                 "vvix_5d_roc": round(float(day_vvix_roc), 1),
                 "cor1m_5d_change": round(float(day_cor1m_5d_chg), 2),
+                "pullback_20d_pct": round(float(day_pullback), 2)
+                if not math.isnan(day_pullback)
+                else None,
             }
         )
 
@@ -421,6 +487,12 @@ def run_analysis(
         "vix_zscore_30d": round(vix_z, 2) if not math.isnan(vix_z) else None,
         "vix_vix3m_ratio": round(vix_ts_ratio, 3)
         if not math.isnan(vix_ts_ratio)
+        else None,
+        "pullback_20d_pct": round(pullback_20d_pct, 2)
+        if not math.isnan(pullback_20d_pct)
+        else None,
+        "vix_delta_3d": round(vix_delta_3d, 2)
+        if not math.isnan(vix_delta_3d)
         else None,
         "cri": cri,
         "cta": cta,

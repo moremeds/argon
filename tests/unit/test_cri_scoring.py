@@ -23,13 +23,13 @@ from uw_scan.cards.cri_scoring import (
 
 
 def test_score_vix_zero_when_calm() -> None:
-    # VIX 15 with no movement → both subscores 0
-    assert score_vix_component(15.0, 0.0) == pytest.approx(0.0)
+    # v3: floor lowered to 13. VIX 13 with no movement → both subscores 0
+    assert score_vix_component(13.0, 0.0) == pytest.approx(0.0)
 
 
 def test_score_vix_max_at_high_vix_and_roc() -> None:
-    # VIX >= 40 → level_score 15; RoC >= 60% → roc_score 10; total 25
-    assert score_vix_component(40.0, 60.0) == pytest.approx(25.0)
+    # v3: VIX >= 40 → level_score 15; RoC denom 40% → roc_score 10; total 25
+    assert score_vix_component(40.0, 40.0) == pytest.approx(25.0)
     assert score_vix_component(99.0, 200.0) == pytest.approx(25.0)
 
 
@@ -39,8 +39,8 @@ def test_score_vix_nan_returns_zero() -> None:
 
 
 def test_score_vvix_zero_at_baseline() -> None:
-    # VVIX 85, ratio 5.0, RoC 0 → all sub-scores 0
-    assert score_vvix_component(85.0, 5.0, 0.0) == pytest.approx(0.0)
+    # v3: floor lowered to 80. VVIX 80, ratio 5.0, RoC 0 → all sub-scores 0
+    assert score_vvix_component(80.0, 5.0, 0.0) == pytest.approx(0.0)
 
 
 def test_score_vvix_max_at_extreme() -> None:
@@ -50,28 +50,29 @@ def test_score_vvix_max_at_extreme() -> None:
 
 
 def test_score_vvix_level_only() -> None:
-    # VVIX 110, ratio 5.0, RoC 0 → level only
-    # (110-85)/45 * 12 = 25/45 * 12 = 6.666...
-    assert score_vvix_component(110.0, 5.0, 0.0) == pytest.approx(6.67, abs=0.01)
+    # v3: VVIX 110, ratio 5.0, RoC 0 → level only.
+    # Derivation: (110-80)/50 * 12 = 30/50 * 12 = 7.2
+    assert score_vvix_component(110.0, 5.0, 0.0) == pytest.approx(7.2, abs=0.01)
 
 
 def test_score_vvix_roc_only() -> None:
-    # VVIX 85, ratio 5.0, RoC 12.5 → roc only
-    # 12.5/25 * 6 = 3.0
-    assert score_vvix_component(85.0, 5.0, 12.5) == pytest.approx(3.0, abs=0.01)
+    # v3: VVIX 80 (now the floor), ratio 5.0, RoC 12.5 → roc only.
+    # Derivation: 12.5/25 * 6 = 3.0
+    assert score_vvix_component(80.0, 5.0, 12.5) == pytest.approx(3.0, abs=0.01)
 
 
 def test_score_vvix_roc_one_sided() -> None:
-    # Negative RoC should not add (or subtract) any points
-    assert score_vvix_component(85.0, 5.0, -50.0) == pytest.approx(0.0)
+    # v3: at the new floor (80), negative RoC must still leave the score at 0
+    assert score_vvix_component(80.0, 5.0, -50.0) == pytest.approx(0.0)
 
 
 def test_score_vvix_nan_inputs() -> None:
     assert score_vvix_component(float("nan"), 5.0, 0.0) == 0.0
     assert score_vvix_component(95.0, float("nan"), 0.0) == 0.0
-    # NaN RoC should be treated as 0, not zero-out the whole score
+    # NaN RoC should be treated as 0, not zero-out the whole score.
+    # v3 floor 80: VVIX 110 → level = (110-80)/50 * 12 = 7.2
     assert score_vvix_component(110.0, 5.0, float("nan")) == pytest.approx(
-        6.67, abs=0.01
+        7.2, abs=0.01
     )
 
 
@@ -85,14 +86,16 @@ def test_score_correlation_max() -> None:
 
 
 def test_score_momentum_zero_above_ma() -> None:
+    # v3: pullback defaults to 0 → no tactical contribution either
     assert score_momentum_component(5.0) == 0.0
     assert score_momentum_component(0.0) == 0.0
 
 
-def test_score_momentum_max_at_minus_10() -> None:
-    # -10% distance → full 25
-    assert score_momentum_component(-10.0) == pytest.approx(25.0)
-    assert score_momentum_component(-25.0) == pytest.approx(25.0)  # clipped
+def test_score_momentum_structural_max_at_minus_10() -> None:
+    # v3: structural sub-score caps at 15 (not 25) — tactical pullback owns
+    # the remaining 10 points.  Single-arg call → tactical=0, total=15.
+    assert score_momentum_component(-10.0) == pytest.approx(15.0)
+    assert score_momentum_component(-25.0) == pytest.approx(15.0)  # clipped
 
 
 def test_score_momentum_nan_returns_zero() -> None:
@@ -129,18 +132,22 @@ def test_compute_cri_calm_market_low() -> None:
 
 
 def test_compute_cri_critical_market() -> None:
+    # v3: must pass both structural (-12% MA) AND tactical pullback (-10% from
+    # 20d high) to saturate the momentum component at 25.
     out = compute_cri(
         vix=40.0,
-        vix_5d_roc=60.0,
+        vix_5d_roc=40.0,  # v3 denom 40 → 10/10
         vvix=130.0,
         vvix_vix_ratio=8.0,
         vvix_5d_roc=25.0,
         corr=70.0,
         corr_5d_change=20.0,
         spx_distance_pct=-12.0,
+        pullback_20d_pct=-10.0,
     )
     assert out["score"] == pytest.approx(100.0)
     assert out["level"] == "CRITICAL"
+    assert out["composite_version"] == 3
     assert set(out["components"].keys()) == {"vix", "vvix", "correlation", "momentum"}
 
 
@@ -329,3 +336,124 @@ def test_run_analysis_vrp_matches_vix_minus_realized_vol_exactly() -> None:
     assert out["realized_vol"] == pytest.approx(0.0, abs=1e-9)
     assert out["vrp"] == pytest.approx(18.0, abs=0.01)
     assert out["vix_vix3m_ratio"] == pytest.approx(18.0 / 19.0, abs=1e-3)
+
+
+# ══════════════════════════════════════════════════════════════════
+# v3 calibration tests
+# ══════════════════════════════════════════════════════════════════
+
+
+class TestVixComponentV3:
+    def test_floor_lowered_to_13(self) -> None:
+        # VIX 13 → 0; VIX 14 → (14-13)/27 * 15 ≈ 0.556
+        assert score_vix_component(13.0, 0.0) == 0.0
+        score = score_vix_component(14.0, 0.0)
+        assert abs(score - (15.0 / 27.0)) < 1e-6
+
+    def test_roc_denominator_steepened_to_40(self) -> None:
+        # RoC of 40% saturates the RoC sub-score at 10/10.
+        # Derivation: max(40, 0)/40 * 10 = 10
+        score = score_vix_component(13.0, 40.0)  # level=0 at floor, roc saturated
+        assert abs(score - 10.0) < 1e-6
+
+
+class TestVvixComponentV3:
+    def test_floor_lowered_to_80(self) -> None:
+        # With VVIX at the new floor (80), ratio at floor (5.0), zero RoC →
+        # all three sub-scores are 0.
+        assert score_vvix_component(80.0, 5.0, 0.0) == 0.0
+        # VVIX 82 (above floor), ratio + RoC at floor.
+        # Derivation: (82-80)/50 * 12 = 0.48
+        score = score_vvix_component(82.0, 5.0, 0.0)
+        assert abs(score - 0.48) < 1e-6
+
+
+class TestMomentumComponentV3:
+    def test_structural_break_capped_at_15(self) -> None:
+        # SPX -10% below MA used to score 25; now caps at 15.
+        # Derivation: abs(-10)/10 * 15 = 15
+        score = score_momentum_component(spx_distance_pct=-10.0, pullback_20d_pct=0.0)
+        assert abs(score - 15.0) < 1e-6
+
+    def test_tactical_pullback_alone_can_fire_when_above_ma(self) -> None:
+        # SPX +6% above MA → structural=0; -3% pullback → tactical = 3/4*10 = 7.5
+        score = score_momentum_component(spx_distance_pct=6.0, pullback_20d_pct=-3.0)
+        assert abs(score - 7.5) < 1e-6
+
+    def test_tactical_pullback_saturates_at_minus_4pct(self) -> None:
+        # Pullback of -6% (deeper than -4% saturation) → tactical capped at 10
+        score = score_momentum_component(spx_distance_pct=0.0, pullback_20d_pct=-6.0)
+        assert abs(score - 10.0) < 1e-6
+
+    def test_total_capped_at_25(self) -> None:
+        # structural=15 (capped) + tactical=10 (capped) = 25 (component cap)
+        score = score_momentum_component(spx_distance_pct=-20.0, pullback_20d_pct=-10.0)
+        assert abs(score - 25.0) < 1e-6
+
+    def test_structural_15_plus_nonzero_tactical_below_cap(self) -> None:
+        # Boundary case: structural saturated at 15, tactical=5 → total=20.
+        # Catches a bug where the cap might short-circuit before adding tactical.
+        score = score_momentum_component(spx_distance_pct=-10.0, pullback_20d_pct=-2.0)
+        assert abs(score - 20.0) < 1e-6
+
+    def test_today_real_world_scenario(self) -> None:
+        # SPX +6.22% above MA → structural=0; -1.97% pullback → tactical = 1.97/4*10 = 4.925
+        score = score_momentum_component(spx_distance_pct=6.22, pullback_20d_pct=-1.97)
+        assert abs(score - 4.925) < 0.01
+
+
+class TestCompositeVersionV3:
+    def test_compute_cri_includes_composite_version_3(self) -> None:
+        result = compute_cri(
+            vix=18.0,
+            vix_5d_roc=5.0,
+            vvix=95.0,
+            vvix_vix_ratio=5.3,
+            vvix_5d_roc=2.0,
+            corr=27.0,
+            corr_5d_change=1.0,
+            spx_distance_pct=6.0,
+            pullback_20d_pct=-2.0,
+        )
+        assert result["composite_version"] == 3
+        assert "momentum" in result["components"]
+
+
+class TestRunAnalysisPayloadV3:
+    def test_payload_includes_pullback_20d_pct_and_vix_delta_3d(self) -> None:
+        # 110 closes; today is forced 2% below 3 sessions ago to ensure both
+        # pullback and vix_delta inputs are non-trivial.
+        n = 110
+        spx = np.linspace(6000, 7000, n)
+        spx[-1] = spx[-3] * 0.98
+        vix = np.linspace(15, 18, n)
+        vvix = np.linspace(85, 95, n)
+        cor = np.full(n, 26.0)
+        aligned = {
+            "VIX": vix,
+            "VVIX": vvix,
+            "SPX": spx,
+            "SPY": spx,
+            "COR1M": cor,
+        }
+        dates = [f"2026-01-{(i % 28) + 1:02d}" for i in range(n)]
+        out = run_analysis(aligned, dates)
+        assert "pullback_20d_pct" in out
+        assert "vix_delta_3d" in out
+        assert out["pullback_20d_pct"] is not None and out["pullback_20d_pct"] < 0
+        assert out["vix_delta_3d"] is not None
+        assert out["cri"]["composite_version"] == 3
+
+    def test_history_entries_include_pullback_20d_pct(self) -> None:
+        # Each history entry must carry pullback_20d_pct so the UI prior-dot
+        # for the tactical sub-score can be drawn.
+        n = 130  # > 100 (MA window) + 20 (history window) + buffer
+        aligned = {
+            "VIX": np.full(n, 16.0),
+            "VVIX": np.full(n, 95.0),
+            "SPX": np.linspace(4500, 4800, n),
+            "COR1M": np.full(n, 25.0),
+        }
+        dates = [f"2026-01-{(i % 28) + 1:02d}" for i in range(n)]
+        out = run_analysis(aligned, dates)
+        assert all("pullback_20d_pct" in row for row in out["history"])
