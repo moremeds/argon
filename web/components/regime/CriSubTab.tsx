@@ -8,6 +8,7 @@ import CriHistoryChart, {
   type CriHistoryEntry,
 } from "./CriHistoryChart";
 import InfoTooltip from "./InfoTooltip";
+import { MeanReversionTiles } from "./MeanReversionTiles";
 import {
   DayChange,
   LiveBadge,
@@ -592,7 +593,8 @@ export function CriSubTabView({
           testId="strip-spy"
           label={
             <>
-              SPY <LiveBadge live={live} />
+              {data.spx_source === "SPY" ? "SPY" : "SPX"}{" "}
+              <LiveBadge live={live} />
             </>
           }
           value={`$${fmt(spy)}`}
@@ -626,6 +628,13 @@ export function CriSubTabView({
           }
         />
       </RegimeStrip>
+
+      {/* ── Mean-reversion tiles (VRP / VIX z-score / VIX-VIX3M ratio) ── */}
+      <MeanReversionTiles
+        vrp={data.vrp ?? null}
+        vixZscore={data.vix_zscore_30d ?? null}
+        vixVix3mRatio={data.vix_vix3m_ratio ?? null}
+      />
 
       {/* ── Row 3+4: Components + Crash trigger ── */}
       <div className="regime-detail-grid">
