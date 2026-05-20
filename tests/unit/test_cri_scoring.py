@@ -257,3 +257,34 @@ def test_run_analysis_exposes_vvix_5d_roc() -> None:
     last_row = payload["history"][-1]
     assert "vvix_5d_roc" in last_row
     assert "cor1m_5d_change" in last_row
+
+
+def test_run_analysis_prefers_spx_over_spy() -> None:
+    """When both SPX and SPY are in aligned, SPX drives trend math."""
+    n = 140
+    aligned = {
+        "VIX": np.full(n, 16.0),
+        "VVIX": np.full(n, 95.0),
+        "SPX": np.linspace(4500, 4800, n),  # SPX-scale levels
+        "SPY": np.linspace(450, 480, n),  # SPY-scale levels (10x smaller)
+        "COR1M": np.full(n, 20.0),
+    }
+    dates = [f"2024-{(i // 30) + 1:02d}-{(i % 30) + 1:02d}" for i in range(n)]
+    out = run_analysis(aligned, dates)
+    assert out["spy"] > 4000, f"expected SPX-scale value, got {out['spy']}"
+    assert out["spx_source"] == "SPX"
+
+
+def test_run_analysis_falls_back_to_spy_when_spx_absent() -> None:
+    """Without SPX, run_analysis still works with SPY (transition safety)."""
+    n = 140
+    aligned = {
+        "VIX": np.full(n, 16.0),
+        "VVIX": np.full(n, 95.0),
+        "SPY": np.linspace(450, 480, n),
+        "COR1M": np.full(n, 20.0),
+    }
+    dates = [f"2024-{(i // 30) + 1:02d}-{(i % 30) + 1:02d}" for i in range(n)]
+    out = run_analysis(aligned, dates)
+    assert out["spy"] < 600, f"expected SPY-scale value, got {out['spy']}"
+    assert out["spx_source"] == "SPY"

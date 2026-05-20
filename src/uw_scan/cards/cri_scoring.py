@@ -267,8 +267,17 @@ def run_analysis(
     """
     vix = aligned["VIX"]
     vvix = aligned["VVIX"]
-    spy = aligned["SPY"]
     cor1m_values = aligned["COR1M"]
+
+    # SPX is the right instrument for trend/RV math because the CBOE vol
+    # indices (VIX/VVIX/COR1M) are computed against SPX. Fall back to SPY
+    # for transition safety while the SPX backfill is rolling out.
+    if "SPX" in aligned and len(aligned["SPX"]) > 0:
+        spy = aligned["SPX"]
+        spx_source = "SPX"
+    else:
+        spy = aligned["SPY"]
+        spx_source = "SPY"
 
     vix_now = float(vix[-1])
     vvix_now = float(vvix[-1])
@@ -373,6 +382,7 @@ def run_analysis(
         "vix": round(vix_now, 2),
         "vvix": round(vvix_now, 2),
         "spy": round(spy_now, 2),
+        "spx_source": spx_source,
         "vix_5d_roc": round(float(vix_5d_roc), 1),
         "vvix_5d_roc": round(float(vvix_5d_roc), 1),
         "vvix_vix_ratio": round(float(vvix_vix_ratio), 2)
