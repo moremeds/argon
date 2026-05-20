@@ -630,11 +630,12 @@ export function CriSubTabView({
         />
       </RegimeStrip>
 
-      {/* ── Mean-reversion tiles (VRP / VIX z-score / VIX-VIX3M ratio) ── */}
+      {/* ── Mean-reversion tiles (VRP / VIX z-score / VIX-VIX3M ratio / VIX Δ 3d) ── */}
       <MeanReversionTiles
         vrp={data.vrp ?? null}
         vixZscore={data.vix_zscore_30d ?? null}
         vixVix3mRatio={data.vix_vix3m_ratio ?? null}
+        vixDelta3d={data.vix_delta_3d ?? null}
       />
 
       {/* ── Row 3+4: Components + Crash trigger ── */}

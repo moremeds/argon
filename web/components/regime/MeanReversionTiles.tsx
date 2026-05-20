@@ -6,6 +6,7 @@ interface Props {
   vrp: number | null | undefined;
   vixZscore: number | null | undefined;
   vixVix3mRatio: number | null | undefined;
+  vixDelta3d: number | null | undefined;
 }
 
 const TOOLTIPS = {
@@ -14,6 +15,8 @@ const TOOLTIPS = {
     "Today's VIX in standard deviations from the trailing-30d mean. |z| > 2 = stretched (mean-reversion trigger threshold per the rolling-z-score convention).",
   "VIX / VIX3M":
     "Front-end vs 3-month VIX (CBOE term-structure ratio). < 0.85 deep contango; 0.85–0.95 normal contango; 0.95–1.0 warning (curve flattening); 1.0–1.1 backwardation (front-end stress); > 1.1 deep backwardation (panic). Contango dominates ~85% of days; the cross above 1.0 has historically preceded every major drawdown 1990–2025.",
+  "VIX Δ (3d)":
+    "Absolute change in VIX over the last 3 sessions, in VIX points (NOT %). Positive = vol expanding fast. Practitioner velocity signal — complementary to VIX Z (30d) which normalizes against the trailing 30d distribution. ~+3 points = moderate stress; ~+30 points = Volmageddon territory.",
 };
 
 function tileColor(label: string, v: number | null | undefined): string {
@@ -27,6 +30,12 @@ function tileColor(label: string, v: number | null | undefined): string {
     if (v >= 0.95) return "var(--text-primary)";
     return "var(--positive)";
   }
+  if (label === "VIX Δ (3d)") {
+    if (v >= 3) return "var(--negative)"; // big expansion
+    if (v >= 1) return "var(--warning)"; // moderate
+    if (v <= -2) return "var(--positive)"; // compression
+    return "var(--text-primary)";
+  }
   return "var(--text-primary)";
 }
 
@@ -34,13 +43,18 @@ function Tile({
   label,
   value,
   dec = 2,
+  signed = false,
 }: {
   label: string;
   value: number | null | undefined;
   dec?: number;
+  signed?: boolean;
 }) {
-  const display =
-    value != null && Number.isFinite(value) ? value.toFixed(dec) : "—";
+  let display = "—";
+  if (value != null && Number.isFinite(value)) {
+    const formatted = value.toFixed(dec);
+    display = signed && value > 0 ? `+${formatted}` : formatted;
+  }
   return (
     <div className="regime-tile" data-testid={`meanrev-tile-${label}`}>
       <div className="regime-tile-label">
@@ -57,12 +71,18 @@ function Tile({
   );
 }
 
-export function MeanReversionTiles({ vrp, vixZscore, vixVix3mRatio }: Props) {
+export function MeanReversionTiles({
+  vrp,
+  vixZscore,
+  vixVix3mRatio,
+  vixDelta3d,
+}: Props) {
   return (
     <div className="regime-meanrev-row" data-testid="meanrev-row">
       <Tile label="VRP" value={vrp} />
       <Tile label="VIX Z (30d)" value={vixZscore} />
       <Tile label="VIX / VIX3M" value={vixVix3mRatio} dec={3} />
+      <Tile label="VIX Δ (3d)" value={vixDelta3d} signed />
     </div>
   );
 }
