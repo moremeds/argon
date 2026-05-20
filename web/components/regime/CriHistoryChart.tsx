@@ -12,6 +12,10 @@ export interface CriHistoryEntry {
   realized_vol?: number | null | undefined;
   spx_vs_ma_pct?: number | null | undefined;
   vix_5d_roc?: number | null | undefined;
+  vvix_5d_roc?: number | null | undefined;
+  cor1m_5d_change?: number | null | undefined;
+  // v3: tactical pullback feeds the prior-dot on the Trend Break component bar
+  pullback_20d_pct?: number | null | undefined;
 }
 
 export interface ChartSeries {

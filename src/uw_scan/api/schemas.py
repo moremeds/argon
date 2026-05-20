@@ -352,6 +352,9 @@ class CriComponents(BaseModel):
 class CriBlock(BaseModel):
     score: float = 0.0
     level: Literal["LOW", "ELEVATED", "HIGH", "CRITICAL"] = "LOW"
+    # v3 emits 3; older snapshots carry 1 after the 050 backfill migration.
+    # Constrained to known enumerated versions to prevent typo'd drift.
+    composite_version: Literal[1, 2, 3] | None = None
     components: CriComponents = Field(default_factory=CriComponents)
 
 
@@ -391,6 +394,11 @@ class CriHistoryEntry(BaseModel):
     realized_vol: float | None = None
     spx_vs_ma_pct: float | None = None
     vix_5d_roc: float | None = None
+    vvix_5d_roc: float | None = None
+    cor1m_5d_change: float | None = None
+    # v3: needed so the UI prior-dot for the tactical Trend Break sub-score
+    # can be drawn from yesterday's value.
+    pullback_20d_pct: float | None = None
 
 
 class CriResponse(BaseModel):
@@ -403,6 +411,7 @@ class CriResponse(BaseModel):
     vvix: float | None = None
     spy: float | None = None
     vix_5d_roc: float | None = None
+    vvix_5d_roc: float | None = None
     vvix_vix_ratio: float | None = None
     spx_100d_ma: float | None = None
     spx_distance_pct: float | None = None
@@ -410,11 +419,32 @@ class CriResponse(BaseModel):
     cor1m_previous_close: float | None = None
     cor1m_5d_change: float | None = None
     realized_vol: float | None = None
+    vix3m: float | None = None
+    vrp: float | None = None
+    vix_zscore_30d: float | None = None
+    vix_vix3m_ratio: float | None = None
+    # v3: tactical pullback in % and absolute VIX velocity in points.
+    pullback_20d_pct: float | None = None
+    vix_delta_3d: float | None = None
+    spx_source: Literal["SPX", "SPY"] | None = None
     cri: CriBlock = Field(default_factory=CriBlock)
     cta: CtaBlock = Field(default_factory=CtaBlock)
     crash_trigger: CrashTriggerBlock = Field(default_factory=CrashTriggerBlock)
     history: list[CriHistoryEntry] = Field(default_factory=list)
     spy_closes: list[float] = Field(default_factory=list)
+
+    @field_validator("pullback_20d_pct", "vix_delta_3d", mode="after")
+    @classmethod
+    def _coerce_nonfinite_to_none(cls, v: float | None) -> float | None:
+        """NaN / Inf → None. Belt-and-suspenders so the API never emits the
+        literal `NaN` JSON token (which is rejected by strict parsers)."""
+        import math as _math
+
+        if v is None:
+            return None
+        if not _math.isfinite(v):
+            return None
+        return v
 
 
 EMPTY_CRI_RESPONSE = CriResponse()

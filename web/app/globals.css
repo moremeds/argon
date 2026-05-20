@@ -7086,3 +7086,87 @@ tr {
   padding: 1px 5px;
   border-radius: 2px;
 }
+
+/* ── Mean-reversion tiles (CRI hero) ───────────────────────────── */
+.regime-meanrev-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+@media (max-width: 768px) {
+  .regime-meanrev-row {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+.regime-tile {
+  padding: 8px 12px;
+  border: 1px solid var(--border-dim);
+  background: var(--bg-panel-raised, var(--bg-panel));
+}
+.regime-tile-label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.regime-tile-value {
+  font-family: var(--font-mono);
+  font-size: 22px;
+  font-weight: 600;
+  margin-top: 4px;
+}
+
+/* v3: 1-line subtext under the Trend Break component bar surfacing the
+   tactical-pullback input that drives the new tactical sub-score. */
+.regime-component-subtext {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+  margin-top: 4px;
+  padding-left: 4px;
+}
+
+/* ── Guidance panel ────────────────────────────────────────────── */
+.regime-guidance-panel {
+  margin-top: 12px;
+  padding: 12px;
+  border: 1px solid var(--border-dim);
+  background: var(--bg-panel);
+}
+.regime-guidance-header {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.regime-guidance-state {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.15em;
+  color: var(--text-muted);
+}
+.regime-guidance-arrow {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-muted);
+  opacity: 0.6;
+}
+.regime-guidance-posture {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.15em;
+}
+.regime-guidance-body {
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text-primary);
+  white-space: pre-wrap;
+}

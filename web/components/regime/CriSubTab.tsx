@@ -8,6 +8,8 @@ import CriHistoryChart, {
   type CriHistoryEntry,
 } from "./CriHistoryChart";
 import InfoTooltip from "./InfoTooltip";
+import { GuidancePanel } from "./GuidancePanel";
+import { MeanReversionTiles } from "./MeanReversionTiles";
 import {
   DayChange,
   LiveBadge,
@@ -21,16 +23,88 @@ type CriLevel = "LOW" | "ELEVATED" | "HIGH" | "CRITICAL";
 
 const COMPONENT_TOOLTIPS: Record<string, string> = {
   VIX: "CBOE Volatility Index — 30-day implied vol of SPX. Score rises as VIX exceeds 20 (elevated) and 30 (high).",
-  VVIX: "Vol-of-VIX — measures expected volatility of VIX itself. Score rises with absolute level and VVIX/VIX ratio >5.",
+  VVIX: "Vol-of-VIX — expected volatility of VIX itself. Three sub-scores: absolute level (85→130), VVIX/VIX ratio (5→8 = practitioner warning band), and 5-day rate-of-change (rising VVIX vs flat VIX is the canonical lead signal of tail-hedging demand).",
   CORRELATION:
     "Cboe 1-Month Implied Correlation Index (COR1M). High COR1M (>60) means large-cap S&P names are expected to move together.",
-  MOMENTUM:
-    "SPX distance below 100-day MA combined with VIX 5-day rate of change. Captures trend stress + vol acceleration.",
+  "TREND BREAK":
+    "SPX distance below the 100-day MA. One-sided: scores 0 when SPX is at or above the MA; saturates at -10% below. Designed to fire only on confirmed downtrends, not parabolic uptrends.",
 };
+
+// Reference markers per component. Values are in *score units* (0–25 scale).
+// Keyed by the JSON component slot (matches cri.components keys), NOT the
+// display label — so renaming MOMENTUM → TREND BREAK doesn't silently break
+// the lookup. Source: docs/research/regime/cri-methodology.md §6.
+type ComponentSlot = "vix" | "vvix" | "correlation" | "momentum";
+const COMPONENT_REFERENCES: Record<
+  ComponentSlot,
+  { mid: { score: number; label: string } }
+> = {
+  vix: { mid: { score: 5.0, label: "VIX 23" } },
+  vvix: { mid: { score: 6.7, label: "VVIX 110" } },
+  correlation: { mid: { score: 13.0, label: "COR1M 60" } },
+  momentum: { mid: { score: 7.5, label: "-3% MA" } },
+};
+
+// Mirror the Python scoring math from src/uw_scan/cards/cri_scorers.py so we
+// can draw the prior-day dot on each ComponentBar. Floors/ceilings MUST match
+// cri-methodology.md §3.
+//
+// v3 (2026-05-20): VIX floor 13 + RoC denom 40; VVIX floor 80; momentum
+// reshaped into structural (0-15) + tactical (0-10) sub-scores.
+//
+// Exported for unit testing — see web/tests/unit/CriSubTab.priorScore.test.tsx.
+export function priorComponentScore(
+  prior: CriHistoryEntry | undefined,
+  slot: ComponentSlot,
+): number | null {
+  if (!prior) return null;
+  const clip = (x: number, lo: number, hi: number) =>
+    Math.max(lo, Math.min(hi, x));
+  const round1 = (x: number) => Math.round(x * 10) / 10;
+  if (slot === "vix") {
+    // v3: floor 13, RoC denom 40 (was 15 / 60)
+    if (prior.vix == null || prior.vix_5d_roc == null) return null;
+    const lvl = clip(((prior.vix - 13) / 27) * 15, 0, 15);
+    const roc = clip((Math.max(prior.vix_5d_roc, 0) / 40) * 10, 0, 10);
+    return round1(lvl + roc);
+  }
+  if (slot === "vvix") {
+    // v3: level floor 80 (was 85); ratio band 5-8 and RoC denom 25 unchanged
+    if (prior.vvix == null || prior.vix == null || prior.vix <= 0) return null;
+    const ratio = prior.vvix / prior.vix;
+    const lvl = clip(((prior.vvix - 80) / 50) * 12, 0, 12);
+    const r = clip(((ratio - 5) / 3) * 7, 0, 7);
+    // vvix_5d_roc was added in v2 — historical snapshots may not have it.
+    const rocRaw = prior.vvix_5d_roc ?? 0;
+    const roc = clip((Math.max(rocRaw, 0) / 25) * 6, 0, 6);
+    return round1(lvl + r + roc);
+  }
+  if (slot === "correlation") {
+    // Unchanged across versions
+    if (prior.cor1m == null) return null;
+    const lvl = clip(((prior.cor1m - 25) / 45) * 17, 0, 17);
+    const chg = prior.cor1m_5d_change ?? 0;
+    const spike = clip((Math.max(chg, 0) / 20) * 8, 0, 8);
+    return round1(lvl + spike);
+  }
+  if (slot === "momentum") {
+    // v3: structural (0-15, vs 100d MA) + tactical (0-10, vs 20d high, sat -4%)
+    if (prior.spx_vs_ma_pct == null) return null;
+    const d = prior.spx_vs_ma_pct;
+    const structural = d >= 0 ? 0 : clip((Math.abs(d) / 10) * 15, 0, 15);
+    // pullback_20d_pct is a v3 history-entry field. Historical (pre-v3) rows
+    // won't have it; default to 0 (tactical sub-score doesn't fire).
+    const pullback = prior.pullback_20d_pct ?? 0;
+    const tactical =
+      pullback >= 0 ? 0 : clip((Math.abs(pullback) / 4) * 10, 0, 10);
+    return round1(clip(structural + tactical, 0, 25));
+  }
+  return null;
+}
 
 const SECTION_TOOLTIPS: Record<string, string> = {
   "CRI COMPONENTS":
-    "Crash Risk Index broken into 4 sub-scores (0-25 each, 100 total). VIX/VVIX measure implied vol stress. Correlation tracks COR1M herding. Momentum captures SPX trend breakdown.",
+    "Crash Risk Index broken into 4 sub-scores (0-25 each, 100 total). VIX/VVIX measure implied vol stress. Correlation tracks COR1M herding. Trend Break fires when SPX trades below its 100-day MA. See docs/research/regime/cri-methodology.md for calibration details.",
   "CRASH TRIGGER CONDITIONS":
     "Three simultaneous conditions that signal a potential crash regime: SPX below 100d MA, realized vol > 25%, and COR1M > 60. All three must fire.",
   "20-SESSION HISTORY":
@@ -67,11 +141,15 @@ function fmtSigned(v: number | null | undefined, decimals = 2): string {
 
 function ComponentBar({
   label,
+  slot,
   score,
+  priorScore,
   live,
 }: {
   label: string;
+  slot: ComponentSlot;
   score: number;
+  priorScore?: number | null;
   live: boolean;
 }) {
   const pct = (score / 25) * 100;
@@ -82,6 +160,12 @@ function ComponentBar({
         ? "var(--negative)"
         : "var(--warning)";
   const tooltip = COMPONENT_TOOLTIPS[label];
+  const ref = COMPONENT_REFERENCES[slot];
+  const midPct = ref ? (ref.mid.score / 25) * 100 : null;
+  const priorPct =
+    priorScore != null && Number.isFinite(priorScore)
+      ? (Math.max(0, Math.min(25, priorScore)) / 25) * 100
+      : null;
   return (
     <div className="regime-component-bar">
       <div className="regime-component-label">
@@ -89,11 +173,43 @@ function ComponentBar({
         {tooltip && <InfoTooltip text={tooltip} />}
         <LiveBadge live={live} />
       </div>
-      <div className="regime-bar-track">
+      <div className="regime-bar-track" style={{ position: "relative" }}>
         <div
           className="regime-bar-fill"
           style={{ width: `${pct}%`, background: barColor }}
         />
+        {midPct != null && ref ? (
+          <div
+            className="regime-bar-tick"
+            style={{
+              position: "absolute",
+              left: `${midPct}%`,
+              top: 0,
+              bottom: 0,
+              width: 1,
+              background: "var(--text-muted)",
+              opacity: 0.5,
+            }}
+            title={ref.mid.label}
+          />
+        ) : null}
+        {priorPct != null ? (
+          <div
+            className="regime-bar-prior"
+            style={{
+              position: "absolute",
+              left: `${priorPct}%`,
+              top: "50%",
+              transform: "translate(-50%, -50%)",
+              width: 6,
+              height: 6,
+              borderRadius: "50%",
+              background: "var(--text-primary)",
+              opacity: 0.7,
+            }}
+            title={`Prior: ${(priorScore as number).toFixed(1)}`}
+          />
+        ) : null}
       </div>
       <div className="regime-component-score">{score.toFixed(1)}/25</div>
     </div>
@@ -416,6 +532,9 @@ export function CriSubTabView({
 
   // History payload is the 20-session window (oldest → newest).
   const liveValues = useMemo(() => ({}), []);
+  // Second-to-last row drives the prior-day dot on each ComponentBar.
+  const priorHistory =
+    history.length >= 2 ? history[history.length - 2] : undefined;
 
   return (
     <div className="regime-panel" data-testid="cri-subtab">
@@ -489,7 +608,8 @@ export function CriSubTabView({
           testId="strip-spy"
           label={
             <>
-              SPY <LiveBadge live={live} />
+              {data.spx_source === "SPY" ? "SPY" : "SPX"}{" "}
+              <LiveBadge live={live} />
             </>
           }
           value={`$${fmt(spy)}`}
@@ -524,6 +644,14 @@ export function CriSubTabView({
         />
       </RegimeStrip>
 
+      {/* ── Mean-reversion tiles (VRP / VIX z-score / VIX-VIX3M ratio / VIX Δ 3d) ── */}
+      <MeanReversionTiles
+        vrp={data.vrp ?? null}
+        vixZscore={data.vix_zscore_30d ?? null}
+        vixVix3mRatio={data.vix_vix3m_ratio ?? null}
+        vixDelta3d={data.vix_delta_3d ?? null}
+      />
+
       {/* ── Row 3+4: Components + Crash trigger ── */}
       <div className="regime-detail-grid">
         <div className="regime-components">
@@ -532,18 +660,42 @@ export function CriSubTabView({
             CRI COMPONENTS
             <InfoTooltip text={SECTION_TOOLTIPS["CRI COMPONENTS"]} />
           </div>
-          <ComponentBar label="VIX" score={components.vix} live={live} />
-          <ComponentBar label="VVIX" score={components.vvix} live={live} />
+          <ComponentBar
+            label="VIX"
+            slot="vix"
+            score={components.vix}
+            priorScore={priorComponentScore(priorHistory, "vix")}
+            live={live}
+          />
+          <ComponentBar
+            label="VVIX"
+            slot="vvix"
+            score={components.vvix}
+            priorScore={priorComponentScore(priorHistory, "vvix")}
+            live={live}
+          />
           <ComponentBar
             label="CORRELATION"
+            slot="correlation"
             score={components.correlation}
+            priorScore={priorComponentScore(priorHistory, "correlation")}
             live={live}
           />
           <ComponentBar
-            label="MOMENTUM"
+            label="TREND BREAK"
+            slot="momentum"
             score={components.momentum}
+            priorScore={priorComponentScore(priorHistory, "momentum")}
             live={live}
           />
+          {data.pullback_20d_pct != null && data.pullback_20d_pct < 0 && (
+            <div
+              className="regime-component-subtext"
+              data-testid="trend-break-pullback-line"
+            >
+              Pullback: {data.pullback_20d_pct.toFixed(2)}% from 20d high
+            </div>
+          )}
         </div>
         <div className="regime-triggers">
           <div className="regime-panel-title">
@@ -577,6 +729,9 @@ export function CriSubTabView({
           />
         </div>
       </div>
+
+      {/* ── Regime guidance (markdown-driven via /api/regime/guidance) ── */}
+      <GuidancePanel />
 
       {/* ── Row 5: 20-Session History (two charts side-by-side) ── */}
       {history.length > 0 && (

@@ -592,6 +592,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/regime/guidance": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Guidance */
+        get: operations["get_guidance_api_regime_guidance_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/regime/validation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Validation */
+        get: operations["get_validation_api_regime_validation_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/gold/gauge": {
         parameters: {
             query?: never;
@@ -1076,6 +1110,8 @@ export interface components {
              * @enum {string}
              */
             level: "LOW" | "ELEVATED" | "HIGH" | "CRITICAL";
+            /** Composite Version */
+            composite_version?: (1 | 2 | 3) | null;
             components?: components["schemas"]["CriComponents"];
         };
         /**
@@ -1122,6 +1158,12 @@ export interface components {
             spx_vs_ma_pct?: number | null;
             /** Vix 5D Roc */
             vix_5d_roc?: number | null;
+            /** Vvix 5D Roc */
+            vvix_5d_roc?: number | null;
+            /** Cor1M 5D Change */
+            cor1m_5d_change?: number | null;
+            /** Pullback 20D Pct */
+            pullback_20d_pct?: number | null;
         };
         /**
          * CriResponse
@@ -1149,6 +1191,8 @@ export interface components {
             spy?: number | null;
             /** Vix 5D Roc */
             vix_5d_roc?: number | null;
+            /** Vvix 5D Roc */
+            vvix_5d_roc?: number | null;
             /** Vvix Vix Ratio */
             vvix_vix_ratio?: number | null;
             /** Spx 100D Ma */
@@ -1163,6 +1207,20 @@ export interface components {
             cor1m_5d_change?: number | null;
             /** Realized Vol */
             realized_vol?: number | null;
+            /** Vix3M */
+            vix3m?: number | null;
+            /** Vrp */
+            vrp?: number | null;
+            /** Vix Zscore 30D */
+            vix_zscore_30d?: number | null;
+            /** Vix Vix3M Ratio */
+            vix_vix3m_ratio?: number | null;
+            /** Pullback 20D Pct */
+            pullback_20d_pct?: number | null;
+            /** Vix Delta 3D */
+            vix_delta_3d?: number | null;
+            /** Spx Source */
+            spx_source?: ("SPX" | "SPY") | null;
             cri?: components["schemas"]["CriBlock"];
             cta?: components["schemas"]["CtaBlock"];
             crash_trigger?: components["schemas"]["CrashTriggerBlock"];
@@ -1939,6 +1997,20 @@ export interface components {
             /** Narrative Text */
             narrative_text: string;
         };
+        /** GuidanceResponse */
+        GuidanceResponse: {
+            /** State */
+            state: string;
+            /**
+             * Posture
+             * @enum {string}
+             */
+            posture: "opportunistic" | "neutral" | "cautious" | "defensive";
+            /** Body Md */
+            body_md: string;
+            /** Matched Condition */
+            matched_condition: string;
+        };
         /** HTTPValidationError */
         HTTPValidationError: {
             /** Detail */
@@ -2465,6 +2537,39 @@ export interface components {
             mid_volume?: number | null;
             /** No Side Volume */
             no_side_volume?: number | null;
+        };
+        /** OosLabel */
+        OosLabel: {
+            /** Name */
+            name: string;
+            /** Definition */
+            definition: string;
+        };
+        /** OosScore */
+        OosScore: {
+            /** Model */
+            model: string;
+            /** Auc Dd5 */
+            auc_dd5?: number | null;
+            /** Auc Vix30 */
+            auc_vix30?: number | null;
+            /** Auc Dd10 */
+            auc_dd10?: number | null;
+        };
+        /** OosSummary */
+        OosSummary: {
+            /** As Of */
+            as_of: string;
+            /** Notebook */
+            notebook: string;
+            /** Method */
+            method: string;
+            /** Labels */
+            labels: components["schemas"]["OosLabel"][];
+            /** Scores */
+            scores: components["schemas"]["OosScore"][];
+            /** Interpretation */
+            interpretation: string;
         };
         /**
          * OptionChainPerStrikeRow
@@ -3817,6 +3922,17 @@ export interface components {
             input?: unknown;
             /** Context */
             ctx?: Record<string, never>;
+        };
+        /**
+         * ValidationResponse
+         * @description Combined warm-store backtest + OOS notebook summary.
+         */
+        ValidationResponse: {
+            /** Backtest Md */
+            backtest_md: string;
+            /** Backtest Csv Rows */
+            backtest_csv_rows: number;
+            oos?: components["schemas"]["OosSummary"] | null;
         };
         /** VcgAttribution */
         VcgAttribution: {
@@ -5434,6 +5550,46 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_guidance_api_regime_guidance_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GuidanceResponse"];
+                };
+            };
+        };
+    };
+    get_validation_api_regime_validation_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationResponse"];
                 };
             };
         };
