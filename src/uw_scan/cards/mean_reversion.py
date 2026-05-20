@@ -73,3 +73,35 @@ def vix_vix3m_ratio(*, vix: float, vix3m: float) -> float:
     if math.isnan(vix) or math.isnan(vix3m) or vix3m <= 0:
         return float("nan")
     return float(vix / vix3m)
+
+
+def compute_pullback_20d(prices: np.ndarray) -> float:
+    """Today's drawdown from the trailing-20-session high, in % points.
+
+    Returns 0.0 when today *is* the 20d high, negative otherwise.
+    NaN when fewer than 20 closes are available or the rolling high is
+    non-positive (degenerate input).
+    """
+    if prices is None or len(prices) < 20:
+        return float("nan")
+    window = prices[-20:]
+    high = float(np.max(window))
+    today = float(window[-1])
+    if high <= 0:
+        return float("nan")
+    return float((today / high - 1) * 100)
+
+
+def compute_vix_delta_3d(vix: np.ndarray) -> float:
+    """Absolute change in VIX over the last 3 sessions, in points.
+
+    Positive = vol expanding fast. Returns NaN with fewer than 4
+    observations or non-finite endpoints.
+    """
+    if vix is None or len(vix) < 4:
+        return float("nan")
+    today = float(vix[-1])
+    t_minus_3 = float(vix[-4])
+    if np.isnan(today) or np.isnan(t_minus_3):
+        return float("nan")
+    return today - t_minus_3
