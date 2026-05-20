@@ -32,7 +32,7 @@ Four components, each scoring 0–25:
 | 1 | VIX | level, 5-day RoC | level (0–15) + RoC (0–10) |
 | 2 | VVIX | level, VVIX/VIX ratio, 5-day RoC | level (0–12) + ratio (0–7) + RoC (0–6) |
 | 3 | Correlation | COR1M level, 5-day change | level (0–17) + spike (0–8) |
-| 4 | Trend Break | SPX distance below 100d MA | one-sided (0–25 when below MA, 0 when above) |
+| 4 | Trend Break | SPX (cash close from `vol_index_daily`) distance below 100d MA — SPY in `daily_ohlc` is a fallback when SPX is unavailable | one-sided (0–25 when below MA, 0 when above) |
 
 The sum is clipped to [0, 100]. No normalization or PCA — straight addition by design, so a single bar telling the story stays visible in the UI.
 
@@ -162,7 +162,7 @@ Two layers of validation exist:
 - Level distribution (LOW/ELEVATED/HIGH/CRITICAL)
 - Hit-rate against named crash dates
 
-The aligned window is bounded by the *shortest* series in the DB. `vol_index_daily` covers VIX 1990→2026, VVIX 2006→2026, COR1M 2006→2026, but `daily_ohlc[SPY]` is typically only the trailing 12-18 months unless backfilled — so the warm-store backtest is a **recent-history sanity check**, not a multi-cycle validation. Regenerate after any calibration change and review the diff before merging.
+The aligned window is bounded by the *shortest* series in the DB. `vol_index_daily` covers VIX 1990→2026, VVIX 2006→2026, COR1M 2006→2026, and SPX 1975→2026 (with VIX3M from 2009 as a sidecar for the term-structure tile). The backtest's effective floor is 2006 — the VVIX start — so the warm-store report now spans the GFC, Volmageddon, COVID, and 2022 rate-hike vol. The `spx_source` field on each persisted snapshot flags whether SPX or the SPY fallback fed the day's score.
 
 **(b) 20y OOS validation** — `docs/research/regime/cri-validation.ipynb` is the canonical long-horizon test. It reads the parquet data lake at `~/market-warehouse/data-lake/bronze/asset_class=volatility/` for VIX/VVIX/COR1M and equity OHLC, runs a walk-forward split (train 2007-2015 / test 2016-2026), and reports ROC AUC + threshold-matched precision/recall against three crash-proxy labels (`label_dd5`, `label_vix30`, `label_dd10`).
 

@@ -71,13 +71,24 @@ def fetch_aligned_series(
             )
             series[sym] = {r[0]: float(r[1]) for r in cur.fetchall()}
 
+        # Prefer SPX (CBOE-aligned, longer history) — fall back to SPY
         cur.execute(
-            f"SELECT date, close FROM {schema}.daily_ohlc "
-            "WHERE ticker = 'SPY' AND date BETWEEN %s AND %s "
-            "AND close IS NOT NULL ORDER BY date",
+            f"SELECT trade_date, close FROM {schema}.vol_index_daily "
+            "WHERE symbol = 'SPX' AND trade_date BETWEEN %s AND %s "
+            "AND close IS NOT NULL ORDER BY trade_date",
             (start, end),
         )
-        series["SPY"] = {r[0]: float(r[1]) for r in cur.fetchall()}
+        spx = {r[0]: float(r[1]) for r in cur.fetchall()}
+        if spx:
+            series["SPY"] = spx  # downstream key stays "SPY" for back-compat
+        else:
+            cur.execute(
+                f"SELECT date, close FROM {schema}.daily_ohlc "
+                "WHERE ticker = 'SPY' AND date BETWEEN %s AND %s "
+                "AND close IS NOT NULL ORDER BY date",
+                (start, end),
+            )
+            series["SPY"] = {r[0]: float(r[1]) for r in cur.fetchall()}
 
     common = set(series["VIX"].keys())
     for sym in ("VVIX", "COR1M", "SPY"):
