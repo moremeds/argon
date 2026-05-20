@@ -7122,6 +7122,17 @@ tr {
   margin-top: 4px;
 }
 
+/* v3: 1-line subtext under the Trend Break component bar surfacing the
+   tactical-pullback input that drives the new tactical sub-score. */
+.regime-component-subtext {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+  margin-top: 4px;
+  padding-left: 4px;
+}
+
 /* ── Guidance panel ────────────────────────────────────────────── */
 .regime-guidance-panel {
   margin-top: 12px;

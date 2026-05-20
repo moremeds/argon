@@ -45,10 +45,15 @@ const COMPONENT_REFERENCES: Record<
   momentum: { mid: { score: 7.5, label: "-3% MA" } },
 };
 
-// Mirror the Python scoring math from src/uw_scan/cards/cri_scoring.py so we
+// Mirror the Python scoring math from src/uw_scan/cards/cri_scorers.py so we
 // can draw the prior-day dot on each ComponentBar. Floors/ceilings MUST match
 // cri-methodology.md §3.
-function priorComponentScore(
+//
+// v3 (2026-05-20): VIX floor 13 + RoC denom 40; VVIX floor 80; momentum
+// reshaped into structural (0-15) + tactical (0-10) sub-scores.
+//
+// Exported for unit testing — see web/tests/unit/CriSubTab.priorScore.test.tsx.
+export function priorComponentScore(
   prior: CriHistoryEntry | undefined,
   slot: ComponentSlot,
 ): number | null {
@@ -57,22 +62,25 @@ function priorComponentScore(
     Math.max(lo, Math.min(hi, x));
   const round1 = (x: number) => Math.round(x * 10) / 10;
   if (slot === "vix") {
+    // v3: floor 13, RoC denom 40 (was 15 / 60)
     if (prior.vix == null || prior.vix_5d_roc == null) return null;
-    const lvl = clip(((prior.vix - 15) / 25) * 15, 0, 15);
-    const roc = clip((Math.max(prior.vix_5d_roc, 0) / 60) * 10, 0, 10);
+    const lvl = clip(((prior.vix - 13) / 27) * 15, 0, 15);
+    const roc = clip((Math.max(prior.vix_5d_roc, 0) / 40) * 10, 0, 10);
     return round1(lvl + roc);
   }
   if (slot === "vvix") {
+    // v3: level floor 80 (was 85); ratio band 5-8 and RoC denom 25 unchanged
     if (prior.vvix == null || prior.vix == null || prior.vix <= 0) return null;
     const ratio = prior.vvix / prior.vix;
-    const lvl = clip(((prior.vvix - 85) / 45) * 12, 0, 12);
+    const lvl = clip(((prior.vvix - 80) / 50) * 12, 0, 12);
     const r = clip(((ratio - 5) / 3) * 7, 0, 7);
-    // vvix_5d_roc was added recently — historical snapshots may not have it.
+    // vvix_5d_roc was added in v2 — historical snapshots may not have it.
     const rocRaw = prior.vvix_5d_roc ?? 0;
     const roc = clip((Math.max(rocRaw, 0) / 25) * 6, 0, 6);
     return round1(lvl + r + roc);
   }
   if (slot === "correlation") {
+    // Unchanged across versions
     if (prior.cor1m == null) return null;
     const lvl = clip(((prior.cor1m - 25) / 45) * 17, 0, 17);
     const chg = prior.cor1m_5d_change ?? 0;
@@ -80,10 +88,16 @@ function priorComponentScore(
     return round1(lvl + spike);
   }
   if (slot === "momentum") {
+    // v3: structural (0-15, vs 100d MA) + tactical (0-10, vs 20d high, sat -4%)
     if (prior.spx_vs_ma_pct == null) return null;
     const d = prior.spx_vs_ma_pct;
-    if (d >= 0) return 0;
-    return round1((Math.min(Math.abs(d), 10) / 10) * 25);
+    const structural = d >= 0 ? 0 : clip((Math.abs(d) / 10) * 15, 0, 15);
+    // pullback_20d_pct is a v3 history-entry field. Historical (pre-v3) rows
+    // won't have it; default to 0 (tactical sub-score doesn't fire).
+    const pullback = prior.pullback_20d_pct ?? 0;
+    const tactical =
+      pullback >= 0 ? 0 : clip((Math.abs(pullback) / 4) * 10, 0, 10);
+    return round1(clip(structural + tactical, 0, 25));
   }
   return null;
 }
@@ -674,6 +688,14 @@ export function CriSubTabView({
             priorScore={priorComponentScore(priorHistory, "momentum")}
             live={live}
           />
+          {data.pullback_20d_pct != null && data.pullback_20d_pct < 0 && (
+            <div
+              className="regime-component-subtext"
+              data-testid="trend-break-pullback-line"
+            >
+              Pullback: {data.pullback_20d_pct.toFixed(2)}% from 20d high
+            </div>
+          )}
         </div>
         <div className="regime-triggers">
           <div className="regime-panel-title">
