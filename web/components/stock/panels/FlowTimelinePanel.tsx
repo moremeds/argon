@@ -79,10 +79,8 @@ export function FlowTimelinePanel({
   const dateIndex = new Map(dates.map((d, i) => [d, i]));
 
   return (
-    <AnalyticalSeriesPanel
-      title={title}
-      subtitle={`${primary.label} · ${secondary.label} (right)`}
-    >
+    <AnalyticalSeriesPanel title={title}>
+      <Legend primary={primary} secondary={secondary} />
       <svg
         role="img"
         aria-label={`${title} timeline`}
@@ -123,5 +121,57 @@ export function FlowTimelinePanel({
         />
       </svg>
     </AnalyticalSeriesPanel>
+  );
+}
+
+function Legend({ primary, secondary }: { primary: Series; secondary: Series }) {
+  return (
+    <div
+      role="list"
+      aria-label="Series legend"
+      style={{
+        display: "flex",
+        gap: 14,
+        marginBottom: 6,
+        fontFamily: "var(--font-mono)",
+        fontSize: 10,
+        letterSpacing: 1.5,
+        textTransform: "uppercase",
+        color: "var(--text-muted)",
+      }}
+    >
+      <LegendItem color={primary.color} label={primary.label} axis="left" />
+      <LegendItem color={secondary.color} label={secondary.label} axis="right" />
+    </div>
+  );
+}
+
+function LegendItem({
+  color,
+  label,
+  axis,
+}: {
+  color: string;
+  label: string;
+  axis: "left" | "right";
+}) {
+  return (
+    <div
+      role="listitem"
+      style={{ display: "inline-flex", alignItems: "center", gap: 6 }}
+    >
+      <span
+        aria-hidden
+        style={{
+          display: "inline-block",
+          width: 14,
+          height: 2,
+          background: color,
+        }}
+      />
+      <span>
+        {label} <span style={{ opacity: 0.65 }}>({axis})</span>
+      </span>
+    </div>
   );
 }
