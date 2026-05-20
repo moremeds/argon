@@ -1110,6 +1110,8 @@ export interface components {
              * @enum {string}
              */
             level: "LOW" | "ELEVATED" | "HIGH" | "CRITICAL";
+            /** Composite Version */
+            composite_version?: (1 | 2 | 3) | null;
             components?: components["schemas"]["CriComponents"];
         };
         /**
@@ -1160,6 +1162,8 @@ export interface components {
             vvix_5d_roc?: number | null;
             /** Cor1M 5D Change */
             cor1m_5d_change?: number | null;
+            /** Pullback 20D Pct */
+            pullback_20d_pct?: number | null;
         };
         /**
          * CriResponse
@@ -1211,6 +1215,10 @@ export interface components {
             vix_zscore_30d?: number | null;
             /** Vix Vix3M Ratio */
             vix_vix3m_ratio?: number | null;
+            /** Pullback 20D Pct */
+            pullback_20d_pct?: number | null;
+            /** Vix Delta 3D */
+            vix_delta_3d?: number | null;
             /** Spx Source */
             spx_source?: ("SPX" | "SPY") | null;
             cri?: components["schemas"]["CriBlock"];
