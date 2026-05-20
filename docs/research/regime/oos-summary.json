@@ -30,6 +30,20 @@
       "notes": "v3: VIX floor 13, RoC denom 40, VVIX floor 80, tactical pullback sub-score (saturates at -4% from 20d high)."
     }
   ],
+  "scores": [
+    {
+      "model": "CRI v1 (frozen baseline)",
+      "auc_dd5": 0.62,
+      "auc_vix30": null,
+      "auc_dd10": 0.647
+    },
+    {
+      "model": "CRI v3 (current)",
+      "auc_dd5": 0.6343,
+      "auc_vix30": null,
+      "auc_dd10": 0.6329
+    }
+  ],
   "ablation": [],
   "interpretation": "v3 must score >= v1 on both auc_dd5 and auc_dd10 for the OOS gate to pass. The gate is enforced by tests/integration/regime/test_cri_oos_gate.py \u2014 CI will block merge on regression."
 }

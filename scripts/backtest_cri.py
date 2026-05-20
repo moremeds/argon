@@ -287,6 +287,26 @@ def write_oos_summary(rows: list[dict[str, Any]], path: Path) -> None:
                 ),
             },
         ],
+        # Legacy flat shape for the GET /api/regime/validation endpoint + ValidationTab
+        # UI consumer. Mirrors `versions[]` above with the older OosScore field names.
+        "scores": [
+            {
+                "model": "CRI v1 (frozen baseline)",
+                "auc_dd5": V1_AUC_BASELINE["dd5"],
+                "auc_vix30": None,
+                "auc_dd10": V1_AUC_BASELINE["dd10"],
+            },
+            {
+                "model": "CRI v3 (current)",
+                "auc_dd5": round(v3_auc.get("dd5", float("nan")), 4)
+                if not math.isnan(v3_auc.get("dd5", float("nan")))
+                else None,
+                "auc_vix30": None,
+                "auc_dd10": round(v3_auc.get("dd10", float("nan")), 4)
+                if not math.isnan(v3_auc.get("dd10", float("nan")))
+                else None,
+            },
+        ],
         "ablation": [],
         "interpretation": (
             "v3 must score >= v1 on both auc_dd5 and auc_dd10 for the OOS gate "
