@@ -1,16 +1,35 @@
 {
-  "as_of": "2026-05-19",
+  "as_of": "2026-05-20",
   "notebook": "docs/research/regime/cri-validation.ipynb",
-  "method": "Walk-forward split: train 2007-2015 (threshold matching only), test 2016-2026. Three crash-proxy labels; ROC AUC reported as the primary metric.",
+  "method": "Forward-drawdown labels: dd5 = SPX -5% within 20 sessions; dd10 = SPX -10% within 60 sessions. AUC computed via Mann-Whitney rank-sum (no sklearn dep) on the full backtest. v1 baselines are the published Section 9 numbers; v3 is freshly recomputed on the same label definitions.",
   "labels": [
-    {"name": "label_dd5", "definition": "SPX -5% drawdown within 20 trading days"},
-    {"name": "label_vix30", "definition": "VIX >= 30 within 10 trading days"},
-    {"name": "label_dd10", "definition": "SPX -10% drawdown within 60 trading days"}
+    {
+      "name": "label_dd5",
+      "definition": "SPX -5% drawdown within 20 trading days"
+    },
+    {
+      "name": "label_dd10",
+      "definition": "SPX -10% drawdown within 60 trading days"
+    }
   ],
-  "scores": [
-    {"model": "CRI v1 (pre-PR)",  "auc_dd5": 0.620, "auc_vix30": null, "auc_dd10": 0.647},
-    {"model": "CRI v2 (post-PR)", "auc_dd5": 0.621, "auc_vix30": null, "auc_dd10": null},
-    {"model": "Naive VIX p80",    "auc_dd5": 0.637, "auc_vix30": null, "auc_dd10": 0.629}
+  "versions": [
+    {
+      "label": "CRI v1",
+      "version": 1,
+      "auc_dd5": 0.62,
+      "auc_dd10": 0.647,
+      "n_observations": 4873,
+      "notes": "Frozen baseline from cri-validation.ipynb \u00a79 (pre-PR-58)."
+    },
+    {
+      "label": "CRI v3",
+      "version": 3,
+      "auc_dd5": 0.6343,
+      "auc_dd10": 0.6329,
+      "n_observations": 4873,
+      "notes": "v3: VIX floor 13, RoC denom 40, VVIX floor 80, tactical pullback sub-score (saturates at -4% from 20d high)."
+    }
   ],
-  "interpretation": "CRI v2 calibration changes are within statistical noise of v1 on the headline 5%-in-20d drawdown target (AUC 0.621 vs 0.620). On that target, a naive VIX-percentile baseline (0.637) matches or beats CRI — VIX alone carries most of the signal. CRI's edge surfaces on the larger 10%-in-60d target, where v1 (0.647) outperforms the baseline (0.629). Read CRI as a structured, decomposable regime monitor — not a strict drawdown predictor. See notebook Section 9 for the full honest findings."
+  "ablation": [],
+  "interpretation": "v3 must score >= v1 on both auc_dd5 and auc_dd10 for the OOS gate to pass. The gate is enforced by tests/integration/regime/test_cri_oos_gate.py \u2014 CI will block merge on regression."
 }

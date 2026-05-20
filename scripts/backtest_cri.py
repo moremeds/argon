@@ -13,20 +13,25 @@ see docs/research/regime/cri-validation.ipynb.
 Writes:
   - docs/research/regime/cri-backtest.csv (one row per day)
   - docs/research/regime/cri-backtest.md  (summary report)
+  - docs/research/regime/oos-summary.json (with --write-oos-summary)
 
 Usage:
   uv run python scripts/backtest_cri.py
   uv run python scripts/backtest_cri.py --start 2006-01-01 --end 2026-05-15
+  uv run python scripts/backtest_cri.py --write-oos-summary
 """
 
 from __future__ import annotations
 
 import argparse
 import csv
+import json
 import logging
+import math
 import sys
 from collections import Counter
 from datetime import date as _date
+from datetime import datetime as _datetime
 from pathlib import Path
 from typing import Any
 
@@ -38,6 +43,18 @@ sys.path.insert(0, str(_PROJECT_ROOT / "src"))
 
 from uw_scan.cards import cri_scoring  # noqa: E402
 from uw_scan.config import Settings  # noqa: E402
+
+# ── OOS label definitions (must match docs/research/regime/cri-validation.ipynb §9) ──
+# label_dd5  : SPX -5%  drawdown within 20 trading days
+# label_dd10 : SPX -10% drawdown within 60 trading days
+OOS_LABELS: dict[str, tuple[int, float]] = {
+    "dd5": (20, 0.05),
+    "dd10": (60, 0.10),
+}
+
+# v1 published baselines from the notebook narrative (Section 9).
+# These are the numbers v3 must not degrade below for the OOS gate to pass.
+V1_AUC_BASELINE: dict[str, float] = {"dd5": 0.620, "dd10": 0.647}
 
 log = logging.getLogger("backtest_cri")
 
@@ -133,6 +150,7 @@ def rolling_compute(
                 "date": common_dates[i],
                 "score": cri["score"],
                 "level": cri["level"],
+                "composite_version": cri.get("composite_version"),
                 "vix_c": cri["components"]["vix"],
                 "vvix_c": cri["components"]["vvix"],
                 "corr_c": cri["components"]["correlation"],
@@ -142,9 +160,150 @@ def rolling_compute(
                 "vvix": p["vvix"],
                 "cor1m": p["cor1m"],
                 "spx_distance_pct": p["spx_distance_pct"],
+                "spy": p["spy"],  # needed for forward-drawdown labels
+                "pullback_20d_pct": p.get("pullback_20d_pct"),
+                "vix_delta_3d": p.get("vix_delta_3d"),
             }
         )
     return out
+
+
+# ══════════════════════════════════════════════════════════════════
+# OOS gate: ROC-AUC of CRI score vs forward-drawdown labels
+# ══════════════════════════════════════════════════════════════════
+
+
+def _forward_drawdown_labels(
+    closes: np.ndarray, window: int, threshold: float
+) -> np.ndarray:
+    """Binary label per day: 1 if the trough over the next ``window`` sessions
+    is ≤ -threshold below today's close, 0 otherwise. -1 means undefined
+    (last ``window`` days have no full forward window).
+    """
+    n = len(closes)
+    labels = np.full(n, -1, dtype=int)
+    for i in range(n - window):
+        future = closes[i + 1 : i + 1 + window]
+        if len(future) == 0:
+            continue
+        worst = float(future.min())
+        ratio = worst / float(closes[i]) - 1.0
+        labels[i] = 1 if ratio <= -threshold else 0
+    return labels
+
+
+def _roc_auc(y_true: np.ndarray, y_score: np.ndarray) -> float:
+    """Mann-Whitney AUC via average ranks (no sklearn dependency).
+
+    Excludes rows where y_true == -1 (undefined label) or y_score is NaN.
+    """
+    mask = (y_true != -1) & ~np.isnan(y_score)
+    yt = y_true[mask].astype(int)
+    ys = y_score[mask].astype(float)
+    n_pos = int((yt == 1).sum())
+    n_neg = int((yt == 0).sum())
+    if n_pos == 0 or n_neg == 0:
+        return float("nan")
+    # Compute average ranks (1-indexed; ties get mean rank)
+    order = np.argsort(ys, kind="mergesort")
+    ranks = np.empty_like(ys, dtype=float)
+    n = len(ys)
+    i = 0
+    while i < n:
+        j = i
+        while j + 1 < n and ys[order[j + 1]] == ys[order[i]]:
+            j += 1
+        avg = (i + j + 2) / 2.0  # 1-indexed mean rank
+        for k in range(i, j + 1):
+            ranks[order[k]] = avg
+        i = j + 1
+    sum_ranks_pos = float(ranks[yt == 1].sum())
+    return (sum_ranks_pos - n_pos * (n_pos + 1) / 2.0) / (n_pos * n_neg)
+
+
+def _compute_v3_auc(rows: list[dict[str, Any]]) -> dict[str, float]:
+    """For each label in OOS_LABELS, compute v3 ROC-AUC over the backtest."""
+    if not rows:
+        return {}
+    closes = np.array([r["spy"] for r in rows], dtype=float)
+    scores = np.array([r["score"] for r in rows], dtype=float)
+    auc_by_label: dict[str, float] = {}
+    for name, (window, threshold) in OOS_LABELS.items():
+        labels = _forward_drawdown_labels(closes, window, threshold)
+        auc_by_label[name] = _roc_auc(labels, scores)
+    return auc_by_label
+
+
+def write_oos_summary(rows: list[dict[str, Any]], path: Path) -> None:
+    """Write oos-summary.json with v1 baselines + freshly computed v3 AUC.
+
+    Symmetric comparison: both versions are evaluated on the SAME label
+    definitions (`OOS_LABELS`) which match the published notebook narrative.
+    """
+    v3_auc = _compute_v3_auc(rows)
+    n_obs = sum(1 for r in rows if math.isfinite(r["score"]))
+    payload = {
+        "as_of": _datetime.now().date().isoformat(),
+        "notebook": "docs/research/regime/cri-validation.ipynb",
+        "method": (
+            "Forward-drawdown labels: dd5 = SPX -5% within 20 sessions; "
+            "dd10 = SPX -10% within 60 sessions. AUC computed via "
+            "Mann-Whitney rank-sum (no sklearn dep) on the full backtest. "
+            "v1 baselines are the published Section 9 numbers; v3 is "
+            "freshly recomputed on the same label definitions."
+        ),
+        "labels": [
+            {
+                "name": "label_dd5",
+                "definition": "SPX -5% drawdown within 20 trading days",
+            },
+            {
+                "name": "label_dd10",
+                "definition": "SPX -10% drawdown within 60 trading days",
+            },
+        ],
+        "versions": [
+            {
+                "label": "CRI v1",
+                "version": 1,
+                "auc_dd5": V1_AUC_BASELINE["dd5"],
+                "auc_dd10": V1_AUC_BASELINE["dd10"],
+                "n_observations": n_obs,
+                "notes": "Frozen baseline from cri-validation.ipynb §9 (pre-PR-58).",
+            },
+            {
+                "label": "CRI v3",
+                "version": 3,
+                "auc_dd5": round(v3_auc.get("dd5", float("nan")), 4)
+                if not math.isnan(v3_auc.get("dd5", float("nan")))
+                else None,
+                "auc_dd10": round(v3_auc.get("dd10", float("nan")), 4)
+                if not math.isnan(v3_auc.get("dd10", float("nan")))
+                else None,
+                "n_observations": n_obs,
+                "notes": (
+                    "v3: VIX floor 13, RoC denom 40, VVIX floor 80, "
+                    "tactical pullback sub-score (saturates at -4% from 20d high)."
+                ),
+            },
+        ],
+        "ablation": [],
+        "interpretation": (
+            "v3 must score >= v1 on both auc_dd5 and auc_dd10 for the OOS gate "
+            "to pass. The gate is enforced by tests/integration/regime/"
+            "test_cri_oos_gate.py — CI will block merge on regression."
+        ),
+    }
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(payload, indent=2) + "\n")
+    log.info("wrote OOS summary to %s", path)
+    log.info(
+        "v3 AUC: dd5=%.4f (v1=%.3f), dd10=%.4f (v1=%.3f)",
+        v3_auc.get("dd5", float("nan")),
+        V1_AUC_BASELINE["dd5"],
+        v3_auc.get("dd10", float("nan")),
+        V1_AUC_BASELINE["dd10"],
+    )
 
 
 def summarize_distribution(scores: list[float]) -> dict[str, Any]:
@@ -223,6 +382,14 @@ def main() -> int:
     p.add_argument("--end", default=_date.today().isoformat())
     p.add_argument("--out-csv", default="docs/research/regime/cri-backtest.csv")
     p.add_argument("--out-md", default="docs/research/regime/cri-backtest.md")
+    p.add_argument(
+        "--write-oos-summary",
+        nargs="?",
+        const="docs/research/regime/oos-summary.json",
+        default=None,
+        help="Write oos-summary.json with v1 + v3 AUC. Optional path; "
+        "default docs/research/regime/oos-summary.json.",
+    )
     args = p.parse_args()
 
     start = _date.fromisoformat(args.start)
@@ -253,6 +420,8 @@ def main() -> int:
         return 1
     write_csv(rows, _PROJECT_ROOT / args.out_csv)
     write_report(rows, _PROJECT_ROOT / args.out_md)
+    if args.write_oos_summary:
+        write_oos_summary(rows, _PROJECT_ROOT / args.write_oos_summary)
     return 0
 
 
