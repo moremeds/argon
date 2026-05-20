@@ -38,30 +38,36 @@ The sum is clipped to [0, 100]. No normalization or PCA — straight addition by
 
 ## 3. Calibration
 
-Thresholds were chosen against the empirical distribution of each input on `uw_scan.vol_index_daily`, 2006-05-15 through 2026-05-15:
+Thresholds were chosen against the empirical distribution of each input on `uw_scan.vol_index_daily`, 2006-05-15 through 2026-05-15. Floor/ceiling were tightened in v3 (2026-05-20) to recover sensitivity that the v1/v2 calibration lost in the 14-18 VIX / 82-94 VVIX band:
 
-| Signal | p25 | p50 | p75 | p90 | p95 | Floor | Ceiling | Source |
+| Signal | p25 | p50 | p75 | p90 | p95 | v1/v2 Floor | **v3 Floor** | Ceiling |
 |---|---|---|---|---|---|---|---|---|
-| VIX | 13.96 | 17.62 | 22.73 | 28.58 | 32.95 | **15** | **40** | Floor ≈ "calm boundary" (CBOE), ceiling ≈ p98 (panic) |
-| VVIX | 82.45 | 90.84 | 102.09 | 115.26 | 122.32 | **85** | **130** | Floor ≈ p25; mid-mark 110 = practitioner warning (Convex, MenthorQ); ceiling near p98 |
-| COR1M | 24.27 | 35.89 | 49.04 | 61.27 | 69.90 | **25** | **70** | Floor ≈ p25; mid-mark 60 = crash-trigger threshold (also p90+) |
+| VIX | 13.96 | 17.62 | 22.73 | 28.58 | 32.95 | 15 | **13** | 40 |
+| VVIX | 82.45 | 90.84 | 102.09 | 115.26 | 122.32 | 85 | **80** | 130 |
+| COR1M | 24.27 | 35.89 | 49.04 | 61.27 | 69.90 | 25 | 25 (unchanged) | 70 |
 
-### VIX
-
-```
-level_score = clip((vix - 15) / (40 - 15) × 15, 0, 15)
-roc_score   = clip(max(vix_5d_roc, 0) / 60 × 10, 0, 10)
-```
-
-VIX 5d RoC > +60% (one-week doubling-ish) is rare enough to deserve full marks. The RoC is one-sided: VIX dropping fast doesn't increase crash risk.
-
-### VVIX
+### VIX (v3)
 
 ```
-level_score = clip((vvix - 85) / (130 - 85) × 12, 0, 12)
+level_score = clip((vix - 13) / (40 - 13) × 15, 0, 15)
+roc_score   = clip(max(vix_5d_roc, 0) / 40 × 10, 0, 10)
+```
+
+v3 changes:
+- **Floor 15 → 13** so the calm-but-elevated band (VIX 14-18, the modal range) generates positive signal. The v1 floor at 15 left the entire 14-18 band scoring 0 on level.
+- **RoC denominator 60 → 40** so a +30% VIX week saturates the sub-score (a +40% week is the practical ceiling; +60% is so rare it's almost never observed). The v1/v2 denominator of 60 meant routine +5-10% RoC weeks scored under 2 points.
+
+The RoC is one-sided: VIX dropping fast doesn't increase crash risk.
+
+### VVIX (v3)
+
+```
+level_score = clip((vvix - 80) / (130 - 80) × 12, 0, 12)
 ratio_score = clip((vvix_vix_ratio - 5) / (8 - 5) × 7, 0, 7)
 roc_score   = clip(max(vvix_5d_roc, 0) / 25 × 6, 0, 6)
 ```
+
+v3 change: **floor 85 → 80** to mirror the same tactical sensitivity the VIX scorer gained. VVIX rarely sits below 80; the prior 85 floor meant the 80-94 band was a dead zone.
 
 **Three sub-scores because three different things matter:**
 
@@ -80,20 +86,31 @@ spike_score = clip(max(cor1m_5d_change, 0) / 20 × 8, 0, 8)
 
 COR1M's CBOE definition is the spread between SPX implied vol and the average single-name implied vol — high values mean the market is pricing in tight cross-sectional co-movement (a single-factor regime). Floor of 25 is roughly p25 of the historical distribution; ceiling of 70 is roughly p95 and coincides with the crash-trigger threshold of 60 firing.
 
-### Trend Break (renamed from "Momentum")
+### Trend Break (v3 — structural + tactical)
+
+v3 splits the 0-25 component into two sub-scores:
 
 ```
+# Structural (0-15): rises when SPX trades below 100d MA
 if spx_distance_pct >= 0:
-    score = 0
+    structural = 0
 else:
-    score = clip(|spx_distance_pct| / 10 × 25, 0, 25)
+    structural = clip(|spx_distance_pct| / 10 × 15, 0, 15)
+
+# Tactical (0-10): rises with drawdown from trailing-20-session high
+if pullback_20d_pct >= 0:
+    tactical = 0
+else:
+    tactical = clip(|pullback_20d_pct| / 4 × 10, 0, 10)
+
+score = clip(structural + tactical, 0, 25)
 ```
 
-This is **not** a momentum signal in the standard sense. It is one-sided: zero when SPX is at or above its 100d MA, scaling up linearly as SPX drops below. At -10% below the MA the component saturates.
+**Why split:** v1/v2's single one-sided structural sub-score only fired when SPX was below the 100d MA. Historically SPX is above its MA ~70-75% of trading days, so the component was dormant by design. That dormancy is correct for crash detection but blind to tactical multi-session pullbacks (e.g. a -2% drop over 3 days while SPX is still +6% above its MA). v3's tactical sub-score captures that signal without false-positiving on uptrends: it saturates at -4% from the 20d rolling high, which is the practical low-end of "this drop warrants noticing." See [§8 v3 changelog](#8-validation) for the motivating data and the OOS trade-off.
 
-The asymmetry is intentional: a CRI that fires on uptrends is a CRI that cries wolf. Historically SPX is above its 100d MA on roughly 70–75% of trading days, so this component is dormant on most days *by design*. The UI label "TREND BREAK" makes that explicit instead of letting users expect graded response across both directions.
+**Tactical saturation rationale:** -4% from the 20d high is a non-trivial tactical pullback; deeper drawdowns add no marginal information to a regime monitor (the structural sub-score takes over via the MA breach). -4% was chosen over -3% and -6% during the v3 design conversation to land today's CRI at the user-requested 10-15 range under typical "noisy but not crashing" conditions.
 
-The original code labeled this "MOMENTUM" with a tooltip claiming "combined with VIX 5-day rate of change" — the tooltip described a richer formula than the code implements. Both are corrected here.
+The asymmetry below structural is intentional: a CRI that fires on uptrends is a CRI that cries wolf. The UI label "TREND BREAK" stays.
 
 ## 4. The crash trigger (separate from the composite)
 
@@ -166,4 +183,25 @@ The aligned window is bounded by the *shortest* series in the DB. `vol_index_dai
 
 **(b) 20y OOS validation** — `docs/research/regime/cri-validation.ipynb` is the canonical long-horizon test. It reads the parquet data lake at `~/market-warehouse/data-lake/bronze/asset_class=volatility/` for VIX/VVIX/COR1M and equity OHLC, runs a walk-forward split (train 2007-2015 / test 2016-2026), and reports ROC AUC + threshold-matched precision/recall against three crash-proxy labels (`label_dd5`, `label_vix30`, `label_dd10`).
 
+**(c) OOS gate (CI-enforced)** — `tests/integration/regime/test_cri_oos_gate.py` reads `docs/research/regime/oos-summary.json` (regenerated by `backtest_cri.py --write-oos-summary`) and asserts the current composite version's AUC on dd5/dd10 stays within 0.02 of the v1 published baseline. The JSON is the authoritative source of current AUC numbers — this doc deliberately does not embed AUC values that could drift from the script output. Run `cat docs/research/regime/oos-summary.json` for the current table.
+
 Honest finding from (b): VIX raw level alone captures most of the predictive signal for 5%/20-day drawdowns; CRI's value is in being a **structured, decomposable regime monitor** rather than a strict alpha generator. Read Section 9 of the notebook for the full accuracy breakdown and the caveats.
+
+### v3 — 2026-05-20
+
+**Motivation.** v1/v2 was calibrated for crash regime detection on the dd10 (SPX -10%-in-60d) horizon. Operator feedback during the 2026-05 calm-but-elevated vol weeks: the composite read 6/100 LOW during a ~2% SPX pullback over 3 sessions while VIX hovered 17-18 and 30d trailing VIX was actually higher than today (vix_zscore_30d at -0.28). The user wanted CRI to read 10-15/100 LOW-with-alert in that scenario without losing the crash-detection mandate.
+
+**Changes.**
+- VIX level floor 15 → 13; VIX RoC denominator 60 → 40
+- VVIX level floor 85 → 80
+- Trend Break reshape: structural (0-15, vs 100d MA) + tactical (0-10, vs 20d high, saturates at -4%)
+- New `composite_version` field nested under `cri` in the snapshot payload, typed `Literal[1, 2, 3] | None`
+- New top-level fields `pullback_20d_pct` (%) and `vix_delta_3d` (in **VIX points, not %** — same convention as `cor1m_5d_change`) surfaced for UI consumption
+- Band cutoffs unchanged (25 / 50 / 75)
+- Migration `050_cri_composite_version_backfill.sql` labels all pre-v3 historical snapshots as `composite_version=1`
+
+**OOS results.** See `docs/research/regime/oos-summary.json` for the authoritative AUC table. Summary of the 2026-05-20 backtest:
+- v3 dd5 AUC improved over v1 baseline (tactical pullback discrimination)
+- v3 dd10 AUC dipped slightly below v1 baseline but well within the documented 0.02 tolerance (longer-horizon crash detection trades a small amount of AUC for tactical responsiveness — the explicit purpose of the calibration)
+
+The OOS gate test in `tests/integration/regime/test_cri_oos_gate.py` enforces both bounds — CI blocks merge if either label drops more than 0.02 below v1.
