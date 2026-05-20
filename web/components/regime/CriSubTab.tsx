@@ -8,6 +8,7 @@ import CriHistoryChart, {
   type CriHistoryEntry,
 } from "./CriHistoryChart";
 import InfoTooltip from "./InfoTooltip";
+import { GuidancePanel } from "./GuidancePanel";
 import { MeanReversionTiles } from "./MeanReversionTiles";
 import {
   DayChange,
@@ -705,6 +706,9 @@ export function CriSubTabView({
           />
         </div>
       </div>
+
+      {/* ── Regime guidance (markdown-driven via /api/regime/guidance) ── */}
+      <GuidancePanel />
 
       {/* ── Row 5: 20-Session History (two charts side-by-side) ── */}
       {history.length > 0 && (
