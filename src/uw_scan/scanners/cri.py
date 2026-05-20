@@ -45,6 +45,11 @@ def _load_spy_series(repo: Repository, days: int) -> dict[_date, float]:
     return {r.date: float(r.close) for r in rows}
 
 
+def _load_spx_series(vol_repo: VolIndexRepository, days: int) -> dict[_date, float]:
+    """SPX closing levels from vol_index_daily (parquet-lake-backed)."""
+    return _load_vol_series(vol_repo, "SPX", days)
+
+
 def _align(
     series: dict[str, dict[_date, float]],
 ) -> tuple[dict[str, np.ndarray], list[str]]:
@@ -73,13 +78,31 @@ def run(conn: Connection, schema: str = "uw_scan") -> int | None:
     vol_repo = VolIndexRepository(conn, schema=schema)
     repo = Repository(conn, schema=schema)
 
-    raw = {
+    mandatory_vol = {
         "VIX": _load_vol_series(vol_repo, "VIX", LOOKBACK_DAYS),
         "VVIX": _load_vol_series(vol_repo, "VVIX", LOOKBACK_DAYS),
         "COR1M": _load_vol_series(vol_repo, "COR1M", LOOKBACK_DAYS),
-        "SPY": _load_spy_series(repo, LOOKBACK_DAYS),
     }
-    aligned, common_dates = _align(raw)
+
+    # Attempt 1: SPX from vol_index_daily.
+    aligned: dict[str, np.ndarray] = {}
+    common_dates: list[str] = []
+    spx = _load_spx_series(vol_repo, LOOKBACK_DAYS)
+    if spx:
+        aligned, common_dates = _align({**mandatory_vol, "SPX": spx})
+
+    # Attempt 2 (fallback): SPY from daily_ohlc. Triggers when SPX is
+    # entirely absent OR has insufficient overlap with the mandatory vol
+    # series to make MIN_ALIGNED_BARS. A partial SPX backfill must not
+    # suppress the snapshot if SPY can still produce one.
+    if len(common_dates) < MIN_ALIGNED_BARS:
+        log.warning(
+            "cri_scan_spx_alignment_thin spx_bars=%d need=%d — falling back to SPY",
+            len(common_dates),
+            MIN_ALIGNED_BARS,
+        )
+        spy = _load_spy_series(repo, LOOKBACK_DAYS)
+        aligned, common_dates = _align({**mandatory_vol, "SPY": spy})
 
     if not common_dates or len(common_dates) < MIN_ALIGNED_BARS:
         log.warning(

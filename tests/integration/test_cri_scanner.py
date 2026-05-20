@@ -146,3 +146,71 @@ def test_run_returns_none_when_no_overlap(seeded_db_empty_cards) -> None:
     _seed_spy(repo, [500.0 + i for i in range(140)], start=date(2027, 1, 1))
 
     assert cri_scanner.run(conn, schema=repo._schema) is None
+
+
+def test_run_uses_spx_when_available(seeded_db_empty_cards) -> None:
+    """Scanner should load SPX from vol_index_daily when present."""
+    repo = seeded_db_empty_cards
+    conn = repo.conn
+    vol_repo = VolIndexRepository(conn, schema=repo._schema)
+
+    n = 140
+    start = date(2026, 1, 1)
+    _seed_vol(vol_repo, "VIX", [16.0] * n, start=start)
+    _seed_vol(vol_repo, "VVIX", [95.0] * n, start=start)
+    _seed_vol(vol_repo, "COR1M", [20.0] * n, start=start)
+    # Seed SPX (NOT SPY) — the scanner must find it
+    _seed_vol(vol_repo, "SPX", [4500.0 + i for i in range(n)], start=start)
+
+    row_id = cri_scanner.run(conn, schema=repo._schema)
+    assert row_id is not None
+
+    snap = CriSnapshotRepository(conn, schema=repo._schema).fetch_latest()
+    assert snap["spx_source"] == "SPX"
+    # spy field carries SPX-scale value
+    assert snap["spy"] > 4000
+
+
+def test_run_falls_back_to_spy_when_spx_missing(seeded_db_empty_cards) -> None:
+    """Scanner should still work with SPY-only seed (back-compat)."""
+    repo = seeded_db_empty_cards
+    conn = repo.conn
+    vol_repo = VolIndexRepository(conn, schema=repo._schema)
+
+    n = 140
+    start = date(2026, 1, 1)
+    _seed_vol(vol_repo, "VIX", [16.0] * n, start=start)
+    _seed_vol(vol_repo, "VVIX", [95.0] * n, start=start)
+    _seed_vol(vol_repo, "COR1M", [20.0] * n, start=start)
+    # No SPX seeded; SPY is the only price source
+    _seed_spy(repo, [450.0 + i * (150.0 / n) for i in range(n)], start=start)
+
+    row_id = cri_scanner.run(conn, schema=repo._schema)
+    assert row_id is not None
+
+    snap = CriSnapshotRepository(conn, schema=repo._schema).fetch_latest()
+    assert snap["spx_source"] == "SPY"
+
+
+def test_run_falls_back_to_spy_when_spx_alignment_too_thin(
+    seeded_db_empty_cards,
+) -> None:
+    """SPX present but only 5 overlapping bars — must retry SPY before skipping."""
+    repo = seeded_db_empty_cards
+    conn = repo.conn
+    vol_repo = VolIndexRepository(conn, schema=repo._schema)
+    n = 140
+    start = date(2026, 1, 1)
+    _seed_vol(vol_repo, "VIX", [16.0] * n, start=start)
+    _seed_vol(vol_repo, "VVIX", [95.0] * n, start=start)
+    _seed_vol(vol_repo, "COR1M", [20.0] * n, start=start)
+    # SPX has only 5 days at the END of the range — overlap is 5 bars,
+    # well below MIN_ALIGNED_BARS.
+    _seed_vol(vol_repo, "SPX", [4500.0] * 5, start=date(2026, 5, 16))
+    # SPY has the full range — fallback should succeed.
+    _seed_spy(repo, [450.0 + i * 0.1 for i in range(n)], start=start)
+
+    row_id = cri_scanner.run(conn, schema=repo._schema)
+    assert row_id is not None
+    snap = CriSnapshotRepository(conn, schema=repo._schema).fetch_latest()
+    assert snap["spx_source"] == "SPY"
