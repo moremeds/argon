@@ -178,7 +178,7 @@ def _parse_guidance_md() -> list[dict[str, Any]]:
         try:
             meta = yaml.safe_load(front_raw) or {}
         except yaml.YAMLError as exc:
-            logger.warning("guidance_yaml_skipped chunk=%d err=%r", i, exc)
+            logger.warning("guidance_yaml_skipped chunk=%d err=%s", i, repr(exc))
             i += 2
             continue
         if isinstance(meta, dict) and {"state", "condition", "posture"} <= meta.keys():
@@ -212,9 +212,9 @@ def _select_rule(
             ok = _evaluate_condition(rule["condition"], ctx)
         except (ValueError, SyntaxError, TypeError) as exc:
             logger.warning(
-                "guidance_condition_skipped state=%s err=%r",
+                "guidance_condition_skipped state=%s err=%s",
                 rule.get("state"),
-                exc,
+                repr(exc),
             )
             continue
         if ok:
