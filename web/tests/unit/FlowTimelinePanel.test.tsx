@@ -50,6 +50,32 @@ describe("FlowTimelinePanel", () => {
     expect(markerLines.length).toBe(1);
   });
 
+  it("renders a legend with both series labels and axis markers", () => {
+    const { getByRole, getAllByRole } = render(
+      <FlowTimelinePanel
+        title="OPTIONS VOLUME"
+        primary={{
+          label: "Volume",
+          values: [1000, 1500, 2000, 1200],
+          color: "var(--accent-bg)",
+        }}
+        secondary={{
+          label: "P/C Vol",
+          values: [0.6, 0.8, 0.9, 0.7],
+          color: "var(--accent-warm)",
+        }}
+        dates={dates}
+      />,
+    );
+    const legend = getByRole("list", { name: /series legend/i });
+    const items = getAllByRole("listitem");
+    expect(items).toHaveLength(2);
+    expect(legend.textContent).toMatch(/Volume/);
+    expect(legend.textContent).toMatch(/\(left\)/);
+    expect(legend.textContent).toMatch(/P\/C Vol/);
+    expect(legend.textContent).toMatch(/\(right\)/);
+  });
+
   it("renders NO DATA when fewer than 2 finite values are present", () => {
     const { container } = render(
       <FlowTimelinePanel
