@@ -4,14 +4,16 @@ import { useState } from "react";
 import { useMarketHours } from "@/lib/regime/useMarketHours";
 import CriSubTab from "./CriSubTab";
 import GexSubTab from "./GexSubTab";
+import ValidationTab from "./ValidationTab";
 import VcgSubTab from "./VcgSubTab";
 
-type RegimeTab = "cri" | "vcg" | "gex";
+type RegimeTab = "cri" | "vcg" | "gex" | "validation";
 
 const TABS: { id: RegimeTab; label: string }[] = [
   { id: "gex", label: "GEX" },
   { id: "cri", label: "CRI" },
   { id: "vcg", label: "VCG" },
+  { id: "validation", label: "VALIDATION" },
 ];
 
 export default function RegimePanel() {
@@ -39,6 +41,7 @@ export default function RegimePanel() {
       {activeTab === "gex" && <GexSubTab marketState={marketState} />}
       {activeTab === "cri" && <CriSubTab />}
       {activeTab === "vcg" && <VcgSubTab />}
+      {activeTab === "validation" && <ValidationTab />}
     </div>
   );
 }
