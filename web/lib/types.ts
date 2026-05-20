@@ -592,6 +592,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/regime/guidance": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Guidance */
+        get: operations["get_guidance_api_regime_guidance_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/regime/validation": {
         parameters: {
             query?: never;
@@ -1971,6 +1988,20 @@ export interface components {
             gold_spx_ratio_percentile?: string | null;
             /** Narrative Text */
             narrative_text: string;
+        };
+        /** GuidanceResponse */
+        GuidanceResponse: {
+            /** State */
+            state: string;
+            /**
+             * Posture
+             * @enum {string}
+             */
+            posture: "opportunistic" | "neutral" | "cautious" | "defensive";
+            /** Body Md */
+            body_md: string;
+            /** Matched Condition */
+            matched_condition: string;
         };
         /** HTTPValidationError */
         HTTPValidationError: {
@@ -5511,6 +5542,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_guidance_api_regime_guidance_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GuidanceResponse"];
                 };
             };
         };

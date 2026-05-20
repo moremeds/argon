@@ -4347,6 +4347,40 @@
         "title": "GoldValuationPostureModel",
         "type": "object"
       },
+      "GuidanceResponse": {
+        "properties": {
+          "body_md": {
+            "title": "Body Md",
+            "type": "string"
+          },
+          "matched_condition": {
+            "title": "Matched Condition",
+            "type": "string"
+          },
+          "posture": {
+            "enum": [
+              "opportunistic",
+              "neutral",
+              "cautious",
+              "defensive"
+            ],
+            "title": "Posture",
+            "type": "string"
+          },
+          "state": {
+            "title": "State",
+            "type": "string"
+          }
+        },
+        "required": [
+          "state",
+          "posture",
+          "body_md",
+          "matched_condition"
+        ],
+        "title": "GuidanceResponse",
+        "type": "object"
+      },
       "HTTPValidationError": {
         "properties": {
           "detail": {
@@ -12638,6 +12672,28 @@
         },
         "summary": "Trigger Gex Scan",
         "tags": [
+          "regime"
+        ]
+      }
+    },
+    "/api/regime/guidance": {
+      "get": {
+        "operationId": "get_guidance_api_regime_guidance_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GuidanceResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Get Guidance",
+        "tags": [
+          "regime",
           "regime"
         ]
       }
