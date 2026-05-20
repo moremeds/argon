@@ -52,6 +52,7 @@ export function GuidancePanel() {
         <span className="regime-guidance-state">
           {guidance.state.replace(/_/g, " ").toUpperCase()}
         </span>
+        <span className="regime-guidance-arrow">→</span>
         <span
           className="regime-guidance-posture"
           style={{ color: postureColor(guidance.posture) }}

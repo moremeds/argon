@@ -7125,8 +7125,8 @@ tr {
 }
 .regime-guidance-header {
   display: flex;
-  justify-content: space-between;
   align-items: baseline;
+  gap: 8px;
   margin-bottom: 8px;
 }
 .regime-guidance-state {
@@ -7134,6 +7134,12 @@ tr {
   font-size: 11px;
   letter-spacing: 0.15em;
   color: var(--text-muted);
+}
+.regime-guidance-arrow {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-muted);
+  opacity: 0.6;
 }
 .regime-guidance-posture {
   font-family: var(--font-mono);
