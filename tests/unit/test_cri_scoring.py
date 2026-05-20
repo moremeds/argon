@@ -288,3 +288,44 @@ def test_run_analysis_falls_back_to_spy_when_spx_absent() -> None:
     out = run_analysis(aligned, dates)
     assert out["spy"] < 600, f"expected SPY-scale value, got {out['spy']}"
     assert out["spx_source"] == "SPY"
+
+
+def test_run_analysis_exposes_mean_reversion_fields() -> None:
+    """run_analysis must surface vrp, vix_zscore_30d, vix_vix3m_ratio, vix3m."""
+    n = 140
+    aligned = {
+        "VIX": np.full(n, 20.0),
+        "VVIX": np.full(n, 95.0),
+        "SPX": np.linspace(4500, 4800, n),
+        "VIX3M": np.full(n, 22.0),
+        "COR1M": np.full(n, 30.0),
+    }
+    dates = [f"2024-{(i // 30) + 1:02d}-{(i % 30) + 1:02d}" for i in range(n)]
+    out = run_analysis(aligned, dates)
+    assert "vrp" in out
+    assert "vix_zscore_30d" in out
+    assert "vix_vix3m_ratio" in out
+    assert "vix3m" in out
+    # VIX 20, VIX3M 22 → ratio ≈ 0.909 (contango)
+    assert 0.8 < out["vix_vix3m_ratio"] < 1.0
+    # Flat 20-VIX history → z-score = 0
+    assert out["vix_zscore_30d"] == 0.0
+
+
+def test_run_analysis_vrp_matches_vix_minus_realized_vol_exactly() -> None:
+    """VIX − annualized 20d SPX RV; flat SPX → RV=0 → VRP = vix_now."""
+    from uw_scan.cards.cri_scoring import VOL_WINDOW
+
+    n = max(140, VOL_WINDOW + 50)
+    aligned = {
+        "VIX": np.full(n, 18.0),
+        "VVIX": np.full(n, 95.0),
+        "SPX": np.full(n, 4500.0),
+        "VIX3M": np.full(n, 19.0),
+        "COR1M": np.full(n, 20.0),
+    }
+    dates = [f"2024-{(i // 30) + 1:02d}-{(i % 30) + 1:02d}" for i in range(n)]
+    out = run_analysis(aligned, dates)
+    assert out["realized_vol"] == pytest.approx(0.0, abs=1e-9)
+    assert out["vrp"] == pytest.approx(18.0, abs=0.01)
+    assert out["vix_vix3m_ratio"] == pytest.approx(18.0 / 19.0, abs=1e-3)

@@ -112,6 +112,21 @@ def run(conn: Connection, schema: str = "uw_scan") -> int | None:
         )
         return None
 
+    # VIX3M is optional and intentionally OUTSIDE the alignment join. We
+    # want today's value (or the latest available close on the same date
+    # as the CRI snapshot) for the term-structure tile; we do NOT want a
+    # stale VIX3M sync to suppress the whole snapshot.
+    vix3m_series = _load_vol_series(vol_repo, "VIX3M", LOOKBACK_DAYS)
+    if vix3m_series:
+        vix3m_aligned = np.array(
+            [
+                vix3m_series.get(_date.fromisoformat(d), float("nan"))
+                for d in common_dates
+            ],
+            dtype=float,
+        )
+        aligned["VIX3M"] = vix3m_aligned
+
     payload = cri_scoring.run_analysis(aligned, common_dates)
 
     snap_repo = CriSnapshotRepository(conn, schema=schema)

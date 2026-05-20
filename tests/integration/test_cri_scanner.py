@@ -192,6 +192,71 @@ def test_run_falls_back_to_spy_when_spx_missing(seeded_db_empty_cards) -> None:
     assert snap["spx_source"] == "SPY"
 
 
+def test_run_persists_snapshot_when_vix3m_is_completely_missing(
+    seeded_db_empty_cards,
+) -> None:
+    """No VIX3M at all → snapshot still writes; vix3m/ratio fields are null."""
+    repo = seeded_db_empty_cards
+    conn = repo.conn
+    vol_repo = VolIndexRepository(conn, schema=repo._schema)
+    n = 140
+    start = date(2026, 1, 1)
+    _seed_vol(vol_repo, "VIX", [16.0] * n, start=start)
+    _seed_vol(vol_repo, "VVIX", [95.0] * n, start=start)
+    _seed_vol(vol_repo, "COR1M", [20.0] * n, start=start)
+    _seed_vol(vol_repo, "SPX", [4500.0 + i for i in range(n)], start=start)
+    # Deliberately no VIX3M seed.
+    row_id = cri_scanner.run(conn, schema=repo._schema)
+    assert row_id is not None
+    snap = CriSnapshotRepository(conn, schema=repo._schema).fetch_latest()
+    assert snap["vix3m"] is None
+    assert snap["vix_vix3m_ratio"] is None
+    # VRP doesn't depend on VIX3M, so it should still be populated.
+    assert snap["vrp"] is not None
+
+
+def test_run_persists_snapshot_when_vix3m_is_stale(seeded_db_empty_cards) -> None:
+    """VIX3M ends well before CRI snapshot date → vix3m=None, scan still succeeds."""
+    repo = seeded_db_empty_cards
+    conn = repo.conn
+    vol_repo = VolIndexRepository(conn, schema=repo._schema)
+    n = 140
+    start = date(2026, 1, 1)
+    _seed_vol(vol_repo, "VIX", [16.0] * n, start=start)
+    _seed_vol(vol_repo, "VVIX", [95.0] * n, start=start)
+    _seed_vol(vol_repo, "COR1M", [20.0] * n, start=start)
+    _seed_vol(vol_repo, "SPX", [4500.0 + i for i in range(n)], start=start)
+    # VIX3M only for the first 100 days — stale by the time we scan.
+    _seed_vol(vol_repo, "VIX3M", [21.0] * 100, start=start)
+    row_id = cri_scanner.run(conn, schema=repo._schema)
+    assert row_id is not None
+    snap = CriSnapshotRepository(conn, schema=repo._schema).fetch_latest()
+    # The "today" date is day 140 — VIX3M has no entry there.
+    assert snap["vix3m"] is None
+
+
+def test_run_persists_mean_reversion_fields(seeded_db_empty_cards) -> None:
+    """Full VIX3M coverage → vix3m, vrp, vix_vix3m_ratio all populated."""
+    repo = seeded_db_empty_cards
+    conn = repo.conn
+    vol_repo = VolIndexRepository(conn, schema=repo._schema)
+
+    n = 140
+    start = date(2026, 1, 1)
+    _seed_vol(vol_repo, "VIX", [18.0] * n, start=start)
+    _seed_vol(vol_repo, "VVIX", [95.0] * n, start=start)
+    _seed_vol(vol_repo, "COR1M", [20.0] * n, start=start)
+    _seed_vol(vol_repo, "VIX3M", [21.0] * n, start=start)
+    _seed_vol(vol_repo, "SPX", [4500.0 + i for i in range(n)], start=start)
+
+    cri_scanner.run(conn, schema=repo._schema)
+    snap = CriSnapshotRepository(conn, schema=repo._schema).fetch_latest()
+    assert snap["vix3m"] == 21.0
+    assert snap["vrp"] is not None
+    assert snap["vix_vix3m_ratio"] is not None
+    assert snap["vix_vix3m_ratio"] < 1.0  # 18/21 = 0.857 → contango
+
+
 def test_run_falls_back_to_spy_when_spx_alignment_too_thin(
     seeded_db_empty_cards,
 ) -> None:

@@ -16,6 +16,12 @@ from typing import Any
 
 import numpy as np
 
+from uw_scan.cards.mean_reversion import (
+    compute_vrp,
+    vix_vix3m_ratio,
+    vix_zscore_30d,
+)
+
 # ── constants ─────────────────────────────────────────────────────
 MA_WINDOW = 100  # SPX moving average window
 VOL_WINDOW = 20  # Realized vol window (annualized)
@@ -316,6 +322,16 @@ def run_analysis(
 
     realized_vol = compute_realized_vol(spy, VOL_WINDOW)
 
+    vix3m_arr = aligned.get("VIX3M")
+    vix3m_now = (
+        float(vix3m_arr[-1])
+        if vix3m_arr is not None and len(vix3m_arr) > 0
+        else float("nan")
+    )
+    vrp = compute_vrp(vix=vix_now, realized_vol=realized_vol)
+    vix_z = vix_zscore_30d(vix)
+    vix_ts_ratio = vix_vix3m_ratio(vix=vix_now, vix3m=vix3m_now)
+
     cri = compute_cri(
         vix=vix_now,
         vix_5d_roc=float(vix_5d_roc),
@@ -399,6 +415,12 @@ def run_analysis(
         else None,
         "realized_vol": round(realized_vol, 2)
         if not math.isnan(realized_vol)
+        else None,
+        "vix3m": round(vix3m_now, 2) if not math.isnan(vix3m_now) else None,
+        "vrp": round(vrp, 2) if not math.isnan(vrp) else None,
+        "vix_zscore_30d": round(vix_z, 2) if not math.isnan(vix_z) else None,
+        "vix_vix3m_ratio": round(vix_ts_ratio, 3)
+        if not math.isnan(vix_ts_ratio)
         else None,
         "cri": cri,
         "cta": cta,
