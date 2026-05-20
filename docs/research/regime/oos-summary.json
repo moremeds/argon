@@ -1,0 +1,16 @@
+{
+  "as_of": "2026-05-19",
+  "notebook": "docs/research/regime/cri-validation.ipynb",
+  "method": "Walk-forward split: train 2007-2015 (threshold matching only), test 2016-2026. Three crash-proxy labels; ROC AUC reported as the primary metric.",
+  "labels": [
+    {"name": "label_dd5", "definition": "SPX -5% drawdown within 20 trading days"},
+    {"name": "label_vix30", "definition": "VIX >= 30 within 10 trading days"},
+    {"name": "label_dd10", "definition": "SPX -10% drawdown within 60 trading days"}
+  ],
+  "scores": [
+    {"model": "CRI v1 (pre-PR)",  "auc_dd5": 0.620, "auc_vix30": null, "auc_dd10": 0.647},
+    {"model": "CRI v2 (post-PR)", "auc_dd5": 0.621, "auc_vix30": null, "auc_dd10": null},
+    {"model": "Naive VIX p80",    "auc_dd5": 0.637, "auc_vix30": null, "auc_dd10": 0.629}
+  ],
+  "interpretation": "CRI v2 calibration changes are within statistical noise of v1 on the headline 5%-in-20d drawdown target (AUC 0.621 vs 0.620). On that target, a naive VIX-percentile baseline (0.637) matches or beats CRI — VIX alone carries most of the signal. CRI's edge surfaces on the larger 10%-in-60d target, where v1 (0.647) outperforms the baseline (0.629). Read CRI as a structured, decomposable regime monitor — not a strict drawdown predictor. See notebook Section 9 for the full honest findings."
+}

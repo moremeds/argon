@@ -592,6 +592,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/regime/validation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Validation */
+        get: operations["get_validation_api_regime_validation_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/gold/gauge": {
         parameters: {
             query?: never;
@@ -1169,6 +1186,16 @@ export interface components {
             cor1m_5d_change?: number | null;
             /** Realized Vol */
             realized_vol?: number | null;
+            /** Vix3M */
+            vix3m?: number | null;
+            /** Vrp */
+            vrp?: number | null;
+            /** Vix Zscore 30D */
+            vix_zscore_30d?: number | null;
+            /** Vix Vix3M Ratio */
+            vix_vix3m_ratio?: number | null;
+            /** Spx Source */
+            spx_source?: ("SPX" | "SPY") | null;
             cri?: components["schemas"]["CriBlock"];
             cta?: components["schemas"]["CtaBlock"];
             crash_trigger?: components["schemas"]["CrashTriggerBlock"];
@@ -2471,6 +2498,39 @@ export interface components {
             mid_volume?: number | null;
             /** No Side Volume */
             no_side_volume?: number | null;
+        };
+        /** OosLabel */
+        OosLabel: {
+            /** Name */
+            name: string;
+            /** Definition */
+            definition: string;
+        };
+        /** OosScore */
+        OosScore: {
+            /** Model */
+            model: string;
+            /** Auc Dd5 */
+            auc_dd5?: number | null;
+            /** Auc Vix30 */
+            auc_vix30?: number | null;
+            /** Auc Dd10 */
+            auc_dd10?: number | null;
+        };
+        /** OosSummary */
+        OosSummary: {
+            /** As Of */
+            as_of: string;
+            /** Notebook */
+            notebook: string;
+            /** Method */
+            method: string;
+            /** Labels */
+            labels: components["schemas"]["OosLabel"][];
+            /** Scores */
+            scores: components["schemas"]["OosScore"][];
+            /** Interpretation */
+            interpretation: string;
         };
         /**
          * OptionChainPerStrikeRow
@@ -3823,6 +3883,17 @@ export interface components {
             input?: unknown;
             /** Context */
             ctx?: Record<string, never>;
+        };
+        /**
+         * ValidationResponse
+         * @description Combined warm-store backtest + OOS notebook summary.
+         */
+        ValidationResponse: {
+            /** Backtest Md */
+            backtest_md: string;
+            /** Backtest Csv Rows */
+            backtest_csv_rows: number;
+            oos?: components["schemas"]["OosSummary"] | null;
         };
         /** VcgAttribution */
         VcgAttribution: {
@@ -5440,6 +5511,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_validation_api_regime_validation_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationResponse"];
                 };
             };
         };

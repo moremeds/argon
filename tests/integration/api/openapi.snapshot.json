@@ -1484,6 +1484,21 @@
             ],
             "title": "Spx Distance Pct"
           },
+          "spx_source": {
+            "anyOf": [
+              {
+                "enum": [
+                  "SPX",
+                  "SPY"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Spx Source"
+          },
           "spy": {
             "anyOf": [
               {
@@ -1522,6 +1537,17 @@
             ],
             "title": "Vix"
           },
+          "vix3m": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vix3M"
+          },
           "vix_5d_roc": {
             "anyOf": [
               {
@@ -1532,6 +1558,39 @@
               }
             ],
             "title": "Vix 5D Roc"
+          },
+          "vix_vix3m_ratio": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vix Vix3M Ratio"
+          },
+          "vix_zscore_30d": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vix Zscore 30D"
+          },
+          "vrp": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vrp"
           },
           "vvix": {
             "anyOf": [
@@ -6317,6 +6376,114 @@
         "title": "OiChangeRow",
         "type": "object"
       },
+      "OosLabel": {
+        "properties": {
+          "definition": {
+            "title": "Definition",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "definition"
+        ],
+        "title": "OosLabel",
+        "type": "object"
+      },
+      "OosScore": {
+        "properties": {
+          "auc_dd10": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Auc Dd10"
+          },
+          "auc_dd5": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Auc Dd5"
+          },
+          "auc_vix30": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Auc Vix30"
+          },
+          "model": {
+            "title": "Model",
+            "type": "string"
+          }
+        },
+        "required": [
+          "model"
+        ],
+        "title": "OosScore",
+        "type": "object"
+      },
+      "OosSummary": {
+        "properties": {
+          "as_of": {
+            "title": "As Of",
+            "type": "string"
+          },
+          "interpretation": {
+            "title": "Interpretation",
+            "type": "string"
+          },
+          "labels": {
+            "items": {
+              "$ref": "#/components/schemas/OosLabel"
+            },
+            "title": "Labels",
+            "type": "array"
+          },
+          "method": {
+            "title": "Method",
+            "type": "string"
+          },
+          "notebook": {
+            "title": "Notebook",
+            "type": "string"
+          },
+          "scores": {
+            "items": {
+              "$ref": "#/components/schemas/OosScore"
+            },
+            "title": "Scores",
+            "type": "array"
+          }
+        },
+        "required": [
+          "as_of",
+          "notebook",
+          "method",
+          "labels",
+          "scores",
+          "interpretation"
+        ],
+        "title": "OosSummary",
+        "type": "object"
+      },
       "OptionChainPerStrikeRow": {
         "description": "Aggregated (expiry, strike) snapshot \u2014 both volume and OI in one row.\n\nBacks both strike-profile charts (Volume and OI variants).",
         "properties": {
@@ -9968,6 +10135,35 @@
         "title": "ValidationError",
         "type": "object"
       },
+      "ValidationResponse": {
+        "description": "Combined warm-store backtest + OOS notebook summary.",
+        "properties": {
+          "backtest_csv_rows": {
+            "title": "Backtest Csv Rows",
+            "type": "integer"
+          },
+          "backtest_md": {
+            "title": "Backtest Md",
+            "type": "string"
+          },
+          "oos": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/OosSummary"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "backtest_md",
+          "backtest_csv_rows"
+        ],
+        "title": "ValidationResponse",
+        "type": "object"
+      },
       "VcgAttribution": {
         "properties": {
           "model_implied": {
@@ -12464,6 +12660,28 @@
         },
         "summary": "Trigger Cri Scan",
         "tags": [
+          "regime"
+        ]
+      }
+    },
+    "/api/regime/validation": {
+      "get": {
+        "operationId": "get_validation_api_regime_validation_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Get Validation",
+        "tags": [
+          "regime",
           "regime"
         ]
       }

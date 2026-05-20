@@ -13,6 +13,7 @@ from uw_scan.api.routers import (
     ohlc,
     provider_usage,
     regime,
+    regime_validation,
     scanner,
     stock,
     trade_insights,
@@ -46,6 +47,7 @@ def create_app() -> FastAPI:
     app.include_router(provider_usage.router, prefix="/api", tags=["provider-usage"])
     app.include_router(trade_insights.router, prefix="/api", tags=["trade-insights"])
     app.include_router(regime.router, prefix="/api", tags=["regime"])
+    app.include_router(regime_validation.router, prefix="/api", tags=["regime"])
     app.include_router(gold.router, prefix="/api", tags=["gold"])
     app.include_router(scanner.router, prefix="/api", tags=["scanner"])
     return app

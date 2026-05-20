@@ -413,6 +413,11 @@ class CriResponse(BaseModel):
     cor1m_previous_close: float | None = None
     cor1m_5d_change: float | None = None
     realized_vol: float | None = None
+    vix3m: float | None = None
+    vrp: float | None = None
+    vix_zscore_30d: float | None = None
+    vix_vix3m_ratio: float | None = None
+    spx_source: Literal["SPX", "SPY"] | None = None
     cri: CriBlock = Field(default_factory=CriBlock)
     cta: CtaBlock = Field(default_factory=CtaBlock)
     crash_trigger: CrashTriggerBlock = Field(default_factory=CrashTriggerBlock)
