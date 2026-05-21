@@ -163,11 +163,13 @@ def run_single_stock(
             alert_limit=FLOW_ALERT_LIMIT,
         )
 
-        # 2. IV rank (time series)
-        iv_rank_rows = uw_sources.fetch_iv_rank(client, repo, run_id, ticker)
-        repo.upsert_iv_rank_rows(ticker, iv_rank_rows)
-
-        # 3. Vol stats
+        # 2. Vol stats (also supplies the 1y IV rank — verified empirically that
+        # /volatility/stats.iv_rank == /iv-rank.iv_rank_1y to 4 decimals across
+        # tickers, so the dedicated /iv-rank call was redundant for the stock
+        # detail report. cockpit_daily_snapshot.py still calls fetch_iv_rank for
+        # SPX/SPY/QQQ/IWM where the trailing series feeds the cockpit history
+        # chart; non-cockpit tickers no longer maintain iv_rank_history rows but
+        # no code reads from that table for them. Saves 1 UW call per rescan.
         vol_stats_rows = uw_sources.fetch_volatility_stats(client, repo, run_id, ticker)
         repo.upsert_volatility_stats_rows(vol_stats_rows)
 
@@ -273,17 +275,13 @@ def run_single_stock(
         market_date = _date.today()
         repo.insert_max_pain_rows(run_id, ticker, market_date, max_pain_rows)
 
-        # 14. Option contracts (broad)
+        # 14. Option contracts (broad). The earlier re-fetch via
+        # /option-contracts?option_symbol[]=... was removed because it hit the
+        # same endpoint and returned the identical rows already in `contracts`
+        # — see normalize.normalize_option_contracts_by_symbol ("Same shape as
+        # option_contracts"). Saves 1 UW call per rescan.
         contracts = uw_sources.fetch_option_contracts(client, repo, run_id, ticker)
         repo.insert_option_contract_rows(run_id, ticker, contracts)
-
-        # 15. Option contracts by symbol (pick 2 ATM contracts from previous batch)
-        if contracts:
-            picks = [c.option_symbol for c in contracts[:2]]
-            refined = uw_sources.fetch_option_contracts_by_symbol(
-                client, repo, run_id, ticker, picks
-            )
-            repo.insert_option_contract_rows(run_id, ticker, refined)
 
         # 16. Dark pool
         dp_rows = uw_sources.fetch_darkpool_ticker(client, repo, run_id, ticker)

@@ -166,7 +166,6 @@ def _build_market_structure(
 def build_volatility_profile(
     repo: Repository, run_id: int, ticker: str
 ) -> VolatilityProfile:
-    iv_rank_row = repo.fetch_iv_rank_latest(ticker) or {}
     vol_stats = repo.fetch_volatility_stats_latest(ticker) or {}
     realized = repo.fetch_realized_vol_latest(ticker) or {}
     interp = repo.fetch_interpolated_iv_30d(run_id, ticker) or {}
@@ -189,7 +188,10 @@ def build_volatility_profile(
         or _to_decimal(realized.get("realized_volatility")),
         rv_low_52w=_to_decimal(vol_stats.get("rv_low")),
         rv_high_52w=_to_decimal(vol_stats.get("rv_high")),
-        iv_rank_1y=_to_decimal(iv_rank_row.get("iv_rank_1y")),
+        # iv_rank from /volatility/stats is empirically equal to iv_rank_1y from
+        # the legacy /iv-rank endpoint — same number, different label. Sourcing
+        # both fields from vol_stats lets us drop the /iv-rank fetch entirely.
+        iv_rank_1y=_to_decimal(vol_stats.get("iv_rank")),
         iv_percentile_30d=_to_decimal(interp.get("percentile")),
         implied_move_30d_perc=_to_decimal(interp.get("implied_move_perc")),
         skew_25d=_to_decimal(skew.get("risk_reversal")),
