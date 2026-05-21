@@ -148,7 +148,7 @@ def test_dealer_regime_ok_for_seeded_ticker(
     # → gamma_score > 0; combined label not guaranteed (V/C may flip).
     assert body["signal"]["gamma_score"] > 0
     # closest_levels carries both ranking modes
-    rank_kinds = {l["rank_kind"] for l in body["closest_levels"]}
+    rank_kinds = {lv["rank_kind"] for lv in body["closest_levels"]}
     assert "nearest" in rank_kinds
     # gamma_decay has the seeded expiry bucket
     assert any(b["expiry"] == "2026-05-22" for b in body["gamma_decay"])

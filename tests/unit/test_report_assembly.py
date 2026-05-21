@@ -241,12 +241,6 @@ class _StubRepo:
         # which is exactly what this unit test needs (no dealer regime).
         return 0
 
-    def fetch_realized_vol_latest(self, ticker: str):
-        return None
-
-    def fetch_exposures_summary(self, run_id: int, ticker: str) -> list[dict]:
-        return []
-
     def get_options_timeline(self, ticker: str, lookback_days: int = 180):
         from uw_scan.models import OptionsDailyRow
 

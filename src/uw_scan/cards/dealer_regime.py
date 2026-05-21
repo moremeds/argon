@@ -300,15 +300,15 @@ def _build_closest_levels(
             )
         )
 
-    nearest = [_ClosestLevel(**{**l.__dict__, "rank_kind": "nearest"}) for l in base]
-    nearest.sort(key=lambda l: abs(l.distance_pct))
+    nearest = [_ClosestLevel(**{**lv.__dict__, "rank_kind": "nearest"}) for lv in base]
+    nearest.sort(key=lambda lv: abs(lv.distance_pct))
 
     dominant = [
-        _ClosestLevel(**{**l.__dict__, "rank_kind": "dominant"})
-        for l in base
-        if l.gamma is not None
+        _ClosestLevel(**{**lv.__dict__, "rank_kind": "dominant"})
+        for lv in base
+        if lv.gamma is not None
     ]
-    dominant.sort(key=lambda l: -abs(l.gamma or 0.0))
+    dominant.sort(key=lambda lv: -abs(lv.gamma or 0.0))
 
     return nearest + dominant
 
@@ -317,7 +317,7 @@ def _subtitle_from_closest(closest: list[_ClosestLevel], label: str) -> str:
     """Subtitle anchors on the DOMINANT level (largest |gamma|), not nearest."""
     if not closest:
         return ""
-    dominant = next((l for l in closest if l.rank_kind == "dominant"), None)
+    dominant = next((lv for lv in closest if lv.rank_kind == "dominant"), None)
     top = dominant or closest[0]
     side = (
         "resistance"

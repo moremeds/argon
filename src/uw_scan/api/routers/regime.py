@@ -269,15 +269,15 @@ def get_dealer_regime(
         ),
         closest_levels=[
             ClosestLevel(
-                label=l.label,
-                direction=l.direction,
-                role=l.role,
-                strike=l.strike,
-                distance_pct=l.distance_pct,
-                gamma=l.gamma,
-                rank_kind=l.rank_kind,
+                label=lv.label,
+                direction=lv.direction,
+                role=lv.role,
+                strike=lv.strike,
+                distance_pct=lv.distance_pct,
+                gamma=lv.gamma,
+                rank_kind=lv.rank_kind,
             )
-            for l in out.closest_levels
+            for lv in out.closest_levels
         ],
         odte_gex=out.odte_gex,
         odte_share_pct=out.odte_share_pct,
