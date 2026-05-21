@@ -33,6 +33,7 @@ from .jobs import _JobsMixin
 from .market_data import _MarketDataMixin
 from .matrix_state import _MatrixStateMixin
 from .options import _OptionsMixin
+from .rates_repository import _RatesMixin
 
 # Row dataclasses live in rows.py since the PR-1 split. Re-exported here so
 # existing callers (`from uw_scan.storage.repository import JobRow`) continue
@@ -96,6 +97,7 @@ class Repository(
     _MarketDataMixin,
     _MatrixStateMixin,
     _OptionsMixin,
+    _RatesMixin,
     _ScanOutputsMixin,
     _ScanResultsMixin,
     _ScanRunsMixin,

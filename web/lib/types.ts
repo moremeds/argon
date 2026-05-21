@@ -733,6 +733,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/rates/snapshot": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Rates Snapshot */
+        get: operations["rates_snapshot_api_rates_snapshot_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/scanner": {
         parameters: {
             query?: never;
@@ -3109,6 +3126,271 @@ export interface components {
             running: number;
             /** Oldest Requested At */
             oldest_requested_at?: string | null;
+        };
+        /** RatesCrossMarketPanel */
+        RatesCrossMarketPanel: {
+            /** Rows */
+            rows?: components["schemas"]["RatesSummaryTile"][];
+            /**
+             * Status
+             * @default partial
+             * @enum {string}
+             */
+            status: "ok" | "missing" | "partial";
+        };
+        /** RatesCurvePoint */
+        RatesCurvePoint: {
+            /** Tenor */
+            tenor: string;
+            /** Series Id */
+            series_id: string;
+            /** Value */
+            value?: number | null;
+            /** Delta 1D Bps */
+            delta_1d_bps?: number | null;
+            /** Delta 1W Bps */
+            delta_1w_bps?: number | null;
+            /** Delta 1M Bps */
+            delta_1m_bps?: number | null;
+            /** Obs Date */
+            obs_date?: string | null;
+            /**
+             * Status
+             * @default ok
+             * @enum {string}
+             */
+            status: "ok" | "missing" | "partial";
+        };
+        /** RatesCurveSection */
+        RatesCurveSection: {
+            /** Points */
+            points?: components["schemas"]["RatesCurvePoint"][];
+            /** Slopes */
+            slopes?: components["schemas"]["RatesSlopeMetric"][];
+        };
+        /** RatesDecomposition */
+        RatesDecomposition: {
+            /** Nominal 10Y */
+            nominal_10y?: number | null;
+            /** Real 10Y */
+            real_10y?: number | null;
+            /** Breakeven 10Y */
+            breakeven_10y?: number | null;
+            /** Forward Inflation 5Y5Y */
+            forward_inflation_5y5y?: number | null;
+            /** Term Forward Compensation */
+            term_forward_compensation?: number | null;
+            /**
+             * Status
+             * @default partial
+             * @enum {string}
+             */
+            status: "ok" | "missing" | "partial";
+        };
+        /** RatesEventItem */
+        RatesEventItem: {
+            /** Event Date */
+            event_date?: string | null;
+            /** Label */
+            label: string;
+            /**
+             * Importance
+             * @default medium
+             * @enum {string}
+             */
+            importance: "low" | "medium" | "high";
+            /** Source */
+            source?: string | null;
+            /**
+             * Status
+             * @default missing
+             * @enum {string}
+             */
+            status: "ok" | "missing" | "partial";
+        };
+        /** RatesPolicyPanel */
+        RatesPolicyPanel: {
+            /** Target Range */
+            target_range?: string | null;
+            /** Effr */
+            effr?: number | null;
+            /** Sofr */
+            sofr?: number | null;
+            /** Plumbing */
+            plumbing?: components["schemas"]["RatesSummaryTile"][];
+            /**
+             * Status
+             * @default partial
+             * @enum {string}
+             */
+            status: "ok" | "missing" | "partial";
+        };
+        /** RatesPositioningPanel */
+        RatesPositioningPanel: {
+            /** Rows */
+            rows?: components["schemas"]["RatesSummaryTile"][];
+            /**
+             * Status
+             * @default missing
+             * @enum {string}
+             */
+            status: "ok" | "missing" | "partial";
+        };
+        /** RatesScorecard */
+        RatesScorecard: {
+            /** Composite Score */
+            composite_score?: number | null;
+            /**
+             * Duration Stance
+             * @default NEUTRAL
+             * @enum {string}
+             */
+            duration_stance: "BUY" | "SELL" | "NEUTRAL";
+            /** Curve Score */
+            curve_score?: number | null;
+            /**
+             * Curve Stance
+             * @default NEUTRAL
+             * @enum {string}
+             */
+            curve_stance: "STEEP" | "FLAT" | "NEUTRAL";
+            /** Groups */
+            groups?: components["schemas"]["RatesScorecardGroup"][];
+        };
+        /** RatesScorecardFactor */
+        RatesScorecardFactor: {
+            /** Label */
+            label: string;
+            /** Value */
+            value?: string | null;
+            /** Score */
+            score?: number | null;
+            /**
+             * Status
+             * @default ok
+             * @enum {string}
+             */
+            status: "ok" | "missing" | "partial";
+            /** Source */
+            source?: string | null;
+        };
+        /** RatesScorecardGroup */
+        RatesScorecardGroup: {
+            /** Id */
+            id: string;
+            /** Label */
+            label: string;
+            /** Weight */
+            weight: number;
+            /** Score */
+            score?: number | null;
+            /**
+             * Status
+             * @default ok
+             * @enum {string}
+             */
+            status: "ok" | "missing" | "partial";
+            /** Factors */
+            factors?: components["schemas"]["RatesScorecardFactor"][];
+        };
+        /** RatesSlopeMetric */
+        RatesSlopeMetric: {
+            /** Label */
+            label: string;
+            /** Value Bps */
+            value_bps?: number | null;
+            /**
+             * Status
+             * @default ok
+             * @enum {string}
+             */
+            status: "ok" | "missing" | "partial";
+        };
+        /** RatesSnapshotResponse */
+        RatesSnapshotResponse: {
+            /**
+             * As Of
+             * Format: date
+             */
+            as_of: string;
+            /**
+             * Computed At
+             * Format: date-time
+             */
+            computed_at: string;
+            /** Summary */
+            summary?: components["schemas"]["RatesSummaryTile"][];
+            curve?: components["schemas"]["RatesCurveSection"];
+            decomposition?: components["schemas"]["RatesDecomposition"];
+            scorecard?: components["schemas"]["RatesScorecard"];
+            policy?: components["schemas"]["RatesPolicyPanel"];
+            supply?: components["schemas"]["RatesSupplyPanel"];
+            positioning?: components["schemas"]["RatesPositioningPanel"];
+            cross_market?: components["schemas"]["RatesCrossMarketPanel"];
+            /** Events */
+            events?: components["schemas"]["RatesEventItem"][];
+            synthesis: components["schemas"]["RatesSynthesisPanel"];
+            /** Source Freshness */
+            source_freshness?: components["schemas"]["RatesSourceFreshness"][];
+        };
+        /** RatesSourceFreshness */
+        RatesSourceFreshness: {
+            /** Id */
+            id: string;
+            /** Label */
+            label: string;
+            /** Latest Obs Date */
+            latest_obs_date?: string | null;
+            /** Last Seen At */
+            last_seen_at?: string | null;
+            /**
+             * Status
+             * @default missing
+             * @enum {string}
+             */
+            status: "ok" | "missing" | "partial";
+        };
+        /** RatesSummaryTile */
+        RatesSummaryTile: {
+            /** Label */
+            label: string;
+            /** Value */
+            value?: number | null;
+            /**
+             * Unit
+             * @default
+             */
+            unit: string;
+            /** Delta 1D */
+            delta_1d?: number | null;
+            /**
+             * Status
+             * @default ok
+             * @enum {string}
+             */
+            status: "ok" | "missing" | "partial";
+        };
+        /** RatesSupplyPanel */
+        RatesSupplyPanel: {
+            /** Auctions */
+            auctions?: components["schemas"]["RatesSummaryTile"][];
+            /** Notes */
+            notes?: string[];
+            /**
+             * Status
+             * @default missing
+             * @enum {string}
+             */
+            status: "ok" | "missing" | "partial";
+        };
+        /** RatesSynthesisPanel */
+        RatesSynthesisPanel: {
+            /** Duration View */
+            duration_view: string;
+            /** Curve View */
+            curve_view: string;
+            /** Risks */
+            risks?: string[];
         };
         /** RecordHealthCheck */
         RecordHealthCheck: {
@@ -6066,6 +6348,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    rates_snapshot_api_rates_snapshot_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RatesSnapshotResponse"];
                 };
             };
         };
