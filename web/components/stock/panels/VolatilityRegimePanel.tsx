@@ -1,6 +1,6 @@
 "use client";
 
-import type { RegimeDealerResponse } from "@/lib/api";
+import type { RegimeDealerResponse, RegimeVcgResponse } from "@/lib/api";
 
 const PANEL: React.CSSProperties = {
   background: "var(--bg-panel)",
@@ -12,7 +12,6 @@ const PANEL: React.CSSProperties = {
   flexDirection: "column",
   gap: 12,
   width: "100%",
-  maxWidth: 360,
 };
 
 const SECTION_LABEL: React.CSSProperties = {
@@ -26,6 +25,24 @@ function regimeColor(label: string | null | undefined): string {
   if (label === "dampening") return "var(--positive)";
   if (label === "amplifying") return "var(--negative)";
   return "var(--warning)";
+}
+
+function vcgColor(interp: string | null | undefined): string {
+  switch (interp) {
+    case "PANIC":
+    case "RISK_OFF":
+      return "var(--negative)";
+    case "EDR":
+    case "WATCH":
+      return "var(--warning)";
+    case "BOUNCE":
+    case "NORMAL":
+      return "var(--positive)";
+    case "SUPPRESSED":
+      return "var(--accent-vol)";
+    default:
+      return "var(--text-muted)";
+  }
 }
 
 function fmtScore(v: number | null | undefined): string {
@@ -89,15 +106,54 @@ function SubBar({
   );
 }
 
+function HeaderRow({ vcg }: { vcg: RegimeVcgResponse | null | undefined }) {
+  const signal = vcg?.signal;
+  const interp = signal?.interpretation ?? null;
+  const regime = signal?.regime ?? null;
+  const z = signal?.vcg ?? null;
+  const color = vcgColor(interp);
+  return (
+    <div
+      style={{
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "baseline",
+        gap: 12,
+        flexWrap: "wrap",
+      }}
+    >
+      <div style={SECTION_LABEL}>Volatility Regime</div>
+      <div
+        data-testid="macro-vcg-chip"
+        style={{
+          display: "flex",
+          alignItems: "baseline",
+          gap: 8,
+        }}
+      >
+        <span style={SECTION_LABEL}>Macro VCG</span>
+        <span style={{ fontSize: 13, fontWeight: 700, color }}>
+          {interp ?? "—"}
+        </span>
+        <span style={{ fontSize: 10, color: "var(--text-muted)" }}>
+          {regime ?? "—"} · vcg = {z != null ? z.toFixed(2) : "—"}
+        </span>
+      </div>
+    </div>
+  );
+}
+
 export function VolatilityRegimePanel({
   data,
+  vcg,
 }: {
   data: RegimeDealerResponse | null;
+  vcg?: RegimeVcgResponse | null;
 }) {
   if (!data || data.status !== "ok") {
     return (
       <div style={PANEL}>
-        <div style={SECTION_LABEL}>Volatility Regime</div>
+        <HeaderRow vcg={vcg} />
         <div style={{ color: "var(--text-muted)", fontSize: 11 }}>
           No dealer regime data yet.
         </div>
@@ -119,7 +175,7 @@ export function VolatilityRegimePanel({
   const odte_share_pct = data.odte_share_pct ?? null;
   const gamma_decay = data.gamma_decay ?? [];
 
-  // Show only "nearest" rank to keep the right column compact; dominant is
+  // Show only "nearest" rank to keep each column compact; dominant is
   // also available on the wire if a future view wants to expose it.
   const closestNearest = closest.filter((l) => l.rank_kind === "nearest");
 
@@ -134,226 +190,252 @@ export function VolatilityRegimePanel({
 
   return (
     <div style={PANEL} data-testid="volatility-regime-panel">
-      {/* Regime header */}
-      <div>
-        <div style={SECTION_LABEL}>Volatility Regime</div>
-        <div
-          style={{
-            fontSize: 22,
-            fontWeight: 700,
-            color: labelColor,
-            textTransform: "capitalize",
-          }}
-          data-testid="regime-label"
-        >
-          {signal.label}
+      <HeaderRow vcg={vcg} />
+
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "minmax(0, 1.2fr) minmax(0, 1fr) minmax(0, 1fr)",
+          gap: 20,
+          alignItems: "flex-start",
+        }}
+      >
+        {/* Column 1: regime label + subtitle + slider + Γ/V/C bars */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          <div>
+            <div
+              style={{
+                fontSize: 22,
+                fontWeight: 700,
+                color: labelColor,
+                textTransform: "capitalize",
+              }}
+              data-testid="regime-label"
+            >
+              {signal.label}
+            </div>
+            {signal.subtitle && (
+              <div
+                style={{
+                  fontSize: 11,
+                  color: "var(--text-secondary)",
+                  marginTop: 4,
+                }}
+              >
+                {signal.subtitle}
+              </div>
+            )}
+          </div>
+
+          <div>
+            <div
+              style={{
+                position: "relative",
+                height: 8,
+                background:
+                  "linear-gradient(90deg, var(--negative) 0%, var(--warning) 50%, var(--positive) 100%)",
+                borderRadius: 4,
+              }}
+            >
+              <div
+                style={{
+                  position: "absolute",
+                  left: `${sliderPct}%`,
+                  top: -2,
+                  bottom: -2,
+                  width: 2,
+                  background: "var(--text-primary)",
+                }}
+              />
+            </div>
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                fontSize: 10,
+                color: "var(--text-muted)",
+                marginTop: 4,
+              }}
+            >
+              <span>Amplifying</span>
+              <span>Dampening</span>
+            </div>
+          </div>
+
+          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            <SubBar label="Γ" score={signal.gamma_score} />
+            <SubBar label="V" score={signal.vanna_score} />
+            <SubBar label="C" score={signal.charm_score} />
+          </div>
         </div>
-        {signal.subtitle && (
+
+        {/* Column 2: Closest Levels */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
           <div
             style={{
-              fontSize: 11,
-              color: "var(--text-secondary)",
-              marginTop: 4,
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "baseline",
             }}
           >
-            {signal.subtitle}
+            <div style={SECTION_LABEL}>Closest Levels</div>
+            <div style={{ ...SECTION_LABEL, fontStyle: "italic" }}>
+              by proximity
+            </div>
           </div>
-        )}
-      </div>
-
-      {/* Amplifying ↔ Dampening slider */}
-      <div>
-        <div
-          style={{
-            position: "relative",
-            height: 8,
-            background:
-              "linear-gradient(90deg, var(--negative) 0%, var(--warning) 50%, var(--positive) 100%)",
-            borderRadius: 4,
-          }}
-        >
           <div
             style={{
-              position: "absolute",
-              left: `${sliderPct}%`,
-              top: -2,
-              bottom: -2,
-              width: 2,
-              background: "var(--text-primary)",
+              display: "flex",
+              flexDirection: "column",
+              gap: 8,
             }}
-          />
-        </div>
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            fontSize: 10,
-            color: "var(--text-muted)",
-            marginTop: 4,
-          }}
-        >
-          <span>Amplifying</span>
-          <span>Dampening</span>
-        </div>
-      </div>
-
-      {/* Γ / V / C sub-bars */}
-      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-        <SubBar label="Γ" score={signal.gamma_score} />
-        <SubBar label="V" score={signal.vanna_score} />
-        <SubBar label="C" score={signal.charm_score} />
-      </div>
-
-      {/* Closest levels */}
-      <div style={{ borderTop: "1px solid var(--border-dim)", paddingTop: 10 }}>
-        <div style={{ display: "flex", justifyContent: "space-between" }}>
-          <div style={SECTION_LABEL}>Closest Levels</div>
-          <div style={{ ...SECTION_LABEL, fontStyle: "italic" }}>
-            by proximity
-          </div>
-        </div>
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            gap: 8,
-            marginTop: 6,
-          }}
-        >
-          {closestNearest.map((l) => {
-            const directionGlyph =
-              l.direction === "up" ? "↑" : l.direction === "down" ? "↓" : "·";
-            const color =
-              l.role === "support"
-                ? "var(--positive)"
-                : l.role === "resistance"
-                  ? "var(--warning)"
-                  : l.role === "accelerator"
-                    ? "var(--negative)"
-                    : "var(--text-primary)";
-            return (
-              <div
-                key={`${l.label}-${l.strike}`}
-                data-testid="closest-level-row"
-                style={{
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: 2,
-                }}
-              >
+          >
+            {closestNearest.map((l) => {
+              const directionGlyph =
+                l.direction === "up" ? "↑" : l.direction === "down" ? "↓" : "·";
+              const color =
+                l.role === "support"
+                  ? "var(--positive)"
+                  : l.role === "resistance"
+                    ? "var(--warning)"
+                    : l.role === "accelerator"
+                      ? "var(--negative)"
+                      : "var(--text-primary)";
+              return (
                 <div
+                  key={`${l.label}-${l.strike}`}
+                  data-testid="closest-level-row"
                   style={{
                     display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                  }}
-                >
-                  <span style={{ color, fontWeight: 700 }}>
-                    {l.label} {directionGlyph} @ ${l.strike.toFixed(2)}
-                  </span>
-                  <span style={{ color, fontSize: 10, letterSpacing: 1 }}>
-                    {l.role?.toUpperCase()}
-                  </span>
-                </div>
-                <div style={{ fontSize: 10, color: "var(--text-muted)" }}>
-                  {fmtPct(l.distance_pct, 1)} from spot · {fmtMoney(l.gamma)}{" "}
-                  gamma
-                </div>
-              </div>
-            );
-          })}
-          {closestNearest.length === 0 && (
-            <div style={{ color: "var(--text-muted)", fontSize: 11 }}>
-              No levels in range yet.
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* 0DTE GEX */}
-      <div style={{ borderTop: "1px solid var(--border-dim)", paddingTop: 10 }}>
-        <div style={{ display: "flex", justifyContent: "space-between" }}>
-          <div style={SECTION_LABEL}>0DTE GEX</div>
-          <div style={SECTION_LABEL}>expires today</div>
-        </div>
-        <div
-          style={{
-            fontSize: 18,
-            fontWeight: 700,
-            color: (odte_gex ?? 0) >= 0 ? "var(--positive)" : "var(--negative)",
-            marginTop: 4,
-          }}
-          data-testid="odte-gex"
-        >
-          {fmtMoney(odte_gex)}{" "}
-          <span style={{ color: "var(--text-muted)", fontSize: 10 }}>
-            {odte_share_pct != null
-              ? `${Math.round(odte_share_pct * 100)}% of chain`
-              : ""}
-          </span>
-        </div>
-      </div>
-
-      {/* Gamma decay */}
-      <div style={{ borderTop: "1px solid var(--border-dim)", paddingTop: 10 }}>
-        <div style={SECTION_LABEL}>Gamma Decay Over Time</div>
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            gap: 4,
-            marginTop: 6,
-          }}
-        >
-          {gamma_decay.map((b) => {
-            const widthPct = (Math.abs(b.net_gex ?? 0) / decayMaxAbs) * 100;
-            const color =
-              (b.net_gex ?? 0) >= 0 ? "var(--positive)" : "var(--negative)";
-            return (
-              <div
-                key={b.expiry}
-                data-testid="decay-row"
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "40px 90px 1fr 90px",
-                  alignItems: "center",
-                  fontSize: 11,
-                  gap: 8,
-                }}
-              >
-                <span style={{ color, fontWeight: 700 }}>{b.dte}d</span>
-                <span style={{ color: "var(--text-muted)" }}>{b.expiry}</span>
-                <div
-                  style={{
-                    position: "relative",
-                    height: 4,
-                    background: "var(--bg-panel)",
-                    border: "1px solid var(--border-dim)",
-                    borderRadius: 2,
+                    flexDirection: "column",
+                    gap: 2,
                   }}
                 >
                   <div
                     style={{
-                      position: "absolute",
-                      left: 0,
-                      top: 0,
-                      bottom: 0,
-                      width: `${widthPct}%`,
-                      background: color,
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      gap: 8,
                     }}
-                  />
+                  >
+                    <span style={{ color, fontWeight: 700 }}>
+                      {l.label} {directionGlyph} @ ${l.strike.toFixed(2)}
+                    </span>
+                    <span style={{ color, fontSize: 10, letterSpacing: 1 }}>
+                      {l.role?.toUpperCase()}
+                    </span>
+                  </div>
+                  <div style={{ fontSize: 10, color: "var(--text-muted)" }}>
+                    {fmtPct(l.distance_pct, 1)} from spot · {fmtMoney(l.gamma)}{" "}
+                    gamma
+                  </div>
                 </div>
-                <span style={{ textAlign: "right", color }}>
-                  {fmtMoney(b.net_gex)}
-                </span>
+              );
+            })}
+            {closestNearest.length === 0 && (
+              <div style={{ color: "var(--text-muted)", fontSize: 11 }}>
+                No levels in range yet.
               </div>
-            );
-          })}
-          {gamma_decay.length === 0 && (
-            <div style={{ color: "var(--text-muted)", fontSize: 11 }}>
-              No expiries with gamma data.
+            )}
+          </div>
+        </div>
+
+        {/* Column 3: 0DTE GEX + Gamma Decay */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+          <div>
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "baseline",
+              }}
+            >
+              <div style={SECTION_LABEL}>0DTE GEX</div>
+              <div style={SECTION_LABEL}>expires today</div>
             </div>
-          )}
+            <div
+              style={{
+                fontSize: 18,
+                fontWeight: 700,
+                color:
+                  (odte_gex ?? 0) >= 0 ? "var(--positive)" : "var(--negative)",
+                marginTop: 4,
+              }}
+              data-testid="odte-gex"
+            >
+              {fmtMoney(odte_gex)}{" "}
+              <span style={{ color: "var(--text-muted)", fontSize: 10 }}>
+                {odte_share_pct != null
+                  ? `${Math.round(odte_share_pct * 100)}% of chain`
+                  : ""}
+              </span>
+            </div>
+          </div>
+
+          <div>
+            <div style={SECTION_LABEL}>Gamma Decay Over Time</div>
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                gap: 4,
+                marginTop: 6,
+              }}
+            >
+              {gamma_decay.map((b) => {
+                const widthPct = (Math.abs(b.net_gex ?? 0) / decayMaxAbs) * 100;
+                const color =
+                  (b.net_gex ?? 0) >= 0 ? "var(--positive)" : "var(--negative)";
+                return (
+                  <div
+                    key={b.expiry}
+                    data-testid="decay-row"
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns: "28px 76px 1fr 64px",
+                      alignItems: "center",
+                      fontSize: 11,
+                      gap: 6,
+                    }}
+                  >
+                    <span style={{ color, fontWeight: 700 }}>{b.dte}d</span>
+                    <span style={{ color: "var(--text-muted)" }}>
+                      {b.expiry}
+                    </span>
+                    <div
+                      style={{
+                        position: "relative",
+                        height: 4,
+                        background: "var(--bg-panel)",
+                        border: "1px solid var(--border-dim)",
+                        borderRadius: 2,
+                      }}
+                    >
+                      <div
+                        style={{
+                          position: "absolute",
+                          left: 0,
+                          top: 0,
+                          bottom: 0,
+                          width: `${widthPct}%`,
+                          background: color,
+                        }}
+                      />
+                    </div>
+                    <span style={{ textAlign: "right", color }}>
+                      {fmtMoney(b.net_gex)}
+                    </span>
+                  </div>
+                );
+              })}
+              {gamma_decay.length === 0 && (
+                <div style={{ color: "var(--text-muted)", fontSize: 11 }}>
+                  No expiries with gamma data.
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       </div>
     </div>
