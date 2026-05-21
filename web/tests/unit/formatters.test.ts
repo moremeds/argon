@@ -3,6 +3,7 @@ import {
   fmtDateTimeWithZone,
   fmtDecimal,
   fmtMoney,
+  fmtMoneyAbbrev,
   fmtPct,
   fmtRelativeAgo,
   fmtRelativeDay,
@@ -32,6 +33,22 @@ describe("fmtMoney", () => {
     expect(fmtMoney(1_748_151, { signed: true })).toBe("+$1,748,151");
     expect(fmtMoney(-50_000_000, { signed: true })).toBe("-$50,000,000");
     expect(fmtMoney(0, { signed: true })).toBe("+$0");
+  });
+});
+
+describe("fmtMoneyAbbrev", () => {
+  it("formats values >= 1T with T suffix", () => {
+    expect(fmtMoneyAbbrev(1_500_000_000_000)).toBe("+$1.5T");
+    expect(fmtMoneyAbbrev(-1_500_000_000_000)).toBe("-$1.5T");
+  });
+  it("formats millions, thousands", () => {
+    expect(fmtMoneyAbbrev(1_300_000)).toBe("+$1.3M");
+    expect(fmtMoneyAbbrev(-227_050)).toBe("-$227.1K");
+    expect(fmtMoneyAbbrev(0)).toBe("$0");
+  });
+  it("returns dash for null/undefined", () => {
+    expect(fmtMoneyAbbrev(null)).toBe("—");
+    expect(fmtMoneyAbbrev(undefined)).toBe("—");
   });
 });
 
