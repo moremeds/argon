@@ -45,6 +45,9 @@ type CockpitFlowImResponse = Json<"/api/cockpit/{ticker}/flow-im", "get">;
 type CockpitVrpResponse = Json<"/api/cockpit/{ticker}/vrp", "get">;
 type ScannerResponse = Json<"/api/scanner", "get">;
 type ScannerDiscoverResponse = Json<"/api/scanner/discover", "get">;
+type RegimeGexResponse = Json<"/api/regime/gex", "get">;
+type RegimeDealerResponse = Json<"/api/regime/dealer", "get">;
+type RegimeVcgResponse = Json<"/api/regime/vcg", "get">;
 
 async function _fetch<T>(
   path: string,
@@ -216,6 +219,16 @@ export const api = {
       method: "PATCH",
       body: JSON.stringify(body),
     }),
+  regimeGex: (ticker: string): Promise<RegimeGexResponse> =>
+    _fetch<RegimeGexResponse>(
+      `/api/regime/gex?ticker=${encodeURIComponent(ticker)}`,
+    ),
+  regimeDealer: (ticker: string): Promise<RegimeDealerResponse> =>
+    _fetch<RegimeDealerResponse>(
+      `/api/regime/dealer?ticker=${encodeURIComponent(ticker)}`,
+    ),
+  regimeVcg: (): Promise<RegimeVcgResponse> =>
+    _fetch<RegimeVcgResponse>(`/api/regime/vcg`),
 };
 
 export type {
@@ -226,6 +239,9 @@ export type {
   CockpitSurfaceResponse,
   CockpitVrpResponse,
   OhlcResponse,
+  RegimeDealerResponse,
+  RegimeGexResponse,
+  RegimeVcgResponse,
   ScannerResponse,
   SingleStockReport,
   TradeInsightsAiAnalysisResponse,

@@ -3,7 +3,11 @@
 import { useEffect, useState } from "react";
 
 import { api } from "@/lib/api";
-import type { VolatilitySeriesResponse } from "@/lib/api";
+import type {
+  RegimeDealerResponse,
+  RegimeVcgResponse,
+  VolatilitySeriesResponse,
+} from "@/lib/api";
 
 import { DivergenceOverlay } from "../panels/DivergenceOverlay";
 import { HvIvChart } from "../panels/HvIvChart";
@@ -14,6 +18,7 @@ import { RvSpyCorrChart } from "../panels/RvSpyCorrChart";
 import { SmileChart } from "../panels/SmileChart";
 import { TermStructureChart } from "../panels/TermStructureChart";
 import { VolMetricsCard } from "../panels/VolMetricsCard";
+import { VolatilityRegimePanel } from "../panels/VolatilityRegimePanel";
 import { VrpSpreadPanel } from "../panels/VrpSpreadPanel";
 
 // Spec §7.4: poll every 5s for up to 60s while backfill_status === 'running'.
@@ -28,6 +33,42 @@ export function VolatilityTabClient({
   initial: VolatilitySeriesResponse;
 }) {
   const [series, setSeries] = useState<VolatilitySeriesResponse>(initial);
+  const [regime, setRegime] = useState<RegimeDealerResponse | null>(null);
+  const [vcg, setVcg] = useState<RegimeVcgResponse | null>(null);
+
+  // Fetch /regime/dealer client-side. Clear state on ticker change so the
+  // previous ticker's panel doesn't briefly flash while the new one loads.
+  useEffect(() => {
+    let cancelled = false;
+    setRegime(null);
+    api
+      .regimeDealer(ticker)
+      .then((r) => {
+        if (!cancelled) setRegime(r);
+      })
+      .catch(() => {
+        if (!cancelled) setRegime(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [ticker]);
+
+  // Macro VCG is index-wide, not per-ticker — fetch once.
+  useEffect(() => {
+    let cancelled = false;
+    api
+      .regimeVcg()
+      .then((r) => {
+        if (!cancelled) setVcg(r);
+      })
+      .catch(() => {
+        if (!cancelled) setVcg(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     if (series.backfill_status !== "running") return;
@@ -59,6 +100,7 @@ export function VolatilityTabClient({
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+      <VolatilityRegimePanel data={regime} vcg={vcg} />
       <VolMetricsCard header={series.header} />
 
       {banner && (

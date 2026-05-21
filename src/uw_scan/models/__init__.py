@@ -75,6 +75,7 @@ from .options import (
 )
 from .scanner import (
     BulkScreenerRow,
+    DealerRegime,
     EtfInfo,
     EtfInOutflowRow,
     ExposuresSummaryRow,
@@ -220,6 +221,7 @@ __all__ = [
     "ExposuresSummaryRow",
     "GexLevel",
     "MarketStructureLevels",
+    "DealerRegime",
     "StockHistoryRow",
     "StockHistoryResponse",
     "SingleStockReport",

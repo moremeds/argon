@@ -240,6 +240,24 @@ class MarketStructureLevels(_UwBase):
     max_accel: GexLevel | None = None
 
 
+class DealerRegime(_UwBase):
+    """Per-ticker dealer Greek regime — attached to SingleStockReport so the
+    Market Structure → GEX tab can render the magnet/gamma bar without an
+    extra round-trip. The /regime/dealer endpoint returns the full shape for
+    the Volatility tab."""
+
+    label: str = "neutral"
+    score: Decimal = Decimal(0)
+    gamma_score: Decimal = Decimal(0)
+    vanna_score: Decimal = Decimal(0)
+    charm_score: Decimal = Decimal(0)
+    headline: str = ""
+    subtitle: str = ""
+    prev_close_net_gex: Decimal | None = None
+    odte_net_gex: Decimal | None = None
+    odte_share_pct: Decimal | None = None
+
+
 _preserve_public_module(
     BulkScreenerRow,
     EtfInfo,
@@ -252,4 +270,5 @@ _preserve_public_module(
     ExposuresSummaryRow,
     GexLevel,
     MarketStructureLevels,
+    DealerRegime,
 )

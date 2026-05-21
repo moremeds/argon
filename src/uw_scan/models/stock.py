@@ -17,6 +17,7 @@ from .options import (
     OptionsDailyRow,
 )
 from .scanner import (
+    DealerRegime,
     ExposuresSummaryRow,
     MarketAggregates,
     MarketStructureLevels,
@@ -132,6 +133,10 @@ class SingleStockReport(_UwBase):
     # Promoted from FlowAlert.next_earnings_date so the Volume-timeline panel
     # can render the earnings marker without iterating alerts on the client.
     next_earnings_date: _date | None = None
+    # Per-ticker dealer Greek regime — feeds the Magnet/Gamma summary bar
+    # above the GEX profile. Optional so reports without exposures_summary
+    # data still serialize.
+    dealer_regime: DealerRegime | None = None
 
 
 _preserve_public_module(
