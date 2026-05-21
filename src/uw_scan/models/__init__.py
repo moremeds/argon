@@ -72,11 +72,13 @@ from .scanner import (
     BulkScreenerRow,
     EtfInfo,
     EtfInOutflowRow,
+    ExposuresSummaryRow,
     GexLevel,
     MarketAggregates,
     MarketStructureLevels,
     ScanReport,
     ScanTickerResult,
+    StrikeExposureRow,
     StrikeGexBucket,
 )
 from .stock import (
@@ -208,6 +210,8 @@ __all__ = [
     "ScanReport",
     "MarketAggregates",
     "StrikeGexBucket",
+    "StrikeExposureRow",
+    "ExposuresSummaryRow",
     "GexLevel",
     "MarketStructureLevels",
     "StockHistoryRow",
