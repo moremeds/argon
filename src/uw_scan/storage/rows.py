@@ -48,6 +48,18 @@ class IntradayQuoteRow:
 
 
 @dataclass(frozen=True)
+class WsConsumerStateRow:
+    last_tick_at: datetime | None
+    last_flush_at: datetime | None
+    ticks_received: int
+    ticks_flushed: int
+    connection_started_at: datetime | None
+    last_error: str | None
+    last_error_at: datetime | None
+    updated_at: datetime
+
+
+@dataclass(frozen=True)
 class PcrHistoryRow:
     ticker: str
     snapshot_date: _date

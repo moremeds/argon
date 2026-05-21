@@ -134,6 +134,35 @@ class _WatchlistMixin:
             row = cur.fetchone()
             return WatchlistCardRow.from_db(row, cur.description) if row else None
 
+    def bulk_upsert_watchlist_card_spots(
+        self,
+        rows: list[tuple[str, Decimal, datetime, str]],
+    ) -> None:
+        """Update only spot/spot_quoted_at/spot_source on existing cards.
+
+        Rows with no existing watchlist_card row are silently skipped — the
+        WS consumer is not responsible for materializing cards (full_scan
+        owns card creation).
+
+        Does NOT commit — caller controls the transaction.
+        """
+        if not rows:
+            return
+        with self._conn.cursor() as cur:
+            cur.executemany(
+                f"""
+                UPDATE {self._schema}.watchlist_card
+                SET spot           = %s,
+                    spot_quoted_at = %s,
+                    spot_source    = %s
+                WHERE ticker = %s
+                """,
+                [
+                    (price, quoted_at, source, ticker)
+                    for (ticker, price, quoted_at, source) in rows
+                ],
+            )
+
     def list_watchlist_cards(self) -> list[WatchlistCardRow]:
         """Return one row per active watchlist ticker.
 

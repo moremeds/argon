@@ -59,19 +59,53 @@ class _MarketDataMixin:
 
     # ---- intraday_quote ----
     def upsert_intraday_quote(
-        self, ticker: str, price: Decimal, quoted_at: datetime
+        self,
+        ticker: str,
+        price: Decimal,
+        quoted_at: datetime,
+        *,
+        source: str = "massive.com_intraday",
     ) -> None:
         with self._conn.cursor() as cur:
             cur.execute(
                 f"""
-                INSERT INTO {self._schema}.intraday_quote (ticker, price, quoted_at)
-                VALUES (%s, %s, %s)
+                INSERT INTO {self._schema}.intraday_quote (ticker, price, quoted_at, source)
+                VALUES (%s, %s, %s, %s)
                 ON CONFLICT (ticker) DO UPDATE
-                  SET price=EXCLUDED.price, quoted_at=EXCLUDED.quoted_at, fetched_at=NOW()
+                  SET price=EXCLUDED.price,
+                      quoted_at=EXCLUDED.quoted_at,
+                      source=EXCLUDED.source,
+                      fetched_at=NOW()
                 """,
-                (ticker, price, quoted_at),
+                (ticker, price, quoted_at, source),
             )
         self._conn.commit()
+
+    def bulk_upsert_intraday_quotes(
+        self,
+        rows: list[tuple[str, Decimal, datetime, str]],
+    ) -> None:
+        """Batch upsert of (ticker, price, quoted_at, source) rows.
+
+        Does NOT commit — caller controls the transaction so this can be
+        wrapped together with bulk_upsert_watchlist_card_spots + heartbeat
+        in one atomic batch by the WS writer.
+        """
+        if not rows:
+            return
+        with self._conn.cursor() as cur:
+            cur.executemany(
+                f"""
+                INSERT INTO {self._schema}.intraday_quote (ticker, price, quoted_at, source)
+                VALUES (%s, %s, %s, %s)
+                ON CONFLICT (ticker) DO UPDATE
+                  SET price=EXCLUDED.price,
+                      quoted_at=EXCLUDED.quoted_at,
+                      source=EXCLUDED.source,
+                      fetched_at=NOW()
+                """,
+                rows,
+            )
 
     def get_intraday_quote(self, ticker: str) -> IntradayQuoteRow | None:
         with self._conn.cursor() as cur:

@@ -50,6 +50,7 @@ from .rows import (
     ThroughputSummaryRow,
     WatchlistCardRow,
     WatchlistRow,
+    WsConsumerStateRow,
 )
 from .scan_outputs import _ScanOutputsMixin
 from .scan_results import _ScanResultsMixin
@@ -58,6 +59,7 @@ from .trade_insights_ai import _TradeInsightsAiMixin
 from .volatility_raw import _VolatilityRawMixin
 from .volatility_v2 import _VolatilityV2Mixin
 from .watchlist import _WatchlistMixin
+from .ws_consumer_state import _WsConsumerStateMixin
 
 __all__ = [
     "Repository",
@@ -73,6 +75,7 @@ __all__ = [
     "ThroughputSummaryRow",
     "WatchlistCardRow",
     "WatchlistRow",
+    "WsConsumerStateRow",
     "provider_day_bounds",
     "redact_params",
     "status_family_for",
@@ -100,6 +103,7 @@ class Repository(
     _VolatilityRawMixin,
     _VolatilityV2Mixin,
     _WatchlistMixin,
+    _WsConsumerStateMixin,
     _BaseMixin,
 ):
     """Repository wraps a psycopg connection and exposes typed CRUD.
