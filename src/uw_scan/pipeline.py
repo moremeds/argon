@@ -7,9 +7,11 @@ from __future__ import annotations
 
 import logging
 from datetime import date as _date
+from datetime import datetime as _datetime
 from datetime import timedelta
 from decimal import Decimal
 from functools import lru_cache
+from zoneinfo import ZoneInfo
 
 import psycopg
 
@@ -111,6 +113,12 @@ def _next_friday(today: _date) -> _date:
     return today + timedelta(days=days_ahead)
 
 
+def _today_et() -> _date:
+    """Today in US/Eastern. Pipeline runs in the worker's local tz (HK),
+    so we have to convert explicitly to match the options-market day."""
+    return _datetime.now(ZoneInfo("America/New_York")).date()
+
+
 def _persist_trade_insights_for_run(
     *,
     repo: Repository,
@@ -186,12 +194,19 @@ def run_single_stock(
         repo.insert_interpolated_iv_rows(run_id, ticker, interp_rows)
 
         # Pick the nearest expiry from term structure for expiry-required calls.
+        # UW occasionally returns already-expired dates in term_rows (e.g. SPY
+        # term still listing yesterday's 0DTE as dte=0 in the post-close
+        # window) — filter to expiry >= today_ET so we never write stale
+        # per-strike rows.
+        today_et = _today_et()
         nearest_expiry: _date | None = None
         if term_rows:
-            sorted_term = sorted(term_rows, key=lambda r: r.expiry)
-            nearest_expiry = sorted_term[0].expiry
+            valid_term = [r for r in term_rows if r.expiry >= today_et]
+            if valid_term:
+                valid_term.sort(key=lambda r: r.expiry)
+                nearest_expiry = valid_term[0].expiry
         if nearest_expiry is None:
-            nearest_expiry = _next_friday(_date.today())
+            nearest_expiry = _next_friday(today_et)
         expiry_str = nearest_expiry.isoformat()
 
         # 7. Skew

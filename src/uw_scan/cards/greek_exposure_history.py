@@ -7,10 +7,12 @@ Used by:
 
 No DB, no network. Pure dict → list[dict] transformation.
 
-Note: UW returns ``call_gex / put_gex / call_delta / put_delta`` per day
-(aggregated across all strikes). It does NOT return historical gex_flip
-or historical price — those have to come from other sources (our own
-``gex_snapshots`` for flip, ``daily_ohlc`` / ``vol_index_daily`` for spot).
+Note: UW returns ``call_gamma / put_gamma / call_delta / put_delta`` per
+day (aggregated across all strikes; ``call_gamma`` is the call-side dollar
+gamma exposure summed across strikes, same units as our ``call_gex``
+column). It does NOT return historical gex_flip or historical price —
+those have to come from other sources (our own ``gex_snapshots`` for
+flip, ``daily_ohlc`` / ``vol_index_daily`` for spot).
 """
 
 from __future__ import annotations
@@ -41,8 +43,16 @@ def parse_greek_exposure_history(body: dict | None) -> list[dict]:
             d = _coerce_date(r.get("date"))
             if d is None:
                 continue
-            call_gex = float(r.get("call_gex", 0) or 0)
-            put_gex = float(r.get("put_gex", 0) or 0)
+            # UW history payload uses ``call_gamma`` / ``put_gamma`` keys
+            # (dollar gamma exposure summed across strikes). Older
+            # snapshots may use ``call_gex`` / ``put_gex``; coalesce both
+            # so cached payloads round-trip.
+            call_gex = float(
+                r.get("call_gamma", r.get("call_gex", 0)) or 0,
+            )
+            put_gex = float(
+                r.get("put_gamma", r.get("put_gex", 0)) or 0,
+            )
             call_delta = float(r.get("call_delta", 0) or 0)
             put_delta = float(r.get("put_delta", 0) or 0)
         except (TypeError, ValueError) as exc:
