@@ -3,17 +3,19 @@
 import { useEffect, useState } from "react";
 
 import { api } from "@/lib/api";
-import type { VolatilitySeriesResponse } from "@/lib/api";
+import type { RegimeDealerResponse, VolatilitySeriesResponse } from "@/lib/api";
 
 import { DivergenceOverlay } from "../panels/DivergenceOverlay";
 import { HvIvChart } from "../panels/HvIvChart";
 import { IvOfIvChart } from "../panels/IvOfIvChart";
 import { IvPercentileDistribution } from "../panels/IvPercentileDistribution";
+import { MacroVcgTile } from "../panels/MacroVcgTile";
 import { RegimeQuadrantChart } from "../panels/RegimeQuadrantChart";
 import { RvSpyCorrChart } from "../panels/RvSpyCorrChart";
 import { SmileChart } from "../panels/SmileChart";
 import { TermStructureChart } from "../panels/TermStructureChart";
 import { VolMetricsCard } from "../panels/VolMetricsCard";
+import { VolatilityRegimePanel } from "../panels/VolatilityRegimePanel";
 import { VrpSpreadPanel } from "../panels/VrpSpreadPanel";
 
 // Spec §7.4: poll every 5s for up to 60s while backfill_status === 'running'.
@@ -28,6 +30,25 @@ export function VolatilityTabClient({
   initial: VolatilitySeriesResponse;
 }) {
   const [series, setSeries] = useState<VolatilitySeriesResponse>(initial);
+  const [regime, setRegime] = useState<RegimeDealerResponse | null>(null);
+
+  // Fetch /regime/dealer client-side. Clear state on ticker change so the
+  // previous ticker's panel doesn't briefly flash while the new one loads.
+  useEffect(() => {
+    let cancelled = false;
+    setRegime(null);
+    api
+      .regimeDealer(ticker)
+      .then((r) => {
+        if (!cancelled) setRegime(r);
+      })
+      .catch(() => {
+        if (!cancelled) setRegime(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [ticker]);
 
   useEffect(() => {
     if (series.backfill_status !== "running") return;
@@ -59,7 +80,20 @@ export function VolatilityTabClient({
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-      <VolMetricsCard header={series.header} />
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "1fr 360px",
+          gap: 16,
+          alignItems: "start",
+        }}
+      >
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          <VolMetricsCard header={series.header} />
+          <MacroVcgTile />
+        </div>
+        <VolatilityRegimePanel data={regime} />
+      </div>
 
       {banner && (
         <div
