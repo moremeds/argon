@@ -21,11 +21,13 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime
+from decimal import Decimal
 from zoneinfo import ZoneInfo
 
 import psycopg
 
 from uw_scan.api.client import UwClient
+from uw_scan.cards import exposures as cards_exposures
 from uw_scan.cards.matrix_state import build_matrix_state
 from uw_scan.cards.option_chain import aggregate_chain_per_strike, pick_target_expiries
 from uw_scan.config import Settings
@@ -163,6 +165,53 @@ def _snapshot_ticker(
         )
         return
 
+    # Spot for vanna/charm derivers — None is acceptable; deriver handles it.
+    # Reject 0/negative/non-finite values so downstream % calcs don't produce
+    # Infinity. Fall back to RV latest price when the intraday quote is missing.
+    quote = repo.get_intraday_quote(ticker)
+    spot_for_derive: Decimal | None = _safe_spot(
+        quote.price if quote is not None else None
+    )
+    if spot_for_derive is None:
+        rv = repo.fetch_realized_vol_latest(ticker) or {}
+        spot_for_derive = _safe_spot(rv.get("price"))
+
+    _persist_greeks_per_expiry(
+        client=client,
+        repo=repo,
+        run_id=run_id,
+        ticker=ticker,
+        market_date=market_date,
+        expiries=expiries,
+        spot_for_derive=spot_for_derive,
+    )
+
+
+def _safe_spot(value) -> Decimal | None:
+    if value is None:
+        return None
+    try:
+        d = Decimal(str(value))
+    except (TypeError, ValueError) as exc:
+        logger.debug("safe_spot coercion skipped: %s", repr(exc))
+        return None
+    if not d.is_finite() or d <= 0:
+        return None
+    return d
+
+
+def _persist_greeks_per_expiry(
+    *,
+    client: UwClient,
+    repo: Repository,
+    run_id: int,
+    ticker: str,
+    market_date,
+    expiries: list,
+    spot_for_derive: Decimal | None,
+) -> None:
+    """Per-expiry fetch + persist of greeks, greek-exposure, skew, and the
+    derived ``exposures_summary`` row that powers the Vanna/Charm sub-tabs."""
     for expiry in expiries:
         expiry_iso = expiry.isoformat()
 
@@ -175,13 +224,26 @@ def _snapshot_ticker(
         skew_rows = fetch_skew(client, repo, run_id, ticker, expiry_iso, delta=25)
         n_s = repo.upsert_skew_rows(ticker, skew_rows)
 
+        n_sum = 0
+        if exposure_rows:
+            summary_rows = cards_exposures.build_summary_rows(
+                list(exposure_rows), spot=spot_for_derive
+            )
+            n_sum = repo.upsert_exposures_summary(
+                run_id=run_id,
+                ticker=ticker,
+                market_date=market_date,
+                rows=summary_rows,
+            )
+
         logger.info(
-            "cockpit_daily_snapshot: %s exp=%s greeks=%d exposures=%d skew=%d",
+            "cockpit_daily_snapshot: %s exp=%s greeks=%d exposures=%d skew=%d summary=%d",
             ticker,
             expiry_iso,
             n_g,
             n_e,
             n_s,
+            n_sum,
         )
 
 

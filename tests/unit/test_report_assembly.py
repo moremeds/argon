@@ -112,7 +112,7 @@ class _StubRepo:
             },
         ]
 
-    def fetch_exposures_summary(self, run_id: int, ticker: str) -> dict:
+    def fetch_exposures_aggregate(self, run_id: int, ticker: str) -> dict:
         return {
             "total_call_gex": Decimal("1000000"),
             "total_put_gex": Decimal("-500000"),

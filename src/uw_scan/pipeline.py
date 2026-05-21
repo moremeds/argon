@@ -15,6 +15,7 @@ import psycopg
 
 from . import normalize, scoring
 from .api.client import LiveDataUnavailable, UwClient
+from .cards import exposures as cards_exposures
 from .config import Settings
 from .models import MarketAggregates, ScanReport, ScanTickerResult, SingleStockReport
 from .reports.scan import assemble_scan_report
@@ -41,6 +42,32 @@ FLOW_ALERT_LIMIT = 100
 # A1 from backend code review addendum: cache ETF AUM lookups to skip the
 # per-scan /etf_info UW round trip. AUM moves weekly at most.
 ETF_AUM_TTL = timedelta(days=7)
+
+
+def _safe_spot_for_derive(repo: Repository, ticker: str) -> Decimal | None:
+    """Spot for vanna/charm derivers. Prefer the intraday quote; fall back to
+    the realized-vol latest price (same source `_build_market_structure` uses).
+    Reject 0/negative/non-finite values — they corrupt charm imbalance and FE
+    "% from spot" calculations."""
+
+    def _coerce(value) -> Decimal | None:
+        if value is None:
+            return None
+        try:
+            d = Decimal(str(value))
+        except (TypeError, ValueError) as exc:
+            logger.debug("safe_spot coercion skipped: %s", repr(exc))
+            return None
+        if not d.is_finite() or d <= 0:
+            return None
+        return d
+
+    quote = repo.get_intraday_quote(ticker)
+    spot = _coerce(quote.price if quote is not None else None)
+    if spot is None:
+        rv = repo.fetch_realized_vol_latest(ticker) or {}
+        spot = _coerce(rv.get("price"))
+    return spot
 
 
 @lru_cache(maxsize=1)
@@ -191,6 +218,19 @@ def run_single_stock(
                 }
             )
         repo.set_strike_gex_curve(run_id, curve)
+
+        # 8c. Vanna/Charm derived summary per expiry (raw rows already in step 8).
+        if ge_rows:
+            spot_for_derive = _safe_spot_for_derive(repo, ticker)
+            summary_rows = cards_exposures.build_summary_rows(
+                list(ge_rows), spot=spot_for_derive
+            )
+            repo.upsert_exposures_summary(
+                run_id=run_id,
+                ticker=ticker,
+                market_date=_date.today(),
+                rows=summary_rows,
+            )
 
         # 9. Spot exposures (we already persisted in 8 via exposures table; spot row stored only as raw + audit)
         _ = uw_sources.fetch_spot_exposures(client, repo, run_id, ticker, expiry_str)

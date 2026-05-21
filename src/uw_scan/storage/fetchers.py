@@ -8,7 +8,6 @@ from typing import Any
 import psycopg
 
 
-
 class _FetchersMixin:
     _conn: psycopg.Connection
     _schema: str
@@ -152,7 +151,7 @@ class _FetchersMixin:
             cols = [d.name for d in cur.description or []]
             return dict(zip(cols, row, strict=False))
 
-    def fetch_exposures_summary(
+    def fetch_exposures_aggregate(
         self, run_id: int, ticker: str
     ) -> dict[str, Any] | None:
         sql = (
@@ -171,6 +170,42 @@ class _FetchersMixin:
                 return None
             cols = [d.name for d in cur.description or []]
             return dict(zip(cols, row, strict=False))
+
+    def fetch_strike_exposures(self, run_id: int, ticker: str) -> list[dict[str, Any]]:
+        """All per-(expiry, strike) raw rows for one run/ticker.
+
+        Includes the call/put vanna and charm split. Ordering by (expiry, strike)
+        is convenient for the FE but not strictly required.
+        """
+        sql = (
+            "SELECT expiry, strike, dte, "
+            "       call_vanna, put_vanna, call_charm, put_charm "
+            f"FROM {self._schema}.exposures_by_expiry_strike "
+            "WHERE run_id = %s AND ticker = %s "
+            "ORDER BY expiry, strike"
+        )
+        with self._conn.cursor() as cur:
+            cur.execute(sql, (run_id, ticker))
+            cols = [d.name for d in cur.description or []]
+            return [dict(zip(cols, row, strict=False)) for row in cur.fetchall()]
+
+    def fetch_exposures_summary(self, run_id: int, ticker: str) -> list[dict[str, Any]]:
+        """Per-(expiry) derived summary rows persisted by build_summary_rows."""
+        sql = (
+            "SELECT expiry, dte, spot, "
+            "       net_vanna, top_vanna_strike, top_vanna_value, delta_shock_1pt_iv, "
+            "       vanna_regime, vanna_flip, vanna_headline, vanna_subtitle, "
+            "       net_charm, charm_pin_strike, charm_above_sum, charm_below_sum, "
+            "       charm_imbalance_pct, charm_signal_quality, charm_flip, "
+            "       charm_headline, charm_subtitle "
+            f"FROM {self._schema}.exposures_summary "
+            "WHERE run_id = %s AND ticker = %s "
+            "ORDER BY expiry"
+        )
+        with self._conn.cursor() as cur:
+            cur.execute(sql, (run_id, ticker))
+            cols = [d.name for d in cur.description or []]
+            return [dict(zip(cols, row, strict=False)) for row in cur.fetchall()]
 
     def fetch_top_oi_strikes(
         self, ticker: str, limit: int = 5

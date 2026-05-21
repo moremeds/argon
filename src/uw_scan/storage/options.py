@@ -211,6 +211,76 @@ class _OptionsMixin:
             cur.executemany(sql, params)
         return len(rows)
 
+    def upsert_exposures_summary(
+        self,
+        run_id: int,
+        ticker: str,
+        market_date: _date,
+        rows: Iterable[models.ExposuresSummaryRow],
+    ) -> int:
+        rows = list(rows)
+        if not rows:
+            return 0
+        sql = (
+            f"INSERT INTO {self._schema}.exposures_summary "
+            "(run_id, ticker, expiry, market_date, dte, spot, "
+            " net_vanna, top_vanna_strike, top_vanna_value, delta_shock_1pt_iv, "
+            " vanna_regime, vanna_flip, vanna_headline, vanna_subtitle, "
+            " net_charm, charm_pin_strike, charm_above_sum, charm_below_sum, "
+            " charm_imbalance_pct, charm_signal_quality, charm_flip, "
+            " charm_headline, charm_subtitle) "
+            "VALUES (%s, %s, %s, %s, %s, %s, "
+            "        %s, %s, %s, %s, "
+            "        %s, %s, %s, %s, "
+            "        %s, %s, %s, %s, "
+            "        %s, %s, %s, %s, %s) "
+            "ON CONFLICT (run_id, ticker, expiry) DO UPDATE SET "
+            " market_date=EXCLUDED.market_date, dte=EXCLUDED.dte, spot=EXCLUDED.spot, "
+            " net_vanna=EXCLUDED.net_vanna, top_vanna_strike=EXCLUDED.top_vanna_strike, "
+            " top_vanna_value=EXCLUDED.top_vanna_value, "
+            " delta_shock_1pt_iv=EXCLUDED.delta_shock_1pt_iv, "
+            " vanna_regime=EXCLUDED.vanna_regime, vanna_flip=EXCLUDED.vanna_flip, "
+            " vanna_headline=EXCLUDED.vanna_headline, vanna_subtitle=EXCLUDED.vanna_subtitle, "
+            " net_charm=EXCLUDED.net_charm, charm_pin_strike=EXCLUDED.charm_pin_strike, "
+            " charm_above_sum=EXCLUDED.charm_above_sum, charm_below_sum=EXCLUDED.charm_below_sum, "
+            " charm_imbalance_pct=EXCLUDED.charm_imbalance_pct, "
+            " charm_signal_quality=EXCLUDED.charm_signal_quality, "
+            " charm_flip=EXCLUDED.charm_flip, "
+            " charm_headline=EXCLUDED.charm_headline, charm_subtitle=EXCLUDED.charm_subtitle, "
+            " computed_at=now()"
+        )
+        params = [
+            (
+                run_id,
+                ticker,
+                r.expiry,
+                market_date,
+                r.dte,
+                r.spot,
+                r.net_vanna,
+                r.top_vanna_strike,
+                r.top_vanna_value,
+                r.delta_shock_1pt_iv,
+                r.vanna_regime,
+                r.vanna_flip,
+                r.vanna_headline,
+                r.vanna_subtitle,
+                r.net_charm,
+                r.charm_pin_strike,
+                r.charm_above_sum,
+                r.charm_below_sum,
+                r.charm_imbalance_pct,
+                r.charm_signal_quality,
+                r.charm_flip,
+                r.charm_headline,
+                r.charm_subtitle,
+            )
+            for r in rows
+        ]
+        with self._conn.cursor() as cur:
+            cur.executemany(sql, params)
+        return len(rows)
+
     def upsert_oi_per_strike_rows(
         self, ticker: str, rows: Iterable[models.OiPerStrikeRow]
     ) -> int:

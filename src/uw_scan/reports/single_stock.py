@@ -124,7 +124,7 @@ def _build_flow_snapshot(
 def _build_market_structure(
     repo: Repository, run_id: int, ticker: str, max_pain_rows: list[MaxPainRow]
 ) -> MarketStructure:
-    exposures = repo.fetch_exposures_summary(run_id, ticker) or {}
+    exposures = repo.fetch_exposures_aggregate(run_id, ticker) or {}
     total_call_gex = _to_decimal(exposures.get("total_call_gex"))
     total_put_gex = _to_decimal(exposures.get("total_put_gex"))
     net_gex = None
