@@ -103,6 +103,18 @@ class Settings(BaseModel):
     # OHLC provider (massive.com)
     massive_api_key: SecretStr | None = None
     massive_base_url: str = "https://api.massive.com"
+    # massive.com WebSocket consumer (replaces REST per-ticker spot polling).
+    # Default URL points at the DELAYED tier (matches the dev plan and the
+    # current massive subscription). Real-time tier upgrade: set
+    # MASSIVE_WS_URL=wss://socket.massive.com/stocks in the environment.
+    massive_ws_enabled: bool = False
+    massive_ws_url: str = "wss://delayed.massive.com/stocks"
+    massive_ws_channel: str = "A"  # A=per-second, AM=per-minute, T=trades
+    massive_ws_flush_interval_seconds: float = 1.0
+    massive_ws_watchlist_poll_interval_seconds: float = 30.0
+    massive_ws_reconnect_backoff_initial_seconds: float = 1.0
+    massive_ws_reconnect_backoff_max_seconds: float = 60.0
+    massive_ws_heartbeat_stale_after_seconds: float = 120.0
     # WGC Goldhub authenticated downloads. Keep secrets in environment only.
     wgc_goldhub_cookie: SecretStr | None = None
     wgc_etf_flows_workbook_path: str = ""
@@ -231,6 +243,27 @@ class Settings(BaseModel):
             ),
             massive_base_url=os.environ.get(
                 "MASSIVE_BASE_URL", "https://api.massive.com"
+            ),
+            massive_ws_enabled=os.environ.get("MASSIVE_WS_ENABLED", "false").lower()
+            == "true",
+            massive_ws_url=os.environ.get(
+                "MASSIVE_WS_URL", "wss://delayed.massive.com/stocks"
+            ),
+            massive_ws_channel=os.environ.get("MASSIVE_WS_CHANNEL", "A"),
+            massive_ws_flush_interval_seconds=float(
+                os.environ.get("MASSIVE_WS_FLUSH_INTERVAL_SECONDS", "1.0")
+            ),
+            massive_ws_watchlist_poll_interval_seconds=float(
+                os.environ.get("MASSIVE_WS_WATCHLIST_POLL_INTERVAL_SECONDS", "30.0")
+            ),
+            massive_ws_reconnect_backoff_initial_seconds=float(
+                os.environ.get("MASSIVE_WS_RECONNECT_BACKOFF_INITIAL_SECONDS", "1.0")
+            ),
+            massive_ws_reconnect_backoff_max_seconds=float(
+                os.environ.get("MASSIVE_WS_RECONNECT_BACKOFF_MAX_SECONDS", "60.0")
+            ),
+            massive_ws_heartbeat_stale_after_seconds=float(
+                os.environ.get("MASSIVE_WS_HEARTBEAT_STALE_AFTER_SECONDS", "120.0")
             ),
             wgc_goldhub_cookie=(
                 SecretStr(_wgc_cookie)
