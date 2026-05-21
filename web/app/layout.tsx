@@ -6,11 +6,12 @@ import "@fontsource/ibm-plex-mono/400.css";
 import "@fontsource/ibm-plex-mono/500.css";
 import "@fontsource/ibm-plex-mono/700.css";
 import "./globals.css";
-import { Sidebar } from "@/components/shared/Sidebar";
+import { AppShell } from "@/components/shared/AppShell";
 
 export const metadata = {
   title: "Argon",
   description: "Per-ticker options analytics, watchlist-driven",
+  icons: { icon: "/rates-icon.svg" },
 };
 
 export default function RootLayout({
@@ -27,19 +28,7 @@ export default function RootLayout({
           overflow: "hidden",
         }}
       >
-        <div style={{ display: "flex", height: "100vh" }}>
-          <Sidebar />
-          <main
-            style={{
-              flex: 1,
-              minWidth: 0,
-              height: "100vh",
-              overflowY: "auto",
-            }}
-          >
-            {children}
-          </main>
-        </div>
+        <AppShell>{children}</AppShell>
       </body>
     </html>
   );

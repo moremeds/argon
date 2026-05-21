@@ -94,17 +94,22 @@ def compute_decomposition(
 
 def compute_source_freshness(
     points_by_series: dict[str, list[dict[str, Any]]],
+    *,
+    as_of: date,
+    stale_series: set[str] | None = None,
 ) -> list[RatesSourceFreshness]:
     out: list[RatesSourceFreshness] = []
+    stale_series = stale_series or set()
     for series_id, rows in points_by_series.items():
         latest = max(rows, key=lambda row: row["obs_date"]) if rows else None
+        status = _freshness_status(series_id, latest, as_of, stale_series)
         out.append(
             RatesSourceFreshness(
                 id=series_id,
                 label=series_id,
                 latest_obs_date=latest["obs_date"] if latest is not None else None,
                 last_seen_at=latest.get("last_seen_at") if latest is not None else None,
-                status="ok" if latest is not None else "missing",
+                status=status,
             )
         )
     return out
@@ -123,6 +128,21 @@ def _decimal_value(row: dict[str, Any] | None) -> Decimal | None:
         return None
     value = row["value"]
     return value if isinstance(value, Decimal) else Decimal(str(value))
+
+
+def _freshness_status(
+    series_id: str,
+    latest: dict[str, Any] | None,
+    as_of: date,
+    stale_series: set[str],
+):
+    if latest is None:
+        return "missing"
+    if series_id in stale_series:
+        return "stale"
+    if latest["obs_date"] < as_of:
+        return "partial"
+    return "ok"
 
 
 def _float_pct(value: Decimal | None) -> float | None:

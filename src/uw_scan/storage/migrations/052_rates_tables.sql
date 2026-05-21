@@ -37,3 +37,5 @@ CREATE TABLE IF NOT EXISTS uw_scan.rates_snapshots (
 CREATE INDEX IF NOT EXISTS idx_rates_snapshots_latest
   ON uw_scan.rates_snapshots (snapshot_date DESC, computed_at DESC);
 
+CREATE INDEX IF NOT EXISTS idx_rates_snapshots_latest_compute
+  ON uw_scan.rates_snapshots (computed_at DESC, snapshot_date DESC);

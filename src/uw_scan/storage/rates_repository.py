@@ -186,7 +186,7 @@ class _RatesMixin:
                 f"""
                 SELECT snapshot_date, computed_at, payload, source_freshness
                 FROM {self._schema}.rates_snapshots
-                ORDER BY snapshot_date DESC, computed_at DESC
+                ORDER BY computed_at DESC, snapshot_date DESC
                 LIMIT 1
                 """
             )

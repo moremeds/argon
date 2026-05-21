@@ -34,6 +34,7 @@ def test_build_rates_snapshot_populates_live_fred_sections_without_static_filler
             "T5YIFR": [_point(date(2026, 5, 20), "2.35")],
             "EFFR": [_point(date(2026, 5, 20), "3.63")],
             "SOFR": [_point(date(2026, 5, 20), "3.65")],
+            "WALCL": [_point(date(2026, 5, 20), "6728502")],
         },
         computed_at=datetime(2026, 5, 20, 22, tzinfo=UTC),
     )
@@ -43,10 +44,40 @@ def test_build_rates_snapshot_populates_live_fred_sections_without_static_filler
     assert next(tile for tile in snapshot.summary if tile.label == "10Y").value == 4.67
     assert snapshot.decomposition.nominal_10y == 4.67
     assert snapshot.policy.effr == 3.63
+    fed_assets = next(tile for tile in snapshot.policy.plumbing if tile.label == "Fed assets")
+    assert fed_assets.value == 6728.5
+    assert fed_assets.unit == "$bn"
     assert snapshot.supply.status == "missing"
     assert snapshot.positioning.status == "missing"
     assert snapshot.scorecard.groups
     assert snapshot.synthesis.duration_view
+
+
+def test_build_rates_snapshot_uses_curve_date_and_marks_failed_series_stale():
+    snapshot = build_rates_snapshot(
+        {
+            "DGS2": [_point(date(2026, 5, 20), "4.13")],
+            "DGS5": [_point(date(2026, 5, 20), "4.32")],
+            "DGS10": [_point(date(2026, 5, 20), "4.67")],
+            "DGS30": [_point(date(2026, 5, 20), "5.18")],
+            "DFII10": [_point(date(2026, 5, 20), "2.13")],
+            "T10YIE": [_point(date(2026, 5, 20), "2.48")],
+            "T5YIFR": [_point(date(2026, 5, 20), "2.35")],
+            "EFFR": [_point(date(2026, 5, 21), "3.63")],
+            "SOFR": [_point(date(2026, 5, 21), "3.65")],
+            "RRPONTSYD": [_point(date(2026, 5, 20), "0")],
+        },
+        computed_at=datetime(2026, 5, 21, 22, tzinfo=UTC),
+        failed_series={"DGS10"},
+    )
+
+    assert snapshot.as_of == date(2026, 5, 20)
+    rrp = next(tile for tile in snapshot.policy.plumbing if tile.label == "ON RRP")
+    assert rrp.value == 0.0
+    assert rrp.status == "ok"
+    freshness = {item.id: item for item in snapshot.source_freshness}
+    assert freshness["DGS10"].status == "stale"
+    assert freshness["EFFR"].latest_obs_date == date(2026, 5, 21)
 
 
 def test_build_rates_snapshot_requires_observations():

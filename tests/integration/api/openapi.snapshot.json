@@ -8135,7 +8135,8 @@
             "enum": [
               "ok",
               "missing",
-              "partial"
+              "partial",
+              "stale"
             ],
             "title": "Status",
             "type": "string"
@@ -8200,7 +8201,8 @@
             "enum": [
               "ok",
               "missing",
-              "partial"
+              "partial",
+              "stale"
             ],
             "title": "Status",
             "type": "string"
@@ -8299,7 +8301,8 @@
             "enum": [
               "ok",
               "missing",
-              "partial"
+              "partial",
+              "stale"
             ],
             "title": "Status",
             "type": "string"
@@ -8363,7 +8366,8 @@
             "enum": [
               "ok",
               "missing",
-              "partial"
+              "partial",
+              "stale"
             ],
             "title": "Status",
             "type": "string"
@@ -8411,7 +8415,8 @@
             "enum": [
               "ok",
               "missing",
-              "partial"
+              "partial",
+              "stale"
             ],
             "title": "Status",
             "type": "string"
@@ -8445,7 +8450,8 @@
             "enum": [
               "ok",
               "missing",
-              "partial"
+              "partial",
+              "stale"
             ],
             "title": "Status",
             "type": "string"
@@ -8542,7 +8548,8 @@
             "enum": [
               "ok",
               "missing",
-              "partial"
+              "partial",
+              "stale"
             ],
             "title": "Status",
             "type": "string"
@@ -8598,7 +8605,8 @@
             "enum": [
               "ok",
               "missing",
-              "partial"
+              "partial",
+              "stale"
             ],
             "title": "Status",
             "type": "string"
@@ -8627,7 +8635,8 @@
             "enum": [
               "ok",
               "missing",
-              "partial"
+              "partial",
+              "stale"
             ],
             "title": "Status",
             "type": "string"
@@ -8755,7 +8764,8 @@
             "enum": [
               "ok",
               "missing",
-              "partial"
+              "partial",
+              "stale"
             ],
             "title": "Status",
             "type": "string"
@@ -8790,7 +8800,8 @@
             "enum": [
               "ok",
               "missing",
-              "partial"
+              "partial",
+              "stale"
             ],
             "title": "Status",
             "type": "string"
@@ -8839,7 +8850,8 @@
             "enum": [
               "ok",
               "missing",
-              "partial"
+              "partial",
+              "stale"
             ],
             "title": "Status",
             "type": "string"

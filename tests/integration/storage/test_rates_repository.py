@@ -103,3 +103,37 @@ def test_rates_snapshot_round_trips_json_native_payload(repo: Repository):
     assert restored.as_of == date(2026, 5, 20)
     assert restored.computed_at == datetime(2026, 5, 20, 21, tzinfo=UTC)
     assert restored.synthesis.duration_view == "Live FRED snapshot"
+
+
+def test_fetch_latest_rates_snapshot_uses_newest_compute_time(repo: Repository):
+    older_compute_later_market_date = RatesSnapshotResponse(
+        as_of=date(2026, 5, 20),
+        computed_at=datetime(2026, 5, 20, 21, tzinfo=UTC),
+        synthesis=RatesSynthesisPanel(
+            duration_view="old compute",
+            curve_view="old compute",
+        ),
+    )
+    newer_compute_earlier_market_date = RatesSnapshotResponse(
+        as_of=date(2026, 5, 19),
+        computed_at=datetime(2026, 5, 21, 21, tzinfo=UTC),
+        synthesis=RatesSynthesisPanel(
+            duration_view="new compute",
+            curve_view="new compute",
+        ),
+    )
+    for snapshot in (older_compute_later_market_date, newer_compute_earlier_market_date):
+        repo.insert_rates_snapshot(
+            snapshot_date=snapshot.as_of,
+            computed_at=snapshot.computed_at,
+            payload=snapshot.model_dump(mode="json"),
+            source_freshness=[],
+        )
+
+    row = repo.fetch_latest_rates_snapshot()
+
+    assert row is not None
+    restored = RatesSnapshotResponse.model_validate(row["payload"])
+    assert restored.as_of == date(2026, 5, 19)
+    assert restored.computed_at == datetime(2026, 5, 21, 21, tzinfo=UTC)
+    assert restored.synthesis.duration_view == "new compute"

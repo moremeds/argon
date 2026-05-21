@@ -106,7 +106,8 @@ def test_compute_source_freshness_marks_missing_series():
         {
             "DGS10": [_point(date(2026, 5, 20), "4.67")],
             "DGS2": [],
-        }
+        },
+        as_of=date(2026, 5, 20),
     )
 
     by_id = {row.id: row for row in freshness}

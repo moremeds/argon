@@ -22,21 +22,25 @@ from uw_scan.rates.calculations import (
     compute_source_freshness,
 )
 from uw_scan.rates.scorecard import build_scorecard
+from uw_scan.rates.series import YIELD_CURVE_SERIES
 
 
 def build_rates_snapshot(
     observations: dict[str, list[dict[str, Any]]],
     *,
     computed_at: datetime,
+    failed_series: set[str] | None = None,
 ) -> RatesSnapshotResponse:
-    as_of = _latest_observation_date(observations)
+    as_of = _latest_curve_observation_date(observations)
     if as_of is None:
         raise ValueError("rates observations are required to build a snapshot")
 
     curve_points = compute_curve(observations, as_of=as_of)
     slopes = compute_slopes(curve_points)
     decomposition = compute_decomposition(observations, as_of=as_of)
-    source_freshness = compute_source_freshness(observations)
+    source_freshness = compute_source_freshness(
+        observations, as_of=as_of, stale_series=failed_series
+    )
     curve_score = _curve_score(slopes)
     ten_year = next((point for point in curve_points if point.tenor == "10Y"), None)
     scorecard = build_scorecard(
@@ -96,6 +100,20 @@ def build_rates_snapshot(
     )
 
 
+def _latest_curve_observation_date(
+    observations: dict[str, list[dict[str, Any]]],
+) -> date | None:
+    dates = [
+        row["obs_date"]
+        for series_id in YIELD_CURVE_SERIES.values()
+        for row in observations.get(series_id, [])
+        if row.get("obs_date") is not None
+    ]
+    if dates:
+        return max(dates)
+    return _latest_observation_date(observations)
+
+
 def _latest_observation_date(
     observations: dict[str, list[dict[str, Any]]],
 ) -> date | None:
@@ -127,7 +145,7 @@ def _summary_tiles(curve_points, slopes) -> list[RatesSummaryTile]:
             RatesSummaryTile(
                 label=label,
                 value=slope.value_bps if slope is not None else None,
-                unit="bp",
+                unit="bps",
                 status=slope.status if slope is not None else "missing",
             )
         )
@@ -137,44 +155,51 @@ def _summary_tiles(curve_points, slopes) -> list[RatesSummaryTile]:
 def _plumbing_tiles(
     observations: dict[str, list[dict[str, Any]]], as_of: date
 ) -> list[RatesSummaryTile]:
+    fed_assets = _latest_float(observations, "WALCL", as_of, divisor=1000)
+    reserves = _latest_float(observations, "WRESBAL", as_of, divisor=1000)
+    on_rrp = _latest_float(observations, "RRPONTSYD", as_of)
+    tga = _latest_float(observations, "WTREGEN", as_of, divisor=1000)
     return [
         RatesSummaryTile(
             label="Fed assets",
-            value=_latest_float(observations, "WALCL", as_of),
+            value=fed_assets,
             unit="$bn",
-            status="ok" if _latest_float(observations, "WALCL", as_of) else "missing",
+            status="ok" if fed_assets is not None else "missing",
         ),
         RatesSummaryTile(
             label="Reserves",
-            value=_latest_float(observations, "WRESBAL", as_of),
+            value=reserves,
             unit="$bn",
-            status="ok" if _latest_float(observations, "WRESBAL", as_of) else "missing",
+            status="ok" if reserves is not None else "missing",
         ),
         RatesSummaryTile(
             label="ON RRP",
-            value=_latest_float(observations, "RRPONTSYD", as_of),
+            value=on_rrp,
             unit="$bn",
-            status=(
-                "ok" if _latest_float(observations, "RRPONTSYD", as_of) else "missing"
-            ),
+            status="ok" if on_rrp is not None else "missing",
         ),
         RatesSummaryTile(
             label="TGA",
-            value=_latest_float(observations, "WTREGEN", as_of),
+            value=tga,
             unit="$bn",
-            status="ok" if _latest_float(observations, "WTREGEN", as_of) else "missing",
+            status="ok" if tga is not None else "missing",
         ),
     ]
 
 
 def _latest_float(
-    observations: dict[str, list[dict[str, Any]]], series_id: str, as_of: date
+    observations: dict[str, list[dict[str, Any]]],
+    series_id: str,
+    as_of: date,
+    *,
+    divisor: Decimal | int = 1,
 ) -> float | None:
     rows = [row for row in observations.get(series_id, []) if row["obs_date"] <= as_of]
     if not rows:
         return None
     value = max(rows, key=lambda row: row["obs_date"])["value"]
     decimal_value = value if isinstance(value, Decimal) else Decimal(str(value))
+    decimal_value = decimal_value / Decimal(str(divisor))
     return float(decimal_value.quantize(Decimal("0.01")))
 
 

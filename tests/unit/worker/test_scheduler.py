@@ -15,6 +15,7 @@ from uw_scan.worker.scheduler import (
     _ohlc_provider,
     _record_worker_heartbeat,
     _run_rates_fred_ingest,
+    _should_schedule_rates_fred_ingest,
     _uw_auto_request_allowed,
     _worker_heartbeat_name,
 )
@@ -158,6 +159,7 @@ def test_rates_fred_ingest_helper_uses_unwrapped_key_and_recorder(monkeypatch) -
 
     assert len(calls) == 1
     assert calls[0]["dsn"] == settings.db_dsn()
+    assert calls[0]["schema"] == settings.db_schema
     assert calls[0]["fred_api_key"] == "fred-secret"
     assert recorded == [{"params": {"series_id": "DGS10"}}]
 
@@ -173,6 +175,22 @@ def test_rates_fred_ingest_helper_skips_when_key_missing(monkeypatch) -> None:
     _run_rates_fred_ingest(Settings(api_key="uw", fred_api_key=None))
 
     assert calls == []
+
+
+def test_rates_fred_ingest_schedules_only_on_all_or_primary_uw_worker() -> None:
+    assert _should_schedule_rates_fred_ingest(Settings(api_key="uw", worker_role="all"))
+    assert _should_schedule_rates_fred_ingest(
+        Settings(api_key="uw", worker_role="uw", worker_index=0, worker_count=3)
+    )
+    assert not _should_schedule_rates_fred_ingest(
+        Settings(api_key="uw", worker_role="uw", worker_index=1, worker_count=3)
+    )
+    assert not _should_schedule_rates_fred_ingest(
+        Settings(api_key="uw", worker_role="massive", worker_index=0, worker_count=1)
+    )
+    assert not _should_schedule_rates_fred_ingest(
+        Settings(api_key="uw", worker_role="ai", worker_index=0, worker_count=1)
+    )
 
 
 def test_rescan_worker_concurrency_is_two() -> None:

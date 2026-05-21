@@ -10,7 +10,7 @@ from pydantic import Field
 from ._base import _UwBase, _preserve_public_module
 
 
-RatesAvailability = Literal["ok", "missing", "partial"]
+RatesAvailability = Literal["ok", "missing", "partial", "stale"]
 RatesDurationStance = Literal["BUY", "SELL", "NEUTRAL"]
 RatesCurveStance = Literal["STEEP", "FLAT", "NEUTRAL"]
 

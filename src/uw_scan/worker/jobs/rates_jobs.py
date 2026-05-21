@@ -43,6 +43,7 @@ def rates_fred_ingest_job(
     *,
     dsn: str,
     fred_api_key: str | None,
+    schema: str = "uw_scan",
     lookback_days: int = 45,
     record_request: RecordHook | None = None,
     provider_factory: RatesProviderFactory = FredProvider,
@@ -57,7 +58,7 @@ def rates_fred_ingest_job(
     inserted = 0
 
     with psycopg.connect(dsn) as conn:
-        repo = Repository(conn, schema="uw_scan")
+        repo = Repository(conn, schema=schema)
         with provider_factory(
             api_key=fred_api_key,
             record_request=record_request,
@@ -87,11 +88,16 @@ def rates_fred_ingest_job(
                         "rates_fred_ingest: series=%s failed: %r", series_id, exc
                     )
 
+        conn.commit()
         observations_by_series = {
             series_id: repo.fetch_rates_series(series_id, from_date=start)
             for series_id in RATES_FRED_SERIES
         }
-        snapshot = build_rates_snapshot(observations_by_series, computed_at=now)
+        snapshot = build_rates_snapshot(
+            observations_by_series,
+            computed_at=now,
+            failed_series=set(failed),
+        )
         payload = snapshot.model_dump(mode="json")
         repo.insert_rates_snapshot(
             snapshot_date=snapshot.as_of,

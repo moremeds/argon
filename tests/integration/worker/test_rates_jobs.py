@@ -111,3 +111,27 @@ def test_rates_job_persists_observations_and_snapshot(migrated_settings: Setting
     assert row is not None
     assert row["payload"]["as_of"] == "2026-05-20"
     assert row["payload"]["decomposition"]["nominal_10y"] == 4.67
+
+
+def test_rates_job_keeps_raw_observations_when_snapshot_build_fails(
+    migrated_settings: Settings, monkeypatch: pytest.MonkeyPatch
+):
+    def fail_snapshot(*_args, **_kwargs):
+        raise ValueError("snapshot assembler failed")
+
+    monkeypatch.setattr("uw_scan.worker.jobs.rates_jobs.build_rates_snapshot", fail_snapshot)
+
+    with pytest.raises(ValueError, match="snapshot assembler failed"):
+        rates_fred_ingest_job(
+            dsn=migrated_settings.db_dsn(),
+            fred_api_key="fred-test",
+            provider_factory=_Provider,
+            computed_at=datetime(2026, 5, 20, 22, tzinfo=UTC),
+        )
+
+    with psycopg.connect(migrated_settings.db_dsn()) as conn:
+        repo = Repository(conn, schema=migrated_settings.db_schema)
+        rows = repo.fetch_rates_series("DGS10", from_date=date(2026, 5, 1))
+
+    assert len(rows) == 1
+    assert rows[0]["value"] == Decimal("4.67")

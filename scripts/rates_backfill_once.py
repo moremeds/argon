@@ -36,6 +36,7 @@ def main(argv: list[str] | None = None) -> int:
     result = rates_fred_ingest_job(
         dsn=settings.db_dsn(),
         fred_api_key=settings.fred_api_key.get_secret_value(),
+        schema=settings.db_schema,
         lookback_days=args.lookback_days,
     )
 

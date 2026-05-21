@@ -127,6 +127,11 @@ def _is_primary_worker(settings: Settings) -> bool:
     return settings.worker_role.lower() == "all" or settings.worker_index == 0
 
 
+def _should_schedule_rates_fred_ingest(settings: Settings) -> bool:
+    role = settings.worker_role.lower()
+    return role == "all" or (role == "uw" and settings.worker_index == 0)
+
+
 def _worker_label(settings: Settings) -> str:
     role = settings.worker_role.lower()
     if role == "all":
@@ -153,6 +158,7 @@ def _run_rates_fred_ingest(settings: Settings) -> None:
     with _external_api_recorder(settings) as recorder:
         rates_fred_ingest_job(
             dsn=settings.db_dsn(),
+            schema=settings.db_schema,
             fred_api_key=settings.fred_api_key.get_secret_value(),
             record_request=lambda _provider, event: recorder.record(event),
         )
@@ -665,14 +671,15 @@ def main() -> int:
             id="gold_etf_holdings_ingest",
             name="Gold: ETF holdings daily (GLD/IAU/GLDM/PHYS)",
         )
-        sched.add_job(
-            _rates_fred_ingest,
-            CronTrigger.from_crontab("45 18 * * 0-4", timezone=settings.rth_tz),
-            id="rates_fred_ingest",
-            name="Rates: FRED curve and macro refresh",
-            max_instances=1,
-            coalesce=True,
-        )
+        if _should_schedule_rates_fred_ingest(settings):
+            sched.add_job(
+                _rates_fred_ingest,
+                CronTrigger.from_crontab("45 18 * * 0-4", timezone=settings.rth_tz),
+                id="rates_fred_ingest",
+                name="Rates: FRED curve and macro refresh",
+                max_instances=1,
+                coalesce=True,
+            )
         sched.add_job(
             _gold_gpr_ingest,
             CronTrigger.from_crontab("0 20 * * 0-4", timezone=settings.rth_tz),

@@ -3136,7 +3136,7 @@ export interface components {
              * @default partial
              * @enum {string}
              */
-            status: "ok" | "missing" | "partial";
+            status: "ok" | "missing" | "partial" | "stale";
         };
         /** RatesCurvePoint */
         RatesCurvePoint: {
@@ -3159,7 +3159,7 @@ export interface components {
              * @default ok
              * @enum {string}
              */
-            status: "ok" | "missing" | "partial";
+            status: "ok" | "missing" | "partial" | "stale";
         };
         /** RatesCurveSection */
         RatesCurveSection: {
@@ -3185,7 +3185,7 @@ export interface components {
              * @default partial
              * @enum {string}
              */
-            status: "ok" | "missing" | "partial";
+            status: "ok" | "missing" | "partial" | "stale";
         };
         /** RatesEventItem */
         RatesEventItem: {
@@ -3206,7 +3206,7 @@ export interface components {
              * @default missing
              * @enum {string}
              */
-            status: "ok" | "missing" | "partial";
+            status: "ok" | "missing" | "partial" | "stale";
         };
         /** RatesPolicyPanel */
         RatesPolicyPanel: {
@@ -3223,7 +3223,7 @@ export interface components {
              * @default partial
              * @enum {string}
              */
-            status: "ok" | "missing" | "partial";
+            status: "ok" | "missing" | "partial" | "stale";
         };
         /** RatesPositioningPanel */
         RatesPositioningPanel: {
@@ -3234,7 +3234,7 @@ export interface components {
              * @default missing
              * @enum {string}
              */
-            status: "ok" | "missing" | "partial";
+            status: "ok" | "missing" | "partial" | "stale";
         };
         /** RatesScorecard */
         RatesScorecard: {
@@ -3270,7 +3270,7 @@ export interface components {
              * @default ok
              * @enum {string}
              */
-            status: "ok" | "missing" | "partial";
+            status: "ok" | "missing" | "partial" | "stale";
             /** Source */
             source?: string | null;
         };
@@ -3289,7 +3289,7 @@ export interface components {
              * @default ok
              * @enum {string}
              */
-            status: "ok" | "missing" | "partial";
+            status: "ok" | "missing" | "partial" | "stale";
             /** Factors */
             factors?: components["schemas"]["RatesScorecardFactor"][];
         };
@@ -3304,7 +3304,7 @@ export interface components {
              * @default ok
              * @enum {string}
              */
-            status: "ok" | "missing" | "partial";
+            status: "ok" | "missing" | "partial" | "stale";
         };
         /** RatesSnapshotResponse */
         RatesSnapshotResponse: {
@@ -3348,7 +3348,7 @@ export interface components {
              * @default missing
              * @enum {string}
              */
-            status: "ok" | "missing" | "partial";
+            status: "ok" | "missing" | "partial" | "stale";
         };
         /** RatesSummaryTile */
         RatesSummaryTile: {
@@ -3368,7 +3368,7 @@ export interface components {
              * @default ok
              * @enum {string}
              */
-            status: "ok" | "missing" | "partial";
+            status: "ok" | "missing" | "partial" | "stale";
         };
         /** RatesSupplyPanel */
         RatesSupplyPanel: {
@@ -3381,7 +3381,7 @@ export interface components {
              * @default missing
              * @enum {string}
              */
-            status: "ok" | "missing" | "partial";
+            status: "ok" | "missing" | "partial" | "stale";
         };
         /** RatesSynthesisPanel */
         RatesSynthesisPanel: {
