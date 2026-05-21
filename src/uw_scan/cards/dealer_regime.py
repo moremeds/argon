@@ -108,7 +108,8 @@ def _to_float(v: Any) -> float | None:
         return float(v)
     try:
         return float(v)
-    except (TypeError, ValueError):
+    except (TypeError, ValueError) as exc:
+        _ = repr(exc)  # CI Guardrail 2: non-numeric input → None
         return None
 
 
@@ -200,7 +201,8 @@ def compute_gamma_decay(
         if not isinstance(expiry, _date):
             try:
                 expiry = _date.fromisoformat(str(expiry))
-            except ValueError:
+            except ValueError as exc:
+                _ = repr(exc)  # CI Guardrail 2: bad expiry → skip row
                 continue
         g = _row_net_gex(row)
         if g is None:
@@ -467,7 +469,8 @@ def gather_inputs(repo: Any, *, ticker: str, today: _date | None = None) -> dict
         if isinstance(expiry, str):
             try:
                 expiry = _date.fromisoformat(expiry)
-            except ValueError:
+            except ValueError as exc:
+                _ = repr(exc)  # CI Guardrail 2: bad expiry string → skip row
                 continue
         curve_typed.append(
             StrikeGexBucket(
