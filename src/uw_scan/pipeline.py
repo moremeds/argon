@@ -15,6 +15,7 @@ import psycopg
 
 from . import normalize, scoring
 from .api.client import LiveDataUnavailable, UwClient
+from .cards import exposures as cards_exposures
 from .config import Settings
 from .models import MarketAggregates, ScanReport, ScanTickerResult, SingleStockReport
 from .reports.scan import assemble_scan_report
@@ -41,6 +42,32 @@ FLOW_ALERT_LIMIT = 100
 # A1 from backend code review addendum: cache ETF AUM lookups to skip the
 # per-scan /etf_info UW round trip. AUM moves weekly at most.
 ETF_AUM_TTL = timedelta(days=7)
+
+
+def _safe_spot_for_derive(repo: Repository, ticker: str) -> Decimal | None:
+    """Spot for vanna/charm derivers. Prefer the intraday quote; fall back to
+    the realized-vol latest price (same source `_build_market_structure` uses).
+    Reject 0/negative/non-finite values — they corrupt charm imbalance and FE
+    "% from spot" calculations."""
+
+    def _coerce(value) -> Decimal | None:
+        if value is None:
+            return None
+        try:
+            d = Decimal(str(value))
+        except (TypeError, ValueError) as exc:
+            logger.debug("safe_spot coercion skipped: %s", repr(exc))
+            return None
+        if not d.is_finite() or d <= 0:
+            return None
+        return d
+
+    quote = repo.get_intraday_quote(ticker)
+    spot = _coerce(quote.price if quote is not None else None)
+    if spot is None:
+        rv = repo.fetch_realized_vol_latest(ticker) or {}
+        spot = _coerce(rv.get("price"))
+    return spot
 
 
 @lru_cache(maxsize=1)
@@ -136,11 +163,13 @@ def run_single_stock(
             alert_limit=FLOW_ALERT_LIMIT,
         )
 
-        # 2. IV rank (time series)
-        iv_rank_rows = uw_sources.fetch_iv_rank(client, repo, run_id, ticker)
-        repo.upsert_iv_rank_rows(ticker, iv_rank_rows)
-
-        # 3. Vol stats
+        # 2. Vol stats (also supplies the 1y IV rank — verified empirically that
+        # /volatility/stats.iv_rank == /iv-rank.iv_rank_1y to 4 decimals across
+        # tickers, so the dedicated /iv-rank call was redundant for the stock
+        # detail report. cockpit_daily_snapshot.py still calls fetch_iv_rank for
+        # SPX/SPY/QQQ/IWM where the trailing series feeds the cockpit history
+        # chart; non-cockpit tickers no longer maintain iv_rank_history rows but
+        # no code reads from that table for them. Saves 1 UW call per rescan.
         vol_stats_rows = uw_sources.fetch_volatility_stats(client, repo, run_id, ticker)
         repo.upsert_volatility_stats_rows(vol_stats_rows)
 
@@ -192,6 +221,39 @@ def run_single_stock(
             )
         repo.set_strike_gex_curve(run_id, curve)
 
+        # 8c. Multi-expiry vanna/charm summary. One call to /greek-exposure/expiry
+        # gives aggregates for the full term structure; we upsert aggregate-only
+        # rows for all expiries first, then the strike-detail pass below
+        # overwrites the nearest expiry with strike-derived fields (top strike,
+        # vanna_flip, charm pin/imbalance/flip, signal_quality).
+        spot_for_derive = _safe_spot_for_derive(repo, ticker)
+        agg_rows = uw_sources.fetch_greek_exposure_by_expiry(
+            client, repo, run_id, ticker
+        )
+        if agg_rows:
+            agg_summary_rows = cards_exposures.build_summary_rows_from_aggregate(
+                list(agg_rows), spot=spot_for_derive
+            )
+            repo.upsert_exposures_summary(
+                run_id=run_id,
+                ticker=ticker,
+                market_date=_date.today(),
+                rows=agg_summary_rows,
+            )
+
+        # 8d. Strike-detail pass: overwrites the nearest expiry's row with the
+        # strike-derived fields that the aggregate endpoint can't provide.
+        if ge_rows:
+            strike_summary_rows = cards_exposures.build_summary_rows(
+                list(ge_rows), spot=spot_for_derive
+            )
+            repo.upsert_exposures_summary(
+                run_id=run_id,
+                ticker=ticker,
+                market_date=_date.today(),
+                rows=strike_summary_rows,
+            )
+
         # 9. Spot exposures (we already persisted in 8 via exposures table; spot row stored only as raw + audit)
         _ = uw_sources.fetch_spot_exposures(client, repo, run_id, ticker, expiry_str)
 
@@ -213,17 +275,13 @@ def run_single_stock(
         market_date = _date.today()
         repo.insert_max_pain_rows(run_id, ticker, market_date, max_pain_rows)
 
-        # 14. Option contracts (broad)
+        # 14. Option contracts (broad). The earlier re-fetch via
+        # /option-contracts?option_symbol[]=... was removed because it hit the
+        # same endpoint and returned the identical rows already in `contracts`
+        # — see normalize.normalize_option_contracts_by_symbol ("Same shape as
+        # option_contracts"). Saves 1 UW call per rescan.
         contracts = uw_sources.fetch_option_contracts(client, repo, run_id, ticker)
         repo.insert_option_contract_rows(run_id, ticker, contracts)
-
-        # 15. Option contracts by symbol (pick 2 ATM contracts from previous batch)
-        if contracts:
-            picks = [c.option_symbol for c in contracts[:2]]
-            refined = uw_sources.fetch_option_contracts_by_symbol(
-                client, repo, run_id, ticker, picks
-            )
-            repo.insert_option_contract_rows(run_id, ticker, refined)
 
         # 16. Dark pool
         dp_rows = uw_sources.fetch_darkpool_ticker(client, repo, run_id, ticker)

@@ -13,6 +13,7 @@ from decimal import Decimal
 from ..cards.gex import compute_market_structure_levels
 from ..cards.intraday_profile import derive_intraday_profile
 from ..models import (
+    ExposuresSummaryRow,
     FlowAlert,
     FlowSnapshot,
     MarketStructure,
@@ -21,6 +22,7 @@ from ..models import (
     OptionIntradayProfile,
     ShortDataRow,
     SingleStockReport,
+    StrikeExposureRow,
     StrikeGexBucket,
     TradePlan,
     TradePlanLeg,
@@ -124,7 +126,7 @@ def _build_flow_snapshot(
 def _build_market_structure(
     repo: Repository, run_id: int, ticker: str, max_pain_rows: list[MaxPainRow]
 ) -> MarketStructure:
-    exposures = repo.fetch_exposures_summary(run_id, ticker) or {}
+    exposures = repo.fetch_exposures_aggregate(run_id, ticker) or {}
     total_call_gex = _to_decimal(exposures.get("total_call_gex"))
     total_put_gex = _to_decimal(exposures.get("total_put_gex"))
     net_gex = None
@@ -164,7 +166,6 @@ def _build_market_structure(
 def build_volatility_profile(
     repo: Repository, run_id: int, ticker: str
 ) -> VolatilityProfile:
-    iv_rank_row = repo.fetch_iv_rank_latest(ticker) or {}
     vol_stats = repo.fetch_volatility_stats_latest(ticker) or {}
     realized = repo.fetch_realized_vol_latest(ticker) or {}
     interp = repo.fetch_interpolated_iv_30d(run_id, ticker) or {}
@@ -187,7 +188,10 @@ def build_volatility_profile(
         or _to_decimal(realized.get("realized_volatility")),
         rv_low_52w=_to_decimal(vol_stats.get("rv_low")),
         rv_high_52w=_to_decimal(vol_stats.get("rv_high")),
-        iv_rank_1y=_to_decimal(iv_rank_row.get("iv_rank_1y")),
+        # iv_rank from /volatility/stats is empirically equal to iv_rank_1y from
+        # the legacy /iv-rank endpoint — same number, different label. Sourcing
+        # both fields from vol_stats lets us drop the /iv-rank fetch entirely.
+        iv_rank_1y=_to_decimal(vol_stats.get("iv_rank")),
         iv_percentile_30d=_to_decimal(interp.get("percentile")),
         implied_move_30d_perc=_to_decimal(interp.get("implied_move_perc")),
         skew_25d=_to_decimal(skew.get("risk_reversal")),
@@ -476,6 +480,53 @@ def assemble_single_stock_report(
 
     options_timeline = repo.get_options_timeline(ticker, lookback_days=180)
     option_chain_per_strike = repo.get_option_chain_per_strike(ticker)
+
+    strike_exp_raw = repo.fetch_strike_exposures(run_id, ticker)
+    # `strike` and `expiry` are NOT NULL in exposures_by_expiry_strike + are
+    # projected non-null by the fetcher. Use [...] indexing (not .get) so a
+    # missing key fails loudly with a KeyError at the row, rather than producing
+    # a Pydantic ValidationError that aborts the entire report assembly.
+    strike_exposures = [
+        StrikeExposureRow(
+            strike=Decimal(str(row["strike"])),
+            expiry=row["expiry"],
+            dte=row.get("dte"),
+            call_vanna=_to_decimal(row.get("call_vanna")),
+            put_vanna=_to_decimal(row.get("put_vanna")),
+            call_charm=_to_decimal(row.get("call_charm")),
+            put_charm=_to_decimal(row.get("put_charm")),
+        )
+        for row in strike_exp_raw
+        if row.get("strike") is not None
+    ]
+
+    summary_raw = repo.fetch_exposures_summary(run_id, ticker)
+    exposures_summary = [
+        ExposuresSummaryRow(
+            expiry=row["expiry"],
+            dte=row.get("dte"),
+            spot=_to_decimal(row.get("spot")),
+            net_vanna=_to_decimal(row.get("net_vanna")),
+            top_vanna_strike=_to_decimal(row.get("top_vanna_strike")),
+            top_vanna_value=_to_decimal(row.get("top_vanna_value")),
+            delta_shock_1pt_iv=_to_decimal(row.get("delta_shock_1pt_iv")),
+            vanna_regime=row.get("vanna_regime"),
+            vanna_flip=_to_decimal(row.get("vanna_flip")),
+            vanna_headline=row.get("vanna_headline"),
+            vanna_subtitle=row.get("vanna_subtitle"),
+            net_charm=_to_decimal(row.get("net_charm")),
+            charm_pin_strike=_to_decimal(row.get("charm_pin_strike")),
+            charm_above_sum=_to_decimal(row.get("charm_above_sum")),
+            charm_below_sum=_to_decimal(row.get("charm_below_sum")),
+            charm_imbalance_pct=_to_decimal(row.get("charm_imbalance_pct")),
+            charm_signal_quality=row.get("charm_signal_quality"),
+            charm_flip=_to_decimal(row.get("charm_flip")),
+            charm_headline=row.get("charm_headline"),
+            charm_subtitle=row.get("charm_subtitle"),
+        )
+        for row in summary_raw
+    ]
+
     # UW returns next_earnings_date per FlowAlert row; promote once.
     next_earnings_date = next(
         (
@@ -507,6 +558,8 @@ def assemble_single_stock_report(
         market_structure_levels=market_structure_levels,
         options_timeline=options_timeline,
         option_chain_per_strike=option_chain_per_strike,
+        strike_exposures=strike_exposures,
+        exposures_summary=exposures_summary,
         next_earnings_date=next_earnings_date,
     )
 

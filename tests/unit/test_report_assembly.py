@@ -112,13 +112,19 @@ class _StubRepo:
             },
         ]
 
-    def fetch_exposures_summary(self, run_id: int, ticker: str) -> dict:
+    def fetch_exposures_aggregate(self, run_id: int, ticker: str) -> dict:
         return {
             "total_call_gex": Decimal("1000000"),
             "total_put_gex": Decimal("-500000"),
             "total_call_dex": Decimal("50000"),
             "total_put_dex": Decimal("-30000"),
         }
+
+    def fetch_strike_exposures(self, run_id: int, ticker: str) -> list[dict]:
+        return []
+
+    def fetch_exposures_summary(self, run_id: int, ticker: str) -> list[dict]:
+        return []
 
     def fetch_top_oi_strikes(self, ticker: str, limit: int = 5):
         return [Decimal("440"), Decimal("450")], [Decimal("430"), Decimal("420")]

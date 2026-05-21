@@ -16,7 +16,13 @@ from .options import (
     OptionIntradayProfile,
     OptionsDailyRow,
 )
-from .scanner import MarketAggregates, MarketStructureLevels, StrikeGexBucket
+from .scanner import (
+    ExposuresSummaryRow,
+    MarketAggregates,
+    MarketStructureLevels,
+    StrikeExposureRow,
+    StrikeGexBucket,
+)
 
 
 class MarketStructure(_UwBase):
@@ -121,6 +127,8 @@ class SingleStockReport(_UwBase):
     market_structure_levels: MarketStructureLevels | None = None
     options_timeline: list[OptionsDailyRow] = []
     option_chain_per_strike: list[OptionChainPerStrikeRow] = []
+    strike_exposures: list[StrikeExposureRow] = []
+    exposures_summary: list[ExposuresSummaryRow] = []
     # Promoted from FlowAlert.next_earnings_date so the Volume-timeline panel
     # can render the earnings marker without iterating alerts on the client.
     next_earnings_date: _date | None = None

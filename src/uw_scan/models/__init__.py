@@ -56,7 +56,12 @@ from .gold import (
     GoldValuationPostureModel,
     PostureChipState,
 )
-from .greeks import GreekExposureRow, GreeksRow, SpotExposureRow
+from .greeks import (
+    GreekExposureByExpiryRow,
+    GreekExposureRow,
+    GreeksRow,
+    SpotExposureRow,
+)
 from .matrix import MatrixSourceFreshness, MatrixState, SetupClassification
 from .options import (
     MaxPainRow,
@@ -72,11 +77,13 @@ from .scanner import (
     BulkScreenerRow,
     EtfInfo,
     EtfInOutflowRow,
+    ExposuresSummaryRow,
     GexLevel,
     MarketAggregates,
     MarketStructureLevels,
     ScanReport,
     ScanTickerResult,
+    StrikeExposureRow,
     StrikeGexBucket,
 )
 from .stock import (
@@ -166,6 +173,7 @@ __all__ = [
     "InterpolatedIvRow",
     "SkewRow",
     "GreekExposureRow",
+    "GreekExposureByExpiryRow",
     "SpotExposureRow",
     "GreeksRow",
     "OiPerStrikeRow",
@@ -208,6 +216,8 @@ __all__ = [
     "ScanReport",
     "MarketAggregates",
     "StrikeGexBucket",
+    "StrikeExposureRow",
+    "ExposuresSummaryRow",
     "GexLevel",
     "MarketStructureLevels",
     "StockHistoryRow",

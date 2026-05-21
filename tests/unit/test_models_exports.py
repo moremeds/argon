@@ -1,6 +1,5 @@
 import importlib
 
-
 PUBLIC_MODEL_EXPORTS = [
     "_UwBase",
     "MatrixDirection",
@@ -143,3 +142,16 @@ def test_uw_scan_models_keeps_public_imports():
 
     if hasattr(models, "__all__"):
         assert set(PUBLIC_MODEL_EXPORTS) <= set(models.__all__)
+
+
+def test_new_exposure_models_exported():
+    from uw_scan import models
+
+    assert "StrikeExposureRow" in models.__all__
+    assert "ExposuresSummaryRow" in models.__all__
+    # _preserve_public_module rewrites __module__ to "uw_scan.models" for
+    # contract identity (see src/uw_scan/models/_base.py). Asserting the
+    # public module is what protects the OpenAPI component name from
+    # accidentally drifting back to the implementation module.
+    assert models.StrikeExposureRow.__module__ == "uw_scan.models"
+    assert models.ExposuresSummaryRow.__module__ == "uw_scan.models"

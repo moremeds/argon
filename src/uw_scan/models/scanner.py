@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from datetime import datetime
 from datetime import date as _date
+from datetime import datetime
 from decimal import Decimal
 
 from ._base import _preserve_public_module, _UwBase
@@ -77,11 +77,13 @@ class BulkScreenerRow(_UwBase):
     cum_dir_gamma: int | None = None
     cum_dir_vega: int | None = None
 
+
 class EtfInfo(_UwBase):
     aum: Decimal | None = None
     name: str | None = None
     avg30_volume: Decimal | None = None
     has_options: bool | None = None
+
 
 class EtfInOutflowRow(_UwBase):
     ticker: str
@@ -92,6 +94,7 @@ class EtfInOutflowRow(_UwBase):
     volume: Decimal | None = None
     expiration_cycle: str | None = None
     is_fomc: bool | None = None
+
 
 class ScanTickerResult(_UwBase):
     """One row in the Full Scan output. Ranked by `score` desc."""
@@ -117,6 +120,7 @@ class ScanTickerResult(_UwBase):
     notes: str = ""
     screener_row: BulkScreenerRow | None = None
 
+
 class ScanReport(_UwBase):
     run_id: int
     generated_at: datetime
@@ -126,6 +130,7 @@ class ScanReport(_UwBase):
     results: list[ScanTickerResult] = []
     dropped_tickers: list[str] = []
     top_pick: str | None = None
+
 
 class MarketAggregates(_UwBase):
     """Per-ticker aggregate fields sourced from the bulk-screener endpoint.
@@ -148,6 +153,7 @@ class MarketAggregates(_UwBase):
     market_cap: Decimal | None = None
     aum: Decimal | None = None
 
+
 class StrikeGexBucket(_UwBase):
     """One row of the per-strike, per-expiry GEX curve persisted on each scan run."""
 
@@ -156,6 +162,50 @@ class StrikeGexBucket(_UwBase):
     net_gex: Decimal | None = None
     call_gex: Decimal | None = None
     put_gex: Decimal | None = None
+
+
+class StrikeExposureRow(_UwBase):
+    """One per-(expiry, strike) raw row from exposures_by_expiry_strike,
+    carrying the call/put split for vanna and charm so the FE can render
+    Net + Call/Put curves without an extra fetch."""
+
+    strike: Decimal
+    expiry: _date
+    dte: int | None = None
+    call_vanna: Decimal | None = None
+    put_vanna: Decimal | None = None
+    call_charm: Decimal | None = None
+    put_charm: Decimal | None = None
+
+
+class ExposuresSummaryRow(_UwBase):
+    """Per-(expiry) derived summary used to drive the Vanna/Charm sub-tab
+    headline narrative + 4 tiles. Computed by cards/exposures.py and
+    persisted to uw_scan.exposures_summary."""
+
+    expiry: _date
+    dte: int | None = None
+    spot: Decimal | None = None
+    # Vanna ---
+    net_vanna: Decimal | None = None
+    top_vanna_strike: Decimal | None = None
+    top_vanna_value: Decimal | None = None
+    delta_shock_1pt_iv: Decimal | None = None
+    vanna_regime: str | None = None
+    vanna_flip: Decimal | None = None
+    vanna_headline: str | None = None
+    vanna_subtitle: str | None = None
+    # Charm ---
+    net_charm: Decimal | None = None
+    charm_pin_strike: Decimal | None = None
+    charm_above_sum: Decimal | None = None
+    charm_below_sum: Decimal | None = None
+    charm_imbalance_pct: Decimal | None = None
+    charm_signal_quality: str | None = None
+    charm_flip: Decimal | None = None
+    charm_headline: str | None = None
+    charm_subtitle: str | None = None
+
 
 class GexLevel(_UwBase):
     """One labeled level on the GEX curve (e.g. CALL WALL, PUT WALL, MAX MAGNET).
@@ -168,6 +218,7 @@ class GexLevel(_UwBase):
     net_gex: Decimal | None = None
     pct_from_spot: Decimal | None = None
     gamma_per_dollar: Decimal | None = None
+
 
 class MarketStructureLevels(_UwBase):
     """Derived strike-level reference points used by the Market Structure tab.
@@ -197,6 +248,8 @@ _preserve_public_module(
     ScanReport,
     MarketAggregates,
     StrikeGexBucket,
+    StrikeExposureRow,
+    ExposuresSummaryRow,
     GexLevel,
     MarketStructureLevels,
 )

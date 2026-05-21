@@ -1329,6 +1329,57 @@ export interface components {
             /** Rv Z */
             rv_z?: string | null;
         };
+        /**
+         * ExposuresSummaryRow
+         * @description Per-(expiry) derived summary used to drive the Vanna/Charm sub-tab
+         *     headline narrative + 4 tiles. Computed by cards/exposures.py and
+         *     persisted to uw_scan.exposures_summary.
+         */
+        ExposuresSummaryRow: {
+            /**
+             * Expiry
+             * Format: date
+             */
+            expiry: string;
+            /** Dte */
+            dte?: number | null;
+            /** Spot */
+            spot?: string | null;
+            /** Net Vanna */
+            net_vanna?: string | null;
+            /** Top Vanna Strike */
+            top_vanna_strike?: string | null;
+            /** Top Vanna Value */
+            top_vanna_value?: string | null;
+            /** Delta Shock 1Pt Iv */
+            delta_shock_1pt_iv?: string | null;
+            /** Vanna Regime */
+            vanna_regime?: string | null;
+            /** Vanna Flip */
+            vanna_flip?: string | null;
+            /** Vanna Headline */
+            vanna_headline?: string | null;
+            /** Vanna Subtitle */
+            vanna_subtitle?: string | null;
+            /** Net Charm */
+            net_charm?: string | null;
+            /** Charm Pin Strike */
+            charm_pin_strike?: string | null;
+            /** Charm Above Sum */
+            charm_above_sum?: string | null;
+            /** Charm Below Sum */
+            charm_below_sum?: string | null;
+            /** Charm Imbalance Pct */
+            charm_imbalance_pct?: string | null;
+            /** Charm Signal Quality */
+            charm_signal_quality?: string | null;
+            /** Charm Flip */
+            charm_flip?: string | null;
+            /** Charm Headline */
+            charm_headline?: string | null;
+            /** Charm Subtitle */
+            charm_subtitle?: string | null;
+        };
         /** FlowAlert */
         FlowAlert: {
             /** Id */
@@ -3213,6 +3264,16 @@ export interface components {
              * @default []
              */
             option_chain_per_strike: components["schemas"]["OptionChainPerStrikeRow"][];
+            /**
+             * Strike Exposures
+             * @default []
+             */
+            strike_exposures: components["schemas"]["StrikeExposureRow"][];
+            /**
+             * Exposures Summary
+             * @default []
+             */
+            exposures_summary: components["schemas"]["ExposuresSummaryRow"][];
             /** Next Earnings Date */
             next_earnings_date?: string | null;
         };
@@ -3337,6 +3398,31 @@ export interface components {
              * @default NEUTRAL
              */
             bias: string;
+        };
+        /**
+         * StrikeExposureRow
+         * @description One per-(expiry, strike) raw row from exposures_by_expiry_strike,
+         *     carrying the call/put split for vanna and charm so the FE can render
+         *     Net + Call/Put curves without an extra fetch.
+         */
+        StrikeExposureRow: {
+            /** Strike */
+            strike: string;
+            /**
+             * Expiry
+             * Format: date
+             */
+            expiry: string;
+            /** Dte */
+            dte?: number | null;
+            /** Call Vanna */
+            call_vanna?: string | null;
+            /** Put Vanna */
+            put_vanna?: string | null;
+            /** Call Charm */
+            call_charm?: string | null;
+            /** Put Charm */
+            put_charm?: string | null;
         };
         /**
          * StrikeGexBucket
