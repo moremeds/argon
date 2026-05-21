@@ -4,7 +4,7 @@ import { GexLevelTiles } from "../panels/GexLevelTiles";
 import { ExpectedRangeBar } from "../panels/ExpectedRangeBar";
 import { DirectionalBiasPanel } from "../panels/DirectionalBiasPanel";
 import { MarketStructureHistoryTable } from "../panels/MarketStructureHistoryTable";
-import { GexProfileChart } from "../panels/GexProfileChart";
+import { GreekSubTabs } from "../panels/greeks/GreekSubTabs";
 import { MaxPainTable } from "../panels/MaxPainTable";
 
 type Report = components["schemas"]["SingleStockReport"];
@@ -31,7 +31,7 @@ export async function MarketStructureTab({ report }: { report: Report }) {
         <ExpectedRangeBar report={report} />
         <DirectionalBiasPanel report={report} history={historyRows} />
       </div>
-      <GexProfileChart report={report} />
+      <GreekSubTabs report={report} />
       <MarketStructureHistoryTable rows={historyRows} />
       <MaxPainTable rows={report.max_pain_rows} />
     </div>
