@@ -233,6 +233,18 @@ export function HealthPanel() {
   );
   const aiWorkers = workerRows.filter((worker) => worker.role === "ai");
   const recordsStatus = recordHealthStatus(h?.record_health_ok);
+  // Massive.com WS consumer: the only safety signal under the no-fallback
+  // design. If this dot is red and the market is open, prices ARE stale.
+  const wsConsumer = h?.ws_consumer ?? null;
+  const wsStatus: { label: string; color: string } = (() => {
+    if (!wsConsumer) return { label: "UNKNOWN", color: "var(--warning)" };
+    if (wsConsumer.healthy)
+      return { label: "ONLINE", color: "var(--positive)" };
+    return {
+      label: (wsConsumer.reason ?? "STALE").toUpperCase().slice(0, 12),
+      color: "var(--negative)",
+    };
+  })();
   const summary = worstStatus(
     workerRows.length > 0
       ? [
@@ -245,6 +257,7 @@ export function HealthPanel() {
           // would tip the collapsed dot to warning unnecessarily.
           ...(aiWorkers.length > 0 ? [workerGroupStatus(aiWorkers)] : []),
           recordsStatus,
+          wsStatus,
         ]
       : [
           apiStatus,
@@ -252,6 +265,7 @@ export function HealthPanel() {
           rescanStatus,
           spotRefreshStatus,
           recordsStatus,
+          wsStatus,
         ],
   );
 
@@ -339,6 +353,23 @@ export function HealthPanel() {
               {fmtDuration(h?.spot_quote_lag_seconds)}
             </span>
           </div>
+          <StatusRow label="WS Consumer" status={wsStatus} />
+          {wsConsumer && (
+            <div style={rowStyle}>
+              <span style={labelStyle}>WS tick age</span>
+              <span style={valStyle}>
+                {fmtDuration(wsConsumer.last_tick_age_seconds ?? null)}
+              </span>
+            </div>
+          )}
+          {wsConsumer && (
+            <div style={rowStyle}>
+              <span style={labelStyle}>WS received</span>
+              <span style={valStyle}>
+                {wsConsumer.ticks_received.toLocaleString()}
+              </span>
+            </div>
+          )}
           <div style={rowStyle}>
             <span style={labelStyle}>Last Scan</span>
             <span
