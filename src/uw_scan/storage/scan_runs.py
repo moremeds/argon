@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-
 import psycopg
 from psycopg.types.json import Jsonb
 
@@ -16,17 +15,20 @@ class _ScanRunsMixin:
     def latest_run_id(self, ticker: str) -> int:
         """Return the highest full-scan run_id for `ticker`, or 0 if none.
 
-        Excludes runs created by ``flow_data_refresh`` — that job populates
-        ticker-keyed tables only (options_volume_daily, option_chain_per_strike)
-        and its scan_runs row would otherwise shadow the actual full-scan run
-        the report assembler needs for flow_alerts / oi_change_top / GEX /
-        volatility data, which are all keyed by run_id.
+        Excludes runs created by side-channel jobs that populate only a
+        narrow slice of tables and would otherwise shadow the actual
+        full-scan run the report assembler needs (flow_alerts, oi_change_top,
+        GEX, volatility — all keyed by run_id). Excluded:
+
+        - ``flow_data_refresh`` (writes options_volume_daily + option_chain only)
+        - ``gex_scan_*`` (SPX/SPY index-only GEX scanner running every 5 min)
         """
         with self._conn.cursor() as cur:
             cur.execute(
                 f"SELECT run_id FROM {self._schema}.scan_runs "
                 "WHERE ticker = %s "
                 "  AND (notes IS DISTINCT FROM 'flow_data_refresh') "
+                "  AND (notes IS NULL OR notes NOT LIKE 'gex_scan_%%') "
                 "ORDER BY run_id DESC LIMIT 1",
                 (ticker.upper(),),
             )
