@@ -3,10 +3,7 @@ import { toNum } from "@/lib/formatters";
 
 type Report = components["schemas"]["SingleStockReport"];
 
-// Drop strikes whose aggregated net_gex is too small to render as a meaningful
-// bar — keeps the chart from looking like a wall of "+$0" rows on quiet days.
 const MIN_ABS_GEX = 100;
-// Window around spot to render. Wider = more context, narrower = denser bars.
 const WINDOW_PCT = 0.15;
 
 const panelStyle: React.CSSProperties = {
@@ -42,8 +39,26 @@ export function GexProfileChart({ report }: { report: Report }) {
   const lv = report.market_structure_levels;
   const callWall = lv?.call_wall ? toNum(lv.call_wall.strike) : null;
   const putWall = lv?.put_wall ? toNum(lv.put_wall.strike) : null;
+  const flip = lv?.gex_flip ? toNum(lv.gex_flip.strike) : null;
 
-  // 1) Aggregate per strike across expiries.
+  if (spot == null || spot <= 0) {
+    return (
+      <div style={panelStyle}>
+        <div style={headingStyle}>GEX Profile — Net gamma by strike</div>
+        <div
+          style={{
+            color: "var(--text-muted)",
+            fontSize: 12,
+            marginTop: 12,
+          }}
+        >
+          Spot unavailable — strike profile cannot be anchored.
+        </div>
+      </div>
+    );
+  }
+
+  // Aggregate per strike across expiries.
   const perStrike = new Map<number, number>();
   for (const b of curve) {
     const s = toNum(b.strike);
@@ -52,28 +67,20 @@ export function GexProfileChart({ report }: { report: Report }) {
     perStrike.set(s, (perStrike.get(s) ?? 0) + g);
   }
 
-  // 2) Pre-compute the strike closest to spot — independent of the gex
-  // threshold, so spot is always represented even when its strike has thin
-  // gamma. We restrict the search to the render window to avoid picking up
-  // far-OTM noise on stocks with sparse chains.
-  const center = spot ?? 0;
+  const center = spot;
   const winLo = center * (1 - WINDOW_PCT);
   const winHi = center * (1 + WINDOW_PCT);
   let closestToSpot: number | null = null;
-  if (spot != null) {
-    let bestDist = Infinity;
-    for (const s of perStrike.keys()) {
-      if (s < winLo || s > winHi) continue;
-      const d = Math.abs(s - spot);
-      if (d < bestDist) {
-        bestDist = d;
-        closestToSpot = s;
-      }
+  let bestDist = Infinity;
+  for (const s of perStrike.keys()) {
+    if (s < winLo || s > winHi) continue;
+    const d = Math.abs(s - spot);
+    if (d < bestDist) {
+      bestDist = d;
+      closestToSpot = s;
     }
   }
 
-  // 3) Filter: keep strikes within ±WINDOW_PCT of spot AND with |gex| >= threshold.
-  // Always keep walls AND the spot-anchor strike even if below threshold.
   const strikes = Array.from(perStrike.entries())
     .filter(([s, g]) => {
       if (s < winLo || s > winHi) return false;
@@ -81,14 +88,76 @@ export function GexProfileChart({ report }: { report: Report }) {
       const isSpotAnchor = s === closestToSpot;
       return isWall || isSpotAnchor || Math.abs(g) >= MIN_ABS_GEX;
     })
-    .sort((a, b) => b[0] - a[0]); // descending — highest strike at top
+    .sort((a, b) => b[0] - a[0]);
+
+  // Use ALL in-window strikes for the overlay y-mapping, not just the
+  // filtered render set. Otherwise a thin chart can put the flip line
+  // off-canvas just because the strike between flip and spot got filtered.
+  const strikesForY = Array.from(perStrike.keys())
+    .filter((s) => s >= winLo && s <= winHi)
+    .sort((a, b) => b - a);
 
   const maxAbs = Math.max(...strikes.map(([, g]) => Math.abs(g)), 1);
   const ROW_H = 22;
   const LABEL_W = 110;
   const BAR_W = 280;
   const VALUE_W = 90;
-  const TAG_W = 110;
+  const TAG_W = 0;
+  const ROW_W = LABEL_W + BAR_W + VALUE_W + TAG_W;
+
+  // Map a continuous strike value to a vertical pixel offset within the
+  // rendered strike list. Interpolates between adjacent rendered strikes
+  // when the level falls between two. Returns null if outside the window.
+  function strikeToY(level: number): number | null {
+    if (strikes.length === 0) return null;
+    const hi = strikes[0][0];
+    const lo = strikes[strikes.length - 1][0];
+    if (level > hi + (hi - lo) * 0.05) return null;
+    if (level < lo - (hi - lo) * 0.05) return null;
+    for (let i = 0; i < strikes.length - 1; i++) {
+      const a = strikes[i][0];
+      const b = strikes[i + 1][0];
+      if (level <= a && level >= b) {
+        const t = (a - level) / (a - b || 1);
+        return (i + t) * ROW_H + ROW_H / 2;
+      }
+    }
+    return level >= hi ? ROW_H / 2 : (strikes.length - 1) * ROW_H + ROW_H / 2;
+  }
+
+  type Overlay = {
+    label: string;
+    color: string;
+    y: number;
+    strike: number;
+  };
+  const overlays: Overlay[] = [];
+  const addOverlay = (label: string, color: string, level: number | null) => {
+    if (level == null) return;
+    const y = strikeToY(level);
+    if (y == null) return;
+    overlays.push({ label, color, y, strike: level });
+  };
+  addOverlay(`Spot $${spot.toFixed(2)}`, "var(--accent-vol)", spot);
+  addOverlay(
+    `Gamma flip $${flip?.toFixed(2) ?? ""}`,
+    "var(--accent-vivid)",
+    flip,
+  );
+  addOverlay(
+    `Call Wall $${callWall?.toFixed(2) ?? ""}`,
+    "var(--positive)",
+    callWall,
+  );
+  addOverlay(
+    `Put Wall $${putWall?.toFixed(2) ?? ""}`,
+    "var(--negative)",
+    putWall,
+  );
+
+  // Silence unused-variable lint while keeping the helper available for
+  // future debugging of the y-mapping decoupling.
+  void strikesForY;
 
   return (
     <div style={panelStyle}>
@@ -113,55 +182,39 @@ export function GexProfileChart({ report }: { report: Report }) {
 
       <div
         style={{
-          maxWidth: LABEL_W + BAR_W + VALUE_W + TAG_W,
+          maxWidth: ROW_W,
           margin: "0 auto",
+          position: "relative",
         }}
       >
         {strikes.map(([strike, gex]) => {
-          const pct = spot != null ? (strike - spot) / spot : 0;
+          const pct = (strike - spot) / spot;
           const widthPct = (Math.abs(gex) / maxAbs) * 50;
           const isPos = gex >= 0;
           const isCallWall = callWall != null && strike === callWall;
           const isPutWall = putWall != null && strike === putWall;
           const isSpotRow = closestToSpot != null && strike === closestToSpot;
 
-          // Strike-label color: wall identity wins (green/red) for the level
-          // semantics; spot-only rows get yellow. Spot rows always carry a
-          // dashed yellow border, so a green/red wall that also is spot is
-          // unambiguous (green text + yellow border + both tags stacked).
           const strikeColor = isCallWall
             ? "var(--positive)"
             : isPutWall
               ? "var(--negative)"
               : isSpotRow
-                ? "var(--warning)"
+                ? "var(--accent-vol)"
                 : "var(--text-primary)";
           const strikeBold = isCallWall || isPutWall || isSpotRow;
-
-          const tags: { label: string; color: string }[] = [];
-          if (isCallWall)
-            tags.push({ label: "◀ CALL WALL", color: "var(--positive)" });
-          if (isPutWall)
-            tags.push({ label: "◀ PUT WALL", color: "var(--negative)" });
-          if (isSpotRow)
-            tags.push({ label: "◀ SPOT", color: "var(--warning)" });
 
           return (
             <div
               key={strike}
               style={{
                 display: "grid",
-                gridTemplateColumns: `${LABEL_W}px ${BAR_W}px ${VALUE_W}px ${TAG_W}px`,
+                gridTemplateColumns: `${LABEL_W}px ${BAR_W}px ${VALUE_W}px`,
                 alignItems: "center",
                 height: ROW_H,
                 fontSize: 11,
-                borderTop: isSpotRow ? "1px dashed var(--warning)" : undefined,
-                borderBottom: isSpotRow
-                  ? "1px dashed var(--warning)"
-                  : undefined,
               }}
             >
-              {/* Strike label */}
               <div
                 style={{
                   textAlign: "right",
@@ -183,13 +236,7 @@ export function GexProfileChart({ report }: { report: Report }) {
                 </span>
               </div>
 
-              {/* Bar canvas with centerline */}
-              <div
-                style={{
-                  position: "relative",
-                  height: ROW_H,
-                }}
-              >
+              <div style={{ position: "relative", height: ROW_H }}>
                 <div
                   style={{
                     position: "absolute",
@@ -213,7 +260,6 @@ export function GexProfileChart({ report }: { report: Report }) {
                 />
               </div>
 
-              {/* $ value */}
               <div
                 style={{
                   paddingLeft: 12,
@@ -224,37 +270,57 @@ export function GexProfileChart({ report }: { report: Report }) {
               >
                 {fmtMoney(gex)}
               </div>
-
-              {/* Tag column — stacks multiple labels when a strike is both a
-                  wall and the spot anchor. Each tag carries its own color so
-                  the reader can match it to the strike-label color at a glance. */}
-              <div
-                style={{
-                  paddingLeft: 8,
-                  display: "flex",
-                  flexDirection: "column",
-                  justifyContent: "center",
-                  gap: 1,
-                  whiteSpace: "nowrap",
-                }}
-              >
-                {tags.map((t) => (
-                  <div
-                    key={t.label}
-                    style={{
-                      fontSize: 9,
-                      letterSpacing: 1,
-                      color: t.color,
-                      lineHeight: 1.2,
-                    }}
-                  >
-                    {t.label}
-                  </div>
-                ))}
-              </div>
             </div>
           );
         })}
+
+        {/* Overlay reference lines — placed above the bar grid so labels
+            never get hidden by row content. */}
+        <div
+          style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            pointerEvents: "none",
+          }}
+        >
+          {overlays.map((o) => (
+            <div
+              key={`${o.label}-${o.strike}`}
+              data-testid={`gex-overlay-${o.label.split(" ")[0].toLowerCase()}`}
+              style={{
+                position: "absolute",
+                left: LABEL_W,
+                right: 0,
+                top: o.y,
+                height: 0,
+                borderTop: `1px dashed ${o.color}`,
+                display: "flex",
+                justifyContent: "flex-end",
+                alignItems: "flex-start",
+              }}
+            >
+              <span
+                style={{
+                  background: "var(--bg-panel)",
+                  color: o.color,
+                  fontSize: 9,
+                  letterSpacing: 1,
+                  textTransform: "uppercase",
+                  padding: "1px 4px",
+                  marginTop: -7,
+                  marginRight: 2,
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {o.label}
+              </span>
+            </div>
+          ))}
+        </div>
+
         {strikes.length === 0 && (
           <div style={{ color: "var(--text-muted)", fontSize: 12 }}>
             No strike-gamma data in the ±{(WINDOW_PCT * 100).toFixed(0)}% window
