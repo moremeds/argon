@@ -163,6 +163,52 @@ class _WatchlistMixin:
                 ],
             )
 
+    def bulk_upsert_watchlist_card_quotes(
+        self,
+        rows: list[
+            tuple[
+                str,
+                Decimal,
+                datetime,
+                str,
+                Decimal | None,
+                Decimal | None,
+                Decimal | None,
+            ]
+        ],
+    ) -> None:
+        """Update spot triple + intraday return triple on existing cards.
+
+        Tuple shape: (ticker, price, quoted_at, source, ret_1d, ret_1w, ret_30d).
+        Returns may be None (e.g., insufficient OHLC history). Rows with no
+        existing card row are silently skipped. Does NOT commit — caller
+        controls the transaction.
+
+        Used by the WS writer to keep ret_1d/1w/30d in sync with the latest
+        WS spot (R9). Without this, returns would only update on full_scan /
+        rescan_tick and the dashboard cards would show stale returns
+        mid-session even though spot ticked.
+        """
+        if not rows:
+            return
+        with self._conn.cursor() as cur:
+            cur.executemany(
+                f"""
+                UPDATE {self._schema}.watchlist_card
+                SET spot           = %s,
+                    spot_quoted_at = %s,
+                    spot_source    = %s,
+                    ret_1d         = %s,
+                    ret_1w         = %s,
+                    ret_30d        = %s
+                WHERE ticker = %s
+                """,
+                [
+                    (price, quoted_at, source, r1d, r1w, r30d, ticker)
+                    for (ticker, price, quoted_at, source, r1d, r1w, r30d) in rows
+                ],
+            )
+
     def list_watchlist_cards(self) -> list[WatchlistCardRow]:
         """Return one row per active watchlist ticker.
 
