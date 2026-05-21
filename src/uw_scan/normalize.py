@@ -14,6 +14,7 @@ from .models import (
     EtfInfo,
     EtfInOutflowRow,
     FlowAlert,
+    GreekExposureByExpiryRow,
     GreekExposureRow,
     GreeksRow,
     InterpolatedIvRow,
@@ -107,6 +108,13 @@ def normalize_skew(payload: dict, expiry_hint: str | None = None) -> list[SkewRo
 def normalize_greek_exposure(payload: dict) -> list[GreekExposureRow]:
     rows = _data_list(payload)
     return [GreekExposureRow(**r) for r in rows]
+
+
+def normalize_greek_exposure_by_expiry(
+    payload: dict,
+) -> list[GreekExposureByExpiryRow]:
+    rows = _data_list(payload)
+    return [GreekExposureByExpiryRow(**r) for r in rows]
 
 
 def normalize_spot_exposures(payload: dict) -> list[SpotExposureRow]:

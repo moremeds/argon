@@ -22,6 +22,28 @@ class GreekExposureRow(_UwBase):
     call_charm: Decimal | None = None
     put_charm: Decimal | None = None
 
+
+class GreekExposureByExpiryRow(_UwBase):
+    """Aggregated greek exposure for one expiry across all strikes.
+
+    Returned by /api/stock/{ticker}/greek-exposure/expiry — gives the full
+    term structure in one call, but without per-strike granularity. Used for
+    the multi-expiry dropdown on the Vanna/Charm sub-tabs.
+    """
+
+    date: _date
+    expiry: _date
+    dte: int | None = None
+    call_delta: Decimal | None = None
+    put_delta: Decimal | None = None
+    call_gex: Decimal | None = None
+    put_gex: Decimal | None = None
+    call_vanna: Decimal | None = None
+    put_vanna: Decimal | None = None
+    call_charm: Decimal | None = None
+    put_charm: Decimal | None = None
+
+
 class SpotExposureRow(_UwBase):
     ticker: str
     date: _date
@@ -37,6 +59,7 @@ class SpotExposureRow(_UwBase):
     put_vanna_oi: Decimal | None = None
     call_charm_oi: Decimal | None = None
     put_charm_oi: Decimal | None = None
+
 
 class GreeksRow(_UwBase):
     date: _date
@@ -64,6 +87,7 @@ class GreeksRow(_UwBase):
 
 _preserve_public_module(
     GreekExposureRow,
+    GreekExposureByExpiryRow,
     SpotExposureRow,
     GreeksRow,
 )

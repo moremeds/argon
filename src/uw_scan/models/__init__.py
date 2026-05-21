@@ -56,7 +56,12 @@ from .gold import (
     GoldValuationPostureModel,
     PostureChipState,
 )
-from .greeks import GreekExposureRow, GreeksRow, SpotExposureRow
+from .greeks import (
+    GreekExposureByExpiryRow,
+    GreekExposureRow,
+    GreeksRow,
+    SpotExposureRow,
+)
 from .matrix import MatrixSourceFreshness, MatrixState, SetupClassification
 from .options import (
     MaxPainRow,
@@ -168,6 +173,7 @@ __all__ = [
     "InterpolatedIvRow",
     "SkewRow",
     "GreekExposureRow",
+    "GreekExposureByExpiryRow",
     "SpotExposureRow",
     "GreeksRow",
     "OiPerStrikeRow",

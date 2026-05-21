@@ -19,6 +19,7 @@ from ..models import (
     EtfInfo,
     EtfInOutflowRow,
     FlowAlert,
+    GreekExposureByExpiryRow,
     GreekExposureRow,
     GreeksRow,
     InterpolatedIvRow,
@@ -214,6 +215,29 @@ def fetch_greek_exposure(
         params={"expiry": expiry},
     )
     return normalize.normalize_greek_exposure(body)
+
+
+def fetch_greek_exposure_by_expiry(
+    client: UwClient,
+    repo: Repository,
+    run_id: int,
+    ticker: str,
+) -> list[GreekExposureByExpiryRow]:
+    """Fetch /api/stock/{ticker}/greek-exposure/expiry — all expiries in one call.
+
+    Per-expiry aggregates across all strikes (call_vanna, put_vanna, call_charm,
+    put_charm, call_delta, put_delta, call_gex, put_gex, dte). No strike-level
+    granularity. Used to populate the multi-expiry Vanna/Charm dropdown without
+    incurring N × greek-exposure/strike-expiry calls.
+    """
+    body = _fetch_json(
+        client,
+        repo,
+        run_id,
+        EndpointSlug.GREEK_EXPOSURE_BY_EXPIRY,
+        ticker,
+    )
+    return normalize.normalize_greek_exposure_by_expiry(body)
 
 
 def fetch_greek_exposure_by_strike(

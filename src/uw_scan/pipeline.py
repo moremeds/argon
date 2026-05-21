@@ -219,17 +219,37 @@ def run_single_stock(
             )
         repo.set_strike_gex_curve(run_id, curve)
 
-        # 8c. Vanna/Charm derived summary per expiry (raw rows already in step 8).
+        # 8c. Multi-expiry vanna/charm summary. One call to /greek-exposure/expiry
+        # gives aggregates for the full term structure; we upsert aggregate-only
+        # rows for all expiries first, then the strike-detail pass below
+        # overwrites the nearest expiry with strike-derived fields (top strike,
+        # vanna_flip, charm pin/imbalance/flip, signal_quality).
+        spot_for_derive = _safe_spot_for_derive(repo, ticker)
+        agg_rows = uw_sources.fetch_greek_exposure_by_expiry(
+            client, repo, run_id, ticker
+        )
+        if agg_rows:
+            agg_summary_rows = cards_exposures.build_summary_rows_from_aggregate(
+                list(agg_rows), spot=spot_for_derive
+            )
+            repo.upsert_exposures_summary(
+                run_id=run_id,
+                ticker=ticker,
+                market_date=_date.today(),
+                rows=agg_summary_rows,
+            )
+
+        # 8d. Strike-detail pass: overwrites the nearest expiry's row with the
+        # strike-derived fields that the aggregate endpoint can't provide.
         if ge_rows:
-            spot_for_derive = _safe_spot_for_derive(repo, ticker)
-            summary_rows = cards_exposures.build_summary_rows(
+            strike_summary_rows = cards_exposures.build_summary_rows(
                 list(ge_rows), spot=spot_for_derive
             )
             repo.upsert_exposures_summary(
                 run_id=run_id,
                 ticker=ticker,
                 market_date=_date.today(),
-                rows=summary_rows,
+                rows=strike_summary_rows,
             )
 
         # 9. Spot exposures (we already persisted in 8 via exposures table; spot row stored only as raw + audit)

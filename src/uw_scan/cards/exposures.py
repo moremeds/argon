@@ -12,7 +12,11 @@ from collections import defaultdict
 from datetime import date
 from decimal import Decimal
 
-from uw_scan.models import ExposuresSummaryRow, GreekExposureRow
+from uw_scan.models import (
+    ExposuresSummaryRow,
+    GreekExposureByExpiryRow,
+    GreekExposureRow,
+)
 
 log = logging.getLogger(__name__)
 
@@ -259,6 +263,31 @@ def charm_narrative(
     )
 
 
+def _charm_narrative_from_net(
+    net_charm_value: Decimal | None,
+) -> tuple[str, str]:
+    """Headline + subtitle derived from net charm alone (no strike split).
+
+    Used for aggregate rows where we can't compute above/below positioning. The
+    quality gate in :func:`charm_narrative` requires strike data; here we fall
+    back to a |net_charm| threshold to decide between "Limited" and SELL/BUY.
+    """
+    if net_charm_value is None or abs(net_charm_value) < NEUTRAL_CHARM_THRESHOLD:
+        return (
+            "Limited charm pressure into the close",
+            "Net charm positioning is balanced or thin; mechanical hedging pressure is muted.",
+        )
+    if net_charm_value < 0:
+        return (
+            "Mechanical SELL pressure into the close",
+            "Dealer sell pressure may cap rallies as theta drives delta unwind.",
+        )
+    return (
+        "Mechanical BUY pressure into the close",
+        "Dealer buy pressure may support the tape as theta drives delta accumulation.",
+    )
+
+
 # --- top-level builder -----------------------------------------------------
 
 
@@ -315,6 +344,63 @@ def build_summary_rows(
                 charm_imbalance_pct=imb,
                 charm_signal_quality=c_quality,
                 charm_flip=c_flip,
+                charm_headline=c_head,
+                charm_subtitle=c_sub,
+            )
+        )
+    return out
+
+
+def build_summary_rows_from_aggregate(
+    rows: list[GreekExposureByExpiryRow],
+    spot: Decimal | None,
+) -> list[ExposuresSummaryRow]:
+    """Build per-expiry summary rows from /greek-exposure/expiry aggregates.
+
+    Each aggregate row already represents one expiry, so no grouping needed.
+    Strike-derived fields (top strike, vanna_flip, charm pin/imbalance/flip,
+    signal_quality) are left None — they require per-strike data which this
+    endpoint doesn't return. The Vanna/Charm panels use this for the multi-
+    expiry dropdown; the nearest expiry gets a second pass from
+    :func:`build_summary_rows` that fills the strike-derived fields.
+    """
+    if not rows:
+        return []
+
+    out: list[ExposuresSummaryRow] = []
+    for r in sorted(rows, key=lambda x: x.expiry):
+        cv = r.call_vanna or Decimal("0")
+        pv = r.put_vanna or Decimal("0")
+        cc = r.call_charm or Decimal("0")
+        pc = r.put_charm or Decimal("0")
+        any_vanna = r.call_vanna is not None or r.put_vanna is not None
+        any_charm = r.call_charm is not None or r.put_charm is not None
+        nv = (cv + pv) if any_vanna else None
+        nc = (cc + pc) if any_charm else None
+        v_regime = vanna_regime(nv)
+        v_head, v_sub = vanna_narrative(nv, v_regime)
+        c_head, c_sub = _charm_narrative_from_net(nc)
+
+        out.append(
+            ExposuresSummaryRow(
+                expiry=r.expiry,
+                dte=r.dte,
+                spot=spot,
+                net_vanna=nv,
+                top_vanna_strike=None,
+                top_vanna_value=None,
+                delta_shock_1pt_iv=(nv * ONE_VOL_POINT) if nv is not None else None,
+                vanna_regime=v_regime,
+                vanna_flip=None,
+                vanna_headline=v_head,
+                vanna_subtitle=v_sub,
+                net_charm=nc,
+                charm_pin_strike=None,
+                charm_above_sum=None,
+                charm_below_sum=None,
+                charm_imbalance_pct=None,
+                charm_signal_quality=None,
+                charm_flip=None,
                 charm_headline=c_head,
                 charm_subtitle=c_sub,
             )

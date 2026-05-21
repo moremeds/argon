@@ -177,14 +177,35 @@ export function VannaPanel({ ticker, strikeExposures, summary }: Props) {
         />
       </div>
 
-      <ExpiryDropdown
-        options={sortedSummary.map((r) => ({
-          value: r.expiry,
-          label: `${r.expiry}${r.dte != null ? ` (${r.dte}d)` : ""}`,
-        }))}
-        value={summaryRow.expiry}
-        onChange={setSelected}
-      />
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 12,
+          flexWrap: "wrap",
+        }}
+      >
+        <ExpiryDropdown
+          options={sortedSummary.map((r) => ({
+            value: r.expiry,
+            label: `${r.expiry}${r.dte != null ? ` (${r.dte}d)` : ""}`,
+          }))}
+          value={summaryRow.expiry}
+          onChange={setSelected}
+        />
+        {rowsForExpiry.length === 0 && (
+          <span
+            style={{
+              fontSize: 11,
+              fontFamily: "var(--font-mono)",
+              color: "var(--text-muted)",
+              fontStyle: "italic",
+            }}
+          >
+            Aggregate only — per-strike chart available on nearest expiry.
+          </span>
+        )}
+      </div>
 
       <div
         style={{
