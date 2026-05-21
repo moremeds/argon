@@ -592,6 +592,28 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/regime/dealer": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Dealer Regime
+         * @description Per-ticker dealer Greek regime — feeds the Magnet/Gamma summary bar
+         *     and the Volatility tab regime panel. Uses the same `gather_inputs`
+         *     helper the report assembler uses so both paths see the same upstream.
+         */
+        get: operations["get_dealer_regime_api_regime_dealer_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/regime/guidance": {
         parameters: {
             query?: never;
@@ -830,6 +852,27 @@ export interface components {
              * @default false
              */
             requires_t1_oi_confirmation: boolean;
+        };
+        /** ClosestLevel */
+        ClosestLevel: {
+            /** Label */
+            label: string;
+            /** Direction */
+            direction?: ("up" | "down" | "flip") | null;
+            /** Role */
+            role?: ("support" | "resistance" | "accelerator" | "flip") | null;
+            /** Strike */
+            strike: number;
+            /** Distance Pct */
+            distance_pct: number;
+            /** Gamma */
+            gamma?: number | null;
+            /**
+             * Rank Kind
+             * @default nearest
+             * @enum {string}
+             */
+            rank_kind: "nearest" | "dominant";
         };
         /** CockpitDealerMetrics */
         CockpitDealerMetrics: {
@@ -1270,6 +1313,132 @@ export interface components {
             selling_usd_b?: number | null;
         };
         /**
+         * DealerRegime
+         * @description Per-ticker dealer Greek regime — attached to SingleStockReport so the
+         *     Market Structure → GEX tab can render the magnet/gamma bar without an
+         *     extra round-trip. The /regime/dealer endpoint returns the full shape for
+         *     the Volatility tab.
+         */
+        DealerRegime: {
+            /**
+             * Label
+             * @default neutral
+             */
+            label: string;
+            /**
+             * Score
+             * @default 0
+             */
+            score: string;
+            /**
+             * Gamma Score
+             * @default 0
+             */
+            gamma_score: string;
+            /**
+             * Vanna Score
+             * @default 0
+             */
+            vanna_score: string;
+            /**
+             * Charm Score
+             * @default 0
+             */
+            charm_score: string;
+            /**
+             * Headline
+             * @default
+             */
+            headline: string;
+            /**
+             * Subtitle
+             * @default
+             */
+            subtitle: string;
+            /** Prev Close Net Gex */
+            prev_close_net_gex?: string | null;
+            /** Odte Net Gex */
+            odte_net_gex?: string | null;
+            /** Odte Share Pct */
+            odte_share_pct?: string | null;
+        };
+        /** DealerRegimeResponse */
+        DealerRegimeResponse: {
+            /**
+             * Status
+             * @default empty
+             * @enum {string}
+             */
+            status: "ok" | "empty";
+            /**
+             * Ticker
+             * @default
+             */
+            ticker: string;
+            /**
+             * Scan Time
+             * @default
+             */
+            scan_time: string;
+            /** Spot */
+            spot?: number | null;
+            /** Net Gex */
+            net_gex?: number | null;
+            /** Prev Close Net Gex */
+            prev_close_net_gex?: number | null;
+            signal?: components["schemas"]["DealerRegimeSignal"];
+            /** Closest Levels */
+            closest_levels?: components["schemas"]["ClosestLevel"][];
+            /** Odte Gex */
+            odte_gex?: number | null;
+            /** Odte Share Pct */
+            odte_share_pct?: number | null;
+            /** Gamma Decay */
+            gamma_decay?: components["schemas"]["GammaDecayBucket"][];
+        };
+        /**
+         * DealerRegimeSignal
+         * @description Per-ticker dealer regime classification (Γ-driven, with V/C support).
+         */
+        DealerRegimeSignal: {
+            /**
+             * Label
+             * @default neutral
+             * @enum {string}
+             */
+            label: "amplifying" | "dampening" | "neutral";
+            /**
+             * Score
+             * @default 0
+             */
+            score: number;
+            /**
+             * Gamma Score
+             * @default 0
+             */
+            gamma_score: number;
+            /**
+             * Vanna Score
+             * @default 0
+             */
+            vanna_score: number;
+            /**
+             * Charm Score
+             * @default 0
+             */
+            charm_score: number;
+            /**
+             * Headline
+             * @default
+             */
+            headline: string;
+            /**
+             * Subtitle
+             * @default
+             */
+            subtitle: string;
+        };
+        /**
          * DiscoveryCandidate
          * @description Non-watchlist ticker surfaced by the market-wide flow-alerts feed.
          *
@@ -1493,6 +1662,21 @@ export interface components {
             expiring_pct?: string | null;
             /** Expiring Date */
             expiring_date?: string | null;
+        };
+        /** GammaDecayBucket */
+        GammaDecayBucket: {
+            /** Dte */
+            dte: number;
+            /** Expiry */
+            expiry: string;
+            /** Net Gex */
+            net_gex?: number | null;
+            /** Share Pct */
+            share_pct?: number | null;
+            /** Gross Abs Gex */
+            gross_abs_gex?: number | null;
+            /** Gross Share Pct */
+            gross_share_pct?: number | null;
         };
         /** GexBias */
         GexBias: {
@@ -3276,6 +3460,7 @@ export interface components {
             exposures_summary: components["schemas"]["ExposuresSummaryRow"][];
             /** Next Earnings Date */
             next_earnings_date?: string | null;
+            dealer_regime?: components["schemas"]["DealerRegime"] | null;
         };
         /** SkewBlock */
         SkewBlock: {
@@ -5627,6 +5812,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["VcgScanResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_dealer_regime_api_regime_dealer_get: {
+        parameters: {
+            query: {
+                ticker: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DealerRegimeResponse"];
                 };
             };
             /** @description Validation Error */
