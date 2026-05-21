@@ -12,16 +12,22 @@ from uw_scan.api.client import UwClient
 from uw_scan.api.deps import get_repo, get_settings
 from uw_scan.api.schemas import (
     EMPTY_CRI_RESPONSE,
+    EMPTY_DEALER_REGIME_RESPONSE,
     EMPTY_GEX_RESPONSE,
     EMPTY_VCG_RESPONSE,
+    ClosestLevel,
     CriResponse,
     CriScanResponse,
+    DealerRegimeResponse,
+    DealerRegimeSignal,
+    GammaDecayBucket,
     GexHistoryEntry,
     GexResponse,
     VcgResponse,
     VcgScanResponse,
     VolBackdropResponse,
 )
+from uw_scan.cards.dealer_regime import compute_dealer_regime, gather_inputs
 from uw_scan.config import Settings
 from uw_scan.scanners import cri as cri_scanner
 from uw_scan.scanners import gex as gex_scanner
@@ -212,3 +218,78 @@ def trigger_vcg_scan(
     if row_id is None:
         return VcgScanResponse(status="skipped", proxy=proxy_upper, reason="thin_data")
     return VcgScanResponse(status="ok", proxy=proxy_upper, row_id=row_id)
+
+
+# ─── Dealer regime (per-ticker, live) ─────────────────────────────
+
+
+@router.get("/dealer", response_model=DealerRegimeResponse)
+def get_dealer_regime(
+    repo: Annotated[Repository, Depends(get_repo)],
+    ticker: str = Query(..., min_length=1, max_length=10),
+) -> DealerRegimeResponse:
+    """Per-ticker dealer Greek regime — feeds the Magnet/Gamma summary bar
+    and the Volatility tab regime panel. Uses the same `gather_inputs`
+    helper the report assembler uses so both paths see the same upstream.
+    """
+    t = ticker.upper()
+    inputs = gather_inputs(repo, ticker=t)
+    if inputs["run_id"] == 0:
+        empty = EMPTY_DEALER_REGIME_RESPONSE.model_copy(deep=True)
+        empty.ticker = t
+        return empty
+
+    out = compute_dealer_regime(
+        ticker=t,
+        spot=inputs["spot"],
+        net_gex=inputs["net_gex"],
+        prev_close_net_gex=inputs["prev_close_net_gex"],
+        per_expiry_vanna=inputs["per_expiry_vanna"],
+        per_expiry_charm=inputs["per_expiry_charm"],
+        strike_gex_curve=inputs["strike_gex_curve"],
+        levels=inputs["levels"],
+        today=inputs["today"],
+    )
+
+    return DealerRegimeResponse(
+        status="ok",
+        ticker=t,
+        scan_time="",
+        spot=out.spot,
+        net_gex=out.net_gex,
+        prev_close_net_gex=out.prev_close_net_gex,
+        signal=DealerRegimeSignal(
+            label=out.signal.label,
+            score=out.signal.score,
+            gamma_score=out.signal.gamma_score,
+            vanna_score=out.signal.vanna_score,
+            charm_score=out.signal.charm_score,
+            headline=out.signal.headline,
+            subtitle=out.signal.subtitle,
+        ),
+        closest_levels=[
+            ClosestLevel(
+                label=l.label,
+                direction=l.direction,
+                role=l.role,
+                strike=l.strike,
+                distance_pct=l.distance_pct,
+                gamma=l.gamma,
+                rank_kind=l.rank_kind,
+            )
+            for l in out.closest_levels
+        ],
+        odte_gex=out.odte_gex,
+        odte_share_pct=out.odte_share_pct,
+        gamma_decay=[
+            GammaDecayBucket(
+                dte=b.dte,
+                expiry=b.expiry,
+                net_gex=b.net_gex,
+                share_pct=b.share_pct,
+                gross_abs_gex=b.gross_abs_gex,
+                gross_share_pct=b.gross_share_pct,
+            )
+            for b in out.gamma_decay
+        ],
+    )

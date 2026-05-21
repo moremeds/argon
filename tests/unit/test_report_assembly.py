@@ -236,6 +236,17 @@ class _StubRepo:
     def get_aggregates(self, run_id: int):
         return None
 
+    def latest_run_id(self, ticker: str) -> int:
+        # gather_inputs short-circuits with all-None when run_id == 0,
+        # which is exactly what this unit test needs (no dealer regime).
+        return 0
+
+    def fetch_realized_vol_latest(self, ticker: str):
+        return None
+
+    def fetch_exposures_summary(self, run_id: int, ticker: str) -> list[dict]:
+        return []
+
     def get_options_timeline(self, ticker: str, lookback_days: int = 180):
         from uw_scan.models import OptionsDailyRow
 

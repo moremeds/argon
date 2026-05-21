@@ -10,9 +10,11 @@ from datetime import UTC, datetime
 from datetime import date as _date
 from decimal import Decimal
 
+from ..cards.dealer_regime import compute_dealer_regime, gather_inputs
 from ..cards.gex import compute_market_structure_levels
 from ..cards.intraday_profile import derive_intraday_profile
 from ..models import (
+    DealerRegime,
     ExposuresSummaryRow,
     FlowAlert,
     FlowSnapshot,
@@ -537,6 +539,43 @@ def assemble_single_stock_report(
         None,
     )
 
+    # Dealer regime — same gather_inputs helper the /regime/dealer endpoint
+    # uses, so both paths share one source of truth.
+    dr_inputs = gather_inputs(repo, ticker=ticker)
+    dr_out = compute_dealer_regime(
+        ticker=ticker.upper(),
+        spot=dr_inputs["spot"],
+        net_gex=dr_inputs["net_gex"],
+        prev_close_net_gex=dr_inputs["prev_close_net_gex"],
+        per_expiry_vanna=dr_inputs["per_expiry_vanna"],
+        per_expiry_charm=dr_inputs["per_expiry_charm"],
+        strike_gex_curve=dr_inputs["strike_gex_curve"],
+        levels=dr_inputs["levels"],
+        today=dr_inputs["today"],
+    )
+    dealer_regime_model = DealerRegime(
+        label=dr_out.signal.label,
+        score=Decimal(str(dr_out.signal.score)),
+        gamma_score=Decimal(str(dr_out.signal.gamma_score)),
+        vanna_score=Decimal(str(dr_out.signal.vanna_score)),
+        charm_score=Decimal(str(dr_out.signal.charm_score)),
+        headline=dr_out.signal.headline,
+        subtitle=dr_out.signal.subtitle,
+        prev_close_net_gex=(
+            Decimal(str(dr_out.prev_close_net_gex))
+            if dr_out.prev_close_net_gex is not None
+            else None
+        ),
+        odte_net_gex=(
+            Decimal(str(dr_out.odte_gex)) if dr_out.odte_gex is not None else None
+        ),
+        odte_share_pct=(
+            Decimal(str(dr_out.odte_share_pct))
+            if dr_out.odte_share_pct is not None
+            else None
+        ),
+    )
+
     return SingleStockReport(
         run_id=run_id,
         ticker=ticker,
@@ -561,6 +600,7 @@ def assemble_single_stock_report(
         strike_exposures=strike_exposures,
         exposures_summary=exposures_summary,
         next_earnings_date=next_earnings_date,
+        dealer_regime=dealer_regime_model,
     )
 
 
