@@ -92,6 +92,51 @@ def test_parses_real_uw_shape_call_gamma_put_gamma() -> None:
     assert rows[0]["put_delta"] == pytest.approx(-122956330.6777)
 
 
+def test_coalesces_when_call_gamma_is_explicit_null() -> None:
+    """If UW (or a cached older payload) carries ``call_gamma: None`` while
+    ``call_gex`` is populated, we should fall back to ``call_gex``. The naive
+    ``r.get('call_gamma', r.get('call_gex', 0))`` returns ``None`` here and
+    short-circuits past the fallback — _coalesce fixes that."""
+    body = {
+        "data": [
+            {
+                "date": "2026-05-20",
+                "call_gamma": None,
+                "put_gamma": None,
+                "call_gex": "42",
+                "put_gex": "-17",
+                "call_delta": "1",
+                "put_delta": "-1",
+            },
+        ]
+    }
+    rows = parse_greek_exposure_history(body)
+    assert len(rows) == 1
+    assert rows[0]["call_gex"] == pytest.approx(42.0)
+    assert rows[0]["put_gex"] == pytest.approx(-17.0)
+
+
+def test_call_gamma_wins_when_both_keys_present() -> None:
+    """If both ``call_gamma`` and ``call_gex`` are present and non-null,
+    ``call_gamma`` (the current UW shape) takes precedence."""
+    body = {
+        "data": [
+            {
+                "date": "2026-05-20",
+                "call_gamma": "100",
+                "put_gamma": "-50",
+                "call_gex": "999",
+                "put_gex": "-999",
+                "call_delta": "0",
+                "put_delta": "0",
+            },
+        ]
+    }
+    rows = parse_greek_exposure_history(body)
+    assert rows[0]["call_gex"] == pytest.approx(100.0)
+    assert rows[0]["put_gex"] == pytest.approx(-50.0)
+
+
 def test_accepts_iso_date_strings_or_date_objects() -> None:
     body = {
         "data": [

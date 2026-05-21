@@ -46,13 +46,12 @@ def parse_greek_exposure_history(body: dict | None) -> list[dict]:
             # UW history payload uses ``call_gamma`` / ``put_gamma`` keys
             # (dollar gamma exposure summed across strikes). Older
             # snapshots may use ``call_gex`` / ``put_gex``; coalesce both
-            # so cached payloads round-trip.
-            call_gex = float(
-                r.get("call_gamma", r.get("call_gex", 0)) or 0,
-            )
-            put_gex = float(
-                r.get("put_gamma", r.get("put_gex", 0)) or 0,
-            )
+            # so cached payloads round-trip. ``dict.get(key, default)``
+            # returns the explicit ``None`` if the key exists with value
+            # ``None`` — that short-circuits past the fallback key — so
+            # we coalesce manually instead.
+            call_gex = float(_coalesce(r, "call_gamma", "call_gex") or 0)
+            put_gex = float(_coalesce(r, "put_gamma", "put_gex") or 0)
             call_delta = float(r.get("call_delta", 0) or 0)
             put_delta = float(r.get("put_delta", 0) or 0)
         except (TypeError, ValueError) as exc:
@@ -71,6 +70,20 @@ def parse_greek_exposure_history(body: dict | None) -> list[dict]:
         )
     out.sort(key=lambda r: r["date"])
     return out
+
+
+def _coalesce(row: dict, primary: str, fallback: str) -> Any:
+    """Return the first non-None value across the two keys.
+
+    Unlike ``row.get(primary, row.get(fallback, 0))`` which returns the
+    explicit ``None`` when ``primary`` is present-but-null (and therefore
+    never consults ``fallback``), this picks the fallback whenever
+    ``primary`` is missing OR null.
+    """
+    v = row.get(primary)
+    if v is None:
+        v = row.get(fallback)
+    return v
 
 
 def _coerce_date(v: Any) -> date | None:

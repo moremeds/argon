@@ -206,7 +206,19 @@ def run_single_stock(
                 valid_term.sort(key=lambda r: r.expiry)
                 nearest_expiry = valid_term[0].expiry
         if nearest_expiry is None:
+            # Loud fallback: either UW returned no term_rows at all, or
+            # every row was already-expired. The next-Friday synthetic may
+            # not exist on UW (no chain for that date) — surface via WARN
+            # so the operator can investigate instead of silently fetching
+            # an empty per-strike partition.
             nearest_expiry = _next_friday(today_et)
+            logger.warning(
+                "term_structure_fallback ticker=%s reason=%s today_et=%s synthetic_expiry=%s",
+                ticker,
+                "empty" if not term_rows else "all_expired",
+                today_et.isoformat(),
+                nearest_expiry.isoformat(),
+            )
         expiry_str = nearest_expiry.isoformat()
 
         # 7. Skew
