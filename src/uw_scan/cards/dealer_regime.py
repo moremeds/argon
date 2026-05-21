@@ -315,7 +315,53 @@ def _build_closest_levels(
     return nearest + dominant
 
 
-def _subtitle_from_closest(closest: list[_ClosestLevel], label: str) -> str:
+def _verb_for(*, gamma: float, label: str) -> str:
+    """Pick the dealer-behavior verb from the (Γ sign, regime label) pair.
+
+    Five distinct phrases — two for the canonical aligned cases (Long Γ +
+    dampening / Short Γ + amplifying), two for the conflicted cases where
+    V/C drag the blend opposite to the raw Γ posture, and one neutral.
+
+    Long  Γ + dampening  → "may sell into rallies"          (canonical)
+    Short Γ + amplifying → "may chase moves through it"     (canonical)
+    Long  Γ + amplifying → V/C overrides Γ; dealers chase   (conflict)
+    Short Γ + dampening  → V/C overrides Γ; dealers absorb  (conflict)
+    *      + neutral     → "flow is mixed near it"
+    """
+    if label == "neutral":
+        return "dealer flow is mixed near it"
+    # NEUTRAL_BAND on the blend can still flip with a tiny gamma — treat
+    # Γ near zero (≤0.05) as "flat" so the conflict phrasing only kicks
+    # in when the disagreement is meaningful.
+    if abs(gamma) <= 0.05:
+        return (
+            "dealer flow is mixed near it"
+            if label == "neutral"
+            else "dealers may absorb flow into it"
+            if label == "dampening"
+            else "dealers may push flow through it"
+        )
+    aligned = (gamma > 0 and label == "dampening") or (
+        gamma < 0 and label == "amplifying"
+    )
+    if aligned:
+        return (
+            "dealers may sell into rallies as price approaches it"
+            if label == "dampening"
+            else "dealers may chase moves through it"
+        )
+    # Conflict: raw gamma posture disagrees with the blended regime.
+    # V/C (vanna/charm) flow is overriding the gamma hedge direction.
+    return (
+        "vanna/charm flow may dampen moves despite the gamma posture"
+        if label == "dampening"
+        else "vanna/charm flow may amplify moves despite the gamma posture"
+    )
+
+
+def _subtitle_from_closest(
+    closest: list[_ClosestLevel], label: str, *, gamma: float
+) -> str:
     """Subtitle anchors on the DOMINANT level (largest |gamma|), not nearest."""
     if not closest:
         return ""
@@ -327,12 +373,7 @@ def _subtitle_from_closest(closest: list[_ClosestLevel], label: str) -> str:
         else ("support" if top.role == "support" else top.role or "")
     )
     side_phrase = f" ({side})" if side else ""
-    if label == "dampening":
-        verb = "dealers may sell into rallies as price approaches it"
-    elif label == "amplifying":
-        verb = "dealers may chase moves through it"
-    else:
-        verb = "dealer flow is mixed near it"
+    verb = _verb_for(gamma=gamma, label=label)
     return (
         f"Largest level is the {top.label.lower()}{side_phrase} at "
         f"${top.strike:.2f} — {verb}."
@@ -365,7 +406,9 @@ def compute_dealer_regime(
 
     signal = classify_regime(gamma=gamma_score, vanna=vanna_score, charm=charm_score)
     closest = _build_closest_levels(spot=spot_f, levels=levels)
-    signal.subtitle = _subtitle_from_closest(closest, signal.label)
+    signal.subtitle = _subtitle_from_closest(
+        closest, signal.label, gamma=signal.gamma_score
+    )
 
     decay = compute_gamma_decay(curve, today=today)
     odte_bucket = next((b for b in decay if b.dte == 0), None)

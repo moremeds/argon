@@ -8,6 +8,7 @@ from decimal import Decimal
 import pytest
 
 from uw_scan.cards.dealer_regime import (
+    _verb_for,
     classify_regime,
     compute_dealer_regime,
     compute_gamma_decay,
@@ -156,6 +157,43 @@ def test_compute_dealer_regime_assembles_full_signal() -> None:
     assert out.prev_close_net_gex == pytest.approx(440_500.0)
     assert out.odte_gex == pytest.approx(19_210.0)
     assert any(lvl.label.lower().startswith("call wall") for lvl in out.closest_levels)
+
+
+def test_verb_for_aligned_long_gamma_dampening() -> None:
+    """Canonical case: Long Γ + dampening blend → 'sell into rallies'."""
+    assert "sell into rallies" in _verb_for(gamma=0.7, label="dampening")
+
+
+def test_verb_for_aligned_short_gamma_amplifying() -> None:
+    """Canonical case: Short Γ + amplifying blend → 'chase moves through it'."""
+    assert "chase moves through it" in _verb_for(gamma=-0.7, label="amplifying")
+
+
+def test_verb_for_conflict_long_gamma_amplifying() -> None:
+    """Conflict: Long Γ but V/C drag blend amplifying → vanna/charm phrasing."""
+    verb = _verb_for(gamma=0.6, label="amplifying")
+    assert "vanna/charm" in verb
+    assert "amplify" in verb
+
+
+def test_verb_for_conflict_short_gamma_dampening() -> None:
+    """Conflict: Short Γ but V/C drag blend dampening → vanna/charm phrasing."""
+    verb = _verb_for(gamma=-0.6, label="dampening")
+    assert "vanna/charm" in verb
+    assert "dampen" in verb
+
+
+def test_verb_for_neutral_label_is_mixed() -> None:
+    assert _verb_for(gamma=0.5, label="neutral") == "dealer flow is mixed near it"
+    assert _verb_for(gamma=-0.5, label="neutral") == "dealer flow is mixed near it"
+
+
+def test_verb_for_flat_gamma_uses_flat_phrasing() -> None:
+    """Γ ≈ 0 should not trigger the conflict phrasing — the disagreement
+    only matters when raw Γ is non-trivial."""
+    verb = _verb_for(gamma=0.02, label="dampening")
+    assert "vanna/charm" not in verb
+    assert "absorb" in verb
 
 
 def test_compute_dealer_regime_handles_missing_inputs() -> None:
