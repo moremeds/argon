@@ -11,7 +11,7 @@ import { AppShell } from "@/components/shared/AppShell";
 export const metadata = {
   title: "Argon",
   description: "Per-ticker options analytics, watchlist-driven",
-  icons: { icon: "/rates-icon.svg" },
+  icons: { icon: "/favicon.svg" },
 };
 
 export default function RootLayout({
