@@ -2,7 +2,9 @@
 
 import { useState } from "react";
 import type { components } from "@/lib/types";
+import { GexHistoryChart } from "@/components/stock/panels/GexHistoryChart";
 import { GexProfileChart } from "@/components/stock/panels/GexProfileChart";
+import { MagnetGammaBar } from "@/components/stock/panels/MagnetGammaBar";
 import { CharmPanel } from "./CharmPanel";
 import { VannaPanel } from "./VannaPanel";
 
@@ -62,7 +64,13 @@ export function GreekSubTabs({ report }: { report: Report }) {
         ))}
       </div>
 
-      {tab === "GEX" && <GexProfileChart report={report} />}
+      {tab === "GEX" && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+          <MagnetGammaBar report={report} />
+          <GexProfileChart report={report} />
+          <GexHistoryChart ticker={report.ticker} />
+        </div>
+      )}
       {tab === "VANNA" && (
         <VannaPanel
           ticker={report.ticker}
