@@ -133,7 +133,7 @@ export function MagnetGammaBar({ report }: { report: Report }) {
           <div style={{ ...tileValue, color: deltaColor(netGex) }}>
             {fmtMoney(netGex)}{" "}
             <span style={{ color: "var(--text-muted)", fontSize: 11 }}>
-              {netGex != null && netGex >= 0 ? "Long" : "Short"}
+              {netGex == null ? "" : netGex >= 0 ? "Long" : "Short"}
             </span>
           </div>
         </div>
