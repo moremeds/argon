@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
 import { RatesDesk } from "@/components/rates/RatesDesk";
@@ -16,13 +16,18 @@ describe("RatesDesk", () => {
       "Policy",
       "Supply",
       "Positioning",
-      "Cross",
+      "Cross-Market",
       "Events",
-      "Sources",
-      "Synthesis",
+      "View",
     ]) {
       expect(screen.getByRole("link", { name: label })).toBeTruthy();
     }
+
+    expect(screen.getByText("US Rates Factor Desk")).toBeTruthy();
+    expect(screen.getByText("Treasury Factor Board")).toBeTruthy();
+    expect(
+      screen.getByText(/Snapshot update · .* HKT · FRED as of 2026-05-20/),
+    ).toBeTruthy();
 
     for (const label of ["2Y", "5Y", "10Y", "30Y", "2s10s", "5s30s"]) {
       expect(screen.getAllByText(label).length).toBeGreaterThan(0);
@@ -32,9 +37,78 @@ describe("RatesDesk", () => {
   it("renders the full eleven-tenor curve table", () => {
     render(<RatesDesk snapshot={SNAPSHOT} />);
 
+    const curveSection = screen.getByRole("region", {
+      name: /yield curve/i,
+    });
     for (const tenor of TENORS) {
-      expect(screen.getByRole("row", { name: new RegExp(`^${tenor}\\b`) })).toBeTruthy();
+      expect(
+        within(curveSection).getByRole("row", {
+          name: new RegExp(`^${tenor}\\b`),
+        }),
+      ).toBeTruthy();
     }
+  });
+
+  it("renders current, one-week, and one-month curve overlays from live deltas", () => {
+    render(<RatesDesk snapshot={SNAPSHOT} />);
+
+    expect(screen.getByText("PAR yield curve overlay")).toBeTruthy();
+    expect(screen.getByText("Current")).toBeTruthy();
+    expect(screen.getByText("1W ago")).toBeTruthy();
+    expect(screen.getByText("1M ago")).toBeTruthy();
+  });
+
+  it("surfaces summary duration and curve stance from the scorecard", () => {
+    render(<RatesDesk snapshot={SNAPSHOT} />);
+
+    expect(screen.getByText("Duration stance")).toBeTruthy();
+    expect(screen.getByText("Curve stance")).toBeTruthy();
+    expect(
+      screen.getAllByText("Neutral until the live FRED curve breaks range.")
+        .length,
+    ).toBeGreaterThan(1);
+    expect(screen.getAllByText("Curve still biased flatter.").length)
+      .toBeGreaterThan(1);
+  });
+
+  it("colors summary 1D bps changes by sign", () => {
+    render(<RatesDesk snapshot={SNAPSHOT} />);
+
+    expect(screen.getByText("-2.0 bps 1D").className).toContain(
+      "deltaNegative",
+    );
+    expect(screen.getByText("+5.0 bps 1D").className).toContain(
+      "deltaPositive",
+    );
+  });
+
+  it("renders deterministic rule interpretations for slope cards", () => {
+    render(<RatesDesk snapshot={SNAPSHOT} />);
+
+    expect(screen.getByText("3m10y")).toBeTruthy();
+    expect(
+      screen.getByText(/easing or term premium pressure is visible/),
+    ).toBeTruthy();
+    expect(screen.getByText(/Belly is rich versus wings/)).toBeTruthy();
+  });
+
+  it("renders a live decomposition dashboard with attribution rows", () => {
+    render(<RatesDesk snapshot={SNAPSHOT} />);
+
+    expect(screen.getByText("10Y nominal = real yield + inflation compensation")).toBeTruthy();
+    expect(screen.getByText("Nominal 10Y")).toBeTruthy();
+    expect(screen.getAllByText("Real 10Y").length).toBeGreaterThan(1);
+    expect(screen.getAllByText("Breakeven").length).toBeGreaterThan(1);
+    expect(screen.getByText("Live residual")).toBeTruthy();
+    expect(screen.getByText("Move attribution · bps")).toBeTruthy();
+    expect(
+      screen
+        .getAllByRole("row")
+        .some((row) =>
+          row.textContent?.includes("1M+35.0+23.0+12.00.0Real rate"),
+        ),
+    ).toBe(true);
+    expect(screen.getByText(/Real yield explains 23\.0 bps/)).toBeTruthy();
   });
 
   it("marks not-yet-wired source panels unavailable instead of filling static values", () => {

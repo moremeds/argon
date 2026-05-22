@@ -23,15 +23,15 @@ describe("AppShell", () => {
     expect(screen.getByRole("main").textContent).toContain("Dashboard content");
   });
 
-  it("renders /rates as a standalone full-width scroll viewport", () => {
+  it("renders /rates inside the normal Argon shell", () => {
     pathname = "/rates";
 
     render(<AppShell>Rates content</AppShell>);
 
-    expect(screen.queryByText("ARGON")).toBeNull();
+    expect(screen.getByText("ARGON")).toBeTruthy();
+    expect(screen.getByRole("link", { name: /Rates/ })).toBeTruthy();
     const main = screen.getByRole("main");
     expect(main.textContent).toContain("Rates content");
-    expect(main.style.height).toBe("100vh");
-    expect(main.style.overflowY).toBe("auto");
+    expect(main.className).toContain("main");
   });
 });

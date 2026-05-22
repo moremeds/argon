@@ -24,13 +24,27 @@ def test_build_rates_snapshot_populates_live_fred_sections_without_static_filler
             ],
             "DGS5": [_point(date(2026, 5, 20), "4.32")],
             "DGS10": [
+                _point(date(2025, 12, 31), "4.25"),
+                _point(date(2026, 4, 20), "4.32"),
                 _point(date(2026, 5, 13), "4.46"),
                 _point(date(2026, 5, 19), "4.61"),
                 _point(date(2026, 5, 20), "4.67"),
             ],
             "DGS30": [_point(date(2026, 5, 20), "5.18")],
-            "DFII10": [_point(date(2026, 5, 20), "2.13")],
-            "T10YIE": [_point(date(2026, 5, 20), "2.48")],
+            "DFII10": [
+                _point(date(2025, 12, 31), "1.95"),
+                _point(date(2026, 4, 20), "1.90"),
+                _point(date(2026, 5, 13), "2.00"),
+                _point(date(2026, 5, 19), "2.10"),
+                _point(date(2026, 5, 20), "2.13"),
+            ],
+            "T10YIE": [
+                _point(date(2025, 12, 31), "2.30"),
+                _point(date(2026, 4, 20), "2.42"),
+                _point(date(2026, 5, 13), "2.46"),
+                _point(date(2026, 5, 19), "2.45"),
+                _point(date(2026, 5, 20), "2.48"),
+            ],
             "T5YIFR": [_point(date(2026, 5, 20), "2.35")],
             "EFFR": [_point(date(2026, 5, 20), "3.63")],
             "SOFR": [_point(date(2026, 5, 20), "3.65")],
@@ -43,6 +57,9 @@ def test_build_rates_snapshot_populates_live_fred_sections_without_static_filler
     assert len(snapshot.curve.points) == 11
     assert next(tile for tile in snapshot.summary if tile.label == "10Y").value == 4.67
     assert snapshot.decomposition.nominal_10y == 4.67
+    assert snapshot.decomposition.attribution
+    assert snapshot.decomposition.attribution[0].window == "1D"
+    assert snapshot.decomposition.attribution[0].driver == "Real rate"
     assert snapshot.policy.effr == 3.63
     fed_assets = next(tile for tile in snapshot.policy.plumbing if tile.label == "Fed assets")
     assert fed_assets.value == 6728.5

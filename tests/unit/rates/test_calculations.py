@@ -6,6 +6,7 @@ from decimal import Decimal
 from uw_scan.rates.calculations import (
     compute_curve,
     compute_decomposition,
+    compute_decomposition_attribution,
     compute_slopes,
     compute_source_freshness,
     delta_bps,
@@ -99,6 +100,45 @@ def test_compute_decomposition_uses_live_nominal_real_and_breakeven():
     assert decomp.breakeven_10y == 2.48
     assert decomp.forward_inflation_5y5y == 2.35
     assert decomp.term_forward_compensation == 0.06
+
+
+def test_compute_decomposition_attribution_uses_live_history():
+    attribution = compute_decomposition_attribution(
+        {
+            "DGS10": [
+                _point(date(2025, 12, 31), "4.25"),
+                _point(date(2026, 4, 20), "4.32"),
+                _point(date(2026, 5, 13), "4.45"),
+                _point(date(2026, 5, 19), "4.55"),
+                _point(date(2026, 5, 20), "4.57"),
+            ],
+            "DFII10": [
+                _point(date(2025, 12, 31), "1.95"),
+                _point(date(2026, 4, 20), "1.90"),
+                _point(date(2026, 5, 13), "2.00"),
+                _point(date(2026, 5, 19), "2.10"),
+                _point(date(2026, 5, 20), "2.13"),
+            ],
+            "T10YIE": [
+                _point(date(2025, 12, 31), "2.30"),
+                _point(date(2026, 4, 20), "2.42"),
+                _point(date(2026, 5, 13), "2.45"),
+                _point(date(2026, 5, 19), "2.45"),
+                _point(date(2026, 5, 20), "2.44"),
+            ],
+        },
+        as_of=date(2026, 5, 20),
+    )
+
+    by_window = {row.window: row for row in attribution}
+
+    assert by_window["1D"].nominal_10y_bps == 2.0
+    assert by_window["1D"].real_10y_bps == 3.0
+    assert by_window["1D"].breakeven_10y_bps == -1.0
+    assert by_window["1D"].residual_bps == 0.0
+    assert by_window["1D"].driver == "Real rate"
+    assert by_window["1M"].nominal_10y_bps == 25.0
+    assert by_window["YTD"].nominal_10y_bps == 32.0
 
 
 def test_compute_source_freshness_marks_missing_series():

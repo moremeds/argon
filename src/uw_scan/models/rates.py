@@ -45,6 +45,16 @@ class RatesCurveSection(_UwBase):
     slopes: list[RatesSlopeMetric] = Field(default_factory=list)
 
 
+class RatesDecompositionAttribution(_UwBase):
+    window: Literal["1D", "1W", "1M", "YTD"]
+    nominal_10y_bps: float | None = None
+    real_10y_bps: float | None = None
+    breakeven_10y_bps: float | None = None
+    residual_bps: float | None = None
+    driver: str | None = None
+    status: RatesAvailability = "partial"
+
+
 class RatesDecomposition(_UwBase):
     nominal_10y: float | None = None
     real_10y: float | None = None
@@ -52,6 +62,7 @@ class RatesDecomposition(_UwBase):
     forward_inflation_5y5y: float | None = None
     term_forward_compensation: float | None = None
     status: RatesAvailability = "partial"
+    attribution: list[RatesDecompositionAttribution] = Field(default_factory=list)
 
 
 class RatesScorecardFactor(_UwBase):
@@ -146,6 +157,7 @@ _preserve_public_module(
     RatesCurvePoint,
     RatesSlopeMetric,
     RatesCurveSection,
+    RatesDecompositionAttribution,
     RatesDecomposition,
     RatesScorecardFactor,
     RatesScorecardGroup,

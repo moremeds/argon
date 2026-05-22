@@ -1,9 +1,9 @@
 .page {
   min-height: 100vh;
-  background: #f4f3fd;
-  color: #242033;
-  font-family: var(--font-sans), "Plus Jakarta Sans", Inter, system-ui, sans-serif;
-  padding: 22px;
+  background: var(--bg-base);
+  color: var(--text-primary);
+  font-family: var(--font-sans), Inter, system-ui, sans-serif;
+  padding: 24px;
   scroll-behavior: smooth;
 }
 
@@ -11,29 +11,66 @@
   position: sticky;
   top: 0;
   z-index: 10;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 18px;
-  padding: 18px 20px;
-  margin: -22px -22px 18px;
-  background: rgba(244, 243, 253, 0.92);
+  display: grid;
+  gap: 20px;
+  padding: 16px 0 12px;
+  margin: 0 auto 18px;
+  max-width: 1440px;
+  background: rgba(10, 15, 20, 0.88);
   backdrop-filter: blur(14px);
-  border-bottom: 1px solid #dedbec;
+  border-bottom: 1px solid var(--border-dim);
+}
+
+.headerTop {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.titleLockup {
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+  min-width: 0;
 }
 
 .header h1,
 .section h2,
 .emptyState h1 {
   margin: 0;
-  color: #242033;
+  color: var(--text-primary);
   font-weight: 700;
   letter-spacing: 0;
 }
 
 .header h1 {
-  font-size: clamp(28px, 4vw, 48px);
-  line-height: 1;
+  font-size: 26px;
+  line-height: 1.1;
+  white-space: nowrap;
+}
+
+.header h1 span {
+  color: var(--negative);
+}
+
+.titleLockup p,
+.headerMeta {
+  margin: 0;
+  color: var(--text-muted);
+  font-family: var(--font-mono), "IBM Plex Mono", monospace;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.headerMeta {
+  color: var(--text-secondary);
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  text-align: right;
+  white-space: nowrap;
 }
 
 .subhead,
@@ -51,13 +88,13 @@
 
 .subhead {
   margin: 8px 0 0;
-  color: #6a637f;
+  color: var(--text-secondary);
   font-size: 12px;
 }
 
 .eyebrow {
   margin: 0 0 6px;
-  color: #ff6b4a;
+  color: var(--positive);
   font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 1px;
@@ -65,30 +102,49 @@
 
 .nav {
   display: flex;
-  flex-wrap: wrap;
-  justify-content: flex-end;
+  flex-wrap: nowrap;
+  justify-content: flex-start;
   gap: 8px;
-  max-width: 760px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.nav::-webkit-scrollbar {
+  display: none;
 }
 
 .nav a {
-  color: #3c3754;
+  color: var(--text-secondary);
   text-decoration: none;
-  font-size: 12px;
-  border: 1px solid #dedbec;
+  font-size: 13px;
+  font-weight: 700;
+  border: 1px solid transparent;
   border-radius: 999px;
-  background: #ffffff;
-  padding: 8px 10px;
+  background: transparent;
+  padding: 10px 12px;
+  white-space: nowrap;
+}
+
+.nav a:hover,
+.navActive {
+  color: var(--text-primary);
+  background: var(--bg-hover);
+  border-color: var(--border-focus);
+}
+
+.navActive {
+  background: var(--text-primary);
+  border-color: var(--text-primary);
+  color: var(--bg-base);
 }
 
 .section {
   max-width: 1440px;
   margin: 0 auto 18px;
   padding: 20px;
-  background: #ffffff;
-  border: 1px solid #e2dff0;
+  background: var(--bg-panel);
+  border: 1px solid var(--border-dim);
   border-radius: 8px;
-  box-shadow: 0 12px 32px rgba(63, 48, 95, 0.08);
   scroll-margin-top: 104px;
 }
 
@@ -111,8 +167,8 @@
   min-height: 26px;
   padding: 0 10px;
   border-radius: 999px;
-  background: #fff4ef;
-  color: #b64a31;
+  background: rgba(5, 173, 152, 0.12);
+  color: var(--positive);
   font-size: 11px;
   text-transform: uppercase;
   white-space: nowrap;
@@ -126,16 +182,16 @@
 }
 
 .kpiTile {
-  border: 1px solid #e8e4f2;
+  border: 1px solid var(--border-dim);
   border-radius: 8px;
   padding: 14px;
-  background: #fbfaff;
+  background: var(--bg-panel-raised);
 }
 
 .kpiTile span,
 .kpiTile small {
   display: block;
-  color: #6d6682;
+  color: var(--text-muted);
   font-size: 11px;
   text-transform: uppercase;
 }
@@ -143,34 +199,170 @@
 .kpiTile strong {
   display: block;
   margin: 7px 0;
-  color: #242033;
+  color: var(--text-primary);
   font-size: 24px;
   letter-spacing: 0;
+}
+
+.summaryStack {
+  display: grid;
+  gap: 14px;
+}
+
+.stanceGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(260px, 1fr));
+  gap: 14px;
+}
+
+.stanceCard {
+  --stance-accent: var(--text-muted);
+  --stance-tint: rgba(74, 92, 113, 0.16);
+  position: relative;
+  min-height: 150px;
+  overflow: hidden;
+  border: 1px solid var(--border-dim);
+  border-radius: 8px;
+  background:
+    linear-gradient(135deg, var(--stance-tint), transparent 58%),
+    var(--bg-panel-raised);
+  padding: 18px;
+}
+
+.stanceWatermark {
+  position: absolute;
+  right: 18px;
+  bottom: 12px;
+  color: var(--stance-accent);
+  font-family: var(--font-mono), "IBM Plex Mono", monospace;
+  font-size: 42px;
+  font-weight: 800;
+  line-height: 1;
+  opacity: 0.16;
+  pointer-events: none;
+  user-select: none;
+}
+
+.stanceCard strong {
+  display: block;
+  margin-top: 16px;
+  color: var(--stance-accent);
+  font-size: 34px;
+  letter-spacing: 0;
+}
+
+.stanceCard p {
+  max-width: 540px;
+  margin: 10px 0 0;
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.stanceLabel {
+  color: var(--text-muted);
+  font-family: var(--font-mono), "IBM Plex Mono", monospace;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.stancePositive {
+  --stance-accent: var(--positive);
+  --stance-tint: rgba(5, 173, 152, 0.14);
+}
+
+.stanceNegative {
+  --stance-accent: var(--negative);
+  --stance-tint: rgba(255, 91, 113, 0.14);
+}
+
+.stanceNeutral {
+  --stance-accent: var(--text-secondary);
+  --stance-tint: rgba(74, 92, 113, 0.14);
 }
 
 .curveGrid {
   display: grid;
   grid-template-columns: minmax(320px, 1.4fr) minmax(320px, 0.8fr);
   gap: 16px;
+  align-items: stretch;
 }
 
 .chartPanel,
 .tableWrap {
   min-width: 0;
-  border: 1px solid #e8e4f2;
+  border: 1px solid var(--border-dim);
   border-radius: 8px;
   overflow: hidden;
-  background: #ffffff;
+  background: var(--bg-panel-raised);
+}
+
+.chartPanel {
+  display: flex;
+  flex-direction: column;
+}
+
+.chartHeader {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+  padding: 14px 16px 0;
+  font-family: var(--font-mono), "IBM Plex Mono", monospace;
+  font-size: 12px;
+  text-transform: uppercase;
+}
+
+.chartHeader strong {
+  color: var(--text-primary);
+  letter-spacing: 0.5px;
+}
+
+.chartLegend {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 12px;
+  color: var(--text-secondary);
+}
+
+.chartLegend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.chartLegend i {
+  width: 22px;
+  height: 3px;
+  border-radius: 999px;
 }
 
 .chartPanel svg {
   display: block;
   width: 100%;
-  min-height: 260px;
+  flex: 1;
+  min-height: 420px;
+}
+
+.currentCurve {
+  stroke: var(--positive);
+  background: var(--positive);
+}
+
+.weekCurve {
+  stroke: var(--info);
+  background: var(--info);
+}
+
+.monthCurve {
+  stroke: var(--text-muted);
+  background: var(--text-muted);
 }
 
 .svgLabel {
-  fill: #6d6682;
+  fill: var(--text-muted);
   font-size: 11px;
 }
 
@@ -183,7 +375,7 @@
 .curveTable th,
 .curveTable td {
   padding: 10px 12px;
-  border-bottom: 1px solid #eeeaf6;
+  border-bottom: 1px solid var(--border-dim);
   text-align: right;
 }
 
@@ -192,21 +384,372 @@
   text-align: left;
 }
 
-.metricStrip {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
+.deltaPositive {
+  color: var(--negative);
+}
+
+.deltaNegative {
+  color: var(--positive);
+}
+
+.deltaNeutral {
+  color: var(--text-secondary);
+}
+
+.kpiTile small.deltaPositive {
+  color: var(--negative);
+}
+
+.kpiTile small.deltaNegative {
+  color: var(--positive);
+}
+
+.kpiTile small.deltaNeutral {
+  color: var(--text-secondary);
+}
+
+.slopeCards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 14px;
   margin-top: 12px;
 }
 
-.metricStrip span,
+.slopeCard,
 .notePanel,
 .synthesis,
 .sourceRow {
-  border: 1px solid #e8e4f2;
+  border: 1px solid var(--border-dim);
   border-radius: 8px;
-  background: #fbfaff;
+  background: var(--bg-panel-raised);
   padding: 12px;
+}
+
+.slopeCard {
+  min-height: 112px;
+}
+
+.slopeCard span {
+  display: block;
+  color: var(--text-muted);
+  font-family: var(--font-mono), "IBM Plex Mono", monospace;
+  font-size: 11px;
+  text-transform: uppercase;
+}
+
+.slopeCard strong {
+  display: block;
+  margin-top: 12px;
+  color: var(--text-primary);
+  font-size: 28px;
+}
+
+.slopeCard p {
+  margin: 12px 0 0;
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.decompStack {
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+}
+
+.decompFormula,
+.decompDetailCard,
+.decompAttribution,
+.decompSources {
+  min-width: 0;
+  border: 1px solid var(--border-dim);
+  border-radius: 8px;
+  background: var(--bg-panel-raised);
+  padding: 18px;
+}
+
+.decompFormulaTop,
+.decompDetailTop {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: baseline;
+  margin-bottom: 18px;
+  min-width: 0;
+}
+
+.decompFormulaTop h3,
+.decompDetailTop h3 {
+  margin: 0;
+  color: var(--text-primary);
+  font-size: 15px;
+  letter-spacing: 0;
+}
+
+.decompFormulaTop span,
+.decompDetailTop span,
+.decompTile span,
+.decompTile small,
+.decompRows dt,
+.decompMoveTable,
+.decompBarRow span,
+.decompSourceGrid span {
+  font-family: var(--font-mono), "IBM Plex Mono", monospace;
+}
+
+.decompFormulaTop span,
+.decompDetailTop span {
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.decompEquation {
+  display: grid;
+  grid-template-columns: minmax(190px, 1.05fr) auto minmax(190px, 1fr) auto minmax(190px, 1fr) auto minmax(190px, 1fr);
+  gap: 12px;
+  align-items: center;
+  min-width: 0;
+}
+
+.decompTile {
+  min-width: 0;
+  min-height: 166px;
+  border: 1px solid var(--border-dim);
+  border-radius: 8px;
+  background: var(--bg-base);
+  padding: 16px;
+}
+
+.decompTilePrimary {
+  background:
+    linear-gradient(135deg, rgba(255, 91, 113, 0.12), transparent 62%),
+    var(--bg-base);
+}
+
+.decompTileAccent {
+  background:
+    linear-gradient(135deg, rgba(5, 173, 152, 0.12), transparent 62%),
+    var(--bg-base);
+}
+
+.decompTile span,
+.decompTile small {
+  display: block;
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.decompTile small {
+  margin-top: 4px;
+  color: var(--text-secondary);
+  text-transform: none;
+}
+
+.decompTile strong {
+  display: block;
+  margin: 24px 0 16px;
+  color: var(--text-primary);
+  font-size: 34px;
+  line-height: 1;
+}
+
+.decompTile p {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+
+.decompOperator {
+  color: var(--negative);
+  font-size: 28px;
+  font-weight: 800;
+  text-align: center;
+}
+
+.decompRead {
+  margin: 18px 0 0;
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.55;
+}
+
+.decompDetailGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(320px, 1fr));
+  gap: 16px;
+  min-width: 0;
+}
+
+.decompIdentity {
+  margin: 6px 0 16px;
+  padding: 14px 0;
+  border-top: 1px dashed var(--border-dim);
+  border-bottom: 1px solid var(--border-dim);
+  color: var(--text-primary);
+  font-family: var(--font-mono), "IBM Plex Mono", monospace;
+  font-size: 18px;
+  font-weight: 800;
+  text-align: center;
+}
+
+.decompRows {
+  margin: 0;
+}
+
+.decompRows div {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border-dim);
+}
+
+.decompRows dt {
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.decompRows dd {
+  margin: 0;
+  color: var(--text-primary);
+  font-size: 14px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.decompDetailCard p {
+  margin: 14px 0 0;
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.decompTableWrap {
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.decompMoveTable {
+  width: 100%;
+  min-width: 720px;
+  border-collapse: collapse;
+  color: var(--text-primary);
+  font-size: 12px;
+}
+
+.decompMoveTable th,
+.decompMoveTable td {
+  padding: 11px 12px;
+  border-bottom: 1px solid var(--border-dim);
+  text-align: right;
+}
+
+.decompMoveTable th:first-child,
+.decompMoveTable td:first-child {
+  text-align: left;
+}
+
+.decompMoveTable thead th {
+  color: var(--text-muted);
+  font-size: 11px;
+  text-transform: uppercase;
+}
+
+.decompMoveTable tbody th {
+  color: var(--text-primary);
+}
+
+.decompBars {
+  display: grid;
+  gap: 12px;
+  margin-top: 20px;
+}
+
+.decompBarRow {
+  display: grid;
+  grid-template-columns: 140px 1fr 56px;
+  gap: 14px;
+  align-items: center;
+}
+
+.decompBarRow span {
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.decompBarRow i {
+  display: block;
+  height: 10px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--bg-base);
+}
+
+.decompBarRow b {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+}
+
+.barPositive {
+  background: var(--negative);
+}
+
+.barNegative {
+  background: var(--positive);
+}
+
+.decompBarRow strong {
+  color: var(--text-primary);
+  font-size: 13px;
+  text-align: right;
+}
+
+.decompSourceGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(220px, 1fr));
+  gap: 14px;
+  min-width: 0;
+}
+
+.decompSourceGrid article {
+  min-height: 128px;
+  border: 1px solid var(--border-dim);
+  border-radius: 8px;
+  background: var(--bg-base);
+  padding: 16px;
+}
+
+.decompSourceGrid span {
+  display: block;
+  color: var(--negative);
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.decompSourceGrid strong {
+  display: block;
+  margin: 16px 0 10px;
+  color: var(--text-primary);
+  font-size: 20px;
+}
+
+.decompSourceGrid p {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 1.45;
 }
 
 .scorecard {
@@ -219,10 +762,14 @@
   display: flex;
   flex-direction: column;
   gap: 12px;
-  border: 1px solid #e8e4f2;
+  border: 1px solid var(--border-dim);
   border-radius: 8px;
-  background: #2c2842;
-  color: #ffffff;
+  background: linear-gradient(
+    180deg,
+    rgba(5, 173, 152, 0.16),
+    var(--bg-panel-raised)
+  );
+  color: var(--text-primary);
   padding: 18px;
 }
 
@@ -238,9 +785,9 @@
 }
 
 .scoreGroup {
-  border: 1px solid #e8e4f2;
+  border: 1px solid var(--border-dim);
   border-radius: 8px;
-  background: #fbfaff;
+  background: var(--bg-panel-raised);
   overflow: hidden;
 }
 
@@ -258,7 +805,7 @@
   gap: 8px;
   border: 0;
   background: transparent;
-  color: #242033;
+  color: var(--text-primary);
   font: inherit;
   font-weight: 700;
   text-align: left;
@@ -268,7 +815,7 @@
 .weightInput {
   display: grid;
   gap: 4px;
-  color: #6d6682;
+  color: var(--text-muted);
   font-size: 10px;
   text-transform: uppercase;
 }
@@ -276,10 +823,10 @@
 .weightInput input {
   width: 68px;
   padding: 7px 8px;
-  border: 1px solid #d9d5e8;
+  border: 1px solid var(--border-dim);
   border-radius: 6px;
-  background: #ffffff;
-  color: #242033;
+  background: var(--bg-base);
+  color: var(--text-primary);
 }
 
 .groupScore {
@@ -289,7 +836,7 @@
 }
 
 .factorList {
-  border-top: 1px solid #e8e4f2;
+  border-top: 1px solid var(--border-dim);
 }
 
 .factorRow {
@@ -297,21 +844,21 @@
   grid-template-columns: 1fr 1.2fr auto;
   gap: 12px;
   padding: 10px 12px;
-  border-top: 1px solid #f0edf7;
-  color: #4c465f;
+  border-top: 1px solid var(--border-dim);
+  color: var(--text-secondary);
   font-size: 13px;
 }
 
 .notePanel p,
 .synthesis p {
   margin: 6px 0 0;
-  color: #514b64;
+  color: var(--text-secondary);
 }
 
 .synthesis span {
   display: inline-block;
   margin: 8px 8px 0 0;
-  color: #8f2e3c;
+  color: var(--warning);
 }
 
 .sourceGrid {
@@ -332,7 +879,7 @@
 }
 
 .sourceRow span {
-  color: #6d6682;
+  color: var(--text-secondary);
   font-size: 12px;
 }
 
@@ -340,10 +887,9 @@
   max-width: 760px;
   margin: 16vh auto 0;
   padding: 28px;
-  border: 1px solid #e2dff0;
+  border: 1px solid var(--border-dim);
   border-radius: 8px;
-  background: #ffffff;
-  box-shadow: 0 12px 32px rgba(63, 48, 95, 0.08);
+  background: var(--bg-panel);
 }
 
 @media (max-width: 880px) {
@@ -353,12 +899,30 @@
 
   .header,
   .curveGrid,
-  .scorecard {
+  .scorecard,
+  .stanceGrid,
+  .decompDetailGrid,
+  .decompSourceGrid {
     grid-template-columns: 1fr;
   }
 
   .header {
     display: grid;
+  }
+
+  .decompEquation {
+    grid-template-columns: 1fr;
+  }
+
+  .decompFormulaTop,
+  .decompDetailTop {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .decompOperator {
+    transform: rotate(90deg);
   }
 
   .nav {

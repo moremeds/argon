@@ -3186,6 +3186,32 @@ export interface components {
              * @enum {string}
              */
             status: "ok" | "missing" | "partial" | "stale";
+            /** Attribution */
+            attribution?: components["schemas"]["RatesDecompositionAttribution"][];
+        };
+        /** RatesDecompositionAttribution */
+        RatesDecompositionAttribution: {
+            /**
+             * Window
+             * @enum {string}
+             */
+            window: "1D" | "1W" | "1M" | "YTD";
+            /** Nominal 10Y Bps */
+            nominal_10y_bps?: number | null;
+            /** Real 10Y Bps */
+            real_10y_bps?: number | null;
+            /** Breakeven 10Y Bps */
+            breakeven_10y_bps?: number | null;
+            /** Residual Bps */
+            residual_bps?: number | null;
+            /** Driver */
+            driver?: string | null;
+            /**
+             * Status
+             * @default partial
+             * @enum {string}
+             */
+            status: "ok" | "missing" | "partial" | "stale";
         };
         /** RatesEventItem */
         RatesEventItem: {

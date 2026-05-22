@@ -9,6 +9,7 @@ from typing import Any
 from uw_scan.models import (
     RatesCurvePoint,
     RatesDecomposition,
+    RatesDecompositionAttribution,
     RatesSlopeMetric,
     RatesSourceFreshness,
 )
@@ -89,7 +90,23 @@ def compute_decomposition(
         forward_inflation_5y5y=_float_pct(forward),
         term_forward_compensation=_float_pct(term_forward),
         status=status,
+        attribution=compute_decomposition_attribution(points_by_series, as_of=as_of),
     )
+
+
+def compute_decomposition_attribution(
+    points_by_series: dict[str, list[dict[str, Any]]], *, as_of: date
+) -> list[RatesDecompositionAttribution]:
+    windows = [
+        ("1D", as_of - timedelta(days=1)),
+        ("1W", as_of - timedelta(days=7)),
+        ("1M", as_of - timedelta(days=30)),
+        ("YTD", date(as_of.year, 1, 1)),
+    ]
+    return [
+        _decomposition_attribution_row(points_by_series, as_of, window, prior_date)
+        for window, prior_date in windows
+    ]
 
 
 def compute_source_freshness(
@@ -121,6 +138,75 @@ def _latest_value(
     as_of: date,
 ) -> Decimal | None:
     return _decimal_value(latest_on_or_before(points_by_series.get(series_id, []), as_of))
+
+
+def _decomposition_attribution_row(
+    points_by_series: dict[str, list[dict[str, Any]]],
+    as_of: date,
+    window: str,
+    prior_date: date,
+) -> RatesDecompositionAttribution:
+    nominal = _latest_value(points_by_series, "DGS10", as_of)
+    real = _latest_value(points_by_series, "DFII10", as_of)
+    breakeven = _breakeven_value(points_by_series, as_of)
+    prior_nominal = _latest_value(points_by_series, "DGS10", prior_date)
+    prior_real = _latest_value(points_by_series, "DFII10", prior_date)
+    prior_breakeven = _breakeven_value(points_by_series, prior_date)
+
+    nominal_delta = delta_bps(nominal, prior_nominal)
+    real_delta = delta_bps(real, prior_real)
+    breakeven_delta = delta_bps(breakeven, prior_breakeven)
+    residual = _residual_delta(nominal_delta, real_delta, breakeven_delta)
+    values = [nominal_delta, real_delta, breakeven_delta]
+    status = "ok" if all(value is not None for value in values) else (
+        "partial" if any(value is not None for value in values) else "missing"
+    )
+    return RatesDecompositionAttribution(
+        window=window,
+        nominal_10y_bps=nominal_delta,
+        real_10y_bps=real_delta,
+        breakeven_10y_bps=breakeven_delta,
+        residual_bps=residual,
+        driver=_attribution_driver(real_delta, breakeven_delta, residual),
+        status=status,
+    )
+
+
+def _breakeven_value(
+    points_by_series: dict[str, list[dict[str, Any]]], as_of: date
+) -> Decimal | None:
+    breakeven = _latest_value(points_by_series, "T10YIE", as_of)
+    if breakeven is not None:
+        return breakeven
+    nominal = _latest_value(points_by_series, "DGS10", as_of)
+    real = _latest_value(points_by_series, "DFII10", as_of)
+    return nominal - real if nominal is not None and real is not None else None
+
+
+def _residual_delta(
+    nominal_delta: float | None,
+    real_delta: float | None,
+    breakeven_delta: float | None,
+) -> float | None:
+    if nominal_delta is None or real_delta is None or breakeven_delta is None:
+        return None
+    return round(nominal_delta - real_delta - breakeven_delta, 1)
+
+
+def _attribution_driver(
+    real_delta: float | None,
+    breakeven_delta: float | None,
+    residual: float | None,
+) -> str | None:
+    candidates = [
+        ("Real rate", real_delta),
+        ("Breakeven", breakeven_delta),
+        ("Residual", residual),
+    ]
+    available = [(label, value) for label, value in candidates if value is not None]
+    if not available:
+        return None
+    return max(available, key=lambda item: abs(item[1]))[0]
 
 
 def _decimal_value(row: dict[str, Any] | None) -> Decimal | None:

@@ -41,7 +41,8 @@ export const SNAPSHOT: Snapshot = {
     slopes: [
       { label: "2s10s", value_bps: 57, status: "ok" },
       { label: "5s30s", value_bps: 75, status: "ok" },
-      { label: "2s5s10s", value_bps: -12, status: "ok" },
+      { label: "3m10y", value_bps: 85, status: "ok" },
+      { label: "2s5s10s butterfly", value_bps: -16, status: "ok" },
     ],
   },
   decomposition: {
@@ -51,6 +52,44 @@ export const SNAPSHOT: Snapshot = {
     forward_inflation_5y5y: 2.28,
     term_forward_compensation: 0.12,
     status: "ok",
+    attribution: [
+      {
+        window: "1D",
+        nominal_10y_bps: 3,
+        real_10y_bps: 2,
+        breakeven_10y_bps: 1,
+        residual_bps: 0,
+        driver: "Real rate",
+        status: "ok",
+      },
+      {
+        window: "1W",
+        nominal_10y_bps: 15,
+        real_10y_bps: 10,
+        breakeven_10y_bps: 5,
+        residual_bps: 0,
+        driver: "Real rate",
+        status: "ok",
+      },
+      {
+        window: "1M",
+        nominal_10y_bps: 35,
+        real_10y_bps: 23,
+        breakeven_10y_bps: 12,
+        residual_bps: 0,
+        driver: "Real rate",
+        status: "ok",
+      },
+      {
+        window: "YTD",
+        nominal_10y_bps: 42,
+        real_10y_bps: 19,
+        breakeven_10y_bps: 23,
+        residual_bps: 0,
+        driver: "Breakeven",
+        status: "ok",
+      },
+    ],
   },
   scorecard: {
     composite_score: 0.1,
@@ -109,7 +148,13 @@ export const SNAPSHOT: Snapshot = {
   positioning: { rows: [], status: "missing" },
   cross_market: {
     rows: [
-      { label: "10Y real", value: 2.12, unit: "%", delta_1d: null, status: "ok" },
+      {
+        label: "10Y real",
+        value: 2.12,
+        unit: "%",
+        delta_1d: null,
+        status: "ok",
+      },
     ],
     status: "partial",
   },

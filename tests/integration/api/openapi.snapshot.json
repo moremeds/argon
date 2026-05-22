@@ -8252,6 +8252,13 @@
       },
       "RatesDecomposition": {
         "properties": {
+          "attribution": {
+            "items": {
+              "$ref": "#/components/schemas/RatesDecompositionAttribution"
+            },
+            "title": "Attribution",
+            "type": "array"
+          },
           "breakeven_10y": {
             "anyOf": [
               {
@@ -8320,6 +8327,91 @@
           }
         },
         "title": "RatesDecomposition",
+        "type": "object"
+      },
+      "RatesDecompositionAttribution": {
+        "properties": {
+          "breakeven_10y_bps": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Breakeven 10Y Bps"
+          },
+          "driver": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Driver"
+          },
+          "nominal_10y_bps": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Nominal 10Y Bps"
+          },
+          "real_10y_bps": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Real 10Y Bps"
+          },
+          "residual_bps": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Residual Bps"
+          },
+          "status": {
+            "default": "partial",
+            "enum": [
+              "ok",
+              "missing",
+              "partial",
+              "stale"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "window": {
+            "enum": [
+              "1D",
+              "1W",
+              "1M",
+              "YTD"
+            ],
+            "title": "Window",
+            "type": "string"
+          }
+        },
+        "required": [
+          "window"
+        ],
+        "title": "RatesDecompositionAttribution",
         "type": "object"
       },
       "RatesEventItem": {
