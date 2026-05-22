@@ -410,10 +410,10 @@ function DecompositionFormula({ decomp }: { decomp: Decomposition }) {
       </div>
       <div className={styles.decompEquation}>
         <DecompositionCard
-          label="Nominal 10Y"
-          sublabel="DGS10"
-          value={decomp.nominal_10y}
-          footnote={`${bpsText(oneMonth?.nominal_10y_bps)} over 1M`}
+          label="Model nominal 10Y"
+          sublabel="Cleveland implied nominal"
+          value={decomp.model_nominal_10y}
+          footnote={`${bpsText(oneMonth?.model_nominal_10y_bps)} model 1M`}
           tone="primary"
         />
         <span className={styles.decompOperator}>=</span>
@@ -445,18 +445,26 @@ function DecompositionFormula({ decomp }: { decomp: Decomposition }) {
           value={decomp.inflation_risk_premium_10y}
           footnote={`${bpsText(oneMonth?.inflation_risk_premium_bps)} model 1M`}
         />
-        <span className={styles.decompOperator}>+</span>
-        <DecompositionCard
-          label="FRED residual"
-          sublabel="DGS10 - model-implied nominal"
-          value={decomp.fred_model_residual_10y}
-          footnote={`${bpsText(oneMonth?.fred_model_residual_bps)} over 1M`}
-        />
+      </div>
+      <div className={styles.decompReconcileGrid}>
+        <article>
+          <span>Live FRED 10Y</span>
+          <strong>{fmtValue(decomp.nominal_10y, "%", 2)}</strong>
+          <small>DGS10 · {bpsText(oneMonth?.nominal_10y_bps)} over 1M</small>
+        </article>
+        <article>
+          <span>Cleveland/FRED gap</span>
+          <strong>{fmtValue(decomp.fred_model_residual_10y, "%", 2)}</strong>
+          <small>
+            DGS10 minus model nominal ·{" "}
+            {bpsText(oneMonth?.fred_model_residual_bps)} over 1M
+          </small>
+        </article>
       </div>
       <p className={styles.decompRead}>
-        Rule read: the daily curve still comes from FRED, while the four-factor
-        decomposition uses Cleveland Fed model outputs. Residual is the gap
-        between live DGS10 and the model-implied nominal rate.
+        Rule read: the four-factor equation is the Cleveland monthly model. The
+        separate FRED gap reconciles that model-implied nominal rate to the live
+        daily DGS10 curve and is not an extra Clarida component.
       </p>
     </div>
   );

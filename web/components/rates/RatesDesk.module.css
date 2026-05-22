@@ -514,7 +514,6 @@
     minmax(0, 1fr) auto
     minmax(0, 1fr) auto
     minmax(0, 1fr) auto
-    minmax(0, 1fr) auto
     minmax(0, 1fr);
   gap: 8px;
   align-items: center;
@@ -581,6 +580,45 @@
   font-weight: 800;
   text-align: center;
   min-width: 18px;
+}
+
+.decompReconcileGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(220px, 1fr));
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.decompReconcileGrid article {
+  min-width: 0;
+  border: 1px solid var(--border-dim);
+  border-radius: 8px;
+  background: var(--bg-base);
+  padding: 13px;
+}
+
+.decompReconcileGrid span {
+  display: block;
+  color: var(--text-muted);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.decompReconcileGrid strong {
+  display: block;
+  margin-top: 8px;
+  color: var(--text-primary);
+  font-size: 24px;
+}
+
+.decompReconcileGrid small {
+  display: block;
+  margin-top: 6px;
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 700;
 }
 
 .decompRead {
@@ -984,6 +1022,10 @@
     align-items: flex-start;
     flex-direction: column;
     gap: 6px;
+  }
+
+  .decompReconcileGrid {
+    grid-template-columns: 1fr;
   }
 
   .nav {

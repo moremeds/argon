@@ -101,12 +101,15 @@ describe("RatesDesk", () => {
       ),
     ).toBeTruthy();
     expect(screen.getByText(/Cleveland Fed model · 2026-05-01/)).toBeTruthy();
-    expect(screen.getByText("Nominal 10Y")).toBeTruthy();
+    expect(screen.getByText("Model nominal 10Y")).toBeTruthy();
     expect(screen.getByText("Expected short real")).toBeTruthy();
     expect(screen.getAllByText("Expected short inflation").length).toBeGreaterThan(1);
     expect(screen.getAllByText("Real term premium").length).toBeGreaterThan(1);
     expect(screen.getAllByText("Inflation risk premium").length).toBeGreaterThan(1);
     expect(screen.getAllByText("FRED residual").length).toBeGreaterThan(1);
+    expect(screen.getByText("Live FRED 10Y")).toBeTruthy();
+    expect(screen.getByText("Cleveland/FRED gap")).toBeTruthy();
+    expect(screen.getByText(/not an extra Clarida component/)).toBeTruthy();
     expect(screen.getByText("Move attribution · bps")).toBeTruthy();
     expect(screen.getAllByText("+15.3").length).toBeGreaterThan(0);
     expect(screen.getAllByText("+19.7").length).toBeGreaterThan(0);
