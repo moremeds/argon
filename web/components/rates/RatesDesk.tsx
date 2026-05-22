@@ -26,6 +26,30 @@ const NAV = [
   ["synthesis", "View"],
 ] as const;
 
+const FED_BOARD_SERIES = new Set([
+  "DGS1MO",
+  "DGS3MO",
+  "DGS6MO",
+  "DGS1",
+  "DGS2",
+  "DGS3",
+  "DGS5",
+  "DGS7",
+  "DGS10",
+  "DGS20",
+  "DGS30",
+  "DFII5",
+  "DFII7",
+  "DFII10",
+  "DFII20",
+  "DFII30",
+  "WALCL",
+  "WRESBAL",
+  "WTREGEN",
+]);
+
+const ST_LOUIS_FED_SERIES = new Set(["T5YIE", "T10YIE", "T5YIFR"]);
+
 function formatComputedAt(value: string): string {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "computed time unavailable";
@@ -40,6 +64,19 @@ function formatComputedAt(value: string): string {
   })
     .format(date)
     .replace(",", "");
+}
+
+function sourcePublisher(seriesId: string): string {
+  if (FED_BOARD_SERIES.has(seriesId)) return "FRED / Board of Governors";
+  if (ST_LOUIS_FED_SERIES.has(seriesId)) return "FRED / St. Louis Fed";
+  if (seriesId === "EFFR" || seriesId === "SOFR" || seriesId === "RRPONTSYD") {
+    return "FRED / New York Fed";
+  }
+  return "FRED";
+}
+
+function fredSeriesUrl(seriesId: string): string {
+  return `https://fred.stlouisfed.org/series/${encodeURIComponent(seriesId)}`;
 }
 
 function snapshotMeta(snapshot: Snapshot): string {
@@ -710,9 +747,17 @@ export function RatesDesk({ snapshot }: { snapshot: Snapshot | null }) {
         <div className={styles.sourceGrid}>
           {(snapshot.source_freshness ?? []).map((source) => (
             <div key={source.id} className={styles.sourceRow}>
-              <strong>{source.label}</strong>
-              <span>{source.latest_obs_date ?? "n/a"}</span>
+              <strong>{source.label || source.id}</strong>
+              <span>{sourcePublisher(source.id)}</span>
+              <span>Latest obs {source.latest_obs_date ?? "n/a"}</span>
               <span>{statusLabel(source.status)}</span>
+              <a
+                href={fredSeriesUrl(source.id)}
+                target="_blank"
+                rel="noreferrer"
+              >
+                FRED {source.id}
+              </a>
             </div>
           ))}
         </div>

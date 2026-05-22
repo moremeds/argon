@@ -42,6 +42,34 @@ FED_PLUMBING_SERIES: dict[str, str] = {
     "tga": "WTREGEN",
 }
 
+SERIES_LABELS: dict[str, str] = {
+    "DGS1MO": "1M Treasury nominal",
+    "DGS3MO": "3M Treasury nominal",
+    "DGS6MO": "6M Treasury nominal",
+    "DGS1": "1Y Treasury nominal",
+    "DGS2": "2Y Treasury nominal",
+    "DGS3": "3Y Treasury nominal",
+    "DGS5": "5Y Treasury nominal",
+    "DGS7": "7Y Treasury nominal",
+    "DGS10": "10Y Treasury nominal",
+    "DGS20": "20Y Treasury nominal",
+    "DGS30": "30Y Treasury nominal",
+    "DFII5": "5Y TIPS real yield",
+    "DFII7": "7Y TIPS real yield",
+    "DFII10": "10Y TIPS real yield",
+    "DFII20": "20Y TIPS real yield",
+    "DFII30": "30Y TIPS real yield",
+    "T5YIE": "5Y breakeven inflation",
+    "T10YIE": "10Y breakeven inflation",
+    "T5YIFR": "5Y5Y forward inflation",
+    "EFFR": "Effective fed funds rate",
+    "SOFR": "SOFR",
+    "WALCL": "Fed total assets",
+    "WRESBAL": "Reserve balances",
+    "RRPONTSYD": "ON RRP operations",
+    "WTREGEN": "Treasury General Account",
+}
+
 
 def _dedupe(values: list[str]) -> tuple[str, ...]:
     return tuple(dict.fromkeys(values))
@@ -56,4 +84,3 @@ RATES_FRED_SERIES: tuple[str, ...] = _dedupe(
         *FED_PLUMBING_SERIES.values(),
     ]
 )
-

@@ -152,5 +152,6 @@ def test_compute_source_freshness_marks_missing_series():
 
     by_id = {row.id: row for row in freshness}
     assert by_id["DGS10"].status == "ok"
+    assert by_id["DGS10"].label == "10Y Treasury nominal"
     assert by_id["DGS10"].latest_obs_date == date(2026, 5, 20)
     assert by_id["DGS2"].status == "missing"

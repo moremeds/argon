@@ -873,14 +873,25 @@
 }
 
 .sourceRow strong,
-.sourceRow span {
+.sourceRow span,
+.sourceRow a {
   min-width: 0;
   overflow-wrap: anywhere;
 }
 
-.sourceRow span {
+.sourceRow span,
+.sourceRow a {
   color: var(--text-secondary);
   font-size: 12px;
+}
+
+.sourceRow a {
+  color: var(--positive);
+  text-decoration: none;
+}
+
+.sourceRow a:hover {
+  text-decoration: underline;
 }
 
 .emptyState {

@@ -124,6 +124,11 @@ describe("RatesDesk", () => {
 
     expect(screen.getByText("10Y Treasury")).toBeTruthy();
     expect(screen.getByText("Stale")).toBeTruthy();
+    expect(screen.getByText("FRED / Board of Governors")).toBeTruthy();
+    expect(screen.getByRole("link", { name: "FRED DGS10" })).toHaveProperty(
+      "href",
+      "https://fred.stlouisfed.org/series/DGS10",
+    );
   });
 
   it("renders an explicit empty state when no snapshot exists", () => {

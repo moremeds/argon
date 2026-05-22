@@ -13,7 +13,7 @@ from uw_scan.models import (
     RatesSlopeMetric,
     RatesSourceFreshness,
 )
-from uw_scan.rates.series import YIELD_CURVE_SERIES
+from uw_scan.rates.series import SERIES_LABELS, YIELD_CURVE_SERIES
 
 
 def latest_on_or_before(
@@ -123,7 +123,7 @@ def compute_source_freshness(
         out.append(
             RatesSourceFreshness(
                 id=series_id,
-                label=series_id,
+                label=SERIES_LABELS.get(series_id, series_id),
                 latest_obs_date=latest["obs_date"] if latest is not None else None,
                 last_seen_at=latest.get("last_seen_at") if latest is not None else None,
                 status=status,
