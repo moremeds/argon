@@ -1058,3 +1058,157 @@ def test_to_decimal_returns_none_for_invalid_input():
     assert _to_decimal("3.14") == Decimal("3.14")
     assert _to_decimal(42) == Decimal(42)
     assert _to_decimal(Decimal("1.5")) == Decimal("1.5")
+
+
+def test_validate_lenient_captures_partial_claude_output():
+    """Issue #67: Claude often drops top-level required fields (snapshot,
+    analysis_produced_at, headline.stance/stance_label) while inventing peer
+    keys like primary_setup, time_horizon. Lenient mode synthesizes the
+    missing identity fields from the deterministic payload and accepts
+    Claude's actual content for everything else."""
+    deterministic = _analysis_input()
+    produced_at = datetime(2026, 3, 24, 20, 18, 42, tzinfo=timezone.utc)
+
+    # Resembles a real Claude off-schema response: missing snapshot/produced_at,
+    # invented headline keys, missing required headline fields, missing the
+    # required nested models (dominant_read, section_cards, etc.).
+    partial = {
+        "schema_version": "WRONG_VERSION",  # should get overwritten
+        "ticker": "WRONG",  # should get overwritten with deterministic value
+        "headline": {
+            "primary_setup": "TRADE_BULLISH",  # unknown key — should be stripped
+            "time_horizon": "1-2 weeks",  # unknown key — should be stripped
+            "title": "TSLA — bullish swing setup",
+            "top_reason": "Cheap IV + bullish flow above gex_flip",
+            # stance/stance_label/score/conviction/etc. all missing
+        },
+        "missing_data": ["headline.stance not produced by provider"],
+    }
+
+    parsed = validate_trade_insights_ai_outcome(
+        partial,
+        deterministic,
+        produced_at=produced_at,
+        lenient=True,
+    )
+
+    # Identity fields force-overwritten from deterministic payload
+    assert parsed.schema_version == PROMPT_VERSION
+    assert parsed.ticker == "TSLA"
+    assert parsed.snapshot.run_id == 123
+    assert parsed.snapshot.trade_insights_input_hash == "sha256-trade-insights"
+    # analysis_produced_at round-trips to the worker-provided timestamp
+    assert parsed.analysis_produced_at == produced_at
+
+    # Claude's actual content preserved where present
+    assert parsed.headline.title == "TSLA — bullish swing setup"
+    assert parsed.headline.top_reason == "Cheap IV + bullish flow above gex_flip"
+
+    # Missing required scalars get safe placeholders
+    assert parsed.headline.stance == "mixed"  # invalid-Literal fallback
+    assert parsed.headline.conviction == "F"  # F = data insufficient
+    assert parsed.headline.score == 0
+
+    # Provider-noted missing data is preserved (with our placeholder prepended)
+    assert any("partial output" in note.lower() for note in parsed.missing_data)
+    assert "headline.stance not produced by provider" in parsed.missing_data
+
+
+def test_validate_lenient_skips_idea_id_and_source_path_checks():
+    """Lenient mode skips the Codex-style provider-consistency checks: unknown
+    idea_ids, source_path family validation, and guardrails-truthy. Those would
+    otherwise prevent partial Claude output from landing at all."""
+    deterministic = _analysis_input()
+    produced_at = datetime(2026, 3, 24, 20, 18, 42, tzinfo=timezone.utc)
+
+    # Take the strict happy-path outcome but introduce things strict would reject.
+    payload = _sample_outcome_for(deterministic)
+    payload["best_expressions"][0]["idea_id"] = "UNKNOWN_IDEA"
+    payload["metric_cards"][0]["source_path"] = "tabs.flow.not_a_real_family"
+    payload["guardrails"]["statuses_preserved"] = False
+
+    # Strict: rejects on the first failure
+    with pytest.raises(ValueError):
+        validate_trade_insights_ai_outcome(
+            payload, deterministic, produced_at=produced_at
+        )
+
+    # Lenient: accepts and captures
+    parsed = validate_trade_insights_ai_outcome(
+        payload,
+        deterministic,
+        produced_at=produced_at,
+        lenient=True,
+    )
+    assert parsed.best_expressions[0].idea_id == "UNKNOWN_IDEA"
+    assert parsed.metric_cards[0].source_path == "tabs.flow.not_a_real_family"
+    assert parsed.guardrails.statuses_preserved is False
+
+
+def test_validate_lenient_still_rejects_imperative_text():
+    """Safety guardrail: imperative trade instructions ("execute this trade",
+    "go long now") must be rejected even in lenient mode. The whole point of
+    that check is to block research-only output that crosses into order-placement
+    language; provider quirks don't get to bypass it."""
+    deterministic = _analysis_input()
+    produced_at = datetime(2026, 3, 24, 20, 18, 42, tzinfo=timezone.utc)
+
+    payload = {
+        "headline": {
+            "title": "TSLA setup",
+            "stance_label": "buy now: bullish swing",
+        }
+    }
+    with pytest.raises(ValueError, match="imperative"):
+        validate_trade_insights_ai_outcome(
+            payload, deterministic, produced_at=produced_at, lenient=True
+        )
+
+
+def test_coerce_claude_outcome_strips_unknown_keys():
+    """Pydantic models in this contract use extra='forbid'. The lenient coercer
+    must strip unknown keys at every nesting level so the resulting dict
+    round-trips through model_validate without ValidationError."""
+    from uw_scan.reports.trade_insights_ai import _coerce_claude_outcome_dict
+
+    deterministic = _analysis_input()
+    produced_at = datetime(2026, 3, 24, 20, 18, 42, tzinfo=timezone.utc)
+    expected_hash = hash_trade_insights_ai_analysis_input(deterministic)
+
+    raw = {
+        "headline": {
+            "title": "Test",
+            "stance": "bullish",
+            "stance_label": "Bullish",
+            "conviction": "B",
+            "conviction_label": "Moderate",
+            "top_reason": "r",
+            "primary_risk": "k",
+            "watch_trigger": "t",
+            "score": 50,
+            "INVENTED_FIELD": "should be dropped",
+        },
+        "INVENTED_TOP_LEVEL": {"nested": "junk"},
+        "section_cards": {
+            "market_structure": {
+                "title": "MS",
+                "summary": "s",
+                "INVENTED_SECTION_FIELD": "drop me",
+            },
+        },
+    }
+
+    coerced = _coerce_claude_outcome_dict(
+        raw,
+        deterministic,
+        produced_at=produced_at,
+        expected_analysis_input_hash=expected_hash,
+    )
+
+    # Unknown top-level key dropped
+    assert "INVENTED_TOP_LEVEL" not in coerced
+    # Unknown nested key dropped
+    assert "INVENTED_FIELD" not in coerced["headline"]
+    assert "INVENTED_SECTION_FIELD" not in coerced["section_cards"]["market_structure"]
+    # And it round-trips through Pydantic
+    TradeInsightAiOutcome.model_validate(coerced)

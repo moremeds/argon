@@ -160,6 +160,7 @@ def trade_insights_ai_tick(
             result.outcome,
             prompt_payload,
             produced_at=produced_at,
+            lenient=(row_provider == "claude"),
         )
         markdown = render_trade_insights_ai_markdown(outcome)
         repo = _repo(settings)
