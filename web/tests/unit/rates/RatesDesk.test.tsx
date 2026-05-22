@@ -111,6 +111,9 @@ describe("RatesDesk", () => {
     expect(screen.getAllByText("+15.3").length).toBeGreaterThan(0);
     expect(screen.getAllByText("+19.7").length).toBeGreaterThan(0);
     expect(screen.getByText(/expected inflation contributes 5\.7 bps/)).toBeTruthy();
+    expect(screen.getByText("Rates read")).toBeTruthy();
+    expect(screen.getByText(/Cleveland's monthly model explains \+15\.3 bps/)).toBeTruthy();
+    expect(screen.getByText(/daily FRED pricing has moved faster than the monthly Cleveland release/)).toBeTruthy();
   });
 
   it("marks not-yet-wired source panels unavailable instead of filling static values", () => {

@@ -257,6 +257,115 @@ function bpsText(value: unknown): string {
   return fmtSigned(value, "bps", 1);
 }
 
+function bpsNumber(value: unknown): number {
+  return toFiniteNumber(value, 0);
+}
+
+function movementVerb(value: unknown): string {
+  const n = bpsNumber(value);
+  if (n > 0) return "rose";
+  if (n < 0) return "fell";
+  return "was flat";
+}
+
+function contributionLabel(label: string): string {
+  if (label === "Expected real") return "short real-rate expectations";
+  if (label === "Expected inflation") return "short inflation expectations";
+  if (label === "Real term") return "real term premium";
+  if (label === "Inflation risk") return "inflation risk premium";
+  return "FRED residual";
+}
+
+function componentNarrative(label: string, value: unknown): string {
+  const n = bpsNumber(value);
+  const direction = n >= 0 ? "added" : "removed";
+  return `${contributionLabel(label)} ${direction} ${Math.abs(n).toFixed(1)} bps`;
+}
+
+function modelDriver(row: DecompositionAttribution | undefined): {
+  label: string;
+  value: number;
+} {
+  const components = [
+    ["Expected real", bpsNumber(row?.expected_short_real_bps)],
+    ["Expected inflation", bpsNumber(row?.expected_short_inflation_bps)],
+    ["Real term", bpsNumber(row?.real_term_premium_bps)],
+    ["Inflation risk", bpsNumber(row?.inflation_risk_premium_bps)],
+  ] as const;
+  return components.reduce(
+    (best, [label, value]) =>
+      Math.abs(value) > Math.abs(best.value) ? { label, value } : best,
+    { label: "Expected real", value: 0 },
+  );
+}
+
+function ratesAttributionRead(row: DecompositionAttribution | undefined): {
+  headline: string;
+  model: string;
+  market: string;
+} {
+  if (!row) {
+    return {
+      headline: "1M rates read is unavailable until the attribution window is populated.",
+      model: "Cleveland model components are missing for this window.",
+      market: "Live FRED curve data still renders, but no model attribution can be made.",
+    };
+  }
+
+  const fredMove = bpsNumber(row.nominal_10y_bps);
+  const modelMove = bpsNumber(row.model_nominal_10y_bps);
+  const residual = bpsNumber(row.fred_model_residual_bps);
+  const driver = modelDriver(row);
+  const premiumMove =
+    bpsNumber(row.real_term_premium_bps) +
+    bpsNumber(row.inflation_risk_premium_bps);
+  const expectedMove =
+    bpsNumber(row.expected_short_real_bps) +
+    bpsNumber(row.expected_short_inflation_bps);
+
+  const headline =
+    `Over ${row.window}, FRED 10Y ${movementVerb(fredMove)} ${bpsText(
+      fredMove,
+    )}; Cleveland's monthly model explains ${bpsText(
+      modelMove,
+    )}, while the live FRED residual accounts for ${bpsText(residual)}.`;
+
+  let model: string;
+  if (Math.abs(modelMove) < 0.5) {
+    model =
+      "The Cleveland monthly model is broadly unchanged, so the displayed move is mostly a daily-market residual rather than a fresh model signal.";
+  } else if (Math.abs(premiumMove) > Math.abs(expectedMove)) {
+    model =
+      `Inside the model, ${componentNarrative(
+        driver.label,
+        driver.value,
+      )}. Premium components are doing more work than expected short-rate components, so read this as risk-premium/supply compensation rather than a clean policy path shift.`;
+  } else {
+    model =
+      `Inside the model, ${componentNarrative(
+        driver.label,
+        driver.value,
+      )}. Expected short-rate components dominate, so read this as policy/inflation-expectation repricing before term-premium pressure.`;
+  }
+
+  let market: string;
+  if (Math.abs(residual) > Math.abs(modelMove)) {
+    market =
+      "Because the residual is larger than the model move, daily FRED pricing has moved faster than the monthly Cleveland release; treat the model read as authoritative for decomposition, but not as a same-day tape explanation.";
+  } else if (fredMove > 0 && premiumMove > 0) {
+    market =
+      "For rates, higher long-end yields with positive premium contribution is bearish duration and keeps steepening risk alive if the front end stays anchored.";
+  } else if (fredMove < 0 && premiumMove < 0) {
+    market =
+      "For rates, falling long-end yields with lower premium compensation is constructive duration and reduces steepening pressure.";
+  } else {
+    market =
+      "For rates, the signal is mixed: use the curve table for the daily tape and the Cleveland row for slower decomposition context.";
+  }
+
+  return { headline, model, market };
+}
+
 function DecompositionCard({
   label,
   sublabel,
@@ -450,6 +559,7 @@ function DecompositionAttributionTable({
   rows: DecompositionAttribution[];
 }) {
   const oneMonth = attributionByWindow(rows, "1M");
+  const read = ratesAttributionRead(oneMonth);
   const maxContribution = Math.max(
     1,
     ...rows.flatMap((row) => [
@@ -549,6 +659,20 @@ function DecompositionAttributionTable({
         {fmtValue(oneMonth?.expected_short_inflation_bps, "bps", 1)}, and
         premium components explain the remaining Cleveland model move.
       </p>
+      <div className={styles.ratesReadGrid} aria-label="Rates interpretation">
+        <article>
+          <span>Rates read</span>
+          <p>{read.headline}</p>
+        </article>
+        <article>
+          <span>Model driver</span>
+          <p>{read.model}</p>
+        </article>
+        <article>
+          <span>Trading implication</span>
+          <p>{read.market}</p>
+        </article>
+      </div>
     </div>
   );
 }
