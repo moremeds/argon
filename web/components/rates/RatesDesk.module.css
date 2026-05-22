@@ -510,7 +510,7 @@
 .decompEquation {
   display: grid;
   grid-template-columns: minmax(0, 1.08fr) repeat(5, minmax(0, 1fr));
-  gap: 6px;
+  gap: 5px;
   align-items: stretch;
   min-width: 0;
 }
@@ -518,20 +518,20 @@
 .decompTerm {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
-  gap: 6px;
+  gap: 5px;
   align-items: center;
   min-width: 0;
 }
 
 .decompTile {
   display: grid;
-  grid-template-rows: 30px 44px minmax(48px, auto) 18px;
+  grid-template-rows: 26px 38px minmax(40px, auto) 16px;
   min-width: 0;
-  min-height: 140px;
+  min-height: 124px;
   border: 1px solid var(--border-dim);
   border-radius: 8px;
   background: var(--bg-base);
-  padding: 11px;
+  padding: 9px;
   align-items: start;
 }
 
@@ -551,13 +551,13 @@
 .decompTile small {
   display: block;
   color: var(--text-muted);
-  font-size: 9px;
+  font-size: 8px;
   font-weight: 700;
   text-transform: uppercase;
 }
 
 .decompTile small {
-  margin-top: 4px;
+  margin-top: 3px;
   color: var(--text-secondary);
   text-transform: none;
 }
@@ -565,24 +565,24 @@
 .decompTile strong {
   display: block;
   align-self: end;
-  margin: 0 0 10px;
+  margin: 0 0 8px;
   color: var(--text-primary);
-  font-size: 24px;
+  font-size: 21px;
   line-height: 1;
 }
 
 .decompTile p {
   margin: 0;
   color: var(--text-secondary);
-  font-size: 11px;
+  font-size: 10px;
 }
 
 .decompOperator {
   color: var(--negative);
-  font-size: 20px;
+  font-size: 18px;
   font-weight: 800;
   text-align: center;
-  min-width: 14px;
+  min-width: 12px;
 }
 
 .decompRead {
