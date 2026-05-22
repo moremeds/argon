@@ -42,6 +42,18 @@ FED_PLUMBING_SERIES: dict[str, str] = {
     "tga": "WTREGEN",
 }
 
+CLEVE_EXPECTED_INFLATION_10Y = "CLEVE_EXPECTED_INFLATION_10Y"
+CLEVE_REAL_RISK_PREMIUM_10Y = "CLEVE_REAL_RISK_PREMIUM_10Y"
+CLEVE_INFLATION_RISK_PREMIUM_10Y = "CLEVE_INFLATION_RISK_PREMIUM_10Y"
+CLEVE_MODEL_REAL_YIELD_10Y = "CLEVE_MODEL_REAL_YIELD_10Y"
+
+CLEVELAND_FED_MODEL_SERIES: tuple[str, ...] = (
+    CLEVE_EXPECTED_INFLATION_10Y,
+    CLEVE_REAL_RISK_PREMIUM_10Y,
+    CLEVE_INFLATION_RISK_PREMIUM_10Y,
+    CLEVE_MODEL_REAL_YIELD_10Y,
+)
+
 SERIES_LABELS: dict[str, str] = {
     "DGS1MO": "1M Treasury nominal",
     "DGS3MO": "3M Treasury nominal",
@@ -68,6 +80,10 @@ SERIES_LABELS: dict[str, str] = {
     "WRESBAL": "Reserve balances",
     "RRPONTSYD": "ON RRP operations",
     "WTREGEN": "Treasury General Account",
+    CLEVE_EXPECTED_INFLATION_10Y: "Cleveland Fed 10Y expected inflation",
+    CLEVE_REAL_RISK_PREMIUM_10Y: "Cleveland Fed 10Y real term premium",
+    CLEVE_INFLATION_RISK_PREMIUM_10Y: "Cleveland Fed 10Y inflation risk premium",
+    CLEVE_MODEL_REAL_YIELD_10Y: "Cleveland Fed 10Y model real yield",
 }
 
 

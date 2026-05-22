@@ -51,6 +51,12 @@ class RatesDecompositionAttribution(_UwBase):
     real_10y_bps: float | None = None
     breakeven_10y_bps: float | None = None
     residual_bps: float | None = None
+    model_nominal_10y_bps: float | None = None
+    expected_short_real_bps: float | None = None
+    expected_short_inflation_bps: float | None = None
+    real_term_premium_bps: float | None = None
+    inflation_risk_premium_bps: float | None = None
+    fred_model_residual_bps: float | None = None
     driver: str | None = None
     status: RatesAvailability = "partial"
 
@@ -61,6 +67,16 @@ class RatesDecomposition(_UwBase):
     breakeven_10y: float | None = None
     forward_inflation_5y5y: float | None = None
     term_forward_compensation: float | None = None
+    clarida_model_date: date | None = None
+    model_real_yield_10y: float | None = None
+    expected_short_real_rate_10y: float | None = None
+    expected_short_inflation_10y: float | None = None
+    real_term_premium_10y: float | None = None
+    inflation_risk_premium_10y: float | None = None
+    model_nominal_10y: float | None = None
+    fred_model_residual_10y: float | None = None
+    model_source: str | None = None
+    model_url: str | None = None
     status: RatesAvailability = "partial"
     attribution: list[RatesDecompositionAttribution] = Field(default_factory=list)
 

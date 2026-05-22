@@ -102,6 +102,29 @@ def test_compute_decomposition_uses_live_nominal_real_and_breakeven():
     assert decomp.term_forward_compensation == 0.06
 
 
+def test_compute_decomposition_uses_cleveland_fed_four_factor_model_when_available():
+    decomp = compute_decomposition(
+        {
+            "DGS10": [_point(date(2026, 5, 20), "4.57")],
+            "DFII10": [_point(date(2026, 5, 20), "2.13")],
+            "T10YIE": [_point(date(2026, 5, 20), "2.44")],
+            "CLEVE_MODEL_REAL_YIELD_10Y": [_point(date(2026, 5, 1), "1.6340507389933305")],
+            "CLEVE_EXPECTED_INFLATION_10Y": [_point(date(2026, 5, 1), "2.4761367")],
+            "CLEVE_REAL_RISK_PREMIUM_10Y": [_point(date(2026, 5, 1), "1.2312081")],
+            "CLEVE_INFLATION_RISK_PREMIUM_10Y": [_point(date(2026, 5, 1), "0.3489275")],
+        },
+        as_of=date(2026, 5, 20),
+    )
+
+    assert decomp.clarida_model_date == date(2026, 5, 1)
+    assert decomp.expected_short_real_rate_10y == 0.4
+    assert decomp.expected_short_inflation_10y == 2.48
+    assert decomp.real_term_premium_10y == 1.23
+    assert decomp.inflation_risk_premium_10y == 0.35
+    assert decomp.model_nominal_10y == 4.46
+    assert decomp.fred_model_residual_10y == 0.11
+
+
 def test_compute_decomposition_attribution_uses_live_history():
     attribution = compute_decomposition_attribution(
         {

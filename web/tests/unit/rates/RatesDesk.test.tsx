@@ -95,20 +95,22 @@ describe("RatesDesk", () => {
   it("renders a live decomposition dashboard with attribution rows", () => {
     render(<RatesDesk snapshot={SNAPSHOT} />);
 
-    expect(screen.getByText("10Y nominal = real yield + inflation compensation")).toBeTruthy();
-    expect(screen.getByText("Nominal 10Y")).toBeTruthy();
-    expect(screen.getAllByText("Real 10Y").length).toBeGreaterThan(1);
-    expect(screen.getAllByText("Breakeven").length).toBeGreaterThan(1);
-    expect(screen.getByText("Live residual")).toBeTruthy();
-    expect(screen.getByText("Move attribution · bps")).toBeTruthy();
     expect(
-      screen
-        .getAllByRole("row")
-        .some((row) =>
-          row.textContent?.includes("1M+35.0+23.0+12.00.0Real rate"),
-        ),
-    ).toBe(true);
-    expect(screen.getByText(/Real yield explains 23\.0 bps/)).toBeTruthy();
+      screen.getByText(
+        "10Y nominal = E[short real] + E[short inflation] + real term premium + inflation risk premium",
+      ),
+    ).toBeTruthy();
+    expect(screen.getByText(/Cleveland Fed model · 2026-05-01/)).toBeTruthy();
+    expect(screen.getByText("Nominal 10Y")).toBeTruthy();
+    expect(screen.getByText("Expected short real")).toBeTruthy();
+    expect(screen.getAllByText("Expected short inflation").length).toBeGreaterThan(1);
+    expect(screen.getAllByText("Real term premium").length).toBeGreaterThan(1);
+    expect(screen.getAllByText("Inflation risk premium").length).toBeGreaterThan(1);
+    expect(screen.getAllByText("FRED residual").length).toBeGreaterThan(1);
+    expect(screen.getByText("Move attribution · bps")).toBeTruthy();
+    expect(screen.getAllByText("+15.3").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("+19.7").length).toBeGreaterThan(0);
+    expect(screen.getByText(/expected inflation contributes 5\.7 bps/)).toBeTruthy();
   });
 
   it("marks not-yet-wired source panels unavailable instead of filling static values", () => {
@@ -123,11 +125,19 @@ describe("RatesDesk", () => {
     render(<RatesDesk snapshot={SNAPSHOT} />);
 
     expect(screen.getByText("10Y Treasury")).toBeTruthy();
+    expect(screen.getByText("Cleveland Fed 10Y expected inflation")).toBeTruthy();
     expect(screen.getByText("Stale")).toBeTruthy();
     expect(screen.getByText("FRED / Board of Governors")).toBeTruthy();
+    expect(screen.getByText("Cleveland Fed Inflation Expectations")).toBeTruthy();
     expect(screen.getByRole("link", { name: "FRED DGS10" })).toHaveProperty(
       "href",
       "https://fred.stlouisfed.org/series/DGS10",
+    );
+    expect(
+      screen.getByRole("link", { name: "Cleveland Fed CLEVE_EXPECTED_INFLATION_10Y" }),
+    ).toHaveProperty(
+      "href",
+      "https://www.clevelandfed.org/indicators-and-data/inflation-expectations",
     );
   });
 

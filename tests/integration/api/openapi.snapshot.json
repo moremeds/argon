@@ -8270,6 +8270,40 @@
             ],
             "title": "Breakeven 10Y"
           },
+          "clarida_model_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Clarida Model Date"
+          },
+          "expected_short_inflation_10y": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expected Short Inflation 10Y"
+          },
+          "expected_short_real_rate_10y": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expected Short Real Rate 10Y"
+          },
           "forward_inflation_5y5y": {
             "anyOf": [
               {
@@ -8280,6 +8314,72 @@
               }
             ],
             "title": "Forward Inflation 5Y5Y"
+          },
+          "fred_model_residual_10y": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fred Model Residual 10Y"
+          },
+          "inflation_risk_premium_10y": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Inflation Risk Premium 10Y"
+          },
+          "model_nominal_10y": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model Nominal 10Y"
+          },
+          "model_real_yield_10y": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model Real Yield 10Y"
+          },
+          "model_source": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model Source"
+          },
+          "model_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model Url"
           },
           "nominal_10y": {
             "anyOf": [
@@ -8302,6 +8402,17 @@
               }
             ],
             "title": "Real 10Y"
+          },
+          "real_term_premium_10y": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Real Term Premium 10Y"
           },
           "status": {
             "default": "partial",
@@ -8353,6 +8464,61 @@
             ],
             "title": "Driver"
           },
+          "expected_short_inflation_bps": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expected Short Inflation Bps"
+          },
+          "expected_short_real_bps": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expected Short Real Bps"
+          },
+          "fred_model_residual_bps": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fred Model Residual Bps"
+          },
+          "inflation_risk_premium_bps": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Inflation Risk Premium Bps"
+          },
+          "model_nominal_10y_bps": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model Nominal 10Y Bps"
+          },
           "nominal_10y_bps": {
             "anyOf": [
               {
@@ -8374,6 +8540,17 @@
               }
             ],
             "title": "Real 10Y Bps"
+          },
+          "real_term_premium_bps": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Real Term Premium Bps"
           },
           "residual_bps": {
             "anyOf": [

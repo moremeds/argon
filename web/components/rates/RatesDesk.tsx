@@ -50,6 +50,10 @@ const FED_BOARD_SERIES = new Set([
 
 const ST_LOUIS_FED_SERIES = new Set(["T5YIE", "T10YIE", "T5YIFR"]);
 
+function isClevelandFedSeries(seriesId: string): boolean {
+  return seriesId.startsWith("CLEVE_");
+}
+
 function formatComputedAt(value: string): string {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "computed time unavailable";
@@ -67,6 +71,9 @@ function formatComputedAt(value: string): string {
 }
 
 function sourcePublisher(seriesId: string): string {
+  if (isClevelandFedSeries(seriesId)) {
+    return "Cleveland Fed Inflation Expectations";
+  }
   if (FED_BOARD_SERIES.has(seriesId)) return "FRED / Board of Governors";
   if (ST_LOUIS_FED_SERIES.has(seriesId)) return "FRED / St. Louis Fed";
   if (seriesId === "EFFR" || seriesId === "SOFR" || seriesId === "RRPONTSYD") {
@@ -76,7 +83,15 @@ function sourcePublisher(seriesId: string): string {
 }
 
 function fredSeriesUrl(seriesId: string): string {
+  if (isClevelandFedSeries(seriesId)) {
+    return "https://www.clevelandfed.org/indicators-and-data/inflation-expectations";
+  }
   return `https://fred.stlouisfed.org/series/${encodeURIComponent(seriesId)}`;
+}
+
+function sourceLinkLabel(seriesId: string): string {
+  if (isClevelandFedSeries(seriesId)) return `Cleveland Fed ${seriesId}`;
+  return `FRED ${seriesId}`;
 }
 
 function snapshotMeta(snapshot: Snapshot): string {
@@ -272,17 +287,17 @@ function DecompositionCard({
 }
 
 function DecompositionFormula({ decomp }: { decomp: Decomposition }) {
-  const residual = pctMinus(
-    decomp.nominal_10y,
-    decomp.real_10y,
-    decomp.breakeven_10y,
-  );
   const oneMonth = attributionByWindow(decomp.attribution, "1M");
   return (
     <div className={styles.decompFormula}>
       <div className={styles.decompFormulaTop}>
-        <h3>10Y nominal = real yield + inflation compensation</h3>
-        <span>FRED live proxy · DFII10 / T10YIE</span>
+        <h3>
+          10Y nominal = E[short real] + E[short inflation] + real term premium
+          + inflation risk premium
+        </h3>
+        <span>
+          Cleveland Fed model · {decomp.clarida_model_date ?? "model date n/a"}
+        </span>
       </div>
       <div className={styles.decompEquation}>
         <DecompositionCard
@@ -294,31 +309,45 @@ function DecompositionFormula({ decomp }: { decomp: Decomposition }) {
         />
         <span className={styles.decompOperator}>=</span>
         <DecompositionCard
-          label="Real 10Y"
-          sublabel="DFII10"
-          value={decomp.real_10y}
-          footnote={`${bpsText(oneMonth?.real_10y_bps)} over 1M`}
+          label="Expected short real"
+          sublabel="Model real yield - real premium"
+          value={decomp.expected_short_real_rate_10y}
+          footnote={`${bpsText(oneMonth?.expected_short_real_bps)} model 1M`}
           tone="accent"
         />
         <span className={styles.decompOperator}>+</span>
         <DecompositionCard
-          label="Breakeven"
-          sublabel="T10YIE"
-          value={decomp.breakeven_10y}
-          footnote={`${bpsText(oneMonth?.breakeven_10y_bps)} over 1M`}
+          label="Expected short inflation"
+          sublabel="Cleveland 10Y expected inflation"
+          value={decomp.expected_short_inflation_10y}
+          footnote={`${bpsText(oneMonth?.expected_short_inflation_bps)} model 1M`}
         />
         <span className={styles.decompOperator}>+</span>
         <DecompositionCard
-          label="Live residual"
-          sublabel="Nominal - real - BEI"
-          value={residual}
-          footnote={`${bpsText(oneMonth?.residual_bps)} over 1M`}
+          label="Real term premium"
+          sublabel="Cleveland real risk premium"
+          value={decomp.real_term_premium_10y}
+          footnote={`${bpsText(oneMonth?.real_term_premium_bps)} model 1M`}
+        />
+        <span className={styles.decompOperator}>+</span>
+        <DecompositionCard
+          label="Inflation risk premium"
+          sublabel="Cleveland inflation risk premium"
+          value={decomp.inflation_risk_premium_10y}
+          footnote={`${bpsText(oneMonth?.inflation_risk_premium_bps)} model 1M`}
+        />
+        <span className={styles.decompOperator}>+</span>
+        <DecompositionCard
+          label="FRED residual"
+          sublabel="DGS10 - model-implied nominal"
+          value={decomp.fred_model_residual_10y}
+          footnote={`${bpsText(oneMonth?.fred_model_residual_bps)} over 1M`}
         />
       </div>
       <p className={styles.decompRead}>
-        Rule read: moves are attributed to actual FRED history. The residual is
-        shown explicitly instead of filling unsourced term-premium or risk-premium
-        estimates.
+        Rule read: the daily curve still comes from FRED, while the four-factor
+        decomposition uses Cleveland Fed model outputs. Residual is the gap
+        between live DGS10 and the model-implied nominal rate.
       </p>
     </div>
   );
@@ -333,9 +362,6 @@ function DecompositionViewCards({
   policy: Snapshot["policy"];
   slopes: SlopeMetric[];
 }) {
-  const realMonth = attributionByWindow(decomp.attribution, "1M")?.real_10y_bps;
-  const beiMonth = attributionByWindow(decomp.attribution, "1M")
-    ?.breakeven_10y_bps;
   const tenTwo = slopes.find((slope) => slope.label === "2s10s");
   const termComp = pctMinus(decomp.nominal_10y, policy?.effr);
   return (
@@ -347,35 +373,37 @@ function DecompositionViewCards({
         </div>
         <div className={styles.decompIdentity}>
           {fmtValue(decomp.nominal_10y, "%", 2)} ={" "}
-          {fmtValue(decomp.real_10y, "%", 2)} +{" "}
-          {fmtValue(decomp.breakeven_10y, "%", 2)}
+          {fmtValue(decomp.expected_short_real_rate_10y, "%", 2)} +{" "}
+          {fmtValue(decomp.expected_short_inflation_10y, "%", 2)} +{" "}
+          {fmtValue(decomp.real_term_premium_10y, "%", 2)} +{" "}
+          {fmtValue(decomp.inflation_risk_premium_10y, "%", 2)}
         </div>
         <dl className={styles.decompRows}>
           <div>
-            <dt>10Y TIPS real yield</dt>
-            <dd>{fmtValue(decomp.real_10y, "%", 2)}</dd>
+            <dt>Expected short real component</dt>
+            <dd>{fmtValue(decomp.expected_short_real_rate_10y, "%", 2)}</dd>
           </div>
           <div>
-            <dt>10Y breakeven inflation</dt>
-            <dd>{fmtValue(decomp.breakeven_10y, "%", 2)}</dd>
+            <dt>Expected short inflation</dt>
+            <dd>{fmtValue(decomp.expected_short_inflation_10y, "%", 2)}</dd>
           </div>
           <div>
-            <dt>Real yield 1M move</dt>
-            <dd className={deltaClass(realMonth)}>{bpsText(realMonth)}</dd>
+            <dt>Real term premium</dt>
+            <dd>{fmtValue(decomp.real_term_premium_10y, "%", 2)}</dd>
           </div>
           <div>
-            <dt>BEI 1M move</dt>
-            <dd className={deltaClass(beiMonth)}>{bpsText(beiMonth)}</dd>
+            <dt>Inflation risk premium</dt>
+            <dd>{fmtValue(decomp.inflation_risk_premium_10y, "%", 2)}</dd>
           </div>
           <div>
-            <dt>5Y5Y forward inflation</dt>
-            <dd>{fmtValue(decomp.forward_inflation_5y5y, "%", 2)}</dd>
+            <dt>FRED residual</dt>
+            <dd>{fmtValue(decomp.fred_model_residual_10y, "%", 2)}</dd>
           </div>
         </dl>
         <p>
-          Rule: if real yield contribution exceeds breakeven contribution, the
-          bond move is led by real-rate repricing. If breakeven dominates,
-          inflation compensation is the primary driver.
+          Rule: a larger expected-real component points to policy/real-rate
+          repricing; larger inflation or risk-premium components point to
+          inflation uncertainty or supply/risk-premium repricing.
         </p>
       </article>
 
@@ -425,26 +453,31 @@ function DecompositionAttributionTable({
   const maxContribution = Math.max(
     1,
     ...rows.flatMap((row) => [
-      Math.abs(toFiniteNumber(row.real_10y_bps, 0)),
-      Math.abs(toFiniteNumber(row.breakeven_10y_bps, 0)),
-      Math.abs(toFiniteNumber(row.residual_bps, 0)),
+      Math.abs(toFiniteNumber(row.expected_short_real_bps, 0)),
+      Math.abs(toFiniteNumber(row.expected_short_inflation_bps, 0)),
+      Math.abs(toFiniteNumber(row.real_term_premium_bps, 0)),
+      Math.abs(toFiniteNumber(row.inflation_risk_premium_bps, 0)),
+      Math.abs(toFiniteNumber(row.fred_model_residual_bps, 0)),
     ]),
   );
   return (
     <div className={styles.decompAttribution}>
       <div className={styles.decompFormulaTop}>
         <h3>Move attribution · bps</h3>
-        <span>Actual FRED history</span>
+        <span>Cleveland monthly model + FRED daily curve</span>
       </div>
       <div className={styles.decompTableWrap}>
         <table className={styles.decompMoveTable}>
           <thead>
             <tr>
               <th>Window</th>
-              <th>10Y total</th>
-              <th>Real 10Y</th>
-              <th>Breakeven</th>
-              <th>Residual</th>
+              <th>FRED 10Y</th>
+              <th>Model nominal</th>
+              <th>E[real]</th>
+              <th>E[inflation]</th>
+              <th>Real term</th>
+              <th>Inflation risk</th>
+              <th>FRED gap</th>
               <th>Driver</th>
             </tr>
           </thead>
@@ -455,14 +488,23 @@ function DecompositionAttributionTable({
                 <td className={deltaClass(row.nominal_10y_bps)}>
                   {fmtSigned(row.nominal_10y_bps, "", 1)}
                 </td>
-                <td className={deltaClass(row.real_10y_bps)}>
-                  {fmtSigned(row.real_10y_bps, "", 1)}
+                <td className={deltaClass(row.model_nominal_10y_bps)}>
+                  {fmtSigned(row.model_nominal_10y_bps, "", 1)}
                 </td>
-                <td className={deltaClass(row.breakeven_10y_bps)}>
-                  {fmtSigned(row.breakeven_10y_bps, "", 1)}
+                <td className={deltaClass(row.expected_short_real_bps)}>
+                  {fmtSigned(row.expected_short_real_bps, "", 1)}
                 </td>
-                <td className={deltaClass(row.residual_bps)}>
-                  {fmtSigned(row.residual_bps, "", 1)}
+                <td className={deltaClass(row.expected_short_inflation_bps)}>
+                  {fmtSigned(row.expected_short_inflation_bps, "", 1)}
+                </td>
+                <td className={deltaClass(row.real_term_premium_bps)}>
+                  {fmtSigned(row.real_term_premium_bps, "", 1)}
+                </td>
+                <td className={deltaClass(row.inflation_risk_premium_bps)}>
+                  {fmtSigned(row.inflation_risk_premium_bps, "", 1)}
+                </td>
+                <td className={deltaClass(row.fred_model_residual_bps)}>
+                  {fmtSigned(row.fred_model_residual_bps, "", 1)}
                 </td>
                 <td>{row.driver ?? "n/a"}</td>
               </tr>
@@ -472,9 +514,11 @@ function DecompositionAttributionTable({
       </div>
       <div className={styles.decompBars}>
         {[
-          ["Real yield", oneMonth?.real_10y_bps],
-          ["Breakeven", oneMonth?.breakeven_10y_bps],
-          ["Residual", oneMonth?.residual_bps],
+          ["Expected real", oneMonth?.expected_short_real_bps],
+          ["Expected inflation", oneMonth?.expected_short_inflation_bps],
+          ["Real term", oneMonth?.real_term_premium_bps],
+          ["Inflation risk", oneMonth?.inflation_risk_premium_bps],
+          ["FRED residual", oneMonth?.fred_model_residual_bps],
         ].map(([label, value]) => {
           const numeric = toFiniteNumber(value, 0);
           return (
@@ -499,9 +543,11 @@ function DecompositionAttributionTable({
         })}
       </div>
       <p className={styles.decompRead}>
-        Conclusion: over 1M, Real yield explains{" "}
-        {fmtValue(oneMonth?.real_10y_bps, "bps", 1)} and breakeven explains{" "}
-        {fmtValue(oneMonth?.breakeven_10y_bps, "bps", 1)} of the 10Y move.
+        Conclusion: over the model 1M window, expected real contributes{" "}
+        {fmtValue(oneMonth?.expected_short_real_bps, "bps", 1)}, expected
+        inflation contributes{" "}
+        {fmtValue(oneMonth?.expected_short_inflation_bps, "bps", 1)}, and
+        premium components explain the remaining Cleveland model move.
       </p>
     </div>
   );
@@ -527,14 +573,16 @@ function DecompositionSourceCards({
           <p>Live FRED effective fed funds rate for the short-rate anchor.</p>
         </article>
         <article>
-          <span>Market inflation</span>
-          <strong>5Y5Y {fmtValue(decomp.forward_inflation_5y5y, "%", 2)}</strong>
-          <p>FRED forward inflation compensation; useful for impulse checks.</p>
+          <span>Cleveland model</span>
+          <strong>
+            {fmtValue(decomp.model_nominal_10y, "%", 2)} implied nominal
+          </strong>
+          <p>Monthly model split for expected inflation and risk premia.</p>
         </article>
         <article>
-          <span>Survey source</span>
-          <strong>Unavailable</strong>
-          <p>SEP / survey feeds are not wired, so the page does not fill them.</p>
+          <span>Market proxy</span>
+          <strong>5Y5Y {fmtValue(decomp.forward_inflation_5y5y, "%", 2)}</strong>
+          <p>FRED forward inflation compensation remains an impulse check.</p>
         </article>
       </div>
     </div>
@@ -756,7 +804,7 @@ export function RatesDesk({ snapshot }: { snapshot: Snapshot | null }) {
                 target="_blank"
                 rel="noreferrer"
               >
-                FRED {source.id}
+                {sourceLinkLabel(source.id)}
               </a>
             </div>
           ))}

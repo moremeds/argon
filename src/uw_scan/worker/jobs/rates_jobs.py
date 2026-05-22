@@ -10,8 +10,9 @@ from typing import Protocol
 
 import psycopg
 
-from uw_scan.rates.series import RATES_FRED_SERIES
+from uw_scan.rates.series import CLEVELAND_FED_MODEL_SERIES, RATES_FRED_SERIES
 from uw_scan.rates.snapshot import build_rates_snapshot
+from uw_scan.sources.cleveland_fed import ClevelandFedInflationProvider
 from uw_scan.sources.fred import FredProvider, RecordHook
 from uw_scan.storage.repository import Repository
 
@@ -31,6 +32,17 @@ class RatesFredProvider(Protocol):
 RatesProviderFactory = Callable[..., RatesFredProvider]
 
 
+class RatesClevelandFedProvider(Protocol):
+    def __enter__(self) -> "RatesClevelandFedProvider": ...
+
+    def __exit__(self, *_exc: object) -> object: ...
+
+    def fetch_model_rows(self, *, start: date | None = None): ...
+
+
+RatesClevelandProviderFactory = Callable[..., RatesClevelandFedProvider]
+
+
 @dataclass(frozen=True)
 class RatesIngestResult:
     inserted_observations: int
@@ -47,6 +59,9 @@ def rates_fred_ingest_job(
     lookback_days: int = 45,
     record_request: RecordHook | None = None,
     provider_factory: RatesProviderFactory = FredProvider,
+    cleveland_provider_factory: RatesClevelandProviderFactory = (
+        ClevelandFedInflationProvider
+    ),
     computed_at: datetime | None = None,
 ) -> RatesIngestResult:
     if not fred_api_key:
@@ -87,11 +102,28 @@ def rates_fred_ingest_job(
                     logger.exception(
                         "rates_fred_ingest: series=%s failed: %r", series_id, exc
                     )
+        try:
+            with cleveland_provider_factory(
+                record_request=record_request,
+                job_name="rates_cleveland_fed_ingest",
+            ) as cleveland:
+                model_rows = cleveland.fetch_model_rows(start=start)
+                rows = [
+                    row
+                    for record in model_rows
+                    for row in record.to_observation_rows()
+                ]
+                inserted += repo.upsert_rates_observation_rows(
+                    rows, seen_at=now, source="CLEVELAND_FED"
+                )
+        except Exception as exc:
+            failed.extend(CLEVELAND_FED_MODEL_SERIES)
+            logger.exception("rates_cleveland_fed_ingest failed: %r", exc)
 
         conn.commit()
         observations_by_series = {
             series_id: repo.fetch_rates_series(series_id, from_date=start)
-            for series_id in RATES_FRED_SERIES
+            for series_id in (*RATES_FRED_SERIES, *CLEVELAND_FED_MODEL_SERIES)
         }
         snapshot = build_rates_snapshot(
             observations_by_series,

@@ -13,7 +13,20 @@ from uw_scan.models import (
     RatesSlopeMetric,
     RatesSourceFreshness,
 )
-from uw_scan.rates.series import SERIES_LABELS, YIELD_CURVE_SERIES
+from uw_scan.rates.series import (
+    CLEVE_EXPECTED_INFLATION_10Y,
+    CLEVE_INFLATION_RISK_PREMIUM_10Y,
+    CLEVE_MODEL_REAL_YIELD_10Y,
+    CLEVE_REAL_RISK_PREMIUM_10Y,
+    CLEVELAND_FED_MODEL_SERIES,
+    SERIES_LABELS,
+    YIELD_CURVE_SERIES,
+)
+
+CLEVELAND_MODEL_URL = (
+    "https://www.clevelandfed.org/indicators-and-data/inflation-expectations"
+)
+CLEVELAND_MODEL_SOURCE = "Cleveland Fed Inflation Expectations"
 
 
 def latest_on_or_before(
@@ -82,6 +95,9 @@ def compute_decomposition(
         else None
     )
     present = [value is not None for value in (nominal, real, bei, forward)]
+    clarida = _clarida_components(points_by_series, as_of=as_of, nominal=nominal)
+    if clarida["model_nominal_10y"] is not None:
+        present.append(True)
     status = "ok" if all(present) else ("partial" if any(present) else "missing")
     return RatesDecomposition(
         nominal_10y=_float_pct(nominal),
@@ -89,6 +105,7 @@ def compute_decomposition(
         breakeven_10y=_float_pct(bei),
         forward_inflation_5y5y=_float_pct(forward),
         term_forward_compensation=_float_pct(term_forward),
+        **clarida,
         status=status,
         attribution=compute_decomposition_attribution(points_by_series, as_of=as_of),
     )
@@ -157,6 +174,33 @@ def _decomposition_attribution_row(
     real_delta = delta_bps(real, prior_real)
     breakeven_delta = delta_bps(breakeven, prior_breakeven)
     residual = _residual_delta(nominal_delta, real_delta, breakeven_delta)
+    clarida_current = _clarida_components(points_by_series, as_of=as_of, nominal=nominal)
+    clarida_prior = _clarida_components(
+        points_by_series, as_of=prior_date, nominal=prior_nominal
+    )
+    model_nominal_delta = _component_delta(
+        clarida_current["model_nominal_10y"], clarida_prior["model_nominal_10y"]
+    )
+    expected_real_delta = _component_delta(
+        clarida_current["expected_short_real_rate_10y"],
+        clarida_prior["expected_short_real_rate_10y"],
+    )
+    expected_inflation_delta = _component_delta(
+        clarida_current["expected_short_inflation_10y"],
+        clarida_prior["expected_short_inflation_10y"],
+    )
+    real_term_delta = _component_delta(
+        clarida_current["real_term_premium_10y"],
+        clarida_prior["real_term_premium_10y"],
+    )
+    inflation_risk_delta = _component_delta(
+        clarida_current["inflation_risk_premium_10y"],
+        clarida_prior["inflation_risk_premium_10y"],
+    )
+    model_residual_delta = _component_delta(
+        clarida_current["fred_model_residual_10y"],
+        clarida_prior["fred_model_residual_10y"],
+    )
     values = [nominal_delta, real_delta, breakeven_delta]
     status = "ok" if all(value is not None for value in values) else (
         "partial" if any(value is not None for value in values) else "missing"
@@ -167,7 +211,22 @@ def _decomposition_attribution_row(
         real_10y_bps=real_delta,
         breakeven_10y_bps=breakeven_delta,
         residual_bps=residual,
-        driver=_attribution_driver(real_delta, breakeven_delta, residual),
+        model_nominal_10y_bps=model_nominal_delta,
+        expected_short_real_bps=expected_real_delta,
+        expected_short_inflation_bps=expected_inflation_delta,
+        real_term_premium_bps=real_term_delta,
+        inflation_risk_premium_bps=inflation_risk_delta,
+        fred_model_residual_bps=model_residual_delta,
+        driver=_attribution_driver(
+            real_delta,
+            breakeven_delta,
+            residual,
+            expected_real_delta,
+            expected_inflation_delta,
+            real_term_delta,
+            inflation_risk_delta,
+            model_residual_delta,
+        ),
         status=status,
     )
 
@@ -181,6 +240,89 @@ def _breakeven_value(
     nominal = _latest_value(points_by_series, "DGS10", as_of)
     real = _latest_value(points_by_series, "DFII10", as_of)
     return nominal - real if nominal is not None and real is not None else None
+
+
+def _clarida_components(
+    points_by_series: dict[str, list[dict[str, Any]]],
+    *,
+    as_of: date,
+    nominal: Decimal | None,
+) -> dict[str, Any]:
+    model_date = _latest_common_date(points_by_series, CLEVELAND_FED_MODEL_SERIES, as_of)
+    if model_date is None:
+        return {
+            "clarida_model_date": None,
+            "model_real_yield_10y": None,
+            "expected_short_real_rate_10y": None,
+            "expected_short_inflation_10y": None,
+            "real_term_premium_10y": None,
+            "inflation_risk_premium_10y": None,
+            "model_nominal_10y": None,
+            "fred_model_residual_10y": None,
+            "model_source": None,
+            "model_url": None,
+        }
+    model_real = _latest_value(points_by_series, CLEVE_MODEL_REAL_YIELD_10Y, model_date)
+    expected_inflation = _latest_value(
+        points_by_series, CLEVE_EXPECTED_INFLATION_10Y, model_date
+    )
+    real_term = _latest_value(points_by_series, CLEVE_REAL_RISK_PREMIUM_10Y, model_date)
+    inflation_risk = _latest_value(
+        points_by_series, CLEVE_INFLATION_RISK_PREMIUM_10Y, model_date
+    )
+    expected_real = (
+        model_real - real_term if model_real is not None and real_term is not None else None
+    )
+    model_nominal = (
+        expected_real + expected_inflation + real_term + inflation_risk
+        if (
+            expected_real is not None
+            and expected_inflation is not None
+            and real_term is not None
+            and inflation_risk is not None
+        )
+        else None
+    )
+    residual = (
+        nominal - model_nominal if nominal is not None and model_nominal is not None else None
+    )
+    return {
+        "clarida_model_date": model_date,
+        "model_real_yield_10y": _float_pct(model_real),
+        "expected_short_real_rate_10y": _float_pct(expected_real),
+        "expected_short_inflation_10y": _float_pct(expected_inflation),
+        "real_term_premium_10y": _float_pct(real_term),
+        "inflation_risk_premium_10y": _float_pct(inflation_risk),
+        "model_nominal_10y": _float_pct(model_nominal),
+        "fred_model_residual_10y": _float_pct(residual),
+        "model_source": CLEVELAND_MODEL_SOURCE,
+        "model_url": CLEVELAND_MODEL_URL,
+    }
+
+
+def _latest_common_date(
+    points_by_series: dict[str, list[dict[str, Any]]],
+    series_ids: tuple[str, ...],
+    as_of: date,
+) -> date | None:
+    candidate_sets: list[set[date]] = []
+    for series_id in series_ids:
+        dates = {
+            row["obs_date"]
+            for row in points_by_series.get(series_id, [])
+            if row.get("obs_date") is not None and row["obs_date"] <= as_of
+        }
+        if not dates:
+            return None
+        candidate_sets.append(dates)
+    common_dates = set.intersection(*candidate_sets)
+    return max(common_dates) if common_dates else None
+
+
+def _component_delta(current: float | None, prior: float | None) -> float | None:
+    if current is None or prior is None:
+        return None
+    return round((current - prior) * 100, 1)
 
 
 def _residual_delta(
@@ -197,13 +339,30 @@ def _attribution_driver(
     real_delta: float | None,
     breakeven_delta: float | None,
     residual: float | None,
+    expected_real_delta: float | None = None,
+    expected_inflation_delta: float | None = None,
+    real_term_delta: float | None = None,
+    inflation_risk_delta: float | None = None,
+    fred_model_residual_delta: float | None = None,
 ) -> str | None:
-    candidates = [
+    model_candidates = [
+        ("Expected short real", expected_real_delta),
+        ("Expected short inflation", expected_inflation_delta),
+        ("Real term premium", real_term_delta),
+        ("Inflation risk premium", inflation_risk_delta),
+        ("FRED residual", fred_model_residual_delta),
+    ]
+    available_model = [
+        (label, value) for label, value in model_candidates if value is not None
+    ]
+    if available_model:
+        return max(available_model, key=lambda item: abs(item[1]))[0]
+    legacy_candidates = [
         ("Real rate", real_delta),
         ("Breakeven", breakeven_delta),
         ("Residual", residual),
     ]
-    available = [(label, value) for label, value in candidates if value is not None]
+    available = [(label, value) for label, value in legacy_candidates if value is not None]
     if not available:
         return None
     return max(available, key=lambda item: abs(item[1]))[0]

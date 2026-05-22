@@ -10,6 +10,7 @@ import psycopg
 import pytest
 
 from uw_scan.config import Settings
+from uw_scan.sources.cleveland_fed import ClevelandFedInflationRecord
 from uw_scan.sources.fred import FredObservation
 from uw_scan.storage.repository import Repository
 from uw_scan.worker.jobs.rates_jobs import rates_fred_ingest_job
@@ -82,6 +83,29 @@ class _Provider:
         ]
 
 
+class _ClevelandProvider:
+    def __init__(self, *, record_request=None, job_name=None):
+        self.record_request = record_request
+        self.job_name = job_name
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *_exc):
+        return None
+
+    def fetch_model_rows(self, *, start=None):
+        return [
+            ClevelandFedInflationRecord(
+                obs_date=date(2026, 5, 1),
+                expected_inflation_10y=Decimal("2.4761367"),
+                real_risk_premium_10y=Decimal("1.2312081"),
+                inflation_risk_premium_10y=Decimal("0.3489275"),
+                model_real_yield_10y=Decimal("1.6340507389933305"),
+            )
+        ]
+
+
 def test_rates_job_requires_fred_api_key(migrated_settings: Settings):
     with pytest.raises(RuntimeError, match="FRED_API_KEY"):
         rates_fred_ingest_job(
@@ -97,6 +121,7 @@ def test_rates_job_persists_observations_and_snapshot(migrated_settings: Setting
         dsn=migrated_settings.db_dsn(),
         fred_api_key="fred-test",
         provider_factory=_Provider,
+        cleveland_provider_factory=_ClevelandProvider,
         computed_at=datetime(2026, 5, 20, 22, tzinfo=UTC),
     )
 
@@ -111,6 +136,10 @@ def test_rates_job_persists_observations_and_snapshot(migrated_settings: Setting
     assert row is not None
     assert row["payload"]["as_of"] == "2026-05-20"
     assert row["payload"]["decomposition"]["nominal_10y"] == 4.67
+    assert row["payload"]["decomposition"]["model_source"] == (
+        "Cleveland Fed Inflation Expectations"
+    )
+    assert row["payload"]["decomposition"]["expected_short_inflation_10y"] == 2.48
 
 
 def test_rates_job_keeps_raw_observations_when_snapshot_build_fails(
@@ -126,6 +155,7 @@ def test_rates_job_keeps_raw_observations_when_snapshot_build_fails(
             dsn=migrated_settings.db_dsn(),
             fred_api_key="fred-test",
             provider_factory=_Provider,
+            cleveland_provider_factory=_ClevelandProvider,
             computed_at=datetime(2026, 5, 20, 22, tzinfo=UTC),
         )
 
