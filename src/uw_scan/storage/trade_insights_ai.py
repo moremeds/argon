@@ -9,7 +9,6 @@ import psycopg
 from psycopg.types.json import Jsonb
 
 
-
 class _TradeInsightsAiMixin:
     _conn: psycopg.Connection
     _schema: str
@@ -145,6 +144,7 @@ class _TradeInsightsAiMixin:
         analysis_input_hash: str,
         prompt_version: str,
         model: str,
+        provider: str = "codex",
     ) -> dict[str, Any] | None:
         sql = (
             f"SELECT * FROM {self._schema}.trade_insight_ai_analyses "
@@ -152,6 +152,7 @@ class _TradeInsightsAiMixin:
             "AND analysis_input_hash = %s "
             "AND prompt_version = %s "
             "AND model = %s "
+            "AND provider = %s "
             "AND status = 'succeeded' "
             "ORDER BY finished_at DESC NULLS LAST, requested_at DESC "
             "LIMIT 1"
@@ -159,7 +160,13 @@ class _TradeInsightsAiMixin:
         with self._conn.cursor() as cur:
             cur.execute(
                 sql,
-                (ticker.upper(), analysis_input_hash, prompt_version, model),
+                (
+                    ticker.upper(),
+                    analysis_input_hash,
+                    prompt_version,
+                    model,
+                    provider,
+                ),
             )
             row = cur.fetchone()
             if row is None:
@@ -174,6 +181,7 @@ class _TradeInsightsAiMixin:
         analysis_input_hash: str,
         prompt_version: str,
         model: str,
+        provider: str = "codex",
     ) -> dict[str, Any] | None:
         sql = (
             f"SELECT * FROM {self._schema}.trade_insight_ai_analyses "
@@ -181,6 +189,7 @@ class _TradeInsightsAiMixin:
             "AND analysis_input_hash = %s "
             "AND prompt_version = %s "
             "AND model = %s "
+            "AND provider = %s "
             "AND status IN ('queued', 'running', 'succeeded') "
             "ORDER BY "
             "  CASE status WHEN 'succeeded' THEN 0 WHEN 'running' THEN 1 ELSE 2 END, "
@@ -192,7 +201,13 @@ class _TradeInsightsAiMixin:
         with self._conn.cursor() as cur:
             cur.execute(
                 sql,
-                (ticker.upper(), analysis_input_hash, prompt_version, model),
+                (
+                    ticker.upper(),
+                    analysis_input_hash,
+                    prompt_version,
+                    model,
+                    provider,
+                ),
             )
             row = cur.fetchone()
             if row is None:
@@ -225,12 +240,14 @@ class _TradeInsightsAiMixin:
         ticker: str,
         prompt_version: str,
         model: str,
+        provider: str = "codex",
     ) -> dict[str, Any] | None:
         sql = (
             f"SELECT * FROM {self._schema}.trade_insight_ai_analyses "
             "WHERE ticker = %s "
             "AND prompt_version = %s "
             "AND model = %s "
+            "AND provider = %s "
             "AND status IN ('queued', 'running', 'succeeded') "
             "ORDER BY "
             "  CASE status WHEN 'running' THEN 0 WHEN 'queued' THEN 1 ELSE 2 END, "
@@ -240,12 +257,42 @@ class _TradeInsightsAiMixin:
             "LIMIT 1"
         )
         with self._conn.cursor() as cur:
-            cur.execute(sql, (ticker.upper(), prompt_version, model))
+            cur.execute(sql, (ticker.upper(), prompt_version, model, provider))
             row = cur.fetchone()
             if row is None:
                 return None
             cols = [d.name for d in cur.description or []]
             return dict(zip(cols, row, strict=False))
+
+    def find_latest_trade_insight_ai_analyses_per_provider(
+        self,
+        *,
+        ticker: str,
+        prompt_version: str,
+    ) -> dict[str, dict[str, Any] | None]:
+        """Latest succeeded row per known provider as a keyed dict.
+
+        Output shape: {"codex": row|None, "claude": row|None}. Model is NOT in
+        the key — the latest succeeded row for each provider wins regardless of
+        which model produced it (so a model alias rollover doesn't hide the
+        most recent result).
+        """
+        sql = (
+            f"SELECT DISTINCT ON (provider) * FROM {self._schema}.trade_insight_ai_analyses "
+            "WHERE ticker = %s AND prompt_version = %s AND status = 'succeeded' "
+            "ORDER BY provider, finished_at DESC NULLS LAST, requested_at DESC"
+        )
+        out: dict[str, dict[str, Any] | None] = {"codex": None, "claude": None}
+        with self._conn.cursor() as cur:
+            cur.execute(sql, (ticker.upper(), prompt_version))
+            rows = cur.fetchall()
+            cols = [d.name for d in cur.description or []]
+            for row in rows:
+                rd = dict(zip(cols, row, strict=False))
+                provider = rd.get("provider")
+                if provider in out:
+                    out[provider] = rd
+        return out
 
     def enqueue_trade_insight_ai_analysis(
         self,
@@ -258,13 +305,14 @@ class _TradeInsightsAiMixin:
         analysis_input: dict[str, Any],
         prompt_version: str,
         model: str,
+        provider: str = "codex",
     ) -> str:
         sql = (
             f"INSERT INTO {self._schema}.trade_insight_ai_analyses "
             "(snapshot_id, ticker, run_id, trade_insights_input_hash, "
-            "analysis_input_hash, analysis_input_jsonb, prompt_version, model, status) "
-            "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, 'queued') "
-            "ON CONFLICT (ticker, analysis_input_hash, prompt_version, model) "
+            "analysis_input_hash, analysis_input_jsonb, prompt_version, model, provider, status) "
+            "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, 'queued') "
+            "ON CONFLICT (ticker, analysis_input_hash, prompt_version, model, provider) "
             "WHERE status IN ('queued', 'running') "
             "DO NOTHING "
             "RETURNING analysis_id"
@@ -281,6 +329,7 @@ class _TradeInsightsAiMixin:
                     Jsonb(analysis_input),
                     prompt_version,
                     model,
+                    provider,
                 ),
             )
             row = cur.fetchone()
@@ -291,10 +340,17 @@ class _TradeInsightsAiMixin:
                     "AND analysis_input_hash = %s "
                     "AND prompt_version = %s "
                     "AND model = %s "
+                    "AND provider = %s "
                     "AND status IN ('queued', 'running') "
                     "ORDER BY started_at DESC NULLS LAST, requested_at DESC "
                     "LIMIT 1",
-                    (ticker.upper(), analysis_input_hash, prompt_version, model),
+                    (
+                        ticker.upper(),
+                        analysis_input_hash,
+                        prompt_version,
+                        model,
+                        provider,
+                    ),
                 )
                 row = cur.fetchone()
         assert row is not None
@@ -304,26 +360,32 @@ class _TradeInsightsAiMixin:
         self,
         *,
         stale_running_before: datetime | None = None,
+        provider: str | None = None,
     ) -> dict[str, Any] | None:
+        provider_clause = " AND provider = %s" if provider is not None else ""
         sql = (
             f"UPDATE {self._schema}.trade_insight_ai_analyses "
             "SET status = 'running', started_at = now(), finished_at = NULL, error_message = NULL "
             "WHERE analysis_id = ("
             f"  SELECT analysis_id FROM {self._schema}.trade_insight_ai_analyses "
-            "  WHERE status = 'queued' "
+            "  WHERE (status = 'queued' "
             "     OR ("
             "       status = 'running' "
             "       AND %s::timestamptz IS NOT NULL "
             "       AND (started_at IS NULL OR started_at < %s::timestamptz)"
-            "     ) "
+            "     ))"
+            f"     {provider_clause} "
             "  ORDER BY CASE WHEN status = 'running' THEN 0 ELSE 1 END, requested_at "
             "  FOR UPDATE SKIP LOCKED "
             "  LIMIT 1"
             ") "
             "RETURNING *"
         )
+        params: list[Any] = [stale_running_before, stale_running_before]
+        if provider is not None:
+            params.append(provider)
         with self._conn.cursor() as cur:
-            cur.execute(sql, (stale_running_before, stale_running_before))
+            cur.execute(sql, tuple(params))
             row = cur.fetchone()
             if row is None:
                 return None
@@ -365,18 +427,37 @@ class _TradeInsightsAiMixin:
         *,
         outcome: dict[str, Any],
         markdown: str,
+        resolved_model: str | None = None,
     ) -> None:
-        sql = (
-            f"UPDATE {self._schema}.trade_insight_ai_analyses "
-            "SET status = 'succeeded', "
-            "outcome_jsonb = %s, "
-            "markdown = %s, "
-            "error_message = NULL, "
-            "finished_at = now() "
-            "WHERE analysis_id = %s"
-        )
+        """Mark a row as succeeded; optionally overwrite `model` with the
+        provider's post-hoc canonical model id (e.g. 'opus' alias resolves to
+        'claude-opus-4-7'). Resolved_model keeps the cache key correct on
+        subsequent reuse lookups."""
+        if resolved_model is None:
+            sql = (
+                f"UPDATE {self._schema}.trade_insight_ai_analyses "
+                "SET status = 'succeeded', "
+                "outcome_jsonb = %s, "
+                "markdown = %s, "
+                "error_message = NULL, "
+                "finished_at = now() "
+                "WHERE analysis_id = %s"
+            )
+            params: tuple[Any, ...] = (Jsonb(outcome), markdown, analysis_id)
+        else:
+            sql = (
+                f"UPDATE {self._schema}.trade_insight_ai_analyses "
+                "SET status = 'succeeded', "
+                "outcome_jsonb = %s, "
+                "markdown = %s, "
+                "model = %s, "
+                "error_message = NULL, "
+                "finished_at = now() "
+                "WHERE analysis_id = %s"
+            )
+            params = (Jsonb(outcome), markdown, resolved_model, analysis_id)
         with self._conn.cursor() as cur:
-            cur.execute(sql, (Jsonb(outcome), markdown, analysis_id))
+            cur.execute(sql, params)
 
     def fail_trade_insight_ai_analysis(
         self,
