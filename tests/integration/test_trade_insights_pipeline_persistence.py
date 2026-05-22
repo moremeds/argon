@@ -9,13 +9,15 @@ from uw_scan.models import (
     OptionContractRow,
     SingleStockReport,
     TermStructureRow,
-    VRPAssessment,
     VolatilityProfile,
+    VRPAssessment,
 )
 from uw_scan.pipeline import _persist_trade_insights_for_run
 
 
-def _contract(symbol: str, bid: str, ask: str, volume: int, oi: int) -> OptionContractRow:
+def _contract(
+    symbol: str, bid: str, ask: str, volume: int, oi: int
+) -> OptionContractRow:
     return OptionContractRow(
         option_symbol=symbol,
         last_price=Decimal(bid),
@@ -34,16 +36,19 @@ def _contract(symbol: str, bid: str, ask: str, volume: int, oi: int) -> OptionCo
 def test_trade_insights_pipeline_persistence_is_idempotent(seeded_db_empty_cards):
     repo = seeded_db_empty_cards
     run_id = repo.insert_scan_run("TSLA")
+    # Expiries inside the swing-HOLD entry window (21-60 DTE from 2026-05-13):
+    #   2026-06-19 -> DTE 37 (preferred 28-45 band)
+    #   2026-06-26 -> DTE 44 (preferred 28-45 band)
     repo.insert_option_contract_rows(
         run_id,
         "TSLA",
         [
-            _contract("TSLA260515P00420000", "6.10", "6.30", 450, 500),
-            _contract("TSLA260515P00425000", "8.00", "8.20", 600, 700),
-            _contract("TSLA260515P00430000", "10.20", "10.50", 900, 850),
-            _contract("TSLA260515C00430000", "9.40", "9.60", 1500, 1000),
-            _contract("TSLA260515C00435000", "6.90", "7.10", 1200, 800),
-            _contract("TSLA260522C00430000", "13.80", "14.20", 700, 900),
+            _contract("TSLA260619P00420000", "6.10", "6.30", 450, 500),
+            _contract("TSLA260619P00425000", "8.00", "8.20", 600, 700),
+            _contract("TSLA260619P00430000", "10.20", "10.50", 900, 850),
+            _contract("TSLA260619C00430000", "9.40", "9.60", 1500, 1000),
+            _contract("TSLA260619C00435000", "6.90", "7.10", 1200, 800),
+            _contract("TSLA260626C00430000", "13.80", "14.20", 700, 900),
         ],
     )
     repo.insert_iv_term_rows(
@@ -52,15 +57,15 @@ def test_trade_insights_pipeline_persistence_is_idempotent(seeded_db_empty_cards
             TermStructureRow(
                 ticker="TSLA",
                 date=date(2026, 5, 13),
-                expiry=date(2026, 5, 15),
-                dte=4,
+                expiry=date(2026, 6, 19),
+                dte=37,
                 implied_move_perc=Decimal("0.048"),
             ),
             TermStructureRow(
                 ticker="TSLA",
                 date=date(2026, 5, 13),
-                expiry=date(2026, 5, 22),
-                dte=11,
+                expiry=date(2026, 6, 26),
+                dte=44,
                 implied_move_perc=Decimal("0.067"),
             ),
         ],
