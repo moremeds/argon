@@ -5,7 +5,8 @@ The only place that talks to the outside world.
 ## Per-ticker sources (UW + OHLC)
 
 - `uw.py` — Unusual Whales fetchers. Every fetcher: call UW → write audit row → persist raw compressed payload → normalize → return typed model.
-- `ohlc.py` — `MassiveOhlcProvider` (Polygon-shaped REST). Daily bars + intraday quote.
+- `ohlc.py` — `MassiveOhlcProvider` (Polygon-shaped REST). Daily bars only after Phase 7 — the `fetch_intraday_quote` REST path was removed; intraday spot now streams via `massive_ws.py`.
+- `massive_ws.py` — Async WebSocket client for `wss://delayed.massive.com/stocks`. Per-second `A.*` aggregates (Polygon-parity grammar). Pure I/O (no DB writes, no buffering, no business logic) — buffering + persistence live in `worker/ws_tick_buffer.py` + `worker/ws_db_writer.py`. The long-lived consumer process is `worker/massive_ws_consumer.py`. Replaces the old per-ticker REST polling: massive.com's `A.*` feed delivers ~1 frame/sec/ticker during the 04:00-20:00 ET window (pre-market + RTH + after-hours).
 - `lake.py` — Parquet reader for `~/market-warehouse/data-lake`. Used by the nightly `vol_index_lake_sync` job. Pure I/O, no business logic.
 
 ## Gold complex (Phase A1 + v2 corpus)

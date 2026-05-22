@@ -25,6 +25,18 @@ Set `UW_SCAN_WORKER_ROLE=uw|massive|ai|all`, `UW_SCAN_WORKER_INDEX`, and
   Trade Insights AI rows stay `queued` forever. Also export
   `UW_SCAN_AI_WORKER_COUNT=N` to the API process so the health panel can
   enumerate the AI worker heartbeats.
+- `massive_ws` is a separate long-lived process (`python -m
+  uw_scan.worker.massive_ws_consumer`), not an APScheduler worker. It holds
+  one WebSocket connection to `wss://delayed.massive.com/stocks`, subscribes
+  to `A.<TICKER>` per-second aggregates for the active watchlist, and is the
+  **sole writer** for `intraday_quote.price` and `watchlist_card.spot`/`spot_quoted_at`/
+  `spot_source` plus the intraday return triple. Per-second flush window
+  bounds the watchlist-wide quoted_at smear to ≤1s. There is no REST
+  fallback — if this process dies, spot data is stale until it reconnects.
+  Liveness signal: `/api/health` `ws_consumer.healthy`. Gated by
+  `MASSIVE_WS_ENABLED=true`, which must also be exported to the API and
+  every scheduler worker so `full_scan` / `rescan_tick` skip the spot fields
+  in their `ON CONFLICT DO UPDATE` clause (Phase 6 `preserve_spot`).
 - `all` preserves the legacy single scheduler shape.
 - Per-ticker scheduled jobs must use the scheduler-provided shard filter.
   Rescans use DB claiming (`FOR UPDATE SKIP LOCKED`) and are not sharded.
