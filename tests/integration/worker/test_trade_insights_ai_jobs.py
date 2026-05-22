@@ -9,9 +9,37 @@ from uw_scan.config import Settings
 from uw_scan.reports.trade_insights_ai import PROMPT_VERSION
 from uw_scan.storage.repository import Repository
 from uw_scan.worker.jobs.trade_insights_ai import (
+    RUNNERS,
     TradeInsightsAiRunnerError,
     trade_insights_ai_tick,
 )
+from uw_scan.worker.jobs.trade_insights_ai_runners import RunnerResult
+
+
+class _FakeCodexRunner:
+    """Adapter that lets tests pass a plain `fake(...)` callable returning an
+    outcome dict (or raising) while the worker tick sees a Protocol-conforming
+    runner returning a RunnerResult.
+
+    Replaces the legacy module-level `run_codex_trade_insights_analysis`
+    monkeypatch target after the Protocol-based RUNNERS registry refactor.
+    """
+
+    name = "codex"
+
+    def __init__(self, side_effect, *, resolved_model: str = "codex-default"):
+        self._side_effect = side_effect
+        self._resolved_model = resolved_model
+
+    def run(self, prompt, schema, *, model, timeout_seconds, max_output_bytes):
+        outcome = self._side_effect(
+            prompt,
+            schema,
+            model=model,
+            timeout_seconds=timeout_seconds,
+            max_output_bytes=max_output_bytes,
+        )
+        return RunnerResult(outcome=outcome, resolved_model=self._resolved_model)
 
 
 def _settings_for_repo(repo: Repository) -> Settings:
@@ -105,10 +133,7 @@ def test_trade_insights_ai_tick_claims_prepares_releases_and_completes(
         outcome["analysis_produced_at"] = produced_at.isoformat().replace("+00:00", "Z")
         return outcome
 
-    monkeypatch.setattr(
-        "uw_scan.worker.jobs.trade_insights_ai.run_codex_trade_insights_analysis",
-        fake_runner,
-    )
+    monkeypatch.setitem(RUNNERS, "codex", _FakeCodexRunner(fake_runner))
 
     assert trade_insights_ai_tick(settings) is True
 
@@ -131,9 +156,10 @@ def test_trade_insights_ai_tick_marks_invalid_output_failed(
     settings = _settings_for_repo(repo)
     analysis_id, _analysis_input_payload = _enqueue_analysis(repo)
 
-    monkeypatch.setattr(
-        "uw_scan.worker.jobs.trade_insights_ai.run_codex_trade_insights_analysis",
-        lambda *a, **k: {"not": "valid"},
+    monkeypatch.setitem(
+        RUNNERS,
+        "codex",
+        _FakeCodexRunner(lambda *a, **k: {"not": "valid"}),
     )
 
     assert trade_insights_ai_tick(settings) is True
@@ -159,10 +185,7 @@ def test_trade_insights_ai_tick_marks_obsolete_prompt_version_failed(
         runner_called = True
         return {}
 
-    monkeypatch.setattr(
-        "uw_scan.worker.jobs.trade_insights_ai.run_codex_trade_insights_analysis",
-        fake_runner,
-    )
+    monkeypatch.setitem(RUNNERS, "codex", _FakeCodexRunner(fake_runner))
 
     assert trade_insights_ai_tick(settings) is True
     row = repo.get_trade_insight_ai_analysis(analysis_id, ticker="TSLA")
@@ -184,10 +207,7 @@ def test_trade_insights_ai_tick_marks_mismatched_produced_at_failed(
         outcome["analysis_produced_at"] = "2026-03-24T20:19:42Z"
         return outcome
 
-    monkeypatch.setattr(
-        "uw_scan.worker.jobs.trade_insights_ai.run_codex_trade_insights_analysis",
-        fake_runner,
-    )
+    monkeypatch.setitem(RUNNERS, "codex", _FakeCodexRunner(fake_runner))
 
     assert trade_insights_ai_tick(settings) is True
     row = repo.get_trade_insight_ai_analysis(analysis_id, ticker="TSLA")
@@ -206,10 +226,7 @@ def test_trade_insights_ai_tick_marks_runner_timeout_failed(
     def fake_runner(*_args, **_kwargs):
         raise TradeInsightsAiRunnerError("codex exec timed out")
 
-    monkeypatch.setattr(
-        "uw_scan.worker.jobs.trade_insights_ai.run_codex_trade_insights_analysis",
-        fake_runner,
-    )
+    monkeypatch.setitem(RUNNERS, "codex", _FakeCodexRunner(fake_runner))
 
     assert trade_insights_ai_tick(settings) is True
     row = repo.get_trade_insight_ai_analysis(analysis_id, ticker="TSLA")
