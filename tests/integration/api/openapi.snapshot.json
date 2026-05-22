@@ -5332,6 +5332,16 @@
             },
             "title": "Workers",
             "type": "array"
+          },
+          "ws_consumer": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/WsConsumerHealth"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "required": [
@@ -12265,6 +12275,99 @@
           "heartbeat_name"
         ],
         "title": "WorkerHealth",
+        "type": "object"
+      },
+      "WsConsumerHealth": {
+        "description": "Massive.com WS consumer status, surfaced for the HealthPanel.\n\n``healthy`` is true when:\n  * the market is closed (no ticks are expected), OR\n  * ``last_tick_at`` is within ``massive_ws_heartbeat_stale_after_seconds``.\n\n``reason`` carries the short label the UI displays under the row.",
+        "properties": {
+          "connection_started_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Connection Started At"
+          },
+          "healthy": {
+            "title": "Healthy",
+            "type": "boolean"
+          },
+          "last_error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Error"
+          },
+          "last_flush_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Flush At"
+          },
+          "last_tick_age_seconds": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Tick Age Seconds"
+          },
+          "last_tick_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Tick At"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          },
+          "ticks_flushed": {
+            "default": 0,
+            "title": "Ticks Flushed",
+            "type": "integer"
+          },
+          "ticks_received": {
+            "default": 0,
+            "title": "Ticks Received",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "healthy"
+        ],
+        "title": "WsConsumerHealth",
         "type": "object"
       },
       "uw_scan__api__schemas__GexLevel": {

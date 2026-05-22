@@ -1222,6 +1222,7 @@ dependencies = [
     { name = "pyyaml" },
     { name = "tzdata" },
     { name = "uvicorn", extra = ["standard"] },
+    { name = "websockets" },
     { name = "xlrd" },
 ]
 
@@ -1254,6 +1255,7 @@ requires-dist = [
     { name = "pyyaml", specifier = ">=6.0" },
     { name = "tzdata", specifier = ">=2024.2" },
     { name = "uvicorn", extras = ["standard"], specifier = ">=0.32,<1.0" },
+    { name = "websockets", specifier = ">=12.0" },
     { name = "xlrd", specifier = ">=2.0.2" },
 ]
 provides-extras = ["postgres"]

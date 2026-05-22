@@ -1,4 +1,10 @@
-"""Worker job tests: spot refresh, full scan, OHLC pull, rescan loop."""
+"""Worker job tests: full scan, OHLC pull, rescan loop.
+
+(spot_refresh tests were removed in Phase 7 — the REST polling job no
+longer exists. Intraday spot writes flow through the WS consumer; see
+``tests/integration/worker/test_ws_db_writer.py`` +
+``test_massive_ws_consumer.py``.)
+"""
 
 from __future__ import annotations
 
@@ -13,7 +19,7 @@ from uw_scan.models import (
     VolatilityProfile,
     VRPAssessment,
 )
-from uw_scan.sources.ohlc import IntradayQuote, OhlcBar
+from uw_scan.sources.ohlc import OhlcBar
 
 
 def _stub_report(ticker: str = "TSLA", run_id: int = 999) -> SingleStockReport:
@@ -34,49 +40,6 @@ def _stub_report(ticker: str = "TSLA", run_id: int = 999) -> SingleStockReport:
         ),
         vrp=VRPAssessment(vrp=None, signal="—", note=""),
     )
-
-
-# ---- spot_refresh --------------------------------------------------------
-
-
-def test_spot_refresh_updates_quote_and_card(seeded_db_with_cards):
-    from uw_scan.worker.jobs.spot_refresh import spot_refresh_once
-
-    fake = MagicMock()
-    fake.fetch_intraday_quote.side_effect = lambda t, **_kw: IntradayQuote(
-        ticker=t,
-        price=Decimal("999.99"),
-        quoted_at=datetime(2026, 5, 8, 13, 0, tzinfo=timezone.utc),
-    )
-    n = spot_refresh_once(seeded_db_with_cards, fake)
-    assert n >= 1
-    q = seeded_db_with_cards.get_intraday_quote("TSLA")
-    assert q is not None and q.price == Decimal("999.9900")
-    card = seeded_db_with_cards.get_watchlist_card("TSLA")
-    assert card.spot == Decimal("999.9900")
-    assert card.spot_source == "massive.com_intraday"
-
-
-def test_spot_refresh_skips_when_no_quote(seeded_db_with_cards):
-    from uw_scan.worker.jobs.spot_refresh import spot_refresh_once
-
-    fake = MagicMock()
-    fake.fetch_intraday_quote.return_value = None
-    assert spot_refresh_once(seeded_db_with_cards, fake) == 0
-
-
-def test_spot_refresh_passes_market_date_to_provider(seeded_db_with_cards):
-    from uw_scan.worker.jobs.spot_refresh import spot_refresh_once
-
-    fake = MagicMock()
-    fake.fetch_intraday_quote.return_value = None
-    spot_refresh_once(
-        seeded_db_with_cards,
-        fake,
-        market_date=date(2026, 5, 13),
-    )
-
-    fake.fetch_intraday_quote.assert_any_call("TSLA", market_date=date(2026, 5, 13))
 
 
 # ---- full_scan -----------------------------------------------------------

@@ -102,24 +102,57 @@ class _WatchlistMixin:
         run_id: int,
         scanned_at: datetime,
         spot: Decimal | None = None,
+        preserve_spot: bool = False,
         **fields: Any,
     ) -> None:
         """Insert or replace the per-ticker card row.
 
-        `updated_at` is DB-owned (default NOW() on insert; refreshed by the
-        conflict branch). It is NOT part of the column list, so INSERT cols
-        and VALUES placeholders have matching arity.
+        When ``preserve_spot=True``, an existing row's spot / spot_quoted_at /
+        spot_source AND ret_1d/1w/30d are never overwritten — A13: the WS
+        consumer owns both the spot price and the intraday-derived returns
+        computed against that spot, so full_scan / rescan_tick computing
+        returns from their own snapshot would drift the dashboard numbers
+        away from the WS-canonical view. New rows (INSERT branch) still
+        accept the passed values so an initial full_scan with no prior
+        WS tick correctly seeds the card.
+
+        ``updated_at`` is DB-owned (default NOW() on insert; refreshed by
+        the conflict branch). It is NOT part of the column list, so INSERT
+        cols and VALUES placeholders have matching arity.
         """
         cols = ["ticker", "run_id", "scanned_at", "spot", *fields.keys()]
         vals = [ticker, run_id, scanned_at, spot, *fields.values()]
         placeholders = ", ".join(["%s"] * len(cols))
-        updates = ", ".join(f"{c}=EXCLUDED.{c}" for c in cols if c != "ticker")
+        # A13: gate the spot triple AND the return triple together. Gating
+        # only spot would leave the WS-owned returns vulnerable to a
+        # full_scan stomping ret_1d with a less-fresh snapshot.
+        SPOT_OWNED = {
+            "spot",
+            "spot_quoted_at",
+            "spot_source",
+            "ret_1d",
+            "ret_1w",
+            "ret_30d",
+        }
+        if preserve_spot:
+            update_cols = [c for c in cols if c != "ticker" and c not in SPOT_OWNED]
+        else:
+            update_cols = [c for c in cols if c != "ticker"]
+        updates = ", ".join(f"{c}=EXCLUDED.{c}" for c in update_cols)
+        # When preserve_spot drops every updatable column (rare — would mean
+        # full_scan only passed spot fields), fall back to a no-op DO NOTHING
+        # so we don't emit empty `SET , updated_at=NOW()` SQL.
+        conflict_clause = (
+            f"DO UPDATE SET {updates}, updated_at=NOW()"
+            if update_cols
+            else "DO NOTHING"
+        )
         with self._conn.cursor() as cur:
             cur.execute(
                 f"""
                 INSERT INTO {self._schema}.watchlist_card ({", ".join(cols)})
                 VALUES ({placeholders})
-                ON CONFLICT (ticker) DO UPDATE SET {updates}, updated_at=NOW()
+                ON CONFLICT (ticker) {conflict_clause}
                 """,
                 vals,
             )
@@ -133,6 +166,81 @@ class _WatchlistMixin:
             )
             row = cur.fetchone()
             return WatchlistCardRow.from_db(row, cur.description) if row else None
+
+    def bulk_upsert_watchlist_card_spots(
+        self,
+        rows: list[tuple[str, Decimal, datetime, str]],
+    ) -> None:
+        """Update only spot/spot_quoted_at/spot_source on existing cards.
+
+        Rows with no existing watchlist_card row are silently skipped — the
+        WS consumer is not responsible for materializing cards (full_scan
+        owns card creation).
+
+        Does NOT commit — caller controls the transaction.
+        """
+        if not rows:
+            return
+        with self._conn.cursor() as cur:
+            cur.executemany(
+                f"""
+                UPDATE {self._schema}.watchlist_card
+                SET spot           = %s,
+                    spot_quoted_at = %s,
+                    spot_source    = %s
+                WHERE ticker = %s
+                """,
+                [
+                    (price, quoted_at, source, ticker)
+                    for (ticker, price, quoted_at, source) in rows
+                ],
+            )
+
+    def bulk_upsert_watchlist_card_quotes(
+        self,
+        rows: list[
+            tuple[
+                str,
+                Decimal,
+                datetime,
+                str,
+                Decimal | None,
+                Decimal | None,
+                Decimal | None,
+            ]
+        ],
+    ) -> None:
+        """Update spot triple + intraday return triple on existing cards.
+
+        Tuple shape: (ticker, price, quoted_at, source, ret_1d, ret_1w, ret_30d).
+        Returns may be None (e.g., insufficient OHLC history). Rows with no
+        existing card row are silently skipped. Does NOT commit — caller
+        controls the transaction.
+
+        Used by the WS writer to keep ret_1d/1w/30d in sync with the latest
+        WS spot (R9). Without this, returns would only update on full_scan /
+        rescan_tick and the dashboard cards would show stale returns
+        mid-session even though spot ticked.
+        """
+        if not rows:
+            return
+        with self._conn.cursor() as cur:
+            cur.executemany(
+                f"""
+                UPDATE {self._schema}.watchlist_card
+                SET spot           = %s,
+                    spot_quoted_at = %s,
+                    spot_source    = %s,
+                    ret_1d         = %s,
+                    ret_1w         = %s,
+                    ret_30d        = %s
+                WHERE ticker = %s
+                """,
+                [
+                    (price, quoted_at, source, r1d, r1w, r30d, ticker)
+                    for (ticker, price, quoted_at, source, r1d, r1w, r30d) in rows
+                ],
+            )
 
     def list_watchlist_cards(self) -> list[WatchlistCardRow]:
         """Return one row per active watchlist ticker.
@@ -206,7 +314,7 @@ class _WatchlistMixin:
                   CASE
                     WHEN q.price IS NOT NULL
                       AND (c.spot_quoted_at IS NULL OR q.quoted_at >= c.spot_quoted_at)
-                      THEN 'massive.com_intraday'
+                      THEN q.source
                     ELSE c.spot_source
                   END                                                       AS spot_source,
                   c.iv_atm, c.iv_rank,
@@ -328,7 +436,7 @@ class _WatchlistMixin:
                   CASE
                     WHEN q.price IS NOT NULL
                       AND (c.spot_quoted_at IS NULL OR q.quoted_at >= c.spot_quoted_at)
-                      THEN 'massive.com_intraday'
+                      THEN q.source
                     ELSE c.spot_source
                   END                                                       AS spot_source,
                   c.iv_atm, c.iv_rank,

@@ -25,6 +25,18 @@ Set `UW_SCAN_WORKER_ROLE=uw|massive|ai|all`, `UW_SCAN_WORKER_INDEX`, and
   Trade Insights AI rows stay `queued` forever. Also export
   `UW_SCAN_AI_WORKER_COUNT=N` to the API process so the health panel can
   enumerate the AI worker heartbeats.
+- `massive_ws` is a separate long-lived process (`python -m
+  uw_scan.worker.massive_ws_consumer`), not an APScheduler worker. It holds
+  one WebSocket connection to `wss://delayed.massive.com/stocks`, subscribes
+  to `A.<TICKER>` per-second aggregates for the active watchlist, and is the
+  **sole writer** for `intraday_quote.price` and `watchlist_card.spot`/`spot_quoted_at`/
+  `spot_source` plus the intraday return triple. Per-second flush window
+  bounds the watchlist-wide quoted_at smear to ≤1s. There is no REST
+  fallback — if this process dies, spot data is stale until it reconnects.
+  Liveness signal: `/api/health` `ws_consumer.healthy`. Gated by
+  `MASSIVE_WS_ENABLED=true`, which must also be exported to the API and
+  every scheduler worker so `full_scan` / `rescan_tick` skip the spot fields
+  in their `ON CONFLICT DO UPDATE` clause (Phase 6 `preserve_spot`).
 - `all` preserves the legacy single scheduler shape.
 - Per-ticker scheduled jobs must use the scheduler-provided shard filter.
   Rescans use DB claiming (`FOR UPDATE SKIP LOCKED`) and are not sharded.
@@ -33,12 +45,15 @@ Set `UW_SCAN_WORKER_ROLE=uw|massive|ai|all`, `UW_SCAN_WORKER_INDEX`, and
 
 | Job | Trigger | Default |
 |---|---|---|
-| `spot_refresh` | interval | `UW_SCAN_SPOT_REFRESH_SECONDS` (default 300s) |
 | `full_scan` | cron | `0 5-16 * * 0-4`; scans only missing cards or cards older than 8h |
 | `ohlc_pull` | cron | `30 17 * * 0-4` |
 | `rescan_tick` | interval | 1s; user-requested rescans bypass the 8h freshness guard |
 | `daily_spy_ohlc_refresh` | cron | `30 16 * * 0-4` |
 | `nightly_vol_analytics_rollup` | cron | `0 18 * * 0-4` |
+
+Intraday spot is no longer a scheduler job — it streams from the
+WebSocket consumer in `uw_scan.worker.massive_ws_consumer` (started as
+its own process by `scripts/dev.sh`). Toggle via `MASSIVE_WS_ENABLED`.
 
 ## Rules
 
@@ -68,7 +83,9 @@ but it has two implications operators should know:
 
 2. **OHLC pulls are owned by dedicated jobs, not by `full_scan`/`rescan`.**
    `_full_scan` and `_rescan` in `scheduler.py` pass `_NoOhlc()` (a no-op
-   provider) to `full_scan_once` / `rescan_tick`. OHLC fetches happen only in
-   `_ohlc_pull` (daily) and `_spot_refresh` (interval). If "massive provider
-   reachability" health signals look quiet from a UW worker, that is by design
-   — check the massive-role worker instead.
+   provider) to `full_scan_once` / `rescan_tick`. Daily OHLC fetches happen
+   only in `_ohlc_pull` (massive REST). Intraday spot now flows through
+   the standalone `massive_ws_consumer` process — not the scheduler at all.
+   If "massive provider reachability" health signals look quiet from a UW
+   worker, that is by design — check the massive-role worker or the
+   `ws_consumer` block in `/api/health` instead.

@@ -8,7 +8,6 @@ from pydantic import SecretStr
 from uw_scan.config import Settings
 from uw_scan.worker.jobs.full_scan import full_scan_once
 from uw_scan.worker.jobs.ohlc_pull import ohlc_pull_once
-from uw_scan.worker.jobs.spot_refresh import spot_refresh_once
 from uw_scan.worker.scheduler import (
     _rescan_worker_concurrency,
     _ticker_shard_filter,
@@ -50,20 +49,6 @@ def test_worker_groups_split_provider_roles() -> None:
 def test_split_uw_workers_run_one_rescan_instance_each() -> None:
     assert _rescan_worker_concurrency(_settings(worker_role="uw", worker_count=2)) == 1
     assert _rescan_worker_concurrency(_settings(worker_role="all", worker_count=1)) == 2
-
-
-def test_spot_refresh_respects_ticker_filter() -> None:
-    repo = MagicMock()
-    repo.list_active_watchlist.return_value = [
-        SimpleNamespace(ticker="AAPL"),
-        SimpleNamespace(ticker="MSFT"),
-    ]
-    provider = MagicMock()
-    provider.fetch_intraday_quote.return_value = None
-
-    spot_refresh_once(repo, provider, ticker_filter=lambda ticker: ticker == "AAPL")
-
-    provider.fetch_intraday_quote.assert_called_once_with("AAPL", market_date=None)
 
 
 def test_ohlc_pull_respects_ticker_filter() -> None:

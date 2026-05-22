@@ -55,6 +55,28 @@ class HealthResponse(BaseModel):
     record_health_ok: bool | None = None
     record_health: list["RecordHealthCheck"] = Field(default_factory=list)
     workers: list["WorkerHealth"] = Field(default_factory=list)
+    ws_consumer: "WsConsumerHealth | None" = None
+
+
+class WsConsumerHealth(BaseModel):
+    """Massive.com WS consumer status, surfaced for the HealthPanel.
+
+    ``healthy`` is true when:
+      * the market is closed (no ticks are expected), OR
+      * ``last_tick_at`` is within ``massive_ws_heartbeat_stale_after_seconds``.
+
+    ``reason`` carries the short label the UI displays under the row.
+    """
+
+    healthy: bool
+    last_tick_at: datetime | None = None
+    last_tick_age_seconds: float | None = None
+    last_flush_at: datetime | None = None
+    ticks_received: int = 0
+    ticks_flushed: int = 0
+    connection_started_at: datetime | None = None
+    last_error: str | None = None
+    reason: str | None = None
 
 
 class WorkerHealth(BaseModel):
@@ -237,6 +259,37 @@ def health(
         "avg_scan_duration_seconds": throughput.avg_scan_duration_seconds,
         "queue_drain_rate_per_minute": throughput.queue_drain_rate_per_minute,
     }
+    # R4: WS heartbeat health is market-session aware. Outside RTH (mon-fri
+    # 09:30-20:15 ET) no ticks flow, so a static staleness threshold would
+    # falsely red-flag every weekend and overnight period.
+    from uw_scan.worker.market_session import current_market_date
+
+    in_session = current_market_date(now_utc, settings.rth_tz) is not None
+    ws_state = repo.get_ws_consumer_state()
+    if ws_state is None or ws_state.last_tick_at is None:
+        ws_consumer = WsConsumerHealth(
+            healthy=not in_session,
+            reason="no ticks received yet" if in_session else "market closed",
+        )
+    else:
+        age_s = (now_utc - ws_state.last_tick_at).total_seconds()
+        stale = age_s >= settings.massive_ws_heartbeat_stale_after_seconds
+        ws_consumer = WsConsumerHealth(
+            healthy=(not stale) or (not in_session),
+            last_tick_at=ws_state.last_tick_at,
+            last_tick_age_seconds=age_s,
+            last_flush_at=ws_state.last_flush_at,
+            ticks_received=ws_state.ticks_received,
+            ticks_flushed=ws_state.ticks_flushed,
+            connection_started_at=ws_state.connection_started_at,
+            last_error=ws_state.last_error,
+            reason=(
+                "heartbeat stale"
+                if stale and in_session
+                else ("market closed" if stale else None)
+            ),
+        )
+
     heartbeat_fields = {
         "worker_lag_seconds": scheduler_heartbeat_lag,
         "scheduler_heartbeat_lag_seconds": scheduler_heartbeat_lag,
@@ -247,6 +300,7 @@ def health(
         "latest_spot_quote_at": latest_spot_quote_at,
         "latest_spot_quote_fetched_at": latest_spot_quote_fetched_at,
         "workers": worker_health,
+        "ws_consumer": ws_consumer,
     }
     record_fields = {"record_health_ok": None, "record_health": []}
     record_reason = None

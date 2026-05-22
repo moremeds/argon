@@ -13,8 +13,14 @@ logger = logging.getLogger(__name__)
 STALE_RUNNING_AFTER = timedelta(minutes=30)
 
 
-def rescan_tick(repo, uw_client, ohlc_provider: OhlcProvider) -> bool:
-    """Process one queued rescan. Returns True if a job ran, False if the queue was empty."""
+def rescan_tick(
+    repo, uw_client, ohlc_provider: OhlcProvider, *, preserve_spot: bool = False
+) -> bool:
+    """Process one queued rescan. Returns True if a job ran, False if the queue was empty.
+
+    ``preserve_spot=True`` is set by the scheduler when the WS consumer owns
+    intraday spot. See ``full_scan_once`` for the same flag's semantics.
+    """
     _ = ohlc_provider  # unused here; cards derive uses repo's persisted OHLC
     # Heartbeat unconditionally — this loop fires every 1s, so its liveness
     # is the closest signal we have to "worker is up." Sidebar HealthPanel
@@ -34,7 +40,7 @@ def rescan_tick(repo, uw_client, ohlc_provider: OhlcProvider) -> bool:
             job.ticker, today=report.generated_at.date()
         )
         card_row = compute_watchlist_card_row(report, history, intraday, prior_pcr)
-        repo.upsert_watchlist_card(**card_row)
+        repo.upsert_watchlist_card(**card_row, preserve_spot=preserve_spot)
         repo.mark_job_done(str(job.id), report.run_id, job.claim_token)
         return True
     except Exception as exc:  # noqa: BLE001

@@ -12,18 +12,22 @@ from uw_scan.cards.aggression import compute_aggression_pct
 from uw_scan.cards.pcr import compute_pcr_delta_30d
 from uw_scan.cards.returns import compute_returns
 from uw_scan.models import SingleStockReport
-from uw_scan.sources.ohlc import IntradayQuote, OhlcBar
-from uw_scan.storage.repository import PcrHistoryRow
+from uw_scan.sources.ohlc import OhlcBar
+from uw_scan.storage.repository import IntradayQuoteRow, PcrHistoryRow
 
 
 def compute_watchlist_card_row(
     report: SingleStockReport,
     ohlc_history: list[OhlcBar],
-    intraday: IntradayQuote | None,
+    intraday: IntradayQuoteRow | None,
     prior_pcr: PcrHistoryRow | None,
 ) -> dict[str, Any]:
+    # When an intraday quote exists, use its persisted source label
+    # ("massive.com_ws" under the live WS pipeline, or "massive.com_intraday"
+    # legacy) rather than a hardcoded literal — keeps the dashboard label
+    # truthful about which writer produced the spot.
     spot = intraday.price if intraday is not None else report.market_structure.spot
-    spot_source = "massive.com_intraday" if intraday is not None else "uw_scan"
+    spot_source = intraday.source if intraday is not None else "uw_scan"
     spot_quoted_at = intraday.quoted_at if intraday is not None else report.generated_at
 
     returns = compute_returns(ohlc_history, intraday.price if intraday else None)

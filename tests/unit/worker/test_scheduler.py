@@ -9,32 +9,41 @@ from apscheduler.triggers.cron import CronTrigger
 from pydantic import SecretStr
 
 from uw_scan.config import Settings
+from uw_scan.worker.market_session import current_market_date
 from uw_scan.worker.scheduler import (
     RESCAN_WORKER_CONCURRENCY,
     _ohlc_provider,
     _record_worker_heartbeat,
-    _spot_refresh_market_date,
     _uw_auto_request_allowed,
     _worker_heartbeat_name,
 )
 
 
-def test_spot_refresh_market_date_skips_after_hours() -> None:
+def test_current_market_date_skips_after_hours() -> None:
+    """20:54 ET is after the 04:00-20:00 feed-active window."""
     now = datetime(2026, 5, 13, 20, 54, tzinfo=ZoneInfo("America/New_York"))
 
-    assert _spot_refresh_market_date(now) is None
+    assert current_market_date(now) is None
 
 
-def test_spot_refresh_market_date_allows_delayed_after_hours() -> None:
+def test_current_market_date_allows_after_hours() -> None:
+    """19:59 ET is inside the post-close after-hours session."""
     now = datetime(2026, 5, 13, 19, 59, tzinfo=ZoneInfo("America/New_York"))
 
-    assert _spot_refresh_market_date(now).isoformat() == "2026-05-13"
+    assert current_market_date(now).isoformat() == "2026-05-13"
 
 
-def test_spot_refresh_market_date_uses_rth_date() -> None:
+def test_current_market_date_allows_pre_market() -> None:
+    """04:00 ET is the lower bound of massive.com's feed-active window."""
+    now = datetime(2026, 5, 13, 6, 30, tzinfo=ZoneInfo("America/New_York"))
+
+    assert current_market_date(now).isoformat() == "2026-05-13"
+
+
+def test_current_market_date_uses_rth_date() -> None:
     now = datetime(2026, 5, 13, 10, 0, tzinfo=ZoneInfo("America/New_York"))
 
-    assert _spot_refresh_market_date(now).isoformat() == "2026-05-13"
+    assert current_market_date(now).isoformat() == "2026-05-13"
 
 
 def test_uw_auto_request_allowed_starts_at_5am_et() -> None:

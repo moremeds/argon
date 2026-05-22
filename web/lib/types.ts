@@ -2317,6 +2317,7 @@ export interface components {
             record_health?: components["schemas"]["RecordHealthCheck"][];
             /** Workers */
             workers?: components["schemas"]["WorkerHealth"][];
+            ws_consumer?: components["schemas"]["WsConsumerHealth"] | null;
         };
         /** InsightBadge */
         InsightBadge: {
@@ -4694,6 +4695,42 @@ export interface components {
             lag_seconds?: number | null;
             /** Last Beat At */
             last_beat_at?: string | null;
+        };
+        /**
+         * WsConsumerHealth
+         * @description Massive.com WS consumer status, surfaced for the HealthPanel.
+         *
+         *     ``healthy`` is true when:
+         *       * the market is closed (no ticks are expected), OR
+         *       * ``last_tick_at`` is within ``massive_ws_heartbeat_stale_after_seconds``.
+         *
+         *     ``reason`` carries the short label the UI displays under the row.
+         */
+        WsConsumerHealth: {
+            /** Healthy */
+            healthy: boolean;
+            /** Last Tick At */
+            last_tick_at?: string | null;
+            /** Last Tick Age Seconds */
+            last_tick_age_seconds?: number | null;
+            /** Last Flush At */
+            last_flush_at?: string | null;
+            /**
+             * Ticks Received
+             * @default 0
+             */
+            ticks_received: number;
+            /**
+             * Ticks Flushed
+             * @default 0
+             */
+            ticks_flushed: number;
+            /** Connection Started At */
+            connection_started_at?: string | null;
+            /** Last Error */
+            last_error?: string | null;
+            /** Reason */
+            reason?: string | null;
         };
         /** GexLevel */
         uw_scan__api__schemas__GexLevel: {

@@ -111,7 +111,9 @@ def _with_latest_spot(report: SingleStockReport, repo: Repository) -> SingleStoc
     if quote is not None and (best_at is None or quote.quoted_at >= best_at):
         best_spot = quote.price
         best_at = quote.quoted_at
-        best_source = "massive.com_intraday"
+        # R7: use the quote's own source label so WS writes surface as
+        # "massive.com_ws" instead of the legacy hardcoded "massive.com_intraday".
+        best_source = quote.source
 
     report.market_structure.spot = best_spot
     report.spot_quoted_at = best_at

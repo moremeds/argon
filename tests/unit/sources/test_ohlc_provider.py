@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import date, timezone
+from datetime import date
 from decimal import Decimal
 
 import httpx
@@ -85,69 +85,10 @@ def test_fetch_daily_empty():
     assert bars == []
 
 
-def test_fetch_intraday_quote_uses_latest_minute_bar():
-    """Quotes endpoint is gated on our tier; use the most-recent minute
-    aggregate close as a 15-min-delayed intraday price."""
-
-    recorder = Recorder()
-
-    def handler(req):
-        assert "/v2/aggs/ticker/TSLA/range/1/minute/" in req.url.path
-        assert req.url.params.get("sort") == "desc"
-        assert req.url.params.get("limit") == "1"
-        return httpx.Response(
-            200,
-            json={
-                "ticker": "TSLA",
-                "status": "DELAYED",
-                "request_id": "req-quote",
-                "results": [
-                    {
-                        "v": 16472,
-                        "vw": 444.99,
-                        "o": 444.50,
-                        "c": 445.12,
-                        "h": 445.50,
-                        "l": 444.20,
-                        "t": 1746210000000,
-                        "n": 575,
-                    }
-                ],
-            },
-        )
-
-    p = _provider_with(handler, recorder)
-    q = p.fetch_intraday_quote("TSLA")
-    assert q is not None
-    assert q.price == Decimal("445.12")
-    assert q.quoted_at.tzinfo is timezone.utc
-    assert len(recorder.events) == 1
-    assert recorder.events[0].endpoint_key == "intraday_quote"
-    assert recorder.events[0].status_family == "2xx"
-    assert recorder.events[0].provider_request_id == "req-quote"
-
-
-def test_fetch_intraday_quote_uses_supplied_market_date():
-    def handler(req):
-        assert req.url.path == "/v2/aggs/ticker/TSLA/range/1/minute/2026-05-13/2026-05-14"
-        return httpx.Response(200, json={"results": []})
-
-    p = _provider_with(handler)
-    assert p.fetch_intraday_quote("TSLA", market_date=date(2026, 5, 13)) is None
-
-
-def test_fetch_intraday_quote_empty_results():
-    p = _provider_with(lambda req: httpx.Response(200, json={"results": []}))
-    assert p.fetch_intraday_quote("ZZZZ") is None
-
-
-def test_fetch_intraday_quote_404():
-    recorder = Recorder()
-    p = _provider_with(lambda req: httpx.Response(404, json={}), recorder)
-    assert p.fetch_intraday_quote("UNKNOWN") is None
-    assert len(recorder.events) == 1
-    assert recorder.events[0].status_code == 404
-    assert recorder.events[0].status_family == "4xx"
+# fetch_intraday_quote tests removed in Phase 7 — the REST intraday path
+# no longer exists. Intraday spot is now sourced from the WebSocket pipeline
+# (see tests/unit/sources/test_massive_ws.py and the consumer integration
+# tests under tests/integration/worker/).
 
 
 def test_fetch_daily_records_raised_http_error():

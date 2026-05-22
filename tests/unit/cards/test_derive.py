@@ -16,8 +16,8 @@ from uw_scan.models import (
     VolatilityProfile,
     VRPAssessment,
 )
-from uw_scan.sources.ohlc import IntradayQuote, OhlcBar
-from uw_scan.storage.repository import PcrHistoryRow
+from uw_scan.sources.ohlc import OhlcBar
+from uw_scan.storage.repository import IntradayQuoteRow, PcrHistoryRow
 
 
 def _make_report() -> SingleStockReport:
@@ -103,10 +103,12 @@ def _make_ohlc(days: int = 22) -> list[OhlcBar]:
 def test_derive_full_row():
     report = _make_report()
     history = _make_ohlc()
-    intraday = IntradayQuote(
+    intraday = IntradayQuoteRow(
         ticker="TSLA",
         price=Decimal("445.12"),
         quoted_at=datetime(2026, 5, 8, 13, 7, 55, tzinfo=timezone.utc),
+        fetched_at=datetime(2026, 5, 8, 13, 8, 0, tzinfo=timezone.utc),
+        source="massive.com_intraday",
     )
     prior_pcr = PcrHistoryRow(
         ticker="TSLA",
