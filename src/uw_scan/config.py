@@ -131,6 +131,10 @@ class Settings(BaseModel):
     trade_insights_ai_claude_enabled: bool = True
     trade_insights_ai_claude_model: str = ""
     trade_insights_ai_claude_timeout_seconds: float = 300.0
+    # Per-provider worker counts (informational — read by /api/health to render
+    # the per-provider health block). Defaults match scripts/dev.sh.
+    trade_insights_ai_codex_worker_count: int = 2
+    trade_insights_ai_claude_worker_count: int = 2
     # Cockpit (6-dim matrix) — see docs/superpowers/research/six-dimension-matrix/
     cockpit_tickers: list[str] = ["SPX", "SPY", "QQQ", "IWM"]
     cockpit_snapshot_cron: str = "30 16 * * 0-4"
@@ -303,6 +307,12 @@ class Settings(BaseModel):
             ),
             trade_insights_ai_claude_timeout_seconds=float(
                 os.environ.get("TRADE_INSIGHTS_AI_CLAUDE_TIMEOUT_SECONDS", "300.0")
+            ),
+            trade_insights_ai_codex_worker_count=int(
+                os.environ.get("TRADE_INSIGHTS_AI_CODEX_WORKER_COUNT", "2")
+            ),
+            trade_insights_ai_claude_worker_count=int(
+                os.environ.get("TRADE_INSIGHTS_AI_CLAUDE_WORKER_COUNT", "2")
             ),
             cockpit_tickers=_parse_csv_env(
                 "COCKPIT_TICKERS", default=["SPX", "SPY", "QQQ", "IWM"]

@@ -5293,6 +5293,16 @@
             "title": "Throughput Window Minutes",
             "type": "number"
           },
+          "trade_insights_ai": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TradeInsightsAiHealth"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "uw_today": {
             "anyOf": [
               {
@@ -11766,6 +11776,58 @@
           "reason"
         ],
         "title": "TradeInsightAiVrpAssessment",
+        "type": "object"
+      },
+      "TradeInsightsAiHealth": {
+        "properties": {
+          "claude": {
+            "$ref": "#/components/schemas/TradeInsightsAiProviderHealth"
+          },
+          "codex": {
+            "$ref": "#/components/schemas/TradeInsightsAiProviderHealth"
+          }
+        },
+        "required": [
+          "codex",
+          "claude"
+        ],
+        "title": "TradeInsightsAiHealth",
+        "type": "object"
+      },
+      "TradeInsightsAiProviderHealth": {
+        "description": "Per-provider AI worker pool status.",
+        "properties": {
+          "last_beat_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Beat At"
+          },
+          "queued_depth": {
+            "title": "Queued Depth",
+            "type": "integer"
+          },
+          "workers_expected": {
+            "title": "Workers Expected",
+            "type": "integer"
+          },
+          "workers_healthy": {
+            "title": "Workers Healthy",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "workers_expected",
+          "workers_healthy",
+          "queued_depth"
+        ],
+        "title": "TradeInsightsAiProviderHealth",
         "type": "object"
       },
       "TradeInsightsHeader": {

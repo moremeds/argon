@@ -493,3 +493,19 @@ class _TradeInsightsAiMixin:
                 return None
             cols = [d.name for d in cur.description or []]
             return dict(zip(cols, row, strict=False))
+
+    def count_queued_trade_insight_ai_analyses_by_provider(
+        self,
+        provider: str,
+    ) -> int:
+        """Pending depth (queued + running) for a single provider's queue.
+
+        Used by /api/health to render the per-provider health block.
+        """
+        with self._conn.cursor() as cur:
+            cur.execute(
+                f"SELECT count(*) FROM {self._schema}.trade_insight_ai_analyses "
+                "WHERE provider = %s AND status IN ('queued', 'running')",
+                (provider,),
+            )
+            return int(cur.fetchone()[0])

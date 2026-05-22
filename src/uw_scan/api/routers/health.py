@@ -56,6 +56,21 @@ class HealthResponse(BaseModel):
     record_health: list["RecordHealthCheck"] = Field(default_factory=list)
     workers: list["WorkerHealth"] = Field(default_factory=list)
     ws_consumer: "WsConsumerHealth | None" = None
+    trade_insights_ai: "TradeInsightsAiHealth | None" = None
+
+
+class TradeInsightsAiProviderHealth(BaseModel):
+    """Per-provider AI worker pool status."""
+
+    workers_expected: int
+    workers_healthy: int
+    queued_depth: int
+    last_beat_at: datetime | None = None
+
+
+class TradeInsightsAiHealth(BaseModel):
+    codex: TradeInsightsAiProviderHealth
+    claude: TradeInsightsAiProviderHealth
 
 
 class WsConsumerHealth(BaseModel):
@@ -134,6 +149,34 @@ def _parse_record_tables(record_tables: str | None) -> list[str] | None:
         return None
     selected = [item.strip() for item in record_tables.split(",") if item.strip()]
     return selected or None
+
+
+def _provider_ai_health(
+    *,
+    repo: Repository,
+    now_utc: datetime,
+    provider: str,
+    expected_count: int,
+    fresh_window: timedelta,
+) -> "TradeInsightsAiProviderHealth":
+    """Per-provider Trade Insights AI worker health.
+
+    Looks up the provider-pinned heartbeat key (e.g. trade_insights_ai_tick_codex);
+    falls back to the legacy key when the provider-pinned worker hasn't started
+    yet. Healthiness is binary per pool — exact worker count isn't tracked yet.
+    """
+    pinned_key = f"trade_insights_ai_tick_{provider}"
+    legacy_key = "trade_insights_ai_tick"
+    heartbeats = repo.get_heartbeats([pinned_key, legacy_key])
+    beat = heartbeats.get(pinned_key) or heartbeats.get(legacy_key)
+    pool_alive = beat is not None and (now_utc - beat) < fresh_window
+    depth = repo.count_queued_trade_insight_ai_analyses_by_provider(provider)
+    return TradeInsightsAiProviderHealth(
+        workers_expected=expected_count,
+        workers_healthy=expected_count if pool_alive else 0,
+        queued_depth=depth,
+        last_beat_at=beat,
+    )
 
 
 def _worker_health_rows(
@@ -290,6 +333,28 @@ def health(
             ),
         )
 
+    # Per-provider AI worker health (Phase B). Pool is healthy if its
+    # provider-pinned heartbeat key has beaten within 2 × poll + 60s.
+    ai_fresh_window = timedelta(
+        seconds=2 * settings.trade_insights_ai_poll_seconds + 60
+    )
+    ai_block = TradeInsightsAiHealth(
+        codex=_provider_ai_health(
+            repo=repo,
+            now_utc=now_utc,
+            provider="codex",
+            expected_count=settings.trade_insights_ai_codex_worker_count,
+            fresh_window=ai_fresh_window,
+        ),
+        claude=_provider_ai_health(
+            repo=repo,
+            now_utc=now_utc,
+            provider="claude",
+            expected_count=settings.trade_insights_ai_claude_worker_count,
+            fresh_window=ai_fresh_window,
+        ),
+    )
+
     heartbeat_fields = {
         "worker_lag_seconds": scheduler_heartbeat_lag,
         "scheduler_heartbeat_lag_seconds": scheduler_heartbeat_lag,
@@ -301,6 +366,7 @@ def health(
         "latest_spot_quote_fetched_at": latest_spot_quote_fetched_at,
         "workers": worker_health,
         "ws_consumer": ws_consumer,
+        "trade_insights_ai": ai_block,
     }
     record_fields = {"record_health_ok": None, "record_health": []}
     record_reason = None

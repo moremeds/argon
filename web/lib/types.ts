@@ -2348,6 +2348,7 @@ export interface components {
             /** Workers */
             workers?: components["schemas"]["WorkerHealth"][];
             ws_consumer?: components["schemas"]["WsConsumerHealth"] | null;
+            trade_insights_ai?: components["schemas"]["TradeInsightsAiHealth"] | null;
         };
         /** InsightBadge */
         InsightBadge: {
@@ -4453,6 +4454,25 @@ export interface components {
             summary: string;
             /** Title */
             title: string;
+        };
+        /** TradeInsightsAiHealth */
+        TradeInsightsAiHealth: {
+            codex: components["schemas"]["TradeInsightsAiProviderHealth"];
+            claude: components["schemas"]["TradeInsightsAiProviderHealth"];
+        };
+        /**
+         * TradeInsightsAiProviderHealth
+         * @description Per-provider AI worker pool status.
+         */
+        TradeInsightsAiProviderHealth: {
+            /** Workers Expected */
+            workers_expected: number;
+            /** Workers Healthy */
+            workers_healthy: number;
+            /** Queued Depth */
+            queued_depth: number;
+            /** Last Beat At */
+            last_beat_at?: string | null;
         };
         /** TradeInsightsHeader */
         TradeInsightsHeader: {
