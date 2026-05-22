@@ -16,14 +16,17 @@ from zoneinfo import ZoneInfo
 
 
 def current_market_date(now: datetime, tz: str = "America/New_York") -> date | None:
-    """Return the ET market date when the equity session is open / active.
+    """Return the ET market date when the equity session is feed-active.
 
-    Returns ``None`` outside the RTH-plus-late-print window (mon-fri
-    09:30-20:15 ET). Outside the window callers should fall back to the
-    most recent prior weekday for cache stability.
+    Returns ``None`` outside the pre-market / RTH / after-hours window
+    (mon-fri 04:00-20:00 ET). Outside the window callers should fall back
+    to the most recent prior weekday for cache stability.
 
-    Matches the behavior of ``_spot_refresh_market_date`` in
-    ``worker/scheduler.py`` (the source of truth pre-Phase 7).
+    The window is set to match massive.com's per-second aggregate feed,
+    which covers "pre-market, regular, and after-hours sessions" per
+    https://massive.com/docs/websocket/stocks/aggregates-per-second.
+    Using a tighter RTH-only window would mislabel pre-market 04:00-09:30
+    as "market closed" in /api/health even while ticks are flowing.
     """
     local = (
         now.astimezone(ZoneInfo(tz))
@@ -33,6 +36,6 @@ def current_market_date(now: datetime, tz: str = "America/New_York") -> date | N
     if local.weekday() >= 5:
         return None
     current = local.time()
-    if time(9, 30) <= current <= time(20, 15):
+    if time(4, 0) <= current <= time(20, 0):
         return local.date()
     return None

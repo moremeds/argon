@@ -269,6 +269,10 @@ def main() -> int:
                     # _NoOhlc() is intentional: OHLC fetches are owned by
                     # _ohlc_pull / _spot_refresh. See worker/CLAUDE.md
                     # "Provider concurrency model".
+                    # preserve_spot: when the WS consumer is the authoritative
+                    # spot writer (MASSIVE_WS_ENABLED=true) we tell the storage
+                    # layer to gate the spot triple + return triple in the
+                    # ON CONFLICT branch so full_scan can't clobber WS values.
                     n = full_scan_once(
                         repo,
                         uw,
@@ -277,6 +281,7 @@ def main() -> int:
                         stale_after=timedelta(
                             hours=settings.full_scan_stale_after_hours
                         ),
+                        preserve_spot=settings.massive_ws_enabled,
                     )
                     logger.info("full_scan completed %d tickers", n)
 
@@ -303,7 +308,12 @@ def main() -> int:
                     # _NoOhlc() is intentional: OHLC fetches are owned by
                     # _ohlc_pull / _spot_refresh. See worker/CLAUDE.md
                     # "Provider concurrency model".
-                    rescan_tick(repo, uw, _NoOhlc())
+                    rescan_tick(
+                        repo,
+                        uw,
+                        _NoOhlc(),
+                        preserve_spot=settings.massive_ws_enabled,
+                    )
 
     def _spy_ohlc_refresh() -> None:
         if settings.massive_api_key is None:

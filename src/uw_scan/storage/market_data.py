@@ -111,7 +111,7 @@ class _MarketDataMixin:
         with self._conn.cursor() as cur:
             cur.execute(
                 f"""
-                SELECT ticker, price, quoted_at, fetched_at
+                SELECT ticker, price, quoted_at, fetched_at, source
                 FROM {self._schema}.intraday_quote WHERE ticker=%s
                 """,
                 (ticker,),

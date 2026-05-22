@@ -23,9 +23,10 @@ def _is_missing_or_stale(
     if scanned.tzinfo is None:
         scanned = scanned.replace(tzinfo=timezone.utc)
     current = now if now.tzinfo is not None else now.replace(tzinfo=timezone.utc)
-    return current.astimezone(timezone.utc) - scanned.astimezone(
-        timezone.utc
-    ) > stale_after
+    return (
+        current.astimezone(timezone.utc) - scanned.astimezone(timezone.utc)
+        > stale_after
+    )
 
 
 def full_scan_once(
@@ -36,8 +37,16 @@ def full_scan_once(
     now: datetime | None = None,
     stale_after: timedelta = DEFAULT_STALE_AFTER,
     ticker_filter: Callable[[str], bool] | None = None,
+    preserve_spot: bool = False,
 ) -> int:
-    """Run UW deep scans only for active tickers missing data or older than max age."""
+    """Run UW deep scans only for active tickers missing data or older than max age.
+
+    ``preserve_spot=True`` is set by the scheduler when the WS consumer is
+    the authoritative spot writer — full_scan still upserts every
+    analytical field, but its UW-derived spot / spot_quoted_at / spot_source
+    and the intraday return triple are suppressed by the storage layer so
+    the WS-canonical values are never clobbered (A13).
+    """
     _ = ohlc_provider  # currently OHLC is pulled separately; reserved for future
     current = now or datetime.now(timezone.utc)
     completed = 0
@@ -45,9 +54,7 @@ def full_scan_once(
         if ticker_filter is not None and not ticker_filter(w.ticker):
             logger.debug("full_scan skipped %s outside this worker shard", w.ticker)
             continue
-        if not _is_missing_or_stale(
-            w.scanned_at, now=current, stale_after=stale_after
-        ):
+        if not _is_missing_or_stale(w.scanned_at, now=current, stale_after=stale_after):
             logger.debug("full_scan skipped fresh persisted data for %s", w.ticker)
             continue
         try:
@@ -58,7 +65,7 @@ def full_scan_once(
                 w.ticker, today=report.generated_at.date()
             )
             card_row = compute_watchlist_card_row(report, history, intraday, prior_pcr)
-            repo.upsert_watchlist_card(**card_row)
+            repo.upsert_watchlist_card(**card_row, preserve_spot=preserve_spot)
             completed += 1
         except Exception as exc:  # noqa: BLE001
             logger.exception("full_scan failed for %s: %s", w.ticker, repr(exc))

@@ -45,6 +45,11 @@ class IntradayQuoteRow:
     price: Decimal
     quoted_at: datetime
     fetched_at: datetime
+    # Distinguishes the writer: "massive.com_intraday" (legacy REST poll) vs
+    # "massive.com_ws" (live WebSocket). Surfaced to /api/stock/{ticker}
+    # and the dashboard's spot_source column so operators can tell which
+    # path produced the latest tick.
+    source: str = "massive.com_intraday"
 
 
 @dataclass(frozen=True)

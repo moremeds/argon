@@ -102,24 +102,57 @@ class _WatchlistMixin:
         run_id: int,
         scanned_at: datetime,
         spot: Decimal | None = None,
+        preserve_spot: bool = False,
         **fields: Any,
     ) -> None:
         """Insert or replace the per-ticker card row.
 
-        `updated_at` is DB-owned (default NOW() on insert; refreshed by the
-        conflict branch). It is NOT part of the column list, so INSERT cols
-        and VALUES placeholders have matching arity.
+        When ``preserve_spot=True``, an existing row's spot / spot_quoted_at /
+        spot_source AND ret_1d/1w/30d are never overwritten — A13: the WS
+        consumer owns both the spot price and the intraday-derived returns
+        computed against that spot, so full_scan / rescan_tick computing
+        returns from their own snapshot would drift the dashboard numbers
+        away from the WS-canonical view. New rows (INSERT branch) still
+        accept the passed values so an initial full_scan with no prior
+        WS tick correctly seeds the card.
+
+        ``updated_at`` is DB-owned (default NOW() on insert; refreshed by
+        the conflict branch). It is NOT part of the column list, so INSERT
+        cols and VALUES placeholders have matching arity.
         """
         cols = ["ticker", "run_id", "scanned_at", "spot", *fields.keys()]
         vals = [ticker, run_id, scanned_at, spot, *fields.values()]
         placeholders = ", ".join(["%s"] * len(cols))
-        updates = ", ".join(f"{c}=EXCLUDED.{c}" for c in cols if c != "ticker")
+        # A13: gate the spot triple AND the return triple together. Gating
+        # only spot would leave the WS-owned returns vulnerable to a
+        # full_scan stomping ret_1d with a less-fresh snapshot.
+        SPOT_OWNED = {
+            "spot",
+            "spot_quoted_at",
+            "spot_source",
+            "ret_1d",
+            "ret_1w",
+            "ret_30d",
+        }
+        if preserve_spot:
+            update_cols = [c for c in cols if c != "ticker" and c not in SPOT_OWNED]
+        else:
+            update_cols = [c for c in cols if c != "ticker"]
+        updates = ", ".join(f"{c}=EXCLUDED.{c}" for c in update_cols)
+        # When preserve_spot drops every updatable column (rare — would mean
+        # full_scan only passed spot fields), fall back to a no-op DO NOTHING
+        # so we don't emit empty `SET , updated_at=NOW()` SQL.
+        conflict_clause = (
+            f"DO UPDATE SET {updates}, updated_at=NOW()"
+            if update_cols
+            else "DO NOTHING"
+        )
         with self._conn.cursor() as cur:
             cur.execute(
                 f"""
                 INSERT INTO {self._schema}.watchlist_card ({", ".join(cols)})
                 VALUES ({placeholders})
-                ON CONFLICT (ticker) DO UPDATE SET {updates}, updated_at=NOW()
+                ON CONFLICT (ticker) {conflict_clause}
                 """,
                 vals,
             )
@@ -281,7 +314,7 @@ class _WatchlistMixin:
                   CASE
                     WHEN q.price IS NOT NULL
                       AND (c.spot_quoted_at IS NULL OR q.quoted_at >= c.spot_quoted_at)
-                      THEN 'massive.com_intraday'
+                      THEN q.source
                     ELSE c.spot_source
                   END                                                       AS spot_source,
                   c.iv_atm, c.iv_rank,
@@ -403,7 +436,7 @@ class _WatchlistMixin:
                   CASE
                     WHEN q.price IS NOT NULL
                       AND (c.spot_quoted_at IS NULL OR q.quoted_at >= c.spot_quoted_at)
-                      THEN 'massive.com_intraday'
+                      THEN q.source
                     ELSE c.spot_source
                   END                                                       AS spot_source,
                   c.iv_atm, c.iv_rank,
