@@ -198,4 +198,3 @@ def _curve_stance(score: float | None):
     if score <= -0.25:
         return "FLAT"
     return "NEUTRAL"
-

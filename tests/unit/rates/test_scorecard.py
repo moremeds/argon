@@ -39,4 +39,3 @@ def test_composite_score_is_weighted_average_of_available_groups():
     ]
 
     assert compute_composite_score(groups) == 0.0
-
