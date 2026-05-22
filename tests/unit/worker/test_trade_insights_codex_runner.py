@@ -5,11 +5,16 @@ import subprocess
 from pathlib import Path
 
 import pytest
+from uw_scan.worker.jobs.trade_insights_codex_runner import CodexRunner
 
-from uw_scan.worker.jobs.trade_insights_ai import (
+from uw_scan.worker.jobs.trade_insights_ai_runners import (
     TradeInsightsAiRunnerError,
-    run_codex_trade_insights_analysis,
 )
+
+
+def run_codex_trade_insights_analysis(*args, **kwargs):
+    """Back-compat adapter so existing tests keep their original shape."""
+    return CodexRunner().run(*args, **kwargs).outcome
 
 
 def test_codex_runner_uses_read_only_exec_command_and_stdin(monkeypatch):
@@ -32,7 +37,7 @@ def test_codex_runner_uses_read_only_exec_command_and_stdin(monkeypatch):
         return subprocess.CompletedProcess(cmd, 0, stdout="", stderr="")
 
     monkeypatch.setattr(
-        "uw_scan.worker.jobs.trade_insights_ai.subprocess.run",
+        "uw_scan.worker.jobs.trade_insights_codex_runner.subprocess.run",
         fake_run,
     )
 
@@ -78,7 +83,7 @@ def test_codex_runner_excludes_app_secrets_from_child_environment(
         return subprocess.CompletedProcess(cmd, 0, stdout="", stderr="")
 
     monkeypatch.setattr(
-        "uw_scan.worker.jobs.trade_insights_ai.subprocess.run",
+        "uw_scan.worker.jobs.trade_insights_codex_runner.subprocess.run",
         fake_run,
     )
 
@@ -102,7 +107,7 @@ def test_codex_runner_timeout_raises_controlled_failure(monkeypatch):
         raise subprocess.TimeoutExpired(cmd=cmd, timeout=kwargs["timeout"])
 
     monkeypatch.setattr(
-        "uw_scan.worker.jobs.trade_insights_ai.subprocess.run",
+        "uw_scan.worker.jobs.trade_insights_codex_runner.subprocess.run",
         fake_run,
     )
 
@@ -121,7 +126,7 @@ def test_codex_runner_nonzero_exit_raises_controlled_failure(monkeypatch):
         return subprocess.CompletedProcess(cmd, 2, stdout="", stderr="bad flag")
 
     monkeypatch.setattr(
-        "uw_scan.worker.jobs.trade_insights_ai.subprocess.run",
+        "uw_scan.worker.jobs.trade_insights_codex_runner.subprocess.run",
         fake_run,
     )
 
@@ -155,7 +160,7 @@ def test_codex_runner_lifts_error_lines_to_front_of_failure_message(monkeypatch)
         )
 
     monkeypatch.setattr(
-        "uw_scan.worker.jobs.trade_insights_ai.subprocess.run",
+        "uw_scan.worker.jobs.trade_insights_codex_runner.subprocess.run",
         fake_run,
     )
 
@@ -186,7 +191,7 @@ def test_codex_runner_falls_back_to_tail_when_no_error_lines(monkeypatch):
         return subprocess.CompletedProcess(cmd, 7, stdout="", stderr=long_noise)
 
     monkeypatch.setattr(
-        "uw_scan.worker.jobs.trade_insights_ai.subprocess.run",
+        "uw_scan.worker.jobs.trade_insights_codex_runner.subprocess.run",
         fake_run,
     )
 
@@ -210,7 +215,7 @@ def test_codex_runner_oversized_output_raises_controlled_failure(monkeypatch):
         return subprocess.CompletedProcess(cmd, 0, stdout="", stderr="")
 
     monkeypatch.setattr(
-        "uw_scan.worker.jobs.trade_insights_ai.subprocess.run",
+        "uw_scan.worker.jobs.trade_insights_codex_runner.subprocess.run",
         fake_run,
     )
 
