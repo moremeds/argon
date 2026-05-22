@@ -190,6 +190,10 @@ TradeInsightAiProvider = Literal["codex", "claude"]
 
 class TradeInsightAiAnalysisRequest(TradeInsightAiBase):
     force_rerun: bool = False
+    # Optional per-provider filter. None = all enabled providers (legacy behavior).
+    # Lets the UI re-run a single provider without affecting an in-flight peer
+    # (e.g. claude can re-run while a hung codex row is still pending).
+    providers: list[TradeInsightAiProvider] | None = None
 
 
 class TradeInsightAiAnalysisResponse(TradeInsightAiBase):

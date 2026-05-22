@@ -775,18 +775,29 @@ export function TradeInsightsAiAnalysisPanel({ ticker }: { ticker: string }) {
     const isCurrentRequest = () => requestTokenRef.current === token;
     setLoading(true);
     setUnavailable(false);
+    // Skip providers that already have an in-flight row — a hung codex must
+    // not block re-running claude. Backend mirrors this filter server-side.
+    const providersToRun: Provider[] = PROVIDERS.filter((p) => !pendingIds[p]);
+    if (providersToRun.length === 0) {
+      setLoading(false);
+      return;
+    }
     try {
-      const resp = await api.tradeInsightsAiAnalysis(
-        ticker,
-        force_rerun ? { force_rerun } : {},
-      );
+      const body: { force_rerun?: boolean; providers?: Provider[] } = {};
+      if (force_rerun) body.force_rerun = true;
+      if (providersToRun.length < PROVIDERS.length)
+        body.providers = providersToRun;
+      const resp = await api.tradeInsightsAiAnalysis(ticker, body);
       if (!isCurrentRequest()) return;
       const newPending: { codex: string | null; claude: string | null } = {
-        codex: null,
-        claude: null,
+        codex: pendingIds.codex,
+        claude: pendingIds.claude,
       };
       for (const stub of resp.analyses) {
-        if (stub.status === "succeeded" && stub.reused) continue;
+        if (stub.status === "succeeded" && stub.reused) {
+          newPending[stub.provider as Provider] = null;
+          continue;
+        }
         newPending[stub.provider as Provider] = stub.analysis_id;
       }
       setPendingIds(newPending);
@@ -802,12 +813,15 @@ export function TradeInsightsAiAnalysisPanel({ ticker }: { ticker: string }) {
       } catch {
         /* tolerate */
       }
-      const polls: Promise<void>[] = [];
+      // Release the submit gate as soon as the POST + /latest roundtrip is
+      // done — polls run in the background so the Run button can re-enable
+      // for providers that finish early. Pending-set semantics now drive
+      // disabled state via allPending.
+      if (isCurrentRequest()) setLoading(false);
       for (const p of PROVIDERS) {
         const id = newPending[p];
-        if (id) polls.push(pollOne(p, id, token));
+        if (id) void pollOne(p, id, token);
       }
-      await Promise.all(polls);
     } catch (err) {
       if (!isCurrentRequest()) return;
       if (String(err).includes("503")) {
@@ -821,14 +835,17 @@ export function TradeInsightsAiAnalysisPanel({ ticker }: { ticker: string }) {
   }
 
   const anyPending = Boolean(pendingIds.codex || pendingIds.claude);
+  const allPending = Boolean(pendingIds.codex && pendingIds.claude);
   const anyFailed =
     latest.codex?.status === "failed" || latest.claude?.status === "failed";
   const anySucceeded =
     latest.codex?.status === "succeeded" ||
     latest.claude?.status === "succeeded";
-  const canRun = !unavailable && !anyPending;
+  // Only block Run when EVERY provider is pending — a hung codex tab should
+  // not prevent re-running claude. Server-side mirror filters the POST.
+  const canRun = !unavailable && !allPending;
   const forceRun = anySucceeded || anyFailed;
-  const actionLabel = loading || anyPending ? "Running…" : "Run Analysis";
+  const actionLabel = loading || allPending ? "Running…" : "Run Analysis";
   return (
     <InsightPanel
       heading="AI ANALYSIS"
@@ -837,7 +854,7 @@ export function TradeInsightsAiAnalysisPanel({ ticker }: { ticker: string }) {
           <ActionButton
             compact
             onClick={() => run(forceRun)}
-            disabled={loading || anyPending}
+            disabled={loading || allPending}
           >
             {actionLabel}
           </ActionButton>

@@ -170,7 +170,10 @@ export const api = {
     _fetch<TradeInsightsResponse>(`/api/stock/${ticker}/trade-insights`),
   tradeInsightsAiAnalysis: (
     ticker: string,
-    body: { force_rerun?: boolean } = {},
+    body: {
+      force_rerun?: boolean;
+      providers?: ("codex" | "claude")[];
+    } = {},
   ): Promise<TradeInsightsAiAnalysisEnqueueResponse> =>
     _fetch<TradeInsightsAiAnalysisEnqueueResponse>(
       `/api/stock/${ticker}/trade-insights/ai-analysis`,

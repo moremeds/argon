@@ -2339,6 +2339,7 @@ export interface components {
              * @default 0
              */
             throughput_window_minutes: number;
+            trade_insights_ai?: components["schemas"]["TradeInsightsAiHealth"] | null;
             /** Uw Today */
             uw_today?: number | null;
             /** Watchlist Size */
@@ -2348,7 +2349,6 @@ export interface components {
             /** Workers */
             workers?: components["schemas"]["WorkerHealth"][];
             ws_consumer?: components["schemas"]["WsConsumerHealth"] | null;
-            trade_insights_ai?: components["schemas"]["TradeInsightsAiHealth"] | null;
         };
         /** InsightBadge */
         InsightBadge: {
@@ -4043,6 +4043,8 @@ export interface components {
              * @default false
              */
             force_rerun: boolean;
+            /** Providers */
+            providers?: ("codex" | "claude")[] | null;
         };
         /** TradeInsightAiAnalysisResponse */
         TradeInsightAiAnalysisResponse: {
@@ -4457,22 +4459,22 @@ export interface components {
         };
         /** TradeInsightsAiHealth */
         TradeInsightsAiHealth: {
-            codex: components["schemas"]["TradeInsightsAiProviderHealth"];
             claude: components["schemas"]["TradeInsightsAiProviderHealth"];
+            codex: components["schemas"]["TradeInsightsAiProviderHealth"];
         };
         /**
          * TradeInsightsAiProviderHealth
          * @description Per-provider AI worker pool status.
          */
         TradeInsightsAiProviderHealth: {
+            /** Last Beat At */
+            last_beat_at?: string | null;
+            /** Queued Depth */
+            queued_depth: number;
             /** Workers Expected */
             workers_expected: number;
             /** Workers Healthy */
             workers_healthy: number;
-            /** Queued Depth */
-            queued_depth: number;
-            /** Last Beat At */
-            last_beat_at?: string | null;
         };
         /** TradeInsightsHeader */
         TradeInsightsHeader: {

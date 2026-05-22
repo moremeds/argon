@@ -240,6 +240,9 @@ def post_trade_insights_ai_analysis(
         )
 
     force_rerun = bool(request.force_rerun) if request is not None else False
+    provider_filter: set[str] | None = (
+        set(request.providers) if request is not None and request.providers else None
+    )
     trade_response, snapshot_id, trade_input_hash = _build_and_persist_trade_insights(
         t,
         repo,
@@ -267,7 +270,9 @@ def post_trade_insights_ai_analysis(
     analysis_hash = hash_trade_insights_ai_analysis_input(analysis_input)
 
     stubs: list[TradeInsightAiAnalysisStub] = []
-    if settings.trade_insights_ai_enabled:
+    if settings.trade_insights_ai_enabled and (
+        provider_filter is None or "codex" in provider_filter
+    ):
         model_label = settings.trade_insights_ai_model.strip() or "codex-default"
         stubs.append(
             _enqueue_one_provider(
@@ -283,7 +288,9 @@ def post_trade_insights_ai_analysis(
                 repo=repo,
             )
         )
-    if settings.trade_insights_ai_claude_enabled:
+    if settings.trade_insights_ai_claude_enabled and (
+        provider_filter is None or "claude" in provider_filter
+    ):
         model_label = (
             settings.trade_insights_ai_claude_model.strip() or "claude-default"
         )

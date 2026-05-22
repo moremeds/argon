@@ -472,3 +472,75 @@ def test_trade_insights_ai_latest_with_one_provider_succeeded(
     assert pair["codex"]["analysis_id"] == codex["analysis_id"]
     assert pair["codex"]["status"] == "succeeded"
     assert pair["claude"] is None
+
+
+def test_trade_insights_ai_post_providers_filter_runs_only_listed(
+    seeded_db_empty_cards,
+    monkeypatch,
+):
+    """{providers: ['claude']} enqueues only claude — codex is skipped even though enabled.
+
+    Models the UI 'skip stuck provider' flow: if codex is already in-flight,
+    the next Run sends providers=['claude'] so codex is not re-enqueued.
+    """
+    repo = seeded_db_empty_cards
+    _seed_run(repo)
+    _patch_api_sources(monkeypatch)
+    client = _client_for_settings(
+        _settings_for_repo(repo, enabled=True, claude_enabled=True)
+    )
+
+    body = client.post(
+        "/api/stock/TSLA/trade-insights/ai-analysis",
+        json={"providers": ["claude"]},
+    ).json()
+    providers = {a["provider"] for a in body["analyses"]}
+    assert providers == {"claude"}
+
+
+def test_trade_insights_ai_post_providers_filter_intersects_with_enabled(
+    seeded_db_empty_cards,
+    monkeypatch,
+):
+    """providers=['codex','claude'] with claude disabled still only returns codex."""
+    repo = seeded_db_empty_cards
+    _seed_run(repo)
+    _patch_api_sources(monkeypatch)
+    client = _client_for_settings(
+        _settings_for_repo(repo, enabled=True, claude_enabled=False)
+    )
+
+    body = client.post(
+        "/api/stock/TSLA/trade-insights/ai-analysis",
+        json={"providers": ["codex", "claude"]},
+    ).json()
+    providers = {a["provider"] for a in body["analyses"]}
+    assert providers == {"codex"}
+
+
+def test_trade_insights_ai_post_providers_empty_list_falls_back_to_all_enabled(
+    seeded_db_empty_cards,
+    monkeypatch,
+):
+    """providers=[] (empty list) is treated as "no filter" — legacy all-enabled behavior.
+
+    Empty list is falsy in Python, so the server-side filter resolves to None.
+    The UI guards against sending [] but the backend tolerates it without crashing.
+    """
+    repo = seeded_db_empty_cards
+    _seed_run(repo)
+    _patch_api_sources(monkeypatch)
+    client = _client_for_settings(
+        _settings_for_repo(repo, enabled=True, claude_enabled=True)
+    )
+
+    response = client.post(
+        "/api/stock/TSLA/trade-insights/ai-analysis",
+        json={"providers": []},
+    )
+    assert response.status_code == 202
+    # Empty `providers` list is treated as "no providers" (falsy → server-side
+    # filter is None → legacy all-enabled behavior). This is intentional so
+    # the UI's "Run with everything" path with `providers=[]` doesn't no-op.
+    providers = {a["provider"] for a in response.json()["analyses"]}
+    assert providers == {"codex", "claude"}

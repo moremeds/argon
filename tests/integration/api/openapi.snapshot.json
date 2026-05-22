@@ -10717,6 +10717,24 @@
             "default": false,
             "title": "Force Rerun",
             "type": "boolean"
+          },
+          "providers": {
+            "anyOf": [
+              {
+                "items": {
+                  "enum": [
+                    "codex",
+                    "claude"
+                  ],
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Providers"
           }
         },
         "title": "TradeInsightAiAnalysisRequest",

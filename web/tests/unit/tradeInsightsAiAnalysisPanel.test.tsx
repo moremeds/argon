@@ -254,6 +254,68 @@ describe("TradeInsightsAiAnalysisPanel", () => {
     );
   });
 
+  it("Run-while-codex-pending only POSTs claude (provider isolation)", async () => {
+    // After the first Run we leave codex with a queued (hung) row and claude
+    // with a cache-hit reused-succeeded. The panel maps that to
+    // pendingIds = { codex: "<id>", claude: null } via the new
+    // 'reused+succeeded → clear pending' branch.
+    vi.mocked(api.tradeInsightsAiAnalysisLatest).mockResolvedValue(EMPTY_PAIR);
+    vi.mocked(api.tradeInsightsAiAnalysis).mockResolvedValueOnce({
+      analyses: [
+        {
+          provider: "codex",
+          analysis_id: "codex-hung-1",
+          status: "queued",
+          reused: false,
+          model: "codex-default",
+        },
+        {
+          provider: "claude",
+          analysis_id: "claude-cached-1",
+          status: "succeeded",
+          reused: true,
+          model: "claude-opus-4-7",
+        },
+      ],
+    });
+    // Codex pollOne stays at status=queued forever (simulating a hung worker).
+    vi.mocked(api.tradeInsightsAiAnalysisStatus).mockResolvedValue(
+      baseResponse({ analysis_id: "codex-hung-1", status: "queued" }),
+    );
+
+    // Second Run will arrive here — assert the body has providers=["claude"].
+    vi.mocked(api.tradeInsightsAiAnalysis).mockResolvedValueOnce({
+      analyses: [
+        {
+          provider: "claude",
+          analysis_id: "claude-rerun-2",
+          status: "queued",
+          reused: false,
+          model: "claude-opus-4-7",
+        },
+      ],
+    });
+
+    render(<TradeInsightsAiAnalysisPanel ticker="TSLA" />);
+
+    // First click: triggers the initial Run that sets the hung-codex state.
+    fireEvent.click(await screen.findByText("Run Analysis"));
+    await waitFor(() =>
+      expect(api.tradeInsightsAiAnalysis).toHaveBeenCalledTimes(1),
+    );
+
+    // Second click: button must be re-enabled because allPending=false
+    // (claude was cleared on cache hit, codex still pending but that alone
+    // does not block Run). POST scope must be just claude.
+    fireEvent.click(await screen.findByText("Run Analysis"));
+    await waitFor(() =>
+      expect(api.tradeInsightsAiAnalysis).toHaveBeenCalledTimes(2),
+    );
+    const lastCall = vi.mocked(api.tradeInsightsAiAnalysis).mock.calls.at(-1);
+    expect(lastCall?.[0]).toBe("TSLA");
+    expect(lastCall?.[1]?.providers).toEqual(["claude"]);
+  });
+
   it("switching to Claude tab renders the Claude analysis body", async () => {
     vi.mocked(api.tradeInsightsAiAnalysisLatest).mockResolvedValue({
       codex: null,
