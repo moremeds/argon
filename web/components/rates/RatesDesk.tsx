@@ -13,6 +13,8 @@ type Scorecard = components["schemas"]["RatesScorecard"];
 type Decomposition = NonNullable<Snapshot["decomposition"]>;
 type DecompositionAttribution =
   components["schemas"]["RatesDecompositionAttribution"];
+type Policy = NonNullable<Snapshot["policy"]>;
+type PolicyPathPoint = components["schemas"]["RatesPolicyPathPoint"];
 
 const NAV = [
   ["summary", "Summary"],
@@ -123,6 +125,99 @@ function Tile({ tile }: { tile: SummaryTile }) {
         {fmtSigned(tile.delta_1d, deltaUnit(tile))}
       </small>
     </article>
+  );
+}
+
+function policyToneClass(stance: string | undefined): string {
+  if (stance === "HIKE") return styles.deltaPositive;
+  if (stance === "CUT") return styles.deltaNegative;
+  return styles.deltaNeutral;
+}
+
+function latestPolicyRows(policy: Policy) {
+  return [
+    ["Target range", policy.target_range ?? "n/a"],
+    ["EFFR", fmtValue(policy.effr, "%", 2)],
+    ["SOFR", fmtValue(policy.sofr, "%", 2)],
+    [
+      "Last meeting",
+      policy.last_meeting?.label
+        ? `${policy.last_meeting.label} · ${policy.last_meeting.action ?? "n/a"}`
+        : "n/a",
+    ],
+    ["Vote split", policy.last_meeting?.vote_split ?? "n/a"],
+  ];
+}
+
+function PolicySection({ policy }: { policy: Policy }) {
+  const path = policy.implied_path ?? [];
+  return (
+    <div className={styles.policyGrid}>
+      <article className={styles.policyCard}>
+        <div className={styles.policyCardTop}>
+          <h3>Policy Rate</h3>
+          <span>FRED + Fed</span>
+        </div>
+        <dl className={styles.policyRows}>
+          {latestPolicyRows(policy).map(([label, value]) => (
+            <div key={label}>
+              <dt>{label}</dt>
+              <dd>{value}</dd>
+            </div>
+          ))}
+        </dl>
+        <p>{policy.policy_read ?? "Official policy metadata unavailable."}</p>
+      </article>
+
+      <article className={styles.policyCard}>
+        <div className={styles.policyCardTop}>
+          <h3>Market-Implied Path</h3>
+          <span>CME FedWatch</span>
+        </div>
+        {path.length ? (
+          <div className={styles.policyPathGrid}>
+            {path.slice(0, 5).map((point: PolicyPathPoint) => (
+              <div className={styles.pathPill} key={point.meeting_date}>
+                <span>{point.label}</span>
+                <strong className={policyToneClass(point.stance)}>
+                  {fmtValue(point.probability, "%", 0)}
+                </strong>
+                <small>{point.stance.toLowerCase()}</small>
+                <i>
+                  <b
+                    style={{
+                      width: `${Math.max(0, Math.min(100, toFiniteNumber(point.probability, 0)))}%`,
+                    }}
+                  />
+                </i>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className={styles.policyMissing}>CME API not configured</div>
+        )}
+        <p>{policy.path_read ?? "No implied-path source is persisted yet."}</p>
+      </article>
+
+      <article className={styles.policyCard}>
+        <div className={styles.policyCardTop}>
+          <h3>Plumbing</h3>
+          <span>FRED</span>
+        </div>
+        <dl className={styles.policyRows}>
+          {(policy.plumbing ?? []).map((row) => (
+            <div key={row.label}>
+              <dt>{row.label}</dt>
+              <dd>
+                {fmtValue(row.value, row.unit, row.unit === "$bn" ? 1 : 2)}
+                {row.qualifier ? <small>{row.qualifier}</small> : null}
+              </dd>
+            </div>
+          ))}
+        </dl>
+        <p>{policy.plumbing_read ?? "Fed plumbing series unavailable."}</p>
+      </article>
+    </div>
   );
 }
 
@@ -752,7 +847,11 @@ export function RatesDesk({ snapshot }: { snapshot: Snapshot | null }) {
 
   const summary = snapshot.summary ?? [];
   const curve = snapshot.curve ?? { points: [], slopes: [] };
-  const policy = snapshot.policy;
+  const policy: Policy = snapshot.policy ?? {
+    status: "partial",
+    plumbing: [],
+    implied_path: [],
+  };
   const supply = snapshot.supply;
   const positioning = snapshot.positioning;
   const cross = snapshot.cross_market;
@@ -855,27 +954,7 @@ export function RatesDesk({ snapshot }: { snapshot: Snapshot | null }) {
         title="Policy"
         status={statusLabel(policy?.status)}
       >
-        <div className={styles.compactGrid}>
-          <Tile
-            tile={{
-              label: "EFFR",
-              value: policy?.effr,
-              unit: "%",
-              status: policy?.status ?? "partial",
-            }}
-          />
-          <Tile
-            tile={{
-              label: "SOFR",
-              value: policy?.sofr,
-              unit: "%",
-              status: policy?.status ?? "partial",
-            }}
-          />
-          {(policy?.plumbing ?? []).map((tile) => (
-            <Tile key={tile.label} tile={tile} />
-          ))}
-        </div>
+        <PolicySection policy={policy} />
       </RatesSection>
 
       <RatesSection

@@ -160,6 +160,12 @@ def _run_rates_fred_ingest(settings: Settings) -> None:
             dsn=settings.db_dsn(),
             schema=settings.db_schema,
             fred_api_key=settings.fred_api_key.get_secret_value(),
+            cme_fedwatch_api_token=(
+                settings.cme_fedwatch_api_token.get_secret_value()
+                if settings.cme_fedwatch_api_token is not None
+                else None
+            ),
+            cme_application_name=settings.cme_fedwatch_application_name,
             record_request=lambda _provider, event: recorder.record(event),
         )
 

@@ -907,6 +907,160 @@
   color: var(--text-secondary);
 }
 
+.policyGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(260px, 1fr));
+  gap: 14px;
+  align-items: stretch;
+}
+
+.policyCard {
+  display: flex;
+  min-width: 0;
+  min-height: 360px;
+  flex-direction: column;
+  border: 1px solid var(--border-dim);
+  border-radius: 8px;
+  background: var(--bg-panel-raised);
+  padding: 18px;
+}
+
+.policyCardTop {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 18px;
+}
+
+.policyCardTop h3 {
+  margin: 0;
+  color: var(--text-primary);
+  font-size: 16px;
+  letter-spacing: 0;
+}
+
+.policyCardTop span,
+.policyRows dt,
+.pathPill span,
+.pathPill small,
+.policyMissing {
+  font-family: var(--font-mono), "IBM Plex Mono", monospace;
+}
+
+.policyCardTop span {
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.policyRows {
+  margin: 0;
+}
+
+.policyRows div {
+  display: grid;
+  grid-template-columns: minmax(100px, 0.8fr) minmax(0, 1fr);
+  gap: 14px;
+  align-items: baseline;
+  padding: 11px 0;
+  border-bottom: 1px solid var(--border-dim);
+}
+
+.policyRows dt {
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.policyRows dd {
+  margin: 0;
+  color: var(--text-primary);
+  font-size: 15px;
+  font-weight: 800;
+  text-align: right;
+}
+
+.policyRows dd small {
+  display: block;
+  margin-top: 3px;
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.policyPathGrid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(76px, 1fr));
+  gap: 8px;
+  min-width: 0;
+}
+
+.pathPill {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+  border: 1px solid var(--border-dim);
+  border-radius: 8px;
+  background: var(--bg-base);
+  padding: 12px 10px;
+  text-align: center;
+}
+
+.pathPill span,
+.pathPill small {
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.pathPill strong {
+  color: var(--text-primary);
+  font-size: 24px;
+  line-height: 1;
+}
+
+.pathPill i {
+  display: block;
+  height: 5px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--bg-hover);
+}
+
+.pathPill b {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--negative);
+}
+
+.policyMissing {
+  display: grid;
+  min-height: 130px;
+  place-items: center;
+  border: 1px dashed var(--border-dim);
+  border-radius: 8px;
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.policyCard p {
+  margin: auto 0 0;
+  padding-top: 18px;
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 650;
+  line-height: 1.5;
+}
+
 .synthesis span {
   display: inline-block;
   margin: 8px 8px 0 0;
@@ -966,7 +1120,8 @@
   .stanceGrid,
   .decompDetailGrid,
   .decompSourceGrid,
-  .ratesReadGrid {
+  .ratesReadGrid,
+  .policyGrid {
     grid-template-columns: 1fr;
   }
 
@@ -992,5 +1147,9 @@
   .scoreGroupTop,
   .factorRow {
     grid-template-columns: 1fr;
+  }
+
+  .policyPathGrid {
+    grid-template-columns: repeat(2, minmax(100px, 1fr));
   }
 }

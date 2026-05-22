@@ -3,7 +3,7 @@ from uw_scan.models import (
     RatesScorecardFactor,
     RatesSnapshotResponse,
 )
-from uw_scan.rates.series import RATES_FRED_SERIES, YIELD_CURVE_SERIES
+from uw_scan.rates.series import POLICY_TARGET_SERIES, RATES_FRED_SERIES, YIELD_CURVE_SERIES
 
 
 def test_yield_curve_catalog_has_all_reference_tenors():
@@ -26,6 +26,8 @@ def test_yield_curve_catalog_has_all_reference_tenors():
 def test_rates_fred_series_are_deduplicated():
     assert len(RATES_FRED_SERIES) == len(set(RATES_FRED_SERIES))
     for series_id in YIELD_CURVE_SERIES.values():
+        assert series_id in RATES_FRED_SERIES
+    for series_id in POLICY_TARGET_SERIES.values():
         assert series_id in RATES_FRED_SERIES
 
 

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from collections.abc import Iterable
 from datetime import date as _date
 from datetime import datetime
@@ -197,3 +198,124 @@ class _RatesMixin:
                 return None
             cols = [c.name for c in cur.description]
             return dict(zip(cols, row, strict=True))
+
+    def upsert_rates_policy_events(
+        self,
+        rows: Iterable[dict[str, Any]],
+        *,
+        seen_at: datetime,
+        source: str,
+    ) -> int:
+        values = [
+            (
+                row["event_date"],
+                row["label"],
+                Jsonb(_json_safe(row)),
+                source,
+                row.get("source_url"),
+                seen_at,
+                seen_at,
+            )
+            for row in rows
+        ]
+        if not values:
+            return 0
+        with self._conn.cursor() as cur:
+            cur.executemany(
+                f"""
+                INSERT INTO {self._schema}.rates_policy_events
+                  (event_date, label, payload, source, source_url, first_seen_at, last_seen_at)
+                VALUES (%s, %s, %s, %s, %s, %s, %s)
+                ON CONFLICT (event_date, source)
+                DO UPDATE SET
+                  label = EXCLUDED.label,
+                  payload = EXCLUDED.payload,
+                  source_url = EXCLUDED.source_url,
+                  last_seen_at = EXCLUDED.last_seen_at
+                """,
+                values,
+            )
+        return len(values)
+
+    def fetch_rates_policy_events(
+        self,
+        *,
+        from_date: _date | None = None,
+        to_date: _date | None = None,
+    ) -> list[dict[str, Any]]:
+        clauses: list[str] = []
+        params: list[Any] = []
+        if from_date is not None:
+            clauses.append("event_date >= %s")
+            params.append(from_date)
+        if to_date is not None:
+            clauses.append("event_date <= %s")
+            params.append(to_date)
+        where = "WHERE " + " AND ".join(clauses) if clauses else ""
+        with self._conn.cursor() as cur:
+            cur.execute(
+                f"""
+                SELECT payload
+                FROM {self._schema}.rates_policy_events
+                {where}
+                ORDER BY event_date ASC, last_seen_at DESC
+                """,
+                params,
+            )
+            return [row[0] for row in cur.fetchall()]
+
+    def upsert_rates_policy_path(
+        self,
+        rows: Iterable[dict[str, Any]],
+        *,
+        snapshot_date: _date,
+        seen_at: datetime,
+        source: str,
+    ) -> int:
+        values = [
+            (
+                snapshot_date,
+                row["meeting_date"],
+                Jsonb(_json_safe(row)),
+                source,
+                seen_at,
+                seen_at,
+            )
+            for row in rows
+        ]
+        if not values:
+            return 0
+        with self._conn.cursor() as cur:
+            cur.executemany(
+                f"""
+                INSERT INTO {self._schema}.rates_policy_path
+                  (snapshot_date, meeting_date, payload, source, first_seen_at, last_seen_at)
+                VALUES (%s, %s, %s, %s, %s, %s)
+                ON CONFLICT (snapshot_date, meeting_date, source)
+                DO UPDATE SET
+                  payload = EXCLUDED.payload,
+                  last_seen_at = EXCLUDED.last_seen_at
+                """,
+                values,
+            )
+        return len(values)
+
+    def fetch_latest_rates_policy_path(self) -> list[dict[str, Any]]:
+        with self._conn.cursor() as cur:
+            cur.execute(
+                f"""
+                WITH latest AS (
+                  SELECT max(snapshot_date) AS snapshot_date
+                  FROM {self._schema}.rates_policy_path
+                )
+                SELECT path.payload
+                FROM {self._schema}.rates_policy_path path
+                JOIN latest ON latest.snapshot_date = path.snapshot_date
+                ORDER BY path.meeting_date ASC, path.source
+                """
+            )
+            return [row[0] for row in cur.fetchall()]
+
+
+def _json_safe(payload: dict[str, Any]) -> dict[str, Any]:
+    return json.loads(json.dumps(payload, default=str))

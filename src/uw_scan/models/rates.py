@@ -13,6 +13,7 @@ from ._base import _UwBase, _preserve_public_module
 RatesAvailability = Literal["ok", "missing", "partial", "stale"]
 RatesDurationStance = Literal["BUY", "SELL", "NEUTRAL"]
 RatesCurveStance = Literal["STEEP", "FLAT", "NEUTRAL"]
+RatesPolicyPathStance = Literal["CUT", "HOLD", "HIKE", "UNKNOWN"]
 
 
 class RatesSummaryTile(_UwBase):
@@ -106,11 +107,46 @@ class RatesScorecard(_UwBase):
     groups: list[RatesScorecardGroup] = Field(default_factory=list)
 
 
+class RatesPolicyMeeting(_UwBase):
+    event_date: date | None = None
+    event_end_date: date | None = None
+    label: str
+    action: str | None = None
+    vote_split: str | None = None
+    source_url: str | None = None
+    status: RatesAvailability = "partial"
+
+
+class RatesPolicyPathPoint(_UwBase):
+    meeting_date: date
+    label: str
+    probability: float | None = None
+    stance: RatesPolicyPathStance = "UNKNOWN"
+    target_range: str | None = None
+    source: str | None = None
+    status: RatesAvailability = "partial"
+
+
+class RatesPolicyPlumbingMetric(_UwBase):
+    label: str
+    value: float | None = None
+    unit: str = ""
+    qualifier: str | None = None
+    status: RatesAvailability = "partial"
+
+
 class RatesPolicyPanel(_UwBase):
     target_range: str | None = None
+    target_lower: float | None = None
+    target_upper: float | None = None
     effr: float | None = None
     sofr: float | None = None
-    plumbing: list[RatesSummaryTile] = Field(default_factory=list)
+    last_meeting: RatesPolicyMeeting | None = None
+    implied_path: list[RatesPolicyPathPoint] = Field(default_factory=list)
+    plumbing: list[RatesPolicyPlumbingMetric] = Field(default_factory=list)
+    policy_read: str | None = None
+    path_read: str | None = None
+    plumbing_read: str | None = None
     status: RatesAvailability = "partial"
 
 
@@ -178,6 +214,9 @@ _preserve_public_module(
     RatesScorecardFactor,
     RatesScorecardGroup,
     RatesScorecard,
+    RatesPolicyMeeting,
+    RatesPolicyPathPoint,
+    RatesPolicyPlumbingMetric,
     RatesPolicyPanel,
     RatesSupplyPanel,
     RatesPositioningPanel,

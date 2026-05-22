@@ -170,7 +170,7 @@ export const SNAPSHOT: Snapshot = {
     effr: 4.33,
     sofr: 4.31,
     plumbing: [
-      { label: "RRP", value: 142.5, unit: "B", delta_1d: null, status: "ok" },
+      { label: "RRP", value: 142.5, unit: "B", qualifier: null, status: "ok" },
     ],
     status: "partial",
   },

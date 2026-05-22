@@ -79,6 +79,12 @@ class _Provider:
             "T5YIFR": "2.35",
             "EFFR": "3.63",
             "SOFR": "3.65",
+            "DFEDTARL": "3.50",
+            "DFEDTARU": "3.75",
+            "WALCL": "6728502",
+            "WRESBAL": "3129559",
+            "RRPONTSYD": "24.87",
+            "WTREGEN": "781292",
         }
         if series_id not in values:
             return []
@@ -123,6 +129,52 @@ class _ClevelandProvider:
         ]
 
 
+class _FomcProvider:
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *_exc):
+        return None
+
+    def fetch_meetings(self, *, years):
+        return [
+            {
+                "event_date": date(2026, 4, 28),
+                "event_end_date": date(2026, 4, 29),
+                "label": "April 28-29 FOMC",
+                "action": "Hold",
+                "vote_split": "8-4",
+                "source_url": "https://www.federalreserve.gov/monetarypolicy/fomc.htm",
+            }
+        ]
+
+
+class _CmeProvider:
+    def __init__(self, *, api_token, application_name="uw-scan"):
+        self.api_token = api_token
+        self.application_name = application_name
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *_exc):
+        return None
+
+    def fetch_latest_path(self, *, current_target_range):
+        assert current_target_range == "3.50-3.75%"
+        return [
+            {
+                "meeting_date": date(2026, 6, 17),
+                "label": "6/17",
+                "probability": 99.0,
+                "stance": "HOLD",
+                "target_range": "3.50-3.75%",
+                "source": "CME FedWatch",
+                "status": "ok",
+            }
+        ]
+
+
 def test_rates_job_requires_fred_api_key(migrated_settings: Settings):
     with pytest.raises(RuntimeError, match="FRED_API_KEY"):
         rates_fred_ingest_job(
@@ -148,6 +200,9 @@ def test_rates_job_persists_observations_and_snapshot(migrated_settings: Setting
         fred_api_key="fred-test",
         provider_factory=_Provider,
         cleveland_provider_factory=_ClevelandProvider,
+        fomc_provider_factory=_FomcProvider,
+        cme_provider_factory=_CmeProvider,
+        cme_fedwatch_api_token="cme-test",
         computed_at=datetime(2026, 5, 20, 22, tzinfo=UTC),
     )
 
@@ -166,6 +221,9 @@ def test_rates_job_persists_observations_and_snapshot(migrated_settings: Setting
         "Cleveland Fed Inflation Expectations"
     )
     assert row["payload"]["decomposition"]["expected_short_inflation_10y"] == 2.48
+    assert row["payload"]["policy"]["target_range"] == "3.50-3.75%"
+    assert row["payload"]["policy"]["last_meeting"]["vote_split"] == "8-4"
+    assert row["payload"]["policy"]["implied_path"][0]["source"] == "CME FedWatch"
 
 
 def test_rates_job_refuses_snapshot_when_required_curve_series_fails(

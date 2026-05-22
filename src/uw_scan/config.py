@@ -117,6 +117,9 @@ class Settings(BaseModel):
     massive_ws_heartbeat_stale_after_seconds: float = 120.0
     # FRED official API. Required by the US rates mirror ingest path.
     fred_api_key: SecretStr | None = None
+    # CME FedWatch official API. Optional; without it the policy path is marked missing.
+    cme_fedwatch_api_token: SecretStr | None = None
+    cme_fedwatch_application_name: str = "uw-scan"
     # WGC Goldhub authenticated downloads. Keep secrets in environment only.
     wgc_goldhub_cookie: SecretStr | None = None
     wgc_etf_flows_workbook_path: str = ""
@@ -269,6 +272,15 @@ class Settings(BaseModel):
                 if (_fred_key := os.environ.get("FRED_API_KEY", "").strip())
                 else None
             ),
+            cme_fedwatch_api_token=(
+                SecretStr(_cme_key)
+                if (_cme_key := os.environ.get("CME_FEDWATCH_API_TOKEN", "").strip())
+                else None
+            ),
+            cme_fedwatch_application_name=os.environ.get(
+                "CME_FEDWATCH_APPLICATION_NAME", "uw-scan"
+            ).strip()
+            or "uw-scan",
             wgc_goldhub_cookie=(
                 SecretStr(_wgc_cookie)
                 if (_wgc_cookie := os.environ.get("WGC_GOLDHUB_COOKIE", "").strip())

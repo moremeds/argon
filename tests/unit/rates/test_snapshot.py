@@ -81,9 +81,34 @@ def test_build_rates_snapshot_populates_live_fred_sections_without_static_filler
             ],
             "EFFR": [_point(date(2026, 5, 20), "3.63")],
             "SOFR": [_point(date(2026, 5, 20), "3.65")],
+            "DFEDTARL": [_point(date(2026, 5, 20), "3.50")],
+            "DFEDTARU": [_point(date(2026, 5, 20), "3.75")],
             "WALCL": [_point(date(2026, 5, 20), "6728502")],
+            "WRESBAL": [_point(date(2026, 5, 20), "3129559")],
+            "RRPONTSYD": [_point(date(2026, 5, 20), "24.87")],
+            "WTREGEN": [_point(date(2026, 5, 20), "781292")],
         },
         computed_at=datetime(2026, 5, 20, 22, tzinfo=UTC),
+        policy_events=[
+            {
+                "event_date": date(2026, 4, 29),
+                "event_end_date": date(2026, 4, 29),
+                "label": "April 28-29 FOMC",
+                "action": "Hold",
+                "vote_split": "N/A",
+                "source_url": "https://www.federalreserve.gov/monetarypolicy/fomc.htm",
+            }
+        ],
+        policy_path=[
+            {
+                "meeting_date": date(2026, 6, 17),
+                "label": "6/17",
+                "probability": 99.0,
+                "stance": "HOLD",
+                "target_range": "3.50-3.75%",
+                "source": "CME FedWatch",
+            }
+        ],
     )
 
     assert snapshot.as_of == date(2026, 5, 20)
@@ -101,9 +126,14 @@ def test_build_rates_snapshot_populates_live_fred_sections_without_static_filler
     one_month = next(row for row in snapshot.decomposition.attribution if row.window == "1M")
     assert one_month.driver == "Expected short inflation"
     assert snapshot.policy.effr == 3.63
+    assert snapshot.policy.target_range == "3.50-3.75%"
+    assert snapshot.policy.last_meeting is not None
+    assert snapshot.policy.last_meeting.action == "Hold"
+    assert snapshot.policy.implied_path[0].stance == "HOLD"
     fed_assets = next(tile for tile in snapshot.policy.plumbing if tile.label == "Fed assets")
-    assert fed_assets.value == 6728.5
-    assert fed_assets.unit == "$bn"
+    assert fed_assets.value == 6.73
+    assert fed_assets.unit == "$T"
+    assert "QT" in snapshot.policy.plumbing_read
     assert snapshot.supply.status == "missing"
     assert snapshot.positioning.status == "missing"
     assert snapshot.scorecard.groups
@@ -126,12 +156,42 @@ def test_build_rates_snapshot_uses_curve_date_and_marks_failed_series_stale():
     )
 
     assert snapshot.as_of == date(2026, 5, 20)
+    assert snapshot.policy.sofr == 3.65
     rrp = next(tile for tile in snapshot.policy.plumbing if tile.label == "ON RRP")
     assert rrp.value == 0.0
     assert rrp.status == "ok"
     freshness = {item.id: item for item in snapshot.source_freshness}
     assert freshness["DGS10"].status == "stale"
     assert freshness["EFFR"].latest_obs_date == date(2026, 5, 21)
+
+
+def test_build_rates_snapshot_infers_fomc_action_from_target_range_history():
+    snapshot = build_rates_snapshot(
+        {
+            **_full_curve_points(),
+            "DGS10": [_point(date(2026, 5, 20), "4.67")],
+            "DFEDTARL": [
+                _point(date(2026, 4, 28), "3.50"),
+                _point(date(2026, 4, 29), "3.50"),
+            ],
+            "DFEDTARU": [
+                _point(date(2026, 4, 28), "3.75"),
+                _point(date(2026, 4, 29), "3.75"),
+            ],
+        },
+        computed_at=datetime(2026, 5, 20, 22, tzinfo=UTC),
+        policy_events=[
+            {
+                "event_date": date(2026, 4, 28),
+                "event_end_date": date(2026, 4, 29),
+                "label": "April 28-29 FOMC",
+                "source_url": None,
+            }
+        ],
+    )
+
+    assert snapshot.policy.last_meeting is not None
+    assert snapshot.policy.last_meeting.action == "Hold"
 
 
 def test_build_rates_snapshot_requires_observations():
