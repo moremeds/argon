@@ -134,7 +134,9 @@ async def run_consumer_once(
     flush_interval_seconds: float = 1.0,
     subscription_poll_interval_seconds: float = 30.0,
     run_for_seconds: float | None = None,
-) -> None:
+    buffer: TickBuffer | None = None,
+    final_flush_timeout_seconds: float = 5.0,
+) -> bool:
     """One full WS session: connect → subscribe → reader/flusher/subscriber
     → final flush on exit.
 
@@ -142,13 +144,33 @@ async def run_consumer_once(
     across ``asyncio.to_thread`` call sites (A1). The writer owns the
     canonical flush path; the reader owns the watchlist-diff path.
 
+    ``buffer`` is owned by the caller so ticks merged back into it by a
+    failed final flush survive into the next session (tribunal ISSUE-1:
+    when allocated locally, the final-flush failure path silently
+    discards the merge-back). When ``None``, a fresh buffer is allocated
+    — this preserves the pre-tribunal call sites (tests + manual one-off
+    invocations) at the cost of no cross-session recovery.
+
     ``run_for_seconds`` bounds the session for tests. In production the
     consumer runs until the WS closes (``async for`` in ``client.ticks()``
     exits cleanly on ``ConnectionClosed``).
+
+    Returns ``True`` iff the final flush succeeded — ``run_consumer_forever``
+    uses this to gate the reconnect backoff reset (tribunal adversarial-4).
+    A clean WS close with a failed DB write must NOT reset backoff or the
+    consumer will spam-reconnect under persistent DB write failures.
+
+    ``final_flush_timeout_seconds`` bounds the finally-clause flush
+    (tribunal adversarial-3). A periodic flush stuck inside Postgres
+    while holding ``writer._flush_lock`` would otherwise hang shutdown
+    indefinitely; the timeout lets the process exit even if DB I/O is
+    wedged.
     """
-    buffer = TickBuffer()
+    if buffer is None:
+        buffer = TickBuffer()
     writer = WsDbWriter(repo=writer_repo, buffer=buffer)
     current_subs: set[str] = set()
+    final_flush_ok = False
 
     async with MassiveWsClient(ws_url, api_key) as client:
         await asyncio.to_thread(
@@ -191,10 +213,36 @@ async def run_consumer_once(
         # PEP 654 semantics), which would make ``consumer_task.cancel()`` in
         # tests + production silently fail to stop the loop.
         finally:
+            # Final-flush limitations (adversarial-1 / adversarial-3):
+            # - On SIGTERM the outer task is cancelled mid-await. The await
+            #   below would itself re-raise CancelledError immediately so
+            #   ticks accumulated since the last periodic flush MAY be lost.
+            #   ``Task.uncancel()`` worked around this but interfered with
+            #   normal ``TaskGroup`` cleanup — sibling cancellations bump
+            #   the parent's ``cancelling()`` count even on clean shutdown,
+            #   so an unconditional uncancel/recancel dance would leave
+            #   ``MassiveWsClient.__aexit__`` running in a cancelled state.
+            # - The shared ``TickBuffer`` lifted into ``run_consumer_forever``
+            #   means ticks survive across reconnects on transient DB write
+            #   failures (the primary ISSUE-1 win), so the SIGTERM gap is
+            #   bounded to ~``flush_interval_seconds`` of ticks.
+            # - ``wait_for`` bounds the flush so a wedged periodic flush
+            #   thread holding the writer lock can't block exit
+            #   indefinitely (adversarial-3).
             try:
-                await asyncio.to_thread(writer.flush_once)
+                await asyncio.wait_for(
+                    asyncio.to_thread(writer.flush_once),
+                    timeout=final_flush_timeout_seconds,
+                )
+                final_flush_ok = True
+            except asyncio.TimeoutError:
+                logger.warning(
+                    "run_consumer_once: final flush exceeded %.1fs",
+                    final_flush_timeout_seconds,
+                )
             except Exception:
                 logger.exception("run_consumer_once: final flush failed")
+    return final_flush_ok
 
 
 async def run_consumer_forever(settings: Settings, repo_factory) -> None:
@@ -207,7 +255,16 @@ async def run_consumer_forever(settings: Settings, repo_factory) -> None:
     A8 classification: if the failure is ``psycopg.OperationalError`` the
     DB is the failure mode itself; skip the secondary record-error attempt
     to avoid amplifying a DB outage with extra failed connections.
+
+    The ``TickBuffer`` is allocated ONCE and shared across all sessions
+    (tribunal ISSUE-1). If a session's final flush fails (DB hiccup at
+    shutdown / reconnect), ``WsDbWriter.flush_once`` merges the pending
+    ticks back into this shared buffer; the next session's writer drains
+    them on its first flush. Without this, ticks held by ``_pending`` at
+    a failed final flush would be lost when ``run_consumer_once``'s local
+    buffer/writer went out of scope.
     """
+    buffer = TickBuffer()
     backoff = settings.massive_ws_reconnect_backoff_initial_seconds
     while True:
         try:
@@ -218,7 +275,7 @@ async def run_consumer_forever(settings: Settings, repo_factory) -> None:
                 desired = await asyncio.to_thread(
                     lambda: {w.ticker for w in reader_repo.list_active_watchlist()}
                 )
-                await run_consumer_once(
+                final_ok = await run_consumer_once(
                     ws_url=settings.massive_ws_url,
                     api_key=settings.massive_api_key.get_secret_value(),
                     channel=settings.massive_ws_channel,
@@ -227,9 +284,21 @@ async def run_consumer_forever(settings: Settings, repo_factory) -> None:
                     reader_repo=reader_repo,
                     flush_interval_seconds=settings.massive_ws_flush_interval_seconds,
                     subscription_poll_interval_seconds=settings.massive_ws_watchlist_poll_interval_seconds,
+                    buffer=buffer,
                 )
-            backoff = settings.massive_ws_reconnect_backoff_initial_seconds
+            # Only reset backoff when the final flush actually committed
+            # (tribunal adversarial-4). A clean WS close with a failed DB
+            # write must keep backing off — otherwise persistent DB write
+            # failures spam-reconnect.
+            if final_ok:
+                backoff = settings.massive_ws_reconnect_backoff_initial_seconds
             await asyncio.sleep(backoff)  # smooth between reconnects
+            if not final_ok:
+                # Persistent-failure path: grow backoff before retrying.
+                backoff = min(
+                    backoff * 2.0,
+                    settings.massive_ws_reconnect_backoff_max_seconds,
+                )
             continue
         except psycopg.OperationalError:
             # A8: DB unreachable when opening conns (before TaskGroup).
@@ -269,6 +338,7 @@ async def run_consumer_forever(settings: Settings, repo_factory) -> None:
 
 
 def main() -> int:
+    import signal
     from contextlib import contextmanager
 
     settings = Settings.from_env()
@@ -293,7 +363,28 @@ def main() -> int:
         finally:
             conn.close()
 
-    asyncio.run(run_consumer_forever(settings, _repo_factory))
+    async def _run() -> None:
+        """Wrap run_consumer_forever in a cancellable task so SIGTERM /
+        SIGINT triggers graceful shutdown (tribunal adversarial-1).
+
+        Bare ``asyncio.run(run_consumer_forever(...))`` would terminate
+        on SIGTERM without ever reaching ``run_consumer_once``'s finally
+        clause — every tick in the buffer or in ``_pending`` would be
+        lost. Cancelling the task instead unwinds the TaskGroup and
+        fires the bounded final flush.
+        """
+        consumer_task = asyncio.create_task(
+            run_consumer_forever(settings, _repo_factory)
+        )
+        loop = asyncio.get_running_loop()
+        for sig in (signal.SIGTERM, signal.SIGINT):
+            loop.add_signal_handler(sig, consumer_task.cancel)
+        try:
+            await consumer_task
+        except asyncio.CancelledError:
+            logger.info("ws consumer cancelled by signal — graceful shutdown")
+
+    asyncio.run(_run())
     return 0
 
 

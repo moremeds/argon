@@ -164,3 +164,120 @@ def test_writer_received_counter_resets_per_flush(seeded_db_with_cards):
     state = repo.get_ws_consumer_state()
     assert state.ticks_received == 5 + 3
     assert state.ticks_flushed == 2
+
+
+def test_writer_received_count_restored_on_history_failure(
+    seeded_db_with_cards, monkeypatch
+):
+    """ISSUE-3 second-pass: when an exception fires BETWEEN drain() and
+    the transaction (e.g., _history_for's list_daily_ohlc DB call hits
+    a transient failure), the received_delta must still be restored.
+    Without the extended restore guard, drain()'s eager reset would
+    silently zero out the raw-feed count even though the ticks survive
+    via _pending and are retried on the next flush.
+    """
+    repo = seeded_db_with_cards
+    repo._conn.autocommit = True
+    buf = TickBuffer()
+    ts = datetime(2026, 5, 21, 14, 0, tzinfo=timezone.utc)
+    writer = WsDbWriter(repo=repo, buffer=buf, source_tag="massive.com_ws")
+
+    # 6 raw frames + 1 coalesced tick. First flush fails INSIDE _history_for.
+    for _ in range(6):
+        writer.note_received(1)
+    buf.add(WsTick("TSLA", Decimal("450.00"), ts, "A"))
+
+    def boom_history(*_a, **_k):
+        raise RuntimeError("simulated OHLC DB failure")
+
+    monkeypatch.setattr(repo, "list_daily_ohlc", boom_history)
+    with pytest.raises(RuntimeError):
+        writer.flush_once()
+
+    # The buffer must once again hold the tick + the raw-feed count.
+    assert len(buf) == 1, "tick should be merged back to buffer"
+
+    # On the next successful flush, ticks_received must reflect ALL 6
+    # raw frames — not 0 (which would be the bug).
+    monkeypatch.undo()
+    writer.flush_once()
+    state = repo.get_ws_consumer_state()
+    assert state.ticks_received == 6
+    assert state.ticks_flushed == 1
+
+
+def test_writer_received_count_restored_on_flush_failure(
+    seeded_db_with_cards, monkeypatch
+):
+    """ISSUE-3 regression: when a flush fails, the raw-feed counter must
+    be restored along with the tick payload — losing it under-reports
+    ``ticks_received`` even though the ticks themselves are retried."""
+    repo = seeded_db_with_cards
+    repo._conn.autocommit = True
+    buf = TickBuffer()
+    ts = datetime(2026, 5, 21, 14, 0, tzinfo=timezone.utc)
+    writer = WsDbWriter(repo=repo, buffer=buf, source_tag="massive.com_ws")
+
+    # 4 raw frames + 1 coalesced tick. First flush fails.
+    for _ in range(4):
+        writer.note_received(1)
+    buf.add(WsTick("TSLA", Decimal("450.00"), ts, "A"))
+
+    def boom(*_a, **_k):
+        raise RuntimeError("simulated DB failure")
+
+    monkeypatch.setattr(repo, "bulk_upsert_intraday_quotes", boom)
+    with pytest.raises(RuntimeError):
+        writer.flush_once()
+
+    monkeypatch.undo()
+    # Tick AND received_delta both still queued.
+    writer.flush_once()
+    state = repo.get_ws_consumer_state()
+    # All 4 raw frames must be reported (not 0).
+    assert state.ticks_received == 4
+    assert state.ticks_flushed == 1
+
+
+def test_writer_lock_serializes_concurrent_flush(seeded_db_with_cards):
+    """ISSUE-2 regression: two concurrent ``flush_once`` calls (e.g., a
+    still-running periodic flush + the finally-clause flush after cancel)
+    must not race on the shared psycopg connection or on ``_pending``.
+
+    Without the writer-level lock, two threads hitting ``conn.transaction()``
+    on the same connection raises 'another command is already in progress'
+    in psycopg3. With the lock the two flushes run in sequence.
+    """
+    import threading
+
+    repo = seeded_db_with_cards
+    repo._conn.autocommit = True
+    buf = TickBuffer()
+    writer = WsDbWriter(repo=repo, buffer=buf, source_tag="massive.com_ws")
+
+    ts = datetime(2026, 5, 21, 14, 0, tzinfo=timezone.utc)
+    # Two ticks so both threads see something to flush.
+    buf.add(WsTick("TSLA", Decimal("450.00"), ts, "A"))
+    buf.add(WsTick("AAPL", Decimal("189.10"), ts, "A"))
+
+    errors: list[BaseException] = []
+    barrier = threading.Barrier(2)
+
+    def flush_at_barrier():
+        try:
+            barrier.wait(timeout=2.0)
+            writer.flush_once()
+        except BaseException as exc:  # noqa: BLE001
+            errors.append(exc)
+
+    t1 = threading.Thread(target=flush_at_barrier)
+    t2 = threading.Thread(target=flush_at_barrier)
+    t1.start()
+    t2.start()
+    t1.join(timeout=5.0)
+    t2.join(timeout=5.0)
+
+    assert not errors, f"concurrent flush raised: {errors!r}"
+    # Both ticks must have landed.
+    assert repo.get_intraday_quote("TSLA").price == Decimal("450.00")
+    assert repo.get_intraday_quote("AAPL").price == Decimal("189.10")
