@@ -222,29 +222,33 @@ def _leg(side: str, c: dict) -> InsightLeg:
     )
 
 
-# Swing-horizon DTE window for deterministic candidate generation.
-# Anything outside this range is excluded from directional candidates so the
-# AI prompt is never handed a same-day or far-dated expiry to choose from.
-# Calendar spreads relax the upper bound on the far leg (see below).
-SWING_DTE_MIN = 7
-SWING_DTE_MAX = 30
-SWING_DTE_PREFERRED_MIN = 10
-SWING_DTE_PREFERRED_MAX = 21
-SWING_CALENDAR_FAR_DTE_MAX = 60
+# Swing-HOLD DTE window. The trade is HELD 5-10 trading sessions (1-2 weeks);
+# entry expiry must leave enough time premium so that the EXIT at 7-14 days
+# later is not stranded at peak gamma / theta crush. 21-60 DTE entry leaves
+# 7-46 DTE remaining at exit. Anything shorter than 21 DTE puts the exit
+# inside the 0-7 DTE crush zone; anything longer than 60 DTE makes the option
+# too desensitized to the 1-2 week ticker-specific catalysts. Calendar spreads
+# relax the upper bound on the far leg (see below).
+SWING_DTE_MIN = 21
+SWING_DTE_MAX = 60
+SWING_DTE_PREFERRED_MIN = 28
+SWING_DTE_PREFERRED_MAX = 45
+SWING_CALENDAR_FAR_DTE_MAX = 90
 
 
 def _expiry_rank(dte: int) -> int:
-    """Lower is preferred. The 10-21 DTE band matches the prompt's MUST rule,
-    so it ranks ahead of the 7-9 fallback and the 22-30 tail. Within the
-    preferred band, the 12-16 DTE sweet spot ranks first (balances theta
-    decay against gamma path risk for a 1-2 week swing)."""
-    if 12 <= dte <= 16:
+    """Lower is preferred. The 28-45 DTE band is the textbook swing-hold
+    entry window (max theta-harvest for credit structures; mild theta drag for
+    long premium). Within the preferred band, the 30-38 DTE sweet spot ranks
+    first. The 46-60 DTE long tail ranks above the 21-27 DTE short tail
+    because the latter is closer to the theta-crush exit zone."""
+    if 30 <= dte <= 38:
         return 0
     if SWING_DTE_PREFERRED_MIN <= dte <= SWING_DTE_PREFERRED_MAX:
         return 1
-    if 22 <= dte <= SWING_DTE_MAX:
+    if 46 <= dte <= SWING_DTE_MAX:
         return 2
-    return 3  # 7-9 DTE fallback, only used when nothing else exists
+    return 3  # 21-27 DTE fallback, only used when nothing else exists
 
 
 def _build_candidates(
@@ -258,10 +262,12 @@ def _build_candidates(
 ) -> list[CandidateStructure]:
     if spot is None:
         return []
-    # Filter to the swing window (7-30 DTE by default). Directional structures
-    # (verticals, condor, straddle) only consider contracts inside the window;
-    # calendars treat the window as the *near*-leg constraint and allow the
-    # far leg to extend out to calendar_far_dte_max.
+    # Filter to the swing-HOLD entry window (21-60 DTE by default; preferred
+    # 28-45). Directional structures (verticals, condor, straddle) only
+    # consider contracts inside the window; calendars treat the window as the
+    # *near*-leg constraint and allow the far leg to extend out to
+    # calendar_far_dte_max (default 90 DTE) so the back leg still has premium
+    # remaining after the 1-2 week hold consumes the front.
     if as_of is not None:
         as_of_date = as_of.date() if isinstance(as_of, datetime) else as_of
 
@@ -274,11 +280,12 @@ def _build_candidates(
         ]
 
         # Sort by (expiry preference, strike distance) so candidates land in
-        # the 10-21 DTE band when liquidity allows, falling back to 7-9 or
-        # 22-30 only when nothing closer to the prompt's preferred window
-        # exists. Without this, the closest-to-spot strike wins regardless of
-        # expiry — and the chain's most-liquid ATM strike is usually on the
-        # weekly closest to today, dragging candidates to 7 DTE.
+        # the 28-45 DTE band when liquidity allows, falling back to 46-60 or
+        # 21-27 only when nothing closer to the preferred window exists.
+        # Without this, the closest-to-spot strike wins regardless of expiry —
+        # and the chain's most-liquid ATM strike is usually on the weekly
+        # closest to today, dragging candidates toward the lower DTE bound
+        # where the 1-2 week hold would land in the theta-crush zone.
         def _sort_key(c: dict) -> tuple[int, Decimal]:
             return (_expiry_rank(_dte_of(c)), abs(c["parsed"].strike - spot))
 

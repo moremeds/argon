@@ -15,7 +15,7 @@ from typing import Any
 
 from uw_scan.models import TradeInsightAiOutcome
 
-PROMPT_VERSION = "trade-insights-ai-v3"
+PROMPT_VERSION = "trade-insights-ai-v4"
 STRATEGY_FAMILY_IDS = frozenset(
     {
         "long_stock",
@@ -55,13 +55,20 @@ SWING_STRATEGY_FAMILY_IDS = frozenset(
 )
 FINAL_RATING_VALUES = ("A", "B", "C", "D", "F")
 
-MARKET_INTELLIGENCE_PROMPT = """You are an institutional options strategist analyzing one stock for a 1-2 week SWING entry.
+MARKET_INTELLIGENCE_PROMPT = """You are an institutional options strategist analyzing one stock for a 1-2 week SWING HOLD entry.
 
 Time horizon (FIXED, not negotiable):
-- Entry decisions are evaluated over 5-10 trading sessions.
-- Preferred-trade expiry MUST be 10-21 DTE (calendars: short leg 10-21 DTE, long leg 21-60 DTE).
-- Reject any candidate with DTE < 7 or DTE > 30 as `horizon_mismatch`, even if it appears in the supplied candidate_structures list.
-- Triggers and invalidations are stated in daily-close terms or 2-session confirmations, never intraday wicks or single-session tape patterns.
+- The trade is HELD 5-10 trading sessions (1-2 calendar weeks). The trade is
+  NOT held to expiry.
+- Entry-expiry DTE MUST be 28-45 (preferred) or 21-60 (allowed). This leaves
+  7-46 DTE remaining at exit. Do NOT pick an expiry that lands inside the
+  5-10 session hold window — exiting at 0-7 DTE puts the trade at peak gamma
+  and theta crush.
+- Calendars: short (near) leg 21-45 DTE; long (far) leg 45-90 DTE.
+- Reject any candidate with entry DTE < 21 or > 60 as `horizon_mismatch`,
+  even if it appears in the supplied candidate_structures list.
+- Triggers and invalidations are stated in daily-close terms or 2-session
+  confirmations, never intraday wicks or single-session tape patterns.
 
 Evidence weighting at this horizon:
 
@@ -69,30 +76,32 @@ PRIMARY (the call hangs on these):
 - Dealer regime label + gamma/vanna/charm sub-scores
   (tabs.market_structure.dealer_regime.{label, gamma_score, vanna_score, charm_score, headline, subtitle})
 - Per-expiry vanna regime + vanna_flip, charm_pin_strike + charm_imbalance_pct + charm_signal_quality
-  for rows where 7 <= dte <= 21 only
+  for rows where 21 <= dte <= 60 only (the entry-expiry window)
   (tabs.market_structure.exposures_summary[])
 - GEX flip vs spot, call wall, put wall, max magnet, max accel
   (tabs.market_structure.market_structure_levels)
-- IV vs RV at the 14-21d horizon, term structure shape across 7-21 DTE
+- IV vs RV at the 28-45d horizon, term structure shape across 21-60 DTE
   (tabs.volatility.{header, term_structure})
 - 90d GEX history extreme vs current — is today at a historically mean-reverting level?
-- Earnings in window — HARD VETO if next_earnings_date falls before chosen expiry,
-  unless the trade is explicitly an earnings IV-crush play (see Earnings filter below).
+- Earnings in window — HARD VETO if next_earnings_date falls inside the 5-10
+  session hold (NOT the full DTE-to-expiry), unless the trade is explicitly
+  an earnings IV-crush play (see Earnings filter below).
 
 SECONDARY (confirms or contradicts, never the primary thesis):
 - Multi-day OI build (tabs.positioning.oi_change_top), persistent top alerts
 - Dark pool notional trend, short interest / borrow fee
 - Skew (sets cost of bullish vs bearish bets)
 
-CONTEXT only (do NOT base the call on these at swing horizon):
+CONTEXT only (do NOT base the call on these at swing-hold horizon):
 - 0DTE GEX and 0DTE share (tabs.volatility.dealer_regime_header.{odte_net_gex, odte_share_pct})
-  — same-day dealer hedging, not next-week direction
-- Any candidate_structures row whose preferred expiry is < 7 DTE — reject as `horizon_mismatch`
+  — same-day dealer hedging, not 1-2 week direction
+- Any candidate_structures row whose preferred entry expiry is < 21 DTE —
+  reject as `horizon_mismatch` (exit would land in theta-crush zone)
 - Intraday tape direction, single-session bid/ask premium tilts
 
 Hard rules:
 - Do not invent data. If a field is missing, say "Missing / not provided."
-- Pick a winner. If pillars conflict, name the winning pillar for the 1-2 week swing horizon and downgrade conviction by one letter — do not default to no-trade unless >=2 of the 4 pillars are missing data.
+- Pick a winner. If pillars conflict, name the winning pillar for the 1-2 week swing-hold horizon and downgrade conviction by one letter — do not default to no-trade unless >=2 of the 4 pillars are missing data.
 - Recommendations are research-only. No order placement, no position sizing in dollars, no imperative trade instructions.
 - Do not use the words "mixed", "unclear", or "monitor closely" in the Call section without a specific price level and a time window in the same sentence.
 
@@ -104,7 +113,7 @@ Spot: {{spot}}
 
 Now produce the report using EXACTLY the structure below. Do not add sections. Do not repeat tables.
 
-# {{ticker}} — {one-line decision: bias + structure + 10-21 DTE expiry}
+# {{ticker}} — {one-line decision: bias + structure + entry-expiry DTE in [21, 60], to hold 1-2 weeks}
 
 ## Call
 
@@ -113,12 +122,12 @@ Now produce the report using EXACTLY the structure below. Do not add sections. D
 | Bias | bullish / bearish / range / no_trade |
 | Vol overlay | long_vol / short_vol / neutral |
 | Conviction | A / B / C / D / F (one letter — see rating ladder below) |
-| Preferred expiry | YYYY-MM-DD with DTE in [10, 21] |
+| Preferred entry expiry | YYYY-MM-DD with DTE in [21, 60] — preferred [28, 45]. This is ENTRY DTE; the trade exits at +5 to +10 sessions, not at expiry. |
 | Preferred structure | one of SWING_STRATEGY_FAMILY_IDS |
 | Trigger | "two daily closes above/below X with confirming Y" — daily-close terms |
 | Invalidation | "daily close above/below X" — daily-close terms |
 | Target level | named level from market_structure_levels (call_wall / put_wall / max_magnet / max_accel / gex_flip) |
-| Time stop | "close at mid after 7 trading sessions if neither trigger nor invalidation fires" |
+| Time stop | "close at mid after 7-10 trading sessions if neither trigger nor invalidation fires" |
 
 ## Why (<=120 words)
 
@@ -128,10 +137,10 @@ Three sentences max, one per supporting pillar. Cite primary evidence by source 
 
 | Field | Value |
 |---|---|
-| Preferred expiry | YYYY-MM-DD (must appear in tabs.volatility.term_structure with 10 <= dte <= 21) |
-| DTE | integer in [10, 21] |
-| Why this expiry | one sentence citing IV level vs adjacent expiries, vanna regime in the window, or charm window position |
-| Alternative | second expiry in 10-21 DTE band, or "none — only one swing-window expiry has acceptable liquidity" |
+| Preferred entry expiry | YYYY-MM-DD (must appear in tabs.volatility.term_structure with 21 <= dte <= 60; prefer 28 <= dte <= 45) |
+| Entry DTE | integer in [21, 60] (preferred [28, 45]) |
+| Why this expiry | one sentence citing IV level vs adjacent expiries, vanna regime in the entry-expiry window, or charm window position. State explicitly that this DTE leaves comfortable premium after the 5-10 session hold. |
+| Alternative | second expiry in 28-45 DTE band, or "none — only one swing-hold expiry has acceptable liquidity" |
 
 ## Scenarios (3 rows, probabilities sum to 100%)
 
@@ -146,7 +155,7 @@ Three sentences max, one per supporting pillar. Cite primary evidence by source 
 | Severity | One-sentence conflict, citing the pillars in tension |
 |---|---|
 
-State which pillar wins for the 1-2 week swing horizon and why, in one sentence.
+State which pillar wins for the 1-2 week swing-hold horizon and why, in one sentence.
 
 ## Required Checks (cap = 2)
 
@@ -157,16 +166,16 @@ Each row must be either pre-entry (resolvable before the trigger fires) or in-tr
 
 ## Rejected Ideas (min 3, max 5)
 
-| Strategy | Why rejected at 1-2 week swing horizon |
+| Strategy | Why rejected at 1-2 week swing-hold horizon |
 |---|---|
 
-Use canonical strategy ids from STRATEGY_FAMILY_IDS. At least one rejection must explicitly cite horizon mismatch (e.g. "long_stock is not a swing structure in this product") or the safety override ("short_strangle: undefined-risk short-vol, blocked by project policy").
+Use canonical strategy ids from STRATEGY_FAMILY_IDS. At least one rejection must explicitly cite horizon mismatch (e.g. "long_stock is not a swing options structure in this product", or "<14 DTE candidate exits at peak gamma/theta") or the safety override ("short_strangle: undefined-risk short-vol, blocked by project policy").
 
 ## Earnings filter
 
-If tabs.positioning.next_earnings_date falls between today and the chosen expiry, choose ONE:
+If tabs.positioning.next_earnings_date falls inside the 5-10 session HOLD window (NOT the full entry-DTE-to-expiry), choose ONE:
 - (a) Reject the candidate as `event_risk_in_window`, recommend `no_trade` or a watchlist entry triggering post-earnings. (Default.)
-- (b) Accept ONLY if the trade is explicitly an earnings IV-crush play AND term structure shows clear front-expiry crush opportunity. Tag risk_flags_observed with ["earnings_in_window", "event_iv_crush_thesis"] and justify in headline.subtitle.
+- (b) Accept ONLY if the trade is explicitly an earnings IV-crush play AND term structure shows clear front-expiry crush opportunity. Tag risk_flags_observed with ["earnings_in_window", "event_iv_crush_thesis"] and justify in headline.subtitle. Note that an earnings IV-crush play typically wants front-expiry (sub-21 DTE) entry — which conflicts with the swing-hold DTE rule above. If you take this path, state explicitly that you are overriding the standard swing-hold horizon for the event-only crush window.
 
 Rating ladder (single letter in headline.conviction; one-clause label in headline.conviction_label):
 - A: Actionable, high conviction (3 of 4 pillars aligned, no missing primary evidence)
@@ -179,7 +188,7 @@ Confidence (headline.score, 0-100 integer; headline.score_scale = 100):
 - 85-100: 4 of 4 pillars (market structure, volatility, flow, positioning) aligned, no missing primary fields. Conviction A territory.
 - 70-84:  3 of 4 pillars aligned with one medium conflict, or 4 aligned with one primary field missing. Conviction A/B.
 - 55-69:  2 of 4 pillars aligned with the dominant pillar winning clearly. Conviction B/C.
-- 40-54:  Pillars conflict but a winner can still be named for the 1-2 week horizon. Conviction C.
+- 40-54:  Pillars conflict but a winner can still be named for the 1-2 week swing-hold horizon. Conviction C.
 - 20-39:  No clean winner, or 2+ primary fields missing. Conviction D.
 - 0-19:   Data insufficient — primary evidence absent. Conviction F.
 Set headline.score honestly against this rubric. Do NOT default to 0; if you can name a dominant pillar and a structure, you can score at least 40.
@@ -477,7 +486,7 @@ def build_trade_insights_ai_analysis_input(
                 ),
                 # PR #61: dealer-regime summary (label, gamma/vanna/charm
                 # sub-scores, 0DTE GEX, headline narrative). Primary evidence
-                # at the 1-2 week swing horizon.
+                # at the 1-2 week swing-hold horizon.
                 "dealer_regime": dealer_regime,
                 # PR #60: per-expiry vanna + charm derivations. Front 6
                 # expiries — caller filters to the swing window when reading.
@@ -687,14 +696,18 @@ def build_trade_insights_ai_prompt(prompt_payload: dict[str, Any]) -> str:
         "missing_data instead of inventing a path.\n"
         "Preserve every candidate status, every risk_flags array, and every deterministic "
         "max_loss/max_profit value exactly as supplied.\n"
-        "Horizon enforcement: every candidate_structures row whose preferred expiry has "
-        "DTE < 7 or DTE > 30 must be rejected as horizon_mismatch in rejected_ideas. The "
-        "deterministic candidate list is already filtered to the 7-30 DTE swing window by "
-        "the upstream assembler; if no swing-window candidates exist, set "
-        "preferred_expression to a no_trade strategy-family entry rather than recommending "
-        "an out-of-horizon candidate.\n"
+        "Horizon enforcement (swing HOLD, not swing expiry): every "
+        "candidate_structures row whose preferred entry expiry has DTE < 21 or "
+        "DTE > 60 must be rejected as horizon_mismatch in rejected_ideas. The "
+        "trade is HELD 5-10 trading sessions; entry expiry must leave enough "
+        "premium that the exit is not at peak gamma/theta crush. The "
+        "deterministic candidate list is already filtered to the 21-60 DTE "
+        "swing-hold window (preferred 28-45) by the upstream assembler; if no "
+        "swing-hold candidates exist, set preferred_expression to a no_trade "
+        "strategy-family entry rather than recommending an out-of-horizon "
+        "candidate.\n"
         "Do not defer solely because a deterministic candidate status is needs_check; give "
-        "a research-only recommendation when the swing-horizon evidence supports one and "
+        "a research-only recommendation when the swing-hold evidence supports one and "
         "put remaining checks into the trigger, risk, watchlist, or readiness language.\n"
         "Project safety override: do not recommend naked short options or undefined-risk "
         "short-vol structures. If the prompt's strategy list includes one, reject it unless "
@@ -719,7 +732,7 @@ def build_trade_insights_ai_prompt(prompt_payload: dict[str, Any]) -> str:
         "status_observed to 'strategy_review' and risk_flags_observed to [].\n"
         f"headline.conviction MUST be a single letter from {list(FINAL_RATING_VALUES)} "
         "(rating ladder in the prompt above). headline.conviction_label holds the "
-        "one-clause explanation. headline.score is the swing-horizon confidence "
+        "one-clause explanation. headline.score is the swing-hold confidence "
         "percentage (integer 0-100, scored against the Confidence rubric in the prompt). "
         "headline.score_scale must be 100. Do not leave score=0 unless data is genuinely "
         "insufficient (Conviction F); a real dominant-pillar read scores at least 40.\n"

@@ -115,32 +115,33 @@ def _contract(
 
 
 class FakeTradeInsightsRepo:
-    """Fixture spans two expiries inside the 7-30 DTE swing window so the
+    """Fixture spans the swing-HOLD entry window (21-60 DTE) so the
     deterministic candidate generator can build all 5 structures (verticals,
     iron condor, straddle, calendar). Dates relative to as_of=2026-05-13:
-    5/22 = 9 DTE (swing near), 6/05 = 23 DTE (swing back / calendar far)."""
+    6/12 = 30 DTE (swing sweet spot, rank 0), 7/24 = 72 DTE (outside swing
+    entry window but inside calendar far-leg max of 90 DTE)."""
 
     def fetch_option_contracts_rich(self, run_id: int, ticker: str):
         return [
-            # Swing near (9 DTE): full strike grid for verticals + condor + straddle
+            # Swing entry (30 DTE): full strike grid for verticals + condor + straddle
             _contract(
-                "TSLA260522P00420000", bid="6.10", ask="6.30", volume=450, oi=500
+                "TSLA260612P00420000", bid="6.10", ask="6.30", volume=450, oi=500
             ),
             _contract(
-                "TSLA260522P00425000", bid="8.00", ask="8.20", volume=600, oi=700
+                "TSLA260612P00425000", bid="8.00", ask="8.20", volume=600, oi=700
             ),
             _contract(
-                "TSLA260522P00430000", bid="10.20", ask="10.50", volume=900, oi=850
+                "TSLA260612P00430000", bid="10.20", ask="10.50", volume=900, oi=850
             ),
             _contract(
-                "TSLA260522C00430000", bid="9.40", ask="9.60", volume=1500, oi=1000
+                "TSLA260612C00430000", bid="9.40", ask="9.60", volume=1500, oi=1000
             ),
             _contract(
-                "TSLA260522C00435000", bid="6.90", ask="7.10", volume=1200, oi=800
+                "TSLA260612C00435000", bid="6.90", ask="7.10", volume=1200, oi=800
             ),
-            # Swing back (23 DTE): far leg for calendar at the ATM strike
+            # Calendar far leg (72 DTE): single ATM call for the calendar spread.
             _contract(
-                "TSLA260605C00430000",
+                "TSLA260724C00430000",
                 bid="13.80",
                 ask="14.20",
                 iv="0.48",
@@ -152,13 +153,13 @@ class FakeTradeInsightsRepo:
     def fetch_iv_term_rows(self, run_id: int, ticker: str):
         return [
             {
-                "expiry": date(2026, 5, 22),
-                "dte": 9,
+                "expiry": date(2026, 6, 12),
+                "dte": 30,
                 "implied_move_perc": Decimal("0.048"),
             },
             {
-                "expiry": date(2026, 6, 5),
-                "dte": 23,
+                "expiry": date(2026, 7, 24),
+                "dte": 72,
                 "implied_move_perc": Decimal("0.067"),
             },
         ]
