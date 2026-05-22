@@ -509,19 +509,28 @@
 
 .decompEquation {
   display: grid;
-  grid-template-columns: minmax(190px, 1.05fr) auto minmax(190px, 1fr) auto minmax(190px, 1fr) auto minmax(190px, 1fr);
-  gap: 12px;
+  grid-template-columns:
+    minmax(210px, 1.12fr) auto
+    minmax(180px, 1fr) auto
+    minmax(180px, 1fr) auto
+    minmax(180px, 1fr) auto
+    minmax(180px, 1fr) auto
+    minmax(180px, 1fr);
+  gap: 10px;
   align-items: center;
   min-width: 0;
 }
 
 .decompTile {
+  display: grid;
+  grid-template-rows: 34px 48px minmax(58px, auto) 18px;
   min-width: 0;
-  min-height: 166px;
+  min-height: 178px;
   border: 1px solid var(--border-dim);
   border-radius: 8px;
   background: var(--bg-base);
   padding: 16px;
+  align-items: start;
 }
 
 .decompTilePrimary {
@@ -553,7 +562,8 @@
 
 .decompTile strong {
   display: block;
-  margin: 24px 0 16px;
+  align-self: end;
+  margin: 0 0 14px;
   color: var(--text-primary);
   font-size: 34px;
   line-height: 1;
@@ -570,6 +580,7 @@
   font-size: 28px;
   font-weight: 800;
   text-align: center;
+  min-width: 24px;
 }
 
 .decompRead {
@@ -903,6 +914,16 @@
   background: var(--bg-panel);
 }
 
+@media (max-width: 1500px) {
+  .decompEquation {
+    grid-template-columns: repeat(3, minmax(180px, 1fr));
+  }
+
+  .decompOperator {
+    display: none;
+  }
+}
+
 @media (max-width: 880px) {
   .section {
     scroll-margin-top: 280px;
@@ -930,10 +951,6 @@
     align-items: flex-start;
     flex-direction: column;
     gap: 6px;
-  }
-
-  .decompOperator {
-    transform: rotate(90deg);
   }
 
   .nav {
