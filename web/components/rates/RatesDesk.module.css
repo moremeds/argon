@@ -510,7 +510,7 @@
 .decompEquation {
   display: grid;
   grid-template-columns: minmax(0, 1.08fr) repeat(5, minmax(0, 1fr));
-  gap: 8px;
+  gap: 6px;
   align-items: stretch;
   min-width: 0;
 }
@@ -518,20 +518,20 @@
 .decompTerm {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
-  gap: 8px;
+  gap: 6px;
   align-items: center;
   min-width: 0;
 }
 
 .decompTile {
   display: grid;
-  grid-template-rows: 34px 48px minmax(58px, auto) 18px;
+  grid-template-rows: 30px 44px minmax(48px, auto) 18px;
   min-width: 0;
-  min-height: 160px;
+  min-height: 140px;
   border: 1px solid var(--border-dim);
   border-radius: 8px;
   background: var(--bg-base);
-  padding: 13px;
+  padding: 11px;
   align-items: start;
 }
 
@@ -551,7 +551,7 @@
 .decompTile small {
   display: block;
   color: var(--text-muted);
-  font-size: 10px;
+  font-size: 9px;
   font-weight: 700;
   text-transform: uppercase;
 }
@@ -565,9 +565,9 @@
 .decompTile strong {
   display: block;
   align-self: end;
-  margin: 0 0 12px;
+  margin: 0 0 10px;
   color: var(--text-primary);
-  font-size: 30px;
+  font-size: 24px;
   line-height: 1;
 }
 
@@ -579,10 +579,10 @@
 
 .decompOperator {
   color: var(--negative);
-  font-size: 24px;
+  font-size: 20px;
   font-weight: 800;
   text-align: center;
-  min-width: 18px;
+  min-width: 14px;
 }
 
 .decompRead {
@@ -946,12 +946,6 @@
   border: 1px solid var(--border-dim);
   border-radius: 8px;
   background: var(--bg-panel);
-}
-
-@media (max-width: 1500px) {
-  .decompEquation {
-    grid-template-columns: repeat(3, minmax(180px, 1fr));
-  }
 }
 
 @media (max-width: 880px) {
