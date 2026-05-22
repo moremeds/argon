@@ -93,3 +93,7 @@ Worker roles: `ai-codex` and `ai-claude` (provider-pinned, recommended); legacy 
 | Index dealer cockpit (SPX/SPY/QQQ/IWM) | `api/routers/cockpit.py` + `web/app/cockpit/[ticker]/page.tsx` |
 | Stock detail page | `web/app/stock/[ticker]/page.tsx` + `components/stock/tabs/*` |
 | Watchlist landing | `web/app/page.tsx` + `components/watchlist/CardGrid.tsx` |
+| Trade Insights AI — orchestration | `src/uw_scan/worker/jobs/trade_insights_ai.py` (claim → dispatch → persist; RUNNERS registry, `provider_filter` param, per-provider heartbeats) |
+| Trade Insights AI — provider runners | `src/uw_scan/worker/jobs/trade_insights_ai_runners.py` (`AiProviderRunner` Protocol, `_format_runner_failure`, `_runner_child_env`), `trade_insights_codex_runner.py`, `trade_insights_claude_runner.py` |
+| Trade Insights AI — API + storage | `api/routers/trade_insights.py` (POST paired stubs, /latest keyed pair) + `storage/trade_insights_ai.py` (provider param on every read/write, `find_latest_*_per_provider`, `count_queued_*_by_provider`) |
+| Trade Insights AI — UI tabs | `web/components/stock/panels/TradeInsightsAiAnalysisPanel.tsx` ([Codex] [Claude] tabs, per-provider polling, state badges) |
