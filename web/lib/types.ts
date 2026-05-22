@@ -631,7 +631,14 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Post Trade Insights Ai Analysis */
+        /**
+         * Post Trade Insights Ai Analysis
+         * @description Enqueue one Trade Insights AI analysis per enabled provider.
+         *
+         *     Response contains one stub per provider with status + reused + model.
+         *     Disabled providers are omitted from the response (not included with a
+         *     'disabled' status — the UI tab handles this via /latest = null).
+         */
         post: operations["post_trade_insights_ai_analysis_api_stock__ticker__trade_insights_ai_analysis_post"];
         delete?: never;
         options?: never;
@@ -646,7 +653,13 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Get Latest Trade Insights Ai Analysis */
+        /**
+         * Get Latest Trade Insights Ai Analysis
+         * @description Latest succeeded row per provider as a keyed dict.
+         *
+         *     Returns {codex: row|null, claude: row|null}. 200 even when both are null
+         *     so the UI renders the empty Run state instead of a 404.
+         */
         get: operations["get_latest_trade_insights_ai_analysis_api_stock__ticker__trade_insights_ai_analysis_latest_get"];
         put?: never;
         post?: never;
@@ -4014,6 +4027,14 @@ export interface components {
                 [key: string]: string;
             };
         };
+        /**
+         * TradeInsightAiAnalysisEnqueueResponse
+         * @description POST response — one stub per enabled provider.
+         */
+        TradeInsightAiAnalysisEnqueueResponse: {
+            /** Analyses */
+            analyses: components["schemas"]["TradeInsightAiAnalysisStub"][];
+        };
         /** TradeInsightAiAnalysisRequest */
         TradeInsightAiAnalysisRequest: {
             /**
@@ -4045,6 +4066,12 @@ export interface components {
             /** Prompt Version */
             prompt_version: string;
             /**
+             * Provider
+             * @default codex
+             * @enum {string}
+             */
+            provider: "codex" | "claude";
+            /**
              * Requested At
              * Format: date-time
              */
@@ -4067,6 +4094,31 @@ export interface components {
             ticker: string;
             /** Trade Insights Input Hash */
             trade_insights_input_hash: string;
+        };
+        /**
+         * TradeInsightAiAnalysisStub
+         * @description Lightweight stub returned by POST when enqueueing per-provider rows.
+         */
+        TradeInsightAiAnalysisStub: {
+            /**
+             * Analysis Id
+             * Format: uuid
+             */
+            analysis_id: string;
+            /** Model */
+            model: string;
+            /**
+             * Provider
+             * @enum {string}
+             */
+            provider: "codex" | "claude";
+            /** Reused */
+            reused: boolean;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "queued" | "running" | "succeeded" | "failed";
         };
         /** TradeInsightAiBestExpression */
         TradeInsightAiBestExpression: {
@@ -4158,6 +4210,14 @@ export interface components {
             source_path?: string | null;
             /** Value */
             value: string;
+        };
+        /**
+         * TradeInsightAiLatestPair
+         * @description GET /latest response — null per provider when no succeeded row exists.
+         */
+        TradeInsightAiLatestPair: {
+            claude?: components["schemas"]["TradeInsightAiAnalysisResponse"] | null;
+            codex?: components["schemas"]["TradeInsightAiAnalysisResponse"] | null;
         };
         /** TradeInsightAiLevel */
         TradeInsightAiLevel: {
@@ -6169,7 +6229,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["TradeInsightAiAnalysisResponse"];
+                    "application/json": components["schemas"]["TradeInsightAiAnalysisEnqueueResponse"];
                 };
             };
             /** @description Validation Error */
@@ -6200,7 +6260,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["TradeInsightAiAnalysisResponse"] | null;
+                    "application/json": components["schemas"]["TradeInsightAiLatestPair"];
                 };
             };
             /** @description Validation Error */
