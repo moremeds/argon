@@ -566,35 +566,36 @@ def test_trade_insights_ai_prompt_payload_and_prompt_are_recommendation_oriented
         "analysis_input_hash"
     ] == hash_trade_insights_ai_analysis_input(analysis_input)
     assert (
-        "You are an institutional options strategist, market-structure analyst, and risk manager."
+        "You are an institutional options strategist analyzing one stock for a 1-2 week SWING entry."
         in prompt
     )
-    assert "Analyze only the supplied combined deterministic prompt payload" in prompt
-    assert "Do not fetch outside data" in prompt
-    assert "1. Market Structure" in prompt
-    assert "2. Volatility" in prompt
-    assert "3. Flow and Positioning" in prompt
-    assert (
-        "The objective is to produce a high-quality trading interpretation, not a dashboard summary."
-        in prompt
-    )
-    assert "Trade recommendations must include entry trigger" in prompt
+    # Swing horizon is hard-coded, not optional context.
+    assert "Time horizon (FIXED, not negotiable)" in prompt
+    assert "Preferred-trade expiry MUST be 10-21 DTE" in prompt
+    assert "horizon_mismatch" in prompt
+    # New PR #60 / #61 evidence is wired into the payload key map.
+    assert "tabs.market_structure.dealer_regime" in prompt
+    assert "tabs.market_structure.exposures_summary" in prompt
+    assert "tabs.market_structure.strike_exposures" in prompt
+    # 4-section report structure replaces the prior 9-section template.
+    assert "## Call" in prompt
+    assert "## Why" in prompt
+    assert "## Expiry Selection (mandatory)" in prompt
+    assert "## Scenarios (3 rows, probabilities sum to 100%)" in prompt
+    # No section_cards 1-9 grid, no needs_check deferral.
+    assert "## 5. Cross-Pillar Conflict Resolution" not in prompt
     assert (
         "Do not defer solely because a deterministic candidate status is needs_check"
         in prompt
     )
-    assert "All recommendations are research-only and not financial advice." in prompt
-    assert f"schema_version must exactly equal {PROMPT_VERSION}" in prompt
-    assert (
-        "Map the full report into the existing TradeInsightAiOutcome JSON fields"
-        in prompt
-    )
-    assert "does not prohibit research recommendations" in prompt
-    assert "# {{ticker}} Options Market Intelligence Report" in prompt
-    assert "## 5. Cross-Pillar Conflict Resolution" in prompt
-    assert "The final rating must be one of:" in prompt
-    assert "Preserve every candidate status" in prompt
-    assert "Treat all needs_check candidates as not executable" not in prompt
+    # Source-path discipline + schema_version are now appendix-level rules.
+    assert "Source-path rule (HARD)" in prompt
+    assert f"schema_version MUST be exactly the string {PROMPT_VERSION!r}" in prompt
+    # idea_id rule and SWING-restricted preferred_expression.
+    assert "idea_id rules (HARD)" in prompt
+    for swing_family in ("long_call", "call_debit_spread", "iron_condor", "no_trade"):
+        assert swing_family in prompt
+    # Output framing: still research-only, still bounded JSON.
     assert "Emit only JSON" in prompt
     assert '"tabs"' in prompt
 
@@ -757,13 +758,16 @@ def test_validate_trade_insights_ai_outcome_rejects_source_path_problems():
     deterministic = _analysis_input()
     produced_at = datetime(2026, 3, 24, 20, 18, 42, tzinfo=timezone.utc)
 
-    unavailable = _sample_outcome_for(deterministic)
-    unavailable["metric_cards"][0]["source_path"] = (
+    # `charm` / `vanna` paths are no longer unavailable since PR #60 forwarded
+    # exposures_summary + strike_exposures into the payload. A non-existent
+    # charm path now falls through to the generic prefix-existence check.
+    nonexistent_charm = _sample_outcome_for(deterministic)
+    nonexistent_charm["metric_cards"][0]["source_path"] = (
         "tabs.market_structure.charm_summary"
     )
-    with pytest.raises(ValueError, match="unavailable"):
+    with pytest.raises(ValueError, match="source_path"):
         validate_trade_insights_ai_outcome(
-            unavailable, deterministic, produced_at=produced_at
+            nonexistent_charm, deterministic, produced_at=produced_at
         )
 
     missing_source_path = _sample_outcome_for(deterministic)
