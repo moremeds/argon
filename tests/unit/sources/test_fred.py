@@ -163,3 +163,28 @@ def test_fred_json_observations_use_official_api_and_skip_missing_values():
     assert event.path_template == "/fred/series/observations"
     assert "api_key" not in event.params
     assert event.params["series_id"] == "DGS10"
+
+
+def test_fred_json_http_errors_do_not_expose_api_key():
+    with patch("uw_scan.sources.fred.httpx.Client.get") as mock_get:
+        mock_get.return_value = httpx.Response(
+            403,
+            text="forbidden",
+            request=httpx.Request(
+                "GET",
+                "https://api.stlouisfed.org/fred/series/observations"
+                "?series_id=DGS10&api_key=fred-secret",
+            ),
+        )
+        with FredProvider(api_key="fred-secret") as p:
+            try:
+                p.fetch_observations("DGS10", start=date(2026, 5, 18))
+            except RuntimeError as exc:
+                message = str(exc)
+            else:
+                raise AssertionError("FRED HTTP error should raise")
+
+    assert "fred-secret" not in message
+    assert "api_key" not in message
+    assert "fred_series_observations" in message
+    assert "403" in message

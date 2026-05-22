@@ -33,7 +33,13 @@ def build_rates_snapshot(
 ) -> RatesSnapshotResponse:
     as_of = _latest_curve_observation_date(observations)
     if as_of is None:
-        raise ValueError("rates observations are required to build a snapshot")
+        raise ValueError("Treasury curve observations are required to build a snapshot")
+    missing_curve = _missing_curve_series(observations, as_of=as_of)
+    if missing_curve:
+        raise ValueError(
+            "Treasury curve snapshot is incomplete; missing series: "
+            + ", ".join(missing_curve)
+        )
 
     curve_points = compute_curve(observations, as_of=as_of)
     slopes = compute_slopes(curve_points)
@@ -111,19 +117,19 @@ def _latest_curve_observation_date(
     ]
     if dates:
         return max(dates)
-    return _latest_observation_date(observations)
+    return None
 
 
-def _latest_observation_date(
+def _missing_curve_series(
     observations: dict[str, list[dict[str, Any]]],
-) -> date | None:
-    dates = [
-        row["obs_date"]
-        for rows in observations.values()
-        for row in rows
-        if row.get("obs_date") is not None
+    *,
+    as_of: date,
+) -> list[str]:
+    return [
+        series_id
+        for series_id in YIELD_CURVE_SERIES.values()
+        if _latest_float(observations, series_id, as_of) is None
     ]
-    return max(dates) if dates else None
 
 
 def _summary_tiles(curve_points, slopes) -> list[RatesSummaryTile]:

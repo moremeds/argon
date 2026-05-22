@@ -56,9 +56,11 @@ class _RatesMixin:
                     source_url
                   )
                 VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-                ON CONFLICT (series_id, obs_date, realtime_start, realtime_end, source)
+                ON CONFLICT (series_id, obs_date, source)
                 DO UPDATE SET
                   value = EXCLUDED.value,
+                  realtime_start = EXCLUDED.realtime_start,
+                  realtime_end = EXCLUDED.realtime_end,
                   last_seen_at = EXCLUDED.last_seen_at,
                   release_date = EXCLUDED.release_date,
                   source_url = EXCLUDED.source_url

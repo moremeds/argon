@@ -92,7 +92,7 @@ class FredProvider:
             endpoint_key=self.CSV_ENDPOINT_KEY,
             path_template=self.CSV_ENDPOINT_PATH,
         )
-        response.raise_for_status()
+        _raise_for_status_redacted(response, endpoint_key=self.CSV_ENDPOINT_KEY)
         out: list[FredObservation] = []
         reader = csv.DictReader(io.StringIO(response.text))
         for row in reader:
@@ -137,7 +137,7 @@ class FredProvider:
             endpoint_key=self.API_ENDPOINT_KEY,
             path_template=self.API_ENDPOINT_PATH,
         )
-        response.raise_for_status()
+        _raise_for_status_redacted(response, endpoint_key=self.API_ENDPOINT_KEY)
         payload = response.json()
         out: list[FredObservation] = []
         for row in payload.get("observations", []):
@@ -270,3 +270,14 @@ class FredProvider:
 
 def _latency_ms(started_at: datetime, finished_at: datetime) -> int:
     return max(0, int((finished_at - started_at).total_seconds() * 1000))
+
+
+def _raise_for_status_redacted(
+    response: httpx.Response, *, endpoint_key: str
+) -> None:
+    if response.status_code < 400:
+        return
+    raise RuntimeError(
+        f"FRED request failed: endpoint={endpoint_key} "
+        f"status_code={response.status_code}"
+    )

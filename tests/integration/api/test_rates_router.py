@@ -11,6 +11,7 @@ import psycopg
 import pytest
 from fastapi.testclient import TestClient
 
+from uw_scan.api.routers.rates import _mark_stale_snapshot_sources
 from uw_scan.api.deps import get_repo, get_settings
 from uw_scan.api.server import create_app
 from uw_scan.config import Settings
@@ -102,6 +103,7 @@ def _snapshot() -> RatesSnapshotResponse:
                 label="10Y Treasury",
                 latest_obs_date=date(2026, 5, 20),
                 last_seen_at=datetime(2026, 5, 21, 1, 2, 3, tzinfo=UTC),
+                status="ok",
             )
         ],
     )
@@ -140,3 +142,15 @@ def test_rates_snapshot_returns_404_before_first_compute(
 
     assert response.status_code == 404
     assert response.json()["detail"] == "rates snapshot not computed"
+
+
+def test_stale_rates_snapshot_marks_live_sources_stale() -> None:
+    snapshot = _snapshot()
+
+    stale = _mark_stale_snapshot_sources(
+        snapshot,
+        now=datetime(2026, 5, 23, 14, 2, 4, tzinfo=UTC),
+    )
+
+    assert stale.source_freshness[0].status == "stale"
+    assert "scheduled FRED refresh" in stale.synthesis.risks[-1]

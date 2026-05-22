@@ -10,7 +10,11 @@ from typing import Protocol
 
 import psycopg
 
-from uw_scan.rates.series import CLEVELAND_FED_MODEL_SERIES, RATES_FRED_SERIES
+from uw_scan.rates.series import (
+    CLEVELAND_FED_MODEL_SERIES,
+    RATES_FRED_SERIES,
+    YIELD_CURVE_SERIES,
+)
 from uw_scan.rates.snapshot import build_rates_snapshot
 from uw_scan.sources.cleveland_fed import ClevelandFedInflationProvider
 from uw_scan.sources.fred import FredProvider, RecordHook
@@ -121,6 +125,7 @@ def rates_fred_ingest_job(
             logger.exception("rates_cleveland_fed_ingest failed: %r", exc)
 
         conn.commit()
+        _raise_if_required_curve_failed(failed)
         observations_by_series = {
             series_id: repo.fetch_rates_series(series_id, from_date=start)
             for series_id in (*RATES_FRED_SERIES, *CLEVELAND_FED_MODEL_SERIES)
@@ -151,3 +156,13 @@ def _history_start_for_snapshot(as_of: date, *, lookback_days: int) -> date:
     year_start_buffer = date(as_of.year, 1, 1) - timedelta(days=14)
     lookback_start = as_of - timedelta(days=lookback_days)
     return min(lookback_start, year_start_buffer)
+
+
+def _raise_if_required_curve_failed(failed_series: list[str]) -> None:
+    failed_curve = sorted(set(failed_series) & set(YIELD_CURVE_SERIES.values()))
+    if not failed_curve:
+        return
+    raise RuntimeError(
+        "required FRED Treasury curve series failed; refusing to publish rates "
+        f"snapshot: {', '.join(failed_curve)}"
+    )

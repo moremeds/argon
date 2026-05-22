@@ -14,9 +14,26 @@ def _point(obs_date: date, value: str):
     }
 
 
+def _full_curve_points(obs_date: date = date(2026, 5, 20)):
+    return {
+        "DGS1MO": [_point(obs_date, "3.66")],
+        "DGS3MO": [_point(obs_date, "3.67")],
+        "DGS6MO": [_point(obs_date, "3.77")],
+        "DGS1": [_point(obs_date, "3.83")],
+        "DGS2": [_point(obs_date, "4.13")],
+        "DGS3": [_point(obs_date, "4.20")],
+        "DGS5": [_point(obs_date, "4.32")],
+        "DGS7": [_point(obs_date, "4.50")],
+        "DGS10": [_point(obs_date, "4.67")],
+        "DGS20": [_point(obs_date, "5.19")],
+        "DGS30": [_point(obs_date, "5.18")],
+    }
+
+
 def test_build_rates_snapshot_populates_live_fred_sections_without_static_fillers():
     snapshot = build_rates_snapshot(
         {
+            **_full_curve_points(),
             "DGS2": [
                 _point(date(2026, 5, 13), "4.00"),
                 _point(date(2026, 5, 19), "4.07"),
@@ -96,10 +113,7 @@ def test_build_rates_snapshot_populates_live_fred_sections_without_static_filler
 def test_build_rates_snapshot_uses_curve_date_and_marks_failed_series_stale():
     snapshot = build_rates_snapshot(
         {
-            "DGS2": [_point(date(2026, 5, 20), "4.13")],
-            "DGS5": [_point(date(2026, 5, 20), "4.32")],
-            "DGS10": [_point(date(2026, 5, 20), "4.67")],
-            "DGS30": [_point(date(2026, 5, 20), "5.18")],
+            **_full_curve_points(),
             "DFII10": [_point(date(2026, 5, 20), "2.13")],
             "T10YIE": [_point(date(2026, 5, 20), "2.48")],
             "T5YIFR": [_point(date(2026, 5, 20), "2.35")],
@@ -124,6 +138,24 @@ def test_build_rates_snapshot_requires_observations():
     try:
         build_rates_snapshot({}, computed_at=datetime(2026, 5, 20, 22, tzinfo=UTC))
     except ValueError as exc:
-        assert "rates observations" in str(exc)
+        assert "Treasury curve observations" in str(exc)
     else:
         raise AssertionError("empty observations should not build a snapshot")
+
+
+def test_build_rates_snapshot_rejects_partial_curve_publication():
+    try:
+        build_rates_snapshot(
+            {
+                "DGS10": [_point(date(2026, 5, 20), "4.67")],
+                "CLEVE_EXPECTED_INFLATION_10Y": [
+                    _point(date(2026, 5, 1), "2.4761367")
+                ],
+            },
+            computed_at=datetime(2026, 5, 20, 22, tzinfo=UTC),
+        )
+    except ValueError as exc:
+        assert "Treasury curve snapshot is incomplete" in str(exc)
+        assert "DGS1MO" in str(exc)
+    else:
+        raise AssertionError("partial curve should not publish a snapshot")

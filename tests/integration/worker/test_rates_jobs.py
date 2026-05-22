@@ -63,9 +63,16 @@ class _Provider:
 
     def fetch_observations(self, series_id, *, start=None, end=None):
         values = {
+            "DGS1MO": "3.66",
+            "DGS3MO": "3.67",
+            "DGS6MO": "3.77",
+            "DGS1": "3.83",
             "DGS2": "4.13",
+            "DGS3": "4.20",
             "DGS5": "4.32",
+            "DGS7": "4.50",
             "DGS10": "4.67",
+            "DGS20": "5.19",
             "DGS30": "5.18",
             "DFII10": "2.13",
             "T10YIE": "2.48",
@@ -84,6 +91,13 @@ class _Provider:
                 realtime_end=date(2026, 5, 20),
             )
         ]
+
+
+class _FailingCurveProvider(_Provider):
+    def fetch_observations(self, series_id, *, start=None, end=None):
+        if series_id == "DGS10":
+            raise RuntimeError("DGS10 unavailable")
+        return super().fetch_observations(series_id, start=start, end=end)
 
 
 class _ClevelandProvider:
@@ -152,6 +166,24 @@ def test_rates_job_persists_observations_and_snapshot(migrated_settings: Setting
         "Cleveland Fed Inflation Expectations"
     )
     assert row["payload"]["decomposition"]["expected_short_inflation_10y"] == 2.48
+
+
+def test_rates_job_refuses_snapshot_when_required_curve_series_fails(
+    migrated_settings: Settings,
+):
+    with pytest.raises(RuntimeError, match="required FRED Treasury curve series"):
+        rates_fred_ingest_job(
+            dsn=migrated_settings.db_dsn(),
+            fred_api_key="fred-test",
+            provider_factory=_FailingCurveProvider,
+            cleveland_provider_factory=_ClevelandProvider,
+            computed_at=datetime(2026, 5, 20, 22, tzinfo=UTC),
+        )
+
+    with psycopg.connect(migrated_settings.db_dsn()) as conn:
+        repo = Repository(conn, schema=migrated_settings.db_schema)
+        assert repo.fetch_latest_rates_snapshot() is None
+        assert repo.fetch_rates_series("CLEVE_EXPECTED_INFLATION_10Y")
 
 
 def test_rates_job_keeps_raw_observations_when_snapshot_build_fails(

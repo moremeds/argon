@@ -80,6 +80,40 @@ def test_rates_observations_are_idempotent_across_ingest_runs(repo: Repository):
     assert fetched[0]["last_seen_at"] == datetime(2026, 5, 21, 21, tzinfo=UTC)
 
 
+def test_rates_observations_normalize_current_fred_vintages(repo: Repository):
+    first = {
+        "series_id": "DGS10",
+        "obs_date": date(2026, 5, 18),
+        "value": Decimal("4.47"),
+        "realtime_start": date(2026, 5, 20),
+        "realtime_end": date(2026, 5, 20),
+        "release_date": None,
+        "source_url": None,
+    }
+    revised_current_vintage = {
+        **first,
+        "value": Decimal("4.48"),
+        "realtime_start": date(2026, 5, 21),
+        "realtime_end": date(2026, 5, 21),
+    }
+
+    repo.upsert_rates_observation_rows(
+        [first], seen_at=datetime(2026, 5, 20, 21, tzinfo=UTC), source="FRED"
+    )
+    repo.upsert_rates_observation_rows(
+        [revised_current_vintage],
+        seen_at=datetime(2026, 5, 21, 21, tzinfo=UTC),
+        source="FRED",
+    )
+
+    fetched = repo.fetch_rates_series("DGS10")
+    assert len(fetched) == 1
+    assert fetched[0]["value"] == Decimal("4.48")
+    assert fetched[0]["realtime_start"] == date(2026, 5, 21)
+    assert fetched[0]["first_seen_at"] == datetime(2026, 5, 20, 21, tzinfo=UTC)
+    assert fetched[0]["last_seen_at"] == datetime(2026, 5, 21, 21, tzinfo=UTC)
+
+
 def test_rates_snapshot_round_trips_json_native_payload(repo: Repository):
     snapshot = RatesSnapshotResponse(
         as_of=date(2026, 5, 20),
