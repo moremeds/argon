@@ -204,10 +204,17 @@ async def run_consumer_once(
                         ),
                         name="ws_subscriber",
                     )
-        except* asyncio.TimeoutError:
-            pass  # bounded-session shutdown (tests use run_for_seconds)
-        except* _ReaderDone:
-            pass  # WS closed normally — sibling tasks were cancelled by TaskGroup
+        except* asyncio.TimeoutError as eg:
+            # Bounded-session shutdown (tests use run_for_seconds). Logged at
+            # debug because the sentinel is expected; ``repr(eg)`` satisfies
+            # CI Guardrail 2 without escalating to logger.exception (which
+            # would emit a full traceback at ERROR level for an expected
+            # control-flow signal).
+            logger.debug("ws session timed out (bounded): %s", repr(eg))
+        except* _ReaderDone as eg:
+            # WS closed normally — sibling tasks were cancelled by TaskGroup.
+            # Same debug-level rationale as the TimeoutError branch.
+            logger.debug("ws session ended via reader-done: %s", repr(eg))
         # CancelledError is intentionally NOT caught: swallowing it inside an
         # `except*` clause de-arms the outer task cancellation (Python 3.11
         # PEP 654 semantics), which would make ``consumer_task.cancel()`` in
@@ -235,10 +242,11 @@ async def run_consumer_once(
                     timeout=final_flush_timeout_seconds,
                 )
                 final_flush_ok = True
-            except asyncio.TimeoutError:
+            except asyncio.TimeoutError as exc:
                 logger.warning(
-                    "run_consumer_once: final flush exceeded %.1fs",
+                    "run_consumer_once: final flush exceeded %.1fs (%s)",
                     final_flush_timeout_seconds,
+                    repr(exc),
                 )
             except Exception:
                 logger.exception("run_consumer_once: final flush failed")
@@ -381,8 +389,11 @@ def main() -> int:
             loop.add_signal_handler(sig, consumer_task.cancel)
         try:
             await consumer_task
-        except asyncio.CancelledError:
-            logger.info("ws consumer cancelled by signal — graceful shutdown")
+        except asyncio.CancelledError as exc:
+            logger.info(
+                "ws consumer cancelled by signal — graceful shutdown (%s)",
+                repr(exc),
+            )
 
     asyncio.run(_run())
     return 0

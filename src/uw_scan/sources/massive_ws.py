@@ -220,5 +220,5 @@ class MassiveWsClient:
                         str(raw)[:200],
                     )
         except ConnectionClosed as exc:
-            logger.info("massive_ws connection closed: %s", exc)
+            logger.info("massive_ws connection closed: %s", repr(exc))
             return
