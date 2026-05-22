@@ -8121,6 +8121,1039 @@
         "title": "QueueSummary",
         "type": "object"
       },
+      "RatesCrossMarketPanel": {
+        "properties": {
+          "rows": {
+            "items": {
+              "$ref": "#/components/schemas/RatesSummaryTile"
+            },
+            "title": "Rows",
+            "type": "array"
+          },
+          "status": {
+            "default": "partial",
+            "enum": [
+              "ok",
+              "missing",
+              "partial",
+              "stale"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "title": "RatesCrossMarketPanel",
+        "type": "object"
+      },
+      "RatesCurvePoint": {
+        "properties": {
+          "delta_1d_bps": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Delta 1D Bps"
+          },
+          "delta_1m_bps": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Delta 1M Bps"
+          },
+          "delta_1w_bps": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Delta 1W Bps"
+          },
+          "obs_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Obs Date"
+          },
+          "series_id": {
+            "title": "Series Id",
+            "type": "string"
+          },
+          "status": {
+            "default": "ok",
+            "enum": [
+              "ok",
+              "missing",
+              "partial",
+              "stale"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "tenor": {
+            "title": "Tenor",
+            "type": "string"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value"
+          }
+        },
+        "required": [
+          "tenor",
+          "series_id"
+        ],
+        "title": "RatesCurvePoint",
+        "type": "object"
+      },
+      "RatesCurveSection": {
+        "properties": {
+          "points": {
+            "items": {
+              "$ref": "#/components/schemas/RatesCurvePoint"
+            },
+            "title": "Points",
+            "type": "array"
+          },
+          "slopes": {
+            "items": {
+              "$ref": "#/components/schemas/RatesSlopeMetric"
+            },
+            "title": "Slopes",
+            "type": "array"
+          }
+        },
+        "title": "RatesCurveSection",
+        "type": "object"
+      },
+      "RatesDecomposition": {
+        "properties": {
+          "attribution": {
+            "items": {
+              "$ref": "#/components/schemas/RatesDecompositionAttribution"
+            },
+            "title": "Attribution",
+            "type": "array"
+          },
+          "breakeven_10y": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Breakeven 10Y"
+          },
+          "clarida_model_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Clarida Model Date"
+          },
+          "expected_short_inflation_10y": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expected Short Inflation 10Y"
+          },
+          "expected_short_real_rate_10y": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expected Short Real Rate 10Y"
+          },
+          "forward_inflation_5y5y": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Forward Inflation 5Y5Y"
+          },
+          "fred_model_residual_10y": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fred Model Residual 10Y"
+          },
+          "inflation_risk_premium_10y": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Inflation Risk Premium 10Y"
+          },
+          "model_nominal_10y": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model Nominal 10Y"
+          },
+          "model_real_yield_10y": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model Real Yield 10Y"
+          },
+          "model_source": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model Source"
+          },
+          "model_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model Url"
+          },
+          "nominal_10y": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Nominal 10Y"
+          },
+          "real_10y": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Real 10Y"
+          },
+          "real_term_premium_10y": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Real Term Premium 10Y"
+          },
+          "status": {
+            "default": "partial",
+            "enum": [
+              "ok",
+              "missing",
+              "partial",
+              "stale"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "term_forward_compensation": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Term Forward Compensation"
+          }
+        },
+        "title": "RatesDecomposition",
+        "type": "object"
+      },
+      "RatesDecompositionAttribution": {
+        "properties": {
+          "breakeven_10y_bps": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Breakeven 10Y Bps"
+          },
+          "driver": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Driver"
+          },
+          "expected_short_inflation_bps": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expected Short Inflation Bps"
+          },
+          "expected_short_real_bps": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expected Short Real Bps"
+          },
+          "fred_model_residual_bps": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fred Model Residual Bps"
+          },
+          "inflation_risk_premium_bps": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Inflation Risk Premium Bps"
+          },
+          "model_nominal_10y_bps": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model Nominal 10Y Bps"
+          },
+          "nominal_10y_bps": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Nominal 10Y Bps"
+          },
+          "real_10y_bps": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Real 10Y Bps"
+          },
+          "real_term_premium_bps": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Real Term Premium Bps"
+          },
+          "residual_bps": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Residual Bps"
+          },
+          "status": {
+            "default": "partial",
+            "enum": [
+              "ok",
+              "missing",
+              "partial",
+              "stale"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "window": {
+            "enum": [
+              "1D",
+              "1W",
+              "1M",
+              "YTD"
+            ],
+            "title": "Window",
+            "type": "string"
+          }
+        },
+        "required": [
+          "window"
+        ],
+        "title": "RatesDecompositionAttribution",
+        "type": "object"
+      },
+      "RatesEventItem": {
+        "properties": {
+          "event_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Event Date"
+          },
+          "importance": {
+            "default": "medium",
+            "enum": [
+              "low",
+              "medium",
+              "high"
+            ],
+            "title": "Importance",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "source": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source"
+          },
+          "status": {
+            "default": "missing",
+            "enum": [
+              "ok",
+              "missing",
+              "partial",
+              "stale"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "label"
+        ],
+        "title": "RatesEventItem",
+        "type": "object"
+      },
+      "RatesPolicyPanel": {
+        "properties": {
+          "effr": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Effr"
+          },
+          "plumbing": {
+            "items": {
+              "$ref": "#/components/schemas/RatesSummaryTile"
+            },
+            "title": "Plumbing",
+            "type": "array"
+          },
+          "sofr": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sofr"
+          },
+          "status": {
+            "default": "partial",
+            "enum": [
+              "ok",
+              "missing",
+              "partial",
+              "stale"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "target_range": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target Range"
+          }
+        },
+        "title": "RatesPolicyPanel",
+        "type": "object"
+      },
+      "RatesPositioningPanel": {
+        "properties": {
+          "rows": {
+            "items": {
+              "$ref": "#/components/schemas/RatesSummaryTile"
+            },
+            "title": "Rows",
+            "type": "array"
+          },
+          "status": {
+            "default": "missing",
+            "enum": [
+              "ok",
+              "missing",
+              "partial",
+              "stale"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "title": "RatesPositioningPanel",
+        "type": "object"
+      },
+      "RatesScorecard": {
+        "properties": {
+          "composite_score": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Composite Score"
+          },
+          "curve_score": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Curve Score"
+          },
+          "curve_stance": {
+            "default": "NEUTRAL",
+            "enum": [
+              "STEEP",
+              "FLAT",
+              "NEUTRAL"
+            ],
+            "title": "Curve Stance",
+            "type": "string"
+          },
+          "duration_stance": {
+            "default": "NEUTRAL",
+            "enum": [
+              "BUY",
+              "SELL",
+              "NEUTRAL"
+            ],
+            "title": "Duration Stance",
+            "type": "string"
+          },
+          "groups": {
+            "items": {
+              "$ref": "#/components/schemas/RatesScorecardGroup"
+            },
+            "title": "Groups",
+            "type": "array"
+          }
+        },
+        "title": "RatesScorecard",
+        "type": "object"
+      },
+      "RatesScorecardFactor": {
+        "properties": {
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "score": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Score"
+          },
+          "source": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source"
+          },
+          "status": {
+            "default": "ok",
+            "enum": [
+              "ok",
+              "missing",
+              "partial",
+              "stale"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value"
+          }
+        },
+        "required": [
+          "label"
+        ],
+        "title": "RatesScorecardFactor",
+        "type": "object"
+      },
+      "RatesScorecardGroup": {
+        "properties": {
+          "factors": {
+            "items": {
+              "$ref": "#/components/schemas/RatesScorecardFactor"
+            },
+            "title": "Factors",
+            "type": "array"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "score": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Score"
+          },
+          "status": {
+            "default": "ok",
+            "enum": [
+              "ok",
+              "missing",
+              "partial",
+              "stale"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "weight": {
+            "title": "Weight",
+            "type": "number"
+          }
+        },
+        "required": [
+          "id",
+          "label",
+          "weight"
+        ],
+        "title": "RatesScorecardGroup",
+        "type": "object"
+      },
+      "RatesSlopeMetric": {
+        "properties": {
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "status": {
+            "default": "ok",
+            "enum": [
+              "ok",
+              "missing",
+              "partial",
+              "stale"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "value_bps": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value Bps"
+          }
+        },
+        "required": [
+          "label"
+        ],
+        "title": "RatesSlopeMetric",
+        "type": "object"
+      },
+      "RatesSnapshotResponse": {
+        "properties": {
+          "as_of": {
+            "format": "date",
+            "title": "As Of",
+            "type": "string"
+          },
+          "computed_at": {
+            "format": "date-time",
+            "title": "Computed At",
+            "type": "string"
+          },
+          "cross_market": {
+            "$ref": "#/components/schemas/RatesCrossMarketPanel"
+          },
+          "curve": {
+            "$ref": "#/components/schemas/RatesCurveSection"
+          },
+          "decomposition": {
+            "$ref": "#/components/schemas/RatesDecomposition"
+          },
+          "events": {
+            "items": {
+              "$ref": "#/components/schemas/RatesEventItem"
+            },
+            "title": "Events",
+            "type": "array"
+          },
+          "policy": {
+            "$ref": "#/components/schemas/RatesPolicyPanel"
+          },
+          "positioning": {
+            "$ref": "#/components/schemas/RatesPositioningPanel"
+          },
+          "scorecard": {
+            "$ref": "#/components/schemas/RatesScorecard"
+          },
+          "source_freshness": {
+            "items": {
+              "$ref": "#/components/schemas/RatesSourceFreshness"
+            },
+            "title": "Source Freshness",
+            "type": "array"
+          },
+          "summary": {
+            "items": {
+              "$ref": "#/components/schemas/RatesSummaryTile"
+            },
+            "title": "Summary",
+            "type": "array"
+          },
+          "supply": {
+            "$ref": "#/components/schemas/RatesSupplyPanel"
+          },
+          "synthesis": {
+            "$ref": "#/components/schemas/RatesSynthesisPanel"
+          }
+        },
+        "required": [
+          "as_of",
+          "computed_at",
+          "synthesis"
+        ],
+        "title": "RatesSnapshotResponse",
+        "type": "object"
+      },
+      "RatesSourceFreshness": {
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "last_seen_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Seen At"
+          },
+          "latest_obs_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Latest Obs Date"
+          },
+          "status": {
+            "default": "missing",
+            "enum": [
+              "ok",
+              "missing",
+              "partial",
+              "stale"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "label"
+        ],
+        "title": "RatesSourceFreshness",
+        "type": "object"
+      },
+      "RatesSummaryTile": {
+        "properties": {
+          "delta_1d": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Delta 1D"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "status": {
+            "default": "ok",
+            "enum": [
+              "ok",
+              "missing",
+              "partial",
+              "stale"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "unit": {
+            "default": "",
+            "title": "Unit",
+            "type": "string"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value"
+          }
+        },
+        "required": [
+          "label"
+        ],
+        "title": "RatesSummaryTile",
+        "type": "object"
+      },
+      "RatesSupplyPanel": {
+        "properties": {
+          "auctions": {
+            "items": {
+              "$ref": "#/components/schemas/RatesSummaryTile"
+            },
+            "title": "Auctions",
+            "type": "array"
+          },
+          "notes": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Notes",
+            "type": "array"
+          },
+          "status": {
+            "default": "missing",
+            "enum": [
+              "ok",
+              "missing",
+              "partial",
+              "stale"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "title": "RatesSupplyPanel",
+        "type": "object"
+      },
+      "RatesSynthesisPanel": {
+        "properties": {
+          "curve_view": {
+            "title": "Curve View",
+            "type": "string"
+          },
+          "duration_view": {
+            "title": "Duration View",
+            "type": "string"
+          },
+          "risks": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Risks",
+            "type": "array"
+          }
+        },
+        "required": [
+          "duration_view",
+          "curve_view"
+        ],
+        "title": "RatesSynthesisPanel",
+        "type": "object"
+      },
       "RecordHealthCheck": {
         "properties": {
           "actual_rows": {
@@ -13421,6 +14454,28 @@
         "summary": "Provider Usage Tickers",
         "tags": [
           "provider-usage"
+        ]
+      }
+    },
+    "/api/rates/snapshot": {
+      "get": {
+        "operationId": "rates_snapshot_api_rates_snapshot_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RatesSnapshotResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Rates Snapshot",
+        "tags": [
+          "rates",
+          "rates"
         ]
       }
     },

@@ -48,6 +48,7 @@ type ScannerDiscoverResponse = Json<"/api/scanner/discover", "get">;
 type RegimeGexResponse = Json<"/api/regime/gex", "get">;
 type RegimeDealerResponse = Json<"/api/regime/dealer", "get">;
 type RegimeVcgResponse = Json<"/api/regime/vcg", "get">;
+type RatesSnapshotResponse = Json<"/api/rates/snapshot", "get">;
 
 async function _fetch<T>(
   path: string,
@@ -149,6 +150,10 @@ export const api = {
   },
   scannerDiscover: (limit = 20): Promise<ScannerDiscoverResponse> =>
     _fetch<ScannerDiscoverResponse>(`/api/scanner/discover?limit=${limit}`),
+  ratesSnapshot: (): Promise<RatesSnapshotResponse | null> =>
+    _fetch<RatesSnapshotResponse | null>(`/api/rates/snapshot`, undefined, {
+      allow404: true,
+    }),
   tradeInsights: (ticker: string): Promise<TradeInsightsResponse> =>
     _fetch<TradeInsightsResponse>(`/api/stock/${ticker}/trade-insights`),
   tradeInsightsAiAnalysis: (
@@ -242,6 +247,7 @@ export type {
   RegimeDealerResponse,
   RegimeGexResponse,
   RegimeVcgResponse,
+  RatesSnapshotResponse,
   ScannerResponse,
   SingleStockReport,
   TradeInsightsAiAnalysisResponse,

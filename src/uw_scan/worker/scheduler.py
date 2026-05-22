@@ -44,6 +44,7 @@ from uw_scan.worker.jobs.option_intraday_jobs import (
     refresh_intraday_for_top_oi_movers,
 )
 from uw_scan.worker.jobs.rescan_loop import rescan_tick
+from uw_scan.worker.jobs.rates_jobs import rates_fred_ingest_job
 from uw_scan.worker.jobs.trade_insights_ai import trade_insights_ai_tick
 from uw_scan.worker.jobs.vol_index_lake_sync import run_vol_index_lake_sync
 from uw_scan.worker.volatility_jobs import (
@@ -126,6 +127,11 @@ def _is_primary_worker(settings: Settings) -> bool:
     return settings.worker_role.lower() == "all" or settings.worker_index == 0
 
 
+def _should_schedule_rates_fred_ingest(settings: Settings) -> bool:
+    role = settings.worker_role.lower()
+    return role == "all" or (role == "uw" and settings.worker_index == 0)
+
+
 def _worker_label(settings: Settings) -> str:
     role = settings.worker_role.lower()
     if role == "all":
@@ -143,6 +149,19 @@ def _worker_heartbeat_name(settings: Settings) -> str:
 def _record_worker_heartbeat(settings: Settings) -> None:
     with _repo(settings) as repo:
         repo.upsert_heartbeat(_worker_heartbeat_name(settings))
+
+
+def _run_rates_fred_ingest(settings: Settings) -> None:
+    if settings.fred_api_key is None:
+        logger.warning("FRED_API_KEY not set; skipping rates_fred_ingest")
+        return
+    with _external_api_recorder(settings) as recorder:
+        rates_fred_ingest_job(
+            dsn=settings.db_dsn(),
+            schema=settings.db_schema,
+            fred_api_key=settings.fred_api_key.get_secret_value(),
+            record_request=lambda _provider, event: recorder.record(event),
+        )
 
 
 @contextmanager
@@ -473,6 +492,9 @@ def main() -> int:
     def _gold_posture_compute() -> None:
         gold_posture_compute_job(dsn=settings.db_dsn())
 
+    def _rates_fred_ingest() -> None:
+        _run_rates_fred_ingest(settings)
+
     sched.add_job(
         lambda: _record_worker_heartbeat(settings),
         IntervalTrigger(seconds=1),
@@ -649,6 +671,15 @@ def main() -> int:
             id="gold_etf_holdings_ingest",
             name="Gold: ETF holdings daily (GLD/IAU/GLDM/PHYS)",
         )
+        if _should_schedule_rates_fred_ingest(settings):
+            sched.add_job(
+                _rates_fred_ingest,
+                CronTrigger.from_crontab("45 18 * * 0-4", timezone=settings.rth_tz),
+                id="rates_fred_ingest",
+                name="Rates: FRED curve and macro refresh",
+                max_instances=1,
+                coalesce=True,
+            )
         sched.add_job(
             _gold_gpr_ingest,
             CronTrigger.from_crontab("0 20 * * 0-4", timezone=settings.rth_tz),

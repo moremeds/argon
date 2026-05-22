@@ -115,6 +115,8 @@ class Settings(BaseModel):
     massive_ws_reconnect_backoff_initial_seconds: float = 1.0
     massive_ws_reconnect_backoff_max_seconds: float = 60.0
     massive_ws_heartbeat_stale_after_seconds: float = 120.0
+    # FRED official API. Required by the US rates mirror ingest path.
+    fred_api_key: SecretStr | None = None
     # WGC Goldhub authenticated downloads. Keep secrets in environment only.
     wgc_goldhub_cookie: SecretStr | None = None
     wgc_etf_flows_workbook_path: str = ""
@@ -261,6 +263,11 @@ class Settings(BaseModel):
             ),
             massive_ws_heartbeat_stale_after_seconds=float(
                 os.environ.get("MASSIVE_WS_HEARTBEAT_STALE_AFTER_SECONDS", "120.0")
+            ),
+            fred_api_key=(
+                SecretStr(_fred_key)
+                if (_fred_key := os.environ.get("FRED_API_KEY", "").strip())
+                else None
             ),
             wgc_goldhub_cookie=(
                 SecretStr(_wgc_cookie)
