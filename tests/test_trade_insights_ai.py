@@ -1114,18 +1114,17 @@ def test_validate_lenient_captures_partial_claude_output():
     assert "headline.stance not produced by provider" in parsed.missing_data
 
 
-def test_validate_lenient_skips_idea_id_and_source_path_checks():
-    """Lenient mode skips the Codex-style provider-consistency checks: unknown
-    idea_ids, source_path family validation, and guardrails-truthy. Those would
-    otherwise prevent partial Claude output from landing at all."""
+def test_validate_lenient_accepts_unknown_idea_ids_but_drops_bad_source_paths():
+    """Lenient mode RELAXES only the equality checks that require provider-
+    internal consistency: unknown idea_ids are captured, invalid source_paths
+    are dropped to None with a missing_data note. Safety checks still apply
+    (see other lenient tests for guardrails / undefined-risk)."""
     deterministic = _analysis_input()
     produced_at = datetime(2026, 3, 24, 20, 18, 42, tzinfo=timezone.utc)
 
-    # Take the strict happy-path outcome but introduce things strict would reject.
     payload = _sample_outcome_for(deterministic)
     payload["best_expressions"][0]["idea_id"] = "UNKNOWN_IDEA"
     payload["metric_cards"][0]["source_path"] = "tabs.flow.not_a_real_family"
-    payload["guardrails"]["statuses_preserved"] = False
 
     # Strict: rejects on the first failure
     with pytest.raises(ValueError):
@@ -1133,16 +1132,198 @@ def test_validate_lenient_skips_idea_id_and_source_path_checks():
             payload, deterministic, produced_at=produced_at
         )
 
-    # Lenient: accepts and captures
     parsed = validate_trade_insights_ai_outcome(
         payload,
         deterministic,
         produced_at=produced_at,
         lenient=True,
     )
+    # Unknown idea_id: kept (visible incoherence Claude introduced)
     assert parsed.best_expressions[0].idea_id == "UNKNOWN_IDEA"
-    assert parsed.metric_cards[0].source_path == "tabs.flow.not_a_real_family"
-    assert parsed.guardrails.statuses_preserved is False
+    # Bad source_path: dropped to None + missing_data note recorded
+    assert parsed.metric_cards[0].source_path is None
+    assert any(
+        "source_path dropped" in note and "tabs.flow.not_a_real_family" in note
+        for note in parsed.missing_data
+    )
+
+
+def test_validate_lenient_rejects_guardrails_false():
+    """Safety: an explicit False on any guardrail must NOT be silently
+    accepted in lenient mode. A persisted "succeeded" row whose own
+    guardrails contradict the safety contract is worse than a failed row."""
+    deterministic = _analysis_input()
+    produced_at = datetime(2026, 3, 24, 20, 18, 42, tzinfo=timezone.utc)
+
+    payload = _sample_outcome_for(deterministic)
+    payload["guardrails"]["statuses_preserved"] = False
+
+    with pytest.raises(ValueError, match="guardrails"):
+        validate_trade_insights_ai_outcome(
+            payload, deterministic, produced_at=produced_at, lenient=True
+        )
+
+
+def test_validate_lenient_rejects_undefined_risk_strategy_family():
+    """Safety: the no-naked-shorts project rule (defined-risk only) must
+    still block `short_strangle` as preferred or best expression even when
+    Claude is the provider."""
+    deterministic = _analysis_input()
+    produced_at = datetime(2026, 3, 24, 20, 18, 42, tzinfo=timezone.utc)
+
+    payload = _sample_outcome_for(deterministic)
+    payload["preferred_expression"]["idea_id"] = "short_strangle"
+    payload["preferred_expression"]["structure"] = "short_strangle"
+    payload["preferred_expression"]["status_observed"] = "strategy_review"
+    payload["preferred_expression"]["risk_flags_observed"] = []
+
+    with pytest.raises(ValueError, match="undefined-risk"):
+        validate_trade_insights_ai_outcome(
+            payload, deterministic, produced_at=produced_at, lenient=True
+        )
+
+
+def test_validate_lenient_overwrites_known_candidate_status_and_risk_flags():
+    """Safety: when a best_expression / preferred / rejected idea_id matches
+    a deterministic candidate, the coercer overwrites status_observed and
+    risk_flags_observed from the deterministic source. Claude cannot
+    whitewash a `needs_check` row into `strategy_review`."""
+    deterministic = _analysis_input()
+    produced_at = datetime(2026, 3, 24, 20, 18, 42, tzinfo=timezone.utc)
+
+    # Pick a real candidate from the deterministic payload and capture its
+    # actual status / risk_flags so the test asserts against truth.
+    candidate = deterministic["candidate_structures"][0]
+    real_idea_id = str(candidate["idea_id"])
+    real_status = str(candidate.get("status") or "")
+    real_risk_flags = list(candidate.get("risk_flags") or [])
+
+    # Build a payload where Claude lies about status + risk_flags.
+    raw = {
+        "headline": {"title": "T", "stance": "neutral", "conviction": "B"},
+        "best_expressions": [
+            {
+                "idea_id": real_idea_id,
+                "status_observed": "ready_to_size",  # lie
+                "risk_flags_observed": [],  # lie
+            }
+        ],
+    }
+    parsed = validate_trade_insights_ai_outcome(
+        raw, deterministic, produced_at=produced_at, lenient=True
+    )
+    assert parsed.best_expressions[0].status_observed == real_status
+    assert parsed.best_expressions[0].risk_flags_observed == real_risk_flags
+
+
+def test_validate_lenient_filters_unknown_conflict_idea_ids():
+    """Unknown idea_ids inside `conflict.affected_idea_ids` should be
+    silently filtered and recorded in missing_data — not raise, not
+    silently retain the bogus reference."""
+    deterministic = _analysis_input()
+    produced_at = datetime(2026, 3, 24, 20, 18, 42, tzinfo=timezone.utc)
+    real_idea_id = str(deterministic["candidate_structures"][0]["idea_id"])
+
+    raw = {
+        "headline": {"title": "T", "stance": "neutral", "conviction": "B"},
+        "conflicts": [
+            {
+                "lens": "vol",
+                "severity": "medium",
+                "description": "x",
+                "affected_idea_ids": [real_idea_id, "PHANTOM_IDEA"],
+            }
+        ],
+    }
+    parsed = validate_trade_insights_ai_outcome(
+        raw, deterministic, produced_at=produced_at, lenient=True
+    )
+    assert parsed.conflicts[0].affected_idea_ids == [real_idea_id]
+    assert any(
+        "PHANTOM_IDEA" in note and "dropped" in note for note in parsed.missing_data
+    )
+
+
+def test_validate_lenient_normalizes_conviction_case_and_whitespace():
+    """Conviction must accept Claude's case/whitespace variations the same
+    way stance does; "b" / " B " should land on "B", not the "F" fallback."""
+    deterministic = _analysis_input()
+    produced_at = datetime(2026, 3, 24, 20, 18, 42, tzinfo=timezone.utc)
+    for raw_conviction in ("b", " B ", "C\n", "a"):
+        payload = {"headline": {"title": "T", "conviction": raw_conviction}}
+        parsed = validate_trade_insights_ai_outcome(
+            payload, deterministic, produced_at=produced_at, lenient=True
+        )
+        assert parsed.headline.conviction == raw_conviction.strip().upper()
+
+
+def test_coerce_handles_nan_and_infinity_floats():
+    """A malformed numeric field (NaN or Infinity from json.loads with the
+    default allow_nan=True) must NOT crash the coercer. _int_or / _opt_int
+    fall back to the default."""
+    from uw_scan.reports.trade_insights_ai import _coerce_claude_outcome_dict
+
+    deterministic = _analysis_input()
+    produced_at = datetime(2026, 3, 24, 20, 18, 42, tzinfo=timezone.utc)
+    expected_hash = hash_trade_insights_ai_analysis_input(deterministic)
+
+    raw = {
+        "headline": {
+            "title": "T",
+            "stance": "neutral",
+            "conviction": "B",
+            "score": float("nan"),
+        },
+        "section_cards": {
+            "market_structure": {
+                "title": "MS",
+                "summary": "s",
+                "score": float("inf"),
+                "max_score": float("-inf"),
+            }
+        },
+    }
+    coerced = _coerce_claude_outcome_dict(
+        raw,
+        deterministic,
+        produced_at=produced_at,
+        expected_analysis_input_hash=expected_hash,
+    )
+    # Score defaults
+    assert coerced["headline"]["score"] == 0
+    assert coerced["section_cards"]["market_structure"]["score"] is None
+    assert coerced["section_cards"]["market_structure"]["max_score"] is None
+    # Round-trips through Pydantic
+    TradeInsightAiOutcome.model_validate(coerced)
+
+
+def test_validate_lenient_passes_complete_valid_output():
+    """The lenient path must not damage a Claude outcome that DOES adhere to
+    the schema fully — same fields as the strict happy-path test should
+    pass through, with idea_id status/risk_flags overwritten from the
+    deterministic candidate (which match anyway in the happy case)."""
+    deterministic = _analysis_input()
+    produced_at = datetime(2026, 3, 24, 20, 18, 42, tzinfo=timezone.utc)
+    payload = _sample_outcome_for(deterministic)
+
+    parsed = validate_trade_insights_ai_outcome(
+        payload, deterministic, produced_at=produced_at, lenient=True
+    )
+    # Headline content preserved
+    assert parsed.headline.title == payload["headline"]["title"]
+    assert parsed.headline.stance == "bullish"
+    assert parsed.headline.conviction == "B"
+    # Section content preserved
+    assert (
+        parsed.section_cards.market_structure.summary
+        == payload["section_cards"]["market_structure"]["summary"]
+    )
+    # Metric cards' source_paths kept (they're valid)
+    assert (
+        parsed.metric_cards[0].source_path == payload["metric_cards"][0]["source_path"]
+    )
+    # No spurious "partial output" note
+    assert not any("partial output" in note.lower() for note in parsed.missing_data)
 
 
 def test_validate_lenient_still_rejects_imperative_text():
@@ -1178,8 +1359,12 @@ def test_validate_lenient_maps_prompt_bias_to_stance_literal():
         ("range", "neutral"),
         ("RANGE", "neutral"),
         ("range-bound", "neutral"),
+        ("range bound", "neutral"),
+        ("rangebound", "neutral"),
         ("no_trade", "wait"),
         ("no-trade", "wait"),
+        ("no trade", "wait"),
+        ("none", "wait"),
     ]:
         payload = {"headline": {"stance": raw_stance, "title": "T"}}
         parsed = validate_trade_insights_ai_outcome(

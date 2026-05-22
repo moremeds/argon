@@ -782,492 +782,11 @@ def trade_insights_ai_output_schema(*, strict: bool = True) -> dict[str, Any]:
     return schema
 
 
-_HEADLINE_VALID_STANCES = ("bullish", "bearish", "neutral", "mixed", "wait")
-_HEADLINE_STANCE_FALLBACK = "mixed"
-# Vocabulary bridge: the user prompt's markdown template asks for "range" or
-# "no_trade", but the model Literal is the 5-value set above. Codex translates
-# these automatically; Claude does not. Apply the mapping in the coercer so
-# Claude's prompt-faithful output lands on a valid Literal.
-_HEADLINE_STANCE_ALIASES = {
-    "range": "neutral",
-    "rangebound": "neutral",
-    "range-bound": "neutral",
-    "no_trade": "wait",
-    "no-trade": "wait",
-    "none": "wait",
-}
-_CONVICTION_FALLBACK = "F"
-_PARTIAL_OUTPUT_NOTE = (
-    "Provider produced partial output that did not adhere to the strict schema; "
-    "missing required fields were synthesized."
+# Claude lenient coercion (large; extracted to its own module per the module-size budget).
+# Re-exported here so test callers using the historical import path continue to work.
+from uw_scan.reports.trade_insights_ai_lenient import (  # noqa: E402
+    _coerce_claude_outcome_dict,
 )
-
-
-def _str_or(value: Any, default: str) -> str:
-    if isinstance(value, str) and value.strip():
-        return value
-    return default
-
-
-def _int_or(value: Any, default: int) -> int:
-    if isinstance(value, bool):
-        return default
-    if isinstance(value, int):
-        return value
-    if isinstance(value, float):
-        return int(value)
-    if isinstance(value, str):
-        try:
-            return int(value.strip())
-        except ValueError:
-            return default
-    return default
-
-
-def _opt_int(value: Any) -> int | None:
-    if isinstance(value, bool):
-        return None
-    if isinstance(value, int):
-        return value
-    if isinstance(value, float):
-        return int(value)
-    return None
-
-
-def _dict_or_empty(value: Any) -> dict[str, Any]:
-    return value if isinstance(value, dict) else {}
-
-
-def _list_or_empty(value: Any) -> list[Any]:
-    return value if isinstance(value, list) else []
-
-
-def _str_list(value: Any) -> list[str]:
-    return [v for v in (_str_or(item, "") for item in _list_or_empty(value)) if v]
-
-
-def _coerce_metric_card(item: Any) -> dict[str, Any] | None:
-    raw = _dict_or_empty(item)
-    label = _str_or(raw.get("label"), "")
-    value = _str_or(raw.get("value"), "")
-    if not label and not value:
-        return None
-    return {
-        "label": label or "(unlabeled)",
-        "value": value or "(no value)",
-        "tone": _str_or(raw.get("tone"), "neutral"),
-        "source_path": raw["source_path"]
-        if isinstance(raw.get("source_path"), str)
-        else None,
-        "note": _str_or(raw.get("note"), ""),
-    }
-
-
-def _coerce_scenario_card(item: Any) -> dict[str, Any] | None:
-    raw = _dict_or_empty(item)
-    case_value = raw.get("case")
-    if not isinstance(case_value, str) or not case_value:
-        return None
-    return {
-        "case": case_value,
-        "tone": _str_or(raw.get("tone"), "neutral"),
-        "title": _str_or(raw.get("title"), case_value),
-        "description": _str_or(raw.get("description"), ""),
-    }
-
-
-def _coerce_score_breakdown(item: Any) -> dict[str, Any] | None:
-    raw = _dict_or_empty(item)
-    section = _str_or(raw.get("section"), "")
-    if not section:
-        return None
-    return {
-        "section": section,
-        "score": _int_or(raw.get("score"), 0),
-        "max_score": _int_or(raw.get("max_score"), 0),
-        "summary": _str_or(raw.get("summary"), ""),
-    }
-
-
-def _coerce_highlight(item: Any) -> dict[str, Any] | None:
-    raw = _dict_or_empty(item)
-    label = _str_or(raw.get("label"), "")
-    value = _str_or(raw.get("value"), "")
-    if not label and not value:
-        return None
-    return {
-        "label": label or "(unlabeled)",
-        "value": value or "(no value)",
-        "source_path": raw["source_path"]
-        if isinstance(raw.get("source_path"), str)
-        else None,
-        "note": _str_or(raw.get("note"), ""),
-    }
-
-
-def _coerce_level(item: Any) -> dict[str, Any] | None:
-    raw = _dict_or_empty(item)
-    price = _str_or(raw.get("price"), "")
-    kind = _str_or(raw.get("kind"), "")
-    if not price and not kind:
-        return None
-    return {
-        "price": price or "(no price)",
-        "kind": kind or "level",
-        "value": _str_or(raw.get("value"), ""),
-        "importance": _str_or(raw.get("importance"), "normal"),
-        "source_path": raw["source_path"]
-        if isinstance(raw.get("source_path"), str)
-        else None,
-        "note": _str_or(raw.get("note"), ""),
-    }
-
-
-def _coerce_section_card(raw: Any, default_title: str) -> dict[str, Any]:
-    data = _dict_or_empty(raw)
-    return {
-        "title": _str_or(data.get("title"), default_title),
-        "score": _opt_int(data.get("score")),
-        "max_score": _opt_int(data.get("max_score")),
-        "summary": _str_or(data.get("summary"), "(no summary produced)"),
-        "highlights": [
-            item
-            for item in (
-                _coerce_highlight(h) for h in _list_or_empty(data.get("highlights"))
-            )
-            if item is not None
-        ],
-        "levels": [
-            item
-            for item in (
-                _coerce_level(level) for level in _list_or_empty(data.get("levels"))
-            )
-            if item is not None
-        ],
-        "data_quality": _str_or(data.get("data_quality"), "unknown"),
-    }
-
-
-def _coerce_best_expression(item: Any) -> dict[str, Any] | None:
-    raw = _dict_or_empty(item)
-    idea_id = _str_or(raw.get("idea_id"), "")
-    if not idea_id:
-        return None
-    return {
-        "idea_id": idea_id,
-        "structure": _str_or(raw.get("structure"), idea_id),
-        "role": _str_or(raw.get("role"), ""),
-        "why": _str_or(raw.get("why"), ""),
-        "caveats": _str_list(raw.get("caveats")),
-        "status_observed": _str_or(raw.get("status_observed"), "strategy_review"),
-        "risk_flags_observed": _str_list(raw.get("risk_flags_observed")),
-    }
-
-
-def _coerce_conflict(item: Any) -> dict[str, Any] | None:
-    raw = _dict_or_empty(item)
-    description = _str_or(raw.get("description"), "")
-    if not description:
-        return None
-    return {
-        "lens": _str_or(raw.get("lens"), "unspecified"),
-        "severity": _str_or(raw.get("severity"), "medium"),
-        "description": description,
-        "affected_idea_ids": _str_list(raw.get("affected_idea_ids")),
-    }
-
-
-def _coerce_required_check(item: Any) -> dict[str, Any] | None:
-    raw = _dict_or_empty(item)
-    check = _str_or(raw.get("check"), "")
-    if not check:
-        return None
-    return {
-        "check": check,
-        "reason": _str_or(raw.get("reason"), ""),
-        "blocks_sizing": bool(raw.get("blocks_sizing", True)),
-        "source": _str_or(raw.get("source"), ""),
-    }
-
-
-def _coerce_rejected_idea(item: Any) -> dict[str, Any] | None:
-    raw = _dict_or_empty(item)
-    idea_id = _str_or(raw.get("idea_id"), "")
-    if not idea_id:
-        return None
-    return {
-        "idea_id": idea_id,
-        "structure": _str_or(raw.get("structure"), idea_id),
-        "reason": _str_or(raw.get("reason"), ""),
-    }
-
-
-def _coerce_preferred_expression(item: Any) -> dict[str, Any] | None:
-    raw = _dict_or_empty(item)
-    idea_id = _str_or(raw.get("idea_id"), "")
-    if not idea_id:
-        return None
-    return {
-        "idea_id": idea_id,
-        "structure": _str_or(raw.get("structure"), idea_id),
-        "title": _str_or(raw.get("title"), idea_id),
-        "subtitle": _str_or(raw.get("subtitle"), ""),
-        "estimated_entry": _str_or(raw.get("estimated_entry"), ""),
-        "max_profit_observed": _str_or(raw.get("max_profit_observed"), ""),
-        "max_loss_observed": _str_or(raw.get("max_loss_observed"), ""),
-        "reward_risk": _str_or(raw.get("reward_risk"), ""),
-        "why": _str_or(raw.get("why"), ""),
-        "management_notes": _str_list(raw.get("management_notes")),
-        "status_observed": _str_or(raw.get("status_observed"), "strategy_review"),
-        "risk_flags_observed": _str_list(raw.get("risk_flags_observed")),
-    }
-
-
-def _coerce_vrp_assessment(item: Any) -> dict[str, Any] | None:
-    raw = _dict_or_empty(item)
-    title = _str_or(raw.get("title"), "")
-    summary = _str_or(raw.get("summary"), "")
-    if not title and not summary:
-        return None
-    return {
-        "signal": _str_or(raw.get("signal"), "unspecified"),
-        "title": title or "VRP",
-        "summary": summary,
-        "metrics": [
-            item
-            for item in (
-                _coerce_metric_card(m) for m in _list_or_empty(raw.get("metrics"))
-            )
-            if item is not None
-        ],
-        "reason": _str_or(raw.get("reason"), ""),
-    }
-
-
-def _coerce_claude_outcome_dict(
-    raw: Any,
-    deterministic_payload: dict[str, Any],
-    *,
-    produced_at: datetime,
-    expected_analysis_input_hash: str,
-) -> dict[str, Any]:
-    """Coerce Claude's free-form JSON into a TradeInsightAiOutcome-shaped dict.
-
-    Claude does not reliably adhere to the strict schema even with
-    --json-schema and a JSON-only system prompt — see issue #67. This
-    helper synthesizes a structurally-valid outcome from whatever Claude
-    actually produced:
-
-    * Identity fields (schema_version, ticker, snapshot.*, analysis_produced_at)
-      are overwritten with deterministic worker-known values.
-    * Missing required scalars get safe placeholders.
-    * Unknown keys at every nesting level are dropped (every model uses
-      extra="forbid").
-    * Invalid Literal values (stance, conviction) are coerced to fallbacks
-      that signal partial output.
-
-    The result MUST round-trip through TradeInsightAiOutcome.model_validate.
-    Codex stays on the strict path; this is Claude-only.
-    """
-    data = raw if isinstance(raw, dict) else {}
-
-    headline_raw = _dict_or_empty(data.get("headline"))
-    stance_raw = headline_raw.get("stance")
-    # Alias bridge before fallback: "range" -> "neutral", "no_trade" -> "wait",
-    # so Claude's prompt-vocabulary output lands on a valid Literal.
-    if isinstance(stance_raw, str):
-        stance_normalized = stance_raw.strip().lower()
-        stance_candidate = _HEADLINE_STANCE_ALIASES.get(
-            stance_normalized, stance_normalized
-        )
-    else:
-        stance_candidate = None
-    stance = (
-        stance_candidate
-        if stance_candidate in _HEADLINE_VALID_STANCES
-        else _HEADLINE_STANCE_FALLBACK
-    )
-    conviction_raw = headline_raw.get("conviction")
-    conviction = (
-        conviction_raw
-        if isinstance(conviction_raw, str) and conviction_raw in FINAL_RATING_VALUES
-        else _CONVICTION_FALLBACK
-    )
-
-    ticker = _str_or(deterministic_payload.get("ticker"), "TICKER")
-    # Preserve the raw stance_raw as stance_label when it was a valid analyst
-    # vocabulary value ("range", "no_trade") — keeps the human-readable label
-    # while the Literal lands on the coerced value.
-    default_stance_label = (
-        stance_raw
-        if isinstance(stance_raw, str) and stance_raw.strip()
-        else "Partial output"
-    )
-    headline = {
-        "title": _str_or(headline_raw.get("title"), f"{ticker} — partial output"),
-        "stance": stance,
-        "stance_label": _str_or(headline_raw.get("stance_label"), default_stance_label),
-        "score": _int_or(headline_raw.get("score"), 0),
-        "score_scale": _int_or(headline_raw.get("score_scale"), 100),
-        "conviction": conviction,
-        "conviction_label": _str_or(
-            headline_raw.get("conviction_label"), "data insufficient"
-        ),
-        "top_reason": _str_or(headline_raw.get("top_reason"), _PARTIAL_OUTPUT_NOTE),
-        "primary_risk": _str_or(
-            headline_raw.get("primary_risk"), "provider schema adherence"
-        ),
-        "watch_trigger": _str_or(headline_raw.get("watch_trigger"), "re-run analysis"),
-    }
-
-    snapshot_raw = _dict_or_empty(data.get("snapshot"))
-    data_as_of_raw = snapshot_raw.get("data_as_of") or data.get("data_as_of")
-    snapshot = {
-        "run_id": deterministic_payload.get("run_id"),
-        "trade_insights_input_hash": deterministic_payload.get(
-            "trade_insights_input_hash"
-        ),
-        "analysis_input_hash": expected_analysis_input_hash,
-        "data_as_of": data_as_of_raw
-        if isinstance(data_as_of_raw, str) and data_as_of_raw
-        else None,
-        "freshness_label": _str_or(snapshot_raw.get("freshness_label"), "unknown"),
-        "source_notes": _str_list(snapshot_raw.get("source_notes")),
-    }
-
-    section_cards_raw = _dict_or_empty(data.get("section_cards"))
-    section_cards = {
-        "market_structure": _coerce_section_card(
-            section_cards_raw.get("market_structure"), "Market Structure"
-        ),
-        "volatility": _coerce_section_card(
-            section_cards_raw.get("volatility"), "Volatility"
-        ),
-        "flow_positioning": _coerce_section_card(
-            section_cards_raw.get("flow_positioning"), "Flow & Positioning"
-        ),
-    }
-
-    dominant_read_raw = _dict_or_empty(data.get("dominant_read"))
-    dominant_read = {
-        "headline": _str_or(dominant_read_raw.get("headline"), headline["title"]),
-        "summary": _str_or(dominant_read_raw.get("summary"), headline["top_reason"]),
-        "confidence_commentary": _str_or(
-            dominant_read_raw.get("confidence_commentary"),
-            "Partial output — confidence not reported by provider.",
-        ),
-        "data_quality_commentary": _str_or(
-            dominant_read_raw.get("data_quality_commentary"),
-            _PARTIAL_OUTPUT_NOTE,
-        ),
-    }
-
-    rendering_raw = _dict_or_empty(data.get("rendering"))
-    rendering = {
-        "disclaimer": _str_or(
-            rendering_raw.get("disclaimer"),
-            "Research-only — partial output captured; not order-placement instructions.",
-        ),
-        "card_order": _str_list(rendering_raw.get("card_order")),
-    }
-
-    guardrails_raw = _dict_or_empty(data.get("guardrails"))
-    guardrails = {
-        "statuses_preserved": bool(guardrails_raw.get("statuses_preserved", True)),
-        "risk_flags_preserved": bool(guardrails_raw.get("risk_flags_preserved", True)),
-        "no_executable_recommendations": bool(
-            guardrails_raw.get("no_executable_recommendations", True)
-        ),
-    }
-
-    missing_data = _str_list(data.get("missing_data"))
-    if any(
-        value in (None, "", [])
-        for value in (
-            headline_raw.get("stance"),
-            headline_raw.get("title"),
-            data.get("snapshot"),
-            data.get("section_cards"),
-            data.get("dominant_read"),
-        )
-    ):
-        missing_data = [_PARTIAL_OUTPUT_NOTE, *missing_data]
-
-    coerced: dict[str, Any] = {
-        "schema_version": PROMPT_VERSION,
-        "analysis_produced_at": _iso_z(produced_at),
-        "ticker": ticker,
-        "underlying_price": data.get("underlying_price")
-        if isinstance(data.get("underlying_price"), str)
-        else None,
-        "snapshot": snapshot,
-        "headline": headline,
-        "metric_cards": [
-            item
-            for item in (
-                _coerce_metric_card(m) for m in _list_or_empty(data.get("metric_cards"))
-            )
-            if item is not None
-        ],
-        "scenario_cards": [
-            item
-            for item in (
-                _coerce_scenario_card(s)
-                for s in _list_or_empty(data.get("scenario_cards"))
-            )
-            if item is not None
-        ],
-        "score_breakdown": [
-            item
-            for item in (
-                _coerce_score_breakdown(s)
-                for s in _list_or_empty(data.get("score_breakdown"))
-            )
-            if item is not None
-        ],
-        "section_cards": section_cards,
-        "vrp_assessment": _coerce_vrp_assessment(data.get("vrp_assessment")),
-        "preferred_expression": _coerce_preferred_expression(
-            data.get("preferred_expression")
-        ),
-        "dominant_read": dominant_read,
-        "best_expressions": [
-            item
-            for item in (
-                _coerce_best_expression(b)
-                for b in _list_or_empty(data.get("best_expressions"))
-            )
-            if item is not None
-        ],
-        "conflicts": [
-            item
-            for item in (
-                _coerce_conflict(c) for c in _list_or_empty(data.get("conflicts"))
-            )
-            if item is not None
-        ],
-        "required_checks": [
-            item
-            for item in (
-                _coerce_required_check(r)
-                for r in _list_or_empty(data.get("required_checks"))
-            )
-            if item is not None
-        ],
-        "rejected_ideas": [
-            item
-            for item in (
-                _coerce_rejected_idea(r)
-                for r in _list_or_empty(data.get("rejected_ideas"))
-            )
-            if item is not None
-        ],
-        "missing_data": missing_data,
-        "rendering": rendering,
-        "guardrails": guardrails,
-    }
-    return coerced
-
 
 _IMPERATIVE_PHRASES = (
     "buy now",
@@ -1403,6 +922,38 @@ def _reject_imperative_text(outcome: TradeInsightAiOutcome) -> None:
             raise ValueError("imperative trade instruction rejected")
 
 
+def _drop_invalid_source_path_in_lenient(
+    item: Any,
+    deterministic_payload: dict[str, Any],
+    outcome: TradeInsightAiOutcome,
+    missing_data: list[str],
+) -> None:
+    """Lenient counterpart to `_validate_source_path_item`: instead of
+    raising on an invalid `source_path`, canonicalize valid ones, and set
+    invalid ones to None while recording the drop in `missing_data`."""
+    source_path = getattr(item, "source_path", None)
+    if not source_path:
+        return
+    lowered = source_path.lower()
+    if "short_interest" in lowered and not _missing_data_mentions(
+        outcome, "short_interest"
+    ):
+        item.source_path = None
+        note = f"source_path dropped (unavailable): {source_path}"
+        if note not in missing_data:
+            missing_data.append(note)
+        return
+    canonical_source_path = _canonical_source_path(source_path, deterministic_payload)
+    if canonical_source_path != source_path:
+        item.source_path = canonical_source_path
+        source_path = canonical_source_path
+    if not _path_family_exists(source_path, deterministic_payload):
+        item.source_path = None
+        note = f"source_path dropped (unknown prefix): {source_path}"
+        if note not in missing_data:
+            missing_data.append(note)
+
+
 def validate_trade_insights_ai_outcome(
     outcome: dict[str, Any] | TradeInsightAiOutcome,
     deterministic_payload: dict[str, Any],
@@ -1414,9 +965,26 @@ def validate_trade_insights_ai_outcome(
 
     `lenient=True` (Claude only — see issue #67) pre-processes the raw dict
     through `_coerce_claude_outcome_dict` to capture partial/off-schema output,
-    then skips the equality checks that require provider-internal consistency
-    (idea_id known-ness, status_observed equality, risk_flags equality,
-    source_path family). The imperative-text safety check still runs.
+    then RELAXES only the equality checks that require provider-internal
+    consistency:
+
+    * unknown idea_ids in best_expressions / rejected_ideas / preferred /
+      conflicts are accepted (lenient capture);
+    * source_path validation drops invalid paths to None instead of raising.
+
+    Safety / integrity checks STILL RUN in lenient mode:
+
+    * undefined-risk strategy family (e.g. `short_strangle`) rejection —
+      enforces the no-naked-shorts project rule even for Claude;
+    * strategy-family status_observed/risk_flags equality (the coercer
+      synthesizes the canonical values, so this passes automatically);
+    * known-candidate status_observed/risk_flags equality (the coercer
+      overwrites these from the deterministic candidate so this passes);
+    * guardrails all-true (an explicit False from Claude is rejected);
+    * imperative-text rejection (safety guardrail on free text).
+
+    NOTE: A pre-validated TradeInsightAiOutcome instance bypasses the
+    coercion step. Production callers always pass dicts from the runner.
     """
 
     expected_hash = hash_trade_insights_ai_analysis_input(deterministic_payload)
@@ -1455,8 +1023,12 @@ def validate_trade_insights_ai_outcome(
     if parsed.snapshot.analysis_input_hash != expected_hash:
         raise ValueError("analysis_input_hash does not match deterministic payload")
 
+    candidates = _candidate_map(deterministic_payload)
+
+    # Strict-only: unknown idea_ids in best_expressions / rejected_ideas /
+    # preferred_expression / conflicts are rejected outright. The lenient
+    # coercer accepts them so Claude's incoherence is captured visibly.
     if not lenient:
-        candidates = _candidate_map(deterministic_payload)
         for item in [*parsed.best_expressions, *parsed.rejected_ideas]:
             if not _known_idea_id(item.idea_id, candidates):
                 raise ValueError(f"unknown idea_id referenced: {item.idea_id}")
@@ -1466,25 +1038,34 @@ def validate_trade_insights_ai_outcome(
             raise ValueError(
                 f"unknown idea_id referenced: {parsed.preferred_expression.idea_id}"
             )
+        for conflict in parsed.conflicts:
+            for idea_id in conflict.affected_idea_ids:
+                if not _known_idea_id(idea_id, candidates):
+                    raise ValueError(f"unknown idea_id referenced: {idea_id}")
 
-        echo_items = list(parsed.best_expressions)
-        if parsed.preferred_expression is not None:
-            echo_items.append(parsed.preferred_expression)
-        for item in echo_items:
-            if item.idea_id in STRATEGY_FAMILY_IDS:
-                if item.idea_id not in PREFERRED_STRATEGY_FAMILY_IDS:
-                    raise ValueError(
-                        f"undefined-risk strategy family cannot be preferred: {item.idea_id}"
-                    )
-                if item.status_observed != "strategy_review":
-                    raise ValueError(
-                        f"strategy status_observed must be strategy_review for {item.idea_id}"
-                    )
-                if item.risk_flags_observed != []:
-                    raise ValueError(
-                        f"strategy risk_flags_observed must be empty for {item.idea_id}"
-                    )
-                continue
+    # ALWAYS (both strict and lenient): safety checks for strategy-family
+    # ids (undefined-risk rejection, status_observed/risk_flags discipline)
+    # and known-candidate status/risk_flags equality. The lenient coercer
+    # synthesizes the canonical values so these pass cleanly for Claude.
+    echo_items = list(parsed.best_expressions)
+    if parsed.preferred_expression is not None:
+        echo_items.append(parsed.preferred_expression)
+    for item in echo_items:
+        if item.idea_id in STRATEGY_FAMILY_IDS:
+            if item.idea_id not in PREFERRED_STRATEGY_FAMILY_IDS:
+                raise ValueError(
+                    f"undefined-risk strategy family cannot be preferred: {item.idea_id}"
+                )
+            if item.status_observed != "strategy_review":
+                raise ValueError(
+                    f"strategy status_observed must be strategy_review for {item.idea_id}"
+                )
+            if item.risk_flags_observed != []:
+                raise ValueError(
+                    f"strategy risk_flags_observed must be empty for {item.idea_id}"
+                )
+            continue
+        if item.idea_id in candidates:
             candidate = candidates[item.idea_id]
             if item.status_observed != candidate.get("status"):
                 raise ValueError(f"status_observed changed for idea_id {item.idea_id}")
@@ -1493,18 +1074,18 @@ def validate_trade_insights_ai_outcome(
                     f"risk_flags_observed changed for idea_id {item.idea_id}"
                 )
 
-        for conflict in parsed.conflicts:
-            for idea_id in conflict.affected_idea_ids:
-                if not _known_idea_id(idea_id, candidates):
-                    raise ValueError(f"unknown idea_id referenced: {idea_id}")
+    # ALWAYS: guardrails truthiness — an explicit False from Claude must
+    # not contradict the persisted "succeeded" status.
+    if not (
+        parsed.guardrails.statuses_preserved
+        and parsed.guardrails.risk_flags_preserved
+        and parsed.guardrails.no_executable_recommendations
+    ):
+        raise ValueError("guardrails must all be true")
 
-        if not (
-            parsed.guardrails.statuses_preserved
-            and parsed.guardrails.risk_flags_preserved
-            and parsed.guardrails.no_executable_recommendations
-        ):
-            raise ValueError("guardrails must all be true")
-
+    # Strict: source_path validation raises on invalid prefixes.
+    # Lenient: invalid prefixes are dropped to None with a missing_data note.
+    if not lenient:
         for card in parsed.metric_cards:
             _validate_source_path_item(card, deterministic_payload, parsed)
         for section in (
@@ -1516,6 +1097,28 @@ def validate_trade_insights_ai_outcome(
                 _validate_source_path_item(highlight, deterministic_payload, parsed)
             for level in section.levels:
                 _validate_source_path_item(level, deterministic_payload, parsed)
+    else:
+        missing_data = list(parsed.missing_data)
+        for card in parsed.metric_cards:
+            _drop_invalid_source_path_in_lenient(
+                card, deterministic_payload, parsed, missing_data
+            )
+        for section in (
+            parsed.section_cards.market_structure,
+            parsed.section_cards.volatility,
+            parsed.section_cards.flow_positioning,
+        ):
+            for highlight in section.highlights:
+                _drop_invalid_source_path_in_lenient(
+                    highlight, deterministic_payload, parsed, missing_data
+                )
+            for level in section.levels:
+                _drop_invalid_source_path_in_lenient(
+                    level, deterministic_payload, parsed, missing_data
+                )
+        # Persist any new notes back onto the parsed outcome
+        if len(missing_data) != len(parsed.missing_data):
+            parsed.missing_data = missing_data
 
     _reject_imperative_text(parsed)
     return parsed
