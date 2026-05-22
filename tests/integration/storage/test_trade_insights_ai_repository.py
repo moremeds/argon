@@ -2,11 +2,6 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
-
-import psycopg
-import pytest
-
 from uw_scan.storage.repository import Repository
 
 
