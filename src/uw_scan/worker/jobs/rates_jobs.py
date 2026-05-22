@@ -68,7 +68,7 @@ def rates_fred_ingest_job(
         raise RuntimeError("FRED_API_KEY is required for rates_fred_ingest")
 
     now = computed_at or datetime.now(UTC)
-    start = now.date() - timedelta(days=lookback_days)
+    start = _history_start_for_snapshot(now.date(), lookback_days=lookback_days)
     failed: list[str] = []
     inserted = 0
 
@@ -145,3 +145,9 @@ def rates_fred_ingest_job(
         snapshot_date=snapshot.as_of,
         computed_at=snapshot.computed_at,
     )
+
+
+def _history_start_for_snapshot(as_of: date, *, lookback_days: int) -> date:
+    year_start_buffer = date(as_of.year, 1, 1) - timedelta(days=14)
+    lookback_start = as_of - timedelta(days=lookback_days)
+    return min(lookback_start, year_start_buffer)

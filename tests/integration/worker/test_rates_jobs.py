@@ -13,7 +13,10 @@ from uw_scan.config import Settings
 from uw_scan.sources.cleveland_fed import ClevelandFedInflationRecord
 from uw_scan.sources.fred import FredObservation
 from uw_scan.storage.repository import Repository
-from uw_scan.worker.jobs.rates_jobs import rates_fred_ingest_job
+from uw_scan.worker.jobs.rates_jobs import (
+    _history_start_for_snapshot,
+    rates_fred_ingest_job,
+)
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 
@@ -114,6 +117,15 @@ def test_rates_job_requires_fred_api_key(migrated_settings: Settings):
             provider_factory=_Provider,
             computed_at=datetime(2026, 5, 20, 22, tzinfo=UTC),
         )
+
+
+def test_rates_job_history_start_includes_ytd_anchor_buffer():
+    assert _history_start_for_snapshot(
+        date(2026, 5, 20), lookback_days=45
+    ) == date(2025, 12, 18)
+    assert _history_start_for_snapshot(
+        date(2026, 1, 10), lookback_days=45
+    ) == date(2025, 11, 26)
 
 
 def test_rates_job_persists_observations_and_snapshot(migrated_settings: Settings):
