@@ -846,7 +846,7 @@ export function RatesDesk({ snapshot }: { snapshot: Snapshot | null }) {
         </div>
       </RatesSection>
 
-      <RatesSection id="scorecard" title="Scorecard" eyebrow="Editable weights">
+      <RatesSection id="scorecard" title="Scorecard" eyebrow="Rule weights">
         <RatesScorecard scorecard={scorecard} />
       </RatesSection>
 

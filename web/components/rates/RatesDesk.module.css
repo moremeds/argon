@@ -874,6 +874,13 @@
   color: var(--text-primary);
 }
 
+.staticWeight {
+  color: var(--text-muted);
+  font: 700 0.78rem var(--font-mono);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
 .groupScore {
   min-width: 58px;
   text-align: right;

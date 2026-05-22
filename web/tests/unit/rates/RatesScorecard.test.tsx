@@ -5,16 +5,12 @@ import { RatesScorecard } from "@/components/rates/RatesScorecard";
 import { SNAPSHOT } from "./fixture";
 
 describe("RatesScorecard", () => {
-  it("recalculates the composite score when weights change", () => {
+  it("renders server-aligned composite score and static weights", () => {
     render(<RatesScorecard scorecard={SNAPSHOT.scorecard!} />);
 
-    expect(screen.getByTestId("duration-score").textContent).toContain("0.00");
-
-    fireEvent.change(screen.getByLabelText("Monetary Policy weight"), {
-      target: { value: "100" },
-    });
-
-    expect(screen.getByTestId("duration-score").textContent).toContain("-0.60");
+    expect(screen.getByTestId("duration-score").textContent).toContain("+0.10");
+    expect(screen.getAllByText("Weight 25.00").length).toBeGreaterThan(0);
+    expect(screen.queryByLabelText("Monetary Policy weight")).toBeNull();
   });
 
   it("collapses and expands factor groups", () => {

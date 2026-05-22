@@ -16,25 +16,25 @@ function stance(score: number): string {
 
 export function RatesScorecard({ scorecard }: { scorecard: Scorecard }) {
   const groups = scorecard.groups ?? [];
-  const [weights, setWeights] = useState<Record<string, number>>(() =>
-    Object.fromEntries(groups.map((group) => [group.id, toFiniteNumber(group.weight)])),
-  );
   const [open, setOpen] = useState<Record<string, boolean>>(() =>
     Object.fromEntries(groups.map((group) => [group.id, true])),
   );
 
   const composite = useMemo(() => {
+    if (scorecard.composite_score != null) {
+      return toFiniteNumber(scorecard.composite_score, 0);
+    }
     let weighted = 0;
     let total = 0;
     for (const group of groups) {
       if (group.status === "missing") continue;
-      const weight = Math.max(0, weights[group.id] ?? 0);
+      const weight = Math.max(0, toFiniteNumber(group.weight));
       const score = toFiniteNumber(group.score, 0);
       weighted += weight * score;
       total += weight;
     }
     return total > 0 ? weighted / total : 0;
-  }, [groups, weights]);
+  }, [groups, scorecard.composite_score]);
 
   return (
     <div className={styles.scorecard}>
@@ -63,21 +63,9 @@ export function RatesScorecard({ scorecard }: { scorecard: Scorecard }) {
                   {isOpen ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
                   {group.label}
                 </button>
-                <label className={styles.weightInput}>
-                  <span>{group.label} weight</span>
-                  <input
-                    aria-label={`${group.label} weight`}
-                    type="number"
-                    min="0"
-                    value={weights[group.id] ?? 0}
-                    onChange={(event) =>
-                      setWeights((prev) => ({
-                        ...prev,
-                        [group.id]: toFiniteNumber(event.target.value),
-                      }))
-                    }
-                  />
-                </label>
+                <span className={styles.staticWeight}>
+                  Weight {toFiniteNumber(group.weight).toFixed(2)}
+                </span>
                 <span className={styles.groupScore}>{fmtSigned(group.score, "", 2)}</span>
               </div>
               {isOpen ? (
