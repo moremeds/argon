@@ -230,18 +230,22 @@ def test_trade_insight_ai_analysis_schema(fresh_schema):
         assert "idx_trade_insight_ai_analyses_succeeded_reuse" in indexes
         assert "status" in indexes["idx_trade_insight_ai_analyses_queue"]
         assert "requested_at" in indexes["idx_trade_insight_ai_analyses_queue"]
-        assert "analysis_input_hash" in indexes[
-            "idx_trade_insight_ai_analyses_active_reuse"
-        ]
-        assert "status = ANY" in indexes[
-            "idx_trade_insight_ai_analyses_active_reuse"
-        ] or "status IN" in indexes["idx_trade_insight_ai_analyses_active_reuse"]
-        assert "analysis_input_hash" in indexes[
-            "idx_trade_insight_ai_analyses_succeeded_reuse"
-        ]
-        assert "status = 'succeeded'" in indexes[
-            "idx_trade_insight_ai_analyses_succeeded_reuse"
-        ]
+        assert (
+            "analysis_input_hash"
+            in indexes["idx_trade_insight_ai_analyses_active_reuse"]
+        )
+        assert (
+            "status = ANY" in indexes["idx_trade_insight_ai_analyses_active_reuse"]
+            or "status IN" in indexes["idx_trade_insight_ai_analyses_active_reuse"]
+        )
+        assert (
+            "analysis_input_hash"
+            in indexes["idx_trade_insight_ai_analyses_succeeded_reuse"]
+        )
+        assert (
+            "status = 'succeeded'"
+            in indexes["idx_trade_insight_ai_analyses_succeeded_reuse"]
+        )
 
 
 def test_external_api_requests_schema(fresh_schema):
@@ -307,3 +311,85 @@ def test_external_api_requests_schema(fresh_schema):
             "external_api_requests_provider_endpoint_started_idx",
             "external_api_requests_provider_status_started_idx",
         } <= indexes
+
+
+def test_trade_insight_ai_analyses_provider_column(fresh_schema):
+    """Migration 053 adds provider TEXT NOT NULL DEFAULT 'codex' with a CHECK
+    constraint restricting values to codex|claude."""
+    with fresh_schema.cursor() as cur:
+        cur.execute(
+            "SELECT column_name, data_type, is_nullable, column_default "
+            "FROM information_schema.columns "
+            "WHERE table_schema = 'uw_scan' "
+            "  AND table_name = 'trade_insight_ai_analyses' "
+            "  AND column_name = 'provider'"
+        )
+        row = cur.fetchone()
+    assert row is not None, "provider column missing"
+    assert row[1] == "text"
+    assert row[2] == "NO"
+    assert row[3] is not None and "'codex'" in row[3]
+
+
+def test_trade_insight_ai_analyses_provider_check_constraint(fresh_schema):
+    with fresh_schema.cursor() as cur:
+        cur.execute(
+            "SELECT pg_get_constraintdef(c.oid) "
+            "FROM pg_constraint c "
+            "JOIN pg_class t ON c.conrelid = t.oid "
+            "JOIN pg_namespace n ON t.relnamespace = n.oid "
+            "WHERE n.nspname = 'uw_scan' "
+            "  AND t.relname = 'trade_insight_ai_analyses' "
+            "  AND c.conname = 'trade_insight_ai_analyses_provider_check'"
+        )
+        row = cur.fetchone()
+    assert row is not None
+    assert "codex" in row[0] and "claude" in row[0]
+
+
+def test_trade_insight_ai_analyses_succeeded_reuse_index_includes_provider(
+    fresh_schema,
+):
+    with fresh_schema.cursor() as cur:
+        cur.execute(
+            "SELECT indexdef FROM pg_indexes "
+            "WHERE schemaname = 'uw_scan' "
+            "  AND tablename = 'trade_insight_ai_analyses' "
+            "  AND indexname = 'idx_trade_insight_ai_analyses_succeeded_reuse'"
+        )
+        row = cur.fetchone()
+    assert row is not None
+    indexdef = row[0]
+    assert "provider" in indexdef
+    assert "analysis_input_hash" in indexdef
+    assert "prompt_version" in indexdef
+    assert "model" in indexdef
+    assert "succeeded" in indexdef.lower()
+
+
+def test_trade_insight_ai_analyses_active_reuse_index_includes_provider(
+    fresh_schema,
+):
+    with fresh_schema.cursor() as cur:
+        cur.execute(
+            "SELECT indexdef FROM pg_indexes "
+            "WHERE schemaname = 'uw_scan' "
+            "  AND tablename = 'trade_insight_ai_analyses' "
+            "  AND indexname = 'idx_trade_insight_ai_analyses_active_reuse'"
+        )
+        row = cur.fetchone()
+    assert row is not None
+    indexdef = row[0]
+    assert "provider" in indexdef
+    assert "queued" in indexdef.lower() and "running" in indexdef.lower()
+
+
+def test_trade_insight_ai_analyses_provider_queue_index_exists(fresh_schema):
+    with fresh_schema.cursor() as cur:
+        cur.execute(
+            "SELECT 1 FROM pg_indexes "
+            "WHERE schemaname = 'uw_scan' "
+            "  AND tablename = 'trade_insight_ai_analyses' "
+            "  AND indexname = 'idx_trade_insight_ai_analyses_provider_queue'"
+        )
+        assert cur.fetchone() is not None
