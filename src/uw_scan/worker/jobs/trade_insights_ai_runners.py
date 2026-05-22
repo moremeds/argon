@@ -80,24 +80,31 @@ def _format_runner_failure(
 def _runner_child_env() -> dict[str, str]:
     """Allow-listed environment for any CLI runner subprocess.
 
-    Forwards only neutral environment (PATH, locale, TMPDIR, CODEX_HOME) and
-    drops every app secret (UW_SCAN_API_KEY, MASSIVE_API_KEY, *_DB_PASSWORD,
+    Forwards only neutral environment (PATH, locale, TMPDIR, CODEX_HOME, USER)
+    and drops every app secret (UW_SCAN_API_KEY, MASSIVE_API_KEY, *_DB_PASSWORD,
     ANTHROPIC_API_KEY, etc.). Both Codex and Claude work with this allow-list:
     Codex uses CODEX_HOME, Claude uses macOS keychain OAuth (no env var).
 
     Critical: ANTHROPIC_API_KEY must NOT be forwarded — verified in pre-flight
     that with it set, claude reports apiKeySource=ANTHROPIC_API_KEY and uses
     API-key billing instead of the user's OAuth/keychain subscription.
+
+    USER/LOGNAME are required: Claude Code uses process.env.USER as the macOS
+    Keychain account selector ("Claude Code-credentials" service, account=$USER).
+    Without USER, the OAuth lookup misses and claude --print fails with
+    "Not logged in · Please run /login" even when the keychain entry exists.
     """
     allowed_exact = {
         "CODEX_HOME",
         "HOME",
         "LANG",
         "LC_ALL",
+        "LOGNAME",
         "PATH",
         "SHELL",
         "TERM",
         "TMPDIR",
+        "USER",
     }
     env: dict[str, str] = {}
     for key, value in os.environ.items():

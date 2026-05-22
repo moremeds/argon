@@ -120,7 +120,9 @@ def trade_insights_ai_tick(
             produced_at=produced_at,
         )
         prompt_text = build_trade_insights_ai_prompt(prompt_payload)
-        output_schema = trade_insights_ai_output_schema()
+        output_schema = trade_insights_ai_output_schema(
+            strict=(row_provider != "claude"),
+        )
         repo.prepare_trade_insight_ai_analysis(
             analysis_id,
             prompt_text=prompt_text,
@@ -149,7 +151,7 @@ def trade_insights_ai_tick(
     try:
         result = runner.run(
             build_trade_insights_ai_prompt(prompt_payload),
-            trade_insights_ai_output_schema(),
+            trade_insights_ai_output_schema(strict=(row_provider != "claude")),
             model=model_env,
             timeout_seconds=timeout,
             max_output_bytes=settings.trade_insights_ai_max_output_bytes,

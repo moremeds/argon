@@ -761,8 +761,20 @@ def _coerce_strict_schema(node: Any) -> Any:
     return node
 
 
-def trade_insights_ai_output_schema() -> dict[str, Any]:
-    schema = _coerce_strict_schema(TradeInsightAiOutcome.model_json_schema())
+def trade_insights_ai_output_schema(*, strict: bool = True) -> dict[str, Any]:
+    """Produce the JSON schema for TradeInsightAiOutcome.
+
+    `strict=True` (default, used for Codex): forces every nested property to be
+    required and `additionalProperties: false` everywhere. Codex's structured
+    output mode handles this cleanly.
+
+    `strict=False` (used for Claude): keeps only the required set Pydantic
+    naturally declares (i.e. non-Optional fields). Claude's StructuredOutput
+    tool silently falls back to freeform JSON when the schema is too strict at
+    every level, so we trade some validation surface for adherence.
+    """
+    raw = TradeInsightAiOutcome.model_json_schema()
+    schema = _coerce_strict_schema(raw) if strict else raw
     schema["properties"]["schema_version"]["const"] = PROMPT_VERSION
     schema["$defs"]["TradeInsightAiHeadline"]["properties"]["conviction"]["enum"] = (
         list(FINAL_RATING_VALUES)
