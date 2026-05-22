@@ -28,6 +28,38 @@ class TradeInsightsAiRunnerError(RuntimeError):
     """Controlled failure from the local Codex CLI runner."""
 
 
+def _format_codex_failure(
+    stderr: str | None,
+    stdout: str | None,
+    *,
+    tail_chars: int = 1500,
+) -> str:
+    """Format codex CLI stderr/stdout for the analysis row's error_message.
+
+    `codex exec --output-schema` echoes the entire prompt and schema to
+    stderr as a side effect. When codex fails, the human-readable cause
+    (usage limit, auth, schema validation) lives at the END of the stream,
+    not the start — keeping the first N chars is exactly the worst slice.
+    This helper keeps the TAIL and lifts any `ERROR:` lines to the front so
+    quota/auth failures stay visible even if the tail is dominated by the
+    echoed prompt.
+    """
+    stderr_clean = (stderr or "").strip()
+    stdout_clean = (stdout or "").strip()
+    combined = "\n".join(p for p in (stderr_clean, stdout_clean) if p)
+    if not combined:
+        return "(no output)"
+    error_lines: dict[str, None] = {}
+    for ln in combined.splitlines():
+        stripped = ln.strip()
+        if stripped.startswith(("ERROR:", "error:", "Error:")):
+            error_lines.setdefault(stripped, None)
+    tail = combined[-tail_chars:] if len(combined) > tail_chars else combined
+    if error_lines:
+        return "[errors] " + " | ".join(error_lines.keys()) + " | [tail] " + tail
+    return tail
+
+
 def _codex_child_env() -> dict[str, str]:
     allowed_exact = {
         "CODEX_HOME",
@@ -102,9 +134,9 @@ def run_codex_trade_insights_analysis(
             ) from exc
 
         if completed.returncode != 0:
-            detail = (completed.stderr or completed.stdout or "").strip()
+            detail = _format_codex_failure(completed.stderr, completed.stdout)
             raise TradeInsightsAiRunnerError(
-                f"codex exec failed with exit {completed.returncode}: {detail[:1000]}"
+                f"codex exec failed with exit {completed.returncode}: {detail}"
             )
         if not result_path.exists():
             raise TradeInsightsAiRunnerError("codex exec did not write a final message")
