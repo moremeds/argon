@@ -8,7 +8,7 @@ import sys
 import zlib
 from collections.abc import Callable, Iterator
 from contextlib import contextmanager
-from datetime import date, datetime, time, timedelta
+from datetime import datetime, time, timedelta
 from typing import Literal
 from zoneinfo import ZoneInfo
 
