@@ -566,12 +566,13 @@ def test_trade_insights_ai_prompt_payload_and_prompt_are_recommendation_oriented
         "analysis_input_hash"
     ] == hash_trade_insights_ai_analysis_input(analysis_input)
     assert (
-        "You are an institutional options strategist analyzing one stock for a 1-2 week SWING entry."
+        "You are an institutional options strategist analyzing one stock for a 1-2 week SWING HOLD entry."
         in prompt
     )
-    # Swing horizon is hard-coded, not optional context.
+    # Swing-hold horizon is hard-coded, not optional context.
     assert "Time horizon (FIXED, not negotiable)" in prompt
-    assert "Preferred-trade expiry MUST be 10-21 DTE" in prompt
+    assert "The trade is HELD 5-10 trading sessions" in prompt
+    assert "Entry-expiry DTE MUST be 28-45 (preferred) or 21-60 (allowed)" in prompt
     assert "horizon_mismatch" in prompt
     # New PR #60 / #61 evidence is wired into the payload key map.
     assert "tabs.market_structure.dealer_regime" in prompt
