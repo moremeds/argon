@@ -401,19 +401,20 @@ function DecompositionFormula({ decomp }: { decomp: Decomposition }) {
     <div className={styles.decompFormula}>
       <div className={styles.decompFormulaTop}>
         <h3>
-          10Y nominal = E[short real] + E[short inflation] + real term premium
-          + inflation risk premium
+          Live 10Y nominal = E[short real] + E[short inflation] + real term
+          premium + inflation risk premium + Cleveland/FRED gap
         </h3>
         <span>
-          Cleveland Fed model · {decomp.clarida_model_date ?? "model date n/a"}
+          Cleveland Fed model + FRED DGS10 ·{" "}
+          {decomp.clarida_model_date ?? "model date n/a"}
         </span>
       </div>
       <div className={styles.decompEquation}>
         <DecompositionCard
-          label="Model nominal 10Y"
-          sublabel="Cleveland implied nominal"
-          value={decomp.model_nominal_10y}
-          footnote={`${bpsText(oneMonth?.model_nominal_10y_bps)} model 1M`}
+          label="Live 10Y nominal"
+          sublabel="FRED DGS10"
+          value={decomp.nominal_10y}
+          footnote={`${bpsText(oneMonth?.nominal_10y_bps)} over 1M`}
           tone="primary"
         />
         <span className={styles.decompOperator}>=</span>
@@ -445,26 +446,18 @@ function DecompositionFormula({ decomp }: { decomp: Decomposition }) {
           value={decomp.inflation_risk_premium_10y}
           footnote={`${bpsText(oneMonth?.inflation_risk_premium_bps)} model 1M`}
         />
-      </div>
-      <div className={styles.decompReconcileGrid}>
-        <article>
-          <span>Live FRED 10Y</span>
-          <strong>{fmtValue(decomp.nominal_10y, "%", 2)}</strong>
-          <small>DGS10 · {bpsText(oneMonth?.nominal_10y_bps)} over 1M</small>
-        </article>
-        <article>
-          <span>Cleveland/FRED gap</span>
-          <strong>{fmtValue(decomp.fred_model_residual_10y, "%", 2)}</strong>
-          <small>
-            DGS10 minus model nominal ·{" "}
-            {bpsText(oneMonth?.fred_model_residual_bps)} over 1M
-          </small>
-        </article>
+        <span className={styles.decompOperator}>+</span>
+        <DecompositionCard
+          label="Cleveland/FRED gap"
+          sublabel="DGS10 - model-implied nominal"
+          value={decomp.fred_model_residual_10y}
+          footnote={`${bpsText(oneMonth?.fred_model_residual_bps)} over 1M`}
+        />
       </div>
       <p className={styles.decompRead}>
-        Rule read: the four-factor equation is the Cleveland monthly model. The
-        separate FRED gap reconciles that model-implied nominal rate to the live
-        daily DGS10 curve and is not an extra Clarida component.
+        Rule read: the first four terms are the Cleveland monthly decomposition.
+        The Cleveland/FRED gap is the reconciliation term that bridges the
+        model-implied nominal rate to the live daily DGS10 rate.
       </p>
     </div>
   );
