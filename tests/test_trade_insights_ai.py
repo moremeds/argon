@@ -1165,6 +1165,31 @@ def test_validate_lenient_still_rejects_imperative_text():
         )
 
 
+def test_validate_lenient_maps_prompt_bias_to_stance_literal():
+    """The MARKET_INTELLIGENCE_PROMPT asks for stance="range" / "no_trade" via
+    the markdown template, but headline.stance Literal is bullish/bearish/
+    neutral/mixed/wait. Codex translates implicitly; Claude does not. The
+    coercer maps "range" -> "neutral" and "no_trade" -> "wait" so the Literal
+    is satisfied and stance_label preserves the analyst vocabulary."""
+    deterministic = _analysis_input()
+    produced_at = datetime(2026, 3, 24, 20, 18, 42, tzinfo=timezone.utc)
+
+    for raw_stance, expected_stance in [
+        ("range", "neutral"),
+        ("RANGE", "neutral"),
+        ("range-bound", "neutral"),
+        ("no_trade", "wait"),
+        ("no-trade", "wait"),
+    ]:
+        payload = {"headline": {"stance": raw_stance, "title": "T"}}
+        parsed = validate_trade_insights_ai_outcome(
+            payload, deterministic, produced_at=produced_at, lenient=True
+        )
+        assert parsed.headline.stance == expected_stance, raw_stance
+        # The raw analyst vocabulary survives in stance_label
+        assert raw_stance in parsed.headline.stance_label
+
+
 def test_coerce_claude_outcome_strips_unknown_keys():
     """Pydantic models in this contract use extra='forbid'. The lenient coercer
     must strip unknown keys at every nesting level so the resulting dict

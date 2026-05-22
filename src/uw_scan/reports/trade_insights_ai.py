@@ -784,6 +784,18 @@ def trade_insights_ai_output_schema(*, strict: bool = True) -> dict[str, Any]:
 
 _HEADLINE_VALID_STANCES = ("bullish", "bearish", "neutral", "mixed", "wait")
 _HEADLINE_STANCE_FALLBACK = "mixed"
+# Vocabulary bridge: the user prompt's markdown template asks for "range" or
+# "no_trade", but the model Literal is the 5-value set above. Codex translates
+# these automatically; Claude does not. Apply the mapping in the coercer so
+# Claude's prompt-faithful output lands on a valid Literal.
+_HEADLINE_STANCE_ALIASES = {
+    "range": "neutral",
+    "rangebound": "neutral",
+    "range-bound": "neutral",
+    "no_trade": "wait",
+    "no-trade": "wait",
+    "none": "wait",
+}
 _CONVICTION_FALLBACK = "F"
 _PARTIAL_OUTPUT_NOTE = (
     "Provider produced partial output that did not adhere to the strict schema; "
@@ -1061,9 +1073,18 @@ def _coerce_claude_outcome_dict(
 
     headline_raw = _dict_or_empty(data.get("headline"))
     stance_raw = headline_raw.get("stance")
+    # Alias bridge before fallback: "range" -> "neutral", "no_trade" -> "wait",
+    # so Claude's prompt-vocabulary output lands on a valid Literal.
+    if isinstance(stance_raw, str):
+        stance_normalized = stance_raw.strip().lower()
+        stance_candidate = _HEADLINE_STANCE_ALIASES.get(
+            stance_normalized, stance_normalized
+        )
+    else:
+        stance_candidate = None
     stance = (
-        stance_raw
-        if stance_raw in _HEADLINE_VALID_STANCES
+        stance_candidate
+        if stance_candidate in _HEADLINE_VALID_STANCES
         else _HEADLINE_STANCE_FALLBACK
     )
     conviction_raw = headline_raw.get("conviction")
@@ -1074,10 +1095,18 @@ def _coerce_claude_outcome_dict(
     )
 
     ticker = _str_or(deterministic_payload.get("ticker"), "TICKER")
+    # Preserve the raw stance_raw as stance_label when it was a valid analyst
+    # vocabulary value ("range", "no_trade") — keeps the human-readable label
+    # while the Literal lands on the coerced value.
+    default_stance_label = (
+        stance_raw
+        if isinstance(stance_raw, str) and stance_raw.strip()
+        else "Partial output"
+    )
     headline = {
         "title": _str_or(headline_raw.get("title"), f"{ticker} — partial output"),
         "stance": stance,
-        "stance_label": _str_or(headline_raw.get("stance_label"), "Partial output"),
+        "stance_label": _str_or(headline_raw.get("stance_label"), default_stance_label),
         "score": _int_or(headline_raw.get("score"), 0),
         "score_scale": _int_or(headline_raw.get("score_scale"), 100),
         "conviction": conviction,

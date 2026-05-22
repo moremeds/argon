@@ -356,7 +356,13 @@ function SectionSummaryCard({
   );
 }
 
-function OutcomeGrid({ outcome }: { outcome: Outcome }) {
+function OutcomeGrid({
+  outcome,
+  provider,
+}: {
+  outcome: Outcome;
+  provider: Provider;
+}) {
   const preferred = outcome.preferred_expression;
   const topMetrics = outcome.metric_cards.slice(0, 6).map((card) => ({
     label: card.label,
@@ -447,7 +453,7 @@ function OutcomeGrid({ outcome }: { outcome: Outcome }) {
             marginTop: 10,
           }}
         >
-          Generated analysis from local Codex ·{" "}
+          Generated analysis from local {providerLabel(provider)} ·{" "}
           {outcome.analysis_produced_at.slice(0, 10)} · Not financial advice
         </div>
       </div>
@@ -645,7 +651,7 @@ function ProviderTabBody({
         />
       )}
       {succeeded && analysis.outcome && (
-        <OutcomeGrid outcome={analysis.outcome} />
+        <OutcomeGrid outcome={analysis.outcome} provider={provider} />
       )}
       {!analysis && !pending && (
         <div

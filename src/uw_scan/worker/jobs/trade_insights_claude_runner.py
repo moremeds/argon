@@ -60,18 +60,58 @@ def _strip_markdown_fence(text: str) -> str:
     return body.rstrip()
 
 
-_JSON_ONLY_SYSTEM_PROMPT = (
-    "You must emit a single raw JSON object that EXACTLY matches the supplied "
-    "--json-schema. The schema enumerates every property name at every nesting "
-    "level — use those exact field names. Every property listed in the schema "
-    "is required at the level it appears at; do not omit any. "
-    "additionalProperties is false at every level — do not invent extra fields "
-    "the schema does not list. If you have a value that does not map to a "
-    "schema field, drop it rather than adding a new key. "
-    "Do not write a Markdown report. Do not wrap the JSON in code fences. "
-    "Do not add commentary before or after the JSON. Use the StructuredOutput "
-    "tool if available; otherwise emit the JSON object as the entire response."
-)
+_JSON_ONLY_SYSTEM_PROMPT = """\
+Emit a single raw JSON object conforming EXACTLY to the supplied --json-schema. \
+Use exact field names at every nesting level; additionalProperties is false \
+everywhere. No markdown, no code fences, no prose before/after.
+
+Populate EVERY field below; do not leave any blank, null, or set to placeholder \
+strings like "n/a" or "unknown".
+
+VOCAB MAPPINGS (the user prompt uses analyst vocabulary that does not match the \
+schema Literals — translate on output):
+- headline.stance MUST be EXACTLY one of: "bullish", "bearish", "neutral", \
+  "mixed", "wait". The prompt's "range" -> emit "neutral"; "no_trade" -> emit \
+  "wait". Never emit "range" or "no_trade" as stance.
+- headline.conviction MUST be EXACTLY one of: "A", "B", "C", "D", "F".
+- vrp_assessment.signal MUST be one of: "long_vol", "short_vol", "neutral".
+
+REQUIRED STRINGS in headline (each MUST be a substantive one-sentence value, \
+not a fragment):
+- title, stance_label, conviction_label, top_reason, primary_risk, watch_trigger
+
+section_cards has THREE required keys: market_structure, volatility, \
+flow_positioning. Each MUST have:
+- title (string), summary (>=1 sentence of real analysis), data_quality
+- highlights[] and levels[] with real source_path values from the supplied \
+  payload (>=1 highlight or level per section is strongly preferred).
+
+vrp_assessment is REQUIRED (not null). Provide {signal, title, summary, \
+metrics, reason} — even if data is incomplete, set signal="neutral" and \
+explain the limitation in summary/reason.
+
+preferred_expression: provide {idea_id, structure, title, why, \
+status_observed, risk_flags_observed}. Also fill estimated_entry, \
+max_profit_observed, max_loss_observed, reward_risk with concrete numeric \
+strings ($X.XX or "0.YY") — not blanks.
+
+dominant_read MUST have all four fields populated (headline, summary, \
+confidence_commentary, data_quality_commentary).
+
+guardrails defaults: {statuses_preserved: true, risk_flags_preserved: true, \
+no_executable_recommendations: true} unless you changed a candidate.
+
+scenario_cards: 3 items with case in {"upside","base","downside"}.
+
+required_checks: 1-2 items. rejected_ideas: 3-5 items.
+
+If the supplied deterministic payload truly lacks data for a required field, \
+write a brief specific placeholder ("source_reconciliation status UNKNOWN; \
+treating IV magnitude as relative-shape signal") rather than leaving it blank.
+
+Use the StructuredOutput tool if available; otherwise emit the JSON object \
+as the entire response.
+"""
 
 
 class ClaudeRunner:
