@@ -44,7 +44,6 @@ from uw_scan.worker.jobs.option_intraday_jobs import (
     refresh_intraday_for_top_oi_movers,
 )
 from uw_scan.worker.jobs.rescan_loop import rescan_tick
-from uw_scan.worker.jobs.spot_refresh import spot_refresh_once
 from uw_scan.worker.jobs.trade_insights_ai import trade_insights_ai_tick
 from uw_scan.worker.jobs.vol_index_lake_sync import run_vol_index_lake_sync
 from uw_scan.worker.volatility_jobs import (
@@ -60,17 +59,6 @@ logger = logging.getLogger("uw_scan.worker")
 RESCAN_WORKER_CONCURRENCY = 2
 WorkerGroup = Literal["uw", "massive", "ai"]
 WORKER_ROLES: set[str] = {"all", "uw", "massive", "ai"}
-
-
-def _spot_refresh_market_date(now: datetime) -> date | None:
-    """Return the ET market date when delayed minute bars are worth polling."""
-    local = now if now.tzinfo is not None else now.replace(tzinfo=ZoneInfo("UTC"))
-    if local.weekday() >= 5:
-        return None
-    current = local.time()
-    if time(9, 30) <= current <= time(20, 15):
-        return local.date()
-    return None
 
 
 def _uw_auto_request_allowed(now: datetime) -> bool:
@@ -209,13 +197,15 @@ def _ohlc_provider(
 
 
 class _NoOhlc:
-    """Null-object OhlcProvider for runs without a Massive key."""
+    """Null-object OhlcProvider for runs without a Massive key.
+
+    Only fetch_daily remains after Phase 7 deleted REST spot polling — the
+    WS consumer (uw_scan.worker.massive_ws_consumer) is the sole intraday
+    spot writer.
+    """
 
     def fetch_daily(self, *_a, **_k):
         return []
-
-    def fetch_intraday_quote(self, *_a, **_k):
-        return None
 
     def __enter__(self):
         return self
@@ -234,40 +224,15 @@ def main() -> int:
     ticker_filter = _ticker_shard_filter(settings)
     sched = BlockingScheduler(timezone=settings.rth_tz)
 
-    def _spot_refresh() -> None:
-        now = datetime.now(ZoneInfo(settings.rth_tz))
-        market_date = _spot_refresh_market_date(now)
-        with _repo(settings) as repo:
-            repo.upsert_heartbeat("spot_refresh")
-        if market_date is None:
-            logger.debug("spot_refresh skipped outside market hours")
-            return
-        with _external_api_recorder(settings) as recorder:
-            provider = _ohlc_provider(
-                settings, telemetry_recorder=recorder, job_name="spot_refresh"
-            )
-            if provider is None:
-                return
-            try:
-                with _repo(settings) as repo:
-                    n = spot_refresh_once(
-                        repo,
-                        provider,
-                        market_date=market_date,
-                        ticker_filter=ticker_filter,
-                    )
-                    logger.info("spot_refresh updated %d cards", n)
-            finally:
-                provider.close()
-
     def _full_scan() -> None:
         with _external_api_recorder(settings) as recorder:
             with _uw_client(
                 settings, telemetry_recorder=recorder, job_name="full_scan"
             ) as uw:
                 with _repo(settings) as repo:
-                    # _NoOhlc() is intentional: OHLC fetches are owned by
-                    # _ohlc_pull / _spot_refresh. See worker/CLAUDE.md
+                    # _NoOhlc() is intentional: daily OHLC fetches are owned
+                    # by _ohlc_pull and intraday spot by the WS consumer
+                    # (uw_scan.worker.massive_ws_consumer). See worker/CLAUDE.md
                     # "Provider concurrency model".
                     # preserve_spot: when the WS consumer is the authoritative
                     # spot writer (MASSIVE_WS_ENABLED=true) we tell the storage
@@ -305,8 +270,9 @@ def main() -> int:
                 settings, telemetry_recorder=recorder, job_name="rescan_tick"
             ) as uw:
                 with _repo(settings) as repo:
-                    # _NoOhlc() is intentional: OHLC fetches are owned by
-                    # _ohlc_pull / _spot_refresh. See worker/CLAUDE.md
+                    # _NoOhlc() is intentional: daily OHLC fetches are owned
+                    # by _ohlc_pull and intraday spot by the WS consumer
+                    # (uw_scan.worker.massive_ws_consumer). See worker/CLAUDE.md
                     # "Provider concurrency model".
                     rescan_tick(
                         repo,
@@ -516,12 +482,9 @@ def main() -> int:
         coalesce=True,
     )
     if "massive" in groups:
-        sched.add_job(
-            _spot_refresh,
-            IntervalTrigger(seconds=settings.spot_refresh_seconds),
-            id="spot_refresh",
-            name="Spot refresh",
-        )
+        # spot_refresh deleted in Phase 7 — WS consumer
+        # (uw_scan.worker.massive_ws_consumer) is the sole intraday spot
+        # writer now. Massive workers retain ownership of the daily OHLC pull.
         sched.add_job(
             _ohlc_pull,
             CronTrigger.from_crontab(settings.ohlc_pull_cron, timezone=settings.rth_tz),

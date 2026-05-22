@@ -119,8 +119,14 @@ async def test_consumer_backs_off_then_recovers(seeded_db_with_cards):
                         ]
                     )
                 )
+                # Give the WS time to deliver the frame to the client AND
+                # for the periodic flush_loop (50ms interval in this test)
+                # to drain it to the DB before tick_sent triggers the test's
+                # cancel path. Without this delay the consumer is sometimes
+                # cancelled before the reader has processed the tick.
+                await asyncio.sleep(0.3)
                 tick_sent.set()
-                await asyncio.sleep(0.2)
+                await asyncio.sleep(0.1)
                 await ws.close()
                 return
 
@@ -172,8 +178,16 @@ async def test_consumer_backs_off_then_recovers(seeded_db_with_cards):
     # asyncio scheduler jitter.
     if len(gaps) >= 2:
         assert gaps[1] >= gaps[0] * 0.8, f"backoff did not grow: gaps={gaps}"
-    await asyncio.sleep(0.3)
-    q = repo.get_intraday_quote("TSLA")
+    # Poll for the persisted tick instead of a single read — under heavy
+    # suite load the final flush in run_consumer_once's `finally` clause
+    # can race with this assertion. Up to 2s is well within the test's
+    # implicit budget and catches the post-cancel flush deterministically.
+    q = None
+    for _ in range(20):
+        q = repo.get_intraday_quote("TSLA")
+        if q is not None:
+            break
+        await asyncio.sleep(0.1)
     assert q is not None and q.price == Decimal("451.00")
 
 

@@ -33,12 +33,15 @@ Set `UW_SCAN_WORKER_ROLE=uw|massive|ai|all`, `UW_SCAN_WORKER_INDEX`, and
 
 | Job | Trigger | Default |
 |---|---|---|
-| `spot_refresh` | interval | `UW_SCAN_SPOT_REFRESH_SECONDS` (default 300s) |
 | `full_scan` | cron | `0 5-16 * * 0-4`; scans only missing cards or cards older than 8h |
 | `ohlc_pull` | cron | `30 17 * * 0-4` |
 | `rescan_tick` | interval | 1s; user-requested rescans bypass the 8h freshness guard |
 | `daily_spy_ohlc_refresh` | cron | `30 16 * * 0-4` |
 | `nightly_vol_analytics_rollup` | cron | `0 18 * * 0-4` |
+
+Intraday spot is no longer a scheduler job — it streams from the
+WebSocket consumer in `uw_scan.worker.massive_ws_consumer` (started as
+its own process by `scripts/dev.sh`). Toggle via `MASSIVE_WS_ENABLED`.
 
 ## Rules
 
@@ -68,7 +71,9 @@ but it has two implications operators should know:
 
 2. **OHLC pulls are owned by dedicated jobs, not by `full_scan`/`rescan`.**
    `_full_scan` and `_rescan` in `scheduler.py` pass `_NoOhlc()` (a no-op
-   provider) to `full_scan_once` / `rescan_tick`. OHLC fetches happen only in
-   `_ohlc_pull` (daily) and `_spot_refresh` (interval). If "massive provider
-   reachability" health signals look quiet from a UW worker, that is by design
-   — check the massive-role worker instead.
+   provider) to `full_scan_once` / `rescan_tick`. Daily OHLC fetches happen
+   only in `_ohlc_pull` (massive REST). Intraday spot now flows through
+   the standalone `massive_ws_consumer` process — not the scheduler at all.
+   If "massive provider reachability" health signals look quiet from a UW
+   worker, that is by design — check the massive-role worker or the
+   `ws_consumer` block in `/api/health` instead.

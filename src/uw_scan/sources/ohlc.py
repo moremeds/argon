@@ -1,14 +1,16 @@
 """OHLC provider protocol + Massive.com concrete implementation.
 
 Provider returns typed dataclasses; persistence is the caller's responsibility.
-The repository layer stores them in `daily_ohlc` and `intraday_quote`.
+The repository layer stores them in `daily_ohlc`. Intraday spot persistence
+is now owned by ``uw_scan.worker.massive_ws_consumer`` (WebSocket pipeline);
+the legacy ``fetch_intraday_quote`` REST path was removed in Phase 7.
 """
 
 from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
-from datetime import UTC, date, datetime, timedelta, timezone
+from datetime import UTC, date, datetime, timezone
 from decimal import Decimal
 from typing import Any, Protocol
 
@@ -31,18 +33,8 @@ class OhlcBar:
     volume: int | None
 
 
-@dataclass(frozen=True)
-class IntradayQuote:
-    ticker: str
-    price: Decimal
-    quoted_at: datetime  # tz-aware UTC
-
-
 class OhlcProvider(Protocol):
     def fetch_daily(self, ticker: str, start: date, end: date) -> list[OhlcBar]: ...
-    def fetch_intraday_quote(
-        self, ticker: str, *, market_date: date | None = None
-    ) -> IntradayQuote | None: ...
 
 
 class MassiveOhlcProvider:
@@ -112,47 +104,6 @@ class MassiveOhlcProvider:
                 )
             )
         return bars
-
-    def fetch_intraday_quote(
-        self, ticker: str, *, market_date: date | None = None
-    ) -> IntradayQuote | None:
-        """Latest 15-min-delayed intraday price.
-
-        massive.com's /v3/quotes endpoint requires a paid plan; on our tier it
-        returns 403 NOT_AUTHORIZED. /v2/aggs/ticker/.../range/1/minute is open
-        and returns the same data shape with status="DELAYED". Spike on
-        2026-05-12 verified the substitution.
-        """
-        today = market_date or datetime.now(timezone.utc).date()
-        tomorrow = today + timedelta(days=1)
-        path = (
-            f"/v2/aggs/ticker/{ticker}/range/1/minute/"
-            f"{today.isoformat()}/{tomorrow.isoformat()}"
-        )
-        r = self._get_with_telemetry(
-            endpoint_key="intraday_quote",
-            path_template="/v2/aggs/ticker/{ticker}/range/1/minute/{from}/{to}",
-            path=path,
-            ticker=ticker,
-            params={"sort": "desc", "limit": 1},
-        )
-        if r.status_code == 404:
-            return None
-        r.raise_for_status()
-        payload = r.json()
-        results = payload.get("results") or []
-        if not results:
-            return None
-        latest = results[0]
-        c = latest.get("c")
-        t_ms = latest.get("t")
-        if c is None or t_ms is None:
-            return None
-        return IntradayQuote(
-            ticker=ticker,
-            price=Decimal(str(c)),
-            quoted_at=datetime.fromtimestamp(int(t_ms) / 1000, tz=timezone.utc),
-        )
 
     def _get_with_telemetry(
         self,

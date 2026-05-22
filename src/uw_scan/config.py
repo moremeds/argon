@@ -69,8 +69,8 @@ class Settings(BaseModel):
     max_requests_per_minute: int = 110
     request_timeout_seconds: float = 30.0
     base_url: str = "https://api.unusualwhales.com"
-    # Scheduler — consumed by uw_scan.worker.scheduler and uw_scan.api.routers.health
-    spot_refresh_seconds: int = 300
+    # Scheduler — consumed by uw_scan.worker.scheduler and uw_scan.api.routers.health.
+    # (spot_refresh_seconds removed in Phase 7 — WS consumer is the spot writer now.)
     # Multiple crons so we hit: 04:00 ET premarket warm-up, 09:30 open,
     # every :00 and :30 during RTH active hours, and the 16:00 + 16:30
     # close-of-day batches. UW option data only updates during RTH, so
@@ -212,9 +212,6 @@ class Settings(BaseModel):
             ),
             base_url=os.environ.get(
                 "UW_SCAN_BASE_URL", "https://api.unusualwhales.com"
-            ),
-            spot_refresh_seconds=int(
-                os.environ.get("UW_SCAN_SPOT_REFRESH_SECONDS", "300")
             ),
             # full_scan_crons stays as the Pydantic default; not env-driven
             # because cron expressions contain spaces (CSV parsing is fragile).
