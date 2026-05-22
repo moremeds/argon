@@ -28,6 +28,7 @@ provider == "claude".
 
 from __future__ import annotations
 
+import logging
 import math
 import re
 from datetime import datetime
@@ -39,6 +40,8 @@ from uw_scan.reports.trade_insights_ai import (
     STRATEGY_FAMILY_IDS,
     _iso_z,
 )
+
+logger = logging.getLogger(__name__)
 
 _HEADLINE_VALID_STANCES = ("bullish", "bearish", "neutral", "mixed", "wait")
 _HEADLINE_STANCE_FALLBACK = "mixed"
@@ -82,7 +85,8 @@ def _int_or(value: Any, default: int) -> int:
     if isinstance(value, str):
         try:
             return int(value.strip())
-        except ValueError:
+        except ValueError as exc:
+            logger.debug("_int_or fell back to default for %r: %s", value, repr(exc))
             return default
     return default
 
@@ -99,7 +103,8 @@ def _opt_int(value: Any) -> int | None:
     if isinstance(value, str):
         try:
             return int(value.strip())
-        except ValueError:
+        except ValueError as exc:
+            logger.debug("_opt_int returned None for %r: %s", value, repr(exc))
             return None
     return None
 
