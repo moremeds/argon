@@ -1,4 +1,5 @@
 import type { components } from "@/lib/types";
+import type { ReactNode } from "react";
 import { RatesCurveChart } from "./RatesCurveChart";
 import styles from "./RatesDesk.module.css";
 import { RatesScorecard } from "./RatesScorecard";
@@ -395,6 +396,21 @@ function DecompositionCard({
   );
 }
 
+function DecompositionTerm({
+  operator,
+  children,
+}: {
+  operator: "=" | "+";
+  children: ReactNode;
+}) {
+  return (
+    <div className={styles.decompTerm}>
+      <span className={styles.decompOperator}>{operator}</span>
+      {children}
+    </div>
+  );
+}
+
 function DecompositionFormula({ decomp }: { decomp: Decomposition }) {
   const oneMonth = attributionByWindow(decomp.attribution, "1M");
   return (
@@ -417,42 +433,47 @@ function DecompositionFormula({ decomp }: { decomp: Decomposition }) {
           footnote={`${bpsText(oneMonth?.nominal_10y_bps)} over 1M`}
           tone="primary"
         />
-        <span className={styles.decompOperator}>=</span>
-        <DecompositionCard
-          label="Expected short real"
-          sublabel="Model real yield - real premium"
-          value={decomp.expected_short_real_rate_10y}
-          footnote={`${bpsText(oneMonth?.expected_short_real_bps)} model 1M`}
-          tone="accent"
-        />
-        <span className={styles.decompOperator}>+</span>
-        <DecompositionCard
-          label="Expected short inflation"
-          sublabel="Cleveland 10Y expected inflation"
-          value={decomp.expected_short_inflation_10y}
-          footnote={`${bpsText(oneMonth?.expected_short_inflation_bps)} model 1M`}
-        />
-        <span className={styles.decompOperator}>+</span>
-        <DecompositionCard
-          label="Real term premium"
-          sublabel="Cleveland real risk premium"
-          value={decomp.real_term_premium_10y}
-          footnote={`${bpsText(oneMonth?.real_term_premium_bps)} model 1M`}
-        />
-        <span className={styles.decompOperator}>+</span>
-        <DecompositionCard
-          label="Inflation risk premium"
-          sublabel="Cleveland inflation risk premium"
-          value={decomp.inflation_risk_premium_10y}
-          footnote={`${bpsText(oneMonth?.inflation_risk_premium_bps)} model 1M`}
-        />
-        <span className={styles.decompOperator}>+</span>
-        <DecompositionCard
-          label="Cleveland/FRED gap"
-          sublabel="DGS10 - model-implied nominal"
-          value={decomp.fred_model_residual_10y}
-          footnote={`${bpsText(oneMonth?.fred_model_residual_bps)} over 1M`}
-        />
+        <DecompositionTerm operator="=">
+          <DecompositionCard
+            label="Expected short real"
+            sublabel="Model real yield - real premium"
+            value={decomp.expected_short_real_rate_10y}
+            footnote={`${bpsText(oneMonth?.expected_short_real_bps)} model 1M`}
+            tone="accent"
+          />
+        </DecompositionTerm>
+        <DecompositionTerm operator="+">
+          <DecompositionCard
+            label="Expected short inflation"
+            sublabel="Cleveland 10Y expected inflation"
+            value={decomp.expected_short_inflation_10y}
+            footnote={`${bpsText(oneMonth?.expected_short_inflation_bps)} model 1M`}
+          />
+        </DecompositionTerm>
+        <DecompositionTerm operator="+">
+          <DecompositionCard
+            label="Real term premium"
+            sublabel="Cleveland real risk premium"
+            value={decomp.real_term_premium_10y}
+            footnote={`${bpsText(oneMonth?.real_term_premium_bps)} model 1M`}
+          />
+        </DecompositionTerm>
+        <DecompositionTerm operator="+">
+          <DecompositionCard
+            label="Inflation risk premium"
+            sublabel="Cleveland inflation risk premium"
+            value={decomp.inflation_risk_premium_10y}
+            footnote={`${bpsText(oneMonth?.inflation_risk_premium_bps)} model 1M`}
+          />
+        </DecompositionTerm>
+        <DecompositionTerm operator="+">
+          <DecompositionCard
+            label="Cleveland/FRED gap"
+            sublabel="DGS10 - model-implied nominal"
+            value={decomp.fred_model_residual_10y}
+            footnote={`${bpsText(oneMonth?.fred_model_residual_bps)} over 1M`}
+          />
+        </DecompositionTerm>
       </div>
       <p className={styles.decompRead}>
         Rule read: the first four terms are the Cleveland monthly decomposition.

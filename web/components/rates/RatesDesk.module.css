@@ -509,13 +509,15 @@
 
 .decompEquation {
   display: grid;
-  grid-template-columns:
-    minmax(0, 1.08fr) auto
-    minmax(0, 1fr) auto
-    minmax(0, 1fr) auto
-    minmax(0, 1fr) auto
-    minmax(0, 1fr) auto
-    minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1.08fr) repeat(5, minmax(0, 1fr));
+  gap: 8px;
+  align-items: stretch;
+  min-width: 0;
+}
+
+.decompTerm {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
   gap: 8px;
   align-items: center;
   min-width: 0;
@@ -949,10 +951,6 @@
 @media (max-width: 1500px) {
   .decompEquation {
     grid-template-columns: repeat(3, minmax(180px, 1fr));
-  }
-
-  .decompOperator {
-    display: none;
   }
 }
 
