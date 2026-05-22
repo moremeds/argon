@@ -350,13 +350,29 @@ def _attribution_driver(
         ("Expected short inflation", expected_inflation_delta),
         ("Real term premium", real_term_delta),
         ("Inflation risk premium", inflation_risk_delta),
-        ("FRED residual", fred_model_residual_delta),
     ]
     available_model = [
         (label, value) for label, value in model_candidates if value is not None
     ]
-    if available_model:
-        return max(available_model, key=lambda item: abs(item[1]))[0]
+    material_model = [
+        (label, value) for label, value in available_model if abs(value) >= 0.5
+    ]
+    if material_model:
+        return max(material_model, key=lambda item: abs(item[1]))[0]
+
+    if fred_model_residual_delta is not None:
+        market_candidates = [
+            ("Real rate", real_delta),
+            ("Breakeven", breakeven_delta),
+        ]
+        available_market = [
+            (label, value) for label, value in market_candidates if value is not None
+        ]
+        if available_market:
+            return max(available_market, key=lambda item: abs(item[1]))[0]
+        if available_model:
+            return max(available_model, key=lambda item: abs(item[1]))[0]
+
     legacy_candidates = [
         ("Real rate", real_delta),
         ("Breakeven", breakeven_delta),

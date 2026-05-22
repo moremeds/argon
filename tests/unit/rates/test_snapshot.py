@@ -80,7 +80,9 @@ def test_build_rates_snapshot_populates_live_fred_sections_without_static_filler
     assert snapshot.decomposition.inflation_risk_premium_10y == 0.35
     assert snapshot.decomposition.attribution
     assert snapshot.decomposition.attribution[0].window == "1D"
-    assert snapshot.decomposition.attribution[0].driver == "FRED residual"
+    assert snapshot.decomposition.attribution[0].driver == "Real rate"
+    one_month = next(row for row in snapshot.decomposition.attribution if row.window == "1M")
+    assert one_month.driver == "Expected short inflation"
     assert snapshot.policy.effr == 3.63
     fed_assets = next(tile for tile in snapshot.policy.plumbing if tile.label == "Fed assets")
     assert fed_assets.value == 6728.5
