@@ -26,7 +26,6 @@ from uw_scan.models import (
     TradeInsightsResponse,
 )
 
-
 ASSEMBLER_VERSION = "trade-insights-v1"
 
 
@@ -142,7 +141,9 @@ def _build_flow_table(contracts: list[dict]) -> list[ChainFlowReadRow]:
     return rows
 
 
-def _build_source_reconciliation(repo, run_id: int, ticker: str) -> SourceReconciliation:
+def _build_source_reconciliation(
+    repo, run_id: int, ticker: str
+) -> SourceReconciliation:
     fetch = getattr(repo, "fetch_source_reconciliation_rows", None)
     rows = fetch(run_id, ticker) if fetch is not None else []
     if not rows:
@@ -201,7 +202,9 @@ def _build_term_rows(
                 atm_straddle=atm_by_expiry.get(r["expiry"]),
                 implied_move_perc=move,
                 daily_implied_move_perc=daily,
-                read="Front elevated" if dte is not None and dte <= 7 else "Back expiry",
+                read="Front elevated"
+                if dte is not None and dte <= 7
+                else "Back expiry",
             )
         )
     return rows
@@ -219,16 +222,87 @@ def _leg(side: str, c: dict) -> InsightLeg:
     )
 
 
-def _build_candidates(contracts: list[dict], spot: Decimal | None) -> list[CandidateStructure]:
+# Swing-HOLD DTE window. The trade is HELD 5-10 trading sessions (1-2 weeks);
+# entry expiry must leave enough time premium so that the EXIT at 7-14 days
+# later is not stranded at peak gamma / theta crush. 21-60 DTE entry leaves
+# 7-46 DTE remaining at exit. Anything shorter than 21 DTE puts the exit
+# inside the 0-7 DTE crush zone; anything longer than 60 DTE makes the option
+# too desensitized to the 1-2 week ticker-specific catalysts. Calendar spreads
+# relax the upper bound on the far leg (see below).
+SWING_DTE_MIN = 21
+SWING_DTE_MAX = 60
+SWING_DTE_PREFERRED_MIN = 28
+SWING_DTE_PREFERRED_MAX = 45
+SWING_CALENDAR_FAR_DTE_MAX = 90
+
+
+def _expiry_rank(dte: int) -> int:
+    """Lower is preferred. The 28-45 DTE band is the textbook swing-hold
+    entry window (max theta-harvest for credit structures; mild theta drag for
+    long premium). Within the preferred band, the 30-38 DTE sweet spot ranks
+    first. The 46-60 DTE long tail ranks above the 21-27 DTE short tail
+    because the latter is closer to the theta-crush exit zone."""
+    if 30 <= dte <= 38:
+        return 0
+    if SWING_DTE_PREFERRED_MIN <= dte <= SWING_DTE_PREFERRED_MAX:
+        return 1
+    if 46 <= dte <= SWING_DTE_MAX:
+        return 2
+    return 3  # 21-27 DTE fallback, only used when nothing else exists
+
+
+def _build_candidates(
+    contracts: list[dict],
+    spot: Decimal | None,
+    *,
+    as_of: datetime | None = None,
+    dte_min: int = SWING_DTE_MIN,
+    dte_max: int = SWING_DTE_MAX,
+    calendar_far_dte_max: int = SWING_CALENDAR_FAR_DTE_MAX,
+) -> list[CandidateStructure]:
     if spot is None:
         return []
+    # Filter to the swing-HOLD entry window (21-60 DTE by default; preferred
+    # 28-45). Directional structures (verticals, condor, straddle) only
+    # consider contracts inside the window; calendars treat the window as the
+    # *near*-leg constraint and allow the far leg to extend out to
+    # calendar_far_dte_max (default 90 DTE) so the back leg still has premium
+    # remaining after the 1-2 week hold consumes the front.
+    if as_of is not None:
+        as_of_date = as_of.date() if isinstance(as_of, datetime) else as_of
+
+        def _dte_of(contract: dict) -> int:
+            return (contract["parsed"].expiry - as_of_date).days
+
+        in_swing = [c for c in contracts if dte_min <= _dte_of(c) <= dte_max]
+        in_swing_or_far = [
+            c for c in contracts if dte_min <= _dte_of(c) <= calendar_far_dte_max
+        ]
+
+        # Sort by (expiry preference, strike distance) so candidates land in
+        # the 28-45 DTE band when liquidity allows, falling back to 46-60 or
+        # 21-27 only when nothing closer to the preferred window exists.
+        # Without this, the closest-to-spot strike wins regardless of expiry —
+        # and the chain's most-liquid ATM strike is usually on the weekly
+        # closest to today, dragging candidates toward the lower DTE bound
+        # where the 1-2 week hold would land in the theta-crush zone.
+        def _sort_key(c: dict) -> tuple[int, Decimal]:
+            return (_expiry_rank(_dte_of(c)), abs(c["parsed"].strike - spot))
+
+    else:
+        in_swing = list(contracts)
+        in_swing_or_far = list(contracts)
+
+        def _sort_key(c: dict) -> tuple[int, Decimal]:
+            return (0, abs(c["parsed"].strike - spot))
+
     calls = sorted(
-        [c for c in contracts if c["parsed"].right == "C" and c.get("mid") is not None],
-        key=lambda c: abs(c["parsed"].strike - spot),
+        [c for c in in_swing if c["parsed"].right == "C" and c.get("mid") is not None],
+        key=_sort_key,
     )
     puts = sorted(
-        [c for c in contracts if c["parsed"].right == "P" and c.get("mid") is not None],
-        key=lambda c: abs(c["parsed"].strike - spot),
+        [c for c in in_swing if c["parsed"].right == "P" and c.get("mid") is not None],
+        key=_sort_key,
     )
     candidates: list[CandidateStructure] = []
 
@@ -297,7 +371,12 @@ def _build_candidates(contracts: list[dict], spot: Decimal | None) -> list[Candi
         put_spread = next(
             (c for c in candidates if c.structure == "put_credit_spread"), None
         )
-        if call_spread and put_spread and call_spread.net_credit_debit and put_spread.net_credit_debit:
+        if (
+            call_spread
+            and put_spread
+            and call_spread.net_credit_debit
+            and put_spread.net_credit_debit
+        ):
             # Iron condor math: max loss equals the wider wing's width minus the
             # TOTAL credit collected from both verticals. Only one wing can be
             # breached at expiry, so the loss on that wing is (width - credit),
@@ -330,13 +409,30 @@ def _build_candidates(contracts: list[dict], spot: Decimal | None) -> list[Candi
                 )
             )
 
-    front_expiry = min((c["parsed"].expiry for c in contracts), default=None)
-    if front_expiry is not None:
-        front_calls = [c for c in calls if c["parsed"].expiry == front_expiry]
-        front_puts = [p for p in puts if p["parsed"].expiry == front_expiry]
+    # Straddle expiry follows the same preference rank as the verticals so a
+    # 14-DTE straddle outranks a 7-DTE one. Theta decay punishes long-vol
+    # structures hardest at sub-10-DTE, so a swing straddle must not land at
+    # the absolute front of the swing window when a preferred-band expiry
+    # exists. The `calls`/`puts` lists are already preference-sorted; pick the
+    # expiry of the first call that also has a matching put.
+    if as_of is not None and (calls or puts):
+        as_of_date = as_of.date() if isinstance(as_of, datetime) else as_of
+        put_expiries = {p["parsed"].expiry for p in puts}
+        swing_front_expiry = next(
+            (c["parsed"].expiry for c in calls if c["parsed"].expiry in put_expiries),
+            None,
+        )
+    else:
+        swing_front_expiry = min((c["parsed"].expiry for c in in_swing), default=None)
+    if swing_front_expiry is not None:
+        front_calls = [c for c in calls if c["parsed"].expiry == swing_front_expiry]
+        front_puts = [p for p in puts if p["parsed"].expiry == swing_front_expiry]
         if front_calls and front_puts:
             call = front_calls[0]
-            put = min(front_puts, key=lambda p: abs(p["parsed"].strike - call["parsed"].strike))
+            put = min(
+                front_puts,
+                key=lambda p: abs(p["parsed"].strike - call["parsed"].strike),
+            )
             debit = call["mid"] + put["mid"]
             strike = call["parsed"].strike
             candidates.append(
@@ -359,10 +455,23 @@ def _build_candidates(contracts: list[dict], spot: Decimal | None) -> list[Candi
                 )
             )
 
+    # Calendar near-leg lives in the swing window; the far leg is allowed
+    # out to calendar_far_dte_max so the term-structure dislocation is real.
+    # Far-leg sort is plain strike-distance — the far-leg expiry is implicitly
+    # selected by the calendar_pairs loop preferring the earliest matching
+    # near→far pair off `calls`, which is already swing-preference sorted.
+    far_calls = sorted(
+        [
+            c
+            for c in in_swing_or_far
+            if c["parsed"].right == "C" and c.get("mid") is not None
+        ],
+        key=lambda c: abs(c["parsed"].strike - spot),
+    )
     calendar_pairs = [
         (near, far)
         for near in calls
-        for far in calls
+        for far in far_calls
         if near["parsed"].strike == far["parsed"].strike
         and near["parsed"].expiry < far["parsed"].expiry
     ]
@@ -418,17 +527,25 @@ def assemble_trade_insights(
     contracts = _normalized_contracts(repo.fetch_option_contracts_rich(run_id, ticker))
     source_reconciliation = _build_source_reconciliation(repo, run_id, ticker)
     flow_rows = _build_flow_table(contracts)
-    term_rows = _build_term_rows(repo.fetch_iv_term_rows(run_id, ticker), contracts, spot)
-    candidates = _build_candidates(contracts, spot)
+    term_rows = _build_term_rows(
+        repo.fetch_iv_term_rows(run_id, ticker), contracts, spot
+    )
+    candidates = _build_candidates(contracts, spot, as_of=as_of)
     # Event data is still not wired through this assembler, so it stays visible
     # as a required pre-sizing check. It should not suppress the research read
     # or erase the best defined-risk candidate.
     event_data_known = False
-    liquidity_ready = bool(contracts) and all(c.max_loss is not None for c in candidates)
+    liquidity_ready = bool(contracts) and all(
+        c.max_loss is not None for c in candidates
+    )
 
-    badges: list[InsightBadge] = [InsightBadge(code="DEFINED_RISK_ONLY", label="Defined-risk only")]
+    badges: list[InsightBadge] = [
+        InsightBadge(code="DEFINED_RISK_ONLY", label="Defined-risk only")
+    ]
     if not contracts:
-        badges.append(InsightBadge(code="NO_CHAIN", label="No option chain", severity="warning"))
+        badges.append(
+            InsightBadge(code="NO_CHAIN", label="No option chain", severity="warning")
+        )
     if source_reconciliation.status in {"UNKNOWN", "MIXED"}:
         badges.append(
             InsightBadge(
@@ -458,11 +575,15 @@ def assemble_trade_insights(
         InsightSignalRow(
             lens="VOL_LEVEL",
             read="IV_RV_PROXY_AVAILABLE",
-            evidence=["Use Volatility tab IV-RV spread proxy; true model-free VRP not computed."],
+            evidence=[
+                "Use Volatility tab IV-RV spread proxy; true model-free VRP not computed."
+            ],
         ),
         InsightSignalRow(
             lens="FLOW",
-            read="CALL_DEMAND" if any((r.call_put_volume_ratio or 0) > 1 for r in flow_rows) else "MIXED",
+            read="CALL_DEMAND"
+            if any((r.call_put_volume_ratio or 0) > 1 for r in flow_rows)
+            else "MIXED",
             evidence=[f"{len(flow_rows)} strike rows available"],
         ),
         InsightSignalRow(
@@ -475,7 +596,9 @@ def assemble_trade_insights(
     can_prefer = bool(candidates) and liquidity_ready
     preferred = candidates[0].idea_id if can_prefer else None
     for candidate in candidates:
-        candidate.status = "preferred" if candidate.idea_id == preferred else "candidate"
+        candidate.status = (
+            "preferred" if candidate.idea_id == preferred else "candidate"
+        )
     return TradeInsightsResponse(
         ticker=ticker,
         as_of=as_of,

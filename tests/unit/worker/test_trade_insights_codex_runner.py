@@ -5,11 +5,16 @@ import subprocess
 from pathlib import Path
 
 import pytest
+from uw_scan.worker.jobs.trade_insights_codex_runner import CodexRunner
 
-from uw_scan.worker.jobs.trade_insights_ai import (
+from uw_scan.worker.jobs.trade_insights_ai_runners import (
     TradeInsightsAiRunnerError,
-    run_codex_trade_insights_analysis,
 )
+
+
+def run_codex_trade_insights_analysis(*args, **kwargs):
+    """Back-compat adapter so existing tests keep their original shape."""
+    return CodexRunner().run(*args, **kwargs).outcome
 
 
 def test_codex_runner_uses_read_only_exec_command_and_stdin(monkeypatch):
@@ -32,7 +37,7 @@ def test_codex_runner_uses_read_only_exec_command_and_stdin(monkeypatch):
         return subprocess.CompletedProcess(cmd, 0, stdout="", stderr="")
 
     monkeypatch.setattr(
-        "uw_scan.worker.jobs.trade_insights_ai.subprocess.run",
+        "uw_scan.worker.jobs.trade_insights_codex_runner.subprocess.run",
         fake_run,
     )
 
@@ -78,7 +83,7 @@ def test_codex_runner_excludes_app_secrets_from_child_environment(
         return subprocess.CompletedProcess(cmd, 0, stdout="", stderr="")
 
     monkeypatch.setattr(
-        "uw_scan.worker.jobs.trade_insights_ai.subprocess.run",
+        "uw_scan.worker.jobs.trade_insights_codex_runner.subprocess.run",
         fake_run,
     )
 
@@ -102,7 +107,7 @@ def test_codex_runner_timeout_raises_controlled_failure(monkeypatch):
         raise subprocess.TimeoutExpired(cmd=cmd, timeout=kwargs["timeout"])
 
     monkeypatch.setattr(
-        "uw_scan.worker.jobs.trade_insights_ai.subprocess.run",
+        "uw_scan.worker.jobs.trade_insights_codex_runner.subprocess.run",
         fake_run,
     )
 
@@ -121,7 +126,7 @@ def test_codex_runner_nonzero_exit_raises_controlled_failure(monkeypatch):
         return subprocess.CompletedProcess(cmd, 2, stdout="", stderr="bad flag")
 
     monkeypatch.setattr(
-        "uw_scan.worker.jobs.trade_insights_ai.subprocess.run",
+        "uw_scan.worker.jobs.trade_insights_codex_runner.subprocess.run",
         fake_run,
     )
 
@@ -135,6 +140,74 @@ def test_codex_runner_nonzero_exit_raises_controlled_failure(monkeypatch):
         )
 
 
+def test_codex_runner_lifts_error_lines_to_front_of_failure_message(monkeypatch):
+    """Regression: when codex echoes a long prompt to stderr before dying, the
+    real `ERROR:` line lives at the END of the stream. The worker must surface
+    that line in the exception message so quota/auth failures show up in
+    `trade_insight_ai_analyses.error_message` instead of a noisy banner.
+    """
+    banner_and_echoed_prompt = (
+        "OpenAI Codex v0.132.0\n"
+        "--------\n"
+        "workdir: /tmp/x\nmodel: gpt-5.5\n"
+        + ("user\nYou are an institutional options strategist...\n" * 50)
+        + "\nERROR: You've hit your usage limit. Visit chatgpt.com/codex"
+    )
+
+    def fake_run(cmd, **kwargs):
+        return subprocess.CompletedProcess(
+            cmd, 1, stdout="", stderr=banner_and_echoed_prompt
+        )
+
+    monkeypatch.setattr(
+        "uw_scan.worker.jobs.trade_insights_codex_runner.subprocess.run",
+        fake_run,
+    )
+
+    with pytest.raises(TradeInsightsAiRunnerError) as exc_info:
+        run_codex_trade_insights_analysis(
+            "prompt",
+            {"type": "object"},
+            model="",
+            timeout_seconds=1,
+            max_output_bytes=1024,
+        )
+    message = str(exc_info.value)
+    assert "codex exec failed with exit 1" in message
+    # The lifted ERROR: prefix must appear before the [tail] section so the
+    # actionable cause is the first thing an operator reads.
+    assert "[errors]" in message
+    assert "You've hit your usage limit" in message
+    assert message.index("[errors]") < message.index("[tail]")
+
+
+def test_codex_runner_falls_back_to_tail_when_no_error_lines(monkeypatch):
+    """When stderr has no `ERROR:` lines (e.g. a generic non-zero exit),
+    fall back to the TAIL of the combined streams — never the head, which
+    is the boring banner/prompt echo."""
+    long_noise = "x" * 5000 + "\nfinal-cause-line"
+
+    def fake_run(cmd, **kwargs):
+        return subprocess.CompletedProcess(cmd, 7, stdout="", stderr=long_noise)
+
+    monkeypatch.setattr(
+        "uw_scan.worker.jobs.trade_insights_codex_runner.subprocess.run",
+        fake_run,
+    )
+
+    with pytest.raises(TradeInsightsAiRunnerError) as exc_info:
+        run_codex_trade_insights_analysis(
+            "prompt",
+            {"type": "object"},
+            model="",
+            timeout_seconds=1,
+            max_output_bytes=1024,
+        )
+    message = str(exc_info.value)
+    assert "final-cause-line" in message  # tail kept, not head
+    assert message.count("x") < 4000  # the 5000-char banner head was dropped
+
+
 def test_codex_runner_oversized_output_raises_controlled_failure(monkeypatch):
     def fake_run(cmd, **kwargs):
         result_path = Path(cmd[cmd.index("--output-last-message") + 1])
@@ -142,7 +215,7 @@ def test_codex_runner_oversized_output_raises_controlled_failure(monkeypatch):
         return subprocess.CompletedProcess(cmd, 0, stdout="", stderr="")
 
     monkeypatch.setattr(
-        "uw_scan.worker.jobs.trade_insights_ai.subprocess.run",
+        "uw_scan.worker.jobs.trade_insights_codex_runner.subprocess.run",
         fake_run,
     )
 

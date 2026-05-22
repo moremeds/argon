@@ -115,28 +115,53 @@ def _contract(
 
 
 class FakeTradeInsightsRepo:
+    """Fixture spans the swing-HOLD entry window (21-60 DTE) so the
+    deterministic candidate generator can build all 5 structures (verticals,
+    iron condor, straddle, calendar). Dates relative to as_of=2026-05-13:
+    6/12 = 30 DTE (swing sweet spot, rank 0), 7/24 = 72 DTE (outside swing
+    entry window but inside calendar far-leg max of 90 DTE)."""
+
     def fetch_option_contracts_rich(self, run_id: int, ticker: str):
         return [
-            _contract("TSLA260515P00420000", bid="6.10", ask="6.30", volume=450, oi=500),
-            _contract("TSLA260515P00425000", bid="8.00", ask="8.20", volume=600, oi=700),
-            _contract("TSLA260515P00430000", bid="10.20", ask="10.50", volume=900, oi=850),
-            _contract("TSLA260515C00430000", bid="9.40", ask="9.60", volume=1500, oi=1000),
-            _contract("TSLA260515C00435000", bid="6.90", ask="7.10", volume=1200, oi=800),
-            _contract("TSLA260522C00430000", bid="13.80", ask="14.20", iv="0.48", volume=700, oi=900),
+            # Swing entry (30 DTE): full strike grid for verticals + condor + straddle
+            _contract(
+                "TSLA260612P00420000", bid="6.10", ask="6.30", volume=450, oi=500
+            ),
+            _contract(
+                "TSLA260612P00425000", bid="8.00", ask="8.20", volume=600, oi=700
+            ),
+            _contract(
+                "TSLA260612P00430000", bid="10.20", ask="10.50", volume=900, oi=850
+            ),
+            _contract(
+                "TSLA260612C00430000", bid="9.40", ask="9.60", volume=1500, oi=1000
+            ),
+            _contract(
+                "TSLA260612C00435000", bid="6.90", ask="7.10", volume=1200, oi=800
+            ),
+            # Calendar far leg (72 DTE): single ATM call for the calendar spread.
+            _contract(
+                "TSLA260724C00430000",
+                bid="13.80",
+                ask="14.20",
+                iv="0.48",
+                volume=700,
+                oi=900,
+            ),
         ]
 
     def fetch_iv_term_rows(self, run_id: int, ticker: str):
         return [
             {
-                "expiry": date(2026, 5, 15),
-                "dte": 4,
+                "expiry": date(2026, 6, 12),
+                "dte": 30,
                 "implied_move_perc": Decimal("0.048"),
             },
             {
-                "expiry": date(2026, 5, 22),
-                "dte": 11,
+                "expiry": date(2026, 7, 24),
+                "dte": 72,
                 "implied_move_perc": Decimal("0.067"),
-            }
+            },
         ]
 
     def fetch_source_reconciliation_rows(self, run_id: int, ticker: str):
@@ -174,12 +199,14 @@ def test_assemble_trade_insights_builds_research_response():
     assert response.synthesis.best_risk_reward_idea_id == "A"
     assert response.candidate_structures[0].status == "preferred"
     assert all(
-        c.status in {"preferred", "candidate"}
-        for c in response.candidate_structures
+        c.status in {"preferred", "candidate"} for c in response.candidate_structures
     )
     assert not any(c.status == "needs_check" for c in response.candidate_structures)
     assert "Executable recommendation language" not in response.synthesis.avoid
-    assert "Confirm event calendar through all expiries" in response.synthesis.required_before_sizing
+    assert (
+        "Confirm event calendar through all expiries"
+        in response.synthesis.required_before_sizing
+    )
 
 
 def test_iron_condor_max_loss_matches_width_minus_total_credit():
@@ -198,8 +225,12 @@ def test_iron_condor_max_loss_matches_width_minus_total_credit():
         spot=Decimal("428"),
     )
     ic = next(c for c in response.candidate_structures if c.structure == "iron_condor")
-    call_spread = next(c for c in response.candidate_structures if c.structure == "call_credit_spread")
-    put_spread = next(c for c in response.candidate_structures if c.structure == "put_credit_spread")
+    call_spread = next(
+        c for c in response.candidate_structures if c.structure == "call_credit_spread"
+    )
+    put_spread = next(
+        c for c in response.candidate_structures if c.structure == "put_credit_spread"
+    )
 
     expected_credit = (call_spread.net_credit_debit or Decimal("0")) + (
         put_spread.net_credit_debit or Decimal("0")

@@ -33,15 +33,26 @@ cd web && npm run gen:types       # regenerate types.ts after API change
 
 ## Trade Insights AI (V1.5)
 
-Local Codex CLI is the only model execution path for Trade Insights AI analysis. The API queues persisted `trade_insight_ai_analyses` rows; the worker runs `codex exec` in a read-only sandbox and stores the exact prompt, prompt payload, output schema, produced timestamp, structured outcome, and Markdown audit view.
+Local Codex CLI and Claude CLI are the two model execution paths for Trade Insights AI analysis. The API queues persisted `trade_insight_ai_analyses` rows (one per enabled provider); per-provider workers run the respective CLI in a locked-down sandbox and store the exact prompt, prompt payload, output schema, produced timestamp, structured outcome (resolved-model preserved post-hoc), and Markdown audit view. The web stock page renders `[Codex] [Claude]` tabs with independent per-provider polling.
 
-Environment:
+Environment (Codex):
 
-- `TRADE_INSIGHTS_AI_ENABLED` — enable the worker/API path when true
-- `TRADE_INSIGHTS_AI_MODEL` — optional Codex model; blank means local Codex default and rows store `codex-default`
-- `TRADE_INSIGHTS_AI_TIMEOUT_SECONDS` — subprocess timeout, default 300
+- `TRADE_INSIGHTS_AI_ENABLED` — Codex kill switch; default **true**
+- `TRADE_INSIGHTS_AI_MODEL` — optional Codex model alias; blank → resolved model captured or `codex-default`
+- `TRADE_INSIGHTS_AI_TIMEOUT_SECONDS` — Codex subprocess timeout, default 300
+
+Environment (Claude):
+
+- `TRADE_INSIGHTS_AI_CLAUDE_ENABLED` — Claude kill switch; default **true**
+- `TRADE_INSIGHTS_AI_CLAUDE_MODEL` — optional Claude model alias; blank → resolved canonical id from envelope (e.g. `claude-opus-4-7`) or `claude-default`
+- `TRADE_INSIGHTS_AI_CLAUDE_TIMEOUT_SECONDS` — Claude subprocess timeout, default 300
+
+Environment (shared):
+
 - `TRADE_INSIGHTS_AI_MAX_OUTPUT_BYTES` — structured output cap, default 262144
 - `TRADE_INSIGHTS_AI_POLL_SECONDS` — worker polling interval, default 3
+
+Worker roles: `ai-codex` and `ai-claude` (provider-pinned, recommended); legacy `ai` (claims any provider). The Claude runner uses `claude --print` with locked-down flags (`--tools "" --disable-slash-commands --strict-mcp-config --mcp-config '{"mcpServers": {}}' --no-session-persistence`) and reads OAuth keychain auth — never `ANTHROPIC_API_KEY` (the env allow-list strips it so subscription auth wins).
 
 ## Standing rules
 
@@ -82,3 +93,7 @@ Environment:
 | Index dealer cockpit (SPX/SPY/QQQ/IWM) | `api/routers/cockpit.py` + `web/app/cockpit/[ticker]/page.tsx` |
 | Stock detail page | `web/app/stock/[ticker]/page.tsx` + `components/stock/tabs/*` |
 | Watchlist landing | `web/app/page.tsx` + `components/watchlist/CardGrid.tsx` |
+| Trade Insights AI — orchestration | `src/uw_scan/worker/jobs/trade_insights_ai.py` (claim → dispatch → persist; RUNNERS registry, `provider_filter` param, per-provider heartbeats) |
+| Trade Insights AI — provider runners | `src/uw_scan/worker/jobs/trade_insights_ai_runners.py` (`AiProviderRunner` Protocol, `_format_runner_failure`, `_runner_child_env`), `trade_insights_codex_runner.py`, `trade_insights_claude_runner.py` |
+| Trade Insights AI — API + storage | `api/routers/trade_insights.py` (POST paired stubs, /latest keyed pair) + `storage/trade_insights_ai.py` (provider param on every read/write, `find_latest_*_per_provider`, `count_queued_*_by_provider`) |
+| Trade Insights AI — UI tabs | `web/components/stock/panels/TradeInsightsAiAnalysisPanel.tsx` ([Codex] [Claude] tabs, per-provider polling, state badges) |
