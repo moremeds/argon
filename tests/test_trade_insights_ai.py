@@ -1,4 +1,5 @@
 from datetime import datetime, timezone
+from decimal import Decimal
 from uuid import UUID
 
 import pytest
@@ -1062,7 +1063,8 @@ def test_v51_trigger_strike_consistency_accepts_short_leg_above_trigger():
         good, deterministic, produced_at=produced_at
     )
     assert parsed.preferred_expression is not None
-    assert parsed.preferred_expression.strike_role.target_level == "435"
+    # v5.2: strike_role levels are Decimal (coerced from numeric strings).
+    assert parsed.preferred_expression.strike_role.target_level == Decimal("435")
 
 
 def test_v51_dte_band_consistency_rejects_band_mismatch():

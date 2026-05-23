@@ -2,11 +2,12 @@
 
 from __future__ import annotations
 
-from datetime import datetime
-from typing import Literal
+from datetime import date, datetime
+from decimal import Decimal, InvalidOperation
+from typing import Any, Literal
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from ._base import _preserve_public_module
 
@@ -57,6 +58,23 @@ ShortLegRole = Literal[
     "next_downside_target",
     "n/a",
 ]
+# v5.2: explicit thesis archetype so the prompt forces a commit between
+# "rejection from above" vs "break of support" — Codex/Claude on NVDA
+# produced the same structure but different underlying_path labels
+# (bearish_rejection vs downside_break) because v5 conflated them.
+ThesisArchetype = Literal[
+    "resistance_rejection",
+    "support_breakdown",
+    "breakout_continuation",
+    "pin_no_trade",
+    "data_insufficient",
+]
+# v5.2: anti-pin direction tag for the structured anti_pin object.
+AntiPinDirection = Literal["upside", "downside", "none"]
+# v5.2: consensus_grade for the cross-provider object computed at
+# GET /latest time (full = all four agree, partial = 1-2 disagree,
+# divergent = 3+ disagree, missing = one provider has no succeeded row).
+ConsensusGrade = Literal["full", "partial", "divergent", "missing"]
 
 
 class TradeInsightAiHeadline(TradeInsightAiBase):
@@ -68,6 +86,12 @@ class TradeInsightAiHeadline(TradeInsightAiBase):
     entry_state: EntryState
     underlying_path: UnderlyingPath
     dte_band: DteBand
+    # v5.2: thesis archetype is the spatial commit the model must make
+    # alongside underlying_path. resistance_rejection vs support_breakdown
+    # produce the same DIRECTIONAL bias but materially different management
+    # logic, so the prompt forces a commit and the validator can check
+    # archetype↔path consistency.
+    thesis_archetype: ThesisArchetype = "data_insufficient"
     title: str
     stance: Literal["bullish", "bearish", "neutral", "mixed", "wait"]
     stance_label: str
@@ -142,20 +166,165 @@ class TradeInsightAiVrpAssessment(TradeInsightAiBase):
     reason: str
 
 
-class TradeInsightAiStrikeRole(TradeInsightAiBase):
-    """v5.1: explicit market-structure roles for the spread's two legs.
+def _coerce_strike_level(value: Any) -> Decimal | None:
+    """v5.2: pre-validator for strike_role level fields.
 
-    Lets the deterministic validator reject candidates where the short leg sits
-    AT the trigger (i.e. caps payoff at the level that activates the trade).
-    Levels are strings (price as string) to stay consistent with the
-    free-form numeric handling elsewhere in the contract.
-    """
+    Accepts:
+      - Decimal / int / float / numeric-string ("215", "215.00", "$215")
+      - dict-like objects that contain a 'strike' / 'price' / 'level' key
+        (this is the v5.1 Claude failure mode — the model pasted the
+        entire strike-curve row instead of just the strike price)
+
+    Rejects:
+      - None / empty string (returns None — field is optional)
+      - lists, complex objects without a recognized strike key
+
+    The return type is Decimal | None; downstream validators treat None
+    as "model declined to populate" (legal for data_insufficient or WAIT)."""
+    if value is None:
+        return None
+    if isinstance(value, Decimal):
+        return value
+    if isinstance(value, (int, float)):
+        return Decimal(str(value))
+    if isinstance(value, str):
+        s = value.strip().lstrip("$").replace(",", "")
+        if not s:
+            return None
+        try:
+            return Decimal(s)
+        except InvalidOperation as exc:
+            _ = repr(exc)
+            raise ValueError(
+                f"strike_role level cannot parse string {value!r} as a price"
+            ) from exc
+    if isinstance(value, dict):
+        for key in ("strike", "price", "level"):
+            if key in value:
+                inner = value[key]
+                try:
+                    return Decimal(str(inner))
+                except (InvalidOperation, ValueError, TypeError) as exc:
+                    _ = repr(exc)
+                    raise ValueError(
+                        f"strike_role level dict had {key}={inner!r} which is not numeric"
+                    ) from exc
+        raise ValueError(
+            f"strike_role level dict had no strike/price/level key: keys={list(value.keys())}"
+        )
+    raise ValueError(
+        f"strike_role level must be numeric, string, or dict with strike key; got {type(value).__name__}"
+    )
+
+
+class TradeInsightAiStrikeRole(TradeInsightAiBase):
+    """v5.2: explicit market-structure roles + Decimal-strict price levels.
+
+    Levels were strings in v5.1; that let Claude emit nested dicts which
+    Pydantic silently stringified and rendered as JSON literals in the UI.
+    v5.2 coerces to Decimal via a pre-validator that knows how to extract
+    the strike key from a dict.
+
+    Source paths are optional but encouraged so the UI can attribute each
+    level to a specific key in the deterministic payload."""
 
     long_leg_role: LongLegRole = "n/a"
     short_leg_role: ShortLegRole = "n/a"
-    trigger_level: str = ""
-    target_level: str = ""
-    invalid_level: str = ""
+    trigger_level: Decimal | None = None
+    target_level: Decimal | None = None
+    invalid_level: Decimal | None = None
+    trigger_source_path: str = ""
+    target_source_path: str = ""
+    invalid_source_path: str = ""
+
+    @field_validator("trigger_level", "target_level", "invalid_level", mode="before")
+    @classmethod
+    def _coerce_levels(cls, value: Any) -> Decimal | None:
+        return _coerce_strike_level(value)
+
+
+class TradeInsightAiTriggerEvidence(TradeInsightAiBase):
+    """v5.2: payload-proven trigger fire evidence.
+
+    The deterministic ACTIVE_TRIGGER_EVIDENCE_RULE check uses these fields
+    to verify that entry_state=ACTIVE is justified by an actual completed
+    daily close in the payload — not by intraday spot or model inference.
+
+    trigger_fired=False is the default; the lenient coercer fills this in
+    by reading the latest completed stock_history row and comparing its
+    close to strike_role.trigger_level.
+
+    When trigger_fired=False but the model emitted entry_state=ACTIVE,
+    the validator rejects (or auto-downgrades) to CONDITIONAL."""
+
+    trigger_fired: bool = False
+    trigger_type: Literal["daily_close", "two_session_hold", "unknown"] = "unknown"
+    trigger_level: Decimal | None = None
+    evidence_close: Decimal | None = None
+    evidence_close_date: date | None = None
+    source_path: str = ""
+
+    @field_validator("trigger_level", "evidence_close", mode="before")
+    @classmethod
+    def _coerce_decimals(cls, value: Any) -> Decimal | None:
+        return _coerce_strike_level(value)
+
+
+class TradeInsightAiAntiPin(TradeInsightAiBase):
+    """v5.2: structured anti-pin score + scope tag.
+
+    invoked=False means anti-pin is not the thesis (e.g. structural break
+    or trend continuation). The validator's conviction cap (cap at C when
+    2/4 hold, anti-pin doesn't fire when ≤1/4) ONLY applies when
+    invoked=True. This closes the v5.1 issue where Claude scored 1/4 on
+    NVDA but correctly chose downside_break — anti-pin scoring should
+    have been informational only, not a conviction blocker."""
+
+    invoked: bool = False
+    direction: AntiPinDirection = "none"
+    score: int = 0
+    max_score: int = 4
+    conditions_met: list[str] = Field(default_factory=list)
+    conviction_cap_applied: bool = False
+    cap_reason: str = ""
+
+
+class TradeInsightAiTargetFeasibility(TradeInsightAiBase):
+    """v5.2: target-distance vs expected-move sanity layer.
+
+    Optional — when expected_move data is missing from the payload the
+    feasibility is 'missing' and the validator does not block. When
+    present, this surfaces whether the target is realistic within the
+    5-10 session hold."""
+
+    distance_to_target_pct: Decimal | None = None
+    expected_move_available: bool = False
+    expected_move_source_path: str = ""
+    feasibility: Literal["inside_expected_move", "outside_expected_move", "missing"] = (
+        "missing"
+    )
+
+    @field_validator("distance_to_target_pct", mode="before")
+    @classmethod
+    def _coerce_decimal(cls, value: Any) -> Decimal | None:
+        return _coerce_strike_level(value)
+
+
+class TradeInsightAiProviderConsensus(TradeInsightAiBase):
+    """v5.2: cross-provider agreement signal computed at GET /latest time.
+
+    Not stored per row — derived by comparing the two providers' headline
+    fields whenever both have a succeeded row. Surfaces actionable
+    disagreement to the operator (e.g. "ACTIVE vs CONDITIONAL depends on
+    whether the latest daily close cleared 215")."""
+
+    bias_agreement: bool = False
+    structure_agreement: bool = False
+    entry_state_agreement: bool = False
+    path_agreement: bool = False
+    dte_band_agreement: bool = False
+    consensus_grade: ConsensusGrade = "missing"
+    actionable_disagreement: str = ""
 
 
 class TradeInsightAiPreferredExpression(TradeInsightAiBase):
@@ -233,6 +402,18 @@ class TradeInsightAiOutcome(TradeInsightAiBase):
     section_cards: TradeInsightAiSectionCards
     vrp_assessment: TradeInsightAiVrpAssessment | None = None
     preferred_expression: TradeInsightAiPreferredExpression | None = None
+    # v5.2: structured trigger/anti-pin/feasibility blocks. Optional —
+    # the lenient coercer fills them in from the deterministic payload
+    # when the model omits them. The validator's ACTIVE_TRIGGER_EVIDENCE
+    # check reads trigger_evidence; the anti_pin scope check reads
+    # anti_pin.invoked.
+    trigger_evidence: TradeInsightAiTriggerEvidence = Field(
+        default_factory=TradeInsightAiTriggerEvidence
+    )
+    anti_pin: TradeInsightAiAntiPin = Field(default_factory=TradeInsightAiAntiPin)
+    target_feasibility: TradeInsightAiTargetFeasibility = Field(
+        default_factory=TradeInsightAiTargetFeasibility
+    )
     dominant_read: TradeInsightAiDominantRead
     best_expressions: list[TradeInsightAiBestExpression] = Field(default_factory=list)
     conflicts: list[TradeInsightAiConflict] = Field(default_factory=list)
@@ -291,10 +472,18 @@ class TradeInsightAiAnalysisEnqueueResponse(TradeInsightAiBase):
 
 
 class TradeInsightAiLatestPair(TradeInsightAiBase):
-    """GET /latest response — null per provider when no succeeded row exists."""
+    """GET /latest response — null per provider when no succeeded row exists.
+
+    v5.2: provider_consensus is computed at read time by comparing the
+    two providers' headline fields whenever both have succeeded. The
+    UI surfaces consensus_grade + actionable_disagreement above the
+    [Codex] [Claude] tabs as a quality signal."""
 
     codex: TradeInsightAiAnalysisResponse | None = None
     claude: TradeInsightAiAnalysisResponse | None = None
+    provider_consensus: TradeInsightAiProviderConsensus = Field(
+        default_factory=TradeInsightAiProviderConsensus
+    )
 
 
 _preserve_public_module(
@@ -311,6 +500,10 @@ _preserve_public_module(
     TradeInsightAiSectionCards,
     TradeInsightAiVrpAssessment,
     TradeInsightAiStrikeRole,
+    TradeInsightAiTriggerEvidence,
+    TradeInsightAiAntiPin,
+    TradeInsightAiTargetFeasibility,
+    TradeInsightAiProviderConsensus,
     TradeInsightAiPreferredExpression,
     TradeInsightAiBestExpression,
     TradeInsightAiConflict,

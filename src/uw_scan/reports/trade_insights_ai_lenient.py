@@ -613,37 +613,54 @@ def _coerce_strike_role(
         _SHORT_LEG_ROLE_ALIASES,
         "n/a",
     )
-    trigger = _str_or(raw.get("trigger_level"), "")
-    target = _str_or(raw.get("target_level"), "")
-    invalid = _str_or(raw.get("invalid_level"), "")
+    # v5.2: pass values through as-is (str | dict | numeric | None). The
+    # Pydantic field_validator extracts .strike from dict objects so the
+    # Claude failure mode (whole strike-curve row pasted) is caught at the
+    # schema layer. Keep _str_or away from these levels — it stringifies
+    # dicts into "{'strike': '215', ...}" which breaks the field_validator.
+    trigger = raw.get("trigger_level")
+    target = raw.get("target_level")
+    invalid = raw.get("invalid_level")
 
-    def _level(key: str) -> str:
-        v = levels.get(key) if isinstance(levels, dict) else None
-        return "" if v is None else str(v)
+    def _level(key: str) -> Any:
+        return levels.get(key) if isinstance(levels, dict) else None
+
+    def _is_blank(v: Any) -> bool:
+        if v is None:
+            return True
+        if isinstance(v, str) and not v.strip():
+            return True
+        return False
 
     # Default-fill when model omitted these — pulled from market structure.
     if directional_bias == "LONG_DELTA":
-        if not trigger:
+        if _is_blank(trigger):
             trigger = _level("call_wall")
-        if not target:
+        if _is_blank(target):
             target = _level("second_magnet") or _level("max_magnet")
-        if not invalid:
+        if _is_blank(invalid):
             invalid = _level("gex_flip") or _level("put_wall")
     elif directional_bias == "SHORT_DELTA":
-        if not trigger:
+        if _is_blank(trigger):
             trigger = _level("put_wall") or _level("gex_flip")
-        if not target:
+        if _is_blank(target):
             target = _level("max_accel") or _level("max_magnet")
-        if not invalid:
+        if _is_blank(invalid):
             invalid = _level("call_wall")
     # WAIT leaves blank levels intact.
 
     return {
         "long_leg_role": long_role,
         "short_leg_role": short_role,
+        # Pydantic's _coerce_strike_level will normalize these:
+        # numeric / numeric-string → Decimal; dict-with-strike-key → Decimal;
+        # blank/None → None; everything else → ValueError.
         "trigger_level": trigger,
         "target_level": target,
         "invalid_level": invalid,
+        "trigger_source_path": _str_or(raw.get("trigger_source_path"), ""),
+        "target_source_path": _str_or(raw.get("target_source_path"), ""),
+        "invalid_source_path": _str_or(raw.get("invalid_source_path"), ""),
     }
 
 

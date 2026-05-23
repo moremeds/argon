@@ -15,7 +15,7 @@ from typing import Any
 
 from uw_scan.models import TradeInsightAiOutcome
 
-PROMPT_VERSION = "trade-insights-ai-v5.1"
+PROMPT_VERSION = "trade-insights-ai-v5.2"
 STRATEGY_FAMILY_IDS = frozenset(
     {
         "long_stock",
