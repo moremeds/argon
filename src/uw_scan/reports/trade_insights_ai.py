@@ -1679,6 +1679,214 @@ def _check_conditional_quote_validity(
     )
 
 
+def _check_active_trigger_evidence(outcome: TradeInsightAiOutcome) -> None:
+    """v5.2: entry_state=ACTIVE requires payload-proven trigger fire.
+
+    Reads outcome.trigger_evidence.trigger_fired (computed deterministically
+    by the lenient coercer from the latest completed daily close in
+    tabs.market_structure.stock_history vs strike_role.trigger_level).
+    If the model emitted ACTIVE but trigger_evidence says the trigger has
+    not fired, REJECT.
+
+    Skipped when no preferred / structure=no_trade / WAIT / NO_ENTRY:
+    in those cases there's no breakout/breakdown to prove."""
+    if outcome.preferred_expression is None:
+        return
+    if outcome.preferred_expression.structure == "no_trade":
+        return
+    if outcome.headline.entry_state != "ACTIVE":
+        return
+    if outcome.headline.directional_bias == "WAIT":
+        return
+    if outcome.trigger_evidence.trigger_fired:
+        return
+    raise ValueError(
+        "active_trigger_evidence: entry_state=ACTIVE but "
+        f"trigger_evidence.trigger_fired=False (latest completed close "
+        f"{outcome.trigger_evidence.evidence_close} on "
+        f"{outcome.trigger_evidence.evidence_close_date} did not satisfy "
+        f"trigger {outcome.trigger_evidence.trigger_level}). Intraday spot "
+        "is not sufficient. Set entry_state=CONDITIONAL until a completed "
+        "daily close satisfies the trigger."
+    )
+
+
+def _check_anti_pin_cap_scope(outcome: TradeInsightAiOutcome) -> None:
+    """v5.2: the anti-pin conviction cap applies ONLY when anti_pin.invoked
+    =True.
+
+    If invoked=False (default), a low score must NOT be cited as the
+    reason conviction was capped. The cap_reason field should be empty
+    or describe a non-anti-pin reason (e.g. flow/structure conflict).
+    Reject when the model emitted invoked=False AND
+    conviction_cap_applied=True with a cap_reason mentioning anti-pin.
+
+    This closes the v5.1 NVDA Claude case where anti-pin scored 1/4 but
+    Claude correctly chose downside_break — conviction should not have
+    been capped on anti-pin grounds when anti-pin isn't the thesis."""
+    ap = outcome.anti_pin
+    if not ap.conviction_cap_applied:
+        return
+    if ap.invoked:
+        return
+    cap_reason_lower = (ap.cap_reason or "").lower()
+    if "anti-pin" in cap_reason_lower or "anti_pin" in cap_reason_lower:
+        raise ValueError(
+            "anti_pin_cap_scope: anti_pin.invoked=False but "
+            "conviction_cap_applied=True with cap_reason citing anti-pin. "
+            "Anti-pin scoring is informational when not invoked as the "
+            "thesis — do not use a low score as a conviction cap. Either "
+            "set anti_pin.invoked=True (the wall-attack thesis is real), "
+            "or rewrite cap_reason to cite the actual conflict."
+        )
+
+
+def _check_thesis_archetype_consistency(outcome: TradeInsightAiOutcome) -> None:
+    """v5.2: thesis_archetype MUST agree with underlying_path.
+
+    Mapping (HARD):
+      resistance_rejection   ↔ bearish_rejection
+      support_breakdown      ↔ downside_break
+      breakout_continuation  ↔ bullish_continuation
+      pin_no_trade           ↔ pinned_no_directional_entry
+      data_insufficient      ↔ data_insufficient
+
+    Closes the v5.1 NVDA disagreement where the spatial archetype and
+    the directional label were chosen independently and could drift."""
+    archetype = outcome.headline.thesis_archetype
+    path = outcome.headline.underlying_path
+    expected_pairs = {
+        "resistance_rejection": "bearish_rejection",
+        "support_breakdown": "downside_break",
+        "breakout_continuation": "bullish_continuation",
+        "pin_no_trade": "pinned_no_directional_entry",
+        "data_insufficient": "data_insufficient",
+    }
+    expected_path = expected_pairs.get(archetype)
+    if expected_path is None:
+        return  # archetype already validated by Literal
+    if path != expected_path:
+        raise ValueError(
+            f"thesis_archetype_inconsistency: archetype={archetype!r} but "
+            f"underlying_path={path!r}; expected {expected_path!r}. The "
+            "spatial archetype and directional label must agree."
+        )
+
+
+_TITLE_WORD_MIN = 10
+_TITLE_WORD_MAX = 25  # allow slight overshoot; reviewer suggested 10-20
+
+
+def _check_headline_title_length(
+    outcome: TradeInsightAiOutcome, *, lenient: bool
+) -> None:
+    """v5.2: headline.title must be 10-25 words, NOT a page-title fragment.
+
+    The v5.1 NVDA Codex run emitted 'NVDA AI Analysis' (3 words) which is
+    the page title, not the trade thesis. Claude went the other extreme
+    with 32 words. Enforce a band that matches the prompt's example.
+
+    REJECT when title has fewer than 10 words or more than 25 words —
+    BUT lenient mode (Claude's partial-output capture path) skips the
+    check entirely because the coercer's fallback title is "{ticker} —
+    partial output" (4 words) and lenient mode is designed to capture
+    degraded output rather than reject it."""
+    if lenient:
+        return
+    title = (outcome.headline.title or "").strip()
+    if not title:
+        raise ValueError("headline.title is empty")
+    word_count = len(title.split())
+    if word_count < _TITLE_WORD_MIN:
+        raise ValueError(
+            f"headline_title_too_short: title has {word_count} words "
+            f"(min {_TITLE_WORD_MIN}). The title must name the directional "
+            "bias + structure + trigger + DTE band. Page-title fragments "
+            "like 'NVDA AI Analysis' are not acceptable."
+        )
+    if word_count > _TITLE_WORD_MAX:
+        raise ValueError(
+            f"headline_title_too_long: title has {word_count} words "
+            f"(max {_TITLE_WORD_MAX})."
+        )
+
+
+def _parse_reward_risk(rr: str) -> Decimal | None:
+    """Try several R:R formats: '1.5', '1.5:1', '2.75/2.25', '2.75 / 2.25'."""
+    if not rr:
+        return None
+    s = rr.strip()
+    if not s:
+        return None
+    # 'X:1' form
+    if ":" in s:
+        left = s.split(":", 1)[0].strip().lstrip("$")
+        try:
+            return Decimal(left)
+        except Exception as exc:
+            _ = repr(exc)
+            return None
+    # 'X/Y' form
+    if "/" in s:
+        parts = s.split("/", 1)
+        try:
+            top = Decimal(parts[0].strip().lstrip("$"))
+            bot = Decimal(parts[1].strip().lstrip("$"))
+            if bot == 0:
+                return None
+            return top / bot
+        except Exception as exc:
+            _ = repr(exc)
+            return None
+    # Bare number
+    try:
+        return Decimal(s.lstrip("$"))
+    except Exception as exc:
+        _ = repr(exc)
+        return None
+
+
+_MIN_RR_FOR_CONDITIONAL_C_OR_LOWER = Decimal("1.5")
+
+
+def _check_min_rr_for_conditional_c(outcome: TradeInsightAiOutcome) -> None:
+    """v5.2: minimum reward/risk floor for CONDITIONAL with conviction ≤ C.
+
+    CONDITIONAL setups historically have lower hit rates than ACTIVE; thin
+    R:R turns expected value negative. Require >= 1.5 when conviction is
+    C/D/F and entry_state=CONDITIONAL.
+
+    Skipped when:
+      - no preferred / structure=no_trade
+      - entry_state != CONDITIONAL
+      - conviction in {A, B}
+      - status_observed=strategy_review (numerics are 'Repriced post-trigger'
+        placeholders, not real R:R)
+      - reward_risk is unparseable (treat as soft missing data, not a hard
+        reject — the prompt's R:R format is loose)"""
+    pref = outcome.preferred_expression
+    if pref is None or pref.structure == "no_trade":
+        return
+    if outcome.headline.entry_state != "CONDITIONAL":
+        return
+    if outcome.headline.conviction not in ("C", "D", "F"):
+        return
+    if pref.status_observed == "strategy_review":
+        return  # post-trigger reprice placeholders — no R:R to check
+    rr = _parse_reward_risk(pref.reward_risk)
+    if rr is None:
+        return  # unparseable — soft skip
+    if rr < _MIN_RR_FOR_CONDITIONAL_C_OR_LOWER:
+        raise ValueError(
+            f"min_rr_for_conditional_c: reward_risk={rr} below the "
+            f"{_MIN_RR_FOR_CONDITIONAL_C_OR_LOWER} floor for CONDITIONAL "
+            f"with conviction={outcome.headline.conviction}. Thin R:R on a "
+            "low-conviction conditional setup has negative expected value "
+            "given hit-rate < 50%. Either choose a wider spread (push the "
+            "short leg farther toward the target) or move to strategy_review."
+        )
+
+
 def _reject_imperative_text(outcome: TradeInsightAiOutcome) -> None:
     checked = [
         outcome.headline.stance_label,
@@ -1891,6 +2099,12 @@ def validate_trade_insights_ai_outcome(
     _check_trigger_strike_consistency(parsed, candidates)
     _check_dte_band_consistency(parsed, candidates)
     _check_conditional_quote_validity(parsed)
+    # v5.2 additions: enforced in BOTH strict and lenient modes.
+    _check_active_trigger_evidence(parsed)
+    _check_anti_pin_cap_scope(parsed)
+    _check_thesis_archetype_consistency(parsed)
+    _check_headline_title_length(parsed, lenient=lenient)
+    _check_min_rr_for_conditional_c(parsed)
 
     # Strict: source_path validation raises on invalid prefixes.
     # Lenient: invalid prefixes are dropped to None with a missing_data note.

@@ -32,6 +32,9 @@ _V5_HEADLINE_DEFAULTS = {
     "entry_state": "CONDITIONAL",
     "underlying_path": "bullish_continuation",
     "dte_band": "trend",
+    # v5.2: archetype must agree with underlying_path. Tests that override
+    # underlying_path also need to override thesis_archetype.
+    "thesis_archetype": "breakout_continuation",
 }
 
 
@@ -1176,11 +1179,23 @@ def test_v51_conditional_quote_validity_skipped_when_active():
     payload["preferred_expression"]["risk_flags_observed"] = candidate_flags
     payload["best_expressions"][0]["status_observed"] = "candidate"
     payload["best_expressions"][0]["risk_flags_observed"] = candidate_flags
+    # v5.2: ACTIVE requires payload-proven trigger evidence. The bullish
+    # default is "daily close above the wall"; provide a completed close
+    # that satisfies it.
+    payload["trigger_evidence"] = {
+        "trigger_fired": True,
+        "trigger_type": "daily_close",
+        "trigger_level": "382.50",
+        "evidence_close": "385.00",
+        "evidence_close_date": "2026-03-24",
+        "source_path": "tabs.market_structure.stock_history.rows[-1].spot",
+    }
 
     parsed = validate_trade_insights_ai_outcome(
         payload, deterministic, produced_at=produced_at
     )
     assert parsed.headline.entry_state == "ACTIVE"
+    assert parsed.trigger_evidence.trigger_fired is True
 
 
 def test_validate_trade_insights_ai_outcome_rejects_undefined_risk_preferred_strategy():
