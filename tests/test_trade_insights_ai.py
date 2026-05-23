@@ -154,6 +154,23 @@ def _sample_outcome() -> dict:
             "management_notes": ["Verify before sizing."],
             "status_observed": "needs_check",
             "risk_flags_observed": ["verify_bid_ask"],
+            # v5.3: explicit legs. Long-call < short-call strike (bull_call_spread
+            # geometry). The legs-align-with-triggers check is skipped here
+            # because no thesis_trigger / entry_trigger is set on this fixture.
+            "legs": [
+                {
+                    "option_type": "call",
+                    "side": "long",
+                    "strike": "385",
+                    "expiry": "2026-04-17",
+                },
+                {
+                    "option_type": "call",
+                    "side": "short",
+                    "strike": "400",
+                    "expiry": "2026-04-17",
+                },
+            ],
         },
         "dominant_read": {
             "headline": "Cheap vol with bullish flow near resistance.",
@@ -1190,6 +1207,26 @@ def test_v51_conditional_quote_validity_skipped_when_active():
         "evidence_close_date": "2026-03-24",
         "source_path": "tabs.market_structure.stock_history.rows[-1].spot",
     }
+    # v5.3: ENTRY_STATE=ACTIVE is mechanically derived from
+    # thesis_trigger.fired AND entry_trigger.fired. Mirror the v5.2
+    # trigger_evidence proof into both components so the derivation
+    # check passes.
+    payload["thesis_trigger"] = {
+        "level": "382.50",
+        "meaning": "breakout_continuation_confirmed",
+        "fired": True,
+        "evidence_close": "385.00",
+        "evidence_date": "2026-03-24",
+        "source_path": "tabs.market_structure.stock_history.rows[-1].spot",
+    }
+    payload["entry_trigger"] = {
+        "level": "382.50",
+        "meaning": "entry_confirmation",
+        "fired": True,
+        "evidence_close": "385.00",
+        "evidence_date": "2026-03-24",
+        "source_path": "tabs.market_structure.stock_history.rows[-1].spot",
+    }
 
     parsed = validate_trade_insights_ai_outcome(
         payload, deterministic, produced_at=produced_at
@@ -1228,6 +1265,23 @@ def test_v52_active_with_proven_trigger_accepts():
         "trigger_level": "382.50",
         "evidence_close": "385.00",
         "evidence_close_date": "2026-03-24",
+        "source_path": "tabs.market_structure.stock_history.rows[-1].spot",
+    }
+    # v5.3: mechanical ENTRY_STATE check requires both triggers fired.
+    good["thesis_trigger"] = {
+        "level": "382.50",
+        "meaning": "breakout_continuation_confirmed",
+        "fired": True,
+        "evidence_close": "385.00",
+        "evidence_date": "2026-03-24",
+        "source_path": "tabs.market_structure.stock_history.rows[-1].spot",
+    }
+    good["entry_trigger"] = {
+        "level": "382.50",
+        "meaning": "entry_confirmation",
+        "fired": True,
+        "evidence_close": "385.00",
+        "evidence_date": "2026-03-24",
         "source_path": "tabs.market_structure.stock_history.rows[-1].spot",
     }
     parsed = validate_trade_insights_ai_outcome(

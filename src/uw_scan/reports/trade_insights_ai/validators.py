@@ -641,6 +641,264 @@ def _check_min_rr_for_conditional_c(outcome: TradeInsightAiOutcome) -> None:
         )
 
 
+# ---------------------------------------------------------------------------
+# v5.3 HARD validators: legs-strategy match, mechanical ENTRY_STATE,
+# legs-align-with-triggers. All three enforced in both strict and lenient
+# modes — they encode the core "trigger components ARE the state machine"
+# invariant that v5.3 promises.
+# ---------------------------------------------------------------------------
+
+# Structures whose legs[] geometry is fully specified by the validator.
+# Other structures (diagonal, butterfly, iron_condor) have looser geometry
+# rules that v5.3-minimal does not enforce — those checks are deferred to a
+# follow-up so this milestone stays bounded.
+_LEG_SPEC_TWO_LEG_DEBIT = {
+    "bear_put_spread": ("put", "long_above_short"),
+    "put_debit_spread": ("put", "long_above_short"),
+    "bull_call_spread": ("call", "long_below_short"),
+    "call_debit_spread": ("call", "long_below_short"),
+}
+_LEG_SPEC_TWO_LEG_CREDIT = {
+    "put_credit_spread": ("put", "short_above_long"),
+    "call_credit_spread": ("call", "short_below_long"),
+}
+_LEG_SPEC_ONE_LEG = {
+    "long_call": "call",
+    "long_put": "put",
+}
+
+
+def _check_legs_match_strategy(outcome: TradeInsightAiOutcome) -> None:
+    """v5.3: enforce per-structure legs[] geometry.
+
+    The legs-strategy-match check binds the proposed structure label to
+    actual leg geometry: bear_put_spread must be two puts long-above-short
+    on the same expiry, credit spreads must include the protective long
+    leg (no-naked-shorts), and so on. Lifts the v5.2 gap where
+    `structure="bear_put_spread"` was a free-text claim with no
+    falsifiable composition behind it.
+
+    Skipped for status_observed='strategy_review', structure='no_trade',
+    and legs=[] (these are legitimate "research-only" outputs).
+    """
+    pref = outcome.preferred_expression
+    if pref is None:
+        return
+    structure = (pref.structure or "").lower()
+    if structure in ("", "no_trade"):
+        return
+    if pref.status_observed == "strategy_review":
+        return
+    legs = pref.legs
+    if not legs:
+        # Structured family declared but no legs — only enforce when the
+        # structure is one we have a spec for. Otherwise let it pass for
+        # diagonal / butterfly / iron_condor / calendar (out of v5.3 scope).
+        if (
+            structure in _LEG_SPEC_TWO_LEG_DEBIT
+            or structure in _LEG_SPEC_TWO_LEG_CREDIT
+            or structure in _LEG_SPEC_ONE_LEG
+        ):
+            raise ValueError(
+                f"legs_match_strategy: structure={structure!r} requires "
+                "explicit legs[] (v5.3). Emit the leg array, or set "
+                "status_observed='strategy_review' if the spread is research-only."
+            )
+        return
+
+    # One-leg structures
+    if structure in _LEG_SPEC_ONE_LEG:
+        expected_type = _LEG_SPEC_ONE_LEG[structure]
+        if len(legs) != 1:
+            raise ValueError(
+                f"legs_match_strategy: {structure} requires exactly 1 leg, got {len(legs)}"
+            )
+        leg = legs[0]
+        if leg.option_type != expected_type:
+            raise ValueError(
+                f"legs_match_strategy: {structure} leg option_type must be "
+                f"{expected_type!r}, got {leg.option_type!r}"
+            )
+        if leg.side != "long":
+            raise ValueError(
+                f"legs_match_strategy: {structure} leg must be long, got {leg.side!r}"
+            )
+        return
+
+    # Two-leg debit + credit structures
+    spec = _LEG_SPEC_TWO_LEG_DEBIT.get(structure) or _LEG_SPEC_TWO_LEG_CREDIT.get(
+        structure
+    )
+    if spec is None:
+        # Out-of-spec structure (diagonal, butterfly, etc.) — pass through.
+        return
+    expected_type, ordering = spec
+    if len(legs) != 2:
+        raise ValueError(
+            f"legs_match_strategy: {structure} requires exactly 2 legs, got {len(legs)}"
+        )
+    for leg in legs:
+        if leg.option_type != expected_type:
+            raise ValueError(
+                f"legs_match_strategy: {structure} legs must be "
+                f"option_type={expected_type!r}, got {leg.option_type!r}"
+            )
+    if legs[0].expiry != legs[1].expiry:
+        raise ValueError(
+            f"legs_match_strategy: {structure} both legs must share the same "
+            f"expiry, got {legs[0].expiry} and {legs[1].expiry}"
+        )
+    longs = [leg for leg in legs if leg.side == "long"]
+    shorts = [leg for leg in legs if leg.side == "short"]
+    if len(longs) != 1 or len(shorts) != 1:
+        # No-naked-shorts: every defined-risk family MUST have exactly one
+        # long protective leg + one short leg.
+        raise ValueError(
+            f"legs_match_strategy: {structure} requires exactly 1 long + 1 short "
+            f"leg (defined-risk; no naked shorts), got {len(longs)} long / "
+            f"{len(shorts)} short"
+        )
+    long_strike = longs[0].strike
+    short_strike = shorts[0].strike
+    if ordering == "long_above_short" and not (long_strike > short_strike):
+        raise ValueError(
+            f"legs_match_strategy: {structure}: long_strike ({long_strike}) "
+            f"must be > short_strike ({short_strike})"
+        )
+    if ordering == "long_below_short" and not (long_strike < short_strike):
+        raise ValueError(
+            f"legs_match_strategy: {structure}: long_strike ({long_strike}) "
+            f"must be < short_strike ({short_strike})"
+        )
+    if ordering == "short_above_long" and not (short_strike > long_strike):
+        raise ValueError(
+            f"legs_match_strategy: {structure}: short_strike ({short_strike}) "
+            f"must be > long_strike ({long_strike}) for a defined-risk credit spread"
+        )
+    if ordering == "short_below_long" and not (short_strike < long_strike):
+        raise ValueError(
+            f"legs_match_strategy: {structure}: short_strike ({short_strike}) "
+            f"must be < long_strike ({long_strike}) for a defined-risk credit spread"
+        )
+
+
+_LEGS_TRIGGER_TOLERANCE = Decimal("0.02")  # 2%
+
+
+def _check_legs_align_with_triggers(outcome: TradeInsightAiOutcome) -> None:
+    """v5.3: long-leg strike must be within 2% of a trigger component.
+
+    Binds the proposed spread back to the trigger state machine. Without
+    this, the spread is free-text geometry — the model can claim
+    bear_put_spread 215/210 while ALSO claiming trigger_level=220 with no
+    enforceable relationship between the two (the v5.2 NVDA gap).
+
+    Skipped when:
+      - no preferred / structure='no_trade' / strategy_review (legs may
+        be hypothetical research geometry)
+      - no triggers populated (data_insufficient case)
+      - no long leg (caught by legs_match_strategy)
+    """
+    pref = outcome.preferred_expression
+    if pref is None:
+        return
+    if (pref.structure or "").lower() in ("", "no_trade"):
+        return
+    if pref.status_observed == "strategy_review":
+        return
+    if not pref.legs:
+        return
+    longs = [leg for leg in pref.legs if leg.side == "long"]
+    if not longs:
+        return  # legs_match_strategy will catch this case
+    long_strike = longs[0].strike
+    if long_strike is None:
+        return
+
+    levels: list[tuple[str, Decimal]] = []
+    if outcome.entry_trigger.level is not None:
+        levels.append(("entry_trigger", outcome.entry_trigger.level))
+    if outcome.thesis_trigger.level is not None:
+        levels.append(("thesis_trigger", outcome.thesis_trigger.level))
+    if not levels:
+        return  # no triggers to validate against
+
+    for _, level in levels:
+        if level == 0:
+            continue
+        pct_diff = abs(long_strike - level) / level
+        if pct_diff <= _LEGS_TRIGGER_TOLERANCE:
+            return  # aligned with at least one trigger
+
+    formatted = ", ".join(f"{name}={level}" for name, level in levels)
+    raise ValueError(
+        f"legs_align_with_triggers: long_leg_strike={long_strike} is not "
+        f"within 2% of any trigger component ({formatted}). Either re-pick "
+        "the spread to align with the trigger state machine, or revise the "
+        "trigger components to reflect the actual entry plan."
+    )
+
+
+def _check_entry_state_derivation(outcome: TradeInsightAiOutcome) -> None:
+    """v5.3: ENTRY_STATE is mechanical, not a model judgment.
+
+    Truth table (from STEP 3 of the v5.3 prompt):
+
+      thesis.fired AND entry.fired AND NOT invalidation.fired  → ACTIVE
+      thesis.fired AND NOT entry.fired AND NOT invalidation.fired → CONDITIONAL
+      NOT thesis.fired AND NOT invalidation.fired              → CONDITIONAL or NO_ENTRY
+                                                                 (judgment between
+                                                                  data-quality vs.
+                                                                  opportunity-quality)
+      invalidation.fired                                       → NO_ENTRY
+
+    Strict enforcement:
+      - entry_state=ACTIVE without (thesis.fired AND entry.fired) is rejected
+      - entry_state=ACTIVE with invalidation.fired is rejected
+      - entry_state=CONDITIONAL with invalidation.fired is rejected
+
+    The CONDITIONAL/NO_ENTRY split when no triggers have fired is left to
+    the model — both are defensible depending on whether the missing
+    triggers reflect a setup still developing or a setup whose primary
+    evidence is absent.
+
+    Skipped when directional_bias=WAIT (entry_state should be NO_ENTRY by
+    Step 2 of the decision order, but that's caught by mode-structure
+    consistency).
+    """
+    state = outcome.headline.entry_state
+    if outcome.headline.directional_bias == "WAIT":
+        return
+
+    thesis_fired = outcome.thesis_trigger.fired
+    entry_fired = outcome.entry_trigger.fired
+    invalidation_fired = outcome.invalidation.fired
+
+    if state == "ACTIVE":
+        if invalidation_fired:
+            raise ValueError(
+                "entry_state_derivation: ACTIVE rejected — invalidation.fired=true "
+                "means the thesis is invalidated. Set entry_state=NO_ENTRY and "
+                "describe the invalidation in primary_risk."
+            )
+        if not (thesis_fired and entry_fired):
+            raise ValueError(
+                f"entry_state_derivation: ACTIVE requires BOTH "
+                f"thesis_trigger.fired AND entry_trigger.fired (got "
+                f"thesis_fired={thesis_fired}, entry_fired={entry_fired}). "
+                "When only thesis has fired, use CONDITIONAL with the "
+                "unfired entry_trigger as the watch level. v5.3 ENTRY_STATE "
+                "is mechanical — it must match the trigger booleans."
+            )
+        return
+
+    if state == "CONDITIONAL" and invalidation_fired:
+        raise ValueError(
+            "entry_state_derivation: CONDITIONAL rejected — invalidation.fired=true "
+            "means the thesis is invalidated. Set entry_state=NO_ENTRY."
+        )
+
+
 def _reject_imperative_text(outcome: TradeInsightAiOutcome) -> None:
     checked = [
         outcome.headline.stance_label,
@@ -865,6 +1123,13 @@ def validate_trade_insights_ai_outcome(
     _check_thesis_archetype_consistency(parsed)
     _check_headline_title_length(parsed, lenient=lenient)
     _check_min_rr_for_conditional_c(parsed)
+    # v5.3 additions: trigger-component state machine. Enforced in BOTH
+    # strict and lenient modes because they encode the v5.3 contract's
+    # core promise (ENTRY_STATE is mechanical; legs are explicit; the
+    # spread is tied to the trigger components).
+    _check_legs_match_strategy(parsed)
+    _check_legs_align_with_triggers(parsed)
+    _check_entry_state_derivation(parsed)
 
     # Strict: source_path validation raises on invalid prefixes.
     # Lenient: invalid prefixes are dropped to None with a missing_data note.
