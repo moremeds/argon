@@ -111,7 +111,10 @@ DELTA-MATCH (HARD):
   activate.
 
 REQUIRED STRINGS in headline (each substantive, one sentence; not a fragment):
-- title, stance_label, conviction_label, top_reason, primary_risk, watch_trigger.
+- title (v5.2: 10-20 words, naming bias + structure + trigger level + DTE band — \
+  NOT the page title "NVDA AI Analysis"; example: \
+  "NVDA SHORT_DELTA bear_put_spread fires on daily close below 215, 35 DTE standard band."),
+- stance_label, conviction_label, top_reason, primary_risk, watch_trigger.
 
 section_cards has THREE required keys: market_structure, volatility, \
 flow_positioning. Each MUST have title, summary (>=1 sentence of real \
@@ -123,21 +126,26 @@ metrics, reason}. When data is incomplete, set signal="neutral" and explain \
 in summary/reason.
 
 preferred_expression: provide {idea_id, structure, title, why, \
-status_observed, risk_flags_observed, strike_role}. v5.1: strike_role is \
-a nested object with {long_leg_role, short_leg_role, trigger_level, \
-target_level, invalid_level}. For directional breakout setups, populate \
+status_observed, risk_flags_observed, strike_role}. \
+strike_role is a nested object with {long_leg_role, short_leg_role, \
+trigger_level, target_level, invalid_level, trigger_source_path, \
+target_source_path, invalid_source_path}. v5.2: trigger_level / \
+target_level / invalid_level MUST be a NUMERIC PRICE STRING (e.g. "215" \
+or "215.00") — NOT a dict, NOT a row object from the payload. Example: \
+"trigger_level": "215". If you copy a row from the strike-curve payload, \
+extract only the strike key. For directional breakout setups, populate \
 trigger_level (numeric price), target_level (next wall above for \
 LONG_DELTA, below for SHORT_DELTA), and invalid_level (close past this \
 invalidates). long_leg_role is typically "trigger_level" or "atm_delta_anchor"; \
 short_leg_role is "target_level" or "next_call_wall"/"second_magnet" for \
 LONG_DELTA, "next_put_wall"/"next_downside_target" for SHORT_DELTA. \
 For estimated_entry, max_profit_observed, max_loss_observed, reward_risk: \
-if entry_state=CONDITIONAL and the trigger has NOT fired, EITHER set \
-status_observed="strategy_review" with blanks/placeholders ("Repriced \
-post-trigger — observed pre-trigger numerics are reference only.") OR set \
-status_observed="candidate_pre_trigger" if you explicitly argue for a \
-PRE-trigger anticipatory entry. Do NOT present pre-trigger observed \
-numerics as if they were the expected post-trigger economics. \
+if entry_state=CONDITIONAL and the trigger has NOT fired, set \
+status_observed="strategy_review" with blanks or the placeholder string \
+"Repriced post-trigger — observed pre-trigger numerics are reference only." \
+Do NOT present pre-trigger observed numerics as if they were the expected \
+post-trigger economics. v5.2 removed the "candidate_pre_trigger" escape \
+hatch as dead code — under CONDITIONAL always use strategy_review. \
 For trade_intent=range_income or directional_bias=WAIT, \
 structure="no_trade" is acceptable; the other fields then describe the \
 conditional setup.

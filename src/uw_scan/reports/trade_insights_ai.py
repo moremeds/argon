@@ -133,11 +133,41 @@ STEP 1 — UNDERLYING_PATH (set headline.underlying_path)
     - pinned_no_directional_entry:   range-bound, no edge for direction
     - data_insufficient:             primary evidence absent
 
+STEP 1.5 — THESIS_ARCHETYPE (set headline.thesis_archetype)  (v5.2: NEW)
+  v5.1 conflated bearish_rejection and downside_break — Codex picked one,
+  Claude picked the other on the same NVDA payload because the
+  underlying_path label alone doesn't force a spatial commit. Make the
+  archetype explicit:
+
+    resistance_rejection:   spot is BETWEEN two walls and trading AWAY
+                            from the upper one; the upper wall held;
+                            target is back inside the range. underlying
+                            _path = bearish_rejection.
+    support_breakdown:      spot is AT or BELOW a lower wall AND that
+                            wall has been broken on a completed daily
+                            close in the prior 5 sessions. underlying
+                            _path = downside_break.
+    breakout_continuation:  spot is AT or ABOVE an upper wall AND that
+                            wall has been broken on a completed daily
+                            close in the prior 5 sessions. underlying
+                            _path = bullish_continuation.
+    pin_no_trade:           spot is between two walls with no
+                            directional flow. underlying_path =
+                            pinned_no_directional_entry.
+    data_insufficient:      primary fields missing. underlying_path =
+                            data_insufficient.
+
+  In top_reason, CITE the specific completed daily close session that
+  justifies the archetype (e.g. "2026-05-22 close at 215.33 below the
+  220 put wall confirms support_breakdown").
+
 STEP 2 — DIRECTIONAL_BIAS (set headline.directional_bias)
-  Map underlying_path to one of {LONG_DELTA, SHORT_DELTA, WAIT}:
-    bullish_continuation                                 -> LONG_DELTA
-    bearish_rejection  OR downside_break                 -> SHORT_DELTA
-    pinned_no_directional_entry OR data_insufficient     -> WAIT
+  Map thesis_archetype + underlying_path to one of {LONG_DELTA, SHORT_DELTA, WAIT}:
+    breakout_continuation / bullish_continuation         -> LONG_DELTA
+    resistance_rejection / bearish_rejection             -> SHORT_DELTA
+    support_breakdown    / downside_break                -> SHORT_DELTA
+    pin_no_trade         / pinned_no_directional_entry   -> WAIT
+    data_insufficient                                    -> WAIT
   WAIT is a valid output. Do NOT convert WAIT into an iron condor unless
   trade_intent is range_income (see Step 4).
 
@@ -146,6 +176,31 @@ STEP 3 — ENTRY_STATE (set headline.entry_state)
                    the wall, daily close below support, etc.)
     - CONDITIONAL: setup valid; needs daily-close or 2-session confirmation
     - NO_ENTRY:    no clean directional edge (set when directional_bias=WAIT)
+
+  ACTIVE_TRIGGER_EVIDENCE_RULE (HARD, v5.2):
+    ACTIVE is allowed ONLY when the payload contains a COMPLETED daily
+    close that satisfies the trigger. Intraday spot is NOT sufficient.
+
+    For LONG_DELTA breakout (trigger="daily close above X"):
+      latest completed close > X
+        OR two completed closes above X if the trigger says "2-session hold"
+
+    For SHORT_DELTA downside_break / resistance_rejection (trigger="daily close below X"):
+      latest completed close < X
+        OR two completed closes below X if the trigger says "2-session hold"
+
+    If the latest completed daily close in tabs.market_structure.stock_history
+    does NOT satisfy the trigger, you MUST emit entry_state=CONDITIONAL —
+    even if intraday spot has crossed the level. The validator will reject
+    entry_state=ACTIVE when trigger_evidence.trigger_fired=false.
+
+    Populate the trigger_evidence block with:
+      trigger_fired:        true iff a completed close satisfied the trigger
+      trigger_type:         "daily_close" | "two_session_hold"
+      trigger_level:        the numeric level being tested
+      evidence_close:       the completed close that proves (or fails) the trigger
+      evidence_close_date:  the market_date of evidence_close
+      source_path:          tabs.market_structure.stock_history.rows[N].spot
 
 STEP 4 — TRADE_INTENT (set headline.trade_intent)
   Default: directional_swing. Set range_income ONLY when ALL three hold:
@@ -300,6 +355,25 @@ bias=SHORT_DELTA.
 In headline.top_reason or dominant_read.summary, CITE which of the four
 sub-conditions hold (e.g. "anti-pin satisfied: 3 of 4 — OI build, premium
 tilt, spot proximity; alert cluster absent").
+
+ANTI_PIN_CAP_SCOPE_RULE (v5.2): the conviction cap and the wall=target
+reclassification apply ONLY when anti-pin is INVOKED as the trade thesis
+(i.e. the thesis is "persistent flow attacks the wall → wall becomes a
+target"). If the thesis is structural-break (price has already closed
+through the wall in a prior session, support_breakdown) or trend
+continuation, anti-pin scoring is INFORMATIONAL — set anti_pin.invoked
+=false and do NOT use a low anti-pin score as a reason to cap conviction.
+The validator's conviction-cap check only fires when anti_pin.invoked=true.
+
+Populate the anti_pin block with:
+  invoked:                true iff anti-pin is the primary thesis
+  direction:              "upside" | "downside" | "none"
+  score:                  0-4 (count of sub-conditions met)
+  conditions_met:         list of sub-condition tags
+                          (e.g. ["oi_build", "premium_tilt"])
+  conviction_cap_applied: true iff conviction was capped at C/D
+                          because of anti-pin score
+  cap_reason:             one-sentence explanation when capped
 
 ═══════════════════════════════════════════════════════════════════════════
 TRIGGER_STRIKE_CONSISTENCY (HARD; validator will reject otherwise)
@@ -1074,6 +1148,43 @@ def build_trade_insights_ai_prompt(prompt_payload: dict[str, Any]) -> str:
         "which sub-conditions hold (e.g. 'anti-pin satisfied 3/4 — OI build, "
         "premium tilt, spot proximity; alert cluster absent'). If only 2 of "
         "4 hold, cap headline.conviction at C.\n"
+        "Anti-pin SCOPE (HARD, v5.2): the conviction cap and the wall=target "
+        "reclassification apply ONLY when anti_pin.invoked=true (anti-pin is "
+        "the primary thesis). For structural-break theses (price already "
+        "closed through the wall) or trend-continuation theses, anti-pin "
+        "scoring is informational — set anti_pin.invoked=false and do NOT "
+        "use a low score as a reason to cap conviction.\n"
+        "Thesis archetype (HARD, v5.2): headline.thesis_archetype MUST be "
+        "one of ['resistance_rejection','support_breakdown','breakout_"
+        "continuation','pin_no_trade','data_insufficient']. The archetype "
+        "must agree with underlying_path: resistance_rejection ↔ "
+        "bearish_rejection, support_breakdown ↔ downside_break, "
+        "breakout_continuation ↔ bullish_continuation, pin_no_trade ↔ "
+        "pinned_no_directional_entry, data_insufficient ↔ data_insufficient. "
+        "In top_reason, cite the specific completed daily close session "
+        "that justifies the archetype.\n"
+        "ACTIVE trigger evidence (HARD, v5.2): headline.entry_state=ACTIVE "
+        "is allowed ONLY when the payload contains a COMPLETED daily close "
+        "that satisfies the trigger. Populate the trigger_evidence block "
+        "with the proving close. If the latest completed close does NOT "
+        "satisfy the trigger, you MUST emit entry_state=CONDITIONAL — "
+        "intraday spot is NOT sufficient. The validator will reject "
+        "entry_state=ACTIVE when trigger_evidence.trigger_fired=false.\n"
+        "strike_role level type (HARD, v5.2): trigger_level, target_level, "
+        "and invalid_level must be NUMERIC price strings ('215', '215.00') "
+        "or numbers — NOT dict objects pasted from the payload. The "
+        "Pydantic schema will reject anything else.\n"
+        "Headline title (v5.2): headline.title must be 10-20 words, naming "
+        "directional_bias + structure + trigger level + dte_band. Example: "
+        "'NVDA SHORT_DELTA bear_put_spread fires on daily close below 215, "
+        "35 DTE standard band.' Do NOT emit 'NVDA AI Analysis' or other "
+        "page-title strings — that's a v5.1 failure mode.\n"
+        "Minimum reward/risk under CONDITIONAL conviction ≤ C (v5.2): when "
+        "entry_state=CONDITIONAL AND headline.conviction in {C, D, F}, "
+        "preferred_expression.reward_risk should be >= 1.5 for the trade "
+        "to be worth the conditional setup risk. Lower R:R with these "
+        "conviction levels often has poor expected value given conditional "
+        "setups historically hit-rate below 50%.\n"
         "Project safety override: do not recommend naked short options or "
         "undefined-risk short-vol structures. risk_reversal is excluded from "
         "the directional_swing whitelist because its short put leg is naked; "
