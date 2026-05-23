@@ -72,6 +72,11 @@ async function _fetch<T>(
   return JSON.parse(text) as T;
 }
 
+function isFetchNetworkError(error: unknown): boolean {
+  if (!(error instanceof TypeError)) return false;
+  return /fetch failed|failed to fetch|load failed/i.test(error.message);
+}
+
 export const api = {
   watchlist: (
     params: URLSearchParams = new URLSearchParams(),
@@ -150,10 +155,18 @@ export const api = {
   },
   scannerDiscover: (limit = 20): Promise<ScannerDiscoverResponse> =>
     _fetch<ScannerDiscoverResponse>(`/api/scanner/discover?limit=${limit}`),
-  ratesSnapshot: (): Promise<RatesSnapshotResponse | null> =>
-    _fetch<RatesSnapshotResponse | null>(`/api/rates/snapshot`, undefined, {
-      allow404: true,
-    }),
+  ratesSnapshot: async (): Promise<RatesSnapshotResponse | null> => {
+    try {
+      return await _fetch<RatesSnapshotResponse | null>(
+        `/api/rates/snapshot`,
+        undefined,
+        { allow404: true },
+      );
+    } catch (error) {
+      if (isFetchNetworkError(error)) return null;
+      throw error;
+    }
+  },
   tradeInsights: (ticker: string): Promise<TradeInsightsResponse> =>
     _fetch<TradeInsightsResponse>(`/api/stock/${ticker}/trade-insights`),
   tradeInsightsAiAnalysis: (
