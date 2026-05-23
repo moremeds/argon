@@ -38,6 +38,8 @@ Feeds `/rates` through `worker/jobs/rates_jobs.py` and
 | `cleveland_fed.py` | Cleveland Fed inflation-expectations model CSVs for the four-component 10Y decomposition. | Live |
 | `fomc_calendar.py` | Federal Reserve FOMC calendar page for meeting metadata. | Live |
 | `fed_funds_futures_path.py` | Frenzy Capital Fed Watch SSR data, a free/delayed fed-funds-futures move-probability source used as an alternative to the paid CME FedWatch API. Override with `RATES_POLICY_PATH_URL` if we later host our own scraped/derived page. | Live |
+| `cftc_tff.py` | CFTC Traders in Financial Futures futures-only API (`gpe5-46if`) for U.S. Treasury futures positioning by dealer/intermediary, asset manager, leveraged funds, and other reportables. | Live |
+| `treasury_supply.py` | TreasuryDirect auction results plus FiscalData debt-to-the-penny for the rates Supply panel. | Live |
 
 ## Rules
 

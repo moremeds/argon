@@ -1064,10 +1064,162 @@
   line-height: 1.5;
 }
 
+.supplyGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
+  gap: 14px;
+  align-items: stretch;
+}
+
+.supplyCard {
+  display: grid;
+  gap: 14px;
+  min-width: 0;
+  border: 1px solid var(--border-dim);
+  border-radius: 8px;
+  background: var(--bg-panel-raised);
+  padding: 18px;
+}
+
+.supplyTableWrap {
+  overflow-x: auto;
+  border: 1px solid var(--border-dim);
+  border-radius: 8px;
+}
+
+.supplyTable {
+  width: 100%;
+  min-width: 0;
+  border-collapse: collapse;
+  font-family: var(--font-mono), "IBM Plex Mono", monospace;
+  table-layout: fixed;
+}
+
+.supplyTable th,
+.supplyTable td {
+  padding: 12px 10px;
+  border-bottom: 1px solid var(--border-dim);
+  color: var(--text-primary);
+  font-size: 13px;
+  font-weight: 800;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.supplyTable th:nth-child(1),
+.supplyTable td:nth-child(1) {
+  width: 36%;
+}
+
+.supplyTable th:nth-child(2),
+.supplyTable td:nth-child(2),
+.supplyTable th:nth-child(3),
+.supplyTable td:nth-child(3),
+.supplyTable th:nth-child(4),
+.supplyTable td:nth-child(4),
+.supplyTable th:nth-child(5),
+.supplyTable td:nth-child(5) {
+  width: 16%;
+}
+
+.supplyTable th {
+  color: var(--text-muted);
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.supplyTable th:first-child,
+.supplyTable td:first-child {
+  text-align: left;
+}
+
+.supplyTable tr:last-child td {
+  border-bottom: 0;
+}
+
+.supplyTable small {
+  display: block;
+  margin-top: 4px;
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.supplyMetricGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
 .synthesis span {
   display: inline-block;
   margin: 8px 8px 0 0;
   color: var(--warning);
+}
+
+.positioningStack {
+  display: grid;
+  gap: 14px;
+}
+
+.positioningTableWrap {
+  overflow-x: auto;
+  border: 1px solid var(--border-dim);
+  border-radius: 8px;
+}
+
+.positioningTable {
+  width: 100%;
+  min-width: 840px;
+  border-collapse: collapse;
+  font-family: var(--font-mono), "IBM Plex Mono", monospace;
+}
+
+.positioningTable th,
+.positioningTable td {
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--border-dim);
+  text-align: right;
+  white-space: nowrap;
+}
+
+.positioningTable th {
+  color: var(--text-muted);
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.positioningTable td {
+  color: var(--text-primary);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.positioningTable th:first-child,
+.positioningTable td:first-child {
+  text-align: left;
+}
+
+.positioningTable tr:last-child td {
+  border-bottom: 0;
+}
+
+.positioningTable small {
+  display: block;
+  margin-top: 4px;
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.positioningRead {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 650;
+  line-height: 1.5;
 }
 
 .sourceGrid {
@@ -1124,7 +1276,8 @@
   .decompDetailGrid,
   .decompSourceGrid,
   .ratesReadGrid,
-  .policyGrid {
+  .policyGrid,
+  .supplyGrid {
     grid-template-columns: 1fr;
   }
 
@@ -1154,5 +1307,9 @@
 
   .policyPathGrid {
     grid-template-columns: repeat(2, minmax(100px, 1fr));
+  }
+
+  .supplyMetricGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }

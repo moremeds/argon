@@ -15,6 +15,47 @@ type DecompositionAttribution =
   components["schemas"]["RatesDecompositionAttribution"];
 type Policy = NonNullable<Snapshot["policy"]>;
 type PolicyPathPoint = components["schemas"]["RatesPolicyPathPoint"];
+type Supply = NonNullable<Snapshot["supply"]> & {
+  recent_auctions?: SupplyAuction[];
+  fiscal?: SummaryTile[];
+  supply_read?: string | null;
+};
+type SupplyAuction = {
+  cusip: string;
+  security_type: string;
+  security_term: string;
+  auction_date: string;
+  issue_date?: string | null;
+  offering_amount?: number | null;
+  high_rate?: number | null;
+  bid_to_cover?: number | null;
+  direct_bidder_pct?: number | null;
+  indirect_bidder_pct?: number | null;
+  primary_dealer_pct?: number | null;
+  tail_indicator?: string | null;
+  source_url?: string | null;
+  status?: string;
+};
+type Positioning = NonNullable<Snapshot["positioning"]> & {
+  details?: PositioningDetail[];
+  positioning_read?: string | null;
+};
+type PositioningDetail = {
+  contract_code: string;
+  contract_name: string;
+  tenor_bucket: string;
+  obs_date?: string | null;
+  release_date?: string | null;
+  open_interest?: number | null;
+  dealer_net?: number | null;
+  dealer_net_pct_oi?: number | null;
+  asset_mgr_net?: number | null;
+  asset_mgr_net_pct_oi?: number | null;
+  lev_money_net?: number | null;
+  lev_money_net_pct_oi?: number | null;
+  source_url?: string | null;
+  status?: string;
+};
 
 const NAV = [
   ["summary", "Summary"],
@@ -157,6 +198,41 @@ function fmtPolicyMetric(value: unknown, unit: string | undefined): string {
   return fmtValue(value, unit, unit === "bps" ? 1 : 2);
 }
 
+function fmtContracts(value: unknown): string {
+  const n = toFiniteNumber(value, Number.NaN);
+  if (!Number.isFinite(n)) return "n/a";
+  return n.toLocaleString("en-US", { maximumFractionDigits: 0 });
+}
+
+function fmtPct(value: unknown): string {
+  const n = toFiniteNumber(value, Number.NaN);
+  if (!Number.isFinite(n)) return "n/a";
+  const sign = n > 0 ? "+" : "";
+  return `${sign}${n.toFixed(1)}% OI`;
+}
+
+function fmtAuctionSize(value: unknown): string {
+  const n = toFiniteNumber(value, Number.NaN);
+  if (!Number.isFinite(n)) return "n/a";
+  return `$${n.toFixed(1)}bn`;
+}
+
+function fmtSupplyMetric(tile: SummaryTile): string {
+  const n = toFiniteNumber(tile.value, Number.NaN);
+  if (!Number.isFinite(n)) return "n/a";
+  if (tile.unit === "$T") return `$${n.toFixed(2)}T`;
+  if (tile.unit === "$bn") return `$${n.toFixed(1)}bn`;
+  if (tile.unit === "%") return `${n.toFixed(1)}%`;
+  if (tile.unit === "x") return `${n.toFixed(2)}x`;
+  return fmtValue(tile.value, tile.unit, 2);
+}
+
+function fmtPercent(value: unknown): string {
+  const n = toFiniteNumber(value, Number.NaN);
+  if (!Number.isFinite(n)) return "n/a";
+  return `${n.toFixed(1)}%`;
+}
+
 function PolicySection({ policy }: { policy: Policy }) {
   const path = policy.implied_path ?? [];
   return (
@@ -224,6 +300,156 @@ function PolicySection({ policy }: { policy: Policy }) {
           ))}
         </dl>
         <p>{policy.plumbing_read ?? "Fed plumbing series unavailable."}</p>
+      </article>
+    </div>
+  );
+}
+
+function PositioningSection({ positioning }: { positioning: Positioning }) {
+  const rows = positioning.rows ?? [];
+  const details = positioning.details ?? [];
+  if (!rows.length && !details.length) {
+    return (
+      <div className={styles.notePanel}>
+        <strong>{statusLabel(positioning.status)}</strong>
+        <p>CFTC/TIC feeds not wired in Phase 1.</p>
+      </div>
+    );
+  }
+  return (
+    <div className={styles.positioningStack}>
+      <div className={styles.compactGrid}>
+        {rows.map((row) => (
+          <article className={styles.kpiTile} key={row.label}>
+            <span>{row.label}</span>
+            <strong>{fmtContracts(row.value)}</strong>
+            <small>{row.unit}</small>
+          </article>
+        ))}
+      </div>
+      <div className={styles.positioningTableWrap}>
+        <table className={styles.positioningTable}>
+          <thead>
+            <tr>
+              <th>Contract</th>
+              <th>Open interest</th>
+              <th>Leveraged funds</th>
+              <th>Asset managers</th>
+              <th>Dealers</th>
+            </tr>
+          </thead>
+          <tbody>
+            {details.map((row) => (
+              <tr key={`${row.contract_code}-${row.obs_date ?? ""}`}>
+                <td>
+                  <strong>{row.tenor_bucket}</strong>
+                  <small>{row.contract_name}</small>
+                </td>
+                <td>{fmtContracts(row.open_interest)}</td>
+                <td>
+                  {fmtContracts(row.lev_money_net)}
+                  <small>{fmtPct(row.lev_money_net_pct_oi)}</small>
+                </td>
+                <td>
+                  {fmtContracts(row.asset_mgr_net)}
+                  <small>{fmtPct(row.asset_mgr_net_pct_oi)}</small>
+                </td>
+                <td>
+                  {fmtContracts(row.dealer_net)}
+                  <small>{fmtPct(row.dealer_net_pct_oi)}</small>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <p className={styles.positioningRead}>
+        {positioning.positioning_read ??
+          "CFTC TFF Treasury futures positioning is unavailable."}
+      </p>
+    </div>
+  );
+}
+
+function SupplySection({ supply }: { supply: Supply | undefined }) {
+  const recentAuctions = supply?.recent_auctions ?? [];
+  const fiscal = supply?.fiscal ?? [];
+  if (!recentAuctions.length && !fiscal.length) {
+    return (
+      <div className={styles.notePanel}>
+        <strong>{statusLabel(supply?.status)}</strong>
+        {(supply?.notes?.length
+          ? supply.notes
+          : ["Treasury auction and FiscalData supply feeds are unavailable."]
+        ).map((note) => (
+          <p key={note}>{note}</p>
+        ))}
+      </div>
+    );
+  }
+
+  return (
+    <div className={styles.supplyGrid}>
+      <article className={styles.supplyCard}>
+        <div className={styles.policyCardTop}>
+          <h3>Recent auctions</h3>
+          <span>TreasuryDirect</span>
+        </div>
+        <div className={styles.supplyTableWrap}>
+          <table className={styles.supplyTable}>
+            <thead>
+              <tr>
+                <th>Issue</th>
+                <th>Size</th>
+                <th>High rate</th>
+                <th>Bid cover</th>
+                <th>Indirect</th>
+              </tr>
+            </thead>
+            <tbody>
+              {recentAuctions.map((row) => (
+                <tr key={`${row.cusip}-${row.auction_date}`}>
+                  <td>
+                    <strong>
+                      {row.security_term} {row.security_type}
+                    </strong>
+                    <small>{row.auction_date}</small>
+                  </td>
+                  <td>{fmtAuctionSize(row.offering_amount)}</td>
+                  <td>{fmtValue(row.high_rate, "%", 3)}</td>
+                  <td>{fmtValue(row.bid_to_cover, "", 2)}</td>
+                  <td>{fmtPercent(row.indirect_bidder_pct)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        {supply?.supply_read ? (
+          <p className={styles.positioningRead}>{supply.supply_read}</p>
+        ) : null}
+      </article>
+
+      <article className={styles.supplyCard}>
+        <div className={styles.policyCardTop}>
+          <h3>Issuance & fiscal</h3>
+          <span>FiscalData + FRED</span>
+        </div>
+        <div className={styles.supplyMetricGrid}>
+          {fiscal.map((tile) => (
+            <article className={styles.kpiTile} key={tile.label}>
+              <span>{tile.label}</span>
+              <strong>{fmtSupplyMetric(tile)}</strong>
+              <small>{statusLabel(tile.status)}</small>
+            </article>
+          ))}
+          {(supply?.auctions ?? []).map((tile) => (
+            <article className={styles.kpiTile} key={tile.label}>
+              <span>{tile.label}</span>
+              <strong>{fmtSupplyMetric(tile)}</strong>
+              <small>{statusLabel(tile.status)}</small>
+            </article>
+          ))}
+        </div>
       </article>
     </div>
   );
@@ -860,8 +1086,12 @@ export function RatesDesk({ snapshot }: { snapshot: Snapshot | null }) {
     plumbing: [],
     implied_path: [],
   };
-  const supply = snapshot.supply;
-  const positioning = snapshot.positioning;
+  const supply = snapshot.supply as Supply | undefined;
+  const positioning: Positioning = (snapshot.positioning ?? {
+    rows: [],
+    details: [],
+    status: "missing",
+  }) as Positioning;
   const cross = snapshot.cross_market;
   const scorecard = snapshot.scorecard ?? {
     duration_stance: "NEUTRAL",
@@ -970,15 +1200,7 @@ export function RatesDesk({ snapshot }: { snapshot: Snapshot | null }) {
         title="Supply"
         status={statusLabel(supply?.status)}
       >
-        <div className={styles.notePanel}>
-          <strong>{statusLabel(supply?.status)}</strong>
-          {(supply?.notes?.length
-            ? supply.notes
-            : ["Treasury auction feed not wired in Phase 1."]
-          ).map((note) => (
-            <p key={note}>{note}</p>
-          ))}
-        </div>
+        <SupplySection supply={supply} />
       </RatesSection>
 
       <RatesSection
@@ -986,10 +1208,7 @@ export function RatesDesk({ snapshot }: { snapshot: Snapshot | null }) {
         title="Positioning"
         status={statusLabel(positioning?.status)}
       >
-        <div className={styles.notePanel}>
-          <strong>{statusLabel(positioning?.status)}</strong>
-          <p>CFTC/TIC feeds not wired in Phase 1.</p>
-        </div>
+        <PositioningSection positioning={positioning} />
       </RatesSection>
 
       <RatesSection

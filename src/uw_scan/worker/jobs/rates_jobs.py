@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Callable
+from dataclasses import asdict
 from dataclasses import dataclass
 from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
@@ -18,9 +19,11 @@ from uw_scan.rates.series import (
 )
 from uw_scan.rates.snapshot import build_rates_snapshot
 from uw_scan.sources.cleveland_fed import ClevelandFedInflationProvider
+from uw_scan.sources.cftc_tff import CftcTffProvider
 from uw_scan.sources.fed_funds_futures_path import FedFundsFuturesPathProvider
 from uw_scan.sources.fomc_calendar import FomcCalendarProvider
 from uw_scan.sources.fred import FredProvider, RecordHook
+from uw_scan.sources.treasury_supply import TreasurySupplyProvider
 from uw_scan.storage.repository import Repository
 
 logger = logging.getLogger(__name__)
@@ -72,6 +75,30 @@ class RatesPolicyPathProvider(Protocol):
 RatesPolicyPathProviderFactory = Callable[..., RatesPolicyPathProvider]
 
 
+class RatesCftcTffProvider(Protocol):
+    def __enter__(self) -> "RatesCftcTffProvider": ...
+
+    def __exit__(self, *_exc: object) -> object: ...
+
+    def fetch_treasury_rows(self, *, start: date | None = None): ...
+
+
+RatesCftcTffProviderFactory = Callable[..., RatesCftcTffProvider]
+
+
+class RatesTreasurySupplyProvider(Protocol):
+    def __enter__(self) -> "RatesTreasurySupplyProvider": ...
+
+    def __exit__(self, *_exc: object) -> object: ...
+
+    def fetch_recent_auctions(self, *, start: date | None = None): ...
+
+    def fetch_latest_debt(self): ...
+
+
+RatesTreasurySupplyProviderFactory = Callable[..., RatesTreasurySupplyProvider]
+
+
 @dataclass(frozen=True)
 class RatesIngestResult:
     inserted_observations: int
@@ -94,6 +121,10 @@ def rates_fred_ingest_job(
     fomc_provider_factory: RatesFomcProviderFactory = FomcCalendarProvider,
     policy_path_provider_factory: RatesPolicyPathProviderFactory = (
         FedFundsFuturesPathProvider
+    ),
+    cftc_tff_provider_factory: RatesCftcTffProviderFactory = CftcTffProvider,
+    treasury_supply_provider_factory: RatesTreasurySupplyProviderFactory = (
+        TreasurySupplyProvider
     ),
     policy_path_url: str = FedFundsFuturesPathProvider.BASE_URL,
     computed_at: datetime | None = None,
@@ -199,16 +230,62 @@ def rates_fred_ingest_job(
             failed.append("FED_FUNDS_FUTURES_PATH")
             logger.exception("rates_policy_path_ingest failed: %r", exc)
 
+        try:
+            with cftc_tff_provider_factory(
+                record_request=record_request,
+                job_name="rates_cftc_tff_ingest",
+            ) as tff:
+                tff_rows = [
+                    _json_safe(asdict(row))
+                    for row in tff.fetch_treasury_rows(start=start)
+                ]
+                inserted += repo.upsert_rates_cftc_tff_rows(
+                    tff_rows,
+                    as_of=now,
+                    source_url=CftcTffProvider.URL,
+                )
+        except Exception as exc:
+            failed.append("CFTC_TFF")
+            logger.exception("rates_cftc_tff_ingest failed: %r", exc)
+
+        try:
+            with treasury_supply_provider_factory(
+                record_request=record_request,
+                job_name="rates_treasury_supply_ingest",
+            ) as treasury_supply:
+                auction_rows = [
+                    _json_safe(asdict(row))
+                    for row in treasury_supply.fetch_recent_auctions(start=start)
+                ]
+                inserted += repo.upsert_rates_treasury_auction_rows(
+                    auction_rows,
+                    as_of=now,
+                )
+                debt_record = treasury_supply.fetch_latest_debt()
+                inserted += repo.upsert_rates_fiscal_debt_record(
+                    _json_safe(asdict(debt_record)) if debt_record is not None else None,
+                    as_of=now,
+                )
+        except Exception as exc:
+            failed.append("TREASURY_SUPPLY")
+            logger.exception("rates_treasury_supply_ingest failed: %r", exc)
+
         policy_events = repo.fetch_rates_policy_events(
             from_date=date(now.year - 1, 1, 1), to_date=date(now.year + 1, 12, 31)
         )
         policy_path = repo.fetch_latest_rates_policy_path()
+        cftc_tff_rows = repo.fetch_latest_rates_cftc_tff_rows()
+        treasury_auction_rows = repo.fetch_latest_rates_treasury_auction_rows()
+        fiscal_debt = repo.fetch_latest_rates_fiscal_debt_record()
         snapshot = build_rates_snapshot(
             observations_by_series,
             computed_at=now,
             failed_series=set(failed),
             policy_events=policy_events,
             policy_path=policy_path,
+            cftc_tff_rows=cftc_tff_rows,
+            supply_auctions=treasury_auction_rows,
+            supply_debt=fiscal_debt,
         )
         payload = snapshot.model_dump(mode="json")
         repo.insert_rates_snapshot(
@@ -250,6 +327,16 @@ def _to_payload(row: Any) -> dict[str, Any]:
     if callable(to_payload):
         return to_payload()
     raise TypeError(f"unsupported rates policy source row: {type(row)!r}")
+
+
+def _json_safe(row: dict[str, Any]) -> dict[str, Any]:
+    out: dict[str, Any] = {}
+    for key, value in row.items():
+        if isinstance(value, Decimal):
+            out[key] = value
+        else:
+            out[key] = value
+    return out
 
 
 def _target_range_from_observations(

@@ -109,6 +109,62 @@ def test_build_rates_snapshot_populates_live_fred_sections_without_static_filler
                 "source": "Frenzy Capital Fed Watch",
             }
         ],
+        cftc_tff_rows=[
+            {
+                "contract_code": "043602",
+                "contract_name": "UST 10Y NOTE",
+                "tenor_bucket": "10Y",
+                "obs_date": date(2026, 5, 19),
+                "release_date": date(2026, 5, 22),
+                "open_interest": Decimal("4544233"),
+                "dealer_net": Decimal("-97229"),
+                "dealer_net_pct_oi": Decimal("-2.1"),
+                "asset_mgr_net": Decimal("1300752"),
+                "asset_mgr_net_pct_oi": Decimal("28.6"),
+                "lev_money_net": Decimal("-1194445"),
+                "lev_money_net_pct_oi": Decimal("-26.3"),
+                "source_url": "https://publicreporting.cftc.gov/resource/gpe5-46if.json",
+            }
+        ],
+        supply_auctions=[
+            {
+                "cusip": "912810UL0",
+                "security_type": "Bond",
+                "security_term": "30-Year",
+                "auction_date": date(2026, 5, 14),
+                "issue_date": date(2026, 5, 15),
+                "offering_amount": Decimal("25000000000"),
+                "high_rate": Decimal("5.046"),
+                "bid_to_cover": Decimal("2.30"),
+                "direct_bidder_pct": Decimal("20.3"),
+                "indirect_bidder_pct": Decimal("56.5"),
+                "primary_dealer_pct": Decimal("23.2"),
+                "tail_indicator": "long-end",
+                "source_url": "https://fiscaldata.treasury.gov/static-data/published-reports/auctions-query/results/R_20260514_1.pdf",
+            },
+            {
+                "cusip": "91282CQQ7",
+                "security_type": "Note",
+                "security_term": "10-Year",
+                "auction_date": date(2026, 5, 12),
+                "issue_date": date(2026, 5, 15),
+                "offering_amount": Decimal("42000000000"),
+                "high_rate": Decimal("4.468"),
+                "bid_to_cover": Decimal("2.40"),
+                "direct_bidder_pct": Decimal("18.7"),
+                "indirect_bidder_pct": Decimal("61.0"),
+                "primary_dealer_pct": Decimal("20.3"),
+                "tail_indicator": "belly",
+                "source_url": "https://fiscaldata.treasury.gov/static-data/published-reports/auctions-query/results/R_20260512_1.pdf",
+            },
+        ],
+        supply_debt={
+            "record_date": date(2026, 5, 21),
+            "debt_held_public": Decimal("31374788661132.13"),
+            "intragov_holdings": Decimal("7696411796234.32"),
+            "total_public_debt": Decimal("39071200457366.45"),
+            "source_url": "https://api.fiscaldata.treasury.gov/services/api/fiscal_service/v2/accounting/od/debt_to_penny",
+        },
     )
 
     assert snapshot.as_of == date(2026, 5, 20)
@@ -137,8 +193,18 @@ def test_build_rates_snapshot_populates_live_fred_sections_without_static_filler
     assert on_rrp.value == 0.025
     assert on_rrp.unit == "$T"
     assert "QT" in snapshot.policy.plumbing_read
-    assert snapshot.supply.status == "missing"
-    assert snapshot.positioning.status == "missing"
+    assert snapshot.supply.status == "ok"
+    assert snapshot.supply.recent_auctions[0].security_term == "30-Year"
+    assert snapshot.supply.recent_auctions[0].offering_amount == 25.0
+    assert snapshot.supply.recent_auctions[0].bid_to_cover == 2.3
+    debt_tile = next(tile for tile in snapshot.supply.fiscal if tile.label == "Public debt")
+    assert debt_tile.value == 31.37
+    assert debt_tile.unit == "$T"
+    assert "TreasuryDirect" in (snapshot.supply.supply_read or "")
+    assert snapshot.positioning.status == "ok"
+    assert snapshot.positioning.details[0].contract_code == "043602"
+    assert snapshot.positioning.details[0].lev_money_net_pct_oi == -26.3
+    assert "CFTC TFF" in (snapshot.positioning.positioning_read or "")
     assert snapshot.scorecard.groups
     assert snapshot.synthesis.duration_view
 

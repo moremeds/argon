@@ -13,8 +13,10 @@ from uw_scan.models import (
     RatesPolicyPathPoint,
     RatesPolicyPlumbingMetric,
     RatesPositioningPanel,
+    RatesPositioningRow,
     RatesSnapshotResponse,
     RatesSummaryTile,
+    RatesSupplyAuctionRow,
     RatesSupplyPanel,
     RatesSynthesisPanel,
 )
@@ -35,6 +37,9 @@ def build_rates_snapshot(
     failed_series: set[str] | None = None,
     policy_events: list[dict[str, Any]] | None = None,
     policy_path: list[dict[str, Any]] | None = None,
+    cftc_tff_rows: list[dict[str, Any]] | None = None,
+    supply_auctions: list[dict[str, Any]] | None = None,
+    supply_debt: dict[str, Any] | None = None,
 ) -> RatesSnapshotResponse:
     as_of = _latest_curve_observation_date(observations)
     if as_of is None:
@@ -68,6 +73,13 @@ def build_rates_snapshot(
         policy_events=policy_events or [],
         policy_path=policy_path or [],
     )
+    positioning_panel = _positioning_panel(cftc_tff_rows or [])
+    supply_panel = _supply_panel(
+        observations,
+        as_of=as_of,
+        auction_rows=supply_auctions or [],
+        debt_row=supply_debt,
+    )
 
     return RatesSnapshotResponse(
         as_of=as_of,
@@ -77,11 +89,8 @@ def build_rates_snapshot(
         decomposition=decomposition,
         scorecard=scorecard,
         policy=policy_panel,
-        supply=RatesSupplyPanel(
-            notes=["Treasury auction/QRA feed not wired in Phase 1"],
-            status="missing",
-        ),
-        positioning=RatesPositioningPanel(status="missing"),
+        supply=supply_panel,
+        positioning=positioning_panel,
         cross_market=RatesCrossMarketPanel(
             rows=[
                 RatesSummaryTile(
@@ -106,11 +115,336 @@ def build_rates_snapshot(
             duration_view=_duration_text(scorecard.composite_score),
             curve_view=_curve_text(curve_score),
             risks=[
-                "Non-FRED auction, TIC, CFTC, and event feeds are unavailable until Phase 2."
+                _risk_text(positioning_panel, supply_panel),
             ],
         ),
         source_freshness=source_freshness,
     )
+
+
+LONG_END_TFF_CODES = {"043602", "043607", "020601", "020604"}
+FRONT_END_TFF_CODES = {"042601", "044601"}
+
+
+def _positioning_panel(rows: list[dict[str, Any]]) -> RatesPositioningPanel:
+    details = [RatesPositioningRow.model_validate(row) for row in rows]
+    if not details:
+        return RatesPositioningPanel(
+            positioning_read="CFTC TFF Treasury futures positioning is not persisted yet.",
+            status="missing",
+        )
+
+    long_end = [row for row in details if row.contract_code in LONG_END_TFF_CODES]
+    front_end = [row for row in details if row.contract_code in FRONT_END_TFF_CODES]
+    lev_long_end = _sum_attr(long_end, "lev_money_net")
+    asset_long_end = _sum_attr(long_end, "asset_mgr_net")
+    dealer_long_end = _sum_attr(long_end, "dealer_net")
+    lev_front_end = _sum_attr(front_end, "lev_money_net")
+    basis_proxy = _basis_proxy(lev_long_end, asset_long_end)
+    latest_release = max(
+        (row.release_date for row in details if row.release_date is not None),
+        default=None,
+    )
+    return RatesPositioningPanel(
+        rows=[
+            RatesSummaryTile(
+                label="Leveraged funds · long end",
+                value=lev_long_end,
+                unit="contracts",
+                status="ok",
+            ),
+            RatesSummaryTile(
+                label="Leveraged funds · front end",
+                value=lev_front_end,
+                unit="contracts",
+                status="ok",
+            ),
+            RatesSummaryTile(
+                label="Asset managers · long end",
+                value=asset_long_end,
+                unit="contracts",
+                status="ok",
+            ),
+            RatesSummaryTile(
+                label="Dealer/intermediary · long end",
+                value=dealer_long_end,
+                unit="contracts",
+                status="ok",
+            ),
+            RatesSummaryTile(
+                label="Basis proxy",
+                value=basis_proxy,
+                unit="contracts",
+                status="ok" if basis_proxy is not None else "partial",
+            ),
+        ],
+        details=details,
+        positioning_read=_positioning_read(
+            latest_release=latest_release,
+            lev_long_end=lev_long_end,
+            asset_long_end=asset_long_end,
+            basis_proxy=basis_proxy,
+        ),
+        status="ok",
+    )
+
+
+def _sum_attr(rows: list[RatesPositioningRow], attr: str) -> float | None:
+    values = [getattr(row, attr) for row in rows]
+    numeric = [value for value in values if value is not None]
+    if not numeric:
+        return None
+    return float(sum(numeric))
+
+
+def _basis_proxy(lev_net: float | None, asset_net: float | None) -> float | None:
+    if lev_net is None or asset_net is None:
+        return None
+    if lev_net >= 0 or asset_net <= 0:
+        return 0.0
+    return min(abs(lev_net), asset_net)
+
+
+def _positioning_read(
+    *,
+    latest_release: date | None,
+    lev_long_end: float | None,
+    asset_long_end: float | None,
+    basis_proxy: float | None,
+) -> str:
+    release = latest_release.isoformat() if latest_release is not None else "latest"
+    lev_text = _contracts_text(lev_long_end)
+    asset_text = _contracts_text(asset_long_end)
+    basis_text = _contracts_text(basis_proxy)
+    return (
+        f"CFTC TFF {release}: leveraged funds are net {lev_text} on long-end "
+        f"Treasury futures, asset managers are net {asset_text}, and the basis proxy "
+        f"is {basis_text}."
+    )
+
+
+def _contracts_text(value: float | None) -> str:
+    if value is None:
+        return "n/a"
+    side = "long" if value > 0 else "short" if value < 0 else "flat"
+    return f"{abs(value):,.0f} contracts {side}"
+
+
+def _risk_text(positioning: RatesPositioningPanel, supply: RatesSupplyPanel) -> str:
+    live = []
+    if supply.status == "ok":
+        live.append("Treasury auction/FiscalData supply")
+    if positioning.status == "ok":
+        live.append("CFTC TFF positioning")
+    if live:
+        return "; ".join(live) + " live; TIC and event feeds remain unavailable."
+    return "Non-FRED auction, TIC, CFTC, and event feeds are unavailable until Phase 2."
+
+
+def _supply_panel(
+    observations: dict[str, list[dict[str, Any]]],
+    *,
+    as_of: date,
+    auction_rows: list[dict[str, Any]],
+    debt_row: dict[str, Any] | None,
+) -> RatesSupplyPanel:
+    auction_details = [
+        RatesSupplyAuctionRow.model_validate(_auction_payload(row))
+        for row in auction_rows
+    ]
+    display_auctions = _select_display_auctions(auction_details)
+    fiscal = _supply_fiscal_tiles(observations, as_of=as_of, debt_row=debt_row)
+    if not display_auctions and not fiscal:
+        return RatesSupplyPanel(
+            notes=["Treasury auction and FiscalData supply feeds are not persisted yet."],
+            status="missing",
+        )
+    status = "ok" if display_auctions and fiscal else "partial"
+    return RatesSupplyPanel(
+        auctions=_supply_summary_tiles(display_auctions, auction_details),
+        recent_auctions=display_auctions,
+        fiscal=fiscal,
+        notes=[] if status == "ok" else ["Some Treasury supply inputs are unavailable."],
+        supply_read=_supply_read(display_auctions, fiscal),
+        status=status,
+    )
+
+
+def _auction_payload(row: dict[str, Any]) -> dict[str, Any]:
+    out = dict(row)
+    amount = out.get("offering_amount")
+    if amount is not None:
+        amount_dec = amount if isinstance(amount, Decimal) else Decimal(str(amount))
+        out["offering_amount"] = float(
+            (amount_dec / Decimal("1000000000")).quantize(Decimal("0.1"))
+        )
+    for key in (
+        "high_rate",
+        "bid_to_cover",
+        "direct_bidder_pct",
+        "indirect_bidder_pct",
+        "primary_dealer_pct",
+    ):
+        value = out.get(key)
+        if value is not None:
+            out[key] = float(value if isinstance(value, Decimal) else Decimal(str(value)))
+    return out
+
+
+def _select_display_auctions(
+    auctions: list[RatesSupplyAuctionRow],
+) -> list[RatesSupplyAuctionRow]:
+    if not auctions:
+        return []
+    latest_by_bucket: dict[str, RatesSupplyAuctionRow] = {}
+    for row in sorted(auctions, key=lambda item: item.auction_date, reverse=True):
+        bucket = row.tail_indicator or "other"
+        latest_by_bucket.setdefault(bucket, row)
+    preferred = ["long-end", "belly", "front-end", "bill"]
+    selected = [latest_by_bucket[key] for key in preferred if key in latest_by_bucket]
+    if len(selected) < 4:
+        seen = {(row.cusip, row.auction_date) for row in selected}
+        for row in sorted(auctions, key=lambda item: item.auction_date, reverse=True):
+            key = (row.cusip, row.auction_date)
+            if key not in seen:
+                selected.append(row)
+                seen.add(key)
+            if len(selected) >= 4:
+                break
+    return selected[:4]
+
+
+def _supply_summary_tiles(
+    display_auctions: list[RatesSupplyAuctionRow],
+    all_auctions: list[RatesSupplyAuctionRow],
+) -> list[RatesSummaryTile]:
+    tiles: list[RatesSummaryTile] = []
+    long_end = next(
+        (row for row in display_auctions if row.tail_indicator == "long-end"), None
+    )
+    if long_end is not None:
+        tiles.append(
+            RatesSummaryTile(
+                label="Long-end BTC",
+                value=long_end.bid_to_cover,
+                unit="x",
+                status="ok" if long_end.bid_to_cover is not None else "missing",
+            )
+        )
+    coupon_amount = _auction_amount_sum(
+        row for row in all_auctions if row.security_type in {"Note", "Bond"}
+    )
+    if coupon_amount is not None:
+        tiles.append(
+            RatesSummaryTile(
+                label="Coupon auctions",
+                value=coupon_amount,
+                unit="$bn",
+                status="ok",
+            )
+        )
+    bill_share = _bill_share(all_auctions)
+    if bill_share is not None:
+        tiles.append(
+            RatesSummaryTile(
+                label="Bill share",
+                value=bill_share,
+                unit="%",
+                status="ok",
+            )
+        )
+    return tiles
+
+
+def _auction_amount_sum(rows) -> float | None:
+    values = [row.offering_amount for row in rows if row.offering_amount is not None]
+    if not values:
+        return None
+    return float(sum(values))
+
+
+def _bill_share(auctions: list[RatesSupplyAuctionRow]) -> float | None:
+    total = _auction_amount_sum(auctions)
+    bills = _auction_amount_sum(row for row in auctions if row.security_type == "Bill")
+    if total in (None, 0) or bills is None:
+        return None
+    return round(bills / total * 100, 1)
+
+
+def _supply_fiscal_tiles(
+    observations: dict[str, list[dict[str, Any]]],
+    *,
+    as_of: date,
+    debt_row: dict[str, Any] | None,
+) -> list[RatesSummaryTile]:
+    tiles: list[RatesSummaryTile] = []
+    if debt_row:
+        public_debt = _trillion(debt_row.get("debt_held_public"))
+        total_debt = _trillion(debt_row.get("total_public_debt"))
+        tiles.extend(
+            [
+                RatesSummaryTile(
+                    label="Public debt",
+                    value=public_debt,
+                    unit="$T",
+                    status="ok" if public_debt is not None else "missing",
+                ),
+                RatesSummaryTile(
+                    label="Total debt",
+                    value=total_debt,
+                    unit="$T",
+                    status="ok" if total_debt is not None else "missing",
+                ),
+            ]
+        )
+    tga = _latest_float(observations, "WTREGEN", as_of, divisor=1_000_000)
+    if tga is not None:
+        tiles.append(
+            RatesSummaryTile(
+                label="TGA",
+                value=tga,
+                unit="$T",
+                status="ok",
+            )
+        )
+    return tiles
+
+
+def _trillion(value: Any) -> float | None:
+    if value is None:
+        return None
+    dec = value if isinstance(value, Decimal) else Decimal(str(value))
+    return float((dec / Decimal("1000000000000")).quantize(Decimal("0.01")))
+
+
+def _supply_read(
+    auctions: list[RatesSupplyAuctionRow], fiscal: list[RatesSummaryTile]
+) -> str | None:
+    parts: list[str] = []
+    long_end = next((row for row in auctions if row.tail_indicator == "long-end"), None)
+    if long_end is not None:
+        tone = _auction_tone(long_end)
+        parts.append(
+            "TreasuryDirect auction results show "
+            f"{long_end.security_term} {long_end.security_type} demand is {tone}"
+        )
+    fiscal_by_label = {item.label: item for item in fiscal}
+    if public_debt := fiscal_by_label.get("Public debt"):
+        parts.append(f"FiscalData public debt is ${public_debt.value:.2f}T")
+    if tga := fiscal_by_label.get("TGA"):
+        parts.append(f"TGA is ${tga.value:.2f}T")
+    return "; ".join(parts) + "." if parts else None
+
+
+def _auction_tone(row: RatesSupplyAuctionRow) -> str:
+    bid_to_cover = row.bid_to_cover
+    if bid_to_cover is None:
+        return "unclassified"
+    if row.tail_indicator == "long-end" and bid_to_cover < 2.35:
+        return "soft"
+    if bid_to_cover >= 2.6:
+        return "firm"
+    return "mixed"
 
 
 def _latest_curve_observation_date(

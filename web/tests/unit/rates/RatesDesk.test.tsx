@@ -118,12 +118,33 @@ describe("RatesDesk", () => {
     expect(screen.getByText(/daily FRED pricing has moved faster than the monthly Cleveland release/)).toBeTruthy();
   });
 
-  it("marks not-yet-wired source panels unavailable instead of filling static values", () => {
+  it("renders persisted Treasury supply data instead of the phase placeholder", () => {
     render(<RatesDesk snapshot={SNAPSHOT} />);
 
-    expect(screen.getAllByText("Unavailable").length).toBeGreaterThan(0);
-    expect(screen.getByText(/Treasury auction feed not wired/)).toBeTruthy();
-    expect(screen.getByText(/CFTC\/TIC feeds not wired/)).toBeTruthy();
+    const supplySection = screen.getByRole("region", { name: /supply/i });
+    expect(within(supplySection).getByText("Recent auctions")).toBeTruthy();
+    expect(within(supplySection).getByText("30-Year Bond")).toBeTruthy();
+    expect(within(supplySection).getByText("$25.0bn")).toBeTruthy();
+    expect(within(supplySection).getByText("2.30")).toBeTruthy();
+    expect(within(supplySection).getByText("Public debt")).toBeTruthy();
+    expect(within(supplySection).getByText("$31.37T")).toBeTruthy();
+    expect(screen.queryByText(/Treasury auction feed not wired/)).toBeNull();
+    expect(screen.queryByText(/CFTC\/TIC feeds not wired/)).toBeNull();
+  });
+
+  it("renders persisted CFTC TFF positioning detail", () => {
+    render(<RatesDesk snapshot={SNAPSHOT} />);
+
+    const positioningSection = screen.getByRole("region", {
+      name: /positioning/i,
+    });
+    expect(
+      within(positioningSection).getByText("Leveraged funds · long end"),
+    ).toBeTruthy();
+    expect(within(positioningSection).getByText("UST 10Y NOTE")).toBeTruthy();
+    expect(within(positioningSection).getByText("-26.3% OI")).toBeTruthy();
+    expect(within(positioningSection).getByText(/CFTC TFF 2026-05-22/))
+      .toBeTruthy();
   });
 
   it("renders source freshness so failed refreshes do not look live", () => {

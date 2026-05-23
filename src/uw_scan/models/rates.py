@@ -150,14 +150,53 @@ class RatesPolicyPanel(_UwBase):
     status: RatesAvailability = "partial"
 
 
+class RatesSupplyAuctionRow(_UwBase):
+    cusip: str
+    security_type: str
+    security_term: str
+    auction_date: date
+    issue_date: date | None = None
+    offering_amount: float | None = None
+    high_rate: float | None = None
+    bid_to_cover: float | None = None
+    direct_bidder_pct: float | None = None
+    indirect_bidder_pct: float | None = None
+    primary_dealer_pct: float | None = None
+    tail_indicator: str | None = None
+    source_url: str | None = None
+    status: RatesAvailability = "ok"
+
+
 class RatesSupplyPanel(_UwBase):
     auctions: list[RatesSummaryTile] = Field(default_factory=list)
+    recent_auctions: list[RatesSupplyAuctionRow] = Field(default_factory=list)
+    fiscal: list[RatesSummaryTile] = Field(default_factory=list)
     notes: list[str] = Field(default_factory=list)
+    supply_read: str | None = None
     status: RatesAvailability = "missing"
+
+
+class RatesPositioningRow(_UwBase):
+    contract_code: str
+    contract_name: str
+    tenor_bucket: str
+    obs_date: date | None = None
+    release_date: date | None = None
+    open_interest: float | None = None
+    dealer_net: float | None = None
+    dealer_net_pct_oi: float | None = None
+    asset_mgr_net: float | None = None
+    asset_mgr_net_pct_oi: float | None = None
+    lev_money_net: float | None = None
+    lev_money_net_pct_oi: float | None = None
+    source_url: str | None = None
+    status: RatesAvailability = "ok"
 
 
 class RatesPositioningPanel(_UwBase):
     rows: list[RatesSummaryTile] = Field(default_factory=list)
+    details: list[RatesPositioningRow] = Field(default_factory=list)
+    positioning_read: str | None = None
     status: RatesAvailability = "missing"
 
 
@@ -218,6 +257,8 @@ _preserve_public_module(
     RatesPolicyPathPoint,
     RatesPolicyPlumbingMetric,
     RatesPolicyPanel,
+    RatesSupplyAuctionRow,
+    RatesPositioningRow,
     RatesSupplyPanel,
     RatesPositioningPanel,
     RatesCrossMarketPanel,

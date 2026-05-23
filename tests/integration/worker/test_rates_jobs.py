@@ -11,7 +11,9 @@ import pytest
 
 from uw_scan.config import Settings
 from uw_scan.sources.cleveland_fed import ClevelandFedInflationRecord
+from uw_scan.sources.cftc_tff import CftcTffTreasuryRow
 from uw_scan.sources.fred import FredObservation
+from uw_scan.sources.treasury_supply import TreasuryAuctionRow, TreasuryDebtRecord
 from uw_scan.storage.repository import Repository
 from uw_scan.worker.jobs.rates_jobs import (
     _history_start_for_snapshot,
@@ -182,6 +184,86 @@ class _PolicyPathProvider:
         ]
 
 
+class _CftcTffProvider:
+    def __init__(self, *, record_request=None, job_name=None):
+        self.record_request = record_request
+        self.job_name = job_name
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *_exc):
+        return None
+
+    def fetch_treasury_rows(self, *, start=None):
+        return [
+            CftcTffTreasuryRow(
+                contract_code="043602",
+                contract_name="UST 10Y NOTE",
+                commodity_name="T-NOTES, 6.5-10 YEAR",
+                tenor_bucket="10Y",
+                obs_date=date(2026, 5, 19),
+                release_date=date(2026, 5, 22),
+                open_interest=Decimal("4544233"),
+                dealer_long=Decimal("416965"),
+                dealer_short=Decimal("514194"),
+                dealer_net=Decimal("-97229"),
+                asset_mgr_long=Decimal("2155592"),
+                asset_mgr_short=Decimal("854840"),
+                asset_mgr_net=Decimal("1300752"),
+                lev_money_long=Decimal("625134"),
+                lev_money_short=Decimal("1819579"),
+                lev_money_net=Decimal("-1194445"),
+                other_rept_long=Decimal("189323"),
+                other_rept_short=Decimal("319340"),
+                other_rept_net=Decimal("-130017"),
+                dealer_net_pct_oi=Decimal("-2.1"),
+                asset_mgr_net_pct_oi=Decimal("28.6"),
+                lev_money_net_pct_oi=Decimal("-26.3"),
+            )
+        ]
+
+
+class _TreasurySupplyProvider:
+    def __init__(self, *, record_request=None, job_name=None):
+        self.record_request = record_request
+        self.job_name = job_name
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *_exc):
+        return None
+
+    def fetch_recent_auctions(self, *, start=None):
+        return [
+            TreasuryAuctionRow(
+                cusip="912810UL0",
+                security_type="Bond",
+                security_term="30-Year",
+                auction_date=date(2026, 5, 14),
+                issue_date=date(2026, 5, 15),
+                offering_amount=Decimal("25000000000"),
+                high_rate=Decimal("5.046"),
+                bid_to_cover=Decimal("2.30"),
+                direct_bidder_pct=Decimal("20.3"),
+                indirect_bidder_pct=Decimal("56.5"),
+                primary_dealer_pct=Decimal("23.2"),
+                tail_indicator="long-end",
+                source_url="https://fiscaldata.treasury.gov/static-data/published-reports/auctions-query/results/R_20260514_1.pdf",
+            )
+        ]
+
+    def fetch_latest_debt(self):
+        return TreasuryDebtRecord(
+            record_date=date(2026, 5, 21),
+            debt_held_public=Decimal("31374788661132.13"),
+            intragov_holdings=Decimal("7696411796234.32"),
+            total_public_debt=Decimal("39071200457366.45"),
+            source_url="https://api.fiscaldata.treasury.gov/services/api/fiscal_service/v2/accounting/od/debt_to_penny",
+        )
+
+
 def test_rates_job_requires_fred_api_key(migrated_settings: Settings):
     with pytest.raises(RuntimeError, match="FRED_API_KEY"):
         rates_fred_ingest_job(
@@ -209,6 +291,8 @@ def test_rates_job_persists_observations_and_snapshot(migrated_settings: Setting
         cleveland_provider_factory=_ClevelandProvider,
         fomc_provider_factory=_FomcProvider,
         policy_path_provider_factory=_PolicyPathProvider,
+        cftc_tff_provider_factory=_CftcTffProvider,
+        treasury_supply_provider_factory=_TreasurySupplyProvider,
         computed_at=datetime(2026, 5, 20, 22, tzinfo=UTC),
     )
 
@@ -232,6 +316,15 @@ def test_rates_job_persists_observations_and_snapshot(migrated_settings: Setting
     assert row["payload"]["policy"]["implied_path"][0]["source"] == (
         "Frenzy Capital Fed Watch"
     )
+    assert row["payload"]["positioning"]["status"] == "ok"
+    assert row["payload"]["positioning"]["details"][0]["contract_code"] == "043602"
+    assert (
+        row["payload"]["positioning"]["details"][0]["lev_money_net_pct_oi"] == -26.3
+    )
+    assert "CFTC TFF" in row["payload"]["positioning"]["positioning_read"]
+    assert row["payload"]["supply"]["status"] == "ok"
+    assert row["payload"]["supply"]["recent_auctions"][0]["security_term"] == "30-Year"
+    assert row["payload"]["supply"]["fiscal"][0]["label"] == "Public debt"
 
 
 def test_rates_job_refuses_snapshot_when_required_curve_series_fails(

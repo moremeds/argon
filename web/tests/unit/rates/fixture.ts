@@ -203,11 +203,81 @@ export const SNAPSHOT: Snapshot = {
     status: "partial",
   },
   supply: {
-    auctions: [],
-    notes: ["Treasury auction feed not wired in Phase 1."],
-    status: "missing",
+    recent_auctions: [
+      {
+        cusip: "912810UL0",
+        security_type: "Bond",
+        security_term: "30-Year",
+        auction_date: "2026-05-14",
+        issue_date: "2026-05-15",
+        offering_amount: 25,
+        high_rate: 5.046,
+        bid_to_cover: 2.3,
+        direct_bidder_pct: 20.3,
+        indirect_bidder_pct: 56.5,
+        primary_dealer_pct: 23.2,
+        tail_indicator: "long-end",
+        source_url:
+          "https://fiscaldata.treasury.gov/static-data/published-reports/auctions-query/results/R_20260514_1.pdf",
+        status: "ok",
+      },
+    ],
+    fiscal: [
+      {
+        label: "Public debt",
+        value: 31.37,
+        unit: "$T",
+        status: "ok",
+      },
+      {
+        label: "TGA",
+        value: 0.78,
+        unit: "$T",
+        status: "ok",
+      },
+    ],
+    notes: [],
+    supply_read:
+      "TreasuryDirect auction results show long-end auction demand is soft; FiscalData public debt is $31.37T and TGA is $0.78T.",
+    status: "ok",
   },
-  positioning: { rows: [], status: "missing" },
+  positioning: {
+    rows: [
+      {
+        label: "Leveraged funds · long end",
+        value: -1194445,
+        unit: "contracts",
+        status: "ok",
+      },
+      {
+        label: "Asset managers · long end",
+        value: 1300752,
+        unit: "contracts",
+        status: "ok",
+      },
+    ],
+    details: [
+      {
+        contract_code: "043602",
+        contract_name: "UST 10Y NOTE",
+        tenor_bucket: "10Y",
+        obs_date: "2026-05-19",
+        release_date: "2026-05-22",
+        open_interest: 4544233,
+        dealer_net: -97229,
+        dealer_net_pct_oi: -2.1,
+        asset_mgr_net: 1300752,
+        asset_mgr_net_pct_oi: 28.6,
+        lev_money_net: -1194445,
+        lev_money_net_pct_oi: -26.3,
+        source_url: "https://publicreporting.cftc.gov/resource/gpe5-46if.json",
+        status: "ok",
+      },
+    ],
+    positioning_read:
+      "CFTC TFF 2026-05-22: leveraged funds are 1,194,445 contracts short on long-end Treasury futures, asset managers are 1,300,752 contracts long, and the basis proxy is 1,194,445 contracts long.",
+    status: "ok",
+  },
   cross_market: {
     rows: [
       {
@@ -224,7 +294,7 @@ export const SNAPSHOT: Snapshot = {
   synthesis: {
     duration_view: "Neutral until the live FRED curve breaks range.",
     curve_view: "Curve still biased flatter.",
-    risks: ["Auction and positioning feeds are unavailable."],
+    risks: ["Auction and TIC feeds are unavailable."],
   },
   source_freshness: [
     {
