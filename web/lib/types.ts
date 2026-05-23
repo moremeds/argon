@@ -450,6 +450,9 @@ export interface paths {
          *
          *     Returns {codex: row|null, claude: row|null}. 200 even when both are null
          *     so the UI renders the empty Run state instead of a 404.
+         *
+         *     v5.2: also computes provider_consensus by comparing the two providers'
+         *     headlines when both succeeded. UI surfaces this above the tabs.
          */
         get: operations["get_latest_trade_insights_ai_analysis_api_stock__ticker__trade_insights_ai_analysis_latest_get"];
         put?: never;
@@ -4133,6 +4136,52 @@ export interface components {
             /** Model */
             model: string;
         };
+        /**
+         * TradeInsightAiAntiPin
+         * @description v5.2: structured anti-pin score + scope tag.
+         *
+         *     invoked=False means anti-pin is not the thesis (e.g. structural break
+         *     or trend continuation). The validator's conviction cap (cap at C when
+         *     2/4 hold, anti-pin doesn't fire when ≤1/4) ONLY applies when
+         *     invoked=True. This closes the v5.1 issue where Claude scored 1/4 on
+         *     NVDA but correctly chose downside_break — anti-pin scoring should
+         *     have been informational only, not a conviction blocker.
+         */
+        TradeInsightAiAntiPin: {
+            /**
+             * Invoked
+             * @default false
+             */
+            invoked: boolean;
+            /**
+             * Direction
+             * @default none
+             * @enum {string}
+             */
+            direction: "upside" | "downside" | "none";
+            /**
+             * Score
+             * @default 0
+             */
+            score: number;
+            /**
+             * Max Score
+             * @default 4
+             */
+            max_score: number;
+            /** Conditions Met */
+            conditions_met?: string[];
+            /**
+             * Conviction Cap Applied
+             * @default false
+             */
+            conviction_cap_applied: boolean;
+            /**
+             * Cap Reason
+             * @default
+             */
+            cap_reason: string;
+        };
         /** TradeInsightAiBestExpression */
         TradeInsightAiBestExpression: {
             /** Idea Id */
@@ -4208,6 +4257,12 @@ export interface components {
              * @enum {string}
              */
             dte_band: "momentum" | "standard" | "trend";
+            /**
+             * Thesis Archetype
+             * @default data_insufficient
+             * @enum {string}
+             */
+            thesis_archetype: "resistance_rejection" | "support_breakdown" | "breakout_continuation" | "pin_no_trade" | "data_insufficient";
             /** Title */
             title: string;
             /**
@@ -4252,10 +4307,16 @@ export interface components {
         /**
          * TradeInsightAiLatestPair
          * @description GET /latest response — null per provider when no succeeded row exists.
+         *
+         *     v5.2: provider_consensus is computed at read time by comparing the
+         *     two providers' headline fields whenever both have succeeded. The
+         *     UI surfaces consensus_grade + actionable_disagreement above the
+         *     [Codex] [Claude] tabs as a quality signal.
          */
         TradeInsightAiLatestPair: {
             codex?: components["schemas"]["TradeInsightAiAnalysisResponse"] | null;
             claude?: components["schemas"]["TradeInsightAiAnalysisResponse"] | null;
+            provider_consensus?: components["schemas"]["TradeInsightAiProviderConsensus"];
         };
         /** TradeInsightAiLevel */
         TradeInsightAiLevel: {
@@ -4321,6 +4382,9 @@ export interface components {
             section_cards: components["schemas"]["TradeInsightAiSectionCards"];
             vrp_assessment?: components["schemas"]["TradeInsightAiVrpAssessment"] | null;
             preferred_expression?: components["schemas"]["TradeInsightAiPreferredExpression"] | null;
+            trigger_evidence?: components["schemas"]["TradeInsightAiTriggerEvidence"];
+            anti_pin?: components["schemas"]["TradeInsightAiAntiPin"];
+            target_feasibility?: components["schemas"]["TradeInsightAiTargetFeasibility"];
             dominant_read: components["schemas"]["TradeInsightAiDominantRead"];
             /** Best Expressions */
             best_expressions?: components["schemas"]["TradeInsightAiBestExpression"][];
@@ -4377,6 +4441,53 @@ export interface components {
             /** Risk Flags Observed */
             risk_flags_observed?: string[];
             strike_role?: components["schemas"]["TradeInsightAiStrikeRole"];
+        };
+        /**
+         * TradeInsightAiProviderConsensus
+         * @description v5.2: cross-provider agreement signal computed at GET /latest time.
+         *
+         *     Not stored per row — derived by comparing the two providers' headline
+         *     fields whenever both have a succeeded row. Surfaces actionable
+         *     disagreement to the operator (e.g. "ACTIVE vs CONDITIONAL depends on
+         *     whether the latest daily close cleared 215").
+         */
+        TradeInsightAiProviderConsensus: {
+            /**
+             * Bias Agreement
+             * @default false
+             */
+            bias_agreement: boolean;
+            /**
+             * Structure Agreement
+             * @default false
+             */
+            structure_agreement: boolean;
+            /**
+             * Entry State Agreement
+             * @default false
+             */
+            entry_state_agreement: boolean;
+            /**
+             * Path Agreement
+             * @default false
+             */
+            path_agreement: boolean;
+            /**
+             * Dte Band Agreement
+             * @default false
+             */
+            dte_band_agreement: boolean;
+            /**
+             * Consensus Grade
+             * @default missing
+             * @enum {string}
+             */
+            consensus_grade: "full" | "partial" | "divergent" | "missing";
+            /**
+             * Actionable Disagreement
+             * @default
+             */
+            actionable_disagreement: string;
         };
         /** TradeInsightAiRejectedIdea */
         TradeInsightAiRejectedIdea: {
@@ -4482,12 +4593,15 @@ export interface components {
         };
         /**
          * TradeInsightAiStrikeRole
-         * @description v5.1: explicit market-structure roles for the spread's two legs.
+         * @description v5.2: explicit market-structure roles + Decimal-strict price levels.
          *
-         *     Lets the deterministic validator reject candidates where the short leg sits
-         *     AT the trigger (i.e. caps payoff at the level that activates the trade).
-         *     Levels are strings (price as string) to stay consistent with the
-         *     free-form numeric handling elsewhere in the contract.
+         *     Levels were strings in v5.1; that let Claude emit nested dicts which
+         *     Pydantic silently stringified and rendered as JSON literals in the UI.
+         *     v5.2 coerces to Decimal via a pre-validator that knows how to extract
+         *     the strike key from a dict.
+         *
+         *     Source paths are optional but encouraged so the UI can attribute each
+         *     level to a specific key in the deterministic payload.
          */
         TradeInsightAiStrikeRole: {
             /**
@@ -4502,21 +4616,95 @@ export interface components {
              * @enum {string}
              */
             short_leg_role: "target_level" | "next_call_wall" | "second_magnet" | "next_put_wall" | "next_downside_target" | "n/a";
+            /** Trigger Level */
+            trigger_level?: string | null;
+            /** Target Level */
+            target_level?: string | null;
+            /** Invalid Level */
+            invalid_level?: string | null;
             /**
-             * Trigger Level
+             * Trigger Source Path
              * @default
              */
-            trigger_level: string;
+            trigger_source_path: string;
             /**
-             * Target Level
+             * Target Source Path
              * @default
              */
-            target_level: string;
+            target_source_path: string;
             /**
-             * Invalid Level
+             * Invalid Source Path
              * @default
              */
-            invalid_level: string;
+            invalid_source_path: string;
+        };
+        /**
+         * TradeInsightAiTargetFeasibility
+         * @description v5.2: target-distance vs expected-move sanity layer.
+         *
+         *     Optional — when expected_move data is missing from the payload the
+         *     feasibility is 'missing' and the validator does not block. When
+         *     present, this surfaces whether the target is realistic within the
+         *     5-10 session hold.
+         */
+        TradeInsightAiTargetFeasibility: {
+            /** Distance To Target Pct */
+            distance_to_target_pct?: string | null;
+            /**
+             * Expected Move Available
+             * @default false
+             */
+            expected_move_available: boolean;
+            /**
+             * Expected Move Source Path
+             * @default
+             */
+            expected_move_source_path: string;
+            /**
+             * Feasibility
+             * @default missing
+             * @enum {string}
+             */
+            feasibility: "inside_expected_move" | "outside_expected_move" | "missing";
+        };
+        /**
+         * TradeInsightAiTriggerEvidence
+         * @description v5.2: payload-proven trigger fire evidence.
+         *
+         *     The deterministic ACTIVE_TRIGGER_EVIDENCE_RULE check uses these fields
+         *     to verify that entry_state=ACTIVE is justified by an actual completed
+         *     daily close in the payload — not by intraday spot or model inference.
+         *
+         *     trigger_fired=False is the default; the lenient coercer fills this in
+         *     by reading the latest completed stock_history row and comparing its
+         *     close to strike_role.trigger_level.
+         *
+         *     When trigger_fired=False but the model emitted entry_state=ACTIVE,
+         *     the validator rejects (or auto-downgrades) to CONDITIONAL.
+         */
+        TradeInsightAiTriggerEvidence: {
+            /**
+             * Trigger Fired
+             * @default false
+             */
+            trigger_fired: boolean;
+            /**
+             * Trigger Type
+             * @default unknown
+             * @enum {string}
+             */
+            trigger_type: "daily_close" | "two_session_hold" | "unknown";
+            /** Trigger Level */
+            trigger_level?: string | null;
+            /** Evidence Close */
+            evidence_close?: string | null;
+            /** Evidence Close Date */
+            evidence_close_date?: string | null;
+            /**
+             * Source Path
+             * @default
+             */
+            source_path: string;
         };
         /** TradeInsightAiVrpAssessment */
         TradeInsightAiVrpAssessment: {

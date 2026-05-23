@@ -89,6 +89,8 @@ function succeededResponse(
       entry_state: "CONDITIONAL",
       underlying_path: "bullish_continuation",
       dte_band: "trend",
+      // v5.2: thesis_archetype is required on the headline.
+      thesis_archetype: "breakout_continuation",
       title: "TSLA near gamma resistance with cheap vol and bullish flow",
       stance: "bullish",
       stance_label: "BUY setup",

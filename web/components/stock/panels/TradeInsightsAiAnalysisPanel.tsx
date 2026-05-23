@@ -745,6 +745,86 @@ function OutcomeGrid({
               </div>
             )}
           </AnalysisCard>
+          {(outcome.trigger_evidence || outcome.anti_pin) && (
+            <AnalysisCard
+              title="Trigger Evidence & Anti-Pin"
+              subtitle="v5.2 deterministic state proofs"
+              tone={
+                outcome.trigger_evidence?.trigger_fired ? "positive" : "warning"
+              }
+            >
+              {outcome.trigger_evidence && (
+                <KeyValueGrid
+                  items={[
+                    {
+                      label: "Trigger fired",
+                      value: outcome.trigger_evidence.trigger_fired
+                        ? "yes"
+                        : "no",
+                    },
+                    {
+                      label: "Trigger type",
+                      value: outcome.trigger_evidence.trigger_type ?? "unknown",
+                    },
+                    {
+                      label: "Latest close",
+                      value:
+                        outcome.trigger_evidence.evidence_close?.toString() ??
+                        "—",
+                    },
+                    {
+                      label: "Close date",
+                      value:
+                        outcome.trigger_evidence.evidence_close_date?.toString() ??
+                        "—",
+                    },
+                    {
+                      label: "Trigger level",
+                      value:
+                        outcome.trigger_evidence.trigger_level?.toString() ??
+                        "—",
+                    },
+                  ]}
+                />
+              )}
+              {outcome.anti_pin && (
+                <KeyValueGrid
+                  items={[
+                    {
+                      label: "Anti-pin invoked",
+                      value: outcome.anti_pin.invoked ? "yes" : "no",
+                    },
+                    {
+                      label: "Direction",
+                      value: outcome.anti_pin.direction ?? "none",
+                    },
+                    {
+                      label: "Score",
+                      value: `${outcome.anti_pin.score ?? 0} / ${outcome.anti_pin.max_score ?? 4}`,
+                    },
+                    {
+                      label: "Conviction capped",
+                      value: outcome.anti_pin.conviction_cap_applied
+                        ? "yes"
+                        : "no",
+                    },
+                  ]}
+                />
+              )}
+              {outcome.anti_pin?.conditions_met &&
+                outcome.anti_pin.conditions_met.length > 0 && (
+                  <div style={{ color: "var(--text-secondary)", fontSize: 12 }}>
+                    Conditions met: {outcome.anti_pin.conditions_met.join(", ")}
+                  </div>
+                )}
+              {outcome.anti_pin?.conviction_cap_applied &&
+                outcome.anti_pin?.cap_reason && (
+                  <div style={{ color: "var(--text-secondary)", fontSize: 12 }}>
+                    Cap reason: {outcome.anti_pin.cap_reason}
+                  </div>
+                )}
+            </AnalysisCard>
+          )}
           <AnalysisCard
             title="Validation Checklist"
             subtitle="What must be watched or confirmed"
@@ -792,7 +872,7 @@ function stateBadge(
 // detector compares against this string; any prior version (v4, v5)
 // renders the "legacy — re-run" banner so users see what the API guard
 // already did (dropped outcome to null).
-const CURRENT_PROMPT_VERSION = "trade-insights-ai-v5.1";
+const CURRENT_PROMPT_VERSION = "trade-insights-ai-v5.2";
 
 function isLegacyAnalysis(
   analysis: TradeInsightsAiAnalysisResponse | null,
@@ -846,8 +926,8 @@ function ProviderTabBody({
           text={
             `Legacy analysis (${analysis?.prompt_version}). Schema bumped ` +
             `to ${CURRENT_PROMPT_VERSION} — click Run to regenerate with the ` +
-            `directional v5.1 prompt (trigger-strike consistency, 3-band ` +
-            `DTE, conditional quote validity).`
+            `v5.2 prompt (active-trigger evidence, thesis archetype, ` +
+            `strict strike_role, anti-pin scope).`
           }
           severity="warning"
         />
@@ -891,6 +971,13 @@ export function TradeInsightsAiAnalysisPanel({ ticker }: { ticker: string }) {
     codex: TradeInsightsAiAnalysisResponse | null;
     claude: TradeInsightsAiAnalysisResponse | null;
   }>({ codex: null, claude: null });
+  // v5.2: cross-provider consensus computed at GET /latest time.
+  // Rendered as a chip above the tabs so the operator sees agreement /
+  // actionable disagreement at-a-glance.
+  const [consensus, setConsensus] = useState<{
+    consensus_grade?: string;
+    actionable_disagreement?: string;
+  } | null>(null);
   const [pendingIds, setPendingIds] = useState<{
     codex: string | null;
     claude: string | null;
@@ -938,6 +1025,7 @@ export function TradeInsightsAiAnalysisPanel({ ticker }: { ticker: string }) {
         const pair = await api.tradeInsightsAiAnalysisLatest(ticker);
         if (!isCurrentRequest()) return;
         setLatest({ codex: pair.codex ?? null, claude: pair.claude ?? null });
+        setConsensus(pair.provider_consensus ?? null);
       } catch {
         // tolerate /latest hiccups — at minimum overlay the in-flight state.
         if (isCurrentRequest()) {
@@ -961,6 +1049,7 @@ export function TradeInsightsAiAnalysisPanel({ ticker }: { ticker: string }) {
         const pair = await api.tradeInsightsAiAnalysisLatest(ticker);
         if (!cancelled && requestTokenRef.current === token) {
           setLatest({ codex: pair.codex ?? null, claude: pair.claude ?? null });
+          setConsensus(pair.provider_consensus ?? null);
         }
       } catch (err) {
         if (
@@ -1076,6 +1165,47 @@ export function TradeInsightsAiAnalysisPanel({ ticker }: { ticker: string }) {
             severity="info"
           />
         )}
+        {consensus &&
+          consensus.consensus_grade &&
+          consensus.consensus_grade !== "missing" && (
+            <div
+              data-testid="ai-provider-consensus"
+              style={{
+                border: "1px solid var(--border-dim)",
+                borderRadius: 4,
+                padding: "8px 10px",
+                background:
+                  consensus.consensus_grade === "full"
+                    ? "var(--bg-panel)"
+                    : "var(--bg-base)",
+                fontFamily: "var(--font-mono)",
+                fontSize: 11,
+                color: "var(--text-primary)",
+              }}
+            >
+              <span
+                style={{
+                  color:
+                    consensus.consensus_grade === "full"
+                      ? "var(--positive)"
+                      : consensus.consensus_grade === "divergent"
+                        ? "var(--negative)"
+                        : "var(--warning)",
+                  fontWeight: 600,
+                  letterSpacing: 1.2,
+                  textTransform: "uppercase",
+                  marginRight: 8,
+                }}
+              >
+                Consensus: {consensus.consensus_grade}
+              </span>
+              {consensus.actionable_disagreement && (
+                <span style={{ color: "var(--text-secondary)" }}>
+                  {consensus.actionable_disagreement}
+                </span>
+              )}
+            </div>
+          )}
         <div style={{ display: "flex", gap: 6 }}>
           {PROVIDERS.map((p) => (
             <button

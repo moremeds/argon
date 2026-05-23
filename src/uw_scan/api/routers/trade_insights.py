@@ -21,6 +21,7 @@ from uw_scan.models import (
     TradeInsightAiAnalysisResponse,
     TradeInsightAiAnalysisStub,
     TradeInsightAiLatestPair,
+    TradeInsightAiProviderConsensus,
     TradeInsightsResponse,
 )
 from uw_scan.reports.single_stock import assemble_single_stock_report
@@ -332,6 +333,83 @@ def post_trade_insights_ai_analysis(
     return TradeInsightAiAnalysisEnqueueResponse(analyses=stubs)
 
 
+def _compute_provider_consensus(
+    codex: TradeInsightAiAnalysisResponse | None,
+    claude: TradeInsightAiAnalysisResponse | None,
+) -> TradeInsightAiProviderConsensus:
+    """v5.2: compute cross-provider agreement at GET /latest time.
+
+    Compares the two providers' headline fields whenever both have a
+    succeeded outcome. The UI surfaces consensus_grade +
+    actionable_disagreement above the [Codex] [Claude] tabs."""
+    if not (codex and codex.outcome and claude and claude.outcome):
+        return TradeInsightAiProviderConsensus(consensus_grade="missing")
+
+    cx_h = codex.outcome.headline
+    cl_h = claude.outcome.headline
+    cx_pref = codex.outcome.preferred_expression
+    cl_pref = claude.outcome.preferred_expression
+
+    bias_ok = cx_h.directional_bias == cl_h.directional_bias
+    struct_ok = bool(cx_pref and cl_pref and cx_pref.structure == cl_pref.structure)
+    state_ok = cx_h.entry_state == cl_h.entry_state
+    path_ok = cx_h.underlying_path == cl_h.underlying_path
+    dte_ok = cx_h.dte_band == cl_h.dte_band
+
+    agreements = [bias_ok, struct_ok, state_ok, path_ok, dte_ok]
+    n_agree = sum(1 for a in agreements if a)
+
+    if n_agree == 5:
+        grade = "full"
+    elif n_agree >= 3:
+        grade = "partial"
+    else:
+        grade = "divergent"
+
+    # Single-sentence actionable disagreement string — only when there's
+    # something to act on. Prioritize bias > structure > entry_state >
+    # path > dte_band since those are the most consequential.
+    disagreement = ""
+    if not bias_ok:
+        disagreement = (
+            f"Directional bias differs: Codex={cx_h.directional_bias}, "
+            f"Claude={cl_h.directional_bias}. Re-evaluate before sizing."
+        )
+    elif not struct_ok:
+        cx_s = cx_pref.structure if cx_pref else "none"
+        cl_s = cl_pref.structure if cl_pref else "none"
+        disagreement = (
+            f"Same directional bias but different structures: Codex={cx_s}, "
+            f"Claude={cl_s}."
+        )
+    elif not state_ok:
+        disagreement = (
+            f"Entry state differs: Codex={cx_h.entry_state}, "
+            f"Claude={cl_h.entry_state} — depends on whether the latest "
+            "completed daily close satisfies the trigger."
+        )
+    elif not path_ok:
+        disagreement = (
+            f"Underlying path differs: Codex={cx_h.underlying_path}, "
+            f"Claude={cl_h.underlying_path}. Same direction but different "
+            "spatial archetype (rejection vs break)."
+        )
+    elif not dte_ok:
+        disagreement = (
+            f"DTE band differs: Codex={cx_h.dte_band}, Claude={cl_h.dte_band}."
+        )
+
+    return TradeInsightAiProviderConsensus(
+        bias_agreement=bias_ok,
+        structure_agreement=struct_ok,
+        entry_state_agreement=state_ok,
+        path_agreement=path_ok,
+        dte_band_agreement=dte_ok,
+        consensus_grade=grade,
+        actionable_disagreement=disagreement,
+    )
+
+
 @router.get(
     "/stock/{ticker}/trade-insights/ai-analysis/latest",
     response_model=TradeInsightAiLatestPair,
@@ -344,14 +422,20 @@ def get_latest_trade_insights_ai_analysis(
 
     Returns {codex: row|null, claude: row|null}. 200 even when both are null
     so the UI renders the empty Run state instead of a 404.
+
+    v5.2: also computes provider_consensus by comparing the two providers'
+    headlines when both succeeded. UI surfaces this above the tabs.
     """
     pair = repo.find_latest_trade_insight_ai_analyses_per_provider(
         ticker=ticker.upper(),
         prompt_version=PROMPT_VERSION,
     )
+    codex = _row_to_ai_response(pair["codex"]) if pair["codex"] else None
+    claude = _row_to_ai_response(pair["claude"]) if pair["claude"] else None
     return TradeInsightAiLatestPair(
-        codex=_row_to_ai_response(pair["codex"]) if pair["codex"] else None,
-        claude=_row_to_ai_response(pair["claude"]) if pair["claude"] else None,
+        codex=codex,
+        claude=claude,
+        provider_consensus=_compute_provider_consensus(codex, claude),
     )
 
 
