@@ -163,36 +163,98 @@ STEP 2 — DIRECTIONAL_BIAS (set headline.directional_bias)
   WAIT is a valid output. Do NOT convert WAIT into an iron condor unless
   trade_intent is range_income (see Step 4).
 
-STEP 3 — ENTRY_STATE (set headline.entry_state)
-    - ACTIVE:      directional trigger has ALREADY fired (daily close above
-                   the wall, daily close below support, etc.)
-    - CONDITIONAL: setup valid; needs daily-close or 2-session confirmation
-    - NO_ENTRY:    no clean directional edge (set when directional_bias=WAIT)
+STEP 2.5 — TRIGGER_COMPONENTS  (v5.3: NEW — three structured fields)
 
-  ACTIVE_TRIGGER_EVIDENCE_RULE (HARD, v5.2):
-    ACTIVE is allowed ONLY when the payload contains a COMPLETED daily
-    close that satisfies the trigger. Intraday spot is NOT sufficient.
+  v5.2 used a single trigger_level overloaded across two meanings: "the
+  wall that confirmed the thesis" vs "the level where I would actually
+  enter the trade." On NVDA, Codex emitted 220 (broken wall) and Claude
+  emitted 215 (next confirmation level) — both defensible, but the
+  schema could not represent that they meant DIFFERENT things. v5.3
+  decomposes into three required TriggerComponent blocks, each carrying
+  its own level, semantic meaning, and `fired` boolean evaluated
+  against actual daily-close evidence:
 
-    For LONG_DELTA breakout (trigger="daily close above X"):
-      latest completed close > X
-        OR two completed closes above X if the trigger says "2-session hold"
+    thesis_trigger   — the level that, if crossed in the right
+                       direction, VALIDATES the spatial archetype.
+                       For support_breakdown: the put_wall that was
+                       broken. For breakout_continuation: the
+                       call_wall that was broken. For
+                       resistance_rejection: the resistance level
+                       that REJECTED price.
 
-    For SHORT_DELTA downside_break / resistance_rejection (trigger="daily close below X"):
-      latest completed close < X
-        OR two completed closes below X if the trigger says "2-session hold"
+    entry_trigger    — the level that, if crossed, signals to actually
+                       OPEN the planned trade. MAY equal
+                       thesis_trigger.level when the plan is "enter on
+                       the same close that confirms the thesis" — but
+                       the meaning strings MUST differ. More often
+                       entry_trigger is a confirmation level (next put
+                       OI strike for downside, max_pain for upside)
+                       and IS the long-leg strike of the spread.
 
-    If the latest completed daily close in tabs.market_structure.stock_history
-    does NOT satisfy the trigger, you MUST emit entry_state=CONDITIONAL —
-    even if intraday spot has crossed the level. The validator will reject
-    entry_state=ACTIVE when trigger_evidence.trigger_fired=false.
+    invalidation     — the level that, if crossed AGAINST the trade,
+                       kills the thesis. For SHORT_DELTA, typically a
+                       reclaim of the broken wall. For LONG_DELTA,
+                       typically a close back below the breakout base.
 
-    Populate the trigger_evidence block with:
-      trigger_fired:        true iff a completed close satisfied the trigger
-      trigger_type:         "daily_close" | "two_session_hold"
-      trigger_level:        the numeric level being tested
-      evidence_close:       the completed close that proves (or fails) the trigger
-      evidence_close_date:  the market_date of evidence_close
-      source_path:          tabs.market_structure.stock_history.rows[N].spot
+  Each TriggerComponent block:
+    {
+      "level":           <Decimal: the price line>,
+      "meaning":         "<short label, e.g. 'support_breakdown_confirmed'>",
+      "fired":           <bool — has a COMPLETED daily close crossed
+                         level in the relevant direction?>,
+      "evidence_close":  <the daily close that proves fired=true;
+                         when fired=false, cite the latest completed
+                         close that was checked>,
+      "evidence_date":   "YYYY-MM-DD",
+      "source_path":     "tabs.market_structure.stock_history.rows[N].spot"
+    }
+
+  For thesis_trigger and entry_trigger, fired=true requires a COMPLETED
+  daily close from tabs.market_structure.stock_history.rows that crosses
+  `level` in the relevant direction (below for SHORT_DELTA, above for
+  LONG_DELTA). INTRADAY SPOT IS NOT SUFFICIENT. The validator rejects
+  fired=true without a real evidence_close.
+
+  invalidation.fired=true means the trade is already dead — practically
+  this should be rare since you only emit a recommendation when the
+  setup hasn't already invalidated.
+
+STEP 3 — ENTRY_STATE  (v5.3: DERIVED MECHANICALLY from STEP 2.5)
+    ENTRY_STATE is not a model judgment in v5.3 — it is a deterministic
+    function of the three trigger booleans you populated in STEP 2.5:
+
+      thesis_trigger.fired AND entry_trigger.fired AND NOT invalidation.fired
+          → ACTIVE
+
+      thesis_trigger.fired AND NOT entry_trigger.fired AND NOT invalidation.fired
+          → CONDITIONAL  (thesis confirmed, waiting for entry confirmation)
+
+      NOT thesis_trigger.fired AND NOT invalidation.fired
+          → CONDITIONAL  if the setup has a clean directional read and
+                         the trigger is expected to resolve within the
+                         5-10 session hold
+          → NO_ENTRY     when directional_bias=WAIT or the trigger
+                         requires a setup the data does not yet support
+
+      invalidation.fired = true
+          → NO_ENTRY     (thesis is dead; record what invalidated it
+                         in primary_risk + watch_trigger)
+
+    The validator enforces this derivation table. Emitting
+    entry_state=ACTIVE when entry_trigger.fired=false (or
+    thesis_trigger.fired=false) is rejected.
+
+    ACTIVE_TRIGGER_EVIDENCE_RULE (HARD, v5.3): ACTIVE is allowed ONLY
+    when BOTH thesis_trigger AND entry_trigger have fired=true with a
+    real evidence_close pulled from tabs.market_structure.stock_history.
+    If thesis has fired but entry has not (the common case immediately
+    after a wall break), the trade is CONDITIONAL with entry_trigger
+    as the watch level.
+
+    The v5.2 trigger_evidence block is RETAINED for backwards-
+    compatible audit (it now mirrors thesis_trigger's evidence) but the
+    authoritative state lives in thesis_trigger / entry_trigger /
+    invalidation.
 
 STEP 4 — TRADE_INTENT (set headline.trade_intent)
   Default: directional_swing. Set range_income ONLY when ALL three hold:
@@ -253,6 +315,64 @@ STEP 6 — STRUCTURE (set preferred_expression.structure)
                                     describes the CONDITIONAL setup; the
                                     Scenarios section names the long/short
                                     expressions that would activate.
+
+STEP 6.5 — OPTION_LEGS  (v5.3: NEW — explicit legs[] on preferred_expression)
+
+  Every structured preferred_expression MUST emit
+  preferred_expression.legs as an explicit array of option legs:
+
+    legs = [
+      {"option_type": "put",  "side": "long",  "strike": 215, "expiry": "2026-06-26"},
+      {"option_type": "put",  "side": "short", "strike": 210, "expiry": "2026-06-26"}
+    ]
+
+  Per-structure leg geometry (HARD; validator rejects otherwise):
+
+    bear_put_spread  /  put_debit_spread (SHORT_DELTA):
+       exactly 2 legs — 1 long put + 1 short put
+       long.strike > short.strike, SAME expiry
+
+    bull_call_spread /  call_debit_spread (LONG_DELTA):
+       exactly 2 legs — 1 long call + 1 short call
+       long.strike < short.strike, SAME expiry
+
+    put_credit_spread (SHORT_DELTA, range_income only):
+       exactly 2 legs — 1 short put + 1 long put (protective)
+       short.strike > long.strike, SAME expiry, DEFINED-RISK ONLY
+
+    call_credit_spread (LONG_DELTA, range_income only):
+       exactly 2 legs — 1 short call + 1 long call (protective)
+       short.strike < long.strike, SAME expiry, DEFINED-RISK ONLY
+
+    long_call (LONG_DELTA): exactly 1 leg — option_type=call, side=long
+    long_put  (SHORT_DELTA): exactly 1 leg — option_type=put,  side=long
+
+    call_diagonal (LONG_DELTA): 2 legs — short call near + long call far
+                                 (long DTE > short DTE; defined-risk)
+    put_diagonal  (SHORT_DELTA): mirror of call_diagonal
+
+    iron_condor / iron_butterfly / butterfly / calendar_spread:
+       provide all 3-4 legs honestly; validator enforces structure
+       per family.
+
+    no_trade  /  strategy_review:
+       legs may be empty []; the structure-leg check is skipped.
+
+  PROJECT SAFETY: NO NAKED SHORTS. Every credit-spread family MUST
+  include BOTH the short leg AND the protective long leg. A single-
+  leg short_call or short_put is rejected by the validator as a
+  naked-short policy violation.
+
+  LEGS_ALIGN_WITH_TRIGGERS (HARD, v5.3): for any spread, the LONG
+  leg's strike MUST be within 2% of either entry_trigger.level or
+  thesis_trigger.level. This makes "is the actual long-put strike
+  215 or 220?" a falsifiable claim that ties the proposed expression
+  back to the trigger components from STEP 2.5.
+
+  The legacy preferred_expression.strike_role block from v5.2 is
+  RETAINED for the existing strike-role tile in the UI — populate it
+  consistently with legs[] (the long leg corresponds to long_leg_role,
+  short to short_leg_role).
 
 ═══════════════════════════════════════════════════════════════════════════
 EVIDENCE WEIGHTING (v5: FLOW promoted to PRIMARY alongside dealer regime)

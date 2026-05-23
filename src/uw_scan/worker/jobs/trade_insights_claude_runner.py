@@ -126,29 +126,61 @@ metrics, reason}. When data is incomplete, set signal="neutral" and explain \
 in summary/reason.
 
 preferred_expression: provide {idea_id, structure, title, why, \
-status_observed, risk_flags_observed, strike_role}. \
+status_observed, risk_flags_observed, strike_role, legs}. \
 strike_role is a nested object with {long_leg_role, short_leg_role, \
 trigger_level, target_level, invalid_level, trigger_source_path, \
 target_source_path, invalid_source_path}. v5.2: trigger_level / \
 target_level / invalid_level MUST be a NUMERIC PRICE STRING (e.g. "215" \
-or "215.00") — NOT a dict, NOT a row object from the payload. Example: \
-"trigger_level": "215". If you copy a row from the strike-curve payload, \
-extract only the strike key. For directional breakout setups, populate \
-trigger_level (numeric price), target_level (next wall above for \
-LONG_DELTA, below for SHORT_DELTA), and invalid_level (close past this \
-invalidates). long_leg_role is typically "trigger_level" or "atm_delta_anchor"; \
-short_leg_role is "target_level" or "next_call_wall"/"second_magnet" for \
-LONG_DELTA, "next_put_wall"/"next_downside_target" for SHORT_DELTA. \
+or "215.00") — NOT a dict, NOT a row object from the payload.
+
+v5.3 LEGS REQUIREMENT (HARD): preferred_expression.legs is an array of \
+option legs, each {option_type: "call"|"put", side: "long"|"short", \
+strike: numeric, expiry: "YYYY-MM-DD"}. Required structures: \
+bear_put_spread / put_debit_spread = 2 legs (long put + short put, \
+long_strike > short_strike, same expiry); bull_call_spread / \
+call_debit_spread = 2 legs (long call + short call, long_strike < \
+short_strike, same expiry); put_credit_spread = 2 legs (short put + \
+long put, short_strike > long_strike, same expiry, DEFINED-RISK); \
+call_credit_spread = 2 legs (short call + long call, short_strike < \
+long_strike, same expiry, DEFINED-RISK); long_call = 1 long call; \
+long_put = 1 long put. NO NAKED SHORTS — every credit-spread family MUST \
+include the protective long leg. no_trade / strategy_review can have \
+legs=[].
+
+v5.3 LEGS_ALIGN_WITH_TRIGGERS (HARD): for any spread, the long leg's \
+strike MUST be within 2% of either entry_trigger.level or \
+thesis_trigger.level. This binds the proposed spread to the trigger \
+state machine.
+
 For estimated_entry, max_profit_observed, max_loss_observed, reward_risk: \
 if entry_state=CONDITIONAL and the trigger has NOT fired, set \
 status_observed="strategy_review" with blanks or the placeholder string \
 "Repriced post-trigger — observed pre-trigger numerics are reference only." \
-Do NOT present pre-trigger observed numerics as if they were the expected \
-post-trigger economics. v5.2 removed the "candidate_pre_trigger" escape \
-hatch as dead code — under CONDITIONAL always use strategy_review. \
-For trade_intent=range_income or directional_bias=WAIT, \
-structure="no_trade" is acceptable; the other fields then describe the \
-conditional setup.
+v5.2 removed the "candidate_pre_trigger" escape hatch as dead code — \
+under CONDITIONAL always use strategy_review. For trade_intent= \
+range_income or directional_bias=WAIT, structure="no_trade" is \
+acceptable; the other fields then describe the conditional setup.
+
+v5.3 TRIGGER COMPONENTS (HARD): emit thesis_trigger, entry_trigger, and \
+invalidation as TOP-LEVEL TriggerComponent blocks on the outcome (NOT \
+inside preferred_expression). Each block has {level: numeric, meaning: \
+short label, fired: bool, evidence_close: numeric, evidence_date: \
+"YYYY-MM-DD", source_path: "tabs.market_structure.stock_history.rows[N].spot"}. \
+thesis_trigger is the level that validates the spatial archetype \
+(broken put_wall for support_breakdown, broken call_wall for \
+breakout_continuation). entry_trigger is the level that signals the \
+actual trade entry — often the long-leg strike. invalidation is the \
+level that kills the thesis. For thesis/entry, fired=true requires a \
+COMPLETED daily close that crossed `level` in the relevant direction; \
+intraday spot is NOT sufficient. The two triggers MAY share the same \
+level but their meaning strings MUST differ.
+
+v5.3 ENTRY_STATE DERIVATION (HARD; mechanical, validator rejects \
+mismatches): entry_state = ACTIVE iff thesis_trigger.fired AND \
+entry_trigger.fired AND NOT invalidation.fired. entry_state = \
+CONDITIONAL iff thesis_trigger.fired AND NOT entry_trigger.fired (or \
+neither fired but the setup is otherwise valid). entry_state = NO_ENTRY \
+iff invalidation.fired OR directional_bias=WAIT.
 
 TRIGGER-STRIKE CONSISTENCY (HARD; validator will reject otherwise):
 - For LONG_DELTA breakouts, the spread's short leg strike MUST be STRICTLY \
