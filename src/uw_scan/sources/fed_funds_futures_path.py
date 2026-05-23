@@ -1,20 +1,20 @@
 """Fed funds futures implied policy path source.
 
-FedChirp publishes a daily path table derived from fed funds futures using
-FedWatch-style step-path math. We use it as a free/delayed alternative to the
-paid CME FedWatch probability API and label it as third-party futures-derived
-data throughout the rates dashboard.
+Frenzy Capital publishes an SSR JSON snapshot of fed-funds-futures move
+probabilities. We use it as a free/delayed alternative to the paid CME FedWatch
+API and label it as third-party futures-derived data throughout the rates
+dashboard.
 """
 
 from __future__ import annotations
 
+import json
 import logging
 import re
 from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import UTC, date, datetime
 from decimal import Decimal, InvalidOperation
-from html.parser import HTMLParser
 from typing import Literal
 
 import httpx
@@ -35,7 +35,7 @@ class FedFundsFuturesPathPoint:
     stance: PathStance
     target_range: str | None
     implied_rate: Decimal | None = None
-    source: str = "FedChirp fed funds futures"
+    source: str = "Frenzy Capital Fed Watch"
 
     def to_payload(self) -> dict[str, object]:
         return {
@@ -49,13 +49,13 @@ class FedFundsFuturesPathPoint:
         }
 
 
-RecordHook = Callable[["FedChirpPolicyPathProvider", ExternalApiRequestEvent], None]
+RecordHook = Callable[["FedFundsFuturesPathProvider", ExternalApiRequestEvent], None]
 
 
-class FedChirpPolicyPathProvider:
-    BASE_URL = "https://www.fedchirp.com"
-    PATH = "/"
-    PROVIDER = "fedchirp"
+class FedFundsFuturesPathProvider:
+    BASE_URL = "https://www.frenzycap.com/fedwatch"
+    PATH = ""
+    PROVIDER = "frenzy_capital"
     ENDPOINT_KEY = "fed_funds_futures_path"
 
     def __init__(
@@ -71,7 +71,7 @@ class FedChirpPolicyPathProvider:
         self._record_request_fn = record_request
         self._job_name = job_name
 
-    def __enter__(self) -> "FedChirpPolicyPathProvider":
+    def __enter__(self) -> "FedFundsFuturesPathProvider":
         return self
 
     def __exit__(self, *_exc: object) -> None:
@@ -86,7 +86,7 @@ class FedChirpPolicyPathProvider:
         response = self._get()
         response.raise_for_status()
         current_range = _target_range(current_target_range)
-        rows = _FedChirpPathParser().parse(response.text)
+        rows = _FrenzyFedWatchParser().parse(response.text)
         out: list[FedFundsFuturesPathPoint] = []
         for row in rows:
             best = _best_probability_bucket(row.probabilities)
@@ -97,7 +97,7 @@ class FedChirpPolicyPathProvider:
                 FedFundsFuturesPathPoint(
                     meeting_date=row.meeting_date,
                     label=f"{row.meeting_date.month}/{row.meeting_date.day}",
-                    probability=round(float(best[1]), 1),
+                    probability=round(float(best[1] * Decimal(100)), 1),
                     stance=stance,
                     target_range=_shift_target_range(current_range, step_bps),
                     implied_rate=row.implied_rate,
@@ -138,7 +138,7 @@ class FedChirpPolicyPathProvider:
         if self._record_request_fn is not None:
             self._record_request_fn(self, event)
         else:
-            logger.debug("fedchirp telemetry %r", event)
+            logger.debug("fed funds futures path telemetry %r", event)
 
     def _event(
         self,
@@ -175,89 +175,76 @@ class _ParsedPathRow:
     probabilities: dict[str, Decimal]
 
 
-class _FedChirpPathParser(HTMLParser):
-    def __init__(self) -> None:
-        super().__init__(convert_charrefs=True)
-        self._in_path_section = False
-        self._in_row = False
-        self._cell_label: str | None = None
-        self._cell_parts: list[str] = []
-        self._current: dict[str, str] = {}
-        self.rows: list[_ParsedPathRow] = []
+class _FrenzyFedWatchParser:
+    _DATA_RE = re.compile(r"window\.__SSR_DATA__\s*=\s*(\{.*?\});\s*</script>", re.S)
 
     def parse(self, html: str) -> list[_ParsedPathRow]:
-        self.feed(html)
-        return self.rows
+        match = self._DATA_RE.search(html)
+        if match is None:
+            return []
+        try:
+            payload = json.loads(match.group(1))
+        except json.JSONDecodeError:
+            return []
 
-    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
-        attr = dict(attrs)
-        if tag == "h3" and attr.get("class") == "path__h3":
-            self._in_path_section = True
-            return
-        if not self._in_path_section:
-            return
-        if tag == "tr":
-            self._in_row = True
-            self._current = {}
-            return
-        if self._in_row and tag in {"td", "th"}:
-            self._cell_label = attr.get("data-label")
-            self._cell_parts = []
-
-    def handle_data(self, data: str) -> None:
-        if self._cell_label is not None:
-            self._cell_parts.append(data)
-
-    def handle_endtag(self, tag: str) -> None:
-        if self._in_row and tag in {"td", "th"} and self._cell_label is not None:
-            text = " ".join(part.strip() for part in self._cell_parts if part.strip())
-            self._current[self._cell_label] = text
-            self._cell_label = None
-            self._cell_parts = []
-            return
-        if self._in_row and tag == "tr":
-            row = _row_from_cells(self._current)
+        rows: list[_ParsedPathRow] = []
+        for item in payload.get("meetings", []):
+            if not isinstance(item, dict):
+                continue
+            row = _row_from_frenzy_meeting(item)
             if row is not None:
-                self.rows.append(row)
-            self._current = {}
-            self._in_row = False
-            return
-        if self._in_path_section and tag == "table":
-            self._in_path_section = False
+                rows.append(row)
+        return rows
 
 
-def _row_from_cells(cells: dict[str, str]) -> _ParsedPathRow | None:
-    raw_meeting = cells.get("Meeting")
-    if raw_meeting is None:
+def _row_from_frenzy_meeting(item: dict[str, object]) -> _ParsedPathRow | None:
+    raw_meeting = item.get("meeting_date")
+    if not isinstance(raw_meeting, str):
         return None
     try:
         meeting_date = date.fromisoformat(raw_meeting)
     except ValueError:
         return None
+
+    raw_probabilities = item.get("probabilities")
+    if not isinstance(raw_probabilities, dict):
+        return None
     probabilities = {
         label: probability
         for label, probability in (
-            (key, _parse_percent(value))
-            for key, value in cells.items()
-            if key.startswith("Cut ") or key == "Hold" or key.startswith("Hike ")
+            (_probability_label(key), _parse_decimal(value))
+            for key, value in raw_probabilities.items()
         )
-        if probability is not None
+        if label is not None and probability is not None
     }
     return _ParsedPathRow(
         meeting_date=meeting_date,
-        implied_rate=_parse_percent(cells.get("Implied rate after")),
+        implied_rate=_parse_decimal(item.get("post_rate")),
         probabilities=probabilities,
     )
 
 
-def _parse_percent(raw: str | None) -> Decimal | None:
+def _probability_label(key: object) -> str | None:
+    labels = {
+        "cut_gt25": "Cut 50 bp",
+        "cut_25": "Cut 25 bp",
+        "hold": "Hold",
+        "hike_25": "Hike 25 bp",
+        "hike_gt25": "Hike 50 bp",
+    }
+    return labels.get(key)
+
+
+def _parse_decimal(raw: object) -> Decimal | None:
     if raw is None:
         return None
-    match = re.search(r"[-+]?\d+(?:\.\d+)?", raw.replace(",", ""))
-    if match is None:
-        return None
+    if isinstance(raw, str):
+        match = re.search(r"[-+]?\d+(?:\.\d+)?", raw.replace(",", ""))
+        if match is None:
+            return None
+        raw = match.group(0)
     try:
-        return Decimal(match.group(0))
+        return Decimal(str(raw))
     except InvalidOperation:
         return None
 

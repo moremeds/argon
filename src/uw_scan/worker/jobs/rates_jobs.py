@@ -18,7 +18,7 @@ from uw_scan.rates.series import (
 )
 from uw_scan.rates.snapshot import build_rates_snapshot
 from uw_scan.sources.cleveland_fed import ClevelandFedInflationProvider
-from uw_scan.sources.fed_funds_futures_path import FedChirpPolicyPathProvider
+from uw_scan.sources.fed_funds_futures_path import FedFundsFuturesPathProvider
 from uw_scan.sources.fomc_calendar import FomcCalendarProvider
 from uw_scan.sources.fred import FredProvider, RecordHook
 from uw_scan.storage.repository import Repository
@@ -93,9 +93,9 @@ def rates_fred_ingest_job(
     ),
     fomc_provider_factory: RatesFomcProviderFactory = FomcCalendarProvider,
     policy_path_provider_factory: RatesPolicyPathProviderFactory = (
-        FedChirpPolicyPathProvider
+        FedFundsFuturesPathProvider
     ),
-    policy_path_url: str = FedChirpPolicyPathProvider.BASE_URL,
+    policy_path_url: str = FedFundsFuturesPathProvider.BASE_URL,
     computed_at: datetime | None = None,
 ) -> RatesIngestResult:
     if not fred_api_key:

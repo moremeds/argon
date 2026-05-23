@@ -311,7 +311,9 @@ def _plumbing_tiles(
     reserves = _latest_float(
         observations, "WRESBAL", latest_policy_date, divisor=1_000_000
     )
-    on_rrp = _latest_float(observations, "RRPONTSYD", latest_policy_date)
+    on_rrp = _latest_float(
+        observations, "RRPONTSYD", latest_policy_date, divisor=1000, quantum="0.001"
+    )
     tga = _latest_float(
         observations, "WTREGEN", latest_policy_date, divisor=1_000_000
     )
@@ -333,7 +335,7 @@ def _plumbing_tiles(
         RatesPolicyPlumbingMetric(
             label="ON RRP",
             value=on_rrp,
-            unit="$bn",
+            unit="$T",
             qualifier=_rrp_qualifier(on_rrp),
             status="ok" if on_rrp is not None else "missing",
         ),
@@ -369,7 +371,7 @@ def _reserve_qualifier(value: float | None) -> str | None:
 def _rrp_qualifier(value: float | None) -> str | None:
     if value is None:
         return None
-    return "near-zero ON RRP" if value <= 50 else "ON RRP still absorbs liquidity"
+    return "near-zero ON RRP" if value <= 0.05 else "ON RRP still absorbs liquidity"
 
 
 def _tga_qualifier(value: float | None) -> str | None:
@@ -404,6 +406,7 @@ def _latest_float(
     as_of: date,
     *,
     divisor: Decimal | int = 1,
+    quantum: str = "0.01",
 ) -> float | None:
     rows = [row for row in observations.get(series_id, []) if row["obs_date"] <= as_of]
     if not rows:
@@ -411,7 +414,7 @@ def _latest_float(
     value = max(rows, key=lambda row: row["obs_date"])["value"]
     decimal_value = value if isinstance(value, Decimal) else Decimal(str(value))
     decimal_value = decimal_value / Decimal(str(divisor))
-    return float(decimal_value.quantize(Decimal("0.01")))
+    return float(decimal_value.quantize(Decimal(quantum)))
 
 
 def _curve_score(slopes) -> float | None:

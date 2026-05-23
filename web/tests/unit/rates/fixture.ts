@@ -169,8 +169,36 @@ export const SNAPSHOT: Snapshot = {
     target_range: null,
     effr: 4.33,
     sofr: 4.31,
+    implied_path: [
+      {
+        meeting_date: "2026-06-17",
+        label: "6/17",
+        probability: 53.9,
+        stance: "HOLD",
+        target_range: "3.50-3.75%",
+        source: "Frenzy Capital Fed Watch",
+        status: "ok",
+      },
+      {
+        meeting_date: "2026-07-29",
+        label: "7/29",
+        probability: 53.9,
+        stance: "HOLD",
+        target_range: "3.50-3.75%",
+        source: "Frenzy Capital Fed Watch",
+        status: "ok",
+      },
+    ],
+    path_read:
+      "Frenzy Capital Fed Watch assigns 53.9% to hold at the next meeting.",
     plumbing: [
-      { label: "RRP", value: 142.5, unit: "B", qualifier: null, status: "ok" },
+      {
+        label: "ON RRP",
+        value: 0.025,
+        unit: "$T",
+        qualifier: "near-zero ON RRP",
+        status: "ok",
+      },
     ],
     status: "partial",
   },

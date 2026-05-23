@@ -149,6 +149,14 @@ function latestPolicyRows(policy: Policy) {
   ];
 }
 
+function fmtPolicyMetric(value: unknown, unit: string | undefined): string {
+  const n = toFiniteNumber(value, Number.NaN);
+  if (!Number.isFinite(n)) return "n/a";
+  if (unit === "$T") return `$${n.toFixed(Math.abs(n) < 0.1 ? 3 : 2)}T`;
+  if (unit === "$bn") return `$${n.toFixed(1)}bn`;
+  return fmtValue(value, unit, unit === "bps" ? 1 : 2);
+}
+
 function PolicySection({ policy }: { policy: Policy }) {
   const path = policy.implied_path ?? [];
   return (
@@ -209,7 +217,7 @@ function PolicySection({ policy }: { policy: Policy }) {
             <div key={row.label}>
               <dt>{row.label}</dt>
               <dd>
-                {fmtValue(row.value, row.unit, row.unit === "$bn" ? 1 : 2)}
+                {fmtPolicyMetric(row.value, row.unit)}
                 {row.qualifier ? <small>{row.qualifier}</small> : null}
               </dd>
             </div>

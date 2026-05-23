@@ -150,7 +150,13 @@ class _FomcProvider:
 
 
 class _PolicyPathProvider:
-    def __init__(self, *, base_url="https://www.fedchirp.com", record_request=None, job_name=None):
+    def __init__(
+        self,
+        *,
+        base_url="https://www.frenzycap.com/fedwatch",
+        record_request=None,
+        job_name=None,
+    ):
         self.base_url = base_url
         self.record_request = record_request
         self.job_name = job_name
@@ -170,7 +176,7 @@ class _PolicyPathProvider:
                 "probability": 99.0,
                 "stance": "HOLD",
                 "target_range": "3.50-3.75%",
-                "source": "FedChirp fed funds futures",
+                "source": "Frenzy Capital Fed Watch",
                 "status": "ok",
             }
         ]
@@ -224,7 +230,7 @@ def test_rates_job_persists_observations_and_snapshot(migrated_settings: Setting
     assert row["payload"]["policy"]["target_range"] == "3.50-3.75%"
     assert row["payload"]["policy"]["last_meeting"]["vote_split"] == "8-4"
     assert row["payload"]["policy"]["implied_path"][0]["source"] == (
-        "FedChirp fed funds futures"
+        "Frenzy Capital Fed Watch"
     )
 
 

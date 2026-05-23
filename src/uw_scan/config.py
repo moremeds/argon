@@ -118,7 +118,7 @@ class Settings(BaseModel):
     # FRED official API. Required by the US rates mirror ingest path.
     fred_api_key: SecretStr | None = None
     # Free/delayed fed funds futures path source used by the rates dashboard.
-    rates_policy_path_url: str = "https://www.fedchirp.com"
+    rates_policy_path_url: str = "https://www.frenzycap.com/fedwatch"
     # WGC Goldhub authenticated downloads. Keep secrets in environment only.
     wgc_goldhub_cookie: SecretStr | None = None
     wgc_etf_flows_workbook_path: str = ""
@@ -272,9 +272,9 @@ class Settings(BaseModel):
                 else None
             ),
             rates_policy_path_url=os.environ.get(
-                "RATES_POLICY_PATH_URL", "https://www.fedchirp.com"
+                "RATES_POLICY_PATH_URL", "https://www.frenzycap.com/fedwatch"
             ).strip()
-            or "https://www.fedchirp.com",
+            or "https://www.frenzycap.com/fedwatch",
             wgc_goldhub_cookie=(
                 SecretStr(_wgc_cookie)
                 if (_wgc_cookie := os.environ.get("WGC_GOLDHUB_COOKIE", "").strip())

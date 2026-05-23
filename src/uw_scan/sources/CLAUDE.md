@@ -37,7 +37,7 @@ Feeds `/rates` through `worker/jobs/rates_jobs.py` and
 | `fred.py` | FRED observations for nominal Treasury curve, TIPS real yields, breakevens, EFFR, SOFR, target range, and Fed plumbing. Requires `FRED_API_KEY`. | Live |
 | `cleveland_fed.py` | Cleveland Fed inflation-expectations model CSVs for the four-component 10Y decomposition. | Live |
 | `fomc_calendar.py` | Federal Reserve FOMC calendar page for meeting metadata. | Live |
-| `fed_funds_futures_path.py` | FedChirp daily fed-funds-futures path table, used as a free/delayed alternative to the paid CME FedWatch API. Override with `RATES_POLICY_PATH_URL` if we later host our own scraped/derived page. | Live |
+| `fed_funds_futures_path.py` | Frenzy Capital Fed Watch SSR data, a free/delayed fed-funds-futures move-probability source used as an alternative to the paid CME FedWatch API. Override with `RATES_POLICY_PATH_URL` if we later host our own scraped/derived page. | Live |
 
 ## Rules
 

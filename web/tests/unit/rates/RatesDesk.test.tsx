@@ -146,6 +146,21 @@ describe("RatesDesk", () => {
     );
   });
 
+  it("renders futures move probabilities and low ON RRP in trillions", () => {
+    render(<RatesDesk snapshot={SNAPSHOT} />);
+
+    const policySection = screen.getByRole("region", { name: /policy/i });
+    expect(within(policySection).getByText("Fed funds futures")).toBeTruthy();
+    expect(within(policySection).getByText("6/17")).toBeTruthy();
+    expect(within(policySection).getByText("7/29")).toBeTruthy();
+    expect(
+      within(policySection).getByText(
+        "Frenzy Capital Fed Watch assigns 53.9% to hold at the next meeting.",
+      ),
+    ).toBeTruthy();
+    expect(within(policySection).getByText("$0.025T")).toBeTruthy();
+  });
+
   it("renders an explicit empty state when no snapshot exists", () => {
     render(<RatesDesk snapshot={null} />);
 

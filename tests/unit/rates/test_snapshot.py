@@ -106,7 +106,7 @@ def test_build_rates_snapshot_populates_live_fred_sections_without_static_filler
                 "probability": 99.0,
                 "stance": "HOLD",
                 "target_range": "3.50-3.75%",
-                "source": "FedChirp fed funds futures",
+                "source": "Frenzy Capital Fed Watch",
             }
         ],
     )
@@ -133,6 +133,9 @@ def test_build_rates_snapshot_populates_live_fred_sections_without_static_filler
     fed_assets = next(tile for tile in snapshot.policy.plumbing if tile.label == "Fed assets")
     assert fed_assets.value == 6.73
     assert fed_assets.unit == "$T"
+    on_rrp = next(tile for tile in snapshot.policy.plumbing if tile.label == "ON RRP")
+    assert on_rrp.value == 0.025
+    assert on_rrp.unit == "$T"
     assert "QT" in snapshot.policy.plumbing_read
     assert snapshot.supply.status == "missing"
     assert snapshot.positioning.status == "missing"
