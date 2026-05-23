@@ -11402,6 +11402,46 @@
         "title": "TradeInsightAiMetricCard",
         "type": "object"
       },
+      "TradeInsightAiOptionLeg": {
+        "additionalProperties": false,
+        "description": "v5.3: one leg of a defined-risk option expression.\n\nReplaces v5.2's implicit \"trigger_level + long_leg_role + short_leg_role\"\ncoupling with explicit, validator-checkable leg geometry. The\nlegs-strategy-match validator enforces, e.g., that a bear_put_spread\nhas exactly one long put + one short put with long.strike > short.strike\nand matching expiry. The legs-align-triggers validator enforces that\nthe long leg's strike is within tolerance of entry_trigger.level OR\nthesis_trigger.level \u2014 making \"is the actual long-put strike 215 or\n220?\" a falsifiable claim against the model output.\n\nNo naked shorts: per project safety policy, credit-spread families\nmust always include the long protective leg. The validator rejects\na single-leg short.",
+        "properties": {
+          "expiry": {
+            "format": "date",
+            "title": "Expiry",
+            "type": "string"
+          },
+          "option_type": {
+            "enum": [
+              "call",
+              "put"
+            ],
+            "title": "Option Type",
+            "type": "string"
+          },
+          "side": {
+            "enum": [
+              "long",
+              "short"
+            ],
+            "title": "Side",
+            "type": "string"
+          },
+          "strike": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Strike",
+            "type": "string"
+          }
+        },
+        "required": [
+          "option_type",
+          "side",
+          "strike",
+          "expiry"
+        ],
+        "title": "TradeInsightAiOptionLeg",
+        "type": "object"
+      },
       "TradeInsightAiOutcome": {
         "additionalProperties": false,
         "properties": {
@@ -11430,11 +11470,17 @@
           "dominant_read": {
             "$ref": "#/components/schemas/TradeInsightAiDominantRead"
           },
+          "entry_trigger": {
+            "$ref": "#/components/schemas/TradeInsightAiTriggerComponent"
+          },
           "guardrails": {
             "$ref": "#/components/schemas/TradeInsightAiGuardrails"
           },
           "headline": {
             "$ref": "#/components/schemas/TradeInsightAiHeadline"
+          },
+          "invalidation": {
+            "$ref": "#/components/schemas/TradeInsightAiTriggerComponent"
           },
           "metric_cards": {
             "items": {
@@ -11504,6 +11550,9 @@
           "target_feasibility": {
             "$ref": "#/components/schemas/TradeInsightAiTargetFeasibility"
           },
+          "thesis_trigger": {
+            "$ref": "#/components/schemas/TradeInsightAiTriggerComponent"
+          },
           "ticker": {
             "title": "Ticker",
             "type": "string"
@@ -11561,6 +11610,13 @@
           "idea_id": {
             "title": "Idea Id",
             "type": "string"
+          },
+          "legs": {
+            "items": {
+              "$ref": "#/components/schemas/TradeInsightAiOptionLeg"
+            },
+            "title": "Legs",
+            "type": "array"
           },
           "management_notes": {
             "items": {
@@ -12069,6 +12125,65 @@
           }
         },
         "title": "TradeInsightAiTargetFeasibility",
+        "type": "object"
+      },
+      "TradeInsightAiTriggerComponent": {
+        "additionalProperties": false,
+        "description": "v5.3: a single point on the trade's state machine.\n\nThe v5.2 schema overloaded `trigger_level` across two distinct\nsemantics (NVDA Codex emitted 220 as \"broken wall \u2014 already fired\",\nClaude emitted 215 as \"continuation entry \u2014 not yet fired\"), which\nis why providers split on ENTRY_STATE despite agreeing on archetype\nand direction. v5.3 decomposes that into three required components \u2014\n`thesis_trigger`, `entry_trigger`, `invalidation` \u2014 each carrying its\nown level, semantic meaning, and `fired` boolean evaluated against\nactual daily-close evidence. ENTRY_STATE becomes a mechanical\nfunction of the trigger booleans rather than a model judgment.\n\nBoth `thesis_trigger` and `entry_trigger` may share the same level\nwhen the trade plan treats the broken wall as both the thesis\nconfirmation AND the entry signal \u2014 but their `meaning` strings\nmust differ, and their `fired` booleans are evaluated independently\nagainst their own evidence rules.",
+        "properties": {
+          "evidence_close": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Evidence Close"
+          },
+          "evidence_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Evidence Date"
+          },
+          "fired": {
+            "default": false,
+            "title": "Fired",
+            "type": "boolean"
+          },
+          "level": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Level"
+          },
+          "meaning": {
+            "default": "",
+            "title": "Meaning",
+            "type": "string"
+          },
+          "source_path": {
+            "default": "",
+            "title": "Source Path",
+            "type": "string"
+          }
+        },
+        "title": "TradeInsightAiTriggerComponent",
         "type": "object"
       },
       "TradeInsightAiTriggerEvidence": {

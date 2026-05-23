@@ -2259,3 +2259,387 @@ def test_coerce_claude_outcome_strips_unknown_keys():
     assert "INVENTED_SECTION_FIELD" not in coerced["section_cards"]["market_structure"]
     # And it round-trips through Pydantic
     TradeInsightAiOutcome.model_validate(coerced)
+
+
+# ---------------------------------------------------------------------------
+# v5.3 tests — trigger components, explicit legs, mechanical ENTRY_STATE.
+# These exercise the M4 HARD validators and the M3 lenient coercer paths.
+# ---------------------------------------------------------------------------
+
+
+def _v53_bull_call_legs(
+    long_strike: str = "385", short_strike: str = "400"
+) -> list[dict]:
+    return [
+        {
+            "option_type": "call",
+            "side": "long",
+            "strike": long_strike,
+            "expiry": "2026-04-17",
+        },
+        {
+            "option_type": "call",
+            "side": "short",
+            "strike": short_strike,
+            "expiry": "2026-04-17",
+        },
+    ]
+
+
+def _v53_bear_put_legs(
+    long_strike: str = "215", short_strike: str = "210"
+) -> list[dict]:
+    return [
+        {
+            "option_type": "put",
+            "side": "long",
+            "strike": long_strike,
+            "expiry": "2026-06-26",
+        },
+        {
+            "option_type": "put",
+            "side": "short",
+            "strike": short_strike,
+            "expiry": "2026-06-26",
+        },
+    ]
+
+
+def test_v53_legs_match_strategy_accepts_well_formed_bear_put_spread():
+    """SHORT_DELTA bear_put_spread with 2 puts long-above-short on the same
+    expiry is the canonical defined-risk geometry — must pass."""
+    deterministic = _analysis_input()
+    produced_at = datetime(2026, 3, 24, 20, 18, 42, tzinfo=timezone.utc)
+
+    payload = _sample_outcome_for(deterministic)
+    payload["headline"]["directional_bias"] = "SHORT_DELTA"
+    payload["headline"]["underlying_path"] = "downside_break"
+    payload["headline"]["thesis_archetype"] = "support_breakdown"
+    # Use the candidate's idea_id "A" (preserves the candidate-match
+    # status/risk_flags check) but override structure → bear_put_spread
+    # so the v5.3 legs_match_strategy check exercises the put geometry.
+    payload["preferred_expression"]["structure"] = "bear_put_spread"
+    payload["preferred_expression"]["legs"] = _v53_bear_put_legs()
+    payload["best_expressions"][0]["structure"] = "bear_put_spread"
+
+    parsed = validate_trade_insights_ai_outcome(
+        payload, deterministic, produced_at=produced_at
+    )
+    assert parsed.preferred_expression is not None
+    assert len(parsed.preferred_expression.legs) == 2
+    assert parsed.preferred_expression.legs[0].side == "long"
+    assert parsed.preferred_expression.legs[0].strike == Decimal("215")
+
+
+def test_v53_legs_match_strategy_rejects_missing_legs():
+    """Declaring bull_call_spread without legs[] now fails — the structure
+    label is no longer a free-text claim."""
+    deterministic = _analysis_input()
+    produced_at = datetime(2026, 3, 24, 20, 18, 42, tzinfo=timezone.utc)
+
+    payload = _sample_outcome_for(deterministic)
+    payload["preferred_expression"]["legs"] = []  # drop the v5.3 legs
+
+    with pytest.raises(ValueError, match="legs_match_strategy"):
+        validate_trade_insights_ai_outcome(
+            payload, deterministic, produced_at=produced_at
+        )
+
+
+def test_v53_legs_match_strategy_rejects_naked_short():
+    """put_credit_spread MUST include the protective long leg.
+    A single short put violates the no-naked-shorts project policy."""
+    deterministic = _analysis_input()
+    produced_at = datetime(2026, 3, 24, 20, 18, 42, tzinfo=timezone.utc)
+
+    payload = _sample_outcome_for(deterministic)
+    payload["headline"]["directional_bias"] = "SHORT_DELTA"
+    payload["headline"]["underlying_path"] = "downside_break"
+    payload["headline"]["thesis_archetype"] = "support_breakdown"
+    # bear_put_spread should have 2 legs (1 long put + 1 short put).
+    # Emit only the short — no protective long — to trip the no-naked-shorts
+    # composition check.
+    payload["preferred_expression"]["structure"] = "bear_put_spread"
+    payload["preferred_expression"]["legs"] = [
+        {
+            "option_type": "put",
+            "side": "short",
+            "strike": "210",
+            "expiry": "2026-06-26",
+        },
+    ]
+    payload["best_expressions"][0]["structure"] = "bear_put_spread"
+
+    with pytest.raises(ValueError, match="legs_match_strategy"):
+        validate_trade_insights_ai_outcome(
+            payload, deterministic, produced_at=produced_at
+        )
+
+
+def test_v53_legs_match_strategy_rejects_wrong_option_type():
+    """A bull_call_spread emitted with put legs must fail —
+    the structure-label/option-type binding is hard."""
+    deterministic = _analysis_input()
+    produced_at = datetime(2026, 3, 24, 20, 18, 42, tzinfo=timezone.utc)
+
+    payload = _sample_outcome_for(deterministic)
+    payload["preferred_expression"]["legs"] = [
+        {"option_type": "put", "side": "long", "strike": "385", "expiry": "2026-04-17"},
+        {
+            "option_type": "put",
+            "side": "short",
+            "strike": "400",
+            "expiry": "2026-04-17",
+        },
+    ]
+
+    with pytest.raises(ValueError, match="legs_match_strategy"):
+        validate_trade_insights_ai_outcome(
+            payload, deterministic, produced_at=produced_at
+        )
+
+
+def test_v53_legs_match_strategy_skips_strategy_review():
+    """status_observed=strategy_review is research-only — leg geometry
+    is not enforced (the spread is hypothetical post-trigger)."""
+    deterministic = _analysis_input()
+    produced_at = datetime(2026, 3, 24, 20, 18, 42, tzinfo=timezone.utc)
+
+    payload = _sample_outcome_for(deterministic)
+    payload["preferred_expression"]["idea_id"] = "bull_call_spread"
+    payload["preferred_expression"]["structure"] = "bull_call_spread"
+    payload["preferred_expression"]["status_observed"] = "strategy_review"
+    payload["preferred_expression"]["risk_flags_observed"] = []
+    payload["preferred_expression"]["legs"] = []  # research-only — skipped
+
+    # strategy_review status + empty legs[] — must pass the leg check
+    parsed = validate_trade_insights_ai_outcome(
+        payload, deterministic, produced_at=produced_at
+    )
+    assert parsed.preferred_expression is not None
+    assert parsed.preferred_expression.status_observed == "strategy_review"
+
+
+def test_v53_legs_align_with_triggers_accepts_aligned_long_leg():
+    """When the long leg's strike is within 2% of entry_trigger.level,
+    the alignment check passes."""
+    deterministic = _analysis_input()
+    produced_at = datetime(2026, 3, 24, 20, 18, 42, tzinfo=timezone.utc)
+
+    payload = _sample_outcome_for(deterministic)
+    # long_call=385 is within 2% of entry_trigger=384 (0.26% diff)
+    payload["thesis_trigger"] = {
+        "level": "382.50",
+        "meaning": "broken_call_wall",
+        "fired": False,
+    }
+    payload["entry_trigger"] = {
+        "level": "384",
+        "meaning": "continuation_entry",
+        "fired": False,
+    }
+
+    parsed = validate_trade_insights_ai_outcome(
+        payload, deterministic, produced_at=produced_at
+    )
+    assert parsed.entry_trigger.level == Decimal("384")
+
+
+def test_v53_legs_align_with_triggers_rejects_misaligned_long_leg():
+    """A long leg strike outside 2% of every trigger is rejected —
+    the spread isn't tied to the state machine."""
+    deterministic = _analysis_input()
+    produced_at = datetime(2026, 3, 24, 20, 18, 42, tzinfo=timezone.utc)
+
+    payload = _sample_outcome_for(deterministic)
+    # long_call=385 but triggers at 450 / 460 — way off
+    payload["thesis_trigger"] = {
+        "level": "450",
+        "meaning": "broken_call_wall",
+        "fired": False,
+    }
+    payload["entry_trigger"] = {
+        "level": "460",
+        "meaning": "continuation_entry",
+        "fired": False,
+    }
+
+    with pytest.raises(ValueError, match="legs_align_with_triggers"):
+        validate_trade_insights_ai_outcome(
+            payload, deterministic, produced_at=produced_at
+        )
+
+
+def test_v53_entry_state_derivation_rejects_active_without_both_triggers():
+    """ENTRY_STATE=ACTIVE is mechanical — both thesis AND entry must
+    have fired=true. Only thesis fired → must be CONDITIONAL."""
+    deterministic = _analysis_input()
+    deterministic["candidate_structures"][0]["status"] = "candidate"
+    produced_at = datetime(2026, 3, 24, 20, 18, 42, tzinfo=timezone.utc)
+
+    payload = _sample_outcome_for(deterministic)
+    payload["headline"]["entry_state"] = "ACTIVE"
+    payload["preferred_expression"]["status_observed"] = "candidate"
+    candidate_flags = list(
+        deterministic["candidate_structures"][0].get("risk_flags") or []
+    )
+    payload["preferred_expression"]["risk_flags_observed"] = candidate_flags
+    payload["best_expressions"][0]["status_observed"] = "candidate"
+    payload["best_expressions"][0]["risk_flags_observed"] = candidate_flags
+    # v5.2 trigger evidence: ACTIVE valid by v5.2 rule
+    payload["trigger_evidence"] = {
+        "trigger_fired": True,
+        "trigger_type": "daily_close",
+        "trigger_level": "382.50",
+        "evidence_close": "385.00",
+        "evidence_close_date": "2026-03-24",
+        "source_path": "tabs.market_structure.stock_history.rows[-1].spot",
+    }
+    # v5.3: thesis fired but entry has not — must be CONDITIONAL
+    payload["thesis_trigger"] = {
+        "level": "382.50",
+        "meaning": "breakout_continuation_confirmed",
+        "fired": True,
+        "evidence_close": "385.00",
+        "evidence_date": "2026-03-24",
+    }
+    payload["entry_trigger"] = {
+        "level": "390",
+        "meaning": "continuation_entry",
+        "fired": False,  # entry hasn't fired yet
+    }
+
+    with pytest.raises(ValueError, match="entry_state_derivation"):
+        validate_trade_insights_ai_outcome(
+            payload, deterministic, produced_at=produced_at
+        )
+
+
+def test_v53_entry_state_derivation_rejects_active_when_invalidation_fired():
+    """ACTIVE with invalidation.fired=true is rejected — the thesis is dead."""
+    deterministic = _analysis_input()
+    deterministic["candidate_structures"][0]["status"] = "candidate"
+    produced_at = datetime(2026, 3, 24, 20, 18, 42, tzinfo=timezone.utc)
+
+    payload = _sample_outcome_for(deterministic)
+    payload["headline"]["entry_state"] = "ACTIVE"
+    payload["preferred_expression"]["status_observed"] = "candidate"
+    candidate_flags = list(
+        deterministic["candidate_structures"][0].get("risk_flags") or []
+    )
+    payload["preferred_expression"]["risk_flags_observed"] = candidate_flags
+    payload["best_expressions"][0]["status_observed"] = "candidate"
+    payload["best_expressions"][0]["risk_flags_observed"] = candidate_flags
+    payload["trigger_evidence"] = {
+        "trigger_fired": True,
+        "trigger_type": "daily_close",
+        "trigger_level": "382.50",
+        "evidence_close": "385.00",
+        "evidence_close_date": "2026-03-24",
+        "source_path": "tabs.market_structure.stock_history.rows[-1].spot",
+    }
+    payload["thesis_trigger"] = {
+        "level": "382.50",
+        "meaning": "broken_call_wall",
+        "fired": True,
+    }
+    payload["entry_trigger"] = {
+        "level": "382.50",
+        "meaning": "entry_confirmation",
+        "fired": True,
+    }
+    payload["invalidation"] = {
+        "level": "375",
+        "meaning": "reclaim_below_breakout",
+        "fired": True,  # thesis invalidated
+    }
+
+    with pytest.raises(ValueError, match="entry_state_derivation"):
+        validate_trade_insights_ai_outcome(
+            payload, deterministic, produced_at=produced_at
+        )
+
+
+def test_v53_lenient_coercer_backfills_v52_to_trigger_components():
+    """v5.2-shape input (trigger_evidence + strike_role.invalid_level) must
+    backfill into v5.3 thesis_trigger / entry_trigger / invalidation so the
+    UI does not render blank tiles for historical rows."""
+    from uw_scan.reports.trade_insights_ai import _coerce_claude_outcome_dict
+
+    deterministic = _analysis_input()
+    produced_at = datetime(2026, 3, 24, 20, 18, 42, tzinfo=timezone.utc)
+    expected_hash = hash_trade_insights_ai_analysis_input(deterministic)
+
+    raw = {
+        "headline": {
+            "directional_bias": "SHORT_DELTA",
+            "underlying_path": "downside_break",
+            "entry_state": "CONDITIONAL",
+            "thesis_archetype": "support_breakdown",
+            "watch_trigger": "daily close below 220",
+            "stance": "bearish",
+            "title": "NVDA SHORT_DELTA bear_put_spread fires on close below 220, 35 DTE",
+        },
+        "trigger_evidence": {
+            "trigger_fired": True,
+            "trigger_type": "daily_close",
+            "trigger_level": "220",
+            "evidence_close": "215.33",
+            "evidence_close_date": "2026-05-22",
+            "source_path": "tabs.market_structure.stock_history.rows[-1].spot",
+        },
+        "preferred_expression": {
+            "idea_id": "bear_put_spread",
+            "structure": "bear_put_spread",
+            "title": "v5.2 spread",
+            "why": "Support break confirmed",
+            "status_observed": "strategy_review",
+            "strike_role": {
+                "trigger_level": "220",
+                "target_level": "210",
+                "invalid_level": "225",
+            },
+        },
+    }
+
+    coerced = _coerce_claude_outcome_dict(
+        raw,
+        deterministic,
+        produced_at=produced_at,
+        expected_analysis_input_hash=expected_hash,
+    )
+
+    # v5.3 trigger components were backfilled from v5.2 trigger_evidence
+    assert coerced["thesis_trigger"]["level"] == "220"
+    assert coerced["thesis_trigger"]["fired"] is True
+    assert coerced["thesis_trigger"]["evidence_close"] == "215.33"
+    # invalidation backfilled from strike_role.invalid_level
+    assert coerced["invalidation"]["level"] == "225"
+    assert coerced["invalidation"]["meaning"] == "thesis_invalidated"
+    # legs defaulted to [] (v5.2 didn't have them)
+    assert coerced["preferred_expression"]["legs"] == []
+
+
+def test_v53_lenient_coercer_normalizes_option_leg_casing_and_expiry_slashes():
+    """option_type='PUT' and side='SHORT' must normalize to lowercase;
+    expiry '2026/06/26' must normalize to '2026-06-26'."""
+    from uw_scan.reports.trade_insights_ai_lenient import _coerce_option_legs
+
+    raw = [
+        {"option_type": "PUT", "side": "LONG", "strike": "215", "expiry": "2026/06/26"},
+        {"option_type": "p", "side": "S", "strike": "210", "expiry": "2026-06-26"},
+        {
+            "option_type": "junk",
+            "side": "long",
+            "strike": "100",
+            "expiry": "2026-06-26",
+        },  # dropped
+    ]
+    coerced = _coerce_option_legs(raw)
+
+    assert len(coerced) == 2  # third entry dropped (unparseable option_type)
+    assert coerced[0]["option_type"] == "put"
+    assert coerced[0]["side"] == "long"
+    assert coerced[0]["expiry"] == "2026-06-26"
+    assert coerced[1]["option_type"] == "put"
+    assert coerced[1]["side"] == "short"
