@@ -288,24 +288,64 @@ _TRADE_INTENT_ALIASES = {
 }
 
 
-# DTE-band aliases. The headline field is binary (momentum | trend); the
-# candidate menu's "standard" middle band maps to whichever neighbor the
-# trade thesis better matches.
+# DTE-band aliases. v5.1: 3-band (momentum | standard | trend). Models
+# that emitted "standard" under v5 (which forced binary) get a correct
+# round-trip now. Truly ambiguous values (middle/medium) collapse to
+# standard so the validator can then sanity-check against the actual
+# entry DTE (M4).
 _DTE_BAND_ALIASES = {
     "momentum": "momentum",
     "short": "momentum",
     "short_dte": "momentum",
     "front": "momentum",
     "near": "momentum",
+    "standard": "standard",
+    "middle": "standard",
+    "mid": "standard",
+    "medium": "standard",
     "trend": "trend",
     "long": "trend",
     "long_dte": "trend",
     "back": "trend",
     "far": "trend",
-    # "standard" middle band collapses to trend (the safer theta-protected
-    # default when the model didn't pick momentum explicitly).
-    "standard": "trend",
-    "middle": "trend",
+}
+
+# v5.1: long_leg_role / short_leg_role coercion. Models drift on synonyms
+# ("breakout" vs "trigger_level", "next_wall" vs "next_call_wall"). Map
+# common variants back to the canonical Literal values.
+_LONG_LEG_ROLE_ALIASES = {
+    "trigger_level": "trigger_level",
+    "trigger": "trigger_level",
+    "breakout_level": "trigger_level",
+    "wall": "trigger_level",
+    "support_reclaim": "support_reclaim",
+    "support": "support_reclaim",
+    "reclaim": "support_reclaim",
+    "atm_delta_anchor": "atm_delta_anchor",
+    "atm": "atm_delta_anchor",
+    "delta_anchor": "atm_delta_anchor",
+    "deep_itm_proxy": "deep_itm_proxy",
+    "deep_itm": "deep_itm_proxy",
+    "itm_proxy": "deep_itm_proxy",
+    "n_a": "n/a",
+    "na": "n/a",
+    "none": "n/a",
+}
+_SHORT_LEG_ROLE_ALIASES = {
+    "target_level": "target_level",
+    "target": "target_level",
+    "next_call_wall": "next_call_wall",
+    "call_wall": "next_call_wall",
+    "next_wall": "next_call_wall",
+    "second_magnet": "second_magnet",
+    "magnet": "second_magnet",
+    "next_put_wall": "next_put_wall",
+    "put_wall": "next_put_wall",
+    "next_downside_target": "next_downside_target",
+    "downside_target": "next_downside_target",
+    "n_a": "n/a",
+    "na": "n/a",
+    "none": "n/a",
 }
 
 
@@ -518,13 +558,112 @@ def _coerce_best_expression(
     }
 
 
+def _market_structure_levels(
+    deterministic_payload: dict[str, Any] | None,
+) -> dict[str, Any]:
+    """Pull market_structure_levels for v5.1 strike_role default backfill."""
+    if not isinstance(deterministic_payload, dict):
+        return {}
+    tabs = deterministic_payload.get("tabs") or {}
+    if not isinstance(tabs, dict):
+        return {}
+    ms = tabs.get("market_structure") or {}
+    if not isinstance(ms, dict):
+        return {}
+    levels = ms.get("market_structure_levels") or {}
+    return levels if isinstance(levels, dict) else {}
+
+
+def _coerce_strike_role(
+    raw_strike_role: Any,
+    *,
+    directional_bias: str,
+    levels: dict[str, Any],
+) -> dict[str, Any]:
+    """Coerce strike_role + backfill trigger/target/invalid levels.
+
+    Defaults are derived from market_structure_levels when the model
+    omits them: LONG_DELTA uses call_wall as trigger and second_magnet/
+    max_magnet as target. SHORT_DELTA uses put_wall as trigger and
+    max_accel / next put OI as target. WAIT leaves levels blank.
+    """
+    raw = _dict_or_empty(raw_strike_role)
+    long_role = _resolve_with_alias(
+        raw.get("long_leg_role"),
+        (
+            "trigger_level",
+            "support_reclaim",
+            "atm_delta_anchor",
+            "deep_itm_proxy",
+            "n/a",
+        ),
+        _LONG_LEG_ROLE_ALIASES,
+        "n/a",
+    )
+    short_role = _resolve_with_alias(
+        raw.get("short_leg_role"),
+        (
+            "target_level",
+            "next_call_wall",
+            "second_magnet",
+            "next_put_wall",
+            "next_downside_target",
+            "n/a",
+        ),
+        _SHORT_LEG_ROLE_ALIASES,
+        "n/a",
+    )
+    trigger = _str_or(raw.get("trigger_level"), "")
+    target = _str_or(raw.get("target_level"), "")
+    invalid = _str_or(raw.get("invalid_level"), "")
+
+    def _level(key: str) -> str:
+        v = levels.get(key) if isinstance(levels, dict) else None
+        return "" if v is None else str(v)
+
+    # Default-fill when model omitted these — pulled from market structure.
+    if directional_bias == "LONG_DELTA":
+        if not trigger:
+            trigger = _level("call_wall")
+        if not target:
+            target = _level("second_magnet") or _level("max_magnet")
+        if not invalid:
+            invalid = _level("gex_flip") or _level("put_wall")
+    elif directional_bias == "SHORT_DELTA":
+        if not trigger:
+            trigger = _level("put_wall") or _level("gex_flip")
+        if not target:
+            target = _level("max_accel") or _level("max_magnet")
+        if not invalid:
+            invalid = _level("call_wall")
+    # WAIT leaves blank levels intact.
+
+    return {
+        "long_leg_role": long_role,
+        "short_leg_role": short_role,
+        "trigger_level": trigger,
+        "target_level": target,
+        "invalid_level": invalid,
+    }
+
+
 def _coerce_preferred_expression(
-    item: Any, candidates: dict[str, dict[str, Any]]
+    item: Any,
+    candidates: dict[str, dict[str, Any]],
+    *,
+    directional_bias: str = "WAIT",
+    deterministic_payload: dict[str, Any] | None = None,
 ) -> dict[str, Any] | None:
     raw = _dict_or_empty(item)
     base = _coerce_strategy_item(item, candidates)
     if base is None:
         return None
+    levels = _market_structure_levels(deterministic_payload)
+    strike_role = _coerce_strike_role(
+        raw.get("strike_role"),
+        directional_bias=directional_bias,
+        levels=levels,
+    )
     return {
         **base,
         "title": _str_or(raw.get("title"), base["idea_id"]),
@@ -534,6 +673,7 @@ def _coerce_preferred_expression(
         "max_loss_observed": _str_or(raw.get("max_loss_observed"), ""),
         "reward_risk": _str_or(raw.get("reward_risk"), ""),
         "management_notes": _str_list(raw.get("management_notes")),
+        "strike_role": strike_role,
     }
 
 
@@ -820,7 +960,10 @@ def _coerce_claude_outcome_dict(
         "section_cards": section_cards,
         "vrp_assessment": _coerce_vrp_assessment(data.get("vrp_assessment")),
         "preferred_expression": _coerce_preferred_expression(
-            data.get("preferred_expression"), candidates
+            data.get("preferred_expression"),
+            candidates,
+            directional_bias=directional_bias,
+            deterministic_payload=deterministic_payload,
         ),
         "dominant_read": dominant_read,
         "best_expressions": [
