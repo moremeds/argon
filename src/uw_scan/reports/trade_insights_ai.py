@@ -89,19 +89,6 @@ RANGE_INCOME_STRUCTURES = frozenset(
         "no_trade",
     }
 )
-# Legacy alias retained for downstream callers during the v4→v5 migration.
-#
-# Intentionally pinned to DIRECTIONAL_SWING_STRUCTURES only — not the union of
-# both whitelists. Reason: the current MARKET_INTELLIGENCE_PROMPT interpolates
-# this set into the "strategy-family option is restricted to {sorted(...)}"
-# directive sent to Codex and Claude. Until M3 rewrites the prompt to be
-# mode-aware, widening this alias to include range-income structures (iron
-# condor, butterfly, calendar) would surface them to the model as VALID
-# preferred expressions — the exact failure mode v5 is built to eliminate.
-# Range-income callers must reference RANGE_INCOME_STRUCTURES explicitly
-# starting in M3.
-SWING_STRATEGY_FAMILY_IDS = DIRECTIONAL_SWING_STRUCTURES
-
 # v5 vocab — exposed as tuples so the schema generator and lenient coercer
 # share one source of truth.
 TRADE_INTENT_VALUES = ("directional_swing", "range_income")
