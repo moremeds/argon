@@ -1147,6 +1147,104 @@ def _validate_source_path_item(
         raise ValueError(f"source_path prefix does not exist: {source_path}")
 
 
+# v5 delta-match whitelists. The four directional structures whose net delta
+# is unambiguously positive go in LONG; the mirror set goes in SHORT. The
+# legacy "no_trade" sentinel is allowed under any directional_bias because
+# it explicitly signals "no preferred expression — see scenarios for the
+# conditional setup."
+_LONG_DELTA_STRUCTURES = frozenset(
+    {
+        "long_call",
+        "call_debit_spread",
+        "bull_call_spread",
+        "call_diagonal",
+    }
+)
+_SHORT_DELTA_STRUCTURES = frozenset(
+    {
+        "long_put",
+        "put_debit_spread",
+        "bear_put_spread",
+        "put_diagonal",
+    }
+)
+
+
+def _check_mode_structure_consistency(outcome: TradeInsightAiOutcome) -> None:
+    """Enforce trade_intent → structure whitelist.
+
+    directional_swing → preferred_expression.structure ∈ DIRECTIONAL_SWING_STRUCTURES
+    range_income      → preferred_expression.structure ∈ RANGE_INCOME_STRUCTURES
+
+    Raises ValueError on mismatch. Iron condor / credit spreads / calendars
+    surfacing as preferred when trade_intent=directional_swing is the exact
+    failure mode v5 is built to eliminate, so this MUST be a hard reject in
+    both strict and lenient modes — never a silent coercion."""
+    pref = outcome.preferred_expression
+    if pref is None:
+        return
+    trade_intent = outcome.headline.trade_intent
+    structure = pref.structure
+    if trade_intent == "directional_swing":
+        if structure not in DIRECTIONAL_SWING_STRUCTURES:
+            raise ValueError(
+                f"trade_intent=directional_swing but preferred_expression.structure="
+                f"{structure!r} is not in the directional whitelist "
+                f"{sorted(DIRECTIONAL_SWING_STRUCTURES)}"
+            )
+    elif trade_intent == "range_income":
+        if structure not in RANGE_INCOME_STRUCTURES:
+            raise ValueError(
+                f"trade_intent=range_income but preferred_expression.structure="
+                f"{structure!r} is not in the range-income whitelist "
+                f"{sorted(RANGE_INCOME_STRUCTURES)}"
+            )
+
+
+def _check_delta_match(outcome: TradeInsightAiOutcome) -> None:
+    """Enforce directional_bias → structure net-delta sign.
+
+    LONG_DELTA  → structure ∈ _LONG_DELTA_STRUCTURES  (or no_trade)
+    SHORT_DELTA → structure ∈ _SHORT_DELTA_STRUCTURES (or no_trade)
+    WAIT        → structure == 'no_trade'
+
+    The no_trade escape hatch is allowed under LONG/SHORT bias when the
+    model is describing a CONDITIONAL setup (trigger not yet fired); the
+    Scenarios section then names the long/short expressions that would
+    activate. WAIT, however, must commit to no_trade — anything else
+    contradicts the bias decision."""
+    pref = outcome.preferred_expression
+    if pref is None:
+        return
+    bias = outcome.headline.directional_bias
+    structure = pref.structure
+    if structure == "no_trade":
+        # Allowed under any bias. WAIT requires it (handled below).
+        return
+    if bias == "LONG_DELTA":
+        if structure not in _LONG_DELTA_STRUCTURES:
+            raise ValueError(
+                f"directional_bias=LONG_DELTA but preferred_expression.structure="
+                f"{structure!r} is not net-positive-delta "
+                f"{sorted(_LONG_DELTA_STRUCTURES)}"
+            )
+    elif bias == "SHORT_DELTA":
+        if structure not in _SHORT_DELTA_STRUCTURES:
+            raise ValueError(
+                f"directional_bias=SHORT_DELTA but preferred_expression.structure="
+                f"{structure!r} is not net-negative-delta "
+                f"{sorted(_SHORT_DELTA_STRUCTURES)}"
+            )
+    elif bias == "WAIT":
+        # Structure already filtered for no_trade above; reaching here means
+        # the model picked a real structure under WAIT, which contradicts the
+        # bias decision.
+        raise ValueError(
+            f"directional_bias=WAIT requires preferred_expression.structure="
+            f"'no_trade', got {structure!r}"
+        )
+
+
 def _reject_imperative_text(outcome: TradeInsightAiOutcome) -> None:
     checked = [
         outcome.headline.stance_label,
@@ -1327,6 +1425,16 @@ def validate_trade_insights_ai_outcome(
         and parsed.guardrails.no_executable_recommendations
     ):
         raise ValueError("guardrails must all be true")
+
+    # ALWAYS: v5 mode-structure + delta-match consistency. These are the
+    # core directional-swing invariants — picking a vol-seller for a
+    # directional swing is the failure mode v5 exists to eliminate, so we
+    # enforce in BOTH strict and lenient modes. The lenient coercer can
+    # attempt to normalize obvious mismatches, but any residual violation
+    # must surface as an error rather than be silently captured (mirrors
+    # the undefined-risk strategy-family check above).
+    _check_mode_structure_consistency(parsed)
+    _check_delta_match(parsed)
 
     # Strict: source_path validation raises on invalid prefixes.
     # Lenient: invalid prefixes are dropped to None with a missing_data note.
