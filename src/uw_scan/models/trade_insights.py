@@ -2,17 +2,18 @@
 
 from __future__ import annotations
 
-from datetime import datetime
 from datetime import date as _date
+from datetime import datetime
 from decimal import Decimal
 
-from ._base import _UwBase, _preserve_public_module
+from ._base import _preserve_public_module, _UwBase
 
 
 class InsightBadge(_UwBase):
     code: str
     label: str
     severity: str = "info"
+
 
 class TradeInsightsHeader(_UwBase):
     dominant_bias: str = "NEUTRAL"
@@ -22,6 +23,7 @@ class TradeInsightsHeader(_UwBase):
     idea_count: int = 0
     preferred_idea_id: str | None = None
     badges: list[InsightBadge] = []
+
 
 class SourceReconciliationRow(_UwBase):
     source_pair: str
@@ -33,6 +35,7 @@ class SourceReconciliationRow(_UwBase):
     source_b_call_iv: Decimal | None = None
     iv_diff: Decimal | None = None
 
+
 class SourceReconciliation(_UwBase):
     status: str = "UNKNOWN"
     headline: str = "Source reconciliation unavailable"
@@ -41,11 +44,13 @@ class SourceReconciliation(_UwBase):
     rows: list[SourceReconciliationRow] = []
     decision: str = "Use deterministic data only where source agreement is understood."
 
+
 class InsightSignalRow(_UwBase):
     lens: str
     read: str
     evidence: list[str] = []
     conflicts: list[str] = []
+
 
 class ChainFlowReadRow(_UwBase):
     strike: Decimal
@@ -58,6 +63,7 @@ class ChainFlowReadRow(_UwBase):
     read: str = ""
     requires_t1_oi_confirmation: bool = False
 
+
 class TermMoveRow(_UwBase):
     expiry: _date
     dte: int | None = None
@@ -66,6 +72,7 @@ class TermMoveRow(_UwBase):
     daily_implied_move_perc: Decimal | None = None
     read: str = ""
 
+
 class InsightLeg(_UwBase):
     side: str
     option_symbol: str
@@ -73,6 +80,7 @@ class InsightLeg(_UwBase):
     expiry: _date
     strike: Decimal
     mid: Decimal | None = None
+
 
 class CandidateStructure(_UwBase):
     idea_id: str
@@ -89,6 +97,13 @@ class CandidateStructure(_UwBase):
     risk_flags: list[str] = []
     rank: int
     status: str = "candidate"
+    # v5 metadata so the prompt can pattern-match candidates to the
+    # directional_bias and dte_band chosen at decision Steps 2 and 5.
+    # Defaulted to empty for back-compat with v1 callers (storage, older
+    # tests) that did not populate these fields.
+    dte_band: str = ""  # "momentum" (14-30) | "standard" (31-44) | "trend" (45-75)
+    expression_delta: str = ""  # "long_delta" | "short_delta" | "neutral"
+
 
 class InsightsSynthesis(_UwBase):
     dominant_story: str = ""
@@ -96,6 +111,7 @@ class InsightsSynthesis(_UwBase):
     best_risk_reward_idea_id: str | None = None
     avoid: list[str] = []
     required_before_sizing: list[str] = []
+
 
 class TradeInsightsResponse(_UwBase):
     ticker: str

@@ -67,9 +67,14 @@ DIRECTIONAL_SWING_STRUCTURES = frozenset(
         "put_debit_spread",
         "bull_call_spread",
         "bear_put_spread",
-        "risk_reversal",
+        # call_diagonal / put_diagonal are defined-risk (long far leg covers the
+        # short near leg) — kept as a valid directional preferred expression.
         "call_diagonal",
         "put_diagonal",
+        # risk_reversal is INTENTIONALLY excluded. The short put leg is naked,
+        # which violates the project safety override ("no naked shorts in any
+        # strategy/trade-plan code — defined-risk only"). It remains in
+        # STRATEGY_FAMILY_IDS so rejected_ideas can cite it as out-of-policy.
         "no_trade",
     }
 )
