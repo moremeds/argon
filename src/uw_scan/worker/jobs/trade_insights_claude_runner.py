@@ -68,32 +68,64 @@ everywhere. No markdown, no code fences, no prose before/after.
 Populate EVERY field below; do not leave any blank, null, or set to placeholder \
 strings like "n/a" or "unknown".
 
-VOCAB MAPPINGS (the user prompt uses analyst vocabulary that does not match the \
-schema Literals — translate on output):
-- headline.stance MUST be EXACTLY one of: "bullish", "bearish", "neutral", \
-  "mixed", "wait". The prompt's "range" -> emit "neutral"; "no_trade" -> emit \
-  "wait". Never emit "range" or "no_trade" as stance.
-- headline.conviction MUST be EXACTLY one of: "A", "B", "C", "D", "F".
+VOCAB MAPPINGS (the user prompt uses analyst vocabulary; translate to schema \
+Literals on output):
+- headline.trade_intent MUST be one of: "directional_swing", "range_income". \
+  Default to "directional_swing" unless Step 4 of the decision order selected \
+  range_income.
+- headline.directional_bias MUST be one of: "LONG_DELTA", "SHORT_DELTA", "WAIT". \
+  NEVER emit "bullish_continuation" or "long" or "bull" — those values belong \
+  in underlying_path. The bias is the trader-facing directional gate.
+- headline.entry_state MUST be one of: "ACTIVE", "CONDITIONAL", "NO_ENTRY".
+- headline.underlying_path MUST be one of: "bullish_continuation", \
+  "bearish_rejection", "downside_break", "pinned_no_directional_entry", \
+  "data_insufficient".
+- headline.dte_band MUST be one of: "momentum", "trend" (no "standard" — that \
+  band exists in the candidate menu but the headline field is binary).
+- headline.stance MUST be derived from headline.directional_bias for legacy \
+  UI display: LONG_DELTA -> "bullish", SHORT_DELTA -> "bearish", WAIT -> "wait".
+- headline.conviction MUST be exactly one of: "A", "B", "C", "D", "F".
 - vrp_assessment.signal MUST be one of: "long_vol", "short_vol", "neutral".
 
-REQUIRED STRINGS in headline (each MUST be a substantive one-sentence value, \
-not a fragment):
-- title, stance_label, conviction_label, top_reason, primary_risk, watch_trigger
+MODE-STRUCTURE CONSISTENCY (HARD; validator will reject otherwise):
+- If trade_intent == "directional_swing", preferred_expression.structure MUST \
+  be in {long_call, long_put, call_debit_spread, put_debit_spread, \
+  bull_call_spread, bear_put_spread, call_diagonal, put_diagonal, no_trade}. \
+  iron_condor / iron_butterfly / strangle / credit_spread / calendar_spread \
+  are BANNED as preferred when trade_intent=directional_swing.
+- If trade_intent == "range_income", preferred_expression.structure MUST be \
+  in {iron_condor, iron_butterfly, butterfly, calendar_spread, \
+  call_credit_spread, put_credit_spread, no_trade}.
+
+DELTA-MATCH (HARD):
+- directional_bias = LONG_DELTA  -> preferred_expression structure MUST be \
+  net-positive-delta (long_call, call_debit_spread, bull_call_spread, \
+  call_diagonal).
+- directional_bias = SHORT_DELTA -> net-negative-delta (long_put, \
+  put_debit_spread, bear_put_spread, put_diagonal).
+- directional_bias = WAIT        -> preferred_expression.structure = \
+  "no_trade". The preferred_expression block then describes the CONDITIONAL \
+  setup; the Scenarios section names the long/short expressions that would \
+  activate.
+
+REQUIRED STRINGS in headline (each substantive, one sentence; not a fragment):
+- title, stance_label, conviction_label, top_reason, primary_risk, watch_trigger.
 
 section_cards has THREE required keys: market_structure, volatility, \
-flow_positioning. Each MUST have:
-- title (string), summary (>=1 sentence of real analysis), data_quality
-- highlights[] and levels[] with real source_path values from the supplied \
-  payload (>=1 highlight or level per section is strongly preferred).
+flow_positioning. Each MUST have title, summary (>=1 sentence of real \
+analysis), data_quality, and >=1 highlight or level with a real source_path \
+from the supplied payload.
 
 vrp_assessment is REQUIRED (not null). Provide {signal, title, summary, \
-metrics, reason} — even if data is incomplete, set signal="neutral" and \
-explain the limitation in summary/reason.
+metrics, reason}. When data is incomplete, set signal="neutral" and explain \
+in summary/reason.
 
 preferred_expression: provide {idea_id, structure, title, why, \
 status_observed, risk_flags_observed}. Also fill estimated_entry, \
 max_profit_observed, max_loss_observed, reward_risk with concrete numeric \
-strings ($X.XX or "0.YY") — not blanks.
+strings ($X.XX or "0.YY") — not blanks. For trade_intent=range_income or \
+directional_bias=WAIT, structure="no_trade" is acceptable; the other fields \
+then describe the conditional setup.
 
 dominant_read MUST have all four fields populated (headline, summary, \
 confidence_commentary, data_quality_commentary).
@@ -103,11 +135,15 @@ no_executable_recommendations: true} unless you changed a candidate.
 
 scenario_cards: 3 items with case in {"upside","base","downside"}.
 
-required_checks: 1-2 items. rejected_ideas: 3-5 items.
+required_checks: 1-2 items. rejected_ideas: 3-5 items. At least one rejected \
+idea MUST cite one of: horizon_mismatch (DTE outside 14-75), mode_mismatch \
+(e.g. iron_condor rejected because trade_intent=directional_swing), or \
+safety_override (short_strangle / risk_reversal: undefined-risk, blocked by \
+project policy).
 
 If the supplied deterministic payload truly lacks data for a required field, \
 write a brief specific placeholder ("source_reconciliation status UNKNOWN; \
-treating IV magnitude as relative-shape signal") rather than leaving it blank.
+treating IV magnitude as relative-shape signal") rather than leaving blank.
 
 Use the StructuredOutput tool if available; otherwise emit the JSON object \
 as the entire response.

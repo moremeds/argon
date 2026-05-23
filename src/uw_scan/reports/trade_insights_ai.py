@@ -118,145 +118,305 @@ DTE_BAND_VALUES = ("momentum", "trend")
 
 FINAL_RATING_VALUES = ("A", "B", "C", "D", "F")
 
-MARKET_INTELLIGENCE_PROMPT = """You are an institutional options strategist analyzing one stock for a 1-2 week SWING HOLD entry.
+MARKET_INTELLIGENCE_PROMPT = """You are analyzing ONE stock for a 5-10 trading-session DIRECTIONAL SWING entry.
 
-Time horizon (FIXED, not negotiable):
-- The trade is HELD 5-10 trading sessions (1-2 calendar weeks). The trade is
-  NOT held to expiry.
-- Entry-expiry DTE MUST be 28-45 (preferred) or 21-60 (allowed). This leaves
-  7-46 DTE remaining at exit. Do NOT pick an expiry that lands inside the
-  5-10 session hold window — exiting at 0-7 DTE puts the trade at peak gamma
-  and theta crush.
-- Calendars: short (near) leg 21-45 DTE; long (far) leg 45-90 DTE.
-- Reject any candidate with entry DTE < 21 or > 60 as `horizon_mismatch`,
-  even if it appears in the supplied candidate_structures list.
-- Triggers and invalidations are stated in daily-close terms or 2-session
+CRITICAL FRAMING: The goal is NOT to find an option structure that "fits the chain." \
+The goal is to (1) infer the most likely 5-10 session UNDERLYING PATH from \
+options market structure + flow + positioning, (2) classify the directional \
+bias, and (3) ONLY THEN choose a defined-risk option expression that maps to \
+that path. DTE is a risk-management CONSTRAINT, not a thesis — do not justify \
+any trade with "the expiry fits."
+
+═══════════════════════════════════════════════════════════════════════════
+MANDATORY DECISION ORDER (set fields in this order; do not skip steps)
+═══════════════════════════════════════════════════════════════════════════
+
+STEP 1 — UNDERLYING_PATH (set headline.underlying_path)
+  Classify the expected 5-10 session path of the stock:
+    - bullish_continuation:          trend up / breakout above resistance
+    - bearish_rejection:             rejection at resistance / fade lower
+    - downside_break:                breakdown below support / GEX flip
+    - pinned_no_directional_entry:   range-bound, no edge for direction
+    - data_insufficient:             primary evidence absent
+
+STEP 2 — DIRECTIONAL_BIAS (set headline.directional_bias)
+  Map underlying_path to one of {LONG_DELTA, SHORT_DELTA, WAIT}:
+    bullish_continuation                                 -> LONG_DELTA
+    bearish_rejection  OR downside_break                 -> SHORT_DELTA
+    pinned_no_directional_entry OR data_insufficient     -> WAIT
+  WAIT is a valid output. Do NOT convert WAIT into an iron condor unless
+  trade_intent is range_income (see Step 4).
+
+STEP 3 — ENTRY_STATE (set headline.entry_state)
+    - ACTIVE:      directional trigger has ALREADY fired (daily close above
+                   the wall, daily close below support, etc.)
+    - CONDITIONAL: setup valid; needs daily-close or 2-session confirmation
+    - NO_ENTRY:    no clean directional edge (set when directional_bias=WAIT)
+
+STEP 4 — TRADE_INTENT (set headline.trade_intent)
+  Default: directional_swing. Set range_income ONLY when ALL three hold:
+    (a) underlying_path == pinned_no_directional_entry,
+    (b) IV is rich (term structure or IV/RV supports premium selling),
+    (c) no persistent flow attacks either wall.
+  Iron condor / credit spreads are reserved for trade_intent=range_income.
+
+STEP 5 — DTE_BAND (set headline.dte_band)
+    - momentum (14-30 DTE): high gamma per $ premium. Use when entry_state
+                            =ACTIVE or trigger is a BREAKOUT (capture fast
+                            move; accept theta-crush proximity).
+    - trend    (45-75 DTE): lower gamma decay, theta protection. Use when
+                            entry_state=CONDITIONAL on a multi-week
+                            trend-continuation thesis.
+  Standard middle (31-44 DTE) candidates exist in the menu for the
+  conservative case; the prompt's dte_band field is ONLY "momentum" or
+  "trend" — pick whichever band the trade thesis matches.
+
+STEP 6 — STRUCTURE (set preferred_expression.structure)
+  ONLY AFTER Steps 1-5. Pick the option expression that maps to the
+  chosen directional_bias. Mode-aware whitelists (HARD):
+
+  trade_intent=directional_swing → structure ∈ {long_call, long_put,
+    call_debit_spread, put_debit_spread, bull_call_spread, bear_put_spread,
+    call_diagonal, put_diagonal, no_trade}
+
+  trade_intent=range_income → structure ∈ {iron_condor, iron_butterfly,
+    butterfly, calendar_spread, call_credit_spread, put_credit_spread,
+    no_trade}
+
+  BANNED in directional_swing mode (will be rejected by the validator):
+    iron_condor, iron_butterfly, strangle, short_strangle, call_credit_spread,
+    put_credit_spread, calendar_spread. These are vol-selling structures
+    and fail the "structure expresses direction" test.
+
+  Delta-match rule:
+    directional_bias=LONG_DELTA  -> structure must have net positive delta
+                                    (long_call, call_debit_spread,
+                                     bull_call_spread, call_diagonal)
+    directional_bias=SHORT_DELTA -> structure must have net negative delta
+                                    (long_put, put_debit_spread,
+                                     bear_put_spread, put_diagonal)
+    directional_bias=WAIT        -> preferred_expression.structure="no_trade"
+                                    The preferred_expression block then
+                                    describes the CONDITIONAL setup; the
+                                    Scenarios section names the long/short
+                                    expressions that would activate.
+
+═══════════════════════════════════════════════════════════════════════════
+EVIDENCE WEIGHTING (v5: FLOW promoted to PRIMARY alongside dealer regime)
+═══════════════════════════════════════════════════════════════════════════
+
+PRIMARY (the directional call hangs on these):
+
+  1. DEALER REGIME + KEY LEVELS
+     - dealer_regime.{label, gamma_score, vanna_score, charm_score}
+       (tabs.market_structure.dealer_regime)
+     - market_structure_levels.{gex_flip, call_wall, put_wall, max_magnet,
+       max_accel} (tabs.market_structure.market_structure_levels)
+     - 90d GEX history extreme vs current — is today at a historically
+       mean-reverting level?
+
+  2. FLOW + POSITIONING  (v5: PROMOTED from SECONDARY)
+     - Persistent multi-day OI build at key strikes
+       (tabs.positioning.oi_change_top) — 3+ consecutive days of OI
+       increase on a strike near a wall is a STRONG signal of pre-breakout
+       pressure.
+     - Net premium tilt: bullish vs bearish net dollar flow ratio at the
+       wall and nearby strikes (tabs.flow.flow).
+     - Repeated alerts ("RepeatedHitsAscendingFill" etc.) attacking a wall.
+     - Dark pool notional trend (tabs.positioning.dark_pool_notional).
+     - Short interest / borrow fee (tabs.positioning.short_data).
+
+  3. VOLATILITY
+     - IV vs RV at the chosen dte_band horizon (tabs.volatility.header).
+     - Term structure shape across 14-75 DTE (tabs.volatility.term_structure).
+     - Skew sets COST of bullish vs bearish bets — affects which structure
+       you pick, NOT the directional bias.
+
+SECONDARY:
+  - 0DTE GEX and 0DTE share (tabs.volatility.dealer_regime_header.{
+    odte_net_gex, odte_share_pct}) — intraday dealer hedging, NOT 5-10
+    session direction.
+  - Intraday tape direction, single-session bid/ask premium tilts.
+
+CONTEXT (HARD VETO if violated):
+  - Earnings inside the 5-10 session HOLD window
+    (tabs.positioning.next_earnings_date):
+      (a) DEFAULT: reject the trade with event_risk_in_window;
+          entry_state=NO_ENTRY, watch_trigger="re-evaluate after earnings".
+      (b) EXCEPTION: explicit IV-crush earnings thesis. Tag
+          risk_flags_observed with ["earnings_in_window",
+          "event_iv_crush_thesis"]; override swing-hold DTE rule with
+          momentum dte_band and explain in headline.primary_risk.
+
+═══════════════════════════════════════════════════════════════════════════
+ANTI-PIN RULE (the failure mode v5 is built to prevent)
+═══════════════════════════════════════════════════════════════════════════
+
+When persistent multi-day flow stacks AGAINST a dealer wall, the wall is
+a PRE-BREAKOUT TARGET, not a cap. Specifically:
+
+  IF (3+ consecutive days of OI increase on a strike near call_wall)
+     AND (net bullish premium > 2x bearish premium at that strike or
+          nearby strikes)
+  THEN
+     - Wall is TARGET, not cap.
+     - underlying_path = bullish_continuation
+       (NOT pinned_no_directional_entry).
+     - directional_bias = LONG_DELTA.
+     - entry_state = CONDITIONAL (need daily close above the wall).
+     - REJECT any preferred_expression that profits from the wall
+       holding (no iron_condor, no call_credit_spread at the wall).
+
+Mirror for the put-wall side: persistent bearish flow + OI build = wall
+is a DOWNSIDE TARGET, underlying_path=downside_break, bias=SHORT_DELTA.
+
+═══════════════════════════════════════════════════════════════════════════
+HORIZON + TRIGGER + INVALIDATION
+═══════════════════════════════════════════════════════════════════════════
+
+- The trade is HELD 5-10 trading sessions (1-2 calendar weeks).
+- Entry-expiry DTE in 14-75 (chosen by Step 5's dte_band).
+- Reject any candidate_structures row whose preferred entry expiry has
+  DTE < 14 or > 75 as `horizon_mismatch` in rejected_ideas.
+- Calendars: short (near) leg in dte_band; long (far) leg 60-90 DTE.
+- Triggers + invalidations stated in DAILY-CLOSE terms or 2-session
   confirmations, never intraday wicks or single-session tape patterns.
+- Boundary trades:
+    breakout:   daily close above wall OR 2-session hold above it.
+    rejection:  failed close above resistance OR close back below wall.
+    downside:   close below support / GEX flip.
+- Time stop: "close at mid after 7-10 trading sessions if neither trigger
+  nor invalidation fires."
 
-Evidence weighting at this horizon:
+═══════════════════════════════════════════════════════════════════════════
+HARD RULES (project safety)
+═══════════════════════════════════════════════════════════════════════════
 
-PRIMARY (the call hangs on these):
-- Dealer regime label + gamma/vanna/charm sub-scores
-  (tabs.market_structure.dealer_regime.{label, gamma_score, vanna_score, charm_score, headline, subtitle})
-- Per-expiry vanna regime + vanna_flip, charm_pin_strike + charm_imbalance_pct + charm_signal_quality
-  for rows where 21 <= dte <= 60 only (the entry-expiry window)
-  (tabs.market_structure.exposures_summary[])
-- GEX flip vs spot, call wall, put wall, max magnet, max accel
-  (tabs.market_structure.market_structure_levels)
-- IV vs RV at the 28-45d horizon, term structure shape across 21-60 DTE
-  (tabs.volatility.{header, term_structure})
-- 90d GEX history extreme vs current — is today at a historically mean-reverting level?
-- Earnings in window — HARD VETO if next_earnings_date falls inside the 5-10
-  session hold (NOT the full DTE-to-expiry), unless the trade is explicitly
-  an earnings IV-crush play (see Earnings filter below).
+- Do NOT invent data. If a field is missing, say "Missing / not provided."
+- Pick a DIRECTIONAL STATE, not necessarily an ACTIVE trade. WAIT is
+  valid when no directional trigger has fired. Do NOT convert WAIT into
+  a range-income structure unless Step 4 explicitly chose range_income.
+- Recommendations are research-only. No order placement, no position
+  sizing in dollars, no imperative trade instructions.
+- Project safety override: do NOT recommend naked short options or
+  undefined-risk short-vol structures. risk_reversal has a naked short
+  leg and is BLOCKED as preferred_expression; cite the safety override
+  in rejected_ideas if it would otherwise be a fit.
+- Do not use "mixed", "unclear", or "monitor closely" in headline.title
+  / top_reason / watch_trigger without a specific price level and a
+  session count in the same sentence.
 
-SECONDARY (confirms or contradicts, never the primary thesis):
-- Multi-day OI build (tabs.positioning.oi_change_top), persistent top alerts
-- Dark pool notional trend, short interest / borrow fee
-- Skew (sets cost of bullish vs bearish bets)
-
-CONTEXT only (do NOT base the call on these at swing-hold horizon):
-- 0DTE GEX and 0DTE share (tabs.volatility.dealer_regime_header.{odte_net_gex, odte_share_pct})
-  — same-day dealer hedging, not 1-2 week direction
-- Any candidate_structures row whose preferred entry expiry is < 21 DTE —
-  reject as `horizon_mismatch` (exit would land in theta-crush zone)
-- Intraday tape direction, single-session bid/ask premium tilts
-
-Hard rules:
-- Do not invent data. If a field is missing, say "Missing / not provided."
-- Pick a winner. If pillars conflict, name the winning pillar for the 1-2 week swing-hold horizon and downgrade conviction by one letter — do not default to no-trade unless >=2 of the 4 pillars are missing data.
-- Recommendations are research-only. No order placement, no position sizing in dollars, no imperative trade instructions.
-- Do not use the words "mixed", "unclear", or "monitor closely" in the Call section without a specific price level and a time window in the same sentence.
-
-Input:
+═══════════════════════════════════════════════════════════════════════════
+INPUT (interpolated)
+═══════════════════════════════════════════════════════════════════════════
 
 Ticker: {{ticker}}
 As-of date: {{as_of_date}}
 Spot: {{spot}}
 
-Now produce the report using EXACTLY the structure below. Do not add sections. Do not repeat tables.
+═══════════════════════════════════════════════════════════════════════════
+OUTPUT REPORT STRUCTURE (markdown render for headline + sections)
+═══════════════════════════════════════════════════════════════════════════
 
-# {{ticker}} — {one-line decision: bias + structure + entry-expiry DTE in [21, 60], to hold 1-2 weeks}
+Produce the markdown report using EXACTLY the structure below. Do not add
+sections. Do not repeat tables.
+
+# {{ticker}} — {one-line: directional_bias + structure + entry-expiry DTE in [14, 75], hold 5-10 sessions}
 
 ## Call
 
 | Field | Value |
 |---|---|
-| Bias | bullish / bearish / range / no_trade |
-| Vol overlay | long_vol / short_vol / neutral |
-| Conviction | A / B / C / D / F (one letter — see rating ladder below) |
-| Preferred entry expiry | YYYY-MM-DD with DTE in [21, 60] — preferred [28, 45]. This is ENTRY DTE; the trade exits at +5 to +10 sessions, not at expiry. |
-| Preferred structure | one of SWING_STRATEGY_FAMILY_IDS |
-| Trigger | "two daily closes above/below X with confirming Y" — daily-close terms |
+| Directional bias | LONG_DELTA / SHORT_DELTA / WAIT (matches headline.directional_bias) |
+| Underlying path | bullish_continuation / bearish_rejection / downside_break / pinned_no_directional_entry / data_insufficient |
+| Entry state | ACTIVE / CONDITIONAL / NO_ENTRY |
+| Trade intent | directional_swing (default) / range_income (only per Step 4) |
+| DTE band | momentum (14-30) / trend (45-75) |
+| Conviction | A / B / C / D / F (one letter — see rating ladder) |
+| Preferred entry expiry | YYYY-MM-DD inside the chosen dte_band |
+| Preferred structure | one of the mode-whitelisted ids (Step 6) |
+| Trigger | "daily close above/below X" or "2-session hold" — daily-close terms |
 | Invalidation | "daily close above/below X" — daily-close terms |
-| Target level | named level from market_structure_levels (call_wall / put_wall / max_magnet / max_accel / gex_flip) |
+| Target level | named level from market_structure_levels |
 | Time stop | "close at mid after 7-10 trading sessions if neither trigger nor invalidation fires" |
 
 ## Why (<=120 words)
 
-Three sentences max, one per supporting pillar. Cite primary evidence by source path the first time a claim appears. Name the single biggest conflicting piece of evidence in one clause — not a paragraph.
+Three sentences max, one per supporting pillar (dealer regime / flow /
+volatility). Cite primary evidence by source path the first time a claim
+appears. Name the single biggest conflicting piece of evidence in one
+clause, then state which pillar wins for the 5-10 session horizon.
 
-## Expiry Selection (mandatory)
+## Expiry Selection
 
 | Field | Value |
 |---|---|
-| Preferred entry expiry | YYYY-MM-DD (must appear in tabs.volatility.term_structure with 21 <= dte <= 60; prefer 28 <= dte <= 45) |
-| Entry DTE | integer in [21, 60] (preferred [28, 45]) |
-| Why this expiry | one sentence citing IV level vs adjacent expiries, vanna regime in the entry-expiry window, or charm window position. State explicitly that this DTE leaves comfortable premium after the 5-10 session hold. |
-| Alternative | second expiry in 28-45 DTE band, or "none — only one swing-hold expiry has acceptable liquidity" |
+| Preferred entry expiry | YYYY-MM-DD in tabs.volatility.term_structure inside the chosen dte_band |
+| Entry DTE | integer (14-30 for momentum, 45-75 for trend) |
+| Why this band | one sentence: breakout/active -> momentum; trend-continuation -> trend |
+| Why this expiry | one sentence citing IV level, vanna regime, or charm window position |
+| Alternative | second expiry in the same band, or "none — only one in-band expiry has liquidity" |
 
 ## Scenarios (3 rows, probabilities sum to 100%)
 
 | Scenario | Probability | Trigger (daily close) | Level | Best expression |
 |---|---:|---|---|---|
-| upside | % | | named level | SWING_STRATEGY_FAMILY_IDS member |
-| base | % | | named level | SWING_STRATEGY_FAMILY_IDS member |
-| downside | % | | named level | SWING_STRATEGY_FAMILY_IDS member |
+| upside | % | | named level | mode-whitelisted directional structure |
+| base | % | | named level | mode-whitelisted directional structure |
+| downside | % | | named level | mode-whitelisted directional structure |
 
 ## Conflicts (cap = 2; severities high or medium only)
 
 | Severity | One-sentence conflict, citing the pillars in tension |
 |---|---|
 
-State which pillar wins for the 1-2 week swing-hold horizon and why, in one sentence.
-
 ## Required Checks (cap = 2)
 
 | Check | What confirms |
 |---|---|
 
-Each row must be either pre-entry (resolvable before the trigger fires) or in-trade (a monitor with an action). Do not list more than 2.
+Each row must be either pre-entry (resolvable before the trigger fires)
+or in-trade (a monitor with an action).
 
 ## Rejected Ideas (min 3, max 5)
 
-| Strategy | Why rejected at 1-2 week swing-hold horizon |
+| Strategy | Why rejected at this horizon / mode |
 |---|---|
 
-Use canonical strategy ids from STRATEGY_FAMILY_IDS. At least one rejection must explicitly cite horizon mismatch (e.g. "long_stock is not a swing options structure in this product", or "<14 DTE candidate exits at peak gamma/theta") or the safety override ("short_strangle: undefined-risk short-vol, blocked by project policy").
+Use canonical strategy ids. At least one rejection MUST cite one of:
+  - horizon_mismatch (DTE outside 14-75)
+  - mode_mismatch    (e.g. iron_condor rejected because
+                      trade_intent=directional_swing)
+  - safety_override  (short_strangle / risk_reversal: undefined-risk,
+                      blocked by project policy)
 
-## Earnings filter
+═══════════════════════════════════════════════════════════════════════════
+RATING LADDER (headline.conviction)
+═══════════════════════════════════════════════════════════════════════════
 
-If tabs.positioning.next_earnings_date falls inside the 5-10 session HOLD window (NOT the full entry-DTE-to-expiry), choose ONE:
-- (a) Reject the candidate as `event_risk_in_window`, recommend `no_trade` or a watchlist entry triggering post-earnings. (Default.)
-- (b) Accept ONLY if the trade is explicitly an earnings IV-crush play AND term structure shows clear front-expiry crush opportunity. Tag risk_flags_observed with ["earnings_in_window", "event_iv_crush_thesis"] and justify in headline.subtitle. Note that an earnings IV-crush play typically wants front-expiry (sub-21 DTE) entry — which conflicts with the swing-hold DTE rule above. If you take this path, state explicitly that you are overriding the standard swing-hold horizon for the event-only crush window.
+  A: Actionable, high conviction (3 of 3 primary pillars aligned, no
+     missing primary evidence, entry_state=ACTIVE or trigger imminent)
+  B: Actionable, small size (one medium conflict OR one primary field
+     missing; entry_state=CONDITIONAL with strong setup)
+  C: Watchlist (primary thesis present but unconfirmed;
+     entry_state=CONDITIONAL)
+  D: No trade (pillars conflict, no clean winner; entry_state=NO_ENTRY)
+  F: Data insufficient (>=2 primary fields missing;
+     directional_bias=WAIT, underlying_path=data_insufficient)
 
-Rating ladder (single letter in headline.conviction; one-clause label in headline.conviction_label):
-- A: Actionable, high conviction (3 of 4 pillars aligned, no missing primary evidence)
-- B: Actionable, small size (pillars aligned with one medium conflict, or one primary field missing)
-- C: Watchlist (trigger not yet fired, primary thesis present but unconfirmed)
-- D: No trade (pillars conflict at this horizon and no clean winner)
-- F: Data insufficient (>=2 primary fields missing)
+CONFIDENCE (headline.score, 0-100 integer; headline.score_scale = 100):
+  85-100  3 of 3 primary pillars aligned, no missing fields. Conviction A.
+  70-84   3 aligned w/ one medium conflict, or 3 aligned w/ one missing.
+          Conviction A/B.
+  55-69   2 of 3 aligned with dominant pillar winning clearly. Conviction B/C.
+  40-54   Pillars conflict but a winner can still be named. Conviction C.
+  20-39   No clean winner, or 2+ primary fields missing. Conviction D.
+  0-19    Data insufficient — primary evidence absent. Conviction F.
+Set headline.score honestly. Do NOT default to 0; if you can name a
+dominant pillar and a directional_bias, score at least 40.
 
-Confidence (headline.score, 0-100 integer; headline.score_scale = 100):
-- 85-100: 4 of 4 pillars (market structure, volatility, flow, positioning) aligned, no missing primary fields. Conviction A territory.
-- 70-84:  3 of 4 pillars aligned with one medium conflict, or 4 aligned with one primary field missing. Conviction A/B.
-- 55-69:  2 of 4 pillars aligned with the dominant pillar winning clearly. Conviction B/C.
-- 40-54:  Pillars conflict but a winner can still be named for the 1-2 week swing-hold horizon. Conviction C.
-- 20-39:  No clean winner, or 2+ primary fields missing. Conviction D.
-- 0-19:   Data insufficient — primary evidence absent. Conviction F.
-Set headline.score honestly against this rubric. Do NOT default to 0; if you can name a dominant pillar and a structure, you can score at least 40.
-
-Do not end with vague commentary. Do not repeat any table. Do not use the word "monitor" without a level and a session count."""
+Do not end with vague commentary. Do not repeat any table. Do not use
+the word "monitor" without a level and a session count."""
 
 _VOLATILE_HASH_KEYS = {
     "analysis_input_hash",
@@ -759,43 +919,65 @@ def build_trade_insights_ai_prompt(prompt_payload: dict[str, Any]) -> str:
         "missing_data instead of inventing a path.\n"
         "Preserve every candidate status, every risk_flags array, and every deterministic "
         "max_loss/max_profit value exactly as supplied.\n"
-        "Horizon enforcement (swing HOLD, not swing expiry): every "
-        "candidate_structures row whose preferred entry expiry has DTE < 21 or "
-        "DTE > 60 must be rejected as horizon_mismatch in rejected_ideas. The "
-        "trade is HELD 5-10 trading sessions; entry expiry must leave enough "
-        "premium that the exit is not at peak gamma/theta crush. The "
-        "deterministic candidate list is already filtered to the 21-60 DTE "
-        "swing-hold window (preferred 28-45) by the upstream assembler; if no "
-        "swing-hold candidates exist, set preferred_expression to a no_trade "
-        "strategy-family entry rather than recommending an out-of-horizon "
-        "candidate.\n"
-        "Do not defer solely because a deterministic candidate status is needs_check; give "
-        "a research-only recommendation when the swing-hold evidence supports one and "
-        "put remaining checks into the trigger, risk, watchlist, or readiness language.\n"
-        "Project safety override: do not recommend naked short options or undefined-risk "
-        "short-vol structures. If the prompt's strategy list includes one, reject it unless "
-        "converted to a defined-risk alternative such as an iron condor.\n"
+        "Horizon enforcement: every candidate_structures row whose preferred entry "
+        "expiry has DTE < 14 or DTE > 75 must be rejected as horizon_mismatch in "
+        "rejected_ideas. The trade is HELD 5-10 trading sessions; entry expiry "
+        "must leave enough premium that the exit is not at peak gamma/theta crush. "
+        "The deterministic candidate list is filtered to the 14-75 DTE swing window "
+        "by the upstream assembler and tagged with dte_band (momentum=14-30, "
+        "standard=31-44, trend=45-75) plus expression_delta (long_delta / "
+        "short_delta / neutral) so you can pattern-match candidates to the "
+        "directional_bias + dte_band chosen at decision Steps 2 and 5.\n"
+        "Mode-aware structure consistency (HARD): if headline.trade_intent == "
+        "'directional_swing', preferred_expression.structure MUST be in "
+        f"{sorted(DIRECTIONAL_SWING_STRUCTURES)}. If trade_intent == "
+        f"'range_income', structure MUST be in {sorted(RANGE_INCOME_STRUCTURES)}. "
+        "iron_condor / call_credit_spread / put_credit_spread / calendar_spread "
+        "are BANNED as preferred_expression in directional_swing mode — picking "
+        "a vol-seller for a directional swing is the exact failure mode this "
+        "schema is built to prevent. The validator will reject the outcome if "
+        "mode and structure disagree.\n"
+        "Delta-match (HARD): when directional_bias == LONG_DELTA, "
+        "preferred_expression.structure must be a net-positive-delta structure "
+        "(long_call, call_debit_spread, bull_call_spread, call_diagonal). When "
+        "directional_bias == SHORT_DELTA, structure must be net-negative-delta "
+        "(long_put, put_debit_spread, bear_put_spread, put_diagonal). When "
+        "directional_bias == WAIT, structure MUST be 'no_trade'.\n"
+        "Project safety override: do not recommend naked short options or "
+        "undefined-risk short-vol structures. risk_reversal is excluded from "
+        "the directional_swing whitelist because its short put leg is naked; "
+        "cite it in rejected_ideas if it would otherwise be a fit.\n"
         "Avoid order placement, position sizing in dollars, personalized financial advice, "
         "and imperative trade instructions.\n"
-        "Outcome field mapping: headline + dominant_read <- Call section; section_cards <- "
-        "Why paragraph (one card per supporting pillar, max 3); conflicts <- Conflicts table "
-        "(cap 2); scenario_cards <- Scenarios table (exactly 3, probabilities sum to 100); "
-        "preferred_expression + best_expressions <- Call.preferred_structure / Expiry "
-        "Selection; required_checks <- Required Checks table (cap 2); rejected_ideas <- "
-        "Rejected Ideas table (min 3, max 5); rendering.disclaimer/final <- research-only "
-        "framing only.\n"
-        "idea_id rules (HARD): preferred_expression.idea_id, every best_expressions[].idea_id, "
-        "and every rejected_ideas[].idea_id MUST be either (a) the idea_id of a row in the "
-        "supplied candidate_structures array, or (b) a canonical strategy family id. Never "
-        "free text. For preferred_expression and best_expressions at this horizon, the "
-        f"strategy-family option is restricted to {sorted(SWING_STRATEGY_FAMILY_IDS)}. "
+        "Outcome field mapping: headline (directional_bias, entry_state, "
+        "trade_intent, underlying_path, dte_band, stance, conviction, score) + "
+        "dominant_read <- Call section; section_cards <- Why paragraph (one card "
+        "per pillar — market_structure, volatility, flow_positioning); conflicts "
+        "<- Conflicts table (cap 2); scenario_cards <- Scenarios table (exactly "
+        "3, probabilities sum to 100); preferred_expression + best_expressions "
+        "<- Call.preferred_structure / Expiry Selection; required_checks <- "
+        "Required Checks table (cap 2); rejected_ideas <- Rejected Ideas table "
+        "(min 3, max 5); rendering.disclaimer/final <- research-only framing only.\n"
+        "Derive headline.stance from headline.directional_bias for "
+        "UI/markdown display: LONG_DELTA -> 'bullish', SHORT_DELTA -> 'bearish', "
+        "WAIT -> 'wait'. (stance is the legacy display Literal; directional_bias "
+        "is the actual gate.)\n"
+        "idea_id rules (HARD): preferred_expression.idea_id, every "
+        "best_expressions[].idea_id, and every rejected_ideas[].idea_id MUST be "
+        "either (a) the idea_id of a row in the supplied candidate_structures "
+        "array, or (b) a canonical strategy family id. Never free text. For "
+        "preferred_expression and best_expressions when trade_intent="
+        "directional_swing, the strategy-family option is restricted to "
+        f"{sorted(DIRECTIONAL_SWING_STRUCTURES)}. When trade_intent=range_income, "
+        f"strategy-family option is restricted to {sorted(RANGE_INCOME_STRUCTURES)}. "
         "rejected_ideas may reference any canonical strategy id from "
-        f"{sorted(STRATEGY_FAMILY_IDS)} so an out-of-horizon family can be explicitly rejected.\n"
+        f"{sorted(STRATEGY_FAMILY_IDS)} so an out-of-mode family can be "
+        "explicitly rejected.\n"
         "For strategy-family preferred_expression / best_expressions entries, set "
         "status_observed to 'strategy_review' and risk_flags_observed to [].\n"
         f"headline.conviction MUST be a single letter from {list(FINAL_RATING_VALUES)} "
         "(rating ladder in the prompt above). headline.conviction_label holds the "
-        "one-clause explanation. headline.score is the swing-hold confidence "
+        "one-clause explanation. headline.score is the 5-10 session confidence "
         "percentage (integer 0-100, scored against the Confidence rubric in the prompt). "
         "headline.score_scale must be 100. Do not leave score=0 unless data is genuinely "
         "insufficient (Conviction F); a real dominant-pillar read scores at least 40.\n"

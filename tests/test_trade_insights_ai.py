@@ -578,37 +578,65 @@ def test_trade_insights_ai_prompt_payload_and_prompt_are_recommendation_oriented
     assert prompt_payload[
         "analysis_input_hash"
     ] == hash_trade_insights_ai_analysis_input(analysis_input)
+    # v5 directional-swing framing replaces the v4 "institutional options
+    # strategist" preamble. The goal is decision-order driven, not menu-pick
+    # driven — the prompt makes that explicit in its CRITICAL FRAMING block.
     assert (
-        "You are an institutional options strategist analyzing one stock for a 1-2 week SWING HOLD entry."
+        "You are analyzing ONE stock for a 5-10 trading-session DIRECTIONAL SWING entry."
         in prompt
     )
-    # Swing-hold horizon is hard-coded, not optional context.
-    assert "Time horizon (FIXED, not negotiable)" in prompt
-    assert "The trade is HELD 5-10 trading sessions" in prompt
-    assert "Entry-expiry DTE MUST be 28-45 (preferred) or 21-60 (allowed)" in prompt
-    assert "horizon_mismatch" in prompt
-    # New PR #60 / #61 evidence is wired into the payload key map.
+    assert "CRITICAL FRAMING" in prompt
+    assert "DTE is a risk-management CONSTRAINT, not a thesis" in prompt
+    # Mandatory decision order: underlying_path -> directional_bias ->
+    # entry_state -> trade_intent -> dte_band -> structure.
+    assert "MANDATORY DECISION ORDER" in prompt
+    assert "STEP 1 — UNDERLYING_PATH" in prompt
+    assert "STEP 2 — DIRECTIONAL_BIAS" in prompt
+    assert "STEP 3 — ENTRY_STATE" in prompt
+    assert "STEP 4 — TRADE_INTENT" in prompt
+    assert "STEP 5 — DTE_BAND" in prompt
+    assert "STEP 6 — STRUCTURE" in prompt
+    # WAIT is a valid output; do not convert WAIT into a vol-seller.
+    assert "WAIT is a valid output" in prompt
+    # Flow promoted to PRIMARY alongside dealer regime.
+    assert "FLOW + POSITIONING  (v5: PROMOTED from SECONDARY)" in prompt
+    # Anti-pin rule prevents the TSLA-style failure (pinning vs persistent flow).
+    assert "ANTI-PIN RULE" in prompt
+    assert "Wall is TARGET, not cap" in prompt
+    # New PR #60 / #61 evidence is still wired into the payload key map.
     assert "tabs.market_structure.dealer_regime" in prompt
     assert "tabs.market_structure.exposures_summary" in prompt
     assert "tabs.market_structure.strike_exposures" in prompt
-    # 4-section report structure replaces the prior 9-section template.
+    # v5 widened DTE window: 14-75 with momentum/standard/trend bands.
+    assert "14-75 DTE" in prompt or "14-75" in prompt
+    assert "momentum" in prompt
+    assert "trend" in prompt
+    assert "horizon_mismatch" in prompt
+    # Report structure stays markdown-rendered.
     assert "## Call" in prompt
     assert "## Why" in prompt
-    assert "## Expiry Selection (mandatory)" in prompt
-    assert "## Scenarios (3 rows, probabilities sum to 100%)" in prompt
-    # No section_cards 1-9 grid, no needs_check deferral.
-    assert "## 5. Cross-Pillar Conflict Resolution" not in prompt
-    assert (
-        "Do not defer solely because a deterministic candidate status is needs_check"
-        in prompt
-    )
-    # Source-path discipline + schema_version are now appendix-level rules.
+    assert "## Expiry Selection" in prompt
+    assert "## Scenarios" in prompt
+    # Source-path discipline + schema_version are still appendix-level rules.
     assert "Source-path rule (HARD)" in prompt
     assert f"schema_version MUST be exactly the string {PROMPT_VERSION!r}" in prompt
-    # idea_id rule and SWING-restricted preferred_expression.
+    # Mode-aware structure consistency surfaces in integration notes.
+    assert "Mode-aware structure consistency" in prompt
+    assert "Delta-match (HARD)" in prompt
+    # idea_id rule still here; directional whitelist restricts preferred_expression.
     assert "idea_id rules (HARD)" in prompt
-    for swing_family in ("long_call", "call_debit_spread", "iron_condor", "no_trade"):
-        assert swing_family in prompt
+    # The directional-swing whitelist must appear in the prompt so the model
+    # knows what's allowed as preferred. Iron condor must appear because it's
+    # cited as a BANNED structure for directional_swing mode.
+    for directional_family in (
+        "long_call",
+        "call_debit_spread",
+        "bull_call_spread",
+        "bear_put_spread",
+        "no_trade",
+    ):
+        assert directional_family in prompt
+    assert "iron_condor" in prompt  # cited as banned-in-directional_swing
     # Output framing: still research-only, still bounded JSON.
     assert "Emit only JSON" in prompt
     assert '"tabs"' in prompt
