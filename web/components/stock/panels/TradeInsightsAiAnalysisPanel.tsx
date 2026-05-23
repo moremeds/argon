@@ -704,6 +704,32 @@ function OutcomeGrid({
                     { label: "Status", value: preferred.status_observed },
                   ]}
                 />
+                {preferred.strike_role && (
+                  <KeyValueGrid
+                    items={[
+                      {
+                        label: "Trigger",
+                        value: preferred.strike_role.trigger_level || "—",
+                      },
+                      {
+                        label: "Target",
+                        value: preferred.strike_role.target_level || "—",
+                      },
+                      {
+                        label: "Invalidate",
+                        value: preferred.strike_role.invalid_level || "—",
+                      },
+                      {
+                        label: "Long leg",
+                        value: preferred.strike_role.long_leg_role || "n/a",
+                      },
+                      {
+                        label: "Short leg",
+                        value: preferred.strike_role.short_leg_role || "n/a",
+                      },
+                    ]}
+                  />
+                )}
                 <div style={{ color: "var(--text-primary)", fontSize: 13 }}>
                   {plainText(preferred.why)}
                 </div>
@@ -761,9 +787,12 @@ function stateBadge(
   return "○";
 }
 
-// v5 prompt version — used by the legacy-row detector below. Kept in sync
-// with src/uw_scan/reports/trade_insights_ai.py:PROMPT_VERSION.
-const CURRENT_PROMPT_VERSION = "trade-insights-ai-v5";
+// Current prompt version — used by the legacy-row detector below. Kept in
+// sync with src/uw_scan/reports/trade_insights_ai.py:PROMPT_VERSION. The
+// detector compares against this string; any prior version (v4, v5)
+// renders the "legacy — re-run" banner so users see what the API guard
+// already did (dropped outcome to null).
+const CURRENT_PROMPT_VERSION = "trade-insights-ai-v5.1";
 
 function isLegacyAnalysis(
   analysis: TradeInsightsAiAnalysisResponse | null,
@@ -817,7 +846,8 @@ function ProviderTabBody({
           text={
             `Legacy analysis (${analysis?.prompt_version}). Schema bumped ` +
             `to ${CURRENT_PROMPT_VERSION} — click Run to regenerate with the ` +
-            `directional v5 prompt.`
+            `directional v5.1 prompt (trigger-strike consistency, 3-band ` +
+            `DTE, conditional quote validity).`
           }
           severity="warning"
         />

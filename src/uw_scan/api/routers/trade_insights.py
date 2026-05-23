@@ -123,13 +123,15 @@ def _row_to_ai_response(
     *,
     reused: bool = False,
 ) -> TradeInsightAiAnalysisResponse:
-    # v4 → v5 read-back guard: outcome_jsonb persisted under a previous
-    # PROMPT_VERSION will not satisfy the new (v5) Pydantic schema's required
-    # directional fields, so model construction would raise ValidationError
+    # Legacy read-back guard: outcome_jsonb persisted under any prior
+    # PROMPT_VERSION (v4, v5) will not satisfy the current schema's
+    # required fields, so model construction would raise ValidationError
     # and 500 the endpoint. Drop the outcome and surface an explanatory
-    # error_message instead; M5 paints the "legacy, re-run" badge on top of
-    # this signal. The row itself (status, prompt_version, ids) still
-    # renders so the UI can offer a re-run button.
+    # error_message instead; the UI paints the "legacy, re-run" badge on
+    # top of this signal. The row itself (status, prompt_version, ids)
+    # still renders so the UI can offer a re-run button. Equality against
+    # PROMPT_VERSION is the single source of truth — works for every
+    # future version bump without code changes here.
     row_prompt_version = row.get("prompt_version")
     outcome_jsonb = row.get("outcome_jsonb")
     if outcome_jsonb is not None and row_prompt_version != PROMPT_VERSION:

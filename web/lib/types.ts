@@ -4207,7 +4207,7 @@ export interface components {
              * Dte Band
              * @enum {string}
              */
-            dte_band: "momentum" | "trend";
+            dte_band: "momentum" | "standard" | "trend";
             /** Title */
             title: string;
             /**
@@ -4376,6 +4376,7 @@ export interface components {
             status_observed: string;
             /** Risk Flags Observed */
             risk_flags_observed?: string[];
+            strike_role?: components["schemas"]["TradeInsightAiStrikeRole"];
         };
         /** TradeInsightAiRejectedIdea */
         TradeInsightAiRejectedIdea: {
@@ -4478,6 +4479,44 @@ export interface components {
             freshness_label: string;
             /** Source Notes */
             source_notes?: string[];
+        };
+        /**
+         * TradeInsightAiStrikeRole
+         * @description v5.1: explicit market-structure roles for the spread's two legs.
+         *
+         *     Lets the deterministic validator reject candidates where the short leg sits
+         *     AT the trigger (i.e. caps payoff at the level that activates the trade).
+         *     Levels are strings (price as string) to stay consistent with the
+         *     free-form numeric handling elsewhere in the contract.
+         */
+        TradeInsightAiStrikeRole: {
+            /**
+             * Long Leg Role
+             * @default n/a
+             * @enum {string}
+             */
+            long_leg_role: "trigger_level" | "support_reclaim" | "atm_delta_anchor" | "deep_itm_proxy" | "n/a";
+            /**
+             * Short Leg Role
+             * @default n/a
+             * @enum {string}
+             */
+            short_leg_role: "target_level" | "next_call_wall" | "second_magnet" | "next_put_wall" | "next_downside_target" | "n/a";
+            /**
+             * Trigger Level
+             * @default
+             */
+            trigger_level: string;
+            /**
+             * Target Level
+             * @default
+             */
+            target_level: string;
+            /**
+             * Invalid Level
+             * @default
+             */
+            invalid_level: string;
         };
         /** TradeInsightAiVrpAssessment */
         TradeInsightAiVrpAssessment: {
