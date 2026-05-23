@@ -439,7 +439,13 @@ def test_trade_insights_ai_latest_returns_keyed_dict_both_null_initially(
 
     response = client.get("/api/stock/TSLA/trade-insights/ai-analysis/latest")
     assert response.status_code == 200
-    assert response.json() == {"codex": None, "claude": None}
+    body = response.json()
+    assert body["codex"] is None
+    assert body["claude"] is None
+    # v5.2: provider_consensus is computed at GET time; with no rows it
+    # reports consensus_grade='missing' and the agreement booleans default
+    # to False.
+    assert body["provider_consensus"]["consensus_grade"] == "missing"
 
 
 def test_trade_insights_ai_latest_with_one_provider_succeeded(

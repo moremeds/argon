@@ -10940,6 +10940,56 @@
         "title": "TradeInsightAiAnalysisStub",
         "type": "object"
       },
+      "TradeInsightAiAntiPin": {
+        "additionalProperties": false,
+        "description": "v5.2: structured anti-pin score + scope tag.\n\ninvoked=False means anti-pin is not the thesis (e.g. structural break\nor trend continuation). The validator's conviction cap (cap at C when\n2/4 hold, anti-pin doesn't fire when \u22641/4) ONLY applies when\ninvoked=True. This closes the v5.1 issue where Claude scored 1/4 on\nNVDA but correctly chose downside_break \u2014 anti-pin scoring should\nhave been informational only, not a conviction blocker.",
+        "properties": {
+          "cap_reason": {
+            "default": "",
+            "title": "Cap Reason",
+            "type": "string"
+          },
+          "conditions_met": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Conditions Met",
+            "type": "array"
+          },
+          "conviction_cap_applied": {
+            "default": false,
+            "title": "Conviction Cap Applied",
+            "type": "boolean"
+          },
+          "direction": {
+            "default": "none",
+            "enum": [
+              "upside",
+              "downside",
+              "none"
+            ],
+            "title": "Direction",
+            "type": "string"
+          },
+          "invoked": {
+            "default": false,
+            "title": "Invoked",
+            "type": "boolean"
+          },
+          "max_score": {
+            "default": 4,
+            "title": "Max Score",
+            "type": "integer"
+          },
+          "score": {
+            "default": 0,
+            "title": "Score",
+            "type": "integer"
+          }
+        },
+        "title": "TradeInsightAiAntiPin",
+        "type": "object"
+      },
       "TradeInsightAiBestExpression": {
         "additionalProperties": false,
         "properties": {
@@ -11138,6 +11188,18 @@
             "title": "Stance Label",
             "type": "string"
           },
+          "thesis_archetype": {
+            "default": "data_insufficient",
+            "enum": [
+              "resistance_rejection",
+              "support_breakdown",
+              "breakout_continuation",
+              "pin_no_trade",
+              "data_insufficient"
+            ],
+            "title": "Thesis Archetype",
+            "type": "string"
+          },
           "title": {
             "title": "Title",
             "type": "string"
@@ -11226,7 +11288,7 @@
       },
       "TradeInsightAiLatestPair": {
         "additionalProperties": false,
-        "description": "GET /latest response \u2014 null per provider when no succeeded row exists.",
+        "description": "GET /latest response \u2014 null per provider when no succeeded row exists.\n\nv5.2: provider_consensus is computed at read time by comparing the\ntwo providers' headline fields whenever both have succeeded. The\nUI surfaces consensus_grade + actionable_disagreement above the\n[Codex] [Claude] tabs as a quality signal.",
         "properties": {
           "claude": {
             "anyOf": [
@@ -11247,6 +11309,9 @@
                 "type": "null"
               }
             ]
+          },
+          "provider_consensus": {
+            "$ref": "#/components/schemas/TradeInsightAiProviderConsensus"
           }
         },
         "title": "TradeInsightAiLatestPair",
@@ -11345,6 +11410,9 @@
             "title": "Analysis Produced At",
             "type": "string"
           },
+          "anti_pin": {
+            "$ref": "#/components/schemas/TradeInsightAiAntiPin"
+          },
           "best_expressions": {
             "items": {
               "$ref": "#/components/schemas/TradeInsightAiBestExpression"
@@ -11433,9 +11501,15 @@
           "snapshot": {
             "$ref": "#/components/schemas/TradeInsightAiSnapshotMeta"
           },
+          "target_feasibility": {
+            "$ref": "#/components/schemas/TradeInsightAiTargetFeasibility"
+          },
           "ticker": {
             "title": "Ticker",
             "type": "string"
+          },
+          "trigger_evidence": {
+            "$ref": "#/components/schemas/TradeInsightAiTriggerEvidence"
           },
           "underlying_price": {
             "anyOf": [
@@ -11550,6 +11624,55 @@
           "status_observed"
         ],
         "title": "TradeInsightAiPreferredExpression",
+        "type": "object"
+      },
+      "TradeInsightAiProviderConsensus": {
+        "additionalProperties": false,
+        "description": "v5.2: cross-provider agreement signal computed at GET /latest time.\n\nNot stored per row \u2014 derived by comparing the two providers' headline\nfields whenever both have a succeeded row. Surfaces actionable\ndisagreement to the operator (e.g. \"ACTIVE vs CONDITIONAL depends on\nwhether the latest daily close cleared 215\").",
+        "properties": {
+          "actionable_disagreement": {
+            "default": "",
+            "title": "Actionable Disagreement",
+            "type": "string"
+          },
+          "bias_agreement": {
+            "default": false,
+            "title": "Bias Agreement",
+            "type": "boolean"
+          },
+          "consensus_grade": {
+            "default": "missing",
+            "enum": [
+              "full",
+              "partial",
+              "divergent",
+              "missing"
+            ],
+            "title": "Consensus Grade",
+            "type": "string"
+          },
+          "dte_band_agreement": {
+            "default": false,
+            "title": "Dte Band Agreement",
+            "type": "boolean"
+          },
+          "entry_state_agreement": {
+            "default": false,
+            "title": "Entry State Agreement",
+            "type": "boolean"
+          },
+          "path_agreement": {
+            "default": false,
+            "title": "Path Agreement",
+            "type": "boolean"
+          },
+          "structure_agreement": {
+            "default": false,
+            "title": "Structure Agreement",
+            "type": "boolean"
+          }
+        },
+        "title": "TradeInsightAiProviderConsensus",
         "type": "object"
       },
       "TradeInsightAiRejectedIdea": {
@@ -11826,11 +11949,23 @@
       },
       "TradeInsightAiStrikeRole": {
         "additionalProperties": false,
-        "description": "v5.1: explicit market-structure roles for the spread's two legs.\n\nLets the deterministic validator reject candidates where the short leg sits\nAT the trigger (i.e. caps payoff at the level that activates the trade).\nLevels are strings (price as string) to stay consistent with the\nfree-form numeric handling elsewhere in the contract.",
+        "description": "v5.2: explicit market-structure roles + Decimal-strict price levels.\n\nLevels were strings in v5.1; that let Claude emit nested dicts which\nPydantic silently stringified and rendered as JSON literals in the UI.\nv5.2 coerces to Decimal via a pre-validator that knows how to extract\nthe strike key from a dict.\n\nSource paths are optional but encouraged so the UI can attribute each\nlevel to a specific key in the deterministic payload.",
         "properties": {
           "invalid_level": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Invalid Level"
+          },
+          "invalid_source_path": {
             "default": "",
-            "title": "Invalid Level",
+            "title": "Invalid Source Path",
             "type": "string"
           },
           "long_leg_role": {
@@ -11859,17 +11994,145 @@
             "type": "string"
           },
           "target_level": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target Level"
+          },
+          "target_source_path": {
             "default": "",
-            "title": "Target Level",
+            "title": "Target Source Path",
             "type": "string"
           },
           "trigger_level": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Trigger Level"
+          },
+          "trigger_source_path": {
             "default": "",
-            "title": "Trigger Level",
+            "title": "Trigger Source Path",
             "type": "string"
           }
         },
         "title": "TradeInsightAiStrikeRole",
+        "type": "object"
+      },
+      "TradeInsightAiTargetFeasibility": {
+        "additionalProperties": false,
+        "description": "v5.2: target-distance vs expected-move sanity layer.\n\nOptional \u2014 when expected_move data is missing from the payload the\nfeasibility is 'missing' and the validator does not block. When\npresent, this surfaces whether the target is realistic within the\n5-10 session hold.",
+        "properties": {
+          "distance_to_target_pct": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Distance To Target Pct"
+          },
+          "expected_move_available": {
+            "default": false,
+            "title": "Expected Move Available",
+            "type": "boolean"
+          },
+          "expected_move_source_path": {
+            "default": "",
+            "title": "Expected Move Source Path",
+            "type": "string"
+          },
+          "feasibility": {
+            "default": "missing",
+            "enum": [
+              "inside_expected_move",
+              "outside_expected_move",
+              "missing"
+            ],
+            "title": "Feasibility",
+            "type": "string"
+          }
+        },
+        "title": "TradeInsightAiTargetFeasibility",
+        "type": "object"
+      },
+      "TradeInsightAiTriggerEvidence": {
+        "additionalProperties": false,
+        "description": "v5.2: payload-proven trigger fire evidence.\n\nThe deterministic ACTIVE_TRIGGER_EVIDENCE_RULE check uses these fields\nto verify that entry_state=ACTIVE is justified by an actual completed\ndaily close in the payload \u2014 not by intraday spot or model inference.\n\ntrigger_fired=False is the default; the lenient coercer fills this in\nby reading the latest completed stock_history row and comparing its\nclose to strike_role.trigger_level.\n\nWhen trigger_fired=False but the model emitted entry_state=ACTIVE,\nthe validator rejects (or auto-downgrades) to CONDITIONAL.",
+        "properties": {
+          "evidence_close": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Evidence Close"
+          },
+          "evidence_close_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Evidence Close Date"
+          },
+          "source_path": {
+            "default": "",
+            "title": "Source Path",
+            "type": "string"
+          },
+          "trigger_fired": {
+            "default": false,
+            "title": "Trigger Fired",
+            "type": "boolean"
+          },
+          "trigger_level": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Trigger Level"
+          },
+          "trigger_type": {
+            "default": "unknown",
+            "enum": [
+              "daily_close",
+              "two_session_hold",
+              "unknown"
+            ],
+            "title": "Trigger Type",
+            "type": "string"
+          }
+        },
+        "title": "TradeInsightAiTriggerEvidence",
         "type": "object"
       },
       "TradeInsightAiVrpAssessment": {
@@ -15557,7 +15820,7 @@
     },
     "/api/stock/{ticker}/trade-insights/ai-analysis/latest": {
       "get": {
-        "description": "Latest succeeded row per provider as a keyed dict.\n\nReturns {codex: row|null, claude: row|null}. 200 even when both are null\nso the UI renders the empty Run state instead of a 404.",
+        "description": "Latest succeeded row per provider as a keyed dict.\n\nReturns {codex: row|null, claude: row|null}. 200 even when both are null\nso the UI renders the empty Run state instead of a 404.\n\nv5.2: also computes provider_consensus by comparing the two providers'\nheadlines when both succeeded. UI surfaces this above the tabs.",
         "operationId": "get_latest_trade_insights_ai_analysis_api_stock__ticker__trade_insights_ai_analysis_latest_get",
         "parameters": [
           {

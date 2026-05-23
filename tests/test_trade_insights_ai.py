@@ -1198,6 +1198,172 @@ def test_v51_conditional_quote_validity_skipped_when_active():
     assert parsed.trigger_evidence.trigger_fired is True
 
 
+def test_v52_active_requires_trigger_evidence():
+    """v5.2: entry_state=ACTIVE with trigger_evidence.trigger_fired=False
+    is rejected. This is the NVDA Codex failure mode the chatgpt
+    reviewer flagged — latest completed close was above the trigger
+    yet Codex emitted ACTIVE."""
+    deterministic = _analysis_input()
+    produced_at = datetime(2026, 3, 24, 20, 18, 42, tzinfo=timezone.utc)
+
+    bad = _sample_outcome_for(deterministic)
+    bad["headline"]["entry_state"] = "ACTIVE"
+    # No trigger_evidence emitted → default trigger_fired=False.
+    # preferred_expression has a real structure (bull_call_spread), bias
+    # is LONG_DELTA from _V5_HEADLINE_DEFAULTS, so the rule fires.
+    with pytest.raises(ValueError, match="active_trigger_evidence"):
+        validate_trade_insights_ai_outcome(bad, deterministic, produced_at=produced_at)
+
+
+def test_v52_active_with_proven_trigger_accepts():
+    """When trigger_evidence proves the trigger fired, ACTIVE is valid."""
+    deterministic = _analysis_input()
+    produced_at = datetime(2026, 3, 24, 20, 18, 42, tzinfo=timezone.utc)
+
+    good = _sample_outcome_for(deterministic)
+    good["headline"]["entry_state"] = "ACTIVE"
+    good["trigger_evidence"] = {
+        "trigger_fired": True,
+        "trigger_type": "daily_close",
+        "trigger_level": "382.50",
+        "evidence_close": "385.00",
+        "evidence_close_date": "2026-03-24",
+        "source_path": "tabs.market_structure.stock_history.rows[-1].spot",
+    }
+    parsed = validate_trade_insights_ai_outcome(
+        good, deterministic, produced_at=produced_at
+    )
+    assert parsed.headline.entry_state == "ACTIVE"
+    assert parsed.trigger_evidence.trigger_fired is True
+
+
+def test_v52_anti_pin_cap_without_invocation_rejects():
+    """v5.2: conviction_cap_applied=True with cap_reason citing anti-pin
+    requires anti_pin.invoked=True. Otherwise reject."""
+    deterministic = _analysis_input()
+    produced_at = datetime(2026, 3, 24, 20, 18, 42, tzinfo=timezone.utc)
+
+    bad = _sample_outcome_for(deterministic)
+    bad["anti_pin"] = {
+        "invoked": False,  # anti-pin not the thesis
+        "direction": "none",
+        "score": 1,
+        "max_score": 4,
+        "conditions_met": [],
+        "conviction_cap_applied": True,
+        "cap_reason": "capped because anti-pin score is only 1/4",
+    }
+    with pytest.raises(ValueError, match="anti_pin_cap_scope"):
+        validate_trade_insights_ai_outcome(bad, deterministic, produced_at=produced_at)
+
+
+def test_v52_anti_pin_informational_accepted():
+    """When anti_pin.invoked=False and conviction_cap_applied=False,
+    a low score is informational and accepted (Claude's NVDA case)."""
+    deterministic = _analysis_input()
+    produced_at = datetime(2026, 3, 24, 20, 18, 42, tzinfo=timezone.utc)
+
+    good = _sample_outcome_for(deterministic)
+    good["anti_pin"] = {
+        "invoked": False,
+        "direction": "downside",
+        "score": 1,
+        "max_score": 4,
+        "conditions_met": ["oi_build"],
+        "conviction_cap_applied": False,
+        "cap_reason": "",
+    }
+    parsed = validate_trade_insights_ai_outcome(
+        good, deterministic, produced_at=produced_at
+    )
+    assert parsed.anti_pin.invoked is False
+
+
+def test_v52_thesis_archetype_path_drift_rejects():
+    """v5.2: archetype must agree with underlying_path."""
+    deterministic = _analysis_input()
+    produced_at = datetime(2026, 3, 24, 20, 18, 42, tzinfo=timezone.utc)
+
+    bad = _sample_outcome_for(deterministic)
+    # bullish_continuation default + archetype mismatch.
+    bad["headline"]["thesis_archetype"] = "support_breakdown"
+    with pytest.raises(ValueError, match="thesis_archetype_inconsistency"):
+        validate_trade_insights_ai_outcome(bad, deterministic, produced_at=produced_at)
+
+
+def test_v52_headline_title_too_short_rejects_in_strict():
+    """v5.2: title with fewer than 10 words rejected in strict mode."""
+    deterministic = _analysis_input()
+    produced_at = datetime(2026, 3, 24, 20, 18, 42, tzinfo=timezone.utc)
+
+    bad = _sample_outcome_for(deterministic)
+    bad["headline"]["title"] = "NVDA AI Analysis"
+    with pytest.raises(ValueError, match="headline_title_too_short"):
+        validate_trade_insights_ai_outcome(bad, deterministic, produced_at=produced_at)
+
+
+def test_v52_headline_title_length_skipped_in_lenient():
+    """Lenient mode (Claude partial-output capture) skips the title
+    length check — the coercer's fallback is intentionally short."""
+    deterministic = _analysis_input()
+    produced_at = datetime(2026, 3, 24, 20, 18, 42, tzinfo=timezone.utc)
+
+    # Use the lenient path with a minimal payload that triggers the
+    # 'partial output' fallback title.
+    parsed = validate_trade_insights_ai_outcome(
+        {"headline": {"title": "TSLA — partial output"}},
+        deterministic,
+        produced_at=produced_at,
+        lenient=True,
+    )
+    # The fallback title is preserved (lenient path passed the length check).
+    assert "partial" in parsed.headline.title
+
+
+def test_v52_min_rr_for_conditional_c_rejects_thin_rr():
+    """v5.2: CONDITIONAL with conviction ≤ C requires R:R ≥ 1.5."""
+    deterministic = _analysis_input()
+    produced_at = datetime(2026, 3, 24, 20, 18, 42, tzinfo=timezone.utc)
+
+    bad = _sample_outcome_for(deterministic)
+    bad["headline"]["entry_state"] = "CONDITIONAL"
+    bad["headline"]["conviction"] = "C"
+    # Keep the candidate's default 'needs_check' status (preserved by the
+    # no-whitewashing rule; not 'candidate' so conditional_quote_validity
+    # does NOT fire). Then min_rr_for_conditional_c is the first rule the
+    # outcome hits, and we can verify its rejection cleanly.
+    bad["preferred_expression"]["status_observed"] = "needs_check"
+    bad["preferred_expression"]["reward_risk"] = "1.13"  # below 1.5 floor
+
+    with pytest.raises(ValueError, match="min_rr_for_conditional_c"):
+        validate_trade_insights_ai_outcome(bad, deterministic, produced_at=produced_at)
+
+
+def test_v52_min_rr_skipped_for_strategy_review():
+    """status_observed='strategy_review' (post-trigger reprice
+    placeholder) skips the R:R check — the numerics aren't real R:R."""
+    deterministic = _analysis_input()
+    produced_at = datetime(2026, 3, 24, 20, 18, 42, tzinfo=timezone.utc)
+
+    good = _sample_outcome_for(deterministic)
+    good["headline"]["entry_state"] = "CONDITIONAL"
+    good["headline"]["conviction"] = "C"
+    good["preferred_expression"]["idea_id"] = "bull_call_spread"
+    good["preferred_expression"]["structure"] = "bull_call_spread"
+    good["preferred_expression"]["status_observed"] = "strategy_review"
+    good["preferred_expression"]["risk_flags_observed"] = []
+    good["preferred_expression"]["reward_risk"] = "1.13"  # would normally fail
+    good["best_expressions"][0]["idea_id"] = "bull_call_spread"
+    good["best_expressions"][0]["structure"] = "bull_call_spread"
+    good["best_expressions"][0]["status_observed"] = "strategy_review"
+    good["best_expressions"][0]["risk_flags_observed"] = []
+
+    parsed = validate_trade_insights_ai_outcome(
+        good, deterministic, produced_at=produced_at
+    )
+    assert parsed.preferred_expression.status_observed == "strategy_review"
+
+
 def test_validate_trade_insights_ai_outcome_rejects_undefined_risk_preferred_strategy():
     deterministic = _analysis_input()
     produced_at = datetime(2026, 3, 24, 20, 18, 42, tzinfo=timezone.utc)
