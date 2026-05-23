@@ -891,6 +891,95 @@ def test_lenient_coercer_normalizes_directional_bias_aliases():
         assert parsed.headline.directional_bias == expected, raw
 
 
+def test_v5_end_to_end_minimal_claude_payload_produces_directional_outcome():
+    """M6 integration smoke: a minimal Claude-style payload (the kind issue
+    #67 captured — Claude omits most fields) must round-trip through the
+    lenient coercer + validator and produce a structurally valid v5
+    outcome with the directional vocab populated. This is the closest we
+    can get to E2E without actually invoking the Claude subprocess.
+
+    Asserts the full chain holds together:
+      - Lenient coercer backfills v5 required fields
+      - Validator passes mode-structure + delta-match (since coercer
+        chose safe defaults)
+      - Outcome has directional_bias, entry_state, trade_intent,
+        underlying_path, dte_band populated
+      - preferred_expression structure default is consistent with bias"""
+    deterministic = _analysis_input()
+    produced_at = datetime(2026, 3, 24, 20, 18, 42, tzinfo=timezone.utc)
+
+    # The shape Claude actually produces under-load when it doesn't adhere
+    # to the schema strictly: top-level identity scattered, only a few
+    # headline fields, no nested models. The coercer is responsible for
+    # building a v5-valid outcome from this.
+    minimal = {
+        "headline": {
+            "title": "TSLA — bullish flow vs 430 wall",
+            "stance": "bullish",  # legacy field, used to derive bias
+            "directional_bias": "LONG_DELTA",  # explicit v5 field
+            "entry_state": "CONDITIONAL",
+            "underlying_path": "bullish_continuation",
+            "dte_band": "momentum",
+            "trade_intent": "directional_swing",
+            "conviction": "B",
+            "top_reason": "Persistent bullish flow stacks against the call wall",
+        },
+        # Everything else (snapshot, section_cards, etc.) omitted — the
+        # coercer must synthesize defaults.
+    }
+
+    parsed = validate_trade_insights_ai_outcome(
+        minimal, deterministic, produced_at=produced_at, lenient=True
+    )
+
+    # v5 directional vocab survives the round-trip
+    assert parsed.headline.directional_bias == "LONG_DELTA"
+    assert parsed.headline.entry_state == "CONDITIONAL"
+    assert parsed.headline.underlying_path == "bullish_continuation"
+    assert parsed.headline.dte_band == "momentum"
+    assert parsed.headline.trade_intent == "directional_swing"
+    # Schema-version stamped correctly
+    assert parsed.schema_version == PROMPT_VERSION
+    # Identity preserved
+    assert parsed.ticker == "TSLA"
+    # Mode-structure + delta-match consistency held (coercer's safe defaults
+    # don't violate either rule)
+
+
+def test_v5_end_to_end_off_schema_vocab_gets_coerced_then_validated():
+    """M6 integration smoke: when Claude uses analyst vocabulary that
+    doesn't match the Literal enums ("long delta" with a space,
+    "rangebound" instead of pinned_no_directional_entry, "watchlist"
+    instead of CONDITIONAL), the lenient coercer normalizes ALL of them
+    before validation runs. The validator then sees clean enums."""
+    deterministic = _analysis_input()
+    produced_at = datetime(2026, 3, 24, 20, 18, 42, tzinfo=timezone.utc)
+
+    off_schema = {
+        "headline": {
+            "title": "TSLA — pinned at wall",
+            "stance": "neutral",
+            "directional_bias": "long delta",  # space form
+            "entry_state": "watchlist",  # alias for CONDITIONAL
+            "underlying_path": "rangebound",  # alias for pinned
+            "dte_band": "front",  # alias for momentum
+            "trade_intent": "swing",  # alias for directional_swing
+            "conviction": "c",  # lower case
+        },
+    }
+
+    parsed = validate_trade_insights_ai_outcome(
+        off_schema, deterministic, produced_at=produced_at, lenient=True
+    )
+
+    assert parsed.headline.directional_bias == "LONG_DELTA"
+    assert parsed.headline.entry_state == "CONDITIONAL"
+    assert parsed.headline.underlying_path == "pinned_no_directional_entry"
+    assert parsed.headline.dte_band == "momentum"
+    assert parsed.headline.trade_intent == "directional_swing"
+    assert parsed.headline.conviction == "C"
+
+
 def test_lenient_coercer_normalizes_underlying_path_aliases():
     """M4 smart coercion: underlying_path also accepts common drifts."""
     deterministic = _analysis_input()
