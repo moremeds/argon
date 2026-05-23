@@ -1004,6 +1004,183 @@ def test_lenient_coercer_normalizes_underlying_path_aliases():
         assert parsed.headline.underlying_path == expected, raw
 
 
+def test_v51_trigger_strike_consistency_rejects_short_leg_at_trigger():
+    """v5.1: short leg strike must NOT sit at the trigger level.
+
+    Strategy-family path: idea_id='bull_call_spread' has no candidate-row
+    legs, so the validator falls back to target_level vs trigger_level —
+    when target == trigger (or target <= trigger for LONG_DELTA), reject.
+    """
+    deterministic = _analysis_input()
+    produced_at = datetime(2026, 3, 24, 20, 18, 42, tzinfo=timezone.utc)
+
+    bad = _sample_outcome_for(deterministic)
+    bad["preferred_expression"]["idea_id"] = "bull_call_spread"
+    bad["preferred_expression"]["structure"] = "bull_call_spread"
+    bad["preferred_expression"]["status_observed"] = "strategy_review"
+    bad["preferred_expression"]["risk_flags_observed"] = []
+    bad["preferred_expression"]["strike_role"] = {
+        "long_leg_role": "trigger_level",
+        "short_leg_role": "target_level",
+        "trigger_level": "430",
+        "target_level": "430",  # <-- equals trigger, the failure mode
+        "invalid_level": "420",
+    }
+    bad["best_expressions"][0]["idea_id"] = "bull_call_spread"
+    bad["best_expressions"][0]["structure"] = "bull_call_spread"
+    bad["best_expressions"][0]["status_observed"] = "strategy_review"
+    bad["best_expressions"][0]["risk_flags_observed"] = []
+
+    with pytest.raises(ValueError, match="trigger_strike_mismatch"):
+        validate_trade_insights_ai_outcome(bad, deterministic, produced_at=produced_at)
+
+
+def test_v51_trigger_strike_consistency_accepts_short_leg_above_trigger():
+    """Inverse: short leg strictly above trigger is the textbook breakout
+    play (e.g. trigger=430 → 430/435 with target at second_magnet)."""
+    deterministic = _analysis_input()
+    produced_at = datetime(2026, 3, 24, 20, 18, 42, tzinfo=timezone.utc)
+
+    good = _sample_outcome_for(deterministic)
+    good["preferred_expression"]["idea_id"] = "bull_call_spread"
+    good["preferred_expression"]["structure"] = "bull_call_spread"
+    good["preferred_expression"]["status_observed"] = "strategy_review"
+    good["preferred_expression"]["risk_flags_observed"] = []
+    good["preferred_expression"]["strike_role"] = {
+        "long_leg_role": "trigger_level",
+        "short_leg_role": "second_magnet",
+        "trigger_level": "430",
+        "target_level": "435",  # <-- correctly above trigger
+        "invalid_level": "420",
+    }
+    good["best_expressions"][0]["idea_id"] = "bull_call_spread"
+    good["best_expressions"][0]["structure"] = "bull_call_spread"
+    good["best_expressions"][0]["status_observed"] = "strategy_review"
+    good["best_expressions"][0]["risk_flags_observed"] = []
+
+    parsed = validate_trade_insights_ai_outcome(
+        good, deterministic, produced_at=produced_at
+    )
+    assert parsed.preferred_expression is not None
+    assert parsed.preferred_expression.strike_role.target_level == "435"
+
+
+def test_v51_dte_band_consistency_rejects_band_mismatch():
+    """v5.1: when the preferred resolves to a real candidate row, the row's
+    dte_band MUST equal headline.dte_band. Patch the deterministic
+    candidate to claim dte_band='momentum' while the headline says
+    'trend' — validator rejects.
+    """
+    deterministic = _analysis_input()
+    # Inject dte_band on the candidate. The fixture's candidate_structures[0]
+    # has idea_id='A' (a bull_call_spread); the headline default dte_band
+    # is 'trend' (from _V5_HEADLINE_DEFAULTS).
+    deterministic["candidate_structures"][0]["dte_band"] = "momentum"
+    produced_at = datetime(2026, 3, 24, 20, 18, 42, tzinfo=timezone.utc)
+
+    bad = _sample_outcome_for(deterministic)
+    # preferred uses idea_id='A' (candidate row), keeping default dte_band
+    # 'trend' from headline defaults.
+    with pytest.raises(ValueError, match="dte_band_inconsistency"):
+        validate_trade_insights_ai_outcome(bad, deterministic, produced_at=produced_at)
+
+
+def test_v51_dte_band_consistency_accepts_matching_bands():
+    """When the candidate's dte_band matches the headline.dte_band, validator
+    accepts."""
+    deterministic = _analysis_input()
+    deterministic["candidate_structures"][0]["dte_band"] = (
+        "trend"  # matches headline default
+    )
+    produced_at = datetime(2026, 3, 24, 20, 18, 42, tzinfo=timezone.utc)
+
+    good = _sample_outcome_for(deterministic)
+    parsed = validate_trade_insights_ai_outcome(
+        good, deterministic, produced_at=produced_at
+    )
+    assert parsed.headline.dte_band == "trend"
+
+
+def test_v51_conditional_quote_validity_rejects_candidate_status():
+    """v5.1: status_observed='candidate' under entry_state=CONDITIONAL is
+    rejected — the candidate's max_profit/loss/entry are pre-trigger
+    references that won't survive the trigger fire.
+    """
+    deterministic = _analysis_input()
+    # Mutate deterministic BEFORE computing the input hash so _sample_outcome_for
+    # captures the post-mutation hash. The candidate fixture's status is
+    # 'needs_check' — bump it to plain 'candidate' so the no-whitewashing
+    # check passes and we cleanly hit the v5.1 conditional_quote_validity
+    # check.
+    deterministic["candidate_structures"][0]["status"] = "candidate"
+    produced_at = datetime(2026, 3, 24, 20, 18, 42, tzinfo=timezone.utc)
+
+    bad = _sample_outcome_for(deterministic)
+    # _sample_outcome already sets entry_state=CONDITIONAL via defaults.
+    bad["preferred_expression"]["status_observed"] = "candidate"
+    bad["best_expressions"][0]["status_observed"] = "candidate"
+    # risk_flags must match the candidate exactly (no-whitewashing rule).
+    candidate_flags = list(
+        deterministic["candidate_structures"][0].get("risk_flags") or []
+    )
+    bad["preferred_expression"]["risk_flags_observed"] = candidate_flags
+    bad["best_expressions"][0]["risk_flags_observed"] = candidate_flags
+
+    with pytest.raises(ValueError, match="conditional_quote_validity"):
+        validate_trade_insights_ai_outcome(bad, deterministic, produced_at=produced_at)
+
+
+def test_v51_conditional_quote_validity_accepts_candidate_pre_trigger():
+    """status_observed='candidate_pre_trigger' is the explicit anticipatory
+    pre-trigger entry handling — accepted under CONDITIONAL.
+    """
+    deterministic = _analysis_input()
+    # Candidate status must be 'candidate' for the v5.1 escalation rule
+    # to allow the candidate→candidate_pre_trigger swap.
+    deterministic["candidate_structures"][0]["status"] = "candidate"
+    produced_at = datetime(2026, 3, 24, 20, 18, 42, tzinfo=timezone.utc)
+
+    good = _sample_outcome_for(deterministic)
+    good["preferred_expression"]["status_observed"] = "candidate_pre_trigger"
+    candidate_flags = list(
+        deterministic["candidate_structures"][0].get("risk_flags") or []
+    )
+    good["preferred_expression"]["risk_flags_observed"] = candidate_flags
+    # best_expressions doesn't get the escalation — keep it on the candidate
+    # status to satisfy the no-whitewashing rule.
+    good["best_expressions"][0]["status_observed"] = "candidate"
+    good["best_expressions"][0]["risk_flags_observed"] = candidate_flags
+
+    parsed = validate_trade_insights_ai_outcome(
+        good, deterministic, produced_at=produced_at
+    )
+    assert parsed.preferred_expression is not None
+    assert parsed.preferred_expression.status_observed == "candidate_pre_trigger"
+
+
+def test_v51_conditional_quote_validity_skipped_when_active():
+    """ACTIVE entry_state skips the v5.1 quote-validity check entirely (the
+    trigger has fired; observed numerics are current)."""
+    deterministic = _analysis_input()
+    deterministic["candidate_structures"][0]["status"] = "candidate"
+    produced_at = datetime(2026, 3, 24, 20, 18, 42, tzinfo=timezone.utc)
+
+    payload = _sample_outcome_for(deterministic)
+    payload["headline"]["entry_state"] = "ACTIVE"
+    payload["preferred_expression"]["status_observed"] = "candidate"
+    candidate_flags = list(
+        deterministic["candidate_structures"][0].get("risk_flags") or []
+    )
+    payload["preferred_expression"]["risk_flags_observed"] = candidate_flags
+    payload["best_expressions"][0]["status_observed"] = "candidate"
+    payload["best_expressions"][0]["risk_flags_observed"] = candidate_flags
+
+    parsed = validate_trade_insights_ai_outcome(
+        payload, deterministic, produced_at=produced_at
+    )
+    assert parsed.headline.entry_state == "ACTIVE"
+
+
 def test_validate_trade_insights_ai_outcome_rejects_undefined_risk_preferred_strategy():
     deterministic = _analysis_input()
     produced_at = datetime(2026, 3, 24, 20, 18, 42, tzinfo=timezone.utc)
