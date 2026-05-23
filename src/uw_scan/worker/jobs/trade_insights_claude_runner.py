@@ -80,8 +80,10 @@ Literals on output):
 - headline.underlying_path MUST be one of: "bullish_continuation", \
   "bearish_rejection", "downside_break", "pinned_no_directional_entry", \
   "data_insufficient".
-- headline.dte_band MUST be one of: "momentum", "trend" (no "standard" — that \
-  band exists in the candidate menu but the headline field is binary).
+- headline.dte_band MUST be one of: "momentum", "standard", "trend". v5.1 \
+  restored the standard band (31-44 DTE). The DTE of the chosen \
+  preferred_entry_expiry MUST fall inside the band: momentum=[14,30], \
+  standard=[31,44], trend=[45,75].
 - headline.stance MUST be derived from headline.directional_bias for legacy \
   UI display: LONG_DELTA -> "bullish", SHORT_DELTA -> "bearish", WAIT -> "wait".
 - headline.conviction MUST be exactly one of: "A", "B", "C", "D", "F".
@@ -121,11 +123,37 @@ metrics, reason}. When data is incomplete, set signal="neutral" and explain \
 in summary/reason.
 
 preferred_expression: provide {idea_id, structure, title, why, \
-status_observed, risk_flags_observed}. Also fill estimated_entry, \
-max_profit_observed, max_loss_observed, reward_risk with concrete numeric \
-strings ($X.XX or "0.YY") — not blanks. For trade_intent=range_income or \
-directional_bias=WAIT, structure="no_trade" is acceptable; the other fields \
-then describe the conditional setup.
+status_observed, risk_flags_observed, strike_role}. v5.1: strike_role is \
+a nested object with {long_leg_role, short_leg_role, trigger_level, \
+target_level, invalid_level}. For directional breakout setups, populate \
+trigger_level (numeric price), target_level (next wall above for \
+LONG_DELTA, below for SHORT_DELTA), and invalid_level (close past this \
+invalidates). long_leg_role is typically "trigger_level" or "atm_delta_anchor"; \
+short_leg_role is "target_level" or "next_call_wall"/"second_magnet" for \
+LONG_DELTA, "next_put_wall"/"next_downside_target" for SHORT_DELTA. \
+For estimated_entry, max_profit_observed, max_loss_observed, reward_risk: \
+if entry_state=CONDITIONAL and the trigger has NOT fired, EITHER set \
+status_observed="strategy_review" with blanks/placeholders ("Repriced \
+post-trigger — observed pre-trigger numerics are reference only.") OR set \
+status_observed="candidate_pre_trigger" if you explicitly argue for a \
+PRE-trigger anticipatory entry. Do NOT present pre-trigger observed \
+numerics as if they were the expected post-trigger economics. \
+For trade_intent=range_income or directional_bias=WAIT, \
+structure="no_trade" is acceptable; the other fields then describe the \
+conditional setup.
+
+TRIGGER-STRIKE CONSISTENCY (HARD; validator will reject otherwise):
+- For LONG_DELTA breakouts, the spread's short leg strike MUST be STRICTLY \
+  GREATER than strike_role.trigger_level. A 425/430 bull_call_spread with \
+  trigger_level=430 is rejected — the short call caps payoff at the \
+  trigger. Move both legs up so short sits at the next target (e.g. 435 \
+  second_magnet, 440 next call wall).
+- For SHORT_DELTA downside breaks, the spread's short leg strike MUST be \
+  STRICTLY LESS than trigger_level.
+
+DTE-BAND CONSISTENCY (HARD; validator will reject otherwise):
+- The chosen preferred_entry_expiry's DTE must be inside the band emitted \
+  in headline.dte_band: momentum=[14,30], standard=[31,44], trend=[45,75].
 
 dominant_read MUST have all four fields populated (headline, summary, \
 confidence_commentary, data_quality_commentary).

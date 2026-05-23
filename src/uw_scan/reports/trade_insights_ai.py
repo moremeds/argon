@@ -154,16 +154,28 @@ STEP 4 — TRADE_INTENT (set headline.trade_intent)
     (c) no persistent flow attacks either wall.
   Iron condor / credit spreads are reserved for trade_intent=range_income.
 
-STEP 5 — DTE_BAND (set headline.dte_band)
+STEP 5 — DTE_BAND (set headline.dte_band)  (v5.1: 3-band, ranges are HARD)
     - momentum (14-30 DTE): high gamma per $ premium. Use when entry_state
-                            =ACTIVE or trigger is a BREAKOUT (capture fast
-                            move; accept theta-crush proximity).
+                            =ACTIVE or trigger is BREAKOUT_IMMINENT (anti-pin
+                            rule has fired and trigger expected within
+                            1-2 sessions). Accept theta-crush proximity.
+    - standard (31-44 DTE): balanced gamma/theta. DEFAULT for entry_state
+                            =CONDITIONAL when the trigger is expected to
+                            resolve within the 5-10 session hold. This is
+                            the band most swing setups should pick.
     - trend    (45-75 DTE): lower gamma decay, theta protection. Use when
-                            entry_state=CONDITIONAL on a multi-week
-                            trend-continuation thesis.
-  Standard middle (31-44 DTE) candidates exist in the menu for the
-  conservative case; the prompt's dte_band field is ONLY "momentum" or
-  "trend" — pick whichever band the trade thesis matches.
+                            entry_state=CONDITIONAL and the trigger may
+                            take several sessions OR the thesis is a
+                            multi-week continuation rather than an impulse.
+
+  DTE_BAND_CONSISTENCY (HARD; validator will reject otherwise):
+    The DTE of the chosen preferred_entry_expiry MUST fall inside the
+    range emitted in headline.dte_band:
+      momentum → DTE ∈ [14, 30]
+      standard → DTE ∈ [31, 44]
+      trend    → DTE ∈ [45, 75]
+    If you emit dte_band="momentum" with a 34 DTE expiry, the validator
+    will reject the outcome. Pick the band whose range contains the DTE.
 
 STEP 6 — STRUCTURE (set preferred_expression.structure)
   ONLY AFTER Steps 1-5. Pick the option expression that maps to the
@@ -243,26 +255,107 @@ CONTEXT (HARD VETO if violated):
           momentum dte_band and explain in headline.primary_risk.
 
 ═══════════════════════════════════════════════════════════════════════════
-ANTI-PIN RULE (the failure mode v5 is built to prevent)
+ANTI-PIN RULE v5.1 (3-of-4 quality score — stricter than v5)
 ═══════════════════════════════════════════════════════════════════════════
 
-When persistent multi-day flow stacks AGAINST a dealer wall, the wall is
-a PRE-BREAKOUT TARGET, not a cap. Specifically:
+When persistent multi-day flow stacks AGAINST a dealer wall, the wall can
+be a PRE-BREAKOUT TARGET rather than a cap. To prevent over-classifying
+every wall attack as a breakout, the wall is TARGET (not cap) ONLY when
+AT LEAST 3 of the following 4 are observed:
 
-  IF (3+ consecutive days of OI increase on a strike near call_wall)
-     AND (net bullish premium > 2x bearish premium at that strike or
-          nearby strikes)
-  THEN
+  (1) 3+ consecutive sessions of OI increase at or within one strike of
+      the relevant wall (call_wall for upside, put_wall for downside)
+      — tabs.positioning.oi_change_top.
+  (2) Net premium tilt > 2x in the directional direction in the same
+      strike zone (net bullish > 2x net bearish at/near call_wall for
+      upside; mirror for downside) — tabs.flow.flow.
+  (3) Repeated ASK-SIDE or ASCENDING-FILL alerts (for upside) or BID-SIDE
+      / DESCENDING-FILL (for downside) clustered near the wall
+      — tabs.flow.flow.top_alerts.
+  (4) Spot is within 1.5% of the wall AND has NOT failed the wall on two
+      consecutive prior daily closes — tabs.market_structure.market_
+      structure_levels + recent stock_history rows.
+
+  IF >= 3 of 4 hold (upside variant):
      - Wall is TARGET, not cap.
-     - underlying_path = bullish_continuation
-       (NOT pinned_no_directional_entry).
-     - directional_bias = LONG_DELTA.
-     - entry_state = CONDITIONAL (need daily close above the wall).
+     - underlying_path = bullish_continuation (NOT pinned_no_directional_entry)
+     - directional_bias = LONG_DELTA
+     - entry_state = CONDITIONAL (need daily close above the wall)
      - REJECT any preferred_expression that profits from the wall
-       holding (no iron_condor, no call_credit_spread at the wall).
+       holding (no iron_condor, no call_credit_spread at the wall)
 
-Mirror for the put-wall side: persistent bearish flow + OI build = wall
-is a DOWNSIDE TARGET, underlying_path=downside_break, bias=SHORT_DELTA.
+  IF exactly 2 of 4 hold:
+     - underlying_path = pinned_no_directional_entry OR
+                         bullish_continuation (your judgment)
+     - entry_state = CONDITIONAL
+     - headline.conviction capped at C (not A/B) — the signal is mixed
+
+  IF <= 1 of 4 hold:
+     - The wall is still a CAP. Do NOT invoke the anti-pin rule.
+
+Mirror for the put-wall side: persistent bearish flow + OI build at/near
+put_wall = wall is a DOWNSIDE TARGET, underlying_path=downside_break,
+bias=SHORT_DELTA.
+
+In headline.top_reason or dominant_read.summary, CITE which of the four
+sub-conditions hold (e.g. "anti-pin satisfied: 3 of 4 — OI build, premium
+tilt, spot proximity; alert cluster absent").
+
+═══════════════════════════════════════════════════════════════════════════
+TRIGGER_STRIKE_CONSISTENCY (HARD; validator will reject otherwise)
+═══════════════════════════════════════════════════════════════════════════
+
+For BREAKOUT setups (entry_state=CONDITIONAL with a directional trigger),
+the spread's SHORT leg must NOT sit AT the trigger level. The short strike
+should be at or beyond the NEXT TARGET, not at the wall being broken.
+
+  LONG_DELTA breakout (e.g. "daily close above 430"):
+     - preferred_expression.strike_role.trigger_level = 430
+     - long leg strike: near the trigger (430, or one strike below)
+     - short leg strike: at the NEXT target/wall (e.g. 435 second_magnet,
+       440 next call OI, etc.) — STRICTLY GREATER than trigger_level
+
+  SHORT_DELTA downside_break (e.g. "daily close below 420"):
+     - preferred_expression.strike_role.trigger_level = 420
+     - long leg strike: near the trigger (420, or one strike above)
+     - short leg strike: at the NEXT downside target (e.g. 412.5
+       max_accel, 410 put OI zone) — STRICTLY LESS than trigger_level
+
+A 425/430 bull_call_spread with trigger="close above 430" is REJECTED as
+trigger_strike_mismatch: the 430 short call caps the spread at exactly
+the level that activates the trade. The textbook breakout play moves
+both legs up so the short leg sits at the next target, e.g. 430/435 or
+430/440. If no in-band candidate satisfies this, prefer a strategy-family
+preferred_expression (status_observed=strategy_review) over a candidate
+row whose strikes contradict the trigger.
+
+═══════════════════════════════════════════════════════════════════════════
+CONDITIONAL_QUOTE_VALIDITY (HARD; validator will reject otherwise)
+═══════════════════════════════════════════════════════════════════════════
+
+If entry_state=CONDITIONAL and the trigger has NOT fired, any
+candidate-row max_profit/max_loss/estimated_entry numerics are PRE-TRIGGER
+references — they describe what the spread would cost RIGHT NOW, not
+what it will cost after the trigger fires (the underlying will have
+moved, IV will have shifted, and the spread price will be materially
+different).
+
+Two acceptable handlings:
+
+  (a) PRE_TRIGGER_ANTICIPATORY: idea is to enter the spread BEFORE the
+      trigger fires (front-run the breakout). Set status_observed=
+      "candidate_pre_trigger" and write a brief one-sentence why
+      explaining why the model thinks the trigger is imminent (anti-pin
+      satisfied at 4/4, IV unusually low, multi-session repeated alerts
+      etc.). Observed numerics ARE valid.
+
+  (b) POST_TRIGGER_RESEARCH: idea is to enter only AFTER the trigger
+      fires. Set status_observed="strategy_review", leave numerics
+      blank or write "Repriced post-trigger — observed pre-trigger
+      numerics are reference only." Do NOT present pre-trigger
+      max_profit/loss as expected post-trigger economics.
+
+The default is (b) unless the model explicitly argues for (a).
 
 ═══════════════════════════════════════════════════════════════════════════
 HORIZON + TRIGGER + INVALIDATION
@@ -325,13 +418,17 @@ sections. Do not repeat tables.
 | Underlying path | bullish_continuation / bearish_rejection / downside_break / pinned_no_directional_entry / data_insufficient |
 | Entry state | ACTIVE / CONDITIONAL / NO_ENTRY |
 | Trade intent | directional_swing (default) / range_income (only per Step 4) |
-| DTE band | momentum (14-30) / trend (45-75) |
+| DTE band | momentum (14-30) / standard (31-44) / trend (45-75) |
 | Conviction | A / B / C / D / F (one letter — see rating ladder) |
-| Preferred entry expiry | YYYY-MM-DD inside the chosen dte_band |
+| Preferred entry expiry | YYYY-MM-DD whose DTE is inside the chosen dte_band range (HARD: validator enforces) |
 | Preferred structure | one of the mode-whitelisted ids (Step 6) |
+| Long leg strike | price + role (trigger_level / support_reclaim / atm_delta_anchor / deep_itm_proxy) |
+| Short leg strike | price + role (target_level / next_call_wall / second_magnet / next_put_wall / next_downside_target); MUST satisfy trigger_strike_consistency |
+| Trigger level | numeric price the directional trigger references (e.g. 430) |
+| Target level | named level above (LONG_DELTA) or below (SHORT_DELTA) the trigger from market_structure_levels |
+| Invalid level | numeric price; daily close past this invalidates the setup |
 | Trigger | "daily close above/below X" or "2-session hold" — daily-close terms |
 | Invalidation | "daily close above/below X" — daily-close terms |
-| Target level | named level from market_structure_levels |
 | Time stop | "close at mid after 7-10 trading sessions if neither trigger nor invalidation fires" |
 
 ## Why (<=120 words)
@@ -937,6 +1034,46 @@ def build_trade_insights_ai_prompt(prompt_payload: dict[str, Any]) -> str:
         "directional_bias == SHORT_DELTA, structure must be net-negative-delta "
         "(long_put, put_debit_spread, bear_put_spread, put_diagonal). When "
         "directional_bias == WAIT, structure MUST be 'no_trade'.\n"
+        "DTE-band consistency (HARD, v5.1): headline.dte_band MUST be one of "
+        "['momentum','standard','trend'] and the chosen preferred entry-expiry "
+        "DTE MUST fall inside the band range — momentum=[14,30], "
+        "standard=[31,44], trend=[45,75]. Emitting dte_band='momentum' with a "
+        "34 DTE expiry is rejected. Pick the band whose range contains the DTE.\n"
+        "Trigger-strike consistency (HARD, v5.1): populate "
+        "preferred_expression.strike_role with {long_leg_role, short_leg_role, "
+        "trigger_level, target_level, invalid_level}. For LONG_DELTA "
+        "breakouts, the spread's short leg strike MUST be STRICTLY GREATER "
+        "than trigger_level (e.g. trigger=430 → short=435 second_magnet, NOT "
+        "short=430). For SHORT_DELTA downside breaks, short leg strike MUST "
+        "be STRICTLY LESS than trigger_level. A 425/430 bull_call_spread on "
+        "a 'close above 430' trigger is rejected as trigger_strike_mismatch. "
+        "If no in-band candidate row satisfies this, prefer a strategy-family "
+        "preferred_expression (idea_id = strategy family, status_observed = "
+        "'strategy_review') and describe the correct strike placement in "
+        "preferred_expression.why; cite the offending candidate row in "
+        "rejected_ideas with reason 'trigger_strike_mismatch'.\n"
+        "Conditional-quote validity (HARD, v5.1): if entry_state=CONDITIONAL "
+        "and the trigger has not fired, candidate-row max_profit/max_loss/"
+        "estimated_entry are pre-trigger references — the option chain WILL "
+        "reprice after the trigger. Two acceptable handlings: (a) PRE-trigger "
+        "anticipatory entry — set status_observed='candidate_pre_trigger', "
+        "explain why the trigger is imminent (anti-pin satisfied 4/4, very "
+        "low IV, repeated alerts) and observed numerics are valid; or (b) "
+        "POST-trigger research — set status_observed='strategy_review' and "
+        "either leave numerics blank or write 'Repriced post-trigger — "
+        "observed pre-trigger numerics are reference only.' Do NOT present "
+        "observed pre-trigger max_profit/loss as expected post-trigger "
+        "economics. Default to (b) unless the model explicitly argues for (a).\n"
+        "Anti-pin quality (HARD, v5.1): the anti-pin reclassification "
+        "(wall=target, not cap) fires ONLY when AT LEAST 3 of 4 hold — "
+        "(1) 3+ consecutive sessions of OI increase at/within one strike of "
+        "the relevant wall, (2) net premium tilt > 2x in the directional "
+        "direction, (3) repeated ask-side/ascending-fill alerts clustered "
+        "near the wall, (4) spot within 1.5% of the wall AND no two-session "
+        "failed close. In headline.top_reason or dominant_read.summary, cite "
+        "which sub-conditions hold (e.g. 'anti-pin satisfied 3/4 — OI build, "
+        "premium tilt, spot proximity; alert cluster absent'). If only 2 of "
+        "4 hold, cap headline.conviction at C.\n"
         "Project safety override: do not recommend naked short options or "
         "undefined-risk short-vol structures. risk_reversal is excluded from "
         "the directional_swing whitelist because its short put leg is naked; "
