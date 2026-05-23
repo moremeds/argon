@@ -106,7 +106,7 @@ def test_build_rates_snapshot_populates_live_fred_sections_without_static_filler
                 "probability": 99.0,
                 "stance": "HOLD",
                 "target_range": "3.50-3.75%",
-                "source": "CME FedWatch",
+                "source": "FedChirp fed funds futures",
             }
         ],
     )

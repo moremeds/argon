@@ -278,9 +278,13 @@ def _policy_read(
 
 def _path_read(path: list[RatesPolicyPathPoint]) -> str:
     if not path:
-        return "CME FedWatch implied path is unavailable until CME API credentials are configured and persisted."
+        return "Fed funds futures-implied path is unavailable until a path source is persisted."
     first = path[0]
-    return f"CME FedWatch assigns {first.probability:.1f}% to {first.stance.lower()} at the next meeting."
+    source = first.source or "fed funds futures"
+    return (
+        f"{source} assigns {first.probability:.1f}% to "
+        f"{first.stance.lower()} at the next meeting."
+    )
 
 
 def _plumbing_read(plumbing: list[RatesPolicyPlumbingMetric]) -> str:

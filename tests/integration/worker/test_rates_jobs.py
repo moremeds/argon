@@ -149,10 +149,11 @@ class _FomcProvider:
         ]
 
 
-class _CmeProvider:
-    def __init__(self, *, api_token, application_name="uw-scan"):
-        self.api_token = api_token
-        self.application_name = application_name
+class _PolicyPathProvider:
+    def __init__(self, *, base_url="https://www.fedchirp.com", record_request=None, job_name=None):
+        self.base_url = base_url
+        self.record_request = record_request
+        self.job_name = job_name
 
     def __enter__(self):
         return self
@@ -169,7 +170,7 @@ class _CmeProvider:
                 "probability": 99.0,
                 "stance": "HOLD",
                 "target_range": "3.50-3.75%",
-                "source": "CME FedWatch",
+                "source": "FedChirp fed funds futures",
                 "status": "ok",
             }
         ]
@@ -201,8 +202,7 @@ def test_rates_job_persists_observations_and_snapshot(migrated_settings: Setting
         provider_factory=_Provider,
         cleveland_provider_factory=_ClevelandProvider,
         fomc_provider_factory=_FomcProvider,
-        cme_provider_factory=_CmeProvider,
-        cme_fedwatch_api_token="cme-test",
+        policy_path_provider_factory=_PolicyPathProvider,
         computed_at=datetime(2026, 5, 20, 22, tzinfo=UTC),
     )
 
@@ -223,7 +223,9 @@ def test_rates_job_persists_observations_and_snapshot(migrated_settings: Setting
     assert row["payload"]["decomposition"]["expected_short_inflation_10y"] == 2.48
     assert row["payload"]["policy"]["target_range"] == "3.50-3.75%"
     assert row["payload"]["policy"]["last_meeting"]["vote_split"] == "8-4"
-    assert row["payload"]["policy"]["implied_path"][0]["source"] == "CME FedWatch"
+    assert row["payload"]["policy"]["implied_path"][0]["source"] == (
+        "FedChirp fed funds futures"
+    )
 
 
 def test_rates_job_refuses_snapshot_when_required_curve_series_fails(

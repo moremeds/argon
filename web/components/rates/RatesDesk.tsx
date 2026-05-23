@@ -172,7 +172,7 @@ function PolicySection({ policy }: { policy: Policy }) {
       <article className={styles.policyCard}>
         <div className={styles.policyCardTop}>
           <h3>Market-Implied Path</h3>
-          <span>CME FedWatch</span>
+          <span>Fed funds futures</span>
         </div>
         {path.length ? (
           <div className={styles.policyPathGrid}>
@@ -194,7 +194,7 @@ function PolicySection({ policy }: { policy: Policy }) {
             ))}
           </div>
         ) : (
-          <div className={styles.policyMissing}>CME API not configured</div>
+          <div className={styles.policyMissing}>Futures path unavailable</div>
         )}
         <p>{policy.path_read ?? "No implied-path source is persisted yet."}</p>
       </article>

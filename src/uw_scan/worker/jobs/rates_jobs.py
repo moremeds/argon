@@ -17,8 +17,8 @@ from uw_scan.rates.series import (
     YIELD_CURVE_SERIES,
 )
 from uw_scan.rates.snapshot import build_rates_snapshot
-from uw_scan.sources.cme_fedwatch import CmeFedWatchProvider
 from uw_scan.sources.cleveland_fed import ClevelandFedInflationProvider
+from uw_scan.sources.fed_funds_futures_path import FedChirpPolicyPathProvider
 from uw_scan.sources.fomc_calendar import FomcCalendarProvider
 from uw_scan.sources.fred import FredProvider, RecordHook
 from uw_scan.storage.repository import Repository
@@ -61,15 +61,15 @@ class RatesFomcProvider(Protocol):
 RatesFomcProviderFactory = Callable[..., RatesFomcProvider]
 
 
-class RatesCmeProvider(Protocol):
-    def __enter__(self) -> "RatesCmeProvider": ...
+class RatesPolicyPathProvider(Protocol):
+    def __enter__(self) -> "RatesPolicyPathProvider": ...
 
     def __exit__(self, *_exc: object) -> object: ...
 
     def fetch_latest_path(self, *, current_target_range: str | None): ...
 
 
-RatesCmeProviderFactory = Callable[..., RatesCmeProvider]
+RatesPolicyPathProviderFactory = Callable[..., RatesPolicyPathProvider]
 
 
 @dataclass(frozen=True)
@@ -92,9 +92,10 @@ def rates_fred_ingest_job(
         ClevelandFedInflationProvider
     ),
     fomc_provider_factory: RatesFomcProviderFactory = FomcCalendarProvider,
-    cme_provider_factory: RatesCmeProviderFactory = CmeFedWatchProvider,
-    cme_fedwatch_api_token: str | None = None,
-    cme_application_name: str = "uw-scan",
+    policy_path_provider_factory: RatesPolicyPathProviderFactory = (
+        FedChirpPolicyPathProvider
+    ),
+    policy_path_url: str = FedChirpPolicyPathProvider.BASE_URL,
     computed_at: datetime | None = None,
 ) -> RatesIngestResult:
     if not fred_api_key:
@@ -176,27 +177,27 @@ def rates_fred_ingest_job(
             logger.exception("rates_fomc_calendar_ingest failed: %r", exc)
 
         policy_path: list[dict[str, Any]] = []
-        if cme_fedwatch_api_token:
-            try:
-                with cme_provider_factory(
-                    api_token=cme_fedwatch_api_token,
-                    application_name=cme_application_name,
-                ) as cme:
-                    path_rows = cme.fetch_latest_path(
-                        current_target_range=_target_range_from_observations(
-                            observations_by_series, now.date()
-                        )
+        try:
+            with policy_path_provider_factory(
+                base_url=policy_path_url,
+                record_request=record_request,
+                job_name="rates_policy_path_ingest",
+            ) as path_provider:
+                path_rows = path_provider.fetch_latest_path(
+                    current_target_range=_target_range_from_observations(
+                        observations_by_series, now.date()
                     )
-                    policy_path = [_to_payload(row) for row in path_rows]
-                    inserted += repo.upsert_rates_policy_path(
-                        policy_path,
-                        snapshot_date=now.date(),
-                        seen_at=now,
-                        source="CME_FEDWATCH",
-                    )
-            except Exception as exc:
-                failed.append("CME_FEDWATCH")
-                logger.exception("rates_cme_fedwatch_ingest failed: %r", exc)
+                )
+                policy_path = [_to_payload(row) for row in path_rows]
+                inserted += repo.upsert_rates_policy_path(
+                    policy_path,
+                    snapshot_date=now.date(),
+                    seen_at=now,
+                    source="FED_FUNDS_FUTURES_PATH",
+                )
+        except Exception as exc:
+            failed.append("FED_FUNDS_FUTURES_PATH")
+            logger.exception("rates_policy_path_ingest failed: %r", exc)
 
         policy_events = repo.fetch_rates_policy_events(
             from_date=date(now.year - 1, 1, 1), to_date=date(now.year + 1, 12, 31)
