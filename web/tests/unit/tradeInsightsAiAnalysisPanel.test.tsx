@@ -83,6 +83,12 @@ function succeededResponse(
       source_notes: ["Flow: same-day snapshot"],
     },
     headline: {
+      // v5 directional vocabulary — required for the OutcomeGrid badges.
+      trade_intent: "directional_swing",
+      directional_bias: "LONG_DELTA",
+      entry_state: "CONDITIONAL",
+      underlying_path: "bullish_continuation",
+      dte_band: "trend",
       title: "TSLA near gamma resistance with cheap vol and bullish flow",
       stance: "bullish",
       stance_label: "BUY setup",
@@ -219,7 +225,15 @@ describe("TradeInsightsAiAnalysisPanel", () => {
     await waitFor(() =>
       expect(api.tradeInsightsAiAnalysis).toHaveBeenCalledWith("TSLA", {}),
     );
-    expect(await screen.findByText("BUY setup")).toBeDefined();
+    // v5 replaces the bare "BUY setup" stance_label string with a structured
+    // directional_bias badge (LONG_DELTA -> "Long-Delta"). The headline
+    // title is still rendered so we use it as the load-completion signal.
+    expect(
+      await screen.findByText(
+        "TSLA near gamma resistance with cheap vol and bullish flow",
+      ),
+    ).toBeDefined();
+    expect(screen.getByTestId("ai-directional-bias-badge")).toBeDefined();
   });
 
   it("shows unavailable banner when POST returns 503", async () => {
@@ -329,6 +343,14 @@ describe("TradeInsightsAiAnalysisPanel", () => {
     // Initially codex tab is active and shows "No analysis yet".
     expect(await screen.findByText(/No analysis yet for Codex/i)).toBeDefined();
     fireEvent.click(screen.getByTestId("ai-tab-claude"));
-    expect(await screen.findByText("BUY setup")).toBeDefined();
+    // v5 replaces the bare "BUY setup" stance_label string with a structured
+    // directional_bias badge (LONG_DELTA -> "Long-Delta"). The headline
+    // title is still rendered so we use it as the load-completion signal.
+    expect(
+      await screen.findByText(
+        "TSLA near gamma resistance with cheap vol and bullish flow",
+      ),
+    ).toBeDefined();
+    expect(screen.getByTestId("ai-directional-bias-badge")).toBeDefined();
   });
 });

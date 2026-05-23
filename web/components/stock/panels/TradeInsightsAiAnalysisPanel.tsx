@@ -20,6 +20,35 @@ const labelStyle = {
 type Tone = "positive" | "negative" | "warning" | "neutral";
 type SectionCardData = Outcome["section_cards"]["market_structure"];
 
+// v5 directional vocabulary — the actual decision the swing trader makes.
+// Kept in sync with src/uw_scan/models/trade_insights_ai.py:DirectionalBias etc.
+type DirectionalBias = "LONG_DELTA" | "SHORT_DELTA" | "WAIT";
+type EntryState = "ACTIVE" | "CONDITIONAL" | "NO_ENTRY";
+type TradeIntent = "directional_swing" | "range_income";
+
+const DIRECTIONAL_BIAS_TONE: Record<DirectionalBias, Tone> = {
+  LONG_DELTA: "positive",
+  SHORT_DELTA: "negative",
+  WAIT: "warning",
+};
+
+const DIRECTIONAL_BIAS_LABEL: Record<DirectionalBias, string> = {
+  LONG_DELTA: "Long-Delta",
+  SHORT_DELTA: "Short-Delta",
+  WAIT: "Wait",
+};
+
+const ENTRY_STATE_LABEL: Record<EntryState, string> = {
+  ACTIVE: "Active",
+  CONDITIONAL: "Conditional",
+  NO_ENTRY: "No Entry",
+};
+
+const TRADE_INTENT_LABEL: Record<TradeIntent, string> = {
+  directional_swing: "Directional Swing",
+  range_income: "Range Income",
+};
+
 function toneColor(tone: Tone): string {
   if (tone === "positive") return "var(--positive)";
   if (tone === "negative") return "var(--negative)";
@@ -356,6 +385,85 @@ function SectionSummaryCard({
   );
 }
 
+function DirectionalBiasBadge({ bias }: { bias: DirectionalBias }) {
+  const tone = DIRECTIONAL_BIAS_TONE[bias];
+  const color = toneColor(tone);
+  return (
+    <span
+      data-testid="ai-directional-bias-badge"
+      data-bias={bias}
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 4,
+        padding: "3px 8px",
+        border: `1px solid ${color}`,
+        background: `color-mix(in oklab, ${color} 12%, transparent)`,
+        borderRadius: 3,
+        color,
+        fontFamily: "var(--font-mono)",
+        fontSize: 10,
+        fontWeight: 700,
+        letterSpacing: 1.2,
+        textTransform: "uppercase" as const,
+      }}
+    >
+      {DIRECTIONAL_BIAS_LABEL[bias]}
+    </span>
+  );
+}
+
+function EntryStatePill({ state }: { state: EntryState }) {
+  // ACTIVE = solid (trigger fired, ready); CONDITIONAL = outlined (needs
+  // confirmation); NO_ENTRY = muted (no edge).
+  const solid = state === "ACTIVE";
+  const muted = state === "NO_ENTRY";
+  const tone = solid ? "positive" : muted ? "neutral" : "warning";
+  const color = toneColor(tone);
+  return (
+    <span
+      data-testid="ai-entry-state-pill"
+      data-state={state}
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        padding: "3px 8px",
+        border: `1px solid ${color}`,
+        background: solid
+          ? `color-mix(in oklab, ${color} 18%, transparent)`
+          : "transparent",
+        borderRadius: 999,
+        color: muted ? "var(--text-muted)" : color,
+        fontFamily: "var(--font-mono)",
+        fontSize: 10,
+        fontWeight: solid ? 700 : 600,
+        letterSpacing: 1,
+        textTransform: "uppercase" as const,
+      }}
+    >
+      {ENTRY_STATE_LABEL[state]}
+    </span>
+  );
+}
+
+function TradeIntentTag({ intent }: { intent: TradeIntent }) {
+  return (
+    <span
+      data-testid="ai-trade-intent-tag"
+      data-intent={intent}
+      style={{
+        ...labelStyle,
+        padding: "2px 6px",
+        border: "1px solid var(--border-dim)",
+        borderRadius: 2,
+        color: "var(--text-secondary)",
+      }}
+    >
+      {TRADE_INTENT_LABEL[intent]}
+    </span>
+  );
+}
+
 function OutcomeGrid({
   outcome,
   provider,
@@ -374,24 +482,46 @@ function OutcomeGrid({
   const conflicts = (outcome.conflicts ?? []).map((item) => item.description);
   const missing = outcome.missing_data ?? [];
 
+  // v5 directional vocab — fall back gracefully if the field shape is
+  // missing (e.g. partial Claude output that the lenient coercer back-
+  // filled with conservative defaults; the badge still renders WAIT).
+  const directionalBias = outcome.headline.directional_bias as DirectionalBias;
+  const entryState = outcome.headline.entry_state as EntryState;
+  const tradeIntent = outcome.headline.trade_intent as TradeIntent;
+  const biasFrameColor = toneColor(DIRECTIONAL_BIAS_TONE[directionalBias]);
+
   return (
     <div style={{ display: "grid", gap: 14 }}>
       <div
         style={{
-          border: `1px solid ${toneColor(toneFromText(outcome.headline.stance_label))}`,
+          border: `1px solid ${biasFrameColor}`,
           borderRadius: 4,
           padding: "14px 16px",
           background: "var(--bg-panel)",
         }}
       >
-        <div style={labelStyle}>{outcome.ticker} AI Analysis</div>
+        <div
+          style={{
+            display: "flex",
+            gap: 8,
+            alignItems: "center",
+            flexWrap: "wrap",
+          }}
+        >
+          <DirectionalBiasBadge bias={directionalBias} />
+          <EntryStatePill state={entryState} />
+          <TradeIntentTag intent={tradeIntent} />
+          <div style={{ ...labelStyle, marginLeft: "auto" }}>
+            {outcome.ticker} AI Analysis
+          </div>
+        </div>
         <div
           style={{
             color: "var(--text-primary)",
             fontSize: 16,
             fontWeight: 700,
             lineHeight: 1.25,
-            marginTop: 4,
+            marginTop: 8,
           }}
         >
           {outcome.headline.title}
@@ -411,7 +541,19 @@ function OutcomeGrid({
         </div>
         <KeyValueGrid
           items={[
-            { label: "Stance", value: outcome.headline.stance_label },
+            // v5: directional_bias is the gate (rendered as badge above).
+            // underlying_path is the path inference; dte_band is the band
+            // pick from Step 5. stance_label kept as the legacy display
+            // string so the analyst-vocabulary (e.g. "BUY setup") still
+            // surfaces alongside the new fields.
+            {
+              label: "Path",
+              value: outcome.headline.underlying_path.replace(/_/g, " "),
+            },
+            {
+              label: "DTE Band",
+              value: outcome.headline.dte_band,
+            },
             {
               label: "Score",
               value: `${outcome.headline.score}/${outcome.headline.score_scale}`,
@@ -619,6 +761,25 @@ function stateBadge(
   return "○";
 }
 
+// v5 prompt version — used by the legacy-row detector below. Kept in sync
+// with src/uw_scan/reports/trade_insights_ai.py:PROMPT_VERSION.
+const CURRENT_PROMPT_VERSION = "trade-insights-ai-v5";
+
+function isLegacyAnalysis(
+  analysis: TradeInsightsAiAnalysisResponse | null,
+): boolean {
+  if (!analysis) return false;
+  if (analysis.status !== "succeeded") return false;
+  // The v5 API-side legacy guard (_row_to_ai_response) drops outcome to null
+  // when the row's prompt_version differs from the current PROMPT_VERSION,
+  // so we recognize a legacy row by the (succeeded + null outcome +
+  // prompt_version mismatch) signature.
+  return (
+    analysis.outcome == null &&
+    analysis.prompt_version !== CURRENT_PROMPT_VERSION
+  );
+}
+
 function ProviderTabBody({
   provider,
   analysis,
@@ -630,6 +791,7 @@ function ProviderTabBody({
 }) {
   const succeeded = analysis?.status === "succeeded" && analysis.outcome;
   const failed = analysis?.status === "failed";
+  const legacy = isLegacyAnalysis(analysis);
   return (
     <div style={{ display: "grid", gap: 12 }}>
       {pending && (
@@ -648,6 +810,16 @@ function ProviderTabBody({
         <InsightStatusBanner
           text={analysis?.error_message ?? `${providerLabel(provider)} failed`}
           severity="negative"
+        />
+      )}
+      {legacy && (
+        <InsightStatusBanner
+          text={
+            `Legacy analysis (${analysis?.prompt_version}). Schema bumped ` +
+            `to ${CURRENT_PROMPT_VERSION} — click Run to regenerate with the ` +
+            `directional v5 prompt.`
+          }
+          severity="warning"
         />
       )}
       {succeeded && analysis.outcome && (
