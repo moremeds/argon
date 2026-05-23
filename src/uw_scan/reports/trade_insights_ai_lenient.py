@@ -310,6 +310,43 @@ _DTE_BAND_ALIASES = {
     "far": "trend",
 }
 
+# v5.2: thesis_archetype aliases. Maps common drift back to canonical Literal.
+_THESIS_ARCHETYPE_ALIASES = {
+    "resistance_rejection": "resistance_rejection",
+    "rejection": "resistance_rejection",
+    "wall_rejection": "resistance_rejection",
+    "fade_from_above": "resistance_rejection",
+    "support_breakdown": "support_breakdown",
+    "breakdown": "support_breakdown",
+    "support_break": "support_breakdown",
+    "downside_break": "support_breakdown",
+    "breakout_continuation": "breakout_continuation",
+    "breakout": "breakout_continuation",
+    "continuation": "breakout_continuation",
+    "bullish_continuation": "breakout_continuation",
+    "pin_no_trade": "pin_no_trade",
+    "pin": "pin_no_trade",
+    "no_trade": "pin_no_trade",
+    "data_insufficient": "data_insufficient",
+    "insufficient": "data_insufficient",
+    "insufficient_data": "data_insufficient",
+}
+
+# v5.2: anti_pin direction aliases.
+_ANTI_PIN_DIRECTION_ALIASES = {
+    "upside": "upside",
+    "up": "upside",
+    "bullish": "upside",
+    "long": "upside",
+    "downside": "downside",
+    "down": "downside",
+    "bearish": "downside",
+    "short": "downside",
+    "none": "none",
+    "n/a": "none",
+    "n_a": "none",
+}
+
 # v5.1: long_leg_role / short_leg_role coercion. Models drift on synonyms
 # ("breakout" vs "trigger_level", "next_wall" vs "next_call_wall"). Map
 # common variants back to the canonical Literal values.
@@ -574,6 +611,40 @@ def _market_structure_levels(
     return levels if isinstance(levels, dict) else {}
 
 
+def _latest_completed_close(
+    deterministic_payload: dict[str, Any] | None,
+) -> tuple[str | None, str | None]:
+    """v5.2: return (close, market_date) for the latest COMPLETED daily
+    close in tabs.market_structure.stock_history. Rows with spot=None or
+    market_date=None are skipped (today's incomplete bar)."""
+    if not isinstance(deterministic_payload, dict):
+        return (None, None)
+    tabs = deterministic_payload.get("tabs") or {}
+    if not isinstance(tabs, dict):
+        return (None, None)
+    ms = tabs.get("market_structure") or {}
+    if not isinstance(ms, dict):
+        return (None, None)
+    sh = ms.get("stock_history") or {}
+    if not isinstance(sh, dict):
+        return (None, None)
+    rows = sh.get("rows") or []
+    if not isinstance(rows, list):
+        return (None, None)
+    completed = [
+        r
+        for r in rows
+        if isinstance(r, dict)
+        and r.get("spot") is not None
+        and r.get("market_date") is not None
+    ]
+    if not completed:
+        return (None, None)
+    completed.sort(key=lambda r: r.get("market_date") or "")
+    latest = completed[-1]
+    return (str(latest.get("spot")), str(latest.get("market_date")))
+
+
 def _coerce_strike_role(
     raw_strike_role: Any,
     *,
@@ -662,6 +733,151 @@ def _coerce_strike_role(
         "target_source_path": _str_or(raw.get("target_source_path"), ""),
         "invalid_source_path": _str_or(raw.get("invalid_source_path"), ""),
     }
+
+
+def _coerce_trigger_evidence(
+    raw_te: Any,
+    *,
+    trigger_level_from_strike_role: Any,
+    deterministic_payload: dict[str, Any] | None,
+    watch_trigger: str,
+) -> dict[str, Any]:
+    """v5.2: build the trigger_evidence block.
+
+    Strategy:
+      1. If the model emitted trigger_evidence with trigger_fired/close/
+         date populated, preserve it.
+      2. Otherwise read the latest completed daily close from
+         tabs.market_structure.stock_history and compute trigger_fired
+         deterministically against trigger_level.
+      3. Infer trigger_type from watch_trigger prose ("daily close above/
+         below X" → daily_close; "2-session hold" → two_session_hold).
+    """
+    raw = _dict_or_empty(raw_te)
+    # Latest completed close from payload.
+    latest_close, latest_date = _latest_completed_close(deterministic_payload)
+
+    # Pull or default fields.
+    trigger_level = raw.get("trigger_level")
+    if trigger_level is None:
+        trigger_level = trigger_level_from_strike_role
+
+    evidence_close = raw.get("evidence_close")
+    if evidence_close is None:
+        evidence_close = latest_close
+
+    evidence_close_date = raw.get("evidence_close_date") or latest_date
+
+    # Trigger type inference from watch_trigger prose.
+    wt = (watch_trigger or "").lower()
+    if "2-session" in wt or "two-session" in wt or "two session" in wt:
+        trigger_type = "two_session_hold"
+    elif "daily close" in wt or "close above" in wt or "close below" in wt:
+        trigger_type = "daily_close"
+    else:
+        trigger_type = str(raw.get("trigger_type") or "unknown")
+
+    # Compute trigger_fired only when both close and trigger_level are
+    # numeric — the validator will read this field, not the prose.
+    trigger_fired = bool(raw.get("trigger_fired", False))
+    try:
+        from decimal import Decimal
+
+        if evidence_close is not None and trigger_level is not None:
+            ec = Decimal(str(evidence_close).strip().lstrip("$"))
+            tl = (
+                trigger_level
+                if isinstance(trigger_level, Decimal)
+                else Decimal(str(trigger_level).strip().lstrip("$"))
+            )
+            # Direction inference from watch_trigger prose.
+            if "above" in wt:
+                trigger_fired = ec > tl
+            elif "below" in wt:
+                trigger_fired = ec < tl
+            # else: leave whatever the model emitted (could be 2-session hold).
+    except Exception as exc:
+        _ = repr(exc)  # CI Guardrail 2
+
+    source_path = _str_or(
+        raw.get("source_path"),
+        "tabs.market_structure.stock_history.rows" if latest_close else "",
+    )
+
+    return {
+        "trigger_fired": trigger_fired,
+        "trigger_type": trigger_type,
+        "trigger_level": trigger_level,
+        "evidence_close": evidence_close,
+        "evidence_close_date": evidence_close_date,
+        "source_path": source_path,
+    }
+
+
+def _coerce_anti_pin(raw_ap: Any) -> dict[str, Any]:
+    """v5.2: coerce anti_pin block.
+
+    Default invoked=false so the M4 conviction-cap rule does NOT apply
+    when the model omits anti_pin — structural-break / trend-continuation
+    theses can legitimately have a low anti-pin score without being
+    penalized for it. The model must explicitly set invoked=true when
+    anti-pin is the trade thesis."""
+    raw = _dict_or_empty(raw_ap)
+    direction = _resolve_with_alias(
+        raw.get("direction"),
+        ("upside", "downside", "none"),
+        _ANTI_PIN_DIRECTION_ALIASES,
+        "none",
+    )
+    score_raw = raw.get("score")
+    try:
+        score = int(score_raw) if score_raw is not None else 0
+    except (ValueError, TypeError) as exc:
+        _ = repr(exc)
+        score = 0
+    score = max(0, min(score, 4))  # clamp to [0, 4]
+    return {
+        "invoked": bool(raw.get("invoked", False)),
+        "direction": direction,
+        "score": score,
+        "max_score": 4,
+        "conditions_met": _str_list(raw.get("conditions_met")),
+        "conviction_cap_applied": bool(raw.get("conviction_cap_applied", False)),
+        "cap_reason": _str_or(raw.get("cap_reason"), ""),
+    }
+
+
+def _coerce_target_feasibility(raw_tf: Any) -> dict[str, Any]:
+    """v5.2: coerce target_feasibility block.
+
+    Default feasibility='missing' so the absence of expected_move data
+    in the payload does not block the trade — it's just unsurfaced."""
+    raw = _dict_or_empty(raw_tf)
+    feasibility = raw.get("feasibility")
+    if feasibility not in (
+        "inside_expected_move",
+        "outside_expected_move",
+        "missing",
+    ):
+        feasibility = "missing"
+    return {
+        "distance_to_target_pct": raw.get("distance_to_target_pct"),
+        "expected_move_available": bool(raw.get("expected_move_available", False)),
+        "expected_move_source_path": _str_or(raw.get("expected_move_source_path"), ""),
+        "feasibility": feasibility,
+    }
+
+
+def _derive_thesis_archetype_from_path(underlying_path: str) -> str:
+    """v5.2: map underlying_path → thesis_archetype for default backfill."""
+    mapping = {
+        "bullish_continuation": "breakout_continuation",
+        "bearish_rejection": "resistance_rejection",
+        "downside_break": "support_breakdown",
+        "pinned_no_directional_entry": "pin_no_trade",
+        "data_insufficient": "data_insufficient",
+    }
+    return mapping.get(underlying_path, "data_insufficient")
 
 
 def _coerce_preferred_expression(
@@ -858,6 +1074,26 @@ def _coerce_claude_outcome_dict(
             headline_raw.get("primary_risk"), "provider schema adherence"
         ),
         "watch_trigger": _str_or(headline_raw.get("watch_trigger"), "re-run analysis"),
+        # v5.2: thesis_archetype with default backfill from underlying_path.
+        "thesis_archetype": _resolve_with_alias(
+            headline_raw.get("thesis_archetype"),
+            (
+                "resistance_rejection",
+                "support_breakdown",
+                "breakout_continuation",
+                "pin_no_trade",
+                "data_insufficient",
+            ),
+            _THESIS_ARCHETYPE_ALIASES,
+            _derive_thesis_archetype_from_path(
+                _resolve_with_alias(
+                    headline_raw.get("underlying_path"),
+                    UNDERLYING_PATH_VALUES,
+                    _UNDERLYING_PATH_ALIASES,
+                    "data_insufficient",
+                )
+            ),
+        ),
     }
 
     snapshot_raw = _dict_or_empty(data.get("snapshot"))
@@ -981,6 +1217,28 @@ def _coerce_claude_outcome_dict(
             candidates,
             directional_bias=directional_bias,
             deterministic_payload=deterministic_payload,
+        ),
+        # v5.2: structured trigger_evidence / anti_pin / target_feasibility
+        # blocks. Defaults are computed deterministically from the payload
+        # so the validator's ACTIVE_TRIGGER_EVIDENCE rule can fire even when
+        # the model omits the block entirely. trigger_level for the evidence
+        # block is sourced from the preferred_expression's strike_role
+        # (after its own backfill) for consistency.
+        "trigger_evidence": _coerce_trigger_evidence(
+            data.get("trigger_evidence"),
+            trigger_level_from_strike_role=(
+                _dict_or_empty(data.get("preferred_expression"))
+                .get("strike_role", {})
+                .get("trigger_level")
+                if isinstance(data.get("preferred_expression"), dict)
+                else None
+            ),
+            deterministic_payload=deterministic_payload,
+            watch_trigger=headline.get("watch_trigger", ""),
+        ),
+        "anti_pin": _coerce_anti_pin(data.get("anti_pin")),
+        "target_feasibility": _coerce_target_feasibility(
+            data.get("target_feasibility")
         ),
         "dominant_read": dominant_read,
         "best_expressions": [
