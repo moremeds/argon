@@ -4,9 +4,10 @@ Holds the v5.2 (and onward) MARKET_INTELLIGENCE_PROMPT plus every immutable
 vocabulary tuple / frozenset the schema, validators, and lenient coercer
 share. Pure data — no I/O, no helpers that touch the DB.
 """
+
 from __future__ import annotations
 
-PROMPT_VERSION = "trade-insights-ai-v5.2"
+PROMPT_VERSION = "trade-insights-ai-v5.3"
 STRATEGY_FAMILY_IDS = frozenset(
     {
         "long_stock",

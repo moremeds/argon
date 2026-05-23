@@ -75,6 +75,12 @@ AntiPinDirection = Literal["upside", "downside", "none"]
 # GET /latest time (full = all four agree, partial = 1-2 disagree,
 # divergent = 3+ disagree, missing = one provider has no succeeded row).
 ConsensusGrade = Literal["full", "partial", "divergent", "missing"]
+# v5.3: option leg primitives for the explicit `legs[]` array on
+# preferred_expression. Replaces the v5.2 implicit "long_leg_role /
+# short_leg_role + strike_role.level" coupling which left "is the actual
+# long-put strike 215 or 220?" unverifiable.
+OptionType = Literal["call", "put"]
+OptionSide = Literal["long", "short"]
 
 
 class TradeInsightAiHeadline(TradeInsightAiBase):
@@ -327,6 +333,70 @@ class TradeInsightAiProviderConsensus(TradeInsightAiBase):
     actionable_disagreement: str = ""
 
 
+class TradeInsightAiTriggerComponent(TradeInsightAiBase):
+    """v5.3: a single point on the trade's state machine.
+
+    The v5.2 schema overloaded `trigger_level` across two distinct
+    semantics (NVDA Codex emitted 220 as "broken wall — already fired",
+    Claude emitted 215 as "continuation entry — not yet fired"), which
+    is why providers split on ENTRY_STATE despite agreeing on archetype
+    and direction. v5.3 decomposes that into three required components —
+    `thesis_trigger`, `entry_trigger`, `invalidation` — each carrying its
+    own level, semantic meaning, and `fired` boolean evaluated against
+    actual daily-close evidence. ENTRY_STATE becomes a mechanical
+    function of the trigger booleans rather than a model judgment.
+
+    Both `thesis_trigger` and `entry_trigger` may share the same level
+    when the trade plan treats the broken wall as both the thesis
+    confirmation AND the entry signal — but their `meaning` strings
+    must differ, and their `fired` booleans are evaluated independently
+    against their own evidence rules.
+    """
+
+    level: Decimal | None = None
+    meaning: str = ""
+    fired: bool = False
+    evidence_close: Decimal | None = None
+    evidence_date: date | None = None
+    source_path: str = ""
+
+    @field_validator("level", "evidence_close", mode="before")
+    @classmethod
+    def _coerce_decimals(cls, value: Any) -> Decimal | None:
+        return _coerce_strike_level(value)
+
+
+class TradeInsightAiOptionLeg(TradeInsightAiBase):
+    """v5.3: one leg of a defined-risk option expression.
+
+    Replaces v5.2's implicit "trigger_level + long_leg_role + short_leg_role"
+    coupling with explicit, validator-checkable leg geometry. The
+    legs-strategy-match validator enforces, e.g., that a bear_put_spread
+    has exactly one long put + one short put with long.strike > short.strike
+    and matching expiry. The legs-align-triggers validator enforces that
+    the long leg's strike is within tolerance of entry_trigger.level OR
+    thesis_trigger.level — making "is the actual long-put strike 215 or
+    220?" a falsifiable claim against the model output.
+
+    No naked shorts: per project safety policy, credit-spread families
+    must always include the long protective leg. The validator rejects
+    a single-leg short.
+    """
+
+    option_type: OptionType
+    side: OptionSide
+    strike: Decimal
+    expiry: date
+
+    @field_validator("strike", mode="before")
+    @classmethod
+    def _coerce_strike(cls, value: Any) -> Decimal:
+        coerced = _coerce_strike_level(value)
+        if coerced is None:
+            raise ValueError("option leg strike is required and must be numeric")
+        return coerced
+
+
 class TradeInsightAiPreferredExpression(TradeInsightAiBase):
     idea_id: str
     structure: str
@@ -346,6 +416,11 @@ class TradeInsightAiPreferredExpression(TradeInsightAiBase):
     strike_role: TradeInsightAiStrikeRole = Field(
         default_factory=TradeInsightAiStrikeRole
     )
+    # v5.3: explicit option legs. Empty list is valid for
+    # status_observed='strategy_review' / structure='no_trade'; the
+    # legs-strategy-match validator enforces structure-specific leg
+    # geometry when the list is non-empty.
+    legs: list[TradeInsightAiOptionLeg] = Field(default_factory=list)
 
 
 class TradeInsightAiBestExpression(TradeInsightAiBase):
@@ -413,6 +488,21 @@ class TradeInsightAiOutcome(TradeInsightAiBase):
     anti_pin: TradeInsightAiAntiPin = Field(default_factory=TradeInsightAiAntiPin)
     target_feasibility: TradeInsightAiTargetFeasibility = Field(
         default_factory=TradeInsightAiTargetFeasibility
+    )
+    # v5.3: decomposed trigger state machine. ENTRY_STATE is mechanically
+    # derived from these three components — see the v5.3 prompt for the
+    # truth table. Optional with defaults so v5.2 outcomes still parse
+    # (the lenient coercer populates v5.3 fields from v5.2 inputs where
+    # possible: trigger_evidence.trigger_level/evidence_close → thesis_trigger,
+    # strike_role.invalid_level → invalidation).
+    thesis_trigger: TradeInsightAiTriggerComponent = Field(
+        default_factory=TradeInsightAiTriggerComponent
+    )
+    entry_trigger: TradeInsightAiTriggerComponent = Field(
+        default_factory=TradeInsightAiTriggerComponent
+    )
+    invalidation: TradeInsightAiTriggerComponent = Field(
+        default_factory=TradeInsightAiTriggerComponent
     )
     dominant_read: TradeInsightAiDominantRead
     best_expressions: list[TradeInsightAiBestExpression] = Field(default_factory=list)
@@ -504,6 +594,8 @@ _preserve_public_module(
     TradeInsightAiAntiPin,
     TradeInsightAiTargetFeasibility,
     TradeInsightAiProviderConsensus,
+    TradeInsightAiTriggerComponent,
+    TradeInsightAiOptionLeg,
     TradeInsightAiPreferredExpression,
     TradeInsightAiBestExpression,
     TradeInsightAiConflict,
