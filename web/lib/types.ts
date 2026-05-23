@@ -4358,6 +4358,42 @@ export interface components {
              */
             note: string;
         };
+        /**
+         * TradeInsightAiOptionLeg
+         * @description v5.3: one leg of a defined-risk option expression.
+         *
+         *     Replaces v5.2's implicit "trigger_level + long_leg_role + short_leg_role"
+         *     coupling with explicit, validator-checkable leg geometry. The
+         *     legs-strategy-match validator enforces, e.g., that a bear_put_spread
+         *     has exactly one long put + one short put with long.strike > short.strike
+         *     and matching expiry. The legs-align-triggers validator enforces that
+         *     the long leg's strike is within tolerance of entry_trigger.level OR
+         *     thesis_trigger.level — making "is the actual long-put strike 215 or
+         *     220?" a falsifiable claim against the model output.
+         *
+         *     No naked shorts: per project safety policy, credit-spread families
+         *     must always include the long protective leg. The validator rejects
+         *     a single-leg short.
+         */
+        TradeInsightAiOptionLeg: {
+            /**
+             * Option Type
+             * @enum {string}
+             */
+            option_type: "call" | "put";
+            /**
+             * Side
+             * @enum {string}
+             */
+            side: "long" | "short";
+            /** Strike */
+            strike: string;
+            /**
+             * Expiry
+             * Format: date
+             */
+            expiry: string;
+        };
         /** TradeInsightAiOutcome */
         TradeInsightAiOutcome: {
             /** Schema Version */
@@ -4385,6 +4421,9 @@ export interface components {
             trigger_evidence?: components["schemas"]["TradeInsightAiTriggerEvidence"];
             anti_pin?: components["schemas"]["TradeInsightAiAntiPin"];
             target_feasibility?: components["schemas"]["TradeInsightAiTargetFeasibility"];
+            thesis_trigger?: components["schemas"]["TradeInsightAiTriggerComponent"];
+            entry_trigger?: components["schemas"]["TradeInsightAiTriggerComponent"];
+            invalidation?: components["schemas"]["TradeInsightAiTriggerComponent"];
             dominant_read: components["schemas"]["TradeInsightAiDominantRead"];
             /** Best Expressions */
             best_expressions?: components["schemas"]["TradeInsightAiBestExpression"][];
@@ -4441,6 +4480,8 @@ export interface components {
             /** Risk Flags Observed */
             risk_flags_observed?: string[];
             strike_role?: components["schemas"]["TradeInsightAiStrikeRole"];
+            /** Legs */
+            legs?: components["schemas"]["TradeInsightAiOptionLeg"][];
         };
         /**
          * TradeInsightAiProviderConsensus
@@ -4666,6 +4707,49 @@ export interface components {
              * @enum {string}
              */
             feasibility: "inside_expected_move" | "outside_expected_move" | "missing";
+        };
+        /**
+         * TradeInsightAiTriggerComponent
+         * @description v5.3: a single point on the trade's state machine.
+         *
+         *     The v5.2 schema overloaded `trigger_level` across two distinct
+         *     semantics (NVDA Codex emitted 220 as "broken wall — already fired",
+         *     Claude emitted 215 as "continuation entry — not yet fired"), which
+         *     is why providers split on ENTRY_STATE despite agreeing on archetype
+         *     and direction. v5.3 decomposes that into three required components —
+         *     `thesis_trigger`, `entry_trigger`, `invalidation` — each carrying its
+         *     own level, semantic meaning, and `fired` boolean evaluated against
+         *     actual daily-close evidence. ENTRY_STATE becomes a mechanical
+         *     function of the trigger booleans rather than a model judgment.
+         *
+         *     Both `thesis_trigger` and `entry_trigger` may share the same level
+         *     when the trade plan treats the broken wall as both the thesis
+         *     confirmation AND the entry signal — but their `meaning` strings
+         *     must differ, and their `fired` booleans are evaluated independently
+         *     against their own evidence rules.
+         */
+        TradeInsightAiTriggerComponent: {
+            /** Level */
+            level?: string | null;
+            /**
+             * Meaning
+             * @default
+             */
+            meaning: string;
+            /**
+             * Fired
+             * @default false
+             */
+            fired: boolean;
+            /** Evidence Close */
+            evidence_close?: string | null;
+            /** Evidence Date */
+            evidence_date?: string | null;
+            /**
+             * Source Path
+             * @default
+             */
+            source_path: string;
         };
         /**
          * TradeInsightAiTriggerEvidence

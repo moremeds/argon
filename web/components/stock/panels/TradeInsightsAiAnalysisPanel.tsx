@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { Fragment, useCallback, useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
 
 import { api, type TradeInsightsAiAnalysisResponse } from "@/lib/api";
@@ -730,6 +730,86 @@ function OutcomeGrid({
                     ]}
                   />
                 )}
+                {preferred.legs && preferred.legs.length > 0 && (
+                  <div data-testid="ai-preferred-legs">
+                    <SmallHeading>Option Legs (v5.3)</SmallHeading>
+                    <div
+                      style={{
+                        display: "grid",
+                        gridTemplateColumns:
+                          "minmax(60px, max-content) minmax(60px, max-content) 1fr minmax(96px, max-content)",
+                        gap: "4px 12px",
+                        fontFamily:
+                          "var(--font-mono, IBM Plex Mono, monospace)",
+                        fontSize: 12,
+                      }}
+                    >
+                      <div
+                        style={{
+                          color: "var(--text-muted)",
+                          textTransform: "uppercase",
+                          letterSpacing: 1.5,
+                          fontSize: 10,
+                        }}
+                      >
+                        Side
+                      </div>
+                      <div
+                        style={{
+                          color: "var(--text-muted)",
+                          textTransform: "uppercase",
+                          letterSpacing: 1.5,
+                          fontSize: 10,
+                        }}
+                      >
+                        Type
+                      </div>
+                      <div
+                        style={{
+                          color: "var(--text-muted)",
+                          textTransform: "uppercase",
+                          letterSpacing: 1.5,
+                          fontSize: 10,
+                        }}
+                      >
+                        Strike
+                      </div>
+                      <div
+                        style={{
+                          color: "var(--text-muted)",
+                          textTransform: "uppercase",
+                          letterSpacing: 1.5,
+                          fontSize: 10,
+                        }}
+                      >
+                        Expiry
+                      </div>
+                      {preferred.legs.map((leg, i) => (
+                        <Fragment key={`leg-${i}`}>
+                          <div
+                            style={{
+                              color:
+                                leg.side === "long"
+                                  ? "var(--positive)"
+                                  : "var(--negative)",
+                            }}
+                          >
+                            {leg.side}
+                          </div>
+                          <div style={{ color: "var(--text-primary)" }}>
+                            {leg.option_type}
+                          </div>
+                          <div style={{ color: "var(--text-primary)" }}>
+                            {leg.strike}
+                          </div>
+                          <div style={{ color: "var(--text-secondary)" }}>
+                            {leg.expiry}
+                          </div>
+                        </Fragment>
+                      ))}
+                    </div>
+                  </div>
+                )}
                 <div style={{ color: "var(--text-primary)", fontSize: 13 }}>
                   {plainText(preferred.why)}
                 </div>
@@ -745,48 +825,116 @@ function OutcomeGrid({
               </div>
             )}
           </AnalysisCard>
-          {(outcome.trigger_evidence || outcome.anti_pin) && (
+          {(outcome.thesis_trigger ||
+            outcome.entry_trigger ||
+            outcome.invalidation ||
+            outcome.anti_pin) && (
             <AnalysisCard
-              title="Trigger Evidence & Anti-Pin"
-              subtitle="v5.2 deterministic state proofs"
+              title="Trigger State Machine & Anti-Pin"
+              subtitle="v5.3 decomposed trigger components"
               tone={
-                outcome.trigger_evidence?.trigger_fired ? "positive" : "warning"
+                outcome.invalidation?.fired
+                  ? "negative"
+                  : outcome.entry_trigger?.fired
+                    ? "positive"
+                    : outcome.thesis_trigger?.fired
+                      ? "warning"
+                      : "neutral"
               }
             >
-              {outcome.trigger_evidence && (
-                <KeyValueGrid
-                  items={[
-                    {
-                      label: "Trigger fired",
-                      value: outcome.trigger_evidence.trigger_fired
-                        ? "yes"
-                        : "no",
-                    },
-                    {
-                      label: "Trigger type",
-                      value: outcome.trigger_evidence.trigger_type ?? "unknown",
-                    },
-                    {
-                      label: "Latest close",
-                      value:
-                        outcome.trigger_evidence.evidence_close?.toString() ??
-                        "—",
-                    },
-                    {
-                      label: "Close date",
-                      value:
-                        outcome.trigger_evidence.evidence_close_date?.toString() ??
-                        "—",
-                    },
-                    {
-                      label: "Trigger level",
-                      value:
-                        outcome.trigger_evidence.trigger_level?.toString() ??
-                        "—",
-                    },
-                  ]}
-                />
-              )}
+              <div
+                data-testid="ai-trigger-components"
+                style={{
+                  display: "grid",
+                  gap: 6,
+                  fontFamily: "var(--font-mono, IBM Plex Mono, monospace)",
+                  fontSize: 12,
+                }}
+              >
+                {(
+                  [
+                    ["Thesis trigger", outcome.thesis_trigger],
+                    ["Entry trigger", outcome.entry_trigger],
+                    ["Invalidation", outcome.invalidation],
+                  ] as const
+                ).map(([label, comp], i) =>
+                  comp ? (
+                    <div
+                      key={`tc-${i}`}
+                      data-testid={`ai-trigger-${label
+                        .toLowerCase()
+                        .replace(/\s+/g, "-")}`}
+                      style={{
+                        display: "grid",
+                        gridTemplateColumns:
+                          "minmax(108px, max-content) minmax(56px, max-content) 1fr minmax(80px, max-content)",
+                        gap: "0 12px",
+                        alignItems: "baseline",
+                        borderBottom:
+                          i < 2 ? "1px solid var(--border-dim)" : "none",
+                        paddingBottom: 4,
+                      }}
+                    >
+                      <div
+                        style={{
+                          color: "var(--text-muted)",
+                          textTransform: "uppercase",
+                          letterSpacing: 1.5,
+                          fontSize: 10,
+                        }}
+                      >
+                        {label}
+                      </div>
+                      <div
+                        style={{
+                          color: "var(--text-primary)",
+                          fontWeight: 600,
+                        }}
+                      >
+                        {comp.level?.toString() ?? "—"}
+                      </div>
+                      <div
+                        style={{
+                          color: "var(--text-secondary)",
+                          fontSize: 11,
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                          whiteSpace: "nowrap",
+                        }}
+                      >
+                        {comp.meaning || "—"}
+                      </div>
+                      <div
+                        style={{
+                          color: comp.fired
+                            ? label === "Invalidation"
+                              ? "var(--negative)"
+                              : "var(--positive)"
+                            : "var(--text-muted)",
+                          fontSize: 10,
+                          textTransform: "uppercase",
+                          letterSpacing: 1.2,
+                        }}
+                      >
+                        {comp.fired ? "FIRED" : "pending"}
+                        {comp.evidence_close && comp.evidence_date ? (
+                          <span
+                            style={{
+                              color: "var(--text-muted)",
+                              marginLeft: 6,
+                              fontSize: 10,
+                              textTransform: "none",
+                              letterSpacing: 0,
+                            }}
+                          >
+                            @ {comp.evidence_close} ({comp.evidence_date})
+                          </span>
+                        ) : null}
+                      </div>
+                    </div>
+                  ) : null,
+                )}
+              </div>
               {outcome.anti_pin && (
                 <KeyValueGrid
                   items={[
@@ -872,7 +1020,7 @@ function stateBadge(
 // detector compares against this string; any prior version (v4, v5)
 // renders the "legacy — re-run" banner so users see what the API guard
 // already did (dropped outcome to null).
-const CURRENT_PROMPT_VERSION = "trade-insights-ai-v5.2";
+const CURRENT_PROMPT_VERSION = "trade-insights-ai-v5.3";
 
 function isLegacyAnalysis(
   analysis: TradeInsightsAiAnalysisResponse | null,
