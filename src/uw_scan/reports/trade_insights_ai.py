@@ -15,7 +15,7 @@ from typing import Any
 
 from uw_scan.models import TradeInsightAiOutcome
 
-PROMPT_VERSION = "trade-insights-ai-v5"
+PROMPT_VERSION = "trade-insights-ai-v5.1"
 STRATEGY_FAMILY_IDS = frozenset(
     {
         "long_stock",
@@ -101,7 +101,14 @@ UNDERLYING_PATH_VALUES = (
     "pinned_no_directional_entry",
     "data_insufficient",
 )
-DTE_BAND_VALUES = ("momentum", "trend")
+DTE_BAND_VALUES = ("momentum", "standard", "trend")
+# v5.1: the DTE band ranges the headline value must agree with. Validator
+# enforces that the chosen preferred_entry_expiry DTE falls inside the band.
+DTE_BAND_RANGES = {
+    "momentum": (14, 30),
+    "standard": (31, 44),
+    "trend": (45, 75),
+}
 
 FINAL_RATING_VALUES = ("A", "B", "C", "D", "F")
 

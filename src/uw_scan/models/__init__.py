@@ -155,6 +155,7 @@ from .trade_insights_ai import (
     TradeInsightAiSectionCard,
     TradeInsightAiSectionCards,
     TradeInsightAiSnapshotMeta,
+    TradeInsightAiStrikeRole,
     TradeInsightAiVrpAssessment,
 )
 from .volatility import (
@@ -286,6 +287,7 @@ __all__ = [
     "TradeInsightAiSectionCard",
     "TradeInsightAiSectionCards",
     "TradeInsightAiVrpAssessment",
+    "TradeInsightAiStrikeRole",
     "TradeInsightAiPreferredExpression",
     "TradeInsightAiBestExpression",
     "TradeInsightAiConflict",

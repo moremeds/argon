@@ -41,7 +41,22 @@ UnderlyingPath = Literal[
     "pinned_no_directional_entry",
     "data_insufficient",
 ]
-DteBand = Literal["momentum", "trend"]
+DteBand = Literal["momentum", "standard", "trend"]
+LongLegRole = Literal[
+    "trigger_level",
+    "support_reclaim",
+    "atm_delta_anchor",
+    "deep_itm_proxy",
+    "n/a",
+]
+ShortLegRole = Literal[
+    "target_level",
+    "next_call_wall",
+    "second_magnet",
+    "next_put_wall",
+    "next_downside_target",
+    "n/a",
+]
 
 
 class TradeInsightAiHeadline(TradeInsightAiBase):
@@ -127,6 +142,22 @@ class TradeInsightAiVrpAssessment(TradeInsightAiBase):
     reason: str
 
 
+class TradeInsightAiStrikeRole(TradeInsightAiBase):
+    """v5.1: explicit market-structure roles for the spread's two legs.
+
+    Lets the deterministic validator reject candidates where the short leg sits
+    AT the trigger (i.e. caps payoff at the level that activates the trade).
+    Levels are strings (price as string) to stay consistent with the
+    free-form numeric handling elsewhere in the contract.
+    """
+
+    long_leg_role: LongLegRole = "n/a"
+    short_leg_role: ShortLegRole = "n/a"
+    trigger_level: str = ""
+    target_level: str = ""
+    invalid_level: str = ""
+
+
 class TradeInsightAiPreferredExpression(TradeInsightAiBase):
     idea_id: str
     structure: str
@@ -140,6 +171,12 @@ class TradeInsightAiPreferredExpression(TradeInsightAiBase):
     management_notes: list[str] = Field(default_factory=list)
     status_observed: str
     risk_flags_observed: list[str] = Field(default_factory=list)
+    # v5.1: strike-role + trigger/target/invalid levels. Optional for backwards
+    # compatibility during the migration; the validator+coercer fills it in
+    # from candidate_structures when the model omits it.
+    strike_role: TradeInsightAiStrikeRole = Field(
+        default_factory=TradeInsightAiStrikeRole
+    )
 
 
 class TradeInsightAiBestExpression(TradeInsightAiBase):
@@ -273,6 +310,7 @@ _preserve_public_module(
     TradeInsightAiSectionCard,
     TradeInsightAiSectionCards,
     TradeInsightAiVrpAssessment,
+    TradeInsightAiStrikeRole,
     TradeInsightAiPreferredExpression,
     TradeInsightAiBestExpression,
     TradeInsightAiConflict,
