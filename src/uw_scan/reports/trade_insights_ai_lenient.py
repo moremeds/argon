@@ -814,6 +814,178 @@ def _coerce_trigger_evidence(
     }
 
 
+def _coerce_decimal_str(value: Any) -> str | None:
+    """v5.3: best-effort numeric-string coercion for Decimal fields.
+
+    Handles ints, floats, Decimals, "$215", "215.00", and the dict-form
+    Claude failure mode (`{'strike': '215', 'net_gex': ...}`). Returns
+    None for empty / unparseable input — Pydantic will treat None as
+    "model declined to populate," which is legal for optional Decimal
+    fields on TriggerComponent.
+    """
+    if value is None:
+        return None
+    if isinstance(value, dict):
+        for key in ("strike", "price", "level", "value"):
+            if key in value:
+                return _coerce_decimal_str(value[key])
+        return None
+    if isinstance(value, str):
+        cleaned = value.strip().lstrip("$")
+        if not cleaned:
+            return None
+        try:
+            from decimal import Decimal, InvalidOperation
+
+            Decimal(cleaned)
+        except (InvalidOperation, ValueError):
+            return None
+        return cleaned
+    if isinstance(value, (int, float)):
+        if isinstance(value, float) and math.isnan(value):
+            return None
+        return str(value)
+    return None
+
+
+def _coerce_trigger_component(
+    raw: Any,
+    *,
+    fallback_level: Any = None,
+    fallback_meaning: str = "",
+    fallback_fired: bool = False,
+    fallback_evidence_close: Any = None,
+    fallback_evidence_date: Any = None,
+    fallback_source_path: str = "",
+) -> dict[str, Any]:
+    """v5.3: coerce one TradeInsightAiTriggerComponent block.
+
+    Used for thesis_trigger, entry_trigger, and invalidation. Each
+    component carries its own {level, meaning, fired, evidence_close,
+    evidence_date, source_path}. When the model omits the field, the
+    caller supplies fallbacks typically derived from the v5.2
+    trigger_evidence block or strike_role.invalid_level — this lets
+    a v5.2-shape outcome still produce a usable v5.3 trigger surface
+    so the UI does not render blank cells for backwards-compatible
+    historical inputs.
+    """
+    raw_dict = _dict_or_empty(raw)
+
+    raw_level = raw_dict.get("level")
+    if raw_level is None:
+        raw_level = fallback_level
+    level = _coerce_decimal_str(raw_level)
+
+    raw_ec = raw_dict.get("evidence_close")
+    if raw_ec is None:
+        raw_ec = fallback_evidence_close
+    evidence_close = _coerce_decimal_str(raw_ec)
+
+    evidence_date = raw_dict.get("evidence_date") or fallback_evidence_date
+    if evidence_date is not None and not isinstance(evidence_date, str):
+        evidence_date = str(evidence_date)
+
+    fired_raw = raw_dict.get("fired")
+    fired_bool = fired_raw if isinstance(fired_raw, bool) else bool(fallback_fired)
+
+    meaning = _str_or(raw_dict.get("meaning"), fallback_meaning)
+    source_path = _str_or(raw_dict.get("source_path"), fallback_source_path)
+
+    return {
+        "level": level,
+        "meaning": meaning,
+        "fired": fired_bool,
+        "evidence_close": evidence_close,
+        "evidence_date": evidence_date,
+        "source_path": source_path,
+    }
+
+
+_OPTION_TYPE_ALIASES = {
+    "call": "call",
+    "c": "call",
+    "calls": "call",
+    "put": "put",
+    "p": "put",
+    "puts": "put",
+}
+_OPTION_SIDE_ALIASES = {
+    "long": "long",
+    "l": "long",
+    "buy": "long",
+    "bought": "long",
+    "short": "short",
+    "s": "short",
+    "sell": "short",
+    "sold": "short",
+}
+
+
+def _normalize_option_type(value: Any) -> str | None:
+    if not isinstance(value, str):
+        return None
+    return _OPTION_TYPE_ALIASES.get(value.strip().lower())
+
+
+def _normalize_option_side(value: Any) -> str | None:
+    if not isinstance(value, str):
+        return None
+    return _OPTION_SIDE_ALIASES.get(value.strip().lower())
+
+
+def _normalize_expiry(value: Any) -> str | None:
+    """v5.3: coerce expiry into an ISO date string.
+
+    Accepts YYYY-MM-DD, YYYY/MM/DD (slashes → dashes), and date/datetime
+    objects. Pydantic enforces the final ISO date format downstream.
+    """
+    if value is None:
+        return None
+    if isinstance(value, str):
+        s = value.strip().replace("/", "-")
+        return s or None
+    iso = getattr(value, "isoformat", None)
+    if callable(iso):
+        return iso().split("T")[0]
+    return None
+
+
+def _coerce_option_leg(raw: Any) -> dict[str, Any] | None:
+    """v5.3: coerce one option leg. Returns None for unparseable entries.
+
+    The legs-strategy-match validator (M4) checks structure-specific
+    geometry against the surviving entries; here we only normalize
+    shape and drop entries that lack a parseable strike or option type.
+    """
+    if not isinstance(raw, dict):
+        return None
+    option_type = _normalize_option_type(raw.get("option_type") or raw.get("type"))
+    side = _normalize_option_side(raw.get("side"))
+    strike = _coerce_decimal_str(raw.get("strike"))
+    expiry = _normalize_expiry(
+        raw.get("expiry") or raw.get("expiration") or raw.get("expiry_date")
+    )
+    if not option_type or not side or strike is None or not expiry:
+        return None
+    return {
+        "option_type": option_type,
+        "side": side,
+        "strike": strike,
+        "expiry": expiry,
+    }
+
+
+def _coerce_option_legs(raw: Any) -> list[dict[str, Any]]:
+    """v5.3: coerce legs[] array. Silent drop of unparseable entries —
+    the M4 legs-strategy-match validator enforces structure semantics
+    against what survives."""
+    return [
+        leg
+        for leg in (_coerce_option_leg(r) for r in _list_or_empty(raw))
+        if leg is not None
+    ]
+
+
 def _coerce_anti_pin(raw_ap: Any) -> dict[str, Any]:
     """v5.2: coerce anti_pin block.
 
@@ -897,6 +1069,7 @@ def _coerce_preferred_expression(
         directional_bias=directional_bias,
         levels=levels,
     )
+    legs = _coerce_option_legs(raw.get("legs"))
     return {
         **base,
         "title": _str_or(raw.get("title"), base["idea_id"]),
@@ -907,6 +1080,10 @@ def _coerce_preferred_expression(
         "reward_risk": _str_or(raw.get("reward_risk"), ""),
         "management_notes": _str_list(raw.get("management_notes")),
         "strike_role": strike_role,
+        # v5.3: explicit option legs. Empty list is legal for
+        # strategy_review / no_trade — M4 validator enforces geometry
+        # only when legs[] is non-empty for a structured family.
+        "legs": legs,
     }
 
 
@@ -1224,21 +1401,70 @@ def _coerce_claude_outcome_dict(
         # the model omits the block entirely. trigger_level for the evidence
         # block is sourced from the preferred_expression's strike_role
         # (after its own backfill) for consistency.
-        "trigger_evidence": _coerce_trigger_evidence(
-            data.get("trigger_evidence"),
-            trigger_level_from_strike_role=(
-                _dict_or_empty(data.get("preferred_expression"))
-                .get("strike_role", {})
-                .get("trigger_level")
-                if isinstance(data.get("preferred_expression"), dict)
-                else None
-            ),
-            deterministic_payload=deterministic_payload,
-            watch_trigger=headline.get("watch_trigger", ""),
+        "trigger_evidence": (
+            trigger_evidence := _coerce_trigger_evidence(
+                data.get("trigger_evidence"),
+                trigger_level_from_strike_role=(
+                    _dict_or_empty(data.get("preferred_expression"))
+                    .get("strike_role", {})
+                    .get("trigger_level")
+                    if isinstance(data.get("preferred_expression"), dict)
+                    else None
+                ),
+                deterministic_payload=deterministic_payload,
+                watch_trigger=headline.get("watch_trigger", ""),
+            )
         ),
         "anti_pin": _coerce_anti_pin(data.get("anti_pin")),
         "target_feasibility": _coerce_target_feasibility(
             data.get("target_feasibility")
+        ),
+        # v5.3: decomposed trigger state machine. When the model emits its
+        # own thesis_trigger / entry_trigger / invalidation, prefer those.
+        # Otherwise backfill from the v5.2 trigger_evidence block and
+        # strike_role.invalid_level so v5.2-shape outputs still produce a
+        # populated v5.3 surface (the M4 validator's mechanical ENTRY_STATE
+        # check will then either pass or surface honest CONDITIONAL state
+        # rather than a default-null trigger that would otherwise read as
+        # NEEDS_CHECK).
+        "thesis_trigger": _coerce_trigger_component(
+            data.get("thesis_trigger"),
+            fallback_level=trigger_evidence.get("trigger_level"),
+            fallback_meaning=(
+                f"{headline['thesis_archetype']}_confirmed"
+                if trigger_evidence.get("trigger_fired")
+                else f"{headline['thesis_archetype']}_pending"
+            ),
+            fallback_fired=bool(trigger_evidence.get("trigger_fired")),
+            fallback_evidence_close=trigger_evidence.get("evidence_close"),
+            fallback_evidence_date=trigger_evidence.get("evidence_close_date"),
+            fallback_source_path=trigger_evidence.get("source_path", ""),
+        ),
+        "entry_trigger": _coerce_trigger_component(
+            data.get("entry_trigger"),
+            # v5.2-shape outputs collapse thesis and entry into a single
+            # trigger_evidence — mirror it as the entry_trigger fallback
+            # so the UI does not show empty cells. The M4 derivation check
+            # still requires a real distinct meaning for v5.3 native runs.
+            fallback_level=trigger_evidence.get("trigger_level"),
+            fallback_meaning="entry_confirmation",
+            fallback_fired=bool(trigger_evidence.get("trigger_fired")),
+            fallback_evidence_close=trigger_evidence.get("evidence_close"),
+            fallback_evidence_date=trigger_evidence.get("evidence_close_date"),
+            fallback_source_path=trigger_evidence.get("source_path", ""),
+        ),
+        "invalidation": _coerce_trigger_component(
+            data.get("invalidation"),
+            fallback_level=(
+                _dict_or_empty(data.get("preferred_expression"))
+                .get("strike_role", {})
+                .get("invalid_level")
+                if isinstance(data.get("preferred_expression"), dict)
+                else None
+            ),
+            fallback_meaning="thesis_invalidated",
+            fallback_fired=False,
+            fallback_source_path="",
         ),
         "dominant_read": dominant_read,
         "best_expressions": [
