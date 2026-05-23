@@ -15,44 +15,102 @@ from typing import Any
 
 from uw_scan.models import TradeInsightAiOutcome
 
-PROMPT_VERSION = "trade-insights-ai-v4"
+PROMPT_VERSION = "trade-insights-ai-v5"
 STRATEGY_FAMILY_IDS = frozenset(
     {
         "long_stock",
         "long_call",
+        "long_put",
+        # Directional debit / credit verticals.
         "call_debit_spread",
+        "put_debit_spread",
+        "bull_call_spread",
+        "bear_put_spread",
+        "call_credit_spread",
         "put_credit_spread",
+        # Directional combo structures.
+        "risk_reversal",
+        "call_diagonal",
+        "put_diagonal",
+        # Range-income / neutral-vol structures.
+        "iron_condor",
+        "iron_butterfly",
+        "butterfly",
+        "calendar_spread",
+        # Income overlays — not swing-directional, but still valid rejected-idea
+        # references so the model can explain why they don't fit at this horizon.
         "covered_call",
         "cash_secured_put",
-        "iron_condor",
+        # Naked / undefined-risk — present so rejected_ideas can cite the safety
+        # override, never selectable as preferred.
         "short_strangle",
-        "long_put",
-        "put_debit_spread",
-        "calendar_spread",
         "no_trade",
     }
 )
 PREFERRED_STRATEGY_FAMILY_IDS = STRATEGY_FAMILY_IDS - {"short_strangle"}
-# Subset valid as `preferred_expression` / `best_expressions` at the 1-2 week
-# swing horizon. Excludes:
-#   long_stock         — not a swing options structure in this product
-#   covered_call       — 30-45d income trade, requires existing stock
-#   cash_secured_put   — same, 30-45d income posture
-#   short_strangle     — undefined-risk, blocked by safety override
-# Rejected-ideas slots may still reference the full STRATEGY_FAMILY_IDS so the
-# model can explain why an excluded family is the wrong tool at this horizon.
-SWING_STRATEGY_FAMILY_IDS = frozenset(
+
+# v5 mode-aware structure whitelists. The validator enforces:
+#   trade_intent == directional_swing → preferred_expression.structure ∈
+#       DIRECTIONAL_SWING_STRUCTURES
+#   trade_intent == range_income      → preferred_expression.structure ∈
+#       RANGE_INCOME_STRUCTURES
+#
+# Iron condor and credit spreads are intentionally absent from
+# DIRECTIONAL_SWING_STRUCTURES — picking a vol-seller for a directional swing
+# is the exact failure mode v5 is built to prevent. They remain available in
+# range_income mode for explicitly-requested premium ideas.
+DIRECTIONAL_SWING_STRUCTURES = frozenset(
     {
         "long_call",
-        "call_debit_spread",
         "long_put",
+        "call_debit_spread",
         "put_debit_spread",
-        "put_credit_spread",
-        "iron_condor",
-        "calendar_spread",
+        "bull_call_spread",
+        "bear_put_spread",
+        "risk_reversal",
+        "call_diagonal",
+        "put_diagonal",
         "no_trade",
     }
 )
+RANGE_INCOME_STRUCTURES = frozenset(
+    {
+        "iron_condor",
+        "iron_butterfly",
+        "butterfly",
+        "calendar_spread",
+        "call_credit_spread",
+        "put_credit_spread",
+        "no_trade",
+    }
+)
+# Legacy alias retained for downstream callers during the v4→v5 migration.
+#
+# Intentionally pinned to DIRECTIONAL_SWING_STRUCTURES only — not the union of
+# both whitelists. Reason: the current MARKET_INTELLIGENCE_PROMPT interpolates
+# this set into the "strategy-family option is restricted to {sorted(...)}"
+# directive sent to Codex and Claude. Until M3 rewrites the prompt to be
+# mode-aware, widening this alias to include range-income structures (iron
+# condor, butterfly, calendar) would surface them to the model as VALID
+# preferred expressions — the exact failure mode v5 is built to eliminate.
+# Range-income callers must reference RANGE_INCOME_STRUCTURES explicitly
+# starting in M3.
+SWING_STRATEGY_FAMILY_IDS = DIRECTIONAL_SWING_STRUCTURES
+
+# v5 vocab — exposed as tuples so the schema generator and lenient coercer
+# share one source of truth.
+TRADE_INTENT_VALUES = ("directional_swing", "range_income")
+DIRECTIONAL_BIAS_VALUES = ("LONG_DELTA", "SHORT_DELTA", "WAIT")
+ENTRY_STATE_VALUES = ("ACTIVE", "CONDITIONAL", "NO_ENTRY")
+UNDERLYING_PATH_VALUES = (
+    "bullish_continuation",
+    "bearish_rejection",
+    "downside_break",
+    "pinned_no_directional_entry",
+    "data_insufficient",
+)
+DTE_BAND_VALUES = ("momentum", "trend")
+
 FINAL_RATING_VALUES = ("A", "B", "C", "D", "F")
 
 MARKET_INTELLIGENCE_PROMPT = """You are an institutional options strategist analyzing one stock for a 1-2 week SWING HOLD entry.

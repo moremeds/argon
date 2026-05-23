@@ -35,9 +35,14 @@ from datetime import datetime
 from typing import Any
 
 from uw_scan.reports.trade_insights_ai import (
+    DIRECTIONAL_BIAS_VALUES,
+    DTE_BAND_VALUES,
+    ENTRY_STATE_VALUES,
     FINAL_RATING_VALUES,
     PROMPT_VERSION,
     STRATEGY_FAMILY_IDS,
+    TRADE_INTENT_VALUES,
+    UNDERLYING_PATH_VALUES,
     _iso_z,
 )
 
@@ -153,6 +158,44 @@ def _resolve_conviction(raw: Any) -> str:
         return _CONVICTION_FALLBACK
     candidate = raw.strip().upper()
     return candidate if candidate in FINAL_RATING_VALUES else _CONVICTION_FALLBACK
+
+
+# v5 directional vocabulary — full coercion lives in M4. For M1 we only need
+# safe defaults so partial Claude output still round-trips through the (now
+# v5-shaped) Pydantic model. The smart coercion (case-insensitive alias map,
+# spaced "long delta" -> LONG_DELTA, etc.) is added in M4.
+def _derive_bias_from_stance(stance: str) -> str:
+    """Conservative directional_bias inference from a resolved stance.
+
+    Bullish/bearish stances map cleanly; everything else (neutral, mixed,
+    wait — all of which mean 'no clean direction at this horizon') maps to
+    WAIT so the panel does not surface a false directional call when the
+    model failed to emit one explicitly. M4 will replace this with a real
+    coercer that reads the explicit `directional_bias` field first."""
+    if stance == "bullish":
+        return "LONG_DELTA"
+    if stance == "bearish":
+        return "SHORT_DELTA"
+    return "WAIT"
+
+
+def _resolve_directional_bias(raw: Any, stance: str) -> str:
+    """Pick directional_bias when supplied; otherwise derive from stance."""
+    if isinstance(raw, str):
+        candidate = raw.strip().upper().replace(" ", "_").replace("-", "_")
+        if candidate in DIRECTIONAL_BIAS_VALUES:
+            return candidate
+    return _derive_bias_from_stance(stance)
+
+
+def _resolve_enum(raw: Any, allowed: tuple[str, ...], default: str) -> str:
+    """Generic enum resolver — case-insensitive match against allowed."""
+    if isinstance(raw, str):
+        candidate = raw.strip()
+        for value in allowed:
+            if candidate.lower() == value.lower():
+                return value
+    return default
 
 
 def _candidate_map_from_payload(
@@ -452,7 +495,42 @@ def _coerce_claude_outcome_dict(
         if isinstance(stance_raw, str) and stance_raw.strip()
         else "Partial output"
     )
+    directional_bias = _resolve_directional_bias(
+        headline_raw.get("directional_bias"), stance
+    )
     headline = {
+        # v5 required directional fields — backfilled with safe defaults when
+        # the provider omits them so the lenient path still produces a
+        # round-trippable outcome. Smart coercion (alias maps, mode-structure
+        # consistency enforcement) lands in M4.
+        "trade_intent": _resolve_enum(
+            headline_raw.get("trade_intent"),
+            TRADE_INTENT_VALUES,
+            "directional_swing",
+        ),
+        "directional_bias": directional_bias,
+        "entry_state": _resolve_enum(
+            headline_raw.get("entry_state"),
+            ENTRY_STATE_VALUES,
+            # CONDITIONAL is the safe default — it signals "setup may be valid
+            # but trigger has not fired", which is the most honest state when
+            # the model failed to emit entry_state explicitly. NO_ENTRY would
+            # imply we *evaluated* and rejected.
+            "CONDITIONAL",
+        ),
+        "underlying_path": _resolve_enum(
+            headline_raw.get("underlying_path"),
+            UNDERLYING_PATH_VALUES,
+            "data_insufficient",
+        ),
+        "dte_band": _resolve_enum(
+            headline_raw.get("dte_band"),
+            DTE_BAND_VALUES,
+            # trend (45-75 DTE) is the lower-gamma safer default; momentum
+            # band (14-30 DTE) needs an explicit breakout thesis the lenient
+            # path cannot infer from missing data.
+            "trend",
+        ),
         "title": _str_or(headline_raw.get("title"), f"{ticker} — partial output"),
         "stance": stance,
         "stance_label": _str_or(headline_raw.get("stance_label"), default_stance_label),

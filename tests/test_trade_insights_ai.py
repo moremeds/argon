@@ -21,6 +21,18 @@ from uw_scan.reports.trade_insights_ai import (
 )
 from uw_scan.reports.volatility_series import assemble_volatility_series
 
+# v5 headline defaults shared across fixture builders. Tests of the lenient
+# coercer's *backfill* behavior intentionally omit these keys to verify the
+# coercer fills them in; everywhere else spread `**_V5_HEADLINE_DEFAULTS` to
+# keep fixtures schema-compliant.
+_V5_HEADLINE_DEFAULTS = {
+    "trade_intent": "directional_swing",
+    "directional_bias": "LONG_DELTA",
+    "entry_state": "CONDITIONAL",
+    "underlying_path": "bullish_continuation",
+    "dte_band": "trend",
+}
+
 
 def _sample_outcome() -> dict:
     produced_at = "2026-03-24T20:18:42Z"
@@ -38,6 +50,7 @@ def _sample_outcome() -> dict:
             "source_notes": ["Flow: same-day snapshot"],
         },
         "headline": {
+            **_V5_HEADLINE_DEFAULTS,
             "title": "TSLA near gamma resistance with cheap vol and bullish flow",
             "stance": "bullish",
             "stance_label": "BUY setup",
@@ -1295,6 +1308,128 @@ def test_coerce_handles_nan_and_infinity_floats():
     assert coerced["section_cards"]["market_structure"]["max_score"] is None
     # Round-trips through Pydantic
     TradeInsightAiOutcome.model_validate(coerced)
+
+
+def test_row_to_ai_response_drops_legacy_v4_outcome():
+    """Gemini G-2 fix: when a stored row carries a prompt_version that does
+    NOT match the current PROMPT_VERSION (e.g., v4 rows lingering after the
+    v5 bump), `_row_to_ai_response` must drop the outcome to None instead of
+    forcing Pydantic to validate a v4-shaped dict against the v5 schema
+    (which would raise ValidationError and 500 the endpoint). The
+    error_message field surfaces the prompt_version mismatch so the UI can
+    paint a 'legacy, re-run' badge (M5)."""
+    from uw_scan.api.routers.trade_insights import _row_to_ai_response
+
+    requested_at = datetime(2026, 3, 24, 20, 18, 42, tzinfo=timezone.utc)
+    v4_row = {
+        "analysis_id": UUID("12345678-1234-5678-1234-567812345678"),
+        "ticker": "TSLA",
+        "run_id": 1,
+        "trade_insights_input_hash": "h1",
+        "analysis_input_hash": "h2",
+        "model": "codex-default",
+        "provider": "codex",
+        "prompt_version": "trade-insights-ai-v4",  # stale!
+        "status": "succeeded",
+        "produced_at": requested_at,
+        # An outcome dict missing the new v5 required fields — would 500
+        # the endpoint if naively handed to Pydantic v5 model construction.
+        "outcome_jsonb": {"schema_version": "trade-insights-ai-v4", "ticker": "TSLA"},
+        "markdown": "old markdown",
+        "error_message": None,
+        "requested_at": requested_at,
+        "started_at": requested_at,
+        "finished_at": requested_at,
+    }
+    resp = _row_to_ai_response(v4_row)
+    assert resp.outcome is None, "v4 outcome must be dropped"
+    assert resp.prompt_version == "trade-insights-ai-v4"
+    assert resp.status == "succeeded"
+    assert "trade-insights-ai-v4" in (resp.error_message or "")
+    assert PROMPT_VERSION in (resp.error_message or "")
+
+
+def test_row_to_ai_response_preserves_current_version_outcome():
+    """The legacy guard must NOT touch outcomes stored under the current
+    PROMPT_VERSION — only mismatched ones."""
+    from uw_scan.api.routers.trade_insights import _row_to_ai_response
+
+    requested_at = datetime(2026, 3, 24, 20, 18, 42, tzinfo=timezone.utc)
+    deterministic = _analysis_input()
+    full_outcome = _sample_outcome_for(deterministic)
+    current_row = {
+        "analysis_id": UUID("12345678-1234-5678-1234-567812345678"),
+        "ticker": "TSLA",
+        "run_id": 123,
+        "trade_insights_input_hash": "sha256-trade-insights",
+        "analysis_input_hash": "sha256-combined",
+        "model": "codex-default",
+        "provider": "codex",
+        "prompt_version": PROMPT_VERSION,
+        "status": "succeeded",
+        "produced_at": requested_at,
+        "outcome_jsonb": full_outcome,
+        "markdown": None,
+        "error_message": None,
+        "requested_at": requested_at,
+        "started_at": requested_at,
+        "finished_at": requested_at,
+    }
+    resp = _row_to_ai_response(current_row)
+    assert resp.outcome is not None
+    assert resp.outcome.ticker == "TSLA"
+    assert resp.error_message is None
+
+
+def test_lenient_v5_backfill_derives_directional_bias_from_stance():
+    """M1 smoke test: when the model omits the new v5 directional fields, the
+    lenient coercer must derive directional_bias from stance and fill
+    safe defaults for trade_intent / entry_state / underlying_path / dte_band.
+    M4 will replace this with the full coercion (alias map, mode-structure
+    consistency); this test pins the M1 fallback semantics so M4 changes are
+    observable."""
+    deterministic = _analysis_input()
+    produced_at = datetime(2026, 3, 24, 20, 18, 42, tzinfo=timezone.utc)
+
+    # bullish stance with all v5 fields omitted → directional_bias=LONG_DELTA
+    bullish = {"headline": {"title": "T", "stance": "bullish", "conviction": "B"}}
+    parsed = validate_trade_insights_ai_outcome(
+        bullish, deterministic, produced_at=produced_at, lenient=True
+    )
+    assert parsed.headline.directional_bias == "LONG_DELTA"
+    assert parsed.headline.trade_intent == "directional_swing"
+    assert parsed.headline.entry_state == "CONDITIONAL"
+    assert parsed.headline.underlying_path == "data_insufficient"
+    assert parsed.headline.dte_band == "trend"
+
+    # bearish stance → SHORT_DELTA
+    bearish = {"headline": {"title": "T", "stance": "bearish", "conviction": "C"}}
+    parsed = validate_trade_insights_ai_outcome(
+        bearish, deterministic, produced_at=produced_at, lenient=True
+    )
+    assert parsed.headline.directional_bias == "SHORT_DELTA"
+
+    # neutral/mixed/wait → WAIT (no false directional call)
+    for stance in ("neutral", "mixed", "wait"):
+        payload = {"headline": {"title": "T", "stance": stance, "conviction": "C"}}
+        parsed = validate_trade_insights_ai_outcome(
+            payload, deterministic, produced_at=produced_at, lenient=True
+        )
+        assert parsed.headline.directional_bias == "WAIT", stance
+
+    # explicit directional_bias wins over stance derivation
+    override = {
+        "headline": {
+            "title": "T",
+            "stance": "neutral",  # would derive WAIT
+            "conviction": "B",
+            "directional_bias": "LONG_DELTA",  # explicit wins
+        }
+    }
+    parsed = validate_trade_insights_ai_outcome(
+        override, deterministic, produced_at=produced_at, lenient=True
+    )
+    assert parsed.headline.directional_bias == "LONG_DELTA"
 
 
 def test_validate_lenient_passes_complete_valid_output():

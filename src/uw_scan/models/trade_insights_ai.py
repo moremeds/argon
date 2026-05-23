@@ -31,7 +31,28 @@ class TradeInsightAiSnapshotMeta(TradeInsightAiBase):
     source_notes: list[str] = Field(default_factory=list)
 
 
+TradeIntent = Literal["directional_swing", "range_income"]
+DirectionalBias = Literal["LONG_DELTA", "SHORT_DELTA", "WAIT"]
+EntryState = Literal["ACTIVE", "CONDITIONAL", "NO_ENTRY"]
+UnderlyingPath = Literal[
+    "bullish_continuation",
+    "bearish_rejection",
+    "downside_break",
+    "pinned_no_directional_entry",
+    "data_insufficient",
+]
+DteBand = Literal["momentum", "trend"]
+
+
 class TradeInsightAiHeadline(TradeInsightAiBase):
+    # v5 directional fields — the actual decision the swing trader makes.
+    # `directional_bias` is the gate; `stance` is kept for UI/markdown display
+    # and is auto-derived in the lenient coercer when the model omits it.
+    trade_intent: TradeIntent
+    directional_bias: DirectionalBias
+    entry_state: EntryState
+    underlying_path: UnderlyingPath
+    dte_band: DteBand
     title: str
     stance: Literal["bullish", "bearish", "neutral", "mixed", "wait"]
     stance_label: str

@@ -123,6 +123,24 @@ def _row_to_ai_response(
     *,
     reused: bool = False,
 ) -> TradeInsightAiAnalysisResponse:
+    # v4 → v5 read-back guard: outcome_jsonb persisted under a previous
+    # PROMPT_VERSION will not satisfy the new (v5) Pydantic schema's required
+    # directional fields, so model construction would raise ValidationError
+    # and 500 the endpoint. Drop the outcome and surface an explanatory
+    # error_message instead; M5 paints the "legacy, re-run" badge on top of
+    # this signal. The row itself (status, prompt_version, ids) still
+    # renders so the UI can offer a re-run button.
+    row_prompt_version = row.get("prompt_version")
+    outcome_jsonb = row.get("outcome_jsonb")
+    if outcome_jsonb is not None and row_prompt_version != PROMPT_VERSION:
+        outcome_jsonb = None
+        legacy_note = (
+            f"Outcome stored under prompt_version={row_prompt_version!r}; "
+            f"current version is {PROMPT_VERSION!r}. Re-run to render."
+        )
+        error_message = row.get("error_message") or legacy_note
+    else:
+        error_message = row.get("error_message")
     return TradeInsightAiAnalysisResponse(
         analysis_id=UUID(str(row["analysis_id"])),
         ticker=row["ticker"],
@@ -131,12 +149,12 @@ def _row_to_ai_response(
         analysis_input_hash=row["analysis_input_hash"],
         model=row["model"],
         provider=row.get("provider", "codex"),
-        prompt_version=row["prompt_version"],
+        prompt_version=row_prompt_version,
         status=row["status"],
         produced_at=row.get("produced_at"),
-        outcome=row.get("outcome_jsonb"),
+        outcome=outcome_jsonb,
         markdown=row.get("markdown"),
-        error_message=row.get("error_message"),
+        error_message=error_message,
         requested_at=row["requested_at"],
         started_at=row.get("started_at"),
         finished_at=row.get("finished_at"),
