@@ -67,6 +67,9 @@ jobs:
           ! grep -rE 'from uw_scan\.fixtures' src/ || (echo "Guardrail 3 violation"; exit 1)
           echo "guardrail greps clean"
 
+      - name: Migration prefix guard
+        run: uv run python scripts/check_migration_prefixes.py
+
       - name: Create option_wizard + option_wizard_test DBs
         run: |
           PGPASSWORD=postgres psql -h 127.0.0.1 -U postgres -d postgres -c "CREATE DATABASE option_wizard"
@@ -78,3 +81,35 @@ jobs:
       - name: Integration tests (no live API)
         # The live E2E (tests/integration/test_pipeline_e2e.py) is auto-skipped because UW_SCAN_API_KEY is not set on CI.
         run: uv run pytest tests/integration/ -v
+
+  web:
+    name: web typecheck + test + lint + build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: Install web deps
+        working-directory: web
+        run: npm ci
+
+      - name: Typecheck
+        working-directory: web
+        run: npm run typecheck
+
+      - name: Unit tests
+        working-directory: web
+        run: npm run test
+
+      - name: Lint
+        working-directory: web
+        run: npm run lint
+
+      - name: Build
+        working-directory: web
+        run: npm run build

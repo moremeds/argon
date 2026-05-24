@@ -8,10 +8,17 @@ from uw_scan.storage.flow import _flow_event_params
 from uw_scan.storage.flow import _FlowMixin
 from uw_scan.storage.options import (
     _OptionsMixin,
+    _dark_pool_params,
     _greek_exposure_params,
     _greeks_params,
+    _interpolated_iv_params,
     _iv_term_params,
+    _max_pain_params,
+    _oi_change_params,
+    _oi_per_strike_params,
+    _option_chain_per_strike_params,
     _option_contract_params,
+    _options_volume_daily_params,
 )
 from uw_scan.storage.volatility_raw import (
     _VolatilityRawMixin,
@@ -203,6 +210,196 @@ def test_options_param_builders_preserve_order_and_values():
         )
     ]
 
+    interpolated_rows = [
+        models.InterpolatedIvRow(
+            date=date(2026, 5, 18),
+            days=30,
+            percentile=Decimal("0.60"),
+            volatility=Decimal("0.42"),
+            implied_move_perc=Decimal("0.03"),
+        )
+    ]
+    assert _interpolated_iv_params(81, "TSLA", interpolated_rows) == [
+        (
+            81,
+            "TSLA",
+            date(2026, 5, 18),
+            30,
+            Decimal("0.60"),
+            Decimal("0.42"),
+            Decimal("0.03"),
+        )
+    ]
+
+    oi_rows = [
+        models.OiPerStrikeRow(
+            date=date(2026, 5, 18),
+            strike=Decimal("450"),
+            call_oi=100,
+            put_oi=90,
+        )
+    ]
+    assert _oi_per_strike_params("TSLA", oi_rows) == [
+        ("TSLA", date(2026, 5, 18), Decimal("450"), 100, 90)
+    ]
+
+    daily_rows = [
+        models.OptionsDailyRow(
+            date=date(2026, 5, 18),
+            call_volume=1000,
+            put_volume=900,
+            call_premium=Decimal("120000"),
+            put_premium=Decimal("80000"),
+        )
+    ]
+    assert _options_volume_daily_params("TSLA", daily_rows) == [
+        (
+            "TSLA",
+            date(2026, 5, 18),
+            1000,
+            900,
+            None,
+            None,
+            None,
+            None,
+            Decimal("120000"),
+            Decimal("80000"),
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+        )
+    ]
+
+    chain_rows = [
+        models.OptionChainPerStrikeRow(
+            expiry=date(2026, 6, 19),
+            strike=Decimal("450"),
+            call_volume=100,
+            put_volume=80,
+            call_oi=1000,
+            put_oi=900,
+        )
+    ]
+    assert _option_chain_per_strike_params(
+        "TSLA",
+        date(2026, 5, 18),
+        chain_rows,
+    ) == [
+        (
+            "TSLA",
+            date(2026, 5, 18),
+            date(2026, 6, 19),
+            Decimal("450"),
+            100,
+            80,
+            1000,
+            900,
+        )
+    ]
+
+    oi_change_rows = [
+        models.OiChangeRow(
+            underlying_symbol="TSLA",
+            option_symbol="TSLA260619C00450000",
+            curr_date=date(2026, 5, 18),
+            curr_oi=1000,
+            oi_change=Decimal("0.10"),
+        )
+    ]
+    assert _oi_change_params(82, oi_change_rows) == [
+        (
+            82,
+            "TSLA",
+            "TSLA260619C00450000",
+            date(2026, 5, 18),
+            None,
+            1000,
+            None,
+            None,
+            Decimal("0.10"),
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+        )
+    ]
+
+    max_pain_rows = [
+        models.MaxPainRow(
+            expiry=date(2026, 6, 19),
+            max_pain=Decimal("450"),
+            close=Decimal("451"),
+        )
+    ]
+    assert _max_pain_params(83, "TSLA", date(2026, 5, 18), max_pain_rows) == [
+        (
+            83,
+            "TSLA",
+            date(2026, 5, 18),
+            date(2026, 6, 19),
+            Decimal("450"),
+            Decimal("451"),
+            None,
+            None,
+            None,
+        )
+    ]
+
+    dark_pool_rows = [
+        models.DarkPoolPrint(
+            ticker="TSLA",
+            tracking_id=123,
+            executed_at=datetime(2026, 5, 18, 14, 30, tzinfo=UTC),
+            price=Decimal("450.10"),
+            size=100,
+            premium=Decimal("45010"),
+        )
+    ]
+    assert _dark_pool_params(84, dark_pool_rows) == [
+        (
+            84,
+            "TSLA",
+            123,
+            datetime(2026, 5, 18, 14, 30, tzinfo=UTC),
+            None,
+            Decimal("450.10"),
+            100,
+            Decimal("45010"),
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+        )
+    ]
+
 
 class _FakeCursor:
     def __init__(self) -> None:
@@ -312,6 +509,67 @@ def _sample_contract_rows() -> list[models.OptionContractRow]:
     ]
 
 
+def _sample_interpolated_iv_rows() -> list[models.InterpolatedIvRow]:
+    return [
+        models.InterpolatedIvRow(date=date(2026, 5, 18), days=30),
+        models.InterpolatedIvRow(date=date(2026, 5, 18), days=60),
+    ]
+
+
+def _sample_oi_per_strike_rows() -> list[models.OiPerStrikeRow]:
+    return [
+        models.OiPerStrikeRow(date=date(2026, 5, 18), strike=Decimal("450")),
+        models.OiPerStrikeRow(date=date(2026, 5, 18), strike=Decimal("460")),
+    ]
+
+
+def _sample_options_daily_rows() -> list[models.OptionsDailyRow]:
+    return [
+        models.OptionsDailyRow(date=date(2026, 5, 18), call_volume=100),
+        models.OptionsDailyRow(date=date(2026, 5, 19), call_volume=200),
+    ]
+
+
+def _sample_chain_per_strike_rows() -> list[models.OptionChainPerStrikeRow]:
+    return [
+        models.OptionChainPerStrikeRow(
+            expiry=date(2026, 6, 19),
+            strike=Decimal("450"),
+        ),
+        models.OptionChainPerStrikeRow(
+            expiry=date(2026, 6, 19),
+            strike=Decimal("460"),
+        ),
+    ]
+
+
+def _sample_oi_change_rows() -> list[models.OiChangeRow]:
+    return [
+        models.OiChangeRow(
+            underlying_symbol="TSLA",
+            option_symbol="TSLA260619C00450000",
+        ),
+        models.OiChangeRow(
+            underlying_symbol="TSLA",
+            option_symbol="TSLA260619P00450000",
+        ),
+    ]
+
+
+def _sample_max_pain_rows() -> list[models.MaxPainRow]:
+    return [
+        models.MaxPainRow(expiry=date(2026, 6, 19), max_pain=Decimal("450")),
+        models.MaxPainRow(expiry=date(2026, 7, 17), max_pain=Decimal("455")),
+    ]
+
+
+def _sample_dark_pool_rows() -> list[models.DarkPoolPrint]:
+    return [
+        models.DarkPoolPrint(ticker="TSLA", tracking_id=1),
+        models.DarkPoolPrint(ticker="TSLA", tracking_id=2),
+    ]
+
+
 def _sample_iv_rank_rows() -> list[models.IvRankRow]:
     return [
         models.IvRankRow(date=date(2026, 5, 18), close=Decimal("450")),
@@ -378,9 +636,26 @@ def _assert_single_executemany(repo: _FakeRepository, expected_count: int) -> No
 def test_batch_writer_methods_use_one_executemany_call_for_multi_row_inputs():
     cases = [
         lambda repo: repo.insert_iv_term_rows(1, _sample_iv_rows()),
+        lambda repo: repo.insert_interpolated_iv_rows(
+            1, "TSLA", _sample_interpolated_iv_rows()
+        ),
         lambda repo: repo.insert_greek_exposure_rows(1, "TSLA", _sample_exposure_rows()),
         lambda repo: repo.insert_greeks_rows(1, "TSLA", _sample_greeks_rows()),
+        lambda repo: repo.upsert_oi_per_strike_rows(
+            "TSLA", _sample_oi_per_strike_rows()
+        ),
+        lambda repo: repo.upsert_options_volume_daily(
+            "TSLA", _sample_options_daily_rows()
+        ),
+        lambda repo: repo.upsert_option_chain_per_strike(
+            "TSLA", date(2026, 5, 18), _sample_chain_per_strike_rows()
+        ),
+        lambda repo: repo.insert_oi_change_rows(1, _sample_oi_change_rows()),
+        lambda repo: repo.insert_max_pain_rows(
+            1, "TSLA", date(2026, 5, 18), _sample_max_pain_rows()
+        ),
         lambda repo: repo.insert_option_contract_rows(1, "TSLA", _sample_contract_rows()),
+        lambda repo: repo.insert_dark_pool_rows(1, _sample_dark_pool_rows()),
         lambda repo: repo.upsert_iv_rank_rows("TSLA", _sample_iv_rank_rows()),
         lambda repo: repo.upsert_volatility_stats_rows(_sample_vol_stats_rows()),
         lambda repo: repo.upsert_realized_vol_rows("TSLA", _sample_realized_vol_rows()),

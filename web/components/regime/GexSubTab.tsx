@@ -1,20 +1,12 @@
 "use client";
 
-import { useState, useMemo, useRef, useEffect } from "react";
-import {
-  Activity,
-  TrendingUp,
-  TrendingDown,
-  ArrowUpRight,
-  ArrowDownRight,
-} from "lucide-react";
+import { useMemo, useState } from "react";
+import { Activity, TrendingUp, TrendingDown } from "lucide-react";
 import {
   useGex,
-  type GexBucket,
   type GexData,
   type GexHistoryEntry,
   type GexLevel,
-  type IvData,
   type MqLevels,
   type SourceDelta,
   type SourceDeltaEntry,
@@ -23,6 +15,7 @@ import { MarketState } from "@/lib/regime/useMarketHours";
 import InfoTooltip from "./InfoTooltip";
 import GexProfileChart from "./GexProfileChart";
 import { HistoryChart } from "./HistoryChart";
+import { formatPercent } from "./primitives/format";
 import { MetricCard, SourceBadge } from "./ui/MetricCard";
 
 type GexSubTabProps = {
@@ -31,14 +24,6 @@ type GexSubTabProps = {
 
 /* ─── Helpers ─────────────────────────────────────────── */
 
-function fmtNum(v: number | null | undefined, decimals = 2): string {
-  if (v == null) return "---";
-  return v.toLocaleString("en-US", {
-    minimumFractionDigits: decimals,
-    maximumFractionDigits: decimals,
-  });
-}
-
 function fmtGex(v: number | null | undefined): string {
   if (v == null) return "---";
   const absVal = Math.abs(v);
@@ -46,11 +31,6 @@ function fmtGex(v: number | null | undefined): string {
     return `${v >= 0 ? "+" : ""}$${(v / 1_000_000).toFixed(1)}M`;
   if (absVal >= 1_000) return `${v >= 0 ? "+" : ""}$${(v / 1_000).toFixed(1)}K`;
   return `${v >= 0 ? "+" : ""}$${v.toFixed(0)}`;
-}
-
-function fmtPct(v: number | null | undefined): string {
-  if (v == null) return "---";
-  return `${v >= 0 ? "+" : ""}${v.toFixed(2)}%`;
 }
 
 function fmtPrice(v: number | null | undefined): string {
@@ -80,11 +60,6 @@ function biasLabel(direction: string): string {
   return direction.replace("_", " ");
 }
 
-function levelColor(gamma: number | undefined): string {
-  if (gamma == null) return "var(--text-muted)";
-  return gamma >= 0 ? "var(--signal-core)" : "var(--fault)";
-}
-
 /* ─── Spot freshness pill ─────────────────────────────── */
 
 /**
@@ -100,13 +75,14 @@ export function SpotFreshnessPill({
   nowMs,
 }: {
   tapeTime: string | null | undefined;
-  /** Injectable for tests; defaults to Date.now(). */
+  /** Injectable for tests and data-derived render anchors. */
   nowMs?: number;
 }) {
   if (!tapeTime) return null;
   const t = Date.parse(tapeTime);
   if (Number.isNaN(t)) return null;
-  const now = nowMs ?? Date.now();
+  if (nowMs == null) return null;
+  const now = nowMs;
   const ageMin = Math.max(0, Math.floor((now - t) / 60000));
 
   let label: string;
@@ -179,7 +155,7 @@ function LevelCard({
       </div>
       <div className="gex-level-value">{fmtPrice(level.strike)}</div>
       <div className="gex-level-sub">
-        {fmtPct(level.distance_pct)} &mdash; {fmtGex(level.gamma)} per $1
+        {formatPercent(level.distance_pct)} &mdash; {fmtGex(level.gamma)} per $1
       </div>
     </div>
   );
@@ -737,6 +713,7 @@ export default function GexSubTab({ marketState }: GexSubTabProps) {
   const daysAbove = bias.days_above_flip;
   const daysSide = daysAbove > 0 ? "ABOVE" : daysAbove < 0 ? "BELOW" : "AT";
   const daysCount = Math.abs(daysAbove);
+  const spotFreshnessAnchorMs = Date.parse(lastSync ?? data.scan_time);
 
   const netGexColor = data.net_gex >= 0 ? "var(--signal-core)" : "var(--fault)";
   const netDexColor = data.net_dex >= 0 ? "var(--signal-core)" : "var(--fault)";
@@ -796,7 +773,16 @@ export default function GexSubTab({ marketState }: GexSubTabProps) {
         <div className="gex-metrics-row">
           <MetricCard
             label="SPOT"
-            badge={<SpotFreshnessPill tapeTime={data.tape_time} />}
+            badge={
+              <SpotFreshnessPill
+                tapeTime={data.tape_time}
+                nowMs={
+                  Number.isFinite(spotFreshnessAnchorMs)
+                    ? spotFreshnessAnchorMs
+                    : undefined
+                }
+              />
+            }
             value={fmtPrice(data.spot)}
             sub={
               data.day_change != null ? (
@@ -809,7 +795,7 @@ export default function GexSubTab({ marketState }: GexSubTabProps) {
                   }}
                 >
                   {data.day_change >= 0 ? "+" : ""}
-                  {fmtPrice(data.day_change)} ({fmtPct(data.day_change_pct)})
+                  {fmtPrice(data.day_change)} ({formatPercent(data.day_change_pct)})
                 </span>
               ) : undefined
             }
@@ -826,7 +812,7 @@ export default function GexSubTab({ marketState }: GexSubTabProps) {
             }
             sub={
               levels.gex_flip
-                ? `${fmtPct(levels.gex_flip.distance_pct)} from spot`
+                ? `${formatPercent(levels.gex_flip.distance_pct)} from spot`
                 : data.mq?.hvl
                   ? "MQ HVL"
                   : undefined

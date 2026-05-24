@@ -23,7 +23,19 @@ vi.mock("@/lib/api", async () => {
   };
 });
 
-const EMPTY_PAIR: TradeInsightsAiLatestPair = { codex: null, claude: null };
+const PROMPT_VERSION = "trade-insights-ai-v5.3";
+const EMPTY_PAIR: TradeInsightsAiLatestPair = {
+  current_prompt_version: PROMPT_VERSION,
+  current_prompt_label: "v5.3",
+  codex: null,
+  claude: null,
+};
+
+function latestPair(
+  overrides: Partial<TradeInsightsAiLatestPair> = {},
+): TradeInsightsAiLatestPair {
+  return { ...EMPTY_PAIR, ...overrides };
+}
 
 function baseResponse(
   overrides: Partial<TradeInsightsAiAnalysisResponse> = {},
@@ -186,14 +198,14 @@ describe("TradeInsightsAiAnalysisPanel", () => {
   });
 
   it("hydrates latest pair from /latest on mount", async () => {
-    vi.mocked(api.tradeInsightsAiAnalysisLatest).mockResolvedValue({
+    vi.mocked(api.tradeInsightsAiAnalysisLatest).mockResolvedValue(latestPair({
       codex: succeededResponse(),
       claude: succeededResponse({
         analysis_id: "33333333-3333-3333-3333-333333333333",
         provider: "claude",
         model: "claude-opus-4-7",
       }),
-    });
+    }));
     render(<TradeInsightsAiAnalysisPanel ticker="TSLA" />);
     expect(
       await screen.findByText(
@@ -208,14 +220,14 @@ describe("TradeInsightsAiAnalysisPanel", () => {
     vi.mocked(api.tradeInsightsAiAnalysisLatest).mockResolvedValueOnce(
       EMPTY_PAIR,
     );
-    vi.mocked(api.tradeInsightsAiAnalysisLatest).mockResolvedValue({
+    vi.mocked(api.tradeInsightsAiAnalysisLatest).mockResolvedValue(latestPair({
       codex: succeededResponse(),
       claude: succeededResponse({
         analysis_id: "33333333-3333-3333-3333-333333333333",
         provider: "claude",
         model: "claude-opus-4-7",
       }),
-    });
+    }));
     vi.mocked(api.tradeInsightsAiAnalysis).mockResolvedValueOnce(
       enqueueResp("queued", "queued"),
     );
@@ -253,14 +265,14 @@ describe("TradeInsightsAiAnalysisPanel", () => {
       enqueueResp("succeeded", "succeeded"),
     );
     // /latest is also refreshed after the run resolves with the cached pair.
-    vi.mocked(api.tradeInsightsAiAnalysisLatest).mockResolvedValue({
+    vi.mocked(api.tradeInsightsAiAnalysisLatest).mockResolvedValue(latestPair({
       codex: succeededResponse(),
       claude: succeededResponse({
         analysis_id: "33333333-3333-3333-3333-333333333333",
         provider: "claude",
         model: "claude-opus-4-7",
       }),
-    });
+    }));
     render(<TradeInsightsAiAnalysisPanel ticker="TSLA" />);
     fireEvent.click(await screen.findByText("Run Analysis"));
     await waitFor(() => expect(api.tradeInsightsAiAnalysis).toHaveBeenCalled());
@@ -333,14 +345,14 @@ describe("TradeInsightsAiAnalysisPanel", () => {
   });
 
   it("switching to Claude tab renders the Claude analysis body", async () => {
-    vi.mocked(api.tradeInsightsAiAnalysisLatest).mockResolvedValue({
+    vi.mocked(api.tradeInsightsAiAnalysisLatest).mockResolvedValue(latestPair({
       codex: null,
       claude: succeededResponse({
         analysis_id: "33333333-3333-3333-3333-333333333333",
         provider: "claude",
         model: "claude-opus-4-7",
       }),
-    });
+    }));
     render(<TradeInsightsAiAnalysisPanel ticker="TSLA" />);
     // Initially codex tab is active and shows "No analysis yet".
     expect(await screen.findByText(/No analysis yet for Codex/i)).toBeDefined();
@@ -358,14 +370,14 @@ describe("TradeInsightsAiAnalysisPanel", () => {
 
   it("renders ConsensusBreakdown rows when both providers have headlines", async () => {
     // Same bias / archetype / entry_state → all rows render '='.
-    vi.mocked(api.tradeInsightsAiAnalysisLatest).mockResolvedValue({
+    vi.mocked(api.tradeInsightsAiAnalysisLatest).mockResolvedValue(latestPair({
       codex: succeededResponse(),
       claude: succeededResponse({
         analysis_id: "33333333-3333-3333-3333-333333333333",
         provider: "claude",
         model: "claude-opus-4-7",
       }),
-    });
+    }));
     render(<TradeInsightsAiAnalysisPanel ticker="TSLA" />);
     const breakdown = await screen.findByTestId("ai-consensus-breakdown");
     expect(breakdown).toBeDefined();
@@ -380,7 +392,7 @@ describe("TradeInsightsAiAnalysisPanel", () => {
   });
 
   it("ConsensusBreakdown shows '≠' when providers diverge on a headline field", async () => {
-    vi.mocked(api.tradeInsightsAiAnalysisLatest).mockResolvedValue({
+    vi.mocked(api.tradeInsightsAiAnalysisLatest).mockResolvedValue(latestPair({
       codex: succeededResponse(),
       claude: succeededResponse({
         analysis_id: "44444444-4444-4444-4444-444444444444",
@@ -395,7 +407,7 @@ describe("TradeInsightsAiAnalysisPanel", () => {
           },
         } as Outcome,
       }),
-    });
+    }));
     render(<TradeInsightsAiAnalysisPanel ticker="TSLA" />);
     const breakdown = await screen.findByTestId("ai-consensus-breakdown");
     expect(breakdown.textContent).toContain("≠");
@@ -408,15 +420,34 @@ describe("TradeInsightsAiAnalysisPanel", () => {
   });
 
   it("ConsensusBreakdown does not render when one provider is missing", async () => {
-    vi.mocked(api.tradeInsightsAiAnalysisLatest).mockResolvedValue({
+    vi.mocked(api.tradeInsightsAiAnalysisLatest).mockResolvedValue(latestPair({
       codex: succeededResponse(),
       claude: null,
-    });
+    }));
     render(<TradeInsightsAiAnalysisPanel ticker="TSLA" />);
     // Wait for the codex side to hydrate before asserting absence.
     await screen.findByText(
       "TSLA near gamma resistance with cheap vol and bullish flow",
     );
     expect(screen.queryByTestId("ai-consensus-breakdown")).toBeNull();
+  });
+
+  it("uses API prompt metadata for legacy analysis copy", async () => {
+    vi.mocked(api.tradeInsightsAiAnalysisLatest).mockResolvedValue(latestPair({
+      current_prompt_version: PROMPT_VERSION,
+      current_prompt_label: "v5.3",
+      codex: baseResponse({
+        status: "succeeded",
+        prompt_version: "trade-insights-ai-v4",
+        produced_at: "2026-03-24T20:18:42Z",
+        finished_at: "2026-03-24T20:19:00Z",
+        error_message: "legacy prompt_version",
+      }),
+    }));
+
+    render(<TradeInsightsAiAnalysisPanel ticker="TSLA" />);
+
+    expect(await screen.findByText(/Schema bumped to v5.3/i)).toBeDefined();
+    expect(screen.queryByText(/CURRENT_PROMPT_VERSION/i)).toBeNull();
   });
 });

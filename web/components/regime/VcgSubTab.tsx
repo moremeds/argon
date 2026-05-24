@@ -10,23 +10,13 @@ import {
   type VcgSignal,
   useVcg,
 } from "@/lib/regime/useVcg";
+import {
+  formatNumber,
+  formatPercent,
+  formatSignedNumber,
+} from "./primitives/format";
 
 /* ─── Helpers (1:1 port from xenon VcgPanel.tsx) ───────────────── */
-
-function fmtZ(v: number | null | undefined): string {
-  if (v == null || !Number.isFinite(v)) return "---";
-  return v >= 0 ? `+${v.toFixed(2)}` : v.toFixed(2);
-}
-
-function fmtPct(v: number | null | undefined): string {
-  if (v == null || !Number.isFinite(v)) return "---";
-  return `${v >= 0 ? "+" : ""}${v.toFixed(2)}%`;
-}
-
-function fmtNum(v: number | null | undefined, decimals = 2): string {
-  if (v == null || !Number.isFinite(v)) return "---";
-  return v.toFixed(decimals);
-}
 
 // Persisted attribution percentages should already sum to 100, but the UI
 // renders from JSONB and a corrupted/backfilled payload could surface NaN,
@@ -382,7 +372,7 @@ export function VcgSubTabView({
               style={{ color: interpColor }}
               data-testid="vcg-z-score"
             >
-              {fmtZ(sig.vcg)}
+              {formatSignedNumber(sig.vcg)}
             </div>
             <div className="metric-change" style={{ color: interpColor }}>
               {interpretationLabel(sig.interpretation)}
@@ -390,7 +380,7 @@ export function VcgSubTabView({
           </div>
           <div className="metric-card">
             <div className="metric-label">VCG Adj (Panic-Adj)</div>
-            <div className="metric-value">{fmtZ(sig.vcg_adj)}</div>
+            <div className="metric-value">{formatSignedNumber(sig.vcg_adj)}</div>
             <div className="metric-change neutral">
               {sig.pi_panic > 0
                 ? `π = ${sig.pi_panic.toFixed(2)} SUPPRESSED`
@@ -404,10 +394,10 @@ export function VcgSubTabView({
                 sig.credit_5d_return_pct >= 0 ? "positive" : "negative"
               }`}
             >
-              {fmtPct(sig.credit_5d_return_pct)}
+              {formatPercent(sig.credit_5d_return_pct)}
             </div>
             <div className="metric-change neutral">
-              {data.credit_proxy} @ ${fmtNum(sig.credit_price)}
+              {data.credit_proxy} @ ${formatNumber(sig.credit_price)}
             </div>
           </div>
           <div className="metric-card">
@@ -702,8 +692,8 @@ export function VcgSubTabView({
                 paddingTop: "8px",
               }}
             >
-              β₁(VVIX) = {fmtNum(sig.beta1_vvix, 6)} | β₂(VIX) ={" "}
-              {fmtNum(sig.beta2_vix, 6)}
+              β₁(VVIX) = {formatNumber(sig.beta1_vvix, 6)} | β₂(VIX) ={" "}
+              {formatNumber(sig.beta2_vix, 6)}
               {sig.sign_suppressed && (
                 <span style={{ color: "var(--warning)", marginLeft: "8px" }}>
                   SIGN REVERSED
@@ -718,7 +708,7 @@ export function VcgSubTabView({
                 marginTop: "6px",
               }}
             >
-              VVIX {fmtNum(sig.vvix)} · VIX {fmtNum(sig.vix)}
+              VVIX {formatNumber(sig.vvix)} · VIX {formatNumber(sig.vix)}
             </div>
           </div>
         </div>
@@ -778,9 +768,9 @@ export function VcgSubTabView({
                               : "var(--text-primary)",
                       }}
                     >
-                      {fmtZ(h.vcg)}
+                      {formatSignedNumber(h.vcg)}
                     </td>
-                    <td className="right">{fmtZ(h.vcg_adj)}</td>
+                    <td className="right">{formatSignedNumber(h.vcg_adj)}</td>
                     <td className="right">
                       {h.residual != null ? h.residual.toFixed(6) : "---"}
                     </td>

@@ -19,6 +19,12 @@ const HEADING: React.CSSProperties = {
 };
 
 type Bar = { date: string; net_gex: number | null; spot: number | null };
+type GexHistoryState = {
+  ticker: string;
+  data: RegimeGexResponse | null;
+  err: string | null;
+  loading: boolean;
+};
 
 function buildBars(resp: RegimeGexResponse | null): Bar[] {
   const hist = resp?.history ?? [];
@@ -38,34 +44,36 @@ function fmtTick(v: number): string {
 }
 
 export function GexHistoryChart({ ticker }: { ticker: string }) {
-  const [data, setData] = useState<RegimeGexResponse | null>(null);
-  const [err, setErr] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [state, setState] = useState<GexHistoryState>({
+    ticker,
+    data: null,
+    err: null,
+    loading: true,
+  });
 
   useEffect(() => {
     let cancelled = false;
-    setData(null);
-    setErr(null);
-    setLoading(true);
     api
       .regimeGex(ticker)
       .then((r) => {
         if (!cancelled) {
-          setData(r);
-          setErr(null);
+          setState({ ticker, data: r, err: null, loading: false });
         }
       })
       .catch((e) => {
-        if (!cancelled) setErr(String(e));
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
+        if (!cancelled) {
+          setState({ ticker, data: null, err: String(e), loading: false });
+        }
       });
     return () => {
       cancelled = true;
     };
   }, [ticker]);
 
+  const isCurrentTicker = state.ticker === ticker;
+  const data = isCurrentTicker ? state.data : null;
+  const err = isCurrentTicker ? state.err : null;
+  const loading = isCurrentTicker ? state.loading : true;
   const bars = useMemo(() => buildBars(data), [data]);
 
   if (loading) {

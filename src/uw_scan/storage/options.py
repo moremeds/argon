@@ -119,6 +119,167 @@ def _option_contract_params(
     ]
 
 
+def _interpolated_iv_params(
+    run_id: int, ticker: str, rows: Iterable[models.InterpolatedIvRow]
+) -> list[tuple[Any, ...]]:
+    return [
+        (
+            run_id,
+            ticker,
+            r.date,
+            r.days,
+            r.percentile,
+            r.volatility,
+            r.implied_move_perc,
+        )
+        for r in rows
+    ]
+
+
+def _oi_per_strike_params(
+    ticker: str, rows: Iterable[models.OiPerStrikeRow]
+) -> list[tuple[Any, ...]]:
+    return [(ticker, r.date, r.strike, r.call_oi, r.put_oi) for r in rows]
+
+
+def _options_volume_daily_params(
+    ticker: str, rows: Iterable[models.OptionsDailyRow]
+) -> list[tuple[Any, ...]]:
+    return [
+        (
+            ticker,
+            r.date,
+            r.call_volume,
+            r.put_volume,
+            r.call_volume_ask_side,
+            r.call_volume_bid_side,
+            r.put_volume_ask_side,
+            r.put_volume_bid_side,
+            r.call_premium,
+            r.put_premium,
+            r.net_call_premium,
+            r.net_put_premium,
+            r.bullish_premium,
+            r.bearish_premium,
+            r.call_open_interest,
+            r.put_open_interest,
+            r.avg_3_day_call_volume,
+            r.avg_3_day_put_volume,
+            r.avg_7_day_call_volume,
+            r.avg_7_day_put_volume,
+            r.avg_30_day_call_volume,
+            r.avg_30_day_put_volume,
+        )
+        for r in rows
+    ]
+
+
+def _option_chain_per_strike_params(
+    ticker: str,
+    snapshot_date: _date,
+    rows: Iterable[models.OptionChainPerStrikeRow],
+) -> list[tuple[Any, ...]]:
+    return [
+        (
+            ticker,
+            snapshot_date,
+            r.expiry,
+            r.strike,
+            r.call_volume,
+            r.put_volume,
+            r.call_oi,
+            r.put_oi,
+        )
+        for r in rows
+    ]
+
+
+def _oi_change_params(
+    run_id: int, rows: Iterable[models.OiChangeRow]
+) -> list[tuple[Any, ...]]:
+    return [
+        (
+            run_id,
+            r.underlying_symbol,
+            r.option_symbol,
+            r.curr_date,
+            r.last_date,
+            r.curr_oi,
+            r.last_oi,
+            r.oi_diff_plain,
+            r.oi_change,
+            r.volume,
+            r.trades,
+            r.avg_price,
+            r.last_fill,
+            r.days_of_oi_increases,
+            r.days_of_vol_greater_than_oi,
+            r.percentage_of_total,
+            r.rnk,
+            r.prev_ask_volume,
+            r.prev_bid_volume,
+            r.prev_mid_volume,
+            r.prev_neutral_volume,
+            r.prev_multi_leg_volume,
+            r.prev_stock_multi_leg_volume,
+            r.prev_total_premium,
+            r.last_ask,
+            r.last_bid,
+        )
+        for r in rows
+    ]
+
+
+def _max_pain_params(
+    run_id: int,
+    ticker: str,
+    market_date: Any,
+    rows: Iterable[models.MaxPainRow],
+) -> list[tuple[Any, ...]]:
+    return [
+        (
+            run_id,
+            ticker,
+            market_date,
+            r.expiry,
+            r.max_pain,
+            r.close,
+            r.open,
+            r.next_upper_strike,
+            r.next_lower_strike,
+        )
+        for r in rows
+    ]
+
+
+def _dark_pool_params(
+    run_id: int, rows: Iterable[models.DarkPoolPrint]
+) -> list[tuple[Any, ...]]:
+    return [
+        (
+            run_id,
+            r.ticker,
+            r.tracking_id,
+            r.executed_at,
+            r.trf_executed_at,
+            r.price,
+            r.size,
+            r.premium,
+            r.nbbo_bid,
+            r.nbbo_ask,
+            r.nbbo_bid_quantity,
+            r.nbbo_ask_quantity,
+            r.market_center,
+            r.sale_cond_codes,
+            r.ext_hour_sold_codes,
+            r.trade_code,
+            r.trade_settlement,
+            r.canceled,
+        )
+        for r in rows
+    ]
+
+
 class _OptionsMixin:
     _conn: psycopg.Connection
     _schema: str
@@ -153,20 +314,9 @@ class _OptionsMixin:
             "VALUES (%s, %s, %s, %s, %s, %s, %s) "
             "ON CONFLICT (run_id, ticker, days) DO NOTHING"
         )
+        params = _interpolated_iv_params(run_id, ticker, rows)
         with self._conn.cursor() as cur:
-            for r in rows:
-                cur.execute(
-                    sql,
-                    (
-                        run_id,
-                        ticker,
-                        r.date,
-                        r.days,
-                        r.percentile,
-                        r.volatility,
-                        r.implied_move_perc,
-                    ),
-                )
+            cur.executemany(sql, params)
         return len(rows)
 
     def insert_greek_exposure_rows(
@@ -294,12 +444,9 @@ class _OptionsMixin:
             "ON CONFLICT (ticker, market_date, strike) DO UPDATE SET "
             "call_oi=EXCLUDED.call_oi, put_oi=EXCLUDED.put_oi"
         )
+        params = _oi_per_strike_params(ticker, rows)
         with self._conn.cursor() as cur:
-            for r in rows:
-                cur.execute(
-                    sql,
-                    (ticker, r.date, r.strike, r.call_oi, r.put_oi),
-                )
+            cur.executemany(sql, params)
         return len(rows)
 
     def upsert_options_volume_daily(
@@ -341,35 +488,9 @@ class _OptionsMixin:
             "avg_30_day_call_volume=EXCLUDED.avg_30_day_call_volume, "
             "avg_30_day_put_volume=EXCLUDED.avg_30_day_put_volume"
         )
+        params = _options_volume_daily_params(ticker, rows)
         with self._conn.cursor() as cur:
-            for r in rows:
-                cur.execute(
-                    sql,
-                    (
-                        ticker,
-                        r.date,
-                        r.call_volume,
-                        r.put_volume,
-                        r.call_volume_ask_side,
-                        r.call_volume_bid_side,
-                        r.put_volume_ask_side,
-                        r.put_volume_bid_side,
-                        r.call_premium,
-                        r.put_premium,
-                        r.net_call_premium,
-                        r.net_put_premium,
-                        r.bullish_premium,
-                        r.bearish_premium,
-                        r.call_open_interest,
-                        r.put_open_interest,
-                        r.avg_3_day_call_volume,
-                        r.avg_3_day_put_volume,
-                        r.avg_7_day_call_volume,
-                        r.avg_7_day_put_volume,
-                        r.avg_30_day_call_volume,
-                        r.avg_30_day_put_volume,
-                    ),
-                )
+            cur.executemany(sql, params)
         return len(rows)
 
     def upsert_option_chain_per_strike(
@@ -390,21 +511,9 @@ class _OptionsMixin:
             "call_volume=EXCLUDED.call_volume, put_volume=EXCLUDED.put_volume, "
             "call_oi=EXCLUDED.call_oi, put_oi=EXCLUDED.put_oi"
         )
+        params = _option_chain_per_strike_params(ticker, snapshot_date, rows)
         with self._conn.cursor() as cur:
-            for r in rows:
-                cur.execute(
-                    sql,
-                    (
-                        ticker,
-                        snapshot_date,
-                        r.expiry,
-                        r.strike,
-                        r.call_volume,
-                        r.put_volume,
-                        r.call_oi,
-                        r.put_oi,
-                    ),
-                )
+            cur.executemany(sql, params)
         return len(rows)
 
     def delete_option_chain_per_strike(self, ticker: str, snapshot_date: _date) -> int:
@@ -490,39 +599,9 @@ class _OptionsMixin:
             "        %s, %s, %s, %s, %s, %s, %s, %s, %s) "
             "ON CONFLICT (run_id, option_symbol) DO NOTHING"
         )
+        params = _oi_change_params(run_id, rows)
         with self._conn.cursor() as cur:
-            for r in rows:
-                cur.execute(
-                    sql,
-                    (
-                        run_id,
-                        r.underlying_symbol,
-                        r.option_symbol,
-                        r.curr_date,
-                        r.last_date,
-                        r.curr_oi,
-                        r.last_oi,
-                        r.oi_diff_plain,
-                        r.oi_change,
-                        r.volume,
-                        r.trades,
-                        r.avg_price,
-                        r.last_fill,
-                        r.days_of_oi_increases,
-                        r.days_of_vol_greater_than_oi,
-                        r.percentage_of_total,
-                        r.rnk,
-                        r.prev_ask_volume,
-                        r.prev_bid_volume,
-                        r.prev_mid_volume,
-                        r.prev_neutral_volume,
-                        r.prev_multi_leg_volume,
-                        r.prev_stock_multi_leg_volume,
-                        r.prev_total_premium,
-                        r.last_ask,
-                        r.last_bid,
-                    ),
-                )
+            cur.executemany(sql, params)
         return len(rows)
 
     def insert_max_pain_rows(
@@ -542,22 +621,9 @@ class _OptionsMixin:
             "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s) "
             "ON CONFLICT (run_id, ticker, expiry) DO NOTHING"
         )
+        params = _max_pain_params(run_id, ticker, market_date, rows)
         with self._conn.cursor() as cur:
-            for r in rows:
-                cur.execute(
-                    sql,
-                    (
-                        run_id,
-                        ticker,
-                        market_date,
-                        r.expiry,
-                        r.max_pain,
-                        r.close,
-                        r.open,
-                        r.next_upper_strike,
-                        r.next_lower_strike,
-                    ),
-                )
+            cur.executemany(sql, params)
         return len(rows)
 
     def insert_option_contract_rows(
@@ -598,31 +664,9 @@ class _OptionsMixin:
             "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) "
             "ON CONFLICT (run_id, tracking_id) DO NOTHING"
         )
+        params = _dark_pool_params(run_id, rows)
         with self._conn.cursor() as cur:
-            for r in rows:
-                cur.execute(
-                    sql,
-                    (
-                        run_id,
-                        r.ticker,
-                        r.tracking_id,
-                        r.executed_at,
-                        r.trf_executed_at,
-                        r.price,
-                        r.size,
-                        r.premium,
-                        r.nbbo_bid,
-                        r.nbbo_ask,
-                        r.nbbo_bid_quantity,
-                        r.nbbo_ask_quantity,
-                        r.market_center,
-                        r.sale_cond_codes,
-                        r.ext_hour_sold_codes,
-                        r.trade_code,
-                        r.trade_settlement,
-                        r.canceled,
-                    ),
-                )
+            cur.executemany(sql, params)
         return len(rows)
 
     def insert_short_interest_snapshot(

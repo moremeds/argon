@@ -64,9 +64,14 @@ def test_enqueue_response_holds_list_of_stubs() -> None:
 
 
 def test_latest_pair_allows_null_per_provider() -> None:
-    pair = TradeInsightAiLatestPair(codex=None, claude=None)
+    pair = TradeInsightAiLatestPair(
+        codex=None,
+        claude=None,
+        current_prompt_version="trade-insights-ai-v5.3",
+    )
     assert pair.codex is None
     assert pair.claude is None
+    assert pair.current_prompt_version == "trade-insights-ai-v5.3"
 
 
 def test_analysis_response_has_provider_and_model_fields() -> None:

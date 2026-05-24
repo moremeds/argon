@@ -20,5 +20,13 @@ output/
 !docs/screenshots/*.png
 .claude/
 
+# Local browser/debug artifacts
+.playwright-cli/
+*.log
+*.dmg
+*.base64.txt
+*-base64.txt
+/*-snapshot.md
+
 # Local-only archives of completed plans/specs/reviews
 docs/**/archive/

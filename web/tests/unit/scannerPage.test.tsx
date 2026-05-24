@@ -114,6 +114,17 @@ describe("CandidateCard", () => {
     expect(screen.getByText("READY")).toBeTruthy();
   });
 
+  it("uses the supplied render-time anchor for stale scanner labels", () => {
+    render(
+      <CandidateCard
+        candidate={makeCandidate({ scanned_at: "2026-05-20T12:00:00Z" })}
+        nowMs={Date.parse("2026-05-24T12:00:00Z")}
+      />,
+    );
+
+    expect(screen.getByText(/scanned 96h ago/)).toBeTruthy();
+  });
+
   it("adds an explanatory title to the setup pill so the gate meaning is discoverable", () => {
     render(<CandidateCard candidate={makeCandidate()} />);
 

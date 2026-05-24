@@ -17,6 +17,11 @@ import {
   RegimeStrip,
   RegimeStripCell,
 } from "./RegimeStrip";
+import {
+  formatNumber,
+  formatPercent,
+  formatSignedNumber,
+} from "./primitives/format";
 import { type CriBlock, type CriResponse, useCri } from "@/lib/regime/useCri";
 
 type CriLevel = "LOW" | "ELEVATED" | "HIGH" | "CRITICAL";
@@ -122,21 +127,6 @@ function levelColor(level: CriLevel): string {
     case "CRITICAL":
       return "var(--negative)";
   }
-}
-
-function fmt(v: number | null | undefined, decimals = 2): string {
-  if (v == null || !Number.isFinite(v)) return "---";
-  return v.toFixed(decimals);
-}
-
-function fmtPct(v: number | null | undefined, decimals = 2): string {
-  if (v == null || !Number.isFinite(v)) return "---";
-  return `${v >= 0 ? "+" : ""}${v.toFixed(decimals)}%`;
-}
-
-function fmtSigned(v: number | null | undefined, decimals = 2): string {
-  if (v == null || !Number.isFinite(v)) return "---";
-  return `${v >= 0 ? "+" : ""}${v.toFixed(decimals)}`;
 }
 
 function ComponentBar({
@@ -531,7 +521,7 @@ export function CriSubTabView({
   const lastSync = data.scan_time || null;
 
   // History payload is the 20-session window (oldest → newest).
-  const liveValues = useMemo(() => ({}), []);
+  const liveValues = {};
   // Second-to-last row drives the prior-day dot on each ComponentBar.
   const priorHistory =
     history.length >= 2 ? history[history.length - 2] : undefined;
@@ -589,9 +579,9 @@ export function CriSubTabView({
               VIX <LiveBadge live={live} />
             </>
           }
-          value={fmt(vix)}
+          value={formatNumber(vix)}
           change={<DayChange last={vix} close={vixClose} />}
-          sub={<>5d RoC: {fmtPct(data.vix_5d_roc, 1)}</>}
+          sub={<>5d RoC: {formatPercent(data.vix_5d_roc, 1)}</>}
         />
         <RegimeStripCell
           testId="strip-vvix"
@@ -600,9 +590,9 @@ export function CriSubTabView({
               VVIX <LiveBadge live={live} />
             </>
           }
-          value={fmt(vvix)}
+          value={formatNumber(vvix)}
           change={<DayChange last={vvix} close={vvixClose} />}
-          sub={<>VVIX/VIX: {fmt(vvixVixRatio)}</>}
+          sub={<>VVIX/VIX: {formatNumber(vvixVixRatio)}</>}
         />
         <RegimeStripCell
           testId="strip-spy"
@@ -612,9 +602,9 @@ export function CriSubTabView({
               <LiveBadge live={live} />
             </>
           }
-          value={`$${fmt(spy)}`}
+          value={`$${formatNumber(spy)}`}
           change={<DayChange last={spy} close={spyClose} prefix="$" />}
-          sub={<>vs 100d MA: {fmtPct(spxDistPct)}</>}
+          sub={<>vs 100d MA: {formatPercent(spxDistPct)}</>}
         />
         <RegimeStripCell
           testId="strip-rvol"
@@ -625,7 +615,7 @@ export function CriSubTabView({
               <LiveBadge live={live} />
             </>
           }
-          value={realizedVol != null ? `${fmt(realizedVol)}%` : "---"}
+          value={realizedVol != null ? `${formatNumber(realizedVol)}%` : "---"}
           change={<PointChange change={null} suffix="%" label="intraday" />}
           sub={<>20d annualized</>}
         />
@@ -636,10 +626,10 @@ export function CriSubTabView({
               COR1M <LiveBadge live={live} />
             </>
           }
-          value={fmt(cor1m, 2)}
+          value={formatNumber(cor1m, 2)}
           change={<DayChange last={cor1m} close={cor1mPrevClose} />}
           sub={
-            <>{`5d chg: ${corr5dChange != null ? `${fmtSigned(corr5dChange)} pts` : "---"}`}</>
+            <>{`5d chg: ${corr5dChange != null ? `${formatSignedNumber(corr5dChange)} pts` : "---"}`}</>
           }
         />
       </RegimeStrip>
@@ -712,19 +702,19 @@ export function CriSubTabView({
           <TriggerRow
             label="SPX < 100d MA"
             met={spxBelowMa}
-            value={`${fmtPct(spxDistPct)} (MA: $${fmt(ma)})`}
+            value={`${formatPercent(spxDistPct)} (MA: $${formatNumber(ma)})`}
             live={live}
           />
           <TriggerRow
             label="Realized Vol > 25%"
             met={rvolTriggerMet}
-            value={realizedVol != null ? `${fmt(realizedVol)}%` : "---"}
+            value={realizedVol != null ? `${formatNumber(realizedVol)}%` : "---"}
             live={live}
           />
           <TriggerRow
             label="COR1M > 60"
             met={correlationTriggerMet}
-            value={fmt(cor1m, 2)}
+            value={formatNumber(cor1m, 2)}
             live={live}
           />
         </div>

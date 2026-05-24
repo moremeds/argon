@@ -66,10 +66,10 @@ export default async function ScannerPage({
   ]);
 
   const grouped = groupByBias(data.candidates);
-  // Single render-time anchor so server-render and client-hydrate produce
-  // identical relative-time labels (avoids hydration mismatch — minute-rounded
-  // labels can differ across the few ms between SSR and hydration).
-  const nowMs = Date.now();
+  // API-generated render anchor so freshness is relative to request time while
+  // client hydration receives the same value and does not read a clock.
+  const generatedAtMs = Date.parse(data.generated_at);
+  const nowMs = Number.isFinite(generatedAtMs) ? generatedAtMs : 0;
 
   return (
     <div style={{ padding: 24, maxWidth: 1600, margin: "0 auto" }}>

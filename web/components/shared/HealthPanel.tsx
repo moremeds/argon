@@ -13,6 +13,7 @@ const SPOT_REFRESH_HEALTHY_LAG_S = 660;
 const RECORD_WINDOW_HOURS = 8;
 const RECORD_MIN_COVERAGE = 0.9;
 const COLLAPSED_STORAGE_KEY = "uw_health_collapsed";
+const HEALTH_TIME_ZONE = "Asia/Hong_Kong";
 
 const rowStyle: React.CSSProperties = {
   display: "flex",
@@ -53,7 +54,7 @@ function dash(v: number | string | null | undefined, suffix = ""): string {
 }
 
 function fmtSidebarDateTime(iso: string | null | undefined): string {
-  const full = fmtDateTimeWithZone(iso);
+  const full = fmtDateTimeWithZone(iso, { timeZone: HEALTH_TIME_ZONE });
   if (full === "—") return full;
   const match = full.match(
     /^\d{4}\/(\d{2})\/(\d{2}) (\d{2}):(\d{2}):\d{2} (.+)$/,
@@ -348,7 +349,7 @@ export function HealthPanel() {
             <span style={labelStyle}>Last spot</span>
             <span
               style={valStyle}
-              title={`Quote ${fmtDateTimeWithZone(h?.latest_spot_quote_at)} / fetched ${fmtDateTimeWithZone(h?.latest_spot_quote_fetched_at)}`}
+              title={`Quote ${fmtDateTimeWithZone(h?.latest_spot_quote_at, { timeZone: HEALTH_TIME_ZONE })} / fetched ${fmtDateTimeWithZone(h?.latest_spot_quote_fetched_at, { timeZone: HEALTH_TIME_ZONE })}`}
             >
               {fmtDuration(h?.spot_quote_lag_seconds)}
             </span>
@@ -374,7 +375,9 @@ export function HealthPanel() {
             <span style={labelStyle}>Last Scan</span>
             <span
               style={valStyle}
-              title={fmtDateTimeWithZone(h?.last_full_scan_at)}
+              title={fmtDateTimeWithZone(h?.last_full_scan_at, {
+                timeZone: HEALTH_TIME_ZONE,
+              })}
             >
               {fmtSidebarDateTime(h?.last_full_scan_at)}
             </span>

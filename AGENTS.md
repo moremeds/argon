@@ -79,8 +79,8 @@ Worker roles: `ai-codex` and `ai-claude` (provider-pinned, recommended); legacy 
 | Active specs / plans | `docs/superpowers/specs/`, `docs/superpowers/plans/` |
 | API surface | `src/uw_scan/api/server.py` + `routers/*` |
 | API contract models | `src/uw_scan/models/` (`__init__.py` is export-only; implementations live in domain modules) |
-| Persistence — legacy mono-module | `src/uw_scan/storage/repository.py` (one method per query; 4,900+ lines; do not extend — split per [feedback_repository_split_threshold](.) ) |
-| Persistence — new leaf modules | `src/uw_scan/storage/{signals,cri_snapshot,vcg_snapshot,vol_index,greek_exposure,gold_etf,flow,health,jobs,market_data,scan_outputs,audit,provider_usage}_repository.py` (or `.py`). New domains go here, never appended to `repository.py` |
+| Persistence — aggregate shim | `src/uw_scan/storage/repository.py` (thin `Repository` assembly + compatibility re-exports; do not add query methods here) |
+| Persistence — domain modules | `src/uw_scan/storage/{audit,cockpit,external_api,fetchers,flow,gex,gold,gold_etf,health,jobs,market_data,matrix_state,options,rates_repository,scan_outputs,scan_results,scan_runs,trade_insights_ai,volatility_raw,volatility_v2,watchlist,ws_consumer_state}.py`. New domains go in their own module/mixin and are added to `repository.py` only for assembly/re-export compatibility |
 | Scheduled jobs | `src/uw_scan/worker/scheduler.py` |
 | UW endpoints (integrated) | `src/uw_scan/api/endpoints.py` + `sources/uw.py` |
 | UW API reference (full surface) | `docs/uw-samples/unusual_whales_api.md` (human-readable) + `docs/uw-samples/unusual_whales_api_spec.yaml` (OpenAPI) — consult before adding any new UW fetcher |

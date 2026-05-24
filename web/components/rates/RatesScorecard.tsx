@@ -15,7 +15,7 @@ function stance(score: number): string {
 }
 
 export function RatesScorecard({ scorecard }: { scorecard: Scorecard }) {
-  const groups = scorecard.groups ?? [];
+  const groups = useMemo(() => scorecard.groups ?? [], [scorecard.groups]);
   const [open, setOpen] = useState<Record<string, boolean>>(() =>
     Object.fromEntries(groups.map((group) => [group.id, true])),
   );

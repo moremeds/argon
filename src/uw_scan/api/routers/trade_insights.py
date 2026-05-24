@@ -412,6 +412,10 @@ def _compute_provider_consensus(
     )
 
 
+def _current_prompt_label() -> str:
+    return PROMPT_VERSION.removeprefix("trade-insights-ai-")
+
+
 @router.get(
     "/stock/{ticker}/trade-insights/ai-analysis/latest",
     response_model=TradeInsightAiLatestPair,
@@ -439,6 +443,8 @@ def get_latest_trade_insights_ai_analysis(
     codex = _row_to_ai_response(pair["codex"]) if pair["codex"] else None
     claude = _row_to_ai_response(pair["claude"]) if pair["claude"] else None
     return TradeInsightAiLatestPair(
+        current_prompt_version=PROMPT_VERSION,
+        current_prompt_label=_current_prompt_label(),
         codex=codex,
         claude=claude,
         provider_consensus=_compute_provider_consensus(codex, claude),

@@ -1,13 +1,27 @@
 "use client";
 
-import { Fragment, useCallback, useEffect, useRef, useState } from "react";
+import { Fragment, useState } from "react";
 import type { ReactNode } from "react";
 
-import { api, type TradeInsightsAiAnalysisResponse } from "@/lib/api";
+import {
+  type TradeInsightsAiAnalysisResponse,
+} from "@/lib/api";
 import { InsightPanel, InsightStatusBanner } from "./InsightPanel";
+import {
+  type PromptMetadata,
+  type Provider,
+  PROVIDERS,
+  isInFlight,
+  useAiAnalysisPolling,
+} from "./tradeInsightsAi/useAiAnalysisPolling";
+import { ConsensusBreakdown } from "./tradeInsightsAi/ConsensusBreakdown";
+import { LegsTable } from "./tradeInsightsAi/LegsTable";
+import { ProviderTabBar } from "./tradeInsightsAi/ProviderTabBar";
+import { TriggerEvidenceCard } from "./tradeInsightsAi/TriggerEvidenceCard";
+
+export { AI_ANALYSIS_POLL_MAX_MS } from "./tradeInsightsAi/useAiAnalysisPolling";
 
 type Outcome = NonNullable<TradeInsightsAiAnalysisResponse["outcome"]>;
-export const AI_ANALYSIS_POLL_MAX_MS = 10 * 60 * 1000;
 
 const labelStyle = {
   fontFamily: "var(--font-mono)",
@@ -117,10 +131,6 @@ function plainText(value: string | null | undefined): string {
 function scoreText(section: SectionCardData): string | null {
   if (section.score == null || section.max_score == null) return null;
   return `score ${section.score}/${section.max_score} · ${section.data_quality}`;
-}
-
-function isInFlight(analysis: TradeInsightsAiAnalysisResponse): boolean {
-  return analysis.status === "queued" || analysis.status === "running";
 }
 
 function SmallHeading({ children }: { children: ReactNode }) {
@@ -730,86 +740,7 @@ function OutcomeGrid({
                     ]}
                   />
                 )}
-                {preferred.legs && preferred.legs.length > 0 && (
-                  <div data-testid="ai-preferred-legs">
-                    <SmallHeading>Option Legs (v5.3)</SmallHeading>
-                    <div
-                      style={{
-                        display: "grid",
-                        gridTemplateColumns:
-                          "minmax(60px, max-content) minmax(60px, max-content) 1fr minmax(96px, max-content)",
-                        gap: "4px 12px",
-                        fontFamily:
-                          "var(--font-mono, IBM Plex Mono, monospace)",
-                        fontSize: 12,
-                      }}
-                    >
-                      <div
-                        style={{
-                          color: "var(--text-muted)",
-                          textTransform: "uppercase",
-                          letterSpacing: 1.5,
-                          fontSize: 10,
-                        }}
-                      >
-                        Side
-                      </div>
-                      <div
-                        style={{
-                          color: "var(--text-muted)",
-                          textTransform: "uppercase",
-                          letterSpacing: 1.5,
-                          fontSize: 10,
-                        }}
-                      >
-                        Type
-                      </div>
-                      <div
-                        style={{
-                          color: "var(--text-muted)",
-                          textTransform: "uppercase",
-                          letterSpacing: 1.5,
-                          fontSize: 10,
-                        }}
-                      >
-                        Strike
-                      </div>
-                      <div
-                        style={{
-                          color: "var(--text-muted)",
-                          textTransform: "uppercase",
-                          letterSpacing: 1.5,
-                          fontSize: 10,
-                        }}
-                      >
-                        Expiry
-                      </div>
-                      {preferred.legs.map((leg, i) => (
-                        <Fragment key={`leg-${i}`}>
-                          <div
-                            style={{
-                              color:
-                                leg.side === "long"
-                                  ? "var(--positive)"
-                                  : "var(--negative)",
-                            }}
-                          >
-                            {leg.side}
-                          </div>
-                          <div style={{ color: "var(--text-primary)" }}>
-                            {leg.option_type}
-                          </div>
-                          <div style={{ color: "var(--text-primary)" }}>
-                            {leg.strike}
-                          </div>
-                          <div style={{ color: "var(--text-secondary)" }}>
-                            {leg.expiry}
-                          </div>
-                        </Fragment>
-                      ))}
-                    </div>
-                  </div>
-                )}
+                {preferred.legs && <LegsTable legs={preferred.legs} />}
                 <div style={{ color: "var(--text-primary)", fontSize: 13 }}>
                   {plainText(preferred.why)}
                 </div>
@@ -825,154 +756,7 @@ function OutcomeGrid({
               </div>
             )}
           </AnalysisCard>
-          {(outcome.thesis_trigger ||
-            outcome.entry_trigger ||
-            outcome.invalidation ||
-            outcome.anti_pin) && (
-            <AnalysisCard
-              title="Trigger State Machine & Anti-Pin"
-              subtitle="v5.3 decomposed trigger components"
-              tone={
-                outcome.invalidation?.fired
-                  ? "negative"
-                  : outcome.entry_trigger?.fired
-                    ? "positive"
-                    : outcome.thesis_trigger?.fired
-                      ? "warning"
-                      : "neutral"
-              }
-            >
-              <div
-                data-testid="ai-trigger-components"
-                style={{
-                  display: "grid",
-                  gap: 6,
-                  fontFamily: "var(--font-mono, IBM Plex Mono, monospace)",
-                  fontSize: 12,
-                }}
-              >
-                {(
-                  [
-                    ["Thesis trigger", outcome.thesis_trigger],
-                    ["Entry trigger", outcome.entry_trigger],
-                    ["Invalidation", outcome.invalidation],
-                  ] as const
-                ).map(([label, comp], i) =>
-                  comp ? (
-                    <div
-                      key={`tc-${i}`}
-                      data-testid={`ai-trigger-${label
-                        .toLowerCase()
-                        .replace(/\s+/g, "-")}`}
-                      style={{
-                        display: "grid",
-                        gridTemplateColumns:
-                          "minmax(108px, max-content) minmax(56px, max-content) 1fr minmax(80px, max-content)",
-                        gap: "0 12px",
-                        alignItems: "baseline",
-                        borderBottom:
-                          i < 2 ? "1px solid var(--border-dim)" : "none",
-                        paddingBottom: 4,
-                      }}
-                    >
-                      <div
-                        style={{
-                          color: "var(--text-muted)",
-                          textTransform: "uppercase",
-                          letterSpacing: 1.5,
-                          fontSize: 10,
-                        }}
-                      >
-                        {label}
-                      </div>
-                      <div
-                        style={{
-                          color: "var(--text-primary)",
-                          fontWeight: 600,
-                        }}
-                      >
-                        {comp.level?.toString() ?? "—"}
-                      </div>
-                      <div
-                        style={{
-                          color: "var(--text-secondary)",
-                          fontSize: 11,
-                          overflow: "hidden",
-                          textOverflow: "ellipsis",
-                          whiteSpace: "nowrap",
-                        }}
-                      >
-                        {comp.meaning || "—"}
-                      </div>
-                      <div
-                        style={{
-                          color: comp.fired
-                            ? label === "Invalidation"
-                              ? "var(--negative)"
-                              : "var(--positive)"
-                            : "var(--text-muted)",
-                          fontSize: 10,
-                          textTransform: "uppercase",
-                          letterSpacing: 1.2,
-                        }}
-                      >
-                        {comp.fired ? "FIRED" : "pending"}
-                        {comp.evidence_close && comp.evidence_date ? (
-                          <span
-                            style={{
-                              color: "var(--text-muted)",
-                              marginLeft: 6,
-                              fontSize: 10,
-                              textTransform: "none",
-                              letterSpacing: 0,
-                            }}
-                          >
-                            @ {comp.evidence_close} ({comp.evidence_date})
-                          </span>
-                        ) : null}
-                      </div>
-                    </div>
-                  ) : null,
-                )}
-              </div>
-              {outcome.anti_pin && (
-                <KeyValueGrid
-                  items={[
-                    {
-                      label: "Anti-pin invoked",
-                      value: outcome.anti_pin.invoked ? "yes" : "no",
-                    },
-                    {
-                      label: "Direction",
-                      value: outcome.anti_pin.direction ?? "none",
-                    },
-                    {
-                      label: "Score",
-                      value: `${outcome.anti_pin.score ?? 0} / ${outcome.anti_pin.max_score ?? 4}`,
-                    },
-                    {
-                      label: "Conviction capped",
-                      value: outcome.anti_pin.conviction_cap_applied
-                        ? "yes"
-                        : "no",
-                    },
-                  ]}
-                />
-              )}
-              {outcome.anti_pin?.conditions_met &&
-                outcome.anti_pin.conditions_met.length > 0 && (
-                  <div style={{ color: "var(--text-secondary)", fontSize: 12 }}>
-                    Conditions met: {outcome.anti_pin.conditions_met.join(", ")}
-                  </div>
-                )}
-              {outcome.anti_pin?.conviction_cap_applied &&
-                outcome.anti_pin?.cap_reason && (
-                  <div style={{ color: "var(--text-secondary)", fontSize: 12 }}>
-                    Cap reason: {outcome.anti_pin.cap_reason}
-                  </div>
-                )}
-            </AnalysisCard>
-          )}
+          <TriggerEvidenceCard outcome={outcome} />
           <AnalysisCard
             title="Validation Checklist"
             subtitle="What must be watched or confirmed"
@@ -997,145 +781,32 @@ function OutcomeGrid({
   );
 }
 
-type Provider = "codex" | "claude";
-const PROVIDERS: readonly Provider[] = ["codex", "claude"] as const;
-
 function providerLabel(p: Provider): string {
   return p.charAt(0).toUpperCase() + p.slice(1);
 }
 
-function headlineField(
-  resp: TradeInsightsAiAnalysisResponse | null,
-  field: "directional_bias" | "thesis_archetype" | "entry_state",
-): string | null {
-  const outcome = resp?.outcome as {
-    headline?: Record<string, unknown>;
-  } | null;
-  const value = outcome?.headline?.[field];
-  return typeof value === "string" && value.length > 0 ? value : null;
-}
-
-function ConsensusBreakdown({
-  codex,
-  claude,
-}: {
-  codex: TradeInsightsAiAnalysisResponse | null;
-  claude: TradeInsightsAiAnalysisResponse | null;
-}) {
-  // Only render when both providers have completed v5+ outcomes — the
-  // breakdown is meaningless if one side is missing a headline.
-  const rows = (
-    [
-      ["directional_bias", "Bias"],
-      ["thesis_archetype", "Archetype"],
-      ["entry_state", "Entry State"],
-    ] as const
-  )
-    .map(([field, label]) => {
-      const c = headlineField(codex, field);
-      const k = headlineField(claude, field);
-      if (c === null || k === null) return null;
-      return { field, label, codex: c, claude: k };
-    })
-    .filter((r): r is NonNullable<typeof r> => r !== null);
-
-  if (rows.length === 0) return null;
-
-  return (
-    <div
-      data-testid="ai-consensus-breakdown"
-      style={{
-        border: "1px solid var(--border-dim)",
-        borderRadius: 4,
-        padding: "10px 12px",
-        background: "var(--bg-panel)",
-        fontFamily: "var(--font-mono)",
-        fontSize: 11,
-        color: "var(--text-primary)",
-        display: "grid",
-        gridTemplateColumns: "minmax(80px, max-content) 1fr min-content 1fr",
-        rowGap: 4,
-        columnGap: 10,
-        alignItems: "center",
-      }}
-    >
-      <div
-        style={{
-          gridColumn: "1 / -1",
-          color: "var(--text-muted)",
-          textTransform: "uppercase",
-          letterSpacing: 1.2,
-          fontSize: 10,
-          marginBottom: 2,
-        }}
-      >
-        Codex vs Claude — Headline Decomposition
-      </div>
-      {rows.map(({ field, label, codex: c, claude: k }) => {
-        const matches = c === k;
-        const tone = matches ? "var(--positive)" : "var(--warning)";
-        return (
-          <Fragment key={field}>
-            <div style={{ color: "var(--text-muted)" }}>{label}</div>
-            <div
-              data-testid={`ai-consensus-codex-${field}`}
-              style={{ color: "var(--text-primary)" }}
-            >
-              {c}
-            </div>
-            <div
-              aria-label={matches ? "agree" : "differ"}
-              style={{
-                color: tone,
-                fontWeight: 700,
-                padding: "0 6px",
-              }}
-            >
-              {matches ? "=" : "≠"}
-            </div>
-            <div
-              data-testid={`ai-consensus-claude-${field}`}
-              style={{ color: "var(--text-primary)" }}
-            >
-              {k}
-            </div>
-          </Fragment>
-        );
-      })}
-    </div>
-  );
-}
-
-function stateBadge(
-  analysis: TradeInsightsAiAnalysisResponse | null,
-  pending: boolean,
-): string {
-  if (pending) return "◐"; // running
-  if (!analysis) return "○"; // empty
-  if (analysis.status === "succeeded") return "●";
-  if (analysis.status === "failed") return "✕";
-  return "○";
-}
-
-// Current prompt version — used by the legacy-row detector below. Kept in
-// sync with src/uw_scan/reports/trade_insights_ai.py:PROMPT_VERSION. The
-// detector compares against this string; any prior version (v4, v5)
-// renders the "legacy — re-run" banner so users see what the API guard
-// already did (dropped outcome to null).
-const CURRENT_PROMPT_VERSION = "trade-insights-ai-v5.3";
-
 function isLegacyAnalysis(
   analysis: TradeInsightsAiAnalysisResponse | null,
+  currentPromptVersion: string,
 ): boolean {
   if (!analysis) return false;
   if (analysis.status !== "succeeded") return false;
+  if (!currentPromptVersion) return false;
   // The v5 API-side legacy guard (_row_to_ai_response) drops outcome to null
   // when the row's prompt_version differs from the current PROMPT_VERSION,
   // so we recognize a legacy row by the (succeeded + null outcome +
   // prompt_version mismatch) signature.
   return (
     analysis.outcome == null &&
-    analysis.prompt_version !== CURRENT_PROMPT_VERSION
+    analysis.prompt_version !== currentPromptVersion
+  );
+}
+
+function currentPromptDisplay(metadata: PromptMetadata): string {
+  return (
+    metadata.current_prompt_label ||
+    metadata.current_prompt_version ||
+    "current prompt"
   );
 }
 
@@ -1143,14 +814,19 @@ function ProviderTabBody({
   provider,
   analysis,
   pending,
+  promptMetadata,
 }: {
   provider: Provider;
   analysis: TradeInsightsAiAnalysisResponse | null;
   pending: boolean;
+  promptMetadata: PromptMetadata;
 }) {
   const succeeded = analysis?.status === "succeeded" && analysis.outcome;
   const failed = analysis?.status === "failed";
-  const legacy = isLegacyAnalysis(analysis);
+  const legacy = isLegacyAnalysis(
+    analysis,
+    promptMetadata.current_prompt_version,
+  );
   return (
     <div style={{ display: "grid", gap: 12 }}>
       {pending && (
@@ -1175,9 +851,8 @@ function ProviderTabBody({
         <InsightStatusBanner
           text={
             `Legacy analysis (${analysis?.prompt_version}). Schema bumped ` +
-            `to ${CURRENT_PROMPT_VERSION} — click Run to regenerate with the ` +
-            `v5.2 prompt (active-trigger evidence, thesis archetype, ` +
-            `strict strike_role, anti-pin scope).`
+            `to ${currentPromptDisplay(promptMetadata)} — click Run to ` +
+            `regenerate with the current prompt contract.`
           }
           severity="warning"
         />
@@ -1217,182 +892,20 @@ function ProviderTabBody({
 }
 
 export function TradeInsightsAiAnalysisPanel({ ticker }: { ticker: string }) {
-  const [latest, setLatest] = useState<{
-    codex: TradeInsightsAiAnalysisResponse | null;
-    claude: TradeInsightsAiAnalysisResponse | null;
-  }>({ codex: null, claude: null });
-  // v5.2: cross-provider consensus computed at GET /latest time.
-  // Rendered as a chip above the tabs so the operator sees agreement /
-  // actionable disagreement at-a-glance.
-  const [consensus, setConsensus] = useState<{
-    consensus_grade?: string;
-    actionable_disagreement?: string;
-  } | null>(null);
-  const [pendingIds, setPendingIds] = useState<{
-    codex: string | null;
-    claude: string | null;
-  }>({ codex: null, claude: null });
   const [active, setActive] = useState<Provider>("codex");
-  const [loading, setLoading] = useState(false);
-  const [unavailable, setUnavailable] = useState(false);
-  const requestTokenRef = useRef(0);
-
-  const pollOne = useCallback(
-    async (provider: Provider, analysisId: string, token: number) => {
-      const isCurrentRequest = () => requestTokenRef.current === token;
-      let current: TradeInsightsAiAnalysisResponse;
-      try {
-        current = await api.tradeInsightsAiAnalysisStatus(ticker, analysisId);
-      } catch (err) {
-        if (!isCurrentRequest()) return;
-        if (String(err).includes("503")) {
-          setUnavailable(true);
-        }
-        return;
-      }
-      if (!isCurrentRequest()) return;
-      let elapsedMs = 0;
-      const intervalMs = 3000;
-      const maxMs = AI_ANALYSIS_POLL_MAX_MS;
-      while (isInFlight(current)) {
-        if (elapsedMs >= maxMs) break;
-        await new Promise((r) => setTimeout(r, intervalMs));
-        if (!isCurrentRequest()) return;
-        elapsedMs += intervalMs;
-        try {
-          current = await api.tradeInsightsAiAnalysisStatus(ticker, analysisId);
-        } catch (err) {
-          if (!isCurrentRequest()) return;
-          if (String(err).includes("503")) {
-            setUnavailable(true);
-          }
-          return;
-        }
-        if (!isCurrentRequest()) return;
-      }
-      // Terminal — refresh latest pair to pull full payload + clear pending slot.
-      try {
-        const pair = await api.tradeInsightsAiAnalysisLatest(ticker);
-        if (!isCurrentRequest()) return;
-        setLatest({ codex: pair.codex ?? null, claude: pair.claude ?? null });
-        setConsensus(pair.provider_consensus ?? null);
-      } catch {
-        // tolerate /latest hiccups — at minimum overlay the in-flight state.
-        if (isCurrentRequest()) {
-          setLatest((prev) => ({ ...prev, [provider]: current }));
-        }
-      }
-      setPendingIds((prev) => ({ ...prev, [provider]: null }));
-    },
-    [ticker],
-  );
-
-  useEffect(() => {
-    const token = ++requestTokenRef.current;
-    setLatest({ codex: null, claude: null });
-    setPendingIds({ codex: null, claude: null });
-    setLoading(false);
-    setUnavailable(false);
-    let cancelled = false;
-    void (async () => {
-      try {
-        const pair = await api.tradeInsightsAiAnalysisLatest(ticker);
-        if (!cancelled && requestTokenRef.current === token) {
-          setLatest({ codex: pair.codex ?? null, claude: pair.claude ?? null });
-          setConsensus(pair.provider_consensus ?? null);
-        }
-      } catch (err) {
-        if (
-          !cancelled &&
-          requestTokenRef.current === token &&
-          String(err).includes("503")
-        ) {
-          setUnavailable(true);
-        }
-      }
-    })();
-    return () => {
-      cancelled = true;
-      requestTokenRef.current += 1;
-    };
-  }, [ticker]);
-
-  async function run(force_rerun = false) {
-    const token = ++requestTokenRef.current;
-    const isCurrentRequest = () => requestTokenRef.current === token;
-    setLoading(true);
-    setUnavailable(false);
-    // Skip providers that already have an in-flight row — a hung codex must
-    // not block re-running claude. Backend mirrors this filter server-side.
-    const providersToRun: Provider[] = PROVIDERS.filter((p) => !pendingIds[p]);
-    if (providersToRun.length === 0) {
-      setLoading(false);
-      return;
-    }
-    try {
-      const body: { force_rerun?: boolean; providers?: Provider[] } = {};
-      if (force_rerun) body.force_rerun = true;
-      if (providersToRun.length < PROVIDERS.length)
-        body.providers = providersToRun;
-      const resp = await api.tradeInsightsAiAnalysis(ticker, body);
-      if (!isCurrentRequest()) return;
-      const newPending: { codex: string | null; claude: string | null } = {
-        codex: pendingIds.codex,
-        claude: pendingIds.claude,
-      };
-      for (const stub of resp.analyses) {
-        if (stub.status === "succeeded" && stub.reused) {
-          newPending[stub.provider as Provider] = null;
-          continue;
-        }
-        newPending[stub.provider as Provider] = stub.analysis_id;
-      }
-      setPendingIds(newPending);
-      // Refresh latest now so any reused-succeeded rows appear immediately.
-      try {
-        const pair = await api.tradeInsightsAiAnalysisLatest(ticker);
-        if (isCurrentRequest()) {
-          setLatest({
-            codex: pair.codex ?? null,
-            claude: pair.claude ?? null,
-          });
-        }
-      } catch {
-        /* tolerate */
-      }
-      // Release the submit gate as soon as the POST + /latest roundtrip is
-      // done — polls run in the background so the Run button can re-enable
-      // for providers that finish early. Pending-set semantics now drive
-      // disabled state via allPending.
-      if (isCurrentRequest()) setLoading(false);
-      for (const p of PROVIDERS) {
-        const id = newPending[p];
-        if (id) void pollOne(p, id, token);
-      }
-    } catch (err) {
-      if (!isCurrentRequest()) return;
-      if (String(err).includes("503")) {
-        setUnavailable(true);
-      }
-    } finally {
-      if (isCurrentRequest()) {
-        setLoading(false);
-      }
-    }
-  }
-
-  const anyPending = Boolean(pendingIds.codex || pendingIds.claude);
-  const allPending = Boolean(pendingIds.codex && pendingIds.claude);
-  const anyFailed =
-    latest.codex?.status === "failed" || latest.claude?.status === "failed";
-  const anySucceeded =
-    latest.codex?.status === "succeeded" ||
-    latest.claude?.status === "succeeded";
-  // Only block Run when EVERY provider is pending — a hung codex tab should
-  // not prevent re-running claude. Server-side mirror filters the POST.
-  const canRun = !unavailable && !allPending;
-  const forceRun = anySucceeded || anyFailed;
-  const actionLabel = loading || allPending ? "Running…" : "Run Analysis";
+  const {
+    actionLabel,
+    allPending,
+    canRun,
+    consensusForTicker,
+    forceRun,
+    latestForTicker,
+    loadingForTicker,
+    pendingIdsForTicker,
+    promptMetadataForTicker,
+    run,
+    unavailableForTicker,
+  } = useAiAnalysisPolling(ticker);
   return (
     <InsightPanel
       heading="AI ANALYSIS"
@@ -1401,7 +914,7 @@ export function TradeInsightsAiAnalysisPanel({ ticker }: { ticker: string }) {
           <ActionButton
             compact
             onClick={() => run(forceRun)}
-            disabled={loading || allPending}
+            disabled={loadingForTicker || allPending}
           >
             {actionLabel}
           </ActionButton>
@@ -1409,15 +922,15 @@ export function TradeInsightsAiAnalysisPanel({ ticker }: { ticker: string }) {
       }
     >
       <div style={{ display: "grid", gap: 12 }}>
-        {unavailable && (
+        {unavailableForTicker && (
           <InsightStatusBanner
             text="Local AI analysis is not enabled for this environment."
             severity="info"
           />
         )}
-        {consensus &&
-          consensus.consensus_grade &&
-          consensus.consensus_grade !== "missing" && (
+        {consensusForTicker &&
+          consensusForTicker.consensus_grade &&
+          consensusForTicker.consensus_grade !== "missing" && (
             <div
               data-testid="ai-provider-consensus"
               style={{
@@ -1425,7 +938,7 @@ export function TradeInsightsAiAnalysisPanel({ ticker }: { ticker: string }) {
                 borderRadius: 4,
                 padding: "8px 10px",
                 background:
-                  consensus.consensus_grade === "full"
+                  consensusForTicker.consensus_grade === "full"
                     ? "var(--bg-panel)"
                     : "var(--bg-base)",
                 fontFamily: "var(--font-mono)",
@@ -1436,9 +949,9 @@ export function TradeInsightsAiAnalysisPanel({ ticker }: { ticker: string }) {
               <span
                 style={{
                   color:
-                    consensus.consensus_grade === "full"
+                    consensusForTicker.consensus_grade === "full"
                       ? "var(--positive)"
-                      : consensus.consensus_grade === "divergent"
+                      : consensusForTicker.consensus_grade === "divergent"
                         ? "var(--negative)"
                         : "var(--warning)",
                   fontWeight: 600,
@@ -1447,45 +960,31 @@ export function TradeInsightsAiAnalysisPanel({ ticker }: { ticker: string }) {
                   marginRight: 8,
                 }}
               >
-                Consensus: {consensus.consensus_grade}
+                Consensus: {consensusForTicker.consensus_grade}
               </span>
-              {consensus.actionable_disagreement && (
+              {consensusForTicker.actionable_disagreement && (
                 <span style={{ color: "var(--text-secondary)" }}>
-                  {consensus.actionable_disagreement}
+                  {consensusForTicker.actionable_disagreement}
                 </span>
               )}
             </div>
           )}
-        <ConsensusBreakdown codex={latest.codex} claude={latest.claude} />
-        <div style={{ display: "flex", gap: 6 }}>
-          {PROVIDERS.map((p) => (
-            <button
-              key={p}
-              type="button"
-              onClick={() => setActive(p)}
-              data-testid={`ai-tab-${p}`}
-              style={{
-                border: "1px solid var(--border-dim)",
-                borderRadius: 4,
-                background: active === p ? "var(--bg-panel)" : "var(--bg-base)",
-                color: "var(--text-primary)",
-                cursor: "pointer",
-                fontFamily: "var(--font-mono)",
-                fontSize: 11,
-                padding: "5px 10px",
-              }}
-            >
-              {providerLabel(p)}{" "}
-              <span aria-hidden="true">
-                {stateBadge(latest[p], Boolean(pendingIds[p]))}
-              </span>
-            </button>
-          ))}
-        </div>
+        <ConsensusBreakdown
+          codex={latestForTicker.codex}
+          claude={latestForTicker.claude}
+        />
+        <ProviderTabBar
+          active={active}
+          latest={latestForTicker}
+          pendingIds={pendingIdsForTicker}
+          providers={PROVIDERS}
+          setActive={setActive}
+        />
         <ProviderTabBody
           provider={active}
-          analysis={latest[active]}
-          pending={Boolean(pendingIds[active])}
+          analysis={latestForTicker[active]}
+          pending={Boolean(pendingIdsForTicker[active])}
+          promptMetadata={promptMetadataForTicker}
         />
       </div>
     </InsightPanel>
