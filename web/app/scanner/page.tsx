@@ -46,6 +46,16 @@ function groupByBias(candidates: Candidate[]): Map<Bias, Candidate[]> {
   return groups;
 }
 
+function latestTimestampMs(values: Array<string | null | undefined>): number {
+  let latest = 0;
+  for (const value of values) {
+    if (!value) continue;
+    const parsed = Date.parse(value);
+    if (Number.isFinite(parsed)) latest = Math.max(latest, parsed);
+  }
+  return latest;
+}
+
 export default async function ScannerPage({
   searchParams,
 }: {
@@ -66,10 +76,13 @@ export default async function ScannerPage({
   ]);
 
   const grouped = groupByBias(data.candidates);
-  // Single render-time anchor so server-render and client-hydrate produce
-  // identical relative-time labels (avoids hydration mismatch — minute-rounded
-  // labels can differ across the few ms between SSR and hydration).
-  const nowMs = Date.now();
+  // Single data-derived anchor so server-render and client-hydrate produce
+  // identical relative-time labels without reading a clock during render.
+  const nowMs = latestTimestampMs([
+    ...data.candidates.map((candidate) => candidate.scanned_at),
+    ...(discover?.candidates.map((candidate) => candidate.latest_alert_at) ??
+      []),
+  ]);
 
   return (
     <div style={{ padding: 24, maxWidth: 1600, margin: "0 auto" }}>

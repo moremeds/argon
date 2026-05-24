@@ -7,6 +7,7 @@ import { api } from "@/lib/api";
 import type { components } from "@/lib/types";
 
 type Discovered = components["schemas"]["DiscoveryCandidate"];
+const NOW_MS = Date.parse("2026-05-24T12:00:00Z");
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ refresh: vi.fn() }),
@@ -30,7 +31,7 @@ function makeDiscovered(overrides: Partial<Discovered> = {}): Discovered {
     bias_strength: "moderate",
     alert_count: 4,
     sector: "Technology",
-    latest_alert_at: new Date(Date.now() - 15 * 60_000).toISOString(),
+    latest_alert_at: new Date(NOW_MS - 15 * 60_000).toISOString(),
     hit: {
       signal_type: "deep_conviction_flow",
       tier: 1,
@@ -52,7 +53,7 @@ function makeDiscovered(overrides: Partial<Discovered> = {}): Discovered {
 
 describe("DiscoveredCard", () => {
   it("renders ticker, sector, signal row, and DISCOVERED badge", () => {
-    render(<DiscoveredCard candidate={makeDiscovered()} />);
+    render(<DiscoveredCard candidate={makeDiscovered()} nowMs={NOW_MS} />);
 
     expect(screen.getByText("GFS")).toBeTruthy();
     expect(screen.getByText("Technology")).toBeTruthy();
@@ -61,20 +62,20 @@ describe("DiscoveredCard", () => {
   });
 
   it("uses bias-tinted color on the ticker", () => {
-    render(<DiscoveredCard candidate={makeDiscovered()} />);
+    render(<DiscoveredCard candidate={makeDiscovered()} nowMs={NOW_MS} />);
     const ticker = screen.getByText("GFS");
     expect((ticker as HTMLElement).style.color).toContain("--positive");
   });
 
   it("shows alert count and last-seen in the footer", () => {
-    render(<DiscoveredCard candidate={makeDiscovered()} />);
+    render(<DiscoveredCard candidate={makeDiscovered()} nowMs={NOW_MS} />);
     // "4 alerts" also appears in the SignalRow line — match the footer's combined
     // "N alerts · last … ago" string instead.
     expect(screen.getByText(/4 alerts · last 15m ago/)).toBeTruthy();
   });
 
   it("explains the badge via title attribute", () => {
-    render(<DiscoveredCard candidate={makeDiscovered()} />);
+    render(<DiscoveredCard candidate={makeDiscovered()} nowMs={NOW_MS} />);
     const badge = screen.getByText("DISCOVERED");
     expect(badge.getAttribute("title")).toMatch(/market-wide flow-alerts/i);
   });
@@ -86,7 +87,7 @@ describe("DiscoveredCard", () => {
       status: "queued",
     } as unknown as Awaited<ReturnType<typeof api.rescan>>);
 
-    render(<DiscoveredCard candidate={makeDiscovered()} />);
+    render(<DiscoveredCard candidate={makeDiscovered()} nowMs={NOW_MS} />);
     fireEvent.click(screen.getByRole("button", { name: /Add GFS/i }));
 
     await waitFor(() => {
@@ -110,6 +111,7 @@ describe("DiscoveredCard", () => {
     render(
       <DiscoveredCard
         candidate={makeDiscovered({ ticker: "XYZ", sector: null })}
+        nowMs={NOW_MS}
       />,
     );
     fireEvent.click(screen.getByRole("button", { name: /Add XYZ/i }));
@@ -126,7 +128,7 @@ describe("DiscoveredCard", () => {
   it("shows ✗ failed when addTicker rejects, does not call rescan", async () => {
     vi.mocked(api.addTicker).mockRejectedValue(new Error("conflict"));
 
-    render(<DiscoveredCard candidate={makeDiscovered()} />);
+    render(<DiscoveredCard candidate={makeDiscovered()} nowMs={NOW_MS} />);
     fireEvent.click(screen.getByRole("button", { name: /Add GFS/i }));
 
     expect(await screen.findByText("✗ failed")).toBeTruthy();

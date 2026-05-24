@@ -147,7 +147,7 @@ export function CandidateCard({
   // passes this so SSR + client hydration agree on the relative-time label.
   nowMs?: number;
 }) {
-  const anchor = nowMs ?? Date.now();
+  const anchor = nowMs ?? Date.parse(candidate.scanned_at);
   const fresh = bucketFreshness(
     candidate.scanned_at,
     new Date(anchor),

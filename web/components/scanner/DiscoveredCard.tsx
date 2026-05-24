@@ -78,7 +78,7 @@ export function DiscoveredCard({
   // passes this so SSR + client hydration agree on the relative-time label.
   nowMs?: number;
 }) {
-  const anchor = nowMs ?? Date.now();
+  const anchor = nowMs ?? Date.parse(candidate.latest_alert_at ?? "");
   const router = useRouter();
   const [add, setAdd] = useState<AddState>("idle");
   const tickerColor = BIAS_COLOR[candidate.bias];

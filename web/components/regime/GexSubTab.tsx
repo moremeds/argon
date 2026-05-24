@@ -100,13 +100,14 @@ export function SpotFreshnessPill({
   nowMs,
 }: {
   tapeTime: string | null | undefined;
-  /** Injectable for tests; defaults to Date.now(). */
+  /** Injectable for tests and data-derived render anchors. */
   nowMs?: number;
 }) {
   if (!tapeTime) return null;
   const t = Date.parse(tapeTime);
   if (Number.isNaN(t)) return null;
-  const now = nowMs ?? Date.now();
+  if (nowMs == null) return null;
+  const now = nowMs;
   const ageMin = Math.max(0, Math.floor((now - t) / 60000));
 
   let label: string;
@@ -737,6 +738,7 @@ export default function GexSubTab({ marketState }: GexSubTabProps) {
   const daysAbove = bias.days_above_flip;
   const daysSide = daysAbove > 0 ? "ABOVE" : daysAbove < 0 ? "BELOW" : "AT";
   const daysCount = Math.abs(daysAbove);
+  const spotFreshnessAnchorMs = Date.parse(lastSync ?? data.scan_time);
 
   const netGexColor = data.net_gex >= 0 ? "var(--signal-core)" : "var(--fault)";
   const netDexColor = data.net_dex >= 0 ? "var(--signal-core)" : "var(--fault)";
@@ -796,7 +798,16 @@ export default function GexSubTab({ marketState }: GexSubTabProps) {
         <div className="gex-metrics-row">
           <MetricCard
             label="SPOT"
-            badge={<SpotFreshnessPill tapeTime={data.tape_time} />}
+            badge={
+              <SpotFreshnessPill
+                tapeTime={data.tape_time}
+                nowMs={
+                  Number.isFinite(spotFreshnessAnchorMs)
+                    ? spotFreshnessAnchorMs
+                    : undefined
+                }
+              />
+            }
             value={fmtPrice(data.spot)}
             sub={
               data.day_change != null ? (
