@@ -15,6 +15,7 @@ import { MarketState } from "@/lib/regime/useMarketHours";
 import InfoTooltip from "./InfoTooltip";
 import GexProfileChart from "./GexProfileChart";
 import { HistoryChart } from "./HistoryChart";
+import { formatPercent } from "./primitives/format";
 import { MetricCard, SourceBadge } from "./ui/MetricCard";
 
 type GexSubTabProps = {
@@ -30,11 +31,6 @@ function fmtGex(v: number | null | undefined): string {
     return `${v >= 0 ? "+" : ""}$${(v / 1_000_000).toFixed(1)}M`;
   if (absVal >= 1_000) return `${v >= 0 ? "+" : ""}$${(v / 1_000).toFixed(1)}K`;
   return `${v >= 0 ? "+" : ""}$${v.toFixed(0)}`;
-}
-
-function fmtPct(v: number | null | undefined): string {
-  if (v == null) return "---";
-  return `${v >= 0 ? "+" : ""}${v.toFixed(2)}%`;
 }
 
 function fmtPrice(v: number | null | undefined): string {
@@ -159,7 +155,7 @@ function LevelCard({
       </div>
       <div className="gex-level-value">{fmtPrice(level.strike)}</div>
       <div className="gex-level-sub">
-        {fmtPct(level.distance_pct)} &mdash; {fmtGex(level.gamma)} per $1
+        {formatPercent(level.distance_pct)} &mdash; {fmtGex(level.gamma)} per $1
       </div>
     </div>
   );
@@ -799,7 +795,7 @@ export default function GexSubTab({ marketState }: GexSubTabProps) {
                   }}
                 >
                   {data.day_change >= 0 ? "+" : ""}
-                  {fmtPrice(data.day_change)} ({fmtPct(data.day_change_pct)})
+                  {fmtPrice(data.day_change)} ({formatPercent(data.day_change_pct)})
                 </span>
               ) : undefined
             }
@@ -816,7 +812,7 @@ export default function GexSubTab({ marketState }: GexSubTabProps) {
             }
             sub={
               levels.gex_flip
-                ? `${fmtPct(levels.gex_flip.distance_pct)} from spot`
+                ? `${formatPercent(levels.gex_flip.distance_pct)} from spot`
                 : data.mq?.hvl
                   ? "MQ HVL"
                   : undefined
