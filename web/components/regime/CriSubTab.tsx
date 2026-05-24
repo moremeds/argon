@@ -531,7 +531,7 @@ export function CriSubTabView({
   const lastSync = data.scan_time || null;
 
   // History payload is the 20-session window (oldest → newest).
-  const liveValues = useMemo(() => ({}), []);
+  const liveValues = {};
   // Second-to-last row drives the prior-day dot on each ComponentBar.
   const priorHistory =
     history.length >= 2 ? history[history.length - 2] : undefined;
