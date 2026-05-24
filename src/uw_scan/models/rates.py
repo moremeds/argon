@@ -13,6 +13,7 @@ from ._base import _UwBase, _preserve_public_module
 RatesAvailability = Literal["ok", "missing", "partial", "stale"]
 RatesDurationStance = Literal["BUY", "SELL", "NEUTRAL"]
 RatesCurveStance = Literal["STEEP", "FLAT", "NEUTRAL"]
+RatesPolicyPathStance = Literal["CUT", "HOLD", "HIKE", "UNKNOWN"]
 
 
 class RatesSummaryTile(_UwBase):
@@ -106,22 +107,96 @@ class RatesScorecard(_UwBase):
     groups: list[RatesScorecardGroup] = Field(default_factory=list)
 
 
+class RatesPolicyMeeting(_UwBase):
+    event_date: date | None = None
+    event_end_date: date | None = None
+    label: str
+    action: str | None = None
+    vote_split: str | None = None
+    source_url: str | None = None
+    status: RatesAvailability = "partial"
+
+
+class RatesPolicyPathPoint(_UwBase):
+    meeting_date: date
+    label: str
+    probability: float | None = None
+    stance: RatesPolicyPathStance = "UNKNOWN"
+    target_range: str | None = None
+    source: str | None = None
+    status: RatesAvailability = "partial"
+
+
+class RatesPolicyPlumbingMetric(_UwBase):
+    label: str
+    value: float | None = None
+    unit: str = ""
+    qualifier: str | None = None
+    status: RatesAvailability = "partial"
+
+
 class RatesPolicyPanel(_UwBase):
     target_range: str | None = None
+    target_lower: float | None = None
+    target_upper: float | None = None
     effr: float | None = None
     sofr: float | None = None
-    plumbing: list[RatesSummaryTile] = Field(default_factory=list)
+    last_meeting: RatesPolicyMeeting | None = None
+    implied_path: list[RatesPolicyPathPoint] = Field(default_factory=list)
+    plumbing: list[RatesPolicyPlumbingMetric] = Field(default_factory=list)
+    policy_read: str | None = None
+    path_read: str | None = None
+    plumbing_read: str | None = None
     status: RatesAvailability = "partial"
+
+
+class RatesSupplyAuctionRow(_UwBase):
+    cusip: str
+    security_type: str
+    security_term: str
+    auction_date: date
+    issue_date: date | None = None
+    offering_amount: float | None = None
+    high_rate: float | None = None
+    bid_to_cover: float | None = None
+    direct_bidder_pct: float | None = None
+    indirect_bidder_pct: float | None = None
+    primary_dealer_pct: float | None = None
+    tail_indicator: str | None = None
+    source_url: str | None = None
+    status: RatesAvailability = "ok"
 
 
 class RatesSupplyPanel(_UwBase):
     auctions: list[RatesSummaryTile] = Field(default_factory=list)
+    recent_auctions: list[RatesSupplyAuctionRow] = Field(default_factory=list)
+    fiscal: list[RatesSummaryTile] = Field(default_factory=list)
     notes: list[str] = Field(default_factory=list)
+    supply_read: str | None = None
     status: RatesAvailability = "missing"
+
+
+class RatesPositioningRow(_UwBase):
+    contract_code: str
+    contract_name: str
+    tenor_bucket: str
+    obs_date: date | None = None
+    release_date: date | None = None
+    open_interest: float | None = None
+    dealer_net: float | None = None
+    dealer_net_pct_oi: float | None = None
+    asset_mgr_net: float | None = None
+    asset_mgr_net_pct_oi: float | None = None
+    lev_money_net: float | None = None
+    lev_money_net_pct_oi: float | None = None
+    source_url: str | None = None
+    status: RatesAvailability = "ok"
 
 
 class RatesPositioningPanel(_UwBase):
     rows: list[RatesSummaryTile] = Field(default_factory=list)
+    details: list[RatesPositioningRow] = Field(default_factory=list)
+    positioning_read: str | None = None
     status: RatesAvailability = "missing"
 
 
@@ -178,7 +253,12 @@ _preserve_public_module(
     RatesScorecardFactor,
     RatesScorecardGroup,
     RatesScorecard,
+    RatesPolicyMeeting,
+    RatesPolicyPathPoint,
+    RatesPolicyPlumbingMetric,
     RatesPolicyPanel,
+    RatesSupplyAuctionRow,
+    RatesPositioningRow,
     RatesSupplyPanel,
     RatesPositioningPanel,
     RatesCrossMarketPanel,

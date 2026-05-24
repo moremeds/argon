@@ -4,9 +4,11 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Callable
+from dataclasses import asdict
 from dataclasses import dataclass
 from datetime import UTC, date, datetime, timedelta
-from typing import Protocol
+from decimal import Decimal
+from typing import Any, Protocol
 
 import psycopg
 
@@ -17,7 +19,11 @@ from uw_scan.rates.series import (
 )
 from uw_scan.rates.snapshot import build_rates_snapshot
 from uw_scan.sources.cleveland_fed import ClevelandFedInflationProvider
+from uw_scan.sources.cftc_tff import CftcTffProvider
+from uw_scan.sources.fed_funds_futures_path import FedFundsFuturesPathProvider
+from uw_scan.sources.fomc_calendar import FomcCalendarProvider
 from uw_scan.sources.fred import FredProvider, RecordHook
+from uw_scan.sources.treasury_supply import TreasurySupplyProvider
 from uw_scan.storage.repository import Repository
 
 logger = logging.getLogger(__name__)
@@ -47,6 +53,52 @@ class RatesClevelandFedProvider(Protocol):
 RatesClevelandProviderFactory = Callable[..., RatesClevelandFedProvider]
 
 
+class RatesFomcProvider(Protocol):
+    def __enter__(self) -> "RatesFomcProvider": ...
+
+    def __exit__(self, *_exc: object) -> object: ...
+
+    def fetch_meetings(self, *, years): ...
+
+
+RatesFomcProviderFactory = Callable[..., RatesFomcProvider]
+
+
+class RatesPolicyPathProvider(Protocol):
+    def __enter__(self) -> "RatesPolicyPathProvider": ...
+
+    def __exit__(self, *_exc: object) -> object: ...
+
+    def fetch_latest_path(self, *, current_target_range: str | None): ...
+
+
+RatesPolicyPathProviderFactory = Callable[..., RatesPolicyPathProvider]
+
+
+class RatesCftcTffProvider(Protocol):
+    def __enter__(self) -> "RatesCftcTffProvider": ...
+
+    def __exit__(self, *_exc: object) -> object: ...
+
+    def fetch_treasury_rows(self, *, start: date | None = None): ...
+
+
+RatesCftcTffProviderFactory = Callable[..., RatesCftcTffProvider]
+
+
+class RatesTreasurySupplyProvider(Protocol):
+    def __enter__(self) -> "RatesTreasurySupplyProvider": ...
+
+    def __exit__(self, *_exc: object) -> object: ...
+
+    def fetch_recent_auctions(self, *, start: date | None = None): ...
+
+    def fetch_latest_debt(self): ...
+
+
+RatesTreasurySupplyProviderFactory = Callable[..., RatesTreasurySupplyProvider]
+
+
 @dataclass(frozen=True)
 class RatesIngestResult:
     inserted_observations: int
@@ -66,6 +118,15 @@ def rates_fred_ingest_job(
     cleveland_provider_factory: RatesClevelandProviderFactory = (
         ClevelandFedInflationProvider
     ),
+    fomc_provider_factory: RatesFomcProviderFactory = FomcCalendarProvider,
+    policy_path_provider_factory: RatesPolicyPathProviderFactory = (
+        FedFundsFuturesPathProvider
+    ),
+    cftc_tff_provider_factory: RatesCftcTffProviderFactory = CftcTffProvider,
+    treasury_supply_provider_factory: RatesTreasurySupplyProviderFactory = (
+        TreasurySupplyProvider
+    ),
+    policy_path_url: str = FedFundsFuturesPathProvider.BASE_URL,
     computed_at: datetime | None = None,
 ) -> RatesIngestResult:
     if not fred_api_key:
@@ -130,10 +191,101 @@ def rates_fred_ingest_job(
             series_id: repo.fetch_rates_series(series_id, from_date=start)
             for series_id in (*RATES_FRED_SERIES, *CLEVELAND_FED_MODEL_SERIES)
         }
+        policy_events: list[dict[str, Any]] = []
+        try:
+            with fomc_provider_factory() as fomc:
+                policy_events = [
+                    _to_payload(row)
+                    for row in fomc.fetch_meetings(
+                        years=(now.year - 1, now.year, now.year + 1)
+                    )
+                ]
+                inserted += repo.upsert_rates_policy_events(
+                    policy_events, seen_at=now, source="FED_FOMC"
+                )
+        except Exception as exc:
+            failed.append("FED_FOMC")
+            logger.exception("rates_fomc_calendar_ingest failed: %r", exc)
+
+        policy_path: list[dict[str, Any]] = []
+        try:
+            with policy_path_provider_factory(
+                base_url=policy_path_url,
+                record_request=record_request,
+                job_name="rates_policy_path_ingest",
+            ) as path_provider:
+                path_rows = path_provider.fetch_latest_path(
+                    current_target_range=_target_range_from_observations(
+                        observations_by_series, now.date()
+                    )
+                )
+                policy_path = [_to_payload(row) for row in path_rows]
+                inserted += repo.upsert_rates_policy_path(
+                    policy_path,
+                    snapshot_date=now.date(),
+                    seen_at=now,
+                    source="FED_FUNDS_FUTURES_PATH",
+                )
+        except Exception as exc:
+            failed.append("FED_FUNDS_FUTURES_PATH")
+            logger.exception("rates_policy_path_ingest failed: %r", exc)
+
+        try:
+            with cftc_tff_provider_factory(
+                record_request=record_request,
+                job_name="rates_cftc_tff_ingest",
+            ) as tff:
+                tff_rows = [
+                    _json_safe(asdict(row))
+                    for row in tff.fetch_treasury_rows(start=start)
+                ]
+                inserted += repo.upsert_rates_cftc_tff_rows(
+                    tff_rows,
+                    as_of=now,
+                    source_url=CftcTffProvider.URL,
+                )
+        except Exception as exc:
+            failed.append("CFTC_TFF")
+            logger.exception("rates_cftc_tff_ingest failed: %r", exc)
+
+        try:
+            with treasury_supply_provider_factory(
+                record_request=record_request,
+                job_name="rates_treasury_supply_ingest",
+            ) as treasury_supply:
+                auction_rows = [
+                    _json_safe(asdict(row))
+                    for row in treasury_supply.fetch_recent_auctions(start=start)
+                ]
+                inserted += repo.upsert_rates_treasury_auction_rows(
+                    auction_rows,
+                    as_of=now,
+                )
+                debt_record = treasury_supply.fetch_latest_debt()
+                inserted += repo.upsert_rates_fiscal_debt_record(
+                    _json_safe(asdict(debt_record)) if debt_record is not None else None,
+                    as_of=now,
+                )
+        except Exception as exc:
+            failed.append("TREASURY_SUPPLY")
+            logger.exception("rates_treasury_supply_ingest failed: %r", exc)
+
+        policy_events = repo.fetch_rates_policy_events(
+            from_date=date(now.year - 1, 1, 1), to_date=date(now.year + 1, 12, 31)
+        )
+        policy_path = repo.fetch_latest_rates_policy_path()
+        cftc_tff_rows = repo.fetch_latest_rates_cftc_tff_rows()
+        treasury_auction_rows = repo.fetch_latest_rates_treasury_auction_rows()
+        fiscal_debt = repo.fetch_latest_rates_fiscal_debt_record()
         snapshot = build_rates_snapshot(
             observations_by_series,
             computed_at=now,
             failed_series=set(failed),
+            policy_events=policy_events,
+            policy_path=policy_path,
+            cftc_tff_rows=cftc_tff_rows,
+            supply_auctions=treasury_auction_rows,
+            supply_debt=fiscal_debt,
         )
         payload = snapshot.model_dump(mode="json")
         repo.insert_rates_snapshot(
@@ -166,3 +318,42 @@ def _raise_if_required_curve_failed(failed_series: list[str]) -> None:
         "required FRED Treasury curve series failed; refusing to publish rates "
         f"snapshot: {', '.join(failed_curve)}"
     )
+
+
+def _to_payload(row: Any) -> dict[str, Any]:
+    if isinstance(row, dict):
+        return row
+    to_payload = getattr(row, "to_payload", None)
+    if callable(to_payload):
+        return to_payload()
+    raise TypeError(f"unsupported rates policy source row: {type(row)!r}")
+
+
+def _json_safe(row: dict[str, Any]) -> dict[str, Any]:
+    out: dict[str, Any] = {}
+    for key, value in row.items():
+        if isinstance(value, Decimal):
+            out[key] = value
+        else:
+            out[key] = value
+    return out
+
+
+def _target_range_from_observations(
+    observations: dict[str, list[dict[str, Any]]], as_of: date
+) -> str | None:
+    lower = _latest_decimal(observations, "DFEDTARL", as_of)
+    upper = _latest_decimal(observations, "DFEDTARU", as_of)
+    if lower is None or upper is None:
+        return None
+    return f"{lower:.2f}-{upper:.2f}%"
+
+
+def _latest_decimal(
+    observations: dict[str, list[dict[str, Any]]], series_id: str, as_of: date
+) -> Decimal | None:
+    rows = [row for row in observations.get(series_id, []) if row["obs_date"] <= as_of]
+    if not rows:
+        return None
+    value = max(rows, key=lambda row: row["obs_date"])["value"]
+    return value if isinstance(value, Decimal) else Decimal(str(value))

@@ -907,10 +907,319 @@
   color: var(--text-secondary);
 }
 
+.policyGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(260px, 1fr));
+  gap: 14px;
+  align-items: stretch;
+}
+
+.policyCard {
+  display: flex;
+  overflow: hidden;
+  min-width: 0;
+  min-height: 360px;
+  flex-direction: column;
+  border: 1px solid var(--border-dim);
+  border-radius: 8px;
+  background: var(--bg-panel-raised);
+  padding: 18px;
+}
+
+.policyCardTop {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 18px;
+}
+
+.policyCardTop h3 {
+  margin: 0;
+  color: var(--text-primary);
+  font-size: 16px;
+  letter-spacing: 0;
+}
+
+.policyCardTop span,
+.policyRows dt,
+.pathPill span,
+.pathPill small,
+.policyMissing {
+  font-family: var(--font-mono), "IBM Plex Mono", monospace;
+}
+
+.policyCardTop span {
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.policyRows {
+  margin: 0;
+}
+
+.policyRows div {
+  display: grid;
+  grid-template-columns: minmax(100px, 0.8fr) minmax(0, 1fr);
+  gap: 14px;
+  align-items: baseline;
+  padding: 11px 0;
+  border-bottom: 1px solid var(--border-dim);
+}
+
+.policyRows dt {
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.policyRows dd {
+  margin: 0;
+  color: var(--text-primary);
+  font-size: 15px;
+  font-weight: 800;
+  text-align: right;
+}
+
+.policyRows dd small {
+  display: block;
+  margin-top: 3px;
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.policyPathGrid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 6px;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.pathPill {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+  border: 1px solid var(--border-dim);
+  border-radius: 8px;
+  background: var(--bg-base);
+  padding: 11px 6px;
+  text-align: center;
+}
+
+.pathPill span,
+.pathPill small {
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.pathPill strong {
+  color: var(--text-primary);
+  font-size: 22px;
+  line-height: 1;
+  overflow-wrap: anywhere;
+}
+
+.pathPill i {
+  display: block;
+  height: 5px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--bg-hover);
+}
+
+.pathPill b {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--negative);
+}
+
+.policyMissing {
+  display: grid;
+  min-height: 130px;
+  place-items: center;
+  border: 1px dashed var(--border-dim);
+  border-radius: 8px;
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.policyCard p {
+  margin: auto 0 0;
+  padding-top: 18px;
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 650;
+  line-height: 1.5;
+}
+
+.supplyGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
+  gap: 14px;
+  align-items: stretch;
+}
+
+.supplyCard {
+  display: grid;
+  gap: 14px;
+  min-width: 0;
+  border: 1px solid var(--border-dim);
+  border-radius: 8px;
+  background: var(--bg-panel-raised);
+  padding: 18px;
+}
+
+.supplyTableWrap {
+  overflow-x: auto;
+  border: 1px solid var(--border-dim);
+  border-radius: 8px;
+}
+
+.supplyTable {
+  width: 100%;
+  min-width: 0;
+  border-collapse: collapse;
+  font-family: var(--font-mono), "IBM Plex Mono", monospace;
+  table-layout: fixed;
+}
+
+.supplyTable th,
+.supplyTable td {
+  padding: 12px 10px;
+  border-bottom: 1px solid var(--border-dim);
+  color: var(--text-primary);
+  font-size: 13px;
+  font-weight: 800;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.supplyTable th:nth-child(1),
+.supplyTable td:nth-child(1) {
+  width: 36%;
+}
+
+.supplyTable th:nth-child(2),
+.supplyTable td:nth-child(2),
+.supplyTable th:nth-child(3),
+.supplyTable td:nth-child(3),
+.supplyTable th:nth-child(4),
+.supplyTable td:nth-child(4),
+.supplyTable th:nth-child(5),
+.supplyTable td:nth-child(5) {
+  width: 16%;
+}
+
+.supplyTable th {
+  color: var(--text-muted);
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.supplyTable th:first-child,
+.supplyTable td:first-child {
+  text-align: left;
+}
+
+.supplyTable tr:last-child td {
+  border-bottom: 0;
+}
+
+.supplyTable small {
+  display: block;
+  margin-top: 4px;
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.supplyMetricGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
 .synthesis span {
   display: inline-block;
   margin: 8px 8px 0 0;
   color: var(--warning);
+}
+
+.positioningStack {
+  display: grid;
+  gap: 14px;
+}
+
+.positioningTableWrap {
+  overflow-x: auto;
+  border: 1px solid var(--border-dim);
+  border-radius: 8px;
+}
+
+.positioningTable {
+  width: 100%;
+  min-width: 840px;
+  border-collapse: collapse;
+  font-family: var(--font-mono), "IBM Plex Mono", monospace;
+}
+
+.positioningTable th,
+.positioningTable td {
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--border-dim);
+  text-align: right;
+  white-space: nowrap;
+}
+
+.positioningTable th {
+  color: var(--text-muted);
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.positioningTable td {
+  color: var(--text-primary);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.positioningTable th:first-child,
+.positioningTable td:first-child {
+  text-align: left;
+}
+
+.positioningTable tr:last-child td {
+  border-bottom: 0;
+}
+
+.positioningTable small {
+  display: block;
+  margin-top: 4px;
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.positioningRead {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 650;
+  line-height: 1.5;
 }
 
 .sourceGrid {
@@ -966,7 +1275,9 @@
   .stanceGrid,
   .decompDetailGrid,
   .decompSourceGrid,
-  .ratesReadGrid {
+  .ratesReadGrid,
+  .policyGrid,
+  .supplyGrid {
     grid-template-columns: 1fr;
   }
 
@@ -992,5 +1303,13 @@
   .scoreGroupTop,
   .factorRow {
     grid-template-columns: 1fr;
+  }
+
+  .policyPathGrid {
+    grid-template-columns: repeat(2, minmax(100px, 1fr));
+  }
+
+  .supplyMetricGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }

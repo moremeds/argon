@@ -176,6 +176,7 @@ def _run_rates_fred_ingest(settings: Settings) -> None:
             dsn=settings.db_dsn(),
             schema=settings.db_schema,
             fred_api_key=settings.fred_api_key.get_secret_value(),
+            policy_path_url=settings.rates_policy_path_url,
             record_request=lambda _provider, event: recorder.record(event),
         )
 

@@ -38,6 +38,7 @@ def main(argv: list[str] | None = None) -> int:
         fred_api_key=settings.fred_api_key.get_secret_value(),
         schema=settings.db_schema,
         lookback_days=args.lookback_days,
+        policy_path_url=settings.rates_policy_path_url,
     )
 
     print(f"inserted_observations={result.inserted_observations}")
