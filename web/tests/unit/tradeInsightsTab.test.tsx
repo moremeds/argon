@@ -79,7 +79,10 @@ function comesBefore(a: HTMLElement, b: HTMLElement): boolean {
 describe("TradeInsightsTab", () => {
   beforeEach(() => {
     vi.mocked(api.tradeInsights).mockResolvedValue(mockInsights());
-    vi.mocked(api.tradeInsightsAiAnalysisLatest).mockResolvedValue(null);
+    vi.mocked(api.tradeInsightsAiAnalysisLatest).mockResolvedValue({
+      codex: null,
+      claude: null,
+    });
   });
 
   it("orders header, AI analysis, evidence highlights, then deterministic decision panels", async () => {

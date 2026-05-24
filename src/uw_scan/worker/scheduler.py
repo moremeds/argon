@@ -58,8 +58,15 @@ logging.basicConfig(
 )
 logger = logging.getLogger("uw_scan.worker")
 RESCAN_WORKER_CONCURRENCY = 2
-WorkerGroup = Literal["uw", "massive", "ai"]
-WORKER_ROLES: set[str] = {"all", "uw", "massive", "ai"}
+WorkerGroup = Literal["uw", "massive", "ai", "ai-codex", "ai-claude"]
+WORKER_ROLES: set[str] = {
+    "all",
+    "uw",
+    "massive",
+    "ai",
+    "ai-codex",
+    "ai-claude",
+}
 
 
 def _uw_auto_request_allowed(now: datetime) -> bool:
@@ -75,7 +82,8 @@ def _validate_worker_settings(settings: Settings) -> None:
     role = settings.worker_role.lower()
     if role not in WORKER_ROLES:
         raise RuntimeError(
-            "UW_SCAN_WORKER_ROLE must be one of: all, uw, massive "
+            "UW_SCAN_WORKER_ROLE must be one of: all, uw, massive, ai, "
+            "ai-codex, ai-claude "
             f"(got {settings.worker_role!r})"
         )
     if settings.worker_count < 1:
@@ -97,8 +105,13 @@ def _worker_groups(settings: Settings) -> set[WorkerGroup]:
         return {"massive"}
     if role == "ai":
         return {"ai"}
+    if role == "ai-codex":
+        return {"ai-codex"}
+    if role == "ai-claude":
+        return {"ai-claude"}
     raise RuntimeError(
-        "UW_SCAN_WORKER_ROLE must be one of: all, uw, massive, ai "
+        "UW_SCAN_WORKER_ROLE must be one of: all, uw, massive, ai, "
+        "ai-codex, ai-claude "
         f"(got {settings.worker_role!r})"
     )
 
@@ -364,8 +377,14 @@ def main() -> int:
                 with _repo(settings) as repo:
                     cockpit_daily_snapshot(repo=repo, client=uw, settings=settings)
 
-    def _trade_insights_ai_tick() -> None:
-        trade_insights_ai_tick(settings)
+    def _trade_insights_ai_tick_any() -> None:
+        trade_insights_ai_tick(settings, provider_filter=None)
+
+    def _trade_insights_ai_tick_codex() -> None:
+        trade_insights_ai_tick(settings, provider_filter="codex")
+
+    def _trade_insights_ai_tick_claude() -> None:
+        trade_insights_ai_tick(settings, provider_filter="claude")
 
     def _vol_index_lake_sync() -> None:
         # Parquet lake (~/market-warehouse/.../volatility) → vol_index_daily.
@@ -586,12 +605,37 @@ def main() -> int:
                 coalesce=True,
             )
 
-    if "ai" in groups and settings.trade_insights_ai_enabled:
+    # Legacy single-pool role (claims any provider's row).
+    if "ai" in groups and (
+        settings.trade_insights_ai_enabled or settings.trade_insights_ai_claude_enabled
+    ):
         sched.add_job(
-            _trade_insights_ai_tick,
+            _trade_insights_ai_tick_any,
             IntervalTrigger(seconds=settings.trade_insights_ai_poll_seconds),
             id="trade_insights_ai_tick",
-            name="Trade Insights AI analysis poll",
+            name="Trade Insights AI analysis poll (any provider)",
+            max_instances=1,
+            coalesce=True,
+            misfire_grace_time=max(30, settings.trade_insights_ai_poll_seconds * 5),
+        )
+    # Provider-pinned codex pool.
+    if "ai-codex" in groups and settings.trade_insights_ai_enabled:
+        sched.add_job(
+            _trade_insights_ai_tick_codex,
+            IntervalTrigger(seconds=settings.trade_insights_ai_poll_seconds),
+            id="trade_insights_ai_tick_codex",
+            name="Trade Insights AI analysis poll (codex)",
+            max_instances=1,
+            coalesce=True,
+            misfire_grace_time=max(30, settings.trade_insights_ai_poll_seconds * 5),
+        )
+    # Provider-pinned claude pool.
+    if "ai-claude" in groups and settings.trade_insights_ai_claude_enabled:
+        sched.add_job(
+            _trade_insights_ai_tick_claude,
+            IntervalTrigger(seconds=settings.trade_insights_ai_poll_seconds),
+            id="trade_insights_ai_tick_claude",
+            name="Trade Insights AI analysis poll (claude)",
             max_instances=1,
             coalesce=True,
             misfire_grace_time=max(30, settings.trade_insights_ai_poll_seconds * 5),

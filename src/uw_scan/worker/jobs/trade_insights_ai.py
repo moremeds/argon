@@ -1,13 +1,12 @@
-"""Worker job for operator-triggered Trade Insights AI analysis."""
+"""Worker job for operator-triggered Trade Insights AI analysis.
+
+Orchestration only — runners live in `trade_insights_codex_runner.py` and
+`trade_insights_claude_runner.py`. Dispatch goes via the RUNNERS registry.
+"""
 
 from __future__ import annotations
 
-import json
-import os
-import subprocess
-import tempfile
 from datetime import datetime, timedelta, timezone
-from pathlib import Path
 from typing import Any
 
 import psycopg
@@ -22,105 +21,17 @@ from uw_scan.reports.trade_insights_ai import (
     validate_trade_insights_ai_outcome,
 )
 from uw_scan.storage.repository import Repository
+from uw_scan.worker.jobs.trade_insights_ai_runners import (
+    AiProviderRunner,
+    TradeInsightsAiRunnerError,
+)
+from uw_scan.worker.jobs.trade_insights_claude_runner import ClaudeRunner
+from uw_scan.worker.jobs.trade_insights_codex_runner import CodexRunner
 
-
-class TradeInsightsAiRunnerError(RuntimeError):
-    """Controlled failure from the local Codex CLI runner."""
-
-
-def _codex_child_env() -> dict[str, str]:
-    allowed_exact = {
-        "CODEX_HOME",
-        "HOME",
-        "LANG",
-        "LC_ALL",
-        "PATH",
-        "SHELL",
-        "TERM",
-        "TMPDIR",
-    }
-    env: dict[str, str] = {}
-    for key, value in os.environ.items():
-        if key in allowed_exact or key.startswith("LC_"):
-            env[key] = value
-    return env
-
-
-def run_codex_trade_insights_analysis(
-    prompt: str,
-    schema: dict[str, Any],
-    *,
-    model: str,
-    timeout_seconds: float,
-    max_output_bytes: int,
-) -> dict[str, Any]:
-    """Run local `codex exec` and return the structured JSON final response."""
-
-    with tempfile.TemporaryDirectory(prefix="trade-insights-ai-") as tmp:
-        tmpdir = Path(tmp)
-        schema_path = tmpdir / "schema.json"
-        result_path = tmpdir / "result.json"
-        schema_path.write_text(json.dumps(schema, sort_keys=True), encoding="utf-8")
-
-        cmd = [
-            "codex",
-            "exec",
-            "--ephemeral",
-            "--sandbox",
-            "read-only",
-            "--ignore-user-config",
-            "--ignore-rules",
-            "--skip-git-repo-check",
-            "--cd",
-            str(tmpdir),
-        ]
-        if model:
-            cmd.extend(["--model", model])
-        cmd.extend(
-            [
-                "--output-schema",
-                str(schema_path),
-                "--output-last-message",
-                str(result_path),
-                "-",
-            ]
-        )
-
-        try:
-            completed = subprocess.run(
-                cmd,
-                input=prompt,
-                text=True,
-                capture_output=True,
-                timeout=timeout_seconds,
-                env=_codex_child_env(),
-                check=False,
-            )
-        except subprocess.TimeoutExpired as exc:
-            raise TradeInsightsAiRunnerError(
-                f"codex exec timed out after {timeout_seconds}s"
-            ) from exc
-
-        if completed.returncode != 0:
-            detail = (completed.stderr or completed.stdout or "").strip()
-            raise TradeInsightsAiRunnerError(
-                f"codex exec failed with exit {completed.returncode}: {detail[:1000]}"
-            )
-        if not result_path.exists():
-            raise TradeInsightsAiRunnerError("codex exec did not write a final message")
-
-        output_bytes = result_path.read_bytes()
-        if len(output_bytes) > max_output_bytes:
-            raise TradeInsightsAiRunnerError(
-                f"codex output exceeded {max_output_bytes} bytes"
-            )
-        try:
-            parsed = json.loads(output_bytes.decode("utf-8"))
-        except json.JSONDecodeError as exc:
-            raise TradeInsightsAiRunnerError("codex output was not valid JSON") from exc
-        if not isinstance(parsed, dict):
-            raise TradeInsightsAiRunnerError("codex output JSON must be an object")
-        return parsed
+RUNNERS: dict[str, AiProviderRunner] = {
+    "codex": CodexRunner(),
+    "claude": ClaudeRunner(),
+}
 
 
 def _repo(settings: Settings) -> Repository:
@@ -137,29 +48,68 @@ def _fail_analysis(settings: Settings, analysis_id: str, error_message: str) -> 
         repo.conn.close()
 
 
-def trade_insights_ai_tick(settings: Settings) -> bool:
-    """Claim and execute one queued Trade Insights AI analysis, if present."""
+def _heartbeat_key(provider_filter: str | None) -> str:
+    if provider_filter is None:
+        return "trade_insights_ai_tick"
+    return f"trade_insights_ai_tick_{provider_filter}"
+
+
+def _provider_model_and_timeout(settings: Settings, provider: str) -> tuple[str, float]:
+    if provider == "codex":
+        return (
+            settings.trade_insights_ai_model.strip(),
+            settings.trade_insights_ai_timeout_seconds,
+        )
+    if provider == "claude":
+        return (
+            settings.trade_insights_ai_claude_model.strip(),
+            settings.trade_insights_ai_claude_timeout_seconds,
+        )
+    raise TradeInsightsAiRunnerError(f"unknown provider {provider!r}")
+
+
+def trade_insights_ai_tick(
+    settings: Settings,
+    *,
+    provider_filter: str | None = None,
+) -> bool:
+    """Claim and execute one queued Trade Insights AI analysis, if present.
+
+    `provider_filter` pins this tick to a single provider's queue — used by
+    provider-pinned worker roles (`ai-codex`, `ai-claude`). When None, the
+    legacy single-pool behavior claims any provider's row.
+    """
 
     repo = _repo(settings)
     analysis_id: str | None = None
     produced_at: datetime | None = None
     prompt_payload: dict[str, Any] | None = None
+    row_provider: str | None = None
     try:
-        repo.upsert_heartbeat("trade_insights_ai_tick")
+        repo.upsert_heartbeat(_heartbeat_key(provider_filter))
         stale_running_before = datetime.now(timezone.utc) - timedelta(
             seconds=settings.trade_insights_ai_timeout_seconds + 60
         )
         row = repo.claim_next_trade_insight_ai_analysis(
-            stale_running_before=stale_running_before
+            stale_running_before=stale_running_before,
+            provider=provider_filter,
         )
         if row is None:
             repo.conn.commit()
             return False
         analysis_id = str(row["analysis_id"])
+        row_provider = row.get("provider") or "codex"
         if row["prompt_version"] != PROMPT_VERSION:
             repo.fail_trade_insight_ai_analysis(
                 analysis_id,
                 f"obsolete prompt_version {row['prompt_version']} superseded by {PROMPT_VERSION}",
+            )
+            repo.conn.commit()
+            return True
+        if row_provider not in RUNNERS:
+            repo.fail_trade_insight_ai_analysis(
+                analysis_id,
+                f"unknown provider {row_provider!r}",
             )
             repo.conn.commit()
             return True
@@ -170,7 +120,9 @@ def trade_insights_ai_tick(settings: Settings) -> bool:
             produced_at=produced_at,
         )
         prompt_text = build_trade_insights_ai_prompt(prompt_payload)
-        output_schema = trade_insights_ai_output_schema()
+        output_schema = trade_insights_ai_output_schema(
+            strict=(row_provider != "claude"),
+        )
         repo.prepare_trade_insight_ai_analysis(
             analysis_id,
             prompt_text=prompt_text,
@@ -191,19 +143,24 @@ def trade_insights_ai_tick(settings: Settings) -> bool:
     assert analysis_id is not None
     assert produced_at is not None
     assert prompt_payload is not None
+    assert row_provider is not None
+
+    runner = RUNNERS[row_provider]
+    model_env, timeout = _provider_model_and_timeout(settings, row_provider)
 
     try:
-        raw_outcome = run_codex_trade_insights_analysis(
+        result = runner.run(
             build_trade_insights_ai_prompt(prompt_payload),
-            trade_insights_ai_output_schema(),
-            model=settings.trade_insights_ai_model.strip(),
-            timeout_seconds=settings.trade_insights_ai_timeout_seconds,
+            trade_insights_ai_output_schema(strict=(row_provider != "claude")),
+            model=model_env,
+            timeout_seconds=timeout,
             max_output_bytes=settings.trade_insights_ai_max_output_bytes,
         )
         outcome = validate_trade_insights_ai_outcome(
-            raw_outcome,
+            result.outcome,
             prompt_payload,
             produced_at=produced_at,
+            lenient=(row_provider == "claude"),
         )
         markdown = render_trade_insights_ai_markdown(outcome)
         repo = _repo(settings)
@@ -212,6 +169,7 @@ def trade_insights_ai_tick(settings: Settings) -> bool:
                 analysis_id,
                 outcome=outcome.model_dump(mode="json"),
                 markdown=markdown,
+                resolved_model=result.resolved_model,
             )
             repo.conn.commit()
         finally:

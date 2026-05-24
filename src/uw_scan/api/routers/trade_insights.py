@@ -16,8 +16,11 @@ from uw_scan.models import (
     StockHistoryResponse,
     StockHistoryRow,
     StrikeGexBucket,
+    TradeInsightAiAnalysisEnqueueResponse,
     TradeInsightAiAnalysisRequest,
     TradeInsightAiAnalysisResponse,
+    TradeInsightAiAnalysisStub,
+    TradeInsightAiLatestPair,
     TradeInsightsResponse,
 )
 from uw_scan.reports.single_stock import assemble_single_stock_report
@@ -127,6 +130,7 @@ def _row_to_ai_response(
         trade_insights_input_hash=row["trade_insights_input_hash"],
         analysis_input_hash=row["analysis_input_hash"],
         model=row["model"],
+        provider=row.get("provider", "codex"),
         prompt_version=row["prompt_version"],
         status=row["status"],
         produced_at=row.get("produced_at"),
@@ -137,6 +141,59 @@ def _row_to_ai_response(
         started_at=row.get("started_at"),
         finished_at=row.get("finished_at"),
         reused=reused,
+    )
+
+
+def _enqueue_one_provider(
+    *,
+    t: str,
+    run_id: int,
+    snapshot_id: int,
+    trade_input_hash: str,
+    analysis_hash: str,
+    analysis_input: dict[str, Any],
+    provider: str,
+    model_label: str,
+    force_rerun: bool,
+    repo: Repository,
+) -> TradeInsightAiAnalysisStub:
+    """Return a stub describing what happened for ONE provider — either a cache
+    hit (reused=True) or a freshly enqueued row (reused=False)."""
+    if not force_rerun:
+        reused = repo.find_reusable_trade_insight_ai_analysis(
+            ticker=t,
+            analysis_input_hash=analysis_hash,
+            prompt_version=PROMPT_VERSION,
+            model=model_label,
+            provider=provider,
+        )
+        if reused is not None:
+            return TradeInsightAiAnalysisStub(
+                provider=provider,
+                analysis_id=UUID(str(reused["analysis_id"])),
+                status=reused["status"],
+                reused=True,
+                model=reused["model"],
+            )
+    analysis_id = repo.enqueue_trade_insight_ai_analysis(
+        snapshot_id=snapshot_id,
+        ticker=t,
+        run_id=run_id,
+        trade_insights_input_hash=trade_input_hash,
+        analysis_input_hash=analysis_hash,
+        analysis_input=analysis_input,
+        prompt_version=PROMPT_VERSION,
+        model=model_label,
+        provider=provider,
+    )
+    row = repo.get_trade_insight_ai_analysis(analysis_id, ticker=t)
+    assert row is not None
+    return TradeInsightAiAnalysisStub(
+        provider=provider,
+        analysis_id=UUID(str(row["analysis_id"])),
+        status=row["status"],
+        reused=False,
+        model=row["model"],
     )
 
 
@@ -155,7 +212,7 @@ def get_trade_insights(
 
 @router.post(
     "/stock/{ticker}/trade-insights/ai-analysis",
-    response_model=TradeInsightAiAnalysisResponse,
+    response_model=TradeInsightAiAnalysisEnqueueResponse,
     status_code=status.HTTP_202_ACCEPTED,
 )
 def post_trade_insights_ai_analysis(
@@ -163,18 +220,29 @@ def post_trade_insights_ai_analysis(
     request: TradeInsightAiAnalysisRequest | None = None,
     repo: Repository = Depends(get_repo),
     settings: Settings = Depends(get_settings),
-) -> TradeInsightAiAnalysisResponse:
+) -> TradeInsightAiAnalysisEnqueueResponse:
+    """Enqueue one Trade Insights AI analysis per enabled provider.
+
+    Response contains one stub per provider with status + reused + model.
+    Disabled providers are omitted from the response (not included with a
+    'disabled' status — the UI tab handles this via /latest = null).
+    """
     t = ticker.upper()
     run_id = repo.latest_run_id(t)
     if run_id == 0:
         raise HTTPException(status_code=404, detail=f"no runs for {t}")
-    if not settings.trade_insights_ai_enabled:
+    if not (
+        settings.trade_insights_ai_enabled or settings.trade_insights_ai_claude_enabled
+    ):
         raise HTTPException(
             status_code=503,
-            detail="Trade Insights AI analysis is disabled",
+            detail="Trade Insights AI analysis is disabled (all providers)",
         )
 
     force_rerun = bool(request.force_rerun) if request is not None else False
+    provider_filter: set[str] | None = (
+        set(request.providers) if request is not None and request.providers else None
+    )
     trade_response, snapshot_id, trade_input_hash = _build_and_persist_trade_insights(
         t,
         repo,
@@ -200,53 +268,71 @@ def post_trade_insights_ai_analysis(
         volatility_series_payload=volatility.model_dump(mode="json"),
     )
     analysis_hash = hash_trade_insights_ai_analysis_input(analysis_input)
-    model_label = settings.trade_insights_ai_model.strip() or "codex-default"
 
-    if not force_rerun:
-        reused = repo.find_reusable_trade_insight_ai_analysis(
-            ticker=t,
-            analysis_input_hash=analysis_hash,
-            prompt_version=PROMPT_VERSION,
-            model=model_label,
+    stubs: list[TradeInsightAiAnalysisStub] = []
+    if settings.trade_insights_ai_enabled and (
+        provider_filter is None or "codex" in provider_filter
+    ):
+        model_label = settings.trade_insights_ai_model.strip() or "codex-default"
+        stubs.append(
+            _enqueue_one_provider(
+                t=t,
+                run_id=run_id,
+                snapshot_id=snapshot_id,
+                trade_input_hash=trade_input_hash,
+                analysis_hash=analysis_hash,
+                analysis_input=analysis_input,
+                provider="codex",
+                model_label=model_label,
+                force_rerun=force_rerun,
+                repo=repo,
+            )
         )
-        if reused is not None:
-            repo.conn.commit()
-            return _row_to_ai_response(reused, reused=True)
-
-    analysis_id = repo.enqueue_trade_insight_ai_analysis(
-        snapshot_id=snapshot_id,
-        ticker=t,
-        run_id=run_id,
-        trade_insights_input_hash=trade_input_hash,
-        analysis_input_hash=analysis_hash,
-        analysis_input=analysis_input,
-        prompt_version=PROMPT_VERSION,
-        model=model_label,
-    )
+    if settings.trade_insights_ai_claude_enabled and (
+        provider_filter is None or "claude" in provider_filter
+    ):
+        model_label = (
+            settings.trade_insights_ai_claude_model.strip() or "claude-default"
+        )
+        stubs.append(
+            _enqueue_one_provider(
+                t=t,
+                run_id=run_id,
+                snapshot_id=snapshot_id,
+                trade_input_hash=trade_input_hash,
+                analysis_hash=analysis_hash,
+                analysis_input=analysis_input,
+                provider="claude",
+                model_label=model_label,
+                force_rerun=force_rerun,
+                repo=repo,
+            )
+        )
     repo.conn.commit()
-    row = repo.get_trade_insight_ai_analysis(analysis_id, ticker=t)
-    assert row is not None
-    return _row_to_ai_response(row, reused=False)
+    return TradeInsightAiAnalysisEnqueueResponse(analyses=stubs)
 
 
 @router.get(
     "/stock/{ticker}/trade-insights/ai-analysis/latest",
-    response_model=TradeInsightAiAnalysisResponse | None,
+    response_model=TradeInsightAiLatestPair,
 )
 def get_latest_trade_insights_ai_analysis(
     ticker: str,
-    settings: Settings = Depends(get_settings),
     repo: Repository = Depends(get_repo),
-) -> TradeInsightAiAnalysisResponse | None:
-    model_label = settings.trade_insights_ai_model.strip() or "codex-default"
-    row = repo.find_latest_trade_insight_ai_analysis(
+) -> TradeInsightAiLatestPair:
+    """Latest succeeded row per provider as a keyed dict.
+
+    Returns {codex: row|null, claude: row|null}. 200 even when both are null
+    so the UI renders the empty Run state instead of a 404.
+    """
+    pair = repo.find_latest_trade_insight_ai_analyses_per_provider(
         ticker=ticker.upper(),
         prompt_version=PROMPT_VERSION,
-        model=model_label,
     )
-    if row is None:
-        return None
-    return _row_to_ai_response(row)
+    return TradeInsightAiLatestPair(
+        codex=_row_to_ai_response(pair["codex"]) if pair["codex"] else None,
+        claude=_row_to_ai_response(pair["claude"]) if pair["claude"] else None,
+    )
 
 
 @router.get(

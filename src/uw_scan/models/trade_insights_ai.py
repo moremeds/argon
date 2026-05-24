@@ -14,11 +14,13 @@ from ._base import _preserve_public_module
 class TradeInsightAiBase(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=False)
 
+
 class TradeInsightAiDominantRead(TradeInsightAiBase):
     headline: str
     summary: str
     confidence_commentary: str
     data_quality_commentary: str
+
 
 class TradeInsightAiSnapshotMeta(TradeInsightAiBase):
     run_id: int
@@ -27,6 +29,7 @@ class TradeInsightAiSnapshotMeta(TradeInsightAiBase):
     data_as_of: str | None = None
     freshness_label: str = "unknown"
     source_notes: list[str] = Field(default_factory=list)
+
 
 class TradeInsightAiHeadline(TradeInsightAiBase):
     title: str
@@ -40,6 +43,7 @@ class TradeInsightAiHeadline(TradeInsightAiBase):
     primary_risk: str
     watch_trigger: str
 
+
 class TradeInsightAiMetricCard(TradeInsightAiBase):
     label: str
     value: str
@@ -47,11 +51,13 @@ class TradeInsightAiMetricCard(TradeInsightAiBase):
     source_path: str | None = None
     note: str = ""
 
+
 class TradeInsightAiScenarioCard(TradeInsightAiBase):
     case: Literal["upside", "base", "downside"] | str
     tone: str = "neutral"
     title: str
     description: str
+
 
 class TradeInsightAiScoreBreakdown(TradeInsightAiBase):
     section: str
@@ -59,11 +65,13 @@ class TradeInsightAiScoreBreakdown(TradeInsightAiBase):
     max_score: int
     summary: str
 
+
 class TradeInsightAiHighlight(TradeInsightAiBase):
     label: str
     value: str
     source_path: str | None = None
     note: str = ""
+
 
 class TradeInsightAiLevel(TradeInsightAiBase):
     price: str
@@ -72,6 +80,7 @@ class TradeInsightAiLevel(TradeInsightAiBase):
     importance: str = "normal"
     source_path: str | None = None
     note: str = ""
+
 
 class TradeInsightAiSectionCard(TradeInsightAiBase):
     title: str
@@ -82,10 +91,12 @@ class TradeInsightAiSectionCard(TradeInsightAiBase):
     levels: list[TradeInsightAiLevel] = Field(default_factory=list)
     data_quality: str = "unknown"
 
+
 class TradeInsightAiSectionCards(TradeInsightAiBase):
     market_structure: TradeInsightAiSectionCard
     volatility: TradeInsightAiSectionCard
     flow_positioning: TradeInsightAiSectionCard
+
 
 class TradeInsightAiVrpAssessment(TradeInsightAiBase):
     signal: str
@@ -93,6 +104,7 @@ class TradeInsightAiVrpAssessment(TradeInsightAiBase):
     summary: str
     metrics: list[TradeInsightAiMetricCard] = Field(default_factory=list)
     reason: str
+
 
 class TradeInsightAiPreferredExpression(TradeInsightAiBase):
     idea_id: str
@@ -108,6 +120,7 @@ class TradeInsightAiPreferredExpression(TradeInsightAiBase):
     status_observed: str
     risk_flags_observed: list[str] = Field(default_factory=list)
 
+
 class TradeInsightAiBestExpression(TradeInsightAiBase):
     idea_id: str
     structure: str
@@ -117,11 +130,13 @@ class TradeInsightAiBestExpression(TradeInsightAiBase):
     status_observed: str
     risk_flags_observed: list[str] = Field(default_factory=list)
 
+
 class TradeInsightAiConflict(TradeInsightAiBase):
     lens: str
     severity: str
     description: str
     affected_idea_ids: list[str] = Field(default_factory=list)
+
 
 class TradeInsightAiRequiredCheck(TradeInsightAiBase):
     check: str
@@ -129,19 +144,23 @@ class TradeInsightAiRequiredCheck(TradeInsightAiBase):
     blocks_sizing: bool = True
     source: str = ""
 
+
 class TradeInsightAiRejectedIdea(TradeInsightAiBase):
     idea_id: str
     structure: str
     reason: str
 
+
 class TradeInsightAiRendering(TradeInsightAiBase):
     disclaimer: str
     card_order: list[str] = Field(default_factory=list)
+
 
 class TradeInsightAiGuardrails(TradeInsightAiBase):
     statuses_preserved: bool
     risk_flags_preserved: bool
     no_executable_recommendations: bool
+
 
 class TradeInsightAiOutcome(TradeInsightAiBase):
     schema_version: str
@@ -165,8 +184,17 @@ class TradeInsightAiOutcome(TradeInsightAiBase):
     rendering: TradeInsightAiRendering
     guardrails: TradeInsightAiGuardrails
 
+
+TradeInsightAiProvider = Literal["codex", "claude"]
+
+
 class TradeInsightAiAnalysisRequest(TradeInsightAiBase):
     force_rerun: bool = False
+    # Optional per-provider filter. None = all enabled providers (legacy behavior).
+    # Lets the UI re-run a single provider without affecting an in-flight peer
+    # (e.g. claude can re-run while a hung codex row is still pending).
+    providers: list[TradeInsightAiProvider] | None = None
+
 
 class TradeInsightAiAnalysisResponse(TradeInsightAiBase):
     analysis_id: UUID
@@ -175,6 +203,7 @@ class TradeInsightAiAnalysisResponse(TradeInsightAiBase):
     trade_insights_input_hash: str
     analysis_input_hash: str
     model: str
+    provider: TradeInsightAiProvider = "codex"
     prompt_version: str
     status: Literal["queued", "running", "succeeded", "failed"]
     produced_at: datetime | None = None
@@ -185,6 +214,29 @@ class TradeInsightAiAnalysisResponse(TradeInsightAiBase):
     started_at: datetime | None = None
     finished_at: datetime | None = None
     reused: bool = False
+
+
+class TradeInsightAiAnalysisStub(TradeInsightAiBase):
+    """Lightweight stub returned by POST when enqueueing per-provider rows."""
+
+    provider: TradeInsightAiProvider
+    analysis_id: UUID
+    status: Literal["queued", "running", "succeeded", "failed"]
+    reused: bool
+    model: str
+
+
+class TradeInsightAiAnalysisEnqueueResponse(TradeInsightAiBase):
+    """POST response — one stub per enabled provider."""
+
+    analyses: list[TradeInsightAiAnalysisStub]
+
+
+class TradeInsightAiLatestPair(TradeInsightAiBase):
+    """GET /latest response — null per provider when no succeeded row exists."""
+
+    codex: TradeInsightAiAnalysisResponse | None = None
+    claude: TradeInsightAiAnalysisResponse | None = None
 
 
 _preserve_public_module(
@@ -210,4 +262,7 @@ _preserve_public_module(
     TradeInsightAiOutcome,
     TradeInsightAiAnalysisRequest,
     TradeInsightAiAnalysisResponse,
+    TradeInsightAiAnalysisStub,
+    TradeInsightAiAnalysisEnqueueResponse,
+    TradeInsightAiLatestPair,
 )

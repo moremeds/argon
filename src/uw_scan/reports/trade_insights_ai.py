@@ -15,7 +15,7 @@ from typing import Any
 
 from uw_scan.models import TradeInsightAiOutcome
 
-PROMPT_VERSION = "trade-insights-ai-v2"
+PROMPT_VERSION = "trade-insights-ai-v4"
 STRATEGY_FAMILY_IDS = frozenset(
     {
         "long_stock",
@@ -33,75 +33,77 @@ STRATEGY_FAMILY_IDS = frozenset(
     }
 )
 PREFERRED_STRATEGY_FAMILY_IDS = STRATEGY_FAMILY_IDS - {"short_strangle"}
+# Subset valid as `preferred_expression` / `best_expressions` at the 1-2 week
+# swing horizon. Excludes:
+#   long_stock         — not a swing options structure in this product
+#   covered_call       — 30-45d income trade, requires existing stock
+#   cash_secured_put   — same, 30-45d income posture
+#   short_strangle     — undefined-risk, blocked by safety override
+# Rejected-ideas slots may still reference the full STRATEGY_FAMILY_IDS so the
+# model can explain why an excluded family is the wrong tool at this horizon.
+SWING_STRATEGY_FAMILY_IDS = frozenset(
+    {
+        "long_call",
+        "call_debit_spread",
+        "long_put",
+        "put_debit_spread",
+        "put_credit_spread",
+        "iron_condor",
+        "calendar_spread",
+        "no_trade",
+    }
+)
 FINAL_RATING_VALUES = ("A", "B", "C", "D", "F")
 
-MARKET_INTELLIGENCE_PROMPT = """You are an institutional options strategist, market-structure analyst, and risk manager.
+MARKET_INTELLIGENCE_PROMPT = """You are an institutional options strategist analyzing one stock for a 1-2 week SWING HOLD entry.
 
-Your job is to analyze one stock using three evidence pillars:
+Time horizon (FIXED, not negotiable):
+- The trade is HELD 5-10 trading sessions (1-2 calendar weeks). The trade is
+  NOT held to expiry.
+- Entry-expiry DTE MUST be 28-45 (preferred) or 21-60 (allowed). This leaves
+  7-46 DTE remaining at exit. Do NOT pick an expiry that lands inside the
+  5-10 session hold window — exiting at 0-7 DTE puts the trade at peak gamma
+  and theta crush.
+- Calendars: short (near) leg 21-45 DTE; long (far) leg 45-90 DTE.
+- Reject any candidate with entry DTE < 21 or > 60 as `horizon_mismatch`,
+  even if it appears in the supplied candidate_structures list.
+- Triggers and invalidations are stated in daily-close terms or 2-session
+  confirmations, never intraday wicks or single-session tape patterns.
 
-1. Market Structure
-   - Spot price
-   - GEX flip
-   - Net GEX
-   - Net DEX
-   - Gamma magnets / max pain / put wall / call wall
-   - GEX profile by strike
-   - Expected range
-   - Dealer gamma regime
-   - Support / resistance from options positioning
+Evidence weighting at this horizon:
 
-2. Volatility
-   - IV ATM
-   - Realized volatility
-   - IV/RV ratio
-   - VRP
-   - IV rank / IV percentile
-   - Term structure
-   - Skew
-   - IV distribution
-   - IV vs RV time series
-   - Regime quadrant: Goldilocks / Fragile Calm / Stock Picker / Systemic Panic
+PRIMARY (the call hangs on these):
+- Dealer regime label + gamma/vanna/charm sub-scores
+  (tabs.market_structure.dealer_regime.{label, gamma_score, vanna_score, charm_score, headline, subtitle})
+- Per-expiry vanna regime + vanna_flip, charm_pin_strike + charm_imbalance_pct + charm_signal_quality
+  for rows where 21 <= dte <= 60 only (the entry-expiry window)
+  (tabs.market_structure.exposures_summary[])
+- GEX flip vs spot, call wall, put wall, max magnet, max accel
+  (tabs.market_structure.market_structure_levels)
+- IV vs RV at the 28-45d horizon, term structure shape across 21-60 DTE
+  (tabs.volatility.{header, term_structure})
+- 90d GEX history extreme vs current — is today at a historically mean-reverting level?
+- Earnings in window — HARD VETO if next_earnings_date falls inside the 5-10
+  session hold (NOT the full DTE-to-expiry), unless the trade is explicitly
+  an earnings IV-crush play (see Earnings filter below).
 
-3. Flow and Positioning
-   - Options premium
-   - Bull vs bear premium
-   - Call / put volume
-   - Call / put OI
-   - Top alerts
-   - OI change movers
-   - Dark pool prints
-   - Short availability / borrow fee / rebate
-   - Sweep / repeated hit / churn flags
-   - Large notional strikes and expiries
+SECONDARY (confirms or contradicts, never the primary thesis):
+- Multi-day OI build (tabs.positioning.oi_change_top), persistent top alerts
+- Dark pool notional trend, short interest / borrow fee
+- Skew (sets cost of bullish vs bearish bets)
 
-The objective is to produce a high-quality trading interpretation, not a dashboard summary.
+CONTEXT only (do NOT base the call on these at swing-hold horizon):
+- 0DTE GEX and 0DTE share (tabs.volatility.dealer_regime_header.{odte_net_gex, odte_share_pct})
+  — same-day dealer hedging, not 1-2 week direction
+- Any candidate_structures row whose preferred entry expiry is < 21 DTE —
+  reject as `horizon_mismatch` (exit would land in theta-crush zone)
+- Intraday tape direction, single-session bid/ask premium tilts
 
-Important rules:
-
-- Do not invent data.
-- Only use the input provided.
-- If a required field is missing, say “Missing / not provided.”
-- Do not overfit to one metric.
-- Do not blindly say bullish just because call premium is high.
-- Do not blindly say bearish just because puts are active.
-- Resolve conflicts explicitly.
-- Distinguish between:
-  - directional signal
-  - volatility signal
-  - positioning signal
-  - execution readiness
-- Explain whether the setup favors:
-  - long stock
-  - long calls
-  - call debit spread
-  - put credit spread
-  - covered call
-  - short strangle / iron condor
-  - long put / put debit spread
-  - no trade
-- If the data is contradictory or incomplete, recommend “watch / wait” and specify exactly what would make it actionable.
-- Trade recommendations must include entry trigger, invalidation level, target zone, time horizon, preferred option structure, and risk notes.
-- All recommendations are research-only and not financial advice.
+Hard rules:
+- Do not invent data. If a field is missing, say "Missing / not provided."
+- Pick a winner. If pillars conflict, name the winning pillar for the 1-2 week swing-hold horizon and downgrade conviction by one letter — do not default to no-trade unless >=2 of the 4 pillars are missing data.
+- Recommendations are research-only. No order placement, no position sizing in dollars, no imperative trade instructions.
+- Do not use the words "mixed", "unclear", or "monitor closely" in the Call section without a specific price level and a time window in the same sentence.
 
 Input:
 
@@ -109,321 +111,89 @@ Ticker: {{ticker}}
 As-of date: {{as_of_date}}
 Spot: {{spot}}
 
-Market Structure Data:
-{{market_structure_data}}
+Now produce the report using EXACTLY the structure below. Do not add sections. Do not repeat tables.
 
-Volatility Data:
-{{volatility_data}}
+# {{ticker}} — {one-line decision: bias + structure + entry-expiry DTE in [21, 60], to hold 1-2 weeks}
 
-Flow and Positioning Data:
-{{flow_positioning_data}}
+## Call
 
-Optional User Context:
-- Current position: {{current_position_or_none}}
-- Trading horizon: {{trading_horizon}}
-- Risk tolerance: {{risk_tolerance}}
-- Preferred strategy type: {{preferred_strategy_type}}
-- Earnings / event calendar known? {{event_calendar_status}}
-
-Now produce the analysis using the following structure.
-
-# {{ticker}} Options Market Intelligence Report
-
-## 1. Executive Decision
-
-Give one clear headline:
-
-- Bullish directional
-- Bearish directional
-- Range-bound / pinned
-- Volatility-selling setup
-- Volatility-buying setup
-- Conflicted / no-trade
-
-Then provide:
-
-| Field | Answer |
+| Field | Value |
 |---|---|
-| Primary Setup | One sentence |
-| Trade Bias | Bullish / Bearish / Range / Volatility |
-| Confidence | High / Medium / Low |
-| Actionability | Ready / Watchlist / No Trade |
-| Best Structure | Specific option or stock structure |
-| Main Risk | One sentence |
-| Key Trigger | One sentence |
+| Bias | bullish / bearish / range / no_trade |
+| Vol overlay | long_vol / short_vol / neutral |
+| Conviction | A / B / C / D / F (one letter — see rating ladder below) |
+| Preferred entry expiry | YYYY-MM-DD with DTE in [21, 60] — preferred [28, 45]. This is ENTRY DTE; the trade exits at +5 to +10 sessions, not at expiry. |
+| Preferred structure | one of SWING_STRATEGY_FAMILY_IDS |
+| Trigger | "two daily closes above/below X with confirming Y" — daily-close terms |
+| Invalidation | "daily close above/below X" — daily-close terms |
+| Target level | named level from market_structure_levels (call_wall / put_wall / max_magnet / max_accel / gex_flip) |
+| Time stop | "close at mid after 7-10 trading sessions if neither trigger nor invalidation fires" |
 
-Do not write generic language. Make a decision.
+## Why (<=120 words)
 
-## 2. Market Structure Interpretation
+Three sentences max, one per supporting pillar. Cite primary evidence by source path the first time a claim appears. Name the single biggest conflicting piece of evidence in one clause — not a paragraph.
 
-Analyze the market structure in plain English.
+## Expiry Selection (mandatory)
 
-Must cover:
+| Field | Value |
+|---|---|
+| Preferred entry expiry | YYYY-MM-DD (must appear in tabs.volatility.term_structure with 21 <= dte <= 60; prefer 28 <= dte <= 45) |
+| Entry DTE | integer in [21, 60] (preferred [28, 45]) |
+| Why this expiry | one sentence citing IV level vs adjacent expiries, vanna regime in the entry-expiry window, or charm window position. State explicitly that this DTE leaves comfortable premium after the 5-10 session hold. |
+| Alternative | second expiry in 28-45 DTE band, or "none — only one swing-hold expiry has acceptable liquidity" |
 
-- Where spot is relative to GEX flip.
-- Whether spot is above or below the dealer regime boundary.
-- Whether net GEX is stabilizing or destabilizing.
-- Whether net DEX supports directional acceleration or mean reversion.
-- Where the nearest magnets are.
-- Whether price is likely pinned, pulled upward, pulled downward, or exposed to acceleration.
-- Which strikes are likely support and resistance.
-- Whether the expected range is narrow, wide, useful, or unreliable.
+## Scenarios (3 rows, probabilities sum to 100%)
 
-Output:
-
-### Market Structure Read
-
-State the core read in 3-5 sentences.
-
-### Key Levels
-
-| Level | Price | Meaning | Trading Use |
-|---|---:|---|---|
-| Spot | | Current reference | |
-| GEX Flip | | Regime boundary | |
-| Max Magnet | | Attraction / pin risk | |
-| Put Wall | | Downside support / risk level | |
-| Call Wall / Resistance | | Upside resistance | |
-| Max Accel | | Acceleration risk | |
-
-### Market Structure Verdict
-
-Choose one:
-
-- Bullish with positive gamma support
-- Bullish but pinned
-- Bearish below flip
-- Range-bound / magnet-dominated
-- Fragile because positive gamma conflicts with aggressive flow
-- Unclear due to missing data
-
-Explain why.
-
-## 3. Volatility Interpretation
-
-Analyze whether volatility is cheap, fair, or rich.
-
-Must cover:
-
-- IV vs RV
-- VRP
-- IV rank / percentile
-- term structure
-- skew
-- whether volatility selling or buying is favored
-- whether high IV is justified by event risk
-- whether the setup favors defined-risk or undefined-risk structures
-
-Output:
-
-### Volatility Read
-
-3-5 sentences.
-
-### Volatility Evidence
-
-| Metric | Value | Interpretation |
-|---|---:|---|
-| IV ATM | | |
-| RV | | |
-| IV/RV | | |
-| VRP | | |
-| IV Rank | | |
-| IV Percentile | | |
-| Skew | | |
-| Term Structure | | |
-
-### Volatility Verdict
-
-Choose one:
-
-- IV rich, short-vol favored
-- IV cheap, long-vol favored
-- IV rich but dangerous to sell due to flow/event risk
-- IV fair, no edge
-- Data insufficient
-
-Then explain which option structures fit the volatility regime.
-
-## 4. Flow and Positioning Interpretation
-
-Analyze whether flow confirms or contradicts market structure.
-
-Must cover:
-
-- Bull premium vs bear premium
-- Call demand vs put demand
-- Ask-side vs bid-side premium
-- Volume/OI quality
-- Whether alerts are opening, closing, churn, or ambiguous
-- Whether large call flow is bullish speculation, call overwriting, closing, or mixed
-- Whether large put flow is protection, bearish bet, or premium sale
-- Dark pool / short interest context if available
-
-Output:
-
-### Flow Read
-
-3-5 sentences.
-
-### Flow Quality Check
-
-| Signal | Read | Quality |
-|---|---|---|
-| Bull premium vs bear premium | | Strong / Medium / Weak |
-| Ask vs bid premium | | |
-| Call volume / OI | | |
-| Put volume / OI | | |
-| Top alerts | | |
-| OI change | | |
-| Dark pool / short data | | |
-
-### Flow Verdict
-
-Choose one:
-
-- Clean bullish accumulation
-- Bullish but crowded
-- Bearish protection building
-- Bearish speculation
-- Short-vol / overwrite activity
-- Churn / noisy / low signal
-- Mixed and not actionable
-
-Explain why.
-
-## 5. Cross-Pillar Conflict Resolution
-
-This is the most important section.
-
-Create a table:
-
-| Pillar | Bias | Strength | Evidence | Conflict |
-|---|---|---:|---|---|
-| Market Structure | Bull / Bear / Range | 1-5 | | |
-| Volatility | Long vol / Short vol / Neutral | 1-5 | | |
-| Flow | Bull / Bear / Mixed | 1-5 | | |
-
-Then answer:
-
-1. What is the dominant signal?
-2. What is the biggest contradiction?
-3. Which data should be trusted more for the next 1-5 trading days?
-4. Which data should be trusted more for the next 2-6 weeks?
-5. What would invalidate the current interpretation?
-
-Do not skip this. Do not say “mixed” without explaining what wins.
-
-## 6. Scenario Map
-
-Produce three scenarios.
-
-| Scenario | Probability | Trigger | Expected Move | Best Trade |
+| Scenario | Probability | Trigger (daily close) | Level | Best expression |
 |---|---:|---|---|---|
-| Bullish Breakout | % | | | |
-| Range / Pin | % | | | |
-| Bearish Breakdown | % | | | |
+| upside | % | | named level | SWING_STRATEGY_FAMILY_IDS member |
+| base | % | | named level | SWING_STRATEGY_FAMILY_IDS member |
+| downside | % | | named level | SWING_STRATEGY_FAMILY_IDS member |
 
-Probabilities must sum to 100%.
+## Conflicts (cap = 2; severities high or medium only)
 
-Use the options levels to define triggers.
-
-Example style:
-
-- Bullish breakout if spot holds above GEX flip and breaks above max magnet / call wall with confirming call OI expansion.
-- Range if spot remains between flip and magnet with positive GEX.
-- Bearish breakdown if spot loses flip and put wall fails.
-
-## 7. Trade Recommendation
-
-Give a concrete recommendation, but only if actionability is sufficient.
-
-If actionable, provide:
-
-### Preferred Trade
-
-| Field | Recommendation |
+| Severity | One-sentence conflict, citing the pillars in tension |
 |---|---|
-| Structure | |
-| Direction | |
-| Entry Trigger | |
-| Entry Zone | |
-| Expiry | |
-| Strike Selection Logic | |
-| Target | |
-| Stop / Invalidation | |
-| Position Size | Conservative / Normal / Small only |
-| Why This Structure | |
-| Main Risk | |
 
-If not actionable, provide:
+State which pillar wins for the 1-2 week swing-hold horizon and why, in one sentence.
 
-### No-Trade / Watchlist Plan
+## Required Checks (cap = 2)
 
-| Watch Item | Trigger Needed | Why It Matters |
-|---|---|---|
-| Price | | |
-| OI confirmation | | |
-| IV confirmation | | |
-| Flow confirmation | | |
-| Event check | | |
+| Check | What confirms |
+|---|---|
 
-## 8. Strategy Selection Logic
+Each row must be either pre-entry (resolvable before the trigger fires) or in-trade (a monitor with an action). Do not list more than 2.
 
-Choose the best structure from the following, and explain why others are rejected.
+## Rejected Ideas (min 3, max 5)
 
-Possible structures:
+| Strategy | Why rejected at 1-2 week swing-hold horizon |
+|---|---|
 
-- Long stock
-- Long call
-- Call debit spread
-- Put credit spread
-- Covered call
-- Cash-secured put
-- Iron condor
-- Short strangle
-- Long put
-- Put debit spread
-- Calendar spread
-- No trade
+Use canonical strategy ids from STRATEGY_FAMILY_IDS. At least one rejection must explicitly cite horizon mismatch (e.g. "long_stock is not a swing options structure in this product", or "<14 DTE candidate exits at peak gamma/theta") or the safety override ("short_strangle: undefined-risk short-vol, blocked by project policy").
 
-Output:
+## Earnings filter
 
-| Strategy | Fit | Reason |
-|---|---|---|
-| Long stock | Good / Bad / Conditional | |
-| Long call | | |
-| Call debit spread | | |
-| Put credit spread | | |
-| Covered call | | |
-| Iron condor | | |
-| Long put / put spread | | |
-| No trade | | |
+If tabs.positioning.next_earnings_date falls inside the 5-10 session HOLD window (NOT the full entry-DTE-to-expiry), choose ONE:
+- (a) Reject the candidate as `event_risk_in_window`, recommend `no_trade` or a watchlist entry triggering post-earnings. (Default.)
+- (b) Accept ONLY if the trade is explicitly an earnings IV-crush play AND term structure shows clear front-expiry crush opportunity. Tag risk_flags_observed with ["earnings_in_window", "event_iv_crush_thesis"] and justify in headline.subtitle. Note that an earnings IV-crush play typically wants front-expiry (sub-21 DTE) entry — which conflicts with the swing-hold DTE rule above. If you take this path, state explicitly that you are overriding the standard swing-hold horizon for the event-only crush window.
 
-## 9. Final Trading Plan
+Rating ladder (single letter in headline.conviction; one-clause label in headline.conviction_label):
+- A: Actionable, high conviction (3 of 4 pillars aligned, no missing primary evidence)
+- B: Actionable, small size (pillars aligned with one medium conflict, or one primary field missing)
+- C: Watchlist (trigger not yet fired, primary thesis present but unconfirmed)
+- D: No trade (pillars conflict at this horizon and no clean winner)
+- F: Data insufficient (>=2 primary fields missing)
 
-End with a direct, practical summary:
+Confidence (headline.score, 0-100 integer; headline.score_scale = 100):
+- 85-100: 4 of 4 pillars (market structure, volatility, flow, positioning) aligned, no missing primary fields. Conviction A territory.
+- 70-84:  3 of 4 pillars aligned with one medium conflict, or 4 aligned with one primary field missing. Conviction A/B.
+- 55-69:  2 of 4 pillars aligned with the dominant pillar winning clearly. Conviction B/C.
+- 40-54:  Pillars conflict but a winner can still be named for the 1-2 week swing-hold horizon. Conviction C.
+- 20-39:  No clean winner, or 2+ primary fields missing. Conviction D.
+- 0-19:   Data insufficient — primary evidence absent. Conviction F.
+Set headline.score honestly against this rubric. Do NOT default to 0; if you can name a dominant pillar and a structure, you can score at least 40.
 
-- Base case:
-- Best trade:
-- Avoid:
-- Add risk only if:
-- Reduce / hedge if:
-- Key level to watch:
-- Key options signal to watch:
-- Final rating:
-
-The final rating must be one of:
-
-- A: Actionable high-conviction
-- B: Actionable but size small
-- C: Watchlist only
-- D: No trade
-- F: Data insufficient
-
-Do not end with vague commentary.
-Do not simply repeat the dashboard.
-Do not use generic phrases like “monitor closely” unless you specify what to monitor and what action follows."""
+Do not end with vague commentary. Do not repeat any table. Do not use the word "monitor" without a level and a session count."""
 
 _VOLATILE_HASH_KEYS = {
     "analysis_input_hash",
@@ -554,6 +324,41 @@ def _prune_chain_rows(
     return list(by_key.values())[:limit]
 
 
+def _prune_strike_exposures(
+    rows: list[dict[str, Any]],
+    *,
+    spot: Any,
+    expiry_limit: int = 4,
+    strikes_per_side: int = 10,
+) -> list[dict[str, Any]]:
+    """Cap vanna/charm per-strike rows: keep the front `expiry_limit` expiries
+    inside the swing window and, within each expiry, ±`strikes_per_side` around
+    spot. Order is preserved by (expiry, strike)."""
+    if not rows:
+        return []
+    by_expiry: dict[str, list[dict[str, Any]]] = {}
+    for row in rows:
+        by_expiry.setdefault(str(row.get("expiry")), []).append(row)
+    expiries = sorted(by_expiry.keys())[:expiry_limit]
+    if not expiries:
+        return []
+    spot_dec = _to_decimal_or_zero(spot) if spot is not None else None
+    pruned: list[dict[str, Any]] = []
+    for expiry in expiries:
+        rows_for_expiry = by_expiry[expiry]
+        if spot_dec is None:
+            kept = rows_for_expiry
+        else:
+            kept = sorted(
+                rows_for_expiry,
+                key=lambda row: abs(_to_decimal_or_zero(row.get("strike")) - spot_dec),
+            )[: strikes_per_side * 2]
+        pruned.extend(
+            sorted(kept, key=lambda row: _to_decimal_or_zero(row.get("strike")))
+        )
+    return pruned
+
+
 def _strip_volatile_for_hash(value: Any) -> Any:
     if isinstance(value, dict):
         return {
@@ -594,6 +399,38 @@ def build_trade_insights_ai_analysis_input(
         "spot"
     ) or volatility_series_payload.get("spot")
     missing_data: list[str] = []
+
+    dealer_regime = stock_report_payload.get("dealer_regime") or {}
+    exposures_summary = _sorted_front(
+        list(stock_report_payload.get("exposures_summary") or []),
+        6,
+    )
+    strike_exposures = _prune_strike_exposures(
+        list(stock_report_payload.get("strike_exposures") or []),
+        spot=spot,
+    )
+    if not dealer_regime:
+        missing_data.append("tabs.market_structure.dealer_regime is empty")
+    if not exposures_summary:
+        missing_data.append("tabs.market_structure.exposures_summary is empty")
+    # Compact mirror so the Volatility tab consumer can quote regime sub-bars
+    # without cross-tab path-walking that has historically caused validator
+    # rejections (source_path prefix does not exist...).
+    dealer_regime_header = (
+        {
+            "label": dealer_regime.get("label"),
+            "score": dealer_regime.get("score"),
+            "gamma_score": dealer_regime.get("gamma_score"),
+            "vanna_score": dealer_regime.get("vanna_score"),
+            "charm_score": dealer_regime.get("charm_score"),
+            "odte_net_gex": dealer_regime.get("odte_net_gex"),
+            "odte_share_pct": dealer_regime.get("odte_share_pct"),
+            "headline": dealer_regime.get("headline"),
+            "subtitle": dealer_regime.get("subtitle"),
+        }
+        if dealer_regime
+        else {}
+    )
 
     stock_history_rows = _sorted_recent(
         list((stock_history_payload.get("rows") or [])),
@@ -647,6 +484,16 @@ def build_trade_insights_ai_analysis_input(
                     list(stock_report_payload.get("max_pain_rows") or []),
                     12,
                 ),
+                # PR #61: dealer-regime summary (label, gamma/vanna/charm
+                # sub-scores, 0DTE GEX, headline narrative). Primary evidence
+                # at the 1-2 week swing-hold horizon.
+                "dealer_regime": dealer_regime,
+                # PR #60: per-expiry vanna + charm derivations. Front 6
+                # expiries — caller filters to the swing window when reading.
+                "exposures_summary": exposures_summary,
+                # PR #60: per-strike call/put vanna+charm. Pruned to front 4
+                # expiries × ±10 strikes around spot.
+                "strike_exposures": strike_exposures,
                 "stock_history": {
                     **{
                         key: value
@@ -695,6 +542,9 @@ def build_trade_insights_ai_analysis_input(
                 )
                 or "",
                 "spot": volatility_series_payload.get("spot"),
+                # Mirror of dealer_regime so the Vol-regime panel consumer can
+                # cite Γ/V/C sub-bars and 0DTE share without crossing tabs.
+                "dealer_regime_header": dealer_regime_header,
             },
             "flow": {
                 "flow": stock_report_payload.get("flow") or {},
@@ -828,50 +678,71 @@ def build_trade_insights_ai_prompt(prompt_payload: dict[str, Any]) -> str:
         "Integration notes for this local JSON runner:\n"
         "Analyze only the supplied combined deterministic prompt payload below.\n"
         "Do not fetch outside data. Do not use tools. Do not invent unavailable fields.\n"
-        "Map the prompt placeholders from the JSON payload: ticker from ticker, as_of date "
-        "from tabs.trade_insights.as_of or analysis_produced_at, spot from underlying_price "
-        "or tabs.market_structure.market_structure.spot, market structure data from "
-        "tabs.market_structure, volatility data from tabs.volatility, and flow/positioning "
-        "data from tabs.flow and tabs.positioning.\n"
-        "For optional user context, use Missing / not provided unless the payload explicitly "
-        "contains that field.\n"
-        "Build the read from Market Structure, Volatility, Flow, and positioning before "
-        "discussing candidate expressions.\n"
+        "Payload key map: ticker <- ticker; as_of <- tabs.trade_insights.as_of or "
+        "analysis_produced_at; spot <- underlying_price or "
+        "tabs.market_structure.market_structure.spot; market structure <- "
+        "tabs.market_structure (primary keys: tabs.market_structure.dealer_regime, "
+        "tabs.market_structure.exposures_summary, tabs.market_structure.strike_exposures, "
+        "tabs.market_structure.market_structure_levels, tabs.market_structure.strike_gex_curve); "
+        "volatility <- tabs.volatility (including tabs.volatility.dealer_regime_header); "
+        "flow <- tabs.flow; positioning <- tabs.positioning.\n"
         "Use analysis_produced_at exactly as supplied; do not invent a different production time.\n"
-        f"schema_version must exactly equal {PROMPT_VERSION}.\n"
+        f"schema_version MUST be exactly the string {PROMPT_VERSION!r} (do not abbreviate or "
+        "reformat). This is also stamped as a JSON-schema const.\n"
+        "Source-path rule (HARD): every source_path in the outcome must resolve to a key path "
+        "that exists in the payload. Do not cite synthetic paths such as "
+        "tabs.x.y[-1].field or .header.iv unless that exact key exists. If a value is not "
+        "in the payload, leave the field out and add a 'Missing / not provided' note to "
+        "missing_data instead of inventing a path.\n"
         "Preserve every candidate status, every risk_flags array, and every deterministic "
         "max_loss/max_profit value exactly as supplied.\n"
+        "Horizon enforcement (swing HOLD, not swing expiry): every "
+        "candidate_structures row whose preferred entry expiry has DTE < 21 or "
+        "DTE > 60 must be rejected as horizon_mismatch in rejected_ideas. The "
+        "trade is HELD 5-10 trading sessions; entry expiry must leave enough "
+        "premium that the exit is not at peak gamma/theta crush. The "
+        "deterministic candidate list is already filtered to the 21-60 DTE "
+        "swing-hold window (preferred 28-45) by the upstream assembler; if no "
+        "swing-hold candidates exist, set preferred_expression to a no_trade "
+        "strategy-family entry rather than recommending an out-of-horizon "
+        "candidate.\n"
         "Do not defer solely because a deterministic candidate status is needs_check; give "
-        "a research-only recommendation when the supplied evidence supports one, and put "
-        "remaining checks into the trigger, risk, watchlist, or readiness language.\n"
+        "a research-only recommendation when the swing-hold evidence supports one and "
+        "put remaining checks into the trigger, risk, watchlist, or readiness language.\n"
         "Project safety override: do not recommend naked short options or undefined-risk "
-        "short-vol structures; if the prompt's strategy list includes one, reject it unless "
-        "it is converted to a defined-risk alternative such as an iron condor.\n"
-        "Avoid order placement, position sizing, personalized financial advice, and imperative "
-        "trade instructions.\n"
-        "Map the full report into the existing TradeInsightAiOutcome JSON fields: use headline "
-        "and dominant_read for Executive Decision, section_cards for the three pillar reads, "
-        "conflicts for cross-pillar conflict resolution, scenario_cards for the scenario map, "
-        "preferred_expression and best_expressions for the preferred trade/readiness, "
-        "required_checks for precise triggers or confirmations, rejected_ideas for strategy "
-        "selection rejects, and rendering.disclaimer/final text for research-only framing.\n"
-        "For preferred_expression, best_expressions, and rejected_ideas idea_id fields, use "
-        "a supplied candidate_structures idea_id when referencing a deterministic candidate. "
-        "When referencing a strategy family from Strategy Selection Logic in "
-        "preferred_expression or best_expressions, use only one canonical strategy id "
-        f"from {sorted(PREFERRED_STRATEGY_FAMILY_IDS)}. For strategy-family "
-        "preferred_expression or best_expressions entries, set status_observed to "
-        "strategy_review and risk_flags_observed to []. rejected_ideas may reference "
-        f"any canonical strategy id from {sorted(STRATEGY_FAMILY_IDS)}.\n"
-        f"Put only one final rating letter from {list(FINAL_RATING_VALUES)} in "
-        "headline.conviction; put the explanatory rating text in "
-        "headline.conviction_label.\n"
+        "short-vol structures. If the prompt's strategy list includes one, reject it unless "
+        "converted to a defined-risk alternative such as an iron condor.\n"
+        "Avoid order placement, position sizing in dollars, personalized financial advice, "
+        "and imperative trade instructions.\n"
+        "Outcome field mapping: headline + dominant_read <- Call section; section_cards <- "
+        "Why paragraph (one card per supporting pillar, max 3); conflicts <- Conflicts table "
+        "(cap 2); scenario_cards <- Scenarios table (exactly 3, probabilities sum to 100); "
+        "preferred_expression + best_expressions <- Call.preferred_structure / Expiry "
+        "Selection; required_checks <- Required Checks table (cap 2); rejected_ideas <- "
+        "Rejected Ideas table (min 3, max 5); rendering.disclaimer/final <- research-only "
+        "framing only.\n"
+        "idea_id rules (HARD): preferred_expression.idea_id, every best_expressions[].idea_id, "
+        "and every rejected_ideas[].idea_id MUST be either (a) the idea_id of a row in the "
+        "supplied candidate_structures array, or (b) a canonical strategy family id. Never "
+        "free text. For preferred_expression and best_expressions at this horizon, the "
+        f"strategy-family option is restricted to {sorted(SWING_STRATEGY_FAMILY_IDS)}. "
+        "rejected_ideas may reference any canonical strategy id from "
+        f"{sorted(STRATEGY_FAMILY_IDS)} so an out-of-horizon family can be explicitly rejected.\n"
+        "For strategy-family preferred_expression / best_expressions entries, set "
+        "status_observed to 'strategy_review' and risk_flags_observed to [].\n"
+        f"headline.conviction MUST be a single letter from {list(FINAL_RATING_VALUES)} "
+        "(rating ladder in the prompt above). headline.conviction_label holds the "
+        "one-clause explanation. headline.score is the swing-hold confidence "
+        "percentage (integer 0-100, scored against the Confidence rubric in the prompt). "
+        "headline.score_scale must be 100. Do not leave score=0 unless data is genuinely "
+        "insufficient (Conviction F); a real dominant-pillar read scores at least 40.\n"
         "Set guardrails.no_executable_recommendations=true when recommendations remain "
-        "research-only, non-imperative, and not order-placement instructions; this field does "
-        "not prohibit research recommendations.\n"
-        "Keep the result compact enough for the AI Analysis card while preserving the "
-        "decision, conflict resolution, scenario map, preferred structure, and final rating "
-        "requested above.\n"
+        "research-only, non-imperative, and not order-placement instructions; this flag does "
+        "not prohibit research-only recommendations.\n"
+        "Keep the markdown output (rendering.markdown if emitted) under ~3 KB / ~400 words. "
+        "Do not repeat any table. Do not list more than 2 required_checks or more than 2 "
+        "conflicts. Do not emit a Strategy Selection 12-row grid — only rejected_ideas "
+        "(min 3, max 5).\n"
         "Emit only JSON conforming to the TradeInsightAiOutcome schema.\n\n"
         "Payload:\n"
         f"{payload_json}\n"
@@ -890,14 +761,32 @@ def _coerce_strict_schema(node: Any) -> Any:
     return node
 
 
-def trade_insights_ai_output_schema() -> dict[str, Any]:
-    schema = _coerce_strict_schema(TradeInsightAiOutcome.model_json_schema())
+def trade_insights_ai_output_schema(*, strict: bool = True) -> dict[str, Any]:
+    """Produce the JSON schema for TradeInsightAiOutcome.
+
+    `strict=True` (default, used for Codex): forces every nested property to be
+    required and `additionalProperties: false` everywhere. Codex's structured
+    output mode handles this cleanly.
+
+    `strict=False` (used for Claude): keeps only the required set Pydantic
+    naturally declares (i.e. non-Optional fields). Claude's StructuredOutput
+    tool silently falls back to freeform JSON when the schema is too strict at
+    every level, so we trade some validation surface for adherence.
+    """
+    raw = TradeInsightAiOutcome.model_json_schema()
+    schema = _coerce_strict_schema(raw) if strict else raw
     schema["properties"]["schema_version"]["const"] = PROMPT_VERSION
     schema["$defs"]["TradeInsightAiHeadline"]["properties"]["conviction"]["enum"] = (
         list(FINAL_RATING_VALUES)
     )
     return schema
 
+
+# Claude lenient coercion (large; extracted to its own module per the module-size budget).
+# Re-exported here so test callers using the historical import path continue to work.
+from uw_scan.reports.trade_insights_ai_lenient import (  # noqa: E402
+    _coerce_claude_outcome_dict,
+)
 
 _IMPERATIVE_PHRASES = (
     "buy now",
@@ -996,9 +885,15 @@ def _validate_source_path_item(
             "source_path is required unless the item is a missing-data note"
         )
     lowered = source_path.lower()
-    for unavailable in ("charm", "vanna", "short_interest"):
-        if unavailable in lowered and not _missing_data_mentions(outcome, unavailable):
-            raise ValueError(f"unavailable source field referenced: {source_path}")
+    # `vanna` and `charm` used to be unavailable in this product; PR #60 made
+    # them first-class fields via exposures_summary + strike_exposures. Allow
+    # references provided the path family resolves below. `short_interest` is
+    # still indirect — only the `short_data` block is forwarded — so it stays
+    # gated on a missing-data acknowledgement.
+    if "short_interest" in lowered and not _missing_data_mentions(
+        outcome, "short_interest"
+    ):
+        raise ValueError(f"unavailable source field referenced: {source_path}")
     canonical_source_path = _canonical_source_path(source_path, deterministic_payload)
     if canonical_source_path != source_path:
         item.source_path = canonical_source_path
@@ -1027,13 +922,79 @@ def _reject_imperative_text(outcome: TradeInsightAiOutcome) -> None:
             raise ValueError("imperative trade instruction rejected")
 
 
+def _drop_invalid_source_path_in_lenient(
+    item: Any,
+    deterministic_payload: dict[str, Any],
+    outcome: TradeInsightAiOutcome,
+    missing_data: list[str],
+) -> None:
+    """Lenient counterpart to `_validate_source_path_item`: instead of
+    raising on an invalid `source_path`, canonicalize valid ones, and set
+    invalid ones to None while recording the drop in `missing_data`."""
+    source_path = getattr(item, "source_path", None)
+    if not source_path:
+        return
+    lowered = source_path.lower()
+    if "short_interest" in lowered and not _missing_data_mentions(
+        outcome, "short_interest"
+    ):
+        item.source_path = None
+        note = f"source_path dropped (unavailable): {source_path}"
+        if note not in missing_data:
+            missing_data.append(note)
+        return
+    canonical_source_path = _canonical_source_path(source_path, deterministic_payload)
+    if canonical_source_path != source_path:
+        item.source_path = canonical_source_path
+        source_path = canonical_source_path
+    if not _path_family_exists(source_path, deterministic_payload):
+        item.source_path = None
+        note = f"source_path dropped (unknown prefix): {source_path}"
+        if note not in missing_data:
+            missing_data.append(note)
+
+
 def validate_trade_insights_ai_outcome(
     outcome: dict[str, Any] | TradeInsightAiOutcome,
     deterministic_payload: dict[str, Any],
     *,
     produced_at: datetime,
+    lenient: bool = False,
 ) -> TradeInsightAiOutcome:
-    """Validate model output against immutable deterministic inputs."""
+    """Validate model output against immutable deterministic inputs.
+
+    `lenient=True` (Claude only — see issue #67) pre-processes the raw dict
+    through `_coerce_claude_outcome_dict` to capture partial/off-schema output,
+    then RELAXES only the equality checks that require provider-internal
+    consistency:
+
+    * unknown idea_ids in best_expressions / rejected_ideas / preferred /
+      conflicts are accepted (lenient capture);
+    * source_path validation drops invalid paths to None instead of raising.
+
+    Safety / integrity checks STILL RUN in lenient mode:
+
+    * undefined-risk strategy family (e.g. `short_strangle`) rejection —
+      enforces the no-naked-shorts project rule even for Claude;
+    * strategy-family status_observed/risk_flags equality (the coercer
+      synthesizes the canonical values, so this passes automatically);
+    * known-candidate status_observed/risk_flags equality (the coercer
+      overwrites these from the deterministic candidate so this passes);
+    * guardrails all-true (an explicit False from Claude is rejected);
+    * imperative-text rejection (safety guardrail on free text).
+
+    NOTE: A pre-validated TradeInsightAiOutcome instance bypasses the
+    coercion step. Production callers always pass dicts from the runner.
+    """
+
+    expected_hash = hash_trade_insights_ai_analysis_input(deterministic_payload)
+    if lenient and not isinstance(outcome, TradeInsightAiOutcome):
+        outcome = _coerce_claude_outcome_dict(
+            outcome,
+            deterministic_payload,
+            produced_at=produced_at,
+            expected_analysis_input_hash=expected_hash,
+        )
 
     parsed = (
         outcome
@@ -1059,21 +1020,33 @@ def validate_trade_insights_ai_outcome(
         raise ValueError(
             "trade_insights_input_hash does not match deterministic payload"
         )
-    expected_hash = hash_trade_insights_ai_analysis_input(deterministic_payload)
     if parsed.snapshot.analysis_input_hash != expected_hash:
         raise ValueError("analysis_input_hash does not match deterministic payload")
 
     candidates = _candidate_map(deterministic_payload)
-    for item in [*parsed.best_expressions, *parsed.rejected_ideas]:
-        if not _known_idea_id(item.idea_id, candidates):
-            raise ValueError(f"unknown idea_id referenced: {item.idea_id}")
-    if parsed.preferred_expression is not None and not _known_idea_id(
-        parsed.preferred_expression.idea_id, candidates
-    ):
-        raise ValueError(
-            f"unknown idea_id referenced: {parsed.preferred_expression.idea_id}"
-        )
 
+    # Strict-only: unknown idea_ids in best_expressions / rejected_ideas /
+    # preferred_expression / conflicts are rejected outright. The lenient
+    # coercer accepts them so Claude's incoherence is captured visibly.
+    if not lenient:
+        for item in [*parsed.best_expressions, *parsed.rejected_ideas]:
+            if not _known_idea_id(item.idea_id, candidates):
+                raise ValueError(f"unknown idea_id referenced: {item.idea_id}")
+        if parsed.preferred_expression is not None and not _known_idea_id(
+            parsed.preferred_expression.idea_id, candidates
+        ):
+            raise ValueError(
+                f"unknown idea_id referenced: {parsed.preferred_expression.idea_id}"
+            )
+        for conflict in parsed.conflicts:
+            for idea_id in conflict.affected_idea_ids:
+                if not _known_idea_id(idea_id, candidates):
+                    raise ValueError(f"unknown idea_id referenced: {idea_id}")
+
+    # ALWAYS (both strict and lenient): safety checks for strategy-family
+    # ids (undefined-risk rejection, status_observed/risk_flags discipline)
+    # and known-candidate status/risk_flags equality. The lenient coercer
+    # synthesizes the canonical values so these pass cleanly for Claude.
     echo_items = list(parsed.best_expressions)
     if parsed.preferred_expression is not None:
         echo_items.append(parsed.preferred_expression)
@@ -1092,17 +1065,17 @@ def validate_trade_insights_ai_outcome(
                     f"strategy risk_flags_observed must be empty for {item.idea_id}"
                 )
             continue
-        candidate = candidates[item.idea_id]
-        if item.status_observed != candidate.get("status"):
-            raise ValueError(f"status_observed changed for idea_id {item.idea_id}")
-        if item.risk_flags_observed != list(candidate.get("risk_flags") or []):
-            raise ValueError(f"risk_flags_observed changed for idea_id {item.idea_id}")
+        if item.idea_id in candidates:
+            candidate = candidates[item.idea_id]
+            if item.status_observed != candidate.get("status"):
+                raise ValueError(f"status_observed changed for idea_id {item.idea_id}")
+            if item.risk_flags_observed != list(candidate.get("risk_flags") or []):
+                raise ValueError(
+                    f"risk_flags_observed changed for idea_id {item.idea_id}"
+                )
 
-    for conflict in parsed.conflicts:
-        for idea_id in conflict.affected_idea_ids:
-            if not _known_idea_id(idea_id, candidates):
-                raise ValueError(f"unknown idea_id referenced: {idea_id}")
-
+    # ALWAYS: guardrails truthiness — an explicit False from Claude must
+    # not contradict the persisted "succeeded" status.
     if not (
         parsed.guardrails.statuses_preserved
         and parsed.guardrails.risk_flags_preserved
@@ -1110,17 +1083,42 @@ def validate_trade_insights_ai_outcome(
     ):
         raise ValueError("guardrails must all be true")
 
-    for card in parsed.metric_cards:
-        _validate_source_path_item(card, deterministic_payload, parsed)
-    for section in (
-        parsed.section_cards.market_structure,
-        parsed.section_cards.volatility,
-        parsed.section_cards.flow_positioning,
-    ):
-        for highlight in section.highlights:
-            _validate_source_path_item(highlight, deterministic_payload, parsed)
-        for level in section.levels:
-            _validate_source_path_item(level, deterministic_payload, parsed)
+    # Strict: source_path validation raises on invalid prefixes.
+    # Lenient: invalid prefixes are dropped to None with a missing_data note.
+    if not lenient:
+        for card in parsed.metric_cards:
+            _validate_source_path_item(card, deterministic_payload, parsed)
+        for section in (
+            parsed.section_cards.market_structure,
+            parsed.section_cards.volatility,
+            parsed.section_cards.flow_positioning,
+        ):
+            for highlight in section.highlights:
+                _validate_source_path_item(highlight, deterministic_payload, parsed)
+            for level in section.levels:
+                _validate_source_path_item(level, deterministic_payload, parsed)
+    else:
+        missing_data = list(parsed.missing_data)
+        for card in parsed.metric_cards:
+            _drop_invalid_source_path_in_lenient(
+                card, deterministic_payload, parsed, missing_data
+            )
+        for section in (
+            parsed.section_cards.market_structure,
+            parsed.section_cards.volatility,
+            parsed.section_cards.flow_positioning,
+        ):
+            for highlight in section.highlights:
+                _drop_invalid_source_path_in_lenient(
+                    highlight, deterministic_payload, parsed, missing_data
+                )
+            for level in section.levels:
+                _drop_invalid_source_path_in_lenient(
+                    level, deterministic_payload, parsed, missing_data
+                )
+        # Persist any new notes back onto the parsed outcome
+        if len(missing_data) != len(parsed.missing_data):
+            parsed.missing_data = missing_data
 
     _reject_imperative_text(parsed)
     return parsed
@@ -1129,12 +1127,20 @@ def validate_trade_insights_ai_outcome(
 def render_trade_insights_ai_markdown(outcome: TradeInsightAiOutcome) -> str:
     """Render compact Markdown from validated structured output."""
 
+    # `headline.score` is repurposed as a 0-100 confidence percentage. We
+    # render it as "Confidence: N/100", and suppress the line when the model
+    # left it blank (0/0) — drives the cosmetic v3 follow-up.
+    confidence_line: list[str] = []
+    if outcome.headline.score or outcome.headline.score_scale:
+        confidence_line.append(
+            f"Confidence: {outcome.headline.score}/{outcome.headline.score_scale}"
+        )
     lines: list[str] = [
         f"# {outcome.ticker} - {outcome.headline.stance_label}",
         outcome.headline.title,
         "",
         f"Produced: {_iso_z(outcome.analysis_produced_at)}",
-        f"Score: {outcome.headline.score}/{outcome.headline.score_scale}",
+        *confidence_line,
         f"Conviction: {outcome.headline.conviction} - {outcome.headline.conviction_label}",
         f"Top reason: {outcome.headline.top_reason}",
         f"Primary risk: {outcome.headline.primary_risk}",
@@ -1199,7 +1205,11 @@ def render_trade_insights_ai_markdown(outcome: TradeInsightAiOutcome) -> str:
         lines.extend(["", "## Required Checks"])
         for item in outcome.required_checks:
             blocker = "blocks sizing" if item.blocks_sizing else "informational"
-            lines.append(f"- {item.check}: {item.reason} ({blocker})")
+            # Strip trailing period from `check` so the title — reason join
+            # doesn't render as "...fires.: Liquidity must support..." (the
+            # model frequently terminates the check phrase with punctuation).
+            check_text = item.check.rstrip(". ").rstrip()
+            lines.append(f"- {check_text} — {item.reason} ({blocker})")
 
     if outcome.rejected_ideas:
         lines.extend(["", "## Rejected Ideas"])

@@ -5293,6 +5293,16 @@
             "title": "Throughput Window Minutes",
             "type": "number"
           },
+          "trade_insights_ai": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TradeInsightsAiHealth"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "uw_today": {
             "anyOf": [
               {
@@ -11289,6 +11299,24 @@
         "title": "TermStructureExpiryRow",
         "type": "object"
       },
+      "TradeInsightAiAnalysisEnqueueResponse": {
+        "additionalProperties": false,
+        "description": "POST response \u2014 one stub per enabled provider.",
+        "properties": {
+          "analyses": {
+            "items": {
+              "$ref": "#/components/schemas/TradeInsightAiAnalysisStub"
+            },
+            "title": "Analyses",
+            "type": "array"
+          }
+        },
+        "required": [
+          "analyses"
+        ],
+        "title": "TradeInsightAiAnalysisEnqueueResponse",
+        "type": "object"
+      },
       "TradeInsightAiAnalysisRequest": {
         "additionalProperties": false,
         "properties": {
@@ -11296,6 +11324,24 @@
             "default": false,
             "title": "Force Rerun",
             "type": "boolean"
+          },
+          "providers": {
+            "anyOf": [
+              {
+                "items": {
+                  "enum": [
+                    "codex",
+                    "claude"
+                  ],
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Providers"
           }
         },
         "title": "TradeInsightAiAnalysisRequest",
@@ -11377,6 +11423,15 @@
             "title": "Prompt Version",
             "type": "string"
           },
+          "provider": {
+            "default": "codex",
+            "enum": [
+              "codex",
+              "claude"
+            ],
+            "title": "Provider",
+            "type": "string"
+          },
           "requested_at": {
             "format": "date-time",
             "title": "Requested At",
@@ -11434,6 +11489,52 @@
           "requested_at"
         ],
         "title": "TradeInsightAiAnalysisResponse",
+        "type": "object"
+      },
+      "TradeInsightAiAnalysisStub": {
+        "additionalProperties": false,
+        "description": "Lightweight stub returned by POST when enqueueing per-provider rows.",
+        "properties": {
+          "analysis_id": {
+            "format": "uuid",
+            "title": "Analysis Id",
+            "type": "string"
+          },
+          "model": {
+            "title": "Model",
+            "type": "string"
+          },
+          "provider": {
+            "enum": [
+              "codex",
+              "claude"
+            ],
+            "title": "Provider",
+            "type": "string"
+          },
+          "reused": {
+            "title": "Reused",
+            "type": "boolean"
+          },
+          "status": {
+            "enum": [
+              "queued",
+              "running",
+              "succeeded",
+              "failed"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "provider",
+          "analysis_id",
+          "status",
+          "reused",
+          "model"
+        ],
+        "title": "TradeInsightAiAnalysisStub",
         "type": "object"
       },
       "TradeInsightAiBestExpression": {
@@ -11667,6 +11768,34 @@
           "value"
         ],
         "title": "TradeInsightAiHighlight",
+        "type": "object"
+      },
+      "TradeInsightAiLatestPair": {
+        "additionalProperties": false,
+        "description": "GET /latest response \u2014 null per provider when no succeeded row exists.",
+        "properties": {
+          "claude": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TradeInsightAiAnalysisResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "codex": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TradeInsightAiAnalysisResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "title": "TradeInsightAiLatestPair",
         "type": "object"
       },
       "TradeInsightAiLevel": {
@@ -12272,6 +12401,58 @@
           "reason"
         ],
         "title": "TradeInsightAiVrpAssessment",
+        "type": "object"
+      },
+      "TradeInsightsAiHealth": {
+        "properties": {
+          "claude": {
+            "$ref": "#/components/schemas/TradeInsightsAiProviderHealth"
+          },
+          "codex": {
+            "$ref": "#/components/schemas/TradeInsightsAiProviderHealth"
+          }
+        },
+        "required": [
+          "codex",
+          "claude"
+        ],
+        "title": "TradeInsightsAiHealth",
+        "type": "object"
+      },
+      "TradeInsightsAiProviderHealth": {
+        "description": "Per-provider AI worker pool status.",
+        "properties": {
+          "last_beat_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Beat At"
+          },
+          "queued_depth": {
+            "title": "Queued Depth",
+            "type": "integer"
+          },
+          "workers_expected": {
+            "title": "Workers Expected",
+            "type": "integer"
+          },
+          "workers_healthy": {
+            "title": "Workers Healthy",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "workers_expected",
+          "workers_healthy",
+          "queued_depth"
+        ],
+        "title": "TradeInsightsAiProviderHealth",
         "type": "object"
       },
       "TradeInsightsHeader": {
@@ -15811,6 +15992,7 @@
     },
     "/api/stock/{ticker}/trade-insights/ai-analysis": {
       "post": {
+        "description": "Enqueue one Trade Insights AI analysis per enabled provider.\n\nResponse contains one stub per provider with status + reused + model.\nDisabled providers are omitted from the response (not included with a\n'disabled' status \u2014 the UI tab handles this via /latest = null).",
         "operationId": "post_trade_insights_ai_analysis_api_stock__ticker__trade_insights_ai_analysis_post",
         "parameters": [
           {
@@ -15845,7 +16027,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/TradeInsightAiAnalysisResponse"
+                  "$ref": "#/components/schemas/TradeInsightAiAnalysisEnqueueResponse"
                 }
               }
             },
@@ -15870,6 +16052,7 @@
     },
     "/api/stock/{ticker}/trade-insights/ai-analysis/latest": {
       "get": {
+        "description": "Latest succeeded row per provider as a keyed dict.\n\nReturns {codex: row|null, claude: row|null}. 200 even when both are null\nso the UI renders the empty Run state instead of a 404.",
         "operationId": "get_latest_trade_insights_ai_analysis_api_stock__ticker__trade_insights_ai_analysis_latest_get",
         "parameters": [
           {
@@ -15887,15 +16070,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "anyOf": [
-                    {
-                      "$ref": "#/components/schemas/TradeInsightAiAnalysisResponse"
-                    },
-                    {
-                      "type": "null"
-                    }
-                  ],
-                  "title": "Response Get Latest Trade Insights Ai Analysis Api Stock  Ticker  Trade Insights Ai Analysis Latest Get"
+                  "$ref": "#/components/schemas/TradeInsightAiLatestPair"
                 }
               }
             },

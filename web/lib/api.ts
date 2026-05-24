@@ -34,9 +34,21 @@ type VolatilitySeriesResponse = Json<
   "get"
 >;
 type TradeInsightsResponse = Json<"/api/stock/{ticker}/trade-insights", "get">;
+// Single-row response (used by GET /{analysis_id} and as the inner type of
+// /latest). The OpenAPI shape lives under `paths[...]/{analysis_id}/get`.
 type TradeInsightsAiAnalysisResponse = Json<
+  "/api/stock/{ticker}/trade-insights/ai-analysis/{analysis_id}",
+  "get"
+>;
+// POST returns the paired enqueue response (one stub per enabled provider).
+type TradeInsightsAiAnalysisEnqueueResponse = Json<
   "/api/stock/{ticker}/trade-insights/ai-analysis",
   "post"
+>;
+// /latest returns a keyed pair of full analysis responses.
+type TradeInsightsAiLatestPair = Json<
+  "/api/stock/{ticker}/trade-insights/ai-analysis/latest",
+  "get"
 >;
 type CockpitStateResponse = Json<"/api/cockpit/{ticker}/state", "get">;
 type CockpitDealerResponse = Json<"/api/cockpit/{ticker}/dealer", "get">;
@@ -158,9 +170,12 @@ export const api = {
     _fetch<TradeInsightsResponse>(`/api/stock/${ticker}/trade-insights`),
   tradeInsightsAiAnalysis: (
     ticker: string,
-    body: { force_rerun?: boolean } = {},
-  ): Promise<TradeInsightsAiAnalysisResponse> =>
-    _fetch<TradeInsightsAiAnalysisResponse>(
+    body: {
+      force_rerun?: boolean;
+      providers?: ("codex" | "claude")[];
+    } = {},
+  ): Promise<TradeInsightsAiAnalysisEnqueueResponse> =>
+    _fetch<TradeInsightsAiAnalysisEnqueueResponse>(
       `/api/stock/${ticker}/trade-insights/ai-analysis`,
       { method: "POST", body: JSON.stringify(body) },
     ),
@@ -173,8 +188,8 @@ export const api = {
     ),
   tradeInsightsAiAnalysisLatest: (
     ticker: string,
-  ): Promise<TradeInsightsAiAnalysisResponse | null> =>
-    _fetch<TradeInsightsAiAnalysisResponse | null>(
+  ): Promise<TradeInsightsAiLatestPair> =>
+    _fetch<TradeInsightsAiLatestPair>(
       `/api/stock/${ticker}/trade-insights/ai-analysis/latest`,
     ),
   ohlc: (ticker: string, days = 30): Promise<OhlcResponse> =>
@@ -250,7 +265,9 @@ export type {
   RatesSnapshotResponse,
   ScannerResponse,
   SingleStockReport,
+  TradeInsightsAiAnalysisEnqueueResponse,
   TradeInsightsAiAnalysisResponse,
+  TradeInsightsAiLatestPair,
   TradeInsightsResponse,
   VolatilitySeriesResponse,
   WatchlistResponse,

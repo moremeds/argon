@@ -566,35 +566,37 @@ def test_trade_insights_ai_prompt_payload_and_prompt_are_recommendation_oriented
         "analysis_input_hash"
     ] == hash_trade_insights_ai_analysis_input(analysis_input)
     assert (
-        "You are an institutional options strategist, market-structure analyst, and risk manager."
+        "You are an institutional options strategist analyzing one stock for a 1-2 week SWING HOLD entry."
         in prompt
     )
-    assert "Analyze only the supplied combined deterministic prompt payload" in prompt
-    assert "Do not fetch outside data" in prompt
-    assert "1. Market Structure" in prompt
-    assert "2. Volatility" in prompt
-    assert "3. Flow and Positioning" in prompt
-    assert (
-        "The objective is to produce a high-quality trading interpretation, not a dashboard summary."
-        in prompt
-    )
-    assert "Trade recommendations must include entry trigger" in prompt
+    # Swing-hold horizon is hard-coded, not optional context.
+    assert "Time horizon (FIXED, not negotiable)" in prompt
+    assert "The trade is HELD 5-10 trading sessions" in prompt
+    assert "Entry-expiry DTE MUST be 28-45 (preferred) or 21-60 (allowed)" in prompt
+    assert "horizon_mismatch" in prompt
+    # New PR #60 / #61 evidence is wired into the payload key map.
+    assert "tabs.market_structure.dealer_regime" in prompt
+    assert "tabs.market_structure.exposures_summary" in prompt
+    assert "tabs.market_structure.strike_exposures" in prompt
+    # 4-section report structure replaces the prior 9-section template.
+    assert "## Call" in prompt
+    assert "## Why" in prompt
+    assert "## Expiry Selection (mandatory)" in prompt
+    assert "## Scenarios (3 rows, probabilities sum to 100%)" in prompt
+    # No section_cards 1-9 grid, no needs_check deferral.
+    assert "## 5. Cross-Pillar Conflict Resolution" not in prompt
     assert (
         "Do not defer solely because a deterministic candidate status is needs_check"
         in prompt
     )
-    assert "All recommendations are research-only and not financial advice." in prompt
-    assert f"schema_version must exactly equal {PROMPT_VERSION}" in prompt
-    assert (
-        "Map the full report into the existing TradeInsightAiOutcome JSON fields"
-        in prompt
-    )
-    assert "does not prohibit research recommendations" in prompt
-    assert "# {{ticker}} Options Market Intelligence Report" in prompt
-    assert "## 5. Cross-Pillar Conflict Resolution" in prompt
-    assert "The final rating must be one of:" in prompt
-    assert "Preserve every candidate status" in prompt
-    assert "Treat all needs_check candidates as not executable" not in prompt
+    # Source-path discipline + schema_version are now appendix-level rules.
+    assert "Source-path rule (HARD)" in prompt
+    assert f"schema_version MUST be exactly the string {PROMPT_VERSION!r}" in prompt
+    # idea_id rule and SWING-restricted preferred_expression.
+    assert "idea_id rules (HARD)" in prompt
+    for swing_family in ("long_call", "call_debit_spread", "iron_condor", "no_trade"):
+        assert swing_family in prompt
+    # Output framing: still research-only, still bounded JSON.
     assert "Emit only JSON" in prompt
     assert '"tabs"' in prompt
 
@@ -757,13 +759,16 @@ def test_validate_trade_insights_ai_outcome_rejects_source_path_problems():
     deterministic = _analysis_input()
     produced_at = datetime(2026, 3, 24, 20, 18, 42, tzinfo=timezone.utc)
 
-    unavailable = _sample_outcome_for(deterministic)
-    unavailable["metric_cards"][0]["source_path"] = (
+    # `charm` / `vanna` paths are no longer unavailable since PR #60 forwarded
+    # exposures_summary + strike_exposures into the payload. A non-existent
+    # charm path now falls through to the generic prefix-existence check.
+    nonexistent_charm = _sample_outcome_for(deterministic)
+    nonexistent_charm["metric_cards"][0]["source_path"] = (
         "tabs.market_structure.charm_summary"
     )
-    with pytest.raises(ValueError, match="unavailable"):
+    with pytest.raises(ValueError, match="source_path"):
         validate_trade_insights_ai_outcome(
-            unavailable, deterministic, produced_at=produced_at
+            nonexistent_charm, deterministic, produced_at=produced_at
         )
 
     missing_source_path = _sample_outcome_for(deterministic)
@@ -1053,3 +1058,367 @@ def test_to_decimal_returns_none_for_invalid_input():
     assert _to_decimal("3.14") == Decimal("3.14")
     assert _to_decimal(42) == Decimal(42)
     assert _to_decimal(Decimal("1.5")) == Decimal("1.5")
+
+
+def test_validate_lenient_captures_partial_claude_output():
+    """Issue #67: Claude often drops top-level required fields (snapshot,
+    analysis_produced_at, headline.stance/stance_label) while inventing peer
+    keys like primary_setup, time_horizon. Lenient mode synthesizes the
+    missing identity fields from the deterministic payload and accepts
+    Claude's actual content for everything else."""
+    deterministic = _analysis_input()
+    produced_at = datetime(2026, 3, 24, 20, 18, 42, tzinfo=timezone.utc)
+
+    # Resembles a real Claude off-schema response: missing snapshot/produced_at,
+    # invented headline keys, missing required headline fields, missing the
+    # required nested models (dominant_read, section_cards, etc.).
+    partial = {
+        "schema_version": "WRONG_VERSION",  # should get overwritten
+        "ticker": "WRONG",  # should get overwritten with deterministic value
+        "headline": {
+            "primary_setup": "TRADE_BULLISH",  # unknown key — should be stripped
+            "time_horizon": "1-2 weeks",  # unknown key — should be stripped
+            "title": "TSLA — bullish swing setup",
+            "top_reason": "Cheap IV + bullish flow above gex_flip",
+            # stance/stance_label/score/conviction/etc. all missing
+        },
+        "missing_data": ["headline.stance not produced by provider"],
+    }
+
+    parsed = validate_trade_insights_ai_outcome(
+        partial,
+        deterministic,
+        produced_at=produced_at,
+        lenient=True,
+    )
+
+    # Identity fields force-overwritten from deterministic payload
+    assert parsed.schema_version == PROMPT_VERSION
+    assert parsed.ticker == "TSLA"
+    assert parsed.snapshot.run_id == 123
+    assert parsed.snapshot.trade_insights_input_hash == "sha256-trade-insights"
+    # analysis_produced_at round-trips to the worker-provided timestamp
+    assert parsed.analysis_produced_at == produced_at
+
+    # Claude's actual content preserved where present
+    assert parsed.headline.title == "TSLA — bullish swing setup"
+    assert parsed.headline.top_reason == "Cheap IV + bullish flow above gex_flip"
+
+    # Missing required scalars get safe placeholders
+    assert parsed.headline.stance == "mixed"  # invalid-Literal fallback
+    assert parsed.headline.conviction == "F"  # F = data insufficient
+    assert parsed.headline.score == 0
+
+    # Provider-noted missing data is preserved (with our placeholder prepended)
+    assert any("partial output" in note.lower() for note in parsed.missing_data)
+    assert "headline.stance not produced by provider" in parsed.missing_data
+
+
+def test_validate_lenient_accepts_unknown_idea_ids_but_drops_bad_source_paths():
+    """Lenient mode RELAXES only the equality checks that require provider-
+    internal consistency: unknown idea_ids are captured, invalid source_paths
+    are dropped to None with a missing_data note. Safety checks still apply
+    (see other lenient tests for guardrails / undefined-risk)."""
+    deterministic = _analysis_input()
+    produced_at = datetime(2026, 3, 24, 20, 18, 42, tzinfo=timezone.utc)
+
+    payload = _sample_outcome_for(deterministic)
+    payload["best_expressions"][0]["idea_id"] = "UNKNOWN_IDEA"
+    payload["metric_cards"][0]["source_path"] = "tabs.flow.not_a_real_family"
+
+    # Strict: rejects on the first failure
+    with pytest.raises(ValueError):
+        validate_trade_insights_ai_outcome(
+            payload, deterministic, produced_at=produced_at
+        )
+
+    parsed = validate_trade_insights_ai_outcome(
+        payload,
+        deterministic,
+        produced_at=produced_at,
+        lenient=True,
+    )
+    # Unknown idea_id: kept (visible incoherence Claude introduced)
+    assert parsed.best_expressions[0].idea_id == "UNKNOWN_IDEA"
+    # Bad source_path: dropped to None + missing_data note recorded
+    assert parsed.metric_cards[0].source_path is None
+    assert any(
+        "source_path dropped" in note and "tabs.flow.not_a_real_family" in note
+        for note in parsed.missing_data
+    )
+
+
+def test_validate_lenient_rejects_guardrails_false():
+    """Safety: an explicit False on any guardrail must NOT be silently
+    accepted in lenient mode. A persisted "succeeded" row whose own
+    guardrails contradict the safety contract is worse than a failed row."""
+    deterministic = _analysis_input()
+    produced_at = datetime(2026, 3, 24, 20, 18, 42, tzinfo=timezone.utc)
+
+    payload = _sample_outcome_for(deterministic)
+    payload["guardrails"]["statuses_preserved"] = False
+
+    with pytest.raises(ValueError, match="guardrails"):
+        validate_trade_insights_ai_outcome(
+            payload, deterministic, produced_at=produced_at, lenient=True
+        )
+
+
+def test_validate_lenient_rejects_undefined_risk_strategy_family():
+    """Safety: the no-naked-shorts project rule (defined-risk only) must
+    still block `short_strangle` as preferred or best expression even when
+    Claude is the provider."""
+    deterministic = _analysis_input()
+    produced_at = datetime(2026, 3, 24, 20, 18, 42, tzinfo=timezone.utc)
+
+    payload = _sample_outcome_for(deterministic)
+    payload["preferred_expression"]["idea_id"] = "short_strangle"
+    payload["preferred_expression"]["structure"] = "short_strangle"
+    payload["preferred_expression"]["status_observed"] = "strategy_review"
+    payload["preferred_expression"]["risk_flags_observed"] = []
+
+    with pytest.raises(ValueError, match="undefined-risk"):
+        validate_trade_insights_ai_outcome(
+            payload, deterministic, produced_at=produced_at, lenient=True
+        )
+
+
+def test_validate_lenient_overwrites_known_candidate_status_and_risk_flags():
+    """Safety: when a best_expression / preferred / rejected idea_id matches
+    a deterministic candidate, the coercer overwrites status_observed and
+    risk_flags_observed from the deterministic source. Claude cannot
+    whitewash a `needs_check` row into `strategy_review`."""
+    deterministic = _analysis_input()
+    produced_at = datetime(2026, 3, 24, 20, 18, 42, tzinfo=timezone.utc)
+
+    # Pick a real candidate from the deterministic payload and capture its
+    # actual status / risk_flags so the test asserts against truth.
+    candidate = deterministic["candidate_structures"][0]
+    real_idea_id = str(candidate["idea_id"])
+    real_status = str(candidate.get("status") or "")
+    real_risk_flags = list(candidate.get("risk_flags") or [])
+
+    # Build a payload where Claude lies about status + risk_flags.
+    raw = {
+        "headline": {"title": "T", "stance": "neutral", "conviction": "B"},
+        "best_expressions": [
+            {
+                "idea_id": real_idea_id,
+                "status_observed": "ready_to_size",  # lie
+                "risk_flags_observed": [],  # lie
+            }
+        ],
+    }
+    parsed = validate_trade_insights_ai_outcome(
+        raw, deterministic, produced_at=produced_at, lenient=True
+    )
+    assert parsed.best_expressions[0].status_observed == real_status
+    assert parsed.best_expressions[0].risk_flags_observed == real_risk_flags
+
+
+def test_validate_lenient_filters_unknown_conflict_idea_ids():
+    """Unknown idea_ids inside `conflict.affected_idea_ids` should be
+    silently filtered and recorded in missing_data — not raise, not
+    silently retain the bogus reference."""
+    deterministic = _analysis_input()
+    produced_at = datetime(2026, 3, 24, 20, 18, 42, tzinfo=timezone.utc)
+    real_idea_id = str(deterministic["candidate_structures"][0]["idea_id"])
+
+    raw = {
+        "headline": {"title": "T", "stance": "neutral", "conviction": "B"},
+        "conflicts": [
+            {
+                "lens": "vol",
+                "severity": "medium",
+                "description": "x",
+                "affected_idea_ids": [real_idea_id, "PHANTOM_IDEA"],
+            }
+        ],
+    }
+    parsed = validate_trade_insights_ai_outcome(
+        raw, deterministic, produced_at=produced_at, lenient=True
+    )
+    assert parsed.conflicts[0].affected_idea_ids == [real_idea_id]
+    assert any(
+        "PHANTOM_IDEA" in note and "dropped" in note for note in parsed.missing_data
+    )
+
+
+def test_validate_lenient_normalizes_conviction_case_and_whitespace():
+    """Conviction must accept Claude's case/whitespace variations the same
+    way stance does; "b" / " B " should land on "B", not the "F" fallback."""
+    deterministic = _analysis_input()
+    produced_at = datetime(2026, 3, 24, 20, 18, 42, tzinfo=timezone.utc)
+    for raw_conviction in ("b", " B ", "C\n", "a"):
+        payload = {"headline": {"title": "T", "conviction": raw_conviction}}
+        parsed = validate_trade_insights_ai_outcome(
+            payload, deterministic, produced_at=produced_at, lenient=True
+        )
+        assert parsed.headline.conviction == raw_conviction.strip().upper()
+
+
+def test_coerce_handles_nan_and_infinity_floats():
+    """A malformed numeric field (NaN or Infinity from json.loads with the
+    default allow_nan=True) must NOT crash the coercer. _int_or / _opt_int
+    fall back to the default."""
+    from uw_scan.reports.trade_insights_ai import _coerce_claude_outcome_dict
+
+    deterministic = _analysis_input()
+    produced_at = datetime(2026, 3, 24, 20, 18, 42, tzinfo=timezone.utc)
+    expected_hash = hash_trade_insights_ai_analysis_input(deterministic)
+
+    raw = {
+        "headline": {
+            "title": "T",
+            "stance": "neutral",
+            "conviction": "B",
+            "score": float("nan"),
+        },
+        "section_cards": {
+            "market_structure": {
+                "title": "MS",
+                "summary": "s",
+                "score": float("inf"),
+                "max_score": float("-inf"),
+            }
+        },
+    }
+    coerced = _coerce_claude_outcome_dict(
+        raw,
+        deterministic,
+        produced_at=produced_at,
+        expected_analysis_input_hash=expected_hash,
+    )
+    # Score defaults
+    assert coerced["headline"]["score"] == 0
+    assert coerced["section_cards"]["market_structure"]["score"] is None
+    assert coerced["section_cards"]["market_structure"]["max_score"] is None
+    # Round-trips through Pydantic
+    TradeInsightAiOutcome.model_validate(coerced)
+
+
+def test_validate_lenient_passes_complete_valid_output():
+    """The lenient path must not damage a Claude outcome that DOES adhere to
+    the schema fully — same fields as the strict happy-path test should
+    pass through, with idea_id status/risk_flags overwritten from the
+    deterministic candidate (which match anyway in the happy case)."""
+    deterministic = _analysis_input()
+    produced_at = datetime(2026, 3, 24, 20, 18, 42, tzinfo=timezone.utc)
+    payload = _sample_outcome_for(deterministic)
+
+    parsed = validate_trade_insights_ai_outcome(
+        payload, deterministic, produced_at=produced_at, lenient=True
+    )
+    # Headline content preserved
+    assert parsed.headline.title == payload["headline"]["title"]
+    assert parsed.headline.stance == "bullish"
+    assert parsed.headline.conviction == "B"
+    # Section content preserved
+    assert (
+        parsed.section_cards.market_structure.summary
+        == payload["section_cards"]["market_structure"]["summary"]
+    )
+    # Metric cards' source_paths kept (they're valid)
+    assert (
+        parsed.metric_cards[0].source_path == payload["metric_cards"][0]["source_path"]
+    )
+    # No spurious "partial output" note
+    assert not any("partial output" in note.lower() for note in parsed.missing_data)
+
+
+def test_validate_lenient_still_rejects_imperative_text():
+    """Safety guardrail: imperative trade instructions ("execute this trade",
+    "go long now") must be rejected even in lenient mode. The whole point of
+    that check is to block research-only output that crosses into order-placement
+    language; provider quirks don't get to bypass it."""
+    deterministic = _analysis_input()
+    produced_at = datetime(2026, 3, 24, 20, 18, 42, tzinfo=timezone.utc)
+
+    payload = {
+        "headline": {
+            "title": "TSLA setup",
+            "stance_label": "buy now: bullish swing",
+        }
+    }
+    with pytest.raises(ValueError, match="imperative"):
+        validate_trade_insights_ai_outcome(
+            payload, deterministic, produced_at=produced_at, lenient=True
+        )
+
+
+def test_validate_lenient_maps_prompt_bias_to_stance_literal():
+    """The MARKET_INTELLIGENCE_PROMPT asks for stance="range" / "no_trade" via
+    the markdown template, but headline.stance Literal is bullish/bearish/
+    neutral/mixed/wait. Codex translates implicitly; Claude does not. The
+    coercer maps "range" -> "neutral" and "no_trade" -> "wait" so the Literal
+    is satisfied and stance_label preserves the analyst vocabulary."""
+    deterministic = _analysis_input()
+    produced_at = datetime(2026, 3, 24, 20, 18, 42, tzinfo=timezone.utc)
+
+    for raw_stance, expected_stance in [
+        ("range", "neutral"),
+        ("RANGE", "neutral"),
+        ("range-bound", "neutral"),
+        ("range bound", "neutral"),
+        ("rangebound", "neutral"),
+        ("no_trade", "wait"),
+        ("no-trade", "wait"),
+        ("no trade", "wait"),
+        ("none", "wait"),
+    ]:
+        payload = {"headline": {"stance": raw_stance, "title": "T"}}
+        parsed = validate_trade_insights_ai_outcome(
+            payload, deterministic, produced_at=produced_at, lenient=True
+        )
+        assert parsed.headline.stance == expected_stance, raw_stance
+        # The raw analyst vocabulary survives in stance_label
+        assert raw_stance in parsed.headline.stance_label
+
+
+def test_coerce_claude_outcome_strips_unknown_keys():
+    """Pydantic models in this contract use extra='forbid'. The lenient coercer
+    must strip unknown keys at every nesting level so the resulting dict
+    round-trips through model_validate without ValidationError."""
+    from uw_scan.reports.trade_insights_ai import _coerce_claude_outcome_dict
+
+    deterministic = _analysis_input()
+    produced_at = datetime(2026, 3, 24, 20, 18, 42, tzinfo=timezone.utc)
+    expected_hash = hash_trade_insights_ai_analysis_input(deterministic)
+
+    raw = {
+        "headline": {
+            "title": "Test",
+            "stance": "bullish",
+            "stance_label": "Bullish",
+            "conviction": "B",
+            "conviction_label": "Moderate",
+            "top_reason": "r",
+            "primary_risk": "k",
+            "watch_trigger": "t",
+            "score": 50,
+            "INVENTED_FIELD": "should be dropped",
+        },
+        "INVENTED_TOP_LEVEL": {"nested": "junk"},
+        "section_cards": {
+            "market_structure": {
+                "title": "MS",
+                "summary": "s",
+                "INVENTED_SECTION_FIELD": "drop me",
+            },
+        },
+    }
+
+    coerced = _coerce_claude_outcome_dict(
+        raw,
+        deterministic,
+        produced_at=produced_at,
+        expected_analysis_input_hash=expected_hash,
+    )
+
+    # Unknown top-level key dropped
+    assert "INVENTED_TOP_LEVEL" not in coerced
+    # Unknown nested key dropped
+    assert "INVENTED_FIELD" not in coerced["headline"]
+    assert "INVENTED_SECTION_FIELD" not in coerced["section_cards"]["market_structure"]
+    # And it round-trips through Pydantic
+    TradeInsightAiOutcome.model_validate(coerced)
