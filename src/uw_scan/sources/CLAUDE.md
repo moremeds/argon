@@ -27,6 +27,20 @@ Feeds the `/gold` GOLD COMPASS cockpit (`web/app/gold/`, `api/routers/gold.py`).
 
 Related migrations: `storage/migrations/041_gold_cot.sql` (COT), `046_wgc_etf_monthly.sql` (WGC ETF corpus). Repository: `storage/gold_etf.py`. Scheduler jobs: `worker/jobs/gold_jobs.py` (`gold_fred_ingest_job`, `gold_gpr_ingest_job`, `gold_lbma_vault_ingest_job`, `gold_comex_vault_ingest_job`, `gold_etf_holdings_ingest_job`, `gold_spot_ingest_job`, `gold_uw_options_ingest_job`, `gold_cftc_cot_ingest_job`, `gold_wgc_cb_ingest_job`, `gold_posture_compute_job`).
 
+## US rates
+
+Feeds `/rates` through `worker/jobs/rates_jobs.py` and
+`storage/migrations/052_rates_tables.sql` / `053_rates_policy_sources.sql`.
+
+| Source file | What it pulls | Status |
+|---|---|---|
+| `fred.py` | FRED observations for nominal Treasury curve, TIPS real yields, breakevens, EFFR, SOFR, target range, and Fed plumbing. Requires `FRED_API_KEY`. | Live |
+| `cleveland_fed.py` | Cleveland Fed inflation-expectations model CSVs for the four-component 10Y decomposition. | Live |
+| `fomc_calendar.py` | Federal Reserve FOMC calendar page for meeting metadata. | Live |
+| `fed_funds_futures_path.py` | Frenzy Capital Fed Watch SSR data, a free/delayed fed-funds-futures move-probability source used as an alternative to the paid CME FedWatch API. Override with `RATES_POLICY_PATH_URL` if we later host our own scraped/derived page. | Live |
+| `cftc_tff.py` | CFTC Traders in Financial Futures futures-only API (`gpe5-46if`) for U.S. Treasury futures positioning by dealer/intermediary, asset manager, leveraged funds, and other reportables. | Live |
+| `treasury_supply.py` | TreasuryDirect auction results plus FiscalData debt-to-the-penny for the rates Supply panel. | Live |
+
 ## Rules
 
 - **Audit-first.** Persist the raw payload + audit row BEFORE returning. Crashes mid-pipeline must still leave a trace.

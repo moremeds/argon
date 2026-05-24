@@ -118,12 +118,33 @@ describe("RatesDesk", () => {
     expect(screen.getByText(/daily FRED pricing has moved faster than the monthly Cleveland release/)).toBeTruthy();
   });
 
-  it("marks not-yet-wired source panels unavailable instead of filling static values", () => {
+  it("renders persisted Treasury supply data instead of the phase placeholder", () => {
     render(<RatesDesk snapshot={SNAPSHOT} />);
 
-    expect(screen.getAllByText("Unavailable").length).toBeGreaterThan(0);
-    expect(screen.getByText(/Treasury auction feed not wired/)).toBeTruthy();
-    expect(screen.getByText(/CFTC\/TIC feeds not wired/)).toBeTruthy();
+    const supplySection = screen.getByRole("region", { name: /supply/i });
+    expect(within(supplySection).getByText("Recent auctions")).toBeTruthy();
+    expect(within(supplySection).getByText("30-Year Bond")).toBeTruthy();
+    expect(within(supplySection).getByText("$25.0bn")).toBeTruthy();
+    expect(within(supplySection).getByText("2.30")).toBeTruthy();
+    expect(within(supplySection).getByText("Public debt")).toBeTruthy();
+    expect(within(supplySection).getByText("$31.37T")).toBeTruthy();
+    expect(screen.queryByText(/Treasury auction feed not wired/)).toBeNull();
+    expect(screen.queryByText(/CFTC\/TIC feeds not wired/)).toBeNull();
+  });
+
+  it("renders persisted CFTC TFF positioning detail", () => {
+    render(<RatesDesk snapshot={SNAPSHOT} />);
+
+    const positioningSection = screen.getByRole("region", {
+      name: /positioning/i,
+    });
+    expect(
+      within(positioningSection).getByText("Leveraged funds · long end"),
+    ).toBeTruthy();
+    expect(within(positioningSection).getByText("UST 10Y NOTE")).toBeTruthy();
+    expect(within(positioningSection).getByText("-26.3% OI")).toBeTruthy();
+    expect(within(positioningSection).getByText(/CFTC TFF 2026-05-22/))
+      .toBeTruthy();
   });
 
   it("renders source freshness so failed refreshes do not look live", () => {
@@ -146,9 +167,31 @@ describe("RatesDesk", () => {
     );
   });
 
+  it("renders futures move probabilities and low ON RRP in trillions", () => {
+    render(<RatesDesk snapshot={SNAPSHOT} />);
+
+    const policySection = screen.getByRole("region", { name: /policy/i });
+    expect(within(policySection).getByText("Fed funds futures")).toBeTruthy();
+    expect(within(policySection).getByText("6/17")).toBeTruthy();
+    expect(within(policySection).getByText("7/29")).toBeTruthy();
+    expect(
+      within(policySection).getByText(
+        "Frenzy Capital Fed Watch assigns 53.9% to hold at the next meeting.",
+      ),
+    ).toBeTruthy();
+    expect(within(policySection).getByText("$0.025T")).toBeTruthy();
+  });
+
   it("renders an explicit empty state when no snapshot exists", () => {
     render(<RatesDesk snapshot={null} />);
 
     expect(screen.getByText(/Rates snapshot not computed/)).toBeTruthy();
+  });
+
+  it("renders an explicit API outage state separately from a missing snapshot", () => {
+    render(<RatesDesk snapshot={null} errorMessage="The rates API request failed" />);
+
+    expect(screen.getByText(/Rates API unavailable/)).toBeTruthy();
+    expect(screen.getByText(/The rates API request failed/)).toBeTruthy();
   });
 });

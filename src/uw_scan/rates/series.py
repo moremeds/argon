@@ -35,6 +35,11 @@ POLICY_SERIES: dict[str, str] = {
     "SOFR": "SOFR",
 }
 
+POLICY_TARGET_SERIES: dict[str, str] = {
+    "target_lower": "DFEDTARL",
+    "target_upper": "DFEDTARU",
+}
+
 FED_PLUMBING_SERIES: dict[str, str] = {
     "assets": "WALCL",
     "reserves": "WRESBAL",
@@ -76,6 +81,8 @@ SERIES_LABELS: dict[str, str] = {
     "T5YIFR": "5Y5Y forward inflation",
     "EFFR": "Effective fed funds rate",
     "SOFR": "SOFR",
+    "DFEDTARL": "Federal funds target range lower limit",
+    "DFEDTARU": "Federal funds target range upper limit",
     "WALCL": "Fed total assets",
     "WRESBAL": "Reserve balances",
     "RRPONTSYD": "ON RRP operations",
@@ -97,6 +104,7 @@ RATES_FRED_SERIES: tuple[str, ...] = _dedupe(
         *REAL_YIELD_SERIES.values(),
         *BREAKEVEN_SERIES.values(),
         *POLICY_SERIES.values(),
+        *POLICY_TARGET_SERIES.values(),
         *FED_PLUMBING_SERIES.values(),
     ]
 )

@@ -8658,6 +8658,87 @@
         "title": "RatesEventItem",
         "type": "object"
       },
+      "RatesPolicyMeeting": {
+        "properties": {
+          "action": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Action"
+          },
+          "event_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Event Date"
+          },
+          "event_end_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Event End Date"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "source_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Url"
+          },
+          "status": {
+            "default": "partial",
+            "enum": [
+              "ok",
+              "missing",
+              "partial",
+              "stale"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "vote_split": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vote Split"
+          }
+        },
+        "required": [
+          "label"
+        ],
+        "title": "RatesPolicyMeeting",
+        "type": "object"
+      },
       "RatesPolicyPanel": {
         "properties": {
           "effr": {
@@ -8671,12 +8752,62 @@
             ],
             "title": "Effr"
           },
+          "implied_path": {
+            "items": {
+              "$ref": "#/components/schemas/RatesPolicyPathPoint"
+            },
+            "title": "Implied Path",
+            "type": "array"
+          },
+          "last_meeting": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RatesPolicyMeeting"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "path_read": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Path Read"
+          },
           "plumbing": {
             "items": {
-              "$ref": "#/components/schemas/RatesSummaryTile"
+              "$ref": "#/components/schemas/RatesPolicyPlumbingMetric"
             },
             "title": "Plumbing",
             "type": "array"
+          },
+          "plumbing_read": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Plumbing Read"
+          },
+          "policy_read": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Policy Read"
           },
           "sofr": {
             "anyOf": [
@@ -8688,6 +8819,98 @@
               }
             ],
             "title": "Sofr"
+          },
+          "status": {
+            "default": "partial",
+            "enum": [
+              "ok",
+              "missing",
+              "partial",
+              "stale"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "target_lower": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target Lower"
+          },
+          "target_range": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target Range"
+          },
+          "target_upper": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target Upper"
+          }
+        },
+        "title": "RatesPolicyPanel",
+        "type": "object"
+      },
+      "RatesPolicyPathPoint": {
+        "properties": {
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "meeting_date": {
+            "format": "date",
+            "title": "Meeting Date",
+            "type": "string"
+          },
+          "probability": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Probability"
+          },
+          "source": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source"
+          },
+          "stance": {
+            "default": "UNKNOWN",
+            "enum": [
+              "CUT",
+              "HOLD",
+              "HIKE",
+              "UNKNOWN"
+            ],
+            "title": "Stance",
+            "type": "string"
           },
           "status": {
             "default": "partial",
@@ -8712,11 +8935,84 @@
             "title": "Target Range"
           }
         },
-        "title": "RatesPolicyPanel",
+        "required": [
+          "meeting_date",
+          "label"
+        ],
+        "title": "RatesPolicyPathPoint",
+        "type": "object"
+      },
+      "RatesPolicyPlumbingMetric": {
+        "properties": {
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "qualifier": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Qualifier"
+          },
+          "status": {
+            "default": "partial",
+            "enum": [
+              "ok",
+              "missing",
+              "partial",
+              "stale"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "unit": {
+            "default": "",
+            "title": "Unit",
+            "type": "string"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value"
+          }
+        },
+        "required": [
+          "label"
+        ],
+        "title": "RatesPolicyPlumbingMetric",
         "type": "object"
       },
       "RatesPositioningPanel": {
         "properties": {
+          "details": {
+            "items": {
+              "$ref": "#/components/schemas/RatesPositioningRow"
+            },
+            "title": "Details",
+            "type": "array"
+          },
+          "positioning_read": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Positioning Read"
+          },
           "rows": {
             "items": {
               "$ref": "#/components/schemas/RatesSummaryTile"
@@ -8737,6 +9033,152 @@
           }
         },
         "title": "RatesPositioningPanel",
+        "type": "object"
+      },
+      "RatesPositioningRow": {
+        "properties": {
+          "asset_mgr_net": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Asset Mgr Net"
+          },
+          "asset_mgr_net_pct_oi": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Asset Mgr Net Pct Oi"
+          },
+          "contract_code": {
+            "title": "Contract Code",
+            "type": "string"
+          },
+          "contract_name": {
+            "title": "Contract Name",
+            "type": "string"
+          },
+          "dealer_net": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dealer Net"
+          },
+          "dealer_net_pct_oi": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dealer Net Pct Oi"
+          },
+          "lev_money_net": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lev Money Net"
+          },
+          "lev_money_net_pct_oi": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lev Money Net Pct Oi"
+          },
+          "obs_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Obs Date"
+          },
+          "open_interest": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Open Interest"
+          },
+          "release_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Release Date"
+          },
+          "source_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Url"
+          },
+          "status": {
+            "default": "ok",
+            "enum": [
+              "ok",
+              "missing",
+              "partial",
+              "stale"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "tenor_bucket": {
+            "title": "Tenor Bucket",
+            "type": "string"
+          }
+        },
+        "required": [
+          "contract_code",
+          "contract_name",
+          "tenor_bucket"
+        ],
+        "title": "RatesPositioningRow",
         "type": "object"
       },
       "RatesScorecard": {
@@ -9108,6 +9550,146 @@
         "title": "RatesSummaryTile",
         "type": "object"
       },
+      "RatesSupplyAuctionRow": {
+        "properties": {
+          "auction_date": {
+            "format": "date",
+            "title": "Auction Date",
+            "type": "string"
+          },
+          "bid_to_cover": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Bid To Cover"
+          },
+          "cusip": {
+            "title": "Cusip",
+            "type": "string"
+          },
+          "direct_bidder_pct": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Direct Bidder Pct"
+          },
+          "high_rate": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "High Rate"
+          },
+          "indirect_bidder_pct": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Indirect Bidder Pct"
+          },
+          "issue_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Issue Date"
+          },
+          "offering_amount": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Offering Amount"
+          },
+          "primary_dealer_pct": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Primary Dealer Pct"
+          },
+          "security_term": {
+            "title": "Security Term",
+            "type": "string"
+          },
+          "security_type": {
+            "title": "Security Type",
+            "type": "string"
+          },
+          "source_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Url"
+          },
+          "status": {
+            "default": "ok",
+            "enum": [
+              "ok",
+              "missing",
+              "partial",
+              "stale"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "tail_indicator": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tail Indicator"
+          }
+        },
+        "required": [
+          "cusip",
+          "security_type",
+          "security_term",
+          "auction_date"
+        ],
+        "title": "RatesSupplyAuctionRow",
+        "type": "object"
+      },
       "RatesSupplyPanel": {
         "properties": {
           "auctions": {
@@ -9117,11 +9699,25 @@
             "title": "Auctions",
             "type": "array"
           },
+          "fiscal": {
+            "items": {
+              "$ref": "#/components/schemas/RatesSummaryTile"
+            },
+            "title": "Fiscal",
+            "type": "array"
+          },
           "notes": {
             "items": {
               "type": "string"
             },
             "title": "Notes",
+            "type": "array"
+          },
+          "recent_auctions": {
+            "items": {
+              "$ref": "#/components/schemas/RatesSupplyAuctionRow"
+            },
+            "title": "Recent Auctions",
             "type": "array"
           },
           "status": {
@@ -9134,6 +9730,17 @@
             ],
             "title": "Status",
             "type": "string"
+          },
+          "supply_read": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Supply Read"
           }
         },
         "title": "RatesSupplyPanel",

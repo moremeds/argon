@@ -81,9 +81,90 @@ def test_build_rates_snapshot_populates_live_fred_sections_without_static_filler
             ],
             "EFFR": [_point(date(2026, 5, 20), "3.63")],
             "SOFR": [_point(date(2026, 5, 20), "3.65")],
+            "DFEDTARL": [_point(date(2026, 5, 20), "3.50")],
+            "DFEDTARU": [_point(date(2026, 5, 20), "3.75")],
             "WALCL": [_point(date(2026, 5, 20), "6728502")],
+            "WRESBAL": [_point(date(2026, 5, 20), "3129559")],
+            "RRPONTSYD": [_point(date(2026, 5, 20), "24.87")],
+            "WTREGEN": [_point(date(2026, 5, 20), "781292")],
         },
         computed_at=datetime(2026, 5, 20, 22, tzinfo=UTC),
+        policy_events=[
+            {
+                "event_date": date(2026, 4, 29),
+                "event_end_date": date(2026, 4, 29),
+                "label": "April 28-29 FOMC",
+                "action": "Hold",
+                "vote_split": "N/A",
+                "source_url": "https://www.federalreserve.gov/monetarypolicy/fomc.htm",
+            }
+        ],
+        policy_path=[
+            {
+                "meeting_date": date(2026, 6, 17),
+                "label": "6/17",
+                "probability": 99.0,
+                "stance": "HOLD",
+                "target_range": "3.50-3.75%",
+                "source": "Frenzy Capital Fed Watch",
+            }
+        ],
+        cftc_tff_rows=[
+            {
+                "contract_code": "043602",
+                "contract_name": "UST 10Y NOTE",
+                "tenor_bucket": "10Y",
+                "obs_date": date(2026, 5, 19),
+                "release_date": date(2026, 5, 22),
+                "open_interest": Decimal("4544233"),
+                "dealer_net": Decimal("-97229"),
+                "dealer_net_pct_oi": Decimal("-2.1"),
+                "asset_mgr_net": Decimal("1300752"),
+                "asset_mgr_net_pct_oi": Decimal("28.6"),
+                "lev_money_net": Decimal("-1194445"),
+                "lev_money_net_pct_oi": Decimal("-26.3"),
+                "source_url": "https://publicreporting.cftc.gov/resource/gpe5-46if.json",
+            }
+        ],
+        supply_auctions=[
+            {
+                "cusip": "912810UL0",
+                "security_type": "Bond",
+                "security_term": "30-Year",
+                "auction_date": date(2026, 5, 14),
+                "issue_date": date(2026, 5, 15),
+                "offering_amount": Decimal("25000000000"),
+                "high_rate": Decimal("5.046"),
+                "bid_to_cover": Decimal("2.30"),
+                "direct_bidder_pct": Decimal("20.3"),
+                "indirect_bidder_pct": Decimal("56.5"),
+                "primary_dealer_pct": Decimal("23.2"),
+                "tail_indicator": "long-end",
+                "source_url": "https://fiscaldata.treasury.gov/static-data/published-reports/auctions-query/results/R_20260514_1.pdf",
+            },
+            {
+                "cusip": "91282CQQ7",
+                "security_type": "Note",
+                "security_term": "10-Year",
+                "auction_date": date(2026, 5, 12),
+                "issue_date": date(2026, 5, 15),
+                "offering_amount": Decimal("42000000000"),
+                "high_rate": Decimal("4.468"),
+                "bid_to_cover": Decimal("2.40"),
+                "direct_bidder_pct": Decimal("18.7"),
+                "indirect_bidder_pct": Decimal("61.0"),
+                "primary_dealer_pct": Decimal("20.3"),
+                "tail_indicator": "belly",
+                "source_url": "https://fiscaldata.treasury.gov/static-data/published-reports/auctions-query/results/R_20260512_1.pdf",
+            },
+        ],
+        supply_debt={
+            "record_date": date(2026, 5, 21),
+            "debt_held_public": Decimal("31374788661132.13"),
+            "intragov_holdings": Decimal("7696411796234.32"),
+            "total_public_debt": Decimal("39071200457366.45"),
+            "source_url": "https://api.fiscaldata.treasury.gov/services/api/fiscal_service/v2/accounting/od/debt_to_penny",
+        },
     )
 
     assert snapshot.as_of == date(2026, 5, 20)
@@ -101,11 +182,29 @@ def test_build_rates_snapshot_populates_live_fred_sections_without_static_filler
     one_month = next(row for row in snapshot.decomposition.attribution if row.window == "1M")
     assert one_month.driver == "Expected short inflation"
     assert snapshot.policy.effr == 3.63
+    assert snapshot.policy.target_range == "3.50-3.75%"
+    assert snapshot.policy.last_meeting is not None
+    assert snapshot.policy.last_meeting.action == "Hold"
+    assert snapshot.policy.implied_path[0].stance == "HOLD"
     fed_assets = next(tile for tile in snapshot.policy.plumbing if tile.label == "Fed assets")
-    assert fed_assets.value == 6728.5
-    assert fed_assets.unit == "$bn"
-    assert snapshot.supply.status == "missing"
-    assert snapshot.positioning.status == "missing"
+    assert fed_assets.value == 6.73
+    assert fed_assets.unit == "$T"
+    on_rrp = next(tile for tile in snapshot.policy.plumbing if tile.label == "ON RRP")
+    assert on_rrp.value == 0.025
+    assert on_rrp.unit == "$T"
+    assert "QT" in snapshot.policy.plumbing_read
+    assert snapshot.supply.status == "ok"
+    assert snapshot.supply.recent_auctions[0].security_term == "30-Year"
+    assert snapshot.supply.recent_auctions[0].offering_amount == 25.0
+    assert snapshot.supply.recent_auctions[0].bid_to_cover == 2.3
+    debt_tile = next(tile for tile in snapshot.supply.fiscal if tile.label == "Public debt")
+    assert debt_tile.value == 31.37
+    assert debt_tile.unit == "$T"
+    assert "TreasuryDirect" in (snapshot.supply.supply_read or "")
+    assert snapshot.positioning.status == "ok"
+    assert snapshot.positioning.details[0].contract_code == "043602"
+    assert snapshot.positioning.details[0].lev_money_net_pct_oi == -26.3
+    assert "CFTC TFF" in (snapshot.positioning.positioning_read or "")
     assert snapshot.scorecard.groups
     assert snapshot.synthesis.duration_view
 
@@ -126,12 +225,163 @@ def test_build_rates_snapshot_uses_curve_date_and_marks_failed_series_stale():
     )
 
     assert snapshot.as_of == date(2026, 5, 20)
+    assert snapshot.policy.sofr is None
     rrp = next(tile for tile in snapshot.policy.plumbing if tile.label == "ON RRP")
     assert rrp.value == 0.0
     assert rrp.status == "ok"
     freshness = {item.id: item for item in snapshot.source_freshness}
     assert freshness["DGS10"].status == "stale"
     assert freshness["EFFR"].latest_obs_date == date(2026, 5, 21)
+
+
+def test_build_rates_snapshot_marks_optional_source_failures_stale():
+    snapshot = build_rates_snapshot(
+        {
+            **_full_curve_points(),
+            "DGS10": [_point(date(2026, 5, 20), "4.67")],
+            "DFEDTARL": [_point(date(2026, 5, 20), "3.50")],
+            "DFEDTARU": [_point(date(2026, 5, 20), "3.75")],
+            "WTREGEN": [_point(date(2026, 5, 20), "781292")],
+        },
+        computed_at=datetime(2026, 5, 20, 22, tzinfo=UTC),
+        failed_series={"FED_FUNDS_FUTURES_PATH", "CFTC_TFF", "TREASURY_SUPPLY"},
+        policy_path=[
+            {
+                "meeting_date": date(2026, 6, 17),
+                "label": "6/17",
+                "probability": 53.9,
+                "stance": "HOLD",
+                "target_range": "3.50-3.75%",
+                "source": "Frenzy Capital Fed Watch",
+                "status": "ok",
+            }
+        ],
+        cftc_tff_rows=[
+            {
+                "contract_code": "043602",
+                "contract_name": "UST 10Y NOTE",
+                "tenor_bucket": "10Y",
+                "obs_date": date(2026, 5, 19),
+                "release_date": date(2026, 5, 22),
+                "lev_money_net": Decimal("-1194445"),
+                "asset_mgr_net": Decimal("1300752"),
+            }
+        ],
+        supply_auctions=[
+            {
+                "cusip": "912810UL0",
+                "security_type": "Bond",
+                "security_term": "30-Year",
+                "auction_date": date(2026, 5, 14),
+                "issue_date": date(2026, 5, 15),
+                "offering_amount": Decimal("25000000000"),
+                "bid_to_cover": Decimal("2.30"),
+                "tail_indicator": "long-end",
+            }
+        ],
+        supply_debt={
+            "record_date": date(2026, 5, 21),
+            "debt_held_public": Decimal("31374788661132.13"),
+            "total_public_debt": Decimal("39071200457366.45"),
+        },
+    )
+
+    freshness = {item.id: item.status for item in snapshot.source_freshness}
+    assert freshness["FED_FUNDS_FUTURES_PATH"] == "stale"
+    assert freshness["CFTC_TFF"] == "stale"
+    assert freshness["TREASURY_SUPPLY"] == "stale"
+    assert snapshot.policy.status == "stale"
+    assert snapshot.policy.implied_path[0].status == "stale"
+    assert snapshot.positioning.status == "stale"
+    assert snapshot.supply.status == "stale"
+
+
+def test_build_rates_snapshot_marks_positioning_partial_when_aggregates_missing():
+    snapshot = build_rates_snapshot(
+        _full_curve_points(),
+        computed_at=datetime(2026, 5, 20, 22, tzinfo=UTC),
+        cftc_tff_rows=[
+            {
+                "contract_code": "043602",
+                "contract_name": "UST 10Y NOTE",
+                "tenor_bucket": "10Y",
+                "obs_date": date(2026, 5, 19),
+                "release_date": date(2026, 5, 22),
+            }
+        ],
+    )
+
+    assert snapshot.positioning.status == "partial"
+    assert all(row.status != "ok" for row in snapshot.positioning.rows)
+
+
+def test_build_rates_snapshot_marks_supply_partial_when_fiscal_values_missing():
+    snapshot = build_rates_snapshot(
+        {
+            **_full_curve_points(),
+            "WTREGEN": [_point(date(2026, 5, 20), "781292")],
+        },
+        computed_at=datetime(2026, 5, 20, 22, tzinfo=UTC),
+        supply_auctions=[
+            {
+                "cusip": "912810UL0",
+                "security_type": "Bond",
+                "security_term": "30-Year",
+                "auction_date": date(2026, 5, 14),
+                "issue_date": date(2026, 5, 15),
+                "offering_amount": Decimal("25000000000"),
+                "high_rate": Decimal("5.046"),
+                "bid_to_cover": Decimal("2.30"),
+                "direct_bidder_pct": Decimal("20.3"),
+                "indirect_bidder_pct": Decimal("56.5"),
+                "primary_dealer_pct": Decimal("23.2"),
+                "tail_indicator": "long-end",
+                "source_url": None,
+            }
+        ],
+        supply_debt={
+            "record_date": date(2026, 5, 21),
+            "debt_held_public": None,
+            "intragov_holdings": None,
+            "total_public_debt": None,
+            "source_url": "https://api.fiscaldata.treasury.gov/services/api/fiscal_service/v2/accounting/od/debt_to_penny",
+        },
+    )
+
+    assert snapshot.supply.status == "partial"
+    public_debt = next(tile for tile in snapshot.supply.fiscal if tile.label == "Public debt")
+    assert public_debt.status == "missing"
+    assert "FiscalData public debt" not in (snapshot.supply.supply_read or "")
+    assert "TGA is $0.78T" in (snapshot.supply.supply_read or "")
+
+
+def test_build_rates_snapshot_infers_fomc_action_from_target_range_history():
+    snapshot = build_rates_snapshot(
+        {
+            **_full_curve_points(),
+            "DGS10": [_point(date(2026, 5, 20), "4.67")],
+            "DFEDTARL": [
+                _point(date(2026, 4, 28), "3.50"),
+                _point(date(2026, 4, 29), "3.50"),
+            ],
+            "DFEDTARU": [
+                _point(date(2026, 4, 28), "3.75"),
+                _point(date(2026, 4, 29), "3.75"),
+            ],
+        },
+        computed_at=datetime(2026, 5, 20, 22, tzinfo=UTC),
+        policy_events=[
+            {
+                "event_date": date(2026, 4, 28),
+                "event_end_date": date(2026, 4, 29),
+                "label": "April 28-29 FOMC",
+                "source_url": None,
+            }
+        ],
+    )
+
+    assert snapshot.policy.last_meeting is not None
+    assert snapshot.policy.last_meeting.action == "Hold"
 
 
 def test_build_rates_snapshot_requires_observations():

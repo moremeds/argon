@@ -2,13 +2,18 @@
 
 from __future__ import annotations
 
-from datetime import date as _date
+from datetime import datetime, timedelta
 from decimal import Decimal
+from zoneinfo import ZoneInfo
 
 from fastapi.testclient import TestClient
 
 from uw_scan.models import ExposuresSummaryRow
 from uw_scan.storage.repository import Repository
+
+
+def _et_today() -> datetime.date:
+    return datetime.now(ZoneInfo("America/New_York")).date()
 
 
 def test_dealer_regime_empty_for_unseeded_ticker(
@@ -39,6 +44,8 @@ def test_dealer_regime_ok_for_seeded_ticker(
     repo = seeded_db_with_cards
     run_id = repo.latest_run_id("TSLA")
     assert run_id > 0
+    market_date = _et_today()
+    expiry = market_date + timedelta(days=5)
 
     # 1) strike_gex_curve JSONB on scan_runs — drives gamma decay buckets.
     repo.set_strike_gex_curve(
@@ -46,14 +53,14 @@ def test_dealer_regime_ok_for_seeded_ticker(
         curve=[
             {
                 "strike": "450",
-                "expiry": "2026-05-22",
+                "expiry": expiry.isoformat(),
                 "net_gex": 46550.0,
                 "call_gex": 46550.0,
                 "put_gex": 0.0,
             },
             {
                 "strike": "395",
-                "expiry": "2026-05-22",
+                "expiry": expiry.isoformat(),
                 "net_gex": -12000.0,
                 "call_gex": 0.0,
                 "put_gex": -12000.0,
@@ -76,16 +83,16 @@ def test_dealer_regime_ok_for_seeded_ticker(
             """,
             (
                 run_id,
-                _date(2026, 5, 20),
-                _date(2026, 5, 22),
+                market_date,
+                expiry,
                 Decimal("450"),
                 Decimal("46550"),
                 Decimal("0"),
                 Decimal("0.2"),
                 Decimal("-0.1"),
                 run_id,
-                _date(2026, 5, 20),
-                _date(2026, 5, 22),
+                market_date,
+                expiry,
                 Decimal("395"),
                 Decimal("0"),
                 Decimal("-12000"),
@@ -99,11 +106,11 @@ def test_dealer_regime_ok_for_seeded_ticker(
     repo.upsert_exposures_summary(
         run_id=run_id,
         ticker="TSLA",
-        market_date=_date(2026, 5, 20),
+        market_date=market_date,
         rows=[
             ExposuresSummaryRow(
-                expiry=_date(2026, 5, 22),
-                dte=2,
+                expiry=expiry,
+                dte=(expiry - market_date).days,
                 spot=Decimal("410"),
                 net_vanna=Decimal("120000"),
                 top_vanna_strike=Decimal("400"),
@@ -131,7 +138,7 @@ def test_dealer_regime_ok_for_seeded_ticker(
             """,
             (
                 "TSLA",
-                _date(2026, 5, 20),
+                market_date,
                 Decimal("410"),
                 Decimal("0.4"),
                 Decimal("0.35"),
@@ -151,4 +158,4 @@ def test_dealer_regime_ok_for_seeded_ticker(
     rank_kinds = {lv["rank_kind"] for lv in body["closest_levels"]}
     assert "nearest" in rank_kinds
     # gamma_decay has the seeded expiry bucket
-    assert any(b["expiry"] == "2026-05-22" for b in body["gamma_decay"])
+    assert any(b["expiry"] == expiry.isoformat() for b in body["gamma_decay"])

@@ -117,6 +117,8 @@ class Settings(BaseModel):
     massive_ws_heartbeat_stale_after_seconds: float = 120.0
     # FRED official API. Required by the US rates mirror ingest path.
     fred_api_key: SecretStr | None = None
+    # Free/delayed fed funds futures path source used by the rates dashboard.
+    rates_policy_path_url: str = "https://www.frenzycap.com/fedwatch"
     # WGC Goldhub authenticated downloads. Keep secrets in environment only.
     wgc_goldhub_cookie: SecretStr | None = None
     wgc_etf_flows_workbook_path: str = ""
@@ -277,6 +279,10 @@ class Settings(BaseModel):
                 if (_fred_key := os.environ.get("FRED_API_KEY", "").strip())
                 else None
             ),
+            rates_policy_path_url=os.environ.get(
+                "RATES_POLICY_PATH_URL", "https://www.frenzycap.com/fedwatch"
+            ).strip()
+            or "https://www.frenzycap.com/fedwatch",
             wgc_goldhub_cookie=(
                 SecretStr(_wgc_cookie)
                 if (_wgc_cookie := os.environ.get("WGC_GOLDHUB_COOKIE", "").strip())

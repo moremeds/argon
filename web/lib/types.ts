@@ -3280,14 +3280,76 @@ export interface components {
              */
             status: "ok" | "missing" | "partial" | "stale";
         };
+        /** RatesPolicyMeeting */
+        RatesPolicyMeeting: {
+            /** Action */
+            action?: string | null;
+            /** Event Date */
+            event_date?: string | null;
+            /** Event End Date */
+            event_end_date?: string | null;
+            /** Label */
+            label: string;
+            /** Source Url */
+            source_url?: string | null;
+            /**
+             * Status
+             * @default partial
+             * @enum {string}
+             */
+            status: "ok" | "missing" | "partial" | "stale";
+            /** Vote Split */
+            vote_split?: string | null;
+        };
         /** RatesPolicyPanel */
         RatesPolicyPanel: {
             /** Effr */
             effr?: number | null;
+            /** Implied Path */
+            implied_path?: components["schemas"]["RatesPolicyPathPoint"][];
+            last_meeting?: components["schemas"]["RatesPolicyMeeting"] | null;
+            /** Path Read */
+            path_read?: string | null;
             /** Plumbing */
-            plumbing?: components["schemas"]["RatesSummaryTile"][];
+            plumbing?: components["schemas"]["RatesPolicyPlumbingMetric"][];
+            /** Plumbing Read */
+            plumbing_read?: string | null;
+            /** Policy Read */
+            policy_read?: string | null;
             /** Sofr */
             sofr?: number | null;
+            /**
+             * Status
+             * @default partial
+             * @enum {string}
+             */
+            status: "ok" | "missing" | "partial" | "stale";
+            /** Target Lower */
+            target_lower?: number | null;
+            /** Target Range */
+            target_range?: string | null;
+            /** Target Upper */
+            target_upper?: number | null;
+        };
+        /** RatesPolicyPathPoint */
+        RatesPolicyPathPoint: {
+            /** Label */
+            label: string;
+            /**
+             * Meeting Date
+             * Format: date
+             */
+            meeting_date: string;
+            /** Probability */
+            probability?: number | null;
+            /** Source */
+            source?: string | null;
+            /**
+             * Stance
+             * @default UNKNOWN
+             * @enum {string}
+             */
+            stance: "CUT" | "HOLD" | "HIKE" | "UNKNOWN";
             /**
              * Status
              * @default partial
@@ -3297,8 +3359,32 @@ export interface components {
             /** Target Range */
             target_range?: string | null;
         };
+        /** RatesPolicyPlumbingMetric */
+        RatesPolicyPlumbingMetric: {
+            /** Label */
+            label: string;
+            /** Qualifier */
+            qualifier?: string | null;
+            /**
+             * Status
+             * @default partial
+             * @enum {string}
+             */
+            status: "ok" | "missing" | "partial" | "stale";
+            /**
+             * Unit
+             * @default
+             */
+            unit: string;
+            /** Value */
+            value?: number | null;
+        };
         /** RatesPositioningPanel */
         RatesPositioningPanel: {
+            /** Details */
+            details?: components["schemas"]["RatesPositioningRow"][];
+            /** Positioning Read */
+            positioning_read?: string | null;
             /** Rows */
             rows?: components["schemas"]["RatesSummaryTile"][];
             /**
@@ -3307,6 +3393,41 @@ export interface components {
              * @enum {string}
              */
             status: "ok" | "missing" | "partial" | "stale";
+        };
+        /** RatesPositioningRow */
+        RatesPositioningRow: {
+            /** Asset Mgr Net */
+            asset_mgr_net?: number | null;
+            /** Asset Mgr Net Pct Oi */
+            asset_mgr_net_pct_oi?: number | null;
+            /** Contract Code */
+            contract_code: string;
+            /** Contract Name */
+            contract_name: string;
+            /** Dealer Net */
+            dealer_net?: number | null;
+            /** Dealer Net Pct Oi */
+            dealer_net_pct_oi?: number | null;
+            /** Lev Money Net */
+            lev_money_net?: number | null;
+            /** Lev Money Net Pct Oi */
+            lev_money_net_pct_oi?: number | null;
+            /** Obs Date */
+            obs_date?: string | null;
+            /** Open Interest */
+            open_interest?: number | null;
+            /** Release Date */
+            release_date?: string | null;
+            /** Source Url */
+            source_url?: string | null;
+            /**
+             * Status
+             * @default ok
+             * @enum {string}
+             */
+            status: "ok" | "missing" | "partial" | "stale";
+            /** Tenor Bucket */
+            tenor_bucket: string;
         };
         /** RatesScorecard */
         RatesScorecard: {
@@ -3442,18 +3563,62 @@ export interface components {
             /** Value */
             value?: number | null;
         };
+        /** RatesSupplyAuctionRow */
+        RatesSupplyAuctionRow: {
+            /**
+             * Auction Date
+             * Format: date
+             */
+            auction_date: string;
+            /** Bid To Cover */
+            bid_to_cover?: number | null;
+            /** Cusip */
+            cusip: string;
+            /** Direct Bidder Pct */
+            direct_bidder_pct?: number | null;
+            /** High Rate */
+            high_rate?: number | null;
+            /** Indirect Bidder Pct */
+            indirect_bidder_pct?: number | null;
+            /** Issue Date */
+            issue_date?: string | null;
+            /** Offering Amount */
+            offering_amount?: number | null;
+            /** Primary Dealer Pct */
+            primary_dealer_pct?: number | null;
+            /** Security Term */
+            security_term: string;
+            /** Security Type */
+            security_type: string;
+            /** Source Url */
+            source_url?: string | null;
+            /**
+             * Status
+             * @default ok
+             * @enum {string}
+             */
+            status: "ok" | "missing" | "partial" | "stale";
+            /** Tail Indicator */
+            tail_indicator?: string | null;
+        };
         /** RatesSupplyPanel */
         RatesSupplyPanel: {
             /** Auctions */
             auctions?: components["schemas"]["RatesSummaryTile"][];
+            /** Fiscal */
+            fiscal?: components["schemas"]["RatesSummaryTile"][];
             /** Notes */
             notes?: string[];
+            /** Recent Auctions */
+            recent_auctions?: components["schemas"]["RatesSupplyAuctionRow"][];
             /**
              * Status
              * @default missing
              * @enum {string}
              */
             status: "ok" | "missing" | "partial" | "stale";
+            /** Supply Read */
+            supply_read?: string | null;
         };
         /** RatesSynthesisPanel */
         RatesSynthesisPanel: {
