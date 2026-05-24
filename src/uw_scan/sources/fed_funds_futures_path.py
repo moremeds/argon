@@ -188,8 +188,8 @@ class _FrenzyFedWatchParser:
             return []
         try:
             payload = json.loads(match.group(1))
-        except json.JSONDecodeError:
-            return []
+        except json.JSONDecodeError as exc:
+            raise ValueError("Frenzy Fed Watch SSR payload is not valid JSON") from exc
 
         rows: list[_ParsedPathRow] = []
         for item in payload.get("meetings", []):
@@ -207,7 +207,8 @@ def _row_from_frenzy_meeting(item: dict[str, object]) -> _ParsedPathRow | None:
         return None
     try:
         meeting_date = date.fromisoformat(raw_meeting)
-    except ValueError:
+    except ValueError as exc:
+        logger.debug("skipping Frenzy meeting with invalid date: %s", repr(exc))
         return None
 
     raw_probabilities = item.get("probabilities")
@@ -249,7 +250,8 @@ def _parse_decimal(raw: object) -> Decimal | None:
         raw = match.group(0)
     try:
         return Decimal(str(raw))
-    except InvalidOperation:
+    except InvalidOperation as exc:
+        logger.debug("skipping invalid Frenzy decimal value: %s", repr(exc))
         return None
 
 
@@ -281,7 +283,8 @@ def _target_range(raw: str | None) -> tuple[Decimal, Decimal] | None:
         return None
     try:
         return Decimal(match.group(1)), Decimal(match.group(2))
-    except InvalidOperation:
+    except InvalidOperation as exc:
+        logger.debug("skipping invalid target range: %s", repr(exc))
         return None
 
 

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import calendar
+import logging
 import re
 from collections.abc import Iterable
 from dataclasses import dataclass
@@ -10,6 +11,8 @@ from datetime import date
 
 import httpx
 from bs4 import BeautifulSoup
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
@@ -65,8 +68,10 @@ class FomcCalendarProvider:
                     statement.raise_for_status()
                     action = action or _infer_action(statement.text)
                     vote_split = vote_split or _infer_vote_split(statement.text)
-                except httpx.HTTPError:
-                    pass
+                except httpx.HTTPError as exc:
+                    logger.debug(
+                        "skipping FOMC statement enrichment failure: %s", repr(exc)
+                    )
             enriched.append(
                 FomcMeeting(
                     start_date=meeting.start_date,
