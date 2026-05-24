@@ -1,4 +1,5 @@
 import type { CockpitFlowImResponse } from "@/lib/api";
+import { useMemo } from "react";
 import type React from "react";
 import {
   fmtDateTimeWithZone,
@@ -22,6 +23,30 @@ export function CockpitFlowImTab({
   ticker: string;
   data: CockpitFlowImResponse | null;
 }) {
+  const alerts = useMemo(() => data?.alerts ?? [], [data?.alerts]);
+  const impliedMoves = useMemo(
+    () => data?.implied_moves ?? [],
+    [data?.implied_moves],
+  );
+  const imSeries = useMemo(
+    () =>
+      impliedMoves.map((point) => ({
+        x: new Date(point.market_date).getTime(),
+        y: toNum(point.implied_move_perc),
+      })),
+    [impliedMoves],
+  );
+  const imChartSeries = useMemo(
+    () => [
+      {
+        label: "IM %",
+        color: "var(--accent-bg)",
+        points: imSeries,
+      },
+    ],
+    [imSeries],
+  );
+
   if (!data) {
     return (
       <section style={panelStyle}>
@@ -31,26 +56,13 @@ export function CockpitFlowImTab({
     );
   }
 
-  const alerts = data.alerts ?? [];
-  const impliedMoves = data.implied_moves ?? [];
-  const imSeries = impliedMoves.map((point) => ({
-    x: new Date(point.market_date).getTime(),
-    y: toNum(point.implied_move_perc),
-  }));
-
   return (
     <div style={{ display: "grid", gap: 16 }}>
       <section style={panelStyle}>
         <h2 style={panelTitleStyle}>Implied Move</h2>
         <MultiLineChart
           showZero={false}
-          series={[
-            {
-              label: "IM %",
-              color: "var(--accent-bg)",
-              points: imSeries,
-            },
-          ]}
+          series={imChartSeries}
           xLabel={(x) => new Date(x).toISOString().slice(5, 10)}
         />
       </section>

@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import type React from "react";
 
 export type ChartPoint = {
@@ -10,6 +11,31 @@ export type ChartSeries = {
   color: string;
   points: ChartPoint[];
 };
+
+export type NormalizedChartSeries = {
+  label: string;
+  color: string;
+  points: Array<{ x: number; y: number }>;
+};
+
+export function normalizeChartSeries(
+  series: ChartSeries[],
+  assumeSorted = false,
+): NormalizedChartSeries[] {
+  return series.map((item) => ({
+    ...item,
+    points: (
+      assumeSorted
+        ? item.points
+            .filter((point) => Number.isFinite(point.x) && point.y != null)
+            .map((point) => ({ x: point.x, y: point.y as number }))
+        : item.points
+            .filter((point) => Number.isFinite(point.x) && point.y != null)
+            .map((point) => ({ x: point.x, y: point.y as number }))
+            .sort((a, b) => a.x - b.x)
+    ),
+  }));
+}
 
 export function MultiLineChart({
   series,
@@ -26,19 +52,10 @@ export function MultiLineChart({
   xLabel?: (x: number) => string;
   assumeSorted?: boolean;
 }) {
-  const cleanSeries = series.map((item) => ({
-    ...item,
-    points: (
-      assumeSorted
-        ? item.points
-            .filter((point) => Number.isFinite(point.x) && point.y != null)
-            .map((point) => ({ x: point.x, y: point.y as number }))
-        : item.points
-            .filter((point) => Number.isFinite(point.x) && point.y != null)
-            .map((point) => ({ x: point.x, y: point.y as number }))
-            .sort((a, b) => a.x - b.x)
-    ),
-  }));
+  const cleanSeries = useMemo(
+    () => normalizeChartSeries(series, assumeSorted),
+    [series, assumeSorted],
+  );
   const all = cleanSeries.flatMap((item) => item.points);
   if (!all.length) {
     return <div style={emptyChartStyle}>NO DATA</div>;

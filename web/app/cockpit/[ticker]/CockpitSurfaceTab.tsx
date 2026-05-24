@@ -1,4 +1,5 @@
 import type { CockpitStateResponse, CockpitSurfaceResponse } from "@/lib/api";
+import { useMemo } from "react";
 import type React from "react";
 import { fmtDecimal, fmtSigned, toNum } from "@/lib/formatters";
 import {
@@ -19,6 +20,47 @@ export function CockpitSurfaceTab({
   data: CockpitSurfaceResponse | null;
   stateData?: CockpitStateResponse | null;
 }) {
+  const skew = useMemo(() => data?.skew ?? [], [data?.skew]);
+  const term = useMemo(() => data?.term ?? [], [data?.term]);
+  const skewPoints = useMemo(
+    () =>
+      skew.map((point) => ({
+        x: new Date(point.market_date).getTime(),
+        y: toNum(point.risk_reversal),
+      })),
+    [skew],
+  );
+  const termPoints = useMemo(
+    () =>
+      term
+        .map((point) => ({
+          x: toNum(point.dte) ?? new Date(point.expiry).getTime(),
+          y: toNum(point.volatility),
+        }))
+        .filter((point) => point.x != null),
+    [term],
+  );
+  const skewSeries = useMemo(
+    () => [
+      {
+        label: "25 delta RR",
+        color: "var(--accent-bg)",
+        points: skewPoints,
+      },
+    ],
+    [skewPoints],
+  );
+  const termSeries = useMemo(
+    () => [
+      {
+        label: "ATM IV",
+        color: "var(--warning)",
+        points: termPoints,
+      },
+    ],
+    [termPoints],
+  );
+
   if (!data) {
     return (
       <section style={panelStyle}>
@@ -28,19 +70,7 @@ export function CockpitSurfaceTab({
     );
   }
 
-  const skew = data.skew ?? [];
-  const term = data.term ?? [];
   const state = stateData?.state ?? null;
-  const skewPoints = skew.map((point) => ({
-    x: new Date(point.market_date).getTime(),
-    y: toNum(point.risk_reversal),
-  }));
-  const termPoints = term
-    .map((point) => ({
-      x: toNum(point.dte) ?? new Date(point.expiry).getTime(),
-      y: toNum(point.volatility),
-    }))
-    .filter((point) => point.x != null);
 
   return (
     <div style={{ display: "grid", gap: 16 }}>
@@ -97,13 +127,7 @@ export function CockpitSurfaceTab({
       <section style={panelStyle}>
         <h2 style={panelTitleStyle}>Skew Timeline</h2>
         <MultiLineChart
-          series={[
-            {
-              label: "25 delta RR",
-              color: "var(--accent-bg)",
-              points: skewPoints,
-            },
-          ]}
+          series={skewSeries}
           xLabel={(x) => new Date(x).toISOString().slice(5, 10)}
         />
       </section>
@@ -111,13 +135,7 @@ export function CockpitSurfaceTab({
       <section style={panelStyle}>
         <h2 style={panelTitleStyle}>Term Curve</h2>
         <MultiLineChart
-          series={[
-            {
-              label: "ATM IV",
-              color: "var(--warning)",
-              points: termPoints,
-            },
-          ]}
+          series={termSeries}
           showZero={false}
           xLabel={(x) => `${Math.round(x)}d`}
         />

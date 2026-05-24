@@ -1,4 +1,5 @@
 import type { CockpitStateResponse, CockpitVrpResponse } from "@/lib/api";
+import { useMemo } from "react";
 import type React from "react";
 import { fmtDecimal, fmtSigned, toNum } from "@/lib/formatters";
 import {
@@ -19,6 +20,37 @@ export function CockpitVrpTab({
   data: CockpitVrpResponse | null;
   stateData?: CockpitStateResponse | null;
 }) {
+  const points = useMemo(() => data?.points ?? [], [data?.points]);
+  const vrpSeries = useMemo(
+    () => [
+      {
+        label: "IV - RV",
+        color: "var(--accent-bg)",
+        points: points.map((point) => ({
+          x: new Date(point.market_date).getTime(),
+          y: toNum(point.vrp),
+        })),
+      },
+      {
+        label: "IV",
+        color: "var(--warning)",
+        points: points.map((point) => ({
+          x: new Date(point.market_date).getTime(),
+          y: toNum(point.iv),
+        })),
+      },
+      {
+        label: "RV",
+        color: "var(--negative)",
+        points: points.map((point) => ({
+          x: new Date(point.market_date).getTime(),
+          y: toNum(point.rv),
+        })),
+      },
+    ],
+    [points],
+  );
+
   if (!data) {
     return (
       <section style={panelStyle}>
@@ -28,7 +60,6 @@ export function CockpitVrpTab({
     );
   }
 
-  const points = data.points ?? [];
   const vrpValues = points
     .map((point) => toNum(point.vrp))
     .filter((value): value is number => value != null);
@@ -81,32 +112,7 @@ export function CockpitVrpTab({
         <h2 style={panelTitleStyle}>VRP Timeline</h2>
         <MultiLineChart
           band={band}
-          series={[
-            {
-              label: "IV - RV",
-              color: "var(--accent-bg)",
-              points: points.map((point) => ({
-                x: new Date(point.market_date).getTime(),
-                y: toNum(point.vrp),
-              })),
-            },
-            {
-              label: "IV",
-              color: "var(--warning)",
-              points: points.map((point) => ({
-                x: new Date(point.market_date).getTime(),
-                y: toNum(point.iv),
-              })),
-            },
-            {
-              label: "RV",
-              color: "var(--negative)",
-              points: points.map((point) => ({
-                x: new Date(point.market_date).getTime(),
-                y: toNum(point.rv),
-              })),
-            },
-          ]}
+          series={vrpSeries}
           xLabel={(x) => new Date(x).toISOString().slice(5, 10)}
         />
       </section>
