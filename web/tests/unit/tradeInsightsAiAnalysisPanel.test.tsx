@@ -355,4 +355,68 @@ describe("TradeInsightsAiAnalysisPanel", () => {
     ).toBeDefined();
     expect(screen.getByTestId("ai-directional-bias-badge")).toBeDefined();
   });
+
+  it("renders ConsensusBreakdown rows when both providers have headlines", async () => {
+    // Same bias / archetype / entry_state → all rows render '='.
+    vi.mocked(api.tradeInsightsAiAnalysisLatest).mockResolvedValue({
+      codex: succeededResponse(),
+      claude: succeededResponse({
+        analysis_id: "33333333-3333-3333-3333-333333333333",
+        provider: "claude",
+        model: "claude-opus-4-7",
+      }),
+    });
+    render(<TradeInsightsAiAnalysisPanel ticker="TSLA" />);
+    const breakdown = await screen.findByTestId("ai-consensus-breakdown");
+    expect(breakdown).toBeDefined();
+    expect(
+      screen.getByTestId("ai-consensus-codex-directional_bias").textContent,
+    ).toBe("LONG_DELTA");
+    expect(
+      screen.getByTestId("ai-consensus-claude-directional_bias").textContent,
+    ).toBe("LONG_DELTA");
+    // All three rows agree, so no '≠' anywhere inside the breakdown panel.
+    expect(breakdown.textContent).not.toContain("≠");
+  });
+
+  it("ConsensusBreakdown shows '≠' when providers diverge on a headline field", async () => {
+    vi.mocked(api.tradeInsightsAiAnalysisLatest).mockResolvedValue({
+      codex: succeededResponse(),
+      claude: succeededResponse({
+        analysis_id: "44444444-4444-4444-4444-444444444444",
+        provider: "claude",
+        model: "claude-opus-4-7",
+        outcome: {
+          ...(succeededResponse().outcome as Outcome),
+          headline: {
+            ...(succeededResponse().outcome as Outcome).headline,
+            directional_bias: "WAIT",
+            entry_state: "NO_ENTRY",
+          },
+        } as Outcome,
+      }),
+    });
+    render(<TradeInsightsAiAnalysisPanel ticker="TSLA" />);
+    const breakdown = await screen.findByTestId("ai-consensus-breakdown");
+    expect(breakdown.textContent).toContain("≠");
+    expect(
+      screen.getByTestId("ai-consensus-codex-directional_bias").textContent,
+    ).toBe("LONG_DELTA");
+    expect(
+      screen.getByTestId("ai-consensus-claude-directional_bias").textContent,
+    ).toBe("WAIT");
+  });
+
+  it("ConsensusBreakdown does not render when one provider is missing", async () => {
+    vi.mocked(api.tradeInsightsAiAnalysisLatest).mockResolvedValue({
+      codex: succeededResponse(),
+      claude: null,
+    });
+    render(<TradeInsightsAiAnalysisPanel ticker="TSLA" />);
+    // Wait for the codex side to hydrate before asserting absence.
+    await screen.findByText(
+      "TSLA near gamma resistance with cheap vol and bullish flow",
+    );
+    expect(screen.queryByTestId("ai-consensus-breakdown")).toBeNull();
+  });
 });
