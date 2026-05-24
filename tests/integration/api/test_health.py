@@ -5,8 +5,17 @@ from __future__ import annotations
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 
-from uw_scan.api.routers.health import health
+import pytest
+
+from uw_scan.api.routers.health import _record_health_cache_clear_for_tests, health
 from uw_scan.config import Settings
+
+
+@pytest.fixture(autouse=True)
+def clear_record_health_cache():
+    _record_health_cache_clear_for_tests()
+    yield
+    _record_health_cache_clear_for_tests()
 
 
 def test_health_ok_when_recent_scan(client, seeded_db_with_cards):
@@ -285,6 +294,60 @@ def test_health_record_check_passes_when_selected_table_covers_watchlist(
     assert body["record_health_ok"] is True
     assert body["record_health"][0]["table"] == "watchlist_card"
     assert body["record_health"][0]["actual_tickers"] == repo.count_active_watchlist()
+
+
+def test_health_record_check_cache_is_bounded_and_clearable(
+    client, seeded_db_empty_cards
+):
+    repo = seeded_db_empty_cards
+    now = datetime.now(UTC)
+    for row in repo.list_watchlist_cards():
+        run_id = repo.insert_scan_run(ticker=row.ticker)
+        repo.finish_scan_run(run_id, status="ok")
+        repo.upsert_watchlist_card(
+            ticker=row.ticker,
+            run_id=run_id,
+            scanned_at=now,
+            spot=Decimal("100.00"),
+        )
+
+    url = "/api/health?record_window_hours=8&record_tables=watchlist_card"
+    first = client.get(url)
+    assert first.status_code == 200
+    first_body = first.json()
+    assert first_body["record_health_ok"] is True
+
+    stale = now - timedelta(days=2)
+    with repo.conn.cursor() as cur:
+        cur.execute(
+            f"""
+            UPDATE {repo._schema}.watchlist_card
+               SET scanned_at = %s,
+                   updated_at = %s
+            """,
+            (stale, stale),
+        )
+        cur.execute(
+            f"""
+            UPDATE {repo._schema}.scan_runs
+               SET finished_at = %s
+            """,
+            (stale,),
+        )
+    repo.conn.commit()
+
+    second = client.get(url)
+    assert second.status_code == 200
+    second_body = second.json()
+    assert second_body["record_health_ok"] is True
+    assert second_body["record_health"] == first_body["record_health"]
+
+    _record_health_cache_clear_for_tests()
+    third = client.get(url)
+    assert third.status_code == 200
+    third_body = third.json()
+    assert third_body["record_health_ok"] is False
+    assert third_body["record_health"] != first_body["record_health"]
 
 
 def test_health_record_check_discovers_new_ticker_timestamp_tables(
