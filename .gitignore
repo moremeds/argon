@@ -25,6 +25,7 @@ output/
 *.log
 *.dmg
 *.base64.txt
+*-base64.txt
 /*-snapshot.md
 
 # Local-only archives of completed plans/specs/reviews
