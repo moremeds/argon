@@ -11,6 +11,68 @@ import psycopg
 from .. import models
 
 
+def _scan_universe_params(
+    run_id: int, tickers: Iterable[str], source: str
+) -> list[tuple[Any, ...]]:
+    return [(run_id, ticker.upper(), source) for ticker in tickers]
+
+
+def _scan_result_params(
+    run_id: int, rows: Iterable[models.ScanTickerResult]
+) -> list[tuple[Any, ...]]:
+    params: list[tuple[Any, ...]] = []
+    for r in rows:
+        sr = r.screener_row
+        market_date = sr.date if sr is not None else None
+        volatility = sr.volatility if sr is not None else None
+        iv30d = sr.iv30d if sr is not None else None
+        implied_move = sr.implied_move if sr is not None else None
+        implied_move_perc = sr.implied_move_perc if sr is not None else None
+        gex_ratio = sr.gex_ratio if sr is not None else None
+        bullish_premium = sr.bullish_premium if sr is not None else None
+        bearish_premium = sr.bearish_premium if sr is not None else None
+        call_premium = sr.call_premium if sr is not None else None
+        put_premium = sr.put_premium if sr is not None else None
+        put_call_ratio = sr.put_call_ratio if sr is not None else None
+        marketcap = sr.marketcap if sr is not None else None
+        params.append(
+            (
+                run_id,
+                r.ticker,
+                market_date,
+                r.setup_type,
+                r.direction,
+                r.score,
+                r.net_call_premium,
+                r.net_put_premium,
+                r.net_premium,
+                bullish_premium,
+                bearish_premium,
+                call_premium,
+                put_premium,
+                put_call_ratio,
+                r.iv_rank,
+                volatility,
+                iv30d,
+                implied_move,
+                implied_move_perc,
+                r.gex_net_change,
+                gex_ratio,
+                r.variance_risk_premium,
+                r.total_open_interest,
+                r.relative_volume,
+                r.next_earnings_date,
+                r.sector,
+                marketcap,
+                list(r.signals_present),
+                list(r.confirmations),
+                list(r.warnings),
+                r.notes,
+            )
+        )
+    return params
+
+
 class _ScanResultsMixin:
     _conn: psycopg.Connection
     _schema: str
@@ -21,7 +83,7 @@ class _ScanResultsMixin:
         tickers: Iterable[str],
         source: str = "hardcoded_s2",
     ) -> int:
-        rows = [t.upper() for t in tickers]
+        rows = _scan_universe_params(run_id, tickers, source)
         if not rows:
             return 0
         sql = (
@@ -30,8 +92,7 @@ class _ScanResultsMixin:
             "ON CONFLICT (run_id, ticker) DO NOTHING"
         )
         with self._conn.cursor() as cur:
-            for t in rows:
-                cur.execute(sql, (run_id, t, source))
+            cur.executemany(sql, rows)
         return len(rows)
 
     def insert_scan_results(
@@ -61,57 +122,9 @@ class _ScanResultsMixin:
             "confirmations=EXCLUDED.confirmations, warnings=EXCLUDED.warnings, "
             "notes=EXCLUDED.notes"
         )
+        params = _scan_result_params(run_id, rows)
         with self._conn.cursor() as cur:
-            for r in rows:
-                sr = r.screener_row
-                market_date = sr.date if sr is not None else None
-                volatility = sr.volatility if sr is not None else None
-                iv30d = sr.iv30d if sr is not None else None
-                implied_move = sr.implied_move if sr is not None else None
-                implied_move_perc = sr.implied_move_perc if sr is not None else None
-                gex_ratio = sr.gex_ratio if sr is not None else None
-                bullish_premium = sr.bullish_premium if sr is not None else None
-                bearish_premium = sr.bearish_premium if sr is not None else None
-                call_premium = sr.call_premium if sr is not None else None
-                put_premium = sr.put_premium if sr is not None else None
-                put_call_ratio = sr.put_call_ratio if sr is not None else None
-                marketcap = sr.marketcap if sr is not None else None
-                cur.execute(
-                    sql,
-                    (
-                        run_id,
-                        r.ticker,
-                        market_date,
-                        r.setup_type,
-                        r.direction,
-                        r.score,
-                        r.net_call_premium,
-                        r.net_put_premium,
-                        r.net_premium,
-                        bullish_premium,
-                        bearish_premium,
-                        call_premium,
-                        put_premium,
-                        put_call_ratio,
-                        r.iv_rank,
-                        volatility,
-                        iv30d,
-                        implied_move,
-                        implied_move_perc,
-                        r.gex_net_change,
-                        gex_ratio,
-                        r.variance_risk_premium,
-                        r.total_open_interest,
-                        r.relative_volume,
-                        r.next_earnings_date,
-                        r.sector,
-                        marketcap,
-                        list(r.signals_present),
-                        list(r.confirmations),
-                        list(r.warnings),
-                        r.notes,
-                    ),
-                )
+            cur.executemany(sql, params)
         return len(rows)
 
     def fetch_scan_universe(self, run_id: int) -> list[dict[str, Any]]:

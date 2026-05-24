@@ -9,6 +9,36 @@ import psycopg
 from psycopg.types.json import Jsonb
 
 
+def _trade_insight_candidate_params(
+    *,
+    snapshot_id: int,
+    run_id: int,
+    ticker: str,
+    candidates: list[dict[str, Any]],
+) -> list[tuple[Any, ...]]:
+    normalized_ticker = ticker.upper()
+    return [
+        (
+            snapshot_id,
+            c["idea_id"],
+            normalized_ticker,
+            run_id,
+            c["structure"],
+            c.get("expression_type"),
+            c["rank"],
+            c["status"],
+            c.get("net_credit_debit"),
+            c.get("max_profit"),
+            c.get("max_loss"),
+            c.get("edge_source"),
+            list(c.get("risk_flags") or []),
+            Jsonb(c.get("legs") or []),
+            Jsonb(c),
+        )
+        for c in candidates
+    ]
+
+
 class _TradeInsightsAiMixin:
     _conn: psycopg.Connection
     _schema: str
@@ -78,29 +108,15 @@ class _TradeInsightsAiMixin:
             "legs_jsonb, candidate_jsonb) "
             "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"
         )
+        params = _trade_insight_candidate_params(
+            snapshot_id=snapshot_id,
+            run_id=run_id,
+            ticker=ticker,
+            candidates=candidates,
+        )
         with self._conn.cursor() as cur:
             cur.execute(delete_sql, (snapshot_id,))
-            for c in candidates:
-                cur.execute(
-                    insert_sql,
-                    (
-                        snapshot_id,
-                        c["idea_id"],
-                        ticker.upper(),
-                        run_id,
-                        c["structure"],
-                        c.get("expression_type"),
-                        c["rank"],
-                        c["status"],
-                        c.get("net_credit_debit"),
-                        c.get("max_profit"),
-                        c.get("max_loss"),
-                        c.get("edge_source"),
-                        list(c.get("risk_flags") or []),
-                        Jsonb(c.get("legs") or []),
-                        Jsonb(c),
-                    ),
-                )
+            cur.executemany(insert_sql, params)
         return len(candidates)
 
     def fetch_trade_insight_snapshot(self, snapshot_id: int) -> dict[str, Any] | None:
