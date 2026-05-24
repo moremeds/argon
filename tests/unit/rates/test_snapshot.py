@@ -225,13 +225,94 @@ def test_build_rates_snapshot_uses_curve_date_and_marks_failed_series_stale():
     )
 
     assert snapshot.as_of == date(2026, 5, 20)
-    assert snapshot.policy.sofr == 3.65
+    assert snapshot.policy.sofr is None
     rrp = next(tile for tile in snapshot.policy.plumbing if tile.label == "ON RRP")
     assert rrp.value == 0.0
     assert rrp.status == "ok"
     freshness = {item.id: item for item in snapshot.source_freshness}
     assert freshness["DGS10"].status == "stale"
     assert freshness["EFFR"].latest_obs_date == date(2026, 5, 21)
+
+
+def test_build_rates_snapshot_marks_optional_source_failures_stale():
+    snapshot = build_rates_snapshot(
+        {
+            **_full_curve_points(),
+            "DGS10": [_point(date(2026, 5, 20), "4.67")],
+            "DFEDTARL": [_point(date(2026, 5, 20), "3.50")],
+            "DFEDTARU": [_point(date(2026, 5, 20), "3.75")],
+            "WTREGEN": [_point(date(2026, 5, 20), "781292")],
+        },
+        computed_at=datetime(2026, 5, 20, 22, tzinfo=UTC),
+        failed_series={"FED_FUNDS_FUTURES_PATH", "CFTC_TFF", "TREASURY_SUPPLY"},
+        policy_path=[
+            {
+                "meeting_date": date(2026, 6, 17),
+                "label": "6/17",
+                "probability": 53.9,
+                "stance": "HOLD",
+                "target_range": "3.50-3.75%",
+                "source": "Frenzy Capital Fed Watch",
+                "status": "ok",
+            }
+        ],
+        cftc_tff_rows=[
+            {
+                "contract_code": "043602",
+                "contract_name": "UST 10Y NOTE",
+                "tenor_bucket": "10Y",
+                "obs_date": date(2026, 5, 19),
+                "release_date": date(2026, 5, 22),
+                "lev_money_net": Decimal("-1194445"),
+                "asset_mgr_net": Decimal("1300752"),
+            }
+        ],
+        supply_auctions=[
+            {
+                "cusip": "912810UL0",
+                "security_type": "Bond",
+                "security_term": "30-Year",
+                "auction_date": date(2026, 5, 14),
+                "issue_date": date(2026, 5, 15),
+                "offering_amount": Decimal("25000000000"),
+                "bid_to_cover": Decimal("2.30"),
+                "tail_indicator": "long-end",
+            }
+        ],
+        supply_debt={
+            "record_date": date(2026, 5, 21),
+            "debt_held_public": Decimal("31374788661132.13"),
+            "total_public_debt": Decimal("39071200457366.45"),
+        },
+    )
+
+    freshness = {item.id: item.status for item in snapshot.source_freshness}
+    assert freshness["FED_FUNDS_FUTURES_PATH"] == "stale"
+    assert freshness["CFTC_TFF"] == "stale"
+    assert freshness["TREASURY_SUPPLY"] == "stale"
+    assert snapshot.policy.status == "stale"
+    assert snapshot.policy.implied_path[0].status == "stale"
+    assert snapshot.positioning.status == "stale"
+    assert snapshot.supply.status == "stale"
+
+
+def test_build_rates_snapshot_marks_positioning_partial_when_aggregates_missing():
+    snapshot = build_rates_snapshot(
+        _full_curve_points(),
+        computed_at=datetime(2026, 5, 20, 22, tzinfo=UTC),
+        cftc_tff_rows=[
+            {
+                "contract_code": "043602",
+                "contract_name": "UST 10Y NOTE",
+                "tenor_bucket": "10Y",
+                "obs_date": date(2026, 5, 19),
+                "release_date": date(2026, 5, 22),
+            }
+        ],
+    )
+
+    assert snapshot.positioning.status == "partial"
+    assert all(row.status != "ok" for row in snapshot.positioning.rows)
 
 
 def test_build_rates_snapshot_marks_supply_partial_when_fiscal_values_missing():

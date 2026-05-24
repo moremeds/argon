@@ -6,13 +6,13 @@ describe("rates API client", () => {
     vi.unstubAllGlobals();
   });
 
-  it("returns null when the rates snapshot fetch cannot reach the API", async () => {
+  it("rejects when the rates snapshot fetch cannot reach the API", async () => {
     vi.stubGlobal(
       "fetch",
       vi.fn().mockRejectedValue(new TypeError("fetch failed")),
     );
 
-    await expect(api.ratesSnapshot()).resolves.toBeNull();
+    await expect(api.ratesSnapshot()).rejects.toThrow("fetch failed");
   });
 
   it("still rejects non-404 API errors", async () => {

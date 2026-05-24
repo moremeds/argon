@@ -187,4 +187,11 @@ describe("RatesDesk", () => {
 
     expect(screen.getByText(/Rates snapshot not computed/)).toBeTruthy();
   });
+
+  it("renders an explicit API outage state separately from a missing snapshot", () => {
+    render(<RatesDesk snapshot={null} errorMessage="The rates API request failed" />);
+
+    expect(screen.getByText(/Rates API unavailable/)).toBeTruthy();
+    expect(screen.getByText(/The rates API request failed/)).toBeTruthy();
+  });
 });

@@ -1064,15 +1064,24 @@ function DecompositionSourceCards({
   );
 }
 
-export function RatesDesk({ snapshot }: { snapshot: Snapshot | null }) {
+export function RatesDesk({
+  snapshot,
+  errorMessage,
+}: {
+  snapshot: Snapshot | null;
+  errorMessage?: string;
+}) {
   if (!snapshot) {
+    const hasError = Boolean(errorMessage);
     return (
       <div className={styles.page}>
         <div className={styles.emptyState}>
           <p className={styles.eyebrow}>US Rates Factor Desk</p>
-          <h1>Rates snapshot not computed</h1>
+          <h1>{hasError ? "Rates API unavailable" : "Rates snapshot not computed"}</h1>
           <p>
-            Run the live FRED backfill or wait for the scheduled worker refresh.
+            {hasError
+              ? errorMessage
+              : "Run the live FRED backfill or wait for the scheduled worker refresh."}
           </p>
         </div>
       </div>

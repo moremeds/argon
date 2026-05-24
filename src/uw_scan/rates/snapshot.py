@@ -15,6 +15,7 @@ from uw_scan.models import (
     RatesPositioningPanel,
     RatesPositioningRow,
     RatesSnapshotResponse,
+    RatesSourceFreshness,
     RatesSummaryTile,
     RatesSupplyAuctionRow,
     RatesSupplyPanel,
@@ -54,6 +55,7 @@ def build_rates_snapshot(
     curve_points = compute_curve(observations, as_of=as_of)
     slopes = compute_slopes(curve_points)
     decomposition = compute_decomposition(observations, as_of=as_of)
+    failed_sources = failed_series or set()
     source_freshness = compute_source_freshness(
         observations, as_of=as_of, stale_series=failed_series
     )
@@ -72,13 +74,27 @@ def build_rates_snapshot(
         as_of=as_of,
         policy_events=policy_events or [],
         policy_path=policy_path or [],
+        failed_sources=failed_sources,
     )
-    positioning_panel = _positioning_panel(cftc_tff_rows or [])
+    positioning_panel = _positioning_panel(
+        cftc_tff_rows or [], source_failed="CFTC_TFF" in failed_sources
+    )
     supply_panel = _supply_panel(
         observations,
         as_of=as_of,
         auction_rows=supply_auctions or [],
         debt_row=supply_debt,
+        source_failed="TREASURY_SUPPLY" in failed_sources,
+    )
+    source_freshness.extend(
+        _optional_source_freshness(
+            failed_sources=failed_sources,
+            policy_events=policy_events or [],
+            policy_path=policy_path or [],
+            cftc_tff_rows=cftc_tff_rows or [],
+            supply_auctions=supply_auctions or [],
+            supply_debt=supply_debt,
+        )
     )
 
     return RatesSnapshotResponse(
@@ -126,12 +142,18 @@ LONG_END_TFF_CODES = {"043602", "043607", "020601", "020604"}
 FRONT_END_TFF_CODES = {"042601", "044601"}
 
 
-def _positioning_panel(rows: list[dict[str, Any]]) -> RatesPositioningPanel:
+def _positioning_panel(
+    rows: list[dict[str, Any]], *, source_failed: bool = False
+) -> RatesPositioningPanel:
     details = [RatesPositioningRow.model_validate(row) for row in rows]
     if not details:
         return RatesPositioningPanel(
-            positioning_read="CFTC TFF Treasury futures positioning is not persisted yet.",
-            status="missing",
+            positioning_read=(
+                "CFTC TFF Treasury futures positioning failed to refresh."
+                if source_failed
+                else "CFTC TFF Treasury futures positioning is not persisted yet."
+            ),
+            status="stale" if source_failed else "missing",
         )
 
     long_end = [row for row in details if row.contract_code in LONG_END_TFF_CODES]
@@ -145,39 +167,40 @@ def _positioning_panel(rows: list[dict[str, Any]]) -> RatesPositioningPanel:
         (row.release_date for row in details if row.release_date is not None),
         default=None,
     )
+    summary_tiles = [
+        RatesSummaryTile(
+            label="Leveraged funds · long end",
+            value=lev_long_end,
+            unit="contracts",
+            status="ok" if lev_long_end is not None else "missing",
+        ),
+        RatesSummaryTile(
+            label="Leveraged funds · front end",
+            value=lev_front_end,
+            unit="contracts",
+            status="ok" if lev_front_end is not None else "missing",
+        ),
+        RatesSummaryTile(
+            label="Asset managers · long end",
+            value=asset_long_end,
+            unit="contracts",
+            status="ok" if asset_long_end is not None else "missing",
+        ),
+        RatesSummaryTile(
+            label="Dealer/intermediary · long end",
+            value=dealer_long_end,
+            unit="contracts",
+            status="ok" if dealer_long_end is not None else "missing",
+        ),
+        RatesSummaryTile(
+            label="Basis proxy",
+            value=basis_proxy,
+            unit="contracts",
+            status="ok" if basis_proxy is not None else "partial",
+        ),
+    ]
     return RatesPositioningPanel(
-        rows=[
-            RatesSummaryTile(
-                label="Leveraged funds · long end",
-                value=lev_long_end,
-                unit="contracts",
-                status="ok",
-            ),
-            RatesSummaryTile(
-                label="Leveraged funds · front end",
-                value=lev_front_end,
-                unit="contracts",
-                status="ok",
-            ),
-            RatesSummaryTile(
-                label="Asset managers · long end",
-                value=asset_long_end,
-                unit="contracts",
-                status="ok",
-            ),
-            RatesSummaryTile(
-                label="Dealer/intermediary · long end",
-                value=dealer_long_end,
-                unit="contracts",
-                status="ok",
-            ),
-            RatesSummaryTile(
-                label="Basis proxy",
-                value=basis_proxy,
-                unit="contracts",
-                status="ok" if basis_proxy is not None else "partial",
-            ),
-        ],
+        rows=summary_tiles,
         details=details,
         positioning_read=_positioning_read(
             latest_release=latest_release,
@@ -185,7 +208,7 @@ def _positioning_panel(rows: list[dict[str, Any]]) -> RatesPositioningPanel:
             asset_long_end=asset_long_end,
             basis_proxy=basis_proxy,
         ),
-        status="ok",
+        status=_positioning_status(summary_tiles, source_failed=source_failed),
     )
 
 
@@ -230,6 +253,16 @@ def _contracts_text(value: float | None) -> str:
     return f"{abs(value):,.0f} contracts {side}"
 
 
+def _positioning_status(
+    rows: list[RatesSummaryTile], *, source_failed: bool = False
+) -> str:
+    if source_failed:
+        return "stale"
+    if any(row.status == "ok" and row.value is not None for row in rows):
+        return "ok"
+    return "partial"
+
+
 def _risk_text(positioning: RatesPositioningPanel, supply: RatesSupplyPanel) -> str:
     live = []
     if supply.status == "ok":
@@ -247,6 +280,7 @@ def _supply_panel(
     as_of: date,
     auction_rows: list[dict[str, Any]],
     debt_row: dict[str, Any] | None,
+    source_failed: bool = False,
 ) -> RatesSupplyPanel:
     auction_details = [
         RatesSupplyAuctionRow.model_validate(_auction_payload(row))
@@ -256,10 +290,16 @@ def _supply_panel(
     fiscal = _supply_fiscal_tiles(observations, as_of=as_of, debt_row=debt_row)
     if not display_auctions and not fiscal:
         return RatesSupplyPanel(
-            notes=["Treasury auction and FiscalData supply feeds are not persisted yet."],
-            status="missing",
+            notes=[
+                "Treasury auction and FiscalData supply feeds failed to refresh."
+                if source_failed
+                else "Treasury auction and FiscalData supply feeds are not persisted yet."
+            ],
+            status="stale" if source_failed else "missing",
         )
     status = "ok" if display_auctions and _has_live_debt_tile(fiscal) else "partial"
+    if source_failed:
+        status = "stale"
     return RatesSupplyPanel(
         auctions=_supply_summary_tiles(display_auctions, auction_details),
         recent_auctions=display_auctions,
@@ -515,12 +555,20 @@ def _policy_panel(
     as_of: date,
     policy_events: list[dict[str, Any]],
     policy_path: list[dict[str, Any]],
+    failed_sources: set[str],
 ) -> RatesPolicyPanel:
-    latest_policy_date = date.max
-    target_lower = _latest_float(observations, "DFEDTARL", latest_policy_date)
-    target_upper = _latest_float(observations, "DFEDTARU", latest_policy_date)
+    target_lower = _latest_float(observations, "DFEDTARL", as_of)
+    target_upper = _latest_float(observations, "DFEDTARU", as_of)
     target_range = _format_target_range(target_lower, target_upper)
-    path = [RatesPolicyPathPoint.model_validate(row) for row in policy_path]
+    path_status = "stale" if "FED_FUNDS_FUTURES_PATH" in failed_sources else None
+    path = [
+        RatesPolicyPathPoint.model_validate(row).model_copy(
+            update={"status": path_status}
+        )
+        if path_status is not None
+        else RatesPolicyPathPoint.model_validate(row)
+        for row in policy_path
+    ]
     last_meeting = _latest_policy_meeting(policy_events, as_of=as_of)
     if last_meeting is not None and last_meeting.action is None:
         inferred_action = _infer_policy_action_from_targets(
@@ -528,21 +576,38 @@ def _policy_panel(
         )
         if inferred_action is not None:
             last_meeting = last_meeting.model_copy(update={"action": inferred_action})
-    plumbing = _plumbing_tiles(observations)
+    plumbing = _plumbing_tiles(observations, as_of=as_of)
     return RatesPolicyPanel(
         target_lower=target_lower,
         target_upper=target_upper,
         target_range=target_range,
-        effr=_latest_float(observations, "EFFR", latest_policy_date),
-        sofr=_latest_float(observations, "SOFR", latest_policy_date),
+        effr=_latest_float(observations, "EFFR", as_of),
+        sofr=_latest_float(observations, "SOFR", as_of),
         last_meeting=last_meeting,
         implied_path=path,
         plumbing=plumbing,
         policy_read=_policy_read(target_range, last_meeting),
         path_read=_path_read(path),
         plumbing_read=_plumbing_read(plumbing),
-        status="ok" if target_range and plumbing else "partial",
+        status=_policy_status(target_range, plumbing, failed_sources=failed_sources),
     )
+
+
+def _policy_status(
+    target_range: str | None,
+    plumbing: list[RatesPolicyPlumbingMetric],
+    *,
+    failed_sources: set[str],
+) -> str:
+    if failed_sources & {"FED_FOMC", "FED_FUNDS_FUTURES_PATH"}:
+        return "stale"
+    if target_range is None:
+        return "partial"
+    return "ok" if _has_live_plumbing_tile(plumbing) else "partial"
+
+
+def _has_live_plumbing_tile(plumbing: list[RatesPolicyPlumbingMetric]) -> bool:
+    return any(tile.status == "ok" and tile.value is not None for tile in plumbing)
 
 
 def _latest_policy_meeting(
@@ -647,26 +712,21 @@ def _plumbing_read(plumbing: list[RatesPolicyPlumbingMetric]) -> str:
 
 def _plumbing_tiles(
     observations: dict[str, list[dict[str, Any]]],
+    *,
+    as_of: date,
 ) -> list[RatesPolicyPlumbingMetric]:
-    latest_policy_date = date.max
-    fed_assets = _latest_float(
-        observations, "WALCL", latest_policy_date, divisor=1_000_000
-    )
-    reserves = _latest_float(
-        observations, "WRESBAL", latest_policy_date, divisor=1_000_000
-    )
+    fed_assets = _latest_float(observations, "WALCL", as_of, divisor=1_000_000)
+    reserves = _latest_float(observations, "WRESBAL", as_of, divisor=1_000_000)
     on_rrp = _latest_float(
-        observations, "RRPONTSYD", latest_policy_date, divisor=1000, quantum="0.001"
+        observations, "RRPONTSYD", as_of, divisor=1000, quantum="0.001"
     )
-    tga = _latest_float(
-        observations, "WTREGEN", latest_policy_date, divisor=1_000_000
-    )
+    tga = _latest_float(observations, "WTREGEN", as_of, divisor=1_000_000)
     return [
         RatesPolicyPlumbingMetric(
             label="Fed assets",
             value=fed_assets,
             unit="$T",
-            qualifier=_walcl_qualifier(observations, latest_policy_date),
+            qualifier=_walcl_qualifier(observations, as_of),
             status="ok" if fed_assets is not None else "missing",
         ),
         RatesPolicyPlumbingMetric(
@@ -759,6 +819,98 @@ def _latest_float(
     decimal_value = value if isinstance(value, Decimal) else Decimal(str(value))
     decimal_value = decimal_value / Decimal(str(divisor))
     return float(decimal_value.quantize(Decimal(quantum)))
+
+
+def _optional_source_freshness(
+    *,
+    failed_sources: set[str],
+    policy_events: list[dict[str, Any]],
+    policy_path: list[dict[str, Any]],
+    cftc_tff_rows: list[dict[str, Any]],
+    supply_auctions: list[dict[str, Any]],
+    supply_debt: dict[str, Any] | None,
+) -> list[RatesSourceFreshness]:
+    return [
+        _source_freshness(
+            "FED_FOMC",
+            "Fed FOMC calendar",
+            _latest_policy_event_date(policy_events),
+            failed_sources=failed_sources,
+            has_data=bool(policy_events),
+        ),
+        _source_freshness(
+            "FED_FUNDS_FUTURES_PATH",
+            "Fed funds futures path",
+            None,
+            failed_sources=failed_sources,
+            has_data=bool(policy_path),
+        ),
+        _source_freshness(
+            "CFTC_TFF",
+            "CFTC TFF Treasury positioning",
+            _latest_row_date(cftc_tff_rows, "obs_date"),
+            failed_sources=failed_sources,
+            has_data=bool(cftc_tff_rows),
+            last_seen_at=_latest_row_datetime(cftc_tff_rows, "as_of"),
+        ),
+        _source_freshness(
+            "TREASURY_SUPPLY",
+            "Treasury auction/FiscalData supply",
+            _latest_supply_date(supply_auctions, supply_debt),
+            failed_sources=failed_sources,
+            has_data=bool(supply_auctions or supply_debt),
+        ),
+    ]
+
+
+def _source_freshness(
+    source_id: str,
+    label: str,
+    latest_obs_date: date | None,
+    *,
+    failed_sources: set[str],
+    has_data: bool,
+    last_seen_at: datetime | None = None,
+) -> RatesSourceFreshness:
+    if source_id in failed_sources:
+        status = "stale" if has_data else "missing"
+    else:
+        status = "ok" if has_data else "missing"
+    return RatesSourceFreshness(
+        id=source_id,
+        label=label,
+        latest_obs_date=latest_obs_date,
+        last_seen_at=last_seen_at,
+        status=status,
+    )
+
+
+def _latest_policy_event_date(rows: list[dict[str, Any]]) -> date | None:
+    return max(
+        (
+            row.get("event_end_date") or row.get("event_date")
+            for row in rows
+            if row.get("event_end_date") or row.get("event_date")
+        ),
+        default=None,
+    )
+
+
+def _latest_row_date(rows: list[dict[str, Any]], key: str) -> date | None:
+    return max((row[key] for row in rows if row.get(key) is not None), default=None)
+
+
+def _latest_row_datetime(rows: list[dict[str, Any]], key: str) -> datetime | None:
+    return max((row[key] for row in rows if row.get(key) is not None), default=None)
+
+
+def _latest_supply_date(
+    auctions: list[dict[str, Any]], debt_row: dict[str, Any] | None
+) -> date | None:
+    dates = [row["auction_date"] for row in auctions if row.get("auction_date")]
+    if debt_row and debt_row.get("record_date"):
+        dates.append(debt_row["record_date"])
+    return max(dates, default=None)
 
 
 def _curve_score(slopes) -> float | None:

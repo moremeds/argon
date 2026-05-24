@@ -36,3 +36,20 @@ def test_fed_funds_futures_path_provider_parses_move_probability_rows() -> None:
     assert rows[1].probability == 53.9
     assert rows[1].stance == "HOLD"
     assert rows[1].target_range == "3.50-3.75%"
+
+
+def test_fed_funds_futures_path_provider_rejects_empty_parse() -> None:
+    response = httpx.Response(
+        200,
+        text="<html><body>shape changed</body></html>",
+        request=httpx.Request("GET", "https://www.frenzycap.com/fedwatch"),
+    )
+
+    with patch.object(FedFundsFuturesPathProvider, "_get", return_value=response):
+        with FedFundsFuturesPathProvider() as provider:
+            try:
+                provider.fetch_latest_path(current_target_range="3.50-3.75%")
+            except ValueError as exc:
+                assert "meeting rows" in str(exc)
+            else:
+                raise AssertionError("empty FedWatch parse should fail the source")

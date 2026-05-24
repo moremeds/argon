@@ -87,6 +87,8 @@ class FedFundsFuturesPathProvider:
         response.raise_for_status()
         current_range = _target_range(current_target_range)
         rows = _FrenzyFedWatchParser().parse(response.text)
+        if not rows:
+            raise ValueError("Frenzy Fed Watch payload did not contain meeting rows")
         out: list[FedFundsFuturesPathPoint] = []
         for row in rows:
             best = _best_probability_bucket(row.probabilities)
@@ -103,6 +105,8 @@ class FedFundsFuturesPathProvider:
                     implied_rate=row.implied_rate,
                 )
             )
+        if not out:
+            raise ValueError("Frenzy Fed Watch payload did not contain probabilities")
         return out
 
     def _get(self) -> httpx.Response:
