@@ -838,7 +838,8 @@ def _coerce_decimal_str(value: Any) -> str | None:
             from decimal import Decimal, InvalidOperation
 
             Decimal(cleaned)
-        except (InvalidOperation, ValueError):
+        except (InvalidOperation, ValueError) as exc:
+            logger.debug("decimal coerce failed for %r: %s", cleaned, repr(exc))
             return None
         return cleaned
     if isinstance(value, (int, float)):

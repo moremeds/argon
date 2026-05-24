@@ -28,6 +28,7 @@ Verified pre-flight quirks (do NOT change unless re-verified):
 from __future__ import annotations
 
 import json
+import logging
 import subprocess
 import tempfile
 from pathlib import Path
@@ -39,6 +40,8 @@ from uw_scan.worker.jobs.trade_insights_ai_runners import (
     _format_runner_failure,
     _runner_child_env,
 )
+
+logger = logging.getLogger(__name__)
 
 
 def _strip_markdown_fence(text: str) -> str:
@@ -113,14 +116,15 @@ def _try_parse_claude_text(text: str) -> Any:
     candidate = _strip_markdown_fence(text)
     try:
         return json.loads(candidate)
-    except json.JSONDecodeError:
-        pass
+    except json.JSONDecodeError as exc:
+        logger.debug("fenced parse miss: %s", repr(exc))
     extracted = _extract_first_balanced_json_object(text)
     if extracted is None:
         return None
     try:
         return json.loads(extracted)
-    except json.JSONDecodeError:
+    except json.JSONDecodeError as exc:
+        logger.debug("balanced parse miss: %s", repr(exc))
         return None
 
 
