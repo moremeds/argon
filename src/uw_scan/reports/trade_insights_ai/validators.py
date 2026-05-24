@@ -82,6 +82,10 @@ def _canonical_source_path(path: str, deterministic_payload: dict[str, Any]) -> 
 
 def _path_family_exists(path: str, deterministic_payload: dict[str, Any]) -> bool:
     parts = [_PATH_PART_INDEX_RE.sub("", p) for p in path.split(".") if p]
+    # Codex sometimes emits dotted-numeric indices (rows.1.spot) instead of
+    # the prompt's bracketed form (rows[N].spot). Both reference the same
+    # field — strip pure-digit segments so the family check accepts either.
+    parts = [p for p in parts if not p.isdigit()]
     if not parts:
         return False
     return _path_parts_exist(deterministic_payload, parts)

@@ -420,13 +420,17 @@ def get_latest_trade_insights_ai_analysis(
     ticker: str,
     repo: Repository = Depends(get_repo),
 ) -> TradeInsightAiLatestPair:
-    """Latest succeeded row per provider as a keyed dict.
+    """Latest terminal-state row per provider as a keyed dict.
 
-    Returns {codex: row|null, claude: row|null}. 200 even when both are null
-    so the UI renders the empty Run state instead of a 404.
+    Returns {codex: row|null, claude: row|null}. Succeeded rows take priority
+    over failed rows at the same finished_at; failed rows are returned (with
+    error_message populated) when no succeeded row exists, so the UI can
+    distinguish "never ran" from "ran and failed." 200 even when both are
+    null so the UI renders the empty Run state instead of a 404.
 
     v5.2: also computes provider_consensus by comparing the two providers'
-    headlines when both succeeded. UI surfaces this above the tabs.
+    headlines when both have a succeeded outcome (failed rows are treated as
+    missing for consensus purposes — see _compute_provider_consensus).
     """
     pair = repo.find_latest_trade_insight_ai_analyses_per_provider(
         ticker=ticker.upper(),

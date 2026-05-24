@@ -1518,6 +1518,29 @@ def test_validate_trade_insights_ai_outcome_accepts_array_family_source_paths():
     assert parsed.metric_cards[0].source_path.endswith("rows[].net_dex")
 
 
+def test_validate_trade_insights_ai_outcome_accepts_dotted_numeric_index_source_paths():
+    # Codex sometimes emits dotted-numeric indices (rows.1.spot) instead of
+    # the prompt's bracketed form (rows[1].spot). Both refer to the same
+    # array element; the validator must accept either.
+    deterministic = _analysis_input()
+    produced_at = datetime(2026, 3, 24, 20, 18, 42, tzinfo=timezone.utc)
+    dotted_numeric = _sample_outcome_for(deterministic)
+    dotted_numeric["metric_cards"][0]["source_path"] = (
+        "tabs.market_structure.stock_history.rows.1.spot"
+    )
+
+    parsed = validate_trade_insights_ai_outcome(
+        dotted_numeric,
+        deterministic,
+        produced_at=produced_at,
+    )
+
+    assert (
+        parsed.metric_cards[0].source_path
+        == "tabs.market_structure.stock_history.rows.1.spot"
+    )
+
+
 def test_validate_trade_insights_ai_outcome_canonicalizes_nested_stock_history_path():
     deterministic = _analysis_input()
     produced_at = datetime(2026, 3, 24, 20, 18, 42, tzinfo=timezone.utc)
