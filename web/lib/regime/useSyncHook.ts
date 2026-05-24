@@ -155,7 +155,6 @@ export function useSyncHook<T>(
       }
     },
     [
-      active,
       clearRetry,
       endpoint,
       resolvedPostEndpoint,

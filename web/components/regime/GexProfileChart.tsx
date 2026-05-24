@@ -32,7 +32,6 @@ export type GexProfileChartProps = {
 
 export default function GexProfileChart({
   profile,
-  spot,
 }: GexProfileChartProps) {
   const svgRef = useRef<SVGSVGElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);

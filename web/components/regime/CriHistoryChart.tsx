@@ -50,16 +50,6 @@ function pickVal(
   return Number.isFinite(raw) ? raw : null;
 }
 
-function niceDateTicks(dates: Date[], maxTicks: number): Date[] {
-  if (dates.length <= maxTicks) return dates.slice();
-  const step = Math.ceil(dates.length / maxTicks);
-  const out: Date[] = [];
-  for (let i = 0; i < dates.length; i += step) out.push(dates[i]);
-  if (out[out.length - 1] !== dates[dates.length - 1])
-    out.push(dates[dates.length - 1]);
-  return out;
-}
-
 function fmtDateLabel(d: Date): string {
   const m = d.toLocaleString("en-US", { month: "short" });
   return `${m} ${d.getDate()}`;
@@ -177,14 +167,6 @@ export default function CriHistoryChart({
   const gridYs = yLeft
     ? Array.from({ length: 5 }, (_, k) => (innerH / 4) * k)
     : [];
-
-  // Left-axis tick labels (5 ticks)
-  function axisTicks(y: ((v: number) => number) | null) {
-    if (!y) return [];
-    // Reconstruct the domain from the scale by sampling — easier to just compute
-    // ticks against the original domain. We'll recompute here.
-    return [];
-  }
 
   // For axis labels, recompute domain explicitly
   function domainOf(s: ChartSeries) {

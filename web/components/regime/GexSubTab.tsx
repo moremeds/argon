@@ -1,20 +1,12 @@
 "use client";
 
-import { useState, useMemo, useRef, useEffect } from "react";
-import {
-  Activity,
-  TrendingUp,
-  TrendingDown,
-  ArrowUpRight,
-  ArrowDownRight,
-} from "lucide-react";
+import { useMemo, useState } from "react";
+import { Activity, TrendingUp, TrendingDown } from "lucide-react";
 import {
   useGex,
-  type GexBucket,
   type GexData,
   type GexHistoryEntry,
   type GexLevel,
-  type IvData,
   type MqLevels,
   type SourceDelta,
   type SourceDeltaEntry,
@@ -30,14 +22,6 @@ type GexSubTabProps = {
 };
 
 /* ─── Helpers ─────────────────────────────────────────── */
-
-function fmtNum(v: number | null | undefined, decimals = 2): string {
-  if (v == null) return "---";
-  return v.toLocaleString("en-US", {
-    minimumFractionDigits: decimals,
-    maximumFractionDigits: decimals,
-  });
-}
 
 function fmtGex(v: number | null | undefined): string {
   if (v == null) return "---";
@@ -78,11 +62,6 @@ function biasColor(direction: string): string {
 
 function biasLabel(direction: string): string {
   return direction.replace("_", " ");
-}
-
-function levelColor(gamma: number | undefined): string {
-  if (gamma == null) return "var(--text-muted)";
-  return gamma >= 0 ? "var(--signal-core)" : "var(--fault)";
 }
 
 /* ─── Spot freshness pill ─────────────────────────────── */
