@@ -11917,10 +11917,28 @@
               }
             ]
           },
+          "current_prompt_label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Current Prompt Label"
+          },
+          "current_prompt_version": {
+            "title": "Current Prompt Version",
+            "type": "string"
+          },
           "provider_consensus": {
             "$ref": "#/components/schemas/TradeInsightAiProviderConsensus"
           }
         },
+        "required": [
+          "current_prompt_version"
+        ],
         "title": "TradeInsightAiLatestPair",
         "type": "object"
       },
@@ -16663,7 +16681,7 @@
     },
     "/api/stock/{ticker}/trade-insights/ai-analysis/latest": {
       "get": {
-        "description": "Latest succeeded row per provider as a keyed dict.\n\nReturns {codex: row|null, claude: row|null}. 200 even when both are null\nso the UI renders the empty Run state instead of a 404.\n\nv5.2: also computes provider_consensus by comparing the two providers'\nheadlines when both succeeded. UI surfaces this above the tabs.",
+        "description": "Latest terminal-state row per provider as a keyed dict.\n\nReturns {codex: row|null, claude: row|null}. Succeeded rows take priority\nover failed rows at the same finished_at; failed rows are returned (with\nerror_message populated) when no succeeded row exists, so the UI can\ndistinguish \"never ran\" from \"ran and failed.\" 200 even when both are\nnull so the UI renders the empty Run state instead of a 404.\n\nv5.2: also computes provider_consensus by comparing the two providers'\nheadlines when both have a succeeded outcome (failed rows are treated as\nmissing for consensus purposes \u2014 see _compute_provider_consensus).",
         "operationId": "get_latest_trade_insights_ai_analysis_api_stock__ticker__trade_insights_ai_analysis_latest_get",
         "parameters": [
           {

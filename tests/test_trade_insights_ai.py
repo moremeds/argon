@@ -7,6 +7,7 @@ from pydantic import ValidationError
 
 from uw_scan.models import (
     TradeInsightAiAnalysisResponse,
+    TradeInsightAiLatestPair,
     TradeInsightAiOutcome,
     VolHeaderBlock,
 )
@@ -275,6 +276,18 @@ def test_trade_insight_ai_analysis_response_includes_queue_and_hash_fields():
     assert body["produced_at"] is None
     assert body["outcome"] is None
     assert body["markdown"] is None
+
+
+def test_trade_insight_ai_latest_pair_exposes_current_prompt_metadata():
+    pair = TradeInsightAiLatestPair(
+        current_prompt_version=PROMPT_VERSION,
+        current_prompt_label="v5.3",
+    )
+
+    body = pair.model_dump(mode="json")
+
+    assert body["current_prompt_version"] == PROMPT_VERSION
+    assert body["current_prompt_label"] == "v5.3"
 
 
 def _source_payloads() -> dict[str, dict]:
@@ -2130,6 +2143,14 @@ def test_row_to_ai_response_preserves_current_version_outcome():
     assert resp.outcome is not None
     assert resp.outcome.ticker == "TSLA"
     assert resp.error_message is None
+
+
+def test_current_prompt_label_derives_from_prompt_version():
+    from uw_scan.api.routers.trade_insights import _current_prompt_label
+
+    assert _current_prompt_label() == PROMPT_VERSION.removeprefix(
+        "trade-insights-ai-"
+    )
 
 
 def test_lenient_v5_backfill_derives_directional_bias_from_stance():

@@ -6,7 +6,6 @@ from decimal import Decimal
 import psycopg
 from fastapi.testclient import TestClient
 
-from tests.test_trade_insights_ai import _sample_outcome_for
 from uw_scan.api.deps import get_repo, get_settings
 from uw_scan.api.server import create_app
 from uw_scan.config import Settings
@@ -23,6 +22,9 @@ from uw_scan.models import (
     VolHeaderBlock,
     VRPAssessment,
 )
+from uw_scan.reports.trade_insights_ai import PROMPT_VERSION
+
+from tests.test_trade_insights_ai import _sample_outcome_for
 from uw_scan.storage.repository import Repository
 
 
@@ -440,6 +442,10 @@ def test_trade_insights_ai_latest_returns_keyed_dict_both_null_initially(
     response = client.get("/api/stock/TSLA/trade-insights/ai-analysis/latest")
     assert response.status_code == 200
     body = response.json()
+    assert body["current_prompt_version"] == PROMPT_VERSION
+    assert body["current_prompt_label"] == PROMPT_VERSION.removeprefix(
+        "trade-insights-ai-"
+    )
     assert body["codex"] is None
     assert body["claude"] is None
     # v5.2: provider_consensus is computed at GET time; with no rows it

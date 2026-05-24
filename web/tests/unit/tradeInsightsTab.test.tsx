@@ -80,6 +80,8 @@ describe("TradeInsightsTab", () => {
   beforeEach(() => {
     vi.mocked(api.tradeInsights).mockResolvedValue(mockInsights());
     vi.mocked(api.tradeInsightsAiAnalysisLatest).mockResolvedValue({
+      current_prompt_version: "trade-insights-ai-v5.3",
+      current_prompt_label: "v5.3",
       codex: null,
       claude: null,
     });

@@ -3,7 +3,11 @@
 import { Fragment, useCallback, useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
 
-import { api, type TradeInsightsAiAnalysisResponse } from "@/lib/api";
+import {
+  api,
+  type TradeInsightsAiAnalysisResponse,
+  type TradeInsightsAiLatestPair,
+} from "@/lib/api";
 import { InsightPanel, InsightStatusBanner } from "./InsightPanel";
 
 type Outcome = NonNullable<TradeInsightsAiAnalysisResponse["outcome"]>;
@@ -1117,12 +1121,6 @@ function stateBadge(
   return "○";
 }
 
-// Current prompt version — used by the legacy-row detector below. Kept in
-// sync with src/uw_scan/reports/trade_insights_ai.py:PROMPT_VERSION. The
-// detector compares against this string; any prior version (v4, v5)
-// renders the "legacy — re-run" banner so users see what the API guard
-// already did (dropped outcome to null).
-const CURRENT_PROMPT_VERSION = "trade-insights-ai-v5.3";
 type ProviderAnalysisPair = {
   codex: TradeInsightsAiAnalysisResponse | null;
   claude: TradeInsightsAiAnalysisResponse | null;
@@ -1135,22 +1133,40 @@ type ProviderConsensus = {
   consensus_grade?: string;
   actionable_disagreement?: string;
 };
+type PromptMetadata = Pick<
+  TradeInsightsAiLatestPair,
+  "current_prompt_label" | "current_prompt_version"
+>;
 
 const EMPTY_LATEST: ProviderAnalysisPair = { codex: null, claude: null };
 const EMPTY_PENDING: ProviderPendingPair = { codex: null, claude: null };
+const EMPTY_PROMPT_METADATA: PromptMetadata = {
+  current_prompt_label: null,
+  current_prompt_version: "",
+};
 
 function isLegacyAnalysis(
   analysis: TradeInsightsAiAnalysisResponse | null,
+  currentPromptVersion: string,
 ): boolean {
   if (!analysis) return false;
   if (analysis.status !== "succeeded") return false;
+  if (!currentPromptVersion) return false;
   // The v5 API-side legacy guard (_row_to_ai_response) drops outcome to null
   // when the row's prompt_version differs from the current PROMPT_VERSION,
   // so we recognize a legacy row by the (succeeded + null outcome +
   // prompt_version mismatch) signature.
   return (
     analysis.outcome == null &&
-    analysis.prompt_version !== CURRENT_PROMPT_VERSION
+    analysis.prompt_version !== currentPromptVersion
+  );
+}
+
+function currentPromptDisplay(metadata: PromptMetadata): string {
+  return (
+    metadata.current_prompt_label ||
+    metadata.current_prompt_version ||
+    "current prompt"
   );
 }
 
@@ -1158,14 +1174,19 @@ function ProviderTabBody({
   provider,
   analysis,
   pending,
+  promptMetadata,
 }: {
   provider: Provider;
   analysis: TradeInsightsAiAnalysisResponse | null;
   pending: boolean;
+  promptMetadata: PromptMetadata;
 }) {
   const succeeded = analysis?.status === "succeeded" && analysis.outcome;
   const failed = analysis?.status === "failed";
-  const legacy = isLegacyAnalysis(analysis);
+  const legacy = isLegacyAnalysis(
+    analysis,
+    promptMetadata.current_prompt_version,
+  );
   return (
     <div style={{ display: "grid", gap: 12 }}>
       {pending && (
@@ -1190,9 +1211,8 @@ function ProviderTabBody({
         <InsightStatusBanner
           text={
             `Legacy analysis (${analysis?.prompt_version}). Schema bumped ` +
-            `to ${CURRENT_PROMPT_VERSION} — click Run to regenerate with the ` +
-            `v5.2 prompt (active-trigger evidence, thesis archetype, ` +
-            `strict strike_role, anti-pin scope).`
+            `to ${currentPromptDisplay(promptMetadata)} — click Run to ` +
+            `regenerate with the current prompt contract.`
           }
           severity="warning"
         />
@@ -1237,6 +1257,9 @@ export function TradeInsightsAiAnalysisPanel({ ticker }: { ticker: string }) {
   // Rendered as a chip above the tabs so the operator sees agreement /
   // actionable disagreement at-a-glance.
   const [consensus, setConsensus] = useState<ProviderConsensus | null>(null);
+  const [promptMetadata, setPromptMetadata] = useState<PromptMetadata>(
+    EMPTY_PROMPT_METADATA,
+  );
   const [pendingIds, setPendingIds] =
     useState<ProviderPendingPair>(EMPTY_PENDING);
   const [loadedTicker, setLoadedTicker] = useState(ticker);
@@ -1284,6 +1307,10 @@ export function TradeInsightsAiAnalysisPanel({ ticker }: { ticker: string }) {
         if (!isCurrentRequest()) return;
         setLatest({ codex: pair.codex ?? null, claude: pair.claude ?? null });
         setConsensus(pair.provider_consensus ?? null);
+        setPromptMetadata({
+          current_prompt_label: pair.current_prompt_label ?? null,
+          current_prompt_version: pair.current_prompt_version,
+        });
       } catch {
         // tolerate /latest hiccups — at minimum overlay the in-flight state.
         if (isCurrentRequest()) {
@@ -1305,6 +1332,10 @@ export function TradeInsightsAiAnalysisPanel({ ticker }: { ticker: string }) {
           setLoadedTicker(ticker);
           setLatest({ codex: pair.codex ?? null, claude: pair.claude ?? null });
           setConsensus(pair.provider_consensus ?? null);
+          setPromptMetadata({
+            current_prompt_label: pair.current_prompt_label ?? null,
+            current_prompt_version: pair.current_prompt_version,
+          });
           setPendingIds(EMPTY_PENDING);
           setLoading(false);
           setUnavailable(false);
@@ -1314,6 +1345,7 @@ export function TradeInsightsAiAnalysisPanel({ ticker }: { ticker: string }) {
           setLoadedTicker(ticker);
           setLatest(EMPTY_LATEST);
           setConsensus(null);
+          setPromptMetadata(EMPTY_PROMPT_METADATA);
           setPendingIds(EMPTY_PENDING);
           setLoading(false);
           if (String(err).includes("503")) {
@@ -1331,6 +1363,9 @@ export function TradeInsightsAiAnalysisPanel({ ticker }: { ticker: string }) {
   const isLoadedTicker = loadedTicker === ticker;
   const latestForTicker = isLoadedTicker ? latest : EMPTY_LATEST;
   const consensusForTicker = isLoadedTicker ? consensus : null;
+  const promptMetadataForTicker = isLoadedTicker
+    ? promptMetadata
+    : EMPTY_PROMPT_METADATA;
   const pendingIdsForTicker = isLoadedTicker ? pendingIds : EMPTY_PENDING;
   const loadingForTicker = isLoadedTicker ? loading : false;
   const unavailableForTicker = isLoadedTicker ? unavailable : false;
@@ -1376,6 +1411,11 @@ export function TradeInsightsAiAnalysisPanel({ ticker }: { ticker: string }) {
           setLatest({
             codex: pair.codex ?? null,
             claude: pair.claude ?? null,
+          });
+          setConsensus(pair.provider_consensus ?? null);
+          setPromptMetadata({
+            current_prompt_label: pair.current_prompt_label ?? null,
+            current_prompt_version: pair.current_prompt_version,
           });
         }
       } catch {
@@ -1516,6 +1556,7 @@ export function TradeInsightsAiAnalysisPanel({ ticker }: { ticker: string }) {
           provider={active}
           analysis={latestForTicker[active]}
           pending={Boolean(pendingIdsForTicker[active])}
+          promptMetadata={promptMetadataForTicker}
         />
       </div>
     </InsightPanel>

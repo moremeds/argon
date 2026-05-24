@@ -599,6 +599,8 @@ class TradeInsightAiLatestPair(TradeInsightAiBase):
     UI surfaces consensus_grade + actionable_disagreement above the
     [Codex] [Claude] tabs as a quality signal."""
 
+    current_prompt_version: str
+    current_prompt_label: str | None = None
     codex: TradeInsightAiAnalysisResponse | None = None
     claude: TradeInsightAiAnalysisResponse | None = None
     provider_consensus: TradeInsightAiProviderConsensus = Field(
