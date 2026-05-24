@@ -234,6 +234,46 @@ def test_build_rates_snapshot_uses_curve_date_and_marks_failed_series_stale():
     assert freshness["EFFR"].latest_obs_date == date(2026, 5, 21)
 
 
+def test_build_rates_snapshot_marks_supply_partial_when_fiscal_values_missing():
+    snapshot = build_rates_snapshot(
+        {
+            **_full_curve_points(),
+            "WTREGEN": [_point(date(2026, 5, 20), "781292")],
+        },
+        computed_at=datetime(2026, 5, 20, 22, tzinfo=UTC),
+        supply_auctions=[
+            {
+                "cusip": "912810UL0",
+                "security_type": "Bond",
+                "security_term": "30-Year",
+                "auction_date": date(2026, 5, 14),
+                "issue_date": date(2026, 5, 15),
+                "offering_amount": Decimal("25000000000"),
+                "high_rate": Decimal("5.046"),
+                "bid_to_cover": Decimal("2.30"),
+                "direct_bidder_pct": Decimal("20.3"),
+                "indirect_bidder_pct": Decimal("56.5"),
+                "primary_dealer_pct": Decimal("23.2"),
+                "tail_indicator": "long-end",
+                "source_url": None,
+            }
+        ],
+        supply_debt={
+            "record_date": date(2026, 5, 21),
+            "debt_held_public": None,
+            "intragov_holdings": None,
+            "total_public_debt": None,
+            "source_url": "https://api.fiscaldata.treasury.gov/services/api/fiscal_service/v2/accounting/od/debt_to_penny",
+        },
+    )
+
+    assert snapshot.supply.status == "partial"
+    public_debt = next(tile for tile in snapshot.supply.fiscal if tile.label == "Public debt")
+    assert public_debt.status == "missing"
+    assert "FiscalData public debt" not in (snapshot.supply.supply_read or "")
+    assert "TGA is $0.78T" in (snapshot.supply.supply_read or "")
+
+
 def test_build_rates_snapshot_infers_fomc_action_from_target_range_history():
     snapshot = build_rates_snapshot(
         {

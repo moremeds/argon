@@ -259,7 +259,7 @@ def _supply_panel(
             notes=["Treasury auction and FiscalData supply feeds are not persisted yet."],
             status="missing",
         )
-    status = "ok" if display_auctions and fiscal else "partial"
+    status = "ok" if display_auctions and _has_live_debt_tile(fiscal) else "partial"
     return RatesSupplyPanel(
         auctions=_supply_summary_tiles(display_auctions, auction_details),
         recent_auctions=display_auctions,
@@ -430,10 +430,20 @@ def _supply_read(
         )
     fiscal_by_label = {item.label: item for item in fiscal}
     if public_debt := fiscal_by_label.get("Public debt"):
-        parts.append(f"FiscalData public debt is ${public_debt.value:.2f}T")
+        if public_debt.value is not None:
+            parts.append(f"FiscalData public debt is ${public_debt.value:.2f}T")
     if tga := fiscal_by_label.get("TGA"):
-        parts.append(f"TGA is ${tga.value:.2f}T")
+        if tga.value is not None:
+            parts.append(f"TGA is ${tga.value:.2f}T")
     return "; ".join(parts) + "." if parts else None
+
+
+def _has_live_debt_tile(fiscal: list[RatesSummaryTile]) -> bool:
+    debt_labels = {"Public debt", "Total debt"}
+    return any(
+        tile.label in debt_labels and tile.status == "ok" and tile.value is not None
+        for tile in fiscal
+    )
 
 
 def _auction_tone(row: RatesSupplyAuctionRow) -> str:
