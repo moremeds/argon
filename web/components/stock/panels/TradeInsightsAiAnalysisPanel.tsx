@@ -1,17 +1,23 @@
 "use client";
 
-import { Fragment, useCallback, useEffect, useRef, useState } from "react";
+import { Fragment, useState } from "react";
 import type { ReactNode } from "react";
 
 import {
-  api,
   type TradeInsightsAiAnalysisResponse,
-  type TradeInsightsAiLatestPair,
 } from "@/lib/api";
 import { InsightPanel, InsightStatusBanner } from "./InsightPanel";
+import {
+  type PromptMetadata,
+  type Provider,
+  PROVIDERS,
+  isInFlight,
+  useAiAnalysisPolling,
+} from "./tradeInsightsAi/useAiAnalysisPolling";
+
+export { AI_ANALYSIS_POLL_MAX_MS } from "./tradeInsightsAi/useAiAnalysisPolling";
 
 type Outcome = NonNullable<TradeInsightsAiAnalysisResponse["outcome"]>;
-export const AI_ANALYSIS_POLL_MAX_MS = 10 * 60 * 1000;
 
 const labelStyle = {
   fontFamily: "var(--font-mono)",
@@ -121,10 +127,6 @@ function plainText(value: string | null | undefined): string {
 function scoreText(section: SectionCardData): string | null {
   if (section.score == null || section.max_score == null) return null;
   return `score ${section.score}/${section.max_score} · ${section.data_quality}`;
-}
-
-function isInFlight(analysis: TradeInsightsAiAnalysisResponse): boolean {
-  return analysis.status === "queued" || analysis.status === "running";
 }
 
 function SmallHeading({ children }: { children: ReactNode }) {
@@ -1001,9 +1003,6 @@ function OutcomeGrid({
   );
 }
 
-type Provider = "codex" | "claude";
-const PROVIDERS: readonly Provider[] = ["codex", "claude"] as const;
-
 function providerLabel(p: Provider): string {
   return p.charAt(0).toUpperCase() + p.slice(1);
 }
@@ -1121,30 +1120,6 @@ function stateBadge(
   return "○";
 }
 
-type ProviderAnalysisPair = {
-  codex: TradeInsightsAiAnalysisResponse | null;
-  claude: TradeInsightsAiAnalysisResponse | null;
-};
-type ProviderPendingPair = {
-  codex: string | null;
-  claude: string | null;
-};
-type ProviderConsensus = {
-  consensus_grade?: string;
-  actionable_disagreement?: string;
-};
-type PromptMetadata = Pick<
-  TradeInsightsAiLatestPair,
-  "current_prompt_label" | "current_prompt_version"
->;
-
-const EMPTY_LATEST: ProviderAnalysisPair = { codex: null, claude: null };
-const EMPTY_PENDING: ProviderPendingPair = { codex: null, claude: null };
-const EMPTY_PROMPT_METADATA: PromptMetadata = {
-  current_prompt_label: null,
-  current_prompt_version: "",
-};
-
 function isLegacyAnalysis(
   analysis: TradeInsightsAiAnalysisResponse | null,
   currentPromptVersion: string,
@@ -1252,211 +1227,20 @@ function ProviderTabBody({
 }
 
 export function TradeInsightsAiAnalysisPanel({ ticker }: { ticker: string }) {
-  const [latest, setLatest] = useState<ProviderAnalysisPair>(EMPTY_LATEST);
-  // v5.2: cross-provider consensus computed at GET /latest time.
-  // Rendered as a chip above the tabs so the operator sees agreement /
-  // actionable disagreement at-a-glance.
-  const [consensus, setConsensus] = useState<ProviderConsensus | null>(null);
-  const [promptMetadata, setPromptMetadata] = useState<PromptMetadata>(
-    EMPTY_PROMPT_METADATA,
-  );
-  const [pendingIds, setPendingIds] =
-    useState<ProviderPendingPair>(EMPTY_PENDING);
-  const [loadedTicker, setLoadedTicker] = useState(ticker);
   const [active, setActive] = useState<Provider>("codex");
-  const [loading, setLoading] = useState(false);
-  const [unavailable, setUnavailable] = useState(false);
-  const requestTokenRef = useRef(0);
-
-  const pollOne = useCallback(
-    async (provider: Provider, analysisId: string, token: number) => {
-      const isCurrentRequest = () => requestTokenRef.current === token;
-      let current: TradeInsightsAiAnalysisResponse;
-      try {
-        current = await api.tradeInsightsAiAnalysisStatus(ticker, analysisId);
-      } catch (err) {
-        if (!isCurrentRequest()) return;
-        if (String(err).includes("503")) {
-          setUnavailable(true);
-        }
-        return;
-      }
-      if (!isCurrentRequest()) return;
-      let elapsedMs = 0;
-      const intervalMs = 3000;
-      const maxMs = AI_ANALYSIS_POLL_MAX_MS;
-      while (isInFlight(current)) {
-        if (elapsedMs >= maxMs) break;
-        await new Promise((r) => setTimeout(r, intervalMs));
-        if (!isCurrentRequest()) return;
-        elapsedMs += intervalMs;
-        try {
-          current = await api.tradeInsightsAiAnalysisStatus(ticker, analysisId);
-        } catch (err) {
-          if (!isCurrentRequest()) return;
-          if (String(err).includes("503")) {
-            setUnavailable(true);
-          }
-          return;
-        }
-        if (!isCurrentRequest()) return;
-      }
-      // Terminal — refresh latest pair to pull full payload + clear pending slot.
-      try {
-        const pair = await api.tradeInsightsAiAnalysisLatest(ticker);
-        if (!isCurrentRequest()) return;
-        setLatest({ codex: pair.codex ?? null, claude: pair.claude ?? null });
-        setConsensus(pair.provider_consensus ?? null);
-        setPromptMetadata({
-          current_prompt_label: pair.current_prompt_label ?? null,
-          current_prompt_version: pair.current_prompt_version,
-        });
-      } catch {
-        // tolerate /latest hiccups — at minimum overlay the in-flight state.
-        if (isCurrentRequest()) {
-          setLatest((prev) => ({ ...prev, [provider]: current }));
-        }
-      }
-      setPendingIds((prev) => ({ ...prev, [provider]: null }));
-    },
-    [ticker],
-  );
-
-  useEffect(() => {
-    const token = ++requestTokenRef.current;
-    let cancelled = false;
-    void (async () => {
-      try {
-        const pair = await api.tradeInsightsAiAnalysisLatest(ticker);
-        if (!cancelled && requestTokenRef.current === token) {
-          setLoadedTicker(ticker);
-          setLatest({ codex: pair.codex ?? null, claude: pair.claude ?? null });
-          setConsensus(pair.provider_consensus ?? null);
-          setPromptMetadata({
-            current_prompt_label: pair.current_prompt_label ?? null,
-            current_prompt_version: pair.current_prompt_version,
-          });
-          setPendingIds(EMPTY_PENDING);
-          setLoading(false);
-          setUnavailable(false);
-        }
-      } catch (err) {
-        if (!cancelled && requestTokenRef.current === token) {
-          setLoadedTicker(ticker);
-          setLatest(EMPTY_LATEST);
-          setConsensus(null);
-          setPromptMetadata(EMPTY_PROMPT_METADATA);
-          setPendingIds(EMPTY_PENDING);
-          setLoading(false);
-          if (String(err).includes("503")) {
-            setUnavailable(true);
-          }
-        }
-      }
-    })();
-    return () => {
-      cancelled = true;
-      requestTokenRef.current += 1;
-    };
-  }, [ticker]);
-
-  const isLoadedTicker = loadedTicker === ticker;
-  const latestForTicker = isLoadedTicker ? latest : EMPTY_LATEST;
-  const consensusForTicker = isLoadedTicker ? consensus : null;
-  const promptMetadataForTicker = isLoadedTicker
-    ? promptMetadata
-    : EMPTY_PROMPT_METADATA;
-  const pendingIdsForTicker = isLoadedTicker ? pendingIds : EMPTY_PENDING;
-  const loadingForTicker = isLoadedTicker ? loading : false;
-  const unavailableForTicker = isLoadedTicker ? unavailable : false;
-
-  async function run(force_rerun = false) {
-    const token = ++requestTokenRef.current;
-    const isCurrentRequest = () => requestTokenRef.current === token;
-    setLoadedTicker(ticker);
-    setLoading(true);
-    setUnavailable(false);
-    // Skip providers that already have an in-flight row — a hung codex must
-    // not block re-running claude. Backend mirrors this filter server-side.
-    const providersToRun: Provider[] = PROVIDERS.filter(
-      (p) => !pendingIdsForTicker[p],
-    );
-    if (providersToRun.length === 0) {
-      setLoading(false);
-      return;
-    }
-    try {
-      const body: { force_rerun?: boolean; providers?: Provider[] } = {};
-      if (force_rerun) body.force_rerun = true;
-      if (providersToRun.length < PROVIDERS.length)
-        body.providers = providersToRun;
-      const resp = await api.tradeInsightsAiAnalysis(ticker, body);
-      if (!isCurrentRequest()) return;
-      const newPending: { codex: string | null; claude: string | null } = {
-        codex: pendingIdsForTicker.codex,
-        claude: pendingIdsForTicker.claude,
-      };
-      for (const stub of resp.analyses) {
-        if (stub.status === "succeeded" && stub.reused) {
-          newPending[stub.provider as Provider] = null;
-          continue;
-        }
-        newPending[stub.provider as Provider] = stub.analysis_id;
-      }
-      setPendingIds(newPending);
-      // Refresh latest now so any reused-succeeded rows appear immediately.
-      try {
-        const pair = await api.tradeInsightsAiAnalysisLatest(ticker);
-        if (isCurrentRequest()) {
-          setLatest({
-            codex: pair.codex ?? null,
-            claude: pair.claude ?? null,
-          });
-          setConsensus(pair.provider_consensus ?? null);
-          setPromptMetadata({
-            current_prompt_label: pair.current_prompt_label ?? null,
-            current_prompt_version: pair.current_prompt_version,
-          });
-        }
-      } catch {
-        /* tolerate */
-      }
-      // Release the submit gate as soon as the POST + /latest roundtrip is
-      // done — polls run in the background so the Run button can re-enable
-      // for providers that finish early. Pending-set semantics now drive
-      // disabled state via allPending.
-      if (isCurrentRequest()) setLoading(false);
-      for (const p of PROVIDERS) {
-        const id = newPending[p];
-        if (id) void pollOne(p, id, token);
-      }
-    } catch (err) {
-      if (!isCurrentRequest()) return;
-      if (String(err).includes("503")) {
-        setUnavailable(true);
-      }
-    } finally {
-      if (isCurrentRequest()) {
-        setLoading(false);
-      }
-    }
-  }
-
-  const allPending = Boolean(
-    pendingIdsForTicker.codex && pendingIdsForTicker.claude,
-  );
-  const anyFailed =
-    latestForTicker.codex?.status === "failed" ||
-    latestForTicker.claude?.status === "failed";
-  const anySucceeded =
-    latestForTicker.codex?.status === "succeeded" ||
-    latestForTicker.claude?.status === "succeeded";
-  // Only block Run when EVERY provider is pending — a hung codex tab should
-  // not prevent re-running claude. Server-side mirror filters the POST.
-  const canRun = !unavailableForTicker && !allPending;
-  const forceRun = anySucceeded || anyFailed;
-  const actionLabel =
-    loadingForTicker || allPending ? "Running…" : "Run Analysis";
+  const {
+    actionLabel,
+    allPending,
+    canRun,
+    consensusForTicker,
+    forceRun,
+    latestForTicker,
+    loadingForTicker,
+    pendingIdsForTicker,
+    promptMetadataForTicker,
+    run,
+    unavailableForTicker,
+  } = useAiAnalysisPolling(ticker);
   return (
     <InsightPanel
       heading="AI ANALYSIS"
