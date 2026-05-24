@@ -1,13 +1,16 @@
 from __future__ import annotations
 
 import os
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
 
 import psycopg
 import pytest
 
 from uw_scan.config import Settings
 from uw_scan.storage.repository import Repository
+from uw_scan.storage.trade_insight_outcomes_repository import (
+    TradeInsightOutcomeRepository,
+)
 
 
 def _test_db_dsn() -> str:
@@ -194,6 +197,39 @@ def test_find_latest_trade_insight_ai_analysis_prefers_active_progress(
     assert found is not None
     assert str(found["analysis_id"]) == queued_id
     assert found["status"] == "queued"
+
+
+def test_fetch_pending_with_analysis_returns_joined_pending_rows(
+    seeded_db_empty_cards,
+):
+    repo = seeded_db_empty_cards
+    run_id, snapshot_id = _create_snapshot(repo)
+    analysis_id = _enqueue(repo, snapshot_id=snapshot_id, run_id=run_id)
+    repo.complete_trade_insight_ai_analysis(
+        analysis_id,
+        outcome={"schema_version": "trade-insights-ai-v1"},
+        markdown="done",
+    )
+    outcome_repo = TradeInsightOutcomeRepository(repo.conn)
+    outcome_repo.upsert(
+        analysis_id=analysis_id,
+        ticker="TSLA",
+        provider="codex",
+        prompt_version="trade-insights-ai-v1",
+        snapshot_date=date(2026, 5, 13),
+        snapshot_close=None,
+        resolved_outcome="pending",
+    )
+
+    rows = outcome_repo.fetch_pending_with_analysis(limit=10)
+
+    assert len(rows) == 1
+    assert str(rows[0].analysis_id) == analysis_id
+    assert rows[0].snapshot_date == date(2026, 5, 13)
+    assert rows[0].ticker == "TSLA"
+    assert rows[0].provider == "codex"
+    assert rows[0].prompt_version == "trade-insights-ai-v1"
+    assert rows[0].outcome_jsonb == {"schema_version": "trade-insights-ai-v1"}
 
 
 def test_changed_analysis_input_hash_does_not_reuse_completed_row(

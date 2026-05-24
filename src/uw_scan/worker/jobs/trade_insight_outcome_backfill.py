@@ -41,9 +41,9 @@ from decimal import Decimal
 from typing import Any
 
 import psycopg
-from psycopg.rows import dict_row
 
 from uw_scan.storage.trade_insight_outcomes_repository import (
+    PendingOutcomeAnalysis,
     TradeInsightOutcomeRepository,
 )
 
@@ -190,17 +190,15 @@ def _fixed_window_closes(
 # ---------------------------------------------------------------------------
 
 
-def _fetch_forward_closes(
+def _fetch_forward_closes_for_ticker(
     conn: psycopg.Connection,
     ticker: str,
-    snapshot_date: date,
+    min_snapshot_date: date,
+    max_snapshot_date: date,
     horizon_days: int = 90,
 ) -> list[tuple[date, Decimal]]:
-    """Return (date, close) pairs from daily_ohlc for `ticker` where
-    date > snapshot_date AND date <= snapshot_date + horizon_days,
-    ordered ascending. Empty list when the table has no forward bars
-    (recent snapshots, or massive.com hasn't backfilled yet)."""
-    end = snapshot_date + timedelta(days=horizon_days)
+    """Return all forward closes needed for a ticker batch."""
+    end = max_snapshot_date + timedelta(days=horizon_days)
     with conn.cursor() as cur:
         cur.execute(
             """
@@ -209,9 +207,18 @@ def _fetch_forward_closes(
              WHERE ticker = %s AND date > %s AND date <= %s
              ORDER BY date ASC
             """,
-            (ticker, snapshot_date, end),
+            (ticker, min_snapshot_date, end),
         )
         return [(r[0], r[1]) for r in cur.fetchall()]
+
+
+def _forward_closes_for_snapshot(
+    closes: list[tuple[date, Decimal]],
+    snapshot_date: date,
+    horizon_days: int = 90,
+) -> list[tuple[date, Decimal]]:
+    end = snapshot_date + timedelta(days=horizon_days)
+    return [(d, c) for d, c in closes if snapshot_date < d <= end]
 
 
 def _fetch_snapshot_close(
@@ -232,6 +239,34 @@ def _fetch_snapshot_close(
         )
         row = cur.fetchone()
     return row[0] if row else None
+
+
+def _fetch_snapshot_closes(
+    conn: psycopg.Connection,
+    ticker: str,
+    snapshot_dates: list[date],
+) -> dict[date, Decimal | None]:
+    """Return latest close at-or-before each snapshot date in one query."""
+    dates = sorted(set(snapshot_dates))
+    if not dates:
+        return {}
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+            SELECT input.snapshot_date, d.close
+              FROM unnest(%s::date[]) AS input(snapshot_date)
+              LEFT JOIN LATERAL (
+                    SELECT close
+                      FROM uw_scan.daily_ohlc
+                     WHERE ticker = %s AND date <= input.snapshot_date
+                     ORDER BY date DESC
+                     LIMIT 1
+              ) d ON TRUE
+             ORDER BY input.snapshot_date ASC
+            """,
+            (dates, ticker),
+        )
+        return {r[0]: r[1] for r in cur.fetchall()}
 
 
 # ---------------------------------------------------------------------------
@@ -297,32 +332,47 @@ def _score_pending_rows(
 ) -> int:
     """For each pending outcome, fetch forward closes from daily_ohlc and
     update the row with whatever scoring is now possible. Returns count."""
-    pending = repo.fetch_pending(limit=limit)
+    pending = repo.fetch_pending_with_analysis(limit=limit)
     if not pending:
         return 0
+    pending_by_ticker: dict[str, list[PendingOutcomeAnalysis]] = {}
+    for row in pending:
+        if row.ticker is None or row.provider is None or row.prompt_version is None:
+            continue
+        pending_by_ticker.setdefault(row.ticker, []).append(row)
+    forward_closes_by_ticker: dict[str, list[tuple[date, Decimal]]] = {}
+    snapshot_closes_by_ticker: dict[str, dict[date, Decimal | None]] = {}
+    for ticker, rows in pending_by_ticker.items():
+        snapshot_dates = [row.snapshot_date for row in rows]
+        forward_closes_by_ticker[ticker] = _fetch_forward_closes_for_ticker(
+            conn,
+            ticker,
+            min(snapshot_dates),
+            max(snapshot_dates),
+        )
+        snapshot_closes_by_ticker[ticker] = _fetch_snapshot_closes(
+            conn, ticker, snapshot_dates
+        )
+
     scored = 0
-    for analysis_id, snapshot_date in pending:
-        # Read the source analysis to learn direction + ticker + levels
-        with conn.cursor(row_factory=dict_row) as cur:
-            cur.execute(
-                """
-                SELECT a.ticker, a.provider, a.prompt_version, a.outcome_jsonb
-                  FROM uw_scan.trade_insight_ai_analyses a
-                 WHERE a.analysis_id = %s
-                """,
-                (str(analysis_id),),
-            )
-            analysis = cur.fetchone()
-        if analysis is None:
+    for analysis in pending:
+        if (
+            analysis.ticker is None
+            or analysis.provider is None
+            or analysis.prompt_version is None
+        ):
             logger.warning(
                 "outcome %s references missing analysis — leaving as pending",
-                analysis_id,
+                analysis.analysis_id,
             )
             continue
-        outcome = analysis["outcome_jsonb"] or {}
-        ticker = analysis["ticker"]
+        outcome = analysis.outcome_jsonb or {}
+        ticker = analysis.ticker
+        snapshot_date = analysis.snapshot_date
         direction = _direction_for(outcome)
-        closes = _fetch_forward_closes(conn, ticker, snapshot_date)
+        closes = _forward_closes_for_snapshot(
+            forward_closes_by_ticker[ticker], snapshot_date
+        )
         windows = _fixed_window_closes(closes, snapshot_date)
 
         # Per-trigger scoring is direction-sensitive. WAIT outcomes get
@@ -363,12 +413,12 @@ def _score_pending_rows(
             days_to_resolution = (invalid_hit_date - snapshot_date).days
 
         repo.upsert(
-            analysis_id=analysis_id,
+            analysis_id=analysis.analysis_id,
             ticker=ticker,
-            provider=analysis["provider"],
-            prompt_version=analysis["prompt_version"],
+            provider=analysis.provider,
+            prompt_version=analysis.prompt_version,
             snapshot_date=snapshot_date,
-            snapshot_close=_fetch_snapshot_close(conn, ticker, snapshot_date),
+            snapshot_close=snapshot_closes_by_ticker[ticker].get(snapshot_date),
             close_1d=windows[1][1],
             close_1d_date=windows[1][0],
             close_3d=windows[3][1],
