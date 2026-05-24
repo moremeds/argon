@@ -39,10 +39,20 @@ def _repo(settings: Settings) -> Repository:
     return Repository(conn, schema=settings.db_schema)
 
 
-def _fail_analysis(settings: Settings, analysis_id: str, error_message: str) -> None:
+def _fail_analysis(
+    settings: Settings,
+    analysis_id: str,
+    error_message: str,
+    *,
+    raw_outcome: dict[str, Any] | None = None,
+) -> None:
     repo = _repo(settings)
     try:
-        repo.fail_trade_insight_ai_analysis(analysis_id, error_message)
+        repo.fail_trade_insight_ai_analysis(
+            analysis_id,
+            error_message,
+            raw_outcome=raw_outcome,
+        )
         repo.conn.commit()
     finally:
         repo.conn.close()
@@ -148,6 +158,7 @@ def trade_insights_ai_tick(
     runner = RUNNERS[row_provider]
     model_env, timeout = _provider_model_and_timeout(settings, row_provider)
 
+    raw_outcome: dict[str, Any] | None = None
     try:
         result = runner.run(
             build_trade_insights_ai_prompt(prompt_payload),
@@ -156,6 +167,9 @@ def trade_insights_ai_tick(
             timeout_seconds=timeout,
             max_output_bytes=settings.trade_insights_ai_max_output_bytes,
         )
+        # Snapshot before validation so a downstream rejection still leaves
+        # the raw payload diagnosable via raw_outcome_jsonb.
+        raw_outcome = result.outcome
         outcome = validate_trade_insights_ai_outcome(
             result.outcome,
             prompt_payload,
@@ -175,5 +189,10 @@ def trade_insights_ai_tick(
         finally:
             repo.conn.close()
     except Exception as exc:
-        _fail_analysis(settings, analysis_id, str(exc) or repr(exc))
+        _fail_analysis(
+            settings,
+            analysis_id,
+            str(exc) or repr(exc),
+            raw_outcome=raw_outcome,
+        )
     return True

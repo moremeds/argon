@@ -166,6 +166,30 @@ def test_trade_insights_ai_tick_marks_invalid_output_failed(
     row = repo.get_trade_insight_ai_analysis(analysis_id, ticker="TSLA")
     assert row["status"] == "failed"
     assert row["error_message"]
+    # The runner returned a parseable JSON object that validation rejected —
+    # raw_outcome_jsonb must preserve it for diagnosis.
+    assert row["raw_outcome_jsonb"] == {"not": "valid"}
+
+
+def test_trade_insights_ai_tick_raw_outcome_is_null_when_runner_errored(
+    seeded_db_empty_cards,
+    monkeypatch,
+):
+    """When the runner raises (subprocess crash, timeout) there is no JSON
+    payload to preserve — raw_outcome_jsonb must remain NULL."""
+    repo = seeded_db_empty_cards
+    settings = _settings_for_repo(repo)
+    analysis_id, _analysis_input_payload = _enqueue_analysis(repo)
+
+    def fake_runner(*_args, **_kwargs):
+        raise TradeInsightsAiRunnerError("codex exec timed out")
+
+    monkeypatch.setitem(RUNNERS, "codex", _FakeCodexRunner(fake_runner))
+
+    assert trade_insights_ai_tick(settings) is True
+    row = repo.get_trade_insight_ai_analysis(analysis_id, ticker="TSLA")
+    assert row["status"] == "failed"
+    assert row["raw_outcome_jsonb"] is None
 
 
 def test_trade_insights_ai_tick_marks_obsolete_prompt_version_failed(

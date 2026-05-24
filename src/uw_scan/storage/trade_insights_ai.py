@@ -463,16 +463,33 @@ class _TradeInsightsAiMixin:
         self,
         analysis_id: str,
         error_message: str,
+        *,
+        raw_outcome: dict[str, Any] | None = None,
     ) -> None:
-        sql = (
-            f"UPDATE {self._schema}.trade_insight_ai_analyses "
-            "SET status = 'failed', "
-            "error_message = %s, "
-            "finished_at = now() "
-            "WHERE analysis_id = %s"
-        )
+        # Persist the runner's raw output when validation rejected it; NULL
+        # otherwise (subprocess crash, timeout, non-JSON, pre-runner error).
+        # Lets us diagnose validator rejections without re-running.
+        if raw_outcome is None:
+            sql = (
+                f"UPDATE {self._schema}.trade_insight_ai_analyses "
+                "SET status = 'failed', "
+                "error_message = %s, "
+                "finished_at = now() "
+                "WHERE analysis_id = %s"
+            )
+            params: tuple[Any, ...] = (error_message[:4000], analysis_id)
+        else:
+            sql = (
+                f"UPDATE {self._schema}.trade_insight_ai_analyses "
+                "SET status = 'failed', "
+                "error_message = %s, "
+                "raw_outcome_jsonb = %s, "
+                "finished_at = now() "
+                "WHERE analysis_id = %s"
+            )
+            params = (error_message[:4000], Jsonb(raw_outcome), analysis_id)
         with self._conn.cursor() as cur:
-            cur.execute(sql, (error_message[:4000], analysis_id))
+            cur.execute(sql, params)
 
     def get_trade_insight_ai_analysis(
         self,
