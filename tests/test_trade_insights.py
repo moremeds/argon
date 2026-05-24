@@ -9,8 +9,11 @@ from uw_scan.models import (
 )
 from uw_scan.reports.trade_insights import (
     ParsedOptionSymbol,
+    _atm_straddles_by_expiry,
+    _build_candidates,
     _credit_spread_math,
     _mid,
+    _normalized_contracts,
     assemble_trade_insights,
     parse_option_symbol,
 )
@@ -207,6 +210,49 @@ def test_assemble_trade_insights_builds_research_response():
         "Confirm event calendar through all expiries"
         in response.synthesis.required_before_sizing
     )
+
+
+def test_atm_straddles_preserve_input_order_for_equal_distance_ties():
+    """ATM selection uses stable min() semantics for equal strike distance.
+
+    This locks the pre-index behavior: when 425C and 435C are both 5 points
+    from spot, the earlier input contract wins, and the put is selected nearest
+    that chosen call strike.
+    """
+    contracts = _normalized_contracts(
+        [
+            _contract("TSLA260612C00425000", bid="7.00", ask="7.20"),
+            _contract("TSLA260612C00435000", bid="6.00", ask="6.20"),
+            _contract("TSLA260612P00425000", bid="4.00", ask="4.20"),
+            _contract("TSLA260612P00435000", bid="5.00", ask="5.20"),
+        ]
+    )
+
+    straddles = _atm_straddles_by_expiry(contracts, Decimal("430"))
+
+    assert straddles[date(2026, 6, 12)] == Decimal("11.20")
+
+
+def test_calendar_spread_preserves_far_call_order_for_same_strike():
+    """Calendar lookup must preserve current far_calls list order per strike."""
+    contracts = _normalized_contracts(
+        [
+            _contract("TSLA260612C00430000", bid="9.00", ask="9.20"),
+            # Same strike/distance far calls: current stable far_calls ordering
+            # chooses the first input row, not necessarily the earliest expiry.
+            _contract("TSLA260724C00430000", bid="14.00", ask="14.20"),
+            _contract("TSLA260717C00430000", bid="13.00", ask="13.20"),
+        ]
+    )
+
+    candidates = _build_candidates(
+        contracts,
+        Decimal("430"),
+        as_of=datetime(2026, 5, 13, 20, 0, tzinfo=timezone.utc),
+    )
+
+    calendar = next(c for c in candidates if c.structure == "calendar_spread")
+    assert calendar.legs[1].option_symbol == "TSLA260724C00430000"
 
 
 def test_iron_condor_max_loss_matches_width_minus_total_credit():
