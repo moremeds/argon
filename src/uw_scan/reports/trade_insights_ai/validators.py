@@ -1048,8 +1048,22 @@ def validate_trade_insights_ai_outcome(
 
     # ALWAYS (both strict and lenient): safety checks for strategy-family
     # ids (undefined-risk rejection, status_observed/risk_flags discipline)
-    # and known-candidate status/risk_flags equality. The lenient coercer
-    # synthesizes the canonical values so these pass cleanly for Claude.
+    # and known-candidate status/risk_flags equality.
+    #
+    # v5.3 update (status_observed drift normalization): for known
+    # candidate idea_ids we now OVERWRITE status_observed and
+    # risk_flags_observed with the deterministic candidate's persisted
+    # values BEFORE the equality assertion. This implements the
+    # no-whitewashing rule by construction rather than by rejection,
+    # eliminating non-deterministic Codex drift (observed 4x across NVDA-G
+    # / TSLA-G x2 / NOK-F over a 10-hour window). The lenient coercer
+    # already did this for Claude — extending the same overwrite to all
+    # providers aligns the contract symmetrically. The equality assertion
+    # is retained as a defensive backstop.
+    #
+    # Exception: the v5.1 pre-trigger escalation case (CONDITIONAL +
+    # status_observed='candidate_pre_trigger' on preferred_expression) is
+    # preserved — it's a legitimate escalation, not drift.
     echo_items = list(parsed.best_expressions)
     if parsed.preferred_expression is not None:
         echo_items.append(parsed.preferred_expression)
@@ -1070,24 +1084,27 @@ def validate_trade_insights_ai_outcome(
             continue
         if item.idea_id in candidates:
             candidate = candidates[item.idea_id]
-            # v5.1: under entry_state=CONDITIONAL the model may escalate a
-            # candidate's status to 'candidate_pre_trigger' (the anticipatory
-            # pre-trigger entry handling). All other status mutations remain
-            # rejected to preserve the no-whitewashing rule. The check still
-            # applies to best_expressions (which don't carry entry_state),
-            # so the escalation is allowed only for preferred_expression.
+            candidate_status = candidate.get("status")
+            candidate_risk_flags = list(candidate.get("risk_flags") or [])
             is_pretrigger_escalation = (
                 item is parsed.preferred_expression
                 and parsed.headline.entry_state == "CONDITIONAL"
                 and item.status_observed == "candidate_pre_trigger"
-                and candidate.get("status") == "candidate"
+                and candidate_status == "candidate"
             )
             if (
-                item.status_observed != candidate.get("status")
+                not is_pretrigger_escalation
+                and item.status_observed != candidate_status
+            ):
+                item.status_observed = candidate_status
+            if item.risk_flags_observed != candidate_risk_flags:
+                item.risk_flags_observed = candidate_risk_flags
+            if (
+                item.status_observed != candidate_status
                 and not is_pretrigger_escalation
             ):
                 raise ValueError(f"status_observed changed for idea_id {item.idea_id}")
-            if item.risk_flags_observed != list(candidate.get("risk_flags") or []):
+            if item.risk_flags_observed != candidate_risk_flags:
                 raise ValueError(
                     f"risk_flags_observed changed for idea_id {item.idea_id}"
                 )

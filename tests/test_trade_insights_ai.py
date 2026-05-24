@@ -700,19 +700,10 @@ def test_validate_trade_insights_ai_outcome_rejects_candidate_guardrail_drift():
             bad_idea, deterministic, produced_at=produced_at
         )
 
-    bad_status = _sample_outcome_for(deterministic)
-    bad_status["preferred_expression"]["status_observed"] = "ready"
-    with pytest.raises(ValueError, match="status_observed"):
-        validate_trade_insights_ai_outcome(
-            bad_status, deterministic, produced_at=produced_at
-        )
-
-    bad_flags = _sample_outcome_for(deterministic)
-    bad_flags["preferred_expression"]["risk_flags_observed"] = []
-    with pytest.raises(ValueError, match="risk_flags_observed"):
-        validate_trade_insights_ai_outcome(
-            bad_flags, deterministic, produced_at=produced_at
-        )
+    # v5.3: status_observed and risk_flags_observed drift on a known
+    # candidate is now silently normalized to the candidate's persisted
+    # values (mirrors lenient-mode behavior). See
+    # test_validate_strict_overwrites_known_candidate_status_and_risk_flags.
 
     bad_guardrails = _sample_outcome_for(deterministic)
     bad_guardrails["guardrails"]["statuses_preserved"] = False
@@ -1896,6 +1887,41 @@ def test_validate_lenient_rejects_undefined_risk_strategy_family():
         validate_trade_insights_ai_outcome(
             payload, deterministic, produced_at=produced_at, lenient=True
         )
+
+
+def test_validate_strict_overwrites_known_candidate_status_and_risk_flags():
+    """v5.3: Codex (strict mode) sometimes drifts on status_observed for
+    a candidate idea_id (observed 4x: NVDA-G, TSLA-G x2, NOK-F). The
+    validator now overwrites these fields from the deterministic
+    candidate BEFORE the equality check — same treatment lenient mode
+    has had for Claude. Whitewashing is still impossible because the
+    overwrite uses the persisted candidate values, not the model's."""
+    deterministic = _analysis_input()
+    produced_at = datetime(2026, 3, 24, 20, 18, 42, tzinfo=timezone.utc)
+
+    # Build a valid strict-mode payload (hashes wired to deterministic),
+    # then mutate the preferred_expression's status_observed +
+    # risk_flags_observed to simulate Codex drift. Use sentinel values
+    # ("ready") guaranteed to differ from any candidate's persisted status.
+    payload = _sample_outcome_for(deterministic)
+    preferred_idea_id = payload["preferred_expression"]["idea_id"]
+    candidate = next(
+        c
+        for c in deterministic["candidate_structures"]
+        if c["idea_id"] == preferred_idea_id
+    )
+    real_status = str(candidate.get("status") or "")
+    real_risk_flags = list(candidate.get("risk_flags") or [])
+
+    payload["preferred_expression"]["status_observed"] = "ready"
+    payload["preferred_expression"]["risk_flags_observed"] = ["bogus_flag"]
+
+    parsed = validate_trade_insights_ai_outcome(
+        payload, deterministic, produced_at=produced_at, lenient=False
+    )
+    assert parsed.preferred_expression is not None
+    assert parsed.preferred_expression.status_observed == real_status
+    assert parsed.preferred_expression.risk_flags_observed == real_risk_flags
 
 
 def test_validate_lenient_overwrites_known_candidate_status_and_risk_flags():
