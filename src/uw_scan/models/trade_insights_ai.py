@@ -7,7 +7,7 @@ from decimal import Decimal, InvalidOperation
 from typing import Any, Literal
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from ._base import _preserve_public_module
 
