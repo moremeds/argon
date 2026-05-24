@@ -67,6 +67,9 @@ jobs:
           ! grep -rE 'from uw_scan\.fixtures' src/ || (echo "Guardrail 3 violation"; exit 1)
           echo "guardrail greps clean"
 
+      - name: Migration prefix guard
+        run: uv run python scripts/check_migration_prefixes.py
+
       - name: Create option_wizard + option_wizard_test DBs
         run: |
           PGPASSWORD=postgres psql -h 127.0.0.1 -U postgres -d postgres -c "CREATE DATABASE option_wizard"
