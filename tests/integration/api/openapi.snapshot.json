@@ -11682,6 +11682,127 @@
         "title": "TradeInsightAiPreferredExpression",
         "type": "object"
       },
+      "TradeInsightAiPriorRow": {
+        "additionalProperties": false,
+        "description": "One row from the trade_insight_provider_archetype_priors view.\n\nSurfaced by /api/trade-insights/priors. `hit_rate_pct` is computed\nover RESOLVED outcomes only (excludes pending + expired_no_resolution)\nso an all-pending cohort doesn't appear as a 0% hit rate. NULL when\nno outcomes have resolved yet.",
+        "properties": {
+          "directional_bias": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Directional Bias"
+          },
+          "entry_state": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Entry State"
+          },
+          "expired_no_resolution_count": {
+            "title": "Expired No Resolution Count",
+            "type": "integer"
+          },
+          "hit_rate_pct": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Hit Rate Pct"
+          },
+          "invalidation_hit_count": {
+            "title": "Invalidation Hit Count",
+            "type": "integer"
+          },
+          "median_days_to_resolution": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Median Days To Resolution"
+          },
+          "pending_count": {
+            "title": "Pending Count",
+            "type": "integer"
+          },
+          "prompt_version": {
+            "title": "Prompt Version",
+            "type": "string"
+          },
+          "provider": {
+            "enum": [
+              "codex",
+              "claude"
+            ],
+            "title": "Provider",
+            "type": "string"
+          },
+          "sample_count": {
+            "title": "Sample Count",
+            "type": "integer"
+          },
+          "target_hit_count": {
+            "title": "Target Hit Count",
+            "type": "integer"
+          },
+          "thesis_archetype": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Thesis Archetype"
+          }
+        },
+        "required": [
+          "provider",
+          "prompt_version",
+          "sample_count",
+          "target_hit_count",
+          "invalidation_hit_count",
+          "pending_count",
+          "expired_no_resolution_count"
+        ],
+        "title": "TradeInsightAiPriorRow",
+        "type": "object"
+      },
+      "TradeInsightAiPriorsResponse": {
+        "additionalProperties": false,
+        "description": "Wrapper so the endpoint can grow filter metadata + a `priors` list\nwithout a breaking change.",
+        "properties": {
+          "priors": {
+            "items": {
+              "$ref": "#/components/schemas/TradeInsightAiPriorRow"
+            },
+            "title": "Priors",
+            "type": "array"
+          }
+        },
+        "title": "TradeInsightAiPriorsResponse",
+        "type": "object"
+      },
       "TradeInsightAiProviderConsensus": {
         "additionalProperties": false,
         "description": "v5.2: cross-provider agreement signal computed at GET /latest time.\n\nNot stored per row \u2014 derived by comparing the two providers' headline\nfields whenever both have a succeeded row. Surfaces actionable\ndisagreement to the operator (e.g. \"ACTIVE vs CONDITIONAL depends on\nwhether the latest daily close cleared 215\").",
@@ -16067,6 +16188,120 @@
         "summary": "Get Volatility Series",
         "tags": [
           "volatility"
+        ]
+      }
+    },
+    "/api/trade-insights/priors": {
+      "get": {
+        "description": "Per-provider per-archetype hit-rate priors from the outcome ledger.\n\nReads `trade_insight_provider_archetype_priors` (migration 055).\nAll filter parameters are optional; with none, returns every cohort\nacross every provider/version/archetype/bias/entry_state combination\nthat has at least one outcome row.\n\n`hit_rate_pct` is null when the cohort has zero resolved outcomes\n(everything is still pending). `sample_count` includes pending +\nresolved + expired; `target_hit_count` / `invalidation_hit_count` /\n`pending_count` / `expired_no_resolution_count` are the breakdown.\n\nReturns a 200 with an empty `priors` list when no rows match \u2014\ncallers should not treat empty as an error.",
+        "operationId": "get_trade_insight_priors_api_trade_insights_priors_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "provider",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Provider"
+            }
+          },
+          {
+            "in": "query",
+            "name": "prompt_version",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Prompt Version"
+            }
+          },
+          {
+            "in": "query",
+            "name": "archetype",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Archetype"
+            }
+          },
+          {
+            "in": "query",
+            "name": "bias",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Bias"
+            }
+          },
+          {
+            "in": "query",
+            "name": "entry_state",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Entry State"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TradeInsightAiPriorsResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Trade Insight Priors",
+        "tags": [
+          "trade-insights"
         ]
       }
     },

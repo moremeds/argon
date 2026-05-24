@@ -561,6 +561,36 @@ class TradeInsightAiAnalysisEnqueueResponse(TradeInsightAiBase):
     analyses: list[TradeInsightAiAnalysisStub]
 
 
+class TradeInsightAiPriorRow(TradeInsightAiBase):
+    """One row from the trade_insight_provider_archetype_priors view.
+
+    Surfaced by /api/trade-insights/priors. `hit_rate_pct` is computed
+    over RESOLVED outcomes only (excludes pending + expired_no_resolution)
+    so an all-pending cohort doesn't appear as a 0% hit rate. NULL when
+    no outcomes have resolved yet.
+    """
+
+    provider: TradeInsightAiProvider
+    prompt_version: str
+    thesis_archetype: str | None = None
+    directional_bias: str | None = None
+    entry_state: str | None = None
+    sample_count: int
+    target_hit_count: int
+    invalidation_hit_count: int
+    pending_count: int
+    expired_no_resolution_count: int
+    hit_rate_pct: Decimal | None = None
+    median_days_to_resolution: Decimal | None = None
+
+
+class TradeInsightAiPriorsResponse(TradeInsightAiBase):
+    """Wrapper so the endpoint can grow filter metadata + a `priors` list
+    without a breaking change."""
+
+    priors: list[TradeInsightAiPriorRow] = Field(default_factory=list)
+
+
 class TradeInsightAiLatestPair(TradeInsightAiBase):
     """GET /latest response — null per provider when no succeeded row exists.
 
@@ -609,4 +639,6 @@ _preserve_public_module(
     TradeInsightAiAnalysisStub,
     TradeInsightAiAnalysisEnqueueResponse,
     TradeInsightAiLatestPair,
+    TradeInsightAiPriorRow,
+    TradeInsightAiPriorsResponse,
 )

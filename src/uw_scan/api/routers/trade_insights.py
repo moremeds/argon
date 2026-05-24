@@ -21,6 +21,8 @@ from uw_scan.models import (
     TradeInsightAiAnalysisResponse,
     TradeInsightAiAnalysisStub,
     TradeInsightAiLatestPair,
+    TradeInsightAiPriorRow,
+    TradeInsightAiPriorsResponse,
     TradeInsightAiProviderConsensus,
     TradeInsightsResponse,
 )
@@ -452,3 +454,79 @@ def get_trade_insights_ai_analysis(
     if row is None:
         raise HTTPException(status_code=404, detail="AI analysis not found")
     return _row_to_ai_response(row)
+
+
+@router.get(
+    "/trade-insights/priors",
+    response_model=TradeInsightAiPriorsResponse,
+)
+def get_trade_insight_priors(
+    provider: str | None = None,
+    prompt_version: str | None = None,
+    archetype: str | None = None,
+    bias: str | None = None,
+    entry_state: str | None = None,
+    repo: Repository = Depends(get_repo),
+) -> TradeInsightAiPriorsResponse:
+    """Per-provider per-archetype hit-rate priors from the outcome ledger.
+
+    Reads `trade_insight_provider_archetype_priors` (migration 055).
+    All filter parameters are optional; with none, returns every cohort
+    across every provider/version/archetype/bias/entry_state combination
+    that has at least one outcome row.
+
+    `hit_rate_pct` is null when the cohort has zero resolved outcomes
+    (everything is still pending). `sample_count` includes pending +
+    resolved + expired; `target_hit_count` / `invalidation_hit_count` /
+    `pending_count` / `expired_no_resolution_count` are the breakdown.
+
+    Returns a 200 with an empty `priors` list when no rows match —
+    callers should not treat empty as an error.
+    """
+    sql = """
+        SELECT provider, prompt_version, thesis_archetype, directional_bias,
+               entry_state, sample_count, target_hit_count,
+               invalidation_hit_count, pending_count,
+               expired_no_resolution_count, hit_rate_pct,
+               median_days_to_resolution
+          FROM uw_scan.trade_insight_provider_archetype_priors
+         WHERE (%s::text IS NULL OR provider = %s)
+           AND (%s::text IS NULL OR prompt_version = %s)
+           AND (%s::text IS NULL OR thesis_archetype = %s)
+           AND (%s::text IS NULL OR directional_bias = %s)
+           AND (%s::text IS NULL OR entry_state = %s)
+         ORDER BY sample_count DESC, provider, prompt_version
+    """
+    params = (
+        provider,
+        provider,
+        prompt_version,
+        prompt_version,
+        archetype,
+        archetype,
+        bias,
+        bias,
+        entry_state,
+        entry_state,
+    )
+    with repo.conn.cursor() as cur:
+        cur.execute(sql, params)
+        rows = cur.fetchall()
+    priors = [
+        TradeInsightAiPriorRow(
+            provider=row[0],
+            prompt_version=row[1],
+            thesis_archetype=row[2],
+            directional_bias=row[3],
+            entry_state=row[4],
+            sample_count=row[5],
+            target_hit_count=row[6],
+            invalidation_hit_count=row[7],
+            pending_count=row[8],
+            expired_no_resolution_count=row[9],
+            hit_rate_pct=row[10],
+            median_days_to_resolution=row[11],
+        )
+        for row in rows
+    ]
+    return TradeInsightAiPriorsResponse(priors=priors)

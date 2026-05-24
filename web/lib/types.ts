@@ -480,6 +480,39 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/trade-insights/priors": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Trade Insight Priors
+         * @description Per-provider per-archetype hit-rate priors from the outcome ledger.
+         *
+         *     Reads `trade_insight_provider_archetype_priors` (migration 055).
+         *     All filter parameters are optional; with none, returns every cohort
+         *     across every provider/version/archetype/bias/entry_state combination
+         *     that has at least one outcome row.
+         *
+         *     `hit_rate_pct` is null when the cohort has zero resolved outcomes
+         *     (everything is still pending). `sample_count` includes pending +
+         *     resolved + expired; `target_hit_count` / `invalidation_hit_count` /
+         *     `pending_count` / `expired_no_resolution_count` are the breakdown.
+         *
+         *     Returns a 200 with an empty `priors` list when no rows match —
+         *     callers should not treat empty as an error.
+         */
+        get: operations["get_trade_insight_priors_api_trade_insights_priors_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/regime/gex": {
         parameters: {
             query?: never;
@@ -4484,6 +4517,53 @@ export interface components {
             legs?: components["schemas"]["TradeInsightAiOptionLeg"][];
         };
         /**
+         * TradeInsightAiPriorRow
+         * @description One row from the trade_insight_provider_archetype_priors view.
+         *
+         *     Surfaced by /api/trade-insights/priors. `hit_rate_pct` is computed
+         *     over RESOLVED outcomes only (excludes pending + expired_no_resolution)
+         *     so an all-pending cohort doesn't appear as a 0% hit rate. NULL when
+         *     no outcomes have resolved yet.
+         */
+        TradeInsightAiPriorRow: {
+            /**
+             * Provider
+             * @enum {string}
+             */
+            provider: "codex" | "claude";
+            /** Prompt Version */
+            prompt_version: string;
+            /** Thesis Archetype */
+            thesis_archetype?: string | null;
+            /** Directional Bias */
+            directional_bias?: string | null;
+            /** Entry State */
+            entry_state?: string | null;
+            /** Sample Count */
+            sample_count: number;
+            /** Target Hit Count */
+            target_hit_count: number;
+            /** Invalidation Hit Count */
+            invalidation_hit_count: number;
+            /** Pending Count */
+            pending_count: number;
+            /** Expired No Resolution Count */
+            expired_no_resolution_count: number;
+            /** Hit Rate Pct */
+            hit_rate_pct?: string | null;
+            /** Median Days To Resolution */
+            median_days_to_resolution?: string | null;
+        };
+        /**
+         * TradeInsightAiPriorsResponse
+         * @description Wrapper so the endpoint can grow filter metadata + a `priors` list
+         *     without a breaking change.
+         */
+        TradeInsightAiPriorsResponse: {
+            /** Priors */
+            priors?: components["schemas"]["TradeInsightAiPriorRow"][];
+        };
+        /**
          * TradeInsightAiProviderConsensus
          * @description v5.2: cross-provider agreement signal computed at GET /latest time.
          *
@@ -6420,6 +6500,41 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["TradeInsightAiAnalysisResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_trade_insight_priors_api_trade_insights_priors_get: {
+        parameters: {
+            query?: {
+                provider?: string | null;
+                prompt_version?: string | null;
+                archetype?: string | null;
+                bias?: string | null;
+                entry_state?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TradeInsightAiPriorsResponse"];
                 };
             };
             /** @description Validation Error */
