@@ -43,8 +43,11 @@ from uw_scan.worker.jobs.ohlc_pull import ohlc_pull_once
 from uw_scan.worker.jobs.option_intraday_jobs import (
     refresh_intraday_for_top_oi_movers,
 )
-from uw_scan.worker.jobs.rescan_loop import rescan_tick
 from uw_scan.worker.jobs.rates_jobs import rates_fred_ingest_job
+from uw_scan.worker.jobs.rescan_loop import rescan_tick
+from uw_scan.worker.jobs.trade_insight_outcome_backfill import (
+    trade_insight_outcome_backfill_once,
+)
 from uw_scan.worker.jobs.trade_insights_ai import trade_insights_ai_tick
 from uw_scan.worker.jobs.vol_index_lake_sync import run_vol_index_lake_sync
 from uw_scan.worker.volatility_jobs import (
@@ -386,6 +389,21 @@ def main() -> int:
     def _trade_insights_ai_tick_claude() -> None:
         trade_insights_ai_tick(settings, provider_filter="claude")
 
+    def _trade_insight_outcome_backfill() -> None:
+        """Nightly outcome scorer — runs at 17:00 ET (after the daily
+        OHLC pull at 17:30 has at least one cron tick ahead of it the
+        following business day, so forward closes have a chance to
+        accumulate before each scan). Primary worker only — the upsert
+        is idempotent but running on every worker wastes Postgres roundtrips.
+        """
+        with _repo(settings) as repo:
+            counts = trade_insight_outcome_backfill_once(repo.conn)
+            logger.info(
+                "trade_insight_outcome_backfill bootstrapped=%d scored=%d",
+                counts["bootstrapped"],
+                counts["scored"],
+            )
+
     def _vol_index_lake_sync() -> None:
         # Parquet lake (~/market-warehouse/.../volatility) → vol_index_daily.
         # Local I/O + Postgres only — no external API spend, no UW/Massive role
@@ -546,6 +564,18 @@ def main() -> int:
                 CronTrigger.from_crontab("0 18 * * 0-4", timezone=settings.rth_tz),
                 id="nightly_vol_analytics_rollup",
                 name="Nightly vol analytics rollup",
+            )
+            # M9 v5.3 outcome ledger — runs nightly at 17:00 ET, right after
+            # the 17:30 OHLC pull would have updated daily_ohlc. Scores
+            # outcomes from forward-looking closes; idempotent re-runs are
+            # bounded by the partial pending-index in migration 054.
+            sched.add_job(
+                _trade_insight_outcome_backfill,
+                CronTrigger.from_crontab("0 17 * * 0-4", timezone=settings.rth_tz),
+                id="trade_insight_outcome_backfill",
+                name="Trade insight outcome backfill",
+                max_instances=1,
+                coalesce=True,
             )
 
     if "uw" in groups:

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { Fragment, useCallback, useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
 
 import { api, type TradeInsightsAiAnalysisResponse } from "@/lib/api";
@@ -19,6 +19,35 @@ const labelStyle = {
 
 type Tone = "positive" | "negative" | "warning" | "neutral";
 type SectionCardData = Outcome["section_cards"]["market_structure"];
+
+// v5 directional vocabulary — the actual decision the swing trader makes.
+// Kept in sync with src/uw_scan/models/trade_insights_ai.py:DirectionalBias etc.
+type DirectionalBias = "LONG_DELTA" | "SHORT_DELTA" | "WAIT";
+type EntryState = "ACTIVE" | "CONDITIONAL" | "NO_ENTRY";
+type TradeIntent = "directional_swing" | "range_income";
+
+const DIRECTIONAL_BIAS_TONE: Record<DirectionalBias, Tone> = {
+  LONG_DELTA: "positive",
+  SHORT_DELTA: "negative",
+  WAIT: "warning",
+};
+
+const DIRECTIONAL_BIAS_LABEL: Record<DirectionalBias, string> = {
+  LONG_DELTA: "Long-Delta",
+  SHORT_DELTA: "Short-Delta",
+  WAIT: "Wait",
+};
+
+const ENTRY_STATE_LABEL: Record<EntryState, string> = {
+  ACTIVE: "Active",
+  CONDITIONAL: "Conditional",
+  NO_ENTRY: "No Entry",
+};
+
+const TRADE_INTENT_LABEL: Record<TradeIntent, string> = {
+  directional_swing: "Directional Swing",
+  range_income: "Range Income",
+};
 
 function toneColor(tone: Tone): string {
   if (tone === "positive") return "var(--positive)";
@@ -356,6 +385,85 @@ function SectionSummaryCard({
   );
 }
 
+function DirectionalBiasBadge({ bias }: { bias: DirectionalBias }) {
+  const tone = DIRECTIONAL_BIAS_TONE[bias];
+  const color = toneColor(tone);
+  return (
+    <span
+      data-testid="ai-directional-bias-badge"
+      data-bias={bias}
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 4,
+        padding: "3px 8px",
+        border: `1px solid ${color}`,
+        background: `color-mix(in oklab, ${color} 12%, transparent)`,
+        borderRadius: 3,
+        color,
+        fontFamily: "var(--font-mono)",
+        fontSize: 10,
+        fontWeight: 700,
+        letterSpacing: 1.2,
+        textTransform: "uppercase" as const,
+      }}
+    >
+      {DIRECTIONAL_BIAS_LABEL[bias]}
+    </span>
+  );
+}
+
+function EntryStatePill({ state }: { state: EntryState }) {
+  // ACTIVE = solid (trigger fired, ready); CONDITIONAL = outlined (needs
+  // confirmation); NO_ENTRY = muted (no edge).
+  const solid = state === "ACTIVE";
+  const muted = state === "NO_ENTRY";
+  const tone = solid ? "positive" : muted ? "neutral" : "warning";
+  const color = toneColor(tone);
+  return (
+    <span
+      data-testid="ai-entry-state-pill"
+      data-state={state}
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        padding: "3px 8px",
+        border: `1px solid ${color}`,
+        background: solid
+          ? `color-mix(in oklab, ${color} 18%, transparent)`
+          : "transparent",
+        borderRadius: 999,
+        color: muted ? "var(--text-muted)" : color,
+        fontFamily: "var(--font-mono)",
+        fontSize: 10,
+        fontWeight: solid ? 700 : 600,
+        letterSpacing: 1,
+        textTransform: "uppercase" as const,
+      }}
+    >
+      {ENTRY_STATE_LABEL[state]}
+    </span>
+  );
+}
+
+function TradeIntentTag({ intent }: { intent: TradeIntent }) {
+  return (
+    <span
+      data-testid="ai-trade-intent-tag"
+      data-intent={intent}
+      style={{
+        ...labelStyle,
+        padding: "2px 6px",
+        border: "1px solid var(--border-dim)",
+        borderRadius: 2,
+        color: "var(--text-secondary)",
+      }}
+    >
+      {TRADE_INTENT_LABEL[intent]}
+    </span>
+  );
+}
+
 function OutcomeGrid({
   outcome,
   provider,
@@ -374,24 +482,46 @@ function OutcomeGrid({
   const conflicts = (outcome.conflicts ?? []).map((item) => item.description);
   const missing = outcome.missing_data ?? [];
 
+  // v5 directional vocab — fall back gracefully if the field shape is
+  // missing (e.g. partial Claude output that the lenient coercer back-
+  // filled with conservative defaults; the badge still renders WAIT).
+  const directionalBias = outcome.headline.directional_bias as DirectionalBias;
+  const entryState = outcome.headline.entry_state as EntryState;
+  const tradeIntent = outcome.headline.trade_intent as TradeIntent;
+  const biasFrameColor = toneColor(DIRECTIONAL_BIAS_TONE[directionalBias]);
+
   return (
     <div style={{ display: "grid", gap: 14 }}>
       <div
         style={{
-          border: `1px solid ${toneColor(toneFromText(outcome.headline.stance_label))}`,
+          border: `1px solid ${biasFrameColor}`,
           borderRadius: 4,
           padding: "14px 16px",
           background: "var(--bg-panel)",
         }}
       >
-        <div style={labelStyle}>{outcome.ticker} AI Analysis</div>
+        <div
+          style={{
+            display: "flex",
+            gap: 8,
+            alignItems: "center",
+            flexWrap: "wrap",
+          }}
+        >
+          <DirectionalBiasBadge bias={directionalBias} />
+          <EntryStatePill state={entryState} />
+          <TradeIntentTag intent={tradeIntent} />
+          <div style={{ ...labelStyle, marginLeft: "auto" }}>
+            {outcome.ticker} AI Analysis
+          </div>
+        </div>
         <div
           style={{
             color: "var(--text-primary)",
             fontSize: 16,
             fontWeight: 700,
             lineHeight: 1.25,
-            marginTop: 4,
+            marginTop: 8,
           }}
         >
           {outcome.headline.title}
@@ -411,7 +541,19 @@ function OutcomeGrid({
         </div>
         <KeyValueGrid
           items={[
-            { label: "Stance", value: outcome.headline.stance_label },
+            // v5: directional_bias is the gate (rendered as badge above).
+            // underlying_path is the path inference; dte_band is the band
+            // pick from Step 5. stance_label kept as the legacy display
+            // string so the analyst-vocabulary (e.g. "BUY setup") still
+            // surfaces alongside the new fields.
+            {
+              label: "Path",
+              value: outcome.headline.underlying_path.replace(/_/g, " "),
+            },
+            {
+              label: "DTE Band",
+              value: outcome.headline.dte_band,
+            },
             {
               label: "Score",
               value: `${outcome.headline.score}/${outcome.headline.score_scale}`,
@@ -562,6 +704,112 @@ function OutcomeGrid({
                     { label: "Status", value: preferred.status_observed },
                   ]}
                 />
+                {preferred.strike_role && (
+                  <KeyValueGrid
+                    items={[
+                      {
+                        label: "Trigger",
+                        value: preferred.strike_role.trigger_level || "—",
+                      },
+                      {
+                        label: "Target",
+                        value: preferred.strike_role.target_level || "—",
+                      },
+                      {
+                        label: "Invalidate",
+                        value: preferred.strike_role.invalid_level || "—",
+                      },
+                      {
+                        label: "Long leg",
+                        value: preferred.strike_role.long_leg_role || "n/a",
+                      },
+                      {
+                        label: "Short leg",
+                        value: preferred.strike_role.short_leg_role || "n/a",
+                      },
+                    ]}
+                  />
+                )}
+                {preferred.legs && preferred.legs.length > 0 && (
+                  <div data-testid="ai-preferred-legs">
+                    <SmallHeading>Option Legs (v5.3)</SmallHeading>
+                    <div
+                      style={{
+                        display: "grid",
+                        gridTemplateColumns:
+                          "minmax(60px, max-content) minmax(60px, max-content) 1fr minmax(96px, max-content)",
+                        gap: "4px 12px",
+                        fontFamily:
+                          "var(--font-mono, IBM Plex Mono, monospace)",
+                        fontSize: 12,
+                      }}
+                    >
+                      <div
+                        style={{
+                          color: "var(--text-muted)",
+                          textTransform: "uppercase",
+                          letterSpacing: 1.5,
+                          fontSize: 10,
+                        }}
+                      >
+                        Side
+                      </div>
+                      <div
+                        style={{
+                          color: "var(--text-muted)",
+                          textTransform: "uppercase",
+                          letterSpacing: 1.5,
+                          fontSize: 10,
+                        }}
+                      >
+                        Type
+                      </div>
+                      <div
+                        style={{
+                          color: "var(--text-muted)",
+                          textTransform: "uppercase",
+                          letterSpacing: 1.5,
+                          fontSize: 10,
+                        }}
+                      >
+                        Strike
+                      </div>
+                      <div
+                        style={{
+                          color: "var(--text-muted)",
+                          textTransform: "uppercase",
+                          letterSpacing: 1.5,
+                          fontSize: 10,
+                        }}
+                      >
+                        Expiry
+                      </div>
+                      {preferred.legs.map((leg, i) => (
+                        <Fragment key={`leg-${i}`}>
+                          <div
+                            style={{
+                              color:
+                                leg.side === "long"
+                                  ? "var(--positive)"
+                                  : "var(--negative)",
+                            }}
+                          >
+                            {leg.side}
+                          </div>
+                          <div style={{ color: "var(--text-primary)" }}>
+                            {leg.option_type}
+                          </div>
+                          <div style={{ color: "var(--text-primary)" }}>
+                            {leg.strike}
+                          </div>
+                          <div style={{ color: "var(--text-secondary)" }}>
+                            {leg.expiry}
+                          </div>
+                        </Fragment>
+                      ))}
+                    </div>
+                  </div>
+                )}
                 <div style={{ color: "var(--text-primary)", fontSize: 13 }}>
                   {plainText(preferred.why)}
                 </div>
@@ -577,6 +825,154 @@ function OutcomeGrid({
               </div>
             )}
           </AnalysisCard>
+          {(outcome.thesis_trigger ||
+            outcome.entry_trigger ||
+            outcome.invalidation ||
+            outcome.anti_pin) && (
+            <AnalysisCard
+              title="Trigger State Machine & Anti-Pin"
+              subtitle="v5.3 decomposed trigger components"
+              tone={
+                outcome.invalidation?.fired
+                  ? "negative"
+                  : outcome.entry_trigger?.fired
+                    ? "positive"
+                    : outcome.thesis_trigger?.fired
+                      ? "warning"
+                      : "neutral"
+              }
+            >
+              <div
+                data-testid="ai-trigger-components"
+                style={{
+                  display: "grid",
+                  gap: 6,
+                  fontFamily: "var(--font-mono, IBM Plex Mono, monospace)",
+                  fontSize: 12,
+                }}
+              >
+                {(
+                  [
+                    ["Thesis trigger", outcome.thesis_trigger],
+                    ["Entry trigger", outcome.entry_trigger],
+                    ["Invalidation", outcome.invalidation],
+                  ] as const
+                ).map(([label, comp], i) =>
+                  comp ? (
+                    <div
+                      key={`tc-${i}`}
+                      data-testid={`ai-trigger-${label
+                        .toLowerCase()
+                        .replace(/\s+/g, "-")}`}
+                      style={{
+                        display: "grid",
+                        gridTemplateColumns:
+                          "minmax(108px, max-content) minmax(56px, max-content) 1fr minmax(80px, max-content)",
+                        gap: "0 12px",
+                        alignItems: "baseline",
+                        borderBottom:
+                          i < 2 ? "1px solid var(--border-dim)" : "none",
+                        paddingBottom: 4,
+                      }}
+                    >
+                      <div
+                        style={{
+                          color: "var(--text-muted)",
+                          textTransform: "uppercase",
+                          letterSpacing: 1.5,
+                          fontSize: 10,
+                        }}
+                      >
+                        {label}
+                      </div>
+                      <div
+                        style={{
+                          color: "var(--text-primary)",
+                          fontWeight: 600,
+                        }}
+                      >
+                        {comp.level?.toString() ?? "—"}
+                      </div>
+                      <div
+                        style={{
+                          color: "var(--text-secondary)",
+                          fontSize: 11,
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                          whiteSpace: "nowrap",
+                        }}
+                      >
+                        {comp.meaning || "—"}
+                      </div>
+                      <div
+                        style={{
+                          color: comp.fired
+                            ? label === "Invalidation"
+                              ? "var(--negative)"
+                              : "var(--positive)"
+                            : "var(--text-muted)",
+                          fontSize: 10,
+                          textTransform: "uppercase",
+                          letterSpacing: 1.2,
+                        }}
+                      >
+                        {comp.fired ? "FIRED" : "pending"}
+                        {comp.evidence_close && comp.evidence_date ? (
+                          <span
+                            style={{
+                              color: "var(--text-muted)",
+                              marginLeft: 6,
+                              fontSize: 10,
+                              textTransform: "none",
+                              letterSpacing: 0,
+                            }}
+                          >
+                            @ {comp.evidence_close} ({comp.evidence_date})
+                          </span>
+                        ) : null}
+                      </div>
+                    </div>
+                  ) : null,
+                )}
+              </div>
+              {outcome.anti_pin && (
+                <KeyValueGrid
+                  items={[
+                    {
+                      label: "Anti-pin invoked",
+                      value: outcome.anti_pin.invoked ? "yes" : "no",
+                    },
+                    {
+                      label: "Direction",
+                      value: outcome.anti_pin.direction ?? "none",
+                    },
+                    {
+                      label: "Score",
+                      value: `${outcome.anti_pin.score ?? 0} / ${outcome.anti_pin.max_score ?? 4}`,
+                    },
+                    {
+                      label: "Conviction capped",
+                      value: outcome.anti_pin.conviction_cap_applied
+                        ? "yes"
+                        : "no",
+                    },
+                  ]}
+                />
+              )}
+              {outcome.anti_pin?.conditions_met &&
+                outcome.anti_pin.conditions_met.length > 0 && (
+                  <div style={{ color: "var(--text-secondary)", fontSize: 12 }}>
+                    Conditions met: {outcome.anti_pin.conditions_met.join(", ")}
+                  </div>
+                )}
+              {outcome.anti_pin?.conviction_cap_applied &&
+                outcome.anti_pin?.cap_reason && (
+                  <div style={{ color: "var(--text-secondary)", fontSize: 12 }}>
+                    Cap reason: {outcome.anti_pin.cap_reason}
+                  </div>
+                )}
+            </AnalysisCard>
+          )}
           <AnalysisCard
             title="Validation Checklist"
             subtitle="What must be watched or confirmed"
@@ -608,6 +1004,108 @@ function providerLabel(p: Provider): string {
   return p.charAt(0).toUpperCase() + p.slice(1);
 }
 
+function headlineField(
+  resp: TradeInsightsAiAnalysisResponse | null,
+  field: "directional_bias" | "thesis_archetype" | "entry_state",
+): string | null {
+  const outcome = resp?.outcome as {
+    headline?: Record<string, unknown>;
+  } | null;
+  const value = outcome?.headline?.[field];
+  return typeof value === "string" && value.length > 0 ? value : null;
+}
+
+function ConsensusBreakdown({
+  codex,
+  claude,
+}: {
+  codex: TradeInsightsAiAnalysisResponse | null;
+  claude: TradeInsightsAiAnalysisResponse | null;
+}) {
+  // Only render when both providers have completed v5+ outcomes — the
+  // breakdown is meaningless if one side is missing a headline.
+  const rows = (
+    [
+      ["directional_bias", "Bias"],
+      ["thesis_archetype", "Archetype"],
+      ["entry_state", "Entry State"],
+    ] as const
+  )
+    .map(([field, label]) => {
+      const c = headlineField(codex, field);
+      const k = headlineField(claude, field);
+      if (c === null || k === null) return null;
+      return { field, label, codex: c, claude: k };
+    })
+    .filter((r): r is NonNullable<typeof r> => r !== null);
+
+  if (rows.length === 0) return null;
+
+  return (
+    <div
+      data-testid="ai-consensus-breakdown"
+      style={{
+        border: "1px solid var(--border-dim)",
+        borderRadius: 4,
+        padding: "10px 12px",
+        background: "var(--bg-panel)",
+        fontFamily: "var(--font-mono)",
+        fontSize: 11,
+        color: "var(--text-primary)",
+        display: "grid",
+        gridTemplateColumns: "minmax(80px, max-content) 1fr min-content 1fr",
+        rowGap: 4,
+        columnGap: 10,
+        alignItems: "center",
+      }}
+    >
+      <div
+        style={{
+          gridColumn: "1 / -1",
+          color: "var(--text-muted)",
+          textTransform: "uppercase",
+          letterSpacing: 1.2,
+          fontSize: 10,
+          marginBottom: 2,
+        }}
+      >
+        Codex vs Claude — Headline Decomposition
+      </div>
+      {rows.map(({ field, label, codex: c, claude: k }) => {
+        const matches = c === k;
+        const tone = matches ? "var(--positive)" : "var(--warning)";
+        return (
+          <Fragment key={field}>
+            <div style={{ color: "var(--text-muted)" }}>{label}</div>
+            <div
+              data-testid={`ai-consensus-codex-${field}`}
+              style={{ color: "var(--text-primary)" }}
+            >
+              {c}
+            </div>
+            <div
+              aria-label={matches ? "agree" : "differ"}
+              style={{
+                color: tone,
+                fontWeight: 700,
+                padding: "0 6px",
+              }}
+            >
+              {matches ? "=" : "≠"}
+            </div>
+            <div
+              data-testid={`ai-consensus-claude-${field}`}
+              style={{ color: "var(--text-primary)" }}
+            >
+              {k}
+            </div>
+          </Fragment>
+        );
+      })}
+    </div>
+  );
+}
+
 function stateBadge(
   analysis: TradeInsightsAiAnalysisResponse | null,
   pending: boolean,
@@ -617,6 +1115,28 @@ function stateBadge(
   if (analysis.status === "succeeded") return "●";
   if (analysis.status === "failed") return "✕";
   return "○";
+}
+
+// Current prompt version — used by the legacy-row detector below. Kept in
+// sync with src/uw_scan/reports/trade_insights_ai.py:PROMPT_VERSION. The
+// detector compares against this string; any prior version (v4, v5)
+// renders the "legacy — re-run" banner so users see what the API guard
+// already did (dropped outcome to null).
+const CURRENT_PROMPT_VERSION = "trade-insights-ai-v5.3";
+
+function isLegacyAnalysis(
+  analysis: TradeInsightsAiAnalysisResponse | null,
+): boolean {
+  if (!analysis) return false;
+  if (analysis.status !== "succeeded") return false;
+  // The v5 API-side legacy guard (_row_to_ai_response) drops outcome to null
+  // when the row's prompt_version differs from the current PROMPT_VERSION,
+  // so we recognize a legacy row by the (succeeded + null outcome +
+  // prompt_version mismatch) signature.
+  return (
+    analysis.outcome == null &&
+    analysis.prompt_version !== CURRENT_PROMPT_VERSION
+  );
 }
 
 function ProviderTabBody({
@@ -630,6 +1150,7 @@ function ProviderTabBody({
 }) {
   const succeeded = analysis?.status === "succeeded" && analysis.outcome;
   const failed = analysis?.status === "failed";
+  const legacy = isLegacyAnalysis(analysis);
   return (
     <div style={{ display: "grid", gap: 12 }}>
       {pending && (
@@ -648,6 +1169,17 @@ function ProviderTabBody({
         <InsightStatusBanner
           text={analysis?.error_message ?? `${providerLabel(provider)} failed`}
           severity="negative"
+        />
+      )}
+      {legacy && (
+        <InsightStatusBanner
+          text={
+            `Legacy analysis (${analysis?.prompt_version}). Schema bumped ` +
+            `to ${CURRENT_PROMPT_VERSION} — click Run to regenerate with the ` +
+            `v5.2 prompt (active-trigger evidence, thesis archetype, ` +
+            `strict strike_role, anti-pin scope).`
+          }
+          severity="warning"
         />
       )}
       {succeeded && analysis.outcome && (
@@ -689,6 +1221,13 @@ export function TradeInsightsAiAnalysisPanel({ ticker }: { ticker: string }) {
     codex: TradeInsightsAiAnalysisResponse | null;
     claude: TradeInsightsAiAnalysisResponse | null;
   }>({ codex: null, claude: null });
+  // v5.2: cross-provider consensus computed at GET /latest time.
+  // Rendered as a chip above the tabs so the operator sees agreement /
+  // actionable disagreement at-a-glance.
+  const [consensus, setConsensus] = useState<{
+    consensus_grade?: string;
+    actionable_disagreement?: string;
+  } | null>(null);
   const [pendingIds, setPendingIds] = useState<{
     codex: string | null;
     claude: string | null;
@@ -736,6 +1275,7 @@ export function TradeInsightsAiAnalysisPanel({ ticker }: { ticker: string }) {
         const pair = await api.tradeInsightsAiAnalysisLatest(ticker);
         if (!isCurrentRequest()) return;
         setLatest({ codex: pair.codex ?? null, claude: pair.claude ?? null });
+        setConsensus(pair.provider_consensus ?? null);
       } catch {
         // tolerate /latest hiccups — at minimum overlay the in-flight state.
         if (isCurrentRequest()) {
@@ -759,6 +1299,7 @@ export function TradeInsightsAiAnalysisPanel({ ticker }: { ticker: string }) {
         const pair = await api.tradeInsightsAiAnalysisLatest(ticker);
         if (!cancelled && requestTokenRef.current === token) {
           setLatest({ codex: pair.codex ?? null, claude: pair.claude ?? null });
+          setConsensus(pair.provider_consensus ?? null);
         }
       } catch (err) {
         if (
@@ -874,6 +1415,48 @@ export function TradeInsightsAiAnalysisPanel({ ticker }: { ticker: string }) {
             severity="info"
           />
         )}
+        {consensus &&
+          consensus.consensus_grade &&
+          consensus.consensus_grade !== "missing" && (
+            <div
+              data-testid="ai-provider-consensus"
+              style={{
+                border: "1px solid var(--border-dim)",
+                borderRadius: 4,
+                padding: "8px 10px",
+                background:
+                  consensus.consensus_grade === "full"
+                    ? "var(--bg-panel)"
+                    : "var(--bg-base)",
+                fontFamily: "var(--font-mono)",
+                fontSize: 11,
+                color: "var(--text-primary)",
+              }}
+            >
+              <span
+                style={{
+                  color:
+                    consensus.consensus_grade === "full"
+                      ? "var(--positive)"
+                      : consensus.consensus_grade === "divergent"
+                        ? "var(--negative)"
+                        : "var(--warning)",
+                  fontWeight: 600,
+                  letterSpacing: 1.2,
+                  textTransform: "uppercase",
+                  marginRight: 8,
+                }}
+              >
+                Consensus: {consensus.consensus_grade}
+              </span>
+              {consensus.actionable_disagreement && (
+                <span style={{ color: "var(--text-secondary)" }}>
+                  {consensus.actionable_disagreement}
+                </span>
+              )}
+            </div>
+          )}
+        <ConsensusBreakdown codex={latest.codex} claude={latest.claude} />
         <div style={{ display: "flex", gap: 6 }}>
           {PROVIDERS.map((p) => (
             <button

@@ -382,4 +382,31 @@ def test_fail_stores_error_and_fetch_scopes_by_ticker(seeded_db_empty_cards):
     assert row["status"] == "failed"
     assert row["error_message"] == "codex timed out"
     assert row["finished_at"] is not None
+    assert row["raw_outcome_jsonb"] is None
     assert repo.get_trade_insight_ai_analysis(analysis_id, ticker="AAPL") is None
+
+
+def test_fail_persists_raw_outcome_when_validation_rejected(seeded_db_empty_cards):
+    """When a runner returned a parseable JSON object that downstream
+    validation rejected, the raw payload must survive in raw_outcome_jsonb so
+    the failure is diagnosable without re-running."""
+    repo = seeded_db_empty_cards
+    run_id, snapshot_id = _create_snapshot(repo)
+    analysis_id = _enqueue(repo, snapshot_id=snapshot_id, run_id=run_id)
+
+    rejected = {
+        "schema_version": "trade-insights-ai-v5.3",
+        "best_expressions": [
+            {"idea_id": "F", "status_observed": "preferred", "junk": 1},
+        ],
+    }
+    repo.fail_trade_insight_ai_analysis(
+        analysis_id,
+        "status_observed changed for idea_id F",
+        raw_outcome=rejected,
+    )
+
+    row = repo.get_trade_insight_ai_analysis(analysis_id, ticker="TSLA")
+    assert row["status"] == "failed"
+    assert row["error_message"] == "status_observed changed for idea_id F"
+    assert row["raw_outcome_jsonb"] == rejected

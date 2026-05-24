@@ -14,7 +14,11 @@ import subprocess
 import pytest
 
 from uw_scan.worker.jobs.trade_insights_ai_runners import TradeInsightsAiRunnerError
-from uw_scan.worker.jobs.trade_insights_claude_runner import ClaudeRunner
+from uw_scan.worker.jobs.trade_insights_claude_runner import (
+    ClaudeRunner,
+    _extract_first_balanced_json_object,
+    _try_parse_claude_text,
+)
 
 
 def _success_stdout(result_payload: dict, model: str = "claude-opus-4-7") -> str:
@@ -410,9 +414,7 @@ def test_claude_runner_rejects_invalid_result_field(monkeypatch):
         fake_run,
     )
 
-    with pytest.raises(
-        TradeInsightsAiRunnerError, match="result field was not valid JSON"
-    ):
+    with pytest.raises(TradeInsightsAiRunnerError, match="no parseable JSON object"):
         ClaudeRunner().run(
             "p",
             {"type": "object"},
@@ -441,3 +443,141 @@ def test_claude_runner_oversized_output_raises(monkeypatch):
             timeout_seconds=1,
             max_output_bytes=1024,
         )
+
+
+# ---- M4: prose-prefaced fallback recovery + observability ----------------
+
+
+def test_extract_first_balanced_json_object_finds_embedded_object():
+    text = (
+        'Looking at TSLA, here is my analysis: {"a": 1, "b": [1, 2]} hope this helps.'
+    )
+    assert _extract_first_balanced_json_object(text) == '{"a": 1, "b": [1, 2]}'
+
+
+def test_extract_first_balanced_json_object_handles_nested_objects():
+    text = 'Prefix {"outer": {"inner": {"deep": 1}}} suffix'
+    assert _extract_first_balanced_json_object(text) == (
+        '{"outer": {"inner": {"deep": 1}}}'
+    )
+
+
+def test_extract_first_balanced_json_object_skips_braces_inside_strings():
+    # Brace literal inside a JSON string value must NOT confuse depth tracking.
+    text = 'x {"k": "value with } brace and \\" quote"} after'
+    assert _extract_first_balanced_json_object(text) == (
+        '{"k": "value with } brace and \\" quote"}'
+    )
+
+
+def test_extract_first_balanced_json_object_returns_none_when_unbalanced():
+    assert _extract_first_balanced_json_object("no braces here") is None
+    assert _extract_first_balanced_json_object('half open {"k": 1') is None
+
+
+def test_try_parse_claude_text_strips_markdown_fence():
+    text = '```json\n{"x": 1}\n```'
+    assert _try_parse_claude_text(text) == {"x": 1}
+
+
+def test_try_parse_claude_text_recovers_prose_prefaced_json():
+    text = (
+        "Looking at the TSLA payload, I'm reading: spot 426.01 sitting between "
+        'put wall 420 and call wall 430. Analysis: {"headline": {"bias": "WAIT"}} '
+        "Hope this helps."
+    )
+    assert _try_parse_claude_text(text) == {"headline": {"bias": "WAIT"}}
+
+
+def test_try_parse_claude_text_returns_none_when_no_json():
+    text = "This is purely a conversational reply with no JSON object anywhere."
+    assert _try_parse_claude_text(text) is None
+
+
+def test_claude_runner_recovers_when_claude_prefixes_json_with_prose(monkeypatch):
+    """M4: TSLA-shape failure mode where Claude skips StructuredOutput and
+    writes prose followed by a JSON object. The runner must extract the
+    object rather than fail."""
+    prose_then_json = (
+        "Looking at the TSLA payload, here's the analysis: "
+        + json.dumps({"schema_version": "trade-insights-ai-v5.3", "ok": True})
+        + " Let me know if you need adjustments."
+    )
+    stdout = json.dumps(
+        [
+            {
+                "type": "system",
+                "subtype": "init",
+                "model": "claude-opus-4-7",
+                "session_id": "s",
+                "apiKeySource": "oauth",
+            },
+            {
+                "type": "result",
+                "subtype": "success",
+                "is_error": False,
+                "result": prose_then_json,
+                "model": "claude-opus-4-7",
+                "session_id": "s",
+            },
+        ]
+    )
+
+    def fake_run(cmd, **_):
+        return subprocess.CompletedProcess(cmd, 0, stdout=stdout, stderr="")
+
+    monkeypatch.setattr(
+        "uw_scan.worker.jobs.trade_insights_claude_runner.subprocess.run",
+        fake_run,
+    )
+
+    result = ClaudeRunner().run(
+        "p",
+        {"type": "object"},
+        model="",
+        timeout_seconds=1,
+        max_output_bytes=10_000,
+    )
+    assert result.outcome == {"schema_version": "trade-insights-ai-v5.3", "ok": True}
+
+
+def test_claude_runner_error_message_carries_full_text_when_no_json(monkeypatch):
+    """M4: when even the balanced-object extractor cannot recover JSON,
+    the error message must carry the FULL text so the orchestrator
+    persists it via raw_outcome_jsonb. Truncated repr was insufficient
+    to diagnose v5.2/v5.3 TSLA drops."""
+    long_unparseable = "Looking at TSLA, " + ("blah " * 200) + "no JSON anywhere."
+    stdout = json.dumps(
+        [
+            {"type": "system", "subtype": "init", "model": "claude-opus-4-7"},
+            {
+                "type": "result",
+                "subtype": "success",
+                "is_error": False,
+                "result": long_unparseable,
+                "model": "claude-opus-4-7",
+            },
+        ]
+    )
+
+    def fake_run(cmd, **_):
+        return subprocess.CompletedProcess(cmd, 0, stdout=stdout, stderr="")
+
+    monkeypatch.setattr(
+        "uw_scan.worker.jobs.trade_insights_claude_runner.subprocess.run",
+        fake_run,
+    )
+
+    with pytest.raises(TradeInsightsAiRunnerError) as exc_info:
+        ClaudeRunner().run(
+            "p",
+            {"type": "object"},
+            model="",
+            timeout_seconds=1,
+            max_output_bytes=10_000,
+        )
+    msg = str(exc_info.value)
+    assert "no parseable JSON object" in msg
+    # full text must be in the error so the orchestrator can persist it
+    assert long_unparseable in msg
+    assert f"len={len(long_unparseable)}" in msg

@@ -175,6 +175,95 @@ def test_latest_pair_returns_keyed_dict_per_provider(
     assert pair["codex"]["model"] == "codex-default"
 
 
+def test_latest_pair_returns_failed_row_when_no_succeeded_exists(
+    seeded_db_empty_cards: Repository,
+) -> None:
+    # The UI shows "No analysis yet" when /latest returns null for a provider.
+    # If the only row is failed, the user must see the failure (with
+    # error_message) — not a misleading empty state.
+    repo = seeded_db_empty_cards
+    run_id, snapshot_id = _seed_snapshot(repo)
+    claude_id = repo.enqueue_trade_insight_ai_analysis(
+        snapshot_id=snapshot_id,
+        ticker="TSLA",
+        run_id=run_id,
+        trade_insights_input_hash="h",
+        analysis_input_hash="ha",
+        analysis_input={},
+        prompt_version="v",
+        model="m",
+        provider="claude",
+    )
+    repo.fail_trade_insight_ai_analysis(
+        claude_id,
+        "claude --print timed out after 300.0s",
+    )
+    repo.conn.commit()
+    pair = repo.find_latest_trade_insight_ai_analyses_per_provider(
+        ticker="TSLA",
+        prompt_version="v",
+    )
+    assert pair["codex"] is None
+    assert pair["claude"] is not None
+    assert pair["claude"]["status"] == "failed"
+    assert "timed out" in (pair["claude"]["error_message"] or "")
+
+
+def test_latest_pair_prefers_succeeded_over_failed_at_same_finish_time(
+    seeded_db_empty_cards: Repository,
+) -> None:
+    # Defensive: if two rows for the same provider terminate at the same
+    # finished_at (rare clock collision), the succeeded one must win so a
+    # transient retry-failure does not hide a working analysis.
+    repo = seeded_db_empty_cards
+    run_id, snapshot_id = _seed_snapshot(repo)
+    succeeded_id = repo.enqueue_trade_insight_ai_analysis(
+        snapshot_id=snapshot_id,
+        ticker="TSLA",
+        run_id=run_id,
+        trade_insights_input_hash="h",
+        analysis_input_hash="ha-ok",
+        analysis_input={},
+        prompt_version="v",
+        model="m",
+        provider="codex",
+    )
+    repo.complete_trade_insight_ai_analysis(
+        succeeded_id,
+        outcome={"x": 1},
+        markdown="md",
+        resolved_model="codex-default",
+    )
+    failed_id = repo.enqueue_trade_insight_ai_analysis(
+        snapshot_id=snapshot_id,
+        ticker="TSLA",
+        run_id=run_id,
+        trade_insights_input_hash="h",
+        analysis_input_hash="ha-bad",
+        analysis_input={},
+        prompt_version="v",
+        model="m",
+        provider="codex",
+    )
+    repo.fail_trade_insight_ai_analysis(failed_id, "boom")
+    # Force identical finished_at on both rows.
+    with repo.conn.cursor() as cur:
+        cur.execute(
+            "UPDATE uw_scan.trade_insight_ai_analyses "
+            "SET finished_at = '2026-05-24 12:00:00+00' "
+            "WHERE analysis_id IN (%s, %s)",
+            (succeeded_id, failed_id),
+        )
+    repo.conn.commit()
+    pair = repo.find_latest_trade_insight_ai_analyses_per_provider(
+        ticker="TSLA",
+        prompt_version="v",
+    )
+    assert pair["codex"] is not None
+    assert str(pair["codex"]["analysis_id"]) == str(succeeded_id)
+    assert pair["codex"]["status"] == "succeeded"
+
+
 def test_complete_persists_resolved_model_overriding_initial(
     seeded_db_empty_cards: Repository,
 ) -> None:

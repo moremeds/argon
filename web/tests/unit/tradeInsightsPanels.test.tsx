@@ -231,6 +231,8 @@ describe("Trade Insights detail panels", () => {
             risk_flags: ["bullish_flow_can_break_call_side"],
             rank: 1,
             status: "candidate",
+            dte_band: "standard",
+            expression_delta: "short_delta",
           },
         ]}
       />,

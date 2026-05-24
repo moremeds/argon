@@ -240,3 +240,151 @@ def test_iron_condor_max_loss_matches_width_minus_total_credit():
     # Both wings are 5 points wide in the fixture; max wing breach loss is
     # width - total_credit, not the max of the per-wing losses.
     assert ic.max_loss == Decimal("5") - expected_credit
+
+
+# ─────────────────────────────────────────────────────────────────────────
+# v5 M2: directional debit candidates + dte_band + expression_delta tagging.
+# ─────────────────────────────────────────────────────────────────────────
+
+
+def test_candidate_menu_includes_directional_debit_structures():
+    """v5 M2: the candidate menu MUST surface directional debit structures
+    (bull_call_spread, bear_put_spread, long_call, long_put) so the AI has
+    something concrete to pick when directional_bias=LONG_DELTA or
+    SHORT_DELTA. The v4 menu emitted only credit spreads / iron condor /
+    straddle / calendar — biased toward vol-selling — which is the exact
+    failure mode v5 is built to eliminate."""
+    response = assemble_trade_insights(
+        ticker="TSLA",
+        run_id=1,
+        repo=FakeTradeInsightsRepo(),
+        as_of=datetime(2026, 5, 13, 20, 0, tzinfo=timezone.utc),
+        spot=Decimal("428"),
+    )
+    structures = {c.structure for c in response.candidate_structures}
+    assert "bull_call_spread" in structures, (
+        "directional_swing LONG_DELTA needs a debit call structure"
+    )
+    assert "bear_put_spread" in structures, (
+        "directional_swing SHORT_DELTA needs a debit put structure"
+    )
+    assert "long_call" in structures, "unbounded-upside long-delta missing"
+    assert "long_put" in structures, "bounded-downside short-delta missing"
+
+
+def test_candidate_menu_tags_dte_band_and_expression_delta():
+    """v5 M2: every candidate must carry a non-empty dte_band ("momentum",
+    "standard", or "trend") and expression_delta ("long_delta",
+    "short_delta", or "neutral") so the v5 prompt can pattern-match
+    candidates to the chosen directional_bias and dte_band."""
+    response = assemble_trade_insights(
+        ticker="TSLA",
+        run_id=1,
+        repo=FakeTradeInsightsRepo(),
+        as_of=datetime(2026, 5, 13, 20, 0, tzinfo=timezone.utc),
+        spot=Decimal("428"),
+    )
+    expected_delta_by_structure = {
+        "call_credit_spread": "short_delta",
+        "put_credit_spread": "long_delta",
+        "iron_condor": "neutral",
+        "long_straddle": "neutral",
+        "calendar_spread": "neutral",
+        "bull_call_spread": "long_delta",
+        "bear_put_spread": "short_delta",
+        "long_call": "long_delta",
+        "long_put": "short_delta",
+    }
+    for cand in response.candidate_structures:
+        # dte_band non-empty for every candidate whose first leg has an expiry
+        # in the swing window (which all do, per the fixture).
+        assert cand.dte_band in {"momentum", "standard", "trend"}, (
+            f"{cand.structure} has bad dte_band={cand.dte_band!r}"
+        )
+        expected_delta = expected_delta_by_structure[cand.structure]
+        assert cand.expression_delta == expected_delta, (
+            f"{cand.structure} expression_delta={cand.expression_delta!r}, "
+            f"expected {expected_delta!r}"
+        )
+
+
+def test_dte_band_helper_partitions_window_correctly():
+    """v5 M2: the _dte_band helper splits the 14-75 DTE window into three
+    bands. This pins the band boundaries so the prompt's DTE-band rule
+    (M3) stays in sync with the assembler's tagging."""
+    from uw_scan.reports.trade_insights import _dte_band
+
+    assert _dte_band(14) == "momentum"
+    assert _dte_band(21) == "momentum"
+    assert _dte_band(30) == "momentum"
+    assert _dte_band(31) == "standard"
+    assert _dte_band(38) == "standard"
+    assert _dte_band(44) == "standard"
+    assert _dte_band(45) == "trend"
+    assert _dte_band(60) == "trend"
+    assert _dte_band(75) == "trend"
+
+
+def test_dte_window_widened_to_14_75():
+    """v5 M2: SWING_DTE_MIN dropped from 21 to 14 so the momentum band
+    (14-30) admits short-DTE breakout entries that v4 rejected as
+    horizon_mismatch. SWING_DTE_MAX raised from 60 to 75 so the trend band
+    (45-75) admits longer-DTE trend-continuation entries."""
+    from uw_scan.reports.trade_insights import SWING_DTE_MAX, SWING_DTE_MIN
+
+    assert SWING_DTE_MIN == 14
+    assert SWING_DTE_MAX == 75
+
+
+def test_bull_call_spread_math_is_debit_with_capped_profit():
+    """v5 M2: the bull_call_spread generator must report NEGATIVE
+    net_credit_debit (it's a debit) and max_profit = (width - debit), not
+    the credit-spread sign convention."""
+    response = assemble_trade_insights(
+        ticker="TSLA",
+        run_id=1,
+        repo=FakeTradeInsightsRepo(),
+        as_of=datetime(2026, 5, 13, 20, 0, tzinfo=timezone.utc),
+        spot=Decimal("428"),
+    )
+    bull_call = next(
+        c for c in response.candidate_structures if c.structure == "bull_call_spread"
+    )
+    # Two legs: buy lower strike call, sell higher strike call.
+    assert len(bull_call.legs) == 2
+    assert bull_call.legs[0].side == "buy"
+    assert bull_call.legs[1].side == "sell"
+    assert bull_call.legs[0].strike < bull_call.legs[1].strike
+    # Debit reported as NEGATIVE net_credit_debit (consistent w/ long_straddle).
+    assert bull_call.net_credit_debit is not None
+    assert bull_call.net_credit_debit < Decimal("0")
+    # Max loss == debit; max profit == width - debit.
+    width = bull_call.legs[1].strike - bull_call.legs[0].strike
+    debit = -bull_call.net_credit_debit
+    assert bull_call.max_loss == debit
+    assert bull_call.max_profit == width - debit
+
+
+def test_bear_put_spread_math_is_debit_with_capped_profit():
+    """Mirror of bull_call test: bear_put_spread is debit, max profit
+    bounded by (width - debit)."""
+    response = assemble_trade_insights(
+        ticker="TSLA",
+        run_id=1,
+        repo=FakeTradeInsightsRepo(),
+        as_of=datetime(2026, 5, 13, 20, 0, tzinfo=timezone.utc),
+        spot=Decimal("428"),
+    )
+    bear_put = next(
+        c for c in response.candidate_structures if c.structure == "bear_put_spread"
+    )
+    assert len(bear_put.legs) == 2
+    assert bear_put.legs[0].side == "buy"
+    assert bear_put.legs[1].side == "sell"
+    assert bear_put.legs[0].strike > bear_put.legs[1].strike  # buy higher, sell lower
+    assert bear_put.net_credit_debit is not None
+    assert bear_put.net_credit_debit < Decimal("0")
+    width = bear_put.legs[0].strike - bear_put.legs[1].strike
+    debit = -bear_put.net_credit_debit
+    assert bear_put.max_loss == debit
+    assert bear_put.max_profit == width - debit

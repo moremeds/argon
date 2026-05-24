@@ -270,17 +270,22 @@ class _TradeInsightsAiMixin:
         ticker: str,
         prompt_version: str,
     ) -> dict[str, dict[str, Any] | None]:
-        """Latest succeeded row per known provider as a keyed dict.
+        """Latest terminal-state row per known provider as a keyed dict.
 
-        Output shape: {"codex": row|None, "claude": row|None}. Model is NOT in
-        the key — the latest succeeded row for each provider wins regardless of
-        which model produced it (so a model alias rollover doesn't hide the
-        most recent result).
+        Output shape: {"codex": row|None, "claude": row|None}. Returns the most
+        recent succeeded OR failed row per provider; succeeded wins when both
+        exist at the same finished_at (defensive on the rare tie). Failed rows
+        are surfaced so the UI can render the error_message instead of the
+        misleading "No analysis yet" empty state. Model is NOT in the key — a
+        model alias rollover does not hide the most recent result.
         """
         sql = (
             f"SELECT DISTINCT ON (provider) * FROM {self._schema}.trade_insight_ai_analyses "
-            "WHERE ticker = %s AND prompt_version = %s AND status = 'succeeded' "
-            "ORDER BY provider, finished_at DESC NULLS LAST, requested_at DESC"
+            "WHERE ticker = %s AND prompt_version = %s "
+            "AND status IN ('succeeded', 'failed') "
+            "ORDER BY provider, finished_at DESC NULLS LAST, "
+            "  CASE status WHEN 'succeeded' THEN 0 ELSE 1 END, "
+            "  requested_at DESC"
         )
         out: dict[str, dict[str, Any] | None] = {"codex": None, "claude": None}
         with self._conn.cursor() as cur:
@@ -463,16 +468,33 @@ class _TradeInsightsAiMixin:
         self,
         analysis_id: str,
         error_message: str,
+        *,
+        raw_outcome: dict[str, Any] | None = None,
     ) -> None:
-        sql = (
-            f"UPDATE {self._schema}.trade_insight_ai_analyses "
-            "SET status = 'failed', "
-            "error_message = %s, "
-            "finished_at = now() "
-            "WHERE analysis_id = %s"
-        )
+        # Persist the runner's raw output when validation rejected it; NULL
+        # otherwise (subprocess crash, timeout, non-JSON, pre-runner error).
+        # Lets us diagnose validator rejections without re-running.
+        if raw_outcome is None:
+            sql = (
+                f"UPDATE {self._schema}.trade_insight_ai_analyses "
+                "SET status = 'failed', "
+                "error_message = %s, "
+                "finished_at = now() "
+                "WHERE analysis_id = %s"
+            )
+            params: tuple[Any, ...] = (error_message[:4000], analysis_id)
+        else:
+            sql = (
+                f"UPDATE {self._schema}.trade_insight_ai_analyses "
+                "SET status = 'failed', "
+                "error_message = %s, "
+                "raw_outcome_jsonb = %s, "
+                "finished_at = now() "
+                "WHERE analysis_id = %s"
+            )
+            params = (error_message[:4000], Jsonb(raw_outcome), analysis_id)
         with self._conn.cursor() as cur:
-            cur.execute(sql, (error_message[:4000], analysis_id))
+            cur.execute(sql, params)
 
     def get_trade_insight_ai_analysis(
         self,

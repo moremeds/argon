@@ -222,33 +222,104 @@ def _leg(side: str, c: dict) -> InsightLeg:
     )
 
 
-# Swing-HOLD DTE window. The trade is HELD 5-10 trading sessions (1-2 weeks);
-# entry expiry must leave enough time premium so that the EXIT at 7-14 days
-# later is not stranded at peak gamma / theta crush. 21-60 DTE entry leaves
-# 7-46 DTE remaining at exit. Anything shorter than 21 DTE puts the exit
-# inside the 0-7 DTE crush zone; anything longer than 60 DTE makes the option
-# too desensitized to the 1-2 week ticker-specific catalysts. Calendar spreads
-# relax the upper bound on the far leg (see below).
-SWING_DTE_MIN = 21
-SWING_DTE_MAX = 60
-SWING_DTE_PREFERRED_MIN = 28
-SWING_DTE_PREFERRED_MAX = 45
+# v5 expression_delta values (mirror the directional_bias enum so the AI
+# prompt can pattern-match candidates to the chosen bias):
+#   "long_delta"  — net positive delta (long_call, call_debit_spread,
+#                   bull_call_spread, put_credit_spread)
+#   "short_delta" — net negative delta (long_put, put_debit_spread,
+#                   bear_put_spread, call_credit_spread)
+#   "neutral"     — delta-neutral or directionally agnostic (iron_condor,
+#                   long_straddle, calendar_spread)
+_EXPRESSION_DELTA_BY_STRUCTURE: dict[str, str] = {
+    "call_credit_spread": "short_delta",
+    "put_credit_spread": "long_delta",
+    "iron_condor": "neutral",
+    "long_straddle": "neutral",
+    "calendar_spread": "neutral",
+    "bull_call_spread": "long_delta",
+    "bear_put_spread": "short_delta",
+    "call_debit_spread": "long_delta",
+    "put_debit_spread": "short_delta",
+    "long_call": "long_delta",
+    "long_put": "short_delta",
+}
+
+
+def _first_leg_dte(legs: list[InsightLeg], as_of_date: date | None) -> int | None:
+    """Return the DTE of the candidate's first leg.
+
+    Used to derive `dte_band` for the candidate. `as_of_date` may be None
+    when the assembler is called without a reference date (rare path); in
+    that case dte_band tagging is skipped and the candidate gets the
+    default empty string.
+    """
+    if as_of_date is None or not legs:
+        return None
+    return (legs[0].expiry - as_of_date).days
+
+
+# Swing-HOLD DTE window. The trade is HELD 5-10 trading sessions (1-2 weeks).
+#
+# v5 widens the window to 14-75 DTE and SPLITS it into two bands so the AI can
+# pick the band that matches the trade thesis (per the prompt's DTE-band rule
+# in M3):
+#
+#   momentum (14-30 DTE): high gamma per $ premium. Used when the directional
+#     trigger has ALREADY fired (entry_state=ACTIVE) and we want to capture a
+#     fast breakout. Closer to the 0-7 DTE theta-crush zone on exit, accepted
+#     because the move is the thesis.
+#
+#   standard (31-44 DTE): the legacy v4 sweet spot. Useful for the conservative
+#     middle ground when neither full momentum nor full trend applies.
+#
+#   trend (45-75 DTE): lower gamma decay, more theta protection. Used when
+#     entry_state=CONDITIONAL and we expect a multi-week trend continuation
+#     rather than an immediate breakout.
+#
+# Calendar spreads relax the upper bound on the far leg (see below).
+SWING_DTE_MIN = 14
+SWING_DTE_MAX = 75
+SWING_DTE_MOMENTUM_MAX = 30  # momentum band: SWING_DTE_MIN..SWING_DTE_MOMENTUM_MAX
+SWING_DTE_TREND_MIN = 45  # trend band: SWING_DTE_TREND_MIN..SWING_DTE_MAX
+SWING_DTE_PREFERRED_MIN = 28  # legacy preferred-band lower (drives _expiry_rank)
+SWING_DTE_PREFERRED_MAX = 45  # legacy preferred-band upper
 SWING_CALENDAR_FAR_DTE_MAX = 90
 
 
+def _dte_band(dte: int) -> str:
+    """Return the v5 dte_band label for a given DTE integer.
+
+    momentum  (14-30)  -> high gamma per $ premium, used for active breakouts
+    standard  (31-44)  -> legacy v4 sweet spot
+    trend     (45-75)  -> theta-protected trend-continuation entries
+    """
+    if dte <= SWING_DTE_MOMENTUM_MAX:
+        return "momentum"
+    if dte >= SWING_DTE_TREND_MIN:
+        return "trend"
+    return "standard"
+
+
 def _expiry_rank(dte: int) -> int:
-    """Lower is preferred. The 28-45 DTE band is the textbook swing-hold
-    entry window (max theta-harvest for credit structures; mild theta drag for
-    long premium). Within the preferred band, the 30-38 DTE sweet spot ranks
-    first. The 46-60 DTE long tail ranks above the 21-27 DTE short tail
-    because the latter is closer to the theta-crush exit zone."""
+    """Lower is preferred. v5 widens the window to 14-75 DTE but keeps the
+    30-38 sweet spot at the top of the rank — it's still the textbook
+    swing-hold band. The new 14-20 momentum tail and 61-75 trend tail rank
+    LAST in the unified preference so they are only picked when the prompt
+    explicitly asks for that band (M3 + downstream); their presence is to
+    populate the candidate menu, not to win by default sort."""
     if 30 <= dte <= 38:
         return 0
     if SWING_DTE_PREFERRED_MIN <= dte <= SWING_DTE_PREFERRED_MAX:
         return 1
-    if 46 <= dte <= SWING_DTE_MAX:
+    if 46 <= dte <= 60:
         return 2
-    return 3  # 21-27 DTE fallback, only used when nothing else exists
+    if 21 <= dte <= 27:
+        return 3
+    if 14 <= dte <= 20:
+        return 4  # momentum tail — explicit ask only
+    if 61 <= dte <= SWING_DTE_MAX:
+        return 5  # trend tail — explicit ask only
+    return 6  # outside window; should be filtered before sorting
 
 
 def _build_candidates(
@@ -512,6 +583,163 @@ def _build_candidates(
                     status="candidate",
                 )
             )
+
+    # ─────────────────────────────────────────────────────────────────────
+    # v5 directional debit structures (F-I). The legacy v4 menu only emitted
+    # credit spreads / iron condor / straddle / calendar — all vol-selling or
+    # delta-neutral. A directional 1-2 week swing trader needs DEBIT structures
+    # whose net delta MATCHES the directional_bias chosen by the AI at decision
+    # Step 2. Without these in the candidate pool, even a perfect v5 prompt
+    # would fall back to "strategy_family" picks instead of a concrete trade.
+    # ─────────────────────────────────────────────────────────────────────
+
+    # F: bull_call_spread — long lower call + short higher call. Net DEBIT.
+    #    Max profit = width - debit, max loss = debit. LONG_DELTA expression.
+    if len(calls) >= 2:
+        long_low_call = calls[0]
+        short_high_call = next(
+            (
+                c
+                for c in calls[1:]
+                if c["parsed"].strike > long_low_call["parsed"].strike
+            ),
+            None,
+        )
+        if short_high_call is not None:
+            width = short_high_call["parsed"].strike - long_low_call["parsed"].strike
+            net_debit = long_low_call["mid"] - short_high_call["mid"]
+            if net_debit > Decimal("0"):
+                max_profit = width - net_debit
+                candidates.append(
+                    CandidateStructure(
+                        idea_id="F",
+                        structure="bull_call_spread",
+                        thesis="Defined-risk long-delta directional candidate (call debit spread).",
+                        expression_type="LONG_DELTA",
+                        legs=[
+                            _leg("buy", long_low_call),
+                            _leg("sell", short_high_call),
+                        ],
+                        net_credit_debit=-net_debit,
+                        max_profit=max_profit,
+                        max_loss=net_debit,
+                        profit_zone=(
+                            f"Underlying above {long_low_call['parsed'].strike} at expiry"
+                        ),
+                        edge_source="directional long-delta expression",
+                        risk_flags=["theta_drag", "needs_directional_move"],
+                        rank=6,
+                        status="candidate",
+                    )
+                )
+
+    # G: bear_put_spread — long higher put + short lower put. Net DEBIT.
+    #    Max profit = width - debit, max loss = debit. SHORT_DELTA expression.
+    if len(puts) >= 2:
+        long_high_put = puts[0]
+        short_low_put = next(
+            (
+                p
+                for p in puts[1:]
+                if p["parsed"].strike < long_high_put["parsed"].strike
+            ),
+            None,
+        )
+        if short_low_put is not None:
+            width = long_high_put["parsed"].strike - short_low_put["parsed"].strike
+            net_debit = long_high_put["mid"] - short_low_put["mid"]
+            if net_debit > Decimal("0"):
+                max_profit = width - net_debit
+                candidates.append(
+                    CandidateStructure(
+                        idea_id="G",
+                        structure="bear_put_spread",
+                        thesis="Defined-risk short-delta directional candidate (put debit spread).",
+                        expression_type="SHORT_DELTA",
+                        legs=[_leg("buy", long_high_put), _leg("sell", short_low_put)],
+                        net_credit_debit=-net_debit,
+                        max_profit=max_profit,
+                        max_loss=net_debit,
+                        profit_zone=(
+                            f"Underlying below {long_high_put['parsed'].strike} at expiry"
+                        ),
+                        edge_source="directional short-delta expression",
+                        risk_flags=["theta_drag", "needs_directional_move"],
+                        rank=7,
+                        status="candidate",
+                    )
+                )
+
+    # H: long_call — single ATM/slight-OTM call. Net DEBIT.
+    #    Max profit = unbounded (upside), max loss = premium. LONG_DELTA.
+    if calls:
+        atm_call = calls[0]
+        if atm_call.get("mid") and atm_call["mid"] > Decimal("0"):
+            candidates.append(
+                CandidateStructure(
+                    idea_id="H",
+                    structure="long_call",
+                    thesis="Unbounded-upside long-delta candidate (single long call).",
+                    expression_type="LONG_DELTA",
+                    legs=[_leg("buy", atm_call)],
+                    net_credit_debit=-atm_call["mid"],
+                    max_profit=None,
+                    max_loss=atm_call["mid"],
+                    breakevens=[atm_call["parsed"].strike + atm_call["mid"]],
+                    profit_zone=(
+                        f"Underlying above {atm_call['parsed'].strike + atm_call['mid']}"
+                    ),
+                    edge_source="directional long-delta expression",
+                    risk_flags=["theta_decay", "iv_crush_risk"],
+                    rank=8,
+                    status="candidate",
+                )
+            )
+
+    # I: long_put — single ATM/slight-OTM put. Net DEBIT.
+    #    Max profit = strike - premium (bounded), max loss = premium. SHORT_DELTA.
+    if puts:
+        atm_put = puts[0]
+        if atm_put.get("mid") and atm_put["mid"] > Decimal("0"):
+            bounded_max_profit = atm_put["parsed"].strike - atm_put["mid"]
+            candidates.append(
+                CandidateStructure(
+                    idea_id="I",
+                    structure="long_put",
+                    thesis="Bounded-downside short-delta candidate (single long put).",
+                    expression_type="SHORT_DELTA",
+                    legs=[_leg("buy", atm_put)],
+                    net_credit_debit=-atm_put["mid"],
+                    max_profit=bounded_max_profit,
+                    max_loss=atm_put["mid"],
+                    breakevens=[atm_put["parsed"].strike - atm_put["mid"]],
+                    profit_zone=(
+                        f"Underlying below {atm_put['parsed'].strike - atm_put['mid']}"
+                    ),
+                    edge_source="directional short-delta expression",
+                    risk_flags=["theta_decay", "iv_crush_risk"],
+                    rank=9,
+                    status="candidate",
+                )
+            )
+
+    # ─────────────────────────────────────────────────────────────────────
+    # Tag every candidate with dte_band + expression_delta so the v5 AI
+    # prompt can match candidates to (directional_bias, dte_band) chosen in
+    # decision Steps 2 and 5. We do this in one pass at the end rather than
+    # threading the metadata through each constructor — keeps the
+    # individual structure-builders focused on the math.
+    # ─────────────────────────────────────────────────────────────────────
+    as_of_date_for_tag = (
+        (as_of.date() if isinstance(as_of, datetime) else as_of)
+        if as_of is not None
+        else None
+    )
+    for cand in candidates:
+        dte = _first_leg_dte(cand.legs, as_of_date_for_tag)
+        if dte is not None:
+            cand.dte_band = _dte_band(dte)
+        cand.expression_delta = _EXPRESSION_DELTA_BY_STRUCTURE.get(cand.structure, "")
 
     return candidates
 

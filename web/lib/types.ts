@@ -659,6 +659,9 @@ export interface paths {
          *
          *     Returns {codex: row|null, claude: row|null}. 200 even when both are null
          *     so the UI renders the empty Run state instead of a 404.
+         *
+         *     v5.2: also computes provider_consensus by comparing the two providers'
+         *     headlines when both succeeded. UI surfaces this above the tabs.
          */
         get: operations["get_latest_trade_insights_ai_analysis_api_stock__ticker__trade_insights_ai_analysis_latest_get"];
         put?: never;
@@ -695,6 +698,39 @@ export interface paths {
         };
         /** Get Volatility Series */
         get: operations["get_volatility_series_api_stock__ticker__volatility_series_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/trade-insights/priors": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Trade Insight Priors
+         * @description Per-provider per-archetype hit-rate priors from the outcome ledger.
+         *
+         *     Reads `trade_insight_provider_archetype_priors` (migration 055).
+         *     All filter parameters are optional; with none, returns every cohort
+         *     across every provider/version/archetype/bias/entry_state combination
+         *     that has at least one outcome row.
+         *
+         *     `hit_rate_pct` is null when the cohort has zero resolved outcomes
+         *     (everything is still pending). `sample_count` includes pending +
+         *     resolved + expired; `target_hit_count` / `invalidation_hit_count` /
+         *     `pending_count` / `expired_no_resolution_count` are the breakdown.
+         *
+         *     Returns a 200 with an empty `priors` list when no rows match —
+         *     callers should not treat empty as an error.
+         */
+        get: operations["get_trade_insight_priors_api_trade_insights_priors_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -812,10 +848,20 @@ export interface components {
              */
             breakevens: string[];
             /**
+             * Dte Band
+             * @default
+             */
+            dte_band: string;
+            /**
              * Edge Source
              * @default
              */
             edge_source: string;
+            /**
+             * Expression Delta
+             * @default
+             */
+            expression_delta: string;
             /** Expression Type */
             expression_type: string;
             /** Idea Id */
@@ -4288,6 +4334,52 @@ export interface components {
              */
             status: "queued" | "running" | "succeeded" | "failed";
         };
+        /**
+         * TradeInsightAiAntiPin
+         * @description v5.2: structured anti-pin score + scope tag.
+         *
+         *     invoked=False means anti-pin is not the thesis (e.g. structural break
+         *     or trend continuation). The validator's conviction cap (cap at C when
+         *     2/4 hold, anti-pin doesn't fire when ≤1/4) ONLY applies when
+         *     invoked=True. This closes the v5.1 issue where Claude scored 1/4 on
+         *     NVDA but correctly chose downside_break — anti-pin scoring should
+         *     have been informational only, not a conviction blocker.
+         */
+        TradeInsightAiAntiPin: {
+            /**
+             * Cap Reason
+             * @default
+             */
+            cap_reason: string;
+            /** Conditions Met */
+            conditions_met?: string[];
+            /**
+             * Conviction Cap Applied
+             * @default false
+             */
+            conviction_cap_applied: boolean;
+            /**
+             * Direction
+             * @default none
+             * @enum {string}
+             */
+            direction: "upside" | "downside" | "none";
+            /**
+             * Invoked
+             * @default false
+             */
+            invoked: boolean;
+            /**
+             * Max Score
+             * @default 4
+             */
+            max_score: number;
+            /**
+             * Score
+             * @default 0
+             */
+            score: number;
+        };
         /** TradeInsightAiBestExpression */
         TradeInsightAiBestExpression: {
             /** Caveats */
@@ -4342,6 +4434,21 @@ export interface components {
             conviction: string;
             /** Conviction Label */
             conviction_label: string;
+            /**
+             * Directional Bias
+             * @enum {string}
+             */
+            directional_bias: "LONG_DELTA" | "SHORT_DELTA" | "WAIT";
+            /**
+             * Dte Band
+             * @enum {string}
+             */
+            dte_band: "momentum" | "standard" | "trend";
+            /**
+             * Entry State
+             * @enum {string}
+             */
+            entry_state: "ACTIVE" | "CONDITIONAL" | "NO_ENTRY";
             /** Primary Risk */
             primary_risk: string;
             /** Score */
@@ -4358,10 +4465,26 @@ export interface components {
             stance: "bullish" | "bearish" | "neutral" | "mixed" | "wait";
             /** Stance Label */
             stance_label: string;
+            /**
+             * Thesis Archetype
+             * @default data_insufficient
+             * @enum {string}
+             */
+            thesis_archetype: "resistance_rejection" | "support_breakdown" | "breakout_continuation" | "pin_no_trade" | "data_insufficient";
             /** Title */
             title: string;
             /** Top Reason */
             top_reason: string;
+            /**
+             * Trade Intent
+             * @enum {string}
+             */
+            trade_intent: "directional_swing" | "range_income";
+            /**
+             * Underlying Path
+             * @enum {string}
+             */
+            underlying_path: "bullish_continuation" | "bearish_rejection" | "downside_break" | "pinned_no_directional_entry" | "data_insufficient";
             /** Watch Trigger */
             watch_trigger: string;
         };
@@ -4382,10 +4505,16 @@ export interface components {
         /**
          * TradeInsightAiLatestPair
          * @description GET /latest response — null per provider when no succeeded row exists.
+         *
+         *     v5.2: provider_consensus is computed at read time by comparing the
+         *     two providers' headline fields whenever both have succeeded. The
+         *     UI surfaces consensus_grade + actionable_disagreement above the
+         *     [Codex] [Claude] tabs as a quality signal.
          */
         TradeInsightAiLatestPair: {
             claude?: components["schemas"]["TradeInsightAiAnalysisResponse"] | null;
             codex?: components["schemas"]["TradeInsightAiAnalysisResponse"] | null;
+            provider_consensus?: components["schemas"]["TradeInsightAiProviderConsensus"];
         };
         /** TradeInsightAiLevel */
         TradeInsightAiLevel: {
@@ -4427,6 +4556,42 @@ export interface components {
             /** Value */
             value: string;
         };
+        /**
+         * TradeInsightAiOptionLeg
+         * @description v5.3: one leg of a defined-risk option expression.
+         *
+         *     Replaces v5.2's implicit "trigger_level + long_leg_role + short_leg_role"
+         *     coupling with explicit, validator-checkable leg geometry. The
+         *     legs-strategy-match validator enforces, e.g., that a bear_put_spread
+         *     has exactly one long put + one short put with long.strike > short.strike
+         *     and matching expiry. The legs-align-triggers validator enforces that
+         *     the long leg's strike is within tolerance of entry_trigger.level OR
+         *     thesis_trigger.level — making "is the actual long-put strike 215 or
+         *     220?" a falsifiable claim against the model output.
+         *
+         *     No naked shorts: per project safety policy, credit-spread families
+         *     must always include the long protective leg. The validator rejects
+         *     a single-leg short.
+         */
+        TradeInsightAiOptionLeg: {
+            /**
+             * Expiry
+             * Format: date
+             */
+            expiry: string;
+            /**
+             * Option Type
+             * @enum {string}
+             */
+            option_type: "call" | "put";
+            /**
+             * Side
+             * @enum {string}
+             */
+            side: "long" | "short";
+            /** Strike */
+            strike: string;
+        };
         /** TradeInsightAiOutcome */
         TradeInsightAiOutcome: {
             /**
@@ -4434,13 +4599,16 @@ export interface components {
              * Format: date-time
              */
             analysis_produced_at: string;
+            anti_pin?: components["schemas"]["TradeInsightAiAntiPin"];
             /** Best Expressions */
             best_expressions?: components["schemas"]["TradeInsightAiBestExpression"][];
             /** Conflicts */
             conflicts?: components["schemas"]["TradeInsightAiConflict"][];
             dominant_read: components["schemas"]["TradeInsightAiDominantRead"];
+            entry_trigger?: components["schemas"]["TradeInsightAiTriggerComponent"];
             guardrails: components["schemas"]["TradeInsightAiGuardrails"];
             headline: components["schemas"]["TradeInsightAiHeadline"];
+            invalidation?: components["schemas"]["TradeInsightAiTriggerComponent"];
             /** Metric Cards */
             metric_cards: components["schemas"]["TradeInsightAiMetricCard"][];
             /** Missing Data */
@@ -4459,8 +4627,11 @@ export interface components {
             score_breakdown: components["schemas"]["TradeInsightAiScoreBreakdown"][];
             section_cards: components["schemas"]["TradeInsightAiSectionCards"];
             snapshot: components["schemas"]["TradeInsightAiSnapshotMeta"];
+            target_feasibility?: components["schemas"]["TradeInsightAiTargetFeasibility"];
+            thesis_trigger?: components["schemas"]["TradeInsightAiTriggerComponent"];
             /** Ticker */
             ticker: string;
+            trigger_evidence?: components["schemas"]["TradeInsightAiTriggerEvidence"];
             /** Underlying Price */
             underlying_price?: string | null;
             vrp_assessment?: components["schemas"]["TradeInsightAiVrpAssessment"] | null;
@@ -4474,6 +4645,8 @@ export interface components {
             estimated_entry: string;
             /** Idea Id */
             idea_id: string;
+            /** Legs */
+            legs?: components["schemas"]["TradeInsightAiOptionLeg"][];
             /** Management Notes */
             management_notes?: string[];
             /**
@@ -4495,6 +4668,7 @@ export interface components {
             risk_flags_observed?: string[];
             /** Status Observed */
             status_observed: string;
+            strike_role?: components["schemas"]["TradeInsightAiStrikeRole"];
             /** Structure */
             structure: string;
             /**
@@ -4506,6 +4680,100 @@ export interface components {
             title: string;
             /** Why */
             why: string;
+        };
+        /**
+         * TradeInsightAiPriorRow
+         * @description One row from the trade_insight_provider_archetype_priors view.
+         *
+         *     Surfaced by /api/trade-insights/priors. `hit_rate_pct` is computed
+         *     over RESOLVED outcomes only (excludes pending + expired_no_resolution)
+         *     so an all-pending cohort doesn't appear as a 0% hit rate. NULL when
+         *     no outcomes have resolved yet.
+         */
+        TradeInsightAiPriorRow: {
+            /** Directional Bias */
+            directional_bias?: string | null;
+            /** Entry State */
+            entry_state?: string | null;
+            /** Expired No Resolution Count */
+            expired_no_resolution_count: number;
+            /** Hit Rate Pct */
+            hit_rate_pct?: string | null;
+            /** Invalidation Hit Count */
+            invalidation_hit_count: number;
+            /** Median Days To Resolution */
+            median_days_to_resolution?: string | null;
+            /** Pending Count */
+            pending_count: number;
+            /** Prompt Version */
+            prompt_version: string;
+            /**
+             * Provider
+             * @enum {string}
+             */
+            provider: "codex" | "claude";
+            /** Sample Count */
+            sample_count: number;
+            /** Target Hit Count */
+            target_hit_count: number;
+            /** Thesis Archetype */
+            thesis_archetype?: string | null;
+        };
+        /**
+         * TradeInsightAiPriorsResponse
+         * @description Wrapper so the endpoint can grow filter metadata + a `priors` list
+         *     without a breaking change.
+         */
+        TradeInsightAiPriorsResponse: {
+            /** Priors */
+            priors?: components["schemas"]["TradeInsightAiPriorRow"][];
+        };
+        /**
+         * TradeInsightAiProviderConsensus
+         * @description v5.2: cross-provider agreement signal computed at GET /latest time.
+         *
+         *     Not stored per row — derived by comparing the two providers' headline
+         *     fields whenever both have a succeeded row. Surfaces actionable
+         *     disagreement to the operator (e.g. "ACTIVE vs CONDITIONAL depends on
+         *     whether the latest daily close cleared 215").
+         */
+        TradeInsightAiProviderConsensus: {
+            /**
+             * Actionable Disagreement
+             * @default
+             */
+            actionable_disagreement: string;
+            /**
+             * Bias Agreement
+             * @default false
+             */
+            bias_agreement: boolean;
+            /**
+             * Consensus Grade
+             * @default missing
+             * @enum {string}
+             */
+            consensus_grade: "full" | "partial" | "divergent" | "missing";
+            /**
+             * Dte Band Agreement
+             * @default false
+             */
+            dte_band_agreement: boolean;
+            /**
+             * Entry State Agreement
+             * @default false
+             */
+            entry_state_agreement: boolean;
+            /**
+             * Path Agreement
+             * @default false
+             */
+            path_agreement: boolean;
+            /**
+             * Structure Agreement
+             * @default false
+             */
+            structure_agreement: boolean;
         };
         /** TradeInsightAiRejectedIdea */
         TradeInsightAiRejectedIdea: {
@@ -4608,6 +4876,164 @@ export interface components {
             source_notes?: string[];
             /** Trade Insights Input Hash */
             trade_insights_input_hash: string;
+        };
+        /**
+         * TradeInsightAiStrikeRole
+         * @description v5.2: explicit market-structure roles + Decimal-strict price levels.
+         *
+         *     Levels were strings in v5.1; that let Claude emit nested dicts which
+         *     Pydantic silently stringified and rendered as JSON literals in the UI.
+         *     v5.2 coerces to Decimal via a pre-validator that knows how to extract
+         *     the strike key from a dict.
+         *
+         *     Source paths are optional but encouraged so the UI can attribute each
+         *     level to a specific key in the deterministic payload.
+         */
+        TradeInsightAiStrikeRole: {
+            /** Invalid Level */
+            invalid_level?: string | null;
+            /**
+             * Invalid Source Path
+             * @default
+             */
+            invalid_source_path: string;
+            /**
+             * Long Leg Role
+             * @default n/a
+             * @enum {string}
+             */
+            long_leg_role: "trigger_level" | "support_reclaim" | "atm_delta_anchor" | "deep_itm_proxy" | "n/a";
+            /**
+             * Short Leg Role
+             * @default n/a
+             * @enum {string}
+             */
+            short_leg_role: "target_level" | "next_call_wall" | "second_magnet" | "next_put_wall" | "next_downside_target" | "n/a";
+            /** Target Level */
+            target_level?: string | null;
+            /**
+             * Target Source Path
+             * @default
+             */
+            target_source_path: string;
+            /** Trigger Level */
+            trigger_level?: string | null;
+            /**
+             * Trigger Source Path
+             * @default
+             */
+            trigger_source_path: string;
+        };
+        /**
+         * TradeInsightAiTargetFeasibility
+         * @description v5.2: target-distance vs expected-move sanity layer.
+         *
+         *     Optional — when expected_move data is missing from the payload the
+         *     feasibility is 'missing' and the validator does not block. When
+         *     present, this surfaces whether the target is realistic within the
+         *     5-10 session hold.
+         */
+        TradeInsightAiTargetFeasibility: {
+            /** Distance To Target Pct */
+            distance_to_target_pct?: string | null;
+            /**
+             * Expected Move Available
+             * @default false
+             */
+            expected_move_available: boolean;
+            /**
+             * Expected Move Source Path
+             * @default
+             */
+            expected_move_source_path: string;
+            /**
+             * Feasibility
+             * @default missing
+             * @enum {string}
+             */
+            feasibility: "inside_expected_move" | "outside_expected_move" | "missing";
+        };
+        /**
+         * TradeInsightAiTriggerComponent
+         * @description v5.3: a single point on the trade's state machine.
+         *
+         *     The v5.2 schema overloaded `trigger_level` across two distinct
+         *     semantics (NVDA Codex emitted 220 as "broken wall — already fired",
+         *     Claude emitted 215 as "continuation entry — not yet fired"), which
+         *     is why providers split on ENTRY_STATE despite agreeing on archetype
+         *     and direction. v5.3 decomposes that into three required components —
+         *     `thesis_trigger`, `entry_trigger`, `invalidation` — each carrying its
+         *     own level, semantic meaning, and `fired` boolean evaluated against
+         *     actual daily-close evidence. ENTRY_STATE becomes a mechanical
+         *     function of the trigger booleans rather than a model judgment.
+         *
+         *     Both `thesis_trigger` and `entry_trigger` may share the same level
+         *     when the trade plan treats the broken wall as both the thesis
+         *     confirmation AND the entry signal — but their `meaning` strings
+         *     must differ, and their `fired` booleans are evaluated independently
+         *     against their own evidence rules.
+         */
+        TradeInsightAiTriggerComponent: {
+            /** Evidence Close */
+            evidence_close?: string | null;
+            /** Evidence Date */
+            evidence_date?: string | null;
+            /**
+             * Fired
+             * @default false
+             */
+            fired: boolean;
+            /** Level */
+            level?: string | null;
+            /**
+             * Meaning
+             * @default
+             */
+            meaning: string;
+            /**
+             * Source Path
+             * @default
+             */
+            source_path: string;
+        };
+        /**
+         * TradeInsightAiTriggerEvidence
+         * @description v5.2: payload-proven trigger fire evidence.
+         *
+         *     The deterministic ACTIVE_TRIGGER_EVIDENCE_RULE check uses these fields
+         *     to verify that entry_state=ACTIVE is justified by an actual completed
+         *     daily close in the payload — not by intraday spot or model inference.
+         *
+         *     trigger_fired=False is the default; the lenient coercer fills this in
+         *     by reading the latest completed stock_history row and comparing its
+         *     close to strike_role.trigger_level.
+         *
+         *     When trigger_fired=False but the model emitted entry_state=ACTIVE,
+         *     the validator rejects (or auto-downgrades) to CONDITIONAL.
+         */
+        TradeInsightAiTriggerEvidence: {
+            /** Evidence Close */
+            evidence_close?: string | null;
+            /** Evidence Close Date */
+            evidence_close_date?: string | null;
+            /**
+             * Source Path
+             * @default
+             */
+            source_path: string;
+            /**
+             * Trigger Fired
+             * @default false
+             */
+            trigger_fired: boolean;
+            /** Trigger Level */
+            trigger_level?: string | null;
+            /**
+             * Trigger Type
+             * @default unknown
+             * @enum {string}
+             */
+            trigger_type: "daily_close" | "two_session_hold" | "unknown";
         };
         /** TradeInsightAiVrpAssessment */
         TradeInsightAiVrpAssessment: {
@@ -6511,6 +6937,41 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["VolatilitySeriesResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_trade_insight_priors_api_trade_insights_priors_get: {
+        parameters: {
+            query?: {
+                provider?: string | null;
+                prompt_version?: string | null;
+                archetype?: string | null;
+                bias?: string | null;
+                entry_state?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TradeInsightAiPriorsResponse"];
                 };
             };
             /** @description Validation Error */

@@ -21,6 +21,9 @@ from uw_scan.models import (
     TradeInsightAiAnalysisResponse,
     TradeInsightAiAnalysisStub,
     TradeInsightAiLatestPair,
+    TradeInsightAiPriorRow,
+    TradeInsightAiPriorsResponse,
+    TradeInsightAiProviderConsensus,
     TradeInsightsResponse,
 )
 from uw_scan.reports.single_stock import assemble_single_stock_report
@@ -123,6 +126,26 @@ def _row_to_ai_response(
     *,
     reused: bool = False,
 ) -> TradeInsightAiAnalysisResponse:
+    # Legacy read-back guard: outcome_jsonb persisted under any prior
+    # PROMPT_VERSION (v4, v5) will not satisfy the current schema's
+    # required fields, so model construction would raise ValidationError
+    # and 500 the endpoint. Drop the outcome and surface an explanatory
+    # error_message instead; the UI paints the "legacy, re-run" badge on
+    # top of this signal. The row itself (status, prompt_version, ids)
+    # still renders so the UI can offer a re-run button. Equality against
+    # PROMPT_VERSION is the single source of truth — works for every
+    # future version bump without code changes here.
+    row_prompt_version = row.get("prompt_version")
+    outcome_jsonb = row.get("outcome_jsonb")
+    if outcome_jsonb is not None and row_prompt_version != PROMPT_VERSION:
+        outcome_jsonb = None
+        legacy_note = (
+            f"Outcome stored under prompt_version={row_prompt_version!r}; "
+            f"current version is {PROMPT_VERSION!r}. Re-run to render."
+        )
+        error_message = row.get("error_message") or legacy_note
+    else:
+        error_message = row.get("error_message")
     return TradeInsightAiAnalysisResponse(
         analysis_id=UUID(str(row["analysis_id"])),
         ticker=row["ticker"],
@@ -131,12 +154,12 @@ def _row_to_ai_response(
         analysis_input_hash=row["analysis_input_hash"],
         model=row["model"],
         provider=row.get("provider", "codex"),
-        prompt_version=row["prompt_version"],
+        prompt_version=row_prompt_version,
         status=row["status"],
         produced_at=row.get("produced_at"),
-        outcome=row.get("outcome_jsonb"),
+        outcome=outcome_jsonb,
         markdown=row.get("markdown"),
-        error_message=row.get("error_message"),
+        error_message=error_message,
         requested_at=row["requested_at"],
         started_at=row.get("started_at"),
         finished_at=row.get("finished_at"),
@@ -312,6 +335,83 @@ def post_trade_insights_ai_analysis(
     return TradeInsightAiAnalysisEnqueueResponse(analyses=stubs)
 
 
+def _compute_provider_consensus(
+    codex: TradeInsightAiAnalysisResponse | None,
+    claude: TradeInsightAiAnalysisResponse | None,
+) -> TradeInsightAiProviderConsensus:
+    """v5.2: compute cross-provider agreement at GET /latest time.
+
+    Compares the two providers' headline fields whenever both have a
+    succeeded outcome. The UI surfaces consensus_grade +
+    actionable_disagreement above the [Codex] [Claude] tabs."""
+    if not (codex and codex.outcome and claude and claude.outcome):
+        return TradeInsightAiProviderConsensus(consensus_grade="missing")
+
+    cx_h = codex.outcome.headline
+    cl_h = claude.outcome.headline
+    cx_pref = codex.outcome.preferred_expression
+    cl_pref = claude.outcome.preferred_expression
+
+    bias_ok = cx_h.directional_bias == cl_h.directional_bias
+    struct_ok = bool(cx_pref and cl_pref and cx_pref.structure == cl_pref.structure)
+    state_ok = cx_h.entry_state == cl_h.entry_state
+    path_ok = cx_h.underlying_path == cl_h.underlying_path
+    dte_ok = cx_h.dte_band == cl_h.dte_band
+
+    agreements = [bias_ok, struct_ok, state_ok, path_ok, dte_ok]
+    n_agree = sum(1 for a in agreements if a)
+
+    if n_agree == 5:
+        grade = "full"
+    elif n_agree >= 3:
+        grade = "partial"
+    else:
+        grade = "divergent"
+
+    # Single-sentence actionable disagreement string — only when there's
+    # something to act on. Prioritize bias > structure > entry_state >
+    # path > dte_band since those are the most consequential.
+    disagreement = ""
+    if not bias_ok:
+        disagreement = (
+            f"Directional bias differs: Codex={cx_h.directional_bias}, "
+            f"Claude={cl_h.directional_bias}. Re-evaluate before sizing."
+        )
+    elif not struct_ok:
+        cx_s = cx_pref.structure if cx_pref else "none"
+        cl_s = cl_pref.structure if cl_pref else "none"
+        disagreement = (
+            f"Same directional bias but different structures: Codex={cx_s}, "
+            f"Claude={cl_s}."
+        )
+    elif not state_ok:
+        disagreement = (
+            f"Entry state differs: Codex={cx_h.entry_state}, "
+            f"Claude={cl_h.entry_state} — depends on whether the latest "
+            "completed daily close satisfies the trigger."
+        )
+    elif not path_ok:
+        disagreement = (
+            f"Underlying path differs: Codex={cx_h.underlying_path}, "
+            f"Claude={cl_h.underlying_path}. Same direction but different "
+            "spatial archetype (rejection vs break)."
+        )
+    elif not dte_ok:
+        disagreement = (
+            f"DTE band differs: Codex={cx_h.dte_band}, Claude={cl_h.dte_band}."
+        )
+
+    return TradeInsightAiProviderConsensus(
+        bias_agreement=bias_ok,
+        structure_agreement=struct_ok,
+        entry_state_agreement=state_ok,
+        path_agreement=path_ok,
+        dte_band_agreement=dte_ok,
+        consensus_grade=grade,
+        actionable_disagreement=disagreement,
+    )
+
+
 @router.get(
     "/stock/{ticker}/trade-insights/ai-analysis/latest",
     response_model=TradeInsightAiLatestPair,
@@ -320,18 +420,28 @@ def get_latest_trade_insights_ai_analysis(
     ticker: str,
     repo: Repository = Depends(get_repo),
 ) -> TradeInsightAiLatestPair:
-    """Latest succeeded row per provider as a keyed dict.
+    """Latest terminal-state row per provider as a keyed dict.
 
-    Returns {codex: row|null, claude: row|null}. 200 even when both are null
-    so the UI renders the empty Run state instead of a 404.
+    Returns {codex: row|null, claude: row|null}. Succeeded rows take priority
+    over failed rows at the same finished_at; failed rows are returned (with
+    error_message populated) when no succeeded row exists, so the UI can
+    distinguish "never ran" from "ran and failed." 200 even when both are
+    null so the UI renders the empty Run state instead of a 404.
+
+    v5.2: also computes provider_consensus by comparing the two providers'
+    headlines when both have a succeeded outcome (failed rows are treated as
+    missing for consensus purposes — see _compute_provider_consensus).
     """
     pair = repo.find_latest_trade_insight_ai_analyses_per_provider(
         ticker=ticker.upper(),
         prompt_version=PROMPT_VERSION,
     )
+    codex = _row_to_ai_response(pair["codex"]) if pair["codex"] else None
+    claude = _row_to_ai_response(pair["claude"]) if pair["claude"] else None
     return TradeInsightAiLatestPair(
-        codex=_row_to_ai_response(pair["codex"]) if pair["codex"] else None,
-        claude=_row_to_ai_response(pair["claude"]) if pair["claude"] else None,
+        codex=codex,
+        claude=claude,
+        provider_consensus=_compute_provider_consensus(codex, claude),
     )
 
 
@@ -348,3 +458,79 @@ def get_trade_insights_ai_analysis(
     if row is None:
         raise HTTPException(status_code=404, detail="AI analysis not found")
     return _row_to_ai_response(row)
+
+
+@router.get(
+    "/trade-insights/priors",
+    response_model=TradeInsightAiPriorsResponse,
+)
+def get_trade_insight_priors(
+    provider: str | None = None,
+    prompt_version: str | None = None,
+    archetype: str | None = None,
+    bias: str | None = None,
+    entry_state: str | None = None,
+    repo: Repository = Depends(get_repo),
+) -> TradeInsightAiPriorsResponse:
+    """Per-provider per-archetype hit-rate priors from the outcome ledger.
+
+    Reads `trade_insight_provider_archetype_priors` (migration 055).
+    All filter parameters are optional; with none, returns every cohort
+    across every provider/version/archetype/bias/entry_state combination
+    that has at least one outcome row.
+
+    `hit_rate_pct` is null when the cohort has zero resolved outcomes
+    (everything is still pending). `sample_count` includes pending +
+    resolved + expired; `target_hit_count` / `invalidation_hit_count` /
+    `pending_count` / `expired_no_resolution_count` are the breakdown.
+
+    Returns a 200 with an empty `priors` list when no rows match —
+    callers should not treat empty as an error.
+    """
+    sql = """
+        SELECT provider, prompt_version, thesis_archetype, directional_bias,
+               entry_state, sample_count, target_hit_count,
+               invalidation_hit_count, pending_count,
+               expired_no_resolution_count, hit_rate_pct,
+               median_days_to_resolution
+          FROM uw_scan.trade_insight_provider_archetype_priors
+         WHERE (%s::text IS NULL OR provider = %s)
+           AND (%s::text IS NULL OR prompt_version = %s)
+           AND (%s::text IS NULL OR thesis_archetype = %s)
+           AND (%s::text IS NULL OR directional_bias = %s)
+           AND (%s::text IS NULL OR entry_state = %s)
+         ORDER BY sample_count DESC, provider, prompt_version
+    """
+    params = (
+        provider,
+        provider,
+        prompt_version,
+        prompt_version,
+        archetype,
+        archetype,
+        bias,
+        bias,
+        entry_state,
+        entry_state,
+    )
+    with repo.conn.cursor() as cur:
+        cur.execute(sql, params)
+        rows = cur.fetchall()
+    priors = [
+        TradeInsightAiPriorRow(
+            provider=row[0],
+            prompt_version=row[1],
+            thesis_archetype=row[2],
+            directional_bias=row[3],
+            entry_state=row[4],
+            sample_count=row[5],
+            target_hit_count=row[6],
+            invalidation_hit_count=row[7],
+            pending_count=row[8],
+            expired_no_resolution_count=row[9],
+            hit_rate_pct=row[10],
+            median_days_to_resolution=row[11],
+        )
+        for row in rows
+    ]
+    return TradeInsightAiPriorsResponse(priors=priors)
