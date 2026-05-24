@@ -1,4 +1,4 @@
-import { render } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { VannaPanel } from "@/components/stock/panels/greeks/VannaPanel";
 
@@ -62,7 +62,8 @@ describe("VannaPanel", () => {
     expect(
       container.querySelectorAll("[data-testid='exposure-tile']"),
     ).toHaveLength(4);
-    expect(container.querySelector("select")).not.toBeNull();
+    expect(screen.getByText("Expiry:")).toBeTruthy();
+    expect(screen.getByRole("listbox")).toBeTruthy();
     expect(
       container.querySelector("path[data-testid='net-line']"),
     ).not.toBeNull();

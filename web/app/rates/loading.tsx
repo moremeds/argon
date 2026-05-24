@@ -4,8 +4,8 @@ export default function Loading() {
       style={{
         minHeight: "100vh",
         padding: 32,
-        background: "#f4f3fd",
-        color: "#3b3852",
+        background: "var(--bg-base)",
+        color: "var(--text-muted)",
         fontFamily: "var(--font-mono)",
         fontSize: 12,
         textTransform: "uppercase",

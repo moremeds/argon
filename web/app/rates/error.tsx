@@ -6,13 +6,22 @@ export default function Error({ error }: { error: Error }) {
       style={{
         minHeight: "100vh",
         padding: 32,
-        background: "#f4f3fd",
-        color: "#3b3852",
+        background: "var(--bg-base)",
+        color: "var(--text-primary)",
         fontFamily: "var(--font-sans)",
       }}
     >
-      <h1 style={{ margin: 0, fontSize: 24 }}>Rates desk unavailable</h1>
-      <p style={{ maxWidth: 760 }}>
+      <h1
+        style={{
+          margin: 0,
+          fontFamily: "var(--font-mono)",
+          fontSize: 24,
+          letterSpacing: 1,
+        }}
+      >
+        RATES DESK UNAVAILABLE
+      </h1>
+      <p style={{ maxWidth: 760, color: "var(--text-secondary)" }}>
         The rates API returned an error instead of a persisted snapshot.
       </p>
       <pre
@@ -20,10 +29,11 @@ export default function Error({ error }: { error: Error }) {
           maxWidth: 960,
           overflowX: "auto",
           padding: 16,
-          background: "#ffffff",
-          border: "1px solid #dedbec",
-          borderRadius: 8,
-          color: "#8f2e3c",
+          background: "var(--bg-panel)",
+          border: "1px solid var(--border-dim)",
+          borderRadius: 4,
+          color: "var(--negative)",
+          fontFamily: "var(--font-mono)",
         }}
       >
         {error.message}

@@ -16,8 +16,7 @@
   padding: 16px 0 12px;
   margin: 0 auto 18px;
   max-width: 1440px;
-  background: rgba(10, 15, 20, 0.88);
-  backdrop-filter: blur(14px);
+  background: var(--bg-base);
   border-bottom: 1px solid var(--border-dim);
 }
 
@@ -45,13 +44,14 @@
 }
 
 .header h1 {
+  font-family: var(--font-mono), "IBM Plex Mono", monospace;
   font-size: 26px;
   line-height: 1.1;
   white-space: nowrap;
 }
 
 .header h1 span {
-  color: var(--negative);
+  color: var(--positive);
 }
 
 .titleLockup p,
@@ -119,10 +119,14 @@
   font-size: 13px;
   font-weight: 700;
   border: 1px solid transparent;
-  border-radius: 999px;
+  border-radius: 3px;
   background: transparent;
   padding: 10px 12px;
   white-space: nowrap;
+  transition:
+    border-color 160ms var(--ease-out),
+    color 160ms var(--ease-out),
+    background 160ms var(--ease-out);
 }
 
 .nav a:hover,
@@ -133,9 +137,9 @@
 }
 
 .navActive {
-  background: var(--text-primary);
-  border-color: var(--text-primary);
-  color: var(--bg-base);
+  background: var(--accent-bg);
+  border-color: var(--accent-bg);
+  color: var(--accent-text);
 }
 
 .section {
@@ -144,7 +148,7 @@
   padding: 20px;
   background: var(--bg-panel);
   border: 1px solid var(--border-dim);
-  border-radius: 8px;
+  border-radius: 4px;
   scroll-margin-top: 104px;
 }
 
@@ -166,8 +170,9 @@
   align-items: center;
   min-height: 26px;
   padding: 0 10px;
-  border-radius: 999px;
-  background: rgba(5, 173, 152, 0.12);
+  border: 1px solid rgba(5, 173, 152, 0.32);
+  border-radius: 3px;
+  background: rgba(5, 173, 152, 0.08);
   color: var(--positive);
   font-size: 11px;
   text-transform: uppercase;
@@ -183,9 +188,9 @@
 
 .kpiTile {
   border: 1px solid var(--border-dim);
-  border-radius: 8px;
+  border-radius: 4px;
   padding: 14px;
-  background: var(--bg-panel-raised);
+  background: var(--bg-panel);
 }
 
 .kpiTile span,
@@ -217,15 +222,12 @@
 
 .stanceCard {
   --stance-accent: var(--text-muted);
-  --stance-tint: rgba(74, 92, 113, 0.16);
   position: relative;
   min-height: 150px;
   overflow: hidden;
   border: 1px solid var(--border-dim);
-  border-radius: 8px;
-  background:
-    linear-gradient(135deg, var(--stance-tint), transparent 58%),
-    var(--bg-panel-raised);
+  border-radius: 4px;
+  background: var(--bg-panel);
   padding: 18px;
 }
 
@@ -238,7 +240,7 @@
   font-size: 42px;
   font-weight: 800;
   line-height: 1;
-  opacity: 0.16;
+  opacity: 0.08;
   pointer-events: none;
   user-select: none;
 }
@@ -269,17 +271,14 @@
 
 .stancePositive {
   --stance-accent: var(--positive);
-  --stance-tint: rgba(5, 173, 152, 0.14);
 }
 
 .stanceNegative {
   --stance-accent: var(--negative);
-  --stance-tint: rgba(255, 91, 113, 0.14);
 }
 
 .stanceNeutral {
   --stance-accent: var(--text-secondary);
-  --stance-tint: rgba(74, 92, 113, 0.14);
 }
 
 .curveGrid {
@@ -293,9 +292,9 @@
 .tableWrap {
   min-width: 0;
   border: 1px solid var(--border-dim);
-  border-radius: 8px;
+  border-radius: 4px;
   overflow: hidden;
-  background: var(--bg-panel-raised);
+  background: var(--bg-panel);
 }
 
 .chartPanel {
@@ -336,7 +335,7 @@
 .chartLegend i {
   width: 22px;
   height: 3px;
-  border-radius: 999px;
+  border-radius: 2px;
 }
 
 .chartPanel svg {
@@ -420,8 +419,8 @@
 .synthesis,
 .sourceRow {
   border: 1px solid var(--border-dim);
-  border-radius: 8px;
-  background: var(--bg-panel-raised);
+  border-radius: 4px;
+  background: var(--bg-panel);
   padding: 12px;
 }
 
@@ -463,8 +462,8 @@
 .decompSources {
   min-width: 0;
   border: 1px solid var(--border-dim);
-  border-radius: 8px;
-  background: var(--bg-panel-raised);
+  border-radius: 4px;
+  background: var(--bg-panel);
   padding: 18px;
 }
 
@@ -529,22 +528,18 @@
   min-width: 0;
   min-height: 124px;
   border: 1px solid var(--border-dim);
-  border-radius: 8px;
+  border-radius: 4px;
   background: var(--bg-base);
   padding: 9px;
   align-items: start;
 }
 
 .decompTilePrimary {
-  background:
-    linear-gradient(135deg, rgba(255, 91, 113, 0.12), transparent 62%),
-    var(--bg-base);
+  border-color: rgba(232, 93, 108, 0.38);
 }
 
 .decompTileAccent {
-  background:
-    linear-gradient(135deg, rgba(5, 173, 152, 0.12), transparent 62%),
-    var(--bg-base);
+  border-color: rgba(5, 173, 152, 0.38);
 }
 
 .decompTile span,
@@ -603,7 +598,7 @@
 .ratesReadGrid article {
   min-width: 0;
   border: 1px solid var(--border-dim);
-  border-radius: 8px;
+  border-radius: 4px;
   background: var(--bg-base);
   padding: 14px;
 }
@@ -736,7 +731,7 @@
   display: block;
   height: 10px;
   overflow: hidden;
-  border-radius: 999px;
+  border-radius: 2px;
   background: var(--bg-base);
 }
 
@@ -770,7 +765,7 @@
 .decompSourceGrid article {
   min-height: 128px;
   border: 1px solid var(--border-dim);
-  border-radius: 8px;
+  border-radius: 4px;
   background: var(--bg-base);
   padding: 16px;
 }
@@ -808,12 +803,8 @@
   flex-direction: column;
   gap: 12px;
   border: 1px solid var(--border-dim);
-  border-radius: 8px;
-  background: linear-gradient(
-    180deg,
-    rgba(5, 173, 152, 0.16),
-    var(--bg-panel-raised)
-  );
+  border-radius: 4px;
+  background: var(--bg-panel);
   color: var(--text-primary);
   padding: 18px;
 }
@@ -831,8 +822,8 @@
 
 .scoreGroup {
   border: 1px solid var(--border-dim);
-  border-radius: 8px;
-  background: var(--bg-panel-raised);
+  border-radius: 4px;
+  background: var(--bg-panel);
   overflow: hidden;
 }
 
@@ -869,7 +860,7 @@
   width: 68px;
   padding: 7px 8px;
   border: 1px solid var(--border-dim);
-  border-radius: 6px;
+  border-radius: 4px;
   background: var(--bg-base);
   color: var(--text-primary);
 }
@@ -921,8 +912,8 @@
   min-height: 360px;
   flex-direction: column;
   border: 1px solid var(--border-dim);
-  border-radius: 8px;
-  background: var(--bg-panel-raised);
+  border-radius: 4px;
+  background: var(--bg-panel);
   padding: 18px;
 }
 
@@ -1007,7 +998,7 @@
   gap: 6px;
   min-width: 0;
   border: 1px solid var(--border-dim);
-  border-radius: 8px;
+  border-radius: 4px;
   background: var(--bg-base);
   padding: 11px 6px;
   text-align: center;
@@ -1032,7 +1023,7 @@
   display: block;
   height: 5px;
   overflow: hidden;
-  border-radius: 999px;
+  border-radius: 2px;
   background: var(--bg-hover);
 }
 
@@ -1048,7 +1039,7 @@
   min-height: 130px;
   place-items: center;
   border: 1px dashed var(--border-dim);
-  border-radius: 8px;
+  border-radius: 4px;
   color: var(--text-muted);
   font-size: 12px;
   font-weight: 800;
@@ -1076,15 +1067,15 @@
   gap: 14px;
   min-width: 0;
   border: 1px solid var(--border-dim);
-  border-radius: 8px;
-  background: var(--bg-panel-raised);
+  border-radius: 4px;
+  background: var(--bg-panel);
   padding: 18px;
 }
 
 .supplyTableWrap {
   overflow-x: auto;
   border: 1px solid var(--border-dim);
-  border-radius: 8px;
+  border-radius: 4px;
 }
 
 .supplyTable {
@@ -1166,7 +1157,7 @@
 .positioningTableWrap {
   overflow-x: auto;
   border: 1px solid var(--border-dim);
-  border-radius: 8px;
+  border-radius: 4px;
 }
 
 .positioningTable {
@@ -1260,7 +1251,7 @@
   margin: 16vh auto 0;
   padding: 28px;
   border: 1px solid var(--border-dim);
-  border-radius: 8px;
+  border-radius: 4px;
   background: var(--bg-panel);
 }
 

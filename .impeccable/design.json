@@ -1,0 +1,150 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-05-24T00:00:00+08:00",
+  "title": "Design System: Unusual Whales Opportunity Scanner",
+  "extensions": {
+    "colorMeta": {
+      "base-void": {
+        "role": "neutral",
+        "displayName": "Base Void",
+        "canonical": "#0a0f14",
+        "tonalRamp": ["#05080b", "#0a0f14", "#0f1519", "#151c22", "#1e293b", "#475569", "#94a3b8", "#e2e8f0"]
+      },
+      "signal-teal": {
+        "role": "primary",
+        "displayName": "Signal Teal",
+        "canonical": "#05ad98",
+        "tonalRamp": ["#022b27", "#03564d", "#048a7a", "#05ad98", "#0fcfb5", "#5eead4", "#99f6e4", "#ccfbf1"]
+      },
+      "risk-red": {
+        "role": "secondary",
+        "displayName": "Risk Red",
+        "canonical": "#e85d6c",
+        "tonalRamp": ["#3f0b13", "#7a1827", "#b4233a", "#d4183d", "#e85d6c", "#f4a0aa", "#ffd4da", "#fff0f2"]
+      },
+      "warning-amber": {
+        "role": "secondary",
+        "displayName": "Warning Amber",
+        "canonical": "#f5a623",
+        "tonalRamp": ["#3a2302", "#6f4305", "#a76508", "#d4910a", "#f5a623", "#f8c15d", "#ffe1a3", "#fff3d7"]
+      },
+      "volatility-violet": {
+        "role": "tertiary",
+        "displayName": "Volatility Violet",
+        "canonical": "#8b5cf6",
+        "tonalRamp": ["#24104f", "#3b1c7a", "#5b2bbd", "#7c3aed", "#8b5cf6", "#a78bfa", "#ddd6fe", "#f3f0ff"]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Route Display",
+        "purpose": "Compact route headers and large data labels."
+      },
+      "body": {
+        "displayName": "Analytical Body",
+        "purpose": "Short explanatory reads and synthesis text."
+      },
+      "label": {
+        "displayName": "Data Label",
+        "purpose": "Chips, timestamps, metadata, and compact table headings."
+      }
+    },
+    "shadows": [
+      {
+        "name": "dialog-shadow",
+        "value": "0 24px 64px rgba(0, 0, 0, 0.44)",
+        "purpose": "Blocking dialogs and confirmations."
+      },
+      {
+        "name": "popover-shadow",
+        "value": "0 12px 30px rgba(0, 0, 0, 0.35)",
+        "purpose": "Tooltips and compact floating explanations."
+      }
+    ],
+    "motion": [
+      {
+        "name": "ease-out",
+        "value": "cubic-bezier(0.25, 1, 0.5, 1)",
+        "purpose": "Short state transitions for product controls."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "mobile-shell",
+        "value": "720px"
+      },
+      {
+        "name": "rates-collapse",
+        "value": "880px"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Secondary Button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "Default compact action used in dashboard and scanner toolbars.",
+      "html": "<button class=\"ds-btn-secondary\">Scan all</button>",
+      "css": ".ds-btn-secondary { padding: 4px 10px; font-family: IBM Plex Mono, monospace; font-size: 11px; background: transparent; color: #94a3b8; border: 1px solid #1e293b; border-radius: 3px; } .ds-btn-secondary:hover { color: #e2e8f0; border-color: #05ad98; } .ds-btn-secondary:focus-visible { outline: 2px solid #e2e8f0; outline-offset: 2px; }"
+    },
+    {
+      "name": "Active Chip",
+      "kind": "chip",
+      "refersTo": "chip-active",
+      "description": "Selected filter state.",
+      "html": "<button class=\"ds-chip-active\">C-BULL</button>",
+      "css": ".ds-chip-active { padding: 4px 10px; font-family: IBM Plex Mono, monospace; font-size: 11px; background: #05ad98; color: #0a0f14; border: 1px solid #05ad98; border-radius: 3px; } .ds-chip-active:focus-visible { outline: 2px solid #e2e8f0; outline-offset: 2px; }"
+    },
+    {
+      "name": "Data Card",
+      "kind": "card",
+      "refersTo": "card",
+      "description": "Dense bordered product surface for metrics and analytical blocks.",
+      "html": "<article class=\"ds-card\"><span>IVR</span><strong>42</strong><small>updated 09:32</small></article>",
+      "css": ".ds-card { padding: 12px; background: #0f1519; color: #e2e8f0; border: 1px solid #1e293b; border-radius: 4px; font-family: IBM Plex Mono, monospace; } .ds-card span, .ds-card small { display: block; color: #475569; font-size: 11px; text-transform: uppercase; } .ds-card strong { display: block; margin: 7px 0; font-size: 24px; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Desk Tape",
+    "overview": "This product should feel like a live trading desk condensed into software: quiet, dark, compact, source-aware, and precise. It is not trying to impress with decoration. It earns trust by making dense data scannable and by keeping the same component vocabulary across watchlist cards, scanner candidates, stock detail panels, macro views, and admin controls.",
+    "keyCharacteristics": [
+      "Dark operational surfaces with restrained teal as the primary action and current-state accent.",
+      "Mono-heavy labels and data blocks, with Inter available for longer explanatory copy.",
+      "Compact cards and tables using 4px corners, 1px borders, and narrow gaps.",
+      "Semantic colors tied to market meaning, not decoration."
+    ],
+    "rules": [
+      {
+        "name": "The Meaning-First Color Rule",
+        "body": "Do not introduce color unless it communicates state, category, selection, freshness, or chart series identity.",
+        "section": "colors"
+      },
+      {
+        "name": "The Data Label Rule",
+        "body": "Labels, timestamps, IDs, and metric captions use IBM Plex Mono. Longer human-readable reads may use Inter.",
+        "section": "typography"
+      },
+      {
+        "name": "The Flat-At-Rest Rule",
+        "body": "Cards, tables, route sections, and charts do not use shadows at rest.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "Do keep route surfaces on `--bg-base`, `--bg-panel`, and `--bg-panel-raised`.",
+      "Do use 4px card corners and 1px borders for most product panels.",
+      "Do reserve teal, red, amber, violet, and magenta for semantic state or chart identity.",
+      "Do use mono labels for compact data and timestamps.",
+      "Do keep layouts dense, predictable, and source-aware."
+    ],
+    "donts": [
+      "Don't add marketing-page hero composition to product routes.",
+      "Don't use decorative gradients, glassmorphism, or large ambient blur.",
+      "Don't introduce navy-and-gold fintech styling.",
+      "Don't use side-stripe borders as card accents.",
+      "Don't use gradient text.",
+      "Don't change the palette per route unless the data role requires it."
+    ]
+  }
+}
