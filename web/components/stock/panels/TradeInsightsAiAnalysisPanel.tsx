@@ -14,6 +14,10 @@ import {
   isInFlight,
   useAiAnalysisPolling,
 } from "./tradeInsightsAi/useAiAnalysisPolling";
+import { ConsensusBreakdown } from "./tradeInsightsAi/ConsensusBreakdown";
+import { LegsTable } from "./tradeInsightsAi/LegsTable";
+import { ProviderTabBar } from "./tradeInsightsAi/ProviderTabBar";
+import { TriggerEvidenceCard } from "./tradeInsightsAi/TriggerEvidenceCard";
 
 export { AI_ANALYSIS_POLL_MAX_MS } from "./tradeInsightsAi/useAiAnalysisPolling";
 
@@ -736,86 +740,7 @@ function OutcomeGrid({
                     ]}
                   />
                 )}
-                {preferred.legs && preferred.legs.length > 0 && (
-                  <div data-testid="ai-preferred-legs">
-                    <SmallHeading>Option Legs (v5.3)</SmallHeading>
-                    <div
-                      style={{
-                        display: "grid",
-                        gridTemplateColumns:
-                          "minmax(60px, max-content) minmax(60px, max-content) 1fr minmax(96px, max-content)",
-                        gap: "4px 12px",
-                        fontFamily:
-                          "var(--font-mono, IBM Plex Mono, monospace)",
-                        fontSize: 12,
-                      }}
-                    >
-                      <div
-                        style={{
-                          color: "var(--text-muted)",
-                          textTransform: "uppercase",
-                          letterSpacing: 1.5,
-                          fontSize: 10,
-                        }}
-                      >
-                        Side
-                      </div>
-                      <div
-                        style={{
-                          color: "var(--text-muted)",
-                          textTransform: "uppercase",
-                          letterSpacing: 1.5,
-                          fontSize: 10,
-                        }}
-                      >
-                        Type
-                      </div>
-                      <div
-                        style={{
-                          color: "var(--text-muted)",
-                          textTransform: "uppercase",
-                          letterSpacing: 1.5,
-                          fontSize: 10,
-                        }}
-                      >
-                        Strike
-                      </div>
-                      <div
-                        style={{
-                          color: "var(--text-muted)",
-                          textTransform: "uppercase",
-                          letterSpacing: 1.5,
-                          fontSize: 10,
-                        }}
-                      >
-                        Expiry
-                      </div>
-                      {preferred.legs.map((leg, i) => (
-                        <Fragment key={`leg-${i}`}>
-                          <div
-                            style={{
-                              color:
-                                leg.side === "long"
-                                  ? "var(--positive)"
-                                  : "var(--negative)",
-                            }}
-                          >
-                            {leg.side}
-                          </div>
-                          <div style={{ color: "var(--text-primary)" }}>
-                            {leg.option_type}
-                          </div>
-                          <div style={{ color: "var(--text-primary)" }}>
-                            {leg.strike}
-                          </div>
-                          <div style={{ color: "var(--text-secondary)" }}>
-                            {leg.expiry}
-                          </div>
-                        </Fragment>
-                      ))}
-                    </div>
-                  </div>
-                )}
+                {preferred.legs && <LegsTable legs={preferred.legs} />}
                 <div style={{ color: "var(--text-primary)", fontSize: 13 }}>
                   {plainText(preferred.why)}
                 </div>
@@ -831,154 +756,7 @@ function OutcomeGrid({
               </div>
             )}
           </AnalysisCard>
-          {(outcome.thesis_trigger ||
-            outcome.entry_trigger ||
-            outcome.invalidation ||
-            outcome.anti_pin) && (
-            <AnalysisCard
-              title="Trigger State Machine & Anti-Pin"
-              subtitle="v5.3 decomposed trigger components"
-              tone={
-                outcome.invalidation?.fired
-                  ? "negative"
-                  : outcome.entry_trigger?.fired
-                    ? "positive"
-                    : outcome.thesis_trigger?.fired
-                      ? "warning"
-                      : "neutral"
-              }
-            >
-              <div
-                data-testid="ai-trigger-components"
-                style={{
-                  display: "grid",
-                  gap: 6,
-                  fontFamily: "var(--font-mono, IBM Plex Mono, monospace)",
-                  fontSize: 12,
-                }}
-              >
-                {(
-                  [
-                    ["Thesis trigger", outcome.thesis_trigger],
-                    ["Entry trigger", outcome.entry_trigger],
-                    ["Invalidation", outcome.invalidation],
-                  ] as const
-                ).map(([label, comp], i) =>
-                  comp ? (
-                    <div
-                      key={`tc-${i}`}
-                      data-testid={`ai-trigger-${label
-                        .toLowerCase()
-                        .replace(/\s+/g, "-")}`}
-                      style={{
-                        display: "grid",
-                        gridTemplateColumns:
-                          "minmax(108px, max-content) minmax(56px, max-content) 1fr minmax(80px, max-content)",
-                        gap: "0 12px",
-                        alignItems: "baseline",
-                        borderBottom:
-                          i < 2 ? "1px solid var(--border-dim)" : "none",
-                        paddingBottom: 4,
-                      }}
-                    >
-                      <div
-                        style={{
-                          color: "var(--text-muted)",
-                          textTransform: "uppercase",
-                          letterSpacing: 1.5,
-                          fontSize: 10,
-                        }}
-                      >
-                        {label}
-                      </div>
-                      <div
-                        style={{
-                          color: "var(--text-primary)",
-                          fontWeight: 600,
-                        }}
-                      >
-                        {comp.level?.toString() ?? "—"}
-                      </div>
-                      <div
-                        style={{
-                          color: "var(--text-secondary)",
-                          fontSize: 11,
-                          overflow: "hidden",
-                          textOverflow: "ellipsis",
-                          whiteSpace: "nowrap",
-                        }}
-                      >
-                        {comp.meaning || "—"}
-                      </div>
-                      <div
-                        style={{
-                          color: comp.fired
-                            ? label === "Invalidation"
-                              ? "var(--negative)"
-                              : "var(--positive)"
-                            : "var(--text-muted)",
-                          fontSize: 10,
-                          textTransform: "uppercase",
-                          letterSpacing: 1.2,
-                        }}
-                      >
-                        {comp.fired ? "FIRED" : "pending"}
-                        {comp.evidence_close && comp.evidence_date ? (
-                          <span
-                            style={{
-                              color: "var(--text-muted)",
-                              marginLeft: 6,
-                              fontSize: 10,
-                              textTransform: "none",
-                              letterSpacing: 0,
-                            }}
-                          >
-                            @ {comp.evidence_close} ({comp.evidence_date})
-                          </span>
-                        ) : null}
-                      </div>
-                    </div>
-                  ) : null,
-                )}
-              </div>
-              {outcome.anti_pin && (
-                <KeyValueGrid
-                  items={[
-                    {
-                      label: "Anti-pin invoked",
-                      value: outcome.anti_pin.invoked ? "yes" : "no",
-                    },
-                    {
-                      label: "Direction",
-                      value: outcome.anti_pin.direction ?? "none",
-                    },
-                    {
-                      label: "Score",
-                      value: `${outcome.anti_pin.score ?? 0} / ${outcome.anti_pin.max_score ?? 4}`,
-                    },
-                    {
-                      label: "Conviction capped",
-                      value: outcome.anti_pin.conviction_cap_applied
-                        ? "yes"
-                        : "no",
-                    },
-                  ]}
-                />
-              )}
-              {outcome.anti_pin?.conditions_met &&
-                outcome.anti_pin.conditions_met.length > 0 && (
-                  <div style={{ color: "var(--text-secondary)", fontSize: 12 }}>
-                    Conditions met: {outcome.anti_pin.conditions_met.join(", ")}
-                  </div>
-                )}
-              {outcome.anti_pin?.conviction_cap_applied &&
-                outcome.anti_pin?.cap_reason && (
-                  <div style={{ color: "var(--text-secondary)", fontSize: 12 }}>
-                    Cap reason: {outcome.anti_pin.cap_reason}
-                  </div>
-                )}
-            </AnalysisCard>
-          )}
+          <TriggerEvidenceCard outcome={outcome} />
           <AnalysisCard
             title="Validation Checklist"
             subtitle="What must be watched or confirmed"
@@ -1005,119 +783,6 @@ function OutcomeGrid({
 
 function providerLabel(p: Provider): string {
   return p.charAt(0).toUpperCase() + p.slice(1);
-}
-
-function headlineField(
-  resp: TradeInsightsAiAnalysisResponse | null,
-  field: "directional_bias" | "thesis_archetype" | "entry_state",
-): string | null {
-  const outcome = resp?.outcome as {
-    headline?: Record<string, unknown>;
-  } | null;
-  const value = outcome?.headline?.[field];
-  return typeof value === "string" && value.length > 0 ? value : null;
-}
-
-function ConsensusBreakdown({
-  codex,
-  claude,
-}: {
-  codex: TradeInsightsAiAnalysisResponse | null;
-  claude: TradeInsightsAiAnalysisResponse | null;
-}) {
-  // Only render when both providers have completed v5+ outcomes — the
-  // breakdown is meaningless if one side is missing a headline.
-  const rows = (
-    [
-      ["directional_bias", "Bias"],
-      ["thesis_archetype", "Archetype"],
-      ["entry_state", "Entry State"],
-    ] as const
-  )
-    .map(([field, label]) => {
-      const c = headlineField(codex, field);
-      const k = headlineField(claude, field);
-      if (c === null || k === null) return null;
-      return { field, label, codex: c, claude: k };
-    })
-    .filter((r): r is NonNullable<typeof r> => r !== null);
-
-  if (rows.length === 0) return null;
-
-  return (
-    <div
-      data-testid="ai-consensus-breakdown"
-      style={{
-        border: "1px solid var(--border-dim)",
-        borderRadius: 4,
-        padding: "10px 12px",
-        background: "var(--bg-panel)",
-        fontFamily: "var(--font-mono)",
-        fontSize: 11,
-        color: "var(--text-primary)",
-        display: "grid",
-        gridTemplateColumns: "minmax(80px, max-content) 1fr min-content 1fr",
-        rowGap: 4,
-        columnGap: 10,
-        alignItems: "center",
-      }}
-    >
-      <div
-        style={{
-          gridColumn: "1 / -1",
-          color: "var(--text-muted)",
-          textTransform: "uppercase",
-          letterSpacing: 1.2,
-          fontSize: 10,
-          marginBottom: 2,
-        }}
-      >
-        Codex vs Claude — Headline Decomposition
-      </div>
-      {rows.map(({ field, label, codex: c, claude: k }) => {
-        const matches = c === k;
-        const tone = matches ? "var(--positive)" : "var(--warning)";
-        return (
-          <Fragment key={field}>
-            <div style={{ color: "var(--text-muted)" }}>{label}</div>
-            <div
-              data-testid={`ai-consensus-codex-${field}`}
-              style={{ color: "var(--text-primary)" }}
-            >
-              {c}
-            </div>
-            <div
-              aria-label={matches ? "agree" : "differ"}
-              style={{
-                color: tone,
-                fontWeight: 700,
-                padding: "0 6px",
-              }}
-            >
-              {matches ? "=" : "≠"}
-            </div>
-            <div
-              data-testid={`ai-consensus-claude-${field}`}
-              style={{ color: "var(--text-primary)" }}
-            >
-              {k}
-            </div>
-          </Fragment>
-        );
-      })}
-    </div>
-  );
-}
-
-function stateBadge(
-  analysis: TradeInsightsAiAnalysisResponse | null,
-  pending: boolean,
-): string {
-  if (pending) return "◐"; // running
-  if (!analysis) return "○"; // empty
-  if (analysis.status === "succeeded") return "●";
-  if (analysis.status === "failed") return "✕";
-  return "○";
 }
 
 function isLegacyAnalysis(
@@ -1308,34 +973,13 @@ export function TradeInsightsAiAnalysisPanel({ ticker }: { ticker: string }) {
           codex={latestForTicker.codex}
           claude={latestForTicker.claude}
         />
-        <div style={{ display: "flex", gap: 6 }}>
-          {PROVIDERS.map((p) => (
-            <button
-              key={p}
-              type="button"
-              onClick={() => setActive(p)}
-              data-testid={`ai-tab-${p}`}
-              style={{
-                border: "1px solid var(--border-dim)",
-                borderRadius: 4,
-                background: active === p ? "var(--bg-panel)" : "var(--bg-base)",
-                color: "var(--text-primary)",
-                cursor: "pointer",
-                fontFamily: "var(--font-mono)",
-                fontSize: 11,
-                padding: "5px 10px",
-              }}
-            >
-              {providerLabel(p)}{" "}
-              <span aria-hidden="true">
-                {stateBadge(
-                  latestForTicker[p],
-                  Boolean(pendingIdsForTicker[p]),
-                )}
-              </span>
-            </button>
-          ))}
-        </div>
+        <ProviderTabBar
+          active={active}
+          latest={latestForTicker}
+          pendingIds={pendingIdsForTicker}
+          providers={PROVIDERS}
+          setActive={setActive}
+        />
         <ProviderTabBody
           provider={active}
           analysis={latestForTicker[active]}
