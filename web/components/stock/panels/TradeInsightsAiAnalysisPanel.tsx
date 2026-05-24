@@ -1123,6 +1123,21 @@ function stateBadge(
 // renders the "legacy — re-run" banner so users see what the API guard
 // already did (dropped outcome to null).
 const CURRENT_PROMPT_VERSION = "trade-insights-ai-v5.3";
+type ProviderAnalysisPair = {
+  codex: TradeInsightsAiAnalysisResponse | null;
+  claude: TradeInsightsAiAnalysisResponse | null;
+};
+type ProviderPendingPair = {
+  codex: string | null;
+  claude: string | null;
+};
+type ProviderConsensus = {
+  consensus_grade?: string;
+  actionable_disagreement?: string;
+};
+
+const EMPTY_LATEST: ProviderAnalysisPair = { codex: null, claude: null };
+const EMPTY_PENDING: ProviderPendingPair = { codex: null, claude: null };
 
 function isLegacyAnalysis(
   analysis: TradeInsightsAiAnalysisResponse | null,
@@ -1217,21 +1232,14 @@ function ProviderTabBody({
 }
 
 export function TradeInsightsAiAnalysisPanel({ ticker }: { ticker: string }) {
-  const [latest, setLatest] = useState<{
-    codex: TradeInsightsAiAnalysisResponse | null;
-    claude: TradeInsightsAiAnalysisResponse | null;
-  }>({ codex: null, claude: null });
+  const [latest, setLatest] = useState<ProviderAnalysisPair>(EMPTY_LATEST);
   // v5.2: cross-provider consensus computed at GET /latest time.
   // Rendered as a chip above the tabs so the operator sees agreement /
   // actionable disagreement at-a-glance.
-  const [consensus, setConsensus] = useState<{
-    consensus_grade?: string;
-    actionable_disagreement?: string;
-  } | null>(null);
-  const [pendingIds, setPendingIds] = useState<{
-    codex: string | null;
-    claude: string | null;
-  }>({ codex: null, claude: null });
+  const [consensus, setConsensus] = useState<ProviderConsensus | null>(null);
+  const [pendingIds, setPendingIds] =
+    useState<ProviderPendingPair>(EMPTY_PENDING);
+  const [loadedTicker, setLoadedTicker] = useState(ticker);
   const [active, setActive] = useState<Provider>("codex");
   const [loading, setLoading] = useState(false);
   const [unavailable, setUnavailable] = useState(false);
@@ -1289,25 +1297,28 @@ export function TradeInsightsAiAnalysisPanel({ ticker }: { ticker: string }) {
 
   useEffect(() => {
     const token = ++requestTokenRef.current;
-    setLatest({ codex: null, claude: null });
-    setPendingIds({ codex: null, claude: null });
-    setLoading(false);
-    setUnavailable(false);
     let cancelled = false;
     void (async () => {
       try {
         const pair = await api.tradeInsightsAiAnalysisLatest(ticker);
         if (!cancelled && requestTokenRef.current === token) {
+          setLoadedTicker(ticker);
           setLatest({ codex: pair.codex ?? null, claude: pair.claude ?? null });
           setConsensus(pair.provider_consensus ?? null);
+          setPendingIds(EMPTY_PENDING);
+          setLoading(false);
+          setUnavailable(false);
         }
       } catch (err) {
-        if (
-          !cancelled &&
-          requestTokenRef.current === token &&
-          String(err).includes("503")
-        ) {
-          setUnavailable(true);
+        if (!cancelled && requestTokenRef.current === token) {
+          setLoadedTicker(ticker);
+          setLatest(EMPTY_LATEST);
+          setConsensus(null);
+          setPendingIds(EMPTY_PENDING);
+          setLoading(false);
+          if (String(err).includes("503")) {
+            setUnavailable(true);
+          }
         }
       }
     })();
@@ -1317,14 +1328,24 @@ export function TradeInsightsAiAnalysisPanel({ ticker }: { ticker: string }) {
     };
   }, [ticker]);
 
+  const isLoadedTicker = loadedTicker === ticker;
+  const latestForTicker = isLoadedTicker ? latest : EMPTY_LATEST;
+  const consensusForTicker = isLoadedTicker ? consensus : null;
+  const pendingIdsForTicker = isLoadedTicker ? pendingIds : EMPTY_PENDING;
+  const loadingForTicker = isLoadedTicker ? loading : false;
+  const unavailableForTicker = isLoadedTicker ? unavailable : false;
+
   async function run(force_rerun = false) {
     const token = ++requestTokenRef.current;
     const isCurrentRequest = () => requestTokenRef.current === token;
+    setLoadedTicker(ticker);
     setLoading(true);
     setUnavailable(false);
     // Skip providers that already have an in-flight row — a hung codex must
     // not block re-running claude. Backend mirrors this filter server-side.
-    const providersToRun: Provider[] = PROVIDERS.filter((p) => !pendingIds[p]);
+    const providersToRun: Provider[] = PROVIDERS.filter(
+      (p) => !pendingIdsForTicker[p],
+    );
     if (providersToRun.length === 0) {
       setLoading(false);
       return;
@@ -1337,8 +1358,8 @@ export function TradeInsightsAiAnalysisPanel({ ticker }: { ticker: string }) {
       const resp = await api.tradeInsightsAiAnalysis(ticker, body);
       if (!isCurrentRequest()) return;
       const newPending: { codex: string | null; claude: string | null } = {
-        codex: pendingIds.codex,
-        claude: pendingIds.claude,
+        codex: pendingIdsForTicker.codex,
+        claude: pendingIdsForTicker.claude,
       };
       for (const stub of resp.analyses) {
         if (stub.status === "succeeded" && stub.reused) {
@@ -1381,18 +1402,21 @@ export function TradeInsightsAiAnalysisPanel({ ticker }: { ticker: string }) {
     }
   }
 
-  const anyPending = Boolean(pendingIds.codex || pendingIds.claude);
-  const allPending = Boolean(pendingIds.codex && pendingIds.claude);
+  const allPending = Boolean(
+    pendingIdsForTicker.codex && pendingIdsForTicker.claude,
+  );
   const anyFailed =
-    latest.codex?.status === "failed" || latest.claude?.status === "failed";
+    latestForTicker.codex?.status === "failed" ||
+    latestForTicker.claude?.status === "failed";
   const anySucceeded =
-    latest.codex?.status === "succeeded" ||
-    latest.claude?.status === "succeeded";
+    latestForTicker.codex?.status === "succeeded" ||
+    latestForTicker.claude?.status === "succeeded";
   // Only block Run when EVERY provider is pending — a hung codex tab should
   // not prevent re-running claude. Server-side mirror filters the POST.
-  const canRun = !unavailable && !allPending;
+  const canRun = !unavailableForTicker && !allPending;
   const forceRun = anySucceeded || anyFailed;
-  const actionLabel = loading || allPending ? "Running…" : "Run Analysis";
+  const actionLabel =
+    loadingForTicker || allPending ? "Running…" : "Run Analysis";
   return (
     <InsightPanel
       heading="AI ANALYSIS"
@@ -1401,7 +1425,7 @@ export function TradeInsightsAiAnalysisPanel({ ticker }: { ticker: string }) {
           <ActionButton
             compact
             onClick={() => run(forceRun)}
-            disabled={loading || allPending}
+            disabled={loadingForTicker || allPending}
           >
             {actionLabel}
           </ActionButton>
@@ -1409,15 +1433,15 @@ export function TradeInsightsAiAnalysisPanel({ ticker }: { ticker: string }) {
       }
     >
       <div style={{ display: "grid", gap: 12 }}>
-        {unavailable && (
+        {unavailableForTicker && (
           <InsightStatusBanner
             text="Local AI analysis is not enabled for this environment."
             severity="info"
           />
         )}
-        {consensus &&
-          consensus.consensus_grade &&
-          consensus.consensus_grade !== "missing" && (
+        {consensusForTicker &&
+          consensusForTicker.consensus_grade &&
+          consensusForTicker.consensus_grade !== "missing" && (
             <div
               data-testid="ai-provider-consensus"
               style={{
@@ -1425,7 +1449,7 @@ export function TradeInsightsAiAnalysisPanel({ ticker }: { ticker: string }) {
                 borderRadius: 4,
                 padding: "8px 10px",
                 background:
-                  consensus.consensus_grade === "full"
+                  consensusForTicker.consensus_grade === "full"
                     ? "var(--bg-panel)"
                     : "var(--bg-base)",
                 fontFamily: "var(--font-mono)",
@@ -1436,9 +1460,9 @@ export function TradeInsightsAiAnalysisPanel({ ticker }: { ticker: string }) {
               <span
                 style={{
                   color:
-                    consensus.consensus_grade === "full"
+                    consensusForTicker.consensus_grade === "full"
                       ? "var(--positive)"
-                      : consensus.consensus_grade === "divergent"
+                      : consensusForTicker.consensus_grade === "divergent"
                         ? "var(--negative)"
                         : "var(--warning)",
                   fontWeight: 600,
@@ -1447,16 +1471,19 @@ export function TradeInsightsAiAnalysisPanel({ ticker }: { ticker: string }) {
                   marginRight: 8,
                 }}
               >
-                Consensus: {consensus.consensus_grade}
+                Consensus: {consensusForTicker.consensus_grade}
               </span>
-              {consensus.actionable_disagreement && (
+              {consensusForTicker.actionable_disagreement && (
                 <span style={{ color: "var(--text-secondary)" }}>
-                  {consensus.actionable_disagreement}
+                  {consensusForTicker.actionable_disagreement}
                 </span>
               )}
             </div>
           )}
-        <ConsensusBreakdown codex={latest.codex} claude={latest.claude} />
+        <ConsensusBreakdown
+          codex={latestForTicker.codex}
+          claude={latestForTicker.claude}
+        />
         <div style={{ display: "flex", gap: 6 }}>
           {PROVIDERS.map((p) => (
             <button
@@ -1477,15 +1504,18 @@ export function TradeInsightsAiAnalysisPanel({ ticker }: { ticker: string }) {
             >
               {providerLabel(p)}{" "}
               <span aria-hidden="true">
-                {stateBadge(latest[p], Boolean(pendingIds[p]))}
+                {stateBadge(
+                  latestForTicker[p],
+                  Boolean(pendingIdsForTicker[p]),
+                )}
               </span>
             </button>
           ))}
         </div>
         <ProviderTabBody
           provider={active}
-          analysis={latest[active]}
-          pending={Boolean(pendingIds[active])}
+          analysis={latestForTicker[active]}
+          pending={Boolean(pendingIdsForTicker[active])}
         />
       </div>
     </InsightPanel>

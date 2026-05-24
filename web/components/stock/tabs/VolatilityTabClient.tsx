@@ -24,6 +24,10 @@ import { VrpSpreadPanel } from "../panels/VrpSpreadPanel";
 // Spec §7.4: poll every 5s for up to 60s while backfill_status === 'running'.
 const POLL_INTERVAL_MS = 5_000;
 const POLL_BUDGET_MS = 60_000;
+type RegimeState = {
+  ticker: string;
+  data: RegimeDealerResponse | null;
+};
 
 export function VolatilityTabClient({
   ticker,
@@ -33,21 +37,23 @@ export function VolatilityTabClient({
   initial: VolatilitySeriesResponse;
 }) {
   const [series, setSeries] = useState<VolatilitySeriesResponse>(initial);
-  const [regime, setRegime] = useState<RegimeDealerResponse | null>(null);
+  const [regimeState, setRegimeState] = useState<RegimeState>({
+    ticker,
+    data: null,
+  });
   const [vcg, setVcg] = useState<RegimeVcgResponse | null>(null);
 
   // Fetch /regime/dealer client-side. Clear state on ticker change so the
   // previous ticker's panel doesn't briefly flash while the new one loads.
   useEffect(() => {
     let cancelled = false;
-    setRegime(null);
     api
       .regimeDealer(ticker)
       .then((r) => {
-        if (!cancelled) setRegime(r);
+        if (!cancelled) setRegimeState({ ticker, data: r });
       })
       .catch(() => {
-        if (!cancelled) setRegime(null);
+        if (!cancelled) setRegimeState({ ticker, data: null });
       });
     return () => {
       cancelled = true;
@@ -97,6 +103,7 @@ export function VolatilityTabClient({
             color: "var(--negative)",
           }
         : null;
+  const regime = regimeState.ticker === ticker ? regimeState.data : null;
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
