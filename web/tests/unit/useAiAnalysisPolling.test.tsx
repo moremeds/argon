@@ -71,6 +71,14 @@ function queuedStub(provider: Provider, analysisId: string) {
   };
 }
 
+function deferred<T>() {
+  let resolve!: (value: T) => void;
+  const promise = new Promise<T>((res) => {
+    resolve = res;
+  });
+  return { promise, resolve };
+}
+
 describe("useAiAnalysisPolling", () => {
   beforeEach(() => {
     vi.mocked(api.tradeInsightsAiAnalysis).mockReset();
@@ -151,6 +159,64 @@ describe("useAiAnalysisPolling", () => {
 
     expect(api.tradeInsightsAiAnalysis).toHaveBeenLastCalledWith("TSLA", {
       providers: ["claude"],
+    });
+  });
+
+  it("keeps polling an existing provider when a partial rerun fails", async () => {
+    const codexStatus = deferred<TradeInsightsAiAnalysisResponse>();
+    const codexSucceeded = baseResponse({
+      analysis_id: "codex-hung",
+      status: "succeeded",
+    });
+
+    vi.mocked(api.tradeInsightsAiAnalysis).mockResolvedValueOnce(
+      enqueueResp([
+        queuedStub("codex", "codex-hung"),
+        {
+          provider: "claude",
+          analysis_id: "claude-cached",
+          status: "succeeded",
+          reused: true,
+          model: "claude-opus-4-7",
+        },
+      ]),
+    );
+    vi.mocked(api.tradeInsightsAiAnalysis).mockRejectedValueOnce(
+      new Error("API 503 for /ai-analysis: disabled"),
+    );
+    vi.mocked(api.tradeInsightsAiAnalysisStatus).mockReturnValueOnce(
+      codexStatus.promise,
+    );
+    vi.mocked(api.tradeInsightsAiAnalysisLatest)
+      .mockResolvedValueOnce(EMPTY_PAIR)
+      .mockResolvedValueOnce(EMPTY_PAIR)
+      .mockResolvedValueOnce({ ...EMPTY_PAIR, codex: codexSucceeded });
+
+    const { result } = renderHook(() => useAiAnalysisPolling("TSLA"));
+    await waitFor(() => expect(result.current.canRun).toBe(true));
+
+    await act(async () => {
+      await result.current.run(false);
+    });
+    await waitFor(() => {
+      expect(result.current.pendingIdsForTicker.codex).toBe("codex-hung");
+    });
+
+    await act(async () => {
+      await result.current.run(false);
+    });
+    expect(api.tradeInsightsAiAnalysis).toHaveBeenLastCalledWith("TSLA", {
+      providers: ["claude"],
+    });
+
+    await act(async () => {
+      codexStatus.resolve(codexSucceeded);
+      await codexStatus.promise;
+    });
+
+    await waitFor(() => {
+      expect(result.current.latestForTicker.codex?.status).toBe("succeeded");
+      expect(result.current.pendingIdsForTicker.codex).toBeNull();
     });
   });
 

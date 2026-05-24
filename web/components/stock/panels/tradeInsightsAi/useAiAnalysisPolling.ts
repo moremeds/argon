@@ -62,52 +62,56 @@ export function useAiAnalysisPolling(ticker: string) {
   const [loading, setLoading] = useState(false);
   const [unavailable, setUnavailable] = useState(false);
   const requestTokenRef = useRef(0);
+  const pollTokenRef = useRef<ProviderPendingPair>(EMPTY_PENDING);
 
   const pollOne = useCallback(
-    async (provider: Provider, analysisId: string, token: number) => {
-      const isCurrentRequest = () => requestTokenRef.current === token;
+    async (provider: Provider, analysisId: string) => {
+      const isCurrentPoll = () => pollTokenRef.current[provider] === analysisId;
       let current: TradeInsightsAiAnalysisResponse;
       try {
         current = await api.tradeInsightsAiAnalysisStatus(ticker, analysisId);
       } catch (err) {
-        if (!isCurrentRequest()) return;
+        if (!isCurrentPoll()) return;
         if (String(err).includes("503")) {
           setUnavailable(true);
         }
         return;
       }
-      if (!isCurrentRequest()) return;
+      if (!isCurrentPoll()) return;
       let elapsedMs = 0;
       const intervalMs = 3000;
       const maxMs = AI_ANALYSIS_POLL_MAX_MS;
       while (isInFlight(current)) {
         if (elapsedMs >= maxMs) break;
         await new Promise((r) => setTimeout(r, intervalMs));
-        if (!isCurrentRequest()) return;
+        if (!isCurrentPoll()) return;
         elapsedMs += intervalMs;
         try {
           current = await api.tradeInsightsAiAnalysisStatus(ticker, analysisId);
         } catch (err) {
-          if (!isCurrentRequest()) return;
+          if (!isCurrentPoll()) return;
           if (String(err).includes("503")) {
             setUnavailable(true);
           }
           return;
         }
-        if (!isCurrentRequest()) return;
+        if (!isCurrentPoll()) return;
       }
       try {
         const pair = await api.tradeInsightsAiAnalysisLatest(ticker);
-        if (!isCurrentRequest()) return;
+        if (!isCurrentPoll()) return;
         setLatest({ codex: pair.codex ?? null, claude: pair.claude ?? null });
         setConsensus(pair.provider_consensus ?? null);
         setPromptMetadata(promptMetadataFromPair(pair));
       } catch {
-        if (isCurrentRequest()) {
+        if (isCurrentPoll()) {
           setLatest((prev) => ({ ...prev, [provider]: current }));
         }
       }
-      setPendingIds((prev) => ({ ...prev, [provider]: null }));
+      if (isCurrentPoll()) {
+        pollTokenRef.current = { ...pollTokenRef.current, [provider]: null };
+        setPendingIds((prev) => ({ ...prev, [provider]: null }));
+      }
     },
     [ticker],
   );
@@ -123,6 +127,7 @@ export function useAiAnalysisPolling(ticker: string) {
           setLatest({ codex: pair.codex ?? null, claude: pair.claude ?? null });
           setConsensus(pair.provider_consensus ?? null);
           setPromptMetadata(promptMetadataFromPair(pair));
+          pollTokenRef.current = EMPTY_PENDING;
           setPendingIds(EMPTY_PENDING);
           setLoading(false);
           setUnavailable(false);
@@ -133,6 +138,7 @@ export function useAiAnalysisPolling(ticker: string) {
           setLatest(EMPTY_LATEST);
           setConsensus(null);
           setPromptMetadata(EMPTY_PROMPT_METADATA);
+          pollTokenRef.current = EMPTY_PENDING;
           setPendingIds(EMPTY_PENDING);
           setLoading(false);
           if (String(err).includes("503")) {
@@ -144,6 +150,7 @@ export function useAiAnalysisPolling(ticker: string) {
     return () => {
       cancelled = true;
       requestTokenRef.current += 1;
+      pollTokenRef.current = EMPTY_PENDING;
     };
   }, [ticker]);
 
@@ -206,7 +213,10 @@ export function useAiAnalysisPolling(ticker: string) {
       if (isCurrentRequest()) setLoading(false);
       for (const p of PROVIDERS) {
         const id = newPending[p];
-        if (id) void pollOne(p, id, token);
+        if (id) {
+          pollTokenRef.current = { ...pollTokenRef.current, [p]: id };
+          void pollOne(p, id);
+        }
       }
     } catch (err) {
       if (!isCurrentRequest()) return;
