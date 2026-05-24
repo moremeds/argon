@@ -60,6 +60,70 @@ def _strip_markdown_fence(text: str) -> str:
     return body.rstrip()
 
 
+def _extract_first_balanced_json_object(text: str) -> str | None:
+    """Find the first balanced {...} substring in `text` and return it.
+
+    Walks the string tracking brace depth so a JSON object embedded in
+    prose ("Looking at TSLA, here's my analysis: {...} Hope this helps.")
+    can be recovered when the StructuredOutput tool didn't fire.
+
+    String literals (including escaped quotes) are skipped so braces
+    inside JSON string values don't confuse the depth counter.
+    Returns None if no balanced object is found.
+    """
+    start = text.find("{")
+    if start == -1:
+        return None
+    depth = 0
+    i = start
+    n = len(text)
+    in_string = False
+    escape = False
+    while i < n:
+        ch = text[i]
+        if in_string:
+            if escape:
+                escape = False
+            elif ch == "\\":
+                escape = True
+            elif ch == '"':
+                in_string = False
+        else:
+            if ch == '"':
+                in_string = True
+            elif ch == "{":
+                depth += 1
+            elif ch == "}":
+                depth -= 1
+                if depth == 0:
+                    return text[start : i + 1]
+        i += 1
+    return None
+
+
+def _try_parse_claude_text(text: str) -> Any:
+    """Best-effort JSON recovery from a Claude result.text payload.
+
+    Tries (in order): fenced markdown strip + parse, raw parse, and
+    balanced-object extraction. Returns the parsed value on success,
+    None on total failure.
+    """
+    if not text:
+        return None
+    candidate = _strip_markdown_fence(text)
+    try:
+        return json.loads(candidate)
+    except json.JSONDecodeError:
+        pass
+    extracted = _extract_first_balanced_json_object(text)
+    if extracted is None:
+        return None
+    try:
+        return json.loads(extracted)
+    except json.JSONDecodeError:
+        return None
+
+
 _JSON_ONLY_SYSTEM_PROMPT = """\
 Emit a single raw JSON object conforming EXACTLY to the supplied --json-schema. \
 Use exact field names at every nesting level; additionalProperties is false \
@@ -339,15 +403,25 @@ class ClaudeRunner:
             if isinstance(structured, dict):
                 parsed: dict[str, Any] = structured
             else:
+                # Fallback chain when Claude skipped the StructuredOutput tool
+                # (observed repeatedly on TSLA-shape payloads):
+                #   1. strip markdown fences and json.loads the whole thing
+                #   2. extract first balanced {…} block from prose-prefaced
+                #      responses ("Looking at TSLA, here's my analysis: {…}")
+                #   3. give up — but raise with the FULL result_str so the
+                #      orchestrator can persist it to raw_outcome_jsonb.
+                #      Truncated repr in the error message was insufficient
+                #      to diagnose the v5.2/v5.3 TSLA drops.
                 result_str = result_event.get("result", "")
-                candidate = _strip_markdown_fence(result_str)
-                try:
-                    fallback = json.loads(candidate)
-                except json.JSONDecodeError as exc:
+                fallback = _try_parse_claude_text(result_str)
+                if fallback is None:
+                    preview = result_str[:200]
                     raise TradeInsightsAiRunnerError(
                         "claude --print returned no structured_output and "
-                        f"result field was not valid JSON: {result_str!r:.200}"
-                    ) from exc
+                        "no parseable JSON object could be extracted from the "
+                        f"result text (len={len(result_str)}, preview={preview!r}); "
+                        f"full text: {result_str}"
+                    )
                 if not isinstance(fallback, dict):
                     raise TradeInsightsAiRunnerError(
                         "claude --print result was not a JSON object"
