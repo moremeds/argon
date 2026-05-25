@@ -6,13 +6,13 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from typing import Annotated, Literal
 
-from apscheduler.triggers.cron import CronTrigger
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 
 from uw_scan.api.deps import get_repo, get_settings
 from uw_scan.config import Settings
 from uw_scan.storage.repository import Repository, provider_day_bounds
+from uw_scan.worker.schedule_expectations import expected_market_cron_fires_between
 
 router = APIRouter()
 
@@ -170,35 +170,6 @@ def _record_health_cache_set(
 
 def _record_health_cache_clear_for_tests() -> None:
     _record_health_cache.clear()
-
-
-def _max_scheduler_gap_seconds(cron_exprs: list[str], tz: str) -> float:
-    """Largest expected silence between any two consecutive cron fires.
-
-    Walks 48h forward from a Tuesday anchor and unions all fire times across
-    the supplied crons. Returns the maximum gap between consecutive fires —
-    this is the "tolerated overnight silence." The scheduler-lag check
-    multiplies by 2, so the alert only fires if the scheduler is genuinely
-    missing at least two consecutive expected windows.
-
-    For the default 5-cron schedule (04:00 + 09:30 + 10:00-15:30 every :30 +
-    16:00 + 16:30 ET) the max gap is ~11.5h overnight; using min gap (30min)
-    would alert every night after market close.
-    """
-    anchor = datetime(2026, 5, 12, 10, 0, tzinfo=timezone.utc)
-    end = anchor + timedelta(hours=48)
-    fires: list[datetime] = []
-    for expr in cron_exprs:
-        trig = CronTrigger.from_crontab(expr, timezone=tz)
-        cur = trig.get_next_fire_time(None, anchor)
-        while cur is not None and cur < end:
-            fires.append(cur)
-            cur = trig.get_next_fire_time(cur, cur)
-    if len(fires) < 2:
-        return 3600.0
-    fires.sort()
-    gaps = [(b - a).total_seconds() for a, b in zip(fires, fires[1:])]
-    return max(gaps)
 
 
 def _parse_record_tables(record_tables: str | None) -> list[str] | None:
@@ -495,19 +466,19 @@ def health(
         )
 
     lag = (now_utc - last_scan).total_seconds()
-    # Use the LARGEST expected gap across all crons (typically the overnight
-    # gap between 16:30 and 04:00 next day). Threshold = 2x gap means the
-    # alert only fires when scheduler has missed at least 2 expected windows.
-    threshold = 2.0 * _max_scheduler_gap_seconds(
-        settings.full_scan_crons, settings.rth_tz
+    missed_full_scans = expected_market_cron_fires_between(
+        settings.full_scan_crons,
+        settings.rth_tz,
+        start_utc=last_scan,
+        end_utc=now_utc,
     )
-    if lag > threshold:
+    if len(missed_full_scans) >= 2:
         return HealthResponse(
             ok=False,
             db=db_status,
             scheduler_lag_seconds=lag,
             last_full_scan_at=last_scan,
-            reason=f"scheduler lag {lag:.0f}s exceeds 2x interval ({threshold:.0f}s)",
+            reason=f"{len(missed_full_scans)} expected full scans missed",
             watchlist_size=watchlist_size,
             **provider_fields,
             **heartbeat_fields,

@@ -7,6 +7,7 @@ from decimal import Decimal
 
 import pytest
 
+import uw_scan.api.routers.health as health_router
 from uw_scan.api.routers.health import _record_health_cache_clear_for_tests, health
 from uw_scan.config import Settings
 
@@ -452,10 +453,50 @@ def test_health_unhealthy_when_no_scans(client, seeded_db_empty_cards):
     assert "no successful full scan" in (body.get("reason") or "")
 
 
-def test_health_unhealthy_when_lag_exceeds_2x_interval(
-    client, seeded_db_with_stale_run
+def test_health_unhealthy_when_expected_full_scans_are_missed(
+    monkeypatch, client, seeded_db_empty_cards
 ):
-    r = client.get("/api/health")
+    now = datetime(2026, 5, 13, 18, 0, tzinfo=UTC)
+    last_scan = datetime(2026, 5, 13, 8, 0, tzinfo=UTC)
+    _freeze_health_now(monkeypatch, now)
+    _insert_finished_full_scan(seeded_db_empty_cards, last_scan)
+
+    r = client.get("/api/health?record_min_coverage=0")
     body = r.json()
     assert body["ok"] is False
-    assert "exceeds" in (body.get("reason") or "")
+    assert "expected full scans missed" in (body.get("reason") or "")
+
+
+def test_health_does_not_alert_on_memorial_day_scheduler_gap(
+    monkeypatch, client, seeded_db_empty_cards
+):
+    now = datetime(2026, 5, 25, 14, 0, tzinfo=UTC)
+    last_scan = datetime(2026, 5, 22, 20, 30, tzinfo=UTC)
+    _freeze_health_now(monkeypatch, now)
+    _insert_finished_full_scan(seeded_db_empty_cards, last_scan)
+
+    r = client.get("/api/health?record_min_coverage=0")
+    body = r.json()
+    assert body["ok"] is True
+    assert body.get("reason") is None
+
+
+def _insert_finished_full_scan(repo, finished_at: datetime) -> None:
+    with repo.conn.cursor() as cur:
+        cur.execute(
+            """
+            INSERT INTO uw_scan.scan_runs (ticker, started_at, finished_at, status)
+            VALUES ('TSLA', %s, %s, 'ok')
+            """,
+            (finished_at, finished_at),
+        )
+    repo.conn.commit()
+
+
+def _freeze_health_now(monkeypatch, now: datetime) -> None:
+    class FrozenDatetime(datetime):
+        @classmethod
+        def now(cls, tz=None):  # noqa: ANN001
+            return now if tz is None else now.astimezone(tz)
+
+    monkeypatch.setattr(health_router, "datetime", FrozenDatetime)

@@ -7,6 +7,7 @@ from datetime import datetime, timedelta
 from uw_scan.benchmark.pipeline import BenchmarkInputs
 from uw_scan.config import Settings
 from uw_scan.storage.repository import Repository
+from uw_scan.worker.schedule_expectations import expected_market_cron_fires_between
 
 _PROVIDER_WINDOW = timedelta(hours=1)
 _SCAN_DURATION_WINDOW = timedelta(hours=24)
@@ -44,6 +45,17 @@ def build_pipeline_benchmark_inputs(
         expected_count=settings.massive_worker_count,
     )
     last_scan = repo.get_last_full_scan_finished_at()
+    expected_full_scans = (
+        expected_market_cron_fires_between(
+            settings.full_scan_crons,
+            settings.rth_tz,
+            start_utc=last_scan,
+            end_utc=now_utc,
+        )
+        if last_scan is not None
+        else []
+    )
+    latest_expected_scan = expected_full_scans[-1] if expected_full_scans else None
 
     return BenchmarkInputs(
         captured_at=now_utc,
@@ -54,6 +66,12 @@ def build_pipeline_benchmark_inputs(
         scanner_never_scanned_count=freshness.never_scanned,
         last_full_scan_age_seconds=(
             (now_utc - last_scan).total_seconds() if last_scan is not None else None
+        ),
+        expected_full_scan_miss_count=len(expected_full_scans),
+        full_scan_expected_lag_seconds=(
+            (latest_expected_scan - last_scan).total_seconds()
+            if latest_expected_scan is not None and last_scan is not None
+            else None
         ),
         scan_duration_avg_seconds=scan_durations.avg_seconds,
         scan_duration_p95_seconds=scan_durations.p95_seconds,

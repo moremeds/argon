@@ -34,6 +34,8 @@ class BenchmarkInputs:
     scanner_dead_count: int = 0
     scanner_never_scanned_count: int = 0
     last_full_scan_age_seconds: float | None = None
+    expected_full_scan_miss_count: int = 0
+    full_scan_expected_lag_seconds: float | None = None
     scan_duration_avg_seconds: float | None = None
     scan_duration_p95_seconds: float | None = None
     queue_depth: int | None = None
@@ -158,23 +160,32 @@ def _score_freshness(
     freshness_score = (
         (inputs.scanner_fresh_count + inputs.scanner_stale_count * 0.35) / total
     ) * 100
-    if inputs.last_full_scan_age_seconds is not None:
-        age_hours = inputs.last_full_scan_age_seconds / 3600
-        if age_hours >= 72:
+    if inputs.expected_full_scan_miss_count >= 2:
+        expected_lag_hours = (
+            inputs.full_scan_expected_lag_seconds / 3600
+            if inputs.full_scan_expected_lag_seconds is not None
+            else None
+        )
+        lag = (
+            f"; latest expected scan is {expected_lag_hours:.1f}h after last scan"
+            if expected_lag_hours is not None
+            else ""
+        )
+        if inputs.expected_full_scan_miss_count >= 6:
             freshness_score -= 45
             _add_reason(
                 reasons,
                 "freshness",
                 45,
-                f"last full scan is {age_hours:.1f}h old",
+                f"{inputs.expected_full_scan_miss_count} expected full scans missed{lag}",
             )
-        elif age_hours >= 8:
+        else:
             freshness_score -= 20
             _add_reason(
                 reasons,
                 "freshness",
                 20,
-                f"last full scan is {age_hours:.1f}h old",
+                f"{inputs.expected_full_scan_miss_count} expected full scans missed{lag}",
             )
     score = _clamp_score(freshness_score)
     if score < 85:
