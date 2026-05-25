@@ -41,3 +41,38 @@ class GuidanceResponse(BaseModel):
     posture: Literal["opportunistic", "neutral", "cautious", "defensive"]
     body_md: str
     matched_condition: str
+
+
+class VcgInterpretationCount(BaseModel):
+    interpretation: str
+    n: int
+    pct: float
+
+
+class VcgNamedCrashOffset(BaseModel):
+    """One row of the ±5d named-crash window for a single event."""
+
+    offset_days: int
+    vcg: float | None = None
+    vcg_adj: float | None = None
+    beta1: float | None = None
+    beta2: float | None = None
+    sign_ok: bool | None = None
+    interpretation: str | None = None
+
+
+class VcgNamedCrashEvent(BaseModel):
+    date: str
+    label: str
+    offsets: list[VcgNamedCrashOffset]
+
+
+class VcgValidationResponse(BaseModel):
+    """Latest completed VCG backtest run rendered + structured."""
+
+    backtest_md: str
+    n_days: int
+    composite_version: str
+    credit_proxy: str
+    interpretation_distribution: list[VcgInterpretationCount]
+    named_crash_window: list[VcgNamedCrashEvent]
