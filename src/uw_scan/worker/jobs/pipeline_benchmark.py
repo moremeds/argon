@@ -55,6 +55,7 @@ def pipeline_benchmark_snapshot_job(settings: Settings | None = None) -> int:
                 scan_duration_p95_seconds=inputs.scan_duration_p95_seconds,
                 queue_depth=inputs.queue_depth,
                 oldest_queue_age_seconds=inputs.oldest_queue_age_seconds,
+                queue_drain_rate_per_minute=inputs.queue_drain_rate_per_minute,
                 uw_latency_p95_ms=inputs.uw_latency_p95_ms,
                 uw_http_429=inputs.uw_http_429,
                 uw_http_4xx=inputs.uw_http_4xx,

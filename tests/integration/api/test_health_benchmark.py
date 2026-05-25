@@ -47,6 +47,7 @@ def test_health_benchmark_history_returns_persisted_snapshots(
         scanner_stale_count=7,
         scanner_dead_count=4,
         scanner_never_scanned_count=0,
+        queue_drain_rate_per_minute=1.25,
         details_jsonb={"bottleneck": "persistence"},
     )
 
@@ -56,6 +57,7 @@ def test_health_benchmark_history_returns_persisted_snapshots(
     snapshots = response.json()["snapshots"]
     assert len(snapshots) == 1
     assert snapshots[0]["score"] == 87
+    assert snapshots[0]["metrics"]["queue_drain_rate_per_minute"] == 1.25
     assert snapshots[0]["details_jsonb"]["bottleneck"] == "persistence"
 
 

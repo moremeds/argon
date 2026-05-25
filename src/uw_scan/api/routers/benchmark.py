@@ -178,6 +178,9 @@ def _snapshot_response(row: PipelineBenchmarkSnapshotRow) -> BenchmarkSnapshotRe
             scan_duration_p95_seconds=_float_or_none(row.scan_duration_p95_seconds),
             queue_depth=row.queue_depth,
             oldest_queue_age_seconds=_float_or_none(row.oldest_queue_age_seconds),
+            queue_drain_rate_per_minute=_float_or_none(
+                row.queue_drain_rate_per_minute
+            ),
             uw_latency_p95_ms=row.uw_latency_p95_ms,
             uw_http_429=row.uw_http_429,
             uw_http_4xx=row.uw_http_4xx,

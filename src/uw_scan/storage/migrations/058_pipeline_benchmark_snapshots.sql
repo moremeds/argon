@@ -24,6 +24,7 @@ CREATE TABLE IF NOT EXISTS uw_scan.pipeline_benchmark_snapshots (
   scan_duration_p95_seconds NUMERIC CHECK (scan_duration_p95_seconds IS NULL OR scan_duration_p95_seconds >= 0),
   queue_depth INTEGER CHECK (queue_depth IS NULL OR queue_depth >= 0),
   oldest_queue_age_seconds NUMERIC CHECK (oldest_queue_age_seconds IS NULL OR oldest_queue_age_seconds >= 0),
+  queue_drain_rate_per_minute NUMERIC CHECK (queue_drain_rate_per_minute IS NULL OR queue_drain_rate_per_minute >= 0),
   uw_latency_p95_ms INTEGER CHECK (uw_latency_p95_ms IS NULL OR uw_latency_p95_ms >= 0),
   uw_http_429 INTEGER CHECK (uw_http_429 IS NULL OR uw_http_429 >= 0),
   uw_http_4xx INTEGER CHECK (uw_http_4xx IS NULL OR uw_http_4xx >= 0),

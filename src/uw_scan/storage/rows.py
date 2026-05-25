@@ -201,6 +201,7 @@ class PipelineBenchmarkSnapshotRow:
     scan_duration_p95_seconds: Decimal | None
     queue_depth: int | None
     oldest_queue_age_seconds: Decimal | None
+    queue_drain_rate_per_minute: Decimal | None
     uw_latency_p95_ms: int | None
     uw_http_429: int | None
     uw_http_4xx: int | None
