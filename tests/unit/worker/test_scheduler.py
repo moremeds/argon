@@ -49,6 +49,12 @@ def test_current_market_date_uses_rth_date() -> None:
     assert current_market_date(now).isoformat() == "2026-05-13"
 
 
+def test_current_market_date_skips_market_holidays() -> None:
+    now = datetime(2026, 5, 25, 10, 0, tzinfo=ZoneInfo("America/New_York"))
+
+    assert current_market_date(now) is None
+
+
 def test_uw_auto_request_allowed_starts_at_5am_et() -> None:
     before_window = datetime(2026, 5, 13, 4, 59, tzinfo=ZoneInfo("America/New_York"))
     start = datetime(2026, 5, 13, 5, 0, tzinfo=ZoneInfo("America/New_York"))

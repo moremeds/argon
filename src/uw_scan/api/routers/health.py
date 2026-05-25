@@ -466,10 +466,11 @@ def health(
         )
 
     lag = (now_utc - last_scan).total_seconds()
+    next_stale_at = last_scan + timedelta(hours=settings.full_scan_stale_after_hours)
     missed_full_scans = expected_market_cron_fires_between(
         settings.full_scan_crons,
         settings.rth_tz,
-        start_utc=last_scan,
+        start_utc=next_stale_at,
         end_utc=now_utc,
     )
     if len(missed_full_scans) >= 2:

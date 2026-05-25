@@ -45,14 +45,19 @@ def build_pipeline_benchmark_inputs(
         expected_count=settings.massive_worker_count,
     )
     last_scan = repo.get_last_full_scan_finished_at()
+    next_stale_at = (
+        last_scan + timedelta(hours=settings.full_scan_stale_after_hours)
+        if last_scan is not None
+        else None
+    )
     expected_full_scans = (
         expected_market_cron_fires_between(
             settings.full_scan_crons,
             settings.rth_tz,
-            start_utc=last_scan,
+            start_utc=next_stale_at,
             end_utc=now_utc,
         )
-        if last_scan is not None
+        if next_stale_at is not None
         else []
     )
     latest_expected_scan = expected_full_scans[-1] if expected_full_scans else None

@@ -54,6 +54,28 @@ def test_build_pipeline_benchmark_inputs_from_warm_store(
     assert any(reason.component == "coverage" for reason in reasons)
 
 
+def test_pipeline_inputs_do_not_count_noop_full_scan_windows_as_missed(
+    seeded_db_empty_cards,
+) -> None:
+    repo = seeded_db_empty_cards
+    now = datetime(2026, 5, 13, 14, 30, tzinfo=UTC)
+    _insert_finished_scan(
+        repo,
+        "TSLA",
+        datetime(2026, 5, 13, 13, 35, tzinfo=UTC),
+        seconds=60,
+    )
+    repo.conn.commit()
+
+    inputs = build_pipeline_benchmark_inputs(
+        repo,
+        Settings(api_key="test"),
+        now_utc=now,
+    )
+
+    assert inputs.expected_full_scan_miss_count == 0
+
+
 def _replace_watchlist(repo, tickers: list[str]) -> None:
     with repo.conn.cursor() as cur:
         cur.execute(

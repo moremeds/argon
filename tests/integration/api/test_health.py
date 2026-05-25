@@ -467,6 +467,20 @@ def test_health_unhealthy_when_expected_full_scans_are_missed(
     assert "expected full scans missed" in (body.get("reason") or "")
 
 
+def test_health_does_not_count_noop_full_scan_windows_as_missed(
+    monkeypatch, client, seeded_db_empty_cards
+):
+    now = datetime(2026, 5, 13, 14, 30, tzinfo=UTC)
+    last_scan = datetime(2026, 5, 13, 13, 35, tzinfo=UTC)
+    _freeze_health_now(monkeypatch, now)
+    _insert_finished_full_scan(seeded_db_empty_cards, last_scan)
+
+    r = client.get("/api/health?record_min_coverage=0")
+    body = r.json()
+    assert body["ok"] is True
+    assert body.get("reason") is None
+
+
 def test_health_does_not_alert_on_memorial_day_scheduler_gap(
     monkeypatch, client, seeded_db_empty_cards
 ):
@@ -479,6 +493,8 @@ def test_health_does_not_alert_on_memorial_day_scheduler_gap(
     body = r.json()
     assert body["ok"] is True
     assert body.get("reason") is None
+    assert body["ws_consumer"]["healthy"] is True
+    assert body["ws_consumer"]["reason"] == "market closed"
 
 
 def _insert_finished_full_scan(repo, finished_at: datetime) -> None:

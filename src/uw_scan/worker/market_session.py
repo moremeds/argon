@@ -33,7 +33,7 @@ def current_market_date(now: datetime, tz: str = "America/New_York") -> date | N
         if now.tzinfo is not None
         else now.replace(tzinfo=ZoneInfo(tz))
     )
-    if local.weekday() >= 5:
+    if not is_us_equity_market_day(local.date()):
         return None
     current = local.time()
     if time(4, 0) <= current <= time(20, 0):
