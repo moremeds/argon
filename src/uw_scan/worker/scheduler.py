@@ -43,6 +43,7 @@ from uw_scan.worker.jobs.ohlc_pull import ohlc_pull_once
 from uw_scan.worker.jobs.option_intraday_jobs import (
     refresh_intraday_for_top_oi_movers,
 )
+from uw_scan.worker.jobs.pipeline_benchmark import pipeline_benchmark_snapshot_job
 from uw_scan.worker.jobs.rates_jobs import rates_fred_ingest_job
 from uw_scan.worker.jobs.rescan_loop import rescan_tick
 from uw_scan.worker.jobs.trade_insight_outcome_backfill import (
@@ -144,6 +145,11 @@ def _is_primary_worker(settings: Settings) -> bool:
 
 
 def _should_schedule_rates_fred_ingest(settings: Settings) -> bool:
+    role = settings.worker_role.lower()
+    return role == "all" or (role == "uw" and settings.worker_index == 0)
+
+
+def _should_schedule_pipeline_benchmark(settings: Settings) -> bool:
     role = settings.worker_role.lower()
     return role == "all" or (role == "uw" and settings.worker_index == 0)
 
@@ -533,6 +539,9 @@ def main() -> int:
     def _rates_fred_ingest() -> None:
         _run_rates_fred_ingest(settings)
 
+    def _pipeline_benchmark_snapshot() -> None:
+        pipeline_benchmark_snapshot_job(settings)
+
     sched.add_job(
         lambda: _record_worker_heartbeat(settings),
         IntervalTrigger(seconds=1),
@@ -634,6 +643,16 @@ def main() -> int:
                 max_instances=1,
                 coalesce=True,
             )
+
+    if _should_schedule_pipeline_benchmark(settings):
+        sched.add_job(
+            _pipeline_benchmark_snapshot,
+            IntervalTrigger(minutes=5),
+            id="pipeline_benchmark_snapshot",
+            name="Pipeline benchmark snapshot",
+            max_instances=1,
+            coalesce=True,
+        )
 
     # Legacy single-pool role (claims any provider's row).
     if "ai" in groups and (

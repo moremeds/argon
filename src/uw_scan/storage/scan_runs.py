@@ -2,10 +2,14 @@
 
 from __future__ import annotations
 
+from datetime import datetime
+
 import psycopg
 from psycopg.types.json import Jsonb
 
 from .. import models
+from ._helpers import _nullable_float
+from .rows import ScanDurationSummaryRow
 
 
 class _ScanRunsMixin:
@@ -53,6 +57,34 @@ class _ScanRunsMixin:
         )
         with self._conn.cursor() as cur:
             cur.execute(sql, (status, run_id))
+
+    def get_scan_duration_summary(
+        self, start: datetime, end: datetime
+    ) -> ScanDurationSummaryRow:
+        with self._conn.cursor() as cur:
+            cur.execute(
+                f"""
+                SELECT
+                    avg(extract(epoch FROM finished_at - started_at)),
+                    percentile_cont(0.95) WITHIN GROUP (
+                        ORDER BY extract(epoch FROM finished_at - started_at)
+                    )
+                FROM {self._schema}.scan_runs
+                WHERE finished_at >= %s
+                  AND finished_at < %s
+                  AND finished_at IS NOT NULL
+                  AND started_at IS NOT NULL
+                  AND status = 'ok'
+                  AND (notes IS DISTINCT FROM 'flow_data_refresh')
+                  AND (notes IS NULL OR notes NOT LIKE 'gex_scan_%%')
+                """,
+                (start, end),
+            )
+            row = cur.fetchone()
+        return ScanDurationSummaryRow(
+            avg_seconds=_nullable_float(row[0]) if row else None,
+            p95_seconds=_nullable_float(row[1]) if row else None,
+        )
 
     # ------------------------------------------------------------------
     # advisory locks (single-flight worker jobs)

@@ -33,6 +33,7 @@ from .jobs import _JobsMixin
 from .market_data import _MarketDataMixin
 from .matrix_state import _MatrixStateMixin
 from .options import _OptionsMixin
+from .pipeline_benchmark import _PipelineBenchmarkMixin
 from .rates_repository import _RatesMixin
 
 # Row dataclasses live in rows.py since the PR-1 split. Re-exported here so
@@ -46,8 +47,11 @@ from .rows import (
     IntradayQuoteRow,
     JobRow,
     PcrHistoryRow,
+    PipelineBenchmarkSnapshotRow,
+    PipelineScannerFreshnessRow,
     RecordHealthRow,
     RescanQueueSummaryRow,
+    ScanDurationSummaryRow,
     ThroughputSummaryRow,
     WatchlistCardRow,
     WatchlistRow,
@@ -71,8 +75,11 @@ __all__ = [
     "IntradayQuoteRow",
     "JobRow",
     "PcrHistoryRow",
+    "PipelineBenchmarkSnapshotRow",
+    "PipelineScannerFreshnessRow",
     "RecordHealthRow",
     "RescanQueueSummaryRow",
+    "ScanDurationSummaryRow",
     "ThroughputSummaryRow",
     "WatchlistCardRow",
     "WatchlistRow",
@@ -97,6 +104,7 @@ class Repository(
     _MarketDataMixin,
     _MatrixStateMixin,
     _OptionsMixin,
+    _PipelineBenchmarkMixin,
     _RatesMixin,
     _ScanOutputsMixin,
     _ScanResultsMixin,
