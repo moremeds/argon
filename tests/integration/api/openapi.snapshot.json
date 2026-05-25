@@ -1,6 +1,462 @@
 {
   "components": {
     "schemas": {
+      "BenchmarkCurrentResponse": {
+        "properties": {
+          "bottleneck": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/BenchmarkReasonResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "captured_at": {
+            "format": "date-time",
+            "title": "Captured At",
+            "type": "string"
+          },
+          "metrics": {
+            "$ref": "#/components/schemas/BenchmarkMetricsResponse"
+          },
+          "reasons": {
+            "items": {
+              "$ref": "#/components/schemas/BenchmarkReasonResponse"
+            },
+            "title": "Reasons",
+            "type": "array"
+          },
+          "score": {
+            "title": "Score",
+            "type": "integer"
+          },
+          "status": {
+            "enum": [
+              "OK",
+              "DEGRADED",
+              "CRITICAL"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "subscores": {
+            "$ref": "#/components/schemas/BenchmarkSubscoresResponse"
+          }
+        },
+        "required": [
+          "captured_at",
+          "score",
+          "status",
+          "subscores",
+          "metrics"
+        ],
+        "title": "BenchmarkCurrentResponse",
+        "type": "object"
+      },
+      "BenchmarkHistoryResponse": {
+        "properties": {
+          "snapshots": {
+            "items": {
+              "$ref": "#/components/schemas/BenchmarkSnapshotResponse"
+            },
+            "title": "Snapshots",
+            "type": "array"
+          }
+        },
+        "title": "BenchmarkHistoryResponse",
+        "type": "object"
+      },
+      "BenchmarkMetricsResponse": {
+        "properties": {
+          "failing_record_tables": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Failing Record Tables",
+            "type": "array"
+          },
+          "last_full_scan_age_seconds": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Full Scan Age Seconds"
+          },
+          "massive_worker_expected_count": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Massive Worker Expected Count"
+          },
+          "massive_worker_online_count": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Massive Worker Online Count"
+          },
+          "oldest_queue_age_seconds": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Oldest Queue Age Seconds"
+          },
+          "queue_depth": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Queue Depth"
+          },
+          "queue_drain_rate_per_minute": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Queue Drain Rate Per Minute"
+          },
+          "record_health_ok": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Record Health Ok"
+          },
+          "requests_per_minute": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Requests Per Minute"
+          },
+          "scan_duration_avg_seconds": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Scan Duration Avg Seconds"
+          },
+          "scan_duration_p95_seconds": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Scan Duration P95 Seconds"
+          },
+          "scanner_dead_count": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Scanner Dead Count"
+          },
+          "scanner_fresh_count": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Scanner Fresh Count"
+          },
+          "scanner_never_scanned_count": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Scanner Never Scanned Count"
+          },
+          "scanner_stale_count": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Scanner Stale Count"
+          },
+          "scheduler_heartbeat_lag_seconds": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Scheduler Heartbeat Lag Seconds"
+          },
+          "uw_http_429": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Uw Http 429"
+          },
+          "uw_http_4xx": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Uw Http 4Xx"
+          },
+          "uw_http_5xx": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Uw Http 5Xx"
+          },
+          "uw_latency_p95_ms": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Uw Latency P95 Ms"
+          },
+          "uw_worker_expected_count": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Uw Worker Expected Count"
+          },
+          "uw_worker_online_count": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Uw Worker Online Count"
+          },
+          "watchlist_size": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Watchlist Size"
+          },
+          "ws_tick_age_seconds": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ws Tick Age Seconds"
+          }
+        },
+        "title": "BenchmarkMetricsResponse",
+        "type": "object"
+      },
+      "BenchmarkReasonResponse": {
+        "properties": {
+          "component": {
+            "title": "Component",
+            "type": "string"
+          },
+          "message": {
+            "title": "Message",
+            "type": "string"
+          },
+          "penalty": {
+            "title": "Penalty",
+            "type": "integer"
+          },
+          "severity": {
+            "enum": [
+              "degraded",
+              "critical"
+            ],
+            "title": "Severity",
+            "type": "string"
+          }
+        },
+        "required": [
+          "component",
+          "severity",
+          "message",
+          "penalty"
+        ],
+        "title": "BenchmarkReasonResponse",
+        "type": "object"
+      },
+      "BenchmarkSnapshotResponse": {
+        "properties": {
+          "capture_bucket": {
+            "format": "date-time",
+            "title": "Capture Bucket",
+            "type": "string"
+          },
+          "captured_at": {
+            "format": "date-time",
+            "title": "Captured At",
+            "type": "string"
+          },
+          "details_jsonb": {
+            "additionalProperties": true,
+            "title": "Details Jsonb",
+            "type": "object"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "metrics": {
+            "$ref": "#/components/schemas/BenchmarkMetricsResponse"
+          },
+          "score": {
+            "title": "Score",
+            "type": "integer"
+          },
+          "status": {
+            "enum": [
+              "OK",
+              "DEGRADED",
+              "CRITICAL"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "subscores": {
+            "$ref": "#/components/schemas/BenchmarkSubscoresResponse"
+          }
+        },
+        "required": [
+          "id",
+          "captured_at",
+          "capture_bucket",
+          "score",
+          "status",
+          "subscores",
+          "metrics"
+        ],
+        "title": "BenchmarkSnapshotResponse",
+        "type": "object"
+      },
+      "BenchmarkSubscoresResponse": {
+        "properties": {
+          "coverage": {
+            "title": "Coverage",
+            "type": "integer"
+          },
+          "freshness": {
+            "title": "Freshness",
+            "type": "integer"
+          },
+          "persistence": {
+            "title": "Persistence",
+            "type": "integer"
+          },
+          "provider": {
+            "title": "Provider",
+            "type": "integer"
+          },
+          "throughput": {
+            "title": "Throughput",
+            "type": "integer"
+          },
+          "worker": {
+            "title": "Worker",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "freshness",
+          "coverage",
+          "throughput",
+          "provider",
+          "worker",
+          "persistence"
+        ],
+        "title": "BenchmarkSubscoresResponse",
+        "type": "object"
+      },
       "CandidateStructure": {
         "properties": {
           "breakevens": {
@@ -15532,6 +15988,72 @@
         ]
       }
     },
+    "/api/health/benchmark/current": {
+      "get": {
+        "operationId": "current_benchmark_api_health_benchmark_current_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BenchmarkCurrentResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Current Benchmark",
+        "tags": [
+          "health"
+        ]
+      }
+    },
+    "/api/health/benchmark/history": {
+      "get": {
+        "operationId": "benchmark_history_api_health_benchmark_history_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "hours",
+            "required": false,
+            "schema": {
+              "default": 24,
+              "maximum": 336,
+              "minimum": 1,
+              "title": "Hours",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BenchmarkHistoryResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Benchmark History",
+        "tags": [
+          "health"
+        ]
+      }
+    },
     "/api/jobs/{job_id}": {
       "get": {
         "operationId": "get_job_api_jobs__job_id__get",
@@ -16097,6 +16619,7 @@
     },
     "/api/regime/validation": {
       "get": {
+        "description": "Latest completed CRI backtest run, rendered to markdown.\n\nSource of truth is uw_scan.regime_backtest_runs. The previous file\nfallback (cri-backtest.md/.csv + oos-summary.json on disk) was removed\nafter the prod gate in\ndocs/superpowers/specs/2026-05-24-regime-research-closure-design.md \u00a710.4\nwas satisfied. If no completed run exists at the current\ncri_scorers.COMPOSITE_VERSION, returns 503 \u2014 operators should run\nscripts/backtest_cri.py to seed the table.",
         "operationId": "get_validation_api_regime_validation_get",
         "responses": {
           "200": {
