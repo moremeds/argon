@@ -2,6 +2,13 @@
 
 Incremental: each symbol's max(trade_date) in the DB sets the lower bound for
 the next read. First run backfills the entire history.
+
+Accepts either a local-filesystem `Path` or a `LakeRoot` (R2 or local). The
+scheduler now resolves the root via `resolve_lake_root(settings, asset_class=
+'volatility')` so this job reads from R2 when all four `R2_*` settings are
+present, else from the local mirror. Existing Path-based callers (e.g.
+`tests/integration/test_vol_index_lake_sync.py`) continue to work via the
+`_normalize` shim inside `lake.py`.
 """
 
 from __future__ import annotations
@@ -13,12 +20,13 @@ from pathlib import Path
 from psycopg import Connection
 
 from uw_scan.sources.lake import list_vol_index_symbols, read_vol_index_parquet
+from uw_scan.sources.lake_resolver import LakeRoot
 from uw_scan.storage.vol_index_repository import VolIndexRepository
 
 logger = logging.getLogger(__name__)
 
 
-def run_vol_index_lake_sync(conn: Connection, *, root: Path) -> dict:
+def run_vol_index_lake_sync(conn: Connection, *, root: Path | LakeRoot) -> dict:
     """Sync all symbols under root into uw_scan.vol_index_daily.
 
     Returns a summary dict: {symbols: int, rows: int}.

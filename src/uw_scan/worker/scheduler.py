@@ -20,6 +20,7 @@ from apscheduler.triggers.interval import IntervalTrigger
 
 from uw_scan.api.client import UwClient
 from uw_scan.config import Settings
+from uw_scan.sources.lake_resolver import resolve_lake_root
 from uw_scan.sources.ohlc import MassiveOhlcProvider
 from uw_scan.storage.provider_usage import ExternalApiRequestRecorder
 from uw_scan.storage.repository import Repository
@@ -411,20 +412,25 @@ def main() -> int:
             )
 
     def _vol_index_lake_sync() -> None:
-        # Parquet lake (~/market-warehouse/.../volatility) → vol_index_daily.
-        # Local I/O + Postgres only — no external API spend, no UW/Massive role
-        # binding required. Primary worker runs it to avoid duplicate upserts.
+        # Parquet lake → vol_index_daily. Source is R2 when all four R2_*
+        # settings are present (per the 2026-05-25 standing rule), else the
+        # local mirror under ~/market-warehouse/.../volatility. No external
+        # API spend in either case (R2 = our own object storage, not UW/Massive).
+        # Primary worker runs it to avoid duplicate upserts.
+        root = resolve_lake_root(settings, asset_class="volatility")
         with _repo(settings) as repo:
-            run_vol_index_lake_sync(repo.conn, root=settings.lake_vol_index_root)
+            run_vol_index_lake_sync(repo.conn, root=root)
 
     def _credit_etf_lake_sync() -> None:
         # Equity asset_class lake → vol_index_daily for the VCG credit proxies
-        # (HYG / JNK / LQD). Pure local I/O; same idempotency guarantees as the
-        # vol-complex sync. Primary worker only.
+        # (HYG / JNK / LQD). Source is R2 when configured, else the local
+        # mirror — same idempotency guarantees apply to both backends.
+        # Primary worker only.
+        root = resolve_lake_root(settings, asset_class="equity")
         with _repo(settings) as repo:
             run_credit_etf_lake_sync(
                 repo.conn,
-                root=settings.lake_credit_etf_root,
+                root=root,
                 symbols=settings.credit_etf_symbols,
             )
 
