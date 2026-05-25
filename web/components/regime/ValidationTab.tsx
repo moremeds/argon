@@ -22,9 +22,13 @@ export default function ValidationTab() {
   // re-entry while mounted.
   const reqToken = useRef(0);
 
+  const selectSub = (next: SubTab) => {
+    setErr(null);
+    setSub(next);
+  };
+
   useEffect(() => {
     let cancelled = false;
-    setErr(null);
     const token = ++reqToken.current;
     const url =
       sub === "cri" ? regimeApi.validation() : regimeApi.vcgValidation();
@@ -66,14 +70,14 @@ export default function ValidationTab() {
       >
         <button
           className={`ticker-tab ${sub === "cri" ? "active" : ""}`}
-          onClick={() => setSub("cri")}
+          onClick={() => selectSub("cri")}
           data-testid="validation-sub-cri"
         >
           CRI
         </button>
         <button
           className={`ticker-tab ${sub === "vcg" ? "active" : ""}`}
-          onClick={() => setSub("vcg")}
+          onClick={() => selectSub("vcg")}
           data-testid="validation-sub-vcg"
         >
           VCG
