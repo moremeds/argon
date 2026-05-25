@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from typing import Annotated, Literal
 
@@ -113,6 +114,62 @@ class RecordHealthCheck(BaseModel):
     actual_rows: int
     latest_at: datetime | None = None
     ok: bool
+
+
+_RECORD_HEALTH_CACHE_TTL_SECONDS = 15.0
+_RecordHealthCacheKey = tuple[
+    tuple[str, ...] | None,
+    float,
+    float,
+    int,
+    float,
+]
+
+
+@dataclass(frozen=True)
+class _RecordHealthCacheEntry:
+    cached_at: datetime
+    record_health_ok: bool
+    record_health: tuple[RecordHealthCheck, ...]
+
+
+_record_health_cache: dict[_RecordHealthCacheKey, _RecordHealthCacheEntry] = {}
+
+
+def _record_health_cache_get(
+    key: _RecordHealthCacheKey,
+    *,
+    now_utc: datetime,
+) -> tuple[bool, list[RecordHealthCheck]] | None:
+    entry = _record_health_cache.get(key)
+    if entry is None:
+        return None
+    age = (now_utc - entry.cached_at).total_seconds()
+    if age < 0 or age > _RECORD_HEALTH_CACHE_TTL_SECONDS:
+        _record_health_cache.pop(key, None)
+        return None
+    return (
+        entry.record_health_ok,
+        [check.model_copy() for check in entry.record_health],
+    )
+
+
+def _record_health_cache_set(
+    key: _RecordHealthCacheKey,
+    *,
+    now_utc: datetime,
+    record_health_ok: bool,
+    record_health: list[RecordHealthCheck],
+) -> None:
+    _record_health_cache[key] = _RecordHealthCacheEntry(
+        cached_at=now_utc,
+        record_health_ok=record_health_ok,
+        record_health=tuple(check.model_copy() for check in record_health),
+    )
+
+
+def _record_health_cache_clear_for_tests() -> None:
+    _record_health_cache.clear()
 
 
 def _max_scheduler_gap_seconds(cron_exprs: list[str], tz: str) -> float:
@@ -371,34 +428,52 @@ def health(
     record_fields = {"record_health_ok": None, "record_health": []}
     record_reason = None
     if record_window_hours is not None:
-        try:
-            record_rows = repo.list_record_health(
-                since=now_utc - timedelta(hours=record_window_hours),
-                # Daily tables (nightly vol rollup, daily snapshots) refresh
-                # once per day, so they need a wider window to count as fresh.
-                daily_since=now_utc
-                - timedelta(hours=settings.record_health_daily_window_hours),
-                expected_tickers=watchlist_size,
-                min_coverage=record_min_coverage,
-                tables=_parse_record_tables(record_tables),
+        selected_tables = _parse_record_tables(record_tables)
+        cache_key: _RecordHealthCacheKey = (
+            tuple(selected_tables) if selected_tables is not None else None,
+            record_window_hours,
+            record_min_coverage,
+            watchlist_size,
+            settings.record_health_daily_window_hours,
+        )
+        cached_record_health = _record_health_cache_get(cache_key, now_utc=now_utc)
+        if cached_record_health is None:
+            try:
+                record_rows = repo.list_record_health(
+                    since=now_utc - timedelta(hours=record_window_hours),
+                    # Daily tables (nightly vol rollup, daily snapshots) refresh
+                    # once per day, so they need a wider window to count as fresh.
+                    daily_since=now_utc
+                    - timedelta(hours=settings.record_health_daily_window_hours),
+                    expected_tickers=watchlist_size,
+                    min_coverage=record_min_coverage,
+                    tables=selected_tables,
+                )
+            except ValueError as exc:
+                raise HTTPException(status_code=400, detail=str(exc)) from exc
+            record_health = [
+                RecordHealthCheck(
+                    table=row.table,
+                    window_start=row.window_start,
+                    expected_tickers=row.expected_tickers,
+                    expected_min_tickers=row.expected_min_tickers,
+                    actual_tickers=row.actual_tickers,
+                    expected_min_rows=row.expected_min_rows,
+                    actual_rows=row.actual_rows,
+                    latest_at=row.latest_at,
+                    ok=row.ok,
+                )
+                for row in record_rows
+            ]
+            record_ok = all(check.ok for check in record_health)
+            _record_health_cache_set(
+                cache_key,
+                now_utc=now_utc,
+                record_health_ok=record_ok,
+                record_health=record_health,
             )
-        except ValueError as exc:
-            raise HTTPException(status_code=400, detail=str(exc)) from exc
-        record_health = [
-            RecordHealthCheck(
-                table=row.table,
-                window_start=row.window_start,
-                expected_tickers=row.expected_tickers,
-                expected_min_tickers=row.expected_min_tickers,
-                actual_tickers=row.actual_tickers,
-                expected_min_rows=row.expected_min_rows,
-                actual_rows=row.actual_rows,
-                latest_at=row.latest_at,
-                ok=row.ok,
-            )
-            for row in record_rows
-        ]
-        record_ok = all(check.ok for check in record_health)
+        else:
+            record_ok, record_health = cached_record_health
         record_fields = {
             "record_health_ok": record_ok,
             "record_health": record_health,

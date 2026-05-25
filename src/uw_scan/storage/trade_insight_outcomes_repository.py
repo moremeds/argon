@@ -67,6 +67,23 @@ class TradeInsightOutcomeRow:
     created_at: datetime
 
 
+@dataclass(frozen=True)
+class PendingOutcomeAnalysis:
+    """Pending outcome joined to its source AI analysis.
+
+    Analysis fields are nullable because the pending outcome row may outlive
+    a corrupted or manually deleted source analysis. The worker preserves the
+    old behavior in that case: log a warning and leave the outcome pending.
+    """
+
+    analysis_id: UUID
+    snapshot_date: date
+    ticker: str | None
+    provider: str | None
+    prompt_version: str | None
+    outcome_jsonb: dict[str, Any] | None
+
+
 class TradeInsightOutcomeRepository:
     """Repository for the trade_insight_outcomes ledger.
 
@@ -255,6 +272,35 @@ class TradeInsightOutcomeRepository:
             cur.execute(sql, (limit,))
             rows = cur.fetchall()
         return [(r[0], r[1]) for r in rows]
+
+    def fetch_pending_with_analysis(
+        self, *, limit: int = 100
+    ) -> list[PendingOutcomeAnalysis]:
+        """Return pending outcome rows plus source analysis fields in one read."""
+        sql = """
+            SELECT o.analysis_id, o.snapshot_date,
+                   a.ticker, a.provider, a.prompt_version, a.outcome_jsonb
+              FROM trade_insight_outcomes o
+              LEFT JOIN trade_insight_ai_analyses a
+                ON a.analysis_id = o.analysis_id
+             WHERE o.resolved_outcome IS NULL OR o.resolved_outcome = 'pending'
+             ORDER BY o.last_evaluated_at ASC, o.snapshot_date ASC
+             LIMIT %s
+        """
+        with self._conn.cursor() as cur:
+            cur.execute(sql, (limit,))
+            rows = cur.fetchall()
+        return [
+            PendingOutcomeAnalysis(
+                analysis_id=r[0],
+                snapshot_date=r[1],
+                ticker=r[2],
+                provider=r[3],
+                prompt_version=r[4],
+                outcome_jsonb=r[5],
+            )
+            for r in rows
+        ]
 
     def fetch_for_analysis(
         self, analysis_id: UUID | str

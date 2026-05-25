@@ -100,6 +100,20 @@ def _normalized_contracts(raw: list[dict]) -> list[dict]:
     return out
 
 
+def _contracts_by_expiry_right_strike(
+    contracts: list[dict],
+) -> dict[date, dict[str, dict[Decimal, list[dict]]]]:
+    index: dict[date, dict[str, dict[Decimal, list[dict]]]] = {}
+    for contract in contracts:
+        if contract.get("mid") is None:
+            continue
+        parsed: ParsedOptionSymbol = contract["parsed"]
+        index.setdefault(parsed.expiry, {}).setdefault(parsed.right, {}).setdefault(
+            parsed.strike, []
+        ).append(contract)
+    return index
+
+
 def _build_flow_table(contracts: list[dict]) -> list[ChainFlowReadRow]:
     by_strike: dict[Decimal, dict[str, dict]] = {}
     for c in contracts:
@@ -166,15 +180,19 @@ def _atm_straddles_by_expiry(
     if spot is None:
         return {}
     out: dict[date, Decimal] = {}
-    expiries = sorted({c["parsed"].expiry for c in contracts})
-    for expiry in expiries:
-        same_expiry = [
-            c
-            for c in contracts
-            if c["parsed"].expiry == expiry and c.get("mid") is not None
+    by_expiry = _contracts_by_expiry_right_strike(contracts)
+    for expiry in sorted(by_expiry):
+        expiry_index = by_expiry[expiry]
+        calls = [
+            contract
+            for contracts_at_strike in expiry_index.get("C", {}).values()
+            for contract in contracts_at_strike
         ]
-        calls = [c for c in same_expiry if c["parsed"].right == "C"]
-        puts = [c for c in same_expiry if c["parsed"].right == "P"]
+        puts = [
+            contract
+            for contracts_at_strike in expiry_index.get("P", {}).values()
+            for contract in contracts_at_strike
+        ]
         if not calls or not puts:
             continue
         call = min(calls, key=lambda c: abs(c["parsed"].strike - spot))
@@ -539,15 +557,20 @@ def _build_candidates(
         ],
         key=lambda c: abs(c["parsed"].strike - spot),
     )
-    calendar_pairs = [
-        (near, far)
-        for near in calls
-        for far in far_calls
-        if near["parsed"].strike == far["parsed"].strike
-        and near["parsed"].expiry < far["parsed"].expiry
-    ]
-    if calendar_pairs:
-        near, far = calendar_pairs[0]
+    far_calls_by_strike: dict[Decimal, list[dict]] = {}
+    for far in far_calls:
+        far_calls_by_strike.setdefault(far["parsed"].strike, []).append(far)
+    calendar_pair = next(
+        (
+            (near, far)
+            for near in calls
+            for far in far_calls_by_strike.get(near["parsed"].strike, [])
+            if near["parsed"].expiry < far["parsed"].expiry
+        ),
+        None,
+    )
+    if calendar_pair:
+        near, far = calendar_pair
         debit = far["mid"] - near["mid"]
         # Calendar spread: max loss is bounded by the initial net debit only if
         # the position is held to expiration of the far leg. Earlier exit (the
