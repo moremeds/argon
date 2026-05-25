@@ -83,14 +83,12 @@ def derive_bias(hits: Iterable[SignalHit]) -> tuple[Bias, BiasStrength | None]:
 
 
 def derive_setup(gates: dict[str, str]) -> tuple[SetupStatus, str | None]:
-    """Roll gate pass/block into a single setup-quality chip + reason.
+    """Roll advisory gate pass/block into a single setup-quality chip + reason.
 
-    `ready` when all three gates pass. `blocked` only when regime blocks
-    (a hard veto — currently unreachable since regime is a no-op shim).
-    Otherwise `caution`, with the first blocking gate reported as reason.
+    `ready` when earnings and liquidity pass. `caution` reports the first
+    advisory blocker. Regime is retained in the persisted gates map for
+    compatibility, but scanner regime hard-blocking is obsolete.
     """
-    if gates.get("regime") == "block":
-        return ("blocked", "regime")
     blockers = [k for k in ("earnings", "liquidity") if gates.get(k) == "block"]
     if not blockers:
         return ("ready", None)

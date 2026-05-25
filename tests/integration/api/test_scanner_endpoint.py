@@ -118,3 +118,5 @@ def test_regime_block_gate_row_is_ignored_by_scanner_endpoint(
     assert body["gated"] == []
     tsla = next(c for c in body["candidates"] if c["ticker"] == "TSLA")
     assert tsla["gates"]["regime"] == "pass"
+    assert tsla["setup"] == "ready"
+    assert tsla["setup_reason"] is None

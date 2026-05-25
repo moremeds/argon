@@ -171,12 +171,12 @@ def test_derive_setup_caution_when_liquidity_blocks():
     assert reason == "liquidity"
 
 
-def test_derive_setup_blocked_when_regime_blocks_even_if_others_pass():
+def test_derive_setup_ready_when_only_legacy_regime_blocks():
     setup, reason = derive_setup(
         {"earnings": "pass", "liquidity": "pass", "regime": "block"}
     )
-    assert setup == "blocked"
-    assert reason == "regime"
+    assert setup == "ready"
+    assert reason is None
 
 
 def test_build_candidate_attaches_bias_and_setup():
