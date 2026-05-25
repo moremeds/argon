@@ -1,18 +1,18 @@
 """Read-only endpoints for the /regime/validation sub-page + guidance.
 
-GET /api/regime/validation — returns the warm-store backtest markdown +
-  CSV row count + a hand-curated OOS summary loaded from
-  docs/research/regime/oos-summary.json.
+GET /api/regime/validation — returns the latest completed CRI backtest run
+  from uw_scan.regime_backtest_runs, rendered to markdown + the run's OOS
+  summary. 503 if no completed run exists at the current COMPOSITE_VERSION.
 
-GET /api/regime/guidance — added in a follow-on commit (T9). Returns the
-  active regime-state guidance rule selected from
-  docs/research/regime/guidance.md based on the current CRI snapshot.
+GET /api/regime/guidance — returns the active regime-state guidance rule
+  selected from docs/research/regime/guidance.md based on the current CRI
+  snapshot. (guidance.md is still on disk; only the backtest artifacts moved
+  to Postgres.)
 """
 
 from __future__ import annotations
 
 import ast
-import csv
 import logging
 import operator as _op
 from pathlib import Path
@@ -27,7 +27,6 @@ from uw_scan.api.models.regime_validation import (
     OosSummary,
     ValidationResponse,
 )
-from uw_scan.cards.cri_scorers import COMPOSITE_VERSION as CRI_COMPOSITE_VERSION
 from uw_scan.reports.regime_backtest_report import render_backtest_markdown
 from uw_scan.storage.cri_snapshot_repository import CriSnapshotRepository
 from uw_scan.storage.regime_backtest_repository import RegimeBacktestRepository
@@ -66,30 +65,6 @@ def _safe_doc_path(filename: str) -> Path:
     if not candidate.is_file():
         raise HTTPException(404, f"{filename}: not a regular file")
     return candidate
-
-
-def _read_oos_summary() -> OosSummary | None:
-    try:
-        path = _safe_doc_path("oos-summary.json")
-    except HTTPException as exc:
-        if exc.status_code == 404:
-            return None
-        raise
-    try:
-        return OosSummary.model_validate_json(path.read_text())
-    except Exception as exc:
-        raise HTTPException(500, f"oos-summary.json malformed: {exc!r}") from exc
-
-
-def _count_csv_rows(filename: str) -> int:
-    try:
-        path = _safe_doc_path(filename)
-    except HTTPException as exc:
-        if exc.status_code == 404:
-            return 0
-        raise
-    with path.open() as f:
-        return sum(1 for _ in csv.DictReader(f))
 
 
 # ── AST-whitelist evaluator (security boundary) ──────────────────────
@@ -251,40 +226,31 @@ def get_guidance(
 def get_validation(
     repo: Annotated[Repository, Depends(get_repo)],
 ) -> ValidationResponse:
-    """DB-first; falls back to checked-in files during the deploy transition.
+    """Latest completed CRI backtest run, rendered to markdown.
 
-    The fallback block is removed in a follow-up PR after the prod gate in
+    Source of truth is uw_scan.regime_backtest_runs. The previous file
+    fallback (cri-backtest.md/.csv + oos-summary.json on disk) was removed
+    after the prod gate in
     docs/superpowers/specs/2026-05-24-regime-research-closure-design.md §10.4
-    is satisfied (≥1 completed CRI run in prod at the current
-    cri_scorers.COMPOSITE_VERSION).
+    was satisfied. If no completed run exists at the current
+    cri_scorers.COMPOSITE_VERSION, returns 503 — operators should run
+    scripts/backtest_cri.py to seed the table.
     """
     rb = RegimeBacktestRepository(repo.conn, schema=repo._schema)
     # No composite_version arg -> RegimeBacktestRepository defaults to
     # str(cri_scorers.COMPOSITE_VERSION). Experimental runs at other versions
     # are query-only via SQL and do NOT leak into the API surface.
     run = rb.find_latest_run("cri")
-    if run is not None:
-        daily = rb.fetch_daily_for_run(run["id"])
-        oos_payload = (run.get("summary") or {}).get("oos")
-        return ValidationResponse(
-            backtest_md=render_backtest_markdown(run, daily),
-            backtest_csv_rows=len(daily),
-            oos=OosSummary.model_validate(oos_payload) if oos_payload else None,
+    if run is None:
+        raise HTTPException(
+            503,
+            "no completed CRI backtest run at the current COMPOSITE_VERSION; "
+            "run scripts/backtest_cri.py to seed uw_scan.regime_backtest_runs",
         )
-
-    # Transitional fallback — see docstring. Log LOUDLY: this path is hit
-    # when the code constant has advanced past the prod-DB record (calibration
-    # bump without a re-run), and the data we serve is stale-by-one-version.
-    # Operators should see this in the logs and re-run scripts/backtest_cri.py.
-    logger.warning(
-        "regime/validation falling back to on-disk files: no completed "
-        "regime_backtest_runs row at composite_version=%s. Re-run "
-        "scripts/backtest_cri.py to refresh the DB record.",
-        CRI_COMPOSITE_VERSION,
-    )
-    md_path = _safe_doc_path("cri-backtest.md")
+    daily = rb.fetch_daily_for_run(run["id"])
+    oos_payload = (run.get("summary") or {}).get("oos")
     return ValidationResponse(
-        backtest_md=md_path.read_text(),
-        backtest_csv_rows=_count_csv_rows("cri-backtest.csv"),
-        oos=_read_oos_summary(),
+        backtest_md=render_backtest_markdown(run, daily),
+        backtest_csv_rows=len(daily),
+        oos=OosSummary.model_validate(oos_payload) if oos_payload else None,
     )
