@@ -6,13 +6,12 @@
 - `vcg-methodology.md` — **source of truth** for VCG math, calibration, and design decisions. Read this before changing any threshold in `src/uw_scan/cards/vcg_scoring.py`.
 - `cri-validation.ipynb` — out-of-sample walk-forward validation against 20 years of CBOE vol-complex data. Section 9 is the honest accuracy breakdown.
 - `closure-2026-05-24.md` — closure memo for the regime-research workspace with SQL cookbook for the DB-backed backtest tables.
-- `cri-backtest.{md,csv}`, `oos-summary.json` — **legacy on-disk artifacts** retained for the router file-fallback during the deploy transition. Removed in a follow-up PR after the prod gate (≥1 completed CRI run in prod) is satisfied. Do not regenerate them.
 
 ## Backtest results live in Postgres (2026-05 closure)
 
-- The CRI + VCG backtests persist to `uw_scan.regime_backtest_runs` + `uw_scan.regime_backtest_daily` (migration 057). The DB is the source of truth.
+- The CRI + VCG backtests persist to `uw_scan.regime_backtest_runs` + `uw_scan.regime_backtest_daily` (migration 057). The DB is the sole source of truth — `/api/regime/validation` returns 503 if no completed run exists at the current COMPOSITE_VERSION.
 - Inspect via `SELECT * FROM uw_scan.regime_backtest_runs ORDER BY created_at DESC LIMIT 10;` — see `closure-2026-05-24.md` for the full SQL cookbook.
-- Do NOT commit any CSV/MD/JSON output files from new backtest runs. The legacy `cri-backtest.{md,csv}` and `oos-summary.json` stay in place only until the file-removal follow-up PR ships.
+- Do NOT commit any CSV/MD/JSON output files from backtest runs — the renderer in `src/uw_scan/reports/regime_backtest_report.py` produces markdown on demand from the DB row.
 - `composite_version` provenance is derived from code constants (`cri_scorers.COMPOSITE_VERSION`, `vcg_scoring.COMPOSITE_VERSION`). Never override on the CLI — the value persisted in the DB always matches the code that produced the daily rows.
 
 ## When to update
