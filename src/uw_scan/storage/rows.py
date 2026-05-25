@@ -128,6 +128,20 @@ class ThroughputSummaryRow:
 
 
 @dataclass(frozen=True)
+class ScanDurationSummaryRow:
+    avg_seconds: float | None
+    p95_seconds: float | None
+
+
+@dataclass(frozen=True)
+class PipelineScannerFreshnessRow:
+    fresh: int
+    stale: int
+    dead: int
+    never_scanned: int
+
+
+@dataclass(frozen=True)
 class ExternalApiRequestRow:
     request_id: int
     provider: str
@@ -163,6 +177,46 @@ class RecordHealthRow:
     actual_rows: int
     latest_at: datetime | None
     ok: bool
+
+
+@dataclass(frozen=True)
+class PipelineBenchmarkSnapshotRow:
+    id: int
+    captured_at: datetime
+    capture_bucket: datetime
+    score: int
+    status: str
+    freshness_score: int
+    coverage_score: int
+    throughput_score: int
+    provider_score: int
+    worker_score: int
+    persistence_score: int
+    watchlist_size: int | None
+    scanner_fresh_count: int | None
+    scanner_stale_count: int | None
+    scanner_dead_count: int | None
+    scanner_never_scanned_count: int | None
+    last_full_scan_age_seconds: Decimal | None
+    scan_duration_avg_seconds: Decimal | None
+    scan_duration_p95_seconds: Decimal | None
+    queue_depth: int | None
+    oldest_queue_age_seconds: Decimal | None
+    queue_drain_rate_per_minute: Decimal | None
+    uw_latency_p95_ms: int | None
+    uw_http_429: int | None
+    uw_http_4xx: int | None
+    uw_http_5xx: int | None
+    requests_per_minute: Decimal | None
+    scheduler_heartbeat_lag_seconds: Decimal | None
+    uw_worker_online_count: int | None
+    uw_worker_expected_count: int | None
+    massive_worker_online_count: int | None
+    massive_worker_expected_count: int | None
+    ws_tick_age_seconds: Decimal | None
+    record_health_ok: bool | None
+    failing_record_tables: list[str]
+    details_jsonb: dict[str, Any]
 
 
 class WatchlistCardRow:

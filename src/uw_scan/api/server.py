@@ -6,6 +6,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from uw_scan.api.routers import (
+    benchmark,
     cockpit,
     gold,
     health,
@@ -39,6 +40,7 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
     )
     app.include_router(health.router, prefix="/api", tags=["health"])
+    app.include_router(benchmark.router, prefix="/api", tags=["health"])
     app.include_router(watchlist.router, prefix="/api", tags=["watchlist"])
     app.include_router(stock.router, prefix="/api", tags=["stock"])
     app.include_router(ohlc.router, prefix="/api", tags=["ohlc"])
