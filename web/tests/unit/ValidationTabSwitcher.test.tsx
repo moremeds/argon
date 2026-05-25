@@ -128,4 +128,69 @@ describe("ValidationTab switcher", () => {
       expect(screen.queryByText(/VCG BACKTEST \(HYG\)/)).not.toBeNull(),
     );
   });
+
+  it("drops late VCG response when user already switched back to CRI (race-token)", async () => {
+    // Deferred promise — only resolves when we say so. This proves the
+    // request-token logic: if the user clicks back to CRI before VCG lands,
+    // the late VCG response must not overwrite state.
+    let resolveVcg: (value: unknown) => void = () => undefined;
+    const vcgPromise = new Promise((res) => {
+      resolveVcg = res;
+    });
+    fetchMock.mockImplementation((url: string) => {
+      const u = String(url);
+      if (u.endsWith("/regime/vcg-validation")) return vcgPromise;
+      // CRI resolves immediately on both calls.
+      return Promise.resolve({
+        ok: true,
+        status: 200,
+        json: async () => CRI_OK,
+      });
+    });
+
+    render(<ValidationTab />);
+    await waitFor(() =>
+      expect(screen.queryByText("WARM-STORE BACKTEST")).not.toBeNull(),
+    );
+
+    // Switch to VCG — fetch is in flight but pending.
+    fireEvent.click(screen.getByTestId("validation-sub-vcg"));
+    await waitFor(() => expect(screen.queryByText("Loading…")).not.toBeNull());
+
+    // User switches back to CRI BEFORE VCG resolves. New CRI fetch fires,
+    // resolves immediately, CRI panel renders.
+    fireEvent.click(screen.getByTestId("validation-sub-cri"));
+    await waitFor(() =>
+      expect(screen.queryByText("WARM-STORE BACKTEST")).not.toBeNull(),
+    );
+
+    // NOW resolve the late VCG promise. If the race-token works, this
+    // result is dropped — the CRI panel must stay visible and no error
+    // banner appears. If the token is removed, VCG state would be set and
+    // — because sub === "cri" — nothing visibly breaks, BUT subsequent
+    // VCG visits would short-circuit with stale data. The stronger
+    // assertion: the visible panel must remain the CRI one with no
+    // intervening loading/error flicker.
+    resolveVcg({
+      ok: true,
+      status: 200,
+      json: async () => VCG_OK,
+    });
+    // Give the late microtask a chance to fire.
+    await new Promise((r) => setTimeout(r, 10));
+    expect(screen.queryByText("WARM-STORE BACKTEST")).not.toBeNull();
+    expect(screen.queryByTestId("validation-error")).toBeNull();
+    // Switching to VCG again must fire a NEW fetch (not reuse the
+    // dropped late result). Total fetches so far: CRI(1), VCG(pending),
+    // CRI(2). A correct token implementation re-issues VCG(3) on this
+    // click. A token-less implementation would already have vcg state
+    // from the late drop and skip the fetch.
+    fireEvent.click(screen.getByTestId("validation-sub-vcg"));
+    await new Promise((r) => setTimeout(r, 10));
+    // Either we see Loading (token dropped late result → new fetch in flight)
+    // or VCG content (the new fetch resolved). Both are correct; what's
+    // wrong is showing VCG content from the LATE fetch without re-issuing.
+    // Test: total fetch calls must be >= 4 (CRI, VCG-pending, CRI, VCG-new).
+    expect(fetchMock).toHaveBeenCalledTimes(4);
+  });
 });

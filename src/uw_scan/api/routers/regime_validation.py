@@ -327,7 +327,9 @@ def get_vcg_validation(
             VcgInterpretationCount(
                 interpretation=k, n=int(v), pct=round(100 * v / total, 1)
             )
-            for k, v in sorted(dist.items(), key=lambda kv: -kv[1])
+            # Secondary key on interpretation name keeps ordering deterministic
+            # when two interpretations have the same count (prod could tie).
+            for k, v in sorted(dist.items(), key=lambda kv: (-kv[1], kv[0]))
         ],
         named_crash_window=events,
     )

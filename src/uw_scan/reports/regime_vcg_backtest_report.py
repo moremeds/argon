@@ -12,7 +12,21 @@ from __future__ import annotations
 
 from io import StringIO
 
-_LEVELS = ("NORMAL", "SUPPRESSED", "EDR", "BOUNCE", "RISK_OFF", "PANIC", "WATCH")
+# Order: the 7 interpretation levels emitted by vcg_scoring._interpretation_for_index
+# under normal data conditions, then INSUFFICIENT_DATA (emitted when there aren't
+# enough bars in the rolling window). Including it here keeps the renderer's
+# distribution table consistent with the API response (which iterates all dist
+# keys) and ensures row percentages sum to 100.
+_LEVELS = (
+    "NORMAL",
+    "SUPPRESSED",
+    "EDR",
+    "BOUNCE",
+    "RISK_OFF",
+    "PANIC",
+    "WATCH",
+    "INSUFFICIENT_DATA",
+)
 
 
 def render_vcg_backtest_markdown(run: dict, daily: list[dict]) -> str:

@@ -81,3 +81,49 @@ def test_render_vcg_empty_daily_returns_placeholder() -> None:
         render_vcg_backtest_markdown(run, [])
         == "# VCG Backtest\n\n_No daily rows available._\n"
     )
+
+
+def test_render_vcg_includes_insufficient_data_row_and_sums_to_100() -> None:
+    """Prod data can include INSUFFICIENT_DATA — markdown table must show it.
+
+    Regression for the bug where _LEVELS whitelist excluded INSUFFICIENT_DATA:
+    the renderer would compute total = sum(dist.values()) including the
+    INSUFFICIENT_DATA count but skip rendering that row, producing a table
+    whose percentages don't sum to 100%.
+    """
+    daily = _make_daily()
+    run = {
+        "indicator": "vcg",
+        "composite_version": "1",
+        "start_date": date(2007, 1, 3),
+        "end_date": daily[-1]["trade_date"],
+        "window_days": 21,
+        "n_days": len(daily),
+        "summary": {
+            "oos": None,
+            "extras": {
+                "credit_proxy": "HYG",
+                "interpretation_distribution": {
+                    "NORMAL": 80,
+                    "SUPPRESSED": 50,
+                    "INSUFFICIENT_DATA": 20,
+                },
+                "ro_count": 0,
+                "edr_count": 0,
+                "bounce_count": 0,
+            },
+        },
+    }
+    actual = render_vcg_backtest_markdown(run, daily)
+    assert "| INSUFFICIENT_DATA | 20 |" in actual
+    # Pct values rendered to 1 decimal place; 80/150=53.3, 50/150=33.3, 20/150=13.3 → 99.9
+    # If INSUFFICIENT_DATA were dropped from the table, the visible total
+    # would be 86.6%, not 99.9% — that's the regression this test catches.
+    import re
+
+    pct_values = [float(m) for m in re.findall(r"\| (\d+\.\d+)% \|", actual)]
+    assert len(pct_values) == 3, f"expected 3 data rows, got {pct_values}"
+    total = sum(pct_values)
+    assert 99.0 <= total <= 100.1, (
+        f"distribution percentages must sum to ~100, got {total}"
+    )
