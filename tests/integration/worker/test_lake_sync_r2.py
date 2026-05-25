@@ -89,6 +89,19 @@ def test_vol_index_lake_sync_pulls_from_r2(seeded_db_empty_cards) -> None:
     vix_history = repo.fetch_history("VIX", days=30)
     assert vix_history, "VIX rows did not land in vol_index_daily after R2 sync"
 
+    # Second-run idempotency — gap-aware sync MUST report gaps_filled == 0
+    # immediately after a successful first run. Catches a future regression
+    # where r2_dates and db_dates fail to compare as equal sets (e.g. if
+    # pyarrow→pandas coerces date32 to Timestamp on some future upstream
+    # schema change). Without this assertion the bug is silent (Postgres
+    # absorbs duplicate upserts; cost inflates ~history-size× per run).
+    second = run_vol_index_lake_sync(seeded_db_empty_cards.conn, root=root)
+    assert second["gaps_filled"] == 0, (
+        f"second run reported gaps_filled={second['gaps_filled']} — "
+        f"date-type drift between R2 (pyarrow) and DB (psycopg) is likely; "
+        f"check _rows_from_table in lake.py and fetch_dates_for"
+    )
+
 
 def test_credit_etf_lake_sync_pulls_from_r2(seeded_db_empty_cards) -> None:
     """run_credit_etf_lake_sync against R2 inserts HYG/JNK/LQD rows.

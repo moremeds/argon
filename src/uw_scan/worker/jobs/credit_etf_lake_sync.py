@@ -51,9 +51,9 @@ def run_credit_etf_lake_sync(
     for symbol in symbols:
         r2_rows = read_vol_index_parquet(root, symbol)
         if not r2_rows:
-            logger.info(
-                "credit_etf_lake_sync: %s — no rows in lake under symbol=%s",
-                symbol,
+            logger.warning(
+                "credit_etf_lake_sync: %s — no rows in lake (symbol absent OR "
+                "lake returned empty mid-write); skipping",
                 symbol,
             )
             continue

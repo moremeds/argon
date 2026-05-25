@@ -46,13 +46,19 @@ def run_vol_index_lake_sync(conn: Connection, *, root: Path | LakeRoot) -> dict:
     for symbol in symbols:
         r2_rows = read_vol_index_parquet(root, symbol)
         if not r2_rows:
+            logger.warning(
+                "vol_index_lake_sync: %s — no rows in lake (symbol absent OR "
+                "lake returned empty mid-write); skipping",
+                symbol,
+            )
             continue
         r2_dates = {r["trade_date"] for r in r2_rows}
         db_dates = repo.fetch_dates_for(symbol)
         # Always re-upsert the latest known DB row in case the lake's
         # most-recent close was revised after our last sync (intra-session
-        # final-vs-snapshot drift). The `or {None}` guard handles first-run
-        # symbols where db_dates is empty.
+        # final-vs-snapshot drift). When db_dates is empty (first run), the
+        # `{latest} if latest else set()` ternary contributes nothing and the
+        # full r2 history flows in via the set-diff above.
         latest = max(db_dates) if db_dates else None
         to_pull_dates = (r2_dates - db_dates) | ({latest} if latest else set())
         rows_to_upsert = [r for r in r2_rows if r["trade_date"] in to_pull_dates]
