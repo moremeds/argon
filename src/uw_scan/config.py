@@ -194,6 +194,18 @@ class Settings(BaseModel):
     # The VCG scanner reads from this list; the first entry is the default
     # proxy unless overridden by the API caller.
     credit_etf_symbols: list[str] = ["HYG", "JNK", "LQD"]
+    # Cloudflare R2 parquet lake — primary source for EOD/backfill reads per
+    # the 2026-05-25 standing rule (see docs/research/regime/closure-2026-05-24.md
+    # §4 and the [[feedback-r2-primary-for-eod-backfill]] memory). All four core
+    # fields must be set for R2 reads to engage; if any is None, the resolver
+    # falls back to the local mirror at lake_vol_index_root / lake_credit_etf_root.
+    # R2_ENDPOINT_OVERRIDE is optional — defaults to
+    # https://<R2_ACCOUNT_ID>.r2.cloudflarestorage.com.
+    r2_account_id: str | None = None
+    r2_access_key_id: SecretStr | None = None
+    r2_secret_access_key: SecretStr | None = None
+    r2_bucket: str | None = None
+    r2_endpoint_override: str | None = None
 
     @classmethod
     def from_env(cls, env_path: Path | None = None) -> "Settings":
@@ -398,6 +410,31 @@ class Settings(BaseModel):
             ),
             credit_etf_symbols=_parse_csv_env(
                 "CREDIT_ETF_SYMBOLS", default=["HYG", "JNK", "LQD"]
+            ),
+            r2_account_id=(
+                _r2_acc
+                if (_r2_acc := os.environ.get("R2_ACCOUNT_ID", "").strip())
+                else None
+            ),
+            r2_access_key_id=(
+                SecretStr(_r2_key)
+                if (_r2_key := os.environ.get("R2_ACCESS_KEY_ID", "").strip())
+                else None
+            ),
+            r2_secret_access_key=(
+                SecretStr(_r2_sec)
+                if (_r2_sec := os.environ.get("R2_SECRET_ACCESS_KEY", "").strip())
+                else None
+            ),
+            r2_bucket=(
+                _r2_bkt
+                if (_r2_bkt := os.environ.get("R2_BUCKET", "").strip())
+                else None
+            ),
+            r2_endpoint_override=(
+                _r2_ep
+                if (_r2_ep := os.environ.get("R2_ENDPOINT_OVERRIDE", "").strip())
+                else None
             ),
         )
 
