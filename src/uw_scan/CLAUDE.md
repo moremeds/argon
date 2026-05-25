@@ -34,6 +34,6 @@ uw_scan/
 1. Add the slug to `api/endpoints.py`
 2. Add the typed model to the relevant `models/` domain module and re-export it from `models/__init__.py`
 3. Add the fetcher to `sources/uw.py` (writes audit + raw payload, returns model)
-4. Add the persistence method to `storage/repository.py`
+4. Add the persistence method to the appropriate domain storage mixin or focused storage module; keep `storage/repository.py` as the aggregate compatibility shell
 5. Wire into the relevant report assembler (`reports/*`) and/or scheduler job
 6. Add unit test under `tests/unit/` and integration test under `tests/integration/`
