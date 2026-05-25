@@ -13553,6 +13553,135 @@
         "title": "VcgHistoryEntry",
         "type": "object"
       },
+      "VcgInterpretationCount": {
+        "properties": {
+          "interpretation": {
+            "title": "Interpretation",
+            "type": "string"
+          },
+          "n": {
+            "title": "N",
+            "type": "integer"
+          },
+          "pct": {
+            "title": "Pct",
+            "type": "number"
+          }
+        },
+        "required": [
+          "interpretation",
+          "n",
+          "pct"
+        ],
+        "title": "VcgInterpretationCount",
+        "type": "object"
+      },
+      "VcgNamedCrashEvent": {
+        "properties": {
+          "date": {
+            "title": "Date",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "offsets": {
+            "items": {
+              "$ref": "#/components/schemas/VcgNamedCrashOffset"
+            },
+            "title": "Offsets",
+            "type": "array"
+          }
+        },
+        "required": [
+          "date",
+          "label",
+          "offsets"
+        ],
+        "title": "VcgNamedCrashEvent",
+        "type": "object"
+      },
+      "VcgNamedCrashOffset": {
+        "description": "One row of the \u00b15d named-crash window for a single event.",
+        "properties": {
+          "beta1": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Beta1"
+          },
+          "beta2": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Beta2"
+          },
+          "interpretation": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Interpretation"
+          },
+          "offset_days": {
+            "title": "Offset Days",
+            "type": "integer"
+          },
+          "sign_ok": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sign Ok"
+          },
+          "vcg": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vcg"
+          },
+          "vcg_adj": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vcg Adj"
+          }
+        },
+        "required": [
+          "offset_days"
+        ],
+        "title": "VcgNamedCrashOffset",
+        "type": "object"
+      },
       "VcgResponse": {
         "description": "Volatility-Credit Gap snapshot (latest scan).",
         "properties": {
@@ -13818,6 +13947,51 @@
           }
         },
         "title": "VcgSignal",
+        "type": "object"
+      },
+      "VcgValidationResponse": {
+        "description": "Latest completed VCG backtest run rendered + structured.",
+        "properties": {
+          "backtest_md": {
+            "title": "Backtest Md",
+            "type": "string"
+          },
+          "composite_version": {
+            "title": "Composite Version",
+            "type": "string"
+          },
+          "credit_proxy": {
+            "title": "Credit Proxy",
+            "type": "string"
+          },
+          "interpretation_distribution": {
+            "items": {
+              "$ref": "#/components/schemas/VcgInterpretationCount"
+            },
+            "title": "Interpretation Distribution",
+            "type": "array"
+          },
+          "n_days": {
+            "title": "N Days",
+            "type": "integer"
+          },
+          "named_crash_window": {
+            "items": {
+              "$ref": "#/components/schemas/VcgNamedCrashEvent"
+            },
+            "title": "Named Crash Window",
+            "type": "array"
+          }
+        },
+        "required": [
+          "backtest_md",
+          "n_days",
+          "composite_version",
+          "credit_proxy",
+          "interpretation_distribution",
+          "named_crash_window"
+        ],
+        "title": "VcgValidationResponse",
         "type": "object"
       },
       "VolBackdropPoint": {
@@ -16097,6 +16271,7 @@
     },
     "/api/regime/validation": {
       "get": {
+        "description": "Latest completed CRI backtest run, rendered to markdown.\n\nSource of truth is uw_scan.regime_backtest_runs. The previous file\nfallback (cri-backtest.md/.csv + oos-summary.json on disk) was removed\nafter the prod gate in\ndocs/superpowers/specs/2026-05-24-regime-research-closure-design.md \u00a710.4\nwas satisfied. If no completed run exists at the current\ncri_scorers.COMPOSITE_VERSION, returns 503 \u2014 operators should run\nscripts/backtest_cri.py to seed the table.",
         "operationId": "get_validation_api_regime_validation_get",
         "responses": {
           "200": {
@@ -16156,6 +16331,29 @@
         },
         "summary": "Get Vcg",
         "tags": [
+          "regime"
+        ]
+      }
+    },
+    "/api/regime/vcg-validation": {
+      "get": {
+        "description": "Latest completed VCG backtest run, rendered to markdown + structured.\n\nSource of truth is uw_scan.regime_backtest_runs (migration 057). Returns\n503 with an actionable message if no completed run exists at the current\nvcg_scoring.COMPOSITE_VERSION \u2014 operators should run scripts/backtest_vcg.py.\n\nPersisted JSON shape (from scripts/backtest_vcg.py):\n    summary.extras.named_crash_window: dict[iso_str, list[dict]] where\n    each inner dict has offset_d (NOT offset_days), vcg, vcg_adj, beta1,\n    beta2, sign_ok, interpretation, vix. Event labels live in\n    NAMED_CRASH_DATES, not the persisted JSON.",
+        "operationId": "get_vcg_validation_api_regime_vcg_validation_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VcgValidationResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Get Vcg Validation",
+        "tags": [
+          "regime",
           "regime"
         ]
       }
