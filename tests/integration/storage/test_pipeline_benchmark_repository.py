@@ -1,8 +1,13 @@
 from __future__ import annotations
 
+import os
+import subprocess
 from datetime import UTC, datetime, timedelta
+from pathlib import Path
 
 from uw_scan.storage.repository import Repository
+
+REPO_ROOT = Path(__file__).resolve().parents[3]
 
 
 def test_pipeline_benchmark_snapshot_roundtrip(
@@ -81,3 +86,43 @@ def test_pipeline_benchmark_snapshot_bucket_is_unique(
 
     assert first_id == second_id
     assert len(repo.list_pipeline_benchmark_snapshots(since=captured_at)) == 1
+
+
+def test_pipeline_benchmark_migration_repairs_existing_snapshot_table(
+    seeded_db_empty_cards: Repository,
+) -> None:
+    repo = seeded_db_empty_cards
+    with repo.conn.cursor() as cur:
+        cur.execute(
+            """
+            ALTER TABLE uw_scan.pipeline_benchmark_snapshots
+              DROP COLUMN IF EXISTS last_full_scan_age_seconds,
+              DROP COLUMN IF EXISTS queue_drain_rate_per_minute
+            """
+        )
+    repo.conn.commit()
+
+    env = {**os.environ, "UW_SCAN_DB_NAME": os.environ["UW_SCAN_TEST_DB_NAME"]}
+    subprocess.run(
+        ["bash", str(REPO_ROOT / "scripts/migrate.sh")],
+        check=True,
+        cwd=REPO_ROOT,
+        env=env,
+    )
+
+    with repo.conn.cursor() as cur:
+        cur.execute(
+            """
+            SELECT column_name
+            FROM information_schema.columns
+            WHERE table_schema = 'uw_scan'
+              AND table_name = 'pipeline_benchmark_snapshots'
+            """
+        )
+        columns = {row[0] for row in cur.fetchall()}
+
+    assert "last_full_scan_age_seconds" in columns
+    assert "queue_drain_rate_per_minute" in columns
+    assert repo.list_pipeline_benchmark_snapshots(
+        since=datetime.now(UTC) - timedelta(hours=1)
+    ) == []

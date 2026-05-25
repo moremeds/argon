@@ -42,6 +42,14 @@ CREATE TABLE IF NOT EXISTS uw_scan.pipeline_benchmark_snapshots (
   details_jsonb JSONB NOT NULL DEFAULT '{}'::jsonb
 );
 
+ALTER TABLE uw_scan.pipeline_benchmark_snapshots
+  ADD COLUMN IF NOT EXISTS last_full_scan_age_seconds NUMERIC
+    CHECK (last_full_scan_age_seconds IS NULL OR last_full_scan_age_seconds >= 0);
+
+ALTER TABLE uw_scan.pipeline_benchmark_snapshots
+  ADD COLUMN IF NOT EXISTS queue_drain_rate_per_minute NUMERIC
+    CHECK (queue_drain_rate_per_minute IS NULL OR queue_drain_rate_per_minute >= 0);
+
 CREATE INDEX IF NOT EXISTS idx_pipeline_benchmark_snapshots_captured_at
   ON uw_scan.pipeline_benchmark_snapshots (captured_at DESC);
 
