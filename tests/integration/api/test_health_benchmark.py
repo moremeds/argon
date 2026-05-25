@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 
+from uw_scan.api.routers.benchmark import benchmark_history
+
 
 def test_health_benchmark_current_returns_score_and_reasons(
     client, seeded_db_empty_cards
@@ -47,6 +49,7 @@ def test_health_benchmark_history_returns_persisted_snapshots(
         scanner_stale_count=7,
         scanner_dead_count=4,
         scanner_never_scanned_count=0,
+        last_full_scan_age_seconds=3600,
         queue_drain_rate_per_minute=1.25,
         details_jsonb={"bottleneck": "persistence"},
     )
@@ -57,6 +60,7 @@ def test_health_benchmark_history_returns_persisted_snapshots(
     snapshots = response.json()["snapshots"]
     assert len(snapshots) == 1
     assert snapshots[0]["score"] == 87
+    assert snapshots[0]["metrics"]["last_full_scan_age_seconds"] == 3600
     assert snapshots[0]["metrics"]["queue_drain_rate_per_minute"] == 1.25
     assert snapshots[0]["details_jsonb"]["bottleneck"] == "persistence"
 
@@ -67,3 +71,21 @@ def test_health_benchmark_history_validates_hours(client, seeded_db_empty_cards)
     response = client.get("/api/health/benchmark/history?hours=999")
 
     assert response.status_code == 422
+
+
+def test_health_benchmark_history_uses_window_sized_limit() -> None:
+    repo = _FakeBenchmarkRepo()
+
+    benchmark_history(hours=336, repo=repo)
+
+    assert repo.limit == 4044
+
+
+class _FakeBenchmarkRepo:
+    def __init__(self) -> None:
+        self.limit: int | None = None
+
+    def list_pipeline_benchmark_snapshots(self, *, since, limit: int):
+        _ = since
+        self.limit = limit
+        return []

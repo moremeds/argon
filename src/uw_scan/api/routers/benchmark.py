@@ -109,7 +109,10 @@ def benchmark_history(
     repo: Repository = Depends(get_repo),
 ) -> BenchmarkHistoryResponse:
     since = datetime.now(timezone.utc) - timedelta(hours=hours)
-    rows = repo.list_pipeline_benchmark_snapshots(since=since)
+    rows = repo.list_pipeline_benchmark_snapshots(
+        since=since,
+        limit=_snapshot_limit_for_hours(hours),
+    )
     return BenchmarkHistoryResponse(snapshots=[_snapshot_response(row) for row in rows])
 
 
@@ -174,6 +177,9 @@ def _snapshot_response(row: PipelineBenchmarkSnapshotRow) -> BenchmarkSnapshotRe
             scanner_stale_count=row.scanner_stale_count,
             scanner_dead_count=row.scanner_dead_count,
             scanner_never_scanned_count=row.scanner_never_scanned_count,
+            last_full_scan_age_seconds=_float_or_none(
+                row.last_full_scan_age_seconds
+            ),
             scan_duration_avg_seconds=_float_or_none(row.scan_duration_avg_seconds),
             scan_duration_p95_seconds=_float_or_none(row.scan_duration_p95_seconds),
             queue_depth=row.queue_depth,
@@ -225,3 +231,7 @@ def _reason_response(reason: BenchmarkReason | None) -> BenchmarkReasonResponse 
 
 def _float_or_none(value: Any) -> float | None:
     return float(value) if value is not None else None
+
+
+def _snapshot_limit_for_hours(hours: int) -> int:
+    return hours * 12 + 12

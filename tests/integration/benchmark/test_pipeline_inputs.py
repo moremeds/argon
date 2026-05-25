@@ -13,11 +13,12 @@ def test_build_pipeline_benchmark_inputs_from_warm_store(
 ) -> None:
     repo = seeded_db_empty_cards
     now = datetime(2026, 5, 25, 12, 0, tzinfo=UTC)
-    tickers = ["FRESHX", "STALEX", "DEADX", "NEVERX"]
+    tickers = ["FRESHX", "NOGATEX", "STALEX", "DEADX", "NEVERX"]
     _replace_watchlist(repo, tickers)
-    _insert_finished_scan(repo, "FRESHX", now - timedelta(hours=2), seconds=60)
-    _insert_finished_scan(repo, "STALEX", now - timedelta(hours=10), seconds=120)
-    _insert_finished_scan(repo, "DEADX", now - timedelta(hours=80), seconds=300)
+    _insert_scanner_scan(repo, "FRESHX", now - timedelta(hours=2), seconds=60)
+    _insert_finished_scan(repo, "NOGATEX", now - timedelta(hours=2), seconds=60)
+    _insert_scanner_scan(repo, "STALEX", now - timedelta(hours=10), seconds=120)
+    _insert_scanner_scan(repo, "DEADX", now - timedelta(hours=80), seconds=300)
     _insert_flow_refresh_scan(repo, "NEVERX", now - timedelta(hours=1))
     _insert_provider_request(repo, now, status_code=200, latency_ms=120)
     _insert_provider_request(repo, now, status_code=429, latency_ms=480)
@@ -35,11 +36,11 @@ def test_build_pipeline_benchmark_inputs_from_warm_store(
     )
     scores, reasons = compute_component_scores(inputs)
 
-    assert inputs.watchlist_size == 4
+    assert inputs.watchlist_size == 5
     assert inputs.scanner_fresh_count == 1
     assert inputs.scanner_stale_count == 1
     assert inputs.scanner_dead_count == 1
-    assert inputs.scanner_never_scanned_count == 1
+    assert inputs.scanner_never_scanned_count == 2
     assert inputs.uw_latency_p95_ms is not None
     assert inputs.uw_http_429 == 1
     assert inputs.queue_depth == 1
@@ -94,6 +95,21 @@ def _insert_flow_refresh_scan(repo, ticker: str, finished_at: datetime) -> None:
             VALUES (%s, %s, %s, 'ok', 'flow_data_refresh')
             """,
             (ticker, finished_at - timedelta(seconds=30), finished_at),
+        )
+
+
+def _insert_scanner_scan(
+    repo, ticker: str, finished_at: datetime, *, seconds: int
+) -> None:
+    run_id = _insert_finished_scan(repo, ticker, finished_at, seconds=seconds)
+    with repo.conn.cursor() as cur:
+        cur.execute(
+            f"""
+            INSERT INTO {repo._schema}.signal_gates
+              (run_id, ticker, earnings, liquidity, regime)
+            VALUES (%s, %s, 'pass', 'pass', 'pass')
+            """,
+            (run_id, ticker),
         )
 
 

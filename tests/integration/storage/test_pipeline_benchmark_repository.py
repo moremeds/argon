@@ -27,6 +27,7 @@ def test_pipeline_benchmark_snapshot_roundtrip(
         scanner_stale_count=7,
         scanner_dead_count=4,
         scanner_never_scanned_count=0,
+        last_full_scan_age_seconds=3600,
         queue_drain_rate_per_minute=1.25,
         details_jsonb={"bottleneck": "persistence"},
     )
@@ -35,6 +36,8 @@ def test_pipeline_benchmark_snapshot_roundtrip(
     latest = repo.get_latest_pipeline_benchmark_snapshot()
     assert latest is not None
     assert latest.score == 87
+    assert latest.last_full_scan_age_seconds is not None
+    assert float(latest.last_full_scan_age_seconds) == 3600
     assert latest.queue_drain_rate_per_minute is not None
     assert float(latest.queue_drain_rate_per_minute) == 1.25
     assert latest.details_jsonb["bottleneck"] == "persistence"

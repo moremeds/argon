@@ -197,6 +197,7 @@ class PipelineBenchmarkSnapshotRow:
     scanner_stale_count: int | None
     scanner_dead_count: int | None
     scanner_never_scanned_count: int | None
+    last_full_scan_age_seconds: Decimal | None
     scan_duration_avg_seconds: Decimal | None
     scan_duration_p95_seconds: Decimal | None
     queue_depth: int | None

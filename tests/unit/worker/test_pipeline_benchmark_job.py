@@ -15,6 +15,7 @@ def test_pipeline_benchmark_snapshot_job_inserts_one_snapshot(monkeypatch) -> No
         watchlist_size=4,
         scanner_fresh_count=3,
         scanner_stale_count=1,
+        last_full_scan_age_seconds=3600,
         queue_drain_rate_per_minute=1.25,
         record_health_ok=True,
     )
@@ -37,6 +38,7 @@ def test_pipeline_benchmark_snapshot_job_inserts_one_snapshot(monkeypatch) -> No
     inserted = repo.insert_calls[0]
     assert inserted["capture_bucket"] == datetime(2026, 5, 25, 12, 0, tzinfo=UTC)
     assert inserted["watchlist_size"] == 4
+    assert inserted["last_full_scan_age_seconds"] == 3600
     assert inserted["queue_drain_rate_per_minute"] == 1.25
     assert inserted["details_jsonb"]["bottleneck"] in {"freshness", "coverage"}
     assert inserted["details_jsonb"]["reasons"]

@@ -51,6 +51,7 @@ def pipeline_benchmark_snapshot_job(settings: Settings | None = None) -> int:
                 scanner_stale_count=inputs.scanner_stale_count,
                 scanner_dead_count=inputs.scanner_dead_count,
                 scanner_never_scanned_count=inputs.scanner_never_scanned_count,
+                last_full_scan_age_seconds=inputs.last_full_scan_age_seconds,
                 scan_duration_avg_seconds=inputs.scan_duration_avg_seconds,
                 scan_duration_p95_seconds=inputs.scan_duration_p95_seconds,
                 queue_depth=inputs.queue_depth,

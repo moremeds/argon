@@ -34,6 +34,7 @@ class _PipelineBenchmarkMixin:
         scanner_stale_count: int | None = None,
         scanner_dead_count: int | None = None,
         scanner_never_scanned_count: int | None = None,
+        last_full_scan_age_seconds: Decimal | float | None = None,
         scan_duration_avg_seconds: Decimal | float | None = None,
         scan_duration_p95_seconds: Decimal | float | None = None,
         queue_depth: int | None = None,
@@ -71,6 +72,7 @@ class _PipelineBenchmarkMixin:
             scanner_stale_count,
             scanner_dead_count,
             scanner_never_scanned_count,
+            last_full_scan_age_seconds,
             scan_duration_avg_seconds,
             scan_duration_p95_seconds,
             queue_depth,
@@ -173,6 +175,11 @@ class _PipelineBenchmarkMixin:
                           AND finished_at IS NOT NULL
                           AND (notes IS DISTINCT FROM 'flow_data_refresh')
                           AND (notes IS NULL OR notes NOT LIKE 'gex_scan_%%')
+                          AND EXISTS (
+                              SELECT 1
+                              FROM {self._schema}.signal_gates g
+                              WHERE g.run_id = scan_runs.run_id
+                          )
                         ORDER BY finished_at DESC, run_id DESC
                         LIMIT 1
                     ) sr ON TRUE
@@ -229,6 +236,7 @@ _SNAPSHOT_COLUMNS = (
     "scanner_stale_count",
     "scanner_dead_count",
     "scanner_never_scanned_count",
+    "last_full_scan_age_seconds",
     "scan_duration_avg_seconds",
     "scan_duration_p95_seconds",
     "queue_depth",
@@ -269,23 +277,24 @@ def _snapshot_from_row(row: tuple[Any, ...]) -> PipelineBenchmarkSnapshotRow:
         scanner_stale_count=row[13],
         scanner_dead_count=row[14],
         scanner_never_scanned_count=row[15],
-        scan_duration_avg_seconds=row[16],
-        scan_duration_p95_seconds=row[17],
-        queue_depth=row[18],
-        oldest_queue_age_seconds=row[19],
-        queue_drain_rate_per_minute=row[20],
-        uw_latency_p95_ms=row[21],
-        uw_http_429=row[22],
-        uw_http_4xx=row[23],
-        uw_http_5xx=row[24],
-        requests_per_minute=row[25],
-        scheduler_heartbeat_lag_seconds=row[26],
-        uw_worker_online_count=row[27],
-        uw_worker_expected_count=row[28],
-        massive_worker_online_count=row[29],
-        massive_worker_expected_count=row[30],
-        ws_tick_age_seconds=row[31],
-        record_health_ok=row[32],
-        failing_record_tables=list(row[33] or []),
-        details_jsonb=dict(row[34] or {}),
+        last_full_scan_age_seconds=row[16],
+        scan_duration_avg_seconds=row[17],
+        scan_duration_p95_seconds=row[18],
+        queue_depth=row[19],
+        oldest_queue_age_seconds=row[20],
+        queue_drain_rate_per_minute=row[21],
+        uw_latency_p95_ms=row[22],
+        uw_http_429=row[23],
+        uw_http_4xx=row[24],
+        uw_http_5xx=row[25],
+        requests_per_minute=row[26],
+        scheduler_heartbeat_lag_seconds=row[27],
+        uw_worker_online_count=row[28],
+        uw_worker_expected_count=row[29],
+        massive_worker_online_count=row[30],
+        massive_worker_expected_count=row[31],
+        ws_tick_age_seconds=row[32],
+        record_health_ok=row[33],
+        failing_record_tables=list(row[34] or []),
+        details_jsonb=dict(row[35] or {}),
     )

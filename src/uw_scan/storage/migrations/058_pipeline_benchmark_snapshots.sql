@@ -20,6 +20,7 @@ CREATE TABLE IF NOT EXISTS uw_scan.pipeline_benchmark_snapshots (
   scanner_stale_count INTEGER CHECK (scanner_stale_count IS NULL OR scanner_stale_count >= 0),
   scanner_dead_count INTEGER CHECK (scanner_dead_count IS NULL OR scanner_dead_count >= 0),
   scanner_never_scanned_count INTEGER CHECK (scanner_never_scanned_count IS NULL OR scanner_never_scanned_count >= 0),
+  last_full_scan_age_seconds NUMERIC CHECK (last_full_scan_age_seconds IS NULL OR last_full_scan_age_seconds >= 0),
   scan_duration_avg_seconds NUMERIC CHECK (scan_duration_avg_seconds IS NULL OR scan_duration_avg_seconds >= 0),
   scan_duration_p95_seconds NUMERIC CHECK (scan_duration_p95_seconds IS NULL OR scan_duration_p95_seconds >= 0),
   queue_depth INTEGER CHECK (queue_depth IS NULL OR queue_depth >= 0),
