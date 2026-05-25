@@ -37,10 +37,13 @@ afterEach(() => vi.unstubAllGlobals());
 describe("ValidationTab", () => {
   it("renders the backtest md + OOS table", async () => {
     render(<ValidationTab />);
+    // After the CriValidationPanel lift, validation-tab is the outer shell
+    // and renders immediately. Wait for the lifted panel's content instead —
+    // that's the real post-fetch race-gate.
     await waitFor(() =>
-      expect(screen.getByTestId("validation-tab")).not.toBeNull(),
+      expect(screen.queryByText("WARM-STORE BACKTEST")).not.toBeNull(),
     );
-    expect(screen.getByText("WARM-STORE BACKTEST")).not.toBeNull();
+    expect(screen.getByTestId("validation-tab")).not.toBeNull();
     expect(screen.getByTestId("oos-block")).not.toBeNull();
     expect(screen.getByText("CRI v2")).not.toBeNull();
     expect(screen.getByText("0.621")).not.toBeNull();
