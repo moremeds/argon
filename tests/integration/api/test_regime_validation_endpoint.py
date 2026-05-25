@@ -24,7 +24,15 @@ def test_validation_endpoint_includes_oos_summary(client) -> None:
 # --- Failure-mode tests -----------------------------------------------
 
 
-def test_validation_404_when_backtest_md_missing(client, monkeypatch, tmp_path) -> None:
+def test_validation_404_when_backtest_md_missing(
+    seeded_db_empty_cards, client, monkeypatch, tmp_path
+) -> None:
+    """File-fallback path: when DB has no completed CRI run AND files are absent.
+
+    seeded_db_empty_cards resets the schema so no completed run exists; the
+    DB-first lookup returns None and the router falls back to file reads,
+    which then 404 because tmp_path is empty.
+    """
     from uw_scan.api.routers import regime_validation
 
     monkeypatch.setattr(regime_validation, "_DOCS_REGIME", tmp_path.resolve())
@@ -34,8 +42,9 @@ def test_validation_404_when_backtest_md_missing(client, monkeypatch, tmp_path) 
 
 
 def test_validation_500_when_oos_summary_malformed(
-    client, monkeypatch, tmp_path
+    seeded_db_empty_cards, client, monkeypatch, tmp_path
 ) -> None:
+    """File-fallback path malformed-json branch (no DB run + bad file)."""
     from uw_scan.api.routers import regime_validation
 
     (tmp_path / "cri-backtest.md").write_text("# CRI Backtest\n")
@@ -48,8 +57,9 @@ def test_validation_500_when_oos_summary_malformed(
 
 
 def test_validation_rejects_symlink_under_docs_dir(
-    client, monkeypatch, tmp_path
+    seeded_db_empty_cards, client, monkeypatch, tmp_path
 ) -> None:
+    """File-fallback path symlink-rejection branch (no DB run + symlink file)."""
     from uw_scan.api.routers import regime_validation
 
     secret = tmp_path / "secret.md"
