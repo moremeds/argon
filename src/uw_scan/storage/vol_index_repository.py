@@ -69,6 +69,17 @@ class VolIndexRepository:
             row = cur.fetchone()
         return row[0] if row and row[0] else None
 
+    def fetch_dates_for(self, symbol: str) -> set[date]:
+        """Return the full set of trade_dates stored for `symbol`.
+
+        Used by the gap-aware lake-sync logic to compute `missing = R2 - DB`.
+        Single-column index scan; cheap even for VIX (~9k rows → <100 ms).
+        """
+        sql = "SELECT trade_date FROM vol_index_daily WHERE symbol = %s"
+        with self._conn.cursor() as cur:
+            cur.execute(sql, (symbol,))
+            return {r[0] for r in cur.fetchall()}
+
     def fetch_multi_history(
         self, symbols: Sequence[str], days: int
     ) -> dict[str, list[dict]]:
