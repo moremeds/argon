@@ -128,6 +128,20 @@ class ThroughputSummaryRow:
 
 
 @dataclass(frozen=True)
+class ScanDurationSummaryRow:
+    avg_seconds: float | None
+    p95_seconds: float | None
+
+
+@dataclass(frozen=True)
+class PipelineScannerFreshnessRow:
+    fresh: int
+    stale: int
+    dead: int
+    never_scanned: int
+
+
+@dataclass(frozen=True)
 class ExternalApiRequestRow:
     request_id: int
     provider: str

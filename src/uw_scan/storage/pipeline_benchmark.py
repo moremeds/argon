@@ -9,7 +9,7 @@ from typing import Any
 import psycopg
 from psycopg.types.json import Jsonb
 
-from .rows import PipelineBenchmarkSnapshotRow
+from .rows import PipelineBenchmarkSnapshotRow, PipelineScannerFreshnessRow
 
 
 class _PipelineBenchmarkMixin:
@@ -147,6 +147,67 @@ class _PipelineBenchmarkMixin:
             )
             rows = cur.fetchall()
         return [_snapshot_from_row(row) for row in rows]
+
+    def count_pipeline_scanner_freshness(
+        self, *, now_utc: datetime, fresh_hours: int = 8, dead_hours: int = 72
+    ) -> PipelineScannerFreshnessRow:
+        with self._conn.cursor() as cur:
+            cur.execute(
+                f"""
+                WITH active AS (
+                    SELECT ticker
+                    FROM {self._schema}.watchlist
+                    WHERE removed_at IS NULL
+                ), latest AS (
+                    SELECT
+                        a.ticker,
+                        sr.finished_at
+                    FROM active a
+                    LEFT JOIN LATERAL (
+                        SELECT finished_at
+                        FROM {self._schema}.scan_runs
+                        WHERE ticker = a.ticker
+                          AND status = 'ok'
+                          AND finished_at IS NOT NULL
+                          AND (notes IS DISTINCT FROM 'flow_data_refresh')
+                          AND (notes IS NULL OR notes NOT LIKE 'gex_scan_%%')
+                        ORDER BY finished_at DESC, run_id DESC
+                        LIMIT 1
+                    ) sr ON TRUE
+                )
+                SELECT
+                    COUNT(*) FILTER (
+                        WHERE finished_at > %s::timestamptz - (%s * interval '1 hour')
+                    )::int AS fresh,
+                    COUNT(*) FILTER (
+                        WHERE finished_at <= %s::timestamptz - (%s * interval '1 hour')
+                          AND finished_at > %s::timestamptz - (%s * interval '1 hour')
+                    )::int AS stale,
+                    COUNT(*) FILTER (
+                        WHERE finished_at <= %s::timestamptz - (%s * interval '1 hour')
+                    )::int AS dead,
+                    COUNT(*) FILTER (WHERE finished_at IS NULL)::int AS never_scanned
+                FROM latest
+                """,
+                (
+                    now_utc,
+                    fresh_hours,
+                    now_utc,
+                    fresh_hours,
+                    now_utc,
+                    dead_hours,
+                    now_utc,
+                    dead_hours,
+                ),
+            )
+            row = cur.fetchone()
+        assert row is not None
+        return PipelineScannerFreshnessRow(
+            fresh=int(row[0]),
+            stale=int(row[1]),
+            dead=int(row[2]),
+            never_scanned=int(row[3]),
+        )
 
 
 _SNAPSHOT_COLUMNS = (
