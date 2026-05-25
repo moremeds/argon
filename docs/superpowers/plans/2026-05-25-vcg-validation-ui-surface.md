@@ -57,13 +57,19 @@ The VCG data **is** persisted — including the `summary.extras.named_crash_wind
 
 ## Design choice: extend vs. split the validation tab
 
-Two options. **Recommendation: extend** — adds a CRI/VCG selector inside the existing tab. Reasoning:
+Two options. **Recommendation: extend** — adds a CRI/VCG selector inside the existing `VALIDATION` tab. The honest tradeoffs:
 
-- Single API request shape per indicator, but one tab keeps cognitive load low.
-- The "VALIDATION" label remains meaningful at the top-level tab bar (GEX | CRI | VCG | VALIDATION).
-- VCG and CRI share the OOS pattern (model name → AUC numbers); the renderer / panel pattern is reusable.
+**Reasons to extend (this plan's choice):**
+- The "VALIDATION" label remains a coherent top-level concept ("evidence about indicator quality"), independent of which indicator.
+- The closure memo (`docs/research/regime/closure-2026-05-24.md`) frames CRI + VCG as a paired indicator framework — a paired UI matches the research framing.
+- One shared error-state / loading-state shell instead of two.
 
-Alternative (split into `VALIDATION:CRI` and `VALIDATION:VCG`): rejected — adds a fifth top-level tab to a row that's already busy, and the two views share too much structure.
+**Reasons a 5th top-level tab `VCG-VALIDATION` would be better (acknowledged, not adopted):**
+- **Deep-linkability** — `/regime?tab=vcg-validation` is one URL; the sub-selector requires nested state in URL/query (not added by this plan; default-CRI on every visit).
+- **Tab-switching cost** — the top-level tab system unmounts `ValidationTab` on every switch, so the CRI fetch re-fires anyway; nesting a second fetch lifecycle inside doubles perceived latency on re-entry.
+- **Structural divergence** — VCG's named-crash window + interpretation distribution have **no CRI analog**; only the markdown `<pre>` block is genuinely shared (5 lines). The "shared structure" argument is weaker than it sounds.
+
+**Why extend wins for THIS PR:** mechanical work, no URL/query-param plumbing required, and the design is reversible — if the structural divergence proves painful in 2–3 follow-ons, splitting to a 5th tab is a 30-minute refactor (lift sub-tab content into a sibling route component).
 
 ## Standing-rule checks before starting
 
@@ -528,7 +534,7 @@ def test_vcg_validation_handles_missing_extras(seeded_db_empty_cards, client) ->
 - [ ] **Step 3: Run and verify**
 
 Run: `UW_SCAN_TEST_DB_NAME=option_wizard_test uv run pytest tests/integration/api/test_regime_vcg_validation_endpoint.py -v`
-Expected: 2 passed.
+Expected: 4 passed (happy path, named-crash contract, 503-when-empty, missing-extras-edge-case).
 
 - [ ] **Step 4: Commit**
 
@@ -542,22 +548,29 @@ git commit -m "test(api): cover /regime/vcg-validation happy path + 503"
 **Files:**
 - Modify: `web/lib/types.ts`
 
-**Prereq:** `npm run gen:types` runs `openapi-typescript http://127.0.0.1:8400/openapi.json` — the FastAPI dev server must already be listening on port 8400 with the Task 3 router changes loaded. If you just edited the router, restart the dev API (uvicorn `--reload` should pick it up automatically; verify via `curl -s http://127.0.0.1:8400/api/regime/vcg-validation` returns a status, even 503).
+**Prereq:** `npm run gen:types` runs `openapi-typescript http://127.0.0.1:8400/openapi.json` — the FastAPI dev server must be listening on port 8400 with the Task 3 router loaded. uvicorn `--reload` should pick the change up automatically; if `scripts/dev.sh` was killed and not restarted, gen:types fails with connection-refused.
 
-- [ ] **Step 1: Regenerate**
+- [ ] **Step 1: Verify the API is reachable AND exposes the new path**
+
+```bash
+curl -s http://127.0.0.1:8400/openapi.json | jq -r '.paths | keys[]' | grep "vcg-validation"
+```
+Expected: prints `/api/regime/vcg-validation`. If empty: uvicorn isn't running the new router code; restart it or run `bash scripts/dev.sh` and re-check.
+
+- [ ] **Step 2: Regenerate**
 
 ```bash
 cd web && npm run gen:types
 ```
 
-- [ ] **Step 2: Verify new types are present**
+- [ ] **Step 3: Verify new types are present**
 
 ```bash
 grep -c "VcgValidationResponse" web/lib/types.ts
 ```
 Expected: ≥1. (openapi-typescript generates one schema entry per response model; the count depends on how often the type is referenced — `>=1` is the load-bearing assertion.)
 
-- [ ] **Step 3: Commit (with user approval)**
+- [ ] **Step 4: Commit (with user approval)**
 
 ```bash
 git add web/lib/types.ts
@@ -769,9 +782,11 @@ export default function CriValidationPanel({ data }: { data: ValidationResponse 
 
 **Sub-step 1b: Rewrite `ValidationTab.tsx` as a switcher:**
 
+The `useRef<number>(0)` request token defends against rapid CRI→VCG→CRI clicks landing responses out of order: each fetch captures the current token; on resolve, if the token doesn't match the latest, the result is dropped. The `cancelled` flag handles unmount; the token handles re-entry while mounted.
+
 ```tsx
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { components } from "@/lib/types";
 import { regimeApi } from "@/lib/regime/api";
 import CriValidationPanel from "./CriValidationPanel";
@@ -786,15 +801,29 @@ export default function ValidationTab() {
   const [cri, setCri] = useState<CriResp | null>(null);
   const [vcg, setVcg] = useState<VcgResp | null>(null);
   const [err, setErr] = useState<string | null>(null);
+  const reqToken = useRef(0);
 
   useEffect(() => {
     let cancelled = false;
     setErr(null);
+    const token = ++reqToken.current;
     const url = sub === "cri" ? regimeApi.validation() : regimeApi.vcgValidation();
     fetch(url)
-      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`))))
-      .then((d) => { if (!cancelled) (sub === "cri" ? setCri(d) : setVcg(d)); })
-      .catch((e) => { if (!cancelled) setErr(String(e)); });
+      .then(async (r) => {
+        if (r.ok) return r.json();
+        // Surface the API detail string when available — better UX than "HTTP 503".
+        const body = await r.json().catch(() => null);
+        const detail = (body && typeof body.detail === "string") ? body.detail : `HTTP ${r.status}`;
+        throw new Error(detail);
+      })
+      .then((d) => {
+        if (cancelled || token !== reqToken.current) return;
+        if (sub === "cri") setCri(d); else setVcg(d);
+      })
+      .catch((e) => {
+        if (cancelled || token !== reqToken.current) return;
+        setErr(String(e.message ?? e));
+      });
     return () => { cancelled = true; };
   }, [sub]);
 
@@ -806,7 +835,7 @@ export default function ValidationTab() {
         <button className={`ticker-tab ${sub === "cri" ? "active" : ""}`} onClick={() => setSub("cri")} data-testid="validation-sub-cri">CRI</button>
         <button className={`ticker-tab ${sub === "vcg" ? "active" : ""}`} onClick={() => setSub("vcg")} data-testid="validation-sub-vcg">VCG</button>
       </div>
-      {err && <div>Validation data unavailable: {err}</div>}
+      {err && <div data-testid="validation-error">Validation data unavailable: {err}</div>}
       {!err && loading && <div>Loading…</div>}
       {!err && !loading && sub === "cri" && cri && <CriValidationPanel data={cri} />}
       {!err && !loading && sub === "vcg" && vcg && <VcgValidationPanel data={vcg} />}
@@ -815,7 +844,22 @@ export default function ValidationTab() {
 }
 ```
 
-Note the `setErr(null)` at the start of the effect — switching sub-tabs after a failed fetch must clear the prior error or the user sees stale "Validation data unavailable" while the new fetch is in flight.
+Notes:
+- `setErr(null)` at the start of the effect clears stale errors when switching sub-tabs after a failure.
+- The thrown `Error(detail)` uses the API's detail message (e.g., `"no completed VCG backtest run … run scripts/backtest_vcg.py …"`), which is operator-facing. Acceptable for internal use; if this UI later reaches end-users, swap the message at the catch site.
+
+**Sub-step 1c: Migrate `web/tests/unit/ValidationTab.test.tsx` to match the new shell.**
+
+The existing test asserts on `getByTestId("validation-tab")` as a post-fetch race-gate, but after this refactor that node renders **immediately** (it's the new shell wrapping the sub-tab buttons). The `waitFor` becomes meaningless. Change the race-gate to wait for the lifted CRI panel's `data-testid="cri-validation-panel"` or for the `"WARM-STORE BACKTEST"` text:
+
+```tsx
+// Replace this line:
+//   await waitFor(() => expect(screen.getByTestId("validation-tab")).not.toBeNull());
+// with:
+await waitFor(() => expect(screen.queryByText("WARM-STORE BACKTEST")).not.toBeNull());
+```
+
+Everything else in the existing test stays valid (default sub="cri" + fetch stub → CriValidationPanel renders the same content). This is the only edit; the file is not deleted.
 
 - [ ] **Step 2: Typecheck + dev-server smoke**
 
@@ -825,10 +869,12 @@ npm run dev
 ```
 Open `http://localhost:3001/regime` → click VALIDATION → click VCG sub-tab → verify the panel renders.
 
-- [ ] **Step 3: Commit (with user approval) — both files**
+- [ ] **Step 3: Commit (with user approval) — three files**
 
 ```bash
-git add web/components/regime/CriValidationPanel.tsx web/components/regime/ValidationTab.tsx
+git add web/components/regime/CriValidationPanel.tsx \
+        web/components/regime/ValidationTab.tsx \
+        web/tests/unit/ValidationTab.test.tsx
 git commit -m "feat(web): ValidationTab adds CRI/VCG sub-selector"
 ```
 
