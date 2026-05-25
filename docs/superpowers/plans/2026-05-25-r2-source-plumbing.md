@@ -248,6 +248,24 @@ def test_resolve_unknown_asset_class_raises():
     s = _make_settings(with_r2=False)
     with pytest.raises(ValueError, match="asset_class"):
         resolve_lake_root(s, asset_class="invalid")
+
+
+def test_lake_root_repr_does_not_leak_credentials():
+    """repr() must not include secret-field VALUES.
+
+    @dataclass default repr lists every field; passing repr=False on the two
+    secret fields hides BOTH the field-name token AND the value. Both checks
+    are present so a future maintainer who removes repr=False on one field
+    sees a failure here, not a quiet credential leak in production logs.
+    """
+    s = _make_settings(with_r2=True)
+    root = resolve_lake_root(s, asset_class="volatility")
+    rep = repr(root)
+    assert "access_key_id" not in rep, f"access_key_id field leaked into repr: {rep!r}"
+    assert "secret_access_key" not in rep, f"secret_access_key field leaked into repr: {rep!r}"
+    # Values too (we set them to known sentinels in _make_settings)
+    assert "'key'" not in rep, f"access-key value leaked: {rep!r}"
+    assert "'sec'" not in rep, f"secret-key value leaked: {rep!r}"
 ```
 
 - [ ] **Step 2: Run test, verify it fails**
@@ -272,7 +290,7 @@ This module is pure config-to-root mapping; the actual I/O lives in lake.py.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Literal
 
@@ -286,7 +304,12 @@ _ASSET_CLASS_TO_LOCAL_ATTR: dict[str, str] = {
 
 @dataclass(frozen=True)
 class LakeRoot:
-    """Either an S3-on-R2 root or a local-filesystem Path. Discriminate on `kind`."""
+    """Either an S3-on-R2 root or a local-filesystem Path. Discriminate on `kind`.
+
+    `access_key_id` and `secret_access_key` are excluded from repr() so they
+    don't leak into log lines, stack traces, or error-tracker payloads when
+    the dataclass is printed (e.g. logger.exception with the object as arg).
+    """
 
     kind: Literal["s3", "local"]
     asset_class: str
@@ -296,8 +319,8 @@ class LakeRoot:
     bucket: str | None = None
     key_prefix: str | None = None
     endpoint_override: str | None = None
-    access_key_id: str | None = None
-    secret_access_key: str | None = None
+    access_key_id: str | None = field(default=None, repr=False)
+    secret_access_key: str | None = field(default=None, repr=False)
 
     @classmethod
     def local_for(cls, asset_class: str, path: Path) -> "LakeRoot":
@@ -341,14 +364,17 @@ def resolve_lake_root(settings: Settings, *, asset_class: str) -> LakeRoot:
         endpoint_override=endpoint,
         access_key_id=settings.r2_access_key_id.get_secret_value(),
         secret_access_key=settings.r2_secret_access_key.get_secret_value(),
-        local_path=local_path,  # kept for future runtime fallback (deferred)
+        # NOTE: local_path stays None on s3-kind. The 2026-05-25 memory directive
+        # mentions runtime fallback to local on R2 failure; that's deferred to a
+        # follow-on PR. Keeping the field absent here so the follow-on diff is
+        # obvious instead of "this was always set but unused."
     )
 ```
 
 - [ ] **Step 4: Run test, verify pass**
 
 Run: `uv run pytest tests/unit/sources/test_lake_resolver.py -v`
-Expected: 7 tests PASS
+Expected: 8 tests PASS (6 resolver + 1 unknown-asset-class + 1 repr-redaction)
 
 - [ ] **Step 5: Commit**
 
@@ -405,9 +431,10 @@ VOL_INDEX_FILENAME = "1d.parquet"
 def _normalize(root: Path | LakeRoot) -> LakeRoot:
     if isinstance(root, LakeRoot):
         return root
-    # Legacy Path-based callers — wrap as a local-kind LakeRoot. asset_class
-    # is informational only for local reads; the Path drives the actual lookup.
-    return LakeRoot.local_for("unknown", root)
+    # Legacy Path-based callers (vol_index_lake_sync, credit_etf_lake_sync) —
+    # wrap as a local-kind LakeRoot. asset_class is informational only for
+    # local reads; the Path drives the actual lookup.
+    return LakeRoot.local_for("legacy", root)
 
 
 def list_vol_index_symbols(root: Path | LakeRoot) -> list[str]:
@@ -592,6 +619,7 @@ from __future__ import annotations
 import os
 
 import pytest
+from pydantic import SecretStr
 
 from uw_scan.config import Settings
 from uw_scan.sources.lake import list_vol_index_symbols, read_vol_index_parquet
@@ -614,9 +642,21 @@ def _r2_env_present() -> bool:
 
 @pytest.fixture(scope="module")
 def settings() -> Settings:
+    # Construct Settings directly from R2 env only — Settings.from_env() would
+    # require UW_SCAN_API_KEY, which has no business gating an R2 smoke. Keeps
+    # the live test runnable in isolation (e.g. on a machine with only R2 creds
+    # configured) and surfaces R2-specific failures cleanly.
     if not _r2_env_present():
         pytest.skip("R2_* env not set — populate .env to run this smoke")
-    return Settings.from_env()
+    endpoint_override = os.environ.get("R2_ENDPOINT_OVERRIDE", "").strip() or None
+    return Settings(
+        api_key=SecretStr("dummy-not-used-by-r2-smoke"),
+        r2_account_id=os.environ["R2_ACCOUNT_ID"].strip(),
+        r2_access_key_id=SecretStr(os.environ["R2_ACCESS_KEY_ID"].strip()),
+        r2_secret_access_key=SecretStr(os.environ["R2_SECRET_ACCESS_KEY"].strip()),
+        r2_bucket=os.environ["R2_BUCKET"].strip(),
+        r2_endpoint_override=endpoint_override,
+    )
 
 
 def test_r2_volatility_lists_includes_vix(settings: Settings) -> None:
@@ -654,6 +694,14 @@ def test_r2_equity_credit_proxy_reads(settings: Settings, symbol: str) -> None:
 
 Run: `uv run pytest tests/integration/sources/test_lake_r2.py -v -m live`
 Expected: 5 tests PASS (1 list + 1 VIX read + 3 parameterized credit proxies)
+
+**If a credit proxy (HYG/JNK/LQD) genuinely isn't in R2 yet:** the memory
+note flags these as "inferred, not verified by reading." If a parameterize
+case fails with empty rows, do NOT silently delete the case from the test.
+Instead: (a) confirm via `aws s3 ls --endpoint-url=https://<R2_ACCOUNT_ID>.r2.cloudflarestorage.com s3://market-data/market-warehouse/data-lake/bronze/asset_class=equity/`,
+(b) if absent, mark the missing symbol with `pytest.skip` *inline* with a
+TODO referencing a follow-up to seed the lake, and (c) note the gap in the
+PR description. The smoke test exists to surface this kind of drift.
 
 - [ ] **Step 4: Verify default pytest run still excludes live tests**
 
