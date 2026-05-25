@@ -151,6 +151,19 @@ Conducted 2026-05-19, four parallel searches against practitioner and academic s
 - TradingView — *VVIX/VIX Ratio with Interpretation Levels* (community indicator): https://www.tradingview.com/script/FVF6lHU5/
 - TradeEdgePro — *Tail Risk Indicators Traders Should Watch in 2026*: https://tradeedgepro.net/tail-risk-indicators-watch-2026/
 
+### Academic primary sources
+
+The practitioner sources above informed the design decisions; the academic sources below ground each component in primary literature. Citations verified 2026-05-24 with journal-volume-page-DOI captured.
+
+| CRI component | Academic foundation |
+|---|---|
+| **VIX** (level + RoC) | Bollerslev, Tauchen, Zhou (2009), "Expected Stock Returns and Variance Risk Premia." *Review of Financial Studies* 22(11), 4463–4492. Establishes the variance risk premium (VRP-style component) as a return predictor — provides the theoretical ground for treating VIX level as a regime-relevant signal beyond its coincident-vol role. |
+| **VVIX** (level, ratio, RoC) | Park, Y.-H. (2015), "Volatility-of-volatility and tail risk hedging returns." *Journal of Financial Markets*. VVIX as a leading indicator of S&P 500 put and VIX call option prices; predicts subsequent returns over 3–4 weeks. Reinforces the v3 RoC sub-score's pre-stress signalling logic. |
+| **VVIX** (cross-sectional implications) | Baltussen, van Bekkum, van der Grient (2018), "Unknown Unknowns: Uncertainty About Risk and Stock Returns." *Journal of Financial and Quantitative Analysis* 53(4), 1615–1651. Vol-of-vol as a robust pricing factor distinct from 20+ other predictors. |
+| **COR1M** (implied correlation) | Driessen, Maenhout, Vilkov (2009), "The Price of Correlation Risk: Evidence from Equity Options." *Journal of Finance* 64(3), 1377–1406. Establishes correlation risk as priced; index-implied correlation systematically exceeds realised; supports COR1M as a stress signal rather than a coincident indicator. |
+
+These citations underpin the *methodology* — they justify including VIX, VVIX, and COR1M as the three vol-complex inputs and the framing of VRP / vol-of-vol / correlation-risk as priced factors. They do **not** justify the specific calibration thresholds in §3 (`VIX_FLOOR=13`, `VVIX_FLOOR=80`, etc.), which are empirically tuned against the 20-year backtest in `oos-summary.json` (now `summary.oos.versions[]` in `regime_backtest_runs` per the 2026-05 closure). The §3 thresholds are calibration choices and bear the v1/v2/v3 version history.
+
 ## 6. UI reference markers
 
 Each `ComponentBar` shows the score as a filled portion of a 0–25 track. Reference marks help users understand where the value sits relative to known thresholds:
