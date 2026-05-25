@@ -1,103 +1,99 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import type { components } from "@/lib/types";
 import { regimeApi } from "@/lib/regime/api";
 
-type ValidationResponse = components["schemas"]["ValidationResponse"];
+import CriValidationPanel from "./CriValidationPanel";
+import VcgValidationPanel from "./VcgValidationPanel";
+
+type CriResp = components["schemas"]["ValidationResponse"];
+type VcgResp = components["schemas"]["VcgValidationResponse"];
+type SubTab = "cri" | "vcg";
 
 export default function ValidationTab() {
-  const [data, setData] = useState<ValidationResponse | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [sub, setSub] = useState<SubTab>("cri");
+  const [cri, setCri] = useState<CriResp | null>(null);
+  const [vcg, setVcg] = useState<VcgResp | null>(null);
+  const [err, setErr] = useState<string | null>(null);
+  // Request-token defends against rapid CRI->VCG->CRI clicks landing responses
+  // out of order. The `cancelled` flag handles unmount; the token handles
+  // re-entry while mounted.
+  const reqToken = useRef(0);
+
+  const selectSub = (next: SubTab) => {
+    setErr(null);
+    setSub(next);
+  };
 
   useEffect(() => {
     let cancelled = false;
-    fetch(regimeApi.validation())
-      .then((r) =>
-        r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`)),
-      )
-      .then((d) => {
-        if (!cancelled) setData(d);
+    const token = ++reqToken.current;
+    const url =
+      sub === "cri" ? regimeApi.validation() : regimeApi.vcgValidation();
+    fetch(url)
+      .then(async (r) => {
+        if (r.ok) return r.json();
+        // Surface the API detail string when available — better UX than
+        // "HTTP 503". The detail message points operators at the right
+        // script (e.g. "run scripts/backtest_vcg.py ...").
+        const body = await r.json().catch(() => null);
+        const detail =
+          body && typeof body.detail === "string"
+            ? body.detail
+            : `HTTP ${r.status}`;
+        throw new Error(detail);
       })
-      .catch((e) => {
-        if (!cancelled) setError(String(e));
+      .then((d) => {
+        if (cancelled || token !== reqToken.current) return;
+        if (sub === "cri") setCri(d);
+        else setVcg(d);
+      })
+      .catch((e: unknown) => {
+        if (cancelled || token !== reqToken.current) return;
+        setErr(e instanceof Error ? e.message : String(e));
       });
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [sub]);
 
-  if (error)
-    return (
-      <div className="regime-panel">Validation data unavailable: {error}</div>
-    );
-  if (!data) return <div className="regime-panel">Loading…</div>;
+  const loading = (sub === "cri" && !cri) || (sub === "vcg" && !vcg);
 
   return (
     <div className="regime-panel" data-testid="validation-tab">
-      <div className="regime-panel-title">WARM-STORE BACKTEST</div>
-      <pre
-        style={{
-          fontFamily: "var(--font-mono)",
-          fontSize: "12px",
-          whiteSpace: "pre-wrap",
-          color: "var(--text-primary)",
-        }}
+      <div
+        className="ticker-tabs"
+        style={{ marginBottom: 16 }}
+        data-testid="validation-sub-tabs"
       >
-        {data.backtest_md}
-      </pre>
-      <div className="regime-panel-title" style={{ marginTop: 16 }}>
-        OUT-OF-SAMPLE VALIDATION
+        <button
+          className={`ticker-tab ${sub === "cri" ? "active" : ""}`}
+          onClick={() => selectSub("cri")}
+          data-testid="validation-sub-cri"
+        >
+          CRI
+        </button>
+        <button
+          className={`ticker-tab ${sub === "vcg" ? "active" : ""}`}
+          onClick={() => selectSub("vcg")}
+          data-testid="validation-sub-vcg"
+        >
+          VCG
+        </button>
       </div>
-      {data.oos ? (
-        <div data-testid="oos-block">
-          <p style={{ fontSize: 13 }}>
-            <strong>Method:</strong> {data.oos.method}
-          </p>
-          <p style={{ fontSize: 13 }}>
-            <strong>As of:</strong> {data.oos.as_of}
-          </p>
-          <table className="gex-history-table" style={{ marginTop: 8 }}>
-            <thead>
-              <tr>
-                <th className="text-left">Model</th>
-                <th className="text-right">AUC (dd5)</th>
-                <th className="text-right">AUC (vix30)</th>
-                <th className="text-right">AUC (dd10)</th>
-              </tr>
-            </thead>
-            <tbody>
-              {data.oos.scores.map((s) => (
-                <tr key={s.model}>
-                  <td>{s.model}</td>
-                  <td className="text-right">
-                    {s.auc_dd5 != null ? s.auc_dd5.toFixed(3) : "—"}
-                  </td>
-                  <td className="text-right">
-                    {s.auc_vix30 != null ? s.auc_vix30.toFixed(3) : "—"}
-                  </td>
-                  <td className="text-right">
-                    {s.auc_dd10 != null ? s.auc_dd10.toFixed(3) : "—"}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          <p
-            style={{
-              fontSize: 13,
-              marginTop: 12,
-              padding: 8,
-              borderLeft: "2px solid var(--text-muted)",
-              color: "var(--text-secondary)",
-            }}
-          >
-            {data.oos.interpretation}
-          </p>
+      {err && (
+        <div data-testid="validation-error">
+          Validation data unavailable: {err}
         </div>
-      ) : (
-        <p>OOS summary not available.</p>
+      )}
+      {!err && loading && <div>Loading…</div>}
+      {!err && !loading && sub === "cri" && cri && (
+        <CriValidationPanel data={cri} />
+      )}
+      {!err && !loading && sub === "vcg" && vcg && (
+        <VcgValidationPanel data={vcg} />
       )}
     </div>
   );

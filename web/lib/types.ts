@@ -502,6 +502,36 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/regime/vcg-validation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Vcg Validation
+         * @description Latest completed VCG backtest run, rendered to markdown + structured.
+         *
+         *     Source of truth is uw_scan.regime_backtest_runs (migration 057). Returns
+         *     503 with an actionable message if no completed run exists at the current
+         *     vcg_scoring.COMPOSITE_VERSION — operators should run scripts/backtest_vcg.py.
+         *
+         *     Persisted JSON shape (from scripts/backtest_vcg.py):
+         *         summary.extras.named_crash_window: dict[iso_str, list[dict]] where
+         *         each inner dict has offset_d (NOT offset_days), vcg, vcg_adj, beta1,
+         *         beta2, sign_ok, interpretation, vix. Event labels live in
+         *         NAMED_CRASH_DATES, not the persisted JSON.
+         */
+        get: operations["get_vcg_validation_api_regime_vcg_validation_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/regime/vcg/scan": {
         parameters: {
             query?: never;
@@ -5480,6 +5510,44 @@ export interface components {
              */
             vvix: number;
         };
+        /** VcgInterpretationCount */
+        VcgInterpretationCount: {
+            /** Interpretation */
+            interpretation: string;
+            /** N */
+            n: number;
+            /** Pct */
+            pct: number;
+        };
+        /** VcgNamedCrashEvent */
+        VcgNamedCrashEvent: {
+            /** Date */
+            date: string;
+            /** Label */
+            label: string;
+            /** Offsets */
+            offsets: components["schemas"]["VcgNamedCrashOffset"][];
+        };
+        /**
+         * VcgNamedCrashOffset
+         * @description One row of the ±5d named-crash window for a single event.
+         */
+        VcgNamedCrashOffset: {
+            /** Beta1 */
+            beta1?: number | null;
+            /** Beta2 */
+            beta2?: number | null;
+            /** Interpretation */
+            interpretation?: string | null;
+            /** Offset Days */
+            offset_days: number;
+            /** Sign Ok */
+            sign_ok?: boolean | null;
+            /** Vcg */
+            vcg?: number | null;
+            /** Vcg Adj */
+            vcg_adj?: number | null;
+        };
         /**
          * VcgResponse
          * @description Volatility-Credit Gap snapshot (latest scan).
@@ -5619,6 +5687,24 @@ export interface components {
              * @enum {string}
              */
             vvix_severity: "extreme" | "elevated" | "moderate";
+        };
+        /**
+         * VcgValidationResponse
+         * @description Latest completed VCG backtest run rendered + structured.
+         */
+        VcgValidationResponse: {
+            /** Backtest Md */
+            backtest_md: string;
+            /** Composite Version */
+            composite_version: string;
+            /** Credit Proxy */
+            credit_proxy: string;
+            /** Interpretation Distribution */
+            interpretation_distribution: components["schemas"]["VcgInterpretationCount"][];
+            /** N Days */
+            n_days: number;
+            /** Named Crash Window */
+            named_crash_window: components["schemas"]["VcgNamedCrashEvent"][];
         };
         /** VolBackdropPoint */
         VolBackdropPoint: {
@@ -6768,6 +6854,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_vcg_validation_api_regime_vcg_validation_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VcgValidationResponse"];
                 };
             };
         };

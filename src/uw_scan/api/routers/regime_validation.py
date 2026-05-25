@@ -4,6 +4,11 @@ GET /api/regime/validation — returns the latest completed CRI backtest run
   from uw_scan.regime_backtest_runs, rendered to markdown + the run's OOS
   summary. 503 if no completed run exists at the current COMPOSITE_VERSION.
 
+GET /api/regime/vcg-validation — returns the latest completed VCG backtest
+  run from uw_scan.regime_backtest_runs, with rendered markdown +
+  interpretation distribution + named-crash ±5d window. 503 if no completed
+  run exists at the current vcg_scoring.COMPOSITE_VERSION.
+
 GET /api/regime/guidance — returns the active regime-state guidance rule
   selected from docs/research/regime/guidance.md based on the current CRI
   snapshot. (guidance.md is still on disk; only the backtest artifacts moved
@@ -26,8 +31,16 @@ from uw_scan.api.models.regime_validation import (
     GuidanceResponse,
     OosSummary,
     ValidationResponse,
+    VcgInterpretationCount,
+    VcgNamedCrashEvent,
+    VcgNamedCrashOffset,
+    VcgValidationResponse,
 )
-from uw_scan.reports.regime_backtest_report import render_backtest_markdown
+from uw_scan.reports.regime_backtest_report import (
+    NAMED_CRASH_DATES,
+    render_backtest_markdown,
+)
+from uw_scan.reports.regime_vcg_backtest_report import render_vcg_backtest_markdown
 from uw_scan.storage.cri_snapshot_repository import CriSnapshotRepository
 from uw_scan.storage.regime_backtest_repository import RegimeBacktestRepository
 from uw_scan.storage.repository import Repository
@@ -253,4 +266,70 @@ def get_validation(
         backtest_md=render_backtest_markdown(run, daily),
         backtest_csv_rows=len(daily),
         oos=OosSummary.model_validate(oos_payload) if oos_payload else None,
+    )
+
+
+@router.get("/vcg-validation", response_model=VcgValidationResponse)
+def get_vcg_validation(
+    repo: Annotated[Repository, Depends(get_repo)],
+) -> VcgValidationResponse:
+    """Latest completed VCG backtest run, rendered to markdown + structured.
+
+    Source of truth is uw_scan.regime_backtest_runs (migration 057). Returns
+    503 with an actionable message if no completed run exists at the current
+    vcg_scoring.COMPOSITE_VERSION — operators should run scripts/backtest_vcg.py.
+
+    Persisted JSON shape (from scripts/backtest_vcg.py):
+        summary.extras.named_crash_window: dict[iso_str, list[dict]] where
+        each inner dict has offset_d (NOT offset_days), vcg, vcg_adj, beta1,
+        beta2, sign_ok, interpretation, vix. Event labels live in
+        NAMED_CRASH_DATES, not the persisted JSON.
+    """
+    rb = RegimeBacktestRepository(repo.conn, schema=repo._schema)
+    run = rb.find_latest_run("vcg")
+    if run is None:
+        raise HTTPException(
+            503,
+            "no completed VCG backtest run at the current COMPOSITE_VERSION; "
+            "run scripts/backtest_vcg.py to seed uw_scan.regime_backtest_runs",
+        )
+    daily = rb.fetch_daily_for_run(run["id"])
+    extras = (run.get("summary") or {}).get("extras") or {}
+    dist = extras.get("interpretation_distribution") or {}
+    total = sum(dist.values()) or 1
+    crash_window = extras.get("named_crash_window") or {}
+    events: list[VcgNamedCrashEvent] = []
+    for iso_date, rows in sorted(crash_window.items()):
+        events.append(
+            VcgNamedCrashEvent(
+                date=iso_date,
+                label=NAMED_CRASH_DATES.get(iso_date, ""),
+                offsets=[
+                    VcgNamedCrashOffset(
+                        offset_days=int(entry["offset_d"]),
+                        vcg=entry.get("vcg"),
+                        vcg_adj=entry.get("vcg_adj"),
+                        beta1=entry.get("beta1"),
+                        beta2=entry.get("beta2"),
+                        sign_ok=entry.get("sign_ok"),
+                        interpretation=entry.get("interpretation"),
+                    )
+                    for entry in sorted(rows, key=lambda r: int(r["offset_d"]))
+                ],
+            )
+        )
+    return VcgValidationResponse(
+        backtest_md=render_vcg_backtest_markdown(run, daily),
+        n_days=len(daily),
+        composite_version=str(run["composite_version"]),
+        credit_proxy=extras.get("credit_proxy", "HYG"),
+        interpretation_distribution=[
+            VcgInterpretationCount(
+                interpretation=k, n=int(v), pct=round(100 * v / total, 1)
+            )
+            # Secondary key on interpretation name keeps ordering deterministic
+            # when two interpretations have the same count (prod could tie).
+            for k, v in sorted(dist.items(), key=lambda kv: (-kv[1], kv[0]))
+        ],
+        named_crash_window=events,
     )

@@ -12,4 +12,5 @@ export const regimeApi = {
   vol_backdrop: () => `${API}/api/regime/vol-backdrop`,
   guidance: () => `${API}/api/regime/guidance`,
   validation: () => `${API}/api/regime/validation`,
+  vcgValidation: () => `${API}/api/regime/vcg-validation`,
 } as const;

@@ -218,6 +218,90 @@ def seed_cri_backtest_run(seeded_db_empty_cards) -> int:
 
 
 @pytest.fixture
+def seed_vcg_backtest_run(seeded_db_empty_cards) -> int:
+    """Insert one completed VCG run + minimal daily row into the test DB.
+
+    Function-scoped, matching seeded_db_empty_cards. Mirrors the shape that
+    scripts/backtest_vcg.py persists — named_crash_window is
+    dict[iso_str, list[dict]] with offset_d (not offset_days) keys.
+    """
+    from datetime import date as _date
+
+    from uw_scan.cards.vcg_scoring import COMPOSITE_VERSION as VCG_COMPOSITE_VERSION
+    from uw_scan.storage.regime_backtest_repository import RegimeBacktestRepository
+
+    repo = seeded_db_empty_cards
+    rb = RegimeBacktestRepository(repo.conn, schema=repo._schema)
+    existing = rb.find_latest_run("vcg", composite_version=str(VCG_COMPOSITE_VERSION))
+    if existing is not None:
+        return int(existing["id"])
+
+    def _row(off: int, interp: str, vcg: float) -> dict:
+        return {
+            "offset_d": off,
+            "vcg": vcg,
+            "vcg_adj": vcg,
+            "beta1": -0.02,
+            "beta2": -0.04,
+            "sign_ok": True,
+            "interpretation": interp,
+            "vix": 25.0,
+        }
+
+    run_id = rb.insert_run(
+        indicator="vcg",
+        composite_version=str(VCG_COMPOSITE_VERSION),
+        start_date=_date(2007, 1, 3),
+        end_date=_date(2026, 5, 15),
+        window_days=21,
+        n_days=4708,
+        params={"window": 21, "proxy": "HYG", "source": "seed_vcg_backtest_run"},
+        summary={
+            "oos": None,
+            "extras": {
+                "credit_proxy": "HYG",
+                "use_adj_close": True,
+                "named_crash_window": {
+                    "2008-09-15": [
+                        _row(-5, "NORMAL", -0.50),
+                        _row(-3, "NORMAL", -0.40),
+                        _row(-1, "SUPPRESSED", 0.20),
+                        _row(0, "BOUNCE", 0.30),
+                        _row(1, "SUPPRESSED", 0.10),
+                        _row(3, "RISK_OFF", -2.10),
+                        _row(5, "NORMAL", -0.30),
+                    ],
+                },
+                "interpretation_distribution": {
+                    "NORMAL": 2160,
+                    "SUPPRESSED": 2450,
+                    "EDR": 50,
+                    "RISK_OFF": 30,
+                    "PANIC": 18,
+                },
+                "ro_count": 30,
+                "edr_count": 50,
+                "bounce_count": 0,
+            },
+        },
+        note="seed_vcg_backtest_run fixture",
+    )
+    rb.bulk_insert_daily(
+        run_id,
+        [
+            {
+                "trade_date": _date(2026, 5, 15),
+                "score": -0.5,
+                "level": "NORMAL",
+                "payload": {},
+            }
+        ],
+    )
+    rb.mark_run_completed(run_id)
+    return run_id
+
+
+@pytest.fixture
 def seeded_db_with_ohlc(seeded_db_empty_cards) -> Repository:
     repo = seeded_db_empty_cards
     today = datetime.now(timezone.utc).date()
