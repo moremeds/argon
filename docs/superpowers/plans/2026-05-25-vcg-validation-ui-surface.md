@@ -89,11 +89,16 @@ Alternative (split into `VALIDATION:CRI` and `VALIDATION:VCG`): rejected — add
 ### Frontend
 - Modify: `web/lib/types.ts` — regenerated via `npm run gen:types`.
 - Modify: `web/lib/regime/api.ts` — add `vcgValidation()` URL builder next to `validation()`.
-- Modify: `web/components/regime/ValidationTab.tsx` — add CRI/VCG sub-selector; on selection, fetch the appropriate endpoint; render with `VcgValidationPanel` for VCG.
-- Create: `web/components/regime/VcgValidationPanel.tsx` — receives the `VcgValidationResponse` and renders: (a) `<pre>` markdown body; (b) interpretation-distribution table; (c) named-crash ±5d window with row-per-event, columns at offsets `-5,-3,-1,0,+1,+3,+5`, colored by interpretation level.
+- Modify: `web/components/regime/ValidationTab.tsx` — pure switcher with CRI/VCG sub-selector.
+- Create: `web/components/regime/CriValidationPanel.tsx` — receives `ValidationResponse`; lifted from the current `ValidationTab` body so the tab becomes a router.
+- Create: `web/components/regime/VcgValidationPanel.tsx` — receives `VcgValidationResponse` and renders: (a) `<pre>` markdown body; (b) interpretation-distribution table; (c) named-crash window with **one sub-table per event, rows = offsets** (`-5,-3,-1,0,+1,+3,+5`). NB: original sketch said "row-per-event, columns at offsets" — the simpler row-per-offset layout matches the renderer's data flow; if a pivoted table is later wanted, it's a separate refactor.
 
 ### Frontend tests
-- Create: `web/tests/unit/regime/VcgValidationPanel.test.tsx` — render with a fixture, assert key UI elements.
+- Create: `web/tests/unit/VcgValidationPanel.test.tsx` — render with a fixture, assert key UI elements (flat path matches existing `web/tests/unit/` siblings).
+- Create: `web/tests/unit/ValidationTabSwitcher.test.tsx` — covers the sub-selector: CRI→VCG switch fires the new endpoint; fetch failure on VCG shows an error; switching back to CRI clears the stale error.
+
+### OpenAPI snapshot
+- Modify: `tests/integration/api/openapi.snapshot.json` — regenerate after the new endpoint + response models land. Adding `/api/regime/vcg-validation` and 4 new schemas (`VcgValidationResponse`, `VcgNamedCrashEvent`, `VcgNamedCrashOffset`, `VcgInterpretationCount`) WILL fail `tests/integration/api/test_openapi_snapshot.py` until this regenerates.
 
 ---
 
@@ -140,12 +145,23 @@ class VcgValidationResponse(BaseModel):
     named_crash_window: list[VcgNamedCrashEvent]
 ```
 
-- [ ] **Step 2: Re-run model-exports test**
+- [ ] **Step 2: Direct-import smoke for the existing surface**
 
-Run: `UW_SCAN_TEST_DB_NAME=option_wizard_test uv run pytest tests/unit/test_models_exports.py -v`
-Expected: PASS (adding new models does not break exports).
+`tests/unit/test_models_exports.py` protects `uw_scan.models`, NOT `uw_scan.api.models.regime_validation`, so it's the wrong gate here. Instead, verify the new types coexist with the existing exports:
 
-- [ ] **Step 3: Commit**
+```bash
+UW_SCAN_TEST_DB_NAME=option_wizard_test uv run python -c "
+from uw_scan.api.models.regime_validation import (
+    ValidationResponse, OosSummary, GuidanceResponse,        # existing — must still import
+    VcgValidationResponse, VcgNamedCrashEvent,
+    VcgNamedCrashOffset, VcgInterpretationCount,             # new
+)
+print('ok')
+"
+```
+Expected: `ok`. The OpenAPI snapshot (Task 5b) is the contract-stability gate.
+
+- [ ] **Step 3: Commit (only with explicit user approval — repo rule "never commit without explicit user request")**
 
 ```bash
 git add src/uw_scan/api/models/regime_validation.py
@@ -445,15 +461,68 @@ def test_vcg_validation_endpoint_returns_payload(seed_vcg_backtest_run, client) 
     resp = client.get("/api/regime/vcg-validation")
     assert resp.status_code == 200
     body = resp.json()
-    assert body["credit_proxy"] in {"HYG", "JNK", "LQD"}
-    assert body["n_days"] > 0
+    assert body["credit_proxy"] == "HYG"
+    assert body["n_days"] >= 1
+    assert body["composite_version"] == "1"
     assert len(body["interpretation_distribution"]) >= 1
+
+
+def test_vcg_validation_named_crash_window_shape(seed_vcg_backtest_run, client) -> None:
+    """Locks the named_crash_window contract that Task 3's endpoint code asserts.
+
+    The persisted JSON uses `offset_d` keys; the response must (a) translate
+    these to `offset_days`, (b) look up event labels via NAMED_CRASH_DATES,
+    (c) emit offsets in ascending order, and (d) preserve all 7 entries the
+    seed fixture inserts.
+    """
+    resp = client.get("/api/regime/vcg-validation")
+    body = resp.json()
+    events = body["named_crash_window"]
+    assert len(events) == 1, "fixture seeds exactly one event"
+    ev = events[0]
+    assert ev["date"] == "2008-09-15"
+    assert ev["label"] == "Lehman bankruptcy", "label must come from NAMED_CRASH_DATES"
+    offsets = ev["offsets"]
+    assert [o["offset_days"] for o in offsets] == [-5, -3, -1, 0, 1, 3, 5]
+    assert all(isinstance(o["offset_days"], int) for o in offsets)
 
 
 def test_vcg_validation_503_when_no_completed_run(seeded_db_empty_cards, client) -> None:
     resp = client.get("/api/regime/vcg-validation")
     assert resp.status_code == 503
     assert "scripts/backtest_vcg.py" in resp.json()["detail"]
+
+
+def test_vcg_validation_handles_missing_extras(seeded_db_empty_cards, client) -> None:
+    """Endpoint must not crash when summary.extras lacks distribution or window."""
+    from datetime import date as _date
+
+    from uw_scan.cards.vcg_scoring import COMPOSITE_VERSION as V
+    from uw_scan.storage.regime_backtest_repository import RegimeBacktestRepository
+
+    repo = seeded_db_empty_cards
+    rb = RegimeBacktestRepository(repo.conn, schema=repo._schema)
+    run_id = rb.insert_run(
+        indicator="vcg",
+        composite_version=str(V),
+        start_date=_date(2024, 1, 1),
+        end_date=_date(2024, 1, 2),
+        window_days=21,
+        n_days=1,
+        params={},
+        summary={"oos": None, "extras": {"credit_proxy": "HYG"}},  # no distribution, no window
+        note="edge-case test",
+    )
+    rb.bulk_insert_daily(
+        run_id,
+        [{"trade_date": _date(2024, 1, 2), "score": 0.0, "level": "NORMAL", "payload": {}}],
+    )
+    rb.mark_run_completed(run_id)
+    resp = client.get("/api/regime/vcg-validation")
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["interpretation_distribution"] == []
+    assert body["named_crash_window"] == []
 ```
 
 - [ ] **Step 3: Run and verify**
@@ -473,6 +542,8 @@ git commit -m "test(api): cover /regime/vcg-validation happy path + 503"
 **Files:**
 - Modify: `web/lib/types.ts`
 
+**Prereq:** `npm run gen:types` runs `openapi-typescript http://127.0.0.1:8400/openapi.json` — the FastAPI dev server must already be listening on port 8400 with the Task 3 router changes loaded. If you just edited the router, restart the dev API (uvicorn `--reload` should pick it up automatically; verify via `curl -s http://127.0.0.1:8400/api/regime/vcg-validation` returns a status, even 503).
+
 - [ ] **Step 1: Regenerate**
 
 ```bash
@@ -486,11 +557,55 @@ grep -c "VcgValidationResponse" web/lib/types.ts
 ```
 Expected: ≥1. (openapi-typescript generates one schema entry per response model; the count depends on how often the type is referenced — `>=1` is the load-bearing assertion.)
 
-- [ ] **Step 3: Commit**
+- [ ] **Step 3: Commit (with user approval)**
 
 ```bash
 git add web/lib/types.ts
 git commit -m "chore(web): regen types for VCG validation response"
+```
+
+## Task 5b: Regenerate OpenAPI snapshot
+
+**Files:**
+- Modify: `tests/integration/api/openapi.snapshot.json`
+
+The snapshot test (`tests/integration/api/test_openapi_snapshot.py`) asserts both `current.paths.keys() == expected.paths.keys()` AND `current.components.schemas == expected.components.schemas`. Adding `/api/regime/vcg-validation` plus 4 new component schemas breaks both — must regenerate.
+
+- [ ] **Step 1: Regenerate via TestClient (no running server needed)**
+
+```bash
+UW_SCAN_TEST_DB_NAME=option_wizard_test uv run python -c "
+import json, os
+os.environ.setdefault('UW_SCAN_API_KEY', 'test-dummy')
+from fastapi.testclient import TestClient
+from uw_scan.api.server import create_app
+spec = TestClient(create_app()).get('/openapi.json').json()
+with open('tests/integration/api/openapi.snapshot.json', 'w') as f:
+    json.dump(spec, f, indent=2, sort_keys=True)
+print('wrote', len(json.dumps(spec)), 'bytes')
+"
+```
+
+- [ ] **Step 2: Run the snapshot test to confirm green**
+
+```bash
+UW_SCAN_TEST_DB_NAME=option_wizard_test uv run pytest tests/integration/api/test_openapi_snapshot.py -v
+```
+Expected: PASS.
+
+- [ ] **Step 3: Sanity check the diff before commit**
+
+```bash
+git diff --stat tests/integration/api/openapi.snapshot.json
+git diff tests/integration/api/openapi.snapshot.json | grep -E '^\+' | grep -E 'vcg-validation|VcgValidation|VcgNamedCrash|VcgInterpretation' | head -20
+```
+Expected: only additions related to the new endpoint + 4 new schemas; nothing else changes.
+
+- [ ] **Step 4: Commit (with user approval)**
+
+```bash
+git add tests/integration/api/openapi.snapshot.json
+git commit -m "chore(api): regen OpenAPI snapshot for /regime/vcg-validation"
 ```
 
 ## Task 6: Frontend API URL builder
@@ -591,7 +706,8 @@ git commit -m "feat(web): VcgValidationPanel renders backtest evidence"
 ## Task 8: Wire the panel into ValidationTab
 
 **Files:**
-- Modify: `web/components/regime/ValidationTab.tsx`
+- Create: `web/components/regime/CriValidationPanel.tsx` (sub-step 1a)
+- Modify: `web/components/regime/ValidationTab.tsx` (sub-step 1b)
 
 - [ ] **Step 1: Add the CRI/VCG sub-selector + fetch routing**
 
@@ -709,10 +825,10 @@ npm run dev
 ```
 Open `http://localhost:3001/regime` → click VALIDATION → click VCG sub-tab → verify the panel renders.
 
-- [ ] **Step 3: Commit**
+- [ ] **Step 3: Commit (with user approval) — both files**
 
 ```bash
-git add web/components/regime/ValidationTab.tsx
+git add web/components/regime/CriValidationPanel.tsx web/components/regime/ValidationTab.tsx
 git commit -m "feat(web): ValidationTab adds CRI/VCG sub-selector"
 ```
 
@@ -723,14 +839,16 @@ git commit -m "feat(web): ValidationTab adds CRI/VCG sub-selector"
 
 - [ ] **Step 1: Write the test**
 
+`@testing-library/jest-dom` is NOT installed in `web/package.json` (verified via `grep -E "@testing-library/jest-dom" web/package.json` — no match). Existing vitest tests use truthy / equality assertions on DOM properties directly, not `toBeInTheDocument()`. Match that pattern:
+
 ```tsx
 import { describe, it, expect } from "vitest";
 import { render, screen } from "@testing-library/react";
 import VcgValidationPanel from "@/components/regime/VcgValidationPanel";
 
 describe("VcgValidationPanel", () => {
-  it("renders the credit proxy in the title", () => {
-    render(<VcgValidationPanel data={{
+  it("renders the credit proxy and distribution", () => {
+    const { container } = render(<VcgValidationPanel data={{
       backtest_md: "# VCG Backtest\n",
       n_days: 100,
       composite_version: "1",
@@ -738,8 +856,31 @@ describe("VcgValidationPanel", () => {
       interpretation_distribution: [{ interpretation: "NORMAL", n: 60, pct: 60.0 }],
       named_crash_window: [],
     } as any} />);
-    expect(screen.getByText(/VCG BACKTEST \(HYG\)/)).toBeInTheDocument();
-    expect(screen.getByText(/NORMAL/)).toBeInTheDocument();
+    expect(screen.queryByText(/VCG BACKTEST \(HYG\)/)).not.toBeNull();
+    expect(screen.queryByText("NORMAL")).not.toBeNull();
+    expect(container.querySelector('[data-testid="vcg-validation-panel"]')).not.toBeNull();
+  });
+
+  it("renders one sub-table per named-crash event", () => {
+    const { container } = render(<VcgValidationPanel data={{
+      backtest_md: "# VCG Backtest\n",
+      n_days: 4708,
+      composite_version: "1",
+      credit_proxy: "HYG",
+      interpretation_distribution: [{ interpretation: "NORMAL", n: 1, pct: 100.0 }],
+      named_crash_window: [{
+        date: "2008-09-15",
+        label: "Lehman bankruptcy",
+        offsets: [-5, -3, -1, 0, 1, 3, 5].map((off) => ({
+          offset_days: off, vcg: -0.5, vcg_adj: -0.5,
+          beta1: -0.02, beta2: -0.04, sign_ok: true, interpretation: "NORMAL",
+        })),
+      }],
+    } as any} />);
+    expect(screen.queryByText(/Lehman bankruptcy/)).not.toBeNull();
+    // 7 offset rows in the inner table
+    const rows = container.querySelectorAll("tbody tr");
+    expect(rows.length).toBeGreaterThanOrEqual(7);
   });
 });
 ```
@@ -751,11 +892,50 @@ cd web && npm run test -- VcgValidationPanel
 ```
 Expected: PASS.
 
-- [ ] **Step 3: Commit**
+- [ ] **Step 3: Switcher test — covers the failure-mode UX**
+
+Create `web/tests/unit/ValidationTabSwitcher.test.tsx`:
+
+```tsx
+import { describe, it, expect, beforeEach, vi } from "vitest";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import ValidationTab from "@/components/regime/ValidationTab";
+
+describe("ValidationTab", () => {
+  beforeEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("switches from CRI to VCG and shows error on 503", async () => {
+    const cri = {
+      backtest_md: "# CRI Backtest\n", backtest_csv_rows: 100,
+      oos: { interpretation: "x", method: "y", as_of: "2026-05-25",
+             labels: [], scores: [], versions: [] },
+    };
+    const fetchMock = vi.spyOn(global, "fetch").mockImplementation((url) => {
+      const u = String(url);
+      if (u.endsWith("/regime/validation")) {
+        return Promise.resolve(new Response(JSON.stringify(cri), { status: 200 }));
+      }
+      return Promise.resolve(new Response(JSON.stringify({ detail: "no run" }), { status: 503 }));
+    });
+    render(<ValidationTab />);
+    await waitFor(() => expect(screen.queryByText(/WARM-STORE BACKTEST/)).not.toBeNull());
+    fireEvent.click(screen.getByTestId("validation-sub-vcg"));
+    await waitFor(() => expect(screen.queryByText(/Validation data unavailable/)).not.toBeNull());
+    // Switch back to CRI — stale error must clear once new fetch succeeds
+    fireEvent.click(screen.getByTestId("validation-sub-cri"));
+    await waitFor(() => expect(screen.queryByText(/Validation data unavailable/)).toBeNull());
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+  });
+});
+```
+
+- [ ] **Step 4: Commit (with user approval) — both test files**
 
 ```bash
-git add web/tests/unit/VcgValidationPanel.test.tsx
-git commit -m "test(web): cover VcgValidationPanel render"
+git add web/tests/unit/VcgValidationPanel.test.tsx web/tests/unit/ValidationTabSwitcher.test.tsx
+git commit -m "test(web): cover VcgValidationPanel + ValidationTab sub-tab switching"
 ```
 
 ## Task 10: Open the PR
