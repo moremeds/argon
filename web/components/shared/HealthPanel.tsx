@@ -5,8 +5,10 @@ import { fmtDateTimeWithZone } from "@/lib/formatters";
 import type { components } from "@/lib/types";
 
 type Health = components["schemas"]["HealthResponse"];
+type BenchmarkCurrent = components["schemas"]["BenchmarkCurrentResponse"];
 type WorkerHealth = NonNullable<Health["workers"]>[number];
 type ProviderSource = "uw" | "massive";
+type PanelView = "status" | "benchmark";
 
 const HEARTBEAT_HEALTHY_LAG_S = 5;
 const SPOT_REFRESH_HEALTHY_LAG_S = 660;
@@ -46,6 +48,17 @@ const statusStyle: React.CSSProperties = {
   display: "flex",
   alignItems: "center",
   gap: 6,
+};
+const panelButtonStyle: React.CSSProperties = {
+  background: "transparent",
+  border: "1px solid var(--border-dim)",
+  color: "var(--text-secondary)",
+  cursor: "pointer",
+  fontFamily: "var(--font-mono)",
+  fontSize: 11,
+  height: 24,
+  padding: "0 8px",
+  textTransform: "uppercase",
 };
 
 function dash(v: number | string | null | undefined, suffix = ""): string {
@@ -146,6 +159,169 @@ function StatusRow({
   );
 }
 
+function benchmarkStatusColor(status: BenchmarkCurrent["status"]): string {
+  if (status === "OK") return "var(--positive)";
+  if (status === "DEGRADED") return "var(--warning)";
+  return "var(--negative)";
+}
+
+function BenchmarkScoreRow({ label, value }: { label: string; value: number }) {
+  return (
+    <div style={rowStyle}>
+      <span style={labelStyle}>{label}</span>
+      <span style={valStyle}>{Math.round(value)}</span>
+    </div>
+  );
+}
+
+function BenchmarkView({
+  benchmark,
+  loading,
+  error,
+  onBack,
+}: {
+  benchmark: BenchmarkCurrent | null;
+  loading: boolean;
+  error: boolean;
+  onBack: () => void;
+}) {
+  if (loading && benchmark == null) {
+    return (
+      <>
+        <div
+          style={{
+            ...rowStyle,
+            alignItems: "center",
+            paddingBottom: 8,
+          }}
+        >
+          <span style={{ color: "var(--text-secondary)" }}>
+            Pipeline Benchmark
+          </span>
+          <button type="button" onClick={onBack} style={panelButtonStyle}>
+            Status
+          </button>
+        </div>
+        <div style={rowStyle}>
+          <span style={labelStyle}>Loading</span>
+          <span style={valStyle}>...</span>
+        </div>
+      </>
+    );
+  }
+
+  if (error || benchmark == null) {
+    return (
+      <>
+        <div
+          style={{
+            ...rowStyle,
+            alignItems: "center",
+            paddingBottom: 8,
+          }}
+        >
+          <span style={{ color: "var(--text-secondary)" }}>
+            Pipeline Benchmark
+          </span>
+          <button type="button" onClick={onBack} style={panelButtonStyle}>
+            Status
+          </button>
+        </div>
+        <div style={rowStyle}>
+          <span style={labelStyle}>Benchmark unavailable</span>
+          <span style={valStyle}>—</span>
+        </div>
+      </>
+    );
+  }
+
+  const statusColor = benchmarkStatusColor(benchmark.status);
+
+  return (
+    <>
+      <div
+        style={{
+          ...rowStyle,
+          alignItems: "center",
+          paddingBottom: 8,
+        }}
+      >
+        <span style={{ color: "var(--text-secondary)" }}>
+          Pipeline Benchmark
+        </span>
+        <button type="button" onClick={onBack} style={panelButtonStyle}>
+          Status
+        </button>
+      </div>
+      <div style={rowStyle}>
+        <span style={labelStyle}>Score</span>
+        <span style={{ ...valStyle, color: statusColor }}>
+          {Math.round(benchmark.score)}
+        </span>
+      </div>
+      <StatusRow
+        label="Status"
+        status={{ label: benchmark.status, color: statusColor }}
+      />
+      <BenchmarkScoreRow
+        label="Freshness"
+        value={benchmark.subscores.freshness}
+      />
+      <BenchmarkScoreRow
+        label="Coverage"
+        value={benchmark.subscores.coverage}
+      />
+      <BenchmarkScoreRow
+        label="Throughput"
+        value={benchmark.subscores.throughput}
+      />
+      <BenchmarkScoreRow label="Provider" value={benchmark.subscores.provider} />
+      <BenchmarkScoreRow label="Worker" value={benchmark.subscores.worker} />
+      <BenchmarkScoreRow
+        label="Persistence"
+        value={benchmark.subscores.persistence}
+      />
+      <div
+        style={{
+          borderTop: "1px solid var(--border-dim)",
+          margin: "8px 0",
+        }}
+      />
+      <div style={rowStyle}>
+        <span style={labelStyle}>Fresh scanned</span>
+        <span style={valStyle}>{dash(benchmark.metrics.scanner_fresh_count)}</span>
+      </div>
+      <div style={rowStyle}>
+        <span style={labelStyle}>Stale scanned</span>
+        <span style={valStyle}>{dash(benchmark.metrics.scanner_stale_count)}</span>
+      </div>
+      <div style={rowStyle}>
+        <span style={labelStyle}>Watchlist</span>
+        <span style={valStyle}>{dash(benchmark.metrics.watchlist_size)}</span>
+      </div>
+      {benchmark.bottleneck && (
+        <div style={{ ...rowStyle, alignItems: "flex-start" }}>
+          <span style={labelStyle}>Bottleneck</span>
+          <span
+            style={{
+              ...valStyle,
+              color:
+                benchmark.bottleneck.severity === "critical"
+                  ? "var(--negative)"
+                  : "var(--warning)",
+              maxWidth: 180,
+              textAlign: "right",
+              whiteSpace: "normal",
+            }}
+          >
+            {benchmark.bottleneck.message}
+          </span>
+        </div>
+      )}
+    </>
+  );
+}
+
 // Worst-color summary for the collapsed header dot. Severity order matches
 // the var() palette: --negative > --warning > --positive. UNKNOWN states
 // are mapped to --warning by their producers, which is the behaviour we
@@ -185,6 +361,9 @@ function writeStoredCollapsed(value: boolean): void {
 export function HealthPanel() {
   const [h, setH] = useState<Health | null>(null);
   const [source, setSource] = useState<ProviderSource>("uw");
+  const [panelView, setPanelView] = useState<PanelView>("status");
+  const [benchmark, setBenchmark] = useState<BenchmarkCurrent | null>(null);
+  const [benchmarkError, setBenchmarkError] = useState(false);
   // Always start collapsed on server + first client render to avoid a
   // hydration mismatch; the real localStorage value is read in an effect.
   const [collapsed, setCollapsed] = useState<boolean>(true);
@@ -216,6 +395,28 @@ export function HealthPanel() {
       clearInterval(t);
     };
   }, [source]);
+
+  useEffect(() => {
+    if (collapsed || panelView !== "benchmark") return;
+    let cancelled = false;
+    api
+      .healthBenchmarkCurrent()
+      .then((response) => {
+        if (!cancelled) {
+          setBenchmark(response);
+          setBenchmarkError(false);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setBenchmark(null);
+          setBenchmarkError(true);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [collapsed, panelView]);
 
   const apiStatus =
     h == null
@@ -277,6 +478,10 @@ export function HealthPanel() {
       return next;
     });
   };
+  const showBenchmark = () => {
+    setBenchmarkError(false);
+    setPanelView("benchmark");
+  };
 
   return (
     <div style={{ borderTop: "1px solid var(--border-dim)" }}>
@@ -319,129 +524,159 @@ export function HealthPanel() {
       </button>
       {!collapsed && (
         <div id="health-panel-body" style={{ padding: "0 16px 12px 16px" }}>
-          <StatusRow label="API" status={apiStatus} />
-          <StatusRow label="Scheduler" status={schedulerStatus} />
-          {workerRows.length > 0 ? (
-            <>
-              <StatusRow
-                label="UW Workers"
-                status={workerGroupStatus(uwWorkers)}
-              />
-              <StatusRow
-                label="Massive Workers"
-                status={workerGroupStatus(massiveWorkers)}
-              />
-              {aiWorkers.length > 0 && (
-                <StatusRow
-                  label="AI Workers"
-                  status={workerGroupStatus(aiWorkers)}
-                />
-              )}
-            </>
+          {panelView === "benchmark" ? (
+            <BenchmarkView
+              benchmark={benchmark}
+              loading={benchmark == null && !benchmarkError}
+              error={benchmarkError}
+              onBack={() => setPanelView("status")}
+            />
           ) : (
             <>
-              <StatusRow label="UW Worker" status={rescanStatus} />
-              <StatusRow label="Massive Worker" status={spotRefreshStatus} />
+              <div
+                style={{
+                  ...rowStyle,
+                  alignItems: "center",
+                  paddingBottom: 8,
+                }}
+              >
+                <span style={{ color: "var(--text-secondary)" }}>Health</span>
+                <button
+                  type="button"
+                  onClick={showBenchmark}
+                  style={panelButtonStyle}
+                >
+                  Benchmark
+                </button>
+              </div>
+              <StatusRow label="API" status={apiStatus} />
+              <StatusRow label="Scheduler" status={schedulerStatus} />
+              {workerRows.length > 0 ? (
+                <>
+                  <StatusRow
+                    label="UW Workers"
+                    status={workerGroupStatus(uwWorkers)}
+                  />
+                  <StatusRow
+                    label="Massive Workers"
+                    status={workerGroupStatus(massiveWorkers)}
+                  />
+                  {aiWorkers.length > 0 && (
+                    <StatusRow
+                      label="AI Workers"
+                      status={workerGroupStatus(aiWorkers)}
+                    />
+                  )}
+                </>
+              ) : (
+                <>
+                  <StatusRow label="UW Worker" status={rescanStatus} />
+                  <StatusRow
+                    label="Massive Worker"
+                    status={spotRefreshStatus}
+                  />
+                </>
+              )}
+              <StatusRow label="Query Coverage" status={recordsStatus} />
+              <div style={rowStyle}>
+                <span style={labelStyle}>Last spot</span>
+                <span
+                  style={valStyle}
+                  title={`Quote ${fmtDateTimeWithZone(h?.latest_spot_quote_at, { timeZone: HEALTH_TIME_ZONE })} / fetched ${fmtDateTimeWithZone(h?.latest_spot_quote_fetched_at, { timeZone: HEALTH_TIME_ZONE })}`}
+                >
+                  {fmtDuration(h?.spot_quote_lag_seconds)}
+                </span>
+              </div>
+              <StatusRow label="WS Consumer" status={wsStatus} />
+              {wsConsumer && (
+                <div style={rowStyle}>
+                  <span style={labelStyle}>WS tick age</span>
+                  <span style={valStyle}>
+                    {fmtDuration(wsConsumer.last_tick_age_seconds ?? null)}
+                  </span>
+                </div>
+              )}
+              {wsConsumer && (
+                <div style={rowStyle}>
+                  <span style={labelStyle}>WS received</span>
+                  <span style={valStyle}>
+                    {wsConsumer.ticks_received.toLocaleString()}
+                  </span>
+                </div>
+              )}
+              <div style={rowStyle}>
+                <span style={labelStyle}>Last Scan</span>
+                <span
+                  style={valStyle}
+                  title={fmtDateTimeWithZone(h?.last_full_scan_at, {
+                    timeZone: HEALTH_TIME_ZONE,
+                  })}
+                >
+                  {fmtSidebarDateTime(h?.last_full_scan_at)}
+                </span>
+              </div>
+              <div style={rowStyle}>
+                <span style={labelStyle}>Source</span>
+                <select
+                  aria-label="Source"
+                  value={source}
+                  onChange={(event) =>
+                    setSource(event.target.value as ProviderSource)
+                  }
+                  style={sourceSelectStyle}
+                >
+                  <option value="uw">UnusualWhales</option>
+                  <option value="massive">Massive.com</option>
+                </select>
+              </div>
+              <div
+                style={{
+                  borderTop: "1px solid var(--border-dim)",
+                  margin: "8px 0",
+                }}
+              />
+              <div style={rowStyle}>
+                <span style={labelStyle}>Watchlist</span>
+                <span style={valStyle}>{dash(h?.watchlist_size)}</span>
+              </div>
+              <div style={rowStyle}>
+                <span style={labelStyle}>Latency p95</span>
+                <span style={valStyle}>{dash(h?.latency_p95_ms, "ms")}</span>
+              </div>
+              <div style={rowStyle}>
+                <span style={labelStyle}>Req avg/min</span>
+                <span style={valStyle}>{fmtRate(h?.requests_per_minute)}</span>
+              </div>
+              <div style={rowStyle}>
+                <span style={labelStyle}>429</span>
+                <span style={valStyle}>{dash(h?.http_429)}</span>
+              </div>
+              <div style={rowStyle}>
+                <span style={labelStyle}>Scan avg</span>
+                <span style={valStyle}>
+                  {fmtDuration(h?.avg_scan_duration_seconds)}
+                </span>
+              </div>
+              <div style={rowStyle}>
+                <span style={labelStyle}>Queue avg/min</span>
+                <span style={valStyle}>
+                  {fmtRate(h?.queue_drain_rate_per_minute)}
+                </span>
+              </div>
+              <div style={rowStyle}>
+                <span style={labelStyle}>2xx</span>
+                <span style={valStyle}>{dash(h?.http_2xx)}</span>
+              </div>
+              <div style={rowStyle}>
+                <span style={labelStyle}>4xx</span>
+                <span style={valStyle}>{dash(h?.http_4xx)}</span>
+              </div>
+              <div style={rowStyle}>
+                <span style={labelStyle}>5xx</span>
+                <span style={valStyle}>{dash(h?.http_5xx)}</span>
+              </div>
             </>
           )}
-          <StatusRow label="Query Coverage" status={recordsStatus} />
-          <div style={rowStyle}>
-            <span style={labelStyle}>Last spot</span>
-            <span
-              style={valStyle}
-              title={`Quote ${fmtDateTimeWithZone(h?.latest_spot_quote_at, { timeZone: HEALTH_TIME_ZONE })} / fetched ${fmtDateTimeWithZone(h?.latest_spot_quote_fetched_at, { timeZone: HEALTH_TIME_ZONE })}`}
-            >
-              {fmtDuration(h?.spot_quote_lag_seconds)}
-            </span>
-          </div>
-          <StatusRow label="WS Consumer" status={wsStatus} />
-          {wsConsumer && (
-            <div style={rowStyle}>
-              <span style={labelStyle}>WS tick age</span>
-              <span style={valStyle}>
-                {fmtDuration(wsConsumer.last_tick_age_seconds ?? null)}
-              </span>
-            </div>
-          )}
-          {wsConsumer && (
-            <div style={rowStyle}>
-              <span style={labelStyle}>WS received</span>
-              <span style={valStyle}>
-                {wsConsumer.ticks_received.toLocaleString()}
-              </span>
-            </div>
-          )}
-          <div style={rowStyle}>
-            <span style={labelStyle}>Last Scan</span>
-            <span
-              style={valStyle}
-              title={fmtDateTimeWithZone(h?.last_full_scan_at, {
-                timeZone: HEALTH_TIME_ZONE,
-              })}
-            >
-              {fmtSidebarDateTime(h?.last_full_scan_at)}
-            </span>
-          </div>
-          <div style={rowStyle}>
-            <span style={labelStyle}>Source</span>
-            <select
-              aria-label="Source"
-              value={source}
-              onChange={(event) =>
-                setSource(event.target.value as ProviderSource)
-              }
-              style={sourceSelectStyle}
-            >
-              <option value="uw">UnusualWhales</option>
-              <option value="massive">Massive.com</option>
-            </select>
-          </div>
-          <div
-            style={{
-              borderTop: "1px solid var(--border-dim)",
-              margin: "8px 0",
-            }}
-          />
-          <div style={rowStyle}>
-            <span style={labelStyle}>Watchlist</span>
-            <span style={valStyle}>{dash(h?.watchlist_size)}</span>
-          </div>
-          <div style={rowStyle}>
-            <span style={labelStyle}>Latency p95</span>
-            <span style={valStyle}>{dash(h?.latency_p95_ms, "ms")}</span>
-          </div>
-          <div style={rowStyle}>
-            <span style={labelStyle}>Req avg/min</span>
-            <span style={valStyle}>{fmtRate(h?.requests_per_minute)}</span>
-          </div>
-          <div style={rowStyle}>
-            <span style={labelStyle}>429</span>
-            <span style={valStyle}>{dash(h?.http_429)}</span>
-          </div>
-          <div style={rowStyle}>
-            <span style={labelStyle}>Scan avg</span>
-            <span style={valStyle}>
-              {fmtDuration(h?.avg_scan_duration_seconds)}
-            </span>
-          </div>
-          <div style={rowStyle}>
-            <span style={labelStyle}>Queue avg/min</span>
-            <span style={valStyle}>
-              {fmtRate(h?.queue_drain_rate_per_minute)}
-            </span>
-          </div>
-          <div style={rowStyle}>
-            <span style={labelStyle}>2xx</span>
-            <span style={valStyle}>{dash(h?.http_2xx)}</span>
-          </div>
-          <div style={rowStyle}>
-            <span style={labelStyle}>4xx</span>
-            <span style={valStyle}>{dash(h?.http_4xx)}</span>
-          </div>
-          <div style={rowStyle}>
-            <span style={labelStyle}>5xx</span>
-            <span style={valStyle}>{dash(h?.http_5xx)}</span>
-          </div>
         </div>
       )}
     </div>

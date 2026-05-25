@@ -191,6 +191,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/health/benchmark/current": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Current Benchmark */
+        get: operations["current_benchmark_api_health_benchmark_current_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/health/benchmark/history": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Benchmark History */
+        get: operations["benchmark_history_api_health_benchmark_history_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/jobs/{job_id}": {
         parameters: {
             query?: never;
@@ -430,7 +464,18 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Get Validation */
+        /**
+         * Get Validation
+         * @description Latest completed CRI backtest run, rendered to markdown.
+         *
+         *     Source of truth is uw_scan.regime_backtest_runs. The previous file
+         *     fallback (cri-backtest.md/.csv + oos-summary.json on disk) was removed
+         *     after the prod gate in
+         *     docs/superpowers/specs/2026-05-24-regime-research-closure-design.md §10.4
+         *     was satisfied. If no completed run exists at the current
+         *     cri_scorers.COMPOSITE_VERSION, returns 503 — operators should run
+         *     scripts/backtest_cri.py to seed the table.
+         */
         get: operations["get_validation_api_regime_validation_get"];
         put?: never;
         post?: never;
@@ -844,6 +889,139 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** BenchmarkCurrentResponse */
+        BenchmarkCurrentResponse: {
+            bottleneck?: components["schemas"]["BenchmarkReasonResponse"] | null;
+            /**
+             * Captured At
+             * Format: date-time
+             */
+            captured_at: string;
+            metrics: components["schemas"]["BenchmarkMetricsResponse"];
+            /** Reasons */
+            reasons?: components["schemas"]["BenchmarkReasonResponse"][];
+            /** Score */
+            score: number;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "OK" | "DEGRADED" | "CRITICAL";
+            subscores: components["schemas"]["BenchmarkSubscoresResponse"];
+        };
+        /** BenchmarkHistoryResponse */
+        BenchmarkHistoryResponse: {
+            /** Snapshots */
+            snapshots?: components["schemas"]["BenchmarkSnapshotResponse"][];
+        };
+        /** BenchmarkMetricsResponse */
+        BenchmarkMetricsResponse: {
+            /** Failing Record Tables */
+            failing_record_tables?: string[];
+            /** Last Full Scan Age Seconds */
+            last_full_scan_age_seconds?: number | null;
+            /** Massive Worker Expected Count */
+            massive_worker_expected_count?: number | null;
+            /** Massive Worker Online Count */
+            massive_worker_online_count?: number | null;
+            /** Oldest Queue Age Seconds */
+            oldest_queue_age_seconds?: number | null;
+            /** Queue Depth */
+            queue_depth?: number | null;
+            /** Queue Drain Rate Per Minute */
+            queue_drain_rate_per_minute?: number | null;
+            /** Record Health Ok */
+            record_health_ok?: boolean | null;
+            /** Requests Per Minute */
+            requests_per_minute?: number | null;
+            /** Scan Duration Avg Seconds */
+            scan_duration_avg_seconds?: number | null;
+            /** Scan Duration P95 Seconds */
+            scan_duration_p95_seconds?: number | null;
+            /** Scanner Dead Count */
+            scanner_dead_count?: number | null;
+            /** Scanner Fresh Count */
+            scanner_fresh_count?: number | null;
+            /** Scanner Never Scanned Count */
+            scanner_never_scanned_count?: number | null;
+            /** Scanner Stale Count */
+            scanner_stale_count?: number | null;
+            /** Scheduler Heartbeat Lag Seconds */
+            scheduler_heartbeat_lag_seconds?: number | null;
+            /** Uw Http 429 */
+            uw_http_429?: number | null;
+            /** Uw Http 4Xx */
+            uw_http_4xx?: number | null;
+            /** Uw Http 5Xx */
+            uw_http_5xx?: number | null;
+            /** Uw Latency P95 Ms */
+            uw_latency_p95_ms?: number | null;
+            /** Uw Worker Expected Count */
+            uw_worker_expected_count?: number | null;
+            /** Uw Worker Online Count */
+            uw_worker_online_count?: number | null;
+            /** Watchlist Size */
+            watchlist_size?: number | null;
+            /** Ws Tick Age Seconds */
+            ws_tick_age_seconds?: number | null;
+        };
+        /** BenchmarkReasonResponse */
+        BenchmarkReasonResponse: {
+            /** Component */
+            component: string;
+            /** Message */
+            message: string;
+            /** Penalty */
+            penalty: number;
+            /**
+             * Severity
+             * @enum {string}
+             */
+            severity: "degraded" | "critical";
+        };
+        /** BenchmarkSnapshotResponse */
+        BenchmarkSnapshotResponse: {
+            /**
+             * Capture Bucket
+             * Format: date-time
+             */
+            capture_bucket: string;
+            /**
+             * Captured At
+             * Format: date-time
+             */
+            captured_at: string;
+            /** Details Jsonb */
+            details_jsonb?: {
+                [key: string]: unknown;
+            };
+            /** Id */
+            id: number;
+            metrics: components["schemas"]["BenchmarkMetricsResponse"];
+            /** Score */
+            score: number;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "OK" | "DEGRADED" | "CRITICAL";
+            subscores: components["schemas"]["BenchmarkSubscoresResponse"];
+        };
+        /** BenchmarkSubscoresResponse */
+        BenchmarkSubscoresResponse: {
+            /** Coverage */
+            coverage: number;
+            /** Freshness */
+            freshness: number;
+            /** Persistence */
+            persistence: number;
+            /** Provider */
+            provider: number;
+            /** Throughput */
+            throughput: number;
+            /** Worker */
+            worker: number;
+        };
         /** CandidateStructure */
         CandidateStructure: {
             /**
@@ -6113,6 +6291,57 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HealthResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    current_benchmark_api_health_benchmark_current_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BenchmarkCurrentResponse"];
+                };
+            };
+        };
+    };
+    benchmark_history_api_health_benchmark_history_get: {
+        parameters: {
+            query?: {
+                hours?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BenchmarkHistoryResponse"];
                 };
             };
             /** @description Validation Error */

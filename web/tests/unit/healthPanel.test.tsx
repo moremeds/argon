@@ -13,6 +13,7 @@ import { api } from "@/lib/api";
 vi.mock("@/lib/api", () => ({
   api: {
     health: vi.fn(),
+    healthBenchmarkCurrent: vi.fn(),
   },
 }));
 
@@ -48,6 +49,119 @@ describe("HealthPanel", () => {
     cleanup();
     vi.clearAllMocks();
     vi.unstubAllGlobals();
+  });
+
+  it("opens a benchmark view from the expanded panel and fetches lazily", async () => {
+    vi.mocked(api.health).mockResolvedValue({
+      ok: true,
+      db: "up",
+      scheduler_lag_seconds: 1,
+      last_full_scan_at: "2026-05-14T14:20:42Z",
+      reason: null,
+      worker_lag_seconds: 1,
+      scheduler_heartbeat_lag_seconds: 1,
+      scheduler_heartbeat_name: "worker",
+      rescan_heartbeat_lag_seconds: 1,
+      spot_refresh_heartbeat_lag_seconds: 1,
+      spot_quote_lag_seconds: 60,
+      latest_spot_quote_at: "2026-05-14T14:19:42Z",
+      latest_spot_quote_fetched_at: "2026-05-14T14:20:42Z",
+      watchlist_size: 97,
+      source: "UnusualWhales",
+      latency_p95_ms: 88,
+      http_2xx: 120,
+      http_4xx: 0,
+      http_5xx: 0,
+      uw_today: 40,
+      cache_hit_pct: null,
+      throughput_window_minutes: 15,
+      record_health_ok: true,
+      record_health: [],
+      workers: [],
+    });
+    vi.mocked(api.healthBenchmarkCurrent).mockResolvedValue({
+      captured_at: "2026-05-25T12:00:00Z",
+      score: 87,
+      status: "OK",
+      subscores: {
+        freshness: 92,
+        coverage: 88,
+        throughput: 81,
+        provider: 90,
+        worker: 100,
+        persistence: 75,
+      },
+      metrics: {
+        watchlist_size: 102,
+        scanner_fresh_count: 91,
+        scanner_stale_count: 7,
+        scanner_dead_count: 4,
+        scanner_never_scanned_count: 0,
+      },
+      bottleneck: {
+        component: "persistence",
+        severity: "degraded",
+        message: "2 record-health tables below expected coverage",
+        penalty: 25,
+      },
+      reasons: [],
+    });
+
+    render(<HealthPanel />);
+    expect(api.healthBenchmarkCurrent).not.toHaveBeenCalled();
+    await expandPanel();
+    fireEvent.click(await screen.findByRole("button", { name: "Benchmark" }));
+
+    await waitFor(() =>
+      expect(api.healthBenchmarkCurrent).toHaveBeenCalledOnce(),
+    );
+    expect(screen.getByText("Pipeline Benchmark")).toBeTruthy();
+    expect(screen.getByText("87")).toBeTruthy();
+    expect(screen.getByText("OK")).toBeTruthy();
+    expect(screen.getByText("Freshness")).toBeTruthy();
+    expect(screen.getByText("Persistence")).toBeTruthy();
+    expect(
+      screen.getByText("2 record-health tables below expected coverage"),
+    ).toBeTruthy();
+  });
+
+  it("renders a compact benchmark fallback when the request fails", async () => {
+    vi.mocked(api.health).mockResolvedValue({
+      ok: true,
+      db: "up",
+      scheduler_lag_seconds: 1,
+      last_full_scan_at: "2026-05-14T14:20:42Z",
+      reason: null,
+      worker_lag_seconds: 1,
+      scheduler_heartbeat_lag_seconds: 1,
+      scheduler_heartbeat_name: "worker",
+      rescan_heartbeat_lag_seconds: 1,
+      spot_refresh_heartbeat_lag_seconds: 1,
+      spot_quote_lag_seconds: 60,
+      latest_spot_quote_at: "2026-05-14T14:19:42Z",
+      latest_spot_quote_fetched_at: "2026-05-14T14:20:42Z",
+      watchlist_size: 97,
+      source: "UnusualWhales",
+      latency_p95_ms: 88,
+      http_2xx: 120,
+      http_4xx: 0,
+      http_5xx: 0,
+      uw_today: 40,
+      cache_hit_pct: null,
+      throughput_window_minutes: 15,
+      record_health_ok: true,
+      record_health: [],
+      workers: [],
+    });
+    vi.mocked(api.healthBenchmarkCurrent).mockRejectedValue(new Error("down"));
+
+    render(<HealthPanel />);
+    await expandPanel();
+    fireEvent.click(await screen.findByRole("button", { name: "Benchmark" }));
+
+    await waitFor(() =>
+      expect(screen.getByText("Benchmark unavailable")).toBeTruthy(),
+    );
   });
 
   it("renders provider usage stats from health", async () => {

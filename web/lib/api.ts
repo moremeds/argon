@@ -22,6 +22,8 @@ type StockHistoryResponse = Json<"/api/stock/{ticker}/history", "get">;
 type JobStatus = Json<"/api/jobs/{job_id}", "get">;
 type OhlcResponse = Json<"/api/ohlc/{ticker}", "get">;
 type HealthResponse = Json<"/api/health", "get">;
+type BenchmarkCurrentResponse = Json<"/api/health/benchmark/current", "get">;
+type BenchmarkHistoryResponse = Json<"/api/health/benchmark/history", "get">;
 type HealthSource = NonNullable<
   paths["/api/health"]["get"]["parameters"]["query"]
 >["source"];
@@ -216,6 +218,12 @@ export const api = {
     }
     return _fetch<HealthResponse>(`/api/health?${params.toString()}`);
   },
+  healthBenchmarkCurrent: (): Promise<BenchmarkCurrentResponse> =>
+    _fetch<BenchmarkCurrentResponse>("/api/health/benchmark/current"),
+  healthBenchmarkHistory: (hours = 24): Promise<BenchmarkHistoryResponse> =>
+    _fetch<BenchmarkHistoryResponse>(
+      `/api/health/benchmark/history?hours=${hours}`,
+    ),
   addTicker: (body: {
     ticker: string;
     sector: string;
@@ -258,6 +266,8 @@ export type {
   CockpitStateResponse,
   CockpitSurfaceResponse,
   CockpitVrpResponse,
+  BenchmarkCurrentResponse,
+  BenchmarkHistoryResponse,
   OhlcResponse,
   RegimeDealerResponse,
   RegimeGexResponse,
