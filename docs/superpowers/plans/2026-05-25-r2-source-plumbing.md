@@ -48,10 +48,6 @@
 """R2 settings are parsed from env vars; absent vars become None."""
 from __future__ import annotations
 
-from pathlib import Path
-
-from pydantic import SecretStr
-
 from uw_scan.config import Settings
 
 
@@ -222,6 +218,18 @@ def test_resolve_local_when_r2_partial():
     assert root.kind == "local"
 
 
+def test_resolve_local_when_r2_secret_is_empty_string():
+    """Empty SecretStr value MUST be treated as 'not configured'.
+
+    Regression for the bug where `bool(SecretStr(""))` is True (the wrapper
+    is a non-empty object) so `all((... r2_secret_access_key ...))` would
+    incorrectly engage R2 with an empty credential.
+    """
+    s = _make_settings(with_r2=True, r2_secret_access_key=SecretStr(""))
+    root = resolve_lake_root(s, asset_class="volatility")
+    assert root.kind == "local", "empty SecretStr should fall back, not engage R2"
+
+
 def test_resolve_equity_routes_to_credit_etf_local_root():
     s = _make_settings(with_r2=False)
     root = resolve_lake_root(s, asset_class="equity")
@@ -328,14 +336,21 @@ class LakeRoot:
 
 
 def _r2_fully_configured(s: Settings) -> bool:
-    return all(
-        (
-            s.r2_account_id,
-            s.r2_access_key_id,
-            s.r2_secret_access_key,
-            s.r2_bucket,
-        )
-    )
+    """All four core R2 fields must hold non-empty values.
+
+    Checks `.get_secret_value()` on the SecretStr wrappers explicitly —
+    `bool(SecretStr(""))` is True because SecretStr is a non-empty wrapper
+    object, so `all((..., r2_access_key_id, r2_secret_access_key, ...))`
+    would falsely report 'configured' for empty secrets and engage R2 with
+    garbage creds → 403 on every read.
+    """
+    if not s.r2_account_id or not s.r2_bucket:
+        return False
+    if s.r2_access_key_id is None or not s.r2_access_key_id.get_secret_value():
+        return False
+    if s.r2_secret_access_key is None or not s.r2_secret_access_key.get_secret_value():
+        return False
+    return True
 
 
 def resolve_lake_root(settings: Settings, *, asset_class: str) -> LakeRoot:
@@ -374,7 +389,7 @@ def resolve_lake_root(settings: Settings, *, asset_class: str) -> LakeRoot:
 - [ ] **Step 4: Run test, verify pass**
 
 Run: `uv run pytest tests/unit/sources/test_lake_resolver.py -v`
-Expected: 8 tests PASS (6 resolver + 1 unknown-asset-class + 1 repr-redaction)
+Expected: 9 tests PASS (6 resolver-happy/edge + 1 empty-SecretStr fallback + 1 unknown-asset-class + 1 repr-redaction)
 
 - [ ] **Step 5: Commit**
 
@@ -414,7 +429,6 @@ endpoint override; auth is access-key / secret-key Sig V4.
 
 from __future__ import annotations
 
-import logging
 from datetime import date
 from pathlib import Path
 
@@ -422,8 +436,6 @@ import pyarrow.fs as pa_fs
 import pyarrow.parquet as pq
 
 from uw_scan.sources.lake_resolver import LakeRoot
-
-logger = logging.getLogger(__name__)
 
 VOL_INDEX_FILENAME = "1d.parquet"
 
@@ -514,9 +526,17 @@ def _list_s3(lr: LakeRoot) -> list[str]:
         base = Path(info.path).name
         if not base.startswith("symbol="):
             continue
-        # Skipping the "does 1d.parquet exist?" probe — saves one round-trip
-        # per symbol. Missing parquet surfaces as an empty read downstream.
-        out.append(base[len("symbol=") :])
+        symbol = base[len("symbol=") :]
+        # Probe parquet existence so listing symmetry matches the local backend
+        # (which only returns symbols that have 1d.parquet). One extra
+        # round-trip per symbol — acceptable for ~20 symbols on the nightly
+        # sync schedule; cheaper than swallowing empty reads downstream.
+        probe = fs.get_file_info(
+            f"{lr.bucket}/{lr.key_prefix}/symbol={symbol}/{VOL_INDEX_FILENAME}"
+        )
+        if probe.type != pa_fs.FileType.File:
+            continue
+        out.append(symbol)
     return sorted(out)
 
 
@@ -524,10 +544,16 @@ def _read_s3(lr: LakeRoot, symbol: str, *, since: date | None) -> list[dict]:
     assert lr.bucket and lr.key_prefix
     fs = _s3_fs(lr)
     key = f"{lr.bucket}/{lr.key_prefix}/symbol={symbol}/{VOL_INDEX_FILENAME}"
-    try:
-        table = pq.read_table(key, filesystem=fs)
-    except FileNotFoundError:
+    # Probe existence cleanly via FileInfo.type rather than try/except — pyarrow's
+    # S3 backend raises OSError/ArrowIOError (not FileNotFoundError) on 403,
+    # timeout, missing key, and a few other paths, so a narrow `except FileNotFoundError`
+    # is unreliable AND lets all the other errors crash callers. The local
+    # backend uses `path.exists()` (returns False, no exception); this is the
+    # S3 analogue. Real errors (403, malformed parquet) propagate.
+    info = fs.get_file_info(key)
+    if info.type != pa_fs.FileType.File:
         return []
+    table = pq.read_table(key, filesystem=fs)
     return _rows_from_table(table, symbol, since=since)
 
 
@@ -608,10 +634,19 @@ touch tests/integration/sources/__init__.py
 # tests/integration/sources/test_lake_r2.py
 """Live R2 smoke test — verifies the new rails read VIX + credit-proxy ETFs.
 
-Marked `live` so the default pytest run excludes it (the same marker used
-for live UW API tests). Run explicitly with `pytest -m live` after R2_*
-env vars are set in .env. Skipped silently if R2 env is absent so the
-smoke can't accidentally claim "PASS" against the local fallback.
+GATING CONVENTION (matches tests/live/test_uw_smoke.py): two marks at module
+level — pytest.mark.live for the marker registration, and pytest.mark.skipif
+for the actual env-absent skip. The project convention is "live tests
+self-skip via skipif when their required env is unset"; this repo does NOT
+load .env from conftest, so the developer must export R2_* before running:
+
+    set -a; source .env; set +a
+    uv run pytest -m live tests/integration/sources/test_lake_r2.py -v
+
+A run with the R2 env unset SKIPS (not "passes silently against fallback"):
+the module-level skipif sets reason="R2_* env not set" so a misread of the
+report is harder. A run with R2 env present runs the tests for real, and
+schema/cred/network problems surface as assertion failures or pyarrow errors.
 """
 
 from __future__ import annotations
@@ -625,29 +660,35 @@ from uw_scan.config import Settings
 from uw_scan.sources.lake import list_vol_index_symbols, read_vol_index_parquet
 from uw_scan.sources.lake_resolver import resolve_lake_root
 
-pytestmark = pytest.mark.live
+_REQUIRED_R2_ENV = (
+    "R2_ACCOUNT_ID",
+    "R2_ACCESS_KEY_ID",
+    "R2_SECRET_ACCESS_KEY",
+    "R2_BUCKET",
+)
 
 
-def _r2_env_present() -> bool:
-    return all(
-        os.environ.get(k, "").strip()
-        for k in (
-            "R2_ACCOUNT_ID",
-            "R2_ACCESS_KEY_ID",
-            "R2_SECRET_ACCESS_KEY",
-            "R2_BUCKET",
-        )
-    )
+def _r2_env_missing() -> bool:
+    return any(not os.environ.get(k, "").strip() for k in _REQUIRED_R2_ENV)
+
+
+pytestmark = [
+    pytest.mark.live,
+    pytest.mark.skipif(
+        _r2_env_missing(),
+        reason="R2_* env not set — export R2_ACCOUNT_ID / R2_ACCESS_KEY_ID / "
+        "R2_SECRET_ACCESS_KEY / R2_BUCKET (e.g. set -a; source .env; set +a) "
+        "before running this live smoke",
+    ),
+]
 
 
 @pytest.fixture(scope="module")
 def settings() -> Settings:
     # Construct Settings directly from R2 env only — Settings.from_env() would
-    # require UW_SCAN_API_KEY, which has no business gating an R2 smoke. Keeps
-    # the live test runnable in isolation (e.g. on a machine with only R2 creds
-    # configured) and surfaces R2-specific failures cleanly.
-    if not _r2_env_present():
-        pytest.skip("R2_* env not set — populate .env to run this smoke")
+    # require UW_SCAN_API_KEY, which has no business gating an R2 smoke. The
+    # module-level skipif above guarantees these env vars exist when this
+    # fixture is reached.
     endpoint_override = os.environ.get("R2_ENDPOINT_OVERRIDE", "").strip() or None
     return Settings(
         api_key=SecretStr("dummy-not-used-by-r2-smoke"),
@@ -760,15 +801,20 @@ git commit -m "docs(lake): document R2 plumbing + .env.example entries"
 
 ### Task 6: End-to-end verification
 
-- [ ] **Step 1: Full backend test pass (live tests skip without env)**
+- [ ] **Step 1: Full backend test pass (R2 smoke skips via skipif when env unset)**
 
-Run: `uv run pytest tests/unit tests/integration -q`
-Expected: all PASS, with the 5 R2 smoke tests skipped if R2_* env is unset
+Run (without R2 env exported): `uv run pytest tests/unit tests/integration -q`
+Expected: all PASS; the 5 R2 smoke tests SKIP with reason "R2_* env not set …".
+Note: this repo does NOT add `addopts = "-m 'not live'"` — live tests gate
+themselves via `pytest.mark.skipif` on their required env (same convention as
+`tests/live/test_uw_smoke.py`). If the developer has already exported R2_*
+when running default pytest, the R2 smoke WILL run; that's intentional and
+matches the existing UW-live behavior.
 
 - [ ] **Step 2: Live smoke with R2 env**
 
-Run: `uv run pytest -m live tests/integration/sources/test_lake_r2.py -v`
-Expected: 5 PASS
+Run: `set -a; source .env; set +a && uv run pytest -m live tests/integration/sources/test_lake_r2.py -v`
+Expected: 5 PASS (1 list + 1 VIX + 3 parameterized credit proxies)
 
 - [ ] **Step 3: Confirm zero consumer drift**
 
@@ -892,11 +938,21 @@ gh pr view --json statusCheckRollup | jq '.statusCheckRollup[] | {name, status, 
 - Settings field names: `r2_account_id`, `r2_access_key_id`, `r2_secret_access_key`, `r2_bucket`, `r2_endpoint_override` consistent across config.py + tests + resolver
 
 ### Open assumptions to verify during execution
-1. `pa_fs.S3FileSystem(access_key=..., secret_key=..., endpoint_override=..., region="auto", scheme="https")` accepts these kwargs together. Verify by Step 4 smoke test.
-2. `pq.read_table(key, filesystem=fs)` where `key` is `"bucket/path/to.parquet"` (no `s3://` scheme). Verify by Step 4 smoke test.
+1. `pa_fs.S3FileSystem(access_key=..., secret_key=..., endpoint_override=..., region="auto", scheme="https")` accepts these kwargs together. **Verified locally before review**: pyarrow 24.0.0 docstring lists all five as kwargs; smoke instantiation with `endpoint_override='abcd.r2.cloudflarestorage.com'` returns a valid S3FileSystem object without auth errors at construction. R2 actually-reads will be exercised by Step 4 smoke.
+2. `pq.read_table(key, filesystem=fs)` where `key` is `"bucket/path/to.parquet"` (no `s3://` scheme). Pyarrow convention when `filesystem=` is passed. Verify by Step 4 smoke test.
 3. `pa_fs.FileSelector("bucket/key_prefix", recursive=False, allow_not_found=True)` returns Directory-typed entries for `symbol=X/` subdirs. Verify by Step 4 list test.
 4. R2 bucket layout matches `market-data/market-warehouse/data-lake/bronze/asset_class={volatility,equity}/symbol=<TICKER>/1d.parquet`. Verify by inspecting bucket via `aws s3 ls --endpoint-url=...` (or trust the memory + user's prior message).
-5. The `live` pytest marker doesn't have an exclusion-conflict with UW live tests. Verify by running `pytest -m live` and inspecting which tests fire.
+5. The `live` pytest marker on its own does NOT auto-deselect — gating is via `pytest.mark.skipif` on env at module level, matching `tests/live/test_uw_smoke.py`. Confirmed via `tests/conftest.py` (minimal) + `pyproject.toml` (no `addopts`) + `tests/CLAUDE.md` convention.
+
+### Post-review-pass fixes (codex + adversarial, applied before execution)
+
+- **F1 BLOCKER**: `_r2_fully_configured` now checks `.get_secret_value()` truthiness, not the SecretStr wrapper — empty secret correctly falls back to local. Test `test_resolve_local_when_r2_secret_is_empty_string` locks the behavior.
+- **F2 BLOCKER**: `_read_s3` / `_list_s3` use `fs.get_file_info(key).type == FileType.File` to probe existence instead of `try/except FileNotFoundError`. The old try/except wouldn't catch the OSError/ArrowIOError raised by pyarrow's S3 backend on 403/timeout/malformed-parquet, and it diverged from the local backend's `path.exists()` semantics. Real errors (403, malformed) propagate; missing key returns `[]` cleanly. Also resolves a CI Guardrail 2 hit (no more bare except).
+- **F3 BLOCKER**: Smoke test now matches the existing UW-live pattern — `pytestmark = [pytest.mark.live, pytest.mark.skipif(_r2_env_missing(), reason=...)]`. The smoke does NOT load `.env`; the developer must export R2_* before running. Skip reason is explicit so a user can't misread the report.
+- **F4 SHOULD-FIX**: Task 6 Step 1 expected output corrected to say "5 skipped via skipif" rather than "5 deselected" — matches actual marker semantics.
+- **F5 SHOULD-FIX**: Dropped unused `import logging` + `logger = logging.getLogger(__name__)` from `lake.py` snippet; dropped unused `Path` + `SecretStr` imports from `test_config_r2.py` snippet. Ruff F401 wouldn't fire on the ruff gate.
+- **F6 SHOULD-FIX**: Verification Guide steps 3 and 6 no longer call `Settings.from_env()` (which requires `UW_SCAN_API_KEY`); they construct Settings directly from R2 env so the verification works on a machine with only R2 creds.
+- **F7 SHOULD-FIX**: `_list_s3` now probes `1d.parquet` existence per symbol → listing symmetry with `_list_local`. Costs one extra round-trip per symbol on the nightly sync; acceptable for ~20 symbols.
 
 Any failed assumption is a Task 3 / Task 4 fix, not a plan failure.
 
@@ -908,23 +964,34 @@ After Task 7 completes (all three reviews + fixes applied) and Task 8 opens the 
 
 1. **PR + CI**: `gh pr view <num> --json statusCheckRollup | jq '.statusCheckRollup[] | {name, status, conclusion}'` — both checks SUCCESS
 
-2. **R2 live smoke locally**:
+2. **R2 live smoke locally** — export R2 env first (no `.env` auto-load in this repo's pytest):
    ```bash
+   set -a; source .env; set +a
    uv run pytest -m live tests/integration/sources/test_lake_r2.py -v
    ```
-   Expected: 5 PASS
+   Expected: 5 PASS. If the env isn't exported, you'll see "5 skipped, reason: R2_* env not set …" — that's the gating, not a false pass.
 
-3. **Config wiring**:
+3. **Config wiring** — export R2 env first, then run a `Settings.from_env()`-free
+   check (so it works on a machine that doesn't have `UW_SCAN_API_KEY` set):
    ```bash
+   set -a; source .env; set +a
    uv run python -c "
+   import os
+   from pydantic import SecretStr
    from uw_scan.config import Settings
    from uw_scan.sources.lake_resolver import resolve_lake_root
-   s = Settings.from_env()
+   s = Settings(
+       api_key=SecretStr('dummy'),
+       r2_account_id=os.environ['R2_ACCOUNT_ID'].strip(),
+       r2_access_key_id=SecretStr(os.environ['R2_ACCESS_KEY_ID'].strip()),
+       r2_secret_access_key=SecretStr(os.environ['R2_SECRET_ACCESS_KEY'].strip()),
+       r2_bucket=os.environ['R2_BUCKET'].strip(),
+   )
    print('volatility root:', resolve_lake_root(s, asset_class='volatility'))
    print('equity root:', resolve_lake_root(s, asset_class='equity'))
    "
    ```
-   Expected: both show `kind='s3'` with the R2 endpoint URL
+   Expected: both show `kind='s3'` with `endpoint_override='https://<id>.r2.cloudflarestorage.com'`. Secret fields hidden by `repr=False`.
 
 4. **Existing jobs unchanged**:
    ```bash
@@ -940,10 +1007,22 @@ After Task 7 completes (all three reviews + fixes applied) and Task 8 opens the 
 
 6. **Failure mode** — confirm partial config falls back to local:
    ```bash
+   set -a; source .env; set +a
    R2_SECRET_ACCESS_KEY="" uv run python -c "
+   import os
+   from pydantic import SecretStr
    from uw_scan.config import Settings
    from uw_scan.sources.lake_resolver import resolve_lake_root
-   s = Settings.from_env()
+   def _opt(k):
+       v = os.environ.get(k, '').strip()
+       return SecretStr(v) if v else None
+   s = Settings(
+       api_key=SecretStr('dummy'),
+       r2_account_id=os.environ.get('R2_ACCOUNT_ID', '').strip() or None,
+       r2_access_key_id=_opt('R2_ACCESS_KEY_ID'),
+       r2_secret_access_key=_opt('R2_SECRET_ACCESS_KEY'),  # blanked above
+       r2_bucket=os.environ.get('R2_BUCKET', '').strip() or None,
+   )
    r = resolve_lake_root(s, asset_class='volatility')
    assert r.kind == 'local', f'expected local fallback, got {r.kind}'
    print('OK — local fallback engaged')
