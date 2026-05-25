@@ -22,6 +22,15 @@ from typing import Any
 
 import numpy as np
 
+# Composite scoring contract version.
+# v1: as-ported from xenon/src/xenon/scanners/vcg.py at commit d3cbc08.
+#     OLS_WINDOW=21, Z_WINDOW=63, VCG_TRIGGER=2.0, VCG_RO_TRIGGER=2.5,
+#     BOUNCE_TRIGGER=-3.5, VIX_FLOOR=28, VIX_EDR=25, VIX_PANIC_LOW=40,
+#     VIX_PANIC_HIGH=48, VVIX_ELEVATED=100, VVIX_EXTREME=120.
+#     Calibration NOT re-derived in this repo — see vcg-methodology.md §3.
+# Bump in lockstep with any threshold change above.
+COMPOSITE_VERSION = 1
+
 # ── windows ───────────────────────────────────────────────────────
 OLS_WINDOW = 21  # Rolling regression window (business days)
 Z_WINDOW = 63  # Residual standardisation lookback
@@ -220,15 +229,20 @@ def _signal_for_index(
     }
 
 
-def evaluate_signal(
+def _interpretation_for_index(
     model: dict[str, np.ndarray],
-    credit_prices: np.ndarray,
+    idx: int,
     *,
     vix_floor: float = VIX_FLOOR,
     vcg_trigger: float = VCG_RO_TRIGGER,
 ) -> dict[str, Any]:
-    """Build the latest-bar signal payload."""
-    idx = -1
+    """Build the interpretation payload for an arbitrary index.
+
+    Returns the same dict as evaluate_signal MINUS credit_5d_return_pct
+    (which depends on credit_prices, not the model). The backtest script
+    in scripts/backtest_vcg.py calls this once per aligned trading day to
+    reproduce the live-signal logic against historical bars.
+    """
     flags = _signal_for_index(model, idx, vix_floor=vix_floor, vcg_trigger=vcg_trigger)
 
     vcg_val = float(model["vcg"][idx])
@@ -241,11 +255,6 @@ def evaluate_signal(
     credit = float(model["credit_levels"][idx])
     residual = float(model["residuals"][idx])
     pi_val = float(model["pi"][idx])
-
-    if len(credit_prices) >= 6:
-        credit_5d_ret = (credit_prices[-1] / credit_prices[-6]) - 1.0
-    else:
-        credit_5d_ret = 0.0
 
     sign_suppressed = not flags["sign_ok"]
     vvix_sev = _vvix_severity(vvix)
@@ -304,7 +313,6 @@ def evaluate_signal(
         "vix": round(vix, 2),
         "vvix": round(vvix, 2),
         "credit_price": round(credit, 2),
-        "credit_5d_return_pct": round(credit_5d_ret * 100.0, 3),
         "ro": flags["ro"],
         "edr": flags["edr"],
         "tier": flags["tier"],
@@ -323,6 +331,29 @@ def evaluate_signal(
             "model_implied": round(model_implied, 6),
         },
     }
+
+
+def evaluate_signal(
+    model: dict[str, np.ndarray],
+    credit_prices: np.ndarray,
+    *,
+    vix_floor: float = VIX_FLOOR,
+    vcg_trigger: float = VCG_RO_TRIGGER,
+) -> dict[str, Any]:
+    """Build the latest-bar signal payload.
+
+    Thin wrapper over _interpretation_for_index that adds the 5-day credit
+    return (depends on credit_prices, not the model).
+    """
+    payload = _interpretation_for_index(
+        model, -1, vix_floor=vix_floor, vcg_trigger=vcg_trigger
+    )
+    if len(credit_prices) >= 6:
+        credit_5d_ret = (credit_prices[-1] / credit_prices[-6]) - 1.0
+    else:
+        credit_5d_ret = 0.0
+    payload["credit_5d_return_pct"] = round(credit_5d_ret * 100.0, 3)
+    return payload
 
 
 def _history_row(

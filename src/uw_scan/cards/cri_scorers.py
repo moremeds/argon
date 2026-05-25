@@ -29,6 +29,20 @@ VOL_WINDOW = 20  # Realized vol window (annualized)
 #     structural (0-15, vs 100d MA) + tactical (0-10, vs 20d high, sat at -4%).
 COMPOSITE_VERSION = 3
 
+# Last-known OOS AUC values for the current COMPOSITE_VERSION, measured by
+# scripts/backtest_cri.py on the 20-year vol_index_daily history. These are
+# the SOURCE OF TRUTH the OOS gate reads via the seed fixture in
+# tests/integration/regime/conftest.py. Bumping COMPOSITE_VERSION REQUIRES
+# updating both constants in the same diff — PR review checks that this
+# update happened. The gate then verifies these recorded numbers are within
+# BASELINE_TOLERANCE (0.02) of v1's published baseline (0.62 / 0.647).
+#
+# History:
+#   v1 (frozen baseline): auc_dd5=0.620, auc_dd10=0.647 (pre-PR-58 notebook)
+#   v3 (current):         auc_dd5=0.6343, auc_dd10=0.6329 (2026-05 backtest)
+LAST_KNOWN_AUC_DD5: float = 0.6343
+LAST_KNOWN_AUC_DD10: float = 0.6329
+
 # CTA model parameters
 CTA_VOL_TARGET = 10.0  # 10% target volatility
 CTA_MAX_EXPOSURE = 200.0  # Max 200% exposure (leverage)

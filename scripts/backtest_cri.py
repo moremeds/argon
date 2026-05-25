@@ -10,22 +10,23 @@ by the *shortest* series in the warm store — usually SPY daily_ohlc.
 For a longer (20y) walk-forward validation against the parquet data lake,
 see docs/research/regime/cri-validation.ipynb.
 
-Writes:
-  - docs/research/regime/cri-backtest.csv (one row per day)
-  - docs/research/regime/cri-backtest.md  (summary report)
-  - docs/research/regime/oos-summary.json (with --write-oos-summary)
+Persists:
+  - uw_scan.regime_backtest_runs (one row per invocation)
+  - uw_scan.regime_backtest_daily (one row per aligned trading day post-burn-in)
+
+The DB is the source of truth; the legacy on-disk artifacts
+(cri-backtest.{md,csv}, oos-summary.json) are retired and the
+/api/regime/validation endpoint reads from the DB run instead.
 
 Usage:
   uv run python scripts/backtest_cri.py
   uv run python scripts/backtest_cri.py --start 2006-01-01 --end 2026-05-15
-  uv run python scripts/backtest_cri.py --write-oos-summary
+  uv run python scripts/backtest_cri.py --note "v3 sanity check"
 """
 
 from __future__ import annotations
 
 import argparse
-import csv
-import json
 import logging
 import math
 import sys
@@ -42,7 +43,11 @@ _PROJECT_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(_PROJECT_ROOT / "src"))
 
 from uw_scan.cards import cri_scoring  # noqa: E402
+from uw_scan.cards.cri_scorers import COMPOSITE_VERSION  # noqa: E402
 from uw_scan.config import Settings  # noqa: E402
+from uw_scan.storage.regime_backtest_repository import (  # noqa: E402
+    RegimeBacktestRepository,
+)
 
 # ── OOS label definitions (must match docs/research/regime/cri-validation.ipynb §9) ──
 # label_dd5  : SPX -5%  drawdown within 20 trading days
@@ -234,96 +239,14 @@ def _compute_v3_auc(rows: list[dict[str, Any]]) -> dict[str, float]:
     return auc_by_label
 
 
-def write_oos_summary(rows: list[dict[str, Any]], path: Path) -> None:
-    """Write oos-summary.json with v1 baselines + freshly computed v3 AUC.
-
-    Symmetric comparison: both versions are evaluated on the SAME label
-    definitions (`OOS_LABELS`) which match the published notebook narrative.
-    """
-    v3_auc = _compute_v3_auc(rows)
-    n_obs = sum(1 for r in rows if math.isfinite(r["score"]))
-    payload = {
-        "as_of": _datetime.now().date().isoformat(),
-        "notebook": "docs/research/regime/cri-validation.ipynb",
-        "method": (
-            "Forward-drawdown labels: dd5 = SPX -5% within 20 sessions; "
-            "dd10 = SPX -10% within 60 sessions. AUC computed via "
-            "Mann-Whitney rank-sum (no sklearn dep) on the full backtest. "
-            "v1 baselines are the published Section 9 numbers; v3 is "
-            "freshly recomputed on the same label definitions."
-        ),
-        "labels": [
-            {
-                "name": "label_dd5",
-                "definition": "SPX -5% drawdown within 20 trading days",
-            },
-            {
-                "name": "label_dd10",
-                "definition": "SPX -10% drawdown within 60 trading days",
-            },
-        ],
-        "versions": [
-            {
-                "label": "CRI v1",
-                "version": 1,
-                "auc_dd5": V1_AUC_BASELINE["dd5"],
-                "auc_dd10": V1_AUC_BASELINE["dd10"],
-                "n_observations": n_obs,
-                "notes": "Frozen baseline from cri-validation.ipynb §9 (pre-PR-58).",
-            },
-            {
-                "label": "CRI v3",
-                "version": 3,
-                "auc_dd5": round(v3_auc.get("dd5", float("nan")), 4)
-                if not math.isnan(v3_auc.get("dd5", float("nan")))
-                else None,
-                "auc_dd10": round(v3_auc.get("dd10", float("nan")), 4)
-                if not math.isnan(v3_auc.get("dd10", float("nan")))
-                else None,
-                "n_observations": n_obs,
-                "notes": (
-                    "v3: VIX floor 13, RoC denom 40, VVIX floor 80, "
-                    "tactical pullback sub-score (saturates at -4% from 20d high)."
-                ),
-            },
-        ],
-        # Legacy flat shape for the GET /api/regime/validation endpoint + ValidationTab
-        # UI consumer. Mirrors `versions[]` above with the older OosScore field names.
-        "scores": [
-            {
-                "model": "CRI v1 (frozen baseline)",
-                "auc_dd5": V1_AUC_BASELINE["dd5"],
-                "auc_vix30": None,
-                "auc_dd10": V1_AUC_BASELINE["dd10"],
-            },
-            {
-                "model": "CRI v3 (current)",
-                "auc_dd5": round(v3_auc.get("dd5", float("nan")), 4)
-                if not math.isnan(v3_auc.get("dd5", float("nan")))
-                else None,
-                "auc_vix30": None,
-                "auc_dd10": round(v3_auc.get("dd10", float("nan")), 4)
-                if not math.isnan(v3_auc.get("dd10", float("nan")))
-                else None,
-            },
-        ],
-        "ablation": [],
-        "interpretation": (
-            "v3 must score >= v1 on both auc_dd5 and auc_dd10 for the OOS gate "
-            "to pass. The gate is enforced by tests/integration/regime/"
-            "test_cri_oos_gate.py — CI will block merge on regression."
-        ),
-    }
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(payload, indent=2) + "\n")
-    log.info("wrote OOS summary to %s", path)
-    log.info(
-        "v3 AUC: dd5=%.4f (v1=%.3f), dd10=%.4f (v1=%.3f)",
-        v3_auc.get("dd5", float("nan")),
-        V1_AUC_BASELINE["dd5"],
-        v3_auc.get("dd10", float("nan")),
-        V1_AUC_BASELINE["dd10"],
-    )
+def _round_or_none(x: float | None, ndigits: int = 4) -> float | None:
+    """Round a float for JSONB persistence; map NaN/None -> None."""
+    if x is None:
+        return None
+    fx = float(x)
+    if math.isnan(fx):
+        return None
+    return round(fx, ndigits)
 
 
 def summarize_distribution(scores: list[float]) -> dict[str, Any]:
@@ -343,56 +266,6 @@ def summarize_distribution(scores: list[float]) -> dict[str, Any]:
     }
 
 
-def write_csv(rows: list[dict[str, Any]], path: Path) -> None:
-    if not rows:
-        return
-    path.parent.mkdir(parents=True, exist_ok=True)
-    with path.open("w", newline="") as f:
-        w = csv.DictWriter(f, fieldnames=list(rows[0].keys()))
-        w.writeheader()
-        for r in rows:
-            w.writerow(r)
-    log.info("wrote %d rows to %s", len(rows), path)
-
-
-def write_report(rows: list[dict[str, Any]], path: Path) -> None:
-    summary = summarize_distribution([r["score"] for r in rows])
-    named_hits = []
-    by_date = {r["date"]: r for r in rows}
-    for d, name in NAMED_CRASH_DATES.items():
-        if d in by_date:
-            r = by_date[d]
-            named_hits.append((d, name, r["score"], r["level"], r["fired"]))
-
-    path.parent.mkdir(parents=True, exist_ok=True)
-    with path.open("w") as f:
-        f.write("# CRI Backtest — 2006-2026\n\n")
-        f.write(
-            "Generated by `scripts/backtest_cri.py`. "
-            "Re-run after any calibration change.\n\n"
-        )
-        f.write(f"**N days:** {summary['n']}  \n")
-        f.write(f"**Date range:** {rows[0]['date']} → {rows[-1]['date']}\n\n")
-        f.write("## Score distribution\n\n")
-        f.write("| Stat | Value |\n|---|---|\n")
-        for k in ("mean", "min", "p25", "p50", "p75", "p90", "p95", "p99", "max"):
-            f.write(f"| {k} | {summary[k]:.2f} |\n")
-        f.write("\n## Level distribution\n\n")
-        f.write("| Level | Count | % |\n|---|---|---|\n")
-        total = summary["n"]
-        for lvl in ("LOW", "ELEVATED", "HIGH", "CRITICAL"):
-            count = summary["level_counts"].get(lvl, 0)
-            f.write(f"| {lvl} | {count} | {count / total * 100:.1f}% |\n")
-        f.write("\n## Named crash dates\n\n")
-        f.write("| Date | Event | CRI score | Level | Trigger fired |\n")
-        f.write("|---|---|---|---|---|\n")
-        for d, name, score, level, fired in named_hits:
-            f.write(f"| {d} | {name} | {score:.1f} | {level} | {fired} |\n")
-        if not named_hits:
-            f.write("| _no aligned data for any named date_ | | | | |\n")
-    log.info("wrote report to %s", path)
-
-
 def main() -> int:
     logging.basicConfig(
         level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s"
@@ -400,15 +273,10 @@ def main() -> int:
     p = argparse.ArgumentParser()
     p.add_argument("--start", default="2006-01-01")
     p.add_argument("--end", default=_date.today().isoformat())
-    p.add_argument("--out-csv", default="docs/research/regime/cri-backtest.csv")
-    p.add_argument("--out-md", default="docs/research/regime/cri-backtest.md")
     p.add_argument(
-        "--write-oos-summary",
-        nargs="?",
-        const="docs/research/regime/oos-summary.json",
+        "--note",
         default=None,
-        help="Write oos-summary.json with v1 + v3 AUC. Optional path; "
-        "default docs/research/regime/oos-summary.json.",
+        help="Free-text run note for SQL queries (e.g. calibration context).",
     )
     args = p.parse_args()
 
@@ -422,8 +290,7 @@ def main() -> int:
 
     # rolling_compute defaults to a 150-day window — guard against the case
     # where we have enough data for the MA+VOL minimum but not enough for the
-    # rolling lookback, which would silently produce zero rows and crash
-    # write_report on `rows[0]`.
+    # rolling lookback, which would silently produce zero rows.
     rolling_window = 150
     min_required = max(
         rolling_window + 1, cri_scoring.MA_WINDOW + cri_scoring.VOL_WINDOW
@@ -438,10 +305,175 @@ def main() -> int:
     if not rows:
         log.error("rolling_compute produced no rows — check window/data alignment")
         return 1
-    write_csv(rows, _PROJECT_ROOT / args.out_csv)
-    write_report(rows, _PROJECT_ROOT / args.out_md)
-    if args.write_oos_summary:
-        write_oos_summary(rows, _PROJECT_ROOT / args.write_oos_summary)
+
+    v3_auc = _compute_v3_auc(rows)
+    n_obs = sum(1 for r in rows if math.isfinite(r["score"]))
+    level_counts = dict(Counter(r["level"] for r in rows))
+    named_hits = {
+        d: {"score": r["score"], "level": r["level"], "fired": r["fired"]}
+        for d in NAMED_CRASH_DATES
+        for r in [next((row for row in rows if row["date"] == d), None)]
+        if r is not None
+    }
+
+    summary = {
+        "oos": {
+            "as_of": _datetime.now().date().isoformat(),
+            "notebook": "scripts/backtest_cri.py",
+            "method": (
+                "Forward-drawdown labels: dd5 = SPX -5% within 20 sessions; "
+                "dd10 = SPX -10% within 60 sessions. AUC via Mann-Whitney "
+                "rank-sum on the full backtest."
+            ),
+            "labels": [
+                {
+                    "name": "label_dd5",
+                    "definition": "SPX -5% drawdown within 20 trading days",
+                },
+                {
+                    "name": "label_dd10",
+                    "definition": "SPX -10% drawdown within 60 trading days",
+                },
+            ],
+            "scores": [
+                {
+                    "model": "CRI v1 (frozen baseline)",
+                    "auc_dd5": V1_AUC_BASELINE["dd5"],
+                    "auc_vix30": None,
+                    "auc_dd10": V1_AUC_BASELINE["dd10"],
+                },
+                {
+                    "model": f"CRI v{COMPOSITE_VERSION} (this run)",
+                    "auc_dd5": _round_or_none(v3_auc.get("dd5")),
+                    "auc_vix30": None,
+                    "auc_dd10": _round_or_none(v3_auc.get("dd10")),
+                },
+            ],
+            "versions": [
+                {
+                    "label": "CRI v1",
+                    "version": 1,
+                    "auc_dd5": V1_AUC_BASELINE["dd5"],
+                    "auc_dd10": V1_AUC_BASELINE["dd10"],
+                    "n_observations": n_obs,
+                    "notes": "Frozen baseline from cri-validation.ipynb §9 (pre-PR-58).",
+                },
+                {
+                    "label": f"CRI v{COMPOSITE_VERSION}",
+                    "version": COMPOSITE_VERSION,
+                    "auc_dd5": _round_or_none(v3_auc.get("dd5")),
+                    "auc_dd10": _round_or_none(v3_auc.get("dd10")),
+                    "n_observations": n_obs,
+                    "notes": (
+                        "v3: VIX floor 13, RoC denom 40, VVIX floor 80, "
+                        "tactical pullback sub-score (saturates at -4% from 20d high)."
+                    ),
+                },
+            ],
+            "interpretation": (
+                "Current version AUC must be within BASELINE_TOLERANCE (0.02) "
+                "of v1 baseline. Enforced by "
+                "tests/integration/regime/test_cri_oos_gate.py."
+            ),
+        },
+        "extras": {
+            "named_crash_hits": named_hits,
+            "level_distribution": level_counts,
+            "fired_count": sum(1 for r in rows if r["fired"]),
+            "v1_baseline_auc_dd5": V1_AUC_BASELINE["dd5"],
+            "v1_baseline_auc_dd10": V1_AUC_BASELINE["dd10"],
+        },
+    }
+
+    # Layered round-trip validation: catch summary.oos drift BEFORE writing.
+    # OosSummary.model_validate handles the API-modeled subset; the explicit
+    # assertions pin versions[] (which is sidecar data — Pydantic v2 default
+    # extra="ignore" silently drops it).
+    from uw_scan.api.models.regime_validation import OosSummary  # noqa: PLC0415
+
+    OosSummary.model_validate(summary["oos"])
+    _versions = summary["oos"].get("versions")
+    assert isinstance(_versions, list) and len(_versions) >= 2, (
+        "summary.oos.versions[] must be a list with >=2 entries"
+    )
+    assert all(
+        isinstance(v, dict) and "version" in v and "auc_dd5" in v and "auc_dd10" in v
+        for v in _versions
+    ), "every entry in summary.oos.versions[] needs version/auc_dd5/auc_dd10 keys"
+    assert any(v.get("version") == 1 for v in _versions), (
+        "v1 baseline entry missing from summary.oos.versions[]"
+    )
+    assert any(v.get("version") == COMPOSITE_VERSION for v in _versions), (
+        f"current-version entry (v{COMPOSITE_VERSION}) missing from "
+        "summary.oos.versions[]"
+    )
+
+    with psycopg.connect(settings.db_dsn()) as conn:
+        rb = RegimeBacktestRepository(conn, schema=settings.db_schema)
+        run_id = rb.insert_run(
+            indicator="cri",
+            composite_version=str(COMPOSITE_VERSION),
+            start_date=_date.fromisoformat(rows[0]["date"]),
+            end_date=_date.fromisoformat(rows[-1]["date"]),
+            window_days=rolling_window,
+            n_days=len(rows),
+            params={
+                "rolling_window": rolling_window,
+                "start": args.start,
+                "end": args.end,
+            },
+            summary=summary,
+            note=args.note,
+        )
+        daily_rows = [
+            {
+                "trade_date": _date.fromisoformat(r["date"]),
+                "score": float(r["score"]),
+                "level": str(r["level"]),
+                "payload": {
+                    "fired": bool(r["fired"]),
+                    "vix": r["vix"],
+                    "vvix": r["vvix"],
+                    "cor1m": r["cor1m"],
+                    "spx_distance_pct": r["spx_distance_pct"],
+                    "vix_c": r["vix_c"],
+                    "vvix_c": r["vvix_c"],
+                    "corr_c": r["corr_c"],
+                    "trend_c": r["trend_c"],
+                    "pullback_20d_pct": r.get("pullback_20d_pct"),
+                    "vix_delta_3d": r.get("vix_delta_3d"),
+                },
+            }
+            for r in rows
+        ]
+        rb.bulk_insert_daily(run_id, daily_rows)
+        rb.mark_run_completed(run_id)
+
+    log.info(
+        "CRI backtest persisted: run_id=%d n=%d composite_version=%s "
+        "auc_dd5=%.4f auc_dd10=%.4f",
+        run_id,
+        len(rows),
+        COMPOSITE_VERSION,
+        v3_auc.get("dd5", float("nan")),
+        v3_auc.get("dd10", float("nan")),
+    )
+
+    # Diagnostic: named-crash sanity check.
+    log.info("=== CRI named-crash sanity check ===")
+    for d, name in NAMED_CRASH_DATES.items():
+        rec = named_hits.get(d)
+        if rec is None:
+            log.info("%s %-30s (no aligned data)", d, name)
+            continue
+        log.info(
+            "%s %-30s CRI=%.0f %-9s fired=%s",
+            d,
+            name,
+            rec["score"],
+            rec["level"],
+            rec["fired"],
+        )
     return 0
 
 

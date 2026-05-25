@@ -27,7 +27,10 @@ from uw_scan.api.models.regime_validation import (
     OosSummary,
     ValidationResponse,
 )
+from uw_scan.cards.cri_scorers import COMPOSITE_VERSION as CRI_COMPOSITE_VERSION
+from uw_scan.reports.regime_backtest_report import render_backtest_markdown
 from uw_scan.storage.cri_snapshot_repository import CriSnapshotRepository
+from uw_scan.storage.regime_backtest_repository import RegimeBacktestRepository
 from uw_scan.storage.repository import Repository
 
 logger = logging.getLogger(__name__)
@@ -245,9 +248,40 @@ def get_guidance(
 
 
 @router.get("/validation", response_model=ValidationResponse)
-def get_validation() -> ValidationResponse:
-    # _safe_doc_path raises 404 with a precise reason (not-found vs symlink
-    # vs not-regular-file) — let it propagate.
+def get_validation(
+    repo: Annotated[Repository, Depends(get_repo)],
+) -> ValidationResponse:
+    """DB-first; falls back to checked-in files during the deploy transition.
+
+    The fallback block is removed in a follow-up PR after the prod gate in
+    docs/superpowers/specs/2026-05-24-regime-research-closure-design.md §10.4
+    is satisfied (≥1 completed CRI run in prod at the current
+    cri_scorers.COMPOSITE_VERSION).
+    """
+    rb = RegimeBacktestRepository(repo.conn, schema=repo._schema)
+    # No composite_version arg -> RegimeBacktestRepository defaults to
+    # str(cri_scorers.COMPOSITE_VERSION). Experimental runs at other versions
+    # are query-only via SQL and do NOT leak into the API surface.
+    run = rb.find_latest_run("cri")
+    if run is not None:
+        daily = rb.fetch_daily_for_run(run["id"])
+        oos_payload = (run.get("summary") or {}).get("oos")
+        return ValidationResponse(
+            backtest_md=render_backtest_markdown(run, daily),
+            backtest_csv_rows=len(daily),
+            oos=OosSummary.model_validate(oos_payload) if oos_payload else None,
+        )
+
+    # Transitional fallback — see docstring. Log LOUDLY: this path is hit
+    # when the code constant has advanced past the prod-DB record (calibration
+    # bump without a re-run), and the data we serve is stale-by-one-version.
+    # Operators should see this in the logs and re-run scripts/backtest_cri.py.
+    logger.warning(
+        "regime/validation falling back to on-disk files: no completed "
+        "regime_backtest_runs row at composite_version=%s. Re-run "
+        "scripts/backtest_cri.py to refresh the DB record.",
+        CRI_COMPOSITE_VERSION,
+    )
     md_path = _safe_doc_path("cri-backtest.md")
     return ValidationResponse(
         backtest_md=md_path.read_text(),
