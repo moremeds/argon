@@ -7,13 +7,25 @@ from decimal import Decimal, InvalidOperation
 from typing import Any, Literal
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import Field, field_validator
 
 from ._base import _preserve_public_module
-
-
-class TradeInsightAiBase(BaseModel):
-    model_config = ConfigDict(extra="forbid", frozen=False)
+from .trade_insights_ai_parts.base import (
+    AntiPinDirection,
+    ConsensusGrade,
+    DirectionalBias,
+    DteBand,
+    EntryState,
+    LongLegRole,
+    OptionSide,
+    OptionType,
+    ShortLegRole,
+    ThesisArchetype,
+    TradeInsightAiBase,
+    TradeInsightAiProvider,
+    TradeIntent,
+    UnderlyingPath,
+)
 
 
 class TradeInsightAiDominantRead(TradeInsightAiBase):
@@ -30,57 +42,6 @@ class TradeInsightAiSnapshotMeta(TradeInsightAiBase):
     data_as_of: str | None = None
     freshness_label: str = "unknown"
     source_notes: list[str] = Field(default_factory=list)
-
-
-TradeIntent = Literal["directional_swing", "range_income"]
-DirectionalBias = Literal["LONG_DELTA", "SHORT_DELTA", "WAIT"]
-EntryState = Literal["ACTIVE", "CONDITIONAL", "NO_ENTRY"]
-UnderlyingPath = Literal[
-    "bullish_continuation",
-    "bearish_rejection",
-    "downside_break",
-    "pinned_no_directional_entry",
-    "data_insufficient",
-]
-DteBand = Literal["momentum", "standard", "trend"]
-LongLegRole = Literal[
-    "trigger_level",
-    "support_reclaim",
-    "atm_delta_anchor",
-    "deep_itm_proxy",
-    "n/a",
-]
-ShortLegRole = Literal[
-    "target_level",
-    "next_call_wall",
-    "second_magnet",
-    "next_put_wall",
-    "next_downside_target",
-    "n/a",
-]
-# v5.2: explicit thesis archetype so the prompt forces a commit between
-# "rejection from above" vs "break of support" — Codex/Claude on NVDA
-# produced the same structure but different underlying_path labels
-# (bearish_rejection vs downside_break) because v5 conflated them.
-ThesisArchetype = Literal[
-    "resistance_rejection",
-    "support_breakdown",
-    "breakout_continuation",
-    "pin_no_trade",
-    "data_insufficient",
-]
-# v5.2: anti-pin direction tag for the structured anti_pin object.
-AntiPinDirection = Literal["upside", "downside", "none"]
-# v5.2: consensus_grade for the cross-provider object computed at
-# GET /latest time (full = all four agree, partial = 1-2 disagree,
-# divergent = 3+ disagree, missing = one provider has no succeeded row).
-ConsensusGrade = Literal["full", "partial", "divergent", "missing"]
-# v5.3: option leg primitives for the explicit `legs[]` array on
-# preferred_expression. Replaces the v5.2 implicit "long_leg_role /
-# short_leg_role + strike_role.level" coupling which left "is the actual
-# long-put strike 215 or 220?" unverifiable.
-OptionType = Literal["call", "put"]
-OptionSide = Literal["long", "short"]
 
 
 class TradeInsightAiHeadline(TradeInsightAiBase):
@@ -512,9 +473,6 @@ class TradeInsightAiOutcome(TradeInsightAiBase):
     missing_data: list[str] = Field(default_factory=list)
     rendering: TradeInsightAiRendering
     guardrails: TradeInsightAiGuardrails
-
-
-TradeInsightAiProvider = Literal["codex", "claude"]
 
 
 class TradeInsightAiAnalysisRequest(TradeInsightAiBase):
