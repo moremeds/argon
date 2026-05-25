@@ -4,9 +4,9 @@ from pathlib import Path
 import pyarrow as pa
 import pyarrow.parquet as pq
 import pytest
-from uw_scan.worker.jobs.vol_index_lake_sync import run_vol_index_lake_sync
 
 from uw_scan.storage.vol_index_repository import VolIndexRepository
+from uw_scan.worker.jobs.vol_index_lake_sync import run_vol_index_lake_sync
 
 
 def _seed(root: Path, symbol: str, rows: list[dict]) -> None:
@@ -118,4 +118,86 @@ def test_run_sync_empty_root_is_noop(tmp_path: Path, seeded_db_empty_cards) -> N
         seeded_db_empty_cards.conn,
         root=tmp_path,
     )
-    assert summary == {"symbols": 0, "rows": 0}
+    assert summary == {"symbols": 0, "rows": 0, "gaps_filled": 0}
+
+
+def test_run_sync_fills_middle_gap(tmp_path: Path, seeded_db_empty_cards) -> None:
+    """Gap-aware sync: if the DB has [05-13, 05-15] but R2 has [05-13, 05-14,
+    05-15], the next run MUST pull 05-14 (a middle gap) into vol_index_daily.
+
+    Defends against drift accumulated by a previous since-based sync that
+    only ever caught up the tail. Regression test for the "what about 5/16
+    and 5/17" follow-up — by extension, any internal hole that R2 covers.
+    """
+    pg_conn = seeded_db_empty_cards.conn
+    repo = VolIndexRepository(pg_conn, schema="uw_scan")
+    # Pre-seed the DB with two non-contiguous days for VIX — a hole on 05-14.
+    repo.upsert_rows(
+        [
+            {
+                "symbol": "VIX",
+                "trade_date": date(2026, 5, 13),
+                "open": 17.0,
+                "high": 17.5,
+                "low": 16.8,
+                "close": 17.2,
+                "adj_close": 17.2,
+                "volume": 0,
+            },
+            {
+                "symbol": "VIX",
+                "trade_date": date(2026, 5, 15),
+                "open": 18.0,
+                "high": 18.5,
+                "low": 17.9,
+                "close": 18.2,
+                "adj_close": 18.2,
+                "volume": 0,
+            },
+        ]
+    )
+    # R2-side fixture: three contiguous days including the missing 05-14.
+    _seed(
+        tmp_path,
+        "VIX",
+        [
+            {
+                "trade_date": date(2026, 5, 13),
+                "open": 17.0,
+                "high": 17.5,
+                "low": 16.8,
+                "close": 17.2,
+                "adj_close": 17.2,
+                "volume": 0,
+            },
+            {
+                "trade_date": date(2026, 5, 14),
+                "open": 17.3,
+                "high": 17.8,
+                "low": 17.1,
+                "close": 17.6,
+                "adj_close": 17.6,
+                "volume": 0,
+            },
+            {
+                "trade_date": date(2026, 5, 15),
+                "open": 18.0,
+                "high": 18.5,
+                "low": 17.9,
+                "close": 18.2,
+                "adj_close": 18.2,
+                "volume": 0,
+            },
+        ],
+    )
+
+    summary = run_vol_index_lake_sync(pg_conn, root=tmp_path)
+
+    # Expect 1 gap filled (05-14) plus latest re-upsert (05-15) → 2 rows.
+    assert summary["gaps_filled"] == 1
+    assert summary["rows"] == 2
+    # And 05-14 now sits between the two existing rows.
+    history = repo.fetch_history("VIX", days=10)
+    dates = [r["trade_date"] for r in history]
+    assert date(2026, 5, 14) in dates, f"middle gap not filled; dates={dates}"
+    assert dates == sorted(dates), "history must be ascending after gap fill"

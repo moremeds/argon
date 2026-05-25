@@ -5,20 +5,26 @@ filters down to a configured allow-list (HYG/JNK/LQD by default — the VCG
 scanner's credit proxies). All rows land in ``vol_index_daily`` so the scanner
 can read VIX/VVIX/<proxy> through a single repository.
 
-Incremental: each symbol's max(trade_date) in the DB sets the lower bound for
-the next read. First run backfills the full available history.
+Gap-aware: each run reads the full R2 history per symbol, compares against the
+dates already in `vol_index_daily`, and upserts only the missing dates plus the
+current latest. Heals tail-and-middle drift between R2 and the DB on every run.
+
+Accepts either a local-filesystem `Path` or a `LakeRoot` (R2 or local). The
+scheduler resolves the root via `resolve_lake_root(settings, asset_class=
+'equity')` so this job reads from R2 when all four `R2_*` settings are
+present, else from the local mirror.
 """
 
 from __future__ import annotations
 
 import logging
 from collections.abc import Sequence
-from datetime import timedelta
 from pathlib import Path
 
 from psycopg import Connection
 
 from uw_scan.sources.lake import read_vol_index_parquet
+from uw_scan.sources.lake_resolver import LakeRoot
 from uw_scan.storage.vol_index_repository import VolIndexRepository
 
 logger = logging.getLogger(__name__)
@@ -27,37 +33,47 @@ logger = logging.getLogger(__name__)
 def run_credit_etf_lake_sync(
     conn: Connection,
     *,
-    root: Path,
+    root: Path | LakeRoot,
     symbols: Sequence[str],
 ) -> dict:
     """Sync `symbols` under root into uw_scan.vol_index_daily.
 
-    `read_vol_index_parquet` is reused as-is — it's symbol-keyed and assumes
-    `<root>/symbol=<SYM>/1d.parquet`, which is the same layout the equity
-    asset_class folder uses. Returns {symbols: int, rows: int}.
+    Returns {symbols: int, rows: int, gaps_filled: int}. `gaps_filled`
+    counts R2 dates that were missing from the DB before this run.
     """
     if not symbols:
-        return {"symbols": 0, "rows": 0}
+        return {"symbols": 0, "rows": 0, "gaps_filled": 0}
 
     repo = VolIndexRepository(conn, schema="uw_scan")
-    total = 0
+    total_rows = 0
+    total_gaps = 0
     synced = 0
     for symbol in symbols:
-        latest = repo.latest_date_for(symbol)
-        # Read from one day before latest so a same-day snapshot that closes
-        # differently still gets re-upserted.
-        since = (latest - timedelta(days=1)) if latest else None
-        rows = read_vol_index_parquet(root, symbol, since=since)
-        if not rows:
-            logger.info(
-                "credit_etf_lake_sync: %s — no rows under %s/symbol=%s",
-                symbol,
-                root,
+        r2_rows = read_vol_index_parquet(root, symbol)
+        if not r2_rows:
+            logger.warning(
+                "credit_etf_lake_sync: %s — no rows in lake (symbol absent OR "
+                "lake returned empty mid-write); skipping",
                 symbol,
             )
             continue
-        n = repo.upsert_rows(rows)
-        total += n
+        r2_dates = {r["trade_date"] for r in r2_rows}
+        db_dates = repo.fetch_dates_for(symbol)
+        latest = max(db_dates) if db_dates else None
+        to_pull_dates = (r2_dates - db_dates) | ({latest} if latest else set())
+        rows_to_upsert = [r for r in r2_rows if r["trade_date"] in to_pull_dates]
+        if not rows_to_upsert:
+            continue
+        gaps = len(r2_dates - db_dates)
+        n = repo.upsert_rows(rows_to_upsert)
+        total_rows += n
+        total_gaps += gaps
         synced += 1
-        logger.info("credit_etf_lake_sync: %s — %d rows since %s", symbol, n, since)
-    return {"symbols": synced, "rows": total}
+        logger.info(
+            "credit_etf_lake_sync: %s — %d rows upserted (%d gaps filled), latest=%s",
+            symbol,
+            n,
+            gaps,
+            latest,
+        )
+    return {"symbols": synced, "rows": total_rows, "gaps_filled": total_gaps}
