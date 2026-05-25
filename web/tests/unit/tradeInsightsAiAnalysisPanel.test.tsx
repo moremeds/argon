@@ -368,6 +368,39 @@ describe("TradeInsightsAiAnalysisPanel", () => {
     expect(screen.getByTestId("ai-directional-bias-badge")).toBeDefined();
   });
 
+  it("preserves provider and trigger value-grid formatting differences", async () => {
+    const outcome = {
+      ...(succeededResponse().outcome as Outcome),
+      metric_cards: [
+        { label: "Numeric metric", value: "1234.567" },
+        { label: "Empty metric", value: "" },
+        { label: "Null metric", value: null },
+      ],
+      anti_pin: {
+        invoked: true,
+        direction: "",
+        score: 2,
+        max_score: 4,
+        conviction_cap_applied: false,
+        conditions_met: [],
+      },
+    } as unknown as Outcome;
+    vi.mocked(api.tradeInsightsAiAnalysisLatest).mockResolvedValue(latestPair({
+      codex: succeededResponse({ outcome }),
+    }));
+
+    const { container } = render(<TradeInsightsAiAnalysisPanel ticker="TSLA" />);
+
+    expect(await screen.findByText("Numeric metric")).toBeDefined();
+    expect(container.textContent).toContain("1,234.57");
+    expect(screen.getByText("Empty metric")).toBeDefined();
+    expect(screen.getByText("Null metric")).toBeDefined();
+    expect(container.textContent).toContain("Empty metricNone");
+    expect(container.textContent).toContain("Null metricNone");
+    expect(container.textContent).toContain("Direction—");
+    expect(container.textContent).toContain("Score2 / 4");
+  });
+
   it("renders ConsensusBreakdown rows when both providers have headlines", async () => {
     // Same bias / archetype / entry_state → all rows render '='.
     vi.mocked(api.tradeInsightsAiAnalysisLatest).mockResolvedValue(latestPair({

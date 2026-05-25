@@ -117,12 +117,14 @@ describe("VolatilityRegimePanel", () => {
   });
 
   it("lists nearest closest levels only (skips 'dominant' duplicates)", () => {
-    render(<VolatilityRegimePanel data={fixture} />);
+    const { container } = render(<VolatilityRegimePanel data={fixture} />);
     const rows = screen.getAllByTestId("closest-level-row");
     expect(rows.length).toBe(3);
     expect(rows[0].textContent).toContain("Accel");
     expect(rows[1].textContent).toContain("Put Wall");
     expect(rows[2].textContent).toContain("Call Wall");
+    expect(container.textContent).toContain("+$19.21K");
+    expect(container.textContent).toContain("-$966.84K");
   });
 
   it("renders 0DTE GEX with chain share", () => {

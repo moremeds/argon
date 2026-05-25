@@ -51,6 +51,14 @@ describe("MagnetGammaBar", () => {
     );
   });
 
+  it("formats compact signed money values with fixed two-decimal suffixes", () => {
+    const { container } = render(<MagnetGammaBar report={baseReport} />);
+    expect(container.textContent).toContain("+$216.91K");
+    expect(container.textContent).toContain("-$223.59K");
+    expect(container.textContent).toContain("-$966.84K");
+    expect(container.textContent).toContain("-$20.13K");
+  });
+
   it("renders nothing when dealer_regime missing", () => {
     const empty = { ...baseReport, dealer_regime: null };
     const { container } = render(<MagnetGammaBar report={empty} />);

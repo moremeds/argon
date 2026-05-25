@@ -1,5 +1,9 @@
 import type { components } from "@/lib/types";
-import { toNum } from "@/lib/formatters";
+import {
+  fmtSignedCompactMoney,
+  fmtSignedPct,
+  toNum,
+} from "@/lib/formatters";
 
 type Report = components["schemas"]["SingleStockReport"];
 
@@ -51,20 +55,6 @@ const tileValue: React.CSSProperties = {
   fontWeight: 600,
   marginTop: 2,
 };
-
-function fmtMoney(v: number | null | undefined): string {
-  if (v == null) return "—";
-  const abs = Math.abs(v);
-  const sign = v >= 0 ? "+" : "-";
-  if (abs >= 1e6) return `${sign}$${(abs / 1e6).toFixed(2)}M`;
-  if (abs >= 1e3) return `${sign}$${(abs / 1e3).toFixed(2)}K`;
-  return `${sign}$${abs.toFixed(0)}`;
-}
-
-function fmtPct(v: number | null | undefined, digits = 1): string {
-  if (v == null) return "—";
-  return `${v >= 0 ? "+" : ""}${(v * 100).toFixed(digits)}%`;
-}
 
 function deltaColor(v: number | null | undefined): string {
   if (v == null) return "var(--text-muted)";
@@ -131,7 +121,10 @@ export function MagnetGammaBar({ report }: { report: Report }) {
         <div>
           <div style={tileLabel}>Net dealer Γ</div>
           <div style={{ ...tileValue, color: deltaColor(netGex) }}>
-            {fmtMoney(netGex)}{" "}
+            {fmtSignedCompactMoney(netGex, {
+              digits: 2,
+              fixed: true,
+            })}{" "}
             <span style={{ color: "var(--text-muted)", fontSize: 11 }}>
               {netGex == null ? "" : netGex >= 0 ? "Long" : "Short"}
             </span>
@@ -141,9 +134,12 @@ export function MagnetGammaBar({ report }: { report: Report }) {
         <div>
           <div style={tileLabel}>Γ vs prev close</div>
           <div style={{ ...tileValue, color: deltaColor(deltaVsPrev) }}>
-            {fmtMoney(deltaVsPrev)}{" "}
+            {fmtSignedCompactMoney(deltaVsPrev, {
+              digits: 2,
+              fixed: true,
+            })}{" "}
             <span style={{ color: "var(--text-muted)", fontSize: 11 }}>
-              {fmtPct(deltaPct, 0)}
+              {fmtSignedPct(deltaPct, 0)}
             </span>
           </div>
         </div>
@@ -153,7 +149,10 @@ export function MagnetGammaBar({ report }: { report: Report }) {
           <div style={tileValue}>
             ${topWallStrike?.toFixed(2) ?? "—"}{" "}
             <span style={{ color: "var(--text-muted)", fontSize: 11 }}>
-              {fmtMoney(topWallGex)}
+              {fmtSignedCompactMoney(topWallGex, {
+                digits: 2,
+                fixed: true,
+              })}
             </span>
           </div>
         </div>
@@ -164,7 +163,7 @@ export function MagnetGammaBar({ report }: { report: Report }) {
             style={{ ...tileValue, color: deltaColor(flipDistPct) }}
             data-testid="magnet-gamma-flip-dist"
           >
-            {fmtPct(flipDistPct, 1)}{" "}
+            {fmtSignedPct(flipDistPct, 1)}{" "}
             <span style={{ color: "var(--text-muted)", fontSize: 11 }}>
               at ${flip?.toFixed(2) ?? "—"}
             </span>
@@ -174,7 +173,10 @@ export function MagnetGammaBar({ report }: { report: Report }) {
         <div>
           <div style={tileLabel}>0–1d rolls off</div>
           <div style={{ ...tileValue, color: deltaColor(odte) }}>
-            {fmtMoney(odte)}{" "}
+            {fmtSignedCompactMoney(odte, {
+              digits: 2,
+              fixed: true,
+            })}{" "}
             <span style={{ color: "var(--text-muted)", fontSize: 11 }}>
               by tomorrow
             </span>

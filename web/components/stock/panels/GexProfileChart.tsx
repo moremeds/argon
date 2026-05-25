@@ -1,5 +1,9 @@
 import type { components } from "@/lib/types";
-import { toNum } from "@/lib/formatters";
+import {
+  fmtSignedCompactMoney,
+  fmtSignedPct,
+  toNum,
+} from "@/lib/formatters";
 
 type Report = components["schemas"]["SingleStockReport"];
 
@@ -18,20 +22,6 @@ const headingStyle: React.CSSProperties = {
   fontSize: 12,
   color: "var(--text-secondary)",
 };
-
-function fmtPct(v: number, digits = 2): string {
-  return `${v >= 0 ? "+" : ""}${(v * 100).toFixed(digits)}%`;
-}
-
-function fmtMoney(v: number): string {
-  const abs = Math.abs(v);
-  const sign = v >= 0 ? "+" : "-";
-  if (abs >= 1e6)
-    return `${sign}$${(abs / 1e6).toLocaleString("en-US", { maximumFractionDigits: 1 })}M`;
-  if (abs >= 1e3)
-    return `${sign}$${(abs / 1e3).toLocaleString("en-US", { maximumFractionDigits: 1 })}K`;
-  return `${sign}$${abs.toFixed(0)}`;
-}
 
 export function GexProfileChart({ report }: { report: Report }) {
   const curve = report.strike_gex_curve;
@@ -224,7 +214,7 @@ export function GexProfileChart({ report }: { report: Report }) {
                 }}
               >
                 <span style={{ color: "var(--text-muted)" }}>
-                  {fmtPct(pct, 2)}
+                  {fmtSignedPct(pct, 2)}
                 </span>{" "}
                 <span
                   style={{
@@ -268,7 +258,7 @@ export function GexProfileChart({ report }: { report: Report }) {
                   textAlign: "left",
                 }}
               >
-                {fmtMoney(gex)}
+                {fmtSignedCompactMoney(gex, { digits: 1 })}
               </div>
             </div>
           );
