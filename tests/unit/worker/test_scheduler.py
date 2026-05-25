@@ -15,6 +15,7 @@ from uw_scan.worker.scheduler import (
     _ohlc_provider,
     _record_worker_heartbeat,
     _run_rates_fred_ingest,
+    _should_schedule_pipeline_benchmark,
     _should_schedule_rates_fred_ingest,
     _uw_auto_request_allowed,
     _worker_heartbeat_name,
@@ -190,6 +191,27 @@ def test_rates_fred_ingest_schedules_only_on_all_or_primary_uw_worker() -> None:
     )
     assert not _should_schedule_rates_fred_ingest(
         Settings(api_key="uw", worker_role="ai", worker_index=0, worker_count=1)
+    )
+
+
+def test_pipeline_benchmark_schedules_only_on_all_or_primary_uw_worker() -> None:
+    assert _should_schedule_pipeline_benchmark(
+        Settings(api_key="uw", worker_role="all")
+    )
+    assert _should_schedule_pipeline_benchmark(
+        Settings(api_key="uw", worker_role="uw", worker_index=0, worker_count=3)
+    )
+    assert not _should_schedule_pipeline_benchmark(
+        Settings(api_key="uw", worker_role="uw", worker_index=1, worker_count=3)
+    )
+    assert not _should_schedule_pipeline_benchmark(
+        Settings(api_key="uw", worker_role="massive", worker_index=0, worker_count=1)
+    )
+    assert not _should_schedule_pipeline_benchmark(
+        Settings(api_key="uw", worker_role="ai-codex", worker_index=0, worker_count=1)
+    )
+    assert not _should_schedule_pipeline_benchmark(
+        Settings(api_key="uw", worker_role="ai-claude", worker_index=0, worker_count=1)
     )
 
 
