@@ -9,19 +9,45 @@ Public functions accept either a Path or a LakeRoot for backward
 compatibility with existing Path-based callers. No business logic — pure I/O.
 R2 reads go through pyarrow.fs.S3FileSystem with the account-scoped
 endpoint override; auth is access-key / secret-key Sig V4.
+
+Also provides deterministic-bytes write helpers for VCG research artifacts
+(weights, input prices). Local + R2 writers both return ArtifactWriteResult
+so the caller never reconstructs a path from a sha — the writer is the
+SOLE source of truth for what got persisted.
 """
 
 from __future__ import annotations
 
+import hashlib
+import io
+from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
+from typing import TYPE_CHECKING
 
+import pyarrow as pa
 import pyarrow.fs as pa_fs
 import pyarrow.parquet as pq
 
 from uw_scan.sources.lake_resolver import LakeRoot
 
+if TYPE_CHECKING:
+    import pandas as pd
+
 VOL_INDEX_FILENAME = "1d.parquet"
+
+
+@dataclass(frozen=True)
+class ArtifactWriteResult:
+    """Result of writing a research artifact.
+
+    Returned by both write_weight_artifact_* and any future canonical-bytes
+    writers so callers don't reconstruct paths and risk mismatch.
+    """
+
+    sha256: str
+    key: str  # full key under the bucket (R2) or filesystem path (local)
+    uri: str  # `r2://bucket/key` or `file://path`
 
 
 def _normalize(root: Path | LakeRoot) -> LakeRoot:
@@ -178,3 +204,123 @@ def _maybe_float(x) -> float | None:
         _ = repr(exc)  # CI Guardrail 2: coercion failure folds to None
         return None
     return f
+
+
+# ---------- VCG research artifact writers ----------
+#
+# Deterministic-bytes helpers + write functions used by scripts/backtest_vcg.py
+# --composite-method to persist a hash-addressable parquet artifact for replay
+# verification. The sha256 of the canonical bytes lands in
+# regime_backtest_runs.summary["extras"]["weight_artifact_sha256"]; the key/uri
+# land in "weight_artifact_uri".
+
+
+def canonical_weight_artifact_bytes(weights: "pd.DataFrame") -> bytes:
+    """Deterministic parquet bytes for a weight DataFrame.
+
+    Sorts columns alphabetically, sorts rows by index, pins the parquet writer
+    config so byte stream is reproducible within the uv.lock-pinned pyarrow.
+    """
+    import pandas as pd  # noqa: PLC0415
+
+    df = weights[sorted(weights.columns)].sort_index().copy()
+    df.index.name = df.index.name or "trade_date"
+    table = pa.Table.from_pandas(df.reset_index(), preserve_index=False)
+    buf = io.BytesIO()
+    pq.write_table(
+        table,
+        buf,
+        compression="none",
+        use_dictionary=True,
+        write_statistics=False,
+        version="2.6",
+    )
+    return buf.getvalue()
+
+
+def write_weight_artifact_local(
+    weights: "pd.DataFrame", out_dir: Path
+) -> ArtifactWriteResult:
+    """Write to local fs. Returns ArtifactWriteResult so the caller never
+    reconstructs the path from a sha (R2 and local paths must be the SOLE
+    source of truth for what gets persisted in extras)."""
+    raw = canonical_weight_artifact_bytes(weights)
+    sha = hashlib.sha256(raw).hexdigest()
+    out_dir.mkdir(parents=True, exist_ok=True)
+    target = out_dir / f"{sha}.parquet"
+    if not target.exists():
+        target.write_bytes(raw)
+    return ArtifactWriteResult(sha256=sha, key=str(target), uri=f"file://{target}")
+
+
+def write_weight_artifact_r2(
+    weights: "pd.DataFrame", root: LakeRoot
+) -> ArtifactWriteResult:
+    """Write to R2 under market-warehouse/research/vcg-weights/<sha>.parquet.
+
+    Path is sibling to the data-lake's bronze zone. Returns sha + key + uri.
+    """
+    if root.kind != "s3":
+        raise ValueError(
+            f"write_weight_artifact_r2 requires R2 root, got kind={root.kind}"
+        )
+    raw = canonical_weight_artifact_bytes(weights)
+    sha = hashlib.sha256(raw).hexdigest()
+    fs = _s3_fs(root)
+    key = f"market-warehouse/research/vcg-weights/{sha}.parquet"
+    full_key = f"{root.bucket}/{key}"
+    with fs.open_output_stream(full_key) as out:
+        out.write(raw)
+    return ArtifactWriteResult(sha256=sha, key=full_key, uri=f"r2://{full_key}")
+
+
+def canonical_input_price_bytes(
+    *,
+    series_by_symbol: dict[str, "pd.Series"],
+    price_field_by_symbol: dict[str, str],
+) -> bytes:
+    """Deterministic parquet bytes for input price series, in LONG format
+    (one row per (trade_date, symbol)) so the hash is independent of the
+    column order any caller happens to use.
+
+    Schema:
+        trade_date  date32   (sorted ascending)
+        symbol      string   (sorted alphabetically within each date)
+        price_field string   ('close' / 'adj_close')
+        price       float64
+
+    Spec §6 hash content rule: hash of canonical PARQUET bytes containing
+    [trade_date, symbol, price_field, price] for all input symbols AFTER
+    alignment, sorted by (trade_date, symbol). This function does NOT align —
+    callers provide pre-aligned series — but DOES enforce sort order.
+    """
+    import pandas as pd  # noqa: PLC0415
+
+    rows: list[dict] = []
+    for sym in sorted(series_by_symbol):
+        s = series_by_symbol[sym]
+        pf = price_field_by_symbol[sym]
+        for d, v in s.items():
+            d_real = d.date() if hasattr(d, "date") else d
+            rows.append(
+                {
+                    "trade_date": d_real,
+                    "symbol": sym,
+                    "price_field": pf,
+                    "price": float(v),
+                }
+            )
+    if not rows:
+        return b""
+    df = pd.DataFrame(rows).sort_values(["trade_date", "symbol"]).reset_index(drop=True)
+    table = pa.Table.from_pandas(df, preserve_index=False)
+    buf = io.BytesIO()
+    pq.write_table(
+        table,
+        buf,
+        compression="none",
+        use_dictionary=True,
+        write_statistics=False,
+        version="2.6",
+    )
+    return buf.getvalue()
