@@ -437,7 +437,7 @@ git commit -m "perf(web): memoize chart derivations"
 ### Task 6: Final Verification And PR Evidence
 
 **Files:**
-- Modify only if needed: `docs/plans/2026-05-19-complexity-hotspots-optimization.md`
+- Modify only if needed: `docs/superpowers/archive/plans/2026-05-19-complexity-hotspots-optimization.md`
 
 **Step 1: Run full relevant backend checks**
 
@@ -489,7 +489,7 @@ Check:
 **Step 5: Commit final doc/evidence updates if any**
 
 ```bash
-git add docs/plans/2026-05-19-complexity-hotspots-optimization.md
+git add docs/superpowers/archive/plans/2026-05-19-complexity-hotspots-optimization.md
 git commit -m "docs(perf): record complexity optimization verification"
 ```
 

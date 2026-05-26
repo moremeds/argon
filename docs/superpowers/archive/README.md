@@ -1,10 +1,11 @@
 # Archive
 
-Historical specs and plans for prior iterations of the UW scanner.
-The contracts in these documents (S1/S2 report shapes, Type C/F classification,
-GEX/IV/VRP semantics, defined-risk trade plan rules) are still honored at the
-model layer (`src/uw_scan/models.py`), even though the Streamlit UI they
-described has been replaced.
+Completed and superseded specs/plans live here:
 
-The active spec is in
-`docs/superpowers/specs/2026-05-12-uw-watchlist-ui-rework-design.md`.
+- `plans/` — implementation plans whose corresponding PRs have landed or whose
+  work is no longer active.
+- `specs/` — design specs whose corresponding implementation work has landed or
+  whose direction has been superseded.
+
+Active specs and plans stay in `docs/superpowers/specs/` and
+`docs/superpowers/plans/`. Research notes live under `docs/research/`.

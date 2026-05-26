@@ -8,7 +8,7 @@
 
 **Tech Stack:** Python 3.13 via `uv`, FastAPI, psycopg 3, pandas, numpy, pyarrow (parquet), Postgres 16, pytest with pytest-postgresql.
 
-**Source spec:** `docs/superpowers/specs/2026-05-26-vcg-composite-research-design.md`
+**Source spec:** `docs/superpowers/archive/specs/2026-05-26-vcg-composite-research-design.md`
 
 ---
 
@@ -3222,7 +3222,7 @@ def write_report(out_path: Path, cells: list[CellResult],
         "",
         f"Generated: {date.today().isoformat()}",
         "",
-        "Spec: docs/superpowers/specs/2026-05-26-vcg-composite-research-design.md",
+        "Spec: docs/superpowers/archive/specs/2026-05-26-vcg-composite-research-design.md",
         "",
         "## 1. Methodology recap",
         "",
@@ -3563,7 +3563,7 @@ No "TBD" / "TODO" / "fill in" / "similar to" tokens. Every step shows the actual
 
 ## §17. Execution handoff
 
-Plan complete and saved to `docs/superpowers/plans/2026-05-26-vcg-composite-proxy.md`. Two execution options:
+Plan complete and saved to `docs/superpowers/archive/plans/2026-05-26-vcg-composite-proxy.md`. Two execution options:
 
 **1. Subagent-Driven (recommended)** — Dispatch a fresh subagent per task, review between tasks, fast iteration. Each task gets its own context with the spec and the task definition only — reduces context drift.
 

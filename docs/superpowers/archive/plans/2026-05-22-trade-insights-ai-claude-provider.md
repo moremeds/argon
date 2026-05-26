@@ -8,7 +8,7 @@
 
 **Tech Stack:** Python 3.13 + `uv`, FastAPI + Pydantic v2, psycopg 3, APScheduler, PostgreSQL (schema `uw_scan`), Next.js 16 + React 19 + TypeScript, Vitest + Playwright (web), pytest + pytest-postgresql (Python). `claude --print` CLI for the new runner; existing `codex exec` for the existing runner.
 
-**Spec:** `docs/superpowers/specs/2026-05-22-trade-insights-ai-claude-provider-design.md`
+**Spec:** `docs/superpowers/archive/specs/2026-05-22-trade-insights-ai-claude-provider-design.md`
 
 **Phases:**
 - **Phase A (Tasks 1–17):** Schema + Pydantic models + repository + runners + worker dispatch + config + API contract + web tabs. Both providers default-enabled. Worker topology stays on the legacy `ai` single-pool — both providers run, just through one shared queue.
@@ -3228,8 +3228,8 @@ gh pr create --title "feat(ai): add Claude as second provider alongside Codex wi
 - [ ] Per-provider isolation smoke per Task 16
 
 ## Spec / Plan
-- Spec: `docs/superpowers/specs/2026-05-22-trade-insights-ai-claude-provider-design.md`
-- Plan: `docs/superpowers/plans/2026-05-22-trade-insights-ai-claude-provider.md`
+- Spec: `docs/superpowers/archive/specs/2026-05-22-trade-insights-ai-claude-provider-design.md`
+- Plan: `docs/superpowers/archive/plans/2026-05-22-trade-insights-ai-claude-provider.md`
 EOF
 )"
 ```

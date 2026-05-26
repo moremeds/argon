@@ -118,4 +118,4 @@ Details by layer live in the `CLAUDE.md` files under `src/uw_scan/`, `web/`, and
 
 ## Status
 
-Active rework (2026-05-12 onward) — Streamlit prototype replaced with a card-grid dashboard and a tabbed regime-style detail page. Specs and plans live under [`docs/superpowers/`](docs/superpowers/).
+Active rework (2026-05-12 onward) — Streamlit prototype replaced with a card-grid dashboard and a tabbed regime-style detail page. Active specs/plans live under [`docs/superpowers/`](docs/superpowers/), completed specs/plans under [`docs/superpowers/archive/`](docs/superpowers/archive/), and research notes under [`docs/research/`](docs/research/).

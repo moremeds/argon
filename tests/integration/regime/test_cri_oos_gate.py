@@ -4,7 +4,7 @@ Reads summary.oos.versions[] from the latest COMPLETED CRI run in
 uw_scan.regime_backtest_runs. The previous on-disk
 docs/research/regime/oos-summary.json source was retired in the regime
 closure (2026-05); see
-docs/superpowers/specs/2026-05-24-regime-research-closure-design.md.
+docs/superpowers/archive/specs/2026-05-24-regime-research-closure-design.md.
 
 Calibration-provenance contract:
   - The seed fixture (tests/integration/regime/conftest.py) reads

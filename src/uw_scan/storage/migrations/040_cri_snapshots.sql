@@ -5,7 +5,7 @@
 -- Indexable scalars are generated columns extracted from the JSONB payload
 -- (mirrors the gex_snapshots pattern).
 --
--- Schema: docs/superpowers/research/regime/ (TBD)
+-- Schema: docs/research/regime/ (TBD)
 -- Source scanner: src/uw_scan/scanners/cri.py
 -- Idempotent.
 

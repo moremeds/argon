@@ -8,7 +8,7 @@
 
 **Tech Stack:** Postgres 15 + psycopg 3, FastAPI + Pydantic v2, NumPy, `uv` for all Python invocations, `pytest-postgresql` for DB tests.
 
-**Spec:** [`docs/superpowers/specs/2026-05-24-regime-research-closure-design.md`](../specs/2026-05-24-regime-research-closure-design.md). When any task here conflicts with the spec, the spec wins — fix the plan and re-run review.
+**Spec:** [`docs/superpowers/archive/specs/2026-05-24-regime-research-closure-design.md`](../specs/2026-05-24-regime-research-closure-design.md). When any task here conflicts with the spec, the spec wins — fix the plan and re-run review.
 
 ---
 
@@ -1075,7 +1075,7 @@ def get_validation(
     """DB-first; falls back to checked-in files during the deploy transition.
 
     The fallback block is removed in a follow-up PR after the prod gate in
-    docs/superpowers/specs/2026-05-24-regime-research-closure-design.md §10.4
+    docs/superpowers/archive/specs/2026-05-24-regime-research-closure-design.md §10.4
     is satisfied (≥1 completed CRI run in prod at the current
     cri_scorers.COMPOSITE_VERSION).
     """
@@ -1178,7 +1178,7 @@ Reads summary.oos.versions[] from the latest COMPLETED CRI run in
 uw_scan.regime_backtest_runs. The previous on-disk
 docs/research/regime/oos-summary.json source was retired in the regime
 closure (2026-05); see
-docs/superpowers/specs/2026-05-24-regime-research-closure-design.md.
+docs/superpowers/archive/specs/2026-05-24-regime-research-closure-design.md.
 
 Calibration-provenance contract:
   - The seed fixture (tests/integration/regime/conftest.py) reads
@@ -1999,8 +1999,8 @@ gh pr create --title "feat(regime): close CRI + VCG research with Postgres-of-re
 
 Standing rule violation: backtest analytical results were disk-only artifacts. This change makes calibration A/B tests SQL queries and gives VCG the research scaffolding CRI already had.
 
-Design spec: `docs/superpowers/specs/2026-05-24-regime-research-closure-design.md`
-Plan: `docs/superpowers/plans/2026-05-25-regime-research-closure-implementation.md`
+Design spec: `docs/superpowers/archive/specs/2026-05-24-regime-research-closure-design.md`
+Plan: `docs/superpowers/archive/plans/2026-05-25-regime-research-closure-implementation.md`
 
 ## What is NOT in this PR
 

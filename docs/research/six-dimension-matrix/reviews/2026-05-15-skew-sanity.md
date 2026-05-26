@@ -44,7 +44,7 @@ SPX is the strongest evidence because it has full strict 180-row z-score history
 
 ## Change Made
 
-Updated `docs/superpowers/research/six-dimension-matrix/00-overview.md` §0.1:
+Updated `docs/research/six-dimension-matrix/00-overview.md` §0.1:
 
 - Before: `skew_25d_zscore_180d > +1.0` → `vol_down`; `< -1.0` → `vol_up`
 - After: `skew_25d_zscore_180d > +1.0` → `vol_up`; `< -1.0` → `vol_down`

@@ -137,7 +137,7 @@ class Settings(BaseModel):
     # the per-provider health block). Defaults match scripts/dev.sh.
     trade_insights_ai_codex_worker_count: int = 2
     trade_insights_ai_claude_worker_count: int = 2
-    # Cockpit (6-dim matrix) — see docs/superpowers/research/six-dimension-matrix/
+    # Cockpit (6-dim matrix) — see docs/research/six-dimension-matrix/
     cockpit_tickers: list[str] = ["SPX", "SPY", "QQQ", "IWM"]
     cockpit_snapshot_cron: str = "30 16 * * 0-4"
     cockpit_target_dtes: list[int] = [0, 14, 30, 90]

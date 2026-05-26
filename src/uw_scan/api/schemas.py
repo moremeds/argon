@@ -437,7 +437,7 @@ class VcgScanResponse(BaseModel):
 
 # ----------------------------------------------------------------------
 # Dealer-regime (per-ticker) — feeds Magnet/Gamma bar + Volatility regime
-# panel. See docs/superpowers/plans/2026-05-21-gex-volatility-enrichment.md
+# panel. See docs/superpowers/archive/plans/2026-05-21-gex-volatility-enrichment.md
 # ----------------------------------------------------------------------
 
 

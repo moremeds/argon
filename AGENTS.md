@@ -77,7 +77,8 @@ Worker roles: `ai-codex` and `ai-claude` (provider-pinned, recommended); legacy 
 
 | Need | Look at |
 |---|---|
-| Active specs / plans | `docs/superpowers/specs/`, `docs/superpowers/plans/` |
+| Active specs / plans | `docs/superpowers/specs/`, `docs/superpowers/plans/`; completed specs/plans live under `docs/superpowers/archive/{specs,plans}/` |
+| Research notes | `docs/research/` |
 | API surface | `src/uw_scan/api/server.py` + `routers/*` |
 | API contract models | `src/uw_scan/models/` (`__init__.py` is export-only; implementations live in domain modules) |
 | Persistence — aggregate shim | `src/uw_scan/storage/repository.py` (thin `Repository` assembly + compatibility re-exports; do not add query methods here) |
