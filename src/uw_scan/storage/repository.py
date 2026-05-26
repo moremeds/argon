@@ -35,6 +35,10 @@ from .matrix_state import _MatrixStateMixin
 from .options import _OptionsMixin
 from .pipeline_benchmark import _PipelineBenchmarkMixin
 from .rates_repository import _RatesMixin
+from .regime_classification_repository import (  # noqa: F401
+    ClassificationRunAlreadyExists,
+    RegimeClassificationRepository,
+)
 
 # Row dataclasses live in rows.py since the PR-1 split. Re-exported here so
 # existing callers (`from uw_scan.storage.repository import JobRow`) continue
