@@ -54,7 +54,10 @@ def detect_drawdown_events(
         raise ValueError("closes must have a monotonically increasing index")
 
     values = closes.values
-    dates = list(closes.index.date)
+    # Index may be a DatetimeIndex (.date attribute returns array of dates)
+    # OR a plain Index of datetime.date objects (psycopg returns those
+    # directly). Polymorphic across both.
+    dates = [d.date() if hasattr(d, "date") else d for d in closes.index]
     n = len(values)
     events: list[DrawdownEvent] = []
 

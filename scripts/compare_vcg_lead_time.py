@@ -111,14 +111,23 @@ def load_benchmarks(conn: psycopg.Connection) -> dict[str, pd.Series]:
 
 
 def load_research_runs(repo: RegimeBacktestRepository) -> list[ProxyRun]:
+    """Most-recent run per (credit_proxy, composite_method, composite_version).
+
+    list_research_runs returns ORDER BY created_at DESC, so iterating and
+    keeping the first occurrence of each key gives us the latest. Earlier
+    smoke runs (shorter date ranges) are dropped — they would otherwise
+    appear as duplicate rows in the report and distort robustness medians.
+    """
     runs = repo.list_research_runs(indicator="vcg", limit=200)
+    seen: set[tuple[str, str, str]] = set()
     out: list[ProxyRun] = []
     for r in runs:
+        key = (r["credit_proxy"], r["composite_method"], r["composite_version"])
+        if key in seen:
+            continue
+        seen.add(key)
         daily = repo.fetch_daily_for_run(r["id"])
-        if daily:
-            df = pd.DataFrame(daily).set_index("trade_date")
-        else:
-            df = pd.DataFrame()
+        df = pd.DataFrame(daily).set_index("trade_date") if daily else pd.DataFrame()
         out.append(
             ProxyRun(
                 run_id=r["id"],
