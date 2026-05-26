@@ -123,6 +123,10 @@ def load_input_series(
     df = pd.DataFrame(rows, columns=["trade_date", "symbol", "close"])
     df["trade_date"] = pd.to_datetime(df["trade_date"]).dt.normalize()
     pivot = df.pivot(index="trade_date", columns="symbol", values="close")
+    # VVIX has sporadic holiday/data gaps (5-8 days/yr). With a 252-day rolling
+    # window, ANY interior NaN kills the percentile rank. Forward-fill closes
+    # those gaps so the rolling percentile is dense.
+    pivot = pivot.sort_index().ffill()
 
     if as_of_cutoff is not None:
         macro_sql = """
@@ -152,6 +156,12 @@ def load_input_series(
     macro = pd.DataFrame(macro_rows, columns=["obs_date", "series_id", "value"])
     macro["obs_date"] = pd.to_datetime(macro["obs_date"]).dt.normalize()
     macro_pivot = macro.pivot(index="obs_date", columns="series_id", values="value")
+    # NFCI/ANFCI publish weekly (Fridays), USREC monthly. The pivot's row index
+    # is the union of all obs_dates, so each column has interior NaNs whenever
+    # OTHER columns had an observation. reindex(method='ffill') only fills
+    # rows MISSING from the index, not NaN values already there — so the
+    # per-column ffill must happen first, then reindex onto the trading-day axis.
+    macro_pivot = macro_pivot.sort_index().ffill()
     macro_aligned = macro_pivot.reindex(pivot.index, method="ffill")
 
     out = {
