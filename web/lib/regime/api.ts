@@ -13,4 +13,8 @@ export const regimeApi = {
   guidance: () => `${API}/api/regime/guidance`,
   validation: () => `${API}/api/regime/validation`,
   vcgValidation: () => `${API}/api/regime/vcg-validation`,
+  canary: () => `${API}/api/regime/canary`,
+  canaryHistory: (days: number) =>
+    `${API}/api/regime/canary/history?days=${days}`,
+  canaryValidation: () => `${API}/api/regime/canary/validation`,
 } as const;
