@@ -74,3 +74,60 @@ def test_period_slices_cover_four_regime_buckets() -> None:
     mod = _load_comparator_module()
     names = [p[0] for p in mod.PERIOD_SLICES]
     assert names == ["pre-2020", "2020-COVID", "2021-2022-rates", "2023-2026-AI"]
+
+
+def test_load_research_runs_prefers_longer_coverage_over_recency(
+    seeded_db_empty_cards,
+) -> None:
+    """Regression: a short-window smoke run must not displace the canonical
+    full-history backtest under dedup on (proxy, method, version). The fix
+    sorts by n_days DESC, created_at DESC before keeping first occurrence.
+    """
+    from datetime import date as _date
+
+    from uw_scan.storage.regime_backtest_repository import RegimeBacktestRepository
+
+    repo = seeded_db_empty_cards
+    rb = RegimeBacktestRepository(repo.conn, schema=repo._schema)
+
+    canonical_id = rb.insert_run(
+        indicator="vcg",
+        composite_version="1",
+        start_date=_date(2007, 1, 3),
+        end_date=_date(2026, 5, 21),
+        window_days=21,
+        n_days=4545,
+        params={"proxy": "JNK"},
+        summary={"extras": {"credit_proxy": "JNK"}},
+        note="canonical full-history JNK",
+        run_scope="research",
+        credit_proxy="JNK",
+        composite_method="single_proxy",
+    )
+    rb.mark_run_completed(canonical_id)
+
+    smoke_id = rb.insert_run(
+        indicator="vcg",
+        composite_version="1",
+        start_date=_date(2024, 1, 2),
+        end_date=_date(2024, 6, 28),
+        window_days=21,
+        n_days=124,
+        params={"proxy": "JNK"},
+        summary={"extras": {"credit_proxy": "JNK"}},
+        note="smoke run, must lose dedup",
+        run_scope="research",
+        credit_proxy="JNK",
+        composite_method="single_proxy",
+    )
+    rb.mark_run_completed(smoke_id)
+    assert smoke_id > canonical_id
+
+    mod = _load_comparator_module()
+    runs = mod.load_research_runs(rb)
+    jnk_runs = [r for r in runs if r.credit_proxy == "JNK"]
+    assert len(jnk_runs) == 1, "dedup must collapse JNK to a single row"
+    assert jnk_runs[0].run_id == canonical_id, (
+        f"longest-coverage row (canonical n_days=4545) must win dedup, "
+        f"got run_id={jnk_runs[0].run_id} (smoke={smoke_id}, canonical={canonical_id})"
+    )

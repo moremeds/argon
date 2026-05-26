@@ -111,14 +111,15 @@ def load_benchmarks(conn: psycopg.Connection) -> dict[str, pd.Series]:
 
 
 def load_research_runs(repo: RegimeBacktestRepository) -> list[ProxyRun]:
-    """Most-recent run per (credit_proxy, composite_method, composite_version).
+    """Longest-coverage run per (credit_proxy, composite_method, composite_version).
 
-    list_research_runs returns ORDER BY created_at DESC, so iterating and
-    keeping the first occurrence of each key gives us the latest. Earlier
-    smoke runs (shorter date ranges) are dropped — they would otherwise
-    appear as duplicate rows in the report and distort robustness medians.
+    Smoke runs over a short date window must not displace the canonical
+    full-history backtest for the same key. We sort by n_days DESC (with
+    created_at DESC as tiebreak) and keep the first occurrence of each key,
+    so the fullest coverage always wins.
     """
     runs = repo.list_research_runs(indicator="vcg", limit=200)
+    runs.sort(key=lambda r: (r.get("n_days") or 0, r["created_at"]), reverse=True)
     seen: set[tuple[str, str, str]] = set()
     out: list[ProxyRun] = []
     for r in runs:
