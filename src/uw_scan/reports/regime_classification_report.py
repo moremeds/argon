@@ -17,6 +17,22 @@ CONSTRUCT_VALIDITY = (
 )
 
 
+def _confusion_matrix_to_markdown(cm: pd.DataFrame) -> str:
+    """Render a confusion-matrix DataFrame as a Markdown table.
+
+    Hand-rolled to avoid the optional pandas `tabulate` dependency. The
+    output is byte-stable for byte-identical replay.
+    """
+    cols = [""] + [str(c) for c in cm.columns]
+    header = "| " + " | ".join(cols) + " |"
+    sep = "| " + " | ".join(["---"] + ["---:" for _ in cm.columns]) + " |"
+    rows = [header, sep]
+    for idx in cm.index:
+        cells = [str(idx)] + [str(int(cm.loc[idx, c])) for c in cm.columns]
+        rows.append("| " + " | ".join(cells) + " |")
+    return "\n".join(rows)
+
+
 def render_report(
     *,
     run_id: int,
@@ -122,7 +138,7 @@ def render_report(
         lines.append("")
         lines.append("Rows = ground-truth, columns = VCG prediction.")
         lines.append("")
-        lines.append(cm_overall.to_markdown())
+        lines.append(_confusion_matrix_to_markdown(cm_overall))
         lines.append("")
 
     if cm_by_period:
@@ -131,7 +147,7 @@ def render_report(
         for period in sorted(cm_by_period):
             lines.append(f"### {period}")
             lines.append("")
-            lines.append(cm_by_period[period].to_markdown())
+            lines.append(_confusion_matrix_to_markdown(cm_by_period[period]))
             lines.append("")
 
     if named_crisis_overlay:

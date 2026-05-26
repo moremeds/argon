@@ -21,6 +21,7 @@ from typing import Any
 import pandas as pd
 import yaml
 from psycopg import connect
+from psycopg.errors import UniqueViolation
 
 from uw_scan.cards.regime_classification_labels import (
     CANONICAL_CLASSES,
@@ -359,52 +360,60 @@ def persist_and_render(
     #   3. update summary to include report_md (CR-1)
     #   4. bulk_insert_daily
     #   5. mark_completed
-    with conn.transaction():
-        run_id = rcr.insert_classification_run(
-            vcg_source_run_id=int(contract.vcg_source["run_id"]),
-            composite_version=str(contract.vcg_source["composite_version"]),
-            eval_start=eval_start,
-            eval_end=eval_end,
-            label_version=contract.label_version,
-            n_days=len(scoring["aligned"]),
-            summary={"extras": {"classification": {"placeholder": True}}},
-        )
+    try:
+        with conn.transaction():
+            run_id = rcr.insert_classification_run(
+                vcg_source_run_id=int(contract.vcg_source["run_id"]),
+                composite_version=str(contract.vcg_source["composite_version"]),
+                eval_start=eval_start,
+                eval_end=eval_end,
+                label_version=contract.label_version,
+                n_days=len(scoring["aligned"]),
+                summary={"extras": {"classification": {"placeholder": True}}},
+            )
 
-        report = render_report(
-            run_id=run_id,
-            label_version=contract.label_version,
-            eval_start=str(eval_start),
-            eval_end=str(eval_end),
-            n_days=len(scoring["aligned"]),
-            verdict=verdict,
-            failure_mode=failure_mode,
-            per_class=scoring["per_class"],
-            cm_overall=scoring["cm_overall"],
-            cm_by_period=scoring["cm_by_period"],
-            weighted_f1=weighted_f1_val,
-            kappa=scoring["kappa"],
-            named_crisis_overlay=named_crisis_overlay,
-            vcg_source=contract.vcg_source,
-            data_vintages=data_vintages,
-        )
+            report = render_report(
+                run_id=run_id,
+                label_version=contract.label_version,
+                eval_start=str(eval_start),
+                eval_end=str(eval_end),
+                n_days=len(scoring["aligned"]),
+                verdict=verdict,
+                failure_mode=failure_mode,
+                per_class=scoring["per_class"],
+                cm_overall=scoring["cm_overall"],
+                cm_by_period=scoring["cm_by_period"],
+                weighted_f1=weighted_f1_val,
+                kappa=scoring["kappa"],
+                named_crisis_overlay=named_crisis_overlay,
+                vcg_source=contract.vcg_source,
+                data_vintages=data_vintages,
+            )
 
-        full_summary = {
-            "extras": {
-                "classification": sanitize_for_json(
-                    {
-                        "verdict": verdict,
-                        "failure_mode": failure_mode,
-                        "weighted_f1": weighted_f1_val,
-                        "kappa": scoring["kappa"],
-                        "per_class": scoring["per_class"],
-                        "report_md": report,
-                    }
-                )
+            full_summary = {
+                "extras": {
+                    "classification": sanitize_for_json(
+                        {
+                            "verdict": verdict,
+                            "failure_mode": failure_mode,
+                            "weighted_f1": weighted_f1_val,
+                            "kappa": scoring["kappa"],
+                            "per_class": scoring["per_class"],
+                            "report_md": report,
+                        }
+                    )
+                }
             }
-        }
-        rcr.update_run_summary(run_id, full_summary)
-        rcr.bulk_insert_daily_classifications(run_id, daily_rows)
-        rcr.mark_run_completed(run_id)
+            rcr.update_run_summary(run_id, full_summary)
+            rcr.bulk_insert_daily_classifications(run_id, daily_rows)
+            rcr.mark_run_completed(run_id)
+    except UniqueViolation as exc:
+        # Migration 062 partial unique index — concurrent / duplicate completion.
+        raise ClassificationRunAlreadyExists(
+            f"Run for (vcg_source_run_id={int(contract.vcg_source['run_id'])}, "
+            f"label_version={contract.label_version}) already completed; "
+            f"use --render-run-id to replay"
+        ) from exc
 
     out_path.write_text(report)
     return run_id
