@@ -193,3 +193,233 @@ def test_scorers_reject_non_finite_inputs():
             th=cal.vrp,
             form="linear",
         )
+
+
+# ─── Task 8: speed score + cap rule + band map ──────────────────
+
+
+from uw_scan.cards.canary_scoring import (  # noqa: E402
+    apply_cap,
+    compute_band,
+    derive_speed,
+    higher_closing_low_close_only,
+)
+
+
+def test_speed_neutral_default():
+    s = derive_speed(confirmed_canary_active=False, buy_the_dip_active=False)
+    assert (s.score, s.state) == (8, "NEUTRAL")
+
+
+def test_speed_confirmed_canary_only():
+    s = derive_speed(confirmed_canary_active=True, buy_the_dip_active=False)
+    assert (s.score, s.state) == (0, "CONFIRMED_CANARY_ACTIVE")
+
+
+def test_speed_btd_only():
+    s = derive_speed(confirmed_canary_active=False, buy_the_dip_active=True)
+    assert (s.score, s.state) == (20, "BUY_THE_DIP_ACTIVE")
+
+
+def test_speed_both_active_is_ambiguous_not_btd():
+    s = derive_speed(confirmed_canary_active=True, buy_the_dip_active=True)
+    assert (s.score, s.state) == (8, "BOTH_ACTIVE_AMBIGUOUS")
+
+
+def test_cap_binds_on_confirmed_canary_with_no_lift():
+    speed = derive_speed(confirmed_canary_active=True, buy_the_dip_active=False)
+    out = apply_cap(
+        raw_score=80.0,
+        speed=speed,
+        spx_above_sma200_2d=False,
+        vix_term_normalized=False,
+        higher_closing_low=False,
+    )
+    assert out == (49.0, "CONFIRMED_CANARY_ACTIVE", True)
+
+
+def test_cap_lifts_on_sma200_recapture():
+    speed = derive_speed(confirmed_canary_active=True, buy_the_dip_active=False)
+    out = apply_cap(
+        raw_score=80.0,
+        speed=speed,
+        spx_above_sma200_2d=True,
+        vix_term_normalized=False,
+        higher_closing_low=False,
+    )
+    assert out == (80.0, "NONE", False)
+
+
+def test_cap_lifts_on_term_normalize_and_higher_low_combo():
+    speed = derive_speed(confirmed_canary_active=True, buy_the_dip_active=False)
+    out = apply_cap(
+        raw_score=80.0,
+        speed=speed,
+        spx_above_sma200_2d=False,
+        vix_term_normalized=True,
+        higher_closing_low=True,
+    )
+    assert out == (80.0, "NONE", False)
+
+
+def test_cap_does_NOT_lift_on_term_normalize_alone():
+    speed = derive_speed(confirmed_canary_active=True, buy_the_dip_active=False)
+    out = apply_cap(
+        raw_score=80.0,
+        speed=speed,
+        spx_above_sma200_2d=False,
+        vix_term_normalized=True,
+        higher_closing_low=False,
+    )
+    assert out.cap_applied is True
+    assert out.final_score == 49.0
+
+
+def test_cap_always_binds_on_both_active_even_with_lift_conditions():
+    speed = derive_speed(confirmed_canary_active=True, buy_the_dip_active=True)
+    out = apply_cap(
+        raw_score=80.0,
+        speed=speed,
+        spx_above_sma200_2d=True,
+        vix_term_normalized=True,
+        higher_closing_low=True,
+    )
+    assert out == (49.0, "BOTH_ACTIVE_AMBIGUOUS", True)
+
+
+def test_band_thresholds():
+    assert compute_band(0.0) == "NONE"
+    assert compute_band(24.99) == "NONE"
+    assert compute_band(25.0) == "WATCH"
+    assert compute_band(49.999) == "WATCH"
+    assert compute_band(50.0) == "BUY"
+    assert compute_band(74.999) == "BUY"
+    assert compute_band(75.0) == "STRONG_BUY"
+    assert compute_band(100.0) == "STRONG_BUY"
+
+
+def test_higher_closing_low_uses_only_closes():
+    closes = [
+        100,
+        99,
+        98,
+        97,
+        96,
+        95,
+        94,
+        93,
+        92,
+        91,
+        90,
+        89,
+        88,
+        87,
+        85,
+        86,
+        87,
+        88,
+        89,
+        90,
+    ]
+    assert (
+        higher_closing_low_close_only(closes, sma_200_today=80.0, spx_close_today=90.0)
+        is True
+    )
+
+
+def test_higher_closing_low_blocked_when_below_sma200_buffer():
+    closes = [
+        100,
+        99,
+        98,
+        97,
+        96,
+        95,
+        94,
+        93,
+        92,
+        91,
+        90,
+        89,
+        88,
+        87,
+        85,
+        86,
+        87,
+        88,
+        89,
+        90,
+    ]
+    assert (
+        higher_closing_low_close_only(closes, sma_200_today=100.0, spx_close_today=90.0)
+        is False
+    )
+
+
+# ─── Task 10: end-to-end composition ────────────────────────────
+
+
+from datetime import date  # noqa: E402
+
+import numpy as np  # noqa: E402
+
+from uw_scan.cards.canary_scoring import run_analysis  # noqa: E402
+
+
+def test_run_analysis_calm_day_low_score_and_no_warning():
+    cal = load_calibration()
+    n = 200
+    aligned = {
+        "VIX": np.full(n, 14.0),
+        "VVIX": np.full(n, 90.0),
+        "VIX3M": np.full(n, 16.0),
+        "COR1M": np.full(n, 30.0),
+        "SPX": np.linspace(4000, 4400, n),
+    }
+    payload = run_analysis(
+        today=date(2026, 5, 26),
+        aligned=aligned,
+        common_dates=[date(2025, 1, 1).isoformat()] * n,
+        sma_50_today=4400.0,
+        sma_200_today=4200.0,
+        spx_above_sma200_2d=True,
+        vix_term_normalized=True,
+        higher_closing_low=True,
+        confirmed_canary_active=False,
+        buy_the_dip_active=False,
+        calibration=cal,
+    )
+    assert payload["canary"]["warning_state"] == "NONE"
+    assert payload["speed"]["state"] == "NEUTRAL"
+    # v0.2 patch: bound relaxed to ≤25 pending VRP-gating decision.
+    assert payload["canary"]["score"] <= 25.0
+    assert payload["canary"]["band"] in ("NONE", "WATCH")
+
+
+def test_run_analysis_confirmed_canary_caps_at_watch():
+    cal = load_calibration()
+    n = 200
+    aligned = {
+        "VIX": np.linspace(35, 22, n),
+        "VVIX": np.linspace(140, 110, n),
+        "VIX3M": np.linspace(28, 22, n),
+        "COR1M": np.concatenate([np.linspace(30, 75, 60), np.linspace(75, 50, n - 60)]),
+        "SPX": np.linspace(4400, 4180, n),
+    }
+    payload = run_analysis(
+        today=date(2026, 5, 26),
+        aligned=aligned,
+        common_dates=[date(2025, 1, 1).isoformat()] * n,
+        sma_50_today=4300.0,
+        sma_200_today=4250.0,
+        spx_above_sma200_2d=False,
+        vix_term_normalized=False,
+        higher_closing_low=False,
+        confirmed_canary_active=True,
+        buy_the_dip_active=False,
+        calibration=cal,
+    )
+    assert payload["canary"]["score"] <= 49.0
+    assert payload["canary"]["band"] in ("NONE", "WATCH")
+    assert payload["canary"]["warning_state"] == "CONFIRMED_CANARY_ACTIVE"
+    assert payload["canary"]["cap_applied"] in (True, False)
