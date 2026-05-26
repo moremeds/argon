@@ -7,8 +7,9 @@ from __future__ import annotations
 
 import math
 import statistics
-from dataclasses import dataclass
-from typing import Literal, Sequence
+from dataclasses import dataclass, field
+from datetime import date as _date
+from typing import Literal, NamedTuple, Sequence
 
 from uw_scan.cards.canary_calibration import SignalThresholds
 
@@ -281,9 +282,6 @@ def score_vvix_vix_recovery(
 
 # ─── Primary event state machine (Task 6) ───────────────────────
 
-from dataclasses import field
-from datetime import date as _date
-
 
 @dataclass
 class CanaryEvent:
@@ -413,8 +411,6 @@ def step_confirmed_canary(
 
 
 # ─── Speed score + cap rule + band map (Task 8) ─────────────────
-
-from typing import NamedTuple
 
 
 class SpeedScore(NamedTuple):

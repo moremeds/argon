@@ -1,7 +1,6 @@
 from datetime import date, timedelta
 
 from uw_scan.cards.canary_scoring import (
-    CANARY_FAST_THRESHOLD_DAYS,
     HIGH_LOOKBACK_DAYS,
     CanaryEventState,
     step_primary_events,

@@ -18,7 +18,6 @@ import logging
 import sys
 from dataclasses import replace
 from datetime import date
-from pathlib import Path
 
 import numpy as np
 from psycopg import connect
@@ -47,13 +46,13 @@ def _percentile(arr, p, *, name: str):
     return float(np.percentile(arr, p))
 
 
-def cmd_calibrate(conn) -> None:
+def cmd_calibrate(conn, *, schema: str) -> None:
     """Compute Class B thresholds (p25 floor, p90 ceiling) on the train window
     using positive-condition observations only. Write canary-calibration-v1.json.
     """
     from uw_scan.storage.vol_index_repository import VolIndexRepository
 
-    vol_repo = VolIndexRepository(conn)
+    vol_repo = VolIndexRepository(conn, schema=schema)
 
     def _series(sym):
         rows = vol_repo.fetch_history(sym, days=8000)
@@ -167,7 +166,13 @@ def cmd_calibrate(conn) -> None:
 
 
 def _compute_canary_series(
-    conn, calibration, form: str, start: date, end: date
+    conn,
+    calibration,
+    form: str,
+    start: date,
+    end: date,
+    *,
+    schema: str,
 ) -> dict:
     """Compute one row per trading day for the eval window [start, end] PLUS
     retain the full backtest history for cross-window lookbacks.
@@ -183,7 +188,7 @@ def _compute_canary_series(
     )
     from uw_scan.storage.vol_index_repository import VolIndexRepository
 
-    vol_repo = VolIndexRepository(conn)
+    vol_repo = VolIndexRepository(conn, schema=schema)
     span_days = (date.today() - start).days + 500
     raw = {
         "VIX": _load(vol_repo, "VIX", span_days),
@@ -285,11 +290,11 @@ def _entry_lagged_label(rows: list[dict], horizon_td: int, threshold: float) -> 
 
 def _auc(scores: list[float], labels: list) -> float:
     """Pairwise AUC with explicit None filtering."""
-    pairs = [(s, l) for s, l in zip(scores, labels) if l is not None]
+    pairs = [(s, lbl) for s, lbl in zip(scores, labels) if lbl is not None]
     if not pairs:
         return float("nan")
-    pos = [s for s, l in pairs if l == 1]
-    neg = [s for s, l in pairs if l == 0]
+    pos = [s for s, lbl in pairs if lbl == 1]
+    neg = [s for s, lbl in pairs if lbl == 0]
     if not pos or not neg:
         return float("nan")
     wins = ties = 0
@@ -393,12 +398,12 @@ def _confirmed_canary_event_stats(all_rows: list[dict], emitted_events: list) ->
     }
 
 
-def cmd_form_sweep(conn, *, write_summary: bool) -> None:
+def cmd_form_sweep(conn, *, write_summary: bool, schema: str) -> None:
     from uw_scan.cards.canary_calibration import load_calibration
     from uw_scan.storage.regime_backtest_repository import RegimeBacktestRepository
 
     cal = load_calibration()
-    bt_repo = RegimeBacktestRepository(conn)
+    bt_repo = RegimeBacktestRepository(conn, schema=schema)
     aucs_per_form: dict[str, dict[str, float]] = {}
 
     LABELS = [
@@ -409,7 +414,12 @@ def cmd_form_sweep(conn, *, write_summary: bool) -> None:
 
     for form in ("linear", "convex", "concave", "sigmoid"):
         series = _compute_canary_series(
-            conn, cal, form=form, start=VALID_START, end=VALID_END
+            conn,
+            cal,
+            form=form,
+            start=VALID_START,
+            end=VALID_END,
+            schema=schema,
         )
         rows = series["eval_rows"]
         scores = [r["score"] for r in rows]
@@ -475,15 +485,20 @@ def cmd_form_sweep(conn, *, write_summary: bool) -> None:
     CALIB_PATH.write_text(json.dumps(cal_raw, indent=2) + "\n")
 
 
-def cmd_report(conn, *, form, write_summary: bool) -> None:
+def cmd_report(conn, *, form, write_summary: bool, schema: str) -> None:
     from uw_scan.cards.canary_calibration import load_calibration
     from uw_scan.storage.regime_backtest_repository import RegimeBacktestRepository
 
     cal = load_calibration()
     selected_form = form or cal.score_form
-    bt_repo = RegimeBacktestRepository(conn)
+    bt_repo = RegimeBacktestRepository(conn, schema=schema)
     series = _compute_canary_series(
-        conn, cal, form=selected_form, start=TEST_START, end=date.today()
+        conn,
+        cal,
+        form=selected_form,
+        start=TEST_START,
+        end=date.today(),
+        schema=schema,
     )
     eval_rows = series["eval_rows"]
     all_rows = series["all_rows"]
@@ -573,15 +588,21 @@ def main():
     args = parser.parse_args()
 
     settings = Settings.from_env()
+    schema = settings.db_schema
     with connect(settings.db_dsn()) as conn:
         if args.calibrate:
-            cmd_calibrate(conn)
+            cmd_calibrate(conn, schema=schema)
             return
         if args.form_sweep:
-            cmd_form_sweep(conn, write_summary=args.write_summary)
+            cmd_form_sweep(conn, write_summary=args.write_summary, schema=schema)
             return
         if args.report:
-            cmd_report(conn, form=args.form, write_summary=args.write_summary)
+            cmd_report(
+                conn,
+                form=args.form,
+                write_summary=args.write_summary,
+                schema=schema,
+            )
             return
         parser.print_help()
         sys.exit(2)
