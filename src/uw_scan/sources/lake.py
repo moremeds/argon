@@ -221,7 +221,6 @@ def canonical_weight_artifact_bytes(weights: "pd.DataFrame") -> bytes:
     Sorts columns alphabetically, sorts rows by index, pins the parquet writer
     config so byte stream is reproducible within the uv.lock-pinned pyarrow.
     """
-    import pandas as pd  # noqa: PLC0415
 
     df = weights[sorted(weights.columns)].sort_index().copy()
     df.index.name = df.index.name or "trade_date"

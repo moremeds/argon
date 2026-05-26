@@ -570,7 +570,6 @@ def main() -> int:
         # Persist weight artifact
         from uw_scan.sources.lake import (  # noqa: PLC0415
             canonical_input_price_bytes,
-            canonical_weight_artifact_bytes,
             write_weight_artifact_local,
         )
 

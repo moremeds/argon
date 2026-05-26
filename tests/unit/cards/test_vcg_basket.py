@@ -17,7 +17,6 @@ import pytest
 
 from uw_scan.cards.vcg_basket import (
     METHOD_METADATA,
-    MethodMetadata,
     build_basket,
     realized_vol,
     risk_parity_weights,

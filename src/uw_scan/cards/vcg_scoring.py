@@ -530,7 +530,6 @@ def compute_vcg_composite(
     weighted average of single-proxy residuals — schema separation prevents
     misreading.
     """
-    import pandas as pd  # local import: vcg_scoring is pure-numpy in prod path
 
     from uw_scan.cards.vcg_basket import (  # noqa: PLC0415
         METHOD_METADATA,
