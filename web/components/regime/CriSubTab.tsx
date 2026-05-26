@@ -10,6 +10,7 @@ import InfoTooltip from "./InfoTooltip";
 import { CriHistoryTable } from "./cri/CriHistoryTable";
 import { GuidancePanel } from "./GuidancePanel";
 import { MeanReversionTiles } from "./MeanReversionTiles";
+import { ComponentBar, type ComponentSlot } from "./primitives/ComponentBar";
 import {
   DayChange,
   LiveBadge,
@@ -25,30 +26,6 @@ import {
 import { type CriBlock, type CriResponse, useCri } from "@/lib/regime/useCri";
 
 type CriLevel = "LOW" | "ELEVATED" | "HIGH" | "CRITICAL";
-
-const COMPONENT_TOOLTIPS: Record<string, string> = {
-  VIX: "CBOE Volatility Index — 30-day implied vol of SPX. Score rises as VIX exceeds 20 (elevated) and 30 (high).",
-  VVIX: "Vol-of-VIX — expected volatility of VIX itself. Three sub-scores: absolute level (85→130), VVIX/VIX ratio (5→8 = practitioner warning band), and 5-day rate-of-change (rising VVIX vs flat VIX is the canonical lead signal of tail-hedging demand).",
-  CORRELATION:
-    "Cboe 1-Month Implied Correlation Index (COR1M). High COR1M (>60) means large-cap S&P names are expected to move together.",
-  "TREND BREAK":
-    "SPX distance below the 100-day MA. One-sided: scores 0 when SPX is at or above the MA; saturates at -10% below. Designed to fire only on confirmed downtrends, not parabolic uptrends.",
-};
-
-// Reference markers per component. Values are in *score units* (0–25 scale).
-// Keyed by the JSON component slot (matches cri.components keys), NOT the
-// display label — so renaming MOMENTUM → TREND BREAK doesn't silently break
-// the lookup. Source: docs/research/regime/cri-methodology.md §6.
-type ComponentSlot = "vix" | "vvix" | "correlation" | "momentum";
-const COMPONENT_REFERENCES: Record<
-  ComponentSlot,
-  { mid: { score: number; label: string } }
-> = {
-  vix: { mid: { score: 5.0, label: "VIX 23" } },
-  vvix: { mid: { score: 6.7, label: "VVIX 110" } },
-  correlation: { mid: { score: 13.0, label: "COR1M 60" } },
-  momentum: { mid: { score: 7.5, label: "-3% MA" } },
-};
 
 // Mirror the Python scoring math from src/uw_scan/cards/cri_scorers.py so we
 // can draw the prior-day dot on each ComponentBar. Floors/ceilings MUST match
@@ -127,83 +104,6 @@ function levelColor(level: CriLevel): string {
     case "CRITICAL":
       return "var(--negative)";
   }
-}
-
-function ComponentBar({
-  label,
-  slot,
-  score,
-  priorScore,
-  live,
-}: {
-  label: string;
-  slot: ComponentSlot;
-  score: number;
-  priorScore?: number | null;
-  live: boolean;
-}) {
-  const pct = (score / 25) * 100;
-  const barColor =
-    score < 8
-      ? "var(--positive)"
-      : score > 16
-        ? "var(--negative)"
-        : "var(--warning)";
-  const tooltip = COMPONENT_TOOLTIPS[label];
-  const ref = COMPONENT_REFERENCES[slot];
-  const midPct = ref ? (ref.mid.score / 25) * 100 : null;
-  const priorPct =
-    priorScore != null && Number.isFinite(priorScore)
-      ? (Math.max(0, Math.min(25, priorScore)) / 25) * 100
-      : null;
-  return (
-    <div className="regime-component-bar">
-      <div className="regime-component-label">
-        <span style={{ flex: 1 }}>{label}</span>
-        {tooltip && <InfoTooltip text={tooltip} />}
-        <LiveBadge live={live} />
-      </div>
-      <div className="regime-bar-track" style={{ position: "relative" }}>
-        <div
-          className="regime-bar-fill"
-          style={{ width: `${pct}%`, background: barColor }}
-        />
-        {midPct != null && ref ? (
-          <div
-            className="regime-bar-tick"
-            style={{
-              position: "absolute",
-              left: `${midPct}%`,
-              top: 0,
-              bottom: 0,
-              width: 1,
-              background: "var(--text-muted)",
-              opacity: 0.5,
-            }}
-            title={ref.mid.label}
-          />
-        ) : null}
-        {priorPct != null ? (
-          <div
-            className="regime-bar-prior"
-            style={{
-              position: "absolute",
-              left: `${priorPct}%`,
-              top: "50%",
-              transform: "translate(-50%, -50%)",
-              width: 6,
-              height: 6,
-              borderRadius: "50%",
-              background: "var(--text-primary)",
-              opacity: 0.7,
-            }}
-            title={`Prior: ${(priorScore as number).toFixed(1)}`}
-          />
-        ) : null}
-      </div>
-      <div className="regime-component-score">{score.toFixed(1)}/25</div>
-    </div>
-  );
 }
 
 function TriggerRow({
@@ -549,7 +449,9 @@ export function CriSubTabView({
           <TriggerRow
             label="Realized Vol > 25%"
             met={rvolTriggerMet}
-            value={realizedVol != null ? `${formatNumber(realizedVol)}%` : "---"}
+            value={
+              realizedVol != null ? `${formatNumber(realizedVol)}%` : "---"
+            }
             live={live}
           />
           <TriggerRow

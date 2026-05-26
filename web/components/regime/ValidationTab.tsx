@@ -5,12 +5,13 @@ import { useEffect, useRef, useState } from "react";
 import type { components } from "@/lib/types";
 import { regimeApi } from "@/lib/regime/api";
 
+import CanaryValidationPanel from "./CanaryValidationPanel";
 import CriValidationPanel from "./CriValidationPanel";
 import VcgValidationPanel from "./VcgValidationPanel";
 
 type CriResp = components["schemas"]["ValidationResponse"];
 type VcgResp = components["schemas"]["VcgValidationResponse"];
-type SubTab = "cri" | "vcg";
+type SubTab = "cri" | "vcg" | "canary";
 
 export default function ValidationTab() {
   const [sub, setSub] = useState<SubTab>("cri");
@@ -28,6 +29,9 @@ export default function ValidationTab() {
   };
 
   useEffect(() => {
+    // Canary uses its own self-fetching panel so we skip the CRI/VCG
+    // fetch here when sub === 'canary'.
+    if (sub === "canary") return;
     let cancelled = false;
     const token = ++reqToken.current;
     const url =
@@ -82,6 +86,13 @@ export default function ValidationTab() {
         >
           VCG
         </button>
+        <button
+          className={`ticker-tab ${sub === "canary" ? "active" : ""}`}
+          onClick={() => selectSub("canary")}
+          data-testid="validation-sub-canary"
+        >
+          5% CANARY
+        </button>
       </div>
       {err && (
         <div data-testid="validation-error">
@@ -95,6 +106,7 @@ export default function ValidationTab() {
       {!err && !loading && sub === "vcg" && vcg && (
         <VcgValidationPanel data={vcg} />
       )}
+      {sub === "canary" && <CanaryValidationPanel />}
     </div>
   );
 }
