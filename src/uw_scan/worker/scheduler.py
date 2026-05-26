@@ -461,6 +461,18 @@ def main() -> int:
             else:
                 logger.info("regime_cri_scan_persisted row_id=%d", row_id)
 
+    def _regime_canary_scan() -> None:
+        # Reads vol_index_daily (VIX/VVIX/VIX3M/COR1M/SPX); writes
+        # canary_snapshots. No external API spend. Append-only / idempotent.
+        from uw_scan.scanners import canary as canary_scanner
+
+        with _repo(settings) as repo:
+            row_id = canary_scanner.run(repo.conn, schema=settings.db_schema)
+            if row_id is None:
+                logger.info("regime_canary_scan_skipped_thin_data")
+            else:
+                logger.info("regime_canary_scan_persisted row_id=%d", row_id)
+
     def _regime_gex_scan() -> None:
         # Weekday gate — UW data only meaningful during regular sessions.
         if datetime.now(ZoneInfo(settings.rth_tz)).weekday() >= 5:
@@ -734,6 +746,17 @@ def main() -> int:
             CronTrigger(minute=25, timezone=settings.rth_tz),
             id="regime_vcg_scan",
             name="Regime VCG scan",
+            max_instances=1,
+            coalesce=True,
+        )
+        # 5% Canary scan — refreshes canary_snapshots on :30. Reads
+        # VIX/VVIX/VIX3M/COR1M/SPX from vol_index_daily. Append-only,
+        # idempotent (ON CONFLICT DO NOTHING in CanarySnapshotRepository).
+        sched.add_job(
+            _regime_canary_scan,
+            CronTrigger(minute=30, timezone=settings.rth_tz),
+            id="regime_canary_scan",
+            name="Regime 5% Canary scan",
             max_instances=1,
             coalesce=True,
         )
