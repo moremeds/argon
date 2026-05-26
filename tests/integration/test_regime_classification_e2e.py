@@ -178,9 +178,16 @@ def test_e2e_classification_full_pipeline(
     src["vcg_source"]["run_id"] = vcg_run_id
     src_yaml.write_text(yaml.safe_dump(src))
 
-    # v0.3 / CL-5: DSN from psycopg .info (pytest-postgresql uses trust auth)
+    # DSN from psycopg .info. Local pytest-postgresql runs trust auth (empty
+    # password); CI Linux requires a password — include cinfo.password when
+    # present. libpq key=value form mirrors Settings.db_dsn() so subprocess
+    # connection semantics match production code.
     cinfo = repo.conn.info
-    db_url = f"postgresql://{cinfo.user}@{cinfo.host}:{cinfo.port}/{cinfo.dbname}"
+    password_clause = f" password={cinfo.password}" if cinfo.password else ""
+    db_url = (
+        f"host={cinfo.host} port={cinfo.port} dbname={cinfo.dbname} "
+        f"user={cinfo.user}{password_clause}"
+    )
     monkeypatch.setenv("UW_SCAN_DB_URL", db_url)
 
     report_path = tmp_path / "report.md"
