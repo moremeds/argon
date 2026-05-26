@@ -22,6 +22,16 @@ from typing import Any
 
 def _normalize(obj: Any) -> Any:
     """Recursive canonical normalizer. Output is JSON-safe with stable repr."""
+    # Coerce numpy scalars (np.bool_, np.int64, np.float64, ...) to Python
+    # primitives FIRST. They are NOT subclasses of Python bool/int/float,
+    # so the isinstance ladder below would miss them. Detected by duck-
+    # typing on the numpy scalar protocol (0-d shape + .item()).
+    if (
+        hasattr(obj, "item")
+        and hasattr(obj, "shape")
+        and getattr(obj, "shape", None) == ()
+    ):
+        obj = obj.item()
     if isinstance(obj, dict):
         return {k: _normalize(v) for k, v in sorted(obj.items()) if k != "_prior"}
     if isinstance(obj, (list, tuple)):
