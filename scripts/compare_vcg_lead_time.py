@@ -581,7 +581,7 @@ def write_report(
         "",
         f"Generated: {date.today().isoformat()}",
         "",
-        "Spec: docs/superpowers/specs/2026-05-26-vcg-composite-research-design.md",
+        "Spec: docs/superpowers/archive/specs/2026-05-26-vcg-composite-research-design.md",
         "",
         "## 1. Methodology recap",
         "",

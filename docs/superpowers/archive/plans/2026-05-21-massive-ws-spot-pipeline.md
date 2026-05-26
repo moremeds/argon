@@ -3245,7 +3245,7 @@ The following are NOT in this plan — flag them for follow-up:
 
 ## Execution Handoff
 
-Plan complete and saved to `docs/superpowers/plans/2026-05-21-massive-ws-spot-pipeline.md`. Two execution options:
+Plan complete and saved to `docs/superpowers/archive/plans/2026-05-21-massive-ws-spot-pipeline.md`. Two execution options:
 
 1. **Subagent-Driven (recommended)** — dispatch a fresh subagent per task, review between tasks, fast iteration
 2. **Inline Execution** — execute tasks in this session using executing-plans, batch execution with checkpoints

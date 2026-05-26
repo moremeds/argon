@@ -15,7 +15,7 @@
 1. Create an isolated worktree from the current base branch before coding.
 2. Verify the design exists:
    ```bash
-   test -f docs/superpowers/specs/2026-05-25-pipeline-benchmark-gauge-design.md
+   test -f docs/superpowers/archive/specs/2026-05-25-pipeline-benchmark-gauge-design.md
    ```
 3. Check migration prefixes before choosing the migration number:
    ```bash
@@ -551,7 +551,7 @@ changes, migration, tests, generated types, and HealthPanel/API helper changes.
 
 ## Execution Choice
 
-Plan complete and saved to `docs/plans/2026-05-25-pipeline-benchmark-gauge.md`.
+Plan complete and saved to `docs/superpowers/archive/plans/2026-05-25-pipeline-benchmark-gauge.md`.
 
 Two execution options:
 

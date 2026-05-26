@@ -1,7 +1,7 @@
 # Research note: "Spec %" definition and Skew DTE constant
 
 **Date:** 2026-05-12
-**Context:** UW Scanner UI rework — defining card fields for the watchlist landing page (`docs/superpowers/specs/2026-05-12-uw-watchlist-ui-rework-design.md`, pending). The Market Pulse reference card shows a "Spec %" gauge and a "SKEW (29d)" section. Neither is anchored to a public, canonical definition, so this note records the search and decisions.
+**Context:** UW Scanner UI rework — defining card fields for the watchlist landing page before the spec was drafted. The Market Pulse reference card shows a "Spec %" gauge and a "SKEW (29d)" section. Neither is anchored to a public, canonical definition, so this note records the search and decisions.
 
 ## Question 1 — What is "Spec %"?
 

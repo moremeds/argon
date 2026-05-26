@@ -1,5 +1,5 @@
 -- 028_matrix_state_snapshots.sql — Cockpit 6-dimension matrix state.
--- See docs/superpowers/research/six-dimension-matrix/00-overview.md §0
+-- See docs/research/six-dimension-matrix/00-overview.md §0
 -- for the direction-mapping, consistency-tier, and cluster-coverage rules
 -- that produce the rows in this table.
 

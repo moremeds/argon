@@ -6,8 +6,7 @@ there for backward compat with callers in sources/, api/, and tests/.
 Internal-only helpers (_d, _nullable_int, _nullable_float) live here too for
 cohesion.
 
-Moved from repository.py during the PR-1 split (docs/superpowers/plans/
-2026-05-16-repository-split-pr1.md). Cockpit-specific helpers
+Moved from repository.py during the PR-1 split. Cockpit-specific helpers
 (_pin_candidate, _vanna_conditional_reading, _charm_regime, etc.) stay in
 repository.py for PR-1 and will move with their domain modules in PR-2.
 """

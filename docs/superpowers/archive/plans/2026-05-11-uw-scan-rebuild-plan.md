@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Rebuild the Unusual Whales opportunity scanner from scratch using vertical slices, producing the two canonical reports — Single-Stock Analysis Card and Full Scan Report — defined in `docs/superpowers/specs/2026-05-11-uw-scan-design.md` (Report Formats section).
+**Goal:** Rebuild the Unusual Whales opportunity scanner from scratch using vertical slices, producing the two canonical reports — Single-Stock Analysis Card and Full Scan Report — defined in `docs/superpowers/archive/specs/2026-05-11-uw-scan-design.md` (Report Formats section).
 
 **Architecture:** Each slice is end-to-end (UI → pipeline → API client → normalizer → storage → reload), shipping one user-visible feature with real persistence, real Postgres integration tests, and full error surfacing. Horizontal-layer planning (build all clients, then all storage, then all UI) is rejected as the failure mode that produced the prior reset.
 

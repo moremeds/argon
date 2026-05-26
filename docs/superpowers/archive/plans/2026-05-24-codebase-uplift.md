@@ -28,7 +28,7 @@ Abort or split the PR whenever a task starts changing product behavior, API shap
 ## Ground Rules
 
 - Use an isolated worktree for implementation, for example `.claude/worktrees/codebase-uplift`.
-- Before executing from a fresh worktree, verify this plan exists in that worktree with `test -f docs/plans/2026-05-24-codebase-uplift.md`. If it does not, land or carry the plan into the worktree first.
+- Before executing from a fresh worktree, verify this plan exists in that worktree with `test -f docs/superpowers/archive/plans/2026-05-24-codebase-uplift.md`. If it does not, land or carry the plan into the worktree first.
 - Never push directly to `main`.
 - Keep each task in its own PR unless explicitly grouped below.
 - Run the narrow verification first, then the broader gate.
@@ -413,7 +413,7 @@ def test_unexpected_duplicate_prefixes_rejects_new_collisions(
 
 **Files:**
 - Decide whether to keep, archive, or delete:
-  - `docs/plans/2026-05-19-models-contract-split.md`
+  - historical models contract split note, if present in the worktree
   - `docs/reviews/2026-05-16-web-code-review.md`
   - `docs/reviews/2026-05-18-backend-modularization-and-reuse.md`
   - `docs/reviews/2026-05-19-codebase-modularization-and-refactor-review.md`

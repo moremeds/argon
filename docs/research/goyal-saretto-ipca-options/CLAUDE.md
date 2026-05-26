@@ -14,7 +14,7 @@ The paper builds an Instrumented Principal Component Analysis (IPCA) factor mode
 
 `unusual-whales` already exposes most of the paper's option-side characteristics (IV ATM, IV skew/term, RV−IV via `vol_series.py`, model-free moments via skew tables). The CRI work specifically uses a VRP-style component. If Goyal-Saretto's single-factor reading is right, **most of the cross-sectional option signals we might build are statistical refractions of one underlying RV−IV signal**. That has direct implications for:
 
-- The CRI redesign (`docs/superpowers/plans/2026-05-19-cri-methodology-tune.md`, `2026-05-20-cri-page-enrichment.md`) — confirms RV−IV is doing real work, but suggests other regime-side option signals may be near-redundant.
+- The CRI redesign (`docs/superpowers/archive/plans/2026-05-19-cri-methodology-tune.md`, `2026-05-20-cri-page-enrichment.md`) — confirms RV−IV is doing real work, but suggests other regime-side option signals may be near-redundant.
 - The 6-dimension option analysis roadmap (see `MEMORY.md` → `project_six_dimension_option_analysis.md`).
 - The scanner's signal-ranking weights (`src/uw_scan/scanner/`) — adding more option-side signals on top of an RV−IV-style score should expect rapidly diminishing returns.
 

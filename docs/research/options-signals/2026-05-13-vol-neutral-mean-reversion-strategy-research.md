@@ -1,7 +1,7 @@
 # Research note: volatility-neutral and mean-reversion strategies from Volatility Tab v2
 
 **Date:** 2026-05-13
-**Context:** Follow-on strategy research for `docs/superpowers/specs/2026-05-13-volatility-tab-v2-design.md`.
+**Context:** Follow-on strategy research for the historical Volatility Tab v2 design.
 
 ## Short answer
 
@@ -305,7 +305,7 @@ Key question: does `vrp_z_20 + divergence + regime + iv_of_iv_20` outperform sim
 
 1. `docs/superpowers/specs/vol-strategy-backtest-design.md` - exact data model, signal definitions, strategy classes, and P&L engine boundaries.
 2. `docs/superpowers/plans/vol-strategy-backtest-implementation.md` - phased implementation plan: feature-only validation first, synthetic options second, contract-level P&L third.
-3. `docs/superpowers/research/option-liquidity-and-event-filtering.md` - liquidity gates, earnings filters, and short-option safety rules.
+3. `docs/research/options-signals/option-liquidity-and-event-filtering.md` - liquidity gates, earnings filters, and short-option safety rules.
 
 ## Sources
 

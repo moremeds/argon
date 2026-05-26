@@ -8,7 +8,7 @@
 
 **Tech Stack:** Python 3.13 + `uv`, FastAPI, Pydantic v2, psycopg 3, Postgres `uw_scan` schema, APScheduler (worker), Next.js 16 RSC + React 19, Vitest + Playwright, pytest + pytest-postgresql.
 
-**Reference spec:** `docs/superpowers/specs/2026-05-17-scanner-page-design.md` — every "spec §N" reference below points to that file. Read it before starting.
+**Reference spec:** `docs/superpowers/archive/specs/2026-05-17-scanner-page-design.md` — every "spec §N" reference below points to that file. Read it before starting.
 
 **Reference source (port):** `/Users/chenxi/projects/xenon/src/xenon/scanners/uw/` — the algorithmic reference, especially `signals/*.py`, `ranking.py`, `confluence.py`, `analysis/gex.py:50,122` for `detect_pinning` and `is_opex_week`. Differences from xenon are documented in spec §3 and respected below.
 
