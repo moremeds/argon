@@ -29,6 +29,14 @@ _VCG_LABEL_ALIASES = {
     "BOUNCE": "BOUNCE",
     "bounce": "BOUNCE",
     "Bounce": "BOUNCE",
+    # VCG-specific yellow-light state (elevated VCG_adj above trigger but not
+    # yet hitting RO/EDR/BOUNCE/PANIC). The Level-1 taxonomy has no exact
+    # "elevated but not stressed" cell, so map WATCH -> NORMAL: classification
+    # treats it as VCG asserting non-stress. Decision recorded in the
+    # baseline report's executive summary.
+    "WATCH": "NORMAL",
+    "watch": "NORMAL",
+    "Watch": "NORMAL",
 }
 
 

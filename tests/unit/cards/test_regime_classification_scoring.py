@@ -32,6 +32,15 @@ def test_normalize_vcg_label_handles_common_variants():
     assert normalize_vcg_label(" PANIC") == "PANIC"
 
 
+def test_normalize_vcg_label_watch_maps_to_normal():
+    """VCG emits WATCH for 'elevated VCG_adj above trigger but not yet hitting
+    RO/EDR/BOUNCE/PANIC'. The Level-1 taxonomy has no exact 'elevated but not
+    stressed' cell — WATCH is classified as VCG asserting non-stress (NORMAL).
+    Decision is recorded in the baseline report's executive summary."""
+    assert normalize_vcg_label("WATCH") == "NORMAL"
+    assert normalize_vcg_label("watch") == "NORMAL"
+
+
 def test_normalize_vcg_label_raises_on_unknown_with_remediation_hint():
     """v0.3 / CL-11: error must tell future maintainer where to extend the map."""
     with pytest.raises(ValueError, match="_VCG_LABEL_ALIASES"):
