@@ -1,0 +1,42 @@
+# Level-2 named-crisis windows for sanity overlay only.
+# use_for_headline is ALWAYS false. These do not gate the verdict;
+# Phase 8 entry script computes per-window VCG/truth label distributions
+# and the report renders them in a separate sanity-overlay section.
+
+label_version: 1
+crises:
+  - name: "GFC-Lehman"
+    start_date: "2008-09-15"
+    end_date: "2009-03-09"
+    provenance: "Bear Stearns sale 2008-03-16 / Lehman bankruptcy 2008-09-15 / SPX trough 2009-03-09"
+    use_for_headline: false
+  - name: "Eurozone-sovereign"
+    start_date: "2011-08-01"
+    end_date: "2012-09-06"
+    provenance: "S&P US downgrade Aug 2011 / Draghi 2012-07-26 / OMT 2012-09-06"
+    use_for_headline: false
+  - name: "China-devaluation-2015"
+    start_date: "2015-08-10"
+    end_date: "2015-10-02"
+    provenance: "PBoC CNY devaluation 2015-08-11 / SPX flash crash 2015-08-24"
+    use_for_headline: false
+  - name: "Q4-2018-vol-regime"
+    start_date: "2018-10-03"
+    end_date: "2018-12-26"
+    provenance: "Powell 'long way from neutral' 2018-10-03 / Christmas Eve trough 2018-12-24"
+    use_for_headline: false
+  - name: "COVID-2020"
+    start_date: "2020-02-19"
+    end_date: "2020-03-23"
+    provenance: "SPX ATH 2020-02-19 / SPX trough 2020-03-23 (-33.9%)"
+    use_for_headline: false
+  - name: "2022-rates-bear"
+    start_date: "2022-01-03"
+    end_date: "2022-10-13"
+    provenance: "SPX ATH 2022-01-03 / CPI shock 2022-09-13 / trough 2022-10-13"
+    use_for_headline: false
+  - name: "2023-SVB-week"
+    start_date: "2023-03-08"
+    end_date: "2023-03-17"
+    provenance: "SVB run 2023-03-09 / SVB+Signature seized 2023-03-10/12"
+    use_for_headline: false
