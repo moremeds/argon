@@ -112,6 +112,44 @@ else:                                NORMAL
 
 **Calibration provenance contract**: bumping `COMPOSITE_VERSION` in `vcg_scoring.py` requires updating every threshold value in this section in the same diff, plus a new entry in §7's Version history.
 
+### 3.1 Composite credit-proxy research candidates (2026-05-26)
+
+Production v1 uses HYG as the single credit proxy. To test whether a synthetic basket reads credit stress more reliably than any one issuer, the 2026-05-26 research PR added four candidate composite construction methods. None passed the promotion gate — production stays on HYG. The plumbing remains for future re-runs against extended benchmark coverage.
+
+**Four composite candidates** (all `run_scope='research'`, persisted in `regime_backtest_runs` with `composite_version='2-candidate-*'`):
+
+| Method | Composite version | Proxies | Construction |
+|---|---|---|---|
+| `risk_parity_3` | `2-candidate-rp3` | HYG / JNK / LQD | Daily 1/sigma normalized weights across all three, vol_window=63, weight_lag=1 |
+| `risk_parity_hyjk` | `2-candidate-rp-hyjk` | HYG / JNK | Same as above but HY-only (excludes LQD; tests whether IG signal dilutes HY credit stress) |
+| `hy_minus_ig_spread` | `2-candidate-hy-minus-ig` | HYG / JNK / LQD | Fixed weights (0.5 HYG + 0.5 JNK − 1.0 LQD): explicit HY-vs-IG spread, gross exposure 2× |
+| `equal_weight_3` | `2-candidate-eq3` | HYG / JNK / LQD | Static 1/3 across all three (baseline that strips out the vol-weighting decision) |
+
+Construction lives in `src/uw_scan/cards/vcg_basket.py` (research-only — production VCG path does not import it; enforced by `tests/unit/test_research_isolation.py`).
+
+**No-lookahead invariant**: weights at aligned index `i` are a function only of returns `[< i]` via `.shift(weight_lag)` inside `risk_parity_weights`. With default `weight_lag=1`, `return[i]` cannot leak into `weight[i]`. Two load-bearing tests prove this: a perturbation test (changing `return[i]` does not change `weight[i]`) and a strict-offset reference test (at every position `i`, the actual weight matches the reference computed from the prefix `[:i+1]`).
+
+**OLS causality contract**: signals computed at close `t` are actionable on `t+1`. Encoded in `cards/vcg_validation_metrics.actionable_lead_days`: an RO at close `t` whose next-session is after the trough returns negative lead, excluding the event from hit-rate denominators.
+
+**Composite residual is NOT a weighted average of single-proxy residuals.** The composite path runs the canonical OLS on `(VIX, VVIX, basket_returns)` via `_compute_vcg_from_returns` — taking returns directly rather than reconstructing levels and re-differencing. Output schema separates `signal` (basket) from `attribution.basket_construction` (method, gross exposure, weights today) and `attribution.signal_breakdown` (per-proxy OLS for HYG / JNK / LQD regardless of which proxies the basket consumed, plus the `composite_single_proxy_disagreement` flag). The schema separation is intentional — future readers must not infer the composite residual is a weighted average.
+
+**Promotion gate aggregation** (locked in spec §9, no author discretion):
+- Primary utility + primary lead gates: computed on the `(SPX, Fast)` cell only.
+- Robustness FP / alarm / hit-rate gates: median across all enabled benchmark × drawdown_def cells with `n_events > 0` (the comparator drops benchmarks below 4000 bars; report §2 quotes the actual denominator).
+- FP definition: an RO is NOT a false positive iff any event interval `[peak, trough]` overlaps `[ro_date, ro_date + H_def]` trading days. Mid-drawdown RO is a hit, not an FP.
+- Gate metric: `FP_episode_rate` (NOT `FP_day_rate`). Both reported.
+
+**2026-05-26 validation outcome**: see `docs/research/regime/vcg-composite-validation-2026-05-26.md`. Headline:
+- All four composite methods: **OVERALL FAIL** the promotion gate.
+- Hit rate is 0% across the board. VCG's PANIC self-suppression (`vcg_adj = 0` when VIX ≥ 48) plus its low alarm-day-ratio (3-13 bps over 12+ years) means RO rarely overlaps with SPX drawdown windows.
+- Benchmark coverage was thin: NDX and RUT were absent from `vol_index_daily`, leaving SPX-only evaluation (Fast / Medium / Major). When NDX / RUT become available, the robustness denominator triples and the comparator can be re-run without code change.
+- Hard Guarantee #5 holds: no promotion candidate; production v1 HYG row (the canonical `regime_backtest_runs` row at `composite_version='1'`, `composite_method='single_proxy'`, `credit_proxy='HYG'`) stays in place. The API's `find_latest_run('vcg')` continues to surface this row.
+
+**To re-run the comparator** after NDX / RUT are seeded:
+```bash
+uv run python scripts/compare_vcg_lead_time.py  # regenerates the report in place
+```
+
 ## 4. Design decisions
 
 ### 4.1 Credit proxy: HYG default
