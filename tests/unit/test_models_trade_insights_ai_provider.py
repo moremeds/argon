@@ -11,7 +11,9 @@ from uw_scan.models import (
     TradeInsightAiAnalysisEnqueueResponse,
     TradeInsightAiAnalysisResponse,
     TradeInsightAiAnalysisStub,
+    TradeInsightAiBase,
     TradeInsightAiLatestPair,
+    TradeInsightAiOutcome,
     TradeInsightAiProvider,
 )
 
@@ -97,3 +99,9 @@ def test_provider_alias_is_a_str_literal_at_runtime() -> None:
     # Literal["codex", "claude"] resolves to str at runtime; this just sanity
     # checks the alias exists and is importable.
     assert TradeInsightAiProvider is not None
+
+
+def test_public_trade_insights_ai_modules_remain_stable() -> None:
+    assert TradeInsightAiBase.__module__ == "uw_scan.models"
+    assert TradeInsightAiOutcome.__module__ == "uw_scan.models"
+    assert TradeInsightAiAnalysisResponse.__module__ == "uw_scan.models"

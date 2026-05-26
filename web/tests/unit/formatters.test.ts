@@ -8,6 +8,8 @@ import {
   fmtRelativeAgo,
   fmtRelativeDay,
   fmtSigned,
+  fmtSignedCompactMoney,
+  fmtSignedPct,
   fmtTimeOfDay,
   toNum,
 } from "@/lib/formatters";
@@ -49,6 +51,53 @@ describe("fmtMoneyAbbrev", () => {
   it("returns dash for null/undefined", () => {
     expect(fmtMoneyAbbrev(null)).toBe("—");
     expect(fmtMoneyAbbrev(undefined)).toBe("—");
+  });
+});
+
+describe("fmtSignedCompactMoney", () => {
+  it("renders configurable empty tokens", () => {
+    expect(fmtSignedCompactMoney(null)).toBe("—");
+    expect(fmtSignedCompactMoney(undefined, { empty: "---" })).toBe("---");
+  });
+
+  it("formats zero and signed zero with a positive sign", () => {
+    expect(fmtSignedCompactMoney(0)).toBe("+$0");
+    expect(fmtSignedCompactMoney(-0)).toBe("+$0");
+  });
+
+  it("formats thousands and millions with maximum fraction digits by default", () => {
+    expect(fmtSignedCompactMoney(12_340)).toBe("+$12.34K");
+    expect(fmtSignedCompactMoney(-1_500_000)).toBe("-$1.5M");
+    expect(fmtSignedCompactMoney(1_000_000, { digits: 1 })).toBe("+$1M");
+  });
+
+  it("supports fixed fraction digits for panel values that require stable width", () => {
+    expect(fmtSignedCompactMoney(19_210, { digits: 2, fixed: true })).toBe(
+      "+$19.21K",
+    );
+    expect(fmtSignedCompactMoney(-966_840, { digits: 2, fixed: true })).toBe(
+      "-$966.84K",
+    );
+    expect(fmtSignedCompactMoney(1_000_000, { digits: 2, fixed: true })).toBe(
+      "+$1.00M",
+    );
+  });
+});
+
+describe("fmtSignedPct", () => {
+  it("formats signed decimal percentages", () => {
+    expect(fmtSignedPct(0.1576, 1)).toBe("+15.8%");
+    expect(fmtSignedPct(-0.037, 1)).toBe("-3.7%");
+  });
+
+  it("keeps zero and signed zero positive like existing panels", () => {
+    expect(fmtSignedPct(0, 0)).toBe("+0%");
+    expect(fmtSignedPct(-0, 1)).toBe("+0.0%");
+  });
+
+  it("renders configurable empty tokens", () => {
+    expect(fmtSignedPct(null)).toBe("—");
+    expect(fmtSignedPct(undefined, 1, { empty: "---" })).toBe("---");
   });
 });
 

@@ -1,6 +1,7 @@
 "use client";
 
 import type { RegimeDealerResponse, RegimeVcgResponse } from "@/lib/api";
+import { fmtSignedCompactMoney, fmtSignedPct } from "@/lib/formatters";
 
 const PANEL: React.CSSProperties = {
   background: "var(--bg-panel)",
@@ -48,20 +49,6 @@ function vcgColor(interp: string | null | undefined): string {
 function fmtScore(v: number | null | undefined): string {
   if (v == null) return "—";
   return `${v >= 0 ? "+" : ""}${v.toFixed(2)}`;
-}
-
-function fmtPct(v: number | null | undefined, digits = 1): string {
-  if (v == null) return "—";
-  return `${v >= 0 ? "+" : ""}${(v * 100).toFixed(digits)}%`;
-}
-
-function fmtMoney(v: number | null | undefined): string {
-  if (v == null) return "—";
-  const abs = Math.abs(v);
-  const sign = v >= 0 ? "+" : "-";
-  if (abs >= 1e6) return `${sign}$${(abs / 1e6).toFixed(2)}M`;
-  if (abs >= 1e3) return `${sign}$${(abs / 1e3).toFixed(2)}K`;
-  return `${sign}$${abs.toFixed(0)}`;
 }
 
 function SubBar({
@@ -327,7 +314,11 @@ export function VolatilityRegimePanel({
                     </span>
                   </div>
                   <div style={{ fontSize: 10, color: "var(--text-muted)" }}>
-                    {fmtPct(l.distance_pct, 1)} from spot · {fmtMoney(l.gamma)}{" "}
+                    {fmtSignedPct(l.distance_pct, 1)} from spot ·{" "}
+                    {fmtSignedCompactMoney(l.gamma, {
+                      digits: 2,
+                      fixed: true,
+                    })}{" "}
                     gamma
                   </div>
                 </div>
@@ -364,7 +355,10 @@ export function VolatilityRegimePanel({
               }}
               data-testid="odte-gex"
             >
-              {fmtMoney(odte_gex)}{" "}
+              {fmtSignedCompactMoney(odte_gex, {
+                digits: 2,
+                fixed: true,
+              })}{" "}
               <span style={{ color: "var(--text-muted)", fontSize: 10 }}>
                 {odte_share_pct != null
                   ? `${Math.round(odte_share_pct * 100)}% of chain`
@@ -424,7 +418,10 @@ export function VolatilityRegimePanel({
                       />
                     </div>
                     <span style={{ textAlign: "right", color }}>
-                      {fmtMoney(b.net_gex)}
+                      {fmtSignedCompactMoney(b.net_gex, {
+                        digits: 2,
+                        fixed: true,
+                      })}
                     </span>
                   </div>
                 );

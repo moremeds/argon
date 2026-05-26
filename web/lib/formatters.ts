@@ -31,6 +31,32 @@ export function fmtMoneyAbbrev(v: number | null | undefined): string {
   return `${sign}$${abs.toFixed(0)}`;
 }
 
+export function fmtSignedCompactMoney(
+  v: number | null | undefined,
+  opts: { digits?: number; fixed?: boolean; empty?: string } = {},
+): string {
+  if (v == null || !Number.isFinite(v)) return opts.empty ?? "—";
+  const sign = v >= 0 ? "+" : "-";
+  const abs = Math.abs(v);
+  const digits = opts.digits ?? 2;
+  const formatScaled = (scaled: number) =>
+    opts.fixed
+      ? scaled.toFixed(digits)
+      : scaled.toLocaleString("en-US", { maximumFractionDigits: digits });
+  if (abs >= 1e6) return `${sign}$${formatScaled(abs / 1e6)}M`;
+  if (abs >= 1e3) return `${sign}$${formatScaled(abs / 1e3)}K`;
+  return `${sign}$${abs.toFixed(0)}`;
+}
+
+export function fmtSignedPct(
+  v: number | null | undefined,
+  digits = 1,
+  opts: { empty?: string } = {},
+): string {
+  if (v == null || !Number.isFinite(v)) return opts.empty ?? "—";
+  return `${v >= 0 ? "+" : ""}${(v * 100).toFixed(digits)}%`;
+}
+
 export function fmtDecimal(v: number | null | undefined, digits = 2): string {
   if (v == null || !Number.isFinite(v)) return "—";
   return v.toLocaleString("en-US", {

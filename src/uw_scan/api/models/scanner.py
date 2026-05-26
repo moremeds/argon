@@ -64,6 +64,8 @@ class ScannerResponse(BaseModel):
     scanned_universe_size: int
     candidates_with_hits: int
     candidates: list[ScannerCandidate]
+    # Deprecated-empty compatibility field. Legacy clients may still expect
+    # the key, but scanner regime no longer hard-gates candidates.
     gated: list[ScannerGatedTicker]
     generated_at: datetime
 

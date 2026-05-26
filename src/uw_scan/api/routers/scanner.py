@@ -152,7 +152,8 @@ def get_scanner(
         scanned_universe_size = int(cur.fetchone()[0])
 
     candidates: list[DCScanCandidate] = []
-    # Kept for response compatibility; regime no longer suppresses scanner rows.
+    # Deprecated-empty response key retained for compatibility. Regime no
+    # longer suppresses scanner rows, and stale rows are silently dropped.
     gated: list[ScannerGatedTicker] = []
 
     for row in latest:
@@ -169,7 +170,7 @@ def get_scanner(
                 "regime": "pass",
             }
         )
-        # Force pass even if a stale regime=block row was persisted by old code.
+        # Force pass even if a legacy regime=block row was persisted by old code.
         gate["regime"] = "pass"
 
         hit_rows = sigs.fetch_hits_for_run(run_id, ticker)
