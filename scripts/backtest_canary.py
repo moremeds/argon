@@ -492,6 +492,33 @@ def cmd_form_sweep(conn, *, write_summary: bool, schema: str) -> None:
     CALIB_PATH.write_text(json.dumps(cal_raw, indent=2) + "\n")
 
 
+def cmd_form_sweep_full(conn, *, schema: str) -> None:
+    """Full-history candidate-discovery sweep across all 4 score forms.
+
+    Thin wrapper — delegates to
+    `uw_scan.reports.regime_canary_form_sweep_full.run_form_sweep_full`.
+    Passes existing helpers through a dependency container so the
+    package module does not import this script.
+    """
+    from uw_scan.reports.regime_canary_form_sweep_full import (
+        CanaryFormSweepDeps,
+        run_form_sweep_full,
+    )
+
+    deps = CanaryFormSweepDeps(
+        compute_canary_series=_compute_canary_series,
+        aucs_for_rows=_aucs_for_rows,
+        band_counts=_band_counts,
+        block_bootstrap_auc_ci=_block_bootstrap_auc_ci,
+        clean_nans=_clean_nans,
+        entry_lagged_label=_entry_lagged_label,
+        auc=_auc,
+        label_specs=LABEL_SPECS,
+        composite_version=COMPOSITE_VERSION,
+    )
+    run_form_sweep_full(conn, schema=schema, deps=deps)
+
+
 def cmd_report(conn, *, form, write_summary: bool, schema: str) -> None:
     from uw_scan.cards.canary_calibration import load_calibration
     from uw_scan.storage.regime_backtest_repository import RegimeBacktestRepository
@@ -1072,6 +1099,11 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--calibrate", action="store_true")
     parser.add_argument("--form-sweep", action="store_true")
+    parser.add_argument(
+        "--form-sweep-full",
+        action="store_true",
+        help="candidate discovery: sweep all 4 forms against full canary_snapshots range",
+    )
     parser.add_argument("--report", action="store_true")
     parser.add_argument(
         "--walk-forward",
@@ -1087,6 +1119,26 @@ def main():
     parser.add_argument("--form", choices=("linear", "convex", "concave", "sigmoid"))
     args = parser.parse_args()
 
+    # CLI-level mutual exclusion (G-1) — argparse doesn't use a group here.
+    mode_flags = [
+        args.calibrate,
+        args.form_sweep,
+        args.form_sweep_full,
+        args.report,
+        args.walk_forward,
+        args.robustness,
+    ]
+    if sum(bool(f) for f in mode_flags) > 1:
+        parser.error(
+            "only one of --calibrate/--form-sweep/--form-sweep-full/--report/"
+            "--walk-forward/--robustness may be specified"
+        )
+
+    if args.form_sweep_full and args.form is not None:
+        log.warning(
+            "--form is ignored under --form-sweep-full (sweep iterates all 4 forms)"
+        )
+
     settings = Settings.from_env()
     schema = settings.db_schema
     with connect(settings.db_dsn()) as conn:
@@ -1095,6 +1147,9 @@ def main():
             return
         if args.form_sweep:
             cmd_form_sweep(conn, write_summary=args.write_summary, schema=schema)
+            return
+        if args.form_sweep_full:
+            cmd_form_sweep_full(conn, schema=schema)
             return
         if args.report:
             cmd_report(
