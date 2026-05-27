@@ -12,21 +12,66 @@
 
 ---
 
+## ⚠️ Pass-4 Critical Amendments — READ BEFORE EXECUTING
+
+This plan went through `/review-cycle` after the first draft and revealed **20+ findings** including 5 plan-as-written-cannot-execute defects. The amendments below are load-bearing — apply them as you reach the corresponding tasks. The original task bodies below were drafted before these findings surfaced; treat the amendments as authoritative when they conflict.
+
+### CRITICAL amendments (must apply)
+
+**A-C1 (Task 5, 6, 10, 11): NO `subprocess.run` for integration tests.** `Settings.from_env()` reads `UW_SCAN_DB_*` env vars (not `DATABASE_URL`), so `subprocess.run(env={"DATABASE_URL": test_db_url})` would silently hit the **dev DB `option_wizard`** and could MUTATE IT. Replace every `subprocess.run(...)` in test code with **in-process invocation**: call `cmd_backfill(conn, schema=schema, args=argparse.Namespace(...))` / `cmd_walk_forward(conn, schema=schema, args=...)` / `cmd_v1_v2_compare(conn, schema=schema)` directly. Use `seeded_db_empty_cards.conn` + `_schema` (the existing form-sweep precedent in PR #88).
+
+**A-C2 (Task 5): `canary_backfill.py` must be refactored to expose `cmd_backfill(conn, *, schema, args)`** that accepts a connection + namespace. The existing `main()` continues to work for the daily APScheduler job by building conn from `Settings.from_env()` then calling `cmd_backfill`. Estimated +25 LOC of restructuring on top of the +35 already planned. The current `--days N` data-load span (`max(800, args.days + 500)` at line 111) **does not** honor `--start-date` for dates older than ~3 years; when `--start-date` is supplied, compute the required load span from the date range so 2011 dates are actually loaded. Use `trade_date` (NOT `data_date`) when querying `vol_index_daily` (verified: `vol_index_repository.py:65`).
+
+**A-C3 (Task 6): The current `cmd_walk_forward` DOES NOT write `batch_id` to params** (verified: `backtest_canary.py:827-840` shows only `score_form/phase/window_id/train_end`). The plan claimed otherwise — **that was wrong**. Task 6 must ADD batch_id generation: `batch_id = args.batch_id or str(uuid.uuid4())` BEFORE the per-window loop, and include `"batch_id": batch_id` in every walk-forward's params dict. Print the batch_id to stdout so Task 7's robustness can be chained with `--batch-id`.
+
+**A-C4 (Tasks 9 + 10): EXTRACT new module `src/uw_scan/reports/regime_canary_v1_v2_compare.py`** that owns `FlipGateEvidence`, `_assemble_flip_gate_evidence`, `render_canary_v1_v2_compare`, the AC-F1..F6 helpers, and the standalone CLI `main()`. The current `scripts/backtest_canary.py` is **1,174 lines** (verified) — adding the dispatcher in-place pushes it well over the codebase's "no new methods on >1,000 LOC files without a split plan" convention. PR #88 handled the analogous problem by extracting `regime_canary_form_sweep_full.py`; mirror that pattern. `backtest_canary.py` gets only a thin ~30-LOC `cmd_v1_v2_compare(conn, *, schema)` that imports from the new module.
+
+**A-C5 (Task 10): Full-history AUC computation cannot use `_aucs_for_rows` on `canary_snapshots` rows.** The snapshot `payload` JSONB nests scores as `tactical_vol.score`, `structural_vol.score`, `speed.score` — NOT the flat keys the plan's SQL projects. And `_aucs_for_rows` → `_entry_lagged_label` requires `r["spx"]` per row for forward-return labels, which snapshots don't carry. **Correct approach**: in `_assemble_flip_gate_evidence`, compute both `v1_full_history_aucs` and `v2_full_history_aucs` by calling `_compute_canary_series(conn, calibration, form='linear', start, end, schema)` (the form-sweep helper that already exists) with the appropriate calibration — this returns `eval_rows` with `spx` populated, then passes them to `_aucs_for_rows`. Apples-to-apples by construction.
+
+**A-C6 (Tasks 2 ↔ 3 reorder): Capture the v1 payload-hash golden BEFORE applying the conditional path edit.** Task 3 (Conditional path) must run AFTER Task 2 (Golden capture + test). The original draft put them in the opposite order, which would let a bug in the conditional silently bless itself. The task numbering in the document has been updated, but the task BODIES below are still in the original order — when implementing, execute Task 3 (Golden) before Task 2 (Conditional) per the corrected Task Order at the top.
+
+### IMPORTANT amendments
+
+**A-I1 (Task 5): Idempotency by payload-hash, not just date+version.** A `SELECT 1 → continue` check silently keeps stale rows from earlier failed runs that had bugs. Compute a canonical SHA-256 of the new payload, compare with the existing row's stored hash, and FAIL LOUDLY (require `--overwrite`) on mismatch. The canary payload-hash module (`src/uw_scan/cards/canary_payload_hash.py`, verified to exist) provides the canonical hash function.
+
+**A-I2 (Task 10): Dispatcher reload queries must include full scope/version/completion filters.** Selecting v2 walk-forward rows by `batch_id + phase` alone is insufficient — partial-row contamination or scope collision could pollute evidence. Every reload query must explicitly filter `indicator='canary' AND run_scope='research' AND composite_version='2' AND completed_at IS NOT NULL`.
+
+**A-I3 (Task 10): Subprocess invocations in `_run_test_subprocess` must preserve parent PATH.** The dispatcher calls `uv run pytest …`, but `uv` is at `~/.cargo/bin/uv` on macOS — outside `/usr/bin:/bin`. Use `env=os.environ.copy()` (default behavior — just omit the env kwarg) rather than replacing PATH wholesale.
+
+**A-I4 (Task 10): Integration test for `--v1-v2-compare` should mock `_run_test_subprocess`** to avoid nested pytest invocations (pytest-in-pytest is known to corrupt state). In live smoke (Task 12), the real subprocess runs cleanly because there's no outer pytest context.
+
+**A-I5 (Task 2 — formula tests): Assert v1↔v2 raw-score deltas directly**, not absolute computed sums. `payload["tactical_vol"]["score"]` is rounded to 2 decimals, but `raw_score` rounds the sum AFTER adding unrounded components — equality can drift by 0.01.
+
+**A-I6 (Task 12): Non-regression test paths.** `tests/integration/regime/test_canary_backtest.py` **does not exist** (verified). Replace with `tests/integration/regime/test_canary_scanner.py` + `tests/integration/regime/test_canary_oos_gate.py` + the new v2 files.
+
+**A-I7 (Task 11): In-process mock pattern.** With A-C1 applied, the cleanup test calls `cmd_walk_forward(conn, schema=schema, args=fake_args)` directly. Use `mocker.patch.object(RegimeBacktestRepository, "bulk_insert_daily", side_effect=...)` (pytest-mock — already in the project's deps) with a `side_effect` callable that captures call count, raises on the 4th call, and otherwise delegates to the real method via `wraps`. Replace the literal `original_bulk_insert = ...` placeholder in the original Task 11 body with concrete code.
+
+### MINOR amendments (apply if cheap)
+
+**A-M1 (Tasks 2, 4, 9, 10):** Remove unused imports from sample code blocks: `math` in Task 2, `psycopg` in Task 4, `field`/`Mapping`/unused `args` in Task 9, unused `conn` in Task 10. Will fail `ruff` otherwise.
+
+**A-M2 (Task 12 Step 7 → AC-7):** Replace the targeted pytest command with an explicit `uv run ruff check src/ tests/ scripts/` invocation (AC-7 of the spec is a ruff check, not a pytest run).
+
+**A-M3 (line refs):** `insert_snapshot` is at `canary_backfill.py:173` (not "around line 176" as some passages claim). Minor — "around line N" is the convention.
+
+---
+
 ## File Structure
 
 | Path | New / Modified | Purpose |
 |---|---|---|
 | `src/uw_scan/cards/canary_scoring.py` | Modified | 4-line conditional in `run_analysis()` keyed on `calibration.composite_version` |
 | `docs/research/regime/canary-calibration-v2.json` | New | Same 5 vol-scorer thresholds as v1; `composite_version: 2`; `score_form: "linear"` |
-| `scripts/canary_backfill.py` | Modified | Add `--composite-version`, `--start-date`, `--end-date` flags; load v2 calibration explicitly; persist `cal.composite_version` (not module constant); idempotent re-run via pre-insert check |
-| `scripts/backtest_canary.py` | Modified | Add `--composite-version` flag to existing walk-forward/robustness paths; add `--v1-v2-compare` mode that assembles `FlipGateEvidence` and calls the renderer |
-| `src/uw_scan/reports/regime_canary_v1_v2_compare.py` | New | `FlipGateEvidence` dataclass + `render_canary_v1_v2_compare(ev) -> str` pure renderer + CLI entry for standalone re-render |
+| `scripts/canary_backfill.py` | Modified | **Refactored to expose `cmd_backfill(conn, *, schema, args)`** (per A-C2). Add `--composite-version`, `--start-date`, `--end-date` flags; load v2 calibration explicitly; persist `cal.composite_version` (not module constant); idempotent re-run via payload-hash check (A-I1). Existing `main()` still wraps for the daily APScheduler job. |
+| `scripts/backtest_canary.py` | Modified | **Refactor `cmd_walk_forward`/`cmd_robustness` signatures to accept `args`** for in-process testing (A-C1). **Add `batch_id` generation** in walk-forward (A-C3 — currently missing). Add thin ~30-LOC `cmd_v1_v2_compare(conn, *, schema)` that imports from the new module. Add `--composite-version` flag throughout. |
+| `src/uw_scan/reports/regime_canary_v1_v2_compare.py` | **NEW MODULE (per A-C4)** | Owns `FlipGateEvidence` dataclass + `_assemble_flip_gate_evidence(conn, schema)` + `_full_history_aucs_via_compute_canary_series(conn, cal, schema)` (per A-C5) + `_band_distribution_for_version` + `render_canary_v1_v2_compare(ev) -> str` pure renderer + standalone CLI `main()`. Keeps `backtest_canary.py` under the 1,000-LOC convention. |
 | `src/uw_scan/storage/regime_backtest_repository.py` | Modified | Add `delete_canary_research_runs_by_batch_id_and_phase(batch_id, phase) -> int` |
-| `tests/unit/test_canary_v2_formula.py` | New | ~9 unit tests covering the conditional path |
-| `tests/unit/test_canary_v1_payload_hash_golden.py` | New | ~3 unit tests: golden v1 scoring hash regression |
+| `tests/integration/regime/_canary_v2a_fixture.py` | **NEW (Task 0, per A-I4)** | Helper functions: `seed_vol_index_full_history`, `seed_v1_walk_forward_runs`, `seed_v2_walk_forward_runs`, `seed_canary_snapshots_v2` |
+| `tests/unit/test_canary_v2_formula.py` | New | ~9 unit tests covering the conditional path (deltas not absolute sums per A-I5) |
+| `tests/unit/test_canary_v1_payload_hash_golden.py` | New | ~3 unit tests: golden v1 scoring hash regression (captured BEFORE Task 3 per A-C6) |
 | `tests/unit/test_canary_v1_v2_compare_renderer.py` | New | ~16 unit tests for the renderer + AC-F1..F6 evaluation |
-| `tests/integration/regime/test_canary_v2_backfill.py` | New | ~7 integration tests for backfill + AC-F3 evidence test |
-| `tests/integration/regime/test_canary_v2_walk_forward.py` | New | ~9 integration tests for walk-forward + robustness + parity + cleanup-on-failure + cross-scope renderer load |
+| `tests/integration/regime/test_canary_v2_backfill.py` | New | ~7 integration tests for backfill + AC-F3 evidence test. **In-process invocation via `cmd_backfill(conn, schema, args)`** (per A-C1, A-C2). |
+| `tests/integration/regime/test_canary_v2_walk_forward.py` | New | ~9 integration tests for walk-forward + robustness + parity + cleanup-on-failure + cross-scope renderer load. **In-process invocation throughout** (per A-C1). |
 
 **Net LOC**: ~400–550 new code + ~30 net additions to existing files. ~44 new tests. ~40-60s of new test runtime.
 
@@ -34,20 +79,286 @@
 
 ## Task Order
 
-Tasks are ordered to minimize cross-task dependency risk. Foundation (calibration + conditional) ships before backfill ships before walk-forward ships before renderer ships before dispatcher ships.
+Tasks are ordered for safe dependencies. **Per-task dependency footnotes are shown in each task header.** The golden-baseline task (T2) deliberately runs BEFORE the formula-change task (T3) so the captured pre-v2A hash isn't trivially blessed by a bug in the change itself.
 
+0. **Task 0**: Build the v2-A fixture helpers in `tests/integration/regime/_canary_v2a_fixture.py` (no production code; pure test infrastructure)
 1. **Task 1**: New `canary-calibration-v2.json` + unit test that loader parses it
-2. **Task 2**: Conditional path in `run_analysis()` (unit tests + minimal code edit)
-3. **Task 3**: Golden v1 payload-hash test (AC-6 — the real "v1 unchanged" proof)
+2. **Task 2**: **Capture v1 golden payload hash from current code (BEFORE Task 3)** + golden test
+3. **Task 3**: Apply conditional path in `run_analysis()` (unit tests + minimal code edit)
 4. **Task 4**: New repo method `delete_canary_research_runs_by_batch_id_and_phase`
-5. **Task 5**: `canary_backfill.py --composite-version 2` + idempotency + AC-F3 evidence
-6. **Task 6**: `backtest_canary.py --walk-forward --composite-version 2`
-7. **Task 7**: `backtest_canary.py --robustness --composite-version 2`
+5. **Task 5**: `canary_backfill.py` full refactor — expose `cmd_backfill(conn, *, schema, args)`, add `--composite-version` + `--start-date` / `--end-date` flags + idempotency-via-payload-hash + AC-F3 evidence
+6. **Task 6**: `backtest_canary.py --walk-forward --composite-version 2` — **adds `batch_id` generation** (current code does not write one), exposes `cmd_walk_forward(conn, *, schema, args)` for in-process testing
+7. **Task 7**: `backtest_canary.py --robustness --composite-version 2` + chained `--batch-id`
 8. **Task 8**: Walk-forward recompute vs backfill parity test (AC-4b)
-9. **Task 9**: `FlipGateEvidence` dataclass + `render_canary_v1_v2_compare` renderer + 16 unit tests
-10. **Task 10**: `--v1-v2-compare` dispatcher in `backtest_canary.py` + integration test (AC-5)
-11. **Task 11**: Walk-forward cleanup-on-failure (AC-5a)
-12. **Task 12**: Final smoke + live verification
+9. **Task 9**: **NEW MODULE** `src/uw_scan/reports/regime_canary_v1_v2_compare.py` owning `FlipGateEvidence` + `_assemble_flip_gate_evidence` + `render_canary_v1_v2_compare` + standalone CLI. Keeps `backtest_canary.py` from growing beyond the 1,000-LOC convention.
+10. **Task 10**: Thin `--v1-v2-compare` CLI dispatcher in `backtest_canary.py` (≤30 LOC) that delegates to the Task-9 module + integration test
+11. **Task 11**: Walk-forward cleanup-on-failure (in-process mock — subprocess can't catch this)
+12. **Task 12**: Final smoke + live verification (with correct non-regression test paths)
+
+---
+
+### Task 0: Build v2-A fixture helpers (`_canary_v2a_fixture.py`)
+
+**Files:**
+- Create: `tests/integration/regime/_canary_v2a_fixture.py`
+- Read for reference: `tests/integration/regime/_canary_form_sweep_fixture.py` (the PR #88 precedent)
+
+**Rationale:** Subsequent tasks reference fixture helpers (`seed_vol_index_full_history`, `seed_v2_backfill`, `seed_v1_walk_forward_runs`, etc.) that don't exist. Build them as pure helper functions that take a connection + schema and seed deterministic test data. **No subprocess. No DB-URL plumbing. The in-process fixtures use `seeded_db_empty_cards.conn` from the existing project-wide conftest.**
+
+- [ ] **Step 1: Create the fixture helpers**
+
+Path: `tests/integration/regime/_canary_v2a_fixture.py`
+
+```python
+"""Test-only seed helpers for canary v2-A integration tests.
+
+Each function takes (conn, *, schema) — operates on the per-test DB
+provided by tests/integration/conftest.py's seeded_db_empty_cards fixture.
+No subprocess, no env-var plumbing.
+"""
+
+from __future__ import annotations
+
+import uuid
+from datetime import date, timedelta
+from typing import Sequence
+
+import numpy as np
+
+
+def _trading_days(start: date, n: int) -> list[date]:
+    """Return n consecutive business-day-ish dates from start (skips Sat/Sun)."""
+    out: list[date] = []
+    d = start
+    while len(out) < n:
+        if d.weekday() < 5:
+            out.append(d)
+        d = d + timedelta(days=1)
+    return out
+
+
+def seed_vol_index_full_history(
+    conn,
+    *,
+    schema: str,
+    start: date = date(2011, 2, 8),
+    end: date = date(2026, 5, 21),
+    seed: int = 42,
+) -> list[date]:
+    """Seed vol_index_daily with synthetic but realistic data covering [start, end].
+
+    Returns the list of trade_dates inserted. SPX path is a sinusoidal + linear
+    drift (guarantees mixed labels at all 3 forward horizons) so AUC computations
+    don't degenerate.
+    """
+    dates = _trading_days(start, (end - start).days)
+    dates = [d for d in dates if d <= end]
+    n = len(dates)
+
+    rng = np.random.default_rng(seed)
+    spx = np.clip(1000.0 + 8.0 * np.sin(np.arange(n) / 7.0) + 0.05 * np.arange(n), 600.0, 6000.0)
+    vix = np.clip(15.0 + rng.standard_normal(n).cumsum() * 0.5, 10.0, 50.0)
+    vvix = np.clip(85.0 + rng.standard_normal(n).cumsum() * 0.8, 70.0, 150.0)
+    vix3m = np.clip(16.0 + rng.standard_normal(n).cumsum() * 0.5, 11.0, 55.0)
+    cor1m = np.clip(50.0 + rng.standard_normal(n).cumsum() * 0.4, 20.0, 90.0)
+
+    with conn.cursor() as cur:
+        for i, d in enumerate(dates):
+            for symbol, close in (
+                ("SPX", spx[i]), ("VIX", vix[i]), ("VVIX", vvix[i]),
+                ("VIX3M", vix3m[i]), ("COR1M", cor1m[i]),
+            ):
+                cur.execute(
+                    f"INSERT INTO {schema}.vol_index_daily "
+                    f"(symbol, trade_date, open, high, low, close, adj_close, volume) "
+                    f"VALUES (%s, %s, %s, %s, %s, %s, %s, 0) "
+                    f"ON CONFLICT (symbol, trade_date) DO NOTHING",
+                    (symbol, d, float(close), float(close), float(close), float(close), float(close)),
+                )
+    conn.commit()
+    return dates
+
+
+def seed_v1_walk_forward_runs(conn, *, schema: str) -> list[int]:
+    """Seed 6 v1 walk-forward production runs (the PR #83 baseline).
+
+    Each row has summary.aucs.composite.{up5d_2pct,up20d_5pct,up60d_10pct}.
+    Returns the list of inserted run_ids.
+    """
+    from uw_scan.storage.regime_backtest_repository import RegimeBacktestRepository
+
+    repo = RegimeBacktestRepository(conn, schema=schema)
+    ids: list[int] = []
+    windows = [
+        ("WF-1", date(2015, 1, 2), date(2016, 12, 30), 0.642),
+        ("WF-2", date(2017, 1, 3), date(2018, 12, 31), 0.610),
+        ("WF-3", date(2019, 1, 2), date(2020, 9, 30), 0.655),
+        ("WF-4", date(2020, 10, 1), date(2022, 12, 30), 0.628),
+        ("WF-5", date(2023, 1, 3), date(2024, 12, 31), 0.601),
+        ("WF-6", date(2025, 1, 2), date(2026, 5, 21), 0.633),
+    ]
+    for wid, sd, ed, auc60 in windows:
+        run_id = repo.insert_run(
+            indicator="canary",
+            composite_version="1",
+            start_date=sd,
+            end_date=ed,
+            window_days=350,
+            n_days=(ed - sd).days,
+            params={
+                "phase": "walk_forward",
+                "score_form": "linear",
+                "window_id": wid,
+                "train_end": "2014-12-31",
+            },
+            summary={
+                "aucs": {
+                    "composite": {"up5d_2pct": 0.58, "up20d_5pct": 0.56, "up60d_10pct": auc60},
+                    "vol_only": {"up5d_2pct": 0.57, "up20d_5pct": 0.51, "up60d_10pct": auc60 + 0.01},
+                    "speed_only": {"up5d_2pct": 0.55, "up20d_5pct": 0.62, "up60d_10pct": 0.49},
+                },
+                "n_days": (ed - sd).days,
+                "window_id": wid,
+            },
+            run_scope="production",
+        )
+        repo.mark_run_completed(run_id)
+        ids.append(run_id)
+    return ids
+
+
+def seed_v2_walk_forward_runs(
+    conn, *, schema: str, batch_id: str | None = None, per_window_60d_auc: float = 0.65
+) -> tuple[str, list[int]]:
+    """Seed 6 v2 walk-forward research runs + 1 v2 robustness research run,
+    all sharing a batch_id. Returns (batch_id, run_ids)."""
+    from uw_scan.storage.regime_backtest_repository import RegimeBacktestRepository
+
+    if batch_id is None:
+        batch_id = str(uuid.uuid4())
+    repo = RegimeBacktestRepository(conn, schema=schema)
+    ids: list[int] = []
+    for i, wid in enumerate(("WF-1", "WF-2", "WF-3", "WF-4", "WF-5", "WF-6")):
+        run_id = repo.insert_run(
+            indicator="canary",
+            composite_version="2",
+            start_date=date(2015 + 2 * i, 1, 2),
+            end_date=date(2015 + 2 * i + 1, 12, 30),
+            window_days=350,
+            n_days=500,
+            params={
+                "phase": "walk_forward",
+                "score_form": "linear",
+                "window_id": wid,
+                "batch_id": batch_id,
+            },
+            summary={
+                "aucs": {
+                    "composite": {"up5d_2pct": 0.62, "up20d_5pct": 0.64, "up60d_10pct": per_window_60d_auc},
+                    "vol_only": {"up5d_2pct": 0.62, "up20d_5pct": 0.64, "up60d_10pct": per_window_60d_auc},
+                    "speed_only": {"up5d_2pct": 0.50, "up20d_5pct": 0.50, "up60d_10pct": 0.50},
+                },
+                "n_days": 500,
+                "window_id": wid,
+            },
+            run_scope="research",
+        )
+        repo.mark_run_completed(run_id)
+        ids.append(run_id)
+    rob_id = repo.insert_run(
+        indicator="canary",
+        composite_version="2",
+        start_date=date(2011, 2, 8),
+        end_date=date(2026, 5, 21),
+        window_days=350,
+        n_days=3843,
+        params={"phase": "robustness", "score_form": "linear", "batch_id": batch_id},
+        summary={"aucs": {"composite": {"up60d_10pct": 0.642}}},
+        run_scope="research",
+    )
+    repo.mark_run_completed(rob_id)
+    return batch_id, ids + [rob_id]
+
+
+def seed_canary_snapshots_v2(
+    conn, *, schema: str, dates: Sequence[date], cca_dates: Sequence[date] = (),
+) -> int:
+    """Seed v2 canary_snapshots for the given dates. Rows where data_date is in
+    cca_dates get payload.speed.confirmed_canary_active=True to satisfy AC-F3.
+    Returns row count."""
+    cca_set = set(cca_dates)
+    rng = np.random.default_rng(123)
+    inserted = 0
+    with conn.cursor() as cur:
+        for d in dates:
+            cca = d in cca_set
+            score = float(rng.uniform(0, 70))
+            band = "NONE" if score < 25 else ("WATCH" if score < 50 else ("BUY" if score < 75 else "STRONG_BUY"))
+            payload = {
+                "tactical_vol": {"score": round(score * 0.4, 2)},
+                "structural_vol": {"score": round(score * 0.6, 2)},
+                "speed": {
+                    "score": 0 if cca else 8,
+                    "state": "CONFIRMED_CANARY_ACTIVE" if cca else "NEUTRAL",
+                    "confirmed_canary_active": cca,
+                    "buy_the_dip_active": False,
+                },
+                "canary": {
+                    "score": round(score, 2),
+                    "raw_score": round(score, 2),
+                    "band": band,
+                    "warning_state": "CONFIRMED_CANARY_ACTIVE" if cca else "NONE",
+                    "composite_version": 2,
+                    "score_form": "linear",
+                },
+                "inputs": {"spx_close": float(1000.0 + d.toordinal() % 500)},
+            }
+            cur.execute(
+                f"INSERT INTO {schema}.canary_snapshots "
+                f"(data_date, composite_version, score, raw_score, band, "
+                f" warning_state, score_form, payload) "
+                f"VALUES (%s, %s, %s, %s, %s, %s, %s, %s::jsonb)",
+                (d, 2, score, score, band,
+                 payload["canary"]["warning_state"], "linear",
+                 __import__("json").dumps(payload)),
+            )
+            inserted += 1
+    conn.commit()
+    return inserted
+```
+
+- [ ] **Step 2: Run a smoke check on the helpers**
+
+```bash
+UW_SCAN_TEST_DB_NAME=option_wizard_test uv run python -c "
+from tests.integration.regime._canary_v2a_fixture import (
+    seed_vol_index_full_history, seed_v1_walk_forward_runs,
+    seed_v2_walk_forward_runs, seed_canary_snapshots_v2,
+)
+print('imports OK')
+"
+```
+
+Expected: `imports OK` (no syntax errors).
+
+- [ ] **Step 3: Commit**
+
+```bash
+git add tests/integration/regime/_canary_v2a_fixture.py
+git commit -m "test(canary): v2-A integration fixture helpers (Task 0)
+
+New _canary_v2a_fixture.py with 4 helpers used by Tasks 4-11:
+- seed_vol_index_full_history (15-year synthetic vol-complex)
+- seed_v1_walk_forward_runs (6 production rows, PR #83 baseline)
+- seed_v2_walk_forward_runs (6 walk-forward + 1 robustness, shared batch_id)
+- seed_canary_snapshots_v2 (research snapshots with optional CCA dates for AC-F3)
+
+All helpers take (conn, *, schema) and use seeded_db_empty_cards as
+the host fixture per the existing form-sweep precedent (PR #88).
+No subprocess. No DB-URL plumbing.
+
+Task-0 dep: none. Subsequent tasks call these helpers from their tests."
+```
 
 ---
 
