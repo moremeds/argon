@@ -17087,7 +17087,7 @@
     },
     "/api/regime/validation": {
       "get": {
-        "description": "Latest completed CRI backtest run, rendered to markdown.\n\nSource of truth is uw_scan.regime_backtest_runs. The previous file\nfallback (cri-backtest.md/.csv + oos-summary.json on disk) was removed\nafter the prod gate in\ndocs/superpowers/specs/2026-05-24-regime-research-closure-design.md \u00a710.4\nwas satisfied. If no completed run exists at the current\ncri_scorers.COMPOSITE_VERSION, returns 503 \u2014 operators should run\nscripts/backtest_cri.py to seed the table.",
+        "description": "Latest completed CRI backtest run, rendered to markdown.\n\nSource of truth is uw_scan.regime_backtest_runs. The previous file\nfallback (cri-backtest.md/.csv + oos-summary.json on disk) was removed\nafter the prod gate in\ndocs/superpowers/archive/specs/2026-05-24-regime-research-closure-design.md \u00a710.4\nwas satisfied. If no completed run exists at the current\ncri_scorers.COMPOSITE_VERSION, returns 503 \u2014 operators should run\nscripts/backtest_cri.py to seed the table.",
         "operationId": "get_validation_api_regime_validation_get",
         "responses": {
           "200": {

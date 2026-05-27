@@ -1,7 +1,7 @@
 -- 029_dealer_signals.sql — durable Dealer-tab derived signals.
 -- Research contract:
--- docs/superpowers/research/six-dimension-matrix/01-vanna.md §7
--- docs/superpowers/research/six-dimension-matrix/02-charm.md §7
+-- docs/research/six-dimension-matrix/01-vanna.md §7
+-- docs/research/six-dimension-matrix/02-charm.md §7
 
 SET search_path TO uw_scan, public;
 

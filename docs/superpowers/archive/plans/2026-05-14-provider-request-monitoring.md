@@ -635,7 +635,7 @@ If explicitly asked to commit:
 
 ```bash
 git status --short
-git add docs/plans/2026-05-14-provider-request-monitoring-design.md docs/plans/2026-05-14-provider-request-monitoring.md
+git add docs/superpowers/archive/specs/2026-05-14-provider-request-monitoring-design.md docs/superpowers/archive/plans/2026-05-14-provider-request-monitoring.md
 git add src/uw_scan web tests
 git commit -m "feat: monitor external provider requests"
 ```

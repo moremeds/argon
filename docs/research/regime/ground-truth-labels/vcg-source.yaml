@@ -1,0 +1,12 @@
+# Pinned VCG source. NEVER resolved at runtime via find_latest_run.
+# Replays MUST reference exactly this run.
+
+label_version: 1
+vcg_source:
+  run_id: 6
+  indicator: "vcg"
+  composite_version: "1"
+  run_scope: "production"
+  credit_proxy: "HYG"
+  pinned_at: "2026-05-26"
+  pinned_because: "Canonical production VCG v1 backtest, longest-coverage completed run (4708 days, 2007-08-27 → 2026-05-15, identified by Task 0.2 preflight probe)."

@@ -1,5 +1,5 @@
 -- 014_volatility_v2_tables.sql — added by Volatility Tab v2.
--- See docs/superpowers/specs/2026-05-13-volatility-tab-v2-design.md §4.2.
+-- Follows the historical Volatility Tab v2 design §4.2.
 
 BEGIN;
 

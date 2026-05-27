@@ -1,6 +1,6 @@
 """Phase 0 spike — verify UW history availability for the 6-dim matrix backtest.
 
-Runs the questions from docs/superpowers/research/six-dimension-matrix/09-backtest-plan.md §4 Phase 0:
+Runs the questions from docs/research/six-dimension-matrix/09-backtest-plan.md §4 Phase 0:
 
   * Earliest non-empty date for /api/stock/{T}/greeks (per-strike greeks; date param)
   * Earliest non-empty date for /api/stock/{T}/greek-exposure/strike-expiry (date param)

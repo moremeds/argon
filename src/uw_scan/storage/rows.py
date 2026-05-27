@@ -1,7 +1,6 @@
 """Frozen dataclasses + WatchlistCardRow used by the Repository methods.
 
-Moved from repository.py during the PR-1 split (see
-docs/superpowers/plans/2026-05-16-repository-split-pr1.md). All row types
+Moved from repository.py during the PR-1 split. All row types
 are re-exported from repository.py for backward compat with existing callers
 (`from uw_scan.storage.repository import JobRow` still works).
 """

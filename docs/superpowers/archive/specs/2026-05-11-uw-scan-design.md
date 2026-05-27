@@ -16,7 +16,7 @@ This repository was reset on 2026-05-11 after a prior implementation attempt was
 2. Pipe-delimited TEXT columns were used in place of normalized relational shape, in direct violation of this spec's primary storage rule.
 3. TradingView shared watchlists were "degraded" — the spec's source of truth was offline.
 
-The new plan rebuilds V1 from scratch using vertical slices. Each slice ships one end-to-end working feature with real persistence, real Postgres tests, and full error surfacing. The two report formats below are the canonical output contracts; all data infrastructure exists to produce them. See `docs/superpowers/plans/2026-05-11-uw-scan-rebuild-plan.md` for the slice-by-slice plan.
+The new plan rebuilds V1 from scratch using vertical slices. Each slice ships one end-to-end working feature with real persistence, real Postgres tests, and full error surfacing. The two report formats below are the canonical output contracts; all data infrastructure exists to produce them. See `docs/superpowers/archive/plans/2026-05-11-uw-scan-rebuild-plan.md` for the slice-by-slice plan.
 
 ## Repository And Database
 
@@ -59,7 +59,7 @@ All sources feed one enrichment and scoring pipeline, but source attribution sta
 - Full option surface capability with required tiered acquisition to reduce requests.
 - Raw API payload archive plus normalized relational tables.
 
-V1 is delivered as **vertical slices**, each shipping one end-to-end working feature (UI → pipeline → API → persistence → reload) with full Implementation Guardrail compliance. Slice ordering, file ownership, and exit gates are owned by `docs/superpowers/plans/2026-05-11-uw-scan-rebuild-plan.md`. Horizontal-layer planning (build all clients, then all storage, then all UI) is explicitly rejected as the failure mode that produced the prior reset.
+V1 is delivered as **vertical slices**, each shipping one end-to-end working feature (UI → pipeline → API → persistence → reload) with full Implementation Guardrail compliance. Slice ordering, file ownership, and exit gates are owned by `docs/superpowers/archive/plans/2026-05-11-uw-scan-rebuild-plan.md`. Horizontal-layer planning (build all clients, then all storage, then all UI) is explicitly rejected as the failure mode that produced the prior reset.
 
 ## Report Formats
 
@@ -687,4 +687,4 @@ Browser/UI verification:
 
 Slice 1 ships the Single-Stock Card as the first user-visible deliverable. Layout sequencing is owned by the rebuild plan; this spec defines only the contracts (Report Formats above) and the guardrails (Implementation Guardrails above) the layout must satisfy.
 
-See `docs/superpowers/plans/2026-05-11-uw-scan-rebuild-plan.md` for slice-by-slice layout sequencing, file ownership, and exit gates.
+See `docs/superpowers/archive/plans/2026-05-11-uw-scan-rebuild-plan.md` for slice-by-slice layout sequencing, file ownership, and exit gates.

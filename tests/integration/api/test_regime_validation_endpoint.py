@@ -2,7 +2,7 @@
 
 Source of truth is uw_scan.regime_backtest_runs (the file fallback was
 removed once the prod gate in
-docs/superpowers/specs/2026-05-24-regime-research-closure-design.md §10.4
+docs/superpowers/archive/specs/2026-05-24-regime-research-closure-design.md §10.4
 was satisfied).
 """
 

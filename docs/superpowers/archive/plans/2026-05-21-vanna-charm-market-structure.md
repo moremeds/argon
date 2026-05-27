@@ -6,7 +6,7 @@
 
 **Architecture:** Raw per-(expiry, strike) exposures already land in `exposures_by_expiry_strike` from the daily cockpit snapshot. We add a pure deriver module (`cards/exposures.py`), persist its output into a new `exposures_summary` table (migration 051), surface both raw rows and summary rows on `SingleStockReport`, and render the panels as hand-rolled SVG line charts using the existing `lib/svgChart.ts` helpers. Sub-tab switching is a small client component (`GreekSubTabs`) embedded inside the still-RSC `MarketStructureTab`.
 
-**Tech Stack:** Python 3.13 + `uv`, Pydantic v2, psycopg 3, FastAPI, APScheduler, Postgres 16. Next.js 16 + React 19 (RSC + client islands), TypeScript strict, vitest, Playwright. Spec lives at `docs/superpowers/specs/2026-05-21-vanna-charm-market-structure-design.md`.
+**Tech Stack:** Python 3.13 + `uv`, Pydantic v2, psycopg 3, FastAPI, APScheduler, Postgres 16. Next.js 16 + React 19 (RSC + client islands), TypeScript strict, vitest, Playwright. Spec lives at `docs/superpowers/archive/specs/2026-05-21-vanna-charm-market-structure-design.md`.
 
 ---
 

@@ -1,0 +1,57 @@
+# Level-1 ground-truth thresholds. SOURCE OF TRUTH — replays use exactly these.
+# Bump label_version in label-version.yaml and start a new file to revise.
+
+label_version: 1
+contract_committed_at: "2026-05-26"
+
+# Rolling-window definitions
+# rolling_window_days N: the window includes today (1 slot) + N-1 prior days (cohort).
+# So percentile rank with rolling_window_days=252 ranks today against the 251 prior days.
+# (v0.3 / CO-9 explicit semantics documentation.)
+rolling_window_days: 252
+realized_vol_window_days: 21
+
+# Percentile tie semantics (v0.3 / CO-3)
+# strict_lt: count cohort strictly less than today; ties resolve to 0
+percentile_tie_rule: "strict_lt"
+
+# Class-membership percentile cutoffs
+P_SUPP: 0.30
+P_RO: 0.80
+P_PANIC: 0.95
+DD_EDR: 0.07
+N_BOUNCE: 10
+
+# NORMAL band — v0.3 / CO-4 widened to be exhaustive between SUPPRESSED (<0.30)
+# and stress (>=0.80). Previous [0.25, 0.75] left a silent fall-through gap.
+NORMAL_LOW: 0.30
+NORMAL_HIGH: 0.80
+NORMAL_DD: 0.05
+
+# Verdict gates
+N_MIN_CLASS_DAYS: 30
+K_MIN_CORE_ELIGIBLE: 4
+MACRO_F1_PASS: 0.50
+
+# Failure-mode triggers
+PANIC_SUPPRESSION_RATIO: 0.20
+SPARSITY_RATIO: 0.25
+MISMATCH_CONCENTRATION: 0.60
+BENCH_RANGE: 0.15
+
+# FRED series pinning
+fred_series:
+  credit_stress_primary: "NFCI"
+  credit_stress_sensitivity: "ANFCI"
+  recession_dating: "USREC"
+
+# Eval window — eval_end can be "auto" (latest data) or ISO date for replay
+eval_start: "2007-01-03"
+eval_end: "auto"
+
+# Period buckets (matches PR #81 comparator)
+period_buckets:
+  - {name: "pre-2020",        start: "2007-01-03", end: "2019-12-31"}
+  - {name: "2020-COVID",      start: "2020-01-02", end: "2020-12-31"}
+  - {name: "2021-2022-rates", start: "2021-01-04", end: "2022-12-30"}
+  - {name: "2023-2026-AI",    start: "2023-01-03", end: "auto"}

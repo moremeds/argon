@@ -32,7 +32,7 @@ Goyal & Saretto themselves flag this as future work:
 ## Codebase implications
 
 ### 🟡 Q5. Does CRI's existing VRP component already encode this single-factor structure?
-- **Action:** Read `src/uw_scan/scanners/cri.py` (and the related `docs/superpowers/plans/2026-05-19-cri-methodology-tune.md` for context). If the CRI bar already weights VRP heavily, the paper *retroactively justifies* that design choice. If CRI distributes weight equally across vol-complex sub-signals, the paper suggests we may be over-weighting redundant ones.
+- **Action:** Read `src/uw_scan/scanners/cri.py` (and the related `docs/superpowers/archive/plans/2026-05-19-cri-methodology-tune.md` for context). If the CRI bar already weights VRP heavily, the paper *retroactively justifies* that design choice. If CRI distributes weight equally across vol-complex sub-signals, the paper suggests we may be over-weighting redundant ones.
 - **New status:** addressed by V1 notebook (doc 07) — Diagnostic B residualizes every scanner-side signal against RV−IV. Verdict lands in `08-redundancy-audit-results.md` (not yet written).
 
 ### 🟡 Q6. Should the scanner's signal-stacking weights drop after RV−IV is included?

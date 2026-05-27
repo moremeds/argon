@@ -788,7 +788,7 @@ export interface paths {
          *     Source of truth is uw_scan.regime_backtest_runs. The previous file
          *     fallback (cri-backtest.md/.csv + oos-summary.json on disk) was removed
          *     after the prod gate in
-         *     docs/superpowers/specs/2026-05-24-regime-research-closure-design.md §10.4
+         *     docs/superpowers/archive/specs/2026-05-24-regime-research-closure-design.md §10.4
          *     was satisfied. If no completed run exists at the current
          *     cri_scorers.COMPOSITE_VERSION, returns 503 — operators should run
          *     scripts/backtest_cri.py to seed the table.

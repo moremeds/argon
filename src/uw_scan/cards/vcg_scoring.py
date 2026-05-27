@@ -430,3 +430,197 @@ def run_analysis(
         "signal": signal,
         "history": history,
     }
+
+
+# ══════════════════════════════════════════════════════════════════
+# Research-only composite VCG path
+# ══════════════════════════════════════════════════════════════════
+#
+# Below this line lives the research path used by scripts/backtest_vcg.py
+# --composite-method. Not imported by scanners/vcg.py or the API routers —
+# enforced by tests/unit/test_research_isolation.py.
+
+# Research-only version channel. Each entry maps a composite construction
+# method to its research version string. The production COMPOSITE_VERSION
+# constant above stays at "1" indefinitely.
+RESEARCH_COMPOSITE_VERSIONS: dict[str, str] = {
+    "risk_parity_3": "2-candidate-rp3",
+    "risk_parity_hyjk": "2-candidate-rp-hyjk",
+    "hy_minus_ig_spread": "2-candidate-hy-minus-ig",
+    "equal_weight_3": "2-candidate-eq3",
+}
+
+_COMPOSITE_PROXY_LABEL: dict[str, str] = {
+    "risk_parity_3": "COMPOSITE_RP3",
+    "risk_parity_hyjk": "COMPOSITE_RP_HYJK",
+    "hy_minus_ig_spread": "COMPOSITE_HY_MINUS_IG",
+    "equal_weight_3": "COMPOSITE_EQ3",
+}
+
+
+def _compute_vcg_from_returns(
+    vix_returns: np.ndarray,
+    vvix_returns: np.ndarray,
+    credit_returns: np.ndarray,
+    vix_levels: np.ndarray,
+    vvix_levels: np.ndarray,
+    credit_levels: np.ndarray,
+) -> dict[str, np.ndarray]:
+    """Like compute_vcg, but takes RETURNS directly instead of reconstructing
+    them from prices.
+
+    Avoids the level -> log_returns round-trip that the composite path would
+    otherwise need (alignment-fragile when the basket return is synthesized
+    from per-proxy returns rather than from a real price series).
+
+    Caller must pre-align all six inputs to the same N-bar window. The level
+    arrays are used by the panic-adjustment (vix_levels only) and the history
+    payload — they're never differenced inside this function.
+    """
+    X = np.column_stack([vvix_returns, vix_returns])
+    alphas, beta1s, beta2s, residuals = rolling_ols(credit_returns, X, OLS_WINDOW)
+    vcg = standardise_residuals(residuals, Z_WINDOW)
+    pi = np.clip(
+        (vix_levels - VIX_PANIC_LOW) / (VIX_PANIC_HIGH - VIX_PANIC_LOW), 0.0, 1.0
+    )
+    vcg_div = (1.0 - pi) * vcg
+    return {
+        "vcg": vcg,
+        "vcg_adj": vcg_div,
+        "residuals": residuals,
+        "alpha": alphas,
+        "beta1": beta1s,
+        "beta2": beta2s,
+        "vix_ret": vix_returns,
+        "vvix_ret": vvix_returns,
+        "credit_ret": credit_returns,
+        "vix_levels": vix_levels,
+        "vvix_levels": vvix_levels,
+        "credit_levels": credit_levels,
+        "pi": pi,
+    }
+
+
+def compute_vcg_composite(
+    vix_prices: "Any",
+    vvix_prices: "Any",
+    prices_by_proxy: "dict[str, Any]",
+    *,
+    method: str,
+    vol_window: int = 63,
+    weight_lag: int = 1,
+    attribution_symbols: tuple[str, ...] = ("HYG", "JNK", "LQD"),
+) -> dict[str, Any]:
+    """Research-only composite VCG signal.
+
+    Stage 1 — basket: build the synthetic credit basket via build_basket
+        using only the proxies the chosen method requires
+        (METHOD_METADATA[method].proxies).
+    Stage 2 — canonical signal: run OLS on (VIX, VVIX, basket_returns) via
+        _compute_vcg_from_returns. No level reconstruction; uses returns
+        directly, eliminating the off-by-one alignment risk that
+        level -> log_returns introduces.
+    Stage 3 — attribution: ALWAYS run single-proxy OLS for HYG, JNK, AND
+        LQD (regardless of basket method), so the disagreement diagnostic
+        compares against all three issuer reads — not just the proxies in
+        the basket.
+
+    Output layers separate: signal (basket) vs. attribution.basket_construction
+    vs. attribution.signal_breakdown. The composite residual is NOT a
+    weighted average of single-proxy residuals — schema separation prevents
+    misreading.
+    """
+
+    from uw_scan.cards.vcg_basket import (  # noqa: PLC0415
+        METHOD_METADATA,
+        build_basket,
+    )
+
+    meta = METHOD_METADATA[method]
+
+    # Stage 1: basket — only the proxies this method needs
+    basket_inputs = {sym: prices_by_proxy[sym] for sym in meta.proxies}
+    basket_ret, weight_history = build_basket(
+        basket_inputs, method=method, window=vol_window, weight_lag=weight_lag
+    )
+
+    # Align VIX/VVIX to the basket's valid-return index
+    common = basket_ret.dropna().index
+    common = common.intersection(vix_prices.index).intersection(vvix_prices.index)
+    common = common.sort_values()
+    if len(common) == 0:
+        raise ValueError("compute_vcg_composite: no overlapping dates after alignment")
+
+    vix_levels_aligned = vix_prices.reindex(common).values
+    vvix_levels_aligned = vvix_prices.reindex(common).values
+    basket_ret_aligned = basket_ret.reindex(common).values
+    # VIX/VVIX returns (basket already in return-space)
+    vix_ret_aligned = np.diff(np.log(vix_levels_aligned), prepend=np.nan)
+    vvix_ret_aligned = np.diff(np.log(vvix_levels_aligned), prepend=np.nan)
+    # Synthesize a non-arbitrary basket "level" sequence ONLY for the history
+    # payload (never differenced for OLS).
+    basket_levels_aligned = 100.0 * np.exp(np.nan_to_num(basket_ret_aligned).cumsum())
+
+    canonical = _compute_vcg_from_returns(
+        vix_ret_aligned,
+        vvix_ret_aligned,
+        basket_ret_aligned,
+        vix_levels_aligned,
+        vvix_levels_aligned,
+        basket_levels_aligned,
+    )
+    common_iso = [d.date().isoformat() for d in common]
+    canonical_signal = evaluate_signal(canonical, basket_levels_aligned)
+
+    # Stage 3: single-proxy attribution for ALL THREE proxies (HYG/JNK/LQD)
+    # regardless of which proxies the basket consumed. This keeps the
+    # disagreement diagnostic comparable across basket methods.
+    per_proxy: dict[str, dict[str, Any]] = {}
+    for sym in attribution_symbols:
+        px = prices_by_proxy.get(sym)
+        if px is None:
+            per_proxy[sym] = {"error": f"{sym} not provided in prices_by_proxy"}
+            continue
+        px_aligned = px.reindex(common).values
+        try:
+            sub = compute_vcg(vix_levels_aligned, vvix_levels_aligned, px_aligned)
+            per_proxy[sym] = evaluate_signal(sub, px_aligned)
+        except Exception as exc:  # pragma: no cover
+            _ = repr(exc)  # CI Guardrail 2
+            per_proxy[sym] = {"error": repr(exc)}
+
+    # Disagreement: composite RO but <=1 proxy RO, or composite NORMAL but
+    # >=2 proxy RO.
+    composite_ro = bool(canonical_signal.get("ro", False))
+    proxy_ro_count = sum(
+        1 for v in per_proxy.values() if isinstance(v, dict) and v.get("ro")
+    )
+    disagreement = (composite_ro and proxy_ro_count <= 1) or (
+        not composite_ro and proxy_ro_count >= 2
+    )
+
+    weights_today = {
+        sym: float(weight_history.iloc[-1].get(sym, 0.0)) for sym in meta.proxies
+    }
+
+    return {
+        "date": common_iso[-1] if common_iso else None,
+        "credit_proxy": _COMPOSITE_PROXY_LABEL[method],
+        "signal": canonical_signal,
+        "attribution": {
+            "basket_construction": {
+                "method": method,
+                "method_type": meta.method_type,
+                "gross_exposure": meta.gross_exposure,
+                "vol_window": vol_window,
+                "weight_lag": weight_lag,
+                "basket_symbols": list(meta.proxies),
+                "attribution_symbols": list(attribution_symbols),
+                "weights_today": weights_today,
+            },
+            "signal_breakdown": {
+                **per_proxy,
+                "composite_single_proxy_disagreement": bool(disagreement),
+            },
+        },
+    }
