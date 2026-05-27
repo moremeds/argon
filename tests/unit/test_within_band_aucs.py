@@ -2,8 +2,6 @@
 
 import math
 
-import pytest
-
 from scripts import backtest_canary as canary_backtest
 from uw_scan.reports.regime_canary_form_sweep_full import (
     CanaryFormSweepDeps,

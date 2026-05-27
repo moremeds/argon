@@ -5,6 +5,7 @@ from __future__ import annotations
 from datetime import date
 
 import pytest
+
 from uw_scan.reports.regime_canary_backtest_report import (
     render_canary_form_sweep_compare,
 )
@@ -160,7 +161,7 @@ def test_footer_present():
 def test_observation_watch_overfire():
     """WATCH% > 30 in linear (default fixture has 39.3) — should appear in observations."""
     out = render_canary_form_sweep_compare(_full_set())
-    lines = [l for l in out.splitlines() if "WATCH% above 30%" in l]
+    lines = [line for line in out.splitlines() if "WATCH% above 30%" in line]
     assert lines, "expected WATCH% above 30% observation line"
     assert "linear" in lines[0]
 
@@ -168,7 +169,7 @@ def test_observation_watch_overfire():
 def test_observation_buy_band_inversion():
     """BUY-band 60d AUC < 0.50 in linear (default 0.348) — should appear."""
     out = render_canary_form_sweep_compare(_full_set())
-    lines = [l for l in out.splitlines() if "BUY-band 60d AUC below 0.50" in l]
+    lines = [line for line in out.splitlines() if "BUY-band 60d AUC below 0.50" in line]
     assert lines
     assert "linear" in lines[0]
 
@@ -183,7 +184,9 @@ def test_observation_composite_improves_over_linear():
     ]
     out = render_canary_form_sweep_compare(runs)
     lines = [
-        l for l in out.splitlines() if "Composite 60d AUC improves over linear" in l
+        line
+        for line in out.splitlines()
+        if "Composite 60d AUC improves over linear" in line
     ]
     assert lines
     assert "convex" in lines[0]
@@ -199,7 +202,7 @@ def test_observation_watch_reduce_without_auc_loss():
         _mk_run(run_id=30, form="sigmoid", watch_pct=33.0, composite_60d=0.615),
     ]
     out = render_canary_form_sweep_compare(runs)
-    lines = [l for l in out.splitlines() if "WATCH% reduced by" in l]
+    lines = [line for line in out.splitlines() if "WATCH% reduced by" in line]
     assert lines
     assert "sigmoid" in lines[0]
 
@@ -213,7 +216,9 @@ def test_observation_vol_only_gap():
         _mk_run(run_id=30, form="sigmoid", composite_60d=0.620, vol_60d=0.625),
     ]
     out = render_canary_form_sweep_compare(runs)
-    lines = [l for l in out.splitlines() if "Vol-only gap (60d) ≥ +0.02 in" in l]
+    lines = [
+        line for line in out.splitlines() if "Vol-only gap (60d) ≥ +0.02 in" in line
+    ]
     assert lines, "expected vol-only gap observation line"
     assert "convex" in lines[0]
     assert "linear" not in lines[0]
@@ -231,7 +236,9 @@ def test_observation_buy_pct_zero():
     ]
     out = render_canary_form_sweep_compare(runs)
     lines = [
-        l for l in out.splitlines() if "BUY% at exactly 0 (band never fires) in" in l
+        line
+        for line in out.splitlines()
+        if "BUY% at exactly 0 (band never fires) in" in line
     ]
     assert lines, "expected BUY%=0 observation line"
     assert "convex" in lines[0]
@@ -244,9 +251,9 @@ def test_observation_strong_buy_pct_zero():
     """STRONG_BUY% at exactly 0: listed."""
     out = render_canary_form_sweep_compare(_full_set())
     lines = [
-        l
-        for l in out.splitlines()
-        if "STRONG_BUY% at exactly 0 (band never fires) in" in l
+        line
+        for line in out.splitlines()
+        if "STRONG_BUY% at exactly 0 (band never fires) in" in line
     ]
     assert lines, "expected STRONG_BUY%=0 observation line"
     for form in ("linear", "convex", "concave", "sigmoid"):
@@ -305,7 +312,7 @@ def test_observation_none_when_no_form_matches():
         "BUY% at exactly 0 (band never fires) in",
         "STRONG_BUY% at exactly 0 (band never fires) in",
     ):
-        matching = [l for l in out.splitlines() if label in l]
+        matching = [line for line in out.splitlines() if label in line]
         assert matching, f"missing observation line for: {label}"
         assert "none" in matching[0], (
             f"rule '{label}' should report 'none' when no form matches, "
