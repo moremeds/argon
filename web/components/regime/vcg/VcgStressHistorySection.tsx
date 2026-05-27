@@ -1,5 +1,6 @@
 "use client";
 
+import { ChevronDown, ChevronRight } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import type { components } from "@/lib/types";
@@ -14,10 +15,15 @@ type VcgValidationResponse = components["schemas"]["VcgValidationResponse"];
  * the stress_history table. Kept separate from VcgSubTabView so that view
  * stays pure (props-only) and testable without HTTP mocking — only this
  * section owns the fetch.
+ *
+ * The section header is a toggle: click to collapse / expand. Defaults open.
+ * The fetch still fires on mount regardless of fold state — the cost is a
+ * one-time GET, and pre-fetching keeps the count visible in the header.
  */
 export default function VcgStressHistorySection() {
   const [data, setData] = useState<VcgValidationResponse | null>(null);
   const [err, setErr] = useState<string | null>(null);
+  const [open, setOpen] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
@@ -49,8 +55,27 @@ export default function VcgStressHistorySection() {
 
   return (
     <div className="section" data-testid="vcg-stress-history-section">
-      <div className="section-header">
-        <div className="section-title">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        aria-expanded={open}
+        data-testid="vcg-stress-history-toggle"
+        className="section-header"
+        style={{
+          width: "100%",
+          background: "transparent",
+          border: "none",
+          padding: 0,
+          cursor: "pointer",
+          textAlign: "left",
+          color: "inherit",
+        }}
+      >
+        <div
+          className="section-title"
+          style={{ display: "flex", alignItems: "center", gap: "6px" }}
+        >
+          {open ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
           PANIC / RISK-OFF / EDR History (all-time)
           {totalDays != null && (
             <span
@@ -65,14 +90,14 @@ export default function VcgStressHistorySection() {
             </span>
           )}
         </div>
-      </div>
-      {err && (
+      </button>
+      {open && err && (
         <div data-testid="vcg-stress-history-error">
           Stress history unavailable: {err}
         </div>
       )}
-      {!err && !data && <div>Loading…</div>}
-      {!err && data && (
+      {open && !err && !data && <div>Loading…</div>}
+      {open && !err && data && (
         <div className="section-body table-wrap">
           <VcgStressHistoryTable rows={rows} />
         </div>

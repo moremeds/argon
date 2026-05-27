@@ -539,43 +539,14 @@ export function VcgSubTabView({
               </span>
               <span
                 style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: "8px",
+                  fontFamily: "var(--font-mono)",
+                  fontSize: "11px",
+                  fontWeight: 700,
+                  color: pctRankColor(sig.vvix_percentile_rank),
                 }}
+                data-testid="vcg-vvix-pct-rank"
               >
-                {sig.vix_percentile_rank != null &&
-                  sig.vvix_percentile_rank != null &&
-                  sig.vix_percentile_rank >= VOL_STRESS_THRESHOLD &&
-                  sig.vvix_percentile_rank >= VOL_STRESS_THRESHOLD && (
-                    <span
-                      style={{
-                        fontFamily: "var(--font-mono)",
-                        fontSize: "9px",
-                        fontWeight: 700,
-                        color: "#fff",
-                        background: "var(--fault, var(--negative))",
-                        padding: "1px 6px",
-                        borderRadius: "999px",
-                        letterSpacing: "0.08em",
-                      }}
-                      data-testid="vcg-vol-stress-override-badge"
-                      title="Both VIX and VVIX percentile ranks ≥ 0.95 — v2 absolute-vol-stress override is RISK_OFF"
-                    >
-                      V2 OVERRIDE
-                    </span>
-                  )}
-                <span
-                  style={{
-                    fontFamily: "var(--font-mono)",
-                    fontSize: "11px",
-                    fontWeight: 700,
-                    color: pctRankColor(sig.vvix_percentile_rank),
-                  }}
-                  data-testid="vcg-vvix-pct-rank"
-                >
-                  {formatPctRank(sig.vvix_percentile_rank)}
-                </span>
+                {formatPctRank(sig.vvix_percentile_rank)}
               </span>
             </div>
             <div
