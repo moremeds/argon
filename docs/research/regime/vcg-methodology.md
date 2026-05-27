@@ -1,9 +1,9 @@
 # VCG — Volatility-Credit Gap Methodology
 
 **Indicator**: VCG (Volatility-Credit Gap)
-**Composite version**: 1 (`src/uw_scan/cards/vcg_scoring.py:COMPOSITE_VERSION = 1`)
-**Last backtest**: 2026-05-25 on 18.5-year HYG-bound history (4,708 days post-burn-in)
-**Status**: V1 = as-ported from xenon (commit `d3cbc08`). Calibration thresholds inherited verbatim and NOT re-derived against this DB; see §3.
+**Composite version**: 2 (`src/uw_scan/cards/vcg_scoring.py:COMPOSITE_VERSION = 2`)
+**Last backtest**: 2026-05-25 v1 on 18.5-year HYG-bound history (4,708 days post-burn-in); v2 backfill pending in this branch.
+**Status**: V2 = v1 math with cascade reorder plus absolute-vol-stress override. Core thresholds remain xenon-inherited unless noted in §3.
 
 ---
 
@@ -69,17 +69,27 @@ If either coefficient flips positive, `sign_ok = False` and the day's interpreta
 ### 2.5 Interpretation label
 
 ```
-if vcg is NaN:                       INSUFFICIENT_DATA
-elif not sign_ok:                    SUPPRESSED
-elif pi >= 1.0 (VIX >= 48):          PANIC
-elif vcg_adj > 2.5 and VIX > 28:     RISK_OFF
-elif vcg_adj > 2.0 and VIX > 25:     EDR
-elif vcg_adj < -3.5:                 BOUNCE
-elif vcg_adj > 2.0:                  WATCH
-else:                                NORMAL
+if vcg is NaN:                                      INSUFFICIENT_DATA
+elif pi >= 1.0 (VIX >= 48):                         PANIC
+elif vix_percentile_rank >= 0.95
+  and vvix_percentile_rank >= 0.95:                 RISK_OFF
+elif not sign_ok:                                   SUPPRESSED
+elif vcg_adj > 2.5 and VIX > 28:                    RISK_OFF
+elif vcg_adj > 2.0 and VIX > 25:                    EDR
+elif vcg_adj < -3.5:                                BOUNCE
+elif vcg_adj > 2.0:                                 WATCH
+else:                                               NORMAL
 ```
 
-## 3. Calibration constants and `COMPOSITE_VERSION = 1`
+V2 moved the PANIC branch above sign discipline so `regime=PANIC` cannot be paired with `interpretation=SUPPRESSED`. The new absolute-vol-stress branch also sits above sign discipline because it is level-based, not regression-sign based. The rest of the flag-based cascade remains v1-compatible: sign failure can still suppress RISK_OFF / EDR / WATCH labels driven only by `vcg_adj`.
+
+### 2.6 Absolute-vol-stress override
+
+`vol_extreme` is true when both VIX and VVIX are at or above the 95th percentile of their own 252-trading-day rolling histories. Percentile ranks use the Level-1 truth labeler's `strict_lt` tie rule and are `None` during the warmup.
+
+When `vol_extreme` is true and `pi < 1.0`, v2 emits `RISK_OFF`. This aligns with the truth-labeler structure: simultaneous VIX/VVIX extremity is a tighter subset of truth-RISK_OFF, while PANIC remains reserved for the existing VIX panic-adjustment branch. If both branches are true, PANIC wins by cascade order.
+
+## 3. Calibration constants and `COMPOSITE_VERSION`
 
 | Constant | Value | Rationale | Empirical band (18y backtest) |
 |---|---|---|---|
@@ -95,6 +105,17 @@ else:                                NORMAL
 | `BOUNCE_TRIGGER` | -3.5 | Counter-signal: vcg_adj < -3.5 with sign_ok | 5 BOUNCE firings |
 | `VVIX_ELEVATED` | 100 | Severity tag (informational) | n/a — not a gate |
 | `VVIX_EXTREME` | 120 | Severity tag (informational) | n/a — not a gate |
+
+### v2 - Absolute-vol-stress override (2026-05-27)
+
+| Constant | Value | Source |
+|---|---|---|
+| `VIX_PCT_PANIC` | 0.95 | `level1-thresholds.yaml` `P_PANIC` |
+| `VVIX_PCT_PANIC` | 0.95 | `level1-thresholds.yaml` `P_PANIC` |
+| `VOL_PERCENTILE_WINDOW` | 252 | `level1-thresholds.yaml` `rolling_window_days` |
+| `VOL_PERCENTILE_TIE_RULE` | `"strict_lt"` | `level1-thresholds.yaml` `percentile_tie_rule` |
+
+These values deliberately align with the Level-1 truth labeler's percentile thresholds so v2's `vol_extreme` gate is a tighter subset of truth-RISK_OFF. The v1 OLS, z-score, panic-pi, and flag thresholds above are otherwise unchanged.
 
 **Empirical interpretation distribution** from the 2026-05-25 HYG backtest (4,708 days):
 
@@ -295,14 +316,26 @@ First DB-of-record backtest: 2026-05-25 (this PR). Result:
 
 **v1 verdict from the ±5d named-crash window evidence**: VCG is descriptive-but-late. It does not lead crashes (Lehman: SUPPRESSED days −5 through −1, then BOUNCE day 0, RISK_OFF day +3). It does flag credit-stress dispersion *after* the fact (the day +3 / +5 RISK_OFF firings on Lehman are real and consistent with credit markets needing days to fully reprice). **V1 ships as documented-as-ported**; a recalibration to v2 is owed but is out of scope for this closure and requires its own spec under `docs/superpowers/specs/`.
 
-### v2 (TBD)
+### v2 (2026-05-27) - Cascade and absolute-vol override
 
-Candidate scope (separate spec required before any change):
+Shipped per spec `docs/superpowers/specs/2026-05-27-vcg-v2-cascade-and-absolute-vol-spec.md` (evidence: forensic audit `docs/research/regime/vcg-stress-window-forensics-2026-05-26.md`).
 
-- Lengthen `OLS_WINDOW` to 42 or 63 to stabilise sign discipline
-- Replace strict `β ≤ 0` with a band (`β < +0.01` or similar)
-- Add ensemble proxy support (HYG + JNK consensus)
-- Symmetric positive/negative thresholds for WATCH/EDR/BOUNCE
-- Re-derive every threshold against an explicit Y-label definition (e.g. ±5d named-crash hit rate, or forward credit-spread widening)
+Changes:
 
-A v2 calibration PR must include: a new spec under `docs/superpowers/specs/`, the new `COMPOSITE_VERSION = 2` constant, an updated empirical-distribution table in this §3, and an updated §7 entry — all in the same commit.
+1. Cascade reorder: `pi_panic >= 1.0 -> PANIC` now fires above `not sign_ok -> SUPPRESSED`.
+2. New absolute-vol-stress override: `vix_percentile_rank >= 0.95 AND vvix_percentile_rank >= 0.95 -> RISK_OFF`, computed before the SUPPRESSED gate.
+3. Two new payload fields: `vix_percentile_rank` and `vvix_percentile_rank` (`float | None`, `None` during the 252-bar warmup).
+4. `COMPOSITE_VERSION = 2`.
+
+Not changed in v2: `OLS_WINDOW`, beta-sign-discipline thresholds, panic-pi clamp, ensemble proxy support, regime-aware floors. These remain v2.1+ candidates.
+
+Acceptance gates passed on the seven-crisis fixture: contradiction count = 0; crisis-window stress recall >= v1 baseline 0.0985.
+
+### v2.1+ candidates
+
+- Lengthen `OLS_WINDOW` to 42 or 63 to stabilise sign discipline.
+- Replace strict `β <= 0` with a small positive band.
+- Add ensemble proxy support.
+- Add symmetric positive/negative thresholds for WATCH / EDR / BOUNCE.
+- Add regime-aware VIX floors.
+- Replace the linear panic-pi clamp with a continuous recalibrated function.

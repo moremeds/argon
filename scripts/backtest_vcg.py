@@ -173,6 +173,7 @@ def _single_proxy_daily_rows(
                 "score": score,
                 "level": interp,
                 "payload": {
+                    "interpretation": day["interpretation"],
                     "vcg": day["vcg"],
                     "vcg_adj": day["vcg_adj"],
                     "residual": day["residual"],
@@ -181,6 +182,8 @@ def _single_proxy_daily_rows(
                     "alpha": day["alpha"],
                     "vix": day["vix"],
                     "vvix": day["vvix"],
+                    "vix_percentile_rank": day["vix_percentile_rank"],
+                    "vvix_percentile_rank": day["vvix_percentile_rank"],
                     "credit_price": day["credit_price"],
                     "sign_ok": day["sign_ok"],
                     "ro": day["ro"],
@@ -390,6 +393,9 @@ def _composite_daily_rows(
                 "score": score,
                 "level": interp,
                 "payload": {
+                    "interpretation": day["interpretation"],
+                    "vix_percentile_rank": day["vix_percentile_rank"],
+                    "vvix_percentile_rank": day["vvix_percentile_rank"],
                     "signal": {
                         "vcg": day["vcg"],
                         "vcg_adj": day["vcg_adj"],

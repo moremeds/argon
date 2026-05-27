@@ -10,7 +10,7 @@
 
 ## Backtest results live in Postgres (2026-05 closure)
 
-- The CRI + VCG backtests persist to `uw_scan.regime_backtest_runs` + `uw_scan.regime_backtest_daily` (migration 057). The DB is the sole source of truth — `/api/regime/validation` returns 503 if no completed run exists at the current COMPOSITE_VERSION.
+- The CRI + VCG backtests persist to `uw_scan.regime_backtest_runs` + `uw_scan.regime_backtest_daily` (migration 057). The DB is the sole source of truth — `/api/regime/vcg-validation` returns 503 if no completed VCG run exists at the current COMPOSITE_VERSION.
 - Inspect via `SELECT * FROM uw_scan.regime_backtest_runs ORDER BY created_at DESC LIMIT 10;` — see `closure-2026-05-24.md` for the full SQL cookbook.
 - Do NOT commit any CSV/MD/JSON output files from backtest runs — the renderer in `src/uw_scan/reports/regime_backtest_report.py` produces markdown on demand from the DB row.
 - `composite_version` provenance is derived from code constants (`cri_scorers.COMPOSITE_VERSION`, `vcg_scoring.COMPOSITE_VERSION`). Never override on the CLI — the value persisted in the DB always matches the code that produced the daily rows.
@@ -18,7 +18,7 @@
 ## When to update
 
 - After changing any constant in `cri_scorers.py`: update §3 of `cri-methodology.md` with the new threshold and rationale, AND update `LAST_KNOWN_AUC_DD5` / `LAST_KNOWN_AUC_DD10` (which the OOS gate's seed fixture reads) in the same diff. PR review enforces this contract.
-- After changing any constant in `vcg_scoring.py` (VCG_TRIGGER, VCG_RO_TRIGGER, BOUNCE_TRIGGER, VIX_FLOOR, VIX_EDR, VIX_PANIC_LOW, VIX_PANIC_HIGH, VVIX_ELEVATED, VVIX_EXTREME): update §3 of `vcg-methodology.md` with the new threshold and rationale.
+- After changing any constant in `vcg_scoring.py` (VCG_TRIGGER, VCG_RO_TRIGGER, BOUNCE_TRIGGER, VIX_FLOOR, VIX_EDR, VIX_PANIC_LOW, VIX_PANIC_HIGH, VVIX_ELEVATED, VVIX_EXTREME, VIX_PCT_PANIC, VVIX_PCT_PANIC, VOL_PERCENTILE_WINDOW, VOL_PERCENTILE_TIE_RULE): update §3 of `vcg-methodology.md` with the new threshold and rationale.
 - After changing any threshold in `canary-calibration-v1.json` (the persisted
   Class B floor/ceiling values produced by `scripts/backtest_canary.py
   --calibrate`): update §3 of `canary-methodology.md` with the new values

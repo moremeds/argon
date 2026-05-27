@@ -21,6 +21,9 @@ import math
 from typing import Any
 
 import numpy as np
+import pandas as pd
+
+from uw_scan.cards.regime_classification_labels import compute_rolling_percentile_rank
 
 # Composite scoring contract version.
 # v1: as-ported from xenon/src/xenon/scanners/vcg.py at commit d3cbc08.
@@ -29,7 +32,7 @@ import numpy as np
 #     VIX_PANIC_HIGH=48, VVIX_ELEVATED=100, VVIX_EXTREME=120.
 #     Calibration NOT re-derived in this repo — see vcg-methodology.md §3.
 # Bump in lockstep with any threshold change above.
-COMPOSITE_VERSION = 1
+COMPOSITE_VERSION = 2
 
 # ── windows ───────────────────────────────────────────────────────
 OLS_WINDOW = 21  # Rolling regression window (business days)
@@ -46,6 +49,14 @@ VCG_RO_TRIGGER = 2.5  # Risk-Off threshold
 BOUNCE_TRIGGER = -3.5  # Counter-signal (tactical long)
 VVIX_EXTREME = 120.0  # VVIX amplifier: extreme
 VVIX_ELEVATED = 100.0  # VVIX amplifier: elevated (below = moderate)
+
+# v2 — absolute-vol-stress override gate
+# Mirrors docs/research/regime/ground-truth-labels/level1-thresholds.yaml
+# (P_PANIC, rolling_window_days, percentile_tie_rule).
+VIX_PCT_PANIC = 0.95  # VIX percentile rank cutoff for vol_extreme
+VVIX_PCT_PANIC = 0.95  # VVIX percentile rank cutoff for vol_extreme
+VOL_PERCENTILE_WINDOW = 252  # Rolling window (1 trading year)
+VOL_PERCENTILE_TIE_RULE = "strict_lt"  # Cohort tie semantics
 
 
 # ══════════════════════════════════════════════════════════════════
@@ -143,6 +154,18 @@ def compute_vcg(
         (vix_levels - VIX_PANIC_LOW) / (VIX_PANIC_HIGH - VIX_PANIC_LOW), 0.0, 1.0
     )
     vcg_div = (1.0 - pi) * vcg
+    vix_rank_full = compute_rolling_percentile_rank(
+        pd.Series(vix_prices),
+        window=VOL_PERCENTILE_WINDOW,
+        tie_rule=VOL_PERCENTILE_TIE_RULE,
+    )
+    vvix_rank_full = compute_rolling_percentile_rank(
+        pd.Series(vvix_prices),
+        window=VOL_PERCENTILE_WINDOW,
+        tie_rule=VOL_PERCENTILE_TIE_RULE,
+    )
+    vix_percentile_rank = vix_rank_full.iloc[1:].to_numpy()
+    vvix_percentile_rank = vvix_rank_full.iloc[1:].to_numpy()
 
     return {
         "vcg": vcg,
@@ -156,6 +179,8 @@ def compute_vcg(
         "credit_ret": credit_ret,
         "vix_levels": vix_levels,
         "vvix_levels": vvix_prices[1:],
+        "vix_percentile_rank": vix_percentile_rank,
+        "vvix_percentile_rank": vvix_percentile_rank,
         "credit_levels": credit_prices[1:],
         "pi": pi,
     }
@@ -255,6 +280,14 @@ def _interpretation_for_index(
     credit = float(model["credit_levels"][idx])
     residual = float(model["residuals"][idx])
     pi_val = float(model["pi"][idx])
+    vix_percentile_rank = float(model["vix_percentile_rank"][idx])
+    vvix_percentile_rank = float(model["vvix_percentile_rank"][idx])
+    vol_extreme = (
+        not math.isnan(vix_percentile_rank)
+        and vix_percentile_rank >= VIX_PCT_PANIC
+        and not math.isnan(vvix_percentile_rank)
+        and vvix_percentile_rank >= VVIX_PCT_PANIC
+    )
 
     sign_suppressed = not flags["sign_ok"]
     vvix_sev = _vvix_severity(vvix)
@@ -285,13 +318,15 @@ def _interpretation_for_index(
     else:
         regime = "DIVERGENCE"
 
-    # Interpretation
+    # Interpretation (v2 cascade)
     if math.isnan(vcg_val):
         interpretation = "INSUFFICIENT_DATA"
-    elif not flags["sign_ok"]:
-        interpretation = "SUPPRESSED"
     elif pi_val >= 1.0:
         interpretation = "PANIC"
+    elif vol_extreme:
+        interpretation = "RISK_OFF"
+    elif not flags["sign_ok"]:
+        interpretation = "SUPPRESSED"
     elif flags["ro"]:
         interpretation = "RISK_OFF"
     elif flags["edr"]:
@@ -312,6 +347,8 @@ def _interpretation_for_index(
         "alpha": _round_or_none(alpha, 6),
         "vix": round(vix, 2),
         "vvix": round(vvix, 2),
+        "vix_percentile_rank": _round_or_none(vix_percentile_rank, 4),
+        "vvix_percentile_rank": _round_or_none(vvix_percentile_rank, 4),
         "credit_price": round(credit, 2),
         "ro": flags["ro"],
         "edr": flags["edr"],
@@ -484,6 +521,16 @@ def _compute_vcg_from_returns(
         (vix_levels - VIX_PANIC_LOW) / (VIX_PANIC_HIGH - VIX_PANIC_LOW), 0.0, 1.0
     )
     vcg_div = (1.0 - pi) * vcg
+    vix_percentile_rank = compute_rolling_percentile_rank(
+        pd.Series(vix_levels),
+        window=VOL_PERCENTILE_WINDOW,
+        tie_rule=VOL_PERCENTILE_TIE_RULE,
+    ).to_numpy()
+    vvix_percentile_rank = compute_rolling_percentile_rank(
+        pd.Series(vvix_levels),
+        window=VOL_PERCENTILE_WINDOW,
+        tie_rule=VOL_PERCENTILE_TIE_RULE,
+    ).to_numpy()
     return {
         "vcg": vcg,
         "vcg_adj": vcg_div,
@@ -496,6 +543,8 @@ def _compute_vcg_from_returns(
         "credit_ret": credit_returns,
         "vix_levels": vix_levels,
         "vvix_levels": vvix_levels,
+        "vix_percentile_rank": vix_percentile_rank,
+        "vvix_percentile_rank": vvix_percentile_rank,
         "credit_levels": credit_levels,
         "pi": pi,
     }
