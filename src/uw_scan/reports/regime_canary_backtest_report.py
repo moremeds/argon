@@ -100,17 +100,27 @@ def render_canary_form_sweep_compare(runs: list[dict]) -> str:
         def pct(b: str, _n: int = n, _bd: dict = bd) -> float:
             return 100.0 * _bd[b] / _n if _n else 0.0
 
+        def _fmt(v: float | None, width: int) -> str:
+            """`{v:>W.3f}` but renders None as a right-justified 'nan'."""
+            if v is None:
+                return "nan".rjust(width)
+            return f"{v:>{width}.3f}"
+
         wb = s["within_band_aucs"]["BUY"].get("up60d_10pct")
-        buy_band_str = f"{wb:.3f}" if wb is not None else "  nan"
+        buy_band_str = _fmt(wb, 16)
         gap = s["vol_only_gap"]["up60d_10pct"]
-        gap_str = ("+" if gap >= 0 else "") + f"{gap:.3f}"
+        if gap is None:
+            gap_str = "nan".rjust(18)
+        else:
+            gap_str = (("+" if gap >= 0 else "") + f"{gap:.3f}").rjust(18)
+        c = s["aucs"]["composite"]
         out.write(
-            f"| {form:<7} | {s['aucs']['composite']['up5d_2pct']:>6.3f} | "
-            f"{s['aucs']['composite']['up20d_5pct']:>7.3f} | "
-            f"{s['aucs']['composite']['up60d_10pct']:>7.3f} | "
+            f"| {form:<7} | {_fmt(c['up5d_2pct'], 6)} | "
+            f"{_fmt(c['up20d_5pct'], 7)} | "
+            f"{_fmt(c['up60d_10pct'], 7)} | "
             f"{pct('NONE'):>5.1f} | {pct('WATCH'):>6.1f} | "
             f"{pct('BUY'):>4.1f} | {pct('STRONG_BUY'):>11.1f} | "
-            f"{buy_band_str:>16} | {gap_str:>18} |\n"
+            f"{buy_band_str} | {gap_str} |\n"
         )
     out.write("\n")
 
@@ -137,7 +147,10 @@ def render_canary_form_sweep_compare(runs: list[dict]) -> str:
         ),
         (
             "Vol-only gap (60d) ≥ +0.02 in",
-            lambda s: s["vol_only_gap"]["up60d_10pct"] >= 0.02,
+            lambda s: (
+                s["vol_only_gap"]["up60d_10pct"] is not None
+                and s["vol_only_gap"]["up60d_10pct"] >= 0.02
+            ),
             "  (speed layer net-negative for rank)",
         ),
         (
@@ -154,6 +167,8 @@ def render_canary_form_sweep_compare(runs: list[dict]) -> str:
             "Composite 60d AUC improves over linear by ≥ +0.02 in",
             lambda s: (
                 s["score_form"] != "linear"
+                and s["aucs"]["composite"]["up60d_10pct"] is not None
+                and linear_summary["aucs"]["composite"]["up60d_10pct"] is not None
                 and s["aucs"]["composite"]["up60d_10pct"]
                 - linear_summary["aucs"]["composite"]["up60d_10pct"]
                 >= 0.02
@@ -165,6 +180,8 @@ def render_canary_form_sweep_compare(runs: list[dict]) -> str:
             "AND 60d AUC does not fall by more than 0.01 in",
             lambda s: (
                 s["score_form"] != "linear"
+                and s["aucs"]["composite"]["up60d_10pct"] is not None
+                and linear_summary["aucs"]["composite"]["up60d_10pct"] is not None
                 and (
                     100.0
                     * linear_summary["band_distribution"]["WATCH"]

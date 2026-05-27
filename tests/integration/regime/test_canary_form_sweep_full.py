@@ -196,3 +196,204 @@ def test_delete_runs_by_batch_id_scoped_to_canary_research_form_sweep_full(
             (target_id,),
         )
         assert cur.fetchone()[0] == 0
+
+
+def test_cmd_form_sweep_full_persists_4_rows_sharing_batch_id(seeded_db_empty_cards):
+    """Run the script's wrapper. Assert: 4 research rows, same batch_id, same generated_at."""
+    from scripts.backtest_canary import cmd_form_sweep_full
+    from tests.integration.regime._canary_form_sweep_fixture import (
+        seed_canary_snapshots,
+        seed_vol_index,
+    )
+
+    db_conn = seeded_db_empty_cards.conn
+    db_schema = seeded_db_empty_cards._schema
+    dates = seed_vol_index(db_conn, schema=db_schema, n_days=600)
+    seed_canary_snapshots(db_conn, schema=db_schema, dates=dates, n_snapshots=200)
+
+    cmd_form_sweep_full(db_conn, schema=db_schema)
+
+    with db_conn.cursor() as cur:
+        cur.execute(
+            f"SELECT params->>'batch_id', summary->>'generated_at', "
+            f"       params->>'score_form', summary->>'is_winning_form', run_scope "
+            f"FROM {db_schema}.regime_backtest_runs "
+            f"WHERE params->>'phase' = 'form_sweep_full' "
+            f"ORDER BY params->>'score_form'"
+        )
+        rows = cur.fetchall()
+
+    assert len(rows) == 4
+    batch_ids = {r[0] for r in rows}
+    gen_ats = {r[1] for r in rows}
+    forms = {r[2] for r in rows}
+    is_winning = {r[3] for r in rows}
+    run_scopes = {r[4] for r in rows}
+    assert len(batch_ids) == 1, f"all 4 rows must share batch_id, got {batch_ids}"
+    assert len(gen_ats) == 1, f"all 4 rows must share generated_at, got {gen_ats}"
+    assert forms == {"linear", "convex", "concave", "sigmoid"}
+    assert is_winning == {"false"}, f"is_winning_form must be false for all, got {is_winning}"
+    assert run_scopes == {"research"}, f"run_scope must be research for all, got {run_scopes}"
+
+
+def test_cmd_form_sweep_full_writes_daily_rows(seeded_db_empty_cards):
+    """Each form's run has exactly `n_days` corresponding regime_backtest_daily rows."""
+    from scripts.backtest_canary import cmd_form_sweep_full
+    from tests.integration.regime._canary_form_sweep_fixture import (
+        seed_canary_snapshots,
+        seed_vol_index,
+    )
+
+    db_conn = seeded_db_empty_cards.conn
+    db_schema = seeded_db_empty_cards._schema
+    dates = seed_vol_index(db_conn, schema=db_schema, n_days=600)
+    seed_canary_snapshots(db_conn, schema=db_schema, dates=dates, n_snapshots=200)
+
+    cmd_form_sweep_full(db_conn, schema=db_schema)
+
+    with db_conn.cursor() as cur:
+        cur.execute(
+            f"SELECT r.params->>'score_form', r.n_days, COUNT(d.trade_date) "
+            f"FROM {db_schema}.regime_backtest_runs r "
+            f"LEFT JOIN {db_schema}.regime_backtest_daily d ON d.run_id = r.id "
+            f"WHERE r.params->>'phase' = 'form_sweep_full' "
+            f"GROUP BY r.params->>'score_form', r.n_days"
+        )
+        rows = cur.fetchall()
+    assert len(rows) == 4, f"expected 4 form rows, got {len(rows)}"
+    seen_forms: set[str] = set()
+    for form, n_days, daily_count in rows:
+        seen_forms.add(form)
+        assert n_days > 0, f"{form} run.n_days must be > 0, got {n_days}"
+        assert daily_count == n_days, (
+            f"{form}: daily-row count {daily_count} != run.n_days {n_days} "
+            f"— persistence is not writing every computed eval row"
+        )
+    assert seen_forms == {"linear", "convex", "concave", "sigmoid"}
+
+
+def test_cmd_form_sweep_full_summary_schema(seeded_db_empty_cards):
+    """summary JSONB has all the spec-required keys."""
+    from scripts.backtest_canary import cmd_form_sweep_full
+    from tests.integration.regime._canary_form_sweep_fixture import (
+        seed_canary_snapshots,
+        seed_vol_index,
+    )
+
+    db_conn = seeded_db_empty_cards.conn
+    db_schema = seeded_db_empty_cards._schema
+    dates = seed_vol_index(db_conn, schema=db_schema, n_days=600)
+    seed_canary_snapshots(db_conn, schema=db_schema, dates=dates, n_snapshots=200)
+
+    cmd_form_sweep_full(db_conn, schema=db_schema)
+
+    with db_conn.cursor() as cur:
+        cur.execute(
+            f"SELECT summary FROM {db_schema}.regime_backtest_runs "
+            f"WHERE params->>'phase' = 'form_sweep_full' LIMIT 1"
+        )
+        summary = cur.fetchone()[0]
+    for key in ("is_winning_form", "score_form", "phase", "source",
+                "batch_id", "generated_at", "n_days", "aucs", "auc_ci95",
+                "band_distribution", "within_band_aucs", "vol_only_gap"):
+        assert key in summary, f"summary missing key: {key}"
+    for series in ("composite", "vol_only", "speed_only"):
+        assert series in summary["aucs"]
+        for horizon in ("up5d_2pct", "up20d_5pct", "up60d_10pct"):
+            assert horizon in summary["aucs"][series], \
+                f"aucs.{series}.{horizon} missing"
+    for band in ("NONE", "WATCH", "BUY", "STRONG_BUY"):
+        assert band in summary["band_distribution"]
+
+
+def test_cmd_form_sweep_full_prints_renderer_output(seeded_db_empty_cards, capsys):
+    """After persistence, the command must call the renderer and print its
+    output to stdout. A buggy implementation that persists correctly but
+    skips the print would otherwise pass every DB-only test."""
+    from scripts.backtest_canary import cmd_form_sweep_full
+    from tests.integration.regime._canary_form_sweep_fixture import (
+        seed_canary_snapshots,
+        seed_vol_index,
+    )
+
+    db_conn = seeded_db_empty_cards.conn
+    db_schema = seeded_db_empty_cards._schema
+    dates = seed_vol_index(db_conn, schema=db_schema, n_days=600)
+    seed_canary_snapshots(db_conn, schema=db_schema, dates=dates, n_snapshots=200)
+
+    cmd_form_sweep_full(db_conn, schema=db_schema)
+
+    captured = capsys.readouterr()
+    stdout = captured.out
+    for form in ("linear", "convex", "concave", "sigmoid"):
+        assert form in stdout, f"renderer output missing form row '{form}'"
+    li = stdout.index("linear")
+    cv = stdout.index("convex")
+    cc = stdout.index("concave")
+    sg = stdout.index("sigmoid")
+    assert li < cv < cc < sg, (
+        f"form rows must appear in canonical order, got positions "
+        f"linear={li}, convex={cv}, concave={cc}, sigmoid={sg}"
+    )
+    assert "Observations" in stdout, "renderer output missing Observations section"
+    assert "What this run does NOT decide" in stdout, (
+        "renderer footer missing — guardrail prose against misuse"
+    )
+
+
+def test_cmd_form_sweep_full_does_not_persist_when_compute_fails_mid_run(
+    seeded_db_empty_cards, monkeypatch,
+):
+    """Compute-all-before-persist invariant (spec §4.2 / AC-13).
+
+    Patches `deps.compute_canary_series` to raise on the *third* invocation
+    (= third form). Asserts: zero `form_sweep_full` rows are persisted.
+    """
+    from scripts.backtest_canary import cmd_form_sweep_full
+    from tests.integration.regime._canary_form_sweep_fixture import (
+        seed_canary_snapshots,
+        seed_vol_index,
+    )
+    from uw_scan.reports import regime_canary_form_sweep_full as impl_mod
+
+    db_conn = seeded_db_empty_cards.conn
+    db_schema = seeded_db_empty_cards._schema
+    dates = seed_vol_index(db_conn, schema=db_schema, n_days=600)
+    seed_canary_snapshots(db_conn, schema=db_schema, dates=dates, n_snapshots=200)
+
+    real_run = impl_mod.run_form_sweep_full
+    call_count = {"compute": 0}
+
+    def make_failing_run(conn, *, schema, deps):
+        real_compute = deps.compute_canary_series
+
+        def patched_compute(*args, **kwargs):
+            call_count["compute"] += 1
+            if call_count["compute"] == 3:
+                raise RuntimeError(
+                    "synthetic failure on form 3 — compute-before-persist test"
+                )
+            return real_compute(*args, **kwargs)
+
+        from dataclasses import replace
+        patched_deps = replace(deps, compute_canary_series=patched_compute)
+        return real_run(conn, schema=schema, deps=patched_deps)
+
+    monkeypatch.setattr(impl_mod, "run_form_sweep_full", make_failing_run)
+
+    with pytest.raises(RuntimeError, match="synthetic failure on form 3"):
+        cmd_form_sweep_full(db_conn, schema=db_schema)
+
+    with db_conn.cursor() as cur:
+        cur.execute(
+            f"SELECT COUNT(*) FROM {db_schema}.regime_backtest_runs "
+            f"WHERE params->>'phase' = 'form_sweep_full'"
+        )
+        assert cur.fetchone()[0] == 0, (
+            "compute-before-persist violated: rows for forms 1/2 leaked "
+            "into the DB before form 3's compute failed"
+        )
+    assert call_count["compute"] == 3, (
+        f"expected compute to be called 3 times before failing, "
+        f"got {call_count['compute']}"
+    )
