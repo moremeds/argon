@@ -1,6 +1,7 @@
 """5% Canary backtest harness.
 
-Three modes — see docs/superpowers/specs/2026-05-26-5pct-canary-indicator-design.md §7, §8.
+Five modes — see docs/superpowers/specs/2026-05-26-5pct-canary-indicator-design.md §7, §8
+and docs/research/regime/canary-5yr-executive-summary.md §6, §7.
 
   --calibrate         Compute Class B thresholds on the train window (2007-2014),
                       write canary-calibration-v1.json.
@@ -8,6 +9,12 @@ Three modes — see docs/superpowers/specs/2026-05-26-5pct-canary-indicator-desi
                       persist per-form results to regime_backtest_runs, pick winner.
   --report            Compute final OOS report on the test window (2020-present),
                       persist with summary.is_winning_form=true.
+  --walk-forward      6-window expanding-train walk-forward (frozen v1 calibration).
+                      Persists one row per window with params.phase='walk_forward'.
+  --robustness        Full-dataset robustness report — composite vs vol-only across
+                      exclusion regimes (no 2020-Q4, no 2026 live), AUC-by-year,
+                      AUC-by-band, true event-fire stats, block-bootstrap AUC CI.
+                      Persists one row with params.phase='robustness'.
 """
 
 from __future__ import annotations
@@ -577,12 +584,505 @@ def cmd_report(conn, *, form, write_summary: bool, schema: str) -> None:
     log.info("final OOS summary: %s", json.dumps(summary, indent=2))
 
 
+# ---------------------------------------------------------------------------
+# Walk-forward + robustness (added 2026-05-27 per exec-summary §6, §7)
+# ---------------------------------------------------------------------------
+
+# 6 expanding-window OOS panes against the full 2011-02-08 → today backfill.
+# Train ranges are informational only — v1 calibration is reused across all
+# windows. True per-window recalibration is a deferred follow-up (see §9 of
+# the exec summary).
+WALK_FORWARD_WINDOWS: list[dict] = [
+    {
+        "id": "WF-1",
+        "train_end": date(2014, 12, 31),
+        "oos_start": date(2015, 1, 1),
+        "oos_end": date(2016, 12, 31),
+        "label": "China devaluation, Brexit",
+    },
+    {
+        "id": "WF-2",
+        "train_end": date(2016, 12, 31),
+        "oos_start": date(2017, 1, 1),
+        "oos_end": date(2018, 12, 31),
+        "label": "Volmageddon, Q4-18 selloff",
+    },
+    {
+        "id": "WF-3",
+        "train_end": date(2018, 12, 31),
+        "oos_start": date(2019, 1, 1),
+        "oos_end": date(2020, 9, 30),
+        "label": "Repo crisis, COVID crash",
+    },
+    {
+        "id": "WF-4",
+        "train_end": date(2020, 9, 30),
+        "oos_start": date(2020, 10, 1),
+        "oos_end": date(2022, 12, 31),
+        "label": "Post-COVID, 2022 inflation",
+    },
+    {
+        "id": "WF-5",
+        "train_end": date(2022, 12, 31),
+        "oos_start": date(2023, 1, 1),
+        "oos_end": date(2024, 12, 31),
+        "label": "Bond-yield selloff, 2024 quiet",
+    },
+    {
+        "id": "WF-6",
+        "train_end": date(2024, 12, 31),
+        "oos_start": date(2025, 1, 1),
+        "oos_end": date.today(),
+        "label": "2025 tariff, 2026 dip (live)",
+    },
+]
+
+LABEL_SPECS: list[tuple[str, int, float]] = [
+    ("up5d_2pct", 5, 0.02),
+    ("up20d_5pct", 20, 0.05),
+    ("up60d_10pct", 60, 0.10),
+]
+
+
+def _clean_nans(obj):
+    """Recursively replace NaN floats with None so Postgres JSONB accepts.
+
+    Postgres rejects 'NaN' tokens inside json columns; by-band AUCs can be
+    NaN when the labels in a subset are all 0 or all 1.
+    """
+    if isinstance(obj, dict):
+        return {k: _clean_nans(v) for k, v in obj.items()}
+    if isinstance(obj, list):
+        return [_clean_nans(v) for v in obj]
+    if isinstance(obj, float) and obj != obj:  # NaN check
+        return None
+    return obj
+
+
+def _aucs_for_rows(rows: list[dict]) -> dict[str, dict[str, float]]:
+    """Composite / speed-only / vol-only AUCs at 3 horizons over `rows`."""
+    if not rows:
+        return {"composite": {}, "speed_only": {}, "vol_only": {}}
+    composite_scores = [r["score"] for r in rows]
+    speed_scores = [r["speed"] for r in rows]
+    vol_scores = [r["tactical"] + r["structural"] for r in rows]
+    out = {"composite": {}, "speed_only": {}, "vol_only": {}}
+    for name, h, thr in LABEL_SPECS:
+        labels = _entry_lagged_label(rows, h, thr)
+        out["composite"][name] = _auc(composite_scores, labels)
+        out["speed_only"][name] = _auc(speed_scores, labels)
+        out["vol_only"][name] = _auc(vol_scores, labels)
+    return out
+
+
+def _band_counts(rows: list[dict]) -> dict[str, int]:
+    return {
+        b: sum(1 for r in rows if r["band"] == b)
+        for b in ("NONE", "WATCH", "BUY", "STRONG_BUY")
+    }
+
+
+def _block_bootstrap_auc_ci(
+    scores: list[float],
+    labels: list,
+    *,
+    block_size: int = 20,
+    iters: int = 1000,
+) -> tuple[float, float]:
+    """Block-bootstrap 95% CI on AUC.
+
+    Sampling preserves daily autocorrelation by drawing contiguous blocks of
+    (score, label) tuples. Returns (lo, hi) at the 2.5 / 97.5 percentiles.
+    Returns (nan, nan) when AUC isn't computable.
+    """
+    pairs = [(s, lbl) for s, lbl in zip(scores, labels) if lbl is not None]
+    n = len(pairs)
+    if n < block_size * 2:
+        return (float("nan"), float("nan"))
+    rng = np.random.default_rng(seed=42)
+    n_blocks = n // block_size
+    aucs: list[float] = []
+    for _ in range(iters):
+        starts = rng.integers(0, n - block_size + 1, size=n_blocks)
+        sample_scores: list[float] = []
+        sample_labels: list = []
+        for s in starts:
+            for j in range(block_size):
+                sample_scores.append(pairs[s + j][0])
+                sample_labels.append(pairs[s + j][1])
+        a = _auc(sample_scores, sample_labels)
+        if a == a:  # filter NaN
+            aucs.append(a)
+    if not aucs:
+        return (float("nan"), float("nan"))
+    return (float(np.percentile(aucs, 2.5)), float(np.percentile(aucs, 97.5)))
+
+
+def _summarize_window(
+    window_id: str,
+    eval_rows: list[dict],
+    all_rows: list[dict],
+    events: list,
+    *,
+    score_form: str,
+) -> dict:
+    aucs = _aucs_for_rows(eval_rows)
+    composite_scores = [r["score"] for r in eval_rows]
+    btd_n = sum(1 for e in events if e.kind == "buy_the_dip")
+    cca_n = sum(1 for e in events if e.kind == "confirmed_canary")
+    auc_cis: dict[str, list[float]] = {}
+    for name, h, thr in LABEL_SPECS:
+        labels = _entry_lagged_label(eval_rows, h, thr)
+        lo, hi = _block_bootstrap_auc_ci(composite_scores, labels)
+        auc_cis[name] = [lo, hi]
+    return {
+        "window_id": window_id,
+        "score_form": score_form,
+        "aucs": aucs,
+        "auc_ci95": auc_cis,
+        "band_distribution": _band_counts(eval_rows),
+        "events": {
+            "buy_the_dip": _btd_event_stats(all_rows, events),
+            "confirmed_canary": _confirmed_canary_event_stats(all_rows, events),
+        },
+        "event_fire_counts": {"btd": btd_n, "cca": cca_n},
+        "n_days": len(eval_rows),
+    }
+
+
+def cmd_walk_forward(conn, *, schema: str) -> None:
+    """6-window expanding-train walk-forward with frozen v1 calibration.
+
+    Writes one regime_backtest_runs row per window so each window's summary
+    can be inspected independently. Logs an aggregated pass/fail table at
+    the end against the revised success criteria (primary 60d ≥ 0.58,
+    secondary 20d ≥ 0.55, 5d diagnostic only).
+    """
+    from uw_scan.cards.canary_calibration import load_calibration
+    from uw_scan.storage.regime_backtest_repository import RegimeBacktestRepository
+
+    cal = load_calibration()
+    bt_repo = RegimeBacktestRepository(conn, schema=schema)
+    score_form = cal.score_form
+
+    window_summaries = []
+    for win in WALK_FORWARD_WINDOWS:
+        log.info(
+            "walk-forward: %s OOS %s → %s (%s)",
+            win["id"],
+            win["oos_start"],
+            win["oos_end"],
+            win["label"],
+        )
+        series = _compute_canary_series(
+            conn,
+            cal,
+            form=score_form,
+            start=win["oos_start"],
+            end=win["oos_end"],
+            schema=schema,
+        )
+        eval_rows = series["eval_rows"]
+        all_rows = series["all_rows"]
+        events = series["events"]
+        if not eval_rows:
+            log.warning("walk-forward: %s has zero eval rows — skipping", win["id"])
+            continue
+        summary = _summarize_window(
+            win["id"],
+            eval_rows,
+            all_rows,
+            events,
+            score_form=score_form,
+        )
+        summary["macro_label"] = win["label"]
+        summary["train_end"] = win["train_end"].isoformat()
+        run_id = bt_repo.insert_run(
+            indicator="canary",
+            composite_version=str(COMPOSITE_VERSION),
+            start_date=eval_rows[0]["date"],
+            end_date=eval_rows[-1]["date"],
+            window_days=350,
+            n_days=len(eval_rows),
+            params={
+                "score_form": score_form,
+                "phase": "walk_forward",
+                "window_id": win["id"],
+                "train_end": win["train_end"].isoformat(),
+            },
+            summary=_clean_nans(summary),
+        )
+        bt_repo.bulk_insert_daily(
+            run_id,
+            [
+                {
+                    "trade_date": r["date"],
+                    "score": r["score"],
+                    "level": r["band"],
+                    "payload": {
+                        "tactical": r["tactical"],
+                        "structural": r["structural"],
+                        "speed": r["speed"],
+                        "warning_state": r["warning_state"],
+                    },
+                }
+                for r in eval_rows
+            ],
+        )
+        bt_repo.mark_run_completed(run_id)
+        log.info(
+            "  → run_id=%d composite_AUC=%.3f/%.3f/%.3f vol_only=%.3f/%.3f/%.3f n_btd=%d n_cca=%d",
+            run_id,
+            summary["aucs"]["composite"]["up5d_2pct"],
+            summary["aucs"]["composite"]["up20d_5pct"],
+            summary["aucs"]["composite"]["up60d_10pct"],
+            summary["aucs"]["vol_only"]["up5d_2pct"],
+            summary["aucs"]["vol_only"]["up20d_5pct"],
+            summary["aucs"]["vol_only"]["up60d_10pct"],
+            summary["event_fire_counts"]["btd"],
+            summary["event_fire_counts"]["cca"],
+        )
+        window_summaries.append(summary)
+
+    # Aggregate pass/fail per revised criteria
+    PASS_60D = 0.58
+    PASS_20D = 0.55
+    log.info("=" * 78)
+    log.info("WALK-FORWARD SUMMARY (frozen v1 calibration, score_form=%s)", score_form)
+    log.info("=" * 78)
+    log.info(
+        "%-6s %-32s %7s %7s %7s %5s %5s %s",
+        "Win",
+        "Macro",
+        "AUC5d",
+        "AUC20d",
+        "AUC60d",
+        "BTDn",
+        "CCAn",
+        "Verdict",
+    )
+    primary_passes = 0
+    secondary_passes = 0
+    for s in window_summaries:
+        a = s["aucs"]["composite"]
+        prim = a["up60d_10pct"] >= PASS_60D
+        sec = a["up20d_5pct"] >= PASS_20D
+        if prim:
+            primary_passes += 1
+        if sec:
+            secondary_passes += 1
+        verdict = "✓" if prim and sec else ("PARTIAL" if (prim or sec) else "FAIL")
+        log.info(
+            "%-6s %-32s %7.3f %7.3f %7.3f %5d %5d %s",
+            s["window_id"],
+            s["macro_label"][:32],
+            a["up5d_2pct"],
+            a["up20d_5pct"],
+            a["up60d_10pct"],
+            s["event_fire_counts"]["btd"],
+            s["event_fire_counts"]["cca"],
+            verdict,
+        )
+    log.info("-" * 78)
+    log.info(
+        "Primary (60d ≥ %.2f): %d / %d windows pass",
+        PASS_60D,
+        primary_passes,
+        len(window_summaries),
+    )
+    log.info(
+        "Secondary (20d ≥ %.2f): %d / %d windows pass",
+        PASS_20D,
+        secondary_passes,
+        len(window_summaries),
+    )
+    log.info(
+        "Regime-robust = primary passes majority (%d / %d)",
+        primary_passes,
+        len(window_summaries),
+    )
+
+
+def cmd_robustness(conn, *, schema: str) -> None:
+    """Robustness report against the full backfilled dataset.
+
+    Produces a single regime_backtest_runs row whose summary has nested
+    subsections for full / no-2020Q4 / no-2026 exclusion subsets, plus
+    AUC-by-year and AUC-by-band breakdowns and bootstrap CIs.
+    """
+    from uw_scan.cards.canary_calibration import load_calibration
+    from uw_scan.storage.regime_backtest_repository import RegimeBacktestRepository
+
+    cal = load_calibration()
+    bt_repo = RegimeBacktestRepository(conn, schema=schema)
+    score_form = cal.score_form
+
+    # Run scoring against the full window once, then slice subsets in-memory.
+    series = _compute_canary_series(
+        conn,
+        cal,
+        form=score_form,
+        start=date(2011, 2, 8),
+        end=date.today(),
+        schema=schema,
+    )
+    all_rows = series["eval_rows"]
+    events = series["events"]
+    if not all_rows:
+        raise RuntimeError("robustness: no eval rows produced")
+
+    def _subset(
+        start: date | None,
+        end: date | None,
+        exclude_start: date | None = None,
+        exclude_end: date | None = None,
+    ) -> list[dict]:
+        out = []
+        for r in all_rows:
+            d = r["date"]
+            if start and d < start:
+                continue
+            if end and d > end:
+                continue
+            if exclude_start and exclude_end and exclude_start <= d <= exclude_end:
+                continue
+            out.append(r)
+        return out
+
+    full = all_rows
+    no_2020q4 = _subset(
+        None, None, exclude_start=date(2020, 10, 1), exclude_end=date(2020, 12, 31)
+    )
+    no_2026_live = _subset(None, date(2025, 12, 31))
+
+    def _section(rows: list[dict], label: str) -> dict:
+        aucs = _aucs_for_rows(rows)
+        composite = [r["score"] for r in rows]
+        cis = {}
+        for name, h, thr in LABEL_SPECS:
+            lab = _entry_lagged_label(rows, h, thr)
+            cis[name] = list(_block_bootstrap_auc_ci(composite, lab))
+        return {
+            "label": label,
+            "n_days": len(rows),
+            "aucs": aucs,
+            "auc_ci95": cis,
+            "band_distribution": _band_counts(rows),
+        }
+
+    # Compute labels once over the FULL series so subset AUCs (by-year, by-
+    # band) don't lose the last `horizon_td` days of each subset to None.
+    full_labels: dict[str, list] = {
+        name: _entry_lagged_label(all_rows, h, thr) for name, h, thr in LABEL_SPECS
+    }
+
+    def _auc_for_indices(idxs: list[int]) -> dict[str, float]:
+        scores = [all_rows[i]["score"] for i in idxs]
+        out: dict[str, float] = {}
+        for name in (sp[0] for sp in LABEL_SPECS):
+            labels_sub = [full_labels[name][i] for i in idxs]
+            out[name] = _auc(scores, labels_sub)
+        return out
+
+    # AUC by year — labels evaluated over the full series, then filtered by year
+    by_year: dict[str, dict] = {}
+    years = sorted({r["date"].year for r in all_rows})
+    for yr in years:
+        idxs = [i for i, r in enumerate(all_rows) if r["date"].year == yr]
+        if len(idxs) < 60:
+            continue
+        rows_y = [all_rows[i] for i in idxs]
+        by_year[str(yr)] = {
+            "n_days": len(idxs),
+            "aucs": _auc_for_indices(idxs),
+            "band_distribution": _band_counts(rows_y),
+        }
+
+    # AUC by band — same correction
+    by_band: dict[str, dict] = {}
+    for band in ("NONE", "WATCH", "BUY"):
+        idxs = [i for i, r in enumerate(all_rows) if r["band"] == band]
+        if len(idxs) < 60:
+            continue
+        by_band[band] = {"n_days": len(idxs), "aucs": _auc_for_indices(idxs)}
+
+    # True event-fire stats from state.emitted directly
+    btd_fires = [e for e in events if e.kind == "buy_the_dip"]
+    cca_fires = [e for e in events if e.kind == "confirmed_canary"]
+
+    summary = {
+        "phase": "robustness",
+        "score_form": score_form,
+        "subsets": {
+            "full": _section(full, "Full 2011-02-08 → today"),
+            "no_2020q4": _section(no_2020q4, "Excluding 2020-Q4 (anomalous vol-crush)"),
+            "no_2026_live": _section(no_2026_live, "Excluding 2026 live period"),
+        },
+        "aucs_by_year": by_year,
+        "aucs_by_band": by_band,
+        "event_fires": {
+            "buy_the_dip": {
+                "n_fires": len(btd_fires),
+                "stats": _btd_event_stats(all_rows, events),
+                "fire_dates": [e.fire_date.isoformat() for e in btd_fires],
+            },
+            "confirmed_canary": {
+                "n_fires": len(cca_fires),
+                "stats": _confirmed_canary_event_stats(all_rows, events),
+                "fire_dates": [e.fire_date.isoformat() for e in cca_fires],
+            },
+        },
+    }
+
+    run_id = bt_repo.insert_run(
+        indicator="canary",
+        composite_version=str(COMPOSITE_VERSION),
+        start_date=all_rows[0]["date"],
+        end_date=all_rows[-1]["date"],
+        window_days=350,
+        n_days=len(all_rows),
+        params={"score_form": score_form, "phase": "robustness"},
+        summary=_clean_nans(summary),
+    )
+    bt_repo.mark_run_completed(run_id)
+    log.info("persisted robustness report run_id=%d", run_id)
+    log.info("=" * 78)
+    log.info("ROBUSTNESS SUMMARY (frozen v1 calibration, score_form=%s)", score_form)
+    log.info("=" * 78)
+    for key, sec in summary["subsets"].items():
+        log.info("%s (n=%d):", sec["label"], sec["n_days"])
+        log.info(
+            "  composite AUC: 5d=%.3f 20d=%.3f 60d=%.3f",
+            sec["aucs"]["composite"]["up5d_2pct"],
+            sec["aucs"]["composite"]["up20d_5pct"],
+            sec["aucs"]["composite"]["up60d_10pct"],
+        )
+        log.info(
+            "  vol-only  AUC: 5d=%.3f 20d=%.3f 60d=%.3f",
+            sec["aucs"]["vol_only"]["up5d_2pct"],
+            sec["aucs"]["vol_only"]["up20d_5pct"],
+            sec["aucs"]["vol_only"]["up60d_10pct"],
+        )
+        log.info("  bands: %s", sec["band_distribution"])
+    log.info("event fires: btd=%d cca=%d", len(btd_fires), len(cca_fires))
+
+
 def main():
     logging.basicConfig(level=logging.INFO)
     parser = argparse.ArgumentParser()
     parser.add_argument("--calibrate", action="store_true")
     parser.add_argument("--form-sweep", action="store_true")
     parser.add_argument("--report", action="store_true")
+    parser.add_argument(
+        "--walk-forward",
+        action="store_true",
+        help="6-window expanding-train walk-forward (frozen v1 calibration)",
+    )
+    parser.add_argument(
+        "--robustness",
+        action="store_true",
+        help="full-dataset robustness report (exclusion regimes, by-year, by-band)",
+    )
     parser.add_argument("--write-summary", action="store_true")
     parser.add_argument("--form", choices=("linear", "convex", "concave", "sigmoid"))
     args = parser.parse_args()
@@ -603,6 +1103,12 @@ def main():
                 write_summary=args.write_summary,
                 schema=schema,
             )
+            return
+        if args.walk_forward:
+            cmd_walk_forward(conn, schema=schema)
+            return
+        if args.robustness:
+            cmd_robustness(conn, schema=schema)
             return
         parser.print_help()
         sys.exit(2)
