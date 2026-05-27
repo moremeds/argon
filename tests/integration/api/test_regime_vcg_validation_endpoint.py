@@ -7,6 +7,8 @@ COMPOSITE_VERSION.
 
 from __future__ import annotations
 
+from uw_scan.cards.vcg_scoring import COMPOSITE_VERSION as VCG_COMPOSITE_VERSION
+
 
 def test_vcg_validation_endpoint_returns_payload(seed_vcg_backtest_run, client) -> None:
     resp = client.get("/api/regime/vcg-validation")
@@ -14,7 +16,7 @@ def test_vcg_validation_endpoint_returns_payload(seed_vcg_backtest_run, client) 
     body = resp.json()
     assert body["credit_proxy"] == "HYG"
     assert body["n_days"] >= 1
-    assert body["composite_version"] == "1"
+    assert body["composite_version"] == str(VCG_COMPOSITE_VERSION)
     assert len(body["interpretation_distribution"]) >= 1
     # First entry is the largest count (router sorts desc by n).
     assert body["interpretation_distribution"][0]["interpretation"] == "SUPPRESSED"
