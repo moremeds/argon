@@ -53,6 +53,7 @@ from uw_scan.reports.trade_insights_ai.leniency.vocabulary import (
     _resolve_with_alias,
 )
 
+
 def _coerce_claude_outcome_dict(
     raw: Any,
     deterministic_payload: dict[str, Any],
@@ -278,6 +279,7 @@ def _coerce_claude_outcome_dict(
             data.get("preferred_expression"),
             candidates,
             directional_bias=directional_bias,
+            entry_state=headline.get("entry_state"),
             deterministic_payload=deterministic_payload,
         ),
         # v5.2: structured trigger_evidence / anti_pin / target_feasibility

@@ -17,6 +17,8 @@ GRANDFATHERED_DUPLICATE_PREFIXES = frozenset(
         "053",
         "054",
         "055",
+        "059",
+        "060",
     }
 )
 

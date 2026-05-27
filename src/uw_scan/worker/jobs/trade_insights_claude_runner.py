@@ -43,6 +43,10 @@ from uw_scan.worker.jobs.trade_insights_ai_runners import (
 
 logger = logging.getLogger(__name__)
 
+# Sentinel distinguishing "stdout was non-empty but not parseable JSON"
+# from "stdout was empty" (None) — both need different error messages.
+_JSON_DECODE_FAILED = object()
+
 
 def _strip_markdown_fence(text: str) -> str:
     """Strip leading/trailing ```json ... ``` markdown fences if present.
@@ -344,29 +348,49 @@ class ClaudeRunner:
                     f"claude --print timed out after {timeout_seconds}s"
                 ) from exc
 
-            if completed.returncode != 0:
-                detail = _format_runner_failure(completed.stderr, completed.stdout)
-                raise TradeInsightsAiRunnerError(
-                    f"claude --print failed with exit {completed.returncode}: {detail}"
-                )
-
             stdout_bytes = completed.stdout.encode("utf-8")
             if len(stdout_bytes) > max_output_bytes:
                 raise TradeInsightsAiRunnerError(
                     f"claude --print output exceeded {max_output_bytes} bytes"
                 )
 
+            # Parse the envelope BEFORE the returncode short-circuit. On
+            # transient API errors (socket closures, gateway timeouts) claude
+            # exits non-zero AND prints a complete result event with
+            # is_error=true. Surfacing the readable `result` message via the
+            # existing is_error handler (below) keeps error_message short
+            # enough for the UI's red banner; falling through to
+            # _format_runner_failure here would dump the full JSON envelope
+            # as the user-visible error.
+            parsed_stdout: Any
             try:
-                events = json.loads(completed.stdout)
+                parsed_stdout = (
+                    json.loads(completed.stdout) if completed.stdout else None
+                )
             except json.JSONDecodeError as exc:
+                _ = repr(exc)
+                parsed_stdout = _JSON_DECODE_FAILED
+
+            if completed.returncode != 0 and not isinstance(parsed_stdout, list):
+                # Non-zero exit with no usable envelope: fall back to the
+                # stderr/stdout tail. This covers auth/launch failures that
+                # never produce the JSON array (e.g. "Not logged in").
+                detail = _format_runner_failure(completed.stderr, completed.stdout)
+                raise TradeInsightsAiRunnerError(
+                    f"claude --print failed with exit {completed.returncode}: {detail}"
+                )
+
+            if parsed_stdout is _JSON_DECODE_FAILED or parsed_stdout is None:
                 raise TradeInsightsAiRunnerError(
                     "claude --print stdout was not valid JSON"
-                ) from exc
+                )
 
-            if not isinstance(events, list):
+            if not isinstance(parsed_stdout, list):
                 raise TradeInsightsAiRunnerError(
                     "claude --print stdout expected JSON array of events"
                 )
+
+            events = parsed_stdout
 
             init_event = next(
                 (
@@ -395,6 +419,17 @@ class ClaudeRunner:
                     "claude --print API error "
                     f"(status={result_event.get('api_error_status')}): "
                     f"{result_event.get('result') or result_event.get('message') or 'unknown'}"
+                )
+            if completed.returncode != 0:
+                result_text = result_event.get("result") or result_event.get(
+                    "message"
+                )
+                detail = _format_runner_failure(
+                    completed.stderr,
+                    str(result_text) if result_text is not None else None,
+                )
+                raise TradeInsightsAiRunnerError(
+                    f"claude --print failed with exit {completed.returncode}: {detail}"
                 )
             if result_event.get("subtype") != "success":
                 raise TradeInsightsAiRunnerError(
