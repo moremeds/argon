@@ -541,7 +541,11 @@ def run_analysis(
         confirmed_canary_active=confirmed_canary_active,
         buy_the_dip_active=buy_the_dip_active,
     )
-    raw = tactical + structural + speed.score
+    if calibration.composite_version >= 2:
+        # v2-A: speed is context only; apply_cap() below still reads speed.state.
+        raw = tactical + structural
+    else:
+        raw = tactical + structural + speed.score
     raw = max(0.0, min(100.0, raw))
     cap = apply_cap(
         raw_score=raw,
