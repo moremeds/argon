@@ -4,6 +4,7 @@ import { AlertTriangle, Shield, TrendingUp, Zap } from "lucide-react";
 
 import InfoTooltip from "./InfoTooltip";
 import { VcgHistoryTable } from "./vcg/VcgHistoryTable";
+import VcgStressHistorySection from "./vcg/VcgStressHistorySection";
 import { type VcgResponse, type VcgSignal, useVcg } from "@/lib/regime/useVcg";
 import {
   formatNumber,
@@ -770,6 +771,9 @@ export function VcgSubTabView({
           <VcgHistoryTable history={history} creditProxy={data.credit_proxy} />
         </div>
       </div>
+
+      {/* ── All-time stress history (v2 backtest) ───────────── */}
+      <VcgStressHistorySection />
     </div>
   );
 }

@@ -5845,6 +5845,37 @@ export interface components {
             attribution?: components["schemas"]["VcgAttribution"];
         };
         /**
+         * VcgStressHistoryEntry
+         * @description One daily row from the VCG backtest whose interpretation is a
+         *     stress level (PANIC / RISK_OFF / EDR). Drives the all-time stress
+         *     history table on the /regime VCG sub-tab.
+         */
+        VcgStressHistoryEntry: {
+            /** Date */
+            date: string;
+            /**
+             * Interpretation
+             * @enum {string}
+             */
+            interpretation: "PANIC" | "RISK_OFF" | "EDR";
+            /** Score */
+            score?: number | null;
+            /** Vcg Adj */
+            vcg_adj?: number | null;
+            /** Pi Panic */
+            pi_panic?: number | null;
+            /** Sign Ok */
+            sign_ok?: boolean | null;
+            /** Vix */
+            vix?: number | null;
+            /** Vvix */
+            vvix?: number | null;
+            /** Vix Percentile Rank */
+            vix_percentile_rank?: number | null;
+            /** Vvix Percentile Rank */
+            vvix_percentile_rank?: number | null;
+        };
+        /**
          * VcgValidationResponse
          * @description Latest completed VCG backtest run rendered + structured.
          */
@@ -5861,6 +5892,11 @@ export interface components {
             interpretation_distribution: components["schemas"]["VcgInterpretationCount"][];
             /** Named Crash Window */
             named_crash_window: components["schemas"]["VcgNamedCrashEvent"][];
+            /**
+             * Stress History
+             * @default []
+             */
+            stress_history: components["schemas"]["VcgStressHistoryEntry"][];
         };
         /** VolBackdropPoint */
         VolBackdropPoint: {
