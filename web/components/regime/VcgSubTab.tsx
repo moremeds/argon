@@ -321,8 +321,8 @@ export function VcgSubTabView({
             <div className="metric-value">{formatSignedNumber(sig.vcg_adj)}</div>
             <div className="metric-change neutral">
               {sig.pi_panic > 0
-                ? `π = ${sig.pi_panic.toFixed(2)} SUPPRESSED`
-                : "NO SUPPRESSION"}
+                ? `π = ${sig.pi_panic.toFixed(2)} (panic-adjustment active)`
+                : "π = 0 (no panic adjustment)"}
             </div>
           </div>
           <div className="metric-card">
