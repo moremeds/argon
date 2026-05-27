@@ -4,11 +4,7 @@ import { AlertTriangle, Shield, TrendingUp, Zap } from "lucide-react";
 
 import InfoTooltip from "./InfoTooltip";
 import { VcgHistoryTable } from "./vcg/VcgHistoryTable";
-import {
-  type VcgResponse,
-  type VcgSignal,
-  useVcg,
-} from "@/lib/regime/useVcg";
+import { type VcgResponse, type VcgSignal, useVcg } from "@/lib/regime/useVcg";
 import {
   formatNumber,
   formatPercent,
@@ -121,6 +117,25 @@ function vvixSeverityDesc(sev: string): string {
     default:
       return "VVIX below 110 — vol regime stable";
   }
+}
+
+/* v2 absolute-vol-stress override gate threshold (matches VIX_PCT_PANIC /
+ * VVIX_PCT_PANIC constants in src/uw_scan/cards/vcg_scoring.py). When BOTH
+ * 252-day percentile ranks clear 0.95, the v2 cascade fires RISK_OFF even
+ * if sign_ok is false — bypassing the SUPPRESSED clause that masked PANIC
+ * days in v1. */
+const VOL_STRESS_THRESHOLD = 0.95;
+
+function formatPctRank(v: number | null | undefined): string {
+  if (v == null || !Number.isFinite(v)) return "—";
+  return `${(v * 100).toFixed(1)}%`;
+}
+
+function pctRankColor(v: number | null | undefined): string {
+  if (v == null || !Number.isFinite(v)) return "var(--text-muted)";
+  if (v >= VOL_STRESS_THRESHOLD) return "var(--fault, var(--negative))";
+  if (v >= 0.85) return "var(--warning)";
+  return "var(--text-primary)";
 }
 
 /* ─── Main view (1:1 mirror of xenon VcgPanel) ───────────────── */
@@ -318,7 +333,9 @@ export function VcgSubTabView({
           </div>
           <div className="metric-card">
             <div className="metric-label">VCG Adj (Panic-Adj)</div>
-            <div className="metric-value">{formatSignedNumber(sig.vcg_adj)}</div>
+            <div className="metric-value">
+              {formatSignedNumber(sig.vcg_adj)}
+            </div>
             <div className="metric-change neutral">
               {sig.pi_panic > 0
                 ? `π = ${sig.pi_panic.toFixed(2)} (panic-adjustment active)`
@@ -466,6 +483,98 @@ export function VcgSubTabView({
                 data-testid="vcg-vvix-severity"
               >
                 {sig.vvix_severity}
+              </span>
+            </div>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                padding: "8px 0",
+                borderBottom: "1px solid var(--border-dim, var(--line-grid))",
+              }}
+            >
+              <div>
+                <span
+                  style={{
+                    fontFamily: "var(--font-mono)",
+                    fontSize: "10px",
+                    color: "var(--text-muted)",
+                  }}
+                >
+                  VIX 252d %ile
+                </span>
+                <InfoTooltip text="VIX level's 252-day rolling percentile rank (strict_lt tie rule). When BOTH VIX and VVIX percentile ranks clear 0.95, the v2 cascade fires RISK_OFF via the absolute-vol-stress override — bypassing the sign-discipline SUPPRESSED clause that masked PANIC days in v1." />
+              </div>
+              <span
+                style={{
+                  fontFamily: "var(--font-mono)",
+                  fontSize: "11px",
+                  fontWeight: 700,
+                  color: pctRankColor(sig.vix_percentile_rank),
+                }}
+                data-testid="vcg-vix-pct-rank"
+              >
+                {formatPctRank(sig.vix_percentile_rank)}
+              </span>
+            </div>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                padding: "8px 0",
+                borderBottom: "1px solid var(--border-dim, var(--line-grid))",
+              }}
+            >
+              <span
+                style={{
+                  fontFamily: "var(--font-mono)",
+                  fontSize: "10px",
+                  color: "var(--text-muted)",
+                }}
+              >
+                VVIX 252d %ile
+              </span>
+              <span
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "8px",
+                }}
+              >
+                {sig.vix_percentile_rank != null &&
+                  sig.vvix_percentile_rank != null &&
+                  sig.vix_percentile_rank >= VOL_STRESS_THRESHOLD &&
+                  sig.vvix_percentile_rank >= VOL_STRESS_THRESHOLD && (
+                    <span
+                      style={{
+                        fontFamily: "var(--font-mono)",
+                        fontSize: "9px",
+                        fontWeight: 700,
+                        color: "#fff",
+                        background: "var(--fault, var(--negative))",
+                        padding: "1px 6px",
+                        borderRadius: "999px",
+                        letterSpacing: "0.08em",
+                      }}
+                      data-testid="vcg-vol-stress-override-badge"
+                      title="Both VIX and VVIX percentile ranks ≥ 0.95 — v2 absolute-vol-stress override is RISK_OFF"
+                    >
+                      V2 OVERRIDE
+                    </span>
+                  )}
+                <span
+                  style={{
+                    fontFamily: "var(--font-mono)",
+                    fontSize: "11px",
+                    fontWeight: 700,
+                    color: pctRankColor(sig.vvix_percentile_rank),
+                  }}
+                  data-testid="vcg-vvix-pct-rank"
+                >
+                  {formatPctRank(sig.vvix_percentile_rank)}
+                </span>
               </span>
             </div>
             <div
