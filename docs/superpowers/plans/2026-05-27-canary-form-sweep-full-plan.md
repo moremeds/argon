@@ -46,6 +46,19 @@
 - `web/**` (no UI changes)
 - Any migration file
 
+**Schema dependencies (informational — not modified in this PR):**
+
+The form sweep writes to `regime_backtest_runs` + `regime_backtest_daily` only. It does NOT write to `canary_snapshots`. The relevant schema invariants this PR relies on:
+
+| Object | Migration | Invariant this PR depends on |
+|---|---|---|
+| `regime_backtest_runs.params` | `057:28` | JSONB — `params->>'phase'` and `params->>'batch_id'` filters work natively |
+| `regime_backtest_runs.run_scope` | `059:14-17, 58-65, 77-79` | TEXT NOT NULL DEFAULT `'production'`, CHECK IN (`'production'`, `'research'`). Production-invisibility keystone. |
+| `regime_backtest_runs_indicator_check` | `060:13` | CHECK IN (`'cri'`, `'vcg'`, `'canary'`). Allows our writes. |
+| `regime_backtest_daily.run_id` FK | `057:45` | `ON DELETE CASCADE`. Cleanup-on-failure can delete via `regime_backtest_runs` only; daily rows follow. |
+| `regime_backtest_daily` PK | `057:50` | `(run_id, trade_date)`. No `id` column — never `WHERE id = ...` against this table. |
+| `canary_snapshots.canary_score_form_chk` | `059_canary_snapshots:56-60` | CHECK IN (`'linear'`, `'convex'`, `'concave'`, `'sigmoid'`). Not touched by this PR, but if a future change adds a 5th composite form to the renderer's canonical-order list, this CHECK must be widened in parallel. |
+
 ---
 
 ## Task 1: Synthetic vol-complex fixture for integration tests
