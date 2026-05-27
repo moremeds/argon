@@ -953,17 +953,33 @@ def cmd_walk_forward(conn, *, schema: str, args=None) -> None:
     )
 
 
-def cmd_robustness(conn, *, schema: str) -> None:
+def cmd_robustness(conn, *, schema: str, args=None) -> None:
     """Robustness report against the full backfilled dataset.
 
     Produces a single regime_backtest_runs row whose summary has nested
     subsections for full / no-2020Q4 / no-2026 exclusion subsets, plus
     AUC-by-year and AUC-by-band breakdowns and bootstrap CIs.
+
+    v2 invocation (args.composite_version == 2) loads v2 calibration,
+    forces run_scope='research', persists composite_version=2, and tags
+    params.batch_id with args.batch_id (or a freshly-generated UUID4).
     """
     from uw_scan.cards.canary_calibration import load_calibration
     from uw_scan.storage.regime_backtest_repository import RegimeBacktestRepository
 
-    cal = load_calibration()
+    if args is None:
+        args = argparse.Namespace(composite_version=1, batch_id=None)
+
+    if args.composite_version == 2:
+        cal = load_calibration(path=V2_CAL_PATH)
+        run_scope = "research"
+    else:
+        cal = load_calibration()
+        run_scope = "production"
+
+    batch_id = args.batch_id or str(uuid.uuid4())
+    print(f"robustness batch_id={batch_id}")
+
     bt_repo = RegimeBacktestRepository(conn, schema=schema)
     score_form = cal.score_form
 
@@ -1086,13 +1102,18 @@ def cmd_robustness(conn, *, schema: str) -> None:
 
     run_id = bt_repo.insert_run(
         indicator="canary",
-        composite_version=str(COMPOSITE_VERSION),
+        composite_version=str(cal.composite_version),
         start_date=all_rows[0]["date"],
         end_date=all_rows[-1]["date"],
         window_days=350,
         n_days=len(all_rows),
-        params={"score_form": score_form, "phase": "robustness"},
+        params={
+            "score_form": score_form,
+            "phase": "robustness",
+            "batch_id": batch_id,
+        },
         summary=_clean_nans(summary),
+        run_scope=run_scope,
     )
     bt_repo.mark_run_completed(run_id)
     log.info("persisted robustness report run_id=%d", run_id)
@@ -1203,7 +1224,7 @@ def main():
             cmd_walk_forward(conn, schema=schema, args=args)
             return
         if args.robustness:
-            cmd_robustness(conn, schema=schema)
+            cmd_robustness(conn, schema=schema, args=args)
             return
         parser.print_help()
         sys.exit(2)

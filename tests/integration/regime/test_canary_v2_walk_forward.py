@@ -30,6 +30,15 @@ def _wf_args(
     )
 
 
+def _rb_args(
+    *, composite_version: int, batch_id: str | None = None
+) -> argparse.Namespace:
+    return argparse.Namespace(
+        composite_version=composite_version,
+        batch_id=batch_id,
+    )
+
+
 def _insert_research_run(
     repo: RegimeBacktestRepository,
     *,
@@ -240,3 +249,63 @@ def test_v2_walk_forward_summary_has_composite_aucs(seeded_db_empty_cards):
     assert composite_aucs is not None
     for key in ("up5d_2pct", "up20d_5pct", "up60d_10pct"):
         assert key in composite_aucs
+
+
+# --- Task 7: v2 robustness tests ---
+
+
+def test_v2_robustness_writes_1_research_row(seeded_db_empty_cards):
+    """cmd_robustness with composite_version=2 writes 1 research-scoped row."""
+    from scripts.backtest_canary import cmd_robustness
+
+    conn = seeded_db_empty_cards.conn
+    schema = seeded_db_empty_cards._schema
+    seed_vol_index_full_history(
+        conn, schema=schema, start=_date(2013, 1, 2), end=_date(2026, 5, 21)
+    )
+
+    cmd_robustness(conn, schema=schema, args=_rb_args(composite_version=2))
+
+    with conn.cursor() as cur:
+        cur.execute(
+            f"SELECT COUNT(*) FROM {schema}.regime_backtest_runs "
+            f"WHERE indicator='canary' AND run_scope='research' "
+            f"  AND composite_version='2' AND params->>'phase'='robustness'"
+        )
+        assert cur.fetchone()[0] == 1
+
+
+def test_v2_robustness_shares_batch_id_when_chained(seeded_db_empty_cards):
+    """If --batch-id is passed, robustness row carries the same batch_id."""
+    from scripts.backtest_canary import cmd_robustness
+
+    conn = seeded_db_empty_cards.conn
+    schema = seeded_db_empty_cards._schema
+    seed_vol_index_full_history(
+        conn, schema=schema, start=_date(2013, 1, 2), end=_date(2026, 5, 21)
+    )
+
+    cmd_walk_forward(conn, schema=schema, args=_wf_args(composite_version=2))
+
+    with conn.cursor() as cur:
+        cur.execute(
+            f"SELECT DISTINCT params->>'batch_id' "
+            f"FROM {schema}.regime_backtest_runs "
+            f"WHERE indicator='canary' AND composite_version='2' "
+            f"  AND params->>'phase'='walk_forward'"
+        )
+        wf_batch = cur.fetchone()[0]
+
+    cmd_robustness(
+        conn, schema=schema, args=_rb_args(composite_version=2, batch_id=wf_batch)
+    )
+
+    with conn.cursor() as cur:
+        cur.execute(
+            f"SELECT params->>'batch_id' FROM {schema}.regime_backtest_runs "
+            f"WHERE indicator='canary' AND composite_version='2' "
+            f"  AND params->>'phase'='robustness'"
+        )
+        rb_batch = cur.fetchone()[0]
+
+    assert rb_batch == wf_batch
