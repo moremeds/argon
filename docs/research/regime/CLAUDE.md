@@ -4,6 +4,7 @@
 
 - `cri-methodology.md` — **source of truth** for CRI math, calibration, and design decisions. Read this before changing any threshold in `src/uw_scan/cards/cri_scorers.py`.
 - `vcg-methodology.md` — **source of truth** for VCG math, calibration, and design decisions. Read this before changing any threshold in `src/uw_scan/cards/vcg_scoring.py`.
+- `canary-methodology.md` — **source of truth** for 5% Canary math, calibration, and design decisions. Read this before changing any threshold in `canary-calibration-v1.json` or `src/uw_scan/cards/canary_scoring.py`. Anchored on Thrasher (2023, NAAIM) plus five literature-backed vol-complex signals.
 - `cri-validation.ipynb` — out-of-sample walk-forward validation against 20 years of CBOE vol-complex data. Section 9 is the honest accuracy breakdown.
 - `closure-2026-05-24.md` — closure memo for the regime-research workspace with SQL cookbook for the DB-backed backtest tables.
 
@@ -18,6 +19,14 @@
 
 - After changing any constant in `cri_scorers.py`: update §3 of `cri-methodology.md` with the new threshold and rationale, AND update `LAST_KNOWN_AUC_DD5` / `LAST_KNOWN_AUC_DD10` (which the OOS gate's seed fixture reads) in the same diff. PR review enforces this contract.
 - After changing any constant in `vcg_scoring.py` (VCG_TRIGGER, VCG_RO_TRIGGER, BOUNCE_TRIGGER, VIX_FLOOR, VIX_EDR, VIX_PANIC_LOW, VIX_PANIC_HIGH, VVIX_ELEVATED, VVIX_EXTREME): update §3 of `vcg-methodology.md` with the new threshold and rationale.
+- After changing any threshold in `canary-calibration-v1.json` (the persisted
+  Class B floor/ceiling values produced by `scripts/backtest_canary.py
+  --calibrate`): update §3 of `canary-methodology.md` with the new values
+  and the train-window calibration command used, AND update the
+  `LAST_KNOWN_AUC_*` constants in `tests/integration/regime/test_canary_oos_gate.py`
+  if the recalibration moves AUCs by more than 0.02. Bumping
+  `canary_calibration.COMPOSITE_VERSION` is required when the change is
+  not backward-compatible with persisted snapshots.
 - After running a backtest (either indicator): inspect the persisted run via the SQL cookbook in `closure-2026-05-24.md`. Do not commit regenerated CSV/MD files.
 
 ## VCG rules

@@ -38,7 +38,7 @@ class RegimeBacktestRepository:
     def insert_run(
         self,
         *,
-        indicator: Literal["cri", "vcg"],
+        indicator: Literal["cri", "vcg", "canary"],
         composite_version: str,
         start_date: date,
         end_date: date,
@@ -147,7 +147,7 @@ class RegimeBacktestRepository:
 
     def find_latest_run(
         self,
-        indicator: Literal["cri", "vcg"],
+        indicator: Literal["cri", "vcg", "canary"],
         composite_version: str | None = None,
         *,
         run_scope: str = "production",
@@ -225,7 +225,7 @@ class RegimeBacktestRepository:
 
     def list_runs(
         self,
-        indicator: Literal["cri", "vcg"],
+        indicator: Literal["cri", "vcg", "canary"],
         limit: int = 20,
         completed_only: bool = True,
     ) -> list[dict]:
@@ -297,7 +297,7 @@ class RegimeBacktestRepository:
         return [dict(zip(cols, r, strict=True)) for r in rows]
 
 
-def _current_composite_version(indicator: Literal["cri", "vcg"]) -> str:
+def _current_composite_version(indicator: Literal["cri", "vcg", "canary"]) -> str:
     """Resolve the indicator's current code constant to a string.
 
     Imported lazily to keep this module dependency-light and avoid a circular
@@ -309,6 +309,10 @@ def _current_composite_version(indicator: Literal["cri", "vcg"]) -> str:
         return str(COMPOSITE_VERSION)
     if indicator == "vcg":
         from uw_scan.cards.vcg_scoring import COMPOSITE_VERSION  # noqa: PLC0415
+
+        return str(COMPOSITE_VERSION)
+    if indicator == "canary":
+        from uw_scan.cards.canary_calibration import COMPOSITE_VERSION  # noqa: PLC0415
 
         return str(COMPOSITE_VERSION)
     raise ValueError(f"unknown indicator: {indicator}")

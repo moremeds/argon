@@ -1,0 +1,16 @@
+{
+  "composite_version": 1,
+  "train_window": {"start": "2007-01-01", "end": "2014-12-31"},
+  "score_form": "linear",
+  "thresholds": {
+    "vix_spike_revert":     {"floor": 0.05, "ceiling": 0.30, "spike_active_at_vix": 30.0, "peak_lookback_d": 10, "max_points": 15},
+    "vix_vix3m_back":       {"floor": 0.05, "ceiling": 0.20, "backwardation_extreme_at_ratio": 1.05, "peak_lookback_d": 10, "max_points": 15},
+    "vrp":                  {"floor": 50.0,  "ceiling": 300.0, "rv_window_d": 20, "max_points": 21},
+    "cor1m_decay":          {"floor": 0.05, "ceiling": 0.30, "peak_elevated_at": 60.0, "peak_lookback_d": 60, "max_points": 17},
+    "vvix_vix_recovery":    {"floor": 3.5,  "ceiling": 5.0,  "compressed_below_ratio": 4.0, "compress_lookback_d": 60, "max_points": 12}
+  },
+  "band_distribution_train": null,
+  "author_overrides": [],
+  "produced_at": "2026-05-26T00:00:00Z",
+  "produced_by": "v0.1 priors (pre-calibration)"
+}

@@ -457,6 +457,212 @@
         "title": "BenchmarkSubscoresResponse",
         "type": "object"
       },
+      "CanaryHistoryResponse": {
+        "properties": {
+          "rows": {
+            "items": {
+              "$ref": "#/components/schemas/CanaryHistoryRow"
+            },
+            "title": "Rows",
+            "type": "array"
+          }
+        },
+        "required": [
+          "rows"
+        ],
+        "title": "CanaryHistoryResponse",
+        "type": "object"
+      },
+      "CanaryHistoryRow": {
+        "properties": {
+          "band": {
+            "enum": [
+              "NONE",
+              "WATCH",
+              "BUY",
+              "STRONG_BUY"
+            ],
+            "title": "Band",
+            "type": "string"
+          },
+          "data_date": {
+            "format": "date",
+            "title": "Data Date",
+            "type": "string"
+          },
+          "score": {
+            "title": "Score",
+            "type": "number"
+          },
+          "speed_score": {
+            "title": "Speed Score",
+            "type": "integer"
+          },
+          "spx_close": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Spx Close"
+          },
+          "structural_score": {
+            "title": "Structural Score",
+            "type": "number"
+          },
+          "tactical_score": {
+            "title": "Tactical Score",
+            "type": "number"
+          },
+          "warning_state": {
+            "enum": [
+              "NONE",
+              "CONFIRMED_CANARY_ACTIVE",
+              "BUY_THE_DIP_ACTIVE",
+              "BOTH_ACTIVE_AMBIGUOUS"
+            ],
+            "title": "Warning State",
+            "type": "string"
+          }
+        },
+        "required": [
+          "data_date",
+          "score",
+          "band",
+          "tactical_score",
+          "structural_score",
+          "speed_score",
+          "warning_state"
+        ],
+        "title": "CanaryHistoryRow",
+        "type": "object"
+      },
+      "CanaryLatestResponse": {
+        "properties": {
+          "band": {
+            "enum": [
+              "NONE",
+              "WATCH",
+              "BUY",
+              "STRONG_BUY"
+            ],
+            "title": "Band",
+            "type": "string"
+          },
+          "composite_version": {
+            "title": "Composite Version",
+            "type": "integer"
+          },
+          "data_date": {
+            "format": "date",
+            "title": "Data Date",
+            "type": "string"
+          },
+          "payload": {
+            "additionalProperties": true,
+            "title": "Payload",
+            "type": "object"
+          },
+          "raw_score": {
+            "title": "Raw Score",
+            "type": "number"
+          },
+          "score": {
+            "title": "Score",
+            "type": "number"
+          },
+          "score_form": {
+            "enum": [
+              "linear",
+              "convex",
+              "concave",
+              "sigmoid"
+            ],
+            "title": "Score Form",
+            "type": "string"
+          },
+          "speed_score": {
+            "title": "Speed Score",
+            "type": "integer"
+          },
+          "structural_score": {
+            "title": "Structural Score",
+            "type": "number"
+          },
+          "tactical_score": {
+            "title": "Tactical Score",
+            "type": "number"
+          },
+          "warning_state": {
+            "enum": [
+              "NONE",
+              "CONFIRMED_CANARY_ACTIVE",
+              "BUY_THE_DIP_ACTIVE",
+              "BOTH_ACTIVE_AMBIGUOUS"
+            ],
+            "title": "Warning State",
+            "type": "string"
+          }
+        },
+        "required": [
+          "data_date",
+          "composite_version",
+          "score_form",
+          "score",
+          "raw_score",
+          "band",
+          "tactical_score",
+          "structural_score",
+          "speed_score",
+          "warning_state",
+          "payload"
+        ],
+        "title": "CanaryLatestResponse",
+        "type": "object"
+      },
+      "CanaryValidationResponse": {
+        "properties": {
+          "composite_version": {
+            "title": "Composite Version",
+            "type": "integer"
+          },
+          "rendered_markdown": {
+            "title": "Rendered Markdown",
+            "type": "string"
+          },
+          "run_id": {
+            "title": "Run Id",
+            "type": "integer"
+          },
+          "score_form": {
+            "enum": [
+              "linear",
+              "convex",
+              "concave",
+              "sigmoid"
+            ],
+            "title": "Score Form",
+            "type": "string"
+          },
+          "summary": {
+            "additionalProperties": true,
+            "title": "Summary",
+            "type": "object"
+          }
+        },
+        "required": [
+          "run_id",
+          "composite_version",
+          "score_form",
+          "summary",
+          "rendered_markdown"
+        ],
+        "title": "CanaryValidationResponse",
+        "type": "object"
+      },
       "CandidateStructure": {
         "properties": {
           "breakevens": {
@@ -16608,6 +16814,94 @@
           }
         },
         "summary": "Get Regime",
+        "tags": [
+          "regime"
+        ]
+      }
+    },
+    "/api/regime/canary": {
+      "get": {
+        "operationId": "get_canary_latest_api_regime_canary_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CanaryLatestResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Get Canary Latest",
+        "tags": [
+          "regime"
+        ]
+      }
+    },
+    "/api/regime/canary/history": {
+      "get": {
+        "operationId": "get_canary_history_api_regime_canary_history_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "days",
+            "required": false,
+            "schema": {
+              "default": 30,
+              "maximum": 365,
+              "minimum": 1,
+              "title": "Days",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CanaryHistoryResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Canary History",
+        "tags": [
+          "regime"
+        ]
+      }
+    },
+    "/api/regime/canary/validation": {
+      "get": {
+        "description": "v0.4 patch I4 + C6: use the existing `find_latest_run` (which already\nfilters on `completed_at IS NOT NULL`) and post-filter for the winning\nform in summary JSON. composite_version is stringified at the DB boundary.",
+        "operationId": "get_canary_validation_api_regime_canary_validation_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CanaryValidationResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Get Canary Validation",
         "tags": [
           "regime"
         ]
