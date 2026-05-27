@@ -45,5 +45,6 @@ where = ["src"]
 testpaths = ["tests"]
 pythonpath = ["src", "."]
 markers = [
+  "integration: requires local Postgres/integration fixtures; run in CI shards",
   "live: hits the real UW API; requires UW_SCAN_API_KEY",
 ]
