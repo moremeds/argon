@@ -14592,10 +14592,34 @@
             "title": "Vix",
             "type": "number"
           },
+          "vix_percentile_rank": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "VIX level's 252-day rolling percentile rank (strict_lt tie rule). Used by the v2 absolute-vol-stress override gate. None during the 252-bar warmup or for v=1 payloads.",
+            "title": "Vix Percentile Rank"
+          },
           "vvix": {
             "default": 0.0,
             "title": "Vvix",
             "type": "number"
+          },
+          "vvix_percentile_rank": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "VVIX level's 252-day rolling percentile rank (strict_lt tie rule). Used by the v2 absolute-vol-stress override gate.",
+            "title": "Vvix Percentile Rank"
           },
           "vvix_severity": {
             "default": "moderate",

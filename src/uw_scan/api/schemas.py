@@ -392,6 +392,21 @@ class VcgSignal(BaseModel):
         "PANIC",
         "INSUFFICIENT_DATA",
     ] = "NORMAL"
+    vix_percentile_rank: float | None = Field(
+        default=None,
+        description=(
+            "VIX level's 252-day rolling percentile rank (strict_lt tie rule). "
+            "Used by the v2 absolute-vol-stress override gate. None during the "
+            "252-bar warmup or for v=1 payloads."
+        ),
+    )
+    vvix_percentile_rank: float | None = Field(
+        default=None,
+        description=(
+            "VVIX level's 252-day rolling percentile rank (strict_lt tie rule). "
+            "Used by the v2 absolute-vol-stress override gate."
+        ),
+    )
     attribution: VcgAttribution = Field(default_factory=VcgAttribution)
 
 
