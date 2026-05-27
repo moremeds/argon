@@ -45,6 +45,7 @@ from .validator_rules.triggers import (
     _check_thesis_archetype_consistency,
 )
 
+
 def validate_trade_insights_ai_outcome(
     outcome: dict[str, Any] | TradeInsightAiOutcome,
     deterministic_payload: dict[str, Any],
@@ -186,17 +187,28 @@ def validate_trade_insights_ai_outcome(
                 and item.status_observed == "candidate_pre_trigger"
                 and candidate_status == "candidate"
             )
-            if (
-                not is_pretrigger_escalation
-                and item.status_observed != candidate_status
-            ):
+            # v5.3 CONDITIONAL → strategy_review preservation: when the model
+            # correctly translates the candidate row's pre-trigger status to
+            # "strategy_review" under CONDITIONAL (per the prompt contract),
+            # the overwrite below must NOT clobber it back to "candidate" —
+            # _check_conditional_quote_validity would immediately reject that
+            # exact value. Without this escape, any preferred picking a known
+            # candidate id under CONDITIONAL fails reliably (CRWV/MCD codex
+            # failures observed 2026-05-26..27).
+            is_conditional_strategy_review_translation = (
+                item is parsed.preferred_expression
+                and parsed.headline.entry_state == "CONDITIONAL"
+                and item.status_observed == "strategy_review"
+                and candidate_status == "candidate"
+            )
+            preserve_status = (
+                is_pretrigger_escalation or is_conditional_strategy_review_translation
+            )
+            if not preserve_status and item.status_observed != candidate_status:
                 item.status_observed = candidate_status
             if item.risk_flags_observed != candidate_risk_flags:
                 item.risk_flags_observed = candidate_risk_flags
-            if (
-                item.status_observed != candidate_status
-                and not is_pretrigger_escalation
-            ):
+            if not preserve_status and item.status_observed != candidate_status:
                 raise ValueError(f"status_observed changed for idea_id {item.idea_id}")
             if item.risk_flags_observed != candidate_risk_flags:
                 raise ValueError(

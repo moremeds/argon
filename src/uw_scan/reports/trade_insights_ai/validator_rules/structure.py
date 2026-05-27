@@ -285,6 +285,27 @@ def _check_conditional_quote_validity(
         return
     if outcome.headline.entry_state != "CONDITIONAL":
         return
+    if pref.status_observed == "strategy_review":
+        quote_fields = {
+            "estimated_entry": pref.estimated_entry,
+            "max_profit_observed": pref.max_profit_observed,
+            "max_loss_observed": pref.max_loss_observed,
+            "reward_risk": pref.reward_risk,
+        }
+        actionable = {
+            key: value
+            for key, value in quote_fields.items()
+            if not _is_post_trigger_reprice_placeholder(value)
+        }
+        if actionable:
+            fields = ", ".join(sorted(actionable))
+            raise ValueError(
+                "conditional_quote_validity: entry_state=CONDITIONAL with "
+                "status_observed='strategy_review' must not carry pre-trigger "
+                f"candidate economics ({fields}). Leave these fields blank or "
+                "mark them as repriced post-trigger references."
+            )
+        return
     if pref.status_observed != "candidate":
         return
     raise ValueError(
@@ -296,3 +317,7 @@ def _check_conditional_quote_validity(
         "'candidate_pre_trigger' (explicit anticipatory pre-trigger entry)."
     )
 
+
+def _is_post_trigger_reprice_placeholder(value: str) -> bool:
+    text = (value or "").strip().lower()
+    return not text or text.startswith("repriced post-trigger")
