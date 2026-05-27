@@ -309,3 +309,75 @@ def test_v2_robustness_shares_batch_id_when_chained(seeded_db_empty_cards):
         rb_batch = cur.fetchone()[0]
 
     assert rb_batch == wf_batch
+
+
+# --- Task 8: recompute vs backfill parity test (AC-4b) ---
+
+
+def test_v2_walk_forward_recompute_matches_v2_backfill_snapshots(
+    seeded_db_empty_cards,
+):
+    """For ~30 sample dates, walk-forward's recomputed v2 score equals the
+    v2 backfill snapshot score for the same date. Floating-point tolerance:
+    1e-6 on raw_score, exact on band.
+
+    Confirms recompute (from vol_index_daily) vs backfill (from
+    canary_snapshots) produce identical outputs at v2. Spec §5.5 + §7 AC-4b.
+    """
+    import random
+
+    from scripts.canary_backfill import cmd_backfill
+
+    conn = seeded_db_empty_cards.conn
+    schema = seeded_db_empty_cards._schema
+    seed_vol_index_full_history(
+        conn, schema=schema, start=_date(2013, 1, 2), end=_date(2026, 5, 21)
+    )
+
+    backfill_args = argparse.Namespace(
+        composite_version=2,
+        start_date="2015-01-02",
+        end_date="2026-05-21",
+        overwrite_on_hash_mismatch=False,
+        days=252,
+    )
+    cmd_backfill(conn, schema=schema, args=backfill_args)
+
+    cmd_walk_forward(conn, schema=schema, args=_wf_args(composite_version=2))
+
+    with conn.cursor() as cur:
+        cur.execute(
+            f"SELECT d.trade_date, d.score, d.level "
+            f"FROM {schema}.regime_backtest_daily d "
+            f"JOIN {schema}.regime_backtest_runs r ON d.run_id = r.id "
+            f"WHERE r.indicator='canary' AND r.composite_version='2' "
+            f"  AND r.run_scope='research' AND r.params->>'phase'='walk_forward' "
+            f"ORDER BY d.trade_date"
+        )
+        wf_rows = {r[0]: (float(r[1]), r[2]) for r in cur.fetchall()}
+
+    with conn.cursor() as cur:
+        cur.execute(
+            f"SELECT data_date, score, band FROM {schema}.canary_snapshots "
+            f"WHERE composite_version=2 AND data_date = ANY(%s)",
+            (list(wf_rows.keys()),),
+        )
+        bf_rows = {r[0]: (float(r[1]), r[2]) for r in cur.fetchall()}
+
+    rng = random.Random(42)
+    overlap = sorted(set(wf_rows) & set(bf_rows))
+    sample = rng.sample(overlap, min(30, len(overlap)))
+    assert len(sample) >= 10, f"need >=10 overlap dates, got {len(sample)}"
+
+    mismatches = []
+    for d in sample:
+        wf_score, wf_band = wf_rows[d]
+        bf_score, bf_band = bf_rows[d]
+        if abs(wf_score - bf_score) > 1e-6 or wf_band != bf_band:
+            mismatches.append(
+                f"  {d}: wf=({wf_score}, {wf_band}) bf=({bf_score}, {bf_band})"
+            )
+    assert not mismatches, (
+        f"recompute vs backfill parity failed on {len(mismatches)} of "
+        f"{len(sample)} sampled dates:\n" + "\n".join(mismatches[:10])
+    )
