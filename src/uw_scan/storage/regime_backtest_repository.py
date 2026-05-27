@@ -170,6 +170,38 @@ class RegimeBacktestRepository:
         self._conn.commit()
         return deleted
 
+    def delete_canary_research_runs_by_batch_id_and_phase(
+        self, batch_id: str, phase: str
+    ) -> int:
+        """Delete canary research runs scoped to a specific (batch_id, phase).
+
+        Unlike `delete_runs_by_batch_id` (which hard-pins
+        params.phase='form_sweep_full' for PR #88), this method accepts
+        an arbitrary phase string. Used by v2-A's cleanup-on-failure paths
+        (phase='walk_forward', phase='robustness').
+
+        Scope: indicator='canary' AND run_scope='research' AND
+        params->>'phase' = %s AND params->>'batch_id' = %s. Production rows
+        are NEVER deleted, even on UUID4 collision.
+
+        Daily rows cascade via ON DELETE CASCADE (migration 057).
+        Returns the number of run rows deleted (0 if no match).
+
+        Spec §5.8.
+        """
+        with self._conn.cursor() as cur:
+            cur.execute(
+                f"DELETE FROM {self._schema}.regime_backtest_runs "
+                "WHERE indicator = 'canary' "
+                "  AND run_scope = 'research' "
+                "  AND params->>'phase' = %s "
+                "  AND params->>'batch_id' = %s",
+                (phase, batch_id),
+            )
+            deleted = cur.rowcount
+        self._conn.commit()
+        return deleted
+
     def find_latest_run(
         self,
         indicator: Literal["cri", "vcg", "canary"],
