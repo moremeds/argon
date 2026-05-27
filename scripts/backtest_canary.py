@@ -1178,6 +1178,15 @@ def main():
         "(printed to stdout for chaining); robustness/v1-v2-compare require "
         "this to match an existing batch.",
     )
+    parser.add_argument(
+        "--v1-v2-compare",
+        action="store_true",
+        help="Assemble v1+v2 evidence and render the comparison report with "
+        "AC-F1..F6 evaluation. Reads v1 walk-forward (production), v2 "
+        "walk-forward (research, latest complete batch), v2 robustness, "
+        "v1/v2 full-history snapshots, v2 CCA event states, and the OOS "
+        "+ v1-golden test results.",
+    )
     args = parser.parse_args()
 
     # CLI-level mutual exclusion (G-1) — argparse doesn't use a group here.
@@ -1188,11 +1197,12 @@ def main():
         args.report,
         args.walk_forward,
         args.robustness,
+        args.v1_v2_compare,
     ]
     if sum(bool(f) for f in mode_flags) > 1:
         parser.error(
             "only one of --calibrate/--form-sweep/--form-sweep-full/--report/"
-            "--walk-forward/--robustness may be specified"
+            "--walk-forward/--robustness/--v1-v2-compare may be specified"
         )
 
     if args.form_sweep_full and args.form is not None:
@@ -1226,8 +1236,24 @@ def main():
         if args.robustness:
             cmd_robustness(conn, schema=schema, args=args)
             return
+        if args.v1_v2_compare:
+            cmd_v1_v2_compare(conn, schema=schema, args=args)
+            return
         parser.print_help()
         sys.exit(2)
+
+
+def cmd_v1_v2_compare(conn, *, schema: str, args=None) -> None:
+    """Assemble + render the v1-vs-v2 evidence report.
+
+    All logic lives in src/uw_scan/reports/regime_canary_v1_v2_compare.py;
+    this stub stays under the 1,000-LOC convention for scripts/backtest_canary.py.
+    """
+    from uw_scan.reports.regime_canary_v1_v2_compare import (
+        assemble_and_render_canary_v1_v2_compare,
+    )
+
+    print(assemble_and_render_canary_v1_v2_compare(conn, schema=schema))
 
 
 # Entry point — must stay at file bottom so all cmd_* are defined when this runs.

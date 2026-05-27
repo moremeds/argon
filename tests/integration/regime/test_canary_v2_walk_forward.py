@@ -381,3 +381,83 @@ def test_v2_walk_forward_recompute_matches_v2_backfill_snapshots(
         f"recompute vs backfill parity failed on {len(mismatches)} of "
         f"{len(sample)} sampled dates:\n" + "\n".join(mismatches[:10])
     )
+
+
+# --- Task 10: v1-v2-compare dispatcher tests ---
+
+
+def test_v1_v2_compare_dispatcher_renders_nonempty(
+    seeded_db_empty_cards, capsys, monkeypatch
+):
+    """cmd_v1_v2_compare assembles + prints a non-empty report.
+
+    _run_subprocess_test is stubbed — the in-process integration test focuses
+    on the assembly+render pipeline, not on whether the OOS-gate test runs
+    in a child process (that subprocess hits a fresh DB that times out
+    waiting for pytest-postgresql setup). Live AC-F6 verification happens
+    in Task 12 Step 7.
+    """
+    import uw_scan.reports.regime_canary_v1_v2_compare as _compare_mod
+    from scripts.backtest_canary import cmd_v1_v2_compare
+    from scripts.canary_backfill import cmd_backfill
+    from tests.integration.regime._canary_v2a_fixture import (
+        seed_v1_walk_forward_runs,
+        seed_v2_walk_forward_runs,
+    )
+
+    monkeypatch.setattr(_compare_mod, "_run_subprocess_test", lambda _path: True)
+
+    conn = seeded_db_empty_cards.conn
+    schema = seeded_db_empty_cards._schema
+
+    seed_vol_index_full_history(
+        conn, schema=schema, start=_date(2013, 1, 2), end=_date(2026, 5, 21)
+    )
+    seed_v1_walk_forward_runs(conn, schema=schema)
+    seed_v2_walk_forward_runs(conn, schema=schema)
+    cmd_backfill(
+        conn,
+        schema=schema,
+        args=argparse.Namespace(
+            composite_version=1,
+            start_date="2015-01-02",
+            end_date="2026-05-21",
+            overwrite_on_hash_mismatch=False,
+            days=252,
+        ),
+    )
+    cmd_backfill(
+        conn,
+        schema=schema,
+        args=argparse.Namespace(
+            composite_version=2,
+            start_date="2015-01-02",
+            end_date="2026-05-21",
+            overwrite_on_hash_mismatch=False,
+            days=252,
+        ),
+    )
+
+    cmd_v1_v2_compare(conn, schema=schema, args=argparse.Namespace())
+
+    out = capsys.readouterr().out
+    assert "Canary v2-A" in out
+    assert "Full-history AUCs" in out
+    assert "Band distribution" in out
+    assert "Per-window 60d AUC" in out
+    assert "AC-F1..F6 Evaluation" in out
+    assert "Verdict:" in out
+    assert "What PR 2 will do" in out
+
+
+def test_v1_v2_compare_fails_clearly_when_no_v2_batch(seeded_db_empty_cards):
+    """If no complete v2 walk-forward batch exists, raises with actionable error."""
+    from scripts.backtest_canary import cmd_v1_v2_compare
+
+    conn = seeded_db_empty_cards.conn
+    schema = seeded_db_empty_cards._schema
+
+    seed_v1_walk_forward_runs(conn, schema=schema)
+
+    with pytest.raises(RuntimeError, match="no complete v2 walk-forward batch"):
+        cmd_v1_v2_compare(conn, schema=schema, args=argparse.Namespace())
