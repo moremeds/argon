@@ -136,11 +136,6 @@ export function VcgStressHistoryTable({ rows }: { rows: VcgStressEntry[] }) {
       </thead>
       <tbody>
         {sorted.map((r) => {
-          const override =
-            r.vix_percentile_rank != null &&
-            r.vvix_percentile_rank != null &&
-            r.vix_percentile_rank >= VOL_STRESS_THRESHOLD &&
-            r.vvix_percentile_rank >= VOL_STRESS_THRESHOLD;
           return (
             <tr
               key={r.date}
@@ -164,20 +159,6 @@ export function VcgStressHistoryTable({ rows }: { rows: VcgStressEntry[] }) {
                     ? "RISK-OFF"
                     : r.interpretation}
                 </span>
-                {override && (
-                  <span
-                    style={{
-                      marginLeft: "6px",
-                      fontFamily: "var(--font-mono)",
-                      fontSize: "9px",
-                      color: "var(--fault, var(--negative))",
-                      letterSpacing: "0.06em",
-                    }}
-                    title="VIX & VVIX percentile ranks both ≥ 0.95 — v2 absolute-vol-stress override"
-                  >
-                    V2-OVERRIDE
-                  </span>
-                )}
               </td>
               <td className="right">{formatSignedNumber(r.score)}</td>
               <td className="right">{formatSignedNumber(r.vcg_adj)}</td>

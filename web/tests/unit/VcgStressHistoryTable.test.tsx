@@ -61,19 +61,24 @@ describe("VcgStressHistoryTable", () => {
     expect(screen.queryByText("RISK-OFF")).not.toBeNull();
   });
 
-  it("flags PANIC rows whose VIX & VVIX percentile ranks both clear 0.95 with V2-OVERRIDE", () => {
+  it("colors percentile-rank cells red when v >= 0.95 (vol-stress threshold)", () => {
     const { container } = render(<VcgStressHistoryTable rows={ROWS} />);
-    const overrides = container.querySelectorAll(
-      '[title*="v2 absolute-vol-stress override"]',
-    );
-    // Only the 2024-01-15 PANIC row has both percentile ranks ≥ 0.95.
-    expect(overrides.length).toBe(1);
+    // 2024-01-15 PANIC row: both percentile ranks clear 0.95 → both cells red.
     const panicRow = container.querySelector(
       '[data-testid="vcg-stress-row-2024-01-15"]',
     );
-    expect(
-      panicRow?.querySelector('[title*="v2 absolute-vol-stress override"]'),
-    ).not.toBeNull();
+    const tds = panicRow?.querySelectorAll("td");
+    const vixCell = tds?.[7] as HTMLElement | undefined;
+    const vvixCell = tds?.[8] as HTMLElement | undefined;
+    expect(vixCell?.style.color).toContain("var(--fault");
+    expect(vvixCell?.style.color).toContain("var(--fault");
+    // 2024-06-10 EDR row: both ranks well under 0.95 → text-primary (not red).
+    const edrRow = container.querySelector(
+      '[data-testid="vcg-stress-row-2024-06-10"]',
+    );
+    const edrCells = edrRow?.querySelectorAll("td");
+    const edrVix = edrCells?.[7] as HTMLElement | undefined;
+    expect(edrVix?.style.color).toContain("var(--text-primary)");
   });
 
   it("toggles sort order on header click", () => {
