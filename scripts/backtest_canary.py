@@ -814,85 +814,114 @@ def cmd_walk_forward(conn, *, schema: str, args=None) -> None:
     score_form = cal.score_form
 
     window_summaries = []
-    for win in WALK_FORWARD_WINDOWS:
-        log.info(
-            "walk-forward: %s OOS %s → %s (%s)",
-            win["id"],
-            win["oos_start"],
-            win["oos_end"],
-            win["label"],
-        )
-        series = _compute_canary_series(
-            conn,
-            cal,
-            form=score_form,
-            start=win["oos_start"],
-            end=win["oos_end"],
-            schema=schema,
-        )
-        eval_rows = series["eval_rows"]
-        all_rows = series["all_rows"]
-        events = series["events"]
-        if not eval_rows:
-            log.warning("walk-forward: %s has zero eval rows — skipping", win["id"])
-            continue
-        summary = _summarize_window(
-            win["id"],
-            eval_rows,
-            all_rows,
-            events,
-            score_form=score_form,
-        )
-        summary["macro_label"] = win["label"]
-        summary["train_end"] = win["train_end"].isoformat()
-        run_id = bt_repo.insert_run(
-            indicator="canary",
-            composite_version=str(cal.composite_version),
-            start_date=eval_rows[0]["date"],
-            end_date=eval_rows[-1]["date"],
-            window_days=350,
-            n_days=len(eval_rows),
-            params={
-                "score_form": score_form,
-                "phase": "walk_forward",
-                "window_id": win["id"],
-                "train_end": win["train_end"].isoformat(),
-                "batch_id": batch_id,
-            },
-            summary=_clean_nans(summary),
-            run_scope=run_scope,
-        )
-        bt_repo.bulk_insert_daily(
-            run_id,
-            [
-                {
-                    "trade_date": r["date"],
-                    "score": r["score"],
-                    "level": r["band"],
-                    "payload": {
-                        "tactical": r["tactical"],
-                        "structural": r["structural"],
-                        "speed": r["speed"],
-                        "warning_state": r["warning_state"],
-                    },
-                }
-                for r in eval_rows
-            ],
-        )
-        bt_repo.mark_run_completed(run_id)
-        log.info(
-            "  → run_id=%d composite_AUC=%.3f/%.3f/%.3f vol_only=%.3f/%.3f/%.3f n_btd=%d n_cca=%d",
-            run_id,
-            summary["aucs"]["composite"]["up5d_2pct"],
-            summary["aucs"]["composite"]["up20d_5pct"],
-            summary["aucs"]["composite"]["up60d_10pct"],
-            summary["aucs"]["vol_only"]["up5d_2pct"],
-            summary["aucs"]["vol_only"]["up20d_5pct"],
-            summary["aucs"]["vol_only"]["up60d_10pct"],
-            summary["event_fire_counts"]["btd"],
-            summary["event_fire_counts"]["cca"],
-        )
-        window_summaries.append(summary)
+    try:
+        for win in WALK_FORWARD_WINDOWS:
+            log.info(
+                "walk-forward: %s OOS %s → %s (%s)",
+                win["id"],
+                win["oos_start"],
+                win["oos_end"],
+                win["label"],
+            )
+            series = _compute_canary_series(
+                conn,
+                cal,
+                form=score_form,
+                start=win["oos_start"],
+                end=win["oos_end"],
+                schema=schema,
+            )
+            eval_rows = series["eval_rows"]
+            all_rows = series["all_rows"]
+            events = series["events"]
+            if not eval_rows:
+                log.warning("walk-forward: %s has zero eval rows — skipping", win["id"])
+                continue
+            summary = _summarize_window(
+                win["id"],
+                eval_rows,
+                all_rows,
+                events,
+                score_form=score_form,
+            )
+            summary["macro_label"] = win["label"]
+            summary["train_end"] = win["train_end"].isoformat()
+            run_id = bt_repo.insert_run(
+                indicator="canary",
+                composite_version=str(cal.composite_version),
+                start_date=eval_rows[0]["date"],
+                end_date=eval_rows[-1]["date"],
+                window_days=350,
+                n_days=len(eval_rows),
+                params={
+                    "score_form": score_form,
+                    "phase": "walk_forward",
+                    "window_id": win["id"],
+                    "train_end": win["train_end"].isoformat(),
+                    "batch_id": batch_id,
+                },
+                summary=_clean_nans(summary),
+                run_scope=run_scope,
+            )
+            bt_repo.bulk_insert_daily(
+                run_id,
+                [
+                    {
+                        "trade_date": r["date"],
+                        "score": r["score"],
+                        "level": r["band"],
+                        "payload": {
+                            "tactical": r["tactical"],
+                            "structural": r["structural"],
+                            "speed": r["speed"],
+                            "warning_state": r["warning_state"],
+                        },
+                    }
+                    for r in eval_rows
+                ],
+            )
+            bt_repo.mark_run_completed(run_id)
+            log.info(
+                "  → run_id=%d composite_AUC=%.3f/%.3f/%.3f vol_only=%.3f/%.3f/%.3f n_btd=%d n_cca=%d",
+                run_id,
+                summary["aucs"]["composite"]["up5d_2pct"],
+                summary["aucs"]["composite"]["up20d_5pct"],
+                summary["aucs"]["composite"]["up60d_10pct"],
+                summary["aucs"]["vol_only"]["up5d_2pct"],
+                summary["aucs"]["vol_only"]["up20d_5pct"],
+                summary["aucs"]["vol_only"]["up60d_10pct"],
+                summary["event_fire_counts"]["btd"],
+                summary["event_fire_counts"]["cca"],
+            )
+            window_summaries.append(summary)
+    except Exception as original:
+        # Cleanup-on-failure: roll back partial transaction state, then scoped-delete
+        # any v2 walk-forward rows already persisted under this batch_id. v1
+        # production rows are unaffected (delete is filtered to research scope).
+        try:
+            conn.rollback()
+        except Exception as rollback_err:  # pragma: no cover — defensive
+            log.exception(
+                "rollback failed during walk-forward cleanup: %s", rollback_err
+            )
+        try:
+            n = bt_repo.delete_canary_research_runs_by_batch_id_and_phase(
+                batch_id,
+                "walk_forward",
+            )
+            log.warning(
+                "cleaned up %d partial v2 walk-forward rows for batch_id=%s",
+                n,
+                batch_id,
+            )
+        except Exception as cleanup_err:  # pragma: no cover — defensive
+            log.exception(
+                "delete_canary_research_runs_by_batch_id_and_phase(%s, walk_forward) "
+                "failed during cleanup: %s",
+                batch_id,
+                cleanup_err,
+            )
+        raise original
 
     # Aggregate pass/fail per revised criteria
     PASS_60D = 0.58
@@ -1100,22 +1129,46 @@ def cmd_robustness(conn, *, schema: str, args=None) -> None:
         },
     }
 
-    run_id = bt_repo.insert_run(
-        indicator="canary",
-        composite_version=str(cal.composite_version),
-        start_date=all_rows[0]["date"],
-        end_date=all_rows[-1]["date"],
-        window_days=350,
-        n_days=len(all_rows),
-        params={
-            "score_form": score_form,
-            "phase": "robustness",
-            "batch_id": batch_id,
-        },
-        summary=_clean_nans(summary),
-        run_scope=run_scope,
-    )
-    bt_repo.mark_run_completed(run_id)
+    try:
+        run_id = bt_repo.insert_run(
+            indicator="canary",
+            composite_version=str(cal.composite_version),
+            start_date=all_rows[0]["date"],
+            end_date=all_rows[-1]["date"],
+            window_days=350,
+            n_days=len(all_rows),
+            params={
+                "score_form": score_form,
+                "phase": "robustness",
+                "batch_id": batch_id,
+            },
+            summary=_clean_nans(summary),
+            run_scope=run_scope,
+        )
+        bt_repo.mark_run_completed(run_id)
+    except Exception as original:
+        try:
+            conn.rollback()
+        except Exception as rollback_err:  # pragma: no cover — defensive
+            log.exception("rollback failed during robustness cleanup: %s", rollback_err)
+        try:
+            n = bt_repo.delete_canary_research_runs_by_batch_id_and_phase(
+                batch_id,
+                "robustness",
+            )
+            log.warning(
+                "cleaned up %d partial v2 robustness rows for batch_id=%s",
+                n,
+                batch_id,
+            )
+        except Exception as cleanup_err:  # pragma: no cover — defensive
+            log.exception(
+                "delete_canary_research_runs_by_batch_id_and_phase(%s, robustness) "
+                "failed during cleanup: %s",
+                batch_id,
+                cleanup_err,
+            )
+        raise original
     log.info("persisted robustness report run_id=%d", run_id)
     log.info("=" * 78)
     log.info("ROBUSTNESS SUMMARY (frozen v1 calibration, score_form=%s)", score_form)

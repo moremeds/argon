@@ -461,3 +461,56 @@ def test_v1_v2_compare_fails_clearly_when_no_v2_batch(seeded_db_empty_cards):
 
     with pytest.raises(RuntimeError, match="no complete v2 walk-forward batch"):
         cmd_v1_v2_compare(conn, schema=schema, args=argparse.Namespace())
+
+
+# --- Task 11: walk-forward cleanup-on-failure (in-process) ---
+
+
+def test_v2_walk_forward_cleanup_on_mid_batch_failure(
+    seeded_db_empty_cards, monkeypatch
+):
+    """If bulk_insert_daily raises on the 4th of 6 walk-forward windows,
+    every persisted v2 walk-forward row (including the 3 successfully
+    inserted) is cleaned up. v1 production rows untouched.
+
+    Uses in-process cmd_walk_forward + monkeypatch on the bound method so
+    the side-effect can pass-through the first 3 calls and raise on the 4th.
+    A subprocess-based test could not patch bulk_insert_daily across the
+    process boundary. Spec §5.8.
+    """
+    conn = seeded_db_empty_cards.conn
+    schema = seeded_db_empty_cards._schema
+    seed_v1_walk_forward_runs(conn, schema=schema)
+    seed_vol_index_full_history(
+        conn, schema=schema, start=_date(2013, 1, 2), end=_date(2026, 5, 21)
+    )
+
+    real_bulk_insert = RegimeBacktestRepository.bulk_insert_daily
+    call_count = {"n": 0}
+
+    def flaky(self, run_id, rows):
+        call_count["n"] += 1
+        if call_count["n"] == 4:
+            raise RuntimeError("simulated 4th-window failure")
+        return real_bulk_insert(self, run_id, rows)
+
+    monkeypatch.setattr(RegimeBacktestRepository, "bulk_insert_daily", flaky)
+
+    with pytest.raises(RuntimeError, match="simulated 4th-window failure"):
+        cmd_walk_forward(conn, schema=schema, args=_wf_args(composite_version=2))
+
+    with conn.cursor() as cur:
+        cur.execute(
+            f"SELECT COUNT(*) FROM {schema}.regime_backtest_runs "
+            f"WHERE indicator='canary' AND run_scope='research' "
+            f"  AND composite_version='2' AND params->>'phase'='walk_forward'"
+        )
+        assert cur.fetchone()[0] == 0
+
+    with conn.cursor() as cur:
+        cur.execute(
+            f"SELECT COUNT(*) FROM {schema}.regime_backtest_runs "
+            f"WHERE indicator='canary' AND run_scope='production' "
+            f"  AND composite_version='1' AND params->>'phase'='walk_forward'"
+        )
+        assert cur.fetchone()[0] == 6
