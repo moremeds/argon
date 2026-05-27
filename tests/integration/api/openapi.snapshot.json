@@ -498,6 +498,17 @@
             "title": "Speed Score",
             "type": "integer"
           },
+          "spx_close": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Spx Close"
+          },
           "structural_score": {
             "title": "Structural Score",
             "type": "number"

@@ -1138,6 +1138,8 @@ export interface components {
              * @enum {string}
              */
             warning_state: "NONE" | "CONFIRMED_CANARY_ACTIVE" | "BUY_THE_DIP_ACTIVE" | "BOTH_ACTIVE_AMBIGUOUS";
+            /** Spx Close */
+            spx_close?: number | null;
         };
         /** CanaryLatestResponse */
         CanaryLatestResponse: {

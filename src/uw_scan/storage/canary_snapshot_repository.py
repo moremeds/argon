@@ -142,7 +142,8 @@ class CanarySnapshotRepository:
                 f"""
                 SELECT data_date, score, raw_score, band, tactical_score,
                        structural_score, speed_score, warning_state,
-                       score_form, payload, payload_hash, inserted_at
+                       score_form, payload, payload_hash, inserted_at,
+                       (payload->'inputs'->>'spx_close')::float8 AS spx_close
                 FROM {self._schema}.canary_snapshots
                 WHERE composite_version = %s
                 ORDER BY data_date DESC
@@ -150,7 +151,7 @@ class CanarySnapshotRepository:
                 """,
                 (composite_version, days),
             )
-            return [self._row_to_dict(r) for r in cur.fetchall()]
+            return [self._row_to_dict_with_spx(r) for r in cur.fetchall()]
 
     @staticmethod
     def _row_to_dict(row: tuple) -> dict[str, Any]:
@@ -167,5 +168,24 @@ class CanarySnapshotRepository:
             "payload",
             "payload_hash",
             "inserted_at",
+        )
+        return dict(zip(keys, row))
+
+    @staticmethod
+    def _row_to_dict_with_spx(row: tuple) -> dict[str, Any]:
+        keys = (
+            "data_date",
+            "score",
+            "raw_score",
+            "band",
+            "tactical_score",
+            "structural_score",
+            "speed_score",
+            "warning_state",
+            "score_form",
+            "payload",
+            "payload_hash",
+            "inserted_at",
+            "spx_close",
         )
         return dict(zip(keys, row))

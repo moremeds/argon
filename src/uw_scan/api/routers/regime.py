@@ -354,6 +354,9 @@ def get_canary_history(
                 structural_score=float(r["structural_score"]),
                 speed_score=int(r["speed_score"]),
                 warning_state=r["warning_state"],
+                spx_close=(
+                    float(r["spx_close"]) if r.get("spx_close") is not None else None
+                ),
             )
             for r in rows
         ]

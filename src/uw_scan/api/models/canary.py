@@ -42,6 +42,7 @@ class CanaryHistoryRow(BaseModel):
     structural_score: float
     speed_score: int
     warning_state: WarningState
+    spx_close: float | None = None
 
 
 class CanaryHistoryResponse(BaseModel):

@@ -2,12 +2,18 @@
 
 import { useCanary, useCanaryHistory } from "@/lib/regime/useCanary";
 
+import { CanaryHistoryTable } from "./canary/CanaryHistoryTable";
+import { CanaryScoreChart } from "./canary/CanaryScoreChart";
 import { ComponentBar } from "./primitives/ComponentBar";
 import { RegimePill, type RegimePillState } from "./primitives/RegimePill";
 
+// 252 ≈ one trading year — enough to span a full vol cycle in the chart and
+// give the sortable history table meaningful depth.
+const HISTORY_DAYS = 252;
+
 export default function CanarySubTab() {
   const { data: latest, error: latestErr } = useCanary();
-  const { data: history } = useCanaryHistory(90);
+  const { data: history } = useCanaryHistory(HISTORY_DAYS);
 
   if (latestErr) {
     return (
@@ -152,39 +158,17 @@ export default function CanarySubTab() {
       </section>
 
       {history && history.rows.length > 0 && (
-        <section>
-          <h3
-            style={{
-              fontSize: 10,
-              letterSpacing: "0.15em",
-              textTransform: "uppercase",
-              color: "var(--text-muted)",
-              marginBottom: 8,
-            }}
-          >
-            90-day history (most recent 10)
-          </h3>
-          <ul
-            style={{
-              fontSize: 11,
-              color: "var(--text-muted)",
-              display: "grid",
-              gridTemplateColumns: "1fr 1fr",
-              columnGap: 16,
-              rowGap: 4,
-              listStyle: "none",
-              padding: 0,
-              margin: 0,
-              fontVariantNumeric: "tabular-nums",
-            }}
-          >
-            {history.rows.slice(0, 10).map((r) => (
-              <li key={String(r.data_date)}>
-                {String(r.data_date)} — {r.score.toFixed(1)} ({r.band})
-              </li>
-            ))}
-          </ul>
-        </section>
+        <>
+          <section style={{ marginBottom: 24 }}>
+            <CanaryScoreChart
+              history={history.rows}
+              title={`Composite score — last ${history.rows.length} sessions`}
+            />
+          </section>
+          <section>
+            <CanaryHistoryTable history={history.rows} />
+          </section>
+        </>
       )}
     </div>
   );
