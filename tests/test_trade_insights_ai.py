@@ -759,6 +759,7 @@ def test_validate_trade_insights_ai_outcome_allows_strategy_family_ids():
     strategy_read["preferred_expression"]["structure"] = "bull_call_spread"
     strategy_read["preferred_expression"]["status_observed"] = "strategy_review"
     strategy_read["preferred_expression"]["risk_flags_observed"] = []
+    _mark_preferred_post_trigger_reprice(strategy_read)
     strategy_read["best_expressions"][0]["idea_id"] = "bull_call_spread"
     strategy_read["best_expressions"][0]["structure"] = "bull_call_spread"
     strategy_read["best_expressions"][0]["status_observed"] = "strategy_review"
@@ -1071,6 +1072,7 @@ def test_v51_trigger_strike_consistency_accepts_short_leg_above_trigger():
     good["preferred_expression"]["structure"] = "bull_call_spread"
     good["preferred_expression"]["status_observed"] = "strategy_review"
     good["preferred_expression"]["risk_flags_observed"] = []
+    _mark_preferred_post_trigger_reprice(good)
     good["preferred_expression"]["strike_role"] = {
         "long_leg_role": "trigger_level",
         "short_leg_role": "second_magnet",
@@ -1182,6 +1184,136 @@ def test_v51_conditional_quote_validity_accepts_candidate_pre_trigger():
     )
     assert parsed.preferred_expression is not None
     assert parsed.preferred_expression.status_observed == "candidate_pre_trigger"
+
+
+def _mark_preferred_post_trigger_reprice(payload: dict) -> None:
+    payload["preferred_expression"].update(
+        {
+            "estimated_entry": (
+                "Repriced post-trigger - observed pre-trigger numerics are "
+                "reference only."
+            ),
+            "max_profit_observed": (
+                "Repriced post-trigger - observed pre-trigger numerics are "
+                "reference only."
+            ),
+            "max_loss_observed": (
+                "Repriced post-trigger - observed pre-trigger numerics are "
+                "reference only."
+            ),
+            "reward_risk": (
+                "Repriced post-trigger - observed pre-trigger numerics are "
+                "reference only."
+            ),
+        }
+    )
+
+
+def test_v53_conditional_strategy_review_rejects_pretrigger_candidate_economics():
+    """strategy_review under CONDITIONAL is only safe when quote fields are
+    blank/repriced. It must not preserve candidate-row entry/profit/loss/R:R
+    as if those pre-trigger economics survive the trigger fire."""
+    deterministic = _analysis_input()
+    deterministic["candidate_structures"][0]["status"] = "candidate"
+    produced_at = datetime(2026, 3, 24, 20, 18, 42, tzinfo=timezone.utc)
+
+    bad = _sample_outcome_for(deterministic)
+    bad["preferred_expression"]["status_observed"] = "strategy_review"
+    candidate_flags = list(
+        deterministic["candidate_structures"][0].get("risk_flags") or []
+    )
+    bad["preferred_expression"]["risk_flags_observed"] = candidate_flags
+    bad["best_expressions"][0]["status_observed"] = "candidate"
+    bad["best_expressions"][0]["risk_flags_observed"] = candidate_flags
+
+    with pytest.raises(ValueError, match="conditional_quote_validity"):
+        validate_trade_insights_ai_outcome(bad, deterministic, produced_at=produced_at)
+
+
+def test_v53_conditional_strategy_review_rejects_pretrigger_economics_lenient():
+    """Claude leniency must not convert model-emitted strategy_review into a
+    bypass for candidate-row quote economics."""
+    deterministic = _analysis_input()
+    deterministic["candidate_structures"][0]["status"] = "candidate"
+    produced_at = datetime(2026, 3, 24, 20, 18, 42, tzinfo=timezone.utc)
+
+    bad = _sample_outcome_for(deterministic)
+    bad["preferred_expression"]["status_observed"] = "strategy_review"
+    candidate_flags = list(
+        deterministic["candidate_structures"][0].get("risk_flags") or []
+    )
+    bad["preferred_expression"]["risk_flags_observed"] = candidate_flags
+    bad["best_expressions"][0]["status_observed"] = "candidate"
+    bad["best_expressions"][0]["risk_flags_observed"] = candidate_flags
+
+    with pytest.raises(ValueError, match="conditional_quote_validity"):
+        validate_trade_insights_ai_outcome(
+            bad, deterministic, produced_at=produced_at, lenient=True
+        )
+
+
+def test_v53_conditional_strategy_review_preserved_against_overwrite():
+    """Regression: model-emitted status_observed='strategy_review' on the
+    preferred expression must NOT be clobbered to 'candidate' by the
+    known-candidate overwrite when entry_state=CONDITIONAL.
+
+    Self-conflict failure mode: the overwrite at validators.py forces
+    status_observed=candidate.status (often 'candidate'), then
+    _check_conditional_quote_validity rejects exactly that value under
+    CONDITIONAL. Tickers like CRWV / MCD failed reliably because Codex
+    picked a known candidate idea_id under CONDITIONAL — TSLA/NVDA
+    happened to dodge the path. The prompt itself instructs the model
+    to translate candidate→strategy_review under CONDITIONAL, so when
+    the model does the right thing the validator must honor it.
+    """
+    deterministic = _analysis_input()
+    deterministic["candidate_structures"][0]["status"] = "candidate"
+    produced_at = datetime(2026, 3, 24, 20, 18, 42, tzinfo=timezone.utc)
+
+    good = _sample_outcome_for(deterministic)
+    # _sample_outcome_for emits entry_state=CONDITIONAL via defaults.
+    # preferred_expression keeps the fixture's idea_id='A' (a known candidate).
+    good["preferred_expression"]["status_observed"] = "strategy_review"
+    _mark_preferred_post_trigger_reprice(good)
+    candidate_flags = list(
+        deterministic["candidate_structures"][0].get("risk_flags") or []
+    )
+    good["preferred_expression"]["risk_flags_observed"] = candidate_flags
+    # best_expressions still gets the candidate status (no escape there).
+    good["best_expressions"][0]["status_observed"] = "candidate"
+    good["best_expressions"][0]["risk_flags_observed"] = candidate_flags
+
+    parsed = validate_trade_insights_ai_outcome(
+        good, deterministic, produced_at=produced_at
+    )
+    assert parsed.preferred_expression is not None
+    assert parsed.preferred_expression.status_observed == "strategy_review"
+
+
+def test_v53_conditional_strategy_review_preserved_in_lenient_mode():
+    """Same self-conflict, lenient (Claude) path: the lenient coercer
+    overwrites status_observed=candidate.status BEFORE strict validation
+    runs. Both layers must preserve the model's 'strategy_review' emission
+    under CONDITIONAL or Claude renders the same red error as Codex."""
+    deterministic = _analysis_input()
+    deterministic["candidate_structures"][0]["status"] = "candidate"
+    produced_at = datetime(2026, 3, 24, 20, 18, 42, tzinfo=timezone.utc)
+
+    good = _sample_outcome_for(deterministic)
+    good["preferred_expression"]["status_observed"] = "strategy_review"
+    _mark_preferred_post_trigger_reprice(good)
+    candidate_flags = list(
+        deterministic["candidate_structures"][0].get("risk_flags") or []
+    )
+    good["preferred_expression"]["risk_flags_observed"] = candidate_flags
+    good["best_expressions"][0]["status_observed"] = "candidate"
+    good["best_expressions"][0]["risk_flags_observed"] = candidate_flags
+
+    parsed = validate_trade_insights_ai_outcome(
+        good, deterministic, produced_at=produced_at, lenient=True
+    )
+    assert parsed.preferred_expression is not None
+    assert parsed.preferred_expression.status_observed == "strategy_review"
 
 
 def test_v51_conditional_quote_validity_skipped_when_active():
@@ -1410,7 +1542,7 @@ def test_v52_min_rr_skipped_for_strategy_review():
     good["preferred_expression"]["structure"] = "bull_call_spread"
     good["preferred_expression"]["status_observed"] = "strategy_review"
     good["preferred_expression"]["risk_flags_observed"] = []
-    good["preferred_expression"]["reward_risk"] = "1.13"  # would normally fail
+    _mark_preferred_post_trigger_reprice(good)
     good["best_expressions"][0]["idea_id"] = "bull_call_spread"
     good["best_expressions"][0]["structure"] = "bull_call_spread"
     good["best_expressions"][0]["status_observed"] = "strategy_review"
@@ -2148,9 +2280,7 @@ def test_row_to_ai_response_preserves_current_version_outcome():
 def test_current_prompt_label_derives_from_prompt_version():
     from uw_scan.api.routers.trade_insights import _current_prompt_label
 
-    assert _current_prompt_label() == PROMPT_VERSION.removeprefix(
-        "trade-insights-ai-"
-    )
+    assert _current_prompt_label() == PROMPT_VERSION.removeprefix("trade-insights-ai-")
 
 
 def test_lenient_v5_backfill_derives_directional_bias_from_stance():
@@ -2480,6 +2610,7 @@ def test_v53_legs_match_strategy_skips_strategy_review():
     payload["preferred_expression"]["structure"] = "bull_call_spread"
     payload["preferred_expression"]["status_observed"] = "strategy_review"
     payload["preferred_expression"]["risk_flags_observed"] = []
+    _mark_preferred_post_trigger_reprice(payload)
     payload["preferred_expression"]["legs"] = []  # research-only — skipped
 
     # strategy_review status + empty legs[] — must pass the leg check

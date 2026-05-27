@@ -210,6 +210,100 @@ def test_claude_runner_treats_is_error_true_as_failure_even_with_success_subtype
         )
 
 
+def test_claude_runner_surfaces_clean_api_error_on_nonzero_exit_with_envelope(
+    monkeypatch,
+):
+    """Regression: when claude --print exits non-zero AND prints a valid JSON
+    envelope with is_error=true on stdout (transient API errors like socket
+    closures), surface the readable result message — NOT the 1500-char raw
+    stdout/stderr tail. The UI renders error_message verbatim as a red
+    banner; dumping the envelope makes every non-TSLA/NVDA ticker show a
+    giant JSON wall."""
+    api_error_message = (
+        "API Error: The socket connection was closed unexpectedly. "
+        "For more information, pass `verbose: true` in the second argument to fetch()"
+    )
+    arr = json.dumps(
+        [
+            {"type": "system", "subtype": "init", "model": "claude-haiku-4-5"},
+            {
+                "type": "result",
+                "subtype": "success",
+                "is_error": True,
+                "api_error_status": None,
+                "result": api_error_message,
+                "model": "claude-haiku-4-5",
+                "session_id": "6711de01-6d18-4975-b2b0-291a42aff285",
+                # bulk of payload omitted for brevity — runner shouldn't dump it
+            },
+        ]
+    )
+
+    def fake_run(cmd, **_):
+        # Exit 1, but stdout still has the envelope (real claude behavior).
+        return subprocess.CompletedProcess(cmd, 1, stdout=arr, stderr="")
+
+    monkeypatch.setattr(
+        "uw_scan.worker.jobs.trade_insights_claude_runner.subprocess.run",
+        fake_run,
+    )
+
+    with pytest.raises(TradeInsightsAiRunnerError) as exc_info:
+        ClaudeRunner().run(
+            "p",
+            {"type": "object"},
+            model="",
+            timeout_seconds=10,
+            max_output_bytes=8192,
+        )
+    msg = str(exc_info.value)
+    assert "API error" in msg
+    assert "socket connection was closed" in msg
+    # The pre-fix message dumped the entire stdout envelope (incl. session_id,
+    # usage stats, etc.) — guard against regression.
+    assert "session_id" not in msg
+    assert "usage" not in msg
+    assert "claude --print failed with exit 1" not in msg
+
+
+def test_claude_runner_nonzero_exit_with_success_envelope_still_fails(monkeypatch):
+    """A non-zero subprocess exit is failure unless Claude marks the envelope
+    as is_error=true, in which case the API-error handler above gives a cleaner
+    message. A success-looking envelope must not hide the failed process."""
+    arr = json.dumps(
+        [
+            {"type": "system", "subtype": "init", "model": "claude-haiku-4-5"},
+            {
+                "type": "result",
+                "subtype": "success",
+                "is_error": False,
+                "result": json.dumps({"ok": True}),
+                "model": "claude-haiku-4-5",
+            },
+        ]
+    )
+
+    def fake_run(cmd, **_):
+        return subprocess.CompletedProcess(cmd, 1, stdout=arr, stderr="")
+
+    monkeypatch.setattr(
+        "uw_scan.worker.jobs.trade_insights_claude_runner.subprocess.run",
+        fake_run,
+    )
+
+    with pytest.raises(TradeInsightsAiRunnerError) as exc_info:
+        ClaudeRunner().run(
+            "p",
+            {"type": "object"},
+            model="",
+            timeout_seconds=10,
+            max_output_bytes=8192,
+        )
+    msg = str(exc_info.value)
+    assert "claude --print failed with exit 1" in msg
+    assert "API error" not in msg
+
+
 def test_claude_runner_excludes_app_secrets_from_child_environment(monkeypatch):
     """ANTHROPIC_API_KEY exclusion is load-bearing — pre-flight verified that
     with it set, claude reports apiKeySource=ANTHROPIC_API_KEY and uses

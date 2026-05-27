@@ -145,6 +145,31 @@ class RegimeBacktestRepository:
             )
         self._conn.commit()
 
+    def delete_runs_by_batch_id(self, batch_id: str) -> int:
+        """Delete canary form_sweep_full research runs with given batch_id.
+
+        Scoped intentionally narrow — only `indicator='canary'`,
+        `run_scope='research'`, `params->>'phase'='form_sweep_full'` rows
+        are affected. This is the cleanup-on-failure path for
+        `cmd_form_sweep_full`; it should never touch any other indicator,
+        scope, or phase even on a UUID4 collision.
+
+        Daily rows are removed by ON DELETE CASCADE (migration 057).
+        Returns the number of run rows deleted (0 if no match).
+        """
+        with self._conn.cursor() as cur:
+            cur.execute(
+                f"DELETE FROM {self._schema}.regime_backtest_runs "
+                "WHERE indicator = 'canary' "
+                "  AND run_scope = 'research' "
+                "  AND params->>'phase' = 'form_sweep_full' "
+                "  AND params->>'batch_id' = %s",
+                (batch_id,),
+            )
+            deleted = cur.rowcount
+        self._conn.commit()
+        return deleted
+
     def find_latest_run(
         self,
         indicator: Literal["cri", "vcg", "canary"],

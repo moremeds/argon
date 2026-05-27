@@ -368,7 +368,8 @@ def _fmt_metric(value) -> str:
         return "n/a"
     try:
         return f"{float(value):.3f}"
-    except (TypeError, ValueError):
+    except (TypeError, ValueError) as exc:
+        _ = repr(exc)
         return str(value)
 
 

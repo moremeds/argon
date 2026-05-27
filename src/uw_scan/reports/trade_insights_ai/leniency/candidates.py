@@ -21,6 +21,7 @@ from uw_scan.reports.trade_insights_ai.leniency.triggers import (
     _market_structure_levels,
 )
 
+
 def _candidate_map_from_payload(
     deterministic_payload: dict[str, Any],
 ) -> dict[str, dict[str, Any]]:
@@ -194,12 +195,29 @@ def _coerce_preferred_expression(
     candidates: dict[str, dict[str, Any]],
     *,
     directional_bias: str = "WAIT",
+    entry_state: str | None = None,
     deterministic_payload: dict[str, Any] | None = None,
 ) -> dict[str, Any] | None:
     raw = _dict_or_empty(item)
     base = _coerce_strategy_item(item, candidates)
     if base is None:
         return None
+    # v5.3 CONDITIONAL → strategy_review preservation: _coerce_strategy_item
+    # always overwrites status_observed to candidate.status for known
+    # candidate idea_ids. When the model correctly translates the
+    # candidate-row pre-trigger status to "strategy_review" under
+    # CONDITIONAL (the prompt requires this), preserve the model's emission
+    # — otherwise the strict validator's conditional_quote_validity rule
+    # rejects the clobbered "candidate" value downstream.
+    raw_status = _str_or(raw.get("status_observed"), "")
+    idea_id = base["idea_id"]
+    if (
+        entry_state == "CONDITIONAL"
+        and raw_status == "strategy_review"
+        and idea_id in candidates
+        and str(candidates[idea_id].get("status") or "") == "candidate"
+    ):
+        base["status_observed"] = "strategy_review"
     levels = _market_structure_levels(deterministic_payload)
     strike_role = _coerce_strike_role(
         raw.get("strike_role"),
