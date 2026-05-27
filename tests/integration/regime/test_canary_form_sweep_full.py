@@ -397,3 +397,61 @@ def test_cmd_form_sweep_full_does_not_persist_when_compute_fails_mid_run(
         f"expected compute to be called 3 times before failing, "
         f"got {call_count['compute']}"
     )
+
+
+def test_form_sweep_full_cleanup_on_failure(seeded_db_empty_cards, monkeypatch):
+    """Simulate a real DB failure on the 3rd form's bulk_insert_daily call.
+    Assert: rollback happens and zero failed-batch rows remain afterwards."""
+    from pathlib import Path
+
+    from scripts.backtest_canary import cmd_form_sweep_full
+    from tests.integration.regime._canary_form_sweep_fixture import (
+        seed_canary_snapshots,
+        seed_vol_index,
+    )
+    from uw_scan.storage.regime_backtest_repository import RegimeBacktestRepository
+
+    db_conn = seeded_db_empty_cards.conn
+    db_schema = seeded_db_empty_cards._schema
+    calib_path = (
+        Path(__file__).parents[3]
+        / "docs/research/regime/canary-calibration-v1.json"
+    )
+    before_calib_bytes = calib_path.read_bytes()
+    dates = seed_vol_index(db_conn, schema=db_schema, n_days=600)
+    seed_canary_snapshots(db_conn, schema=db_schema, dates=dates, n_snapshots=200)
+
+    real_bulk = RegimeBacktestRepository.bulk_insert_daily
+    call_count = {"n": 0}
+
+    def fail_on_third_call(self, run_id, rows):
+        call_count["n"] += 1
+        if call_count["n"] == 3:
+            with self._conn.cursor() as cur:
+                cur.execute("INSERT INTO definitely_missing_table VALUES (1)")
+        return real_bulk(self, run_id, rows)
+
+    monkeypatch.setattr(
+        RegimeBacktestRepository, "bulk_insert_daily", fail_on_third_call,
+    )
+
+    with pytest.raises(Exception):
+        cmd_form_sweep_full(db_conn, schema=db_schema)
+
+    with db_conn.cursor() as cur:
+        cur.execute(
+            f"SELECT COUNT(*) FROM {db_schema}.regime_backtest_runs "
+            f"WHERE params->>'phase' = 'form_sweep_full'"
+        )
+        assert cur.fetchone()[0] == 0, (
+            "cleanup-on-failure must remove all rows for failed batch_id"
+        )
+        cur.execute(
+            f"SELECT COUNT(*) FROM {db_schema}.regime_backtest_daily d "
+            f"JOIN {db_schema}.regime_backtest_runs r ON d.run_id = r.id "
+            f"WHERE r.params->>'phase' = 'form_sweep_full'"
+        )
+        assert cur.fetchone()[0] == 0, "daily rows must cascade-delete"
+    assert calib_path.read_bytes() == before_calib_bytes, (
+        "calibration file changed on failure"
+    )
