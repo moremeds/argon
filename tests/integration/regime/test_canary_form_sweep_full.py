@@ -455,3 +455,197 @@ def test_form_sweep_full_cleanup_on_failure(seeded_db_empty_cards, monkeypatch):
     assert calib_path.read_bytes() == before_calib_bytes, (
         "calibration file changed on failure"
     )
+
+
+def test_form_sweep_full_renderer_picks_latest_complete_batch(seeded_db_empty_cards):
+    """Two complete batches, different created_at — loader picks the latest."""
+    from uw_scan.reports.regime_canary_backtest_report import (
+        _load_latest_complete_batch,
+    )
+    from uw_scan.storage.regime_backtest_repository import RegimeBacktestRepository
+
+    db_conn = seeded_db_empty_cards.conn
+    db_schema = seeded_db_empty_cards._schema
+    repo = RegimeBacktestRepository(db_conn, schema=db_schema)
+
+    def insert_batch(batch_id: str):
+        for form in ("linear", "convex", "concave", "sigmoid"):
+            run_id = repo.insert_run(
+                indicator="canary", composite_version="1",
+                start_date=date(2011, 2, 8), end_date=date(2026, 5, 21),
+                window_days=350, n_days=100,
+                params={"score_form": form, "phase": "form_sweep_full",
+                        "batch_id": batch_id},
+                summary={"is_winning_form": False, "score_form": form,
+                         "batch_id": batch_id, "phase": "form_sweep_full",
+                         "n_days": 100,
+                         "aucs": {"composite": {"up5d_2pct": 0.6, "up20d_5pct": 0.6, "up60d_10pct": 0.6},
+                                  "vol_only":  {"up5d_2pct": 0.6, "up20d_5pct": 0.6, "up60d_10pct": 0.6},
+                                  "speed_only":{"up5d_2pct": 0.5, "up20d_5pct": 0.5, "up60d_10pct": 0.5}},
+                         "band_distribution": {"NONE": 60, "WATCH": 30, "BUY": 10, "STRONG_BUY": 0},
+                         "within_band_aucs": {"NONE": {"up60d_10pct": 0.55},
+                                              "WATCH": {"up60d_10pct": 0.55},
+                                              "BUY": {"up60d_10pct": 0.45},
+                                              "STRONG_BUY": {"up60d_10pct": None}},
+                         "vol_only_gap": {"up5d_2pct": 0.0, "up20d_5pct": 0.0, "up60d_10pct": 0.0}},
+                run_scope="research",
+            )
+            repo.mark_run_completed(run_id)
+
+    insert_batch("batch-A")
+    insert_batch("batch-B")
+
+    runs = _load_latest_complete_batch(db_conn, db_schema)
+    assert len(runs) == 4
+    batch_ids = {r["params"]["batch_id"] for r in runs}
+    assert batch_ids == {"batch-B"}, f"expected batch-B, got {batch_ids}"
+
+
+def test_renderer_skips_incomplete_batch(seeded_db_empty_cards):
+    """Earlier complete batch + later incomplete (3 rows) batch — loader returns the earlier."""
+    from uw_scan.reports.regime_canary_backtest_report import (
+        _load_latest_complete_batch,
+    )
+    from uw_scan.storage.regime_backtest_repository import RegimeBacktestRepository
+
+    db_conn = seeded_db_empty_cards.conn
+    db_schema = seeded_db_empty_cards._schema
+    repo = RegimeBacktestRepository(db_conn, schema=db_schema)
+
+    def insert_run_for(batch_id: str, form: str, *, completed: bool = True):
+        run_id = repo.insert_run(
+            indicator="canary", composite_version="1",
+            start_date=date(2011, 2, 8), end_date=date(2026, 5, 21),
+            window_days=350, n_days=100,
+            params={"score_form": form, "phase": "form_sweep_full",
+                    "batch_id": batch_id},
+            summary={"is_winning_form": False, "score_form": form,
+                     "batch_id": batch_id, "phase": "form_sweep_full",
+                     "n_days": 100,
+                     "aucs": {"composite": {"up5d_2pct": 0.6, "up20d_5pct": 0.6, "up60d_10pct": 0.6},
+                              "vol_only":  {"up5d_2pct": 0.6, "up20d_5pct": 0.6, "up60d_10pct": 0.6},
+                              "speed_only":{"up5d_2pct": 0.5, "up20d_5pct": 0.5, "up60d_10pct": 0.5}},
+                     "band_distribution": {"NONE": 60, "WATCH": 30, "BUY": 10, "STRONG_BUY": 0},
+                     "within_band_aucs": {"NONE": {"up60d_10pct": 0.55},
+                                          "WATCH": {"up60d_10pct": 0.55},
+                                          "BUY": {"up60d_10pct": 0.45},
+                                          "STRONG_BUY": {"up60d_10pct": None}},
+                     "vol_only_gap": {"up5d_2pct": 0.0, "up20d_5pct": 0.0, "up60d_10pct": 0.0}},
+            run_scope="research",
+        )
+        if completed:
+            repo.mark_run_completed(run_id)
+
+    for form in ("linear", "convex", "concave", "sigmoid"):
+        insert_run_for("batch-complete", form)
+    for form in ("linear", "convex", "concave"):
+        insert_run_for("batch-partial", form)
+
+    runs = _load_latest_complete_batch(db_conn, db_schema)
+    batch_ids = {r["params"]["batch_id"] for r in runs}
+    assert batch_ids == {"batch-complete"}, (
+        f"loader must skip incomplete batches, got {batch_ids}"
+    )
+
+
+def test_form_sweep_full_does_not_write_calibration_file(seeded_db_empty_cards):
+    """canary-calibration-v1.json byte content unchanged after run."""
+    import hashlib
+    from pathlib import Path
+
+    from scripts.backtest_canary import cmd_form_sweep_full
+    from tests.integration.regime._canary_form_sweep_fixture import (
+        seed_canary_snapshots,
+        seed_vol_index,
+    )
+
+    db_conn = seeded_db_empty_cards.conn
+    db_schema = seeded_db_empty_cards._schema
+    calib_path = (
+        Path(__file__).parents[3]
+        / "docs/research/regime/canary-calibration-v1.json"
+    )
+    assert calib_path.exists(), f"calibration file not found at {calib_path}"
+
+    before_bytes = calib_path.read_bytes()
+    before_hash = hashlib.sha256(before_bytes).hexdigest()
+    before_mtime = calib_path.stat().st_mtime
+
+    dates = seed_vol_index(db_conn, schema=db_schema, n_days=600)
+    seed_canary_snapshots(db_conn, schema=db_schema, dates=dates, n_snapshots=200)
+    cmd_form_sweep_full(db_conn, schema=db_schema)
+
+    after_bytes = calib_path.read_bytes()
+    after_hash = hashlib.sha256(after_bytes).hexdigest()
+    after_mtime = calib_path.stat().st_mtime
+
+    assert before_bytes == after_bytes, "calibration file content changed"
+    assert before_hash == after_hash, "calibration SHA-256 mismatch"
+    assert before_mtime == after_mtime, "calibration mtime changed"
+
+
+def test_form_sweep_full_invisible_to_oos_gate(seeded_db_empty_cards):
+    """Production find_latest_run does not return any research-scoped form_sweep_full row."""
+    from scripts.backtest_canary import cmd_form_sweep_full
+    from tests.integration.regime._canary_form_sweep_fixture import (
+        seed_canary_snapshots,
+        seed_vol_index,
+    )
+    from uw_scan.storage.regime_backtest_repository import RegimeBacktestRepository
+
+    db_conn = seeded_db_empty_cards.conn
+    db_schema = seeded_db_empty_cards._schema
+    repo = RegimeBacktestRepository(db_conn, schema=db_schema)
+    winning_run_id = repo.insert_run(
+        indicator="canary", composite_version="1",
+        start_date=date(2020, 1, 2), end_date=date(2026, 5, 21),
+        window_days=350, n_days=1605,
+        params={"score_form": "linear", "phase": "final_oos_report"},
+        summary={"is_winning_form": True, "score_form": "linear"},
+    )
+    repo.mark_run_completed(winning_run_id)
+
+    dates = seed_vol_index(db_conn, schema=db_schema, n_days=600)
+    seed_canary_snapshots(db_conn, schema=db_schema, dates=dates, n_snapshots=200)
+    cmd_form_sweep_full(db_conn, schema=db_schema)
+
+    latest = repo.find_latest_run("canary", composite_version="1")
+    assert latest is not None
+    assert latest["id"] == winning_run_id, (
+        f"find_latest_run returned {latest['id']}; expected pre-existing v1 run "
+        f"{winning_run_id}. form_sweep_full rows must be research scoped."
+    )
+
+
+def test_form_sweep_full_invisible_to_validation_api(seeded_db_empty_cards):
+    """The /api/regime/canary/validation router function returns the same
+    row before and after a form_sweep_full run."""
+    from scripts.backtest_canary import cmd_form_sweep_full
+    from tests.integration.regime._canary_form_sweep_fixture import (
+        seed_canary_snapshots,
+        seed_vol_index,
+    )
+    from uw_scan.api.routers.regime import get_canary_validation
+    from uw_scan.storage.regime_backtest_repository import RegimeBacktestRepository
+
+    db_conn = seeded_db_empty_cards.conn
+    db_schema = seeded_db_empty_cards._schema
+    repo = RegimeBacktestRepository(db_conn, schema=db_schema)
+    pre_winning_id = repo.insert_run(
+        indicator="canary", composite_version="1",
+        start_date=date(2020, 1, 2), end_date=date(2026, 5, 21),
+        window_days=350, n_days=1605,
+        params={"score_form": "linear", "phase": "final_oos_report"},
+        summary={"is_winning_form": True, "score_form": "linear"},
+    )
+    repo.mark_run_completed(pre_winning_id)
+
+    before = get_canary_validation(repo=seeded_db_empty_cards).model_dump_json()
+    assert f'"run_id":{pre_winning_id}' in before
+
+    dates = seed_vol_index(db_conn, schema=db_schema, n_days=600)
+    seed_canary_snapshots(db_conn, schema=db_schema, dates=dates, n_snapshots=200)
+    cmd_form_sweep_full(db_conn, schema=db_schema)
+
+    after = get_canary_validation(repo=seeded_db_empty_cards).model_dump_json()
+    assert before == after, "validation API payload changed across form_sweep_full"
