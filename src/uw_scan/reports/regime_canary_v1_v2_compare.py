@@ -295,6 +295,13 @@ def _full_history_aucs_via_compute_canary_series(
     _aucs_for_rows -> _entry_lagged_label needs. _compute_canary_series's
     eval_rows DO, so this is the correct apples-to-apples path.
     """
+    # `scripts/` is not a Python package and is only on sys.path when pytest
+    # adds repo root (pythonpath = ["src", "."] in pyproject.toml). When an
+    # operator runs `uv run python scripts/backtest_canary.py --v1-v2-compare`
+    # from a cwd other than the repo root, the import below would fail with
+    # ModuleNotFoundError. Add REPO_ROOT to sys.path defensively.
+    if str(REPO_ROOT) not in sys.path:
+        sys.path.insert(0, str(REPO_ROOT))
     from scripts.backtest_canary import _aucs_for_rows, _compute_canary_series
 
     series = _compute_canary_series(
@@ -346,8 +353,15 @@ def _run_subprocess_test(test_path: str) -> bool:
     return proc.returncode == 0
 
 
-def _assemble_flip_gate_evidence(conn, *, schema: str) -> FlipGateEvidence:
-    """Build a FlipGateEvidence from DB. Heavy — run only in --v1-v2-compare."""
+def _assemble_flip_gate_evidence(
+    conn, *, schema: str, batch_id: str | None = None
+) -> FlipGateEvidence:
+    """Build a FlipGateEvidence from DB. Heavy — run only in --v1-v2-compare.
+
+    If `batch_id` is provided, the report compares against that exact v2 batch
+    (still requiring all 6 walk-forward windows + 1 robustness row to be
+    present). If None, the latest complete v2 batch is selected.
+    """
     with conn.cursor() as cur:
         cur.execute(
             f"""
@@ -383,32 +397,60 @@ def _assemble_flip_gate_evidence(conn, *, schema: str) -> FlipGateEvidence:
                 f"Has PR #83's persistence completed?"
             )
 
-        cur.execute(
-            f"""
-            WITH batches AS (
-              SELECT params->>'batch_id' AS batch_id,
-                     MAX(completed_at) AS latest,
-                     ARRAY_AGG(params->>'window_id' ORDER BY params->>'window_id') AS wids
-              FROM {schema}.regime_backtest_runs
-              WHERE indicator='canary' AND run_scope='research'
-                AND composite_version='2'
-                AND params->>'phase'='walk_forward'
-                AND completed_at IS NOT NULL
-              GROUP BY params->>'batch_id'
+        if batch_id is not None:
+            # Operator-supplied batch_id: verify it exists with all 6 windows
+            # complete. Fail loud with the supplied id in the message so the
+            # operator can diagnose (typo? wrong scope? missing window?).
+            cur.execute(
+                f"""
+                SELECT ARRAY_AGG(params->>'window_id' ORDER BY params->>'window_id')
+                FROM {schema}.regime_backtest_runs
+                WHERE indicator='canary' AND run_scope='research'
+                  AND composite_version='2'
+                  AND params->>'phase'='walk_forward'
+                  AND params->>'batch_id'=%s
+                  AND completed_at IS NOT NULL
+                """,
+                (batch_id,),
             )
-            SELECT batch_id FROM batches
-            WHERE wids = ARRAY['WF-1','WF-2','WF-3','WF-4','WF-5','WF-6']
-            ORDER BY latest DESC LIMIT 1
-            """
-        )
-        row = cur.fetchone()
-        if row is None:
-            raise RuntimeError(
-                "no complete v2 walk-forward batch found. Run "
-                "`uv run python scripts/backtest_canary.py --walk-forward "
-                "--composite-version 2` first."
+            wids_row = cur.fetchone()
+            wids = wids_row[0] if wids_row else None
+            if wids != ["WF-1", "WF-2", "WF-3", "WF-4", "WF-5", "WF-6"]:
+                raise RuntimeError(
+                    f"requested batch_id={batch_id!r} does not have 6 complete "
+                    f"v2 walk-forward windows (got: {wids}). Run "
+                    f"`uv run python scripts/backtest_canary.py --walk-forward "
+                    f"--composite-version 2` to produce a new batch, or omit "
+                    f"--batch-id to use the latest complete batch."
+                )
+            v2_batch_id = batch_id
+        else:
+            cur.execute(
+                f"""
+                WITH batches AS (
+                  SELECT params->>'batch_id' AS batch_id,
+                         MAX(completed_at) AS latest,
+                         ARRAY_AGG(params->>'window_id' ORDER BY params->>'window_id') AS wids
+                  FROM {schema}.regime_backtest_runs
+                  WHERE indicator='canary' AND run_scope='research'
+                    AND composite_version='2'
+                    AND params->>'phase'='walk_forward'
+                    AND completed_at IS NOT NULL
+                  GROUP BY params->>'batch_id'
+                )
+                SELECT batch_id FROM batches
+                WHERE wids = ARRAY['WF-1','WF-2','WF-3','WF-4','WF-5','WF-6']
+                ORDER BY latest DESC LIMIT 1
+                """
             )
-        v2_batch_id = row[0]
+            row = cur.fetchone()
+            if row is None:
+                raise RuntimeError(
+                    "no complete v2 walk-forward batch found. Run "
+                    "`uv run python scripts/backtest_canary.py --walk-forward "
+                    "--composite-version 2` first."
+                )
+            v2_batch_id = row[0]
 
         cur.execute(
             f"SELECT id, composite_version, run_scope, params, summary "
@@ -505,18 +547,37 @@ def _assemble_flip_gate_evidence(conn, *, schema: str) -> FlipGateEvidence:
     )
 
 
-def assemble_and_render_canary_v1_v2_compare(conn, *, schema: str) -> str:
-    """Convenience: assemble evidence + render to markdown."""
-    ev = _assemble_flip_gate_evidence(conn, schema=schema)
+def assemble_and_render_canary_v1_v2_compare(
+    conn, *, schema: str, batch_id: str | None = None
+) -> str:
+    """Convenience: assemble evidence + render to markdown.
+
+    If batch_id is provided, compares that exact v2 batch (otherwise the latest
+    complete v2 batch).
+    """
+    ev = _assemble_flip_gate_evidence(conn, schema=schema, batch_id=batch_id)
     return render_canary_v1_v2_compare(ev)
 
 
 def main() -> int:
     """Standalone CLI: re-render the latest v1+v2 evidence bundle from DB."""
-    argparse.ArgumentParser(description=__doc__).parse_args()
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--batch-id",
+        type=str,
+        default=None,
+        help="Compare against this exact v2 walk-forward batch_id (must have "
+        "all 6 windows + 1 robustness row complete). Defaults to the latest "
+        "complete v2 batch.",
+    )
+    args = parser.parse_args()
     settings = Settings.from_env()
     with psycopg.connect(settings.db_dsn()) as conn:
-        print(assemble_and_render_canary_v1_v2_compare(conn, schema=settings.db_schema))
+        print(
+            assemble_and_render_canary_v1_v2_compare(
+                conn, schema=settings.db_schema, batch_id=args.batch_id
+            )
+        )
     return 0
 
 

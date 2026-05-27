@@ -30,7 +30,6 @@ from pathlib import Path
 
 import numpy as np
 from psycopg import connect
-
 from uw_scan.cards.canary_calibration import (
     COMPOSITE_VERSION,
 )
@@ -1301,12 +1300,18 @@ def cmd_v1_v2_compare(conn, *, schema: str, args=None) -> None:
 
     All logic lives in src/uw_scan/reports/regime_canary_v1_v2_compare.py;
     this stub stays under the 1,000-LOC convention for scripts/backtest_canary.py.
+
+    If args.batch_id is set, the report compares against that exact v2 batch;
+    otherwise it picks the latest complete v2 batch.
     """
     from uw_scan.reports.regime_canary_v1_v2_compare import (
         assemble_and_render_canary_v1_v2_compare,
     )
 
-    print(assemble_and_render_canary_v1_v2_compare(conn, schema=schema))
+    batch_id = getattr(args, "batch_id", None) if args is not None else None
+    print(
+        assemble_and_render_canary_v1_v2_compare(conn, schema=schema, batch_id=batch_id)
+    )
 
 
 # Entry point — must stay at file bottom so all cmd_* are defined when this runs.

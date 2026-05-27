@@ -10,13 +10,13 @@ from datetime import date
 from datetime import date as _date
 
 import pytest
-
 from scripts.backtest_canary import cmd_walk_forward
+from uw_scan.storage.regime_backtest_repository import RegimeBacktestRepository
+
 from tests.integration.regime._canary_v2a_fixture import (
     seed_v1_walk_forward_runs,
     seed_vol_index_full_history,
 )
-from uw_scan.storage.regime_backtest_repository import RegimeBacktestRepository
 
 pytestmark = pytest.mark.integration
 
@@ -400,6 +400,7 @@ def test_v1_v2_compare_dispatcher_renders_nonempty(
     import uw_scan.reports.regime_canary_v1_v2_compare as _compare_mod
     from scripts.backtest_canary import cmd_v1_v2_compare
     from scripts.canary_backfill import cmd_backfill
+
     from tests.integration.regime._canary_v2a_fixture import (
         seed_v1_walk_forward_runs,
         seed_v2_walk_forward_runs,
@@ -460,7 +461,54 @@ def test_v1_v2_compare_fails_clearly_when_no_v2_batch(seeded_db_empty_cards):
     seed_v1_walk_forward_runs(conn, schema=schema)
 
     with pytest.raises(RuntimeError, match="no complete v2 walk-forward batch"):
-        cmd_v1_v2_compare(conn, schema=schema, args=argparse.Namespace())
+        cmd_v1_v2_compare(conn, schema=schema, args=argparse.Namespace(batch_id=None))
+
+
+def test_v1_v2_compare_honors_explicit_batch_id(seeded_db_empty_cards, monkeypatch):
+    """When --batch-id is passed, the report compares against that exact v2 batch.
+
+    Two v2 batches are seeded; passing the older batch_id makes the report compare
+    against it rather than the latest. Regression test for codex F2.
+    """
+    import uw_scan.reports.regime_canary_v1_v2_compare as _compare_mod
+    from scripts.backtest_canary import cmd_v1_v2_compare
+
+    from tests.integration.regime._canary_v2a_fixture import (
+        seed_v2_walk_forward_runs,
+    )
+
+    monkeypatch.setattr(_compare_mod, "_run_subprocess_test", lambda _path: True)
+
+    conn = seeded_db_empty_cards.conn
+    schema = seeded_db_empty_cards._schema
+    seed_vol_index_full_history(
+        conn, schema=schema, start=_date(2013, 1, 2), end=_date(2026, 5, 21)
+    )
+    seed_v1_walk_forward_runs(conn, schema=schema)
+    older_batch, _ = seed_v2_walk_forward_runs(conn, schema=schema)
+    newer_batch, _ = seed_v2_walk_forward_runs(conn, schema=schema)
+    assert older_batch != newer_batch
+
+    # No --batch-id: should pick the newer batch (latest by completed_at).
+    cmd_v1_v2_compare(conn, schema=schema, args=argparse.Namespace(batch_id=None))
+
+    # Explicit older batch_id: should not raise and should compare that batch.
+    cmd_v1_v2_compare(
+        conn, schema=schema, args=argparse.Namespace(batch_id=older_batch)
+    )
+
+
+def test_v1_v2_compare_explicit_batch_id_unknown_raises(seeded_db_empty_cards):
+    """Operator-supplied unknown batch_id raises a clear error referencing the id."""
+    from scripts.backtest_canary import cmd_v1_v2_compare
+
+    conn = seeded_db_empty_cards.conn
+    schema = seeded_db_empty_cards._schema
+    seed_v1_walk_forward_runs(conn, schema=schema)
+
+    fake = "00000000-0000-0000-0000-000000000000"
+    with pytest.raises(RuntimeError, match=fake):
+        cmd_v1_v2_compare(conn, schema=schema, args=argparse.Namespace(batch_id=fake))
 
 
 # --- Task 11: walk-forward cleanup-on-failure (in-process) ---
