@@ -22,6 +22,7 @@ describe("VcgValidationPanel", () => {
         { interpretation: "SUPPRESSED", n: 40, pct: 40.0 },
       ],
       named_crash_window: [],
+      stress_history: [],
     };
     const { container } = render(<VcgValidationPanel data={data} />);
     expect(screen.queryByText(/VCG BACKTEST \(HYG\)/)).not.toBeNull();
@@ -57,6 +58,7 @@ describe("VcgValidationPanel", () => {
           offsets,
         },
       ],
+      stress_history: [],
     };
     const { container } = render(<VcgValidationPanel data={data} />);
     expect(screen.queryByText(/Lehman bankruptcy/)).not.toBeNull();
@@ -77,6 +79,7 @@ describe("VcgValidationPanel", () => {
       credit_proxy: "HYG",
       interpretation_distribution: [],
       named_crash_window: [],
+      stress_history: [],
     };
     render(<VcgValidationPanel data={data} />);
     expect(

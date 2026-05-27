@@ -286,15 +286,60 @@ def seed_vcg_backtest_run(seeded_db_empty_cards) -> int:
         },
         note="seed_vcg_backtest_run fixture",
     )
+    # Daily rows include three stress-level entries so /vcg-validation can
+    # exercise the stress_history filter. Dates ascending in storage; the
+    # endpoint reverses to most-recent-first.
     rb.bulk_insert_daily(
         run_id,
         [
+            {
+                "trade_date": _date(2024, 1, 15),
+                "score": -2.40,
+                "level": "PANIC",
+                "payload": {
+                    "vcg_adj": -2.40,
+                    "pi_panic": 1.20,
+                    "sign_ok": True,
+                    "vix": 80.86,
+                    "vvix": 110.15,
+                    "vix_percentile_rank": 0.992,
+                    "vvix_percentile_rank": 0.985,
+                },
+            },
+            {
+                "trade_date": _date(2024, 3, 1),
+                "score": -1.85,
+                "level": "RISK_OFF",
+                "payload": {
+                    "vcg_adj": -1.85,
+                    "pi_panic": 0.50,
+                    "sign_ok": True,
+                    "vix": 28.4,
+                    "vvix": 105.2,
+                    "vix_percentile_rank": 0.71,
+                    "vvix_percentile_rank": 0.65,
+                },
+            },
+            {
+                "trade_date": _date(2024, 6, 10),
+                "score": -1.20,
+                "level": "EDR",
+                "payload": {
+                    "vcg_adj": -1.20,
+                    "pi_panic": 0.0,
+                    "sign_ok": True,
+                    "vix": 18.5,
+                    "vvix": 95.0,
+                    "vix_percentile_rank": 0.42,
+                    "vvix_percentile_rank": 0.38,
+                },
+            },
             {
                 "trade_date": _date(2026, 5, 15),
                 "score": -0.5,
                 "level": "NORMAL",
                 "payload": {},
-            }
+            },
         ],
     )
     rb.mark_run_completed(run_id)

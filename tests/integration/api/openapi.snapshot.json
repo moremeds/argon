@@ -14592,10 +14592,34 @@
             "title": "Vix",
             "type": "number"
           },
+          "vix_percentile_rank": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "VIX level's 252-day rolling percentile rank (strict_lt tie rule). Used by the v2 absolute-vol-stress override gate. None during the 252-bar warmup or for v=1 payloads.",
+            "title": "Vix Percentile Rank"
+          },
           "vvix": {
             "default": 0.0,
             "title": "Vvix",
             "type": "number"
+          },
+          "vvix_percentile_rank": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "VVIX level's 252-day rolling percentile rank (strict_lt tie rule). Used by the v2 absolute-vol-stress override gate.",
+            "title": "Vvix Percentile Rank"
           },
           "vvix_severity": {
             "default": "moderate",
@@ -14609,6 +14633,118 @@
           }
         },
         "title": "VcgSignal",
+        "type": "object"
+      },
+      "VcgStressHistoryEntry": {
+        "description": "One daily row from the VCG backtest whose interpretation is a\nstress level (PANIC / RISK_OFF / EDR). Drives the all-time stress\nhistory table on the /regime VCG sub-tab.",
+        "properties": {
+          "date": {
+            "title": "Date",
+            "type": "string"
+          },
+          "interpretation": {
+            "enum": [
+              "PANIC",
+              "RISK_OFF",
+              "EDR"
+            ],
+            "title": "Interpretation",
+            "type": "string"
+          },
+          "pi_panic": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pi Panic"
+          },
+          "score": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Score"
+          },
+          "sign_ok": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sign Ok"
+          },
+          "vcg_adj": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vcg Adj"
+          },
+          "vix": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vix"
+          },
+          "vix_percentile_rank": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vix Percentile Rank"
+          },
+          "vvix": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vvix"
+          },
+          "vvix_percentile_rank": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vvix Percentile Rank"
+          }
+        },
+        "required": [
+          "date",
+          "interpretation"
+        ],
+        "title": "VcgStressHistoryEntry",
         "type": "object"
       },
       "VcgValidationResponse": {
@@ -14642,6 +14778,14 @@
               "$ref": "#/components/schemas/VcgNamedCrashEvent"
             },
             "title": "Named Crash Window",
+            "type": "array"
+          },
+          "stress_history": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/VcgStressHistoryEntry"
+            },
+            "title": "Stress History",
             "type": "array"
           }
         },

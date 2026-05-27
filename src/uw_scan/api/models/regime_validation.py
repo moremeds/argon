@@ -67,6 +67,23 @@ class VcgNamedCrashEvent(BaseModel):
     offsets: list[VcgNamedCrashOffset]
 
 
+class VcgStressHistoryEntry(BaseModel):
+    """One daily row from the VCG backtest whose interpretation is a
+    stress level (PANIC / RISK_OFF / EDR). Drives the all-time stress
+    history table on the /regime VCG sub-tab."""
+
+    date: str
+    interpretation: Literal["PANIC", "RISK_OFF", "EDR"]
+    score: float | None = None
+    vcg_adj: float | None = None
+    pi_panic: float | None = None
+    sign_ok: bool | None = None
+    vix: float | None = None
+    vvix: float | None = None
+    vix_percentile_rank: float | None = None
+    vvix_percentile_rank: float | None = None
+
+
 class VcgValidationResponse(BaseModel):
     """Latest completed VCG backtest run rendered + structured."""
 
@@ -76,3 +93,4 @@ class VcgValidationResponse(BaseModel):
     credit_proxy: str
     interpretation_distribution: list[VcgInterpretationCount]
     named_crash_window: list[VcgNamedCrashEvent]
+    stress_history: list[VcgStressHistoryEntry] = []

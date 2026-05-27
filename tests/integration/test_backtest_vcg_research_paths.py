@@ -7,7 +7,10 @@ from __future__ import annotations
 
 from datetime import date
 
+from uw_scan.cards.vcg_scoring import COMPOSITE_VERSION as VCG_COMPOSITE_VERSION
 from uw_scan.storage.regime_backtest_repository import RegimeBacktestRepository
+
+PROD_VERSION = str(VCG_COMPOSITE_VERSION)
 
 
 def _seed_run(
@@ -16,8 +19,10 @@ def _seed_run(
     run_scope: str,
     credit_proxy: str,
     composite_method: str,
-    composite_version: str = "1",
+    composite_version: str | None = None,
 ) -> int:
+    if composite_version is None:
+        composite_version = PROD_VERSION
     run_id = repo.insert_run(
         indicator="vcg",
         composite_version=composite_version,
@@ -56,21 +61,19 @@ def test_insert_run_writes_new_columns(seeded_db_empty_cards) -> None:
 
 
 def test_find_latest_run_defaults_exclude_research(seeded_db_empty_cards) -> None:
-    """Production HYG row must win over a NEWER research row at v1."""
+    """Production HYG row must win over a NEWER research row at the same version."""
     repo = RegimeBacktestRepository(seeded_db_empty_cards.conn)
     prod = _seed_run(
         repo,
         run_scope="production",
         credit_proxy="HYG",
         composite_method="single_proxy",
-        composite_version="1",
     )
     research = _seed_run(
         repo,
         run_scope="research",
         credit_proxy="JNK",
         composite_method="single_proxy",
-        composite_version="1",
     )
     assert research > prod  # research is newer
 
@@ -88,14 +91,12 @@ def test_find_latest_run_with_credit_proxy_filter(seeded_db_empty_cards) -> None
         run_scope="production",
         credit_proxy="HYG",
         composite_method="single_proxy",
-        composite_version="1",
     )
     _seed_run(
         repo,
         run_scope="production",
         credit_proxy="JNK",
         composite_method="single_proxy",
-        composite_version="1",
     )
     latest = repo.find_latest_run("vcg", credit_proxy="HYG")
     assert latest is not None
@@ -109,7 +110,6 @@ def test_list_research_runs_excludes_production(seeded_db_empty_cards) -> None:
         run_scope="production",
         credit_proxy="HYG",
         composite_method="single_proxy",
-        composite_version="1",
     )
     r1 = _seed_run(
         repo,
