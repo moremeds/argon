@@ -397,9 +397,11 @@ CCA n=4 is still small. BTD n=12 is enough for meaningful event statistics in a 
 Three structural concerns surfaced by the 15-year data that warrant a v2 design pass:
 
 ### v2-A: Drop speed from the composite score; surface state separately
-- **Evidence**: vol-only AUC ≥ composite AUC at every horizon × every subset
+- **Evidence (v1, walk-forward)**: vol-only AUC ≥ composite AUC at every horizon × every subset
+- **Evidence (2026-05-27 form-sweep, §13)**: vol-only-gap at 60d survives all four score forms (+0.020 to +0.027 across linear / convex / concave / sigmoid). The penalty from including speed in the composite is **not a score-curvature artifact** — it is structural to how speed weights the rank.
 - **Proposal**: API exposes three fields — `vol_resolution_score` (current composite minus speed), `speed_state` (NEUTRAL/CCA/BTD/BOTH), `warning_cap` (boolean veto). Composite score deprecated.
 - **Cost**: COMPOSITE_VERSION → 2, methodology doc update, full backfill rerun with `--overwrite`
+- **Priority (post-form-sweep)**: **PROMOTED to top of v2 queue.** The form-sweep negative result strengthens the case that vol predicts and speed contextualizes.
 
 ### v2-B: STRONG_BUY threshold appears too high
 - **Evidence**: Zero hits in 15 years including 2008-vintage shocks (2011 debt downgrade, 2015 China, 2018 Volmageddon, 2020 COVID — none cleared 75). Max score in dataset is 66.4 (2020-11-12).
@@ -407,9 +409,15 @@ Three structural concerns surfaced by the 15-year data that warrant a v2 design 
 - **Cost**: Calibration constant tweak. Doesn't require COMPOSITE_VERSION bump (band thresholds are post-score classifications).
 
 ### v2-C: WATCH band is overfiring; score is anti-predictive within BUY
-- **Evidence**: 39% of all days are WATCH (vs design intent of ~25%). BUY-band internal AUC is 0.35-0.45 — regression-to-mean dominates.
-- **Proposal**: Score-form sweep against full 2011 dataset (current `linear` was picked against 2015-2019 only); test `convex` and `sigmoid` which compress middle scores into NONE and push extremes higher.
-- **Cost**: One `--form-sweep` run + threshold re-tune. May or may not require COMPOSITE_VERSION bump depending on whether band thresholds change.
+- **Original evidence (v1)**: 39% of all days are WATCH (vs design intent of ~25%). BUY-band internal AUC is 0.35-0.45 — regression-to-mean dominates.
+- **Original proposal**: Score-form sweep against full 2011 dataset; test `convex` / `concave` / `sigmoid` which compress middle scores into NONE and push extremes higher.
+- **2026-05-27 form-sweep verdict (§13)**: **Score-form hypothesis REJECTED.** No form improves 60d AUC over linear by ≥ 0.02. WATCH% remains >30% for all forms (concave worsens it to 46.4%). STRONG_BUY% = 0.0% for all forms. BUY-band rank inversion persists in 3 of 4 forms (concave barely clears 0.50 only by inflating WATCH).
+- **Reframed proposal (band / ordinal-regime redesign)**: The v1 pathology is not a ramp-curvature problem. Possible directions:
+  1. Treat continuous score as diagnostic; band as the decision-facing output.
+  2. Collapse to ordinal state: `NONE` / `WATCH` / `BUY`; remove `STRONG_BUY` (never fires anyway).
+  3. Tighten WATCH threshold or split into "early watch" vs "actionable watch".
+  4. Cap or flatten score *inside* BUY — do not imply "higher BUY score = better forward return".
+- **Cost (reframed)**: Methodology design pass + threshold redesign + UI semantics update. Likely requires COMPOSITE_VERSION bump only if internal score generation changes; pure band reinterpretation does not.
 
 ### v2-D (open question, not yet a candidate): capitulation scorer
 - **Evidence**: User intuition is "score should max during max fear" (capitulation). Current design maxes during recovery (mean-reversion). 2025-03 CCA peak score was only 33.4 despite SPX drawing down ~10%. 2020-Q1 COVID also muted under v1.
@@ -451,7 +459,60 @@ The alternative — retune calibration before merge — would invalidate the emp
 | 5 | **Merge PR #83** | — | **READY** |
 | 6 | File v2-A / v2-B / v2-C / v2-D as GitHub issues | 30 min | follow-up |
 | 7 | UI window picker on Validation panel (let user pick WF window) | 2 hr | LOW priority |
-| 8 | Run `--form-sweep` against full 2011 dataset to inform v2-C | 1 hr | medium priority |
+| 8 | ~~Run `--form-sweep` against full 2011 dataset to inform v2-C~~ | ~~1 hr~~ | ✓ DONE 2026-05-27 — see §13. Score-form hypothesis rejected. |
+
+---
+
+## 13. Full-history form-sweep result (2026-05-27, addendum to §10 v2-C)
+
+Research-only sweep across all four score forms (`linear` / `convex` / `concave` / `sigmoid`) over the full `canary_snapshots` window (2011-02-08 → 2026-05-21, 3,843 days each).
+
+**Persistence:** 4 rows in `regime_backtest_runs` with `run_scope='research'`, shared `batch_id=a71b88a4-7904-4653-aa70-611f24e9fbf1`, all `is_winning_form=false`, invisible to production-scope queries. Calibration JSON untouched (MD5 unchanged).
+
+| Form    | AUC 5d | AUC 20d | AUC 60d | NONE% | WATCH% | BUY% | STRONG_BUY% | BUY-band 60d AUC | Vol-only gap (60d) |
+|---------|-------:|--------:|--------:|------:|-------:|-----:|------------:|-----------------:|-------------------:|
+| linear  |  0.620 |   0.627 |   0.619 |  55.2 |   39.3 |  5.5 |         0.0 |            0.348 |             +0.023 |
+| convex  |  0.616 |   0.623 |   0.608 |  60.8 |   34.8 |  4.4 |         0.0 |            0.369 |             +0.027 |
+| concave |  0.624 |   0.628 |   0.628 |  46.3 |   46.4 |  7.2 |         0.0 |            0.505 |             +0.020 |
+| sigmoid |  0.623 |   0.632 |   0.627 |  56.0 |   38.4 |  5.6 |         0.0 |            0.340 |             +0.025 |
+
+### Verdict
+
+**The v1 pathology is not a score-form problem.** No alternative form dominates linear; specifically:
+
+- Best 60d AUC is concave at 0.628 vs linear 0.619 — only +0.009 (well under the +0.02 promotion bar).
+- WATCH overfire is universal: all forms > 30%; concave makes it worse at 46.4%.
+- STRONG_BUY never fires in any form (0.0% across the board).
+- BUY-band rank inversion (< 0.50) persists in linear, convex, sigmoid; concave clears 0.505 only by paying with massive WATCH expansion.
+- Vol-only gap at 60d survives every form (+0.020 to +0.027) — **strengthens v2-A**, not v2-C.
+
+### Decisions taken from this result
+
+| Item | Decision |
+|---|---|
+| Score form | **Keep `linear`.** No change. |
+| Calibration JSON | **Do not touch.** |
+| `COMPOSITE_VERSION` | **Do not bump.** No formula change. |
+| v2-A (drop speed from composite) | **Promoted** to top of v2 queue (vol predicts, speed contextualizes — survives all four forms). |
+| v2-B (lower STRONG_BUY threshold) | **Hold** — wait for v2-C ordinal redesign to settle band semantics first. |
+| v2-C (was: score-form change) | **Reframed.** Score-form hypothesis rejected. Promote to band / ordinal-regime redesign (4 directions listed above). |
+| Future form-selection passes | **Do not run.** The negative result is the answer. |
+
+### Why this is a successful negative result
+
+The cheap hypothesis ("just swap to convex/concave/sigmoid") was the one most likely to be tried first and the one most likely to ship subtle harm if accepted without falsification. The form-sweep run cost ~5 minutes of compute and prevented an entire wrong v2 design cycle. The fact that no form "wins" is itself the answer: the next design pass must address **score semantics and band interpretation**, not **ramp curvature**.
+
+### Reproduce
+
+```bash
+# Re-render the latest complete batch (no recompute, just re-render):
+PGUSER=chenxi UW_SCAN_API_KEY=local-smoke \
+  uv run python -m uw_scan.reports.regime_canary_backtest_report
+
+# Run a fresh sweep (creates a new batch_id, persists 4 new research rows):
+PGUSER=chenxi UW_SCAN_API_KEY=local-smoke \
+  uv run python scripts/backtest_canary.py --form-sweep-full
+```
 
 ---
 
