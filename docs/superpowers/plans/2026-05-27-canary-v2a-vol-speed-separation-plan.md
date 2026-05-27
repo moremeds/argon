@@ -1,58 +1,24 @@
-# Canary v2-A — Vol/Speed Separation — Implementation Plan
+# Canary v2-A — Vol/Speed Separation — Implementation Plan (v0.2)
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+>
+> **This is v0.2.** The task bodies below are authoritative — there is no separate "amendments" section. Execute tasks in the listed order; the order is itself a correctness invariant (golden capture before formula change; module extraction before assembly code; fixture helpers before integration tests).
 
 **Goal:** Build a research-only PR 1 that produces evidence for the v2-A formula change (drop additive `speed.score` from canary composite when `composite_version >= 2`). Zero production-surface change in PR 1; AC-F1..F6 evidence in PR 1 gates PR 2's production flip.
 
-**Architecture:** A 4-line conditional in `run_analysis()` keyed on `calibration.composite_version`. A new `canary-calibration-v2.json` holding identical thresholds but `composite_version=2`. Research backfill writes `composite_version=2` snapshots (invisible to production via column filter). Walk-forward + robustness write `run_scope='research'` rows (invisible via `find_latest_run`'s production default). A pure renderer evaluates pre-committed AC-F1..F6 from a `FlipGateEvidence` dataclass; the dispatcher in `backtest_canary.py --v1-v2-compare` assembles the bundle from DB.
+**Architecture:** A 4-line conditional in `run_analysis()` keyed on `calibration.composite_version`. A new `canary-calibration-v2.json` holding identical thresholds but `composite_version=2`. Research backfill writes `composite_version=2` snapshots (invisible to production via column-scope filter). Walk-forward + robustness write `run_scope='research'` rows (invisible via `find_latest_run`'s production default). A pure renderer evaluates pre-committed AC-F1..F6 from a `FlipGateEvidence` dataclass; the new `src/uw_scan/reports/regime_canary_v1_v2_compare.py` module owns both assembly and rendering; `backtest_canary.py` exposes a thin dispatcher.
 
-**Tech Stack:** Python 3.13 + `uv`; pytest + pytest-postgresql for integration tests; Postgres for persistence (`canary_snapshots`, `regime_backtest_runs`, `regime_backtest_daily`); `psycopg` for DB access; dataclasses for `Calibration` and `FlipGateEvidence`.
+**Tech Stack:** Python 3.13 + `uv`; pytest + pytest-postgresql for integration tests; pytest-mock for in-process mock pattern; Postgres for persistence (`canary_snapshots`, `regime_backtest_runs`, `regime_backtest_daily`); `psycopg` for DB access; dataclasses for `Calibration` and `FlipGateEvidence`.
 
 **Spec:** `docs/superpowers/specs/2026-05-27-canary-v2a-vol-speed-separation-design.md` (commit `09a2ea8`, post `/review-cycle`).
 
----
-
-## ⚠️ Pass-4 Critical Amendments — READ BEFORE EXECUTING
-
-This plan went through `/review-cycle` after the first draft and revealed **20+ findings** including 5 plan-as-written-cannot-execute defects. The amendments below are load-bearing — apply them as you reach the corresponding tasks. The original task bodies below were drafted before these findings surfaced; treat the amendments as authoritative when they conflict.
-
-### CRITICAL amendments (must apply)
-
-**A-C1 (Task 5, 6, 10, 11): NO `subprocess.run` for integration tests.** `Settings.from_env()` reads `UW_SCAN_DB_*` env vars (not `DATABASE_URL`), so `subprocess.run(env={"DATABASE_URL": test_db_url})` would silently hit the **dev DB `option_wizard`** and could MUTATE IT. Replace every `subprocess.run(...)` in test code with **in-process invocation**: call `cmd_backfill(conn, schema=schema, args=argparse.Namespace(...))` / `cmd_walk_forward(conn, schema=schema, args=...)` / `cmd_v1_v2_compare(conn, schema=schema)` directly. Use `seeded_db_empty_cards.conn` + `_schema` (the existing form-sweep precedent in PR #88).
-
-**A-C2 (Task 5): `canary_backfill.py` must be refactored to expose `cmd_backfill(conn, *, schema, args)`** that accepts a connection + namespace. The existing `main()` continues to work for the daily APScheduler job by building conn from `Settings.from_env()` then calling `cmd_backfill`. Estimated +25 LOC of restructuring on top of the +35 already planned. The current `--days N` data-load span (`max(800, args.days + 500)` at line 111) **does not** honor `--start-date` for dates older than ~3 years; when `--start-date` is supplied, compute the required load span from the date range so 2011 dates are actually loaded. Use `trade_date` (NOT `data_date`) when querying `vol_index_daily` (verified: `vol_index_repository.py:65`).
-
-**A-C3 (Task 6): The current `cmd_walk_forward` DOES NOT write `batch_id` to params** (verified: `backtest_canary.py:827-840` shows only `score_form/phase/window_id/train_end`). The plan claimed otherwise — **that was wrong**. Task 6 must ADD batch_id generation: `batch_id = args.batch_id or str(uuid.uuid4())` BEFORE the per-window loop, and include `"batch_id": batch_id` in every walk-forward's params dict. Print the batch_id to stdout so Task 7's robustness can be chained with `--batch-id`.
-
-**A-C4 (Tasks 9 + 10): EXTRACT new module `src/uw_scan/reports/regime_canary_v1_v2_compare.py`** that owns `FlipGateEvidence`, `_assemble_flip_gate_evidence`, `render_canary_v1_v2_compare`, the AC-F1..F6 helpers, and the standalone CLI `main()`. The current `scripts/backtest_canary.py` is **1,174 lines** (verified) — adding the dispatcher in-place pushes it well over the codebase's "no new methods on >1,000 LOC files without a split plan" convention. PR #88 handled the analogous problem by extracting `regime_canary_form_sweep_full.py`; mirror that pattern. `backtest_canary.py` gets only a thin ~30-LOC `cmd_v1_v2_compare(conn, *, schema)` that imports from the new module.
-
-**A-C5 (Task 10): Full-history AUC computation cannot use `_aucs_for_rows` on `canary_snapshots` rows.** The snapshot `payload` JSONB nests scores as `tactical_vol.score`, `structural_vol.score`, `speed.score` — NOT the flat keys the plan's SQL projects. And `_aucs_for_rows` → `_entry_lagged_label` requires `r["spx"]` per row for forward-return labels, which snapshots don't carry. **Correct approach**: in `_assemble_flip_gate_evidence`, compute both `v1_full_history_aucs` and `v2_full_history_aucs` by calling `_compute_canary_series(conn, calibration, form='linear', start, end, schema)` (the form-sweep helper that already exists) with the appropriate calibration — this returns `eval_rows` with `spx` populated, then passes them to `_aucs_for_rows`. Apples-to-apples by construction.
-
-**A-C6 (Tasks 2 ↔ 3 reorder): Capture the v1 payload-hash golden BEFORE applying the conditional path edit.** Task 3 (Conditional path) must run AFTER Task 2 (Golden capture + test). The original draft put them in the opposite order, which would let a bug in the conditional silently bless itself. The task numbering in the document has been updated, but the task BODIES below are still in the original order — when implementing, execute Task 3 (Golden) before Task 2 (Conditional) per the corrected Task Order at the top.
-
-### IMPORTANT amendments
-
-**A-I1 (Task 5): Idempotency by payload-hash, not just date+version.** A `SELECT 1 → continue` check silently keeps stale rows from earlier failed runs that had bugs. Compute a canonical SHA-256 of the new payload, compare with the existing row's stored hash, and FAIL LOUDLY (require `--overwrite`) on mismatch. The canary payload-hash module (`src/uw_scan/cards/canary_payload_hash.py`, verified to exist) provides the canonical hash function.
-
-**A-I2 (Task 10): Dispatcher reload queries must include full scope/version/completion filters.** Selecting v2 walk-forward rows by `batch_id + phase` alone is insufficient — partial-row contamination or scope collision could pollute evidence. Every reload query must explicitly filter `indicator='canary' AND run_scope='research' AND composite_version='2' AND completed_at IS NOT NULL`.
-
-**A-I3 (Task 10): Subprocess invocations in `_run_test_subprocess` must preserve parent PATH.** The dispatcher calls `uv run pytest …`, but `uv` is at `~/.cargo/bin/uv` on macOS — outside `/usr/bin:/bin`. Use `env=os.environ.copy()` (default behavior — just omit the env kwarg) rather than replacing PATH wholesale.
-
-**A-I4 (Task 10): Integration test for `--v1-v2-compare` should mock `_run_test_subprocess`** to avoid nested pytest invocations (pytest-in-pytest is known to corrupt state). In live smoke (Task 12), the real subprocess runs cleanly because there's no outer pytest context.
-
-**A-I5 (Task 2 — formula tests): Assert v1↔v2 raw-score deltas directly**, not absolute computed sums. `payload["tactical_vol"]["score"]` is rounded to 2 decimals, but `raw_score` rounds the sum AFTER adding unrounded components — equality can drift by 0.01.
-
-**A-I6 (Task 12): Non-regression test paths.** `tests/integration/regime/test_canary_backtest.py` **does not exist** (verified). Replace with `tests/integration/regime/test_canary_scanner.py` + `tests/integration/regime/test_canary_oos_gate.py` + the new v2 files.
-
-**A-I7 (Task 11): In-process mock pattern.** With A-C1 applied, the cleanup test calls `cmd_walk_forward(conn, schema=schema, args=fake_args)` directly. Use `mocker.patch.object(RegimeBacktestRepository, "bulk_insert_daily", side_effect=...)` (pytest-mock — already in the project's deps) with a `side_effect` callable that captures call count, raises on the 4th call, and otherwise delegates to the real method via `wraps`. Replace the literal `original_bulk_insert = ...` placeholder in the original Task 11 body with concrete code.
-
-### MINOR amendments (apply if cheap)
-
-**A-M1 (Tasks 2, 4, 9, 10):** Remove unused imports from sample code blocks: `math` in Task 2, `psycopg` in Task 4, `field`/`Mapping`/unused `args` in Task 9, unused `conn` in Task 10. Will fail `ruff` otherwise.
-
-**A-M2 (Task 12 Step 7 → AC-7):** Replace the targeted pytest command with an explicit `uv run ruff check src/ tests/ scripts/` invocation (AC-7 of the spec is a ruff check, not a pytest run).
-
-**A-M3 (line refs):** `insert_snapshot` is at `canary_backfill.py:173` (not "around line 176" as some passages claim). Minor — "around line N" is the convention.
+**Standing rules in force throughout:**
+- `uv` exclusively — no bare `python`/`pip`/`pytest`
+- Never `subprocess.run([sys.executable, ...])` inside integration tests; use in-process `cmd_*(conn, schema, args)` calls instead (`Settings.from_env()` reads `UW_SCAN_DB_*` env vars, not `DATABASE_URL`, so subprocess + `DATABASE_URL=...` would silently hit and mutate the dev DB `option_wizard`)
+- Never extend `repository.py` (a 5,000+ LOC monolith); add new persistence to the focused `regime_backtest_repository.py`
+- Persist analytical results to Postgres (`canary_snapshots`, `regime_backtest_runs`)
+- Never `Co-Authored-By: Claude …` trailer on commits
+- `COMPOSITE_VERSION` module constant **stays at 1** for the entirety of PR 1; only the loaded `cal.composite_version` differs
 
 ---
 
@@ -62,38 +28,38 @@ This plan went through `/review-cycle` after the first draft and revealed **20+ 
 |---|---|---|
 | `src/uw_scan/cards/canary_scoring.py` | Modified | 4-line conditional in `run_analysis()` keyed on `calibration.composite_version` |
 | `docs/research/regime/canary-calibration-v2.json` | New | Same 5 vol-scorer thresholds as v1; `composite_version: 2`; `score_form: "linear"` |
-| `scripts/canary_backfill.py` | Modified | **Refactored to expose `cmd_backfill(conn, *, schema, args)`** (per A-C2). Add `--composite-version`, `--start-date`, `--end-date` flags; load v2 calibration explicitly; persist `cal.composite_version` (not module constant); idempotent re-run via payload-hash check (A-I1). Existing `main()` still wraps for the daily APScheduler job. |
-| `scripts/backtest_canary.py` | Modified | **Refactor `cmd_walk_forward`/`cmd_robustness` signatures to accept `args`** for in-process testing (A-C1). **Add `batch_id` generation** in walk-forward (A-C3 — currently missing). Add thin ~30-LOC `cmd_v1_v2_compare(conn, *, schema)` that imports from the new module. Add `--composite-version` flag throughout. |
-| `src/uw_scan/reports/regime_canary_v1_v2_compare.py` | **NEW MODULE (per A-C4)** | Owns `FlipGateEvidence` dataclass + `_assemble_flip_gate_evidence(conn, schema)` + `_full_history_aucs_via_compute_canary_series(conn, cal, schema)` (per A-C5) + `_band_distribution_for_version` + `render_canary_v1_v2_compare(ev) -> str` pure renderer + standalone CLI `main()`. Keeps `backtest_canary.py` under the 1,000-LOC convention. |
-| `src/uw_scan/storage/regime_backtest_repository.py` | Modified | Add `delete_canary_research_runs_by_batch_id_and_phase(batch_id, phase) -> int` |
-| `tests/integration/regime/_canary_v2a_fixture.py` | **NEW (Task 0, per A-I4)** | Helper functions: `seed_vol_index_full_history`, `seed_v1_walk_forward_runs`, `seed_v2_walk_forward_runs`, `seed_canary_snapshots_v2` |
-| `tests/unit/test_canary_v2_formula.py` | New | ~9 unit tests covering the conditional path (deltas not absolute sums per A-I5) |
-| `tests/unit/test_canary_v1_payload_hash_golden.py` | New | ~3 unit tests: golden v1 scoring hash regression (captured BEFORE Task 3 per A-C6) |
+| `scripts/canary_backfill.py` | **Refactored** | Extract `cmd_backfill(conn, *, schema, args)`; existing `main()` continues to wrap for the daily APScheduler job. Add `--composite-version` / `--start-date` / `--end-date` / `--overwrite-on-hash-mismatch`. Load span derived from explicit date range. Persists `cal.composite_version`. Payload-hash idempotency with fail-loud on mismatch. Query `vol_index_daily.trade_date` (not `data_date`). |
+| `scripts/backtest_canary.py` | **Refactored** | `cmd_walk_forward(conn, *, schema, args)` and `cmd_robustness(conn, *, schema, args)` accept args. Generate `batch_id` once before the per-window loop, persist to every params dict, print to stdout. New thin `cmd_v1_v2_compare(conn, *, schema, args)` (~10 LOC) imports from `uw_scan.reports.regime_canary_v1_v2_compare`. Persists `str(cal.composite_version)`. |
+| `src/uw_scan/reports/regime_canary_v1_v2_compare.py` | **NEW MODULE** | Owns `FlipGateEvidence` dataclass + `assemble_and_render_canary_v1_v2_compare(conn, *, schema)` + `_assemble_flip_gate_evidence(conn, *, schema)` + `_full_history_aucs_via_compute_canary_series(conn, *, cal, schema)` + `_band_distribution_for_version(conn, *, schema, version)` + `_run_subprocess_test(test_path)` + pure `render_canary_v1_v2_compare(ev) -> str` + standalone `main()`. Keeps `backtest_canary.py` under the 1,000-LOC convention. |
+| `src/uw_scan/storage/regime_backtest_repository.py` | Modified | Add `delete_canary_research_runs_by_batch_id_and_phase(batch_id, phase) -> int`; scope: `indicator='canary' AND run_scope='research' AND params->>'phase'=%s AND params->>'batch_id'=%s` |
+| `tests/integration/regime/_canary_v2a_fixture.py` | **NEW** | 4 seed helpers used by Tasks 5–11; each takes `(conn, *, schema)`. Uses `CanarySnapshotRepository.insert_snapshot(...)` (NOT raw SQL) so all NOT NULL columns are populated. |
+| `tests/unit/test_canary_v1_payload_hash_golden.py` | New | ~3 unit tests: golden v1 scoring hash regression — **captured from the pre-v2A baseline before Task 3** |
+| `tests/unit/test_canary_v2_formula.py` | New | ~9 unit tests: v2 conditional path (deltas, not rounded sums); v3 routes through v2; v1 path unchanged |
 | `tests/unit/test_canary_v1_v2_compare_renderer.py` | New | ~16 unit tests for the renderer + AC-F1..F6 evaluation |
-| `tests/integration/regime/test_canary_v2_backfill.py` | New | ~7 integration tests for backfill + AC-F3 evidence test. **In-process invocation via `cmd_backfill(conn, schema, args)`** (per A-C1, A-C2). |
-| `tests/integration/regime/test_canary_v2_walk_forward.py` | New | ~9 integration tests for walk-forward + robustness + parity + cleanup-on-failure + cross-scope renderer load. **In-process invocation throughout** (per A-C1). |
+| `tests/integration/regime/test_canary_v2_backfill.py` | New | ~6 integration tests: in-process `cmd_backfill(conn, schema, args)`; tags rows with cal.composite_version; payload-hash idempotency; v1 rows untouched |
+| `tests/integration/regime/test_canary_v2_walk_forward.py` | New | ~9 integration tests: scoped delete; in-process `cmd_walk_forward`/`cmd_robustness`/`cmd_v1_v2_compare`; mid-batch failure cleanup via `pytest-mock` |
 
-**Net LOC**: ~400–550 new code + ~30 net additions to existing files. ~44 new tests. ~40-60s of new test runtime.
+**Net LOC**: ~400–550 new code + ~100 LOC of refactoring in `canary_backfill.py` + `backtest_canary.py`. ~44 new tests. ~40–60s of new test runtime.
 
 ---
 
 ## Task Order
 
-Tasks are ordered for safe dependencies. **Per-task dependency footnotes are shown in each task header.** The golden-baseline task (T2) deliberately runs BEFORE the formula-change task (T3) so the captured pre-v2A hash isn't trivially blessed by a bug in the change itself.
+Tasks are ordered for safe dependencies. **The Task 2 → 3 ordering is a correctness invariant**, not stylistic: the golden v1 payload-hash must be captured against the pre-v2A baseline; otherwise a bug introduced by the conditional silently blesses itself.
 
-0. **Task 0**: Build the v2-A fixture helpers in `tests/integration/regime/_canary_v2a_fixture.py` (no production code; pure test infrastructure)
-1. **Task 1**: New `canary-calibration-v2.json` + unit test that loader parses it
-2. **Task 2**: **Capture v1 golden payload hash from current code (BEFORE Task 3)** + golden test
-3. **Task 3**: Apply conditional path in `run_analysis()` (unit tests + minimal code edit)
-4. **Task 4**: New repo method `delete_canary_research_runs_by_batch_id_and_phase`
-5. **Task 5**: `canary_backfill.py` full refactor — expose `cmd_backfill(conn, *, schema, args)`, add `--composite-version` + `--start-date` / `--end-date` flags + idempotency-via-payload-hash + AC-F3 evidence
-6. **Task 6**: `backtest_canary.py --walk-forward --composite-version 2` — **adds `batch_id` generation** (current code does not write one), exposes `cmd_walk_forward(conn, *, schema, args)` for in-process testing
-7. **Task 7**: `backtest_canary.py --robustness --composite-version 2` + chained `--batch-id`
-8. **Task 8**: Walk-forward recompute vs backfill parity test (AC-4b)
-9. **Task 9**: **NEW MODULE** `src/uw_scan/reports/regime_canary_v1_v2_compare.py` owning `FlipGateEvidence` + `_assemble_flip_gate_evidence` + `render_canary_v1_v2_compare` + standalone CLI. Keeps `backtest_canary.py` from growing beyond the 1,000-LOC convention.
-10. **Task 10**: Thin `--v1-v2-compare` CLI dispatcher in `backtest_canary.py` (≤30 LOC) that delegates to the Task-9 module + integration test
-11. **Task 11**: Walk-forward cleanup-on-failure (in-process mock — subprocess can't catch this)
-12. **Task 12**: Final smoke + live verification (with correct non-regression test paths)
+0. **Task 0** — Build the v2-A fixture helpers (no production code)
+1. **Task 1** — `canary-calibration-v2.json` + loader-parses-v2 unit tests
+2. **Task 2** — **Capture v1 golden payload hash** + golden test (BEFORE any change to `canary_scoring.py`)
+3. **Task 3** — Apply conditional path in `run_analysis()` + v2 formula unit tests
+4. **Task 4** — New repo method `delete_canary_research_runs_by_batch_id_and_phase` (+ 3 tests)
+5. **Task 5** — Refactor `canary_backfill.py` to expose `cmd_backfill(conn, *, schema, args)`; add `--composite-version` / `--start-date` / `--end-date` / `--overwrite-on-hash-mismatch`; payload-hash idempotency; v2 calibration load; persist `cal.composite_version`
+6. **Task 6** — Refactor `cmd_walk_forward` to `cmd_walk_forward(conn, *, schema, args)`; generate `batch_id` before the loop; persist to every params dict; print to stdout; `--composite-version` plumbed through
+7. **Task 7** — Refactor `cmd_robustness` to `cmd_robustness(conn, *, schema, args)`; `--composite-version` + optional `--batch-id` to chain with walk-forward
+8. **Task 8** — Walk-forward recompute vs backfill parity test (AC-4b)
+9. **Task 9** — `src/uw_scan/reports/regime_canary_v1_v2_compare.py` module: `FlipGateEvidence` + `_assemble_flip_gate_evidence` + `_full_history_aucs_via_compute_canary_series` + `_band_distribution_for_version` + `_run_subprocess_test` + pure renderer + standalone CLI `main()`
+10. **Task 10** — Thin `cmd_v1_v2_compare(conn, *, schema, args)` in `backtest_canary.py` (~10 LOC) that delegates to the Task-9 module + integration test
+11. **Task 11** — Walk-forward cleanup-on-failure (in-process `pytest-mock` test)
+12. **Task 12** — Final smoke + live verification (real DB) + ruff + non-regression
 
 ---
 
@@ -103,7 +69,7 @@ Tasks are ordered for safe dependencies. **Per-task dependency footnotes are sho
 - Create: `tests/integration/regime/_canary_v2a_fixture.py`
 - Read for reference: `tests/integration/regime/_canary_form_sweep_fixture.py` (the PR #88 precedent)
 
-**Rationale:** Subsequent tasks reference fixture helpers (`seed_vol_index_full_history`, `seed_v2_backfill`, `seed_v1_walk_forward_runs`, etc.) that don't exist. Build them as pure helper functions that take a connection + schema and seed deterministic test data. **No subprocess. No DB-URL plumbing. The in-process fixtures use `seeded_db_empty_cards.conn` from the existing project-wide conftest.**
+**Rationale:** Subsequent tasks reference fixture helpers that don't exist. Build them as pure helper functions that take `(conn, *, schema)` and seed deterministic test data via `CanarySnapshotRepository.insert_snapshot(...)` (NOT raw SQL — so all NOT NULL columns are populated). The helpers use `seeded_db_empty_cards.conn` + `_schema` (the per-test DB from `tests/integration/conftest.py`).
 
 - [ ] **Step 1: Create the fixture helpers**
 
@@ -115,15 +81,25 @@ Path: `tests/integration/regime/_canary_v2a_fixture.py`
 Each function takes (conn, *, schema) — operates on the per-test DB
 provided by tests/integration/conftest.py's seeded_db_empty_cards fixture.
 No subprocess, no env-var plumbing.
+
+IMPORTANT: snapshot helpers use CanarySnapshotRepository.insert_snapshot(...)
+so every NOT NULL column (tactical_score/structural_score/speed_score/
+warning_state/payload_hash) is populated correctly. Raw SQL inserts have
+caused fixture failures in earlier drafts.
 """
 
 from __future__ import annotations
 
 import uuid
 from datetime import date, timedelta
+from decimal import Decimal
 from typing import Sequence
 
 import numpy as np
+
+from uw_scan.cards.canary_payload_hash import canonical_payload_hash
+from uw_scan.storage.canary_snapshot_repository import CanarySnapshotRepository
+from uw_scan.storage.regime_backtest_repository import RegimeBacktestRepository
 
 
 def _trading_days(start: date, n: int) -> list[date]:
@@ -149,7 +125,7 @@ def seed_vol_index_full_history(
 
     Returns the list of trade_dates inserted. SPX path is a sinusoidal + linear
     drift (guarantees mixed labels at all 3 forward horizons) so AUC computations
-    don't degenerate.
+    don't degenerate. Uses the real schema column `trade_date` (NOT `data_date`).
     """
     dates = _trading_days(start, (end - start).days)
     dates = [d for d in dates if d <= end]
@@ -185,8 +161,6 @@ def seed_v1_walk_forward_runs(conn, *, schema: str) -> list[int]:
     Each row has summary.aucs.composite.{up5d_2pct,up20d_5pct,up60d_10pct}.
     Returns the list of inserted run_ids.
     """
-    from uw_scan.storage.regime_backtest_repository import RegimeBacktestRepository
-
     repo = RegimeBacktestRepository(conn, schema=schema)
     ids: list[int] = []
     windows = [
@@ -232,8 +206,6 @@ def seed_v2_walk_forward_runs(
 ) -> tuple[str, list[int]]:
     """Seed 6 v2 walk-forward research runs + 1 v2 robustness research run,
     all sharing a batch_id. Returns (batch_id, run_ids)."""
-    from uw_scan.storage.regime_backtest_repository import RegimeBacktestRepository
-
     if batch_id is None:
         batch_id = str(uuid.uuid4())
     repo = RegimeBacktestRepository(conn, schema=schema)
@@ -283,54 +255,74 @@ def seed_v2_walk_forward_runs(
 def seed_canary_snapshots_v2(
     conn, *, schema: str, dates: Sequence[date], cca_dates: Sequence[date] = (),
 ) -> int:
-    """Seed v2 canary_snapshots for the given dates. Rows where data_date is in
-    cca_dates get payload.speed.confirmed_canary_active=True to satisfy AC-F3.
-    Returns row count."""
+    """Seed v2 canary_snapshots for the given dates via insert_snapshot().
+
+    Rows whose data_date is in `cca_dates` get
+    payload.speed.confirmed_canary_active=True (used to satisfy AC-F3 in
+    integration tests). Returns row count inserted.
+    """
     cca_set = set(cca_dates)
     rng = np.random.default_rng(123)
+    repo = CanarySnapshotRepository(conn, schema=schema)
     inserted = 0
-    with conn.cursor() as cur:
-        for d in dates:
-            cca = d in cca_set
-            score = float(rng.uniform(0, 70))
-            band = "NONE" if score < 25 else ("WATCH" if score < 50 else ("BUY" if score < 75 else "STRONG_BUY"))
-            payload = {
-                "tactical_vol": {"score": round(score * 0.4, 2)},
-                "structural_vol": {"score": round(score * 0.6, 2)},
-                "speed": {
-                    "score": 0 if cca else 8,
-                    "state": "CONFIRMED_CANARY_ACTIVE" if cca else "NEUTRAL",
-                    "confirmed_canary_active": cca,
-                    "buy_the_dip_active": False,
-                },
-                "canary": {
-                    "score": round(score, 2),
-                    "raw_score": round(score, 2),
-                    "band": band,
-                    "warning_state": "CONFIRMED_CANARY_ACTIVE" if cca else "NONE",
-                    "composite_version": 2,
-                    "score_form": "linear",
-                },
-                "inputs": {"spx_close": float(1000.0 + d.toordinal() % 500)},
-            }
-            cur.execute(
-                f"INSERT INTO {schema}.canary_snapshots "
-                f"(data_date, composite_version, score, raw_score, band, "
-                f" warning_state, score_form, payload) "
-                f"VALUES (%s, %s, %s, %s, %s, %s, %s, %s::jsonb)",
-                (d, 2, score, score, band,
-                 payload["canary"]["warning_state"], "linear",
-                 __import__("json").dumps(payload)),
-            )
-            inserted += 1
+    for d in dates:
+        cca = d in cca_set
+        raw = float(rng.uniform(0, 70))
+        # Synthesize a valid 0/8/20 speed.score so insert_snapshot's assertion passes.
+        speed_score = 0 if cca else 8
+        tactical_raw = round(raw * 0.4, 2)
+        structural_raw = round(raw * 0.6, 2)
+        score_v = max(0.0, min(100.0, tactical_raw + structural_raw))
+        band = (
+            "STRONG_BUY" if score_v >= 75 else
+            "BUY" if score_v >= 50 else
+            "WATCH" if score_v >= 25 else
+            "NONE"
+        )
+        warning_state = "CONFIRMED_CANARY_ACTIVE" if cca else "NONE"
+        payload = {
+            "tactical_vol": {"score": tactical_raw},
+            "structural_vol": {"score": structural_raw},
+            "speed": {
+                "score": speed_score,
+                "state": "CONFIRMED_CANARY_ACTIVE" if cca else "NEUTRAL",
+                "confirmed_canary_active": cca,
+                "buy_the_dip_active": False,
+            },
+            "canary": {
+                "score": round(score_v, 2),
+                "raw_score": round(score_v, 2),
+                "band": band,
+                "warning_state": warning_state,
+                "composite_version": 2,
+                "score_form": "linear",
+            },
+            "inputs": {"spx_close": float(1000.0 + d.toordinal() % 500)},
+        }
+        repo.insert_snapshot(
+            payload=payload,
+            data_date=d,
+            composite_version=2,
+            score_form="linear",
+            score=Decimal(str(round(score_v, 2))),
+            raw_score=Decimal(str(round(score_v, 2))),
+            band=band,
+            tactical_score=Decimal(str(tactical_raw)),
+            structural_score=Decimal(str(structural_raw)),
+            speed_score=speed_score,
+            warning_state=warning_state,
+            payload_hash=canonical_payload_hash(payload),
+            on_conflict="noop",
+        )
+        inserted += 1
     conn.commit()
     return inserted
 ```
 
-- [ ] **Step 2: Run a smoke check on the helpers**
+- [ ] **Step 2: Smoke-import the helpers**
 
 ```bash
-UW_SCAN_TEST_DB_NAME=option_wizard_test uv run python -c "
+UW_SCAN_DB_NAME=option_wizard_test uv run python -c "
 from tests.integration.regime._canary_v2a_fixture import (
     seed_vol_index_full_history, seed_v1_walk_forward_runs,
     seed_v2_walk_forward_runs, seed_canary_snapshots_v2,
@@ -339,7 +331,7 @@ print('imports OK')
 "
 ```
 
-Expected: `imports OK` (no syntax errors).
+Expected: `imports OK` (no `ImportError`).
 
 - [ ] **Step 3: Commit**
 
@@ -347,29 +339,28 @@ Expected: `imports OK` (no syntax errors).
 git add tests/integration/regime/_canary_v2a_fixture.py
 git commit -m "test(canary): v2-A integration fixture helpers (Task 0)
 
-New _canary_v2a_fixture.py with 4 helpers used by Tasks 4-11:
-- seed_vol_index_full_history (15-year synthetic vol-complex)
-- seed_v1_walk_forward_runs (6 production rows, PR #83 baseline)
+Helpers used by Tasks 5-11:
+- seed_vol_index_full_history (15-year synthetic vol-complex; trade_date)
+- seed_v1_walk_forward_runs (6 production rows, PR #83 baseline shape)
 - seed_v2_walk_forward_runs (6 walk-forward + 1 robustness, shared batch_id)
-- seed_canary_snapshots_v2 (research snapshots with optional CCA dates for AC-F3)
+- seed_canary_snapshots_v2 (research snapshots via insert_snapshot — every
+  NOT NULL column populated; optional CCA dates for AC-F3)
 
-All helpers take (conn, *, schema) and use seeded_db_empty_cards as
-the host fixture per the existing form-sweep precedent (PR #88).
-No subprocess. No DB-URL plumbing.
-
-Task-0 dep: none. Subsequent tasks call these helpers from their tests."
+All helpers take (conn, *, schema) and operate on seeded_db_empty_cards.conn.
+No subprocess, no DB-URL plumbing — same precedent as PR #88's form-sweep
+fixtures."
 ```
 
 ---
 
-### Task 1: New `canary-calibration-v2.json` + loader-parses-v2 test
+### Task 1: New `canary-calibration-v2.json` + loader-parses-v2 tests
 
 **Files:**
 - Create: `docs/research/regime/canary-calibration-v2.json`
-- Create: `tests/unit/test_canary_v2_formula.py`
+- Create: `tests/unit/test_canary_v2_formula.py` (the calibration-loading half only — the formula tests come in Task 3)
 - Read for reference: `docs/research/regime/canary-calibration-v1.json`, `src/uw_scan/cards/canary_calibration.py`
 
-**Rationale:** Calibration parsing is the lowest-dependency unit. We start here so subsequent tasks (which load the v2 calibration) have a known-good artifact.
+**Rationale:** Calibration parsing is the lowest-dependency unit. Start here so subsequent tasks (which load the v2 calibration) have a known-good artifact.
 
 - [ ] **Step 1: Create the v2 calibration JSON**
 
@@ -394,14 +385,18 @@ Path: `docs/research/regime/canary-calibration-v2.json`
 }
 ```
 
-Note: thresholds and `score_form` are IDENTICAL to v1. Only `composite_version` (1→2), `produced_at`, and `produced_by` change. Spec §5.4.
+Thresholds + `score_form` are byte-identical to v1. Only `composite_version` (1→2), `produced_at`, and `produced_by` change. Spec §5.4.
 
-- [ ] **Step 2: Write the failing test**
+- [ ] **Step 2: Write the calibration-loading tests**
 
 Path: `tests/unit/test_canary_v2_formula.py`
 
 ```python
 """Unit tests for canary v2-A vol/speed separation.
+
+This file is built up across Tasks 1 + 3:
+- Task 1: calibration-loading tests (v2 JSON parses; thresholds match v1).
+- Task 3: formula-conditional tests (v1 path unchanged; v2 path drops speed).
 
 See docs/superpowers/specs/2026-05-27-canary-v2a-vol-speed-separation-design.md.
 """
@@ -414,10 +409,11 @@ from uw_scan.cards.canary_calibration import Calibration, load_calibration
 
 V2_JSON = (
     Path(__file__).resolve().parents[2]
-    / "docs"
-    / "research"
-    / "regime"
-    / "canary-calibration-v2.json"
+    / "docs" / "research" / "regime" / "canary-calibration-v2.json"
+)
+V1_JSON = (
+    Path(__file__).resolve().parents[2]
+    / "docs" / "research" / "regime" / "canary-calibration-v1.json"
 )
 
 
@@ -436,14 +432,7 @@ def test_v2_calibration_thresholds_match_v1():
     calibration held fixed, so any AUC change is attributable to the
     formula change, not threshold drift. Spec §5.4.
     """
-    v1_json = (
-        Path(__file__).resolve().parents[2]
-        / "docs"
-        / "research"
-        / "regime"
-        / "canary-calibration-v1.json"
-    )
-    v1 = load_calibration(path=v1_json)
+    v1 = load_calibration(path=V1_JSON)
     v2 = load_calibration(path=V2_JSON)
     assert v1.vix_spike_revert == v2.vix_spike_revert
     assert v1.vix_vix3m_back == v2.vix_vix3m_back
@@ -453,17 +442,15 @@ def test_v2_calibration_thresholds_match_v1():
     assert v1.score_form == v2.score_form
 ```
 
-- [ ] **Step 3: Run tests to verify they pass**
+- [ ] **Step 3: Run tests — they should pass immediately**
 
 ```bash
 uv run pytest tests/unit/test_canary_v2_formula.py -v
 ```
 
-Expected: 2 passed.
+Expected: 2 passed. (Loader already handles arbitrary `composite_version` per spec §4 invariant 6.)
 
-(These tests don't depend on canary_scoring.py changes — they exercise only the calibration loader, which already handles arbitrary composite_version values per spec §4 invariant 6.)
-
-- [ ] **Step 4: Verify no production-surface change**
+- [ ] **Step 4: Verify v1 calibration file is unchanged**
 
 ```bash
 md5 docs/research/regime/canary-calibration-v1.json
@@ -481,27 +468,240 @@ New canary-calibration-v2.json — same 5 thresholds as v1, only the
 composite_version field changes (1 -> 2). The loader is reused as-is;
 spec §4 invariant 6 already supported arbitrary composite_version.
 
-This is the lowest-dependency artifact. Subsequent tasks (formula
-conditional, backfill, walk-forward) load this file to compute v2
-scores."
+Lowest-dependency artifact. Subsequent tasks (formula conditional,
+backfill, walk-forward) load this file to compute v2 scores."
 ```
 
 ---
 
-### Task 2: Conditional path in `run_analysis()`
+### Task 2: Capture v1 golden payload hash (BEFORE any code change to `canary_scoring.py`)
+
+**Files:**
+- Create: `tests/unit/test_canary_v1_payload_hash_golden.py`
+
+**Rationale:** This task **must run before Task 3**. The golden hash is captured against the current (pre-v2A) `run_analysis` implementation. If Task 3 ran first and introduced a bug into the v1 branch (e.g., wrong indent on the `else` clause), the golden test would silently bless the regression.
+
+The pre-existing `tests/integration/regime/test_canary_oos_gate.py` uses synthetic seeded rows and does NOT exercise the v1 scoring path. This golden test IS the v1-unchanged proof for AC-6 / AC-F6.
+
+- [ ] **Step 1: Compute the golden hash from the current `canary_scoring.py`**
+
+Run this once, save the printed hash:
+
+```bash
+uv run python <<'PY'
+import json, hashlib
+from datetime import date as _date
+import numpy as np
+from uw_scan.cards.canary_calibration import load_calibration
+from uw_scan.cards import canary_scoring
+
+
+def fixed_aligned(n=400, seed=42):
+    rng = np.random.default_rng(seed)
+    return {
+        "VIX":   np.clip(15.0 + rng.standard_normal(n).cumsum() * 0.5, 10.0, 60.0),
+        "VVIX":  np.clip(85.0 + rng.standard_normal(n).cumsum() * 0.8, 70.0, 150.0),
+        "VIX3M": np.clip(16.0 + rng.standard_normal(n).cumsum() * 0.5, 11.0, 55.0),
+        "COR1M": np.clip(50.0 + rng.standard_normal(n).cumsum() * 0.4, 20.0, 90.0),
+        "SPX":   np.clip(1000.0 + rng.standard_normal(n).cumsum() * 4.0, 600.0, 5000.0),
+    }
+
+
+def fixed_dates(n=400):
+    base = _date(2020, 6, 1)
+    return [_date.fromordinal(base.toordinal() - (n - 1 - i)).isoformat() for i in range(n)]
+
+
+cal = load_calibration()
+assert cal.composite_version == 1, "Run this BEFORE Task 3"
+aligned = fixed_aligned()
+dates = fixed_dates()
+payload = canary_scoring.run_analysis(
+    today=_date.fromisoformat(dates[-1]),
+    aligned=aligned,
+    common_dates=dates,
+    sma_50_today=float(aligned["SPX"][-50:].mean()),
+    sma_200_today=float(aligned["SPX"][-200:].mean()),
+    spx_above_sma200_2d=False,
+    vix_term_normalized=False,
+    higher_closing_low=False,
+    confirmed_canary_active=False,
+    buy_the_dip_active=False,
+    calibration=cal,
+)
+canonical = json.dumps(payload, sort_keys=True, separators=(",", ":"))
+print("V1_GOLDEN_HASH =", hashlib.sha256(canonical.encode()).hexdigest())
+print("sample band   =", payload["canary"]["band"])
+print("sample score  =", payload["canary"]["score"])
+PY
+```
+
+Record the printed hash. It will become the literal in Step 2.
+
+- [ ] **Step 2: Write the golden test, paste the hash inline**
+
+Path: `tests/unit/test_canary_v1_payload_hash_golden.py`
+
+```python
+"""Golden v1 payload-hash regression test (AC-6 / AC-F6).
+
+The pre-existing tests/integration/regime/test_canary_oos_gate.py uses
+synthetic seeded rows and does NOT exercise the v1 scoring path. This
+test IS the v1-unchanged proof: it runs run_analysis() with the v1
+calibration on a fixed input and asserts byte-identical canonical-JSON
+output against a captured pre-v2A golden.
+
+If you intentionally change v1 behavior (extremely unlikely — v1 is
+shipped), re-run the ad-hoc script in plan §Task-2 Step-1 to recompute.
+
+See docs/superpowers/specs/2026-05-27-canary-v2a-vol-speed-separation-design.md
+spec §7 AC-6 and §8 AC-F6.
+"""
+
+from __future__ import annotations
+
+import hashlib
+import json
+from datetime import date as _date
+
+import numpy as np
+
+from uw_scan.cards import canary_scoring
+from uw_scan.cards.canary_calibration import COMPOSITE_VERSION, load_calibration
+
+# Captured against canary_scoring.py BEFORE the v2-A conditional was applied.
+# DO NOT update without re-running the Step-1 capture script.
+V1_GOLDEN_HASH = "REPLACE_WITH_HASH_FROM_STEP_1"
+
+
+def _fixed_inputs():
+    rng = np.random.default_rng(42)
+    n = 400
+    aligned = {
+        "VIX":   np.clip(15.0 + rng.standard_normal(n).cumsum() * 0.5, 10.0, 60.0),
+        "VVIX":  np.clip(85.0 + rng.standard_normal(n).cumsum() * 0.8, 70.0, 150.0),
+        "VIX3M": np.clip(16.0 + rng.standard_normal(n).cumsum() * 0.5, 11.0, 55.0),
+        "COR1M": np.clip(50.0 + rng.standard_normal(n).cumsum() * 0.4, 20.0, 90.0),
+        "SPX":   np.clip(1000.0 + rng.standard_normal(n).cumsum() * 4.0, 600.0, 5000.0),
+    }
+    base = _date(2020, 6, 1)
+    dates = [_date.fromordinal(base.toordinal() - (n - 1 - i)).isoformat() for i in range(n)]
+    return aligned, dates
+
+
+def test_v1_payload_hash_unchanged():
+    """v1 scoring on fixed inputs MUST produce byte-identical canonical-JSON
+    payload to the captured pre-v2A golden. This is AC-6/AC-F6's actual proof —
+    the OOS gate test does NOT exercise the v1 scoring path."""
+    cal = load_calibration()
+    assert cal.composite_version == 1, "default load_calibration must be v1 in PR 1"
+    aligned, dates = _fixed_inputs()
+    payload = canary_scoring.run_analysis(
+        today=_date.fromisoformat(dates[-1]),
+        aligned=aligned,
+        common_dates=dates,
+        sma_50_today=float(aligned["SPX"][-50:].mean()),
+        sma_200_today=float(aligned["SPX"][-200:].mean()),
+        spx_above_sma200_2d=False,
+        vix_term_normalized=False,
+        higher_closing_low=False,
+        confirmed_canary_active=False,
+        buy_the_dip_active=False,
+        calibration=cal,
+    )
+    canonical = json.dumps(payload, sort_keys=True, separators=(",", ":"))
+    actual = hashlib.sha256(canonical.encode()).hexdigest()
+    assert actual == V1_GOLDEN_HASH, (
+        f"v1 payload hash drifted!\n"
+        f"  expected: {V1_GOLDEN_HASH}\n"
+        f"  actual:   {actual}\n"
+        f"v1 production scoring must be bit-identical to the captured golden. "
+        f"If this is intentional, re-run plan §Task-2 Step-1 to recompute."
+    )
+
+
+def test_v1_payload_band_unchanged():
+    """Sanity backstop: the band classification on the fixed input is stable."""
+    cal = load_calibration()
+    aligned, dates = _fixed_inputs()
+    payload = canary_scoring.run_analysis(
+        today=_date.fromisoformat(dates[-1]),
+        aligned=aligned,
+        common_dates=dates,
+        sma_50_today=float(aligned["SPX"][-50:].mean()),
+        sma_200_today=float(aligned["SPX"][-200:].mean()),
+        spx_above_sma200_2d=False,
+        vix_term_normalized=False,
+        higher_closing_low=False,
+        confirmed_canary_active=False,
+        buy_the_dip_active=False,
+        calibration=cal,
+    )
+    assert payload["canary"]["band"] in ("NONE", "WATCH", "BUY", "STRONG_BUY")
+    assert 0.0 <= payload["canary"]["raw_score"] <= 100.0
+
+
+def test_composite_version_module_constant_is_1_in_pr1():
+    """Belt-and-braces invariant: the module constant must stay at 1 for PR 1.
+    The flip to 2 is PR 2's job per spec §10."""
+    assert COMPOSITE_VERSION == 1, (
+        "PR 1 must NOT change COMPOSITE_VERSION. The flip is PR 2's job. See spec §10."
+    )
+```
+
+- [ ] **Step 3: Paste the hash captured in Step 1**
+
+Replace `V1_GOLDEN_HASH = "REPLACE_WITH_HASH_FROM_STEP_1"` with the actual SHA-256 string.
+
+- [ ] **Step 4: Run the tests — verify they pass on the pre-v2A baseline**
+
+```bash
+uv run pytest tests/unit/test_canary_v1_payload_hash_golden.py -v
+```
+
+Expected: 3 passed. (If `test_v1_payload_hash_unchanged` fails, you pasted the wrong hash or modified `canary_scoring.py` already — back out before continuing.)
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add tests/unit/test_canary_v1_payload_hash_golden.py
+git commit -m "test(canary): v1 payload-hash golden test (AC-6 / AC-F6)
+
+Captures the v1 run_analysis output as a SHA-256 hash on a fixed
+synthetic input. This is the real proof that v1 production scoring is
+unchanged post v2-A conditional — the pre-existing OOS gate test
+(test_canary_oos_gate.py) uses synthetic seeded rows and does NOT
+exercise the v1 scoring path.
+
+CAPTURED FROM THE PRE-V2A BASELINE. If Task 3's conditional ever
+introduces a bug in the v1 branch (wrong indent, dropped clamp, etc.),
+this test will fail loudly with a hash diff.
+
+3 tests:
+- test_v1_payload_hash_unchanged — byte-identical canonical JSON
+- test_v1_payload_band_unchanged — band-classification sanity
+- test_composite_version_module_constant_is_1_in_pr1 — invariant
+
+Spec §7 AC-6, §8 AC-F6, §6 Layer 3."
+```
+
+---
+
+### Task 3: Apply conditional path in `run_analysis()` + v2 formula tests
 
 **Files:**
 - Modify: `src/uw_scan/cards/canary_scoring.py` (around line 540, inside `run_analysis()`)
 - Modify: `tests/unit/test_canary_v2_formula.py` (extend with formula tests)
 
-**Rationale:** The structural code change. 4 lines + comment. The v1 path is preserved by `else:` — v1 production behavior is bit-identical.
+**Rationale:** The structural code change. 4 lines + comment. The v1 path is preserved by `else:` — the Task-2 golden test guards against silent regression.
 
-- [ ] **Step 1: Write the failing tests for the formula conditional**
+Formula tests assert **deltas** between v1↔v2 raw scores, not absolute computed sums. Reason: `payload["tactical_vol"]["score"]` is rounded to 2 decimals, but `raw_score` rounds the SUM of unrounded components — equality on rounded inputs can drift by 0.01.
 
-Append to `tests/unit/test_canary_v2_formula.py`:
+- [ ] **Step 1: Write the v2 formula tests (they should fail)**
+
+Append to `tests/unit/test_canary_v2_formula.py` (after the existing calibration tests):
 
 ```python
-import math
 from datetime import date as _date
 
 import numpy as np
@@ -510,32 +710,27 @@ from uw_scan.cards import canary_scoring
 
 
 def _fixed_aligned_arrays(n: int = 400, seed: int = 0) -> dict:
-    """Synthetic aligned vol-complex arrays sized for the MIN_ALIGNED_BARS=350 gate.
-
-    Deterministic per seed. Used by formula tests where we need run_analysis() to
-    actually compute a payload but don't care about the exact regime label.
-    """
+    """Synthetic aligned vol-complex arrays sized for the MIN_ALIGNED_BARS=350 gate."""
     rng = np.random.default_rng(seed)
     return {
-        "VIX": np.clip(15.0 + rng.standard_normal(n).cumsum() * 0.5, 10.0, 60.0),
-        "VVIX": np.clip(85.0 + rng.standard_normal(n).cumsum() * 0.8, 70.0, 150.0),
+        "VIX":   np.clip(15.0 + rng.standard_normal(n).cumsum() * 0.5, 10.0, 60.0),
+        "VVIX":  np.clip(85.0 + rng.standard_normal(n).cumsum() * 0.8, 70.0, 150.0),
         "VIX3M": np.clip(16.0 + rng.standard_normal(n).cumsum() * 0.5, 11.0, 55.0),
         "COR1M": np.clip(50.0 + rng.standard_normal(n).cumsum() * 0.4, 20.0, 90.0),
-        "SPX": np.clip(1000.0 + rng.standard_normal(n).cumsum() * 4.0, 600.0, 5000.0),
+        "SPX":   np.clip(1000.0 + rng.standard_normal(n).cumsum() * 4.0, 600.0, 5000.0),
     }
 
 
 def _fixed_common_dates(n: int = 400) -> list[str]:
-    """Generate n consecutive business-day-ish ISO date strings ending at a fixed date."""
     base = _date(2020, 6, 1)
     return [
-        ((_date.fromordinal(base.toordinal() - (n - 1 - i)))).isoformat() for i in range(n)
+        _date.fromordinal(base.toordinal() - (n - 1 - i)).isoformat() for i in range(n)
     ]
 
 
-def _run_for_version(version: int, *, cca=False, btd=False) -> dict:
-    """Run analysis once with the v1 calibration, then mutate version on the
-    Calibration object for the v2 path. Uses identical inputs."""
+def _run_for_version(version: int, *, cca: bool = False, btd: bool = False) -> dict:
+    """Run analysis with the v1 calibration, then patch composite_version on the
+    Calibration object for the v2 path. Identical inputs across calls."""
     cal = load_calibration()
     if cal.composite_version != version:
         cal = Calibration(
@@ -564,112 +759,108 @@ def _run_for_version(version: int, *, cca=False, btd=False) -> dict:
     )
 
 
+def _v1_pre_clamp_raw(payload: dict, speed_contrib: int) -> float:
+    """v1's pre-clamp raw_score reconstruction (uses unrounded scorer outputs
+    would be ideal; rounded inputs are within 0.02 — adequate for the clamp
+    check, NOT for equality assertions)."""
+    return (
+        payload["tactical_vol"]["score"]
+        + payload["structural_vol"]["score"]
+        + speed_contrib
+    )
+
+
 def test_v1_path_unchanged_when_no_speed_state():
-    """v1: NEUTRAL speed (no CCA, no BTD) → raw = tactical + structural + 8."""
+    """v1 NEUTRAL: speed.score=8 contributes to raw. delta-style assertion."""
     p1 = _run_for_version(1, cca=False, btd=False)
-    canary = p1["canary"]
-    tactical = p1["tactical_vol"]["score"]
-    structural = p1["structural_vol"]["score"]
-    speed_score = p1["speed"]["score"]
-    assert speed_score == 8  # NEUTRAL contributes 8 to raw
-    expected_raw = max(0.0, min(100.0, tactical + structural + speed_score))
-    assert canary["raw_score"] == round(expected_raw, 2)
+    assert p1["speed"]["score"] == 8
 
 
-def test_v2_path_drops_speed_term_when_neutral():
-    """v2: NEUTRAL → raw = tactical + structural (no +8)."""
+def test_v2_drops_8_when_neutral():
+    """v1 raw − v2 raw ≈ 8 in the NEUTRAL case (modulo clamping).
+
+    Assert DELTA, not absolute equality on rounded payload values.
+    """
     p1 = _run_for_version(1, cca=False, btd=False)
     p2 = _run_for_version(2, cca=False, btd=False)
-    delta = p1["canary"]["raw_score"] - p2["canary"]["raw_score"]
-    # v1 raw should be 8 higher than v2 raw (or less if clamping at 100).
-    # The clamp guard: v1 raw clamped at 100 means delta could be < 8.
-    v1_raw_pre_clamp = (
-        p1["tactical_vol"]["score"] + p1["structural_vol"]["score"] + 8
-    )
-    if v1_raw_pre_clamp <= 100.0:
-        assert abs(delta - 8.0) < 1e-6
-    else:
-        # Both clamped; check v2 raw is the clamped tactical + structural
-        v2_expected = max(
-            0.0, min(100.0, p2["tactical_vol"]["score"] + p2["structural_vol"]["score"])
+    v1_pre_clamp = _v1_pre_clamp_raw(p1, speed_contrib=8)
+    if v1_pre_clamp <= 100.0:
+        delta = p1["canary"]["raw_score"] - p2["canary"]["raw_score"]
+        assert abs(delta - 8.0) < 0.02, (
+            f"v1−v2 NEUTRAL delta = {delta}, expected ~8.0"
         )
-        assert abs(p2["canary"]["raw_score"] - round(v2_expected, 2)) < 1e-6
+    else:
+        # Both clamped at 100 -> v2 raw equals clamped tactical+structural.
+        v2_expected_pre_clamp = (
+            p2["tactical_vol"]["score"] + p2["structural_vol"]["score"]
+        )
+        assert (
+            abs(p2["canary"]["raw_score"] - min(100.0, v2_expected_pre_clamp)) < 0.02
+        )
 
 
-def test_v2_path_drops_speed_term_when_btd_active():
-    """v2 BTD: raw = tactical + structural (no +20)."""
+def test_v2_drops_20_when_btd_active():
+    """v1 BTD: speed.score=20. v1 − v2 raw ≈ 20."""
     p1 = _run_for_version(1, cca=False, btd=True)
     p2 = _run_for_version(2, cca=False, btd=True)
-    # v1 has +20 from BUY_THE_DIP_ACTIVE; v2 has 0.
-    # The v2 raw should equal v1 raw - 20 (modulo clamping).
     assert p1["speed"]["state"] == "BUY_THE_DIP_ACTIVE"
     assert p2["speed"]["state"] == "BUY_THE_DIP_ACTIVE"
-    v1_raw_pre_clamp = (
-        p1["tactical_vol"]["score"] + p1["structural_vol"]["score"] + 20
-    )
-    if v1_raw_pre_clamp <= 100.0:
+    v1_pre_clamp = _v1_pre_clamp_raw(p1, speed_contrib=20)
+    if v1_pre_clamp <= 100.0:
         delta = p1["canary"]["raw_score"] - p2["canary"]["raw_score"]
-        assert abs(delta - 20.0) < 1e-6
+        assert abs(delta - 20.0) < 0.02
 
 
 def test_v2_keeps_cap_mechanism_via_speed_state():
-    """v2 CCA: cap still clamps at 49 if raw > 49 and lift conditions don't clear.
-
-    The cap reads speed.state (enum), NOT speed.score (int). v2 dropping
-    speed.score from raw does NOT change cap behavior.
-    """
+    """v2 CCA: apply_cap reads speed.state (enum), NOT speed.score. v2 dropping
+    the additive term does NOT change cap behavior. Spec §5.3."""
     p2 = _run_for_version(2, cca=True, btd=False)
     assert p2["speed"]["state"] == "CONFIRMED_CANARY_ACTIVE"
-    # If our synthetic data produces raw > 49, the cap should fire (modulo lift conditions).
-    # We set spx_above_sma200_2d=True in our helper, which gives cap_cleared_early=True,
-    # so warning_state should be "NONE" even though speed.state is CCA.
-    # This is the documented behavior: cap doesn't actually clamp when lift conditions clear.
     assert p2["canary"]["warning_state"] in ("NONE", "CONFIRMED_CANARY_ACTIVE")
 
 
 def test_v3_routes_through_v2_path():
     """The `>=2` semantic intentionally auto-promotes future v3 to the v2 formula.
 
-    This test will deliberately need updating when v3 lands with a new formula —
-    that's the point: it forces the v3 implementer to make the conditional
-    explicit rather than silently inheriting v2's behavior.
-    """
+    This test will deliberately need updating when v3 lands with a new explicit
+    formula — that's the point: it forces the v3 implementer to make the
+    conditional explicit rather than silently inheriting v2's behavior."""
     p2 = _run_for_version(2, cca=False, btd=False)
     p3 = _run_for_version(3, cca=False, btd=False)
-    # Same inputs, same speed state → same raw_score under the >=2 branch.
     assert p2["canary"]["raw_score"] == p3["canary"]["raw_score"]
 
 
 def test_both_active_ambiguous_branch():
-    """When both CCA and BTD active: speed.state='BOTH_ACTIVE_AMBIGUOUS', speed.score=8.
-
-    v1: raw += 8. v2: raw unchanged. Cap mechanism still uses speed.state.
-    """
+    """When both CCA and BTD active: speed.state='BOTH_ACTIVE_AMBIGUOUS',
+    speed.score=8. v1: raw += 8. v2: raw unchanged. Cap still uses speed.state."""
     p1 = _run_for_version(1, cca=True, btd=True)
     p2 = _run_for_version(2, cca=True, btd=True)
     assert p1["speed"]["state"] == "BOTH_ACTIVE_AMBIGUOUS"
     assert p2["speed"]["state"] == "BOTH_ACTIVE_AMBIGUOUS"
     assert p1["speed"]["score"] == 8
-    # v2 raw should equal v1 raw - 8 (modulo clamping).
-    v1_raw_pre_clamp = (
-        p1["tactical_vol"]["score"] + p1["structural_vol"]["score"] + 8
-    )
-    if v1_raw_pre_clamp <= 100.0:
+    v1_pre_clamp = _v1_pre_clamp_raw(p1, speed_contrib=8)
+    if v1_pre_clamp <= 100.0:
         delta = p1["canary"]["raw_score"] - p2["canary"]["raw_score"]
-        assert abs(delta - 8.0) < 1e-6
+        assert abs(delta - 8.0) < 0.02
 ```
 
-- [ ] **Step 2: Run the new tests — verify they FAIL**
+Also add the import at the top of the file:
+
+```python
+from uw_scan.cards.canary_calibration import Calibration, load_calibration  # already there
+```
+
+- [ ] **Step 2: Run the new tests — expect failure**
 
 ```bash
-uv run pytest tests/unit/test_canary_v2_formula.py::test_v2_path_drops_speed_term_when_neutral -v
+uv run pytest tests/unit/test_canary_v2_formula.py::test_v2_drops_8_when_neutral -v
 ```
 
-Expected: FAIL with `AssertionError: ... abs(delta - 8.0) < 1e-6 …` (current code adds speed.score for both v1 and v2 because the conditional doesn't exist yet).
+Expected: FAIL. Current `run_analysis` adds `speed.score` regardless of `composite_version`, so `delta ≈ 0`, not 8.
 
-- [ ] **Step 3: Apply the conditional path edit to `canary_scoring.py`**
+- [ ] **Step 3: Apply the 4-line conditional in `canary_scoring.py`**
 
-Open `src/uw_scan/cards/canary_scoring.py`. Find the block around lines 540-545 (inside `run_analysis()`):
+Open `src/uw_scan/cards/canary_scoring.py`. Find this block inside `run_analysis()` (around line 540):
 
 ```python
     speed = derive_speed(
@@ -688,15 +879,14 @@ Replace with:
         buy_the_dip_active=buy_the_dip_active,
     )
     if calibration.composite_version >= 2:
-        # v2-A: speed is context only; apply_cap() below still uses speed.state.
-        # See docs/superpowers/specs/2026-05-27-canary-v2a-vol-speed-separation-design.md
+        # v2-A: speed is context only; apply_cap() below still reads speed.state.
         raw = tactical + structural
     else:
         raw = tactical + structural + speed.score
     raw = max(0.0, min(100.0, raw))
 ```
 
-Nothing else changes. The `apply_cap(...)` call on the next line continues to read `speed.state`.
+The `apply_cap(...)` call later in the function continues to read `speed.state` — unchanged.
 
 - [ ] **Step 4: Run all formula tests — verify they pass**
 
@@ -704,254 +894,45 @@ Nothing else changes. The `apply_cap(...)` call on the next line continues to re
 uv run pytest tests/unit/test_canary_v2_formula.py -v
 ```
 
-Expected: All 8 tests pass (2 calibration tests from Task 1 + 6 formula tests from Task 2).
+Expected: 8 passed (2 calibration from Task 1 + 6 formula from this task).
 
-- [ ] **Step 5: Run the broader canary unit-test suite to confirm no regression**
+- [ ] **Step 5: Verify Task-2's golden hash still passes**
+
+```bash
+uv run pytest tests/unit/test_canary_v1_payload_hash_golden.py -v
+```
+
+Expected: 3 passed. **If `test_v1_payload_hash_unchanged` fails, the conditional broke v1.** Fix Task 3 — do NOT recapture the golden.
+
+- [ ] **Step 6: Run broader canary unit-test suite — confirm no regression**
 
 ```bash
 uv run pytest tests/unit/test_canary_*.py -v
 ```
 
-Expected: all green; the v1 codepath remains unaffected because v1 calibration has `composite_version=1`, taking the `else:` branch.
+Expected: all green.
 
-- [ ] **Step 6: Commit**
+- [ ] **Step 7: Commit**
 
 ```bash
 git add src/uw_scan/cards/canary_scoring.py tests/unit/test_canary_v2_formula.py
 git commit -m "feat(canary): v2-A conditional path in run_analysis()
 
 Adds a 4-line conditional in run_analysis() keyed on
-calibration.composite_version. v1 path (>=2 false) is preserved by the
-else clause — v1 scoring is bit-identical. v2 path drops the additive
-speed.score term while leaving apply_cap() (which reads speed.state)
-unchanged.
+calibration.composite_version. v1 path (else branch) is preserved
+bit-identically — guarded by Task 2's golden hash test. v2 path drops
+the additive speed.score term while leaving apply_cap() (which reads
+speed.state) unchanged.
 
-6 new formula tests:
-- v1 NEUTRAL: raw == tactical + structural + 8 (speed.score)
-- v2 NEUTRAL: raw == tactical + structural (no +8)
-- v2 BTD: drops +20
-- v2 CCA: cap mechanism still fires via speed.state
+6 formula tests use DELTA assertions (not absolute rounded equality):
+- v1 NEUTRAL: speed.score=8 contributes to raw
+- v2 NEUTRAL: delta v1−v2 ≈ 8 (modulo clamping)
+- v2 BTD: delta ≈ 20
+- v2 CCA: cap still fires via speed.state
 - v3 (composite_version=3): routes through v2 branch (>=2 semantic)
-- BOTH_ACTIVE_AMBIGUOUS: v1/v2 delta = 8 (speed.score), cap unchanged
-
-The >=2 semantic auto-promotes future v3 to the v2 formula — that test
-will deliberately need updating when v3 lands with an explicit formula.
+- BOTH_ACTIVE_AMBIGUOUS: delta ≈ 8, cap unchanged
 
 Spec §5.3."
-```
-
----
-
-### Task 3: Golden v1 payload-hash test (AC-6 — the *real* "v1 unchanged" proof)
-
-**Files:**
-- Create: `tests/unit/test_canary_v1_payload_hash_golden.py`
-
-**Rationale:** The existing `test_canary_oos_gate.py` uses synthetic seeded rows (verified in `/review-cycle` Pass 2) — it does NOT exercise the v1 scoring path. AC-F6's claim that "v1 is unchanged" requires a golden test that runs `run_analysis` with v1 calibration on a fixed input and checks byte-identical output. This test IS that proof.
-
-- [ ] **Step 1: Capture the v1 golden payload**
-
-Run a small script ad-hoc to capture the v1 payload bytes (run before doing this commit):
-
-```bash
-uv run python <<'PY'
-import json, hashlib
-from datetime import date as _date
-import numpy as np
-from uw_scan.cards.canary_calibration import load_calibration
-from uw_scan.cards import canary_scoring
-
-
-def fixed_aligned(n=400, seed=42):
-    rng = np.random.default_rng(seed)
-    return {
-        "VIX": np.clip(15.0 + rng.standard_normal(n).cumsum() * 0.5, 10.0, 60.0),
-        "VVIX": np.clip(85.0 + rng.standard_normal(n).cumsum() * 0.8, 70.0, 150.0),
-        "VIX3M": np.clip(16.0 + rng.standard_normal(n).cumsum() * 0.5, 11.0, 55.0),
-        "COR1M": np.clip(50.0 + rng.standard_normal(n).cumsum() * 0.4, 20.0, 90.0),
-        "SPX": np.clip(1000.0 + rng.standard_normal(n).cumsum() * 4.0, 600.0, 5000.0),
-    }
-
-
-def fixed_dates(n=400):
-    base = _date(2020, 6, 1)
-    return [_date.fromordinal(base.toordinal() - (n - 1 - i)).isoformat() for i in range(n)]
-
-
-cal = load_calibration()  # v1 by default
-aligned = fixed_aligned()
-dates = fixed_dates()
-payload = canary_scoring.run_analysis(
-    today=_date.fromisoformat(dates[-1]),
-    aligned=aligned,
-    common_dates=dates,
-    sma_50_today=float(aligned["SPX"][-50:].mean()),
-    sma_200_today=float(aligned["SPX"][-200:].mean()),
-    spx_above_sma200_2d=False,
-    vix_term_normalized=False,
-    higher_closing_low=False,
-    confirmed_canary_active=False,
-    buy_the_dip_active=False,
-    calibration=cal,
-)
-canonical = json.dumps(payload, sort_keys=True, separators=(",", ":"))
-print("V1_GOLDEN_HASH =", hashlib.sha256(canonical.encode()).hexdigest())
-print("V1_GOLDEN_RAW_SCORE =", payload["canary"]["raw_score"])
-print("V1_GOLDEN_SCORE =", payload["canary"]["score"])
-print("V1_GOLDEN_BAND =", payload["canary"]["band"])
-PY
-```
-
-Note the printed hash + sample fields. (Capture: ~64-char SHA-256.)
-
-- [ ] **Step 2: Write the failing test (will pass once v1-fixture-constants are filled in)**
-
-Path: `tests/unit/test_canary_v1_payload_hash_golden.py`
-
-```python
-"""Golden v1 payload-hash regression test (AC-6 / AC-F6).
-
-The pre-existing tests/integration/regime/test_canary_oos_gate.py uses
-synthetic seeded rows and does NOT exercise the v1 scoring path. This
-test IS the v1-unchanged proof: it runs run_analysis with the v1
-calibration on a fixed input fixture and asserts byte-identical
-canonical JSON output to a captured pre-v2A golden.
-
-If you intentionally change v1 behavior (extremely unlikely — v1 is
-shipped), update the golden hash below with a fresh capture.
-
-See docs/superpowers/specs/2026-05-27-canary-v2a-vol-speed-separation-design.md
-spec §7 AC-6 and §8 AC-F6.
-"""
-
-from __future__ import annotations
-
-import hashlib
-import json
-from datetime import date as _date
-
-import numpy as np
-
-from uw_scan.cards import canary_scoring
-from uw_scan.cards.canary_calibration import load_calibration
-
-# Captured 2026-05-27 against canary_scoring.py at commit <fill-in-after-task-2>.
-# Run the ad-hoc script in plan §Task-3 Step-1 to recompute if needed.
-V1_GOLDEN_HASH = "REPLACE_WITH_HASH_FROM_STEP_1"
-
-
-def _fixed_inputs():
-    rng = np.random.default_rng(42)
-    n = 400
-    aligned = {
-        "VIX": np.clip(15.0 + rng.standard_normal(n).cumsum() * 0.5, 10.0, 60.0),
-        "VVIX": np.clip(85.0 + rng.standard_normal(n).cumsum() * 0.8, 70.0, 150.0),
-        "VIX3M": np.clip(16.0 + rng.standard_normal(n).cumsum() * 0.5, 11.0, 55.0),
-        "COR1M": np.clip(50.0 + rng.standard_normal(n).cumsum() * 0.4, 20.0, 90.0),
-        "SPX": np.clip(1000.0 + rng.standard_normal(n).cumsum() * 4.0, 600.0, 5000.0),
-    }
-    base = _date(2020, 6, 1)
-    dates = [
-        _date.fromordinal(base.toordinal() - (n - 1 - i)).isoformat() for i in range(n)
-    ]
-    return aligned, dates
-
-
-def test_v1_payload_hash_unchanged():
-    """v1 scoring on fixed inputs MUST produce a byte-identical canonical-JSON
-    payload to the captured 2026-05-27 golden. This is AC-6 / AC-F6's actual
-    proof — the OOS gate test does NOT exercise the v1 scoring path."""
-    cal = load_calibration()
-    assert cal.composite_version == 1, "default load_calibration must be v1 in PR 1"
-    aligned, dates = _fixed_inputs()
-    payload = canary_scoring.run_analysis(
-        today=_date.fromisoformat(dates[-1]),
-        aligned=aligned,
-        common_dates=dates,
-        sma_50_today=float(aligned["SPX"][-50:].mean()),
-        sma_200_today=float(aligned["SPX"][-200:].mean()),
-        spx_above_sma200_2d=False,
-        vix_term_normalized=False,
-        higher_closing_low=False,
-        confirmed_canary_active=False,
-        buy_the_dip_active=False,
-        calibration=cal,
-    )
-    canonical = json.dumps(payload, sort_keys=True, separators=(",", ":"))
-    actual = hashlib.sha256(canonical.encode()).hexdigest()
-    assert actual == V1_GOLDEN_HASH, (
-        f"v1 payload hash drifted!\n"
-        f"  expected: {V1_GOLDEN_HASH}\n"
-        f"  actual:   {actual}\n"
-        f"v1 production scoring must be bit-identical to the captured golden. "
-        f"If this is an intentional v1 change, re-run plan §Task-3 Step-1 to "
-        f"recompute the golden."
-    )
-
-
-def test_v1_payload_band_unchanged():
-    """Sanity backstop: the band classification on the fixed input is stable."""
-    cal = load_calibration()
-    aligned, dates = _fixed_inputs()
-    payload = canary_scoring.run_analysis(
-        today=_date.fromisoformat(dates[-1]),
-        aligned=aligned,
-        common_dates=dates,
-        sma_50_today=float(aligned["SPX"][-50:].mean()),
-        sma_200_today=float(aligned["SPX"][-200:].mean()),
-        spx_above_sma200_2d=False,
-        vix_term_normalized=False,
-        higher_closing_low=False,
-        confirmed_canary_active=False,
-        buy_the_dip_active=False,
-        calibration=cal,
-    )
-    assert payload["canary"]["band"] in ("NONE", "WATCH", "BUY", "STRONG_BUY")
-    assert 0.0 <= payload["canary"]["raw_score"] <= 100.0
-
-
-def test_v1_calibration_loader_targets_v1_file_by_default():
-    """Belt-and-braces: confirm the module COMPOSITE_VERSION stays at 1 in PR 1."""
-    from uw_scan.cards.canary_calibration import COMPOSITE_VERSION
-
-    assert COMPOSITE_VERSION == 1, (
-        "PR 1 must NOT change COMPOSITE_VERSION. The flip is PR 2's job. See spec §10."
-    )
-```
-
-- [ ] **Step 3: Fill in `V1_GOLDEN_HASH`**
-
-Replace the `V1_GOLDEN_HASH = "REPLACE_WITH_HASH_FROM_STEP_1"` line with the actual hash captured in Step 1.
-
-- [ ] **Step 4: Run the tests — verify they pass**
-
-```bash
-uv run pytest tests/unit/test_canary_v1_payload_hash_golden.py -v
-```
-
-Expected: 3 passed.
-
-- [ ] **Step 5: Commit**
-
-```bash
-git add tests/unit/test_canary_v1_payload_hash_golden.py
-git commit -m "test(canary): v1 payload-hash golden test (AC-6 / AC-F6)
-
-Captures the v1 run_analysis output as a SHA-256 hash on a fixed
-synthetic input. This is the real proof that v1 production scoring is
-unchanged post v2-A conditional — the pre-existing OOS gate test
-(test_canary_oos_gate.py) uses synthetic seeded rows and does NOT
-exercise the v1 scoring path.
-
-Tests:
-- test_v1_payload_hash_unchanged — byte-identical canonical JSON
-- test_v1_payload_band_unchanged — sanity backstop on band assignment
-- test_v1_calibration_loader_targets_v1_file_by_default —
-  COMPOSITE_VERSION must stay at 1 in PR 1
-
-If the v1 path is ever modified, this test fails clearly with an
-actionable diff. Spec §7 AC-6, §8 AC-F6, §6 Layer 3 (COMPOSITE_VERSION
-constant invisibility)."
 ```
 
 ---
@@ -959,19 +940,18 @@ constant invisibility)."
 ### Task 4: New repo method `delete_canary_research_runs_by_batch_id_and_phase`
 
 **Files:**
-- Modify: `src/uw_scan/storage/regime_backtest_repository.py` (append after `delete_runs_by_batch_id`, ~line 172)
-- Modify: `tests/integration/regime/test_canary_form_sweep_full.py` (add tests for the new method, OR create a new test file — see Step 2)
+- Modify: `src/uw_scan/storage/regime_backtest_repository.py` (append after `delete_runs_by_batch_id` at line 148)
+- Create/extend: `tests/integration/regime/test_canary_v2_walk_forward.py`
 
-**Rationale:** PR #88's `delete_runs_by_batch_id` is hard-pinned to `params->>'phase'='form_sweep_full'` (verified in `/review-cycle` Pass 4). v2 walk-forward uses `phase='walk_forward'`, so failed v2 batches would NOT be cleaned up by the existing method. We need a phase-parameterized variant.
+**Rationale:** PR #88's `delete_runs_by_batch_id` is hard-pinned to `params->>'phase'='form_sweep_full'`. v2 walk-forward uses `phase='walk_forward'`, so failed v2 batches wouldn't be cleaned up by the existing method. We need a phase-parameterized variant scoped to `indicator='canary' AND run_scope='research'` so production rows are never touched.
 
-- [ ] **Step 1: Write the failing test**
+- [ ] **Step 1: Write the failing tests**
 
-Path: `tests/integration/regime/test_canary_v2_walk_forward.py`
+Create `tests/integration/regime/test_canary_v2_walk_forward.py`:
 
 ```python
-"""Integration tests for canary v2-A walk-forward + robustness + dispatcher.
-
-See docs/superpowers/specs/2026-05-27-canary-v2a-vol-speed-separation-design.md.
+"""Integration tests for canary v2-A walk-forward, robustness, cleanup,
+parity, and dispatcher. Built up across Tasks 4, 6, 7, 8, 10, 11.
 """
 
 from __future__ import annotations
@@ -979,7 +959,6 @@ from __future__ import annotations
 import uuid
 from datetime import date
 
-import psycopg
 import pytest
 
 from uw_scan.storage.regime_backtest_repository import RegimeBacktestRepository
@@ -1015,9 +994,10 @@ def _insert_research_run(
 def test_delete_canary_research_runs_by_batch_id_and_phase_walk_forward(
     seeded_db_empty_cards,
 ):
-    """Inserts 6 walk-forward + 1 robustness + 4 form-sweep research rows.
-    Deletes walk-forward batch by (batch_id, phase='walk_forward').
-    Assert: 6 walk-forward rows gone; robustness + form-sweep rows preserved."""
+    """Insert 6 walk-forward + 1 robustness + 4 form-sweep research rows.
+    Delete walk-forward batch by (batch_id, phase='walk_forward').
+    Assert: 6 walk-forward rows gone; robustness + form-sweep rows preserved.
+    """
     conn = seeded_db_empty_cards.conn
     schema = seeded_db_empty_cards._schema
     repo = RegimeBacktestRepository(conn, schema=schema)
@@ -1047,15 +1027,12 @@ def test_delete_canary_research_runs_by_batch_id_and_phase_walk_forward(
     )
 
     assert deleted == 6
-    # Robustness row from same batch should remain
     with conn.cursor() as cur:
         cur.execute(
             f"SELECT id FROM {schema}.regime_backtest_runs WHERE id = %s",
             (robustness_id,),
         )
         assert cur.fetchone() is not None
-    # Form-sweep rows from different batch should remain
-    with conn.cursor() as cur:
         cur.execute(
             f"SELECT COUNT(*) FROM {schema}.regime_backtest_runs "
             f"WHERE params->>'batch_id' = %s",
@@ -1067,26 +1044,20 @@ def test_delete_canary_research_runs_by_batch_id_and_phase_walk_forward(
 def test_delete_canary_research_runs_by_batch_id_and_phase_no_op_when_no_match(
     seeded_db_empty_cards,
 ):
-    """If no rows match (wrong batch_id, wrong phase, wrong scope, or wrong
-    indicator), delete returns 0 and writes no rows."""
+    """Returns 0 when no rows match (wrong batch_id, wrong phase, etc.)."""
     conn = seeded_db_empty_cards.conn
     schema = seeded_db_empty_cards._schema
     repo = RegimeBacktestRepository(conn, schema=schema)
-
-    # No matching rows at all
     deleted = repo.delete_canary_research_runs_by_batch_id_and_phase(
         str(uuid.uuid4()), "walk_forward"
     )
     assert deleted == 0
 
 
-def test_delete_canary_research_runs_by_batch_id_and_phase_scope_correct(
+def test_delete_canary_research_runs_by_batch_id_and_phase_does_not_touch_production(
     seeded_db_empty_cards,
 ):
-    """The method must NOT delete production rows even if phase + batch_id match.
-
-    This is a defense-in-depth check: someone with a typo could pass a
-    production batch_id; the method's run_scope='research' filter must save them."""
+    """Defense-in-depth: production rows MUST NOT be deleted even on collision."""
     conn = seeded_db_empty_cards.conn
     schema = seeded_db_empty_cards._schema
     repo = RegimeBacktestRepository(conn, schema=schema)
@@ -1097,8 +1068,6 @@ def test_delete_canary_research_runs_by_batch_id_and_phase_scope_correct(
     )
     repo.mark_run_completed(research_id)
 
-    # Try to insert a "production" row with the same batch_id (should require
-    # explicit override; for the test we bypass the helper)
     with conn.cursor() as cur:
         cur.execute(
             f"INSERT INTO {schema}.regime_backtest_runs "
@@ -1117,8 +1086,7 @@ def test_delete_canary_research_runs_by_batch_id_and_phase_scope_correct(
     deleted = repo.delete_canary_research_runs_by_batch_id_and_phase(
         same_batch, "walk_forward"
     )
-
-    assert deleted == 1  # only the research row, not the production row
+    assert deleted == 1
     with conn.cursor() as cur:
         cur.execute(
             f"SELECT id FROM {schema}.regime_backtest_runs WHERE id = %s",
@@ -1127,10 +1095,10 @@ def test_delete_canary_research_runs_by_batch_id_and_phase_scope_correct(
         assert cur.fetchone() is not None
 ```
 
-- [ ] **Step 2: Run the failing test**
+- [ ] **Step 2: Run the failing tests**
 
 ```bash
-UW_SCAN_TEST_DB_NAME=option_wizard_test uv run pytest \
+UW_SCAN_DB_NAME=option_wizard_test uv run pytest \
     tests/integration/regime/test_canary_v2_walk_forward.py::test_delete_canary_research_runs_by_batch_id_and_phase_walk_forward -v
 ```
 
@@ -1138,7 +1106,7 @@ Expected: FAIL with `AttributeError: 'RegimeBacktestRepository' object has no at
 
 - [ ] **Step 3: Add the repo method**
 
-Open `src/uw_scan/storage/regime_backtest_repository.py`. Find the existing `delete_runs_by_batch_id` method (around line 148). Append the new method directly after it (before `find_latest_run` at line 173):
+Open `src/uw_scan/storage/regime_backtest_repository.py`. Find `delete_runs_by_batch_id` (line 148). Append directly after it (before `find_latest_run` at line 173):
 
 ```python
     def delete_canary_research_runs_by_batch_id_and_phase(
@@ -1146,17 +1114,16 @@ Open `src/uw_scan/storage/regime_backtest_repository.py`. Find the existing `del
     ) -> int:
         """Delete canary research runs scoped to a specific (batch_id, phase).
 
-        Unlike `delete_runs_by_batch_id` (which hard-pins to
-        `params.phase='form_sweep_full'` for cleanup-on-failure of PR #88's
-        form-sweep), this method accepts an arbitrary phase string and is
-        used by v2-A's cleanup-on-failure paths (`phase='walk_forward'`,
-        `phase='robustness'`).
+        Unlike `delete_runs_by_batch_id` (which hard-pins
+        params.phase='form_sweep_full' for PR #88), this method accepts
+        an arbitrary phase string. Used by v2-A's cleanup-on-failure paths
+        (phase='walk_forward', phase='robustness').
 
-        Scope: `indicator='canary' AND run_scope='research' AND
-        params->>'phase' = %s AND params->>'batch_id' = %s`. Production rows
-        are NEVER deleted, even on a UUID4 collision.
+        Scope: indicator='canary' AND run_scope='research' AND
+        params->>'phase' = %s AND params->>'batch_id' = %s. Production rows
+        are NEVER deleted, even on UUID4 collision.
 
-        Daily rows are removed by ON DELETE CASCADE (migration 057).
+        Daily rows cascade via ON DELETE CASCADE (migration 057).
         Returns the number of run rows deleted (0 if no match).
 
         Spec §5.8.
@@ -1178,20 +1145,20 @@ Open `src/uw_scan/storage/regime_backtest_repository.py`. Find the existing `del
 - [ ] **Step 4: Run all 3 new tests — verify they pass**
 
 ```bash
-UW_SCAN_TEST_DB_NAME=option_wizard_test uv run pytest \
+UW_SCAN_DB_NAME=option_wizard_test uv run pytest \
     tests/integration/regime/test_canary_v2_walk_forward.py -k delete_canary_research -v
 ```
 
 Expected: 3 passed.
 
-- [ ] **Step 5: Run the broader form-sweep test suite to confirm no regression**
+- [ ] **Step 5: Run form-sweep test suite — confirm no regression**
 
 ```bash
-UW_SCAN_TEST_DB_NAME=option_wizard_test uv run pytest \
+UW_SCAN_DB_NAME=option_wizard_test uv run pytest \
     tests/integration/regime/test_canary_form_sweep_full.py -v
 ```
 
-Expected: all 14 existing form-sweep tests still pass (the existing `delete_runs_by_batch_id` is unchanged).
+Expected: all 14 existing form-sweep tests still pass.
 
 - [ ] **Step 6: Commit**
 
@@ -1201,156 +1168,109 @@ git commit -m "feat(regime): delete_canary_research_runs_by_batch_id_and_phase
 
 PR #88's delete_runs_by_batch_id is hard-pinned to
 params.phase='form_sweep_full' and cannot be reused for v2-A's
-walk-forward / robustness cleanup paths. New method accepts an
-arbitrary phase string and stays scoped to indicator='canary' AND
+walk-forward / robustness cleanup paths. New method accepts an arbitrary
+phase string and stays scoped to indicator='canary' AND
 run_scope='research' to prevent production-plane pollution.
 
 3 integration tests:
-- Walk-forward batch deletion (6 rows; robustness + form-sweep rows preserved)
+- Walk-forward batch deletion (6 rows; robustness + form-sweep preserved)
 - No-op when no match
-- Scope-correctness: production rows with same batch_id survive
+- Production rows untouched on batch_id collision
 
 Spec §5.2, §5.8, §4 invariant 7."
 ```
 
 ---
 
-### Task 5: `canary_backfill.py --composite-version 2` + idempotency + AC-F3 evidence
+### Task 5: Refactor `canary_backfill.py` → `cmd_backfill(conn, *, schema, args)` + `--composite-version` / `--start-date` / `--end-date` / payload-hash idempotency
 
 **Files:**
-- Modify: `scripts/canary_backfill.py` (parse new flags, load v2 calibration, use `cal.composite_version` for persistence)
+- Modify: `scripts/canary_backfill.py` (refactor: extract `cmd_backfill`; keep `main()` for the daily APScheduler job)
 - Create: `tests/integration/regime/test_canary_v2_backfill.py`
 
-**Rationale:** The backfill script is the v2 evidence factory. It must:
-- Parse `--composite-version` (default 1, accepts 2)
-- Parse `--start-date YYYY-MM-DD` / `--end-date YYYY-MM-DD` (replacing the date-fragile `--days N` for v2)
-- Load v2 calibration JSON explicitly when `--composite-version 2` is passed
-- Persist `composite_version=cal.composite_version` (the loaded field, NOT the module constant)
-- Be idempotent on re-run via application-layer pre-insert check
+**Rationale:** The backfill script is the v2 evidence factory. Refactoring it to expose `cmd_backfill(conn, *, schema, args)` enables in-process integration tests that target the test DB without subprocess. The existing `main()` continues to work for daily APScheduler.
 
-- [ ] **Step 1: Read the current canary_backfill.py to find the call sites that need plumbing**
+Additional fixes:
+- `--composite-version {1,2}` flag (default 1)
+- `--start-date YYYY-MM-DD` / `--end-date YYYY-MM-DD` (replace date-fragile `--days N` for v2 evidence)
+- **Load span derived from explicit date range** (the existing `span = max(800, args.days + 500)` silently caps at ~800 cal days, so a 2011 start date currently fails)
+- Persist `cal.composite_version` (the loaded field), NOT the module-level `COMPOSITE_VERSION` constant
+- **Idempotency via payload-hash compare** (compute new canonical hash; compare with existing row's stored hash; skip on match; fail loudly unless `--overwrite-on-hash-mismatch`)
+- Query `vol_index_daily` via `trade_date` (not `data_date`)
 
-```bash
-grep -n "COMPOSITE_VERSION\|load_calibration\|args\.\|argparse\|insert_snapshot\|run_analysis" scripts/canary_backfill.py | head -40
-```
+- [ ] **Step 1: Write the failing integration tests**
 
-Note the line numbers — we'll modify:
-- argparse setup (add flags)
-- the call to `load_calibration()` (parameterize path)
-- the `insert_snapshot` call (parameterize composite_version)
-
-- [ ] **Step 2: Write the failing integration tests**
-
-Append to `tests/integration/regime/test_canary_v2_backfill.py` (create if not exists):
+Path: `tests/integration/regime/test_canary_v2_backfill.py`
 
 ```python
-"""Integration tests for canary v2-A backfill.
+"""Integration tests for canary v2-A backfill (in-process invocation).
 
 See docs/superpowers/specs/2026-05-27-canary-v2a-vol-speed-separation-design.md.
 """
 
 from __future__ import annotations
 
-import subprocess
-import sys
+import argparse
 from datetime import date
-from pathlib import Path
 
-import psycopg
 import pytest
+
+from scripts.canary_backfill import cmd_backfill
+from tests.integration.regime._canary_v2a_fixture import seed_vol_index_full_history
+from uw_scan.cards.canary_calibration import COMPOSITE_VERSION
 
 pytestmark = pytest.mark.integration
 
 
-REPO_ROOT = Path(__file__).resolve().parents[3]
-BACKFILL_SCRIPT = REPO_ROOT / "scripts" / "canary_backfill.py"
-
-
-def _run_backfill(
+def _backfill_args(
     *,
     composite_version: int,
-    start_date: str,
-    end_date: str,
-    test_db_url: str,
-) -> subprocess.CompletedProcess:
-    """Invoke the backfill script as a subprocess against a test DB."""
-    env = {
-        "DATABASE_URL": test_db_url,
-        "UW_SCAN_API_KEY": "local-test",
-        "PATH": "/usr/bin:/bin",  # minimal PATH
-    }
-    return subprocess.run(
-        [
-            sys.executable,
-            str(BACKFILL_SCRIPT),
-            "--composite-version", str(composite_version),
-            "--start-date", start_date,
-            "--end-date", end_date,
-        ],
-        env=env,
-        capture_output=True,
-        text=True,
-        timeout=300,
+    start_date: str | None = None,
+    end_date: str | None = None,
+    overwrite_on_hash_mismatch: bool = False,
+    days: int = 252,
+) -> argparse.Namespace:
+    return argparse.Namespace(
+        composite_version=composite_version,
+        start_date=start_date,
+        end_date=end_date,
+        overwrite_on_hash_mismatch=overwrite_on_hash_mismatch,
+        days=days,
     )
 
 
-def test_v2_backfill_writes_composite_version_2_rows(seeded_db_with_vol_index):
-    """--composite-version 2 writes rows tagged composite_version=2.
-    Production fetch_latest(composite_version=1) returns v1 rows unchanged."""
-    conn = seeded_db_with_vol_index.conn
-    schema = seeded_db_with_vol_index._schema
+def test_v2_backfill_writes_composite_version_2_rows(seeded_db_empty_cards):
+    """cmd_backfill with composite_version=2 writes rows tagged composite_version=2."""
+    conn = seeded_db_empty_cards.conn
+    schema = seeded_db_empty_cards._schema
+    seed_vol_index_full_history(conn, schema=schema, start=date(2019, 1, 2), end=date(2020, 12, 30))
 
-    # First, seed v1 rows via existing v1 path (composite_version=1)
-    result_v1 = _run_backfill(
-        composite_version=1,
-        start_date="2020-01-02",
-        end_date="2020-12-30",
-        test_db_url=seeded_db_with_vol_index.url,
+    args = _backfill_args(
+        composite_version=2, start_date="2020-01-02", end_date="2020-12-30",
     )
-    assert result_v1.returncode == 0, f"v1 backfill failed: {result_v1.stderr}"
+    cmd_backfill(conn, schema=schema, args=args)
 
-    # Now run v2 backfill on the same date range
-    result_v2 = _run_backfill(
-        composite_version=2,
-        start_date="2020-01-02",
-        end_date="2020-12-30",
-        test_db_url=seeded_db_with_vol_index.url,
-    )
-    assert result_v2.returncode == 0, f"v2 backfill failed: {result_v2.stderr}"
-
-    # Verify v2 rows exist
     with conn.cursor() as cur:
         cur.execute(
             f"SELECT COUNT(*) FROM {schema}.canary_snapshots WHERE composite_version=2"
         )
         v2_count = cur.fetchone()[0]
-        cur.execute(
-            f"SELECT COUNT(*) FROM {schema}.canary_snapshots WHERE composite_version=1"
-        )
-        v1_count = cur.fetchone()[0]
     assert v2_count > 0, "v2 backfill wrote no rows"
-    assert v2_count == v1_count, "v2 row count should equal v1 row count for overlap"
 
 
-def test_v2_backfill_uses_cal_composite_version_not_module_constant(
-    seeded_db_with_vol_index,
-):
-    """v2 backfill MUST tag rows with cal.composite_version=2 (loaded field),
-    NOT the module-level COMPOSITE_VERSION=1 constant. Otherwise v2 payloads
-    get stored as version 1 — silent DB corruption. Spec §4 invariant 10."""
-    from uw_scan.cards.canary_calibration import COMPOSITE_VERSION
+def test_v2_backfill_uses_cal_composite_version_not_module_constant(seeded_db_empty_cards):
+    """v2 rows MUST tag composite_version=2 (cal.composite_version, the loaded
+    field), NOT the module-level COMPOSITE_VERSION=1 constant. Otherwise v2
+    payloads would silently store as version 1. Spec §4 invariant 10."""
+    conn = seeded_db_empty_cards.conn
+    schema = seeded_db_empty_cards._schema
     assert COMPOSITE_VERSION == 1, "PR 1 must not flip the module constant"
+    seed_vol_index_full_history(conn, schema=schema, start=date(2019, 1, 2), end=date(2020, 3, 31))
 
-    conn = seeded_db_with_vol_index.conn
-    schema = seeded_db_with_vol_index._schema
-
-    result = _run_backfill(
-        composite_version=2,
-        start_date="2020-01-02",
-        end_date="2020-03-31",
-        test_db_url=seeded_db_with_vol_index.url,
+    args = _backfill_args(
+        composite_version=2, start_date="2020-01-02", end_date="2020-03-31",
     )
-    assert result.returncode == 0
+    cmd_backfill(conn, schema=schema, args=args)
 
     with conn.cursor() as cur:
         cur.execute(
@@ -1360,21 +1280,19 @@ def test_v2_backfill_uses_cal_composite_version_not_module_constant(
         rows = cur.fetchall()
     assert len(rows) == 5
     for row in rows:
-        assert row[0] == 2, "v2 rows must be tagged composite_version=2"
+        assert row[0] == 2
 
 
-def test_v2_backfill_score_form_is_linear(seeded_db_with_vol_index):
+def test_v2_backfill_score_form_is_linear(seeded_db_empty_cards):
     """v2 calibration mandates score_form='linear' (form-sweep verdict). Spec §5.4."""
-    conn = seeded_db_with_vol_index.conn
-    schema = seeded_db_with_vol_index._schema
+    conn = seeded_db_empty_cards.conn
+    schema = seeded_db_empty_cards._schema
+    seed_vol_index_full_history(conn, schema=schema, start=date(2019, 1, 2), end=date(2020, 2, 28))
 
-    result = _run_backfill(
-        composite_version=2,
-        start_date="2020-01-02",
-        end_date="2020-02-28",
-        test_db_url=seeded_db_with_vol_index.url,
+    args = _backfill_args(
+        composite_version=2, start_date="2020-01-02", end_date="2020-02-28",
     )
-    assert result.returncode == 0
+    cmd_backfill(conn, schema=schema, args=args)
 
     with conn.cursor() as cur:
         cur.execute(
@@ -1382,431 +1300,516 @@ def test_v2_backfill_score_form_is_linear(seeded_db_with_vol_index):
             f"WHERE composite_version=2"
         )
         forms = {row[0] for row in cur.fetchall()}
-    assert forms == {"linear"}, f"v2 score_form must be linear, got {forms}"
+    assert forms == {"linear"}
 
 
-def test_v2_backfill_is_idempotent(seeded_db_with_vol_index):
+def test_v2_backfill_is_idempotent_via_payload_hash(seeded_db_empty_cards):
     """Re-running the v2 backfill on the same date range is a no-op.
-    Idempotency MUST be application-layer (pre-insert SELECT 1 check),
-    NOT ON CONFLICT DO NOTHING (which silently keeps stale rows).
+    Idempotency MUST be via canonical payload-hash compare (not SELECT 1),
+    so stale rows from earlier buggy runs surface as RuntimeError.
     Spec §5.8."""
-    conn = seeded_db_with_vol_index.conn
-    schema = seeded_db_with_vol_index._schema
+    conn = seeded_db_empty_cards.conn
+    schema = seeded_db_empty_cards._schema
+    seed_vol_index_full_history(conn, schema=schema, start=date(2019, 1, 2), end=date(2020, 2, 28))
 
-    result1 = _run_backfill(
-        composite_version=2,
-        start_date="2020-01-02",
-        end_date="2020-02-28",
-        test_db_url=seeded_db_with_vol_index.url,
+    args = _backfill_args(
+        composite_version=2, start_date="2020-01-02", end_date="2020-02-28",
     )
-    assert result1.returncode == 0
+    cmd_backfill(conn, schema=schema, args=args)
 
     with conn.cursor() as cur:
         cur.execute(
             f"SELECT COUNT(*) FROM {schema}.canary_snapshots WHERE composite_version=2"
         )
-        count_after_first = cur.fetchone()[0]
+        first = cur.fetchone()[0]
 
-    result2 = _run_backfill(
-        composite_version=2,
-        start_date="2020-01-02",
-        end_date="2020-02-28",
-        test_db_url=seeded_db_with_vol_index.url,
-    )
-    assert result2.returncode == 0
+    # Re-run with the SAME payload — must succeed, no new rows.
+    cmd_backfill(conn, schema=schema, args=args)
 
     with conn.cursor() as cur:
         cur.execute(
             f"SELECT COUNT(*) FROM {schema}.canary_snapshots WHERE composite_version=2"
         )
-        count_after_second = cur.fetchone()[0]
+        second = cur.fetchone()[0]
+    assert first == second, "second backfill should be a no-op"
 
-    assert count_after_first == count_after_second, "second backfill should be a no-op"
+
+def test_v2_backfill_fails_loud_on_hash_mismatch_unless_overwrite(seeded_db_empty_cards):
+    """If an existing v2 row has a DIFFERENT canonical hash from the freshly
+    computed payload, raise unless --overwrite-on-hash-mismatch is passed.
+
+    Simulates "stale row from buggy earlier run" — silent skip would mask
+    the bug forever. Spec §5.8."""
+    conn = seeded_db_empty_cards.conn
+    schema = seeded_db_empty_cards._schema
+    seed_vol_index_full_history(conn, schema=schema, start=date(2019, 1, 2), end=date(2020, 1, 31))
+
+    args = _backfill_args(
+        composite_version=2, start_date="2020-01-02", end_date="2020-01-31",
+    )
+    cmd_backfill(conn, schema=schema, args=args)
+
+    # Tamper with one row's payload_hash to simulate a stale buggy row.
+    with conn.cursor() as cur:
+        cur.execute(
+            f"UPDATE {schema}.canary_snapshots "
+            f"SET payload_hash = 'tampered-stale-hash' "
+            f"WHERE composite_version=2 LIMIT 1"
+        )
+    conn.commit()
+
+    with pytest.raises(RuntimeError, match="hash mismatch"):
+        cmd_backfill(conn, schema=schema, args=args)
+
+    # With --overwrite-on-hash-mismatch, it succeeds.
+    args_overwrite = _backfill_args(
+        composite_version=2, start_date="2020-01-02", end_date="2020-01-31",
+        overwrite_on_hash_mismatch=True,
+    )
+    cmd_backfill(conn, schema=schema, args=args_overwrite)
 
 
-def test_v2_backfill_does_not_affect_v1_rows(seeded_db_with_vol_index):
-    """Production fetch_latest(composite_version=1) returns v1 rows unchanged
-    after v2 backfill. Spec §6 Layer 1."""
+def test_v2_backfill_does_not_affect_v1_rows(seeded_db_empty_cards):
+    """v1 rows untouched after v2 backfill. Spec §6 Layer 1."""
     from uw_scan.storage.canary_snapshot_repository import CanarySnapshotRepository
 
-    conn = seeded_db_with_vol_index.conn
-    schema = seeded_db_with_vol_index._schema
+    conn = seeded_db_empty_cards.conn
+    schema = seeded_db_empty_cards._schema
+    seed_vol_index_full_history(conn, schema=schema, start=date(2019, 1, 2), end=date(2020, 2, 28))
 
-    # v1 backfill first
-    result_v1 = _run_backfill(
-        composite_version=1,
-        start_date="2020-01-02",
-        end_date="2020-02-28",
-        test_db_url=seeded_db_with_vol_index.url,
+    args_v1 = _backfill_args(
+        composite_version=1, start_date="2020-01-02", end_date="2020-02-28",
     )
-    assert result_v1.returncode == 0
+    cmd_backfill(conn, schema=schema, args=args_v1)
 
     repo = CanarySnapshotRepository(conn, schema=schema)
     v1_latest_before = repo.fetch_latest(composite_version=1)
     assert v1_latest_before is not None
 
-    # Now v2 backfill
-    result_v2 = _run_backfill(
-        composite_version=2,
-        start_date="2020-01-02",
-        end_date="2020-02-28",
-        test_db_url=seeded_db_with_vol_index.url,
+    args_v2 = _backfill_args(
+        composite_version=2, start_date="2020-01-02", end_date="2020-02-28",
     )
-    assert result_v2.returncode == 0
+    cmd_backfill(conn, schema=schema, args=args_v2)
 
     v1_latest_after = repo.fetch_latest(composite_version=1)
-    assert v1_latest_after.data_date == v1_latest_before.data_date
-    assert v1_latest_after.score == v1_latest_before.score
-    assert v1_latest_after.band == v1_latest_before.band
-
-
-def test_v2_backfill_ac_f3_evidence_cca_events(seeded_db_full_history):
-    """AC-F3: The 4 historical CCA event dates produce
-    payload.speed.confirmed_canary_active=True in v2 backfill output.
-
-    Requires a fixture with realistic vol_index_daily data covering the 4
-    event dates. See spec §8 AC-F3."""
-    conn = seeded_db_full_history.conn
-    schema = seeded_db_full_history._schema
-
-    result = _run_backfill(
-        composite_version=2,
-        start_date="2011-02-08",
-        end_date="2020-04-30",
-        test_db_url=seeded_db_full_history.url,
-    )
-    assert result.returncode == 0
-
-    event_dates = ["2011-08-08", "2015-08-24", "2018-02-05", "2020-03-09"]
-    with conn.cursor() as cur:
-        for d in event_dates:
-            cur.execute(
-                f"SELECT payload->'speed'->>'confirmed_canary_active' "
-                f"FROM {schema}.canary_snapshots "
-                f"WHERE composite_version=2 AND data_date=%s",
-                (d,),
-            )
-            row = cur.fetchone()
-            assert row is not None, f"missing v2 snapshot for CCA event {d}"
-            assert row[0] in ("true", "True", True), (
-                f"AC-F3 evidence FAIL: {d} payload.speed.confirmed_canary_active "
-                f"is {row[0]!r}, expected True. The cap mechanism is broken."
-            )
+    assert v1_latest_after["data_date"] == v1_latest_before["data_date"]
+    assert v1_latest_after["score"] == v1_latest_before["score"]
+    assert v1_latest_after["band"] == v1_latest_before["band"]
 ```
 
-Note the `seeded_db_full_history` fixture — this needs to exist OR the AC-F3 test gets skipped/modified to construct a synthetic full-history fixture. **Implementer choice:** either add this fixture, or convert AC-F3 to a smoke-test deferred to the live run (mark `pytest.skip` with a clear message and verify via the AC-F3 smoke command in Task 12).
-
-- [ ] **Step 3: Run the failing tests**
+- [ ] **Step 2: Run the failing tests**
 
 ```bash
-UW_SCAN_TEST_DB_NAME=option_wizard_test uv run pytest \
+UW_SCAN_DB_NAME=option_wizard_test uv run pytest \
     tests/integration/regime/test_canary_v2_backfill.py -v
 ```
 
-Expected: all FAIL (script doesn't accept `--composite-version 2` flag yet).
+Expected: all FAIL with `ImportError: cannot import name 'cmd_backfill' from 'scripts.canary_backfill'`.
 
-- [ ] **Step 4: Modify `canary_backfill.py` argparse + load + persistence**
+- [ ] **Step 3: Refactor `canary_backfill.py` to expose `cmd_backfill`**
 
-Edit `scripts/canary_backfill.py`:
+Open `scripts/canary_backfill.py`. The current shape (verified):
+- `main()` at line 85 with monolithic body (argparse + connect + load + loop + commit)
+- Uses `COMPOSITE_VERSION` from `canary_calibration` at line 176
+- Loads with `span = max(800, args.days + 500)` at line 111
 
-**4a. Add new flags to argparse:**
-
-Find the `parser = argparse.ArgumentParser(...)` block (around line 80). Add:
-
-```python
-    parser.add_argument(
-        "--composite-version",
-        type=int,
-        choices=(1, 2),
-        default=COMPOSITE_VERSION,
-        help=(
-            "Composite version to use (default: 1, the module constant). "
-            "Pass 2 to load canary-calibration-v2.json and write "
-            "composite_version=2 rows (research-only, invisible to production)."
-        ),
-    )
-    parser.add_argument(
-        "--start-date",
-        type=str,
-        default=None,
-        help="ISO date (YYYY-MM-DD) for the first day to backfill. "
-             "If omitted, uses --days N from end of vol_index_daily.",
-    )
-    parser.add_argument(
-        "--end-date",
-        type=str,
-        default=None,
-        help="ISO date (YYYY-MM-DD) for the last day to backfill. "
-             "If omitted, uses MAX(data_date) from vol_index_daily.",
-    )
-```
-
-**4b. Load the right calibration based on the flag:**
-
-Find the existing `cal = load_calibration()` call (around line 103). Replace with:
+Refactor as follows. Final shape:
 
 ```python
-    from datetime import date as _date
+"""Daily/backfill canary snapshot producer.
 
-    if args.composite_version == 2:
-        cal_path = (
-            REPO_ROOT
-            / "docs"
-            / "research"
-            / "regime"
-            / "canary-calibration-v2.json"
+Two entry points:
+  - main() — argparse + Settings.from_env() + connect + delegate to cmd_backfill.
+    Used by the daily APScheduler job (no UI change).
+  - cmd_backfill(conn, *, schema, args) — pure unit; in-process integration
+    tests target this directly.
+
+CLI:
+  --days N                          # legacy: how many recent trading days
+  --composite-version {1,2}         # which calibration JSON to load (default 1)
+  --start-date YYYY-MM-DD           # explicit start (overrides --days)
+  --end-date   YYYY-MM-DD           # explicit end
+  --overwrite-on-hash-mismatch      # if existing row's payload_hash differs from
+                                    # the new payload's, overwrite instead of raising
+"""
+
+from __future__ import annotations
+
+import argparse
+import logging
+from datetime import date as _date
+from decimal import Decimal
+from pathlib import Path
+
+import numpy as np
+import psycopg
+
+from uw_scan.cards import canary_scoring
+from uw_scan.cards.canary_calibration import COMPOSITE_VERSION, Calibration, load_calibration
+from uw_scan.cards.canary_payload_hash import canonical_payload_hash
+from uw_scan.config import Settings
+from uw_scan.scanners.canary import (
+    MIN_ALIGNED_BARS,
+    _align,
+    _compute_cap_lift_inputs,
+    _load,
+    _replay_events,
+)
+from uw_scan.storage.canary_snapshot_repository import CanarySnapshotRepository
+from uw_scan.storage.vol_index_repository import VolIndexRepository
+
+log = logging.getLogger(__name__)
+
+REPO_ROOT = Path(__file__).resolve().parents[1]
+V2_CAL_PATH = REPO_ROOT / "docs" / "research" / "regime" / "canary-calibration-v2.json"
+
+
+def _build_snapshot_payload(...):  # existing helper — leave unchanged
+    ...
+
+
+def _load_calibration_for_version(version: int) -> Calibration:
+    if version == 2:
+        cal = load_calibration(path=V2_CAL_PATH)
+        if cal.composite_version != 2:
+            raise RuntimeError(
+                f"canary-calibration-v2.json has composite_version="
+                f"{cal.composite_version}; expected 2"
+            )
+        return cal
+    cal = load_calibration()
+    if cal.composite_version != 1:
+        raise RuntimeError("default load_calibration() returned non-v1 — investigate")
+    return cal
+
+
+def _derive_load_span(args: argparse.Namespace) -> int:
+    """Pick the data-load span large enough to cover [start_date, end_date] +
+    the scanner's 350-bar warmup. Existing v1 path defaulted to
+    max(800, days + 500), which silently capped at ~800 cal days when
+    --start-date was set to a year in the distant past."""
+    if args.start_date and args.end_date:
+        sd = _date.fromisoformat(args.start_date)
+        ed = _date.fromisoformat(args.end_date)
+        return max(800, (ed - sd).days + 500)
+    return max(800, args.days + 500)
+
+
+def cmd_backfill(conn, *, schema: str, args: argparse.Namespace) -> None:
+    """Backfill canary_snapshots for [start_date, end_date] at composite_version.
+
+    Pure unit — does not call Settings.from_env() or psycopg.connect().
+    """
+    cal = _load_calibration_for_version(args.composite_version)
+    vol_repo = VolIndexRepository(conn, schema=schema)
+    span = _derive_load_span(args)
+    raw = {
+        sym: _load(vol_repo, sym, span)
+        for sym in ("VIX", "VVIX", "VIX3M", "COR1M", "SPX")
+    }
+    aligned, all_dates = _align(raw)
+    if len(all_dates) < MIN_ALIGNED_BARS:
+        raise RuntimeError(
+            f"not enough aligned bars: have {len(all_dates)} need >= {MIN_ALIGNED_BARS}"
         )
-        cal = load_calibration(path=cal_path)
-        assert cal.composite_version == 2, "v2 calibration JSON misconfigured"
+
+    # Pick the dates to backfill.
+    if args.start_date and args.end_date:
+        sd = _date.fromisoformat(args.start_date)
+        ed = _date.fromisoformat(args.end_date)
+        dates_to_backfill = [d for d in all_dates if sd <= d <= ed]
+        # Index of the FIRST date we want — must respect MIN_ALIGNED_BARS.
+        first_idx = next(
+            (i for i, d in enumerate(all_dates) if d >= sd), 0
+        )
+        first_idx = max(first_idx, MIN_ALIGNED_BARS - 1)
     else:
-        cal = load_calibration()  # default DEFAULT_PATH = v1
-        assert cal.composite_version == 1, "v1 calibration JSON misconfigured"
-```
+        first_idx = max(MIN_ALIGNED_BARS - 1, len(all_dates) - args.days)
+        dates_to_backfill = all_dates[first_idx:]
 
-(Add `from pathlib import Path` and a `REPO_ROOT = Path(__file__).resolve().parents[1]` near the top if not already imported.)
+    if not dates_to_backfill:
+        log.warning("no dates to backfill for the requested range")
+        return
 
-**4c. Replace persistence usage of `COMPOSITE_VERSION` with `cal.composite_version`:**
+    closes = aligned["SPX"].tolist()
+    history_pairs = list(zip(all_dates, closes))
+    state = _replay_events(history_pairs)
+    snap_repo = CanarySnapshotRepository(conn, schema=schema)
+    cal_for_run = cal  # already at the right composite_version
 
-Find the `insert_snapshot(...)` call (around line 176). Change:
+    wrote = skipped = overwrote = 0
+    for i, d in enumerate(all_dates):
+        if d not in dates_to_backfill:
+            continue
+        if i < MIN_ALIGNED_BARS - 1:
+            continue
+        sma50 = float(np.mean(closes[i - 49 : i + 1]))
+        sma200 = float(np.mean(closes[i - 199 : i + 1]))
+        slice_dates = all_dates[: i + 1]
+        date_to_idx = {dd: idx for idx, dd in enumerate(slice_dates)}
+        window = canary_scoring.SPEED_ACTIVITY_WINDOW_DAYS
+        confirmed_active = any(
+            e.kind == "confirmed_canary"
+            and e.fire_date in date_to_idx
+            and 0 <= i - date_to_idx[e.fire_date] <= window
+            for e in state.emitted
+        )
+        btd_active = any(
+            e.kind == "buy_the_dip"
+            and e.fire_date in date_to_idx
+            and 0 <= i - date_to_idx[e.fire_date] <= window
+            for e in state.emitted
+        )
+        cap_lift = _compute_cap_lift_inputs(
+            aligned["SPX"][: i + 1], sma200,
+            aligned["VIX"][: i + 1], aligned["VIX3M"][: i + 1],
+        )
+        payload = _build_snapshot_payload(
+            today=d,
+            aligned_slice={k: v[: i + 1] for k, v in aligned.items()},
+            slice_dates=slice_dates,
+            sma50=sma50, sma200=sma200,
+            cap_lift_inputs=cap_lift,
+            confirmed_active=confirmed_active,
+            btd_active=btd_active,
+            cal_for_run=cal_for_run,
+        )
+        new_hash = canonical_payload_hash(payload)
 
-```python
-    snap_repo.insert_snapshot(
-        ...
-        composite_version=COMPOSITE_VERSION,
-        ...
-    )
-```
-
-to:
-
-```python
-    snap_repo.insert_snapshot(
-        ...
-        composite_version=cal.composite_version,
-        ...
-    )
-```
-
-**4d. Add the date-range logic for --start-date / --end-date:**
-
-In the main function, BEFORE the `for d in dates_to_backfill:` loop (around line 130), add:
-
-```python
-    # Date-range derivation: --start-date / --end-date overrides --days behaviour.
-    if args.start_date is not None or args.end_date is not None:
-        # If only one of start/end provided, derive the other from vol_index_daily.
+        # Payload-hash idempotency: lookup existing row's hash.
         with conn.cursor() as cur:
             cur.execute(
-                f"SELECT MIN(data_date), MAX(data_date) "
-                f"FROM {schema}.vol_index_daily "
-                f"WHERE symbol = 'SPX'"
+                f"SELECT payload_hash FROM {schema}.canary_snapshots "
+                f"WHERE data_date = %s AND composite_version = %s",
+                (d, cal.composite_version),
             )
-            vol_min, vol_max = cur.fetchone()
-        start_d = (
-            _date.fromisoformat(args.start_date) if args.start_date else vol_min
+            existing = cur.fetchone()
+
+        if existing is not None:
+            if existing[0] == new_hash:
+                skipped += 1
+                continue
+            if not args.overwrite_on_hash_mismatch:
+                raise RuntimeError(
+                    f"hash mismatch at data_date={d} composite_version="
+                    f"{cal.composite_version}: existing={existing[0]!r} "
+                    f"new={new_hash!r}. Pass --overwrite-on-hash-mismatch to "
+                    f"replace, or DELETE the row manually if you know it's stale."
+                )
+            # Overwrite path: DELETE then insert.
+            with conn.cursor() as cur:
+                cur.execute(
+                    f"DELETE FROM {schema}.canary_snapshots "
+                    f"WHERE data_date = %s AND composite_version = %s",
+                    (d, cal.composite_version),
+                )
+            overwrote += 1
+
+        snap_repo.insert_snapshot(
+            payload=payload,
+            data_date=d,
+            composite_version=cal.composite_version,  # NOT the module constant
+            score_form=cal_for_run.score_form,
+            score=Decimal(str(payload["canary"]["score"])),
+            raw_score=Decimal(str(payload["canary"]["raw_score"])),
+            band=payload["canary"]["band"],
+            tactical_score=Decimal(str(payload["tactical_vol"]["score"])),
+            structural_score=Decimal(str(payload["structural_vol"]["score"])),
+            speed_score=payload["speed"]["score"],
+            warning_state=payload["canary"]["warning_state"],
+            payload_hash=new_hash,
+            on_conflict="noop",
         )
-        end_d = _date.fromisoformat(args.end_date) if args.end_date else vol_max
-        dates_to_backfill = [d for d in all_dates if start_d <= d <= end_d]
+        wrote += 1
+
+    conn.commit()
+    log.info(
+        "backfill complete: wrote=%d skipped=%d overwrote=%d range=[%s..%s]",
+        wrote, skipped, overwrote,
+        dates_to_backfill[0], dates_to_backfill[-1],
+    )
+
+
+def main() -> int:
+    logging.basicConfig(level=logging.INFO)
+    ap = argparse.ArgumentParser(description=__doc__)
+    ap.add_argument("--days", type=int, default=252,
+        help="how many of the most-recent aligned trading days to write "
+             "(default 252 ≈ 1 trading year; use 4000+ for full lookback). "
+             "Ignored when --start-date is given.")
+    ap.add_argument("--composite-version", type=int, choices=(1, 2), default=1,
+        help="which calibration to load (default 1, the production version). "
+             "Pass 2 for v2-A research backfill (loads canary-calibration-v2.json, "
+             "writes composite_version=2 rows, invisible to production reads).")
+    ap.add_argument("--start-date", type=str, default=None,
+        help="ISO date (YYYY-MM-DD) for the first day to backfill. "
+             "Overrides --days if set.")
+    ap.add_argument("--end-date", type=str, default=None,
+        help="ISO date (YYYY-MM-DD) for the last day to backfill. "
+             "Defaults to MAX(trade_date) if start_date is set but end isn't.")
+    ap.add_argument("--overwrite-on-hash-mismatch", action="store_true",
+        help="if an existing row's payload_hash differs from the freshly "
+             "computed payload, overwrite instead of raising. Use for one-off "
+             "recompute after a known formula change (e.g., re-running v2 "
+             "after an in-flight v2 patch).")
+    args = ap.parse_args()
+
+    if args.start_date and not args.end_date:
+        # default end to today — keeps the daily-cron use case simple
+        args.end_date = _date.today().isoformat()
+
+    settings = Settings.from_env()
+    with psycopg.connect(settings.db_dsn(), autocommit=False) as conn:
+        cmd_backfill(conn, schema=settings.db_schema, args=args)
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
 ```
 
-**4e. Add idempotency: application-layer pre-insert check:**
+(Keep the existing `_build_snapshot_payload` helper at the top — only the `main()` body is refactored.)
 
-Wrap the `insert_snapshot` call:
-
-```python
-    # Idempotency: skip if a row already exists for (data_date, composite_version).
-    with conn.cursor() as cur:
-        cur.execute(
-            f"SELECT 1 FROM {schema}.canary_snapshots "
-            f"WHERE data_date = %s AND composite_version = %s LIMIT 1",
-            (d, cal.composite_version),
-        )
-        if cur.fetchone() is not None:
-            log.info("skip data_date=%s composite_version=%s (already exists)",
-                     d, cal.composite_version)
-            continue
-    snap_repo.insert_snapshot(...)  # existing call
-```
-
-- [ ] **Step 5: Run all v2 backfill tests — verify they pass**
+- [ ] **Step 4: Run the integration tests — verify they pass**
 
 ```bash
-UW_SCAN_TEST_DB_NAME=option_wizard_test uv run pytest \
+UW_SCAN_DB_NAME=option_wizard_test uv run pytest \
     tests/integration/regime/test_canary_v2_backfill.py -v
 ```
 
-Expected: 6 tests pass (5 standard + AC-F3 if fixture is available; otherwise 5 pass + 1 skip).
+Expected: 6 passed.
 
-- [ ] **Step 6: Confirm v1 backfill is unchanged**
+- [ ] **Step 5: Confirm the daily APScheduler entry still works**
+
+The daily job runs `uv run python scripts/canary_backfill.py` (no flags). Confirm that signature still works:
 
 ```bash
-UW_SCAN_TEST_DB_NAME=option_wizard_test uv run pytest \
-    tests/integration/regime/test_canary_backfill.py -v
+uv run python scripts/canary_backfill.py --help
 ```
 
-(Or whatever the existing v1 backfill test file is — should already exist from PR #83.) Expected: all existing v1 tests still pass.
+Expected: argparse help text including `--days`, `--composite-version`, `--start-date`, `--end-date`, `--overwrite-on-hash-mismatch`.
 
-- [ ] **Step 7: Commit**
+- [ ] **Step 6: Commit**
 
 ```bash
 git add scripts/canary_backfill.py tests/integration/regime/test_canary_v2_backfill.py
-git commit -m "feat(canary): canary_backfill.py --composite-version + idempotency
+git commit -m "feat(canary): canary_backfill cmd_backfill + payload-hash idempotency
 
-Add --composite-version {1,2}, --start-date, --end-date flags.
-When --composite-version 2, loads canary-calibration-v2.json explicitly
-and writes rows tagged composite_version=cal.composite_version (the
-loaded field — NOT the module-level COMPOSITE_VERSION constant, which
-would silently corrupt the DB by tagging v2 payloads as version 1).
+Refactor: extract cmd_backfill(conn, *, schema, args) so integration tests
+invoke in-process without subprocess (Settings.from_env reads UW_SCAN_DB_*
+not DATABASE_URL — subprocess+env-var would hit the dev DB).
 
-Idempotency: application-layer pre-insert SELECT 1 check on
-(data_date, composite_version). NOT ON CONFLICT DO NOTHING — which
-would silently keep stale rows from failed earlier runs with bugs
-(caught by Codex during /review-cycle).
+main() still works for the daily APScheduler job (no UI change).
 
-Tests (6 integration):
-- v2 writes composite_version=2 rows
-- v2 uses cal.composite_version (not module constant)
-- v2 score_form is linear (form-sweep verdict)
-- v2 idempotent re-run is a no-op
-- v2 does not affect v1 rows
-- AC-F3 evidence (4 CCA event dates fire correctly) — requires
-  full-history fixture; falls through to live smoke in Task 12 if
-  fixture unavailable.
+New flags:
+- --composite-version {1,2}: load v1 or v2 calibration, persist
+  cal.composite_version (the loaded field), NOT the module constant
+- --start-date / --end-date: explicit ranges. Data-load span derived from
+  range (the old span=max(800, days+500) silently capped a 15-year
+  backfill at ~800 calendar days)
+- --overwrite-on-hash-mismatch: rather than ON CONFLICT DO NOTHING or
+  SELECT 1 → continue (both silently keep stale rows), compute the
+  canonical payload hash and compare. Skip on match; RAISE on mismatch
+  unless this flag is set. Then a stale row from a buggy earlier run
+  surfaces immediately.
 
-Spec §5.5, §5.8."
+Uses canonical_payload_hash() from canary_payload_hash module.
+Queries vol_index_daily via trade_date (verified in vol_index_repository.py:29).
+
+6 integration tests — all in-process via cmd_backfill(conn, schema, args).
+
+Spec §5.5, §5.8, §6 Layer 1, §4 invariant 10."
 ```
 
 ---
 
-### Task 6: `backtest_canary.py --walk-forward --composite-version 2`
+### Task 6: Refactor `cmd_walk_forward(conn, *, schema, args)` + `batch_id` generation + `--composite-version 2`
 
 **Files:**
-- Modify: `scripts/backtest_canary.py` (add `--composite-version` flag to walk-forward path)
-- Modify: `tests/integration/regime/test_canary_v2_walk_forward.py` (extend with walk-forward tests)
+- Modify: `scripts/backtest_canary.py` (refactor `cmd_walk_forward`; thread args through; generate `batch_id`)
+- Modify: `tests/integration/regime/test_canary_v2_walk_forward.py`
 
-**Rationale:** Walk-forward recomputes scores from `vol_index_daily` (NOT from `canary_snapshots`) using `run_analysis` and the loaded calibration. Plumbing the right calibration through is the bulk of the work.
+**Rationale:** Current `cmd_walk_forward(conn, *, schema)` takes no `args`, doesn't write a `batch_id`, and hard-pins `composite_version=str(COMPOSITE_VERSION)` (which is `1`). Three problems for v2:
+1. Tests can't pass arguments in-process
+2. The dispatcher in Task 10 needs `batch_id` to scope reload queries
+3. v2 needs to load the v2 calibration JSON and write `run_scope='research'`
 
-- [ ] **Step 1: Read the existing walk-forward code to find the plumbing points**
-
-```bash
-grep -n "load_calibration\|cmd_walk_forward\|--walk-forward\|composite_version" scripts/backtest_canary.py | head -30
-```
-
-Note the function (likely `cmd_walk_forward` or similar) and the argparse setup.
-
-- [ ] **Step 2: Write failing tests for v2 walk-forward**
+- [ ] **Step 1: Write failing v2 walk-forward tests**
 
 Append to `tests/integration/regime/test_canary_v2_walk_forward.py`:
 
 ```python
-import subprocess
-import sys
+import argparse
+from datetime import date as _date
 
-REPO_ROOT = Path(__file__).resolve().parents[3]
-BACKTEST_SCRIPT = REPO_ROOT / "scripts" / "backtest_canary.py"
+from scripts.backtest_canary import cmd_walk_forward
+from tests.integration.regime._canary_v2a_fixture import seed_vol_index_full_history
 
 
-def _run_walk_forward(
-    *,
-    composite_version: int,
-    test_db_url: str,
-) -> subprocess.CompletedProcess:
-    env = {
-        "DATABASE_URL": test_db_url,
-        "UW_SCAN_API_KEY": "local-test",
-        "PATH": "/usr/bin:/bin",
-    }
-    return subprocess.run(
-        [
-            sys.executable,
-            str(BACKTEST_SCRIPT),
-            "--walk-forward",
-            "--composite-version", str(composite_version),
-        ],
-        env=env,
-        capture_output=True,
-        text=True,
-        timeout=600,
+def _wf_args(*, composite_version: int, batch_id: str | None = None) -> argparse.Namespace:
+    return argparse.Namespace(
+        composite_version=composite_version,
+        batch_id=batch_id,
     )
 
 
-def test_v2_walk_forward_writes_6_research_rows(seeded_db_with_v2_backfill):
-    """--walk-forward --composite-version 2 writes 6 walk-forward runs:
-    run_scope='research', composite_version='2', window_id ∈ {WF-1..WF-6},
-    shared params->>'batch_id'."""
-    conn = seeded_db_with_v2_backfill.conn
-    schema = seeded_db_with_v2_backfill._schema
+def test_v2_walk_forward_writes_6_research_rows(seeded_db_empty_cards):
+    """cmd_walk_forward with composite_version=2 writes 6 research-scoped
+    walk-forward rows, all sharing a batch_id, with WF-1..WF-6 window_ids."""
+    conn = seeded_db_empty_cards.conn
+    schema = seeded_db_empty_cards._schema
+    seed_vol_index_full_history(conn, schema=schema, start=_date(2013, 1, 2), end=_date(2026, 5, 21))
 
-    result = _run_walk_forward(
-        composite_version=2,
-        test_db_url=seeded_db_with_v2_backfill.url,
-    )
-    assert result.returncode == 0, f"walk-forward failed: {result.stderr}"
+    cmd_walk_forward(conn, schema=schema, args=_wf_args(composite_version=2))
 
     with conn.cursor() as cur:
         cur.execute(
             f"SELECT params->>'batch_id', params->>'window_id', composite_version, run_scope "
             f"FROM {schema}.regime_backtest_runs "
-            f"WHERE indicator='canary' AND params->>'phase'='walk_forward' "
-            f"  AND composite_version='2' "
+            f"WHERE indicator='canary' AND composite_version='2' "
+            f"  AND params->>'phase'='walk_forward' "
             f"ORDER BY params->>'window_id'"
         )
         rows = cur.fetchall()
 
-    assert len(rows) == 6, f"expected 6 walk-forward rows, got {len(rows)}"
+    assert len(rows) == 6
     batch_ids = {r[0] for r in rows}
-    assert len(batch_ids) == 1, "all 6 rows must share batch_id"
+    assert len(batch_ids) == 1 and next(iter(batch_ids)) is not None
     window_ids = {r[1] for r in rows}
-    assert window_ids == {f"WF-{i}" for i in range(1, 7)}, (
-        f"window_ids must be exactly WF-1..WF-6, got {window_ids}"
-    )
+    assert window_ids == {f"WF-{i}" for i in range(1, 7)}
     for r in rows:
         assert r[2] == "2"
         assert r[3] == "research"
 
 
-def test_v2_walk_forward_preserves_v1_production_rows(seeded_db_with_v1_and_v2_backfill):
-    """v1 walk-forward production rows (PR #83 ids 19-24) remain untouched
-    after v2 walk-forward runs. Spec §6 Layer 2."""
-    conn = seeded_db_with_v1_and_v2_backfill.conn
-    schema = seeded_db_with_v1_and_v2_backfill._schema
+def test_v2_walk_forward_preserves_v1_production_rows(seeded_db_empty_cards):
+    """v1 walk-forward production rows survive v2 walk-forward. Spec §6 Layer 2."""
+    from tests.integration.regime._canary_v2a_fixture import seed_v1_walk_forward_runs
+
+    conn = seeded_db_empty_cards.conn
+    schema = seeded_db_empty_cards._schema
+    v1_ids = seed_v1_walk_forward_runs(conn, schema=schema)
+    seed_vol_index_full_history(conn, schema=schema, start=_date(2013, 1, 2), end=_date(2026, 5, 21))
+
+    cmd_walk_forward(conn, schema=schema, args=_wf_args(composite_version=2))
 
     with conn.cursor() as cur:
         cur.execute(
             f"SELECT COUNT(*) FROM {schema}.regime_backtest_runs "
-            f"WHERE indicator='canary' AND run_scope='production' "
-            f"  AND params->>'phase'='walk_forward' AND composite_version='1'"
+            f"WHERE id = ANY(%s)",
+            (v1_ids,),
         )
-        v1_count_before = cur.fetchone()[0]
-
-    result = _run_walk_forward(
-        composite_version=2,
-        test_db_url=seeded_db_with_v1_and_v2_backfill.url,
-    )
-    assert result.returncode == 0
-
-    with conn.cursor() as cur:
-        cur.execute(
-            f"SELECT COUNT(*) FROM {schema}.regime_backtest_runs "
-            f"WHERE indicator='canary' AND run_scope='production' "
-            f"  AND params->>'phase'='walk_forward' AND composite_version='1'"
-        )
-        v1_count_after = cur.fetchone()[0]
-    assert v1_count_after == v1_count_before
+        assert cur.fetchone()[0] == 6
 
 
-def test_v2_walk_forward_summary_has_composite_aucs(seeded_db_with_v2_backfill):
+def test_v2_walk_forward_summary_has_composite_aucs(seeded_db_empty_cards):
     """Each v2 walk-forward run's summary.aucs.composite contains the three
-    horizons (up5d_2pct / up20d_5pct / up60d_10pct). Spec §8 AC-F4 reads
-    these directly."""
-    conn = seeded_db_with_v2_backfill.conn
-    schema = seeded_db_with_v2_backfill._schema
+    horizons. AC-F4 reads these."""
+    conn = seeded_db_empty_cards.conn
+    schema = seeded_db_empty_cards._schema
+    seed_vol_index_full_history(conn, schema=schema, start=_date(2013, 1, 2), end=_date(2026, 5, 21))
 
-    result = _run_walk_forward(
-        composite_version=2,
-        test_db_url=seeded_db_with_v2_backfill.url,
-    )
-    assert result.returncode == 0
+    cmd_walk_forward(conn, schema=schema, args=_wf_args(composite_version=2))
 
     with conn.cursor() as cur:
         cur.execute(
@@ -1819,168 +1822,217 @@ def test_v2_walk_forward_summary_has_composite_aucs(seeded_db_with_v2_backfill):
 
     assert composite_aucs is not None
     for key in ("up5d_2pct", "up20d_5pct", "up60d_10pct"):
-        assert key in composite_aucs, f"missing AUC key {key}"
-        v = composite_aucs[key]
-        assert v is None or (0.0 <= v <= 1.0), f"AUC out of range: {key}={v}"
+        assert key in composite_aucs
 ```
 
-- [ ] **Step 3: Run the failing tests**
+- [ ] **Step 2: Run the failing tests**
 
 ```bash
-UW_SCAN_TEST_DB_NAME=option_wizard_test uv run pytest \
-    tests/integration/regime/test_canary_v2_walk_forward.py -k walk_forward -v
+UW_SCAN_DB_NAME=option_wizard_test uv run pytest \
+    tests/integration/regime/test_canary_v2_walk_forward.py -k v2_walk_forward -v
 ```
 
-Expected: FAIL (`--composite-version` flag doesn't exist on walk-forward path yet).
+Expected: FAIL — either signature mismatch (`cmd_walk_forward()` got unexpected keyword `args`), or composite_version='1' assertion failure.
 
-- [ ] **Step 4: Modify `backtest_canary.py` walk-forward path**
+- [ ] **Step 3: Refactor `cmd_walk_forward` in `backtest_canary.py`**
 
-Edit `scripts/backtest_canary.py`:
-
-**4a. Add `--composite-version` argument to argparse:**
-
-Find the argparse setup. Add:
+Open `scripts/backtest_canary.py`. Find `cmd_walk_forward` at line 780. Refactor:
 
 ```python
-    parser.add_argument(
-        "--composite-version",
-        type=int,
-        choices=(1, 2),
-        default=1,
-        help=(
-            "Composite version: 1 (v1, production, default) or 2 (v2-A, "
-            "research-only, loads canary-calibration-v2.json and writes "
-            "run_scope='research' rows). Spec §5.5."
-        ),
-    )
-```
+import uuid
 
-**4b. Inside the walk-forward dispatcher (`cmd_walk_forward` or equivalent), use the v2 calibration when requested and pass `run_scope='research'` for v2:**
 
-Find the `load_calibration()` call inside the walk-forward function. Replace:
+def cmd_walk_forward(conn, *, schema: str, args=None) -> None:
+    """6-window expanding-train walk-forward with frozen calibration.
 
-```python
-    cal = load_calibration()
-```
+    Writes one regime_backtest_runs row per window. v2 invocation (when
+    args.composite_version == 2) loads canary-calibration-v2.json, forces
+    run_scope='research', persists composite_version=str(cal.composite_version),
+    and tags every params dict with a batch_id (generated once per call).
 
-with:
+    The batch_id is printed to stdout so callers can chain --robustness
+    with --batch-id.
+    """
+    from uw_scan.cards.canary_calibration import load_calibration
+    from uw_scan.storage.regime_backtest_repository import RegimeBacktestRepository
 
-```python
+    if args is None:
+        args = argparse.Namespace(composite_version=1, batch_id=None)
+
     if args.composite_version == 2:
         cal_path = (
-            REPO_ROOT
-            / "docs"
-            / "research"
-            / "regime"
-            / "canary-calibration-v2.json"
+            REPO_ROOT / "docs" / "research" / "regime" / "canary-calibration-v2.json"
         )
         cal = load_calibration(path=cal_path)
         run_scope = "research"
     else:
         cal = load_calibration()
         run_scope = "production"
+
+    batch_id = args.batch_id or str(uuid.uuid4())
+    print(f"walk-forward batch_id={batch_id}")  # plumbing for Task 7's chaining
+
+    bt_repo = RegimeBacktestRepository(conn, schema=schema)
+    score_form = cal.score_form
+
+    for win in WALK_FORWARD_WINDOWS:
+        log.info(
+            "walk-forward: %s OOS %s → %s (%s)",
+            win["id"], win["oos_start"], win["oos_end"], win["label"],
+        )
+        series = _compute_canary_series(
+            conn, cal, form=score_form,
+            start=win["oos_start"], end=win["oos_end"], schema=schema,
+        )
+        eval_rows = series["eval_rows"]
+        all_rows = series["all_rows"]
+        events = series["events"]
+        if not eval_rows:
+            log.warning("walk-forward: %s has zero eval rows — skipping", win["id"])
+            continue
+        summary = _summarize_window(
+            win["id"], eval_rows, all_rows, events, score_form=score_form,
+        )
+        summary["macro_label"] = win["label"]
+        summary["train_end"] = win["train_end"].isoformat()
+        run_id = bt_repo.insert_run(
+            indicator="canary",
+            composite_version=str(cal.composite_version),  # was: str(COMPOSITE_VERSION)
+            start_date=eval_rows[0]["date"],
+            end_date=eval_rows[-1]["date"],
+            window_days=350,
+            n_days=len(eval_rows),
+            params={
+                "score_form": score_form,
+                "phase": "walk_forward",
+                "window_id": win["id"],
+                "train_end": win["train_end"].isoformat(),
+                "batch_id": batch_id,  # NEW for v2-A — was missing
+            },
+            summary=_clean_nans(summary),
+            run_scope=run_scope,
+        )
+        bt_repo.bulk_insert_daily(
+            run_id,
+            [
+                {
+                    "trade_date": r["date"], "score": r["score"], "level": r["band"],
+                    "payload": {
+                        "tactical": r["tactical"], "structural": r["structural"],
+                        "speed": r["speed"], "warning_state": r["warning_state"],
+                    },
+                }
+                for r in eval_rows
+            ],
+        )
+        bt_repo.mark_run_completed(run_id)
+        log.info("  → run_id=%d (existing summary log)", run_id)
 ```
 
-(Add the REPO_ROOT import if not already present, and propagate `run_scope` through to every `bt_repo.insert_run(...)` call site by changing the kwarg.)
+(Add `--composite-version` and `--batch-id` to the argparse in `main()`. See Step 4.)
 
-**4c. Pass `cal.composite_version` (loaded field) — NOT the module `COMPOSITE_VERSION` constant — to every persistence call:**
+- [ ] **Step 4: Update argparse + dispatch in `main()`**
 
-Find every `composite_version=str(COMPOSITE_VERSION)` or similar in the walk-forward path. Replace with `composite_version=str(cal.composite_version)`.
+In `scripts/backtest_canary.py` `main()`:
 
-**4d. Ensure the `params` dict for each walk-forward run includes `window_id` and `batch_id`:**
-
-The existing v1 code already does this (verified). For v2, the same code path is reused — no separate v2 code branch needed; the calibration's `composite_version` flows through `run_analysis` to drive the formula switch.
+```python
+    parser.add_argument(
+        "--composite-version", type=int, choices=(1, 2), default=1,
+        help="1 (v1, production, default) or 2 (v2-A, research, loads "
+             "canary-calibration-v2.json). Plumbs through walk-forward + "
+             "robustness + v1-v2-compare. Spec §5.5.",
+    )
+    parser.add_argument(
+        "--batch-id", type=str, default=None,
+        help="Optional batch_id. If omitted, walk-forward generates a UUID4 "
+             "(printed to stdout for chaining); robustness/v1-v2-compare "
+             "require this to match an existing batch.",
+    )
+    # ... existing args.parse_args() then dispatch:
+    if args.walk_forward:
+        cmd_walk_forward(conn, schema=schema, args=args)
+        return
+    if args.robustness:
+        cmd_robustness(conn, schema=schema, args=args)
+        return
+```
 
 - [ ] **Step 5: Run the v2 walk-forward tests — verify they pass**
 
 ```bash
-UW_SCAN_TEST_DB_NAME=option_wizard_test uv run pytest \
-    tests/integration/regime/test_canary_v2_walk_forward.py -k walk_forward -v
+UW_SCAN_DB_NAME=option_wizard_test uv run pytest \
+    tests/integration/regime/test_canary_v2_walk_forward.py -k v2_walk_forward -v
 ```
 
 Expected: 3 passed.
 
-- [ ] **Step 6: Run the existing v1 walk-forward tests — confirm no regression**
+- [ ] **Step 6: Confirm v1 walk-forward unchanged**
 
 ```bash
-UW_SCAN_TEST_DB_NAME=option_wizard_test uv run pytest \
-    tests/integration/regime/test_canary_backtest.py -v
+uv run python scripts/backtest_canary.py --walk-forward --help
 ```
 
-Expected: all v1 walk-forward tests still pass.
+Expected: help text shows `--composite-version` defaulting to 1.
+
+Also re-run Task 2's golden test:
+
+```bash
+uv run pytest tests/unit/test_canary_v1_payload_hash_golden.py -v
+```
+
+Expected: 3 passed (v1 scoring path untouched).
 
 - [ ] **Step 7: Commit**
 
 ```bash
 git add scripts/backtest_canary.py tests/integration/regime/test_canary_v2_walk_forward.py
-git commit -m "feat(canary): --composite-version 2 walk-forward (research scope)
+git commit -m "feat(canary): cmd_walk_forward accepts args, generates batch_id
 
-Plumbs args.composite_version through cmd_walk_forward: loads
-canary-calibration-v2.json when 2, forces run_scope='research' for v2
-runs, persists composite_version=str(cal.composite_version) (the loaded
-field — NOT the module COMPOSITE_VERSION constant).
+Refactor cmd_walk_forward(conn, *, schema, args). Adds:
+- --composite-version {1,2}: loads canary-calibration-v2.json on 2 and
+  forces run_scope='research'
+- --batch-id: optional, default UUID4 generated once, printed to stdout
+- batch_id added to EVERY params dict (was missing — grep verified
+  zero batch_id references in the existing code path)
+- composite_version=str(cal.composite_version) (the loaded field, not
+  the module constant — same correctness as Task 5)
 
-The v1 code path is reused as-is; only the calibration changes. The
-formula switch happens inside run_analysis() via the v2-A conditional
-from Task 2.
-
-3 integration tests:
-- 6 walk-forward rows with run_scope='research', composite_version='2',
-  shared batch_id, window_id ∈ {WF-1..WF-6}
-- v1 production walk-forward rows untouched
-- summary.aucs.composite contains 5d/20d/60d AUCs (AC-F4 input)
-
-Spec §5.5, §6 Layer 2."
+v1 path (default --composite-version 1) is unchanged byte-for-byte
+except for the new batch_id field in params (additive). Spec §5.5, §6
+Layer 2."
 ```
 
 ---
 
-### Task 7: `backtest_canary.py --robustness --composite-version 2`
+### Task 7: Refactor `cmd_robustness(conn, *, schema, args)` + `--composite-version 2`
 
 **Files:**
-- Modify: `scripts/backtest_canary.py` (add `--composite-version` to robustness path; share batch_id with walk-forward)
+- Modify: `scripts/backtest_canary.py` (refactor `cmd_robustness` to accept args; honor `--batch-id`)
 - Modify: `tests/integration/regime/test_canary_v2_walk_forward.py`
 
-**Rationale:** G3 of the spec requires 7 v2 evidence rows: 6 walk-forward + 1 robustness. The robustness path needs the same `--composite-version` plumbing as walk-forward.
+**Rationale:** G3 of the spec requires 7 v2 evidence rows: 6 walk-forward + 1 robustness sharing a `batch_id`. Same refactor pattern as Task 6.
 
-- [ ] **Step 1: Write failing test**
+- [ ] **Step 1: Write failing tests**
 
 Append to `tests/integration/regime/test_canary_v2_walk_forward.py`:
 
 ```python
-def _run_robustness(
-    *,
-    composite_version: int,
-    batch_id: str | None = None,
-    test_db_url: str,
-) -> subprocess.CompletedProcess:
-    env = {
-        "DATABASE_URL": test_db_url,
-        "UW_SCAN_API_KEY": "local-test",
-        "PATH": "/usr/bin:/bin",
-    }
-    cmd = [
-        sys.executable,
-        str(BACKTEST_SCRIPT),
-        "--robustness",
-        "--composite-version", str(composite_version),
-    ]
-    if batch_id is not None:
-        cmd += ["--batch-id", batch_id]
-    return subprocess.run(cmd, env=env, capture_output=True, text=True, timeout=300)
-
-
-def test_v2_robustness_writes_1_research_row(seeded_db_with_v2_backfill):
-    """--robustness --composite-version 2 writes 1 research-scoped row
-    with phase='robustness', composite_version='2'."""
-    conn = seeded_db_with_v2_backfill.conn
-    schema = seeded_db_with_v2_backfill._schema
-
-    result = _run_robustness(
-        composite_version=2,
-        test_db_url=seeded_db_with_v2_backfill.url,
+def _rb_args(*, composite_version: int, batch_id: str | None = None) -> argparse.Namespace:
+    return argparse.Namespace(
+        composite_version=composite_version,
+        batch_id=batch_id,
     )
-    assert result.returncode == 0, f"robustness failed: {result.stderr}"
+
+
+def test_v2_robustness_writes_1_research_row(seeded_db_empty_cards):
+    """cmd_robustness with composite_version=2 writes 1 research-scoped row."""
+    from scripts.backtest_canary import cmd_robustness
+
+    conn = seeded_db_empty_cards.conn
+    schema = seeded_db_empty_cards._schema
+    seed_vol_index_full_history(conn, schema=schema, start=_date(2013, 1, 2), end=_date(2026, 5, 21))
+
+    cmd_robustness(conn, schema=schema, args=_rb_args(composite_version=2))
 
     with conn.cursor() as cur:
         cur.execute(
@@ -1988,26 +2040,18 @@ def test_v2_robustness_writes_1_research_row(seeded_db_with_v2_backfill):
             f"WHERE indicator='canary' AND run_scope='research' "
             f"  AND composite_version='2' AND params->>'phase'='robustness'"
         )
-        count = cur.fetchone()[0]
-
-    assert count == 1, f"expected 1 robustness row, got {count}"
+        assert cur.fetchone()[0] == 1
 
 
-def test_v2_robustness_shares_batch_id_with_walk_forward_when_chained(
-    seeded_db_with_v2_backfill,
-):
-    """If --walk-forward and --robustness run in sequence and the operator
-    passes --batch-id, the robustness row carries the same batch_id.
-    (If --batch-id is omitted, the row gets its own UUID4 — that's fine
-    for ad-hoc invocations.)"""
-    conn = seeded_db_with_v2_backfill.conn
-    schema = seeded_db_with_v2_backfill._schema
+def test_v2_robustness_shares_batch_id_when_chained(seeded_db_empty_cards):
+    """If --batch-id is passed, robustness row carries the same batch_id."""
+    from scripts.backtest_canary import cmd_robustness, cmd_walk_forward
 
-    result_wf = _run_walk_forward(
-        composite_version=2,
-        test_db_url=seeded_db_with_v2_backfill.url,
-    )
-    assert result_wf.returncode == 0
+    conn = seeded_db_empty_cards.conn
+    schema = seeded_db_empty_cards._schema
+    seed_vol_index_full_history(conn, schema=schema, start=_date(2013, 1, 2), end=_date(2026, 5, 21))
+
+    cmd_walk_forward(conn, schema=schema, args=_wf_args(composite_version=2))
 
     with conn.cursor() as cur:
         cur.execute(
@@ -2016,14 +2060,9 @@ def test_v2_robustness_shares_batch_id_with_walk_forward_when_chained(
             f"WHERE indicator='canary' AND composite_version='2' "
             f"  AND params->>'phase'='walk_forward'"
         )
-        wf_batch_id = cur.fetchone()[0]
+        wf_batch = cur.fetchone()[0]
 
-    result_rb = _run_robustness(
-        composite_version=2,
-        batch_id=wf_batch_id,
-        test_db_url=seeded_db_with_v2_backfill.url,
-    )
-    assert result_rb.returncode == 0
+    cmd_robustness(conn, schema=schema, args=_rb_args(composite_version=2, batch_id=wf_batch))
 
     with conn.cursor() as cur:
         cur.execute(
@@ -2031,29 +2070,42 @@ def test_v2_robustness_shares_batch_id_with_walk_forward_when_chained(
             f"WHERE indicator='canary' AND composite_version='2' "
             f"  AND params->>'phase'='robustness'"
         )
-        rb_batch_id = cur.fetchone()[0]
+        rb_batch = cur.fetchone()[0]
 
-    assert rb_batch_id == wf_batch_id
+    assert rb_batch == wf_batch
 ```
 
 - [ ] **Step 2: Run failing tests**
 
 ```bash
-UW_SCAN_TEST_DB_NAME=option_wizard_test uv run pytest \
-    tests/integration/regime/test_canary_v2_walk_forward.py -k robustness -v
+UW_SCAN_DB_NAME=option_wizard_test uv run pytest \
+    tests/integration/regime/test_canary_v2_walk_forward.py -k v2_robustness -v
 ```
 
 Expected: FAIL.
 
-- [ ] **Step 3: Modify robustness path in `backtest_canary.py`**
+- [ ] **Step 3: Refactor `cmd_robustness` in `backtest_canary.py`**
 
-The robustness function (likely `cmd_robustness` — adapt to actual name) needs the same plumbing:
+Find `cmd_robustness` at line 933. Apply the same pattern as Task 6:
 
 ```python
-    # Existing function signature: cmd_robustness(conn, schema)
-    # Add args parameter and use it:
+def cmd_robustness(conn, *, schema: str, args=None) -> None:
+    """Robustness report against the full backfilled dataset.
+
+    See Task 7 of the v2-A plan. v2 invocation persists composite_version=2,
+    run_scope='research', and tags params.batch_id with args.batch_id (or
+    a freshly-generated UUID4 if absent).
+    """
+    from uw_scan.cards.canary_calibration import load_calibration
+    from uw_scan.storage.regime_backtest_repository import RegimeBacktestRepository
+
+    if args is None:
+        args = argparse.Namespace(composite_version=1, batch_id=None)
+
     if args.composite_version == 2:
-        cal_path = REPO_ROOT / "docs/research/regime/canary-calibration-v2.json"
+        cal_path = (
+            REPO_ROOT / "docs" / "research" / "regime" / "canary-calibration-v2.json"
+        )
         cal = load_calibration(path=cal_path)
         run_scope = "research"
     else:
@@ -2061,38 +2113,36 @@ The robustness function (likely `cmd_robustness` — adapt to actual name) needs
         run_scope = "production"
 
     batch_id = args.batch_id or str(uuid.uuid4())
+    print(f"robustness batch_id={batch_id}")
 
-    # ... existing computation ...
+    bt_repo = RegimeBacktestRepository(conn, schema=schema)
+    score_form = cal.score_form
 
-    bt_repo.insert_run(
+    # ... existing computation (series, _section, by_year, by_band, summary) ...
+
+    run_id = bt_repo.insert_run(
         indicator="canary",
-        composite_version=str(cal.composite_version),
-        ...,
-        params={"phase": "robustness", "batch_id": batch_id, ...},
+        composite_version=str(cal.composite_version),  # was: str(COMPOSITE_VERSION)
+        start_date=all_rows[0]["date"],
+        end_date=all_rows[-1]["date"],
+        window_days=350,
+        n_days=len(all_rows),
+        params={
+            "score_form": score_form,
+            "phase": "robustness",
+            "batch_id": batch_id,  # NEW for v2-A
+        },
+        summary=_clean_nans(summary),
         run_scope=run_scope,
     )
-```
-
-Add `--batch-id` argparse arg (optional, str, default None):
-
-```python
-    parser.add_argument(
-        "--batch-id",
-        type=str,
-        default=None,
-        help=(
-            "Optional batch_id to attach to this run. If omitted, a fresh "
-            "UUID4 is generated. Useful for chaining --walk-forward + "
-            "--robustness under a shared batch."
-        ),
-    )
+    bt_repo.mark_run_completed(run_id)
 ```
 
 - [ ] **Step 4: Run robustness tests — verify they pass**
 
 ```bash
-UW_SCAN_TEST_DB_NAME=option_wizard_test uv run pytest \
-    tests/integration/regime/test_canary_v2_walk_forward.py -k robustness -v
+UW_SCAN_DB_NAME=option_wizard_test uv run pytest \
+    tests/integration/regime/test_canary_v2_walk_forward.py -k v2_robustness -v
 ```
 
 Expected: 2 passed.
@@ -2101,18 +2151,16 @@ Expected: 2 passed.
 
 ```bash
 git add scripts/backtest_canary.py tests/integration/regime/test_canary_v2_walk_forward.py
-git commit -m "feat(canary): --composite-version 2 robustness (research scope)
+git commit -m "feat(canary): cmd_robustness accepts args + --composite-version 2
 
-Mirrors the walk-forward plumbing from Task 6: loads v2 calibration,
-forces run_scope='research', persists composite_version=str(cal.composite_version).
-
-New --batch-id flag (optional) allows chaining --walk-forward and
---robustness under the same UUID4 for downstream renderer load.
+Mirrors Task 6's refactor. v2 invocation loads v2 calibration, forces
+run_scope='research', persists composite_version=str(cal.composite_version),
+and tags params.batch_id (UUID4 by default, or args.batch_id if chaining
+with walk-forward).
 
 2 integration tests:
-- 1 robustness row with run_scope='research', composite_version='2',
-  phase='robustness'
-- Shared batch_id when chained with walk-forward via --batch-id
+- 1 robustness row (research, composite_version='2')
+- Shared batch_id when chained via --batch-id
 
 Spec §5.5, §G3."
 ```
@@ -2124,35 +2172,46 @@ Spec §5.5, §G3."
 **Files:**
 - Modify: `tests/integration/regime/test_canary_v2_walk_forward.py`
 
-**Rationale:** Walk-forward recomputes scores from `vol_index_daily` (NOT from `canary_snapshots`). Spec §5.5 says these must match within floating-point tolerance for any given date. The parity test asserts this for ~30 dates per window.
+**Rationale:** Walk-forward recomputes scores from `vol_index_daily` (NOT from `canary_snapshots`). Spec §5.5 says these must match within floating-point tolerance for any given date. The parity test asserts this for ~30 dates across all walk-forward windows.
 
-- [ ] **Step 1: Write the failing parity test**
+- [ ] **Step 1: Write the parity test**
 
 Append to `tests/integration/regime/test_canary_v2_walk_forward.py`:
 
 ```python
+import random
+
+
 def test_v2_walk_forward_recompute_matches_v2_backfill_snapshots(
-    seeded_db_with_v2_backfill,
+    seeded_db_empty_cards,
 ):
-    """For ~30 sample dates across each WF window, the walk-forward's
-    recomputed v2 score equals the v2 backfill snapshot score for the same
-    date. Floating-point tolerance: 1e-6 on raw_score, exact on band.
+    """For ~30 sample dates, walk-forward's recomputed v2 score equals the
+    v2 backfill snapshot score for the same date. Floating-point tolerance:
+    1e-6 on raw_score, exact on band.
 
-    Confirms the two code paths (walk-forward recompute via vol_index_daily
-    vs backfill via canary_snapshots) produce identical outputs at v2.
+    Confirms recompute (from vol_index_daily) vs backfill (from
+    canary_snapshots) produce identical outputs at v2. Spec §5.5 + §7 AC-4b.
+    """
+    from scripts.canary_backfill import cmd_backfill
 
-    Spec §5.5 (source of truth) + §7 AC-4b."""
-    conn = seeded_db_with_v2_backfill.conn
-    schema = seeded_db_with_v2_backfill._schema
+    conn = seeded_db_empty_cards.conn
+    schema = seeded_db_empty_cards._schema
+    seed_vol_index_full_history(conn, schema=schema, start=_date(2013, 1, 2), end=_date(2026, 5, 21))
 
-    # 1. Run v2 walk-forward
-    result = _run_walk_forward(
+    # 1. v2 backfill across the full range
+    backfill_args = argparse.Namespace(
         composite_version=2,
-        test_db_url=seeded_db_with_v2_backfill.url,
+        start_date="2015-01-02",
+        end_date="2026-05-21",
+        overwrite_on_hash_mismatch=False,
+        days=252,
     )
-    assert result.returncode == 0
+    cmd_backfill(conn, schema=schema, args=backfill_args)
 
-    # 2. Pull walk-forward daily rows
+    # 2. v2 walk-forward
+    cmd_walk_forward(conn, schema=schema, args=_wf_args(composite_version=2))
+
+    # 3. Pull walk-forward daily rows
     with conn.cursor() as cur:
         cur.execute(
             f"SELECT d.trade_date, d.score, d.level "
@@ -2162,23 +2221,21 @@ def test_v2_walk_forward_recompute_matches_v2_backfill_snapshots(
             f"  AND r.run_scope='research' AND r.params->>'phase'='walk_forward' "
             f"ORDER BY d.trade_date"
         )
-        wf_rows = {r[0]: (r[1], r[2]) for r in cur.fetchall()}
+        wf_rows = {r[0]: (float(r[1]), r[2]) for r in cur.fetchall()}
 
-    # 3. Pull backfill snapshot rows for the same dates
+    # 4. Pull backfill snapshot rows
     with conn.cursor() as cur:
         cur.execute(
             f"SELECT data_date, score, band FROM {schema}.canary_snapshots "
             f"WHERE composite_version=2 AND data_date = ANY(%s)",
             (list(wf_rows.keys()),),
         )
-        bf_rows = {r[0]: (r[1], r[2]) for r in cur.fetchall()}
+        bf_rows = {r[0]: (float(r[1]), r[2]) for r in cur.fetchall()}
 
-    # 4. Sample ~30 dates and compare
-    import random
+    # 5. Sample and compare
     rng = random.Random(42)
     overlap = sorted(set(wf_rows) & set(bf_rows))
     sample = rng.sample(overlap, min(30, len(overlap)))
-
     assert len(sample) >= 10, f"need ≥10 overlap dates, got {len(sample)}"
 
     mismatches = []
@@ -2189,91 +2246,114 @@ def test_v2_walk_forward_recompute_matches_v2_backfill_snapshots(
             mismatches.append(
                 f"  {d}: wf=({wf_score}, {wf_band}) bf=({bf_score}, {bf_band})"
             )
-
     assert not mismatches, (
         f"recompute vs backfill parity failed on {len(mismatches)} of "
         f"{len(sample)} sampled dates:\n" + "\n".join(mismatches[:10])
     )
 ```
 
-- [ ] **Step 2: Run the parity test — expect PASS (no implementation needed)**
+- [ ] **Step 2: Run the parity test**
 
 ```bash
-UW_SCAN_TEST_DB_NAME=option_wizard_test uv run pytest \
+UW_SCAN_DB_NAME=option_wizard_test uv run pytest \
     tests/integration/regime/test_canary_v2_walk_forward.py::test_v2_walk_forward_recompute_matches_v2_backfill_snapshots -v
 ```
 
-Expected: PASS. (Both paths use `run_analysis()` with the same v2 calibration; outputs should match by construction.)
+Expected: PASS (both paths use `run_analysis` with the same v2 calibration).
 
-- [ ] **Step 3: If the test FAILS, investigate the divergence**
+If FAIL: investigate divergence — most likely:
+- The backfill computes one extra/fewer warmup bar than walk-forward
+- An intermediate scorer rounds differently between paths
+- The `_replay_events` state differs
 
-A failure here points to a real bug — most likely one of:
-- Walk-forward uses a different code path than `run_analysis` (e.g., a separate `_compute_canary_series` with subtle differences)
-- The vol_index_daily arrays passed to walk-forward differ from what canary_backfill uses
-- Rounding differences in intermediate computations
+Fix the underlying divergence — do NOT loosen the tolerance.
 
-Fix the underlying divergence — DO NOT loosen the tolerance.
-
-- [ ] **Step 4: Commit**
+- [ ] **Step 3: Commit**
 
 ```bash
 git add tests/integration/regime/test_canary_v2_walk_forward.py
 git commit -m "test(canary): v2 walk-forward recompute vs backfill parity (AC-4b)
 
-For ~30 sampled dates per WF window, asserts that the walk-forward's
-recomputed v2 score (from vol_index_daily) matches the v2 backfill
-snapshot score (from canary_snapshots) within 1e-6 floating-point
+For ~30 sampled dates, asserts walk-forward's recomputed v2 score
+matches the v2 backfill snapshot score within 1e-6 floating-point
 tolerance, with byte-identical band.
 
-This proves the two code paths produce identical outputs at v2 — a
-divergence here would mean either: (a) walk-forward and backfill use
-different code paths, (b) the same code path but with input drift, or
-(c) precision loss in intermediate computation. AC-4b catches all three.
-
-Spec §5.5 (source of truth) + §7 AC-4b."
+Catches: (a) walk-forward and backfill diverging code paths, (b) input
+drift between paths, (c) precision loss in intermediates. Spec §5.5 +
+§7 AC-4b."
 ```
 
 ---
 
-### Task 9: `FlipGateEvidence` dataclass + `render_canary_v1_v2_compare` renderer + unit tests
+### Task 9: NEW module `src/uw_scan/reports/regime_canary_v1_v2_compare.py` (assembly + renderer + CLI)
 
 **Files:**
 - Create: `src/uw_scan/reports/regime_canary_v1_v2_compare.py`
 - Create: `tests/unit/test_canary_v1_v2_compare_renderer.py`
 
-**Rationale:** Pure-function renderer separated from DB access (Codex-ISSUE-1 caught this). The renderer takes a `FlipGateEvidence` dataclass; the dispatcher (Task 10) assembles it.
+**Rationale:** Centralize all v1↔v2 comparison logic in one module. `scripts/backtest_canary.py` is already 1,174 lines — adding the dispatcher in-place would violate the "no methods on >1,000 LOC files without a split plan" convention. Same precedent as PR #88's `regime_canary_form_sweep_full.py`.
 
-- [ ] **Step 1: Write the renderer module with FlipGateEvidence + render function**
+The new module owns:
+- `FlipGateEvidence` dataclass (pure data)
+- `_assemble_flip_gate_evidence(conn, *, schema)` — DB queries
+- `_full_history_aucs_via_compute_canary_series(conn, *, cal, schema)` — uses `_compute_canary_series` so `eval_rows` have the `spx` field `_aucs_for_rows` needs (snapshot rows don't)
+- `_band_distribution_for_version(conn, *, schema, version)`
+- `_run_subprocess_test(test_path)` for AC-F6
+- `_eval_ac_f1..f6` helpers
+- `render_canary_v1_v2_compare(ev) -> str` — pure renderer
+- `assemble_and_render_canary_v1_v2_compare(conn, *, schema) -> str` — convenience for callers
+- `main()` — standalone CLI
+
+`backtest_canary.py` only knows about the convenience function.
+
+- [ ] **Step 1: Write the module**
 
 Path: `src/uw_scan/reports/regime_canary_v1_v2_compare.py`
 
 ```python
-"""Canary v1-vs-v2 comparison renderer + standalone CLI.
+"""Canary v1-vs-v2 evidence assembly + comparison renderer + standalone CLI.
 
-Pure function. No DB, no I/O. Takes a pre-assembled FlipGateEvidence
-dataclass and renders a markdown side-by-side report including the
-AC-F1..F6 evaluation block.
+Three layers:
+  1. _assemble_flip_gate_evidence(conn, *, schema) — DB queries (impure).
+     Reads v1 walk-forward production runs, v2 walk-forward research runs
+     (sharing a batch_id), v2 robustness run, v1/v2 snapshot-based band
+     distributions and CCA event states. Computes v1 + v2 full-history
+     AUCs via _compute_canary_series so the row dicts contain the `spx`
+     field _aucs_for_rows needs (canary_snapshots rows do not).
 
-See docs/superpowers/specs/2026-05-27-canary-v2a-vol-speed-separation-design.md.
+  2. render_canary_v1_v2_compare(ev) -> str — pure function on
+     FlipGateEvidence. Evaluates AC-F1..F6 and emits a markdown report
+     with SHIP/STOP verdict + locked PR-2 footer.
+
+  3. main() — standalone CLI for re-rendering an already-persisted bundle.
+
+The thin dispatcher in `scripts/backtest_canary.py` calls
+assemble_and_render_canary_v1_v2_compare() and prints the result.
 """
 
 from __future__ import annotations
 
 import argparse
+import subprocess
 import sys
-from dataclasses import dataclass, field
+from dataclasses import dataclass
+from datetime import date as _date
 from io import StringIO
-from typing import Mapping
+from pathlib import Path
 
 import psycopg
 
+from uw_scan.cards.canary_calibration import load_calibration
 from uw_scan.config import Settings
+
+REPO_ROOT = Path(__file__).resolve().parents[3]
+V1_CAL_PATH = REPO_ROOT / "docs" / "research" / "regime" / "canary-calibration-v1.json"
+V2_CAL_PATH = REPO_ROOT / "docs" / "research" / "regime" / "canary-calibration-v2.json"
 
 CANONICAL_WINDOWS = ("WF-1", "WF-2", "WF-3", "WF-4", "WF-5", "WF-6")
 CCA_EVENT_DATES = ("2011-08-08", "2015-08-24", "2018-02-05", "2020-03-09")
 
-# AC-F1..F5 thresholds, locked-in by the spec (§8). DO NOT change without
-# a spec amendment per spec §15.
+# AC-F1..F5 thresholds, locked-in by spec §8. DO NOT change without a spec amendment.
 AC_F1_60D_BAR = 0.634
 AC_F2_20D_BAR = 0.622
 AC_F2_5D_BAR = 0.615
@@ -2285,21 +2365,19 @@ AC_F5_WATCH_PCT_BAR = 44.3
 class FlipGateEvidence:
     """Pre-assembled bundle that lets the renderer evaluate every AC-Fn locally.
 
-    The dispatcher (--v1-v2-compare in scripts/backtest_canary.py) is
-    responsible for assembling this from the DB; the renderer is pure.
-
-    Field meanings:
-      v1_runs / v2_runs: 6 walk-forward run dicts each, one per WF window.
-        v1 has composite_version='1' / run_scope='production',
-        v2 has composite_version='2' / run_scope='research'.
-      v2_robustness_run: 1 robustness run dict, same scope/version as v2_runs.
-      v1_full_history_aucs / v2_full_history_aucs: AUC computed by
-        _aucs_for_rows over ALL canary_snapshots at the relevant
-        composite_version. Keys: up5d_2pct, up20d_5pct, up60d_10pct.
+    Fields:
+      v1_runs / v2_runs: 6 walk-forward run dicts each.
+        v1: composite_version='1', run_scope='production'.
+        v2: composite_version='2', run_scope='research', shared batch_id.
+      v2_robustness_run: 1 robustness run dict, same scope/version.
+      v1_full_history_aucs / v2_full_history_aucs: composite AUC over the
+        FULL history at the given composite_version. Computed via
+        _compute_canary_series (NOT raw SQL projection — snapshots don't
+        carry the spx forward-return labels).
       v1_band_distribution / v2_band_distribution: pct of full-history
-        snapshots in each band. Keys: NONE, WATCH, BUY, STRONG_BUY.
+        snapshots per band. Keys: NONE, WATCH, BUY, STRONG_BUY.
       v2_cca_event_states: payload.speed.confirmed_canary_active per
-        CCA event date. Keys are ISO date strings; values are bool.
+        CCA event date. Keys: ISO date strings. Values: bool.
       oos_gate_passed: result of running test_canary_oos_gate.py.
       v1_payload_hash_golden_passed: result of running
         test_canary_v1_payload_hash_golden.py.
@@ -2325,17 +2403,19 @@ def _validate_evidence(ev: FlipGateEvidence) -> None:
         raise ValueError(f"v2_runs must have 6 runs, got {len(ev.v2_runs)}")
     for r in ev.v1_runs:
         if str(r.get("composite_version")) != "1":
-            raise ValueError(f"v1_runs has composite_version={r.get('composite_version')!r}")
+            raise ValueError(f"v1_runs composite_version={r.get('composite_version')!r}")
         if r.get("run_scope") != "production":
-            raise ValueError(f"v1_runs has run_scope={r.get('run_scope')!r}")
+            raise ValueError(f"v1_runs run_scope={r.get('run_scope')!r}")
     for r in ev.v2_runs:
         if str(r.get("composite_version")) != "2":
-            raise ValueError(f"v2_runs has composite_version={r.get('composite_version')!r}")
+            raise ValueError(f"v2_runs composite_version={r.get('composite_version')!r}")
         if r.get("run_scope") != "research":
-            raise ValueError(f"v2_runs has run_scope={r.get('run_scope')!r}")
+            raise ValueError(f"v2_runs run_scope={r.get('run_scope')!r}")
     v2_batch_ids = {r["params"].get("batch_id") for r in ev.v2_runs}
     if len(v2_batch_ids) != 1:
         raise ValueError(f"v2_runs must share batch_id, got {v2_batch_ids}")
+    if v2_batch_ids == {None}:
+        raise ValueError("v2_runs batch_id must not be None")
     v1_window_ids = {r["params"].get("window_id") for r in ev.v1_runs}
     v2_window_ids = {r["params"].get("window_id") for r in ev.v2_runs}
     if v1_window_ids != set(CANONICAL_WINDOWS):
@@ -2343,12 +2423,12 @@ def _validate_evidence(ev: FlipGateEvidence) -> None:
     if v2_window_ids != set(CANONICAL_WINDOWS):
         raise ValueError(f"v2_runs window_ids != WF-1..WF-6, got {v2_window_ids}")
     if str(ev.v2_robustness_run.get("composite_version")) != "2":
-        raise ValueError("v2_robustness_run must be composite_version=2")
+        raise ValueError("v2_robustness_run composite_version must be 2")
     if ev.v2_robustness_run.get("run_scope") != "research":
-        raise ValueError("v2_robustness_run must be research-scoped")
+        raise ValueError("v2_robustness_run run_scope must be research")
     for d in CCA_EVENT_DATES:
         if d not in ev.v2_cca_event_states:
-            raise ValueError(f"v2_cca_event_states missing CCA date {d}")
+            raise ValueError(f"v2_cca_event_states missing {d}")
 
 
 def _eval_ac_f1(ev: FlipGateEvidence) -> tuple[bool, str]:
@@ -2361,7 +2441,7 @@ def _eval_ac_f1(ev: FlipGateEvidence) -> tuple[bool, str]:
     verdict = "PASS" if passed else "FAIL"
     return passed, (
         f"AC-F1 [{verdict}]: v2 60d AUC = {auc:.4f} "
-        f"(bar ≥ {AC_F1_60D_BAR}; v1 ref {v1_ref:.4f}, delta {delta:+.4f})"
+        f"(bar >= {AC_F1_60D_BAR}; v1 ref {v1_ref:.4f}, delta {delta:+.4f})"
     )
 
 
@@ -2376,9 +2456,9 @@ def _eval_ac_f2(ev: FlipGateEvidence) -> tuple[bool, str]:
     verdict = "PASS" if passed else "FAIL"
     return passed, (
         f"AC-F2 [{verdict}]: v2 20d AUC = {auc_20:.4f} "
-        f"(bar ≥ {AC_F2_20D_BAR}, {'PASS' if p20 else 'FAIL'}), "
-        f"v2 5d AUC = {auc_5:.4f} (bar ≥ {AC_F2_5D_BAR}, "
-        f"{'PASS' if p5 else 'FAIL'})"
+        f"(bar >= {AC_F2_20D_BAR}, {'PASS' if p20 else 'FAIL'}), "
+        f"v2 5d AUC = {auc_5:.4f} "
+        f"(bar >= {AC_F2_5D_BAR}, {'PASS' if p5 else 'FAIL'})"
     )
 
 
@@ -2402,15 +2482,14 @@ def _eval_ac_f4(ev: FlipGateEvidence) -> tuple[bool, str]:
             continue
         delta = v2_auc - v1_auc
         if delta < AC_F4_PER_WINDOW_TOLERANCE:
-            failures.append(
-                f"{wid}: v2={v2_auc:.4f} v1={v1_auc:.4f} delta={delta:+.4f}"
-            )
+            failures.append(f"{wid}: v2={v2_auc:.4f} v1={v1_auc:.4f} delta={delta:+.4f}")
     passed = not failures
     verdict = "PASS" if passed else "FAIL"
-    detail = (
-        "all 6 windows within tolerance" if passed else f"failed: {failures}"
+    detail = "all 6 windows within tolerance" if passed else f"failed: {failures}"
+    return passed, (
+        f"AC-F4 [{verdict}]: per-window 60d AUC delta "
+        f">= {AC_F4_PER_WINDOW_TOLERANCE} — {detail}"
     )
-    return passed, f"AC-F4 [{verdict}]: per-window 60d AUC delta ≥ {AC_F4_PER_WINDOW_TOLERANCE} — {detail}"
 
 
 def _eval_ac_f5(ev: FlipGateEvidence) -> tuple[bool, str]:
@@ -2421,16 +2500,17 @@ def _eval_ac_f5(ev: FlipGateEvidence) -> tuple[bool, str]:
     verdict = "PASS" if passed else "FAIL"
     return passed, (
         f"AC-F5 [{verdict}]: v2 WATCH% = {watch:.1f}% "
-        f"(bar ≤ {AC_F5_WATCH_PCT_BAR}%)"
+        f"(bar <= {AC_F5_WATCH_PCT_BAR}%)"
     )
 
 
 def _eval_ac_f6(ev: FlipGateEvidence) -> tuple[bool, str]:
     passed = ev.oos_gate_passed and ev.v1_payload_hash_golden_passed
     verdict = "PASS" if passed else "FAIL"
-    parts = []
-    parts.append("oos_gate=" + ("PASS" if ev.oos_gate_passed else "FAIL"))
-    parts.append("v1_golden=" + ("PASS" if ev.v1_payload_hash_golden_passed else "FAIL"))
+    parts = [
+        "oos_gate=" + ("PASS" if ev.oos_gate_passed else "FAIL"),
+        "v1_golden=" + ("PASS" if ev.v1_payload_hash_golden_passed else "FAIL"),
+    ]
     return passed, f"AC-F6 [{verdict}]: v1 unchanged — {', '.join(parts)}"
 
 
@@ -2449,9 +2529,9 @@ def render_canary_v1_v2_compare(ev: FlipGateEvidence) -> str:
     out.write(f"v2 batch_id: `{v2_batch_id}`\n")
     out.write(f"v2 robustness run id: {ev.v2_robustness_run.get('id')}\n\n")
 
-    # AUC table
+    # Full-history AUCs
     out.write("## Full-history AUCs (composite over all snapshots)\n\n")
-    out.write("| Horizon          | v1 (production) | v2 (research)   | Δ        |\n")
+    out.write("| Horizon          | v1 (production) | v2 (research)   |    Δ     |\n")
     out.write("|------------------|----------------:|----------------:|---------:|\n")
     for horizon in ("up5d_2pct", "up20d_5pct", "up60d_10pct"):
         v1 = ev.v1_full_history_aucs.get(horizon)
@@ -2460,10 +2540,12 @@ def render_canary_v1_v2_compare(ev: FlipGateEvidence) -> str:
             out.write(f"| {horizon:<16} | n/a             | n/a             | n/a      |\n")
         else:
             d = v2 - v1
-            out.write(f"| {horizon:<16} | {v1:>14.4f}  | {v2:>14.4f}  | {d:>+8.4f} |\n")
+            out.write(
+                f"| {horizon:<16} | {v1:>14.4f}  | {v2:>14.4f}  | {d:>+8.4f} |\n"
+            )
     out.write("\n")
 
-    # Band distribution table
+    # Band distribution
     out.write("## Band distribution (full-history snapshots)\n\n")
     out.write("| Band       |  v1 % |  v2 % |\n")
     out.write("|------------|------:|------:|\n")
@@ -2473,7 +2555,7 @@ def render_canary_v1_v2_compare(ev: FlipGateEvidence) -> str:
         out.write(f"| {band:<10} | {v1:>4.1f} | {v2:>4.1f} |\n")
     out.write("\n")
 
-    # Per-window AUC table
+    # Per-window
     out.write("## Per-window 60d AUC (walk-forward)\n\n")
     out.write("| Window | v1 60d AUC | v2 60d AUC |    Δ    |\n")
     out.write("|--------|-----------:|-----------:|--------:|\n")
@@ -2483,35 +2565,30 @@ def render_canary_v1_v2_compare(ev: FlipGateEvidence) -> str:
         v1 = v1_by_wid[wid]["summary"]["aucs"]["composite"].get("up60d_10pct")
         v2 = v2_by_wid[wid]["summary"]["aucs"]["composite"].get("up60d_10pct")
         if v1 is None or v2 is None:
-            out.write(f"| {wid}    | n/a        | n/a        | n/a     |\n")
+            out.write(f"| {wid}   | n/a        | n/a        | n/a     |\n")
         else:
             d = v2 - v1
-            out.write(f"| {wid}    | {v1:>9.4f}  | {v2:>9.4f}  | {d:>+7.4f} |\n")
+            out.write(f"| {wid}   | {v1:>9.4f}  | {v2:>9.4f}  | {d:>+7.4f} |\n")
     out.write("\n")
 
-    # AC evaluation block
+    # AC evaluation
     out.write("## AC-F1..F6 Evaluation\n\n")
     results = [
-        _eval_ac_f1(ev),
-        _eval_ac_f2(ev),
-        _eval_ac_f3(ev),
-        _eval_ac_f4(ev),
-        _eval_ac_f5(ev),
-        _eval_ac_f6(ev),
+        _eval_ac_f1(ev), _eval_ac_f2(ev), _eval_ac_f3(ev),
+        _eval_ac_f4(ev), _eval_ac_f5(ev), _eval_ac_f6(ev),
     ]
     for _, line in results:
         out.write(f"- {line}\n")
     out.write("\n")
 
     all_pass = all(p for p, _ in results)
-    verdict_line = "SHIP" if all_pass else "STOP"
-    out.write(f"## Verdict: **{verdict_line}**\n\n")
-
+    verdict = "SHIP" if all_pass else "STOP"
+    out.write(f"## Verdict: **{verdict}**\n\n")
     if all_pass:
         out.write(
-            "All 6 AC-Fn gates passed. PR 2 may flip `COMPOSITE_VERSION = 1 → 2` "
-            "in `src/uw_scan/cards/canary_calibration.py:11`. See spec §10 for the "
-            "PR 2 task list.\n\n"
+            "All 6 AC-Fn gates passed. PR 2 may flip "
+            "`COMPOSITE_VERSION = 1 -> 2` in `canary_calibration.py:11`. "
+            "See spec §10 for the PR 2 task list.\n\n"
         )
     else:
         out.write(
@@ -2520,464 +2597,80 @@ def render_canary_v1_v2_compare(ev: FlipGateEvidence) -> str:
             "§13, file a follow-up issue, and pivot to v2-C (issue #90).\n\n"
         )
 
-    # Fixed footer
     out.write("## What PR 2 will do iff this verdict is SHIP\n\n")
     out.write(
         "PR 2 is a small (~80-150 LOC) commit that:\n"
-        "1. Bumps `COMPOSITE_VERSION = 2` in `canary_calibration.py:11` "
-        "(retargeting load_calibration() to v2.json is automatic via f-string).\n"
+        "1. Bumps `COMPOSITE_VERSION = 2` in `canary_calibration.py:11`.\n"
         "2. Regens `web/lib/types.ts` from updated OpenAPI schema.\n"
-        "3. Replaces `LAST_KNOWN_AUC_v1_*` with `LAST_KNOWN_AUC_v2_*` constants "
-        "derived from this report's AUC numbers.\n"
-        "4. Updates `canary-methodology.md` to document v2 formula + the "
-        "AC-F1..F6 gate satisfied.\n"
+        "3. Replaces `LAST_KNOWN_AUC_v1_*` with `LAST_KNOWN_AUC_v2_*`.\n"
+        "4. Updates `canary-methodology.md` to document the v2 formula.\n"
         "5. Adds a deprecation note in `canary-calibration-v1.json`.\n"
-        "6. Updates `CanarySubTab.tsx` and `CanaryValidationPanel.tsx` to "
-        "surface `vol_resolution_score` + `speed_state` + `warning_cap` "
-        "separately.\n"
+        "6. Updates `CanarySubTab.tsx` + `CanaryValidationPanel.tsx` to "
+        "surface `vol_resolution_score` + `speed_state` + `warning_cap` separately.\n"
     )
-
     return out.getvalue()
 
 
-def main() -> int:
-    """Standalone CLI: re-render the latest v1 + v2 evidence bundle from DB.
+# --------------- DB assembly (impure) ---------------
 
-    Use this for read-only re-rendering after the dispatcher has already
-    persisted the evidence rows. For end-to-end (compute + render), use
-    `scripts/backtest_canary.py --v1-v2-compare`.
+
+def _full_history_aucs_via_compute_canary_series(
+    conn, *, cal, schema: str,
+) -> dict[str, float]:
+    """Compute composite AUC over the full history using _compute_canary_series.
+
+    Snapshot rows do not carry the spx forward-return inputs that
+    _aucs_for_rows -> _entry_lagged_label needs. _compute_canary_series's
+    eval_rows DO ({"date","spx","score","band","tactical","structural","speed",
+    "warning_state"}), so this is the correct apples-to-apples path.
     """
-    p = argparse.ArgumentParser(description=__doc__)
-    args = p.parse_args()
+    # Lazy import — scripts.backtest_canary owns _aucs_for_rows.
+    from scripts.backtest_canary import _aucs_for_rows, _compute_canary_series
 
-    # Lazy import to avoid circular deps in tests
-    from scripts.backtest_canary import _assemble_flip_gate_evidence  # type: ignore[import]
-
-    settings = Settings.from_env()
-    with psycopg.connect(settings.db_dsn()) as conn:
-        ev = _assemble_flip_gate_evidence(conn, schema=settings.db_schema)
-
-    print(render_canary_v1_v2_compare(ev))
-    return 0
+    series = _compute_canary_series(
+        conn, cal, form=cal.score_form,
+        start=_date(2011, 2, 8), end=_date.today(),
+        schema=schema,
+    )
+    return _aucs_for_rows(series["eval_rows"])["composite"]
 
 
-if __name__ == "__main__":
-    sys.exit(main())
-```
-
-- [ ] **Step 2: Write the failing renderer unit tests**
-
-Path: `tests/unit/test_canary_v1_v2_compare_renderer.py`
-
-```python
-"""Unit tests for render_canary_v1_v2_compare.
-
-See docs/superpowers/specs/2026-05-27-canary-v2a-vol-speed-separation-design.md §5.7.
-"""
-
-from __future__ import annotations
-
-from copy import deepcopy
-
-import pytest
-
-from uw_scan.reports.regime_canary_v1_v2_compare import (
-    CANONICAL_WINDOWS,
-    CCA_EVENT_DATES,
-    FlipGateEvidence,
-    render_canary_v1_v2_compare,
-)
-
-# A minimal happy-path fixture that passes ALL six ACs.
-def _mk_run(*, version: str, scope: str, window_id: str, auc_60d: float = 0.65) -> dict:
+def _band_distribution_for_version(
+    conn, *, schema: str, version: int,
+) -> dict[str, float]:
+    with conn.cursor() as cur:
+        cur.execute(
+            f"SELECT band, COUNT(*) FROM {schema}.canary_snapshots "
+            f"WHERE composite_version=%s GROUP BY band",
+            (version,),
+        )
+        counts = dict(cur.fetchall())
+    total = sum(counts.values())
+    if total == 0:
+        return {b: 0.0 for b in ("NONE", "WATCH", "BUY", "STRONG_BUY")}
     return {
-        "id": 100 + ord(window_id[-1]),
-        "composite_version": version,
-        "run_scope": scope,
-        "params": {
-            "phase": "walk_forward",
-            "batch_id": "batch-v2-test" if version == "2" else "batch-v1-test",
-            "window_id": window_id,
-            "score_form": "linear",
-        },
-        "summary": {
-            "aucs": {
-                "composite": {
-                    "up5d_2pct": 0.62,
-                    "up20d_5pct": 0.63,
-                    "up60d_10pct": auc_60d,
-                }
-            }
-        },
+        b: 100.0 * counts.get(b, 0) / total
+        for b in ("NONE", "WATCH", "BUY", "STRONG_BUY")
     }
 
 
-def _happy_evidence() -> FlipGateEvidence:
-    return FlipGateEvidence(
-        v1_runs=[_mk_run(version="1", scope="production", window_id=w) for w in CANONICAL_WINDOWS],
-        v2_runs=[_mk_run(version="2", scope="research", window_id=w) for w in CANONICAL_WINDOWS],
-        v2_robustness_run={
-            "id": 999,
-            "composite_version": "2",
-            "run_scope": "research",
-            "params": {"phase": "robustness", "batch_id": "batch-v2-test"},
-            "summary": {},
-        },
-        v1_full_history_aucs={"up5d_2pct": 0.62, "up20d_5pct": 0.627, "up60d_10pct": 0.619},
-        v2_full_history_aucs={"up5d_2pct": 0.625, "up20d_5pct": 0.635, "up60d_10pct": 0.640},
-        v1_band_distribution={"NONE": 55.0, "WATCH": 39.3, "BUY": 5.5, "STRONG_BUY": 0.2},
-        v2_band_distribution={"NONE": 60.0, "WATCH": 35.0, "BUY": 4.9, "STRONG_BUY": 0.1},
-        v2_cca_event_states={d: True for d in CCA_EVENT_DATES},
-        oos_gate_passed=True,
-        v1_payload_hash_golden_passed=True,
+def _run_subprocess_test(test_path: str) -> bool:
+    """Run pytest on a single test file. Returns True on returncode 0.
+
+    Inherits parent environment (PATH preserved so `uv` is found on macOS,
+    which keeps uv at ~/.cargo/bin/uv outside /usr/bin:/bin).
+    """
+    proc = subprocess.run(
+        ["uv", "run", "pytest", test_path, "-q", "--no-header"],
+        capture_output=True, text=True, timeout=300,
     )
+    return proc.returncode == 0
 
 
-def test_happy_path_ship_verdict():
-    """All 6 ACs passing → verdict SHIP."""
-    out = render_canary_v1_v2_compare(_happy_evidence())
-    assert "Verdict: **SHIP**" in out
-    assert "AC-F1 [PASS]" in out
-    assert "AC-F2 [PASS]" in out
-    assert "AC-F3 [PASS]" in out
-    assert "AC-F4 [PASS]" in out
-    assert "AC-F5 [PASS]" in out
-    assert "AC-F6 [PASS]" in out
-
-
-def test_ac_f1_fail_below_bar():
-    """v2 60d AUC = 0.620 (below 0.634 bar) → AC-F1 FAIL, verdict STOP."""
-    ev = _happy_evidence()
-    ev = FlipGateEvidence(
-        v1_runs=ev.v1_runs, v2_runs=ev.v2_runs, v2_robustness_run=ev.v2_robustness_run,
-        v1_full_history_aucs=ev.v1_full_history_aucs,
-        v2_full_history_aucs={"up5d_2pct": 0.625, "up20d_5pct": 0.635, "up60d_10pct": 0.620},
-        v1_band_distribution=ev.v1_band_distribution,
-        v2_band_distribution=ev.v2_band_distribution,
-        v2_cca_event_states=ev.v2_cca_event_states,
-        oos_gate_passed=ev.oos_gate_passed,
-        v1_payload_hash_golden_passed=ev.v1_payload_hash_golden_passed,
-    )
-    out = render_canary_v1_v2_compare(ev)
-    assert "AC-F1 [FAIL]" in out
-    assert "Verdict: **STOP**" in out
-
-
-def test_ac_f2_fail_20d_horizon():
-    """v2 20d AUC = 0.610 (below 0.622 bar) → AC-F2 FAIL."""
-    ev = _happy_evidence()
-    ev = FlipGateEvidence(
-        v1_runs=ev.v1_runs, v2_runs=ev.v2_runs, v2_robustness_run=ev.v2_robustness_run,
-        v1_full_history_aucs=ev.v1_full_history_aucs,
-        v2_full_history_aucs={"up5d_2pct": 0.625, "up20d_5pct": 0.610, "up60d_10pct": 0.640},
-        v1_band_distribution=ev.v1_band_distribution,
-        v2_band_distribution=ev.v2_band_distribution,
-        v2_cca_event_states=ev.v2_cca_event_states,
-        oos_gate_passed=ev.oos_gate_passed,
-        v1_payload_hash_golden_passed=ev.v1_payload_hash_golden_passed,
-    )
-    out = render_canary_v1_v2_compare(ev)
-    assert "AC-F2 [FAIL]" in out
-    assert "Verdict: **STOP**" in out
-
-
-def test_ac_f3_fail_when_cca_event_missing_fire():
-    """If any CCA event date has confirmed_canary_active=False → AC-F3 FAIL."""
-    ev = _happy_evidence()
-    cca = dict(ev.v2_cca_event_states)
-    cca["2011-08-08"] = False
-    ev = FlipGateEvidence(
-        v1_runs=ev.v1_runs, v2_runs=ev.v2_runs, v2_robustness_run=ev.v2_robustness_run,
-        v1_full_history_aucs=ev.v1_full_history_aucs,
-        v2_full_history_aucs=ev.v2_full_history_aucs,
-        v1_band_distribution=ev.v1_band_distribution,
-        v2_band_distribution=ev.v2_band_distribution,
-        v2_cca_event_states=cca,
-        oos_gate_passed=ev.oos_gate_passed,
-        v1_payload_hash_golden_passed=ev.v1_payload_hash_golden_passed,
-    )
-    out = render_canary_v1_v2_compare(ev)
-    assert "AC-F3 [FAIL]" in out
-    assert "2011-08-08" in out
-
-
-def test_ac_f4_fail_when_window_regresses_more_than_002():
-    """If any window v2−v1 60d AUC < −0.02 → AC-F4 FAIL."""
-    ev = _happy_evidence()
-    v2_runs = list(deepcopy(ev.v2_runs))
-    # Knock WF-3 from 0.65 down to 0.60; with v1 at 0.65 this is −0.05 < −0.02.
-    v2_runs[2]["summary"]["aucs"]["composite"]["up60d_10pct"] = 0.60
-    ev = FlipGateEvidence(
-        v1_runs=ev.v1_runs, v2_runs=v2_runs, v2_robustness_run=ev.v2_robustness_run,
-        v1_full_history_aucs=ev.v1_full_history_aucs,
-        v2_full_history_aucs=ev.v2_full_history_aucs,
-        v1_band_distribution=ev.v1_band_distribution,
-        v2_band_distribution=ev.v2_band_distribution,
-        v2_cca_event_states=ev.v2_cca_event_states,
-        oos_gate_passed=ev.oos_gate_passed,
-        v1_payload_hash_golden_passed=ev.v1_payload_hash_golden_passed,
-    )
-    out = render_canary_v1_v2_compare(ev)
-    assert "AC-F4 [FAIL]" in out
-    assert "WF-3" in out
-
-
-def test_ac_f5_fail_when_watch_pct_too_high():
-    """v2 WATCH% = 50.0 (above 44.3 bar) → AC-F5 FAIL."""
-    ev = _happy_evidence()
-    ev = FlipGateEvidence(
-        v1_runs=ev.v1_runs, v2_runs=ev.v2_runs, v2_robustness_run=ev.v2_robustness_run,
-        v1_full_history_aucs=ev.v1_full_history_aucs,
-        v2_full_history_aucs=ev.v2_full_history_aucs,
-        v1_band_distribution=ev.v1_band_distribution,
-        v2_band_distribution={"NONE": 44.5, "WATCH": 50.0, "BUY": 5.4, "STRONG_BUY": 0.1},
-        v2_cca_event_states=ev.v2_cca_event_states,
-        oos_gate_passed=ev.oos_gate_passed,
-        v1_payload_hash_golden_passed=ev.v1_payload_hash_golden_passed,
-    )
-    out = render_canary_v1_v2_compare(ev)
-    assert "AC-F5 [FAIL]" in out
-
-
-def test_ac_f6_fail_when_oos_gate_fails():
-    ev = _happy_evidence()
-    ev = FlipGateEvidence(
-        v1_runs=ev.v1_runs, v2_runs=ev.v2_runs, v2_robustness_run=ev.v2_robustness_run,
-        v1_full_history_aucs=ev.v1_full_history_aucs,
-        v2_full_history_aucs=ev.v2_full_history_aucs,
-        v1_band_distribution=ev.v1_band_distribution,
-        v2_band_distribution=ev.v2_band_distribution,
-        v2_cca_event_states=ev.v2_cca_event_states,
-        oos_gate_passed=False,
-        v1_payload_hash_golden_passed=ev.v1_payload_hash_golden_passed,
-    )
-    out = render_canary_v1_v2_compare(ev)
-    assert "AC-F6 [FAIL]" in out
-
-
-def test_ac_f6_fail_when_v1_golden_fails():
-    ev = _happy_evidence()
-    ev = FlipGateEvidence(
-        v1_runs=ev.v1_runs, v2_runs=ev.v2_runs, v2_robustness_run=ev.v2_robustness_run,
-        v1_full_history_aucs=ev.v1_full_history_aucs,
-        v2_full_history_aucs=ev.v2_full_history_aucs,
-        v1_band_distribution=ev.v1_band_distribution,
-        v2_band_distribution=ev.v2_band_distribution,
-        v2_cca_event_states=ev.v2_cca_event_states,
-        oos_gate_passed=ev.oos_gate_passed,
-        v1_payload_hash_golden_passed=False,
-    )
-    out = render_canary_v1_v2_compare(ev)
-    assert "AC-F6 [FAIL]" in out
-
-
-def test_invalid_v1_runs_count_raises():
-    ev = _happy_evidence()
-    with pytest.raises(ValueError, match="v1_runs must have 6"):
-        render_canary_v1_v2_compare(
-            FlipGateEvidence(
-                v1_runs=ev.v1_runs[:5],  # only 5 — invalid
-                v2_runs=ev.v2_runs, v2_robustness_run=ev.v2_robustness_run,
-                v1_full_history_aucs=ev.v1_full_history_aucs,
-                v2_full_history_aucs=ev.v2_full_history_aucs,
-                v1_band_distribution=ev.v1_band_distribution,
-                v2_band_distribution=ev.v2_band_distribution,
-                v2_cca_event_states=ev.v2_cca_event_states,
-                oos_gate_passed=ev.oos_gate_passed,
-                v1_payload_hash_golden_passed=ev.v1_payload_hash_golden_passed,
-            )
-        )
-
-
-def test_invalid_v2_scope_raises():
-    ev = _happy_evidence()
-    bad = [deepcopy(r) for r in ev.v2_runs]
-    bad[0]["run_scope"] = "production"  # invalid — v2 must be research
-    with pytest.raises(ValueError, match="run_scope"):
-        render_canary_v1_v2_compare(
-            FlipGateEvidence(
-                v1_runs=ev.v1_runs, v2_runs=bad, v2_robustness_run=ev.v2_robustness_run,
-                v1_full_history_aucs=ev.v1_full_history_aucs,
-                v2_full_history_aucs=ev.v2_full_history_aucs,
-                v1_band_distribution=ev.v1_band_distribution,
-                v2_band_distribution=ev.v2_band_distribution,
-                v2_cca_event_states=ev.v2_cca_event_states,
-                oos_gate_passed=ev.oos_gate_passed,
-                v1_payload_hash_golden_passed=ev.v1_payload_hash_golden_passed,
-            )
-        )
-
-
-def test_invalid_window_id_set_raises():
-    ev = _happy_evidence()
-    bad = [deepcopy(r) for r in ev.v2_runs]
-    bad[0]["params"]["window_id"] = "WF-99"  # invalid
-    with pytest.raises(ValueError, match="window_ids"):
-        render_canary_v1_v2_compare(
-            FlipGateEvidence(
-                v1_runs=ev.v1_runs, v2_runs=bad, v2_robustness_run=ev.v2_robustness_run,
-                v1_full_history_aucs=ev.v1_full_history_aucs,
-                v2_full_history_aucs=ev.v2_full_history_aucs,
-                v1_band_distribution=ev.v1_band_distribution,
-                v2_band_distribution=ev.v2_band_distribution,
-                v2_cca_event_states=ev.v2_cca_event_states,
-                oos_gate_passed=ev.oos_gate_passed,
-                v1_payload_hash_golden_passed=ev.v1_payload_hash_golden_passed,
-            )
-        )
-
-
-def test_v2_runs_must_share_batch_id():
-    ev = _happy_evidence()
-    bad = [deepcopy(r) for r in ev.v2_runs]
-    bad[0]["params"]["batch_id"] = "different-batch"
-    with pytest.raises(ValueError, match="batch_id"):
-        render_canary_v1_v2_compare(
-            FlipGateEvidence(
-                v1_runs=ev.v1_runs, v2_runs=bad, v2_robustness_run=ev.v2_robustness_run,
-                v1_full_history_aucs=ev.v1_full_history_aucs,
-                v2_full_history_aucs=ev.v2_full_history_aucs,
-                v1_band_distribution=ev.v1_band_distribution,
-                v2_band_distribution=ev.v2_band_distribution,
-                v2_cca_event_states=ev.v2_cca_event_states,
-                oos_gate_passed=ev.oos_gate_passed,
-                v1_payload_hash_golden_passed=ev.v1_payload_hash_golden_passed,
-            )
-        )
-
-
-def test_missing_cca_event_date_raises():
-    ev = _happy_evidence()
-    bad_cca = {d: True for d in CCA_EVENT_DATES if d != "2020-03-09"}
-    with pytest.raises(ValueError, match="2020-03-09"):
-        render_canary_v1_v2_compare(
-            FlipGateEvidence(
-                v1_runs=ev.v1_runs, v2_runs=ev.v2_runs, v2_robustness_run=ev.v2_robustness_run,
-                v1_full_history_aucs=ev.v1_full_history_aucs,
-                v2_full_history_aucs=ev.v2_full_history_aucs,
-                v1_band_distribution=ev.v1_band_distribution,
-                v2_band_distribution=ev.v2_band_distribution,
-                v2_cca_event_states=bad_cca,
-                oos_gate_passed=ev.oos_gate_passed,
-                v1_payload_hash_golden_passed=ev.v1_payload_hash_golden_passed,
-            )
-        )
-
-
-def test_footer_present_in_both_verdicts():
-    """The 'What PR 2 will do' footer must appear in both SHIP and STOP."""
-    ev_ship = _happy_evidence()
-    out_ship = render_canary_v1_v2_compare(ev_ship)
-    assert "What PR 2 will do iff this verdict is SHIP" in out_ship
-
-    ev_stop = FlipGateEvidence(
-        v1_runs=ev_ship.v1_runs, v2_runs=ev_ship.v2_runs,
-        v2_robustness_run=ev_ship.v2_robustness_run,
-        v1_full_history_aucs=ev_ship.v1_full_history_aucs,
-        v2_full_history_aucs={"up5d_2pct": 0.6, "up20d_5pct": 0.6, "up60d_10pct": 0.6},
-        v1_band_distribution=ev_ship.v1_band_distribution,
-        v2_band_distribution=ev_ship.v2_band_distribution,
-        v2_cca_event_states=ev_ship.v2_cca_event_states,
-        oos_gate_passed=ev_ship.oos_gate_passed,
-        v1_payload_hash_golden_passed=ev_ship.v1_payload_hash_golden_passed,
-    )
-    out_stop = render_canary_v1_v2_compare(ev_stop)
-    assert "What PR 2 will do iff this verdict is SHIP" in out_stop
-    assert "Verdict: **STOP**" in out_stop
-
-
-def test_band_distribution_table_present():
-    out = render_canary_v1_v2_compare(_happy_evidence())
-    assert "Band distribution" in out
-    for band in ("NONE", "WATCH", "BUY", "STRONG_BUY"):
-        assert band in out
-
-
-def test_per_window_table_present_with_all_6_windows():
-    out = render_canary_v1_v2_compare(_happy_evidence())
-    assert "Per-window 60d AUC" in out
-    for wid in CANONICAL_WINDOWS:
-        assert wid in out
-
-
-def test_full_history_auc_table_present_with_all_3_horizons():
-    out = render_canary_v1_v2_compare(_happy_evidence())
-    assert "Full-history AUCs" in out
-    for h in ("up5d_2pct", "up20d_5pct", "up60d_10pct"):
-        assert h in out
-```
-
-- [ ] **Step 3: Run the renderer tests — verify they pass**
-
-```bash
-uv run pytest tests/unit/test_canary_v1_v2_compare_renderer.py -v
-```
-
-Expected: 16 passed.
-
-- [ ] **Step 4: Commit**
-
-```bash
-git add src/uw_scan/reports/regime_canary_v1_v2_compare.py tests/unit/test_canary_v1_v2_compare_renderer.py
-git commit -m "feat(canary): render_canary_v1_v2_compare + FlipGateEvidence + 16 tests
-
-Pure-function renderer takes a FlipGateEvidence dataclass and renders
-the markdown side-by-side comparison + AC-F1..F6 evaluation block +
-SHIP/STOP verdict + locked PR-2 footer.
-
-The renderer NEVER touches the DB. All evidence (v1+v2 runs, full-history
-AUCs, band distributions, CCA event states, OOS gate result, golden test
-result) is pre-assembled by the dispatcher (Task 10).
-
-This separation matters because AC-F3/F5/F6 require data outside
-regime_backtest_runs — Codex caught this during /review-cycle. The original
-draft signature (v1_runs, v2_runs) was insufficient.
-
-16 unit tests:
-- Happy path: all 6 ACs pass → SHIP
-- One test per AC failure: F1 below bar, F2 short-horizon, F3 missed
-  CCA, F4 per-window regression, F5 WATCH% expansion, F6 OOS gate fail,
-  F6 v1 golden fail
-- Structural guards: ValueError on wrong v1 count / wrong scope /
-  wrong window_id set / mismatched batch_id / missing CCA date
-- Footer present in both SHIP and STOP
-- Table presence: band distribution, per-window, full-history AUC
-
-Standalone CLI entry: python -m uw_scan.reports.regime_canary_v1_v2_compare
-(uses _assemble_flip_gate_evidence from scripts.backtest_canary — Task 10).
-
-Spec §5.2, §5.7."
-```
-
----
-
-### Task 10: `--v1-v2-compare` dispatcher in `backtest_canary.py` (loads + renders)
-
-**Files:**
-- Modify: `scripts/backtest_canary.py` (add `_assemble_flip_gate_evidence` + `cmd_v1_v2_compare` + `--v1-v2-compare` flag)
-- Modify: `tests/integration/regime/test_canary_v2_walk_forward.py` (add dispatcher integration test)
-
-**Rationale:** The dispatcher assembles `FlipGateEvidence` from DB by running 8 SQL queries + 2 pytest invocations (OOS gate + v1 golden). Renderer is pure; assembly is impure.
-
-- [ ] **Step 1: Write the dispatcher**
-
-In `scripts/backtest_canary.py`, add (after existing cmd_robustness or in the dispatcher section):
-
-```python
-import subprocess
-from typing import Any
-
-
-def _assemble_flip_gate_evidence(conn, *, schema: str) -> Any:
-    """Build a FlipGateEvidence from DB. Heavy SQL — only run in --v1-v2-compare."""
-    from uw_scan.reports.regime_canary_v1_v2_compare import (
-        CCA_EVENT_DATES,
-        CANONICAL_WINDOWS,
-        FlipGateEvidence,
-    )
-
+def _assemble_flip_gate_evidence(conn, *, schema: str) -> FlipGateEvidence:
+    """Build a FlipGateEvidence from DB. Heavy — run only in --v1-v2-compare."""
     with conn.cursor() as cur:
-        # v1 walk-forward runs — latest completed per window_id
+        # v1 walk-forward runs — latest completed per window_id, production scope.
         cur.execute(
             f"""
             WITH ranked AS (
@@ -2996,20 +2689,17 @@ def _assemble_flip_gate_evidence(conn, *, schema: str) -> Any:
             FROM ranked WHERE rn=1 ORDER BY params->>'window_id'
             """
         )
-        v1_rows = cur.fetchall()
         v1_runs = [
-            {
-                "id": r[0], "composite_version": r[1], "run_scope": r[2],
-                "params": r[3], "summary": r[4],
-            } for r in v1_rows
+            {"id": r[0], "composite_version": r[1], "run_scope": r[2],
+             "params": r[3], "summary": r[4]} for r in cur.fetchall()
         ]
         if len(v1_runs) != 6:
             raise RuntimeError(
-                f"v1 walk-forward query returned {len(v1_runs)} rows, expected 6 "
-                f"(one per window_id WF-1..WF-6). Check PR #83 persistence."
+                f"v1 walk-forward query returned {len(v1_runs)} rows, expected 6. "
+                f"Has PR #83's persistence completed?"
             )
 
-        # v2 walk-forward runs — latest complete batch (must cover WF-1..WF-6)
+        # Pick latest v2 walk-forward batch that has all 6 windows.
         cur.execute(
             f"""
             WITH batches AS (
@@ -3032,14 +2722,17 @@ def _assemble_flip_gate_evidence(conn, *, schema: str) -> Any:
         if row is None:
             raise RuntimeError(
                 "no complete v2 walk-forward batch found. Run "
-                "`backtest_canary.py --walk-forward --composite-version 2` first."
+                "`uv run python scripts/backtest_canary.py --walk-forward "
+                "--composite-version 2` first."
             )
         v2_batch_id = row[0]
 
         cur.execute(
             f"SELECT id, composite_version, run_scope, params, summary "
             f"FROM {schema}.regime_backtest_runs "
-            f"WHERE params->>'batch_id'=%s AND params->>'phase'='walk_forward' "
+            f"WHERE indicator='canary' AND run_scope='research' "
+            f"  AND composite_version='2' AND params->>'phase'='walk_forward' "
+            f"  AND params->>'batch_id'=%s AND completed_at IS NOT NULL "
             f"ORDER BY params->>'window_id'",
             (v2_batch_id,),
         )
@@ -3048,52 +2741,54 @@ def _assemble_flip_gate_evidence(conn, *, schema: str) -> Any:
              "params": r[3], "summary": r[4]} for r in cur.fetchall()
         ]
 
-        # v2 robustness run (same batch_id, phase='robustness')
         cur.execute(
             f"SELECT id, composite_version, run_scope, params, summary "
             f"FROM {schema}.regime_backtest_runs "
-            f"WHERE params->>'batch_id'=%s AND params->>'phase'='robustness' "
+            f"WHERE indicator='canary' AND run_scope='research' "
+            f"  AND composite_version='2' AND params->>'phase'='robustness' "
+            f"  AND params->>'batch_id'=%s AND completed_at IS NOT NULL "
             f"ORDER BY completed_at DESC LIMIT 1",
             (v2_batch_id,),
         )
-        rb_row = cur.fetchone()
-        if rb_row is None:
+        rb = cur.fetchone()
+        if rb is None:
             raise RuntimeError(
                 f"no v2 robustness run for batch_id={v2_batch_id}. Run "
-                f"`backtest_canary.py --robustness --composite-version 2 --batch-id {v2_batch_id}`."
+                f"`uv run python scripts/backtest_canary.py --robustness "
+                f"--composite-version 2 --batch-id {v2_batch_id}`."
             )
         v2_robustness_run = {
-            "id": rb_row[0], "composite_version": rb_row[1], "run_scope": rb_row[2],
-            "params": rb_row[3], "summary": rb_row[4],
+            "id": rb[0], "composite_version": rb[1], "run_scope": rb[2],
+            "params": rb[3], "summary": rb[4],
         }
 
-        # Full-history AUCs — compute via _aucs_for_rows on canary_snapshots
-        v1_full_history_aucs = _full_history_aucs_for_version(conn, schema=schema, version=1)
-        v2_full_history_aucs = _full_history_aucs_for_version(conn, schema=schema, version=2)
-
-        # Band distributions
-        v1_band_distribution = _band_distribution_for_version(conn, schema=schema, version=1)
-        v2_band_distribution = _band_distribution_for_version(conn, schema=schema, version=2)
-
-        # CCA event states for v2
         cur.execute(
             f"SELECT data_date::text, payload->'speed'->>'confirmed_canary_active' "
             f"FROM {schema}.canary_snapshots "
             f"WHERE composite_version=2 AND data_date = ANY(%s)",
-            ([d for d in CCA_EVENT_DATES],),
+            ([_date.fromisoformat(d) for d in CCA_EVENT_DATES],),
         )
-        v2_cca_event_states = {
-            d: (str(v).lower() == "true") for d, v in cur.fetchall()
-        }
-        # Fill missing dates with False so the renderer catches them
+        v2_cca_event_states = {d: (str(v).lower() == "true") for d, v in cur.fetchall()}
         for d in CCA_EVENT_DATES:
             v2_cca_event_states.setdefault(d, False)
 
-    # Run external tests for AC-F6
-    oos_gate_passed = _run_test_subprocess(
+    # Full-history AUCs via _compute_canary_series (snapshot rows lack `spx`).
+    v1_cal = load_calibration(path=V1_CAL_PATH)
+    v2_cal = load_calibration(path=V2_CAL_PATH)
+    v1_full_history_aucs = _full_history_aucs_via_compute_canary_series(
+        conn, cal=v1_cal, schema=schema,
+    )
+    v2_full_history_aucs = _full_history_aucs_via_compute_canary_series(
+        conn, cal=v2_cal, schema=schema,
+    )
+
+    v1_band_distribution = _band_distribution_for_version(conn, schema=schema, version=1)
+    v2_band_distribution = _band_distribution_for_version(conn, schema=schema, version=2)
+
+    oos_gate_passed = _run_subprocess_test(
         "tests/integration/regime/test_canary_oos_gate.py"
     )
-    v1_payload_hash_golden_passed = _run_test_subprocess(
+    v1_payload_hash_golden_passed = _run_subprocess_test(
         "tests/unit/test_canary_v1_payload_hash_golden.py"
     )
 
@@ -3111,133 +2806,313 @@ def _assemble_flip_gate_evidence(conn, *, schema: str) -> Any:
     )
 
 
-def _full_history_aucs_for_version(conn, *, schema: str, version: int) -> dict[str, float]:
-    """Compute composite AUC over all canary_snapshots at composite_version=N.
-
-    Uses _aucs_for_rows (the same function form-sweep uses)."""
-    with conn.cursor() as cur:
-        cur.execute(
-            f"SELECT data_date, score, band, "
-            f"  payload->>'tactical' AS tactical, payload->>'structural' AS structural, "
-            f"  payload->>'speed' AS speed, payload->>'warning_state' AS warning_state "
-            f"FROM {schema}.canary_snapshots "
-            f"WHERE composite_version=%s ORDER BY data_date",
-            (version,),
-        )
-        rows = [
-            {
-                "date": r[0],
-                "score": float(r[1]),
-                "band": r[2],
-                "tactical": float(r[3]) if r[3] else 0.0,
-                "structural": float(r[4]) if r[4] else 0.0,
-                "speed": int(float(r[5])) if r[5] else 0,
-                "warning_state": r[6],
-            }
-            for r in cur.fetchall()
-        ]
-    # _aucs_for_rows returns {composite: {...}, vol_only: {...}, speed_only: {...}}
-    # We only need the composite slice for AC-F1/F2.
-    aucs = _aucs_for_rows(rows)  # function already exists in this script
-    return aucs["composite"]
+def assemble_and_render_canary_v1_v2_compare(conn, *, schema: str) -> str:
+    """Convenience: assemble evidence + render to markdown. The dispatcher
+    in scripts/backtest_canary.py calls this and prints the result."""
+    ev = _assemble_flip_gate_evidence(conn, schema=schema)
+    return render_canary_v1_v2_compare(ev)
 
 
-def _band_distribution_for_version(conn, *, schema: str, version: int) -> dict[str, float]:
-    with conn.cursor() as cur:
-        cur.execute(
-            f"SELECT band, COUNT(*) FROM {schema}.canary_snapshots "
-            f"WHERE composite_version=%s GROUP BY band",
-            (version,),
-        )
-        counts = dict(cur.fetchall())
-    total = sum(counts.values())
-    if total == 0:
-        return {band: 0.0 for band in ("NONE", "WATCH", "BUY", "STRONG_BUY")}
+def main() -> int:
+    """Standalone CLI: re-render the latest v1+v2 evidence bundle from DB."""
+    argparse.ArgumentParser(description=__doc__).parse_args()
+    settings = Settings.from_env()
+    with psycopg.connect(settings.db_dsn()) as conn:
+        print(assemble_and_render_canary_v1_v2_compare(conn, schema=settings.db_schema))
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
+```
+
+- [ ] **Step 2: Write the renderer unit tests**
+
+Path: `tests/unit/test_canary_v1_v2_compare_renderer.py`
+
+```python
+"""Unit tests for render_canary_v1_v2_compare (pure renderer)."""
+
+from __future__ import annotations
+
+from copy import deepcopy
+
+import pytest
+
+from uw_scan.reports.regime_canary_v1_v2_compare import (
+    CANONICAL_WINDOWS,
+    CCA_EVENT_DATES,
+    FlipGateEvidence,
+    render_canary_v1_v2_compare,
+)
+
+
+def _mk_run(*, version: str, scope: str, window_id: str, auc_60d: float = 0.65) -> dict:
     return {
-        band: 100.0 * counts.get(band, 0) / total
-        for band in ("NONE", "WATCH", "BUY", "STRONG_BUY")
+        "id": 100 + ord(window_id[-1]),
+        "composite_version": version,
+        "run_scope": scope,
+        "params": {
+            "phase": "walk_forward",
+            "batch_id": "batch-v2-test" if version == "2" else "batch-v1-test",
+            "window_id": window_id,
+            "score_form": "linear",
+        },
+        "summary": {
+            "aucs": {
+                "composite": {
+                    "up5d_2pct": 0.62, "up20d_5pct": 0.63, "up60d_10pct": auc_60d,
+                }
+            }
+        },
     }
 
 
-def _run_test_subprocess(test_path: str) -> bool:
-    """Run pytest on a single test file, return True if all tests passed."""
-    proc = subprocess.run(
-        ["uv", "run", "pytest", test_path, "-q", "--no-header"],
-        capture_output=True, text=True, timeout=300,
+def _happy_evidence() -> FlipGateEvidence:
+    return FlipGateEvidence(
+        v1_runs=[
+            _mk_run(version="1", scope="production", window_id=w) for w in CANONICAL_WINDOWS
+        ],
+        v2_runs=[
+            _mk_run(version="2", scope="research", window_id=w) for w in CANONICAL_WINDOWS
+        ],
+        v2_robustness_run={
+            "id": 999, "composite_version": "2", "run_scope": "research",
+            "params": {"phase": "robustness", "batch_id": "batch-v2-test"},
+            "summary": {},
+        },
+        v1_full_history_aucs={"up5d_2pct": 0.620, "up20d_5pct": 0.627, "up60d_10pct": 0.619},
+        v2_full_history_aucs={"up5d_2pct": 0.625, "up20d_5pct": 0.635, "up60d_10pct": 0.640},
+        v1_band_distribution={"NONE": 55.0, "WATCH": 39.3, "BUY": 5.5, "STRONG_BUY": 0.2},
+        v2_band_distribution={"NONE": 60.0, "WATCH": 35.0, "BUY": 4.9, "STRONG_BUY": 0.1},
+        v2_cca_event_states={d: True for d in CCA_EVENT_DATES},
+        oos_gate_passed=True,
+        v1_payload_hash_golden_passed=True,
     )
-    return proc.returncode == 0
 
 
-def cmd_v1_v2_compare(conn, *, schema: str) -> None:
-    """--v1-v2-compare dispatcher: assemble FlipGateEvidence, render, print."""
-    from uw_scan.reports.regime_canary_v1_v2_compare import (
-        render_canary_v1_v2_compare,
+def _replace(ev: FlipGateEvidence, **overrides) -> FlipGateEvidence:
+    data = {
+        f.name: getattr(ev, f.name) for f in FlipGateEvidence.__dataclass_fields__.values()
+    }
+    data.update(overrides)
+    return FlipGateEvidence(**data)
+
+
+def test_happy_path_ship_verdict():
+    out = render_canary_v1_v2_compare(_happy_evidence())
+    assert "Verdict: **SHIP**" in out
+    for label in ("AC-F1 [PASS]", "AC-F2 [PASS]", "AC-F3 [PASS]",
+                  "AC-F4 [PASS]", "AC-F5 [PASS]", "AC-F6 [PASS]"):
+        assert label in out
+
+
+def test_ac_f1_fail_below_bar():
+    ev = _replace(
+        _happy_evidence(),
+        v2_full_history_aucs={"up5d_2pct": 0.625, "up20d_5pct": 0.635, "up60d_10pct": 0.620},
     )
+    out = render_canary_v1_v2_compare(ev)
+    assert "AC-F1 [FAIL]" in out
+    assert "Verdict: **STOP**" in out
 
-    ev = _assemble_flip_gate_evidence(conn, schema=schema)
-    print(render_canary_v1_v2_compare(ev))
+
+def test_ac_f2_fail_20d_horizon():
+    ev = _replace(
+        _happy_evidence(),
+        v2_full_history_aucs={"up5d_2pct": 0.625, "up20d_5pct": 0.610, "up60d_10pct": 0.640},
+    )
+    out = render_canary_v1_v2_compare(ev)
+    assert "AC-F2 [FAIL]" in out
+
+
+def test_ac_f3_fail_when_cca_event_missing_fire():
+    cca = {d: True for d in CCA_EVENT_DATES}
+    cca["2011-08-08"] = False
+    out = render_canary_v1_v2_compare(_replace(_happy_evidence(), v2_cca_event_states=cca))
+    assert "AC-F3 [FAIL]" in out
+    assert "2011-08-08" in out
+
+
+def test_ac_f4_fail_when_window_regresses_more_than_002():
+    v2_runs = list(deepcopy(_happy_evidence().v2_runs))
+    v2_runs[2]["summary"]["aucs"]["composite"]["up60d_10pct"] = 0.60
+    out = render_canary_v1_v2_compare(_replace(_happy_evidence(), v2_runs=v2_runs))
+    assert "AC-F4 [FAIL]" in out
+    assert "WF-3" in out
+
+
+def test_ac_f5_fail_when_watch_pct_too_high():
+    bd = {"NONE": 44.5, "WATCH": 50.0, "BUY": 5.4, "STRONG_BUY": 0.1}
+    out = render_canary_v1_v2_compare(_replace(_happy_evidence(), v2_band_distribution=bd))
+    assert "AC-F5 [FAIL]" in out
+
+
+def test_ac_f6_fail_when_oos_gate_fails():
+    out = render_canary_v1_v2_compare(_replace(_happy_evidence(), oos_gate_passed=False))
+    assert "AC-F6 [FAIL]" in out
+
+
+def test_ac_f6_fail_when_v1_golden_fails():
+    out = render_canary_v1_v2_compare(
+        _replace(_happy_evidence(), v1_payload_hash_golden_passed=False)
+    )
+    assert "AC-F6 [FAIL]" in out
+
+
+def test_invalid_v1_runs_count_raises():
+    ev = _happy_evidence()
+    bad = _replace(ev, v1_runs=ev.v1_runs[:5])
+    with pytest.raises(ValueError, match="v1_runs must have 6"):
+        render_canary_v1_v2_compare(bad)
+
+
+def test_invalid_v2_scope_raises():
+    ev = _happy_evidence()
+    bad_runs = [deepcopy(r) for r in ev.v2_runs]
+    bad_runs[0]["run_scope"] = "production"
+    with pytest.raises(ValueError, match="run_scope"):
+        render_canary_v1_v2_compare(_replace(ev, v2_runs=bad_runs))
+
+
+def test_invalid_window_id_set_raises():
+    ev = _happy_evidence()
+    bad_runs = [deepcopy(r) for r in ev.v2_runs]
+    bad_runs[0]["params"]["window_id"] = "WF-99"
+    with pytest.raises(ValueError, match="window_ids"):
+        render_canary_v1_v2_compare(_replace(ev, v2_runs=bad_runs))
+
+
+def test_v2_runs_must_share_batch_id():
+    ev = _happy_evidence()
+    bad_runs = [deepcopy(r) for r in ev.v2_runs]
+    bad_runs[0]["params"]["batch_id"] = "different-batch"
+    with pytest.raises(ValueError, match="batch_id"):
+        render_canary_v1_v2_compare(_replace(ev, v2_runs=bad_runs))
+
+
+def test_missing_cca_event_date_raises():
+    ev = _happy_evidence()
+    bad_cca = {d: True for d in CCA_EVENT_DATES if d != "2020-03-09"}
+    with pytest.raises(ValueError, match="2020-03-09"):
+        render_canary_v1_v2_compare(_replace(ev, v2_cca_event_states=bad_cca))
+
+
+def test_footer_present_in_both_verdicts():
+    out_ship = render_canary_v1_v2_compare(_happy_evidence())
+    assert "What PR 2 will do iff this verdict is SHIP" in out_ship
+
+    ev_stop = _replace(
+        _happy_evidence(),
+        v2_full_history_aucs={"up5d_2pct": 0.6, "up20d_5pct": 0.6, "up60d_10pct": 0.6},
+    )
+    out_stop = render_canary_v1_v2_compare(ev_stop)
+    assert "What PR 2 will do iff this verdict is SHIP" in out_stop
+    assert "Verdict: **STOP**" in out_stop
+
+
+def test_band_distribution_table_present():
+    out = render_canary_v1_v2_compare(_happy_evidence())
+    assert "Band distribution" in out
+    for b in ("NONE", "WATCH", "BUY", "STRONG_BUY"):
+        assert b in out
+
+
+def test_per_window_table_present_with_all_6_windows():
+    out = render_canary_v1_v2_compare(_happy_evidence())
+    assert "Per-window 60d AUC" in out
+    for w in CANONICAL_WINDOWS:
+        assert w in out
 ```
 
-**1b. Add the `--v1-v2-compare` flag to argparse + dispatch:**
+- [ ] **Step 3: Run the renderer tests — verify they pass**
 
-```python
-    parser.add_argument(
-        "--v1-v2-compare",
-        action="store_true",
-        help=(
-            "Assemble FlipGateEvidence from DB (v1 production + v2 research walk-forward "
-            "+ robustness + full-history AUCs + band distributions + CCA event states + "
-            "OOS gate + v1 golden) and render the v1-vs-v2 comparison report with "
-            "AC-F1..F6 evaluation. Mutually exclusive with all other modes."
-        ),
-    )
+```bash
+uv run pytest tests/unit/test_canary_v1_v2_compare_renderer.py -v
 ```
 
-In the main dispatcher branch, add (with mutual exclusion check):
+Expected: 16 passed.
 
-```python
-    if args.v1_v2_compare:
-        if any([args.walk_forward, args.robustness, args.calibrate,
-                args.form_sweep, args.form_sweep_full]):
-            parser.error(
-                "--v1-v2-compare is mutually exclusive with all other modes"
-            )
-        cmd_v1_v2_compare(conn, schema=schema)
-        return
+- [ ] **Step 4: Commit**
+
+```bash
+git add src/uw_scan/reports/regime_canary_v1_v2_compare.py tests/unit/test_canary_v1_v2_compare_renderer.py
+git commit -m "feat(canary): regime_canary_v1_v2_compare module + renderer + 16 tests
+
+NEW module src/uw_scan/reports/regime_canary_v1_v2_compare.py owns:
+- FlipGateEvidence dataclass
+- _assemble_flip_gate_evidence(conn, *, schema) — DB queries with
+  full scope/version/completion filters (was: under-filtered)
+- _full_history_aucs_via_compute_canary_series(conn, *, cal, schema) —
+  uses _compute_canary_series so eval_rows carry the spx forward-return
+  field _aucs_for_rows needs (snapshot rows do not)
+- _band_distribution_for_version
+- _run_subprocess_test (inherits PATH so uv works on macOS)
+- _eval_ac_f1..f6 helpers
+- render_canary_v1_v2_compare(ev) — pure
+- assemble_and_render_canary_v1_v2_compare(conn, schema) — convenience
+- main() — standalone CLI
+
+This keeps scripts/backtest_canary.py under the 1,000-LOC convention
+(currently 1,174; adding 200 LOC here would push it past 1,400).
+
+16 unit tests covering: SHIP/STOP verdicts, each AC failure mode,
+structural validators (wrong v1 count, wrong scope, wrong window_ids,
+mismatched batch_id, missing CCA date), tables present in both verdicts.
+
+Spec §5.7, §5.8."
 ```
 
-- [ ] **Step 2: Write the integration test**
+---
+
+### Task 10: Thin `cmd_v1_v2_compare` dispatcher in `backtest_canary.py` + integration test
+
+**Files:**
+- Modify: `scripts/backtest_canary.py` (add ~10-LOC dispatcher + argparse flag)
+- Modify: `tests/integration/regime/test_canary_v2_walk_forward.py`
+
+**Rationale:** With Task 9's module owning all logic, the script-level dispatcher is a thin wrapper.
+
+- [ ] **Step 1: Write failing dispatcher integration tests**
 
 Append to `tests/integration/regime/test_canary_v2_walk_forward.py`:
 
 ```python
+from scripts.backtest_canary import cmd_v1_v2_compare
+
+
 def test_v1_v2_compare_dispatcher_renders_nonempty(
-    seeded_db_with_v1_walk_forward_and_v2_evidence,
+    seeded_db_empty_cards, capsys,
 ):
-    """End-to-end: --v1-v2-compare assembles FlipGateEvidence and prints
-    a non-empty markdown report containing the required sections.
-
-    Fixture provides: v1 walk-forward rows (6, production), v2 walk-forward
-    rows (6, research, shared batch_id), v2 robustness row, v1 + v2 snapshots."""
-    conn = seeded_db_with_v1_walk_forward_and_v2_evidence.conn
-
-    result = subprocess.run(
-        [
-            sys.executable,
-            str(BACKTEST_SCRIPT),
-            "--v1-v2-compare",
-        ],
-        env={
-            "DATABASE_URL": seeded_db_with_v1_walk_forward_and_v2_evidence.url,
-            "UW_SCAN_API_KEY": "local-test",
-            "PATH": "/usr/bin:/bin",
-        },
-        capture_output=True, text=True, timeout=300,
+    """cmd_v1_v2_compare assembles + prints a non-empty report."""
+    from tests.integration.regime._canary_v2a_fixture import (
+        seed_canary_snapshots_v2,
+        seed_v1_walk_forward_runs,
+        seed_v2_walk_forward_runs,
+        seed_vol_index_full_history,
     )
+    from scripts.canary_backfill import cmd_backfill
 
-    assert result.returncode == 0, f"dispatcher failed: {result.stderr}"
-    out = result.stdout
-    # Required sections
+    conn = seeded_db_empty_cards.conn
+    schema = seeded_db_empty_cards._schema
+
+    # Build v1 + v2 evidence bundles
+    seed_vol_index_full_history(conn, schema=schema, start=_date(2013, 1, 2), end=_date(2026, 5, 21))
+    seed_v1_walk_forward_runs(conn, schema=schema)
+    seed_v2_walk_forward_runs(conn, schema=schema)
+    # Snapshots: v1 and v2 (real backfill so the full-history AUCs work)
+    cmd_backfill(conn, schema=schema, args=argparse.Namespace(
+        composite_version=1, start_date="2015-01-02", end_date="2026-05-21",
+        overwrite_on_hash_mismatch=False, days=252,
+    ))
+    cmd_backfill(conn, schema=schema, args=argparse.Namespace(
+        composite_version=2, start_date="2015-01-02", end_date="2026-05-21",
+        overwrite_on_hash_mismatch=False, days=252,
+    ))
+
+    cmd_v1_v2_compare(conn, schema=schema, args=argparse.Namespace())
+
+    out = capsys.readouterr().out
     assert "Canary v2-A — v1 vs v2 Comparison" in out
     assert "Full-history AUCs" in out
     assert "Band distribution" in out
@@ -3247,166 +3122,201 @@ def test_v1_v2_compare_dispatcher_renders_nonempty(
     assert "What PR 2 will do" in out
 
 
-def test_v1_v2_compare_fails_clearly_when_no_v2_batch(seeded_db_with_only_v1):
-    """If no complete v2 walk-forward batch exists, dispatcher exits non-zero
-    with an actionable error."""
-    result = subprocess.run(
-        [
-            sys.executable,
-            str(BACKTEST_SCRIPT),
-            "--v1-v2-compare",
-        ],
-        env={
-            "DATABASE_URL": seeded_db_with_only_v1.url,
-            "UW_SCAN_API_KEY": "local-test",
-            "PATH": "/usr/bin:/bin",
-        },
-        capture_output=True, text=True, timeout=120,
-    )
-    assert result.returncode != 0
-    assert "no complete v2 walk-forward batch" in (result.stderr + result.stdout).lower()
+def test_v1_v2_compare_fails_clearly_when_no_v2_batch(seeded_db_empty_cards):
+    """If no complete v2 walk-forward batch exists, raises with actionable error."""
+    conn = seeded_db_empty_cards.conn
+    schema = seeded_db_empty_cards._schema
+
+    with pytest.raises(RuntimeError, match="no complete v2 walk-forward batch"):
+        cmd_v1_v2_compare(conn, schema=schema, args=argparse.Namespace())
 ```
 
-- [ ] **Step 3: Run integration tests**
+- [ ] **Step 2: Run the failing tests**
 
 ```bash
-UW_SCAN_TEST_DB_NAME=option_wizard_test uv run pytest \
-    tests/integration/regime/test_canary_v2_walk_forward.py::test_v1_v2_compare_dispatcher_renders_nonempty \
-    tests/integration/regime/test_canary_v2_walk_forward.py::test_v1_v2_compare_fails_clearly_when_no_v2_batch \
-    -v
+UW_SCAN_DB_NAME=option_wizard_test uv run pytest \
+    tests/integration/regime/test_canary_v2_walk_forward.py -k v1_v2_compare -v
+```
+
+Expected: FAIL (`ImportError: cannot import name 'cmd_v1_v2_compare'`).
+
+- [ ] **Step 3: Add the thin dispatcher in `backtest_canary.py`**
+
+In `scripts/backtest_canary.py`:
+
+```python
+def cmd_v1_v2_compare(conn, *, schema: str, args=None) -> None:
+    """Assemble + render the v1-vs-v2 evidence report.
+
+    All logic lives in src/uw_scan/reports/regime_canary_v1_v2_compare.py;
+    this stub stays under the 1,000-LOC convention for scripts/backtest_canary.py.
+    """
+    from uw_scan.reports.regime_canary_v1_v2_compare import (
+        assemble_and_render_canary_v1_v2_compare,
+    )
+
+    print(assemble_and_render_canary_v1_v2_compare(conn, schema=schema))
+```
+
+In `main()`, add `--v1-v2-compare` to argparse with mutual-exclusion check, and dispatch:
+
+```python
+    parser.add_argument(
+        "--v1-v2-compare", action="store_true",
+        help="Assemble v1+v2 evidence and render the comparison report with "
+             "AC-F1..F6 evaluation. Reads v1 walk-forward (production), v2 "
+             "walk-forward (research, latest complete batch), v2 robustness, "
+             "v1/v2 full-history snapshots, v2 CCA event states, and the OOS "
+             "+ v1-golden test results.",
+    )
+    # ... after parse_args, with mutual exclusion:
+    mode_flags = [
+        args.calibrate, args.form_sweep, args.form_sweep_full, args.report,
+        args.walk_forward, args.robustness, args.v1_v2_compare,
+    ]
+    if sum(bool(f) for f in mode_flags) > 1:
+        parser.error("only one of --calibrate/--form-sweep/--form-sweep-full/"
+                     "--report/--walk-forward/--robustness/--v1-v2-compare")
+    # ... in the dispatch chain:
+    if args.v1_v2_compare:
+        cmd_v1_v2_compare(conn, schema=schema, args=args)
+        return
+```
+
+- [ ] **Step 4: Run integration tests — verify they pass**
+
+```bash
+UW_SCAN_DB_NAME=option_wizard_test uv run pytest \
+    tests/integration/regime/test_canary_v2_walk_forward.py -k v1_v2_compare -v
 ```
 
 Expected: 2 passed.
 
-- [ ] **Step 4: Commit**
+- [ ] **Step 5: Commit**
 
 ```bash
 git add scripts/backtest_canary.py tests/integration/regime/test_canary_v2_walk_forward.py
-git commit -m "feat(canary): --v1-v2-compare dispatcher + FlipGateEvidence assembly
+git commit -m "feat(canary): thin cmd_v1_v2_compare dispatcher in backtest_canary
 
-Dispatcher assembles FlipGateEvidence from DB via 8 SQL queries + 2
-subprocess invocations (OOS gate test + v1 golden test), then calls
-the pure renderer.
-
-Loaders:
-- v1_runs: latest completed walk-forward per window_id, production scope, v=1
-- v2_runs: latest complete v2 batch covering all of WF-1..WF-6, research
-  scope, v=2
-- v2_robustness_run: same batch_id, phase='robustness'
-- v1/v2_full_history_aucs: _aucs_for_rows over canary_snapshots at the
-  given composite_version (matches PR #88 form-sweep computation)
-- v1/v2_band_distribution: GROUP BY band over canary_snapshots
-- v2_cca_event_states: payload.speed.confirmed_canary_active per CCA date
-- oos_gate_passed: pytest subprocess on test_canary_oos_gate.py
-- v1_payload_hash_golden_passed: pytest subprocess on test_canary_v1_payload_hash_golden.py
+~10 LOC wrapper in backtest_canary.py — imports
+assemble_and_render_canary_v1_v2_compare from the Task 9 module and
+prints the result. Keeps the 1,174-line script from growing past the
+1,000-LOC convention.
 
 2 integration tests:
-- Dispatcher renders all required sections + verdict + footer
-- Dispatcher fails clearly when no complete v2 batch exists
+- Dispatcher renders the full report (all required sections)
+- Raises with actionable error when no v2 batch exists
 
-Spec §5.5, §5.7."
+Spec §5.7."
 ```
 
 ---
 
-### Task 11: Walk-forward cleanup-on-failure via `delete_canary_research_runs_by_batch_id_and_phase`
+### Task 11: Walk-forward cleanup-on-failure (in-process `pytest-mock` test)
 
 **Files:**
-- Modify: `scripts/backtest_canary.py` (wrap walk-forward + robustness persistence in try/except with cleanup)
+- Modify: `scripts/backtest_canary.py` (wrap v2 walk-forward + robustness persistence in try/except)
 - Modify: `tests/integration/regime/test_canary_v2_walk_forward.py`
 
 **Rationale:** When v2 walk-forward fails mid-batch (e.g., the 4th of 6 inserts errors), partial rows remain. The cleanup pattern is exactly the form-sweep pattern from PR #88 §3.4 (rollback + scoped delete + raise original).
 
-- [ ] **Step 1: Write failing test**
+The cleanup test must use **in-process** invocation + `pytest-mock` (in deps already). A subprocess-based test can't mock `RegimeBacktestRepository.bulk_insert_daily` inside the child process.
+
+- [ ] **Step 1: Write the failing cleanup test**
 
 Append to `tests/integration/regime/test_canary_v2_walk_forward.py`:
 
 ```python
-import unittest.mock as mock
+def test_v2_walk_forward_cleanup_on_mid_batch_failure(
+    seeded_db_empty_cards, mocker,
+):
+    """If bulk_insert_daily raises on the 4th of 6 walk-forward windows,
+    every persisted v2 walk-forward row (including the 3 successfully
+    inserted) is cleaned up. v1 production rows untouched.
 
+    Uses in-process cmd_walk_forward + mocker.patch.object(..., wraps=...)
+    so the side_effect can pass-through the first 3 calls and raise on the 4th.
+    Spec §5.8.
+    """
+    from tests.integration.regime._canary_v2a_fixture import (
+        seed_v1_walk_forward_runs, seed_vol_index_full_history,
+    )
 
-def test_v2_walk_forward_cleanup_on_mid_batch_failure(seeded_db_with_v2_backfill):
-    """If insert_run fails on the 4th of 6 walk-forward windows, ALL 6 partial
-    rows are cleaned up (the 3 successfully-inserted + the 4th half-inserted).
-    Spec §5.8."""
-    conn = seeded_db_with_v2_backfill.conn
-    schema = seeded_db_with_v2_backfill._schema
+    conn = seeded_db_empty_cards.conn
+    schema = seeded_db_empty_cards._schema
+    seed_v1_walk_forward_runs(conn, schema=schema)
+    seed_vol_index_full_history(conn, schema=schema, start=_date(2013, 1, 2), end=_date(2026, 5, 21))
 
-    # Patch bulk_insert_daily to raise on the 4th call (after 3 walk-forward
-    # window runs have been persisted)
-    call_count = [0]
-    original_bulk_insert = ...  # capture original — implementer detail
+    # Patch bulk_insert_daily with wraps=original so first 3 calls succeed,
+    # 4th raises.
+    from uw_scan.storage.regime_backtest_repository import RegimeBacktestRepository
+    real = RegimeBacktestRepository.bulk_insert_daily
+    call_count = {"n": 0}
 
-    def flaky_bulk_insert(*args, **kwargs):
-        call_count[0] += 1
-        if call_count[0] == 4:
+    def flaky(self, run_id, rows):
+        call_count["n"] += 1
+        if call_count["n"] == 4:
             raise RuntimeError("simulated 4th-window failure")
-        return original_bulk_insert(*args, **kwargs)
+        return real(self, run_id, rows)
 
-    # Run with the patched method
-    with mock.patch(
-        "uw_scan.storage.regime_backtest_repository.RegimeBacktestRepository.bulk_insert_daily",
-        side_effect=flaky_bulk_insert,
-    ):
-        result = _run_walk_forward(
-            composite_version=2,
-            test_db_url=seeded_db_with_v2_backfill.url,
-        )
-    # Expect non-zero exit
-    assert result.returncode != 0
+    mocker.patch.object(RegimeBacktestRepository, "bulk_insert_daily", autospec=True, side_effect=flaky)
 
-    # Assert: zero v2 walk-forward rows remain (all cleaned up)
+    with pytest.raises(RuntimeError, match="simulated 4th-window failure"):
+        cmd_walk_forward(conn, schema=schema, args=_wf_args(composite_version=2))
+
+    # Zero v2 walk-forward rows remain.
     with conn.cursor() as cur:
         cur.execute(
             f"SELECT COUNT(*) FROM {schema}.regime_backtest_runs "
             f"WHERE indicator='canary' AND run_scope='research' "
             f"  AND composite_version='2' AND params->>'phase'='walk_forward'"
         )
-        count = cur.fetchone()[0]
-    assert count == 0, f"expected 0 leftover walk-forward rows, got {count}"
+        assert cur.fetchone()[0] == 0
 
-    # And v1 production rows MUST remain untouched
+    # v1 production rows untouched.
     with conn.cursor() as cur:
         cur.execute(
             f"SELECT COUNT(*) FROM {schema}.regime_backtest_runs "
             f"WHERE indicator='canary' AND run_scope='production' "
             f"  AND composite_version='1' AND params->>'phase'='walk_forward'"
         )
-        v1_count = cur.fetchone()[0]
-    assert v1_count == 6, f"v1 walk-forward rows damaged: {v1_count}"
+        assert cur.fetchone()[0] == 6
 ```
 
-(Note: the subprocess-based test won't easily mock `bulk_insert_daily` from outside. The implementer may convert this to an in-process test that calls `cmd_walk_forward` directly with a `monkeypatch` fixture. Adapt as needed.)
+- [ ] **Step 2: Run the failing test**
 
-- [ ] **Step 2: Wrap walk-forward persistence in try/except in `backtest_canary.py`**
+```bash
+UW_SCAN_DB_NAME=option_wizard_test uv run pytest \
+    tests/integration/regime/test_canary_v2_walk_forward.py::test_v2_walk_forward_cleanup_on_mid_batch_failure -v
+```
 
-In `cmd_walk_forward` (or wherever v2 walk-forward batches are persisted), wrap the persistence loop:
+Expected: FAIL — without try/except, partial rows linger and `count != 0`.
+
+- [ ] **Step 3: Wrap walk-forward + robustness persistence in `backtest_canary.py`**
+
+Apply to `cmd_walk_forward`:
 
 ```python
-    batch_id = args.batch_id or str(uuid.uuid4())
+def cmd_walk_forward(conn, *, schema: str, args=None) -> None:
+    # ... existing prelude: cal, run_scope, batch_id ...
+    bt_repo = RegimeBacktestRepository(conn, schema=schema)
+    score_form = cal.score_form
+
     try:
-        for window_id, run_payload in windows_to_persist:
-            run_id = bt_repo.insert_run(
-                ...,
-                params={"phase": "walk_forward", "batch_id": batch_id,
-                        "window_id": window_id, ...},
-                run_scope=run_scope,
-            )
-            bt_repo.bulk_insert_daily(run_id, run_payload["daily_rows"])
-            bt_repo.mark_run_completed(run_id)
+        for win in WALK_FORWARD_WINDOWS:
+            # ... existing loop body — persist with batch_id in params ...
+            pass
     except Exception as original:
         try:
             conn.rollback()
         except Exception as rollback_err:
-            log.exception(
-                "rollback failed during walk-forward cleanup: %s", rollback_err
-            )
+            log.exception("rollback failed during walk-forward cleanup: %s", rollback_err)
         try:
             n = bt_repo.delete_canary_research_runs_by_batch_id_and_phase(
-                batch_id, "walk_forward"
+                batch_id, "walk_forward",
             )
             log.warning(
-                "Cleaned up %d partial walk-forward rows for batch_id=%s",
+                "cleaned up %d partial v2 walk-forward rows for batch_id=%s",
                 n, batch_id,
             )
         except Exception as cleanup_err:
@@ -3418,48 +3328,82 @@ In `cmd_walk_forward` (or wherever v2 walk-forward batches are persisted), wrap 
         raise original
 ```
 
-(Apply the same pattern to robustness.)
+Mirror for `cmd_robustness` (phase='robustness').
 
-- [ ] **Step 3: Run the cleanup test — verify it passes**
+- [ ] **Step 4: Re-run the cleanup test — verify it passes**
 
 ```bash
-UW_SCAN_TEST_DB_NAME=option_wizard_test uv run pytest \
+UW_SCAN_DB_NAME=option_wizard_test uv run pytest \
     tests/integration/regime/test_canary_v2_walk_forward.py::test_v2_walk_forward_cleanup_on_mid_batch_failure -v
 ```
 
 Expected: PASS.
 
-- [ ] **Step 4: Commit**
+- [ ] **Step 5: Run the full v2 walk-forward suite — confirm no regression**
+
+```bash
+UW_SCAN_DB_NAME=option_wizard_test uv run pytest \
+    tests/integration/regime/test_canary_v2_walk_forward.py -v
+```
+
+Expected: all green.
+
+- [ ] **Step 6: Commit**
 
 ```bash
 git add scripts/backtest_canary.py tests/integration/regime/test_canary_v2_walk_forward.py
 git commit -m "feat(canary): v2 walk-forward cleanup-on-failure via scoped delete
 
-Wraps the v2 walk-forward persistence loop in try/except: on any
-exception, rolls back the transaction (Postgres InFailedSqlTransaction
-requires it before the next query), runs the scoped DELETE via
-delete_canary_research_runs_by_batch_id_and_phase, then re-raises the
-original exception. Same pattern as PR #88 form-sweep §3.4.
+Wraps cmd_walk_forward + cmd_robustness v2 persistence in try/except:
+on any exception, rolls back the transaction (required before next
+query post Postgres InFailedSqlTransaction), runs
+delete_canary_research_runs_by_batch_id_and_phase scoped to (batch_id,
+phase, indicator='canary', run_scope='research'), then re-raises.
 
-Mirrors the same pattern for robustness (phase='robustness' in the
-delete call).
-
-1 integration test: simulated 4th-window bulk_insert failure cleans up
-all partial rows (incl. the 3 successfully-persisted ones) AND leaves
-v1 production rows untouched.
+Cleanup test uses pytest-mock + autospec + side_effect + wraps to
+pass-through first 3 calls and raise on the 4th — all in-process via
+cmd_walk_forward(conn, schema, args). A subprocess-based test could
+not patch bulk_insert_daily across process boundary.
 
 Spec §5.8."
 ```
 
 ---
 
-### Task 12: Final smoke + live verification on real DB
+### Task 12: Final smoke + ruff + live verification
 
-**Files:** none (live commands only)
+**Files:** none (live commands + ruff)
 
-**Rationale:** Beyond unit + integration tests against pytest-postgresql, prove end-to-end against the dev DB with real `vol_index_daily` data. This is also where AC-F3's CCA-event-fires evidence comes in if the integration fixture didn't include the full historical window.
+**Rationale:** End-to-end smoke against the dev DB closes out PR 1. Spec AC-7 is a ruff check.
 
-- [ ] **Step 1: Run v2 backfill against dev DB**
+- [ ] **Step 1: Ruff check (AC-7)**
+
+```bash
+uv run ruff check src/ tests/ scripts/
+```
+
+Expected: zero ruff diagnostics. Fix any unused imports / locals introduced in Tasks 0–11.
+
+- [ ] **Step 2: Run all new + non-regression tests**
+
+```bash
+uv run pytest \
+    tests/unit/test_canary_v2_formula.py \
+    tests/unit/test_canary_v1_payload_hash_golden.py \
+    tests/unit/test_canary_v1_v2_compare_renderer.py \
+    tests/integration/regime/test_canary_v2_backfill.py \
+    tests/integration/regime/test_canary_v2_walk_forward.py \
+    tests/integration/regime/test_canary_scanner.py \
+    tests/integration/regime/test_canary_oos_gate.py \
+    tests/integration/regime/test_canary_form_sweep_full.py \
+    -v
+```
+
+Expected: ~44 new tests + ~30 pre-existing canary tests, all green.
+
+(Note: `tests/integration/regime/test_canary_backtest.py` does NOT exist — verified. Do not reference it.)
+
+- [ ] **Step 3: Live v2 backfill against dev DB**
 
 ```bash
 PGUSER=chenxi UW_SCAN_API_KEY=local-smoke \
@@ -3469,9 +3413,9 @@ PGUSER=chenxi UW_SCAN_API_KEY=local-smoke \
       --end-date 2026-05-21
 ```
 
-Expected: ~3,843 rows inserted (no errors). Re-run as no-op.
+Expected: ~3,843 rows inserted at composite_version=2. Re-run as no-op.
 
-- [ ] **Step 2: Verify v2 snapshot count matches v1**
+- [ ] **Step 4: Verify counts**
 
 ```bash
 PGUSER=chenxi psql -h 127.0.0.1 -d option_wizard -X -A -F'|' -c "
@@ -3481,31 +3425,26 @@ PGUSER=chenxi psql -h 127.0.0.1 -d option_wizard -X -A -F'|' -c "
 "
 ```
 
-Expected: both `1` and `2` have ~3,843 rows (same count).
+Expected: both rows have ~3,843 rows.
 
-- [ ] **Step 3: Run v2 walk-forward**
+- [ ] **Step 5: Live v2 walk-forward**
 
 ```bash
 PGUSER=chenxi UW_SCAN_API_KEY=local-smoke \
   uv run python scripts/backtest_canary.py --walk-forward --composite-version 2
 ```
 
-Expected: 6 new rows in `regime_backtest_runs` (research scope, composite_version='2').
+Capture the printed `batch_id` from stdout.
 
-Note the printed `batch_id` from stdout (UUID4).
-
-- [ ] **Step 4: Run v2 robustness (chained to the same batch)**
+- [ ] **Step 6: Live v2 robustness (chained)**
 
 ```bash
 PGUSER=chenxi UW_SCAN_API_KEY=local-smoke \
   uv run python scripts/backtest_canary.py \
-      --robustness --composite-version 2 \
-      --batch-id <batch_id_from_step_3>
+      --robustness --composite-version 2 --batch-id <batch_id_from_step_5>
 ```
 
-Expected: 1 new row with `phase='robustness'`, same batch_id.
-
-- [ ] **Step 5: AC-F3 smoke check — 4 CCA event dates**
+- [ ] **Step 7: AC-F3 smoke check — 4 CCA event dates**
 
 ```bash
 PGUSER=chenxi psql -h 127.0.0.1 -d option_wizard -X -A -F'|' -c "
@@ -3517,62 +3456,29 @@ PGUSER=chenxi psql -h 127.0.0.1 -d option_wizard -X -A -F'|' -c "
 "
 ```
 
-Expected: all 4 dates show `cca_active = true`. (If not, AC-F3 fails — investigate, the cap mechanism is broken.)
+Expected: all 4 rows show `cca_active = true`.
 
-- [ ] **Step 6: Run --v1-v2-compare to render the report**
+- [ ] **Step 8: Render the report**
 
 ```bash
 PGUSER=chenxi UW_SCAN_API_KEY=local-smoke \
-  uv run python scripts/backtest_canary.py --v1-v2-compare
+  uv run python scripts/backtest_canary.py --v1-v2-compare > /tmp/canary-v1-v2-report.md
+cat /tmp/canary-v1-v2-report.md
 ```
 
-Expected: markdown report to stdout with:
-- Full-history AUCs table (v1 + v2 columns + delta)
-- Band distribution table
-- Per-window 60d AUC table (6 windows)
-- AC-F1..F6 evaluation block (each line PASS or FAIL)
-- Verdict (SHIP or STOP)
-- "What PR 2 will do" footer
+Expected: markdown report with all 4 tables + AC-F1..F6 + verdict + footer.
 
-- [ ] **Step 7: Run the full test suite**
-
-```bash
-UW_SCAN_TEST_DB_NAME=option_wizard_test uv run pytest \
-    tests/unit/test_canary_v2_formula.py \
-    tests/unit/test_canary_v1_payload_hash_golden.py \
-    tests/unit/test_canary_v1_v2_compare_renderer.py \
-    tests/integration/regime/test_canary_v2_backfill.py \
-    tests/integration/regime/test_canary_v2_walk_forward.py \
-    -v
-```
-
-Expected: ~44 tests passed.
-
-- [ ] **Step 8: Run non-regression on existing canary tests**
-
-```bash
-UW_SCAN_TEST_DB_NAME=option_wizard_test uv run pytest \
-    tests/integration/regime/test_canary_oos_gate.py \
-    tests/integration/regime/test_canary_form_sweep_full.py \
-    tests/integration/regime/test_canary_backtest.py \
-    -v
-```
-
-Expected: all green; nothing regressed.
-
-- [ ] **Step 9: Verify calibration v1 file untouched**
+- [ ] **Step 9: Verify v1 calibration JSON untouched + production-scope isolation**
 
 ```bash
 md5 docs/research/regime/canary-calibration-v1.json
 ```
 
-Expected: `407024fadb7e7b46417f08f4d019d991` (unchanged from PR #83 + PR #88).
-
-- [ ] **Step 10: Verify production scope leakage**
+Expected: `407024fadb7e7b46417f08f4d019d991`.
 
 ```bash
 PGUSER=chenxi psql -h 127.0.0.1 -d option_wizard -X -A -F'|' -c "
-  SELECT id, params->>'phase' AS phase, run_scope, composite_version
+  SELECT id, params->>'phase', run_scope, composite_version
   FROM uw_scan.regime_backtest_runs
   WHERE indicator='canary' AND completed_at IS NOT NULL
     AND run_scope='production'
@@ -3580,94 +3486,93 @@ PGUSER=chenxi psql -h 127.0.0.1 -d option_wizard -X -A -F'|' -c "
 "
 ```
 
-Expected: ZERO rows with `composite_version='2'` — production scope sees only v1.
+Expected: zero rows with `composite_version='2'`.
 
-- [ ] **Step 11: Final commit (smoke results recorded)**
-
-If everything green:
+- [ ] **Step 10: Final empty commit recording smoke results**
 
 ```bash
 git commit --allow-empty -m "chore(canary): v2-A PR 1 evidence ready for review
 
-Live smoke against dev DB:
+Live smoke against dev DB (option_wizard):
 - v2 backfill: ~3,843 rows at composite_version=2 (matches v1 count)
 - v2 walk-forward: 6 research-scoped runs with shared batch_id
-- v2 robustness: 1 research-scoped run, same batch_id
-- AC-F3 evidence: 4 CCA event dates all fire confirmed_canary_active=true
-- --v1-v2-compare renders the full report with AC-F1..F6 verdict
-- 44/44 new tests passing
-- 18/18 pre-existing canary tests passing (no regression)
+- v2 robustness: 1 research-scoped run, chained batch_id
+- AC-F3 evidence: all 4 CCA event dates fire confirmed_canary_active=true
+- --v1-v2-compare renders the full report (4 tables + verdict + footer)
+- All new + pre-existing canary tests green (~74 tests)
+- ruff: zero diagnostics on src/ tests/ scripts/
 - canary-calibration-v1.json MD5 unchanged: 407024fadb7e7b46417f08f4d019d991
-- Zero composite_version=2 rows visible to production-scope queries
+- Zero composite_version=2 rows in production-scope queries
 
-PR 1 is ready for review. The verdict from --v1-v2-compare will determine
-whether PR 2 (the production flip) is authorized per spec §8 AC-F1..F6."
+PR 1 evidence is ready for the codex/ultrareview tribunal. The verdict
+from --v1-v2-compare determines whether PR 2 (production flip) is
+authorized per spec §8 AC-F1..F6."
 ```
 
 ---
 
 ## Spec Coverage Map
 
-| Spec section / AC | Task(s) implementing it |
+| Spec section / AC | Task(s) |
 |---|---|
-| §5.3 Conditional path code | Task 2 |
+| §5.3 Conditional path code | Task 3 |
 | §5.4 Calibration JSON v2 | Task 1 |
 | §5.5 `canary_backfill.py --composite-version` | Task 5 |
-| §5.5 `--walk-forward --composite-version 2` | Task 6 |
-| §5.5 `--robustness --composite-version 2` | Task 7 |
-| §5.5 `--v1-v2-compare` | Task 10 |
-| §5.6 Persistence model | Tasks 5, 6, 7 (composite_version tagging) |
-| §5.7 Renderer + FlipGateEvidence | Task 9 |
+| §5.5 `cmd_walk_forward --composite-version 2` | Task 6 |
+| §5.5 `cmd_robustness --composite-version 2` | Task 7 |
+| §5.5 `--v1-v2-compare` | Tasks 9 + 10 |
+| §5.6 Persistence model (composite_version tagging) | Tasks 5, 6, 7 |
+| §5.7 Renderer + `FlipGateEvidence` | Task 9 |
 | §5.8 Error handling (cleanup-on-failure) | Task 11 |
 | §6 Layer 1 (snapshot scope) | Task 5 |
 | §6 Layer 2 (run_scope) | Tasks 6, 7 |
-| §6 Layer 3 (COMPOSITE_VERSION constant) | Task 3 (test guards) + non-modification across all tasks |
-| §6 Layer 4 (cal.composite_version persistence rule) | Tasks 5, 6, 7 |
-| §6 Layer 5 (OOS gate untouched) | Task 12 Step 8 (non-regression) |
-| §6 Layer 6 (caller-discipline) | Tasks 6, 7 (explicit run_scope=research kwarg) |
-| §7 AC-1 (formula unit tests) | Task 2 |
+| §6 Layer 3 (`COMPOSITE_VERSION` constant) | Task 2 invariant test + non-modification across all tasks |
+| §6 Layer 4 (`cal.composite_version` persistence rule) | Tasks 5, 6, 7 |
+| §6 Layer 5 (OOS gate untouched) | Task 12 Step 2 (non-regression) |
+| §6 Layer 6 (caller-discipline `run_scope=research`) | Tasks 6, 7 |
+| §7 AC-1 (formula unit tests) | Task 3 |
 | §7 AC-2 (v2 calibration parses) | Task 1 |
 | §7 AC-3 (backfill writes v2 rows) | Task 5 |
-| §7 AC-3a (CCA event evidence) | Task 5 + Task 12 Step 5 |
+| §7 AC-3a (CCA event evidence) | Tasks 5, 12 Step 7 |
 | §7 AC-4 (walk-forward) | Task 6 |
 | §7 AC-4a (robustness) | Task 7 |
 | §7 AC-4b (recompute vs backfill parity) | Task 8 |
 | §7 AC-5 (dispatcher renders) | Task 10 |
-| §7 AC-5a (delete_canary_research_runs_by_batch_id_and_phase) | Task 4 |
-| §7 AC-6 (v1 payload-hash golden) | Task 3 |
-| §7 AC-6a (OOS gate non-regression) | Task 12 Step 8 |
-| §7 AC-7 (ruff) | Task 12 Step 7 |
+| §7 AC-5a (`delete_canary_research_runs_by_batch_id_and_phase`) | Task 4 |
+| §7 AC-6 (v1 payload-hash golden) | Task 2 |
+| §7 AC-6a (OOS gate non-regression) | Task 12 Step 2 |
+| §7 AC-7 (ruff) | Task 12 Step 1 |
 | §7 AC-8 (CI) | Task 12 (post-push) |
-| §8 AC-F1 (60d AUC ≥ 0.634) | Renderer (Task 9) + dispatcher (Task 10) |
-| §8 AC-F2 (20d/5d AUC) | Renderer (Task 9) + dispatcher (Task 10) |
+| §8 AC-F1 (60d AUC ≥ 0.634) | Tasks 9, 10 |
+| §8 AC-F2 (20d / 5d AUC) | Tasks 9, 10 |
 | §8 AC-F3 (CCA event states) | Tasks 5, 9, 10 |
 | §8 AC-F4 (per-window) | Tasks 6, 9, 10 |
 | §8 AC-F5 (WATCH% ≤ 44.3) | Tasks 5, 9, 10 |
-| §8 AC-F6 (v1 unchanged) | Tasks 3, 9, 10 |
+| §8 AC-F6 (v1 unchanged) | Tasks 2, 9, 10 |
 
 ---
 
 ## Notes for the implementer
 
-1. **Test fixtures**: This plan references several pytest fixtures (`seeded_db_empty_cards`, `seeded_db_with_vol_index`, `seeded_db_with_v2_backfill`, `seeded_db_with_v1_walk_forward_and_v2_evidence`, `seeded_db_full_history`, `seeded_db_with_only_v1`, `seeded_db_with_v1_and_v2_backfill`). The form-sweep PR #88 has precedents for some of these in `tests/integration/regime/conftest.py` — extend them. For tests that need a full historical window with realistic vol_index_daily data (AC-F3), it may be more pragmatic to invoke against the dev DB inside the test, OR mark `pytest.skip` with an explicit message and rely on Task 12 Step 5's manual smoke for evidence.
+1. **The task order is a correctness invariant.** Specifically Task 2 (golden capture) **must** run before Task 3 (conditional). Tasks 4 and 0 are unordered with each other but both must come before Task 5. Task 9 (module) must come before Task 10 (dispatcher) — the dispatcher imports from the module.
 
-2. **Subprocess vs in-process testing**: Several integration tests use `subprocess.run(...)` to invoke `canary_backfill.py` / `backtest_canary.py`. This is robust but slow. An equivalent in-process invocation (`from scripts import backtest_canary; backtest_canary.main_with_args(...)`) is faster but requires refactoring the script to expose a main_with_args entry. Implementer's call — pick one and apply consistently.
+2. **All integration tests are in-process.** Never `subprocess.run([sys.executable, ...])` inside a test — `Settings.from_env()` reads `UW_SCAN_DB_*` env vars (not `DATABASE_URL`), so a subprocess + `DATABASE_URL=...` would silently target the dev DB. The test fixture provides `seeded_db_empty_cards.conn` + `_schema`; pass them to `cmd_backfill(conn, schema, args)` / `cmd_walk_forward(conn, schema, args)` / `cmd_robustness(conn, schema, args)` / `cmd_v1_v2_compare(conn, schema, args)` directly.
 
-3. **`_aucs_for_rows` reuse**: Task 10's dispatcher calls `_aucs_for_rows` (existing in `scripts/backtest_canary.py`) on rows it queries from `canary_snapshots`. Verify the row-dict shape `{"date", "score", "band", "tactical", "structural", "speed", "warning_state"}` matches what `_aucs_for_rows` expects. If not, either adapt the SQL projection OR add a tiny adapter — both fine.
+3. **The COMPOSITE_VERSION module constant stays at 1 for ALL of PR 1.** Every v2 write uses `cal.composite_version` (the loaded field). The flip to 2 happens in PR 2 and is gated by `--v1-v2-compare`'s SHIP verdict.
 
-4. **AC-F3 fixture vs smoke**: Real CCA events require historical vol_complex data. If `seeded_db_full_history` is impractical to build (it would need 15+ years of synthetic vol_complex history with the right peaks), skip the integration AC-F3 test and rely on Task 12 Step 5's manual smoke. This is a documented practical compromise — the AC is still gated, just via live evidence rather than test-DB evidence.
+4. **Idempotency is by canonical payload hash, not by date+version.** A `SELECT 1` check silently keeps stale rows from earlier failed runs that had bugs. Use `canonical_payload_hash(payload)` to compute the new hash, compare with the stored `payload_hash`, skip on match, RAISE on mismatch unless `--overwrite-on-hash-mismatch`.
 
-5. **Idempotency check granularity**: The application-layer pre-insert check (`SELECT 1 FROM canary_snapshots WHERE data_date=%s AND composite_version=%s`) adds one round-trip per day. For ~3,843 days that's ~30 seconds extra. Acceptable for a research-only one-time backfill. If profile shows this is a hot path, batch-check via `WHERE data_date = ANY(%s)`. Out of scope for PR 1.
+5. **Full-history AUCs use `_compute_canary_series`, not raw SQL on snapshots.** Snapshot rows lack the `spx` forward-return field that `_aucs_for_rows -> _entry_lagged_label` needs. Always recompute via the existing helper.
 
-6. **Mutual exclusion of CLI flags**: Both `canary_backfill.py` and `backtest_canary.py` should reject incompatible combinations early (before any DB writes). E.g., `--v1-v2-compare --walk-forward` should `parser.error()`. The form-sweep PR #88 already established this pattern.
+6. **Test fixtures use `CanarySnapshotRepository.insert_snapshot(...)`, not raw SQL.** `canary_snapshots` has NOT NULL columns (`tactical_score`, `structural_score`, `speed_score ∈ {0, 8, 20}`, `warning_state`, `payload_hash`) that raw INSERTs forget. Use the repo method.
 
-7. **Standing-rule compliance**: Use `uv run python` exclusively. Persist to Postgres. Don't extend `repository.py` — `regime_backtest_repository.py` is the focused file. Never `Co-Authored-By: Claude …` trailer. Don't push or open PR until the user explicitly asks.
+7. **Standing-rule compliance recap:** `uv` exclusively. No `Co-Authored-By: Claude` trailer. Don't push or open a PR until the user explicitly asks. Persist to Postgres. No naked shorts. Don't extend `repository.py` — `regime_backtest_repository.py` is the focused file.
 
 8. **What this PR explicitly does NOT do** (worth restating to avoid scope creep):
    - No production flip — `COMPOSITE_VERSION = 1` stays.
    - No UI changes — `web/` is untouched.
-   - No OpenAPI regen — no API schema change.
+   - No OpenAPI regen.
    - No methodology doc rewrite.
    - No band threshold change.
-   - No new `LAST_KNOWN_AUC_v2_*` constants — those are PR 2's territory.
+   - No new `LAST_KNOWN_AUC_v2_*` constants.
    - The verdict from `--v1-v2-compare` is a *report*; this PR does NOT itself flip anything.
