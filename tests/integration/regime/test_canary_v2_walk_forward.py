@@ -4,14 +4,30 @@ parity, and dispatcher. Built up across Tasks 4, 6, 7, 8, 10, 11.
 
 from __future__ import annotations
 
+import argparse
 import uuid
 from datetime import date
+from datetime import date as _date
 
 import pytest
 
+from scripts.backtest_canary import cmd_walk_forward
+from tests.integration.regime._canary_v2a_fixture import (
+    seed_v1_walk_forward_runs,
+    seed_vol_index_full_history,
+)
 from uw_scan.storage.regime_backtest_repository import RegimeBacktestRepository
 
 pytestmark = pytest.mark.integration
+
+
+def _wf_args(
+    *, composite_version: int, batch_id: str | None = None
+) -> argparse.Namespace:
+    return argparse.Namespace(
+        composite_version=composite_version,
+        batch_id=batch_id,
+    )
 
 
 def _insert_research_run(
@@ -146,3 +162,81 @@ def test_delete_canary_research_runs_by_batch_id_and_phase_does_not_touch_produc
             (prod_id,),
         )
         assert cur.fetchone() is not None
+
+
+# --- Task 6: v2 walk-forward tests ---
+
+
+def test_v2_walk_forward_writes_6_research_rows(seeded_db_empty_cards):
+    """cmd_walk_forward with composite_version=2 writes 6 research-scoped
+    walk-forward rows, all sharing a batch_id, with WF-1..WF-6 window_ids."""
+    conn = seeded_db_empty_cards.conn
+    schema = seeded_db_empty_cards._schema
+    seed_vol_index_full_history(
+        conn, schema=schema, start=_date(2013, 1, 2), end=_date(2026, 5, 21)
+    )
+
+    cmd_walk_forward(conn, schema=schema, args=_wf_args(composite_version=2))
+
+    with conn.cursor() as cur:
+        cur.execute(
+            f"SELECT params->>'batch_id', params->>'window_id', composite_version, run_scope "
+            f"FROM {schema}.regime_backtest_runs "
+            f"WHERE indicator='canary' AND composite_version='2' "
+            f"  AND params->>'phase'='walk_forward' "
+            f"ORDER BY params->>'window_id'"
+        )
+        rows = cur.fetchall()
+
+    assert len(rows) == 6
+    batch_ids = {r[0] for r in rows}
+    assert len(batch_ids) == 1 and next(iter(batch_ids)) is not None
+    window_ids = {r[1] for r in rows}
+    assert window_ids == {f"WF-{i}" for i in range(1, 7)}
+    for r in rows:
+        assert r[2] == "2"
+        assert r[3] == "research"
+
+
+def test_v2_walk_forward_preserves_v1_production_rows(seeded_db_empty_cards):
+    """v1 walk-forward production rows survive v2 walk-forward. Spec §6 Layer 2."""
+    conn = seeded_db_empty_cards.conn
+    schema = seeded_db_empty_cards._schema
+    v1_ids = seed_v1_walk_forward_runs(conn, schema=schema)
+    seed_vol_index_full_history(
+        conn, schema=schema, start=_date(2013, 1, 2), end=_date(2026, 5, 21)
+    )
+
+    cmd_walk_forward(conn, schema=schema, args=_wf_args(composite_version=2))
+
+    with conn.cursor() as cur:
+        cur.execute(
+            f"SELECT COUNT(*) FROM {schema}.regime_backtest_runs WHERE id = ANY(%s)",
+            (v1_ids,),
+        )
+        assert cur.fetchone()[0] == 6
+
+
+def test_v2_walk_forward_summary_has_composite_aucs(seeded_db_empty_cards):
+    """Each v2 walk-forward run's summary.aucs.composite contains the three
+    horizons. AC-F4 reads these."""
+    conn = seeded_db_empty_cards.conn
+    schema = seeded_db_empty_cards._schema
+    seed_vol_index_full_history(
+        conn, schema=schema, start=_date(2013, 1, 2), end=_date(2026, 5, 21)
+    )
+
+    cmd_walk_forward(conn, schema=schema, args=_wf_args(composite_version=2))
+
+    with conn.cursor() as cur:
+        cur.execute(
+            f"SELECT summary->'aucs'->'composite' "
+            f"FROM {schema}.regime_backtest_runs "
+            f"WHERE indicator='canary' AND composite_version='2' "
+            f"  AND params->>'phase'='walk_forward' LIMIT 1"
+        )
+        composite_aucs = cur.fetchone()[0]
+
+    assert composite_aucs is not None
+    for key in ("up5d_2pct", "up20d_5pct", "up60d_10pct"):
+        assert key in composite_aucs

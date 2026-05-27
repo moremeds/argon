@@ -23,8 +23,10 @@ import argparse
 import json
 import logging
 import sys
+import uuid
 from dataclasses import replace
 from datetime import date
+from pathlib import Path
 
 import numpy as np
 from psycopg import connect
@@ -38,6 +40,9 @@ from uw_scan.cards.canary_calibration import (
 from uw_scan.config import Settings
 
 log = logging.getLogger(__name__)
+
+REPO_ROOT = Path(__file__).resolve().parents[1]
+V2_CAL_PATH = REPO_ROOT / "docs" / "research" / "regime" / "canary-calibration-v2.json"
 
 TRAIN_END = date(2014, 12, 31)
 VALID_START = date(2015, 1, 1)
@@ -777,18 +782,34 @@ def _summarize_window(
     }
 
 
-def cmd_walk_forward(conn, *, schema: str) -> None:
-    """6-window expanding-train walk-forward with frozen v1 calibration.
+def cmd_walk_forward(conn, *, schema: str, args=None) -> None:
+    """6-window expanding-train walk-forward with frozen calibration.
 
     Writes one regime_backtest_runs row per window so each window's summary
-    can be inspected independently. Logs an aggregated pass/fail table at
-    the end against the revised success criteria (primary 60d ≥ 0.58,
-    secondary 20d ≥ 0.55, 5d diagnostic only).
+    can be inspected independently. v2 invocation (when
+    args.composite_version == 2) loads canary-calibration-v2.json, forces
+    run_scope='research', persists composite_version=str(cal.composite_version),
+    and tags every params dict with a batch_id (generated once per call).
+
+    The batch_id is printed to stdout so callers can chain --robustness
+    with --batch-id.
     """
     from uw_scan.cards.canary_calibration import load_calibration
     from uw_scan.storage.regime_backtest_repository import RegimeBacktestRepository
 
-    cal = load_calibration()
+    if args is None:
+        args = argparse.Namespace(composite_version=1, batch_id=None)
+
+    if args.composite_version == 2:
+        cal = load_calibration(path=V2_CAL_PATH)
+        run_scope = "research"
+    else:
+        cal = load_calibration()
+        run_scope = "production"
+
+    batch_id = args.batch_id or str(uuid.uuid4())
+    print(f"walk-forward batch_id={batch_id}")
+
     bt_repo = RegimeBacktestRepository(conn, schema=schema)
     score_form = cal.score_form
 
@@ -826,7 +847,7 @@ def cmd_walk_forward(conn, *, schema: str) -> None:
         summary["train_end"] = win["train_end"].isoformat()
         run_id = bt_repo.insert_run(
             indicator="canary",
-            composite_version=str(COMPOSITE_VERSION),
+            composite_version=str(cal.composite_version),
             start_date=eval_rows[0]["date"],
             end_date=eval_rows[-1]["date"],
             window_days=350,
@@ -836,8 +857,10 @@ def cmd_walk_forward(conn, *, schema: str) -> None:
                 "phase": "walk_forward",
                 "window_id": win["id"],
                 "train_end": win["train_end"].isoformat(),
+                "batch_id": batch_id,
             },
             summary=_clean_nans(summary),
+            run_scope=run_scope,
         )
         bt_repo.bulk_insert_daily(
             run_id,
@@ -1117,6 +1140,23 @@ def main():
     )
     parser.add_argument("--write-summary", action="store_true")
     parser.add_argument("--form", choices=("linear", "convex", "concave", "sigmoid"))
+    parser.add_argument(
+        "--composite-version",
+        type=int,
+        choices=(1, 2),
+        default=1,
+        help="1 (v1, production, default) or 2 (v2-A, research, loads "
+        "canary-calibration-v2.json). Plumbs through walk-forward + "
+        "robustness + v1-v2-compare. Spec §5.5.",
+    )
+    parser.add_argument(
+        "--batch-id",
+        type=str,
+        default=None,
+        help="Optional batch_id. If omitted, walk-forward generates a UUID4 "
+        "(printed to stdout for chaining); robustness/v1-v2-compare require "
+        "this to match an existing batch.",
+    )
     args = parser.parse_args()
 
     # CLI-level mutual exclusion (G-1) — argparse doesn't use a group here.
@@ -1160,7 +1200,7 @@ def main():
             )
             return
         if args.walk_forward:
-            cmd_walk_forward(conn, schema=schema)
+            cmd_walk_forward(conn, schema=schema, args=args)
             return
         if args.robustness:
             cmd_robustness(conn, schema=schema)
