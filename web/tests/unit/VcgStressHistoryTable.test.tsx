@@ -104,6 +104,94 @@ describe("VcgStressHistoryTable", () => {
     ).not.toBeNull();
   });
 
+  it("renders +5d / +20d / +60d forward-return cells with sign coloring", () => {
+    const rows: Row[] = [
+      {
+        date: "2020-03-16",
+        interpretation: "PANIC",
+        score: -3.2,
+        vcg_adj: -3.2,
+        pi_panic: 1.5,
+        sign_ok: true,
+        vix: 80,
+        vvix: 130,
+        vix_percentile_rank: 0.99,
+        vvix_percentile_rank: 0.99,
+        fwd_5d_pct: -8.5,
+        fwd_20d_pct: 15.3,
+        fwd_60d_pct: 22.1,
+      },
+    ];
+    const { container } = render(<VcgStressHistoryTable rows={rows} />);
+    const row = container.querySelector(
+      '[data-testid="vcg-stress-row-2020-03-16"]',
+    );
+    const cells = row?.querySelectorAll("td");
+    // Columns 9, 10, 11 are +5d / +20d / +60d
+    expect(cells?.[9]?.textContent).toMatch(/-8\.5/);
+    expect(cells?.[10]?.textContent).toMatch(/\+15\.3/);
+    expect(cells?.[11]?.textContent).toMatch(/\+22\.1/);
+    // Negative fwd_5d should be red; positive should be green
+    expect((cells?.[9] as HTMLElement).style.color).toContain("var(--negative");
+    expect((cells?.[10] as HTMLElement).style.color).toContain(
+      "var(--positive",
+    );
+  });
+
+  it("renders '—' for null forward-return cells (recent days)", () => {
+    const rows: Row[] = [
+      {
+        date: "2026-05-27",
+        interpretation: "RISK_OFF",
+        score: -1.9,
+        vcg_adj: -1.9,
+        pi_panic: 0,
+        sign_ok: true,
+        vix: 25,
+        vvix: 110,
+        vix_percentile_rank: 0.7,
+        vvix_percentile_rank: 0.6,
+        fwd_5d_pct: 0.5,
+        fwd_20d_pct: null,
+        fwd_60d_pct: null,
+      },
+    ];
+    const { container } = render(<VcgStressHistoryTable rows={rows} />);
+    const row = container.querySelector(
+      '[data-testid="vcg-stress-row-2026-05-27"]',
+    );
+    const cells = row?.querySelectorAll("td");
+    expect(cells?.[10]?.textContent).toBe("—");
+    expect(cells?.[11]?.textContent).toBe("—");
+  });
+
+  it("interpretation pill has tooltip with historical forward-return summary", () => {
+    const rows: Row[] = [
+      {
+        date: "2020-03-16",
+        interpretation: "PANIC",
+        score: -3.2,
+        vcg_adj: -3.2,
+        pi_panic: 1.5,
+        sign_ok: true,
+        vix: 80,
+        vvix: 130,
+        vix_percentile_rank: 0.99,
+        vvix_percentile_rank: 0.99,
+        fwd_5d_pct: -8.5,
+        fwd_20d_pct: 15.3,
+        fwd_60d_pct: 22.1,
+      },
+    ];
+    const { container } = render(<VcgStressHistoryTable rows={rows} />);
+    const pill = container.querySelector(
+      '[data-testid="interpretation-pill-PANIC"]',
+    );
+    expect(pill).not.toBeNull();
+    expect(pill?.getAttribute("title")).toMatch(/capitulation/i);
+    expect(pill?.getAttribute("title")).toMatch(/\+2\.88/);
+  });
+
   it("renders '—' for null percentile ranks", () => {
     const sparse: Row[] = [
       {

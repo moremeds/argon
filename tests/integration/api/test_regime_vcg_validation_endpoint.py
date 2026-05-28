@@ -65,6 +65,72 @@ def test_vcg_validation_stress_history_contract(seed_vcg_backtest_run, client) -
     assert panic["sign_ok"] is True
 
 
+def test_vcg_validation_includes_stress_history_summary(
+    seed_vcg_backtest_run, client
+) -> None:
+    """The endpoint must expose stress_history_summary and per-entry
+    forward-return fields. Values may be null on a fresh test DB with no
+    SPX vol_index_daily rows — structural check only."""
+    resp = client.get("/api/regime/vcg-validation")
+    assert resp.status_code == 200, resp.text
+    body = resp.json()
+
+    # Per-entry structure: every stress row carries the three fwd keys.
+    sh = body["stress_history"]
+    assert sh, "expected non-empty stress_history in seeded backtest"
+    for row in sh:
+        for key in ("fwd_5d_pct", "fwd_20d_pct", "fwd_60d_pct"):
+            assert key in row, f"missing {key} on stress_history entry {row['date']}"
+
+    # Summary structure: non-None when stress_history is non-empty.
+    assert "stress_history_summary" in body
+    summary = body["stress_history_summary"]
+    assert summary is not None
+    assert "by_interpretation" in summary
+    assert len(summary["by_interpretation"]) >= 1
+    for row in summary["by_interpretation"]:
+        for key in (
+            "interpretation",
+            "n",
+            "mean_fwd_5d_pct",
+            "mean_fwd_20d_pct",
+            "mean_fwd_60d_pct",
+            "winrate_20d_pct",
+            "winrate_60d_pct",
+        ):
+            assert key in row
+
+
+def test_vcg_validation_summary_values_match_published_probes(
+    seed_vcg_backtest_run, client
+) -> None:
+    """Numeric check against the published probe note values.
+    Gated by env flag — only runs when the local DB has the production
+    backtest (run_id=31, 4,710 days). CI seeds do not satisfy this."""
+    import math
+    import os
+
+    if os.getenv("VCG_FULL_BACKTEST_AVAILABLE") != "1":
+        import pytest
+
+        pytest.skip(
+            "requires production backtest fixture (set VCG_FULL_BACKTEST_AVAILABLE=1 locally)"
+        )
+
+    resp = client.get("/api/regime/vcg-validation")
+    body = resp.json()
+    by = {
+        row["interpretation"]: row
+        for row in body["stress_history_summary"]["by_interpretation"]
+    }
+
+    # Published probe values (docs/research/regime/vcg-forward-return-probes-2026-05-28.md):
+    assert by["PANIC"]["n"] == 83
+    assert math.isclose(by["PANIC"]["mean_fwd_20d_pct"], 2.88, abs_tol=0.05)
+    assert by["RISK_OFF"]["n"] == 133
+    assert math.isclose(by["RISK_OFF"]["mean_fwd_60d_pct"], 3.04, abs_tol=0.05)
+
+
 def test_vcg_validation_503_when_no_completed_run(
     seeded_db_empty_cards, client
 ) -> None:
