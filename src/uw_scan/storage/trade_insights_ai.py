@@ -454,36 +454,39 @@ class _TradeInsightsAiMixin:
         outcome: dict[str, Any],
         markdown: str,
         resolved_model: str | None = None,
+        provider_metadata: dict[str, Any] | None = None,
     ) -> None:
         """Mark a row as succeeded; optionally overwrite `model` with the
         provider's post-hoc canonical model id (e.g. 'opus' alias resolves to
         'claude-opus-4-7'). Resolved_model keeps the cache key correct on
-        subsequent reuse lookups."""
-        if resolved_model is None:
-            sql = (
-                f"UPDATE {self._schema}.trade_insight_ai_analyses "
-                "SET status = 'succeeded', "
-                "outcome_jsonb = %s, "
-                "markdown = %s, "
-                "error_message = NULL, "
-                "finished_at = now() "
-                "WHERE analysis_id = %s"
-            )
-            params: tuple[Any, ...] = (Jsonb(outcome), markdown, analysis_id)
-        else:
-            sql = (
-                f"UPDATE {self._schema}.trade_insight_ai_analyses "
-                "SET status = 'succeeded', "
-                "outcome_jsonb = %s, "
-                "markdown = %s, "
-                "model = %s, "
-                "error_message = NULL, "
-                "finished_at = now() "
-                "WHERE analysis_id = %s"
-            )
-            params = (Jsonb(outcome), markdown, resolved_model, analysis_id)
+        subsequent reuse lookups.
+
+        `provider_metadata` carries provider-specific runtime fields
+        (DeepSeek: reasoning_content + output_channel + byte sizes; Codex /
+        Claude: typically None). Schemaless by design — readers must guard.
+        """
+        sets = [
+            "status = 'succeeded'",
+            "outcome_jsonb = %s",
+            "markdown = %s",
+            "error_message = NULL",
+            "finished_at = now()",
+        ]
+        params: list[Any] = [Jsonb(outcome), markdown]
+        if resolved_model is not None:
+            sets.append("model = %s")
+            params.append(resolved_model)
+        if provider_metadata is not None:
+            sets.append("provider_metadata_jsonb = %s")
+            params.append(Jsonb(provider_metadata))
+        params.append(analysis_id)
+        sql = (
+            f"UPDATE {self._schema}.trade_insight_ai_analyses "
+            f"SET {', '.join(sets)} "
+            "WHERE analysis_id = %s"
+        )
         with self._conn.cursor() as cur:
-            cur.execute(sql, params)
+            cur.execute(sql, tuple(params))
 
     def fail_trade_insight_ai_analysis(
         self,

@@ -189,6 +189,16 @@ def trade_insights_ai_tick(
             lenient=runner.requires_lenient_validation,
         )
         markdown = render_trade_insights_ai_markdown(outcome)
+        provider_metadata: dict[str, Any] | None = None
+        if result.reasoning_content is not None or result.output_channel is not None:
+            provider_metadata = {}
+            if result.reasoning_content is not None:
+                provider_metadata["reasoning_content"] = result.reasoning_content
+                provider_metadata["reasoning_bytes"] = len(
+                    result.reasoning_content.encode("utf-8")
+                )
+            if result.output_channel is not None:
+                provider_metadata["output_channel"] = result.output_channel
         repo = _repo(settings)
         try:
             repo.complete_trade_insight_ai_analysis(
@@ -196,6 +206,7 @@ def trade_insights_ai_tick(
                 outcome=outcome.model_dump(mode="json"),
                 markdown=markdown,
                 resolved_model=result.resolved_model,
+                provider_metadata=provider_metadata,
             )
             repo.conn.commit()
         finally:

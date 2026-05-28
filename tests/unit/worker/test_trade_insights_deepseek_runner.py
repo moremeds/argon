@@ -1,8 +1,10 @@
 """DeepSeek HTTP runner tests. Mocks httpx — never hits the network.
 
 The runner uses Server-Sent Events (SSE) streaming via `httpx.Client.stream`,
-not single-shot POST. These mocks emulate the SSE chunk sequence that
-DeepSeek's API emits when function-calling with `tool_choice` forced.
+not single-shot POST. These mocks emulate the SSE chunks DeepSeek emits when
+function-calling in thinking-enabled mode (tool_choice is NOT forced — the
+model voluntarily calls the tool). Reasoning content is also streamed via
+the `delta.reasoning_content` channel and surfaces in RunnerResult.
 """
 
 from __future__ import annotations
@@ -16,11 +18,16 @@ import pytest
 
 
 def _sse_chunks_for_outcome(
-    outcome_obj, *, resolved_model: str = "deepseek-v4-pro", chunk_size: int = 50
+    outcome_obj,
+    *,
+    resolved_model: str = "deepseek-v4-pro",
+    chunk_size: int = 50,
+    reasoning_text: str | None = None,
 ):
     """Build the SSE `data: ...` lines DeepSeek would emit for a happy-path
-    tool_calls response. First chunk announces the role; second announces
-    the tool name; subsequent chunks stream the arguments string in slices;
+    tool_calls response. First chunk announces the role; optional reasoning
+    chunks stream chain-of-thought via delta.reasoning_content; then the
+    tool name; subsequent chunks stream the arguments string in slices;
     final chunk announces finish_reason=tool_calls; trailer is [DONE]."""
     args = json.dumps(outcome_obj)
     chunks: list[str] = []
@@ -38,6 +45,25 @@ def _sse_chunks_for_outcome(
             }
         )
     )
+    if reasoning_text:
+        for i in range(0, len(reasoning_text), chunk_size):
+            chunks.append(
+                _data(
+                    {
+                        "model": resolved_model,
+                        "choices": [
+                            {
+                                "index": 0,
+                                "delta": {
+                                    "reasoning_content": reasoning_text[
+                                        i : i + chunk_size
+                                    ]
+                                },
+                            }
+                        ],
+                    }
+                )
+            )
     chunks.append(
         _data(
             {
@@ -134,13 +160,20 @@ def _patch_stream(
     return captured
 
 
-def test_deepseek_runner_streams_with_force_tool_choice_and_strict_true(
+def test_deepseek_runner_streams_thinking_enabled_without_forced_tool_choice(
     monkeypatch,
 ) -> None:
+    """Canonical request shape: thinking ON, no tool_choice, strict tool.
+
+    v4-pro returns HTTP 400 if tool_choice is forced while thinking is
+    enabled. The runner relies on the model voluntarily calling the
+    structured-output tool (the strict schema + Pydantic-strict prompt is
+    sufficient).
+    """
     from uw_scan.worker.jobs.trade_insights_deepseek_runner import DeepSeekRunner
 
     outcome = {"schema_version": "trade-insights-ai-v5.3", "ticker": "TEST"}
-    sse_lines = _sse_chunks_for_outcome(outcome)
+    sse_lines = _sse_chunks_for_outcome(outcome, reasoning_text="step 1: pick X")
     captured = _patch_stream(monkeypatch, sse_lines=sse_lines)
     monkeypatch.setenv("DEEPSEEK_API_KEY", "sk-test")
 
@@ -162,21 +195,26 @@ def test_deepseek_runner_streams_with_force_tool_choice_and_strict_true(
         "hit DeepSeek's ~60 s server-side compute cap. Streaming keeps the "
         "connection alive throughout the response."
     )
-    assert body["thinking"] == {"type": "disabled"}, (
-        "thinking-mode-default rejects forced tool_choice with HTTP 400. "
-        "Disabling thinking lifts the restriction; v4-pro still uses its "
-        "pro architecture, just without the reasoning_content phase."
+    assert body["thinking"] == {"type": "enabled"}, (
+        "thinking must be explicitly enabled — captures reasoning_content "
+        "and is the canonical quality default for v4-pro."
+    )
+    assert "tool_choice" not in body, (
+        "tool_choice MUST be omitted in thinking-enabled mode. v4-pro "
+        "returns HTTP 400 'Thinking mode does not support this tool_choice' "
+        "if it is present. The model still calls the tool voluntarily."
     )
     tool = body["tools"][0]["function"]
     assert tool["name"] == "emit_trade_insight"
     assert tool["strict"] is True
     assert tool["parameters"] == {"type": "object", "properties": {}}
-    assert body["tool_choice"] == {
-        "type": "function",
-        "function": {"name": "emit_trade_insight"},
-    }
     assert result.outcome == outcome
     assert result.resolved_model == "deepseek-v4-pro"
+    assert result.output_channel == "tool_calls"
+    assert result.reasoning_content == "step 1: pick X", (
+        "Reasoning content streamed via delta.reasoning_content must be "
+        "reassembled and returned for persistence to provider_metadata_jsonb."
+    )
 
 
 def test_deepseek_runner_raises_when_api_key_missing(monkeypatch) -> None:
@@ -218,12 +256,41 @@ def test_deepseek_runner_raises_on_non_2xx(monkeypatch) -> None:
         )
 
 
-def test_deepseek_runner_raises_when_stream_ends_without_tool_calls(
+def test_deepseek_runner_falls_back_to_content_channel_with_fenced_json(
     monkeypatch,
 ) -> None:
-    """If DeepSeek streams free-text only (no tool_calls deltas), the runner
-    must fail loudly. This guards against the rare case where the model
-    ignores tool_choice forcing."""
+    """If the model declines to call the tool and instead emits a fenced
+    ```json``` block in delta.content, the runner extracts and parses it.
+    output_channel is reported as 'content' for observability."""
+    from uw_scan.worker.jobs.trade_insights_deepseek_runner import DeepSeekRunner
+
+    monkeypatch.setenv("DEEPSEEK_API_KEY", "sk-test")
+    outcome = {"schema_version": "trade-insights-ai-v5.3", "ticker": "FALLBACK"}
+    fenced = "Here is the result:\n```json\n" + json.dumps(outcome) + "\n```\nDone."
+    sse_lines = [
+        f"data: {json.dumps({'model': 'deepseek-v4-pro', 'choices': [{'index': 0, 'delta': {'content': fenced}}]})}",
+        f"data: {json.dumps({'model': 'deepseek-v4-pro', 'choices': [{'index': 0, 'delta': {}, 'finish_reason': 'stop'}]})}",
+        "data: [DONE]",
+    ]
+    _patch_stream(monkeypatch, sse_lines=sse_lines)
+
+    result = DeepSeekRunner().run(
+        prompt="x",
+        schema={},
+        model="deepseek-v4-pro",
+        timeout_seconds=10.0,
+        max_output_bytes=8192,
+    )
+    assert result.outcome == outcome
+    assert result.output_channel == "content"
+    assert result.reasoning_content is None
+
+
+def test_deepseek_runner_raises_when_stream_ends_with_neither_channel(
+    monkeypatch,
+) -> None:
+    """Empty assistant turn — no tool_calls and no content — is a model
+    failure we cannot recover from. Raise loudly."""
     from uw_scan.worker.jobs.trade_insights_ai_runners import (
         TradeInsightsAiRunnerError,
     )
@@ -231,12 +298,41 @@ def test_deepseek_runner_raises_when_stream_ends_without_tool_calls(
 
     monkeypatch.setenv("DEEPSEEK_API_KEY", "sk-test")
     sse_lines = [
-        f"data: {json.dumps({'model': 'deepseek-v4-pro', 'choices': [{'index': 0, 'delta': {'content': 'just text'}}]})}",
+        f"data: {json.dumps({'model': 'deepseek-v4-pro', 'choices': [{'index': 0, 'delta': {'role': 'assistant'}}]})}",
         f"data: {json.dumps({'model': 'deepseek-v4-pro', 'choices': [{'index': 0, 'delta': {}, 'finish_reason': 'stop'}]})}",
         "data: [DONE]",
     ]
     _patch_stream(monkeypatch, sse_lines=sse_lines)
-    with pytest.raises(TradeInsightsAiRunnerError, match="tool_calls"):
+    with pytest.raises(
+        TradeInsightsAiRunnerError, match="neither tool_calls nor content"
+    ):
+        DeepSeekRunner().run(
+            prompt="x",
+            schema={},
+            model="deepseek-v4-pro",
+            timeout_seconds=10.0,
+            max_output_bytes=4096,
+        )
+
+
+def test_deepseek_runner_raises_when_content_path_yields_invalid_json(
+    monkeypatch,
+) -> None:
+    """delta.content with no extractable JSON object must fail loudly
+    instead of silently returning garbage."""
+    from uw_scan.worker.jobs.trade_insights_ai_runners import (
+        TradeInsightsAiRunnerError,
+    )
+    from uw_scan.worker.jobs.trade_insights_deepseek_runner import DeepSeekRunner
+
+    monkeypatch.setenv("DEEPSEEK_API_KEY", "sk-test")
+    sse_lines = [
+        f"data: {json.dumps({'model': 'deepseek-v4-pro', 'choices': [{'index': 0, 'delta': {'content': 'just plain prose, no json'}}]})}",
+        f"data: {json.dumps({'model': 'deepseek-v4-pro', 'choices': [{'index': 0, 'delta': {}, 'finish_reason': 'stop'}]})}",
+        "data: [DONE]",
+    ]
+    _patch_stream(monkeypatch, sse_lines=sse_lines)
+    with pytest.raises(TradeInsightsAiRunnerError, match="not valid JSON"):
         DeepSeekRunner().run(
             prompt="x",
             schema={},
