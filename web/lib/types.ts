@@ -4613,7 +4613,7 @@ export interface components {
              */
             force_rerun: boolean;
             /** Providers */
-            providers?: ("codex" | "claude")[] | null;
+            providers?: ("codex" | "claude" | "deepseek")[] | null;
         };
         /** TradeInsightAiAnalysisResponse */
         TradeInsightAiAnalysisResponse: {
@@ -4637,7 +4637,7 @@ export interface components {
              * @default codex
              * @enum {string}
              */
-            provider: "codex" | "claude";
+            provider: "codex" | "claude" | "deepseek";
             /** Prompt Version */
             prompt_version: string;
             /**
@@ -4676,7 +4676,7 @@ export interface components {
              * Provider
              * @enum {string}
              */
-            provider: "codex" | "claude";
+            provider: "codex" | "claude" | "deepseek";
             /**
              * Analysis Id
              * Format: uuid
@@ -4868,6 +4868,14 @@ export interface components {
          *     two providers' headline fields whenever both have succeeded. The
          *     UI surfaces consensus_grade + actionable_disagreement above the
          *     [Codex] [Claude] tabs as a quality signal.
+         *
+         *     v5.3 (deepseek-decoupling, 2026-05-28): adds the deepseek slot.
+         *     DeepSeek surfaces in /latest but DOES NOT participate in
+         *     provider_consensus — that remains a 2-way codex-vs-claude comparison
+         *     (see _compute_provider_consensus docstring for the scope decision).
+         *     The UI still renders only [Codex] [Claude] tabs; the deepseek field
+         *     is queued + persisted today and ignored by the frontend until a
+         *     follow-up PR adds a [DeepSeek] tab.
          */
         TradeInsightAiLatestPair: {
             /** Current Prompt Version */
@@ -4876,6 +4884,7 @@ export interface components {
             current_prompt_label?: string | null;
             codex?: components["schemas"]["TradeInsightAiAnalysisResponse"] | null;
             claude?: components["schemas"]["TradeInsightAiAnalysisResponse"] | null;
+            deepseek?: components["schemas"]["TradeInsightAiAnalysisResponse"] | null;
             provider_consensus?: components["schemas"]["TradeInsightAiProviderConsensus"];
         };
         /** TradeInsightAiLevel */
@@ -5057,7 +5066,7 @@ export interface components {
              * Provider
              * @enum {string}
              */
-            provider: "codex" | "claude";
+            provider: "codex" | "claude" | "deepseek";
             /** Prompt Version */
             prompt_version: string;
             /** Thesis Archetype */
@@ -5414,6 +5423,7 @@ export interface components {
         TradeInsightsAiHealth: {
             codex: components["schemas"]["TradeInsightsAiProviderHealth"];
             claude: components["schemas"]["TradeInsightsAiProviderHealth"];
+            deepseek: components["schemas"]["TradeInsightsAiProviderHealth"];
         };
         /**
          * TradeInsightsAiProviderHealth

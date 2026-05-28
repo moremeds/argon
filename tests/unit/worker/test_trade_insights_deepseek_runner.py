@@ -1,65 +1,150 @@
-"""DeepSeek HTTP runner tests. Mocks httpx — never hits the network."""
+"""DeepSeek HTTP runner tests. Mocks httpx — never hits the network.
+
+The runner uses Server-Sent Events (SSE) streaming via `httpx.Client.stream`,
+not single-shot POST. These mocks emulate the SSE chunk sequence that
+DeepSeek's API emits when function-calling with `tool_choice` forced.
+"""
 
 from __future__ import annotations
 
 import json
+from contextlib import contextmanager
 from unittest.mock import MagicMock
 
 import httpx
 import pytest
 
 
-def _mock_success_response(
-    monkeypatch, outcome_obj, *, resolved_model: str = "deepseek-v4-pro"
+def _sse_chunks_for_outcome(
+    outcome_obj, *, resolved_model: str = "deepseek-v4-pro", chunk_size: int = 50
 ):
-    """Replace httpx.Client.post with a stub returning a DeepSeek-shaped
-    success envelope where tool_calls[0].function.arguments is
-    json.dumps(outcome_obj). Returns a captured dict that the caller can
-    inspect for url/json/headers/timeout sent."""
-    body = {
-        "model": resolved_model,
-        "choices": [
+    """Build the SSE `data: ...` lines DeepSeek would emit for a happy-path
+    tool_calls response. First chunk announces the role; second announces
+    the tool name; subsequent chunks stream the arguments string in slices;
+    final chunk announces finish_reason=tool_calls; trailer is [DONE]."""
+    args = json.dumps(outcome_obj)
+    chunks: list[str] = []
+
+    def _data(event: dict) -> str:
+        return f"data: {json.dumps(event)}"
+
+    chunks.append(
+        _data(
             {
-                "message": {
-                    "tool_calls": [
+                "model": resolved_model,
+                "choices": [
+                    {"index": 0, "delta": {"role": "assistant", "content": ""}}
+                ],
+            }
+        )
+    )
+    chunks.append(
+        _data(
+            {
+                "model": resolved_model,
+                "choices": [
+                    {
+                        "index": 0,
+                        "delta": {
+                            "tool_calls": [
+                                {
+                                    "index": 0,
+                                    "id": "call_xyz",
+                                    "type": "function",
+                                    "function": {
+                                        "name": "emit_trade_insight",
+                                        "arguments": "",
+                                    },
+                                }
+                            ]
+                        },
+                    }
+                ],
+            }
+        )
+    )
+    for i in range(0, len(args), chunk_size):
+        slice_ = args[i : i + chunk_size]
+        chunks.append(
+            _data(
+                {
+                    "model": resolved_model,
+                    "choices": [
                         {
-                            "function": {
-                                "name": "emit_trade_insight",
-                                "arguments": json.dumps(outcome_obj),
-                            }
+                            "index": 0,
+                            "delta": {
+                                "tool_calls": [
+                                    {
+                                        "index": 0,
+                                        "function": {"arguments": slice_},
+                                    }
+                                ]
+                            },
                         }
                     ],
                 }
+            )
+        )
+    chunks.append(
+        _data(
+            {
+                "model": resolved_model,
+                "choices": [{"index": 0, "delta": {}, "finish_reason": "tool_calls"}],
             }
-        ],
-    }
-    response = MagicMock(spec=httpx.Response)
-    response.status_code = 200
-    response.json.return_value = body
-    response.raise_for_status.return_value = None
-    response.text = json.dumps(body)
+        )
+    )
+    chunks.append("data: [DONE]")
+    return chunks
+
+
+def _patch_stream(
+    monkeypatch,
+    *,
+    sse_lines: list[str] | None = None,
+    raise_on_enter: BaseException | None = None,
+    status_code: int = 200,
+    error_body: bytes = b"",
+):
+    """Replace `httpx.Client.stream` with a fake context manager that yields
+    a mock response. Returns a `captured` dict the caller can inspect."""
     captured: dict = {}
 
-    def fake_post(self, url, *, json, headers, timeout):  # noqa: A002
+    @contextmanager
+    def fake_stream(self, method, url, **kwargs):
+        captured["method"] = method
         captured["url"] = url
-        captured["json"] = json
-        captured["headers"] = headers
-        captured["timeout"] = timeout
-        return response
+        captured["json"] = kwargs.get("json")
+        captured["headers"] = kwargs.get("headers")
+        captured["timeout"] = kwargs.get("timeout")
+        if raise_on_enter is not None:
+            raise raise_on_enter
+        response = MagicMock(spec=httpx.Response)
+        response.status_code = status_code
+        if status_code >= 400:
+            response.raise_for_status.side_effect = httpx.HTTPStatusError(
+                str(status_code), request=MagicMock(), response=response
+            )
+            response.read.return_value = error_body
+        else:
+            response.raise_for_status.return_value = None
+            response.iter_lines.return_value = iter(sse_lines or [])
+        yield response
 
-    monkeypatch.setattr(httpx.Client, "post", fake_post)
+    monkeypatch.setattr(httpx.Client, "stream", fake_stream)
     return captured
 
 
-def test_deepseek_runner_posts_function_call_with_strict_true(monkeypatch) -> None:
+def test_deepseek_runner_streams_with_force_tool_choice_and_strict_true(
+    monkeypatch,
+) -> None:
     from uw_scan.worker.jobs.trade_insights_deepseek_runner import DeepSeekRunner
 
     outcome = {"schema_version": "trade-insights-ai-v5.3", "ticker": "TEST"}
-    captured = _mock_success_response(monkeypatch, outcome)
+    sse_lines = _sse_chunks_for_outcome(outcome)
+    captured = _patch_stream(monkeypatch, sse_lines=sse_lines)
     monkeypatch.setenv("DEEPSEEK_API_KEY", "sk-test")
 
-    runner = DeepSeekRunner()
-    result = runner.run(
+    result = DeepSeekRunner().run(
         prompt="analyze TEST",
         schema={"type": "object", "properties": {}},
         model="deepseek-v4-pro",
@@ -67,10 +152,21 @@ def test_deepseek_runner_posts_function_call_with_strict_true(monkeypatch) -> No
         max_output_bytes=4096,
     )
 
+    assert captured["method"] == "POST"
     assert captured["url"] == "https://api.deepseek.com/chat/completions"
     assert captured["headers"]["Authorization"] == "Bearer sk-test"
     body = captured["json"]
     assert body["model"] == "deepseek-v4-pro"
+    assert body["stream"] is True, (
+        "Streaming is required: non-streaming requests with ~350 KB prompts "
+        "hit DeepSeek's ~60 s server-side compute cap. Streaming keeps the "
+        "connection alive throughout the response."
+    )
+    assert body["thinking"] == {"type": "disabled"}, (
+        "thinking-mode-default rejects forced tool_choice with HTTP 400. "
+        "Disabling thinking lifts the restriction; v4-pro still uses its "
+        "pro architecture, just without the reasoning_content phase."
+    )
     tool = body["tools"][0]["function"]
     assert tool["name"] == "emit_trade_insight"
     assert tool["strict"] is True
@@ -84,11 +180,10 @@ def test_deepseek_runner_posts_function_call_with_strict_true(monkeypatch) -> No
 
 
 def test_deepseek_runner_raises_when_api_key_missing(monkeypatch) -> None:
-    from uw_scan.worker.jobs.trade_insights_deepseek_runner import DeepSeekRunner
-
     from uw_scan.worker.jobs.trade_insights_ai_runners import (
         TradeInsightsAiRunnerError,
     )
+    from uw_scan.worker.jobs.trade_insights_deepseek_runner import DeepSeekRunner
 
     monkeypatch.delenv("DEEPSEEK_API_KEY", raising=False)
     with pytest.raises(TradeInsightsAiRunnerError, match="DEEPSEEK_API_KEY"):
@@ -102,21 +197,18 @@ def test_deepseek_runner_raises_when_api_key_missing(monkeypatch) -> None:
 
 
 def test_deepseek_runner_raises_on_non_2xx(monkeypatch) -> None:
-    from uw_scan.worker.jobs.trade_insights_deepseek_runner import DeepSeekRunner
-
     from uw_scan.worker.jobs.trade_insights_ai_runners import (
         TradeInsightsAiRunnerError,
     )
+    from uw_scan.worker.jobs.trade_insights_deepseek_runner import DeepSeekRunner
 
     monkeypatch.setenv("DEEPSEEK_API_KEY", "sk-test")
-    err_response = MagicMock(spec=httpx.Response)
-    err_response.status_code = 429
-    err_response.text = '{"error":{"message":"rate limited"}}'
-    err_response.raise_for_status.side_effect = httpx.HTTPStatusError(
-        "429", request=MagicMock(), response=err_response
+    _patch_stream(
+        monkeypatch,
+        status_code=429,
+        error_body=b'{"error":{"message":"rate limited"}}',
     )
-    monkeypatch.setattr(httpx.Client, "post", lambda self, url, **kw: err_response)
-    with pytest.raises(TradeInsightsAiRunnerError):
+    with pytest.raises(TradeInsightsAiRunnerError, match="429"):
         DeepSeekRunner().run(
             prompt="x",
             schema={},
@@ -126,23 +218,24 @@ def test_deepseek_runner_raises_on_non_2xx(monkeypatch) -> None:
         )
 
 
-def test_deepseek_runner_raises_when_response_missing_tool_calls(monkeypatch) -> None:
-    from uw_scan.worker.jobs.trade_insights_deepseek_runner import DeepSeekRunner
-
+def test_deepseek_runner_raises_when_stream_ends_without_tool_calls(
+    monkeypatch,
+) -> None:
+    """If DeepSeek streams free-text only (no tool_calls deltas), the runner
+    must fail loudly. This guards against the rare case where the model
+    ignores tool_choice forcing."""
     from uw_scan.worker.jobs.trade_insights_ai_runners import (
         TradeInsightsAiRunnerError,
     )
+    from uw_scan.worker.jobs.trade_insights_deepseek_runner import DeepSeekRunner
 
     monkeypatch.setenv("DEEPSEEK_API_KEY", "sk-test")
-    response = MagicMock(spec=httpx.Response)
-    response.status_code = 200
-    response.json.return_value = {
-        "model": "deepseek-v4-pro",
-        "choices": [{"message": {"content": "free text"}}],
-    }
-    response.raise_for_status.return_value = None
-    response.text = json.dumps(response.json.return_value)
-    monkeypatch.setattr(httpx.Client, "post", lambda self, url, **kw: response)
+    sse_lines = [
+        f"data: {json.dumps({'model': 'deepseek-v4-pro', 'choices': [{'index': 0, 'delta': {'content': 'just text'}}]})}",
+        f"data: {json.dumps({'model': 'deepseek-v4-pro', 'choices': [{'index': 0, 'delta': {}, 'finish_reason': 'stop'}]})}",
+        "data: [DONE]",
+    ]
+    _patch_stream(monkeypatch, sse_lines=sse_lines)
     with pytest.raises(TradeInsightsAiRunnerError, match="tool_calls"):
         DeepSeekRunner().run(
             prompt="x",
@@ -154,39 +247,21 @@ def test_deepseek_runner_raises_when_response_missing_tool_calls(monkeypatch) ->
 
 
 def test_deepseek_runner_rejects_unexpected_tool_name(monkeypatch) -> None:
-    """tool_choice was forced; if DeepSeek returns a tool_call whose name is
-    something other than 'emit_trade_insight' (model hallucinated a different
-    tool), parsing the arguments would silently bind output to a schema we
-    never asked for. Reject loudly instead."""
-    from uw_scan.worker.jobs.trade_insights_deepseek_runner import DeepSeekRunner
-
+    """If the stream emits a tool_call whose name is something other than
+    'emit_trade_insight', the arguments would silently bind to a schema we
+    never asked for. Reject loudly."""
     from uw_scan.worker.jobs.trade_insights_ai_runners import (
         TradeInsightsAiRunnerError,
     )
+    from uw_scan.worker.jobs.trade_insights_deepseek_runner import DeepSeekRunner
 
     monkeypatch.setenv("DEEPSEEK_API_KEY", "sk-test")
-    response = MagicMock(spec=httpx.Response)
-    response.status_code = 200
-    response.json.return_value = {
-        "model": "deepseek-v4-pro",
-        "choices": [
-            {
-                "message": {
-                    "tool_calls": [
-                        {
-                            "function": {
-                                "name": "search_web",
-                                "arguments": json.dumps({"q": "AAPL"}),
-                            }
-                        }
-                    ]
-                }
-            }
-        ],
-    }
-    response.raise_for_status.return_value = None
-    response.text = json.dumps(response.json.return_value)
-    monkeypatch.setattr(httpx.Client, "post", lambda self, url, **kw: response)
+    sse_lines = [
+        f"data: {json.dumps({'model': 'deepseek-v4-pro', 'choices': [{'index': 0, 'delta': {'tool_calls': [{'index': 0, 'function': {'name': 'search_web', 'arguments': '{}'}}]}}]})}",
+        f"data: {json.dumps({'model': 'deepseek-v4-pro', 'choices': [{'index': 0, 'delta': {}, 'finish_reason': 'tool_calls'}]})}",
+        "data: [DONE]",
+    ]
+    _patch_stream(monkeypatch, sse_lines=sse_lines)
     with pytest.raises(TradeInsightsAiRunnerError, match="unexpected tool name"):
         DeepSeekRunner().run(
             prompt="x",
@@ -198,18 +273,13 @@ def test_deepseek_runner_rejects_unexpected_tool_name(monkeypatch) -> None:
 
 
 def test_deepseek_runner_raises_on_timeout(monkeypatch) -> None:
-    from uw_scan.worker.jobs.trade_insights_deepseek_runner import DeepSeekRunner
-
     from uw_scan.worker.jobs.trade_insights_ai_runners import (
         TradeInsightsAiRunnerError,
     )
+    from uw_scan.worker.jobs.trade_insights_deepseek_runner import DeepSeekRunner
 
     monkeypatch.setenv("DEEPSEEK_API_KEY", "sk-test")
-
-    def raise_timeout(self, url, **kw):
-        raise httpx.TimeoutException("timed out")
-
-    monkeypatch.setattr(httpx.Client, "post", raise_timeout)
+    _patch_stream(monkeypatch, raise_on_enter=httpx.TimeoutException("timed out"))
     with pytest.raises(TradeInsightsAiRunnerError, match="timed out"):
         DeepSeekRunner().run(
             prompt="x",
@@ -221,15 +291,15 @@ def test_deepseek_runner_raises_on_timeout(monkeypatch) -> None:
 
 
 def test_deepseek_runner_raises_when_output_exceeds_max_bytes(monkeypatch) -> None:
-    from uw_scan.worker.jobs.trade_insights_deepseek_runner import DeepSeekRunner
-
     from uw_scan.worker.jobs.trade_insights_ai_runners import (
         TradeInsightsAiRunnerError,
     )
+    from uw_scan.worker.jobs.trade_insights_deepseek_runner import DeepSeekRunner
 
     monkeypatch.setenv("DEEPSEEK_API_KEY", "sk-test")
     huge_outcome = {"schema_version": "trade-insights-ai-v5.3", "blob": "x" * 5000}
-    _mock_success_response(monkeypatch, huge_outcome)
+    sse_lines = _sse_chunks_for_outcome(huge_outcome, chunk_size=200)
+    _patch_stream(monkeypatch, sse_lines=sse_lines)
     with pytest.raises(TradeInsightsAiRunnerError, match="exceeded"):
         DeepSeekRunner().run(
             prompt="x",

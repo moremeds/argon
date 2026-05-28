@@ -4,10 +4,28 @@ OpenAI-compatible /chat/completions endpoint.
 Unlike Codex/Claude, this runner is in-process HTTP (httpx) rather than a
 subprocess. DeepSeek's API is OpenAI-compatible in shape, but its
 structured-output story is different: response_format only supports
-{type: "json_object"} (no strict json_schema). The schema-enforcement path
-is function-calling with strict:true (Beta) — define one tool whose
-parameters is the TradeInsightAiOutcome schema, force tool_choice to that
-tool, and DeepSeek validates server-side.
+{type: "json_object"} (no strict json_schema). The schema-enforcement
+path is function-calling with strict:true (Beta) — define one tool
+whose parameters is the TradeInsightAiOutcome schema and DeepSeek
+validates server-side.
+
+Two runtime constraints discovered during smoke testing — both encoded
+in the request body below:
+
+1. **`thinking: {type: disabled}`.** v4-pro defaults to thinking-mode
+   ON, but DeepSeek's API rejects `tool_choice` with HTTP 400
+   "Thinking mode does not support this tool_choice" in that state.
+   Forcing thinking off lifts the restriction and keeps v4-pro using
+   its pro architecture (just without the reasoning_content phase).
+
+2. **`stream: true` + SSE parsing.** Non-streaming requests with our
+   ~350 KB trade-analysis prompts trigger a server-side ~60 s
+   compute-and-connection cap on DeepSeek's side, producing
+   RemoteProtocolError "peer closed connection without sending complete
+   message body" before any response is emitted. Streaming bypasses
+   this because the server starts emitting tokens immediately and the
+   connection stays alive through the full generation. We reassemble
+   the `tool_calls[0].function.arguments` string from delta chunks.
 
 Docs:
 - Create Chat Completion:
@@ -71,6 +89,8 @@ class DeepSeekRunner:
         body = {
             "model": effective_model,
             "messages": [{"role": "user", "content": prompt}],
+            "thinking": {"type": "disabled"},
+            "stream": True,
             "tools": [
                 {
                     "type": "function",
@@ -96,14 +116,92 @@ class DeepSeekRunner:
             "Content-Type": "application/json",
         }
 
+        # Accumulators populated as SSE chunks arrive.
+        emitted_tool_name: str | None = None
+        arguments_chunks: list[str] = []
+        resolved_model: str | None = None
+        finish_reason: str | None = None
+        total_arg_bytes = 0
+
         try:
             with httpx.Client() as client:
-                response = client.post(
+                with client.stream(
+                    "POST",
                     DEEPSEEK_CHAT_COMPLETIONS_URL,
                     json=body,
                     headers=headers,
                     timeout=timeout_seconds,
-                )
+                ) as response:
+                    try:
+                        response.raise_for_status()
+                    except httpx.HTTPStatusError as exc:
+                        # response.read() may be necessary before .text on a
+                        # stream context — read defensively, truncate the
+                        # body to avoid leaking secrets/full prompt in logs.
+                        body_preview = ""
+                        try:
+                            body_preview = response.read().decode(
+                                "utf-8", errors="replace"
+                            )[:500]
+                        except Exception as read_exc:
+                            logger.debug(
+                                "deepseek error-body read failed: %s",
+                                repr(read_exc),
+                            )
+                        raise TradeInsightsAiRunnerError(
+                            f"deepseek HTTP {response.status_code}: {body_preview}"
+                        ) from exc
+
+                    for raw_line in response.iter_lines():
+                        if not raw_line:
+                            continue
+                        if not raw_line.startswith("data:"):
+                            continue
+                        payload = raw_line[len("data:") :].strip()
+                        if payload == "[DONE]":
+                            break
+                        try:
+                            event = json.loads(payload)
+                        except json.JSONDecodeError as exc:
+                            raise TradeInsightsAiRunnerError(
+                                "deepseek stream emitted non-JSON SSE chunk"
+                            ) from exc
+                        if not isinstance(event, dict):
+                            raise TradeInsightsAiRunnerError(
+                                "deepseek stream SSE chunk was not an object "
+                                f"(got {type(event).__name__})"
+                            )
+                        resolved_model = event.get("model") or resolved_model
+                        choices = event.get("choices") or []
+                        if not choices:
+                            continue
+                        choice = choices[0]
+                        delta = choice.get("delta") or {}
+                        for call_delta in delta.get("tool_calls") or []:
+                            fn = call_delta.get("function") or {}
+                            name = fn.get("name")
+                            if name:
+                                if (
+                                    emitted_tool_name is not None
+                                    and emitted_tool_name != name
+                                ):
+                                    raise TradeInsightsAiRunnerError(
+                                        "deepseek emitted two distinct tool "
+                                        f"names {emitted_tool_name!r} vs "
+                                        f"{name!r}"
+                                    )
+                                emitted_tool_name = name
+                            arg_chunk = fn.get("arguments")
+                            if arg_chunk:
+                                total_arg_bytes += len(arg_chunk.encode("utf-8"))
+                                if total_arg_bytes > max_output_bytes:
+                                    raise TradeInsightsAiRunnerError(
+                                        "deepseek tool-call arguments "
+                                        f"exceeded {max_output_bytes} bytes"
+                                    )
+                                arguments_chunks.append(arg_chunk)
+                        if choice.get("finish_reason"):
+                            finish_reason = choice["finish_reason"]
         except httpx.TimeoutException as exc:
             raise TradeInsightsAiRunnerError(
                 f"deepseek HTTP timed out after {timeout_seconds}s"
@@ -113,50 +211,23 @@ class DeepSeekRunner:
                 f"deepseek HTTP transport error: {exc!r}"
             ) from exc
 
-        try:
-            response.raise_for_status()
-        except httpx.HTTPStatusError as exc:
-            preview = (response.text or "")[:500]
+        if emitted_tool_name is None:
             raise TradeInsightsAiRunnerError(
-                f"deepseek HTTP {response.status_code}: {preview}"
-            ) from exc
-
-        try:
-            envelope = response.json()
-        except (json.JSONDecodeError, ValueError) as exc:
-            raise TradeInsightsAiRunnerError(
-                "deepseek response was not valid JSON"
-            ) from exc
-        if not isinstance(envelope, dict):
-            raise TradeInsightsAiRunnerError(
-                "deepseek response JSON was not an object "
-                f"(got {type(envelope).__name__})"
+                "deepseek stream ended without any tool_calls — model did "
+                "not emit structured output despite tool_choice forcing."
             )
-
-        choices = envelope.get("choices") or []
-        if not choices:
-            raise TradeInsightsAiRunnerError("deepseek response had no choices[]")
-        message = choices[0].get("message") or {}
-        tool_calls = message.get("tool_calls") or []
-        if not tool_calls:
-            raise TradeInsightsAiRunnerError(
-                "deepseek response had no tool_calls — model did not emit "
-                "structured output. Check that strict:true is honored."
-            )
-        function_call = tool_calls[0].get("function") or {}
-        emitted_name = function_call.get("name")
-        if emitted_name != DEEPSEEK_TOOL_NAME:
+        if emitted_tool_name != DEEPSEEK_TOOL_NAME:
             raise TradeInsightsAiRunnerError(
                 "deepseek emitted unexpected tool name "
-                f"{emitted_name!r} (expected {DEEPSEEK_TOOL_NAME!r})"
+                f"{emitted_tool_name!r} (expected {DEEPSEEK_TOOL_NAME!r})"
             )
-        arguments = function_call.get("arguments") or ""
-
-        if len(arguments.encode("utf-8")) > max_output_bytes:
-            raise TradeInsightsAiRunnerError(
-                f"deepseek tool-call arguments exceeded {max_output_bytes} bytes"
+        if finish_reason and finish_reason not in ("tool_calls", "stop"):
+            logger.warning(
+                "deepseek stream finished with reason=%s (continuing)",
+                finish_reason,
             )
 
+        arguments = "".join(arguments_chunks)
         try:
             parsed = json.loads(arguments)
         except json.JSONDecodeError as exc:
@@ -168,5 +239,5 @@ class DeepSeekRunner:
                 "deepseek tool-call arguments must be a JSON object"
             )
 
-        resolved = envelope.get("model") or effective_model or "deepseek-default"
+        resolved = resolved_model or effective_model or "deepseek-default"
         return RunnerResult(outcome=parsed, resolved_model=resolved)
