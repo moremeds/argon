@@ -31,6 +31,18 @@ def test_provider_literal_accepts_codex_and_claude() -> None:
     assert stub2.provider == "claude"
 
 
+def test_provider_literal_accepts_deepseek() -> None:
+    """After widening for the DeepSeek runner, the Literal accepts "deepseek"."""
+    stub = TradeInsightAiAnalysisStub(
+        provider="deepseek",
+        analysis_id=uuid4(),
+        status="queued",
+        reused=False,
+        model="deepseek-v4-pro",
+    )
+    assert stub.provider == "deepseek"
+
+
 def test_provider_literal_rejects_other_values() -> None:
     with pytest.raises(ValueError):
         TradeInsightAiAnalysisStub(

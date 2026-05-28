@@ -12003,7 +12003,8 @@
                 "items": {
                   "enum": [
                     "codex",
-                    "claude"
+                    "claude",
+                    "deepseek"
                   ],
                   "type": "string"
                 },
@@ -12099,7 +12100,8 @@
             "default": "codex",
             "enum": [
               "codex",
-              "claude"
+              "claude",
+              "deepseek"
             ],
             "title": "Provider",
             "type": "string"
@@ -12179,7 +12181,8 @@
           "provider": {
             "enum": [
               "codex",
-              "claude"
+              "claude",
+              "deepseek"
             ],
             "title": "Provider",
             "type": "string"
@@ -13038,7 +13041,8 @@
           "provider": {
             "enum": [
               "codex",
-              "claude"
+              "claude",
+              "deepseek"
             ],
             "title": "Provider",
             "type": "string"
