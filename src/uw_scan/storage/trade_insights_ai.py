@@ -494,31 +494,34 @@ class _TradeInsightsAiMixin:
         error_message: str,
         *,
         raw_outcome: dict[str, Any] | None = None,
+        provider_metadata: dict[str, Any] | None = None,
     ) -> None:
         # Persist the runner's raw output when validation rejected it; NULL
         # otherwise (subprocess crash, timeout, non-JSON, pre-runner error).
-        # Lets us diagnose validator rejections without re-running.
-        if raw_outcome is None:
-            sql = (
-                f"UPDATE {self._schema}.trade_insight_ai_analyses "
-                "SET status = 'failed', "
-                "error_message = %s, "
-                "finished_at = now() "
-                "WHERE analysis_id = %s"
-            )
-            params: tuple[Any, ...] = (error_message[:4000], analysis_id)
-        else:
-            sql = (
-                f"UPDATE {self._schema}.trade_insight_ai_analyses "
-                "SET status = 'failed', "
-                "error_message = %s, "
-                "raw_outcome_jsonb = %s, "
-                "finished_at = now() "
-                "WHERE analysis_id = %s"
-            )
-            params = (error_message[:4000], Jsonb(raw_outcome), analysis_id)
+        # Lets us diagnose validator rejections without re-running. The
+        # provider_metadata mirrors raw_outcome — on a validation failure we
+        # want the reasoning trace too so we can see how the model arrived at
+        # the rejected output.
+        sets = [
+            "status = 'failed'",
+            "error_message = %s",
+            "finished_at = now()",
+        ]
+        params: list[Any] = [error_message[:4000]]
+        if raw_outcome is not None:
+            sets.append("raw_outcome_jsonb = %s")
+            params.append(Jsonb(raw_outcome))
+        if provider_metadata is not None:
+            sets.append("provider_metadata_jsonb = %s")
+            params.append(Jsonb(provider_metadata))
+        params.append(analysis_id)
+        sql = (
+            f"UPDATE {self._schema}.trade_insight_ai_analyses "
+            f"SET {', '.join(sets)} "
+            "WHERE analysis_id = %s"
+        )
         with self._conn.cursor() as cur:
-            cur.execute(sql, params)
+            cur.execute(sql, tuple(params))
 
     def get_trade_insight_ai_analysis(
         self,

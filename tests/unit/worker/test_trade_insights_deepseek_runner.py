@@ -406,6 +406,34 @@ def test_deepseek_runner_raises_when_output_exceeds_max_bytes(monkeypatch) -> No
         )
 
 
+def test_deepseek_runner_bounds_reasoning_content_against_max_bytes(
+    monkeypatch,
+) -> None:
+    """reasoning_content streams alongside tool_calls; without a budget check
+    a pathological prompt could blow past max_output_bytes via the reasoning
+    channel alone. Args + content + reasoning all count against the same cap."""
+    from uw_scan.worker.jobs.trade_insights_ai_runners import (
+        TradeInsightsAiRunnerError,
+    )
+    from uw_scan.worker.jobs.trade_insights_deepseek_runner import DeepSeekRunner
+
+    monkeypatch.setenv("DEEPSEEK_API_KEY", "sk-test")
+    tiny_outcome = {"ticker": "Z"}
+    huge_reasoning = "step-" * 200  # 1000 bytes
+    sse_lines = _sse_chunks_for_outcome(
+        tiny_outcome, chunk_size=50, reasoning_text=huge_reasoning
+    )
+    _patch_stream(monkeypatch, sse_lines=sse_lines)
+    with pytest.raises(TradeInsightsAiRunnerError, match="exceeded"):
+        DeepSeekRunner().run(
+            prompt="x",
+            schema={},
+            model="deepseek-v4-pro",
+            timeout_seconds=10.0,
+            max_output_bytes=500,
+        )
+
+
 def test_deepseek_runner_declares_strict_contract_flags() -> None:
     from uw_scan.worker.jobs.trade_insights_deepseek_runner import DeepSeekRunner
 

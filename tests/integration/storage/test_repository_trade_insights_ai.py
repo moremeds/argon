@@ -446,3 +446,79 @@ def test_fail_persists_raw_outcome_when_validation_rejected(seeded_db_empty_card
     assert row["status"] == "failed"
     assert row["error_message"] == "status_observed changed for idea_id F"
     assert row["raw_outcome_jsonb"] == rejected
+
+
+def test_complete_persists_provider_metadata_jsonb(seeded_db_empty_cards):
+    """Provider-specific runtime metadata (DeepSeek's reasoning_content +
+    output_channel + byte sizes) must round-trip through Jsonb() into the
+    provider_metadata_jsonb column."""
+    repo = seeded_db_empty_cards
+    run_id, snapshot_id = _create_snapshot(repo)
+    analysis_id = _enqueue(repo, snapshot_id=snapshot_id, run_id=run_id)
+
+    metadata = {
+        "reasoning_content": "Step 1 — pick X.\nStep 2 — confirm.",
+        "reasoning_bytes": 36,
+        "output_channel": "tool_calls",
+    }
+    repo.complete_trade_insight_ai_analysis(
+        analysis_id,
+        outcome={"schema_version": "trade-insights-ai-v1"},
+        markdown="done",
+        provider_metadata=metadata,
+    )
+
+    row = repo.get_trade_insight_ai_analysis(analysis_id, ticker="TSLA")
+    assert row["status"] == "succeeded"
+    assert row["provider_metadata_jsonb"] == metadata
+
+
+def test_complete_leaves_provider_metadata_null_when_not_passed(
+    seeded_db_empty_cards,
+):
+    """Codex/Claude runners do not populate reasoning_content; orchestrator
+    passes provider_metadata=None for them. The column must stay NULL to
+    preserve the 'metadata is provider-specific and optional' contract."""
+    repo = seeded_db_empty_cards
+    run_id, snapshot_id = _create_snapshot(repo)
+    analysis_id = _enqueue(repo, snapshot_id=snapshot_id, run_id=run_id)
+
+    repo.complete_trade_insight_ai_analysis(
+        analysis_id,
+        outcome={"schema_version": "trade-insights-ai-v1"},
+        markdown="done",
+    )
+
+    row = repo.get_trade_insight_ai_analysis(analysis_id, ticker="TSLA")
+    assert row["status"] == "succeeded"
+    assert row["provider_metadata_jsonb"] is None
+
+
+def test_fail_persists_provider_metadata_for_validation_failures(
+    seeded_db_empty_cards,
+):
+    """When a runner returns reasoning_content and the validator REJECTS the
+    outcome, the reasoning trace must survive in provider_metadata_jsonb so
+    operators can diagnose how the model arrived at the invalid output. The
+    raw outcome and metadata are persisted in parallel via fail_*."""
+    repo = seeded_db_empty_cards
+    run_id, snapshot_id = _create_snapshot(repo)
+    analysis_id = _enqueue(repo, snapshot_id=snapshot_id, run_id=run_id)
+
+    rejected = {"schema_version": "trade-insights-ai-v5.3", "junk": 1}
+    metadata = {
+        "reasoning_content": "I decided to emit junk because reasons.",
+        "reasoning_bytes": 40,
+        "output_channel": "tool_calls",
+    }
+    repo.fail_trade_insight_ai_analysis(
+        analysis_id,
+        "validator rejected unknown field 'junk'",
+        raw_outcome=rejected,
+        provider_metadata=metadata,
+    )
+
+    row = repo.get_trade_insight_ai_analysis(analysis_id, ticker="TSLA")
+    assert row["status"] == "failed"
+    assert row["raw_outcome_jsonb"] == rejected
+    assert row["provider_metadata_jsonb"] == metadata

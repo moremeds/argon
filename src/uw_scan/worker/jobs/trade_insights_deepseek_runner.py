@@ -225,8 +225,9 @@ class DeepSeekRunner:
                                 total_output_bytes += len(arg_chunk.encode("utf-8"))
                                 if total_output_bytes > max_output_bytes:
                                     raise TradeInsightsAiRunnerError(
-                                        "deepseek tool-call arguments "
-                                        f"exceeded {max_output_bytes} bytes"
+                                        "deepseek output (args + content + "
+                                        f"reasoning) exceeded {max_output_bytes} "
+                                        "bytes"
                                     )
                                 arguments_chunks.append(arg_chunk)
                         content_chunk = delta.get("content")
@@ -234,12 +235,20 @@ class DeepSeekRunner:
                             total_output_bytes += len(content_chunk.encode("utf-8"))
                             if total_output_bytes > max_output_bytes:
                                 raise TradeInsightsAiRunnerError(
-                                    "deepseek text content "
-                                    f"exceeded {max_output_bytes} bytes"
+                                    "deepseek output (args + content + "
+                                    f"reasoning) exceeded {max_output_bytes} "
+                                    "bytes"
                                 )
                             content_chunks.append(content_chunk)
                         reasoning_chunk = delta.get("reasoning_content")
                         if reasoning_chunk:
+                            total_output_bytes += len(reasoning_chunk.encode("utf-8"))
+                            if total_output_bytes > max_output_bytes:
+                                raise TradeInsightsAiRunnerError(
+                                    "deepseek output (args + content + "
+                                    f"reasoning) exceeded {max_output_bytes} "
+                                    "bytes"
+                                )
                             reasoning_chunks.append(reasoning_chunk)
                         if choice.get("finish_reason"):
                             finish_reason = choice["finish_reason"]

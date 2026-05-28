@@ -47,6 +47,7 @@ def _fail_analysis(
     error_message: str,
     *,
     raw_outcome: dict[str, Any] | None = None,
+    provider_metadata: dict[str, Any] | None = None,
 ) -> None:
     repo = _repo(settings)
     try:
@@ -54,6 +55,7 @@ def _fail_analysis(
             analysis_id,
             error_message,
             raw_outcome=raw_outcome,
+            provider_metadata=provider_metadata,
         )
         repo.conn.commit()
     finally:
@@ -168,6 +170,7 @@ def trade_insights_ai_tick(
     model_env, timeout = _provider_model_and_timeout(settings, row_provider)
 
     raw_outcome: dict[str, Any] | None = None
+    provider_metadata: dict[str, Any] | None = None
     try:
         result = runner.run(
             build_trade_insights_ai_prompt(prompt_payload),
@@ -180,8 +183,10 @@ def trade_insights_ai_tick(
             max_output_bytes=settings.trade_insights_ai_max_output_bytes,
         )
         # Snapshot before validation so a downstream rejection still leaves
-        # the raw payload diagnosable via raw_outcome_jsonb.
+        # the raw payload diagnosable via raw_outcome_jsonb, and the
+        # reasoning trace via provider_metadata_jsonb.
         raw_outcome = result.outcome
+        provider_metadata = _build_provider_metadata(result)
         outcome = validate_trade_insights_ai_outcome(
             result.outcome,
             prompt_payload,
@@ -189,16 +194,6 @@ def trade_insights_ai_tick(
             lenient=runner.requires_lenient_validation,
         )
         markdown = render_trade_insights_ai_markdown(outcome)
-        provider_metadata: dict[str, Any] | None = None
-        if result.reasoning_content is not None or result.output_channel is not None:
-            provider_metadata = {}
-            if result.reasoning_content is not None:
-                provider_metadata["reasoning_content"] = result.reasoning_content
-                provider_metadata["reasoning_bytes"] = len(
-                    result.reasoning_content.encode("utf-8")
-                )
-            if result.output_channel is not None:
-                provider_metadata["output_channel"] = result.output_channel
         repo = _repo(settings)
         try:
             repo.complete_trade_insight_ai_analysis(
@@ -217,5 +212,24 @@ def trade_insights_ai_tick(
             analysis_id,
             str(exc) or repr(exc),
             raw_outcome=raw_outcome,
+            provider_metadata=provider_metadata,
         )
     return True
+
+
+def _build_provider_metadata(result: Any) -> dict[str, Any] | None:
+    """Assemble the provider_metadata_jsonb payload from a RunnerResult.
+
+    Returns None when the runner emitted no metadata (codex/claude today) so
+    callers can pass it through transparently; otherwise returns a dict with
+    only the populated fields. Schemaless by design — see migration 064.
+    """
+    if result.reasoning_content is None and result.output_channel is None:
+        return None
+    metadata: dict[str, Any] = {}
+    if result.reasoning_content is not None:
+        metadata["reasoning_content"] = result.reasoning_content
+        metadata["reasoning_bytes"] = len(result.reasoning_content.encode("utf-8"))
+    if result.output_channel is not None:
+        metadata["output_channel"] = result.output_channel
+    return metadata
