@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from uw_scan.api.models.regime_validation import (
     VcgStressHistoryEntry,
-    VcgStressHistorySummary,
     VcgStressHistorySummaryRow,
     VcgValidationResponse,
 )
