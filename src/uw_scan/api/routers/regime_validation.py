@@ -34,6 +34,7 @@ from uw_scan.api.models.regime_validation import (
     VcgInterpretationCount,
     VcgNamedCrashEvent,
     VcgNamedCrashOffset,
+    VcgStressHistoryEntry,
     VcgValidationResponse,
 )
 from uw_scan.reports.regime_backtest_report import (
@@ -318,6 +319,33 @@ def get_vcg_validation(
                 ],
             )
         )
+    # All-time stress history: every daily row whose level is one of the
+    # three stress states (PANIC / RISK_OFF / EDR). The v2 backfill produced
+    # 4,710 daily rows; the stress subset is ~265 entries (well under any
+    # payload-size threshold). Most-recent-first so the table opens on
+    # current/recent regime conditions.
+    stress_levels = {"PANIC", "RISK_OFF", "EDR"}
+    stress_history: list[VcgStressHistoryEntry] = []
+    for row in reversed(daily):
+        level = row.get("level")
+        if level not in stress_levels:
+            continue
+        payload = row.get("payload") or {}
+        score = row.get("score")
+        stress_history.append(
+            VcgStressHistoryEntry(
+                date=row["trade_date"].isoformat(),
+                interpretation=level,
+                score=float(score) if score is not None else None,
+                vcg_adj=payload.get("vcg_adj"),
+                pi_panic=payload.get("pi_panic"),
+                sign_ok=payload.get("sign_ok"),
+                vix=payload.get("vix"),
+                vvix=payload.get("vvix"),
+                vix_percentile_rank=payload.get("vix_percentile_rank"),
+                vvix_percentile_rank=payload.get("vvix_percentile_rank"),
+            )
+        )
     return VcgValidationResponse(
         backtest_md=render_vcg_backtest_markdown(run, daily),
         n_days=len(daily),
@@ -332,4 +360,5 @@ def get_vcg_validation(
             for k, v in sorted(dist.items(), key=lambda kv: (-kv[1], kv[0]))
         ],
         named_crash_window=events,
+        stress_history=stress_history,
     )

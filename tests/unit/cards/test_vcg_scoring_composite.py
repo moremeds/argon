@@ -8,9 +8,11 @@ from __future__ import annotations
 
 import numpy as np
 import pandas as pd
+import pytest
 
 from uw_scan.cards.vcg_scoring import (
     RESEARCH_COMPOSITE_VERSIONS,
+    _compute_vcg_from_returns,
     compute_vcg,
     compute_vcg_composite,
 )
@@ -58,6 +60,32 @@ def test_compute_vcg_unchanged_after_composite_addition() -> None:
     ):
         assert key in model, f"production compute_vcg lost key {key}"
         assert len(model[key]) == 149  # N-1 returns from N prices
+
+
+def test_compute_vcg_from_returns_percentile_ranks_are_already_aligned() -> None:
+    """Composite path uses aligned N-length return/level arrays without slicing."""
+    n = 300
+    rng = np.random.default_rng(101)
+    vix_levels = np.linspace(10.0, 50.0, num=n)
+    vvix_levels = np.linspace(70.0, 150.0, num=n)
+    credit_levels = 100.0 * np.exp(np.cumsum(rng.normal(0.0, 0.005, size=n)))
+    vix_returns = np.diff(np.log(vix_levels), prepend=np.nan)
+    vvix_returns = np.diff(np.log(vvix_levels), prepend=np.nan)
+    credit_returns = np.diff(np.log(credit_levels), prepend=np.nan)
+
+    model = _compute_vcg_from_returns(
+        vix_returns,
+        vvix_returns,
+        credit_returns,
+        vix_levels,
+        vvix_levels,
+        credit_levels,
+    )
+
+    assert len(model["vix_percentile_rank"]) == len(model["vcg"]) == n
+    assert len(model["vvix_percentile_rank"]) == len(model["vcg"]) == n
+    assert np.all(np.isnan(model["vix_percentile_rank"][:251]))
+    assert model["vix_percentile_rank"][251] == pytest.approx(1.0)
 
 
 def test_compute_vcg_composite_returns_two_attribution_layers() -> None:

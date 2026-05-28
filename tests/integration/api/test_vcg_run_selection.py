@@ -15,10 +15,15 @@ from datetime import date
 
 import pytest
 
+from uw_scan.cards.vcg_scoring import COMPOSITE_VERSION as VCG_COMPOSITE_VERSION
 from uw_scan.storage.regime_backtest_repository import RegimeBacktestRepository
 
+PROD_VERSION = str(VCG_COMPOSITE_VERSION)
 
-def _seed(repo, *, run_scope, credit_proxy, composite_method, composite_version="1"):
+
+def _seed(repo, *, run_scope, credit_proxy, composite_method, composite_version=None):
+    if composite_version is None:
+        composite_version = PROD_VERSION
     rid = repo.insert_run(
         indicator="vcg",
         composite_version=composite_version,
@@ -73,7 +78,6 @@ def test_production_default_excludes_newer_research_row(
         run_scope="production",
         credit_proxy="HYG",
         composite_method="single_proxy",
-        composite_version="1",
     )
     time.sleep(0.01)  # ensure research row's created_at > prod
     _seed(repo, **research_shape)

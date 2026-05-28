@@ -5832,7 +5832,48 @@ export interface components {
              * @enum {string}
              */
             interpretation: "RISK_OFF" | "EDR" | "WATCH" | "BOUNCE" | "NORMAL" | "SUPPRESSED" | "PANIC" | "INSUFFICIENT_DATA";
+            /**
+             * Vix Percentile Rank
+             * @description VIX level's 252-day rolling percentile rank (strict_lt tie rule). Used by the v2 absolute-vol-stress override gate. None during the 252-bar warmup or for v=1 payloads.
+             */
+            vix_percentile_rank?: number | null;
+            /**
+             * Vvix Percentile Rank
+             * @description VVIX level's 252-day rolling percentile rank (strict_lt tie rule). Used by the v2 absolute-vol-stress override gate.
+             */
+            vvix_percentile_rank?: number | null;
             attribution?: components["schemas"]["VcgAttribution"];
+        };
+        /**
+         * VcgStressHistoryEntry
+         * @description One daily row from the VCG backtest whose interpretation is a
+         *     stress level (PANIC / RISK_OFF / EDR). Drives the all-time stress
+         *     history table on the /regime VCG sub-tab.
+         */
+        VcgStressHistoryEntry: {
+            /** Date */
+            date: string;
+            /**
+             * Interpretation
+             * @enum {string}
+             */
+            interpretation: "PANIC" | "RISK_OFF" | "EDR";
+            /** Score */
+            score?: number | null;
+            /** Vcg Adj */
+            vcg_adj?: number | null;
+            /** Pi Panic */
+            pi_panic?: number | null;
+            /** Sign Ok */
+            sign_ok?: boolean | null;
+            /** Vix */
+            vix?: number | null;
+            /** Vvix */
+            vvix?: number | null;
+            /** Vix Percentile Rank */
+            vix_percentile_rank?: number | null;
+            /** Vvix Percentile Rank */
+            vvix_percentile_rank?: number | null;
         };
         /**
          * VcgValidationResponse
@@ -5851,6 +5892,11 @@ export interface components {
             interpretation_distribution: components["schemas"]["VcgInterpretationCount"][];
             /** Named Crash Window */
             named_crash_window: components["schemas"]["VcgNamedCrashEvent"][];
+            /**
+             * Stress History
+             * @default []
+             */
+            stress_history: components["schemas"]["VcgStressHistoryEntry"][];
         };
         /** VolBackdropPoint */
         VolBackdropPoint: {

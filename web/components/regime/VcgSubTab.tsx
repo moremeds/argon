@@ -4,11 +4,8 @@ import { AlertTriangle, Shield, TrendingUp, Zap } from "lucide-react";
 
 import InfoTooltip from "./InfoTooltip";
 import { VcgHistoryTable } from "./vcg/VcgHistoryTable";
-import {
-  type VcgResponse,
-  type VcgSignal,
-  useVcg,
-} from "@/lib/regime/useVcg";
+import VcgStressHistorySection from "./vcg/VcgStressHistorySection";
+import { type VcgResponse, type VcgSignal, useVcg } from "@/lib/regime/useVcg";
 import {
   formatNumber,
   formatPercent,
@@ -121,6 +118,25 @@ function vvixSeverityDesc(sev: string): string {
     default:
       return "VVIX below 110 — vol regime stable";
   }
+}
+
+/* v2 absolute-vol-stress override gate threshold (matches VIX_PCT_PANIC /
+ * VVIX_PCT_PANIC constants in src/uw_scan/cards/vcg_scoring.py). When BOTH
+ * 252-day percentile ranks clear 0.95, the v2 cascade fires RISK_OFF even
+ * if sign_ok is false — bypassing the SUPPRESSED clause that masked PANIC
+ * days in v1. */
+const VOL_STRESS_THRESHOLD = 0.95;
+
+function formatPctRank(v: number | null | undefined): string {
+  if (v == null || !Number.isFinite(v)) return "—";
+  return `${(v * 100).toFixed(1)}%`;
+}
+
+function pctRankColor(v: number | null | undefined): string {
+  if (v == null || !Number.isFinite(v)) return "var(--text-muted)";
+  if (v >= VOL_STRESS_THRESHOLD) return "var(--fault, var(--negative))";
+  if (v >= 0.85) return "var(--warning)";
+  return "var(--text-primary)";
 }
 
 /* ─── Main view (1:1 mirror of xenon VcgPanel) ───────────────── */
@@ -318,11 +334,13 @@ export function VcgSubTabView({
           </div>
           <div className="metric-card">
             <div className="metric-label">VCG Adj (Panic-Adj)</div>
-            <div className="metric-value">{formatSignedNumber(sig.vcg_adj)}</div>
+            <div className="metric-value">
+              {formatSignedNumber(sig.vcg_adj)}
+            </div>
             <div className="metric-change neutral">
               {sig.pi_panic > 0
-                ? `π = ${sig.pi_panic.toFixed(2)} SUPPRESSED`
-                : "NO SUPPRESSION"}
+                ? `π = ${sig.pi_panic.toFixed(2)} (panic-adjustment active)`
+                : "π = 0 (no panic adjustment)"}
             </div>
           </div>
           <div className="metric-card">
@@ -466,6 +484,69 @@ export function VcgSubTabView({
                 data-testid="vcg-vvix-severity"
               >
                 {sig.vvix_severity}
+              </span>
+            </div>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                padding: "8px 0",
+                borderBottom: "1px solid var(--border-dim, var(--line-grid))",
+              }}
+            >
+              <div>
+                <span
+                  style={{
+                    fontFamily: "var(--font-mono)",
+                    fontSize: "10px",
+                    color: "var(--text-muted)",
+                  }}
+                >
+                  VIX 252d %ile
+                </span>
+                <InfoTooltip text="VIX level's 252-day rolling percentile rank (strict_lt tie rule). When BOTH VIX and VVIX percentile ranks clear 0.95, the v2 cascade fires RISK_OFF via the absolute-vol-stress override — bypassing the sign-discipline SUPPRESSED clause that masked PANIC days in v1." />
+              </div>
+              <span
+                style={{
+                  fontFamily: "var(--font-mono)",
+                  fontSize: "11px",
+                  fontWeight: 700,
+                  color: pctRankColor(sig.vix_percentile_rank),
+                }}
+                data-testid="vcg-vix-pct-rank"
+              >
+                {formatPctRank(sig.vix_percentile_rank)}
+              </span>
+            </div>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                padding: "8px 0",
+                borderBottom: "1px solid var(--border-dim, var(--line-grid))",
+              }}
+            >
+              <span
+                style={{
+                  fontFamily: "var(--font-mono)",
+                  fontSize: "10px",
+                  color: "var(--text-muted)",
+                }}
+              >
+                VVIX 252d %ile
+              </span>
+              <span
+                style={{
+                  fontFamily: "var(--font-mono)",
+                  fontSize: "11px",
+                  fontWeight: 700,
+                  color: pctRankColor(sig.vvix_percentile_rank),
+                }}
+                data-testid="vcg-vvix-pct-rank"
+              >
+                {formatPctRank(sig.vvix_percentile_rank)}
               </span>
             </div>
             <div
@@ -661,6 +742,9 @@ export function VcgSubTabView({
           <VcgHistoryTable history={history} creditProxy={data.credit_proxy} />
         </div>
       </div>
+
+      {/* ── All-time stress history (v2 backtest) ───────────── */}
+      <VcgStressHistorySection />
     </div>
   );
 }

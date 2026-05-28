@@ -108,6 +108,18 @@ const BOUNCE: VcgResponse = {
   },
 };
 
+const PANIC_ADJUSTED: VcgResponse = {
+  ...NORMAL,
+  signal: {
+    ...NORMAL.signal!,
+    pi_panic: 0.75,
+    regime: "TRANSITION",
+    interpretation: "PANIC",
+    sign_ok: false,
+    sign_suppressed: true,
+  },
+};
+
 describe("VcgSubTabView", () => {
   it("renders empty placeholder when data is null", () => {
     render(<VcgSubTabView data={null} />);
@@ -134,6 +146,20 @@ describe("VcgSubTabView", () => {
     expect(screen.getAllByText("Residual").length).toBeGreaterThanOrEqual(1);
     // VCG is rendered via fmtZ → "-0.83"
     expect(screen.getByTestId("vcg-z-score").textContent).toBe("-0.83");
+  });
+
+  it("describes nonzero panic adjustment without claiming suppression", () => {
+    render(<VcgSubTabView data={PANIC_ADJUSTED} />);
+    expect(
+      screen.getByText("π = 0.75 (panic-adjustment active)"),
+    ).not.toBeNull();
+    expect(screen.queryByText("π = 0.75 SUPPRESSED")).toBeNull();
+  });
+
+  it("describes zero panic adjustment without suppression wording", () => {
+    render(<VcgSubTabView data={NORMAL} />);
+    expect(screen.getByText("π = 0 (no panic adjustment)")).not.toBeNull();
+    expect(screen.queryByText("NO SUPPRESSION")).toBeNull();
   });
 
   it("shows SUPPRESSED interpretation when sign discipline fails", () => {

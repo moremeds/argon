@@ -7,6 +7,8 @@ COMPOSITE_VERSION.
 
 from __future__ import annotations
 
+from uw_scan.cards.vcg_scoring import COMPOSITE_VERSION as VCG_COMPOSITE_VERSION
+
 
 def test_vcg_validation_endpoint_returns_payload(seed_vcg_backtest_run, client) -> None:
     resp = client.get("/api/regime/vcg-validation")
@@ -14,7 +16,7 @@ def test_vcg_validation_endpoint_returns_payload(seed_vcg_backtest_run, client) 
     body = resp.json()
     assert body["credit_proxy"] == "HYG"
     assert body["n_days"] >= 1
-    assert body["composite_version"] == "1"
+    assert body["composite_version"] == str(VCG_COMPOSITE_VERSION)
     assert len(body["interpretation_distribution"]) >= 1
     # First entry is the largest count (router sorts desc by n).
     assert body["interpretation_distribution"][0]["interpretation"] == "SUPPRESSED"
@@ -37,6 +39,30 @@ def test_vcg_validation_named_crash_window_shape(seed_vcg_backtest_run, client) 
     offsets = ev["offsets"]
     assert [o["offset_days"] for o in offsets] == [-5, -3, -1, 0, 1, 3, 5]
     assert all(isinstance(o["offset_days"], int) for o in offsets)
+
+
+def test_vcg_validation_stress_history_contract(seed_vcg_backtest_run, client) -> None:
+    """stress_history surfaces every daily row whose level is one of the
+    three stress states (PANIC / RISK_OFF / EDR), in most-recent-first order.
+
+    The conftest fixture seeds 4 daily rows: 3 stress + 1 NORMAL. The NORMAL
+    row must NOT appear; the stress rows must appear in date-desc order with
+    their payload fields surfaced verbatim.
+    """
+    resp = client.get("/api/regime/vcg-validation")
+    body = resp.json()
+    stress = body["stress_history"]
+    # NORMAL row excluded; three stress rows present.
+    assert len(stress) == 3
+    # Most-recent-first ordering (date desc).
+    assert [r["date"] for r in stress] == ["2024-06-10", "2024-03-01", "2024-01-15"]
+    assert [r["interpretation"] for r in stress] == ["EDR", "RISK_OFF", "PANIC"]
+    # PANIC row exposes the v2 percentile-rank payload fields verbatim.
+    panic = stress[2]
+    assert panic["pi_panic"] == 1.20
+    assert panic["vix_percentile_rank"] == 0.992
+    assert panic["vvix_percentile_rank"] == 0.985
+    assert panic["sign_ok"] is True
 
 
 def test_vcg_validation_503_when_no_completed_run(
