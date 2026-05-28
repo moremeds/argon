@@ -165,6 +165,33 @@ describe("VcgStressHistoryTable", () => {
     expect(cells?.[11]?.textContent).toBe("—");
   });
 
+  it("interpretation pill has tooltip with historical forward-return summary", () => {
+    const rows: Row[] = [
+      {
+        date: "2020-03-16",
+        interpretation: "PANIC",
+        score: -3.2,
+        vcg_adj: -3.2,
+        pi_panic: 1.5,
+        sign_ok: true,
+        vix: 80,
+        vvix: 130,
+        vix_percentile_rank: 0.99,
+        vvix_percentile_rank: 0.99,
+        fwd_5d_pct: -8.5,
+        fwd_20d_pct: 15.3,
+        fwd_60d_pct: 22.1,
+      },
+    ];
+    const { container } = render(<VcgStressHistoryTable rows={rows} />);
+    const pill = container.querySelector(
+      '[data-testid="interpretation-pill-PANIC"]',
+    );
+    expect(pill).not.toBeNull();
+    expect(pill?.getAttribute("title")).toMatch(/capitulation/i);
+    expect(pill?.getAttribute("title")).toMatch(/\+2\.88/);
+  });
+
   it("renders '—' for null percentile ranks", () => {
     const sparse: Row[] = [
       {

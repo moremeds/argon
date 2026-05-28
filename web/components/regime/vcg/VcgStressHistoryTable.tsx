@@ -33,6 +33,19 @@ function interpretationColor(interp: VcgStressEntry["interpretation"]): string {
   }
 }
 
+function interpretationTooltip(
+  interp: VcgStressEntry["interpretation"],
+): string | undefined {
+  switch (interp) {
+    case "PANIC":
+      return "PANIC — acute stress capitulation marker. Historical 20d forward SPX: +2.88% mean (n=83, 53% positive). Marks capitulation moments, not future drawdowns.";
+    case "RISK_OFF":
+      return "RISK_OFF — sustained vol-complex stress. Historical 60d forward SPX: +3.04% mean (n=133, 74% positive). Indistinguishable from baseline drift at 60d.";
+    case "EDR":
+      return "EDR — elevated daily risk. Subset of stress days that did not meet PANIC/RISK_OFF thresholds.";
+  }
+}
+
 function sortIndicator(
   col: SortCol,
   activeCol: SortCol | null,
@@ -165,6 +178,8 @@ export function VcgStressHistoryTable({ rows }: { rows: VcgStressEntry[] }) {
               <td>
                 <span
                   className="pill"
+                  data-testid={`interpretation-pill-${r.interpretation}`}
+                  title={interpretationTooltip(r.interpretation)}
                   style={{
                     background: interpretationColor(r.interpretation),
                     color: "#fff",
@@ -172,6 +187,7 @@ export function VcgStressHistoryTable({ rows }: { rows: VcgStressEntry[] }) {
                     fontWeight: 700,
                     padding: "1px 6px",
                     borderRadius: "999px",
+                    cursor: "help",
                   }}
                 >
                   {r.interpretation === "RISK_OFF"
