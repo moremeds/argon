@@ -516,6 +516,80 @@ PGUSER=chenxi UW_SCAN_API_KEY=local-smoke \
 
 ---
 
+## 14. v2-A vol/speed separation result (2026-05-28, terminal verdict for v2-A)
+
+Research-only PR 1 ([#94](https://github.com/moremeds/unusual-whales/pull/94), merged 2026-05-28) — added a 4-line conditional in `run_analysis()` keyed on `calibration.composite_version`, plus full evidence machinery (`FlipGateEvidence`, renderer, AC-F1..F6 evaluator, cleanup-on-failure). Backfilled 3,843 v2 snapshots; ran 6-window walk-forward + robustness with shared `batch_id=9fedce4e-3019-4324-8431-db64587c069d`.
+
+**Verdict: STOP. PR 2 (production flip `COMPOSITE_VERSION = 1 → 2`) is NOT authorized.**
+
+### Headline numbers
+
+| Metric | v1 | v2 | Δ | Bar | Result |
+|---|---:|---:|---:|---:|:---|
+| Full-history 60d AUC | 0.6193 | 0.6421 | **+0.0227** | ≥ 0.634 | **PASS** (matches prior +0.020–0.027) |
+| Full-history 20d AUC | 0.6270 | 0.6389 | +0.0119 | ≥ 0.622 | PASS |
+| Full-history 5d AUC | 0.6200 | 0.6263 | +0.0063 | ≥ 0.615 | PASS |
+| WATCH% | 39.3% | 13.5% | −25.8pp | ≤ 44.3% | PASS by huge margin |
+| v1 golden hash unchanged | — | — | — | byte-identical | PASS |
+
+### Where v2-A failed
+
+**AC-F4: WF-5 regression of −0.134 AUC** (v1 0.721 → v2 0.587), in the "Bond-yield selloff + 2024 quiet" regime — exceeds the −0.02 per-window tolerance. Pattern across all 6 walk-forward windows:
+
+| Window | Regime | v1 60d | v2 60d | Δ |
+|---|---|---:|---:|---:|
+| WF-1 | China deval, Brexit | 0.642 | 0.651 | +0.009 |
+| WF-2 | Volmageddon, Q4-18 | 0.569 | 0.569 | 0.000 |
+| WF-3 | Repo + COVID | 0.728 | 0.815 | **+0.087** |
+| WF-4 | Post-COVID, 2022 inflation | 0.791 | 0.792 | +0.001 |
+| WF-5 | Bond-yield, 2024 quiet | 0.721 | **0.587** | **−0.134** |
+| WF-6 | 2025 tariff, 2026 dip | 0.621 | 0.838 | **+0.217** |
+
+v2 dominates in crisis regimes (WF-3, WF-6); regresses materially in the quiet regime (WF-5). The "good on average, bad in one regime" failure mode AC-F4 was designed to surface.
+
+**AC-F3: 3 of 4 canonical CCA event dates didn't fire.** Empirically, v2 CCA fires on **2-month sustained-stress regimes** (Q4-2018 selloff, COVID, early-2022 inflation, 2025 tariff), not single-day shocks. Specifically:
+
+- `2011-08-08` (post-S&P-downgrade): `band=NONE, speed=NEUTRAL` — system never noticed
+- `2015-08-24` (yuan crash): `band=NONE, speed=BUY_THE_DIP_ACTIVE` — labeled buy opportunity, not warning. Directionally not wrong (S&P bottomed 9 trading days later), but conflated warning-state in the spec's canonical-date selection
+- `2018-02-05` (Volmageddon, single-day XIV crash): `band=NONE, speed=NEUTRAL` — single-day vol explosion undetected
+- `2020-03-09` (COVID Black Monday I): `speed=CONFIRMED_CANARY_ACTIVE` ✓
+
+### Interpretation: speed.score's regime-conditional role
+
+The headline +0.023 AUC lift was correct *in aggregate* but came concentrated in crisis regimes. In quiet regimes, `speed.score` was load-bearing — likely as an **early-instability detector** (low-vol breakout, lead-lag, flow acceleration, gamma transition), not as a panic detector. Vol-complex dominates in crisis; speed contributes in quiet. The v2-A formulation ("binary remove speed") loses the quiet-regime contribution.
+
+### Decisions taken from this result
+
+| Item | Decision |
+|---|---|
+| `COMPOSITE_VERSION` | **Do not bump.** v2-A formula is not a clean win. |
+| v2-A (drop speed from composite) | **Reject. Terminal.** Do not retry. |
+| v2-C (regime-conditional redesign) | **Promoted.** Three candidate directions: (A) regime-conditional weighting, (B) rank inversion within BUY, (C) convex blending. See [`canary-v2c-design-notes.md`](canary-v2c-design-notes.md). |
+| WF-5 deep-dive | **High priority next step.** Understand what speed.score captured in 2024 quiet regime before v2-C design. Probe scaffold at `scripts/probe_canary_wf5.py`. |
+| AC-F3 reformulation | **Required before next experiment.** Spec used 4 canonical event dates; empirics show v2 CCA fires on 2-month stress clusters. New gate: "CCA fires within ±N-day onset window of stress regime start". N must be **pre-committed** before v2-C runs, not chosen after seeing data. |
+| v2-A evidence machinery | **Keep.** `FlipGateEvidence`, renderer, AC-F1..F6 evaluator, cleanup-on-failure, payload-hash idempotency, scoped-delete repo method — all reusable for v2-C/D experiments. |
+
+### Why this is a successful negative result
+
+The pre-committed per-window gate (AC-F4) prevented shipping what looked like a headline win (+0.023 AUC) but would have introduced regime-specific weakness — the exact "good on average, bad in one regime" failure mode that blows up production portfolios. Aggregate metrics conceal regime fragility; per-window gates surface it. This was the most valuable governance moment of PR #94.
+
+The infrastructure built for v2-A is fully reusable for v2-C. Marginal cost of the next experiment is the calibration JSON + the formula change.
+
+### Reproduce
+
+```bash
+# Re-render the v1-vs-v2 report (no recompute, just re-render):
+PGUSER=chenxi UW_SCAN_API_KEY=local-smoke \
+  uv run python scripts/backtest_canary.py --v1-v2-compare \
+      --batch-id 9fedce4e-3019-4324-8431-db64587c069d
+
+# Probe WF-5 to understand speed.score's quiet-regime behavior:
+PGUSER=chenxi UW_SCAN_API_KEY=local-smoke \
+  uv run python scripts/probe_canary_wf5.py
+```
+
+---
+
 ## Appendix: How this document was generated
 
 - Dataset stats: SQL queries against `uw_scan.canary_snapshots` (full 15.3-year backfilled window).
