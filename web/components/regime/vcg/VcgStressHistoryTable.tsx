@@ -14,7 +14,10 @@ type SortCol =
   | "vix"
   | "vvix"
   | "vix_percentile_rank"
-  | "vvix_percentile_rank";
+  | "vvix_percentile_rank"
+  | "fwd_5d_pct"
+  | "fwd_20d_pct"
+  | "fwd_60d_pct";
 type SortDir = "asc" | "desc";
 
 const VOL_STRESS_THRESHOLD = 0.95;
@@ -63,6 +66,19 @@ function sortRows(
 function fmtPctRank(v: number | null | undefined): string {
   if (v == null || !Number.isFinite(v)) return "—";
   return `${(v * 100).toFixed(1)}%`;
+}
+
+function fwdReturnColor(v: number | null | undefined): string {
+  if (v == null || !Number.isFinite(v)) return "var(--text-muted)";
+  if (v > 0) return "var(--positive)";
+  if (v < 0) return "var(--negative)";
+  return "var(--text-primary)";
+}
+
+function fmtFwdReturn(v: number | null | undefined): string {
+  if (v == null || !Number.isFinite(v)) return "—";
+  const sign = v > 0 ? "+" : "";
+  return `${sign}${v.toFixed(1)}`;
 }
 
 function pctRankColor(v: number | null | undefined): string {
@@ -116,6 +132,9 @@ export function VcgStressHistoryTable({ rows }: { rows: VcgStressEntry[] }) {
               ["vvix", "VVIX", true],
               ["vix_percentile_rank", "VIX %ile", true],
               ["vvix_percentile_rank", "VVIX %ile", true],
+              ["fwd_5d_pct", "+5d %", true],
+              ["fwd_20d_pct", "+20d %", true],
+              ["fwd_60d_pct", "+60d %", true],
             ] as [SortCol, string, boolean][]
           ).map(([col, label, isRight]) => (
             <th
@@ -183,13 +202,31 @@ export function VcgStressHistoryTable({ rows }: { rows: VcgStressEntry[] }) {
               >
                 {fmtPctRank(r.vvix_percentile_rank)}
               </td>
+              <td
+                className="right"
+                style={{ color: fwdReturnColor(r.fwd_5d_pct) }}
+              >
+                {fmtFwdReturn(r.fwd_5d_pct)}
+              </td>
+              <td
+                className="right"
+                style={{ color: fwdReturnColor(r.fwd_20d_pct) }}
+              >
+                {fmtFwdReturn(r.fwd_20d_pct)}
+              </td>
+              <td
+                className="right"
+                style={{ color: fwdReturnColor(r.fwd_60d_pct) }}
+              >
+                {fmtFwdReturn(r.fwd_60d_pct)}
+              </td>
             </tr>
           );
         })}
         {rows.length === 0 && (
           <tr>
             <td
-              colSpan={9}
+              colSpan={12}
               style={{ textAlign: "center", color: "var(--text-muted)" }}
             >
               No stress-state days in the current backtest run.
