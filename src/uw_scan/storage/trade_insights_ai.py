@@ -288,12 +288,13 @@ class _TradeInsightsAiMixin:
     ) -> dict[str, dict[str, Any] | None]:
         """Latest terminal-state row per known provider as a keyed dict.
 
-        Output shape: {"codex": row|None, "claude": row|None}. Returns the most
-        recent succeeded OR failed row per provider; succeeded wins when both
-        exist at the same finished_at (defensive on the rare tie). Failed rows
-        are surfaced so the UI can render the error_message instead of the
-        misleading "No analysis yet" empty state. Model is NOT in the key — a
-        model alias rollover does not hide the most recent result.
+        Output shape: {"codex": row|None, "claude": row|None,
+        "deepseek": row|None}. Returns the most recent succeeded OR failed row
+        per provider; succeeded wins when both exist at the same finished_at
+        (defensive on the rare tie). Failed rows are surfaced so the UI can
+        render the error_message instead of the misleading "No analysis yet"
+        empty state. Model is NOT in the key — a model alias rollover does
+        not hide the most recent result.
         """
         sql = (
             f"SELECT DISTINCT ON (provider) * FROM {self._schema}.trade_insight_ai_analyses "
@@ -303,7 +304,11 @@ class _TradeInsightsAiMixin:
             "  CASE status WHEN 'succeeded' THEN 0 ELSE 1 END, "
             "  requested_at DESC"
         )
-        out: dict[str, dict[str, Any] | None] = {"codex": None, "claude": None}
+        out: dict[str, dict[str, Any] | None] = {
+            "codex": None,
+            "claude": None,
+            "deepseek": None,
+        }
         with self._conn.cursor() as cur:
             cur.execute(sql, (ticker.upper(), prompt_version))
             rows = cur.fetchall()

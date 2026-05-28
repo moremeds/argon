@@ -27,10 +27,12 @@ from uw_scan.worker.jobs.trade_insights_ai_runners import (
 )
 from uw_scan.worker.jobs.trade_insights_claude_runner import ClaudeRunner
 from uw_scan.worker.jobs.trade_insights_codex_runner import CodexRunner
+from uw_scan.worker.jobs.trade_insights_deepseek_runner import DeepSeekRunner
 
 RUNNERS: dict[str, AiProviderRunner] = {
     "codex": CodexRunner(),
     "claude": ClaudeRunner(),
+    "deepseek": DeepSeekRunner(),
 }
 
 
@@ -74,6 +76,11 @@ def _provider_model_and_timeout(settings: Settings, provider: str) -> tuple[str,
         return (
             settings.trade_insights_ai_claude_model.strip(),
             settings.trade_insights_ai_claude_timeout_seconds,
+        )
+    if provider == "deepseek":
+        return (
+            settings.trade_insights_ai_deepseek_model.strip(),
+            settings.trade_insights_ai_deepseek_timeout_seconds,
         )
     raise TradeInsightsAiRunnerError(f"unknown provider {provider!r}")
 

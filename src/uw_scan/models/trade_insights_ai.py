@@ -555,12 +555,21 @@ class TradeInsightAiLatestPair(TradeInsightAiBase):
     v5.2: provider_consensus is computed at read time by comparing the
     two providers' headline fields whenever both have succeeded. The
     UI surfaces consensus_grade + actionable_disagreement above the
-    [Codex] [Claude] tabs as a quality signal."""
+    [Codex] [Claude] tabs as a quality signal.
+
+    v5.3 (deepseek-decoupling, 2026-05-28): adds the deepseek slot.
+    DeepSeek surfaces in /latest but DOES NOT participate in
+    provider_consensus — that remains a 2-way codex-vs-claude comparison
+    (see _compute_provider_consensus docstring for the scope decision).
+    The UI still renders only [Codex] [Claude] tabs; the deepseek field
+    is queued + persisted today and ignored by the frontend until a
+    follow-up PR adds a [DeepSeek] tab."""
 
     current_prompt_version: str
     current_prompt_label: str | None = None
     codex: TradeInsightAiAnalysisResponse | None = None
     claude: TradeInsightAiAnalysisResponse | None = None
+    deepseek: TradeInsightAiAnalysisResponse | None = None
     provider_consensus: TradeInsightAiProviderConsensus = Field(
         default_factory=TradeInsightAiProviderConsensus
     )

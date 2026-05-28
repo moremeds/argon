@@ -6,6 +6,7 @@ from decimal import Decimal
 import psycopg
 from fastapi.testclient import TestClient
 
+from tests.test_trade_insights_ai import _sample_outcome_for
 from uw_scan.api.deps import get_repo, get_settings
 from uw_scan.api.server import create_app
 from uw_scan.config import Settings
@@ -23,8 +24,6 @@ from uw_scan.models import (
     VRPAssessment,
 )
 from uw_scan.reports.trade_insights_ai import PROMPT_VERSION
-
-from tests.test_trade_insights_ai import _sample_outcome_for
 from uw_scan.storage.repository import Repository
 
 
@@ -33,9 +32,12 @@ def _settings_for_repo(
     *,
     enabled: bool = True,
     claude_enabled: bool = False,
+    deepseek_enabled: bool = False,
 ) -> Settings:
     """Test settings. Defaults to codex-only for backwards-compatibility with
-    the pre-existing tests; set claude_enabled=True to exercise both providers."""
+    the pre-existing tests; set claude_enabled / deepseek_enabled to exercise
+    those providers. The defaults intentionally leave the secondary providers
+    OFF so single-provider tests don't have to count three stubs."""
     return Settings.from_env().model_copy(
         update={
             "db_name": repo.conn.info.dbname,
@@ -44,6 +46,8 @@ def _settings_for_repo(
             "trade_insights_ai_model": "",
             "trade_insights_ai_claude_enabled": claude_enabled,
             "trade_insights_ai_claude_model": "",
+            "trade_insights_ai_deepseek_enabled": deepseek_enabled,
+            "trade_insights_ai_deepseek_model": "",
         }
     )
 
