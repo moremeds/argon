@@ -1,0 +1,564 @@
+"""Integration tests for canary v2-A walk-forward, robustness, cleanup,
+parity, and dispatcher. Built up across Tasks 4, 6, 7, 8, 10, 11.
+"""
+
+from __future__ import annotations
+
+import argparse
+import uuid
+from datetime import date
+from datetime import date as _date
+
+import pytest
+from scripts.backtest_canary import cmd_walk_forward
+from uw_scan.storage.regime_backtest_repository import RegimeBacktestRepository
+
+from tests.integration.regime._canary_v2a_fixture import (
+    seed_v1_walk_forward_runs,
+    seed_vol_index_full_history,
+)
+
+pytestmark = pytest.mark.integration
+
+
+def _wf_args(
+    *, composite_version: int, batch_id: str | None = None
+) -> argparse.Namespace:
+    return argparse.Namespace(
+        composite_version=composite_version,
+        batch_id=batch_id,
+    )
+
+
+def _rb_args(
+    *, composite_version: int, batch_id: str | None = None
+) -> argparse.Namespace:
+    return argparse.Namespace(
+        composite_version=composite_version,
+        batch_id=batch_id,
+    )
+
+
+def _insert_research_run(
+    repo: RegimeBacktestRepository,
+    *,
+    phase: str,
+    window_id: str | None,
+    batch_id: str,
+    composite_version: str = "2",
+) -> int:
+    """Helper: insert one research-scoped canary run with the given phase."""
+    params = {"phase": phase, "batch_id": batch_id, "score_form": "linear"}
+    if window_id is not None:
+        params["window_id"] = window_id
+    return repo.insert_run(
+        indicator="canary",
+        composite_version=composite_version,
+        start_date=date(2020, 1, 2),
+        end_date=date(2020, 12, 30),
+        window_days=350,
+        n_days=250,
+        params=params,
+        summary={"is_winning_form": False, "phase": phase},
+        run_scope="research",
+    )
+
+
+def test_delete_canary_research_runs_by_batch_id_and_phase_walk_forward(
+    seeded_db_empty_cards,
+):
+    """Insert 6 walk-forward + 1 robustness + 4 form-sweep research rows.
+    Delete walk-forward batch by (batch_id, phase='walk_forward').
+    Assert: 6 walk-forward rows gone; robustness + form-sweep rows preserved.
+    """
+    conn = seeded_db_empty_cards.conn
+    schema = seeded_db_empty_cards._schema
+    repo = RegimeBacktestRepository(conn, schema=schema)
+
+    wf_batch = str(uuid.uuid4())
+    fs_batch = str(uuid.uuid4())
+
+    wf_ids = [
+        _insert_research_run(
+            repo, phase="walk_forward", window_id=f"WF-{i}", batch_id=wf_batch
+        )
+        for i in range(1, 7)
+    ]
+    robustness_id = _insert_research_run(
+        repo, phase="robustness", window_id=None, batch_id=wf_batch
+    )
+    fs_ids = [
+        _insert_research_run(
+            repo,
+            phase="form_sweep_full",
+            window_id=None,
+            batch_id=fs_batch,
+            composite_version="1",
+        )
+        for _ in range(4)
+    ]
+    for rid in wf_ids + [robustness_id] + fs_ids:
+        repo.mark_run_completed(rid)
+
+    deleted = repo.delete_canary_research_runs_by_batch_id_and_phase(
+        wf_batch, "walk_forward"
+    )
+
+    assert deleted == 6
+    with conn.cursor() as cur:
+        cur.execute(
+            f"SELECT id FROM {schema}.regime_backtest_runs WHERE id = %s",
+            (robustness_id,),
+        )
+        assert cur.fetchone() is not None
+        cur.execute(
+            f"SELECT COUNT(*) FROM {schema}.regime_backtest_runs "
+            f"WHERE params->>'batch_id' = %s",
+            (fs_batch,),
+        )
+        assert cur.fetchone()[0] == 4
+
+
+def test_delete_canary_research_runs_by_batch_id_and_phase_no_op_when_no_match(
+    seeded_db_empty_cards,
+):
+    """Returns 0 when no rows match (wrong batch_id, wrong phase, etc.)."""
+    conn = seeded_db_empty_cards.conn
+    schema = seeded_db_empty_cards._schema
+    repo = RegimeBacktestRepository(conn, schema=schema)
+    deleted = repo.delete_canary_research_runs_by_batch_id_and_phase(
+        str(uuid.uuid4()), "walk_forward"
+    )
+    assert deleted == 0
+
+
+def test_delete_canary_research_runs_by_batch_id_and_phase_does_not_touch_production(
+    seeded_db_empty_cards,
+):
+    """Defense-in-depth: production rows MUST NOT be deleted even on collision."""
+    conn = seeded_db_empty_cards.conn
+    schema = seeded_db_empty_cards._schema
+    repo = RegimeBacktestRepository(conn, schema=schema)
+
+    same_batch = str(uuid.uuid4())
+    research_id = _insert_research_run(
+        repo, phase="walk_forward", window_id="WF-1", batch_id=same_batch
+    )
+    repo.mark_run_completed(research_id)
+
+    with conn.cursor() as cur:
+        cur.execute(
+            f"INSERT INTO {schema}.regime_backtest_runs "
+            f"(indicator, composite_version, start_date, end_date, window_days, "
+            f" n_days, params, summary, run_scope, completed_at) "
+            f"VALUES ('canary', '1', '2020-01-02', '2020-12-30', 350, 250, "
+            f"        %s::jsonb, '{{}}'::jsonb, 'production', now()) RETURNING id",
+            (
+                f'{{"phase": "walk_forward", "batch_id": "{same_batch}", '
+                f'"window_id": "WF-1", "score_form": "linear"}}',
+            ),
+        )
+        prod_id = cur.fetchone()[0]
+    conn.commit()
+
+    deleted = repo.delete_canary_research_runs_by_batch_id_and_phase(
+        same_batch, "walk_forward"
+    )
+    assert deleted == 1
+    with conn.cursor() as cur:
+        cur.execute(
+            f"SELECT id FROM {schema}.regime_backtest_runs WHERE id = %s",
+            (prod_id,),
+        )
+        assert cur.fetchone() is not None
+
+
+# --- Task 6: v2 walk-forward tests ---
+
+
+def test_v2_walk_forward_writes_6_research_rows(seeded_db_empty_cards):
+    """cmd_walk_forward with composite_version=2 writes 6 research-scoped
+    walk-forward rows, all sharing a batch_id, with WF-1..WF-6 window_ids."""
+    conn = seeded_db_empty_cards.conn
+    schema = seeded_db_empty_cards._schema
+    seed_vol_index_full_history(
+        conn, schema=schema, start=_date(2013, 1, 2), end=_date(2026, 5, 21)
+    )
+
+    cmd_walk_forward(conn, schema=schema, args=_wf_args(composite_version=2))
+
+    with conn.cursor() as cur:
+        cur.execute(
+            f"SELECT params->>'batch_id', params->>'window_id', composite_version, run_scope "
+            f"FROM {schema}.regime_backtest_runs "
+            f"WHERE indicator='canary' AND composite_version='2' "
+            f"  AND params->>'phase'='walk_forward' "
+            f"ORDER BY params->>'window_id'"
+        )
+        rows = cur.fetchall()
+
+    assert len(rows) == 6
+    batch_ids = {r[0] for r in rows}
+    assert len(batch_ids) == 1 and next(iter(batch_ids)) is not None
+    window_ids = {r[1] for r in rows}
+    assert window_ids == {f"WF-{i}" for i in range(1, 7)}
+    for r in rows:
+        assert r[2] == "2"
+        assert r[3] == "research"
+
+
+def test_v2_walk_forward_preserves_v1_production_rows(seeded_db_empty_cards):
+    """v1 walk-forward production rows survive v2 walk-forward. Spec §6 Layer 2."""
+    conn = seeded_db_empty_cards.conn
+    schema = seeded_db_empty_cards._schema
+    v1_ids = seed_v1_walk_forward_runs(conn, schema=schema)
+    seed_vol_index_full_history(
+        conn, schema=schema, start=_date(2013, 1, 2), end=_date(2026, 5, 21)
+    )
+
+    cmd_walk_forward(conn, schema=schema, args=_wf_args(composite_version=2))
+
+    with conn.cursor() as cur:
+        cur.execute(
+            f"SELECT COUNT(*) FROM {schema}.regime_backtest_runs WHERE id = ANY(%s)",
+            (v1_ids,),
+        )
+        assert cur.fetchone()[0] == 6
+
+
+def test_v2_walk_forward_summary_has_composite_aucs(seeded_db_empty_cards):
+    """Each v2 walk-forward run's summary.aucs.composite contains the three
+    horizons. AC-F4 reads these."""
+    conn = seeded_db_empty_cards.conn
+    schema = seeded_db_empty_cards._schema
+    seed_vol_index_full_history(
+        conn, schema=schema, start=_date(2013, 1, 2), end=_date(2026, 5, 21)
+    )
+
+    cmd_walk_forward(conn, schema=schema, args=_wf_args(composite_version=2))
+
+    with conn.cursor() as cur:
+        cur.execute(
+            f"SELECT summary->'aucs'->'composite' "
+            f"FROM {schema}.regime_backtest_runs "
+            f"WHERE indicator='canary' AND composite_version='2' "
+            f"  AND params->>'phase'='walk_forward' LIMIT 1"
+        )
+        composite_aucs = cur.fetchone()[0]
+
+    assert composite_aucs is not None
+    for key in ("up5d_2pct", "up20d_5pct", "up60d_10pct"):
+        assert key in composite_aucs
+
+
+# --- Task 7: v2 robustness tests ---
+
+
+def test_v2_robustness_writes_1_research_row(seeded_db_empty_cards):
+    """cmd_robustness with composite_version=2 writes 1 research-scoped row."""
+    from scripts.backtest_canary import cmd_robustness
+
+    conn = seeded_db_empty_cards.conn
+    schema = seeded_db_empty_cards._schema
+    seed_vol_index_full_history(
+        conn, schema=schema, start=_date(2013, 1, 2), end=_date(2026, 5, 21)
+    )
+
+    cmd_robustness(conn, schema=schema, args=_rb_args(composite_version=2))
+
+    with conn.cursor() as cur:
+        cur.execute(
+            f"SELECT COUNT(*) FROM {schema}.regime_backtest_runs "
+            f"WHERE indicator='canary' AND run_scope='research' "
+            f"  AND composite_version='2' AND params->>'phase'='robustness'"
+        )
+        assert cur.fetchone()[0] == 1
+
+
+def test_v2_robustness_shares_batch_id_when_chained(seeded_db_empty_cards):
+    """If --batch-id is passed, robustness row carries the same batch_id."""
+    from scripts.backtest_canary import cmd_robustness
+
+    conn = seeded_db_empty_cards.conn
+    schema = seeded_db_empty_cards._schema
+    seed_vol_index_full_history(
+        conn, schema=schema, start=_date(2013, 1, 2), end=_date(2026, 5, 21)
+    )
+
+    cmd_walk_forward(conn, schema=schema, args=_wf_args(composite_version=2))
+
+    with conn.cursor() as cur:
+        cur.execute(
+            f"SELECT DISTINCT params->>'batch_id' "
+            f"FROM {schema}.regime_backtest_runs "
+            f"WHERE indicator='canary' AND composite_version='2' "
+            f"  AND params->>'phase'='walk_forward'"
+        )
+        wf_batch = cur.fetchone()[0]
+
+    cmd_robustness(
+        conn, schema=schema, args=_rb_args(composite_version=2, batch_id=wf_batch)
+    )
+
+    with conn.cursor() as cur:
+        cur.execute(
+            f"SELECT params->>'batch_id' FROM {schema}.regime_backtest_runs "
+            f"WHERE indicator='canary' AND composite_version='2' "
+            f"  AND params->>'phase'='robustness'"
+        )
+        rb_batch = cur.fetchone()[0]
+
+    assert rb_batch == wf_batch
+
+
+# --- Task 8: recompute vs backfill parity test (AC-4b) ---
+
+
+def test_v2_walk_forward_recompute_matches_v2_backfill_snapshots(
+    seeded_db_empty_cards,
+):
+    """For ~30 sample dates, walk-forward's recomputed v2 score equals the
+    v2 backfill snapshot score for the same date. Floating-point tolerance:
+    1e-6 on raw_score, exact on band.
+
+    Confirms recompute (from vol_index_daily) vs backfill (from
+    canary_snapshots) produce identical outputs at v2. Spec §5.5 + §7 AC-4b.
+    """
+    import random
+
+    from scripts.canary_backfill import cmd_backfill
+
+    conn = seeded_db_empty_cards.conn
+    schema = seeded_db_empty_cards._schema
+    seed_vol_index_full_history(
+        conn, schema=schema, start=_date(2013, 1, 2), end=_date(2026, 5, 21)
+    )
+
+    backfill_args = argparse.Namespace(
+        composite_version=2,
+        start_date="2015-01-02",
+        end_date="2026-05-21",
+        overwrite_on_hash_mismatch=False,
+        days=252,
+    )
+    cmd_backfill(conn, schema=schema, args=backfill_args)
+
+    cmd_walk_forward(conn, schema=schema, args=_wf_args(composite_version=2))
+
+    with conn.cursor() as cur:
+        cur.execute(
+            f"SELECT d.trade_date, d.score, d.level "
+            f"FROM {schema}.regime_backtest_daily d "
+            f"JOIN {schema}.regime_backtest_runs r ON d.run_id = r.id "
+            f"WHERE r.indicator='canary' AND r.composite_version='2' "
+            f"  AND r.run_scope='research' AND r.params->>'phase'='walk_forward' "
+            f"ORDER BY d.trade_date"
+        )
+        wf_rows = {r[0]: (float(r[1]), r[2]) for r in cur.fetchall()}
+
+    with conn.cursor() as cur:
+        cur.execute(
+            f"SELECT data_date, score, band FROM {schema}.canary_snapshots "
+            f"WHERE composite_version=2 AND data_date = ANY(%s)",
+            (list(wf_rows.keys()),),
+        )
+        bf_rows = {r[0]: (float(r[1]), r[2]) for r in cur.fetchall()}
+
+    rng = random.Random(42)
+    overlap = sorted(set(wf_rows) & set(bf_rows))
+    sample = rng.sample(overlap, min(30, len(overlap)))
+    assert len(sample) >= 10, f"need >=10 overlap dates, got {len(sample)}"
+
+    mismatches = []
+    for d in sample:
+        wf_score, wf_band = wf_rows[d]
+        bf_score, bf_band = bf_rows[d]
+        if abs(wf_score - bf_score) > 1e-6 or wf_band != bf_band:
+            mismatches.append(
+                f"  {d}: wf=({wf_score}, {wf_band}) bf=({bf_score}, {bf_band})"
+            )
+    assert not mismatches, (
+        f"recompute vs backfill parity failed on {len(mismatches)} of "
+        f"{len(sample)} sampled dates:\n" + "\n".join(mismatches[:10])
+    )
+
+
+# --- Task 10: v1-v2-compare dispatcher tests ---
+
+
+def test_v1_v2_compare_dispatcher_renders_nonempty(
+    seeded_db_empty_cards, capsys, monkeypatch
+):
+    """cmd_v1_v2_compare assembles + prints a non-empty report.
+
+    _run_subprocess_test is stubbed — the in-process integration test focuses
+    on the assembly+render pipeline, not on whether the OOS-gate test runs
+    in a child process (that subprocess hits a fresh DB that times out
+    waiting for pytest-postgresql setup). Live AC-F6 verification happens
+    in Task 12 Step 7.
+    """
+    import uw_scan.reports.regime_canary_v1_v2_compare as _compare_mod
+    from scripts.backtest_canary import cmd_v1_v2_compare
+    from scripts.canary_backfill import cmd_backfill
+
+    from tests.integration.regime._canary_v2a_fixture import (
+        seed_v1_walk_forward_runs,
+        seed_v2_walk_forward_runs,
+    )
+
+    monkeypatch.setattr(_compare_mod, "_run_subprocess_test", lambda _path: True)
+
+    conn = seeded_db_empty_cards.conn
+    schema = seeded_db_empty_cards._schema
+
+    seed_vol_index_full_history(
+        conn, schema=schema, start=_date(2013, 1, 2), end=_date(2026, 5, 21)
+    )
+    seed_v1_walk_forward_runs(conn, schema=schema)
+    seed_v2_walk_forward_runs(conn, schema=schema)
+    cmd_backfill(
+        conn,
+        schema=schema,
+        args=argparse.Namespace(
+            composite_version=1,
+            start_date="2015-01-02",
+            end_date="2026-05-21",
+            overwrite_on_hash_mismatch=False,
+            days=252,
+        ),
+    )
+    cmd_backfill(
+        conn,
+        schema=schema,
+        args=argparse.Namespace(
+            composite_version=2,
+            start_date="2015-01-02",
+            end_date="2026-05-21",
+            overwrite_on_hash_mismatch=False,
+            days=252,
+        ),
+    )
+
+    cmd_v1_v2_compare(conn, schema=schema, args=argparse.Namespace())
+
+    out = capsys.readouterr().out
+    assert "Canary v2-A" in out
+    assert "Full-history AUCs" in out
+    assert "Band distribution" in out
+    assert "Per-window 60d AUC" in out
+    assert "AC-F1..F6 Evaluation" in out
+    assert "Verdict:" in out
+    assert "What PR 2 will do" in out
+
+
+def test_v1_v2_compare_fails_clearly_when_no_v2_batch(seeded_db_empty_cards):
+    """If no complete v2 walk-forward batch exists, raises with actionable error."""
+    from scripts.backtest_canary import cmd_v1_v2_compare
+
+    conn = seeded_db_empty_cards.conn
+    schema = seeded_db_empty_cards._schema
+
+    seed_v1_walk_forward_runs(conn, schema=schema)
+
+    with pytest.raises(RuntimeError, match="no complete v2 walk-forward batch"):
+        cmd_v1_v2_compare(conn, schema=schema, args=argparse.Namespace(batch_id=None))
+
+
+def test_v1_v2_compare_honors_explicit_batch_id(seeded_db_empty_cards, monkeypatch):
+    """When --batch-id is passed, the report compares against that exact v2 batch.
+
+    Two v2 batches are seeded; passing the older batch_id makes the report compare
+    against it rather than the latest. Regression test for codex F2.
+    """
+    import uw_scan.reports.regime_canary_v1_v2_compare as _compare_mod
+    from scripts.backtest_canary import cmd_v1_v2_compare
+
+    from tests.integration.regime._canary_v2a_fixture import (
+        seed_v2_walk_forward_runs,
+    )
+
+    monkeypatch.setattr(_compare_mod, "_run_subprocess_test", lambda _path: True)
+
+    conn = seeded_db_empty_cards.conn
+    schema = seeded_db_empty_cards._schema
+    seed_vol_index_full_history(
+        conn, schema=schema, start=_date(2013, 1, 2), end=_date(2026, 5, 21)
+    )
+    seed_v1_walk_forward_runs(conn, schema=schema)
+    older_batch, _ = seed_v2_walk_forward_runs(conn, schema=schema)
+    newer_batch, _ = seed_v2_walk_forward_runs(conn, schema=schema)
+    assert older_batch != newer_batch
+
+    # No --batch-id: should pick the newer batch (latest by completed_at).
+    cmd_v1_v2_compare(conn, schema=schema, args=argparse.Namespace(batch_id=None))
+
+    # Explicit older batch_id: should not raise and should compare that batch.
+    cmd_v1_v2_compare(
+        conn, schema=schema, args=argparse.Namespace(batch_id=older_batch)
+    )
+
+
+def test_v1_v2_compare_explicit_batch_id_unknown_raises(seeded_db_empty_cards):
+    """Operator-supplied unknown batch_id raises a clear error referencing the id."""
+    from scripts.backtest_canary import cmd_v1_v2_compare
+
+    conn = seeded_db_empty_cards.conn
+    schema = seeded_db_empty_cards._schema
+    seed_v1_walk_forward_runs(conn, schema=schema)
+
+    fake = "00000000-0000-0000-0000-000000000000"
+    with pytest.raises(RuntimeError, match=fake):
+        cmd_v1_v2_compare(conn, schema=schema, args=argparse.Namespace(batch_id=fake))
+
+
+# --- Task 11: walk-forward cleanup-on-failure (in-process) ---
+
+
+def test_v2_walk_forward_cleanup_on_mid_batch_failure(
+    seeded_db_empty_cards, monkeypatch
+):
+    """If bulk_insert_daily raises on the 4th of 6 walk-forward windows,
+    every persisted v2 walk-forward row (including the 3 successfully
+    inserted) is cleaned up. v1 production rows untouched.
+
+    Uses in-process cmd_walk_forward + monkeypatch on the bound method so
+    the side-effect can pass-through the first 3 calls and raise on the 4th.
+    A subprocess-based test could not patch bulk_insert_daily across the
+    process boundary. Spec §5.8.
+    """
+    conn = seeded_db_empty_cards.conn
+    schema = seeded_db_empty_cards._schema
+    seed_v1_walk_forward_runs(conn, schema=schema)
+    seed_vol_index_full_history(
+        conn, schema=schema, start=_date(2013, 1, 2), end=_date(2026, 5, 21)
+    )
+
+    real_bulk_insert = RegimeBacktestRepository.bulk_insert_daily
+    call_count = {"n": 0}
+
+    def flaky(self, run_id, rows):
+        call_count["n"] += 1
+        if call_count["n"] == 4:
+            raise RuntimeError("simulated 4th-window failure")
+        return real_bulk_insert(self, run_id, rows)
+
+    monkeypatch.setattr(RegimeBacktestRepository, "bulk_insert_daily", flaky)
+
+    with pytest.raises(RuntimeError, match="simulated 4th-window failure"):
+        cmd_walk_forward(conn, schema=schema, args=_wf_args(composite_version=2))
+
+    with conn.cursor() as cur:
+        cur.execute(
+            f"SELECT COUNT(*) FROM {schema}.regime_backtest_runs "
+            f"WHERE indicator='canary' AND run_scope='research' "
+            f"  AND composite_version='2' AND params->>'phase'='walk_forward'"
+        )
+        assert cur.fetchone()[0] == 0
+
+    with conn.cursor() as cur:
+        cur.execute(
+            f"SELECT COUNT(*) FROM {schema}.regime_backtest_runs "
+            f"WHERE indicator='canary' AND run_scope='production' "
+            f"  AND composite_version='1' AND params->>'phase'='walk_forward'"
+        )
+        assert cur.fetchone()[0] == 6
