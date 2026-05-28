@@ -654,9 +654,11 @@ def test_trade_insights_ai_prompt_payload_and_prompt_are_recommendation_oriented
     # Source-path discipline + schema_version are still appendix-level rules.
     assert "Source-path rule (HARD)" in prompt
     assert f"schema_version MUST be exactly the string {PROMPT_VERSION!r}" in prompt
-    # Mode-aware structure consistency surfaces in integration notes.
-    assert "Mode-aware structure consistency" in prompt
-    assert "Delta-match (HARD)" in prompt
+    # Mode-aware structure consistency + delta-match are now in CONTRACT_PROMPT
+    # (lifted out of the integration-notes appendix to deduplicate). The exact
+    # phrasing in CONTRACT_PROMPT differs from the prior appendix wording.
+    assert "MODE-STRUCTURE CONSISTENCY (HARD" in prompt
+    assert "DELTA-MATCH (HARD)" in prompt
     # idea_id rule still here; directional whitelist restricts preferred_expression.
     assert "idea_id rules (HARD)" in prompt
     # The directional-swing whitelist must appear in the prompt so the model

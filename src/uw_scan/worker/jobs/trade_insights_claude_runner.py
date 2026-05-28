@@ -132,162 +132,6 @@ def _try_parse_claude_text(text: str) -> Any:
         return None
 
 
-_JSON_ONLY_SYSTEM_PROMPT = """\
-Emit a single raw JSON object conforming EXACTLY to the supplied --json-schema. \
-Use exact field names at every nesting level; additionalProperties is false \
-everywhere. No markdown, no code fences, no prose before/after.
-
-Populate EVERY field below; do not leave any blank, null, or set to placeholder \
-strings like "n/a" or "unknown".
-
-VOCAB MAPPINGS (the user prompt uses analyst vocabulary; translate to schema \
-Literals on output):
-- headline.trade_intent MUST be one of: "directional_swing", "range_income". \
-  Default to "directional_swing" unless Step 4 of the decision order selected \
-  range_income.
-- headline.directional_bias MUST be one of: "LONG_DELTA", "SHORT_DELTA", "WAIT". \
-  NEVER emit "bullish_continuation" or "long" or "bull" — those values belong \
-  in underlying_path. The bias is the trader-facing directional gate.
-- headline.entry_state MUST be one of: "ACTIVE", "CONDITIONAL", "NO_ENTRY".
-- headline.underlying_path MUST be one of: "bullish_continuation", \
-  "bearish_rejection", "downside_break", "pinned_no_directional_entry", \
-  "data_insufficient".
-- headline.dte_band MUST be one of: "momentum", "standard", "trend". v5.1 \
-  restored the standard band (31-44 DTE). The DTE of the chosen \
-  preferred_entry_expiry MUST fall inside the band: momentum=[14,30], \
-  standard=[31,44], trend=[45,75].
-- headline.stance MUST be derived from headline.directional_bias for legacy \
-  UI display: LONG_DELTA -> "bullish", SHORT_DELTA -> "bearish", WAIT -> "wait".
-- headline.conviction MUST be exactly one of: "A", "B", "C", "D", "F".
-- vrp_assessment.signal MUST be one of: "long_vol", "short_vol", "neutral".
-
-MODE-STRUCTURE CONSISTENCY (HARD; validator will reject otherwise):
-- If trade_intent == "directional_swing", preferred_expression.structure MUST \
-  be in {long_call, long_put, call_debit_spread, put_debit_spread, \
-  bull_call_spread, bear_put_spread, call_diagonal, put_diagonal, no_trade}. \
-  iron_condor / iron_butterfly / strangle / credit_spread / calendar_spread \
-  are BANNED as preferred when trade_intent=directional_swing.
-- If trade_intent == "range_income", preferred_expression.structure MUST be \
-  in {iron_condor, iron_butterfly, butterfly, calendar_spread, \
-  call_credit_spread, put_credit_spread, no_trade}.
-
-DELTA-MATCH (HARD):
-- directional_bias = LONG_DELTA  -> preferred_expression structure MUST be \
-  net-positive-delta (long_call, call_debit_spread, bull_call_spread, \
-  call_diagonal).
-- directional_bias = SHORT_DELTA -> net-negative-delta (long_put, \
-  put_debit_spread, bear_put_spread, put_diagonal).
-- directional_bias = WAIT        -> preferred_expression.structure = \
-  "no_trade". The preferred_expression block then describes the CONDITIONAL \
-  setup; the Scenarios section names the long/short expressions that would \
-  activate.
-
-REQUIRED STRINGS in headline (each substantive, one sentence; not a fragment):
-- title (v5.2: 10-20 words, naming bias + structure + trigger level + DTE band — \
-  NOT the page title "NVDA AI Analysis"; example: \
-  "NVDA SHORT_DELTA bear_put_spread fires on daily close below 215, 35 DTE standard band."),
-- stance_label, conviction_label, top_reason, primary_risk, watch_trigger.
-
-section_cards has THREE required keys: market_structure, volatility, \
-flow_positioning. Each MUST have title, summary (>=1 sentence of real \
-analysis), data_quality, and >=1 highlight or level with a real source_path \
-from the supplied payload.
-
-vrp_assessment is REQUIRED (not null). Provide {signal, title, summary, \
-metrics, reason}. When data is incomplete, set signal="neutral" and explain \
-in summary/reason.
-
-preferred_expression: provide {idea_id, structure, title, why, \
-status_observed, risk_flags_observed, strike_role, legs}. \
-strike_role is a nested object with {long_leg_role, short_leg_role, \
-trigger_level, target_level, invalid_level, trigger_source_path, \
-target_source_path, invalid_source_path}. v5.2: trigger_level / \
-target_level / invalid_level MUST be a NUMERIC PRICE STRING (e.g. "215" \
-or "215.00") — NOT a dict, NOT a row object from the payload.
-
-v5.3 LEGS REQUIREMENT (HARD): preferred_expression.legs is an array of \
-option legs, each {option_type: "call"|"put", side: "long"|"short", \
-strike: numeric, expiry: "YYYY-MM-DD"}. Required structures: \
-bear_put_spread / put_debit_spread = 2 legs (long put + short put, \
-long_strike > short_strike, same expiry); bull_call_spread / \
-call_debit_spread = 2 legs (long call + short call, long_strike < \
-short_strike, same expiry); put_credit_spread = 2 legs (short put + \
-long put, short_strike > long_strike, same expiry, DEFINED-RISK); \
-call_credit_spread = 2 legs (short call + long call, short_strike < \
-long_strike, same expiry, DEFINED-RISK); long_call = 1 long call; \
-long_put = 1 long put. NO NAKED SHORTS — every credit-spread family MUST \
-include the protective long leg. no_trade / strategy_review can have \
-legs=[].
-
-v5.3 LEGS_ALIGN_WITH_TRIGGERS (HARD): for any spread, the long leg's \
-strike MUST be within 2% of either entry_trigger.level or \
-thesis_trigger.level. This binds the proposed spread to the trigger \
-state machine.
-
-For estimated_entry, max_profit_observed, max_loss_observed, reward_risk: \
-if entry_state=CONDITIONAL and the trigger has NOT fired, set \
-status_observed="strategy_review" with blanks or the placeholder string \
-"Repriced post-trigger — observed pre-trigger numerics are reference only." \
-v5.2 removed the "candidate_pre_trigger" escape hatch as dead code — \
-under CONDITIONAL always use strategy_review. For trade_intent= \
-range_income or directional_bias=WAIT, structure="no_trade" is \
-acceptable; the other fields then describe the conditional setup.
-
-v5.3 TRIGGER COMPONENTS (HARD): emit thesis_trigger, entry_trigger, and \
-invalidation as TOP-LEVEL TriggerComponent blocks on the outcome (NOT \
-inside preferred_expression). Each block has {level: numeric, meaning: \
-short label, fired: bool, evidence_close: numeric, evidence_date: \
-"YYYY-MM-DD", source_path: "tabs.market_structure.stock_history.rows[N].spot"}. \
-thesis_trigger is the level that validates the spatial archetype \
-(broken put_wall for support_breakdown, broken call_wall for \
-breakout_continuation). entry_trigger is the level that signals the \
-actual trade entry — often the long-leg strike. invalidation is the \
-level that kills the thesis. For thesis/entry, fired=true requires a \
-COMPLETED daily close that crossed `level` in the relevant direction; \
-intraday spot is NOT sufficient. The two triggers MAY share the same \
-level but their meaning strings MUST differ.
-
-v5.3 ENTRY_STATE DERIVATION (HARD; mechanical, validator rejects \
-mismatches): entry_state = ACTIVE iff thesis_trigger.fired AND \
-entry_trigger.fired AND NOT invalidation.fired. entry_state = \
-CONDITIONAL iff thesis_trigger.fired AND NOT entry_trigger.fired (or \
-neither fired but the setup is otherwise valid). entry_state = NO_ENTRY \
-iff invalidation.fired OR directional_bias=WAIT.
-
-TRIGGER-STRIKE CONSISTENCY (HARD; validator will reject otherwise):
-- For LONG_DELTA breakouts, the spread's short leg strike MUST be STRICTLY \
-  GREATER than strike_role.trigger_level. A 425/430 bull_call_spread with \
-  trigger_level=430 is rejected — the short call caps payoff at the \
-  trigger. Move both legs up so short sits at the next target (e.g. 435 \
-  second_magnet, 440 next call wall).
-- For SHORT_DELTA downside breaks, the spread's short leg strike MUST be \
-  STRICTLY LESS than trigger_level.
-
-DTE-BAND CONSISTENCY (HARD; validator will reject otherwise):
-- The chosen preferred_entry_expiry's DTE must be inside the band emitted \
-  in headline.dte_band: momentum=[14,30], standard=[31,44], trend=[45,75].
-
-dominant_read MUST have all four fields populated (headline, summary, \
-confidence_commentary, data_quality_commentary).
-
-guardrails defaults: {statuses_preserved: true, risk_flags_preserved: true, \
-no_executable_recommendations: true} unless you changed a candidate.
-
-scenario_cards: 3 items with case in {"upside","base","downside"}.
-
-required_checks: 1-2 items. rejected_ideas: 3-5 items. At least one rejected \
-idea MUST cite one of: horizon_mismatch (DTE outside 14-75), mode_mismatch \
-(e.g. iron_condor rejected because trade_intent=directional_swing), or \
-safety_override (short_strangle / risk_reversal: undefined-risk, blocked by \
-project policy).
-
-If the supplied deterministic payload truly lacks data for a required field, \
-write a brief specific placeholder ("source_reconciliation status UNKNOWN; \
-treating IV magnitude as relative-shape signal") rather than leaving blank.
-
-Use the StructuredOutput tool if available; otherwise emit the JSON object \
-as the entire response.
-"""
 
 
 class ClaudeRunner:
@@ -324,8 +168,6 @@ class ClaudeRunner:
                 schema_json,
                 "--setting-sources",
                 "",
-                "--append-system-prompt",
-                _JSON_ONLY_SYSTEM_PROMPT,
                 "--add-dir",
                 str(tmpdir),
             ]
@@ -421,9 +263,7 @@ class ClaudeRunner:
                     f"{result_event.get('result') or result_event.get('message') or 'unknown'}"
                 )
             if completed.returncode != 0:
-                result_text = result_event.get("result") or result_event.get(
-                    "message"
-                )
+                result_text = result_event.get("result") or result_event.get("message")
                 detail = _format_runner_failure(
                     completed.stderr,
                     str(result_text) if result_text is not None else None,
