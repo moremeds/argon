@@ -35,7 +35,13 @@ from uw_scan.api.models.regime_validation import (
     VcgNamedCrashEvent,
     VcgNamedCrashOffset,
     VcgStressHistoryEntry,
+    VcgStressHistorySummary,
+    VcgStressHistorySummaryRow,
     VcgValidationResponse,
+)
+from uw_scan.cards.regime_forward_returns import (
+    attach_forward_returns,
+    summarize_stress_returns,
 )
 from uw_scan.reports.regime_backtest_report import (
     NAMED_CRASH_DATES,
@@ -45,6 +51,7 @@ from uw_scan.reports.regime_vcg_backtest_report import render_vcg_backtest_markd
 from uw_scan.storage.cri_snapshot_repository import CriSnapshotRepository
 from uw_scan.storage.regime_backtest_repository import RegimeBacktestRepository
 from uw_scan.storage.repository import Repository
+from uw_scan.storage.vol_index_repository import VolIndexRepository
 
 logger = logging.getLogger(__name__)
 
@@ -346,6 +353,36 @@ def get_vcg_validation(
                 vvix_percentile_rank=payload.get("vvix_percentile_rank"),
             )
         )
+    # Forward-return enrichment. Skip the SPX load entirely if no stress
+    # days were emitted in this run — common for runs early in calibration
+    # work, no point spending the query.
+    stress_history_summary: VcgStressHistorySummary | None = None
+    if stress_history:
+        # 9000-day window covers the full 18.5yr backtest with headroom.
+        vix_repo = VolIndexRepository(repo.conn, schema=repo._schema)
+        spx_rows = vix_repo.fetch_multi_history(["SPX"], 9000).get("SPX", [])
+        spx_series = [(r["trade_date"], r["close"]) for r in spx_rows]
+
+        entry_dicts = [e.model_dump() for e in stress_history]
+        enriched_dicts = attach_forward_returns(entry_dicts, spx_series)
+        stress_history = [VcgStressHistoryEntry(**d) for d in enriched_dicts]
+
+        summary_rows = summarize_stress_returns(enriched_dicts)
+        stress_history_summary = VcgStressHistorySummary(
+            by_interpretation=[
+                VcgStressHistorySummaryRow(
+                    interpretation=row["interpretation"],
+                    n=row["n"],
+                    mean_fwd_5d_pct=row.get("mean_fwd_5d_pct"),
+                    mean_fwd_20d_pct=row.get("mean_fwd_20d_pct"),
+                    mean_fwd_60d_pct=row.get("mean_fwd_60d_pct"),
+                    winrate_20d_pct=row.get("winrate_20d_pct"),
+                    winrate_60d_pct=row.get("winrate_60d_pct"),
+                )
+                for row in summary_rows
+            ]
+        )
+
     return VcgValidationResponse(
         backtest_md=render_vcg_backtest_markdown(run, daily),
         n_days=len(daily),
@@ -361,4 +398,5 @@ def get_vcg_validation(
         ],
         named_crash_window=events,
         stress_history=stress_history,
+        stress_history_summary=stress_history_summary,
     )

@@ -14660,6 +14660,39 @@
             "title": "Date",
             "type": "string"
           },
+          "fwd_20d_pct": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fwd 20D Pct"
+          },
+          "fwd_5d_pct": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fwd 5D Pct"
+          },
+          "fwd_60d_pct": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fwd 60D Pct"
+          },
           "interpretation": {
             "enum": [
               "PANIC",
@@ -14765,6 +14798,102 @@
         "title": "VcgStressHistoryEntry",
         "type": "object"
       },
+      "VcgStressHistorySummary": {
+        "description": "Aggregate forward-return stats for the stress_history table.",
+        "properties": {
+          "by_interpretation": {
+            "items": {
+              "$ref": "#/components/schemas/VcgStressHistorySummaryRow"
+            },
+            "title": "By Interpretation",
+            "type": "array"
+          }
+        },
+        "required": [
+          "by_interpretation"
+        ],
+        "title": "VcgStressHistorySummary",
+        "type": "object"
+      },
+      "VcgStressHistorySummaryRow": {
+        "description": "Per-interpretation aggregate of realized forward SPX returns\nacross all stress days in the backtest run.",
+        "properties": {
+          "interpretation": {
+            "enum": [
+              "PANIC",
+              "RISK_OFF",
+              "EDR"
+            ],
+            "title": "Interpretation",
+            "type": "string"
+          },
+          "mean_fwd_20d_pct": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mean Fwd 20D Pct"
+          },
+          "mean_fwd_5d_pct": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mean Fwd 5D Pct"
+          },
+          "mean_fwd_60d_pct": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mean Fwd 60D Pct"
+          },
+          "n": {
+            "title": "N",
+            "type": "integer"
+          },
+          "winrate_20d_pct": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Winrate 20D Pct"
+          },
+          "winrate_60d_pct": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Winrate 60D Pct"
+          }
+        },
+        "required": [
+          "interpretation",
+          "n"
+        ],
+        "title": "VcgStressHistorySummaryRow",
+        "type": "object"
+      },
       "VcgValidationResponse": {
         "description": "Latest completed VCG backtest run rendered + structured.",
         "properties": {
@@ -14805,6 +14934,16 @@
             },
             "title": "Stress History",
             "type": "array"
+          },
+          "stress_history_summary": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/VcgStressHistorySummary"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "required": [

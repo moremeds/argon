@@ -55,6 +55,49 @@ export default function VcgStressHistorySection() {
 
   return (
     <div className="section" data-testid="vcg-stress-history-section">
+      {data?.stress_history_summary && (
+        <div
+          data-testid="vcg-stress-summary"
+          style={{
+            fontSize: "11px",
+            fontFamily: "var(--font-mono)",
+            color: "var(--text-secondary)",
+            marginBottom: "8px",
+            lineHeight: 1.5,
+          }}
+        >
+          {data.stress_history_summary.by_interpretation
+            .filter((row) => row.interpretation !== "EDR")
+            .map((row) => {
+              const mean20 = row.mean_fwd_20d_pct ?? 0;
+              const mean60 = row.mean_fwd_60d_pct ?? 0;
+              return (
+                <div key={row.interpretation}>
+                  Across {row.n} historical {row.interpretation} events, mean
+                  20d forward SPX return was{" "}
+                  <span
+                    style={{
+                      color: mean20 > 0 ? "var(--positive)" : "var(--negative)",
+                    }}
+                  >
+                    {mean20 >= 0 ? "+" : ""}
+                    {row.mean_fwd_20d_pct?.toFixed(2)}%
+                  </span>{" "}
+                  ({row.winrate_20d_pct?.toFixed(0)}% positive); 60d{" "}
+                  <span
+                    style={{
+                      color: mean60 > 0 ? "var(--positive)" : "var(--negative)",
+                    }}
+                  >
+                    {mean60 >= 0 ? "+" : ""}
+                    {row.mean_fwd_60d_pct?.toFixed(2)}%
+                  </span>{" "}
+                  ({row.winrate_60d_pct?.toFixed(0)}% positive).
+                </div>
+              );
+            })}
+        </div>
+      )}
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}

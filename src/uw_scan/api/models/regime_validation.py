@@ -82,6 +82,28 @@ class VcgStressHistoryEntry(BaseModel):
     vvix: float | None = None
     vix_percentile_rank: float | None = None
     vvix_percentile_rank: float | None = None
+    fwd_5d_pct: float | None = None
+    fwd_20d_pct: float | None = None
+    fwd_60d_pct: float | None = None
+
+
+class VcgStressHistorySummaryRow(BaseModel):
+    """Per-interpretation aggregate of realized forward SPX returns
+    across all stress days in the backtest run."""
+
+    interpretation: Literal["PANIC", "RISK_OFF", "EDR"]
+    n: int
+    mean_fwd_5d_pct: float | None = None
+    mean_fwd_20d_pct: float | None = None
+    mean_fwd_60d_pct: float | None = None
+    winrate_20d_pct: float | None = None
+    winrate_60d_pct: float | None = None
+
+
+class VcgStressHistorySummary(BaseModel):
+    """Aggregate forward-return stats for the stress_history table."""
+
+    by_interpretation: list[VcgStressHistorySummaryRow]
 
 
 class VcgValidationResponse(BaseModel):
@@ -94,3 +116,4 @@ class VcgValidationResponse(BaseModel):
     interpretation_distribution: list[VcgInterpretationCount]
     named_crash_window: list[VcgNamedCrashEvent]
     stress_history: list[VcgStressHistoryEntry] = []
+    stress_history_summary: VcgStressHistorySummary | None = None
