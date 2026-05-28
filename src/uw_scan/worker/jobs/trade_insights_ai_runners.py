@@ -33,7 +33,15 @@ class RunnerResult(NamedTuple):
 class AiProviderRunner(Protocol):
     """Interface every provider runner must satisfy."""
 
-    name: str  # "codex" or "claude"
+    name: str  # "codex" | "claude" | "deepseek"
+
+    # Schema-generation flags consumed by the orchestrator. Each runner
+    # declares them once as class attributes; the orchestrator never branches
+    # on runner.name. Adding a fourth provider = add a class + register; no
+    # orchestrator change.
+    schema_strict: bool
+    strip_lookaround_regex: bool
+    requires_lenient_validation: bool
 
     def run(
         self,

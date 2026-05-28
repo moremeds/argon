@@ -718,25 +718,34 @@ def _strip_openai_unsupported_patterns(node: Any) -> Any:
     return node
 
 
-def trade_insights_ai_output_schema(*, strict: bool = True) -> dict[str, Any]:
+def trade_insights_ai_output_schema(
+    *,
+    strict: bool = True,
+    strip_lookaround_regex: bool | None = None,
+) -> dict[str, Any]:
     """Produce the JSON schema for TradeInsightAiOutcome.
 
-    `strict=True` (default, used for Codex): forces every nested property to be
-    required and `additionalProperties: false` everywhere. Codex's structured
-    output mode handles this cleanly.
+    Two orthogonal axes:
 
-    `strict=False` (used for Claude): keeps only the required set Pydantic
-    naturally declares (i.e. non-Optional fields). Claude's StructuredOutput
-    tool silently falls back to freeform JSON when the schema is too strict at
-    every level, so we trade some validation surface for adherence.
+    - `strict`: if True, every nested property is required and
+      `additionalProperties: false` is enforced everywhere. Required by
+      OpenAI/Codex structured output and by DeepSeek function-calling with
+      `strict: true`. Claude's StructuredOutput tool silently drops to
+      freeform JSON when the schema is too strict at every level, so the
+      Claude path passes False.
+
+    - `strip_lookaround_regex`: if True, drop Pydantic's negative-lookahead
+      regex patterns from Decimal-string serialization. OpenAI's structured-
+      output validator and DeepSeek's strict-mode function-calling validator
+      both reject lookarounds; Anthropic's accepts them. Defaults to `strict`
+      when None (preserves the historical coupling for callers that haven't
+      migrated to the orthogonal API).
     """
+    if strip_lookaround_regex is None:
+        strip_lookaround_regex = strict
     raw = TradeInsightAiOutcome.model_json_schema()
     schema = _coerce_strict_schema(raw) if strict else raw
-    # v5.2: Pydantic's Decimal-string serialization includes a negative-
-    # lookahead regex that OpenAI's structured-output validator rejects.
-    # Strip those patterns in strict mode so codex exec --output-schema
-    # accepts the schema.
-    if strict:
+    if strip_lookaround_regex:
         schema = _strip_openai_unsupported_patterns(schema)
     schema["properties"]["schema_version"]["const"] = PROMPT_VERSION
     schema["$defs"]["TradeInsightAiHeadline"]["properties"]["conviction"]["enum"] = (

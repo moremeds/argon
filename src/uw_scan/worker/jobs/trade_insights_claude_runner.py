@@ -132,12 +132,13 @@ def _try_parse_claude_text(text: str) -> Any:
         return None
 
 
-
-
 class ClaudeRunner:
     """Local `claude --print` runner. Reads keychain OAuth (no env var)."""
 
     name = "claude"
+    schema_strict = False
+    strip_lookaround_regex = False
+    requires_lenient_validation = True
 
     def run(
         self,

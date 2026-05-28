@@ -20,6 +20,9 @@ class CodexRunner:
     """Local Codex CLI runner. Reads keychain auth via CODEX_HOME."""
 
     name = "codex"
+    schema_strict = True
+    strip_lookaround_regex = True
+    requires_lenient_validation = False
 
     def run(
         self,

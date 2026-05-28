@@ -123,6 +123,7 @@ def trade_insights_ai_tick(
             )
             repo.conn.commit()
             return True
+        runner = RUNNERS[row_provider]
         analysis_input = dict(row["analysis_input_jsonb"])
         produced_at = datetime.now(timezone.utc)
         prompt_payload = build_trade_insights_ai_prompt_payload(
@@ -131,7 +132,8 @@ def trade_insights_ai_tick(
         )
         prompt_text = build_trade_insights_ai_prompt(prompt_payload)
         output_schema = trade_insights_ai_output_schema(
-            strict=(row_provider != "claude"),
+            strict=runner.schema_strict,
+            strip_lookaround_regex=runner.strip_lookaround_regex,
         )
         repo.prepare_trade_insight_ai_analysis(
             analysis_id,
@@ -162,7 +164,10 @@ def trade_insights_ai_tick(
     try:
         result = runner.run(
             build_trade_insights_ai_prompt(prompt_payload),
-            trade_insights_ai_output_schema(strict=(row_provider != "claude")),
+            trade_insights_ai_output_schema(
+                strict=runner.schema_strict,
+                strip_lookaround_regex=runner.strip_lookaround_regex,
+            ),
             model=model_env,
             timeout_seconds=timeout,
             max_output_bytes=settings.trade_insights_ai_max_output_bytes,
@@ -174,7 +179,7 @@ def trade_insights_ai_tick(
             result.outcome,
             prompt_payload,
             produced_at=produced_at,
-            lenient=(row_provider == "claude"),
+            lenient=runner.requires_lenient_validation,
         )
         markdown = render_trade_insights_ai_markdown(outcome)
         repo = _repo(settings)

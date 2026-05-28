@@ -678,6 +678,40 @@ def test_trade_insights_ai_prompt_payload_and_prompt_are_recommendation_oriented
     assert '"tabs"' in prompt
 
 
+def test_schema_strict_and_lookaround_strip_are_orthogonal():
+    """The two concerns are independent. After the split, callers can ask
+    for strict=True without stripping the lookaround regex (sanity-check
+    variant) or strict=True with stripping (Codex/DeepSeek). Today they
+    rode together — DeepSeek needs them split because its strict-mode
+    function-calling validator also rejects lookarounds."""
+    import json
+
+    from uw_scan.reports.trade_insights_ai import trade_insights_ai_output_schema
+
+    s_no_strip = trade_insights_ai_output_schema(
+        strict=True, strip_lookaround_regex=False
+    )
+    s_strip = trade_insights_ai_output_schema(strict=True, strip_lookaround_regex=True)
+    blob_no = json.dumps(s_no_strip)
+    blob_strip = json.dumps(s_strip)
+    assert "(?!" in blob_no, "no-strip variant should retain lookaround patterns"
+    assert "(?!" not in blob_strip, "strip variant should remove lookaround patterns"
+
+
+def test_schema_strict_false_strip_false_matches_claude_lenient_today():
+    """The Claude path historically called the schema with strict=False;
+    that did NOT call the strip code (since strict gated both). After the
+    split, Claude calls strict=False with strip default → strip=strict=False.
+    Same observable schema as the pre-split single-arg call."""
+    from uw_scan.reports.trade_insights_ai import trade_insights_ai_output_schema
+
+    new_call = trade_insights_ai_output_schema(
+        strict=False, strip_lookaround_regex=False
+    )
+    legacy_call = trade_insights_ai_output_schema(strict=False)
+    assert new_call == legacy_call
+
+
 def test_trade_insights_ai_output_schema_requires_structured_sections():
     schema = trade_insights_ai_output_schema()
 

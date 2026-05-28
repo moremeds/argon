@@ -60,3 +60,26 @@ def test_runner_child_env_preserves_path_and_locale(monkeypatch) -> None:
     env = _runner_child_env()
     assert env["PATH"] == "/usr/bin:/bin"
     assert env["LANG"] == "en_US.UTF-8"
+
+
+def test_codex_runner_declares_strict_contract_flags() -> None:
+    """Codex needs the full strict schema (additionalProperties:false + every
+    field required) and the OpenAI-incompatible lookaround regex stripped."""
+    from uw_scan.worker.jobs.trade_insights_codex_runner import CodexRunner
+
+    runner = CodexRunner()
+    assert runner.schema_strict is True
+    assert runner.strip_lookaround_regex is True
+    assert runner.requires_lenient_validation is False
+
+
+def test_claude_runner_declares_lenient_contract_flags() -> None:
+    """Claude's StructuredOutput tool silently drops to freeform JSON when
+    the schema is too strict at every level, so the Claude path runs lenient.
+    Anthropic accepts lookaround regex so no strip needed."""
+    from uw_scan.worker.jobs.trade_insights_claude_runner import ClaudeRunner
+
+    runner = ClaudeRunner()
+    assert runner.schema_strict is False
+    assert runner.strip_lookaround_regex is False
+    assert runner.requires_lenient_validation is True

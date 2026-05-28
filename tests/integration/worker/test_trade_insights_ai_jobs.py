@@ -23,9 +23,16 @@ class _FakeCodexRunner:
 
     Replaces the legacy module-level `run_codex_trade_insights_analysis`
     monkeypatch target after the Protocol-based RUNNERS registry refactor.
+
+    Mirrors the real CodexRunner class attrs (`schema_strict=True`,
+    `strip_lookaround_regex=True`, `requires_lenient_validation=False`) so the
+    orchestrator can thread runner-declared flags without branching on name.
     """
 
     name = "codex"
+    schema_strict = True
+    strip_lookaround_regex = True
+    requires_lenient_validation = False
 
     def __init__(self, side_effect, *, resolved_model: str = "codex-default"):
         self._side_effect = side_effect
@@ -95,6 +102,71 @@ def _enqueue_analysis(
     )
     repo.conn.commit()
     return analysis_id, analysis_input
+
+
+def test_orchestrator_threads_runner_flags_not_provider_name(
+    seeded_db_empty_cards,
+    monkeypatch,
+):
+    """Pin the contract: orchestrator reads schema/validator flags from
+    `runner.schema_strict / strip_lookaround_regex / requires_lenient_validation`,
+    NOT from `row_provider == "claude"` / `"codex"`. Adding a third provider
+    must not require an orchestrator change."""
+    import uw_scan.worker.jobs.trade_insights_ai as orchestrator_module
+
+    repo = seeded_db_empty_cards
+    settings = _settings_for_repo(repo)
+    analysis_id, analysis_input = _enqueue_analysis(repo)
+
+    captured_schema_calls: list[dict] = []
+    captured_validator_calls: list[dict] = []
+
+    real_schema = orchestrator_module.trade_insights_ai_output_schema
+    real_validator = orchestrator_module.validate_trade_insights_ai_outcome
+
+    def spy_schema(**kwargs):
+        captured_schema_calls.append(kwargs)
+        return real_schema(**kwargs)
+
+    def spy_validator(outcome, prompt_payload, *, produced_at, lenient):
+        captured_validator_calls.append({"lenient": lenient})
+        return real_validator(
+            outcome, prompt_payload, produced_at=produced_at, lenient=lenient
+        )
+
+    monkeypatch.setattr(
+        orchestrator_module, "trade_insights_ai_output_schema", spy_schema
+    )
+    monkeypatch.setattr(
+        orchestrator_module, "validate_trade_insights_ai_outcome", spy_validator
+    )
+
+    def fake_runner(prompt, schema, *, model, timeout_seconds, max_output_bytes):
+        with psycopg.connect(settings.db_dsn()) as conn:
+            check_repo = Repository(conn, schema=settings.db_schema)
+            row = check_repo.get_trade_insight_ai_analysis(analysis_id, ticker="TSLA")
+            produced_at = row["produced_at"]
+        outcome = _sample_outcome_for(analysis_input)
+        outcome["analysis_produced_at"] = produced_at.isoformat().replace("+00:00", "Z")
+        return outcome
+
+    # Use the codex slot with the real CodexRunner flag values
+    # (schema_strict=True, strip_lookaround_regex=True, lenient=False).
+    monkeypatch.setitem(RUNNERS, "codex", _FakeCodexRunner(fake_runner))
+
+    assert trade_insights_ai_tick(settings) is True
+
+    # Schema generator was called twice (prepare phase + dispatch phase) with
+    # the codex runner's flags both times — not via row_provider lookup.
+    assert len(captured_schema_calls) == 2
+    for call in captured_schema_calls:
+        assert call == {"strict": True, "strip_lookaround_regex": True}, (
+            f"schema kwargs must come from runner attrs, got {call}"
+        )
+
+    # Validator was called once with lenient=False (codex flag), not
+    # lenient=(row_provider == "claude").
+    assert captured_validator_calls == [{"lenient": False}]
 
 
 def test_trade_insights_ai_tick_returns_false_when_queue_empty(seeded_db_empty_cards):
