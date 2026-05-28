@@ -7,8 +7,11 @@ SPX series and the daily entries; this module enriches and summarizes.
 
 from __future__ import annotations
 
+import logging
 from datetime import date
 from typing import Any, Iterable
+
+log = logging.getLogger(__name__)
 
 # Default horizons match the UI columns (+5d, +20d, +60d).
 DEFAULT_HORIZONS: tuple[int, ...] = (5, 20, 60)
@@ -111,6 +114,7 @@ def _parse_date(value: Any) -> date | None:
     if isinstance(value, str):
         try:
             return date.fromisoformat(value)
-        except ValueError:
+        except ValueError as exc:
+            log.debug("date.fromisoformat failed: %s", repr(exc))
             return None
     return None
