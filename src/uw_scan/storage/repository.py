@@ -25,6 +25,7 @@ from .flow import (
     _flow_footprint_label,  # noqa: F401
     _FlowMixin,
 )
+from .fundamentals import _FundamentalsMixin
 from .gex import _GexMixin
 from .gold import _GoldMixin
 from .gold_etf import _GoldEtfMixin
@@ -101,6 +102,7 @@ class Repository(
     _ExternalApiMixin,
     _FetchersMixin,
     _FlowMixin,
+    _FundamentalsMixin,
     _GexMixin,
     _GoldMixin,
     _GoldEtfMixin,

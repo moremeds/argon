@@ -94,6 +94,7 @@ class Settings(BaseModel):
     record_health_daily_window_hours: int = 26
     ohlc_pull_cron: str = "30 17 * * 0-4"
     positioning_refresh_cron: str = "0 6 * * 0-4"
+    fundamentals_refresh_cron: str = "0 19 * * 0-4"
     rth_tz: str = "America/New_York"
     worker_role: str = "all"
     worker_index: int = 0
@@ -254,6 +255,9 @@ class Settings(BaseModel):
             ohlc_pull_cron=os.environ.get("UW_SCAN_OHLC_PULL_CRON", "30 17 * * 0-4"),
             positioning_refresh_cron=os.environ.get(
                 "UW_SCAN_POSITIONING_REFRESH_CRON", "0 6 * * 0-4"
+            ),
+            fundamentals_refresh_cron=os.environ.get(
+                "UW_SCAN_FUNDAMENTALS_REFRESH_CRON", "0 19 * * 0-4"
             ),
             rth_tz=os.environ.get("UW_SCAN_RTH_TZ", "America/New_York"),
             worker_role=os.environ.get("UW_SCAN_WORKER_ROLE", "all"),

@@ -320,6 +320,20 @@ def main() -> int:
             finally:
                 provider.close()
 
+    def _fundamentals_refresh() -> None:
+        provider = _fundamentals_provider(settings)
+        if provider is None:
+            logger.warning("MASSIVE_API_KEY not set; skipping fundamentals refresh")
+            return
+        try:
+            with _repo(settings) as repo:
+                n = fundamentals_refresh_once(
+                    repo, provider, ticker_filter=ticker_filter
+                )
+                logger.info("fundamentals_refresh refreshed %d tickers", n)
+        finally:
+            provider.close()
+
     def _rescan() -> None:
         with _external_api_recorder(settings) as recorder:
             with _uw_client(
@@ -593,6 +607,16 @@ def main() -> int:
             CronTrigger.from_crontab(settings.ohlc_pull_cron, timezone=settings.rth_tz),
             id="ohlc_pull",
             name="Daily OHLC pull",
+        )
+        sched.add_job(
+            _fundamentals_refresh,
+            CronTrigger.from_crontab(
+                settings.fundamentals_refresh_cron, timezone=settings.rth_tz
+            ),
+            id="fundamentals_refresh",
+            name="Nightly massive fundamentals refresh",
+            max_instances=1,
+            coalesce=True,
         )
         if _is_primary_worker(settings):
             # Volatility tab v2 jobs — ET-anchored via from_crontab (review I9).
