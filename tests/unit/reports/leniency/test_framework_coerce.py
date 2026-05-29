@@ -7,11 +7,53 @@ inventing data: missing factors pad to `na`, absent defined_risk fails safe.
 
 from __future__ import annotations
 
+from decimal import Decimal
+
 from uw_scan.models import TradeFramework
 from uw_scan.reports.trade_insights_ai.leniency.framework import (
     CANONICAL_CONVICTION_FACTORS,
     _coerce_framework,
 )
+
+
+def test_candidate_net_greeks_direction_word_coerced_to_none():
+    # Live regression: DeepSeek emitted net_delta/net_vega = "long" (a direction
+    # word) where the contract expects Decimal | None. Non-numeric must degrade
+    # to None so the candidate still validates — never a decimal_parsing crash.
+    raw = {
+        "candidates": [
+            {
+                "name": "Bull Call Spread",
+                "net_delta": "long",
+                "net_vega": "long",
+                "defined_risk": True,
+            }
+        ]
+    }
+    out = _coerce_framework(raw, candidates={})
+    cand = out["candidates"][0]
+    assert cand["net_delta"] is None
+    assert cand["net_vega"] is None
+    assert cand["defined_risk"] is True
+
+
+def test_candidate_net_greeks_numeric_preserved_as_decimal():
+    raw = {
+        "candidates": [
+            {"name": "X", "net_delta": "0.42", "net_vega": -1.3, "defined_risk": True}
+        ]
+    }
+    out = _coerce_framework(raw, candidates={})
+    cand = out["candidates"][0]
+    assert cand["net_delta"] == Decimal("0.42")
+    assert cand["net_vega"] == Decimal("-1.3")
+
+
+def test_candidate_net_greeks_absent_keys_untouched():
+    raw = {"candidates": [{"name": "Y", "defined_risk": False}]}
+    out = _coerce_framework(raw, candidates={})
+    assert "net_delta" not in out["candidates"][0]
+    assert "net_vega" not in out["candidates"][0]
 
 
 def test_coerce_framework_conviction_string_to_int():

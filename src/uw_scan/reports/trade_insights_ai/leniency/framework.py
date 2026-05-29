@@ -14,6 +14,7 @@ validator REJECTS a naked candidate rather than silently passing it (fail-safe).
 
 from __future__ import annotations
 
+from decimal import Decimal, InvalidOperation
 from typing import Any
 
 from uw_scan.reports.trade_insights_ai.leniency.normalization import (
@@ -45,6 +46,34 @@ _VALID_FACTOR_STATUS = {"yes", "no", "na"}
 def _norm(name: str) -> str:
     """Case/space/hyphen-fold a strategy or factor name (no alias fuzzing)."""
     return name.strip().lower().replace(" ", "_").replace("-", "_")
+
+
+def _decimal_or_none(value: Any) -> Decimal | None:
+    """Coerce a candidate's net_delta / net_vega toward Decimal | None.
+
+    DeepSeek (and occasionally Claude) put a *direction word* — "long",
+    "short", "positive" — where the contract expects a signed Decimal greek.
+    A non-numeric value is not a fabricable number, so it degrades to None
+    ("na") rather than crashing model_validate with decimal_parsing. Numeric
+    values (int/float/Decimal or a numeric string like "0.42" / "-1.3") pass
+    through as Decimal. This is the normalize-in-validator pattern: tolerate
+    cosmetic model drift at the boundary, never invent data.
+    """
+    if value is None or isinstance(value, bool):
+        return None
+    if isinstance(value, Decimal):
+        return value
+    if isinstance(value, (int, float)):
+        return Decimal(str(value))
+    if isinstance(value, str):
+        text = value.strip().replace(",", "")
+        if not text:
+            return None
+        try:
+            return Decimal(text)
+        except (InvalidOperation, ValueError):
+            return None
+    return None
 
 
 def _coerce_factor_status(value: Any) -> str:
@@ -92,6 +121,14 @@ def _coerce_candidate(raw: Any) -> dict[str, Any]:
     name = _str_or(cd.get("name"), "")
     out = dict(cd)
     out["name"] = _norm(name) if name else name
+    # net_delta / net_vega are Decimal | None greeks. Models frequently emit a
+    # direction word ("long"/"short") here; coerce non-numeric to None so the
+    # candidate still validates (the safety property is defined_risk, not the
+    # exact greek). Only touch keys the model actually supplied.
+    if "net_delta" in cd:
+        out["net_delta"] = _decimal_or_none(cd.get("net_delta"))
+    if "net_vega" in cd:
+        out["net_vega"] = _decimal_or_none(cd.get("net_vega"))
     # Fail-safe: absent defined_risk => False so the validator rejects a naked
     # candidate rather than silently accepting it.
     out["defined_risk"] = bool(cd.get("defined_risk", False))

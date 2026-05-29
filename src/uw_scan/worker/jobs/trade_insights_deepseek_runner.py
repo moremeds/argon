@@ -70,8 +70,16 @@ _FENCED_JSON_RE = re.compile(r"```(?:json)?\s*(\{.*?\})\s*```", re.DOTALL)
 def _extract_json_from_text(text: str) -> str:
     """Probe helper — pull a JSON object out of free-form content.
 
-    Tries: fenced ```json``` block → first balanced {...} span → raw.
-    Lets json.loads raise downstream if nothing usable was found.
+    Tries: fenced ```json``` block → first complete {...} object via a
+    string-aware decoder → raw. Lets json.loads raise downstream if nothing
+    usable was found.
+
+    A thinking model often appends prose after the JSON object (DeepSeek's
+    content channel). The first complete object must be isolated with a
+    string-aware scan: ``json.JSONDecoder().raw_decode`` correctly skips
+    braces that appear inside string literals, which a naive brace-depth
+    counter mis-counts — leaving trailing text that makes ``json.loads`` fail
+    with "Extra data".
     """
     fence = _FENCED_JSON_RE.search(text)
     if fence:
@@ -79,16 +87,22 @@ def _extract_json_from_text(text: str) -> str:
     start = text.find("{")
     if start < 0:
         return text
-    depth = 0
-    for i in range(start, len(text)):
-        ch = text[i]
-        if ch == "{":
-            depth += 1
-        elif ch == "}":
-            depth -= 1
-            if depth == 0:
-                return text[start : i + 1]
-    return text[start:]
+    try:
+        _obj, end = json.JSONDecoder().raw_decode(text, start)
+        return text[start:end]
+    except json.JSONDecodeError:
+        # Best-effort brace-depth fallback (string-unaware) if raw_decode could
+        # not parse a value at the first brace.
+        depth = 0
+        for i in range(start, len(text)):
+            ch = text[i]
+            if ch == "{":
+                depth += 1
+            elif ch == "}":
+                depth -= 1
+                if depth == 0:
+                    return text[start : i + 1]
+        return text[start:]
 
 
 class DeepSeekRunner:

@@ -2,11 +2,25 @@
 
 from __future__ import annotations
 
+import json
 from datetime import datetime
 from typing import Any
 
 import psycopg
 from psycopg.types.json import Jsonb
+
+
+def _dumps_jsonb(obj: Any) -> str:
+    """JSON-encode a payload for a JSONB column, tolerating Decimal/date.
+
+    The analysis-input payload carries raw warm-store values (Decimal prices,
+    date snapshots) in its hand-built framework sections. psycopg's default
+    JSONB encoder rejects those; ``default=str`` matches the encoding the
+    content-hash and model-prompt consumers already use (Pydantic
+    ``model_dump(mode="json")`` plus ``json.dumps(default=str)``), keeping the
+    stored audit copy consistent with what was hashed and sent to the model.
+    """
+    return json.dumps(obj, default=str)
 
 
 def _trade_insight_candidate_params(
@@ -352,7 +366,7 @@ class _TradeInsightsAiMixin:
                     run_id,
                     trade_insights_input_hash,
                     analysis_input_hash,
-                    Jsonb(analysis_input),
+                    Jsonb(analysis_input, dumps=_dumps_jsonb),
                     prompt_version,
                     model,
                     provider,
