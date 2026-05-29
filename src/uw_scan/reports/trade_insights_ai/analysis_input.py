@@ -21,10 +21,12 @@ from .prompt_text import (
     CONTRACT_PROMPT,
     DIRECTIONAL_SWING_STRUCTURES,
     FINAL_RATING_VALUES,
+    FRAMEWORK_DIRECTIVE,
     MARKET_INTELLIGENCE_PROMPT,
     PROMPT_VERSION,
     RANGE_INCOME_STRUCTURES,
     STRATEGY_FAMILY_IDS,
+    TRADE_FRAMEWORK_KNOWLEDGE,
 )
 
 _VOLATILE_HASH_KEYS = {
@@ -508,6 +510,10 @@ def build_trade_insights_ai_prompt(prompt_payload: dict[str, Any]) -> str:
     return (
         f"{MARKET_INTELLIGENCE_PROMPT}\n\n"
         f"{CONTRACT_PROMPT}\n\n"
+        "═══════════════════════════════════════════════════════════════════════════\n"
+        "TRADE FRAMEWORK KNOWLEDGE (embedded reference — apply the methodology below)\n"
+        "═══════════════════════════════════════════════════════════════════════════\n"
+        f"{TRADE_FRAMEWORK_KNOWLEDGE}\n\n"
         "Integration notes for this local JSON runner:\n"
         "Analyze only the supplied combined deterministic prompt payload below.\n"
         "Do not fetch outside data. Do not use tools. Do not invent unavailable fields.\n"
@@ -668,7 +674,8 @@ def build_trade_insights_ai_prompt(prompt_payload: dict[str, Any]) -> str:
         "Keep the markdown output (rendering.markdown if emitted) under ~3 KB / ~400 words. "
         "Do not repeat any table. Do not list more than 2 required_checks or more than 2 "
         "conflicts. Do not emit a Strategy Selection 12-row grid — only rejected_ideas "
-        "(min 3, max 5).\n"
+        "(min 3, max 5).\n\n"
+        f"{FRAMEWORK_DIRECTIVE}\n\n"
         "Emit only JSON conforming to the TradeInsightAiOutcome schema.\n\n"
         "Payload:\n"
         f"{payload_json}\n"

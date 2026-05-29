@@ -7,7 +7,9 @@ share. Pure data — no I/O, no helpers that touch the DB.
 
 from __future__ import annotations
 
-PROMPT_VERSION = "trade-insights-ai-v5.3"
+from .trade_framework_kb import TRADE_FRAMEWORK_KNOWLEDGE
+
+PROMPT_VERSION = "trade-insights-ai-v6.0"
 STRATEGY_FAMILY_IDS = frozenset(
     {
         "long_stock",
@@ -864,4 +866,67 @@ project policy).
 If the supplied deterministic payload truly lacks data for a required field, \
 write a brief specific placeholder ("source_reconciliation status UNKNOWN; \
 treating IV magnitude as relative-shape signal") rather than leaving blank.
+"""
+
+
+# FRAMEWORK_DIRECTIVE — the decision-stack output contract for the `framework`
+# object. Wired into the assembled system prompt alongside the embedded
+# TRADE FRAMEWORK KNOWLEDGE so the model produces the full conviction-ledger
+# decision stack rather than only the legacy headline/preferred_expression view.
+FRAMEWORK_DIRECTIVE = """\
+═══════════════════════════════════════════════════════════════════════════
+FRAMEWORK DECISION STACK (populate the output's `framework` object)
+═══════════════════════════════════════════════════════════════════════════
+
+Produce a full decision stack into the output's `framework` object, in THIS
+order: header -> three_axis (direction / vega / asymmetry) -> gamma ->
+catalyst -> conviction -> confluence -> pitfalls -> candidates (each with
+Bull/Base/Bear P/L) -> best_setup -> what_changes -> bottom_line.
+
+BEST SETUP (TSEM counterfactual): run a counterfactual P/L across the
+candidates and pick the single best one. best_setup.why_not_alternatives
+MUST justify the pick versus the runners-up by name. A high internal-vs-
+consensus gap => directional_defined_risk, NOT pin_vega. Use a calendar /
+diagonal (the pin_vega family) ONLY when implied-move ÷ distance-to-short-
+strike <= ~0.75.
+
+ASSERTIVE BUT HONEST: commit to exactly ONE best_setup. Any factor with no
+data is status:"na" — never bluffed. When core inputs (tape / flow / IV)
+are absent => header.position_type:"stand_aside" and conviction prose
+"insufficient data".
+
+EARNINGS (swing-default, LEAPS-aware): decide catalyst.handling FIRST,
+against a fixed pre-structure ~10-14 day hold window — set
+catalyst.handling to "exit_before_print" or "stand_aside" when the earnings
+date falls inside that window; use "hold_through_leaps" ONLY when
+position_type:"leaps". THEN choose a best_setup consistent with that
+handling.
+
+DEFINED-RISK ONLY: every candidates[] entry and best_setup MUST be
+defined-risk. No naked shorts.
+
+CONVICTION LEDGER (EXACTLY the 8 canonical factors below, emitted in THIS
+order with these VERBATIM names; an absent or unsourceable factor is
+status:"na", NEVER a bluffed "yes"):
+  1. "3+ independent channel checks aligned bullish" — always na (out of scope).
+  2. "Sector / thematic narrative actively re-rating" — yes/no from news/flow else na.
+  3. "Stock down >20% from recent high (de-risked setup)" — from tape drawdown-from-6M-high.
+  4. "Past 4 quarters: >=3 positive earnings reactions" — from earnings history.
+  5. "NEW information likely to be disclosed (new customer tier/product/guide raise/M&A)" — usually na (whisper/channel).
+  6. "Net options flow back-month bullish (call-premium dominance, 5-day rolling)" — from flow_series.
+  7. "Short interest >10% (squeeze potential)" — from positioning SI% float.
+  8. "Implied move materially below recent realized average" — from vol IV-vs-RV.
+Factors 1 and 5 are structurally na under our data scope => realistic
+ceiling ~6/8. header.conviction_n MUST equal conviction.score MUST equal
+the count of conviction.factors with status:"yes" (so score is 0..8).
+asymmetry.rule_on MUST equal (conviction.score >= 4) in both directions.
+
+POSITION TYPE GATE: header.position_type:"stand_aside" if and only if
+best_setup.structure:"stand_aside".
+
+CANDIDATE NAMING: each candidates[].name MUST be a GENERIC strategy
+identifier (e.g. "bull put spread", "call debit spread", "iron condor") —
+put all strikes / expirations / ratios in the legs array, NOT in the name.
+best_setup.structure echoes the chosen candidate's name EXACTLY (or the
+literal "stand_aside").
 """
