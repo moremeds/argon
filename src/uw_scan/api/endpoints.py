@@ -38,6 +38,11 @@ class EndpointSlug(StrEnum):
     ETF_IN_OUTFLOW = "etf_in_outflow"
     OPTIONS_VOLUME_DAILY = "options_volume_daily"
     STOCK_STATE = "stock_state"
+    SHORT_INTEREST_FLOAT = "short_interest_float"
+    ANALYST_RATINGS = "analyst_ratings"
+    INSTITUTION_OWNERSHIP = "institution_ownership"
+    INSIDER_TICKER_FLOW = "insider_ticker_flow"
+    EARNINGS = "earnings"
 
 
 @dataclass(frozen=True)
@@ -144,6 +149,31 @@ REGISTRY: dict[EndpointSlug, Endpoint] = {
     EndpointSlug.STOCK_STATE: Endpoint(
         EndpointSlug.STOCK_STATE,
         "/api/stock/{ticker}/stock-state",
+        (),
+    ),
+    EndpointSlug.SHORT_INTEREST_FLOAT: Endpoint(
+        EndpointSlug.SHORT_INTEREST_FLOAT,
+        "/api/shorts/{ticker}/interest-float/v2",
+        (),
+    ),
+    EndpointSlug.ANALYST_RATINGS: Endpoint(
+        EndpointSlug.ANALYST_RATINGS,
+        "/api/screener/analysts",
+        (),
+    ),
+    EndpointSlug.INSTITUTION_OWNERSHIP: Endpoint(
+        EndpointSlug.INSTITUTION_OWNERSHIP,
+        "/api/institution/{ticker}/ownership",
+        (),
+    ),
+    EndpointSlug.INSIDER_TICKER_FLOW: Endpoint(
+        EndpointSlug.INSIDER_TICKER_FLOW,
+        "/api/insider/{ticker}/ticker-flow",
+        (),
+    ),
+    EndpointSlug.EARNINGS: Endpoint(
+        EndpointSlug.EARNINGS,
+        "/api/earnings/{ticker}",
         (),
     ),
 }

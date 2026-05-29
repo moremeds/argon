@@ -45,6 +45,7 @@ from uw_scan.worker.jobs.option_intraday_jobs import (
     refresh_intraday_for_top_oi_movers,
 )
 from uw_scan.worker.jobs.pipeline_benchmark import pipeline_benchmark_snapshot_job
+from uw_scan.worker.jobs.positioning_jobs import positioning_refresh_once
 from uw_scan.worker.jobs.rates_jobs import rates_fred_ingest_job
 from uw_scan.worker.jobs.rescan_loop import rescan_tick
 from uw_scan.worker.jobs.trade_insight_outcome_backfill import (
@@ -295,6 +296,15 @@ def main() -> int:
                         preserve_spot=settings.massive_ws_enabled,
                     )
                     logger.info("full_scan completed %d tickers", n)
+
+    def _positioning_refresh() -> None:
+        with _external_api_recorder(settings) as recorder:
+            with _uw_client(
+                settings, telemetry_recorder=recorder, job_name="positioning_refresh"
+            ) as uw:
+                with _repo(settings) as repo:
+                    n = positioning_refresh_once(repo, uw, ticker_filter=ticker_filter)
+                    logger.info("positioning_refresh refreshed %d tickers", n)
 
     def _ohlc_pull() -> None:
         with _external_api_recorder(settings) as recorder:
@@ -633,6 +643,16 @@ def main() -> int:
             CronTrigger.from_crontab("15 18 * * 0-4", timezone=settings.rth_tz),
             id="nightly_flow_data_refresh",
             name="Nightly Flow tab data refresh",
+        )
+        sched.add_job(
+            _positioning_refresh,
+            CronTrigger.from_crontab(
+                settings.positioning_refresh_cron, timezone=settings.rth_tz
+            ),
+            id="positioning_refresh",
+            name="Daily UW positioning refresh",
+            max_instances=1,
+            coalesce=True,
         )
         if _is_primary_worker(settings):
             # Intraday OI refresh — UW-bound, single-flight advisory lock,
