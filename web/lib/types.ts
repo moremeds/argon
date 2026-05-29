@@ -4331,7 +4331,6 @@ export interface components {
             flow: components["schemas"]["FlowSnapshot"];
             vrp: components["schemas"]["VRPAssessment"];
             setup?: components["schemas"]["SetupClassification"] | null;
-            trade_plan?: components["schemas"]["TradePlan"] | null;
             /** Dark Pool Notional */
             dark_pool_notional?: string | null;
             /**
@@ -5738,40 +5737,6 @@ export interface components {
              *     }
              */
             synthesis: components["schemas"]["InsightsSynthesis"];
-        };
-        /** TradePlan */
-        TradePlan: {
-            /** Structure */
-            structure: string;
-            /** Direction */
-            direction: string;
-            /**
-             * Legs
-             * @default []
-             */
-            legs: components["schemas"]["TradePlanLeg"][];
-            /** Rationale */
-            rationale: string;
-            /** Max Loss */
-            max_loss?: string | null;
-            /** Max Profit */
-            max_profit?: string | null;
-        };
-        /** TradePlanLeg */
-        TradePlanLeg: {
-            /** Option Symbol */
-            option_symbol: string;
-            /** Side */
-            side: string;
-            /** Strike */
-            strike: string;
-            /**
-             * Expiry
-             * Format: date
-             */
-            expiry: string;
-            /** Mid */
-            mid?: string | null;
         };
         /** VRPAssessment */
         VRPAssessment: {

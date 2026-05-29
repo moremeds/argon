@@ -317,7 +317,8 @@ describe("TradeInsightsAiAnalysisPanel", () => {
       baseResponse({ analysis_id: "codex-hung-1", status: "queued" }),
     );
 
-    // Second Run will arrive here — assert the body has providers=["claude"].
+    // Second Run will arrive here — codex stays pending, so the re-POST scope
+    // is the non-pending providers: claude (cache-cleared) + deepseek (never run).
     vi.mocked(api.tradeInsightsAiAnalysis).mockResolvedValueOnce({
       analyses: [
         {
@@ -340,14 +341,15 @@ describe("TradeInsightsAiAnalysisPanel", () => {
 
     // Second click: button must be re-enabled because allPending=false
     // (claude was cleared on cache hit, codex still pending but that alone
-    // does not block Run). POST scope must be just claude.
+    // does not block Run). POST scope is the non-pending providers
+    // (claude + deepseek).
     fireEvent.click(await screen.findByText("Run Analysis"));
     await waitFor(() =>
       expect(api.tradeInsightsAiAnalysis).toHaveBeenCalledTimes(2),
     );
     const lastCall = vi.mocked(api.tradeInsightsAiAnalysis).mock.calls.at(-1);
     expect(lastCall?.[0]).toBe("TSLA");
-    expect(lastCall?.[1]?.providers).toEqual(["claude"]);
+    expect(lastCall?.[1]?.providers).toEqual(["claude", "deepseek"]);
   });
 
   it("switching to Claude tab renders the Claude analysis body", async () => {

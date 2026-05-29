@@ -11390,16 +11390,6 @@
             "title": "Ticker",
             "type": "string"
           },
-          "trade_plan": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/TradePlan"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
           "volatility": {
             "$ref": "#/components/schemas/VolatilityProfile"
           },
@@ -11969,6 +11959,654 @@
           "expiry"
         ],
         "title": "TermStructureExpiryRow",
+        "type": "object"
+      },
+      "TradeFramework": {
+        "additionalProperties": false,
+        "properties": {
+          "best_setup": {
+            "$ref": "#/components/schemas/TradeFrameworkBestSetup"
+          },
+          "bottom_line": {
+            "title": "Bottom Line",
+            "type": "string"
+          },
+          "candidates": {
+            "items": {
+              "$ref": "#/components/schemas/TradeFrameworkCandidate"
+            },
+            "title": "Candidates",
+            "type": "array"
+          },
+          "catalyst": {
+            "$ref": "#/components/schemas/TradeFrameworkCatalyst"
+          },
+          "confluence": {
+            "$ref": "#/components/schemas/TradeFrameworkConfluence"
+          },
+          "conviction": {
+            "$ref": "#/components/schemas/TradeFrameworkConviction"
+          },
+          "gamma": {
+            "$ref": "#/components/schemas/TradeFrameworkGamma"
+          },
+          "header": {
+            "$ref": "#/components/schemas/TradeFrameworkHeader"
+          },
+          "pitfalls": {
+            "items": {
+              "$ref": "#/components/schemas/TradeFrameworkPitfall"
+            },
+            "title": "Pitfalls",
+            "type": "array"
+          },
+          "three_axis": {
+            "$ref": "#/components/schemas/TradeFrameworkThreeAxis"
+          },
+          "what_changes": {
+            "items": {
+              "$ref": "#/components/schemas/TradeFrameworkWhatChanges"
+            },
+            "title": "What Changes",
+            "type": "array"
+          }
+        },
+        "required": [
+          "header",
+          "three_axis",
+          "gamma",
+          "catalyst",
+          "conviction",
+          "confluence",
+          "best_setup",
+          "bottom_line"
+        ],
+        "title": "TradeFramework",
+        "type": "object"
+      },
+      "TradeFrameworkAsymmetry": {
+        "additionalProperties": false,
+        "properties": {
+          "prose": {
+            "title": "Prose",
+            "type": "string"
+          },
+          "rule_on": {
+            "title": "Rule On",
+            "type": "boolean"
+          },
+          "structure_family": {
+            "enum": [
+              "directional_defined_risk",
+              "pin_vega"
+            ],
+            "title": "Structure Family",
+            "type": "string"
+          }
+        },
+        "required": [
+          "rule_on",
+          "structure_family",
+          "prose"
+        ],
+        "title": "TradeFrameworkAsymmetry",
+        "type": "object"
+      },
+      "TradeFrameworkBestSetup": {
+        "additionalProperties": false,
+        "properties": {
+          "cost": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cost"
+          },
+          "invalidation": {
+            "title": "Invalidation",
+            "type": "string"
+          },
+          "legs": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Legs",
+            "type": "array"
+          },
+          "max_risk": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Risk"
+          },
+          "rationale": {
+            "title": "Rationale",
+            "type": "string"
+          },
+          "structure": {
+            "title": "Structure",
+            "type": "string"
+          },
+          "why_not_alternatives": {
+            "default": "",
+            "title": "Why Not Alternatives",
+            "type": "string"
+          }
+        },
+        "required": [
+          "structure",
+          "rationale",
+          "invalidation"
+        ],
+        "title": "TradeFrameworkBestSetup",
+        "type": "object"
+      },
+      "TradeFrameworkCandidate": {
+        "additionalProperties": false,
+        "properties": {
+          "debit_credit": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Debit Credit"
+          },
+          "defined_risk": {
+            "title": "Defined Risk",
+            "type": "boolean"
+          },
+          "legs": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Legs",
+            "type": "array"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "net_delta": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Net Delta"
+          },
+          "net_vega": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Net Vega"
+          },
+          "pnl_base": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pnl Base"
+          },
+          "pnl_bear": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pnl Bear"
+          },
+          "pnl_bull": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pnl Bull"
+          }
+        },
+        "required": [
+          "name",
+          "defined_risk"
+        ],
+        "title": "TradeFrameworkCandidate",
+        "type": "object"
+      },
+      "TradeFrameworkCatalyst": {
+        "additionalProperties": false,
+        "properties": {
+          "dte_to_er": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dte To Er"
+          },
+          "handling": {
+            "enum": [
+              "exit_before_print",
+              "stand_aside",
+              "hold_through_leaps"
+            ],
+            "title": "Handling",
+            "type": "string"
+          },
+          "implied_move": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Implied Move"
+          },
+          "next_er_date": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Er Date"
+          },
+          "prose": {
+            "title": "Prose",
+            "type": "string"
+          }
+        },
+        "required": [
+          "handling",
+          "prose"
+        ],
+        "title": "TradeFrameworkCatalyst",
+        "type": "object"
+      },
+      "TradeFrameworkConfluence": {
+        "additionalProperties": false,
+        "properties": {
+          "aligned": {
+            "title": "Aligned",
+            "type": "boolean"
+          },
+          "prose": {
+            "default": "",
+            "title": "Prose",
+            "type": "string"
+          },
+          "signals": {
+            "items": {
+              "$ref": "#/components/schemas/TradeFrameworkSignal"
+            },
+            "title": "Signals",
+            "type": "array"
+          }
+        },
+        "required": [
+          "aligned"
+        ],
+        "title": "TradeFrameworkConfluence",
+        "type": "object"
+      },
+      "TradeFrameworkConviction": {
+        "additionalProperties": false,
+        "properties": {
+          "factors": {
+            "items": {
+              "$ref": "#/components/schemas/TradeFrameworkFactor"
+            },
+            "maxItems": 8,
+            "minItems": 8,
+            "title": "Factors",
+            "type": "array"
+          },
+          "prose": {
+            "default": "",
+            "title": "Prose",
+            "type": "string"
+          },
+          "score": {
+            "maximum": 8.0,
+            "minimum": 0.0,
+            "title": "Score",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "score",
+          "factors"
+        ],
+        "title": "TradeFrameworkConviction",
+        "type": "object"
+      },
+      "TradeFrameworkDirection": {
+        "additionalProperties": false,
+        "properties": {
+          "prose": {
+            "title": "Prose",
+            "type": "string"
+          },
+          "verdict": {
+            "enum": [
+              "bull",
+              "bear",
+              "neutral"
+            ],
+            "title": "Verdict",
+            "type": "string"
+          }
+        },
+        "required": [
+          "verdict",
+          "prose"
+        ],
+        "title": "TradeFrameworkDirection",
+        "type": "object"
+      },
+      "TradeFrameworkFactor": {
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "note": {
+            "default": "",
+            "title": "Note",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "yes",
+              "no",
+              "na"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "status"
+        ],
+        "title": "TradeFrameworkFactor",
+        "type": "object"
+      },
+      "TradeFrameworkGamma": {
+        "additionalProperties": false,
+        "properties": {
+          "call_wall": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Call Wall"
+          },
+          "flip_strike": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Flip Strike"
+          },
+          "prose": {
+            "title": "Prose",
+            "type": "string"
+          },
+          "put_wall": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Put Wall"
+          },
+          "regime": {
+            "enum": [
+              "short",
+              "long"
+            ],
+            "title": "Regime",
+            "type": "string"
+          }
+        },
+        "required": [
+          "regime",
+          "prose"
+        ],
+        "title": "TradeFrameworkGamma",
+        "type": "object"
+      },
+      "TradeFrameworkHeader": {
+        "additionalProperties": false,
+        "properties": {
+          "conviction_n": {
+            "maximum": 8.0,
+            "minimum": 0.0,
+            "title": "Conviction N",
+            "type": "integer"
+          },
+          "position_type": {
+            "enum": [
+              "swing",
+              "leaps",
+              "stand_aside"
+            ],
+            "title": "Position Type",
+            "type": "string"
+          },
+          "spot": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Spot"
+          },
+          "thesis_one_liner": {
+            "title": "Thesis One Liner",
+            "type": "string"
+          }
+        },
+        "required": [
+          "thesis_one_liner",
+          "position_type",
+          "conviction_n"
+        ],
+        "title": "TradeFrameworkHeader",
+        "type": "object"
+      },
+      "TradeFrameworkPitfall": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "note": {
+            "default": "",
+            "title": "Note",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "triggered": {
+            "title": "Triggered",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "triggered"
+        ],
+        "title": "TradeFrameworkPitfall",
+        "type": "object"
+      },
+      "TradeFrameworkSignal": {
+        "additionalProperties": false,
+        "properties": {
+          "direction": {
+            "title": "Direction",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "direction"
+        ],
+        "title": "TradeFrameworkSignal",
+        "type": "object"
+      },
+      "TradeFrameworkThreeAxis": {
+        "additionalProperties": false,
+        "properties": {
+          "asymmetry": {
+            "$ref": "#/components/schemas/TradeFrameworkAsymmetry"
+          },
+          "direction": {
+            "$ref": "#/components/schemas/TradeFrameworkDirection"
+          },
+          "vega": {
+            "$ref": "#/components/schemas/TradeFrameworkVega"
+          }
+        },
+        "required": [
+          "direction",
+          "vega",
+          "asymmetry"
+        ],
+        "title": "TradeFrameworkThreeAxis",
+        "type": "object"
+      },
+      "TradeFrameworkVega": {
+        "additionalProperties": false,
+        "properties": {
+          "ivr": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ivr"
+          },
+          "prose": {
+            "title": "Prose",
+            "type": "string"
+          },
+          "regime": {
+            "enum": [
+              "event_iv",
+              "demand_iv",
+              "low_iv"
+            ],
+            "title": "Regime",
+            "type": "string"
+          },
+          "term_slope": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Term Slope"
+          }
+        },
+        "required": [
+          "regime",
+          "prose"
+        ],
+        "title": "TradeFrameworkVega",
+        "type": "object"
+      },
+      "TradeFrameworkWhatChanges": {
+        "additionalProperties": false,
+        "properties": {
+          "effect": {
+            "title": "Effect",
+            "type": "string"
+          },
+          "signal": {
+            "title": "Signal",
+            "type": "string"
+          }
+        },
+        "required": [
+          "signal",
+          "effect"
+        ],
+        "title": "TradeFrameworkWhatChanges",
         "type": "object"
       },
       "TradeInsightAiAnalysisEnqueueResponse": {
@@ -12772,6 +13410,16 @@
           },
           "entry_trigger": {
             "$ref": "#/components/schemas/TradeInsightAiTriggerComponent"
+          },
+          "framework": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TradeFramework"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "guardrails": {
             "$ref": "#/components/schemas/TradeInsightAiGuardrails"
@@ -13895,103 +14543,6 @@
           "header"
         ],
         "title": "TradeInsightsResponse",
-        "type": "object"
-      },
-      "TradePlan": {
-        "properties": {
-          "direction": {
-            "title": "Direction",
-            "type": "string"
-          },
-          "legs": {
-            "default": [],
-            "items": {
-              "$ref": "#/components/schemas/TradePlanLeg"
-            },
-            "title": "Legs",
-            "type": "array"
-          },
-          "max_loss": {
-            "anyOf": [
-              {
-                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Max Loss"
-          },
-          "max_profit": {
-            "anyOf": [
-              {
-                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Max Profit"
-          },
-          "rationale": {
-            "title": "Rationale",
-            "type": "string"
-          },
-          "structure": {
-            "title": "Structure",
-            "type": "string"
-          }
-        },
-        "required": [
-          "structure",
-          "direction",
-          "rationale"
-        ],
-        "title": "TradePlan",
-        "type": "object"
-      },
-      "TradePlanLeg": {
-        "properties": {
-          "expiry": {
-            "format": "date",
-            "title": "Expiry",
-            "type": "string"
-          },
-          "mid": {
-            "anyOf": [
-              {
-                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Mid"
-          },
-          "option_symbol": {
-            "title": "Option Symbol",
-            "type": "string"
-          },
-          "side": {
-            "title": "Side",
-            "type": "string"
-          },
-          "strike": {
-            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
-            "title": "Strike",
-            "type": "string"
-          }
-        },
-        "required": [
-          "option_symbol",
-          "side",
-          "strike",
-          "expiry"
-        ],
-        "title": "TradePlanLeg",
         "type": "object"
       },
       "VRPAssessment": {

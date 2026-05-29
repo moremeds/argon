@@ -5,7 +5,6 @@ Pure function: reads from Repository (already-persisted tables), never the live 
 
 from __future__ import annotations
 
-import logging
 from datetime import UTC, datetime
 from datetime import date as _date
 from decimal import Decimal
@@ -26,8 +25,6 @@ from ..models import (
     SingleStockReport,
     StrikeExposureRow,
     StrikeGexBucket,
-    TradePlan,
-    TradePlanLeg,
     VolatilityProfile,
     VRPAssessment,
 )
@@ -290,136 +287,6 @@ def _build_short_data_model(d: dict | None) -> ShortDataRow | None:
     )
 
 
-def _build_trade_plan(
-    direction: str, contracts: list[dict], spot: Decimal | None
-) -> TradePlan | None:
-    """Sketch a vertical spread aligned with direction.
-
-    Uses option_contract_snapshots rows. Picks two strikes bracketing spot for the
-    setup direction. Bull → bull call spread (buy lower strike, sell upper strike).
-    Bear → bear put spread (buy upper strike, sell lower strike).
-    """
-    if spot is None or not contracts:
-        return None
-
-    calls = [c for c in contracts if "C" in c["option_symbol"]]
-    puts = [c for c in contracts if "P" in c["option_symbol"]]
-
-    def _strike_from_symbol(sym: str) -> Decimal | None:
-        # OCC: TSLA260511C00440000 → last 8 digits = strike * 1000
-        try:
-            return Decimal(sym[-8:]) / Decimal("1000")
-        except (ValueError, ArithmeticError) as exc:
-            logging.getLogger(__name__).debug(
-                "strike parse failed for %r: %s", sym, repr(exc)
-            )
-            return None
-
-    def _expiry_from_symbol(sym: str) -> _date | None:
-        # OCC: TSLA + YYMMDD + [CP] + strike
-        try:
-            base = sym.rstrip("0123456789")
-            base = base[:-1]  # drop C/P
-            ymd = base[-6:]
-            yy = 2000 + int(ymd[:2])
-            mm = int(ymd[2:4])
-            dd = int(ymd[4:6])
-            return _date(yy, mm, dd)
-        except (ValueError, IndexError) as exc:
-            logging.getLogger(__name__).debug(
-                "expiry parse failed for %r: %s", sym, repr(exc)
-            )
-            return None
-
-    if direction == "bull":
-        if not calls:
-            return None
-        sorted_calls = sorted(
-            calls,
-            key=lambda c: abs(
-                (_strike_from_symbol(c["option_symbol"]) or Decimal("0")) - spot
-            ),
-        )
-        if len(sorted_calls) < 2:
-            return None
-        long_leg = sorted_calls[0]
-        upper_candidates = [
-            c
-            for c in sorted_calls[1:]
-            if (_strike_from_symbol(c["option_symbol"]) or Decimal("0"))
-            > (_strike_from_symbol(long_leg["option_symbol"]) or Decimal("0"))
-        ]
-        if not upper_candidates:
-            return None
-        short_leg = upper_candidates[0]
-        legs = [
-            TradePlanLeg(
-                option_symbol=long_leg["option_symbol"],
-                side="buy",
-                strike=_strike_from_symbol(long_leg["option_symbol"]) or Decimal("0"),
-                expiry=_expiry_from_symbol(long_leg["option_symbol"]) or _date.today(),
-                mid=_to_decimal(long_leg.get("last_price")),
-            ),
-            TradePlanLeg(
-                option_symbol=short_leg["option_symbol"],
-                side="sell",
-                strike=_strike_from_symbol(short_leg["option_symbol"]) or Decimal("0"),
-                expiry=_expiry_from_symbol(short_leg["option_symbol"]) or _date.today(),
-                mid=_to_decimal(short_leg.get("last_price")),
-            ),
-        ]
-        return TradePlan(
-            structure="bull_call_spread",
-            direction="bull",
-            legs=legs,
-            rationale="Buy ATM call, sell OTM call — defined-risk bullish exposure.",
-        )
-
-    # bear
-    if not puts:
-        return None
-    sorted_puts = sorted(
-        puts,
-        key=lambda c: abs(
-            (_strike_from_symbol(c["option_symbol"]) or Decimal("0")) - spot
-        ),
-    )
-    if len(sorted_puts) < 2:
-        return None
-    long_leg = sorted_puts[0]
-    lower_candidates = [
-        c
-        for c in sorted_puts[1:]
-        if (_strike_from_symbol(c["option_symbol"]) or Decimal("0"))
-        < (_strike_from_symbol(long_leg["option_symbol"]) or Decimal("0"))
-    ]
-    if not lower_candidates:
-        return None
-    short_leg = lower_candidates[0]
-    legs = [
-        TradePlanLeg(
-            option_symbol=long_leg["option_symbol"],
-            side="buy",
-            strike=_strike_from_symbol(long_leg["option_symbol"]) or Decimal("0"),
-            expiry=_expiry_from_symbol(long_leg["option_symbol"]) or _date.today(),
-            mid=_to_decimal(long_leg.get("last_price")),
-        ),
-        TradePlanLeg(
-            option_symbol=short_leg["option_symbol"],
-            side="sell",
-            strike=_strike_from_symbol(short_leg["option_symbol"]) or Decimal("0"),
-            expiry=_expiry_from_symbol(short_leg["option_symbol"]) or _date.today(),
-            mid=_to_decimal(short_leg.get("last_price")),
-        ),
-    ]
-    return TradePlan(
-        structure="bear_put_spread",
-        direction="bear",
-        legs=legs,
-        rationale="Buy ATM put, sell OTM put — defined-risk bearish exposure.",
-    )
-
-
 def assemble_single_stock_report(
     ticker: str, run_id: int, repo: Repository
 ) -> SingleStockReport:
@@ -585,7 +452,6 @@ def assemble_single_stock_report(
         flow=flow,
         vrp=vrp,
         setup=None,
-        trade_plan=None,
         dark_pool_notional=dp_notional,
         dark_pool_print_count=dp_count,
         short_data=short_data,
@@ -601,15 +467,4 @@ def assemble_single_stock_report(
         exposures_summary=exposures_summary,
         next_earnings_date=next_earnings_date,
         dealer_regime=dealer_regime_model,
-    )
-
-
-def build_trade_plan_for_report(
-    report: SingleStockReport, contracts: list[dict]
-) -> TradePlan | None:
-    """Build trade plan after setup classification."""
-    if report.setup is None:
-        return None
-    return _build_trade_plan(
-        report.setup.direction, contracts, report.market_structure.spot
     )

@@ -30,8 +30,6 @@ PUBLIC_MODEL_EXPORTS = [
     "VolatilityProfile",
     "FlowSnapshot",
     "VRPAssessment",
-    "TradePlanLeg",
-    "TradePlan",
     "SetupClassification",
     "MatrixState",
     "MatrixSourceFreshness",
