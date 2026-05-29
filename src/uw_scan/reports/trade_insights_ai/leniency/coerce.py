@@ -26,6 +26,7 @@ from uw_scan.reports.trade_insights_ai.leniency.candidates import (
     _coerce_section_card,
     _coerce_vrp_assessment,
 )
+from uw_scan.reports.trade_insights_ai.leniency.framework import _coerce_framework
 from uw_scan.reports.trade_insights_ai.leniency.normalization import (
     _PARTIAL_OUTPUT_NOTE,
     _dict_or_empty,
@@ -390,4 +391,9 @@ def _coerce_claude_outcome_dict(
         "rendering": rendering,
         "guardrails": guardrails,
     }
+    # v6.0: additive framework{} block. Only coerce when the model emitted one
+    # — absent => omitted entirely so the field defaults to None and the
+    # semantic validator skips it (graceful for providers that drop the block).
+    if isinstance(data.get("framework"), dict):
+        coerced["framework"] = _coerce_framework(data["framework"], candidates)
     return coerced
