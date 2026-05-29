@@ -63,7 +63,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger("uw_scan.worker")
 RESCAN_WORKER_CONCURRENCY = 2
-WorkerGroup = Literal["uw", "massive", "ai", "ai-codex", "ai-claude"]
+WorkerGroup = Literal["uw", "massive", "ai", "ai-codex", "ai-claude", "ai-deepseek"]
 WORKER_ROLES: set[str] = {
     "all",
     "uw",
@@ -71,6 +71,7 @@ WORKER_ROLES: set[str] = {
     "ai",
     "ai-codex",
     "ai-claude",
+    "ai-deepseek",
 }
 
 
@@ -88,7 +89,7 @@ def _validate_worker_settings(settings: Settings) -> None:
     if role not in WORKER_ROLES:
         raise RuntimeError(
             "UW_SCAN_WORKER_ROLE must be one of: all, uw, massive, ai, "
-            "ai-codex, ai-claude "
+            "ai-codex, ai-claude, ai-deepseek "
             f"(got {settings.worker_role!r})"
         )
     if settings.worker_count < 1:
@@ -114,6 +115,8 @@ def _worker_groups(settings: Settings) -> set[WorkerGroup]:
         return {"ai-codex"}
     if role == "ai-claude":
         return {"ai-claude"}
+    if role == "ai-deepseek":
+        return {"ai-deepseek"}
     raise RuntimeError(
         "UW_SCAN_WORKER_ROLE must be one of: all, uw, massive, ai, "
         "ai-codex, ai-claude "
@@ -396,6 +399,9 @@ def main() -> int:
     def _trade_insights_ai_tick_claude() -> None:
         trade_insights_ai_tick(settings, provider_filter="claude")
 
+    def _trade_insights_ai_tick_deepseek() -> None:
+        trade_insights_ai_tick(settings, provider_filter="deepseek")
+
     def _trade_insight_outcome_backfill() -> None:
         """Nightly outcome scorer — runs at 17:00 ET (after the daily
         OHLC pull at 17:30 has at least one cron tick ahead of it the
@@ -674,7 +680,9 @@ def main() -> int:
 
     # Legacy single-pool role (claims any provider's row).
     if "ai" in groups and (
-        settings.trade_insights_ai_enabled or settings.trade_insights_ai_claude_enabled
+        settings.trade_insights_ai_enabled
+        or settings.trade_insights_ai_claude_enabled
+        or settings.trade_insights_ai_deepseek_enabled
     ):
         sched.add_job(
             _trade_insights_ai_tick_any,
@@ -703,6 +711,17 @@ def main() -> int:
             IntervalTrigger(seconds=settings.trade_insights_ai_poll_seconds),
             id="trade_insights_ai_tick_claude",
             name="Trade Insights AI analysis poll (claude)",
+            max_instances=1,
+            coalesce=True,
+            misfire_grace_time=max(30, settings.trade_insights_ai_poll_seconds * 5),
+        )
+    # Provider-pinned deepseek pool.
+    if "ai-deepseek" in groups and settings.trade_insights_ai_deepseek_enabled:
+        sched.add_job(
+            _trade_insights_ai_tick_deepseek,
+            IntervalTrigger(seconds=settings.trade_insights_ai_poll_seconds),
+            id="trade_insights_ai_tick_deepseek",
+            name="Trade Insights AI analysis poll (deepseek)",
             max_instances=1,
             coalesce=True,
             misfire_grace_time=max(30, settings.trade_insights_ai_poll_seconds * 5),

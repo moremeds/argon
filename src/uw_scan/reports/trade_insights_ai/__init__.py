@@ -10,6 +10,7 @@ from __future__ import annotations
 
 # Constants + prompt text
 from .prompt_text import (
+    CONTRACT_PROMPT,
     DIRECTIONAL_BIAS_VALUES,
     DIRECTIONAL_SWING_STRUCTURES,
     DTE_BAND_RANGES,
@@ -51,6 +52,7 @@ from uw_scan.reports.trade_insights_ai_lenient import (  # noqa: E402,F401
 )
 
 __all__ = [
+    "CONTRACT_PROMPT",
     "DIRECTIONAL_BIAS_VALUES",
     "DIRECTIONAL_SWING_STRUCTURES",
     "DTE_BAND_RANGES",

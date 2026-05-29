@@ -72,6 +72,7 @@ class TradeInsightsAiProviderHealth(BaseModel):
 class TradeInsightsAiHealth(BaseModel):
     codex: TradeInsightsAiProviderHealth
     claude: TradeInsightsAiProviderHealth
+    deepseek: TradeInsightsAiProviderHealth
 
 
 class WsConsumerHealth(BaseModel):
@@ -379,6 +380,13 @@ def health(
             now_utc=now_utc,
             provider="claude",
             expected_count=settings.trade_insights_ai_claude_worker_count,
+            fresh_window=ai_fresh_window,
+        ),
+        deepseek=_provider_ai_health(
+            repo=repo,
+            now_utc=now_utc,
+            provider="deepseek",
+            expected_count=settings.trade_insights_ai_deepseek_worker_count,
             fresh_window=ai_fresh_window,
         ),
     )

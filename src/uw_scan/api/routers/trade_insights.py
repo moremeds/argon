@@ -255,7 +255,9 @@ def post_trade_insights_ai_analysis(
     if run_id == 0:
         raise HTTPException(status_code=404, detail=f"no runs for {t}")
     if not (
-        settings.trade_insights_ai_enabled or settings.trade_insights_ai_claude_enabled
+        settings.trade_insights_ai_enabled
+        or settings.trade_insights_ai_claude_enabled
+        or settings.trade_insights_ai_deepseek_enabled
     ):
         raise HTTPException(
             status_code=503,
@@ -331,6 +333,26 @@ def post_trade_insights_ai_analysis(
                 repo=repo,
             )
         )
+    if settings.trade_insights_ai_deepseek_enabled and (
+        provider_filter is None or "deepseek" in provider_filter
+    ):
+        model_label = (
+            settings.trade_insights_ai_deepseek_model.strip() or "deepseek-default"
+        )
+        stubs.append(
+            _enqueue_one_provider(
+                t=t,
+                run_id=run_id,
+                snapshot_id=snapshot_id,
+                trade_input_hash=trade_input_hash,
+                analysis_hash=analysis_hash,
+                analysis_input=analysis_input,
+                provider="deepseek",
+                model_label=model_label,
+                force_rerun=force_rerun,
+                repo=repo,
+            )
+        )
     repo.conn.commit()
     return TradeInsightAiAnalysisEnqueueResponse(analyses=stubs)
 
@@ -343,7 +365,14 @@ def _compute_provider_consensus(
 
     Compares the two providers' headline fields whenever both have a
     succeeded outcome. The UI surfaces consensus_grade +
-    actionable_disagreement above the [Codex] [Claude] tabs."""
+    actionable_disagreement above the [Codex] [Claude] tabs.
+
+    DELIBERATELY 2-PROVIDER (v1 DeepSeek scope decision, 2026-05-28):
+    consensus stays a codex-vs-claude comparison even after deepseek was
+    added as a third provider. Extending to 3-way consensus (majority
+    vote? pairwise agreement? per-pair grades?) is a separate scoping
+    question. DeepSeek queues, persists, and surfaces in /latest, but
+    does NOT vote here."""
     if not (codex and codex.outcome and claude and claude.outcome):
         return TradeInsightAiProviderConsensus(consensus_grade="missing")
 
@@ -442,11 +471,13 @@ def get_latest_trade_insights_ai_analysis(
     )
     codex = _row_to_ai_response(pair["codex"]) if pair["codex"] else None
     claude = _row_to_ai_response(pair["claude"]) if pair["claude"] else None
+    deepseek = _row_to_ai_response(pair["deepseek"]) if pair["deepseek"] else None
     return TradeInsightAiLatestPair(
         current_prompt_version=PROMPT_VERSION,
         current_prompt_label=_current_prompt_label(),
         codex=codex,
         claude=claude,
+        deepseek=deepseek,
         provider_consensus=_compute_provider_consensus(codex, claude),
     )
 

@@ -137,6 +137,12 @@ class Settings(BaseModel):
     # the per-provider health block). Defaults match scripts/dev.sh.
     trade_insights_ai_codex_worker_count: int = 2
     trade_insights_ai_claude_worker_count: int = 2
+    # Trade Insights AI DeepSeek provider (alongside Codex + Claude)
+    trade_insights_ai_deepseek_enabled: bool = True
+    trade_insights_ai_deepseek_model: str = ""
+    trade_insights_ai_deepseek_timeout_seconds: float = 300.0
+    trade_insights_ai_deepseek_worker_count: int = 2
+    deepseek_api_key: SecretStr | None = None
     # Cockpit (6-dim matrix) — see docs/research/six-dimension-matrix/
     cockpit_tickers: list[str] = ["SPX", "SPY", "QQQ", "IWM"]
     cockpit_snapshot_cron: str = "30 16 * * 0-4"
@@ -331,6 +337,23 @@ class Settings(BaseModel):
             ),
             trade_insights_ai_claude_worker_count=int(
                 os.environ.get("TRADE_INSIGHTS_AI_CLAUDE_WORKER_COUNT", "2")
+            ),
+            trade_insights_ai_deepseek_enabled=_env_bool(
+                "TRADE_INSIGHTS_AI_DEEPSEEK_ENABLED", True
+            ),
+            trade_insights_ai_deepseek_model=os.environ.get(
+                "TRADE_INSIGHTS_AI_DEEPSEEK_MODEL", ""
+            ),
+            trade_insights_ai_deepseek_timeout_seconds=float(
+                os.environ.get("TRADE_INSIGHTS_AI_DEEPSEEK_TIMEOUT_SECONDS", "300.0")
+            ),
+            trade_insights_ai_deepseek_worker_count=int(
+                os.environ.get("TRADE_INSIGHTS_AI_DEEPSEEK_WORKER_COUNT", "2")
+            ),
+            deepseek_api_key=(
+                SecretStr(_ds_key)
+                if (_ds_key := os.environ.get("DEEPSEEK_API_KEY", "").strip())
+                else None
             ),
             cockpit_tickers=_parse_csv_env(
                 "COCKPIT_TICKERS", default=["SPX", "SPY", "QQQ", "IWM"]

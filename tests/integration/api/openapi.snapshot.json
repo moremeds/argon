@@ -12003,7 +12003,8 @@
                 "items": {
                   "enum": [
                     "codex",
-                    "claude"
+                    "claude",
+                    "deepseek"
                   ],
                   "type": "string"
                 },
@@ -12099,7 +12100,8 @@
             "default": "codex",
             "enum": [
               "codex",
-              "claude"
+              "claude",
+              "deepseek"
             ],
             "title": "Provider",
             "type": "string"
@@ -12179,7 +12181,8 @@
           "provider": {
             "enum": [
               "codex",
-              "claude"
+              "claude",
+              "deepseek"
             ],
             "title": "Provider",
             "type": "string"
@@ -12557,7 +12560,7 @@
       },
       "TradeInsightAiLatestPair": {
         "additionalProperties": false,
-        "description": "GET /latest response \u2014 null per provider when no succeeded row exists.\n\nv5.2: provider_consensus is computed at read time by comparing the\ntwo providers' headline fields whenever both have succeeded. The\nUI surfaces consensus_grade + actionable_disagreement above the\n[Codex] [Claude] tabs as a quality signal.",
+        "description": "GET /latest response \u2014 null per provider when no succeeded row exists.\n\nv5.2: provider_consensus is computed at read time by comparing the\ntwo providers' headline fields whenever both have succeeded. The\nUI surfaces consensus_grade + actionable_disagreement above the\n[Codex] [Claude] tabs as a quality signal.\n\nv5.3 (deepseek-decoupling, 2026-05-28): adds the deepseek slot.\nDeepSeek surfaces in /latest but DOES NOT participate in\nprovider_consensus \u2014 that remains a 2-way codex-vs-claude comparison\n(see _compute_provider_consensus docstring for the scope decision).\nThe UI still renders only [Codex] [Claude] tabs; the deepseek field\nis queued + persisted today and ignored by the frontend until a\nfollow-up PR adds a [DeepSeek] tab.",
         "properties": {
           "claude": {
             "anyOf": [
@@ -12593,6 +12596,16 @@
           "current_prompt_version": {
             "title": "Current Prompt Version",
             "type": "string"
+          },
+          "deepseek": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TradeInsightAiAnalysisResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "provider_consensus": {
             "$ref": "#/components/schemas/TradeInsightAiProviderConsensus"
@@ -13038,7 +13051,8 @@
           "provider": {
             "enum": [
               "codex",
-              "claude"
+              "claude",
+              "deepseek"
             ],
             "title": "Provider",
             "type": "string"
@@ -13701,11 +13715,15 @@
           },
           "codex": {
             "$ref": "#/components/schemas/TradeInsightsAiProviderHealth"
+          },
+          "deepseek": {
+            "$ref": "#/components/schemas/TradeInsightsAiProviderHealth"
           }
         },
         "required": [
           "codex",
-          "claude"
+          "claude",
+          "deepseek"
         ],
         "title": "TradeInsightsAiHealth",
         "type": "object"

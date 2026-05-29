@@ -84,6 +84,32 @@ def test_claude_runner_uses_print_mode_with_locked_down_flags(monkeypatch):
     assert "--add-dir" in cmd
 
 
+def test_claude_runner_does_not_use_append_system_prompt(monkeypatch):
+    """Post prompt-decoupling: CONTRACT_PROMPT lives in the user prompt for
+    every provider. Claude no longer needs `--append-system-prompt` to inject
+    its private JSON-contract clause, and the flag must be absent from cmd."""
+    captured = {}
+
+    def fake_run(cmd, **_):
+        captured["cmd"] = cmd
+        return subprocess.CompletedProcess(cmd, 0, stdout=SUCCESS_STDOUT, stderr="")
+
+    monkeypatch.setattr(
+        "uw_scan.worker.jobs.trade_insights_claude_runner.subprocess.run",
+        fake_run,
+    )
+
+    ClaudeRunner().run(
+        "p",
+        {"type": "object"},
+        model="opus",
+        timeout_seconds=10,
+        max_output_bytes=1024,
+    )
+
+    assert "--append-system-prompt" not in captured["cmd"]
+
+
 def test_claude_runner_omits_model_flag_when_blank(monkeypatch):
     captured = {}
 

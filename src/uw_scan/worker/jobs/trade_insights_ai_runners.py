@@ -29,11 +29,36 @@ class RunnerResult(NamedTuple):
     a sentinel default.
     """
 
+    reasoning_content: str | None = None
+    """Chain-of-thought text the provider emitted alongside the answer.
+
+    Provider-specific: DeepSeek populates this when thinking mode is enabled
+    (delta.reasoning_content stream channel). Codex / Claude do not surface
+    a separate reasoning stream — they leave this None.
+    """
+
+    output_channel: str | None = None
+    """Which response channel won, when more than one is possible.
+
+    DeepSeek may emit through `tool_calls` (function-calling, preferred) or
+    `delta.content` (free-form text fallback). Recorded for observability so
+    we can spot regressions when a provider stops calling the tool. Other
+    runners that only have one channel leave this None.
+    """
+
 
 class AiProviderRunner(Protocol):
     """Interface every provider runner must satisfy."""
 
-    name: str  # "codex" or "claude"
+    name: str  # "codex" | "claude" | "deepseek"
+
+    # Schema-generation flags consumed by the orchestrator. Each runner
+    # declares them once as class attributes; the orchestrator never branches
+    # on runner.name. Adding a fourth provider = add a class + register; no
+    # orchestrator change.
+    schema_strict: bool
+    strip_lookaround_regex: bool
+    requires_lenient_validation: bool
 
     def run(
         self,

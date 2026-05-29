@@ -31,6 +31,18 @@ def test_provider_literal_accepts_codex_and_claude() -> None:
     assert stub2.provider == "claude"
 
 
+def test_provider_literal_accepts_deepseek() -> None:
+    """After widening for the DeepSeek runner, the Literal accepts "deepseek"."""
+    stub = TradeInsightAiAnalysisStub(
+        provider="deepseek",
+        analysis_id=uuid4(),
+        status="queued",
+        reused=False,
+        model="deepseek-v4-pro",
+    )
+    assert stub.provider == "deepseek"
+
+
 def test_provider_literal_rejects_other_values() -> None:
     with pytest.raises(ValueError):
         TradeInsightAiAnalysisStub(
@@ -73,6 +85,9 @@ def test_latest_pair_allows_null_per_provider() -> None:
     )
     assert pair.codex is None
     assert pair.claude is None
+    # v5.3 (deepseek-decoupling): deepseek slot is optional and defaults None
+    # so older clients that don't pass it still construct the model.
+    assert pair.deepseek is None
     assert pair.current_prompt_version == "trade-insights-ai-v5.3"
 
 

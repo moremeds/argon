@@ -288,12 +288,13 @@ class _TradeInsightsAiMixin:
     ) -> dict[str, dict[str, Any] | None]:
         """Latest terminal-state row per known provider as a keyed dict.
 
-        Output shape: {"codex": row|None, "claude": row|None}. Returns the most
-        recent succeeded OR failed row per provider; succeeded wins when both
-        exist at the same finished_at (defensive on the rare tie). Failed rows
-        are surfaced so the UI can render the error_message instead of the
-        misleading "No analysis yet" empty state. Model is NOT in the key — a
-        model alias rollover does not hide the most recent result.
+        Output shape: {"codex": row|None, "claude": row|None,
+        "deepseek": row|None}. Returns the most recent succeeded OR failed row
+        per provider; succeeded wins when both exist at the same finished_at
+        (defensive on the rare tie). Failed rows are surfaced so the UI can
+        render the error_message instead of the misleading "No analysis yet"
+        empty state. Model is NOT in the key — a model alias rollover does
+        not hide the most recent result.
         """
         sql = (
             f"SELECT DISTINCT ON (provider) * FROM {self._schema}.trade_insight_ai_analyses "
@@ -303,7 +304,11 @@ class _TradeInsightsAiMixin:
             "  CASE status WHEN 'succeeded' THEN 0 ELSE 1 END, "
             "  requested_at DESC"
         )
-        out: dict[str, dict[str, Any] | None] = {"codex": None, "claude": None}
+        out: dict[str, dict[str, Any] | None] = {
+            "codex": None,
+            "claude": None,
+            "deepseek": None,
+        }
         with self._conn.cursor() as cur:
             cur.execute(sql, (ticker.upper(), prompt_version))
             rows = cur.fetchall()
@@ -449,36 +454,39 @@ class _TradeInsightsAiMixin:
         outcome: dict[str, Any],
         markdown: str,
         resolved_model: str | None = None,
+        provider_metadata: dict[str, Any] | None = None,
     ) -> None:
         """Mark a row as succeeded; optionally overwrite `model` with the
         provider's post-hoc canonical model id (e.g. 'opus' alias resolves to
         'claude-opus-4-7'). Resolved_model keeps the cache key correct on
-        subsequent reuse lookups."""
-        if resolved_model is None:
-            sql = (
-                f"UPDATE {self._schema}.trade_insight_ai_analyses "
-                "SET status = 'succeeded', "
-                "outcome_jsonb = %s, "
-                "markdown = %s, "
-                "error_message = NULL, "
-                "finished_at = now() "
-                "WHERE analysis_id = %s"
-            )
-            params: tuple[Any, ...] = (Jsonb(outcome), markdown, analysis_id)
-        else:
-            sql = (
-                f"UPDATE {self._schema}.trade_insight_ai_analyses "
-                "SET status = 'succeeded', "
-                "outcome_jsonb = %s, "
-                "markdown = %s, "
-                "model = %s, "
-                "error_message = NULL, "
-                "finished_at = now() "
-                "WHERE analysis_id = %s"
-            )
-            params = (Jsonb(outcome), markdown, resolved_model, analysis_id)
+        subsequent reuse lookups.
+
+        `provider_metadata` carries provider-specific runtime fields
+        (DeepSeek: reasoning_content + output_channel + byte sizes; Codex /
+        Claude: typically None). Schemaless by design — readers must guard.
+        """
+        sets = [
+            "status = 'succeeded'",
+            "outcome_jsonb = %s",
+            "markdown = %s",
+            "error_message = NULL",
+            "finished_at = now()",
+        ]
+        params: list[Any] = [Jsonb(outcome), markdown]
+        if resolved_model is not None:
+            sets.append("model = %s")
+            params.append(resolved_model)
+        if provider_metadata is not None:
+            sets.append("provider_metadata_jsonb = %s")
+            params.append(Jsonb(provider_metadata))
+        params.append(analysis_id)
+        sql = (
+            f"UPDATE {self._schema}.trade_insight_ai_analyses "
+            f"SET {', '.join(sets)} "
+            "WHERE analysis_id = %s"
+        )
         with self._conn.cursor() as cur:
-            cur.execute(sql, params)
+            cur.execute(sql, tuple(params))
 
     def fail_trade_insight_ai_analysis(
         self,
@@ -486,31 +494,34 @@ class _TradeInsightsAiMixin:
         error_message: str,
         *,
         raw_outcome: dict[str, Any] | None = None,
+        provider_metadata: dict[str, Any] | None = None,
     ) -> None:
         # Persist the runner's raw output when validation rejected it; NULL
         # otherwise (subprocess crash, timeout, non-JSON, pre-runner error).
-        # Lets us diagnose validator rejections without re-running.
-        if raw_outcome is None:
-            sql = (
-                f"UPDATE {self._schema}.trade_insight_ai_analyses "
-                "SET status = 'failed', "
-                "error_message = %s, "
-                "finished_at = now() "
-                "WHERE analysis_id = %s"
-            )
-            params: tuple[Any, ...] = (error_message[:4000], analysis_id)
-        else:
-            sql = (
-                f"UPDATE {self._schema}.trade_insight_ai_analyses "
-                "SET status = 'failed', "
-                "error_message = %s, "
-                "raw_outcome_jsonb = %s, "
-                "finished_at = now() "
-                "WHERE analysis_id = %s"
-            )
-            params = (error_message[:4000], Jsonb(raw_outcome), analysis_id)
+        # Lets us diagnose validator rejections without re-running. The
+        # provider_metadata mirrors raw_outcome — on a validation failure we
+        # want the reasoning trace too so we can see how the model arrived at
+        # the rejected output.
+        sets = [
+            "status = 'failed'",
+            "error_message = %s",
+            "finished_at = now()",
+        ]
+        params: list[Any] = [error_message[:4000]]
+        if raw_outcome is not None:
+            sets.append("raw_outcome_jsonb = %s")
+            params.append(Jsonb(raw_outcome))
+        if provider_metadata is not None:
+            sets.append("provider_metadata_jsonb = %s")
+            params.append(Jsonb(provider_metadata))
+        params.append(analysis_id)
+        sql = (
+            f"UPDATE {self._schema}.trade_insight_ai_analyses "
+            f"SET {', '.join(sets)} "
+            "WHERE analysis_id = %s"
+        )
         with self._conn.cursor() as cur:
-            cur.execute(sql, params)
+            cur.execute(sql, tuple(params))
 
     def get_trade_insight_ai_analysis(
         self,
