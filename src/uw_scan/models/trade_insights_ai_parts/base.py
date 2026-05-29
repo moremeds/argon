@@ -49,3 +49,14 @@ ConsensusGrade = Literal["full", "partial", "divergent", "missing"]
 OptionType = Literal["call", "put"]
 OptionSide = Literal["long", "short"]
 TradeInsightAiProvider = Literal["codex", "claude", "deepseek"]
+
+# --- Trade Framework (v6.0) enums ---
+FrameworkPositionType = Literal["swing", "leaps", "stand_aside"]
+FrameworkDirectionVerdict = Literal["bull", "bear", "neutral"]
+FrameworkVegaRegime = Literal["event_iv", "demand_iv", "low_iv"]
+FrameworkStructureFamily = Literal["directional_defined_risk", "pin_vega"]
+FrameworkGammaRegime = Literal["short", "long"]
+FrameworkCatalystHandling = Literal[
+    "exit_before_print", "stand_aside", "hold_through_leaps"
+]
+FrameworkFactorStatus = Literal["yes", "no", "na"]
