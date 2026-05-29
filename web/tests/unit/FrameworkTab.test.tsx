@@ -1,0 +1,180 @@
+/* @vitest-environment jsdom */
+import { render, screen } from "@testing-library/react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+import { FrameworkTab } from "@/components/stock/tabs/FrameworkTab";
+import type { components } from "@/lib/types";
+
+type Framework = components["schemas"]["TradeFramework"];
+
+const hookReturn = {
+  latestForTicker: {
+    codex: null as unknown,
+    claude: null as unknown,
+    deepseek: null as unknown,
+  },
+  pendingIdsForTicker: { codex: null, claude: null, deepseek: null },
+  run: vi.fn(),
+  canRun: true,
+  actionLabel: "Run Analysis",
+  unavailableForTicker: false,
+};
+
+vi.mock(
+  "@/components/stock/panels/tradeInsightsAi/useAiAnalysisPolling",
+  () => ({
+    PROVIDERS: ["codex", "claude", "deepseek"] as const,
+    useAiAnalysisPolling: () => hookReturn,
+  }),
+);
+
+function framework(overrides: Partial<Framework> = {}): Framework {
+  return {
+    header: {
+      thesis_one_liner: "Constructive swing setup",
+      position_type: "swing",
+      spot: "100",
+      conviction_n: 5,
+    },
+    three_axis: {
+      direction: { verdict: "bull", prose: "above flip, higher highs" },
+      vega: {
+        regime: "low_iv",
+        ivr: "20",
+        term_slope: "contango",
+        prose: "cheap vol",
+      },
+      asymmetry: {
+        rule_on: true,
+        structure_family: "directional_defined_risk",
+        prose: "defined-risk debit spread",
+      },
+    },
+    gamma: {
+      regime: "long",
+      flip_strike: "98",
+      call_wall: "110",
+      put_wall: "90",
+      prose: "dealers long gamma above flip",
+    },
+    catalyst: {
+      next_er_date: null,
+      dte_to_er: null,
+      implied_move: null,
+      handling: "stand_aside",
+      prose: "no near catalyst",
+    },
+    conviction: {
+      score: 5,
+      factors: [
+        { name: "Trend alignment", status: "yes", note: "all up" },
+        { name: "Earnings reaction history", status: "na", note: "" },
+        { name: "Flow footprint", status: "yes", note: "" },
+        { name: "Vol regime", status: "yes", note: "" },
+        { name: "Liquidity / OI", status: "no", note: "" },
+        { name: "Gamma posture", status: "yes", note: "" },
+        { name: "Catalyst timing", status: "na", note: "" },
+        { name: "Confluence", status: "yes", note: "" },
+      ],
+      prose: "5 of 8 confirmed",
+    },
+    confluence: {
+      aligned: true,
+      signals: [
+        { name: "flow", direction: "bull" },
+        { name: "gamma", direction: "bull" },
+      ],
+      prose: "",
+    },
+    pitfalls: [
+      { id: "p01", title: "Chasing extension", triggered: false, note: "" },
+    ],
+    candidates: [
+      {
+        name: "bull_call_spread",
+        legs: ["+1 100C", "-1 110C"],
+        debit_credit: "debit",
+        net_delta: "0.35",
+        net_vega: "-0.02",
+        pnl_bull: "+380",
+        pnl_base: "+120",
+        pnl_bear: "-320",
+        defined_risk: true,
+      },
+    ],
+    best_setup: {
+      structure: "bull_call_spread",
+      legs: ["+1 100C", "-1 110C"],
+      cost: "$3.20 debit",
+      max_risk: "capped -$320",
+      rationale: "Lean long into strength with defined risk.",
+      why_not_alternatives: "naked calls = undefined vega risk",
+      invalidation: "daily close < 97",
+    },
+    what_changes: [{ signal: "loss of the flip", effect: "flip to neutral" }],
+    bottom_line: "Lean long into strength.",
+    ...overrides,
+  };
+}
+
+function succeeded(fw: Framework | null) {
+  return {
+    status: "succeeded",
+    outcome: fw ? { framework: fw } : {},
+    error_message: null,
+  };
+}
+
+describe("FrameworkTab", () => {
+  beforeEach(() => {
+    hookReturn.latestForTicker = {
+      codex: succeeded(framework()),
+      claude: { status: "failed", outcome: null, error_message: "boom" },
+      deepseek: null,
+    };
+    hookReturn.pendingIdsForTicker = {
+      codex: null,
+      claude: null,
+      deepseek: null,
+    };
+  });
+
+  it("renders a 3-provider toggle with state badges", () => {
+    render(<FrameworkTab ticker="NVDA" />);
+    expect(screen.getByText("Codex")).toBeTruthy();
+    expect(screen.getByText("Claude")).toBeTruthy();
+    expect(screen.getByText("DeepSeek")).toBeTruthy();
+    expect(screen.getByText("ready")).toBeTruthy();
+    expect(screen.getByText("failed")).toBeTruthy();
+    expect(screen.getByText("not run")).toBeTruthy();
+  });
+
+  it("renders the active provider's decision stack ending in best_setup", () => {
+    render(<FrameworkTab ticker="NVDA" />);
+    expect(screen.getByText("Best Setup")).toBeTruthy();
+    // structure appears both in the candidate ladder and the best-setup card
+    expect(screen.getAllByText("bull_call_spread").length).toBeGreaterThan(0);
+    expect(screen.getByText("Lean long into strength.")).toBeTruthy();
+  });
+
+  it("shows na factor status as 'na' not blank", () => {
+    render(<FrameworkTab ticker="NVDA" />);
+    // two conviction factors have status na
+    expect(screen.getAllByText("na").length).toBeGreaterThan(0);
+  });
+
+  it("shows single-provider consensus banner when <2 frameworks", () => {
+    render(<FrameworkTab ticker="NVDA" />);
+    expect(screen.getByText(/single provider/i)).toBeTruthy();
+  });
+
+  it("shows cross-model consensus when >=2 frameworks agree", () => {
+    hookReturn.latestForTicker = {
+      codex: succeeded(framework()),
+      claude: succeeded(framework()),
+      deepseek: null,
+    };
+    render(<FrameworkTab ticker="NVDA" />);
+    expect(screen.getByText(/consensus: swing/i)).toBeTruthy();
+  });
+});

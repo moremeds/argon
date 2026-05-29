@@ -10,17 +10,23 @@ import {
 
 export const AI_ANALYSIS_POLL_MAX_MS = 10 * 60 * 1000;
 
-export type Provider = "codex" | "claude";
-export const PROVIDERS: readonly Provider[] = ["codex", "claude"] as const;
+export type Provider = "codex" | "claude" | "deepseek";
+export const PROVIDERS: readonly Provider[] = [
+  "codex",
+  "claude",
+  "deepseek",
+] as const;
 
 export type ProviderAnalysisPair = {
   codex: TradeInsightsAiAnalysisResponse | null;
   claude: TradeInsightsAiAnalysisResponse | null;
+  deepseek: TradeInsightsAiAnalysisResponse | null;
 };
 
 export type ProviderPendingPair = {
   codex: string | null;
   claude: string | null;
+  deepseek: string | null;
 };
 
 export type ProviderConsensus = NonNullable<
@@ -32,8 +38,16 @@ export type PromptMetadata = Pick<
   "current_prompt_label" | "current_prompt_version"
 >;
 
-export const EMPTY_LATEST: ProviderAnalysisPair = { codex: null, claude: null };
-export const EMPTY_PENDING: ProviderPendingPair = { codex: null, claude: null };
+export const EMPTY_LATEST: ProviderAnalysisPair = {
+  codex: null,
+  claude: null,
+  deepseek: null,
+};
+export const EMPTY_PENDING: ProviderPendingPair = {
+  codex: null,
+  claude: null,
+  deepseek: null,
+};
 export const EMPTY_PROMPT_METADATA: PromptMetadata = {
   current_prompt_label: null,
   current_prompt_version: "",
@@ -43,10 +57,23 @@ export function isInFlight(analysis: TradeInsightsAiAnalysisResponse): boolean {
   return analysis.status === "queued" || analysis.status === "running";
 }
 
-function promptMetadataFromPair(pair: TradeInsightsAiLatestPair): PromptMetadata {
+function promptMetadataFromPair(
+  pair: TradeInsightsAiLatestPair,
+): PromptMetadata {
   return {
     current_prompt_label: pair.current_prompt_label ?? null,
     current_prompt_version: pair.current_prompt_version,
+  };
+}
+
+// Single source of truth for projecting the API /latest pair onto our local
+// per-provider shape. Keeping this provider-count-agnostic means adding a
+// fourth provider later is a one-line change to PROVIDERS + the two pair types.
+function latestFromPair(pair: TradeInsightsAiLatestPair): ProviderAnalysisPair {
+  return {
+    codex: pair.codex ?? null,
+    claude: pair.claude ?? null,
+    deepseek: pair.deepseek ?? null,
   };
 }
 
@@ -100,7 +127,7 @@ export function useAiAnalysisPolling(ticker: string) {
       try {
         const pair = await api.tradeInsightsAiAnalysisLatest(ticker);
         if (!isCurrentPoll()) return;
-        setLatest({ codex: pair.codex ?? null, claude: pair.claude ?? null });
+        setLatest(latestFromPair(pair));
         setConsensus(pair.provider_consensus ?? null);
         setPromptMetadata(promptMetadataFromPair(pair));
       } catch {
@@ -124,7 +151,7 @@ export function useAiAnalysisPolling(ticker: string) {
         const pair = await api.tradeInsightsAiAnalysisLatest(ticker);
         if (!cancelled && requestTokenRef.current === token) {
           setLoadedTicker(ticker);
-          setLatest({ codex: pair.codex ?? null, claude: pair.claude ?? null });
+          setLatest(latestFromPair(pair));
           setConsensus(pair.provider_consensus ?? null);
           setPromptMetadata(promptMetadataFromPair(pair));
           pollTokenRef.current = EMPTY_PENDING;
@@ -185,10 +212,7 @@ export function useAiAnalysisPolling(ticker: string) {
       }
       const resp = await api.tradeInsightsAiAnalysis(ticker, body);
       if (!isCurrentRequest()) return;
-      const newPending: ProviderPendingPair = {
-        codex: pendingIdsForTicker.codex,
-        claude: pendingIdsForTicker.claude,
-      };
+      const newPending: ProviderPendingPair = { ...pendingIdsForTicker };
       for (const stub of resp.analyses) {
         if (stub.status === "succeeded" && stub.reused) {
           newPending[stub.provider as Provider] = null;
@@ -200,10 +224,7 @@ export function useAiAnalysisPolling(ticker: string) {
       try {
         const pair = await api.tradeInsightsAiAnalysisLatest(ticker);
         if (isCurrentRequest()) {
-          setLatest({
-            codex: pair.codex ?? null,
-            claude: pair.claude ?? null,
-          });
+          setLatest(latestFromPair(pair));
           setConsensus(pair.provider_consensus ?? null);
           setPromptMetadata(promptMetadataFromPair(pair));
         }
@@ -230,15 +251,13 @@ export function useAiAnalysisPolling(ticker: string) {
     }
   }
 
-  const allPending = Boolean(
-    pendingIdsForTicker.codex && pendingIdsForTicker.claude,
+  const allPending = PROVIDERS.every((p) => Boolean(pendingIdsForTicker[p]));
+  const anyFailed = PROVIDERS.some(
+    (p) => latestForTicker[p]?.status === "failed",
   );
-  const anyFailed =
-    latestForTicker.codex?.status === "failed" ||
-    latestForTicker.claude?.status === "failed";
-  const anySucceeded =
-    latestForTicker.codex?.status === "succeeded" ||
-    latestForTicker.claude?.status === "succeeded";
+  const anySucceeded = PROVIDERS.some(
+    (p) => latestForTicker[p]?.status === "succeeded",
+  );
   const canRun = !unavailableForTicker && !allPending;
   const forceRun = anySucceeded || anyFailed;
   const actionLabel =

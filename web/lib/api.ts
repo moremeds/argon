@@ -174,7 +174,7 @@ export const api = {
     ticker: string,
     body: {
       force_rerun?: boolean;
-      providers?: ("codex" | "claude")[];
+      providers?: ("codex" | "claude" | "deepseek")[];
     } = {},
   ): Promise<TradeInsightsAiAnalysisEnqueueResponse> =>
     _fetch<TradeInsightsAiAnalysisEnqueueResponse>(
