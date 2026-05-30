@@ -84,7 +84,7 @@ def validate_trade_insights_ai_outcome(
     # so a module-level import here would deadlock at first-load. Deferring keeps
     # the dependency edge runtime-only and matches the pre-split single-file
     # behavior (which late-imported the same symbol at the bottom of the module).
-    from uw_scan.reports.trade_insights_ai_lenient import _coerce_claude_outcome_dict
+    from uw_scan.reports.trade_blast._lenient import _coerce_claude_outcome_dict
 
     expected_hash = hash_trade_insights_ai_analysis_input(deterministic_payload)
     if lenient and not isinstance(outcome, TradeInsightAiOutcome):

@@ -47,7 +47,7 @@ from .markdown import render_trade_insights_ai_markdown
 # it via the trade_insights_ai namespace, so we keep the path stable).
 # Placed last so our own module is fully constructed before the lenient module
 # touches us back during its top-level imports.
-from uw_scan.reports.trade_insights_ai_lenient import (  # noqa: E402,F401
+from uw_scan.reports.trade_blast._lenient import (  # noqa: E402,F401
     _coerce_claude_outcome_dict,
 )
 

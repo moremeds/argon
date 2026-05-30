@@ -10,7 +10,7 @@ from __future__ import annotations
 from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal
 
-from uw_scan.reports.trade_insights_ai.analysis_input import (
+from uw_scan.reports.trade_blast.analysis_input import (
     build_trade_insights_ai_analysis_input,
 )
 

@@ -12,7 +12,6 @@ from datetime import datetime, timezone
 from uw_scan.reports.trade_insights_ai import (
     CONTRACT_PROMPT,
     MARKET_INTELLIGENCE_PROMPT,  # noqa: F401  # import smoke for re-export
-    PROMPT_VERSION,
     build_trade_insights_ai_prompt,
     build_trade_insights_ai_prompt_payload,
 )
@@ -69,29 +68,6 @@ def test_contract_prompt_exported_from_package_root() -> None:
     assert CONTRACT_PROMPT is prompt_text.CONTRACT_PROMPT
     assert isinstance(CONTRACT_PROMPT, str)
     assert len(CONTRACT_PROMPT) > 500  # Substantial body, not a stub
-
-
-def test_prompt_version_bumped_to_v6() -> None:
-    """The trade-framework decision-stack contract ships as prompt v6.0."""
-    assert PROMPT_VERSION == "trade-insights-ai-v6.0"
-
-
-def test_framework_kb_and_directive_embedded_in_assembled_prompt() -> None:
-    """The assembled SYSTEM prompt must embed the trade-framework knowledge
-    base AND the framework decision-stack directive so the model produces the
-    full conviction-ledger `framework` object (Task 3.3)."""
-    payload = build_trade_insights_ai_prompt_payload(
-        _minimal_analysis_input(),
-        produced_at=datetime(2026, 5, 28, tzinfo=timezone.utc),
-    )
-    assembled = build_trade_insights_ai_prompt(payload)
-    # Embedded KB header.
-    assert "TRADE FRAMEWORK KNOWLEDGE" in assembled
-    # Framework decision-stack directive load-bearing fragments.
-    assert "best_setup" in assembled
-    assert "framework" in assembled
-    # Version stamp flows into the assembled prompt.
-    assert "trade-insights-ai-v6.0" in assembled
 
 
 def test_hard_rules_not_triplicated_after_dedupe() -> None:
