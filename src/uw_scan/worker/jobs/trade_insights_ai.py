@@ -12,6 +12,24 @@ from typing import Any
 import psycopg
 
 from uw_scan.config import Settings
+from uw_scan.reports.trade_blast import (
+    PROMPT_VERSION as BLAST_PROMPT_VERSION,
+)
+from uw_scan.reports.trade_blast import (
+    build_trade_insights_ai_prompt as build_blast_prompt,
+)
+from uw_scan.reports.trade_blast import (
+    build_trade_insights_ai_prompt_payload as build_blast_payload,
+)
+from uw_scan.reports.trade_blast import (
+    render_trade_insights_ai_markdown as render_blast_markdown,
+)
+from uw_scan.reports.trade_blast import (
+    trade_insights_ai_output_schema as blast_output_schema,
+)
+from uw_scan.reports.trade_blast import (
+    validate_trade_insights_ai_outcome as validate_blast_outcome,
+)
 from uw_scan.reports.trade_insights_ai import (
     PROMPT_VERSION,
     build_trade_insights_ai_prompt,
@@ -104,6 +122,7 @@ def trade_insights_ai_tick(
     produced_at: datetime | None = None
     prompt_payload: dict[str, Any] | None = None
     row_provider: str | None = None
+    is_blast: bool = False
     try:
         repo.upsert_heartbeat(_heartbeat_key(provider_filter))
         stale_running_before = datetime.now(timezone.utc) - timedelta(
@@ -118,10 +137,23 @@ def trade_insights_ai_tick(
             return False
         analysis_id = str(row["analysis_id"])
         row_provider = row.get("provider") or "codex"
-        if row["prompt_version"] != PROMPT_VERSION:
+        # Lane routing: blast rows use the trade_blast prompt/schema/validator;
+        # insights rows use the production v5.3 card lane (unchanged behavior).
+        is_blast = (row.get("analysis_kind") or "insights") == "blast"
+        expected_version = BLAST_PROMPT_VERSION if is_blast else PROMPT_VERSION
+        build_payload = (
+            build_blast_payload if is_blast else build_trade_insights_ai_prompt_payload
+        )
+        build_prompt = (
+            build_blast_prompt if is_blast else build_trade_insights_ai_prompt
+        )
+        build_schema = (
+            blast_output_schema if is_blast else trade_insights_ai_output_schema
+        )
+        if row["prompt_version"] != expected_version:
             repo.fail_trade_insight_ai_analysis(
                 analysis_id,
-                f"obsolete prompt_version {row['prompt_version']} superseded by {PROMPT_VERSION}",
+                f"obsolete prompt_version {row['prompt_version']} superseded by {expected_version}",
             )
             repo.conn.commit()
             return True
@@ -135,12 +167,12 @@ def trade_insights_ai_tick(
         runner = RUNNERS[row_provider]
         analysis_input = dict(row["analysis_input_jsonb"])
         produced_at = datetime.now(timezone.utc)
-        prompt_payload = build_trade_insights_ai_prompt_payload(
+        prompt_payload = build_payload(
             analysis_input,
             produced_at=produced_at,
         )
-        prompt_text = build_trade_insights_ai_prompt(prompt_payload)
-        output_schema = trade_insights_ai_output_schema(
+        prompt_text = build_prompt(prompt_payload)
+        output_schema = build_schema(
             strict=runner.schema_strict,
             strip_lookaround_regex=runner.strip_lookaround_regex,
         )
@@ -172,12 +204,21 @@ def trade_insights_ai_tick(
     raw_outcome: dict[str, Any] | None = None
     provider_metadata: dict[str, Any] | None = None
     try:
-        result = runner.run(
-            build_trade_insights_ai_prompt(prompt_payload),
-            trade_insights_ai_output_schema(
+        if is_blast:
+            run_prompt = build_blast_prompt(prompt_payload)
+            run_schema = blast_output_schema(
                 strict=runner.schema_strict,
                 strip_lookaround_regex=runner.strip_lookaround_regex,
-            ),
+            )
+        else:
+            run_prompt = build_trade_insights_ai_prompt(prompt_payload)
+            run_schema = trade_insights_ai_output_schema(
+                strict=runner.schema_strict,
+                strip_lookaround_regex=runner.strip_lookaround_regex,
+            )
+        result = runner.run(
+            run_prompt,
+            run_schema,
             model=model_env,
             timeout_seconds=timeout,
             max_output_bytes=settings.trade_insights_ai_max_output_bytes,
@@ -187,13 +228,26 @@ def trade_insights_ai_tick(
         # reasoning trace via provider_metadata_jsonb.
         raw_outcome = result.outcome
         provider_metadata = _build_provider_metadata(result)
-        outcome = validate_trade_insights_ai_outcome(
-            result.outcome,
-            prompt_payload,
-            produced_at=produced_at,
-            lenient=runner.requires_lenient_validation,
-        )
-        markdown = render_trade_insights_ai_markdown(outcome)
+        if is_blast:
+            # Blast lane: soft-validate so framework output always renders;
+            # only the no-naked-shorts safety property is hard. Lenient
+            # coercion fills required v5.x fields so the shared model parses.
+            outcome = validate_blast_outcome(
+                result.outcome,
+                prompt_payload,
+                produced_at=produced_at,
+                lenient=True,
+                soft=True,
+            )
+            markdown = render_blast_markdown(outcome)
+        else:
+            outcome = validate_trade_insights_ai_outcome(
+                result.outcome,
+                prompt_payload,
+                produced_at=produced_at,
+                lenient=runner.requires_lenient_validation,
+            )
+            markdown = render_trade_insights_ai_markdown(outcome)
         repo = _repo(settings)
         try:
             repo.complete_trade_insight_ai_analysis(

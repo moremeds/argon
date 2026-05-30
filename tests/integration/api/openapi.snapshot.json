@@ -18487,7 +18487,7 @@
     },
     "/api/stock/{ticker}/trade-insights/ai-analysis": {
       "post": {
-        "description": "Enqueue one Trade Insights AI analysis per enabled provider.\n\nResponse contains one stub per provider with status + reused + model.\nDisabled providers are omitted from the response (not included with a\n'disabled' status \u2014 the UI tab handles this via /latest = null).",
+        "description": "Enqueue one Trade Insights AI analysis per enabled provider.\n\nResponse contains one stub per provider with status + reused + model.\nDisabled providers are omitted from the response (not included with a\n'disabled' status \u2014 the UI tab handles this via /latest = null).\n\n``kind`` selects the lane: ``insights`` (v5.3 card) or ``blast``\n(trade-blast framework prompt).",
         "operationId": "post_trade_insights_ai_analysis_api_stock__ticker__trade_insights_ai_analysis_post",
         "parameters": [
           {
@@ -18496,6 +18496,20 @@
             "required": true,
             "schema": {
               "title": "Ticker",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "kind",
+            "required": false,
+            "schema": {
+              "default": "insights",
+              "enum": [
+                "insights",
+                "blast"
+              ],
+              "title": "Kind",
               "type": "string"
             }
           }
@@ -18547,7 +18561,7 @@
     },
     "/api/stock/{ticker}/trade-insights/ai-analysis/latest": {
       "get": {
-        "description": "Latest terminal-state row per provider as a keyed dict.\n\nReturns {codex: row|null, claude: row|null}. Succeeded rows take priority\nover failed rows at the same finished_at; failed rows are returned (with\nerror_message populated) when no succeeded row exists, so the UI can\ndistinguish \"never ran\" from \"ran and failed.\" 200 even when both are\nnull so the UI renders the empty Run state instead of a 404.\n\nv5.2: also computes provider_consensus by comparing the two providers'\nheadlines when both have a succeeded outcome (failed rows are treated as\nmissing for consensus purposes \u2014 see _compute_provider_consensus).",
+        "description": "Latest terminal-state row per provider as a keyed dict.\n\nReturns {codex: row|null, claude: row|null, deepseek: row|null}.\nSucceeded rows take priority over failed rows at the same finished_at;\nfailed rows are returned (with error_message populated) when no succeeded\nrow exists. 200 even when all are null so the UI renders the empty Run\nstate instead of a 404.\n\n``kind`` selects the lane: ``insights`` (v5.3 card) or ``blast``\n(trade-blast framework prompt).",
         "operationId": "get_latest_trade_insights_ai_analysis_api_stock__ticker__trade_insights_ai_analysis_latest_get",
         "parameters": [
           {
@@ -18556,6 +18570,20 @@
             "required": true,
             "schema": {
               "title": "Ticker",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "kind",
+            "required": false,
+            "schema": {
+              "default": "insights",
+              "enum": [
+                "insights",
+                "blast"
+              ],
+              "title": "Kind",
               "type": "string"
             }
           }
@@ -19127,3 +19155,4 @@
     }
   }
 }
+

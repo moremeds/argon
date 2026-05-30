@@ -53,8 +53,15 @@ def validate_trade_insights_ai_outcome(
     *,
     produced_at: datetime,
     lenient: bool = False,
+    soft: bool = False,
 ) -> TradeInsightAiOutcome:
     """Validate model output against immutable deterministic inputs.
+
+    `soft=True` (trade_blast lane only) downgrades the v5.3 structural
+    consistency checks to collected warnings (appended to ``missing_data`` as
+    ``soft-validation: ...``) so real framework output always renders. The
+    no-naked-shorts safety property stays HARD even in soft mode: any framework
+    candidate that is not ``defined_risk`` still raises.
 
     `lenient=True` (Claude only — see issue #67) pre-processes the raw dict
     through `_coerce_claude_outcome_dict` to capture partial/off-schema output,
@@ -232,31 +239,49 @@ def validate_trade_insights_ai_outcome(
     # attempt to normalize obvious mismatches, but any residual violation
     # must surface as an error rather than be silently captured (mirrors
     # the undefined-risk strategy-family check above).
-    _check_mode_structure_consistency(parsed)
-    _check_delta_match(parsed)
-    # v5.1 additions: trigger/strike consistency, DTE band consistency,
-    # conditional quote validity. Enforced in BOTH strict and lenient modes
-    # because they encode the core directional-correctness invariants the
-    # v5.1 reviewers (chatgpt + claude) flagged as v5 failure modes.
-    _check_trigger_strike_consistency(parsed, candidates)
-    _check_dte_band_consistency(parsed, candidates)
-    _check_conditional_quote_validity(parsed)
-    # v5.2 additions: enforced in BOTH strict and lenient modes.
-    _check_active_trigger_evidence(parsed)
-    _check_anti_pin_cap_scope(parsed)
-    _check_thesis_archetype_consistency(parsed)
-    _check_headline_title_length(parsed, lenient=lenient)
-    _check_min_rr_for_conditional_c(parsed)
-    # v5.3 additions: trigger-component state machine. Enforced in BOTH
-    # strict and lenient modes because they encode the v5.3 contract's
-    # core promise (ENTRY_STATE is mechanical; legs are explicit; the
-    # spread is tied to the trigger components).
-    _check_legs_match_strategy(parsed)
-    _check_legs_align_with_triggers(parsed)
-    _check_entry_state_derivation(parsed)
-    # v6.0: additive framework{} block invariants (conviction count, defined-risk,
-    # best_setup<->candidates linkage, stand_aside agreement). No-op when absent.
-    _check_framework_rules(parsed)
+    # v5.x structural consistency + v6.0 framework invariants. In strict/card
+    # mode each raises on the first violation (run in declared order). In soft
+    # mode (trade_blast lane) they are collected as warnings instead — except
+    # the no-naked-shorts safety property, enforced HARD below.
+    structural_checks = [
+        lambda: _check_mode_structure_consistency(parsed),
+        lambda: _check_delta_match(parsed),
+        lambda: _check_trigger_strike_consistency(parsed, candidates),
+        lambda: _check_dte_band_consistency(parsed, candidates),
+        lambda: _check_conditional_quote_validity(parsed),
+        lambda: _check_active_trigger_evidence(parsed),
+        lambda: _check_anti_pin_cap_scope(parsed),
+        lambda: _check_thesis_archetype_consistency(parsed),
+        lambda: _check_headline_title_length(parsed, lenient=lenient),
+        lambda: _check_min_rr_for_conditional_c(parsed),
+        lambda: _check_legs_match_strategy(parsed),
+        lambda: _check_legs_align_with_triggers(parsed),
+        lambda: _check_entry_state_derivation(parsed),
+        lambda: _check_framework_rules(parsed),
+    ]
+    if soft:
+        # HARD even in soft mode: every framework candidate must be defined-risk
+        # (the no-naked-shorts project rule). Naked shorts are never rendered.
+        if parsed.framework is not None:
+            for cand in parsed.framework.candidates:
+                if not cand.defined_risk:
+                    raise ValueError(
+                        f"framework candidate {cand.name!r} is not defined_risk "
+                        "(no naked shorts allowed)"
+                    )
+        soft_warnings: list[str] = []
+        for check in structural_checks:
+            try:
+                check()
+            except ValueError as exc:
+                soft_warnings.append(str(exc))
+        if soft_warnings:
+            notes = list(parsed.missing_data)
+            notes.extend(f"soft-validation: {w}" for w in soft_warnings)
+            parsed.missing_data = notes
+    else:
+        for check in structural_checks:
+            check()
 
     # Strict: source_path validation raises on invalid prefixes.
     # Lenient: invalid prefixes are dropped to None with a missing_data note.
