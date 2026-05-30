@@ -16,9 +16,6 @@ from uw_scan.reports.trade_blast import (
     build_trade_insights_ai_prompt,
     build_trade_insights_ai_prompt_payload,
 )
-from uw_scan.reports.trade_blast.trade_framework_kb import (
-    TRADE_FRAMEWORK_KNOWLEDGE,
-)
 
 
 def _minimal_analysis_input() -> dict:
