@@ -60,23 +60,6 @@ class VRPAssessment(_UwBase):
     note: str
 
 
-class TradePlanLeg(_UwBase):
-    option_symbol: str
-    side: str  # "buy" / "sell"
-    strike: Decimal
-    expiry: _date
-    mid: Decimal | None = None
-
-
-class TradePlan(_UwBase):
-    structure: str
-    direction: str
-    legs: list[TradePlanLeg] = []
-    rationale: str
-    max_loss: Decimal | None = None
-    max_profit: Decimal | None = None
-
-
 class StockHistoryRow(_UwBase):
     """One per-trading-day rollup of a ticker's market structure.
 
@@ -112,7 +95,6 @@ class SingleStockReport(_UwBase):
     flow: FlowSnapshot
     vrp: VRPAssessment
     setup: SetupClassification | None = None
-    trade_plan: TradePlan | None = None
     dark_pool_notional: Decimal | None = None
     dark_pool_print_count: int = 0
     short_data: ShortDataRow | None = None
@@ -143,8 +125,6 @@ _preserve_public_module(
     MarketStructure,
     VolatilityProfile,
     VRPAssessment,
-    TradePlanLeg,
-    TradePlan,
     StockHistoryRow,
     StockHistoryResponse,
     SingleStockReport,

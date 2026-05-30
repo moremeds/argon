@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from uw_scan.reports.trade_insights_ai.prompt_text import STRATEGY_FAMILY_IDS
+from uw_scan.reports._shared_validation import STRATEGY_FAMILY_IDS
 
 def _candidate_map(deterministic_payload: dict[str, Any]) -> dict[str, dict[str, Any]]:
     return {

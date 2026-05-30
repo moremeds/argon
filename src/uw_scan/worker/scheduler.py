@@ -28,6 +28,7 @@ from uw_scan.worker.jobs.cockpit_daily_snapshot import cockpit_daily_snapshot
 from uw_scan.worker.jobs.credit_etf_lake_sync import run_credit_etf_lake_sync
 from uw_scan.worker.jobs.flow_data_refresh import flow_data_refresh
 from uw_scan.worker.jobs.full_scan import full_scan_once
+from uw_scan.worker.jobs.fundamentals_jobs import fundamentals_refresh_once
 from uw_scan.worker.jobs.gold_jobs import (
     gold_cftc_cot_ingest_job,
     gold_comex_vault_ingest_job,
@@ -45,6 +46,7 @@ from uw_scan.worker.jobs.option_intraday_jobs import (
     refresh_intraday_for_top_oi_movers,
 )
 from uw_scan.worker.jobs.pipeline_benchmark import pipeline_benchmark_snapshot_job
+from uw_scan.worker.jobs.positioning_jobs import positioning_refresh_once
 from uw_scan.worker.jobs.rates_jobs import rates_fred_ingest_job
 from uw_scan.worker.jobs.rescan_loop import rescan_tick
 from uw_scan.worker.jobs.trade_insight_outcome_backfill import (
@@ -242,6 +244,18 @@ def _ohlc_provider(
     )
 
 
+def _fundamentals_provider(settings: Settings):
+    from uw_scan.sources.massive_fundamentals import MassiveFundamentalsProvider
+
+    if settings.massive_api_key is None:
+        return None
+    return MassiveFundamentalsProvider(
+        api_key=settings.massive_api_key.get_secret_value(),
+        base_url=settings.massive_base_url,
+        timeout=settings.request_timeout_seconds,
+    )
+
+
 class _NoOhlc:
     """Null-object OhlcProvider for runs without a Massive key.
 
@@ -296,6 +310,15 @@ def main() -> int:
                     )
                     logger.info("full_scan completed %d tickers", n)
 
+    def _positioning_refresh() -> None:
+        with _external_api_recorder(settings) as recorder:
+            with _uw_client(
+                settings, telemetry_recorder=recorder, job_name="positioning_refresh"
+            ) as uw:
+                with _repo(settings) as repo:
+                    n = positioning_refresh_once(repo, uw, ticker_filter=ticker_filter)
+                    logger.info("positioning_refresh refreshed %d tickers", n)
+
     def _ohlc_pull() -> None:
         with _external_api_recorder(settings) as recorder:
             provider = _ohlc_provider(
@@ -309,6 +332,20 @@ def main() -> int:
                     logger.info("ohlc_pull refreshed %d tickers", n)
             finally:
                 provider.close()
+
+    def _fundamentals_refresh() -> None:
+        provider = _fundamentals_provider(settings)
+        if provider is None:
+            logger.warning("MASSIVE_API_KEY not set; skipping fundamentals refresh")
+            return
+        try:
+            with _repo(settings) as repo:
+                n = fundamentals_refresh_once(
+                    repo, provider, ticker_filter=ticker_filter
+                )
+                logger.info("fundamentals_refresh refreshed %d tickers", n)
+        finally:
+            provider.close()
 
     def _rescan() -> None:
         with _external_api_recorder(settings) as recorder:
@@ -584,6 +621,16 @@ def main() -> int:
             id="ohlc_pull",
             name="Daily OHLC pull",
         )
+        sched.add_job(
+            _fundamentals_refresh,
+            CronTrigger.from_crontab(
+                settings.fundamentals_refresh_cron, timezone=settings.rth_tz
+            ),
+            id="fundamentals_refresh",
+            name="Nightly massive fundamentals refresh",
+            max_instances=1,
+            coalesce=True,
+        )
         if _is_primary_worker(settings):
             # Volatility tab v2 jobs — ET-anchored via from_crontab (review I9).
             sched.add_job(
@@ -633,6 +680,16 @@ def main() -> int:
             CronTrigger.from_crontab("15 18 * * 0-4", timezone=settings.rth_tz),
             id="nightly_flow_data_refresh",
             name="Nightly Flow tab data refresh",
+        )
+        sched.add_job(
+            _positioning_refresh,
+            CronTrigger.from_crontab(
+                settings.positioning_refresh_cron, timezone=settings.rth_tz
+            ),
+            id="positioning_refresh",
+            name="Daily UW positioning refresh",
+            max_instances=1,
+            coalesce=True,
         )
         if _is_primary_worker(settings):
             # Intraday OI refresh — UW-bound, single-flight advisory lock,

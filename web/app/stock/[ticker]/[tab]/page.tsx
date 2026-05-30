@@ -5,14 +5,13 @@ import { MarketStructureTab } from "@/components/stock/tabs/MarketStructureTab";
 import { VolatilityTab } from "@/components/stock/tabs/VolatilityTab";
 import { FlowTab } from "@/components/stock/tabs/FlowTab";
 import { TradeInsightsTab } from "@/components/stock/tabs/TradeInsightsTab";
-import { TradePlanTab } from "@/components/stock/tabs/TradePlanTab";
+import { FrameworkTab } from "@/components/stock/tabs/FrameworkTab";
 import { isStockReportNotReadyError } from "@/lib/stockNotReady";
 
 const REPORT_TABS = {
   "market-structure": MarketStructureTab,
   volatility: VolatilityTab,
   flow: FlowTab,
-  "trade-plan": TradePlanTab,
 } as const;
 
 export default async function TabPage({
@@ -23,6 +22,12 @@ export default async function TabPage({
   const { ticker, tab } = await params;
   if (tab === "trade-insights") {
     return <TradeInsightsTab ticker={ticker} />;
+  }
+  // The deterministic TradePlanTab was retired in the trade-framework-view
+  // work — `trade-plan` now renders the AI-driven FrameworkTab client island
+  // (polls per provider; only needs the ticker, no server `report` prop).
+  if (tab === "trade-plan") {
+    return <FrameworkTab ticker={ticker} />;
   }
   const Component = REPORT_TABS[tab as keyof typeof REPORT_TABS];
   if (!Component) notFound();

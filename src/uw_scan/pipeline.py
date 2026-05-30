@@ -21,10 +21,7 @@ from .cards import exposures as cards_exposures
 from .config import Settings
 from .models import MarketAggregates, ScanReport, ScanTickerResult, SingleStockReport
 from .reports.scan import assemble_scan_report
-from .reports.single_stock import (
-    assemble_single_stock_report,
-    build_trade_plan_for_report,
-)
+from .reports.single_stock import assemble_single_stock_report
 from .reports.trade_insights import (
     ASSEMBLER_VERSION,
     _stable_payload_hash,
@@ -327,12 +324,6 @@ def run_single_stock(
         setup = scoring.classify_setup_c(report)
         if setup is not None:
             report.setup = setup
-            # Build trade plan from contract snapshots in DB
-            contract_rows = repo.fetch_option_contracts(run_id, ticker)
-            trade_plan = build_trade_plan_for_report(report, contract_rows)
-            if trade_plan is not None:
-                report.trade_plan = trade_plan
-
         # Persist opportunity_scores — always at least one row per run
         if setup is not None:
             score_val = setup.score
@@ -359,26 +350,6 @@ def run_single_stock(
             warnings,
             notes,
         )
-
-        # Structure idea — always emit at least the bull-call-spread sketch when bull setup
-        if report.trade_plan is not None:
-            legs_dicts = [
-                {
-                    "option_symbol": leg.option_symbol,
-                    "side": leg.side,
-                    "strike": str(leg.strike),
-                    "expiry": leg.expiry.isoformat(),
-                    "mid": str(leg.mid) if leg.mid is not None else None,
-                }
-                for leg in report.trade_plan.legs
-            ]
-            repo.insert_structure_idea(
-                run_id,
-                ticker,
-                report.trade_plan.structure,
-                legs_dicts,
-                report.trade_plan.rationale,
-            )
 
         # 18. Per-ticker bulk-screener — feeds MarketAggregates on the report.
         screener_row = uw_sources.fetch_bulk_screener_ticker(

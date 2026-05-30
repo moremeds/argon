@@ -325,7 +325,6 @@ def test_assemble_single_stock_report_populates_sections():
 
     # Setup not yet classified at assembly time
     assert report.setup is None
-    assert report.trade_plan is None
 
     # Short-Int field note from spec
     assert "n/a" in report.short_int_note

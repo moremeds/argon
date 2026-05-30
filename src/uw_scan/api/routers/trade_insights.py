@@ -4,10 +4,10 @@ from __future__ import annotations
 
 from datetime import date as _date
 from decimal import Decimal
-from typing import Any
+from typing import Any, Literal
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 
 from uw_scan.api.deps import get_repo, get_settings
 from uw_scan.cards.gex import classify_bias, find_flip_strike
@@ -27,6 +27,15 @@ from uw_scan.models import (
     TradeInsightsResponse,
 )
 from uw_scan.reports.single_stock import assemble_single_stock_report
+from uw_scan.reports.trade_blast import (
+    PROMPT_VERSION as BLAST_PROMPT_VERSION,
+)
+from uw_scan.reports.trade_blast import (
+    build_trade_insights_ai_analysis_input as build_blast_analysis_input,
+)
+from uw_scan.reports.trade_blast import (
+    hash_trade_insights_ai_analysis_input as hash_blast_analysis_input,
+)
 from uw_scan.reports.trade_insights import (
     ASSEMBLER_VERSION,
     _stable_payload_hash,
@@ -125,23 +134,15 @@ def _row_to_ai_response(
     row: dict[str, Any],
     *,
     reused: bool = False,
+    current_version: str = PROMPT_VERSION,
 ) -> TradeInsightAiAnalysisResponse:
-    # Legacy read-back guard: outcome_jsonb persisted under any prior
-    # PROMPT_VERSION (v4, v5) will not satisfy the current schema's
-    # required fields, so model construction would raise ValidationError
-    # and 500 the endpoint. Drop the outcome and surface an explanatory
-    # error_message instead; the UI paints the "legacy, re-run" badge on
-    # top of this signal. The row itself (status, prompt_version, ids)
-    # still renders so the UI can offer a re-run button. Equality against
-    # PROMPT_VERSION is the single source of truth — works for every
-    # future version bump without code changes here.
     row_prompt_version = row.get("prompt_version")
     outcome_jsonb = row.get("outcome_jsonb")
-    if outcome_jsonb is not None and row_prompt_version != PROMPT_VERSION:
+    if outcome_jsonb is not None and row_prompt_version != current_version:
         outcome_jsonb = None
         legacy_note = (
             f"Outcome stored under prompt_version={row_prompt_version!r}; "
-            f"current version is {PROMPT_VERSION!r}. Re-run to render."
+            f"current version is {current_version!r}. Re-run to render."
         )
         error_message = row.get("error_message") or legacy_note
     else:
@@ -179,6 +180,8 @@ def _enqueue_one_provider(
     model_label: str,
     force_rerun: bool,
     repo: Repository,
+    prompt_version: str = PROMPT_VERSION,
+    analysis_kind: str = "insights",
 ) -> TradeInsightAiAnalysisStub:
     """Return a stub describing what happened for ONE provider — either a cache
     hit (reused=True) or a freshly enqueued row (reused=False)."""
@@ -186,9 +189,10 @@ def _enqueue_one_provider(
         reused = repo.find_reusable_trade_insight_ai_analysis(
             ticker=t,
             analysis_input_hash=analysis_hash,
-            prompt_version=PROMPT_VERSION,
+            prompt_version=prompt_version,
             model=model_label,
             provider=provider,
+            analysis_kind=analysis_kind,
         )
         if reused is not None:
             return TradeInsightAiAnalysisStub(
@@ -205,9 +209,10 @@ def _enqueue_one_provider(
         trade_insights_input_hash=trade_input_hash,
         analysis_input_hash=analysis_hash,
         analysis_input=analysis_input,
-        prompt_version=PROMPT_VERSION,
+        prompt_version=prompt_version,
         model=model_label,
         provider=provider,
+        analysis_kind=analysis_kind,
     )
     row = repo.get_trade_insight_ai_analysis(analysis_id, ticker=t)
     assert row is not None
@@ -241,6 +246,7 @@ def get_trade_insights(
 def post_trade_insights_ai_analysis(
     ticker: str,
     request: TradeInsightAiAnalysisRequest | None = None,
+    kind: Literal["insights", "blast"] = Query(default="insights"),
     repo: Repository = Depends(get_repo),
     settings: Settings = Depends(get_settings),
 ) -> TradeInsightAiAnalysisEnqueueResponse:
@@ -249,6 +255,9 @@ def post_trade_insights_ai_analysis(
     Response contains one stub per provider with status + reused + model.
     Disabled providers are omitted from the response (not included with a
     'disabled' status — the UI tab handles this via /latest = null).
+
+    ``kind`` selects the lane: ``insights`` (v5.3 card) or ``blast``
+    (trade-blast framework prompt).
     """
     t = ticker.upper()
     run_id = repo.latest_run_id(t)
@@ -263,6 +272,18 @@ def post_trade_insights_ai_analysis(
             status_code=503,
             detail="Trade Insights AI analysis is disabled (all providers)",
         )
+
+    is_blast = kind == "blast"
+    lane_prompt_version = BLAST_PROMPT_VERSION if is_blast else PROMPT_VERSION
+    lane_analysis_kind = "blast" if is_blast else "insights"
+    _build_analysis_input = (
+        build_blast_analysis_input
+        if is_blast
+        else build_trade_insights_ai_analysis_input
+    )
+    _hash_analysis_input = (
+        hash_blast_analysis_input if is_blast else hash_trade_insights_ai_analysis_input
+    )
 
     force_rerun = bool(request.force_rerun) if request is not None else False
     provider_filter: set[str] | None = (
@@ -283,7 +304,7 @@ def post_trade_insights_ai_analysis(
         backfill_status=backfill_status,
         persist_derived=False,
     )
-    analysis_input = build_trade_insights_ai_analysis_input(
+    analysis_input = _build_analysis_input(
         ticker=t,
         run_id=run_id,
         trade_insights_input_hash=trade_input_hash,
@@ -292,7 +313,7 @@ def post_trade_insights_ai_analysis(
         stock_history_payload=stock_history.model_dump(mode="json"),
         volatility_series_payload=volatility.model_dump(mode="json"),
     )
-    analysis_hash = hash_trade_insights_ai_analysis_input(analysis_input)
+    analysis_hash = _hash_analysis_input(analysis_input)
 
     stubs: list[TradeInsightAiAnalysisStub] = []
     if settings.trade_insights_ai_enabled and (
@@ -311,6 +332,8 @@ def post_trade_insights_ai_analysis(
                 model_label=model_label,
                 force_rerun=force_rerun,
                 repo=repo,
+                prompt_version=lane_prompt_version,
+                analysis_kind=lane_analysis_kind,
             )
         )
     if settings.trade_insights_ai_claude_enabled and (
@@ -331,6 +354,8 @@ def post_trade_insights_ai_analysis(
                 model_label=model_label,
                 force_rerun=force_rerun,
                 repo=repo,
+                prompt_version=lane_prompt_version,
+                analysis_kind=lane_analysis_kind,
             )
         )
     if settings.trade_insights_ai_deepseek_enabled and (
@@ -351,6 +376,8 @@ def post_trade_insights_ai_analysis(
                 model_label=model_label,
                 force_rerun=force_rerun,
                 repo=repo,
+                prompt_version=lane_prompt_version,
+                analysis_kind=lane_analysis_kind,
             )
         )
     repo.conn.commit()
@@ -451,30 +478,47 @@ def _current_prompt_label() -> str:
 )
 def get_latest_trade_insights_ai_analysis(
     ticker: str,
+    kind: Literal["insights", "blast"] = Query(default="insights"),
     repo: Repository = Depends(get_repo),
 ) -> TradeInsightAiLatestPair:
     """Latest terminal-state row per provider as a keyed dict.
 
-    Returns {codex: row|null, claude: row|null}. Succeeded rows take priority
-    over failed rows at the same finished_at; failed rows are returned (with
-    error_message populated) when no succeeded row exists, so the UI can
-    distinguish "never ran" from "ran and failed." 200 even when both are
-    null so the UI renders the empty Run state instead of a 404.
+    Returns {codex: row|null, claude: row|null, deepseek: row|null}.
+    Succeeded rows take priority over failed rows at the same finished_at;
+    failed rows are returned (with error_message populated) when no succeeded
+    row exists. 200 even when all are null so the UI renders the empty Run
+    state instead of a 404.
 
-    v5.2: also computes provider_consensus by comparing the two providers'
-    headlines when both have a succeeded outcome (failed rows are treated as
-    missing for consensus purposes — see _compute_provider_consensus).
+    ``kind`` selects the lane: ``insights`` (v5.3 card) or ``blast``
+    (trade-blast framework prompt).
     """
+    is_blast = kind == "blast"
+    current_version = BLAST_PROMPT_VERSION if is_blast else PROMPT_VERSION
     pair = repo.find_latest_trade_insight_ai_analyses_per_provider(
         ticker=ticker.upper(),
-        prompt_version=PROMPT_VERSION,
+        prompt_version=current_version,
+        analysis_kind="blast" if is_blast else "insights",
     )
-    codex = _row_to_ai_response(pair["codex"]) if pair["codex"] else None
-    claude = _row_to_ai_response(pair["claude"]) if pair["claude"] else None
-    deepseek = _row_to_ai_response(pair["deepseek"]) if pair["deepseek"] else None
+    codex = (
+        _row_to_ai_response(pair["codex"], current_version=current_version)
+        if pair["codex"]
+        else None
+    )
+    claude = (
+        _row_to_ai_response(pair["claude"], current_version=current_version)
+        if pair["claude"]
+        else None
+    )
+    deepseek = (
+        _row_to_ai_response(pair["deepseek"], current_version=current_version)
+        if pair["deepseek"]
+        else None
+    )
     return TradeInsightAiLatestPair(
-        current_prompt_version=PROMPT_VERSION,
-        current_prompt_label=_current_prompt_label(),
+        current_prompt_version=current_version,
+        current_prompt_label=current_version.removeprefix(
+            "trade-insights-ai-"
+        ).removeprefix("trade-blast-"),
         codex=codex,
         claude=claude,
         deepseek=deepseek,
@@ -494,7 +538,9 @@ def get_trade_insights_ai_analysis(
     row = repo.get_trade_insight_ai_analysis(str(analysis_id), ticker=ticker.upper())
     if row is None:
         raise HTTPException(status_code=404, detail="AI analysis not found")
-    return _row_to_ai_response(row)
+    row_kind = row.get("analysis_kind") or "insights"
+    cv = BLAST_PROMPT_VERSION if row_kind == "blast" else PROMPT_VERSION
+    return _row_to_ai_response(row, current_version=cv)
 
 
 @router.get(

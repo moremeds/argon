@@ -2,11 +2,25 @@
 
 from __future__ import annotations
 
+import json
 from datetime import datetime
 from typing import Any
 
 import psycopg
 from psycopg.types.json import Jsonb
+
+
+def _dumps_jsonb(obj: Any) -> str:
+    """JSON-encode a payload for a JSONB column, tolerating Decimal/date.
+
+    The analysis-input payload carries raw warm-store values (Decimal prices,
+    date snapshots) in its hand-built framework sections. psycopg's default
+    JSONB encoder rejects those; ``default=str`` matches the encoding the
+    content-hash and model-prompt consumers already use (Pydantic
+    ``model_dump(mode="json")`` plus ``json.dumps(default=str)``), keeping the
+    stored audit copy consistent with what was hashed and sent to the model.
+    """
+    return json.dumps(obj, default=str)
 
 
 def _trade_insight_candidate_params(
@@ -198,6 +212,7 @@ class _TradeInsightsAiMixin:
         prompt_version: str,
         model: str,
         provider: str = "codex",
+        analysis_kind: str = "insights",
     ) -> dict[str, Any] | None:
         sql = (
             f"SELECT * FROM {self._schema}.trade_insight_ai_analyses "
@@ -206,6 +221,7 @@ class _TradeInsightsAiMixin:
             "AND prompt_version = %s "
             "AND model = %s "
             "AND provider = %s "
+            "AND analysis_kind = %s "
             "AND status IN ('queued', 'running', 'succeeded') "
             "ORDER BY "
             "  CASE status WHEN 'succeeded' THEN 0 WHEN 'running' THEN 1 ELSE 2 END, "
@@ -223,6 +239,7 @@ class _TradeInsightsAiMixin:
                     prompt_version,
                     model,
                     provider,
+                    analysis_kind,
                 ),
             )
             row = cur.fetchone()
@@ -235,15 +252,16 @@ class _TradeInsightsAiMixin:
         self,
         *,
         ticker: str,
+        analysis_kind: str = "insights",
     ) -> dict[str, Any] | None:
         sql = (
             f"SELECT * FROM {self._schema}.trade_insight_ai_analyses "
-            "WHERE ticker = %s AND status = 'succeeded' "
+            "WHERE ticker = %s AND analysis_kind = %s AND status = 'succeeded' "
             "ORDER BY finished_at DESC NULLS LAST, requested_at DESC "
             "LIMIT 1"
         )
         with self._conn.cursor() as cur:
-            cur.execute(sql, (ticker.upper(),))
+            cur.execute(sql, (ticker.upper(), analysis_kind))
             row = cur.fetchone()
             if row is None:
                 return None
@@ -257,10 +275,12 @@ class _TradeInsightsAiMixin:
         prompt_version: str,
         model: str,
         provider: str = "codex",
+        analysis_kind: str = "insights",
     ) -> dict[str, Any] | None:
         sql = (
             f"SELECT * FROM {self._schema}.trade_insight_ai_analyses "
             "WHERE ticker = %s "
+            "AND analysis_kind = %s "
             "AND prompt_version = %s "
             "AND model = %s "
             "AND provider = %s "
@@ -273,7 +293,9 @@ class _TradeInsightsAiMixin:
             "LIMIT 1"
         )
         with self._conn.cursor() as cur:
-            cur.execute(sql, (ticker.upper(), prompt_version, model, provider))
+            cur.execute(
+                sql, (ticker.upper(), analysis_kind, prompt_version, model, provider)
+            )
             row = cur.fetchone()
             if row is None:
                 return None
@@ -285,6 +307,7 @@ class _TradeInsightsAiMixin:
         *,
         ticker: str,
         prompt_version: str,
+        analysis_kind: str = "insights",
     ) -> dict[str, dict[str, Any] | None]:
         """Latest terminal-state row per known provider as a keyed dict.
 
@@ -298,7 +321,7 @@ class _TradeInsightsAiMixin:
         """
         sql = (
             f"SELECT DISTINCT ON (provider) * FROM {self._schema}.trade_insight_ai_analyses "
-            "WHERE ticker = %s AND prompt_version = %s "
+            "WHERE ticker = %s AND analysis_kind = %s AND prompt_version = %s "
             "AND status IN ('succeeded', 'failed') "
             "ORDER BY provider, finished_at DESC NULLS LAST, "
             "  CASE status WHEN 'succeeded' THEN 0 ELSE 1 END, "
@@ -310,7 +333,7 @@ class _TradeInsightsAiMixin:
             "deepseek": None,
         }
         with self._conn.cursor() as cur:
-            cur.execute(sql, (ticker.upper(), prompt_version))
+            cur.execute(sql, (ticker.upper(), analysis_kind, prompt_version))
             rows = cur.fetchall()
             cols = [d.name for d in cur.description or []]
             for row in rows:
@@ -332,12 +355,14 @@ class _TradeInsightsAiMixin:
         prompt_version: str,
         model: str,
         provider: str = "codex",
+        analysis_kind: str = "insights",
     ) -> str:
         sql = (
             f"INSERT INTO {self._schema}.trade_insight_ai_analyses "
             "(snapshot_id, ticker, run_id, trade_insights_input_hash, "
-            "analysis_input_hash, analysis_input_jsonb, prompt_version, model, provider, status) "
-            "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, 'queued') "
+            "analysis_input_hash, analysis_input_jsonb, prompt_version, model, provider, "
+            "analysis_kind, status) "
+            "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 'queued') "
             "ON CONFLICT (ticker, analysis_input_hash, prompt_version, model, provider) "
             "WHERE status IN ('queued', 'running') "
             "DO NOTHING "
@@ -352,10 +377,11 @@ class _TradeInsightsAiMixin:
                     run_id,
                     trade_insights_input_hash,
                     analysis_input_hash,
-                    Jsonb(analysis_input),
+                    Jsonb(analysis_input, dumps=_dumps_jsonb),
                     prompt_version,
                     model,
                     provider,
+                    analysis_kind,
                 ),
             )
             row = cur.fetchone()

@@ -7,7 +7,7 @@ import math
 import re
 from typing import Any
 
-from uw_scan.reports.trade_insights_ai import FINAL_RATING_VALUES
+from uw_scan.reports._shared_validation import FINAL_RATING_VALUES
 
 logger = logging.getLogger(__name__)
 

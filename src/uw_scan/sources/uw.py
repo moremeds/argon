@@ -537,3 +537,49 @@ def fetch_etf_in_outflow(
         params={"start_date": start_date, "end_date": end_date},
     )
     return normalize.normalize_etf_in_outflow(body, ticker=ticker)
+
+
+# ---------------------------------------------------------------------------
+# Positioning fetchers (M4 trade-framework) — each returns an aggregated dict
+# keyed to uw_positioning columns. See normalize.py + storage/positioning.py.
+# ---------------------------------------------------------------------------
+def fetch_short_interest_float(
+    client: UwClient, repo: Repository, run_id: int, ticker: str
+) -> dict:
+    body = _fetch_json(client, repo, run_id, EndpointSlug.SHORT_INTEREST_FLOAT, ticker)
+    return normalize.normalize_short_interest_float(body)
+
+
+def fetch_analyst_ratings(
+    client: UwClient, repo: Repository, run_id: int, ticker: str
+) -> dict:
+    body = _fetch_json(
+        client,
+        repo,
+        run_id,
+        EndpointSlug.ANALYST_RATINGS,
+        None,
+        params={"ticker": ticker},
+    )
+    return normalize.normalize_analyst_ratings(body)
+
+
+def fetch_institution_ownership(
+    client: UwClient, repo: Repository, run_id: int, ticker: str
+) -> dict:
+    body = _fetch_json(client, repo, run_id, EndpointSlug.INSTITUTION_OWNERSHIP, ticker)
+    return normalize.normalize_institution_ownership(body)
+
+
+def fetch_insider_ticker_flow(
+    client: UwClient, repo: Repository, run_id: int, ticker: str
+) -> dict:
+    body = _fetch_json(client, repo, run_id, EndpointSlug.INSIDER_TICKER_FLOW, ticker)
+    return normalize.normalize_insider_ticker_flow(body)
+
+
+def fetch_earnings_history(
+    client: UwClient, repo: Repository, run_id: int, ticker: str
+) -> dict:
+    body = _fetch_json(client, repo, run_id, EndpointSlug.EARNINGS, ticker)
+    return normalize.normalize_earnings_history(body)

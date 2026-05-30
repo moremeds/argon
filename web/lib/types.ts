@@ -769,6 +769,9 @@ export interface paths {
          *     Response contains one stub per provider with status + reused + model.
          *     Disabled providers are omitted from the response (not included with a
          *     'disabled' status — the UI tab handles this via /latest = null).
+         *
+         *     ``kind`` selects the lane: ``insights`` (v5.3 card) or ``blast``
+         *     (trade-blast framework prompt).
          */
         post: operations["post_trade_insights_ai_analysis_api_stock__ticker__trade_insights_ai_analysis_post"];
         delete?: never;
@@ -788,15 +791,14 @@ export interface paths {
          * Get Latest Trade Insights Ai Analysis
          * @description Latest terminal-state row per provider as a keyed dict.
          *
-         *     Returns {codex: row|null, claude: row|null}. Succeeded rows take priority
-         *     over failed rows at the same finished_at; failed rows are returned (with
-         *     error_message populated) when no succeeded row exists, so the UI can
-         *     distinguish "never ran" from "ran and failed." 200 even when both are
-         *     null so the UI renders the empty Run state instead of a 404.
+         *     Returns {codex: row|null, claude: row|null, deepseek: row|null}.
+         *     Succeeded rows take priority over failed rows at the same finished_at;
+         *     failed rows are returned (with error_message populated) when no succeeded
+         *     row exists. 200 even when all are null so the UI renders the empty Run
+         *     state instead of a 404.
          *
-         *     v5.2: also computes provider_consensus by comparing the two providers'
-         *     headlines when both have a succeeded outcome (failed rows are treated as
-         *     missing for consensus purposes — see _compute_provider_consensus).
+         *     ``kind`` selects the lane: ``insights`` (v5.3 card) or ``blast``
+         *     (trade-blast framework prompt).
          */
         get: operations["get_latest_trade_insights_ai_analysis_api_stock__ticker__trade_insights_ai_analysis_latest_get"];
         put?: never;
@@ -4382,7 +4384,6 @@ export interface components {
             strike_gex_curve: components["schemas"]["StrikeGexBucket"][];
             /** Ticker */
             ticker: string;
-            trade_plan?: components["schemas"]["TradePlan"] | null;
             volatility: components["schemas"]["VolatilityProfile"];
             vrp: components["schemas"]["VRPAssessment"];
         };
@@ -4596,6 +4597,220 @@ export interface components {
             strikes: {
                 [key: string]: string;
             };
+        };
+        /** TradeFramework */
+        TradeFramework: {
+            best_setup: components["schemas"]["TradeFrameworkBestSetup"];
+            /** Bottom Line */
+            bottom_line: string;
+            /** Candidates */
+            candidates?: components["schemas"]["TradeFrameworkCandidate"][];
+            catalyst: components["schemas"]["TradeFrameworkCatalyst"];
+            confluence: components["schemas"]["TradeFrameworkConfluence"];
+            conviction: components["schemas"]["TradeFrameworkConviction"];
+            gamma: components["schemas"]["TradeFrameworkGamma"];
+            header: components["schemas"]["TradeFrameworkHeader"];
+            /** Pitfalls */
+            pitfalls?: components["schemas"]["TradeFrameworkPitfall"][];
+            three_axis: components["schemas"]["TradeFrameworkThreeAxis"];
+            /** What Changes */
+            what_changes?: components["schemas"]["TradeFrameworkWhatChanges"][];
+        };
+        /** TradeFrameworkAsymmetry */
+        TradeFrameworkAsymmetry: {
+            /** Prose */
+            prose: string;
+            /** Rule On */
+            rule_on: boolean;
+            /**
+             * Structure Family
+             * @enum {string}
+             */
+            structure_family: "directional_defined_risk" | "pin_vega";
+        };
+        /** TradeFrameworkBestSetup */
+        TradeFrameworkBestSetup: {
+            /** Cost */
+            cost?: string | null;
+            /** Invalidation */
+            invalidation: string;
+            /** Legs */
+            legs?: string[];
+            /** Max Risk */
+            max_risk?: string | null;
+            /** Rationale */
+            rationale: string;
+            /** Structure */
+            structure: string;
+            /**
+             * Why Not Alternatives
+             * @default
+             */
+            why_not_alternatives: string;
+        };
+        /** TradeFrameworkCandidate */
+        TradeFrameworkCandidate: {
+            /** Debit Credit */
+            debit_credit?: string | null;
+            /** Defined Risk */
+            defined_risk: boolean;
+            /** Legs */
+            legs?: string[];
+            /** Name */
+            name: string;
+            /** Net Delta */
+            net_delta?: string | null;
+            /** Net Vega */
+            net_vega?: string | null;
+            /** Pnl Base */
+            pnl_base?: string | null;
+            /** Pnl Bear */
+            pnl_bear?: string | null;
+            /** Pnl Bull */
+            pnl_bull?: string | null;
+        };
+        /** TradeFrameworkCatalyst */
+        TradeFrameworkCatalyst: {
+            /** Dte To Er */
+            dte_to_er?: number | null;
+            /**
+             * Handling
+             * @enum {string}
+             */
+            handling: "exit_before_print" | "stand_aside" | "hold_through_leaps";
+            /** Implied Move */
+            implied_move?: string | null;
+            /** Next Er Date */
+            next_er_date?: string | null;
+            /** Prose */
+            prose: string;
+        };
+        /** TradeFrameworkConfluence */
+        TradeFrameworkConfluence: {
+            /** Aligned */
+            aligned: boolean;
+            /**
+             * Prose
+             * @default
+             */
+            prose: string;
+            /** Signals */
+            signals?: components["schemas"]["TradeFrameworkSignal"][];
+        };
+        /** TradeFrameworkConviction */
+        TradeFrameworkConviction: {
+            /** Factors */
+            factors: components["schemas"]["TradeFrameworkFactor"][];
+            /**
+             * Prose
+             * @default
+             */
+            prose: string;
+            /** Score */
+            score: number;
+        };
+        /** TradeFrameworkDirection */
+        TradeFrameworkDirection: {
+            /** Prose */
+            prose: string;
+            /**
+             * Verdict
+             * @enum {string}
+             */
+            verdict: "bull" | "bear" | "neutral";
+        };
+        /** TradeFrameworkFactor */
+        TradeFrameworkFactor: {
+            /** Name */
+            name: string;
+            /**
+             * Note
+             * @default
+             */
+            note: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "yes" | "no" | "na";
+        };
+        /** TradeFrameworkGamma */
+        TradeFrameworkGamma: {
+            /** Call Wall */
+            call_wall?: string | null;
+            /** Flip Strike */
+            flip_strike?: string | null;
+            /** Prose */
+            prose: string;
+            /** Put Wall */
+            put_wall?: string | null;
+            /**
+             * Regime
+             * @enum {string}
+             */
+            regime: "short" | "long";
+        };
+        /** TradeFrameworkHeader */
+        TradeFrameworkHeader: {
+            /** Conviction N */
+            conviction_n: number;
+            /**
+             * Position Type
+             * @enum {string}
+             */
+            position_type: "swing" | "leaps" | "stand_aside";
+            /** Spot */
+            spot?: string | null;
+            /** Thesis One Liner */
+            thesis_one_liner: string;
+        };
+        /** TradeFrameworkPitfall */
+        TradeFrameworkPitfall: {
+            /** Id */
+            id: string;
+            /**
+             * Note
+             * @default
+             */
+            note: string;
+            /** Title */
+            title: string;
+            /** Triggered */
+            triggered: boolean;
+        };
+        /** TradeFrameworkSignal */
+        TradeFrameworkSignal: {
+            /** Direction */
+            direction: string;
+            /** Name */
+            name: string;
+        };
+        /** TradeFrameworkThreeAxis */
+        TradeFrameworkThreeAxis: {
+            asymmetry: components["schemas"]["TradeFrameworkAsymmetry"];
+            direction: components["schemas"]["TradeFrameworkDirection"];
+            vega: components["schemas"]["TradeFrameworkVega"];
+        };
+        /** TradeFrameworkVega */
+        TradeFrameworkVega: {
+            /** Ivr */
+            ivr?: string | null;
+            /** Prose */
+            prose: string;
+            /**
+             * Regime
+             * @enum {string}
+             */
+            regime: "event_iv" | "demand_iv" | "low_iv";
+            /** Term Slope */
+            term_slope?: string | null;
+        };
+        /** TradeFrameworkWhatChanges */
+        TradeFrameworkWhatChanges: {
+            /** Effect */
+            effect: string;
+            /** Signal */
+            signal: string;
         };
         /**
          * TradeInsightAiAnalysisEnqueueResponse
@@ -4977,6 +5192,7 @@ export interface components {
             conflicts?: components["schemas"]["TradeInsightAiConflict"][];
             dominant_read: components["schemas"]["TradeInsightAiDominantRead"];
             entry_trigger?: components["schemas"]["TradeInsightAiTriggerComponent"];
+            framework?: components["schemas"]["TradeFramework"] | null;
             guardrails: components["schemas"]["TradeInsightAiGuardrails"];
             headline: components["schemas"]["TradeInsightAiHeadline"];
             invalidation?: components["schemas"]["TradeInsightAiTriggerComponent"];
@@ -5523,40 +5739,6 @@ export interface components {
             term_structure_table: components["schemas"]["TermMoveRow"][];
             /** Ticker */
             ticker: string;
-        };
-        /** TradePlan */
-        TradePlan: {
-            /** Direction */
-            direction: string;
-            /**
-             * Legs
-             * @default []
-             */
-            legs: components["schemas"]["TradePlanLeg"][];
-            /** Max Loss */
-            max_loss?: string | null;
-            /** Max Profit */
-            max_profit?: string | null;
-            /** Rationale */
-            rationale: string;
-            /** Structure */
-            structure: string;
-        };
-        /** TradePlanLeg */
-        TradePlanLeg: {
-            /**
-             * Expiry
-             * Format: date
-             */
-            expiry: string;
-            /** Mid */
-            mid?: string | null;
-            /** Option Symbol */
-            option_symbol: string;
-            /** Side */
-            side: string;
-            /** Strike */
-            strike: string;
         };
         /** VRPAssessment */
         VRPAssessment: {
@@ -7478,7 +7660,9 @@ export interface operations {
     };
     post_trade_insights_ai_analysis_api_stock__ticker__trade_insights_ai_analysis_post: {
         parameters: {
-            query?: never;
+            query?: {
+                kind?: "insights" | "blast";
+            };
             header?: never;
             path: {
                 ticker: string;
@@ -7513,7 +7697,9 @@ export interface operations {
     };
     get_latest_trade_insights_ai_analysis_api_stock__ticker__trade_insights_ai_analysis_latest_get: {
         parameters: {
-            query?: never;
+            query?: {
+                kind?: "insights" | "blast";
+            };
             header?: never;
             path: {
                 ticker: string;

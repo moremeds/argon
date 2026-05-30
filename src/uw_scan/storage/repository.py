@@ -25,6 +25,7 @@ from .flow import (
     _flow_footprint_label,  # noqa: F401
     _FlowMixin,
 )
+from .fundamentals import _FundamentalsMixin
 from .gex import _GexMixin
 from .gold import _GoldMixin
 from .gold_etf import _GoldEtfMixin
@@ -34,6 +35,7 @@ from .market_data import _MarketDataMixin
 from .matrix_state import _MatrixStateMixin
 from .options import _OptionsMixin
 from .pipeline_benchmark import _PipelineBenchmarkMixin
+from .positioning import _PositioningMixin
 from .rates_repository import _RatesMixin
 from .regime_classification_repository import (  # noqa: F401
     ClassificationRunAlreadyExists,
@@ -100,6 +102,7 @@ class Repository(
     _ExternalApiMixin,
     _FetchersMixin,
     _FlowMixin,
+    _FundamentalsMixin,
     _GexMixin,
     _GoldMixin,
     _GoldEtfMixin,
@@ -109,6 +112,7 @@ class Repository(
     _MatrixStateMixin,
     _OptionsMixin,
     _PipelineBenchmarkMixin,
+    _PositioningMixin,
     _RatesMixin,
     _ScanOutputsMixin,
     _ScanResultsMixin,

@@ -26,6 +26,24 @@ from .trade_insights_ai_parts.base import (
     TradeIntent,
     UnderlyingPath,
 )
+from .trade_insights_ai_parts.framework import (
+    TradeFramework,
+    TradeFrameworkAsymmetry,
+    TradeFrameworkBestSetup,
+    TradeFrameworkCandidate,
+    TradeFrameworkCatalyst,
+    TradeFrameworkConfluence,
+    TradeFrameworkConviction,
+    TradeFrameworkDirection,
+    TradeFrameworkFactor,
+    TradeFrameworkGamma,
+    TradeFrameworkHeader,
+    TradeFrameworkPitfall,
+    TradeFrameworkSignal,
+    TradeFrameworkThreeAxis,
+    TradeFrameworkVega,
+    TradeFrameworkWhatChanges,
+)
 
 
 class TradeInsightAiDominantRead(TradeInsightAiBase):
@@ -473,6 +491,7 @@ class TradeInsightAiOutcome(TradeInsightAiBase):
     missing_data: list[str] = Field(default_factory=list)
     rendering: TradeInsightAiRendering
     guardrails: TradeInsightAiGuardrails
+    framework: TradeFramework | None = None
 
 
 class TradeInsightAiAnalysisRequest(TradeInsightAiBase):
@@ -610,4 +629,20 @@ _preserve_public_module(
     TradeInsightAiLatestPair,
     TradeInsightAiPriorRow,
     TradeInsightAiPriorsResponse,
+    TradeFramework,
+    TradeFrameworkHeader,
+    TradeFrameworkThreeAxis,
+    TradeFrameworkDirection,
+    TradeFrameworkVega,
+    TradeFrameworkAsymmetry,
+    TradeFrameworkGamma,
+    TradeFrameworkCatalyst,
+    TradeFrameworkConviction,
+    TradeFrameworkFactor,
+    TradeFrameworkConfluence,
+    TradeFrameworkSignal,
+    TradeFrameworkPitfall,
+    TradeFrameworkCandidate,
+    TradeFrameworkBestSetup,
+    TradeFrameworkWhatChanges,
 )

@@ -11,11 +11,12 @@ from __future__ import annotations
 
 import hashlib
 import json
-from datetime import datetime, timezone
+from datetime import datetime
 from decimal import Decimal
 from typing import Any
 
 from uw_scan.models import TradeInsightAiOutcome
+from uw_scan.reports._shared_validation.util import _iso_z  # noqa: F401
 
 from .prompt_text import (
     CONTRACT_PROMPT,
@@ -206,12 +207,6 @@ def _strip_volatile_for_hash(value: Any) -> Any:
 def _canonical_hash(payload: dict[str, Any]) -> str:
     encoded = json.dumps(payload, sort_keys=True, separators=(",", ":"), default=str)
     return hashlib.sha256(encoded.encode("utf-8")).hexdigest()
-
-
-def _iso_z(dt: datetime) -> str:
-    if dt.tzinfo is None:
-        dt = dt.replace(tzinfo=timezone.utc)
-    return dt.astimezone(timezone.utc).isoformat().replace("+00:00", "Z")
 
 
 def build_trade_insights_ai_analysis_input(

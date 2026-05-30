@@ -4,8 +4,8 @@ from __future__ import annotations
 
 from typing import Any
 
-from uw_scan.reports.trade_insights_ai import DIRECTIONAL_BIAS_VALUES
-from uw_scan.reports.trade_insights_ai.leniency.normalization import (
+from uw_scan.reports._shared_validation import DIRECTIONAL_BIAS_VALUES
+from uw_scan.reports._shared_validation.leniency.normalization import (
     _STANCE_SEPARATOR_RE,
 )
 

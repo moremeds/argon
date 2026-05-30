@@ -5,15 +5,13 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any
 
-from uw_scan.reports.trade_insights_ai import (
+from uw_scan.reports._shared_validation import (
     DTE_BAND_VALUES,
     ENTRY_STATE_VALUES,
-    PROMPT_VERSION,
     TRADE_INTENT_VALUES,
     UNDERLYING_PATH_VALUES,
-    _iso_z,
 )
-from uw_scan.reports.trade_insights_ai.leniency.candidates import (
+from uw_scan.reports._shared_validation.leniency.candidates import (
     _candidate_map_from_payload,
     _coerce_best_expression,
     _coerce_conflict,
@@ -26,7 +24,7 @@ from uw_scan.reports.trade_insights_ai.leniency.candidates import (
     _coerce_section_card,
     _coerce_vrp_assessment,
 )
-from uw_scan.reports.trade_insights_ai.leniency.normalization import (
+from uw_scan.reports._shared_validation.leniency.normalization import (
     _PARTIAL_OUTPUT_NOTE,
     _dict_or_empty,
     _int_or,
@@ -36,13 +34,13 @@ from uw_scan.reports.trade_insights_ai.leniency.normalization import (
     _str_list,
     _str_or,
 )
-from uw_scan.reports.trade_insights_ai.leniency.triggers import (
+from uw_scan.reports._shared_validation.leniency.triggers import (
     _coerce_anti_pin,
     _coerce_target_feasibility,
     _coerce_trigger_component,
     _coerce_trigger_evidence,
 )
-from uw_scan.reports.trade_insights_ai.leniency.vocabulary import (
+from uw_scan.reports._shared_validation.leniency.vocabulary import (
     _DTE_BAND_ALIASES,
     _ENTRY_STATE_ALIASES,
     _THESIS_ARCHETYPE_ALIASES,
@@ -52,6 +50,8 @@ from uw_scan.reports.trade_insights_ai.leniency.vocabulary import (
     _resolve_directional_bias,
     _resolve_with_alias,
 )
+from uw_scan.reports._shared_validation.util import _iso_z
+from uw_scan.reports.trade_insights_ai.prompt_text import PROMPT_VERSION
 
 
 def _coerce_claude_outcome_dict(
