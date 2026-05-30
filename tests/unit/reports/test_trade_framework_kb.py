@@ -4,7 +4,7 @@ from __future__ import annotations
 
 
 def test_kb_contains_core_anchors():
-    from uw_scan.reports.trade_insights_ai.trade_framework_kb import (
+    from uw_scan.reports.trade_blast.trade_framework_kb import (
         TRADE_FRAMEWORK_KNOWLEDGE,
     )
 
@@ -17,7 +17,7 @@ def test_kb_contains_core_anchors():
 
 
 def test_kb_sections_ordered():
-    from uw_scan.reports.trade_insights_ai.trade_framework_kb import (
+    from uw_scan.reports.trade_blast.trade_framework_kb import (
         TRADE_FRAMEWORK_KNOWLEDGE,
     )
 

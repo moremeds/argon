@@ -11,20 +11,23 @@ from __future__ import annotations
 
 import hashlib
 import json
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from decimal import Decimal
 from typing import Any
 
+from uw_scan.cards.framework_tape import derive_framework_tape
 from uw_scan.models import TradeInsightAiOutcome
 
 from .prompt_text import (
     CONTRACT_PROMPT,
     DIRECTIONAL_SWING_STRUCTURES,
     FINAL_RATING_VALUES,
+    FRAMEWORK_DIRECTIVE,
     MARKET_INTELLIGENCE_PROMPT,
     PROMPT_VERSION,
     RANGE_INCOME_STRUCTURES,
     STRATEGY_FAMILY_IDS,
+    TRADE_FRAMEWORK_KNOWLEDGE,
 )
 
 _VOLATILE_HASH_KEYS = {
@@ -37,6 +40,12 @@ _VOLATILE_HASH_KEYS = {
     "prompt_text",
     "requested_at",
     "output_schema_jsonb",
+    # Framework-view freshness fields are wall-clock-derived: exclude them so
+    # the analysis_input_hash stays stable when the underlying data vintage
+    # (snapshot_date / period_end) is unchanged. Without this, the cache-reuse
+    # key would bust every calendar day.
+    "age_days",
+    "stale",
 }
 
 
@@ -214,6 +223,107 @@ def _iso_z(dt: datetime) -> str:
     return dt.astimezone(timezone.utc).isoformat().replace("+00:00", "Z")
 
 
+# --------------------------------------------------------------------------- #
+# Framework view (M6) — na-tolerant payload sections. Each returns an explicit
+# availability flag and, where a freshness TTL applies, a stale flag + age_days
+# computed from the stored snapshot/period date. Absent inputs degrade to
+# {"available": False} — never omitted, never fabricated.
+# --------------------------------------------------------------------------- #
+def _age_days_from(value: Any) -> int | None:
+    if value is None:
+        return None
+    if isinstance(value, str):
+        try:
+            value = date.fromisoformat(value[:10])
+        except ValueError:
+            return None
+    if isinstance(value, datetime):
+        value = value.date()
+    if isinstance(value, date):
+        return (datetime.now(timezone.utc).date() - value).days
+    return None
+
+
+def _framework_positioning_section(payload: dict[str, Any] | None) -> dict[str, Any]:
+    if not payload:
+        return {"available": False}
+    age = _age_days_from(payload.get("snapshot_date"))
+    out: dict[str, Any] = {
+        "available": True,
+        "stale": age is not None and age > 7,  # ~5 trading days
+        "age_days": age,
+        "snapshot_date": payload.get("snapshot_date"),
+    }
+    for key in (
+        "si_pct_float",
+        "si_short_interest",
+        "si_days_to_cover",
+        "analyst_buy",
+        "analyst_hold",
+        "analyst_sell",
+        "analyst_target_avg",
+        "analyst_target_hi",
+        "analyst_target_lo",
+        "inst_holder_count",
+        "inst_total_value",
+        "insider_buy_volume",
+        "insider_sell_volume",
+        "insider_net_flow",
+        "earn_reactions_positive",
+        "earn_reactions_total",
+        "next_er_date",
+    ):
+        out[key] = payload.get(key)
+    return out
+
+
+def _framework_fundamentals_section(payload: dict[str, Any] | None) -> dict[str, Any]:
+    if not payload:
+        return {"available": False}
+    age = _age_days_from(payload.get("period_end"))
+    out: dict[str, Any] = {
+        "available": True,
+        "stale": age is not None and age > 100,
+        "age_days": age,
+        "period_end": payload.get("period_end"),
+        "fiscal_period": payload.get("fiscal_period"),
+    }
+    for key in (
+        "revenue",
+        "gross_margin",
+        "op_margin",
+        "net_margin",
+        "fcf",
+        "total_debt",
+        "shareholders_equity",
+        "diluted_shares",
+        "share_count_delta",
+        "latest_dividend_amount",
+        "last_split_ratio",
+    ):
+        out[key] = payload.get(key)
+    return out
+
+
+def _framework_macro_section(payload: dict[str, Any] | None) -> dict[str, Any]:
+    if not payload:
+        return {"available": False}
+    age = _age_days_from(payload.get("as_of"))
+    out: dict[str, Any] = {
+        "available": True,
+        "stale": age is not None and age > 1,
+        "age_days": age,
+    }
+    out.update({k: v for k, v in payload.items() if k != "available"})
+    return out
+
+
+def _framework_flow_series_section(payload: dict[str, Any] | None) -> dict[str, Any]:
+    if not payload:
+        return {"available": False}
+    return {"available": True, **{k: v for k, v in payload.items() if k != "available"}}
+
+
 def build_trade_insights_ai_analysis_input(
     *,
     ticker: str,
@@ -223,6 +333,12 @@ def build_trade_insights_ai_analysis_input(
     stock_report_payload: dict[str, Any],
     stock_history_payload: dict[str, Any],
     volatility_series_payload: dict[str, Any],
+    positioning_payload: dict[str, Any] | None = None,
+    fundamentals_payload: dict[str, Any] | None = None,
+    macro_payload: dict[str, Any] | None = None,
+    flow_series_payload: dict[str, Any] | None = None,
+    ohlcv_rows: list[Any] | None = None,
+    next_er_date: date | None = None,
 ) -> dict[str, Any]:
     """Build the bounded deterministic payload captured at POST time."""
 
@@ -297,6 +413,20 @@ def build_trade_insights_ai_analysis_input(
     event_data_known = next_earnings_date is not None
     if not event_data_known:
         missing_data.append("tabs.positioning.next_earnings_date is empty")
+
+    # Framework view (M6): na-tolerant sections. Each degrades to
+    # {"available": False} when its input is absent — never omitted, never
+    # fabricated. next_er_date falls back to the positioning snapshot.
+    positioning_section = _framework_positioning_section(positioning_payload)
+    fundamentals_section = _framework_fundamentals_section(fundamentals_payload)
+    macro_section = _framework_macro_section(macro_payload)
+    flow_series_section = _framework_flow_series_section(flow_series_payload)
+    effective_er_date = next_er_date or (
+        positioning_payload.get("next_er_date") if positioning_payload else None
+    )
+    tape_section = derive_framework_tape(
+        ohlcv_rows or [], next_earnings_date=effective_er_date
+    )
 
     analysis_input: dict[str, Any] = {
         "prompt_version": PROMPT_VERSION,
@@ -407,6 +537,14 @@ def build_trade_insights_ai_analysis_input(
         "candidate_structures": trade_candidates,
         "required_before_sizing": list(synthesis.get("required_before_sizing") or []),
         "event_data_known": event_data_known,
+        # Framework view (M6): the model reads these for the positioning /
+        # fundamentals / macro / flow / price-action axes. Always present;
+        # each carries an explicit availability flag.
+        "positioning": positioning_section,
+        "fundamentals": fundamentals_section,
+        "macro": macro_section,
+        "flow_series": flow_series_section,
+        "tape": tape_section,
         "data_freshness": _build_data_freshness(
             stock_history_rows=stock_history_rows,
             hv_iv_history=hv_iv_history,
@@ -508,6 +646,10 @@ def build_trade_insights_ai_prompt(prompt_payload: dict[str, Any]) -> str:
     return (
         f"{MARKET_INTELLIGENCE_PROMPT}\n\n"
         f"{CONTRACT_PROMPT}\n\n"
+        "═══════════════════════════════════════════════════════════════════════════\n"
+        "TRADE FRAMEWORK KNOWLEDGE (embedded reference — apply the methodology below)\n"
+        "═══════════════════════════════════════════════════════════════════════════\n"
+        f"{TRADE_FRAMEWORK_KNOWLEDGE}\n\n"
         "Integration notes for this local JSON runner:\n"
         "Analyze only the supplied combined deterministic prompt payload below.\n"
         "Do not fetch outside data. Do not use tools. Do not invent unavailable fields.\n"
@@ -668,7 +810,8 @@ def build_trade_insights_ai_prompt(prompt_payload: dict[str, Any]) -> str:
         "Keep the markdown output (rendering.markdown if emitted) under ~3 KB / ~400 words. "
         "Do not repeat any table. Do not list more than 2 required_checks or more than 2 "
         "conflicts. Do not emit a Strategy Selection 12-row grid — only rejected_ideas "
-        "(min 3, max 5).\n"
+        "(min 3, max 5).\n\n"
+        f"{FRAMEWORK_DIRECTIVE}\n\n"
         "Emit only JSON conforming to the TradeInsightAiOutcome schema.\n\n"
         "Payload:\n"
         f"{payload_json}\n"

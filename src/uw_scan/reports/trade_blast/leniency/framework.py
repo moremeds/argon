@@ -17,7 +17,7 @@ from __future__ import annotations
 from decimal import Decimal, InvalidOperation
 from typing import Any
 
-from uw_scan.reports.trade_insights_ai.leniency.normalization import (
+from uw_scan.reports.trade_blast.leniency.normalization import (
     _dict_or_empty,
     _int_or,
     _list_or_empty,

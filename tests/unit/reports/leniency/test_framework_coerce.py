@@ -10,7 +10,7 @@ from __future__ import annotations
 from decimal import Decimal
 
 from uw_scan.models import TradeFramework
-from uw_scan.reports.trade_insights_ai.leniency.framework import (
+from uw_scan.reports.trade_blast.leniency.framework import (
     CANONICAL_CONVICTION_FACTORS,
     _coerce_framework,
 )

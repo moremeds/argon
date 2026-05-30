@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any
 
-from uw_scan.reports.trade_insights_ai import (
+from uw_scan.reports.trade_blast import (
     DTE_BAND_VALUES,
     ENTRY_STATE_VALUES,
     PROMPT_VERSION,
@@ -13,7 +13,7 @@ from uw_scan.reports.trade_insights_ai import (
     UNDERLYING_PATH_VALUES,
     _iso_z,
 )
-from uw_scan.reports.trade_insights_ai.leniency.candidates import (
+from uw_scan.reports.trade_blast.leniency.candidates import (
     _candidate_map_from_payload,
     _coerce_best_expression,
     _coerce_conflict,
@@ -26,7 +26,8 @@ from uw_scan.reports.trade_insights_ai.leniency.candidates import (
     _coerce_section_card,
     _coerce_vrp_assessment,
 )
-from uw_scan.reports.trade_insights_ai.leniency.normalization import (
+from uw_scan.reports.trade_blast.leniency.framework import _coerce_framework
+from uw_scan.reports.trade_blast.leniency.normalization import (
     _PARTIAL_OUTPUT_NOTE,
     _dict_or_empty,
     _int_or,
@@ -36,13 +37,13 @@ from uw_scan.reports.trade_insights_ai.leniency.normalization import (
     _str_list,
     _str_or,
 )
-from uw_scan.reports.trade_insights_ai.leniency.triggers import (
+from uw_scan.reports.trade_blast.leniency.triggers import (
     _coerce_anti_pin,
     _coerce_target_feasibility,
     _coerce_trigger_component,
     _coerce_trigger_evidence,
 )
-from uw_scan.reports.trade_insights_ai.leniency.vocabulary import (
+from uw_scan.reports.trade_blast.leniency.vocabulary import (
     _DTE_BAND_ALIASES,
     _ENTRY_STATE_ALIASES,
     _THESIS_ARCHETYPE_ALIASES,
@@ -390,4 +391,9 @@ def _coerce_claude_outcome_dict(
         "rendering": rendering,
         "guardrails": guardrails,
     }
+    # v6.0: additive framework{} block. Only coerce when the model emitted one
+    # — absent => omitted entirely so the field defaults to None and the
+    # semantic validator skips it (graceful for providers that drop the block).
+    if isinstance(data.get("framework"), dict):
+        coerced["framework"] = _coerce_framework(data["framework"], candidates)
     return coerced

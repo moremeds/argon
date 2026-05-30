@@ -11,7 +11,7 @@ from __future__ import annotations
 import pytest
 
 from uw_scan.models import TradeFramework, TradeInsightAiOutcome
-from uw_scan.reports.trade_insights_ai.validator_rules.framework import (
+from uw_scan.reports.trade_blast.validator_rules.framework import (
     _check_framework_rules,
 )
 

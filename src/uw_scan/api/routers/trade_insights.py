@@ -283,13 +283,6 @@ def post_trade_insights_ai_analysis(
         backfill_status=backfill_status,
         persist_derived=False,
     )
-    # Framework view (M6): request-time reads from the warm store (per the
-    # R2-vs-warm-store rule, API reads hit Postgres). All na-tolerant — the
-    # builder degrades each section to {"available": False} when absent.
-    positioning_payload = repo.get_uw_positioning(t)
-    fundamentals_payload = repo.get_massive_fundamentals(t)
-    ohlcv_rows = repo.list_daily_ohlc(t, limit=210)
-
     analysis_input = build_trade_insights_ai_analysis_input(
         ticker=t,
         run_id=run_id,
@@ -298,9 +291,6 @@ def post_trade_insights_ai_analysis(
         stock_report_payload=stock_report.model_dump(mode="json"),
         stock_history_payload=stock_history.model_dump(mode="json"),
         volatility_series_payload=volatility.model_dump(mode="json"),
-        positioning_payload=positioning_payload,
-        fundamentals_payload=fundamentals_payload,
-        ohlcv_rows=ohlcv_rows,
     )
     analysis_hash = hash_trade_insights_ai_analysis_input(analysis_input)
 

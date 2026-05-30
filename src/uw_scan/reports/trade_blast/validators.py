@@ -21,6 +21,7 @@ from .prompt_text import (
     PROMPT_VERSION,
     STRATEGY_FAMILY_IDS,
 )
+from .validator_rules.framework import _check_framework_rules
 from .validator_rules.identity import _candidate_map, _known_idea_id
 from .validator_rules.imperative import _reject_imperative_text
 from .validator_rules.sources import (
@@ -253,6 +254,9 @@ def validate_trade_insights_ai_outcome(
     _check_legs_match_strategy(parsed)
     _check_legs_align_with_triggers(parsed)
     _check_entry_state_derivation(parsed)
+    # v6.0: additive framework{} block invariants (conviction count, defined-risk,
+    # best_setup<->candidates linkage, stand_aside agreement). No-op when absent.
+    _check_framework_rules(parsed)
 
     # Strict: source_path validation raises on invalid prefixes.
     # Lenient: invalid prefixes are dropped to None with a missing_data note.
