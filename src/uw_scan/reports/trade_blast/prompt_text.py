@@ -7,104 +7,23 @@ share. Pure data — no I/O, no helpers that touch the DB.
 
 from __future__ import annotations
 
+from uw_scan.reports._shared_validation.constants import (  # noqa: F401
+    DIRECTIONAL_BIAS_VALUES,
+    DIRECTIONAL_SWING_STRUCTURES,
+    DTE_BAND_RANGES,
+    DTE_BAND_VALUES,
+    ENTRY_STATE_VALUES,
+    FINAL_RATING_VALUES,
+    PREFERRED_STRATEGY_FAMILY_IDS,
+    RANGE_INCOME_STRUCTURES,
+    STRATEGY_FAMILY_IDS,
+    TRADE_INTENT_VALUES,
+    UNDERLYING_PATH_VALUES,
+)
+
 from .trade_framework_kb import TRADE_FRAMEWORK_KNOWLEDGE
 
 PROMPT_VERSION = "trade-blast-v1"
-STRATEGY_FAMILY_IDS = frozenset(
-    {
-        "long_stock",
-        "long_call",
-        "long_put",
-        # Directional debit / credit verticals.
-        "call_debit_spread",
-        "put_debit_spread",
-        "bull_call_spread",
-        "bear_put_spread",
-        "call_credit_spread",
-        "put_credit_spread",
-        # Directional combo structures.
-        "risk_reversal",
-        "call_diagonal",
-        "put_diagonal",
-        # Range-income / neutral-vol structures.
-        "iron_condor",
-        "iron_butterfly",
-        "butterfly",
-        "calendar_spread",
-        # Income overlays — not swing-directional, but still valid rejected-idea
-        # references so the model can explain why they don't fit at this horizon.
-        "covered_call",
-        "cash_secured_put",
-        # Naked / undefined-risk — present so rejected_ideas can cite the safety
-        # override, never selectable as preferred.
-        "short_strangle",
-        "no_trade",
-    }
-)
-PREFERRED_STRATEGY_FAMILY_IDS = STRATEGY_FAMILY_IDS - {"short_strangle"}
-
-# v5 mode-aware structure whitelists. The validator enforces:
-#   trade_intent == directional_swing → preferred_expression.structure ∈
-#       DIRECTIONAL_SWING_STRUCTURES
-#   trade_intent == range_income      → preferred_expression.structure ∈
-#       RANGE_INCOME_STRUCTURES
-#
-# Iron condor and credit spreads are intentionally absent from
-# DIRECTIONAL_SWING_STRUCTURES — picking a vol-seller for a directional swing
-# is the exact failure mode v5 is built to prevent. They remain available in
-# range_income mode for explicitly-requested premium ideas.
-DIRECTIONAL_SWING_STRUCTURES = frozenset(
-    {
-        "long_call",
-        "long_put",
-        "call_debit_spread",
-        "put_debit_spread",
-        "bull_call_spread",
-        "bear_put_spread",
-        # call_diagonal / put_diagonal are defined-risk (long far leg covers the
-        # short near leg) — kept as a valid directional preferred expression.
-        "call_diagonal",
-        "put_diagonal",
-        # risk_reversal is INTENTIONALLY excluded. The short put leg is naked,
-        # which violates the project safety override ("no naked shorts in any
-        # strategy/trade-plan code — defined-risk only"). It remains in
-        # STRATEGY_FAMILY_IDS so rejected_ideas can cite it as out-of-policy.
-        "no_trade",
-    }
-)
-RANGE_INCOME_STRUCTURES = frozenset(
-    {
-        "iron_condor",
-        "iron_butterfly",
-        "butterfly",
-        "calendar_spread",
-        "call_credit_spread",
-        "put_credit_spread",
-        "no_trade",
-    }
-)
-# v5 vocab — exposed as tuples so the schema generator and lenient coercer
-# share one source of truth.
-TRADE_INTENT_VALUES = ("directional_swing", "range_income")
-DIRECTIONAL_BIAS_VALUES = ("LONG_DELTA", "SHORT_DELTA", "WAIT")
-ENTRY_STATE_VALUES = ("ACTIVE", "CONDITIONAL", "NO_ENTRY")
-UNDERLYING_PATH_VALUES = (
-    "bullish_continuation",
-    "bearish_rejection",
-    "downside_break",
-    "pinned_no_directional_entry",
-    "data_insufficient",
-)
-DTE_BAND_VALUES = ("momentum", "standard", "trend")
-# v5.1: the DTE band ranges the headline value must agree with. Validator
-# enforces that the chosen preferred_entry_expiry DTE falls inside the band.
-DTE_BAND_RANGES = {
-    "momentum": (14, 30),
-    "standard": (31, 44),
-    "trend": (45, 75),
-}
-
-FINAL_RATING_VALUES = ("A", "B", "C", "D", "F")
 
 MARKET_INTELLIGENCE_PROMPT = """You are analyzing ONE stock for a 5-10 trading-session DIRECTIONAL SWING entry.
 

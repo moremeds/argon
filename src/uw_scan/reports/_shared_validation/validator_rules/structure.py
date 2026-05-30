@@ -6,7 +6,7 @@ from decimal import Decimal
 from typing import Any
 
 from uw_scan.models import TradeInsightAiOutcome
-from uw_scan.reports.trade_blast.prompt_text import (
+from uw_scan.reports._shared_validation import (
     DIRECTIONAL_SWING_STRUCTURES,
     DTE_BAND_RANGES,
     RANGE_INCOME_STRUCTURES,

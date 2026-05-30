@@ -4,8 +4,8 @@ from __future__ import annotations
 
 from typing import Any
 
-from uw_scan.reports.trade_blast import STRATEGY_FAMILY_IDS
-from uw_scan.reports.trade_blast.leniency.normalization import (
+from uw_scan.reports._shared_validation import STRATEGY_FAMILY_IDS
+from uw_scan.reports._shared_validation.leniency.normalization import (
     _VRP_SIGNAL_FALLBACK,
     _VRP_VALID_SIGNALS,
     _dict_or_empty,
@@ -15,7 +15,7 @@ from uw_scan.reports.trade_blast.leniency.normalization import (
     _str_list,
     _str_or,
 )
-from uw_scan.reports.trade_blast.leniency.triggers import (
+from uw_scan.reports._shared_validation.leniency.triggers import (
     _coerce_option_legs,
     _coerce_strike_role,
     _market_structure_levels,

@@ -27,8 +27,9 @@ from .prompt_text import (
 )
 
 # Build pipeline + JSON Schema generator
+from uw_scan.reports._shared_validation.util import _iso_z  # noqa: F401,E402
+
 from .analysis_input import (
-    _iso_z,  # noqa: F401  # re-export for trade_insights_ai_lenient
     _to_decimal,  # noqa: F401  # re-export for tests/test_trade_insights_ai.py
     build_trade_insights_ai_analysis_input,
     build_trade_insights_ai_prompt,
@@ -40,8 +41,10 @@ from .analysis_input import (
 # Deterministic validators
 from .validators import validate_trade_insights_ai_outcome
 
-# Markdown audit rendering
-from .markdown import render_trade_insights_ai_markdown
+# Markdown audit rendering (shared)
+from uw_scan.reports._shared_validation.markdown import (  # noqa: E402
+    render_trade_insights_ai_markdown,
+)
 
 # Cross-module re-export (lenient module owns this; tests historically import
 # it via the trade_insights_ai namespace, so we keep the path stable).

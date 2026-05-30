@@ -1,9 +1,11 @@
 """Markdown rendering for Trade Insights AI outcomes (audit view)."""
+
 from __future__ import annotations
 
 from uw_scan.models import TradeInsightAiOutcome
 
-from .analysis_input import _iso_z
+from .util import _iso_z
+
 
 def render_trade_insights_ai_markdown(outcome: TradeInsightAiOutcome) -> str:
     """Render compact Markdown from validated structured output."""

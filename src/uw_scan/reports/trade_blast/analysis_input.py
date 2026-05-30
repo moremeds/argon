@@ -217,10 +217,7 @@ def _canonical_hash(payload: dict[str, Any]) -> str:
     return hashlib.sha256(encoded.encode("utf-8")).hexdigest()
 
 
-def _iso_z(dt: datetime) -> str:
-    if dt.tzinfo is None:
-        dt = dt.replace(tzinfo=timezone.utc)
-    return dt.astimezone(timezone.utc).isoformat().replace("+00:00", "Z")
+from uw_scan.reports._shared_validation.util import _iso_z  # noqa: F401
 
 
 # --------------------------------------------------------------------------- #

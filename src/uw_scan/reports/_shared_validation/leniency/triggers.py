@@ -6,13 +6,13 @@ import logging
 import math
 from typing import Any
 
-from uw_scan.reports.trade_blast.leniency.normalization import (
+from uw_scan.reports._shared_validation.leniency.normalization import (
     _dict_or_empty,
     _list_or_empty,
     _str_list,
     _str_or,
 )
-from uw_scan.reports.trade_blast.leniency.vocabulary import (
+from uw_scan.reports._shared_validation.leniency.vocabulary import (
     _ANTI_PIN_DIRECTION_ALIASES,
     _LONG_LEG_ROLE_ALIASES,
     _SHORT_LEG_ROLE_ALIASES,
