@@ -277,7 +277,7 @@ def validate_trade_insights_ai_outcome(
             try:
                 check()
             except ValueError as exc:
-                soft_warnings.append(str(exc))
+                soft_warnings.append(repr(exc))
         if soft_warnings:
             notes = list(parsed.missing_data)
             notes.extend(f"soft-validation: {w}" for w in soft_warnings)

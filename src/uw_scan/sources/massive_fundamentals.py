@@ -34,8 +34,8 @@ def _dec(value: Any) -> Decimal | None:
         return None
     try:
         return Decimal(str(value))
-    except (InvalidOperation, ValueError):
-        logger.debug("massive_fundamentals: non-numeric value %r", value)
+    except (InvalidOperation, ValueError) as exc:
+        logger.debug("non-numeric value %r: %s", value, repr(exc))
         return None
 
 
@@ -44,8 +44,8 @@ def _date_or_none(value: Any) -> date | None:
         return None
     try:
         return date.fromisoformat(str(value)[:10])
-    except ValueError:
-        logger.debug("massive_fundamentals: unparseable date %r", value)
+    except ValueError as exc:
+        logger.debug("unparseable date %r: %s", value, repr(exc))
         return None
 
 

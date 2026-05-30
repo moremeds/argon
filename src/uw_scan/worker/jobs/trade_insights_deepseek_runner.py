@@ -90,9 +90,12 @@ def _extract_json_from_text(text: str) -> str:
     try:
         _obj, end = json.JSONDecoder().raw_decode(text, start)
         return text[start:end]
-    except json.JSONDecodeError:
-        # Best-effort brace-depth fallback (string-unaware) if raw_decode could
-        # not parse a value at the first brace.
+    except json.JSONDecodeError as exc:
+        logger.debug(
+            "raw_decode failed at pos %d: %r, trying brace-depth fallback",
+            start,
+            repr(exc),
+        )
         depth = 0
         for i in range(start, len(text)):
             ch = text[i]

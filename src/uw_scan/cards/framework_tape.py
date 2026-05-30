@@ -12,9 +12,12 @@ fabricated value, never a crash. All math is `Decimal`. Rows may be
 
 from __future__ import annotations
 
+import logging
 from datetime import date
 from decimal import Decimal, InvalidOperation
 from typing import Any
+
+logger = logging.getLogger(__name__)
 
 # How many trailing trading days approximate six calendar months.
 _SIX_MONTH_BARS = 126
@@ -33,7 +36,8 @@ def _dec(value: Any) -> Decimal | None:
         return None
     try:
         return Decimal(str(value))
-    except (InvalidOperation, ValueError):
+    except (InvalidOperation, ValueError) as exc:
+        logger.debug("coercion skipped: %s", repr(exc))
         return None
 
 

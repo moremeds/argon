@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import logging
 from datetime import date, datetime, timezone
 from decimal import Decimal
 from typing import Any
@@ -30,6 +31,8 @@ from .prompt_text import (
     STRATEGY_FAMILY_IDS,
     TRADE_FRAMEWORK_KNOWLEDGE,
 )
+
+logger = logging.getLogger(__name__)
 
 _VOLATILE_HASH_KEYS = {
     "analysis_input_hash",
@@ -230,7 +233,8 @@ def _age_days_from(value: Any) -> int | None:
     if isinstance(value, str):
         try:
             value = date.fromisoformat(value[:10])
-        except ValueError:
+        except ValueError as exc:
+            logger.debug("unparseable date %r: %s", value, repr(exc))
             return None
     if isinstance(value, datetime):
         value = value.date()

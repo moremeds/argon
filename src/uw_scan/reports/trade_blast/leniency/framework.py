@@ -14,6 +14,7 @@ validator REJECTS a naked candidate rather than silently passing it (fail-safe).
 
 from __future__ import annotations
 
+import logging
 from decimal import Decimal, InvalidOperation
 from typing import Any
 
@@ -23,6 +24,8 @@ from uw_scan.reports._shared_validation.leniency.normalization import (
     _list_or_empty,
     _str_or,
 )
+
+logger = logging.getLogger(__name__)
 
 # The 8 canonical bull-conviction factors, verbatim from the embedded KB
 # (references/strategies.md / pitfall 24). Order is contract-significant: the
@@ -71,7 +74,8 @@ def _decimal_or_none(value: Any) -> Decimal | None:
             return None
         try:
             return Decimal(text)
-        except (InvalidOperation, ValueError):
+        except (InvalidOperation, ValueError) as exc:
+            logger.debug("non-numeric decimal value %r: %r", text, repr(exc))
             return None
     return None
 
