@@ -249,15 +249,16 @@ class _TradeInsightsAiMixin:
         self,
         *,
         ticker: str,
+        analysis_kind: str = "insights",
     ) -> dict[str, Any] | None:
         sql = (
             f"SELECT * FROM {self._schema}.trade_insight_ai_analyses "
-            "WHERE ticker = %s AND status = 'succeeded' "
+            "WHERE ticker = %s AND analysis_kind = %s AND status = 'succeeded' "
             "ORDER BY finished_at DESC NULLS LAST, requested_at DESC "
             "LIMIT 1"
         )
         with self._conn.cursor() as cur:
-            cur.execute(sql, (ticker.upper(),))
+            cur.execute(sql, (ticker.upper(), analysis_kind))
             row = cur.fetchone()
             if row is None:
                 return None
@@ -271,10 +272,12 @@ class _TradeInsightsAiMixin:
         prompt_version: str,
         model: str,
         provider: str = "codex",
+        analysis_kind: str = "insights",
     ) -> dict[str, Any] | None:
         sql = (
             f"SELECT * FROM {self._schema}.trade_insight_ai_analyses "
             "WHERE ticker = %s "
+            "AND analysis_kind = %s "
             "AND prompt_version = %s "
             "AND model = %s "
             "AND provider = %s "
@@ -287,7 +290,9 @@ class _TradeInsightsAiMixin:
             "LIMIT 1"
         )
         with self._conn.cursor() as cur:
-            cur.execute(sql, (ticker.upper(), prompt_version, model, provider))
+            cur.execute(
+                sql, (ticker.upper(), analysis_kind, prompt_version, model, provider)
+            )
             row = cur.fetchone()
             if row is None:
                 return None
@@ -299,6 +304,7 @@ class _TradeInsightsAiMixin:
         *,
         ticker: str,
         prompt_version: str,
+        analysis_kind: str = "insights",
     ) -> dict[str, dict[str, Any] | None]:
         """Latest terminal-state row per known provider as a keyed dict.
 
@@ -312,7 +318,7 @@ class _TradeInsightsAiMixin:
         """
         sql = (
             f"SELECT DISTINCT ON (provider) * FROM {self._schema}.trade_insight_ai_analyses "
-            "WHERE ticker = %s AND prompt_version = %s "
+            "WHERE ticker = %s AND analysis_kind = %s AND prompt_version = %s "
             "AND status IN ('succeeded', 'failed') "
             "ORDER BY provider, finished_at DESC NULLS LAST, "
             "  CASE status WHEN 'succeeded' THEN 0 ELSE 1 END, "
@@ -324,7 +330,7 @@ class _TradeInsightsAiMixin:
             "deepseek": None,
         }
         with self._conn.cursor() as cur:
-            cur.execute(sql, (ticker.upper(), prompt_version))
+            cur.execute(sql, (ticker.upper(), analysis_kind, prompt_version))
             rows = cur.fetchall()
             cols = [d.name for d in cur.description or []]
             for row in rows:
@@ -346,12 +352,14 @@ class _TradeInsightsAiMixin:
         prompt_version: str,
         model: str,
         provider: str = "codex",
+        analysis_kind: str = "insights",
     ) -> str:
         sql = (
             f"INSERT INTO {self._schema}.trade_insight_ai_analyses "
             "(snapshot_id, ticker, run_id, trade_insights_input_hash, "
-            "analysis_input_hash, analysis_input_jsonb, prompt_version, model, provider, status) "
-            "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, 'queued') "
+            "analysis_input_hash, analysis_input_jsonb, prompt_version, model, provider, "
+            "analysis_kind, status) "
+            "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 'queued') "
             "ON CONFLICT (ticker, analysis_input_hash, prompt_version, model, provider) "
             "WHERE status IN ('queued', 'running') "
             "DO NOTHING "
@@ -370,6 +378,7 @@ class _TradeInsightsAiMixin:
                     prompt_version,
                     model,
                     provider,
+                    analysis_kind,
                 ),
             )
             row = cur.fetchone()
