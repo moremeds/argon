@@ -176,9 +176,10 @@ export const api = {
       force_rerun?: boolean;
       providers?: ("codex" | "claude" | "deepseek")[];
     } = {},
+    kind: "insights" | "blast" = "insights",
   ): Promise<TradeInsightsAiAnalysisEnqueueResponse> =>
     _fetch<TradeInsightsAiAnalysisEnqueueResponse>(
-      `/api/stock/${ticker}/trade-insights/ai-analysis`,
+      `/api/stock/${ticker}/trade-insights/ai-analysis?kind=${kind}`,
       { method: "POST", body: JSON.stringify(body) },
     ),
   tradeInsightsAiAnalysisStatus: (
@@ -190,9 +191,10 @@ export const api = {
     ),
   tradeInsightsAiAnalysisLatest: (
     ticker: string,
+    kind: "insights" | "blast" = "insights",
   ): Promise<TradeInsightsAiLatestPair> =>
     _fetch<TradeInsightsAiLatestPair>(
-      `/api/stock/${ticker}/trade-insights/ai-analysis/latest`,
+      `/api/stock/${ticker}/trade-insights/ai-analysis/latest?kind=${kind}`,
     ),
   ohlc: (ticker: string, days = 30): Promise<OhlcResponse> =>
     _fetch<OhlcResponse>(`/api/ohlc/${ticker}?days=${days}`),

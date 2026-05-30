@@ -74,7 +74,7 @@ export function FrameworkTab({ ticker }: { ticker: string }) {
     canRun,
     actionLabel,
     unavailableForTicker,
-  } = useAiAnalysisPolling(ticker);
+  } = useAiAnalysisPolling(ticker, "blast");
   const [active, setActive] = useState<Provider>("codex");
 
   const stateFor = (provider: Provider): ProviderState => {
@@ -131,7 +131,7 @@ export function FrameworkTab({ ticker }: { ticker: string }) {
         }}
       >
         <h2 style={{ margin: 0, color: "var(--text-primary)" }}>
-          {ticker} · Framework
+          {ticker} · Trade Plan
         </h2>
         <button
           type="button"

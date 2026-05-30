@@ -137,7 +137,11 @@ describe("useAiAnalysisPolling", () => {
       await result.current.run(false);
     });
 
-    expect(api.tradeInsightsAiAnalysis).toHaveBeenCalledWith("TSLA", {});
+    expect(api.tradeInsightsAiAnalysis).toHaveBeenCalledWith(
+      "TSLA",
+      {},
+      "insights",
+    );
     expect(result.current.pendingIdsForTicker.codex).toBe("codex-1");
     expect(result.current.pendingIdsForTicker.claude).toBe("claude-1");
   });
@@ -188,9 +192,13 @@ describe("useAiAnalysisPolling", () => {
       await result.current.run(false);
     });
 
-    expect(api.tradeInsightsAiAnalysis).toHaveBeenLastCalledWith("TSLA", {
-      providers: ["claude", "deepseek"],
-    });
+    expect(api.tradeInsightsAiAnalysis).toHaveBeenLastCalledWith(
+      "TSLA",
+      {
+        providers: ["claude", "deepseek"],
+      },
+      "insights",
+    );
   });
 
   it("keeps polling an existing provider when a partial rerun fails", async () => {
@@ -237,9 +245,13 @@ describe("useAiAnalysisPolling", () => {
       await result.current.run(false);
     });
     // codex is still pending → rerun targets the other two providers.
-    expect(api.tradeInsightsAiAnalysis).toHaveBeenLastCalledWith("TSLA", {
-      providers: ["claude", "deepseek"],
-    });
+    expect(api.tradeInsightsAiAnalysis).toHaveBeenLastCalledWith(
+      "TSLA",
+      {
+        providers: ["claude", "deepseek"],
+      },
+      "insights",
+    );
 
     await act(async () => {
       codexStatus.resolve(codexSucceeded);

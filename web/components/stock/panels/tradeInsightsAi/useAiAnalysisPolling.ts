@@ -77,7 +77,12 @@ function latestFromPair(pair: TradeInsightsAiLatestPair): ProviderAnalysisPair {
   };
 }
 
-export function useAiAnalysisPolling(ticker: string) {
+export type AnalysisKind = "insights" | "blast";
+
+export function useAiAnalysisPolling(
+  ticker: string,
+  kind: AnalysisKind = "insights",
+) {
   const [latest, setLatest] = useState<ProviderAnalysisPair>(EMPTY_LATEST);
   const [consensus, setConsensus] = useState<ProviderConsensus | null>(null);
   const [promptMetadata, setPromptMetadata] = useState<PromptMetadata>(
@@ -125,7 +130,7 @@ export function useAiAnalysisPolling(ticker: string) {
         if (!isCurrentPoll()) return;
       }
       try {
-        const pair = await api.tradeInsightsAiAnalysisLatest(ticker);
+        const pair = await api.tradeInsightsAiAnalysisLatest(ticker, kind);
         if (!isCurrentPoll()) return;
         setLatest(latestFromPair(pair));
         setConsensus(pair.provider_consensus ?? null);
@@ -140,7 +145,7 @@ export function useAiAnalysisPolling(ticker: string) {
         setPendingIds((prev) => ({ ...prev, [provider]: null }));
       }
     },
-    [ticker],
+    [ticker, kind],
   );
 
   useEffect(() => {
@@ -148,7 +153,7 @@ export function useAiAnalysisPolling(ticker: string) {
     let cancelled = false;
     void (async () => {
       try {
-        const pair = await api.tradeInsightsAiAnalysisLatest(ticker);
+        const pair = await api.tradeInsightsAiAnalysisLatest(ticker, kind);
         if (!cancelled && requestTokenRef.current === token) {
           setLoadedTicker(ticker);
           setLatest(latestFromPair(pair));
@@ -179,7 +184,7 @@ export function useAiAnalysisPolling(ticker: string) {
       requestTokenRef.current += 1;
       pollTokenRef.current = EMPTY_PENDING;
     };
-  }, [ticker]);
+  }, [ticker, kind]);
 
   const isLoadedTicker = loadedTicker === ticker;
   const latestForTicker = isLoadedTicker ? latest : EMPTY_LATEST;
@@ -210,7 +215,7 @@ export function useAiAnalysisPolling(ticker: string) {
       if (providersToRun.length < PROVIDERS.length) {
         body.providers = providersToRun;
       }
-      const resp = await api.tradeInsightsAiAnalysis(ticker, body);
+      const resp = await api.tradeInsightsAiAnalysis(ticker, body, kind);
       if (!isCurrentRequest()) return;
       const newPending: ProviderPendingPair = { ...pendingIdsForTicker };
       for (const stub of resp.analyses) {
@@ -222,7 +227,7 @@ export function useAiAnalysisPolling(ticker: string) {
       }
       setPendingIds(newPending);
       try {
-        const pair = await api.tradeInsightsAiAnalysisLatest(ticker);
+        const pair = await api.tradeInsightsAiAnalysisLatest(ticker, kind);
         if (isCurrentRequest()) {
           setLatest(latestFromPair(pair));
           setConsensus(pair.provider_consensus ?? null);

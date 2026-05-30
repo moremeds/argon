@@ -241,7 +241,11 @@ describe("TradeInsightsAiAnalysisPanel", () => {
     render(<TradeInsightsAiAnalysisPanel ticker="TSLA" />);
     fireEvent.click(await screen.findByText("Run Analysis"));
     await waitFor(() =>
-      expect(api.tradeInsightsAiAnalysis).toHaveBeenCalledWith("TSLA", {}),
+      expect(api.tradeInsightsAiAnalysis).toHaveBeenCalledWith(
+        "TSLA",
+        {},
+        "insights",
+      ),
     );
     // v5 replaces the bare "BUY setup" stance_label string with a structured
     // directional_bias badge (LONG_DELTA -> "Long-Delta"). The headline
