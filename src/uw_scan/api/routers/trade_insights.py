@@ -192,6 +192,7 @@ def _enqueue_one_provider(
             prompt_version=prompt_version,
             model=model_label,
             provider=provider,
+            analysis_kind=analysis_kind,
         )
         if reused is not None:
             return TradeInsightAiAnalysisStub(

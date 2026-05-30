@@ -212,6 +212,7 @@ class _TradeInsightsAiMixin:
         prompt_version: str,
         model: str,
         provider: str = "codex",
+        analysis_kind: str = "insights",
     ) -> dict[str, Any] | None:
         sql = (
             f"SELECT * FROM {self._schema}.trade_insight_ai_analyses "
@@ -220,6 +221,7 @@ class _TradeInsightsAiMixin:
             "AND prompt_version = %s "
             "AND model = %s "
             "AND provider = %s "
+            "AND analysis_kind = %s "
             "AND status IN ('queued', 'running', 'succeeded') "
             "ORDER BY "
             "  CASE status WHEN 'succeeded' THEN 0 WHEN 'running' THEN 1 ELSE 2 END, "
@@ -237,6 +239,7 @@ class _TradeInsightsAiMixin:
                     prompt_version,
                     model,
                     provider,
+                    analysis_kind,
                 ),
             )
             row = cur.fetchone()

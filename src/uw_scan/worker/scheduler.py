@@ -28,6 +28,7 @@ from uw_scan.worker.jobs.cockpit_daily_snapshot import cockpit_daily_snapshot
 from uw_scan.worker.jobs.credit_etf_lake_sync import run_credit_etf_lake_sync
 from uw_scan.worker.jobs.flow_data_refresh import flow_data_refresh
 from uw_scan.worker.jobs.full_scan import full_scan_once
+from uw_scan.worker.jobs.fundamentals_jobs import fundamentals_refresh_once
 from uw_scan.worker.jobs.gold_jobs import (
     gold_cftc_cot_ingest_job,
     gold_comex_vault_ingest_job,
@@ -240,6 +241,18 @@ def _ohlc_provider(
         timeout=settings.request_timeout_seconds,
         telemetry_recorder=telemetry_recorder,
         job_name=job_name,
+    )
+
+
+def _fundamentals_provider(settings: Settings):
+    from uw_scan.sources.massive_fundamentals import MassiveFundamentalsProvider
+
+    if settings.massive_api_key is None:
+        return None
+    return MassiveFundamentalsProvider(
+        api_key=settings.massive_api_key.get_secret_value(),
+        base_url=settings.massive_base_url,
+        timeout=settings.request_timeout_seconds,
     )
 
 

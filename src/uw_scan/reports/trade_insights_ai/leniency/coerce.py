@@ -51,7 +51,7 @@ from uw_scan.reports._shared_validation.leniency.vocabulary import (
     _resolve_with_alias,
 )
 from uw_scan.reports._shared_validation.util import _iso_z
-from uw_scan.reports.trade_insights_ai import PROMPT_VERSION
+from uw_scan.reports.trade_insights_ai.prompt_text import PROMPT_VERSION
 
 
 def _coerce_claude_outcome_dict(
