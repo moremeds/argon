@@ -1,6 +1,6 @@
 """Trade-skills KB + framework directive embedding in the BLAST prompt.
 
-The trade_blast lane (prompt ``trade-blast-v1``) bakes the trade-skills
+The trade_blast lane (prompt ``trade-blast-v2``) bakes the trade-skills
 knowledge base and the framework decision-stack directive into the assembled
 prompt. The production v5.3 card (``uw_scan.reports.trade_insights_ai``)
 deliberately does NOT carry this material — that lane is tested in
@@ -34,9 +34,9 @@ def _minimal_analysis_input() -> dict:
     }
 
 
-def test_prompt_version_is_blast_v1() -> None:
-    """The trade-framework decision-stack contract ships as prompt trade-blast-v1."""
-    assert PROMPT_VERSION == "trade-blast-v1"
+def test_prompt_version_is_blast_v2() -> None:
+    """The trade-framework decision-stack contract ships as prompt trade-blast-v2."""
+    assert PROMPT_VERSION == "trade-blast-v2"
 
 
 def test_framework_kb_and_directive_embedded_in_assembled_prompt() -> None:
@@ -54,4 +54,25 @@ def test_framework_kb_and_directive_embedded_in_assembled_prompt() -> None:
     assert "best_setup" in assembled
     assert "framework" in assembled
     # Version stamp flows into the assembled prompt.
-    assert "trade-blast-v1" in assembled
+    assert "trade-blast-v2" in assembled
+
+
+def test_scenarios_vocabulary_is_qualitative_not_percentages() -> None:
+    """v2 spec: the assembled prompt must NOT carry the deprecated
+    'probabilities sum to 100' instruction (which contradicts the qualitative
+    bucket vocabulary in the prompt body) and MUST carry the primary /
+    plausible / tail vocabulary so providers get a single coherent signal.
+    """
+    payload = build_trade_insights_ai_prompt_payload(
+        _minimal_analysis_input(),
+        produced_at=datetime(2026, 5, 28, tzinfo=timezone.utc),
+    )
+    assembled = build_trade_insights_ai_prompt(payload)
+    assert "probabilities sum to 100" not in assembled, (
+        "deprecated v1 scenario instruction must not survive in the v2 prompt"
+    )
+    assert (
+        "primary" in assembled and "plausible" in assembled and "tail" in assembled
+    ), (
+        "qualitative likelihood vocabulary must be present so the model can pick a bucket"
+    )

@@ -12220,6 +12220,7 @@
           },
           "handling": {
             "enum": [
+              "no_conflict",
               "exit_before_print",
               "stand_aside",
               "hold_through_leaps"
