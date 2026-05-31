@@ -8,6 +8,8 @@ import {
   CatalystSection,
   ConfluenceSection,
   ConvictionSection,
+  EntryStateStrip,
+  entryStateAutoCorrectNote,
   type Framework,
   GammaSection,
   Pill,
@@ -28,7 +30,12 @@ const PROVIDER_LABEL: Record<Provider, string> = {
 };
 
 type ProviderState =
-  | { kind: "framework"; framework: Framework }
+  | {
+      kind: "framework";
+      framework: Framework;
+      entryState: string | null;
+      missingData: string[];
+    }
   | { kind: "queued" }
   | { kind: "running" }
   | { kind: "failed"; reason: string }
@@ -85,9 +92,13 @@ export function FrameworkTab({ ticker }: { ticker: string }) {
     }
     if (latest?.status === "succeeded") {
       const fw = latest.outcome?.framework ?? null;
-      return fw
-        ? { kind: "framework", framework: fw }
-        : { kind: "no-framework" };
+      if (!fw) return { kind: "no-framework" };
+      return {
+        kind: "framework",
+        framework: fw,
+        entryState: latest.outcome?.headline?.entry_state ?? null,
+        missingData: latest.outcome?.missing_data ?? [],
+      };
     }
     return { kind: "empty" };
   };
@@ -96,8 +107,14 @@ export function FrameworkTab({ ticker }: { ticker: string }) {
 
   // Consensus across providers that produced a framework (need >= 2).
   const frameworks = PROVIDERS.map((p) => stateFor(p)).filter(
-    (s): s is { kind: "framework"; framework: Framework } =>
-      s.kind === "framework",
+    (
+      s,
+    ): s is {
+      kind: "framework";
+      framework: Framework;
+      entryState: string | null;
+      missingData: string[];
+    } => s.kind === "framework",
   );
   let consensusBanner: string;
   if (frameworks.length < 2) {
@@ -214,7 +231,11 @@ export function FrameworkTab({ ticker }: { ticker: string }) {
 
       {/* Active provider's decision stack */}
       {activeState.kind === "framework" ? (
-        <FrameworkStack fw={activeState.framework} />
+        <FrameworkStack
+          fw={activeState.framework}
+          entryState={activeState.entryState}
+          missingData={activeState.missingData}
+        />
       ) : (
         <div
           style={{
@@ -238,9 +259,22 @@ export function FrameworkTab({ ticker }: { ticker: string }) {
   );
 }
 
-function FrameworkStack({ fw }: { fw: Framework }) {
+function FrameworkStack({
+  fw,
+  entryState,
+  missingData,
+}: {
+  fw: Framework;
+  entryState: string | null;
+  missingData: readonly string[];
+}) {
+  const autoCorrectNote = entryStateAutoCorrectNote(missingData);
   return (
     <div>
+      <EntryStateStrip
+        entryState={entryState}
+        autoCorrectNote={autoCorrectNote}
+      />
       {fw.header.thesis_one_liner ? (
         <p
           style={{

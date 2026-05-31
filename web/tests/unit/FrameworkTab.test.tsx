@@ -117,10 +117,19 @@ function framework(overrides: Partial<Framework> = {}): Framework {
   };
 }
 
-function succeeded(fw: Framework | null) {
+function succeeded(
+  fw: Framework | null,
+  opts: { entryState?: string; missingData?: string[] } = {},
+) {
   return {
     status: "succeeded",
-    outcome: fw ? { framework: fw } : {},
+    outcome: fw
+      ? {
+          framework: fw,
+          headline: { entry_state: opts.entryState ?? "ACTIVE" },
+          missing_data: opts.missingData ?? [],
+        }
+      : {},
     error_message: null,
   };
 }
@@ -176,5 +185,59 @@ describe("FrameworkTab", () => {
     };
     render(<FrameworkTab ticker="NVDA" />);
     expect(screen.getByText(/consensus: swing/i)).toBeTruthy();
+  });
+
+  // v2 spec §5.6 MUST-1: no_conflict renders visibly differently from stand_aside.
+  it("renders no_conflict catalyst with the friendly label", () => {
+    const fw = framework({
+      catalyst: {
+        next_er_date: null,
+        dte_to_er: null,
+        implied_move: null,
+        handling: "no_conflict",
+        prose: "53 DTE — no event risk in trade horizon",
+      },
+    });
+    hookReturn.latestForTicker = {
+      codex: succeeded(fw),
+      claude: null,
+      deepseek: null,
+    };
+    render(<FrameworkTab ticker="NVDA" />);
+    // friendly label, not the raw enum string
+    expect(screen.getByText("no event risk")).toBeTruthy();
+  });
+
+  // v2 spec §5.6 MUST-2: auto-correct: missing_data items surface adjacent
+  // to entry_state, NOT buried in the generic missing-data list.
+  it("surfaces an auto-correct note adjacent to entry_state", () => {
+    const fw = framework();
+    hookReturn.latestForTicker = {
+      codex: succeeded(fw, {
+        entryState: "CONDITIONAL",
+        missingData: [
+          "auto-correct: headline.entry_state: 'ACTIVE' -> 'CONDITIONAL' (thesis_fired=True, entry_fired=False, invalidation_fired=False). v5.3 ENTRY_STATE is mechanical when the truth table is unambiguous.",
+        ],
+      }),
+      claude: null,
+      deepseek: null,
+    };
+    render(<FrameworkTab ticker="NVDA" />);
+    // The strip label + the correction badge both render.
+    expect(screen.getByText("Entry state")).toBeTruthy();
+    expect(screen.getByText("State corrected")).toBeTruthy();
+    expect(screen.getByTestId("entry-state-autocorrect")).toBeTruthy();
+  });
+
+  it("hides auto-correct affordance when no correction fired", () => {
+    const fw = framework();
+    hookReturn.latestForTicker = {
+      codex: succeeded(fw, { entryState: "ACTIVE", missingData: [] }),
+      claude: null,
+      deepseek: null,
+    };
+    render(<FrameworkTab ticker="NVDA" />);
+    expect(screen.queryByText("State corrected")).toBeNull();
+    expect(screen.queryByTestId("entry-state-autocorrect")).toBeNull();
   });
 });
