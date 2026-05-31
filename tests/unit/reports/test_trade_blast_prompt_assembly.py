@@ -1,6 +1,6 @@
 """Trade-skills KB + framework directive embedding in the BLAST prompt.
 
-The trade_blast lane (prompt ``trade-blast-v1``) bakes the trade-skills
+The trade_blast lane (prompt ``trade-blast-v2``) bakes the trade-skills
 knowledge base and the framework decision-stack directive into the assembled
 prompt. The production v5.3 card (``uw_scan.reports.trade_insights_ai``)
 deliberately does NOT carry this material — that lane is tested in
@@ -34,9 +34,9 @@ def _minimal_analysis_input() -> dict:
     }
 
 
-def test_prompt_version_is_blast_v1() -> None:
-    """The trade-framework decision-stack contract ships as prompt trade-blast-v1."""
-    assert PROMPT_VERSION == "trade-blast-v1"
+def test_prompt_version_is_blast_v2() -> None:
+    """The trade-framework decision-stack contract ships as prompt trade-blast-v2."""
+    assert PROMPT_VERSION == "trade-blast-v2"
 
 
 def test_framework_kb_and_directive_embedded_in_assembled_prompt() -> None:
@@ -54,4 +54,4 @@ def test_framework_kb_and_directive_embedded_in_assembled_prompt() -> None:
     assert "best_setup" in assembled
     assert "framework" in assembled
     # Version stamp flows into the assembled prompt.
-    assert "trade-blast-v1" in assembled
+    assert "trade-blast-v2" in assembled

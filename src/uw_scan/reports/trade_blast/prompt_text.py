@@ -23,7 +23,7 @@ from uw_scan.reports._shared_validation.constants import (  # noqa: F401
 
 from .trade_framework_kb import TRADE_FRAMEWORK_KNOWLEDGE  # noqa: F401
 
-PROMPT_VERSION = "trade-blast-v1"
+PROMPT_VERSION = "trade-blast-v2"
 
 MARKET_INTELLIGENCE_PROMPT = """You are analyzing ONE stock for a 5-10 trading-session DIRECTIONAL SWING entry.
 
