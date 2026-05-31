@@ -74,6 +74,9 @@ export function FrameworkTab({ ticker }: { ticker: string }) {
   const stateFor = (provider: Provider): ProviderState => {
     const pending = pendingIdsForTicker[provider];
     const latest = latestForTicker[provider];
+    // In-flight re-run wins over stale terminal state
+    if (pending || latest?.status === "running") return { kind: "running" };
+    if (latest?.status === "queued") return { kind: "queued" };
     if (latest?.status === "failed") {
       return {
         kind: "failed",
@@ -86,8 +89,6 @@ export function FrameworkTab({ ticker }: { ticker: string }) {
         ? { kind: "framework", framework: fw }
         : { kind: "no-framework" };
     }
-    if (pending || latest?.status === "running") return { kind: "running" };
-    if (latest?.status === "queued") return { kind: "queued" };
     return { kind: "empty" };
   };
 
