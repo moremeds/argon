@@ -172,6 +172,26 @@ STEP 3 — ENTRY_STATE  (v5.3: DERIVED MECHANICALLY from STEP 2.5)
     after a wall break), the trade is CONDITIONAL with entry_trigger
     as the watch level.
 
+    WORKED EXAMPLE (the v5.3 NVDA / TSLA failure mode):
+      Setup: support_breakdown thesis. Put wall at 440 was broken on
+      2026-05-22 close at 437.50 (thesis_trigger.fired = TRUE). The plan
+      is to enter the bear_put_spread on a confirming close below 435
+      (entry_trigger.level = 435). Latest completed close 2026-05-29 =
+      435.79 — above 435, so entry_trigger.fired = FALSE.
+
+      Correct emission:
+        thesis_trigger.fired = TRUE
+        entry_trigger.fired  = FALSE
+        invalidation.fired   = FALSE
+        headline.entry_state = "CONDITIONAL"   <- NOT "ACTIVE"
+        headline.watch_trigger names the unfired entry_trigger level
+
+      Common mistake: emitting entry_state="ACTIVE" because the thesis is
+      confirmed and the spread "looks ready." If entry has not fired on a
+      COMPLETED daily close, the trade is CONDITIONAL — full stop. The
+      validator will overwrite ACTIVE -> CONDITIONAL with an auto-correct
+      note, but the model should not depend on the safety net.
+
     The v5.2 trigger_evidence block is RETAINED for backwards-
     compatible audit (it now mirrors thesis_trigger's evidence) but the
     authoritative state lives in thesis_trigger / entry_trigger /
