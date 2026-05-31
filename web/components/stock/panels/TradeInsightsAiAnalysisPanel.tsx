@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import type { ReactNode } from "react";
 
 import { InsightPanel, InsightStatusBanner } from "./InsightPanel";
 import {
@@ -15,69 +14,19 @@ import { ProviderTabBar } from "./tradeInsightsAi/ProviderTabBar";
 
 export { AI_ANALYSIS_POLL_MAX_MS } from "./tradeInsightsAi/useAiAnalysisPolling";
 
-function ActionButton({
-  children,
-  disabled,
-  compact = false,
-  onClick,
-}: {
-  children: ReactNode;
-  disabled?: boolean;
-  compact?: boolean;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={disabled}
-      style={{
-        justifySelf: "start",
-        border: "1px solid var(--border-dim)",
-        borderRadius: 4,
-        background: disabled ? "var(--bg-panel)" : "var(--bg-base)",
-        color: disabled ? "var(--text-muted)" : "var(--text-primary)",
-        cursor: disabled ? "not-allowed" : "pointer",
-        fontFamily: "var(--font-mono)",
-        fontSize: compact ? 10 : 11,
-        padding: compact ? "5px 8px" : "7px 10px",
-      }}
-    >
-      {children}
-    </button>
-  );
-}
-
 export function TradeInsightsAiAnalysisPanel({ ticker }: { ticker: string }) {
   const [active, setActive] = useState<Provider>("codex");
   const {
-    actionLabel,
-    allPending,
-    canRun,
     consensusForTicker,
-    forceRun,
     latestForTicker,
     loadingForTicker,
     pendingIdsForTicker,
     promptMetadataForTicker,
-    run,
+    runOne,
     unavailableForTicker,
   } = useAiAnalysisPolling(ticker);
   return (
-    <InsightPanel
-      heading="AI ANALYSIS"
-      action={
-        canRun ? (
-          <ActionButton
-            compact
-            onClick={() => run(forceRun)}
-            disabled={loadingForTicker || allPending}
-          >
-            {actionLabel}
-          </ActionButton>
-        ) : undefined
-      }
-    >
+    <InsightPanel heading="AI ANALYSIS">
       <div style={{ display: "grid", gap: 12 }}>
         {unavailableForTicker && (
           <InsightStatusBanner
@@ -133,9 +82,11 @@ export function TradeInsightsAiAnalysisPanel({ ticker }: { ticker: string }) {
         <ProviderTabBar
           active={active}
           latest={latestForTicker}
+          loading={loadingForTicker}
           pendingIds={pendingIdsForTicker}
           providers={PROVIDERS}
           setActive={setActive}
+          onRun={(p) => runOne(p, true)}
         />
         <ProviderTabBody
           provider={active}

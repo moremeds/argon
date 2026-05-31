@@ -95,8 +95,15 @@ def test_coerce_matches_paraphrased_factor_by_norm():
     assert len(out["conviction"]["factors"]) == 8
 
 
-def test_coerce_defined_risk_defaults_false_failsafe():
+def test_coerce_defined_risk_inferred_from_name():
     raw = {"candidates": [{"name": "bull put spread"}]}  # defined_risk omitted
+    out = _coerce_framework(raw, candidates={})
+    # "spread" token → inferred as defined-risk
+    assert out["candidates"][0]["defined_risk"] is True
+
+
+def test_coerce_defined_risk_defaults_false_for_naked_structure():
+    raw = {"candidates": [{"name": "short call"}]}  # genuinely naked
     out = _coerce_framework(raw, candidates={})
     assert out["candidates"][0]["defined_risk"] is False
 
