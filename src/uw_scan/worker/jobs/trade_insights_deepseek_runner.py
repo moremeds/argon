@@ -161,8 +161,12 @@ class DeepSeekRunner:
 
         # Accumulators populated as SSE chunks arrive.
         # Probe mode: model may emit via tool_calls OR delta.content; track both.
+        # Track arguments per tool-call index: DeepSeek's thinking model can
+        # split a single logical response across multiple tool-call indices
+        # (index 0 gets the first ~32 KB, index 1 gets the rest including
+        # the framework block). Merging the dicts recovers the full output.
         emitted_tool_name: str | None = None
-        arguments_chunks: list[str] = []
+        arguments_by_index: dict[int, list[str]] = {}
         content_chunks: list[str] = []
         reasoning_chunks: list[str] = []
         resolved_model: str | None = None
@@ -225,6 +229,7 @@ class DeepSeekRunner:
                         delta = choice.get("delta") or {}
                         for call_delta in delta.get("tool_calls") or []:
                             fn = call_delta.get("function") or {}
+                            call_idx = call_delta.get("index", 0)
                             name = fn.get("name")
                             if name:
                                 if (
@@ -246,7 +251,9 @@ class DeepSeekRunner:
                                         f"reasoning) exceeded {max_output_bytes} "
                                         "bytes"
                                     )
-                                arguments_chunks.append(arg_chunk)
+                                arguments_by_index.setdefault(call_idx, []).append(
+                                    arg_chunk
+                                )
                         content_chunk = delta.get("content")
                         if content_chunk:
                             total_output_bytes += len(content_chunk.encode("utf-8"))
@@ -286,24 +293,28 @@ class DeepSeekRunner:
 
         reasoning_text = "".join(reasoning_chunks)
         reasoning_bytes = len(reasoning_text.encode("utf-8"))
-        args_text = "".join(arguments_chunks)
-        args_bytes = len(args_text.encode("utf-8"))
         content_text = "".join(content_chunks)
         content_bytes = len(content_text.encode("utf-8"))
 
+        # Reassemble per-index tool call arguments. When the thinking model
+        # splits a single logical response across multiple tool-call indices,
+        # each index yields a valid JSON object; merge them so the framework
+        # block (often in index 1) is not lost.
+        sorted_indices = sorted(arguments_by_index.keys())
+        args_texts = {idx: "".join(arguments_by_index[idx]) for idx in sorted_indices}
+        all_args_bytes = sum(len(t.encode("utf-8")) for t in args_texts.values())
+
         # Disposition: prefer tool_calls if present, else parse text.
         output_channel: str
-        if arguments_chunks:
+        if arguments_by_index:
             if emitted_tool_name and emitted_tool_name != DEEPSEEK_TOOL_NAME:
                 raise TradeInsightsAiRunnerError(
                     "deepseek emitted unexpected tool name "
                     f"{emitted_tool_name!r} (expected {DEEPSEEK_TOOL_NAME!r})"
                 )
             output_channel = "tool_calls"
-            raw_json = args_text
         elif content_chunks:
             output_channel = "content"
-            raw_json = _extract_json_from_text(content_text)
         else:
             raise TradeInsightsAiRunnerError(
                 "deepseek: stream ended with neither tool_calls nor content "
@@ -312,21 +323,44 @@ class DeepSeekRunner:
             )
 
         logger.info(
-            "deepseek channel=%s tool=%s args=%d content=%d reasoning=%d finish=%s",
+            "deepseek channel=%s tool=%s tool_indices=%s args=%d content=%d reasoning=%d finish=%s",
             output_channel,
             emitted_tool_name,
-            args_bytes,
+            sorted_indices or "none",
+            all_args_bytes,
             content_bytes,
             reasoning_bytes,
             finish_reason,
         )
 
-        try:
-            parsed = json.loads(raw_json)
-        except json.JSONDecodeError as exc:
-            raise TradeInsightsAiRunnerError(
-                f"deepseek: extracted output was not valid JSON: {exc}"
-            ) from exc
+        if output_channel == "tool_calls":
+            # Parse each tool-call index as a separate JSON object and merge.
+            merged: dict[str, Any] = {}
+            for idx in sorted_indices:
+                raw = args_texts[idx].strip()
+                try:
+                    obj = json.loads(raw)
+                except json.JSONDecodeError:
+                    try:
+                        obj, _ = json.JSONDecoder().raw_decode(raw)
+                    except json.JSONDecodeError as exc:
+                        raise TradeInsightsAiRunnerError(
+                            f"deepseek: tool_calls index {idx} was not valid JSON: {exc}"
+                        ) from exc
+                if isinstance(obj, dict):
+                    merged.update(obj)
+                elif not merged:
+                    merged = obj  # type: ignore[assignment]
+            parsed = merged
+        else:
+            raw_json = _extract_json_from_text(content_text)
+            try:
+                parsed = json.loads(raw_json)
+            except json.JSONDecodeError as exc:
+                raise TradeInsightsAiRunnerError(
+                    f"deepseek: extracted output was not valid JSON: {exc}"
+                ) from exc
+
         if not isinstance(parsed, dict):
             raise TradeInsightsAiRunnerError(
                 "deepseek: parsed output must be a JSON object "
