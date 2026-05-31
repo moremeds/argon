@@ -117,6 +117,23 @@ def _resolve_enum(
     return default
 
 
+_FALSE_STRINGS = frozenset({"false", "no", "0", "off", "none", ""})
+
+
+def _coerce_bool(value: Any, default: bool) -> bool:
+    """Coerce a value to bool, handling string "false"/"true" correctly.
+
+    Python's bool("false") is True — this handles that case.
+    """
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, str):
+        return value.strip().lower() not in _FALSE_STRINGS
+    if value is None:
+        return default
+    return bool(value)
+
+
 def _pick(raw: dict[str, Any], allowed: set[str]) -> dict[str, Any]:
     """Return only the keys in `allowed`, stripping extras for extra='forbid'."""
     return {k: v for k, v in raw.items() if k in allowed}
@@ -327,7 +344,7 @@ def _coerce_vega(raw: Any) -> dict[str, Any]:
 def _coerce_asymmetry(raw: Any) -> dict[str, Any]:
     d = _dict_or_empty(raw)
     return {
-        "rule_on": bool(d.get("rule_on", True)),
+        "rule_on": _coerce_bool(d.get("rule_on"), True),
         "structure_family": _resolve_enum(
             d.get("structure_family") or d.get("read"),
             ("directional_defined_risk", "pin_vega"),
@@ -399,7 +416,7 @@ def _coerce_confluence(raw: Any) -> dict[str, Any]:
             }
         )
     return {
-        "aligned": bool(d.get("aligned", False)),
+        "aligned": _coerce_bool(d.get("aligned"), False),
         "signals": signals,
         "prose": _str_or(d.get("prose"), ""),
     }
@@ -410,7 +427,7 @@ def _coerce_pitfall(raw: Any) -> dict[str, Any]:
     return {
         "id": _str_or(d.get("id"), ""),
         "title": _str_or(d.get("title"), ""),
-        "triggered": bool(d.get("triggered", False)),
+        "triggered": _coerce_bool(d.get("triggered"), False),
         "note": _str_or(d.get("note"), ""),
     }
 

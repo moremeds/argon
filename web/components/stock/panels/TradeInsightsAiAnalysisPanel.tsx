@@ -19,6 +19,7 @@ export function TradeInsightsAiAnalysisPanel({ ticker }: { ticker: string }) {
   const {
     consensusForTicker,
     latestForTicker,
+    loadingForTicker,
     pendingIdsForTicker,
     promptMetadataForTicker,
     runOne,
@@ -81,6 +82,7 @@ export function TradeInsightsAiAnalysisPanel({ ticker }: { ticker: string }) {
         <ProviderTabBar
           active={active}
           latest={latestForTicker}
+          loading={loadingForTicker}
           pendingIds={pendingIdsForTicker}
           providers={PROVIDERS}
           setActive={setActive}

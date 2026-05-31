@@ -22,6 +22,7 @@ function stateBadge(
 export function ProviderTabBar({
   active,
   latest,
+  loading,
   pendingIds,
   providers,
   setActive,
@@ -29,6 +30,7 @@ export function ProviderTabBar({
 }: {
   active: Provider;
   latest: ProviderAnalysisPair;
+  loading?: boolean;
   pendingIds: ProviderPendingPair;
   providers: readonly Provider[];
   setActive: (provider: Provider) => void;
@@ -38,6 +40,7 @@ export function ProviderTabBar({
     <div style={{ display: "flex", gap: 6 }}>
       {providers.map((p) => {
         const pending = Boolean(pendingIds[p]);
+        const disabled = pending || Boolean(loading);
         return (
           <div key={p} style={{ display: "flex", gap: 2 }}>
             <button
@@ -62,7 +65,7 @@ export function ProviderTabBar({
               <button
                 type="button"
                 onClick={() => onRun(p)}
-                disabled={pending}
+                disabled={disabled}
                 data-testid={`ai-run-${p}`}
                 title={`Run ${providerLabel(p)}`}
                 style={{
@@ -71,11 +74,11 @@ export function ProviderTabBar({
                   borderBottom: "1px solid var(--border-dim)",
                   borderLeft: "none",
                   borderRadius: "0 4px 4px 0",
-                  background: pending ? "var(--bg-panel)" : "var(--bg-base)",
-                  color: pending
+                  background: disabled ? "var(--bg-panel)" : "var(--bg-base)",
+                  color: disabled
                     ? "var(--text-muted)"
                     : "var(--text-secondary)",
-                  cursor: pending ? "not-allowed" : "pointer",
+                  cursor: disabled ? "not-allowed" : "pointer",
                   fontFamily: "var(--font-mono)",
                   fontSize: 10,
                   padding: "5px 6px",
