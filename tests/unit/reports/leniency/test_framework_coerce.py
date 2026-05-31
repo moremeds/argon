@@ -12,8 +12,45 @@ from decimal import Decimal
 from uw_scan.models import TradeFramework
 from uw_scan.reports.trade_blast.leniency.framework import (
     CANONICAL_CONVICTION_FACTORS,
+    _coerce_catalyst,
     _coerce_framework,
 )
+
+# --- catalyst.handling enum extension (v2 spec §5.1) ----------------------
+
+
+def test_coerce_catalyst_no_conflict_passes_through():
+    assert _coerce_catalyst({"handling": "no_conflict"})["handling"] == "no_conflict"
+
+
+def test_coerce_catalyst_no_er_remaps_to_no_conflict():
+    # v2 spec §5.1: "no_er" means "no earnings in window" = the new no_conflict
+    # semantics, not the old stand_aside default.
+    assert _coerce_catalyst({"handling": "no_er"})["handling"] == "no_conflict"
+
+
+def test_coerce_catalyst_defensive_aliases_map_to_no_conflict():
+    assert _coerce_catalyst({"handling": "none"})["handling"] == "no_conflict"
+    assert _coerce_catalyst({"handling": "n/a"})["handling"] == "no_conflict"
+
+
+def test_coerce_catalyst_existing_values_preserved():
+    # Existing accepted values must continue to pass through unchanged.
+    assert _coerce_catalyst({"handling": "stand_aside"})["handling"] == "stand_aside"
+    assert (
+        _coerce_catalyst({"handling": "exit_before_print"})["handling"]
+        == "exit_before_print"
+    )
+    assert (
+        _coerce_catalyst({"handling": "hold_through_leaps"})["handling"]
+        == "hold_through_leaps"
+    )
+
+
+def test_coerce_catalyst_unknown_value_defaults_to_stand_aside():
+    # Default kept at stand_aside (spec §5.1): garbage should remain visibly
+    # broken via rule #5 soft-warning, not silently classified as no_conflict.
+    assert _coerce_catalyst({"handling": "garbage"})["handling"] == "stand_aside"
 
 
 def test_candidate_net_greeks_direction_word_coerced_to_none():

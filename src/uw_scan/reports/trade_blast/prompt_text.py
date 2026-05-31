@@ -23,7 +23,7 @@ from uw_scan.reports._shared_validation.constants import (  # noqa: F401
 
 from .trade_framework_kb import TRADE_FRAMEWORK_KNOWLEDGE  # noqa: F401
 
-PROMPT_VERSION = "trade-blast-v1"
+PROMPT_VERSION = "trade-blast-v2"
 
 MARKET_INTELLIGENCE_PROMPT = """You are analyzing ONE stock for a 5-10 trading-session DIRECTIONAL SWING entry.
 
@@ -171,6 +171,26 @@ STEP 3 — ENTRY_STATE  (v5.3: DERIVED MECHANICALLY from STEP 2.5)
     If thesis has fired but entry has not (the common case immediately
     after a wall break), the trade is CONDITIONAL with entry_trigger
     as the watch level.
+
+    WORKED EXAMPLE (the v5.3 NVDA / TSLA failure mode):
+      Setup: support_breakdown thesis. Put wall at 440 was broken on
+      2026-05-22 close at 437.50 (thesis_trigger.fired = TRUE). The plan
+      is to enter the bear_put_spread on a confirming close below 435
+      (entry_trigger.level = 435). Latest completed close 2026-05-29 =
+      435.79 — above 435, so entry_trigger.fired = FALSE.
+
+      Correct emission:
+        thesis_trigger.fired = TRUE
+        entry_trigger.fired  = FALSE
+        invalidation.fired   = FALSE
+        headline.entry_state = "CONDITIONAL"   <- NOT "ACTIVE"
+        headline.watch_trigger names the unfired entry_trigger level
+
+      Common mistake: emitting entry_state="ACTIVE" because the thesis is
+      confirmed and the spread "looks ready." If entry has not fired on a
+      COMPLETED daily close, the trade is CONDITIONAL — full stop. The
+      validator will overwrite ACTIVE -> CONDITIONAL with an auto-correct
+      note, but the model should not depend on the safety net.
 
     The v5.2 trigger_evidence block is RETAINED for backwards-
     compatible audit (it now mirrors thesis_trigger's evidence) but the
@@ -555,13 +575,24 @@ clause, then state which pillar wins for the 5-10 session horizon.
 | Why this expiry | one sentence citing IV level, vanna regime, or charm window position |
 | Alternative | second expiry in the same band, or "none — only one in-band expiry has liquidity" |
 
-## Scenarios (3 rows, probabilities sum to 100%)
+## Scenarios (exactly 3 rows: upside, base, downside)
 
-| Scenario | Probability | Trigger (daily close) | Level | Best expression |
-|---|---:|---|---|---|
-| upside | % | | named level | mode-whitelisted directional structure |
-| base | % | | named level | mode-whitelisted directional structure |
-| downside | % | | named level | mode-whitelisted directional structure |
+| Scenario | Likelihood | Trigger (daily close) | Level | Best expression |
+|---|---|---|---|---|
+| upside   | <one of: primary, plausible, tail> | | named level | mode-whitelisted directional structure |
+| base     | <one of: primary, plausible, tail> | | named level | mode-whitelisted directional structure |
+| downside | <one of: primary, plausible, tail> | | named level | mode-whitelisted directional structure |
+
+Likelihood vocabulary (pick exactly one per scenario):
+  - "primary"   — the path you expect to play out
+  - "plausible" — a credible alternative the evidence supports
+  - "tail"      — possible but not the dominant read
+
+EXACTLY ONE scenario is "primary." The "primary" scenario must
+correspond to the directional_bias chosen at Step 2. Do NOT emit
+numeric percentages — we cannot calibrate them and presenting
+"45%" as a precise estimate is a fake-precision pitfall. The
+qualitative bucket is the honest signal.
 
 ## Conflicts (cap = 2; severities high or medium only)
 
@@ -814,12 +845,23 @@ data is status:"na" — never bluffed. When core inputs (tape / flow / IV)
 are absent => header.position_type:"stand_aside" and conviction prose
 "insufficient data".
 
-EARNINGS (swing-default, LEAPS-aware): decide catalyst.handling FIRST,
-against a fixed pre-structure ~10-14 day hold window — set
-catalyst.handling to "exit_before_print" or "stand_aside" when the earnings
-date falls inside that window; use "hold_through_leaps" ONLY when
-position_type:"leaps". THEN choose a best_setup consistent with that
-handling.
+EARNINGS (swing-default, LEAPS-aware): decide catalyst.handling FIRST
+against a fixed pre-structure ~10-14 day hold window. The four values:
+  - "no_conflict"       — earnings is absent OR dte_to_er > hold window
+                          (no event risk in the trade horizon). DEFAULT
+                          when next_er_date is None or far in the future.
+                          ALLOWED to pair with any best_setup.
+  - "exit_before_print" — earnings is inside the hold window AND you
+                          intend to close the trade before the print.
+  - "stand_aside"       — earnings is inside the hold window AND the
+                          event risk eliminates the trade entirely.
+                          MUST pair with best_setup.structure="stand_aside".
+  - "hold_through_leaps"— position_type="leaps" only.
+THEN choose a best_setup consistent with that handling.
+
+Common mistake: do NOT emit "stand_aside" when there is no actual
+conflict — that's what "no_conflict" is for. "stand_aside" is reserved
+for genuine no-trade conditions where event risk kills the setup.
 
 DEFINED-RISK ONLY: every candidates[] entry and best_setup MUST be
 defined-risk. No naked shorts.

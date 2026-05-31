@@ -50,6 +50,43 @@ from .prompt_text import (
 from .validator_rules.framework import _check_framework_rules
 
 
+def _autocorrect_entry_state(parsed: TradeInsightAiOutcome) -> str | None:
+    """Soft-mode-only: mechanically correct headline.entry_state when the
+    truth table is unambiguous. Returns a transparency note when an
+    overwrite happened, else None.
+
+    Scope (mechanical only — matches v5.3 ENTRY_STATE derivation):
+      - invalidation.fired               => NO_ENTRY
+      - ACTIVE without (thesis AND entry).fired => CONDITIONAL
+
+    The CONDITIONAL/NO_ENTRY split when no triggers have fired is left to
+    the model (see triggers.py:422-425 — legitimate judgment between
+    data-quality and opportunity-quality).
+    """
+    state = parsed.headline.entry_state
+    if parsed.headline.directional_bias == "WAIT":
+        return None  # WAIT path enforced by mode-structure consistency
+    thesis_fired = parsed.thesis_trigger.fired
+    entry_fired = parsed.entry_trigger.fired
+    invalidation_fired = parsed.invalidation.fired
+
+    derived: str | None = None
+    if invalidation_fired:
+        derived = "NO_ENTRY"
+    elif state == "ACTIVE" and not (thesis_fired and entry_fired):
+        derived = "CONDITIONAL"
+
+    if derived is None or derived == state:
+        return None
+    parsed.headline.entry_state = derived  # type: ignore[assignment]
+    return (
+        f"auto-correct: headline.entry_state: {state!r} -> {derived!r} "
+        f"(thesis_fired={thesis_fired}, entry_fired={entry_fired}, "
+        f"invalidation_fired={invalidation_fired}). v5.3 ENTRY_STATE is "
+        "mechanical when the truth table is unambiguous."
+    )
+
+
 def validate_trade_insights_ai_outcome(
     outcome: dict[str, Any] | TradeInsightAiOutcome,
     deterministic_payload: dict[str, Any],
@@ -272,14 +309,24 @@ def validate_trade_insights_ai_outcome(
                         f"framework candidate {cand.name!r} is not defined_risk "
                         "(no naked shorts allowed)"
                     )
+        # Auto-correct mechanically-determined entry_state BEFORE structural
+        # checks so _check_entry_state_derivation sees the corrected value
+        # and stays silent — we never log both an auto-correct AND a now-stale
+        # soft-validation warning for the same field.
+        autocorrect_notes: list[str] = []
+        ac_note = _autocorrect_entry_state(parsed)
+        if ac_note:
+            autocorrect_notes.append(ac_note)
+
         soft_warnings: list[str] = []
         for check in structural_checks:
             try:
                 check()
             except ValueError as exc:
                 soft_warnings.append(repr(exc))
-        if soft_warnings:
+        if autocorrect_notes or soft_warnings:
             notes = list(parsed.missing_data)
+            notes.extend(autocorrect_notes)
             notes.extend(f"soft-validation: {w}" for w in soft_warnings)
             parsed.missing_data = notes
     else:

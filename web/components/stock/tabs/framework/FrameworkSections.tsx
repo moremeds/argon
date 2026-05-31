@@ -212,10 +212,30 @@ export function GammaSection({ fw }: { fw: Framework }) {
   );
 }
 
+// Per v2 spec §5.6 MUST-1: no_conflict MUST render visibly differently
+// from stand_aside. Map each enum value to a friendly label + tone color
+// so a user glancing at the page can distinguish "no event risk" from
+// "earnings forces stand aside" without parsing the raw enum string.
+const CATALYST_LABEL: Record<string, string> = {
+  no_conflict: "no event risk",
+  exit_before_print: "exit before print",
+  stand_aside: "stand aside",
+  hold_through_leaps: "hold through (leaps)",
+};
+
+function catalystColor(handling: string): string {
+  if (handling === "no_conflict") return "var(--text-muted)";
+  if (handling === "stand_aside") return "var(--warning)";
+  return "var(--text-secondary)";
+}
+
 export function CatalystSection({ fw }: { fw: Framework }) {
   const c = fw.catalyst;
+  const handling = c.handling ?? "";
+  const label = CATALYST_LABEL[handling] ?? na(handling);
+  const color = catalystColor(handling);
   return (
-    <Fold title="Catalyst" badge={<Pill text={na(c.handling)} />}>
+    <Fold title="Catalyst" badge={<Pill text={label} color={color} />}>
       <div style={tileRow}>
         <Tile label="Next ER" value={na(c.next_er_date)} />
         <Tile label="DTE to ER" value={na(c.dte_to_er)} />
@@ -227,6 +247,90 @@ export function CatalystSection({ fw }: { fw: Framework }) {
         </p>
       ) : null}
     </Fold>
+  );
+}
+
+// Per v2 spec §5.6 MUST-2: items in missing_data[] starting with
+// "auto-correct:" MUST be surfaced separately from the rest of
+// missing_data AND associated with the corrected field. Until a typed
+// `corrections[]` array lands (Open Question #1), the frontend parses
+// the prose prefix.
+const AUTO_CORRECT_PREFIX = "auto-correct:";
+
+export function isAutoCorrectNote(note: string): boolean {
+  return note.trim().startsWith(AUTO_CORRECT_PREFIX);
+}
+
+export function entryStateAutoCorrectNote(
+  missingData: readonly string[] | null | undefined,
+): string | null {
+  for (const note of missingData ?? []) {
+    const trimmed = note.trim();
+    if (
+      trimmed.startsWith(AUTO_CORRECT_PREFIX) &&
+      trimmed.includes("headline.entry_state")
+    ) {
+      return trimmed.slice(AUTO_CORRECT_PREFIX.length).trim();
+    }
+  }
+  return null;
+}
+
+const ENTRY_STATE_COLOR: Record<string, string> = {
+  ACTIVE: "var(--positive)",
+  CONDITIONAL: "var(--warning)",
+  NO_ENTRY: "var(--text-muted)",
+};
+
+export function EntryStateStrip({
+  entryState,
+  autoCorrectNote,
+}: {
+  entryState: string | null | undefined;
+  autoCorrectNote: string | null;
+}) {
+  const state = entryState ?? "";
+  const color = ENTRY_STATE_COLOR[state] ?? "var(--text-muted)";
+  return (
+    <div
+      style={{
+        display: "flex",
+        gap: 10,
+        alignItems: "flex-start",
+        flexWrap: "wrap",
+        marginBottom: 12,
+        padding: "8px 10px",
+        border: `1px solid ${
+          autoCorrectNote ? "var(--warning)" : "var(--border-dim)"
+        }`,
+        borderRadius: 4,
+        background: "var(--bg-panel)",
+      }}
+    >
+      <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+        <span style={labelStyle}>Entry state</span>
+        <Pill text={na(state)} color={color} />
+      </div>
+      {autoCorrectNote ? (
+        <div
+          style={{
+            display: "flex",
+            gap: 6,
+            alignItems: "flex-start",
+            color: "var(--warning)",
+            fontSize: 12,
+            lineHeight: 1.35,
+            flex: "1 1 320px",
+          }}
+          data-testid="entry-state-autocorrect"
+        >
+          <span style={{ ...labelStyle, color: "var(--warning)" }}>
+            State corrected
+          </span>
+          <span>{autoCorrectNote}</span>
+        </div>
+      ) : null}
+    </div>
   );
 }
 
