@@ -14,6 +14,7 @@ from uw_scan.models import TradeFramework, TradeInsightAiOutcome
 from uw_scan.reports.trade_blast.validator_rules.framework import (
     _check_framework_rules,
 )
+from uw_scan.reports.trade_blast.validators import _autocorrect_entry_state
 
 
 def _factors(yes: int, total: int = 8) -> list[dict]:
@@ -147,8 +148,6 @@ def test_position_type_stand_aside_requires_best_setup_stand_aside():
 
 # --- v2 spec §5.5: auto-correct entry_state in soft mode -----------------
 
-from uw_scan.reports.trade_blast.validators import _autocorrect_entry_state
-
 
 def _autocorrect_outcome(
     *,
@@ -160,7 +159,6 @@ def _autocorrect_outcome(
 ) -> TradeInsightAiOutcome:
     """Build a minimal TradeInsightAiOutcome via model_construct for
     auto-correct unit tests. Only fields the helper reads are populated."""
-    headline = type(TradeInsightAiOutcome.model_fields["headline"].annotation)
     # Construct headline + trigger components without full validation.
     from uw_scan.models import (
         TradeInsightAiHeadline,
