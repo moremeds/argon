@@ -96,7 +96,10 @@ _CATALYST_HANDLING_ALIASES: dict[str, str] = {
     "stand-aside": "stand_aside",
     "hold_through": "hold_through_leaps",
     "hold": "hold_through_leaps",
-    "no_er": "stand_aside",
+    "no_er": "no_conflict",
+    "no_conflict": "no_conflict",
+    "none": "no_conflict",
+    "n/a": "no_conflict",
 }
 
 
@@ -389,7 +392,12 @@ def _coerce_catalyst(raw: Any) -> dict[str, Any]:
     out: dict[str, Any] = {
         "handling": _resolve_enum(
             d.get("handling"),
-            ("exit_before_print", "stand_aside", "hold_through_leaps"),
+            (
+                "no_conflict",
+                "exit_before_print",
+                "stand_aside",
+                "hold_through_leaps",
+            ),
             _CATALYST_HANDLING_ALIASES,
             "stand_aside",
         ),
