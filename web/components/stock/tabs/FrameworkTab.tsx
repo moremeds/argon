@@ -67,14 +67,8 @@ function stateLabel(state: ProviderState): string {
 }
 
 export function FrameworkTab({ ticker }: { ticker: string }) {
-  const {
-    latestForTicker,
-    pendingIdsForTicker,
-    run,
-    canRun,
-    actionLabel,
-    unavailableForTicker,
-  } = useAiAnalysisPolling(ticker, "blast");
+  const { latestForTicker, pendingIdsForTicker, runOne, unavailableForTicker } =
+    useAiAnalysisPolling(ticker, "blast");
   const [active, setActive] = useState<Provider>("codex");
 
   const stateFor = (provider: Provider): ProviderState => {
@@ -133,22 +127,6 @@ export function FrameworkTab({ ticker }: { ticker: string }) {
         <h2 style={{ margin: 0, color: "var(--text-primary)" }}>
           {ticker} · Trade Plan
         </h2>
-        <button
-          type="button"
-          onClick={() => run(true)}
-          disabled={!canRun}
-          style={{
-            marginLeft: "auto",
-            padding: "6px 14px",
-            borderRadius: 4,
-            border: "1px solid var(--border-dim)",
-            background: canRun ? "var(--accent-bg, #1a2a3a)" : "transparent",
-            color: canRun ? "var(--text-primary)" : "var(--text-muted)",
-            cursor: canRun ? "pointer" : "not-allowed",
-          }}
-        >
-          {actionLabel}
-        </button>
       </div>
 
       {unavailableForTicker ? (
@@ -171,33 +149,64 @@ export function FrameworkTab({ ticker }: { ticker: string }) {
         {consensusBanner}
       </div>
 
-      {/* Provider toggle with per-provider state badges */}
+      {/* Provider toggle with per-provider run buttons + state badges */}
       <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
         {PROVIDERS.map((p) => {
           const s = stateFor(p);
           const isActive = p === active;
+          const pending = Boolean(pendingIdsForTicker[p]);
           return (
-            <button
-              key={p}
-              type="button"
-              onClick={() => setActive(p)}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 8,
-                padding: "6px 12px",
-                borderRadius: 4,
-                border: `1px solid ${
-                  isActive ? "var(--text-secondary)" : "var(--border-dim)"
-                }`,
-                background: isActive ? "var(--bg-panel)" : "transparent",
-                color: "var(--text-primary)",
-                cursor: "pointer",
-              }}
-            >
-              <span>{PROVIDER_LABEL[p]}</span>
-              <Pill text={stateLabel(s)} color={stateColor(s.kind)} />
-            </button>
+            <div key={p} style={{ display: "flex", gap: 0 }}>
+              <button
+                type="button"
+                onClick={() => setActive(p)}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                  padding: "6px 12px",
+                  borderRadius: "4px 0 0 4px",
+                  border: `1px solid ${
+                    isActive ? "var(--text-secondary)" : "var(--border-dim)"
+                  }`,
+                  background: isActive ? "var(--bg-panel)" : "transparent",
+                  color: "var(--text-primary)",
+                  cursor: "pointer",
+                }}
+              >
+                <span>{PROVIDER_LABEL[p]}</span>
+                <Pill text={stateLabel(s)} color={stateColor(s.kind)} />
+              </button>
+              <button
+                type="button"
+                onClick={() => runOne(p, true)}
+                disabled={pending}
+                title={`Run ${PROVIDER_LABEL[p]}`}
+                style={{
+                  borderTop: `1px solid ${
+                    isActive ? "var(--text-secondary)" : "var(--border-dim)"
+                  }`,
+                  borderRight: `1px solid ${
+                    isActive ? "var(--text-secondary)" : "var(--border-dim)"
+                  }`,
+                  borderBottom: `1px solid ${
+                    isActive ? "var(--text-secondary)" : "var(--border-dim)"
+                  }`,
+                  borderLeft: "none",
+                  borderRadius: "0 4px 4px 0",
+                  background: pending ? "var(--bg-panel)" : "transparent",
+                  color: pending
+                    ? "var(--text-muted)"
+                    : "var(--text-secondary)",
+                  cursor: pending ? "not-allowed" : "pointer",
+                  padding: "6px 8px",
+                  fontSize: 11,
+                  lineHeight: 1,
+                }}
+              >
+                ▶
+              </button>
+            </div>
           );
         })}
       </div>

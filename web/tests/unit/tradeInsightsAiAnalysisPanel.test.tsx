@@ -185,12 +185,13 @@ describe("TradeInsightsAiAnalysisPanel", () => {
     vi.mocked(api.tradeInsightsAiAnalysisLatest).mockResolvedValue(EMPTY_PAIR);
   });
 
-  it("renders Codex and Claude tabs with empty state by default", async () => {
+  it("renders Codex and Claude tabs with per-provider run buttons", async () => {
     render(<TradeInsightsAiAnalysisPanel ticker="TSLA" />);
     expect(await screen.findByTestId("ai-tab-codex")).toBeDefined();
     expect(screen.getByTestId("ai-tab-claude")).toBeDefined();
     expect(screen.getByText("AI ANALYSIS")).toBeDefined();
-    expect(screen.getByText("Run Analysis")).toBeDefined();
+    expect(screen.getByTestId("ai-run-codex")).toBeDefined();
+    expect(screen.getByTestId("ai-run-claude")).toBeDefined();
   });
 
   it("keeps polling long enough for the deeper local Codex prompt", () => {
@@ -239,11 +240,11 @@ describe("TradeInsightsAiAnalysisPanel", () => {
       succeededResponse(),
     );
     render(<TradeInsightsAiAnalysisPanel ticker="TSLA" />);
-    fireEvent.click(await screen.findByText("Run Analysis"));
+    fireEvent.click(await screen.findByTestId("ai-run-codex"));
     await waitFor(() =>
       expect(api.tradeInsightsAiAnalysis).toHaveBeenCalledWith(
         "TSLA",
-        {},
+        { force_rerun: true, providers: ["codex"] },
         "insights",
       ),
     );
@@ -263,30 +264,25 @@ describe("TradeInsightsAiAnalysisPanel", () => {
       new Error("API 503 for /ai-analysis: disabled"),
     );
     render(<TradeInsightsAiAnalysisPanel ticker="TSLA" />);
-    fireEvent.click(await screen.findByText("Run Analysis"));
+    fireEvent.click(await screen.findByTestId("ai-run-codex"));
     expect(await screen.findByText(/not enabled/i)).toBeDefined();
   });
 
-  it("skips polling when both providers cache-hit on Run", async () => {
+  it("skips polling when provider cache-hits on Run", async () => {
     vi.mocked(api.tradeInsightsAiAnalysisLatest).mockResolvedValue(EMPTY_PAIR);
     vi.mocked(api.tradeInsightsAiAnalysis).mockResolvedValueOnce(
-      enqueueResp("succeeded", "succeeded"),
+      enqueueResp("succeeded", null),
     );
     // /latest is also refreshed after the run resolves with the cached pair.
     vi.mocked(api.tradeInsightsAiAnalysisLatest).mockResolvedValue(
       latestPair({
         codex: succeededResponse(),
-        claude: succeededResponse({
-          analysis_id: "33333333-3333-3333-3333-333333333333",
-          provider: "claude",
-          model: "claude-opus-4-7",
-        }),
       }),
     );
     render(<TradeInsightsAiAnalysisPanel ticker="TSLA" />);
-    fireEvent.click(await screen.findByText("Run Analysis"));
+    fireEvent.click(await screen.findByTestId("ai-run-codex"));
     await waitFor(() => expect(api.tradeInsightsAiAnalysis).toHaveBeenCalled());
-    // No polling expected when both stubs are succeeded+reused.
+    // No polling expected when the stub is succeeded+reused.
     await waitFor(() =>
       expect(api.tradeInsightsAiAnalysisStatus).not.toHaveBeenCalled(),
     );
@@ -337,23 +333,21 @@ describe("TradeInsightsAiAnalysisPanel", () => {
 
     render(<TradeInsightsAiAnalysisPanel ticker="TSLA" />);
 
-    // First click: triggers the initial Run that sets the hung-codex state.
-    fireEvent.click(await screen.findByText("Run Analysis"));
+    // First click: run codex — sets the hung-codex state.
+    fireEvent.click(await screen.findByTestId("ai-run-codex"));
     await waitFor(() =>
       expect(api.tradeInsightsAiAnalysis).toHaveBeenCalledTimes(1),
     );
 
-    // Second click: button must be re-enabled because allPending=false
-    // (claude was cleared on cache hit, codex still pending but that alone
-    // does not block Run). POST scope is the non-pending providers
-    // (claude + deepseek).
-    fireEvent.click(await screen.findByText("Run Analysis"));
+    // Second click: run claude while codex is still pending — claude run button
+    // is still enabled, codex is pending/disabled.
+    fireEvent.click(await screen.findByTestId("ai-run-claude"));
     await waitFor(() =>
       expect(api.tradeInsightsAiAnalysis).toHaveBeenCalledTimes(2),
     );
     const lastCall = vi.mocked(api.tradeInsightsAiAnalysis).mock.calls.at(-1);
     expect(lastCall?.[0]).toBe("TSLA");
-    expect(lastCall?.[1]?.providers).toEqual(["claude", "deepseek"]);
+    expect(lastCall?.[1]?.providers).toEqual(["claude"]);
   });
 
   it("switching to Claude tab renders the Claude analysis body", async () => {

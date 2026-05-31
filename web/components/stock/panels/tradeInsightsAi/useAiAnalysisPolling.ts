@@ -196,15 +196,13 @@ export function useAiAnalysisPolling(
   const loadingForTicker = isLoadedTicker ? loading : false;
   const unavailableForTicker = isLoadedTicker ? unavailable : false;
 
-  async function run(force_rerun = false) {
+  async function runProviders(providers: Provider[], force_rerun = false) {
     const token = ++requestTokenRef.current;
     const isCurrentRequest = () => requestTokenRef.current === token;
     setLoadedTicker(ticker);
     setLoading(true);
     setUnavailable(false);
-    const providersToRun: Provider[] = PROVIDERS.filter(
-      (p) => !pendingIdsForTicker[p],
-    );
+    const providersToRun = providers.filter((p) => !pendingIdsForTicker[p]);
     if (providersToRun.length === 0) {
       setLoading(false);
       return;
@@ -256,6 +254,15 @@ export function useAiAnalysisPolling(
     }
   }
 
+  async function run(force_rerun = false) {
+    const all = PROVIDERS.filter((p) => !pendingIdsForTicker[p]);
+    return runProviders(all, force_rerun);
+  }
+
+  async function runOne(provider: Provider, force_rerun = false) {
+    return runProviders([provider], force_rerun);
+  }
+
   const allPending = PROVIDERS.every((p) => Boolean(pendingIdsForTicker[p]));
   const anyFailed = PROVIDERS.some(
     (p) => latestForTicker[p]?.status === "failed",
@@ -279,6 +286,7 @@ export function useAiAnalysisPolling(
     pendingIdsForTicker,
     promptMetadataForTicker,
     run,
+    runOne,
     unavailableForTicker,
   };
 }

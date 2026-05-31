@@ -45,6 +45,101 @@ CANONICAL_CONVICTION_FACTORS: tuple[str, ...] = (
 
 _VALID_FACTOR_STATUS = {"yes", "no", "na"}
 
+# --- Alias maps for framework enum coercion ---
+# Claude (and occasionally DeepSeek) emits free-form strings where the contract
+# expects a narrow Literal.  These maps collapse cosmetic drift BEFORE
+# model_validate so the Pydantic Literal check passes.
+
+_POSITION_TYPE_ALIASES: dict[str, str] = {
+    "directional_swing": "swing",
+    "swing_trade": "swing",
+    "swing trade": "swing",
+    "leaps_position": "leaps",
+    "stand-aside": "stand_aside",
+    "no_trade": "stand_aside",
+}
+
+_DIRECTION_VERDICT_ALIASES: dict[str, str] = {
+    "bullish": "bull",
+    "bearish": "bear",
+    "long": "bull",
+    "short": "bear",
+    "flat": "neutral",
+}
+
+_VEGA_REGIME_ALIASES: dict[str, str] = {
+    "event": "event_iv",
+    "demand": "demand_iv",
+    "low": "low_iv",
+    "high_iv": "event_iv",
+    "elevated": "event_iv",
+    "depressed": "low_iv",
+}
+
+_GAMMA_REGIME_ALIASES: dict[str, str] = {
+    "short_gamma": "short",
+    "long_gamma": "long",
+    "negative": "short",
+    "positive": "long",
+}
+
+_STRUCTURE_FAMILY_ALIASES: dict[str, str] = {
+    "directional": "directional_defined_risk",
+    "defined_risk": "directional_defined_risk",
+    "pin": "pin_vega",
+    "vega": "pin_vega",
+}
+
+_CATALYST_HANDLING_ALIASES: dict[str, str] = {
+    "exit_before": "exit_before_print",
+    "exit": "exit_before_print",
+    "stand-aside": "stand_aside",
+    "hold_through": "hold_through_leaps",
+    "hold": "hold_through_leaps",
+    "no_er": "stand_aside",
+}
+
+
+def _resolve_enum(
+    value: Any,
+    valid: tuple[str, ...] | frozenset[str],
+    aliases: dict[str, str],
+    default: str,
+) -> str:
+    """Resolve a raw model value to a valid enum member via alias map."""
+    if not isinstance(value, str):
+        return default
+    v = value.strip().lower().replace(" ", "_").replace("-", "_")
+    if v in valid:
+        return v
+    if v in aliases:
+        return aliases[v]
+    return default
+
+
+def _pick(raw: dict[str, Any], allowed: set[str]) -> dict[str, Any]:
+    """Return only the keys in `allowed`, stripping extras for extra='forbid'."""
+    return {k: v for k, v in raw.items() if k in allowed}
+
+
+def _str_list_or_empty(raw: Any) -> list[str]:
+    """Coerce a legs-like field to list[str].
+
+    Claude emits leg dicts ({type, strike, ...}) where the contract expects
+    plain strings. Stringify non-str elements so Pydantic's list[str] passes.
+    """
+    if not isinstance(raw, list):
+        return []
+    out: list[str] = []
+    for item in raw:
+        if isinstance(item, str):
+            out.append(item)
+        elif isinstance(item, dict):
+            out.append(" ".join(str(v) for v in item.values() if v))
+        else:
+            out.append(str(item))
+    return out
+
 
 def _norm(name: str) -> str:
     """Case/space/hyphen-fold a strategy or factor name (no alias fuzzing)."""
@@ -120,22 +215,232 @@ def _pad_conviction_factors(raw_factors: Any) -> list[dict[str, Any]]:
     return out
 
 
+_DEFINED_RISK_TOKENS = frozenset(
+    {
+        "spread",
+        "butterfly",
+        "condor",
+        "collar",
+        "diagonal",
+        "calendar",
+        "vertical",
+        "debit",
+        "iron",
+        "long",
+        "protective",
+        "covered",
+    }
+)
+
+
+def _is_defined_risk_name(normed_name: str) -> bool:
+    """Infer defined_risk from the structure name when the model omits the flag.
+
+    Spreads, butterflies, condors, and other capped-loss structures are
+    defined-risk by construction. Only naked shorts (short_call, short_put,
+    short_strangle, short_straddle without protection) are undefined-risk.
+    When uncertain, default False so the validator catches it.
+    """
+    parts = set(normed_name.split("_"))
+    return bool(parts & _DEFINED_RISK_TOKENS)
+
+
 def _coerce_candidate(raw: Any) -> dict[str, Any]:
     cd = _dict_or_empty(raw)
+    _CANDIDATE_FIELDS = {
+        "name",
+        "legs",
+        "debit_credit",
+        "net_delta",
+        "net_vega",
+        "pnl_bull",
+        "pnl_base",
+        "pnl_bear",
+        "defined_risk",
+    }
+    out = _pick(cd, _CANDIDATE_FIELDS)
     name = _str_or(cd.get("name"), "")
-    out = dict(cd)
     out["name"] = _norm(name) if name else name
-    # net_delta / net_vega are Decimal | None greeks. Models frequently emit a
-    # direction word ("long"/"short") here; coerce non-numeric to None so the
-    # candidate still validates (the safety property is defined_risk, not the
-    # exact greek). Only touch keys the model actually supplied.
+    out["legs"] = _str_list_or_empty(cd.get("legs"))
     if "net_delta" in cd:
         out["net_delta"] = _decimal_or_none(cd.get("net_delta"))
     if "net_vega" in cd:
         out["net_vega"] = _decimal_or_none(cd.get("net_vega"))
-    # Fail-safe: absent defined_risk => False so the validator rejects a naked
-    # candidate rather than silently accepting it.
-    out["defined_risk"] = bool(cd.get("defined_risk", False))
+    raw_dr = cd.get("defined_risk")
+    if isinstance(raw_dr, bool):
+        out["defined_risk"] = raw_dr
+    else:
+        out["defined_risk"] = _is_defined_risk_name(out["name"])
+    return out
+
+
+def _coerce_header(raw: dict[str, Any]) -> dict[str, Any]:
+    """Coerce framework header — normalize enums, fill required, strip extras."""
+    _HEADER_FIELDS = {"thesis_one_liner", "position_type", "spot", "conviction_n"}
+    out = _pick(raw, _HEADER_FIELDS)
+    out["thesis_one_liner"] = _str_or(
+        raw.get("thesis_one_liner") or raw.get("headline"), "partial output"
+    )
+    out["position_type"] = _resolve_enum(
+        raw.get("position_type"),
+        ("swing", "leaps", "stand_aside"),
+        _POSITION_TYPE_ALIASES,
+        "swing",
+    )
+    if "spot" in raw:
+        out["spot"] = _decimal_or_none(raw.get("spot"))
+    out["conviction_n"] = _int_or(raw.get("conviction_n"), 0)
+    return out
+
+
+def _coerce_direction(raw: Any) -> dict[str, Any]:
+    d = _dict_or_empty(raw)
+    return {
+        "verdict": _resolve_enum(
+            d.get("verdict") or d.get("read"),
+            ("bull", "bear", "neutral"),
+            _DIRECTION_VERDICT_ALIASES,
+            "neutral",
+        ),
+        "prose": _str_or(d.get("prose") or d.get("evidence"), "data insufficient"),
+    }
+
+
+def _coerce_vega(raw: Any) -> dict[str, Any]:
+    d = _dict_or_empty(raw)
+    out: dict[str, Any] = {
+        "regime": _resolve_enum(
+            d.get("regime") or d.get("read"),
+            ("event_iv", "demand_iv", "low_iv"),
+            _VEGA_REGIME_ALIASES,
+            "low_iv",
+        ),
+        "prose": _str_or(d.get("prose") or d.get("evidence"), "data insufficient"),
+    }
+    if "ivr" in d:
+        out["ivr"] = _decimal_or_none(d.get("ivr"))
+    if "term_slope" in d:
+        out["term_slope"] = _str_or(d.get("term_slope"), None)
+    return out
+
+
+def _coerce_asymmetry(raw: Any) -> dict[str, Any]:
+    d = _dict_or_empty(raw)
+    return {
+        "rule_on": bool(d.get("rule_on", True)),
+        "structure_family": _resolve_enum(
+            d.get("structure_family") or d.get("read"),
+            ("directional_defined_risk", "pin_vega"),
+            _STRUCTURE_FAMILY_ALIASES,
+            "directional_defined_risk",
+        ),
+        "prose": _str_or(d.get("prose") or d.get("evidence"), "data insufficient"),
+    }
+
+
+def _coerce_three_axis(raw: Any) -> dict[str, Any]:
+    ta = _dict_or_empty(raw)
+    return {
+        "direction": _coerce_direction(ta.get("direction")),
+        "vega": _coerce_vega(ta.get("vega")),
+        "asymmetry": _coerce_asymmetry(ta.get("asymmetry")),
+    }
+
+
+def _coerce_gamma(raw: Any) -> dict[str, Any]:
+    d = _dict_or_empty(raw)
+    out: dict[str, Any] = {
+        "regime": _resolve_enum(
+            d.get("regime"),
+            ("short", "long"),
+            _GAMMA_REGIME_ALIASES,
+            "short",
+        ),
+        "prose": _str_or(d.get("prose"), "data insufficient"),
+    }
+    if "flip_strike" in d:
+        out["flip_strike"] = _decimal_or_none(d.get("flip_strike"))
+    if "call_wall" in d:
+        out["call_wall"] = _decimal_or_none(d.get("call_wall"))
+    if "put_wall" in d:
+        out["put_wall"] = _decimal_or_none(d.get("put_wall"))
+    return out
+
+
+def _coerce_catalyst(raw: Any) -> dict[str, Any]:
+    d = _dict_or_empty(raw)
+    out: dict[str, Any] = {
+        "handling": _resolve_enum(
+            d.get("handling"),
+            ("exit_before_print", "stand_aside", "hold_through_leaps"),
+            _CATALYST_HANDLING_ALIASES,
+            "stand_aside",
+        ),
+        "prose": _str_or(d.get("prose"), "data insufficient"),
+    }
+    if "next_er_date" in d:
+        out["next_er_date"] = _str_or(d.get("next_er_date"), None)
+    if "dte_to_er" in d:
+        out["dte_to_er"] = _int_or(d.get("dte_to_er"), None)
+    if "implied_move" in d:
+        out["implied_move"] = _decimal_or_none(d.get("implied_move"))
+    return out
+
+
+def _coerce_confluence(raw: Any) -> dict[str, Any]:
+    d = _dict_or_empty(raw)
+    signals = []
+    for s in _list_or_empty(d.get("signals")):
+        sd = _dict_or_empty(s)
+        signals.append(
+            {
+                "name": _str_or(sd.get("name"), ""),
+                "direction": _str_or(sd.get("direction"), ""),
+            }
+        )
+    return {
+        "aligned": bool(d.get("aligned", False)),
+        "signals": signals,
+        "prose": _str_or(d.get("prose"), ""),
+    }
+
+
+def _coerce_pitfall(raw: Any) -> dict[str, Any]:
+    d = _dict_or_empty(raw)
+    return {
+        "id": _str_or(d.get("id"), ""),
+        "title": _str_or(d.get("title"), ""),
+        "triggered": bool(d.get("triggered", False)),
+        "note": _str_or(d.get("note"), ""),
+    }
+
+
+def _coerce_what_changes(raw: Any) -> dict[str, Any]:
+    d = _dict_or_empty(raw)
+    return {
+        "signal": _str_or(d.get("signal"), ""),
+        "effect": _str_or(d.get("effect"), ""),
+    }
+
+
+def _coerce_best_setup(raw: dict[str, Any]) -> dict[str, Any]:
+    _BEST_SETUP_FIELDS = {
+        "structure",
+        "legs",
+        "cost",
+        "max_risk",
+        "rationale",
+        "why_not_alternatives",
+        "invalidation",
+    }
+    out = _pick(raw, _BEST_SETUP_FIELDS)
+    structure = _str_or(raw.get("structure"), "")
+    if structure:
+        out["structure"] = _norm(structure)
+    out["legs"] = _str_list_or_empty(raw.get("legs"))
+    out["rationale"] = _str_or(raw.get("rationale"), "data insufficient")
+    out["invalidation"] = _str_or(raw.get("invalidation"), "data insufficient")
+    out.setdefault("why_not_alternatives", "")
     return out
 
 
@@ -144,43 +449,62 @@ def _coerce_framework(
 ) -> dict[str, Any]:
     """Coerce a Claude-shaped framework dict toward the strict contract.
 
-    `candidates` is the deterministic candidate map (id -> candidate dict); it
-    is accepted for signature symmetry with the other leniency coercers and
-    future cross-checks, but the framework's own candidates[] are self-contained
-    so it is currently unused for lookups.
+    Handles enum normalization, extra-field stripping (models use
+    ``extra="forbid"``), missing required field defaults, and conviction
+    factor padding — everything needed for a model's free-form framework
+    output to round-trip through ``TradeFramework.model_validate``.
     """
     fw = _dict_or_empty(raw)
-    out: dict[str, Any] = dict(fw)
 
-    # 1. conviction: normalize score str->int, pad factors to canonical 8.
+    # 1. header — normalize position_type, strip extras, fill thesis_one_liner.
+    out: dict[str, Any] = {}
+    out["header"] = _coerce_header(_dict_or_empty(fw.get("header")))
+
+    # 2. three_axis — normalize verdict/regime enums, fill required prose.
+    out["three_axis"] = _coerce_three_axis(fw.get("three_axis"))
+
+    # 3. gamma — normalize regime enum.
+    out["gamma"] = _coerce_gamma(fw.get("gamma"))
+
+    # 4. catalyst — normalize handling enum.
+    out["catalyst"] = _coerce_catalyst(fw.get("catalyst"))
+
+    # 5. conviction — normalize score str->int, pad factors to canonical 8.
     conviction = _dict_or_empty(fw.get("conviction"))
-    conviction_out = dict(conviction)
+    conviction_out: dict[str, Any] = {}
     conviction_out["score"] = _int_or(conviction.get("score"), 0)
     conviction_out["factors"] = _pad_conviction_factors(conviction.get("factors"))
+    conviction_out["prose"] = _str_or(conviction.get("prose"), "")
     out["conviction"] = conviction_out
 
-    # 2. header.conviction_n: normalize str->int (validator enforces == score).
-    header = _dict_or_empty(fw.get("header"))
-    if header:
-        header_out = dict(header)
-        if "conviction_n" in header:
-            header_out["conviction_n"] = _int_or(header.get("conviction_n"), 0)
-        out["header"] = header_out
+    # 6. confluence — normalize signals list.
+    out["confluence"] = _coerce_confluence(fw.get("confluence"))
 
-    # 3. candidates: default defined_risk False, _norm names.
-    if "candidates" in fw:
-        out["candidates"] = [
-            _coerce_candidate(c) for c in _list_or_empty(fw.get("candidates"))
-        ]
+    # 7. pitfalls — coerce each item.
+    out["pitfalls"] = [_coerce_pitfall(p) for p in _list_or_empty(fw.get("pitfalls"))]
 
-    # 4. best_setup.structure: _norm so the validator's verbatim match is
-    #    drift-tolerant (matches the _norm applied to candidates[].name).
+    # 8. candidates — default defined_risk False, _norm names.
+    out["candidates"] = [
+        _coerce_candidate(c) for c in _list_or_empty(fw.get("candidates"))
+    ]
+
+    # 9. best_setup — _norm structure, fill required fields.
     best_setup = _dict_or_empty(fw.get("best_setup"))
-    if best_setup:
-        best_out = dict(best_setup)
-        structure = _str_or(best_setup.get("structure"), "")
-        if structure:
-            best_out["structure"] = _norm(structure)
-        out["best_setup"] = best_out
+    out["best_setup"] = (
+        _coerce_best_setup(best_setup)
+        if best_setup
+        else {
+            "structure": "stand_aside",
+            "legs": [],
+            "rationale": "data insufficient",
+            "invalidation": "data insufficient",
+        }
+    )
+
+    # 10. what_changes + bottom_line.
+    out["what_changes"] = [
+        _coerce_what_changes(w) for w in _list_or_empty(fw.get("what_changes"))
+    ]
+    out["bottom_line"] = _str_or(fw.get("bottom_line"), "data insufficient")
 
     return out
