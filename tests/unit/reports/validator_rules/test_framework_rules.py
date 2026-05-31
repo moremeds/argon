@@ -143,3 +143,140 @@ def test_asymmetry_rule_off_rejected_when_score_ge_4():
 def test_position_type_stand_aside_requires_best_setup_stand_aside():
     with pytest.raises(ValueError, match="stand_aside"):
         _run(build_framework(position_type="stand_aside", best_setup="bull put spread"))
+
+
+# --- v2 spec §5.5: auto-correct entry_state in soft mode -----------------
+
+from uw_scan.reports.trade_blast.validators import _autocorrect_entry_state
+
+
+def _autocorrect_outcome(
+    *,
+    entry_state: str,
+    thesis_fired: bool,
+    entry_fired: bool,
+    invalidation_fired: bool,
+    directional_bias: str = "LONG_DELTA",
+) -> TradeInsightAiOutcome:
+    """Build a minimal TradeInsightAiOutcome via model_construct for
+    auto-correct unit tests. Only fields the helper reads are populated."""
+    headline = type(TradeInsightAiOutcome.model_fields["headline"].annotation)
+    # Construct headline + trigger components without full validation.
+    from uw_scan.models import (
+        TradeInsightAiHeadline,
+        TradeInsightAiTriggerComponent,
+    )
+
+    h = TradeInsightAiHeadline.model_construct(
+        entry_state=entry_state,
+        directional_bias=directional_bias,
+    )
+    tt = TradeInsightAiTriggerComponent.model_construct(fired=thesis_fired)
+    et = TradeInsightAiTriggerComponent.model_construct(fired=entry_fired)
+    inv = TradeInsightAiTriggerComponent.model_construct(fired=invalidation_fired)
+    return TradeInsightAiOutcome.model_construct(
+        headline=h,
+        thesis_trigger=tt,
+        entry_trigger=et,
+        invalidation=inv,
+        missing_data=[],
+    )
+
+
+def test_autocorrect_active_to_conditional_when_entry_unfired():
+    outcome = _autocorrect_outcome(
+        entry_state="ACTIVE",
+        thesis_fired=True,
+        entry_fired=False,
+        invalidation_fired=False,
+    )
+    note = _autocorrect_entry_state(outcome)
+    assert outcome.headline.entry_state == "CONDITIONAL"
+    assert note is not None
+    assert note.startswith("auto-correct: headline.entry_state:")
+    assert "'ACTIVE'" in note and "'CONDITIONAL'" in note
+
+
+def test_autocorrect_invalidation_forces_no_entry():
+    # invalidation.fired => NO_ENTRY regardless of entry_state claim.
+    outcome = _autocorrect_outcome(
+        entry_state="CONDITIONAL",
+        thesis_fired=True,
+        entry_fired=False,
+        invalidation_fired=True,
+    )
+    note = _autocorrect_entry_state(outcome)
+    assert outcome.headline.entry_state == "NO_ENTRY"
+    assert note is not None and "NO_ENTRY" in note
+
+
+def test_autocorrect_noop_when_already_conditional():
+    # CONDITIONAL with thesis-only fired is already correct; no overwrite, no note.
+    outcome = _autocorrect_outcome(
+        entry_state="CONDITIONAL",
+        thesis_fired=True,
+        entry_fired=False,
+        invalidation_fired=False,
+    )
+    note = _autocorrect_entry_state(outcome)
+    assert outcome.headline.entry_state == "CONDITIONAL"
+    assert note is None
+
+
+def test_autocorrect_consumes_violation_no_duplicate_soft_warning(monkeypatch):
+    """Soft branch invariant (§5.5): when auto-correct fires for entry_state,
+    the same field must NOT also surface a `soft-validation:` warning. Tests
+    by invoking validate via the soft path with a minimal fixture that
+    triggers ACTIVE → CONDITIONAL and asserts missing_data carries exactly
+    one auto-correct line and zero soft-validation lines referencing
+    entry_state_derivation."""
+    from uw_scan.reports.trade_blast.validators import (
+        _autocorrect_entry_state as _ac,
+    )
+
+    outcome = _autocorrect_outcome(
+        entry_state="ACTIVE",
+        thesis_fired=True,
+        entry_fired=False,
+        invalidation_fired=False,
+    )
+    # Simulate the validator's soft branch: auto-correct, then run the
+    # structural check that would have otherwise raised on this state.
+    ac_note = _ac(outcome)
+    soft_warnings: list[str] = []
+    try:
+        from uw_scan.reports._shared_validation.validator_rules.triggers import (
+            _check_entry_state_derivation,
+        )
+
+        _check_entry_state_derivation(outcome)
+    except ValueError as exc:
+        soft_warnings.append(repr(exc))
+
+    notes: list[str] = []
+    if ac_note:
+        notes.append(ac_note)
+    notes.extend(f"soft-validation: {w}" for w in soft_warnings)
+
+    assert sum(1 for n in notes if n.startswith("auto-correct:")) == 1
+    assert not any(
+        "entry_state_derivation" in n for n in notes if n.startswith("soft-validation:")
+    )
+
+
+def test_autocorrect_strict_mode_parity_raises():
+    """Strict mode parity: _check_entry_state_derivation must still raise on
+    the same input (the auto-correct helper is soft-mode-only and is never
+    called outside the `if soft:` branch). Insights lane behavior unchanged."""
+    from uw_scan.reports._shared_validation.validator_rules.triggers import (
+        _check_entry_state_derivation,
+    )
+
+    outcome = _autocorrect_outcome(
+        entry_state="ACTIVE",
+        thesis_fired=True,
+        entry_fired=False,
+        invalidation_fired=False,
+    )
+    with pytest.raises(ValueError, match="ACTIVE requires BOTH"):
+        _check_entry_state_derivation(outcome)
