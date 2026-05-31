@@ -55,3 +55,24 @@ def test_framework_kb_and_directive_embedded_in_assembled_prompt() -> None:
     assert "framework" in assembled
     # Version stamp flows into the assembled prompt.
     assert "trade-blast-v2" in assembled
+
+
+def test_scenarios_vocabulary_is_qualitative_not_percentages() -> None:
+    """v2 spec: the assembled prompt must NOT carry the deprecated
+    'probabilities sum to 100' instruction (which contradicts the qualitative
+    bucket vocabulary in the prompt body) and MUST carry the primary /
+    plausible / tail vocabulary so providers get a single coherent signal.
+    """
+    payload = build_trade_insights_ai_prompt_payload(
+        _minimal_analysis_input(),
+        produced_at=datetime(2026, 5, 28, tzinfo=timezone.utc),
+    )
+    assembled = build_trade_insights_ai_prompt(payload)
+    assert "probabilities sum to 100" not in assembled, (
+        "deprecated v1 scenario instruction must not survive in the v2 prompt"
+    )
+    assert (
+        "primary" in assembled and "plausible" in assembled and "tail" in assembled
+    ), (
+        "qualitative likelihood vocabulary must be present so the model can pick a bucket"
+    )
