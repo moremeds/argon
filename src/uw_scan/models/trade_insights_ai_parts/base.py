@@ -57,9 +57,6 @@ FrameworkVegaRegime = Literal["event_iv", "demand_iv", "low_iv"]
 FrameworkStructureFamily = Literal["directional_defined_risk", "pin_vega"]
 FrameworkGammaRegime = Literal["short", "long"]
 FrameworkCatalystHandling = Literal[
-    "no_conflict",
-    "exit_before_print",
-    "stand_aside",
-    "hold_through_leaps",
+    "exit_before_print", "stand_aside", "hold_through_leaps"
 ]
 FrameworkFactorStatus = Literal["yes", "no", "na"]
