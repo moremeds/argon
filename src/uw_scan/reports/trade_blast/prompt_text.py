@@ -814,12 +814,23 @@ data is status:"na" — never bluffed. When core inputs (tape / flow / IV)
 are absent => header.position_type:"stand_aside" and conviction prose
 "insufficient data".
 
-EARNINGS (swing-default, LEAPS-aware): decide catalyst.handling FIRST,
-against a fixed pre-structure ~10-14 day hold window — set
-catalyst.handling to "exit_before_print" or "stand_aside" when the earnings
-date falls inside that window; use "hold_through_leaps" ONLY when
-position_type:"leaps". THEN choose a best_setup consistent with that
-handling.
+EARNINGS (swing-default, LEAPS-aware): decide catalyst.handling FIRST
+against a fixed pre-structure ~10-14 day hold window. The four values:
+  - "no_conflict"       — earnings is absent OR dte_to_er > hold window
+                          (no event risk in the trade horizon). DEFAULT
+                          when next_er_date is None or far in the future.
+                          ALLOWED to pair with any best_setup.
+  - "exit_before_print" — earnings is inside the hold window AND you
+                          intend to close the trade before the print.
+  - "stand_aside"       — earnings is inside the hold window AND the
+                          event risk eliminates the trade entirely.
+                          MUST pair with best_setup.structure="stand_aside".
+  - "hold_through_leaps"— position_type="leaps" only.
+THEN choose a best_setup consistent with that handling.
+
+Common mistake: do NOT emit "stand_aside" when there is no actual
+conflict — that's what "no_conflict" is for. "stand_aside" is reserved
+for genuine no-trade conditions where event risk kills the setup.
 
 DEFINED-RISK ONLY: every candidates[] entry and best_setup MUST be
 defined-risk. No naked shorts.
