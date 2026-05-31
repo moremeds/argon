@@ -555,13 +555,24 @@ clause, then state which pillar wins for the 5-10 session horizon.
 | Why this expiry | one sentence citing IV level, vanna regime, or charm window position |
 | Alternative | second expiry in the same band, or "none — only one in-band expiry has liquidity" |
 
-## Scenarios (3 rows, probabilities sum to 100%)
+## Scenarios (exactly 3 rows: upside, base, downside)
 
-| Scenario | Probability | Trigger (daily close) | Level | Best expression |
-|---|---:|---|---|---|
-| upside | % | | named level | mode-whitelisted directional structure |
-| base | % | | named level | mode-whitelisted directional structure |
-| downside | % | | named level | mode-whitelisted directional structure |
+| Scenario | Likelihood | Trigger (daily close) | Level | Best expression |
+|---|---|---|---|---|
+| upside   | <one of: primary, plausible, tail> | | named level | mode-whitelisted directional structure |
+| base     | <one of: primary, plausible, tail> | | named level | mode-whitelisted directional structure |
+| downside | <one of: primary, plausible, tail> | | named level | mode-whitelisted directional structure |
+
+Likelihood vocabulary (pick exactly one per scenario):
+  - "primary"   — the path you expect to play out
+  - "plausible" — a credible alternative the evidence supports
+  - "tail"      — possible but not the dominant read
+
+EXACTLY ONE scenario is "primary." The "primary" scenario must
+correspond to the directional_bias chosen at Step 2. Do NOT emit
+numeric percentages — we cannot calibrate them and presenting
+"45%" as a precise estimate is a fake-precision pitfall. The
+qualitative bucket is the honest signal.
 
 ## Conflicts (cap = 2; severities high or medium only)
 
