@@ -35,17 +35,31 @@ from uw_scan.sources.uw import (
 # Spec-derived synthetic payloads
 # --------------------------------------------------------------------------- #
 SHORT_INTEREST = {
-    "data": {
-        "si_float": "0.0734",
-        "short_interest": 175611155,
-        "total_float": 2392000000,
-        "days_to_cover": "1.205",
-        "short_shares_available": 12000000,
-        "fee_rate": "0.51",
-        "rebate_rate": "4.25",
-        "market_date": "2026-05-15",
-        "symbol": "NVDA",
-    }
+    "data": [
+        {
+            "si_float": "0.0734",
+            "short_interest": 175611155,
+            "total_float": 2392000000,
+            "days_to_cover": "1.205",
+            "short_shares_available": 12000000,
+            "fee_rate": "0.51",
+            "rebate_rate": "4.25",
+            "market_date": "2026-05-15",
+            "symbol": "NVDA",
+        },
+        {
+            # older snapshot — must be ignored; latest-first ordering
+            "si_float": "0.0500",
+            "short_interest": 100000000,
+            "total_float": 2392000000,
+            "days_to_cover": "0.800",
+            "short_shares_available": 12000000,
+            "fee_rate": "0.30",
+            "rebate_rate": "4.00",
+            "market_date": "2026-04-30",
+            "symbol": "NVDA",
+        },
+    ]
 }
 
 ANALYST = {
@@ -150,9 +164,47 @@ def test_normalize_raises_on_missing_data_key():
         normalize_short_interest_float({"oops": {}})
 
 
-def test_normalize_short_interest_requires_object_not_list():
+def test_normalize_short_interest_takes_latest_from_list():
+    """UW returns a list of historical snapshots ordered most-recent-first;
+    the normalizer must take the first entry, not raise."""
+    out = normalize_short_interest_float(SHORT_INTEREST)
+    # market_date from the FIRST list entry; second entry's 2026-04-30 is ignored
+    assert out["si_market_date"] == date(2026, 5, 15)
+    assert out["si_pct_float"] == Decimal("0.0734")
+
+
+def test_normalize_short_interest_empty_list_yields_nones():
+    out = normalize_short_interest_float({"data": []})
+    assert out["si_pct_float"] is None
+    assert out["si_market_date"] is None
+
+
+def test_normalize_short_interest_rejects_non_dict_first_element():
+    """A malformed payload like `{data: [1, 2, 3]}` must raise rather than
+    AttributeError out on `int.get(...)`."""
     with pytest.raises(NormalizationError):
         normalize_short_interest_float({"data": [1, 2, 3]})
+
+
+def test_insights_assembler_rejects_blast_only_kwargs():
+    """Locks the PR's TypeError claim: passing blast-only kwargs to the
+    insights-lane assembler MUST raise — the conditional `extra_kwargs`
+    gate in trade_insights.py:339 is load-bearing, not aesthetic."""
+    from uw_scan.reports.trade_insights_ai import (
+        build_trade_insights_ai_analysis_input as insights_build,
+    )
+
+    minimal_kwargs = dict(
+        ticker="TSLA",
+        run_id=1,
+        trade_insights_input_hash="x",
+        trade_insights_payload={},
+        stock_report_payload={},
+        stock_history_payload={},
+        volatility_series_payload={},
+    )
+    with pytest.raises(TypeError):
+        insights_build(**minimal_kwargs, ohlcv_rows=[])  # type: ignore[call-arg]
 
 
 # --------------------------------------------------------------------------- #

@@ -19,13 +19,17 @@ from uw_scan.worker.jobs.positioning_jobs import positioning_refresh_once
 
 _PAYLOADS: dict[EndpointSlug, dict[str, Any]] = {
     EndpointSlug.SHORT_INTEREST_FLOAT: {
-        "data": {
-            "si_float": "0.0734",
-            "short_interest": 175611155,
-            "total_float": 2392000000,
-            "days_to_cover": "1.205",
-            "market_date": "2026-05-15",
-        }
+        # UW v2 returns `data` as a list of historical snapshots
+        # (most-recent first); the normalizer takes `rows[0]`.
+        "data": [
+            {
+                "si_float": "0.0734",
+                "short_interest": 175611155,
+                "total_float": 2392000000,
+                "days_to_cover": "1.205",
+                "market_date": "2026-05-15",
+            }
+        ]
     },
     EndpointSlug.ANALYST_RATINGS: {
         "data": [
