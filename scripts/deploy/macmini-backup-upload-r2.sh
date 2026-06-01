@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# macmini-backup-upload-r2.sh — upload latest argon_dev dump to R2.
+# macmini-backup-upload-r2.sh — upload latest option_wizard dump to R2.
 # Called by com.argon.backup-r2 launchd plist on Sundays at 04:00.
 # Reads R2_* credentials from ~/projects/unusual-whales/.env.
 
@@ -20,7 +20,7 @@ done
 
 R2_ENDPOINT="${R2_ENDPOINT_OVERRIDE:-https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com}"
 
-latest="$(ls -1t data/backups/argon_dev-*.dump.gz | head -1)"
+latest="$(ls -1t data/backups/option_wizard-*.dump.gz | head -1)"
 [[ -n "$latest" ]] || { echo "no local backup to upload" >&2; exit 1; }
 
 echo "Uploading $latest to s3://${R2_BUCKET}/postgres/"

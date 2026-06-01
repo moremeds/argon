@@ -62,7 +62,7 @@ class Settings(BaseModel):
     api_key: SecretStr = Field(...)
     db_host: str = "127.0.0.1"
     db_port: int = 5432
-    db_name: str = "argon_dev"
+    db_name: str = "option_wizard"
     db_schema: str = "uw_scan"
     db_user: str = "argon_app"
     db_password: SecretStr = SecretStr("")
@@ -242,7 +242,7 @@ class Settings(BaseModel):
             api_key=SecretStr(api_key),
             db_host=os.environ.get("UW_SCAN_DB_HOST", "127.0.0.1"),
             db_port=int(os.environ.get("UW_SCAN_DB_PORT", "5432")),
-            db_name=os.environ.get("UW_SCAN_DB_NAME", "argon_dev"),
+            db_name=os.environ.get("UW_SCAN_DB_NAME", "option_wizard"),
             db_schema=os.environ.get("UW_SCAN_DB_SCHEMA", "uw_scan"),
             db_user=os.environ.get("UW_SCAN_DB_USER", "") or "argon_app",
             db_password=SecretStr(os.environ.get("UW_SCAN_DB_PASSWORD", "")),

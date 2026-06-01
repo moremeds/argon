@@ -7,6 +7,18 @@
 
 ---
 
+## AMENDMENT 2026-06-01 (post-implementation)
+
+The implementation differs from this spec in three places, made during Phase 1 execution. The amendments are reflected in the code under `scripts/deploy/`, `config/templates/`, `src/uw_scan/config.py`, `.env.example`, `tests/`, `CLAUDE.md`, `AGENTS.md`, `README.md`, and `docs/ops/macmini-runbook.md`. This spec body below is left in its original form for design-decision audit purposes.
+
+1. **DB names kept as `option_wizard` / `option_wizard_test`** (not renamed to `argon_dev` / `argon_test`). Rationale: the original spec's `argon_dev` collided with the password literal `argon_dev` — same string for two semantically distinct values is a code-smell. Retaining `option_wizard` also avoids a no-op rename across ~30 references with zero functional benefit.
+2. **Password auto-generated via `openssl rand -base64 24`** (not a static `argon_dev` default). `macmini-bootstrap.sh` generates on first run, reads existing value from `.env` on re-runs (idempotent), and `ALTER ROLE` syncs to the role. Stored in `${ARGON_HOME}/.env` (chmod 600) and `~/.pgpass` (chmod 600). Printed once at bootstrap end for copy into MacBook `.env.local`.
+3. **`~/.pgpass` replaces inline `PGPASSWORD=...` everywhere** — backup plist, data-promote.sh, restore commands in the runbook. The pg* CLI tools auto-read it; no plaintext passwords in plist `EnvironmentVariables` dicts, no inline env vars in ssh-side commands.
+
+Schema stays `uw_scan`. Role stays `argon_app` (NOSUPERUSER NOCREATEDB NOCREATEROLE). Mac mini topology and all other design decisions are unchanged.
+
+---
+
 ## 1. Motivation and scope
 
 Today the entire `unusual-whales` stack — Next.js web, FastAPI, six fetcher workers, six AI workers, one massive WS consumer, and the `option_wizard` Postgres DB — runs as host processes on the user's MacBook Pro via `scripts/dev.sh`. The MacBook is the de-facto production host. Closing the laptop, sleep cycles, and laptop restarts all stop data collection and serving.

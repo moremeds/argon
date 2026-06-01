@@ -27,8 +27,8 @@ def _test_settings() -> Settings:
     if not test_db:
         pytest.fail(
             "UW_SCAN_TEST_DB_NAME is not set; refusing to commit to the working DB. "
-            "Create a dedicated test DB (e.g. `createdb argon_test`) and "
-            "export `UW_SCAN_TEST_DB_NAME=argon_test` before running pytest.",
+            "Create a dedicated test DB (e.g. `createdb option_wizard_test`) and "
+            "export `UW_SCAN_TEST_DB_NAME=option_wizard_test` before running pytest.",
             pytrace=False,
         )
     os.environ.setdefault("UW_SCAN_API_KEY", "test-dummy-not-used-by-db-tests")

@@ -15,10 +15,10 @@
 #   ARGON_BRANCH=main                                 # branch/tag to check out at bootstrap
 #   ARGON_PG_VERSION=16                               # Homebrew postgres version
 #   ARGON_NODE_VERSION=22                             # Homebrew node version
-#   ARGON_DB_NAME=argon_dev
-#   ARGON_DB_NAME_TEST=argon_test
+#   ARGON_DB_NAME=option_wizard
+#   ARGON_DB_NAME_TEST=option_wizard_test
 #   ARGON_DB_ROLE=argon_app
-#   ARGON_DB_PASSWORD=argon_dev
+#   ARGON_DB_PASSWORD=                       # auto-generated via openssl if unset
 #
 # What this script does NOT do (manual steps remain):
 #   - Apple ID sign-in / FileVault enable / SSH key add to GitHub
@@ -35,10 +35,21 @@ ARGON_REPO="${ARGON_REPO:-git@github.com:lcxxcllcx/unusual-whales.git}"
 ARGON_BRANCH="${ARGON_BRANCH:-main}"
 ARGON_PG_VERSION="${ARGON_PG_VERSION:-16}"
 ARGON_NODE_VERSION="${ARGON_NODE_VERSION:-22}"
-ARGON_DB_NAME="${ARGON_DB_NAME:-argon_dev}"
-ARGON_DB_NAME_TEST="${ARGON_DB_NAME_TEST:-argon_test}"
+ARGON_DB_NAME="${ARGON_DB_NAME:-option_wizard}"
+ARGON_DB_NAME_TEST="${ARGON_DB_NAME_TEST:-option_wizard_test}"
 ARGON_DB_ROLE="${ARGON_DB_ROLE:-argon_app}"
-ARGON_DB_PASSWORD="${ARGON_DB_PASSWORD:-argon_dev}"
+# Auto-generate a strong password on first run; reuse the existing one on
+# re-runs by reading from .env (so the role's password stays the truth even
+# if .env is regenerated). Safe characters only — no slash/plus/equals/quote
+# that would need escaping in connection strings or pgpass lines.
+if [[ -z "${ARGON_DB_PASSWORD:-}" ]]; then
+  if [[ -f "${ARGON_HOME:-$HOME/projects/unusual-whales}/.env" ]] \
+     && grep -qE '^UW_SCAN_DB_PASSWORD=.+' "${ARGON_HOME:-$HOME/projects/unusual-whales}/.env"; then
+    ARGON_DB_PASSWORD="$(grep -E '^UW_SCAN_DB_PASSWORD=' "${ARGON_HOME:-$HOME/projects/unusual-whales}/.env" | head -1 | cut -d= -f2- | tr -d '"' | tr -d "'")"
+  else
+    ARGON_DB_PASSWORD="$(openssl rand -base64 24 | tr -d '/+=' | head -c 28)"
+  fi
+fi
 
 USER_NAME="$(id -un)"
 
@@ -151,6 +162,35 @@ for db in "${ARGON_DB_NAME}" "${ARGON_DB_NAME_TEST}"; do
   fi
 done
 
+# ---------- ~/.pgpass for non-interactive auth ----------
+# psql/pg_dump/pg_restore on this mini (backup plist, restore commands in the
+# ops runbook) should never need an inline PGPASSWORD. ~/.pgpass at mode 600
+# is the Postgres-blessed credential store. Format: host:port:db:user:password.
+step "Populating \$HOME/.pgpass for ${ARGON_DB_ROLE}"
+PGPASS_FILE="$HOME/.pgpass"
+touch "$PGPASS_FILE"
+chmod 600 "$PGPASS_FILE"
+# Replace any existing entries for this role + DB pair with the fresh password.
+# `grep -v` filters out the matching lines; the new entries get appended.
+TMP_PGPASS="$(mktemp)"
+grep -vE "^(127\.0\.0\.1|localhost):5432:(${ARGON_DB_NAME}|${ARGON_DB_NAME_TEST}):${ARGON_DB_ROLE}:" \
+  "$PGPASS_FILE" > "$TMP_PGPASS" || true
+{
+  cat "$TMP_PGPASS"
+  printf '127.0.0.1:5432:%s:%s:%s\n' "${ARGON_DB_NAME}"      "${ARGON_DB_ROLE}" "${ARGON_DB_PASSWORD}"
+  printf '127.0.0.1:5432:%s:%s:%s\n' "${ARGON_DB_NAME_TEST}" "${ARGON_DB_ROLE}" "${ARGON_DB_PASSWORD}"
+  printf 'localhost:5432:%s:%s:%s\n' "${ARGON_DB_NAME}"      "${ARGON_DB_ROLE}" "${ARGON_DB_PASSWORD}"
+  printf 'localhost:5432:%s:%s:%s\n' "${ARGON_DB_NAME_TEST}" "${ARGON_DB_ROLE}" "${ARGON_DB_PASSWORD}"
+} > "$PGPASS_FILE"
+chmod 600 "$PGPASS_FILE"
+rm -f "$TMP_PGPASS"
+ok "\$HOME/.pgpass populated"
+
+# Sync password into the existing role (idempotent: takes effect every run, so
+# rotating ARGON_DB_PASSWORD via env or re-running bootstrap propagates).
+$PSQL -c "ALTER ROLE ${ARGON_DB_ROLE} WITH PASSWORD '${ARGON_DB_PASSWORD}';" >/dev/null
+ok "role password synced"
+
 # ---------- Repo clone ----------
 step "Repo at ${ARGON_HOME}"
 if [[ -d "${ARGON_HOME}/.git" ]]; then
@@ -199,16 +239,17 @@ step ".env files"
 if [[ ! -f "${ARGON_HOME}/.env" ]]; then
   say "Creating .env from .env.example (you must fill secrets before services start)"
   cp "${ARGON_HOME}/.env.example" "${ARGON_HOME}/.env"
-  # The .env.example default points UW_SCAN_DB_HOST at the Tailscale IP (which
-  # is the MacBook's view of the mini). On the mini itself, prefer localhost.
+  # The .env.example default points UW_SCAN_DB_HOST at 127.0.0.1 already; for
+  # the mini, this is correct (loopback to local Postgres). Inject the
+  # generated password.
   python3 - <<PY
 from pathlib import Path
 p = Path("${ARGON_HOME}/.env")
 text = p.read_text()
 text = text.replace("UW_SCAN_DB_HOST=100.66.147.98", "UW_SCAN_DB_HOST=127.0.0.1")
 text = text.replace("UW_SCAN_DB_NAME=option_wizard", "UW_SCAN_DB_NAME=${ARGON_DB_NAME}")
-text = text.replace("UW_SCAN_DB_USER=", "UW_SCAN_DB_USER=${ARGON_DB_ROLE}")
-text = text.replace("UW_SCAN_DB_PASSWORD=", "UW_SCAN_DB_PASSWORD=${ARGON_DB_PASSWORD}")
+text = text.replace("UW_SCAN_DB_USER=argon_app", "UW_SCAN_DB_USER=${ARGON_DB_ROLE}")
+text = text.replace("UW_SCAN_DB_PASSWORD=", "UW_SCAN_DB_PASSWORD=${ARGON_DB_PASSWORD}", 1)
 p.write_text(text)
 print("  .env scaffolded")
 PY
@@ -344,9 +385,8 @@ check_url() {
 api_ok=0; web_ok=0; db_ok=0
 check_url "http://127.0.0.1:8400/health" "api" && api_ok=1 || true
 check_url "http://127.0.0.1:3001"        "web" && web_ok=1 || true
-# Explicit PGPASSWORD avoids interactive password prompt hang on fresh install
-# where ~/.pgpass has no entry for argon_app yet.
-if PGPASSWORD="${ARGON_DB_PASSWORD}" "${PG_BIN}/psql" \
+# ~/.pgpass (written above) supplies the password — no inline PGPASSWORD needed.
+if "${PG_BIN}/psql" \
      -h localhost -U "${ARGON_DB_ROLE}" "${ARGON_DB_NAME}" \
      -c "SELECT COUNT(*) FROM uw_scan.scan_runs" >/dev/null 2>&1; then
   db_ok=1
@@ -358,18 +398,32 @@ fi
 step "Bootstrap summary"
 printf '  Repo:           %s\n' "${ARGON_HOME}"
 printf '  Database:       %s, %s @ localhost:5432\n' "${ARGON_DB_NAME}" "${ARGON_DB_NAME_TEST}"
+printf '  DB role:        %s (NOSUPERUSER NOCREATEDB NOCREATEROLE)\n' "${ARGON_DB_ROLE}"
 printf '  API:            %s\n' "$([[ $api_ok == 1 ]] && echo UP || echo DOWN)"
 printf '  Web:            %s\n' "$([[ $web_ok == 1 ]] && echo UP || echo DOWN)"
 printf '  Schema present: %s\n' "$([[ $db_ok == 1 ]] && echo YES || echo 'NO (run promote to populate)')"
 
 cat <<NEXT
 
+== ${ARGON_DB_ROLE} password (copy to MacBook .env.local) ==
+${ARGON_DB_PASSWORD}
+==========================================================
+  (Stored in ${ARGON_HOME}/.env as UW_SCAN_DB_PASSWORD and in ~/.pgpass.
+   ${USER_NAME}@mini does not need this string at runtime — it's in .env. But
+   when you point a MacBook at the mini via .env.local, you'll need to set
+   UW_SCAN_DB_PASSWORD to this value there too.)
+
 Next steps:
   1. Promote data from MacBook:
      # on the MacBook:
      ./scripts/deploy/macmini-data-promote.sh moremeds@100.66.147.98 --confirm
 
-  2. Update MacBook .env to point UW_SCAN_DB_HOST=100.66.147.98
+  2. Point MacBook at mini (when ready):
+     # on the MacBook, in .env.local (gitignored):
+     UW_SCAN_DB_HOST=100.66.147.98
+     UW_SCAN_DB_NAME=${ARGON_DB_NAME}
+     UW_SCAN_DB_USER=${ARGON_DB_ROLE}
+     UW_SCAN_DB_PASSWORD=${ARGON_DB_PASSWORD}
 
   3. Tail logs:
      tail -f logs/*.err.log

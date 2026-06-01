@@ -41,27 +41,29 @@ Refuses if MacBook writers are listening.
 
 ## Backups
 
-- Nightly local: `com.argon.backup` (03:00) writes `data/backups/argon_dev-<date>.dump.gz`, retains 7 days.
+- Nightly local: `com.argon.backup` (03:00) writes `data/backups/option_wizard-<date>.dump.gz`, retains 7 days.
 - Weekly R2: `com.argon.backup-r2` (Sundays 04:00) uploads to `s3://${R2_BUCKET}/postgres/`.
 
-Restore from local dump — `PGPASSWORD` must apply to `pg_restore`, not `gunzip`:
+**Note on auth:** The mini's `~/.pgpass` (mode 600, populated by `macmini-bootstrap.sh`) supplies the `argon_app` password for `127.0.0.1:5432`. None of the commands below need an inline `PGPASSWORD=...`. If you need to operate from a different host or as a different user, either populate `~/.pgpass` for that user or set `PGPASSWORD` inline (the password is in `${ARGON_HOME}/.env` on the mini as `UW_SCAN_DB_PASSWORD`).
+
+Restore from local dump:
 ```
 ssh moremeds@100.66.147.98 'cd ~/projects/unusual-whales
-  latest=$(ls -1t data/backups/argon_dev-*.dump.gz | head -1)
+  latest=$(ls -1t data/backups/option_wizard-*.dump.gz | head -1)
   echo "Restoring from $latest"
   gunzip -c "$latest" \
-    | PGPASSWORD=argon_dev pg_restore --clean --if-exists --no-owner --no-acl \
-      -h 127.0.0.1 -U argon_app -d argon_dev'
+    | pg_restore --clean --if-exists --no-owner --no-acl \
+      -h 127.0.0.1 -U argon_app -d option_wizard'
 ```
 
 Restore from R2:
 ```
 ssh moremeds@100.66.147.98 'cd ~/projects/unusual-whales && set -a; source .env; set +a
   AWS_ACCESS_KEY_ID="$R2_ACCESS_KEY_ID" AWS_SECRET_ACCESS_KEY="$R2_SECRET_ACCESS_KEY" \
-    aws s3 cp s3://${R2_BUCKET}/postgres/argon_dev-2026-06-01.dump.gz - \
+    aws s3 cp s3://${R2_BUCKET}/postgres/option_wizard-2026-06-01.dump.gz - \
       --endpoint-url "${R2_ENDPOINT_OVERRIDE:-https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com}" \
-    | gunzip | PGPASSWORD=argon_dev pg_restore --clean --if-exists --no-owner --no-acl \
-      -h 127.0.0.1 -U argon_app -d argon_dev'
+    | gunzip | pg_restore --clean --if-exists --no-owner --no-acl \
+      -h 127.0.0.1 -U argon_app -d option_wizard'
 ```
 
 ## Manual service control
@@ -112,31 +114,31 @@ From MacBook over Tailscale:
 ```
 curl -fsS http://100.66.147.98:8400/health | jq .
 curl -fsSI http://100.66.147.98:3001 | head -1
-psql -h 100.66.147.98 -U argon_app -d argon_dev -c "SELECT COUNT(*) FROM uw_scan.scan_runs"
+psql -h 100.66.147.98 -U argon_app -d option_wizard -c "SELECT COUNT(*) FROM uw_scan.scan_runs"
 ```
 
 ## Rollback (mini-stack-wide, in case migration was a mistake)
 
-1. On MacBook, flip `.env` (or `.env.local`) back:
+1. On MacBook, flip `.env` (or delete `.env.local`) back:
    - `UW_SCAN_DB_HOST=127.0.0.1`
    - `UW_SCAN_DB_NAME=option_wizard` (MacBook's local DB was untouched)
-   - `UW_SCAN_DB_USER=chenxi`
-   - Remove the dev.sh guard tripwire trigger by virtue of localhost.
-2. On MacBook, restore the original CLAUDE.md/etc via `git revert chore/rename-option-wizard-to-argon` (if that branch was already merged) or just keep the rename and override locally.
-3. On mini, stop all services:
+   - `UW_SCAN_DB_USER=chenxi` (MacBook's local DB owner; mini's `argon_app` only owns the mini-side copy)
+   - Remove `UW_SCAN_DB_PASSWORD` (local socket auth doesn't need it).
+   - dev.sh guard auto-clears (no longer pointing at mini).
+2. On mini, stop all services:
    ```
    ssh moremeds@100.66.147.98 'while read -r s; do
      [[ -z "$s" || "$s" == \#* ]] && continue
      launchctl unload "$HOME/Library/LaunchAgents/$s.plist" 2>/dev/null
    done < ~/projects/unusual-whales/config/services.list'
    ```
-4. On mini, optionally drop the DBs (only if abandoning entirely):
+3. On mini, optionally drop the DBs + role (only if abandoning entirely):
    ```
    ssh moremeds@100.66.147.98 'psql postgres -c "
-     DROP DATABASE IF EXISTS argon_dev;
-     DROP DATABASE IF EXISTS argon_test;
+     DROP DATABASE IF EXISTS option_wizard;
+     DROP DATABASE IF EXISTS option_wizard_test;
      DROP ROLE IF EXISTS argon_app;"'
    ```
-5. Restart MacBook's `scripts/dev.sh`.
+4. Restart MacBook's `scripts/dev.sh`.
 
 xenon is unaffected — different DBs, different roles, different launchd labels.

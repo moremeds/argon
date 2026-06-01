@@ -9,7 +9,7 @@
     <array>
         <string>/bin/bash</string>
         <string>-c</string>
-        <string>set -euo pipefail; mkdir -p __PROJECT_DIR__/data/backups; __BREW_PREFIX__/opt/postgresql@16/bin/pg_dump -Fc -h 127.0.0.1 -U argon_app argon_dev | gzip &gt; __PROJECT_DIR__/data/backups/argon_dev-$(date +\%Y\%m\%d).dump.gz; find __PROJECT_DIR__/data/backups -name 'argon_dev-*.dump.gz' -mtime +7 -delete</string>
+        <string>set -euo pipefail; mkdir -p __PROJECT_DIR__/data/backups; __BREW_PREFIX__/opt/postgresql@16/bin/pg_dump -Fc -h 127.0.0.1 -U argon_app option_wizard | gzip &gt; __PROJECT_DIR__/data/backups/option_wizard-$(date +\%Y\%m\%d).dump.gz; find __PROJECT_DIR__/data/backups -name 'option_wizard-*.dump.gz' -mtime +7 -delete</string>
     </array>
 
     <key>WorkingDirectory</key>
@@ -21,8 +21,6 @@
         <string>__BREW_PREFIX__/bin:/usr/local/bin:/usr/bin:/bin</string>
         <key>HOME</key>
         <string>/Users/__USER__</string>
-        <key>PGPASSWORD</key>
-        <string>argon_dev</string>
     </dict>
 
     <key>StartCalendarInterval</key>

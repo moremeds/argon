@@ -2,17 +2,18 @@
 # macmini-data-promote.sh — MacBook → Mac mini full Postgres mirror.
 #
 # RUN FROM THE MACBOOK. Dumps the source DB (default: option_wizard), ships
-# over SSH, restores onto the Mac mini's argon_dev. Destructive on the target
-# (--clean --if-exists).
+# over SSH, restores onto the Mac mini's option_wizard. Destructive on the
+# target (--clean --if-exists).
 #
 # Usage:
 #   ./scripts/deploy/macmini-data-promote.sh <ssh-host> --confirm \
 #       [--src-db option_wizard] [--src-user chenxi]
 #
-# Phase 3 cutover: --src-db option_wizard (pre-migration MacBook DB).
-# Ad-hoc re-mirror later: --src-db argon_dev_macbook (or whatever your local
-# rollback-insurance DB is named); only sensible if you maintain a local
-# Postgres post-migration.
+# Phase 3 cutover: --src-db option_wizard (pre-migration MacBook DB) →
+# mini's option_wizard.  Same name on both sides — no rename during transfer.
+# Ad-hoc re-mirror later: --src-db option_wizard_macbook (or whatever your
+# local rollback-insurance DB is named); only sensible if you maintain a
+# local Postgres post-migration.
 #
 # Example:
 #   ./scripts/deploy/macmini-data-promote.sh moremeds@100.66.147.98 --confirm
@@ -38,10 +39,10 @@ die()  { printf '\033[1;31m[promote] FAIL: %s\033[0m\n' "$*" >&2; exit 1; }
 step() { printf '\n\033[1;36m=== %s ===\033[0m\n' "$*"; }
 
 # ---------- Source DB explicit (not inferred from .env) ----------
-# Phase 4 changes MacBook's .env to point UW_SCAN_DB_NAME=argon_dev
-# UW_SCAN_DB_USER=argon_app; after that, sourcing those defaults would dump
-# the WRONG thing (try to dump the mini's argon_dev via MacBook's connection).
-# Make the source explicit and document it.
+# Phase 4 changes MacBook's .env.local to point UW_SCAN_DB_HOST at the mini.
+# Both sides use the DB name `option_wizard`, so sourcing .env after that
+# would silently dump the WRONG thing (the mini's option_wizard via MacBook's
+# connection). Make the source explicit and document it.
 SRC_DB="option_wizard"   # default for the initial Phase 3 cutover
 SRC_USER="chenxi"        # default MacBook DB owner
 # Parse extra args (after ssh host + --confirm)
@@ -53,7 +54,7 @@ while [[ $# -gt 2 ]]; do
   esac
 done
 # Target on mini (created by macmini-bootstrap.sh)
-DST_DB="argon_dev"
+DST_DB="option_wizard"
 DST_USER="argon_app"
 say "Source: $SRC_DB (as $SRC_USER) → Destination: $DST_DB on $SSH_HOST"
 
@@ -103,12 +104,14 @@ say "wrote $DUMP_FILE ($(du -h "$DUMP_FILE" | awk '{print $1}'))"
 step "Ship + restore on $SSH_HOST"
 # Stream to target, restoring with --clean so the existing schema is replaced
 # wholesale. --no-owner strips source ownership so the connecting role
-# (argon_app) becomes owner of every restored object.
-ssh "$SSH_HOST" "PGPASSWORD='argon_dev' pg_restore --clean --if-exists --no-owner --no-acl -h localhost -U ${DST_USER} -d ${DST_DB}" < "$DUMP_FILE"
+# (argon_app) becomes owner of every restored object. ~/.pgpass on the mini
+# (populated by macmini-bootstrap.sh) supplies the password — no inline
+# PGPASSWORD needed.
+ssh "$SSH_HOST" "pg_restore --clean --if-exists --no-owner --no-acl -h localhost -U ${DST_USER} -d ${DST_DB}" < "$DUMP_FILE"
 
 # ---------- Verify ----------
 step "Verify row counts on target"
-ssh "$SSH_HOST" "PGPASSWORD='argon_dev' psql -h localhost -U ${DST_USER} ${DST_DB} -c \"
+ssh "$SSH_HOST" "psql -h localhost -U ${DST_USER} ${DST_DB} -c \"
   SELECT relname, n_live_tup FROM pg_stat_user_tables
   WHERE schemaname='uw_scan' ORDER BY n_live_tup DESC LIMIT 20\""
 

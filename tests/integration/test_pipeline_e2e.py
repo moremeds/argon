@@ -62,7 +62,7 @@ pytestmark = pytest.mark.skipif(
 def test_pipeline_e2e_tsla_exit_gate(tmp_path_factory):
     """Run the S1 pipeline against TSLA and assert the exit-gate row counts.
 
-    Uses the local `argon_dev` DB but a fresh schema (`uw_scan_e2e`) so this
+    Uses the local `option_wizard` DB but a fresh schema (`uw_scan_e2e`) so this
     test does not collide with developer state.
     """
     settings = _test_settings()

@@ -2,9 +2,16 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
+> **AMENDMENT 2026-06-01 (post-implementation):** During Phase 1 the user revised three design points. See the AMENDMENT block in `docs/superpowers/specs/2026-06-01-mac-mini-stack-migration-design.md` for the rationale. Summary:
+> 1. DB names kept as `option_wizard` / `option_wizard_test` (not renamed to `argon_dev` / `argon_test`).
+> 2. Password is auto-generated via `openssl rand -base64 24` in `macmini-bootstrap.sh`, persisted in `.env` + `~/.pgpass`. Idempotent on re-runs.
+> 3. `~/.pgpass` replaces inline `PGPASSWORD=...` in the backup plist, data-promote.sh, and runbook restore commands.
+>
+> Task code blocks below still reference `argon_dev` / `argon_test` / `PGPASSWORD=argon_dev` from the pre-amendment design. Read them as design intent — the actual landed code under `scripts/deploy/`, `config/templates/`, `tests/`, `.env.example`, and `docs/ops/macmini-runbook.md` reflects the amendment.
+
 **Goal:** Move the entire `unusual-whales` runtime (13 long-running processes + 8.2 GB Postgres DB) from the user's MacBook Pro onto the Mac mini at Tailscale `100.66.147.98`, under launchd, sharing infrastructure with xenon (already deployed on that host).
 
-**Architecture:** All 13 processes run as host-native launchd jobs (no Docker — mirrors xenon's already-proven pattern). Postgres reuses xenon's existing `postgresql@16` cluster with two new DBs (`argon_dev`, `argon_test`) and a new non-superuser role (`argon_app`). MacBook becomes editor-only; it hits the mini's DB over Tailscale and pushes code via `git push` + a small mini-side deploy wrapper. Mini-DB cutover happens with MacBook's local `option_wizard` left untouched as rollback insurance.
+**Architecture:** All 13 processes run as host-native launchd jobs (no Docker — mirrors xenon's already-proven pattern). Postgres reuses xenon's existing `postgresql@16` cluster with two new DBs (`option_wizard`, `option_wizard_test` — see amendment above) and a new non-superuser role (`argon_app`). MacBook becomes editor-only; it hits the mini's DB over Tailscale and pushes code via `git push` + a small mini-side deploy wrapper. Mini-DB cutover happens with MacBook's local `option_wizard` left untouched as rollback insurance.
 
 **Tech Stack:** macOS arm64, launchd, Homebrew `postgresql@16`, `uv` (Python 3.13), Next.js 16 (`next start` from `web/package.json`, port 3001), bash deploy scripts, Tailscale (network), Postgres `pg_dump -Fc` + `pg_restore` streamed over SSH (single-thread — `pg_restore -j` isn't compatible with the stdin pipeline; ~10-25 min on 8.2 GB over Tailscale), `pytest` + `pytest-postgresql` for tests.
 
