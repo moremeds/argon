@@ -1,0 +1,19 @@
+# Canonical list of com.argon.* launchd services. Used by:
+#   scripts/deploy/macmini-bootstrap.sh   — for loading
+#   scripts/deploy/macmini-prod.sh        — for kickstart loop
+#   scripts/deploy/macmini-data-promote.sh — for post-cutover restart
+# Backup plist (com.argon.backup) is NOT listed — it's calendar-scheduled,
+# not kickstart-driven, and should not be touched on app deploys.
+com.argon.api
+com.argon.web
+com.argon.massive-ws
+com.argon.worker.uw-0
+com.argon.worker.uw-1
+com.argon.worker.massive-0
+com.argon.worker.massive-1
+com.argon.worker.ai-codex-0
+com.argon.worker.ai-codex-1
+com.argon.worker.ai-claude-0
+com.argon.worker.ai-claude-1
+com.argon.worker.ai-deepseek-0
+com.argon.worker.ai-deepseek-1

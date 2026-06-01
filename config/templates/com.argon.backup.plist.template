@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.argon.backup</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/bin/bash</string>
+        <string>-c</string>
+        <string>set -euo pipefail; mkdir -p __PROJECT_DIR__/data/backups; __BREW_PREFIX__/opt/postgresql@16/bin/pg_dump -Fc -h 127.0.0.1 -U argon_app argon_dev | gzip &gt; __PROJECT_DIR__/data/backups/argon_dev-$(date +\%Y\%m\%d).dump.gz; find __PROJECT_DIR__/data/backups -name 'argon_dev-*.dump.gz' -mtime +7 -delete</string>
+    </array>
+
+    <key>WorkingDirectory</key>
+    <string>__PROJECT_DIR__</string>
+
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>PATH</key>
+        <string>__BREW_PREFIX__/bin:/usr/local/bin:/usr/bin:/bin</string>
+        <key>HOME</key>
+        <string>/Users/__USER__</string>
+        <key>PGPASSWORD</key>
+        <string>argon_dev</string>
+    </dict>
+
+    <key>StartCalendarInterval</key>
+    <dict>
+        <key>Hour</key>
+        <integer>3</integer>
+        <key>Minute</key>
+        <integer>0</integer>
+    </dict>
+
+    <key>RunAtLoad</key>
+    <false/>
+
+    <key>StandardOutPath</key>
+    <string>__PROJECT_DIR__/logs/backup.out.log</string>
+
+    <key>StandardErrorPath</key>
+    <string>__PROJECT_DIR__/logs/backup.err.log</string>
+</dict>
+</plist>

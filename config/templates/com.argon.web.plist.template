@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.argon.web</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>__NPM_BIN__</string>
+        <string>run</string>
+        <string>start</string>
+    </array>
+
+    <key>WorkingDirectory</key>
+    <string>__PROJECT_DIR__/web</string>
+
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>PATH</key>
+        <string>__BREW_PREFIX__/bin:/usr/local/bin:/usr/bin:/bin</string>
+        <key>HOME</key>
+        <string>/Users/__USER__</string>
+        <key>USER</key>
+        <string>__USER__</string>
+        <key>HOSTNAME</key>
+        <string>127.0.0.1</string>
+        <key>NODE_ENV</key>
+        <string>production</string>
+    </dict>
+
+    <key>RunAtLoad</key>
+    <true/>
+
+    <key>KeepAlive</key>
+    <dict>
+        <key>SuccessfulExit</key>
+        <false/>
+        <key>Crashed</key>
+        <true/>
+    </dict>
+
+    <key>ThrottleInterval</key>
+    <integer>10</integer>
+
+    <key>ProcessType</key>
+    <string>Background</string>
+
+    <key>StandardOutPath</key>
+    <string>__PROJECT_DIR__/logs/web.out.log</string>
+
+    <key>StandardErrorPath</key>
+    <string>__PROJECT_DIR__/logs/web.err.log</string>
+</dict>
+</plist>
