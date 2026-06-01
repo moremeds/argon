@@ -56,7 +56,13 @@ done
 # Target on mini (created by macmini-bootstrap.sh)
 DST_DB="option_wizard"
 DST_USER="argon_app"
+# Remote PATH prefix — Homebrew's postgresql@17 is keg-only, so pg_restore/
+# psql aren't on the default non-interactive SSH PATH. Prepend the keg's
+# bindir to every remote command so they resolve. Override via env if the
+# mini's PG major changes (e.g. REMOTE_PG_BIN=/opt/homebrew/opt/postgresql@18/bin).
+REMOTE_PG_BIN="${REMOTE_PG_BIN:-/opt/homebrew/opt/postgresql@17/bin}"
 say "Source: $SRC_DB (as $SRC_USER) → Destination: $DST_DB on $SSH_HOST"
+say "Remote PG bindir: $REMOTE_PG_BIN"
 
 # ---------- Refuse if local writers running ----------
 step "Safety: ensure no local writers"
@@ -82,8 +88,8 @@ fi
 
 # ---------- Probe target DB ----------
 step "Probe target Postgres on $SSH_HOST"
-if ! ssh "$SSH_HOST" "command -v pg_restore" >/dev/null 2>&1; then
-  die "pg_restore not on PATH on target — run macmini-bootstrap.sh first"
+if ! ssh "$SSH_HOST" "PATH=${REMOTE_PG_BIN}:\$PATH command -v pg_restore" >/dev/null 2>&1; then
+  die "pg_restore not found at $REMOTE_PG_BIN on target — run macmini-bootstrap.sh first, or set REMOTE_PG_BIN"
 fi
 
 # ---------- Local dump ----------
@@ -92,10 +98,19 @@ mkdir -p data/backups
 TS="$(date +%Y%m%dT%H%M%S)"
 DUMP_FILE="data/backups/${SRC_DB}-${TS}.dump"
 
-# Find local pg_dump (Homebrew layout)
-PG_DUMP="$(command -v pg_dump || true)"
-[[ -x "$PG_DUMP" ]] || PG_DUMP="/opt/homebrew/opt/postgresql@16/bin/pg_dump"
-[[ -x "$PG_DUMP" ]] || die "pg_dump not found"
+# Find local pg_dump. Must be >= source server major; PG's policy refuses
+# older pg_dump against newer server. MacBook may have multiple keg-only
+# postgresql@N installed in parallel — prefer the one that matches (or
+# exceeds) the running server. Default: postgresql@17 (current MacBook).
+# Override via env if the MacBook upgrades: LOCAL_PG_BIN=/opt/homebrew/opt/postgresql@18/bin.
+LOCAL_PG_BIN="${LOCAL_PG_BIN:-/opt/homebrew/opt/postgresql@17/bin}"
+PG_DUMP="${LOCAL_PG_BIN}/pg_dump"
+if [[ ! -x "$PG_DUMP" ]]; then
+  # Fallback: scan PATH but skip versions older than 17 (best-effort guess).
+  PG_DUMP="$(command -v pg_dump || true)"
+fi
+[[ -x "$PG_DUMP" ]] || die "pg_dump not found at $LOCAL_PG_BIN/pg_dump or on PATH"
+say "pg_dump: $($PG_DUMP --version)"
 
 "$PG_DUMP" -h localhost -U "$SRC_USER" -Fc --no-owner --no-acl -f "$DUMP_FILE" "$SRC_DB"
 say "wrote $DUMP_FILE ($(du -h "$DUMP_FILE" | awk '{print $1}'))"
@@ -107,11 +122,11 @@ step "Ship + restore on $SSH_HOST"
 # (argon_app) becomes owner of every restored object. ~/.pgpass on the mini
 # (populated by macmini-bootstrap.sh) supplies the password — no inline
 # PGPASSWORD needed.
-ssh "$SSH_HOST" "pg_restore --clean --if-exists --no-owner --no-acl -h localhost -U ${DST_USER} -d ${DST_DB}" < "$DUMP_FILE"
+ssh "$SSH_HOST" "PATH=${REMOTE_PG_BIN}:\$PATH pg_restore --clean --if-exists --no-owner --no-acl -h localhost -U ${DST_USER} -d ${DST_DB}" < "$DUMP_FILE"
 
 # ---------- Verify ----------
 step "Verify row counts on target"
-ssh "$SSH_HOST" "psql -h localhost -U ${DST_USER} ${DST_DB} -c \"
+ssh "$SSH_HOST" "PATH=${REMOTE_PG_BIN}:\$PATH psql -h localhost -U ${DST_USER} ${DST_DB} -c \"
   SELECT relname, n_live_tup FROM pg_stat_user_tables
   WHERE schemaname='uw_scan' ORDER BY n_live_tup DESC LIMIT 20\""
 

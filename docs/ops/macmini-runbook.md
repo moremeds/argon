@@ -3,7 +3,7 @@
 **Host:** Mac mini @ Tailscale `100.66.147.98`, SSH user `moremeds`.
 **Repo:** `~/projects/unusual-whales` on mini.
 **Services:** 13 launchd jobs (`com.argon.*`) + 2 backup jobs (`com.argon.backup`, `com.argon.backup-r2`).
-**Co-tenant:** xenon shares the same `postgresql@16` cluster (separate DBs/roles).
+**Co-tenant:** xenon shares the mini's Homebrew Postgres cluster (currently `postgresql@17`, port 5432; separate DBs/roles). Bootstrap probes whatever `brew services` reports running, so a future major bump is transparent to argon.
 **Spec:** `docs/superpowers/specs/2026-06-01-mac-mini-stack-migration-design.md`
 **Plan:** `docs/superpowers/plans/2026-06-01-mac-mini-stack-migration-plan.md`
 

@@ -15,6 +15,7 @@ The implementation differs from this spec in four places, made during Phase 1 ex
 2. **Password auto-generated via `openssl rand -base64 24`** (not a static `argon_dev` default). `macmini-bootstrap.sh` generates on first run, reads existing value from `.env` on re-runs (idempotent), and `ALTER ROLE` syncs to the role. Stored in `${ARGON_HOME}/.env` (chmod 600) and `~/.pgpass` (chmod 600). Printed once at bootstrap end for copy into MacBook `.env.local`.
 3. **`~/.pgpass` replaces inline `PGPASSWORD=...` everywhere** — backup plist, data-promote.sh, restore commands in the runbook. The pg* CLI tools auto-read it; no plaintext passwords in plist `EnvironmentVariables` dicts, no inline env vars in ssh-side commands.
 4. **Claude/Codex CLI auth probes are advisory, not gating.** Original design had bootstrap `die` if either probe failed. New behavior: probe-and-warn; the affected `ai-claude` / `ai-codex` worker plists are rendered but not loaded (no crash-loop), and the summary prints the exact `launchctl load …` commands to run after fixing auth. Core stack (API, web, uw/massive workers, ai-deepseek) loads regardless. Rationale: the AI worker auth state shouldn't block deployment of services that don't depend on it.
+5. **Postgres major is `@17`, not `@16`.** The mini's actively-running Homebrew cluster (verified at Phase 3 cutover, 2026-06-01) is `postgresql@17` on port 5432; the `@16` install referenced throughout the original diagram is dormant. `macmini-data-promote.sh` defaults `LOCAL_PG_BIN` and `REMOTE_PG_BIN` to `/opt/homebrew/opt/postgresql@17/bin` so `pg_dump`/`pg_restore`/`psql` resolve under non-interactive SSH (PG's Homebrew formula is keg-only). Both env vars can be overridden when the mini bumps PG majors; no other deploy script hard-codes a major. MacBook also runs PG 17, so in-version dump/restore is the steady-state path.
 
 Schema stays `uw_scan`. Role stays `argon_app` (NOSUPERUSER NOCREATEDB NOCREATEROLE). Mac mini topology and all other design decisions are unchanged.
 
@@ -167,7 +168,7 @@ Idempotent, probe-and-skip per step. Runs as `moremeds` on the mini. Differences
 |---|---|
 | Xcode CLT | Skip — already installed by xenon's run |
 | Homebrew | Skip — already installed |
-| `postgresql@16` install + start | Skip — already running for xenon |
+| Homebrew Postgres install + start | Skip — `postgresql@17` already running for xenon (see AMENDMENT item 5) |
 | Node, uv, gh | Skip — already installed |
 | `gh` auth, SSH key | Skip — already done for xenon |
 | **Create role `argon_app`** | NEW — not part of xenon's bootstrap |
