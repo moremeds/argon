@@ -54,6 +54,7 @@ class _ScanRunsMixin:
             cur.execute(sql, (ticker.upper(), notes))
             row = cur.fetchone()
         assert row is not None
+        self._conn.commit()
         return int(row[0])
 
     def finish_scan_run(self, run_id: int, status: str = "ok") -> None:
@@ -63,6 +64,7 @@ class _ScanRunsMixin:
         )
         with self._conn.cursor() as cur:
             cur.execute(sql, (status, run_id))
+        self._conn.commit()
 
     def get_scan_duration_summary(
         self, start: datetime, end: datetime
