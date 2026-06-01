@@ -217,10 +217,20 @@ class Settings(BaseModel):
 
     @classmethod
     def from_env(cls, env_path: Path | None = None) -> "Settings":
-        """Load Settings from process env, auto-loading .env at repo root if present."""
-        if env_path is None:
-            env_path = Path(__file__).resolve().parents[2] / ".env"
-        _load_dotenv(env_path)
+        """Load Settings from process env, auto-loading .env at repo root.
+
+        When called without an explicit env_path, loads .env.local first, then
+        .env, both from repo root. .env.local is a gitignored per-machine
+        override — used to point the MacBook at the mini's DB host without
+        editing the committed .env. Because _load_dotenv only sets keys not
+        already present in os.environ, .env.local wins on conflicts.
+        """
+        if env_path is not None:
+            _load_dotenv(env_path)
+        else:
+            repo_root = Path(__file__).resolve().parents[2]
+            _load_dotenv(repo_root / ".env.local")
+            _load_dotenv(repo_root / ".env")
 
         api_key = os.environ.get("UW_SCAN_API_KEY", "").strip()
         if not api_key:
