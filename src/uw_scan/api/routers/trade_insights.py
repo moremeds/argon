@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from datetime import date as _date
+from datetime import datetime
 from decimal import Decimal
 from typing import Any, Literal
 from uuid import UUID
@@ -106,8 +107,12 @@ _BLAST_MACRO_SERIES: tuple[str, ...] = (
 
 
 def _build_blast_macro_payload(repo: Repository) -> dict[str, Any] | None:
+    """Latest-vintage value per curated macro series. The top-level ``as_of``
+    is intentionally the same key the blast assembler reads via
+    ``payload.get('as_of')`` to compute ``age_days`` / ``stale`` for the
+    macro section — do not rename without updating the assembler."""
     out: dict[str, Any] = {}
-    latest_as_of: object | None = None
+    latest_as_of: datetime | None = None
     for series_id in _BLAST_MACRO_SERIES:
         rows = repo.fetch_macro_series_daily(series_id)
         if not rows:
@@ -119,7 +124,10 @@ def _build_blast_macro_payload(repo: Repository) -> dict[str, Any] | None:
             "as_of": latest["as_of"],
         }
         as_of = latest["as_of"]
-        if latest_as_of is None or as_of > latest_as_of:
+        # macro_series_daily.as_of is TIMESTAMPTZ NOT NULL in migration 037,
+        # but guard for defensive depth — a future ingestion bug shouldn't
+        # 500 the blast endpoint.
+        if as_of is not None and (latest_as_of is None or as_of > latest_as_of):
             latest_as_of = as_of
     if not out:
         return None

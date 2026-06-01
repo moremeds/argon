@@ -89,10 +89,28 @@ def main() -> int:
     ticker_filter: Callable[[str], bool] | None = None
     if args.ticker:
         ticker_upper = args.ticker.upper()
-        ticker_filter = lambda t: t == ticker_upper  # noqa: E731
+        # Watchlist tickers are uppercase by convention, but compare
+        # case-insensitively so an --ticker tsla never silently no-ops.
+        ticker_filter = lambda t: t.upper() == ticker_upper  # noqa: E731
 
     with psycopg.connect(settings.db_dsn()) as conn:
         repo = Repository(conn, schema=settings.db_schema)
+
+        if not args.ticker:
+            # No per-ticker scope; default refreshes the whole active watchlist.
+            # Positioning hits 5 UW endpoints per ticker; fundamentals hits 3
+            # Massive endpoints per ticker. Surface the rough call count up
+            # front so an operator doesn't burn their daily budget unaware.
+            tickers = repo.list_active_watchlist()
+            est_positioning = 0 if args.skip_positioning else len(tickers) * 5
+            est_fundamentals = 0 if args.skip_fundamentals else len(tickers) * 3
+            logger.warning(
+                "default-all refresh: %d active watchlist tickers — "
+                "est %d UW calls + %d Massive calls; pass --ticker T to scope down",
+                len(tickers),
+                est_positioning,
+                est_fundamentals,
+            )
 
         if not args.skip_positioning:
             with _build_uw_client(settings) as uw:

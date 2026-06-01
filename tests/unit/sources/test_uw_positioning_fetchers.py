@@ -179,6 +179,34 @@ def test_normalize_short_interest_empty_list_yields_nones():
     assert out["si_market_date"] is None
 
 
+def test_normalize_short_interest_rejects_non_dict_first_element():
+    """A malformed payload like `{data: [1, 2, 3]}` must raise rather than
+    AttributeError out on `int.get(...)`."""
+    with pytest.raises(NormalizationError):
+        normalize_short_interest_float({"data": [1, 2, 3]})
+
+
+def test_insights_assembler_rejects_blast_only_kwargs():
+    """Locks the PR's TypeError claim: passing blast-only kwargs to the
+    insights-lane assembler MUST raise — the conditional `extra_kwargs`
+    gate in trade_insights.py:339 is load-bearing, not aesthetic."""
+    from uw_scan.reports.trade_insights_ai import (
+        build_trade_insights_ai_analysis_input as insights_build,
+    )
+
+    minimal_kwargs = dict(
+        ticker="TSLA",
+        run_id=1,
+        trade_insights_input_hash="x",
+        trade_insights_payload={},
+        stock_report_payload={},
+        stock_history_payload={},
+        volatility_series_payload={},
+    )
+    with pytest.raises(TypeError):
+        insights_build(**minimal_kwargs, ohlcv_rows=[])  # type: ignore[call-arg]
+
+
 # --------------------------------------------------------------------------- #
 # Fetchers — audit-first contract (mirror test_market_flow_alerts.py)
 # --------------------------------------------------------------------------- #

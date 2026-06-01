@@ -23,16 +23,8 @@ from tests.integration.api.test_trade_insights_ai_endpoint import (
     _seed_run,
     _settings_for_repo,
 )
+from uw_scan.api.routers.trade_insights import _BLAST_MACRO_SERIES
 from uw_scan.storage.repository import Repository
-
-_BLAST_MACRO_SERIES = (
-    "VIXCLS",
-    "ANFCI",
-    "NFCI",
-    "DGS10",
-    "BAMLH0A0HYM2",
-    "GVZCLS",
-)
 
 
 def _seed_ohlc_rows(repo: Repository, *, ticker: str, n: int) -> None:
@@ -160,7 +152,10 @@ def test_blast_lane_picks_up_seeded_source_data(
     =True with si_pct_float, etc."""
     repo = seeded_db_empty_cards
     _seed_run(repo)
-    _seed_ohlc_rows(repo, ticker="TSLA", n=60)
+    # 220 bars exercises BOTH dma_50 and dma_200 paths — locks the router's
+    # `limit=260` against a regression where someone trims it below 200 and
+    # silently drops the 200-DMA signal.
+    _seed_ohlc_rows(repo, ticker="TSLA", n=220)
     _seed_positioning(repo, ticker="TSLA")
     _seed_fundamentals(repo, ticker="TSLA")
     _seed_macro(repo, as_of=datetime.now(timezone.utc))
@@ -177,8 +172,9 @@ def test_blast_lane_picks_up_seeded_source_data(
 
     tape = analysis_input["tape"]
     assert tape["available"] is True
-    assert tape["bars"] == 60
-    assert tape["dma_50"] is not None  # 60 bars > 50, dma_50 computable
+    assert tape["bars"] == 220
+    assert tape["dma_50"] is not None
+    assert tape["dma_200"] is not None  # locks the 200-bar coverage
     assert tape["return_5d"] is not None
     assert tape["return_20d"] is not None
     assert tape["drawdown_from_6m_high"] is not None
@@ -194,7 +190,7 @@ def test_blast_lane_picks_up_seeded_source_data(
     assert fundamentals["fiscal_period"] == "Q1"
 
     macro = analysis_input["macro"]
-    assert macro["available"] is not False
+    assert macro["available"] is True
     # All 6 curated series surface as nested objects
     for series_id in _BLAST_MACRO_SERIES:
         assert series_id in macro, (

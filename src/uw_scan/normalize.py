@@ -99,7 +99,14 @@ def normalize_short_interest_float(payload: dict) -> dict:
     list returns the standard "data unavailable" tuple of Nones via _dec(None).
     """
     rows = _data_list(payload)
-    raw = rows[0] if rows else {}
+    raw: dict[str, Any] = {}
+    if rows:
+        first = rows[0]
+        if not isinstance(first, dict):
+            raise NormalizationError(
+                f"payload['data'][0] expected dict, got {type(first).__name__}"
+            )
+        raw = first
     return {
         "si_pct_float": _dec(raw.get("si_float")),
         "si_short_interest": _dec(raw.get("short_interest")),
