@@ -77,7 +77,6 @@ describe("CardGrid", () => {
             card("AVGO", "Semiconductor", 302, "1200"),
           ],
         }}
-        sparklines={{}}
       />,
     );
 
@@ -119,7 +118,6 @@ describe("CardGrid", () => {
             { ...card("TSLA", "M7", 206, "900"), pinned: true },
           ],
         }}
-        sparklines={{}}
       />,
     );
 
@@ -150,7 +148,6 @@ describe("CardGrid", () => {
             card("SPY", "ETF", 101, "300000000000"),
           ],
         }}
-        sparklines={{}}
       />,
     );
 
@@ -174,7 +171,6 @@ describe("CardGrid", () => {
             card("AAA", "ETF", 100, null),
           ],
         }}
-        sparklines={{}}
       />,
     );
 

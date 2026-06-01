@@ -59,13 +59,7 @@ function compareCards(a: WatchlistCard, b: WatchlistCard) {
   return a.sort_rank - b.sort_rank || a.ticker.localeCompare(b.ticker);
 }
 
-export function CardGrid({
-  data,
-  sparklines,
-}: {
-  data: WatchlistResponse;
-  sparklines: Record<string, number[]>;
-}) {
+export function CardGrid({ data }: { data: WatchlistResponse }) {
   const grouped = new Map<string, WatchlistCard[]>();
   for (const t of data.tickers) {
     const arr = grouped.get(t.sector) ?? [];
@@ -107,11 +101,7 @@ export function CardGrid({
             }}
           >
             {tickers.map((t) => (
-              <TickerCard
-                key={t.ticker}
-                card={t}
-                sparkline={sparklines[t.ticker] ?? []}
-              />
+              <TickerCard key={t.ticker} card={t} />
             ))}
           </div>
         </section>
