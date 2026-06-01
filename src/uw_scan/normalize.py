@@ -92,8 +92,14 @@ def _data_obj(payload: dict) -> dict:
 
 
 def normalize_short_interest_float(payload: dict) -> dict:
-    """V2 short-interest+float `data` object → uw_positioning si_* columns."""
-    raw = _data_obj(payload)
+    """V2 short-interest+float endpoint → uw_positioning si_* columns.
+
+    UW returns `data` as a list of historical snapshots ordered most-recent-first
+    (one entry per market-date). We take the first (latest) entry. An empty
+    list returns the standard "data unavailable" tuple of Nones via _dec(None).
+    """
+    rows = _data_list(payload)
+    raw = rows[0] if rows else {}
     return {
         "si_pct_float": _dec(raw.get("si_float")),
         "si_short_interest": _dec(raw.get("short_interest")),

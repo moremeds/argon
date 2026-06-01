@@ -35,17 +35,31 @@ from uw_scan.sources.uw import (
 # Spec-derived synthetic payloads
 # --------------------------------------------------------------------------- #
 SHORT_INTEREST = {
-    "data": {
-        "si_float": "0.0734",
-        "short_interest": 175611155,
-        "total_float": 2392000000,
-        "days_to_cover": "1.205",
-        "short_shares_available": 12000000,
-        "fee_rate": "0.51",
-        "rebate_rate": "4.25",
-        "market_date": "2026-05-15",
-        "symbol": "NVDA",
-    }
+    "data": [
+        {
+            "si_float": "0.0734",
+            "short_interest": 175611155,
+            "total_float": 2392000000,
+            "days_to_cover": "1.205",
+            "short_shares_available": 12000000,
+            "fee_rate": "0.51",
+            "rebate_rate": "4.25",
+            "market_date": "2026-05-15",
+            "symbol": "NVDA",
+        },
+        {
+            # older snapshot — must be ignored; latest-first ordering
+            "si_float": "0.0500",
+            "short_interest": 100000000,
+            "total_float": 2392000000,
+            "days_to_cover": "0.800",
+            "short_shares_available": 12000000,
+            "fee_rate": "0.30",
+            "rebate_rate": "4.00",
+            "market_date": "2026-04-30",
+            "symbol": "NVDA",
+        },
+    ]
 }
 
 ANALYST = {
@@ -150,9 +164,19 @@ def test_normalize_raises_on_missing_data_key():
         normalize_short_interest_float({"oops": {}})
 
 
-def test_normalize_short_interest_requires_object_not_list():
-    with pytest.raises(NormalizationError):
-        normalize_short_interest_float({"data": [1, 2, 3]})
+def test_normalize_short_interest_takes_latest_from_list():
+    """UW returns a list of historical snapshots ordered most-recent-first;
+    the normalizer must take the first entry, not raise."""
+    out = normalize_short_interest_float(SHORT_INTEREST)
+    # market_date from the FIRST list entry; second entry's 2026-04-30 is ignored
+    assert out["si_market_date"] == date(2026, 5, 15)
+    assert out["si_pct_float"] == Decimal("0.0734")
+
+
+def test_normalize_short_interest_empty_list_yields_nones():
+    out = normalize_short_interest_float({"data": []})
+    assert out["si_pct_float"] is None
+    assert out["si_market_date"] is None
 
 
 # --------------------------------------------------------------------------- #

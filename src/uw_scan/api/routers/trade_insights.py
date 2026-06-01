@@ -95,6 +95,38 @@ def _build_stock_history_response(
     return StockHistoryResponse(ticker=ticker, rows=rows)
 
 
+_BLAST_MACRO_SERIES: tuple[str, ...] = (
+    "VIXCLS",  # SPX implied vol
+    "ANFCI",  # adjusted financial conditions
+    "NFCI",  # raw financial conditions
+    "DGS10",  # 10-yr Treasury
+    "BAMLH0A0HYM2",  # HY OAS spread
+    "GVZCLS",  # gold vol
+)
+
+
+def _build_blast_macro_payload(repo: Repository) -> dict[str, Any] | None:
+    out: dict[str, Any] = {}
+    latest_as_of: object | None = None
+    for series_id in _BLAST_MACRO_SERIES:
+        rows = repo.fetch_macro_series_daily(series_id)
+        if not rows:
+            continue
+        latest = rows[-1]
+        out[series_id] = {
+            "value": latest["value"],
+            "obs_date": latest["obs_date"],
+            "as_of": latest["as_of"],
+        }
+        as_of = latest["as_of"]
+        if latest_as_of is None or as_of > latest_as_of:
+            latest_as_of = as_of
+    if not out:
+        return None
+    out["as_of"] = latest_as_of
+    return out
+
+
 def _build_and_persist_trade_insights(
     ticker: str,
     repo: Repository,
@@ -304,6 +336,14 @@ def post_trade_insights_ai_analysis(
         backfill_status=backfill_status,
         persist_derived=False,
     )
+    extra_kwargs: dict[str, Any] = {}
+    if is_blast:
+        extra_kwargs = {
+            "ohlcv_rows": repo.list_daily_ohlc(t, limit=260),
+            "positioning_payload": repo.get_uw_positioning(t),
+            "fundamentals_payload": repo.get_massive_fundamentals(t),
+            "macro_payload": _build_blast_macro_payload(repo),
+        }
     analysis_input = _build_analysis_input(
         ticker=t,
         run_id=run_id,
@@ -312,6 +352,7 @@ def post_trade_insights_ai_analysis(
         stock_report_payload=stock_report.model_dump(mode="json"),
         stock_history_payload=stock_history.model_dump(mode="json"),
         volatility_series_payload=volatility.model_dump(mode="json"),
+        **extra_kwargs,
     )
     analysis_hash = _hash_analysis_input(analysis_input)
 
