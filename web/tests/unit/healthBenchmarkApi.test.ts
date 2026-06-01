@@ -1,6 +1,10 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { api } from "@/lib/api";
 
+// In jsdom (`typeof window !== "undefined"`), `lib/api.ts` resolves its base
+// URL to "" so calls become relative — they get routed through the Next.js
+// `/api/:path*` rewrite to FastAPI in production. These assertions exercise
+// the browser-bundle contract.
 describe("health benchmark API client", () => {
   afterEach(() => {
     vi.unstubAllGlobals();
@@ -30,7 +34,7 @@ describe("health benchmark API client", () => {
     await api.healthBenchmarkCurrent();
 
     expect(fetch).toHaveBeenCalledWith(
-      "http://127.0.0.1:8400/api/health/benchmark/current",
+      "/api/health/benchmark/current",
       expect.objectContaining({ cache: "no-store" }),
     );
   });
@@ -48,7 +52,7 @@ describe("health benchmark API client", () => {
     await api.healthBenchmarkHistory(24);
 
     expect(fetch).toHaveBeenCalledWith(
-      "http://127.0.0.1:8400/api/health/benchmark/history?hours=24",
+      "/api/health/benchmark/history?hours=24",
       expect.objectContaining({ cache: "no-store" }),
     );
   });

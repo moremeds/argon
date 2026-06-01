@@ -1,4 +1,12 @@
-const API = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://127.0.0.1:8400";
+// URL-agnostic base. See web/lib/api.ts for rationale: browser uses a
+// relative URL routed through the Next.js `/api/:path*` rewrite; server-side
+// (RSC) hits FastAPI directly.
+// `||` (not `??`) so an empty NEXT_PUBLIC_API_BASE_URL still falls back to
+// the absolute server-side URL during RSC rendering. See web/lib/api.ts.
+const API =
+  typeof window !== "undefined"
+    ? ""
+    : process.env.NEXT_PUBLIC_API_BASE_URL || "http://127.0.0.1:8400";
 
 export const regimeApi = {
   cri: () => `${API}/api/regime`,
