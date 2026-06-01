@@ -19,7 +19,7 @@ export default async function DashboardPage({
   if (sp.sector) qs.set("sector", sp.sector);
   if (sp.setup) qs.set("setup", sp.setup);
   if (sp.fresh) qs.set("fresh_within_minutes", sp.fresh);
-  const { data, sparklines, apiUnavailable } = await loadDashboardData(qs);
+  const { data, apiUnavailable } = await loadDashboardData(qs);
 
   return (
     <div style={{ padding: 24, maxWidth: 1600, margin: "0 auto" }}>
@@ -58,11 +58,12 @@ export default async function DashboardPage({
             fontSize: 11,
           }}
         >
-          API unavailable. Start-up is still warming; refresh when the API is ready.
+          API unavailable. Start-up is still warming; refresh when the API is
+          ready.
         </div>
       )}
       <FilterBar current={sp} />
-      <CardGrid data={data} sparklines={sparklines} />
+      <CardGrid data={data} />
     </div>
   );
 }

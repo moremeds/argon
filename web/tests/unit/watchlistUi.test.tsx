@@ -135,6 +135,62 @@ describe("TickerCard", () => {
 
     expect(screen.getByText("queued #4")).not.toBeNull();
   });
+
+  it("fetches OHLC client-side when no sparkline prop is supplied", async () => {
+    const ac: AbortSignal[] = [];
+    const fetchMock = vi.fn(
+      (_url: string, init?: { signal?: AbortSignal }): Promise<Response> => {
+        if (init?.signal) ac.push(init.signal);
+        return Promise.resolve(
+          new Response(
+            JSON.stringify([
+              {
+                date: "2026-05-12",
+                close: "200",
+                open: null,
+                high: null,
+                low: null,
+                volume: null,
+              },
+              {
+                date: "2026-05-13",
+                close: "210",
+                open: null,
+                high: null,
+                low: null,
+                volume: null,
+              },
+            ]),
+            { status: 200 },
+          ),
+        );
+      },
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<TickerCard card={card} />);
+
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledWith(
+        "/api/ohlc/TSLA?days=30",
+        expect.objectContaining({ cache: "no-store" }),
+      );
+    });
+    // SVG path is populated once closes state is set from the fetched bars.
+    await waitFor(() => {
+      const path = document.querySelector("svg path");
+      expect(path?.getAttribute("d")).toBeTruthy();
+    });
+  });
+
+  it("does not fetch when the ticker has not been scanned", () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<TickerCard card={{ ...card, scanned_at: null }} />);
+
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
 });
 
 describe("QueueProgress", () => {

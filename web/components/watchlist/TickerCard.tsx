@@ -1,6 +1,6 @@
 "use client";
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { components } from "@/lib/types";
 import { StockNotReadyDialog } from "@/components/stock/StockNotReadyDialog";
 import { SetupBadge } from "./SetupBadge";
@@ -20,15 +20,42 @@ import { RescanButton } from "@/components/shared/RescanButton";
 import { PinButton } from "./PinButton";
 
 type Card = components["schemas"]["WatchlistCard"];
-type Props = { card: Card; sparkline: number[] };
+type Props = { card: Card; sparkline?: number[] };
 
 const linkReset = {
   color: "var(--text-primary)",
   textDecoration: "none",
 };
 
-export function TickerCard({ card, sparkline }: Props) {
+export function TickerCard({ card, sparkline = [] }: Props) {
   const [showNotReady, setShowNotReady] = useState(false);
+  const [closes, setCloses] = useState<number[]>(sparkline);
+
+  // Sparkline OHLC is fetched client-side (was server-side as part of the
+  // dashboard RSC, paying ~800 ms per page load). Skips when (a) the prop
+  // pre-seeded data (used by unit tests), or (b) the ticker isn't scanned.
+  // Note: CardGrid uses `key={t.ticker}` so TickerCard unmounts/remounts on
+  // ticker change — there is no in-place ticker swap to worry about.
+  useEffect(() => {
+    if (closes.length > 0 || !card.scanned_at) return;
+    const ac = new AbortController();
+    fetch(`/api/ohlc/${card.ticker}?days=30`, {
+      cache: "no-store",
+      signal: ac.signal,
+    })
+      .then((r) =>
+        r.ok ? r.json() : Promise.reject(new Error(`status ${r.status}`)),
+      )
+      .then((bars: Array<{ close: string | number | null }>) => {
+        if (ac.signal.aborted) return;
+        setCloses(bars.map((b) => Number(b.close)).reverse());
+      })
+      .catch(() => {
+        // Empty sparkline is an acceptable degraded state.
+      });
+    return () => ac.abort();
+  }, [card.ticker, card.scanned_at, closes.length]);
+
   const fresh = bucketFreshness(card.scanned_at);
   const dot =
     fresh === "fresh"
@@ -102,7 +129,7 @@ export function TickerCard({ card, sparkline }: Props) {
         }}
       >
         <SparklineRow
-          closes={sparkline}
+          closes={closes}
           ret_1d={toNum(card.returns?.d1)}
           ret_1w={toNum(card.returns?.w1)}
           ret_30d={toNum(card.returns?.d30)}
