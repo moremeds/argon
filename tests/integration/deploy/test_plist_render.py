@@ -1,8 +1,14 @@
 """Verify each launchd plist template renders to valid Apple plist XML.
 
 Each template uses sed-style __PLACEHOLDER__ substitution. This test renders
-each template with realistic values, writes the output to a temp file, and
-runs `plutil -lint` to verify the result is well-formed plist XML.
+each template with realistic values, then:
+
+1. Asserts no `__PLACEHOLDER__` survived the substitution.
+2. Parses the result with the stdlib XML parser — works on every platform
+   (CI runs on Linux where `plutil` does not exist).
+3. If `plutil` is available (macOS dev + the mini), additionally runs
+   `plutil -lint` for plist-semantic validation (e.g., `<dict>` must hold
+   key/value pairs).
 
 If this test fails, the bootstrap script's `render_plist` step will also fail
 on the mini — fix the template before phase 2.
@@ -10,7 +16,9 @@ on the mini — fix the template before phase 2.
 
 from __future__ import annotations
 
+import shutil
 import subprocess
+import xml.etree.ElementTree as ET
 from pathlib import Path
 
 import pytest
@@ -68,19 +76,28 @@ def test_template_renders_to_valid_plist(
         + "\n".join(line for line in rendered.splitlines() if "__" in line)
     )
 
-    # Apple plist XML validation via plutil.
-    out_path = tmp_path / "rendered.plist"
-    out_path.write_text(rendered)
-    result = subprocess.run(
-        ["plutil", "-lint", str(out_path)],
-        capture_output=True,
-        text=True,
-        check=False,
-    )
-    assert result.returncode == 0, (
-        f"plutil rejected {template_name}:\n"
-        f"stdout: {result.stdout}\nstderr: {result.stderr}"
-    )
+    # XML well-formedness via stdlib — runs on every platform incl. Linux CI.
+    # ElementTree tolerates the Apple DOCTYPE without fetching the DTD.
+    try:
+        ET.fromstring(rendered)
+    except ET.ParseError as exc:
+        pytest.fail(f"{template_name} is not well-formed XML: {exc}\n{rendered}")
+
+    # plist-semantic validation via plutil — macOS only; skipped on Linux CI.
+    plutil = shutil.which("plutil")
+    if plutil is not None:
+        out_path = tmp_path / "rendered.plist"
+        out_path.write_text(rendered)
+        result = subprocess.run(
+            [plutil, "-lint", str(out_path)],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        assert result.returncode == 0, (
+            f"plutil rejected {template_name}:\n"
+            f"stdout: {result.stdout}\nstderr: {result.stderr}"
+        )
 
 
 def test_services_list_matches_template_set() -> None:
