@@ -52,6 +52,7 @@ def _render(template_path: Path, subs: dict[str, str]) -> str:
         ("com.argon.worker.plist.template", WORKER_SUBS),
         ("com.argon.massive-ws.plist.template", COMMON_SUBS),
         ("com.argon.backup.plist.template", COMMON_SUBS),
+        ("com.argon.backup-r2.plist.template", COMMON_SUBS),
     ],
 )
 def test_template_renders_to_valid_plist(
