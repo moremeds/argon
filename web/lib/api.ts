@@ -5,10 +5,14 @@ import type { paths } from "./types";
 // Tunnel, etc.) and get proxied to FastAPI by the Next.js rewrite at
 // `/api/:path*`. On the server (RSC fetches), hit FastAPI directly because
 // relative URLs have no base in a Node fetch context.
+// `||` (not `??`) so an empty NEXT_PUBLIC_API_BASE_URL — used in deploys
+// where the browser bundle should call relative paths — still falls back
+// to the server-side absolute URL during RSC rendering (Node fetch needs
+// an absolute URL).
 const API =
   typeof window !== "undefined"
     ? ""
-    : (process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://127.0.0.1:8400");
+    : process.env.NEXT_PUBLIC_API_BASE_URL || "http://127.0.0.1:8400";
 
 type Json<
   P extends keyof paths,
