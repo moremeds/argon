@@ -23,7 +23,7 @@ Don't conflate them.
 - **Routers are read-only.** Long-running work (rescan, full-scan kickoff, vol backfill) goes through `routers/jobs.py` and the worker.
 - **No business logic in routers** — call into `reports/*` or `cards/*`. A router method should be a thin wrapper that resolves params → calls assembler → returns the model.
 - **Mutations use `pg_try_advisory_lock`** for single-flight (see `routers/jobs.py` + `routers/volatility.py` backfill kicker).
-- **CORS** is locked to `127.0.0.1:3001` / `localhost:3001`. Don't widen for convenience — front-end runs from one port in dev.
+- **CORS** allows loopback (`127.0.0.1` / `localhost`) on ports `300{1,2,3}` for local dev, plus the Tailscale CGNAT range (`100.x.x.x`) on the same ports for cross-machine browse against the mini stack (Phase 4, see `docs/superpowers/specs/2026-06-01-mac-mini-stack-migration-design.md`). Implemented as an `allow_origin_regex` in `server.py`. Don't widen further (public domains, broader IP ranges, HTTPS) without an architectural reason — the Tailnet-only assumption is what keeps this trust boundary tight.
 - **`openapi.json` is the API contract.** After any model/router change run `cd web && npm run gen:types` to regenerate `web/lib/types.ts`.
 
 ## UW client (`client.py`)
