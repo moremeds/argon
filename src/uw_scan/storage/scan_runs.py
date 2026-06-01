@@ -25,6 +25,9 @@ class _ScanRunsMixin:
         GEX, volatility — all keyed by run_id). Excluded:
 
         - ``flow_data_refresh`` (writes options_volume_daily + option_chain only)
+        - ``positioning_refresh`` (M4 trade-framework: uw_positioning only)
+        - ``intraday_refresh`` (OI movers intraday: option_chain_oi only)
+        - ``cockpit_daily_snapshot`` (SPX/SPY/QQQ/IWM greeks/skew only)
         - ``gex_scan_*`` (SPX/SPY index-only GEX scanner running every 5 min)
         """
         with self._conn.cursor() as cur:
@@ -32,6 +35,9 @@ class _ScanRunsMixin:
                 f"SELECT run_id FROM {self._schema}.scan_runs "
                 "WHERE ticker = %s "
                 "  AND (notes IS DISTINCT FROM 'flow_data_refresh') "
+                "  AND (notes IS DISTINCT FROM 'positioning_refresh') "
+                "  AND (notes IS DISTINCT FROM 'intraday_refresh') "
+                "  AND (notes IS DISTINCT FROM 'cockpit_daily_snapshot') "
                 "  AND (notes IS NULL OR notes NOT LIKE 'gex_scan_%%') "
                 "ORDER BY run_id DESC LIMIT 1",
                 (ticker.upper(),),
@@ -76,6 +82,9 @@ class _ScanRunsMixin:
                   AND started_at IS NOT NULL
                   AND status = 'ok'
                   AND (notes IS DISTINCT FROM 'flow_data_refresh')
+                  AND (notes IS DISTINCT FROM 'positioning_refresh')
+                  AND (notes IS DISTINCT FROM 'intraday_refresh')
+                  AND (notes IS DISTINCT FROM 'cockpit_daily_snapshot')
                   AND (notes IS NULL OR notes NOT LIKE 'gex_scan_%%')
                 """,
                 (start, end),
