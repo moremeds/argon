@@ -28,14 +28,8 @@ def create_app() -> FastAPI:
     app = FastAPI(title="UW Watchlist API", version="0.1.0")
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=[
-            "http://127.0.0.1:3001",
-            "http://127.0.0.1:3002",
-            "http://127.0.0.1:3003",
-            "http://localhost:3001",
-            "http://localhost:3002",
-            "http://localhost:3003",
-        ],
+        # Loopback hosts (dev) + Tailnet CGNAT range (Phase 4 cross-machine browse from MacBook to mini).
+        allow_origin_regex=r"^http://(127\.0\.0\.1|localhost|100\.\d{1,3}\.\d{1,3}\.\d{1,3}):300[1-3]$",
         allow_methods=["*"],
         allow_headers=["*"],
     )

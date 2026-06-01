@@ -275,3 +275,39 @@ def test_run_persists_greek_exposure_daily_tail(
     assert len(rows) == 3
     assert rows[-1]["call_gex"] == pytest.approx(1.9e9)
     assert rows[-1]["net_gex"] == pytest.approx(0.9e9)  # generated column
+
+
+# Pass-6 calibration patch: lock in PR #108's gex.py error-path fix.
+# Verifies that when a fetcher raises, the scan_run row is sealed
+# status='error' (not stuck 'running') AND the original exception
+# propagates uncovered. Pre-PR-108, finish_scan_run's UPDATE was
+# silently rolled back at conn close, leaving an orphan running row.
+
+class _SimulatedFetcherFailure(RuntimeError):
+    """Stand-in for a fetcher raising in the middle of gex.run."""
+
+
+def test_run_seals_status_error_when_fetcher_raises(
+    seeded_db_empty_cards: Repository, mock_client: UwClient, monkeypatch
+):
+    def _boom(*_args, **_kwargs):
+        raise _SimulatedFetcherFailure("simulated upstream failure")
+
+    monkeypatch.setattr(gex_scanner, "fetch_iv_rank_rows", _boom)
+
+    repo = seeded_db_empty_cards
+
+    with pytest.raises(_SimulatedFetcherFailure):
+        gex_scanner.run(mock_client, repo, ticker="SPY")
+
+    with repo.conn.cursor() as cur:
+        cur.execute(
+            "SELECT status, finished_at FROM uw_scan.scan_runs "
+            "WHERE ticker = 'SPY' AND notes = 'gex_scan_SPY' "
+            "ORDER BY run_id DESC LIMIT 1"
+        )
+        row = cur.fetchone()
+
+    assert row is not None, "scan_runs row must be inserted before the fetcher raised"
+    assert row[0] == "error", "scan_run must be sealed status='error', not stuck 'running'"
+    assert row[1] is not None, "finished_at must be populated by the error-path commit"

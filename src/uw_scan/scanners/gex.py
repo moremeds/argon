@@ -562,5 +562,30 @@ def run(client: UwClient, repo: Repository, ticker: str = "SPX") -> int:
         )
         return row_id
     except Exception:
-        repo.finish_scan_run(run_id, status="error")
+        # Recovery is best-effort: if the original failure left the conn in an
+        # aborted state, the UPDATE in finish_scan_run will raise
+        # InFailedSqlTransaction, which would then mask the original error AND
+        # leave an orphaned status='running' row. Rollback to clear the conn
+        # and retry the status update. Never let the recovery path overshadow
+        # the original exception via `raise`.
+        try:
+            repo.finish_scan_run(run_id, status="error")
+        except Exception as cleanup_exc:
+            log.debug(
+                "gex_scan_finish_cleanup_pending ticker=%s run_id=%d cleanup_exc=%s",
+                ticker,
+                run_id,
+                repr(cleanup_exc),
+            )
+            try:
+                repo.conn.rollback()
+                repo.finish_scan_run(run_id, status="error")
+            except Exception as retry_exc:
+                log.warning(
+                    "gex_scan_finish_cleanup_failed ticker=%s run_id=%d cleanup_exc=%s retry_exc=%s",
+                    ticker,
+                    run_id,
+                    repr(cleanup_exc),
+                    repr(retry_exc),
+                )
         raise
