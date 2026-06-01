@@ -4,7 +4,7 @@ Seeds a single test ticker with synthetic IV/RV history, SPY OHLC, an
 iv_smile snapshot, and greeks → runs assemble_volatility_series directly
 (no FastAPI, no UW) → asserts critical invariants about the response shape.
 
-Run: `UW_SCAN_TEST_DB_NAME=option_wizard_test \
+Run: `UW_SCAN_TEST_DB_NAME=argon_test \
       uv run python scripts/dry_run_volatility_endpoint.py`
 
 The script REFUSES to run unless UW_SCAN_TEST_DB_NAME is set.

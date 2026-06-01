@@ -10,7 +10,9 @@ Per-ticker options analytics, watchlist-driven. Three processes share a single P
 - **FastAPI** (`src/uw_scan/api/`, port 8400) — read-only over the warm store, mutations only via `/jobs`
 - **APScheduler worker** (`src/uw_scan/worker/`) — full-scan / OHLC / spot-refresh / rescan-poll / nightly vol rollup
 
-Postgres `option_wizard` DB, schema `uw_scan`. UW (Unusual Whales) is the primary data source; massive.com supplies OHLC. **Never fall back to Yahoo.**
+Postgres `argon_dev` DB, schema `uw_scan`. UW (Unusual Whales) is the primary data source; massive.com supplies OHLC. **Never fall back to Yahoo.**
+
+Mac mini (`100.66.147.98`) hosts the shared production-ish Postgres instance. MacBook can run fully local (`UW_SCAN_DB_HOST=127.0.0.1`) or point at the mini via a per-machine `.env.local` override (`UW_SCAN_DB_HOST=100.66.147.98`). See `docs/superpowers/specs/2026-06-01-mac-mini-stack-migration-design.md`.
 
 ## Tech stack
 

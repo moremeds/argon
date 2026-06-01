@@ -1,8 +1,8 @@
 """Verify migrations 003-006 produce the expected schema and seed against an
-ISOLATED test database — never against the developer's real `option_wizard` DB.
+ISOLATED test database — never against the developer's real `argon_dev` DB.
 
 Requires `UW_SCAN_TEST_DB_NAME` env var to point at a dedicated test database
-(e.g. `option_wizard_test`). The fixture refuses to run if it isn't set, so
+(e.g. `argon_dev_test`). The fixture refuses to run if it isn't set, so
 running `pytest` cannot destroy local scan data by accident."""
 
 from __future__ import annotations
@@ -23,7 +23,7 @@ def _test_settings() -> Settings:
     """Return a Settings instance pointing at the isolated test DB.
 
     HARD REQUIREMENT: the developer must set UW_SCAN_TEST_DB_NAME to a database
-    name that is NOT their working `option_wizard` DB. The fixture refuses to
+    name that is NOT their working `argon_dev` DB. The fixture refuses to
     run otherwise — protects against `DROP SCHEMA` against the wrong target.
 
     DB-only tests (migrations, repository) don't need a UW API key. We inject
@@ -35,8 +35,8 @@ def _test_settings() -> Settings:
     if not test_db:
         pytest.fail(
             "UW_SCAN_TEST_DB_NAME is not set. Create a dedicated test DB "
-            "(e.g. `createdb option_wizard_test`) and export "
-            "`UW_SCAN_TEST_DB_NAME=option_wizard_test` before running pytest. "
+            "(e.g. `createdb argon_dev_test`) and export "
+            "`UW_SCAN_TEST_DB_NAME=argon_dev_test` before running pytest. "
             "This fixture refuses to operate on the working DB because it "
             "performs `DROP SCHEMA uw_scan CASCADE`.",
             pytrace=False,
