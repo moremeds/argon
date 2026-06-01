@@ -94,10 +94,11 @@ def test_latest_run_id_skips_side_channel_refresh_runs(seeded_db_empty_cards) ->
     for note in ("positioning_refresh", "intraday_refresh", "cockpit_daily_snapshot"):
         shadow = repo.insert_scan_run("GOOGL", notes=note)
         repo.finish_scan_run(shadow, status="ok")
+        repo.conn.commit()
         assert shadow > full_run, f"{note} sanity: shadow would otherwise win"
-    repo.conn.commit()
-
-    assert repo.latest_run_id("GOOGL") == full_run
+        assert repo.latest_run_id("GOOGL") == full_run, (
+            f"{note} shadow was not excluded"
+        )
 
 
 def test_option_chain_per_strike_returns_only_latest_snapshot(
