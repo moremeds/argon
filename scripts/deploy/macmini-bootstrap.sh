@@ -411,7 +411,10 @@ check_url() {
 }
 
 api_ok=0; web_ok=0; db_ok=0
-check_url "http://127.0.0.1:8400/health" "api" && api_ok=1 || true
+# Actual route is /api/health (registered in routers/health.py); /health 404s.
+# Note: this endpoint queries uw_scan.worker_heartbeat — returns 500 until the
+# schema is populated (Phase 3 data-promote). That's expected at this point.
+check_url "http://127.0.0.1:8400/api/health" "api" && api_ok=1 || true
 check_url "http://127.0.0.1:3001"        "web" && web_ok=1 || true
 # ~/.pgpass (written above) supplies the password — no inline PGPASSWORD needed.
 if "${PG_BIN}/psql" \
