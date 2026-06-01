@@ -28,8 +28,15 @@ def create_app() -> FastAPI:
     app = FastAPI(title="UW Watchlist API", version="0.1.0")
     app.add_middleware(
         CORSMiddleware,
-        # Loopback hosts (dev) + Tailnet CGNAT range (Phase 4 cross-machine browse from MacBook to mini).
-        allow_origin_regex=r"^http://(127\.0\.0\.1|localhost|100\.\d{1,3}\.\d{1,3}\.\d{1,3}):300[1-3]$",
+        # CORS is URL-agnostic by design: the real trust boundary is the
+        # network layer (the private Tailnet — only Tailnet peers can reach
+        # this socket). Anyone who can reach the API is already authorized;
+        # filtering by origin string adds no security and breaks legitimate
+        # access patterns (MagicDNS hostnames, CGNAT IPs, alternate tailnets,
+        # localhost dev). Permissive regex matches any origin and Starlette
+        # echoes it back, which preserves compatibility with credentialed
+        # requests if we ever introduce them.
+        allow_origin_regex=r".*",
         allow_methods=["*"],
         allow_headers=["*"],
     )
