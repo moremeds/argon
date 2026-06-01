@@ -15,6 +15,8 @@ bash scripts/deploy/macmini-bootstrap.sh
 ```
 Idempotent; safe to re-run.
 
+**Claude/Codex CLI auth is advisory.** Bootstrap probes both CLIs but does not gate the core stack on them. If either probe fails (CLI missing, not signed in, keychain inaccessible), the corresponding `ai-claude` / `ai-codex` worker plists are **rendered but not loaded** — so they don't crash-loop. The bootstrap summary prints the exact `launchctl load …` commands to run after fixing the auth. AI-DeepSeek workers depend on `DEEPSEEK_API_KEY` in `.env`, not a CLI; the standard "fill secrets" step covers them.
+
 ## Regular deploy of a tagged release
 
 From MacBook:

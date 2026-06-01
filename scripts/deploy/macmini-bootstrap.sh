@@ -209,30 +209,44 @@ fi
 cd "${ARGON_HOME}"
 ok "repo at $(git rev-parse --short HEAD) on $(git symbolic-ref --short HEAD || echo detached)"
 
-# ---------- Codex + Claude CLI auth verification ----------
-# These CLIs require keychain OAuth — env vars are stripped by the runner's
-# allow-list so subscription auth wins. If either is unauthenticated, the AI
-# workers will load and immediately fail. Fail fast here.
-step "Verify Codex CLI + Claude CLI signed in for ${USER_NAME}"
+# ---------- Codex + Claude CLI auth verification (advisory) ----------
+# These CLIs are used only by the ai-codex and ai-claude worker roles. The
+# rest of the stack (API, web, uw/massive workers) doesn't depend on them.
+# So probe-and-warn rather than probe-and-die: the affected worker plists
+# stay un-loaded, the user gets a clear instruction to fix + reload, and the
+# core services come up regardless. Each successful probe IS a paid API call;
+# only runs on initial bootstrap.
+step "Probe Codex CLI + Claude CLI auth for ${USER_NAME} (advisory)"
+ai_claude_ok=1
+ai_codex_ok=1
+
 if ! command -v claude >/dev/null 2>&1; then
-  die "claude CLI not on PATH — install per Anthropic docs and run 'claude /login' as ${USER_NAME}"
+  warn "claude CLI not on PATH — ai-claude workers will be SKIPPED."
+  warn "  Install Claude Code CLI on this host, run 'claude /login' as ${USER_NAME},"
+  warn "  then reload the affected plists (instructions in summary)."
+  ai_claude_ok=0
+elif ! echo "respond with 'ok'" | claude --print --output-format text --max-turns 1 \
+        --tools "" --disable-slash-commands --strict-mcp-config \
+        --mcp-config '{"mcpServers": {}}' --no-session-persistence \
+        >/dev/null 2>&1; then
+  warn "claude --print probe failed — ai-claude workers will be SKIPPED."
+  warn "  Run 'claude /login' as ${USER_NAME} in an interactive shell, then reload."
+  ai_claude_ok=0
+else
+  ok "claude CLI signed in"
 fi
+
 if ! command -v codex >/dev/null 2>&1; then
-  die "codex CLI not on PATH — install Codex CLI and authenticate"
+  warn "codex CLI not on PATH — ai-codex workers will be SKIPPED."
+  warn "  Install Codex CLI, authenticate, then reload the affected plists."
+  ai_codex_ok=0
+elif ! codex exec -s read-only --skip-git-repo-check "respond with ok" >/dev/null 2>&1; then
+  warn "codex exec probe failed — ai-codex workers will be SKIPPED."
+  warn "  Re-authenticate Codex CLI as ${USER_NAME} in an interactive shell, then reload."
+  ai_codex_ok=0
+else
+  ok "codex CLI signed in"
 fi
-# Real Claude auth probe — fail loud if subscription auth missing. Each probe
-# IS a paid API call; only run on initial bootstrap.
-if ! echo "respond with 'ok'" | claude --print --output-format text --max-turns 1 \
-      --tools "" --disable-slash-commands --strict-mcp-config \
-      --mcp-config '{"mcpServers": {}}' --no-session-persistence \
-      >/dev/null 2>&1; then
-  die "claude --print probe failed — run 'claude /login' as ${USER_NAME} and re-run bootstrap"
-fi
-# Real Codex auth probe.
-if ! codex exec -s read-only "respond with ok" >/dev/null 2>&1; then
-  die "codex exec probe failed — re-authenticate Codex CLI and re-run bootstrap"
-fi
-ok "Codex + Claude CLI auth confirmed for ${USER_NAME}"
 
 # ---------- .env scaffolding ----------
 step ".env files"
@@ -354,8 +368,22 @@ for role in uw massive ai-codex ai-claude ai-deepseek; do
 done
 
 # Load: read services.list (excludes backup — calendar-scheduled, not kickstart-driven).
+# Skip ai-claude and ai-codex worker plists when their CLI failed the auth
+# probe above. They get rendered (so reload is one command) but stay unloaded
+# so they don't crash-loop every ${ThrottleInterval}s.
+skipped_labels=()
 while IFS= read -r label; do
   [[ -z "$label" || "$label" == \#* ]] && continue
+  if [[ "$label" == *"ai-claude"* ]] && [[ $ai_claude_ok -eq 0 ]]; then
+    skipped_labels+=("$label")
+    warn "skip load $label (claude auth missing)"
+    continue
+  fi
+  if [[ "$label" == *"ai-codex"* ]] && [[ $ai_codex_ok -eq 0 ]]; then
+    skipped_labels+=("$label")
+    warn "skip load $label (codex auth missing)"
+    continue
+  fi
   plist="$HOME/Library/LaunchAgents/${label}.plist"
   # Bootstrap unloads (if loaded) then loads. Idempotent.
   launchctl unload "$plist" >/dev/null 2>&1 || true
@@ -402,6 +430,18 @@ printf '  DB role:        %s (NOSUPERUSER NOCREATEDB NOCREATEROLE)\n' "${ARGON_D
 printf '  API:            %s\n' "$([[ $api_ok == 1 ]] && echo UP || echo DOWN)"
 printf '  Web:            %s\n' "$([[ $web_ok == 1 ]] && echo UP || echo DOWN)"
 printf '  Schema present: %s\n' "$([[ $db_ok == 1 ]] && echo YES || echo 'NO (run promote to populate)')"
+printf '  AI workers:     claude=%s codex=%s\n' \
+  "$([[ $ai_claude_ok == 1 ]] && echo READY || echo SKIPPED)" \
+  "$([[ $ai_codex_ok == 1 ]] && echo READY || echo SKIPPED)"
+
+if (( ${#skipped_labels[@]} > 0 )); then
+  printf '\n  \033[1;33mSkipped plists (fix auth, then reload each):\033[0m\n'
+  for label in "${skipped_labels[@]}"; do
+    # shellcheck disable=SC2016
+    # Intentional literal $HOME — user pastes this and expands at their shell.
+    printf '    launchctl load $HOME/Library/LaunchAgents/%s.plist\n' "$label"
+  done
+fi
 
 cat <<NEXT
 
