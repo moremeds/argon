@@ -64,7 +64,7 @@ class Settings(BaseModel):
     db_port: int = 5432
     db_name: str = "option_wizard"
     db_schema: str = "uw_scan"
-    db_user: str = "chenxi"
+    db_user: str = "argon_app"
     db_password: SecretStr = SecretStr("")
     max_requests_per_minute: int = 110
     request_timeout_seconds: float = 30.0
@@ -217,10 +217,20 @@ class Settings(BaseModel):
 
     @classmethod
     def from_env(cls, env_path: Path | None = None) -> "Settings":
-        """Load Settings from process env, auto-loading .env at repo root if present."""
-        if env_path is None:
-            env_path = Path(__file__).resolve().parents[2] / ".env"
-        _load_dotenv(env_path)
+        """Load Settings from process env, auto-loading .env at repo root.
+
+        When called without an explicit env_path, loads .env.local first, then
+        .env, both from repo root. .env.local is a gitignored per-machine
+        override — used to point the MacBook at the mini's DB host without
+        editing the committed .env. Because _load_dotenv only sets keys not
+        already present in os.environ, .env.local wins on conflicts.
+        """
+        if env_path is not None:
+            _load_dotenv(env_path)
+        else:
+            repo_root = Path(__file__).resolve().parents[2]
+            _load_dotenv(repo_root / ".env.local")
+            _load_dotenv(repo_root / ".env")
 
         api_key = os.environ.get("UW_SCAN_API_KEY", "").strip()
         if not api_key:
@@ -234,7 +244,7 @@ class Settings(BaseModel):
             db_port=int(os.environ.get("UW_SCAN_DB_PORT", "5432")),
             db_name=os.environ.get("UW_SCAN_DB_NAME", "option_wizard"),
             db_schema=os.environ.get("UW_SCAN_DB_SCHEMA", "uw_scan"),
-            db_user=os.environ.get("UW_SCAN_DB_USER", "") or "chenxi",
+            db_user=os.environ.get("UW_SCAN_DB_USER", "") or "argon_app",
             db_password=SecretStr(os.environ.get("UW_SCAN_DB_PASSWORD", "")),
             max_requests_per_minute=int(
                 os.environ.get("UW_SCAN_MAX_REQUESTS_PER_MINUTE", "110")

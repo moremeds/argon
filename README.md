@@ -2,7 +2,7 @@
 
 Per-ticker options analytics, watchlist-driven. A worker pulls flow, gamma, IV surface, and OHLC into Postgres; a Next.js UI turns that into two views — a **dashboard** for triage across the watchlist and a **stock page** for the why behind each name.
 
-Data: Unusual Whales (flow, IV, GEX) + massive.com (OHLC). Postgres `option_wizard.uw_scan`.
+Data: Unusual Whales (flow, IV, GEX) + massive.com (OHLC). Postgres `option_wizard.uw_scan`, owned by role `argon_app`. Local dev runs against `127.0.0.1`; production-ish instance lives on the Mac mini (`100.66.147.98`) — see `scripts/deploy/macmini-bootstrap.sh` and `docs/superpowers/specs/2026-06-01-mac-mini-stack-migration-design.md`.
 
 ---
 
