@@ -174,6 +174,9 @@ class _PipelineBenchmarkMixin:
                           AND status = 'ok'
                           AND finished_at IS NOT NULL
                           AND (notes IS DISTINCT FROM 'flow_data_refresh')
+                          AND (notes IS DISTINCT FROM 'positioning_refresh')
+                          AND (notes IS DISTINCT FROM 'intraday_refresh')
+                          AND (notes IS DISTINCT FROM 'cockpit_daily_snapshot')
                           AND (notes IS NULL OR notes NOT LIKE 'gex_scan_%%')
                           AND EXISTS (
                               SELECT 1

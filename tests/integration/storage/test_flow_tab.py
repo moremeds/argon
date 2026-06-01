@@ -82,6 +82,25 @@ def test_latest_run_id_skips_flow_data_refresh_runs(seeded_db_empty_cards) -> No
     assert repo.latest_run_id("GOOGL") == full_run
 
 
+def test_latest_run_id_skips_side_channel_refresh_runs(seeded_db_empty_cards) -> None:
+    """positioning_refresh / intraday_refresh / cockpit_daily_snapshot each
+    insert a scan_runs row that populates only a narrow slice of tables
+    (uw_positioning, option_chain_oi, cockpit greeks respectively) and must
+    NOT shadow the real full-scan run the report assembler reads from.
+    """
+    repo = seeded_db_empty_cards
+    full_run = repo.insert_scan_run("GOOGL", notes="full_scan")
+    repo.finish_scan_run(full_run, status="ok")
+    for note in ("positioning_refresh", "intraday_refresh", "cockpit_daily_snapshot"):
+        shadow = repo.insert_scan_run("GOOGL", notes=note)
+        repo.finish_scan_run(shadow, status="ok")
+        repo.conn.commit()
+        assert shadow > full_run, f"{note} sanity: shadow would otherwise win"
+        assert repo.latest_run_id("GOOGL") == full_run, (
+            f"{note} shadow was not excluded"
+        )
+
+
 def test_option_chain_per_strike_returns_only_latest_snapshot(
     seeded_db_empty_cards,
 ) -> None:
