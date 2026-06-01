@@ -271,31 +271,12 @@ class _WatchlistMixin:
                   FROM {self._schema}.scan_results
                   WHERE marketcap IS NOT NULL
                   ORDER BY ticker, run_id DESC
-                ),
-                latest_screener_sizes AS (
-                  SELECT DISTINCT ON (r.ticker)
-                    r.ticker,
-                    p.payload_jsonb->'data'->0->>'marketcap' AS market_cap
-                  FROM {self._schema}.scan_runs r
-                  JOIN {self._schema}.api_request_audit a ON r.run_id = a.run_id
-                  JOIN {self._schema}.raw_payloads p ON a.audit_id = p.audit_id
-                  WHERE a.endpoint_slug = 'bulk_screener_stocks'
-                    AND jsonb_typeof(p.payload_jsonb->'data') = 'array'
-                    AND p.payload_jsonb->'data'->0->>'marketcap' IS NOT NULL
-                  ORDER BY r.ticker, r.run_id DESC
-                ),
-                latest_etf_aum AS (
-                  SELECT DISTINCT ON (r.ticker)
-                    r.ticker,
-                    p.payload_jsonb->'data'->>'aum' AS aum
-                  FROM {self._schema}.scan_runs r
-                  JOIN {self._schema}.api_request_audit a ON r.run_id = a.run_id
-                  JOIN {self._schema}.raw_payloads p ON a.audit_id = p.audit_id
-                  WHERE a.endpoint_slug = 'etf_info'
-                    AND jsonb_typeof(p.payload_jsonb->'data') = 'object'
-                    AND p.payload_jsonb->'data'->>'aum' IS NOT NULL
-                  ORDER BY r.ticker, r.run_id DESC
                 )
+                -- The screener / etf-AUM fallbacks are LEFT JOIN LATERAL
+                -- below so they only scan payloads for the ~100 watchlist
+                -- tickers, not the full audit history. The pre-LATERAL CTE
+                -- form tripped the planner into a parallel seq scan over
+                -- 2.6 GB of raw_payloads (9.4 s on the watchlist endpoint).
                 SELECT
                   w.ticker, w.sector, w.pinned, w.sort_rank,
                   c.run_id, c.scanned_at,
@@ -341,8 +322,30 @@ class _WatchlistMixin:
                 LEFT JOIN {self._schema}.watchlist_card c ON w.ticker = c.ticker
                 LEFT JOIN {self._schema}.scan_runs sr ON c.run_id = sr.run_id
                 LEFT JOIN latest_market_caps lmc ON w.ticker = lmc.ticker
-                LEFT JOIN latest_screener_sizes lss ON w.ticker = lss.ticker
-                LEFT JOIN latest_etf_aum lea ON w.ticker = lea.ticker
+                LEFT JOIN LATERAL (
+                  SELECT p.payload_jsonb->'data'->0->>'marketcap' AS market_cap
+                  FROM {self._schema}.scan_runs r
+                  JOIN {self._schema}.api_request_audit a ON r.run_id = a.run_id
+                  JOIN {self._schema}.raw_payloads p ON a.audit_id = p.audit_id
+                  WHERE r.ticker = w.ticker
+                    AND a.endpoint_slug = 'bulk_screener_stocks'
+                    AND jsonb_typeof(p.payload_jsonb->'data') = 'array'
+                    AND p.payload_jsonb->'data'->0->>'marketcap' IS NOT NULL
+                  ORDER BY r.run_id DESC
+                  LIMIT 1
+                ) lss ON TRUE
+                LEFT JOIN LATERAL (
+                  SELECT p.payload_jsonb->'data'->>'aum' AS aum
+                  FROM {self._schema}.scan_runs r
+                  JOIN {self._schema}.api_request_audit a ON r.run_id = a.run_id
+                  JOIN {self._schema}.raw_payloads p ON a.audit_id = p.audit_id
+                  WHERE r.ticker = w.ticker
+                    AND a.endpoint_slug = 'etf_info'
+                    AND jsonb_typeof(p.payload_jsonb->'data') = 'object'
+                    AND p.payload_jsonb->'data'->>'aum' IS NOT NULL
+                  ORDER BY r.run_id DESC
+                  LIMIT 1
+                ) lea ON TRUE
                 LEFT JOIN {self._schema}.intraday_quote q ON w.ticker = q.ticker
                 LEFT JOIN active_jobs j ON w.ticker = j.ticker
                 WHERE w.removed_at IS NULL
@@ -393,31 +396,9 @@ class _WatchlistMixin:
                   FROM {self._schema}.scan_results
                   WHERE marketcap IS NOT NULL
                   ORDER BY ticker, run_id DESC
-                ),
-                latest_screener_sizes AS (
-                  SELECT DISTINCT ON (r.ticker)
-                    r.ticker,
-                    p.payload_jsonb->'data'->0->>'marketcap' AS market_cap
-                  FROM {self._schema}.scan_runs r
-                  JOIN {self._schema}.api_request_audit a ON r.run_id = a.run_id
-                  JOIN {self._schema}.raw_payloads p ON a.audit_id = p.audit_id
-                  WHERE a.endpoint_slug = 'bulk_screener_stocks'
-                    AND jsonb_typeof(p.payload_jsonb->'data') = 'array'
-                    AND p.payload_jsonb->'data'->0->>'marketcap' IS NOT NULL
-                  ORDER BY r.ticker, r.run_id DESC
-                ),
-                latest_etf_aum AS (
-                  SELECT DISTINCT ON (r.ticker)
-                    r.ticker,
-                    p.payload_jsonb->'data'->>'aum' AS aum
-                  FROM {self._schema}.scan_runs r
-                  JOIN {self._schema}.api_request_audit a ON r.run_id = a.run_id
-                  JOIN {self._schema}.raw_payloads p ON a.audit_id = p.audit_id
-                  WHERE a.endpoint_slug = 'etf_info'
-                    AND jsonb_typeof(p.payload_jsonb->'data') = 'object'
-                    AND p.payload_jsonb->'data'->>'aum' IS NOT NULL
-                  ORDER BY r.ticker, r.run_id DESC
                 )
+                -- The screener / etf-AUM fallbacks are LEFT JOIN LATERAL
+                -- below (see list_watchlist_cards for the same rewrite).
                 SELECT
                   w.ticker, w.sector, w.pinned, w.sort_rank,
                   c.run_id, c.scanned_at,
@@ -464,8 +445,30 @@ class _WatchlistMixin:
                 LEFT JOIN {self._schema}.watchlist_card c ON w.ticker = c.ticker
                 LEFT JOIN {self._schema}.scan_runs sr ON c.run_id = sr.run_id
                 LEFT JOIN latest_market_caps lmc ON w.ticker = lmc.ticker
-                LEFT JOIN latest_screener_sizes lss ON w.ticker = lss.ticker
-                LEFT JOIN latest_etf_aum lea ON w.ticker = lea.ticker
+                LEFT JOIN LATERAL (
+                  SELECT p.payload_jsonb->'data'->0->>'marketcap' AS market_cap
+                  FROM {self._schema}.scan_runs r
+                  JOIN {self._schema}.api_request_audit a ON r.run_id = a.run_id
+                  JOIN {self._schema}.raw_payloads p ON a.audit_id = p.audit_id
+                  WHERE r.ticker = w.ticker
+                    AND a.endpoint_slug = 'bulk_screener_stocks'
+                    AND jsonb_typeof(p.payload_jsonb->'data') = 'array'
+                    AND p.payload_jsonb->'data'->0->>'marketcap' IS NOT NULL
+                  ORDER BY r.run_id DESC
+                  LIMIT 1
+                ) lss ON TRUE
+                LEFT JOIN LATERAL (
+                  SELECT p.payload_jsonb->'data'->>'aum' AS aum
+                  FROM {self._schema}.scan_runs r
+                  JOIN {self._schema}.api_request_audit a ON r.run_id = a.run_id
+                  JOIN {self._schema}.raw_payloads p ON a.audit_id = p.audit_id
+                  WHERE r.ticker = w.ticker
+                    AND a.endpoint_slug = 'etf_info'
+                    AND jsonb_typeof(p.payload_jsonb->'data') = 'object'
+                    AND p.payload_jsonb->'data'->>'aum' IS NOT NULL
+                  ORDER BY r.run_id DESC
+                  LIMIT 1
+                ) lea ON TRUE
                 LEFT JOIN {self._schema}.intraday_quote q ON w.ticker = q.ticker
                 LEFT JOIN active_jobs j ON w.ticker = j.ticker
                 CROSS JOIN summary sm
