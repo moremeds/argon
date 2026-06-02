@@ -1,19 +1,18 @@
 #!/usr/bin/env bash
 # macmini-data-promote.sh — MacBook → Mac mini full Postgres mirror.
 #
-# RUN FROM THE MACBOOK. Dumps the source DB (default: option_wizard), ships
-# over SSH, restores onto the Mac mini's option_wizard. Destructive on the
-# target (--clean --if-exists).
+# RUN FROM THE MACBOOK. Dumps the source DB (default: option_wizard_local),
+# ships over SSH, restores onto the Mac mini's option_wizard. Destructive on
+# the target (--clean --if-exists).
 #
 # Usage:
 #   ./scripts/deploy/macmini-data-promote.sh <ssh-host> --confirm \
-#       [--src-db option_wizard] [--src-user chenxi]
+#       [--src-db option_wizard_local] [--src-user chenxi]
 #
-# Phase 3 cutover: --src-db option_wizard (pre-migration MacBook DB) →
-# mini's option_wizard.  Same name on both sides — no rename during transfer.
-# Ad-hoc re-mirror later: --src-db option_wizard_macbook (or whatever your
-# local rollback-insurance DB is named); only sensible if you maintain a
-# local Postgres post-migration.
+# Post-rename default (chore/db-tripwire and later): --src-db option_wizard_local
+# (MacBook dev DB) → mini's option_wizard. Different names on each side so the
+# host/db isolation tripwire (uw_scan.config._enforce_db_isolation) refuses
+# anything else.
 #
 # Example:
 #   ./scripts/deploy/macmini-data-promote.sh moremeds@100.66.147.98 --confirm
@@ -39,11 +38,11 @@ die()  { printf '\033[1;31m[promote] FAIL: %s\033[0m\n' "$*" >&2; exit 1; }
 step() { printf '\n\033[1;36m=== %s ===\033[0m\n' "$*"; }
 
 # ---------- Source DB explicit (not inferred from .env) ----------
-# Phase 4 changes MacBook's .env.local to point UW_SCAN_DB_HOST at the mini.
-# Both sides use the DB name `option_wizard`, so sourcing .env after that
-# would silently dump the WRONG thing (the mini's option_wizard via MacBook's
-# connection). Make the source explicit and document it.
-SRC_DB="option_wizard"   # default for the initial Phase 3 cutover
+# .env.local on the MacBook points UW_SCAN_DB_HOST at the mini, so sourcing
+# .env here would silently dump the WRONG thing (the mini's option_wizard via
+# the MacBook's Tailscale connection). Make the source explicit and document
+# it. Default reflects the post-rename world: macbook = option_wizard_local.
+SRC_DB="option_wizard_local"
 SRC_USER="chenxi"        # default MacBook DB owner
 # Parse extra args (after ssh host + --confirm)
 while [[ $# -gt 2 ]]; do

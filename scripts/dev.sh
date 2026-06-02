@@ -5,24 +5,33 @@ set -euo pipefail
 
 cd "$(dirname "$0")/.."
 
-# ---- Mac mini cutover tripwire ----
+# ---- Mac mini cutover tripwire (shell layer) ----
 # Refuse to spawn local workers if .env / .env.local point UW_SCAN_DB_HOST at
 # the mini (100.66.147.98). Two writers (MacBook + mini) on the same queue
 # would race via FOR UPDATE SKIP LOCKED and double-charge AI providers.
+# The stronger (host, db_name) check lives in uw_scan.config._enforce_db_isolation;
+# this shell-level check exits earlier (before npm/uv start) and complements it.
 # Override with UW_SCAN_ALLOW_DEV_AGAINST_MINI=1 if you really want to debug
 # against mini state (read-only browser session, no workers expected).
-_env_db_host() {
-  local f="$1"
+_env_var() {
+  local key="$1" f="$2"
   [[ -f "$f" ]] || { echo ""; return; }
-  grep -E '^[[:space:]]*UW_SCAN_DB_HOST=' "$f" \
+  grep -E "^[[:space:]]*${key}=" "$f" \
     | tail -1 | cut -d= -f2 | tr -d '"' | tr -d "'" | xargs
 }
-# Precedence matches Settings.from_env: shell env > .env.local > .env.
-db_host="${UW_SCAN_DB_HOST:-}"
-if [[ -z "$db_host" ]]; then
-  db_host="$(_env_db_host .env.local)"
-  [[ -n "$db_host" ]] || db_host="$(_env_db_host .env)"
-fi
+_resolve_env_var() {
+  local key="$1" current="${!1:-}"
+  if [[ -n "$current" ]]; then echo "$current"; return; fi
+  local v
+  v="$(_env_var "$key" .env.local)"
+  [[ -n "$v" ]] || v="$(_env_var "$key" .env)"
+  echo "$v"
+}
+db_host="$(_resolve_env_var UW_SCAN_DB_HOST)"
+db_name="$(_resolve_env_var UW_SCAN_DB_NAME)"
+: "${db_host:=127.0.0.1}"
+: "${db_name:=option_wizard_local}"
+printf '[dev.sh] Resolved DB: host=%s db_name=%s\n' "$db_host" "$db_name" >&2
 
 if [[ "$db_host" == "100.66.147.98" ]] && [[ "${UW_SCAN_ALLOW_DEV_AGAINST_MINI:-0}" != "1" ]]; then
   cat >&2 <<EOF
@@ -34,7 +43,8 @@ if [[ "$db_host" == "100.66.147.98" ]] && [[ "${UW_SCAN_ALLOW_DEV_AGAINST_MINI:-
 [dev.sh]   UW_SCAN_ALLOW_DEV_AGAINST_MINI=1 bash scripts/dev.sh
 [dev.sh]
 [dev.sh] Normal MacBook dev: revert .env.local to a local Postgres
-[dev.sh] (UW_SCAN_DB_HOST=127.0.0.1) or delete it entirely.
+[dev.sh] (UW_SCAN_DB_HOST=127.0.0.1 + UW_SCAN_DB_NAME=option_wizard_local)
+[dev.sh] or delete .env.local entirely.
 EOF
   exit 1
 fi

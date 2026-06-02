@@ -10,9 +10,17 @@ Per-ticker options analytics, watchlist-driven. Three processes share a single P
 - **FastAPI** (`src/uw_scan/api/`, port 8400) — read-only over the warm store, mutations only via `/jobs`
 - **APScheduler worker** (`src/uw_scan/worker/`) — full-scan / OHLC / spot-refresh / rescan-poll / nightly vol rollup
 
-Postgres `option_wizard` DB, schema `uw_scan`, owned by role `argon_app` (NOSUPERUSER). UW (Unusual Whales) is the primary data source; massive.com supplies OHLC. **Never fall back to Yahoo.**
+Postgres schema `uw_scan`, owned by role `argon_app` (NOSUPERUSER). UW (Unusual Whales) is the primary data source; massive.com supplies OHLC. **Never fall back to Yahoo.**
 
-Mac mini (`100.66.147.98`) hosts the shared production-ish Postgres instance. MacBook can run fully local (`UW_SCAN_DB_HOST=127.0.0.1`) or point at the mini via a per-machine `.env.local` override (`UW_SCAN_DB_HOST=100.66.147.98`). See `docs/superpowers/specs/2026-06-01-mac-mini-stack-migration-design.md`.
+**Three-tier DB isolation** — `uw_scan.config._enforce_db_isolation` refuses to start on a `(host, db_name)` mismatch (override with `UW_SCAN_ALLOW_DB_MISMATCH=1` for one-off scripts):
+
+| Host | DB name | Writer | Reset |
+|------|---------|--------|-------|
+| `100.66.147.98` (Mac mini, Tailscale) | `option_wizard` | macmini launchd stack only | persistent (prodlike) |
+| `127.0.0.1` (MacBook / CI) | `option_wizard_local` | local `bash scripts/dev.sh` | persistent (dev-owned) |
+| either host | `option_wizard_test` | `uv run pytest` | wiped per-fixture (DROP SCHEMA CASCADE) |
+
+MacBook runs fully local by default. To point at the mini for a browse session, `.env.local` must override BOTH `UW_SCAN_DB_HOST=100.66.147.98` AND `UW_SCAN_DB_NAME=option_wizard` (otherwise the tripwire blocks mini+local-name). See `docs/superpowers/specs/2026-06-01-mac-mini-stack-migration-design.md`.
 
 ## Tech stack
 

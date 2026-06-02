@@ -79,7 +79,10 @@ jobs:
     env:
       UW_SCAN_DB_HOST: 127.0.0.1
       UW_SCAN_DB_PORT: 5432
-      UW_SCAN_DB_NAME: option_wizard
+      # CI uses option_wizard_local as the "working" DB to satisfy the host/db
+      # isolation tripwire in uw_scan.config._enforce_db_isolation (the bare
+      # name option_wizard is reserved for the Mac mini Tailscale host).
+      UW_SCAN_DB_NAME: option_wizard_local
       UW_SCAN_DB_SCHEMA: uw_scan
       UW_SCAN_DB_USER: postgres
       UW_SCAN_DB_PASSWORD: postgres
@@ -100,9 +103,9 @@ jobs:
       - name: Sync deps
         run: uv sync --extra postgres
 
-      - name: Create option_wizard + option_wizard_test DBs
+      - name: Create option_wizard_local + option_wizard_test DBs
         run: |
-          PGPASSWORD=postgres psql -h 127.0.0.1 -U postgres -d postgres -c "CREATE DATABASE option_wizard"
+          PGPASSWORD=postgres psql -h 127.0.0.1 -U postgres -d postgres -c "CREATE DATABASE option_wizard_local"
           PGPASSWORD=postgres psql -h 127.0.0.1 -U postgres -d postgres -c "CREATE DATABASE option_wizard_test"
 
       - name: Verify integration shard candidates match pytest collection
