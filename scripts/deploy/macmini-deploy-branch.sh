@@ -45,7 +45,12 @@ say "Push $BRANCH to origin"
 git push origin "$BRANCH"
 
 # 2. Build the remote command
-REMOTE_CMD="set -euo pipefail
+# PATH prefix: non-interactive SSH doesn't source ~/.zprofile, so Homebrew-
+# installed CLIs (uv) and the keg-only postgresql@17 psql aren't on PATH.
+# Mirror the PATH that com.argon.worker plists already use, plus the
+# postgresql@17 bindir for migrate.sh.
+REMOTE_CMD='export PATH="/opt/homebrew/bin:/opt/homebrew/opt/postgresql@17/bin:/usr/local/bin:/usr/bin:/bin"
+'"set -euo pipefail
 cd ~/projects/unusual-whales
 git fetch origin
 # Non-destructive checkout: refuse if working tree dirty (mini should be clean).
