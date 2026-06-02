@@ -1,121 +1,249 @@
-# Unusual Whales Opportunity Scanner
+# Argon
 
-Per-ticker options analytics, watchlist-driven. A worker pulls flow, gamma, IV surface, and OHLC into Postgres; a Next.js UI turns that into two views — a **dashboard** for triage across the watchlist and a **stock page** for the why behind each name.
+<p align="center">
+  <img alt="Python 3.13" src="https://img.shields.io/badge/Python-3.13-3776AB?logo=python&logoColor=white" />
+  <img alt="Next.js 16" src="https://img.shields.io/badge/Next.js-16-000000?logo=nextdotjs&logoColor=white" />
+  <img alt="Postgres" src="https://img.shields.io/badge/Postgres-336791?logo=postgresql&logoColor=white" />
+  <img alt="Test stack" src="https://img.shields.io/badge/Tests-pytest%20%7C%20Vitest%20%7C%20Playwright-0A7F6F" />
+</p>
 
-Data: Unusual Whales (flow, IV, GEX) + massive.com (OHLC). Postgres `option_wizard.uw_scan`, owned by role `argon_app`. Local dev runs against `127.0.0.1`; production-ish instance lives on the Mac mini (`100.66.147.98`) — see `scripts/deploy/macmini-bootstrap.sh` and `docs/superpowers/specs/2026-06-01-mac-mini-stack-migration-design.md`.
+**Per-ticker options analytics, watchlist-driven.**
 
----
+Argon stitches dealer gamma, IV surface, dark-pool flow, and macro/rates context into Postgres, then turns the stitched evidence into compact triage views — and has three LLMs commit to a falsifiable, scored 1-2 week directional thesis on every name worth opening.
 
-## Dashboard — triage across the watchlist
-
-`http://127.0.0.1:3001/`
-
-![Dashboard](docs/screenshots/dashboard.png)
-
-A grid of ticker cards, one per name on the watchlist. Filter by sector / setup / freshness. Each card is a one-glance read of "is this stock worth opening today?"
-
-### What a card shows
-
-![Single ticker card](docs/screenshots/dashboard-card.png)
-
-| Block | What it tells you |
-|---|---|
-| **Header** — ticker, last, day % | Spot + intraday move. Color = sign of the day. |
-| **Setup badge** (`NEUTRAL` / `MOMENTUM` / `MEAN-REVERT` / …) | Classifier output from the latest scan. |
-| **IVR** (top-right) | IV Rank (0–100). High = expensive options today vs the last year. |
-| **Sparkline + 1d/1w/30d** | 30-session close path; quick read on trend and drawdown. |
-| **Flow aggression dial** | 0–100 score from UW flow alerts — how aggressive today's prints are (size, premium, urgency). |
-| **GAMMA block** | GEX flip distance + flip price, GEX per 1% move, max GEX strike, % of total GEX expiring soon. Tells you where dealers will push price. |
-| **SKEW (30d) / 25Δ RR** | Risk reversal — sign and magnitude of put-vs-call demand. |
-| **POSITIONING** | Raw call/put counts + put/call ratios (OI, volume, 30d Δ). Bar shows balance at a glance. |
-
-Cards refresh on the worker's full-scan cron (`0 5-16 * * 1-5` ET) and on demand via the **rescan** button. Automatic UW scans only query tickers with no persisted card data or card data older than 8 hours; explicit rescans always run.
+**Persisted evidence. Defined risk. Theses are scored, not narrated.**
 
 ---
 
-## Stock page — the why behind a single name
+## Four Disciplines (no exceptions)
 
-`http://127.0.0.1:3001/stock/<TICKER>` — five tabs.
+| Discipline              | Rule                                                                                                       |
+| ----------------------- | ---------------------------------------------------------------------------------------------------------- |
+| **1. Persistence**      | Every analytical output (vol, scan, regime, AI thesis) lands in Postgres. No in-memory-only results.       |
+| **2. Defined Risk**     | No naked shorts. Every short option is covered. Trade-plan suggestions reject undefined risk by construction. |
+| **3. Source Priority**  | IB → Unusual Whales → FMP → massive.com. Yahoo Finance is banned at every layer.                            |
+| **4. Idempotent Schema**| Every migration is `IF NOT EXISTS` / `ON CONFLICT DO NOTHING`. Re-running is a no-op. No tracking table.    |
 
-### Market Structure (default)
+Any discipline fails → fix at the source, not the symptom. Full standing rules: [`CLAUDE.md`](CLAUDE.md).
 
-![Market Structure tab](docs/screenshots/stock-market-structure.png)
+## Surfaces
 
-The dealer-positioning view. Built from UW spot-exposure and per-strike GEX.
+| Surface                                  | Signal                                                | Output                                                | Refresh                                |
+| ---------------------------------------- | ----------------------------------------------------- | ----------------------------------------------------- | -------------------------------------- |
+| **Watchlist Dashboard** (`/`)            | Per-ticker scan composite                             | Setup badge, IVR, GEX block, skew, positioning        | Cron `0 5-16 * * 1-5` ET + rescan      |
+| **Stock — Market Structure**             | UW spot-exposure + per-strike GEX                     | Flip, magnets, walls, acceleration zones              | Worker-driven                          |
+| **Stock — Volatility**                   | IV surface + RV + 25Δ skew                            | VRP, IV/RV regime quadrant, smile, term structure     | Worker-driven + lazy backfill          |
+| **Stock — Flow**                         | UW flow alerts + dark prints                          | Filterable by alert type, premium, aggression         | Intraday                               |
+| **Stock — Trade Insights AI**            | Codex + Claude + DeepSeek over the stitched evidence  | 1-2w thesis with strikes, triggers, invalidation      | Provider-pinned worker queue           |
+| **Scanner** (`/scanner`)                 | DCF / Dark Pool / EIC / GEX detectors                 | Watchlist candidates + market-wide discoveries        | Intraday                               |
+| **Regime** (`/regime`)                   | CRI + VCG + SPX GEX                                   | Crash-risk / vol-curve / dealer state                 | Intraday                               |
+| **Gold Compass** (`/gold`)               | WGC + ETF flow + COMEX + LBMA + GPR + CFTC            | 5-tier physical / ETF / miner / vol / macro posture   | EOD with replay history                |
+| **Index Cockpit** (`/cockpit/<TKR>`)     | SPX / SPY / QQQ / IWM dealer state                    | State, dealer, surface, flow-IM, VRP tabs             | Intraday + `?asof=YYYY-MM-DD` snapshots|
+| **US Rates Desk** (`/rates`)             | FRED + Cleveland Fed + TreasuryDirect + CFTC TFF      | Curve, decomposition, supply, positioning, freshness  | Daily                                  |
+| **Admin** (`/admin`)                     | Scheduler + worker health                             | Liveness, queue depth, last-run timestamps            | Live                                   |
 
-- **Top row tiles** — spot, GEX flip, net GEX (gamma at spot), net DEX (delta at spot), IV 30d, vol P/C
-- **Level tiles** — GEX flip support, max magnet, secondary magnet, max acceleration zone, put wall
-- **Expected range bar** — today's expected high/low vs flip + close, scaled to IV
-- **Directional bias panel** — classifier reasoning (above/below flip, net GEX sign, magnet pull)
-- **GEX profile chart** — net gamma by strike, with call/put walls labeled. Where dealers buy or sell to delta-hedge.
+Full route inventory: [`web/app/`](web/app/) · per-surface doctrine in each `CLAUDE.md`.
 
-### Volatility
+## Quick Start
 
-![Volatility tab](docs/screenshots/stock-volatility.png)
+**Prerequisites**
 
-The IV-surface view. Today's snapshot tiles on top, analytical time series below.
-
-**Today's snapshot:** VRP (IV minus realized — the vol risk premium), ATM IV, RV, IV Rank, IV %ile 30d, implied move 30d, 52w highs/lows for IV and RV, 25Δ skew.
-
-**Analytical series:**
-- **IV / IV-of-IV** — level of IV and volatility of IV (regime stability)
-- **RV / SPY-corr 1M** — realized vol vs rolling correlation to SPY (idio vs systematic)
-- **Regime Quadrant** — 20 sessions plotted by (IV-z, RV-corr) with a corr-cutoff divider; the active dot is today
-- **IV-z vs RV-z** — 20-session standardized overlay
-- **Smile** — today's IV by strike, one curve per expiration date, spot marker
-- **Term Structure** — ATM IV by expiry out to next year-end
-- **VRP Spread Panel** — IV (fwd ~30d) vs RV (trailing 21d); the lag is the VRP
-- **IV Percentile Distribution** — where today sits in the 1y IV histogram
-
-A backfill kicks automatically the first time you open the tab for a ticker; subsequent loads serve from Postgres.
-
-### Flow, Trade Plan, Tables
-
-- **Flow** — UW flow alerts and dark pool prints for the day, filterable
-- **Trade Plan** — defined-risk structure suggestions consistent with the regime + IV surface
-- **Tables** — raw rows behind the views (greek exposure, OI per strike, max pain, …) for verification
-
----
-
-## Other views
-
-| Route | What it is |
-|---|---|
-| `/scanner` | Detector-driven candidate list (DCF, Dark Pool, EIC, GEX) ranked by bias. Splits into **watchlist candidates** (full detector suite) and **discovered** tickers from the market-wide flow-alerts feed (DCF-only). |
-| `/regime` | Market-wide indicators ported from xenon — CRI (Crash Risk), VCG (Vol-Curve Gauge), and SPX GEX with profile chart. Vol-backdrop strip across the top. |
-| `/gold` | GOLD COMPASS five-tier cockpit on the gold complex (GLD, IAU, GDX, etc.) — physical/ETF/miner posture from WGC + ETF flow + dealer positioning. Has a `/gold/replay/<YYYY-MM-DD>` history view. |
-| `/cockpit/<TICKER>` | Index-only dealer-state research view (SPX / SPY / QQQ / IWM). Tabs: state, dealer, surface, flow-IM, VRP. Optional `?asof=YYYY-MM-DD` for historical snapshots. |
-| `/admin` | Health + scheduler controls. |
-
----
-
-## Run it
+- Python `3.13` via [`uv`](https://docs.astral.sh/uv/) — never bare `python` / `pip` / activated venvs
+- Node.js `20+`
+- Postgres reachable as DB `option_wizard`, schema `uw_scan`, owner role `argon_app` (NOSUPERUSER)
+- [Unusual Whales](https://unusualwhales.com) API key (flow, IV, GEX, spot-exposure)
+- [massive.com](https://massive.com) API key (OHLC, Polygon-backed fundamentals)
+- [FRED](https://fred.stlouisfed.org/docs/api/) API key (rates, macro)
+- (Optional) Codex CLI + Claude CLI signed in locally and `DEEPSEEK_API_KEY` for Trade Insights AI
 
 ```bash
+git clone https://github.com/moremeds/unusual-whales.git argon
+cd argon
 uv sync --extra postgres
-cp .env.example .env       # fill UW_SCAN_API_KEY + MASSIVE_API_KEY
+cd web && npm install && cd ..
 
-bash scripts/migrate.sh    # idempotent SQL migrations against option_wizard.uw_scan
-bash scripts/dev.sh        # next (3001) + fastapi (8400) + 2 UW workers + 2 massive workers
+cp .env.example .env       # fill API keys + DB creds
+
+bash scripts/migrate.sh    # idempotent SQL against option_wizard.uw_scan
+bash scripts/dev.sh        # 13 processes — see Architecture below
 ```
 
-- Web: <http://127.0.0.1:3001>
-- API: <http://127.0.0.1:8400>
-- OpenAPI: <http://127.0.0.1:8400/openapi.json>
+Terminal at <http://127.0.0.1:3001>. Health: `curl http://127.0.0.1:8400/api/health`.
 
-## Architecture in one breath
+## Environment
 
+**`.env`** (root) — Python workers, FastAPI, DB:
+
+```bash
+UW_SCAN_API_KEY=...
+MASSIVE_API_KEY=...
+FRED_API_KEY=...
+UW_SCAN_DB_HOST=127.0.0.1          # or 100.66.147.98 for the shared Mac mini instance
+UW_SCAN_DB_PORT=5432
+UW_SCAN_DB_NAME=option_wizard
+UW_SCAN_DB_USER=argon_app
+UW_SCAN_DB_PASSWORD=...
+
+# Trade Insights AI (optional — defaults to enabled when providers are reachable)
+DEEPSEEK_API_KEY=...
+TRADE_INSIGHTS_AI_ENABLED=true               # Codex (local subprocess)
+TRADE_INSIGHTS_AI_CLAUDE_ENABLED=true        # Claude CLI (OAuth keychain)
+TRADE_INSIGHTS_AI_DEEPSEEK_ENABLED=true      # DeepSeek HTTP API (thinking mode)
+TRADE_INSIGHTS_AI_DEEPSEEK_WORKER_COUNT=2    # drop to 1 on provider-side 429s
 ```
-UW + massive.com  →  sharded workers (APScheduler, src/uw_scan/worker)
-                  →  Postgres uw_scan.*
-                  →  FastAPI (src/uw_scan/api, port 8400)
-                  →  Next.js 16 + React 19 (web/, port 3001)
+
+**`web/.env`** — Next.js client:
+
+```bash
+NEXT_PUBLIC_API_BASE=http://127.0.0.1:8400
 ```
 
-Six dev processes, one database, one schema. UW workers own UW scan/rescan/flow jobs; massive workers own spot/OHLC jobs. Per-ticker loops use stable shard ownership and rescans use DB claiming, so parallel workers do not duplicate provider work. The workers are the only writers; the API is read-only; mutations cross through `/api/jobs` and are drained by the UW workers' 1s rescan loop.
+The Claude runner deliberately blocks `ANTHROPIC_API_KEY` from its subprocess env so the local Claude CLI's OAuth keychain (subscription auth) wins instead of an accidental pay-per-token call. The Codex runner runs with a strict env allow-list — UW / massive / FRED / DeepSeek keys never reach `codex exec`. DeepSeek is in-process `httpx`, so its key stays scoped to the worker process.
 
-Details by layer live in the `CLAUDE.md` files under `src/uw_scan/`, `web/`, and `tests/`.
+MacBook dev runs against `127.0.0.1`; pointing `dev.sh` at the Mac mini DB is refused by a tripwire unless `UW_SCAN_ALLOW_DEV_AGAINST_MINI=1` — two writers on the same queue would race via `FOR UPDATE SKIP LOCKED` and double-charge AI providers.
+
+## Argon Terminal
+
+Per-ticker options research surface built on **Next.js 16** with **React 19** and hand-rolled SVG charts. No chart library — gamma profiles, IV smiles, and term structures deserve honest pixels.
+
+**Core capabilities**
+
+- Card-grid watchlist with one-glance reads: setup badge, IVR, flow aggression dial, GEX block, skew, positioning bar
+- Per-ticker stock page with five tabs (Market Structure, Volatility, Flow, Trade Plan, Tables) over a single dealer-positioning model
+- IV-surface analytics: VRP panel, smile, term structure, IV/RV regime quadrant, 1y IV percentile distribution
+- Detector pipeline (DCF / Dark Pool / EIC / GEX) with separate **watchlist candidates** and **discovered tickers** lanes from the market-wide flow-alerts feed
+- Market-wide regime indicators ported from xenon (CRI, VCG, SPX GEX with profile chart)
+- **Gold Compass** five-tier cockpit on the gold complex (GLD / IAU / GDX / …) with `/gold/replay/<YYYY-MM-DD>` for historical days
+- Index dealer cockpit (SPX / SPY / QQQ / IWM) with `?asof=YYYY-MM-DD` historical snapshots
+- **US Rates Factor Desk** with FRED Treasury curve, Cleveland Fed 10Y decomposition, policy path, TreasuryDirect supply, CFTC TFF positioning, source freshness badges throughout
+- **Trade Insights AI** — three LLMs commit to a 1-2 week directional thesis with decomposed `thesis_trigger` / `entry_trigger` / `invalidation` levels and explicit `legs[]` (geometrically validated: a bear put spread must be 2 puts, long strike > short strike, same expiry — the model can't hand-wave)
+
+Theme & design tokens: [`DESIGN.md`](DESIGN.md) · product voice & anti-references: [`PRODUCT.md`](PRODUCT.md).
+
+## Scripts
+
+**Stack:** `scripts/migrate.sh` · `scripts/dev.sh`
+**Workers (individual):** `uv run python -m uw_scan.worker.scheduler` with `UW_SCAN_WORKER_ROLE=uw|massive|ai-codex|ai-claude|ai-deepseek` (+ `UW_SCAN_WORKER_INDEX`, `UW_SCAN_WORKER_COUNT`)
+**WS consumer:** `uv run python -m uw_scan.worker.massive_ws_consumer`
+**Backfills:** `rates_backfill_once.py` · `canary_backfill.py` · `run_cockpit_backfill_jobs.py` · `backfill_flow_footprint.py` · `backfill_vcg_v2.py` · `seed_spy_ohlc.py`
+**Backtests / scoring:** `backtest_canary.py` · `backtest_cri.py` · `backtest_vcg.py` · `compare_vcg_lead_time.py` · `score_vcg_classification_accuracy.py`
+**Diagnostics:** `audit_uw_api_surface.py` · `validate_cri.py` · `validate_ws.py` · `s0_probe_endpoint.py` · `dry_run_volatility_endpoint.py`
+
+Full inventory: [`scripts/`](scripts/).
+
+## Architecture
+
+```text
+UW + massive.com + FRED + Cleveland Fed + TreasuryDirect + CFTC + WGC + LBMA + GPR
+                                    │
+                                    ▼
+                Sharded APScheduler workers  (uw × 2, massive × 2,
+                                    │         ai-codex × 2, ai-claude × 2,
+                                    ▼         ai-deepseek × 2, massive-ws)
+                  Postgres  option_wizard.uw_scan   (owner: argon_app)
+                                    │
+                                    ▼
+                          FastAPI  read-only  :8400
+                                    │
+                                    ▼
+                       Next.js 16 + React 19  :3001
+```
+
+Thirteen dev processes, one database, one schema. Workers are the only writers; the API is read-only; UI mutations cross through `/api/jobs` and are drained by the UW workers' 1-second rescan loop. Per-ticker work uses stable shard ownership and DB claiming (`FOR UPDATE SKIP LOCKED`), so two workers never duplicate provider calls.
+
+- `src/uw_scan/worker/` — APScheduler jobs (full-scan, OHLC, spot-refresh, rescan-poll, nightly vol rollup, gold cron, trade-insights queue)
+- `src/uw_scan/api/` — FastAPI routers split by domain; OpenAPI flows to `web/lib/types.ts` via `npm run gen:types`
+- `src/uw_scan/models/` — Pydantic v2 contract models; `__init__.py` is export-only, implementations live in domain modules
+- `src/uw_scan/storage/` — repository split by domain (audit, cockpit, flow, gex, gold, jobs, scan_runs, trade_insights_ai, volatility_v2, watchlist, …); `repository.py` is assembly-only and is **never** extended with new query methods
+- `src/uw_scan/sources/` — provider clients (`uw`, `massive`, `fred`, `cleveland_fed`, `comex`, `lbma`, `wgc_*`, `cftc_cot`, `etf_holdings`, …)
+- `src/uw_scan/scanner/` — detector pipeline (DCF / Dark Pool / EIC / GEX), ranking, discovery, gates, context
+- `web/app/` — RSC landing pages + client-island tabs for the stock detail surface
+- `web/components/` — Argon-dark UI primitives, hand-rolled SVG charts
+- `docs/superpowers/` — active specs + plans; completed work under `docs/superpowers/archive/`
+- `docs/uw-samples/` — full UW OpenAPI spec + per-endpoint sample payloads (consult before adding any new UW fetcher)
+
+Per-layer doctrine lives in `CLAUDE.md` files under `src/uw_scan/`, `web/`, and `tests/`.
+
+## Data Source Priority (strict)
+
+1. **Interactive Brokers** — live quotes when integrated
+2. **[Unusual Whales](https://unusualwhales.com)** — flow alerts, dark pool prints, IV surface, GEX, spot-exposure
+3. **[massive.com](https://massive.com)** — OHLC and Polygon-backed fundamentals (project tier)
+4. **FRED · Cleveland Fed · TreasuryDirect · CFTC TFF · WGC · LBMA · GPR · CME COMEX** — macro & rates & gold layers
+5. **FMP** — auxiliary fundamentals
+
+**Yahoo Finance is banned.** Any fallback that would reach Yahoo is treated as a bug. New UW fetchers are checked against [`docs/uw-samples/unusual_whales_api.md`](docs/uw-samples/unusual_whales_api.md) and real sample payloads in `docs/uw-samples/*.json` before integration — never against guessed schemas.
+
+Per-source status, failure modes, and gating notes: [`src/uw_scan/sources/CLAUDE.md`](src/uw_scan/sources/) · gold lens framework: [`docs/research/gold-sdf-framework/CLAUDE.md`](docs/research/gold-sdf-framework/).
+
+## Trade Insights AI
+
+Three model execution paths share one orchestration loop. The API queues one `trade_insight_ai_analyses` row per enabled provider on POST; provider-pinned workers (`ai-codex`, `ai-claude`, `ai-deepseek`) claim only their own rows via `FOR UPDATE SKIP LOCKED` and run the appropriate runner. Each persisted analysis carries the exact prompt, prompt payload, output schema, structured outcome, and a Markdown audit view.
+
+| Provider     | Runtime                                          | Auth                          | Notes                                                                                                                          |
+| ------------ | ------------------------------------------------ | ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| **Codex**    | Local `codex exec` subprocess                    | Local CLI sign-in             | Strict env allow-list — provider keys never reach the subprocess                                                               |
+| **Claude**   | Local `claude --print` subprocess (locked flags) | OAuth keychain                | `ANTHROPIC_API_KEY` explicitly blocked so subscription auth wins; tools/slash-commands/MCP all disabled, no session persistence|
+| **DeepSeek** | In-process `httpx` → `api.deepseek.com`          | `DEEPSEEK_API_KEY` env        | Thinking-enabled `deepseek-v4-pro` by default; SSE streaming mandatory (idle non-stream connections drop ~60 s)                |
+
+The decomposed-trigger contract (`thesis_trigger` / `entry_trigger` / `invalidation` + `legs[]` with geometric validation) makes every thesis falsifiable. A nightly outcome worker captures snapshot_close + 1d/3d/5d/10d forward closes and resolves rows against the three triggers in direction-aware order; each row resolves to `target_hit`, `invalidation_hit`, `expired_no_resolution`, or stays `pending` until the window closes.
+
+Worker env is frozen at fork time — rotating a provider key requires restarting the relevant `ai-*` worker process. The UI exposes `[Codex] [Claude]` tabs today; a `[DeepSeek]` tab is planned (the backend already persists `provider='deepseek'` rows).
+
+Orchestration: [`src/uw_scan/worker/jobs/trade_insights_ai.py`](src/uw_scan/worker/jobs/) · runners: [`trade_insights_ai_runners.py`](src/uw_scan/worker/jobs/) · API + storage: [`api/routers/trade_insights.py`](src/uw_scan/api/routers/) + [`storage/trade_insights_ai.py`](src/uw_scan/storage/).
+
+## Testing
+
+- **Python:** `pytest` — workers, storage, scanners, sources, scoring; fresh DB per session via `pytest-postgresql`
+- **Frontend:** `Vitest` — web logic, type contracts, component snapshots
+- **E2E:** `Playwright` — browser workflows; artifacts under `output/playwright/`
+
+```bash
+uv run pytest                              # full python suite (excludes `live`)
+uv run pytest -m live                      # live API tests (needs UW_SCAN_API_KEY)
+cd web && npm test                          # Vitest
+cd web && npx playwright test               # Playwright E2E
+cd web && npm run gen:types                 # regenerate web/lib/types.ts from OpenAPI
+```
+
+UW / massive / FRED calls are mocked in unit tests. Live tests are marked `live` and excluded by default. Browser artifacts (screenshots, traces) belong in `output/playwright/` with descriptive names — never in the repo root.
+
+## Services
+
+| Service                          | Purpose                                                                                  |
+| -------------------------------- | ---------------------------------------------------------------------------------------- |
+| FastAPI (`:8400`)                | Read-only HTTP surface over `option_wizard.uw_scan`; mutations queue via `/api/jobs`     |
+| Next.js 16 (`:3001`)             | Argon-dark terminal; RSC landing pages, client-island tabs                               |
+| `uw` worker × 2                  | UW scan + rescan + flow-alerts loops with stable shard ownership                         |
+| `massive` worker × 2             | Spot refresh + OHLC backfill, sharded by ticker                                          |
+| `massive-ws` consumer            | Real-time massive WebSocket → Postgres                                                   |
+| `ai-codex` worker × 2            | Trade Insights AI — Codex; provider-pinned row claim                                     |
+| `ai-claude` worker × 2           | Trade Insights AI — Claude; provider-pinned row claim                                    |
+| `ai-deepseek` worker × 2         | Trade Insights AI — DeepSeek; provider-pinned row claim                                  |
+
+The Mac mini (`100.66.147.98`) hosts the shared production-ish stack via `launchd`; MacBook can run fully local against `127.0.0.1` or point at the mini through a per-machine `.env.local` override. Migration design: [`docs/superpowers/specs/2026-06-01-mac-mini-stack-migration-design.md`](docs/superpowers/specs/2026-06-01-mac-mini-stack-migration-design.md).
+
+## Glossary
+
+| Term                   | Definition                                                                                            |
+| ---------------------- | ----------------------------------------------------------------------------------------------------- |
+| **GEX**                | Gamma exposure — net dealer gamma at a strike/spot. Flip = level where the net sign changes.          |
+| **DEX**                | Delta exposure — dealer net delta. Sign indicates whether dealers buy or sell into rallies.           |
+| **IVR**                | IV Rank — current ATM IV as a percentile of the trailing 252 sessions. High = expensive options.     |
+| **VRP**                | Volatility Risk Premium — implied minus realized vol. Positive = options carry premium.               |
+| **25Δ RR**             | 25-delta risk reversal — sign and magnitude of put-vs-call demand at the wings.                       |
+| **DCF**                | Deep Conviction Flow — argon's flow-density / conviction detector.                                    |
+| **EIC**                | Earnings IV Crush — vol-regime detector around scheduled earnings events.                             |
+| **CRI**                | Crash Risk Index — CTA deleveraging + COR1M composite, ported from xenon.                             |
+| **VCG**                | Vol-Curve Gauge — VIX-term + credit + skew composite.                                                 |
+| **Watchlist candidates** | Scanner output, full detector suite, restricted to watchlist tickers.                               |
+| **Discovered tickers** | Scanner output, DCF-only, sourced from the market-wide flow-alerts feed.                              |
+| **Outcome ledger**     | Per-thesis resolution against forward closes; substrate for Bayesian prior reweighting.               |
 
 ## Status
 
-Active rework (2026-05-12 onward) — Streamlit prototype replaced with a card-grid dashboard and a tabbed regime-style detail page. Active specs/plans live under [`docs/superpowers/`](docs/superpowers/), completed specs/plans under [`docs/superpowers/archive/`](docs/superpowers/archive/), and research notes under [`docs/research/`](docs/research/).
+Active rework (2026-05-12 → present). The current sprint shipped the directional Trade Insights AI contract (v5.3), the outcome ledger, the US Rates Factor Desk, and the Mac mini launchd-based stack migration scaffolding. Active specs/plans live under [`docs/superpowers/`](docs/superpowers/); completed work under [`docs/superpowers/archive/`](docs/superpowers/archive/); research notes under [`docs/research/`](docs/research/).
+
+---
+
+Built with `Python 3.13` · `FastAPI` · `Pydantic v2` · `psycopg 3` · `APScheduler 3` · `Next.js 16` · `React 19` · `TypeScript` · `Vitest` · `Playwright` · `pytest` · `pytest-postgresql` · `uv`.
