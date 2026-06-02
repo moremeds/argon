@@ -2,7 +2,7 @@
 assemble_single_stock_report should round-trip the curve into the report.
 
 Runs against the isolated test DB (UW_SCAN_TEST_DB_NAME required) so this never
-touches the developer's `option_wizard` data.
+touches the developer's `option_wizard_local` data.
 """
 
 from __future__ import annotations

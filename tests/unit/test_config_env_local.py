@@ -37,16 +37,18 @@ def _write_env(path: Path, **kwargs: str) -> None:
 def test_env_local_overrides_env(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, env_isolated: None
 ) -> None:
-    """When .env.local sets UW_SCAN_DB_HOST, it wins over .env."""
+    """When .env.local sets UW_SCAN_DB_HOST and UW_SCAN_DB_NAME, both win
+    over .env, and non-overridden keys (api_key) still flow through."""
     _write_env(
         tmp_path / ".env",
         UW_SCAN_API_KEY="from-env",
         UW_SCAN_DB_HOST="127.0.0.1",
-        UW_SCAN_DB_NAME="local_db",
+        UW_SCAN_DB_NAME="option_wizard_local",
     )
     _write_env(
         tmp_path / ".env.local",
         UW_SCAN_DB_HOST="100.66.147.98",
+        UW_SCAN_DB_NAME="option_wizard",
     )
 
     # Re-root from_env at the temp dir by patching the file's resolution.
@@ -59,8 +61,8 @@ def test_env_local_overrides_env(
     s = Settings.from_env()
 
     assert s.db_host == "100.66.147.98"  # .env.local wins
-    assert s.db_name == "local_db"  # .env still supplies non-overridden keys
-    assert s.api_key.get_secret_value() == "from-env"
+    assert s.db_name == "option_wizard"  # .env.local wins
+    assert s.api_key.get_secret_value() == "from-env"  # only in .env
 
 
 def test_env_only_when_no_local(

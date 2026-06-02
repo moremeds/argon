@@ -56,13 +56,51 @@ def _load_dotenv(env_path: Path) -> None:
         logger.exception("failed to read .env file %s: %s", env_path, repr(exc))
 
 
+# Host → set of legal db names. Refuses to start on (host, db_name) mismatch
+# so a stray .env on the wrong machine cannot write into the wrong tier.
+#   100.66.147.98 = Mac mini Tailscale (prodlike): option_wizard for the live
+#                   data feed; option_wizard_test allowed too because
+#                   integration tests on the macbook (with .env.local active)
+#                   reach the mini's test DB via migrate.sh.
+#   127.0.0.1     = local Postgres on macbook / CI: option_wizard_local for
+#                   dev work, option_wizard_test for pytest (wiped by
+#                   integration fixtures via DROP SCHEMA CASCADE).
+# Override with UW_SCAN_ALLOW_DB_MISMATCH=1 for one-off ad-hoc scripts
+# (e.g. backfilling from R2 into a scratch DB on the macbook).
+_HOST_DB_RULES: dict[str, frozenset[str]] = {
+    "100.66.147.98": frozenset({"option_wizard", "option_wizard_test"}),
+    "127.0.0.1": frozenset({"option_wizard_local", "option_wizard_test"}),
+    "localhost": frozenset({"option_wizard_local", "option_wizard_test"}),
+}
+
+
+def _enforce_db_isolation(db_host: str, db_name: str) -> None:
+    allowed = _HOST_DB_RULES.get(db_host)
+    if allowed is None or db_name in allowed:
+        return
+    if _env_bool("UW_SCAN_ALLOW_DB_MISMATCH"):
+        logger.warning(
+            "DB isolation override active: host=%s db_name=%s "
+            "(UW_SCAN_ALLOW_DB_MISMATCH=1)",
+            db_host,
+            db_name,
+        )
+        return
+    raise RuntimeError(
+        f"Refusing to start: UW_SCAN_DB_HOST={db_host!r} is not allowed to "
+        f"target UW_SCAN_DB_NAME={db_name!r}. Allowed on this host: "
+        f"{sorted(allowed)}. Set UW_SCAN_ALLOW_DB_MISMATCH=1 to override "
+        "(one-off scripts only)."
+    )
+
+
 class Settings(BaseModel):
     """Strongly-typed configuration. Raises on missing required fields."""
 
     api_key: SecretStr = Field(...)
     db_host: str = "127.0.0.1"
     db_port: int = 5432
-    db_name: str = "option_wizard"
+    db_name: str = "option_wizard_local"
     db_schema: str = "uw_scan"
     db_user: str = "argon_app"
     db_password: SecretStr = SecretStr("")
@@ -238,11 +276,15 @@ class Settings(BaseModel):
                 "UW_SCAN_API_KEY is not set. Add it to .env or export it before running."
             )
 
+        db_host = os.environ.get("UW_SCAN_DB_HOST", "127.0.0.1")
+        db_name = os.environ.get("UW_SCAN_DB_NAME", "option_wizard_local")
+        _enforce_db_isolation(db_host, db_name)
+
         return cls(
             api_key=SecretStr(api_key),
-            db_host=os.environ.get("UW_SCAN_DB_HOST", "127.0.0.1"),
+            db_host=db_host,
             db_port=int(os.environ.get("UW_SCAN_DB_PORT", "5432")),
-            db_name=os.environ.get("UW_SCAN_DB_NAME", "option_wizard"),
+            db_name=db_name,
             db_schema=os.environ.get("UW_SCAN_DB_SCHEMA", "uw_scan"),
             db_user=os.environ.get("UW_SCAN_DB_USER", "") or "argon_app",
             db_password=SecretStr(os.environ.get("UW_SCAN_DB_PASSWORD", "")),
