@@ -552,7 +552,11 @@ def run(client: UwClient, repo: Repository, ticker: str = "SPX") -> int:
             "source_delta": None,
         }
 
-        row_id = repo.upsert_gex_snapshot(ticker=ticker, payload=payload)
+        row_id = repo.upsert_gex_snapshot(
+            ticker=ticker,
+            payload=payload,
+            data_date=datetime.now(timezone.utc).date(),
+        )
         repo.finish_scan_run(run_id, status="ok")
         log.info(
             "gex_scan_done ticker=%s row_id=%d net_gex=%.2e",
