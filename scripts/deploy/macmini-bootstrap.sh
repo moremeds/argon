@@ -253,15 +253,17 @@ step ".env files"
 if [[ ! -f "${ARGON_HOME}/.env" ]]; then
   say "Creating .env from .env.example (you must fill secrets before services start)"
   cp "${ARGON_HOME}/.env.example" "${ARGON_HOME}/.env"
-  # The .env.example default points UW_SCAN_DB_HOST at 127.0.0.1 already; for
-  # the mini, this is correct (loopback to local Postgres). Inject the
-  # generated password.
+  # The .env.example defaults are tuned for MacBook dev (HOST=127.0.0.1,
+  # NAME=option_wizard_local). On the mini, we point HOST at the Tailscale
+  # address so the (host, db_name) tripwire in uw_scan.config recognises
+  # (100.66.147.98, option_wizard) as the prodlike combo, and override
+  # NAME / USER / PASSWORD to the mini-specific values.
   python3 - <<PY
 from pathlib import Path
 p = Path("${ARGON_HOME}/.env")
 text = p.read_text()
-text = text.replace("UW_SCAN_DB_HOST=100.66.147.98", "UW_SCAN_DB_HOST=127.0.0.1")
-text = text.replace("UW_SCAN_DB_NAME=option_wizard", "UW_SCAN_DB_NAME=${ARGON_DB_NAME}")
+text = text.replace("UW_SCAN_DB_HOST=127.0.0.1", "UW_SCAN_DB_HOST=100.66.147.98")
+text = text.replace("UW_SCAN_DB_NAME=option_wizard_local", "UW_SCAN_DB_NAME=${ARGON_DB_NAME}")
 text = text.replace("UW_SCAN_DB_USER=argon_app", "UW_SCAN_DB_USER=${ARGON_DB_ROLE}")
 text = text.replace("UW_SCAN_DB_PASSWORD=", "UW_SCAN_DB_PASSWORD=${ARGON_DB_PASSWORD}", 1)
 p.write_text(text)
