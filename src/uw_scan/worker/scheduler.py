@@ -65,6 +65,13 @@ logging.basicConfig(
 )
 logger = logging.getLogger("uw_scan.worker")
 RESCAN_WORKER_CONCURRENCY = 2
+# Each regime scan tick checks the last N trading days for missing snapshots
+# and fills them. 7 days is enough to ride out a long-weekend outage on the
+# primary worker without growing the per-tick work unboundedly. Match this
+# value if you change the cron interval — too-short means missed gaps
+# linger; too-long is wasted set-membership checks per tick (cheap, but
+# pointless).
+REGIME_RECOVERY_LOOKBACK_DAYS = 7
 WorkerGroup = Literal["uw", "massive", "ai", "ai-codex", "ai-claude", "ai-deepseek"]
 WORKER_ROLES: set[str] = {
     "all",
@@ -479,42 +486,65 @@ def main() -> int:
 
     def _regime_vcg_scan() -> None:
         # Reads vol_index_daily (VIX/VVIX + the credit proxies); writes
-        # vcg_snapshots. No external API spend. Append-only.
+        # vcg_snapshots. No external API spend. Self-healing via
+        # ``recover_recent_gaps`` — fills any missing day in the last
+        # ``REGIME_RECOVERY_LOOKBACK_DAYS``, including today. Idempotent;
+        # repeated ticks with no new lake data are a no-op.
         from uw_scan.scanners import vcg as vcg_scanner
 
         proxy = settings.credit_etf_symbols[0] if settings.credit_etf_symbols else "HYG"
         with _repo(settings) as repo:
-            row_id = vcg_scanner.run(repo.conn, proxy=proxy, schema=settings.db_schema)
-            if row_id is None:
-                logger.info("regime_vcg_scan_skipped_thin_data proxy=%s", proxy)
-            else:
-                logger.info(
-                    "regime_vcg_scan_persisted proxy=%s row_id=%d", proxy, row_id
-                )
+            summary = vcg_scanner.recover_recent_gaps(
+                repo.conn,
+                schema=settings.db_schema,
+                proxy=proxy,
+                lookback_days=REGIME_RECOVERY_LOOKBACK_DAYS,
+            )
+        logger.info(
+            "regime_vcg_scan_tick proxy=%s checked=%d filled=%d skipped=%d",
+            proxy,
+            summary["checked"],
+            summary["filled"],
+            summary["skipped"],
+        )
 
     def _regime_cri_scan() -> None:
         # Reads vol_index_daily + daily_ohlc; writes cri_snapshots. No external
-        # API spend. Append-only — running twice in an hour is harmless.
+        # API spend. Self-healing — see _regime_vcg_scan comment.
         from uw_scan.scanners import cri as cri_scanner
 
         with _repo(settings) as repo:
-            row_id = cri_scanner.run(repo.conn, schema=settings.db_schema)
-            if row_id is None:
-                logger.info("regime_cri_scan_skipped_thin_data")
-            else:
-                logger.info("regime_cri_scan_persisted row_id=%d", row_id)
+            summary = cri_scanner.recover_recent_gaps(
+                repo.conn,
+                schema=settings.db_schema,
+                lookback_days=REGIME_RECOVERY_LOOKBACK_DAYS,
+            )
+        logger.info(
+            "regime_cri_scan_tick checked=%d filled=%d skipped=%d",
+            summary["checked"],
+            summary["filled"],
+            summary["skipped"],
+        )
 
     def _regime_canary_scan() -> None:
         # Reads vol_index_daily (VIX/VVIX/VIX3M/COR1M/SPX); writes
-        # canary_snapshots. No external API spend. Append-only / idempotent.
+        # canary_snapshots. composite_version is part of the dedup key, so
+        # bumping the calibration version automatically triggers fresh
+        # snapshots on the next tick. Self-healing — see _regime_vcg_scan.
         from uw_scan.scanners import canary as canary_scanner
 
         with _repo(settings) as repo:
-            row_id = canary_scanner.run(repo.conn, schema=settings.db_schema)
-            if row_id is None:
-                logger.info("regime_canary_scan_skipped_thin_data")
-            else:
-                logger.info("regime_canary_scan_persisted row_id=%d", row_id)
+            summary = canary_scanner.recover_recent_gaps(
+                repo.conn,
+                schema=settings.db_schema,
+                lookback_days=REGIME_RECOVERY_LOOKBACK_DAYS,
+            )
+        logger.info(
+            "regime_canary_scan_tick checked=%d filled=%d skipped=%d",
+            summary["checked"],
+            summary["filled"],
+            summary["skipped"],
+        )
 
     def _regime_gex_scan() -> None:
         # Weekday gate — UW data only meaningful during regular sessions.

@@ -25,7 +25,9 @@ function sortIndicator(
 }
 
 export function GexHistoryTable({ history }: { history: GexHistoryEntry[] }) {
-  const [sortCol, setSortCol] = useState<GexSortCol | null>(null);
+  // Default newest-first; the sibling chart consumes the same `history`
+  // array ASC, so we sort here instead of flipping the API response.
+  const [sortCol, setSortCol] = useState<GexSortCol | null>("date");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
   const [expanded, setExpanded] = useState(false);
 
@@ -111,7 +113,9 @@ export function GexHistoryTable({ history }: { history: GexHistoryEntry[] }) {
                   </td>
                   <td className="text-right">{fmtGex(row.net_dex)}</td>
                   <td className="text-right">
-                    {row.atm_iv != null ? `${row.atm_iv.toFixed(1)}%` : "---"}
+                    {row.atm_iv != null
+                      ? `${(row.atm_iv * 100).toFixed(1)}%`
+                      : "---"}
                   </td>
                   <td className="text-right">
                     {row.vol_pc != null ? row.vol_pc.toFixed(2) : "---"}

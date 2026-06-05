@@ -1,13 +1,17 @@
 """5% Canary scanner — reads vol_index_daily, runs cards/canary_scoring, persists.
 
 See docs/superpowers/specs/2026-05-26-5pct-canary-indicator-design.md §5, §11.
+
+Recovery: ``recover_recent_gaps`` walks the last N trading days and runs the
+scanner for any day that has aligned vol_index_daily data but no
+canary_snapshots row at the current composite_version.
 """
 
 from __future__ import annotations
 
 import logging
 import math
-from datetime import date as _date
+from datetime import date as _date, timedelta
 from decimal import Decimal
 from typing import Iterable
 
@@ -29,9 +33,23 @@ CALENDAR_DAYS_REQUESTED = 500
 RV_WINDOW = 20
 
 
-def _load(vol_repo: VolIndexRepository, symbol: str, days: int) -> dict[_date, float]:
-    """Load {date: close}. v0.5 patch: raise on NaN / non-finite values."""
-    rows = vol_repo.fetch_history(symbol, days=days)
+def _load(
+    vol_repo: VolIndexRepository,
+    symbol: str,
+    days: int,
+    *,
+    as_of: _date | None = None,
+) -> dict[_date, float]:
+    """Load {date: close}. v0.5 patch: raise on NaN / non-finite values.
+
+    When ``as_of`` is set the lookback caps at ``trade_date <= as_of`` so
+    ``recover_recent_gaps`` can re-aim the scanner at a previous day.
+    """
+    fetch_days = days * 2 if as_of is not None else days
+    rows = vol_repo.fetch_history(symbol, days=fetch_days)
+    if as_of is not None:
+        rows = [r for r in rows if r["trade_date"] <= as_of]
+        rows = rows[-days:]
     out: dict[_date, float] = {}
     for r in rows:
         c = r.get("close")
@@ -166,16 +184,25 @@ def _events_in_window(
 
 
 def run(
-    conn: Connection, *, schema: str = "uw_scan", force_recompute: bool = False
+    conn: Connection,
+    *,
+    schema: str = "uw_scan",
+    force_recompute: bool = False,
+    as_of: _date | None = None,
 ) -> int | None:
-    """Run a 5% Canary scan; persist a new snapshot row. Returns row id or None."""
+    """Run a 5% Canary scan; persist a new snapshot row. Returns row id or None.
+
+    When ``as_of`` is set, the scanner computes for that historical date by
+    capping every loaded series to ``trade_date <= as_of`` so
+    ``common_dates[-1]`` equals ``as_of``. Used by ``recover_recent_gaps``.
+    """
     vol_repo = VolIndexRepository(conn, schema=schema)
     raw = {
-        "VIX": _load(vol_repo, "VIX", CALENDAR_DAYS_REQUESTED),
-        "VVIX": _load(vol_repo, "VVIX", CALENDAR_DAYS_REQUESTED),
-        "VIX3M": _load(vol_repo, "VIX3M", CALENDAR_DAYS_REQUESTED),
-        "COR1M": _load(vol_repo, "COR1M", CALENDAR_DAYS_REQUESTED),
-        "SPX": _load(vol_repo, "SPX", CALENDAR_DAYS_REQUESTED),
+        "VIX": _load(vol_repo, "VIX", CALENDAR_DAYS_REQUESTED, as_of=as_of),
+        "VVIX": _load(vol_repo, "VVIX", CALENDAR_DAYS_REQUESTED, as_of=as_of),
+        "VIX3M": _load(vol_repo, "VIX3M", CALENDAR_DAYS_REQUESTED, as_of=as_of),
+        "COR1M": _load(vol_repo, "COR1M", CALENDAR_DAYS_REQUESTED, as_of=as_of),
+        "SPX": _load(vol_repo, "SPX", CALENDAR_DAYS_REQUESTED, as_of=as_of),
     }
     aligned, common_dates = _align(raw)
     if not common_dates or len(common_dates) < MIN_ALIGNED_BARS:
@@ -242,10 +269,83 @@ def run(
         on_conflict="overwrite" if force_recompute else "noop",
     )
     log.info(
-        "canary_scan_persisted row=%s score=%.1f band=%s state=%s",
+        "canary_scan_persisted row=%s data_date=%s score=%.1f band=%s state=%s",
         row_id,
+        today,
         payload["canary"]["score"],
         payload["canary"]["band"],
         payload["canary"]["warning_state"],
     )
     return row_id
+
+
+def _existing_canary_dates(
+    conn: Connection, schema: str, *, since: _date, composite_version: int
+) -> set[_date]:
+    """Distinct ``data_date`` already in ``canary_snapshots`` at this composite_version."""
+    sql = f"""
+        SELECT DISTINCT data_date
+          FROM {schema}.canary_snapshots
+         WHERE data_date IS NOT NULL
+           AND data_date >= %s
+           AND composite_version = %s
+    """
+    with conn.cursor() as cur:
+        cur.execute(sql, (since, composite_version))
+        return {r[0] for r in cur.fetchall()}
+
+
+def recover_recent_gaps(
+    conn: Connection,
+    schema: str = "uw_scan",
+    *,
+    lookback_days: int = 7,
+) -> dict:
+    """Fill any missing 5% Canary snapshot in the last ``lookback_days`` days.
+
+    Mirrors the CRI/VCG recovery shape. composite_version is part of the
+    canary uniqueness key — older snapshots from a previous calibration
+    don't count as "filled" for the current version.
+    """
+    vol_repo = VolIndexRepository(conn, schema=schema)
+    needed = ("VIX", "VVIX", "VIX3M", "COR1M", "SPX")
+    dates_by_sym = {sym: vol_repo.fetch_dates_for(sym) for sym in needed}
+    if not all(dates_by_sym.values()):
+        log.info("canary_recover_skipped: mandatory series missing in lake")
+        return {"checked": 0, "filled": 0, "skipped": 0}
+
+    aligned_days = sorted(set.intersection(*dates_by_sym.values()))
+    if not aligned_days:
+        return {"checked": 0, "filled": 0, "skipped": 0}
+
+    latest = aligned_days[-1]
+    cutoff = latest - timedelta(days=lookback_days)
+    window = [d for d in aligned_days if d >= cutoff]
+
+    existing = _existing_canary_dates(
+        conn, schema, since=cutoff, composite_version=COMPOSITE_VERSION
+    )
+    missing = [d for d in window if d not in existing]
+
+    filled = 0
+    skipped = 0
+    for d in missing:
+        try:
+            rid = run(conn, schema=schema, as_of=d)
+            if rid is None:
+                skipped += 1
+            else:
+                filled += 1
+        except Exception as exc:  # noqa: BLE001
+            log.warning("canary_recover_failed as_of=%s err=%s", d, repr(exc))
+            conn.rollback()
+            skipped += 1
+
+    log.info(
+        "canary_recover_done checked=%d filled=%d skipped=%d lookback=%dd",
+        len(window),
+        filled,
+        skipped,
+        lookback_days,
+    )
+    return {"checked": len(window), "filled": filled, "skipped": skipped}
