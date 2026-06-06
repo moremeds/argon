@@ -178,8 +178,10 @@ describe("GoldCompassLayout", () => {
     expect(screen.getByText(/Central bank reserves by country/)).toBeTruthy();
     const chinaToggle = screen.getByLabelText("Toggle China");
     expect(chinaToggle).toBeTruthy();
-    fireEvent.click(chinaToggle);
+    // Page starts with no CBs pre-selected — toggle should be unchecked.
     expect((chinaToggle as HTMLInputElement).checked).toBe(false);
+    fireEvent.click(chinaToggle);
+    expect((chinaToggle as HTMLInputElement).checked).toBe(true);
   });
 
   it("uses posture language only (no buy/sell/long/short)", () => {

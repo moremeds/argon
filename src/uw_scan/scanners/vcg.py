@@ -22,9 +22,11 @@ from uw_scan.storage.vol_index_repository import VolIndexRepository
 
 log = logging.getLogger(__name__)
 
-# Lookback — enough for the 21d OLS, the 63d z-window, the 20-day history,
-# plus slack for weekends/holidays so we still have ≥ MIN_BARS aligned days.
-LOOKBACK_DAYS = 200
+# Lookback — must cover the 252-day rolling percentile window (VIX/VVIX
+# %ile) which is the largest budget. 21d OLS, 63d z-window, and 20-day
+# history all fit inside that. Slack for proxy alignment gaps (HYG/JNK
+# don't always overlap VIX days 1:1).
+LOOKBACK_DAYS = 300
 MIN_ALIGNED_BARS = vcg_scoring.MIN_BARS
 
 DEFAULT_PROXY = "HYG"

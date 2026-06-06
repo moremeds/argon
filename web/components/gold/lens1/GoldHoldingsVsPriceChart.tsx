@@ -71,12 +71,10 @@ const CB_COLORS = [
 
 const CHART_PADDING = { top: 12, right: 56, bottom: 24, left: 48 } as const;
 
-function defaultSelected(countries: Country[]): string[] {
-  const strategic = countries
+function strategicCountries(countries: Country[]): string[] {
+  return countries
     .filter((c) => c.bucket === "strategic_accumulator")
     .map((c) => c.country_iso3);
-  if (strategic.length > 0) return strategic;
-  return countries.slice(0, 4).map((c) => c.country_iso3);
 }
 
 function fmtCountryTonnes(v: string | number | null | undefined): string {
@@ -93,9 +91,7 @@ export function GoldHoldingsVsPriceChart({
   width = 1040,
   height = 200,
 }: Props) {
-  const [selectedCountries, setSelectedCountries] = useState<string[]>(() =>
-    defaultSelected(cbCountryHistory),
-  );
+  const [selectedCountries, setSelectedCountries] = useState<string[]>([]);
   const selectedSet = useMemo(
     () => new Set(selectedCountries),
     [selectedCountries],
@@ -212,10 +208,12 @@ export function GoldHoldingsVsPriceChart({
       visibleCountries.map((country) => ({
         country,
         points: tonnesYScale
-          ? (country.history ?? []).map((p): Point => [
-              xScale?.(new Date(p.obs_date).getTime()) ?? 0,
-              tonnesYScale(toNumber(p.value)),
-            ])
+          ? (country.history ?? []).map(
+              (p): Point => [
+                xScale?.(new Date(p.obs_date).getTime()) ?? 0,
+                tonnesYScale(toNumber(p.value)),
+              ],
+            )
           : [],
       })),
     [visibleCountries, tonnesYScale, xScale],
@@ -384,7 +382,11 @@ export function GoldHoldingsVsPriceChart({
                 GLD price ($)
               </text>
               {tonnesYScale && (
-                <text x={padding.left + 70} y={9} fill="var(--warning, #f5a623)">
+                <text
+                  x={padding.left + 70}
+                  y={9}
+                  fill="var(--warning, #f5a623)"
+                >
                   GLD holdings + CB reserves (tonnes)
                 </text>
               )}
@@ -419,7 +421,7 @@ export function GoldHoldingsVsPriceChart({
             <button
               type="button"
               onClick={() =>
-                setSelectedCountries(defaultSelected(cbCountryHistory))
+                setSelectedCountries(strategicCountries(cbCountryHistory))
               }
               style={toggleButtonStyle}
               title="Strategic accumulators: China, Russia, India, and Turkey when present."
@@ -474,7 +476,8 @@ export function GoldHoldingsVsPriceChart({
                     width: 8,
                     height: 8,
                     background:
-                      countryColorByIso3.get(country.country_iso3) ?? CB_COLORS[0],
+                      countryColorByIso3.get(country.country_iso3) ??
+                      CB_COLORS[0],
                     display: "inline-block",
                   }}
                 />
@@ -485,7 +488,8 @@ export function GoldHoldingsVsPriceChart({
                     whiteSpace: "nowrap",
                   }}
                 >
-                  {country.country_iso3} · {fmtCountryTonnes(country.latest_reserves_t)}
+                  {country.country_iso3} ·{" "}
+                  {fmtCountryTonnes(country.latest_reserves_t)}
                 </span>
               </label>
             );
