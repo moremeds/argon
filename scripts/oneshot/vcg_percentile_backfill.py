@@ -37,18 +37,16 @@ import logging
 from datetime import date
 
 import psycopg
-from dotenv import load_dotenv
 
-load_dotenv()
+from uw_scan.config import Settings
+from uw_scan.scanners import vcg as vcg_scanner
+from uw_scan.storage.vol_index_repository import VolIndexRepository
+
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
 )
 log = logging.getLogger("vcg_percentile_backfill")
-
-from uw_scan.config import Settings
-from uw_scan.scanners import vcg as vcg_scanner
-from uw_scan.storage.vol_index_repository import VolIndexRepository
 
 
 def _patch_loader(as_of: date):
