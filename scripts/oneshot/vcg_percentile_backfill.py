@@ -123,11 +123,14 @@ def main() -> int:
             log.info("=== %s ===", d.isoformat())
             restore = _patch_loader(d)
             try:
+                # The monkey-patch above caps fetch_history at as_of; vcg.run()
+                # then aligns to common_dates[-1] = as_of with no as_of kwarg
+                # needed. This keeps the script independent of the as_of-aware
+                # scanner signature (added in a sibling branch / PR #115).
                 row_id = vcg_scanner.run(
                     conn,
                     proxy=args.proxy,
                     schema=settings.db_schema,
-                    as_of=d,
                 )
                 if row_id is None:
                     log.warning("  skipped (thin data)")

@@ -71,8 +71,10 @@ const CB_COLORS = [
 
 const CHART_PADDING = { top: 12, right: 56, bottom: 24, left: 48 } as const;
 
-function defaultSelected(_countries: Country[]): string[] {
-  return [];
+function strategicCountries(countries: Country[]): string[] {
+  return countries
+    .filter((c) => c.bucket === "strategic_accumulator")
+    .map((c) => c.country_iso3);
 }
 
 function fmtCountryTonnes(v: string | number | null | undefined): string {
@@ -89,9 +91,7 @@ export function GoldHoldingsVsPriceChart({
   width = 1040,
   height = 200,
 }: Props) {
-  const [selectedCountries, setSelectedCountries] = useState<string[]>(() =>
-    defaultSelected(cbCountryHistory),
-  );
+  const [selectedCountries, setSelectedCountries] = useState<string[]>([]);
   const selectedSet = useMemo(
     () => new Set(selectedCountries),
     [selectedCountries],
@@ -421,7 +421,7 @@ export function GoldHoldingsVsPriceChart({
             <button
               type="button"
               onClick={() =>
-                setSelectedCountries(defaultSelected(cbCountryHistory))
+                setSelectedCountries(strategicCountries(cbCountryHistory))
               }
               style={toggleButtonStyle}
               title="Strategic accumulators: China, Russia, India, and Turkey when present."
