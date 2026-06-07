@@ -66,7 +66,19 @@ def _is_market_open_now() -> bool:
 
 
 def _assemble_history(repo: Repository, ticker: str, days: int = 90) -> list[dict]:
-    """Join greek_exposure_daily × (vol_index_daily | daily_ohlc) × flip history."""
+    """Join greek_exposure_daily × (vol_index_daily | daily_ohlc) × gex_snapshots.
+
+    The per-day gex_snapshots lookup carries flip + iv_30d + vol_pc + bias
+    in one round-trip via ``fetch_metrics_history``. Days without a
+    snapshot still surface (net_gex / net_dex / spot from the upstream
+    tables); the snapshot-derived columns just come through as None so
+    the table renders ``"---"`` per cell instead of dropping the row.
+
+    Returned list is ASC by date — the SVG chart in HistoryChart.tsx
+    consumes this directly with ``xScale(i)``, so flipping the order
+    here would draw time right-to-left. The history table sorts
+    client-side and defaults to date DESC.
+    """
     g = GreekExposureDailyRepository(repo.conn, schema=repo._schema)
     gex_rows = g.fetch_history(ticker, days=days)
     if not gex_rows:
@@ -80,15 +92,18 @@ def _assemble_history(repo: Repository, ticker: str, days: int = 90) -> list[dic
         ohlc = repo.list_daily_ohlc(ticker, limit=days)
         spot_by_date = {r.date: float(r.close) for r in ohlc}
 
-    flip_by_date = repo.fetch_flip_strike_history(ticker=ticker, limit=days)
+    metrics_by_date = repo.fetch_metrics_history(ticker=ticker, limit=days)
 
     return [
         {
             "date": row["trade_date"].isoformat(),
             "net_gex": row["net_gex"],
             "net_dex": row["net_dex"],
-            "gex_flip": flip_by_date.get(row["trade_date"]),
+            "gex_flip": (metrics_by_date.get(row["trade_date"]) or {}).get("flip"),
             "spot": spot_by_date.get(row["trade_date"]),
+            "atm_iv": (metrics_by_date.get(row["trade_date"]) or {}).get("iv_30d"),
+            "vol_pc": (metrics_by_date.get(row["trade_date"]) or {}).get("vol_pc"),
+            "bias": (metrics_by_date.get(row["trade_date"]) or {}).get("bias"),
         }
         for row in gex_rows
     ]

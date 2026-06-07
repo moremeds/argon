@@ -284,7 +284,8 @@ export default function GexSubTab({ marketState }: GexSubTabProps) {
                   }}
                 >
                   {data.day_change >= 0 ? "+" : ""}
-                  {fmtPrice(data.day_change)} ({formatPercent(data.day_change_pct)})
+                  {fmtPrice(data.day_change)} (
+                  {formatPercent(data.day_change_pct)})
                 </span>
               ) : undefined
             }
@@ -333,17 +334,18 @@ export default function GexSubTab({ marketState }: GexSubTabProps) {
             label="IV 30D"
             tooltip="30-day implied volatility from UW iv_rank endpoint (not 0DTE greeks). Source-tagged: UW = Unusual Whales, MQ = MenthorQ, UW+MQ = both sources agree."
             value={
+              // UW iv_rank.volatility is a 0–1 fraction; tile shows percent.
               data.iv?.iv30d != null
-                ? `${data.iv.iv30d.toFixed(1)}%`
+                ? `${(data.iv.iv30d * 100).toFixed(1)}%`
                 : data.iv?.mq_iv30d != null
-                  ? `${data.iv.mq_iv30d.toFixed(1)}%`
+                  ? `${(data.iv.mq_iv30d * 100).toFixed(1)}%`
                   : data.atm_iv != null
-                    ? `${data.atm_iv.toFixed(1)}%`
+                    ? `${(data.atm_iv * 100).toFixed(1)}%`
                     : "---"
             }
             sub={
               data.iv?.iv_rank != null
-                ? `rank ${data.iv.iv_rank.toFixed(0)}%${data.iv.hv30 != null ? `  HV ${data.iv.hv30.toFixed(1)}%` : ""}`
+                ? `rank ${data.iv.iv_rank.toFixed(0)}%${data.iv.hv30 != null ? `  HV ${(data.iv.hv30 * 100).toFixed(1)}%` : ""}`
                 : data.expected_range.iv_1d != null
                   ? `±${data.expected_range.iv_1d.toFixed(2)}% 1d`
                   : undefined

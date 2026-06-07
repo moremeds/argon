@@ -38,24 +38,54 @@ class _GexMixin:
     def fetch_flip_strike_history(self, *, ticker: str, limit: int = 90) -> dict:
         """Return ``{trade_date: gex_flip_strike}`` for the most recent N days.
 
+        Thin shim over ``fetch_metrics_history`` — kept for the (still-shipped)
+        callers that only need the flip strike. New call sites should reach
+        for ``fetch_metrics_history`` to get flip + iv30d + vol_pc + bias in
+        a single query.
+        """
+        metrics = self.fetch_metrics_history(ticker=ticker, limit=limit)
+        return {d: m["flip"] for d, m in metrics.items() if m.get("flip") is not None}
+
+    def fetch_metrics_history(
+        self, *, ticker: str, limit: int = 90
+    ) -> dict[object, dict]:
+        """Return ``{trade_date: {flip, iv_30d, vol_pc, bias}}`` for the most
+        recent N days.
+
         Multiple snapshots per day may exist; the latest scan wins (max
-        ``scanned_at`` per ``data_date``). Days without a flip strike are
-        omitted — UI renders sparse.
+        ``scanned_at`` per ``data_date``). Days where the column is NULL come
+        through as ``None`` so the GEX history table can render ``"---"``
+        per cell instead of dropping the whole row.
+
+        ``bias`` is read from ``payload->'bias'->>'direction'`` rather than
+        a dedicated column because the snapshot schema kept the bias
+        derivation inside the JSON payload (see ``scanners/gex.py``
+        ``compute_directional_bias``).
         """
         sql = f"""
             SELECT DISTINCT ON (data_date)
                    data_date,
-                   level_gex_flip_strike::float8 AS flip
+                   level_gex_flip_strike::float8 AS flip,
+                   iv_30d::float8                AS iv_30d,
+                   vol_pc::float8                AS vol_pc,
+                   payload->'bias'->>'direction' AS bias
               FROM {self._schema}.gex_snapshots
              WHERE ticker = %s
                AND data_date IS NOT NULL
-               AND level_gex_flip_strike IS NOT NULL
              ORDER BY data_date DESC, scanned_at DESC
              LIMIT %s
         """
         with self._conn.cursor() as cur:
             cur.execute(sql, (ticker.upper(), limit))
-            return {row[0]: row[1] for row in cur.fetchall()}
+            return {
+                row[0]: {
+                    "flip": row[1],
+                    "iv_30d": row[2],
+                    "vol_pc": row[3],
+                    "bias": row[4],
+                }
+                for row in cur.fetchall()
+            }
 
     def upsert_gex_snapshot(
         self,
