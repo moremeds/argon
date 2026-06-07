@@ -1,11 +1,13 @@
-"""Resolver picks R2 when fully configured, local otherwise."""
+"""Resolver picks R2 when fully configured AND fresh, else local."""
 
 from __future__ import annotations
 
+from datetime import date
 from pathlib import Path
 
 import pytest
 from pydantic import SecretStr
+from uw_scan.sources import lake_resolver
 from uw_scan.sources.lake_resolver import LakeRoot, resolve_lake_root
 
 from uw_scan.config import Settings
@@ -89,6 +91,114 @@ def test_resolve_unknown_asset_class_raises():
     s = _make_settings(with_r2=False)
     with pytest.raises(ValueError, match="asset_class"):
         resolve_lake_root(s, asset_class="invalid")
+
+
+def _patch_probe(
+    monkeypatch: pytest.MonkeyPatch,
+    by_kind: dict[str, date | None],
+) -> list[tuple[str, str]]:
+    """Force _probe_max_trade_date to return per-kind dates without I/O.
+
+    Returns a list that captures each (kind, asset_class) pair the resolver
+    probed during the test, so we can assert the probe was hit on the
+    expected backends.
+    """
+    calls: list[tuple[str, str]] = []
+
+    def fake_probe(root: LakeRoot, asset_class: str):
+        calls.append((root.kind, asset_class))
+        return by_kind.get(root.kind)
+
+    monkeypatch.setattr(lake_resolver, "_probe_max_trade_date", fake_probe)
+    return calls
+
+
+def test_resolve_prefers_local_when_local_strictly_ahead_of_r2(monkeypatch, caplog):
+    """Reproduces the 2026-06-06 outage: R2 stuck at 2026-05-21, local fresh.
+
+    Resolver MUST pick local and log WARN — otherwise scanner ingests stale
+    R2 silently for days.
+    """
+    calls = _patch_probe(
+        monkeypatch,
+        {"s3": date(2026, 5, 21), "local": date(2026, 6, 5)},
+    )
+    s = _make_settings(with_r2=True)
+    with caplog.at_level("WARNING", logger="uw_scan.sources.lake_resolver"):
+        root = resolve_lake_root(s, asset_class="volatility")
+    assert root.kind == "local"
+    assert root.local_path == Path("/tmp/local-vol")
+    # Both backends probed (R2 first, local second — order matters for the
+    # caller to read both before deciding).
+    assert ("s3", "volatility") in calls
+    assert ("local", "volatility") in calls
+    # The log must mention the divergence so an oncall reading the worker
+    # log sees the smoking gun rather than guessing why R2 was bypassed.
+    msg = caplog.text
+    assert "local mirror ahead of R2" in msg
+    assert "2026-06-05" in msg
+    assert "2026-05-21" in msg
+
+
+def test_resolve_uses_r2_when_r2_is_at_or_ahead_of_local(monkeypatch):
+    """Normal case — R2 caught up overnight; resolver MUST return R2."""
+    _patch_probe(
+        monkeypatch,
+        {"s3": date(2026, 6, 5), "local": date(2026, 6, 5)},
+    )
+    s = _make_settings(with_r2=True)
+    root = resolve_lake_root(s, asset_class="volatility")
+    assert root.kind == "s3"
+
+
+def test_resolve_uses_r2_when_local_is_empty(monkeypatch):
+    """No local mirror present (e.g. CI runners) — R2 still wins."""
+    _patch_probe(
+        monkeypatch,
+        {"s3": date(2026, 6, 5), "local": None},
+    )
+    s = _make_settings(with_r2=True)
+    root = resolve_lake_root(s, asset_class="volatility")
+    assert root.kind == "s3"
+
+
+def test_resolve_uses_local_when_r2_empty_and_local_has_data(monkeypatch, caplog):
+    """R2 bucket exists but has no canary parquet (cold bucket). Local has
+    data → use local with a WARN."""
+    _patch_probe(
+        monkeypatch,
+        {"s3": None, "local": date(2026, 6, 5)},
+    )
+    s = _make_settings(with_r2=True)
+    with caplog.at_level("WARNING", logger="uw_scan.sources.lake_resolver"):
+        root = resolve_lake_root(s, asset_class="volatility")
+    assert root.kind == "local"
+    assert "local mirror ahead of R2" in caplog.text
+
+
+def test_resolve_uses_r2_when_both_backends_empty(monkeypatch):
+    """Both probes blind (fresh deploy, cold cache, ToS error, etc.) —
+    preserve the pre-2026-06-07 default of returning R2, since the lake-sync
+    job will produce the same "0 gaps filled" no-op regardless.
+    """
+    _patch_probe(monkeypatch, {"s3": None, "local": None})
+    s = _make_settings(with_r2=True)
+    root = resolve_lake_root(s, asset_class="volatility")
+    assert root.kind == "s3"
+
+
+def test_resolve_freshness_check_skipped_when_r2_unconfigured(monkeypatch):
+    """No R2 settings → return local immediately, never probe.
+
+    Skipping the probe matters: without R2 credentials, the s3-side probe
+    would crash, and even the local probe is wasted I/O when there's only
+    one backend.
+    """
+    calls = _patch_probe(monkeypatch, {"local": date(2026, 6, 5)})
+    s = _make_settings(with_r2=False)
+    root = resolve_lake_root(s, asset_class="volatility")
+    assert root.kind == "local"
+    assert calls == [], "resolver probed despite R2 being unconfigured"
 
 
 def test_lake_root_repr_does_not_leak_credentials():
