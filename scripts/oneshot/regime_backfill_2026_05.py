@@ -22,18 +22,9 @@ Usage:
 from __future__ import annotations
 
 import logging
-import os
 from datetime import date, timedelta
 
 import psycopg
-from dotenv import load_dotenv
-
-load_dotenv()
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
-)
-log = logging.getLogger("regime_backfill")
 
 from uw_scan.config import Settings
 from uw_scan.scanners import canary as canary_scanner
@@ -41,6 +32,12 @@ from uw_scan.scanners import cri as cri_scanner
 from uw_scan.scanners import vcg as vcg_scanner
 from uw_scan.storage.repository import Repository
 from uw_scan.storage.vol_index_repository import VolIndexRepository
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+)
+log = logging.getLogger("regime_backfill")
 
 
 def _patch_loaders(as_of: date):
