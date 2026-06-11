@@ -170,12 +170,14 @@ def _probe_max_trade_date(root: LakeRoot, asset_class: str) -> date | None:
     try:
         rows = read_vol_index_parquet(root, canary)
     except Exception as exc:
+        # repr(exc) (not %r formatting) satisfies the CI Guardrail 2 AST check
+        # in scripts/_lint_except.py — same rendered output, lint-visible.
         logger.warning(
-            "lake freshness probe failed for %s in %s lake (kind=%s): %r",
+            "lake freshness probe failed for %s in %s lake (kind=%s): %s",
             canary,
             asset_class,
             root.kind,
-            exc,
+            repr(exc),
         )
         return None
     if not rows:
