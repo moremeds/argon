@@ -3,6 +3,7 @@ import {
   finiteDomain,
   linearScale,
   niceTicks,
+  pathFromNullablePoints,
   pathFromPoints,
 } from "@/lib/svgChart";
 
@@ -52,6 +53,55 @@ describe("svgChart helpers", () => {
         hi: 2,
         count: 2,
       });
+    });
+  });
+
+  describe("pathFromNullablePoints — gap-aware path builder", () => {
+    it("returns empty string for empty input", () => {
+      expect(pathFromNullablePoints([])).toBe("");
+    });
+
+    it("matches pathFromPoints when there are no gaps", () => {
+      const pts: [number, number][] = [
+        [0, 0],
+        [1, 2],
+        [2, 4],
+      ];
+      expect(pathFromNullablePoints(pts)).toBe(pathFromPoints(pts));
+    });
+
+    it("emits a fresh M after a null gap", () => {
+      const out = pathFromNullablePoints([
+        [0, 0],
+        [1, 1],
+        null,
+        [3, 3],
+        [4, 4],
+      ]);
+      expect((out.match(/M/g) ?? []).length).toBe(2);
+      expect(out).toContain("M0,0");
+      expect(out).toContain("M3,3");
+    });
+
+    it("treats consecutive nulls as a single break", () => {
+      const out = pathFromNullablePoints([[0, 0], null, null, null, [4, 4]]);
+      expect((out.match(/M/g) ?? []).length).toBe(2);
+    });
+
+    it("breaks on non-finite coordinates too", () => {
+      const out = pathFromNullablePoints([
+        [0, 0],
+        [1, Number.NaN],
+        [2, 2],
+      ]);
+      expect((out.match(/M/g) ?? []).length).toBe(2);
+      expect(out).not.toContain("NaN");
+    });
+
+    it("skips a leading null without emitting an empty M", () => {
+      const out = pathFromNullablePoints([null, [1, 1], [2, 2]]);
+      expect((out.match(/M/g) ?? []).length).toBe(1);
+      expect(out.startsWith("M1,1")).toBe(true);
     });
   });
 });

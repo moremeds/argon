@@ -4,7 +4,7 @@ import {
   finiteDomain,
   linearScale,
   niceTicks,
-  pathFromPoints,
+  pathFromNullablePoints,
 } from "@/lib/svgChart";
 import type { GexHistoryEntry } from "@/lib/regime/useGex";
 
@@ -81,9 +81,7 @@ export function HistoryChart({
     return (
       <div className="section" data-testid="gex-history-empty">
         <div className="section-header">
-          <div className="section-title">
-            {ticker} — 90-Day GEX History
-          </div>
+          <div className="section-title">{ticker} — 90-Day GEX History</div>
         </div>
         <div
           className="section-body"
@@ -118,37 +116,35 @@ export function HistoryChart({
     ? linearScale([priceD.lo, priceD.hi], [HEIGHT - PAD.bottom, PAD.top])
     : null;
 
+  // Keep nulls in each per-series array so pathFromNullablePoints breaks the
+  // SVG path at gaps. Filtering nulls out (the old behavior) caused the
+  // sparse gex_flip line to draw a straight segment across multi-bar gaps,
+  // which lies about the data.
   const netGexPath =
     yGex == null
       ? ""
-      : pathFromPoints(
-          history
-            .map((h, i): [number, number] | null =>
-              h.net_gex == null ? null : [xScale(i), yGex(h.net_gex)],
-            )
-            .filter((p): p is [number, number] => p != null),
+      : pathFromNullablePoints(
+          history.map((h, i): [number, number] | null =>
+            h.net_gex == null ? null : [xScale(i), yGex(h.net_gex)],
+          ),
         );
 
   const flipPath =
     yPrice == null
       ? ""
-      : pathFromPoints(
-          history
-            .map((h, i): [number, number] | null =>
-              h.gex_flip == null ? null : [xScale(i), yPrice(h.gex_flip)],
-            )
-            .filter((p): p is [number, number] => p != null),
+      : pathFromNullablePoints(
+          history.map((h, i): [number, number] | null =>
+            h.gex_flip == null ? null : [xScale(i), yPrice(h.gex_flip)],
+          ),
         );
 
   const spotPath =
     yPrice == null
       ? ""
-      : pathFromPoints(
-          history
-            .map((h, i): [number, number] | null =>
-              h.spot == null ? null : [xScale(i), yPrice(h.spot)],
-            )
-            .filter((p): p is [number, number] => p != null),
+      : pathFromNullablePoints(
+          history.map((h, i): [number, number] | null =>
+            h.spot == null ? null : [xScale(i), yPrice(h.spot)],
+          ),
         );
 
   const xTickIdx = dateTickIndices(history.length, 5);
@@ -158,9 +154,7 @@ export function HistoryChart({
   return (
     <div className="section" data-testid="gex-history-chart">
       <div className="section-header">
-        <div className="section-title">
-          {ticker} — 90-Day GEX History
-        </div>
+        <div className="section-title">{ticker} — 90-Day GEX History</div>
         <div
           style={{
             display: "flex",

@@ -4,7 +4,7 @@ import {
   finiteDomain,
   linearScale,
   niceTicks,
-  pathFromPoints,
+  pathFromNullablePoints,
 } from "@/lib/svgChart";
 import type {
   GexIntradayData,
@@ -174,7 +174,9 @@ export function GexIntradayChart({
     return (
       <div className="section" data-testid="gex-intraday-empty">
         <div className="section-header">
-          <div className="section-title">{ticker} — Intraday GEX, 5 Sessions</div>
+          <div className="section-title">
+            {ticker} — Intraday GEX, 5 Sessions
+          </div>
         </div>
         <div
           className="section-body"
@@ -197,7 +199,9 @@ export function GexIntradayChart({
     return (
       <div className="section" data-testid="gex-intraday-thin">
         <div className="section-header">
-          <div className="section-title">{ticker} — Intraday GEX, 5 Sessions</div>
+          <div className="section-title">
+            {ticker} — Intraday GEX, 5 Sessions
+          </div>
         </div>
         <div
           className="section-body"
@@ -244,13 +248,14 @@ export function GexIntradayChart({
     scale: ((v: number) => number) | null,
   ): string {
     if (scale == null) return "";
-    return pathFromPoints(
-      flat
-        .map((p): [number, number] | null => {
-          const v = accessor(p);
-          return v == null ? null : [xScale(p.x), scale(v)];
-        })
-        .filter((p): p is [number, number] => p != null),
+    // Keep nulls in the array so pathFromNullablePoints breaks the path at
+    // gaps instead of straight-line interpolating across them. Critical for
+    // gex_flip, which the scanner emits sparsely.
+    return pathFromNullablePoints(
+      flat.map((p): [number, number] | null => {
+        const v = accessor(p);
+        return v == null ? null : [xScale(p.x), scale(v)];
+      }),
     );
   }
 

@@ -18,6 +18,32 @@ export function pathFromPoints(points: Point[]): string {
   return points.map(([x, y], i) => `${i === 0 ? "M" : "L"}${x},${y}`).join(" ");
 }
 
+/**
+ * Build an SVG path that BREAKS at null/undefined/non-finite values instead
+ * of straight-line interpolating across them.
+ *
+ * Each `null` in the input ends the current sub-path; the next finite point
+ * starts a fresh `M`. Use this for sparse series (e.g. `gex_flip`) where the
+ * filtered-out version of `pathFromPoints` produces a misleading line that
+ * connects across multi-bar gaps.
+ */
+export function pathFromNullablePoints(
+  points: ReadonlyArray<Point | null>,
+): string {
+  let out = "";
+  let pendingMove = true;
+  for (const p of points) {
+    if (p == null || !Number.isFinite(p[0]) || !Number.isFinite(p[1])) {
+      pendingMove = true;
+      continue;
+    }
+    const [x, y] = p;
+    out += `${pendingMove ? "M" : "L"}${x},${y} `;
+    pendingMove = false;
+  }
+  return out.trimEnd();
+}
+
 export function niceTicks(min: number, max: number, count = 5): number[] {
   if (!isFinite(min) || !isFinite(max) || min === max) return [min];
   const span = max - min;
