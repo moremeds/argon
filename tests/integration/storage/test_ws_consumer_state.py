@@ -57,6 +57,20 @@ def test_record_ws_connection_started(seeded_db_empty_cards):
     assert row.connection_started_at == ts
 
 
+def test_record_ws_connection_started_clears_previous_error(seeded_db_empty_cards):
+    repo = seeded_db_empty_cards
+    ts = _utcnow()
+    repo.record_ws_error("old connection failure", ts)
+    repo._conn.commit()
+
+    repo.record_ws_connection_started(_utcnow())
+    repo._conn.commit()
+
+    row = repo.get_ws_consumer_state()
+    assert row.last_error is None
+    assert row.last_error_at is None
+
+
 def test_record_ws_error(seeded_db_empty_cards):
     repo = seeded_db_empty_cards
     ts = _utcnow()

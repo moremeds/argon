@@ -131,6 +131,33 @@ def test_parse_ws_message_non_utf8_bytes_raises():
 
 
 @pytest.mark.asyncio
+async def test_client_bypasses_system_proxy(monkeypatch):
+    """The dedicated market-data stream must not inherit macOS proxy settings."""
+    connect_kwargs: dict[str, object] = {}
+
+    class FakeWebSocket:
+        async def send(self, _message: str) -> None:
+            return None
+
+        async def recv(self) -> str:
+            return '[{"ev":"status","status":"auth_success"}]'
+
+        async def close(self) -> None:
+            return None
+
+    async def fake_connect(_url: str, **kwargs):
+        connect_kwargs.update(kwargs)
+        return FakeWebSocket()
+
+    monkeypatch.setattr(websockets, "connect", fake_connect)
+
+    async with MassiveWsClient("wss://delayed.massive.com/stocks", "TEST_KEY"):
+        pass
+
+    assert connect_kwargs["proxy"] is None
+
+
+@pytest.mark.asyncio
 async def test_client_authenticates_and_subscribes():
     """Spin up a fake WS server, verify auth + subscribe messages are sent."""
     received: list[str] = []

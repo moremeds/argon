@@ -122,6 +122,7 @@ class MassiveWsClient:
             self._url,
             open_timeout=self._open_timeout,
             ping_interval=self._ping_interval,
+            proxy=None,
         )
         await self._authenticate()
         return self

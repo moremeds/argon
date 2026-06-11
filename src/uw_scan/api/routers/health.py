@@ -80,7 +80,7 @@ class WsConsumerHealth(BaseModel):
 
     ``healthy`` is true when:
       * the market is closed (no ticks are expected), OR
-      * ``last_tick_at`` is within ``massive_ws_heartbeat_stale_after_seconds``.
+      * ``last_flush_at`` is within ``massive_ws_heartbeat_stale_after_seconds``.
 
     ``reason`` carries the short label the UI displays under the row.
     """
@@ -345,7 +345,9 @@ def health(
         )
     else:
         age_s = (now_utc - ws_state.last_tick_at).total_seconds()
-        stale = age_s >= settings.massive_ws_heartbeat_stale_after_seconds
+        heartbeat_at = ws_state.last_flush_at or ws_state.last_tick_at
+        heartbeat_age_s = (now_utc - heartbeat_at).total_seconds()
+        stale = heartbeat_age_s >= settings.massive_ws_heartbeat_stale_after_seconds
         ws_consumer = WsConsumerHealth(
             healthy=(not stale) or (not in_session),
             last_tick_at=ws_state.last_tick_at,

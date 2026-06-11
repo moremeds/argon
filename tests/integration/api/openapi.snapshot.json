@@ -16530,7 +16530,7 @@
         "type": "object"
       },
       "WsConsumerHealth": {
-        "description": "Massive.com WS consumer status, surfaced for the HealthPanel.\n\n``healthy`` is true when:\n  * the market is closed (no ticks are expected), OR\n  * ``last_tick_at`` is within ``massive_ws_heartbeat_stale_after_seconds``.\n\n``reason`` carries the short label the UI displays under the row.",
+        "description": "Massive.com WS consumer status, surfaced for the HealthPanel.\n\n``healthy`` is true when:\n  * the market is closed (no ticks are expected), OR\n  * ``last_flush_at`` is within ``massive_ws_heartbeat_stale_after_seconds``.\n\n``reason`` carries the short label the UI displays under the row.",
         "properties": {
           "connection_started_at": {
             "anyOf": [
