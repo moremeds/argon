@@ -5,7 +5,7 @@ Keep stable; update `openapi-typescript` regen when fields change.
 
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, datetime
 from typing import Literal
 
 from pydantic import BaseModel, Field, field_validator
@@ -218,6 +218,36 @@ EMPTY_GEX_RESPONSE = GexResponse()
 class VolBackdropPoint(BaseModel):
     date: date
     close: float
+
+
+# ─── GEX intraday (5-session RTH tape from gex_snapshots) ────────
+
+
+class GexIntradayPoint(BaseModel):
+    """One row from gex_snapshots inside a single ET trading session."""
+
+    ts: datetime  # scanned_at, ISO timestamp (UTC on the wire)
+    spot: float | None = None
+    net_gex: float | None = None
+    gex_flip: float | None = None
+    iv30d: float | None = None
+
+
+class GexIntradaySession(BaseModel):
+    et_date: date
+    points: list[GexIntradayPoint] = Field(default_factory=list)
+
+
+class GexIntradayResponse(BaseModel):
+    """Last N RTH sessions of intraday GEX snapshots for a ticker.
+
+    Sessions are ordered oldest→newest so the chart can scan left-to-right.
+    Points within each session are also ASC by ``ts``.
+    """
+
+    ticker: str
+    sessions: list[GexIntradaySession] = Field(default_factory=list)
+    as_of: datetime | None = None
 
 
 class VolBackdropResponse(BaseModel):

@@ -28,6 +28,8 @@ from uw_scan.api.schemas import (
     DealerRegimeSignal,
     GammaDecayBucket,
     GexHistoryEntry,
+    GexIntradayResponse,
+    GexIntradaySession,
     GexResponse,
     VcgResponse,
     VcgScanResponse,
@@ -129,6 +131,34 @@ def get_gex(
     raw["market_open"] = _is_market_open_now()
     raw["history"] = history
     return GexResponse.model_validate(raw)
+
+
+@router.get("/gex/intraday", response_model=GexIntradayResponse)
+def get_gex_intraday(
+    repo: Annotated[Repository, Depends(get_repo)],
+    ticker: str = Query("SPX"),
+    sessions: int = Query(5, ge=1, le=20),
+    rth_only: bool = Query(True),
+) -> GexIntradayResponse:
+    """Last N RTH sessions of intraday gex_snapshots for ``ticker``.
+
+    Drives the intraday line chart on the GEX tab. Sessions are ET-anchored
+    (UTC `data_date` straddles sessions). Empty `sessions` array is a valid
+    response when no rows exist for the ticker.
+    """
+    t = ticker.upper()
+    raw = repo.fetch_intraday_sessions(
+        ticker=t, sessions=sessions, rth_only=rth_only
+    )
+    payload_sessions = [GexIntradaySession.model_validate(s) for s in raw]
+    last_ts = None
+    if payload_sessions and payload_sessions[-1].points:
+        last_ts = payload_sessions[-1].points[-1].ts
+    return GexIntradayResponse(
+        ticker=t,
+        sessions=payload_sessions,
+        as_of=last_ts,
+    )
 
 
 @router.post("/gex/scan", status_code=202)

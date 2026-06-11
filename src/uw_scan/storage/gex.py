@@ -87,6 +87,68 @@ class _GexMixin:
                 for row in cur.fetchall()
             }
 
+    def fetch_intraday_sessions(
+        self,
+        *,
+        ticker: str,
+        sessions: int = 5,
+        rth_only: bool = True,
+    ) -> list[dict]:
+        """Return the last ``sessions`` ET trading sessions of gex_snapshots.
+
+        Each row is keyed by ET date (``scanned_at AT TIME ZONE
+        'America/New_York'``) so weekends/holidays are handled by DISTINCT,
+        not by data_date (which is UTC and straddles ET sessions).
+
+        Result is grouped server-side: ``[{"et_date": d, "points": [...]}]``
+        oldest→newest. Each point is the generated scalar columns from
+        ``gex_snapshots`` — no JSONB parse needed.
+        """
+        rth_filter = (
+            "AND (scanned_at AT TIME ZONE 'America/New_York')::time "
+            "BETWEEN '09:30' AND '16:00'"
+            if rth_only
+            else ""
+        )
+        sql = f"""
+            WITH recent_sessions AS (
+                SELECT DISTINCT
+                       (scanned_at AT TIME ZONE 'America/New_York')::date AS et_date
+                  FROM {self._schema}.gex_snapshots
+                 WHERE ticker = %s
+                 ORDER BY et_date DESC
+                 LIMIT %s
+            )
+            SELECT (g.scanned_at AT TIME ZONE 'America/New_York')::date AS et_date,
+                   g.scanned_at,
+                   g.spot::float8                     AS spot,
+                   g.net_gex::float8                  AS net_gex,
+                   g.level_gex_flip_strike::float8    AS gex_flip,
+                   g.iv_30d::float8                   AS iv30d
+              FROM {self._schema}.gex_snapshots g
+              JOIN recent_sessions rs
+                ON (g.scanned_at AT TIME ZONE 'America/New_York')::date = rs.et_date
+             WHERE g.ticker = %s
+               {rth_filter}
+             ORDER BY g.scanned_at ASC
+        """
+        with self._conn.cursor() as cur:
+            cur.execute(sql, (ticker.upper(), sessions, ticker.upper()))
+            rows = cur.fetchall()
+
+        out: dict[object, list[dict]] = {}
+        for et_date, scanned_at, spot, net_gex, gex_flip, iv30d in rows:
+            out.setdefault(et_date, []).append(
+                {
+                    "ts": scanned_at,
+                    "spot": spot,
+                    "net_gex": net_gex,
+                    "gex_flip": gex_flip,
+                    "iv30d": iv30d,
+                }
+            )
+        return [{"et_date": d, "points": pts} for d, pts in sorted(out.items())]
+
     def upsert_gex_snapshot(
         self,
         *,
