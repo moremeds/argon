@@ -3990,6 +3990,119 @@
         "title": "GexHistoryEntry",
         "type": "object"
       },
+      "GexIntradayPoint": {
+        "description": "One row from gex_snapshots inside a single ET trading session.",
+        "properties": {
+          "gex_flip": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Gex Flip"
+          },
+          "iv30d": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Iv30D"
+          },
+          "net_gex": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Net Gex"
+          },
+          "spot": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Spot"
+          },
+          "ts": {
+            "format": "date-time",
+            "title": "Ts",
+            "type": "string"
+          }
+        },
+        "required": [
+          "ts"
+        ],
+        "title": "GexIntradayPoint",
+        "type": "object"
+      },
+      "GexIntradayResponse": {
+        "description": "Last N RTH sessions of intraday GEX snapshots for a ticker.\n\nSessions are ordered oldest\u2192newest so the chart can scan left-to-right.\nPoints within each session are also ASC by ``ts``.",
+        "properties": {
+          "as_of": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "As Of"
+          },
+          "sessions": {
+            "items": {
+              "$ref": "#/components/schemas/GexIntradaySession"
+            },
+            "title": "Sessions",
+            "type": "array"
+          },
+          "ticker": {
+            "title": "Ticker",
+            "type": "string"
+          }
+        },
+        "required": [
+          "ticker"
+        ],
+        "title": "GexIntradayResponse",
+        "type": "object"
+      },
+      "GexIntradaySession": {
+        "properties": {
+          "et_date": {
+            "format": "date",
+            "title": "Et Date",
+            "type": "string"
+          },
+          "points": {
+            "items": {
+              "$ref": "#/components/schemas/GexIntradayPoint"
+            },
+            "title": "Points",
+            "type": "array"
+          }
+        },
+        "required": [
+          "et_date"
+        ],
+        "title": "GexIntradaySession",
+        "type": "object"
+      },
       "GexIvData": {
         "properties": {
           "hv30": {
@@ -17848,6 +17961,72 @@
         ]
       }
     },
+    "/api/regime/gex/intraday": {
+      "get": {
+        "description": "Last N RTH sessions of intraday gex_snapshots for ``ticker``.\n\nDrives the intraday line chart on the GEX tab. Sessions are ET-anchored\n(UTC `data_date` straddles sessions). Empty `sessions` array is a valid\nresponse when no rows exist for the ticker.",
+        "operationId": "get_gex_intraday_api_regime_gex_intraday_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "ticker",
+            "required": false,
+            "schema": {
+              "default": "SPX",
+              "title": "Ticker",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "sessions",
+            "required": false,
+            "schema": {
+              "default": 5,
+              "maximum": 20,
+              "minimum": 1,
+              "title": "Sessions",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "rth_only",
+            "required": false,
+            "schema": {
+              "default": true,
+              "title": "Rth Only",
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GexIntradayResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Gex Intraday",
+        "tags": [
+          "regime"
+        ]
+      }
+    },
     "/api/regime/gex/scan": {
       "post": {
         "description": "Run a GEX scan synchronously against UW and persist.",
@@ -19156,4 +19335,3 @@
     }
   }
 }
-
