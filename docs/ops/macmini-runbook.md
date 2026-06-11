@@ -1,7 +1,7 @@
 # Mac Mini Ops Runbook (argon stack)
 
 **Host:** Mac mini @ Tailscale `100.66.147.98`, SSH user `moremeds`.
-**Repo:** `~/projects/unusual-whales` on mini.
+**Repo:** `~/projects/argon` on mini.
 **Services:** 13 launchd jobs (`com.argon.*`) + 2 backup jobs (`com.argon.backup`, `com.argon.backup-r2`).
 **Co-tenant:** xenon shares the mini's Homebrew Postgres cluster (currently `postgresql@17`, port 5432; separate DBs/roles). Bootstrap probes whatever `brew services` reports running, so a future major bump is transparent to argon.
 **Spec:** `docs/superpowers/specs/2026-06-01-mac-mini-stack-migration-design.md`
@@ -21,7 +21,7 @@ Idempotent; safe to re-run.
 
 From MacBook:
 ```
-ssh moremeds@100.66.147.98 'cd ~/projects/unusual-whales && bash scripts/deploy/macmini-prod.sh v1.2.3'
+ssh moremeds@100.66.147.98 'cd ~/projects/argon && bash scripts/deploy/macmini-prod.sh v1.2.3'
 ```
 Auto-rolls back if any of the 13 services fail health.
 
@@ -50,7 +50,7 @@ Refuses if MacBook writers are listening.
 
 Restore from local dump:
 ```
-ssh moremeds@100.66.147.98 'cd ~/projects/unusual-whales
+ssh moremeds@100.66.147.98 'cd ~/projects/argon
   latest=$(ls -1t data/backups/option_wizard-*.dump.gz | head -1)
   echo "Restoring from $latest"
   gunzip -c "$latest" \
@@ -60,7 +60,7 @@ ssh moremeds@100.66.147.98 'cd ~/projects/unusual-whales
 
 Restore from R2:
 ```
-ssh moremeds@100.66.147.98 'cd ~/projects/unusual-whales && set -a; source .env; set +a
+ssh moremeds@100.66.147.98 'cd ~/projects/argon && set -a; source .env; set +a
   AWS_ACCESS_KEY_ID="$R2_ACCESS_KEY_ID" AWS_SECRET_ACCESS_KEY="$R2_SECRET_ACCESS_KEY" \
     aws s3 cp s3://${R2_BUCKET}/postgres/option_wizard-2026-06-01.dump.gz - \
       --endpoint-url "${R2_ENDPOINT_OVERRIDE:-https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com}" \
@@ -82,7 +82,7 @@ ssh moremeds@100.66.147.98 'launchctl kickstart -k gui/$UID/com.argon.worker.ai-
 
 Restart all 13:
 ```
-ssh moremeds@100.66.147.98 'cd ~/projects/unusual-whales && while IFS= read -r s; do
+ssh moremeds@100.66.147.98 'cd ~/projects/argon && while IFS= read -r s; do
   [[ -z "$s" || "$s" == \#* ]] && continue
   launchctl kickstart -k "gui/$UID/$s"
 done < config/services.list'
@@ -93,7 +93,7 @@ Stop all 13 (e.g., for maintenance) — uses `unload` to match xenon's `load`/`u
 ssh moremeds@100.66.147.98 'while IFS= read -r s; do
   [[ -z "$s" || "$s" == \#* ]] && continue
   launchctl unload "$HOME/Library/LaunchAgents/$s.plist" 2>/dev/null
-done < ~/projects/unusual-whales/config/services.list'
+done < ~/projects/argon/config/services.list'
 ```
 
 Re-load all 13 (after an unload):
@@ -101,14 +101,14 @@ Re-load all 13 (after an unload):
 ssh moremeds@100.66.147.98 'while IFS= read -r s; do
   [[ -z "$s" || "$s" == \#* ]] && continue
   launchctl load "$HOME/Library/LaunchAgents/$s.plist"
-done < ~/projects/unusual-whales/config/services.list'
+done < ~/projects/argon/config/services.list'
 ```
 
 ## Logs
 
-- Aggregate: `ssh moremeds@100.66.147.98 'cd ~/projects/unusual-whales && tail -F logs/*.err.log'`
-- API only: `ssh moremeds@100.66.147.98 'tail -F ~/projects/unusual-whales/logs/api.err.log'`
-- One worker: `ssh moremeds@100.66.147.98 'tail -F ~/projects/unusual-whales/logs/worker-ai-claude-0.err.log'`
+- Aggregate: `ssh moremeds@100.66.147.98 'cd ~/projects/argon && tail -F logs/*.err.log'`
+- API only: `ssh moremeds@100.66.147.98 'tail -F ~/projects/argon/logs/api.err.log'`
+- One worker: `ssh moremeds@100.66.147.98 'tail -F ~/projects/argon/logs/worker-ai-claude-0.err.log'`
 
 ## Health checks
 
@@ -132,7 +132,7 @@ psql -h 100.66.147.98 -U argon_app -d option_wizard -c "SELECT COUNT(*) FROM uw_
    ssh moremeds@100.66.147.98 'while read -r s; do
      [[ -z "$s" || "$s" == \#* ]] && continue
      launchctl unload "$HOME/Library/LaunchAgents/$s.plist" 2>/dev/null
-   done < ~/projects/unusual-whales/config/services.list'
+   done < ~/projects/argon/config/services.list'
    ```
 3. On mini, optionally drop the DBs + role (only if abandoning entirely):
    ```
