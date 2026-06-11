@@ -7,12 +7,14 @@ import {
   type MqLevels,
   type SourceDelta,
 } from "@/lib/regime/useGex";
+import { useGexIntraday } from "@/lib/regime/useGexIntraday";
 import { MarketState } from "@/lib/regime/useMarketHours";
 import InfoTooltip from "./InfoTooltip";
 import GexProfileChart from "./GexProfileChart";
 import { HistoryChart } from "./HistoryChart";
 import { ExpectedRangeBar } from "./gex/ExpectedRangeBar";
 import { GexHistoryTable } from "./gex/GexHistoryTable";
+import { GexIntradayChart } from "./gex/GexIntradayChart";
 import { MqLevelsPanel } from "./gex/MqLevelsPanel";
 import { biasColor, biasLabel, fmtGex, fmtPrice } from "./gex/format";
 import { formatPercent } from "./primitives/format";
@@ -127,6 +129,7 @@ function LevelCard({
 
 export default function GexSubTab({ marketState }: GexSubTabProps) {
   const { data, loading, error, lastSync } = useGex(marketState ?? null);
+  const { data: intraday } = useGexIntraday(marketState ?? null, "SPX", 5);
 
   if (loading && !data) {
     return (
@@ -440,7 +443,10 @@ export default function GexSubTab({ marketState }: GexSubTabProps) {
           </div>
         </div>
 
-        {/* ── 90-day History Chart (net_gex / flip / spot) ── */}
+        {/* ── 5-Session Intraday Chart (spot / flip / net_gex / iv30d) ── */}
+        <GexIntradayChart data={intraday} ticker={data.ticker} />
+
+        {/* ── 90-day Daily History Chart (net_gex / flip / spot) ── */}
         <HistoryChart history={data.history} ticker={data.ticker} />
 
         {/* ── History Table ── */}

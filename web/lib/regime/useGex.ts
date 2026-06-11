@@ -34,7 +34,11 @@ export type GexHistoryEntry = {
   net_gex: number;
   net_dex: number;
   gex_flip: number | null;
-  spot: number;
+  // Server returns null when greek_exposure_daily has the row but the
+  // spot-source table (vol_index_daily for indices, daily_ohlc for stocks)
+  // does not have a close for that trade_date. HistoryChart breaks the
+  // path at nulls, so the runtime contract is `number | null`.
+  spot: number | null;
   atm_iv: number | null;
   vol_pc: number | null;
   bias: string | null;

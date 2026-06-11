@@ -570,6 +570,30 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/regime/gex/intraday": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Gex Intraday
+         * @description Last N RTH sessions of intraday gex_snapshots for ``ticker``.
+         *
+         *     Drives the intraday line chart on the GEX tab. Sessions are ET-anchored
+         *     (UTC `data_date` straddles sessions). Empty `sessions` array is a valid
+         *     response when no rows exist for the ticker.
+         */
+        get: operations["get_gex_intraday_api_regime_gex_intraday_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/regime/gex/scan": {
         parameters: {
             query?: never;
@@ -2174,6 +2198,50 @@ export interface components {
             vol_pc?: number | null;
             /** Bias */
             bias?: string | null;
+        };
+        /**
+         * GexIntradayPoint
+         * @description One row from gex_snapshots inside a single ET trading session.
+         */
+        GexIntradayPoint: {
+            /**
+             * Ts
+             * Format: date-time
+             */
+            ts: string;
+            /** Spot */
+            spot?: number | null;
+            /** Net Gex */
+            net_gex?: number | null;
+            /** Gex Flip */
+            gex_flip?: number | null;
+            /** Iv30D */
+            iv30d?: number | null;
+        };
+        /**
+         * GexIntradayResponse
+         * @description Last N RTH sessions of intraday GEX snapshots for a ticker.
+         *
+         *     Sessions are ordered oldest→newest so the chart can scan left-to-right.
+         *     Points within each session are also ASC by ``ts``.
+         */
+        GexIntradayResponse: {
+            /** Ticker */
+            ticker: string;
+            /** Sessions */
+            sessions?: components["schemas"]["GexIntradaySession"][];
+            /** As Of */
+            as_of?: string | null;
+        };
+        /** GexIntradaySession */
+        GexIntradaySession: {
+            /**
+             * Et Date
+             * Format: date
+             */
+            et_date: string;
+            /** Points */
+            points?: components["schemas"]["GexIntradayPoint"][];
         };
         /** GexIvData */
         GexIvData: {
@@ -7481,6 +7549,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["GexResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_gex_intraday_api_regime_gex_intraday_get: {
+        parameters: {
+            query?: {
+                ticker?: string;
+                sessions?: number;
+                rth_only?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GexIntradayResponse"];
                 };
             };
             /** @description Validation Error */
