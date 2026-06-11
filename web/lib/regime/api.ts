@@ -15,6 +15,8 @@ export const regimeApi = {
   vcg_scan: () => `${API}/api/regime/vcg/scan`,
   gex: (ticker: string) =>
     `${API}/api/regime/gex?ticker=${encodeURIComponent(ticker)}`,
+  gex_intraday: (ticker: string, sessions: number = 5) =>
+    `${API}/api/regime/gex/intraday?ticker=${encodeURIComponent(ticker)}&sessions=${sessions}`,
   gex_scan: (ticker: string) =>
     `${API}/api/regime/gex/scan?ticker=${encodeURIComponent(ticker)}`,
   vol_backdrop: () => `${API}/api/regime/vol-backdrop`,

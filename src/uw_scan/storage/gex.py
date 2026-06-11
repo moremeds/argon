@@ -104,6 +104,10 @@ class _GexMixin:
         oldest→newest. Each point is the generated scalar columns from
         ``gex_snapshots`` — no JSONB parse needed.
         """
+        # When rth_only=True the same predicate is applied inside the CTE
+        # so a date with only overnight/pre-market rows isn't picked as one
+        # of the top-N sessions (would otherwise produce an empty session
+        # in the result).
         rth_filter = (
             "AND (scanned_at AT TIME ZONE 'America/New_York')::time "
             "BETWEEN '09:30' AND '16:00'"
@@ -116,6 +120,7 @@ class _GexMixin:
                        (scanned_at AT TIME ZONE 'America/New_York')::date AS et_date
                   FROM {self._schema}.gex_snapshots
                  WHERE ticker = %s
+                   {rth_filter}
                  ORDER BY et_date DESC
                  LIMIT %s
             )
