@@ -87,15 +87,22 @@ def bucket_profile(
 
 
 def compute_gex_flip(profile: list[dict[str, Any]], spot: float) -> float | None:
-    """Find the GEX flip: last strike below spot where net GEX crosses from negative to positive."""
-    flip = None
+    """Find the strike where net dealer gamma flips from short to long.
+
+    Returns the negative→positive crossing nearest to spot — above or below.
+    In a short-gamma regime the crossing sits above spot (net GEX is negative
+    through and below spot); restricting to strikes <= spot made the flip
+    null on 96-100% of intraday ticks there (issue #123).
+    """
+    crossings = []
     for i in range(1, len(profile)):
         prev_net = profile[i - 1]["net_gex"]
         curr_net = profile[i]["net_gex"]
-        strike = profile[i]["strike"]
-        if prev_net < 0 and curr_net > 0 and strike <= spot:
-            flip = strike
-    return flip
+        if prev_net < 0 and curr_net > 0:
+            crossings.append(profile[i]["strike"])
+    if not crossings:
+        return None
+    return min(crossings, key=lambda s: abs(s - spot))
 
 
 def find_key_levels(

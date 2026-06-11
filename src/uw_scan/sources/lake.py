@@ -21,7 +21,7 @@ from __future__ import annotations
 import hashlib
 import io
 from dataclasses import dataclass
-from datetime import date
+from datetime import date, datetime
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -171,19 +171,26 @@ def _read_s3(lr: LakeRoot, symbol: str, *, since: date | None) -> list[dict]:
 
 
 def _rows_from_table(table, symbol: str, *, since: date | None) -> list[dict]:
-    df = table.to_pandas()
-    if "trade_date" not in df.columns:
+    # pyarrow-native conversion — keep pandas out of this path. The nightly
+    # vol_index_lake_sync died for days with ModuleNotFoundError
+    # ('pyarrow.pandas_compat') when pandas drifted out of the worker venv;
+    # to_pylist() needs nothing beyond pyarrow (issue #122).
+    if "trade_date" not in table.column_names:
         return []
-    if since is not None:
-        df = df[df["trade_date"] >= since]
-    df = df.sort_values("trade_date")
     rows: list[dict] = []
-    for r in df.itertuples(index=False):
-        rd = r._asdict()
+    for rd in table.to_pylist():
+        td = rd.get("trade_date")
+        if td is None:
+            continue
+        if isinstance(td, datetime):
+            # tolerate timestamp-typed lake columns; DB + dedup expect dates
+            td = td.date()
+        if since is not None and td < since:
+            continue
         rows.append(
             {
                 "symbol": symbol,
-                "trade_date": rd["trade_date"],
+                "trade_date": td,
                 "open": _maybe_float(rd.get("open")),
                 "high": _maybe_float(rd.get("high")),
                 "low": _maybe_float(rd.get("low")),
@@ -192,6 +199,7 @@ def _rows_from_table(table, symbol: str, *, since: date | None) -> list[dict]:
                 "volume": int(rd["volume"]) if rd.get("volume") is not None else None,
             }
         )
+    rows.sort(key=lambda r: r["trade_date"])
     return rows
 
 

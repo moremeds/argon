@@ -88,3 +88,48 @@ def test_list_vol_index_symbols(tmp_path: Path) -> None:
 
 def test_read_missing_symbol_returns_empty(tmp_path: Path) -> None:
     assert read_vol_index_parquet(tmp_path, "NONEXISTENT") == []
+
+
+def test_read_does_not_require_pandas(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Regression for issue #122: the nightly vol_index_lake_sync crashed with
+    ModuleNotFoundError('pyarrow.pandas_compat') when pandas drifted out of
+    the worker venv. The reader must stay pyarrow-native so a pandas-less
+    environment can still sync the lake."""
+    import builtins
+    import sys
+
+    _write_fixture(
+        tmp_path,
+        "VIX",
+        [
+            {
+                "trade_date": date(2026, 6, 9),
+                "open": 20.0,
+                "high": 21.0,
+                "low": 19.5,
+                "close": 20.5,
+                "adj_close": 20.5,
+                "volume": 0,
+            },
+        ],
+    )
+
+    for mod in [m for m in sys.modules if m == "pandas" or m.startswith("pandas.")]:
+        monkeypatch.delitem(sys.modules, mod)
+    monkeypatch.delitem(sys.modules, "pyarrow.pandas_compat", raising=False)
+
+    real_import = builtins.__import__
+
+    def _no_pandas(name, *args, **kwargs):
+        if name == "pandas" or name.startswith("pandas."):
+            raise ModuleNotFoundError("No module named 'pandas'")
+        return real_import(name, *args, **kwargs)
+
+    monkeypatch.setattr(builtins, "__import__", _no_pandas)
+
+    rows = read_vol_index_parquet(tmp_path, "VIX")
+    assert len(rows) == 1
+    assert rows[0]["trade_date"] == date(2026, 6, 9)
+    assert rows[0]["close"] == pytest.approx(20.5)
