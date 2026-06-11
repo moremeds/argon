@@ -61,6 +61,9 @@ class WsConsumerStateRow:
     last_error: str | None
     last_error_at: datetime | None
     updated_at: datetime
+    # Feed the consumer is currently connected to: "xenon_ws" (primary) or
+    # "massive.com_ws" (fallback). None until the first post-068 connection.
+    active_source: str | None = None
 
 
 @dataclass(frozen=True)

@@ -76,13 +76,17 @@ class TradeInsightsAiHealth(BaseModel):
 
 
 class WsConsumerHealth(BaseModel):
-    """Massive.com WS consumer status, surfaced for the HealthPanel.
+    """Spot WS consumer status (xenon primary / massive fallback), surfaced
+    for the HealthPanel.
 
     ``healthy`` is true when:
       * the market is closed (no ticks are expected), OR
       * ``last_flush_at`` is within ``massive_ws_heartbeat_stale_after_seconds``.
 
-    ``reason`` carries the short label the UI displays under the row.
+    ``active_source`` tells which feed the consumer is connected to —
+    ``"xenon_ws"`` (primary) or ``"massive.com_ws"`` (fallback); ``None``
+    before the first connection. ``reason`` carries the short label the UI
+    displays under the row.
     """
 
     healthy: bool
@@ -93,6 +97,7 @@ class WsConsumerHealth(BaseModel):
     ticks_flushed: int = 0
     connection_started_at: datetime | None = None
     last_error: str | None = None
+    active_source: str | None = None
     reason: str | None = None
 
 
@@ -341,6 +346,7 @@ def health(
     if ws_state is None or ws_state.last_tick_at is None:
         ws_consumer = WsConsumerHealth(
             healthy=not in_session,
+            active_source=ws_state.active_source if ws_state else None,
             reason="no ticks received yet" if in_session else "market closed",
         )
     else:
@@ -357,6 +363,7 @@ def health(
             ticks_flushed=ws_state.ticks_flushed,
             connection_started_at=ws_state.connection_started_at,
             last_error=ws_state.last_error,
+            active_source=ws_state.active_source,
             reason=(
                 "heartbeat stale"
                 if stale and in_session

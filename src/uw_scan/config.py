@@ -155,6 +155,19 @@ class Settings(BaseModel):
     massive_ws_reconnect_backoff_initial_seconds: float = 1.0
     massive_ws_reconnect_backoff_max_seconds: float = 60.0
     massive_ws_heartbeat_stale_after_seconds: float = 120.0
+    # xenon IB realtime WS (primary live spot feed when enabled; the massive
+    # WS above becomes the automatic fallback). Served by the sibling xenon
+    # project's ib_realtime_server.js — streams 24h whenever IB Gateway is
+    # connected, not just the massive 04:00-20:00 ET window. Port may drift
+    # if 8765 is taken — the server writes the actual port to
+    # xenon_ws_port_file; discovery only applies when the URL host is local.
+    xenon_ws_enabled: bool = False
+    xenon_ws_url: str = "ws://127.0.0.1:8765"
+    xenon_ws_port_file: str = "/tmp/xenon-ib-realtime.json"
+    # After a xenon failure, stay on massive for this long before re-probing.
+    xenon_ws_retry_primary_seconds: float = 300.0
+    # In-session silence threshold before failing over (0 disables watchdog).
+    xenon_ws_quiet_failover_seconds: float = 120.0
     # FRED official API. Required by the US rates mirror ingest path.
     fred_api_key: SecretStr | None = None
     # Free/delayed fed funds futures path source used by the rates dashboard.
@@ -252,6 +265,17 @@ class Settings(BaseModel):
     r2_secret_access_key: SecretStr | None = None
     r2_bucket: str | None = None
     r2_endpoint_override: str | None = None
+
+    @property
+    def ws_spot_enabled(self) -> bool:
+        """True when ANY WS feed owns intraday spot.
+
+        Use this (not ``massive_ws_enabled``) wherever the question is "does
+        the WS pipeline own spot writes" — e.g. the scheduler's
+        ``preserve_spot`` guard. A xenon-only deployment must still stop UW
+        scan jobs from overwriting WS-written spot.
+        """
+        return self.massive_ws_enabled or self.xenon_ws_enabled
 
     @classmethod
     def from_env(cls, env_path: Path | None = None) -> "Settings":
@@ -351,6 +375,18 @@ class Settings(BaseModel):
             ),
             massive_ws_heartbeat_stale_after_seconds=float(
                 os.environ.get("MASSIVE_WS_HEARTBEAT_STALE_AFTER_SECONDS", "120.0")
+            ),
+            xenon_ws_enabled=os.environ.get("XENON_WS_ENABLED", "false").lower()
+            == "true",
+            xenon_ws_url=os.environ.get("XENON_WS_URL", "ws://127.0.0.1:8765"),
+            xenon_ws_port_file=os.environ.get(
+                "XENON_WS_PORT_FILE", "/tmp/xenon-ib-realtime.json"
+            ),
+            xenon_ws_retry_primary_seconds=float(
+                os.environ.get("XENON_WS_RETRY_PRIMARY_SECONDS", "300")
+            ),
+            xenon_ws_quiet_failover_seconds=float(
+                os.environ.get("XENON_WS_QUIET_FAILOVER_SECONDS", "120")
             ),
             fred_api_key=(
                 SecretStr(_fred_key)

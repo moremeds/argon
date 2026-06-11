@@ -29,6 +29,7 @@ type Json<
 
 type WatchlistResponse = Json<"/api/watchlist", "get">;
 type QueueSummaryResponse = Json<"/api/watchlist/queue", "get">;
+type WatchlistSpotsResponse = Json<"/api/watchlist/spots", "get">;
 type SingleStockReport = Json<"/api/stock/{ticker}", "get">;
 type StockHistoryResponse = Json<"/api/stock/{ticker}/history", "get">;
 type JobStatus = Json<"/api/jobs/{job_id}", "get">;
@@ -107,6 +108,8 @@ export const api = {
   },
   queueSummary: (): Promise<QueueSummaryResponse> =>
     _fetch<QueueSummaryResponse>(`/api/watchlist/queue`),
+  watchlistSpots: (): Promise<WatchlistSpotsResponse> =>
+    _fetch<WatchlistSpotsResponse>(`/api/watchlist/spots`),
   stock: (ticker: string): Promise<SingleStockReport> =>
     _fetch<SingleStockReport>(`/api/stock/${ticker}`),
   stockHistory: (ticker: string): Promise<StockHistoryResponse> =>

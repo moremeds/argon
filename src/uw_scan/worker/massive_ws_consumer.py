@@ -1,9 +1,19 @@
-"""Long-lived WebSocket consumer for api.massive.com.
+"""Long-lived spot WebSocket consumer — xenon primary, massive fallback.
 
-Runs as a separate ``massive_ws`` worker process (started in ``scripts/dev.sh``).
-Holds one WS connection, subscribes to the active watchlist, buffers ticks,
-and flushes every ``MASSIVE_WS_FLUSH_INTERVAL_SECONDS`` to Postgres as a
-single atomic batch.
+Runs as a separate ``massive_ws`` worker process (started in ``scripts/dev.sh``;
+module name retained for dev.sh/launchd compat). Holds one WS connection —
+to xenon's IB realtime server when ``XENON_WS_ENABLED`` (primary), else to
+api.massive.com — subscribes to the active watchlist, buffers ticks, and
+flushes every ``MASSIVE_WS_FLUSH_INTERVAL_SECONDS`` to Postgres as a single
+atomic batch.
+
+Failover: a xenon connect failure / connect-time IB outage / in-session
+quiet period blocks xenon for ``XENON_WS_RETRY_PRIMARY_SECONDS`` and runs
+massive sessions instead; each massive fallback session races a xenon probe
+and unwinds (shared TickBuffer carries pending ticks) when xenon recovers.
+Xenon streams 24h whenever IB Gateway is up; massive only delivers frames
+Mon-Fri 04:00-20:00 ET, so the quiet watchdog is armed only inside that
+window — failing over outside it buys nothing.
 
 Lifecycle (per session, inside ``asyncio.TaskGroup``):
 1. ``_ws_reader``       — drain frames, populate ``TickBuffer``, increment A12
@@ -31,13 +41,21 @@ from __future__ import annotations
 import asyncio
 import contextlib
 import logging
+import time
 from datetime import datetime, timezone
 
 import psycopg
+from websockets.exceptions import WebSocketException
 
 from uw_scan.config import Settings
 from uw_scan.sources.massive_ws import MassiveWsClient
+from uw_scan.sources.xenon_ws import (
+    XenonFeedUnavailable,
+    XenonWsClient,
+    discover_xenon_ws_url,
+)
 from uw_scan.storage.repository import Repository
+from uw_scan.worker.market_session import current_market_date
 from uw_scan.worker.ws_db_writer import WsDbWriter
 from uw_scan.worker.ws_tick_buffer import TickBuffer
 
@@ -69,14 +87,59 @@ class _ReaderDone(Exception):
     """
 
 
+class _FeedQuiet(Exception):
+    """Sentinel: the active feed delivered no ticks for quiet_failover_seconds
+    during a market session while subscriptions exist. Deliberately NOT caught
+    by run_consumer_once's ``except*`` clauses — it propagates (after the
+    final flush) so run_consumer_forever can classify it as a primary-feed
+    failure and fall back to massive.
+    """
+
+
 async def _ws_reader(
-    client: MassiveWsClient, buffer: TickBuffer, writer: WsDbWriter
+    client: MassiveWsClient | XenonWsClient,
+    buffer: TickBuffer,
+    writer: WsDbWriter,
+    last_rx_monotonic: list[float],
+    tick_received: asyncio.Event,
 ) -> None:
     async for tick in client.ticks():
+        last_rx_monotonic[0] = time.monotonic()
         writer.note_received(1)  # A12: raw feed pressure
         buffer.add(tick)
+        if not tick_received.is_set():
+            tick_received.set()  # Codex P1: track first-tick-of-session.
     # Connection closed by the server (or remote end). Signal siblings to stop.
     raise _ReaderDone("ws connection closed cleanly")
+
+
+async def _quiet_watchdog(
+    *,
+    last_rx_monotonic: list[float],
+    current_subs: set[str],
+    quiet_seconds: float,
+    rth_tz: str,
+) -> None:
+    """Raise _FeedQuiet on sustained in-session tick silence.
+
+    Outside the feed-active window (mon-fri 04:00-20:00 ET) or with nothing
+    subscribed, the timer is re-armed rather than evaluated — a session
+    opening at 03:00 ET must not insta-trip at 09:30, and an empty watchlist
+    is not a feed failure. Ticks are the signal (not raw frames): a feed
+    sending only heartbeats is still not delivering prices.
+    """
+    while True:
+        await asyncio.sleep(max(min(quiet_seconds / 4.0, 15.0), 0.05))
+        if (
+            current_market_date(datetime.now(timezone.utc), rth_tz) is None
+            or not current_subs
+        ):
+            last_rx_monotonic[0] = time.monotonic()
+            continue
+        if time.monotonic() - last_rx_monotonic[0] >= quiet_seconds:
+            raise _FeedQuiet(
+                f"no WS ticks for {quiet_seconds:.0f}s during market session"
+            )
 
 
 async def _flush_loop(writer: WsDbWriter, interval_seconds: float) -> None:
@@ -91,7 +154,7 @@ async def _flush_loop(writer: WsDbWriter, interval_seconds: float) -> None:
 
 async def _subscription_loop(
     *,
-    client: MassiveWsClient,
+    client: MassiveWsClient | XenonWsClient,
     repo: Repository,
     channel: str,
     current_subs: set[str],
@@ -136,9 +199,22 @@ async def run_consumer_once(
     run_for_seconds: float | None = None,
     buffer: TickBuffer | None = None,
     final_flush_timeout_seconds: float = 5.0,
+    client: MassiveWsClient | XenonWsClient | None = None,
+    source_tag: str = "massive.com_ws",
+    quiet_failover_seconds: float = 0.0,
+    rth_tz: str = "America/New_York",
 ) -> bool:
     """One full WS session: connect → subscribe → reader/flusher/subscriber
     → final flush on exit.
+
+    ``client`` injects a not-yet-entered WS client (XenonWsClient for the
+    primary feed); ``None`` builds the historical MassiveWsClient from
+    ``ws_url``/``api_key``. ``source_tag`` flows to ``WsDbWriter`` (so
+    ``spot_source``/``intraday_quote.source`` identify the feed) and to
+    ``record_ws_connection_started`` (``ws_consumer_state.active_source``).
+    ``quiet_failover_seconds > 0`` arms a watchdog that raises ``_FeedQuiet``
+    (propagated AFTER the final flush — no tick loss) on sustained in-session
+    silence; ``rth_tz`` scopes its market-session gate.
 
     Two Repository args because psycopg3 connections aren't safe to share
     across ``asyncio.to_thread`` call sites (A1). The writer owns the
@@ -168,13 +244,23 @@ async def run_consumer_once(
     """
     if buffer is None:
         buffer = TickBuffer()
-    writer = WsDbWriter(repo=writer_repo, buffer=buffer)
+    writer = WsDbWriter(repo=writer_repo, buffer=buffer, source_tag=source_tag)
     current_subs: set[str] = set()
+    last_rx_monotonic = [time.monotonic()]
+    # Codex P1: a xenon session that connects, completes handshake, then
+    # closes without delivering any ticks must be treated as a feed failure
+    # (otherwise the loop retries xenon immediately and a flapping server
+    # freezes spots indefinitely). Tracked here, evaluated post-session.
+    tick_received = asyncio.Event()
     final_flush_ok = False
+    if client is None:
+        client = MassiveWsClient(ws_url, api_key)
 
-    async with MassiveWsClient(ws_url, api_key) as client:
+    async with client:
         await asyncio.to_thread(
-            writer_repo.record_ws_connection_started, datetime.now(timezone.utc)
+            writer_repo.record_ws_connection_started,
+            datetime.now(timezone.utc),
+            source_tag,
         )
         initial = {f"{channel}.{t}" for t in tickers}
         if initial:
@@ -189,7 +275,16 @@ async def run_consumer_once(
         try:
             async with timeout_ctx:
                 async with asyncio.TaskGroup() as tg:
-                    tg.create_task(_ws_reader(client, buffer, writer), name="ws_reader")
+                    tg.create_task(
+                        _ws_reader(
+                            client,
+                            buffer,
+                            writer,
+                            last_rx_monotonic,
+                            tick_received,
+                        ),
+                        name="ws_reader",
+                    )
                     tg.create_task(
                         _flush_loop(writer, flush_interval_seconds),
                         name="ws_flusher",
@@ -204,6 +299,16 @@ async def run_consumer_once(
                         ),
                         name="ws_subscriber",
                     )
+                    if quiet_failover_seconds > 0:
+                        tg.create_task(
+                            _quiet_watchdog(
+                                last_rx_monotonic=last_rx_monotonic,
+                                current_subs=current_subs,
+                                quiet_seconds=quiet_failover_seconds,
+                                rth_tz=rth_tz,
+                            ),
+                            name="ws_quiet_watchdog",
+                        )
         except* asyncio.TimeoutError as eg:
             # Bounded-session shutdown (tests use run_for_seconds). Logged at
             # debug because the sentinel is expected; ``repr(eg)`` satisfies
@@ -250,11 +355,58 @@ async def run_consumer_once(
                 )
             except Exception:
                 logger.exception("run_consumer_once: final flush failed")
+        # Codex P1 (post-session evaluation): if the session ran to a clean
+        # close but never delivered a tick during a market session, raise
+        # XenonFeedUnavailable so run_consumer_forever blocks xenon for the
+        # retry window instead of immediately re-trying it. Gated by
+        # quiet_failover_seconds > 0 (the same flag that means "failover
+        # semantics apply to this session" — today only the xenon path
+        # sets it).
+        if (
+            quiet_failover_seconds > 0
+            and not tick_received.is_set()
+            and current_market_date(datetime.now(timezone.utc), rth_tz) is not None
+        ):
+            raise XenonFeedUnavailable(
+                "session ended without delivering ticks during market session"
+            )
     return final_flush_ok
 
 
+async def _xenon_probe_loop(settings: Settings) -> None:
+    """Block until xenon accepts a connection AND reports ib_connected.
+
+    Runs inside a massive fallback session (raced via ``asyncio.wait``).
+    The first probe waits a full retry interval — we just failed xenon,
+    don't hammer it. Completes only on success; probe errors loop forever.
+    """
+    while True:
+        await asyncio.sleep(settings.xenon_ws_retry_primary_seconds)
+        url = discover_xenon_ws_url(settings.xenon_ws_url, settings.xenon_ws_port_file)
+        try:
+            async with XenonWsClient(url, open_timeout=5.0):
+                pass  # handshake (status with ib_connected) IS the success test
+            logger.info("xenon ws probe succeeded at %s", url)
+            return
+        except (
+            XenonFeedUnavailable,
+            OSError,
+            asyncio.TimeoutError,
+            WebSocketException,
+        ) as exc:
+            logger.debug("xenon ws probe failed: %s", repr(exc))
+
+
+def _record_ws_error_best_effort(repo_factory, message: str) -> None:
+    try:
+        with repo_factory("writer") as err_repo:
+            err_repo.record_ws_error(message, datetime.now(timezone.utc))
+    except Exception:
+        logger.exception("ws consumer: failed to record error to DB (ignored)")
+
+
 async def run_consumer_forever(settings: Settings, repo_factory) -> None:
-    """Reconnect with exponential backoff.
+    """Reconnect with exponential backoff; xenon primary, massive fallback.
 
     ``repo_factory(role)`` is a sync context manager yielding a Repository
     on a fresh autocommit connection. We open two per session — ``"writer"``
@@ -271,10 +423,38 @@ async def run_consumer_forever(settings: Settings, repo_factory) -> None:
     them on its first flush. Without this, ticks held by ``_pending`` at
     a failed final flush would be lost when ``run_consumer_once``'s local
     buffer/writer went out of scope.
+
+    Provider selection: when ``xenon_ws_enabled``, each session attempts
+    xenon first unless a recent xenon failure (connect error, connect-time
+    IB outage, in-session quiet) blocked it for
+    ``xenon_ws_retry_primary_seconds``. Massive fallback sessions race
+    ``_xenon_probe_loop``; on xenon recovery the massive session is
+    cancelled — the shared TickBuffer carries merged-back pending ticks
+    across the switch, so loss is bounded to the same ~flush-interval
+    window as the documented SIGTERM path — and the next session is xenon.
     """
     buffer = TickBuffer()
     backoff = settings.massive_ws_reconnect_backoff_initial_seconds
+    massive_available = (
+        settings.massive_ws_enabled and settings.massive_api_key is not None
+    )
+    xenon_blocked_until = 0.0  # time.monotonic() deadline; 0 = try now
     while True:
+        use_xenon = settings.xenon_ws_enabled and (
+            time.monotonic() >= xenon_blocked_until
+        )
+        if not use_xenon and not massive_available:
+            # Xenon-only deployment inside its retry-block window: nothing
+            # else to run, so wait out the window instead of dead-exiting.
+            wait = max(xenon_blocked_until - time.monotonic(), backoff)
+            logger.warning(
+                "no WS feed available (xenon blocked, massive disabled); "
+                "retrying xenon in %.0fs",
+                wait,
+            )
+            await asyncio.sleep(wait)
+            xenon_blocked_until = 0.0
+            continue
         try:
             with (
                 repo_factory("writer") as writer_repo,
@@ -283,17 +463,79 @@ async def run_consumer_forever(settings: Settings, repo_factory) -> None:
                 desired = await asyncio.to_thread(
                     lambda: {w.ticker for w in reader_repo.list_active_watchlist()}
                 )
-                final_ok = await run_consumer_once(
-                    ws_url=settings.massive_ws_url,
-                    api_key=settings.massive_api_key.get_secret_value(),
-                    channel=settings.massive_ws_channel,
-                    tickers=desired,
-                    writer_repo=writer_repo,
-                    reader_repo=reader_repo,
-                    flush_interval_seconds=settings.massive_ws_flush_interval_seconds,
-                    subscription_poll_interval_seconds=settings.massive_ws_watchlist_poll_interval_seconds,
-                    buffer=buffer,
-                )
+                if use_xenon:
+                    url = discover_xenon_ws_url(
+                        settings.xenon_ws_url, settings.xenon_ws_port_file
+                    )
+                    final_ok = await run_consumer_once(
+                        ws_url=url,
+                        api_key="",
+                        channel=settings.massive_ws_channel,
+                        tickers=desired,
+                        writer_repo=writer_repo,
+                        reader_repo=reader_repo,
+                        flush_interval_seconds=settings.massive_ws_flush_interval_seconds,
+                        subscription_poll_interval_seconds=settings.massive_ws_watchlist_poll_interval_seconds,
+                        buffer=buffer,
+                        client=XenonWsClient(url),
+                        source_tag="xenon_ws",
+                        quiet_failover_seconds=settings.xenon_ws_quiet_failover_seconds,
+                        rth_tz=settings.rth_tz,
+                    )
+                else:
+                    session = asyncio.create_task(
+                        run_consumer_once(
+                            ws_url=settings.massive_ws_url,
+                            api_key=settings.massive_api_key.get_secret_value(),
+                            channel=settings.massive_ws_channel,
+                            tickers=desired,
+                            writer_repo=writer_repo,
+                            reader_repo=reader_repo,
+                            flush_interval_seconds=settings.massive_ws_flush_interval_seconds,
+                            subscription_poll_interval_seconds=settings.massive_ws_watchlist_poll_interval_seconds,
+                            buffer=buffer,
+                        ),
+                        name="massive_fallback_session",
+                    )
+                    if settings.xenon_ws_enabled:
+                        probe = asyncio.create_task(
+                            _xenon_probe_loop(settings), name="xenon_probe"
+                        )
+                        try:
+                            done, _pending = await asyncio.wait(
+                                {session, probe},
+                                return_when=asyncio.FIRST_COMPLETED,
+                            )
+                        except asyncio.CancelledError:
+                            # Outer cancellation (SIGTERM): unwind both so the
+                            # session's bounded final flush still fires.
+                            session.cancel()
+                            probe.cancel()
+                            with contextlib.suppress(BaseException):
+                                await session
+                            with contextlib.suppress(BaseException):
+                                await probe
+                            raise
+                        if session in done:
+                            probe.cancel()
+                            with contextlib.suppress(asyncio.CancelledError):
+                                await probe
+                            final_ok = session.result()  # re-raises session errors
+                        else:
+                            # Xenon recovered: unwind the massive session.
+                            # Cancellation here is the documented SIGTERM-shaped
+                            # path — pending ticks merge back into the shared
+                            # buffer; loss bounded to ~1 flush interval.
+                            session.cancel()
+                            with contextlib.suppress(asyncio.CancelledError, Exception):
+                                await session
+                            xenon_blocked_until = 0.0
+                            logger.info(
+                                "xenon primary recovered; leaving massive fallback"
+                            )
+                            continue
+                    else:
+                        final_ok = await session
             # Only reset backoff when the final flush actually committed
             # (tribunal adversarial-4). A clean WS close with a failed DB
             # write must keep backing off — otherwise persistent DB write
@@ -308,14 +550,51 @@ async def run_consumer_forever(settings: Settings, repo_factory) -> None:
                     settings.massive_ws_reconnect_backoff_max_seconds,
                 )
             continue
+        except (
+            XenonFeedUnavailable,
+            OSError,
+            asyncio.TimeoutError,
+            WebSocketException,
+        ) as exc:
+            if use_xenon:
+                # Primary-feed failure: block xenon for the retry window and
+                # go straight to massive — no backoff growth, the fallback
+                # deserves an immediate clean attempt.
+                xenon_blocked_until = (
+                    time.monotonic() + settings.xenon_ws_retry_primary_seconds
+                )
+                logger.warning(
+                    "xenon ws unavailable (%s); falling back to massive for %.0fs",
+                    repr(exc),
+                    settings.xenon_ws_retry_primary_seconds,
+                )
+                continue
+            logger.exception(
+                "ws consumer crashed: %s; backoff=%.1fs", repr(exc), backoff
+            )
+            _record_ws_error_best_effort(repo_factory, repr(exc))
         except psycopg.OperationalError:
             # A8: DB unreachable when opening conns (before TaskGroup).
             # Skip the secondary record-error attempt — it would just fail.
             logger.exception("ws consumer: DB unreachable; backoff=%.1fs", backoff)
         except BaseExceptionGroup as eg:
-            # TaskGroup wraps task crashes in BaseExceptionGroup. Pull out
-            # OperationalErrors (A8) so a DB outage mid-session doesn't trigger
-            # the secondary error-record path.
+            # TaskGroup wraps task crashes in BaseExceptionGroup. A pure
+            # _FeedQuiet group on a xenon session is a primary-feed failure,
+            # not a crash — block xenon and go straight to massive (the
+            # session's final flush already ran, so no ticks were lost).
+            quiet, rest = eg.split(_FeedQuiet)
+            if quiet is not None and rest is None and use_xenon:
+                xenon_blocked_until = (
+                    time.monotonic() + settings.xenon_ws_retry_primary_seconds
+                )
+                logger.warning(
+                    "xenon ws went quiet (%s); falling back to massive for %.0fs",
+                    repr(quiet),
+                    settings.xenon_ws_retry_primary_seconds,
+                )
+                continue
+            # Pull out OperationalErrors (A8) so a DB outage mid-session
+            # doesn't trigger the secondary error-record path.
             op_errs, _rest = eg.split(psycopg.OperationalError)
             if op_errs is not None:
                 logger.exception(
@@ -325,22 +604,12 @@ async def run_consumer_forever(settings: Settings, repo_factory) -> None:
                 logger.exception(
                     "ws consumer crashed: %s; backoff=%.1fs", repr(eg), backoff
                 )
-                try:
-                    with repo_factory("writer") as err_repo:
-                        err_repo.record_ws_error(repr(eg), datetime.now(timezone.utc))
-                except Exception:
-                    logger.exception(
-                        "ws consumer: failed to record error to DB (ignored)"
-                    )
+                _record_ws_error_best_effort(repo_factory, repr(eg))
         except Exception as exc:
             logger.exception(
                 "ws consumer crashed: %s; backoff=%.1fs", repr(exc), backoff
             )
-            try:
-                with repo_factory("writer") as err_repo:
-                    err_repo.record_ws_error(repr(exc), datetime.now(timezone.utc))
-            except Exception:
-                logger.exception("ws consumer: failed to record error to DB (ignored)")
+            _record_ws_error_best_effort(repo_factory, repr(exc))
         await asyncio.sleep(backoff)
         backoff = min(backoff * 2.0, settings.massive_ws_reconnect_backoff_max_seconds)
 
@@ -350,12 +619,19 @@ def main() -> int:
     from contextlib import contextmanager
 
     settings = Settings.from_env()
-    if not settings.massive_ws_enabled:
-        logger.warning("MASSIVE_WS_ENABLED is false; exiting")
+    if not (settings.massive_ws_enabled or settings.xenon_ws_enabled):
+        logger.warning(
+            "neither MASSIVE_WS_ENABLED nor XENON_WS_ENABLED is true; exiting"
+        )
         return 0
-    if settings.massive_api_key is None:
-        logger.error("MASSIVE_API_KEY is not set; cannot start WS consumer")
-        return 1
+    if settings.massive_ws_enabled and settings.massive_api_key is None:
+        if settings.xenon_ws_enabled:
+            logger.warning(
+                "MASSIVE_API_KEY missing — running xenon-only (no massive fallback)"
+            )
+        else:
+            logger.error("MASSIVE_API_KEY is not set; cannot start WS consumer")
+            return 1
 
     @contextmanager
     def _repo_factory(role: str):

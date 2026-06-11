@@ -29,6 +29,7 @@ def test_parse_ws_message_aggregate_per_second():
         price=Decimal("189.42"),
         quoted_at=datetime(2026, 5, 21, 16, 20, tzinfo=timezone.utc),
         channel="A",
+        source="massive.com_ws",
     )
 
 

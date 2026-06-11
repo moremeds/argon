@@ -27,6 +27,12 @@
         <string>__USER__</string>
         <key>MASSIVE_WS_ENABLED</key>
         <string>true</string>
+        <!-- Xenon IB realtime WS is the primary spot feed when enabled;
+             massive WS becomes the automatic fallback. The default
+             ws://127.0.0.1:8765 is correct on the mini where xenon runs
+             alongside this consumer. -->
+        <key>XENON_WS_ENABLED</key>
+        <string>true</string>
     </dict>
 
     <key>RunAtLoad</key>

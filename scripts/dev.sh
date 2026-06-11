@@ -62,7 +62,11 @@ COUNTS="UW_SCAN_UW_WORKER_COUNT=2 UW_SCAN_MASSIVE_WORKER_COUNT=2 UW_SCAN_AI_WORK
 # Single source of truth for WS-pipeline mode. Exported to API + every worker
 # so scheduler closures (full_scan / rescan) see the same value (R6 — without
 # this the UW workers would still write UW-derived spot over the WS values).
-WS="MASSIVE_WS_ENABLED=true"
+# XENON_WS_ENABLED makes xenon's IB realtime WS the primary spot feed with
+# massive as automatic fallback; if no xenon server is reachable the consumer
+# fails over within seconds, so defaulting it on is harmless. Point at a
+# remote xenon (e.g. the mini) via XENON_WS_URL in .env.local.
+WS="MASSIVE_WS_ENABLED=true XENON_WS_ENABLED=${XENON_WS_ENABLED:-true}"
 
 exec npx --prefix web concurrently \
   -n next,api,uw-0,uw-1,massive-0,massive-1,ai-codex-0,ai-codex-1,ai-claude-0,ai-claude-1,ai-deepseek-0,ai-deepseek-1,massive-ws \

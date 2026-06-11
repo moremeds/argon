@@ -16473,6 +16473,68 @@
         "title": "WatchlistResponse",
         "type": "object"
       },
+      "WatchlistSpot": {
+        "description": "Lightweight live-spot row for the browser poller \u2014 the WS consumer\nwrites spot every ~1s; this projection avoids the full dashboard join.",
+        "properties": {
+          "spot": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Spot"
+          },
+          "spot_quoted_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Spot Quoted At"
+          },
+          "spot_source": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Spot Source"
+          },
+          "ticker": {
+            "title": "Ticker",
+            "type": "string"
+          }
+        },
+        "required": [
+          "ticker"
+        ],
+        "title": "WatchlistSpot",
+        "type": "object"
+      },
+      "WatchlistSpotsResponse": {
+        "properties": {
+          "spots": {
+            "items": {
+              "$ref": "#/components/schemas/WatchlistSpot"
+            },
+            "title": "Spots",
+            "type": "array"
+          }
+        },
+        "title": "WatchlistSpotsResponse",
+        "type": "object"
+      },
       "WorkerHealth": {
         "properties": {
           "heartbeat_name": {
@@ -16530,8 +16592,19 @@
         "type": "object"
       },
       "WsConsumerHealth": {
-        "description": "Massive.com WS consumer status, surfaced for the HealthPanel.\n\n``healthy`` is true when:\n  * the market is closed (no ticks are expected), OR\n  * ``last_flush_at`` is within ``massive_ws_heartbeat_stale_after_seconds``.\n\n``reason`` carries the short label the UI displays under the row.",
+        "description": "Spot WS consumer status (xenon primary / massive fallback), surfaced\nfor the HealthPanel.\n\n``healthy`` is true when:\n  * the market is closed (no ticks are expected), OR\n  * ``last_flush_at`` is within ``massive_ws_heartbeat_stale_after_seconds``.\n\n``active_source`` tells which feed the consumer is connected to \u2014\n``\"xenon_ws\"`` (primary) or ``\"massive.com_ws\"`` (fallback); ``None``\nbefore the first connection. ``reason`` carries the short label the UI\ndisplays under the row.",
         "properties": {
+          "active_source": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Active Source"
+          },
           "connection_started_at": {
             "anyOf": [
               {
@@ -19201,6 +19274,28 @@
         "summary": "Enqueue Rescan All",
         "tags": [
           "jobs"
+        ]
+      }
+    },
+    "/api/watchlist/spots": {
+      "get": {
+        "description": "Live spot snapshot for the dashboard's LiveSpotsProvider poller.\n\nThe spot WS consumer (xenon primary / massive fallback) rewrites\nwatchlist_card.spot every ~1s; this projection lets the browser tick\nprices without refetching the full watchlist payload (same pattern as\n/watchlist/queue for QueueProgress).",
+        "operationId": "get_watchlist_spots_api_watchlist_spots_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WatchlistSpotsResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Get Watchlist Spots",
+        "tags": [
+          "watchlist"
         ]
       }
     },

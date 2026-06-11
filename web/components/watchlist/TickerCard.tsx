@@ -18,6 +18,7 @@ import {
 import { bucketFreshness } from "@/lib/freshness";
 import { RescanButton } from "@/components/shared/RescanButton";
 import { PinButton } from "./PinButton";
+import { useLiveSpot } from "./LiveSpotsProvider";
 
 type Card = components["schemas"]["WatchlistCard"];
 type Props = { card: Card; sparkline?: number[] };
@@ -30,6 +31,12 @@ const linkReset = {
 export function TickerCard({ card, sparkline = [] }: Props) {
   const [showNotReady, setShowNotReady] = useState(false);
   const [closes, setCloses] = useState<number[]>(sparkline);
+  // Live spot from the grid-wide poller (LiveSpotsProvider). Falls back to
+  // the server-rendered card values when no provider is mounted or the
+  // first poll hasn't landed yet.
+  const live = useLiveSpot(card.ticker);
+  const spot = live?.spot ?? card.spot;
+  const spotQuotedAt = live?.spot_quoted_at ?? card.spot_quoted_at;
 
   // Sparkline OHLC is fetched client-side (was server-side as part of the
   // dashboard RSC, paying ~800 ms per page load). Skips when (a) the prop
@@ -99,9 +106,7 @@ export function TickerCard({ card, sparkline = [] }: Props) {
               fontWeight: 500,
             }}
           >
-            {toNum(card.spot) != null
-              ? `$${fmtDecimal(toNum(card.spot), 2)}`
-              : "—"}
+            {toNum(spot) != null ? `$${fmtDecimal(toNum(spot), 2)}` : "—"}
           </span>
         </div>
         <div style={{ textAlign: "right" }}>
@@ -215,7 +220,7 @@ export function TickerCard({ card, sparkline = [] }: Props) {
           }}
           suppressHydrationWarning
         >
-          <div>spot {fmtDateTimeWithZone(card.spot_quoted_at)}</div>
+          <div>spot {fmtDateTimeWithZone(spotQuotedAt)}</div>
           <div>
             analytics{" "}
             {card.scanned_at

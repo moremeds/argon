@@ -34,7 +34,12 @@ class WsTick:
     ticker: str
     price: Decimal
     quoted_at: datetime
-    channel: str  # "A" | "AM" | "T"
+    channel: str  # "A" | "AM" | "T" (massive) | "X" (xenon)
+    # Feed identity travels with the tick so the persistence writer can tag
+    # each row correctly even when the shared TickBuffer carries ticks across
+    # a feed switch (tribunal Codex P2: stranded massive ticks were getting
+    # re-labeled as xenon_ws — and vice versa — by the next session's writer).
+    source: str = ""
 
 
 def parse_ws_message(raw: str | bytes) -> list[WsTick]:
@@ -80,6 +85,7 @@ def parse_ws_message(raw: str | bytes) -> list[WsTick]:
                         int(epoch_ms) / 1000, tz=timezone.utc
                     ),
                     channel=str(ev),
+                    source="massive.com_ws",
                 )
             )
         except (ValueError, TypeError, KeyError, decimal.InvalidOperation) as exc:

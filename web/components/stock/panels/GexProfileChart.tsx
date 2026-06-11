@@ -1,9 +1,7 @@
+"use client";
 import type { components } from "@/lib/types";
-import {
-  fmtSignedCompactMoney,
-  fmtSignedPct,
-  toNum,
-} from "@/lib/formatters";
+import { fmtSignedCompactMoney, fmtSignedPct, toNum } from "@/lib/formatters";
+import { useLiveSpot } from "@/components/watchlist/LiveSpotsProvider";
 
 type Report = components["schemas"]["SingleStockReport"];
 
@@ -25,7 +23,10 @@ const headingStyle: React.CSSProperties = {
 
 export function GexProfileChart({ report }: { report: Report }) {
   const curve = report.strike_gex_curve;
-  const spot = toNum(report.market_structure.spot);
+  // Live spot anchors the whole profile (SPOT line, % ladder, spot-row
+  // highlight) so it ticks with the WS feed; scan-time spot is the fallback.
+  const live = toNum(useLiveSpot(report.ticker)?.spot);
+  const spot = live ?? toNum(report.market_structure.spot);
   const lv = report.market_structure_levels;
   const callWall = lv?.call_wall ? toNum(lv.call_wall.strike) : null;
   const putWall = lv?.put_wall ? toNum(lv.put_wall.strike) : null;
