@@ -92,6 +92,7 @@ Worker roles: `ai-codex`, `ai-claude`, and `ai-deepseek` (provider-pinned, recom
 - **Persist analytical results to Postgres** — vol/scan/regime outputs land in tables, never in-memory-only
 - **No naked shorts** in any strategy/trade-plan code — defined-risk only
 - **Data source priority**: IB → UW → FMP → massive (OHLC). Yahoo is banned
+- **Massive WS bypasses system proxies** — `MassiveWsClient` passes `proxy=None` to `websockets.connect`; the market-data stream must never inherit macOS SOCKS/HTTP proxy settings (`python-socks` is not installed, so an inherited proxy kills every connect). The configured feed is ~15-min delayed, so WS-consumer health keys on `last_flush_at` (is the consumer alive?), not tick event time
 - **No secrets to local Codex subprocesses** — do not pass UW/FMP/Massive keys, DB credentials, or unrelated app secrets to `codex exec`
 - **Never commit without an explicit user request.** Draft first, wait
 - **Big projects use milestone commits** — when the user has explicitly requested commits for a large project/task, commit each closed milestone after its relevant verification before continuing

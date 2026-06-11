@@ -70,7 +70,11 @@ class _WsConsumerStateMixin:
             cur.execute(
                 f"""
                 UPDATE {self._schema}.ws_consumer_state
-                SET connection_started_at = %s, active_source = %s, updated_at = NOW()
+                SET connection_started_at = %s,
+                    active_source = %s,
+                    last_error = NULL,
+                    last_error_at = NULL,
+                    updated_at = NOW()
                 WHERE id = 1
                 """,
                 (started_at, source),

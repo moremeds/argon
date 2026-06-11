@@ -101,11 +101,14 @@ async def _ws_reader(
     buffer: TickBuffer,
     writer: WsDbWriter,
     last_rx_monotonic: list[float],
+    tick_received: asyncio.Event,
 ) -> None:
     async for tick in client.ticks():
         last_rx_monotonic[0] = time.monotonic()
         writer.note_received(1)  # A12: raw feed pressure
         buffer.add(tick)
+        if not tick_received.is_set():
+            tick_received.set()  # Codex P1: track first-tick-of-session.
     # Connection closed by the server (or remote end). Signal siblings to stop.
     raise _ReaderDone("ws connection closed cleanly")
 
@@ -244,6 +247,11 @@ async def run_consumer_once(
     writer = WsDbWriter(repo=writer_repo, buffer=buffer, source_tag=source_tag)
     current_subs: set[str] = set()
     last_rx_monotonic = [time.monotonic()]
+    # Codex P1: a xenon session that connects, completes handshake, then
+    # closes without delivering any ticks must be treated as a feed failure
+    # (otherwise the loop retries xenon immediately and a flapping server
+    # freezes spots indefinitely). Tracked here, evaluated post-session.
+    tick_received = asyncio.Event()
     final_flush_ok = False
     if client is None:
         client = MassiveWsClient(ws_url, api_key)
@@ -268,7 +276,13 @@ async def run_consumer_once(
             async with timeout_ctx:
                 async with asyncio.TaskGroup() as tg:
                     tg.create_task(
-                        _ws_reader(client, buffer, writer, last_rx_monotonic),
+                        _ws_reader(
+                            client,
+                            buffer,
+                            writer,
+                            last_rx_monotonic,
+                            tick_received,
+                        ),
                         name="ws_reader",
                     )
                     tg.create_task(
@@ -341,6 +355,21 @@ async def run_consumer_once(
                 )
             except Exception:
                 logger.exception("run_consumer_once: final flush failed")
+        # Codex P1 (post-session evaluation): if the session ran to a clean
+        # close but never delivered a tick during a market session, raise
+        # XenonFeedUnavailable so run_consumer_forever blocks xenon for the
+        # retry window instead of immediately re-trying it. Gated by
+        # quiet_failover_seconds > 0 (the same flag that means "failover
+        # semantics apply to this session" — today only the xenon path
+        # sets it).
+        if (
+            quiet_failover_seconds > 0
+            and not tick_received.is_set()
+            and current_market_date(datetime.now(timezone.utc), rth_tz) is not None
+        ):
+            raise XenonFeedUnavailable(
+                "session ended without delivering ticks during market session"
+            )
     return final_flush_ok
 
 

@@ -16592,7 +16592,7 @@
         "type": "object"
       },
       "WsConsumerHealth": {
-        "description": "Spot WS consumer status (xenon primary / massive fallback), surfaced\nfor the HealthPanel.\n\n``healthy`` is true when:\n  * the market is closed (no ticks are expected), OR\n  * ``last_tick_at`` is within ``massive_ws_heartbeat_stale_after_seconds``.\n\n``active_source`` tells which feed the consumer is connected to \u2014\n``\"xenon_ws\"`` (primary) or ``\"massive.com_ws\"`` (fallback); ``None``\nbefore the first connection. ``reason`` carries the short label the UI\ndisplays under the row.",
+        "description": "Spot WS consumer status (xenon primary / massive fallback), surfaced\nfor the HealthPanel.\n\n``healthy`` is true when:\n  * the market is closed (no ticks are expected), OR\n  * ``last_flush_at`` is within ``massive_ws_heartbeat_stale_after_seconds``.\n\n``active_source`` tells which feed the consumer is connected to \u2014\n``\"xenon_ws\"`` (primary) or ``\"massive.com_ws\"`` (fallback); ``None``\nbefore the first connection. ``reason`` carries the short label the UI\ndisplays under the row.",
         "properties": {
           "active_source": {
             "anyOf": [

@@ -35,6 +35,24 @@ describe("svgChart helpers", () => {
     expect(ticks[ticks.length - 1]).toBeGreaterThanOrEqual(100);
   });
 
+  it("niceTicks stays near the requested count (regression: 35-label price axis)", () => {
+    // SPX intraday price band — the old err-ladder inverted its comparisons,
+    // fell through to a step of 10 and produced ~35 overlapping labels.
+    const price = niceTicks(7260, 7600, 4);
+    expect(price.length).toBeGreaterThanOrEqual(3);
+    expect(price.length).toBeLessThanOrEqual(8);
+
+    // Net-GEX-shaped domain should not collapse to 2 ticks either.
+    const netGex = niceTicks(-120_000, 110_000, 4);
+    expect(netGex.length).toBeGreaterThanOrEqual(3);
+    expect(netGex.length).toBeLessThanOrEqual(8);
+
+    // Small decimal domains keep working.
+    const small = niceTicks(0.1, 0.9, 4);
+    expect(small.length).toBeGreaterThanOrEqual(3);
+    expect(small.length).toBeLessThanOrEqual(8);
+  });
+
   describe("finiteDomain — NaN-safety helper", () => {
     it("returns min/max of finite values only", () => {
       const d = finiteDomain([1, NaN, 2, null, 3, undefined, 5] as number[]);

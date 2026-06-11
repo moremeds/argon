@@ -36,15 +36,41 @@ class _WatchlistMixin:
     ) -> list[tuple[str, Decimal | None, datetime | None, str | None]]:
         """Lightweight (ticker, spot, spot_quoted_at, spot_source) projection
         for the live-spot browser poller — the WS consumer rewrites these
-        columns every ~1s, and the full dashboard join is too heavy to poll."""
+        columns every ~1s, and the full dashboard join is too heavy to poll.
+
+        Codex P2 fix: drives from watchlist (LEFT JOIN watchlist_card +
+        LEFT JOIN intraday_quote) so newly-added unscanned tickers — which
+        have no watchlist_card row yet but DO get intraday_quote rows from
+        the WS writer — still tick on the dashboard. Matches the same
+        fresher-of-quote logic used by list_watchlist_cards."""
         with self._conn.cursor() as cur:
             cur.execute(
                 f"""
-                SELECT c.ticker, c.spot, c.spot_quoted_at, c.spot_source
-                FROM {self._schema}.watchlist_card c
-                JOIN {self._schema}.watchlist w ON w.ticker = c.ticker
+                SELECT
+                  w.ticker,
+                  CASE
+                    WHEN q.price IS NOT NULL
+                      AND (c.spot_quoted_at IS NULL OR q.quoted_at >= c.spot_quoted_at)
+                      THEN q.price
+                    ELSE c.spot
+                  END AS spot,
+                  CASE
+                    WHEN q.price IS NOT NULL
+                      AND (c.spot_quoted_at IS NULL OR q.quoted_at >= c.spot_quoted_at)
+                      THEN q.quoted_at
+                    ELSE c.spot_quoted_at
+                  END AS spot_quoted_at,
+                  CASE
+                    WHEN q.price IS NOT NULL
+                      AND (c.spot_quoted_at IS NULL OR q.quoted_at >= c.spot_quoted_at)
+                      THEN q.source
+                    ELSE c.spot_source
+                  END AS spot_source
+                FROM {self._schema}.watchlist w
+                LEFT JOIN {self._schema}.watchlist_card c ON w.ticker = c.ticker
+                LEFT JOIN {self._schema}.intraday_quote q ON w.ticker = q.ticker
                 WHERE w.removed_at IS NULL
-                ORDER BY c.ticker
+                ORDER BY w.ticker
                 """
             )
             return list(cur.fetchall())

@@ -6524,7 +6524,7 @@ export interface components {
          *
          *     ``healthy`` is true when:
          *       * the market is closed (no ticks are expected), OR
-         *       * ``last_tick_at`` is within ``massive_ws_heartbeat_stale_after_seconds``.
+         *       * ``last_flush_at`` is within ``massive_ws_heartbeat_stale_after_seconds``.
          *
          *     ``active_source`` tells which feed the consumer is connected to —
          *     ``"xenon_ws"`` (primary) or ``"massive.com_ws"`` (fallback); ``None``

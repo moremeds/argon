@@ -12,6 +12,7 @@ from decimal import Decimal
 
 import pytest
 import websockets
+
 from uw_scan.sources.xenon_ws import (
     XENON_INDEX_SYMBOLS,
     XenonFeedUnavailable,
@@ -119,6 +120,24 @@ def test_split_subscription_classifies_indexes() -> None:
         {"symbol": "VIX", "exchange": "CBOE"},
     ]
     assert "COR1M" in XENON_INDEX_SYMBOLS
+
+
+def test_discover_url_brackets_ipv6_host(tmp_path) -> None:
+    """Tribunal Codex P2: ``urlsplit('ws://[::1]:8765').hostname`` returns
+    ``::1`` (unbracketed); a naive netloc rebuild produced ``::1:9001``
+    which is an invalid URL. Verify the rebuilt URL keeps the brackets."""
+    pf = tmp_path / "xenon.json"
+    pf.write_text(json.dumps({"port": 9001, "pid": 1}))
+    assert discover_xenon_ws_url("ws://[::1]:8765", str(pf)) == "ws://[::1]:9001"
+
+
+def test_xenon_ticks_carry_source_tag() -> None:
+    """Tribunal Codex P2: every parsed xenon tick must declare
+    ``source='xenon_ws'`` so the persistence writer doesn't relabel ticks
+    stranded in a shared TickBuffer across feed switches."""
+    frame = parse_xenon_message(BATCH)
+    assert frame.ticks  # sanity: parser still produced ticks
+    assert all(t.source == "xenon_ws" for t in frame.ticks)
 
 
 def test_discover_url_prefers_port_file_for_localhost(tmp_path) -> None:

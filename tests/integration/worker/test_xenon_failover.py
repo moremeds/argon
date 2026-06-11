@@ -19,7 +19,10 @@ import pytest
 import websockets
 
 from uw_scan.config import Settings
-from uw_scan.worker.massive_ws_consumer import run_consumer_forever
+from uw_scan.worker.massive_ws_consumer import (
+    _xenon_probe_loop,
+    run_consumer_forever,
+)
 
 STATUS_OK = json.dumps({"type": "status", "ib_connected": True, "subscriptions": []})
 
@@ -189,3 +192,76 @@ async def test_massive_session_switches_back_when_xenon_recovers(
     assert q is not None and q.price == Decimal("444.0")
     state = repo.get_ws_consumer_state()
     assert state is not None and state.active_source == "xenon_ws"
+
+
+@pytest.mark.asyncio
+async def test_xenon_probe_loop_returns_on_handshake_success():
+    """Direct test of _xenon_probe_loop: it must sleep first (we just
+    failed xenon — don't hammer), then handshake-test, and return on
+    success. Failure-loop semantics are covered by the recovery test
+    above; here we pin the success path with the smallest possible
+    retry interval."""
+
+    async def handler(ws):
+        await ws.send(STATUS_OK)
+        # Hold open briefly so the probe's `async with XenonWsClient` can
+        # complete __aenter__ + status read + __aexit__.
+        await asyncio.sleep(0.5)
+
+    async with websockets.serve(handler, "127.0.0.1", 0) as server:
+        port = server.sockets[0].getsockname()[1]
+        settings = Settings.from_env().model_copy(
+            update={
+                "xenon_ws_enabled": True,
+                "xenon_ws_url": f"ws://127.0.0.1:{port}",
+                "xenon_ws_port_file": "",
+                # Tiny retry interval — verify "sleep first, then probe"
+                # without slowing the test.
+                "xenon_ws_retry_primary_seconds": 0.2,
+            }
+        )
+        start = asyncio.get_event_loop().time()
+        await asyncio.wait_for(_xenon_probe_loop(settings), timeout=3.0)
+        elapsed = asyncio.get_event_loop().time() - start
+
+    # The loop must wait at least one retry interval before probing
+    # (matches the spec: don't hammer xenon after a recent failure).
+    assert elapsed >= 0.2
+
+
+@pytest.mark.asyncio
+async def test_xenon_probe_loop_keeps_retrying_after_handshake_failure():
+    """_xenon_probe_loop must NOT exit on handshake failure — it loops
+    until success. ``ib_connected: false`` at connect raises
+    XenonFeedUnavailable inside the probe; the probe must log + retry."""
+    attempts = [0]
+
+    async def handler(ws):
+        attempts[0] += 1
+        # First two attempts: ib_connected=false. Third: ib_connected=true.
+        ib_connected = attempts[0] >= 3
+        await ws.send(
+            json.dumps(
+                {
+                    "type": "status",
+                    "ib_connected": ib_connected,
+                    "subscriptions": [],
+                }
+            )
+        )
+        await asyncio.sleep(0.5)
+
+    async with websockets.serve(handler, "127.0.0.1", 0) as server:
+        port = server.sockets[0].getsockname()[1]
+        settings = Settings.from_env().model_copy(
+            update={
+                "xenon_ws_enabled": True,
+                "xenon_ws_url": f"ws://127.0.0.1:{port}",
+                "xenon_ws_port_file": "",
+                "xenon_ws_retry_primary_seconds": 0.1,
+            }
+        )
+        await asyncio.wait_for(_xenon_probe_loop(settings), timeout=5.0)
+
+    # First 2 attempts must have failed (ib_connected=false), 3rd succeeded.
+    assert attempts[0] >= 3

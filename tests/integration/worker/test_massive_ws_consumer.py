@@ -139,6 +139,12 @@ async def test_consumer_backs_off_then_recovers(seeded_db_with_cards):
             update={
                 "massive_api_key": _SecretStrTestKey(),
                 "massive_ws_enabled": True,
+                # Force-disable xenon so the test exercises only the massive
+                # reconnect/backoff path. The worktree's .env.local enables
+                # xenon by default; without this override Settings.from_env()
+                # would have the consumer connect to the real mini xenon
+                # instead of the fake massive server bound on 127.0.0.1.
+                "xenon_ws_enabled": False,
                 "massive_ws_url": f"ws://127.0.0.1:{port}",
                 "massive_ws_channel": "A",
                 "massive_ws_flush_interval_seconds": 0.05,

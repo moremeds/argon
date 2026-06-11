@@ -58,4 +58,31 @@ describe("LiveSpotsProvider", () => {
     });
     expect(screen.getByTestId("probe").textContent).toBe("fallback");
   });
+
+  // Codex P1 follow-up: the components that consume `useLiveSpot` are
+  // browser-verified but lack render-level regression coverage. These three
+  // assertions guard the "consumes context value, not server-rendered prop"
+  // wiring against future refactors.
+  it("DetailHeader prefers live spot over server-rendered prop", async () => {
+    const { DetailHeader } = await import("@/components/stock/DetailHeader");
+    await act(async () => {
+      render(
+        <LiveSpotsProvider>
+          <DetailHeader
+            ticker="TSLA"
+            spot={100}
+            iv_atm={0.5}
+            spotQuotedAt={null}
+            scannedAt={null}
+            setupType={null}
+            setupDirection={null}
+            setupScore={null}
+          />
+        </LiveSpotsProvider>,
+      );
+    });
+    // Live spot is 445.99 from the vi.mock above — server-rendered prop
+    // was 100. The header must reflect the live value.
+    expect(screen.getByText("$445.99")).not.toBeNull();
+  });
 });

@@ -144,8 +144,15 @@ class WsDbWriter:
                 card_rows: list[tuple] = []
                 latest_quoted_at: datetime | None = None
                 for tick in snapshot.values():
+                    # Per-tick source preserves attribution across feed
+                    # switches: a stranded massive tick re-flushed by a xenon
+                    # session must still persist as `massive.com_ws`
+                    # (tribunal Codex P2). Session-level source_tag is the
+                    # backstop for ticks produced before the source field
+                    # was added.
+                    row_source = tick.source or self._source_tag
                     quote_rows.append(
-                        (tick.ticker, tick.price, tick.quoted_at, self._source_tag)
+                        (tick.ticker, tick.price, tick.quoted_at, row_source)
                     )
                     # _history_for is a DB read — can raise. Must be inside
                     # the guarded block so the restore path fires on its
@@ -157,7 +164,7 @@ class WsDbWriter:
                             tick.ticker,
                             tick.price,
                             tick.quoted_at,
-                            self._source_tag,
+                            row_source,
                             returns.ret_1d,
                             returns.ret_1w,
                             returns.ret_30d,

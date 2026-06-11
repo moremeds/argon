@@ -13,7 +13,7 @@ from decimal import Decimal
 import pytest
 import websockets
 
-from uw_scan.sources.xenon_ws import XenonWsClient
+from uw_scan.sources.xenon_ws import XenonFeedUnavailable, XenonWsClient
 from uw_scan.worker.massive_ws_consumer import _FeedQuiet, run_consumer_once
 
 STATUS_OK = json.dumps({"type": "status", "ib_connected": True, "subscriptions": []})
@@ -113,6 +113,50 @@ async def test_quiet_watchdog_raises_feed_quiet(seeded_db_with_cards, monkeypatc
                 quiet_failover_seconds=0.5,
             )
         assert excinfo.group_contains(_FeedQuiet)
+
+
+@pytest.mark.asyncio
+async def test_zero_tick_session_raises_xenon_feed_unavailable(
+    seeded_db_with_cards, monkeypatch
+):
+    """Tribunal Codex P1: a xenon server that completes the handshake but
+    closes before delivering any ticks must NOT be reported as a successful
+    session — run_consumer_forever would otherwise immediately retry xenon
+    and a flapping server would freeze spots indefinitely. The post-session
+    gate raises XenonFeedUnavailable so the forever-loop blocks xenon for
+    the retry window."""
+    import uw_scan.worker.massive_ws_consumer as consumer_mod
+
+    monkeypatch.setattr(consumer_mod, "current_market_date", lambda now, tz: now.date())
+
+    async def handler(ws):
+        await ws.send(STATUS_OK)
+        # Read subscribe, drop the connection without ever pushing a batch.
+        try:
+            await asyncio.wait_for(ws.recv(), timeout=0.4)
+        except asyncio.TimeoutError:
+            pass
+        await ws.close()
+
+    async with websockets.serve(handler, "127.0.0.1", 0) as server:
+        port = server.sockets[0].getsockname()[1]
+        url = f"ws://127.0.0.1:{port}"
+        repo = seeded_db_with_cards
+        repo._conn.autocommit = True
+        with pytest.raises(XenonFeedUnavailable):
+            await run_consumer_once(
+                ws_url=url,
+                api_key="",
+                channel="A",
+                tickers={"TSLA"},
+                writer_repo=repo,
+                reader_repo=repo,
+                flush_interval_seconds=0.1,
+                run_for_seconds=5.0,
+                client=XenonWsClient(url),
+                source_tag="xenon_ws",
+                quiet_failover_seconds=120.0,
+            )
 
 
 @pytest.mark.asyncio

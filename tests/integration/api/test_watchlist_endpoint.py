@@ -79,8 +79,9 @@ def test_delete_watchlist_soft_deletes(client, seeded_db_with_cards):
 
 def test_get_watchlist_spots_returns_live_projection(client, seeded_db_with_cards):
     """GET /api/watchlist/spots returns the lightweight live-spot rows the
-    LiveSpotsProvider poller consumes — only carded tickers, with spot,
-    quoted-at, and the feed tag (xenon_ws | massive.com_ws)."""
+    LiveSpotsProvider poller consumes — every active ticker (carded or
+    not) appears, with spot, quoted-at, and the feed tag
+    (xenon_ws | massive.com_ws)."""
     r = client.get("/api/watchlist/spots")
     assert r.status_code == 200
     spots = r.json()["spots"]
@@ -90,3 +91,24 @@ def test_get_watchlist_spots_returns_live_projection(client, seeded_db_with_card
 
     assert Decimal(tsla["spot"]) == Decimal("445.12")
     assert set(tsla.keys()) == {"ticker", "spot", "spot_quoted_at", "spot_source"}
+
+
+def test_get_watchlist_spots_includes_unscanned_tickers(client, seeded_db_empty_cards):
+    """Tribunal Codex P2: newly-added watchlist tickers (no watchlist_card
+    row yet) must still appear in /watchlist/spots so the LiveSpotsProvider
+    can tick them as soon as the WS writer creates an intraday_quote row.
+    The pre-fix inner-join query silently dropped them."""
+    r = client.get("/api/watchlist/spots")
+    assert r.status_code == 200
+    spots = r.json()["spots"]
+    # seeded_db_empty_cards inserts watchlist rows but no watchlist_card
+    # rows — pre-fix this returned []; post-fix it returns one row per
+    # active ticker, with all fields null until the WS writer populates
+    # intraday_quote / a full_scan populates watchlist_card.
+    assert len(spots) >= 1
+    tickers = {s["ticker"] for s in spots}
+    assert "TSLA" in tickers
+    placeholder = next(s for s in spots if s["ticker"] == "TSLA")
+    assert placeholder["spot"] is None
+    assert placeholder["spot_quoted_at"] is None
+    assert placeholder["spot_source"] is None

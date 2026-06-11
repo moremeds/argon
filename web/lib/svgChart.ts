@@ -68,21 +68,20 @@ export function pathFromNullablePoints(
 
 export function niceTicks(min: number, max: number, count = 5): number[] {
   if (!isFinite(min) || !isFinite(max) || min === max) return [min];
-  const span = max - min;
-  const step = Math.pow(10, Math.floor(Math.log10(span / count)));
-  const err = (count * step) / span;
-  const adjusted =
-    err >= 0.15
-      ? step * 10
-      : err >= 0.35
-        ? step * 5
-        : err >= 0.75
-          ? step * 2
-          : step;
-  const start = Math.floor(min / adjusted) * adjusted;
-  const end = Math.ceil(max / adjusted) * adjusted;
+  // Heckbert nice-number rounding: snap the raw step to 1/2/5/10 × 10^k.
+  // (The previous err-ladder compared in the wrong direction, so spans like
+  // 7260–7600 fell through to a step of 10 → ~35 overlapping axis labels.)
+  const raw = (max - min) / Math.max(1, count - 1);
+  const mag = Math.pow(10, Math.floor(Math.log10(raw)));
+  const frac = raw / mag;
+  const nice = frac < 1.5 ? 1 : frac < 3 ? 2 : frac < 7 ? 5 : 10;
+  const step = nice * mag;
+  const start = Math.floor(min / step) * step;
+  const end = Math.ceil(max / step) * step;
   const out: number[] = [];
-  for (let v = start; v <= end + 1e-9; v += adjusted) out.push(v);
+  for (let i = 0; start + i * step <= end + step * 1e-6; i++) {
+    out.push(start + i * step);
+  }
   return out;
 }
 

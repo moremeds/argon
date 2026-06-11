@@ -97,6 +97,7 @@ def _tick_from_quote(symbol: str, data: Any) -> WsTick | None:
             price=Decimal(str(last)),
             quoted_at=datetime.fromisoformat(str(ts_raw)).astimezone(timezone.utc),
             channel="X",
+            source="xenon_ws",
         )
     except (ValueError, TypeError, decimal.InvalidOperation) as exc:
         logger.debug("xenon_ws skipping bad quote %s=%r: %s", symbol, data, repr(exc))
@@ -177,7 +178,12 @@ def discover_xenon_ws_url(configured_url: str, port_file: str) -> str:
         return configured_url
     if not (0 < port < 65536) or port == parts.port:
         return configured_url
-    netloc = f"{parts.hostname}:{port}"
+    # Codex P2: bracket IPv6 hostnames before re-assembling the netloc.
+    # ``urlsplit("ws://[::1]:8765").hostname`` returns ``::1`` (unbracketed),
+    # so a naive f-string produces ``::1:9001`` which is an invalid URL.
+    host = parts.hostname
+    host_part = f"[{host}]" if host and ":" in host else host
+    netloc = f"{host_part}:{port}"
     return urlunsplit((parts.scheme, netloc, parts.path, parts.query, parts.fragment))
 
 
