@@ -133,7 +133,7 @@ step "Done"
 say "Mac mini DB now mirrors MacBook ${SRC_DB} as of $TS"
 say "Dump archived: $DUMP_FILE"
 warn "Restart services on the mini:"
-warn "  ssh $SSH_HOST 'cd ~/projects/unusual-whales && while read s; do
+warn "  ssh $SSH_HOST 'cd ~/projects/argon && while read s; do
        [[ -z \"\$s\" || \"\$s\" == \\#* ]] && continue
        launchctl kickstart -k gui/\$UID/\$s
      done < config/services.list'"

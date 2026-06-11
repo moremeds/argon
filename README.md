@@ -57,7 +57,7 @@ Full route inventory: [`web/app/`](web/app/) · per-surface doctrine in each `CL
 - (Optional) Codex CLI + Claude CLI signed in locally and `DEEPSEEK_API_KEY` for Trade Insights AI
 
 ```bash
-git clone https://github.com/moremeds/unusual-whales.git argon
+git clone https://github.com/moremeds/argon.git
 cd argon
 uv sync --extra postgres
 cd web && npm install && cd ..

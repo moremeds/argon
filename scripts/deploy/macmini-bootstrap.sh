@@ -5,13 +5,13 @@
 # to re-run after a partial failure.
 #
 # Usage:
-#   curl -fsSL https://raw.githubusercontent.com/<owner>/unusual-whales/main/scripts/deploy/macmini-bootstrap.sh | bash
+#   curl -fsSL https://raw.githubusercontent.com/<owner>/argon/main/scripts/deploy/macmini-bootstrap.sh | bash
 # or, after first clone:
 #   ./scripts/deploy/macmini-bootstrap.sh
 #
 # Environment overrides (defaults shown):
-#   ARGON_HOME=~/projects/unusual-whales              # repo location
-#   ARGON_REPO=git@github.com:<owner>/unusual-whales  # clone URL
+#   ARGON_HOME=~/projects/argon                       # repo location
+#   ARGON_REPO=git@github.com:<owner>/argon           # clone URL
 #   ARGON_BRANCH=main                                 # branch/tag to check out at bootstrap
 #   ARGON_PG_VERSION=16                               # Homebrew postgres version
 #   ARGON_NODE_VERSION=22                             # Homebrew node version
@@ -30,8 +30,8 @@
 set -euo pipefail
 
 # ---------- Config ----------
-ARGON_HOME="${ARGON_HOME:-$HOME/projects/unusual-whales}"
-ARGON_REPO="${ARGON_REPO:-git@github.com:lcxxcllcx/unusual-whales.git}"
+ARGON_HOME="${ARGON_HOME:-$HOME/projects/argon}"
+ARGON_REPO="${ARGON_REPO:-git@github.com:moremeds/argon.git}"
 ARGON_BRANCH="${ARGON_BRANCH:-main}"
 ARGON_PG_VERSION="${ARGON_PG_VERSION:-16}"
 ARGON_NODE_VERSION="${ARGON_NODE_VERSION:-22}"
@@ -43,9 +43,9 @@ ARGON_DB_ROLE="${ARGON_DB_ROLE:-argon_app}"
 # if .env is regenerated). Safe characters only — no slash/plus/equals/quote
 # that would need escaping in connection strings or pgpass lines.
 if [[ -z "${ARGON_DB_PASSWORD:-}" ]]; then
-  if [[ -f "${ARGON_HOME:-$HOME/projects/unusual-whales}/.env" ]] \
-     && grep -qE '^UW_SCAN_DB_PASSWORD=.+' "${ARGON_HOME:-$HOME/projects/unusual-whales}/.env"; then
-    ARGON_DB_PASSWORD="$(grep -E '^UW_SCAN_DB_PASSWORD=' "${ARGON_HOME:-$HOME/projects/unusual-whales}/.env" | head -1 | cut -d= -f2- | tr -d '"' | tr -d "'")"
+  if [[ -f "${ARGON_HOME:-$HOME/projects/argon}/.env" ]] \
+     && grep -qE '^UW_SCAN_DB_PASSWORD=.+' "${ARGON_HOME:-$HOME/projects/argon}/.env"; then
+    ARGON_DB_PASSWORD="$(grep -E '^UW_SCAN_DB_PASSWORD=' "${ARGON_HOME:-$HOME/projects/argon}/.env" | head -1 | cut -d= -f2- | tr -d '"' | tr -d "'")"
   else
     ARGON_DB_PASSWORD="$(openssl rand -base64 24 | tr -d '/+=' | head -c 28)"
   fi
@@ -292,7 +292,7 @@ else
 fi
 
 # ---------- uv sync ----------
-# unusual-whales' pyproject.toml only publishes the `postgres` extra; xenon's
+# argon's pyproject.toml only publishes the `postgres` extra; xenon's
 # `--extra test` does NOT exist here. Add `--group dev` if you need pytest
 # tooling on the mini; for prod, --extra postgres is sufficient.
 step "uv sync (Python deps)"
@@ -308,7 +308,7 @@ ok "Python deps synced"
 # filling secrets.
 
 # ---------- npm install + build ----------
-# unusual-whales has only web/package.json (no root package.json).
+# argon has only web/package.json (no root package.json).
 step "Web build"
 (cd "${ARGON_HOME}/web" && npm install --no-audit --no-fund --legacy-peer-deps)
 (cd "${ARGON_HOME}/web" && npm run build)

@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 # macmini-backup-upload-r2.sh — upload latest option_wizard dump to R2.
 # Called by com.argon.backup-r2 launchd plist on Sundays at 04:00.
-# Reads R2_* credentials from ~/projects/unusual-whales/.env.
+# Reads R2_* credentials from ~/projects/argon/.env.
 
 set -euo pipefail
 
-ARGON_HOME="${ARGON_HOME:-$HOME/projects/unusual-whales}"
+ARGON_HOME="${ARGON_HOME:-$HOME/projects/argon}"
 cd "$ARGON_HOME"
 
 # shellcheck disable=SC1091
