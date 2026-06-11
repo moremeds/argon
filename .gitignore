@@ -30,3 +30,8 @@ output/
 
 # Local-only archives of completed plans/specs/reviews
 docs/**/archive/
+.gstack/
+.artifacts/
+
+# Reference papers dropped into docs/research/ root — keep on disk, don't commit
+docs/research/*.pdf
