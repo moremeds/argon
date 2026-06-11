@@ -302,9 +302,10 @@ def main() -> int:
                     # (uw_scan.worker.massive_ws_consumer). See worker/CLAUDE.md
                     # "Provider concurrency model".
                     # preserve_spot: when the WS consumer is the authoritative
-                    # spot writer (MASSIVE_WS_ENABLED=true) we tell the storage
-                    # layer to gate the spot triple + return triple in the
-                    # ON CONFLICT branch so full_scan can't clobber WS values.
+                    # spot writer (any WS feed — MASSIVE_WS_ENABLED or
+                    # XENON_WS_ENABLED) we tell the storage layer to gate the
+                    # spot triple + return triple in the ON CONFLICT branch so
+                    # full_scan can't clobber WS values.
                     n = full_scan_once(
                         repo,
                         uw,
@@ -313,7 +314,7 @@ def main() -> int:
                         stale_after=timedelta(
                             hours=settings.full_scan_stale_after_hours
                         ),
-                        preserve_spot=settings.massive_ws_enabled,
+                        preserve_spot=settings.ws_spot_enabled,
                     )
                     logger.info("full_scan completed %d tickers", n)
 
@@ -368,7 +369,7 @@ def main() -> int:
                         repo,
                         uw,
                         _NoOhlc(),
-                        preserve_spot=settings.massive_ws_enabled,
+                        preserve_spot=settings.ws_spot_enabled,
                     )
 
     def _spy_ohlc_refresh() -> None:

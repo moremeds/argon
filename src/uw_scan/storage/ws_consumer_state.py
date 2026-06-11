@@ -1,4 +1,5 @@
-"""WS consumer heartbeat + activity counters for api.massive.com WebSocket."""
+"""WS consumer heartbeat + activity counters for the spot WS feed
+(xenon IB realtime primary / api.massive.com fallback)."""
 
 from __future__ import annotations
 
@@ -18,7 +19,8 @@ class _WsConsumerStateMixin:
             cur.execute(
                 f"""
                 SELECT last_tick_at, last_flush_at, ticks_received, ticks_flushed,
-                       connection_started_at, last_error, last_error_at, updated_at
+                       connection_started_at, last_error, last_error_at, updated_at,
+                       active_source
                 FROM {self._schema}.ws_consumer_state
                 WHERE id = 1
                 """
@@ -56,16 +58,22 @@ class _WsConsumerStateMixin:
                 ),
             )
 
-    def record_ws_connection_started(self, started_at: datetime) -> None:
-        """Does NOT commit — caller controls."""
+    def record_ws_connection_started(
+        self, started_at: datetime, source: str = "massive.com_ws"
+    ) -> None:
+        """Does NOT commit — caller controls.
+
+        ``source`` identifies the feed this connection targets
+        ("xenon_ws" | "massive.com_ws") for the /api/health panel.
+        """
         with self._conn.cursor() as cur:
             cur.execute(
                 f"""
                 UPDATE {self._schema}.ws_consumer_state
-                SET connection_started_at = %s, updated_at = NOW()
+                SET connection_started_at = %s, active_source = %s, updated_at = NOW()
                 WHERE id = 1
                 """,
-                (started_at,),
+                (started_at, source),
             )
 
     def record_ws_error(self, message: str, error_at: datetime) -> None:

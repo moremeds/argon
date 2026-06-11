@@ -2,6 +2,7 @@ import type { components } from "@/lib/types";
 import { toNum } from "@/lib/formatters";
 import { PRIORITY_SECTORS } from "./sectorGroups";
 import { TickerCard } from "./TickerCard";
+import { LiveSpotsProvider } from "./LiveSpotsProvider";
 
 type WatchlistCard = components["schemas"]["WatchlistCard"];
 type WatchlistResponse = components["schemas"]["WatchlistResponse"];
@@ -76,7 +77,9 @@ export function CardGrid({ data }: { data: WatchlistResponse }) {
   );
 
   return (
-    <div>
+    // One grid-wide poller: every TickerCard reads its live spot from this
+    // provider's context instead of each card polling on its own.
+    <LiveSpotsProvider>
       {groupedEntries.map(([sector, tickers]) => (
         <section key={sector} style={{ marginBottom: 28 }}>
           <h2
@@ -106,6 +109,6 @@ export function CardGrid({ data }: { data: WatchlistResponse }) {
           </div>
         </section>
       ))}
-    </div>
+    </LiveSpotsProvider>
   );
 }

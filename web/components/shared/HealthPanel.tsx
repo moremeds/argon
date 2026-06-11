@@ -275,7 +275,10 @@ function BenchmarkView({
         label="Throughput"
         value={benchmark.subscores.throughput}
       />
-      <BenchmarkScoreRow label="Provider" value={benchmark.subscores.provider} />
+      <BenchmarkScoreRow
+        label="Provider"
+        value={benchmark.subscores.provider}
+      />
       <BenchmarkScoreRow label="Worker" value={benchmark.subscores.worker} />
       <BenchmarkScoreRow
         label="Persistence"
@@ -289,11 +292,15 @@ function BenchmarkView({
       />
       <div style={rowStyle}>
         <span style={labelStyle}>Fresh scanned</span>
-        <span style={valStyle}>{dash(benchmark.metrics.scanner_fresh_count)}</span>
+        <span style={valStyle}>
+          {dash(benchmark.metrics.scanner_fresh_count)}
+        </span>
       </div>
       <div style={rowStyle}>
         <span style={labelStyle}>Stale scanned</span>
-        <span style={valStyle}>{dash(benchmark.metrics.scanner_stale_count)}</span>
+        <span style={valStyle}>
+          {dash(benchmark.metrics.scanner_stale_count)}
+        </span>
       </div>
       <div style={rowStyle}>
         <span style={labelStyle}>Watchlist</span>
@@ -588,6 +595,29 @@ export function HealthPanel() {
                 </span>
               </div>
               <StatusRow label="WS Consumer" status={wsStatus} />
+              {wsConsumer?.active_source && (
+                <div style={rowStyle}>
+                  <span style={labelStyle}>WS feed</span>
+                  <span
+                    style={{
+                      ...valStyle,
+                      color:
+                        wsConsumer.active_source === "xenon_ws"
+                          ? "var(--positive)"
+                          : "var(--warning)",
+                    }}
+                    title={
+                      wsConsumer.active_source === "xenon_ws"
+                        ? "xenon IB realtime (primary)"
+                        : "massive.com WS (fallback)"
+                    }
+                  >
+                    {wsConsumer.active_source === "xenon_ws"
+                      ? "XENON"
+                      : "MASSIVE"}
+                  </span>
+                </div>
+              )}
               {wsConsumer && (
                 <div style={rowStyle}>
                   <span style={labelStyle}>WS tick age</span>

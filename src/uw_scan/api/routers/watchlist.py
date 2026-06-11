@@ -19,6 +19,8 @@ from uw_scan.api.schemas import (
     WatchlistMutation,
     WatchlistPatch,
     WatchlistResponse,
+    WatchlistSpot,
+    WatchlistSpotsResponse,
 )
 from uw_scan.storage.repository import Repository, WatchlistCardRow
 
@@ -152,6 +154,30 @@ def get_watchlist_queue(repo: Repository = Depends(get_repo)) -> QueueSummary:
         queued=q.queued,
         running=q.running,
         oldest_requested_at=q.oldest_requested_at,
+    )
+
+
+@router.get("/watchlist/spots", response_model=WatchlistSpotsResponse)
+def get_watchlist_spots(
+    repo: Repository = Depends(get_repo),
+) -> WatchlistSpotsResponse:
+    """Live spot snapshot for the dashboard's LiveSpotsProvider poller.
+
+    The spot WS consumer (xenon primary / massive fallback) rewrites
+    watchlist_card.spot every ~1s; this projection lets the browser tick
+    prices without refetching the full watchlist payload (same pattern as
+    /watchlist/queue for QueueProgress).
+    """
+    return WatchlistSpotsResponse(
+        spots=[
+            WatchlistSpot(
+                ticker=ticker,
+                spot=spot,
+                spot_quoted_at=quoted_at,
+                spot_source=source,
+            )
+            for (ticker, spot, quoted_at, source) in repo.list_watchlist_spots()
+        ]
     )
 
 

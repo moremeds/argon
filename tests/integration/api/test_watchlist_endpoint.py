@@ -75,3 +75,18 @@ def test_post_watchlist_adds_ticker(client, seeded_db_empty_cards):
 def test_delete_watchlist_soft_deletes(client, seeded_db_with_cards):
     r = client.delete("/api/watchlist/TSLA")
     assert r.status_code == 204
+
+
+def test_get_watchlist_spots_returns_live_projection(client, seeded_db_with_cards):
+    """GET /api/watchlist/spots returns the lightweight live-spot rows the
+    LiveSpotsProvider poller consumes — only carded tickers, with spot,
+    quoted-at, and the feed tag (xenon_ws | massive.com_ws)."""
+    r = client.get("/api/watchlist/spots")
+    assert r.status_code == 200
+    spots = r.json()["spots"]
+    assert len(spots) >= 1
+    tsla = next(s for s in spots if s["ticker"] == "TSLA")
+    from decimal import Decimal
+
+    assert Decimal(tsla["spot"]) == Decimal("445.12")
+    assert set(tsla.keys()) == {"ticker", "spot", "spot_quoted_at", "spot_source"}

@@ -131,6 +131,20 @@ class OhlcRow(BaseModel):
     volume: int | None = None
 
 
+class WatchlistSpot(BaseModel):
+    """Lightweight live-spot row for the browser poller — the WS consumer
+    writes spot every ~1s; this projection avoids the full dashboard join."""
+
+    ticker: str
+    spot: Decimal | None = None
+    spot_quoted_at: datetime | None = None
+    spot_source: str | None = None  # "xenon_ws" | "massive.com_ws" | legacy
+
+
+class WatchlistSpotsResponse(BaseModel):
+    spots: list[WatchlistSpot] = Field(default_factory=list)
+
+
 def _preserve_api_module(*classes: type[BaseModel]) -> None:
     for cls in classes:
         cls.__module__ = "uw_scan.api.schemas"
@@ -150,4 +164,6 @@ _preserve_api_module(
     WatchlistPatch,
     JobStatus,
     OhlcRow,
+    WatchlistSpot,
+    WatchlistSpotsResponse,
 )

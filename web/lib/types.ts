@@ -97,6 +97,31 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/watchlist/spots": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Watchlist Spots
+         * @description Live spot snapshot for the dashboard's LiveSpotsProvider poller.
+         *
+         *     The spot WS consumer (xenon primary / massive fallback) rewrites
+         *     watchlist_card.spot every ~1s; this projection lets the browser tick
+         *     prices without refetching the full watchlist payload (same pattern as
+         *     /watchlist/queue for QueueProgress).
+         */
+        get: operations["get_watchlist_spots_api_watchlist_spots_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/watchlist/{ticker}": {
         parameters: {
             query?: never;
@@ -6454,6 +6479,26 @@ export interface components {
             /** Tickers */
             tickers: components["schemas"]["WatchlistCard"][];
         };
+        /**
+         * WatchlistSpot
+         * @description Lightweight live-spot row for the browser poller — the WS consumer
+         *     writes spot every ~1s; this projection avoids the full dashboard join.
+         */
+        WatchlistSpot: {
+            /** Ticker */
+            ticker: string;
+            /** Spot */
+            spot?: string | null;
+            /** Spot Quoted At */
+            spot_quoted_at?: string | null;
+            /** Spot Source */
+            spot_source?: string | null;
+        };
+        /** WatchlistSpotsResponse */
+        WatchlistSpotsResponse: {
+            /** Spots */
+            spots?: components["schemas"]["WatchlistSpot"][];
+        };
         /** WorkerHealth */
         WorkerHealth: {
             /** Label */
@@ -6474,13 +6519,17 @@ export interface components {
         };
         /**
          * WsConsumerHealth
-         * @description Massive.com WS consumer status, surfaced for the HealthPanel.
+         * @description Spot WS consumer status (xenon primary / massive fallback), surfaced
+         *     for the HealthPanel.
          *
          *     ``healthy`` is true when:
          *       * the market is closed (no ticks are expected), OR
          *       * ``last_tick_at`` is within ``massive_ws_heartbeat_stale_after_seconds``.
          *
-         *     ``reason`` carries the short label the UI displays under the row.
+         *     ``active_source`` tells which feed the consumer is connected to —
+         *     ``"xenon_ws"`` (primary) or ``"massive.com_ws"`` (fallback); ``None``
+         *     before the first connection. ``reason`` carries the short label the UI
+         *     displays under the row.
          */
         WsConsumerHealth: {
             /** Healthy */
@@ -6505,6 +6554,8 @@ export interface components {
             connection_started_at?: string | null;
             /** Last Error */
             last_error?: string | null;
+            /** Active Source */
+            active_source?: string | null;
             /** Reason */
             reason?: string | null;
         };
@@ -6715,6 +6766,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["QueueSummary"];
+                };
+            };
+        };
+    };
+    get_watchlist_spots_api_watchlist_spots_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WatchlistSpotsResponse"];
                 };
             };
         };

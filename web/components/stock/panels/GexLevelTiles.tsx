@@ -1,5 +1,7 @@
+"use client";
 import type { components } from "@/lib/types";
 import { toNum } from "@/lib/formatters";
+import { useLiveSpot } from "@/components/watchlist/LiveSpotsProvider";
 
 type Report = components["schemas"]["SingleStockReport"];
 type Level = components["schemas"]["uw_scan__models__GexLevel"];
@@ -108,6 +110,10 @@ export function GexLevelTiles({ report }: { report: Report }) {
   const lv = report.market_structure_levels;
 
   const spot = toNum(m.spot);
+  // The Spot tile ticks with the live feed; the derived analytics (Net DEX,
+  // level distances) stay anchored to the scan-time spot they were computed
+  // against.
+  const liveSpot = toNum(useLiveSpot(report.ticker)?.spot) ?? spot;
   const netGex = toNum(m.net_gex);
   // NET DEX in $: (call_dex_oi + put_dex_oi) * spot. The signs of the two
   // OI components already encode dealer-side direction.
@@ -133,7 +139,7 @@ export function GexLevelTiles({ report }: { report: Report }) {
           gap: 12,
         }}
       >
-        <Tile label="Spot" value={fmtNum(spot, 2)} sub=" " />
+        <Tile label="Spot" value={fmtNum(liveSpot, 2)} sub=" " />
         <Tile
           label="GEX Flip"
           value={flip ? fmtNum(toNum(flip.strike), 2) : "—"}

@@ -10,7 +10,7 @@ Per-ticker options analytics, watchlist-driven. Three processes share a single P
 - **FastAPI** (`src/uw_scan/api/`, port 8400) — read-only over the warm store, mutations only via `/jobs`
 - **APScheduler worker** (`src/uw_scan/worker/`) — full-scan / OHLC / spot-refresh / rescan-poll / nightly vol rollup
 
-Postgres schema `uw_scan`, owned by role `argon_app` (NOSUPERUSER). UW (Unusual Whales) is the primary data source; massive.com supplies OHLC. **Never fall back to Yahoo.**
+Postgres schema `uw_scan`, owned by role `argon_app` (NOSUPERUSER). UW (Unusual Whales) is the primary data source; xenon's IB realtime WS is the primary intraday spot feed (massive WS is the automatic fallback); massive.com supplies daily OHLC. **Never fall back to Yahoo.**
 
 **Three-tier DB isolation** — `uw_scan.config._enforce_db_isolation` refuses to start on a `(host, db_name)` mismatch (override with `UW_SCAN_ALLOW_DB_MISMATCH=1` for one-off scripts):
 
@@ -40,6 +40,18 @@ uv run pytest                     # python tests
 cd web && npm run test            # vitest
 cd web && npm run gen:types       # regenerate types.ts after API change
 ```
+
+## Live spot WS feed (xenon primary / massive fallback)
+
+The spot WS consumer (`uw_scan.worker.massive_ws_consumer` — module name retained for plist/dev.sh compat) connects to xenon's IB realtime server as the primary live feed and falls back to massive's WS automatically. Xenon streams 24h whenever IB Gateway is connected (massive only delivers Mon–Fri 04:00–20:00 ET). Failover triggers: connect failure, `ib_connected: false` at connect, or in-session tick silence (watchdog armed only inside massive's feed window — failing over outside it buys nothing). While on massive, a probe re-tries xenon every retry interval and switches back on recovery. `watchlist_card.spot_source` / `intraday_quote.source` tag each row (`xenon_ws` | `massive.com_ws`); `/api/health` `ws_consumer.active_source` shows the live feed.
+
+- `XENON_WS_ENABLED` — primary-feed switch; default **false**
+- `XENON_WS_URL` — default `ws://127.0.0.1:8765` (right for the mini, where xenon runs). MacBook dev points over Tailscale: `ws://100.66.147.98:8765`
+- `XENON_WS_PORT_FILE` — default `/tmp/xenon-ib-realtime.json`; xenon writes its actual port there if 8765 is taken. Only consulted when the URL host is localhost; empty string disables
+- `XENON_WS_RETRY_PRIMARY_SECONDS` — stay on massive this long after a xenon failure before re-probing; default 300
+- `XENON_WS_QUIET_FAILOVER_SECONDS` — in-session silence threshold before failover; default 120; 0 disables
+
+The worker process freezes env at fork — rotating any `XENON_*` value requires restarting the spot-WS consumer process. Subscription mapping: stocks/ETFs → xenon `symbols` (IB SMART); index symbols (SPX/VIX/VVIX/COR1M/…) → `indexes` with exchange CBOE — extend `XENON_INDEX_SYMBOLS` in `sources/xenon_ws.py` when the watchlist grows a new index.
 
 ## Trade Insights AI (V1.5)
 
@@ -105,6 +117,7 @@ Worker roles: `ai-codex`, `ai-claude`, and `ai-deepseek` (provider-pinned, recom
 | Persistence — aggregate shim | `src/uw_scan/storage/repository.py` (thin `Repository` assembly + compatibility re-exports; do not add query methods here) |
 | Persistence — domain modules | `src/uw_scan/storage/{audit,cockpit,external_api,fetchers,flow,gex,gold,gold_etf,health,jobs,market_data,matrix_state,options,rates_repository,scan_outputs,scan_results,scan_runs,trade_insights_ai,volatility_raw,volatility_v2,watchlist,ws_consumer_state}.py`. New domains go in their own module/mixin and are added to `repository.py` only for assembly/re-export compatibility |
 | Scheduled jobs | `src/uw_scan/worker/scheduler.py` |
+| Live spot WS feed (xenon primary / massive fallback) | `src/uw_scan/sources/{xenon_ws,massive_ws}.py` + `worker/massive_ws_consumer.py` + `worker/ws_db_writer.py`; active feed: `/api/health` `ws_consumer.active_source` |
 | UW endpoints (integrated) | `src/uw_scan/api/endpoints.py` + `sources/uw.py` |
 | UW API reference (full surface) | `docs/uw-samples/unusual_whales_api.md` (human-readable) + `docs/uw-samples/unusual_whales_api_spec.yaml` (OpenAPI) — consult before adding any new UW fetcher |
 | UW sample payloads | `docs/uw-samples/*.json` — real responses for each integrated endpoint, with `_shape-summary.md` |

@@ -1,0 +1,61 @@
+/* @vitest-environment jsdom */
+import { act, render, screen } from "@testing-library/react";
+import { describe, expect, it, vi } from "vitest";
+
+import {
+  LiveSpotsProvider,
+  useLiveSpot,
+} from "@/components/watchlist/LiveSpotsProvider";
+
+vi.mock("@/lib/api", () => ({
+  api: {
+    watchlistSpots: vi.fn().mockResolvedValue({
+      spots: [
+        {
+          ticker: "TSLA",
+          spot: "445.99",
+          spot_quoted_at: "2026-06-11T15:42:04.432Z",
+          spot_source: "xenon_ws",
+        },
+      ],
+    }),
+  },
+}));
+
+function Probe({ ticker }: { ticker: string }) {
+  const live = useLiveSpot(ticker);
+  return (
+    <span data-testid="probe">
+      {live ? `${live.spot}:${live.spot_source}` : "fallback"}
+    </span>
+  );
+}
+
+describe("LiveSpotsProvider", () => {
+  it("provides polled spots to consumers", async () => {
+    await act(async () => {
+      render(
+        <LiveSpotsProvider>
+          <Probe ticker="TSLA" />
+        </LiveSpotsProvider>,
+      );
+    });
+    expect(screen.getByTestId("probe").textContent).toBe("445.99:xenon_ws");
+  });
+
+  it("falls back when no provider is mounted", () => {
+    render(<Probe ticker="TSLA" />);
+    expect(screen.getByTestId("probe").textContent).toBe("fallback");
+  });
+
+  it("falls back for tickers absent from the snapshot", async () => {
+    await act(async () => {
+      render(
+        <LiveSpotsProvider>
+          <Probe ticker="NVDA" />
+        </LiveSpotsProvider>,
+      );
+    });
+    expect(screen.getByTestId("probe").textContent).toBe("fallback");
+  });
+});

@@ -31,6 +31,24 @@ class _WatchlistMixin:
             )
             return [WatchlistRow(*row) for row in cur.fetchall()]
 
+    def list_watchlist_spots(
+        self,
+    ) -> list[tuple[str, Decimal | None, datetime | None, str | None]]:
+        """Lightweight (ticker, spot, spot_quoted_at, spot_source) projection
+        for the live-spot browser poller — the WS consumer rewrites these
+        columns every ~1s, and the full dashboard join is too heavy to poll."""
+        with self._conn.cursor() as cur:
+            cur.execute(
+                f"""
+                SELECT c.ticker, c.spot, c.spot_quoted_at, c.spot_source
+                FROM {self._schema}.watchlist_card c
+                JOIN {self._schema}.watchlist w ON w.ticker = c.ticker
+                WHERE w.removed_at IS NULL
+                ORDER BY c.ticker
+                """
+            )
+            return list(cur.fetchall())
+
     def add_watchlist_ticker(
         self,
         *,

@@ -12,21 +12,52 @@ from pydantic import BaseModel, Field, field_validator
 
 from .models.watchlist import (
     GammaBlock as GammaBlock,
+)
+from .models.watchlist import (
     JobStatus as JobStatus,
+)
+from .models.watchlist import (
     OhlcRow as OhlcRow,
+)
+from .models.watchlist import (
     PositioningBlock as PositioningBlock,
+)
+from .models.watchlist import (
     QueueStatus as QueueStatus,
+)
+from .models.watchlist import (
     QueueStatusValue as QueueStatusValue,
+)
+from .models.watchlist import (
     QueueSummary as QueueSummary,
+)
+from .models.watchlist import (
     ReturnsBlock as ReturnsBlock,
+)
+from .models.watchlist import (
     SetupBlock as SetupBlock,
+)
+from .models.watchlist import (
     SkewBlock as SkewBlock,
+)
+from .models.watchlist import (
     WatchlistCard as WatchlistCard,
+)
+from .models.watchlist import (
     WatchlistMutation as WatchlistMutation,
+)
+from .models.watchlist import (
     WatchlistPatch as WatchlistPatch,
+)
+from .models.watchlist import (
     WatchlistResponse as WatchlistResponse,
 )
-
+from .models.watchlist import (
+    WatchlistSpot as WatchlistSpot,
+)
+from .models.watchlist import (
+    WatchlistSpotsResponse as WatchlistSpotsResponse,
+)
 
 # ─── GEX (regime port from xenon 2026-05-16) ─────────────────────────────
 

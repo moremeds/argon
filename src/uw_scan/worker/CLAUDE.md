@@ -26,17 +26,28 @@ Set `UW_SCAN_WORKER_ROLE=uw|massive|ai|all`, `UW_SCAN_WORKER_INDEX`, and
   `UW_SCAN_AI_WORKER_COUNT=N` to the API process so the health panel can
   enumerate the AI worker heartbeats.
 - `massive_ws` is a separate long-lived process (`python -m
-  uw_scan.worker.massive_ws_consumer`), not an APScheduler worker. It holds
-  one WebSocket connection to `wss://delayed.massive.com/stocks`, subscribes
-  to `A.<TICKER>` per-second aggregates for the active watchlist, and is the
-  **sole writer** for `intraday_quote.price` and `watchlist_card.spot`/`spot_quoted_at`/
-  `spot_source` plus the intraday return triple. Per-second flush window
-  bounds the watchlist-wide quoted_at smear to ≤1s. There is no REST
-  fallback — if this process dies, spot data is stale until it reconnects.
-  Liveness signal: `/api/health` `ws_consumer.healthy`. Gated by
-  `MASSIVE_WS_ENABLED=true`, which must also be exported to the API and
-  every scheduler worker so `full_scan` / `rescan_tick` skip the spot fields
-  in their `ON CONFLICT DO UPDATE` clause (Phase 6 `preserve_spot`).
+  uw_scan.worker.massive_ws_consumer`; module name retained for plist/dev.sh
+  compat), not an APScheduler worker — the **spot WS consumer** for both
+  feeds. It holds one WebSocket connection — to xenon's IB realtime server
+  (`XENON_WS_ENABLED=true`, primary; streams 24h whenever IB Gateway is up)
+  or to `wss://delayed.massive.com/stocks` (fallback) — subscribes to the
+  active watchlist (xenon: stocks via `symbols`, SPX/VIX/… via `indexes`
+  with exchange CBOE; massive: `A.<TICKER>` per-second aggregates), and is
+  the **sole writer** for `intraday_quote.price` and `watchlist_card.spot`/
+  `spot_quoted_at`/`spot_source` plus the intraday return triple. Per-second
+  flush window bounds the watchlist-wide quoted_at smear to ≤1s.
+  **Failover:** a xenon connect failure / connect-time IB outage / in-session
+  quiet period (`XENON_WS_QUIET_FAILOVER_SECONDS`, armed only inside the
+  massive feed window mon-fri 04:00-20:00 ET) blocks xenon for
+  `XENON_WS_RETRY_PRIMARY_SECONDS` and runs massive sessions; each fallback
+  session races a xenon probe and switches back when xenon recovers. There
+  is no REST fallback — if this process dies, spot data is stale until it
+  reconnects. Liveness signal: `/api/health` `ws_consumer.healthy`; the
+  active feed is `ws_consumer.active_source` (`xenon_ws` | `massive.com_ws`).
+  Gated by `MASSIVE_WS_ENABLED` / `XENON_WS_ENABLED`; at least one must also
+  be exported to the API and every scheduler worker so `full_scan` /
+  `rescan_tick` skip the spot fields in their `ON CONFLICT DO UPDATE`
+  clause (Phase 6 `preserve_spot`, now keyed off `Settings.ws_spot_enabled`).
 - `all` preserves the legacy single scheduler shape.
 - Per-ticker scheduled jobs must use the scheduler-provided shard filter.
   Rescans use DB claiming (`FOR UPDATE SKIP LOCKED`) and are not sharded.
@@ -53,7 +64,8 @@ Set `UW_SCAN_WORKER_ROLE=uw|massive|ai|all`, `UW_SCAN_WORKER_INDEX`, and
 
 Intraday spot is no longer a scheduler job — it streams from the
 WebSocket consumer in `uw_scan.worker.massive_ws_consumer` (started as
-its own process by `scripts/dev.sh`). Toggle via `MASSIVE_WS_ENABLED`.
+its own process by `scripts/dev.sh`). Toggle via `MASSIVE_WS_ENABLED`
+(massive fallback feed) and `XENON_WS_ENABLED` (xenon IB primary feed).
 
 ## Rules
 
