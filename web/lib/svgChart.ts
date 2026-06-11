@@ -26,19 +26,41 @@ export function pathFromPoints(points: Point[]): string {
  * starts a fresh `M`. Use this for sparse series (e.g. `gex_flip`) where the
  * filtered-out version of `pathFromPoints` produces a misleading line that
  * connects across multi-bar gaps.
+ *
+ * **Isolated points:** when a finite point is surrounded by nulls on both
+ * sides (or sits at start/end with a null neighbour), the sub-path would be
+ * a lone `M{x},{y}` which SVG renders as nothing — sparse single-observation
+ * series go invisible. To preserve those dots, an isolated point is emitted
+ * as `M{x},{y} L{x},{y}` (a zero-length line). Consumers MUST set
+ * `stroke-linecap="round"` (or "square") on the rendered `<path>` so the
+ * zero-length segment becomes a visible dot of diameter = strokeWidth.
  */
 export function pathFromNullablePoints(
   points: ReadonlyArray<Point | null>,
 ): string {
+  function isFinitePoint(p: Point | null | undefined): p is Point {
+    return p != null && Number.isFinite(p[0]) && Number.isFinite(p[1]);
+  }
   let out = "";
   let pendingMove = true;
-  for (const p of points) {
-    if (p == null || !Number.isFinite(p[0]) || !Number.isFinite(p[1])) {
+  for (let i = 0; i < points.length; i++) {
+    const p = points[i];
+    if (!isFinitePoint(p)) {
       pendingMove = true;
       continue;
     }
     const [x, y] = p;
-    out += `${pendingMove ? "M" : "L"}${x},${y} `;
+    if (pendingMove) {
+      out += `M${x},${y} `;
+      // If the next index isn't a finite continuation, this point is
+      // isolated — emit a zero-length line so a round-cap stroke draws a
+      // dot rather than nothing.
+      if (!isFinitePoint(points[i + 1])) {
+        out += `L${x},${y} `;
+      }
+    } else {
+      out += `L${x},${y} `;
+    }
     pendingMove = false;
   }
   return out.trimEnd();

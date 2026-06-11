@@ -56,4 +56,18 @@ describe("HistoryChart", () => {
     const paths = container.querySelectorAll("path");
     expect(paths.length).toBeGreaterThanOrEqual(2);
   });
+
+  it("renders four series + the IV30D legend swatch when atm_iv is present", () => {
+    const withIv = sample.map((h, i) => ({ ...h, atm_iv: 0.18 + i * 0.005 }));
+    const { container } = render(
+      <HistoryChart history={withIv} ticker="SPX" />,
+    );
+    // 4 series paths inside the chart SVG (net_gex, gex_flip, spot, iv30d).
+    const chartSvg = container.querySelector(
+      '[data-testid="gex-history-chart"] svg[role="img"]',
+    );
+    expect(chartSvg).toBeTruthy();
+    expect(chartSvg!.querySelectorAll("path").length).toBe(4);
+    expect(screen.getAllByText("IV 30D").length).toBeGreaterThan(0);
+  });
 });

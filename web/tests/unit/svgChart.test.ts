@@ -103,5 +103,32 @@ describe("svgChart helpers", () => {
       expect((out.match(/M/g) ?? []).length).toBe(1);
       expect(out.startsWith("M1,1")).toBe(true);
     });
+
+    it("emits a zero-length L for an isolated point so a round-cap stroke draws a dot", () => {
+      // Singleton at the end of the array.
+      const trailing = pathFromNullablePoints([[0, 0], [1, 1], null, [3, 3]]);
+      expect(trailing).toContain("M3,3");
+      expect(trailing).toContain("L3,3");
+
+      // Singleton surrounded by nulls.
+      const middle = pathFromNullablePoints([null, [1, 1], null, [3, 3], null]);
+      expect((middle.match(/M/g) ?? []).length).toBe(2);
+      // Each isolated point gets the M+L pair (M then L at same coord).
+      expect(middle).toContain("M1,1");
+      expect(middle).toContain("L1,1");
+      expect(middle).toContain("M3,3");
+      expect(middle).toContain("L3,3");
+    });
+
+    it("does not emit a stray L when the isolated point sits between two finite points (no isolation)", () => {
+      // [0,0]-[1,1]-[2,2] — no isolation; should be M0,0 L1,1 L2,2 (one M, two Ls).
+      const out = pathFromNullablePoints([
+        [0, 0],
+        [1, 1],
+        [2, 2],
+      ]);
+      expect((out.match(/M/g) ?? []).length).toBe(1);
+      expect((out.match(/L/g) ?? []).length).toBe(2);
+    });
   });
 });

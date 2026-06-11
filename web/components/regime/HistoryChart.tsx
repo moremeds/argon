@@ -10,12 +10,16 @@ import type { GexHistoryEntry } from "@/lib/regime/useGex";
 
 const WIDTH = 880;
 const HEIGHT = 260;
-const PAD = { top: 16, right: 64, bottom: 36, left: 64 };
+// Y-axis tick labels render INSIDE the chart canvas (just above each
+// gridline), so PAD.left no longer reserves a gutter for "100.0K" text —
+// only enough room for the leftmost data point to breathe.
+const PAD = { top: 16, right: 64, bottom: 36, left: 16 };
 
 const COLORS = {
   netGex: "var(--accent-bg, #05AD98)",
   flip: "var(--accent-warm, #F5A623)",
   spot: "var(--text-primary)",
+  iv: "var(--extreme, #D946A8)",
   zero: "var(--border-dim)",
   grid: "rgba(148,163,184,0.08)",
 };
@@ -108,12 +112,18 @@ export function HistoryChart({
 
   const netGexD = finiteDomain(history.map((h) => h.net_gex));
   const priceD = finiteDomain(history.flatMap((h) => [h.spot, h.gex_flip]));
+  const ivD = finiteDomain(history.map((h) => h.atm_iv));
 
   const yGex = netGexD
     ? linearScale([netGexD.lo, netGexD.hi], [HEIGHT - PAD.bottom, PAD.top])
     : null;
   const yPrice = priceD
     ? linearScale([priceD.lo, priceD.hi], [HEIGHT - PAD.bottom, PAD.top])
+    : null;
+  // IV 30D rescaled into the same vertical band as the price scale so the
+  // four series share one viewport. Matches the intraday chart's approach.
+  const yIv = ivD
+    ? linearScale([ivD.lo, ivD.hi], [HEIGHT - PAD.bottom, PAD.top])
     : null;
 
   // Keep nulls in each per-series array so pathFromNullablePoints breaks the
@@ -147,6 +157,15 @@ export function HistoryChart({
           ),
         );
 
+  const ivPath =
+    yIv == null
+      ? ""
+      : pathFromNullablePoints(
+          history.map((h, i): [number, number] | null =>
+            h.atm_iv == null ? null : [xScale(i), yIv(h.atm_iv)],
+          ),
+        );
+
   const xTickIdx = dateTickIndices(history.length, 5);
   const leftTicks = netGexD ? niceTicks(netGexD.lo, netGexD.hi, 4) : [];
   const rightTicks = priceD ? niceTicks(priceD.lo, priceD.hi, 4) : [];
@@ -166,6 +185,7 @@ export function HistoryChart({
           <LegendSwatch color={COLORS.netGex} label="NET GEX" />
           <LegendSwatch color={COLORS.flip} label="GEX FLIP" dashed />
           <LegendSwatch color={COLORS.spot} label="SPOT" />
+          <LegendSwatch color={COLORS.iv} label="IV 30D" />
         </div>
       </div>
       <div className="section-body" style={{ padding: "8px 12px 12px" }}>
@@ -192,23 +212,35 @@ export function HistoryChart({
               />
             )}
 
-          {/* Left y-axis (net GEX) ticks. */}
+          {/* Left y-axis (net GEX) ticks — label sits INSIDE the canvas,
+              just above the gridline (or clamped to the canvas top/bottom
+              when niceTicks extends beyond the data domain — e.g. an upper
+              tick of +100K when data peaks at +95K would otherwise render
+              above the SVG viewBox). The gridline is only drawn when it
+              falls inside the canvas. */}
           {yGex &&
             leftTicks.map((v) => {
               const y = yGex(v);
+              const labelY = Math.max(
+                PAD.top + 10,
+                Math.min(HEIGHT - PAD.bottom - 4, y - 4),
+              );
+              const lineInside = y >= PAD.top && y <= HEIGHT - PAD.bottom;
               return (
                 <g key={`L${v}`}>
-                  <line
-                    x1={PAD.left - 4}
-                    x2={WIDTH - PAD.right}
-                    y1={y}
-                    y2={y}
-                    stroke={COLORS.grid}
-                  />
+                  {lineInside && (
+                    <line
+                      x1={PAD.left}
+                      x2={WIDTH - PAD.right}
+                      y1={y}
+                      y2={y}
+                      stroke={COLORS.grid}
+                    />
+                  )}
                   <text
-                    x={PAD.left - 6}
-                    y={y + 3}
-                    textAnchor="end"
+                    x={PAD.left + 4}
+                    y={labelY}
+                    textAnchor="start"
                     fontSize={9}
                     fontFamily="var(--font-mono)"
                     fill={COLORS.netGex}
@@ -221,15 +253,21 @@ export function HistoryChart({
               );
             })}
 
-          {/* Right y-axis (price band). */}
+          {/* Right y-axis (price band). niceTicks may extend beyond the
+              data domain; clamp labels to the canvas y-range so they don't
+              render off-viewBox (the same bug the left axis had). */}
           {yPrice &&
             rightTicks.map((v) => {
               const y = yPrice(v);
+              const labelY = Math.max(
+                PAD.top + 10,
+                Math.min(HEIGHT - PAD.bottom - 4, y + 3),
+              );
               return (
                 <text
                   key={`R${v}`}
                   x={WIDTH - PAD.right + 6}
-                  y={y + 3}
+                  y={labelY}
                   textAnchor="start"
                   fontSize={9}
                   fontFamily="var(--font-mono)"
@@ -268,24 +306,39 @@ export function HistoryChart({
             );
           })}
 
+          {/* `strokeLinecap="round"` makes the zero-length L emitted by
+              pathFromNullablePoints for isolated points render as a visible
+              dot — critical for daily gex_flip, which the EOD job emits as
+              very sparse single observations. */}
           <path
             d={netGexPath}
             fill="none"
             stroke={COLORS.netGex}
             strokeWidth={1.5}
+            strokeLinecap="round"
           />
           <path
             d={flipPath}
             fill="none"
             stroke={COLORS.flip}
-            strokeWidth={1.2}
+            strokeWidth={1.6}
             strokeDasharray="3 2"
+            strokeLinecap="round"
           />
           <path
             d={spotPath}
             fill="none"
             stroke={COLORS.spot}
             strokeWidth={1.2}
+            strokeLinecap="round"
+          />
+          <path
+            d={ivPath}
+            fill="none"
+            stroke={COLORS.iv}
+            strokeWidth={1.1}
+            opacity={0.7}
+            strokeLinecap="round"
           />
         </svg>
       </div>

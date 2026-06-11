@@ -73,11 +73,61 @@ describe("GexIntradayChart", () => {
     expect(screen.getAllByText("06/10").length).toBeGreaterThan(0);
   });
 
-  it("renders RTH tick labels (09:30, 12:00, 16:00)", () => {
-    render(<GexIntradayChart data={makeSessions()} ticker="SPX" />);
-    expect(screen.getAllByText("09:30").length).toBeGreaterThan(0);
-    expect(screen.getAllByText("12:00").length).toBeGreaterThan(0);
-    expect(screen.getAllByText("16:00").length).toBeGreaterThan(0);
+  it("labels the 12:00 midday anchor per session and renders 09:30/16:00 as tick marks only", () => {
+    const { container } = render(
+      <GexIntradayChart data={makeSessions()} ticker="SPX" />,
+    );
+    // Midday is the labelled anchor — one label per session.
+    expect(screen.getAllByText("12:00").length).toBe(3);
+    // 09:30 and 16:00 no longer carry text labels (they used to collide at
+    // adjacent-session boundaries). Their tick marks still render — see the
+    // <line> count check below.
+    expect(screen.queryAllByText("09:30").length).toBe(0);
+    expect(screen.queryAllByText("16:00").length).toBe(0);
+    // Three tick marks per session × 3 sessions = 9 short axis lines at the
+    // bottom edge of the chart canvas (y1 = HEIGHT - PAD.bottom = 242).
+    const tickMarks = container.querySelectorAll(
+      'svg line[y1="242"][y2="244"], svg line[y1="242"][y2="246"]',
+    );
+    expect(tickMarks.length).toBe(9);
+  });
+
+  it("renders an alternating session band for every other session", () => {
+    const { container } = render(
+      <GexIntradayChart data={makeSessions()} ticker="SPX" />,
+    );
+    // 3 sessions → exactly 1 banded session (index 1, the middle one).
+    const bands = container.querySelectorAll(
+      'svg rect[fill="rgba(148,163,184,0.05)"]',
+    );
+    expect(bands.length).toBe(1);
+  });
+
+  it("breaks every series path at session boundaries (no overnight RTH line)", () => {
+    const { container } = render(
+      <GexIntradayChart data={makeSessions()} ticker="SPX" />,
+    );
+    // Each of 4 series paths should have 3 `M` commands — one per session —
+    // so the path visually starts fresh at each 09:30 ET and never connects
+    // from one session's 16:00 close to the next session's 09:30 open.
+    const paths = Array.from(container.querySelectorAll("svg path"));
+    expect(paths.length).toBe(4);
+    for (const p of paths) {
+      const d = p.getAttribute("d") ?? "";
+      const moveCount = (d.match(/M/g) ?? []).length;
+      expect(moveCount).toBeGreaterThanOrEqual(3);
+    }
+  });
+
+  it("uses stroke-linecap=round on series paths so isolated singletons render as dots", () => {
+    const { container } = render(
+      <GexIntradayChart data={makeSessions()} ticker="SPX" />,
+    );
+    const paths = Array.from(container.querySelectorAll("svg path"));
+    expect(paths.length).toBe(4);
+    for (const p of paths) {
+      expect(p.getAttribute("stroke-linecap")).toBe("round");
+    }
   });
 
   it("renders the thin-data fallback when only one tick is present", () => {

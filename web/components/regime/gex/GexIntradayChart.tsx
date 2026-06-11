@@ -24,6 +24,9 @@ const COLORS = {
   divider: "var(--border-dim)",
   grid: "rgba(148,163,184,0.08)",
   zero: "var(--border-dim)",
+  // Subtle alternating fill behind every other session column. The shade
+  // separates adjacent ET dates without competing with the four series.
+  sessionBand: "rgba(148,163,184,0.05)",
 };
 
 const ET_TZ = "America/New_York";
@@ -174,9 +177,7 @@ export function GexIntradayChart({
     return (
       <div className="section" data-testid="gex-intraday-empty">
         <div className="section-header">
-          <div className="section-title">
-            {ticker} — Intraday GEX, 5 Sessions
-          </div>
+          <div className="section-title">{ticker} — Intraday GEX (RTH)</div>
         </div>
         <div
           className="section-body"
@@ -199,9 +200,7 @@ export function GexIntradayChart({
     return (
       <div className="section" data-testid="gex-intraday-thin">
         <div className="section-header">
-          <div className="section-title">
-            {ticker} — Intraday GEX, 5 Sessions
-          </div>
+          <div className="section-title">{ticker} — Intraday GEX (RTH)</div>
         </div>
         <div
           className="section-body"
@@ -248,15 +247,23 @@ export function GexIntradayChart({
     scale: ((v: number) => number) | null,
   ): string {
     if (scale == null) return "";
-    // Keep nulls in the array so pathFromNullablePoints breaks the path at
-    // gaps instead of straight-line interpolating across them. Critical for
-    // gex_flip, which the scanner emits sparsely.
-    return pathFromNullablePoints(
-      flat.map((p): [number, number] | null => {
-        const v = accessor(p);
-        return v == null ? null : [xScale(p.x), scale(v)];
-      }),
-    );
+    // Build a separate sub-path PER SESSION and concatenate. This breaks
+    // every series at the session boundary so a line from session N's
+    // 16:00 ET close never crosses to session N+1's 09:30 ET open
+    // (overnight RTH motion that did not happen). pathFromNullablePoints
+    // also handles intra-session gaps + isolated singletons within each
+    // session — see svgChart.ts.
+    return sessionRanges
+      .map((s) =>
+        pathFromNullablePoints(
+          flat.slice(s.start, s.end + 1).map((p): [number, number] | null => {
+            const v = accessor(p);
+            return v == null ? null : [xScale(p.x), scale(v)];
+          }),
+        ),
+      )
+      .filter((sub) => sub.length > 0)
+      .join(" ");
   }
 
   const netGexPath = pathFor((p) => p.netGex, yLeft);
@@ -297,6 +304,23 @@ export function GexIntradayChart({
           style={{ width: "100%", height: HEIGHT, display: "block" }}
         >
           <title>{`${ticker} intraday — spot, flip, net GEX, IV30d`}</title>
+
+          {/* Alternating session bands. Rendered first so every other ET
+              date column reads as a subtly-different background — replaces
+              what the colliding 09:30/16:00 boundary labels were trying to
+              communicate. */}
+          {sessionRanges.map((s, i) =>
+            i % 2 === 1 ? (
+              <rect
+                key={`band-${s.et_date}`}
+                x={xScale(s.start)}
+                y={PAD.top}
+                width={xScale(s.end) - xScale(s.start)}
+                height={HEIGHT - PAD.top - PAD.bottom}
+                fill={COLORS.sessionBand}
+              />
+            ) : null,
+          )}
 
           {/* Zero line for net GEX (only when the scale crosses zero). */}
           {yLeft && netGexD && netGexD.lo <= 0 && netGexD.hi >= 0 && (
@@ -340,28 +364,35 @@ export function GexIntradayChart({
                 >
                   {etDateLabel(s.et_date)}
                 </text>
-                {/* RTH intraday ticks (09:30, 12:00, 16:00 ET). */}
+                {/* RTH intraday ticks. Only the 12:00 anchor carries a
+                    label — 09:30 and 16:00 sit at the session band edges
+                    where adjacent-session labels used to collide; the band
+                    edges themselves now communicate open/close. */}
                 {rthTicksForSession(s.points).map((t) => {
                   const tx = xScale(s.start + t.idx);
+                  const labeled = t.label === "12:00";
                   return (
                     <g key={`${s.et_date}-${t.label}`}>
                       <line
                         x1={tx}
                         x2={tx}
                         y1={HEIGHT - PAD.bottom}
-                        y2={HEIGHT - PAD.bottom + 4}
+                        y2={HEIGHT - PAD.bottom + (labeled ? 4 : 2)}
                         stroke="var(--text-muted)"
+                        opacity={labeled ? 1 : 0.5}
                       />
-                      <text
-                        x={tx}
-                        y={HEIGHT - PAD.bottom + 14}
-                        textAnchor="middle"
-                        fontSize={8}
-                        fontFamily="var(--font-mono)"
-                        fill="var(--text-muted)"
-                      >
-                        {t.label}
-                      </text>
+                      {labeled && (
+                        <text
+                          x={tx}
+                          y={HEIGHT - PAD.bottom + 14}
+                          textAnchor="middle"
+                          fontSize={8}
+                          fontFamily="var(--font-mono)"
+                          fill="var(--text-muted)"
+                        >
+                          {t.label}
+                        </text>
+                      )}
                     </g>
                   );
                 })}
@@ -369,22 +400,33 @@ export function GexIntradayChart({
             );
           })}
 
-          {/* Left y-axis (net GEX). */}
+          {/* Y-axis tick labels. niceTicks may extend beyond the data
+              domain (e.g. an upper tick of +100K when data peaks at +95K);
+              clamp the label y so it always renders inside the SVG viewBox
+              and only draw the gridline when its y falls inside the chart
+              canvas. Same fix the daily HistoryChart got. */}
           {yLeft &&
             leftTicks.map((v) => {
               const y = yLeft(v);
+              const labelY = Math.max(
+                PAD.top + 10,
+                Math.min(HEIGHT - PAD.bottom - 4, y + 3),
+              );
+              const lineInside = y >= PAD.top && y <= HEIGHT - PAD.bottom;
               return (
                 <g key={`L${v}`}>
-                  <line
-                    x1={PAD.left - 4}
-                    x2={WIDTH - PAD.right}
-                    y1={y}
-                    y2={y}
-                    stroke={COLORS.grid}
-                  />
+                  {lineInside && (
+                    <line
+                      x1={PAD.left - 4}
+                      x2={WIDTH - PAD.right}
+                      y1={y}
+                      y2={y}
+                      stroke={COLORS.grid}
+                    />
+                  )}
                   <text
                     x={PAD.left - 6}
-                    y={y + 3}
+                    y={labelY}
                     textAnchor="end"
                     fontSize={9}
                     fontFamily="var(--font-mono)"
@@ -402,11 +444,15 @@ export function GexIntradayChart({
           {yRight &&
             rightTicks.map((v) => {
               const y = yRight(v);
+              const labelY = Math.max(
+                PAD.top + 10,
+                Math.min(HEIGHT - PAD.bottom - 4, y + 3),
+              );
               return (
                 <g key={`R${v}`}>
                   <text
                     x={WIDTH - PAD.right + 6}
-                    y={y + 3}
+                    y={labelY}
                     textAnchor="start"
                     fontSize={9}
                     fontFamily="var(--font-mono)"
@@ -418,25 +464,32 @@ export function GexIntradayChart({
               );
             })}
 
-          {/* Series (draw net_gex first so price lines sit on top visually). */}
+          {/* Series (draw net_gex first so price lines sit on top visually).
+              `strokeLinecap="round"` is REQUIRED so the zero-length L emitted
+              by pathFromNullablePoints for isolated points renders as a
+              visible dot (diameter = strokeWidth). Critical for gex_flip,
+              which the scanner emits as sparse single observations. */}
           <path
             d={netGexPath}
             fill="none"
             stroke={COLORS.netGex}
             strokeWidth={1.4}
+            strokeLinecap="round"
           />
           <path
             d={flipPath}
             fill="none"
             stroke={COLORS.flip}
-            strokeWidth={1.2}
+            strokeWidth={1.6}
             strokeDasharray="3 2"
+            strokeLinecap="round"
           />
           <path
             d={spotPath}
             fill="none"
             stroke={COLORS.spot}
             strokeWidth={1.4}
+            strokeLinecap="round"
           />
           <path
             d={ivPath}
@@ -444,6 +497,7 @@ export function GexIntradayChart({
             stroke={COLORS.iv}
             strokeWidth={1.1}
             opacity={0.7}
+            strokeLinecap="round"
           />
         </svg>
       </div>
