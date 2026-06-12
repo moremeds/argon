@@ -2,14 +2,12 @@
 
 import { MultiPanelGrid, type PanelSpec } from "../MultiPanelGrid";
 import {
-  useVcgDaily,
   useVcgIntraday,
-  type VcgDailyEntry,
   type VcgIntradayPoint,
 } from "@/lib/regime/useVcgSeries";
 import { useMarketHours } from "@/lib/regime/useMarketHours";
 
-type AnyRow = VcgIntradayPoint | VcgDailyEntry;
+type AnyRow = VcgIntradayPoint;
 
 const PANELS: PanelSpec<AnyRow>[] = [
   {
@@ -61,7 +59,6 @@ const PANELS: PanelSpec<AnyRow>[] = [
 export default function VcgSeriesGrids() {
   const marketState = useMarketHours();
   const { data: intraday } = useVcgIntraday(marketState);
-  const { data: daily } = useVcgDaily(90);
 
   const flatRows: VcgIntradayPoint[] = [];
   const dividers: number[] = [];
@@ -70,22 +67,15 @@ export default function VcgSeriesGrids() {
     flatRows.push(...(s.points ?? []));
   }
 
+  // Daily 90d series now live as sparklines inside the VCG cards above —
+  // the standalone daily grid was removed in favour of that layout.
   return (
-    <>
-      <MultiPanelGrid
-        title="VCG — Intraday, last 5 sessions"
-        panels={PANELS}
-        rows={flatRows}
-        dividers={dividers}
-        testId="vcg-intraday-grid"
-      />
-      <MultiPanelGrid
-        title="VCG — Daily, 90 days"
-        panels={PANELS}
-        rows={daily?.rows ?? []}
-        dividers={[]}
-        testId="vcg-daily-grid"
-      />
-    </>
+    <MultiPanelGrid
+      title="VCG — Intraday, last 5 sessions"
+      panels={PANELS}
+      rows={flatRows}
+      dividers={dividers}
+      testId="vcg-intraday-grid"
+    />
   );
 }

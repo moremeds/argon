@@ -1,5 +1,5 @@
 /* @vitest-environment jsdom */
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, beforeEach, afterEach, vi } from "vitest";
 
 import { CriSubTabView } from "@/components/regime/CriSubTab";
@@ -176,12 +176,14 @@ describe("CriSubTabView", () => {
     ).not.toBeNull();
   });
 
-  it("renders the sortable history table beneath the charts", () => {
+  it("renders the history table folded by default, expandable via toggle", () => {
     render(<CriSubTabView data={POPULATED} />);
+    // Folded by default — only the toggle is visible.
+    expect(screen.queryByTestId("cri-history-table")).toBeNull();
+    const toggle = screen.getByTestId("cri-history-table-toggle");
+    fireEvent.click(toggle);
     const table = screen.getByTestId("cri-history-table");
-    expect(table).not.toBeNull();
     // Header row + 2 data rows from POPULATED.history
     expect(table.querySelectorAll("tbody tr").length).toBe(2);
-    expect(screen.getByTestId("cri-history-table-toggle")).not.toBeNull();
   });
 });

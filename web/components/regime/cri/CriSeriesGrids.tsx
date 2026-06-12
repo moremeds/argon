@@ -2,14 +2,12 @@
 
 import { MultiPanelGrid, type PanelSpec } from "../MultiPanelGrid";
 import {
-  useCriDaily,
   useCriIntraday,
-  type CriDailyEntry,
   type CriIntradayPoint,
 } from "@/lib/regime/useCriSeries";
 import { useMarketHours } from "@/lib/regime/useMarketHours";
 
-type AnyRow = CriIntradayPoint | CriDailyEntry;
+type AnyRow = CriIntradayPoint;
 
 const PANELS: PanelSpec<AnyRow>[] = [
   {
@@ -41,7 +39,6 @@ const PANELS: PanelSpec<AnyRow>[] = [
 export default function CriSeriesGrids() {
   const marketState = useMarketHours();
   const { data: intraday } = useCriIntraday(marketState);
-  const { data: daily } = useCriDaily(90);
 
   const flatRows: CriIntradayPoint[] = [];
   const dividers: number[] = [];
@@ -50,22 +47,15 @@ export default function CriSeriesGrids() {
     flatRows.push(...(s.points ?? []));
   }
 
+  // Daily 90d series now live as sparklines inside the CRI cards above —
+  // the standalone daily grid was removed in favour of that layout.
   return (
-    <>
-      <MultiPanelGrid
-        title="CRI — Intraday, last 5 sessions"
-        panels={PANELS}
-        rows={flatRows}
-        dividers={dividers}
-        testId="cri-intraday-grid"
-      />
-      <MultiPanelGrid
-        title="CRI — Daily, 90 days"
-        panels={PANELS}
-        rows={daily?.rows ?? []}
-        dividers={[]}
-        testId="cri-daily-grid"
-      />
-    </>
+    <MultiPanelGrid
+      title="CRI — Intraday, last 5 sessions"
+      panels={PANELS}
+      rows={flatRows}
+      dividers={dividers}
+      testId="cri-intraday-grid"
+    />
   );
 }

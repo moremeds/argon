@@ -1,14 +1,17 @@
 "use client";
 
 import { Activity, TrendingUp, TrendingDown } from "lucide-react";
+import { useMemo } from "react";
 import {
   useGex,
+  type GexBucket,
   type GexLevel,
   type MqLevels,
   type SourceDelta,
 } from "@/lib/regime/useGex";
 import { useGexIntraday } from "@/lib/regime/useGexIntraday";
 import { MarketState } from "@/lib/regime/useMarketHours";
+import { quoteIsFresh, useRegimeQuotes } from "@/lib/regime/useRegimeQuotes";
 import InfoTooltip from "./InfoTooltip";
 import GexProfileChart from "./GexProfileChart";
 import { HistoryChart } from "./HistoryChart";
@@ -130,6 +133,52 @@ function LevelCard({
 export default function GexSubTab({ marketState }: GexSubTabProps) {
   const { data, loading, error, lastSync } = useGex(marketState ?? null);
   const { data: intraday } = useGexIntraday(marketState ?? null, "SPX", 5);
+  const { data: quotes } = useRegimeQuotes();
+
+  // Live SPX splice: when the WS quote is fresh, the SPOT card and the
+  // profile chart tick with it; everything else stays on the scan snapshot.
+  const spxQuote = data?.ticker === "SPX" ? quotes?.quotes?.SPX : undefined;
+  const liveSpot =
+    spxQuote && quoteIsFresh(spxQuote.quoted_at, quotes?.fresh_within_seconds)
+      ? spxQuote.price
+      : null;
+
+  // Re-anchor the profile on the live spot: recompute each bucket's distance
+  // and re-place the SPOT tag on the nearest strike, mirroring the backend's
+  // tag_profile precedence (SPOT first, GEX FLIP overrides, levels fill the
+  // remaining strikes) so a spot move can't strand a stale SPOT row.
+  const liveProfile: GexBucket[] = useMemo(() => {
+    const profile = data?.profile ?? [];
+    if (liveSpot == null || !profile.length) return profile;
+    let nearest: number | null = null;
+    let minDist = Infinity;
+    for (const b of profile) {
+      const d = Math.abs(b.strike - liveSpot);
+      if (d < minDist) {
+        minDist = d;
+        nearest = b.strike;
+      }
+    }
+    const tagMap = new Map<number, string>();
+    if (nearest != null) tagMap.set(nearest, "SPOT");
+    const lv = data?.levels;
+    if (lv?.gex_flip) tagMap.set(lv.gex_flip.strike, "GEX FLIP");
+    const labelled: [GexLevel, string][] = [
+      [lv?.max_magnet ?? null, "MAX MAGNET"],
+      [lv?.second_magnet ?? null, "SECOND MAGNET"],
+      [lv?.max_accelerator ?? null, "MAX ACCELERATOR"],
+      [lv?.put_wall ?? null, "PUT WALL"],
+      [lv?.call_wall ?? null, "CALL WALL"],
+    ];
+    for (const [level, label] of labelled) {
+      if (level && !tagMap.has(level.strike)) tagMap.set(level.strike, label);
+    }
+    return profile.map((b) => ({
+      ...b,
+      pct_from_spot: ((b.strike - liveSpot) / liveSpot) * 100,
+      tag: tagMap.get(b.strike) ?? null,
+    }));
+  }, [data, liveSpot]);
 
   if (loading && !data) {
     return (
@@ -207,6 +256,18 @@ export default function GexSubTab({ marketState }: GexSubTabProps) {
   const daysCount = Math.abs(daysAbove);
   const spotFreshnessAnchorMs = Date.parse(lastSync ?? data.scan_time);
 
+  const displaySpot = liveSpot ?? data.spot;
+  const prevClose = data.prev_close;
+  const dayChange =
+    liveSpot != null && prevClose != null
+      ? liveSpot - prevClose
+      : data.day_change;
+  const dayChangePct =
+    liveSpot != null && prevClose
+      ? ((liveSpot - prevClose) / prevClose) * 100
+      : data.day_change_pct;
+  const spotTapeTime = liveSpot != null ? spxQuote?.quoted_at : data.tape_time;
+
   const netGexColor = data.net_gex >= 0 ? "var(--signal-core)" : "var(--fault)";
   const netDexColor = data.net_dex >= 0 ? "var(--signal-core)" : "var(--fault)";
 
@@ -267,7 +328,7 @@ export default function GexSubTab({ marketState }: GexSubTabProps) {
             label="SPOT"
             badge={
               <SpotFreshnessPill
-                tapeTime={data.tape_time}
+                tapeTime={spotTapeTime}
                 nowMs={
                   Number.isFinite(spotFreshnessAnchorMs)
                     ? spotFreshnessAnchorMs
@@ -275,20 +336,17 @@ export default function GexSubTab({ marketState }: GexSubTabProps) {
                 }
               />
             }
-            value={fmtPrice(data.spot)}
+            value={fmtPrice(displaySpot)}
             sub={
-              data.day_change != null ? (
+              dayChange != null ? (
                 <span
                   style={{
                     color:
-                      data.day_change >= 0
-                        ? "var(--positive)"
-                        : "var(--negative)",
+                      dayChange >= 0 ? "var(--positive)" : "var(--negative)",
                   }}
                 >
-                  {data.day_change >= 0 ? "+" : ""}
-                  {fmtPrice(data.day_change)} (
-                  {formatPercent(data.day_change_pct)})
+                  {dayChange >= 0 ? "+" : ""}
+                  {fmtPrice(dayChange)} ({formatPercent(dayChangePct)})
                 </span>
               ) : undefined
             }
@@ -409,7 +467,7 @@ export default function GexSubTab({ marketState }: GexSubTabProps) {
         )}
 
         {/* ── GEX Profile Chart ── */}
-        <GexProfileChart profile={data.profile} spot={data.spot} />
+        <GexProfileChart profile={liveProfile} spot={displaySpot} />
 
         {/* ── Bottom Row: Expected Range + Bias ── */}
         <div className="gex-bottom-row">

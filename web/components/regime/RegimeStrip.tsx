@@ -91,6 +91,7 @@ type RegimeStripCellProps = {
   change?: ReactNode;
   sub?: ReactNode;
   timestamp?: ReactNode;
+  spark?: ReactNode;
 };
 
 export function RegimeStripCell({
@@ -100,6 +101,7 @@ export function RegimeStripCell({
   change,
   sub,
   timestamp,
+  spark,
 }: RegimeStripCellProps) {
   return (
     <div className="regime-strip-cell" data-testid={testId}>
@@ -112,6 +114,7 @@ export function RegimeStripCell({
         {sub ? <div className="regime-strip-sub">{sub}</div> : null}
         {timestamp ? <div className="regime-strip-ts">{timestamp}</div> : null}
       </div>
+      {spark}
     </div>
   );
 }

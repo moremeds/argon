@@ -23,7 +23,7 @@ type VcgValidationResponse = components["schemas"]["VcgValidationResponse"];
 export default function VcgStressHistorySection() {
   const [data, setData] = useState<VcgValidationResponse | null>(null);
   const [err, setErr] = useState<string | null>(null);
-  const [open, setOpen] = useState(true);
+  const [open, setOpen] = useState(false);
 
   useEffect(() => {
     let cancelled = false;

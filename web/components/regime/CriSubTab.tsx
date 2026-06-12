@@ -24,8 +24,10 @@ import {
   formatSignedNumber,
 } from "./primitives/format";
 import CriSeriesGrids from "./cri/CriSeriesGrids";
+import CardSparkline from "./primitives/CardSparkline";
 import { type CriBlock } from "@/lib/regime/useCri";
 import { useCriLive, type CriLiveResponse } from "@/lib/regime/useCriLive";
+import { useCriDaily, type CriDailyEntry } from "@/lib/regime/useCriSeries";
 
 type CriLevel = "LOW" | "ELEVATED" | "HIGH" | "CRITICAL";
 
@@ -178,42 +180,55 @@ const COR_RIGHT: ChartSeries = {
 
 export function CriSubTabView({
   data,
+  daily,
   onSyncNow,
   syncing = false,
 }: {
   data: CriLiveResponse | null;
+  /** 90d daily history rows — drives the in-card sparklines. */
+  daily?: CriDailyEntry[] | null;
   onSyncNow?: () => void;
   syncing?: boolean;
 }) {
   // Empty/loading state — mirrors xenon's "no CRI data" shield empty.
   if (!data || data.status === "empty") {
     return (
-      <div className="regime-empty" data-testid="cri-empty-state">
-        <Shield size={32} strokeWidth={1} />
-        <p>No CRI data available. Click Sync Now to run a scan.</p>
-        {onSyncNow && (
-          <button
-            type="button"
-            onClick={onSyncNow}
-            disabled={syncing}
-            data-testid="cri-sync-now"
-            style={{
-              marginTop: "12px",
-              padding: "6px 14px",
-              fontFamily: "var(--font-mono)",
-              fontSize: "11px",
-              letterSpacing: "0.08em",
-              textTransform: "uppercase",
-              background: "var(--bg-panel-raised, var(--bg-panel))",
-              border: "1px solid var(--border-dim, var(--line-grid))",
-              color: "var(--text-primary)",
-              cursor: syncing ? "default" : "pointer",
-              opacity: syncing ? 0.6 : 1,
-            }}
-          >
-            {syncing ? "Syncing…" : "Sync Now"}
-          </button>
-        )}
+      <div className="section gex-panel">
+        <div className="section-header">
+          <div className="section-title">
+            <Shield size={14} />
+            SPX Crash Risk Index (CRI)
+          </div>
+        </div>
+        <div className="section-body">
+          <div className="regime-empty" data-testid="cri-empty-state">
+            <Shield size={32} strokeWidth={1} />
+            <p>No CRI data available. Click Sync Now to run a scan.</p>
+            {onSyncNow && (
+              <button
+                type="button"
+                onClick={onSyncNow}
+                disabled={syncing}
+                data-testid="cri-sync-now"
+                style={{
+                  marginTop: "12px",
+                  padding: "6px 14px",
+                  fontFamily: "var(--font-mono)",
+                  fontSize: "11px",
+                  letterSpacing: "0.08em",
+                  textTransform: "uppercase",
+                  background: "var(--bg-panel-raised, var(--bg-panel))",
+                  border: "1px solid var(--border-dim, var(--line-grid))",
+                  color: "var(--text-primary)",
+                  cursor: syncing ? "default" : "pointer",
+                  opacity: syncing ? 0.6 : 1,
+                }}
+              >
+                {syncing ? "Syncing…" : "Sync Now"}
+              </button>
+            )}
+          </div>
+        </div>
       </div>
     );
   }
@@ -274,252 +289,343 @@ export function CriSubTabView({
   const priorHistory =
     history.length >= 2 ? history[history.length - 2] : undefined;
 
+  // 90d daily series for in-card sparklines (oldest → newest).
+  const dailyRows = daily ?? [];
+  const dseries = (k: keyof CriDailyEntry): (number | null)[] =>
+    dailyRows.map((r) => {
+      const v = r[k];
+      return typeof v === "number" && Number.isFinite(v) ? v : null;
+    });
+  const vixDaily = dseries("vix");
+  // VIX Δ (3d) has no daily column — derive it from the VIX series, matching
+  // the tile's definition (absolute change over the last 3 sessions).
+  const vixDelta3dDaily = vixDaily.map((v, i) => {
+    const base = i >= 3 ? vixDaily[i - 3] : null;
+    return v != null && base != null ? v - base : null;
+  });
+
   return (
-    <div className="regime-panel" data-testid="cri-subtab">
-      {/* ── Row 1: Hero ───────────────────── */}
-      <div className="regime-hero">
-        <div className="regime-hero-score" style={{ color }}>
-          <span data-testid="cri-score">{cri.score.toFixed(0)}</span>
-          <span className="regime-hero-max">/100</span>
-        </div>
-        <div className="regime-hero-meta">
-          <span
-            className="regime-level-badge"
-            style={{
-              background: color,
-              color: level === "LOW" ? "#000" : "#fff",
-            }}
-            data-testid="cri-level"
-          >
-            {level}
-          </span>
-          <span
-            className="regime-live-dot"
-            style={{
-              background: live ? "var(--positive)" : "var(--text-muted)",
-            }}
-          />
-          <span className="regime-hero-label">
-            {live
-              ? `LIVE${data.active_source ? ` · ${data.active_source === "xenon_ws" ? "XENON" : "MASSIVE"}` : ""}`
-              : "CACHED"}
-          </span>
-          {lastSync && (
-            <span className="regime-hero-timestamp">
-              Last scan: {new Date(lastSync).toLocaleTimeString()}
-            </span>
-          )}
-        </div>
-        <div className="regime-hero-bar">
-          <div
-            className="regime-hero-bar-fill"
-            style={{ width: `${cri.score}%`, background: color }}
-          />
-        </div>
-        <div className="regime-hero-scale">
-          <span>LOW</span>
-          <span>ELEVATED</span>
-          <span>HIGH</span>
-          <span>CRITICAL</span>
+    <div className="section gex-panel" data-testid="cri-subtab">
+      <div className="section-header">
+        <div className="section-title">
+          <Shield size={14} />
+          SPX Crash Risk Index (CRI)
         </div>
       </div>
-
-      {/* ── Row 2: Live ticker strip (DAILY badges in our project) ── */}
-      <RegimeStrip>
-        <RegimeStripCell
-          testId="strip-vix"
-          label={
-            <>
-              VIX <LiveBadge live={liveFor("VIX")} />
-            </>
-          }
-          value={formatNumber(vix)}
-          change={<DayChange last={vix} close={vixClose} />}
-          sub={<>5d RoC: {formatPercent(data.vix_5d_roc, 1)}</>}
-        />
-        <RegimeStripCell
-          testId="strip-vvix"
-          label={
-            <>
-              VVIX <LiveBadge live={liveFor("VVIX")} />
-            </>
-          }
-          value={formatNumber(vvix)}
-          change={<DayChange last={vvix} close={vvixClose} />}
-          sub={<>VVIX/VIX: {formatNumber(vvixVixRatio)}</>}
-        />
-        <RegimeStripCell
-          testId="strip-spy"
-          label={
-            <>
-              {data.spx_source === "SPY" ? "SPY" : "SPX"}{" "}
-              <LiveBadge live={liveFor("SPX")} />
-            </>
-          }
-          value={`$${formatNumber(spy)}`}
-          change={<DayChange last={spy} close={spyClose} prefix="$" />}
-          sub={<>vs 100d MA: {formatPercent(spxDistPct)}</>}
-        />
-        <RegimeStripCell
-          testId="strip-rvol"
-          label={
-            <>
-              <span className="regime-strip-label-text-full">REALIZED VOL</span>
-              <span className="regime-strip-label-text-short">RVOL</span>
-              <LiveBadge live={live} />
-            </>
-          }
-          value={realizedVol != null ? `${formatNumber(realizedVol)}%` : "---"}
-          change={<PointChange change={null} suffix="%" label="intraday" />}
-          sub={<>20d annualized</>}
-        />
-        <RegimeStripCell
-          testId="strip-cor1m"
-          label={
-            <>
-              COR1M <LiveBadge live={liveFor("COR1M")} />
-            </>
-          }
-          value={formatNumber(cor1m, 2)}
-          change={<DayChange last={cor1m} close={cor1mPrevClose} />}
-          sub={
-            <>{`5d chg: ${corr5dChange != null ? `${formatSignedNumber(corr5dChange)} pts` : "---"}`}</>
-          }
-        />
-      </RegimeStrip>
-
-      {/* ── Mean-reversion tiles (VRP / VIX z-score / VIX-VIX3M ratio / VIX Δ 3d) ── */}
-      <MeanReversionTiles
-        vrp={data.vrp ?? null}
-        vixZscore={data.vix_zscore_30d ?? null}
-        vixVix3mRatio={data.vix_vix3m_ratio ?? null}
-        vixDelta3d={data.vix_delta_3d ?? null}
-      />
-
-      {/* ── Row 3+4: Components + Crash trigger ── */}
-      <div className="regime-detail-grid">
-        <div className="regime-components">
-          <div className="regime-panel-title">
-            <Zap size={12} />
-            CRI COMPONENTS
-            <InfoTooltip text={SECTION_TOOLTIPS["CRI COMPONENTS"]} />
-          </div>
-          <ComponentBar
-            label="VIX"
-            slot="vix"
-            score={components.vix}
-            priorScore={priorComponentScore(priorHistory, "vix")}
-            live={live}
-          />
-          <ComponentBar
-            label="VVIX"
-            slot="vvix"
-            score={components.vvix}
-            priorScore={priorComponentScore(priorHistory, "vvix")}
-            live={live}
-          />
-          <ComponentBar
-            label="CORRELATION"
-            slot="correlation"
-            score={components.correlation}
-            priorScore={priorComponentScore(priorHistory, "correlation")}
-            live={live}
-          />
-          <ComponentBar
-            label="TREND BREAK"
-            slot="momentum"
-            score={components.momentum}
-            priorScore={priorComponentScore(priorHistory, "momentum")}
-            live={live}
-          />
-          {data.pullback_20d_pct != null && data.pullback_20d_pct < 0 && (
-            <div
-              className="regime-component-subtext"
-              data-testid="trend-break-pullback-line"
-            >
-              Pullback: {data.pullback_20d_pct.toFixed(2)}% from 20d high
+      <div className="section-body regime-panel">
+        {/* ── Row 1: Hero ───────────────────── */}
+        <div className="regime-hero">
+          <div className="regime-hero-top">
+            <div className="regime-hero-main">
+              <div className="regime-hero-score" style={{ color }}>
+                <span data-testid="cri-score">{cri.score.toFixed(0)}</span>
+                <span className="regime-hero-max">/100</span>
+              </div>
+              <div className="regime-hero-meta">
+                <span
+                  className="regime-level-badge"
+                  style={{
+                    background: color,
+                    color: level === "LOW" ? "#000" : "#fff",
+                  }}
+                  data-testid="cri-level"
+                >
+                  {level}
+                </span>
+                <span
+                  className="regime-live-dot"
+                  style={{
+                    background: live ? "var(--positive)" : "var(--text-muted)",
+                  }}
+                />
+                <span className="regime-hero-label">
+                  {live
+                    ? `LIVE${data.active_source ? ` · ${data.active_source === "xenon_ws" ? "XENON" : "MASSIVE"}` : ""}`
+                    : "CACHED"}
+                </span>
+                {lastSync && (
+                  <span className="regime-hero-timestamp">
+                    Last scan: {new Date(lastSync).toLocaleTimeString()}
+                  </span>
+                )}
+              </div>
             </div>
-          )}
+            {dailyRows.length > 0 && (
+              <div className="regime-hero-spark" data-testid="cri-hero-spark">
+                <div className="regime-hero-spark-label">CRI — DAILY 90D</div>
+                <CardSparkline
+                  values={dseries("cri_score")}
+                  label="CRI daily score, 90 days"
+                  color="var(--accent-warm, #F5A623)"
+                  height={48}
+                />
+              </div>
+            )}
+          </div>
+          <div className="regime-hero-bar">
+            <div
+              className="regime-hero-bar-fill"
+              style={{ width: `${cri.score}%`, background: color }}
+            />
+          </div>
+          <div className="regime-hero-scale">
+            <span>LOW</span>
+            <span>ELEVATED</span>
+            <span>HIGH</span>
+            <span>CRITICAL</span>
+          </div>
         </div>
-        <div className="regime-triggers">
-          <div className="regime-panel-title">
-            <AlertTriangle size={12} />
-            CRASH TRIGGER CONDITIONS
-            <InfoTooltip text={SECTION_TOOLTIPS["CRASH TRIGGER CONDITIONS"]} />
-          </div>
-          <div
-            className={`regime-trigger-status ${triggered ? "regime-triggered" : ""}`}
-            data-testid="crash-trigger-state"
-          >
-            {triggered ? "TRIGGERED" : "INACTIVE"}
-          </div>
-          <TriggerRow
-            label="SPX < 100d MA"
-            met={spxBelowMa}
-            value={`${formatPercent(spxDistPct)} (MA: $${formatNumber(ma)})`}
-            live={live}
+
+        {/* ── Row 2: Live ticker strip (DAILY badges in our project) ── */}
+        <RegimeStrip>
+          <RegimeStripCell
+            testId="strip-vix"
+            label={
+              <>
+                VIX <LiveBadge live={liveFor("VIX")} />
+              </>
+            }
+            value={formatNumber(vix)}
+            change={<DayChange last={vix} close={vixClose} />}
+            sub={<>5d RoC: {formatPercent(data.vix_5d_roc, 1)}</>}
+            spark={<CardSparkline values={vixDaily} label="VIX daily, 90d" />}
           />
-          <TriggerRow
-            label="Realized Vol > 25%"
-            met={rvolTriggerMet}
+          <RegimeStripCell
+            testId="strip-vvix"
+            label={
+              <>
+                VVIX <LiveBadge live={liveFor("VVIX")} />
+              </>
+            }
+            value={formatNumber(vvix)}
+            change={<DayChange last={vvix} close={vvixClose} />}
+            sub={<>VVIX/VIX: {formatNumber(vvixVixRatio)}</>}
+            spark={
+              <CardSparkline
+                values={dseries("vvix")}
+                label="VVIX daily, 90d"
+                color="var(--accent-vol, #8B5CF6)"
+              />
+            }
+          />
+          <RegimeStripCell
+            testId="strip-spy"
+            label={
+              <>
+                {data.spx_source === "SPY" ? "SPY" : "SPX"}{" "}
+                <LiveBadge live={liveFor("SPX")} />
+              </>
+            }
+            value={`$${formatNumber(spy)}`}
+            change={<DayChange last={spy} close={spyClose} prefix="$" />}
+            sub={<>vs 100d MA: {formatPercent(spxDistPct)}</>}
+            spark={
+              <CardSparkline
+                values={dseries("spx")}
+                label="SPX daily, 90d"
+                color="var(--text-primary)"
+              />
+            }
+          />
+          <RegimeStripCell
+            testId="strip-rvol"
+            label={
+              <>
+                <span className="regime-strip-label-text-full">
+                  REALIZED VOL
+                </span>
+                <span className="regime-strip-label-text-short">RVOL</span>
+                <LiveBadge live={live} />
+              </>
+            }
             value={
               realizedVol != null ? `${formatNumber(realizedVol)}%` : "---"
             }
-            live={live}
+            change={<PointChange change={null} suffix="%" label="intraday" />}
+            sub={<>20d annualized</>}
+            spark={
+              <CardSparkline
+                values={dseries("realized_vol")}
+                label="Realized vol daily, 90d"
+              />
+            }
           />
-          <TriggerRow
-            label="COR1M > 60"
-            met={correlationTriggerMet}
+          <RegimeStripCell
+            testId="strip-cor1m"
+            label={
+              <>
+                COR1M <LiveBadge live={liveFor("COR1M")} />
+              </>
+            }
             value={formatNumber(cor1m, 2)}
-            live={live}
+            change={<DayChange last={cor1m} close={cor1mPrevClose} />}
+            sub={
+              <>{`5d chg: ${corr5dChange != null ? `${formatSignedNumber(corr5dChange)} pts` : "---"}`}</>
+            }
+            spark={
+              <CardSparkline
+                values={dseries("cor1m")}
+                label="COR1M daily, 90d"
+              />
+            }
           />
+        </RegimeStrip>
+
+        {/* ── Mean-reversion tiles (VRP / VIX z-score / VIX-VIX3M ratio / VIX Δ 3d) ── */}
+        <MeanReversionTiles
+          vrp={data.vrp ?? null}
+          vixZscore={data.vix_zscore_30d ?? null}
+          vixVix3mRatio={data.vix_vix3m_ratio ?? null}
+          vixDelta3d={data.vix_delta_3d ?? null}
+          series={
+            dailyRows.length > 0
+              ? {
+                  vrp: dseries("vrp"),
+                  vixZscore: dseries("vix_zscore_30d"),
+                  vixVix3mRatio: dseries("vix_vix3m_ratio"),
+                  vixDelta3d: vixDelta3dDaily,
+                }
+              : undefined
+          }
+        />
+
+        {/* ── Row 3+4: Components + Crash trigger ── */}
+        <div className="regime-detail-grid">
+          <div className="regime-components">
+            <div className="regime-panel-title">
+              <Zap size={12} />
+              CRI COMPONENTS
+              <InfoTooltip text={SECTION_TOOLTIPS["CRI COMPONENTS"]} />
+            </div>
+            <ComponentBar
+              label="VIX"
+              slot="vix"
+              score={components.vix}
+              priorScore={priorComponentScore(priorHistory, "vix")}
+              live={live}
+            />
+            <ComponentBar
+              label="VVIX"
+              slot="vvix"
+              score={components.vvix}
+              priorScore={priorComponentScore(priorHistory, "vvix")}
+              live={live}
+            />
+            <ComponentBar
+              label="CORRELATION"
+              slot="correlation"
+              score={components.correlation}
+              priorScore={priorComponentScore(priorHistory, "correlation")}
+              live={live}
+            />
+            <ComponentBar
+              label="TREND BREAK"
+              slot="momentum"
+              score={components.momentum}
+              priorScore={priorComponentScore(priorHistory, "momentum")}
+              live={live}
+            />
+            {data.pullback_20d_pct != null && data.pullback_20d_pct < 0 && (
+              <div
+                className="regime-component-subtext"
+                data-testid="trend-break-pullback-line"
+              >
+                Pullback: {data.pullback_20d_pct.toFixed(2)}% from 20d high
+              </div>
+            )}
+          </div>
+          <div className="regime-triggers">
+            <div className="regime-panel-title">
+              <AlertTriangle size={12} />
+              CRASH TRIGGER CONDITIONS
+              <InfoTooltip
+                text={SECTION_TOOLTIPS["CRASH TRIGGER CONDITIONS"]}
+              />
+            </div>
+            <div
+              className={`regime-trigger-status ${triggered ? "regime-triggered" : ""}`}
+              data-testid="crash-trigger-state"
+            >
+              {triggered ? "TRIGGERED" : "INACTIVE"}
+            </div>
+            <TriggerRow
+              label="SPX < 100d MA"
+              met={spxBelowMa}
+              value={`${formatPercent(spxDistPct)} (MA: $${formatNumber(ma)})`}
+              live={live}
+            />
+            <TriggerRow
+              label="Realized Vol > 25%"
+              met={rvolTriggerMet}
+              value={
+                realizedVol != null ? `${formatNumber(realizedVol)}%` : "---"
+              }
+              live={live}
+            />
+            <TriggerRow
+              label="COR1M > 60"
+              met={correlationTriggerMet}
+              value={formatNumber(cor1m, 2)}
+              live={live}
+            />
+          </div>
         </div>
+
+        {/* ── Regime guidance (markdown-driven via /api/regime/guidance) ── */}
+        <GuidancePanel />
+
+        {/* ── Row 5: 20-Session History (two charts side-by-side) ── */}
+        {history.length > 0 && (
+          <>
+            <div className="section-header" data-testid="regime-history-header">
+              <div className="section-title" data-testid="regime-history-title">
+                <span>20-SESSION HISTORY</span>
+                <InfoTooltip text={SECTION_TOOLTIPS["20-SESSION HISTORY"]} />
+              </div>
+            </div>
+            <div
+              className="regime-history-grid"
+              data-testid="regime-history-grid"
+            >
+              <div data-testid="regime-history-chart-vix-vvix">
+                <CriHistoryChart
+                  history={history}
+                  series={[VIX_VVIX_LEFT, VIX_VVIX_RIGHT]}
+                  title="VIX / VVIX"
+                  liveValues={liveValues}
+                />
+              </div>
+              <div data-testid="regime-history-chart-rvol-cor1m">
+                <CriHistoryChart
+                  history={history}
+                  series={[RVOL_LEFT, COR_RIGHT]}
+                  title="REALIZED VOL / COR1M"
+                  liveValues={liveValues}
+                />
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* ── Row 6: Intraday small-multiples grid (basis='live' rows) ── */}
+        <CriSeriesGrids />
+
+        {/* ── Row 7: Historical table (folded by default) ── */}
+        {history.length > 0 && <CriHistoryTable history={history} />}
       </div>
-
-      {/* ── Regime guidance (markdown-driven via /api/regime/guidance) ── */}
-      <GuidancePanel />
-
-      {/* ── Row 5: 20-Session History (two charts side-by-side) ── */}
-      {history.length > 0 && (
-        <>
-          <div className="section-header" data-testid="regime-history-header">
-            <div className="section-title" data-testid="regime-history-title">
-              <span>20-SESSION HISTORY</span>
-              <InfoTooltip text={SECTION_TOOLTIPS["20-SESSION HISTORY"]} />
-            </div>
-          </div>
-          <div
-            className="regime-history-grid"
-            data-testid="regime-history-grid"
-          >
-            <div data-testid="regime-history-chart-vix-vvix">
-              <CriHistoryChart
-                history={history}
-                series={[VIX_VVIX_LEFT, VIX_VVIX_RIGHT]}
-                title="VIX / VVIX"
-                liveValues={liveValues}
-              />
-            </div>
-            <div data-testid="regime-history-chart-rvol-cor1m">
-              <CriHistoryChart
-                history={history}
-                series={[RVOL_LEFT, COR_RIGHT]}
-                title="REALIZED VOL / COR1M"
-                liveValues={liveValues}
-              />
-            </div>
-          </div>
-          <CriHistoryTable history={history} />
-        </>
-      )}
-
-      {/* ── Row 6: Intraday / daily small-multiples grids (basis='live' rows) ── */}
-      <CriSeriesGrids />
     </div>
   );
 }
 
 export default function CriSubTab() {
   const { data, syncing, syncNow } = useCriLive();
-  return <CriSubTabView data={data} syncing={syncing} onSyncNow={syncNow} />;
+  const { data: daily } = useCriDaily(90);
+  return (
+    <CriSubTabView
+      data={data}
+      daily={daily?.rows ?? null}
+      syncing={syncing}
+      onSyncNow={syncNow}
+    />
+  );
 }

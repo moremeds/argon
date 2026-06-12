@@ -1,6 +1,7 @@
 "use client";
 
 import { fmtDecimal } from "@/lib/formatters";
+import CardSparkline from "./primitives/CardSparkline";
 import {
   quoteIsFresh,
   useRegimeQuotes,
@@ -69,16 +70,29 @@ export function VolBackdropStripView({
         : "backwardation"
       : data.term_structure_state;
 
+  // Daily VIX/VIX3M ratio series for the term-structure sparkline, joined by
+  // date (the two series can have mismatched holidays/backfill gaps).
+  const vix3mByDate = new Map(
+    (data.series.VIX3M ?? []).map((p) => [p.date, p.close]),
+  );
+  const ratioSeries = (data.series.VIX ?? []).map((p) => {
+    const v3 = vix3mByDate.get(p.date);
+    return v3 ? p.close / v3 : null;
+  });
+
+  const cardStyle = {
+    border: "1px solid var(--border-dim)",
+    background: "var(--bg-panel)",
+    padding: "10px 12px",
+    minWidth: 0,
+  } as const;
+
   return (
     <div
       style={{
         display: "grid",
         gridTemplateColumns: `repeat(${SYMBOLS.length + 1}, 1fr)`,
         gap: 8,
-        padding: "12px 16px",
-        borderTop: "1px solid var(--border-dim)",
-        borderBottom: "1px solid var(--border-dim)",
-        background: "var(--bg-panel)",
       }}
     >
       {SYMBOLS.map((s) => {
@@ -93,7 +107,7 @@ export function VolBackdropStripView({
             ? ((q.price - dailyClose) / dailyClose) * 100
             : pctChange(data.series[s]);
         return (
-          <div key={s} title={tooltips[s]}>
+          <div key={s} title={tooltips[s]} style={cardStyle}>
             <div
               style={{
                 fontSize: 10,
@@ -134,11 +148,15 @@ export function VolBackdropStripView({
                 ? `${chg >= 0 ? "+" : ""}${fmtDecimal(chg, 2)}%`
                 : "—"}
             </div>
+            <CardSparkline
+              values={(data.series[s] ?? []).map((p) => p.close)}
+              label={`${labels[s]} daily closes`}
+            />
           </div>
         );
       })}
 
-      <div>
+      <div style={cardStyle}>
         <div
           style={{
             fontSize: 10,
@@ -178,6 +196,11 @@ export function VolBackdropStripView({
         >
           {state ?? "—"}
         </div>
+        <CardSparkline
+          values={ratioSeries}
+          label="VIX/VIX3M daily ratio"
+          color="var(--accent-warm, #F5A623)"
+        />
       </div>
     </div>
   );

@@ -194,10 +194,12 @@ describe("VcgSubTabView", () => {
     expect(screen.getByTestId("vcg-attr-vix-bar")).not.toBeNull();
   });
 
-  it("renders the sortable history table with header + data rows", () => {
+  it("renders the history table folded by default, expandable via toggle", () => {
     render(<VcgSubTabView data={NORMAL} />);
+    // Folded by default — only the toggle is visible.
+    expect(screen.queryByTestId("vcg-history-table")).toBeNull();
+    fireEvent.click(screen.getByTestId("vcg-history-toggle"));
     const table = screen.getByTestId("vcg-history-table");
-    expect(table).not.toBeNull();
     // 2 data rows from NORMAL.history
     expect(table.querySelectorAll("tbody tr").length).toBe(2);
     // 9 columns
@@ -206,6 +208,7 @@ describe("VcgSubTabView", () => {
 
   it("sorts the history table when a header is clicked", () => {
     render(<VcgSubTabView data={NORMAL} />);
+    fireEvent.click(screen.getByTestId("vcg-history-toggle"));
     const table = screen.getByTestId("vcg-history-table");
     const vcgHeader = Array.from(table.querySelectorAll("thead th")).find(
       (th) => (th.textContent ?? "").startsWith("VCG"),
