@@ -15,12 +15,21 @@ job self-heals if the worker was offline for a stretch.
 from __future__ import annotations
 
 import logging
-from datetime import date as _date, timedelta
+from collections.abc import Mapping
+from datetime import date as _date
+from datetime import timedelta
 
 import numpy as np
 from psycopg import Connection
 
 from uw_scan.cards import cri_scoring
+from uw_scan.scanners.live_quotes import (
+    LiveQuote,
+    carry_forward,
+    live_session_date,
+    quotes_payload,
+    splice_session_value,
+)
 from uw_scan.storage.cri_snapshot_repository import CriSnapshotRepository
 from uw_scan.storage.repository import Repository
 from uw_scan.storage.vol_index_repository import VolIndexRepository
@@ -181,15 +190,112 @@ def run(
     return row_id
 
 
-def _existing_cri_dates(
-    conn: Connection, schema: str, *, since: _date
-) -> set[_date]:
-    """Distinct ``data_date`` already in ``cri_snapshots`` since ``since``."""
+def run_live(
+    conn: Connection,
+    schema: str = "uw_scan",
+    *,
+    quotes: Mapping[str, LiveQuote],
+    persist: bool = False,
+) -> dict | None:
+    """CRI computed with live WS quotes spliced as today's provisional close.
+
+    Mandatory series (VIX/VVIX/COR1M/SPX) without a fresh quote are carried
+    forward from their last daily close so the inner-join alignment keeps
+    today's bar — a dead COR1M feed degrades that input to "yesterday's
+    value", it does not kill the live read. Returns the full payload (with
+    history arrays — the API serves it directly); when ``persist`` is set,
+    a SLIM copy (no history / spy_closes) lands in cri_snapshots with
+    basis='live'. Returns None when no usable quote exists.
+    """
+    session_date = live_session_date(quotes)
+    if session_date is None:
+        return None
+
+    vol_repo = VolIndexRepository(conn, schema=schema)
+    series: dict[str, dict[_date, float]] = {
+        "VIX": _load_vol_series(vol_repo, "VIX", LOOKBACK_DAYS),
+        "VVIX": _load_vol_series(vol_repo, "VVIX", LOOKBACK_DAYS),
+        "COR1M": _load_vol_series(vol_repo, "COR1M", LOOKBACK_DAYS),
+        "SPX": _load_spx_series(vol_repo, LOOKBACK_DAYS),
+    }
+    live_syms: list[str] = []
+    carried: list[str] = []
+    for sym in list(series):
+        q = quotes.get(sym)
+        if q is not None:
+            series[sym] = splice_session_value(series[sym], q.price, session_date)
+            live_syms.append(sym)
+        else:
+            series[sym], was_carried = carry_forward(series[sym], session_date)
+            if was_carried:
+                carried.append(sym)
+    if not live_syms:
+        return None
+
+    aligned, common_dates = _align(series)
+    if not common_dates or len(common_dates) < MIN_ALIGNED_BARS:
+        log.warning(
+            "cri_live_skipped_thin_data aligned_bars=%d need=%d",
+            len(common_dates),
+            MIN_ALIGNED_BARS,
+        )
+        return None
+
+    vix3m_series = _load_vol_series(vol_repo, "VIX3M", LOOKBACK_DAYS)
+    q3m = quotes.get("VIX3M")
+    if q3m is not None:
+        vix3m_series = splice_session_value(vix3m_series, q3m.price, session_date)
+    else:
+        # Without carry-forward today's bar is NaN and the term-structure
+        # tiles (vix3m / vix_vix3m_ratio) blank out on a LIVE read even
+        # though the EOD view had values — same degradation rule as the
+        # mandatory series.
+        vix3m_series, was_carried = carry_forward(vix3m_series, session_date)
+        if was_carried:
+            carried.append("VIX3M")
+    if vix3m_series:
+        aligned["VIX3M"] = np.array(
+            [
+                vix3m_series.get(_date.fromisoformat(d), float("nan"))
+                for d in common_dates
+            ],
+            dtype=float,
+        )
+
+    payload = cri_scoring.run_analysis(aligned, common_dates)
+    payload["basis"] = "live"
+    payload["live_quotes"] = quotes_payload(quotes)
+    payload["carried_forward"] = carried
+
+    if persist:
+        slim = {k: v for k, v in payload.items() if k not in ("history", "spy_closes")}
+        snap_repo = CriSnapshotRepository(conn, schema=schema)
+        row_id = snap_repo.insert_snapshot(
+            payload=slim, data_date=session_date, basis="live"
+        )
+        log.info(
+            "cri_live_persisted row_id=%d session=%s live=%s carried=%s score=%.1f",
+            row_id,
+            session_date,
+            sorted(live_syms),
+            carried,
+            payload["cri"]["score"],
+        )
+    return payload
+
+
+def _existing_cri_dates(conn: Connection, schema: str, *, since: _date) -> set[_date]:
+    """Distinct EOD ``data_date`` already in ``cri_snapshots`` since ``since``.
+
+    basis='eod' only — a 5-min live row landing on today's date must not
+    suppress the EOD gap recovery for that same date.
+    """
     sql = f"""
         SELECT DISTINCT data_date
           FROM {schema}.cri_snapshots
          WHERE data_date IS NOT NULL
            AND data_date >= %s
+           AND basis = 'eod'
     """
     with conn.cursor() as cur:
         cur.execute(sql, (since,))

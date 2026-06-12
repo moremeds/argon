@@ -1,12 +1,22 @@
 "use client";
 
 import InfoTooltip from "./InfoTooltip";
+import CardSparkline from "./primitives/CardSparkline";
+
+type Series = ReadonlyArray<number | null | undefined>;
 
 interface Props {
   vrp: number | null | undefined;
   vixZscore: number | null | undefined;
   vixVix3mRatio: number | null | undefined;
   vixDelta3d: number | null | undefined;
+  /** Daily history per tile (90d) — when present, drawn as a sparkline. */
+  series?: {
+    vrp?: Series;
+    vixZscore?: Series;
+    vixVix3mRatio?: Series;
+    vixDelta3d?: Series;
+  };
 }
 
 const TOOLTIPS = {
@@ -44,11 +54,13 @@ function Tile({
   value,
   dec = 2,
   signed = false,
+  series,
 }: {
   label: string;
   value: number | null | undefined;
   dec?: number;
   signed?: boolean;
+  series?: Series;
 }) {
   let display = "—";
   if (value != null && Number.isFinite(value)) {
@@ -67,6 +79,7 @@ function Tile({
       >
         {display}
       </div>
+      {series && <CardSparkline values={series} label={`${label} daily`} />}
     </div>
   );
 }
@@ -76,13 +89,24 @@ export function MeanReversionTiles({
   vixZscore,
   vixVix3mRatio,
   vixDelta3d,
+  series,
 }: Props) {
   return (
     <div className="regime-meanrev-row" data-testid="meanrev-row">
-      <Tile label="VRP" value={vrp} />
-      <Tile label="VIX Z (30d)" value={vixZscore} />
-      <Tile label="VIX / VIX3M" value={vixVix3mRatio} dec={3} />
-      <Tile label="VIX Δ (3d)" value={vixDelta3d} signed />
+      <Tile label="VRP" value={vrp} series={series?.vrp} />
+      <Tile label="VIX Z (30d)" value={vixZscore} series={series?.vixZscore} />
+      <Tile
+        label="VIX / VIX3M"
+        value={vixVix3mRatio}
+        dec={3}
+        series={series?.vixVix3mRatio}
+      />
+      <Tile
+        label="VIX Δ (3d)"
+        value={vixDelta3d}
+        signed
+        series={series?.vixDelta3d}
+      />
     </div>
   );
 }

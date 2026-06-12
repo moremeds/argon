@@ -511,6 +511,134 @@ class VcgScanResponse(BaseModel):
     reason: str | None = None
 
 
+# ─── Regime live (WS-quote-driven CRI/VCG) ───────────────────────
+
+
+class RegimeLiveQuote(BaseModel):
+    """One live WS quote echoed by the live endpoints / quotes strip."""
+
+    price: float
+    quoted_at: datetime
+    source: str | None = None
+
+
+class CriLiveResponse(CriResponse):
+    """CRI computed at request time with live quotes spliced as today's
+    provisional close. ``basis='eod'`` means the live compute wasn't
+    possible (stale/no quotes) and the latest persisted EOD snapshot is
+    being served instead."""
+
+    basis: Literal["live", "eod"] = "eod"
+    live_quotes: dict[str, RegimeLiveQuote] = Field(default_factory=dict)
+    carried_forward: list[str] = Field(default_factory=list)
+    active_source: str | None = None
+
+
+class VcgLiveResponse(VcgResponse):
+    basis: Literal["live", "eod"] = "eod"
+    live_quotes: dict[str, RegimeLiveQuote] = Field(default_factory=dict)
+    carried_forward: list[str] = Field(default_factory=list)
+    active_source: str | None = None
+
+
+class CriIntradayPoint(BaseModel):
+    ts: datetime
+    cri_score: float | None = None
+    vix: float | None = None
+    vvix: float | None = None
+    spx: float | None = None
+    cor1m: float | None = None
+    vix3m: float | None = None
+    realized_vol: float | None = None
+    vrp: float | None = None
+    vix_zscore_30d: float | None = None
+    vix_vix3m_ratio: float | None = None
+    spx_distance_pct: float | None = None
+
+
+class CriIntradaySession(BaseModel):
+    et_date: date
+    points: list[CriIntradayPoint] = Field(default_factory=list)
+
+
+class CriIntradayResponse(BaseModel):
+    sessions: list[CriIntradaySession] = Field(default_factory=list)
+    as_of: datetime | None = None
+
+
+class CriDailyEntry(BaseModel):
+    date: date
+    cri_score: float | None = None
+    vix: float | None = None
+    vvix: float | None = None
+    spx: float | None = None
+    cor1m: float | None = None
+    vix3m: float | None = None
+    realized_vol: float | None = None
+    vrp: float | None = None
+    vix_zscore_30d: float | None = None
+    vix_vix3m_ratio: float | None = None
+    spx_distance_pct: float | None = None
+
+
+class CriDailyHistoryResponse(BaseModel):
+    rows: list[CriDailyEntry] = Field(default_factory=list)
+
+
+class VcgIntradayPoint(BaseModel):
+    ts: datetime
+    vcg: float | None = None
+    vcg_adj: float | None = None
+    residual: float | None = None
+    credit_price: float | None = None
+    credit_5d_return_pct: float | None = None
+    vix: float | None = None
+    vvix: float | None = None
+    beta1: float | None = None
+    beta2: float | None = None
+
+
+class VcgIntradaySession(BaseModel):
+    et_date: date
+    points: list[VcgIntradayPoint] = Field(default_factory=list)
+
+
+class VcgIntradayResponse(BaseModel):
+    credit_proxy: str = "HYG"
+    sessions: list[VcgIntradaySession] = Field(default_factory=list)
+    as_of: datetime | None = None
+
+
+class VcgDailyEntry(BaseModel):
+    date: date
+    vcg: float | None = None
+    vcg_adj: float | None = None
+    residual: float | None = None
+    credit_price: float | None = None
+    credit_5d_return_pct: float | None = None
+    vix: float | None = None
+    vvix: float | None = None
+    beta1: float | None = None
+    beta2: float | None = None
+
+
+class VcgDailyHistoryResponse(BaseModel):
+    credit_proxy: str = "HYG"
+    rows: list[VcgDailyEntry] = Field(default_factory=list)
+
+
+class RegimeQuotesResponse(BaseModel):
+    """Lightweight live-quote projection for the regime header strip."""
+
+    quotes: dict[str, RegimeLiveQuote] = Field(default_factory=dict)
+    active_source: str | None = None
+    as_of: datetime | None = None
+    # The server's staleness window (REGIME_LIVE_QUOTE_MAX_AGE_SECONDS) so
+    # the client's "is this quote live?" check can't drift from the value
+    # the live endpoints actually use.
+    fresh_within_seconds: int = 900
+
+
 # ----------------------------------------------------------------------
 # Dealer-regime (per-ticker) — feeds Magnet/Gamma bar + Volatility regime
 # panel. See docs/superpowers/archive/plans/2026-05-21-gex-volatility-enrichment.md

@@ -42,6 +42,7 @@ import asyncio
 import contextlib
 import logging
 import time
+from collections.abc import Iterable
 from datetime import datetime, timezone
 
 import psycopg
@@ -76,6 +77,17 @@ def compute_subscription_diff(
     """
     desired_channels = {f"{channel}.{t}" for t in desired}
     return (desired_channels - current, current - desired_channels)
+
+
+def desired_subscription_tickers(watchlist: set[str], extra: Iterable[str]) -> set[str]:
+    """Watchlist tickers ∪ the always-on regime set, upper-cased.
+
+    The regime symbols (VIX/VVIX/VIX3M/COR1M/SPX/HYG by default) feed the
+    live CRI/VCG compute and are subscribed regardless of watchlist state.
+    intraday_quote accepts them since migration 052 dropped the watchlist
+    FK; watchlist_card writes are UPDATE-only and skip them silently.
+    """
+    return {t.upper() for t in watchlist} | {t.upper() for t in extra}
 
 
 class _ReaderDone(Exception):
@@ -159,11 +171,14 @@ async def _subscription_loop(
     channel: str,
     current_subs: set[str],
     poll_interval_seconds: float,
+    extra_tickers: frozenset[str] = frozenset(),
 ) -> None:
     while True:
         try:
             desired = await asyncio.to_thread(
-                lambda: {w.ticker for w in repo.list_active_watchlist()}
+                lambda: desired_subscription_tickers(
+                    {w.ticker for w in repo.list_active_watchlist()}, extra_tickers
+                )
             )
             to_add, to_drop = compute_subscription_diff(
                 current=current_subs, desired=desired, channel=channel
@@ -203,6 +218,7 @@ async def run_consumer_once(
     source_tag: str = "massive.com_ws",
     quiet_failover_seconds: float = 0.0,
     rth_tz: str = "America/New_York",
+    extra_tickers: frozenset[str] = frozenset(),
 ) -> bool:
     """One full WS session: connect → subscribe → reader/flusher/subscriber
     → final flush on exit.
@@ -296,6 +312,7 @@ async def run_consumer_once(
                             channel=channel,
                             current_subs=current_subs,
                             poll_interval_seconds=subscription_poll_interval_seconds,
+                            extra_tickers=extra_tickers,
                         ),
                         name="ws_subscriber",
                     )
@@ -439,6 +456,7 @@ async def run_consumer_forever(settings: Settings, repo_factory) -> None:
         settings.massive_ws_enabled and settings.massive_api_key is not None
     )
     xenon_blocked_until = 0.0  # time.monotonic() deadline; 0 = try now
+    extra_tickers = frozenset(t.upper() for t in settings.regime_ws_symbols)
     while True:
         use_xenon = settings.xenon_ws_enabled and (
             time.monotonic() >= xenon_blocked_until
@@ -461,7 +479,10 @@ async def run_consumer_forever(settings: Settings, repo_factory) -> None:
                 repo_factory("reader") as reader_repo,
             ):
                 desired = await asyncio.to_thread(
-                    lambda: {w.ticker for w in reader_repo.list_active_watchlist()}
+                    lambda: desired_subscription_tickers(
+                        {w.ticker for w in reader_repo.list_active_watchlist()},
+                        extra_tickers,
+                    )
                 )
                 if use_xenon:
                     url = discover_xenon_ws_url(
@@ -481,6 +502,7 @@ async def run_consumer_forever(settings: Settings, repo_factory) -> None:
                         source_tag="xenon_ws",
                         quiet_failover_seconds=settings.xenon_ws_quiet_failover_seconds,
                         rth_tz=settings.rth_tz,
+                        extra_tickers=extra_tickers,
                     )
                 else:
                     session = asyncio.create_task(
@@ -494,6 +516,7 @@ async def run_consumer_forever(settings: Settings, repo_factory) -> None:
                             flush_interval_seconds=settings.massive_ws_flush_interval_seconds,
                             subscription_poll_interval_seconds=settings.massive_ws_watchlist_poll_interval_seconds,
                             buffer=buffer,
+                            extra_tickers=extra_tickers,
                         ),
                         name="massive_fallback_session",
                     )

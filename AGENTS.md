@@ -50,6 +50,7 @@ The spot WS consumer (`uw_scan.worker.massive_ws_consumer` — module name retai
 - `XENON_WS_PORT_FILE` — default `/tmp/xenon-ib-realtime.json`; xenon writes its actual port there if 8765 is taken. Only consulted when the URL host is localhost; empty string disables
 - `XENON_WS_RETRY_PRIMARY_SECONDS` — stay on massive this long after a xenon failure before re-probing; default 300
 - `XENON_WS_QUIET_FAILOVER_SECONDS` — in-session silence threshold before failover; default 120; 0 disables
+- `REGIME_WS_SYMBOLS` — always-subscribed regime symbols beyond the watchlist; default `VIX,VVIX,VIX3M,COR1M,SPX,HYG`. Feeds the live CRI/VCG compute (`/api/regime/{cri,vcg}/live`) and the 5-min `regime_live_scan` job (basis='live' rows in cri/vcg_snapshots; hourly :20/:25 scans stay the canonical basis='eod' dailies). Quotes older than `REGIME_LIVE_QUOTE_MAX_AGE_SECONDS` (default 900) are ignored — live endpoints then fall back to the EOD snapshot. `REGIME_LIVE_SCAN_INTERVAL_MINUTES` (default 5) sets the snapshot cadence. Nightly 03:40 ET `regime_live_validation` diffs the live-captured close vs the lake close (>0.5% → WARN). Massive fallback is stocks-only: indices stall during failover, HYG keeps ticking.
 
 The worker process freezes env at fork — rotating any `XENON_*` value requires restarting the spot-WS consumer process. Subscription mapping: stocks/ETFs → xenon `symbols` (IB SMART); index symbols (SPX/VIX/VVIX/COR1M/…) → `indexes` with exchange CBOE — extend `XENON_INDEX_SYMBOLS` in `sources/xenon_ws.py` when the watchlist grows a new index.
 
@@ -125,6 +126,7 @@ Worker roles: `ai-codex`, `ai-claude`, and `ai-deepseek` (provider-pinned, recom
 | Volatility derivers | `src/uw_scan/cards/vol_series.py`, `reports/volatility_series.py` |
 | Scanner (detectors + ranking + discovery) | `src/uw_scan/scanner/` (pipeline, signals, ranking, discovery, gates, context) + `api/routers/scanner.py` + `web/app/scanner/page.tsx` |
 | Regime indicators (CRI / GEX / VCG) | `src/uw_scan/scanners/{cri,gex,vcg}.py` + `api/routers/regime.py` + `web/app/regime/page.tsx` + `web/components/regime/*` |
+| Regime live CRI/VCG (WS quotes) | `src/uw_scan/scanners/live_quotes.py` + `scanners/{cri,vcg}.py` `run_live` + `worker/jobs/regime_live.py` + `api/routers/regime.py` (`/cri/live` etc.) + `web/components/regime/MultiPanelGrid.tsx` |
 | Gold Compass — code | `api/routers/gold.py` + `storage/gold_etf.py` + `worker/jobs/gold_jobs.py` + `sources/{fred,gpr,lbma,comex,etf_holdings,uw_gold_options,cftc_cot,wgc_etf,wgc_cb}.py` + `web/app/gold/page.tsx` (+ `gold/replay/[date]/`) + `web/components/gold/*` |
 | Gold Compass — research / sources docs | `docs/research/gold-sdf-framework/CLAUDE.md` (3-lens model, status vs. shipped, deferred sources) + `src/uw_scan/sources/CLAUDE.md` (per-source status + failure modes) |
 | Index dealer cockpit (SPX/SPY/QQQ/IWM) | `api/routers/cockpit.py` + `web/app/cockpit/[ticker]/page.tsx` |

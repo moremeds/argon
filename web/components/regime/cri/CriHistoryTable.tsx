@@ -35,7 +35,7 @@ function fmtPctCell(v: number | null | undefined, dec = 2): string {
 export function CriHistoryTable({ history }: { history: CriHistoryEntry[] }) {
   const [sortCol, setSortCol] = useState<CriTableSortCol | null>(null);
   const [sortDir, setSortDir] = useState<SortDir>("desc");
-  const [expanded, setExpanded] = useState(true);
+  const [expanded, setExpanded] = useState(false);
 
   function onSort(col: CriTableSortCol) {
     if (sortCol === col) {

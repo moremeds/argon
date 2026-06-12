@@ -229,6 +229,15 @@ class Settings(BaseModel):
     # Regime / GEX scanner (port from xenon — ships GEX live; CRI/VCG pending)
     gex_scan_tickers: list[str] = ["SPX", "SPY"]
     gex_scan_interval_minutes: int = 5
+    # Regime live feed — symbols the WS consumer always subscribes IN ADDITION
+    # to the watchlist (indexes route via XENON_INDEX_SYMBOLS → CBOE; HYG is a
+    # plain ETF symbol). Drives the live CRI/VCG compute + 5-min snapshots.
+    regime_ws_symbols: list[str] = ["VIX", "VVIX", "VIX3M", "COR1M", "SPX", "HYG"]
+    # Cadence of the regime_live_scan job (basis='live' snapshot writes).
+    regime_live_scan_interval_minutes: int = 5
+    # Quotes older than this are ignored by the live compute (stale feed →
+    # the live endpoints fall back to the latest basis='eod' snapshot).
+    regime_live_quote_max_age_seconds: int = 900
     # Parquet lake root for CBOE vol indices and SPX daily OHLC.
     # Maintained by the peer ``market-data-warehouse`` project. Symbol subdirs
     # are named ``symbol=<TICKER>`` with a ``1d.parquet`` payload inside.
@@ -511,6 +520,16 @@ class Settings(BaseModel):
             gex_scan_tickers=_parse_csv_env("GEX_SCAN_TICKERS", default=["SPX", "SPY"]),
             gex_scan_interval_minutes=int(
                 os.environ.get("GEX_SCAN_INTERVAL_MINUTES", "5")
+            ),
+            regime_ws_symbols=_parse_csv_env(
+                "REGIME_WS_SYMBOLS",
+                default=["VIX", "VVIX", "VIX3M", "COR1M", "SPX", "HYG"],
+            ),
+            regime_live_scan_interval_minutes=int(
+                os.environ.get("REGIME_LIVE_SCAN_INTERVAL_MINUTES", "5")
+            ),
+            regime_live_quote_max_age_seconds=int(
+                os.environ.get("REGIME_LIVE_QUOTE_MAX_AGE_SECONDS", "900")
             ),
             # Parquet-lake roots are env-overridable so deployments without
             # the user's home-dir layout (containers, CI) can point at their

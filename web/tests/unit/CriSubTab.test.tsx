@@ -1,12 +1,13 @@
 /* @vitest-environment jsdom */
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, beforeEach, afterEach, vi } from "vitest";
 
 import { CriSubTabView } from "@/components/regime/CriSubTab";
-import type { CriResponse } from "@/lib/regime/useCri";
+import type { CriLiveResponse } from "@/lib/regime/useCriLive";
 
-const POPULATED: CriResponse = {
+const POPULATED: CriLiveResponse = {
   status: "ok",
+  basis: "eod",
   scan_time: "2026-05-15T20:30:00+00:00",
   date: "2026-05-15",
   vix: 18.43,
@@ -68,7 +69,7 @@ const POPULATED: CriResponse = {
   spy_closes: [],
 };
 
-const FIRED_TRIGGER: CriResponse = {
+const FIRED_TRIGGER: CriLiveResponse = {
   ...POPULATED,
   cri: {
     score: 82.0,
@@ -175,12 +176,14 @@ describe("CriSubTabView", () => {
     ).not.toBeNull();
   });
 
-  it("renders the sortable history table beneath the charts", () => {
+  it("renders the history table folded by default, expandable via toggle", () => {
     render(<CriSubTabView data={POPULATED} />);
+    // Folded by default — only the toggle is visible.
+    expect(screen.queryByTestId("cri-history-table")).toBeNull();
+    const toggle = screen.getByTestId("cri-history-table-toggle");
+    fireEvent.click(toggle);
     const table = screen.getByTestId("cri-history-table");
-    expect(table).not.toBeNull();
     // Header row + 2 data rows from POPULATED.history
     expect(table.querySelectorAll("tbody tr").length).toBe(2);
-    expect(screen.getByTestId("cri-history-table-toggle")).not.toBeNull();
   });
 });

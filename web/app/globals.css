@@ -4687,6 +4687,38 @@ tr {
   padding: 24px;
 }
 
+.regime-hero-top {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.regime-hero-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.regime-hero-spark {
+  flex: 0 1 420px;
+  min-width: 200px;
+}
+
+.regime-hero-spark-label {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  text-align: right;
+}
+
+@media (max-width: 900px) {
+  .regime-hero-spark {
+    display: none;
+  }
+}
+
 .regime-hero-score {
   font-family: var(--font-mono);
   font-size: 64px;
@@ -4918,6 +4950,12 @@ tr {
 
   .regime-strip-primary {
     gap: 5px;
+  }
+
+  /* The cell becomes a two-column grid here; without this the sparkline
+     auto-places into the narrow label column. */
+  .regime-strip-cell .regime-strip-spark {
+    grid-column: 1 / -1;
   }
 
   .regime-strip-meta-row {

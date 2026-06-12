@@ -119,6 +119,20 @@ class _MarketDataMixin:
             row = cur.fetchone()
             return IntradayQuoteRow(*row) if row else None
 
+    def get_intraday_quotes(self, tickers: list[str]) -> list[IntradayQuoteRow]:
+        """Batch read of the latest WS quote per ticker (regime live compute)."""
+        if not tickers:
+            return []
+        with self._conn.cursor() as cur:
+            cur.execute(
+                f"""
+                SELECT ticker, price, quoted_at, fetched_at, source
+                FROM {self._schema}.intraday_quote WHERE ticker = ANY(%s)
+                """,
+                (tickers,),
+            )
+            return [IntradayQuoteRow(*row) for row in cur.fetchall()]
+
     def get_latest_intraday_quote_times(self) -> tuple[datetime, datetime] | None:
         with self._conn.cursor() as cur:
             cur.execute(

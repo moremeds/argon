@@ -730,6 +730,130 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/regime/cri/live": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Cri Live
+         * @description Request-time CRI with live quotes spliced as today's provisional
+         *     close. Does NOT persist (the 5-min regime_live_scan job owns writes).
+         *     Falls back to the latest basis='eod' snapshot when quotes are stale.
+         */
+        get: operations["get_cri_live_api_regime_cri_live_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/regime/cri/intraday": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Cri Intraday */
+        get: operations["get_cri_intraday_api_regime_cri_intraday_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/regime/cri/history": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Cri History */
+        get: operations["get_cri_history_api_regime_cri_history_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/regime/vcg/live": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Vcg Live */
+        get: operations["get_vcg_live_api_regime_vcg_live_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/regime/vcg/intraday": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Vcg Intraday */
+        get: operations["get_vcg_intraday_api_regime_vcg_intraday_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/regime/vcg/history": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Vcg History */
+        get: operations["get_vcg_history_api_regime_vcg_history_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/regime/quotes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Regime Quotes */
+        get: operations["get_regime_quotes_api_regime_quotes_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/regime/dealer": {
         parameters: {
             query?: never;
@@ -1668,6 +1792,41 @@ export interface components {
              */
             momentum: number;
         };
+        /** CriDailyEntry */
+        CriDailyEntry: {
+            /**
+             * Date
+             * Format: date
+             */
+            date: string;
+            /** Cri Score */
+            cri_score?: number | null;
+            /** Vix */
+            vix?: number | null;
+            /** Vvix */
+            vvix?: number | null;
+            /** Spx */
+            spx?: number | null;
+            /** Cor1M */
+            cor1m?: number | null;
+            /** Vix3M */
+            vix3m?: number | null;
+            /** Realized Vol */
+            realized_vol?: number | null;
+            /** Vrp */
+            vrp?: number | null;
+            /** Vix Zscore 30D */
+            vix_zscore_30d?: number | null;
+            /** Vix Vix3M Ratio */
+            vix_vix3m_ratio?: number | null;
+            /** Spx Distance Pct */
+            spx_distance_pct?: number | null;
+        };
+        /** CriDailyHistoryResponse */
+        CriDailyHistoryResponse: {
+            /** Rows */
+            rows?: components["schemas"]["CriDailyEntry"][];
+        };
         /** CriHistoryEntry */
         CriHistoryEntry: {
             /** Date */
@@ -1692,6 +1851,134 @@ export interface components {
             cor1m_5d_change?: number | null;
             /** Pullback 20D Pct */
             pullback_20d_pct?: number | null;
+        };
+        /** CriIntradayPoint */
+        CriIntradayPoint: {
+            /**
+             * Ts
+             * Format: date-time
+             */
+            ts: string;
+            /** Cri Score */
+            cri_score?: number | null;
+            /** Vix */
+            vix?: number | null;
+            /** Vvix */
+            vvix?: number | null;
+            /** Spx */
+            spx?: number | null;
+            /** Cor1M */
+            cor1m?: number | null;
+            /** Vix3M */
+            vix3m?: number | null;
+            /** Realized Vol */
+            realized_vol?: number | null;
+            /** Vrp */
+            vrp?: number | null;
+            /** Vix Zscore 30D */
+            vix_zscore_30d?: number | null;
+            /** Vix Vix3M Ratio */
+            vix_vix3m_ratio?: number | null;
+            /** Spx Distance Pct */
+            spx_distance_pct?: number | null;
+        };
+        /** CriIntradayResponse */
+        CriIntradayResponse: {
+            /** Sessions */
+            sessions?: components["schemas"]["CriIntradaySession"][];
+            /** As Of */
+            as_of?: string | null;
+        };
+        /** CriIntradaySession */
+        CriIntradaySession: {
+            /**
+             * Et Date
+             * Format: date
+             */
+            et_date: string;
+            /** Points */
+            points?: components["schemas"]["CriIntradayPoint"][];
+        };
+        /**
+         * CriLiveResponse
+         * @description CRI computed at request time with live quotes spliced as today's
+         *     provisional close. ``basis='eod'`` means the live compute wasn't
+         *     possible (stale/no quotes) and the latest persisted EOD snapshot is
+         *     being served instead.
+         */
+        CriLiveResponse: {
+            /**
+             * Status
+             * @default empty
+             * @enum {string}
+             */
+            status: "ok" | "empty";
+            /**
+             * Scan Time
+             * @default
+             */
+            scan_time: string;
+            /** Date */
+            date?: string | null;
+            /** Vix */
+            vix?: number | null;
+            /** Vvix */
+            vvix?: number | null;
+            /** Spy */
+            spy?: number | null;
+            /** Vix 5D Roc */
+            vix_5d_roc?: number | null;
+            /** Vvix 5D Roc */
+            vvix_5d_roc?: number | null;
+            /** Vvix Vix Ratio */
+            vvix_vix_ratio?: number | null;
+            /** Spx 100D Ma */
+            spx_100d_ma?: number | null;
+            /** Spx Distance Pct */
+            spx_distance_pct?: number | null;
+            /** Cor1M */
+            cor1m?: number | null;
+            /** Cor1M Previous Close */
+            cor1m_previous_close?: number | null;
+            /** Cor1M 5D Change */
+            cor1m_5d_change?: number | null;
+            /** Realized Vol */
+            realized_vol?: number | null;
+            /** Vix3M */
+            vix3m?: number | null;
+            /** Vrp */
+            vrp?: number | null;
+            /** Vix Zscore 30D */
+            vix_zscore_30d?: number | null;
+            /** Vix Vix3M Ratio */
+            vix_vix3m_ratio?: number | null;
+            /** Pullback 20D Pct */
+            pullback_20d_pct?: number | null;
+            /** Vix Delta 3D */
+            vix_delta_3d?: number | null;
+            /** Spx Source */
+            spx_source?: ("SPX" | "SPY") | null;
+            cri?: components["schemas"]["CriBlock"];
+            cta?: components["schemas"]["CtaBlock"];
+            crash_trigger?: components["schemas"]["CrashTriggerBlock"];
+            /** History */
+            history?: components["schemas"]["CriHistoryEntry"][];
+            /** Spy Closes */
+            spy_closes?: number[];
+            /**
+             * Basis
+             * @default eod
+             * @enum {string}
+             */
+            basis: "live" | "eod";
+            /** Live Quotes */
+            live_quotes?: {
+                [key: string]: components["schemas"]["RegimeLiveQuote"];
+            };
+            /** Carried Forward */
+            carried_forward?: string[];
+            /** Active Source */
+            active_source?: string | null;
         };
         /**
          * CriResponse
@@ -4152,6 +4439,21 @@ export interface components {
             /** Ok */
             ok: boolean;
         };
+        /**
+         * RegimeLiveQuote
+         * @description One live WS quote echoed by the live endpoints / quotes strip.
+         */
+        RegimeLiveQuote: {
+            /** Price */
+            price: number;
+            /**
+             * Quoted At
+             * Format: date-time
+             */
+            quoted_at: string;
+            /** Source */
+            source?: string | null;
+        };
         /** RegimeQuadrantBlock */
         RegimeQuadrantBlock: {
             /**
@@ -4191,6 +4493,25 @@ export interface components {
             rvol_pctile?: string | null;
             /** Spy Corr 21 */
             spy_corr_21?: string | null;
+        };
+        /**
+         * RegimeQuotesResponse
+         * @description Lightweight live-quote projection for the regime header strip.
+         */
+        RegimeQuotesResponse: {
+            /** Quotes */
+            quotes?: {
+                [key: string]: components["schemas"]["RegimeLiveQuote"];
+            };
+            /** Active Source */
+            active_source?: string | null;
+            /** As Of */
+            as_of?: string | null;
+            /**
+             * Fresh Within Seconds
+             * @default 900
+             */
+            fresh_within_seconds: number;
         };
         /** RescanAllRequest */
         RescanAllRequest: {
@@ -5894,6 +6215,42 @@ export interface components {
              */
             model_implied: number;
         };
+        /** VcgDailyEntry */
+        VcgDailyEntry: {
+            /**
+             * Date
+             * Format: date
+             */
+            date: string;
+            /** Vcg */
+            vcg?: number | null;
+            /** Vcg Adj */
+            vcg_adj?: number | null;
+            /** Residual */
+            residual?: number | null;
+            /** Credit Price */
+            credit_price?: number | null;
+            /** Credit 5D Return Pct */
+            credit_5d_return_pct?: number | null;
+            /** Vix */
+            vix?: number | null;
+            /** Vvix */
+            vvix?: number | null;
+            /** Beta1 */
+            beta1?: number | null;
+            /** Beta2 */
+            beta2?: number | null;
+        };
+        /** VcgDailyHistoryResponse */
+        VcgDailyHistoryResponse: {
+            /**
+             * Credit Proxy
+             * @default HYG
+             */
+            credit_proxy: string;
+            /** Rows */
+            rows?: components["schemas"]["VcgDailyEntry"][];
+        };
         /** VcgHistoryEntry */
         VcgHistoryEntry: {
             /** Date */
@@ -5949,6 +6306,92 @@ export interface components {
             n: number;
             /** Pct */
             pct: number;
+        };
+        /** VcgIntradayPoint */
+        VcgIntradayPoint: {
+            /**
+             * Ts
+             * Format: date-time
+             */
+            ts: string;
+            /** Vcg */
+            vcg?: number | null;
+            /** Vcg Adj */
+            vcg_adj?: number | null;
+            /** Residual */
+            residual?: number | null;
+            /** Credit Price */
+            credit_price?: number | null;
+            /** Credit 5D Return Pct */
+            credit_5d_return_pct?: number | null;
+            /** Vix */
+            vix?: number | null;
+            /** Vvix */
+            vvix?: number | null;
+            /** Beta1 */
+            beta1?: number | null;
+            /** Beta2 */
+            beta2?: number | null;
+        };
+        /** VcgIntradayResponse */
+        VcgIntradayResponse: {
+            /**
+             * Credit Proxy
+             * @default HYG
+             */
+            credit_proxy: string;
+            /** Sessions */
+            sessions?: components["schemas"]["VcgIntradaySession"][];
+            /** As Of */
+            as_of?: string | null;
+        };
+        /** VcgIntradaySession */
+        VcgIntradaySession: {
+            /**
+             * Et Date
+             * Format: date
+             */
+            et_date: string;
+            /** Points */
+            points?: components["schemas"]["VcgIntradayPoint"][];
+        };
+        /** VcgLiveResponse */
+        VcgLiveResponse: {
+            /**
+             * Status
+             * @default empty
+             * @enum {string}
+             */
+            status: "ok" | "empty";
+            /**
+             * Scan Time
+             * @default
+             */
+            scan_time: string;
+            /** Date */
+            date?: string | null;
+            /**
+             * Credit Proxy
+             * @default HYG
+             */
+            credit_proxy: string;
+            signal?: components["schemas"]["VcgSignal"];
+            /** History */
+            history?: components["schemas"]["VcgHistoryEntry"][];
+            /**
+             * Basis
+             * @default eod
+             * @enum {string}
+             */
+            basis: "live" | "eod";
+            /** Live Quotes */
+            live_quotes?: {
+                [key: string]: components["schemas"]["RegimeLiveQuote"];
+            };
+            /** Carried Forward */
+            carried_forward?: string[];
+            /** Active Source */
+            active_source?: string | null;
         };
         /** VcgNamedCrashEvent */
         VcgNamedCrashEvent: {
@@ -7828,6 +8271,205 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_cri_live_api_regime_cri_live_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CriLiveResponse"];
+                };
+            };
+        };
+    };
+    get_cri_intraday_api_regime_cri_intraday_get: {
+        parameters: {
+            query?: {
+                sessions?: number;
+                rth_only?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CriIntradayResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_cri_history_api_regime_cri_history_get: {
+        parameters: {
+            query?: {
+                days?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CriDailyHistoryResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_vcg_live_api_regime_vcg_live_get: {
+        parameters: {
+            query?: {
+                proxy?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VcgLiveResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_vcg_intraday_api_regime_vcg_intraday_get: {
+        parameters: {
+            query?: {
+                proxy?: string;
+                sessions?: number;
+                rth_only?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VcgIntradayResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_vcg_history_api_regime_vcg_history_get: {
+        parameters: {
+            query?: {
+                proxy?: string;
+                days?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VcgDailyHistoryResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_regime_quotes_api_regime_quotes_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RegimeQuotesResponse"];
                 };
             };
         };

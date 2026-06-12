@@ -167,6 +167,19 @@ def _should_schedule_pipeline_benchmark(settings: Settings) -> bool:
     return role == "all" or (role == "uw" and settings.worker_index == 0)
 
 
+def _should_schedule_regime_live(settings: Settings) -> bool:
+    """Exactly one process owns the 5-min live snapshot writes.
+
+    _is_primary_worker is true for index-0 of EVERY role (uw-0, massive-0,
+    ai-*-0 all match) — fine for the idempotent gap-recovery scans that
+    share its block, but regime_live_scan appends a row per tick, so a
+    multi-role stack would write N duplicates. Pin to massive-0 (market-
+    data role) following the rates-FRED precedent.
+    """
+    role = settings.worker_role.lower()
+    return role == "all" or (role == "massive" and settings.worker_index == 0)
+
+
 def _worker_label(settings: Settings) -> str:
     role = settings.worker_role.lower()
     if role == "all":
@@ -527,6 +540,24 @@ def main() -> int:
             summary["skipped"],
         )
 
+    def _regime_live_scan() -> None:
+        # Weekday gate — quotes only flow Mon-Fri (xenon streams 24h but the
+        # market session is what makes a provisional close meaningful).
+        if datetime.now(ZoneInfo(settings.rth_tz)).weekday() >= 5:
+            return
+        from uw_scan.worker.jobs.regime_live import regime_live_scan_once
+
+        with _repo(settings) as repo:
+            summary = regime_live_scan_once(repo, settings)
+        logger.info("regime_live_scan_tick %s", summary)
+
+    def _regime_live_validation() -> None:
+        from uw_scan.worker.jobs.regime_live import validate_live_close_vs_lake
+
+        with _repo(settings) as repo:
+            rows = validate_live_close_vs_lake(repo, settings)
+        logger.info("regime_live_validation_done symbols=%d", len(rows))
+
     def _regime_canary_scan() -> None:
         # Reads vol_index_daily (VIX/VVIX/VIX3M/COR1M/SPX); writes
         # canary_snapshots. composite_version is part of the dedup key, so
@@ -762,6 +793,28 @@ def main() -> int:
             IntervalTrigger(minutes=5),
             id="pipeline_benchmark_snapshot",
             name="Pipeline benchmark snapshot",
+            max_instances=1,
+            coalesce=True,
+        )
+
+    if _should_schedule_regime_live(settings):
+        # Live regime snapshot — basis='live' CRI/VCG rows every N minutes.
+        # Pure DB-read math off intraday_quote + vol_index_daily; no provider
+        # spend. Append-only writes, so exactly ONE process may own this.
+        sched.add_job(
+            _regime_live_scan,
+            IntervalTrigger(minutes=settings.regime_live_scan_interval_minutes),
+            id="regime_live_scan",
+            name="Regime live CRI/VCG snapshot",
+            max_instances=1,
+            coalesce=True,
+        )
+        # Live-vs-lake close validation — after both lake syncs (03:15/03:20).
+        sched.add_job(
+            _regime_live_validation,
+            CronTrigger(hour=3, minute=40, timezone=settings.rth_tz),
+            id="regime_live_validation",
+            name="Regime live close vs lake validation",
             max_instances=1,
             coalesce=True,
         )
