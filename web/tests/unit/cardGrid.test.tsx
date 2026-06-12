@@ -69,21 +69,21 @@ describe("CardGrid", () => {
           tickers: [
             card("UNH", "Healthcare", 0, "500"),
             card("HUT", "NeoCloud", 0, "4"),
-            card("AMD", "Semiconductor", 301, "300"),
+            card("AMD", "Semi-Logic", 301, "300"),
             card("TSLA", "M7", 206, "900"),
-            card("QQQ", "ETF", 102, "250", "600"),
+            card("QQQ", "Beta", 102, "250", "600"),
             card("AAPL", "M7", 201, "3000"),
-            card("SPY", "ETF", 101, "500", "400"),
-            card("AVGO", "Semiconductor", 302, "1200"),
+            card("SPY", "Beta", 101, "500", "400"),
+            card("AVGO", "Semi-Logic", 302, "1200"),
           ],
         }}
       />,
     );
 
     expect(screen.getAllByRole("heading").map((h) => h.textContent)).toEqual([
-      "ETF · 2",
+      "Beta · 2",
       "M7 · 2",
-      "Semiconductor · 2",
+      "Semi-Logic · 2",
       "Healthcare · 1",
       "NeoCloud · 1",
     ]);
@@ -145,14 +145,14 @@ describe("CardGrid", () => {
             // ahead. Priority prefix (ETF) stays first either way.
             card("XLF", "Banks", 400, "1000000000"),
             card("JNJ", "Healthcare", 420, "500000000000"),
-            card("SPY", "ETF", 101, "300000000000"),
+            card("SPY", "Beta", 101, "300000000000"),
           ],
         }}
       />,
     );
 
     expect(screen.getAllByRole("heading").map((h) => h.textContent)).toEqual([
-      "ETF · 1",
+      "Beta · 1",
       "Healthcare · 1",
       "Banks · 1",
     ]);
@@ -167,8 +167,8 @@ describe("CardGrid", () => {
           scheduler_lag_seconds: null,
           queue: { total: 0, queued: 0, running: 0, oldest_requested_at: null },
           tickers: [
-            card("ZZZ", "ETF", 100, null),
-            card("AAA", "ETF", 100, null),
+            card("ZZZ", "Beta", 100, null),
+            card("AAA", "Beta", 100, null),
           ],
         }}
       />,

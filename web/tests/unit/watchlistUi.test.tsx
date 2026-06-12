@@ -256,19 +256,19 @@ describe("AddTickerDialog", () => {
     fireEvent.click(screen.getByRole("button", { name: /\+ ticker/i }));
 
     expect(screen.queryByRole("combobox")).toBeNull();
-    expect(screen.getByRole("button", { name: /sector etf/i })).not.toBeNull();
+    expect(screen.getByRole("button", { name: /sector beta/i })).not.toBeNull();
 
-    fireEvent.click(screen.getByRole("button", { name: /sector etf/i }));
+    fireEvent.click(screen.getByRole("button", { name: /sector beta/i }));
 
     expect(screen.getByText("Index")).not.toBeNull();
     expect(screen.getByText("AI/Tech")).not.toBeNull();
     expect(screen.getByText("Thematic")).not.toBeNull();
     expect(screen.getByText("Defensive")).not.toBeNull();
-    expect(screen.getByRole("option", { name: "ETF" })).not.toBeNull();
+    expect(screen.getByRole("option", { name: "Beta" })).not.toBeNull();
     expect(screen.getByRole("option", { name: "M7" })).not.toBeNull();
     expect(screen.getByRole("option", { name: "NeoCloud" })).not.toBeNull();
     expect(screen.getByRole("option", { name: "Power" })).not.toBeNull();
-    expect(screen.getByRole("option", { name: "Airlines" })).not.toBeNull();
+    expect(screen.getByRole("option", { name: "Healthcare" })).not.toBeNull();
     expect(screen.queryByRole("option", { name: "Technology" })).toBeNull();
     expect(screen.queryByRole("option", { name: "All" })).toBeNull();
 
