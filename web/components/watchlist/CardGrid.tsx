@@ -37,11 +37,12 @@ function sectorRank(sector: string, tickers: WatchlistCard[]) {
   return PRIORITY_SECTORS.length + (Number.MAX_SAFE_INTEGER / 2 - maxSize);
 }
 
+const ETF_LIKE_SECTORS = new Set(["Beta", "Sector-ETF", "Credit", "Macro"]);
+
 function sizeValue(card: WatchlistCard) {
-  const raw =
-    card.sector === "ETF"
-      ? (card.aum ?? card.market_cap)
-      : (card.market_cap ?? card.aum);
+  const raw = ETF_LIKE_SECTORS.has(card.sector)
+    ? (card.aum ?? card.market_cap)
+    : (card.market_cap ?? card.aum);
   return toNum(raw);
 }
 
