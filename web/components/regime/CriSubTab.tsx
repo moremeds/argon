@@ -23,7 +23,9 @@ import {
   formatPercent,
   formatSignedNumber,
 } from "./primitives/format";
-import { type CriBlock, type CriResponse, useCri } from "@/lib/regime/useCri";
+import CriSeriesGrids from "./cri/CriSeriesGrids";
+import { type CriBlock } from "@/lib/regime/useCri";
+import { useCriLive, type CriLiveResponse } from "@/lib/regime/useCriLive";
 
 type CriLevel = "LOW" | "ELEVATED" | "HIGH" | "CRITICAL";
 
@@ -179,7 +181,7 @@ export function CriSubTabView({
   onSyncNow,
   syncing = false,
 }: {
-  data: CriResponse | null;
+  data: CriLiveResponse | null;
   onSyncNow?: () => void;
   syncing?: boolean;
 }) {
@@ -257,8 +259,13 @@ export function CriSubTabView({
   const spxBelowMa = trigger?.conditions?.spx_below_100d_ma ?? false;
   const rvolTriggerMet = trigger?.conditions?.realized_vol_gt_25 ?? false;
 
-  // Page is end-of-day in this project — never "live".
-  const live = false;
+  // Live when the request-time compute ran off fresh WS quotes; falls back
+  // to "eod"/CACHED when quotes are stale or the feed is down.
+  const live = data.basis === "live";
+  // Per-symbol chip: live only if that symbol's quote actually spliced
+  // (a carried-forward symbol is yesterday's close, not a live tick).
+  const liveFor = (sym: string): boolean =>
+    live && !!data.live_quotes?.[sym] && !data.carried_forward?.includes(sym);
   const lastSync = data.scan_time || null;
 
   // History payload is the 20-session window (oldest → newest).
@@ -288,9 +295,15 @@ export function CriSubTabView({
           </span>
           <span
             className="regime-live-dot"
-            style={{ background: "var(--text-muted)" }}
+            style={{
+              background: live ? "var(--positive)" : "var(--text-muted)",
+            }}
           />
-          <span className="regime-hero-label">CACHED</span>
+          <span className="regime-hero-label">
+            {live
+              ? `LIVE${data.active_source ? ` · ${data.active_source === "xenon_ws" ? "XENON" : "MASSIVE"}` : ""}`
+              : "CACHED"}
+          </span>
           {lastSync && (
             <span className="regime-hero-timestamp">
               Last scan: {new Date(lastSync).toLocaleTimeString()}
@@ -317,7 +330,7 @@ export function CriSubTabView({
           testId="strip-vix"
           label={
             <>
-              VIX <LiveBadge live={live} />
+              VIX <LiveBadge live={liveFor("VIX")} />
             </>
           }
           value={formatNumber(vix)}
@@ -328,7 +341,7 @@ export function CriSubTabView({
           testId="strip-vvix"
           label={
             <>
-              VVIX <LiveBadge live={live} />
+              VVIX <LiveBadge live={liveFor("VVIX")} />
             </>
           }
           value={formatNumber(vvix)}
@@ -340,7 +353,7 @@ export function CriSubTabView({
           label={
             <>
               {data.spx_source === "SPY" ? "SPY" : "SPX"}{" "}
-              <LiveBadge live={live} />
+              <LiveBadge live={liveFor("SPX")} />
             </>
           }
           value={`$${formatNumber(spy)}`}
@@ -364,7 +377,7 @@ export function CriSubTabView({
           testId="strip-cor1m"
           label={
             <>
-              COR1M <LiveBadge live={live} />
+              COR1M <LiveBadge live={liveFor("COR1M")} />
             </>
           }
           value={formatNumber(cor1m, 2)}
@@ -499,11 +512,14 @@ export function CriSubTabView({
           <CriHistoryTable history={history} />
         </>
       )}
+
+      {/* ── Row 6: Intraday / daily small-multiples grids (basis='live' rows) ── */}
+      <CriSeriesGrids />
     </div>
   );
 }
 
 export default function CriSubTab() {
-  const { data, syncing, syncNow } = useCri();
+  const { data, syncing, syncNow } = useCriLive();
   return <CriSubTabView data={data} syncing={syncing} onSyncNow={syncNow} />;
 }

@@ -3,10 +3,11 @@ import { render, screen } from "@testing-library/react";
 import { describe, expect, it, beforeEach, afterEach, vi } from "vitest";
 
 import { CriSubTabView } from "@/components/regime/CriSubTab";
-import type { CriResponse } from "@/lib/regime/useCri";
+import type { CriLiveResponse } from "@/lib/regime/useCriLive";
 
-const POPULATED: CriResponse = {
+const POPULATED: CriLiveResponse = {
   status: "ok",
+  basis: "eod",
   scan_time: "2026-05-15T20:30:00+00:00",
   date: "2026-05-15",
   vix: 18.43,
@@ -68,7 +69,7 @@ const POPULATED: CriResponse = {
   spy_closes: [],
 };
 
-const FIRED_TRIGGER: CriResponse = {
+const FIRED_TRIGGER: CriLiveResponse = {
   ...POPULATED,
   cri: {
     score: 82.0,

@@ -3,10 +3,11 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
 import { VcgSubTabView } from "@/components/regime/VcgSubTab";
-import type { VcgResponse } from "@/lib/regime/useVcg";
+import type { VcgLiveResponse } from "@/lib/regime/useVcgLive";
 
-const NORMAL: VcgResponse = {
+const NORMAL: VcgLiveResponse = {
   status: "ok",
+  basis: "eod",
   scan_time: "2026-05-15T20:30:00+00:00",
   date: "2026-05-15",
   credit_proxy: "HYG",
@@ -73,7 +74,7 @@ const NORMAL: VcgResponse = {
   ],
 };
 
-const RISK_OFF: VcgResponse = {
+const RISK_OFF: VcgLiveResponse = {
   ...NORMAL,
   signal: {
     ...NORMAL.signal!,
@@ -95,7 +96,7 @@ const RISK_OFF: VcgResponse = {
   },
 };
 
-const BOUNCE: VcgResponse = {
+const BOUNCE: VcgLiveResponse = {
   ...NORMAL,
   signal: {
     ...NORMAL.signal!,
@@ -108,7 +109,7 @@ const BOUNCE: VcgResponse = {
   },
 };
 
-const PANIC_ADJUSTED: VcgResponse = {
+const PANIC_ADJUSTED: VcgLiveResponse = {
   ...NORMAL,
   signal: {
     ...NORMAL.signal!,
@@ -127,7 +128,7 @@ describe("VcgSubTabView", () => {
   });
 
   it("renders empty placeholder when status is empty", () => {
-    const empty: VcgResponse = {
+    const empty: VcgLiveResponse = {
       ...NORMAL,
       status: "empty",
       signal: { ...NORMAL.signal!, vcg: null },

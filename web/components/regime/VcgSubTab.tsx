@@ -5,7 +5,9 @@ import { AlertTriangle, Shield, TrendingUp, Zap } from "lucide-react";
 import InfoTooltip from "./InfoTooltip";
 import { VcgHistoryTable } from "./vcg/VcgHistoryTable";
 import VcgStressHistorySection from "./vcg/VcgStressHistorySection";
-import { type VcgResponse, type VcgSignal, useVcg } from "@/lib/regime/useVcg";
+import { type VcgSignal } from "@/lib/regime/useVcg";
+import { useVcgLive, type VcgLiveResponse } from "@/lib/regime/useVcgLive";
+import VcgSeriesGrids from "./vcg/VcgSeriesGrids";
 import {
   formatNumber,
   formatPercent,
@@ -146,7 +148,7 @@ export function VcgSubTabView({
   onSyncNow,
   syncing = false,
 }: {
-  data: VcgResponse | null;
+  data: VcgLiveResponse | null;
   onSyncNow?: () => void;
   syncing?: boolean;
 }) {
@@ -306,9 +308,14 @@ export function VcgSubTabView({
                 style={{
                   fontFamily: "var(--font-mono)",
                   fontSize: "9px",
-                  color: "var(--text-muted)",
+                  color:
+                    data.basis === "live"
+                      ? "var(--positive)"
+                      : "var(--text-muted)",
                 }}
+                data-testid="vcg-live-time"
               >
+                {data.basis === "live" ? "LIVE · " : ""}
                 {new Date(lastSync).toLocaleTimeString("en-US", {
                   hour: "numeric",
                   minute: "2-digit",
@@ -745,11 +752,14 @@ export function VcgSubTabView({
 
       {/* ── All-time stress history (v2 backtest) ───────────── */}
       <VcgStressHistorySection />
+
+      {/* ── Intraday / daily small-multiples grids (basis='live' rows) ── */}
+      <VcgSeriesGrids />
     </div>
   );
 }
 
 export default function VcgSubTab() {
-  const { data, syncing, syncNow } = useVcg();
+  const { data, syncing, syncNow } = useVcgLive();
   return <VcgSubTabView data={data} syncing={syncing} onSyncNow={syncNow} />;
 }
