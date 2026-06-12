@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Annotated
 from zoneinfo import ZoneInfo
 
@@ -22,6 +22,11 @@ from uw_scan.api.schemas import (
     EMPTY_GEX_RESPONSE,
     EMPTY_VCG_RESPONSE,
     ClosestLevel,
+    CriDailyEntry,
+    CriDailyHistoryResponse,
+    CriIntradayResponse,
+    CriIntradaySession,
+    CriLiveResponse,
     CriResponse,
     CriScanResponse,
     DealerRegimeResponse,
@@ -31,6 +36,13 @@ from uw_scan.api.schemas import (
     GexIntradayResponse,
     GexIntradaySession,
     GexResponse,
+    RegimeLiveQuote,
+    RegimeQuotesResponse,
+    VcgDailyEntry,
+    VcgDailyHistoryResponse,
+    VcgIntradayResponse,
+    VcgIntradaySession,
+    VcgLiveResponse,
     VcgResponse,
     VcgScanResponse,
     VolBackdropResponse,
@@ -43,6 +55,7 @@ from uw_scan.config import Settings
 from uw_scan.scanners import cri as cri_scanner
 from uw_scan.scanners import gex as gex_scanner
 from uw_scan.scanners import vcg as vcg_scanner
+from uw_scan.scanners.live_quotes import load_live_quotes
 from uw_scan.storage.canary_snapshot_repository import CanarySnapshotRepository
 from uw_scan.storage.cri_snapshot_repository import CriSnapshotRepository
 from uw_scan.storage.greek_exposure_repository import GreekExposureDailyRepository
@@ -147,9 +160,7 @@ def get_gex_intraday(
     response when no rows exist for the ticker.
     """
     t = ticker.upper()
-    raw = repo.fetch_intraday_sessions(
-        ticker=t, sessions=sessions, rth_only=rth_only
-    )
+    raw = repo.fetch_intraday_sessions(ticker=t, sessions=sessions, rth_only=rth_only)
     payload_sessions = [GexIntradaySession.model_validate(s) for s in raw]
     last_ts = None
     if payload_sessions and payload_sessions[-1].points:
@@ -274,6 +285,162 @@ def trigger_vcg_scan(
     if row_id is None:
         return VcgScanResponse(status="skipped", proxy=proxy_upper, reason="thin_data")
     return VcgScanResponse(status="ok", proxy=proxy_upper, row_id=row_id)
+
+
+# ─── CRI / VCG live (WS-quote-driven) ────────────────────────────
+
+
+def _active_ws_source(repo: Repository) -> str | None:
+    state = repo.get_ws_consumer_state()
+    return state.active_source if state is not None else None
+
+
+@router.get("/cri/live", response_model=CriLiveResponse)
+def get_cri_live(
+    repo: Annotated[Repository, Depends(get_repo)],
+    settings: Annotated[Settings, Depends(get_settings)],
+) -> CriLiveResponse:
+    """Request-time CRI with live quotes spliced as today's provisional
+    close. Does NOT persist (the 5-min regime_live_scan job owns writes).
+    Falls back to the latest basis='eod' snapshot when quotes are stale."""
+    quotes = load_live_quotes(
+        repo,
+        settings.regime_ws_symbols,
+        max_age_seconds=settings.regime_live_quote_max_age_seconds,
+    )
+    payload = None
+    if quotes:
+        payload = cri_scanner.run_live(repo.conn, schema=repo._schema, quotes=quotes)
+    if payload is None:
+        snap_repo = CriSnapshotRepository(repo.conn, schema=repo._schema)
+        latest = snap_repo.fetch_latest()
+        if latest is None:
+            return CriLiveResponse(basis="eod")
+        return CriLiveResponse.model_validate(
+            {"status": "ok", "basis": "eod", **latest}
+        )
+    return CriLiveResponse.model_validate(
+        {
+            "status": "ok",
+            "scan_time": datetime.now(timezone.utc).isoformat(),
+            "active_source": _active_ws_source(repo),
+            **payload,
+        }
+    )
+
+
+@router.get("/cri/intraday", response_model=CriIntradayResponse)
+def get_cri_intraday(
+    repo: Annotated[Repository, Depends(get_repo)],
+    sessions: int = Query(5, ge=1, le=20),
+    rth_only: bool = Query(True),
+) -> CriIntradayResponse:
+    snap_repo = CriSnapshotRepository(repo.conn, schema=repo._schema)
+    raw = snap_repo.fetch_intraday_sessions(sessions=sessions, rth_only=rth_only)
+    payload_sessions = [CriIntradaySession.model_validate(s) for s in raw]
+    last_ts = None
+    if payload_sessions and payload_sessions[-1].points:
+        last_ts = payload_sessions[-1].points[-1].ts
+    return CriIntradayResponse(sessions=payload_sessions, as_of=last_ts)
+
+
+@router.get("/cri/history", response_model=CriDailyHistoryResponse)
+def get_cri_history(
+    repo: Annotated[Repository, Depends(get_repo)],
+    days: int = Query(90, ge=5, le=365),
+) -> CriDailyHistoryResponse:
+    snap_repo = CriSnapshotRepository(repo.conn, schema=repo._schema)
+    rows = snap_repo.fetch_daily_history(days=days)
+    return CriDailyHistoryResponse(rows=[CriDailyEntry.model_validate(r) for r in rows])
+
+
+@router.get("/vcg/live", response_model=VcgLiveResponse)
+def get_vcg_live(
+    repo: Annotated[Repository, Depends(get_repo)],
+    settings: Annotated[Settings, Depends(get_settings)],
+    proxy: str = Query("HYG"),
+) -> VcgLiveResponse:
+    proxy_upper = proxy.upper()
+    quotes = load_live_quotes(
+        repo,
+        settings.regime_ws_symbols,
+        max_age_seconds=settings.regime_live_quote_max_age_seconds,
+    )
+    payload = None
+    if quotes:
+        payload = vcg_scanner.run_live(
+            repo.conn, schema=repo._schema, quotes=quotes, proxy=proxy_upper
+        )
+    if payload is None:
+        snap_repo = VcgSnapshotRepository(repo.conn, schema=repo._schema)
+        latest = snap_repo.fetch_latest(proxy=proxy_upper)
+        if latest is None:
+            empty = VcgLiveResponse(basis="eod")
+            empty.credit_proxy = proxy_upper
+            return empty
+        return VcgLiveResponse.model_validate(
+            {"status": "ok", "basis": "eod", **latest}
+        )
+    return VcgLiveResponse.model_validate(
+        {
+            "status": "ok",
+            "scan_time": datetime.now(timezone.utc).isoformat(),
+            "active_source": _active_ws_source(repo),
+            **payload,
+        }
+    )
+
+
+@router.get("/vcg/intraday", response_model=VcgIntradayResponse)
+def get_vcg_intraday(
+    repo: Annotated[Repository, Depends(get_repo)],
+    proxy: str = Query("HYG"),
+    sessions: int = Query(5, ge=1, le=20),
+    rth_only: bool = Query(True),
+) -> VcgIntradayResponse:
+    snap_repo = VcgSnapshotRepository(repo.conn, schema=repo._schema)
+    raw = snap_repo.fetch_intraday_sessions(
+        proxy=proxy.upper(), sessions=sessions, rth_only=rth_only
+    )
+    payload_sessions = [VcgIntradaySession.model_validate(s) for s in raw]
+    last_ts = None
+    if payload_sessions and payload_sessions[-1].points:
+        last_ts = payload_sessions[-1].points[-1].ts
+    return VcgIntradayResponse(
+        credit_proxy=proxy.upper(), sessions=payload_sessions, as_of=last_ts
+    )
+
+
+@router.get("/vcg/history", response_model=VcgDailyHistoryResponse)
+def get_vcg_history(
+    repo: Annotated[Repository, Depends(get_repo)],
+    proxy: str = Query("HYG"),
+    days: int = Query(90, ge=5, le=365),
+) -> VcgDailyHistoryResponse:
+    snap_repo = VcgSnapshotRepository(repo.conn, schema=repo._schema)
+    rows = snap_repo.fetch_daily_history(proxy=proxy.upper(), days=days)
+    return VcgDailyHistoryResponse(
+        credit_proxy=proxy.upper(),
+        rows=[VcgDailyEntry.model_validate(r) for r in rows],
+    )
+
+
+@router.get("/quotes", response_model=RegimeQuotesResponse)
+def get_regime_quotes(
+    repo: Annotated[Repository, Depends(get_repo)],
+    settings: Annotated[Settings, Depends(get_settings)],
+) -> RegimeQuotesResponse:
+    rows = repo.get_intraday_quotes([s.upper() for s in settings.regime_ws_symbols])
+    quotes = {
+        r.ticker: RegimeLiveQuote(
+            price=float(r.price), quoted_at=r.quoted_at, source=r.source
+        )
+        for r in rows
+    }
+    as_of = max((r.quoted_at for r in rows), default=None)
+    return RegimeQuotesResponse(
+        quotes=quotes, active_source=_active_ws_source(repo), as_of=as_of
+    )
 
 
 # ─── Dealer regime (per-ticker, live) ─────────────────────────────

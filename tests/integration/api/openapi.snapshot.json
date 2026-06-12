@@ -2035,6 +2035,154 @@
         "title": "CriComponents",
         "type": "object"
       },
+      "CriDailyEntry": {
+        "properties": {
+          "cor1m": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cor1M"
+          },
+          "cri_score": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cri Score"
+          },
+          "date": {
+            "format": "date",
+            "title": "Date",
+            "type": "string"
+          },
+          "realized_vol": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Realized Vol"
+          },
+          "spx": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Spx"
+          },
+          "spx_distance_pct": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Spx Distance Pct"
+          },
+          "vix": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vix"
+          },
+          "vix3m": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vix3M"
+          },
+          "vix_vix3m_ratio": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vix Vix3M Ratio"
+          },
+          "vix_zscore_30d": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vix Zscore 30D"
+          },
+          "vrp": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vrp"
+          },
+          "vvix": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vvix"
+          }
+        },
+        "required": [
+          "date"
+        ],
+        "title": "CriDailyEntry",
+        "type": "object"
+      },
+      "CriDailyHistoryResponse": {
+        "properties": {
+          "rows": {
+            "items": {
+              "$ref": "#/components/schemas/CriDailyEntry"
+            },
+            "title": "Rows",
+            "type": "array"
+          }
+        },
+        "title": "CriDailyHistoryResponse",
+        "type": "object"
+      },
       "CriHistoryEntry": {
         "properties": {
           "cor1m": {
@@ -2156,6 +2304,489 @@
           "date"
         ],
         "title": "CriHistoryEntry",
+        "type": "object"
+      },
+      "CriIntradayPoint": {
+        "properties": {
+          "cor1m": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cor1M"
+          },
+          "cri_score": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cri Score"
+          },
+          "realized_vol": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Realized Vol"
+          },
+          "spx": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Spx"
+          },
+          "spx_distance_pct": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Spx Distance Pct"
+          },
+          "ts": {
+            "format": "date-time",
+            "title": "Ts",
+            "type": "string"
+          },
+          "vix": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vix"
+          },
+          "vix3m": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vix3M"
+          },
+          "vix_vix3m_ratio": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vix Vix3M Ratio"
+          },
+          "vix_zscore_30d": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vix Zscore 30D"
+          },
+          "vrp": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vrp"
+          },
+          "vvix": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vvix"
+          }
+        },
+        "required": [
+          "ts"
+        ],
+        "title": "CriIntradayPoint",
+        "type": "object"
+      },
+      "CriIntradayResponse": {
+        "properties": {
+          "as_of": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "As Of"
+          },
+          "sessions": {
+            "items": {
+              "$ref": "#/components/schemas/CriIntradaySession"
+            },
+            "title": "Sessions",
+            "type": "array"
+          }
+        },
+        "title": "CriIntradayResponse",
+        "type": "object"
+      },
+      "CriIntradaySession": {
+        "properties": {
+          "et_date": {
+            "format": "date",
+            "title": "Et Date",
+            "type": "string"
+          },
+          "points": {
+            "items": {
+              "$ref": "#/components/schemas/CriIntradayPoint"
+            },
+            "title": "Points",
+            "type": "array"
+          }
+        },
+        "required": [
+          "et_date"
+        ],
+        "title": "CriIntradaySession",
+        "type": "object"
+      },
+      "CriLiveResponse": {
+        "description": "CRI computed at request time with live quotes spliced as today's\nprovisional close. ``basis='eod'`` means the live compute wasn't\npossible (stale/no quotes) and the latest persisted EOD snapshot is\nbeing served instead.",
+        "properties": {
+          "active_source": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Active Source"
+          },
+          "basis": {
+            "default": "eod",
+            "enum": [
+              "live",
+              "eod"
+            ],
+            "title": "Basis",
+            "type": "string"
+          },
+          "carried_forward": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Carried Forward",
+            "type": "array"
+          },
+          "cor1m": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cor1M"
+          },
+          "cor1m_5d_change": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cor1M 5D Change"
+          },
+          "cor1m_previous_close": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cor1M Previous Close"
+          },
+          "crash_trigger": {
+            "$ref": "#/components/schemas/CrashTriggerBlock"
+          },
+          "cri": {
+            "$ref": "#/components/schemas/CriBlock"
+          },
+          "cta": {
+            "$ref": "#/components/schemas/CtaBlock"
+          },
+          "date": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Date"
+          },
+          "history": {
+            "items": {
+              "$ref": "#/components/schemas/CriHistoryEntry"
+            },
+            "title": "History",
+            "type": "array"
+          },
+          "live_quotes": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/RegimeLiveQuote"
+            },
+            "title": "Live Quotes",
+            "type": "object"
+          },
+          "pullback_20d_pct": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pullback 20D Pct"
+          },
+          "realized_vol": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Realized Vol"
+          },
+          "scan_time": {
+            "default": "",
+            "title": "Scan Time",
+            "type": "string"
+          },
+          "spx_100d_ma": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Spx 100D Ma"
+          },
+          "spx_distance_pct": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Spx Distance Pct"
+          },
+          "spx_source": {
+            "anyOf": [
+              {
+                "enum": [
+                  "SPX",
+                  "SPY"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Spx Source"
+          },
+          "spy": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Spy"
+          },
+          "spy_closes": {
+            "items": {
+              "type": "number"
+            },
+            "title": "Spy Closes",
+            "type": "array"
+          },
+          "status": {
+            "default": "empty",
+            "enum": [
+              "ok",
+              "empty"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "vix": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vix"
+          },
+          "vix3m": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vix3M"
+          },
+          "vix_5d_roc": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vix 5D Roc"
+          },
+          "vix_delta_3d": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vix Delta 3D"
+          },
+          "vix_vix3m_ratio": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vix Vix3M Ratio"
+          },
+          "vix_zscore_30d": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vix Zscore 30D"
+          },
+          "vrp": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vrp"
+          },
+          "vvix": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vvix"
+          },
+          "vvix_5d_roc": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vvix 5D Roc"
+          },
+          "vvix_vix_ratio": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vvix Vix Ratio"
+          }
+        },
+        "title": "CriLiveResponse",
         "type": "object"
       },
       "CriResponse": {
@@ -10617,6 +11248,37 @@
         "title": "RecordHealthCheck",
         "type": "object"
       },
+      "RegimeLiveQuote": {
+        "description": "One live WS quote echoed by the live endpoints / quotes strip.",
+        "properties": {
+          "price": {
+            "title": "Price",
+            "type": "number"
+          },
+          "quoted_at": {
+            "format": "date-time",
+            "title": "Quoted At",
+            "type": "string"
+          },
+          "source": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source"
+          }
+        },
+        "required": [
+          "price",
+          "quoted_at"
+        ],
+        "title": "RegimeLiveQuote",
+        "type": "object"
+      },
       "RegimeQuadrantBlock": {
         "properties": {
           "cutoff_corr": {
@@ -10732,6 +11394,43 @@
           "date"
         ],
         "title": "RegimeQuadrantPoint",
+        "type": "object"
+      },
+      "RegimeQuotesResponse": {
+        "description": "Lightweight live-quote projection for the regime header strip.",
+        "properties": {
+          "active_source": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Active Source"
+          },
+          "as_of": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "As Of"
+          },
+          "quotes": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/RegimeLiveQuote"
+            },
+            "title": "Quotes",
+            "type": "object"
+          }
+        },
+        "title": "RegimeQuotesResponse",
         "type": "object"
       },
       "RescanAllRequest": {
@@ -14789,6 +15488,137 @@
         "title": "VcgAttribution",
         "type": "object"
       },
+      "VcgDailyEntry": {
+        "properties": {
+          "beta1": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Beta1"
+          },
+          "beta2": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Beta2"
+          },
+          "credit_5d_return_pct": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Credit 5D Return Pct"
+          },
+          "credit_price": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Credit Price"
+          },
+          "date": {
+            "format": "date",
+            "title": "Date",
+            "type": "string"
+          },
+          "residual": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Residual"
+          },
+          "vcg": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vcg"
+          },
+          "vcg_adj": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vcg Adj"
+          },
+          "vix": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vix"
+          },
+          "vvix": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vvix"
+          }
+        },
+        "required": [
+          "date"
+        ],
+        "title": "VcgDailyEntry",
+        "type": "object"
+      },
+      "VcgDailyHistoryResponse": {
+        "properties": {
+          "credit_proxy": {
+            "default": "HYG",
+            "title": "Credit Proxy",
+            "type": "string"
+          },
+          "rows": {
+            "items": {
+              "$ref": "#/components/schemas/VcgDailyEntry"
+            },
+            "title": "Rows",
+            "type": "array"
+          }
+        },
+        "title": "VcgDailyHistoryResponse",
+        "type": "object"
+      },
       "VcgHistoryEntry": {
         "properties": {
           "beta1": {
@@ -14919,6 +15749,250 @@
           "pct"
         ],
         "title": "VcgInterpretationCount",
+        "type": "object"
+      },
+      "VcgIntradayPoint": {
+        "properties": {
+          "beta1": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Beta1"
+          },
+          "beta2": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Beta2"
+          },
+          "credit_5d_return_pct": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Credit 5D Return Pct"
+          },
+          "credit_price": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Credit Price"
+          },
+          "residual": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Residual"
+          },
+          "ts": {
+            "format": "date-time",
+            "title": "Ts",
+            "type": "string"
+          },
+          "vcg": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vcg"
+          },
+          "vcg_adj": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vcg Adj"
+          },
+          "vix": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vix"
+          },
+          "vvix": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vvix"
+          }
+        },
+        "required": [
+          "ts"
+        ],
+        "title": "VcgIntradayPoint",
+        "type": "object"
+      },
+      "VcgIntradayResponse": {
+        "properties": {
+          "as_of": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "As Of"
+          },
+          "credit_proxy": {
+            "default": "HYG",
+            "title": "Credit Proxy",
+            "type": "string"
+          },
+          "sessions": {
+            "items": {
+              "$ref": "#/components/schemas/VcgIntradaySession"
+            },
+            "title": "Sessions",
+            "type": "array"
+          }
+        },
+        "title": "VcgIntradayResponse",
+        "type": "object"
+      },
+      "VcgIntradaySession": {
+        "properties": {
+          "et_date": {
+            "format": "date",
+            "title": "Et Date",
+            "type": "string"
+          },
+          "points": {
+            "items": {
+              "$ref": "#/components/schemas/VcgIntradayPoint"
+            },
+            "title": "Points",
+            "type": "array"
+          }
+        },
+        "required": [
+          "et_date"
+        ],
+        "title": "VcgIntradaySession",
+        "type": "object"
+      },
+      "VcgLiveResponse": {
+        "properties": {
+          "active_source": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Active Source"
+          },
+          "basis": {
+            "default": "eod",
+            "enum": [
+              "live",
+              "eod"
+            ],
+            "title": "Basis",
+            "type": "string"
+          },
+          "carried_forward": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Carried Forward",
+            "type": "array"
+          },
+          "credit_proxy": {
+            "default": "HYG",
+            "title": "Credit Proxy",
+            "type": "string"
+          },
+          "date": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Date"
+          },
+          "history": {
+            "items": {
+              "$ref": "#/components/schemas/VcgHistoryEntry"
+            },
+            "title": "History",
+            "type": "array"
+          },
+          "live_quotes": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/RegimeLiveQuote"
+            },
+            "title": "Live Quotes",
+            "type": "object"
+          },
+          "scan_time": {
+            "default": "",
+            "title": "Scan Time",
+            "type": "string"
+          },
+          "signal": {
+            "$ref": "#/components/schemas/VcgSignal"
+          },
+          "status": {
+            "default": "empty",
+            "enum": [
+              "ok",
+              "empty"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "title": "VcgLiveResponse",
         "type": "object"
       },
       "VcgNamedCrashEvent": {
@@ -17946,6 +19020,128 @@
         ]
       }
     },
+    "/api/regime/cri/history": {
+      "get": {
+        "operationId": "get_cri_history_api_regime_cri_history_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "days",
+            "required": false,
+            "schema": {
+              "default": 90,
+              "maximum": 365,
+              "minimum": 5,
+              "title": "Days",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CriDailyHistoryResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Cri History",
+        "tags": [
+          "regime"
+        ]
+      }
+    },
+    "/api/regime/cri/intraday": {
+      "get": {
+        "operationId": "get_cri_intraday_api_regime_cri_intraday_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "sessions",
+            "required": false,
+            "schema": {
+              "default": 5,
+              "maximum": 20,
+              "minimum": 1,
+              "title": "Sessions",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "rth_only",
+            "required": false,
+            "schema": {
+              "default": true,
+              "title": "Rth Only",
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CriIntradayResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Cri Intraday",
+        "tags": [
+          "regime"
+        ]
+      }
+    },
+    "/api/regime/cri/live": {
+      "get": {
+        "description": "Request-time CRI with live quotes spliced as today's provisional\nclose. Does NOT persist (the 5-min regime_live_scan job owns writes).\nFalls back to the latest basis='eod' snapshot when quotes are stale.",
+        "operationId": "get_cri_live_api_regime_cri_live_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CriLiveResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Get Cri Live",
+        "tags": [
+          "regime"
+        ]
+      }
+    },
     "/api/regime/dealer": {
       "get": {
         "description": "Per-ticker dealer Greek regime \u2014 feeds the Magnet/Gamma summary bar\nand the Volatility tab regime panel. Uses the same `gather_inputs`\nhelper the report assembler uses so both paths see the same upstream.",
@@ -18168,6 +19364,27 @@
         ]
       }
     },
+    "/api/regime/quotes": {
+      "get": {
+        "operationId": "get_regime_quotes_api_regime_quotes_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegimeQuotesResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Get Regime Quotes",
+        "tags": [
+          "regime"
+        ]
+      }
+    },
     "/api/regime/scan": {
       "post": {
         "description": "Run a CRI scan synchronously off the warm store; persist a snapshot.",
@@ -18275,6 +19492,169 @@
         "summary": "Get Vcg Validation",
         "tags": [
           "regime",
+          "regime"
+        ]
+      }
+    },
+    "/api/regime/vcg/history": {
+      "get": {
+        "operationId": "get_vcg_history_api_regime_vcg_history_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "proxy",
+            "required": false,
+            "schema": {
+              "default": "HYG",
+              "title": "Proxy",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "days",
+            "required": false,
+            "schema": {
+              "default": 90,
+              "maximum": 365,
+              "minimum": 5,
+              "title": "Days",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VcgDailyHistoryResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Vcg History",
+        "tags": [
+          "regime"
+        ]
+      }
+    },
+    "/api/regime/vcg/intraday": {
+      "get": {
+        "operationId": "get_vcg_intraday_api_regime_vcg_intraday_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "proxy",
+            "required": false,
+            "schema": {
+              "default": "HYG",
+              "title": "Proxy",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "sessions",
+            "required": false,
+            "schema": {
+              "default": 5,
+              "maximum": 20,
+              "minimum": 1,
+              "title": "Sessions",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "rth_only",
+            "required": false,
+            "schema": {
+              "default": true,
+              "title": "Rth Only",
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VcgIntradayResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Vcg Intraday",
+        "tags": [
+          "regime"
+        ]
+      }
+    },
+    "/api/regime/vcg/live": {
+      "get": {
+        "operationId": "get_vcg_live_api_regime_vcg_live_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "proxy",
+            "required": false,
+            "schema": {
+              "default": "HYG",
+              "title": "Proxy",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VcgLiveResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Vcg Live",
+        "tags": [
           "regime"
         ]
       }
