@@ -8,24 +8,27 @@ one TSLA run.
 from __future__ import annotations
 
 import os
-import subprocess
-from pathlib import Path
+import re
 
-import psycopg
 import pytest
 
 from uw_scan.api.client import UwClient
 from uw_scan.config import Settings
 from uw_scan.pipeline import run_single_stock
-from uw_scan.storage.repository import Repository
 
 LIVE_MARK = pytest.mark.live
-REPO_ROOT = Path(__file__).resolve().parents[2]
+
+# UW issues bearer tokens in canonical UUID form. We require that shape so a
+# placeholder like `dummy` or `test-dummy-not-used-by-db-tests` doesn't trip
+# the test into a guaranteed 401 from the live API.
+_UUID_RE = re.compile(
+    r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+    re.IGNORECASE,
+)
 
 
 def _has_live_key() -> bool:
-    settings_env = os.environ.get("UW_SCAN_API_KEY", "")
-    return bool(settings_env.strip())
+    return bool(_UUID_RE.match(os.environ.get("UW_SCAN_API_KEY", "").strip()))
 
 
 def _test_settings() -> Settings:
@@ -39,38 +42,24 @@ def _test_settings() -> Settings:
     return Settings.from_env().model_copy(update={"db_name": test_db})
 
 
-def _reset_and_migrate(settings: Settings) -> None:
-    with psycopg.connect(settings.db_dsn(), autocommit=True) as conn:
-        with conn.cursor() as cur:
-            cur.execute("DROP SCHEMA IF EXISTS uw_scan CASCADE")
-            cur.execute("CREATE SCHEMA uw_scan")
-    env = {**os.environ, "UW_SCAN_DB_NAME": settings.db_name}
-    subprocess.run(
-        ["bash", str(REPO_ROOT / "scripts/migrate.sh")],
-        check=True,
-        cwd=REPO_ROOT,
-        env=env,
-    )
-
-
 pytestmark = pytest.mark.skipif(
-    not _has_live_key(), reason="UW_SCAN_API_KEY not set; live pipeline test is skipped"
+    not _has_live_key(),
+    reason="UW_SCAN_API_KEY not set or not a UUID; live pipeline test is skipped",
 )
 
 
 @LIVE_MARK
-def test_pipeline_e2e_tsla_exit_gate(tmp_path_factory):
+def test_pipeline_e2e_tsla_exit_gate(seeded_db_empty_cards, tmp_path_factory):
     """Run the S1 pipeline against TSLA and assert the exit-gate row counts.
 
-    Uses the local `option_wizard_local` DB but a fresh schema (`uw_scan_e2e`)
-    so this test does not collide with developer state.
+    Uses `seeded_db_empty_cards` for the schema migration (in-process, no
+    psql subprocess) and runs against the shared option_wizard_test DB.
     """
     settings = _test_settings()
-    _reset_and_migrate(settings)
-    schema = "uw_scan"
-    conn = psycopg.connect(settings.db_dsn())
+    repo = seeded_db_empty_cards
+    schema = repo._schema
+    conn = repo.conn
     try:
-        repo = Repository(conn, schema=schema)
         with UwClient(
             api_key=settings.api_key.get_secret_value(),
             base_url=settings.base_url,
@@ -116,7 +105,6 @@ def test_pipeline_e2e_tsla_exit_gate(tmp_path_factory):
                     failures.append(f"{table}: got {n}, expected ≤ {max_count}")
         assert not failures, "exit gate row counts failed:\n  " + "\n  ".join(failures)
     finally:
-        with conn.cursor() as cur:
-            cur.execute(f"DROP SCHEMA IF EXISTS {schema} CASCADE")
-        conn.commit()
-        conn.close()
+        # `seeded_db_empty_cards` owns the connection and restores baseline
+        # for the next test — no per-test schema drop is needed here.
+        pass

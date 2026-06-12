@@ -1,10 +1,8 @@
 from __future__ import annotations
 
 import os
-import subprocess
 from datetime import UTC, date, datetime
 from decimal import Decimal
-from pathlib import Path
 
 import psycopg
 import pytest
@@ -20,8 +18,6 @@ from uw_scan.worker.jobs.rates_jobs import (
     rates_fred_ingest_job,
 )
 
-REPO_ROOT = Path(__file__).resolve().parents[3]
-
 
 def _test_settings() -> Settings:
     test_db = os.environ.get("UW_SCAN_TEST_DB_NAME")
@@ -35,20 +31,10 @@ def _test_settings() -> Settings:
 
 
 @pytest.fixture
-def migrated_settings() -> Settings:
-    settings = _test_settings()
-    with psycopg.connect(settings.db_dsn(), autocommit=True) as conn:
-        with conn.cursor() as cur:
-            cur.execute("DROP SCHEMA IF EXISTS uw_scan CASCADE")
-            cur.execute("CREATE SCHEMA uw_scan")
-    env = {**os.environ, "UW_SCAN_DB_NAME": settings.db_name}
-    subprocess.run(
-        ["bash", str(REPO_ROOT / "scripts/migrate.sh")],
-        check=True,
-        cwd=REPO_ROOT,
-        env=env,
-    )
-    return settings
+def migrated_settings(seeded_db_empty_cards) -> Settings:
+    # seeded_db_empty_cards drives the session migrate + per-test baseline
+    # restore. The job under test opens its own connection from settings.db_dsn().
+    return _test_settings()
 
 
 class _Provider:

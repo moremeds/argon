@@ -3,10 +3,8 @@
 from __future__ import annotations
 
 import os
-import subprocess
 from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
-from pathlib import Path
 
 import psycopg
 import pytest
@@ -16,8 +14,6 @@ from uw_scan.api.deps import get_repo, get_settings
 from uw_scan.api.server import create_app
 from uw_scan.config import Settings
 from uw_scan.storage.repository import Repository
-
-REPO_ROOT = Path(__file__).resolve().parents[3]
 
 
 def _test_settings() -> Settings:
@@ -32,33 +28,24 @@ def _test_settings() -> Settings:
 
 
 @pytest.fixture
-def app_with_seed() -> TestClient:
+def app_with_seed(seeded_db_empty_cards) -> TestClient:
+    # seeded_db_empty_cards drives the session migrate + per-test baseline
+    # restore. Seed the macro series for the gauge endpoint into the same DB.
     settings = _test_settings()
-    with psycopg.connect(settings.db_dsn(), autocommit=True) as conn:
-        with conn.cursor() as cur:
-            cur.execute("DROP SCHEMA IF EXISTS uw_scan CASCADE")
-            cur.execute("CREATE SCHEMA uw_scan")
-    env = {**os.environ, "UW_SCAN_DB_NAME": settings.db_name}
-    subprocess.run(
-        ["bash", str(REPO_ROOT / "scripts/migrate.sh")],
-        check=True,
-        cwd=REPO_ROOT,
-        env=env,
-    )
-    with psycopg.connect(settings.db_dsn()) as conn:
-        repo = Repository(conn, schema=settings.db_schema)
-        base = date(2025, 1, 1)
-        for i in range(400):
-            d = base + timedelta(days=i)
-            repo.insert_macro_series_daily(
-                "DFII10",
-                d,
-                Decimal(str(2.0 - i * 0.003)),
-                datetime.combine(d, datetime.min.time(), tzinfo=UTC),
-                None,
-                "FRED",
-                None,
-            )
+    repo = seeded_db_empty_cards
+    base = date(2025, 1, 1)
+    for i in range(400):
+        d = base + timedelta(days=i)
+        repo.insert_macro_series_daily(
+            "DFII10",
+            d,
+            Decimal(str(2.0 - i * 0.003)),
+            datetime.combine(d, datetime.min.time(), tzinfo=UTC),
+            None,
+            "FRED",
+            None,
+        )
+    repo.conn.commit()
 
     app = create_app()
 

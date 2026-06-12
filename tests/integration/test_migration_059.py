@@ -8,11 +8,15 @@ by running the migration script twice.
 
 from __future__ import annotations
 
+import os
 from pathlib import Path
 
 import psycopg
 import pytest
 from psycopg.types.json import Jsonb
+
+from uw_scan.config import Settings
+from uw_scan.storage.migrate_runner import apply_migrations
 
 MIGRATION = Path(
     "src/uw_scan/storage/migrations/059_regime_backtest_research_scope.sql"
@@ -23,6 +27,21 @@ def _apply(conn: psycopg.Connection, sql_path: Path) -> None:
     with conn.cursor() as cur:
         cur.execute(sql_path.read_text())
     conn.commit()
+
+
+@pytest.fixture(autouse=True)
+def _restore_full_migration_state():
+    """Re-apply every migration after each test in this file so subsequent
+    tests don't inherit constraint state that was rewound to the v059 era
+    (the tests below intentionally drop and re-add 059's constraint, which
+    would otherwise leave subsequent tests without the v061 widening of
+    composite_method to include 'classification_accuracy')."""
+    yield
+    settings = Settings.from_env().model_copy(
+        update={"db_name": os.environ["UW_SCAN_TEST_DB_NAME"]}
+    )
+    with psycopg.connect(settings.db_dsn(), autocommit=True) as conn:
+        apply_migrations(conn, log=lambda _msg: None)
 
 
 def test_migration_promotes_columns_and_backfills_research_rows(

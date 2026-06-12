@@ -1,59 +1,27 @@
 """Integration tests for `storage.repository` against a real Postgres instance.
 
-Uses `pytest-postgresql` to spin up an isolated DB per test. Migration is applied
-fresh in each fixture. Fake-cursor tests are explicitly banned by the
-Implementation Guardrails — every assertion below hits a real DB.
+Fake-cursor tests are explicitly banned by the Implementation Guardrails —
+every assertion below hits a real DB. The `seeded_db_empty_cards` fixture
+(see tests/integration/conftest.py) provides a freshly-migrated schema with
+the baseline seed; the snapshot/restore path is shared with every other
+integration test, so the schema under test is the current production
+schema rather than a frozen subset.
 """
 
 from __future__ import annotations
 
-import subprocess
 from datetime import UTC, date, datetime
 from decimal import Decimal
-from pathlib import Path
 
-import psycopg
 import pytest
-from pytest_postgresql import factories
 
 from uw_scan import models
 from uw_scan.storage.repository import Repository
 
-MIGRATIONS_DIR = (
-    Path(__file__).resolve().parents[2] / "src" / "uw_scan" / "storage" / "migrations"
-)
-
-postgresql_my_proc = factories.postgresql_proc(load=[])
-postgresql_my = factories.postgresql("postgresql_my_proc")
-
 
 @pytest.fixture
-def repo(postgresql_my):
-    """Open a psycopg connection to the isolated test DB and apply every migration
-    in lexical order — same order `scripts/migrate.sh` uses in prod/dev. Tests on
-    this fixture see the current schema, not a frozen S1+S2 snapshot.
-    """
-    dsn = (
-        f"host={postgresql_my.info.host} port={postgresql_my.info.port} "
-        f"dbname={postgresql_my.info.dbname} user={postgresql_my.info.user}"
-    )
-    if postgresql_my.info.password:
-        dsn += f" password={postgresql_my.info.password}"
-    # Apply migrations via psql, the same way scripts/migrate.sh does in
-    # prod/dev. psycopg wraps multi-statement execute() calls in implicit
-    # transactions, which breaks statements like DROP INDEX CONCURRENTLY.
-    for sql_path in sorted(MIGRATIONS_DIR.glob("*.sql")):
-        subprocess.run(
-            ["psql", dsn, "-v", "ON_ERROR_STOP=1", "-f", str(sql_path)],
-            check=True,
-            capture_output=True,
-        )
-    conn = psycopg.connect(dsn)
-    r = Repository(conn, schema="uw_scan")
-    try:
-        yield r
-    finally:
-        conn.close()
+def repo(seeded_db_empty_cards) -> Repository:
+    return seeded_db_empty_cards
 
 
 def test_migration_creates_expected_tables(repo: Repository):

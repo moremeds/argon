@@ -177,20 +177,30 @@ async def test_massive_session_switches_back_when_xenon_recovers(
                 x_port = xenon_srv.sockets[0].getsockname()[1]
                 port_file.write_text(json.dumps({"port": x_port, "pid": 1}))
                 await asyncio.wait_for(xenon_tick.wait(), timeout=10.0)
-                await asyncio.sleep(0.4)  # let a xenon flush land
+                # Poll until the xenon switch has both flushed a tick AND
+                # written active_source='xenon_ws' to ws_consumer_state.
+                # A fixed sleep was previously used and flaked under heavy
+                # suite load (5+ second gap to commit observed).
+                deadline = asyncio.get_event_loop().time() + 10.0
+                q = None
+                state = None
+                while asyncio.get_event_loop().time() < deadline:
+                    q = repo.get_intraday_quote("TSLA")
+                    state = repo.get_ws_consumer_state()
+                    if (
+                        q is not None
+                        and q.price == Decimal("444.0")
+                        and state is not None
+                        and state.active_source == "xenon_ws"
+                    ):
+                        break
+                    await asyncio.sleep(0.1)
         finally:
             consumer_task.cancel()
             with contextlib.suppress(asyncio.CancelledError):
                 await consumer_task
 
-    q = None
-    for _ in range(20):
-        q = repo.get_intraday_quote("TSLA")
-        if q is not None and q.price == Decimal("444.0"):
-            break
-        await asyncio.sleep(0.1)
     assert q is not None and q.price == Decimal("444.0")
-    state = repo.get_ws_consumer_state()
     assert state is not None and state.active_source == "xenon_ws"
 
 

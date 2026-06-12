@@ -3,10 +3,8 @@
 from __future__ import annotations
 
 import os
-import subprocess
 from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
-from pathlib import Path
 
 import psycopg
 import pytest
@@ -14,8 +12,6 @@ import pytest
 from uw_scan.config import Settings
 from uw_scan.storage.repository import Repository
 from uw_scan.worker.jobs.gold_jobs import gold_posture_compute_job
-
-REPO_ROOT = Path(__file__).resolve().parents[3]
 
 
 def _test_settings() -> Settings:
@@ -27,20 +23,11 @@ def _test_settings() -> Settings:
 
 
 @pytest.fixture
-def fresh_db() -> Settings:
-    settings = _test_settings()
-    with psycopg.connect(settings.db_dsn(), autocommit=True) as conn:
-        with conn.cursor() as cur:
-            cur.execute("DROP SCHEMA IF EXISTS uw_scan CASCADE")
-            cur.execute("CREATE SCHEMA uw_scan")
-    env = {**os.environ, "UW_SCAN_DB_NAME": settings.db_name}
-    subprocess.run(
-        ["bash", str(REPO_ROOT / "scripts/migrate.sh")],
-        check=True,
-        cwd=REPO_ROOT,
-        env=env,
-    )
-    return settings
+def fresh_db(seeded_db_empty_cards) -> Settings:
+    # seeded_db_empty_cards drives the session migrate + per-test baseline
+    # restore. The job under test opens its own connection from settings.db_dsn().
+    _ = seeded_db_empty_cards
+    return _test_settings()
 
 
 def test_gold_posture_compute_writes_row(fresh_db: Settings) -> None:

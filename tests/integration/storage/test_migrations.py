@@ -1,69 +1,21 @@
 """Verify migrations 003-006 produce the expected schema and seed against an
 ISOLATED test database — never against the developer's real `option_wizard` DB.
 
-Requires `UW_SCAN_TEST_DB_NAME` env var to point at a dedicated test database
-(e.g. `option_wizard_test`). The fixture refuses to run if it isn't set, so
-running `pytest` cannot destroy local scan data by accident."""
+Uses the shared `seeded_db_empty_cards` fixture (session-scoped migrate +
+per-test TRUNCATE+COPY restore from baseline). The post-migration state is
+identical to what a fresh `DROP SCHEMA CASCADE` + full migration would
+produce, which is what these tests assert against."""
 
 from __future__ import annotations
 
-import os
-import subprocess
-from pathlib import Path
-
-import psycopg
+import psycopg  # noqa: F401 — tests below reference psycopg.errors
 import pytest
-
-from uw_scan.config import Settings
-
-REPO_ROOT = Path(__file__).resolve().parents[3]
-
-
-def _test_settings() -> Settings:
-    """Return a Settings instance pointing at the isolated test DB.
-
-    HARD REQUIREMENT: the developer must set UW_SCAN_TEST_DB_NAME to a database
-    name that is NOT their working `option_wizard` DB. The fixture refuses to
-    run otherwise — protects against `DROP SCHEMA` against the wrong target.
-
-    DB-only tests (migrations, repository) don't need a UW API key. We inject
-    a dummy `UW_SCAN_API_KEY` before calling `Settings.from_env()` so the
-    `RuntimeError("UW_SCAN_API_KEY is not set")` from config.py doesn't fail
-    fresh dev/CI environments.
-    """
-    test_db = os.environ.get("UW_SCAN_TEST_DB_NAME")
-    if not test_db:
-        pytest.fail(
-            "UW_SCAN_TEST_DB_NAME is not set. Create a dedicated test DB "
-            "(e.g. `createdb option_wizard_test`) and export "
-            "`UW_SCAN_TEST_DB_NAME=option_wizard_test` before running pytest. "
-            "This fixture refuses to operate on the working DB because it "
-            "performs `DROP SCHEMA uw_scan CASCADE`.",
-            pytrace=False,
-        )
-    os.environ.setdefault("UW_SCAN_API_KEY", "test-dummy-not-used-by-db-tests")
-    base = Settings.from_env()
-    return base.model_copy(update={"db_name": test_db})
 
 
 @pytest.fixture
-def fresh_schema():
-    """DROP + CREATE uw_scan schema on the TEST database, then re-apply all
-    migrations. Yields a connection."""
-    settings = _test_settings()
-    with psycopg.connect(settings.db_dsn(), autocommit=True) as conn:
-        with conn.cursor() as cur:
-            cur.execute("DROP SCHEMA IF EXISTS uw_scan CASCADE")
-            cur.execute("CREATE SCHEMA uw_scan")
-    env = {**os.environ, "UW_SCAN_DB_NAME": settings.db_name}
-    subprocess.run(
-        ["bash", str(REPO_ROOT / "scripts/migrate.sh")],
-        check=True,
-        cwd=REPO_ROOT,
-        env=env,
-    )
-    with psycopg.connect(settings.db_dsn()) as conn:
-        yield conn
+def fresh_schema(seeded_db_empty_cards):
+    """Yields a Repository connection backed by the freshly-migrated schema."""
+    yield seeded_db_empty_cards.conn
 
 
 def test_all_new_tables_exist(fresh_schema):
