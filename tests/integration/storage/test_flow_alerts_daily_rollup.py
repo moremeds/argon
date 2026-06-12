@@ -2,16 +2,17 @@
 
 from __future__ import annotations
 
-import os
-import subprocess
 from datetime import date, datetime, timezone
 from decimal import Decimal
 from pathlib import Path
 
-from uw_scan.config import Settings
 from uw_scan.models import FlowAlert
+from uw_scan.storage.migrate_runner import split_sql_statements
 
-REPO_ROOT = Path(__file__).resolve().parents[3]
+BACKFILL_MIGRATION = (
+    Path(__file__).resolve().parents[3]
+    / "src/uw_scan/storage/migrations/023_backfill_flow_alerts_daily_rollup.sql"
+)
 
 
 def _alert(
@@ -104,24 +105,13 @@ def test_backfill_migration_rolls_up_existing_flow_events(seeded_db_empty_cards)
     )
     repo.conn.commit()
 
-    settings = Settings.from_env().model_copy(
-        update={"db_name": os.environ["UW_SCAN_TEST_DB_NAME"]}
-    )
-    subprocess.run(
-        [
-            "psql",
-            settings.db_dsn(),
-            "-v",
-            "ON_ERROR_STOP=1",
-            "-f",
-            str(
-                REPO_ROOT
-                / "src/uw_scan/storage/migrations/023_backfill_flow_alerts_daily_rollup.sql"
-            ),
-        ],
-        check=True,
-        cwd=REPO_ROOT,
-    )
+    # Re-apply the backfill migration in-process. Statements are split so
+    # multi-statement files don't get wrapped in an implicit transaction.
+    sql = BACKFILL_MIGRATION.read_text()
+    with repo.conn.cursor() as cur:
+        for stmt in split_sql_statements(sql):
+            cur.execute(stmt)
+    repo.conn.commit()
 
     with repo.conn.cursor() as cur:
         cur.execute(

@@ -2,20 +2,36 @@
 
 Requires UW_SCAN_TEST_DB_NAME to point at a dedicated test DB. Fixtures
 refuse to run otherwise — never touches the developer's working DB.
+
+Performance design
+------------------
+Previously every test fixture re-ran ``bash scripts/migrate.sh``, which
+paid ~150ms of ``uv run python`` startup + ~30ms × 82 of ``psql`` fork-
+and-connect per fixture invocation. Across the integration suite this
+was ~2-5s per test → many minutes of pure setup overhead per CI shard.
+
+Now we migrate once per pytest session, snapshot the post-migration
+baseline via ``COPY`` (which natively handles JSONB, TEXT[], custom
+enums, etc.), and per test ``TRUNCATE ... CASCADE`` + ``COPY`` the
+baseline back. Sequence positions are restored via ``setval`` so
+test-issued IDs remain deterministic across resets.
 """
 
 from __future__ import annotations
 
+import io
 import os
-import subprocess
+from collections.abc import Iterator
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 from pathlib import Path
+from typing import Any
 
 import psycopg
 import pytest
 
 from uw_scan.config import Settings
+from uw_scan.storage.migrate_runner import apply_migrations
 from uw_scan.storage.repository import Repository
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -33,27 +49,99 @@ def _test_settings() -> Settings:
     return Settings.from_env().model_copy(update={"db_name": test_db})
 
 
-def _reset_and_migrate(settings: Settings) -> None:
+@pytest.fixture(scope="session")
+def _migrated_settings() -> Settings:
+    """Drop+migrate the test schema once per pytest session.
+
+    This is the big perf lever: the 82-file migration runs once per
+    session instead of once per test. ``seeded_db_empty_cards`` below
+    delivers per-test isolation via TRUNCATE+COPY against the snapshot
+    captured in ``_baseline_snapshot``.
+    """
+    settings = _test_settings()
     with psycopg.connect(settings.db_dsn(), autocommit=True) as conn:
         with conn.cursor() as cur:
             cur.execute("DROP SCHEMA IF EXISTS uw_scan CASCADE")
             cur.execute("CREATE SCHEMA uw_scan")
-    env = {**os.environ, "UW_SCAN_DB_NAME": settings.db_name}
-    subprocess.run(
-        ["bash", str(REPO_ROOT / "scripts/migrate.sh")],
-        check=True,
-        cwd=REPO_ROOT,
-        env=env,
-    )
+        apply_migrations(conn, log=lambda _msg: None)
+    return settings
+
+
+@pytest.fixture(scope="session")
+def _baseline_snapshot(_migrated_settings: Settings) -> dict[str, Any]:
+    """Capture the post-migration state once.
+
+    ``COPY ... TO STDOUT`` is used because it round-trips every column
+    type Postgres supports (JSONB, TEXT[], enums, tstzrange, ...) without
+    needing per-column psycopg adapter registration. Sequence positions
+    are captured separately so we can restore them with ``setval`` after
+    TRUNCATE wipes them back to 1.
+    """
+    settings = _migrated_settings
+    tables: list[str] = []
+    table_dumps: dict[str, bytes] = {}
+    sequences: dict[str, tuple[int, bool]] = {}
+    with psycopg.connect(settings.db_dsn()) as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                "SELECT tablename FROM pg_tables "
+                "WHERE schemaname = 'uw_scan' ORDER BY tablename"
+            )
+            tables = [r[0] for r in cur.fetchall()]
+            for t in tables:
+                buf = io.BytesIO()
+                with cur.copy(f'COPY uw_scan."{t}" TO STDOUT') as copy:
+                    for chunk in copy:
+                        buf.write(bytes(chunk))
+                table_dumps[t] = buf.getvalue()
+            cur.execute(
+                "SELECT sequence_name FROM information_schema.sequences "
+                "WHERE sequence_schema = 'uw_scan' ORDER BY sequence_name"
+            )
+            seq_names = [r[0] for r in cur.fetchall()]
+            for s in seq_names:
+                cur.execute(f'SELECT last_value, is_called FROM uw_scan."{s}"')
+                row = cur.fetchone()
+                sequences[s] = (int(row[0]), bool(row[1]))
+    return {"tables": tables, "dumps": table_dumps, "sequences": sequences}
+
+
+def _reset_to_baseline(
+    conn: psycopg.Connection,
+    snapshot: dict[str, Any],
+) -> None:
+    """Restore the post-migration baseline on ``conn``."""
+    tables: list[str] = snapshot["tables"]
+    dumps: dict[str, bytes] = snapshot["dumps"]
+    sequences: dict[str, tuple[int, bool]] = snapshot["sequences"]
+    with conn.cursor() as cur:
+        if tables:
+            quoted = ", ".join(f'uw_scan."{t}"' for t in tables)
+            cur.execute(f"TRUNCATE {quoted} CASCADE")
+        for t in tables:
+            data = dumps[t]
+            if not data:
+                continue
+            with cur.copy(f'COPY uw_scan."{t}" FROM STDIN') as copy:
+                copy.write(data)
+        for s, (last_value, is_called) in sequences.items():
+            cur.execute(
+                f'SELECT setval(\'uw_scan."{s}"\', %s, %s)',
+                (last_value, is_called),
+            )
 
 
 @pytest.fixture
-def seeded_db_empty_cards() -> Repository:
+def seeded_db_empty_cards(
+    _migrated_settings: Settings,
+    _baseline_snapshot: dict[str, Any],
+) -> Iterator[Repository]:
     """Freshly-migrated test DB + 54-ticker watchlist seed; zero card rows."""
-    settings = _test_settings()
-    _reset_and_migrate(settings)
+    settings = _migrated_settings
     conn = psycopg.connect(settings.db_dsn())
     try:
+        _reset_to_baseline(conn, _baseline_snapshot)
+        conn.commit()
         yield Repository(conn, schema=settings.db_schema)
     finally:
         conn.close()

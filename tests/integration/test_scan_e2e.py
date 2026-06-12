@@ -7,6 +7,7 @@ with developer-driven state. A small fixed universe limits cost.
 from __future__ import annotations
 
 import os
+import re
 from pathlib import Path
 
 import psycopg
@@ -24,14 +25,21 @@ MIGRATIONS_DIR = (
 MIGRATION_S1 = MIGRATIONS_DIR / "001_s1_core_tables.sql"
 MIGRATION_S2 = MIGRATIONS_DIR / "002_s2_scan_tables.sql"
 
+# UW issues bearer tokens in canonical UUID form. A non-empty but non-UUID
+# value (e.g. `dummy`) would otherwise pass the gate and 401 on the live call.
+_UUID_RE = re.compile(
+    r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+    re.IGNORECASE,
+)
+
 
 def _has_live_key() -> bool:
-    return bool(os.environ.get("UW_SCAN_API_KEY", "").strip())
+    return bool(_UUID_RE.match(os.environ.get("UW_SCAN_API_KEY", "").strip()))
 
 
 pytestmark = pytest.mark.skipif(
     not _has_live_key(),
-    reason="UW_SCAN_API_KEY not set; live full-scan test is skipped",
+    reason="UW_SCAN_API_KEY not set or not a UUID; live full-scan test is skipped",
 )
 
 

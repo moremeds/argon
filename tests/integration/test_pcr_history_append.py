@@ -7,18 +7,12 @@ relies on.
 from __future__ import annotations
 
 import os
-import subprocess
 from datetime import date
 from decimal import Decimal
-from pathlib import Path
-
-import psycopg
 import pytest
 
 from uw_scan.config import Settings
 from uw_scan.storage.repository import Repository
-
-REPO_ROOT = Path(__file__).resolve().parents[2]
 
 
 def _test_settings() -> Settings:
@@ -31,23 +25,8 @@ def _test_settings() -> Settings:
 
 
 @pytest.fixture
-def repo():
-    settings = _test_settings()
-    with psycopg.connect(settings.db_dsn(), autocommit=True) as conn:
-        with conn.cursor() as cur:
-            cur.execute("DROP SCHEMA IF EXISTS uw_scan CASCADE")
-            cur.execute("CREATE SCHEMA uw_scan")
-    env = {**os.environ, "UW_SCAN_DB_NAME": settings.db_name}
-    subprocess.run(
-        ["bash", str(REPO_ROOT / "scripts/migrate.sh")],
-        check=True,
-        cwd=REPO_ROOT,
-        env=env,
-    )
-    with psycopg.connect(settings.db_dsn()) as conn:
-        yield Repository(conn, schema=settings.db_schema)
-
-
+def repo(seeded_db_empty_cards) -> Repository:
+    return seeded_db_empty_cards
 def test_pcr_history_appended_and_idempotent(repo):
     today = date.today()
     repo.append_pcr_history(

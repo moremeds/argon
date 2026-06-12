@@ -1,13 +1,13 @@
 from __future__ import annotations
 
 import os
-import subprocess
 from datetime import UTC, datetime, timedelta
-from pathlib import Path
 
+import psycopg
+
+from uw_scan.config import Settings
+from uw_scan.storage.migrate_runner import apply_migrations
 from uw_scan.storage.repository import Repository
-
-REPO_ROOT = Path(__file__).resolve().parents[3]
 
 
 def test_pipeline_benchmark_snapshot_roundtrip(
@@ -102,13 +102,14 @@ def test_pipeline_benchmark_migration_repairs_existing_snapshot_table(
         )
     repo.conn.commit()
 
-    env = {**os.environ, "UW_SCAN_DB_NAME": os.environ["UW_SCAN_TEST_DB_NAME"]}
-    subprocess.run(
-        ["bash", str(REPO_ROOT / "scripts/migrate.sh")],
-        check=True,
-        cwd=REPO_ROOT,
-        env=env,
+    # Re-apply migrations in-process to verify idempotent repair of the
+    # snapshot table. autocommit=True is required by apply_migrations
+    # (CONCURRENTLY index ops cannot run inside a transaction block).
+    settings = Settings.from_env().model_copy(
+        update={"db_name": os.environ["UW_SCAN_TEST_DB_NAME"]}
     )
+    with psycopg.connect(settings.db_dsn(), autocommit=True) as conn:
+        apply_migrations(conn, log=lambda _msg: None)
 
     with repo.conn.cursor() as cur:
         cur.execute(

@@ -1,59 +1,35 @@
 """Smoke test: Phase A1 gold tables exist with PIT-disciplined columns after migrate.
 
-Uses the project's `fresh_schema` pattern (DROP SCHEMA CASCADE + re-run migrate.sh
-against the isolated test DB pointed to by UW_SCAN_TEST_DB_NAME). Matches the
-pattern in tests/integration/storage/test_migrations.py rather than the
-pytest-postgresql fixture variant.
+Uses the shared `seeded_db_empty_cards` fixture (session-scoped migrate +
+per-test TRUNCATE+COPY baseline restore). The post-migration state is what
+these tests assert against — a fresh DROP+migrate would produce the same
+schema, and the idempotency test re-applies migrations in-process.
 """
 
 from __future__ import annotations
 
 import os
-import subprocess
-from pathlib import Path
 
 import psycopg
 import pytest
 
 from uw_scan.config import Settings
-
-REPO_ROOT = Path(__file__).resolve().parents[3]
+from uw_scan.storage.migrate_runner import apply_migrations
 
 
 def _test_settings() -> Settings:
-    test_db = os.environ.get("UW_SCAN_TEST_DB_NAME")
-    if not test_db:
-        pytest.fail(
-            "UW_SCAN_TEST_DB_NAME is not set. Create a dedicated test DB "
-            "(e.g. `createdb option_wizard_test`) and export "
-            "`UW_SCAN_TEST_DB_NAME=option_wizard_test` before running pytest.",
-            pytrace=False,
-        )
-    os.environ.setdefault("UW_SCAN_API_KEY", "test-dummy-not-used-by-db-tests")
-    base = Settings.from_env()
-    return base.model_copy(update={"db_name": test_db})
+    test_db = os.environ["UW_SCAN_TEST_DB_NAME"]
+    return Settings.from_env().model_copy(update={"db_name": test_db})
 
 
 def _run_migrations(settings: Settings) -> None:
-    env = {**os.environ, "UW_SCAN_DB_NAME": settings.db_name}
-    subprocess.run(
-        ["bash", str(REPO_ROOT / "scripts/migrate.sh")],
-        check=True,
-        cwd=REPO_ROOT,
-        env=env,
-    )
+    with psycopg.connect(settings.db_dsn(), autocommit=True) as conn:
+        apply_migrations(conn, log=lambda _msg: None)
 
 
 @pytest.fixture
-def fresh_schema():
-    settings = _test_settings()
-    with psycopg.connect(settings.db_dsn(), autocommit=True) as conn:
-        with conn.cursor() as cur:
-            cur.execute("DROP SCHEMA IF EXISTS uw_scan CASCADE")
-            cur.execute("CREATE SCHEMA uw_scan")
-    _run_migrations(settings)
-    with psycopg.connect(settings.db_dsn()) as conn:
-        yield conn
+def fresh_schema(seeded_db_empty_cards):
+    yield seeded_db_empty_cards.conn
 
 
 def _table_columns(conn: psycopg.Connection, table: str) -> set[str]:

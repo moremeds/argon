@@ -3,9 +3,7 @@
 from __future__ import annotations
 
 import os
-import subprocess
 from datetime import UTC, date, datetime
-from pathlib import Path
 
 import psycopg
 import pytest
@@ -26,8 +24,6 @@ from uw_scan.models import (
 )
 from uw_scan.storage.repository import Repository
 
-REPO_ROOT = Path(__file__).resolve().parents[3]
-
 
 def _test_settings() -> Settings:
     test_db = os.environ.get("UW_SCAN_TEST_DB_NAME")
@@ -38,19 +34,11 @@ def _test_settings() -> Settings:
 
 
 @pytest.fixture
-def rates_client() -> TestClient:
+def rates_client(seeded_db_empty_cards) -> TestClient:
+    # seeded_db_empty_cards drives the session migrate + per-test baseline
+    # restore. We still need settings to wire the FastAPI dependency overrides.
+    _ = seeded_db_empty_cards
     settings = _test_settings()
-    with psycopg.connect(settings.db_dsn(), autocommit=True) as conn:
-        with conn.cursor() as cur:
-            cur.execute("DROP SCHEMA IF EXISTS uw_scan CASCADE")
-            cur.execute("CREATE SCHEMA uw_scan")
-    env = {**os.environ, "UW_SCAN_DB_NAME": settings.db_name}
-    subprocess.run(
-        ["bash", str(REPO_ROOT / "scripts/migrate.sh")],
-        check=True,
-        cwd=REPO_ROOT,
-        env=env,
-    )
 
     app = create_app()
 

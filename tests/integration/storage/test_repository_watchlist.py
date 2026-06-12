@@ -8,18 +8,12 @@ sequential runs don't leak state through the watchlist or jobs tables.
 from __future__ import annotations
 
 import os
-import subprocess
 from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal
-from pathlib import Path
-
-import psycopg
 import pytest
 
 from uw_scan.config import Settings
 from uw_scan.storage.repository import Repository
-
-REPO_ROOT = Path(__file__).resolve().parents[3]
 
 
 def _test_settings() -> Settings:
@@ -37,29 +31,8 @@ def _test_settings() -> Settings:
 
 
 @pytest.fixture
-def repo():
-    """Repository against a FRESHLY migrated test DB.
-
-    Repository methods commit internally, so writes from one test would persist
-    across tests if we didn't reset. We DROP+CREATE the schema and re-apply
-    migrations every test — slow but correct.
-    """
-    settings = _test_settings()
-    with psycopg.connect(settings.db_dsn(), autocommit=True) as conn:
-        with conn.cursor() as cur:
-            cur.execute("DROP SCHEMA IF EXISTS uw_scan CASCADE")
-            cur.execute("CREATE SCHEMA uw_scan")
-    env = {**os.environ, "UW_SCAN_DB_NAME": settings.db_name}
-    subprocess.run(
-        ["bash", str(REPO_ROOT / "scripts/migrate.sh")],
-        check=True,
-        cwd=REPO_ROOT,
-        env=env,
-    )
-    with psycopg.connect(settings.db_dsn()) as conn:
-        yield Repository(conn, schema=settings.db_schema)
-
-
+def repo(seeded_db_empty_cards) -> Repository:
+    return seeded_db_empty_cards
 def test_list_active_watchlist_excludes_soft_deleted(repo):
     repo.add_watchlist_ticker(ticker="ZZTEST", sector="ETF", notes="t")
     repo.soft_delete_watchlist_ticker("ZZTEST")

@@ -3,16 +3,16 @@
 from __future__ import annotations
 
 import os
-import subprocess
-from pathlib import Path
 
+import psycopg
+
+from uw_scan.config import Settings
+from uw_scan.storage.migrate_runner import apply_migrations
 from uw_scan.storage.repository import Repository
-
-REPO_ROOT = Path(__file__).resolve().parents[3]
 
 
 def test_exposures_summary_table_created(seeded_db_empty_cards: Repository):
-    """conftest's _reset_and_migrate already ran migrate.sh; assert the table + columns exist."""
+    """conftest's session migration already applied every migration; assert the table + columns exist."""
     repo = seeded_db_empty_cards
     with repo.conn.cursor() as cur:
         cur.execute("SELECT to_regclass('uw_scan.exposures_summary')")
@@ -55,16 +55,13 @@ def test_exposures_summary_table_created(seeded_db_empty_cards: Repository):
 
 
 def test_migration_is_idempotent(seeded_db_empty_cards: Repository):
-    """Re-running scripts/migrate.sh on the already-migrated DB must be a no-op."""
+    """Re-applying every migration on the already-migrated DB must be a no-op."""
     repo = seeded_db_empty_cards
-    test_db = os.environ["UW_SCAN_TEST_DB_NAME"]
-    env = {**os.environ, "UW_SCAN_DB_NAME": test_db}
-    subprocess.run(
-        ["bash", str(REPO_ROOT / "scripts/migrate.sh")],
-        check=True,
-        cwd=REPO_ROOT,
-        env=env,
+    settings = Settings.from_env().model_copy(
+        update={"db_name": os.environ["UW_SCAN_TEST_DB_NAME"]}
     )
+    with psycopg.connect(settings.db_dsn(), autocommit=True) as conn:
+        apply_migrations(conn, log=lambda _msg: None)
     with repo.conn.cursor() as cur:
         cur.execute("SELECT count(*) FROM uw_scan.exposures_summary")
         assert cur.fetchone()[0] == 0

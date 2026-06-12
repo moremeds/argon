@@ -2,10 +2,8 @@ from __future__ import annotations
 
 import logging
 import os
-import subprocess
 from dataclasses import replace
 from datetime import UTC, datetime
-from pathlib import Path
 
 import psycopg
 import pytest
@@ -17,8 +15,6 @@ from uw_scan.storage.provider_usage import (
 )
 from uw_scan.storage.repository import Repository
 
-REPO_ROOT = Path(__file__).resolve().parents[3]
-
 
 def _test_settings() -> Settings:
     os.environ.setdefault("UW_SCAN_API_KEY", "test-dummy-not-used-by-db-tests")
@@ -28,20 +24,11 @@ def _test_settings() -> Settings:
 
 
 @pytest.fixture
-def settings() -> Settings:
-    settings = _test_settings()
-    with psycopg.connect(settings.db_dsn(), autocommit=True) as conn:
-        with conn.cursor() as cur:
-            cur.execute("DROP SCHEMA IF EXISTS uw_scan CASCADE")
-            cur.execute("CREATE SCHEMA uw_scan")
-    env = {**os.environ, "UW_SCAN_DB_NAME": settings.db_name}
-    subprocess.run(
-        ["bash", str(REPO_ROOT / "scripts/migrate.sh")],
-        check=True,
-        cwd=REPO_ROOT,
-        env=env,
-    )
-    return settings
+def settings(seeded_db_empty_cards) -> Settings:
+    # seeded_db_empty_cards triggers the session migration + per-test baseline
+    # restore. This fixture only needs the resolved Settings — the recorder
+    # opens its own connection from the DSN, distinct from the fixture's repo.
+    return _test_settings()
 
 
 def _event() -> ExternalApiRequestEvent:
