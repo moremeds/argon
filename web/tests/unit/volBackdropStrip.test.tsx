@@ -30,7 +30,7 @@ const sample = {
 
 describe("VolBackdropStripView", () => {
   it("renders all four tiles", () => {
-    render(<VolBackdropStripView data={sample} />);
+    render(<VolBackdropStripView data={sample} quotes={null} />);
     expect(screen.getByText("VIX")).toBeTruthy();
     expect(screen.getByText("VIX3M")).toBeTruthy();
     expect(screen.getByText("VVIX")).toBeTruthy();
@@ -38,12 +38,12 @@ describe("VolBackdropStripView", () => {
   });
 
   it("shows term-structure state badge", () => {
-    render(<VolBackdropStripView data={sample} />);
+    render(<VolBackdropStripView data={sample} quotes={null} />);
     expect(screen.getByText(/contango/i)).toBeTruthy();
   });
 
   it("renders nothing when data is null", () => {
-    const { container } = render(<VolBackdropStripView data={null} />);
+    const { container } = render(<VolBackdropStripView data={null} quotes={null} />);
     expect(container.firstChild).toBeNull();
   });
 });

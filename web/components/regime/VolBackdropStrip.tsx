@@ -2,6 +2,11 @@
 
 import { fmtDecimal } from "@/lib/formatters";
 import {
+  quoteIsFresh,
+  useRegimeQuotes,
+  type RegimeQuotesResponse,
+} from "@/lib/regime/useRegimeQuotes";
+import {
   useVolBackdrop,
   type VolBackdropData,
 } from "@/lib/regime/useVolBackdrop";
@@ -37,10 +42,31 @@ function pctChange(points: { close: number }[] | undefined): number | null {
 
 export function VolBackdropStripView({
   data,
+  quotes,
 }: {
   data: VolBackdropData | null;
+  quotes: RegimeQuotesResponse | null;
 }) {
   if (!data) return null;
+
+  // Live term structure when both legs are fresh; falls back to daily ratio.
+  const qv = quotes?.quotes?.VIX;
+  const q3 = quotes?.quotes?.VIX3M;
+  const liveRatio =
+    qv &&
+    q3 &&
+    quoteIsFresh(qv.quoted_at) &&
+    quoteIsFresh(q3.quoted_at) &&
+    q3.price
+      ? qv.price / q3.price
+      : null;
+  const ratio = liveRatio ?? data.term_structure_ratio;
+  const state =
+    ratio != null
+      ? ratio < 1
+        ? "contango"
+        : "backwardation"
+      : data.term_structure_state;
 
   return (
     <div
@@ -55,8 +81,16 @@ export function VolBackdropStripView({
       }}
     >
       {SYMBOLS.map((s) => {
-        const close = lastClose(data.series[s]);
-        const chg = pctChange(data.series[s]);
+        const q = quotes?.quotes?.[s];
+        const live = q != null && quoteIsFresh(q.quoted_at);
+        const dailyClose = lastClose(data.series[s]);
+        // Live: current quote with change vs last daily close (intraday
+        // ret_1d convention, same as TickerCards). Daily: close-over-close.
+        const close = live ? q.price : dailyClose;
+        const chg =
+          live && dailyClose
+            ? ((q.price - dailyClose) / dailyClose) * 100
+            : pctChange(data.series[s]);
         return (
           <div key={s} title={tooltips[s]}>
             <div
@@ -68,6 +102,11 @@ export function VolBackdropStripView({
               }}
             >
               {labels[s]}
+              {live && (
+                <span style={{ color: "var(--positive)", marginLeft: 4 }}>
+                  ●
+                </span>
+              )}
             </div>
             <div
               style={{
@@ -108,6 +147,9 @@ export function VolBackdropStripView({
           }}
         >
           Term Structure
+          {liveRatio != null && (
+            <span style={{ color: "var(--positive)", marginLeft: 4 }}>●</span>
+          )}
         </div>
         <div
           style={{
@@ -115,14 +157,12 @@ export function VolBackdropStripView({
             fontWeight: 600,
             fontFamily: "var(--font-mono)",
             color:
-              data.term_structure_state === "backwardation"
+              state === "backwardation"
                 ? "var(--warning)"
                 : "var(--text-primary)",
           }}
         >
-          {data.term_structure_ratio != null
-            ? fmtDecimal(data.term_structure_ratio, 3)
-            : "—"}
+          {ratio != null ? fmtDecimal(ratio, 3) : "—"}
         </div>
         <div
           style={{
@@ -130,12 +170,12 @@ export function VolBackdropStripView({
             textTransform: "uppercase",
             letterSpacing: "0.06em",
             color:
-              data.term_structure_state === "backwardation"
+              state === "backwardation"
                 ? "var(--warning)"
                 : "var(--text-secondary)",
           }}
         >
-          {data.term_structure_state ?? "—"}
+          {state ?? "—"}
         </div>
       </div>
     </div>
@@ -144,5 +184,6 @@ export function VolBackdropStripView({
 
 export default function VolBackdropStrip() {
   const { data } = useVolBackdrop();
-  return <VolBackdropStripView data={data ?? null} />;
+  const { data: quotes } = useRegimeQuotes();
+  return <VolBackdropStripView data={data ?? null} quotes={quotes ?? null} />;
 }
