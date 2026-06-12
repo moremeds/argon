@@ -303,6 +303,23 @@ export function CriSubTabView({
     const base = i >= 3 ? vixDaily[i - 3] : null;
     return v != null && base != null ? v - base : null;
   });
+  // Historical rows can mix SPX- and SPY-scale values when a snapshot
+  // captured the SPY fallback (observed in dev: 739.17 amid ~7400). Drop
+  // points outside a 2× band around the median — the index can't halve or
+  // double inside the 90d window, so only cross-scale points are removed.
+  const spxDailyRaw = dseries("spx");
+  const spxSorted = spxDailyRaw
+    .filter((v): v is number => v != null)
+    .sort((a, b) => a - b);
+  const spxMedian = spxSorted.length
+    ? spxSorted[Math.floor(spxSorted.length / 2)]
+    : null;
+  const spxDaily =
+    spxMedian == null
+      ? spxDailyRaw
+      : spxDailyRaw.map((v) =>
+          v != null && (v < spxMedian / 2 || v > spxMedian * 2) ? null : v,
+        );
 
   return (
     <div className="section gex-panel" data-testid="cri-subtab">
@@ -421,7 +438,7 @@ export function CriSubTabView({
             sub={<>vs 100d MA: {formatPercent(spxDistPct)}</>}
             spark={
               <CardSparkline
-                values={dseries("spx")}
+                values={spxDaily}
                 label="SPX daily, 90d"
                 color="var(--text-primary)"
               />

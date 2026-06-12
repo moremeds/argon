@@ -450,9 +450,8 @@ export function VcgSubTabView({
                 {data.credit_proxy} @ ${formatNumber(sig.credit_price)}
               </div>
               <CardSparkline
-                values={dseries("credit_price")}
-                label={`${data.credit_proxy} daily, 90d`}
-                color="var(--text-primary)"
+                values={dseries("credit_5d_return_pct")}
+                label="Credit 5d return daily, 90d"
               />
             </div>
             <div className="metric-card">

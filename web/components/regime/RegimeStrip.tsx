@@ -114,7 +114,7 @@ export function RegimeStripCell({
         {sub ? <div className="regime-strip-sub">{sub}</div> : null}
         {timestamp ? <div className="regime-strip-ts">{timestamp}</div> : null}
       </div>
-      {spark}
+      {spark ? <div className="regime-strip-spark">{spark}</div> : null}
     </div>
   );
 }

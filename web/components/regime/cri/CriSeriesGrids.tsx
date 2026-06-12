@@ -7,9 +7,7 @@ import {
 } from "@/lib/regime/useCriSeries";
 import { useMarketHours } from "@/lib/regime/useMarketHours";
 
-type AnyRow = CriIntradayPoint;
-
-const PANELS: PanelSpec<AnyRow>[] = [
+const PANELS: PanelSpec<CriIntradayPoint>[] = [
   {
     key: "cri_score",
     label: "CRI",

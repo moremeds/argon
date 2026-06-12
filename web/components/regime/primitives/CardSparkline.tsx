@@ -29,7 +29,12 @@ export default function CardSparkline({
   const domain = finiteDomain(values);
   if (!domain) return null;
   const x = linearScale([0, Math.max(values.length - 1, 1)], [1, W - 1]);
-  const y = linearScale([domain.lo, domain.hi], [H - 2, 2]);
+  // A constant series has zero span — center it rather than letting
+  // linearScale pin every point to the chart floor.
+  const y =
+    domain.hi === domain.lo
+      ? () => H / 2
+      : linearScale([domain.lo, domain.hi], [H - 2, 2]);
   const d = pathFromNullablePoints(
     values.map((v, i): [number, number] | null =>
       v == null || !Number.isFinite(v) ? null : [x(i), y(v)],

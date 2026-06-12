@@ -4952,6 +4952,12 @@ tr {
     gap: 5px;
   }
 
+  /* The cell becomes a two-column grid here; without this the sparkline
+     auto-places into the narrow label column. */
+  .regime-strip-cell .regime-strip-spark {
+    grid-column: 1 / -1;
+  }
+
   .regime-strip-meta-row {
     justify-content: flex-start;
     flex-direction: row;

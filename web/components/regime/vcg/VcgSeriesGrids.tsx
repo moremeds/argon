@@ -7,9 +7,7 @@ import {
 } from "@/lib/regime/useVcgSeries";
 import { useMarketHours } from "@/lib/regime/useMarketHours";
 
-type AnyRow = VcgIntradayPoint;
-
-const PANELS: PanelSpec<AnyRow>[] = [
+const PANELS: PanelSpec<VcgIntradayPoint>[] = [
   {
     key: "vcg",
     label: "VCG Z",
