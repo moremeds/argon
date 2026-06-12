@@ -19,6 +19,17 @@ export const regimeApi = {
     `${API}/api/regime/gex/intraday?ticker=${encodeURIComponent(ticker)}&sessions=${sessions}`,
   gex_scan: (ticker: string) =>
     `${API}/api/regime/gex/scan?ticker=${encodeURIComponent(ticker)}`,
+  cri_live: () => `${API}/api/regime/cri/live`,
+  cri_intraday: (sessions: number = 5) =>
+    `${API}/api/regime/cri/intraday?sessions=${sessions}`,
+  cri_history: (days: number = 90) =>
+    `${API}/api/regime/cri/history?days=${days}`,
+  vcg_live: () => `${API}/api/regime/vcg/live`,
+  vcg_intraday: (sessions: number = 5) =>
+    `${API}/api/regime/vcg/intraday?sessions=${sessions}`,
+  vcg_history: (days: number = 90) =>
+    `${API}/api/regime/vcg/history?days=${days}`,
+  quotes: () => `${API}/api/regime/quotes`,
   vol_backdrop: () => `${API}/api/regime/vol-backdrop`,
   guidance: () => `${API}/api/regime/guidance`,
   validation: () => `${API}/api/regime/validation`,
