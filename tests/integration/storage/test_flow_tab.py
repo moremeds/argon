@@ -82,6 +82,25 @@ def test_latest_run_id_skips_flow_data_refresh_runs(seeded_db_empty_cards) -> No
     assert repo.latest_run_id("GOOGL") == full_run
 
 
+def test_latest_run_id_skips_failed_runs(seeded_db_empty_cards) -> None:
+    """A failed full-scan (e.g. UW HTTP 429 daily-quota hit) commits a
+    scan_runs row with ``status`` set to ``failed: …`` but leaves the
+    per-run exposures / aggregates / gex_curve unwritten. Without the
+    status filter, ``latest_run_id`` would return the failed run and the
+    report assembler would join on a run_id with no detail rows, producing
+    an empty stock detail page.
+    """
+    repo = seeded_db_empty_cards
+    full_run = repo.insert_scan_run("GOOGL", notes="full_scan")
+    repo.finish_scan_run(full_run, status="ok")
+    failed_run = repo.insert_scan_run("GOOGL", notes="full_scan")
+    repo.finish_scan_run(failed_run, status="failed: UwHTTPError('UW HTTP 429')")
+    repo.conn.commit()
+
+    assert failed_run > full_run  # sanity: failed run would otherwise win
+    assert repo.latest_run_id("GOOGL") == full_run
+
+
 def test_latest_run_id_skips_side_channel_refresh_runs(seeded_db_empty_cards) -> None:
     """positioning_refresh / intraday_refresh / cockpit_daily_snapshot each
     insert a scan_runs row that populates only a narrow slice of tables
