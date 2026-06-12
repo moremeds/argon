@@ -84,8 +84,10 @@ ssh "$SSH_HOST" "$REMOTE_CMD"
 
 # 4. Health check from MacBook side over Tailscale
 say "Health probe"
-for endpoint in "http://100.66.147.98:8400/health" "http://100.66.147.98:3001"; do
-  if curl -fsS --max-time 5 "$endpoint" >/dev/null 2>&1; then
+for endpoint in "http://100.66.147.98:8400/api/health?source=uw" "http://100.66.147.98:3001"; do
+  # API takes ~3-5s to bind after launchctl kickstart; brief retry loop avoids
+  # racing the warm-up window.
+  if curl -fsS --max-time 5 --retry 4 --retry-delay 2 --retry-connrefused "$endpoint" >/dev/null 2>&1; then
     say "  ✓ $endpoint"
   else
     die "  ✗ $endpoint (check ssh $SSH_HOST 'tail logs/api.err.log logs/web.err.log')"
