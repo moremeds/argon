@@ -15,12 +15,21 @@ vcg_snapshots row.
 from __future__ import annotations
 
 import logging
-from datetime import date as _date, timedelta
+from collections.abc import Mapping
+from datetime import date as _date
+from datetime import timedelta
 
 import numpy as np
 from psycopg import Connection
 
 from uw_scan.cards import vcg_scoring
+from uw_scan.scanners.live_quotes import (
+    LiveQuote,
+    carry_forward,
+    live_session_date,
+    quotes_payload,
+    splice_session_value,
+)
 from uw_scan.storage.vcg_snapshot_repository import VcgSnapshotRepository
 from uw_scan.storage.vol_index_repository import VolIndexRepository
 
@@ -148,14 +157,86 @@ def run(
     return row_id
 
 
+def run_live(
+    conn: Connection,
+    schema: str = "uw_scan",
+    *,
+    quotes: Mapping[str, LiveQuote],
+    proxy: str = DEFAULT_PROXY,
+    persist: bool = False,
+) -> dict | None:
+    """VCG computed with live quotes spliced as today's provisional close.
+
+    The live credit price splices onto the adj_close series — adj_close
+    equals close between distributions, so an intraday HYG last-price is a
+    consistent provisional bar until the next ex-div date re-syncs from
+    the lake overnight. Slim persist (no history) with basis='live'.
+    """
+    session_date = live_session_date(quotes)
+    if session_date is None:
+        return None
+
+    vol_repo = VolIndexRepository(conn, schema=schema)
+    raw = {
+        "VIX": _load_series(vol_repo, "VIX", LOOKBACK_DAYS),
+        "VVIX": _load_series(vol_repo, "VVIX", LOOKBACK_DAYS),
+        proxy: _load_series(vol_repo, proxy, LOOKBACK_DAYS, prefer_adj_close=True),
+    }
+    live_syms: list[str] = []
+    carried: list[str] = []
+    for sym in list(raw):
+        q = quotes.get(sym)
+        if q is not None:
+            raw[sym] = splice_session_value(raw[sym], q.price, session_date)
+            live_syms.append(sym)
+        else:
+            raw[sym], was_carried = carry_forward(raw[sym], session_date)
+            if was_carried:
+                carried.append(sym)
+    if not live_syms:
+        return None
+
+    aligned, common_dates = _align(raw)
+    if not common_dates or len(common_dates) < MIN_ALIGNED_BARS:
+        log.warning(
+            "vcg_live_skipped_thin_data proxy=%s aligned_bars=%d need=%d",
+            proxy,
+            len(common_dates),
+            MIN_ALIGNED_BARS,
+        )
+        return None
+
+    payload = vcg_scoring.run_analysis(aligned, common_dates, proxy=proxy)
+    payload["basis"] = "live"
+    payload["live_quotes"] = quotes_payload(quotes)
+    payload["carried_forward"] = carried
+
+    if persist:
+        slim = {k: v for k, v in payload.items() if k != "history"}
+        snap_repo = VcgSnapshotRepository(conn, schema=schema)
+        row_id = snap_repo.insert_snapshot(
+            payload=slim, data_date=session_date, basis="live"
+        )
+        log.info(
+            "vcg_live_persisted row_id=%d session=%s proxy=%s vcg=%s",
+            row_id,
+            session_date,
+            proxy,
+            payload["signal"].get("vcg"),
+        )
+    return payload
+
+
 def _existing_vcg_dates(
     conn: Connection, schema: str, *, since: _date, proxy: str
 ) -> set[_date]:
-    """Distinct ``data_date`` in ``vcg_snapshots`` for ``proxy`` since ``since``.
+    """Distinct EOD ``data_date`` in ``vcg_snapshots`` for ``proxy`` since ``since``.
 
     Filters by ``payload->>'credit_proxy'`` (the field name vcg_scoring
     writes) so swapping HYG → JNK in config doesn't cause us to skip the
-    JNK day because an HYG row happened to land on it.
+    JNK day because an HYG row happened to land on it. basis='eod' only —
+    a 5-min live row landing on today's date must not suppress the EOD
+    gap recovery for that same date.
     """
     sql = f"""
         SELECT DISTINCT data_date
@@ -163,6 +244,7 @@ def _existing_vcg_dates(
          WHERE data_date IS NOT NULL
            AND data_date >= %s
            AND payload->>'credit_proxy' = %s
+           AND basis = 'eod'
     """
     with conn.cursor() as cur:
         cur.execute(sql, (since, proxy))
