@@ -7,11 +7,17 @@ import { useSyncHook, type UseSyncReturn } from "./useSyncHook";
 export type RegimeQuotesResponse =
   components["schemas"]["RegimeQuotesResponse"];
 
-const FRESH_MS = 15 * 60 * 1000;
+// Fallback when the response hasn't arrived yet — matches the backend
+// default for REGIME_LIVE_QUOTE_MAX_AGE_SECONDS. The live value comes from
+// the response's fresh_within_seconds so client and server can't drift.
+const DEFAULT_FRESH_SECONDS = 900;
 
-export function quoteIsFresh(quotedAt: string | null | undefined): boolean {
+export function quoteIsFresh(
+  quotedAt: string | null | undefined,
+  freshWithinSeconds: number = DEFAULT_FRESH_SECONDS,
+): boolean {
   if (!quotedAt) return false;
-  return Date.now() - new Date(quotedAt).getTime() < FRESH_MS;
+  return Date.now() - new Date(quotedAt).getTime() < freshWithinSeconds * 1000;
 }
 
 export function useRegimeQuotes(): UseSyncReturn<RegimeQuotesResponse> {

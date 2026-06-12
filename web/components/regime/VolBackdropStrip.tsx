@@ -50,13 +50,14 @@ export function VolBackdropStripView({
   if (!data) return null;
 
   // Live term structure when both legs are fresh; falls back to daily ratio.
+  const freshWindow = quotes?.fresh_within_seconds;
   const qv = quotes?.quotes?.VIX;
   const q3 = quotes?.quotes?.VIX3M;
   const liveRatio =
     qv &&
     q3 &&
-    quoteIsFresh(qv.quoted_at) &&
-    quoteIsFresh(q3.quoted_at) &&
+    quoteIsFresh(qv.quoted_at, freshWindow) &&
+    quoteIsFresh(q3.quoted_at, freshWindow) &&
     q3.price
       ? qv.price / q3.price
       : null;
@@ -82,7 +83,7 @@ export function VolBackdropStripView({
     >
       {SYMBOLS.map((s) => {
         const q = quotes?.quotes?.[s];
-        const live = q != null && quoteIsFresh(q.quoted_at);
+        const live = q != null && quoteIsFresh(q.quoted_at, freshWindow);
         const dailyClose = lastClose(data.series[s]);
         // Live: current quote with change vs last daily close (intraday
         // ret_1d convention, same as TickerCards). Daily: close-over-close.

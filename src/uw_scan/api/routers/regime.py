@@ -439,7 +439,10 @@ def get_regime_quotes(
     }
     as_of = max((r.quoted_at for r in rows), default=None)
     return RegimeQuotesResponse(
-        quotes=quotes, active_source=_active_ws_source(repo), as_of=as_of
+        quotes=quotes,
+        active_source=_active_ws_source(repo),
+        as_of=as_of,
+        fresh_within_seconds=settings.regime_live_quote_max_age_seconds,
     )
 
 

@@ -11422,6 +11422,11 @@
             ],
             "title": "As Of"
           },
+          "fresh_within_seconds": {
+            "default": 900,
+            "title": "Fresh Within Seconds",
+            "type": "integer"
+          },
           "quotes": {
             "additionalProperties": {
               "$ref": "#/components/schemas/RegimeLiveQuote"

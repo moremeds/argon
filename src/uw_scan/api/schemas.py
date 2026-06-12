@@ -633,6 +633,10 @@ class RegimeQuotesResponse(BaseModel):
     quotes: dict[str, RegimeLiveQuote] = Field(default_factory=dict)
     active_source: str | None = None
     as_of: datetime | None = None
+    # The server's staleness window (REGIME_LIVE_QUOTE_MAX_AGE_SECONDS) so
+    # the client's "is this quote live?" check can't drift from the value
+    # the live endpoints actually use.
+    fresh_within_seconds: int = 900
 
 
 # ----------------------------------------------------------------------

@@ -4507,6 +4507,11 @@ export interface components {
             active_source?: string | null;
             /** As Of */
             as_of?: string | null;
+            /**
+             * Fresh Within Seconds
+             * @default 900
+             */
+            fresh_within_seconds: number;
         };
         /** RescanAllRequest */
         RescanAllRequest: {

@@ -167,6 +167,19 @@ def _should_schedule_pipeline_benchmark(settings: Settings) -> bool:
     return role == "all" or (role == "uw" and settings.worker_index == 0)
 
 
+def _should_schedule_regime_live(settings: Settings) -> bool:
+    """Exactly one process owns the 5-min live snapshot writes.
+
+    _is_primary_worker is true for index-0 of EVERY role (uw-0, massive-0,
+    ai-*-0 all match) — fine for the idempotent gap-recovery scans that
+    share its block, but regime_live_scan appends a row per tick, so a
+    multi-role stack would write N duplicates. Pin to massive-0 (market-
+    data role) following the rates-FRED precedent.
+    """
+    role = settings.worker_role.lower()
+    return role == "all" or (role == "massive" and settings.worker_index == 0)
+
+
 def _worker_label(settings: Settings) -> str:
     role = settings.worker_role.lower()
     if role == "all":
@@ -784,6 +797,28 @@ def main() -> int:
             coalesce=True,
         )
 
+    if _should_schedule_regime_live(settings):
+        # Live regime snapshot — basis='live' CRI/VCG rows every N minutes.
+        # Pure DB-read math off intraday_quote + vol_index_daily; no provider
+        # spend. Append-only writes, so exactly ONE process may own this.
+        sched.add_job(
+            _regime_live_scan,
+            IntervalTrigger(minutes=settings.regime_live_scan_interval_minutes),
+            id="regime_live_scan",
+            name="Regime live CRI/VCG snapshot",
+            max_instances=1,
+            coalesce=True,
+        )
+        # Live-vs-lake close validation — after both lake syncs (03:15/03:20).
+        sched.add_job(
+            _regime_live_validation,
+            CronTrigger(hour=3, minute=40, timezone=settings.rth_tz),
+            id="regime_live_validation",
+            name="Regime live close vs lake validation",
+            max_instances=1,
+            coalesce=True,
+        )
+
     # Legacy single-pool role (claims any provider's row).
     if "ai" in groups and (
         settings.trade_insights_ai_enabled
@@ -851,26 +886,6 @@ def main() -> int:
             CronTrigger(minute=20, timezone=settings.rth_tz),
             id="regime_cri_scan",
             name="Regime CRI scan",
-            max_instances=1,
-            coalesce=True,
-        )
-        # Live regime snapshot — basis='live' CRI/VCG rows every N minutes.
-        # Pure DB-read math off intraday_quote + vol_index_daily; no provider
-        # spend, so primary-worker-only is about avoiding duplicate rows.
-        sched.add_job(
-            _regime_live_scan,
-            IntervalTrigger(minutes=settings.regime_live_scan_interval_minutes),
-            id="regime_live_scan",
-            name="Regime live CRI/VCG snapshot",
-            max_instances=1,
-            coalesce=True,
-        )
-        # Live-vs-lake close validation — after both lake syncs (03:15/03:20).
-        sched.add_job(
-            _regime_live_validation,
-            CronTrigger(hour=3, minute=40, timezone=settings.rth_tz),
-            id="regime_live_validation",
-            name="Regime live close vs lake validation",
             max_instances=1,
             coalesce=True,
         )

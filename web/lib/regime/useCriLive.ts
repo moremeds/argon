@@ -11,15 +11,16 @@ export function useCriLive(): UseSyncReturn<CriLiveResponse> {
   return useSyncHook<CriLiveResponse>(
     {
       endpoint: regimeApi.cri_live(),
-      // GET recomputes off the latest WS quotes; manual Sync Now still
-      // triggers an EOD scan via /api/regime/scan.
-      postEndpoint: regimeApi.cri_scan(),
-      interval: 10_000, // live recompute off the latest WS quotes
-      hasPost: true,
+      // GET-only: every poll IS a live recompute server-side. hasPost MUST
+      // stay false — with hasPost the interval would POST /api/regime/scan
+      // every 10s, persisting an EOD snapshot per tick (Codex P1). EOD
+      // scans stay worker-owned; Sync Now just refreshes the live read.
+      interval: 10_000,
+      hasPost: false,
       extractTimestamp: (d) => d.scan_time || null,
       shouldRetry: () => false,
       retryIntervalMs: 60_000,
-      retryMethod: "POST",
+      retryMethod: "GET",
     },
     true,
   );

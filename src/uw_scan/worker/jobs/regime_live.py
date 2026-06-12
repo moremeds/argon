@@ -45,9 +45,12 @@ def regime_live_scan_once(
     except Exception as exc:  # noqa: BLE001
         logger.warning("regime_live_cri_failed err=%s", repr(exc))
         repo.conn.rollback()
+    # Same proxy choice as the EOD _regime_vcg_scan — live and EOD VCG
+    # histories must describe the same credit instrument (Codex P2).
+    proxy = settings.credit_etf_symbols[0] if settings.credit_etf_symbols else "HYG"
     try:
         vcg_payload = vcg_scanner.run_live(
-            repo.conn, schema=repo._schema, quotes=quotes, persist=True
+            repo.conn, schema=repo._schema, quotes=quotes, proxy=proxy, persist=True
         )
     except Exception as exc:  # noqa: BLE001
         logger.warning("regime_live_vcg_failed err=%s", repr(exc))
@@ -67,9 +70,14 @@ def validate_live_close_vs_lake(
     *,
     threshold_pct: float = DIVERGENCE_THRESHOLD_PCT,
 ) -> list[dict]:
-    """Per symbol: lake close vs the price the last live CRI snapshot of
-    that trade date captured. Returns the rows it compared; logs WARN on
-    divergence above ``threshold_pct`` percent."""
+    """Per symbol: lake close vs the price the last live snapshot of that
+    trade date captured. Returns the rows it compared; logs WARN on
+    divergence above ``threshold_pct`` percent.
+
+    Reads BOTH snapshot tables: during a massive failover only HYG ticks,
+    so a VCG live row can exist for a day with no CRI live row — reading
+    cri_snapshots alone would silently skip HYG on exactly those days.
+    """
     sql = f"""
         SELECT DISTINCT ON (v.symbol)
                v.symbol,
@@ -77,9 +85,14 @@ def validate_live_close_vs_lake(
                v.close::float8 AS lake_close,
                (c.payload->'live_quotes'->v.symbol->>'price')::float8 AS live_close
           FROM {repo._schema}.vol_index_daily v
-          JOIN {repo._schema}.cri_snapshots c
-            ON c.basis = 'live'
-           AND c.data_date = v.trade_date
+          JOIN (
+                SELECT data_date, scanned_at, payload
+                  FROM {repo._schema}.cri_snapshots WHERE basis = 'live'
+                UNION ALL
+                SELECT data_date, scanned_at, payload
+                  FROM {repo._schema}.vcg_snapshots WHERE basis = 'live'
+               ) c
+            ON c.data_date = v.trade_date
            AND c.payload->'live_quotes' ? v.symbol
          WHERE v.symbol = ANY(%s)
            AND v.trade_date >= CURRENT_DATE - 7

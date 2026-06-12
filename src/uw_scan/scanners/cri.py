@@ -245,6 +245,14 @@ def run_live(
     q3m = quotes.get("VIX3M")
     if q3m is not None:
         vix3m_series = splice_session_value(vix3m_series, q3m.price, session_date)
+    else:
+        # Without carry-forward today's bar is NaN and the term-structure
+        # tiles (vix3m / vix_vix3m_ratio) blank out on a LIVE read even
+        # though the EOD view had values — same degradation rule as the
+        # mandatory series.
+        vix3m_series, was_carried = carry_forward(vix3m_series, session_date)
+        if was_carried:
+            carried.append("VIX3M")
     if vix3m_series:
         aligned["VIX3M"] = np.array(
             [
