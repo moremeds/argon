@@ -17,7 +17,7 @@ class _ScanRunsMixin:
     _schema: str
 
     def latest_run_id(self, ticker: str) -> int:
-        """Return the highest full-scan run_id for `ticker`, or 0 if none.
+        """Return the highest *successful* full-scan run_id for `ticker`, or 0 if none.
 
         Excludes runs created by side-channel jobs that populate only a
         narrow slice of tables and would otherwise shadow the actual
@@ -29,11 +29,19 @@ class _ScanRunsMixin:
         - ``intraday_refresh`` (OI movers intraday: option_chain_oi only)
         - ``cockpit_daily_snapshot`` (SPX/SPY/QQQ/IWM greeks/skew only)
         - ``gex_scan_*`` (SPX/SPY index-only GEX scanner running every 5 min)
+
+        Also requires ``status = 'ok'`` — a failed full-scan (e.g. UW HTTP
+        429 daily-quota hit) commits the scan_runs row with status set to
+        a ``failed: …`` string but leaves exposures/aggregates/gex_curve
+        unwritten. Without this filter the report assembler resolves to
+        the failed run and joins on a run_id that has no detail rows,
+        producing an empty stock detail page.
         """
         with self._conn.cursor() as cur:
             cur.execute(
                 f"SELECT run_id FROM {self._schema}.scan_runs "
                 "WHERE ticker = %s "
+                "  AND status = 'ok' "
                 "  AND (notes IS DISTINCT FROM 'flow_data_refresh') "
                 "  AND (notes IS DISTINCT FROM 'positioning_refresh') "
                 "  AND (notes IS DISTINCT FROM 'intraday_refresh') "
