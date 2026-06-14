@@ -837,6 +837,49 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/regime/grg": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Grg
+         * @description Latest GRG snapshot (self-contained: embeds 90-session history).
+         *
+         *     GRG is EOD/periodic-rescan — the worker owns UW fetches; this read is
+         *     cheap (one snapshot row). No per-request UW spend.
+         */
+        get: operations["get_grg_api_regime_grg_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/regime/grg/scan": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Trigger Grg Scan
+         * @description Run a GRG scan synchronously against UW and persist a snapshot.
+         */
+        post: operations["trigger_grg_scan_api_regime_grg_scan_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/regime/quotes": {
         parameters: {
             query?: never;
@@ -3047,6 +3090,229 @@ export interface components {
             gold_spx_ratio_percentile?: string | null;
             /** Narrative Text */
             narrative_text: string;
+        };
+        /** GrgAsset */
+        GrgAsset: {
+            /** Ticker */
+            ticker: string;
+            /** Spot */
+            spot?: number | null;
+            /** Data Date */
+            data_date?: string | null;
+            /** Net Gamma */
+            net_gamma?: number | null;
+            /** Net Gex */
+            net_gex?: number | null;
+            /** Gamma Z */
+            gamma_z?: number | null;
+            /** Gamma 1D Change */
+            gamma_1d_change?: number | null;
+            /** Gamma 3D Change */
+            gamma_3d_change?: number | null;
+            /**
+             * State
+             * @default NEUTRAL
+             * @enum {string}
+             */
+            state: "CUSHION" | "WHIP" | "NEUTRAL";
+            /** Flip */
+            flip?: number | null;
+            /** Spot Vs Flip Pct */
+            spot_vs_flip_pct?: number | null;
+        };
+        /** GrgAssets */
+        GrgAssets: {
+            SPY: components["schemas"]["GrgAsset"];
+            TLT: components["schemas"]["GrgAsset"];
+        };
+        /** GrgGate */
+        GrgGate: {
+            /** Id */
+            id: string;
+            /** Label */
+            label: string;
+            /**
+             * Status
+             * @default WATCH
+             * @enum {string}
+             */
+            status: "PASS" | "WATCH" | "FAIL";
+            /**
+             * Copy
+             * @default
+             */
+            copy: string;
+        };
+        /** GrgHistoryEntry */
+        GrgHistoryEntry: {
+            /** Date */
+            date: string;
+            /** Spy Net Gamma */
+            spy_net_gamma?: number | null;
+            /** Tlt Net Gamma */
+            tlt_net_gamma?: number | null;
+            /** Spy Gamma Z */
+            spy_gamma_z?: number | null;
+            /** Tlt Gamma Z */
+            tlt_gamma_z?: number | null;
+            /** Grg Z */
+            grg_z?: number | null;
+            /** Raw Spread */
+            raw_spread?: number | null;
+            /** State */
+            state?: string | null;
+        };
+        /**
+         * GrgResponse
+         * @description Gamma Rotation Gap snapshot (latest scan). Self-contained: embeds the
+         *     full 90-session history.
+         */
+        GrgResponse: {
+            /**
+             * Status
+             * @default empty
+             * @enum {string}
+             */
+            status: "ok" | "empty";
+            /**
+             * Scan Time
+             * @default
+             */
+            scan_time: string;
+            /**
+             * Market Open
+             * @default false
+             */
+            market_open: boolean;
+            /** Data Date */
+            data_date?: string | null;
+            /**
+             * Source
+             * @default Unusual Whales
+             */
+            source: string;
+            /**
+             * Lookback Days
+             * @default 0
+             */
+            lookback_days: number;
+            /**
+             * Z Window
+             * @default 63
+             */
+            z_window: number;
+            /**
+             * Basis
+             * @default eod
+             * @enum {string}
+             */
+            basis: "live" | "eod";
+            signal?: components["schemas"]["GrgSignal"];
+            assets?: components["schemas"]["GrgAssets"] | null;
+            /** Gates */
+            gates?: components["schemas"]["GrgGate"][];
+            /** History */
+            history?: components["schemas"]["GrgHistoryEntry"][];
+            top_bottom?: components["schemas"]["GrgTopBottom"];
+        };
+        /**
+         * GrgScanResponse
+         * @description Response body for POST /api/regime/grg/scan.
+         */
+        GrgScanResponse: {
+            /**
+             * Status
+             * @default ok
+             * @enum {string}
+             */
+            status: "ok" | "skipped";
+            /**
+             * Scanner
+             * @default grg
+             * @constant
+             */
+            scanner: "grg";
+            /** Row Id */
+            row_id?: number | null;
+            /** Reason */
+            reason?: string | null;
+        };
+        /** GrgSignal */
+        GrgSignal: {
+            /**
+             * State
+             * @default NEUTRAL
+             * @enum {string}
+             */
+            state: "RISK_ON_DIVERGENCE" | "RISK_OFF_DIVERGENCE" | "DUAL_CUSHION" | "DUAL_WHIP" | "NEUTRAL";
+            /**
+             * State Label
+             * @default Neutral
+             */
+            state_label: string;
+            /**
+             * Interpretation
+             * @default NORMAL
+             * @enum {string}
+             */
+            interpretation: "TOP_WATCH" | "BOTTOM_WATCH" | "RISK_ON" | "RISK_OFF" | "DUAL_WHIP" | "CUSHION" | "NORMAL";
+            /** Tier */
+            tier?: number | null;
+            /**
+             * Top Watch
+             * @default false
+             */
+            top_watch: boolean;
+            /**
+             * Bottom Watch
+             * @default false
+             */
+            bottom_watch: boolean;
+            /**
+             * Top Score
+             * @default 0
+             */
+            top_score: number;
+            /**
+             * Bottom Score
+             * @default 0
+             */
+            bottom_score: number;
+            /** Grg Z */
+            grg_z?: number | null;
+            /** Raw Spread */
+            raw_spread?: number | null;
+            /** Spy Gamma Z */
+            spy_gamma_z?: number | null;
+            /** Tlt Gamma Z */
+            tlt_gamma_z?: number | null;
+            /** Spy 3D Gamma Change */
+            spy_3d_gamma_change?: number | null;
+            /** Tlt 3D Gamma Change */
+            tlt_3d_gamma_change?: number | null;
+            /**
+             * Summary
+             * @default
+             */
+            summary: string;
+        };
+        /** GrgTopBottom */
+        GrgTopBottom: {
+            top?: components["schemas"]["GrgTopBottomSide"];
+            bottom?: components["schemas"]["GrgTopBottomSide"];
+        };
+        /** GrgTopBottomSide */
+        GrgTopBottomSide: {
+            /**
+             * Active
+             * @default false
+             */
+            active: boolean;
+            /**
+             * Copy
+             * @default
+             */
+            copy: string;
         };
         /** GuidanceResponse */
         GuidanceResponse: {
@@ -8450,6 +8716,46 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_grg_api_regime_grg_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GrgResponse"];
+                };
+            };
+        };
+    };
+    trigger_grg_scan_api_regime_grg_scan_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GrgScanResponse"];
                 };
             };
         };
