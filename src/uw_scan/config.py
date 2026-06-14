@@ -227,7 +227,7 @@ class Settings(BaseModel):
     scanner_liquidity_min_option_volume: int = 1000
     scanner_earnings_window_days: int = 14
     # Regime / GEX scanner (port from xenon — ships GEX live; CRI/VCG pending)
-    gex_scan_tickers: list[str] = ["SPX", "SPY"]
+    gex_scan_tickers: list[str] = ["SPX", "SPY", "TLT"]
     gex_scan_interval_minutes: int = 5
     # Regime live feed — symbols the WS consumer always subscribes IN ADDITION
     # to the watchlist (indexes route via XENON_INDEX_SYMBOLS → CBOE; HYG is a
@@ -517,7 +517,9 @@ class Settings(BaseModel):
             scanner_earnings_window_days=int(
                 os.environ.get("SCANNER_EARNINGS_WINDOW_DAYS", "14")
             ),
-            gex_scan_tickers=_parse_csv_env("GEX_SCAN_TICKERS", default=["SPX", "SPY"]),
+            gex_scan_tickers=_parse_csv_env(
+                "GEX_SCAN_TICKERS", default=["SPX", "SPY", "TLT"]
+            ),
             gex_scan_interval_minutes=int(
                 os.environ.get("GEX_SCAN_INTERVAL_MINUTES", "5")
             ),
