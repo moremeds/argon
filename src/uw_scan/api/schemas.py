@@ -541,6 +541,119 @@ class VcgLiveResponse(VcgResponse):
     active_source: str | None = None
 
 
+# ─── GRG (Gamma Rotation Gap) ────────────────────────────────────
+
+
+class GrgGate(BaseModel):
+    id: str
+    label: str
+    status: Literal["PASS", "WATCH", "FAIL"] = "WATCH"
+    copy: str = ""
+
+
+class GrgAsset(BaseModel):
+    ticker: str
+    spot: float | None = None
+    data_date: str | None = None
+    net_gamma: float | None = None
+    net_gex: float | None = None
+    gamma_z: float | None = None
+    gamma_1d_change: float | None = None
+    gamma_3d_change: float | None = None
+    state: Literal["CUSHION", "WHIP", "NEUTRAL"] = "NEUTRAL"
+    flip: float | None = None
+    spot_vs_flip_pct: float | None = None
+
+
+class GrgAssets(BaseModel):
+    SPY: GrgAsset
+    TLT: GrgAsset
+
+
+class GrgSignal(BaseModel):
+    state: Literal[
+        "RISK_ON_DIVERGENCE",
+        "RISK_OFF_DIVERGENCE",
+        "DUAL_CUSHION",
+        "DUAL_WHIP",
+        "NEUTRAL",
+    ] = "NEUTRAL"
+    state_label: str = "Neutral"
+    interpretation: Literal[
+        "TOP_WATCH",
+        "BOTTOM_WATCH",
+        "RISK_ON",
+        "RISK_OFF",
+        "DUAL_WHIP",
+        "CUSHION",
+        "NORMAL",
+    ] = "NORMAL"
+    tier: int | None = None
+    top_watch: bool = False
+    bottom_watch: bool = False
+    top_score: int = 0
+    bottom_score: int = 0
+    grg_z: float | None = None
+    raw_spread: float | None = None
+    spy_gamma_z: float | None = None
+    tlt_gamma_z: float | None = None
+    spy_3d_gamma_change: float | None = None
+    tlt_3d_gamma_change: float | None = None
+    summary: str = ""
+
+
+class GrgHistoryEntry(BaseModel):
+    date: str
+    spy_net_gamma: float | None = None
+    tlt_net_gamma: float | None = None
+    spy_gamma_z: float | None = None
+    tlt_gamma_z: float | None = None
+    grg_z: float | None = None
+    raw_spread: float | None = None
+    state: str | None = None
+
+
+class GrgTopBottomSide(BaseModel):
+    active: bool = False
+    copy: str = ""
+
+
+class GrgTopBottom(BaseModel):
+    top: GrgTopBottomSide = Field(default_factory=GrgTopBottomSide)
+    bottom: GrgTopBottomSide = Field(default_factory=GrgTopBottomSide)
+
+
+class GrgResponse(BaseModel):
+    """Gamma Rotation Gap snapshot (latest scan). Self-contained: embeds the
+    full 90-session history."""
+
+    status: Literal["ok", "empty"] = "empty"
+    scan_time: str = ""
+    market_open: bool = False
+    data_date: str | None = None
+    source: str = "Unusual Whales"
+    lookback_days: int = 0
+    z_window: int = 63
+    basis: Literal["live", "eod"] = "eod"
+    signal: GrgSignal = Field(default_factory=GrgSignal)
+    assets: GrgAssets | None = None
+    gates: list[GrgGate] = Field(default_factory=list)
+    history: list[GrgHistoryEntry] = Field(default_factory=list)
+    top_bottom: GrgTopBottom = Field(default_factory=GrgTopBottom)
+
+
+EMPTY_GRG_RESPONSE = GrgResponse()
+
+
+class GrgScanResponse(BaseModel):
+    """Response body for POST /api/regime/grg/scan."""
+
+    status: Literal["ok", "skipped"] = "ok"
+    scanner: Literal["grg"] = "grg"
+    row_id: int | None = None
+    reason: str | None = None
+
+
 class CriIntradayPoint(BaseModel):
     ts: datetime
     cri_score: float | None = None

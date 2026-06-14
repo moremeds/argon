@@ -29,6 +29,7 @@ class _ScanRunsMixin:
         - ``intraday_refresh`` (OI movers intraday: option_chain_oi only)
         - ``cockpit_daily_snapshot`` (SPX/SPY/QQQ/IWM greeks/skew only)
         - ``gex_scan_*`` (SPX/SPY index-only GEX scanner running every 5 min)
+        - ``grg_scan`` (SPY/TLT gamma-rotation gap, grg_snapshots only)
 
         Also requires ``status = 'ok'`` — a failed full-scan (e.g. UW HTTP
         429 daily-quota hit) commits the scan_runs row with status set to
@@ -46,6 +47,7 @@ class _ScanRunsMixin:
                 "  AND (notes IS DISTINCT FROM 'positioning_refresh') "
                 "  AND (notes IS DISTINCT FROM 'intraday_refresh') "
                 "  AND (notes IS DISTINCT FROM 'cockpit_daily_snapshot') "
+                "  AND (notes IS DISTINCT FROM 'grg_scan') "
                 "  AND (notes IS NULL OR notes NOT LIKE 'gex_scan_%%') "
                 "ORDER BY run_id DESC LIMIT 1",
                 (ticker.upper(),),
