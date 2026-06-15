@@ -58,7 +58,14 @@ def run_skew_markout(
     price_by_ticker = {t: _price_series(repo, t) for t in tickers}
     rr_by_ticker = {t: _rr_series(repo, t) for t in tickers}
 
-    buckets: dict[tuple, list[dict]] = defaultdict(list)  # directional (gated)
+    # CROSS-SECTIONAL neutralization. We measure each name's forward return in
+    # EXCESS of the universe average forward return ON THE SAME DATE. This removes
+    # both market beta AND the common high-beta drift of this growth-heavy universe
+    # — a verdict then reflects skew SEPARATION vs peers, not "everything rose in a
+    # bull-market backfill window." (Subtracting SPY alone leaves the beta>1 drift.)
+    # Pass 1: raw forward return per obs + accumulate the daily cross-section.
+    raw_obs: list[dict] = []
+    by_date_returns: dict[_date, list[float]] = defaultdict(list)
     meanrev: dict[tuple, list[float]] = defaultdict(list)  # primary (reported)
     for s in snaps:
         spot = s.get("spot")
@@ -67,19 +74,21 @@ def run_skew_markout(
                 price_by_ticker.get(s["ticker"], []), s["market_date"], HORIZON
             )
             if fwd_px is not None:
-                key = (
-                    s["asset_class"],
-                    s["deviation_class"],
-                    s["drive_class"],
-                    s["regime"],
-                )
-                buckets[key].append(
+                raw = fwd_px / float(spot) - 1.0
+                raw_obs.append(
                     {
-                        "fwd": fwd_px / float(spot) - 1.0,
-                        "clean": s.get("borrow_flag") != "hard_to_borrow",
+                        "raw": raw,
                         "market_date": s["market_date"],
+                        "key": (
+                            s["asset_class"],
+                            s["deviation_class"],
+                            s["drive_class"],
+                            s["regime"],
+                        ),
+                        "clean": s.get("borrow_flag") != "hard_to_borrow",
                     }
                 )
+                by_date_returns[s["market_date"]].append(raw)
         rr0 = s.get("rr_25d")
         if rr0 is not None:
             fwd_rr = _forward_value_at(
@@ -89,6 +98,20 @@ def run_skew_markout(
                 meanrev[(s["asset_class"], s["deviation_class"])].append(
                     fwd_rr - float(rr0)
                 )
+
+    # Pass 2: cross-sectional demean — excess = raw - mean(all raw on that date).
+    daily_mean = {
+        d: (sum(v) / len(v) if v else 0.0) for d, v in by_date_returns.items()
+    }
+    buckets: dict[tuple, list[dict]] = defaultdict(list)
+    for o in raw_obs:
+        buckets[o["key"]].append(
+            {
+                "fwd": o["raw"] - daily_mean[o["market_date"]],
+                "clean": o["clean"],
+                "market_date": o["market_date"],
+            }
+        )
 
     today = _date.today()
     written = 0
