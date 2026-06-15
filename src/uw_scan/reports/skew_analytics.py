@@ -21,6 +21,7 @@ from uw_scan.models import (
     SkewExpiryPoint,
     SkewHistoryPoint,
     SkewRead,
+    SkewReadBullet,
     SkewRhoPoint,
     SkewSmileExpiryCurve,
     SkewSmilePoint,
@@ -290,6 +291,10 @@ def assemble_skew_analysis(
         borrow_context=rj["borrow_context"],
         earnings_gate=rj["earnings_gate"],
         summary_line=rj["summary_line"],
+        summary_bullets=[
+            SkewReadBullet(label=b["label"], body=b["body"])
+            for b in rj.get("summary_bullets", [])
+        ],
         directional_lean=SkewDirectionalLean(
             lean=lean["lean"],
             confidence=lean["confidence"],

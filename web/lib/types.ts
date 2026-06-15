@@ -5307,6 +5307,7 @@ export interface components {
              *       "borrow_context": "",
              *       "earnings_gate": "",
              *       "summary_line": "",
+             *       "summary_bullets": [],
              *       "directional_lean": {
              *         "basis": "",
              *         "confidence": "low",
@@ -5436,6 +5437,11 @@ export interface components {
              */
             summary_line: string;
             /**
+             * Summary Bullets
+             * @default []
+             */
+            summary_bullets: components["schemas"]["SkewReadBullet"][];
+            /**
              * @default {
              *       "lean": "NEUTRAL",
              *       "confidence": "low",
@@ -5444,6 +5450,19 @@ export interface components {
              *     }
              */
             directional_lean: components["schemas"]["SkewDirectionalLean"];
+        };
+        /** SkewReadBullet */
+        SkewReadBullet: {
+            /**
+             * Label
+             * @default
+             */
+            label: string;
+            /**
+             * Body
+             * @default
+             */
+            body: string;
         };
         /** SkewRhoPoint */
         SkewRhoPoint: {

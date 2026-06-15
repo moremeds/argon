@@ -211,7 +211,7 @@ def resolve_directional_lean(
         return neutral("unrecognized verdict — neutral")
     basis = (
         f"validated — {deviation_class} {asset_class} bucket separated {sep_txt} "
-        f"(survived regime gate); borrow normal => edge not a borrow artifact"
+        f"(survived regime gate); borrow normal → edge not a borrow artifact"
     )
     return {
         "lean": lean,
@@ -247,12 +247,69 @@ def build_read(
         "CHEAP": "skew is cheap vs its own baseline — downside protection is on sale.",
         "NORMAL": "skew is near its own baseline — no relative-value edge today.",
     }.get(deviation_class, "no relative-value edge today.")
+    # `tail` may arrive as the raw sign label ("put_skew"/"call_skew") or the short
+    # form ("put"/"call"); render a clean phrase either way so no enum underscore
+    # leaks into the prose.
+    sign_phrase = {
+        "put": "put-skew",
+        "put_skew": "put-skew",
+        "call": "call-skew",
+        "call_skew": "call-skew",
+        "flat": "flat skew",
+        "unknown": "skew",
+    }.get(tail, "skew")
     # Spec §11: summary_line is the relative-value/context body ONLY. Direction is
     # confined to `directional_lean` (the single field allowed to express it).
     summary = (
-        f"{deviation_class} {tail}-skew ({asset_class}); drive={drive_class}; "
+        f"{deviation_class} {sign_phrase} ({asset_class}); drive: {drive_class}; "
         f"{rho_txt}. {rv_body}"
     )
+    # Scannable breakdown of the same read — one bullet per component, each with a
+    # plain-English explanation. Same §11 rule: no directional language here.
+    wing_word = {
+        "put": "Puts",
+        "put_skew": "Puts",
+        "call": "Calls",
+        "call_skew": "Calls",
+    }.get(tail)
+    if wing_word:
+        rr_sign = "positive" if wing_word == "Puts" else "negative"
+        shape_body = f"{wing_word} are the richer wing ({rr_sign} 25Δ RR); "
+    else:
+        shape_body = "Neither wing clearly richer; "
+    shape_body += {
+        "RICH": "stretched vs its 180-day baseline.",
+        "CHEAP": "underpriced vs its 180-day baseline.",
+        "NORMAL": "near its 180-day baseline.",
+    }.get(deviation_class, "near its 180-day baseline.")
+    drive_body = {
+        "PANIC": "Vol bid into weakness — defensive demand; treat as downside fear.",
+        "CHASE": "Vol bid into strength — upside convexity chase, not defensive hedging.",
+        "STRUCTURAL": "Persistent, non-event bid — the current structural skew regime.",
+    }.get(drive_class, "Skew driver not clearly classified.")
+    rho_label = "confirmed" if rho_confirms else "not confirmed"
+    rho_body = (
+        "ρ confirms — vol moves with spot as the skew implies."
+        if rho_confirms
+        else "ρ doesn't confirm — positioning/skew dislocation, not a clean spot-vol signal."
+    )
+    rv_label = {"RICH": "fade/finance", "CHEAP": "own optionality"}.get(
+        deviation_class, "no edge"
+    )
+    rv_bullet_body = {
+        "RICH": "Rich vs baseline: fade or finance the expensive wing via "
+        "defined-risk structures.",
+        "CHEAP": "Cheap vs baseline: own the underpriced wing, especially if "
+        "catalyst/tape agrees.",
+        "NORMAL": "Near baseline: no skew edge today — needs another pillar to "
+        "carry the trade.",
+    }.get(deviation_class, "No relative-value skew edge today.")
+    summary_bullets = [
+        {"label": f"Shape — {deviation_class} {sign_phrase}", "body": shape_body},
+        {"label": f"Drive — {drive_class}", "body": drive_body},
+        {"label": f"Spot–vol link — {rho_label}", "body": rho_body},
+        {"label": f"Relative value — {rv_label}", "body": rv_bullet_body},
+    ]
     return {
         "tail": tail,
         "rho": rho,
@@ -264,4 +321,5 @@ def build_read(
         "earnings_gate": earnings_gate,
         "directional_lean": directional_lean,
         "summary_line": summary,
+        "summary_bullets": summary_bullets,
     }

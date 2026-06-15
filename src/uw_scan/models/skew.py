@@ -43,6 +43,11 @@ class SkewDirectionalLean(_UwBase):
     express: str = ""
 
 
+class SkewReadBullet(_UwBase):
+    label: str = ""
+    body: str = ""
+
+
 class SkewRead(_UwBase):
     tail: str = ""
     rho: Decimal | None = None
@@ -53,6 +58,7 @@ class SkewRead(_UwBase):
     borrow_context: str = ""
     earnings_gate: str = ""
     summary_line: str = ""
+    summary_bullets: list[SkewReadBullet] = []
     directional_lean: SkewDirectionalLean = SkewDirectionalLean()
 
 
@@ -96,6 +102,7 @@ _preserve_public_module(
     SkewSmilePoint,
     SkewSmileExpiryCurve,
     SkewDirectionalLean,
+    SkewReadBullet,
     SkewRead,
     SkewAnalysisResponse,
 )

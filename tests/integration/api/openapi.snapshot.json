@@ -13232,6 +13232,7 @@
               "drive": "",
               "earnings_gate": "",
               "rho_confirms": false,
+              "summary_bullets": [],
               "summary_line": "",
               "tail": ""
             }
@@ -13549,6 +13550,14 @@
             "title": "Rho Confirms",
             "type": "boolean"
           },
+          "summary_bullets": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/SkewReadBullet"
+            },
+            "title": "Summary Bullets",
+            "type": "array"
+          },
           "summary_line": {
             "default": "",
             "title": "Summary Line",
@@ -13561,6 +13570,22 @@
           }
         },
         "title": "SkewRead",
+        "type": "object"
+      },
+      "SkewReadBullet": {
+        "properties": {
+          "body": {
+            "default": "",
+            "title": "Body",
+            "type": "string"
+          },
+          "label": {
+            "default": "",
+            "title": "Label",
+            "type": "string"
+          }
+        },
+        "title": "SkewReadBullet",
         "type": "object"
       },
       "SkewRhoPoint": {

@@ -5,7 +5,6 @@ from __future__ import annotations
 import math
 
 import pytest
-
 from uw_scan.cards import skew_first_principles as sk
 
 
@@ -231,3 +230,54 @@ def test_build_read_includes_lean_and_summary():
         "BEARISH" not in read["summary_line"] and "BULLISH" not in read["summary_line"]
     )
     assert "Lean" not in read["summary_line"]
+    # Clean prose: "put-skew" not "put_skew", "drive: " not "drive=".
+    assert "put-skew" in read["summary_line"]
+    assert "drive: PANIC" in read["summary_line"]
+    # Lean basis de-coded: arrow, not "=>".
+    assert "→" in read["directional_lean"]["basis"]
+    assert "=>" not in read["directional_lean"]["basis"]
+    # Scannable breakdown: 4 explained bullets, one per read component, no direction.
+    bullets = read["summary_bullets"]
+    assert [b["label"].split(" — ")[0] for b in bullets] == [
+        "Shape",
+        "Drive",
+        "Spot–vol link",
+        "Relative value",
+    ]
+    assert all(b["body"] for b in bullets)
+    assert bullets[0]["label"] == "Shape — RICH put-skew"
+    assert "stretched" in bullets[0]["body"]  # assertive RICH phrasing
+    # RICH relative-value bullet leads with the wing action, bounded to defined risk.
+    assert bullets[3]["label"] == "Relative value — fade/finance"
+    assert "fade or finance" in bullets[3]["body"]
+    # §11: the bullets describe the skew lens only — no stock-direction verdict leaks.
+    blob = " ".join(b["label"] + b["body"] for b in bullets)
+    assert "BEARISH" not in blob and "BULLISH" not in blob
+
+
+def test_build_read_summary_handles_raw_sign_label_form():
+    """The assembler passes skew_sign_label() output ("call_skew"/"put_skew") as
+    `tail`; build_read must render a clean phrase with no enum underscore leak."""
+    neutral = sk.resolve_directional_lean(
+        deviation_class="CHEAP",
+        drive_class="STRUCTURAL",
+        asset_class="single_name",
+        regime="LOW_VOL",
+        borrow_flag="normal",
+        earnings_gate="pass",
+        verdict=None,
+    )
+    read = sk.build_read(
+        tail="call_skew",  # raw label form, as produced in reports/skew_analytics.py
+        rho=-0.3,
+        rho_confirms=False,
+        drive_class="STRUCTURAL",
+        deviation_class="CHEAP",
+        asset_class="single_name",
+        class_expected_sign="mixed",
+        borrow_flag="normal",
+        earnings_gate="pass",
+        directional_lean=neutral,
+    )
+    assert "call-skew" in read["summary_line"]
+    assert "call_skew" not in read["summary_line"]
