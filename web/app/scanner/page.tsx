@@ -122,10 +122,14 @@ export default async function ScannerPage({
                   letterSpacing: 1,
                 }}
               >
-                (outside your watchlist · DCF only · pulled from{" "}
-                {discover.alerts_pulled} alerts
-                {discover.earnings_unknown_dropped > 0
-                  ? ` · ${discover.earnings_unknown_dropped} skipped for unknown earnings`
+                (edge-quality · DP-confirmed
+                {discover.scored_at
+                  ? ` · scored ${new Date(
+                      discover.scored_at,
+                    ).toLocaleTimeString([], {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}`
                   : ""}
                 )
               </span>
