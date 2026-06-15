@@ -17,6 +17,7 @@ from uw_scan.api.routers import (
     regime,
     regime_validation,
     scanner,
+    skew,
     stock,
     trade_insights,
     volatility,
@@ -48,6 +49,7 @@ def create_app() -> FastAPI:
     app.include_router(cockpit.router, prefix="/api", tags=["cockpit"])
     app.include_router(jobs.router, prefix="/api", tags=["jobs"])
     app.include_router(volatility.router, prefix="/api", tags=["volatility"])
+    app.include_router(skew.router, prefix="/api", tags=["skew"])
     app.include_router(provider_usage.router, prefix="/api", tags=["provider-usage"])
     app.include_router(trade_insights.router, prefix="/api", tags=["trade-insights"])
     app.include_router(regime.router, prefix="/api", tags=["regime"])
