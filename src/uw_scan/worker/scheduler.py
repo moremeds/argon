@@ -49,6 +49,7 @@ from uw_scan.worker.jobs.pipeline_benchmark import pipeline_benchmark_snapshot_j
 from uw_scan.worker.jobs.positioning_jobs import positioning_refresh_once
 from uw_scan.worker.jobs.rates_jobs import rates_fred_ingest_job
 from uw_scan.worker.jobs.rescan_loop import rescan_tick
+from uw_scan.worker.jobs.skew_analytics import nightly_skew_analytics_rollup
 from uw_scan.worker.jobs.trade_insight_outcome_backfill import (
     trade_insight_outcome_backfill_once,
 )
@@ -402,6 +403,10 @@ def main() -> int:
         with _repo(settings) as repo:
             nightly_vol_analytics_rollup(repo=repo)
 
+    def _skew_analytics_rollup() -> None:
+        with _repo(settings) as repo:
+            nightly_skew_analytics_rollup(repo=repo)
+
     def _flow_data_refresh() -> None:
         if not _uw_auto_request_allowed(datetime.now(ZoneInfo(settings.rth_tz))):
             logger.info("flow_data_refresh skipped outside UW flow refresh window")
@@ -744,6 +749,16 @@ def main() -> int:
                 CronTrigger.from_crontab("0 18 * * 0-4", timezone=settings.rth_tz),
                 id="nightly_vol_analytics_rollup",
                 name="Nightly vol analytics rollup",
+            )
+            # Skew rollup at 18:30 ET — after the 18:00 vol rollup so the
+            # per-day skew snapshots build on fresh RV/IV. Idempotent upsert.
+            sched.add_job(
+                _skew_analytics_rollup,
+                CronTrigger.from_crontab("30 18 * * 0-4", timezone=settings.rth_tz),
+                id="nightly_skew_analytics_rollup",
+                name="Nightly skew analytics rollup",
+                max_instances=1,
+                coalesce=True,
             )
             # M9 v5.3 outcome ledger — runs nightly at 17:00 ET, right after
             # the 17:30 OHLC pull would have updated daily_ohlc. Scores
