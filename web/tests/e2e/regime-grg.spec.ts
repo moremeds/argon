@@ -33,6 +33,10 @@ test.describe("Regime GRG tab", () => {
       expect(await page.getByTestId("grg-event-dot").count()).toBeGreaterThan(
         0,
       );
+      // The backtest caption (with its lead-time caveat tooltip) is present —
+      // the markers are framed as early-warning, not the exact turn.
+      await expect(page.getByTestId("grg-backtest-caption")).toBeVisible();
+      await expect(page.getByTestId("grg-backtest-info")).toBeVisible();
     }
     // Evidence artifact for the PR.
     await page.screenshot({

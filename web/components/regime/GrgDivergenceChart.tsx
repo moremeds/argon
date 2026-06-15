@@ -193,8 +193,8 @@ export default function GrgDivergenceChart({
           {priceScale ? (
             <LegendSwatch color={COLORS.price} label="SPY $" />
           ) : null}
-          <LegendSwatch color={COLORS.top} label="TOP" />
-          <LegendSwatch color={COLORS.bottom} label="BOTTOM" />
+          <LegendSwatch color={COLORS.top} label="TOP-WATCH" />
+          <LegendSwatch color={COLORS.bottom} label="BOTTOM-WATCH" />
         </div>
       </div>
       <div className="section-body" style={{ padding: "8px 12px 12px" }}>
@@ -319,7 +319,7 @@ export default function GrgDivergenceChart({
                 stroke="var(--bg-panel, #0b0e14)"
                 strokeWidth={1.5}
               >
-                <title>{`${d.date} — gate-confirmed`}</title>
+                <title>{`${d.date} — gate-confirmed watch (lead signal, not the exact turn)`}</title>
               </circle>
             ))}
           </g>

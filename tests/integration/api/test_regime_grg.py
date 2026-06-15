@@ -18,8 +18,12 @@ def test_grg_empty_when_no_snapshot(client: TestClient):
     assert body["assets"] is None
     assert body["gates"] == []
     assert body["basis"] == "eod"
-    # Empty response still carries the events shape (both lists empty).
-    assert body["events"] == {"tops": [], "bottoms": []}
+    # Empty response still carries the events shape (both lists empty, aggregate
+    # backtest stats present with zero counts).
+    assert body["events"]["tops"] == []
+    assert body["events"]["bottoms"] == []
+    assert body["events"]["stats"]["tops"]["n"] == 0
+    assert body["events"]["stats"]["bottoms"]["n"] == 0
 
 
 def test_grg_returns_events_when_snapshot_present(

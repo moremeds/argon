@@ -6551,11 +6551,33 @@
         "type": "object"
       },
       "GrgEvent": {
-        "description": "One gate-confirmed top/bottom day (YTD history of the signal).\n\n``spot_vs_flip`` is deliberately absent \u2014 UW's greek-exposure history has\nno per-day gamma flip, so it can't be backfilled for past events; it lives\non the live SPY/TLT cards only.",
+        "description": "One gate-confirmed top/bottom day (YTD history of the signal).\n\n``spot_vs_flip`` is deliberately absent \u2014 UW's greek-exposure history has\nno per-day gamma flip, so it can't be backfilled for past events; it lives\non the live SPY/TLT cards only.\n\n``fwd_20d_pct`` / ``lead_sessions`` / ``extreme_gap_pct`` are the YTD\nforward-return backtest: SPY's 20-session forward return after the watch,\nthe sessions until the adverse price extreme it preceded, and how much\nfurther SPY moved to that extreme. They show the watch LEADS the turn.",
         "properties": {
           "date": {
             "title": "Date",
             "type": "string"
+          },
+          "extreme_gap_pct": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Extreme Gap Pct"
+          },
+          "fwd_20d_pct": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fwd 20D Pct"
           },
           "grg_z": {
             "anyOf": [
@@ -6567,6 +6589,17 @@
               }
             ],
             "title": "Grg Z"
+          },
+          "lead_sessions": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lead Sessions"
           },
           "pair_state": {
             "default": "NEUTRAL",
@@ -6613,6 +6646,57 @@
         "title": "GrgEvent",
         "type": "object"
       },
+      "GrgEventSideStats": {
+        "properties": {
+          "median_extreme_gap_pct": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Median Extreme Gap Pct"
+          },
+          "median_lead_sessions": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Median Lead Sessions"
+          },
+          "n": {
+            "default": 0,
+            "title": "N",
+            "type": "integer"
+          }
+        },
+        "title": "GrgEventSideStats",
+        "type": "object"
+      },
+      "GrgEventStats": {
+        "description": "Aggregate YTD forward-return backtest of the gate-confirmed watch events.\n\n``median_lead_sessions`` is the median sessions between a watch signal and\nthe adverse extreme it preceded; ``median_extreme_gap_pct`` is the median\nfurther move after the signal. Together they quantify the early-warning\nLEAD \u2014 GRG watch events are not coincident turn markers.",
+        "properties": {
+          "bottoms": {
+            "$ref": "#/components/schemas/GrgEventSideStats"
+          },
+          "fwd_window": {
+            "default": 0,
+            "title": "Fwd Window",
+            "type": "integer"
+          },
+          "tops": {
+            "$ref": "#/components/schemas/GrgEventSideStats"
+          }
+        },
+        "title": "GrgEventStats",
+        "type": "object"
+      },
       "GrgEvents": {
         "properties": {
           "bottoms": {
@@ -6621,6 +6705,9 @@
             },
             "title": "Bottoms",
             "type": "array"
+          },
+          "stats": {
+            "$ref": "#/components/schemas/GrgEventStats"
           },
           "tops": {
             "items": {
@@ -6768,7 +6855,7 @@
         "type": "object"
       },
       "GrgResponse": {
-        "description": "Gamma Rotation Gap snapshot (latest scan). Self-contained: embeds the\nfull 90-session history.",
+        "description": "Gamma Rotation Gap snapshot (latest scan). Self-contained: embeds the\nYTD history (z-scored over the full \u22481Y fetched series).",
         "properties": {
           "assets": {
             "anyOf": [

@@ -38,6 +38,17 @@ def _round(value: float | None, digits: int = 4) -> float | None:
     return round(float(value), digits)
 
 
+def _median(values: list[float]) -> float | None:
+    if not values:
+        return None
+    ordered = sorted(values)
+    n = len(ordered)
+    mid = n // 2
+    if n % 2:
+        return float(ordered[mid])
+    return (ordered[mid - 1] + ordered[mid]) / 2.0
+
+
 def _zscore_series(values: Iterable[float], window: int = Z_WINDOW) -> np.ndarray:
     # radon gamma_rotation_gap.py:65-78 (verbatim)
     arr = np.array(list(values), dtype=float)
@@ -292,6 +303,76 @@ def _extract_events(
     return {"tops": tops[:cap], "bottoms": bottoms[:cap]}
 
 
+def _annotate_event_backtest(
+    events: dict[str, Any],
+    dates: list[str],
+    prices: dict[str, float],
+    *,
+    fwd_window: int = 30,
+) -> None:
+    """Annotate each gate-confirmed event with forward-return / lead-time stats
+    and attach an aggregate ``stats`` block (mutates ``events`` in place).
+
+    A GRG TOP_WATCH / BOTTOM_WATCH is a *watch* signal — it flags building
+    conditions, so it fires before the turn. ``lead_sessions`` is the number of
+    sessions from the signal to the adverse price extreme it preceded (the high
+    after a top-watch, the low after a bottom-watch within ``fwd_window``);
+    ``extreme_gap_pct`` is how much further SPY moved after the signal. Both
+    quantify the LEAD (early-warning) behaviour — these are not coincident turn
+    markers. See docs/research/grg-gamma-rotation-gap/CLAUDE.md. Uses the SPY
+    close series in ``prices``; degrades to None where price data is missing or
+    the forward window is truncated at the series end.
+    """
+    idx = {d: i for i, d in enumerate(dates)}
+
+    def _stat(ev: dict[str, Any], *, is_top: bool) -> None:
+        ev["fwd_20d_pct"] = None
+        ev["lead_sessions"] = None
+        ev["extreme_gap_pct"] = None
+        i = idx.get(ev["date"])
+        p0 = prices.get(ev["date"])
+        if i is None or p0 is None or p0 == 0:
+            return
+        nxt = i + 20
+        if nxt < len(dates):
+            p_nxt = prices.get(dates[nxt])
+            if p_nxt is not None:
+                ev["fwd_20d_pct"] = _round((p_nxt / p0 - 1.0) * 100.0)
+        best_k: int | None = None
+        best_p: float | None = None
+        for k in range(i + 1, min(len(dates), i + fwd_window + 1)):
+            p_k = prices.get(dates[k])
+            if p_k is None:
+                continue
+            if best_p is None or (p_k > best_p if is_top else p_k < best_p):
+                best_p, best_k = p_k, k
+        if best_k is not None and best_p is not None:
+            ev["lead_sessions"] = best_k - i
+            ev["extreme_gap_pct"] = _round((best_p / p0 - 1.0) * 100.0)
+
+    for ev in events.get("tops", []):
+        _stat(ev, is_top=True)
+    for ev in events.get("bottoms", []):
+        _stat(ev, is_top=False)
+
+    def _side(evs: list[dict[str, Any]]) -> dict[str, Any]:
+        leads = [e["lead_sessions"] for e in evs if e.get("lead_sessions") is not None]
+        gaps = [
+            e["extreme_gap_pct"] for e in evs if e.get("extreme_gap_pct") is not None
+        ]
+        return {
+            "n": len(evs),
+            "median_lead_sessions": _median(leads),
+            "median_extreme_gap_pct": _round(_median(gaps)),
+        }
+
+    events["stats"] = {
+        "fwd_window": fwd_window,
+        "tops": _side(events.get("tops", [])),
+        "bottoms": _side(events.get("bottoms", [])),
+    }
+
+
 def run_analysis(
     spy_rows: list[dict],
     tlt_rows: list[dict],
@@ -387,6 +468,10 @@ def run_analysis(
         grg_z,
         year_start=year_start,
     )
+    # Forward-return / lead-time backtest over the SPY close series — the
+    # evidence that these gate-confirmed days are LEAD watch-signals, not
+    # coincident top/bottom markers (surfaced in the UI + research note).
+    _annotate_event_backtest(events, dates, prices, fwd_window=30)
 
     def _asset(
         ticker: str,

@@ -11,6 +11,7 @@ import {
   useGrgLive,
   type GrgAsset,
   type GrgEvent,
+  type GrgEventStats,
   type GrgGate,
   type GrgResponse,
 } from "@/lib/regime/useGrgLive";
@@ -20,8 +21,44 @@ const METHODOLOGY =
   "Positive dealer gamma cushions moves; negative gamma whips them. A SPY/TLT " +
   "divergence flags a cross-asset risk rotation. DESCRIPTIVE indicator — the " +
   "gamma→vol mechanic is peer-reviewed, but the cross-asset gap signal is an " +
-  "unvalidated hypothesis (no forward-return backtest). See " +
+  "unvalidated hypothesis. A YTD forward-return backtest shows the gate-" +
+  "confirmed top/bottom days LEAD the turn (early-warning), not mark it. See " +
   "docs/research/grg-gamma-rotation-gap.";
+
+// Caveat for the chart's TOP-WATCH / BOTTOM-WATCH dots, anchored by the YTD
+// backtest. Explains they lead the turn and clear a weaker historical bar.
+const BACKTEST_HELP =
+  "Dots mark gate-confirmed TOP-WATCH / BOTTOM-WATCH days — early-warning " +
+  "signals of building dealer-gamma conditions, NOT the exact turn. On the " +
+  "YTD sample they LED the actual extreme: bottom-watches preceded a further " +
+  "decline, the top-watch a further rise. Historical markers also omit the " +
+  "gamma-flip gate (UW history has no per-day flip), so they clear a weaker " +
+  "bar than the live headline signal. Descriptive, small-sample — not a " +
+  "predictive turn-caller.";
+
+// One-line summary of the YTD forward-return backtest, built from the
+// persisted aggregate. Empty string when there is nothing to report.
+function backtestSummary(stats: GrgEventStats | undefined): string {
+  if (!stats) return "";
+  const side = (label: string, s: GrgEventStats["bottoms"] | undefined) => {
+    if (!s || !s.n) return null;
+    if (s.median_lead_sessions == null || s.median_extreme_gap_pct == null) {
+      return `${s.n} ${label}`;
+    }
+    const gap = s.median_extreme_gap_pct;
+    return `${s.n} ${label} led by ~${Math.round(
+      s.median_lead_sessions,
+    )} sessions (SPY ${gap >= 0 ? "+" : ""}${gap.toFixed(1)}% further)`;
+  };
+  const parts = [
+    side("BOTTOM-WATCH", stats.bottoms),
+    side("TOP-WATCH", stats.tops),
+  ].filter(Boolean);
+  if (!parts.length) return "";
+  return `Backtest (YTD, ${stats.fwd_window}-session window): ${parts.join(
+    " · ",
+  )}. Early-warning, not the turn.`;
+}
 
 // Explainer for the per-asset badge — scoped to the asset's actual state so
 // a WHIP card shows only the whip meaning, a CUSHION card only the cushion.
@@ -336,6 +373,13 @@ function EventRow({ ev }: { ev: GrgEvent }) {
         }}
       >
         SPY {fmtGex(ev.spy_net_gamma)} · TLT {fmtGex(ev.tlt_net_gamma)}
+        {ev.lead_sessions != null && ev.extreme_gap_pct != null ? (
+          <span style={{ color: "var(--text-secondary)" }}>
+            {` · led ${ev.lead_sessions}d, SPY ${
+              ev.extreme_gap_pct >= 0 ? "+" : ""
+            }${ev.extreme_gap_pct.toFixed(1)}% to extreme`}
+          </span>
+        ) : null}
       </div>
     </div>
   );
@@ -403,6 +447,8 @@ export function GrgSubTabView({ data }: { data: GrgResponse | null }) {
   const history = data.history ?? [];
   const tops = data.events?.tops ?? [];
   const bottoms = data.events?.bottoms ?? [];
+  const eventStats = data.events?.stats;
+  const backtestLine = backtestSummary(eventStats);
   const topSide = top_bottom.top ?? { active: false, copy: "" };
   const botSide = top_bottom.bottom ?? { active: false, copy: "" };
   const stateColor = pairStateColor(signal.state);
@@ -557,6 +603,32 @@ export function GrgSubTabView({ data }: { data: GrgResponse | null }) {
         <GrgDivergenceChart history={history} tops={tops} bottoms={bottoms} />
       </div>
 
+      {/* Backtest caveat for the chart markers — they LEAD the turn. */}
+      <div
+        data-testid="grg-backtest-caption"
+        style={{
+          display: "flex",
+          alignItems: "baseline",
+          gap: 6,
+          marginTop: 6,
+          fontFamily: "var(--font-mono)",
+          fontSize: 10,
+          letterSpacing: "0.04em",
+          color: "var(--text-muted)",
+        }}
+      >
+        <span>
+          {backtestLine ||
+            "Top/bottom markers are gate-confirmed watch signals — early-warning, not the exact turn."}
+        </span>
+        <InfoTooltip
+          text={BACKTEST_HELP}
+          ariaLabel="GRG top/bottom backtest"
+          triggerTestId="grg-backtest-info"
+          contentTestId="grg-backtest-help"
+        />
+      </div>
+
       {/* Top / Bottom identification */}
       <div
         style={{
@@ -630,16 +702,16 @@ export function GrgSubTabView({ data }: { data: GrgResponse | null }) {
         }}
       >
         <EventsColumn
-          title="Recent Tops"
+          title="Recent Top-Watches"
           testid="grg-recent-tops"
           events={tops}
-          emptyCopy="No gate-confirmed tops year-to-date."
+          emptyCopy="No gate-confirmed top-watches year-to-date."
         />
         <EventsColumn
-          title="Recent Bottoms"
+          title="Recent Bottom-Watches"
           testid="grg-recent-bottoms"
           events={bottoms}
-          emptyCopy="No gate-confirmed bottoms year-to-date."
+          emptyCopy="No gate-confirmed bottom-watches year-to-date."
         />
       </div>
       <div

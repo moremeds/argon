@@ -3132,6 +3132,11 @@ export interface components {
          *     ``spot_vs_flip`` is deliberately absent — UW's greek-exposure history has
          *     no per-day gamma flip, so it can't be backfilled for past events; it lives
          *     on the live SPY/TLT cards only.
+         *
+         *     ``fwd_20d_pct`` / ``lead_sessions`` / ``extreme_gap_pct`` are the YTD
+         *     forward-return backtest: SPY's 20-session forward return after the watch,
+         *     the sessions until the adverse price extreme it preceded, and how much
+         *     further SPY moved to that extreme. They show the watch LEADS the turn.
          */
         GrgEvent: {
             /** Date */
@@ -3149,6 +3154,42 @@ export interface components {
             spy_net_gamma?: number | null;
             /** Tlt Net Gamma */
             tlt_net_gamma?: number | null;
+            /** Fwd 20D Pct */
+            fwd_20d_pct?: number | null;
+            /** Lead Sessions */
+            lead_sessions?: number | null;
+            /** Extreme Gap Pct */
+            extreme_gap_pct?: number | null;
+        };
+        /** GrgEventSideStats */
+        GrgEventSideStats: {
+            /**
+             * N
+             * @default 0
+             */
+            n: number;
+            /** Median Lead Sessions */
+            median_lead_sessions?: number | null;
+            /** Median Extreme Gap Pct */
+            median_extreme_gap_pct?: number | null;
+        };
+        /**
+         * GrgEventStats
+         * @description Aggregate YTD forward-return backtest of the gate-confirmed watch events.
+         *
+         *     ``median_lead_sessions`` is the median sessions between a watch signal and
+         *     the adverse extreme it preceded; ``median_extreme_gap_pct`` is the median
+         *     further move after the signal. Together they quantify the early-warning
+         *     LEAD — GRG watch events are not coincident turn markers.
+         */
+        GrgEventStats: {
+            /**
+             * Fwd Window
+             * @default 0
+             */
+            fwd_window: number;
+            tops?: components["schemas"]["GrgEventSideStats"];
+            bottoms?: components["schemas"]["GrgEventSideStats"];
         };
         /** GrgEvents */
         GrgEvents: {
@@ -3156,6 +3197,7 @@ export interface components {
             tops?: components["schemas"]["GrgEvent"][];
             /** Bottoms */
             bottoms?: components["schemas"]["GrgEvent"][];
+            stats?: components["schemas"]["GrgEventStats"];
         };
         /** GrgGate */
         GrgGate: {
@@ -3199,7 +3241,7 @@ export interface components {
         /**
          * GrgResponse
          * @description Gamma Rotation Gap snapshot (latest scan). Self-contained: embeds the
-         *     full 90-session history.
+         *     YTD history (z-scored over the full ≈1Y fetched series).
          */
         GrgResponse: {
             /**

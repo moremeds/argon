@@ -135,6 +135,55 @@ def test_extract_events_ytd_filter_excludes_prior_year():
     assert out["bottoms"] == []
 
 
+def test_annotate_event_backtest_marks_lead():
+    # A top-watch (06-01) precedes a higher high 3 sessions later (+10%); a
+    # bottom-watch (06-02) precedes a lower low 3 sessions later (-10%). Both
+    # are LEAD signals — the extreme arrives after the watch.
+    dates = [f"2026-06-0{i}" for i in range(1, 7)]
+    prices = {
+        "2026-06-01": 100.0,
+        "2026-06-02": 100.0,
+        "2026-06-03": 105.0,
+        "2026-06-04": 110.0,  # the high after the top-watch
+        "2026-06-05": 90.0,  # the low after the bottom-watch
+        "2026-06-06": 92.0,
+    }
+    events = {
+        "tops": [{"date": "2026-06-01"}],
+        "bottoms": [{"date": "2026-06-02"}],
+    }
+    g._annotate_event_backtest(events, dates, prices, fwd_window=30)
+
+    top = events["tops"][0]
+    assert top["lead_sessions"] == 3
+    assert top["extreme_gap_pct"] == 10.0
+    assert top["fwd_20d_pct"] is None  # window truncated at series end
+
+    bot = events["bottoms"][0]
+    assert bot["lead_sessions"] == 3
+    assert bot["extreme_gap_pct"] == -10.0
+
+    stats = events["stats"]
+    assert stats["fwd_window"] == 30
+    assert stats["tops"]["n"] == 1
+    assert stats["tops"]["median_lead_sessions"] == 3.0
+    assert stats["tops"]["median_extreme_gap_pct"] == 10.0
+    assert stats["bottoms"]["median_extreme_gap_pct"] == -10.0
+
+
+def test_annotate_event_backtest_handles_missing_prices():
+    # No price series → every stat degrades to None, aggregate n still counts.
+    dates = ["2026-06-01", "2026-06-02"]
+    events = {"tops": [], "bottoms": [{"date": "2026-06-01"}]}
+    g._annotate_event_backtest(events, dates, {}, fwd_window=30)
+    bot = events["bottoms"][0]
+    assert bot["lead_sessions"] is None
+    assert bot["extreme_gap_pct"] is None
+    assert bot["fwd_20d_pct"] is None
+    assert events["stats"]["bottoms"]["n"] == 1
+    assert events["stats"]["bottoms"]["median_lead_sessions"] is None
+
+
 def test_run_analysis_emits_events_lists():
     n = 80
     spy = _mk_rows([1000.0 - 30.0 * i for i in range(n)], date(2026, 1, 1))
@@ -161,7 +210,15 @@ def test_run_analysis_emits_events_lists():
             "tier",
             "spy_net_gamma",
             "tlt_net_gamma",
+            "fwd_20d_pct",
+            "lead_sessions",
+            "extreme_gap_pct",
         }
+    # The aggregate backtest block is always present.
+    stats = payload["events"]["stats"]
+    assert stats["fwd_window"] == 30
+    assert stats["tops"]["n"] == len(payload["events"]["tops"])
+    assert stats["bottoms"]["n"] == len(payload["events"]["bottoms"])
 
 
 def test_run_analysis_history_carries_spy_price():
