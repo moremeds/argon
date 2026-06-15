@@ -21,6 +21,11 @@ test.describe("Regime GRG tab", () => {
     if (await panel.isVisible()) {
       await expect(page.getByTestId("grg-recent-tops")).toBeVisible();
       await expect(page.getByTestId("grg-recent-bottoms")).toBeVisible();
+      // The panel is wrapped in the shared bordered container (like the GEX
+      // tab) — `section gex-panel`, not a bare `gex-panel`.
+      await expect(panel).toHaveClass(/section/);
+      // The SPY asset card carries the whip/cushion explainer tooltip.
+      await expect(page.getByTestId("grg-asset-state-info-SPY")).toBeVisible();
     }
     // Evidence artifact for the PR.
     await page.screenshot({

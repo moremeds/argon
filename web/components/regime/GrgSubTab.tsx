@@ -23,6 +23,12 @@ const METHODOLOGY =
   "unvalidated hypothesis (no forward-return backtest). See " +
   "docs/research/grg-gamma-rotation-gap.";
 
+// Explains the per-asset WHIP / CUSHION / NEUTRAL badge.
+const ASSET_STATE_HELP =
+  "CUSHION: dealer gamma is positive — hedging dampens this asset's moves " +
+  "(stabilizing). WHIP: dealer gamma is negative — hedging amplifies moves " +
+  "(destabilizing). NEUTRAL: gamma near zero.";
+
 export function fmtGex(v: number | null | undefined): string {
   if (v == null || !Number.isFinite(v)) return "---";
   // radon shows a signed magnitude ("-702.1K", "+7.7M").
@@ -153,19 +159,27 @@ function AssetCard({ asset }: { asset: GrgAsset }) {
     <div className="section" data-testid={`grg-asset-${asset.ticker}`}>
       <div className="section-header">
         <div className="section-title">{asset.ticker}</div>
-        <span
-          style={{
-            border: `1px solid ${pillColor}`,
-            color: pillColor,
-            borderRadius: 999,
-            padding: "2px 10px",
-            fontSize: 10,
-            fontFamily: "var(--font-mono)",
-            letterSpacing: "1px",
-          }}
-        >
-          {pill}
-        </span>
+        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+          <span
+            style={{
+              border: `1px solid ${pillColor}`,
+              color: pillColor,
+              borderRadius: 999,
+              padding: "2px 10px",
+              fontSize: 10,
+              fontFamily: "var(--font-mono)",
+              letterSpacing: "1px",
+            }}
+          >
+            {pill}
+          </span>
+          <InfoTooltip
+            text={ASSET_STATE_HELP}
+            ariaLabel="Whip vs cushion"
+            triggerTestId={`grg-asset-state-info-${asset.ticker}`}
+            contentTestId={`grg-asset-state-help-${asset.ticker}`}
+          />
+        </div>
       </div>
       <div className="section-body" style={{ padding: "12px" }}>
         <div
@@ -387,7 +401,11 @@ export function GrgSubTabView({ data }: { data: GrgResponse | null }) {
   const stateColor = pairStateColor(signal.state);
 
   return (
-    <div className="gex-panel" data-testid="grg-panel">
+    <div
+      className="section gex-panel"
+      data-testid="grg-panel"
+      style={{ padding: 16 }}
+    >
       {/* Hero */}
       <div className="section" data-testid="grg-hero">
         <div className="section-header">
