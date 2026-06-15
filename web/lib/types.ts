@@ -387,6 +387,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/stock/{ticker}/skew": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Skew Analysis */
+        get: operations["get_skew_analysis_api_stock__ticker__skew_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/provider-usage/summary": {
         parameters: {
             query?: never;
@@ -5189,10 +5206,293 @@ export interface components {
             next_earnings_date?: string | null;
             dealer_regime?: components["schemas"]["DealerRegime"] | null;
         };
+        /** SkewAnalysisResponse */
+        SkewAnalysisResponse: {
+            /** Ticker */
+            ticker: string;
+            /**
+             * As Of
+             * Format: date
+             */
+            as_of: string;
+            /**
+             * Backfill Status
+             * @default ready
+             */
+            backfill_status: string;
+            /** Spot */
+            spot?: string | null;
+            /** Rr 25D */
+            rr_25d?: string | null;
+            /** Rr Z 180D */
+            rr_z_180d?: string | null;
+            /** Rr Pct 252D */
+            rr_pct_252d?: string | null;
+            /**
+             * Deviation Class
+             * @default NORMAL
+             */
+            deviation_class: string;
+            /**
+             * Skew Term Class
+             * @default flat
+             */
+            skew_term_class: string;
+            /** Front Rr */
+            front_rr?: string | null;
+            /** Back Rr */
+            back_rr?: string | null;
+            /** Rho Spotvol 63D */
+            rho_spotvol_63d?: string | null;
+            /** Rho Spotvol 21D */
+            rho_spotvol_21d?: string | null;
+            /** Rho Sign */
+            rho_sign?: number | null;
+            /**
+             * Drive Class
+             * @default STRUCTURAL
+             */
+            drive_class: string;
+            /**
+             * Asset Class
+             * @default single_name
+             */
+            asset_class: string;
+            /**
+             * Class Expected Sign
+             * @default mixed
+             */
+            class_expected_sign: string;
+            /**
+             * Borrow Flag
+             * @default unknown
+             */
+            borrow_flag: string;
+            /** Borrow Fee Rate */
+            borrow_fee_rate?: string | null;
+            /** Days To Cover */
+            days_to_cover?: string | null;
+            /**
+             * Earnings Gate
+             * @default unknown
+             */
+            earnings_gate: string;
+            /**
+             * Regime
+             * @default UNKNOWN
+             */
+            regime: string;
+            /**
+             * Directional Lean
+             * @default NEUTRAL
+             */
+            directional_lean: string;
+            /**
+             * Lean Confidence
+             * @default low
+             */
+            lean_confidence: string;
+            /**
+             * Lean Basis
+             * @default
+             */
+            lean_basis: string;
+            /**
+             * @default {
+             *       "tail": "",
+             *       "rho_confirms": false,
+             *       "drive": "",
+             *       "deviation_class": "",
+             *       "class_context": "",
+             *       "borrow_context": "",
+             *       "earnings_gate": "",
+             *       "summary_line": "",
+             *       "summary_bullets": [],
+             *       "directional_lean": {
+             *         "basis": "",
+             *         "confidence": "low",
+             *         "express": "",
+             *         "lean": "NEUTRAL"
+             *       }
+             *     }
+             */
+            read: components["schemas"]["SkewRead"];
+            /**
+             * History
+             * @default []
+             */
+            history: components["schemas"]["SkewHistoryPoint"][];
+            /**
+             * Rho Series
+             * @default []
+             */
+            rho_series: components["schemas"]["SkewRhoPoint"][];
+            /**
+             * Term Structure
+             * @default []
+             */
+            term_structure: components["schemas"]["SkewExpiryPoint"][];
+            /**
+             * Smile
+             * @default []
+             */
+            smile: components["schemas"]["SkewSmileExpiryCurve"][];
+        };
         /** SkewBlock */
         SkewBlock: {
             /** Rr25D 30Dte */
             rr25d_30dte?: string | null;
+        };
+        /** SkewDirectionalLean */
+        SkewDirectionalLean: {
+            /**
+             * Lean
+             * @default NEUTRAL
+             */
+            lean: string;
+            /**
+             * Confidence
+             * @default low
+             */
+            confidence: string;
+            /**
+             * Basis
+             * @default
+             */
+            basis: string;
+            /**
+             * Express
+             * @default
+             */
+            express: string;
+        };
+        /** SkewExpiryPoint */
+        SkewExpiryPoint: {
+            /**
+             * Expiry
+             * Format: date
+             */
+            expiry: string;
+            /** Rr */
+            rr?: string | null;
+            /** Dte */
+            dte?: number | null;
+        };
+        /** SkewHistoryPoint */
+        SkewHistoryPoint: {
+            /**
+             * Date
+             * Format: date
+             */
+            date: string;
+            /** Rr */
+            rr?: string | null;
+            /** Z */
+            z?: string | null;
+            /** Pct */
+            pct?: string | null;
+        };
+        /** SkewRead */
+        SkewRead: {
+            /**
+             * Tail
+             * @default
+             */
+            tail: string;
+            /** Rho */
+            rho?: string | null;
+            /**
+             * Rho Confirms
+             * @default false
+             */
+            rho_confirms: boolean;
+            /**
+             * Drive
+             * @default
+             */
+            drive: string;
+            /**
+             * Deviation Class
+             * @default
+             */
+            deviation_class: string;
+            /**
+             * Class Context
+             * @default
+             */
+            class_context: string;
+            /**
+             * Borrow Context
+             * @default
+             */
+            borrow_context: string;
+            /**
+             * Earnings Gate
+             * @default
+             */
+            earnings_gate: string;
+            /**
+             * Summary Line
+             * @default
+             */
+            summary_line: string;
+            /**
+             * Summary Bullets
+             * @default []
+             */
+            summary_bullets: components["schemas"]["SkewReadBullet"][];
+            /**
+             * @default {
+             *       "lean": "NEUTRAL",
+             *       "confidence": "low",
+             *       "basis": "",
+             *       "express": ""
+             *     }
+             */
+            directional_lean: components["schemas"]["SkewDirectionalLean"];
+        };
+        /** SkewReadBullet */
+        SkewReadBullet: {
+            /**
+             * Label
+             * @default
+             */
+            label: string;
+            /**
+             * Body
+             * @default
+             */
+            body: string;
+        };
+        /** SkewRhoPoint */
+        SkewRhoPoint: {
+            /**
+             * Date
+             * Format: date
+             */
+            date: string;
+            /** Rho */
+            rho?: string | null;
+        };
+        /** SkewSmileExpiryCurve */
+        SkewSmileExpiryCurve: {
+            /**
+             * Expiry
+             * Format: date
+             */
+            expiry: string;
+            /**
+             * Points
+             * @default []
+             */
+            points: components["schemas"]["SkewSmilePoint"][];
+        };
+        /** SkewSmilePoint */
+        SkewSmilePoint: {
+            /** Strike */
+            strike: string;
+            /** Iv */
+            iv?: string | null;
         };
         /** SmileExpiryCurve */
         SmileExpiryCurve: {
@@ -8125,6 +8425,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["VolatilitySeriesResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_skew_analysis_api_stock__ticker__skew_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                ticker: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SkewAnalysisResponse"];
                 };
             };
             /** @description Validation Error */

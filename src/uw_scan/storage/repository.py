@@ -66,6 +66,7 @@ from .rows import (
 from .scan_outputs import _ScanOutputsMixin
 from .scan_results import _ScanResultsMixin
 from .scan_runs import _ScanRunsMixin
+from .skew import _SkewMixin
 from .trade_insights_ai import _TradeInsightsAiMixin
 from .volatility_raw import _VolatilityRawMixin
 from .volatility_v2 import _VolatilityV2Mixin
@@ -117,6 +118,7 @@ class Repository(
     _ScanOutputsMixin,
     _ScanResultsMixin,
     _ScanRunsMixin,
+    _SkewMixin,
     _TradeInsightsAiMixin,
     _VolatilityRawMixin,
     _VolatilityV2Mixin,

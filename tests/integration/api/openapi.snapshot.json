@@ -13104,6 +13104,268 @@
         "title": "SingleStockReport",
         "type": "object"
       },
+      "SkewAnalysisResponse": {
+        "properties": {
+          "as_of": {
+            "format": "date",
+            "title": "As Of",
+            "type": "string"
+          },
+          "asset_class": {
+            "default": "single_name",
+            "title": "Asset Class",
+            "type": "string"
+          },
+          "back_rr": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Back Rr"
+          },
+          "backfill_status": {
+            "default": "ready",
+            "title": "Backfill Status",
+            "type": "string"
+          },
+          "borrow_fee_rate": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Borrow Fee Rate"
+          },
+          "borrow_flag": {
+            "default": "unknown",
+            "title": "Borrow Flag",
+            "type": "string"
+          },
+          "class_expected_sign": {
+            "default": "mixed",
+            "title": "Class Expected Sign",
+            "type": "string"
+          },
+          "days_to_cover": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Days To Cover"
+          },
+          "deviation_class": {
+            "default": "NORMAL",
+            "title": "Deviation Class",
+            "type": "string"
+          },
+          "directional_lean": {
+            "default": "NEUTRAL",
+            "title": "Directional Lean",
+            "type": "string"
+          },
+          "drive_class": {
+            "default": "STRUCTURAL",
+            "title": "Drive Class",
+            "type": "string"
+          },
+          "earnings_gate": {
+            "default": "unknown",
+            "title": "Earnings Gate",
+            "type": "string"
+          },
+          "front_rr": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Front Rr"
+          },
+          "history": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/SkewHistoryPoint"
+            },
+            "title": "History",
+            "type": "array"
+          },
+          "lean_basis": {
+            "default": "",
+            "title": "Lean Basis",
+            "type": "string"
+          },
+          "lean_confidence": {
+            "default": "low",
+            "title": "Lean Confidence",
+            "type": "string"
+          },
+          "read": {
+            "$ref": "#/components/schemas/SkewRead",
+            "default": {
+              "borrow_context": "",
+              "class_context": "",
+              "deviation_class": "",
+              "directional_lean": {
+                "basis": "",
+                "confidence": "low",
+                "express": "",
+                "lean": "NEUTRAL"
+              },
+              "drive": "",
+              "earnings_gate": "",
+              "rho_confirms": false,
+              "summary_bullets": [],
+              "summary_line": "",
+              "tail": ""
+            }
+          },
+          "regime": {
+            "default": "UNKNOWN",
+            "title": "Regime",
+            "type": "string"
+          },
+          "rho_series": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/SkewRhoPoint"
+            },
+            "title": "Rho Series",
+            "type": "array"
+          },
+          "rho_sign": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rho Sign"
+          },
+          "rho_spotvol_21d": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rho Spotvol 21D"
+          },
+          "rho_spotvol_63d": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rho Spotvol 63D"
+          },
+          "rr_25d": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rr 25D"
+          },
+          "rr_pct_252d": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rr Pct 252D"
+          },
+          "rr_z_180d": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rr Z 180D"
+          },
+          "skew_term_class": {
+            "default": "flat",
+            "title": "Skew Term Class",
+            "type": "string"
+          },
+          "smile": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/SkewSmileExpiryCurve"
+            },
+            "title": "Smile",
+            "type": "array"
+          },
+          "spot": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Spot"
+          },
+          "term_structure": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/SkewExpiryPoint"
+            },
+            "title": "Term Structure",
+            "type": "array"
+          },
+          "ticker": {
+            "title": "Ticker",
+            "type": "string"
+          }
+        },
+        "required": [
+          "ticker",
+          "as_of"
+        ],
+        "title": "SkewAnalysisResponse",
+        "type": "object"
+      },
       "SkewBlock": {
         "properties": {
           "rr25d_30dte": {
@@ -13120,6 +13382,284 @@
           }
         },
         "title": "SkewBlock",
+        "type": "object"
+      },
+      "SkewDirectionalLean": {
+        "properties": {
+          "basis": {
+            "default": "",
+            "title": "Basis",
+            "type": "string"
+          },
+          "confidence": {
+            "default": "low",
+            "title": "Confidence",
+            "type": "string"
+          },
+          "express": {
+            "default": "",
+            "title": "Express",
+            "type": "string"
+          },
+          "lean": {
+            "default": "NEUTRAL",
+            "title": "Lean",
+            "type": "string"
+          }
+        },
+        "title": "SkewDirectionalLean",
+        "type": "object"
+      },
+      "SkewExpiryPoint": {
+        "properties": {
+          "dte": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dte"
+          },
+          "expiry": {
+            "format": "date",
+            "title": "Expiry",
+            "type": "string"
+          },
+          "rr": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rr"
+          }
+        },
+        "required": [
+          "expiry"
+        ],
+        "title": "SkewExpiryPoint",
+        "type": "object"
+      },
+      "SkewHistoryPoint": {
+        "properties": {
+          "date": {
+            "format": "date",
+            "title": "Date",
+            "type": "string"
+          },
+          "pct": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pct"
+          },
+          "rr": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rr"
+          },
+          "z": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Z"
+          }
+        },
+        "required": [
+          "date"
+        ],
+        "title": "SkewHistoryPoint",
+        "type": "object"
+      },
+      "SkewRead": {
+        "properties": {
+          "borrow_context": {
+            "default": "",
+            "title": "Borrow Context",
+            "type": "string"
+          },
+          "class_context": {
+            "default": "",
+            "title": "Class Context",
+            "type": "string"
+          },
+          "deviation_class": {
+            "default": "",
+            "title": "Deviation Class",
+            "type": "string"
+          },
+          "directional_lean": {
+            "$ref": "#/components/schemas/SkewDirectionalLean",
+            "default": {
+              "basis": "",
+              "confidence": "low",
+              "express": "",
+              "lean": "NEUTRAL"
+            }
+          },
+          "drive": {
+            "default": "",
+            "title": "Drive",
+            "type": "string"
+          },
+          "earnings_gate": {
+            "default": "",
+            "title": "Earnings Gate",
+            "type": "string"
+          },
+          "rho": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rho"
+          },
+          "rho_confirms": {
+            "default": false,
+            "title": "Rho Confirms",
+            "type": "boolean"
+          },
+          "summary_bullets": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/SkewReadBullet"
+            },
+            "title": "Summary Bullets",
+            "type": "array"
+          },
+          "summary_line": {
+            "default": "",
+            "title": "Summary Line",
+            "type": "string"
+          },
+          "tail": {
+            "default": "",
+            "title": "Tail",
+            "type": "string"
+          }
+        },
+        "title": "SkewRead",
+        "type": "object"
+      },
+      "SkewReadBullet": {
+        "properties": {
+          "body": {
+            "default": "",
+            "title": "Body",
+            "type": "string"
+          },
+          "label": {
+            "default": "",
+            "title": "Label",
+            "type": "string"
+          }
+        },
+        "title": "SkewReadBullet",
+        "type": "object"
+      },
+      "SkewRhoPoint": {
+        "properties": {
+          "date": {
+            "format": "date",
+            "title": "Date",
+            "type": "string"
+          },
+          "rho": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rho"
+          }
+        },
+        "required": [
+          "date"
+        ],
+        "title": "SkewRhoPoint",
+        "type": "object"
+      },
+      "SkewSmileExpiryCurve": {
+        "properties": {
+          "expiry": {
+            "format": "date",
+            "title": "Expiry",
+            "type": "string"
+          },
+          "points": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/SkewSmilePoint"
+            },
+            "title": "Points",
+            "type": "array"
+          }
+        },
+        "required": [
+          "expiry"
+        ],
+        "title": "SkewSmileExpiryCurve",
+        "type": "object"
+      },
+      "SkewSmilePoint": {
+        "properties": {
+          "iv": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Iv"
+          },
+          "strike": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Strike",
+            "type": "string"
+          }
+        },
+        "required": [
+          "strike"
+        ],
+        "title": "SkewSmilePoint",
         "type": "object"
       },
       "SmileExpiryCurve": {
@@ -20988,6 +21528,48 @@
         "summary": "Get Specific Run",
         "tags": [
           "stock"
+        ]
+      }
+    },
+    "/api/stock/{ticker}/skew": {
+      "get": {
+        "operationId": "get_skew_analysis_api_stock__ticker__skew_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "ticker",
+            "required": true,
+            "schema": {
+              "title": "Ticker",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SkewAnalysisResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Skew Analysis",
+        "tags": [
+          "skew"
         ]
       }
     },
