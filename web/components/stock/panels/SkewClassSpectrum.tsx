@@ -2,6 +2,12 @@
 
 import { AnalyticalSeriesPanel } from "./AnalyticalSeriesPanel";
 
+function prettySign(s: string): string {
+  if (s === "put_skew") return "put-skew";
+  if (s === "call_skew") return "call-skew";
+  return s; // mixed | flat | unknown
+}
+
 export function SkewClassSpectrum({
   assetClass,
   expectedSign,
@@ -20,7 +26,7 @@ export function SkewClassSpectrum({
         </span>
         <span style={{ color: "var(--text-muted)" }}>
           {" "}
-          — expected {expectedSign}
+          — expected {prettySign(expectedSign)}
         </span>
         <span
           style={{
@@ -28,7 +34,7 @@ export function SkewClassSpectrum({
             marginLeft: 8,
           }}
         >
-          · actual {actualSign}
+          · actual {prettySign(actualSign)}
           {matches ? "" : " (divergent)"}
         </span>
       </div>

@@ -8,9 +8,8 @@ import { toNum } from "@/lib/formatters";
 import { SmileChart } from "../panels/SmileChart";
 import { SkewClassSpectrum } from "../panels/SkewClassSpectrum";
 import { SkewHistoryChart } from "../panels/SkewHistoryChart";
-import { SkewPostureTiles } from "../panels/SkewPostureTiles";
-import { SkewReadPanel } from "../panels/SkewReadPanel";
 import { SkewRhoPanel } from "../panels/SkewRhoPanel";
+import { SkewSignalDetail } from "../panels/SkewSignalDetail";
 import { SkewTermPanel } from "../panels/SkewTermPanel";
 
 function actualSign(rr: string | number | null | undefined): string {
@@ -38,18 +37,7 @@ export function SkewTabClient({
   }
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-      <SkewPostureTiles
-        p={{
-          rr_25d: data.rr_25d,
-          rr_z_180d: data.rr_z_180d,
-          rr_pct_252d: data.rr_pct_252d,
-          deviation_class: data.deviation_class,
-          drive_class: data.drive_class,
-          borrow_flag: data.borrow_flag,
-          regime: data.regime,
-        }}
-      />
-      <SkewReadPanel read={data.read} />
+      <SkewSignalDetail data={data} />
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
         <SkewHistoryChart data={data.history} />
         <SkewRhoPanel

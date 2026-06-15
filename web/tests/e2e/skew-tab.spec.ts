@@ -7,7 +7,7 @@ import { expect, test } from "@playwright/test";
 // Ticker known to have skew history locally (verify with the G1/Step-3 query).
 const TICKER = "AAPL";
 
-test("Skew tab renders posture, the read, a directional lean, and the spectrum", async ({
+test("Skew tab renders the signal-detail card, lean, and the spectrum", async ({
   page,
 }) => {
   const consoleErrors: string[] = [];
@@ -26,16 +26,13 @@ test("Skew tab renders posture, the read, a directional lean, and the spectrum",
     timeout: 30_000,
   });
 
-  // Posture panel (vs the ticker's OWN baseline — the first-principles framing).
-  await expect(page.getByText("VS OWN BASELINE")).toBeVisible();
-  await expect(page.getByText("RR 25Δ")).toBeVisible();
-  await expect(page.getByText("JFE confound gate")).toBeVisible(); // borrow tile
+  // Merged Signal Detail card: deviation/drive/relative-value rows + evidence.
+  await expect(page.getByText("Signal Detail")).toBeVisible();
+  await expect(page.getByText("Deviation")).toBeVisible();
+  await expect(page.getByText("Relative value")).toBeVisible();
+  await expect(page.getByText("Evidence")).toBeVisible();
 
-  // The Read (deterministic) + directional-lean block.
-  await expect(page.getByText("The Read")).toBeVisible();
-  await expect(page.getByText("Directional Lean")).toBeVisible();
-
-  // Lean badge is exactly one of the three surfaced states.
+  // Lean surfaces as one of the three states (header pill + evidence column).
   const lean = page.locator("text=/^(BULLISH|BEARISH|NEUTRAL)$/").first();
   await expect(lean).toBeVisible();
 
