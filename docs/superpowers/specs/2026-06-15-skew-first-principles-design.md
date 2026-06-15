@@ -210,7 +210,13 @@ Forward returns are **not** stored — computed in markout by joining price hist
 
 ## 8. Phase 2 (deferred) — broader markout shortlist
 
-All plug into the same markout harness. Tiered by current data depth:
+**Mean-reversion → trade structures** (saved 2026-06-15): turning the V1 RR
+mean-reversion finding into surfaced, defined-risk verticals (CHEAP put-skew → long
+put debit-spread is the cleanest; RICH → financed/collar; pure-skew delta-hedged
+variant) — full discussion, current candidates, and the "what Phase 2 needs to build"
+list live in `docs/research/skew-mean-reversion-trade-structures-phase2.md`.
+
+All the below plug into the same markout harness. Tiered by current data depth:
 
 - **Tier 2 (thin now, ~1mo — accrues forward or per-date UW backfill):** term-structure
   contango/backwardation (`iv_term_snapshots`), smile butterfly / RR-term
