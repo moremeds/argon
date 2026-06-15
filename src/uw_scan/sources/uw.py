@@ -266,17 +266,26 @@ def fetch_greek_exposure_history(
     repo: Repository,
     run_id: int,
     ticker: str,
+    *,
+    timeframe: str | None = None,
 ) -> dict:
     """Fetch /api/stock/{ticker}/greek-exposure — aggregate GEX over time.
 
     Used for net_dex computation and (eventually) historical bias trend.
+
+    ``timeframe`` is the optional UW window selector ("YTD", "1Y", "2M", …).
+    Default (None) keeps UW's ~90-session default — that's what ``gex.py``
+    relies on. The GRG scanner passes "1Y" so its z-window is fully warmed
+    before the YTD display window.
     """
+    params = {"timeframe": timeframe} if timeframe else None
     return _fetch_json(
         client,
         repo,
         run_id,
         EndpointSlug.GREEK_EXPOSURE_HISTORY,
         ticker,
+        params=params,
     )
 
 

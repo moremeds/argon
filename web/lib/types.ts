@@ -3179,6 +3179,8 @@ export interface components {
         GrgHistoryEntry: {
             /** Date */
             date: string;
+            /** Spy Price */
+            spy_price?: number | null;
             /** Spy Net Gamma */
             spy_net_gamma?: number | null;
             /** Tlt Net Gamma */

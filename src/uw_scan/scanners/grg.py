@@ -69,6 +69,31 @@ def _spot_flip_from_gex(
     return spot, flip
 
 
+def _spy_close_by_date(repo: Repository) -> dict[str, float]:
+    """``{date_iso: close}`` of SPY daily closes from the warm-store ``daily_ohlc``.
+
+    Used to overlay SPY's actual price on the divergence chart. The OHLC job
+    keeps SPY's daily bars current; a generous limit (400 rows ≈ 1.5y) covers
+    the 1Y greek-history window with room to spare. Missing dates simply have
+    no overlay point (the chart skips nulls). Read failure → empty map, so a
+    transient OHLC gap never aborts the GRG scan (gamma series is the contract).
+    """
+    try:
+        rows = repo.list_daily_ohlc("SPY", limit=400)
+    except Exception as exc:  # pragma: no cover - defensive: never abort scan
+        log.warning("grg_spy_close_read_failed err=%s", repr(exc))
+        return {}
+    out: dict[str, float] = {}
+    for r in rows:
+        if r.date is None or r.close is None:
+            continue
+        try:
+            out[r.date.isoformat()] = float(r.close)
+        except (TypeError, ValueError) as exc:
+            log.debug("grg spy close coerce skipped %s: %s", r.date, repr(exc))
+    return out
+
+
 def run(
     client: UwClient,
     repo: Repository,
@@ -87,14 +112,21 @@ def run(
     """
     run_id = repo.insert_scan_run("GRG", notes="grg_scan")
     try:
+        # "1Y" window: the 63-session z-window must be fully warmed BEFORE the
+        # YTD display window (Jan 1), or early-year z-scores would be thin.
         spy_rows = parse_greek_exposure_history(
-            uw_source.fetch_greek_exposure_history(client, repo, run_id, "SPY")
+            uw_source.fetch_greek_exposure_history(
+                client, repo, run_id, "SPY", timeframe="1Y"
+            )
         )
         tlt_rows = parse_greek_exposure_history(
-            uw_source.fetch_greek_exposure_history(client, repo, run_id, "TLT")
+            uw_source.fetch_greek_exposure_history(
+                client, repo, run_id, "TLT", timeframe="1Y"
+            )
         )
         spy_spot, spy_flip = _spot_flip_from_gex(repo, "SPY")
         tlt_spot, tlt_flip = _spot_flip_from_gex(repo, "TLT")
+        spy_prices = _spy_close_by_date(repo)
         payload = grg_scoring.run_analysis(
             spy_rows,
             tlt_rows,
@@ -102,6 +134,7 @@ def run(
             spy_flip=spy_flip,
             tlt_spot=tlt_spot,
             tlt_flip=tlt_flip,
+            spy_prices=spy_prices,
             scan_time=scan_time
             or datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
             market_open=_is_market_open(),

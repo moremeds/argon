@@ -300,6 +300,7 @@ def run_analysis(
     spy_flip: float | None,
     tlt_spot: float | None,
     tlt_flip: float | None,
+    spy_prices: dict[str, float] | None = None,
     scan_time: str,
     market_open: bool,
 ) -> dict[str, Any]:
@@ -332,6 +333,7 @@ def run_analysis(
     spread = spy_z - tlt_z
     grg_z = _zscore_series(spread)
 
+    prices = spy_prices or {}
     history: list[dict[str, Any]] = []
     for idx, d in enumerate(dates):
         spy_gamma = spy_values[idx]
@@ -339,6 +341,7 @@ def run_analysis(
         history.append(
             {
                 "date": d,
+                "spy_price": _round(prices.get(d), 4),
                 "spy_net_gamma": _round(spy_gamma, 4),
                 "tlt_net_gamma": _round(tlt_gamma, 4),
                 "spy_gamma_z": _round(float(spy_z[idx]))
@@ -376,12 +379,13 @@ def run_analysis(
         latest_grg, spy_cur, tlt_cur, spy_slope_3d, spy_flip_gap_pct
     )
     gates = _gate_rows(latest_grg, spy_cur, tlt_cur, spy_slope_3d, spy_flip_gap_pct)
+    year_start = f"{latest_date[:4]}-01-01"
     events = _extract_events(
         dates,
         spy_values,
         tlt_values,
         grg_z,
-        year_start=f"{latest_date[:4]}-01-01",
+        year_start=year_start,
     )
 
     def _asset(
@@ -458,7 +462,13 @@ def run_analysis(
             ),
         },
         "gates": gates,
-        "history": history[-HISTORY_DAYS:],
+        # YTD display window. z-scores are computed over the full fetched
+        # series (≈1Y) so the 63-session window is warm before Jan 1; the
+        # chart then shows the current year only. Falls back to the last
+        # HISTORY_DAYS if the series somehow predates the year boundary by
+        # less than a full year (keeps a non-empty chart).
+        "history": [h for h in history if h["date"] >= year_start]
+        or history[-HISTORY_DAYS:],
         "events": events,
         "top_bottom": {
             "top": {

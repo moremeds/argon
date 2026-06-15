@@ -164,6 +164,58 @@ def test_run_analysis_emits_events_lists():
         }
 
 
+def test_run_analysis_history_carries_spy_price():
+    n = 80
+    start = date(2026, 1, 1)
+    spy = _mk_rows([1000.0 - 30.0 * i for i in range(n)], start)
+    tlt = _mk_rows([1000.0 + 40.0 * i for i in range(n)], start)
+    # Price the last two aligned dates; leave the rest unpriced (None).
+    d_last = (start + timedelta(days=n - 1)).isoformat()
+    d_prev = (start + timedelta(days=n - 2)).isoformat()
+    payload = g.run_analysis(
+        spy,
+        tlt,
+        spy_spot=740.0,
+        spy_flip=735.0,
+        tlt_spot=85.0,
+        tlt_flip=None,
+        spy_prices={d_last: 612.34, d_prev: 610.0},
+        scan_time="2026-06-12T19:37:41Z",
+        market_open=False,
+    )
+    by_date = {h["date"]: h for h in payload["history"]}
+    assert by_date[d_last]["spy_price"] == 612.34
+    assert by_date[d_prev]["spy_price"] == 610.0
+    # An unpriced earlier day carries spy_price=None (chart skips the gap).
+    d_first = start.isoformat()
+    assert by_date[d_first]["spy_price"] is None
+
+
+def test_run_analysis_history_is_ytd_window():
+    # 120 calendar days spanning Nov 2025 → ~Feb 2026. z is computed over the
+    # whole series, but the history (chart) window is current-year-only.
+    n = 120
+    start = date(2025, 11, 1)
+    spy = _mk_rows([1000.0 - 5.0 * i for i in range(n)], start)
+    tlt = _mk_rows([1000.0 + 6.0 * i for i in range(n)], start)
+    payload = g.run_analysis(
+        spy,
+        tlt,
+        spy_spot=740.0,
+        spy_flip=735.0,
+        tlt_spot=85.0,
+        tlt_flip=None,
+        scan_time="2026-02-20T19:37:41Z",
+        market_open=False,
+    )
+    # Full series still drives lookback/z; chart window is trimmed to YTD.
+    assert payload["lookback_days"] == n
+    hist_dates = [h["date"] for h in payload["history"]]
+    assert hist_dates, "YTD window should be non-empty"
+    assert all(d >= "2026-01-01" for d in hist_dates)
+    assert len(hist_dates) < n  # prior-year days were trimmed off
+
+
 def test_run_analysis_insufficient_observations():
     spy = _mk_rows([1.0] * 10, date(2026, 1, 1))
     tlt = _mk_rows([1.0] * 10, date(2026, 1, 1))

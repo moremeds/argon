@@ -540,11 +540,12 @@ export function GrgSubTabView({ data }: { data: GrgResponse | null }) {
         </div>
       </div>
 
-      {/* Asset cards + chart */}
+      {/* Asset cards + chart. Cards are capped narrow so the divergence
+          chart takes the rest of the row. */}
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: "minmax(220px, 1fr) 2fr",
+          gridTemplateColumns: "minmax(220px, 280px) 1fr",
           gap: 16,
           marginTop: 16,
         }}
@@ -553,7 +554,7 @@ export function GrgSubTabView({ data }: { data: GrgResponse | null }) {
           <AssetCard asset={assets.SPY} />
           <AssetCard asset={assets.TLT} />
         </div>
-        <GrgDivergenceChart history={history} />
+        <GrgDivergenceChart history={history} tops={tops} bottoms={bottoms} />
       </div>
 
       {/* Top / Bottom identification */}

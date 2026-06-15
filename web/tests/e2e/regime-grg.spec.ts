@@ -26,6 +26,13 @@ test.describe("Regime GRG tab", () => {
       await expect(panel).toHaveClass(/section/);
       // The SPY asset card carries the whip/cushion explainer tooltip.
       await expect(page.getByTestId("grg-asset-state-info-SPY")).toBeVisible();
+      // YTD divergence chart overlays the SPY price line and plots a dot at
+      // each gate-confirmed top/bottom on that price line.
+      await expect(page.getByTestId("grg-divergence-chart")).toBeVisible();
+      await expect(page.getByTestId("grg-spy-price-line")).toHaveCount(1);
+      expect(await page.getByTestId("grg-event-dot").count()).toBeGreaterThan(
+        0,
+      );
     }
     // Evidence artifact for the PR.
     await page.screenshot({

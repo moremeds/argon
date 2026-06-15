@@ -6716,6 +6716,17 @@
             ],
             "title": "Spy Net Gamma"
           },
+          "spy_price": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Spy Price"
+          },
           "state": {
             "anyOf": [
               {

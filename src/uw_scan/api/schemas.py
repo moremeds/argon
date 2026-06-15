@@ -604,6 +604,7 @@ class GrgSignal(BaseModel):
 
 class GrgHistoryEntry(BaseModel):
     date: str
+    spy_price: float | None = None
     spy_net_gamma: float | None = None
     tlt_net_gamma: float | None = None
     spy_gamma_z: float | None = None
