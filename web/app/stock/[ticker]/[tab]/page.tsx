@@ -3,6 +3,7 @@ import { api } from "@/lib/api";
 import { StockNotReadyDialog } from "@/components/stock/StockNotReadyDialog";
 import { MarketStructureTab } from "@/components/stock/tabs/MarketStructureTab";
 import { VolatilityTab } from "@/components/stock/tabs/VolatilityTab";
+import { SkewTab } from "@/components/stock/tabs/SkewTab";
 import { FlowTab } from "@/components/stock/tabs/FlowTab";
 import { TradeInsightsTab } from "@/components/stock/tabs/TradeInsightsTab";
 import { FrameworkTab } from "@/components/stock/tabs/FrameworkTab";
@@ -11,6 +12,7 @@ import { isStockReportNotReadyError } from "@/lib/stockNotReady";
 const REPORT_TABS = {
   "market-structure": MarketStructureTab,
   volatility: VolatilityTab,
+  skew: SkewTab,
   flow: FlowTab,
 } as const;
 
