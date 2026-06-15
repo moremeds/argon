@@ -3394,9 +3394,10 @@
         "type": "object"
       },
       "DiscoveryCandidate": {
-        "description": "Non-watchlist ticker surfaced by the market-wide flow-alerts feed.\n\nDCF-only \u2014 the deeper signals (DP, EIC, GEX) need per-ticker context that\nrequires a deep scan. Promote to the watchlist to get those.",
+        "description": "Non-watchlist ticker scored by the edge-quality model (premium-free).\n\nReplaces the prior DCF-only shape. Dark-pool direction/strength/sustained +\noptions\u2194DP confluence are surfaced per card. EIC/GEX still need a deep scan\n(promote to the watchlist).",
         "properties": {
           "alert_count": {
+            "default": 0,
             "title": "Alert Count",
             "type": "integer"
           },
@@ -3426,8 +3427,70 @@
             ],
             "title": "Bias Strength"
           },
-          "hit": {
-            "$ref": "#/components/schemas/ScannerSignalHit"
+          "confluence": {
+            "default": false,
+            "title": "Confluence",
+            "type": "boolean"
+          },
+          "direction": {
+            "anyOf": [
+              {
+                "enum": [
+                  "long",
+                  "short"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Direction"
+          },
+          "dp_direction": {
+            "anyOf": [
+              {
+                "enum": [
+                  "ACCUMULATION",
+                  "DISTRIBUTION",
+                  "NEUTRAL",
+                  "NO_DATA"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dp Direction"
+          },
+          "dp_status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dp Status"
+          },
+          "dp_strength": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dp Strength"
+          },
+          "dp_sustained_days": {
+            "default": 0,
+            "title": "Dp Sustained Days",
+            "type": "integer"
           },
           "latest_alert_at": {
             "anyOf": [
@@ -3441,6 +3504,33 @@
             ],
             "title": "Latest Alert At"
           },
+          "score": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Score",
+            "type": "string"
+          },
+          "score_breakdown": {
+            "additionalProperties": true,
+            "default": {},
+            "title": "Score Breakdown",
+            "type": "object"
+          },
+          "score_model": {
+            "title": "Score Model",
+            "type": "string"
+          },
+          "scored_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Scored At"
+          },
           "sector": {
             "anyOf": [
               {
@@ -3452,16 +3542,45 @@
             ],
             "title": "Sector"
           },
+          "spot": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Spot"
+          },
+          "sweeps": {
+            "default": 0,
+            "title": "Sweeps",
+            "type": "integer"
+          },
           "ticker": {
             "title": "Ticker",
             "type": "string"
+          },
+          "vol_oi": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vol Oi"
           }
         },
         "required": [
           "ticker",
-          "hit",
           "bias",
-          "alert_count"
+          "score",
+          "score_model"
         ],
         "title": "DiscoveryCandidate",
         "type": "object"
@@ -3489,9 +3608,21 @@
             "title": "Fetched At",
             "type": "string"
           },
+          "scored_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Scored At"
+          },
           "source": {
-            "const": "market_wide_flow_alerts",
-            "default": "market_wide_flow_alerts",
+            "const": "scanner_candidate_snapshots",
+            "default": "scanner_candidate_snapshots",
             "title": "Source",
             "type": "string"
           }
@@ -20632,7 +20763,7 @@
     },
     "/api/scanner/discover": {
       "get": {
-        "description": "Pull market-wide flow alerts, run DCF per ticker, exclude watchlist, top-N.",
+        "description": "Thin read of the latest persisted discovery snapshot (compute is the job).",
         "operationId": "get_scanner_discover_api_scanner_discover_get",
         "parameters": [
           {
@@ -20644,18 +20775,6 @@
               "maximum": 50,
               "minimum": 1,
               "title": "Limit",
-              "type": "integer"
-            }
-          },
-          {
-            "in": "query",
-            "name": "alerts_limit",
-            "required": false,
-            "schema": {
-              "default": 200,
-              "maximum": 500,
-              "minimum": 50,
-              "title": "Alerts Limit",
               "type": "integer"
             }
           }

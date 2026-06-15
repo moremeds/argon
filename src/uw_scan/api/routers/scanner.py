@@ -1,8 +1,8 @@
 """GET /api/scanner - read-only assembler over warm store.
 
-GET /api/scanner/discover - live read-through of the market-wide flow-alerts
-feed. One UW request per call (or zero, if a successful run finished within
-the freshness window — see ``scanner_discover_freshness_seconds``).
+GET /api/scanner/discover - thin read of the latest persisted discovery
+snapshot. The market-wide edge-quality compute runs in the scheduled
+``worker.jobs.discovery_scan`` job; this endpoint never calls UW.
 """
 
 from __future__ import annotations
@@ -12,11 +12,9 @@ from datetime import datetime, timezone
 from decimal import Decimal
 from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, Query
 
-from uw_scan.api.client import UwClient
-from uw_scan.api.deps import get_repo, get_settings, get_uw_client
-from uw_scan.api.endpoints import EndpointSlug
+from uw_scan.api.deps import get_repo, get_settings
 from uw_scan.api.models.scanner import (
     DiscoveryCandidate as RespDiscoveryCandidate,
 )
@@ -30,8 +28,6 @@ from uw_scan.api.models.scanner import (
     ScannerSignalHit,
 )
 from uw_scan.config import Settings
-from uw_scan.normalize import normalize_flow_alerts
-from uw_scan.scanner.discovery import discover_from_alerts
 from uw_scan.scanner.models import (
     ContextFlag as DCContextFlag,
 )
@@ -42,7 +38,6 @@ from uw_scan.scanner.models import (
     SignalHit as DCSignalHit,
 )
 from uw_scan.scanner.ranking import build_candidate, rank_candidates
-from uw_scan.sources.uw import fetch_market_flow_alerts
 from uw_scan.storage.repository import Repository
 from uw_scan.storage.signals_repository import SignalsRepository
 
@@ -237,168 +232,60 @@ def get_scanner(
     )
 
 
-_DISCOVER_SENTINEL_TICKER = "_DISCOVER"
-
-
-def _recent_discover_payload(
-    repo: Repository, *, freshness_seconds: int
-) -> dict | None:
-    """Return the raw flow-alerts payload from the most recent successful
-    _DISCOVER run within the freshness window, or None.
-
-    Lets concurrent /discover requests share one UW call — burst clients see
-    the same cached response until the window expires. Querying raw_payloads
-    keeps the cache derivation pure (re-runs discover_from_alerts) so threshold
-    knobs apply immediately when changed without waiting for the window.
-    """
-    if freshness_seconds <= 0:
-        return None
-    sql = """
-        SELECT p.payload_jsonb
-        FROM uw_scan.scan_runs r
-        JOIN uw_scan.api_request_audit a ON a.run_id = r.run_id
-        JOIN uw_scan.raw_payloads p ON p.audit_id = a.audit_id
-        WHERE r.ticker = %s
-          AND r.status = 'ok'
-          AND r.finished_at >= NOW() - %s::interval
-          AND a.endpoint_slug = %s
-        ORDER BY r.finished_at DESC, a.audit_id DESC
-        LIMIT 1
-    """
-    with repo.conn.cursor() as cur:
-        cur.execute(
-            sql,
-            (
-                _DISCOVER_SENTINEL_TICKER,
-                f"{freshness_seconds} seconds",
-                EndpointSlug.FLOW_ALERTS.value,
-            ),
-        )
-        row = cur.fetchone()
-    return row[0] if row else None
+def _coerce_decimal(v) -> Decimal | None:
+    return Decimal(str(v)) if v is not None else None
 
 
 @router.get("/discover", response_model=DiscoveryResponse)
 def get_scanner_discover(
     limit: int = Query(20, ge=1, le=50),
-    alerts_limit: int = Query(200, ge=50, le=500),
     repo: Repository = Depends(get_repo),
-    client: UwClient = Depends(get_uw_client),
     settings: Settings = Depends(get_settings),
 ) -> DiscoveryResponse:
-    """Pull market-wide flow alerts, run DCF per ticker, exclude watchlist, top-N."""
-    today = datetime.now(timezone.utc).date()
-
-    # Cache: serve a re-derived response from the most recent successful run
-    # within the freshness window. Skips the UW call entirely so concurrent
-    # page loads / auto-refresh don't burst the rate budget.
-    cached_payload = _recent_discover_payload(
-        repo, freshness_seconds=settings.scanner_discover_freshness_seconds
-    )
-    if cached_payload is not None:
-        alerts = normalize_flow_alerts(cached_payload)
-        watchlist_tickers = {r.ticker for r in repo.list_active_watchlist()}
-        candidates, earnings_unknown_dropped = discover_from_alerts(
-            alerts=alerts,
-            today=today,
-            watchlist_tickers=watchlist_tickers,
-            min_premium_usd=settings.scanner_discover_min_premium_usd,
-            min_ask_side=settings.scanner_discover_min_ask_side,
-            max_moneyness=settings.scanner_dcf_max_moneyness,
-            min_dte=settings.scanner_dcf_min_dte,
-            earnings_window_days=settings.scanner_earnings_window_days,
-            limit=limit,
-        )
-        return _build_discover_response(
-            candidates=candidates,
-            alerts_pulled=len(alerts),
-            earnings_unknown_dropped=earnings_unknown_dropped,
+    """Thin read of the latest persisted discovery snapshot (compute is the job)."""
+    sigs = SignalsRepository(repo.conn, schema=settings.db_schema)
+    snap = sigs.fetch_latest_discovery_snapshot(limit=limit)
+    if snap is None:
+        return DiscoveryResponse(
+            candidates=[],
+            fetched_at=_now_utc(),
+            scored_at=None,
+            alerts_pulled=0,
+            earnings_unknown_dropped=0,
         )
 
-    # Sentinel ticker for the scan_runs row — discover is market-wide, not per-ticker,
-    # but the audit-first rule (sources/CLAUDE.md) requires a run_id.
-    run_id = repo.insert_scan_run(_DISCOVER_SENTINEL_TICKER, notes="scanner_discover")
-    try:
-        try:
-            alerts = fetch_market_flow_alerts(client, repo, run_id, limit=alerts_limit)
-        except Exception as exc:
-            logger.exception("scanner_discover fetch failed: %r", exc)
-            _safe_finish_run(repo, run_id, status="fail")
-            raise HTTPException(
-                status_code=502, detail=f"market-wide flow-alerts fetch failed: {exc}"
-            ) from exc
-
-        watchlist_tickers = {r.ticker for r in repo.list_active_watchlist()}
-        # Discovery uses LOOSER premium + ask thresholds than the watchlist
-        # DCF — see config.py comment on scanner_discover_*. Moneyness/DTE/
-        # earnings stay the same: those filter for valid options, not conviction.
-        candidates, earnings_unknown_dropped = discover_from_alerts(
-            alerts=alerts,
-            today=today,
-            watchlist_tickers=watchlist_tickers,
-            min_premium_usd=settings.scanner_discover_min_premium_usd,
-            min_ask_side=settings.scanner_discover_min_ask_side,
-            max_moneyness=settings.scanner_dcf_max_moneyness,
-            min_dte=settings.scanner_dcf_min_dte,
-            earnings_window_days=settings.scanner_earnings_window_days,
-            limit=limit,
-        )
-
-        repo.finish_scan_run(run_id, status="ok")
-        repo.conn.commit()
-    except HTTPException:
-        raise
-    except Exception:
-        _safe_finish_run(repo, run_id, status="fail")
-        raise
-
-    return _build_discover_response(
-        candidates=candidates,
-        alerts_pulled=len(alerts),
-        earnings_unknown_dropped=earnings_unknown_dropped,
-    )
-
-
-def _build_discover_response(
-    *,
-    candidates: list,
-    alerts_pulled: int,
-    earnings_unknown_dropped: int,
-) -> DiscoveryResponse:
-    return DiscoveryResponse(
-        candidates=[
+    candidates: list[RespDiscoveryCandidate] = []
+    for r in snap["candidates"]:
+        ev = r.get("evidence") or {}
+        latest = ev.get("latest_alert_at")
+        candidates.append(
             RespDiscoveryCandidate(
-                ticker=c.ticker,
-                hit=ScannerSignalHit(
-                    signal_type=c.hit.signal_type,  # type: ignore[arg-type]
-                    tier=c.hit.tier,
-                    score=c.hit.score,
-                    evidence=c.hit.evidence,
-                    freshness=c.hit.freshness,
-                ),
-                bias=c.bias,
-                bias_strength=c.bias_strength,
-                alert_count=c.alert_count,
-                sector=c.sector,
-                latest_alert_at=c.latest_alert_at,
+                ticker=r["ticker"],
+                bias=r.get("bias") or "neutral",
+                bias_strength=None,
+                direction=r.get("direction"),
+                score=_coerce_decimal(r.get("score")) or Decimal("0"),
+                score_model=r["score_model"],
+                score_breakdown=r.get("score_breakdown") or {},
+                dp_direction=ev.get("dp_direction"),
+                dp_strength=_coerce_decimal(ev.get("dp_strength")),
+                dp_sustained_days=int(ev.get("dp_sustained_days", 0) or 0),
+                confluence=bool(ev.get("confluence", False)),
+                vol_oi=_coerce_decimal(ev.get("vol_oi")),
+                sweeps=int(ev.get("sweeps", 0) or 0),
+                alert_count=int(ev.get("alert_count", 0) or 0),
+                spot=_coerce_decimal(r.get("spot_at_signal")),
+                dp_status=ev.get("dp_status"),
+                sector=ev.get("sector"),
+                scored_at=r.get("scored_at"),
+                latest_alert_at=datetime.fromisoformat(latest) if latest else None,
             )
-            for c in candidates
-        ],
-        fetched_at=_now_utc(),
-        alerts_pulled=alerts_pulled,
-        earnings_unknown_dropped=earnings_unknown_dropped,
-    )
-
-
-def _safe_finish_run(repo: Repository, run_id: int, *, status: str) -> None:
-    """Mark a scan_run finished and commit; never let cleanup mask the
-    original exception (MINOR-3 in 2026-05-18 self-review)."""
-    try:
-        repo.finish_scan_run(run_id, status=status)
-        repo.conn.commit()
-    except Exception as cleanup_exc:
-        logger.exception(
-            "scanner_discover cleanup failed for run_id=%d: %r",
-            run_id,
-            cleanup_exc,
         )
+
+    return DiscoveryResponse(
+        candidates=candidates,
+        fetched_at=_now_utc(),
+        scored_at=snap["scored_at"],
+        alerts_pulled=snap["alerts_pulled"],
+        earnings_unknown_dropped=snap["earnings_unknown_dropped"],
+    )
