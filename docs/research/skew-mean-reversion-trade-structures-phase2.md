@@ -93,6 +93,78 @@ needs Greek management the V1 tab does not yet provide.
 - Earnings/DTE guardrails wired into the proposal (swing-HOLD ≠ swing-EXPIRY; no
   hold-through-earnings).
 
+## Phase-2 add: skew → cross-pillar trade gate (verified design, 2026-06-15)
+
+The skew block must stay a **diagnosis**, never a standalone trade recommender — skew is
+one pillar. The right architecture: the skew lens emits a machine-readable
+**skew-implied action bias**, and a separate **framework gate** converts that bias into a
+recommendation only when the other pillars (tape, catalyst, gamma, IV) agree. This belongs
+in the **Trade Plan tab** (the existing three-gate framework), NOT in the Skew tab's read
+engine — which is bound by spec §11 (stock direction lives only in `directional_lean`).
+
+### Critical correction vs the naive mapping
+
+A `deviation × tail` map ("RICH put-skew → sell put premium → bullish") is **empirically
+wrong** by our own Tier-1 markout — it ignores `drive`, which flips the sign:
+
+| Bucket | verdict | excess T+20 |
+|---|---|---:|
+| single_name RICH/**PANIC**/LOW_VOL | TRADABLE_BEAR | −4.5% |
+| index_macro RICH/**PANIC**/HIGH_VOL | TRADABLE_BEAR | −5.6% |
+| single_name RICH/**CHASE**/HIGH_VOL | TRADABLE_BULL | +2.8% |
+| single_name CHEAP/**PANIC**/HIGH_VOL | TRADABLE_BEAR | −2.2% |
+
+Same "rich put-skew," opposite outcome depending on drive. So the **bias source must be
+the markout verdict keyed on `(asset_class, deviation, drive, regime)`** — exactly what
+V1's `directional_lean` already gates on — never `deviation × tail`. Never default
+rich-skew → bullish: "sell the fear" into a real crash (RICH/PANIC) is the documented
+failure mode.
+
+### Two layers
+
+**Layer 1 — skew-implied bias (relative-value axis; already in V1, bounded).** The V1 RV
+bullet + `express` field already encode this: RICH → fade/finance the rich wing; CHEAP →
+own the cheap wing; NORMAL → no skew edge. Defined-risk structures only (no naked legs):
+
+| Skew posture | Defined-risk expression | Rationale |
+|---|---|---|
+| RICH put-skew | put **credit** spread | rich downside is expensive → sell the wing, risk capped |
+| RICH call-skew | call **credit** spread | rich upside is expensive → sell the wing, risk capped |
+| CHEAP put-skew | put **debit** spread | cheap downside convexity → own the wing |
+| CHEAP call-skew | call **debit** spread | cheap upside convexity → own the wing |
+| NORMAL | none | needs another pillar |
+
+**Layer 2 — cross-pillar gate (Trade Plan tab).** Convert the bias to an action only when
+the confirming pillars agree. The gate inputs do **not** exist on the Skew tab today — they
+come from scanner / GEX / cockpit / tape:
+
+```python
+def skew_trade_recommendation(*, skew_verdict, structure, rho_confirms,
+                              tape_agrees, catalyst_agrees, gamma_allows, iv_allows):
+    blockers = []
+    if skew_verdict in (None, "NONE"): blockers.append("no skew edge (markout)")
+    if not rho_confirms:    blockers.append("spot-vol link does not confirm")
+    if not tape_agrees:     blockers.append("tape does not agree")
+    if not catalyst_agrees: blockers.append("catalyst does not agree")
+    if not gamma_allows:    blockers.append("gamma regime blocks follow-through")
+    if not iv_allows:       blockers.append("IV setup unattractive for this structure")
+    return {"action": "TRADE_CANDIDATE" if not blockers else "WATCHLIST",
+            "structure": structure, "blockers": blockers}
+```
+
+UI copy stays bounded:
+- `TRADE_CANDIDATE` → "Trade candidate: {structure}. Other pillars confirm."
+- `WATCHLIST` → "Watchlist only: skew points to {structure}; blockers: {…}."
+
+### Why this is deferred, not built in V1
+
+- The skew read is bound by §11 — no stock-direction verdict in the body.
+- The Layer-2 inputs (tape/catalyst/gamma/IV) aren't wired into the skew assembler.
+- V1's `directional_lean` **already is** the evidence gate (NEUTRAL unless a `TRADABLE_*`
+  verdict + borrow/earnings/regime pass) — ~72% of names NEUTRAL, the intended
+  anti-overtrading default. Layer 2 *extends* it across pillars; it must not *replace* it
+  with an a-priori `deviation × tail` map that fires on every rich/cheap print.
+
 ## Caveats (carry into Phase 2)
 
 - In-sample, one window; skew effects decay (Cremers-Weinbaum). Tilt, ~2-4 week horizon.
