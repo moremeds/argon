@@ -2024,6 +2024,17 @@ git commit -m "feat(skew): nightly rollup + backfill job + scheduler wiring"
 
 # Milestone E — Tier-1 markout + verdict store
 
+> **Execution amendment (2026-06-15):** the markout below scored RAW forward returns,
+> which made ~every bucket `TRADABLE_BULL` in the up-trending backfill window (market
+> beta, not skew edge) — and SPY-subtraction still left this growth/high-beta
+> universe's beta>1 drift. The shipped `run_skew_markout` instead **cross-sectionally
+> demeans** each name's T+20 forward return by the universe's same-date mean before
+> bucketing, so a verdict reflects separation vs peers. Result on the local backfill:
+> 72% of tickers NEUTRAL, 16 BEAR / 9 BULL. See `src/uw_scan/reports/skew_markout.py`
+> and `docs/research/skew-first-principles-markout-2026-06.md` for the as-shipped code
+> and findings. The test seeds a falling name + a flat peer so the falling name is the
+> cross-sectional outlier.
+
 ### Task E1: Markout harness writes per-bucket verdicts
 
 **Files:**
