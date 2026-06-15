@@ -10,7 +10,7 @@ inline reads stay here rather than being appended to repository.py.
 from __future__ import annotations
 
 import logging
-from datetime import date
+from datetime import date, datetime, timezone
 from decimal import Decimal
 from typing import Any
 
@@ -232,8 +232,6 @@ def run_detectors(
     # Markout-ready snapshot (additive — granular signal_hits stay the audit).
     if candidate is not None:
         try:
-            from datetime import datetime, timezone
-
             top_dcf = next(
                 (h for h in candidate.hits if h.signal_type == "deep_conviction_flow"),
                 None,

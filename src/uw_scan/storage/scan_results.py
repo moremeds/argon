@@ -164,6 +164,12 @@ class _ScanResultsMixin:
                 f"""
                 SELECT MAX(finished_at) FROM {self._schema}.scan_runs
                 WHERE status='ok' AND finished_at IS NOT NULL
+                  -- Full scans only. Partial-write jobs (cockpit / gex / flow /
+                  -- discovery / regime / positioning / intraday) carry a
+                  -- non-empty notes tag; counting them here lets a fresh partial
+                  -- run mask a stalled full_scan in /api/health (the SPX
+                  -- coverage-gap incident). notes NULL/'' == the full_scan path.
+                  AND (notes IS NULL OR notes = '')
                 """
             )
             row = cur.fetchone()

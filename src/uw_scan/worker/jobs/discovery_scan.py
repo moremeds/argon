@@ -117,7 +117,9 @@ def discovery_scan_once(
     sigs = SignalsRepository(repo.conn, schema=settings.db_schema)
     weights = settings.scanner_edge_quality_weights()
     now = now or datetime.now(timezone.utc)
-    today = datetime.now(ZoneInfo(settings.rth_tz)).date()
+    # Derive the ET trading date from `now` so an injected clock (tests) drives
+    # the earnings-window filter deterministically; in prod now == real UTC.
+    today = now.astimezone(ZoneInfo(settings.rth_tz)).date()
     run_id = repo.insert_scan_run("_DISCOVER", notes="discovery_scan")
 
     try:

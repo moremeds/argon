@@ -143,7 +143,10 @@ export default async function ScannerPage({
                   letterSpacing: 1,
                 }}
               >
-                (edge-quality · DP-confirmed
+                (edge-quality · DP-confirmed · {discover.alerts_pulled} alerts
+                {discover.earnings_unknown_dropped > 0
+                  ? ` · ${discover.earnings_unknown_dropped} skipped for unknown earnings`
+                  : ""}
                 {discover.scored_at
                   ? ` · scored ${new Date(
                       discover.scored_at,

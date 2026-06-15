@@ -268,6 +268,13 @@ class SignalsRepository:
                    score_breakdown, spot_at_signal, evidence
             FROM {self._schema}.scanner_candidate_snapshots
             WHERE run_id = %s AND section = 'discovery'
+              -- Drop tickers the user has since added to the watchlist so a
+              -- just-promoted ticker doesn't linger in DISCOVERED (showing in
+              -- both sections) until the next scheduled discovery run.
+              AND ticker NOT IN (
+                SELECT upper(ticker) FROM {self._schema}.watchlist
+                WHERE removed_at IS NULL
+              )
             ORDER BY score DESC NULLS LAST, ticker ASC
             LIMIT %s
         """
