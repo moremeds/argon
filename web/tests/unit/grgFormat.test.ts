@@ -5,6 +5,7 @@ import {
   formatSignedNumber,
 } from "@/components/regime/primitives/format";
 import {
+  assetStateHelp,
   fmtGex,
   gateColor,
   pairStateColor,
@@ -70,5 +71,14 @@ describe("GRG event helpers (Recent Tops/Bottoms)", () => {
     expect(sigmaColor(-0.79)).toBe("var(--negative)");
     expect(sigmaColor(2.06)).toBe("var(--positive)");
     expect(sigmaColor(null)).toBe("var(--text-muted)");
+  });
+
+  it("assetStateHelp: scoped to the asset's own state", () => {
+    expect(assetStateHelp("WHIP")).toMatch(/^WHIP:/);
+    expect(assetStateHelp("WHIP")).not.toMatch(/CUSHION/);
+    expect(assetStateHelp("CUSHION")).toMatch(/^CUSHION:/);
+    expect(assetStateHelp("CUSHION")).not.toMatch(/WHIP/);
+    expect(assetStateHelp("NEUTRAL")).toMatch(/^NEUTRAL:/);
+    expect(assetStateHelp(null)).toMatch(/^NEUTRAL:/);
   });
 });

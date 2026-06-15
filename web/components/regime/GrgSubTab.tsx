@@ -23,11 +23,18 @@ const METHODOLOGY =
   "unvalidated hypothesis (no forward-return backtest). See " +
   "docs/research/grg-gamma-rotation-gap.";
 
-// Explains the per-asset WHIP / CUSHION / NEUTRAL badge.
-const ASSET_STATE_HELP =
-  "CUSHION: dealer gamma is positive — hedging dampens this asset's moves " +
-  "(stabilizing). WHIP: dealer gamma is negative — hedging amplifies moves " +
-  "(destabilizing). NEUTRAL: gamma near zero.";
+// Explainer for the per-asset badge — scoped to the asset's actual state so
+// a WHIP card shows only the whip meaning, a CUSHION card only the cushion.
+export function assetStateHelp(state: string | null | undefined): string {
+  switch (state) {
+    case "CUSHION":
+      return "CUSHION: dealer gamma is positive — hedging mechanically dampens this asset's moves (stabilizing).";
+    case "WHIP":
+      return "WHIP: dealer gamma is negative — hedging mechanically amplifies this asset's moves (destabilizing).";
+    default:
+      return "NEUTRAL: dealer gamma is near zero — little mechanical push on this asset's moves.";
+  }
+}
 
 export function fmtGex(v: number | null | undefined): string {
   if (v == null || !Number.isFinite(v)) return "---";
@@ -174,8 +181,8 @@ function AssetCard({ asset }: { asset: GrgAsset }) {
             {pill}
           </span>
           <InfoTooltip
-            text={ASSET_STATE_HELP}
-            ariaLabel="Whip vs cushion"
+            text={assetStateHelp(asset.state)}
+            ariaLabel={`${pill} meaning`}
             triggerTestId={`grg-asset-state-info-${asset.ticker}`}
             contentTestId={`grg-asset-state-help-${asset.ticker}`}
           />
