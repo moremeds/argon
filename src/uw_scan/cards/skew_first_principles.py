@@ -133,7 +133,8 @@ def borrow_flag(fee_rate, days_to_cover, *, fee_htb_pct: float = 1.0) -> str:
         return "unknown"
     try:
         return "hard_to_borrow" if float(fee_rate) >= fee_htb_pct else "normal"
-    except (TypeError, ValueError):
+    except (TypeError, ValueError) as exc:
+        log.debug("borrow_flag coercion skipped: %s", repr(exc))
         return "unknown"
 
 
