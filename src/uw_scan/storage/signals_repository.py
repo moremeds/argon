@@ -121,6 +121,70 @@ class SignalsRepository:
                 (run_id, ticker.upper(), earnings, liquidity, regime),
             )
 
+    def insert_candidate_snapshots_bulk(
+        self,
+        *,
+        run_id: int | None,
+        section: str,
+        rows: list[dict[str, Any]],
+    ) -> int:
+        """Append candidate snapshots (markout-ready). One row per candidate.
+
+        Each ``rows`` dict carries: ticker, scored_at, bias, direction, score,
+        score_model, score_breakdown, spot_at_signal, is_type_f, evidence.
+        Append-only (no upsert) — every run accrues a new batch so history is
+        preserved for Phase-2 markout.
+        """
+        if not rows:
+            return 0
+        sql = f"""
+            INSERT INTO {self._schema}.scanner_candidate_snapshots
+              (run_id, section, ticker, scored_at, bias, direction, score,
+               score_model, score_breakdown, spot_at_signal, is_type_f, evidence)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        """
+        params = [
+            (
+                run_id,
+                section,
+                r["ticker"].upper(),
+                r["scored_at"],
+                r.get("bias"),
+                r.get("direction"),
+                r.get("score"),
+                r["score_model"],
+                Jsonb(r.get("score_breakdown"))
+                if r.get("score_breakdown") is not None
+                else None,
+                r.get("spot_at_signal"),
+                r.get("is_type_f"),
+                Jsonb(r.get("evidence")) if r.get("evidence") is not None else None,
+            )
+            for r in rows
+        ]
+        with self._conn.cursor() as cur:
+            cur.executemany(sql, params)
+        return len(rows)
+
+    def upsert_discovery_run_meta(self, run_id: int, meta: dict[str, Any]) -> None:
+        """Store discovery run-level counts on the scan_runs row, namespaced under
+        the ``discovery`` key of the existing ``aggregates`` JSONB.
+
+        Persisted independently of candidate rows so a non-empty feed filtered to
+        zero candidates still records alerts_pulled / earnings_unknown_dropped.
+        The ``_DISCOVER`` sentinel ticker guarantees no collision with the
+        real-ticker MarketAggregates readers (health / watchlist), which filter
+        by real ticker + status.
+        """
+        sql = f"""
+            UPDATE {self._schema}.scan_runs
+            SET aggregates = COALESCE(aggregates, '{{}}'::jsonb)
+                             || jsonb_build_object('discovery', %s::jsonb)
+            WHERE run_id = %s
+        """
+        with self._conn.cursor() as cur:
+            cur.execute(sql, (Jsonb(meta), run_id))
+
     # ------------------------------------------------------------------
     # Read API (called from scanner.pipeline & api/routers/scanner)
     # ------------------------------------------------------------------
@@ -175,6 +239,48 @@ class SignalsRepository:
             ORDER BY executed_at DESC
         """
         return self._select_dicts(sql, (ticker.upper(), f"{lookback_days} days"))
+
+    def fetch_latest_discovery_snapshot(self, limit: int = 20) -> dict[str, Any] | None:
+        """Latest discovery run + its top-N candidate snapshots by score.
+
+        Returns ``None`` if no discovery run has ever completed. Run-level counts
+        come from ``scan_runs.aggregates->'discovery'`` (set by
+        ``upsert_discovery_run_meta``), so they resolve even for empty / fully
+        filtered runs. Run identity/timestamp come from the ``scan_runs`` row.
+        """
+        run_sql = f"""
+            SELECT run_id, finished_at, aggregates
+            FROM {self._schema}.scan_runs
+            WHERE notes = 'discovery_scan' AND status = 'ok'
+            ORDER BY finished_at DESC NULLS LAST, run_id DESC
+            LIMIT 1
+        """
+        with self._conn.cursor() as cur:
+            cur.execute(run_sql)
+            run = cur.fetchone()
+        if run is None:
+            return None
+        run_id, finished_at, aggregates = run[0], run[1], run[2]
+        run_meta: dict[str, Any] = (aggregates or {}).get("discovery") or {}
+
+        rows_sql = f"""
+            SELECT ticker, scored_at, bias, direction, score, score_model,
+                   score_breakdown, spot_at_signal, evidence
+            FROM {self._schema}.scanner_candidate_snapshots
+            WHERE run_id = %s AND section = 'discovery'
+            ORDER BY score DESC NULLS LAST, ticker ASC
+            LIMIT %s
+        """
+        candidates = self._select_dicts(rows_sql, (run_id, limit))
+        return {
+            "run_id": run_id,
+            "scored_at": finished_at,
+            "alerts_pulled": int(run_meta.get("alerts_pulled", 0) or 0),
+            "earnings_unknown_dropped": int(
+                run_meta.get("earnings_unknown_dropped", 0) or 0
+            ),
+            "candidates": candidates,
+        }
 
     # ------------------------------------------------------------------
     # Internal
