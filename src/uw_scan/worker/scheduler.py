@@ -618,6 +618,26 @@ def main() -> int:
                         logger.warning("regime_grg_scan_failed err=%s", repr(exc))
                         repo.conn.rollback()
 
+    def _discovery_scan() -> None:
+        # Market-wide discovery — UW-bound (flow alerts + per-ticker dark pool),
+        # single-flight via advisory lock, primary-uw-only to avoid duplicate UW
+        # spend across shards. Mirrors _regime_grg_scan's external-API bracket.
+        from uw_scan.worker.jobs.discovery_scan import discovery_scan_once
+
+        with _external_api_recorder(settings) as recorder:
+            with _uw_client(
+                settings, telemetry_recorder=recorder, job_name="discovery_scan"
+            ) as uw:
+                with _repo(settings) as repo:
+                    try:
+                        summary = discovery_scan_once(
+                            repo=repo, client=uw, settings=settings
+                        )
+                        logger.info("discovery_scan_tick %s", summary)
+                    except Exception as exc:  # noqa: BLE001
+                        logger.exception("discovery_scan_failed err=%r", exc)
+                        repo.conn.rollback()
+
     def _gold_fred_ingest() -> None:
         gold_fred_ingest_job(dsn=settings.db_dsn())
 
@@ -820,6 +840,19 @@ def main() -> int:
                 max_instances=1,
                 coalesce=True,
             )
+            # Market-wide discovery scan — edge-quality candidates + DP
+            # enrichment. Primary-uw-only; gated by the discovery kill switch.
+            if settings.scanner_discover_scan_enabled:
+                sched.add_job(
+                    _discovery_scan,
+                    CronTrigger.from_crontab(
+                        settings.scanner_discover_scan_cron, timezone=settings.rth_tz
+                    ),
+                    id="discovery_scan",
+                    name="Market-wide discovery scan (UW)",
+                    max_instances=1,
+                    coalesce=True,
+                )
 
     if _should_schedule_pipeline_benchmark(settings):
         sched.add_job(
