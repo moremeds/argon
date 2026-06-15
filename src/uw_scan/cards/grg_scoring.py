@@ -244,6 +244,54 @@ def _flip_gap_pct(spot: float | None, flip: float | None) -> float | None:
     return (spot - flip) / spot * 100.0
 
 
+def _extract_events(
+    dates: list[str],
+    spy_values: list[float],
+    tlt_values: list[float],
+    grg_z: np.ndarray,
+    *,
+    year_start: str,
+    cap: int = 20,
+) -> dict[str, list[dict[str, Any]]]:
+    """Gate-confirmed TOP_WATCH / BOTTOM_WATCH events since ``year_start`` (YTD).
+
+    Classifies EVERY aligned day with the same gate logic as the latest signal
+    but with ``spy_flip_gap_pct=None``: UW's greek-exposure history carries no
+    per-day gamma flip or price (see cards/greek_exposure_history), so the flip
+    gate can't contribute to a *historical* event — the other four gates still
+    can. Result is most-recent-first and capped; the UI shows the top 5 of each.
+    ``dates`` are ISO strings, so the ``d < year_start`` compare is lexical.
+    """
+    tops: list[dict[str, Any]] = []
+    bottoms: list[dict[str, Any]] = []
+    for idx, d in enumerate(dates):
+        if d < year_start:
+            continue
+        z_raw = float(grg_z[idx])
+        z = z_raw if math.isfinite(z_raw) else None
+        spy_gamma = spy_values[idx]
+        tlt_gamma = tlt_values[idx]
+        slope_3d = spy_values[idx] - spy_values[idx - 3] if idx >= 3 else None
+        cls = _classify_signal(z, spy_gamma, tlt_gamma, slope_3d, None)
+        if not (cls["top_watch"] or cls["bottom_watch"]):
+            continue
+        event = {
+            "date": d,
+            "grg_z": _round(z),
+            "pair_state": cls["state"],
+            "tier": cls["tier"],
+            "spy_net_gamma": _round(spy_gamma, 4),
+            "tlt_net_gamma": _round(tlt_gamma, 4),
+        }
+        if cls["top_watch"]:
+            tops.append(event)
+        if cls["bottom_watch"]:
+            bottoms.append(event)
+    tops.reverse()
+    bottoms.reverse()
+    return {"tops": tops[:cap], "bottoms": bottoms[:cap]}
+
+
 def run_analysis(
     spy_rows: list[dict],
     tlt_rows: list[dict],
@@ -328,6 +376,13 @@ def run_analysis(
         latest_grg, spy_cur, tlt_cur, spy_slope_3d, spy_flip_gap_pct
     )
     gates = _gate_rows(latest_grg, spy_cur, tlt_cur, spy_slope_3d, spy_flip_gap_pct)
+    events = _extract_events(
+        dates,
+        spy_values,
+        tlt_values,
+        grg_z,
+        year_start=f"{latest_date[:4]}-01-01",
+    )
 
     def _asset(
         ticker: str,
@@ -404,6 +459,7 @@ def run_analysis(
         },
         "gates": gates,
         "history": history[-HISTORY_DAYS:],
+        "events": events,
         "top_bottom": {
             "top": {
                 "active": bool(signal["top_watch"]),

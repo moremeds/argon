@@ -10,6 +10,7 @@ import {
 import {
   useGrgLive,
   type GrgAsset,
+  type GrgEvent,
   type GrgGate,
   type GrgResponse,
 } from "@/lib/regime/useGrgLive";
@@ -49,10 +50,35 @@ export function gateColor(status: string): string {
   }
 }
 
-function residualColor(z: number | null | undefined): string {
-  if (z == null || !Number.isFinite(z)) return "var(--text-primary)";
-  if (z <= -1) return "var(--negative)";
-  if (z >= 1) return "var(--positive)";
+// Regime sentiment color, shared by the hero residual/label and the event rows.
+export function pairStateColor(state: string | null | undefined): string {
+  if (state === "RISK_OFF_DIVERGENCE" || state === "DUAL_WHIP")
+    return "var(--negative)";
+  if (state === "RISK_ON_DIVERGENCE" || state === "DUAL_CUSHION")
+    return "var(--positive)";
+  return "var(--text-muted)";
+}
+
+export function shortState(state: string | null | undefined): string {
+  switch (state) {
+    case "RISK_ON_DIVERGENCE":
+      return "RISK-ON";
+    case "RISK_OFF_DIVERGENCE":
+      return "RISK-OFF";
+    case "DUAL_WHIP":
+      return "DUAL WHIP";
+    case "DUAL_CUSHION":
+      return "DUAL CUSHION";
+    default:
+      return "NEUTRAL";
+  }
+}
+
+// GRG σ colored by sign (no dead band) — a -0.79σ reads red, +2.1σ reads green.
+export function sigmaColor(z: number | null | undefined): string {
+  if (z == null || !Number.isFinite(z)) return "var(--text-muted)";
+  if (z < 0) return "var(--negative)";
+  if (z > 0) return "var(--positive)";
   return "var(--text-primary)";
 }
 
@@ -238,6 +264,97 @@ function GatesPanel({ gates }: { gates: GrgGate[] }) {
   );
 }
 
+function EventRow({ ev }: { ev: GrgEvent }) {
+  return (
+    <div
+      data-testid="grg-event-row"
+      style={{
+        padding: "8px 0",
+        borderBottom: "1px solid var(--border-dim)",
+      }}
+    >
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "auto 64px 1fr auto",
+          gap: 8,
+          alignItems: "baseline",
+          fontFamily: "var(--font-mono)",
+          fontSize: 12,
+        }}
+      >
+        <span style={{ color: "var(--text-secondary)" }}>{ev.date}</span>
+        <span
+          style={{
+            color: sigmaColor(ev.grg_z),
+            textAlign: "right",
+            fontWeight: 700,
+          }}
+        >
+          {formatSignedNumber(ev.grg_z)}
+          {ev.grg_z != null ? "σ" : ""}
+        </span>
+        <span
+          style={{
+            color: pairStateColor(ev.pair_state),
+            letterSpacing: "0.5px",
+          }}
+        >
+          {shortState(ev.pair_state)}
+        </span>
+        <span style={{ color: "var(--text-muted)" }}>
+          {ev.tier != null ? `T${ev.tier}` : "—"}
+        </span>
+      </div>
+      <div
+        style={{
+          fontFamily: "var(--font-mono)",
+          fontSize: 10,
+          color: "var(--text-muted)",
+          marginTop: 2,
+        }}
+      >
+        SPY {fmtGex(ev.spy_net_gamma)} · TLT {fmtGex(ev.tlt_net_gamma)}
+      </div>
+    </div>
+  );
+}
+
+function EventsColumn({
+  title,
+  testid,
+  events,
+  emptyCopy,
+}: {
+  title: string;
+  testid: string;
+  events: GrgEvent[];
+  emptyCopy: string;
+}) {
+  return (
+    <div className="section" data-testid={testid}>
+      <div className="section-header">
+        <div className="section-title">{title}</div>
+      </div>
+      <div className="section-body" style={{ padding: 12 }}>
+        {events.length === 0 ? (
+          <div
+            style={{
+              fontFamily: "var(--font-mono)",
+              fontSize: 11,
+              color: "var(--text-muted)",
+            }}
+          >
+            {emptyCopy}
+          </div>
+        ) : (
+          events.slice(0, 5).map((ev) => <EventRow key={ev.date} ev={ev} />)
+        )}
+      </div>
+    </div>
+  );
+}
+
 export function GrgSubTabView({ data }: { data: GrgResponse | null }) {
   if (!data || data.status === "empty" || !data.assets) {
     return (
@@ -263,14 +380,11 @@ export function GrgSubTabView({ data }: { data: GrgResponse | null }) {
   const assets = data.assets; // non-null: guarded by the early return above
   const gates = data.gates ?? [];
   const history = data.history ?? [];
+  const tops = data.events?.tops ?? [];
+  const bottoms = data.events?.bottoms ?? [];
   const topSide = top_bottom.top ?? { active: false, copy: "" };
   const botSide = top_bottom.bottom ?? { active: false, copy: "" };
-  const stateColor =
-    signal.state === "RISK_OFF_DIVERGENCE" || signal.state === "DUAL_WHIP"
-      ? "var(--negative)"
-      : signal.state === "RISK_ON_DIVERGENCE" || signal.state === "DUAL_CUSHION"
-        ? "var(--positive)"
-        : "var(--text-muted)";
+  const stateColor = pairStateColor(signal.state);
 
   return (
     <div className="gex-panel" data-testid="grg-panel">
@@ -343,13 +457,20 @@ export function GrgSubTabView({ data }: { data: GrgResponse | null }) {
                 fontWeight: 700,
                 fontFamily: "var(--font-mono)",
                 lineHeight: 1.05,
-                color: residualColor(signal.grg_z),
+                color: stateColor,
               }}
             >
               {formatSignedNumber(signal.grg_z)}
               {signal.grg_z != null ? "σ" : ""}
             </div>
-            <div style={{ fontSize: 16, fontWeight: 600, marginTop: 6 }}>
+            <div
+              style={{
+                fontSize: 16,
+                fontWeight: 600,
+                marginTop: 6,
+                color: stateColor,
+              }}
+            >
               {signal.state_label}
             </div>
             <div
@@ -471,6 +592,40 @@ export function GrgSubTabView({ data }: { data: GrgResponse | null }) {
             </div>
           </div>
         </div>
+      </div>
+
+      {/* Recent gate-confirmed tops / bottoms (YTD history of the signal) */}
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "1fr 1fr",
+          gap: 16,
+          marginTop: 16,
+        }}
+      >
+        <EventsColumn
+          title="Recent Tops"
+          testid="grg-recent-tops"
+          events={tops}
+          emptyCopy="No gate-confirmed tops year-to-date."
+        />
+        <EventsColumn
+          title="Recent Bottoms"
+          testid="grg-recent-bottoms"
+          events={bottoms}
+          emptyCopy="No gate-confirmed bottoms year-to-date."
+        />
+      </div>
+      <div
+        style={{
+          marginTop: 6,
+          fontSize: 10,
+          fontFamily: "var(--font-mono)",
+          color: "var(--text-muted)",
+        }}
+      >
+        Gate-confirmed TOP_WATCH / BOTTOM_WATCH days, YTD. Spot-vs-flip excluded
+        — UW history carries no per-day gamma flip.
       </div>
 
       {/* Gates */}

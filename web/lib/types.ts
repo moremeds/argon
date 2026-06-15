@@ -3125,6 +3125,38 @@ export interface components {
             SPY: components["schemas"]["GrgAsset"];
             TLT: components["schemas"]["GrgAsset"];
         };
+        /**
+         * GrgEvent
+         * @description One gate-confirmed top/bottom day (YTD history of the signal).
+         *
+         *     ``spot_vs_flip`` is deliberately absent — UW's greek-exposure history has
+         *     no per-day gamma flip, so it can't be backfilled for past events; it lives
+         *     on the live SPY/TLT cards only.
+         */
+        GrgEvent: {
+            /** Date */
+            date: string;
+            /** Grg Z */
+            grg_z?: number | null;
+            /**
+             * Pair State
+             * @default NEUTRAL
+             */
+            pair_state: string;
+            /** Tier */
+            tier?: number | null;
+            /** Spy Net Gamma */
+            spy_net_gamma?: number | null;
+            /** Tlt Net Gamma */
+            tlt_net_gamma?: number | null;
+        };
+        /** GrgEvents */
+        GrgEvents: {
+            /** Tops */
+            tops?: components["schemas"]["GrgEvent"][];
+            /** Bottoms */
+            bottoms?: components["schemas"]["GrgEvent"][];
+        };
         /** GrgGate */
         GrgGate: {
             /** Id */
@@ -3213,6 +3245,7 @@ export interface components {
             gates?: components["schemas"]["GrgGate"][];
             /** History */
             history?: components["schemas"]["GrgHistoryEntry"][];
+            events?: components["schemas"]["GrgEvents"];
             top_bottom?: components["schemas"]["GrgTopBottom"];
         };
         /**

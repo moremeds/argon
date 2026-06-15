@@ -5,6 +5,8 @@ from __future__ import annotations
 import math
 from datetime import date, timedelta
 
+import numpy as np
+
 from uw_scan.cards import grg_scoring as g
 
 
@@ -95,6 +97,71 @@ def test_run_analysis_payload_shape():
     # data_date / history dates are ISO strings (no date objects in payload).
     assert isinstance(payload["data_date"], str)
     assert isinstance(payload["history"][-1]["date"], str)
+
+
+def test_extract_events_gate_confirmed_bottom():
+    # 6 days, all RISK_OFF (SPY<0, TLT>0); SPY repairing toward 0 (slope>0);
+    # the last day's GRG is stretched to -2.5σ → bottom gates 1-4 all fire
+    # (gate 5 / flip is absent for history). Earlier days lack the 3-day slope
+    # or the stretch, so only the last day confirms.
+    dates = [f"2026-06-0{i}" for i in range(1, 7)]
+    spy_values = [-5.0, -4.0, -3.0, -2.0, -1.0, -0.5]  # negative, rising
+    tlt_values = [1.0, 2.0, 3.0, 4.0, 5.0, 6.0]  # positive
+    grg_z = np.array([0.0, 0.0, 0.0, -0.5, -1.0, -2.5])
+    out = g._extract_events(
+        dates, spy_values, tlt_values, grg_z, year_start="2026-01-01"
+    )
+    assert len(out["tops"]) == 0
+    assert len(out["bottoms"]) == 1
+    ev = out["bottoms"][0]
+    assert ev["date"] == "2026-06-06"
+    assert ev["grg_z"] == -2.5
+    assert ev["pair_state"] == "RISK_OFF_DIVERGENCE"
+    assert ev["spy_net_gamma"] == -0.5
+    assert ev["tlt_net_gamma"] == 6.0
+    assert ev["tier"] is not None
+
+
+def test_extract_events_ytd_filter_excludes_prior_year():
+    # Same confirming pattern but dated last December → filtered out by YTD.
+    dates = [f"2025-12-0{i}" for i in range(1, 7)]
+    spy_values = [-5.0, -4.0, -3.0, -2.0, -1.0, -0.5]
+    tlt_values = [1.0, 2.0, 3.0, 4.0, 5.0, 6.0]
+    grg_z = np.array([0.0, 0.0, 0.0, -0.5, -1.0, -2.5])
+    out = g._extract_events(
+        dates, spy_values, tlt_values, grg_z, year_start="2026-01-01"
+    )
+    assert out["tops"] == []
+    assert out["bottoms"] == []
+
+
+def test_run_analysis_emits_events_lists():
+    n = 80
+    spy = _mk_rows([1000.0 - 30.0 * i for i in range(n)], date(2026, 1, 1))
+    tlt = _mk_rows([1000.0 + 40.0 * i for i in range(n)], date(2026, 1, 1))
+    payload = g.run_analysis(
+        spy,
+        tlt,
+        spy_spot=740.0,
+        spy_flip=735.0,
+        tlt_spot=85.0,
+        tlt_flip=None,
+        scan_time="2026-06-12T19:37:41Z",
+        market_open=False,
+    )
+    assert "events" in payload
+    assert isinstance(payload["events"]["tops"], list)
+    assert isinstance(payload["events"]["bottoms"], list)
+    # Every emitted event carries the contracted columns.
+    for ev in payload["events"]["tops"] + payload["events"]["bottoms"]:
+        assert set(ev) == {
+            "date",
+            "grg_z",
+            "pair_state",
+            "tier",
+            "spy_net_gamma",
+            "tlt_net_gamma",
+        }
 
 
 def test_run_analysis_insufficient_observations():

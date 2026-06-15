@@ -12,12 +12,12 @@ import VcgSubTab from "./VcgSubTab";
 type RegimeTab = "cri" | "vcg" | "grg" | "canary" | "gex" | "validation";
 
 const TABS: { id: RegimeTab; label: string }[] = [
-  { id: "gex", label: "GEX" },
-  { id: "cri", label: "CRI" },
-  { id: "vcg", label: "VCG" },
-  { id: "grg", label: "GRG" },
-  { id: "canary", label: "5% CANARY" },
-  { id: "validation", label: "VALIDATION" },
+  { id: "gex", label: "Gamma Exposure" },
+  { id: "cri", label: "Crash Risk Index" },
+  { id: "vcg", label: "Volatility-Credit Gap" },
+  { id: "grg", label: "Gamma Rotation Gap" },
+  { id: "canary", label: "5% Canary" },
+  { id: "validation", label: "Validation" },
 ];
 
 const VALID = new Set<RegimeTab>(TABS.map((t) => t.id));
@@ -66,7 +66,7 @@ export default function RegimePanel({ initialTab }: { initialTab?: string }) {
     <div className="regime-panel" data-testid="regime-panel">
       <div
         className="ticker-tabs"
-        style={{ marginBottom: "16px" }}
+        style={{ marginBottom: "16px", flexWrap: "wrap" }}
         data-testid="regime-tabs"
       >
         {TABS.map((tab) => (

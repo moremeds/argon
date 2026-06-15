@@ -8,6 +8,7 @@ export type GrgResponse = components["schemas"]["GrgResponse"];
 export type GrgAsset = components["schemas"]["GrgAsset"];
 export type GrgGate = components["schemas"]["GrgGate"];
 export type GrgHistoryEntry = components["schemas"]["GrgHistoryEntry"];
+export type GrgEvent = components["schemas"]["GrgEvent"];
 
 export function useGrgLive(): UseSyncReturn<GrgResponse> {
   return useSyncHook<GrgResponse>(

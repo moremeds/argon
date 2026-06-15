@@ -623,6 +623,27 @@ class GrgTopBottom(BaseModel):
     bottom: GrgTopBottomSide = Field(default_factory=GrgTopBottomSide)
 
 
+class GrgEvent(BaseModel):
+    """One gate-confirmed top/bottom day (YTD history of the signal).
+
+    ``spot_vs_flip`` is deliberately absent — UW's greek-exposure history has
+    no per-day gamma flip, so it can't be backfilled for past events; it lives
+    on the live SPY/TLT cards only.
+    """
+
+    date: str
+    grg_z: float | None = None
+    pair_state: str = "NEUTRAL"
+    tier: int | None = None
+    spy_net_gamma: float | None = None
+    tlt_net_gamma: float | None = None
+
+
+class GrgEvents(BaseModel):
+    tops: list[GrgEvent] = Field(default_factory=list)
+    bottoms: list[GrgEvent] = Field(default_factory=list)
+
+
 class GrgResponse(BaseModel):
     """Gamma Rotation Gap snapshot (latest scan). Self-contained: embeds the
     full 90-session history."""
@@ -639,6 +660,7 @@ class GrgResponse(BaseModel):
     assets: GrgAssets | None = None
     gates: list[GrgGate] = Field(default_factory=list)
     history: list[GrgHistoryEntry] = Field(default_factory=list)
+    events: GrgEvents = Field(default_factory=GrgEvents)
     top_bottom: GrgTopBottom = Field(default_factory=GrgTopBottom)
 
 

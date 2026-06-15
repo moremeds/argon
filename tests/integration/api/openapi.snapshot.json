@@ -6550,6 +6550,89 @@
         "title": "GrgAssets",
         "type": "object"
       },
+      "GrgEvent": {
+        "description": "One gate-confirmed top/bottom day (YTD history of the signal).\n\n``spot_vs_flip`` is deliberately absent \u2014 UW's greek-exposure history has\nno per-day gamma flip, so it can't be backfilled for past events; it lives\non the live SPY/TLT cards only.",
+        "properties": {
+          "date": {
+            "title": "Date",
+            "type": "string"
+          },
+          "grg_z": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Grg Z"
+          },
+          "pair_state": {
+            "default": "NEUTRAL",
+            "title": "Pair State",
+            "type": "string"
+          },
+          "spy_net_gamma": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Spy Net Gamma"
+          },
+          "tier": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tier"
+          },
+          "tlt_net_gamma": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tlt Net Gamma"
+          }
+        },
+        "required": [
+          "date"
+        ],
+        "title": "GrgEvent",
+        "type": "object"
+      },
+      "GrgEvents": {
+        "properties": {
+          "bottoms": {
+            "items": {
+              "$ref": "#/components/schemas/GrgEvent"
+            },
+            "title": "Bottoms",
+            "type": "array"
+          },
+          "tops": {
+            "items": {
+              "$ref": "#/components/schemas/GrgEvent"
+            },
+            "title": "Tops",
+            "type": "array"
+          }
+        },
+        "title": "GrgEvents",
+        "type": "object"
+      },
       "GrgGate": {
         "properties": {
           "copy": {
@@ -6705,6 +6788,9 @@
               }
             ],
             "title": "Data Date"
+          },
+          "events": {
+            "$ref": "#/components/schemas/GrgEvents"
           },
           "gates": {
             "items": {

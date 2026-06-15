@@ -4,7 +4,13 @@ import {
   formatPercent,
   formatSignedNumber,
 } from "@/components/regime/primitives/format";
-import { fmtGex, gateColor } from "@/components/regime/GrgSubTab";
+import {
+  fmtGex,
+  gateColor,
+  pairStateColor,
+  shortState,
+  sigmaColor,
+} from "@/components/regime/GrgSubTab";
 
 describe("regime format primitives (used by GRG)", () => {
   it("formats null as ---", () => {
@@ -40,5 +46,29 @@ describe("GRG gateColor", () => {
     expect(gateColor("PASS")).toBe("var(--positive)");
     expect(gateColor("FAIL")).toBe("var(--negative)");
     expect(gateColor("WATCH")).toBe("var(--warning)");
+  });
+});
+
+describe("GRG event helpers (Recent Tops/Bottoms)", () => {
+  it("pairStateColor: risk-off/dual-whip negative, risk-on/dual-cushion positive", () => {
+    expect(pairStateColor("RISK_OFF_DIVERGENCE")).toBe("var(--negative)");
+    expect(pairStateColor("DUAL_WHIP")).toBe("var(--negative)");
+    expect(pairStateColor("RISK_ON_DIVERGENCE")).toBe("var(--positive)");
+    expect(pairStateColor("DUAL_CUSHION")).toBe("var(--positive)");
+    expect(pairStateColor("NEUTRAL")).toBe("var(--text-muted)");
+    expect(pairStateColor(null)).toBe("var(--text-muted)");
+  });
+
+  it("shortState abbreviates the pair state", () => {
+    expect(shortState("RISK_OFF_DIVERGENCE")).toBe("RISK-OFF");
+    expect(shortState("RISK_ON_DIVERGENCE")).toBe("RISK-ON");
+    expect(shortState("DUAL_WHIP")).toBe("DUAL WHIP");
+    expect(shortState(undefined)).toBe("NEUTRAL");
+  });
+
+  it("sigmaColor: colors by sign so -0.79 reads negative", () => {
+    expect(sigmaColor(-0.79)).toBe("var(--negative)");
+    expect(sigmaColor(2.06)).toBe("var(--positive)");
+    expect(sigmaColor(null)).toBe("var(--text-muted)");
   });
 });
