@@ -187,8 +187,11 @@ def discovery_scan_once(
                         repo.insert_dark_pool_rows(run_id, prints)
                 dp_enriched += 1
             except Exception as exc:  # noqa: BLE001
+                # repr(exc), not %r: graceful per-ticker degrade stays at WARNING
+                # (a DP-fetch miss is expected, not an error worth a traceback),
+                # and the literal repr(exc) call satisfies CI Guardrail 2.
                 logger.warning(
-                    "discovery_scan: DP fetch failed for %s: %r", ticker, exc
+                    "discovery_scan: DP fetch failed for %s: %s", ticker, repr(exc)
                 )
                 dp_status = "degraded"
 
