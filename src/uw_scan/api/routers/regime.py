@@ -20,6 +20,7 @@ from uw_scan.api.schemas import (
     EMPTY_CRI_RESPONSE,
     EMPTY_DEALER_REGIME_RESPONSE,
     EMPTY_GEX_RESPONSE,
+    EMPTY_GRG_RESPONSE,
     EMPTY_VCG_RESPONSE,
     ClosestLevel,
     CriDailyEntry,
@@ -36,6 +37,8 @@ from uw_scan.api.schemas import (
     GexIntradayResponse,
     GexIntradaySession,
     GexResponse,
+    GrgResponse,
+    GrgScanResponse,
     RegimeLiveQuote,
     RegimeQuotesResponse,
     VcgDailyEntry,
@@ -54,11 +57,13 @@ from uw_scan.cards.dealer_regime import compute_dealer_regime, gather_inputs
 from uw_scan.config import Settings
 from uw_scan.scanners import cri as cri_scanner
 from uw_scan.scanners import gex as gex_scanner
+from uw_scan.scanners import grg as grg_scanner
 from uw_scan.scanners import vcg as vcg_scanner
 from uw_scan.scanners.live_quotes import load_live_quotes
 from uw_scan.storage.canary_snapshot_repository import CanarySnapshotRepository
 from uw_scan.storage.cri_snapshot_repository import CriSnapshotRepository
 from uw_scan.storage.greek_exposure_repository import GreekExposureDailyRepository
+from uw_scan.storage.grg_snapshot_repository import GrgSnapshotRepository
 from uw_scan.storage.regime_backtest_repository import RegimeBacktestRepository
 from uw_scan.storage.repository import Repository
 from uw_scan.storage.vcg_snapshot_repository import VcgSnapshotRepository
@@ -423,6 +428,44 @@ def get_vcg_history(
         credit_proxy=proxy.upper(),
         rows=[VcgDailyEntry.model_validate(r) for r in rows],
     )
+
+
+# ─── GRG (Gamma Rotation Gap) ────────────────────────────────────
+
+
+@router.get("/grg", response_model=GrgResponse)
+def get_grg(
+    repo: Annotated[Repository, Depends(get_repo)],
+) -> GrgResponse:
+    """Latest GRG snapshot (self-contained: embeds 90-session history).
+
+    GRG is EOD/periodic-rescan — the worker owns UW fetches; this read is
+    cheap (one snapshot row). No per-request UW spend."""
+    snap_repo = GrgSnapshotRepository(repo.conn, schema=repo._schema)
+    latest = snap_repo.fetch_latest()
+    if latest is None:
+        return EMPTY_GRG_RESPONSE.model_copy(deep=True)
+    return GrgResponse.model_validate({"status": "ok", **latest})
+
+
+@router.post("/grg/scan", status_code=202, response_model=GrgScanResponse)
+def trigger_grg_scan(
+    repo: Annotated[Repository, Depends(get_repo)],
+    settings: Annotated[Settings, Depends(get_settings)],
+) -> GrgScanResponse:
+    """Run a GRG scan synchronously against UW and persist a snapshot."""
+    uw_client = UwClient(
+        api_key=settings.api_key.get_secret_value(),
+        base_url=settings.base_url,
+        timeout=settings.request_timeout_seconds,
+    )
+    try:
+        row_id = grg_scanner.run(uw_client, repo, schema=repo._schema)
+    finally:
+        uw_client.close()
+    if row_id is None:
+        return GrgScanResponse(status="skipped", reason="thin_data")
+    return GrgScanResponse(status="ok", row_id=row_id)
 
 
 @router.get("/quotes", response_model=RegimeQuotesResponse)

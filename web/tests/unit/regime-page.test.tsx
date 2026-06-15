@@ -26,11 +26,20 @@ beforeEach(() => {
 });
 
 describe("RegimePanel", () => {
-  it("renders three sub-tab buttons with GEX active by default", () => {
+  it("renders sub-tab buttons with full names, GEX active by default", () => {
     render(<RegimePanel />);
-    expect(screen.getByTestId("regime-tab-cri").textContent).toBe("CRI");
-    expect(screen.getByTestId("regime-tab-vcg").textContent).toBe("VCG");
-    expect(screen.getByTestId("regime-tab-gex").textContent).toBe("GEX");
+    expect(screen.getByTestId("regime-tab-cri").textContent).toBe(
+      "Crash Risk Index",
+    );
+    expect(screen.getByTestId("regime-tab-vcg").textContent).toBe(
+      "Volatility-Credit Gap",
+    );
+    expect(screen.getByTestId("regime-tab-gex").textContent).toBe(
+      "Gamma Exposure",
+    );
+    expect(screen.getByTestId("regime-tab-grg").textContent).toBe(
+      "Gamma Rotation Gap",
+    );
     expect(screen.getByTestId("regime-tab-gex").className).toMatch(/active/);
     expect(screen.queryByTestId("gex-subtab-stub")).not.toBeNull();
   });

@@ -6412,6 +6412,753 @@
         "title": "GoldValuationPostureModel",
         "type": "object"
       },
+      "GrgAsset": {
+        "properties": {
+          "data_date": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Data Date"
+          },
+          "flip": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Flip"
+          },
+          "gamma_1d_change": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Gamma 1D Change"
+          },
+          "gamma_3d_change": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Gamma 3D Change"
+          },
+          "gamma_z": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Gamma Z"
+          },
+          "net_gamma": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Net Gamma"
+          },
+          "net_gex": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Net Gex"
+          },
+          "spot": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Spot"
+          },
+          "spot_vs_flip_pct": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Spot Vs Flip Pct"
+          },
+          "state": {
+            "default": "NEUTRAL",
+            "enum": [
+              "CUSHION",
+              "WHIP",
+              "NEUTRAL"
+            ],
+            "title": "State",
+            "type": "string"
+          },
+          "ticker": {
+            "title": "Ticker",
+            "type": "string"
+          }
+        },
+        "required": [
+          "ticker"
+        ],
+        "title": "GrgAsset",
+        "type": "object"
+      },
+      "GrgAssets": {
+        "properties": {
+          "SPY": {
+            "$ref": "#/components/schemas/GrgAsset"
+          },
+          "TLT": {
+            "$ref": "#/components/schemas/GrgAsset"
+          }
+        },
+        "required": [
+          "SPY",
+          "TLT"
+        ],
+        "title": "GrgAssets",
+        "type": "object"
+      },
+      "GrgEvent": {
+        "description": "One gate-confirmed top/bottom day (YTD history of the signal).\n\n``spot_vs_flip`` is deliberately absent \u2014 UW's greek-exposure history has\nno per-day gamma flip, so it can't be backfilled for past events; it lives\non the live SPY/TLT cards only.\n\n``fwd_20d_pct`` / ``lead_sessions`` / ``extreme_gap_pct`` are the YTD\nforward-return backtest: SPY's 20-session forward return after the watch,\nthe sessions until the adverse price extreme it preceded, and how much\nfurther SPY moved to that extreme. They show the watch LEADS the turn.",
+        "properties": {
+          "date": {
+            "title": "Date",
+            "type": "string"
+          },
+          "extreme_gap_pct": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Extreme Gap Pct"
+          },
+          "fwd_20d_pct": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fwd 20D Pct"
+          },
+          "grg_z": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Grg Z"
+          },
+          "lead_sessions": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lead Sessions"
+          },
+          "pair_state": {
+            "default": "NEUTRAL",
+            "title": "Pair State",
+            "type": "string"
+          },
+          "spy_net_gamma": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Spy Net Gamma"
+          },
+          "tier": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tier"
+          },
+          "tlt_net_gamma": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tlt Net Gamma"
+          }
+        },
+        "required": [
+          "date"
+        ],
+        "title": "GrgEvent",
+        "type": "object"
+      },
+      "GrgEventSideStats": {
+        "properties": {
+          "median_extreme_gap_pct": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Median Extreme Gap Pct"
+          },
+          "median_lead_sessions": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Median Lead Sessions"
+          },
+          "n": {
+            "default": 0,
+            "title": "N",
+            "type": "integer"
+          }
+        },
+        "title": "GrgEventSideStats",
+        "type": "object"
+      },
+      "GrgEventStats": {
+        "description": "Aggregate YTD forward-return backtest of the gate-confirmed watch events.\n\n``median_lead_sessions`` is the median sessions between a watch signal and\nthe adverse extreme it preceded; ``median_extreme_gap_pct`` is the median\nfurther move after the signal. Together they quantify the early-warning\nLEAD \u2014 GRG watch events are not coincident turn markers.",
+        "properties": {
+          "bottoms": {
+            "$ref": "#/components/schemas/GrgEventSideStats"
+          },
+          "fwd_window": {
+            "default": 0,
+            "title": "Fwd Window",
+            "type": "integer"
+          },
+          "tops": {
+            "$ref": "#/components/schemas/GrgEventSideStats"
+          }
+        },
+        "title": "GrgEventStats",
+        "type": "object"
+      },
+      "GrgEvents": {
+        "properties": {
+          "bottoms": {
+            "items": {
+              "$ref": "#/components/schemas/GrgEvent"
+            },
+            "title": "Bottoms",
+            "type": "array"
+          },
+          "stats": {
+            "$ref": "#/components/schemas/GrgEventStats"
+          },
+          "tops": {
+            "items": {
+              "$ref": "#/components/schemas/GrgEvent"
+            },
+            "title": "Tops",
+            "type": "array"
+          }
+        },
+        "title": "GrgEvents",
+        "type": "object"
+      },
+      "GrgGate": {
+        "properties": {
+          "copy": {
+            "default": "",
+            "title": "Copy",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "status": {
+            "default": "WATCH",
+            "enum": [
+              "PASS",
+              "WATCH",
+              "FAIL"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "label"
+        ],
+        "title": "GrgGate",
+        "type": "object"
+      },
+      "GrgHistoryEntry": {
+        "properties": {
+          "date": {
+            "title": "Date",
+            "type": "string"
+          },
+          "grg_z": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Grg Z"
+          },
+          "raw_spread": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Raw Spread"
+          },
+          "spy_gamma_z": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Spy Gamma Z"
+          },
+          "spy_net_gamma": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Spy Net Gamma"
+          },
+          "spy_price": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Spy Price"
+          },
+          "state": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "State"
+          },
+          "tlt_gamma_z": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tlt Gamma Z"
+          },
+          "tlt_net_gamma": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tlt Net Gamma"
+          }
+        },
+        "required": [
+          "date"
+        ],
+        "title": "GrgHistoryEntry",
+        "type": "object"
+      },
+      "GrgResponse": {
+        "description": "Gamma Rotation Gap snapshot (latest scan). Self-contained: embeds the\nYTD history (z-scored over the full \u22481Y fetched series).",
+        "properties": {
+          "assets": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/GrgAssets"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "basis": {
+            "default": "eod",
+            "enum": [
+              "live",
+              "eod"
+            ],
+            "title": "Basis",
+            "type": "string"
+          },
+          "data_date": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Data Date"
+          },
+          "events": {
+            "$ref": "#/components/schemas/GrgEvents"
+          },
+          "gates": {
+            "items": {
+              "$ref": "#/components/schemas/GrgGate"
+            },
+            "title": "Gates",
+            "type": "array"
+          },
+          "history": {
+            "items": {
+              "$ref": "#/components/schemas/GrgHistoryEntry"
+            },
+            "title": "History",
+            "type": "array"
+          },
+          "lookback_days": {
+            "default": 0,
+            "title": "Lookback Days",
+            "type": "integer"
+          },
+          "market_open": {
+            "default": false,
+            "title": "Market Open",
+            "type": "boolean"
+          },
+          "scan_time": {
+            "default": "",
+            "title": "Scan Time",
+            "type": "string"
+          },
+          "signal": {
+            "$ref": "#/components/schemas/GrgSignal"
+          },
+          "source": {
+            "default": "Unusual Whales",
+            "title": "Source",
+            "type": "string"
+          },
+          "status": {
+            "default": "empty",
+            "enum": [
+              "ok",
+              "empty"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "top_bottom": {
+            "$ref": "#/components/schemas/GrgTopBottom"
+          },
+          "z_window": {
+            "default": 63,
+            "title": "Z Window",
+            "type": "integer"
+          }
+        },
+        "title": "GrgResponse",
+        "type": "object"
+      },
+      "GrgScanResponse": {
+        "description": "Response body for POST /api/regime/grg/scan.",
+        "properties": {
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          },
+          "row_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Row Id"
+          },
+          "scanner": {
+            "const": "grg",
+            "default": "grg",
+            "title": "Scanner",
+            "type": "string"
+          },
+          "status": {
+            "default": "ok",
+            "enum": [
+              "ok",
+              "skipped"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "title": "GrgScanResponse",
+        "type": "object"
+      },
+      "GrgSignal": {
+        "properties": {
+          "bottom_score": {
+            "default": 0,
+            "title": "Bottom Score",
+            "type": "integer"
+          },
+          "bottom_watch": {
+            "default": false,
+            "title": "Bottom Watch",
+            "type": "boolean"
+          },
+          "grg_z": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Grg Z"
+          },
+          "interpretation": {
+            "default": "NORMAL",
+            "enum": [
+              "TOP_WATCH",
+              "BOTTOM_WATCH",
+              "RISK_ON",
+              "RISK_OFF",
+              "DUAL_WHIP",
+              "CUSHION",
+              "NORMAL"
+            ],
+            "title": "Interpretation",
+            "type": "string"
+          },
+          "raw_spread": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Raw Spread"
+          },
+          "spy_3d_gamma_change": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Spy 3D Gamma Change"
+          },
+          "spy_gamma_z": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Spy Gamma Z"
+          },
+          "state": {
+            "default": "NEUTRAL",
+            "enum": [
+              "RISK_ON_DIVERGENCE",
+              "RISK_OFF_DIVERGENCE",
+              "DUAL_CUSHION",
+              "DUAL_WHIP",
+              "NEUTRAL"
+            ],
+            "title": "State",
+            "type": "string"
+          },
+          "state_label": {
+            "default": "Neutral",
+            "title": "State Label",
+            "type": "string"
+          },
+          "summary": {
+            "default": "",
+            "title": "Summary",
+            "type": "string"
+          },
+          "tier": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tier"
+          },
+          "tlt_3d_gamma_change": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tlt 3D Gamma Change"
+          },
+          "tlt_gamma_z": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tlt Gamma Z"
+          },
+          "top_score": {
+            "default": 0,
+            "title": "Top Score",
+            "type": "integer"
+          },
+          "top_watch": {
+            "default": false,
+            "title": "Top Watch",
+            "type": "boolean"
+          }
+        },
+        "title": "GrgSignal",
+        "type": "object"
+      },
+      "GrgTopBottom": {
+        "properties": {
+          "bottom": {
+            "$ref": "#/components/schemas/GrgTopBottomSide"
+          },
+          "top": {
+            "$ref": "#/components/schemas/GrgTopBottomSide"
+          }
+        },
+        "title": "GrgTopBottom",
+        "type": "object"
+      },
+      "GrgTopBottomSide": {
+        "properties": {
+          "active": {
+            "default": false,
+            "title": "Active",
+            "type": "boolean"
+          },
+          "copy": {
+            "default": "",
+            "title": "Copy",
+            "type": "string"
+          }
+        },
+        "title": "GrgTopBottomSide",
+        "type": "object"
+      },
       "GuidanceResponse": {
         "properties": {
           "body_md": {
@@ -19342,6 +20089,50 @@
           }
         },
         "summary": "Trigger Gex Scan",
+        "tags": [
+          "regime"
+        ]
+      }
+    },
+    "/api/regime/grg": {
+      "get": {
+        "description": "Latest GRG snapshot (self-contained: embeds 90-session history).\n\nGRG is EOD/periodic-rescan \u2014 the worker owns UW fetches; this read is\ncheap (one snapshot row). No per-request UW spend.",
+        "operationId": "get_grg_api_regime_grg_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GrgResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Get Grg",
+        "tags": [
+          "regime"
+        ]
+      }
+    },
+    "/api/regime/grg/scan": {
+      "post": {
+        "description": "Run a GRG scan synchronously against UW and persist a snapshot.",
+        "operationId": "trigger_grg_scan_api_regime_grg_scan_post",
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GrgScanResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Trigger Grg Scan",
         "tags": [
           "regime"
         ]

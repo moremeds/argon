@@ -29,6 +29,8 @@ export const regimeApi = {
     `${API}/api/regime/vcg/intraday?sessions=${sessions}`,
   vcg_history: (days: number = 90) =>
     `${API}/api/regime/vcg/history?days=${days}`,
+  grg: () => `${API}/api/regime/grg`,
+  grg_scan: () => `${API}/api/regime/grg/scan`,
   quotes: () => `${API}/api/regime/quotes`,
   vol_backdrop: () => `${API}/api/regime/vol-backdrop`,
   guidance: () => `${API}/api/regime/guidance`,

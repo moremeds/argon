@@ -600,6 +600,24 @@ def main() -> int:
                                 repr(exc),
                             )
 
+    def _regime_grg_scan() -> None:
+        # Gamma Rotation Gap. UW-bound: fetches SPY/TLT greek-exposure history,
+        # reads SPY/TLT flip+spot from gex_snapshots, persists grg_snapshots.
+        # Mirrors _regime_gex_scan's external-API bracket.
+        from uw_scan.scanners import grg as grg_scanner
+
+        with _external_api_recorder(settings) as recorder:
+            with _uw_client(
+                settings, telemetry_recorder=recorder, job_name="regime_grg_scan"
+            ) as uw:
+                with _repo(settings) as repo:
+                    try:
+                        row_id = grg_scanner.run(uw, repo, schema=settings.db_schema)
+                        logger.info("regime_grg_scan_tick row_id=%s", row_id)
+                    except Exception as exc:
+                        logger.warning("regime_grg_scan_failed err=%s", repr(exc))
+                        repo.conn.rollback()
+
     def _gold_fred_ingest() -> None:
         gold_fred_ingest_job(dsn=settings.db_dsn())
 
@@ -783,6 +801,22 @@ def main() -> int:
                 IntervalTrigger(minutes=settings.gex_scan_interval_minutes),
                 id="regime_gex_scan",
                 name="Regime GEX scan (UW)",
+                max_instances=1,
+                coalesce=True,
+            )
+            # Regime / GRG scan — SPY/TLT cross-asset gamma divergence.
+            # UW-bound; every 15 min through RTH + post-close settlement
+            # (UW greek-exposure updates after the close). Primary-uw-only.
+            sched.add_job(
+                _regime_grg_scan,
+                CronTrigger(
+                    minute="*/15",
+                    hour="9-18",
+                    day_of_week="mon-fri",
+                    timezone=settings.rth_tz,
+                ),
+                id="regime_grg_scan",
+                name="Regime GRG scan (UW)",
                 max_instances=1,
                 coalesce=True,
             )
