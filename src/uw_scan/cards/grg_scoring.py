@@ -27,7 +27,8 @@ def _f(value: Any, default: float = 0.0) -> float:
             return default
         out = float(value)
         return out if math.isfinite(out) else default
-    except (TypeError, ValueError):
+    except (TypeError, ValueError) as exc:
+        _ = repr(exc)  # CI Guardrail 2: coercion failure → default
         return default
 
 
