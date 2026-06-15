@@ -7,7 +7,7 @@ import os
 from decimal import Decimal
 from pathlib import Path
 
-from pydantic import BaseModel, Field, SecretStr
+from pydantic import BaseModel, Field, SecretStr, model_validator
 
 logger = logging.getLogger(__name__)
 
@@ -226,6 +226,22 @@ class Settings(BaseModel):
     scanner_gex_pin_min_gamma: Decimal = Decimal("1.0")
     scanner_liquidity_min_option_volume: int = 1000
     scanner_earnings_window_days: int = 14
+    # Discovery edge-quality scoring (radon parity). Weights must sum to 100.
+    scanner_edge_quality_weight_dp_strength: Decimal = Decimal("30")
+    scanner_edge_quality_weight_dp_sustained: Decimal = Decimal("20")
+    scanner_edge_quality_weight_confluence: Decimal = Decimal("20")
+    scanner_edge_quality_weight_vol_oi: Decimal = Decimal("15")
+    scanner_edge_quality_weight_sweeps: Decimal = Decimal("15")
+    scanner_discover_dp_top_n: int = 50
+    scanner_discover_dp_lookback_days: int = 3
+    scanner_discover_dp_sleep_ms: int = (
+        0  # optional inter-DP-fetch throttle (rate guard)
+    )
+    scanner_discover_alerts_limit: int = 200
+    scanner_discover_scan_enabled: bool = True
+    # Offset off the top-of-hour so discovery doesn't contend with full_scan
+    # (cron `0 5-16`). Covers ~09:15–16:45 ET (RTH + post-close settle).
+    scanner_discover_scan_cron: str = "15,45 9-16 * * 0-4"
     # Regime / GEX scanner (port from xenon — ships GEX live; CRI/VCG pending)
     gex_scan_tickers: list[str] = ["SPX", "SPY", "TLT"]
     gex_scan_interval_minutes: int = 5
@@ -285,6 +301,24 @@ class Settings(BaseModel):
         scan jobs from overwriting WS-written spot.
         """
         return self.massive_ws_enabled or self.xenon_ws_enabled
+
+    def scanner_edge_quality_weights(self) -> dict[str, Decimal]:
+        return {
+            "dp_strength": self.scanner_edge_quality_weight_dp_strength,
+            "dp_sustained": self.scanner_edge_quality_weight_dp_sustained,
+            "confluence": self.scanner_edge_quality_weight_confluence,
+            "vol_oi": self.scanner_edge_quality_weight_vol_oi,
+            "sweeps": self.scanner_edge_quality_weight_sweeps,
+        }
+
+    @model_validator(mode="after")
+    def _check_edge_quality_weights(self) -> "Settings":
+        total = sum(self.scanner_edge_quality_weights().values(), Decimal("0"))
+        if total != Decimal("100"):
+            raise ValueError(
+                f"scanner edge-quality weights must sum to 100, got {total}"
+            )
+        return self
 
     @classmethod
     def from_env(cls, env_path: Path | None = None) -> "Settings":
@@ -516,6 +550,40 @@ class Settings(BaseModel):
             ),
             scanner_earnings_window_days=int(
                 os.environ.get("SCANNER_EARNINGS_WINDOW_DAYS", "14")
+            ),
+            scanner_edge_quality_weight_dp_strength=Decimal(
+                os.environ.get("SCANNER_EDGE_QUALITY_WEIGHT_DP_STRENGTH", "30")
+            ),
+            scanner_edge_quality_weight_dp_sustained=Decimal(
+                os.environ.get("SCANNER_EDGE_QUALITY_WEIGHT_DP_SUSTAINED", "20")
+            ),
+            scanner_edge_quality_weight_confluence=Decimal(
+                os.environ.get("SCANNER_EDGE_QUALITY_WEIGHT_CONFLUENCE", "20")
+            ),
+            scanner_edge_quality_weight_vol_oi=Decimal(
+                os.environ.get("SCANNER_EDGE_QUALITY_WEIGHT_VOL_OI", "15")
+            ),
+            scanner_edge_quality_weight_sweeps=Decimal(
+                os.environ.get("SCANNER_EDGE_QUALITY_WEIGHT_SWEEPS", "15")
+            ),
+            scanner_discover_dp_top_n=int(
+                os.environ.get("SCANNER_DISCOVER_DP_TOP_N", "50")
+            ),
+            scanner_discover_dp_lookback_days=int(
+                os.environ.get("SCANNER_DISCOVER_DP_LOOKBACK_DAYS", "3")
+            ),
+            scanner_discover_dp_sleep_ms=int(
+                os.environ.get("SCANNER_DISCOVER_DP_SLEEP_MS", "0")
+            ),
+            scanner_discover_alerts_limit=int(
+                os.environ.get("SCANNER_DISCOVER_ALERTS_LIMIT", "200")
+            ),
+            scanner_discover_scan_enabled=os.environ.get(
+                "SCANNER_DISCOVER_SCAN_ENABLED", "true"
+            ).lower()
+            in ("1", "true", "yes"),
+            scanner_discover_scan_cron=os.environ.get(
+                "SCANNER_DISCOVER_SCAN_CRON", "15,45 9-16 * * 0-4"
             ),
             gex_scan_tickers=_parse_csv_env(
                 "GEX_SCAN_TICKERS", default=["SPX", "SPY", "TLT"]
