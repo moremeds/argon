@@ -222,9 +222,56 @@ def run_detectors(
             value=pcr_flag.value,
         )
 
-    return build_candidate(
+    candidate = build_candidate(
         ticker=ticker,
         hits=hits,
         context_flags=flags,
         gates={"earnings": earnings, "liquidity": liquidity, "regime": regime},
     )
+
+    # Markout-ready snapshot (additive — granular signal_hits stay the audit).
+    if candidate is not None:
+        try:
+            from datetime import datetime, timezone
+
+            top_dcf = next(
+                (h for h in candidate.hits if h.signal_type == "deep_conviction_flow"),
+                None,
+            )
+            direction = (
+                top_dcf.evidence.get("direction") if top_dcf is not None else None
+            )
+            snapshot_row = {
+                "ticker": ticker,
+                "scored_at": datetime.now(timezone.utc),
+                "bias": candidate.bias,
+                "direction": direction,
+                "score": candidate.final_score,
+                "score_model": "watchlist_tier_v1",
+                "score_breakdown": {
+                    "raw_score": float(candidate.raw_score),
+                    "confluence_score": float(candidate.confluence_score),
+                    "final_score": float(candidate.final_score),
+                },
+                "spot_at_signal": spot,
+                "is_type_f": candidate.is_type_f,
+                "evidence": {
+                    "hit_types": [h.signal_type for h in candidate.hits],
+                    "setup": candidate.setup,
+                },
+            }
+            # Savepoint so a snapshot-write error can't abort the shared scan
+            # transaction (which would then break the caller's finish_scan_run).
+            with repo.conn.transaction():
+                signals_repo.insert_candidate_snapshots_bulk(
+                    run_id=run_id, section="watchlist", rows=[snapshot_row]
+                )
+        except Exception as exc:  # noqa: BLE001 — never block the scan on snapshot persistence
+            logger.exception(
+                "scanner snapshot persist failed for %s run_id=%s: %r",
+                ticker,
+                run_id,
+                exc,
+            )
+
+    return candidate
