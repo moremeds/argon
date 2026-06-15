@@ -97,6 +97,7 @@ class _ScanRunsMixin:
                   AND (notes IS DISTINCT FROM 'positioning_refresh')
                   AND (notes IS DISTINCT FROM 'intraday_refresh')
                   AND (notes IS DISTINCT FROM 'cockpit_daily_snapshot')
+                  AND (notes IS DISTINCT FROM 'discovery_scan')
                   AND (notes IS NULL OR notes NOT LIKE 'gex_scan_%%')
                 """,
                 (start, end),

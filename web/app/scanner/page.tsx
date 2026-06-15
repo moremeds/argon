@@ -9,6 +9,7 @@ import type { components } from "@/lib/types";
 export const dynamic = "force-dynamic";
 
 type Candidate = components["schemas"]["ScannerCandidate"];
+type Discovered = components["schemas"]["DiscoveryCandidate"];
 type Bias = Candidate["bias"];
 
 const SECTION_ORDER: Bias[] = ["bullish", "bearish", "mixed", "neutral"];
@@ -46,6 +47,25 @@ function groupByBias(candidates: Candidate[]): Map<Bias, Candidate[]> {
   return groups;
 }
 
+function groupDiscoveredByBias(
+  candidates: Discovered[],
+): Map<Bias, Discovered[]> {
+  const groups = new Map<Bias, Discovered[]>();
+  for (const c of candidates) {
+    const arr = groups.get(c.bias) ?? [];
+    arr.push(c);
+    groups.set(c.bias, arr);
+  }
+  // Within each section: highest edge-quality score first, then ticker.
+  for (const arr of groups.values()) {
+    arr.sort(
+      (a, b) =>
+        Number(b.score) - Number(a.score) || a.ticker.localeCompare(b.ticker),
+    );
+  }
+  return groups;
+}
+
 export default async function ScannerPage({
   searchParams,
 }: {
@@ -66,6 +86,7 @@ export default async function ScannerPage({
   ]);
 
   const grouped = groupByBias(data.candidates);
+  const discoverGrouped = groupDiscoveredByBias(discover?.candidates ?? []);
   // API-generated render anchor so freshness is relative to request time while
   // client hydration receives the same value and does not read a clock.
   const generatedAtMs = Date.parse(data.generated_at);
@@ -122,26 +143,58 @@ export default async function ScannerPage({
                   letterSpacing: 1,
                 }}
               >
-                (outside your watchlist · DCF only · pulled from{" "}
-                {discover.alerts_pulled} alerts
+                (edge-quality · DP-confirmed · {discover.alerts_pulled} alerts
                 {discover.earnings_unknown_dropped > 0
                   ? ` · ${discover.earnings_unknown_dropped} skipped for unknown earnings`
+                  : ""}
+                {discover.scored_at
+                  ? ` · scored ${new Date(
+                      discover.scored_at,
+                    ).toLocaleTimeString([], {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}`
                   : ""}
                 )
               </span>
             </span>
           </h2>
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))",
-              gap: 12,
-            }}
-          >
-            {discover.candidates.map((c) => (
-              <DiscoveredCard key={c.ticker} candidate={c} nowMs={nowMs} />
-            ))}
-          </div>
+          {SECTION_ORDER.map((bias) => {
+            const section = discoverGrouped.get(bias);
+            if (!section || section.length === 0) return null;
+            return (
+              <div key={bias} style={{ marginBottom: 16 }}>
+                <h3
+                  style={{
+                    fontFamily: "var(--font-mono)",
+                    fontSize: 10,
+                    letterSpacing: 1.2,
+                    color: SECTION_COLOR[bias],
+                    textTransform: "uppercase",
+                    marginBottom: 6,
+                  }}
+                >
+                  {SECTION_TITLE[bias]} · {section.length}
+                </h3>
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns:
+                      "repeat(auto-fill, minmax(320px, 1fr))",
+                    gap: 12,
+                  }}
+                >
+                  {section.map((c) => (
+                    <DiscoveredCard
+                      key={c.ticker}
+                      candidate={c}
+                      nowMs={nowMs}
+                    />
+                  ))}
+                </div>
+              </div>
+            );
+          })}
         </section>
       ) : null}
       {data.candidates.length === 0 ? (

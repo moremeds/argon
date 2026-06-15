@@ -4,9 +4,8 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { api } from "@/lib/api";
+import { fmtDecimal, toNum } from "@/lib/formatters";
 import type { components } from "@/lib/types";
-
-import { SignalRow } from "./SignalRow";
 
 type Discovered = components["schemas"]["DiscoveryCandidate"];
 type Bias = Discovered["bias"];
@@ -67,6 +66,78 @@ function freshnessLabel(iso: string | null | undefined, nowMs: number): string {
   if (minutes < 60) return `${minutes}m`;
   const hours = Math.round(minutes / 60);
   return `${hours}h`;
+}
+
+function FactorRow({ candidate }: { candidate: Discovered }) {
+  const dp = candidate.dp_direction;
+  const dpBadge =
+    candidate.dp_status === "degraded"
+      ? { label: "DP N/A", color: "var(--text-muted)" }
+      : dp === "ACCUMULATION"
+        ? { label: "ACC", color: "var(--positive)" }
+        : dp === "DISTRIBUTION"
+          ? { label: "DIST", color: "var(--negative)" }
+          : { label: "NEUTRAL", color: "var(--text-muted)" };
+  const showStrength =
+    candidate.dp_status !== "degraded" &&
+    candidate.dp_strength != null &&
+    (dp === "ACCUMULATION" || dp === "DISTRIBUTION");
+  const cell = {
+    display: "flex",
+    flexDirection: "column" as const,
+    gap: 2,
+  };
+  const label = {
+    fontSize: 9,
+    letterSpacing: 1,
+    color: "var(--text-muted)",
+    textTransform: "uppercase" as const,
+  };
+  const value = { fontSize: 12, fontWeight: 600 as const };
+  return (
+    <div
+      style={{
+        display: "grid",
+        gridTemplateColumns: "repeat(4, 1fr)",
+        gap: 8,
+        fontFamily: "var(--font-mono)",
+      }}
+    >
+      <div style={cell}>
+        <span style={label}>DARK POOL</span>
+        <span style={{ ...value, color: dpBadge.color }}>
+          {dpBadge.label}
+          {showStrength
+            ? ` ${fmtDecimal(toNum(candidate.dp_strength), 0)}`
+            : ""}
+          {candidate.dp_sustained_days > 0
+            ? ` · ${candidate.dp_sustained_days}d`
+            : ""}
+        </span>
+      </div>
+      <div style={cell}>
+        <span style={label}>CONFLUENCE</span>
+        <span
+          style={{
+            ...value,
+            color: candidate.confluence
+              ? "var(--positive)"
+              : "var(--text-muted)",
+          }}
+        >
+          {candidate.confluence ? "✓ aligned" : "—"}
+        </span>
+      </div>
+      <div style={cell}>
+        <span style={label}>VOL/OI</span>
+        <span style={value}>{fmtDecimal(toNum(candidate.vol_oi), 1)}×</span>
+      </div>
+      <div style={cell}>
+        <span style={label}>SWEEPS</span>
+        <span style={value}>{candidate.sweeps}</span>
+      </div>
+    </div>
+  );
 }
 
 export function DiscoveredCard({
@@ -159,10 +230,10 @@ export function DiscoveredCard({
         <BiasBadge bias={candidate.bias} strength={candidate.bias_strength} />
       </div>
 
-      {/* Signal row — only DCF for discovered tickers */}
-      <SignalRow hit={candidate.hit} />
+      {/* 5-factor edge-quality breakdown */}
+      <FactorRow candidate={candidate} />
 
-      {/* Footer: DISCOVERED badge + score */}
+      {/* Footer: DISCOVERED badge + edge-quality score */}
       <div
         style={{
           display: "flex",
@@ -174,7 +245,7 @@ export function DiscoveredCard({
         }}
       >
         <span
-          title="Surfaced from the market-wide flow-alerts feed. Add to watchlist for the full Dark Pool / EIC / GEX scan."
+          title="Surfaced from the market-wide flow-alerts feed, ranked by edge quality (not premium size). Add to watchlist for the full Dark Pool / EIC / GEX scan."
           style={{
             display: "inline-flex",
             alignItems: "center",
@@ -200,7 +271,7 @@ export function DiscoveredCard({
             letterSpacing: 0.5,
           }}
         >
-          {Number(candidate.hit.score).toFixed(2)}
+          {Number(candidate.score).toFixed(1)}
         </span>
       </div>
 

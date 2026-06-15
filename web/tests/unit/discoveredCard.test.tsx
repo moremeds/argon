@@ -7,7 +7,7 @@ import { api } from "@/lib/api";
 import type { components } from "@/lib/types";
 
 type Discovered = components["schemas"]["DiscoveryCandidate"];
-const NOW_MS = Date.parse("2026-05-24T12:00:00Z");
+const NOW_MS = Date.parse("2026-06-15T14:30:00Z");
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ refresh: vi.fn() }),
@@ -26,51 +26,62 @@ afterEach(() => {
 
 function makeDiscovered(overrides: Partial<Discovered> = {}): Discovered {
   return {
-    ticker: "GFS",
+    ticker: "ZAAA",
     bias: "bullish",
     bias_strength: "moderate",
+    direction: "long",
+    score: "78.5" as unknown as Discovered["score"],
+    score_model: "edge_quality_v1",
+    score_breakdown: { dp_strength: 24.0, sweeps: 15.0 },
+    dp_direction: "ACCUMULATION",
+    dp_strength: "80.0" as unknown as Discovered["dp_strength"],
+    dp_sustained_days: 2,
+    confluence: true,
+    vol_oi: "2.4" as unknown as Discovered["vol_oi"],
+    sweeps: 2,
     alert_count: 4,
+    spot: "5.20" as unknown as Discovered["spot"],
+    dp_status: "ok",
     sector: "Technology",
+    scored_at: new Date(NOW_MS).toISOString(),
     latest_alert_at: new Date(NOW_MS - 15 * 60_000).toISOString(),
-    hit: {
-      signal_type: "deep_conviction_flow",
-      tier: 1,
-      score: "0.85" as unknown as Discovered["hit"]["score"],
-      evidence: {
-        direction: "long",
-        total_premium: "1500000",
-        qualifying_alerts: 4,
-        top_strike: "55",
-        top_option_type: "call",
-        top_expiry: "2026-09-18",
-        top_ask_side_ratio: "0.92",
-      },
-      freshness: "live",
-    },
     ...overrides,
   };
 }
 
 describe("DiscoveredCard", () => {
-  it("renders ticker, sector, signal row, and DISCOVERED badge", () => {
+  it("renders the edge-quality score and 5-factor breakdown", () => {
     render(<DiscoveredCard candidate={makeDiscovered()} nowMs={NOW_MS} />);
-
-    expect(screen.getByText("GFS")).toBeTruthy();
-    expect(screen.getByText("Technology")).toBeTruthy();
-    expect(screen.getByText(/Conviction Flow/i)).toBeTruthy();
+    expect(screen.getByText("ZAAA")).toBeTruthy();
+    expect(screen.getByText("78.5")).toBeTruthy();
+    expect(screen.getByText(/ACC/)).toBeTruthy(); // DP direction badge
+    expect(screen.getByText(/80/)).toBeTruthy(); // DP strength
+    expect(screen.getByText(/2d/)).toBeTruthy(); // sustained days
+    expect(screen.getByText(/✓/)).toBeTruthy(); // confluence
     expect(screen.getByText("DISCOVERED")).toBeTruthy();
   });
 
   it("uses bias-tinted color on the ticker", () => {
     render(<DiscoveredCard candidate={makeDiscovered()} nowMs={NOW_MS} />);
-    const ticker = screen.getByText("GFS");
+    const ticker = screen.getByText("ZAAA");
     expect((ticker as HTMLElement).style.color).toContain("--positive");
+  });
+
+  it("shows DP N/A when dp_status is degraded", () => {
+    render(
+      <DiscoveredCard
+        candidate={makeDiscovered({
+          dp_status: "degraded",
+          dp_direction: "NO_DATA",
+        })}
+        nowMs={NOW_MS}
+      />,
+    );
+    expect(screen.getByText(/DP N\/A/i)).toBeTruthy();
   });
 
   it("shows alert count and last-seen in the footer", () => {
     render(<DiscoveredCard candidate={makeDiscovered()} nowMs={NOW_MS} />);
-    // "4 alerts" also appears in the SignalRow line — match the footer's combined
-    // "N alerts · last … ago" string instead.
     expect(screen.getByText(/4 alerts · last 15m ago/)).toBeTruthy();
   });
 
@@ -81,22 +92,22 @@ describe("DiscoveredCard", () => {
   });
 
   it("+ Watchlist button calls addTicker then rescan with the ticker's sector", async () => {
-    vi.mocked(api.addTicker).mockResolvedValue({ ok: true, ticker: "GFS" });
+    vi.mocked(api.addTicker).mockResolvedValue({ ok: true, ticker: "ZAAA" });
     vi.mocked(api.rescan).mockResolvedValue({
       job_id: "j1",
       status: "queued",
     } as unknown as Awaited<ReturnType<typeof api.rescan>>);
 
     render(<DiscoveredCard candidate={makeDiscovered()} nowMs={NOW_MS} />);
-    fireEvent.click(screen.getByRole("button", { name: /Add GFS/i }));
+    fireEvent.click(screen.getByRole("button", { name: /Add ZAAA/i }));
 
     await waitFor(() => {
       expect(api.addTicker).toHaveBeenCalledWith({
-        ticker: "GFS",
+        ticker: "ZAAA",
         sector: "Technology",
         notes: expect.stringMatching(/discovery/i),
       });
-      expect(api.rescan).toHaveBeenCalledWith("GFS");
+      expect(api.rescan).toHaveBeenCalledWith("ZAAA");
     });
     expect(await screen.findByText("✓ added")).toBeTruthy();
   });
@@ -129,7 +140,7 @@ describe("DiscoveredCard", () => {
     vi.mocked(api.addTicker).mockRejectedValue(new Error("conflict"));
 
     render(<DiscoveredCard candidate={makeDiscovered()} nowMs={NOW_MS} />);
-    fireEvent.click(screen.getByRole("button", { name: /Add GFS/i }));
+    fireEvent.click(screen.getByRole("button", { name: /Add ZAAA/i }));
 
     expect(await screen.findByText("✗ failed")).toBeTruthy();
     expect(api.rescan).not.toHaveBeenCalled();

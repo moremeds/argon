@@ -71,24 +71,40 @@ class ScannerResponse(BaseModel):
 
 
 class DiscoveryCandidate(BaseModel):
-    """Non-watchlist ticker surfaced by the market-wide flow-alerts feed.
+    """Non-watchlist ticker scored by the edge-quality model (premium-free).
 
-    DCF-only — the deeper signals (DP, EIC, GEX) need per-ticker context that
-    requires a deep scan. Promote to the watchlist to get those.
+    Replaces the prior DCF-only shape. Dark-pool direction/strength/sustained +
+    options↔DP confluence are surfaced per card. EIC/GEX still need a deep scan
+    (promote to the watchlist).
     """
 
     ticker: str
-    hit: ScannerSignalHit
     bias: Literal["bullish", "bearish", "neutral", "mixed"]
     bias_strength: Literal["strong", "moderate", "weak"] | None = None
-    alert_count: int
+    direction: Literal["long", "short"] | None = None
+    score: Decimal
+    score_model: str
+    score_breakdown: dict[str, Any] = {}
+    dp_direction: (
+        Literal["ACCUMULATION", "DISTRIBUTION", "NEUTRAL", "NO_DATA"] | None
+    ) = None
+    dp_strength: Decimal | None = None
+    dp_sustained_days: int = 0
+    confluence: bool = False
+    vol_oi: Decimal | None = None
+    sweeps: int = 0
+    alert_count: int = 0
+    spot: Decimal | None = None
+    dp_status: str | None = None
     sector: str | None = None
+    scored_at: datetime | None = None
     latest_alert_at: datetime | None = None
 
 
 class DiscoveryResponse(BaseModel):
     candidates: list[DiscoveryCandidate]
     fetched_at: datetime
-    source: Literal["market_wide_flow_alerts"] = "market_wide_flow_alerts"
+    scored_at: datetime | None = None
+    source: Literal["scanner_candidate_snapshots"] = "scanner_candidate_snapshots"
     alerts_pulled: int
     earnings_unknown_dropped: int = 0

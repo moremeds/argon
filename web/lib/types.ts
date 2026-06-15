@@ -1178,7 +1178,7 @@ export interface paths {
         };
         /**
          * Get Scanner Discover
-         * @description Pull market-wide flow alerts, run DCF per ticker, exclude watchlist, top-N.
+         * @description Thin read of the latest persisted discovery snapshot (compute is the job).
          */
         get: operations["get_scanner_discover_api_scanner_discover_get"];
         put?: never;
@@ -2255,15 +2255,15 @@ export interface components {
         };
         /**
          * DiscoveryCandidate
-         * @description Non-watchlist ticker surfaced by the market-wide flow-alerts feed.
+         * @description Non-watchlist ticker scored by the edge-quality model (premium-free).
          *
-         *     DCF-only — the deeper signals (DP, EIC, GEX) need per-ticker context that
-         *     requires a deep scan. Promote to the watchlist to get those.
+         *     Replaces the prior DCF-only shape. Dark-pool direction/strength/sustained +
+         *     options↔DP confluence are surfaced per card. EIC/GEX still need a deep scan
+         *     (promote to the watchlist).
          */
         DiscoveryCandidate: {
             /** Ticker */
             ticker: string;
-            hit: components["schemas"]["ScannerSignalHit"];
             /**
              * Bias
              * @enum {string}
@@ -2271,10 +2271,53 @@ export interface components {
             bias: "bullish" | "bearish" | "neutral" | "mixed";
             /** Bias Strength */
             bias_strength?: ("strong" | "moderate" | "weak") | null;
-            /** Alert Count */
+            /** Direction */
+            direction?: ("long" | "short") | null;
+            /** Score */
+            score: string;
+            /** Score Model */
+            score_model: string;
+            /**
+             * Score Breakdown
+             * @default {}
+             */
+            score_breakdown: {
+                [key: string]: unknown;
+            };
+            /** Dp Direction */
+            dp_direction?: ("ACCUMULATION" | "DISTRIBUTION" | "NEUTRAL" | "NO_DATA") | null;
+            /** Dp Strength */
+            dp_strength?: string | null;
+            /**
+             * Dp Sustained Days
+             * @default 0
+             */
+            dp_sustained_days: number;
+            /**
+             * Confluence
+             * @default false
+             */
+            confluence: boolean;
+            /** Vol Oi */
+            vol_oi?: string | null;
+            /**
+             * Sweeps
+             * @default 0
+             */
+            sweeps: number;
+            /**
+             * Alert Count
+             * @default 0
+             */
             alert_count: number;
+            /** Spot */
+            spot?: string | null;
+            /** Dp Status */
+            dp_status?: string | null;
             /** Sector */
             sector?: string | null;
+            /** Scored At */
+            scored_at?: string | null;
             /** Latest Alert At */
             latest_alert_at?: string | null;
         };
@@ -2287,12 +2330,14 @@ export interface components {
              * Format: date-time
              */
             fetched_at: string;
+            /** Scored At */
+            scored_at?: string | null;
             /**
              * Source
-             * @default market_wide_flow_alerts
+             * @default scanner_candidate_snapshots
              * @constant
              */
-            source: "market_wide_flow_alerts";
+            source: "scanner_candidate_snapshots";
             /** Alerts Pulled */
             alerts_pulled: number;
             /**
@@ -9214,7 +9259,6 @@ export interface operations {
         parameters: {
             query?: {
                 limit?: number;
-                alerts_limit?: number;
             };
             header?: never;
             path?: never;
