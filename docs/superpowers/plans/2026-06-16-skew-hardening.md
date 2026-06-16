@@ -77,10 +77,16 @@ regime-mismatch case, keep borrow/earnings); migration idempotency.
 **Files**
 - `src/uw_scan/worker/jobs/skew_analytics.py` — `skew_markout_refresh()` wrapper: ensure
   the backfill window is covered, then `run_skew_markout`. Idempotent.
-- `src/uw_scan/worker/scheduler.py` — register weekly (e.g. Sun 19:00 ET) after the nightly
-  rollup, pinned to `uw-0` via the existing `_should_schedule_*` single-flight precedent.
-- Manual trigger to light it up immediately without waiting for the cron: add a `jobs`
-  enqueue path (mirror existing `/jobs` kinds) **or** a `scripts/` one-off. Decide in M2.
+- `src/uw_scan/worker/scheduler.py` — **as built:** registered weekdays at 18:45 ET
+  (`45 18 * * 0-4`), immediately after the 18:30 nightly skew rollup, in the same
+  `if "massive" in groups → if _is_primary_worker` block as the rollup (single-process on
+  massive-0; `max_instances=1, coalesce=True`). Daily-after-rollup beats the originally
+  sketched weekly cadence: verdicts then reflect each day's fresh snapshot.
+- **Manual-trigger decision:** none added. The cron is the real path; verdicts repopulate at
+  the next 18:45 ET run. The sibling `skew_analytics_backfill` (a maintenance op) also has no
+  script/`/jobs` entrypoint, so a markout-only trigger would be inconsistent surface (YAGNI).
+  Deploy note: after migration 076 wipes the verdict store, leans read NEUTRAL until that
+  first post-deploy markout run — strictly better than the pre-hardening empty-forever state.
 
 **Tests** — scheduler registration single-flight; job wrapper integration (seeded snapshots
 → verdicts written).
