@@ -149,10 +149,17 @@ def skew_analytics_backfill(
     """Compute snapshots across [start, end] (inclusive) for the Tier-1 set.
 
     Historical rows have NO point-in-time earnings (next_earnings_date=None ->
-    earnings_gate='unknown') and reuse CURRENT borrow (documented limitation,
-    spec §11). Neither feeds the markout's directional separation (which buckets
-    on deviation/drive/regime/asset_class and the current borrow_flag), so the
-    Tier-1 verdicts are not corrupted by the absence of PIT earnings.
+    earnings_gate='unknown'); earnings only gates the LIVE lean, so absent PIT
+    earnings does not corrupt the verdicts.
+
+    Borrow is the honest caveat: rows reuse CURRENT borrow (PIT borrow history is
+    unavailable, spec §11). The markout buckets on (asset_class, deviation, drive)
+    and filters its borrow-clean subset on this current borrow_flag — so a verdict's
+    'borrow-clean' label is an APPROXIMATION, not a point-in-time guarantee. Since
+    borrow fee is the dominant confound for option-signal predictability
+    (Muravyev-Pearson-Pollet 2025), verdict confidence is capped at 'med'
+    (_confidence) and the live lean basis states the limitation. Closing this needs a
+    point-in-time borrow source, which we do not have.
     """
     if tickers is None:
         tickers = [c.ticker for c in repo.list_watchlist_cards()]

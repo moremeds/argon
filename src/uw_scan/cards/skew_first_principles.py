@@ -341,8 +341,9 @@ def resolve_directional_lean(
         return neutral("unrecognized verdict — neutral")
     basis = (
         f"validated — {deviation_class} {asset_class} bucket separated {sep_txt} "
-        f"(survived the per-quarter catastrophic gate); borrow normal → edge not a "
-        f"borrow artifact; current regime {regime}"
+        f"(survived the per-quarter catastrophic gate); borrow normal today "
+        f"(point-in-time borrow history unavailable — borrow-clean subset is "
+        f"approximate, so this is a tilt, not a forecast); current regime {regime}"
     )
     return {
         "lean": lean,

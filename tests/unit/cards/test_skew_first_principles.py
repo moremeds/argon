@@ -239,9 +239,11 @@ def test_build_read_includes_lean_and_summary():
     # Clean prose: "put-skew" not "put_skew", "drive: " not "drive=".
     assert "put-skew" in read["summary_line"]
     assert "drive: PANIC" in read["summary_line"]
-    # Lean basis de-coded: arrow, not "=>".
-    assert "→" in read["directional_lean"]["basis"]
-    assert "=>" not in read["directional_lean"]["basis"]
+    # Lean basis states the borrow honesty caveat (#3): borrow-clean is approximate
+    # (PIT borrow history unavailable), so the lean is a tilt, not a forecast.
+    _basis = read["directional_lean"]["basis"]
+    assert "approximate" in _basis and "tilt" in _basis
+    assert "=>" not in _basis
     # Scannable breakdown: 4 explained bullets, one per read component, no direction.
     bullets = read["summary_bullets"]
     assert [b["label"].split(" — ")[0] for b in bullets] == [

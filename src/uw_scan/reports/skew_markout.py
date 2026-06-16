@@ -120,8 +120,13 @@ def _forward_value_at(
 
 
 def _confidence(n: int, sep: float) -> str:
-    if n >= 60 and abs(sep) >= 0.02:
-        return "high"
+    """Capped at 'med' on purpose. The borrow-clean subset is filtered on the
+    snapshot's borrow_flag, which for backfilled dates is CURRENT borrow applied to
+    historical anchors (point-in-time borrow history is unavailable — spec §11). So
+    "edge is not a borrow artifact" is an approximation, not a clean point-in-time
+    claim, and the borrow fee is the dominant confound for option-signal return
+    predictability (Muravyev-Pearson-Pollet 2025). A directional skew lean is a tilt,
+    not a high-conviction forecast (design §11 'lean over-trust'); never emit 'high'."""
     if n >= 25 and abs(sep) >= 0.01:
         return "med"
     return "low"
