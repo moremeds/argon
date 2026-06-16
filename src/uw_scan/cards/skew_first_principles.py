@@ -71,8 +71,14 @@ def classify_deviation(
 
 
 def classify_skew_term(front_rr, back_rr, *, eps: float = 0.005) -> str:
+    """Term structure of 25Δ RR: front (nearest) vs back (furthest) expiry.
+
+    Returns 'unknown' when a second expiry is missing — most ticker-dates carry a
+    single expiry, and one point is NOT evidence of a flat term structure.
+    Conflating the two would poison the markout-ready snapshot store: a later
+    term-structure markout could not tell 'no data' from 'genuinely flat'."""
     if front_rr is None or back_rr is None:
-        return "flat"
+        return "unknown"
     d = float(front_rr) - float(back_rr)
     if d > eps:
         return "front_steep"

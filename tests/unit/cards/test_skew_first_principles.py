@@ -58,8 +58,11 @@ def test_classify_deviation(z, pct, expected):
 def test_classify_skew_term():
     assert sk.classify_skew_term(0.02, 0.01) == "front_steep"
     assert sk.classify_skew_term(0.01, 0.02) == "back_steep"
-    assert sk.classify_skew_term(0.010, 0.010) == "flat"
-    assert sk.classify_skew_term(0.01, None) == "flat"
+    assert sk.classify_skew_term(0.010, 0.010) == "flat"  # two expiries, genuinely flat
+    # A single expiry on file (back missing) is NOT flat — it's unknown. Conflating
+    # the two would poison the markout-ready snapshot store.
+    assert sk.classify_skew_term(0.01, None) == "unknown"
+    assert sk.classify_skew_term(None, None) == "unknown"
 
 
 def test_classify_drive():

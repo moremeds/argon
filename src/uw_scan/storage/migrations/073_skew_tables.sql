@@ -15,7 +15,7 @@ CREATE TABLE IF NOT EXISTS uw_scan.skew_analytics_snapshot (
   rr_z_180d          NUMERIC,                      -- deviation vs own 180d baseline
   rr_pct_252d        NUMERIC,                      -- percentile vs own 252d baseline (0-100)
   deviation_class    TEXT,                         -- RICH | CHEAP | NORMAL
-  skew_term_class    TEXT,                         -- front_steep | back_steep | flat
+  skew_term_class    TEXT,                         -- front_steep | back_steep | flat | unknown (single expiry)
   front_rr           NUMERIC,
   back_rr            NUMERIC,
   rho_spotvol_63d    NUMERIC,

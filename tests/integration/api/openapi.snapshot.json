@@ -13322,7 +13322,7 @@
             "title": "Rr Z 180D"
           },
           "skew_term_class": {
-            "default": "flat",
+            "default": "unknown",
             "title": "Skew Term Class",
             "type": "string"
           },
