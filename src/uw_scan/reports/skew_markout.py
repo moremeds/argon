@@ -7,10 +7,15 @@ Two hypotheses (spec §7 step 2):
   SECONDARY — directional, borrow-conditioned: do buckets separate forward STOCK
               returns on the borrow-clean subset? Gated into TRADABLE_* verdicts.
 
-A bucket (asset_class, deviation_class, drive_class, regime) earns TRADABLE_BULL/
+A bucket (asset_class, deviation_class, drive_class) earns TRADABLE_BULL/
 TRADABLE_BEAR only if mean T+20 forward return on the borrow-clean subset is
 material (|mean| >= sep_threshold), n >= min_n, and survives the per-TIME-WINDOW
 catastrophic-degradation gate. Otherwise NONE. NONE/absent => NEUTRAL lean.
+
+Regime left the bucket key (migration 076): with ~13mo of data it fragmented the
+sample so no bucket cleared n>=min_n. Regime robustness now rests entirely on the
+quarterly catastrophic-degradation gate; the canonical CRI level is the live regime
+tag, not a backtest slicer. See docs/superpowers/plans/2026-06-16-skew-hardening.md.
 
 Forward horizons are TRADING-day offsets (the nth row after the anchor in the
 per-ticker trading series), NOT calendar days.
@@ -156,7 +161,6 @@ def run_skew_markout(
                             s["asset_class"],
                             s["deviation_class"],
                             s["drive_class"],
-                            s["regime"],
                         ),
                         "clean": s.get("borrow_flag") != "hard_to_borrow",
                     }
@@ -194,7 +198,7 @@ def run_skew_markout(
     today = _date.today()
     written = 0
     for key, obs in buckets.items():
-        asset_class, deviation_class, drive_class, regime = key
+        asset_class, deviation_class, drive_class = key
         clean = [o for o in obs if o["clean"]]
         n = len(clean)
         sep = sum(o["fwd"] for o in clean) / n if n else 0.0
@@ -210,7 +214,6 @@ def run_skew_markout(
             asset_class=asset_class,
             deviation_class=deviation_class,
             drive_class=drive_class,
-            regime=regime,
             verdict=verdict,
             confidence=_confidence(n, sep) if verdict != "NONE" else "low",
             forward_sep=sep,

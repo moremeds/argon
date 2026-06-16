@@ -70,7 +70,6 @@ def test_skew_endpoint_surfaces_seeded_verdict(client: TestClient, repo):
         asset_class=first["asset_class"],
         deviation_class=first["deviation_class"],
         drive_class=first["read"]["drive"] or first["drive_class"],
-        regime=first["regime"],
         verdict="TRADABLE_BEAR",
         confidence="med",
         forward_sep=Decimal("-0.02"),

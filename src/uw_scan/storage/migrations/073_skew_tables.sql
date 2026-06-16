@@ -28,7 +28,7 @@ CREATE TABLE IF NOT EXISTS uw_scan.skew_analytics_snapshot (
   borrow_fee_rate    NUMERIC,
   days_to_cover      NUMERIC,
   earnings_gate      TEXT,                         -- block | pass | unknown
-  regime             TEXT,                         -- HIGH_VOL | LOW_VOL | UNKNOWN (market)
+  regime             TEXT,                         -- canonical CRI level (live) | SPY-RV HIGH_VOL/LOW_VOL/UNKNOWN fallback; display tag only (not a verdict key as of migration 076)
   directional_lean   TEXT,                         -- BULLISH_TILT | BEARISH_TILT | NEUTRAL
   lean_confidence    TEXT,                         -- low | med | high
   lean_basis         TEXT,                         -- why the lean is what it is

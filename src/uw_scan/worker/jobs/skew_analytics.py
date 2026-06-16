@@ -24,10 +24,14 @@ def _build_for_date(
     next_earnings_date: _date | None,
     positioning: dict | None,
     exposure_rows: list[dict] | None = None,
+    regime: str | None = None,
 ) -> dict | None:
     # positioning is passed in (fetched once per ticker by the caller) — it is the
     # latest snapshot regardless of market_date (current-borrow limitation, spec §11),
     # so re-fetching per date would be wasteful and identical.
+    # `regime` is the canonical CRI tag (live/nightly); the backfill passes None so
+    # historical rows use the self-contained SPY-RV fallback (regime is display-only,
+    # not a markout input — it left the verdict bucket key in migration 076).
     rr = [r for r in full_rr if r["market_date"] <= market_date]
     rv = [r for r in full_rv if r["market_date"] <= market_date]
     spy = [r for r in spy_rv if r["market_date"] <= market_date]
@@ -48,12 +52,12 @@ def _build_for_date(
         verdict=None,
         sector=sector,
         today=today,
+        regime=regime,
     )
     verdict = repo.get_skew_directional_verdict(
         asset_class=pre["asset_class"],
         deviation_class=pre["deviation_class"],
         drive_class=pre["drive_class"],
-        regime=pre["regime"],
     )
     return build_skew_snapshot_row(
         ticker=ticker,
@@ -68,6 +72,7 @@ def _build_for_date(
         sector=sector,
         today=today,
         exposure_rows=exposure_rows,
+        regime=regime,
     )
 
 
@@ -81,6 +86,9 @@ def nightly_skew_analytics_rollup(*, repo: Repository) -> None:
     cards = repo.list_watchlist_cards()
     today = _date.today()
     spy_rv = repo.fetch_realized_vol_history("SPY", days=400)
+    regime = (
+        repo.fetch_latest_market_regime()
+    )  # canonical CRI tag (None -> SPY-RV fallback)
     written = 0
     for card in cards:
         ticker = card.ticker
@@ -103,6 +111,7 @@ def nightly_skew_analytics_rollup(*, repo: Repository) -> None:
             next_er,
             positioning,
             exposures,
+            regime=regime,
         )
         if row is not None:
             repo.upsert_skew_analytics_snapshots([row])

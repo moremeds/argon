@@ -87,7 +87,6 @@ def test_markout_writes_bear_verdict_on_separation(repo):
         asset_class="single_name",
         deviation_class="RICH",
         drive_class="PANIC",
-        regime="HIGH_VOL",
     )
     assert v is not None
     assert v["verdict"] == "TRADABLE_BEAR"
@@ -101,6 +100,5 @@ def test_markout_none_when_below_min_n(repo):
         asset_class="single_name",
         deviation_class="RICH",
         drive_class="PANIC",
-        regime="HIGH_VOL",
     )
     assert v is not None and v["verdict"] == "NONE"

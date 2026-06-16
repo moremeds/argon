@@ -110,7 +110,6 @@ class _SkewMixin:
         asset_class: str,
         deviation_class: str,
         drive_class: str,
-        regime: str,
         verdict: str,
         confidence: str | None,
         forward_sep: Any,
@@ -119,12 +118,15 @@ class _SkewMixin:
         survives_gate: bool,
         as_of: _date,
     ) -> None:
+        # Bucket key is (asset_class, deviation_class, drive_class) — regime left the key
+        # in migration 076 (it fragmented the sample; robustness moved to the quarterly
+        # catastrophic gate). See docs/superpowers/plans/2026-06-16-skew-hardening.md.
         sql = (
             f"INSERT INTO {self._schema}.skew_directional_verdicts "
-            "(asset_class, deviation_class, drive_class, regime, verdict, confidence, "
+            "(asset_class, deviation_class, drive_class, verdict, confidence, "
             " forward_sep, n, borrow_clean, survives_gate, as_of, inserted_at) "
-            "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, now()) "
-            "ON CONFLICT (asset_class, deviation_class, drive_class, regime) DO UPDATE SET "
+            "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, now()) "
+            "ON CONFLICT (asset_class, deviation_class, drive_class) DO UPDATE SET "
             "verdict=EXCLUDED.verdict, confidence=EXCLUDED.confidence, "
             "forward_sep=EXCLUDED.forward_sep, n=EXCLUDED.n, "
             "borrow_clean=EXCLUDED.borrow_clean, survives_gate=EXCLUDED.survives_gate, "
@@ -137,7 +139,6 @@ class _SkewMixin:
                     asset_class,
                     deviation_class,
                     drive_class,
-                    regime,
                     verdict,
                     confidence,
                     forward_sep,
@@ -149,19 +150,35 @@ class _SkewMixin:
             )
 
     def get_skew_directional_verdict(
-        self, *, asset_class: str, deviation_class: str, drive_class: str, regime: str
+        self, *, asset_class: str, deviation_class: str, drive_class: str
     ) -> dict[str, Any] | None:
         sql = (
             f"SELECT * FROM {self._schema}.skew_directional_verdicts "
-            "WHERE asset_class=%s AND deviation_class=%s AND drive_class=%s AND regime=%s"
+            "WHERE asset_class=%s AND deviation_class=%s AND drive_class=%s"
         )
         with self._conn.cursor() as cur:
-            cur.execute(sql, (asset_class, deviation_class, drive_class, regime))
+            cur.execute(sql, (asset_class, deviation_class, drive_class))
             row = cur.fetchone()
             if row is None:
                 return None
             cols = [d.name for d in cur.description or []]
             return dict(zip(cols, row, strict=False))
+
+    def fetch_latest_market_regime(self) -> str | None:
+        """Canonical market regime: the latest basis='eod' CRI level
+        (cri_snapshots.cri_level, a generated column over payload->cri->level).
+        Returns None when no CRI snapshot exists — callers fall back to the
+        self-contained SPY-RV label. Unifies the skew regime tag with the app's
+        primary regime indicator instead of a local SPY-RV coin-flip."""
+        sql = (
+            f"SELECT cri_level FROM {self._schema}.cri_snapshots "
+            "WHERE basis = 'eod' AND cri_level IS NOT NULL "
+            "ORDER BY data_date DESC NULLS LAST, scanned_at DESC LIMIT 1"
+        )
+        with self._conn.cursor() as cur:
+            cur.execute(sql)
+            row = cur.fetchone()
+            return row[0] if row else None
 
     def upsert_skew_rv_reversion_verdict(
         self,

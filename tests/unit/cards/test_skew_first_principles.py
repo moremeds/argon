@@ -191,18 +191,20 @@ def test_lean_none_verdict_value_is_neutral():
     assert out["lean"] == "NEUTRAL"
 
 
-def test_lean_suppressed_when_verdict_regime_mismatches():
+def test_lean_carries_current_regime_as_context():
+    # Regime left the verdict bucket key (migration 076): it no longer gates the
+    # lean, but the validated basis still reports the current regime for context.
     out = sk.resolve_directional_lean(
         deviation_class="RICH",
         drive_class="PANIC",
         asset_class="single_name",
-        regime="LOW_VOL",
+        regime="risk_off",
         borrow_flag="normal",
         earnings_gate="pass",
-        verdict={**_verdict("TRADABLE_BEAR"), "regime": "HIGH_VOL"},
+        verdict=_verdict("TRADABLE_BEAR"),
     )
-    assert out["lean"] == "NEUTRAL"
-    assert "regime" in out["basis"].lower()
+    assert out["lean"] == "BEARISH_TILT"
+    assert "risk_off" in out["basis"]
 
 
 def test_build_read_includes_lean_and_summary():

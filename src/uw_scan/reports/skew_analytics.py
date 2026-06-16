@@ -93,8 +93,13 @@ def build_skew_snapshot_row(
     sector: str | None,
     today: _date,
     exposure_rows: list[dict] | None = None,
+    regime: str | None = None,
 ) -> dict:
-    """Pure stitch: raw series + verdict in, snapshot column dict out. No I/O."""
+    """Pure stitch: raw series + verdict in, snapshot column dict out. No I/O.
+
+    `regime` is the canonical market regime tag (latest CRI level, supplied by the
+    caller). When None, fall back to the self-contained SPY-RV label. Regime is a
+    display/context tag only — it left the verdict bucket key in migration 076."""
     rr_vals = [r.get("risk_reversal") for r in rr_series]
     rr_floats = [float(x) for x in rr_vals if x is not None]
     base = sk.compute_skew_baseline(rr_vals)
@@ -127,7 +132,7 @@ def build_skew_snapshot_row(
         if next_earnings_date is None
         else _earnings_gate(next_earnings_date=next_earnings_date, today=today)
     )
-    regime = sk.classify_market_regime(spy_rv_series)
+    regime = regime if regime else sk.classify_market_regime(spy_rv_series)
 
     lean = sk.resolve_directional_lean(
         deviation_class=deviation,
@@ -250,6 +255,9 @@ def assemble_skew_analysis(
     rv_asof = [r for r in data["rv_series"] if r["market_date"] <= market_date]
     spy_asof = [r for r in data["spy_rv"] if r["market_date"] <= market_date]
     sector = repo.fetch_watchlist_sector(t)  # threads Macro/Credit/Sector-ETF. C-6.
+    regime = (
+        repo.fetch_latest_market_regime()
+    )  # canonical CRI level (None -> SPY-RV fallback)
     # first pass with no verdict to learn the bucket keys
     pre = build_skew_snapshot_row(
         ticker=t,
@@ -263,12 +271,12 @@ def assemble_skew_analysis(
         verdict=None,
         sector=sector,
         today=today,
+        regime=regime,
     )
     verdict = repo.get_skew_directional_verdict(
         asset_class=pre["asset_class"],
         deviation_class=pre["deviation_class"],
         drive_class=pre["drive_class"],
-        regime=pre["regime"],
     )
     # Swing-DTE per-strike greeks for strike-by-delta structure detail (only consumed
     # when the lean is non-neutral). Empty list when no swing chain persisted yet.
@@ -286,6 +294,7 @@ def assemble_skew_analysis(
         sector=sector,
         today=today,
         exposure_rows=exposures,
+        regime=regime,
     )
 
     if persist:
