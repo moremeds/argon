@@ -24,7 +24,8 @@ evidence-gated `directional_lean` is *already* non-neutral (`BEARISH_TILT` / `BU
 - Structure selection follows the gated `lean` (V1's `_express_structure`), **never**
   `deviation × tail` posture alone — see correction (A) below.
 - Defined-risk only; no naked legs; **no stock-assuming overlays** (no collar) — see (C).
-- Non-index only; hard earnings block; deterministic; **persisted** to Postgres.
+- Single-names **and index ETFs** (index ETFs added post-ship — see *Post-ship updates*
+  below; originally scoped non-index); hard earnings block; deterministic; **persisted** to Postgres.
 - Strikes by target delta are sourced from a dedicated **`skew_swing_greeks`** table
   (migration 075) fed by a daily UW job (`worker/jobs/skew_swing_greeks.py`). **Real-data
   finding (2026-06-16):** the existing per-strike greek stores (`exposures_by_expiry_strike`,
@@ -80,6 +81,41 @@ un-persisted. Increment 1 turns it into a trigger:
   an effective naked short. Defined-risk, position-agnostic structures only.
 - **(D) Horizon:** phrase the product on the repo's swing semantics (1–2 week HOLD, 21–60
   DTE entry, exit before earnings), not "28–45 DTE matches T+20" — swing-HOLD ≠ swing-EXPIRY.
+
+### Post-ship updates (2026-06-16) — shipped in PR #137
+
+Increment-1 landed on `feat/skew-phase2` (8 commits, PR #137). Two changes were made *after*
+the hardening review above and are authoritative over the "non-index only" constraint and the
+basis layout described earlier.
+
+**Index ETFs now get the structure block (reverses "non-index only").** The original exclusion
+was a *product* call ("indices already get cockpit chains"), not an empirical one. `index_macro`
+is handled in three independent layers, and the reason it was treated differently varies by
+layer — this is the reference for "why isn't index here?":
+
+| Layer | index_macro? | Reason |
+|---|---|---|
+| Directional-lean verdict (produces the lean) | **included** | Research-validated — e.g. QQQ `TRADABLE_BEAR` from the `index_macro / NORMAL / STRUCTURAL / HIGH_VOL` bucket, n=181. |
+| RV mean-reversion **trigger** (1b) | **skipped** | Empirical — index skew is structural hedging demand; ΔRR ≈ +0.001, does **not** revert (this doc's markout table, "index" row). |
+| Strike-by-delta **structure block** (1a) | **now included** | Was excluded for cockpit-redundancy (a product call), not because the edge is absent. Since the lean is already research-validated, index ETFs now earn the same defined-risk expression as single-names. |
+
+- The `asset_class != "index_macro"` guard was dropped in `build_skew_snapshot_row`
+  (`reports/skew_analytics.py`); the `index_macro` skip was removed from
+  `worker/jobs/skew_swing_greeks.py`. Every watchlist `index_macro` ticker is an optionable
+  ETF — **DIA, GLD, IWM, QQQ, SLV, SPY, TLT** — and UW `/greeks` works on all of them. A future
+  true cash index (SPX/VIX) degrades gracefully to `no_chain` via the per-ticker try/except.
+- Verified live: QQQ → `PUT-DEBIT-SPREAD · 31DTE` (BUY PUT 709 Δ−0.25 / SELL PUT 674 Δ−0.12);
+  AMD (single-name) still `call_debit_spread`; NVDA (NEUTRAL) shows none. The genuine swing job
+  populated **13,368 rows / 98 tickers** via the real worker path.
+
+**EVIDENCE-panel polish.** In the Signal Detail card the leading `validated` status is lifted
+out of the basis prose into a right-aligned badge on the confidence row, and the gated-lean
+reason is split into two lines at its semicolon. NEUTRAL bases (plain reason strings, some
+containing " — ") are left intact — the badge triggers only on the literal `validated — ` prefix
+(`web/components/stock/panels/SkewSignalDetail.tsx`).
+
+**Migrations:** 074 (`skew_rv_reversion_verdicts`) + 075 (`skew_swing_greeks`), both idempotent.
+**Verification:** 63 skew backend tests, 417 web vitest, `ruff` / `eslint` / `tsc` clean, 0 console errors.
 
 ## The core reframe
 
