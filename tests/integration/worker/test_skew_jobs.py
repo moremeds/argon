@@ -3,9 +3,11 @@
 from __future__ import annotations
 
 from datetime import date, timedelta
+from decimal import Decimal
 
 import pytest
 
+from uw_scan import models
 from uw_scan.worker.jobs.skew_analytics import (
     nightly_skew_analytics_rollup,
     skew_analytics_backfill,
@@ -62,3 +64,38 @@ def test_backfill_writes_multiple_dates(repo):
     assert written >= 1
     rows = repo.fetch_skew_analytics_history("AAPL", days=4000)
     assert len(rows) >= 1
+
+
+def test_swing_greeks_refresh_persists_singlename_skips_index(repo, monkeypatch):
+    import uw_scan.worker.jobs.skew_swing_greeks as job
+
+    with repo.conn.cursor() as cur:
+        cur.execute(
+            "INSERT INTO uw_scan.watchlist (ticker, sector) "
+            "VALUES ('NVDA','Tech'),('SPY','Macro') ON CONFLICT (ticker) DO NOTHING"
+        )
+    repo.conn.commit()
+    expiry = date(2026, 8, 1)
+    monkeypatch.setattr(job, "fetch_option_contracts", lambda *a, **k: [])
+    monkeypatch.setattr(job, "pick_target_expiries", lambda *a, **k: [expiry])
+    monkeypatch.setattr(
+        job,
+        "fetch_greeks",
+        lambda *a, **k: [
+            models.GreeksRow(
+                date=expiry,
+                expiry=expiry,
+                strike=Decimal("100"),
+                call_delta=Decimal("0.40"),
+                put_delta=Decimal("-0.30"),
+            )
+        ],
+    )
+    # The fixture pre-seeds the full watchlist; the stub returns one strike per
+    # non-index ticker, so n >= 1 and NVDA specifically gets persisted.
+    n = job.skew_swing_greeks_refresh(repo=repo, client=None)
+    assert n >= 1
+    got = repo.fetch_latest_swing_greeks_by_strike("NVDA")
+    assert {r["strike"] for r in got} == {Decimal("100")}
+    # SPY is index_macro -> skipped entirely (no swing rows persisted)
+    assert repo.fetch_latest_swing_greeks_by_strike("SPY") == []

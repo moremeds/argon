@@ -50,6 +50,7 @@ from uw_scan.worker.jobs.positioning_jobs import positioning_refresh_once
 from uw_scan.worker.jobs.rates_jobs import rates_fred_ingest_job
 from uw_scan.worker.jobs.rescan_loop import rescan_tick
 from uw_scan.worker.jobs.skew_analytics import nightly_skew_analytics_rollup
+from uw_scan.worker.jobs.skew_swing_greeks import skew_swing_greeks_refresh
 from uw_scan.worker.jobs.trade_insight_outcome_backfill import (
     trade_insight_outcome_backfill_once,
 )
@@ -453,6 +454,16 @@ def main() -> int:
                 with _repo(settings) as repo:
                     cockpit_daily_snapshot(repo=repo, client=uw, settings=settings)
 
+    def _skew_swing_greeks_refresh() -> None:
+        with _external_api_recorder(settings) as recorder:
+            with _uw_client(
+                settings,
+                telemetry_recorder=recorder,
+                job_name="skew_swing_greeks",
+            ) as uw:
+                with _repo(settings) as repo:
+                    skew_swing_greeks_refresh(repo=repo, client=uw)
+
     def _trade_insights_ai_tick_any() -> None:
         trade_insights_ai_tick(settings, provider_filter=None)
 
@@ -828,6 +839,17 @@ def main() -> int:
                 ),
                 id="cockpit_daily_snapshot",
                 name="Cockpit 6-dim matrix daily snapshot",
+            )
+            # Skew swing-DTE greeks at 17:30 ET — UW-bound, single-names only, before
+            # the 18:30 skew rollup so the strike-by-delta structure detail has a fresh
+            # swing chain. Primary-uw-only to avoid duplicate UW spend across shards.
+            sched.add_job(
+                _skew_swing_greeks_refresh,
+                CronTrigger.from_crontab("30 17 * * 0-4", timezone=settings.rth_tz),
+                id="skew_swing_greeks_refresh",
+                name="Skew swing-DTE greeks refresh",
+                max_instances=1,
+                coalesce=True,
             )
             # Regime / GEX scan — refreshes gex_snapshots every N minutes.
             # Primary-uw-only to avoid duplicate UW spend across shards.

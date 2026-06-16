@@ -224,6 +224,66 @@ class _SkewMixin:
             cols = [d.name for d in cur.description or []]
             return dict(zip(cols, row, strict=False))
 
+    def upsert_skew_swing_greeks(
+        self, ticker: str, market_date: _date, rows: Iterable[dict[str, Any]]
+    ) -> int:
+        """Replace the swing-expiry per-strike greeks for (ticker, market_date).
+        rows: dicts with expiry, strike, dte, call_delta, put_delta. Delete-then-insert
+        so a re-run drops strikes that left the chain (clean daily snapshot)."""
+        t = ticker.upper()
+        rows = list(rows)
+        with self._conn.cursor() as cur:
+            cur.execute(
+                f"DELETE FROM {self._schema}.skew_swing_greeks "
+                "WHERE ticker=%s AND market_date=%s",
+                (t, market_date),
+            )
+            if not rows:
+                return 0
+            cur.executemany(
+                f"INSERT INTO {self._schema}.skew_swing_greeks "
+                "(ticker, market_date, expiry, strike, dte, call_delta, put_delta, "
+                " inserted_at) VALUES (%s, %s, %s, %s, %s, %s, %s, now()) "
+                "ON CONFLICT (ticker, market_date, expiry, strike) DO UPDATE SET "
+                "dte=EXCLUDED.dte, call_delta=EXCLUDED.call_delta, "
+                "put_delta=EXCLUDED.put_delta, inserted_at=now()",
+                [
+                    (
+                        t,
+                        market_date,
+                        r["expiry"],
+                        r["strike"],
+                        r.get("dte"),
+                        r.get("call_delta"),
+                        r.get("put_delta"),
+                    )
+                    for r in rows
+                ],
+            )
+        return len(rows)
+
+    def fetch_latest_swing_greeks_by_strike(
+        self, ticker: str, *, dte_lo: int = 21, dte_hi: int = 60
+    ) -> list[dict[str, Any]]:
+        """Swing-expiry per-strike greeks (incl. call/put delta) for the ticker's most
+        recent market_date, within [dte_lo, dte_hi]. Source for skew strike-by-delta
+        structure selection. Ordered by expiry, strike ASC. Empty list if none."""
+        sql = (
+            "SELECT expiry, strike, dte, call_delta, put_delta "
+            f"FROM {self._schema}.skew_swing_greeks "
+            "WHERE ticker = %s "
+            "  AND market_date = ("
+            f"    SELECT max(market_date) FROM {self._schema}.skew_swing_greeks "
+            "      WHERE ticker = %s) "
+            "  AND dte IS NOT NULL AND dte BETWEEN %s AND %s "
+            "ORDER BY expiry ASC, strike ASC"
+        )
+        t = ticker.upper()
+        with self._conn.cursor() as cur:
+            cur.execute(sql, (t, t, dte_lo, dte_hi))
+            cols = [d.name for d in cur.description or []]
+            return [dict(zip(cols, row, strict=False)) for row in cur.fetchall()]
+
     def fetch_latest_next_earnings_date(self, ticker: str) -> _date | None:
         sql = (
             f"SELECT next_earnings_date FROM {self._schema}.flow_events "

@@ -271,9 +271,9 @@ def assemble_skew_analysis(
         drive_class=pre["drive_class"],
         regime=pre["regime"],
     )
-    # Live per-strike greeks for strike-by-delta structure detail (only consumed when
-    # the lean is non-neutral). max(run_id) chain; empty list when none persisted.
-    exposures = repo.fetch_latest_exposures_by_strike(t, dte_max=70)
+    # Swing-DTE per-strike greeks for strike-by-delta structure detail (only consumed
+    # when the lean is non-neutral). Empty list when no swing chain persisted yet.
+    exposures = repo.fetch_latest_swing_greeks_by_strike(t)
     row = build_skew_snapshot_row(
         ticker=t,
         market_date=market_date,

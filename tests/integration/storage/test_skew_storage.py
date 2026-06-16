@@ -7,8 +7,6 @@ from decimal import Decimal
 
 import pytest
 
-from uw_scan import models
-
 
 @pytest.fixture
 def repo(seeded_db_empty_cards):
@@ -174,68 +172,103 @@ def test_rv_reversion_verdict_roundtrip(repo):
     assert got2["verdict"] == "NONE"
 
 
-def test_fetch_latest_exposures_by_strike(repo):
-    run_id = repo.insert_scan_run(ticker="QCOM")
+def test_swing_greeks_roundtrip(repo):
     rows = [
-        models.GreekExposureRow(
-            date=date(2026, 6, 15),
-            expiry=date(2026, 7, 18),
-            strike=Decimal("95"),
-            dte=33,
-            call_delta=Decimal("0.62"),
-            put_delta=Decimal("-0.38"),
-        ),
-        models.GreekExposureRow(
-            date=date(2026, 6, 15),
-            expiry=date(2026, 7, 18),
-            strike=Decimal("90"),
-            dte=33,
-            call_delta=Decimal("0.74"),
-            put_delta=Decimal("-0.26"),
-        ),
+        {
+            "expiry": date(2026, 7, 18),
+            "strike": Decimal("95"),
+            "dte": 33,
+            "call_delta": Decimal("0.62"),
+            "put_delta": Decimal("-0.38"),
+        },
+        {
+            "expiry": date(2026, 7, 18),
+            "strike": Decimal("90"),
+            "dte": 33,
+            "call_delta": Decimal("0.74"),
+            "put_delta": Decimal("-0.26"),
+        },
     ]
-    repo.insert_greek_exposure_rows(run_id, "QCOM", rows)
+    n = repo.upsert_skew_swing_greeks("QCOM", date(2026, 6, 16), rows)
     repo.conn.commit()
-    got = repo.fetch_latest_exposures_by_strike("QCOM", dte_max=70)
-    assert len(got) == 2
+    assert n == 2
+    got = repo.fetch_latest_swing_greeks_by_strike("QCOM")
     assert {r["strike"] for r in got} == {Decimal("95"), Decimal("90")}
     assert all("put_delta" in r and "dte" in r for r in got)
 
 
-def test_fetch_latest_exposures_reads_only_the_newest_run(repo):
-    ex = date(2026, 7, 18)
-    # two runs on the SAME market_date — the later run (higher run_id) wins.
-    old = repo.insert_scan_run(ticker="ABCD")
-    repo.insert_greek_exposure_rows(
-        old,
+def test_swing_greeks_filters_dte_window_and_latest_date(repo):
+    # older date present but only the latest market_date is read; out-of-[21,60] excluded.
+    repo.upsert_skew_swing_greeks(
         "ABCD",
+        date(2026, 6, 10),
         [
-            models.GreekExposureRow(
-                date=date(2026, 6, 15),
-                expiry=ex,
-                strike=Decimal("70"),
-                dte=33,
-                put_delta=Decimal("-0.20"),
-            )
+            {
+                "expiry": date(2026, 6, 20),
+                "strike": Decimal("50"),
+                "dte": 10,
+                "put_delta": Decimal("-0.20"),
+            }
         ],
     )
-    new = repo.insert_scan_run(ticker="ABCD")
-    repo.insert_greek_exposure_rows(
-        new,
+    repo.upsert_skew_swing_greeks(
         "ABCD",
+        date(2026, 6, 16),
         [
-            models.GreekExposureRow(
-                date=date(2026, 6, 15),
-                expiry=ex,
-                strike=Decimal("95"),
-                dte=33,
-                put_delta=Decimal("-0.26"),
-            )
+            {
+                "expiry": date(2026, 7, 20),
+                "strike": Decimal("95"),
+                "dte": 34,
+                "put_delta": Decimal("-0.26"),
+            },
+            {
+                "expiry": date(2026, 8, 30),
+                "strike": Decimal("80"),
+                "dte": 75,
+                "put_delta": Decimal("-0.10"),
+            },
+        ],
+    )  # 75 DTE -> out of window
+    repo.conn.commit()
+    got = repo.fetch_latest_swing_greeks_by_strike("ABCD")
+    assert {r["strike"] for r in got} == {Decimal("95")}
+
+
+def test_swing_greeks_delete_then_insert_drops_stale(repo):
+    repo.upsert_skew_swing_greeks(
+        "EFGH",
+        date(2026, 6, 16),
+        [
+            {
+                "expiry": date(2026, 7, 18),
+                "strike": Decimal("95"),
+                "dte": 33,
+                "put_delta": Decimal("-0.26"),
+            },
+            {
+                "expiry": date(2026, 7, 18),
+                "strike": Decimal("88"),
+                "dte": 33,
+                "put_delta": Decimal("-0.13"),
+            },
+        ],
+    )
+    # re-run same date with only one strike -> stale 88 dropped
+    repo.upsert_skew_swing_greeks(
+        "EFGH",
+        date(2026, 6, 16),
+        [
+            {
+                "expiry": date(2026, 7, 18),
+                "strike": Decimal("95"),
+                "dte": 33,
+                "put_delta": Decimal("-0.26"),
+            }
         ],
     )
     repo.conn.commit()
-    got = repo.fetch_latest_exposures_by_strike("ABCD", dte_max=70)
-    assert {r["strike"] for r in got} == {Decimal("95")}  # only the newest run's chain
+    got = repo.fetch_latest_swing_greeks_by_strike("EFGH")
+    assert {r["strike"] for r in got} == {Decimal("95")}
 
 
 def test_snapshot_persists_structure_detail_with_decimal_and_date(repo):

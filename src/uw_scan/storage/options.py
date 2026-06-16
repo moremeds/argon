@@ -338,30 +338,6 @@ class _OptionsMixin:
             cur.executemany(sql, params)
         return len(rows)
 
-    def fetch_latest_exposures_by_strike(
-        self, ticker: str, *, dte_max: int = 70
-    ) -> list[dict[str, Any]]:
-        """Per-strike greeks (incl. call/put delta) for the ticker's most recent
-        exposures RUN, within `dte_max`. Keyed on max(run_id) — NOT max(market_date) —
-        so two scan runs on the same date never stitch two chains together (the table
-        is run-keyed: PK (run_id, ticker, expiry, strike)). Source for skew
-        strike-by-delta selection. Ordered by expiry, strike ASC. Empty list if none."""
-        sql = (
-            "SELECT expiry, strike, dte, call_delta, put_delta "
-            f"FROM {self._schema}.exposures_by_expiry_strike "
-            "WHERE ticker = %s "
-            "  AND run_id = ("
-            f"    SELECT max(run_id) FROM {self._schema}.exposures_by_expiry_strike "
-            "      WHERE ticker = %s) "
-            "  AND (dte IS NULL OR dte <= %s) "
-            "ORDER BY expiry ASC, strike ASC"
-        )
-        t = ticker.upper()
-        with self._conn.cursor() as cur:
-            cur.execute(sql, (t, t, dte_max))
-            cols = [d.name for d in cur.description or []]
-            return [dict(zip(cols, row, strict=False)) for row in cur.fetchall()]
-
     def insert_greeks_rows(
         self, run_id: int, ticker: str, rows: Iterable[models.GreeksRow]
     ) -> int:

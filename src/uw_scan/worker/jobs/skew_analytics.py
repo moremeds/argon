@@ -90,7 +90,7 @@ def nightly_skew_analytics_rollup(*, repo: Repository) -> None:
             continue
         next_er = repo.fetch_latest_next_earnings_date(ticker)
         positioning = repo.get_uw_positioning(ticker)
-        exposures = repo.fetch_latest_exposures_by_strike(ticker, dte_max=70)
+        exposures = repo.fetch_latest_swing_greeks_by_strike(ticker)
         row = _build_for_date(
             repo,
             ticker,
