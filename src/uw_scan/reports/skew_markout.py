@@ -29,6 +29,79 @@ log = logging.getLogger(__name__)
 
 HORIZON = 20  # trading days for the canonical separation horizon
 
+RV_HOLDOUT_FRAC = 0.40  # time-ordered tail fraction held out for the OOS check
+RV_MIN_N = 30  # min obs to even consider an RV verdict
+RV_SEP_THRESHOLD = 0.005  # |mean ΔRR| floor (full sample)
+RV_HOLDOUT_THRESHOLD = 0.003  # |mean ΔRR| floor on the holdout
+
+
+def _expected_drr_sign(deviation_class: str) -> int:
+    """CHEAP re-richens (+), RICH flattens (-), else no directional reversion claim."""
+    if deviation_class == "CHEAP":
+        return 1
+    if deviation_class == "RICH":
+        return -1
+    return 0
+
+
+def _rv_survives_window_gate(obs: list[dict], overall_mean: float) -> bool:
+    """Per-calendar-quarter catastrophic-degradation gate (mirrors the directional
+    _survives_window_gate; standing rule: feedback_per_regime_catastrophic_gate).
+    Fail if ANY quarter's mean ΔRR reverses the aggregate sign with LARGER magnitude —
+    i.e. the aggregate is hiding a sub-window blowup. obs carry 'drr' + 'market_date'."""
+    if abs(overall_mean) < 1e-9:
+        return False
+    by_q: dict[tuple, list[float]] = defaultdict(list)
+    for o in obs:
+        d = o["market_date"]
+        by_q[(d.year, (d.month - 1) // 3)].append(o["drr"])
+    for vals in by_q.values():
+        if not vals:
+            continue
+        m = sum(vals) / len(vals)
+        if m * overall_mean < 0 and abs(m) > abs(overall_mean):
+            return False
+    return True
+
+
+def _rv_walkforward(obs: list[dict], expected_sign: int) -> dict:
+    """obs: [{'drr': float, 'market_date': date}], any order. Returns the verdict dict.
+    REVERTS requires expected sign + magnitude (full & holdout) AND the quarterly
+    catastrophic-degradation gate. Holdout = the latest RV_HOLDOUT_FRAC of obs by
+    market_date (time-ordered, no leak)."""
+    n = len(obs)
+    if n < RV_MIN_N or expected_sign == 0:
+        return {
+            "verdict": "NONE",
+            "mean_drr": None,
+            "mean_drr_holdout": None,
+            "n": n,
+            "n_holdout": 0,
+            "survives_walkforward": False,
+            "survives_window_gate": False,
+        }
+    ordered = sorted(obs, key=lambda o: o["market_date"])
+    cut = int(round(n * (1.0 - RV_HOLDOUT_FRAC)))
+    holdout = ordered[cut:]
+    mean_full = sum(o["drr"] for o in ordered) / n
+    mean_hold = (sum(o["drr"] for o in holdout) / len(holdout)) if holdout else 0.0
+    sign_ok = (mean_full * expected_sign > 0) and (mean_hold * expected_sign > 0)
+    mag_ok = (
+        abs(mean_full) >= RV_SEP_THRESHOLD and abs(mean_hold) >= RV_HOLDOUT_THRESHOLD
+    )
+    survives_wf = bool(sign_ok and mag_ok)
+    survives_window = _rv_survives_window_gate(ordered, mean_full)
+    reverts = bool(survives_wf and survives_window)
+    return {
+        "verdict": "REVERTS" if reverts else "NONE",
+        "mean_drr": mean_full,
+        "mean_drr_holdout": mean_hold,
+        "n": n,
+        "n_holdout": len(holdout),
+        "survives_walkforward": survives_wf,
+        "survives_window_gate": survives_window,
+    }
+
 
 def _forward_value_at(
     series: list[tuple[_date, float]], anchor: _date, n: int
@@ -66,7 +139,7 @@ def run_skew_markout(
     # Pass 1: raw forward return per obs + accumulate the daily cross-section.
     raw_obs: list[dict] = []
     by_date_returns: dict[_date, list[float]] = defaultdict(list)
-    meanrev: dict[tuple, list[float]] = defaultdict(list)  # primary (reported)
+    meanrev: dict[tuple, list[dict]] = defaultdict(list)  # primary (RV; tail-split)
     for s in snaps:
         spot = s.get("spot")
         if spot is not None and float(spot) != 0:
@@ -95,8 +168,13 @@ def run_skew_markout(
                 rr_by_ticker.get(s["ticker"], []), s["market_date"], HORIZON
             )
             if fwd_rr is not None:
-                meanrev[(s["asset_class"], s["deviation_class"])].append(
-                    fwd_rr - float(rr0)
+                tail = (
+                    "put_skew"
+                    if float(rr0) > 0
+                    else ("call_skew" if float(rr0) < 0 else "flat")
+                )
+                meanrev[(s["asset_class"], s["deviation_class"], tail)].append(
+                    {"drr": fwd_rr - float(rr0), "market_date": s["market_date"]}
                 )
 
     # Pass 2: cross-sectional demean — excess = raw - mean(all raw on that date).
@@ -143,18 +221,48 @@ def run_skew_markout(
         )
         written += 1
 
+    # RV mean-reversion (primary hypothesis), now GATED into a persisted verdict per
+    # (asset_class, deviation_class, tail) with the walk-forward + catastrophic gate.
+    rv_written = 0
+    rv_report: dict[str, dict] = {}
+    for (asset_class, deviation_class, tail), drr_obs in meanrev.items():
+        wf = _rv_walkforward(drr_obs, _expected_drr_sign(deviation_class))
+        repo.upsert_skew_rv_reversion_verdict(
+            asset_class=asset_class,
+            deviation_class=deviation_class,
+            tail=tail,
+            verdict=wf["verdict"],
+            mean_drr=wf["mean_drr"],
+            mean_drr_holdout=wf["mean_drr_holdout"],
+            n=wf["n"],
+            n_holdout=wf["n_holdout"],
+            survives_walkforward=wf["survives_walkforward"],
+            survives_window_gate=wf["survives_window_gate"],
+            as_of=today,
+        )
+        rv_written += 1
+        rv_report[f"{asset_class}/{deviation_class}/{tail}"] = wf
+
     mean_reversion = {
-        f"{a}/{d}": {"mean_dRR": (sum(v) / len(v) if v else None), "n": len(v)}
-        for (a, d), v in meanrev.items()
+        f"{a}/{d}/{t}": {
+            "mean_dRR": (sum(o["drr"] for o in v) / len(v) if v else None),
+            "n": len(v),
+        }
+        for (a, d, t), v in meanrev.items()
     }
     repo.conn.commit()
     log.info(
-        "run_skew_markout wrote %d verdicts over %d snapshots", written, len(snaps)
+        "run_skew_markout wrote %d directional + %d rv verdicts over %d snapshots",
+        written,
+        rv_written,
+        len(snaps),
     )
     return {
         "verdicts_written": written,
+        "rv_verdicts_written": rv_written,
         "snapshots": len(snaps),
         "mean_reversion": mean_reversion,  # PRIMARY hypothesis, descriptive
+        "rv_reversion": rv_report,  # PRIMARY hypothesis, now gated + walk-forward
     }
 
 

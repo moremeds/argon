@@ -2,12 +2,20 @@
 
 from __future__ import annotations
 
+import json
 from collections.abc import Iterable
 from datetime import date as _date
+from functools import partial
 from typing import Any
 
 import psycopg
 from psycopg.types.json import Jsonb
+
+# read_json now embeds structure_detail with Decimal strikes/deltas and date expiries;
+# the default json encoder raises on those, so coerce them to str for JSONB. The
+# in-memory read dict used to build the typed response is unaffected (only the persisted
+# JSON is stringified, and nothing reads structure_detail back from the persisted JSON).
+_json_safe_dumps = partial(json.dumps, default=str)
 
 _SNAP_COLUMNS: tuple[str, ...] = (
     "spot",
@@ -57,7 +65,7 @@ class _SkewMixin:
         for r in rows:
             head = (r["ticker"], r["market_date"], r.get("basis", "eod"))
             tail = tuple(
-                Jsonb(r.get(c))
+                Jsonb(r.get(c), dumps=_json_safe_dumps)
                 if c == "read_json" and r.get(c) is not None
                 else r.get(c)
                 for c in _SNAP_COLUMNS
@@ -149,6 +157,67 @@ class _SkewMixin:
         )
         with self._conn.cursor() as cur:
             cur.execute(sql, (asset_class, deviation_class, drive_class, regime))
+            row = cur.fetchone()
+            if row is None:
+                return None
+            cols = [d.name for d in cur.description or []]
+            return dict(zip(cols, row, strict=False))
+
+    def upsert_skew_rv_reversion_verdict(
+        self,
+        *,
+        asset_class: str,
+        deviation_class: str,
+        tail: str,
+        verdict: str,
+        mean_drr: Any,
+        mean_drr_holdout: Any,
+        n: int,
+        n_holdout: int,
+        survives_walkforward: bool,
+        survives_window_gate: bool,
+        as_of: _date,
+    ) -> None:
+        sql = (
+            f"INSERT INTO {self._schema}.skew_rv_reversion_verdicts "
+            "(asset_class, deviation_class, tail, verdict, mean_drr, mean_drr_holdout, "
+            " n, n_holdout, survives_walkforward, survives_window_gate, as_of, inserted_at) "
+            "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, now()) "
+            "ON CONFLICT (asset_class, deviation_class, tail) DO UPDATE SET "
+            "verdict=EXCLUDED.verdict, mean_drr=EXCLUDED.mean_drr, "
+            "mean_drr_holdout=EXCLUDED.mean_drr_holdout, n=EXCLUDED.n, "
+            "n_holdout=EXCLUDED.n_holdout, "
+            "survives_walkforward=EXCLUDED.survives_walkforward, "
+            "survives_window_gate=EXCLUDED.survives_window_gate, "
+            "as_of=EXCLUDED.as_of, inserted_at=now()"
+        )
+        with self._conn.cursor() as cur:
+            cur.execute(
+                sql,
+                (
+                    asset_class,
+                    deviation_class,
+                    tail,
+                    verdict,
+                    mean_drr,
+                    mean_drr_holdout,
+                    n,
+                    n_holdout,
+                    survives_walkforward,
+                    survives_window_gate,
+                    as_of,
+                ),
+            )
+
+    def get_skew_rv_reversion_verdict(
+        self, *, asset_class: str, deviation_class: str, tail: str
+    ) -> dict[str, Any] | None:
+        sql = (
+            f"SELECT * FROM {self._schema}.skew_rv_reversion_verdicts "
+            "WHERE asset_class=%s AND deviation_class=%s AND tail=%s"
+        )
+        with self._conn.cursor() as cur:
+            cur.execute(sql, (asset_class, deviation_class, tail))
             row = cur.fetchone()
             if row is None:
                 return None

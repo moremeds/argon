@@ -127,3 +127,46 @@ def test_fetch_watchlist_sector(repo):
     repo.conn.commit()
     assert repo.fetch_watchlist_sector("ZZTOP") == "Macro"
     assert repo.fetch_watchlist_sector("NOPE") is None
+
+
+def test_rv_reversion_verdict_roundtrip(repo):
+    repo.upsert_skew_rv_reversion_verdict(
+        asset_class="single_name",
+        deviation_class="CHEAP",
+        tail="put_skew",
+        verdict="REVERTS",
+        mean_drr=0.0514,
+        mean_drr_holdout=0.041,
+        n=1472,
+        n_holdout=520,
+        survives_walkforward=True,
+        survives_window_gate=True,
+        as_of=date(2026, 6, 16),
+    )
+    repo.conn.commit()
+    got = repo.get_skew_rv_reversion_verdict(
+        asset_class="single_name", deviation_class="CHEAP", tail="put_skew"
+    )
+    assert got is not None
+    assert got["verdict"] == "REVERTS"
+    assert got["survives_walkforward"] is True
+    assert got["survives_window_gate"] is True
+    # upsert is idempotent on the PK
+    repo.upsert_skew_rv_reversion_verdict(
+        asset_class="single_name",
+        deviation_class="CHEAP",
+        tail="put_skew",
+        verdict="NONE",
+        mean_drr=0.0,
+        mean_drr_holdout=0.0,
+        n=1,
+        n_holdout=0,
+        survives_walkforward=False,
+        survives_window_gate=False,
+        as_of=date(2026, 6, 16),
+    )
+    repo.conn.commit()
+    got2 = repo.get_skew_rv_reversion_verdict(
+        asset_class="single_name", deviation_class="CHEAP", tail="put_skew"
+    )
+    assert got2["verdict"] == "NONE"
