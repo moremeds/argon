@@ -149,22 +149,142 @@ def skew_sign_label(rr: float | None, *, eps: float = 1e-6) -> str:
     return "flat"
 
 
+# Defined-risk structure families keyed on the EVIDENCE-GATED lean (never on
+# deviation×tail posture — see Phase-2 hardening correction A). Both are long-premium
+# debit spreads: max loss = net debit, no naked leg. Target deltas pick the wings.
+_STRUCTURE_FAMILIES: dict[str, dict] = {
+    "BEARISH_TILT": {
+        "kind": "put_debit_spread",
+        "legs": [
+            {"action": "BUY", "right": "PUT", "target_delta": -0.25},
+            {"action": "SELL", "right": "PUT", "target_delta": -0.12},
+        ],
+    },
+    "BULLISH_TILT": {
+        "kind": "call_debit_spread",
+        "legs": [
+            {"action": "BUY", "right": "CALL", "target_delta": 0.25},
+            {"action": "SELL", "right": "CALL", "target_delta": 0.12},
+        ],
+    },
+}
+
+_FAMILY_PHRASE = {
+    "put_debit_spread": "put-debit-spread — defined risk",
+    "call_debit_spread": "call-debit-spread — defined risk",
+}
+
+
+def structure_family(directional_lean: dict) -> dict | None:
+    """Structure descriptor for an already-gated lean. None for NEUTRAL — V1's
+    anti-overtrading default. Single source consumed by both _express_structure
+    (the string) and select_structure_legs (the concrete strikes)."""
+    return _STRUCTURE_FAMILIES.get((directional_lean or {}).get("lean") or "")
+
+
 def _express_structure(deviation_class: str, lean: str) -> str:
-    """Defined-risk structure expressing the lean. NO naked shorts (standing rule):
-    every structure is a vertical spread or a long option — never a bare short
-    call/put and never a stock-assuming 'collar'."""
-    if lean == "BEARISH_TILT":
-        if deviation_class == "RICH":
-            # finance by selling the lower (cheaper) put wing INSIDE a debit spread
-            return (
-                "put-debit-spread (sell the lower put wing to finance) — defined risk"
-            )
-        return "put-debit-spread — defined risk"
-    if lean == "BULLISH_TILT":
-        if deviation_class == "CHEAP":
-            return "call-debit-spread (cheap downside hedge available) — defined risk"
-        return "call-debit-spread or put-credit-spread — defined risk"
-    return ""
+    """Defined-risk structure string. NO naked shorts: every structure is a debit
+    vertical (long premium, max loss = net debit). Derived from structure_family so the
+    string and the concrete legs (select_structure_legs) never drift."""
+    fam = structure_family({"lean": lean})
+    if fam is None:
+        return ""
+    return _FAMILY_PHRASE.get(fam["kind"], "")
+
+
+def select_structure_legs(
+    *,
+    family: dict | None,
+    exposure_rows: list[dict],
+    dte_lo: int = 21,
+    dte_hi: int = 60,
+    dte_pref: int = 35,
+    earnings_note: str = "",
+) -> dict:
+    """Pick concrete legs for `family` by nearest target delta within one expiry.
+    Pure — exposure_rows: dicts with expiry, strike, dte, put_delta/call_delta.
+    Returns a structure_detail dict (kind, legs, dte_target, status, note)."""
+    if family is None:
+        return {
+            "kind": "",
+            "legs": [],
+            "dte_target": None,
+            "status": "suppressed",
+            "note": "",
+        }
+    # candidate expiries inside the swing window; prefer the one nearest dte_pref
+    by_expiry: dict = {}
+    for r in exposure_rows or []:
+        dte = r.get("dte")
+        if dte is None or not (dte_lo <= int(dte) <= dte_hi):
+            continue
+        by_expiry.setdefault(r["expiry"], []).append(r)
+    if not by_expiry:
+        return {
+            "kind": family["kind"],
+            "legs": [],
+            "dte_target": None,
+            "status": "no_chain",
+            "note": "",
+        }
+    expiry = min(by_expiry, key=lambda e: abs(int(by_expiry[e][0]["dte"]) - dte_pref))
+    chain = by_expiry[expiry]
+    dte_target = int(chain[0]["dte"])
+    delta_key = "put_delta" if family["legs"][0]["right"] == "PUT" else "call_delta"
+
+    legs: list[dict] = []
+    for leg in family["legs"]:
+        target = leg["target_delta"]
+        cands = [r for r in chain if r.get(delta_key) is not None]
+        if not cands:
+            return {
+                "kind": family["kind"],
+                "legs": [],
+                "dte_target": dte_target,
+                "status": "no_chain",
+                "note": "",
+            }
+        best = min(cands, key=lambda r: abs(float(r[delta_key]) - target))
+        legs.append(
+            {
+                "action": leg["action"],
+                "right": leg["right"],
+                "strike": best["strike"],
+                "target_delta": target,
+                "actual_delta": best[delta_key],
+                "expiry": expiry,
+                "dte": dte_target,
+            }
+        )
+    # Defined-risk guard (standing rule: no naked shorts). The long (first) and short
+    # (second) legs must form a DEBIT spread in the intended direction — the long wing
+    # nearer ATM than the short wing. PUT debit: long strike > short strike. CALL debit:
+    # long strike < short strike. A degenerate/non-monotonic chain that would invert this
+    # (turning it into a short-premium credit spread) yields no_chain instead.
+    long_leg, short_leg = legs[0], legs[1]
+    ok = (
+        long_leg["strike"] > short_leg["strike"]
+        if long_leg["right"] == "PUT"
+        else long_leg["strike"] < short_leg["strike"]
+    )
+    if not ok:
+        return {
+            "kind": family["kind"],
+            "legs": [],
+            "dte_target": dte_target,
+            "status": "no_chain",
+            "note": "",
+        }
+    note = "defined risk; long-premium debit spread"
+    if earnings_note:
+        note += f"; {earnings_note}"
+    return {
+        "kind": family["kind"],
+        "legs": legs,
+        "dte_target": dte_target,
+        "status": "ready",
+        "note": note,
+    }
 
 
 def resolve_directional_lean(

@@ -25,6 +25,8 @@ from uw_scan.models import (
     SkewRhoPoint,
     SkewSmileExpiryCurve,
     SkewSmilePoint,
+    SkewStructureDetail,
+    SkewStructureLeg,
 )
 from uw_scan.scanner.gates import earnings_gate as _earnings_gate
 from uw_scan.storage.repository import Repository
@@ -42,6 +44,29 @@ def _dec(v: Any) -> Decimal | None:
     except Exception as exc:  # noqa: BLE001
         log.debug("decimal coercion skipped for %r: %s", v, repr(exc))
         return None
+
+
+def _to_structure_detail(d: dict | None) -> SkewStructureDetail | None:
+    if not d:
+        return None
+    return SkewStructureDetail(
+        kind=d.get("kind", ""),
+        dte_target=d.get("dte_target"),
+        status=d.get("status", "ready"),
+        note=d.get("note", ""),
+        legs=[
+            SkewStructureLeg(
+                action=g.get("action", ""),
+                right=g.get("right", ""),
+                strike=_dec(g.get("strike")),
+                target_delta=_dec(g.get("target_delta")),
+                actual_delta=_dec(g.get("actual_delta")),
+                expiry=g.get("expiry"),
+                dte=g.get("dte"),
+            )
+            for g in d.get("legs", [])
+        ],
+    )
 
 
 def _price_trend(rv_series: list[dict], *, window: int = 20) -> float | None:
@@ -67,6 +92,7 @@ def build_skew_snapshot_row(
     verdict: dict | None,
     sector: str | None,
     today: _date,
+    exposure_rows: list[dict] | None = None,
 ) -> dict:
     """Pure stitch: raw series + verdict in, snapshot column dict out. No I/O."""
     rr_vals = [r.get("risk_reversal") for r in rr_series]
@@ -112,6 +138,25 @@ def build_skew_snapshot_row(
         earnings_gate=egate,
         verdict=verdict,
     )
+    # Concrete strike-by-delta detail — ONLY when the lean is already gated non-neutral
+    # (Phase-2 increment-1). Non-index only; suppressed during an earnings block.
+    fam = sk.structure_family(lean)
+    if (
+        fam is not None
+        and cls["asset_class"] != "index_macro"
+        and egate != "block"
+        and exposure_rows
+    ):
+        earn_note = (
+            f"exit before earnings {next_earnings_date.isoformat()}"
+            if next_earnings_date is not None
+            else "swing hold; exit before next earnings"
+        )
+        lean["structure_detail"] = sk.select_structure_legs(
+            family=fam, exposure_rows=exposure_rows, earnings_note=earn_note
+        )
+    else:
+        lean["structure_detail"] = None
     tail = sk.skew_sign_label(rr_25d)
     rho_confirms = (deviation == "RICH" and rho_sign < 0) or (
         deviation == "CHEAP" and rho_sign > 0
@@ -226,6 +271,9 @@ def assemble_skew_analysis(
         drive_class=pre["drive_class"],
         regime=pre["regime"],
     )
+    # Live per-strike greeks for strike-by-delta structure detail (only consumed when
+    # the lean is non-neutral). max(run_id) chain; empty list when none persisted.
+    exposures = repo.fetch_latest_exposures_by_strike(t, dte_max=70)
     row = build_skew_snapshot_row(
         ticker=t,
         market_date=market_date,
@@ -238,6 +286,7 @@ def assemble_skew_analysis(
         verdict=verdict,
         sector=sector,
         today=today,
+        exposure_rows=exposures,
     )
 
     if persist:
@@ -300,6 +349,7 @@ def assemble_skew_analysis(
             confidence=lean["confidence"],
             basis=lean["basis"],
             express=lean["express"],
+            structure_detail=_to_structure_detail(lean.get("structure_detail")),
         ),
     )
     return SkewAnalysisResponse(

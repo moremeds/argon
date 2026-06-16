@@ -121,6 +121,8 @@ from .skew import (
     SkewRhoPoint,
     SkewSmileExpiryCurve,
     SkewSmilePoint,
+    SkewStructureDetail,
+    SkewStructureLeg,
 )
 from .stock import (
     MarketStructure,
@@ -305,6 +307,8 @@ __all__ = [
     "SkewExpiryPoint",
     "SkewSmilePoint",
     "SkewSmileExpiryCurve",
+    "SkewStructureLeg",
+    "SkewStructureDetail",
     "SkewDirectionalLean",
     "SkewReadBullet",
     "SkewRead",

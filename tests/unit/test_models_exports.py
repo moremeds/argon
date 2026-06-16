@@ -169,3 +169,13 @@ def test_new_exposure_models_exported():
     # accidentally drifting back to the implementation module.
     assert models.StrikeExposureRow.__module__ == "uw_scan.models"
     assert models.ExposuresSummaryRow.__module__ == "uw_scan.models"
+
+
+def test_new_skew_structure_models_exported():
+    from uw_scan import models
+
+    assert "SkewStructureLeg" in models.__all__
+    assert "SkewStructureDetail" in models.__all__
+    # _preserve_public_module rewrites __module__ so OpenAPI component names stay stable.
+    assert models.SkewStructureLeg.__module__ == "uw_scan.models"
+    assert models.SkewStructureDetail.__module__ == "uw_scan.models"

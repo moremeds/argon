@@ -7,6 +7,8 @@ from decimal import Decimal
 
 import pytest
 
+from uw_scan import models
+
 
 @pytest.fixture
 def repo(seeded_db_empty_cards):
@@ -170,3 +172,106 @@ def test_rv_reversion_verdict_roundtrip(repo):
         asset_class="single_name", deviation_class="CHEAP", tail="put_skew"
     )
     assert got2["verdict"] == "NONE"
+
+
+def test_fetch_latest_exposures_by_strike(repo):
+    run_id = repo.insert_scan_run(ticker="QCOM")
+    rows = [
+        models.GreekExposureRow(
+            date=date(2026, 6, 15),
+            expiry=date(2026, 7, 18),
+            strike=Decimal("95"),
+            dte=33,
+            call_delta=Decimal("0.62"),
+            put_delta=Decimal("-0.38"),
+        ),
+        models.GreekExposureRow(
+            date=date(2026, 6, 15),
+            expiry=date(2026, 7, 18),
+            strike=Decimal("90"),
+            dte=33,
+            call_delta=Decimal("0.74"),
+            put_delta=Decimal("-0.26"),
+        ),
+    ]
+    repo.insert_greek_exposure_rows(run_id, "QCOM", rows)
+    repo.conn.commit()
+    got = repo.fetch_latest_exposures_by_strike("QCOM", dte_max=70)
+    assert len(got) == 2
+    assert {r["strike"] for r in got} == {Decimal("95"), Decimal("90")}
+    assert all("put_delta" in r and "dte" in r for r in got)
+
+
+def test_fetch_latest_exposures_reads_only_the_newest_run(repo):
+    ex = date(2026, 7, 18)
+    # two runs on the SAME market_date — the later run (higher run_id) wins.
+    old = repo.insert_scan_run(ticker="ABCD")
+    repo.insert_greek_exposure_rows(
+        old,
+        "ABCD",
+        [
+            models.GreekExposureRow(
+                date=date(2026, 6, 15),
+                expiry=ex,
+                strike=Decimal("70"),
+                dte=33,
+                put_delta=Decimal("-0.20"),
+            )
+        ],
+    )
+    new = repo.insert_scan_run(ticker="ABCD")
+    repo.insert_greek_exposure_rows(
+        new,
+        "ABCD",
+        [
+            models.GreekExposureRow(
+                date=date(2026, 6, 15),
+                expiry=ex,
+                strike=Decimal("95"),
+                dte=33,
+                put_delta=Decimal("-0.26"),
+            )
+        ],
+    )
+    repo.conn.commit()
+    got = repo.fetch_latest_exposures_by_strike("ABCD", dte_max=70)
+    assert {r["strike"] for r in got} == {Decimal("95")}  # only the newest run's chain
+
+
+def test_snapshot_persists_structure_detail_with_decimal_and_date(repo):
+    row = {
+        "ticker": "QCOM",
+        "market_date": date(2026, 6, 16),
+        "basis": "eod",
+        "deviation_class": "CHEAP",
+        "directional_lean": "BEARISH_TILT",
+        "read_summary": "x",
+        "read_json": {
+            "directional_lean": {
+                "lean": "BEARISH_TILT",
+                "structure_detail": {
+                    "kind": "put_debit_spread",
+                    "dte_target": 33,
+                    "status": "ready",
+                    "note": "defined risk",
+                    "legs": [
+                        {
+                            "action": "BUY",
+                            "right": "PUT",
+                            "strike": Decimal("95"),
+                            "target_delta": Decimal("-0.25"),
+                            "actual_delta": Decimal("-0.26"),
+                            "expiry": date(2026, 7, 18),
+                            "dte": 33,
+                        }
+                    ],
+                },
+            },
+        },
+    }
+    repo.upsert_skew_analytics_snapshots([row])  # must NOT raise on Decimal/date
+    repo.conn.commit()
+    got = repo.get_skew_analytics_latest("QCOM")
+    sd = got["read_json"]["directional_lean"]["structure_detail"]
+    assert sd["legs"][0]["strike"] == "95"  # stringified by default=str
+    assert sd["legs"][0]["expiry"] == "2026-07-18"

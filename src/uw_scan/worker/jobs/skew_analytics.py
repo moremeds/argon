@@ -23,6 +23,7 @@ def _build_for_date(
     sector: str | None,
     next_earnings_date: _date | None,
     positioning: dict | None,
+    exposure_rows: list[dict] | None = None,
 ) -> dict | None:
     # positioning is passed in (fetched once per ticker by the caller) — it is the
     # latest snapshot regardless of market_date (current-borrow limitation, spec §11),
@@ -66,6 +67,7 @@ def _build_for_date(
         verdict=verdict,
         sector=sector,
         today=today,
+        exposure_rows=exposure_rows,
     )
 
 
@@ -88,6 +90,7 @@ def nightly_skew_analytics_rollup(*, repo: Repository) -> None:
             continue
         next_er = repo.fetch_latest_next_earnings_date(ticker)
         positioning = repo.get_uw_positioning(ticker)
+        exposures = repo.fetch_latest_exposures_by_strike(ticker, dte_max=70)
         row = _build_for_date(
             repo,
             ticker,
@@ -99,6 +102,7 @@ def nightly_skew_analytics_rollup(*, repo: Repository) -> None:
             card.sector,
             next_er,
             positioning,
+            exposures,
         )
         if row is not None:
             repo.upsert_skew_analytics_snapshots([row])

@@ -36,11 +36,30 @@ class SkewSmileExpiryCurve(_UwBase):
     points: list[SkewSmilePoint] = []
 
 
+class SkewStructureLeg(_UwBase):
+    action: str = ""  # BUY | SELL
+    right: str = ""  # PUT | CALL
+    strike: Decimal | None = None
+    target_delta: Decimal | None = None  # the delta we aimed for (e.g. -0.25)
+    actual_delta: Decimal | None = None  # delta of the chosen strike
+    expiry: _date | None = None
+    dte: int | None = None
+
+
+class SkewStructureDetail(_UwBase):
+    kind: str = ""  # put_debit_spread | call_debit_spread
+    legs: list[SkewStructureLeg] = []
+    dte_target: int | None = None
+    status: str = "ready"  # ready | no_chain | suppressed
+    note: str = ""  # e.g. "defined risk; exit before earnings 2026-07-18"
+
+
 class SkewDirectionalLean(_UwBase):
     lean: str = "NEUTRAL"  # BULLISH_TILT | BEARISH_TILT | NEUTRAL
     confidence: str = "low"  # low | med | high
     basis: str = ""
     express: str = ""
+    structure_detail: SkewStructureDetail | None = None
 
 
 class SkewReadBullet(_UwBase):
@@ -101,6 +120,8 @@ _preserve_public_module(
     SkewExpiryPoint,
     SkewSmilePoint,
     SkewSmileExpiryCurve,
+    SkewStructureLeg,
+    SkewStructureDetail,
     SkewDirectionalLean,
     SkewReadBullet,
     SkewRead,
