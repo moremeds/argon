@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
 import { SkewSignalDetail } from "@/components/stock/panels/SkewSignalDetail";
@@ -81,5 +81,72 @@ describe("SkewSignalDetail", () => {
     expect(screen.getByText("NO EDGE")).toBeTruthy();
     // Empty express renders the em-dash placeholder.
     expect(screen.getByText("—")).toBeTruthy();
+  });
+
+  it("renders the defined-risk structure legs when status is ready", () => {
+    const data = makeData({
+      read: {
+        rho_confirms: true,
+        earnings_gate: "pass",
+        directional_lean: {
+          lean: "BEARISH_TILT",
+          confidence: "high",
+          basis: "validated — RICH single_name bucket separated -4.5%/20d",
+          express: "put-debit-spread — defined risk",
+          structure_detail: {
+            kind: "put_debit_spread",
+            dte_target: 33,
+            status: "ready",
+            note: "defined risk; exit before earnings 2026-07-18",
+            legs: [
+              {
+                action: "BUY",
+                right: "PUT",
+                strike: "95",
+                target_delta: "-0.25",
+                actual_delta: "-0.26",
+                expiry: "2026-07-18",
+                dte: 33,
+              },
+              {
+                action: "SELL",
+                right: "PUT",
+                strike: "88",
+                target_delta: "-0.12",
+                actual_delta: "-0.13",
+                expiry: "2026-07-18",
+                dte: 33,
+              },
+            ],
+          },
+        },
+        summary_bullets: [],
+      },
+    } as unknown as Partial<SkewAnalysisResponse>);
+    render(<SkewSignalDetail data={data} />);
+    const block = screen.getByTestId("skew-structure-detail");
+    expect(within(block).getByText(/put-debit-spread/i)).toBeTruthy();
+    expect(within(block).getByText("BUY PUT")).toBeTruthy();
+    expect(within(block).getByText(/95/)).toBeTruthy();
+    expect(within(block).getByText(/defined risk/i)).toBeTruthy();
+  });
+
+  it("renders no structure block for a NEUTRAL lean", () => {
+    const data = makeData({
+      read: {
+        rho_confirms: false,
+        earnings_gate: "pass",
+        directional_lean: {
+          lean: "NEUTRAL",
+          confidence: "low",
+          basis: "no edge",
+          express: "",
+          structure_detail: null,
+        },
+        summary_bullets: [],
+      },
+    } as unknown as Partial<SkewAnalysisResponse>);
+    render(<SkewSignalDetail data={data} />);
+    expect(screen.queryByTestId("skew-structure-detail")).toBeNull();
   });
 });

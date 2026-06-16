@@ -134,6 +134,66 @@ function EvidenceRow({ label, value }: { label: string; value: string }) {
   );
 }
 
+function StructureDetail({
+  detail,
+}: {
+  detail: NonNullable<
+    SkewAnalysisResponse["read"]["directional_lean"]["structure_detail"]
+  >;
+}) {
+  if (detail.status !== "ready" || !detail.legs?.length) return null;
+  return (
+    <div
+      data-testid="skew-structure-detail"
+      style={{
+        borderTop: "1px solid var(--border-dim, var(--line-grid))",
+        marginTop: "8px",
+        paddingTop: "8px",
+      }}
+    >
+      <div style={{ ...labelStyle, marginBottom: "6px" }}>
+        Structure · {detail.kind.replace(/_/g, "-")}
+        {detail.dte_target ? ` · ${detail.dte_target}DTE` : ""}
+      </div>
+      {detail.legs.map((leg, i) => (
+        <div
+          key={i}
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            fontFamily: "var(--font-mono)",
+            fontSize: "11px",
+            padding: "2px 0",
+          }}
+        >
+          <span style={{ color: "var(--text-muted)" }}>
+            {leg.action} {leg.right}
+          </span>
+          <span style={{ color: "var(--text-secondary)" }}>
+            {leg.strike != null ? String(leg.strike) : "—"}
+            {leg.actual_delta != null
+              ? ` (Δ ${fmtSigned(toNum(leg.actual_delta) ?? 0, 2)})`
+              : ""}
+          </span>
+        </div>
+      ))}
+      {detail.note ? (
+        <div
+          style={{
+            fontFamily: "var(--font-mono)",
+            fontSize: "10px",
+            color: "var(--text-muted)",
+            marginTop: "5px",
+            lineHeight: 1.4,
+          }}
+        >
+          {detail.note}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 export function SkewSignalDetail({ data }: { data: SkewAnalysisResponse }) {
   const read = data.read;
   const lean = read.directional_lean;
@@ -262,6 +322,9 @@ export function SkewSignalDetail({ data }: { data: SkewAnalysisResponse }) {
             <EvidenceRow label="earnings" value={read.earnings_gate} />
             <EvidenceRow label="express" value={lean.express || "—"} />
             <EvidenceRow label="regime" value={data.regime} />
+            {lean.structure_detail ? (
+              <StructureDetail detail={lean.structure_detail} />
+            ) : null}
           </div>
         </div>
       </div>
