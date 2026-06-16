@@ -1,15 +1,38 @@
-"""Skew analytics worker jobs: nightly rollup + historical backfill."""
+"""Skew analytics worker jobs: nightly rollup + markout refresh + backfill."""
 
 from __future__ import annotations
 
 import logging
 from datetime import date as _date
 from datetime import timedelta
+from typing import Any
 
 from uw_scan.reports.skew_analytics import build_skew_snapshot_row
+from uw_scan.reports.skew_markout import run_skew_markout
 from uw_scan.storage.repository import Repository
 
 log = logging.getLogger(__name__)
+
+
+def skew_markout_refresh(*, repo: Repository) -> dict[str, Any]:
+    """Re-score every persisted skew snapshot and (re)write the directional + RV
+    reversion verdicts. Thin scheduler wrapper around run_skew_markout.
+
+    This is the job that was missing in production: run_skew_markout had no caller,
+    so skew_directional_verdicts stayed empty and every ticker's directional lean was
+    NEUTRAL ("no proven separation"). Reads only the warm store (snapshots written by
+    the nightly rollup) — no external calls — and the upsert is idempotent, so a
+    re-run is a no-op on unchanged data. The deep historical snapshot base is
+    established by skew_analytics_backfill (a maintenance op); the nightly rollup
+    extends it forward, and this job scores whatever exists."""
+    counts = run_skew_markout(repo=repo)
+    log.info(
+        "skew_markout_refresh: %d directional + %d rv verdicts over %d snapshots",
+        counts.get("verdicts_written", 0),
+        counts.get("rv_verdicts_written", 0),
+        counts.get("snapshots", 0),
+    )
+    return counts
 
 
 def _build_for_date(
