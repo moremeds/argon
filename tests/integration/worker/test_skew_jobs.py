@@ -66,7 +66,7 @@ def test_backfill_writes_multiple_dates(repo):
     assert len(rows) >= 1
 
 
-def test_swing_greeks_refresh_persists_singlename_skips_index(repo, monkeypatch):
+def test_swing_greeks_refresh_persists_singlename_and_index_etf(repo, monkeypatch):
     import uw_scan.worker.jobs.skew_swing_greeks as job
 
     with repo.conn.cursor() as cur:
@@ -97,5 +97,7 @@ def test_swing_greeks_refresh_persists_singlename_skips_index(repo, monkeypatch)
     assert n >= 1
     got = repo.fetch_latest_swing_greeks_by_strike("NVDA")
     assert {r["strike"] for r in got} == {Decimal("100")}
-    # SPY is index_macro -> skipped entirely (no swing rows persisted)
-    assert repo.fetch_latest_swing_greeks_by_strike("SPY") == []
+    # SPY is an index ETF -> now INCLUDED (structure block extended to index ETFs);
+    # its directional lean is research-validated, so it earns the same expression.
+    got_spy = repo.fetch_latest_swing_greeks_by_strike("SPY")
+    assert {r["strike"] for r in got_spy} == {Decimal("100")}

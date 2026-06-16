@@ -1,11 +1,12 @@
 """Skew swing-DTE greeks refresh.
 
-Per-strike call/put delta for a swing expiry (~21-60 DTE), single-names only. The
-GEX/cockpit ``exposures_by_expiry_strike`` table holds front-expiry-only greeks for
-single-names (only indices get multi-expiry via the cockpit), so the Skew tab's
-strike-by-delta structure detail had no swing chain to pick wings from. This job
-reuses the proven cockpit fetchers (``fetch_option_contracts`` → ``pick_target_expiries``
-→ ``fetch_greeks``) and persists into the dedicated ``skew_swing_greeks`` table.
+Per-strike call/put delta for a swing expiry (~21-60 DTE), for every watchlist
+ticker (single-names and index ETFs alike). The GEX/cockpit
+``exposures_by_expiry_strike`` table holds front-expiry-only greeks for single-names,
+so the Skew tab's strike-by-delta structure detail had no swing chain to pick wings
+from. This job reuses the proven cockpit fetchers (``fetch_option_contracts`` →
+``pick_target_expiries`` → ``fetch_greeks``) and persists into the dedicated
+``skew_swing_greeks`` table.
 
 NOTE: it uses ``fetch_greeks`` (the ``/greeks`` endpoint — real per-contract OPTION delta
 in [-1, 1]), NOT ``fetch_greek_exposure`` (``/greek-exposure`` returns delta *exposure*,
@@ -19,7 +20,6 @@ from datetime import date as _date
 
 from uw_scan.api.client import UwClient
 from uw_scan.cards.option_chain import pick_target_expiries
-from uw_scan.cards.skew_first_principles import asset_class_baseline
 from uw_scan.sources.uw import fetch_greeks, fetch_option_contracts
 from uw_scan.storage.repository import Repository
 
@@ -32,17 +32,17 @@ _CONTRACTS_LIMIT = 500
 
 
 def skew_swing_greeks_refresh(*, repo: Repository, client: UwClient) -> int:
-    """One swing-expiry per-strike greeks snapshot per non-index watchlist ticker.
+    """One swing-expiry per-strike greeks snapshot per watchlist ticker.
     Idempotent per (ticker, market_date) via delete-then-insert. Returns rows written."""
     cards = repo.list_watchlist_cards()
     today = _date.today()
     written = 0
     for card in cards:
         ticker = card.ticker
-        cls = asset_class_baseline(ticker, sector=card.sector)
-        if cls["asset_class"] == "index_macro":
-            # Structure detail is non-index only; indices already get cockpit chains.
-            continue
+        # Index ETFs are included — their directional lean is research-validated, so
+        # the strike-by-delta structure block applies to them too. A non-optionable
+        # symbol (e.g. a future true cash index) simply yields no chain and is skipped
+        # by the per-ticker guard below.
         try:
             run_id = repo.insert_scan_run(ticker, notes="skew_swing_greeks")
             contracts = fetch_option_contracts(

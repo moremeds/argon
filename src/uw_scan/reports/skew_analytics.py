@@ -139,14 +139,13 @@ def build_skew_snapshot_row(
         verdict=verdict,
     )
     # Concrete strike-by-delta detail — ONLY when the lean is already gated non-neutral
-    # (Phase-2 increment-1). Non-index only; suppressed during an earnings block.
+    # (Phase-2 increment-1). Suppressed during an earnings block. Index ETFs are
+    # included: their directional lean is research-validated (index_macro verdict
+    # buckets), so they earn the same defined-risk expression as single-names. The
+    # mean-reversion *trigger* is the only surface that skips indices (index skew is
+    # structural and does not revert). Renders only when a swing chain exists.
     fam = sk.structure_family(lean)
-    if (
-        fam is not None
-        and cls["asset_class"] != "index_macro"
-        and egate != "block"
-        and exposure_rows
-    ):
+    if fam is not None and egate != "block" and exposure_rows:
         earn_note = (
             f"exit before earnings {next_earnings_date.isoformat()}"
             if next_earnings_date is not None

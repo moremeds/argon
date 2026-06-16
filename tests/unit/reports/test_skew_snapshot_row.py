@@ -138,6 +138,53 @@ def test_structure_detail_present_when_non_neutral_with_exposures():
     assert sd["legs"][0]["action"] == "BUY" and sd["legs"][0]["strike"] == Decimal("95")
 
 
+def test_structure_detail_present_for_index_etf():
+    # sector="Macro" -> asset_class index_macro. The structure block used to be
+    # suppressed for index_macro; it is now extended to index ETFs because their
+    # directional lean is research-validated. A non-neutral verdict + a swing chain
+    # must therefore produce a ready structure detail.
+    rr = _rr_series()
+    ex = date(2026, 8, 1)
+    row = build_skew_snapshot_row(
+        ticker="QQQ",
+        market_date=rr[-1]["market_date"],
+        rr_series=rr,
+        expiry_rows=[{"expiry": date(2026, 8, 1), "risk_reversal": 0.05}],
+        rv_series=_rv_series(),
+        spy_rv_series=_rv_series(),
+        positioning={"si_fee_rate": 0.25, "si_days_to_cover": 1.2},
+        next_earnings_date=None,
+        verdict={
+            "verdict": "TRADABLE_BEAR",
+            "confidence": "med",
+            "forward_sep": -0.02,
+            "borrow_clean": True,
+            "survives_gate": True,
+        },
+        sector="Macro",
+        today=rr[-1]["market_date"],
+        exposure_rows=[
+            {
+                "expiry": ex,
+                "strike": Decimal("95"),
+                "dte": 33,
+                "put_delta": Decimal("-0.26"),
+            },
+            {
+                "expiry": ex,
+                "strike": Decimal("88"),
+                "dte": 33,
+                "put_delta": Decimal("-0.13"),
+            },
+        ],
+    )
+    assert row["asset_class"] == "index_macro"
+    assert row["directional_lean"] == "BEARISH_TILT"
+    sd = row["read_json"]["directional_lean"]["structure_detail"]
+    assert sd is not None and sd["status"] == "ready"
+    assert sd["kind"] == "put_debit_spread"
+
+
 def test_structure_detail_absent_when_neutral():
     rr = _rr_series()
     row = build_skew_snapshot_row(
