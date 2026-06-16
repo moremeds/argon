@@ -25,10 +25,17 @@ evidence-gated `directional_lean` is *already* non-neutral (`BEARISH_TILT` / `BU
   `deviation × tail` posture alone — see correction (A) below.
 - Defined-risk only; no naked legs; **no stock-assuming overlays** (no collar) — see (C).
 - Non-index only; hard earnings block; deterministic; **persisted** to Postgres.
-- Strikes by target delta are sourced by **joining the existing per-strike greeks store**
-  (`models/greeks.py` `GreekExposureRow.call_delta/put_delta`, table `greek_exposure_daily`,
-  migration 039). No Black-Scholes recompute, no new feed. The ~30-trading-day greeks
-  history limit is irrelevant here — proposal generation needs only *current* greeks.
+- Strikes by target delta are sourced from a dedicated **`skew_swing_greeks`** table
+  (migration 075) fed by a daily UW job (`worker/jobs/skew_swing_greeks.py`). **Real-data
+  finding (2026-06-16):** the existing per-strike greek stores (`exposures_by_expiry_strike`,
+  `greeks_by_expiry_strike`) hold **front-expiry-only** greeks for single-names (only
+  indices get multi-expiry via the cockpit), so the original "join the existing store" plan
+  returned `no_chain` for every eligible ticker. The new job pulls a ~30/45 DTE expiry per
+  single-name via UW **`/greeks`** (real per-contract option delta in [-1, 1] — NOT
+  `/greek-exposure`, whose `call_delta` is delta *exposure*, ≈0 for low-OI strikes and
+  unusable for target-delta selection). No Black-Scholes recompute. When no swing chain is
+  available the detail degrades gracefully to `no_chain` (the `express` family string still
+  shows; no naked/invalid legs are ever emitted).
 - The read body stays bound by spec §7/§11: stock direction lives only in `directional_lean`.
   We add detail to a field that is *already* gated, so we do not create a second
   recommendation surface (resolves the Codex "two competing surfaces" finding).

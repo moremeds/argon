@@ -40,6 +40,18 @@ test("Skew tab renders the signal-detail card, lean, and the spectrum", async ({
   await expect(page.getByText("FRONT vs BACK")).toBeVisible(); // skew-term panel
   await expect(page.getByText("WHERE IT SITS")).toBeVisible(); // asset-class spectrum
 
+  // Structure detail (Phase-2): present iff the lean is non-neutral. A NEUTRAL name
+  // (the ~72% default) shows no structure block; a gated name shows >=2 defined-risk legs.
+  const leanText = ((await lean.textContent()) ?? "").trim();
+  const structure = page.getByTestId("skew-structure-detail");
+  if (leanText === "NEUTRAL") {
+    await expect(structure).toHaveCount(0);
+  } else {
+    await expect(structure).toBeVisible();
+    await expect(structure).toContainText(/-spread/);
+    await expect(structure.getByText(/^(BUY|SELL) (PUT|CALL)$/)).toHaveCount(2);
+  }
+
   // No NaN leaks anywhere on the page.
   const body = await page.locator("body").innerText();
   expect(body).not.toMatch(/NaN/);
