@@ -92,11 +92,20 @@ def test_swing_greeks_refresh_persists_singlename_and_index_etf(repo, monkeypatc
         ],
     )
     # The fixture pre-seeds the full watchlist; the stub returns one strike per
-    # non-index ticker, so n >= 1 and NVDA specifically gets persisted.
-    n = job.skew_swing_greeks_refresh(repo=repo, client=None)
+    # non-index ticker, so n >= 1 and NVDA specifically gets persisted. Pass an
+    # explicit ET market date — the scheduler supplies datetime.now(rth_tz).date()
+    # so a non-ET host doesn't stamp +1 day (TZ fix).
+    et_date = date(2026, 7, 1)
+    n = job.skew_swing_greeks_refresh(repo=repo, client=None, today=et_date)
     assert n >= 1
     got = repo.fetch_latest_swing_greeks_by_strike("NVDA")
     assert {r["strike"] for r in got} == {Decimal("100")}
+    # The passed market date stamps the rows (not host-local).
+    with repo.conn.cursor() as cur:
+        cur.execute(
+            "SELECT DISTINCT market_date FROM uw_scan.skew_swing_greeks WHERE ticker='NVDA'"
+        )
+        assert [r[0] for r in cur.fetchall()] == [et_date]
     # SPY is an index ETF -> now INCLUDED (structure block extended to index ETFs);
     # its directional lean is research-validated, so it earns the same expression.
     got_spy = repo.fetch_latest_swing_greeks_by_strike("SPY")

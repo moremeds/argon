@@ -31,11 +31,19 @@ SWING_TARGET_DTES: tuple[int, ...] = (30, 45)
 _CONTRACTS_LIMIT = 500
 
 
-def skew_swing_greeks_refresh(*, repo: Repository, client: UwClient) -> int:
+def skew_swing_greeks_refresh(
+    *, repo: Repository, client: UwClient, today: _date | None = None
+) -> int:
     """One swing-expiry per-strike greeks snapshot per watchlist ticker.
-    Idempotent per (ticker, market_date) via delete-then-insert. Returns rows written."""
+    Idempotent per (ticker, market_date) via delete-then-insert. Returns rows written.
+
+    ``today`` is the ET market date and stamps every row + drives the DTE math. The
+    scheduler passes ``datetime.now(rth_tz).date()`` so a non-ET host (e.g. HKT dev/
+    deploy) does not stamp the next calendar day at the 17:30-ET run. Falls back to
+    host-local only for ad-hoc callers."""
     cards = repo.list_watchlist_cards()
-    today = _date.today()
+    if today is None:
+        today = _date.today()
     written = 0
     for card in cards:
         ticker = card.ticker
