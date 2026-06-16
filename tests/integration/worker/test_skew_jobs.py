@@ -11,6 +11,7 @@ from uw_scan import models
 from uw_scan.worker.jobs.skew_analytics import (
     nightly_skew_analytics_rollup,
     skew_analytics_backfill,
+    skew_markout_refresh,
 )
 
 
@@ -64,6 +65,17 @@ def test_backfill_writes_multiple_dates(repo):
     assert written >= 1
     rows = repo.fetch_skew_analytics_history("AAPL", days=4000)
     assert len(rows) >= 1
+
+
+def test_skew_markout_refresh_scores_snapshots(repo):
+    # The job that was missing in prod: backfill creates the snapshot base, then the
+    # markout refresh scores it and (re)writes the verdict store. Exercises the real
+    # scheduler job function end-to-end (not run_skew_markout directly).
+    _seed(repo, "AAPL")
+    skew_analytics_backfill(repo=repo, start=date(2026, 1, 1), end=date(2026, 7, 1))
+    out = skew_markout_refresh(repo=repo)
+    assert out["snapshots"] >= 1
+    assert "verdicts_written" in out and "rv_verdicts_written" in out
 
 
 def test_swing_greeks_refresh_persists_singlename_and_index_etf(repo, monkeypatch):

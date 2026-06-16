@@ -58,8 +58,11 @@ def test_classify_deviation(z, pct, expected):
 def test_classify_skew_term():
     assert sk.classify_skew_term(0.02, 0.01) == "front_steep"
     assert sk.classify_skew_term(0.01, 0.02) == "back_steep"
-    assert sk.classify_skew_term(0.010, 0.010) == "flat"
-    assert sk.classify_skew_term(0.01, None) == "flat"
+    assert sk.classify_skew_term(0.010, 0.010) == "flat"  # two expiries, genuinely flat
+    # A single expiry on file (back missing) is NOT flat — it's unknown. Conflating
+    # the two would poison the markout-ready snapshot store.
+    assert sk.classify_skew_term(0.01, None) == "unknown"
+    assert sk.classify_skew_term(None, None) == "unknown"
 
 
 def test_classify_drive():
@@ -188,18 +191,20 @@ def test_lean_none_verdict_value_is_neutral():
     assert out["lean"] == "NEUTRAL"
 
 
-def test_lean_suppressed_when_verdict_regime_mismatches():
+def test_lean_carries_current_regime_as_context():
+    # Regime left the verdict bucket key (migration 076): it no longer gates the
+    # lean, but the validated basis still reports the current regime for context.
     out = sk.resolve_directional_lean(
         deviation_class="RICH",
         drive_class="PANIC",
         asset_class="single_name",
-        regime="LOW_VOL",
+        regime="risk_off",
         borrow_flag="normal",
         earnings_gate="pass",
-        verdict={**_verdict("TRADABLE_BEAR"), "regime": "HIGH_VOL"},
+        verdict=_verdict("TRADABLE_BEAR"),
     )
-    assert out["lean"] == "NEUTRAL"
-    assert "regime" in out["basis"].lower()
+    assert out["lean"] == "BEARISH_TILT"
+    assert "risk_off" in out["basis"]
 
 
 def test_build_read_includes_lean_and_summary():
@@ -234,9 +239,11 @@ def test_build_read_includes_lean_and_summary():
     # Clean prose: "put-skew" not "put_skew", "drive: " not "drive=".
     assert "put-skew" in read["summary_line"]
     assert "drive: PANIC" in read["summary_line"]
-    # Lean basis de-coded: arrow, not "=>".
-    assert "→" in read["directional_lean"]["basis"]
-    assert "=>" not in read["directional_lean"]["basis"]
+    # Lean basis states the borrow honesty caveat (#3): borrow-clean is approximate
+    # (PIT borrow history unavailable), so the lean is a tilt, not a forecast.
+    _basis = read["directional_lean"]["basis"]
+    assert "approximate" in _basis and "tilt" in _basis
+    assert "=>" not in _basis
     # Scannable breakdown: 4 explained bullets, one per read component, no direction.
     bullets = read["summary_bullets"]
     assert [b["label"].split(" — ")[0] for b in bullets] == [

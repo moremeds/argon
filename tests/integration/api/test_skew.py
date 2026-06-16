@@ -59,6 +59,17 @@ def test_skew_endpoint_empty_ticker(client: TestClient, repo):
     assert r.json()["backfill_status"] == "empty"
 
 
+def test_skew_endpoint_is_read_only(client: TestClient, repo):
+    # The GET must not write (mutation belongs to the nightly rollup, not a read
+    # route). Pre-fix it upserted+committed a snapshot on every request.
+    _seed_rr_rv(repo, "AAPL")
+    repo.conn.commit()
+    assert repo.get_skew_analytics_latest("AAPL") is None
+    assert client.get("/api/stock/AAPL/skew").status_code == 200
+    repo.conn.rollback()  # fresh read-committed view of any write the GET may have made
+    assert repo.get_skew_analytics_latest("AAPL") is None
+
+
 def test_skew_endpoint_surfaces_seeded_verdict(client: TestClient, repo):
     """Spec §9 'assembler wiring': a TRADABLE_* verdict for the computed bucket
     surfaces as a non-neutral lean; absent verdict => NEUTRAL."""
@@ -70,7 +81,6 @@ def test_skew_endpoint_surfaces_seeded_verdict(client: TestClient, repo):
         asset_class=first["asset_class"],
         deviation_class=first["deviation_class"],
         drive_class=first["read"]["drive"] or first["drive_class"],
-        regime=first["regime"],
         verdict="TRADABLE_BEAR",
         confidence="med",
         forward_sep=Decimal("-0.02"),

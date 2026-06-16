@@ -12,6 +12,7 @@ from datetime import date as _date
 from decimal import Decimal
 from typing import Any
 
+import numpy as np
 import pandas as pd
 
 from uw_scan.cards import skew_first_principles as sk
@@ -93,8 +94,13 @@ def build_skew_snapshot_row(
     sector: str | None,
     today: _date,
     exposure_rows: list[dict] | None = None,
+    regime: str | None = None,
 ) -> dict:
-    """Pure stitch: raw series + verdict in, snapshot column dict out. No I/O."""
+    """Pure stitch: raw series + verdict in, snapshot column dict out. No I/O.
+
+    `regime` is the canonical market regime tag (latest CRI level, supplied by the
+    caller). When None, fall back to the self-contained SPY-RV label. Regime is a
+    display/context tag only — it left the verdict bucket key in migration 076."""
     rr_vals = [r.get("risk_reversal") for r in rr_series]
     rr_floats = [float(x) for x in rr_vals if x is not None]
     base = sk.compute_skew_baseline(rr_vals)
@@ -127,7 +133,7 @@ def build_skew_snapshot_row(
         if next_earnings_date is None
         else _earnings_gate(next_earnings_date=next_earnings_date, today=today)
     )
-    regime = sk.classify_market_regime(spy_rv_series)
+    regime = regime if regime else sk.classify_market_regime(spy_rv_series)
 
     lean = sk.resolve_directional_lean(
         deviation_class=deviation,
@@ -230,13 +236,77 @@ def _read_series_for_ticker(repo: Repository, ticker: str, today: _date) -> dict
     }
 
 
+def _history_points(rr_hist: list[dict]) -> list[SkewHistoryPoint]:
+    """O(n) expanding z (vs trailing 180) + percentile (vs trailing 252) over the
+    non-null RR series. Vectorised rolling — replaces the prior O(n^2) per-point
+    Series rebuild; matches cards.compute_skew_baseline pointwise on dense data.
+    (Also fixes a latent misalignment: the old loop sliced the filtered float list
+    with the *unfiltered* rr_hist index, wrong whenever an RR value was null.)"""
+    pts = [
+        (r["market_date"], float(r["risk_reversal"]))
+        for r in rr_hist
+        if r.get("risk_reversal") is not None
+    ]
+    if not pts:
+        return []
+    s = pd.Series([v for _, v in pts], dtype="float64")
+    rmean = s.rolling(180, min_periods=30).mean()
+    rstd = s.rolling(180, min_periods=30).std(ddof=1)
+    z = (s - rmean) / rstd.where(rstd > 0)
+    pct = s.rolling(252, min_periods=30).apply(
+        lambda w: float((w < w[-1]).mean() * 100.0), raw=True
+    )
+    out: list[SkewHistoryPoint] = []
+    for k, (d, v) in enumerate(pts):
+        zk = z.iloc[k]
+        pk = pct.iloc[k]
+        out.append(
+            SkewHistoryPoint(
+                date=d,
+                rr=_dec(v),
+                z=None if pd.isna(zk) else _dec(float(zk)),
+                pct=None if pd.isna(pk) else _dec(float(pk)),
+            )
+        )
+    return out
+
+
+def _rho_points(rv_series: list[dict], *, window: int = 63) -> list[SkewRhoPoint]:
+    """O(n) trailing-window spot-vol correlation series. Rolling corr over the
+    dropna'd Δlog(price)/ΔIV pairs — replaces the prior O(n^2) per-point DataFrame
+    rebuild; matches cards.compute_spot_vol_rho pointwise on dense data."""
+    df = pd.DataFrame(rv_series)
+    if df.empty or "market_date" not in df:
+        return []
+    px = pd.to_numeric(df.get("price"), errors="coerce")
+    iv = pd.to_numeric(df.get("implied_volatility"), errors="coerce")
+    pair = pd.DataFrame(
+        {
+            "d": df["market_date"],
+            "dpx": np.log(px.where(px > 0)).diff(),
+            "div": iv.diff(),
+        }
+    ).dropna(subset=["dpx", "div"])
+    if len(pair) < window:
+        return []
+    roll = pair["dpx"].rolling(window).corr(pair["div"])
+    return [
+        SkewRhoPoint(date=d, rho=_dec(float(r)))
+        for d, r in zip(pair["d"], roll, strict=False)
+        if pd.notna(r)
+    ]
+
+
 def assemble_skew_analysis(
     *,
     ticker: str,
     repo: Repository,
     backfill_status: str = "ready",
-    persist: bool = True,
+    persist: bool = False,
 ) -> SkewAnalysisResponse:
+    """Assemble the Skew tab response. Read-only by default: the GET endpoint no
+    longer writes (the nightly rollup + markout own persistence). Pass persist=True
+    only from a writer job. Live-computes the scalar read + O(n) response series."""
     t = ticker.upper()
     today = _date.today()
     data = _read_series_for_ticker(repo, t, today)
@@ -250,6 +320,9 @@ def assemble_skew_analysis(
     rv_asof = [r for r in data["rv_series"] if r["market_date"] <= market_date]
     spy_asof = [r for r in data["spy_rv"] if r["market_date"] <= market_date]
     sector = repo.fetch_watchlist_sector(t)  # threads Macro/Credit/Sector-ETF. C-6.
+    regime = (
+        repo.fetch_latest_market_regime()
+    )  # canonical CRI level (None -> SPY-RV fallback)
     # first pass with no verdict to learn the bucket keys
     pre = build_skew_snapshot_row(
         ticker=t,
@@ -263,12 +336,12 @@ def assemble_skew_analysis(
         verdict=None,
         sector=sector,
         today=today,
+        regime=regime,
     )
     verdict = repo.get_skew_directional_verdict(
         asset_class=pre["asset_class"],
         deviation_class=pre["deviation_class"],
         drive_class=pre["drive_class"],
-        regime=pre["regime"],
     )
     # Swing-DTE per-strike greeks for strike-by-delta structure detail (only consumed
     # when the lean is non-neutral). Empty list when no swing chain persisted yet.
@@ -286,37 +359,17 @@ def assemble_skew_analysis(
         sector=sector,
         today=today,
         exposure_rows=exposures,
+        regime=regime,
     )
 
     if persist:
         repo.upsert_skew_analytics_snapshots([row])
         repo.conn.commit()
 
-    # response series
+    # response series — O(n) (was O(n^2) per-point rebuilds)
     rr_hist = repo.fetch_matrix_skew_history(ticker=t, market_date=today, days=400)
-    rr_floats = [
-        float(r["risk_reversal"]) for r in rr_hist if r.get("risk_reversal") is not None
-    ]
-    history: list[SkewHistoryPoint] = []
-    for i, r in enumerate(rr_hist):
-        if r.get("risk_reversal") is None:
-            continue
-        win = rr_floats[: i + 1]
-        b = sk.compute_skew_baseline(win)
-        history.append(
-            SkewHistoryPoint(
-                date=r["market_date"],
-                rr=_dec(r["risk_reversal"]),
-                z=_dec(b["z"]),
-                pct=_dec(b["pct"]),
-            )
-        )
-
-    rho_series: list[SkewRhoPoint] = []
-    rv_df = data["rv_series"]
-    for i in range(63, len(rv_df)):
-        rho = sk.compute_spot_vol_rho(rv_df[: i + 1], window=63)
-        rho_series.append(SkewRhoPoint(date=rv_df[i]["market_date"], rho=_dec(rho)))
+    history = _history_points(rr_hist)
+    rho_series = _rho_points(data["rv_series"])
 
     term = [
         SkewExpiryPoint(expiry=e["expiry"], rr=_dec(e.get("risk_reversal")))

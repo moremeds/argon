@@ -71,8 +71,14 @@ def classify_deviation(
 
 
 def classify_skew_term(front_rr, back_rr, *, eps: float = 0.005) -> str:
+    """Term structure of 25Δ RR: front (nearest) vs back (furthest) expiry.
+
+    Returns 'unknown' when a second expiry is missing — most ticker-dates carry a
+    single expiry, and one point is NOT evidence of a flat term structure.
+    Conflating the two would poison the markout-ready snapshot store: a later
+    term-structure markout could not tell 'no data' from 'genuinely flat'."""
     if front_rr is None or back_rr is None:
-        return "flat"
+        return "unknown"
     d = float(front_rr) - float(back_rr)
     if d > eps:
         return "front_steep"
@@ -94,7 +100,12 @@ def classify_drive(price_trend, rho, *, eps: float = 1e-9) -> str:
 
 
 def classify_market_regime(spy_rv_series: list[dict]) -> str:
-    """HIGH_VOL/LOW_VOL from SPY 21d realized-vol percentile (vs 252d), >50 = HIGH.
+    """FALLBACK market regime from SPY 21d realized-vol percentile (vs 252d).
+
+    HIGH_VOL only at the >=70th percentile (genuinely elevated), not the 50th — a
+    coin-flip split labelled half of all days HIGH_VOL and carried no information.
+    This is the fallback only: the canonical regime tag is the latest CRI level
+    (Repository.fetch_latest_market_regime); this is used when no CRI snapshot exists.
     spy_rv_series: dicts with 'price', date ASC. Self-contained; no analytics table."""
     df = pd.DataFrame(spy_rv_series)
     if df.empty or "price" not in df or len(df) < 60:
@@ -107,7 +118,7 @@ def classify_market_regime(spy_rv_series: list[dict]) -> str:
         return "UNKNOWN"
     latest = float(rvol.iloc[-1])
     pct = float((rvol.tail(252) < latest).mean() * 100.0)
-    return "HIGH_VOL" if pct >= 50.0 else "LOW_VOL"
+    return "HIGH_VOL" if pct >= 70.0 else "LOW_VOL"
 
 
 # Small static asset-class map (YAGNI — extend only when a real ticker needs it).
@@ -309,11 +320,9 @@ def resolve_directional_lean(
         return neutral(
             "no proven separation for this bucket yet — relative-value read only"
         )
-    # Hard gate: the verdict must have been validated for the CURRENT regime.
-    # The assembler looks up by current regime so these normally match; this is
-    # defense-in-depth (a stale/mis-keyed verdict can never leak a lean).
-    if (verdict or {}).get("regime") and verdict["regime"] != regime:
-        return neutral("current regime differs from the validated regime — suppressed")
+    # Regime left the verdict bucket key (migration 076): robustness is enforced in
+    # the markout's per-quarter catastrophic-degradation gate, not by a live
+    # regime-match. `regime` is now context only (shown in the basis below).
     if borrow_flag == "hard_to_borrow":
         return neutral(
             "hard-to-borrow — borrow-fee confound suppresses the directional lean"
@@ -332,7 +341,9 @@ def resolve_directional_lean(
         return neutral("unrecognized verdict — neutral")
     basis = (
         f"validated — {deviation_class} {asset_class} bucket separated {sep_txt} "
-        f"(survived regime gate); borrow normal → edge not a borrow artifact"
+        f"(survived the per-quarter catastrophic gate); borrow normal today "
+        f"(point-in-time borrow history unavailable — borrow-clean subset is "
+        f"approximate, so this is a tilt, not a forecast); current regime {regime}"
     )
     return {
         "lean": lean,

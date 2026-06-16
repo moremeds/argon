@@ -90,7 +90,7 @@ class SkewAnalysisResponse(_UwBase):
     rr_z_180d: Decimal | None = None
     rr_pct_252d: Decimal | None = None
     deviation_class: str = "NORMAL"
-    skew_term_class: str = "flat"
+    skew_term_class: str = "unknown"
     front_rr: Decimal | None = None
     back_rr: Decimal | None = None
     rho_spotvol_63d: Decimal | None = None

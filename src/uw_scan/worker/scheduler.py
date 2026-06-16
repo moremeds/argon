@@ -49,7 +49,10 @@ from uw_scan.worker.jobs.pipeline_benchmark import pipeline_benchmark_snapshot_j
 from uw_scan.worker.jobs.positioning_jobs import positioning_refresh_once
 from uw_scan.worker.jobs.rates_jobs import rates_fred_ingest_job
 from uw_scan.worker.jobs.rescan_loop import rescan_tick
-from uw_scan.worker.jobs.skew_analytics import nightly_skew_analytics_rollup
+from uw_scan.worker.jobs.skew_analytics import (
+    nightly_skew_analytics_rollup,
+    skew_markout_refresh,
+)
 from uw_scan.worker.jobs.skew_swing_greeks import skew_swing_greeks_refresh
 from uw_scan.worker.jobs.trade_insight_outcome_backfill import (
     trade_insight_outcome_backfill_once,
@@ -422,6 +425,10 @@ def main() -> int:
         with _repo(settings) as repo:
             nightly_skew_analytics_rollup(repo=repo)
 
+    def _skew_markout_refresh() -> None:
+        with _repo(settings) as repo:
+            skew_markout_refresh(repo=repo)
+
     def _flow_data_refresh() -> None:
         if not _uw_auto_request_allowed(datetime.now(ZoneInfo(settings.rth_tz))):
             logger.info("flow_data_refresh skipped outside UW flow refresh window")
@@ -784,6 +791,19 @@ def main() -> int:
                 CronTrigger.from_crontab("30 18 * * 0-4", timezone=settings.rth_tz),
                 id="nightly_skew_analytics_rollup",
                 name="Nightly skew analytics rollup",
+                max_instances=1,
+                coalesce=True,
+            )
+            # Skew markout at 18:45 ET — after the 18:30 rollup so it scores the day's
+            # fresh snapshot. This is the job that was missing: it re-scores all skew
+            # snapshots and (re)writes skew_directional_verdicts / RV-reversion verdicts.
+            # Without it the verdict store stayed empty and every directional lean was
+            # NEUTRAL. Pure compute over the warm store (no external calls); idempotent.
+            sched.add_job(
+                _skew_markout_refresh,
+                CronTrigger.from_crontab("45 18 * * 0-4", timezone=settings.rth_tz),
+                id="skew_markout_refresh",
+                name="Skew markout verdict refresh",
                 max_instances=1,
                 coalesce=True,
             )

@@ -19,7 +19,7 @@ export function SkewTermPanel({
     <AnalyticalSeriesPanel title="Skew Term" subtitle="FRONT vs BACK">
       {b == null ? (
         <div style={{ color: "var(--text-muted)", fontSize: 11 }}>
-          Single expiry on file — term structure unavailable ({termClass}).
+          Single expiry on file — term structure unavailable.
         </div>
       ) : (
         <div

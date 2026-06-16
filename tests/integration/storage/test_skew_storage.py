@@ -73,7 +73,6 @@ def test_verdict_roundtrip(repo):
         asset_class="single_name",
         deviation_class="RICH",
         drive_class="PANIC",
-        regime="HIGH_VOL",
         verdict="TRADABLE_BEAR",
         confidence="med",
         forward_sep=Decimal("-0.021"),
@@ -87,7 +86,6 @@ def test_verdict_roundtrip(repo):
         asset_class="single_name",
         deviation_class="RICH",
         drive_class="PANIC",
-        regime="HIGH_VOL",
     )
     assert v is not None and v["verdict"] == "TRADABLE_BEAR" and v["n"] == 42
     assert (
@@ -95,7 +93,6 @@ def test_verdict_roundtrip(repo):
             asset_class="index_macro",
             deviation_class="RICH",
             drive_class="PANIC",
-            regime="HIGH_VOL",
         )
         is None
     )
