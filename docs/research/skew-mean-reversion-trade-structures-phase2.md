@@ -1,10 +1,121 @@
 # Skew Mean-Reversion → Trade Structures (Phase 2)
 
 **Date:** 2026-06-15
-**Status:** Phase-2 design notes — deferred. Captures the trade-idea discussion built on
-the V1 Tier-1 markout (`docs/research/skew-first-principles-markout-2026-06.md`). Not yet
-implemented; this is the operational target for turning the RR mean-reversion finding
-into surfaced, defined-risk structures.
+**Status:** Phase-2 design notes. Captures the trade-idea discussion built on
+the V1 Tier-1 markout (`docs/research/skew-first-principles-markout-2026-06.md`).
+**Hardened 2026-06-16** after a Codex (gpt-5.4) + Gemini + Claude design-review tribunal —
+the `## Hardening review` section below is authoritative over anything later that conflicts.
+
+## Hardening review (2026-06-16) — codex + gemini + claude tribunal
+
+A 3-reviewer design review ran before any plan was written. The bucket arithmetic in this
+note is faithful to the markout; the problems were *inferences and scope*. The corrections
+below are authoritative; sections later in this doc that conflict are explicitly superseded.
+
+### Increment 1 — the only thing built first (scope: "concretize the gated read + RR-trigger research")
+
+Two coupled workstreams, no new live-data dependency:
+
+**1a. Concretize the already-gated read (UI + backend + persistence).** When V1's
+evidence-gated `directional_lean` is *already* non-neutral (`BEARISH_TILT` / `BULLISH_TILT`
+— i.e. it already passed the borrow / earnings / regime gates), enrich the existing bounded
+`express` string with concrete **strike-by-delta legs** + a suggested **DTE**. Constraints:
+
+- Structure selection follows the gated `lean` (V1's `_express_structure`), **never**
+  `deviation × tail` posture alone — see correction (A) below.
+- Defined-risk only; no naked legs; **no stock-assuming overlays** (no collar) — see (C).
+- Single-names **and index ETFs** (index ETFs added post-ship — see *Post-ship updates*
+  below; originally scoped non-index); hard earnings block; deterministic; **persisted** to Postgres.
+- Strikes by target delta are sourced from a dedicated **`skew_swing_greeks`** table
+  (migration 075) fed by a daily UW job (`worker/jobs/skew_swing_greeks.py`). **Real-data
+  finding (2026-06-16):** the existing per-strike greek stores (`exposures_by_expiry_strike`,
+  `greeks_by_expiry_strike`) hold **front-expiry-only** greeks for single-names (only
+  indices get multi-expiry via the cockpit), so the original "join the existing store" plan
+  returned `no_chain` for every eligible ticker. The new job pulls a ~30/45 DTE expiry per
+  single-name via UW **`/greeks`** (real per-contract option delta in [-1, 1] — NOT
+  `/greek-exposure`, whose `call_delta` is delta *exposure*, ≈0 for low-OI strikes and
+  unusable for target-delta selection). No Black-Scholes recompute. When no swing chain is
+  available the detail degrades gracefully to `no_chain` (the `express` family string still
+  shows; no naked/invalid legs are ever emitted).
+- The read body stays bound by spec §7/§11: stock direction lives only in `directional_lean`.
+  We add detail to a field that is *already* gated, so we do not create a second
+  recommendation surface (resolves the Codex "two competing surfaces" finding).
+
+**1b. RR-as-tradeable-trigger research.** Today `run_skew_markout` computes the RV
+mean-reversion (ΔRR, primary hypothesis) only as a *descriptive* return value — un-gated,
+un-persisted. Increment 1 turns it into a trigger:
+
+- **Gate ΔRR into a persisted verdict store** (alongside the existing
+  `skew_directional_verdicts`), with the same per-time-window catastrophic-degradation gate.
+- **Re-run the markout split by `tail`** (put-skew vs call-skew). The big CHEAP ΔRR number
+  is partly extreme *call*-skew names (e.g. ALAB rr=−0.22), so a put-skew-specific edge may
+  not be claimed until the split confirms it.
+- **Walk-forward / holdout on the RR history only.** This is the *only* out-of-sample test
+  the data supports (RR history ≈ 1 year). **No spread-P&L, no net-of-cost claim** —
+  executable option-return replay is data-blocked (see (B)) and is split out.
+
+### Split out — separate later plans, NOT increment 1
+
+- **Net-of-cost / OOS trade-P&L validation.** BLOCKED on data: `option_chain_per_strike` is
+  ~5 trading days deep and UW per-strike greeks history is ~30 days; only RR history is ~1yr.
+  Executable spread-P&L replay needs a separate contract-history data project first.
+- **Delta-hedge sizing helper (Structure 3).** Needs live net-delta + a re-hedge policy the
+  tab does not have. Defer.
+- **Layer-2 cross-pillar gate.** Belongs in the **backend** trade-blast AI pipeline that
+  produces the `framework{}` object — **not** in `FrameworkTab.tsx`, which is a pure client
+  renderer. Separate plan; depends on tape/catalyst/gamma/IV inputs not wired to skew.
+
+### Corrections to the sections below (authoritative)
+
+- **(A) The "Layer 1 — skew-implied bias" `deviation × tail` table is SUPERSEDED.** It
+  re-introduces the exact naive map this doc itself calls "empirically wrong" (it ignores
+  `drive`, which flips the sign: CHEAP/CHASE is `TRADABLE_BULL`, CHEAP/PANIC is
+  `TRADABLE_BEAR`). Structure selection follows the gated `lean`, never posture alone, and
+  no put-skew-specific edge is claimed until the markout is re-run split by `tail`.
+- **(B) Structure 1 ("CHEAP → long put debit-spread") as written is a net-short-delta stock
+  bet**, contradicting the "this is NOT the stock price" framing. Increment 1 surfaces a
+  bear/bull structure only when the matching `lean` is *already* earned; it never maps
+  CHEAP → bear directly.
+- **(C) Structure 2's "hold the stock → collar / put-spread-collar" is REMOVED.** The Skew
+  tab is position-agnostic (no holdings fields in `models/skew.py`), so a surfaced collar is
+  an effective naked short. Defined-risk, position-agnostic structures only.
+- **(D) Horizon:** phrase the product on the repo's swing semantics (1–2 week HOLD, 21–60
+  DTE entry, exit before earnings), not "28–45 DTE matches T+20" — swing-HOLD ≠ swing-EXPIRY.
+
+### Post-ship updates (2026-06-16) — shipped in PR #137
+
+Increment-1 landed on `feat/skew-phase2` (8 commits, PR #137). Two changes were made *after*
+the hardening review above and are authoritative over the "non-index only" constraint and the
+basis layout described earlier.
+
+**Index ETFs now get the structure block (reverses "non-index only").** The original exclusion
+was a *product* call ("indices already get cockpit chains"), not an empirical one. `index_macro`
+is handled in three independent layers, and the reason it was treated differently varies by
+layer — this is the reference for "why isn't index here?":
+
+| Layer | index_macro? | Reason |
+|---|---|---|
+| Directional-lean verdict (produces the lean) | **included** | Research-validated — e.g. QQQ `TRADABLE_BEAR` from the `index_macro / NORMAL / STRUCTURAL / HIGH_VOL` bucket, n=181. |
+| RV mean-reversion **trigger** (1b) | **skipped** | Empirical — index skew is structural hedging demand; ΔRR ≈ +0.001, does **not** revert (this doc's markout table, "index" row). |
+| Strike-by-delta **structure block** (1a) | **now included** | Was excluded for cockpit-redundancy (a product call), not because the edge is absent. Since the lean is already research-validated, index ETFs now earn the same defined-risk expression as single-names. |
+
+- The `asset_class != "index_macro"` guard was dropped in `build_skew_snapshot_row`
+  (`reports/skew_analytics.py`); the `index_macro` skip was removed from
+  `worker/jobs/skew_swing_greeks.py`. Every watchlist `index_macro` ticker is an optionable
+  ETF — **DIA, GLD, IWM, QQQ, SLV, SPY, TLT** — and UW `/greeks` works on all of them. A future
+  true cash index (SPX/VIX) degrades gracefully to `no_chain` via the per-ticker try/except.
+- Verified live: QQQ → `PUT-DEBIT-SPREAD · 31DTE` (BUY PUT 709 Δ−0.25 / SELL PUT 674 Δ−0.12);
+  AMD (single-name) still `call_debit_spread`; NVDA (NEUTRAL) shows none. The genuine swing job
+  populated **13,368 rows / 98 tickers** via the real worker path.
+
+**EVIDENCE-panel polish.** In the Signal Detail card the leading `validated` status is lifted
+out of the basis prose into a right-aligned badge on the confidence row, and the gated-lean
+reason is split into two lines at its semicolon. NEUTRAL bases (plain reason strings, some
+containing " — ") are left intact — the badge triggers only on the literal `validated — ` prefix
+(`web/components/stock/panels/SkewSignalDetail.tsx`).
+
+**Migrations:** 074 (`skew_rv_reversion_verdicts`) + 075 (`skew_swing_greeks`), both idempotent.
+**Verification:** 63 skew backend tests, 417 web vitest, `ruff` / `eslint` / `tsc` clean, 0 console errors.
 
 ## The core reframe
 
@@ -60,8 +171,9 @@ RICH put-skew reverts down but weakly. Express short-the-rich-tail, never naked:
 
 - **No stock:** put debit-spread net-short the rich far-OTM tail (buy nearer put, sell
   the rich tail) — harvest tail richness, long put caps risk.
-- **Hold the stock:** collar / put-spread-collar — the short call is covered. Classic
-  "finance rich skew" (spec §3 idea #2). Valid only *with* the underlying.
+- ~~**Hold the stock:** collar / put-spread-collar~~ — **REMOVED (hardening 2026-06-16,
+  correction C):** the Skew tab is position-agnostic, so a surfaced collar is an effective
+  naked short. Use the position-agnostic put-spread above instead.
 
 Caveat: RICH skew often = genuine fear (PANIC, ρ<0, e.g. BE). Don't fade a real crash;
 size small.
@@ -122,9 +234,12 @@ failure mode.
 
 ### Two layers
 
-**Layer 1 — skew-implied bias (relative-value axis; already in V1, bounded).** The V1 RV
-bullet + `express` field already encode this: RICH → fade/finance the rich wing; CHEAP →
-own the cheap wing; NORMAL → no skew edge. Defined-risk structures only (no naked legs):
+**Layer 1 — skew-implied bias (relative-value axis).** **⚠️ The `deviation × tail` table
+below is SUPERSEDED — see hardening correction (A).** It fires on posture alone and ignores
+`drive`, re-introducing the empirically-wrong map. V1 already keys structure off the gated
+`lean` (`_express_structure`), which only emits a structure when the lean is non-neutral
+(empty for the ~72% NEUTRAL names) — that is the correct, bounded behavior. The table is
+retained only as the original (rejected) proposal:
 
 | Skew posture | Defined-risk expression | Rationale |
 |---|---|---|

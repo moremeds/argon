@@ -4,6 +4,176 @@
  */
 
 export interface paths {
+    "/api/cockpit/{ticker}/dealer": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Cockpit Dealer */
+        get: operations["get_cockpit_dealer_api_cockpit__ticker__dealer_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/cockpit/{ticker}/flow-im": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Cockpit Flow Im */
+        get: operations["get_cockpit_flow_im_api_cockpit__ticker__flow_im_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/cockpit/{ticker}/state": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Cockpit State */
+        get: operations["get_cockpit_state_api_cockpit__ticker__state_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/cockpit/{ticker}/surface": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Cockpit Surface */
+        get: operations["get_cockpit_surface_api_cockpit__ticker__surface_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/cockpit/{ticker}/vrp": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Cockpit Vrp */
+        get: operations["get_cockpit_vrp_api_cockpit__ticker__vrp_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/gold/gauge": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Gauge */
+        get: operations["get_gauge_api_gold_gauge_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/gold/inputs/{series_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Input Series */
+        get: operations["get_input_series_api_gold_inputs__series_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/gold/lenses/{lens_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Lens */
+        get: operations["get_lens_api_gold_lenses__lens_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/gold/replay": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Replay */
+        get: operations["get_replay_api_gold_replay_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/gold/state": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get State */
+        get: operations["get_state_api_gold_state_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/health": {
         parameters: {
             query?: never;
@@ -55,40 +225,15 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/watchlist": {
+    "/api/jobs/{job_id}": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** Get Watchlist */
-        get: operations["get_watchlist_api_watchlist_get"];
-        put?: never;
-        /** Post Watchlist */
-        post: operations["post_watchlist_api_watchlist_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/watchlist/queue": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Watchlist Queue
-         * @description Lightweight queue snapshot for the dashboard's QueueProgress widget.
-         *
-         *     Returns only the rescan-queue summary — no card joins, no meta. Designed
-         *     for the 2.5s polling loop in QueueProgress so the dashboard doesn't
-         *     refetch the full watchlist payload every tick.
-         */
-        get: operations["get_watchlist_queue_api_watchlist_queue_get"];
+        /** Get Job */
+        get: operations["get_job_api_jobs__job_id__get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -97,23 +242,15 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/watchlist/spots": {
+    "/api/ohlc/{ticker}": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /**
-         * Get Watchlist Spots
-         * @description Live spot snapshot for the dashboard's LiveSpotsProvider poller.
-         *
-         *     The spot WS consumer (xenon primary / massive fallback) rewrites
-         *     watchlist_card.spot every ~1s; this projection lets the browser tick
-         *     prices without refetching the full watchlist payload (same pattern as
-         *     /watchlist/queue for QueueProgress).
-         */
-        get: operations["get_watchlist_spots_api_watchlist_spots_get"];
+        /** Get Ohlc */
+        get: operations["get_ohlc_api_ohlc__ticker__get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -122,7 +259,284 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/watchlist/{ticker}": {
+    "/api/provider-usage/endpoints": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Provider Usage Endpoints */
+        get: operations["provider_usage_endpoints_api_provider_usage_endpoints_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/provider-usage/requests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Provider Usage Requests */
+        get: operations["provider_usage_requests_api_provider_usage_requests_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/provider-usage/summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Provider Usage Summary */
+        get: operations["provider_usage_summary_api_provider_usage_summary_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/provider-usage/tickers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Provider Usage Tickers */
+        get: operations["provider_usage_tickers_api_provider_usage_tickers_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/rates/snapshot": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Rates Snapshot */
+        get: operations["rates_snapshot_api_rates_snapshot_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/regime": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Regime */
+        get: operations["get_regime_api_regime_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/regime/canary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Canary Latest */
+        get: operations["get_canary_latest_api_regime_canary_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/regime/canary/history": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Canary History */
+        get: operations["get_canary_history_api_regime_canary_history_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/regime/canary/validation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Canary Validation
+         * @description v0.4 patch I4 + C6: use the existing `find_latest_run` (which already
+         *     filters on `completed_at IS NOT NULL`) and post-filter for the winning
+         *     form in summary JSON. composite_version is stringified at the DB boundary.
+         */
+        get: operations["get_canary_validation_api_regime_canary_validation_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/regime/cri/history": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Cri History */
+        get: operations["get_cri_history_api_regime_cri_history_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/regime/cri/intraday": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Cri Intraday */
+        get: operations["get_cri_intraday_api_regime_cri_intraday_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/regime/cri/live": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Cri Live
+         * @description Request-time CRI with live quotes spliced as today's provisional
+         *     close. Does NOT persist (the 5-min regime_live_scan job owns writes).
+         *     Falls back to the latest basis='eod' snapshot when quotes are stale.
+         */
+        get: operations["get_cri_live_api_regime_cri_live_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/regime/dealer": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Dealer Regime
+         * @description Per-ticker dealer Greek regime — feeds the Magnet/Gamma summary bar
+         *     and the Volatility tab regime panel. Uses the same `gather_inputs`
+         *     helper the report assembler uses so both paths see the same upstream.
+         */
+        get: operations["get_dealer_regime_api_regime_dealer_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/regime/gex": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Gex */
+        get: operations["get_gex_api_regime_gex_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/regime/gex/intraday": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Gex Intraday
+         * @description Last N RTH sessions of intraday gex_snapshots for ``ticker``.
+         *
+         *     Drives the intraday line chart on the GEX tab. Sessions are ET-anchored
+         *     (UTC `data_date` straddles sessions). Empty `sessions` array is a valid
+         *     response when no rows exist for the ticker.
+         */
+        get: operations["get_gex_intraday_api_regime_gex_intraday_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/regime/gex/scan": {
         parameters: {
             query?: never;
             header?: never;
@@ -131,13 +545,312 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post?: never;
-        /** Delete Watchlist */
-        delete: operations["delete_watchlist_api_watchlist__ticker__delete"];
+        /**
+         * Trigger Gex Scan
+         * @description Run a GEX scan synchronously against UW and persist.
+         */
+        post: operations["trigger_gex_scan_api_regime_gex_scan_post"];
+        delete?: never;
         options?: never;
         head?: never;
-        /** Patch Watchlist */
-        patch: operations["patch_watchlist_api_watchlist__ticker__patch"];
+        patch?: never;
+        trace?: never;
+    };
+    "/api/regime/grg": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Grg
+         * @description Latest GRG snapshot (self-contained: embeds 90-session history).
+         *
+         *     GRG is EOD/periodic-rescan — the worker owns UW fetches; this read is
+         *     cheap (one snapshot row). No per-request UW spend.
+         */
+        get: operations["get_grg_api_regime_grg_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/regime/grg/scan": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Trigger Grg Scan
+         * @description Run a GRG scan synchronously against UW and persist a snapshot.
+         */
+        post: operations["trigger_grg_scan_api_regime_grg_scan_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/regime/guidance": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Guidance */
+        get: operations["get_guidance_api_regime_guidance_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/regime/quotes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Regime Quotes */
+        get: operations["get_regime_quotes_api_regime_quotes_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/regime/scan": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Trigger Cri Scan
+         * @description Run a CRI scan synchronously off the warm store; persist a snapshot.
+         */
+        post: operations["trigger_cri_scan_api_regime_scan_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/regime/validation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Validation
+         * @description Latest completed CRI backtest run, rendered to markdown.
+         *
+         *     Source of truth is uw_scan.regime_backtest_runs. The previous file
+         *     fallback (cri-backtest.md/.csv + oos-summary.json on disk) was removed
+         *     after the prod gate in
+         *     docs/superpowers/archive/specs/2026-05-24-regime-research-closure-design.md §10.4
+         *     was satisfied. If no completed run exists at the current
+         *     cri_scorers.COMPOSITE_VERSION, returns 503 — operators should run
+         *     scripts/backtest_cri.py to seed the table.
+         */
+        get: operations["get_validation_api_regime_validation_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/regime/vcg": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Vcg */
+        get: operations["get_vcg_api_regime_vcg_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/regime/vcg-validation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Vcg Validation
+         * @description Latest completed VCG backtest run, rendered to markdown + structured.
+         *
+         *     Source of truth is uw_scan.regime_backtest_runs (migration 057). Returns
+         *     503 with an actionable message if no completed run exists at the current
+         *     vcg_scoring.COMPOSITE_VERSION — operators should run scripts/backtest_vcg.py.
+         *
+         *     Persisted JSON shape (from scripts/backtest_vcg.py):
+         *         summary.extras.named_crash_window: dict[iso_str, list[dict]] where
+         *         each inner dict has offset_d (NOT offset_days), vcg, vcg_adj, beta1,
+         *         beta2, sign_ok, interpretation, vix. Event labels live in
+         *         NAMED_CRASH_DATES, not the persisted JSON.
+         */
+        get: operations["get_vcg_validation_api_regime_vcg_validation_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/regime/vcg/history": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Vcg History */
+        get: operations["get_vcg_history_api_regime_vcg_history_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/regime/vcg/intraday": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Vcg Intraday */
+        get: operations["get_vcg_intraday_api_regime_vcg_intraday_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/regime/vcg/live": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Vcg Live */
+        get: operations["get_vcg_live_api_regime_vcg_live_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/regime/vcg/scan": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Trigger Vcg Scan
+         * @description Run a VCG scan synchronously off the warm store; persist a snapshot.
+         */
+        post: operations["trigger_vcg_scan_api_regime_vcg_scan_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/regime/vol-backdrop": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Vol Backdrop */
+        get: operations["get_vol_backdrop_api_regime_vol_backdrop_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/scanner": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Scanner */
+        get: operations["get_scanner_api_scanner_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/scanner/discover": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Scanner Discover
+         * @description Thin read of the latest persisted discovery snapshot (compute is the job).
+         */
+        get: operations["get_scanner_discover_api_scanner_discover_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/api/stock/{ticker}": {
@@ -214,179 +927,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/ohlc/{ticker}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get Ohlc */
-        get: operations["get_ohlc_api_ohlc__ticker__get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/cockpit/{ticker}/state": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get Cockpit State */
-        get: operations["get_cockpit_state_api_cockpit__ticker__state_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/cockpit/{ticker}/dealer": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get Cockpit Dealer */
-        get: operations["get_cockpit_dealer_api_cockpit__ticker__dealer_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/cockpit/{ticker}/surface": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get Cockpit Surface */
-        get: operations["get_cockpit_surface_api_cockpit__ticker__surface_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/cockpit/{ticker}/flow-im": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get Cockpit Flow Im */
-        get: operations["get_cockpit_flow_im_api_cockpit__ticker__flow_im_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/cockpit/{ticker}/vrp": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get Cockpit Vrp */
-        get: operations["get_cockpit_vrp_api_cockpit__ticker__vrp_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/watchlist/{ticker}/rescan": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Enqueue Rescan */
-        post: operations["enqueue_rescan_api_watchlist__ticker__rescan_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/watchlist/rescan-all": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Enqueue Rescan All
-         * @description Enqueue a rescan job for every active watchlist ticker.
-         */
-        post: operations["enqueue_rescan_all_api_watchlist_rescan_all_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/jobs/{job_id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get Job */
-        get: operations["get_job_api_jobs__job_id__get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/stock/{ticker}/volatility/series": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get Volatility Series */
-        get: operations["get_volatility_series_api_stock__ticker__volatility_series_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/stock/{ticker}/skew": {
         parameters: {
             query?: never;
@@ -396,74 +936,6 @@ export interface paths {
         };
         /** Get Skew Analysis */
         get: operations["get_skew_analysis_api_stock__ticker__skew_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/provider-usage/summary": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Provider Usage Summary */
-        get: operations["provider_usage_summary_api_provider_usage_summary_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/provider-usage/endpoints": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Provider Usage Endpoints */
-        get: operations["provider_usage_endpoints_api_provider_usage_endpoints_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/provider-usage/tickers": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Provider Usage Tickers */
-        get: operations["provider_usage_tickers_api_provider_usage_tickers_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/provider-usage/requests": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Provider Usage Requests */
-        get: operations["provider_usage_requests_api_provider_usage_requests_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -562,6 +1034,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/stock/{ticker}/volatility/series": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Volatility Series */
+        get: operations["get_volatility_series_api_stock__ticker__volatility_series_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/trade-insights/priors": {
         parameters: {
             query?: never;
@@ -595,24 +1084,25 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/regime/gex": {
+    "/api/watchlist": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** Get Gex */
-        get: operations["get_gex_api_regime_gex_get"];
+        /** Get Watchlist */
+        get: operations["get_watchlist_api_watchlist_get"];
         put?: never;
-        post?: never;
+        /** Post Watchlist */
+        post: operations["post_watchlist_api_watchlist_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/regime/gex/intraday": {
+    "/api/watchlist/queue": {
         parameters: {
             query?: never;
             header?: never;
@@ -620,14 +1110,14 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Get Gex Intraday
-         * @description Last N RTH sessions of intraday gex_snapshots for ``ticker``.
+         * Get Watchlist Queue
+         * @description Lightweight queue snapshot for the dashboard's QueueProgress widget.
          *
-         *     Drives the intraday line chart on the GEX tab. Sessions are ET-anchored
-         *     (UTC `data_date` straddles sessions). Empty `sessions` array is a valid
-         *     response when no rows exist for the ticker.
+         *     Returns only the rescan-queue summary — no card joins, no meta. Designed
+         *     for the 2.5s polling loop in QueueProgress so the dashboard doesn't
+         *     refetch the full watchlist payload every tick.
          */
-        get: operations["get_gex_intraday_api_regime_gex_intraday_get"];
+        get: operations["get_watchlist_queue_api_watchlist_queue_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -636,7 +1126,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/regime/gex/scan": {
+    "/api/watchlist/rescan-all": {
         parameters: {
             query?: never;
             header?: never;
@@ -646,25 +1136,33 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Trigger Gex Scan
-         * @description Run a GEX scan synchronously against UW and persist.
+         * Enqueue Rescan All
+         * @description Enqueue a rescan job for every active watchlist ticker.
          */
-        post: operations["trigger_gex_scan_api_regime_gex_scan_post"];
+        post: operations["enqueue_rescan_all_api_watchlist_rescan_all_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/regime/vol-backdrop": {
+    "/api/watchlist/spots": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** Get Vol Backdrop */
-        get: operations["get_vol_backdrop_api_regime_vol_backdrop_get"];
+        /**
+         * Get Watchlist Spots
+         * @description Live spot snapshot for the dashboard's LiveSpotsProvider poller.
+         *
+         *     The spot WS consumer (xenon primary / massive fallback) rewrites
+         *     watchlist_card.spot every ~1s; this projection lets the browser tick
+         *     prices without refetching the full watchlist payload (same pattern as
+         *     /watchlist/queue for QueueProgress).
+         */
+        get: operations["get_watchlist_spots_api_watchlist_spots_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -673,24 +1171,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/regime": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get Regime */
-        get: operations["get_regime_api_regime_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/regime/scan": {
+    "/api/watchlist/{ticker}": {
         parameters: {
             query?: never;
             header?: never;
@@ -699,35 +1180,16 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /**
-         * Trigger Cri Scan
-         * @description Run a CRI scan synchronously off the warm store; persist a snapshot.
-         */
-        post: operations["trigger_cri_scan_api_regime_scan_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/regime/vcg": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get Vcg */
-        get: operations["get_vcg_api_regime_vcg_get"];
-        put?: never;
         post?: never;
-        delete?: never;
+        /** Delete Watchlist */
+        delete: operations["delete_watchlist_api_watchlist__ticker__delete"];
         options?: never;
         head?: never;
-        patch?: never;
+        /** Patch Watchlist */
+        patch: operations["patch_watchlist_api_watchlist__ticker__patch"];
         trace?: never;
     };
-    "/api/regime/vcg/scan": {
+    "/api/watchlist/{ticker}/rescan": {
         parameters: {
             query?: never;
             header?: never;
@@ -736,470 +1198,8 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /**
-         * Trigger Vcg Scan
-         * @description Run a VCG scan synchronously off the warm store; persist a snapshot.
-         */
-        post: operations["trigger_vcg_scan_api_regime_vcg_scan_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/regime/cri/live": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Cri Live
-         * @description Request-time CRI with live quotes spliced as today's provisional
-         *     close. Does NOT persist (the 5-min regime_live_scan job owns writes).
-         *     Falls back to the latest basis='eod' snapshot when quotes are stale.
-         */
-        get: operations["get_cri_live_api_regime_cri_live_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/regime/cri/intraday": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get Cri Intraday */
-        get: operations["get_cri_intraday_api_regime_cri_intraday_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/regime/cri/history": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get Cri History */
-        get: operations["get_cri_history_api_regime_cri_history_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/regime/vcg/live": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get Vcg Live */
-        get: operations["get_vcg_live_api_regime_vcg_live_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/regime/vcg/intraday": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get Vcg Intraday */
-        get: operations["get_vcg_intraday_api_regime_vcg_intraday_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/regime/vcg/history": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get Vcg History */
-        get: operations["get_vcg_history_api_regime_vcg_history_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/regime/grg": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Grg
-         * @description Latest GRG snapshot (self-contained: embeds 90-session history).
-         *
-         *     GRG is EOD/periodic-rescan — the worker owns UW fetches; this read is
-         *     cheap (one snapshot row). No per-request UW spend.
-         */
-        get: operations["get_grg_api_regime_grg_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/regime/grg/scan": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Trigger Grg Scan
-         * @description Run a GRG scan synchronously against UW and persist a snapshot.
-         */
-        post: operations["trigger_grg_scan_api_regime_grg_scan_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/regime/quotes": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get Regime Quotes */
-        get: operations["get_regime_quotes_api_regime_quotes_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/regime/dealer": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Dealer Regime
-         * @description Per-ticker dealer Greek regime — feeds the Magnet/Gamma summary bar
-         *     and the Volatility tab regime panel. Uses the same `gather_inputs`
-         *     helper the report assembler uses so both paths see the same upstream.
-         */
-        get: operations["get_dealer_regime_api_regime_dealer_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/regime/canary": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get Canary Latest */
-        get: operations["get_canary_latest_api_regime_canary_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/regime/canary/history": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get Canary History */
-        get: operations["get_canary_history_api_regime_canary_history_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/regime/canary/validation": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Canary Validation
-         * @description v0.4 patch I4 + C6: use the existing `find_latest_run` (which already
-         *     filters on `completed_at IS NOT NULL`) and post-filter for the winning
-         *     form in summary JSON. composite_version is stringified at the DB boundary.
-         */
-        get: operations["get_canary_validation_api_regime_canary_validation_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/regime/guidance": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get Guidance */
-        get: operations["get_guidance_api_regime_guidance_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/regime/validation": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Validation
-         * @description Latest completed CRI backtest run, rendered to markdown.
-         *
-         *     Source of truth is uw_scan.regime_backtest_runs. The previous file
-         *     fallback (cri-backtest.md/.csv + oos-summary.json on disk) was removed
-         *     after the prod gate in
-         *     docs/superpowers/archive/specs/2026-05-24-regime-research-closure-design.md §10.4
-         *     was satisfied. If no completed run exists at the current
-         *     cri_scorers.COMPOSITE_VERSION, returns 503 — operators should run
-         *     scripts/backtest_cri.py to seed the table.
-         */
-        get: operations["get_validation_api_regime_validation_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/regime/vcg-validation": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Vcg Validation
-         * @description Latest completed VCG backtest run, rendered to markdown + structured.
-         *
-         *     Source of truth is uw_scan.regime_backtest_runs (migration 057). Returns
-         *     503 with an actionable message if no completed run exists at the current
-         *     vcg_scoring.COMPOSITE_VERSION — operators should run scripts/backtest_vcg.py.
-         *
-         *     Persisted JSON shape (from scripts/backtest_vcg.py):
-         *         summary.extras.named_crash_window: dict[iso_str, list[dict]] where
-         *         each inner dict has offset_d (NOT offset_days), vcg, vcg_adj, beta1,
-         *         beta2, sign_ok, interpretation, vix. Event labels live in
-         *         NAMED_CRASH_DATES, not the persisted JSON.
-         */
-        get: operations["get_vcg_validation_api_regime_vcg_validation_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/gold/gauge": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get Gauge */
-        get: operations["get_gauge_api_gold_gauge_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/gold/inputs/{series_id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get Input Series */
-        get: operations["get_input_series_api_gold_inputs__series_id__get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/gold/state": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get State */
-        get: operations["get_state_api_gold_state_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/gold/lenses/{lens_id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get Lens */
-        get: operations["get_lens_api_gold_lenses__lens_id__get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/gold/replay": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get Replay */
-        get: operations["get_replay_api_gold_replay_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/rates/snapshot": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Rates Snapshot */
-        get: operations["rates_snapshot_api_rates_snapshot_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/scanner": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get Scanner */
-        get: operations["get_scanner_api_scanner_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/scanner/discover": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Scanner Discover
-         * @description Thin read of the latest persisted discovery snapshot (compute is the job).
-         */
-        get: operations["get_scanner_discover_api_scanner_discover_get"];
-        put?: never;
-        post?: never;
+        /** Enqueue Rescan */
+        post: operations["enqueue_rescan_api_watchlist__ticker__rescan_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1212,11 +1212,15 @@ export interface components {
     schemas: {
         /** BenchmarkCurrentResponse */
         BenchmarkCurrentResponse: {
+            bottleneck?: components["schemas"]["BenchmarkReasonResponse"] | null;
             /**
              * Captured At
              * Format: date-time
              */
             captured_at: string;
+            metrics: components["schemas"]["BenchmarkMetricsResponse"];
+            /** Reasons */
+            reasons?: components["schemas"]["BenchmarkReasonResponse"][];
             /** Score */
             score: number;
             /**
@@ -1225,10 +1229,6 @@ export interface components {
              */
             status: "OK" | "DEGRADED" | "CRITICAL";
             subscores: components["schemas"]["BenchmarkSubscoresResponse"];
-            metrics: components["schemas"]["BenchmarkMetricsResponse"];
-            bottleneck?: components["schemas"]["BenchmarkReasonResponse"] | null;
-            /** Reasons */
-            reasons?: components["schemas"]["BenchmarkReasonResponse"][];
         };
         /** BenchmarkHistoryResponse */
         BenchmarkHistoryResponse: {
@@ -1237,83 +1237,88 @@ export interface components {
         };
         /** BenchmarkMetricsResponse */
         BenchmarkMetricsResponse: {
-            /** Watchlist Size */
-            watchlist_size?: number | null;
-            /** Scanner Fresh Count */
-            scanner_fresh_count?: number | null;
-            /** Scanner Stale Count */
-            scanner_stale_count?: number | null;
-            /** Scanner Dead Count */
-            scanner_dead_count?: number | null;
-            /** Scanner Never Scanned Count */
-            scanner_never_scanned_count?: number | null;
+            /** Failing Record Tables */
+            failing_record_tables?: string[];
             /** Last Full Scan Age Seconds */
             last_full_scan_age_seconds?: number | null;
+            /** Massive Worker Expected Count */
+            massive_worker_expected_count?: number | null;
+            /** Massive Worker Online Count */
+            massive_worker_online_count?: number | null;
+            /** Oldest Queue Age Seconds */
+            oldest_queue_age_seconds?: number | null;
+            /** Queue Depth */
+            queue_depth?: number | null;
+            /** Queue Drain Rate Per Minute */
+            queue_drain_rate_per_minute?: number | null;
+            /** Record Health Ok */
+            record_health_ok?: boolean | null;
+            /** Requests Per Minute */
+            requests_per_minute?: number | null;
             /** Scan Duration Avg Seconds */
             scan_duration_avg_seconds?: number | null;
             /** Scan Duration P95 Seconds */
             scan_duration_p95_seconds?: number | null;
-            /** Queue Depth */
-            queue_depth?: number | null;
-            /** Oldest Queue Age Seconds */
-            oldest_queue_age_seconds?: number | null;
-            /** Queue Drain Rate Per Minute */
-            queue_drain_rate_per_minute?: number | null;
-            /** Uw Latency P95 Ms */
-            uw_latency_p95_ms?: number | null;
+            /** Scanner Dead Count */
+            scanner_dead_count?: number | null;
+            /** Scanner Fresh Count */
+            scanner_fresh_count?: number | null;
+            /** Scanner Never Scanned Count */
+            scanner_never_scanned_count?: number | null;
+            /** Scanner Stale Count */
+            scanner_stale_count?: number | null;
+            /** Scheduler Heartbeat Lag Seconds */
+            scheduler_heartbeat_lag_seconds?: number | null;
             /** Uw Http 429 */
             uw_http_429?: number | null;
             /** Uw Http 4Xx */
             uw_http_4xx?: number | null;
             /** Uw Http 5Xx */
             uw_http_5xx?: number | null;
-            /** Requests Per Minute */
-            requests_per_minute?: number | null;
-            /** Scheduler Heartbeat Lag Seconds */
-            scheduler_heartbeat_lag_seconds?: number | null;
-            /** Uw Worker Online Count */
-            uw_worker_online_count?: number | null;
+            /** Uw Latency P95 Ms */
+            uw_latency_p95_ms?: number | null;
             /** Uw Worker Expected Count */
             uw_worker_expected_count?: number | null;
-            /** Massive Worker Online Count */
-            massive_worker_online_count?: number | null;
-            /** Massive Worker Expected Count */
-            massive_worker_expected_count?: number | null;
+            /** Uw Worker Online Count */
+            uw_worker_online_count?: number | null;
+            /** Watchlist Size */
+            watchlist_size?: number | null;
             /** Ws Tick Age Seconds */
             ws_tick_age_seconds?: number | null;
-            /** Record Health Ok */
-            record_health_ok?: boolean | null;
-            /** Failing Record Tables */
-            failing_record_tables?: string[];
         };
         /** BenchmarkReasonResponse */
         BenchmarkReasonResponse: {
             /** Component */
             component: string;
+            /** Message */
+            message: string;
+            /** Penalty */
+            penalty: number;
             /**
              * Severity
              * @enum {string}
              */
             severity: "degraded" | "critical";
-            /** Message */
-            message: string;
-            /** Penalty */
-            penalty: number;
         };
         /** BenchmarkSnapshotResponse */
         BenchmarkSnapshotResponse: {
-            /** Id */
-            id: number;
-            /**
-             * Captured At
-             * Format: date-time
-             */
-            captured_at: string;
             /**
              * Capture Bucket
              * Format: date-time
              */
             capture_bucket: string;
+            /**
+             * Captured At
+             * Format: date-time
+             */
+            captured_at: string;
+            /** Details Jsonb */
+            details_jsonb?: {
+                [key: string]: unknown;
+            };
+            /** Id */
+            id: number;
+            metrics: components["schemas"]["BenchmarkMetricsResponse"];
             /** Score */
             score: number;
             /**
@@ -1322,26 +1327,21 @@ export interface components {
              */
             status: "OK" | "DEGRADED" | "CRITICAL";
             subscores: components["schemas"]["BenchmarkSubscoresResponse"];
-            metrics: components["schemas"]["BenchmarkMetricsResponse"];
-            /** Details Jsonb */
-            details_jsonb?: {
-                [key: string]: unknown;
-            };
         };
         /** BenchmarkSubscoresResponse */
         BenchmarkSubscoresResponse: {
-            /** Freshness */
-            freshness: number;
             /** Coverage */
             coverage: number;
-            /** Throughput */
-            throughput: number;
-            /** Provider */
-            provider: number;
-            /** Worker */
-            worker: number;
+            /** Freshness */
+            freshness: number;
             /** Persistence */
             persistence: number;
+            /** Provider */
+            provider: number;
+            /** Throughput */
+            throughput: number;
+            /** Worker */
+            worker: number;
         };
         /** CanaryHistoryResponse */
         CanaryHistoryResponse: {
@@ -1351,76 +1351,78 @@ export interface components {
         /** CanaryHistoryRow */
         CanaryHistoryRow: {
             /**
+             * Band
+             * @enum {string}
+             */
+            band: "NONE" | "WATCH" | "BUY" | "STRONG_BUY";
+            /**
              * Data Date
              * Format: date
              */
             data_date: string;
             /** Score */
             score: number;
-            /**
-             * Band
-             * @enum {string}
-             */
-            band: "NONE" | "WATCH" | "BUY" | "STRONG_BUY";
-            /** Tactical Score */
-            tactical_score: number;
-            /** Structural Score */
-            structural_score: number;
             /** Speed Score */
             speed_score: number;
+            /** Spx Close */
+            spx_close?: number | null;
+            /** Structural Score */
+            structural_score: number;
+            /** Tactical Score */
+            tactical_score: number;
             /**
              * Warning State
              * @enum {string}
              */
             warning_state: "NONE" | "CONFIRMED_CANARY_ACTIVE" | "BUY_THE_DIP_ACTIVE" | "BOTH_ACTIVE_AMBIGUOUS";
-            /** Spx Close */
-            spx_close?: number | null;
         };
         /** CanaryLatestResponse */
         CanaryLatestResponse: {
+            /**
+             * Band
+             * @enum {string}
+             */
+            band: "NONE" | "WATCH" | "BUY" | "STRONG_BUY";
+            /** Composite Version */
+            composite_version: number;
             /**
              * Data Date
              * Format: date
              */
             data_date: string;
-            /** Composite Version */
-            composite_version: number;
+            /** Payload */
+            payload: {
+                [key: string]: unknown;
+            };
+            /** Raw Score */
+            raw_score: number;
+            /** Score */
+            score: number;
             /**
              * Score Form
              * @enum {string}
              */
             score_form: "linear" | "convex" | "concave" | "sigmoid";
-            /** Score */
-            score: number;
-            /** Raw Score */
-            raw_score: number;
-            /**
-             * Band
-             * @enum {string}
-             */
-            band: "NONE" | "WATCH" | "BUY" | "STRONG_BUY";
-            /** Tactical Score */
-            tactical_score: number;
-            /** Structural Score */
-            structural_score: number;
             /** Speed Score */
             speed_score: number;
+            /** Structural Score */
+            structural_score: number;
+            /** Tactical Score */
+            tactical_score: number;
             /**
              * Warning State
              * @enum {string}
              */
             warning_state: "NONE" | "CONFIRMED_CANARY_ACTIVE" | "BUY_THE_DIP_ACTIVE" | "BOTH_ACTIVE_AMBIGUOUS";
-            /** Payload */
-            payload: {
-                [key: string]: unknown;
-            };
         };
         /** CanaryValidationResponse */
         CanaryValidationResponse: {
-            /** Run Id */
-            run_id: number;
             /** Composite Version */
             composite_version: number;
+            /** Rendered Markdown */
+            rendered_markdown: string;
+            /** Run Id */
+            run_id: number;
             /**
              * Score Form
              * @enum {string}
@@ -1430,87 +1432,78 @@ export interface components {
             summary: {
                 [key: string]: unknown;
             };
-            /** Rendered Markdown */
-            rendered_markdown: string;
         };
         /** CandidateStructure */
         CandidateStructure: {
-            /** Idea Id */
-            idea_id: string;
-            /** Structure */
-            structure: string;
-            /** Thesis */
-            thesis: string;
-            /** Expression Type */
-            expression_type: string;
-            /**
-             * Legs
-             * @default []
-             */
-            legs: components["schemas"]["InsightLeg"][];
-            /** Net Credit Debit */
-            net_credit_debit?: string | null;
-            /** Max Profit */
-            max_profit?: string | null;
-            /** Max Loss */
-            max_loss?: string | null;
             /**
              * Breakevens
              * @default []
              */
             breakevens: string[];
             /**
-             * Profit Zone
+             * Dte Band
              * @default
              */
-            profit_zone: string;
+            dte_band: string;
             /**
              * Edge Source
              * @default
              */
             edge_source: string;
             /**
+             * Expression Delta
+             * @default
+             */
+            expression_delta: string;
+            /** Expression Type */
+            expression_type: string;
+            /** Idea Id */
+            idea_id: string;
+            /**
+             * Legs
+             * @default []
+             */
+            legs: components["schemas"]["InsightLeg"][];
+            /** Max Loss */
+            max_loss?: string | null;
+            /** Max Profit */
+            max_profit?: string | null;
+            /** Net Credit Debit */
+            net_credit_debit?: string | null;
+            /**
+             * Profit Zone
+             * @default
+             */
+            profit_zone: string;
+            /** Rank */
+            rank: number;
+            /**
              * Risk Flags
              * @default []
              */
             risk_flags: string[];
-            /** Rank */
-            rank: number;
             /**
              * Status
              * @default candidate
              */
             status: string;
-            /**
-             * Dte Band
-             * @default
-             */
-            dte_band: string;
-            /**
-             * Expression Delta
-             * @default
-             */
-            expression_delta: string;
+            /** Structure */
+            structure: string;
+            /** Thesis */
+            thesis: string;
         };
         /** ChainFlowReadRow */
         ChainFlowReadRow: {
-            /** Strike */
-            strike: string;
-            /** Call Volume */
-            call_volume?: number | null;
             /** Call Open Interest */
             call_open_interest?: number | null;
-            /** Put Volume */
-            put_volume?: number | null;
-            /** Put Open Interest */
-            put_open_interest?: number | null;
             /** Call Put Volume Ratio */
             call_put_volume_ratio?: string | null;
-            /**
-             * Volume Oi Note
-             * @default
-             */
-            volume_oi_note: string;
+            /** Call Volume */
+            call_volume?: number | null;
+            /** Put Open Interest */
+            put_open_interest?: number | null;
+            /** Put Volume */
+            put_volume?: number | null;
             /**
              * Read
              * @default
@@ -1521,99 +1514,104 @@ export interface components {
              * @default false
              */
             requires_t1_oi_confirmation: boolean;
+            /** Strike */
+            strike: string;
+            /**
+             * Volume Oi Note
+             * @default
+             */
+            volume_oi_note: string;
         };
         /** ClosestLevel */
         ClosestLevel: {
-            /** Label */
-            label: string;
             /** Direction */
             direction?: ("up" | "down" | "flip") | null;
-            /** Role */
-            role?: ("support" | "resistance" | "accelerator" | "flip") | null;
-            /** Strike */
-            strike: number;
             /** Distance Pct */
             distance_pct: number;
             /** Gamma */
             gamma?: number | null;
+            /** Label */
+            label: string;
             /**
              * Rank Kind
              * @default nearest
              * @enum {string}
              */
             rank_kind: "nearest" | "dominant";
+            /** Role */
+            role?: ("support" | "resistance" | "accelerator" | "flip") | null;
+            /** Strike */
+            strike: number;
         };
         /** CockpitDealerMetrics */
         CockpitDealerMetrics: {
-            /** Pin Candidate Strike */
-            pin_candidate_strike?: string | null;
-            /** Pin Candidate Expiry */
-            pin_candidate_expiry?: string | null;
-            /** Pin Source Date */
-            pin_source_date?: string | null;
-            /** Pin Distance Sigma */
-            pin_distance_sigma?: string | null;
-            /** Pin Regime Flag */
-            pin_regime_flag?: boolean | null;
-            /** Dealer Net Vanna Proxy */
-            dealer_net_vanna_proxy?: string | null;
+            /** Charm Regime */
+            charm_regime?: ("operative_magnet" | "broken_magnet" | "opex_vortex" | "neutral") | null;
+            /** Charm Stress Override */
+            charm_stress_override?: boolean | null;
             /** Dealer Net Charm Proxy */
             dealer_net_charm_proxy?: string | null;
+            /** Dealer Net Vanna Proxy */
+            dealer_net_vanna_proxy?: string | null;
+            /** Directional Imbalance 3D */
+            directional_imbalance_3d?: string | null;
+            /** Flow Call Premium 3D */
+            flow_call_premium_3d?: string | null;
             /** Flow Color Lookback 3D */
             flow_color_lookback_3d?: ("put_heavy" | "call_heavy" | "neutral") | null;
             /** Flow Put Premium 3D */
             flow_put_premium_3d?: string | null;
-            /** Flow Call Premium 3D */
-            flow_call_premium_3d?: string | null;
+            /** Gamma Regime */
+            gamma_regime?: ("long_gamma" | "short_gamma" | "neutral") | null;
             /** Iv 30D Delta 5D */
             iv_30d_delta_5d?: string | null;
             /** Net Gamma */
             net_gamma?: string | null;
             /** Net Gamma Sign */
             net_gamma_sign?: ("positive" | "negative" | "neutral") | null;
-            /** Gamma Regime */
-            gamma_regime?: ("long_gamma" | "short_gamma" | "neutral") | null;
+            /** Pin Candidate Expiry */
+            pin_candidate_expiry?: string | null;
+            /** Pin Candidate Strike */
+            pin_candidate_strike?: string | null;
+            /** Pin Distance Sigma */
+            pin_distance_sigma?: string | null;
+            /** Pin Regime Flag */
+            pin_regime_flag?: boolean | null;
+            /** Pin Source Date */
+            pin_source_date?: string | null;
             /** Vanna Conditional Reading */
             vanna_conditional_reading?: ("grind_up" | "reverse_selloff" | "reflexive_sell_pressure" | "weak_noise") | null;
-            /** Directional Imbalance 3D */
-            directional_imbalance_3d?: string | null;
             /** Vanna Oi Change Bias */
             vanna_oi_change_bias?: ("call_oi_build" | "put_oi_build" | "mixed") | null;
-            /** Charm Regime */
-            charm_regime?: ("operative_magnet" | "broken_magnet" | "opex_vortex" | "neutral") | null;
-            /** Charm Stress Override */
-            charm_stress_override?: boolean | null;
         };
         /** CockpitDealerPoint */
         CockpitDealerPoint: {
+            /** Call Charm */
+            call_charm?: string | null;
+            /** Call Vanna */
+            call_vanna?: string | null;
             /**
              * Expiry
              * Format: date
              */
             expiry: string;
-            /** Strike */
-            strike: string;
-            /** Call Vanna */
-            call_vanna?: string | null;
-            /** Put Vanna */
-            put_vanna?: string | null;
-            /** Call Charm */
-            call_charm?: string | null;
-            /** Put Charm */
-            put_charm?: string | null;
-            /** Exposure Call Vanna */
-            exposure_call_vanna?: string | null;
-            /** Exposure Put Vanna */
-            exposure_put_vanna?: string | null;
             /** Exposure Call Charm */
             exposure_call_charm?: string | null;
+            /** Exposure Call Vanna */
+            exposure_call_vanna?: string | null;
             /** Exposure Put Charm */
             exposure_put_charm?: string | null;
+            /** Exposure Put Vanna */
+            exposure_put_vanna?: string | null;
+            /** Put Charm */
+            put_charm?: string | null;
+            /** Put Vanna */
+            put_vanna?: string | null;
+            /** Strike */
+            strike: string;
         };
         /** CockpitDealerResponse */
         CockpitDealerResponse: {
-            /** Ticker */
-            ticker: string;
             /**
              * Market Date
              * Format: date
@@ -1622,99 +1620,99 @@ export interface components {
             metrics?: components["schemas"]["CockpitDealerMetrics"];
             /** Points */
             points?: components["schemas"]["CockpitDealerPoint"][];
+            /** Ticker */
+            ticker: string;
         };
         /** CockpitFlowAlert */
         CockpitFlowAlert: {
+            /** Aggressor Label Confidence */
+            aggressor_label_confidence?: string | null;
             /** Alert Id */
             alert_id: string;
-            /** Option Chain */
-            option_chain?: string | null;
+            /** Alert Rule */
+            alert_rule?: string | null;
+            /** All Opening Trades */
+            all_opening_trades?: boolean | null;
+            /** Created At */
+            created_at?: string | null;
             /** Expiry */
             expiry?: string | null;
-            /** Strike */
-            strike?: string | null;
-            /** Option Type */
-            option_type?: string | null;
-            /** Total Premium */
-            total_premium?: string | null;
-            /** Volume */
-            volume?: number | null;
-            /** Open Interest */
-            open_interest?: number | null;
-            /** Total Ask Side Prem */
-            total_ask_side_prem?: string | null;
-            /** Total Bid Side Prem */
-            total_bid_side_prem?: string | null;
-            /** Has Sweep */
-            has_sweep?: boolean | null;
+            /** Flow Footprint Label */
+            flow_footprint_label?: ("directional_whale" | "hedge_flow" | "dealer_hedge" | "gamma_scalper" | "unclassified") | null;
             /** Has Floor */
             has_floor?: boolean | null;
             /** Has Multileg */
             has_multileg?: boolean | null;
-            /** All Opening Trades */
-            all_opening_trades?: boolean | null;
-            /** Alert Rule */
-            alert_rule?: string | null;
-            /** Flow Footprint Label */
-            flow_footprint_label?: ("directional_whale" | "hedge_flow" | "dealer_hedge" | "gamma_scalper" | "unclassified") | null;
-            /** Aggressor Label Confidence */
-            aggressor_label_confidence?: string | null;
-            /** Created At */
-            created_at?: string | null;
+            /** Has Sweep */
+            has_sweep?: boolean | null;
+            /** Open Interest */
+            open_interest?: number | null;
+            /** Option Chain */
+            option_chain?: string | null;
+            /** Option Type */
+            option_type?: string | null;
+            /** Strike */
+            strike?: string | null;
+            /** Total Ask Side Prem */
+            total_ask_side_prem?: string | null;
+            /** Total Bid Side Prem */
+            total_bid_side_prem?: string | null;
+            /** Total Premium */
+            total_premium?: string | null;
+            /** Volume */
+            volume?: number | null;
         };
         /** CockpitFlowImResponse */
         CockpitFlowImResponse: {
-            /** Ticker */
-            ticker: string;
-            /**
-             * Market Date
-             * Format: date
-             */
-            market_date: string;
             /** Alerts */
             alerts?: components["schemas"]["CockpitFlowAlert"][];
             /** Implied Moves */
             implied_moves?: components["schemas"]["CockpitImPoint"][];
+            /**
+             * Market Date
+             * Format: date
+             */
+            market_date: string;
+            /** Ticker */
+            ticker: string;
         };
         /** CockpitImPoint */
         CockpitImPoint: {
+            /** Days */
+            days: number;
+            /** Implied Move Expected Abs */
+            implied_move_expected_abs?: string | null;
+            /** Implied Move Perc */
+            implied_move_perc?: string | null;
             /**
              * Market Date
              * Format: date
              */
             market_date: string;
-            /** Days */
-            days: number;
-            /** Volatility */
-            volatility?: string | null;
-            /** Implied Move Perc */
-            implied_move_perc?: string | null;
-            /** Implied Move Expected Abs */
-            implied_move_expected_abs?: string | null;
             /** Percentile */
             percentile?: string | null;
+            /** Volatility */
+            volatility?: string | null;
         };
         /** CockpitSkewPoint */
         CockpitSkewPoint: {
+            /** Expiry */
+            expiry?: string | null;
             /**
              * Market Date
              * Format: date
              */
             market_date: string;
-            /** Expiry */
-            expiry?: string | null;
             /** Risk Reversal */
             risk_reversal?: string | null;
         };
         /** CockpitStateResponse */
         CockpitStateResponse: {
-            state: components["schemas"]["MatrixState"];
             freshness: components["schemas"]["MatrixSourceFreshness"];
+            state: components["schemas"]["MatrixState"];
         };
         /** CockpitSurfaceResponse */
         CockpitSurfaceResponse: {
-            /** Ticker */
-            ticker: string;
             /**
              * Market Date
              * Format: date
@@ -1724,43 +1722,43 @@ export interface components {
             skew?: components["schemas"]["CockpitSkewPoint"][];
             /** Term */
             term?: components["schemas"]["CockpitTermPoint"][];
+            /** Ticker */
+            ticker: string;
         };
         /** CockpitTermPoint */
         CockpitTermPoint: {
+            /** Dte */
+            dte?: number | null;
             /**
              * Expiry
              * Format: date
              */
             expiry: string;
-            /** Dte */
-            dte?: number | null;
-            /** Volatility */
-            volatility?: string | null;
-            /** Implied Move Perc */
-            implied_move_perc?: string | null;
             /** Implied Move Expected Abs */
             implied_move_expected_abs?: string | null;
+            /** Implied Move Perc */
+            implied_move_perc?: string | null;
+            /** Volatility */
+            volatility?: string | null;
         };
         /** CockpitVrpPoint */
         CockpitVrpPoint: {
+            /** Iv */
+            iv?: string | null;
+            /** Iv Rank 1Y */
+            iv_rank_1y?: string | null;
             /**
              * Market Date
              * Format: date
              */
             market_date: string;
-            /** Iv */
-            iv?: string | null;
             /** Rv */
             rv?: string | null;
             /** Vrp */
             vrp?: string | null;
-            /** Iv Rank 1Y */
-            iv_rank_1y?: string | null;
         };
         /** CockpitVrpResponse */
         CockpitVrpResponse: {
-            /** Ticker */
-            ticker: string;
             /**
              * Market Date
              * Format: date
@@ -1768,9 +1766,12 @@ export interface components {
             market_date: string;
             /** Points */
             points?: components["schemas"]["CockpitVrpPoint"][];
+            /** Ticker */
+            ticker: string;
         };
         /** CrashTriggerBlock */
         CrashTriggerBlock: {
+            conditions?: components["schemas"]["CrashTriggerConditions"];
             /**
              * Fired
              * @default false
@@ -1781,66 +1782,55 @@ export interface components {
              * @default false
              */
             triggered: boolean;
-            conditions?: components["schemas"]["CrashTriggerConditions"];
             values?: components["schemas"]["CrashTriggerValues"];
         };
         /** CrashTriggerConditions */
         CrashTriggerConditions: {
             /**
-             * Spx Below 100D Ma
+             * Cor1M Gt 60
              * @default false
              */
-            spx_below_100d_ma: boolean;
+            cor1m_gt_60: boolean;
             /**
              * Realized Vol Gt 25
              * @default false
              */
             realized_vol_gt_25: boolean;
             /**
-             * Cor1M Gt 60
+             * Spx Below 100D Ma
              * @default false
              */
-            cor1m_gt_60: boolean;
+            spx_below_100d_ma: boolean;
         };
         /** CrashTriggerValues */
         CrashTriggerValues: {
-            /** Realized Vol */
-            realized_vol?: number | null;
             /** Cor1M */
             cor1m?: number | null;
+            /** Realized Vol */
+            realized_vol?: number | null;
         };
         /** CriBlock */
         CriBlock: {
-            /**
-             * Score
-             * @default 0
-             */
-            score: number;
+            components?: components["schemas"]["CriComponents"];
+            /** Composite Version */
+            composite_version?: (1 | 2 | 3) | null;
             /**
              * Level
              * @default LOW
              * @enum {string}
              */
             level: "LOW" | "ELEVATED" | "HIGH" | "CRITICAL";
-            /** Composite Version */
-            composite_version?: (1 | 2 | 3) | null;
-            components?: components["schemas"]["CriComponents"];
+            /**
+             * Score
+             * @default 0
+             */
+            score: number;
         };
         /**
          * CriComponents
          * @description Four 0-25 component scores summed into the composite 0-100.
          */
         CriComponents: {
-            /**
-             * Vix
-             * @default 0
-             */
-            vix: number;
-            /**
-             * Vvix
-             * @default 0
-             */
-            vvix: number;
             /**
              * Correlation
              * @default 0
@@ -1851,36 +1841,46 @@ export interface components {
              * @default 0
              */
             momentum: number;
+            /**
+             * Vix
+             * @default 0
+             */
+            vix: number;
+            /**
+             * Vvix
+             * @default 0
+             */
+            vvix: number;
         };
         /** CriDailyEntry */
         CriDailyEntry: {
+            /** Cor1M */
+            cor1m?: number | null;
+            /** Cri Score */
+            cri_score?: number | null;
             /**
              * Date
              * Format: date
              */
             date: string;
-            /** Cri Score */
-            cri_score?: number | null;
-            /** Vix */
-            vix?: number | null;
-            /** Vvix */
-            vvix?: number | null;
-            /** Spx */
-            spx?: number | null;
-            /** Cor1M */
-            cor1m?: number | null;
-            /** Vix3M */
-            vix3m?: number | null;
             /** Realized Vol */
             realized_vol?: number | null;
-            /** Vrp */
-            vrp?: number | null;
-            /** Vix Zscore 30D */
-            vix_zscore_30d?: number | null;
-            /** Vix Vix3M Ratio */
-            vix_vix3m_ratio?: number | null;
+            /** Spx */
+            spx?: number | null;
             /** Spx Distance Pct */
             spx_distance_pct?: number | null;
+            /** Vix */
+            vix?: number | null;
+            /** Vix3M */
+            vix3m?: number | null;
+            /** Vix Vix3M Ratio */
+            vix_vix3m_ratio?: number | null;
+            /** Vix Zscore 30D */
+            vix_zscore_30d?: number | null;
+            /** Vrp */
+            vrp?: number | null;
+            /** Vvix */
+            vvix?: number | null;
         };
         /** CriDailyHistoryResponse */
         CriDailyHistoryResponse: {
@@ -1889,65 +1889,65 @@ export interface components {
         };
         /** CriHistoryEntry */
         CriHistoryEntry: {
-            /** Date */
-            date: string;
-            /** Vix */
-            vix?: number | null;
-            /** Vvix */
-            vvix?: number | null;
-            /** Spy */
-            spy?: number | null;
             /** Cor1M */
             cor1m?: number | null;
+            /** Cor1M 5D Change */
+            cor1m_5d_change?: number | null;
+            /** Date */
+            date: string;
+            /** Pullback 20D Pct */
+            pullback_20d_pct?: number | null;
             /** Realized Vol */
             realized_vol?: number | null;
             /** Spx Vs Ma Pct */
             spx_vs_ma_pct?: number | null;
+            /** Spy */
+            spy?: number | null;
+            /** Vix */
+            vix?: number | null;
             /** Vix 5D Roc */
             vix_5d_roc?: number | null;
+            /** Vvix */
+            vvix?: number | null;
             /** Vvix 5D Roc */
             vvix_5d_roc?: number | null;
-            /** Cor1M 5D Change */
-            cor1m_5d_change?: number | null;
-            /** Pullback 20D Pct */
-            pullback_20d_pct?: number | null;
         };
         /** CriIntradayPoint */
         CriIntradayPoint: {
+            /** Cor1M */
+            cor1m?: number | null;
+            /** Cri Score */
+            cri_score?: number | null;
+            /** Realized Vol */
+            realized_vol?: number | null;
+            /** Spx */
+            spx?: number | null;
+            /** Spx Distance Pct */
+            spx_distance_pct?: number | null;
             /**
              * Ts
              * Format: date-time
              */
             ts: string;
-            /** Cri Score */
-            cri_score?: number | null;
             /** Vix */
             vix?: number | null;
-            /** Vvix */
-            vvix?: number | null;
-            /** Spx */
-            spx?: number | null;
-            /** Cor1M */
-            cor1m?: number | null;
             /** Vix3M */
             vix3m?: number | null;
-            /** Realized Vol */
-            realized_vol?: number | null;
-            /** Vrp */
-            vrp?: number | null;
-            /** Vix Zscore 30D */
-            vix_zscore_30d?: number | null;
             /** Vix Vix3M Ratio */
             vix_vix3m_ratio?: number | null;
-            /** Spx Distance Pct */
-            spx_distance_pct?: number | null;
+            /** Vix Zscore 30D */
+            vix_zscore_30d?: number | null;
+            /** Vrp */
+            vrp?: number | null;
+            /** Vvix */
+            vvix?: number | null;
         };
         /** CriIntradayResponse */
         CriIntradayResponse: {
-            /** Sessions */
-            sessions?: components["schemas"]["CriIntradaySession"][];
             /** As Of */
             as_of?: string | null;
+            /** Sessions */
+            sessions?: components["schemas"]["CriIntradaySession"][];
         };
         /** CriIntradaySession */
         CriIntradaySession: {
@@ -1967,180 +1967,180 @@ export interface components {
          *     being served instead.
          */
         CriLiveResponse: {
-            /**
-             * Status
-             * @default empty
-             * @enum {string}
-             */
-            status: "ok" | "empty";
-            /**
-             * Scan Time
-             * @default
-             */
-            scan_time: string;
-            /** Date */
-            date?: string | null;
-            /** Vix */
-            vix?: number | null;
-            /** Vvix */
-            vvix?: number | null;
-            /** Spy */
-            spy?: number | null;
-            /** Vix 5D Roc */
-            vix_5d_roc?: number | null;
-            /** Vvix 5D Roc */
-            vvix_5d_roc?: number | null;
-            /** Vvix Vix Ratio */
-            vvix_vix_ratio?: number | null;
-            /** Spx 100D Ma */
-            spx_100d_ma?: number | null;
-            /** Spx Distance Pct */
-            spx_distance_pct?: number | null;
-            /** Cor1M */
-            cor1m?: number | null;
-            /** Cor1M Previous Close */
-            cor1m_previous_close?: number | null;
-            /** Cor1M 5D Change */
-            cor1m_5d_change?: number | null;
-            /** Realized Vol */
-            realized_vol?: number | null;
-            /** Vix3M */
-            vix3m?: number | null;
-            /** Vrp */
-            vrp?: number | null;
-            /** Vix Zscore 30D */
-            vix_zscore_30d?: number | null;
-            /** Vix Vix3M Ratio */
-            vix_vix3m_ratio?: number | null;
-            /** Pullback 20D Pct */
-            pullback_20d_pct?: number | null;
-            /** Vix Delta 3D */
-            vix_delta_3d?: number | null;
-            /** Spx Source */
-            spx_source?: ("SPX" | "SPY") | null;
-            cri?: components["schemas"]["CriBlock"];
-            cta?: components["schemas"]["CtaBlock"];
-            crash_trigger?: components["schemas"]["CrashTriggerBlock"];
-            /** History */
-            history?: components["schemas"]["CriHistoryEntry"][];
-            /** Spy Closes */
-            spy_closes?: number[];
+            /** Active Source */
+            active_source?: string | null;
             /**
              * Basis
              * @default eod
              * @enum {string}
              */
             basis: "live" | "eod";
+            /** Carried Forward */
+            carried_forward?: string[];
+            /** Cor1M */
+            cor1m?: number | null;
+            /** Cor1M 5D Change */
+            cor1m_5d_change?: number | null;
+            /** Cor1M Previous Close */
+            cor1m_previous_close?: number | null;
+            crash_trigger?: components["schemas"]["CrashTriggerBlock"];
+            cri?: components["schemas"]["CriBlock"];
+            cta?: components["schemas"]["CtaBlock"];
+            /** Date */
+            date?: string | null;
+            /** History */
+            history?: components["schemas"]["CriHistoryEntry"][];
             /** Live Quotes */
             live_quotes?: {
                 [key: string]: components["schemas"]["RegimeLiveQuote"];
             };
-            /** Carried Forward */
-            carried_forward?: string[];
-            /** Active Source */
-            active_source?: string | null;
-        };
-        /**
-         * CriResponse
-         * @description Crash Risk Indicator snapshot (latest scan).
-         */
-        CriResponse: {
+            /** Pullback 20D Pct */
+            pullback_20d_pct?: number | null;
+            /** Realized Vol */
+            realized_vol?: number | null;
+            /**
+             * Scan Time
+             * @default
+             */
+            scan_time: string;
+            /** Spx 100D Ma */
+            spx_100d_ma?: number | null;
+            /** Spx Distance Pct */
+            spx_distance_pct?: number | null;
+            /** Spx Source */
+            spx_source?: ("SPX" | "SPY") | null;
+            /** Spy */
+            spy?: number | null;
+            /** Spy Closes */
+            spy_closes?: number[];
             /**
              * Status
              * @default empty
              * @enum {string}
              */
             status: "ok" | "empty";
+            /** Vix */
+            vix?: number | null;
+            /** Vix3M */
+            vix3m?: number | null;
+            /** Vix 5D Roc */
+            vix_5d_roc?: number | null;
+            /** Vix Delta 3D */
+            vix_delta_3d?: number | null;
+            /** Vix Vix3M Ratio */
+            vix_vix3m_ratio?: number | null;
+            /** Vix Zscore 30D */
+            vix_zscore_30d?: number | null;
+            /** Vrp */
+            vrp?: number | null;
+            /** Vvix */
+            vvix?: number | null;
+            /** Vvix 5D Roc */
+            vvix_5d_roc?: number | null;
+            /** Vvix Vix Ratio */
+            vvix_vix_ratio?: number | null;
+        };
+        /**
+         * CriResponse
+         * @description Crash Risk Indicator snapshot (latest scan).
+         */
+        CriResponse: {
+            /** Cor1M */
+            cor1m?: number | null;
+            /** Cor1M 5D Change */
+            cor1m_5d_change?: number | null;
+            /** Cor1M Previous Close */
+            cor1m_previous_close?: number | null;
+            crash_trigger?: components["schemas"]["CrashTriggerBlock"];
+            cri?: components["schemas"]["CriBlock"];
+            cta?: components["schemas"]["CtaBlock"];
+            /** Date */
+            date?: string | null;
+            /** History */
+            history?: components["schemas"]["CriHistoryEntry"][];
+            /** Pullback 20D Pct */
+            pullback_20d_pct?: number | null;
+            /** Realized Vol */
+            realized_vol?: number | null;
             /**
              * Scan Time
              * @default
              */
             scan_time: string;
-            /** Date */
-            date?: string | null;
-            /** Vix */
-            vix?: number | null;
-            /** Vvix */
-            vvix?: number | null;
-            /** Spy */
-            spy?: number | null;
-            /** Vix 5D Roc */
-            vix_5d_roc?: number | null;
-            /** Vvix 5D Roc */
-            vvix_5d_roc?: number | null;
-            /** Vvix Vix Ratio */
-            vvix_vix_ratio?: number | null;
             /** Spx 100D Ma */
             spx_100d_ma?: number | null;
             /** Spx Distance Pct */
             spx_distance_pct?: number | null;
-            /** Cor1M */
-            cor1m?: number | null;
-            /** Cor1M Previous Close */
-            cor1m_previous_close?: number | null;
-            /** Cor1M 5D Change */
-            cor1m_5d_change?: number | null;
-            /** Realized Vol */
-            realized_vol?: number | null;
-            /** Vix3M */
-            vix3m?: number | null;
-            /** Vrp */
-            vrp?: number | null;
-            /** Vix Zscore 30D */
-            vix_zscore_30d?: number | null;
-            /** Vix Vix3M Ratio */
-            vix_vix3m_ratio?: number | null;
-            /** Pullback 20D Pct */
-            pullback_20d_pct?: number | null;
-            /** Vix Delta 3D */
-            vix_delta_3d?: number | null;
             /** Spx Source */
             spx_source?: ("SPX" | "SPY") | null;
-            cri?: components["schemas"]["CriBlock"];
-            cta?: components["schemas"]["CtaBlock"];
-            crash_trigger?: components["schemas"]["CrashTriggerBlock"];
-            /** History */
-            history?: components["schemas"]["CriHistoryEntry"][];
+            /** Spy */
+            spy?: number | null;
             /** Spy Closes */
             spy_closes?: number[];
+            /**
+             * Status
+             * @default empty
+             * @enum {string}
+             */
+            status: "ok" | "empty";
+            /** Vix */
+            vix?: number | null;
+            /** Vix3M */
+            vix3m?: number | null;
+            /** Vix 5D Roc */
+            vix_5d_roc?: number | null;
+            /** Vix Delta 3D */
+            vix_delta_3d?: number | null;
+            /** Vix Vix3M Ratio */
+            vix_vix3m_ratio?: number | null;
+            /** Vix Zscore 30D */
+            vix_zscore_30d?: number | null;
+            /** Vrp */
+            vrp?: number | null;
+            /** Vvix */
+            vvix?: number | null;
+            /** Vvix 5D Roc */
+            vvix_5d_roc?: number | null;
+            /** Vvix Vix Ratio */
+            vvix_vix_ratio?: number | null;
         };
         /**
          * CriScanResponse
          * @description Response body for POST /api/regime/scan.
          */
         CriScanResponse: {
-            /**
-             * Status
-             * @default ok
-             * @enum {string}
-             */
-            status: "ok" | "skipped";
+            /** Reason */
+            reason?: string | null;
+            /** Row Id */
+            row_id?: number | null;
             /**
              * Scanner
              * @default cri
              * @constant
              */
             scanner: "cri";
-            /** Row Id */
-            row_id?: number | null;
-            /** Reason */
-            reason?: string | null;
+            /**
+             * Status
+             * @default ok
+             * @enum {string}
+             */
+            status: "ok" | "skipped";
         };
         /** CtaBlock */
         CtaBlock: {
-            /** Realized Vol */
-            realized_vol?: number | null;
+            /** Est Selling Bn */
+            est_selling_bn?: number | null;
             /** Exposure Pct */
             exposure_pct?: number | null;
-            /** Forced Reduction Pct */
-            forced_reduction_pct?: number | null;
             /**
              * Forced Reduction
              * @default false
              */
             forced_reduction: boolean;
-            /** Est Selling Bn */
-            est_selling_bn?: number | null;
+            /** Forced Reduction Pct */
+            forced_reduction_pct?: number | null;
+            /** Realized Vol */
+            realized_vol?: number | null;
             /** Selling Usd B */
             selling_usd_b?: number | null;
         };
@@ -2153,49 +2153,69 @@ export interface components {
          */
         DealerRegime: {
             /**
-             * Label
-             * @default neutral
-             */
-            label: string;
-            /**
-             * Score
+             * Charm Score
              * @default 0
              */
-            score: string;
+            charm_score: string;
             /**
              * Gamma Score
              * @default 0
              */
             gamma_score: string;
             /**
-             * Vanna Score
-             * @default 0
-             */
-            vanna_score: string;
-            /**
-             * Charm Score
-             * @default 0
-             */
-            charm_score: string;
-            /**
              * Headline
              * @default
              */
             headline: string;
             /**
-             * Subtitle
-             * @default
+             * Label
+             * @default neutral
              */
-            subtitle: string;
-            /** Prev Close Net Gex */
-            prev_close_net_gex?: string | null;
+            label: string;
             /** Odte Net Gex */
             odte_net_gex?: string | null;
             /** Odte Share Pct */
             odte_share_pct?: string | null;
+            /** Prev Close Net Gex */
+            prev_close_net_gex?: string | null;
+            /**
+             * Score
+             * @default 0
+             */
+            score: string;
+            /**
+             * Subtitle
+             * @default
+             */
+            subtitle: string;
+            /**
+             * Vanna Score
+             * @default 0
+             */
+            vanna_score: string;
         };
         /** DealerRegimeResponse */
         DealerRegimeResponse: {
+            /** Closest Levels */
+            closest_levels?: components["schemas"]["ClosestLevel"][];
+            /** Gamma Decay */
+            gamma_decay?: components["schemas"]["GammaDecayBucket"][];
+            /** Net Gex */
+            net_gex?: number | null;
+            /** Odte Gex */
+            odte_gex?: number | null;
+            /** Odte Share Pct */
+            odte_share_pct?: number | null;
+            /** Prev Close Net Gex */
+            prev_close_net_gex?: number | null;
+            /**
+             * Scan Time
+             * @default
+             */
+            scan_time: string;
+            signal?: components["schemas"]["DealerRegimeSignal"];
+            /** Spot */
+            spot?: number | null;
             /**
              * Status
              * @default empty
@@ -2207,32 +2227,27 @@ export interface components {
              * @default
              */
             ticker: string;
-            /**
-             * Scan Time
-             * @default
-             */
-            scan_time: string;
-            /** Spot */
-            spot?: number | null;
-            /** Net Gex */
-            net_gex?: number | null;
-            /** Prev Close Net Gex */
-            prev_close_net_gex?: number | null;
-            signal?: components["schemas"]["DealerRegimeSignal"];
-            /** Closest Levels */
-            closest_levels?: components["schemas"]["ClosestLevel"][];
-            /** Odte Gex */
-            odte_gex?: number | null;
-            /** Odte Share Pct */
-            odte_share_pct?: number | null;
-            /** Gamma Decay */
-            gamma_decay?: components["schemas"]["GammaDecayBucket"][];
         };
         /**
          * DealerRegimeSignal
          * @description Per-ticker dealer regime classification (Γ-driven, with V/C support).
          */
         DealerRegimeSignal: {
+            /**
+             * Charm Score
+             * @default 0
+             */
+            charm_score: number;
+            /**
+             * Gamma Score
+             * @default 0
+             */
+            gamma_score: number;
+            /**
+             * Headline
+             * @default
+             */
+            headline: string;
             /**
              * Label
              * @default neutral
@@ -2245,30 +2260,15 @@ export interface components {
              */
             score: number;
             /**
-             * Gamma Score
-             * @default 0
+             * Subtitle
+             * @default
              */
-            gamma_score: number;
+            subtitle: string;
             /**
              * Vanna Score
              * @default 0
              */
             vanna_score: number;
-            /**
-             * Charm Score
-             * @default 0
-             */
-            charm_score: number;
-            /**
-             * Headline
-             * @default
-             */
-            headline: string;
-            /**
-             * Subtitle
-             * @default
-             */
-            subtitle: string;
         };
         /**
          * DiscoveryCandidate
@@ -2279,8 +2279,11 @@ export interface components {
          *     (promote to the watchlist).
          */
         DiscoveryCandidate: {
-            /** Ticker */
-            ticker: string;
+            /**
+             * Alert Count
+             * @default 0
+             */
+            alert_count: number;
             /**
              * Bias
              * @enum {string}
@@ -2288,21 +2291,17 @@ export interface components {
             bias: "bullish" | "bearish" | "neutral" | "mixed";
             /** Bias Strength */
             bias_strength?: ("strong" | "moderate" | "weak") | null;
+            /**
+             * Confluence
+             * @default false
+             */
+            confluence: boolean;
             /** Direction */
             direction?: ("long" | "short") | null;
-            /** Score */
-            score: string;
-            /** Score Model */
-            score_model: string;
-            /**
-             * Score Breakdown
-             * @default {}
-             */
-            score_breakdown: {
-                [key: string]: unknown;
-            };
             /** Dp Direction */
             dp_direction?: ("ACCUMULATION" | "DISTRIBUTION" | "NEUTRAL" | "NO_DATA") | null;
+            /** Dp Status */
+            dp_status?: string | null;
             /** Dp Strength */
             dp_strength?: string | null;
             /**
@@ -2310,38 +2309,46 @@ export interface components {
              * @default 0
              */
             dp_sustained_days: number;
+            /** Latest Alert At */
+            latest_alert_at?: string | null;
+            /** Score */
+            score: string;
             /**
-             * Confluence
-             * @default false
+             * Score Breakdown
+             * @default {}
              */
-            confluence: boolean;
-            /** Vol Oi */
-            vol_oi?: string | null;
+            score_breakdown: {
+                [key: string]: unknown;
+            };
+            /** Score Model */
+            score_model: string;
+            /** Scored At */
+            scored_at?: string | null;
+            /** Sector */
+            sector?: string | null;
+            /** Spot */
+            spot?: string | null;
             /**
              * Sweeps
              * @default 0
              */
             sweeps: number;
-            /**
-             * Alert Count
-             * @default 0
-             */
-            alert_count: number;
-            /** Spot */
-            spot?: string | null;
-            /** Dp Status */
-            dp_status?: string | null;
-            /** Sector */
-            sector?: string | null;
-            /** Scored At */
-            scored_at?: string | null;
-            /** Latest Alert At */
-            latest_alert_at?: string | null;
+            /** Ticker */
+            ticker: string;
+            /** Vol Oi */
+            vol_oi?: string | null;
         };
         /** DiscoveryResponse */
         DiscoveryResponse: {
+            /** Alerts Pulled */
+            alerts_pulled: number;
             /** Candidates */
             candidates: components["schemas"]["DiscoveryCandidate"][];
+            /**
+             * Earnings Unknown Dropped
+             * @default 0
+             */
+            earnings_unknown_dropped: number;
             /**
              * Fetched At
              * Format: date-time
@@ -2355,13 +2362,6 @@ export interface components {
              * @constant
              */
             source: "scanner_candidate_snapshots";
-            /** Alerts Pulled */
-            alerts_pulled: number;
-            /**
-             * Earnings Unknown Dropped
-             * @default 0
-             */
-            earnings_unknown_dropped: number;
         };
         /** DivergencePoint */
         DivergencePoint: {
@@ -2382,143 +2382,143 @@ export interface components {
          *     persisted to uw_scan.exposures_summary.
          */
         ExposuresSummaryRow: {
+            /** Charm Above Sum */
+            charm_above_sum?: string | null;
+            /** Charm Below Sum */
+            charm_below_sum?: string | null;
+            /** Charm Flip */
+            charm_flip?: string | null;
+            /** Charm Headline */
+            charm_headline?: string | null;
+            /** Charm Imbalance Pct */
+            charm_imbalance_pct?: string | null;
+            /** Charm Pin Strike */
+            charm_pin_strike?: string | null;
+            /** Charm Signal Quality */
+            charm_signal_quality?: string | null;
+            /** Charm Subtitle */
+            charm_subtitle?: string | null;
+            /** Delta Shock 1Pt Iv */
+            delta_shock_1pt_iv?: string | null;
+            /** Dte */
+            dte?: number | null;
             /**
              * Expiry
              * Format: date
              */
             expiry: string;
-            /** Dte */
-            dte?: number | null;
-            /** Spot */
-            spot?: string | null;
+            /** Net Charm */
+            net_charm?: string | null;
             /** Net Vanna */
             net_vanna?: string | null;
+            /** Spot */
+            spot?: string | null;
             /** Top Vanna Strike */
             top_vanna_strike?: string | null;
             /** Top Vanna Value */
             top_vanna_value?: string | null;
-            /** Delta Shock 1Pt Iv */
-            delta_shock_1pt_iv?: string | null;
-            /** Vanna Regime */
-            vanna_regime?: string | null;
             /** Vanna Flip */
             vanna_flip?: string | null;
             /** Vanna Headline */
             vanna_headline?: string | null;
+            /** Vanna Regime */
+            vanna_regime?: string | null;
             /** Vanna Subtitle */
             vanna_subtitle?: string | null;
-            /** Net Charm */
-            net_charm?: string | null;
-            /** Charm Pin Strike */
-            charm_pin_strike?: string | null;
-            /** Charm Above Sum */
-            charm_above_sum?: string | null;
-            /** Charm Below Sum */
-            charm_below_sum?: string | null;
-            /** Charm Imbalance Pct */
-            charm_imbalance_pct?: string | null;
-            /** Charm Signal Quality */
-            charm_signal_quality?: string | null;
-            /** Charm Flip */
-            charm_flip?: string | null;
-            /** Charm Headline */
-            charm_headline?: string | null;
-            /** Charm Subtitle */
-            charm_subtitle?: string | null;
         };
         /** FlowAlert */
         FlowAlert: {
-            /** Id */
-            id: string;
-            /** Ticker */
-            ticker: string;
-            /** Option Chain */
-            option_chain?: string | null;
-            /** Type */
-            type?: string | null;
+            /** Aggressor Label Confidence */
+            aggressor_label_confidence?: string | null;
+            /** Alert Rule */
+            alert_rule?: string | null;
+            /** All Opening Trades */
+            all_opening_trades?: boolean | null;
+            /** Created At */
+            created_at?: string | null;
             /** Expiry */
             expiry?: string | null;
-            /** Strike */
-            strike?: string | null;
-            /** Price */
-            price?: string | null;
-            /** Underlying Price */
-            underlying_price?: string | null;
-            /** Total Size */
-            total_size?: number | null;
-            /** Total Premium */
-            total_premium?: string | null;
-            /** Total Ask Side Prem */
-            total_ask_side_prem?: string | null;
-            /** Total Bid Side Prem */
-            total_bid_side_prem?: string | null;
-            /** Volume */
-            volume?: number | null;
-            /** Open Interest */
-            open_interest?: number | null;
-            /** Volume Oi Ratio */
-            volume_oi_ratio?: string | null;
-            /** Has Sweep */
-            has_sweep?: boolean | null;
+            /** Flow Footprint Label */
+            flow_footprint_label?: ("directional_whale" | "hedge_flow" | "dealer_hedge" | "gamma_scalper" | "unclassified") | null;
             /** Has Floor */
             has_floor?: boolean | null;
             /** Has Multileg */
             has_multileg?: boolean | null;
-            /** All Opening Trades */
-            all_opening_trades?: boolean | null;
-            /** Iv Start */
-            iv_start?: string | null;
+            /** Has Sweep */
+            has_sweep?: boolean | null;
+            /** Id */
+            id: string;
+            /** Issue Type */
+            issue_type?: string | null;
             /** Iv End */
             iv_end?: string | null;
-            /** Alert Rule */
-            alert_rule?: string | null;
-            /** Flow Footprint Label */
-            flow_footprint_label?: ("directional_whale" | "hedge_flow" | "dealer_hedge" | "gamma_scalper" | "unclassified") | null;
-            /** Aggressor Label Confidence */
-            aggressor_label_confidence?: string | null;
+            /** Iv Start */
+            iv_start?: string | null;
+            /** Next Earnings Date */
+            next_earnings_date?: string | null;
+            /** Open Interest */
+            open_interest?: number | null;
+            /** Option Chain */
+            option_chain?: string | null;
+            /** Price */
+            price?: string | null;
             /** Rule Id */
             rule_id?: string | null;
             /** Sector */
             sector?: string | null;
-            /** Issue Type */
-            issue_type?: string | null;
-            /** Next Earnings Date */
-            next_earnings_date?: string | null;
-            /** Created At */
-            created_at?: string | null;
+            /** Strike */
+            strike?: string | null;
+            /** Ticker */
+            ticker: string;
+            /** Total Ask Side Prem */
+            total_ask_side_prem?: string | null;
+            /** Total Bid Side Prem */
+            total_bid_side_prem?: string | null;
+            /** Total Premium */
+            total_premium?: string | null;
+            /** Total Size */
+            total_size?: number | null;
+            /** Type */
+            type?: string | null;
+            /** Underlying Price */
+            underlying_price?: string | null;
+            /** Volume */
+            volume?: number | null;
+            /** Volume Oi Ratio */
+            volume_oi_ratio?: string | null;
         };
         /** FlowSnapshot */
         FlowSnapshot: {
-            /** Ticker */
-            ticker: string;
+            /** Ask Side Premium */
+            ask_side_premium: string;
+            /** Bear Premium */
+            bear_premium: string;
+            /** Bid Side Premium */
+            bid_side_premium: string;
+            /** Bull Premium */
+            bull_premium: string;
             /** Flow Count */
             flow_count: number;
-            /**
-             * Flow Count Is Limited
-             * @default false
-             */
-            flow_count_is_limited: boolean;
             /** Flow Count 30D Avg */
             flow_count_30d_avg?: string | null;
-            /** Flow Count Vs 30D Avg */
-            flow_count_vs_30d_avg?: string | null;
             /**
              * Flow Count 30D Days
              * @default 0
              */
             flow_count_30d_days: number;
-            /** Top Alert Rule */
-            top_alert_rule?: string | null;
+            /**
+             * Flow Count Is Limited
+             * @default false
+             */
+            flow_count_is_limited: boolean;
+            /** Flow Count Vs 30D Avg */
+            flow_count_vs_30d_avg?: string | null;
             /** Net Premium */
             net_premium: string;
-            /** Bull Premium */
-            bull_premium: string;
-            /** Bear Premium */
-            bear_premium: string;
-            /** Ask Side Premium */
-            ask_side_premium: string;
-            /** Bid Side Premium */
-            bid_side_premium: string;
+            /** Ticker */
+            ticker: string;
+            /** Top Alert Rule */
+            top_alert_rule?: string | null;
             /**
              * Top Alerts
              * @default []
@@ -2527,18 +2527,18 @@ export interface components {
         };
         /** GammaBlock */
         GammaBlock: {
+            /** Expiring Date */
+            expiring_date?: string | null;
+            /** Expiring Pct */
+            expiring_pct?: string | null;
             /** Flip Distance */
             flip_distance?: string | null;
             /** Flip Price */
             flip_price?: string | null;
-            /** Per 1Pct Move */
-            per_1pct_move?: string | null;
             /** Max Strike */
             max_strike?: string | null;
-            /** Expiring Pct */
-            expiring_pct?: string | null;
-            /** Expiring Date */
-            expiring_date?: string | null;
+            /** Per 1Pct Move */
+            per_1pct_move?: string | null;
         };
         /** GammaDecayBucket */
         GammaDecayBucket: {
@@ -2546,49 +2546,49 @@ export interface components {
             dte: number;
             /** Expiry */
             expiry: string;
-            /** Net Gex */
-            net_gex?: number | null;
-            /** Share Pct */
-            share_pct?: number | null;
             /** Gross Abs Gex */
             gross_abs_gex?: number | null;
             /** Gross Share Pct */
             gross_share_pct?: number | null;
+            /** Net Gex */
+            net_gex?: number | null;
+            /** Share Pct */
+            share_pct?: number | null;
         };
         /** GexBias */
         GexBias: {
-            /** Direction */
-            direction?: string | null;
-            /** Reasons */
-            reasons?: string[];
             /** Days Above Flip */
             days_above_flip?: number | null;
+            /** Direction */
+            direction?: string | null;
             /** Flip Migration */
             flip_migration?: components["schemas"]["GexFlipMigrationEntry"][];
+            /** Reasons */
+            reasons?: string[];
         };
         /** GexBucket */
         GexBucket: {
-            /** Strike */
-            strike?: number | null;
             /** Call Gex */
             call_gex?: number | null;
-            /** Put Gex */
-            put_gex?: number | null;
             /** Net Gex */
             net_gex?: number | null;
             /** Pct From Spot */
             pct_from_spot?: number | null;
+            /** Put Gex */
+            put_gex?: number | null;
+            /** Strike */
+            strike?: number | null;
             /** Tag */
             tag?: string | null;
         };
         /** GexExpectedRange */
         GexExpectedRange: {
-            /** Low */
-            low?: number | null;
             /** High */
             high?: number | null;
             /** Iv 1D */
             iv_1d?: number | null;
+            /** Low */
+            low?: number | null;
         };
         /** GexFlipMigrationEntry */
         GexFlipMigrationEntry: {
@@ -2599,41 +2599,41 @@ export interface components {
         };
         /** GexHistoryEntry */
         GexHistoryEntry: {
-            /** Date */
-            date: string;
-            /** Net Gex */
-            net_gex?: number | null;
-            /** Net Dex */
-            net_dex?: number | null;
-            /** Gex Flip */
-            gex_flip?: number | null;
-            /** Spot */
-            spot?: number | null;
             /** Atm Iv */
             atm_iv?: number | null;
-            /** Vol Pc */
-            vol_pc?: number | null;
             /** Bias */
             bias?: string | null;
+            /** Date */
+            date: string;
+            /** Gex Flip */
+            gex_flip?: number | null;
+            /** Net Dex */
+            net_dex?: number | null;
+            /** Net Gex */
+            net_gex?: number | null;
+            /** Spot */
+            spot?: number | null;
+            /** Vol Pc */
+            vol_pc?: number | null;
         };
         /**
          * GexIntradayPoint
          * @description One row from gex_snapshots inside a single ET trading session.
          */
         GexIntradayPoint: {
+            /** Gex Flip */
+            gex_flip?: number | null;
+            /** Iv30D */
+            iv30d?: number | null;
+            /** Net Gex */
+            net_gex?: number | null;
+            /** Spot */
+            spot?: number | null;
             /**
              * Ts
              * Format: date-time
              */
             ts: string;
-            /** Spot */
-            spot?: number | null;
-            /** Net Gex */
-            net_gex?: number | null;
-            /** Gex Flip */
-            gex_flip?: number | null;
-            /** Iv30D */
-            iv30d?: number | null;
         };
         /**
          * GexIntradayResponse
@@ -2643,12 +2643,12 @@ export interface components {
          *     Points within each session are also ASC by ``ts``.
          */
         GexIntradayResponse: {
-            /** Ticker */
-            ticker: string;
-            /** Sessions */
-            sessions?: components["schemas"]["GexIntradaySession"][];
             /** As Of */
             as_of?: string | null;
+            /** Sessions */
+            sessions?: components["schemas"]["GexIntradaySession"][];
+            /** Ticker */
+            ticker: string;
         };
         /** GexIntradaySession */
         GexIntradaySession: {
@@ -2662,12 +2662,12 @@ export interface components {
         };
         /** GexIvData */
         GexIvData: {
+            /** Hv30 */
+            hv30?: number | null;
             /** Iv30D */
             iv30d?: number | null;
             /** Iv Rank */
             iv_rank?: number | null;
-            /** Hv30 */
-            hv30?: number | null;
             /** Mq Iv30D */
             mq_iv30d?: number | null;
             /** Mq Iv Rank */
@@ -2677,130 +2677,130 @@ export interface components {
         };
         /** GexLevels */
         GexLevels: {
-            gex_flip?: components["schemas"]["uw_scan__api__schemas__GexLevel"] | null;
-            max_magnet?: components["schemas"]["uw_scan__api__schemas__GexLevel"] | null;
-            second_magnet?: components["schemas"]["uw_scan__api__schemas__GexLevel"] | null;
-            max_accelerator?: components["schemas"]["uw_scan__api__schemas__GexLevel"] | null;
-            put_wall?: components["schemas"]["uw_scan__api__schemas__GexLevel"] | null;
             call_wall?: components["schemas"]["uw_scan__api__schemas__GexLevel"] | null;
+            gex_flip?: components["schemas"]["uw_scan__api__schemas__GexLevel"] | null;
+            max_accelerator?: components["schemas"]["uw_scan__api__schemas__GexLevel"] | null;
+            max_magnet?: components["schemas"]["uw_scan__api__schemas__GexLevel"] | null;
+            put_wall?: components["schemas"]["uw_scan__api__schemas__GexLevel"] | null;
+            second_magnet?: components["schemas"]["uw_scan__api__schemas__GexLevel"] | null;
         };
         /** GexMqLevels */
         GexMqLevels: {
-            /** Source Date */
-            source_date?: string | null;
-            /** Spot */
-            spot?: number | null;
-            /** Hvl */
-            hvl?: number | null;
-            /** Call Resistance All */
-            call_resistance_all?: number | null;
             /** Call Resistance 0Dte */
             call_resistance_0dte?: number | null;
-            /** Put Support All */
-            put_support_all?: number | null;
-            /** Put Support 0Dte */
-            put_support_0dte?: number | null;
+            /** Call Resistance All */
+            call_resistance_all?: number | null;
+            /** Distance To Hvl Pct */
+            distance_to_hvl_pct?: string | null;
             /** Expected High */
             expected_high?: number | null;
             /** Expected Low */
             expected_low?: number | null;
-            /** Distance To Hvl Pct */
-            distance_to_hvl_pct?: string | null;
-            /** Iv30D */
-            iv30d?: number | null;
             /** Hv30 */
             hv30?: number | null;
+            /** Hvl */
+            hvl?: number | null;
+            /** Iv30D */
+            iv30d?: number | null;
             /** Iv Rank */
             iv_rank?: string | null;
+            /** Put Support 0Dte */
+            put_support_0dte?: number | null;
+            /** Put Support All */
+            put_support_all?: number | null;
+            /** Source Date */
+            source_date?: string | null;
+            /** Spot */
+            spot?: number | null;
             /** Top Gex Strikes */
             top_gex_strikes?: number[];
         };
         /** GexResponse */
         GexResponse: {
-            /**
-             * Scan Time
-             * @default
-             */
-            scan_time: string;
+            /** Atm Iv */
+            atm_iv?: number | null;
+            bias?: components["schemas"]["GexBias"];
+            /** Close */
+            close?: number | null;
+            /** Data Date */
+            data_date?: string | null;
+            /** Day Change */
+            day_change?: number | null;
+            /** Day Change Pct */
+            day_change_pct?: number | null;
+            expected_range?: components["schemas"]["GexExpectedRange"];
+            /** History */
+            history?: components["schemas"]["GexHistoryEntry"][];
+            iv?: components["schemas"]["GexIvData"] | null;
+            levels?: components["schemas"]["GexLevels"];
             /**
              * Market Open
              * @default false
              */
             market_open: boolean;
+            /** Market Time */
+            market_time?: string | null;
+            mq?: components["schemas"]["GexMqLevels"] | null;
+            /** Net Dex */
+            net_dex?: number | null;
+            /** Net Gex */
+            net_gex?: number | null;
+            /** Prev Close */
+            prev_close?: number | null;
+            /** Profile */
+            profile?: components["schemas"]["GexBucket"][];
+            /**
+             * Scan Time
+             * @default
+             */
+            scan_time: string;
+            source_delta?: components["schemas"]["GexSourceDelta"] | null;
+            /** Spot */
+            spot?: number | null;
+            /** Spot Source */
+            spot_source?: string | null;
+            /** Tape Time */
+            tape_time?: string | null;
             /**
              * Ticker
              * @default SPX
              */
             ticker: string;
-            /** Spot */
-            spot?: number | null;
-            /** Close */
-            close?: number | null;
-            /** Prev Close */
-            prev_close?: number | null;
-            /** Market Time */
-            market_time?: string | null;
-            /** Tape Time */
-            tape_time?: string | null;
-            /** Spot Source */
-            spot_source?: string | null;
-            /** Day Change */
-            day_change?: number | null;
-            /** Day Change Pct */
-            day_change_pct?: number | null;
-            /** Data Date */
-            data_date?: string | null;
-            /** Net Gex */
-            net_gex?: number | null;
-            /** Net Dex */
-            net_dex?: number | null;
-            /** Atm Iv */
-            atm_iv?: number | null;
             /** Vol Pc */
             vol_pc?: number | null;
-            levels?: components["schemas"]["GexLevels"];
-            /** Profile */
-            profile?: components["schemas"]["GexBucket"][];
-            expected_range?: components["schemas"]["GexExpectedRange"];
-            bias?: components["schemas"]["GexBias"];
-            /** History */
-            history?: components["schemas"]["GexHistoryEntry"][];
-            iv?: components["schemas"]["GexIvData"] | null;
-            mq?: components["schemas"]["GexMqLevels"] | null;
-            source_delta?: components["schemas"]["GexSourceDelta"] | null;
         };
         /** GexSourceDelta */
         GexSourceDelta: {
-            flip_vs_hvl?: components["schemas"]["GexSourceDeltaEntry"] | null;
-            put_wall_vs_support_all?: components["schemas"]["GexSourceDeltaEntry"] | null;
-            put_wall_vs_support_0dte?: components["schemas"]["GexSourceDeltaEntry"] | null;
-            call_wall_vs_resistance_all?: components["schemas"]["GexSourceDeltaEntry"] | null;
             call_wall_vs_resistance_0dte?: components["schemas"]["GexSourceDeltaEntry"] | null;
+            call_wall_vs_resistance_all?: components["schemas"]["GexSourceDeltaEntry"] | null;
+            flip_vs_hvl?: components["schemas"]["GexSourceDeltaEntry"] | null;
+            put_wall_vs_support_0dte?: components["schemas"]["GexSourceDeltaEntry"] | null;
+            put_wall_vs_support_all?: components["schemas"]["GexSourceDeltaEntry"] | null;
         };
         /** GexSourceDeltaEntry */
         GexSourceDeltaEntry: {
-            /** Uw */
-            uw?: number | null;
-            /** Mq */
-            mq?: number | null;
             /** Delta */
             delta?: number | null;
+            /** Mq */
+            mq?: number | null;
+            /** Uw */
+            uw?: number | null;
         };
         /** GoldCbCountryHistory */
         GoldCbCountryHistory: {
+            /** Bucket */
+            bucket: string;
             /** Country Iso3 */
             country_iso3: string;
             /** Country Name */
             country_name: string;
-            /** Bucket */
-            bucket: string;
-            /** Latest Reserves T */
-            latest_reserves_t?: string | null;
             /**
              * History
              * @default []
              */
             history: components["schemas"]["GoldHistoryPoint"][];
+            /** Latest Reserves T */
+            latest_reserves_t?: string | null;
         };
         /** GoldCorrelationBand */
         GoldCorrelationBand: {
@@ -2843,19 +2843,8 @@ export interface components {
         };
         /** GoldCyclicalPostureModel */
         GoldCyclicalPostureModel: {
-            /** Zone Label */
-            zone_label?: string | null;
-            /**
-             * Posture Chip
-             * @enum {string}
-             */
-            posture_chip: "FAVORABLE" | "NEUTRAL" | "STRETCHED" | "SUSPENDED" | "DEGRADED";
             /** Cpi Yoy */
             cpi_yoy?: string | null;
-            /** T5Yifr */
-            t5yifr?: string | null;
-            /** T5Yifr Pct 52W */
-            t5yifr_pct_52w?: string | null;
             /** Dfii10 */
             dfii10?: string | null;
             /** Dfii10 60D Change Bps */
@@ -2864,10 +2853,6 @@ export interface components {
             dxy?: string | null;
             /** Dxy 60D Sigma */
             dxy_60d_sigma?: string | null;
-            /** Gpr Value */
-            gpr_value?: string | null;
-            /** Gpr Pct 52W */
-            gpr_pct_52w?: string | null;
             /**
              * Factors
              * @default {}
@@ -2875,9 +2860,24 @@ export interface components {
             factors: {
                 [key: string]: number;
             };
-            two_force_text: components["schemas"]["GoldTwoForceText"];
+            /** Gpr Pct 52W */
+            gpr_pct_52w?: string | null;
+            /** Gpr Value */
+            gpr_value?: string | null;
             /** Narrative Text */
             narrative_text: string;
+            /**
+             * Posture Chip
+             * @enum {string}
+             */
+            posture_chip: "FAVORABLE" | "NEUTRAL" | "STRETCHED" | "SUSPENDED" | "DEGRADED";
+            /** T5Yifr */
+            t5yifr?: string | null;
+            /** T5Yifr Pct 52W */
+            t5yifr_pct_52w?: string | null;
+            two_force_text: components["schemas"]["GoldTwoForceText"];
+            /** Zone Label */
+            zone_label?: string | null;
         };
         /**
          * GoldDataFreshnessSource
@@ -2902,15 +2902,15 @@ export interface components {
          * @description One row of the Tier 5 lens-decomposition bars.
          */
         GoldDecompositionRow: {
+            /** Contribution */
+            contribution: string;
+            /** Factor */
+            factor: string;
             /**
              * Lens
              * @enum {string}
              */
             lens: "L1" | "L2" | "L3";
-            /** Factor */
-            factor: string;
-            /** Contribution */
-            contribution: string;
         };
         /** GoldGaugeResponse */
         GoldGaugeResponse: {
@@ -2920,16 +2920,16 @@ export interface components {
         };
         /** GoldGaugeState */
         GoldGaugeState: {
-            /** Corr 60D */
-            corr_60d?: string | null;
             /** Corr 126D */
             corr_126d?: string | null;
             /** Corr 252D */
             corr_252d?: string | null;
-            /** Corr 504D */
-            corr_504d?: string | null;
             /** Corr 252D Returns */
             corr_252d_returns?: string | null;
+            /** Corr 504D */
+            corr_504d?: string | null;
+            /** Corr 60D */
+            corr_60d?: string | null;
             /**
              * State
              * @enum {string}
@@ -2938,13 +2938,13 @@ export interface components {
         };
         /** GoldGaugeTimeSeriesPoint */
         GoldGaugeTimeSeriesPoint: {
+            /** Corr 252D */
+            corr_252d: string | null;
             /**
              * Obs Date
              * Format: date
              */
             obs_date: string;
-            /** Corr 252D */
-            corr_252d: string | null;
         };
         /** GoldHistoryPoint */
         GoldHistoryPoint: {
@@ -2959,45 +2959,49 @@ export interface components {
         /** GoldInputProvenance */
         GoldInputProvenance: {
             /**
-             * Obs Date
-             * Format: date
-             */
-            obs_date: string;
-            /**
              * As Of
              * Format: date-time
              */
             as_of: string;
+            /**
+             * Obs Date
+             * Format: date
+             */
+            obs_date: string;
         };
         /** GoldInputSeriesPoint */
         GoldInputSeriesPoint: {
             /**
-             * Obs Date
-             * Format: date
-             */
-            obs_date: string;
-            /** Value */
-            value: string;
-            /**
              * As Of
              * Format: date-time
              */
             as_of: string;
+            /**
+             * Obs Date
+             * Format: date
+             */
+            obs_date: string;
             /** Release Date */
             release_date?: string | null;
+            /** Value */
+            value: string;
         };
         /** GoldInputSeriesResponse */
         GoldInputSeriesResponse: {
-            /** Series Id */
-            series_id: string;
             /** Points */
             points: components["schemas"]["GoldInputSeriesPoint"][];
+            /** Series Id */
+            series_id: string;
         };
         /**
          * GoldLensResponse
          * @description Detail payload for one lens (richer than the summary in GoldStateResponse).
          */
         GoldLensResponse: {
+            /** Detail */
+            detail: {
+                [key: string]: components["schemas"]["GoldInputSeriesPoint"][];
+            };
             /**
              * Lens Id
              * @enum {string}
@@ -3005,24 +3009,20 @@ export interface components {
             lens_id: "structural" | "cyclical" | "valuation";
             /** Posture */
             posture: components["schemas"]["GoldStructuralPostureModel"] | components["schemas"]["GoldCyclicalPostureModel"] | components["schemas"]["GoldValuationPostureModel"];
-            /** Detail */
-            detail: {
-                [key: string]: components["schemas"]["GoldInputSeriesPoint"][];
-            };
         };
         /**
          * GoldSpotTile
          * @description XAU/USD snapshot used by the Tier 1 KPI strip.
          */
         GoldSpotTile: {
-            /** Last */
-            last: string;
             /** Delta Abs */
             delta_abs: string;
             /** Delta Pct */
             delta_pct: string;
             /** High */
             high: string;
+            /** Last */
+            last: string;
             /** Low */
             low: string;
             /** Open */
@@ -3031,24 +3031,19 @@ export interface components {
         /** GoldStateResponse */
         GoldStateResponse: {
             /**
-             * Obs Date
-             * Format: date
-             */
-            obs_date: string;
-            /**
              * Computed At
              * Format: date-time
              */
             computed_at: string;
-            gauge: components["schemas"]["GoldGaugeState"];
-            spot: components["schemas"]["GoldSpotTile"];
-            structural: components["schemas"]["GoldStructuralPostureModel"];
+            /**
+             * @default {
+             *       "gold_dfii10": [],
+             *       "gold_dxy": [],
+             *       "gold_gpr": []
+             *     }
+             */
+            correlation_history: components["schemas"]["GoldCorrelationHistory"];
             cyclical: components["schemas"]["GoldCyclicalPostureModel"];
-            valuation: components["schemas"]["GoldValuationPostureModel"];
-            /** Inputs Used */
-            inputs_used: {
-                [key: string]: components["schemas"]["GoldInputProvenance"];
-            };
             /**
              * Data Freshness
              * @default []
@@ -3059,69 +3054,74 @@ export interface components {
              * @default []
              */
             decomposition_rows: components["schemas"]["GoldDecompositionRow"][];
+            gauge: components["schemas"]["GoldGaugeState"];
+            /** Inputs Used */
+            inputs_used: {
+                [key: string]: components["schemas"]["GoldInputProvenance"];
+            };
             /**
-             * @default {
-             *       "gold_dfii10": [],
-             *       "gold_dxy": [],
-             *       "gold_gpr": []
-             *     }
+             * Obs Date
+             * Format: date
              */
-            correlation_history: components["schemas"]["GoldCorrelationHistory"];
+            obs_date: string;
+            spot: components["schemas"]["GoldSpotTile"];
+            structural: components["schemas"]["GoldStructuralPostureModel"];
+            valuation: components["schemas"]["GoldValuationPostureModel"];
         };
         /** GoldStructuralPostureModel */
         GoldStructuralPostureModel: {
-            /** State Label */
-            state_label?: string | null;
-            /**
-             * Posture Chip
-             * @enum {string}
-             */
-            posture_chip: "FAVORABLE" | "NEUTRAL" | "STRETCHED" | "SUSPENDED" | "DEGRADED";
-            /** Cb Strategic 12M Sum T */
-            cb_strategic_12m_sum_t?: string | null;
-            /** Cb Tactical 12M Sum T */
-            cb_tactical_12m_sum_t?: string | null;
-            /** Cb Diversifier 12M Sum T */
-            cb_diversifier_12m_sum_t?: string | null;
             /** Cb 52W Pct */
             cb_52w_pct?: string | null;
-            /** Gld Holdings T */
-            gld_holdings_t?: string | null;
-            /** Gld 30D Net Flow T */
-            gld_30d_net_flow_t?: string | null;
-            /** Comex Registered Oz */
-            comex_registered_oz?: string | null;
-            /** Comex 20D Roc Pct */
-            comex_20d_roc_pct?: string | null;
-            /** Lbma 30D Momentum T */
-            lbma_30d_momentum_t?: string | null;
-            /** Cot Mm Net Pct */
-            cot_mm_net_pct?: string | null;
-            /** Cot Mm 4W Change Sigma */
-            cot_mm_4w_change_sigma?: string | null;
-            /** Uw 25D Skew Sigma */
-            uw_25d_skew_sigma?: string | null;
-            /** Fx Basket Dxy Z */
-            fx_basket_dxy_z?: string | null;
-            /** Xau Cny Premium Pct */
-            xau_cny_premium_pct?: string | null;
-            /**
-             * Gld History
-             * @default []
-             */
-            gld_history: components["schemas"]["GoldHistoryPoint"][];
-            /**
-             * Gold History
-             * @default []
-             */
-            gold_history: components["schemas"]["GoldHistoryPoint"][];
             /**
              * Cb Country History
              * @default []
              */
             cb_country_history: components["schemas"]["GoldCbCountryHistory"][];
+            /** Cb Diversifier 12M Sum T */
+            cb_diversifier_12m_sum_t?: string | null;
+            /** Cb Strategic 12M Sum T */
+            cb_strategic_12m_sum_t?: string | null;
+            /** Cb Tactical 12M Sum T */
+            cb_tactical_12m_sum_t?: string | null;
+            /** Comex 20D Roc Pct */
+            comex_20d_roc_pct?: string | null;
+            /** Comex Registered Oz */
+            comex_registered_oz?: string | null;
+            /** Cot Mm 4W Change Sigma */
+            cot_mm_4w_change_sigma?: string | null;
+            /** Cot Mm Net Pct */
+            cot_mm_net_pct?: string | null;
+            /** Fx Basket Dxy Z */
+            fx_basket_dxy_z?: string | null;
+            /** Gld 30D Net Flow T */
+            gld_30d_net_flow_t?: string | null;
+            /**
+             * Gld History
+             * @default []
+             */
+            gld_history: components["schemas"]["GoldHistoryPoint"][];
+            /** Gld Holdings T */
+            gld_holdings_t?: string | null;
+            /**
+             * Gold History
+             * @default []
+             */
+            gold_history: components["schemas"]["GoldHistoryPoint"][];
+            /** Lbma 30D Momentum T */
+            lbma_30d_momentum_t?: string | null;
             /** Narrative Text */
             narrative_text: string;
+            /**
+             * Posture Chip
+             * @enum {string}
+             */
+            posture_chip: "FAVORABLE" | "NEUTRAL" | "STRETCHED" | "SUSPENDED" | "DEGRADED";
+            /** State Label */
+            state_label?: string | null;
+            /** Uw 25D Skew Sigma */
+            uw_25d_skew_sigma?: string | null;
+            /** Xau Cny Premium Pct */
+            xau_cny_premium_pct?: string | null;
         };
         /** GoldTwoForceText */
         GoldTwoForceText: {
@@ -3137,13 +3137,6 @@ export interface components {
              * @enum {string}
              */
             flag: "Low" | "Moderate" | "High" | "Severe";
-            /**
-             * Posture Chip
-             * @enum {string}
-             */
-            posture_chip: "FAVORABLE" | "NEUTRAL" | "STRETCHED" | "SUSPENDED" | "DEGRADED";
-            /** Real Price Percentile */
-            real_price_percentile?: string | null;
             /** Gold M2 Ratio Percentile */
             gold_m2_ratio_percentile?: string | null;
             /** Gold Oil Ratio Percentile */
@@ -3152,35 +3145,42 @@ export interface components {
             gold_spx_ratio_percentile?: string | null;
             /** Narrative Text */
             narrative_text: string;
+            /**
+             * Posture Chip
+             * @enum {string}
+             */
+            posture_chip: "FAVORABLE" | "NEUTRAL" | "STRETCHED" | "SUSPENDED" | "DEGRADED";
+            /** Real Price Percentile */
+            real_price_percentile?: string | null;
         };
         /** GrgAsset */
         GrgAsset: {
-            /** Ticker */
-            ticker: string;
-            /** Spot */
-            spot?: number | null;
             /** Data Date */
             data_date?: string | null;
-            /** Net Gamma */
-            net_gamma?: number | null;
-            /** Net Gex */
-            net_gex?: number | null;
-            /** Gamma Z */
-            gamma_z?: number | null;
+            /** Flip */
+            flip?: number | null;
             /** Gamma 1D Change */
             gamma_1d_change?: number | null;
             /** Gamma 3D Change */
             gamma_3d_change?: number | null;
+            /** Gamma Z */
+            gamma_z?: number | null;
+            /** Net Gamma */
+            net_gamma?: number | null;
+            /** Net Gex */
+            net_gex?: number | null;
+            /** Spot */
+            spot?: number | null;
+            /** Spot Vs Flip Pct */
+            spot_vs_flip_pct?: number | null;
             /**
              * State
              * @default NEUTRAL
              * @enum {string}
              */
             state: "CUSHION" | "WHIP" | "NEUTRAL";
-            /** Flip */
-            flip?: number | null;
-            /** Spot Vs Flip Pct */
-            spot_vs_flip_pct?: number | null;
+            /** Ticker */
+            ticker: string;
         };
         /** GrgAssets */
         GrgAssets: {
@@ -3203,37 +3203,37 @@ export interface components {
         GrgEvent: {
             /** Date */
             date: string;
+            /** Extreme Gap Pct */
+            extreme_gap_pct?: number | null;
+            /** Fwd 20D Pct */
+            fwd_20d_pct?: number | null;
             /** Grg Z */
             grg_z?: number | null;
+            /** Lead Sessions */
+            lead_sessions?: number | null;
             /**
              * Pair State
              * @default NEUTRAL
              */
             pair_state: string;
-            /** Tier */
-            tier?: number | null;
             /** Spy Net Gamma */
             spy_net_gamma?: number | null;
+            /** Tier */
+            tier?: number | null;
             /** Tlt Net Gamma */
             tlt_net_gamma?: number | null;
-            /** Fwd 20D Pct */
-            fwd_20d_pct?: number | null;
-            /** Lead Sessions */
-            lead_sessions?: number | null;
-            /** Extreme Gap Pct */
-            extreme_gap_pct?: number | null;
         };
         /** GrgEventSideStats */
         GrgEventSideStats: {
+            /** Median Extreme Gap Pct */
+            median_extreme_gap_pct?: number | null;
+            /** Median Lead Sessions */
+            median_lead_sessions?: number | null;
             /**
              * N
              * @default 0
              */
             n: number;
-            /** Median Lead Sessions */
-            median_lead_sessions?: number | null;
-            /** Median Extreme Gap Pct */
-            median_extreme_gap_pct?: number | null;
         };
         /**
          * GrgEventStats
@@ -3245,24 +3245,29 @@ export interface components {
          *     LEAD — GRG watch events are not coincident turn markers.
          */
         GrgEventStats: {
+            bottoms?: components["schemas"]["GrgEventSideStats"];
             /**
              * Fwd Window
              * @default 0
              */
             fwd_window: number;
             tops?: components["schemas"]["GrgEventSideStats"];
-            bottoms?: components["schemas"]["GrgEventSideStats"];
         };
         /** GrgEvents */
         GrgEvents: {
-            /** Tops */
-            tops?: components["schemas"]["GrgEvent"][];
             /** Bottoms */
             bottoms?: components["schemas"]["GrgEvent"][];
             stats?: components["schemas"]["GrgEventStats"];
+            /** Tops */
+            tops?: components["schemas"]["GrgEvent"][];
         };
         /** GrgGate */
         GrgGate: {
+            /**
+             * Copy
+             * @default
+             */
+            copy: string;
             /** Id */
             id: string;
             /** Label */
@@ -3273,32 +3278,27 @@ export interface components {
              * @enum {string}
              */
             status: "PASS" | "WATCH" | "FAIL";
-            /**
-             * Copy
-             * @default
-             */
-            copy: string;
         };
         /** GrgHistoryEntry */
         GrgHistoryEntry: {
             /** Date */
             date: string;
-            /** Spy Price */
-            spy_price?: number | null;
-            /** Spy Net Gamma */
-            spy_net_gamma?: number | null;
-            /** Tlt Net Gamma */
-            tlt_net_gamma?: number | null;
-            /** Spy Gamma Z */
-            spy_gamma_z?: number | null;
-            /** Tlt Gamma Z */
-            tlt_gamma_z?: number | null;
             /** Grg Z */
             grg_z?: number | null;
             /** Raw Spread */
             raw_spread?: number | null;
+            /** Spy Gamma Z */
+            spy_gamma_z?: number | null;
+            /** Spy Net Gamma */
+            spy_net_gamma?: number | null;
+            /** Spy Price */
+            spy_price?: number | null;
             /** State */
             state?: string | null;
+            /** Tlt Gamma Z */
+            tlt_gamma_z?: number | null;
+            /** Tlt Net Gamma */
+            tlt_net_gamma?: number | null;
         };
         /**
          * GrgResponse
@@ -3306,78 +3306,102 @@ export interface components {
          *     YTD history (z-scored over the full ≈1Y fetched series).
          */
         GrgResponse: {
-            /**
-             * Status
-             * @default empty
-             * @enum {string}
-             */
-            status: "ok" | "empty";
-            /**
-             * Scan Time
-             * @default
-             */
-            scan_time: string;
-            /**
-             * Market Open
-             * @default false
-             */
-            market_open: boolean;
-            /** Data Date */
-            data_date?: string | null;
-            /**
-             * Source
-             * @default Unusual Whales
-             */
-            source: string;
-            /**
-             * Lookback Days
-             * @default 0
-             */
-            lookback_days: number;
-            /**
-             * Z Window
-             * @default 63
-             */
-            z_window: number;
+            assets?: components["schemas"]["GrgAssets"] | null;
             /**
              * Basis
              * @default eod
              * @enum {string}
              */
             basis: "live" | "eod";
-            signal?: components["schemas"]["GrgSignal"];
-            assets?: components["schemas"]["GrgAssets"] | null;
+            /** Data Date */
+            data_date?: string | null;
+            events?: components["schemas"]["GrgEvents"];
             /** Gates */
             gates?: components["schemas"]["GrgGate"][];
             /** History */
             history?: components["schemas"]["GrgHistoryEntry"][];
-            events?: components["schemas"]["GrgEvents"];
+            /**
+             * Lookback Days
+             * @default 0
+             */
+            lookback_days: number;
+            /**
+             * Market Open
+             * @default false
+             */
+            market_open: boolean;
+            /**
+             * Scan Time
+             * @default
+             */
+            scan_time: string;
+            signal?: components["schemas"]["GrgSignal"];
+            /**
+             * Source
+             * @default Unusual Whales
+             */
+            source: string;
+            /**
+             * Status
+             * @default empty
+             * @enum {string}
+             */
+            status: "ok" | "empty";
             top_bottom?: components["schemas"]["GrgTopBottom"];
+            /**
+             * Z Window
+             * @default 63
+             */
+            z_window: number;
         };
         /**
          * GrgScanResponse
          * @description Response body for POST /api/regime/grg/scan.
          */
         GrgScanResponse: {
-            /**
-             * Status
-             * @default ok
-             * @enum {string}
-             */
-            status: "ok" | "skipped";
+            /** Reason */
+            reason?: string | null;
+            /** Row Id */
+            row_id?: number | null;
             /**
              * Scanner
              * @default grg
              * @constant
              */
             scanner: "grg";
-            /** Row Id */
-            row_id?: number | null;
-            /** Reason */
-            reason?: string | null;
+            /**
+             * Status
+             * @default ok
+             * @enum {string}
+             */
+            status: "ok" | "skipped";
         };
         /** GrgSignal */
         GrgSignal: {
+            /**
+             * Bottom Score
+             * @default 0
+             */
+            bottom_score: number;
+            /**
+             * Bottom Watch
+             * @default false
+             */
+            bottom_watch: boolean;
+            /** Grg Z */
+            grg_z?: number | null;
+            /**
+             * Interpretation
+             * @default NORMAL
+             * @enum {string}
+             */
+            interpretation: "TOP_WATCH" | "BOTTOM_WATCH" | "RISK_ON" | "RISK_OFF" | "DUAL_WHIP" | "CUSHION" | "NORMAL";
+            /** Raw Spread */
+            raw_spread?: number | null;
+            /** Spy 3D Gamma Change */
+            spy_3d_gamma_change?: number | null;
+            /** Spy Gamma Z */
+            spy_gamma_z?: number | null;
             /**
              * State
              * @default NEUTRAL
@@ -3390,55 +3414,31 @@ export interface components {
              */
             state_label: string;
             /**
-             * Interpretation
-             * @default NORMAL
-             * @enum {string}
+             * Summary
+             * @default
              */
-            interpretation: "TOP_WATCH" | "BOTTOM_WATCH" | "RISK_ON" | "RISK_OFF" | "DUAL_WHIP" | "CUSHION" | "NORMAL";
+            summary: string;
             /** Tier */
             tier?: number | null;
-            /**
-             * Top Watch
-             * @default false
-             */
-            top_watch: boolean;
-            /**
-             * Bottom Watch
-             * @default false
-             */
-            bottom_watch: boolean;
+            /** Tlt 3D Gamma Change */
+            tlt_3d_gamma_change?: number | null;
+            /** Tlt Gamma Z */
+            tlt_gamma_z?: number | null;
             /**
              * Top Score
              * @default 0
              */
             top_score: number;
             /**
-             * Bottom Score
-             * @default 0
+             * Top Watch
+             * @default false
              */
-            bottom_score: number;
-            /** Grg Z */
-            grg_z?: number | null;
-            /** Raw Spread */
-            raw_spread?: number | null;
-            /** Spy Gamma Z */
-            spy_gamma_z?: number | null;
-            /** Tlt Gamma Z */
-            tlt_gamma_z?: number | null;
-            /** Spy 3D Gamma Change */
-            spy_3d_gamma_change?: number | null;
-            /** Tlt 3D Gamma Change */
-            tlt_3d_gamma_change?: number | null;
-            /**
-             * Summary
-             * @default
-             */
-            summary: string;
+            top_watch: boolean;
         };
         /** GrgTopBottom */
         GrgTopBottom: {
-            top?: components["schemas"]["GrgTopBottomSide"];
             bottom?: components["schemas"]["GrgTopBottomSide"];
+            top?: components["schemas"]["GrgTopBottomSide"];
         };
         /** GrgTopBottomSide */
         GrgTopBottomSide: {
@@ -3455,17 +3455,17 @@ export interface components {
         };
         /** GuidanceResponse */
         GuidanceResponse: {
-            /** State */
-            state: string;
+            /** Body Md */
+            body_md: string;
+            /** Matched Condition */
+            matched_condition: string;
             /**
              * Posture
              * @enum {string}
              */
             posture: "opportunistic" | "neutral" | "cautious" | "defensive";
-            /** Body Md */
-            body_md: string;
-            /** Matched Condition */
-            matched_condition: string;
+            /** State */
+            state: string;
         };
         /** HTTPValidationError */
         HTTPValidationError: {
@@ -3474,72 +3474,72 @@ export interface components {
         };
         /** HealthResponse */
         HealthResponse: {
-            /** Ok */
-            ok: boolean;
+            /** Avg Scan Duration Seconds */
+            avg_scan_duration_seconds?: number | null;
+            /** Cache Hit Pct */
+            cache_hit_pct?: number | null;
             /** Db */
             db: string;
-            /** Scheduler Lag Seconds */
-            scheduler_lag_seconds?: number | null;
+            /** Http 2Xx */
+            http_2xx?: number | null;
+            /** Http 429 */
+            http_429?: number | null;
+            /** Http 4Xx */
+            http_4xx?: number | null;
+            /** Http 5Xx */
+            http_5xx?: number | null;
             /** Last Full Scan At */
             last_full_scan_at?: string | null;
-            /** Reason */
-            reason?: string | null;
-            /** Worker Lag Seconds */
-            worker_lag_seconds?: number | null;
-            /** Scheduler Heartbeat Lag Seconds */
-            scheduler_heartbeat_lag_seconds?: number | null;
-            /** Scheduler Heartbeat Name */
-            scheduler_heartbeat_name?: string | null;
-            /** Rescan Heartbeat Lag Seconds */
-            rescan_heartbeat_lag_seconds?: number | null;
-            /** Spot Refresh Heartbeat Lag Seconds */
-            spot_refresh_heartbeat_lag_seconds?: number | null;
-            /** Spot Quote Lag Seconds */
-            spot_quote_lag_seconds?: number | null;
+            /** Latency P95 Ms */
+            latency_p95_ms?: number | null;
             /** Latest Spot Quote At */
             latest_spot_quote_at?: string | null;
             /** Latest Spot Quote Fetched At */
             latest_spot_quote_fetched_at?: string | null;
-            /** Watchlist Size */
-            watchlist_size?: number | null;
+            /** Ok */
+            ok: boolean;
+            /** Queue Drain Rate Per Minute */
+            queue_drain_rate_per_minute?: number | null;
+            /** Reason */
+            reason?: string | null;
+            /** Record Health */
+            record_health?: components["schemas"]["RecordHealthCheck"][];
+            /** Record Health Ok */
+            record_health_ok?: boolean | null;
+            /** Requests Per Minute */
+            requests_per_minute?: number | null;
+            /** Rescan Heartbeat Lag Seconds */
+            rescan_heartbeat_lag_seconds?: number | null;
+            /** Scheduler Heartbeat Lag Seconds */
+            scheduler_heartbeat_lag_seconds?: number | null;
+            /** Scheduler Heartbeat Name */
+            scheduler_heartbeat_name?: string | null;
+            /** Scheduler Lag Seconds */
+            scheduler_lag_seconds?: number | null;
             /**
              * Source
              * @default UnusualWhales
              */
             source: string;
-            /** Latency P95 Ms */
-            latency_p95_ms?: number | null;
-            /** Http 2Xx */
-            http_2xx?: number | null;
-            /** Http 4Xx */
-            http_4xx?: number | null;
-            /** Http 5Xx */
-            http_5xx?: number | null;
-            /** Uw Today */
-            uw_today?: number | null;
-            /** Cache Hit Pct */
-            cache_hit_pct?: number | null;
+            /** Spot Quote Lag Seconds */
+            spot_quote_lag_seconds?: number | null;
+            /** Spot Refresh Heartbeat Lag Seconds */
+            spot_refresh_heartbeat_lag_seconds?: number | null;
             /**
              * Throughput Window Minutes
              * @default 0
              */
             throughput_window_minutes: number;
-            /** Requests Per Minute */
-            requests_per_minute?: number | null;
-            /** Http 429 */
-            http_429?: number | null;
-            /** Avg Scan Duration Seconds */
-            avg_scan_duration_seconds?: number | null;
-            /** Queue Drain Rate Per Minute */
-            queue_drain_rate_per_minute?: number | null;
-            /** Record Health Ok */
-            record_health_ok?: boolean | null;
-            /** Record Health */
-            record_health?: components["schemas"]["RecordHealthCheck"][];
+            trade_insights_ai?: components["schemas"]["TradeInsightsAiHealth"] | null;
+            /** Uw Today */
+            uw_today?: number | null;
+            /** Watchlist Size */
+            watchlist_size?: number | null;
+            /** Worker Lag Seconds */
+            worker_lag_seconds?: number | null;
             /** Workers */
             workers?: components["schemas"]["WorkerHealth"][];
             ws_consumer?: components["schemas"]["WsConsumerHealth"] | null;
-            trade_insights_ai?: components["schemas"]["TradeInsightsAiHealth"] | null;
         };
         /** InsightBadge */
         InsightBadge: {
@@ -3555,41 +3555,48 @@ export interface components {
         };
         /** InsightLeg */
         InsightLeg: {
-            /** Side */
-            side: string;
-            /** Option Symbol */
-            option_symbol: string;
-            /** Option Right */
-            option_right: string;
             /**
              * Expiry
              * Format: date
              */
             expiry: string;
-            /** Strike */
-            strike: string;
             /** Mid */
             mid?: string | null;
+            /** Option Right */
+            option_right: string;
+            /** Option Symbol */
+            option_symbol: string;
+            /** Side */
+            side: string;
+            /** Strike */
+            strike: string;
         };
         /** InsightSignalRow */
         InsightSignalRow: {
-            /** Lens */
-            lens: string;
-            /** Read */
-            read: string;
-            /**
-             * Evidence
-             * @default []
-             */
-            evidence: string[];
             /**
              * Conflicts
              * @default []
              */
             conflicts: string[];
+            /**
+             * Evidence
+             * @default []
+             */
+            evidence: string[];
+            /** Lens */
+            lens: string;
+            /** Read */
+            read: string;
         };
         /** InsightsSynthesis */
         InsightsSynthesis: {
+            /**
+             * Avoid
+             * @default []
+             */
+            avoid: string[];
+            /** Best Risk Reward Idea Id */
+            best_risk_reward_idea_id?: string | null;
             /**
              * Dominant Story
              * @default
@@ -3597,13 +3604,6 @@ export interface components {
             dominant_story: string;
             /** Preferred Idea Id */
             preferred_idea_id?: string | null;
-            /** Best Risk Reward Idea Id */
-            best_risk_reward_idea_id?: string | null;
-            /**
-             * Avoid
-             * @default []
-             */
-            avoid: string[];
             /**
              * Required Before Sizing
              * @default []
@@ -3612,12 +3612,12 @@ export interface components {
         };
         /** IvHistogramBin */
         IvHistogramBin: {
-            /** Lo */
-            lo: string;
-            /** Hi */
-            hi: string;
             /** Count */
             count: number;
+            /** Hi */
+            hi: string;
+            /** Lo */
+            lo: string;
         };
         /** IvHvPoint */
         IvHvPoint: {
@@ -3657,26 +3657,26 @@ export interface components {
         };
         /** JobStatus */
         JobStatus: {
-            /** Job Id */
-            job_id: string;
-            /**
-             * Status
-             * @enum {string}
-             */
-            status: "queued" | "running" | "done" | "failed";
-            /** Run Id */
-            run_id?: number | null;
             /** Error */
             error?: string | null;
+            /** Finished At */
+            finished_at?: string | null;
+            /** Job Id */
+            job_id: string;
             /**
              * Requested At
              * Format: date-time
              */
             requested_at: string;
+            /** Run Id */
+            run_id?: number | null;
             /** Started At */
             started_at?: string | null;
-            /** Finished At */
-            finished_at?: string | null;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "queued" | "running" | "done" | "failed";
         };
         /**
          * MarketAggregates
@@ -3686,51 +3686,43 @@ export interface components {
          *     sub-models. Feeds the watchlist card POSITIONING and SKEW blocks.
          */
         MarketAggregates: {
+            /** Aum */
+            aum?: string | null;
             /** Call Oi Total */
             call_oi_total?: number | null;
-            /** Put Oi Total */
-            put_oi_total?: number | null;
-            /** Call Volume Total */
-            call_volume_total?: number | null;
-            /** Put Volume Total */
-            put_volume_total?: number | null;
             /** Call Volume Ask Side */
             call_volume_ask_side?: number | null;
             /** Call Volume Bid Side */
             call_volume_bid_side?: number | null;
-            /** Put Volume Ask Side */
-            put_volume_ask_side?: number | null;
-            /** Put Volume Bid Side */
-            put_volume_bid_side?: number | null;
-            /** Pcr Oi */
-            pcr_oi?: string | null;
-            /** Pcr Vol */
-            pcr_vol?: string | null;
+            /** Call Volume Total */
+            call_volume_total?: number | null;
             /** Iv30D */
             iv30d?: string | null;
             /** Market Cap */
             market_cap?: string | null;
-            /** Aum */
-            aum?: string | null;
+            /** Pcr Oi */
+            pcr_oi?: string | null;
+            /** Pcr Vol */
+            pcr_vol?: string | null;
+            /** Put Oi Total */
+            put_oi_total?: number | null;
+            /** Put Volume Ask Side */
+            put_volume_ask_side?: number | null;
+            /** Put Volume Bid Side */
+            put_volume_bid_side?: number | null;
+            /** Put Volume Total */
+            put_volume_total?: number | null;
         };
         /** MarketStructure */
         MarketStructure: {
-            /** Spot */
-            spot?: string | null;
-            /** Nearest Expiry */
-            nearest_expiry?: string | null;
-            /** Total Call Gex */
-            total_call_gex?: string | null;
-            /** Total Put Gex */
-            total_put_gex?: string | null;
-            /** Net Gex */
-            net_gex?: string | null;
-            /** Total Call Dex Oi */
-            total_call_dex_oi?: string | null;
-            /** Total Put Dex Oi */
-            total_put_dex_oi?: string | null;
             /** Max Pain */
             max_pain?: string | null;
+            /** Nearest Expiry */
+            nearest_expiry?: string | null;
+            /** Net Gex */
+            net_gex?: string | null;
+            /** Spot */
+            spot?: string | null;
             /**
              * Top Call Oi Strikes
              * @default []
@@ -3741,6 +3733,14 @@ export interface components {
              * @default []
              */
             top_put_oi_strikes: string[];
+            /** Total Call Dex Oi */
+            total_call_dex_oi?: string | null;
+            /** Total Call Gex */
+            total_call_gex?: string | null;
+            /** Total Put Dex Oi */
+            total_put_dex_oi?: string | null;
+            /** Total Put Gex */
+            total_put_gex?: string | null;
         };
         /**
          * MarketStructureLevels
@@ -3755,152 +3755,154 @@ export interface components {
          *       - max_accel: strike with most-negative net_gex below the flip (movement accelerator)
          */
         MarketStructureLevels: {
-            gex_flip?: components["schemas"]["uw_scan__models__GexLevel"] | null;
             call_wall?: components["schemas"]["uw_scan__models__GexLevel"] | null;
-            put_wall?: components["schemas"]["uw_scan__models__GexLevel"] | null;
-            max_magnet?: components["schemas"]["uw_scan__models__GexLevel"] | null;
-            second_magnet?: components["schemas"]["uw_scan__models__GexLevel"] | null;
+            gex_flip?: components["schemas"]["uw_scan__models__GexLevel"] | null;
             max_accel?: components["schemas"]["uw_scan__models__GexLevel"] | null;
+            max_magnet?: components["schemas"]["uw_scan__models__GexLevel"] | null;
+            put_wall?: components["schemas"]["uw_scan__models__GexLevel"] | null;
+            second_magnet?: components["schemas"]["uw_scan__models__GexLevel"] | null;
         };
         /** MatrixSourceFreshness */
         MatrixSourceFreshness: {
-            /** Vanna Charm */
-            vanna_charm?: string | null;
+            /** Im Vrp */
+            im_vrp?: string | null;
+            /** Oi */
+            oi?: string | null;
             /** Skew */
             skew?: string | null;
             /** Term */
             term?: string | null;
-            /** Im Vrp */
-            im_vrp?: string | null;
+            /** Vanna Charm */
+            vanna_charm?: string | null;
             /** Vrp Rv */
             vrp_rv?: string | null;
-            /** Oi */
-            oi?: string | null;
         };
         /** MatrixState */
         MatrixState: {
-            /** Ticker */
-            ticker: string;
-            /**
-             * Market Date
-             * Format: date
-             */
-            market_date: string;
-            /**
-             * Threshold Version
-             * @default 1
-             */
-            threshold_version: number;
-            /**
-             * Vanna State
-             * @enum {string}
-             */
-            vanna_state: "vol_up" | "vol_down" | "neutral" | "stale";
+            /** Atm Straddle Mid */
+            atm_straddle_mid?: string | null;
+            /** Back Iv */
+            back_iv?: string | null;
+            /** Charm Regime */
+            charm_regime?: ("operative_magnet" | "broken_magnet" | "opex_vortex" | "neutral") | null;
             /**
              * Charm State
              * @enum {string}
              */
             charm_state: "vol_up" | "vol_down" | "neutral" | "stale";
             /**
+             * Charm Stress Override
+             * @default false
+             */
+            charm_stress_override: boolean;
+            /** Cluster Coverage Ok */
+            cluster_coverage_ok: boolean;
+            /**
+             * Consistency Tier
+             * @enum {string}
+             */
+            consistency_tier: "strict" | "strong" | "weak" | "no_trade" | "insufficient_data";
+            /** Directional Imbalance 3D */
+            directional_imbalance_3d?: string | null;
+            /**
+             * Flow State
+             * @enum {string}
+             */
+            flow_state: "vol_up" | "vol_down" | "neutral" | "stale";
+            /** Front Back Spread */
+            front_back_spread?: string | null;
+            /** Front Iv */
+            front_iv?: string | null;
+            /** Full Curve Slope Pct */
+            full_curve_slope_pct?: string | null;
+            /**
+             * Im State
+             * @enum {string}
+             */
+            im_state: "vol_up" | "vol_down" | "neutral" | "stale";
+            /** Implied Move Event Percentile */
+            implied_move_event_percentile?: string | null;
+            /** Implied Move Expected Abs */
+            implied_move_expected_abs?: string | null;
+            /** Implied Move Pct */
+            implied_move_pct?: string | null;
+            /** Iv Atm 30D */
+            iv_atm_30d?: string | null;
+            /**
+             * Market Date
+             * Format: date
+             */
+            market_date: string;
+            /** Pin Distance Sigma */
+            pin_distance_sigma?: string | null;
+            /** Rv 30D */
+            rv_30d?: string | null;
+            /** Single Point Bump Pct */
+            single_point_bump_pct?: string | null;
+            /** Skew 25D 5D Change */
+            skew_25d_5d_change?: string | null;
+            /** Skew 25D Zscore 180D */
+            skew_25d_zscore_180d?: string | null;
+            /** Skew Regime */
+            skew_regime?: ("smirk" | "accelerated" | "crash_smile" | "neutral") | null;
+            /**
              * Skew State
              * @enum {string}
              */
             skew_state: "vol_up" | "vol_down" | "neutral" | "stale";
+            /** Skew Term Structure */
+            skew_term_structure?: string | null;
+            /** Term Classification */
+            term_classification?: ("contango" | "event_back" | "liquidity_back" | "mixed") | null;
+            /** Term Johnson Slope Pc1 */
+            term_johnson_slope_pc1?: string | null;
             /**
              * Term State
              * @enum {string}
              */
             term_state: "vol_up" | "vol_down" | "neutral" | "stale";
             /**
-             * Im State
-             * @enum {string}
+             * Threshold Version
+             * @default 1
              */
-            im_state: "vol_up" | "vol_down" | "neutral" | "stale";
+            threshold_version: number;
+            /** Ticker */
+            ticker: string;
+            /** Vanna Conditional Reading */
+            vanna_conditional_reading?: ("grind_up" | "reverse_selloff" | "reflexive_sell_pressure" | "weak_noise") | null;
+            /** Vanna Oi Change Bias */
+            vanna_oi_change_bias?: ("call_oi_build" | "put_oi_build" | "mixed") | null;
             /**
-             * Flow State
+             * Vanna State
              * @enum {string}
              */
-            flow_state: "vol_up" | "vol_down" | "neutral" | "stale";
-            /**
-             * Vrp State
-             * @enum {string}
-             */
-            vrp_state: "vol_up" | "vol_down" | "neutral" | "stale";
-            /**
-             * Consistency Tier
-             * @enum {string}
-             */
-            consistency_tier: "strict" | "strong" | "weak" | "no_trade" | "insufficient_data";
-            /** Cluster Coverage Ok */
-            cluster_coverage_ok: boolean;
-            /** Term Classification */
-            term_classification?: ("contango" | "event_back" | "liquidity_back" | "mixed") | null;
-            /** Skew 25D Zscore 180D */
-            skew_25d_zscore_180d?: string | null;
-            /** Iv Atm 30D */
-            iv_atm_30d?: string | null;
-            /** Rv 30D */
-            rv_30d?: string | null;
+            vanna_state: "vol_up" | "vol_down" | "neutral" | "stale";
             /** Vrp */
             vrp?: string | null;
-            /** Vrp Zscore 60D */
-            vrp_zscore_60d?: string | null;
-            /** Implied Move Pct */
-            implied_move_pct?: string | null;
-            /** Front Iv */
-            front_iv?: string | null;
-            /** Back Iv */
-            back_iv?: string | null;
-            /** Front Back Spread */
-            front_back_spread?: string | null;
-            /** Pin Distance Sigma */
-            pin_distance_sigma?: string | null;
+            /**
+             * Vrp Sign Flip Aligned Days
+             * @default 0
+             */
+            vrp_sign_flip_aligned_days: number;
             /**
              * Vrp Sign Flip Status
              * @default insufficient_history
              */
             vrp_sign_flip_status: boolean | "insufficient_history";
             /**
-             * Vrp Sign Flip Aligned Days
-             * @default 0
+             * Vrp State
+             * @enum {string}
              */
-            vrp_sign_flip_aligned_days: number;
-            /** Vanna Conditional Reading */
-            vanna_conditional_reading?: ("grind_up" | "reverse_selloff" | "reflexive_sell_pressure" | "weak_noise") | null;
-            /** Directional Imbalance 3D */
-            directional_imbalance_3d?: string | null;
-            /** Vanna Oi Change Bias */
-            vanna_oi_change_bias?: ("call_oi_build" | "put_oi_build" | "mixed") | null;
-            /** Charm Regime */
-            charm_regime?: ("operative_magnet" | "broken_magnet" | "opex_vortex" | "neutral") | null;
-            /**
-             * Charm Stress Override
-             * @default false
-             */
-            charm_stress_override: boolean;
-            /** Skew 25D 5D Change */
-            skew_25d_5d_change?: string | null;
-            /** Skew Regime */
-            skew_regime?: ("smirk" | "accelerated" | "crash_smile" | "neutral") | null;
-            /** Skew Term Structure */
-            skew_term_structure?: string | null;
-            /** Single Point Bump Pct */
-            single_point_bump_pct?: string | null;
-            /** Full Curve Slope Pct */
-            full_curve_slope_pct?: string | null;
-            /** Term Johnson Slope Pc1 */
-            term_johnson_slope_pc1?: string | null;
-            /** Atm Straddle Mid */
-            atm_straddle_mid?: string | null;
-            /** Implied Move Expected Abs */
-            implied_move_expected_abs?: string | null;
-            /** Implied Move Event Percentile */
-            implied_move_event_percentile?: string | null;
+            vrp_state: "vol_up" | "vol_down" | "neutral" | "stale";
             /** Vrp Zscore 252D */
             vrp_zscore_252d?: string | null;
+            /** Vrp Zscore 60D */
+            vrp_zscore_60d?: string | null;
         };
         /** MaxPainRow */
         MaxPainRow: {
+            /** Close */
+            close?: string | null;
             /**
              * Expiry
              * Format: date
@@ -3908,126 +3910,124 @@ export interface components {
             expiry: string;
             /** Max Pain */
             max_pain?: string | null;
-            /** Close */
-            close?: string | null;
-            /** Open */
-            open?: string | null;
-            /** Next Upper Strike */
-            next_upper_strike?: string | null;
             /** Next Lower Strike */
             next_lower_strike?: string | null;
+            /** Next Upper Strike */
+            next_upper_strike?: string | null;
+            /** Open */
+            open?: string | null;
         };
         /** OhlcRow */
         OhlcRow: {
+            /** Close */
+            close: string;
             /**
              * Date
              * Format: date
              */
             date: string;
-            /** Open */
-            open?: string | null;
             /** High */
             high?: string | null;
             /** Low */
             low?: string | null;
-            /** Close */
-            close: string;
+            /** Open */
+            open?: string | null;
             /** Volume */
             volume?: number | null;
         };
         /** OiChangeRow */
         OiChangeRow: {
-            /** Underlying Symbol */
-            underlying_symbol: string;
-            /** Option Symbol */
-            option_symbol: string;
-            /** Curr Date */
-            curr_date?: string | null;
-            /** Last Date */
-            last_date?: string | null;
-            /** Curr Oi */
-            curr_oi?: number | null;
-            /** Last Oi */
-            last_oi?: number | null;
-            /** Oi Diff Plain */
-            oi_diff_plain?: number | null;
-            /** Oi Change */
-            oi_change?: string | null;
-            /** Volume */
-            volume?: number | null;
-            /** Trades */
-            trades?: number | null;
+            /** Ask Volume */
+            ask_volume?: number | null;
             /** Avg Price */
             avg_price?: string | null;
-            /** Last Fill */
-            last_fill?: string | null;
+            /** Bid Volume */
+            bid_volume?: number | null;
+            /** Curr Date */
+            curr_date?: string | null;
+            /** Curr Oi */
+            curr_oi?: number | null;
             /** Days Of Oi Increases */
             days_of_oi_increases?: number | null;
             /** Days Of Vol Greater Than Oi */
             days_of_vol_greater_than_oi?: number | null;
+            /** Last Ask */
+            last_ask?: string | null;
+            /** Last Bid */
+            last_bid?: string | null;
+            /** Last Date */
+            last_date?: string | null;
+            /** Last Fill */
+            last_fill?: string | null;
+            /** Last Oi */
+            last_oi?: number | null;
+            /** Mid Volume */
+            mid_volume?: number | null;
+            /** No Side Volume */
+            no_side_volume?: number | null;
+            /** Oi Change */
+            oi_change?: string | null;
+            /** Oi Diff Plain */
+            oi_diff_plain?: number | null;
+            /** Option Symbol */
+            option_symbol: string;
             /** Percentage Of Total */
             percentage_of_total?: string | null;
-            /** Rnk */
-            rnk?: number | null;
             /** Prev Ask Volume */
             prev_ask_volume?: number | null;
             /** Prev Bid Volume */
             prev_bid_volume?: number | null;
             /** Prev Mid Volume */
             prev_mid_volume?: number | null;
-            /** Prev Neutral Volume */
-            prev_neutral_volume?: number | null;
             /** Prev Multi Leg Volume */
             prev_multi_leg_volume?: number | null;
+            /** Prev Neutral Volume */
+            prev_neutral_volume?: number | null;
             /** Prev Stock Multi Leg Volume */
             prev_stock_multi_leg_volume?: number | null;
             /** Prev Total Premium */
             prev_total_premium?: string | null;
-            /** Last Ask */
-            last_ask?: string | null;
-            /** Last Bid */
-            last_bid?: string | null;
-            /** Ask Volume */
-            ask_volume?: number | null;
-            /** Bid Volume */
-            bid_volume?: number | null;
-            /** Mid Volume */
-            mid_volume?: number | null;
-            /** No Side Volume */
-            no_side_volume?: number | null;
+            /** Rnk */
+            rnk?: number | null;
+            /** Trades */
+            trades?: number | null;
+            /** Underlying Symbol */
+            underlying_symbol: string;
+            /** Volume */
+            volume?: number | null;
         };
         /** OosLabel */
         OosLabel: {
-            /** Name */
-            name: string;
             /** Definition */
             definition: string;
+            /** Name */
+            name: string;
         };
         /** OosScore */
         OosScore: {
-            /** Model */
-            model: string;
+            /** Auc Dd10 */
+            auc_dd10?: number | null;
             /** Auc Dd5 */
             auc_dd5?: number | null;
             /** Auc Vix30 */
             auc_vix30?: number | null;
-            /** Auc Dd10 */
-            auc_dd10?: number | null;
+            /** Model */
+            model: string;
         };
         /** OosSummary */
         OosSummary: {
             /** As Of */
             as_of: string;
-            /** Notebook */
-            notebook: string;
-            /** Method */
-            method: string;
-            /** Labels */
-            labels: components["schemas"]["OosLabel"][];
-            /** Scores */
-            scores: components["schemas"]["OosScore"][];
             /** Interpretation */
             interpretation: string;
+            /** Labels */
+            labels: components["schemas"]["OosLabel"][];
+            /** Method */
+            method: string;
+            /** Notebook */
+            notebook: string;
+            /** Scores */
+            scores: components["schemas"]["OosScore"][];
         };
         /**
          * OptionChainPerStrikeRow
@@ -4036,21 +4036,21 @@ export interface components {
          *     Backs both strike-profile charts (Volume and OI variants).
          */
         OptionChainPerStrikeRow: {
+            /** Call Oi */
+            call_oi?: number | null;
+            /** Call Volume */
+            call_volume?: number | null;
             /**
              * Expiry
              * Format: date
              */
             expiry: string;
-            /** Strike */
-            strike: string;
-            /** Call Volume */
-            call_volume?: number | null;
-            /** Put Volume */
-            put_volume?: number | null;
-            /** Call Oi */
-            call_oi?: number | null;
             /** Put Oi */
             put_oi?: number | null;
+            /** Put Volume */
+            put_volume?: number | null;
+            /** Strike */
+            strike: string;
         };
         /**
          * OptionIntradayProfile
@@ -4063,33 +4063,33 @@ export interface components {
          *     minute bars the contract actually had.
          */
         OptionIntradayProfile: {
-            /** Option Symbol */
-            option_symbol: string;
-            /**
-             * Trade Date
-             * Format: date
-             */
-            trade_date: string;
-            /**
-             * Total Volume
-             * @default 0
-             */
-            total_volume: number;
             /** First Trade Time */
             first_trade_time?: string | null;
             /** Last Trade Time */
             last_trade_time?: string | null;
-            /** Peak Window Start */
-            peak_window_start?: string | null;
+            /** Option Symbol */
+            option_symbol: string;
             /** Peak Window End */
             peak_window_end?: string | null;
             /** Peak Window Share Pct */
             peak_window_share_pct?: string | null;
+            /** Peak Window Start */
+            peak_window_start?: string | null;
             /**
              * Sparkline
              * @default []
              */
             sparkline: number[];
+            /**
+             * Total Volume
+             * @default 0
+             */
+            total_volume: number;
+            /**
+             * Trade Date
+             * Format: date
+             */
+            trade_date: string;
         };
         /**
          * OptionsDailyRow
@@ -4099,39 +4099,10 @@ export interface components {
          *     alert-scoped :class:`FlowSnapshot.bull_premium`. Do not cross-plot.
          */
         OptionsDailyRow: {
-            /**
-             * Date
-             * Format: date
-             */
-            date: string;
-            /** Call Volume */
-            call_volume?: number | null;
-            /** Put Volume */
-            put_volume?: number | null;
-            /** Call Volume Ask Side */
-            call_volume_ask_side?: number | null;
-            /** Call Volume Bid Side */
-            call_volume_bid_side?: number | null;
-            /** Put Volume Ask Side */
-            put_volume_ask_side?: number | null;
-            /** Put Volume Bid Side */
-            put_volume_bid_side?: number | null;
-            /** Call Premium */
-            call_premium?: string | null;
-            /** Put Premium */
-            put_premium?: string | null;
-            /** Net Call Premium */
-            net_call_premium?: string | null;
-            /** Net Put Premium */
-            net_put_premium?: string | null;
-            /** Bullish Premium */
-            bullish_premium?: string | null;
-            /** Bearish Premium */
-            bearish_premium?: string | null;
-            /** Call Open Interest */
-            call_open_interest?: number | null;
-            /** Put Open Interest */
-            put_open_interest?: number | null;
+            /** Avg 30 Day Call Volume */
+            avg_30_day_call_volume?: string | null;
+            /** Avg 30 Day Put Volume */
+            avg_30_day_put_volume?: string | null;
             /** Avg 3 Day Call Volume */
             avg_3_day_call_volume?: string | null;
             /** Avg 3 Day Put Volume */
@@ -4140,45 +4111,70 @@ export interface components {
             avg_7_day_call_volume?: string | null;
             /** Avg 7 Day Put Volume */
             avg_7_day_put_volume?: string | null;
-            /** Avg 30 Day Call Volume */
-            avg_30_day_call_volume?: string | null;
-            /** Avg 30 Day Put Volume */
-            avg_30_day_put_volume?: string | null;
+            /** Bearish Premium */
+            bearish_premium?: string | null;
+            /** Bullish Premium */
+            bullish_premium?: string | null;
+            /** Call Open Interest */
+            call_open_interest?: number | null;
+            /** Call Premium */
+            call_premium?: string | null;
+            /** Call Volume */
+            call_volume?: number | null;
+            /** Call Volume Ask Side */
+            call_volume_ask_side?: number | null;
+            /** Call Volume Bid Side */
+            call_volume_bid_side?: number | null;
+            /**
+             * Date
+             * Format: date
+             */
+            date: string;
+            /** Net Call Premium */
+            net_call_premium?: string | null;
+            /** Net Put Premium */
+            net_put_premium?: string | null;
+            /** Put Open Interest */
+            put_open_interest?: number | null;
+            /** Put Premium */
+            put_premium?: string | null;
+            /** Put Volume */
+            put_volume?: number | null;
+            /** Put Volume Ask Side */
+            put_volume_ask_side?: number | null;
+            /** Put Volume Bid Side */
+            put_volume_bid_side?: number | null;
         };
         /** PositioningBlock */
         PositioningBlock: {
             /** Call Oi */
             call_oi?: number | null;
-            /** Put Oi */
-            put_oi?: number | null;
+            /** Pcr Delta 30D */
+            pcr_delta_30d?: string | null;
             /** Pcr Oi */
             pcr_oi?: string | null;
             /** Pcr Vol */
             pcr_vol?: string | null;
-            /** Pcr Delta 30D */
-            pcr_delta_30d?: string | null;
+            /** Put Oi */
+            put_oi?: number | null;
         };
         /** ProviderUsageBreakdownResponse */
         ProviderUsageBreakdownResponse: {
-            /**
-             * Provider Day Start
-             * Format: date-time
-             */
-            provider_day_start: string;
             /**
              * Provider Day End
              * Format: date-time
              */
             provider_day_end: string;
+            /**
+             * Provider Day Start
+             * Format: date-time
+             */
+            provider_day_start: string;
             /** Rows */
             rows: components["schemas"]["ProviderUsageBreakdownRow"][];
         };
         /** ProviderUsageBreakdownRow */
         ProviderUsageBreakdownRow: {
-            /** Key */
-            key: string | null;
-            /** Total Requests */
-            total_requests: number;
             /** Http 2Xx */
             http_2xx: number;
             /** Http 3Xx */
@@ -4187,53 +4183,29 @@ export interface components {
             http_4xx: number;
             /** Http 5Xx */
             http_5xx: number;
-            /** Transport Errors */
-            transport_errors: number;
+            /** Key */
+            key: string | null;
             /** Latency P95 Ms */
             latency_p95_ms: number | null;
+            /** Total Requests */
+            total_requests: number;
+            /** Transport Errors */
+            transport_errors: number;
         };
         /** ProviderUsageRequestRow */
         ProviderUsageRequestRow: {
-            /** Request Id */
-            request_id: number;
-            /** Provider */
-            provider: string;
-            /** Endpoint Key */
-            endpoint_key: string;
-            /** Method */
-            method: string;
-            /** Path */
-            path: string;
-            /** Ticker */
-            ticker: string | null;
-            /** Params */
-            params: {
-                [key: string]: unknown;
-            };
-            /** Status Code */
-            status_code: number | null;
-            /** Status Family */
-            status_family: string;
-            /**
-             * Request Started At
-             * Format: date-time
-             */
-            request_started_at: string;
-            /**
-             * Request Finished At
-             * Format: date-time
-             */
-            request_finished_at: string;
-            /** Latency Ms */
-            latency_ms: number;
             /** Attempt */
             attempt: number;
-            /** Run Id */
-            run_id: number | null;
+            /** Endpoint Key */
+            endpoint_key: string;
+            /** Error Message */
+            error_message: string | null;
             /** Job Name */
             job_name: string | null;
-            /** Provider Request Id */
-            provider_request_id: string | null;
+            /** Latency Ms */
+            latency_ms: number;
+            /** Method */
+            method: string;
             /** Official Daily Count */
             official_daily_count: number | null;
             /** Official Daily Limit */
@@ -4242,40 +4214,56 @@ export interface components {
             official_minute_remaining: number | null;
             /** Official Minute Reset */
             official_minute_reset: string | null;
-            /** Error Message */
-            error_message: string | null;
+            /** Params */
+            params: {
+                [key: string]: unknown;
+            };
+            /** Path */
+            path: string;
+            /** Provider */
+            provider: string;
+            /** Provider Request Id */
+            provider_request_id: string | null;
+            /**
+             * Request Finished At
+             * Format: date-time
+             */
+            request_finished_at: string;
+            /** Request Id */
+            request_id: number;
+            /**
+             * Request Started At
+             * Format: date-time
+             */
+            request_started_at: string;
+            /** Run Id */
+            run_id: number | null;
+            /** Status Code */
+            status_code: number | null;
+            /** Status Family */
+            status_family: string;
+            /** Ticker */
+            ticker: string | null;
         };
         /** ProviderUsageRequestsResponse */
         ProviderUsageRequestsResponse: {
-            /**
-             * Provider Day Start
-             * Format: date-time
-             */
-            provider_day_start: string;
+            /** Limit */
+            limit: number;
             /**
              * Provider Day End
              * Format: date-time
              */
             provider_day_end: string;
-            /** Limit */
-            limit: number;
+            /**
+             * Provider Day Start
+             * Format: date-time
+             */
+            provider_day_start: string;
             /** Rows */
             rows: components["schemas"]["ProviderUsageRequestRow"][];
         };
         /** ProviderUsageSummaryResponse */
         ProviderUsageSummaryResponse: {
-            /**
-             * Provider Day Start
-             * Format: date-time
-             */
-            provider_day_start: string;
-            /**
-             * Provider Day End
-             * Format: date-time
-             */
-            provider_day_end: string;
-            /** Total Requests */
-            total_requests: number;
             /** Http 2Xx */
             http_2xx: number;
             /** Http 3Xx */
@@ -4284,10 +4272,22 @@ export interface components {
             http_4xx: number;
             /** Http 5Xx */
             http_5xx: number;
-            /** Transport Errors */
-            transport_errors: number;
             /** Latency P95 Ms */
             latency_p95_ms: number | null;
+            /**
+             * Provider Day End
+             * Format: date-time
+             */
+            provider_day_end: string;
+            /**
+             * Provider Day Start
+             * Format: date-time
+             */
+            provider_day_start: string;
+            /** Total Requests */
+            total_requests: number;
+            /** Transport Errors */
+            transport_errors: number;
             /** Uw Latest Daily Count */
             uw_latest_daily_count: number | null;
             /** Uw Latest Daily Limit */
@@ -4297,11 +4297,6 @@ export interface components {
         QueueStatus: {
             /** Job Id */
             job_id: string;
-            /**
-             * Status
-             * @enum {string}
-             */
-            status: "queued" | "running" | "done" | "failed";
             /** Queue Position */
             queue_position: number;
             /**
@@ -4311,14 +4306,16 @@ export interface components {
             requested_at: string;
             /** Started At */
             started_at?: string | null;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "queued" | "running" | "done" | "failed";
         };
         /** QueueSummary */
         QueueSummary: {
-            /**
-             * Total
-             * @default 0
-             */
-            total: number;
+            /** Oldest Requested At */
+            oldest_requested_at?: string | null;
             /**
              * Queued
              * @default 0
@@ -4329,8 +4326,11 @@ export interface components {
              * @default 0
              */
             running: number;
-            /** Oldest Requested At */
-            oldest_requested_at?: string | null;
+            /**
+             * Total
+             * @default 0
+             */
+            total: number;
         };
         /** RatesCrossMarketPanel */
         RatesCrossMarketPanel: {
@@ -4345,26 +4345,26 @@ export interface components {
         };
         /** RatesCurvePoint */
         RatesCurvePoint: {
-            /** Tenor */
-            tenor: string;
-            /** Series Id */
-            series_id: string;
-            /** Value */
-            value?: number | null;
             /** Delta 1D Bps */
             delta_1d_bps?: number | null;
-            /** Delta 1W Bps */
-            delta_1w_bps?: number | null;
             /** Delta 1M Bps */
             delta_1m_bps?: number | null;
+            /** Delta 1W Bps */
+            delta_1w_bps?: number | null;
             /** Obs Date */
             obs_date?: string | null;
+            /** Series Id */
+            series_id: string;
             /**
              * Status
              * @default ok
              * @enum {string}
              */
             status: "ok" | "missing" | "partial" | "stale";
+            /** Tenor */
+            tenor: string;
+            /** Value */
+            value?: number | null;
         };
         /** RatesCurveSection */
         RatesCurveSection: {
@@ -4375,93 +4375,93 @@ export interface components {
         };
         /** RatesDecomposition */
         RatesDecomposition: {
-            /** Nominal 10Y */
-            nominal_10y?: number | null;
-            /** Real 10Y */
-            real_10y?: number | null;
+            /** Attribution */
+            attribution?: components["schemas"]["RatesDecompositionAttribution"][];
             /** Breakeven 10Y */
             breakeven_10y?: number | null;
-            /** Forward Inflation 5Y5Y */
-            forward_inflation_5y5y?: number | null;
-            /** Term Forward Compensation */
-            term_forward_compensation?: number | null;
             /** Clarida Model Date */
             clarida_model_date?: string | null;
-            /** Model Real Yield 10Y */
-            model_real_yield_10y?: number | null;
-            /** Expected Short Real Rate 10Y */
-            expected_short_real_rate_10y?: number | null;
             /** Expected Short Inflation 10Y */
             expected_short_inflation_10y?: number | null;
-            /** Real Term Premium 10Y */
-            real_term_premium_10y?: number | null;
+            /** Expected Short Real Rate 10Y */
+            expected_short_real_rate_10y?: number | null;
+            /** Forward Inflation 5Y5Y */
+            forward_inflation_5y5y?: number | null;
+            /** Fred Model Residual 10Y */
+            fred_model_residual_10y?: number | null;
             /** Inflation Risk Premium 10Y */
             inflation_risk_premium_10y?: number | null;
             /** Model Nominal 10Y */
             model_nominal_10y?: number | null;
-            /** Fred Model Residual 10Y */
-            fred_model_residual_10y?: number | null;
+            /** Model Real Yield 10Y */
+            model_real_yield_10y?: number | null;
             /** Model Source */
             model_source?: string | null;
             /** Model Url */
             model_url?: string | null;
+            /** Nominal 10Y */
+            nominal_10y?: number | null;
+            /** Real 10Y */
+            real_10y?: number | null;
+            /** Real Term Premium 10Y */
+            real_term_premium_10y?: number | null;
             /**
              * Status
              * @default partial
              * @enum {string}
              */
             status: "ok" | "missing" | "partial" | "stale";
-            /** Attribution */
-            attribution?: components["schemas"]["RatesDecompositionAttribution"][];
+            /** Term Forward Compensation */
+            term_forward_compensation?: number | null;
         };
         /** RatesDecompositionAttribution */
         RatesDecompositionAttribution: {
+            /** Breakeven 10Y Bps */
+            breakeven_10y_bps?: number | null;
+            /** Driver */
+            driver?: string | null;
+            /** Expected Short Inflation Bps */
+            expected_short_inflation_bps?: number | null;
+            /** Expected Short Real Bps */
+            expected_short_real_bps?: number | null;
+            /** Fred Model Residual Bps */
+            fred_model_residual_bps?: number | null;
+            /** Inflation Risk Premium Bps */
+            inflation_risk_premium_bps?: number | null;
+            /** Model Nominal 10Y Bps */
+            model_nominal_10y_bps?: number | null;
+            /** Nominal 10Y Bps */
+            nominal_10y_bps?: number | null;
+            /** Real 10Y Bps */
+            real_10y_bps?: number | null;
+            /** Real Term Premium Bps */
+            real_term_premium_bps?: number | null;
+            /** Residual Bps */
+            residual_bps?: number | null;
+            /**
+             * Status
+             * @default partial
+             * @enum {string}
+             */
+            status: "ok" | "missing" | "partial" | "stale";
             /**
              * Window
              * @enum {string}
              */
             window: "1D" | "1W" | "1M" | "YTD";
-            /** Nominal 10Y Bps */
-            nominal_10y_bps?: number | null;
-            /** Real 10Y Bps */
-            real_10y_bps?: number | null;
-            /** Breakeven 10Y Bps */
-            breakeven_10y_bps?: number | null;
-            /** Residual Bps */
-            residual_bps?: number | null;
-            /** Model Nominal 10Y Bps */
-            model_nominal_10y_bps?: number | null;
-            /** Expected Short Real Bps */
-            expected_short_real_bps?: number | null;
-            /** Expected Short Inflation Bps */
-            expected_short_inflation_bps?: number | null;
-            /** Real Term Premium Bps */
-            real_term_premium_bps?: number | null;
-            /** Inflation Risk Premium Bps */
-            inflation_risk_premium_bps?: number | null;
-            /** Fred Model Residual Bps */
-            fred_model_residual_bps?: number | null;
-            /** Driver */
-            driver?: string | null;
-            /**
-             * Status
-             * @default partial
-             * @enum {string}
-             */
-            status: "ok" | "missing" | "partial" | "stale";
         };
         /** RatesEventItem */
         RatesEventItem: {
             /** Event Date */
             event_date?: string | null;
-            /** Label */
-            label: string;
             /**
              * Importance
              * @default medium
              * @enum {string}
              */
             importance: "low" | "medium" | "high";
+            /** Label */
+            label: string;
             /** Source */
             source?: string | null;
             /**
@@ -4473,16 +4473,14 @@ export interface components {
         };
         /** RatesPolicyMeeting */
         RatesPolicyMeeting: {
+            /** Action */
+            action?: string | null;
             /** Event Date */
             event_date?: string | null;
             /** Event End Date */
             event_end_date?: string | null;
             /** Label */
             label: string;
-            /** Action */
-            action?: string | null;
-            /** Vote Split */
-            vote_split?: string | null;
             /** Source Url */
             source_url?: string | null;
             /**
@@ -4491,76 +4489,71 @@ export interface components {
              * @enum {string}
              */
             status: "ok" | "missing" | "partial" | "stale";
+            /** Vote Split */
+            vote_split?: string | null;
         };
         /** RatesPolicyPanel */
         RatesPolicyPanel: {
-            /** Target Range */
-            target_range?: string | null;
-            /** Target Lower */
-            target_lower?: number | null;
-            /** Target Upper */
-            target_upper?: number | null;
             /** Effr */
             effr?: number | null;
-            /** Sofr */
-            sofr?: number | null;
-            last_meeting?: components["schemas"]["RatesPolicyMeeting"] | null;
             /** Implied Path */
             implied_path?: components["schemas"]["RatesPolicyPathPoint"][];
-            /** Plumbing */
-            plumbing?: components["schemas"]["RatesPolicyPlumbingMetric"][];
-            /** Policy Read */
-            policy_read?: string | null;
+            last_meeting?: components["schemas"]["RatesPolicyMeeting"] | null;
             /** Path Read */
             path_read?: string | null;
+            /** Plumbing */
+            plumbing?: components["schemas"]["RatesPolicyPlumbingMetric"][];
             /** Plumbing Read */
             plumbing_read?: string | null;
+            /** Policy Read */
+            policy_read?: string | null;
+            /** Sofr */
+            sofr?: number | null;
             /**
              * Status
              * @default partial
              * @enum {string}
              */
             status: "ok" | "missing" | "partial" | "stale";
+            /** Target Lower */
+            target_lower?: number | null;
+            /** Target Range */
+            target_range?: string | null;
+            /** Target Upper */
+            target_upper?: number | null;
         };
         /** RatesPolicyPathPoint */
         RatesPolicyPathPoint: {
+            /** Label */
+            label: string;
             /**
              * Meeting Date
              * Format: date
              */
             meeting_date: string;
-            /** Label */
-            label: string;
             /** Probability */
             probability?: number | null;
+            /** Source */
+            source?: string | null;
             /**
              * Stance
              * @default UNKNOWN
              * @enum {string}
              */
             stance: "CUT" | "HOLD" | "HIKE" | "UNKNOWN";
-            /** Target Range */
-            target_range?: string | null;
-            /** Source */
-            source?: string | null;
             /**
              * Status
              * @default partial
              * @enum {string}
              */
             status: "ok" | "missing" | "partial" | "stale";
+            /** Target Range */
+            target_range?: string | null;
         };
         /** RatesPolicyPlumbingMetric */
         RatesPolicyPlumbingMetric: {
             /** Label */
             label: string;
-            /** Value */
-            value?: number | null;
-            /**
-             * Unit
-             * @default
-             */
-            unit: string;
             /** Qualifier */
             qualifier?: string | null;
             /**
@@ -4569,15 +4562,22 @@ export interface components {
              * @enum {string}
              */
             status: "ok" | "missing" | "partial" | "stale";
+            /**
+             * Unit
+             * @default
+             */
+            unit: string;
+            /** Value */
+            value?: number | null;
         };
         /** RatesPositioningPanel */
         RatesPositioningPanel: {
-            /** Rows */
-            rows?: components["schemas"]["RatesSummaryTile"][];
             /** Details */
             details?: components["schemas"]["RatesPositioningRow"][];
             /** Positioning Read */
             positioning_read?: string | null;
+            /** Rows */
+            rows?: components["schemas"]["RatesSummaryTile"][];
             /**
              * Status
              * @default missing
@@ -4587,30 +4587,28 @@ export interface components {
         };
         /** RatesPositioningRow */
         RatesPositioningRow: {
-            /** Contract Code */
-            contract_code: string;
-            /** Contract Name */
-            contract_name: string;
-            /** Tenor Bucket */
-            tenor_bucket: string;
-            /** Obs Date */
-            obs_date?: string | null;
-            /** Release Date */
-            release_date?: string | null;
-            /** Open Interest */
-            open_interest?: number | null;
-            /** Dealer Net */
-            dealer_net?: number | null;
-            /** Dealer Net Pct Oi */
-            dealer_net_pct_oi?: number | null;
             /** Asset Mgr Net */
             asset_mgr_net?: number | null;
             /** Asset Mgr Net Pct Oi */
             asset_mgr_net_pct_oi?: number | null;
+            /** Contract Code */
+            contract_code: string;
+            /** Contract Name */
+            contract_name: string;
+            /** Dealer Net */
+            dealer_net?: number | null;
+            /** Dealer Net Pct Oi */
+            dealer_net_pct_oi?: number | null;
             /** Lev Money Net */
             lev_money_net?: number | null;
             /** Lev Money Net Pct Oi */
             lev_money_net_pct_oi?: number | null;
+            /** Obs Date */
+            obs_date?: string | null;
+            /** Open Interest */
+            open_interest?: number | null;
+            /** Release Date */
+            release_date?: string | null;
             /** Source Url */
             source_url?: string | null;
             /**
@@ -4619,17 +4617,13 @@ export interface components {
              * @enum {string}
              */
             status: "ok" | "missing" | "partial" | "stale";
+            /** Tenor Bucket */
+            tenor_bucket: string;
         };
         /** RatesScorecard */
         RatesScorecard: {
             /** Composite Score */
             composite_score?: number | null;
-            /**
-             * Duration Stance
-             * @default NEUTRAL
-             * @enum {string}
-             */
-            duration_stance: "BUY" | "SELL" | "NEUTRAL";
             /** Curve Score */
             curve_score?: number | null;
             /**
@@ -4638,6 +4632,12 @@ export interface components {
              * @enum {string}
              */
             curve_stance: "STEEP" | "FLAT" | "NEUTRAL";
+            /**
+             * Duration Stance
+             * @default NEUTRAL
+             * @enum {string}
+             */
+            duration_stance: "BUY" | "SELL" | "NEUTRAL";
             /** Groups */
             groups?: components["schemas"]["RatesScorecardGroup"][];
         };
@@ -4645,27 +4645,27 @@ export interface components {
         RatesScorecardFactor: {
             /** Label */
             label: string;
-            /** Value */
-            value?: string | null;
             /** Score */
             score?: number | null;
+            /** Source */
+            source?: string | null;
             /**
              * Status
              * @default ok
              * @enum {string}
              */
             status: "ok" | "missing" | "partial" | "stale";
-            /** Source */
-            source?: string | null;
+            /** Value */
+            value?: string | null;
         };
         /** RatesScorecardGroup */
         RatesScorecardGroup: {
+            /** Factors */
+            factors?: components["schemas"]["RatesScorecardFactor"][];
             /** Id */
             id: string;
             /** Label */
             label: string;
-            /** Weight */
-            weight: number;
             /** Score */
             score?: number | null;
             /**
@@ -4674,21 +4674,21 @@ export interface components {
              * @enum {string}
              */
             status: "ok" | "missing" | "partial" | "stale";
-            /** Factors */
-            factors?: components["schemas"]["RatesScorecardFactor"][];
+            /** Weight */
+            weight: number;
         };
         /** RatesSlopeMetric */
         RatesSlopeMetric: {
             /** Label */
             label: string;
-            /** Value Bps */
-            value_bps?: number | null;
             /**
              * Status
              * @default ok
              * @enum {string}
              */
             status: "ok" | "missing" | "partial" | "stale";
+            /** Value Bps */
+            value_bps?: number | null;
         };
         /** RatesSnapshotResponse */
         RatesSnapshotResponse: {
@@ -4702,20 +4702,20 @@ export interface components {
              * Format: date-time
              */
             computed_at: string;
-            /** Summary */
-            summary?: components["schemas"]["RatesSummaryTile"][];
+            cross_market?: components["schemas"]["RatesCrossMarketPanel"];
             curve?: components["schemas"]["RatesCurveSection"];
             decomposition?: components["schemas"]["RatesDecomposition"];
-            scorecard?: components["schemas"]["RatesScorecard"];
-            policy?: components["schemas"]["RatesPolicyPanel"];
-            supply?: components["schemas"]["RatesSupplyPanel"];
-            positioning?: components["schemas"]["RatesPositioningPanel"];
-            cross_market?: components["schemas"]["RatesCrossMarketPanel"];
             /** Events */
             events?: components["schemas"]["RatesEventItem"][];
-            synthesis: components["schemas"]["RatesSynthesisPanel"];
+            policy?: components["schemas"]["RatesPolicyPanel"];
+            positioning?: components["schemas"]["RatesPositioningPanel"];
+            scorecard?: components["schemas"]["RatesScorecard"];
             /** Source Freshness */
             source_freshness?: components["schemas"]["RatesSourceFreshness"][];
+            /** Summary */
+            summary?: components["schemas"]["RatesSummaryTile"][];
+            supply?: components["schemas"]["RatesSupplyPanel"];
+            synthesis: components["schemas"]["RatesSynthesisPanel"];
         };
         /** RatesSourceFreshness */
         RatesSourceFreshness: {
@@ -4723,10 +4723,10 @@ export interface components {
             id: string;
             /** Label */
             label: string;
-            /** Latest Obs Date */
-            latest_obs_date?: string | null;
             /** Last Seen At */
             last_seen_at?: string | null;
+            /** Latest Obs Date */
+            latest_obs_date?: string | null;
             /**
              * Status
              * @default missing
@@ -4736,53 +4736,51 @@ export interface components {
         };
         /** RatesSummaryTile */
         RatesSummaryTile: {
-            /** Label */
-            label: string;
-            /** Value */
-            value?: number | null;
-            /**
-             * Unit
-             * @default
-             */
-            unit: string;
             /** Delta 1D */
             delta_1d?: number | null;
+            /** Label */
+            label: string;
             /**
              * Status
              * @default ok
              * @enum {string}
              */
             status: "ok" | "missing" | "partial" | "stale";
+            /**
+             * Unit
+             * @default
+             */
+            unit: string;
+            /** Value */
+            value?: number | null;
         };
         /** RatesSupplyAuctionRow */
         RatesSupplyAuctionRow: {
-            /** Cusip */
-            cusip: string;
-            /** Security Type */
-            security_type: string;
-            /** Security Term */
-            security_term: string;
             /**
              * Auction Date
              * Format: date
              */
             auction_date: string;
+            /** Bid To Cover */
+            bid_to_cover?: number | null;
+            /** Cusip */
+            cusip: string;
+            /** Direct Bidder Pct */
+            direct_bidder_pct?: number | null;
+            /** High Rate */
+            high_rate?: number | null;
+            /** Indirect Bidder Pct */
+            indirect_bidder_pct?: number | null;
             /** Issue Date */
             issue_date?: string | null;
             /** Offering Amount */
             offering_amount?: number | null;
-            /** High Rate */
-            high_rate?: number | null;
-            /** Bid To Cover */
-            bid_to_cover?: number | null;
-            /** Direct Bidder Pct */
-            direct_bidder_pct?: number | null;
-            /** Indirect Bidder Pct */
-            indirect_bidder_pct?: number | null;
             /** Primary Dealer Pct */
             primary_dealer_pct?: number | null;
-            /** Tail Indicator */
-            tail_indicator?: string | null;
+            /** Security Term */
+            security_term: string;
+            /** Security Type */
+            security_type: string;
             /** Source Url */
             source_url?: string | null;
             /**
@@ -4791,37 +4789,53 @@ export interface components {
              * @enum {string}
              */
             status: "ok" | "missing" | "partial" | "stale";
+            /** Tail Indicator */
+            tail_indicator?: string | null;
         };
         /** RatesSupplyPanel */
         RatesSupplyPanel: {
             /** Auctions */
             auctions?: components["schemas"]["RatesSummaryTile"][];
-            /** Recent Auctions */
-            recent_auctions?: components["schemas"]["RatesSupplyAuctionRow"][];
             /** Fiscal */
             fiscal?: components["schemas"]["RatesSummaryTile"][];
             /** Notes */
             notes?: string[];
-            /** Supply Read */
-            supply_read?: string | null;
+            /** Recent Auctions */
+            recent_auctions?: components["schemas"]["RatesSupplyAuctionRow"][];
             /**
              * Status
              * @default missing
              * @enum {string}
              */
             status: "ok" | "missing" | "partial" | "stale";
+            /** Supply Read */
+            supply_read?: string | null;
         };
         /** RatesSynthesisPanel */
         RatesSynthesisPanel: {
-            /** Duration View */
-            duration_view: string;
             /** Curve View */
             curve_view: string;
+            /** Duration View */
+            duration_view: string;
             /** Risks */
             risks?: string[];
         };
         /** RecordHealthCheck */
         RecordHealthCheck: {
+            /** Actual Rows */
+            actual_rows: number;
+            /** Actual Tickers */
+            actual_tickers: number;
+            /** Expected Min Rows */
+            expected_min_rows: number;
+            /** Expected Min Tickers */
+            expected_min_tickers: number;
+            /** Expected Tickers */
+            expected_tickers: number;
+            /** Latest At */
+            latest_at?: string | null;
+            /** Ok */
+            ok: boolean;
             /** Table */
             table: string;
             /**
@@ -4829,20 +4843,6 @@ export interface components {
              * Format: date-time
              */
             window_start: string;
-            /** Expected Tickers */
-            expected_tickers: number;
-            /** Expected Min Tickers */
-            expected_min_tickers: number;
-            /** Actual Tickers */
-            actual_tickers: number;
-            /** Expected Min Rows */
-            expected_min_rows: number;
-            /** Actual Rows */
-            actual_rows: number;
-            /** Latest At */
-            latest_at?: string | null;
-            /** Ok */
-            ok: boolean;
         };
         /**
          * RegimeLiveQuote
@@ -4861,14 +4861,14 @@ export interface components {
         };
         /** RegimeQuadrantBlock */
         RegimeQuadrantBlock: {
+            /** Cutoff Corr */
+            cutoff_corr?: string | null;
+            latest?: components["schemas"]["RegimeQuadrantLatest"] | null;
             /**
              * Points
              * @default []
              */
             points: components["schemas"]["RegimeQuadrantPoint"][];
-            latest?: components["schemas"]["RegimeQuadrantLatest"] | null;
-            /** Cutoff Corr */
-            cutoff_corr?: string | null;
         };
         /** RegimeQuadrantLatest */
         RegimeQuadrantLatest: {
@@ -4904,10 +4904,6 @@ export interface components {
          * @description Lightweight live-quote projection for the regime header strip.
          */
         RegimeQuotesResponse: {
-            /** Quotes */
-            quotes?: {
-                [key: string]: components["schemas"]["RegimeLiveQuote"];
-            };
             /** Active Source */
             active_source?: string | null;
             /** As Of */
@@ -4917,6 +4913,10 @@ export interface components {
              * @default 900
              */
             fresh_within_seconds: number;
+            /** Quotes */
+            quotes?: {
+                [key: string]: components["schemas"]["RegimeLiveQuote"];
+            };
         };
         /** RescanAllRequest */
         RescanAllRequest: {
@@ -4934,10 +4934,10 @@ export interface components {
         ReturnsBlock: {
             /** D1 */
             d1?: string | null;
-            /** W1 */
-            w1?: string | null;
             /** D30 */
             d30?: string | null;
+            /** W1 */
+            w1?: string | null;
         };
         /** RvCorrPoint */
         RvCorrPoint: {
@@ -4953,23 +4953,6 @@ export interface components {
         };
         /** ScannerCandidate */
         ScannerCandidate: {
-            /** Ticker */
-            ticker: string;
-            /** Spot */
-            spot: string | null;
-            /** Is Type F */
-            is_type_f: boolean;
-            /** Raw Score */
-            raw_score: string;
-            /** Confluence Score */
-            confluence_score: string;
-            /** Final Score */
-            final_score: string;
-            /** Hits */
-            hits: components["schemas"]["ScannerSignalHit"][];
-            /** Context Flags */
-            context_flags: components["schemas"]["ScannerContextFlag"][];
-            gates: components["schemas"]["ScannerGatesStatus"];
             /**
              * Bias
              * @enum {string}
@@ -4977,6 +4960,24 @@ export interface components {
             bias: "bullish" | "bearish" | "neutral" | "mixed";
             /** Bias Strength */
             bias_strength?: ("strong" | "moderate" | "weak") | null;
+            /** Confluence Score */
+            confluence_score: string;
+            /** Context Flags */
+            context_flags: components["schemas"]["ScannerContextFlag"][];
+            /** Final Score */
+            final_score: string;
+            gates: components["schemas"]["ScannerGatesStatus"];
+            /** Hits */
+            hits: components["schemas"]["ScannerSignalHit"][];
+            /** Is Type F */
+            is_type_f: boolean;
+            /** Raw Score */
+            raw_score: string;
+            /**
+             * Scanned At
+             * Format: date-time
+             */
+            scanned_at: string;
             /**
              * Setup
              * @enum {string}
@@ -4984,37 +4985,36 @@ export interface components {
             setup: "ready" | "caution" | "blocked";
             /** Setup Reason */
             setup_reason?: string | null;
-            /**
-             * Scanned At
-             * Format: date-time
-             */
-            scanned_at: string;
+            /** Spot */
+            spot: string | null;
+            /** Ticker */
+            ticker: string;
         };
         /** ScannerContextFlag */
         ScannerContextFlag: {
+            /** Label */
+            label: string;
             /**
              * Layer
              * @constant
              */
             layer: "pcr_sentiment";
-            /** Label */
-            label: string;
             /** Value */
             value: string | null;
         };
         /** ScannerGatedTicker */
         ScannerGatedTicker: {
-            /** Ticker */
-            ticker: string;
+            /** Blocking Chip */
+            blocking_chip?: ("SUSPENDED" | "DEGRADED") | null;
             /**
              * Reason
              * @enum {string}
              */
             reason: "regime_block" | "stale_scan";
-            /** Blocking Chip */
-            blocking_chip?: ("SUSPENDED" | "DEGRADED") | null;
             /** Scanned At */
             scanned_at: string | null;
+            /** Ticker */
+            ticker: string;
         };
         /** ScannerGatesStatus */
         ScannerGatesStatus: {
@@ -5036,12 +5036,10 @@ export interface components {
         };
         /** ScannerResponse */
         ScannerResponse: {
-            /** Scanned Universe Size */
-            scanned_universe_size: number;
-            /** Candidates With Hits */
-            candidates_with_hits: number;
             /** Candidates */
             candidates: components["schemas"]["ScannerCandidate"][];
+            /** Candidates With Hits */
+            candidates_with_hits: number;
             /** Gated */
             gated: components["schemas"]["ScannerGatedTicker"][];
             /**
@@ -5049,9 +5047,22 @@ export interface components {
              * Format: date-time
              */
             generated_at: string;
+            /** Scanned Universe Size */
+            scanned_universe_size: number;
         };
         /** ScannerSignalHit */
         ScannerSignalHit: {
+            /** Evidence */
+            evidence: {
+                [key: string]: unknown;
+            };
+            /**
+             * Freshness
+             * @enum {string}
+             */
+            freshness: "live" | "stale" | "unavailable";
+            /** Score */
+            score: string;
             /**
              * Signal Type
              * @enum {string}
@@ -5062,55 +5073,52 @@ export interface components {
              * @enum {integer}
              */
             tier: 1 | 2;
-            /** Score */
-            score: string;
-            /** Evidence */
-            evidence: {
-                [key: string]: unknown;
-            };
-            /**
-             * Freshness
-             * @enum {string}
-             */
-            freshness: "live" | "stale" | "unavailable";
         };
         /** SetupBlock */
         SetupBlock: {
-            /** Type */
-            type?: string | null;
             /** Direction */
             direction?: string | null;
             /** Score */
             score?: string | null;
+            /** Type */
+            type?: string | null;
         };
         /** SetupClassification */
         SetupClassification: {
-            /** Setup Type */
-            setup_type: string;
-            /** Label */
-            label: string;
-            /** Direction */
-            direction: string;
-            /** Score */
-            score: string;
             /**
              * Confirmations
              * @default []
              */
             confirmations: string[];
-            /**
-             * Warnings
-             * @default []
-             */
-            warnings: string[];
+            /** Direction */
+            direction: string;
+            /** Label */
+            label: string;
             /**
              * Notes
              * @default
              */
             notes: string;
+            /** Score */
+            score: string;
+            /** Setup Type */
+            setup_type: string;
+            /**
+             * Warnings
+             * @default []
+             */
+            warnings: string[];
         };
         /** ShortDataRow */
         ShortDataRow: {
+            /** Fee Rate */
+            fee_rate?: string | null;
+            /** Name */
+            name?: string | null;
+            /** Rebate Rate */
+            rebate_rate?: string | null;
+            /** Short Shares Available */
+            short_shares_available?: number | null;
             /** Symbol */
             symbol: string;
             /**
@@ -5118,40 +5126,10 @@ export interface components {
              * Format: date-time
              */
             timestamp: string;
-            /** Name */
-            name?: string | null;
-            /** Short Shares Available */
-            short_shares_available?: number | null;
-            /** Fee Rate */
-            fee_rate?: string | null;
-            /** Rebate Rate */
-            rebate_rate?: string | null;
         };
         /** SingleStockReport */
         SingleStockReport: {
-            /** Run Id */
-            run_id: number;
-            /** Ticker */
-            ticker: string;
-            /**
-             * Generated At
-             * Format: date-time
-             */
-            generated_at: string;
-            /** Spot Quoted At */
-            spot_quoted_at?: string | null;
-            /** Spot Source */
-            spot_source?: string | null;
-            /**
-             * Short Int Note
-             * @default n/a (UW endpoint does not expose %)
-             */
-            short_int_note: string;
-            market_structure: components["schemas"]["MarketStructure"];
-            volatility: components["schemas"]["VolatilityProfile"];
-            flow: components["schemas"]["FlowSnapshot"];
-            vrp: components["schemas"]["VRPAssessment"];
-            setup?: components["schemas"]["SetupClassification"] | null;
+            aggregates?: components["schemas"]["MarketAggregates"] | null;
             /** Dark Pool Notional */
             dark_pool_notional?: string | null;
             /**
@@ -5159,184 +5137,206 @@ export interface components {
              * @default 0
              */
             dark_pool_print_count: number;
-            short_data?: components["schemas"]["ShortDataRow"] | null;
+            dealer_regime?: components["schemas"]["DealerRegime"] | null;
+            /**
+             * Exposures Summary
+             * @default []
+             */
+            exposures_summary: components["schemas"]["ExposuresSummaryRow"][];
+            flow: components["schemas"]["FlowSnapshot"];
+            /**
+             * Generated At
+             * Format: date-time
+             */
+            generated_at: string;
+            market_structure: components["schemas"]["MarketStructure"];
+            market_structure_levels?: components["schemas"]["MarketStructureLevels"] | null;
             /**
              * Max Pain Rows
              * @default []
              */
             max_pain_rows: components["schemas"]["MaxPainRow"][];
+            /** Next Earnings Date */
+            next_earnings_date?: string | null;
+            /**
+             * Oi Change Intraday Profiles
+             * @default []
+             */
+            oi_change_intraday_profiles: components["schemas"]["OptionIntradayProfile"][];
             /**
              * Oi Change Top
              * @default []
              */
             oi_change_top: components["schemas"]["OiChangeRow"][];
             /**
-             * Oi Change Intraday Profiles
+             * Option Chain Per Strike
              * @default []
              */
-            oi_change_intraday_profiles: components["schemas"]["OptionIntradayProfile"][];
-            aggregates?: components["schemas"]["MarketAggregates"] | null;
-            /**
-             * Strike Gex Curve
-             * @default []
-             */
-            strike_gex_curve: components["schemas"]["StrikeGexBucket"][];
-            market_structure_levels?: components["schemas"]["MarketStructureLevels"] | null;
+            option_chain_per_strike: components["schemas"]["OptionChainPerStrikeRow"][];
             /**
              * Options Timeline
              * @default []
              */
             options_timeline: components["schemas"]["OptionsDailyRow"][];
+            /** Run Id */
+            run_id: number;
+            setup?: components["schemas"]["SetupClassification"] | null;
+            short_data?: components["schemas"]["ShortDataRow"] | null;
             /**
-             * Option Chain Per Strike
-             * @default []
+             * Short Int Note
+             * @default n/a (UW endpoint does not expose %)
              */
-            option_chain_per_strike: components["schemas"]["OptionChainPerStrikeRow"][];
+            short_int_note: string;
+            /** Spot Quoted At */
+            spot_quoted_at?: string | null;
+            /** Spot Source */
+            spot_source?: string | null;
             /**
              * Strike Exposures
              * @default []
              */
             strike_exposures: components["schemas"]["StrikeExposureRow"][];
             /**
-             * Exposures Summary
+             * Strike Gex Curve
              * @default []
              */
-            exposures_summary: components["schemas"]["ExposuresSummaryRow"][];
-            /** Next Earnings Date */
-            next_earnings_date?: string | null;
-            dealer_regime?: components["schemas"]["DealerRegime"] | null;
+            strike_gex_curve: components["schemas"]["StrikeGexBucket"][];
+            /** Ticker */
+            ticker: string;
+            volatility: components["schemas"]["VolatilityProfile"];
+            vrp: components["schemas"]["VRPAssessment"];
         };
         /** SkewAnalysisResponse */
         SkewAnalysisResponse: {
-            /** Ticker */
-            ticker: string;
             /**
              * As Of
              * Format: date
              */
             as_of: string;
             /**
+             * Asset Class
+             * @default single_name
+             */
+            asset_class: string;
+            /** Back Rr */
+            back_rr?: string | null;
+            /**
              * Backfill Status
              * @default ready
              */
             backfill_status: string;
-            /** Spot */
-            spot?: string | null;
-            /** Rr 25D */
-            rr_25d?: string | null;
-            /** Rr Z 180D */
-            rr_z_180d?: string | null;
-            /** Rr Pct 252D */
-            rr_pct_252d?: string | null;
+            /** Borrow Fee Rate */
+            borrow_fee_rate?: string | null;
+            /**
+             * Borrow Flag
+             * @default unknown
+             */
+            borrow_flag: string;
+            /**
+             * Class Expected Sign
+             * @default mixed
+             */
+            class_expected_sign: string;
+            /** Days To Cover */
+            days_to_cover?: string | null;
             /**
              * Deviation Class
              * @default NORMAL
              */
             deviation_class: string;
             /**
-             * Skew Term Class
-             * @default flat
+             * Directional Lean
+             * @default NEUTRAL
              */
-            skew_term_class: string;
-            /** Front Rr */
-            front_rr?: string | null;
-            /** Back Rr */
-            back_rr?: string | null;
-            /** Rho Spotvol 63D */
-            rho_spotvol_63d?: string | null;
-            /** Rho Spotvol 21D */
-            rho_spotvol_21d?: string | null;
-            /** Rho Sign */
-            rho_sign?: number | null;
+            directional_lean: string;
             /**
              * Drive Class
              * @default STRUCTURAL
              */
             drive_class: string;
             /**
-             * Asset Class
-             * @default single_name
-             */
-            asset_class: string;
-            /**
-             * Class Expected Sign
-             * @default mixed
-             */
-            class_expected_sign: string;
-            /**
-             * Borrow Flag
-             * @default unknown
-             */
-            borrow_flag: string;
-            /** Borrow Fee Rate */
-            borrow_fee_rate?: string | null;
-            /** Days To Cover */
-            days_to_cover?: string | null;
-            /**
              * Earnings Gate
              * @default unknown
              */
             earnings_gate: string;
-            /**
-             * Regime
-             * @default UNKNOWN
-             */
-            regime: string;
-            /**
-             * Directional Lean
-             * @default NEUTRAL
-             */
-            directional_lean: string;
-            /**
-             * Lean Confidence
-             * @default low
-             */
-            lean_confidence: string;
-            /**
-             * Lean Basis
-             * @default
-             */
-            lean_basis: string;
-            /**
-             * @default {
-             *       "tail": "",
-             *       "rho_confirms": false,
-             *       "drive": "",
-             *       "deviation_class": "",
-             *       "class_context": "",
-             *       "borrow_context": "",
-             *       "earnings_gate": "",
-             *       "summary_line": "",
-             *       "summary_bullets": [],
-             *       "directional_lean": {
-             *         "basis": "",
-             *         "confidence": "low",
-             *         "express": "",
-             *         "lean": "NEUTRAL"
-             *       }
-             *     }
-             */
-            read: components["schemas"]["SkewRead"];
+            /** Front Rr */
+            front_rr?: string | null;
             /**
              * History
              * @default []
              */
             history: components["schemas"]["SkewHistoryPoint"][];
             /**
+             * Lean Basis
+             * @default
+             */
+            lean_basis: string;
+            /**
+             * Lean Confidence
+             * @default low
+             */
+            lean_confidence: string;
+            /**
+             * @default {
+             *       "borrow_context": "",
+             *       "class_context": "",
+             *       "deviation_class": "",
+             *       "directional_lean": {
+             *         "basis": "",
+             *         "confidence": "low",
+             *         "express": "",
+             *         "lean": "NEUTRAL"
+             *       },
+             *       "drive": "",
+             *       "earnings_gate": "",
+             *       "rho_confirms": false,
+             *       "summary_bullets": [],
+             *       "summary_line": "",
+             *       "tail": ""
+             *     }
+             */
+            read: components["schemas"]["SkewRead"];
+            /**
+             * Regime
+             * @default UNKNOWN
+             */
+            regime: string;
+            /**
              * Rho Series
              * @default []
              */
             rho_series: components["schemas"]["SkewRhoPoint"][];
+            /** Rho Sign */
+            rho_sign?: number | null;
+            /** Rho Spotvol 21D */
+            rho_spotvol_21d?: string | null;
+            /** Rho Spotvol 63D */
+            rho_spotvol_63d?: string | null;
+            /** Rr 25D */
+            rr_25d?: string | null;
+            /** Rr Pct 252D */
+            rr_pct_252d?: string | null;
+            /** Rr Z 180D */
+            rr_z_180d?: string | null;
             /**
-             * Term Structure
-             * @default []
+             * Skew Term Class
+             * @default flat
              */
-            term_structure: components["schemas"]["SkewExpiryPoint"][];
+            skew_term_class: string;
             /**
              * Smile
              * @default []
              */
             smile: components["schemas"]["SkewSmileExpiryCurve"][];
+            /** Spot */
+            spot?: string | null;
+            /**
+             * Term Structure
+             * @default []
+             */
+            term_structure: components["schemas"]["SkewExpiryPoint"][];
+            /** Ticker */
+            ticker: string;
         };
         /** SkewBlock */
         SkewBlock: {
@@ -5346,28 +5346,31 @@ export interface components {
         /** SkewDirectionalLean */
         SkewDirectionalLean: {
             /**
-             * Lean
-             * @default NEUTRAL
+             * Basis
+             * @default
              */
-            lean: string;
+            basis: string;
             /**
              * Confidence
              * @default low
              */
             confidence: string;
             /**
-             * Basis
-             * @default
-             */
-            basis: string;
-            /**
              * Express
              * @default
              */
             express: string;
+            /**
+             * Lean
+             * @default NEUTRAL
+             */
+            lean: string;
+            structure_detail?: components["schemas"]["SkewStructureDetail"] | null;
         };
         /** SkewExpiryPoint */
         SkewExpiryPoint: {
+            /** Dte */
+            dte?: number | null;
             /**
              * Expiry
              * Format: date
@@ -5375,8 +5378,6 @@ export interface components {
             expiry: string;
             /** Rr */
             rr?: string | null;
-            /** Dte */
-            dte?: number | null;
         };
         /** SkewHistoryPoint */
         SkewHistoryPoint: {
@@ -5385,20 +5386,49 @@ export interface components {
              * Format: date
              */
             date: string;
+            /** Pct */
+            pct?: string | null;
             /** Rr */
             rr?: string | null;
             /** Z */
             z?: string | null;
-            /** Pct */
-            pct?: string | null;
         };
         /** SkewRead */
         SkewRead: {
             /**
-             * Tail
+             * Borrow Context
              * @default
              */
-            tail: string;
+            borrow_context: string;
+            /**
+             * Class Context
+             * @default
+             */
+            class_context: string;
+            /**
+             * Deviation Class
+             * @default
+             */
+            deviation_class: string;
+            /**
+             * @default {
+             *       "basis": "",
+             *       "confidence": "low",
+             *       "express": "",
+             *       "lean": "NEUTRAL"
+             *     }
+             */
+            directional_lean: components["schemas"]["SkewDirectionalLean"];
+            /**
+             * Drive
+             * @default
+             */
+            drive: string;
+            /**
+             * Earnings Gate
+             * @default
+             */
+            earnings_gate: string;
             /** Rho */
             rho?: string | null;
             /**
@@ -5407,62 +5437,33 @@ export interface components {
              */
             rho_confirms: boolean;
             /**
-             * Drive
-             * @default
+             * Summary Bullets
+             * @default []
              */
-            drive: string;
-            /**
-             * Deviation Class
-             * @default
-             */
-            deviation_class: string;
-            /**
-             * Class Context
-             * @default
-             */
-            class_context: string;
-            /**
-             * Borrow Context
-             * @default
-             */
-            borrow_context: string;
-            /**
-             * Earnings Gate
-             * @default
-             */
-            earnings_gate: string;
+            summary_bullets: components["schemas"]["SkewReadBullet"][];
             /**
              * Summary Line
              * @default
              */
             summary_line: string;
             /**
-             * Summary Bullets
-             * @default []
+             * Tail
+             * @default
              */
-            summary_bullets: components["schemas"]["SkewReadBullet"][];
-            /**
-             * @default {
-             *       "lean": "NEUTRAL",
-             *       "confidence": "low",
-             *       "basis": "",
-             *       "express": ""
-             *     }
-             */
-            directional_lean: components["schemas"]["SkewDirectionalLean"];
+            tail: string;
         };
         /** SkewReadBullet */
         SkewReadBullet: {
-            /**
-             * Label
-             * @default
-             */
-            label: string;
             /**
              * Body
              * @default
              */
             body: string;
+            /**
+             * Label
+             * @default
+             */
+            label: string;
         };
         /** SkewRhoPoint */
         SkewRhoPoint: {
@@ -5489,10 +5490,58 @@ export interface components {
         };
         /** SkewSmilePoint */
         SkewSmilePoint: {
-            /** Strike */
-            strike: string;
             /** Iv */
             iv?: string | null;
+            /** Strike */
+            strike: string;
+        };
+        /** SkewStructureDetail */
+        SkewStructureDetail: {
+            /** Dte Target */
+            dte_target?: number | null;
+            /**
+             * Kind
+             * @default
+             */
+            kind: string;
+            /**
+             * Legs
+             * @default []
+             */
+            legs: components["schemas"]["SkewStructureLeg"][];
+            /**
+             * Note
+             * @default
+             */
+            note: string;
+            /**
+             * Status
+             * @default ready
+             */
+            status: string;
+        };
+        /** SkewStructureLeg */
+        SkewStructureLeg: {
+            /**
+             * Action
+             * @default
+             */
+            action: string;
+            /** Actual Delta */
+            actual_delta?: string | null;
+            /** Dte */
+            dte?: number | null;
+            /** Expiry */
+            expiry?: string | null;
+            /**
+             * Right
+             * @default
+             */
+            right: string;
+            /** Strike */
+            strike?: string | null;
+            /** Target Delta */
+            target_delta?: string | null;
         };
         /** SmileExpiryCurve */
         SmileExpiryCurve: {
@@ -5509,18 +5558,18 @@ export interface components {
         };
         /** SmilePoint */
         SmilePoint: {
-            /** Strike */
-            strike: string;
             /** Iv */
             iv?: string | null;
+            /** Strike */
+            strike: string;
         };
         /** SourceReconciliation */
         SourceReconciliation: {
             /**
-             * Status
-             * @default UNKNOWN
+             * Decision
+             * @default Use deterministic data only where source agreement is understood.
              */
-            status: string;
+            decision: string;
             /**
              * Headline
              * @default Source reconciliation unavailable
@@ -5536,48 +5585,48 @@ export interface components {
              */
             rows: components["schemas"]["SourceReconciliationRow"][];
             /**
-             * Decision
-             * @default Use deterministic data only where source agreement is understood.
+             * Status
+             * @default UNKNOWN
              */
-            decision: string;
+            status: string;
         };
         /** SourceReconciliationRow */
         SourceReconciliationRow: {
-            /** Source Pair */
-            source_pair: string;
             /**
-             * Price Agreement
+             * Decision
              * @default
              */
-            price_agreement: string;
+            decision: string;
             /**
              * Iv Agreement
              * @default
              */
             iv_agreement: string;
+            /** Iv Diff */
+            iv_diff?: string | null;
             /**
-             * Decision
+             * Price Agreement
              * @default
              */
-            decision: string;
-            /** Strike */
-            strike?: string | null;
+            price_agreement: string;
             /** Source A Call Iv */
             source_a_call_iv?: string | null;
             /** Source B Call Iv */
             source_b_call_iv?: string | null;
-            /** Iv Diff */
-            iv_diff?: string | null;
+            /** Source Pair */
+            source_pair: string;
+            /** Strike */
+            strike?: string | null;
         };
         /** StockHistoryResponse */
         StockHistoryResponse: {
-            /** Ticker */
-            ticker: string;
             /**
              * Rows
              * @default []
              */
             rows: components["schemas"]["StockHistoryRow"][];
+            /** Ticker */
+            ticker: string;
         };
         /**
          * StockHistoryRow
@@ -5589,27 +5638,27 @@ export interface components {
          */
         StockHistoryRow: {
             /**
-             * Market Date
-             * Format: date
-             */
-            market_date: string;
-            /** Spot */
-            spot?: string | null;
-            /** Gex Flip */
-            gex_flip?: string | null;
-            /** Net Gex */
-            net_gex?: string | null;
-            /** Net Dex */
-            net_dex?: string | null;
-            /** Iv30D */
-            iv30d?: string | null;
-            /** Pcr Vol */
-            pcr_vol?: string | null;
-            /**
              * Bias
              * @default NEUTRAL
              */
             bias: string;
+            /** Gex Flip */
+            gex_flip?: string | null;
+            /** Iv30D */
+            iv30d?: string | null;
+            /**
+             * Market Date
+             * Format: date
+             */
+            market_date: string;
+            /** Net Dex */
+            net_dex?: string | null;
+            /** Net Gex */
+            net_gex?: string | null;
+            /** Pcr Vol */
+            pcr_vol?: string | null;
+            /** Spot */
+            spot?: string | null;
         };
         /**
          * StrikeExposureRow
@@ -5618,31 +5667,31 @@ export interface components {
          *     Net + Call/Put curves without an extra fetch.
          */
         StrikeExposureRow: {
-            /** Strike */
-            strike: string;
+            /** Call Charm */
+            call_charm?: string | null;
+            /** Call Vanna */
+            call_vanna?: string | null;
+            /** Dte */
+            dte?: number | null;
             /**
              * Expiry
              * Format: date
              */
             expiry: string;
-            /** Dte */
-            dte?: number | null;
-            /** Call Vanna */
-            call_vanna?: string | null;
-            /** Put Vanna */
-            put_vanna?: string | null;
-            /** Call Charm */
-            call_charm?: string | null;
             /** Put Charm */
             put_charm?: string | null;
+            /** Put Vanna */
+            put_vanna?: string | null;
+            /** Strike */
+            strike: string;
         };
         /**
          * StrikeGexBucket
          * @description One row of the per-strike, per-expiry GEX curve persisted on each scan run.
          */
         StrikeGexBucket: {
-            /** Strike */
-            strike: string;
+            /** Call Gex */
+            call_gex?: string | null;
             /**
              * Expiry
              * Format: date
@@ -5650,26 +5699,26 @@ export interface components {
             expiry: string;
             /** Net Gex */
             net_gex?: string | null;
-            /** Call Gex */
-            call_gex?: string | null;
             /** Put Gex */
             put_gex?: string | null;
+            /** Strike */
+            strike: string;
         };
         /** TermMoveRow */
         TermMoveRow: {
+            /** Atm Straddle */
+            atm_straddle?: string | null;
+            /** Daily Implied Move Perc */
+            daily_implied_move_perc?: string | null;
+            /** Dte */
+            dte?: number | null;
             /**
              * Expiry
              * Format: date
              */
             expiry: string;
-            /** Dte */
-            dte?: number | null;
-            /** Atm Straddle */
-            atm_straddle?: string | null;
             /** Implied Move Perc */
             implied_move_perc?: string | null;
-            /** Daily Implied Move Perc */
-            daily_implied_move_perc?: string | null;
             /**
              * Read
              * @default
@@ -5679,19 +5728,19 @@ export interface components {
         /** TermStructureExpiryRow */
         TermStructureExpiryRow: {
             /**
-             * Expiry
-             * Format: date
-             */
-            expiry: string;
-            /** Dte */
-            dte?: number | null;
-            /**
              * By Strike
              * @default {}
              */
             by_strike: {
                 [key: string]: string;
             };
+            /** Dte */
+            dte?: number | null;
+            /**
+             * Expiry
+             * Format: date
+             */
+            expiry: string;
             /**
              * Strikes
              * @default {}
@@ -5702,24 +5751,26 @@ export interface components {
         };
         /** TradeFramework */
         TradeFramework: {
-            header: components["schemas"]["TradeFrameworkHeader"];
-            three_axis: components["schemas"]["TradeFrameworkThreeAxis"];
-            gamma: components["schemas"]["TradeFrameworkGamma"];
-            catalyst: components["schemas"]["TradeFrameworkCatalyst"];
-            conviction: components["schemas"]["TradeFrameworkConviction"];
-            confluence: components["schemas"]["TradeFrameworkConfluence"];
-            /** Pitfalls */
-            pitfalls?: components["schemas"]["TradeFrameworkPitfall"][];
-            /** Candidates */
-            candidates?: components["schemas"]["TradeFrameworkCandidate"][];
             best_setup: components["schemas"]["TradeFrameworkBestSetup"];
-            /** What Changes */
-            what_changes?: components["schemas"]["TradeFrameworkWhatChanges"][];
             /** Bottom Line */
             bottom_line: string;
+            /** Candidates */
+            candidates?: components["schemas"]["TradeFrameworkCandidate"][];
+            catalyst: components["schemas"]["TradeFrameworkCatalyst"];
+            confluence: components["schemas"]["TradeFrameworkConfluence"];
+            conviction: components["schemas"]["TradeFrameworkConviction"];
+            gamma: components["schemas"]["TradeFrameworkGamma"];
+            header: components["schemas"]["TradeFrameworkHeader"];
+            /** Pitfalls */
+            pitfalls?: components["schemas"]["TradeFrameworkPitfall"][];
+            three_axis: components["schemas"]["TradeFrameworkThreeAxis"];
+            /** What Changes */
+            what_changes?: components["schemas"]["TradeFrameworkWhatChanges"][];
         };
         /** TradeFrameworkAsymmetry */
         TradeFrameworkAsymmetry: {
+            /** Prose */
+            prose: string;
             /** Rule On */
             rule_on: boolean;
             /**
@@ -5727,63 +5778,61 @@ export interface components {
              * @enum {string}
              */
             structure_family: "directional_defined_risk" | "pin_vega";
-            /** Prose */
-            prose: string;
         };
         /** TradeFrameworkBestSetup */
         TradeFrameworkBestSetup: {
-            /** Structure */
-            structure: string;
-            /** Legs */
-            legs?: string[];
             /** Cost */
             cost?: string | null;
+            /** Invalidation */
+            invalidation: string;
+            /** Legs */
+            legs?: string[];
             /** Max Risk */
             max_risk?: string | null;
             /** Rationale */
             rationale: string;
+            /** Structure */
+            structure: string;
             /**
              * Why Not Alternatives
              * @default
              */
             why_not_alternatives: string;
-            /** Invalidation */
-            invalidation: string;
         };
         /** TradeFrameworkCandidate */
         TradeFrameworkCandidate: {
-            /** Name */
-            name: string;
-            /** Legs */
-            legs?: string[];
             /** Debit Credit */
             debit_credit?: string | null;
+            /** Defined Risk */
+            defined_risk: boolean;
+            /** Legs */
+            legs?: string[];
+            /** Name */
+            name: string;
             /** Net Delta */
             net_delta?: string | null;
             /** Net Vega */
             net_vega?: string | null;
-            /** Pnl Bull */
-            pnl_bull?: string | null;
             /** Pnl Base */
             pnl_base?: string | null;
             /** Pnl Bear */
             pnl_bear?: string | null;
-            /** Defined Risk */
-            defined_risk: boolean;
+            /** Pnl Bull */
+            pnl_bull?: string | null;
         };
         /** TradeFrameworkCatalyst */
         TradeFrameworkCatalyst: {
-            /** Next Er Date */
-            next_er_date?: string | null;
             /** Dte To Er */
             dte_to_er?: number | null;
-            /** Implied Move */
-            implied_move?: string | null;
             /**
              * Handling
              * @enum {string}
              */
             handling: "no_conflict" | "exit_before_print" | "stand_aside" | "hold_through_leaps";
+            /** Implied Move */
+            implied_move?: string | null;
+            /** Next Er Date */
+            next_er_date?: string | null;
             /** Prose */
             prose: string;
         };
@@ -5791,18 +5840,16 @@ export interface components {
         TradeFrameworkConfluence: {
             /** Aligned */
             aligned: boolean;
-            /** Signals */
-            signals?: components["schemas"]["TradeFrameworkSignal"][];
             /**
              * Prose
              * @default
              */
             prose: string;
+            /** Signals */
+            signals?: components["schemas"]["TradeFrameworkSignal"][];
         };
         /** TradeFrameworkConviction */
         TradeFrameworkConviction: {
-            /** Score */
-            score: number;
             /** Factors */
             factors: components["schemas"]["TradeFrameworkFactor"][];
             /**
@@ -5810,52 +5857,54 @@ export interface components {
              * @default
              */
             prose: string;
+            /** Score */
+            score: number;
         };
         /** TradeFrameworkDirection */
         TradeFrameworkDirection: {
+            /** Prose */
+            prose: string;
             /**
              * Verdict
              * @enum {string}
              */
             verdict: "bull" | "bear" | "neutral";
-            /** Prose */
-            prose: string;
         };
         /** TradeFrameworkFactor */
         TradeFrameworkFactor: {
             /** Name */
             name: string;
             /**
-             * Status
-             * @enum {string}
-             */
-            status: "yes" | "no" | "na";
-            /**
              * Note
              * @default
              */
             note: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "yes" | "no" | "na";
         };
         /** TradeFrameworkGamma */
         TradeFrameworkGamma: {
+            /** Call Wall */
+            call_wall?: string | null;
+            /** Flip Strike */
+            flip_strike?: string | null;
+            /** Prose */
+            prose: string;
+            /** Put Wall */
+            put_wall?: string | null;
             /**
              * Regime
              * @enum {string}
              */
             regime: "short" | "long";
-            /** Flip Strike */
-            flip_strike?: string | null;
-            /** Call Wall */
-            call_wall?: string | null;
-            /** Put Wall */
-            put_wall?: string | null;
-            /** Prose */
-            prose: string;
         };
         /** TradeFrameworkHeader */
         TradeFrameworkHeader: {
-            /** Thesis One Liner */
-            thesis_one_liner: string;
+            /** Conviction N */
+            conviction_n: number;
             /**
              * Position Type
              * @enum {string}
@@ -5863,56 +5912,56 @@ export interface components {
             position_type: "swing" | "leaps" | "stand_aside";
             /** Spot */
             spot?: string | null;
-            /** Conviction N */
-            conviction_n: number;
+            /** Thesis One Liner */
+            thesis_one_liner: string;
         };
         /** TradeFrameworkPitfall */
         TradeFrameworkPitfall: {
             /** Id */
             id: string;
-            /** Title */
-            title: string;
-            /** Triggered */
-            triggered: boolean;
             /**
              * Note
              * @default
              */
             note: string;
+            /** Title */
+            title: string;
+            /** Triggered */
+            triggered: boolean;
         };
         /** TradeFrameworkSignal */
         TradeFrameworkSignal: {
-            /** Name */
-            name: string;
             /** Direction */
             direction: string;
+            /** Name */
+            name: string;
         };
         /** TradeFrameworkThreeAxis */
         TradeFrameworkThreeAxis: {
+            asymmetry: components["schemas"]["TradeFrameworkAsymmetry"];
             direction: components["schemas"]["TradeFrameworkDirection"];
             vega: components["schemas"]["TradeFrameworkVega"];
-            asymmetry: components["schemas"]["TradeFrameworkAsymmetry"];
         };
         /** TradeFrameworkVega */
         TradeFrameworkVega: {
+            /** Ivr */
+            ivr?: string | null;
+            /** Prose */
+            prose: string;
             /**
              * Regime
              * @enum {string}
              */
             regime: "event_iv" | "demand_iv" | "low_iv";
-            /** Ivr */
-            ivr?: string | null;
             /** Term Slope */
             term_slope?: string | null;
-            /** Prose */
-            prose: string;
         };
         /** TradeFrameworkWhatChanges */
         TradeFrameworkWhatChanges: {
-            /** Signal */
-            signal: string;
             /** Effect */
             effect: string;
+            /** Signal */
+            signal: string;
         };
         /**
          * TradeInsightAiAnalysisEnqueueResponse
@@ -5939,50 +5988,50 @@ export interface components {
              * Format: uuid
              */
             analysis_id: string;
-            /** Ticker */
-            ticker: string;
-            /** Run Id */
-            run_id: number;
-            /** Trade Insights Input Hash */
-            trade_insights_input_hash: string;
             /** Analysis Input Hash */
             analysis_input_hash: string;
+            /** Error Message */
+            error_message?: string | null;
+            /** Finished At */
+            finished_at?: string | null;
+            /** Markdown */
+            markdown?: string | null;
             /** Model */
             model: string;
+            outcome?: components["schemas"]["TradeInsightAiOutcome"] | null;
+            /** Produced At */
+            produced_at?: string | null;
+            /** Prompt Version */
+            prompt_version: string;
             /**
              * Provider
              * @default codex
              * @enum {string}
              */
             provider: "codex" | "claude" | "deepseek";
-            /** Prompt Version */
-            prompt_version: string;
-            /**
-             * Status
-             * @enum {string}
-             */
-            status: "queued" | "running" | "succeeded" | "failed";
-            /** Produced At */
-            produced_at?: string | null;
-            outcome?: components["schemas"]["TradeInsightAiOutcome"] | null;
-            /** Markdown */
-            markdown?: string | null;
-            /** Error Message */
-            error_message?: string | null;
             /**
              * Requested At
              * Format: date-time
              */
             requested_at: string;
-            /** Started At */
-            started_at?: string | null;
-            /** Finished At */
-            finished_at?: string | null;
             /**
              * Reused
              * @default false
              */
             reused: boolean;
+            /** Run Id */
+            run_id: number;
+            /** Started At */
+            started_at?: string | null;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "queued" | "running" | "succeeded" | "failed";
+            /** Ticker */
+            ticker: string;
+            /** Trade Insights Input Hash */
+            trade_insights_input_hash: string;
         };
         /**
          * TradeInsightAiAnalysisStub
@@ -5990,24 +6039,24 @@ export interface components {
          */
         TradeInsightAiAnalysisStub: {
             /**
-             * Provider
-             * @enum {string}
-             */
-            provider: "codex" | "claude" | "deepseek";
-            /**
              * Analysis Id
              * Format: uuid
              */
             analysis_id: string;
+            /** Model */
+            model: string;
+            /**
+             * Provider
+             * @enum {string}
+             */
+            provider: "codex" | "claude" | "deepseek";
+            /** Reused */
+            reused: boolean;
             /**
              * Status
              * @enum {string}
              */
             status: "queued" | "running" | "succeeded" | "failed";
-            /** Reused */
-            reused: boolean;
-            /** Model */
-            model: string;
         };
         /**
          * TradeInsightAiAntiPin
@@ -6022,26 +6071,10 @@ export interface components {
          */
         TradeInsightAiAntiPin: {
             /**
-             * Invoked
-             * @default false
+             * Cap Reason
+             * @default
              */
-            invoked: boolean;
-            /**
-             * Direction
-             * @default none
-             * @enum {string}
-             */
-            direction: "upside" | "downside" | "none";
-            /**
-             * Score
-             * @default 0
-             */
-            score: number;
-            /**
-             * Max Score
-             * @default 4
-             */
-            max_score: number;
+            cap_reason: string;
             /** Conditions Met */
             conditions_met?: string[];
             /**
@@ -6050,86 +6083,112 @@ export interface components {
              */
             conviction_cap_applied: boolean;
             /**
-             * Cap Reason
-             * @default
+             * Direction
+             * @default none
+             * @enum {string}
              */
-            cap_reason: string;
+            direction: "upside" | "downside" | "none";
+            /**
+             * Invoked
+             * @default false
+             */
+            invoked: boolean;
+            /**
+             * Max Score
+             * @default 4
+             */
+            max_score: number;
+            /**
+             * Score
+             * @default 0
+             */
+            score: number;
         };
         /** TradeInsightAiBestExpression */
         TradeInsightAiBestExpression: {
-            /** Idea Id */
-            idea_id: string;
-            /** Structure */
-            structure: string;
-            /** Role */
-            role: string;
-            /** Why */
-            why: string;
             /** Caveats */
             caveats?: string[];
-            /** Status Observed */
-            status_observed: string;
+            /** Idea Id */
+            idea_id: string;
             /** Risk Flags Observed */
             risk_flags_observed?: string[];
+            /** Role */
+            role: string;
+            /** Status Observed */
+            status_observed: string;
+            /** Structure */
+            structure: string;
+            /** Why */
+            why: string;
         };
         /** TradeInsightAiConflict */
         TradeInsightAiConflict: {
+            /** Affected Idea Ids */
+            affected_idea_ids?: string[];
+            /** Description */
+            description: string;
             /** Lens */
             lens: string;
             /** Severity */
             severity: string;
-            /** Description */
-            description: string;
-            /** Affected Idea Ids */
-            affected_idea_ids?: string[];
         };
         /** TradeInsightAiDominantRead */
         TradeInsightAiDominantRead: {
-            /** Headline */
-            headline: string;
-            /** Summary */
-            summary: string;
             /** Confidence Commentary */
             confidence_commentary: string;
             /** Data Quality Commentary */
             data_quality_commentary: string;
+            /** Headline */
+            headline: string;
+            /** Summary */
+            summary: string;
         };
         /** TradeInsightAiGuardrails */
         TradeInsightAiGuardrails: {
-            /** Statuses Preserved */
-            statuses_preserved: boolean;
-            /** Risk Flags Preserved */
-            risk_flags_preserved: boolean;
             /** No Executable Recommendations */
             no_executable_recommendations: boolean;
+            /** Risk Flags Preserved */
+            risk_flags_preserved: boolean;
+            /** Statuses Preserved */
+            statuses_preserved: boolean;
         };
         /** TradeInsightAiHeadline */
         TradeInsightAiHeadline: {
-            /**
-             * Trade Intent
-             * @enum {string}
-             */
-            trade_intent: "directional_swing" | "range_income";
+            /** Conviction */
+            conviction: string;
+            /** Conviction Label */
+            conviction_label: string;
             /**
              * Directional Bias
              * @enum {string}
              */
             directional_bias: "LONG_DELTA" | "SHORT_DELTA" | "WAIT";
             /**
-             * Entry State
-             * @enum {string}
-             */
-            entry_state: "ACTIVE" | "CONDITIONAL" | "NO_ENTRY";
-            /**
-             * Underlying Path
-             * @enum {string}
-             */
-            underlying_path: "bullish_continuation" | "bearish_rejection" | "downside_break" | "pinned_no_directional_entry" | "data_insufficient";
-            /**
              * Dte Band
              * @enum {string}
              */
             dte_band: "momentum" | "standard" | "trend";
+            /**
+             * Entry State
+             * @enum {string}
+             */
+            entry_state: "ACTIVE" | "CONDITIONAL" | "NO_ENTRY";
+            /** Primary Risk */
+            primary_risk: string;
+            /** Score */
+            score: number;
+            /**
+             * Score Scale
+             * @default 100
+             */
+            score_scale: number;
+            /**
+             * Stance
+             * @enum {string}
+             */
+            stance: "bullish" | "bearish" | "neutral" | "mixed" | "wait";
+            /** Stance Label */
+            stance_label: string;
             /**
              * Thesis Archetype
              * @default data_insufficient
@@ -6138,28 +6197,18 @@ export interface components {
             thesis_archetype: "resistance_rejection" | "support_breakdown" | "breakout_continuation" | "pin_no_trade" | "data_insufficient";
             /** Title */
             title: string;
-            /**
-             * Stance
-             * @enum {string}
-             */
-            stance: "bullish" | "bearish" | "neutral" | "mixed" | "wait";
-            /** Stance Label */
-            stance_label: string;
-            /** Score */
-            score: number;
-            /**
-             * Score Scale
-             * @default 100
-             */
-            score_scale: number;
-            /** Conviction */
-            conviction: string;
-            /** Conviction Label */
-            conviction_label: string;
             /** Top Reason */
             top_reason: string;
-            /** Primary Risk */
-            primary_risk: string;
+            /**
+             * Trade Intent
+             * @enum {string}
+             */
+            trade_intent: "directional_swing" | "range_income";
+            /**
+             * Underlying Path
+             * @enum {string}
+             */
+            underlying_path: "bullish_continuation" | "bearish_rejection" | "downside_break" | "pinned_no_directional_entry" | "data_insufficient";
             /** Watch Trigger */
             watch_trigger: string;
         };
@@ -6167,15 +6216,15 @@ export interface components {
         TradeInsightAiHighlight: {
             /** Label */
             label: string;
-            /** Value */
-            value: string;
-            /** Source Path */
-            source_path?: string | null;
             /**
              * Note
              * @default
              */
             note: string;
+            /** Source Path */
+            source_path?: string | null;
+            /** Value */
+            value: string;
         };
         /**
          * TradeInsightAiLatestPair
@@ -6195,54 +6244,54 @@ export interface components {
          *     follow-up PR adds a [DeepSeek] tab.
          */
         TradeInsightAiLatestPair: {
-            /** Current Prompt Version */
-            current_prompt_version: string;
+            claude?: components["schemas"]["TradeInsightAiAnalysisResponse"] | null;
+            codex?: components["schemas"]["TradeInsightAiAnalysisResponse"] | null;
             /** Current Prompt Label */
             current_prompt_label?: string | null;
-            codex?: components["schemas"]["TradeInsightAiAnalysisResponse"] | null;
-            claude?: components["schemas"]["TradeInsightAiAnalysisResponse"] | null;
+            /** Current Prompt Version */
+            current_prompt_version: string;
             deepseek?: components["schemas"]["TradeInsightAiAnalysisResponse"] | null;
             provider_consensus?: components["schemas"]["TradeInsightAiProviderConsensus"];
         };
         /** TradeInsightAiLevel */
         TradeInsightAiLevel: {
-            /** Price */
-            price: string;
-            /** Kind */
-            kind: string;
-            /** Value */
-            value: string;
             /**
              * Importance
              * @default normal
              */
             importance: string;
-            /** Source Path */
-            source_path?: string | null;
+            /** Kind */
+            kind: string;
             /**
              * Note
              * @default
              */
             note: string;
+            /** Price */
+            price: string;
+            /** Source Path */
+            source_path?: string | null;
+            /** Value */
+            value: string;
         };
         /** TradeInsightAiMetricCard */
         TradeInsightAiMetricCard: {
             /** Label */
             label: string;
-            /** Value */
-            value: string;
-            /**
-             * Tone
-             * @default neutral
-             */
-            tone: string;
-            /** Source Path */
-            source_path?: string | null;
             /**
              * Note
              * @default
              */
             note: string;
+            /** Source Path */
+            source_path?: string | null;
+            /**
+             * Tone
+             * @default neutral
+             */
+            tone: string;
+            /** Value */
+            value: string;
         };
         /**
          * TradeInsightAiOptionLeg
@@ -6263,6 +6312,11 @@ export interface components {
          */
         TradeInsightAiOptionLeg: {
             /**
+             * Expiry
+             * Format: date
+             */
+            expiry: string;
+            /**
              * Option Type
              * @enum {string}
              */
@@ -6274,101 +6328,96 @@ export interface components {
             side: "long" | "short";
             /** Strike */
             strike: string;
-            /**
-             * Expiry
-             * Format: date
-             */
-            expiry: string;
         };
         /** TradeInsightAiOutcome */
         TradeInsightAiOutcome: {
-            /** Schema Version */
-            schema_version: string;
             /**
              * Analysis Produced At
              * Format: date-time
              */
             analysis_produced_at: string;
-            /** Ticker */
-            ticker: string;
-            /** Underlying Price */
-            underlying_price?: string | null;
-            snapshot: components["schemas"]["TradeInsightAiSnapshotMeta"];
-            headline: components["schemas"]["TradeInsightAiHeadline"];
-            /** Metric Cards */
-            metric_cards: components["schemas"]["TradeInsightAiMetricCard"][];
-            /** Scenario Cards */
-            scenario_cards: components["schemas"]["TradeInsightAiScenarioCard"][];
-            /** Score Breakdown */
-            score_breakdown: components["schemas"]["TradeInsightAiScoreBreakdown"][];
-            section_cards: components["schemas"]["TradeInsightAiSectionCards"];
-            vrp_assessment?: components["schemas"]["TradeInsightAiVrpAssessment"] | null;
-            preferred_expression?: components["schemas"]["TradeInsightAiPreferredExpression"] | null;
-            trigger_evidence?: components["schemas"]["TradeInsightAiTriggerEvidence"];
             anti_pin?: components["schemas"]["TradeInsightAiAntiPin"];
-            target_feasibility?: components["schemas"]["TradeInsightAiTargetFeasibility"];
-            thesis_trigger?: components["schemas"]["TradeInsightAiTriggerComponent"];
-            entry_trigger?: components["schemas"]["TradeInsightAiTriggerComponent"];
-            invalidation?: components["schemas"]["TradeInsightAiTriggerComponent"];
-            dominant_read: components["schemas"]["TradeInsightAiDominantRead"];
             /** Best Expressions */
             best_expressions?: components["schemas"]["TradeInsightAiBestExpression"][];
             /** Conflicts */
             conflicts?: components["schemas"]["TradeInsightAiConflict"][];
-            /** Required Checks */
-            required_checks?: components["schemas"]["TradeInsightAiRequiredCheck"][];
-            /** Rejected Ideas */
-            rejected_ideas?: components["schemas"]["TradeInsightAiRejectedIdea"][];
+            dominant_read: components["schemas"]["TradeInsightAiDominantRead"];
+            entry_trigger?: components["schemas"]["TradeInsightAiTriggerComponent"];
+            framework?: components["schemas"]["TradeFramework"] | null;
+            guardrails: components["schemas"]["TradeInsightAiGuardrails"];
+            headline: components["schemas"]["TradeInsightAiHeadline"];
+            invalidation?: components["schemas"]["TradeInsightAiTriggerComponent"];
+            /** Metric Cards */
+            metric_cards: components["schemas"]["TradeInsightAiMetricCard"][];
             /** Missing Data */
             missing_data?: string[];
+            preferred_expression?: components["schemas"]["TradeInsightAiPreferredExpression"] | null;
+            /** Rejected Ideas */
+            rejected_ideas?: components["schemas"]["TradeInsightAiRejectedIdea"][];
             rendering: components["schemas"]["TradeInsightAiRendering"];
-            guardrails: components["schemas"]["TradeInsightAiGuardrails"];
-            framework?: components["schemas"]["TradeFramework"] | null;
+            /** Required Checks */
+            required_checks?: components["schemas"]["TradeInsightAiRequiredCheck"][];
+            /** Scenario Cards */
+            scenario_cards: components["schemas"]["TradeInsightAiScenarioCard"][];
+            /** Schema Version */
+            schema_version: string;
+            /** Score Breakdown */
+            score_breakdown: components["schemas"]["TradeInsightAiScoreBreakdown"][];
+            section_cards: components["schemas"]["TradeInsightAiSectionCards"];
+            snapshot: components["schemas"]["TradeInsightAiSnapshotMeta"];
+            target_feasibility?: components["schemas"]["TradeInsightAiTargetFeasibility"];
+            thesis_trigger?: components["schemas"]["TradeInsightAiTriggerComponent"];
+            /** Ticker */
+            ticker: string;
+            trigger_evidence?: components["schemas"]["TradeInsightAiTriggerEvidence"];
+            /** Underlying Price */
+            underlying_price?: string | null;
+            vrp_assessment?: components["schemas"]["TradeInsightAiVrpAssessment"] | null;
         };
         /** TradeInsightAiPreferredExpression */
         TradeInsightAiPreferredExpression: {
-            /** Idea Id */
-            idea_id: string;
-            /** Structure */
-            structure: string;
-            /** Title */
-            title: string;
-            /**
-             * Subtitle
-             * @default
-             */
-            subtitle: string;
             /**
              * Estimated Entry
              * @default
              */
             estimated_entry: string;
-            /**
-             * Max Profit Observed
-             * @default
-             */
-            max_profit_observed: string;
+            /** Idea Id */
+            idea_id: string;
+            /** Legs */
+            legs?: components["schemas"]["TradeInsightAiOptionLeg"][];
+            /** Management Notes */
+            management_notes?: string[];
             /**
              * Max Loss Observed
              * @default
              */
             max_loss_observed: string;
             /**
+             * Max Profit Observed
+             * @default
+             */
+            max_profit_observed: string;
+            /**
              * Reward Risk
              * @default
              */
             reward_risk: string;
-            /** Why */
-            why: string;
-            /** Management Notes */
-            management_notes?: string[];
-            /** Status Observed */
-            status_observed: string;
             /** Risk Flags Observed */
             risk_flags_observed?: string[];
+            /** Status Observed */
+            status_observed: string;
             strike_role?: components["schemas"]["TradeInsightAiStrikeRole"];
-            /** Legs */
-            legs?: components["schemas"]["TradeInsightAiOptionLeg"][];
+            /** Structure */
+            structure: string;
+            /**
+             * Subtitle
+             * @default
+             */
+            subtitle: string;
+            /** Title */
+            title: string;
+            /** Why */
+            why: string;
         };
         /**
          * TradeInsightAiPriorRow
@@ -6380,33 +6429,33 @@ export interface components {
          *     no outcomes have resolved yet.
          */
         TradeInsightAiPriorRow: {
+            /** Directional Bias */
+            directional_bias?: string | null;
+            /** Entry State */
+            entry_state?: string | null;
+            /** Expired No Resolution Count */
+            expired_no_resolution_count: number;
+            /** Hit Rate Pct */
+            hit_rate_pct?: string | null;
+            /** Invalidation Hit Count */
+            invalidation_hit_count: number;
+            /** Median Days To Resolution */
+            median_days_to_resolution?: string | null;
+            /** Pending Count */
+            pending_count: number;
+            /** Prompt Version */
+            prompt_version: string;
             /**
              * Provider
              * @enum {string}
              */
             provider: "codex" | "claude" | "deepseek";
-            /** Prompt Version */
-            prompt_version: string;
-            /** Thesis Archetype */
-            thesis_archetype?: string | null;
-            /** Directional Bias */
-            directional_bias?: string | null;
-            /** Entry State */
-            entry_state?: string | null;
             /** Sample Count */
             sample_count: number;
             /** Target Hit Count */
             target_hit_count: number;
-            /** Invalidation Hit Count */
-            invalidation_hit_count: number;
-            /** Pending Count */
-            pending_count: number;
-            /** Expired No Resolution Count */
-            expired_no_resolution_count: number;
-            /** Hit Rate Pct */
-            hit_rate_pct?: string | null;
-            /** Median Days To Resolution */
-            median_days_to_resolution?: string | null;
+            /** Thesis Archetype */
+            thesis_archetype?: string | null;
         };
         /**
          * TradeInsightAiPriorsResponse
@@ -6428,15 +6477,26 @@ export interface components {
          */
         TradeInsightAiProviderConsensus: {
             /**
+             * Actionable Disagreement
+             * @default
+             */
+            actionable_disagreement: string;
+            /**
              * Bias Agreement
              * @default false
              */
             bias_agreement: boolean;
             /**
-             * Structure Agreement
+             * Consensus Grade
+             * @default missing
+             * @enum {string}
+             */
+            consensus_grade: "full" | "partial" | "divergent" | "missing";
+            /**
+             * Dte Band Agreement
              * @default false
              */
-            structure_agreement: boolean;
+            dte_band_agreement: boolean;
             /**
              * Entry State Agreement
              * @default false
@@ -6448,49 +6508,38 @@ export interface components {
              */
             path_agreement: boolean;
             /**
-             * Dte Band Agreement
+             * Structure Agreement
              * @default false
              */
-            dte_band_agreement: boolean;
-            /**
-             * Consensus Grade
-             * @default missing
-             * @enum {string}
-             */
-            consensus_grade: "full" | "partial" | "divergent" | "missing";
-            /**
-             * Actionable Disagreement
-             * @default
-             */
-            actionable_disagreement: string;
+            structure_agreement: boolean;
         };
         /** TradeInsightAiRejectedIdea */
         TradeInsightAiRejectedIdea: {
             /** Idea Id */
             idea_id: string;
-            /** Structure */
-            structure: string;
             /** Reason */
             reason: string;
+            /** Structure */
+            structure: string;
         };
         /** TradeInsightAiRendering */
         TradeInsightAiRendering: {
-            /** Disclaimer */
-            disclaimer: string;
             /** Card Order */
             card_order?: string[];
+            /** Disclaimer */
+            disclaimer: string;
         };
         /** TradeInsightAiRequiredCheck */
         TradeInsightAiRequiredCheck: {
-            /** Check */
-            check: string;
-            /** Reason */
-            reason: string;
             /**
              * Blocks Sizing
              * @default true
              */
             blocks_sizing: boolean;
+            /** Check */
+            check: string;
+            /** Reason */
+            reason: string;
             /**
              * Source
              * @default
@@ -6501,59 +6550,55 @@ export interface components {
         TradeInsightAiScenarioCard: {
             /** Case */
             case: ("upside" | "base" | "downside") | string;
+            /** Description */
+            description: string;
+            /** Title */
+            title: string;
             /**
              * Tone
              * @default neutral
              */
             tone: string;
-            /** Title */
-            title: string;
-            /** Description */
-            description: string;
         };
         /** TradeInsightAiScoreBreakdown */
         TradeInsightAiScoreBreakdown: {
-            /** Section */
-            section: string;
-            /** Score */
-            score: number;
             /** Max Score */
             max_score: number;
+            /** Score */
+            score: number;
+            /** Section */
+            section: string;
             /** Summary */
             summary: string;
         };
         /** TradeInsightAiSectionCard */
         TradeInsightAiSectionCard: {
-            /** Title */
-            title: string;
-            /** Score */
-            score?: number | null;
-            /** Max Score */
-            max_score?: number | null;
-            /** Summary */
-            summary: string;
-            /** Highlights */
-            highlights?: components["schemas"]["TradeInsightAiHighlight"][];
-            /** Levels */
-            levels?: components["schemas"]["TradeInsightAiLevel"][];
             /**
              * Data Quality
              * @default unknown
              */
             data_quality: string;
+            /** Highlights */
+            highlights?: components["schemas"]["TradeInsightAiHighlight"][];
+            /** Levels */
+            levels?: components["schemas"]["TradeInsightAiLevel"][];
+            /** Max Score */
+            max_score?: number | null;
+            /** Score */
+            score?: number | null;
+            /** Summary */
+            summary: string;
+            /** Title */
+            title: string;
         };
         /** TradeInsightAiSectionCards */
         TradeInsightAiSectionCards: {
+            flow_positioning: components["schemas"]["TradeInsightAiSectionCard"];
             market_structure: components["schemas"]["TradeInsightAiSectionCard"];
             volatility: components["schemas"]["TradeInsightAiSectionCard"];
-            flow_positioning: components["schemas"]["TradeInsightAiSectionCard"];
         };
         /** TradeInsightAiSnapshotMeta */
         TradeInsightAiSnapshotMeta: {
-            /** Run Id */
-            run_id: number;
-            /** Trade Insights Input Hash */
-            trade_insights_input_hash: string;
             /** Analysis Input Hash */
             analysis_input_hash: string;
             /** Data As Of */
@@ -6563,8 +6608,12 @@ export interface components {
              * @default unknown
              */
             freshness_label: string;
+            /** Run Id */
+            run_id: number;
             /** Source Notes */
             source_notes?: string[];
+            /** Trade Insights Input Hash */
+            trade_insights_input_hash: string;
         };
         /**
          * TradeInsightAiStrikeRole
@@ -6579,6 +6628,13 @@ export interface components {
          *     level to a specific key in the deterministic payload.
          */
         TradeInsightAiStrikeRole: {
+            /** Invalid Level */
+            invalid_level?: string | null;
+            /**
+             * Invalid Source Path
+             * @default
+             */
+            invalid_source_path: string;
             /**
              * Long Leg Role
              * @default n/a
@@ -6591,27 +6647,20 @@ export interface components {
              * @enum {string}
              */
             short_leg_role: "target_level" | "next_call_wall" | "second_magnet" | "next_put_wall" | "next_downside_target" | "n/a";
-            /** Trigger Level */
-            trigger_level?: string | null;
             /** Target Level */
             target_level?: string | null;
-            /** Invalid Level */
-            invalid_level?: string | null;
-            /**
-             * Trigger Source Path
-             * @default
-             */
-            trigger_source_path: string;
             /**
              * Target Source Path
              * @default
              */
             target_source_path: string;
+            /** Trigger Level */
+            trigger_level?: string | null;
             /**
-             * Invalid Source Path
+             * Trigger Source Path
              * @default
              */
-            invalid_source_path: string;
+            trigger_source_path: string;
         };
         /**
          * TradeInsightAiTargetFeasibility
@@ -6663,6 +6712,15 @@ export interface components {
          *     against their own evidence rules.
          */
         TradeInsightAiTriggerComponent: {
+            /** Evidence Close */
+            evidence_close?: string | null;
+            /** Evidence Date */
+            evidence_date?: string | null;
+            /**
+             * Fired
+             * @default false
+             */
+            fired: boolean;
             /** Level */
             level?: string | null;
             /**
@@ -6670,15 +6728,6 @@ export interface components {
              * @default
              */
             meaning: string;
-            /**
-             * Fired
-             * @default false
-             */
-            fired: boolean;
-            /** Evidence Close */
-            evidence_close?: string | null;
-            /** Evidence Date */
-            evidence_date?: string | null;
             /**
              * Source Path
              * @default
@@ -6701,19 +6750,6 @@ export interface components {
          *     the validator rejects (or auto-downgrades) to CONDITIONAL.
          */
         TradeInsightAiTriggerEvidence: {
-            /**
-             * Trigger Fired
-             * @default false
-             */
-            trigger_fired: boolean;
-            /**
-             * Trigger Type
-             * @default unknown
-             * @enum {string}
-             */
-            trigger_type: "daily_close" | "two_session_hold" | "unknown";
-            /** Trigger Level */
-            trigger_level?: string | null;
             /** Evidence Close */
             evidence_close?: string | null;
             /** Evidence Close Date */
@@ -6723,24 +6759,37 @@ export interface components {
              * @default
              */
             source_path: string;
+            /**
+             * Trigger Fired
+             * @default false
+             */
+            trigger_fired: boolean;
+            /** Trigger Level */
+            trigger_level?: string | null;
+            /**
+             * Trigger Type
+             * @default unknown
+             * @enum {string}
+             */
+            trigger_type: "daily_close" | "two_session_hold" | "unknown";
         };
         /** TradeInsightAiVrpAssessment */
         TradeInsightAiVrpAssessment: {
-            /** Signal */
-            signal: string;
-            /** Title */
-            title: string;
-            /** Summary */
-            summary: string;
             /** Metrics */
             metrics?: components["schemas"]["TradeInsightAiMetricCard"][];
             /** Reason */
             reason: string;
+            /** Signal */
+            signal: string;
+            /** Summary */
+            summary: string;
+            /** Title */
+            title: string;
         };
         /** TradeInsightsAiHealth */
         TradeInsightsAiHealth: {
-            codex: components["schemas"]["TradeInsightsAiProviderHealth"];
             claude: components["schemas"]["TradeInsightsAiProviderHealth"];
+            codex: components["schemas"]["TradeInsightsAiProviderHealth"];
             deepseek: components["schemas"]["TradeInsightsAiProviderHealth"];
         };
         /**
@@ -6748,27 +6797,22 @@ export interface components {
          * @description Per-provider AI worker pool status.
          */
         TradeInsightsAiProviderHealth: {
+            /** Last Beat At */
+            last_beat_at?: string | null;
+            /** Queued Depth */
+            queued_depth: number;
             /** Workers Expected */
             workers_expected: number;
             /** Workers Healthy */
             workers_healthy: number;
-            /** Queued Depth */
-            queued_depth: number;
-            /** Last Beat At */
-            last_beat_at?: string | null;
         };
         /** TradeInsightsHeader */
         TradeInsightsHeader: {
             /**
-             * Dominant Bias
-             * @default NEUTRAL
+             * Badges
+             * @default []
              */
-            dominant_bias: string;
-            /**
-             * Primary Setup
-             * @default NO_CLEAR_SETUP
-             */
-            primary_setup: string;
+            badges: components["schemas"]["InsightBadge"][];
             /**
              * Confidence Label
              * @default LOW
@@ -6780,6 +6824,11 @@ export interface components {
              */
             data_quality_label: string;
             /**
+             * Dominant Bias
+             * @default NEUTRAL
+             */
+            dominant_bias: string;
+            /**
              * Idea Count
              * @default 0
              */
@@ -6787,101 +6836,106 @@ export interface components {
             /** Preferred Idea Id */
             preferred_idea_id?: string | null;
             /**
-             * Badges
-             * @default []
+             * Primary Setup
+             * @default NO_CLEAR_SETUP
              */
-            badges: components["schemas"]["InsightBadge"][];
+            primary_setup: string;
         };
         /** TradeInsightsResponse */
         TradeInsightsResponse: {
-            /** Ticker */
-            ticker: string;
             /** As Of */
             as_of?: string | null;
-            /**
-             * Mode
-             * @default research
-             */
-            mode: string;
-            header: components["schemas"]["TradeInsightsHeader"];
-            /**
-             * @default {
-             *       "status": "UNKNOWN",
-             *       "headline": "Source reconciliation unavailable",
-             *       "rows": [],
-             *       "decision": "Use deterministic data only where source agreement is understood."
-             *     }
-             */
-            source_reconciliation: components["schemas"]["SourceReconciliation"];
-            /**
-             * Signal Stack
-             * @default []
-             */
-            signal_stack: components["schemas"]["InsightSignalRow"][];
-            /**
-             * Flow Table
-             * @default []
-             */
-            flow_table: components["schemas"]["ChainFlowReadRow"][];
-            /**
-             * Term Structure Table
-             * @default []
-             */
-            term_structure_table: components["schemas"]["TermMoveRow"][];
             /**
              * Candidate Structures
              * @default []
              */
             candidate_structures: components["schemas"]["CandidateStructure"][];
             /**
+             * Flow Table
+             * @default []
+             */
+            flow_table: components["schemas"]["ChainFlowReadRow"][];
+            header: components["schemas"]["TradeInsightsHeader"];
+            /**
+             * Mode
+             * @default research
+             */
+            mode: string;
+            /**
+             * Signal Stack
+             * @default []
+             */
+            signal_stack: components["schemas"]["InsightSignalRow"][];
+            /**
              * @default {
-             *       "dominant_story": "",
+             *       "decision": "Use deterministic data only where source agreement is understood.",
+             *       "headline": "Source reconciliation unavailable",
+             *       "rows": [],
+             *       "status": "UNKNOWN"
+             *     }
+             */
+            source_reconciliation: components["schemas"]["SourceReconciliation"];
+            /**
+             * @default {
              *       "avoid": [],
+             *       "dominant_story": "",
              *       "required_before_sizing": []
              *     }
              */
             synthesis: components["schemas"]["InsightsSynthesis"];
+            /**
+             * Term Structure Table
+             * @default []
+             */
+            term_structure_table: components["schemas"]["TermMoveRow"][];
+            /** Ticker */
+            ticker: string;
         };
         /** VRPAssessment */
         VRPAssessment: {
-            /** Vrp */
-            vrp?: string | null;
-            /** Signal */
-            signal: string;
             /** Note */
             note: string;
+            /** Signal */
+            signal: string;
+            /** Vrp */
+            vrp?: string | null;
         };
         /** ValidationError */
         ValidationError: {
+            /** Context */
+            ctx?: Record<string, never>;
+            /** Input */
+            input?: unknown;
             /** Location */
             loc: (string | number)[];
             /** Message */
             msg: string;
             /** Error Type */
             type: string;
-            /** Input */
-            input?: unknown;
-            /** Context */
-            ctx?: Record<string, never>;
         };
         /**
          * ValidationResponse
          * @description Combined warm-store backtest + OOS notebook summary.
          */
         ValidationResponse: {
-            /** Backtest Md */
-            backtest_md: string;
             /** Backtest Csv Rows */
             backtest_csv_rows: number;
+            /** Backtest Md */
+            backtest_md: string;
             oos?: components["schemas"]["OosSummary"] | null;
         };
         /** VcgAttribution */
         VcgAttribution: {
             /**
-             * Vvix Pct
+             * Model Implied
              * @default 0
              */
-            vvix_pct: number;
+            model_implied: number;
+            /**
+             * Vix Component
+             * @default 0
+             */
+            vix_component: number;
             /**
              * Vix Pct
              * @default 0
@@ -6893,41 +6947,36 @@ export interface components {
              */
             vvix_component: number;
             /**
-             * Vix Component
+             * Vvix Pct
              * @default 0
              */
-            vix_component: number;
-            /**
-             * Model Implied
-             * @default 0
-             */
-            model_implied: number;
+            vvix_pct: number;
         };
         /** VcgDailyEntry */
         VcgDailyEntry: {
+            /** Beta1 */
+            beta1?: number | null;
+            /** Beta2 */
+            beta2?: number | null;
+            /** Credit 5D Return Pct */
+            credit_5d_return_pct?: number | null;
+            /** Credit Price */
+            credit_price?: number | null;
             /**
              * Date
              * Format: date
              */
             date: string;
+            /** Residual */
+            residual?: number | null;
             /** Vcg */
             vcg?: number | null;
             /** Vcg Adj */
             vcg_adj?: number | null;
-            /** Residual */
-            residual?: number | null;
-            /** Credit Price */
-            credit_price?: number | null;
-            /** Credit 5D Return Pct */
-            credit_5d_return_pct?: number | null;
             /** Vix */
             vix?: number | null;
             /** Vvix */
             vvix?: number | null;
-            /** Beta1 */
-            beta1?: number | null;
-            /** Beta2 */
-            beta2?: number | null;
         };
         /** VcgDailyHistoryResponse */
         VcgDailyHistoryResponse: {
@@ -6941,18 +6990,40 @@ export interface components {
         };
         /** VcgHistoryEntry */
         VcgHistoryEntry: {
-            /** Date */
-            date: string;
-            /** Residual */
-            residual?: number | null;
-            /** Vcg */
-            vcg?: number | null;
-            /** Vcg Adj */
-            vcg_adj?: number | null;
             /** Beta1 */
             beta1?: number | null;
             /** Beta2 */
             beta2?: number | null;
+            /**
+             * Bounce
+             * @default 0
+             */
+            bounce: number;
+            /**
+             * Credit
+             * @default 0
+             */
+            credit: number;
+            /** Date */
+            date: string;
+            /**
+             * Edr
+             * @default 0
+             */
+            edr: number;
+            /** Residual */
+            residual?: number | null;
+            /**
+             * Ro
+             * @default 0
+             */
+            ro: number;
+            /** Tier */
+            tier?: number | null;
+            /** Vcg */
+            vcg?: number | null;
+            /** Vcg Adj */
+            vcg_adj?: number | null;
             /**
              * Vix
              * @default 0
@@ -6963,28 +7034,6 @@ export interface components {
              * @default 0
              */
             vvix: number;
-            /**
-             * Credit
-             * @default 0
-             */
-            credit: number;
-            /**
-             * Ro
-             * @default 0
-             */
-            ro: number;
-            /**
-             * Edr
-             * @default 0
-             */
-            edr: number;
-            /** Tier */
-            tier?: number | null;
-            /**
-             * Bounce
-             * @default 0
-             */
-            bounce: number;
         };
         /** VcgInterpretationCount */
         VcgInterpretationCount: {
@@ -6997,6 +7046,16 @@ export interface components {
         };
         /** VcgIntradayPoint */
         VcgIntradayPoint: {
+            /** Beta1 */
+            beta1?: number | null;
+            /** Beta2 */
+            beta2?: number | null;
+            /** Credit 5D Return Pct */
+            credit_5d_return_pct?: number | null;
+            /** Credit Price */
+            credit_price?: number | null;
+            /** Residual */
+            residual?: number | null;
             /**
              * Ts
              * Format: date-time
@@ -7006,23 +7065,15 @@ export interface components {
             vcg?: number | null;
             /** Vcg Adj */
             vcg_adj?: number | null;
-            /** Residual */
-            residual?: number | null;
-            /** Credit Price */
-            credit_price?: number | null;
-            /** Credit 5D Return Pct */
-            credit_5d_return_pct?: number | null;
             /** Vix */
             vix?: number | null;
             /** Vvix */
             vvix?: number | null;
-            /** Beta1 */
-            beta1?: number | null;
-            /** Beta2 */
-            beta2?: number | null;
         };
         /** VcgIntradayResponse */
         VcgIntradayResponse: {
+            /** As Of */
+            as_of?: string | null;
             /**
              * Credit Proxy
              * @default HYG
@@ -7030,8 +7081,6 @@ export interface components {
             credit_proxy: string;
             /** Sessions */
             sessions?: components["schemas"]["VcgIntradaySession"][];
-            /** As Of */
-            as_of?: string | null;
         };
         /** VcgIntradaySession */
         VcgIntradaySession: {
@@ -7045,41 +7094,41 @@ export interface components {
         };
         /** VcgLiveResponse */
         VcgLiveResponse: {
-            /**
-             * Status
-             * @default empty
-             * @enum {string}
-             */
-            status: "ok" | "empty";
-            /**
-             * Scan Time
-             * @default
-             */
-            scan_time: string;
-            /** Date */
-            date?: string | null;
-            /**
-             * Credit Proxy
-             * @default HYG
-             */
-            credit_proxy: string;
-            signal?: components["schemas"]["VcgSignal"];
-            /** History */
-            history?: components["schemas"]["VcgHistoryEntry"][];
+            /** Active Source */
+            active_source?: string | null;
             /**
              * Basis
              * @default eod
              * @enum {string}
              */
             basis: "live" | "eod";
+            /** Carried Forward */
+            carried_forward?: string[];
+            /**
+             * Credit Proxy
+             * @default HYG
+             */
+            credit_proxy: string;
+            /** Date */
+            date?: string | null;
+            /** History */
+            history?: components["schemas"]["VcgHistoryEntry"][];
             /** Live Quotes */
             live_quotes?: {
                 [key: string]: components["schemas"]["RegimeLiveQuote"];
             };
-            /** Carried Forward */
-            carried_forward?: string[];
-            /** Active Source */
-            active_source?: string | null;
+            /**
+             * Scan Time
+             * @default
+             */
+            scan_time: string;
+            signal?: components["schemas"]["VcgSignal"];
+            /**
+             * Status
+             * @default empty
+             * @enum {string}
+             */
+            status: "ok" | "empty";
         };
         /** VcgNamedCrashEvent */
         VcgNamedCrashEvent: {
@@ -7095,20 +7144,20 @@ export interface components {
          * @description One row of the ±5d named-crash window for a single event.
          */
         VcgNamedCrashOffset: {
-            /** Offset Days */
-            offset_days: number;
-            /** Vcg */
-            vcg?: number | null;
-            /** Vcg Adj */
-            vcg_adj?: number | null;
             /** Beta1 */
             beta1?: number | null;
             /** Beta2 */
             beta2?: number | null;
-            /** Sign Ok */
-            sign_ok?: boolean | null;
             /** Interpretation */
             interpretation?: string | null;
+            /** Offset Days */
+            offset_days: number;
+            /** Sign Ok */
+            sign_ok?: boolean | null;
+            /** Vcg */
+            vcg?: number | null;
+            /** Vcg Adj */
+            vcg_adj?: number | null;
         };
         /**
          * VcgResponse
@@ -7116,26 +7165,26 @@ export interface components {
          */
         VcgResponse: {
             /**
-             * Status
-             * @default empty
-             * @enum {string}
+             * Credit Proxy
+             * @default HYG
              */
-            status: "ok" | "empty";
+            credit_proxy: string;
+            /** Date */
+            date?: string | null;
+            /** History */
+            history?: components["schemas"]["VcgHistoryEntry"][];
             /**
              * Scan Time
              * @default
              */
             scan_time: string;
-            /** Date */
-            date?: string | null;
-            /**
-             * Credit Proxy
-             * @default HYG
-             */
-            credit_proxy: string;
             signal?: components["schemas"]["VcgSignal"];
-            /** History */
-            history?: components["schemas"]["VcgHistoryEntry"][];
+            /**
+             * Status
+             * @default empty
+             * @enum {string}
+             */
+            status: "ok" | "empty";
         };
         /**
          * VcgScanResponse
@@ -7143,11 +7192,14 @@ export interface components {
          */
         VcgScanResponse: {
             /**
-             * Status
-             * @default ok
-             * @enum {string}
+             * Proxy
+             * @default HYG
              */
-            status: "ok" | "skipped";
+            proxy: string;
+            /** Reason */
+            reason?: string | null;
+            /** Row Id */
+            row_id?: number | null;
             /**
              * Scanner
              * @default vcg
@@ -7155,82 +7207,47 @@ export interface components {
              */
             scanner: "vcg";
             /**
-             * Proxy
-             * @default HYG
+             * Status
+             * @default ok
+             * @enum {string}
              */
-            proxy: string;
-            /** Row Id */
-            row_id?: number | null;
-            /** Reason */
-            reason?: string | null;
+            status: "ok" | "skipped";
         };
         /** VcgSignal */
         VcgSignal: {
-            /** Vcg */
-            vcg?: number | null;
-            /** Vcg Adj */
-            vcg_adj?: number | null;
-            /** Residual */
-            residual?: number | null;
+            /** Alpha */
+            alpha?: number | null;
+            attribution?: components["schemas"]["VcgAttribution"];
             /** Beta1 Vvix */
             beta1_vvix?: number | null;
             /** Beta2 Vix */
             beta2_vix?: number | null;
-            /** Alpha */
-            alpha?: number | null;
-            /**
-             * Vix
-             * @default 0
-             */
-            vix: number;
-            /**
-             * Vvix
-             * @default 0
-             */
-            vvix: number;
-            /**
-             * Credit Price
-             * @default 0
-             */
-            credit_price: number;
-            /**
-             * Credit 5D Return Pct
-             * @default 0
-             */
-            credit_5d_return_pct: number;
-            /**
-             * Ro
-             * @default 0
-             */
-            ro: number;
-            /**
-             * Edr
-             * @default 0
-             */
-            edr: number;
-            /** Tier */
-            tier?: number | null;
             /**
              * Bounce
              * @default 0
              */
             bounce: number;
             /**
-             * Vvix Severity
-             * @default moderate
+             * Credit 5D Return Pct
+             * @default 0
+             */
+            credit_5d_return_pct: number;
+            /**
+             * Credit Price
+             * @default 0
+             */
+            credit_price: number;
+            /**
+             * Edr
+             * @default 0
+             */
+            edr: number;
+            /**
+             * Interpretation
+             * @default NORMAL
              * @enum {string}
              */
-            vvix_severity: "extreme" | "elevated" | "moderate";
-            /**
-             * Sign Ok
-             * @default true
-             */
-            sign_ok: boolean;
-            /**
-             * Sign Suppressed
-             * @default false
-             */
-            sign_suppressed: boolean;
+            interpretation: "RISK_OFF" | "EDR" | "WATCH" | "BOUNCE" | "NORMAL" | "SUPPRESSED" | "PANIC" | "INSUFFICIENT_DATA";
             /**
              * Pi Panic
              * @default 0
@@ -7242,23 +7259,55 @@ export interface components {
              * @enum {string}
              */
             regime: "PANIC" | "TRANSITION" | "DIVERGENCE";
+            /** Residual */
+            residual?: number | null;
             /**
-             * Interpretation
-             * @default NORMAL
-             * @enum {string}
+             * Ro
+             * @default 0
              */
-            interpretation: "RISK_OFF" | "EDR" | "WATCH" | "BOUNCE" | "NORMAL" | "SUPPRESSED" | "PANIC" | "INSUFFICIENT_DATA";
+            ro: number;
+            /**
+             * Sign Ok
+             * @default true
+             */
+            sign_ok: boolean;
+            /**
+             * Sign Suppressed
+             * @default false
+             */
+            sign_suppressed: boolean;
+            /** Tier */
+            tier?: number | null;
+            /** Vcg */
+            vcg?: number | null;
+            /** Vcg Adj */
+            vcg_adj?: number | null;
+            /**
+             * Vix
+             * @default 0
+             */
+            vix: number;
             /**
              * Vix Percentile Rank
              * @description VIX level's 252-day rolling percentile rank (strict_lt tie rule). Used by the v2 absolute-vol-stress override gate. None during the 252-bar warmup or for v=1 payloads.
              */
             vix_percentile_rank?: number | null;
             /**
+             * Vvix
+             * @default 0
+             */
+            vvix: number;
+            /**
              * Vvix Percentile Rank
              * @description VVIX level's 252-day rolling percentile rank (strict_lt tie rule). Used by the v2 absolute-vol-stress override gate.
              */
             vvix_percentile_rank?: number | null;
-            attribution?: components["schemas"]["VcgAttribution"];
+            /**
+             * Vvix Severity
+             * @default moderate
+             * @enum {string}
+             */
+            vvix_severity: "extreme" | "elevated" | "moderate";
         };
         /**
          * VcgStressHistoryEntry
@@ -7269,33 +7318,33 @@ export interface components {
         VcgStressHistoryEntry: {
             /** Date */
             date: string;
+            /** Fwd 20D Pct */
+            fwd_20d_pct?: number | null;
+            /** Fwd 5D Pct */
+            fwd_5d_pct?: number | null;
+            /** Fwd 60D Pct */
+            fwd_60d_pct?: number | null;
             /**
              * Interpretation
              * @enum {string}
              */
             interpretation: "PANIC" | "RISK_OFF" | "EDR";
-            /** Score */
-            score?: number | null;
-            /** Vcg Adj */
-            vcg_adj?: number | null;
             /** Pi Panic */
             pi_panic?: number | null;
+            /** Score */
+            score?: number | null;
             /** Sign Ok */
             sign_ok?: boolean | null;
+            /** Vcg Adj */
+            vcg_adj?: number | null;
             /** Vix */
             vix?: number | null;
-            /** Vvix */
-            vvix?: number | null;
             /** Vix Percentile Rank */
             vix_percentile_rank?: number | null;
+            /** Vvix */
+            vvix?: number | null;
             /** Vvix Percentile Rank */
             vvix_percentile_rank?: number | null;
-            /** Fwd 5D Pct */
-            fwd_5d_pct?: number | null;
-            /** Fwd 20D Pct */
-            fwd_20d_pct?: number | null;
-            /** Fwd 60D Pct */
-            fwd_60d_pct?: number | null;
         };
         /**
          * VcgStressHistorySummary
@@ -7316,14 +7365,14 @@ export interface components {
              * @enum {string}
              */
             interpretation: "PANIC" | "RISK_OFF" | "EDR";
-            /** N */
-            n: number;
-            /** Mean Fwd 5D Pct */
-            mean_fwd_5d_pct?: number | null;
             /** Mean Fwd 20D Pct */
             mean_fwd_20d_pct?: number | null;
+            /** Mean Fwd 5D Pct */
+            mean_fwd_5d_pct?: number | null;
             /** Mean Fwd 60D Pct */
             mean_fwd_60d_pct?: number | null;
+            /** N */
+            n: number;
             /** Winrate 20D Pct */
             winrate_20d_pct?: number | null;
             /** Winrate 60D Pct */
@@ -7336,14 +7385,14 @@ export interface components {
         VcgValidationResponse: {
             /** Backtest Md */
             backtest_md: string;
-            /** N Days */
-            n_days: number;
             /** Composite Version */
             composite_version: string;
             /** Credit Proxy */
             credit_proxy: string;
             /** Interpretation Distribution */
             interpretation_distribution: components["schemas"]["VcgInterpretationCount"][];
+            /** N Days */
+            n_days: number;
             /** Named Crash Window */
             named_crash_window: components["schemas"]["VcgNamedCrashEvent"][];
             /**
@@ -7355,19 +7404,21 @@ export interface components {
         };
         /** VolBackdropPoint */
         VolBackdropPoint: {
+            /** Close */
+            close: number;
             /**
              * Date
              * Format: date
              */
             date: string;
-            /** Close */
-            close: number;
         };
         /**
          * VolBackdropResponse
          * @description Vol-complex time series + VIX term-structure (regime page header strip).
          */
         VolBackdropResponse: {
+            /** As Of */
+            as_of?: string | null;
             /** Series */
             series?: {
                 [key: string]: components["schemas"]["VolBackdropPoint"][];
@@ -7376,68 +7427,66 @@ export interface components {
             term_structure_ratio?: number | null;
             /** Term Structure State */
             term_structure_state?: string | null;
-            /** As Of */
-            as_of?: string | null;
         };
         /** VolHeaderBlock */
         VolHeaderBlock: {
+            /** Implied Move 30D Perc */
+            implied_move_30d_perc?: string | null;
             /** Iv */
             iv?: string | null;
-            /** Rv */
-            rv?: string | null;
+            /** Iv High 52W */
+            iv_high_52w?: string | null;
+            /** Iv Low 52W */
+            iv_low_52w?: string | null;
+            /** Iv Percentile 30D */
+            iv_percentile_30d?: string | null;
             /** Iv Rank */
             iv_rank?: string | null;
             /** Iv Rank 1Y */
             iv_rank_1y?: string | null;
-            /** Iv Low 52W */
-            iv_low_52w?: string | null;
-            /** Iv High 52W */
-            iv_high_52w?: string | null;
-            /** Rv Low 52W */
-            rv_low_52w?: string | null;
+            /** Rv */
+            rv?: string | null;
             /** Rv High 52W */
             rv_high_52w?: string | null;
-            /** Iv Percentile 30D */
-            iv_percentile_30d?: string | null;
-            /** Implied Move 30D Perc */
-            implied_move_30d_perc?: string | null;
+            /** Rv Low 52W */
+            rv_low_52w?: string | null;
             /** Skew 25D */
             skew_25d?: string | null;
             /** Vrp */
             vrp?: string | null;
             /**
-             * Vrp Signal
-             * @default
-             */
-            vrp_signal: string;
-            /**
              * Vrp Note
              * @default
              */
             vrp_note: string;
+            /**
+             * Vrp Signal
+             * @default
+             */
+            vrp_signal: string;
         };
         /** VolatilityProfile */
         VolatilityProfile: {
-            /** Iv */
-            iv?: string | null;
-            /** Iv Rank */
-            iv_rank?: string | null;
-            /** Iv Low 52W */
-            iv_low_52w?: string | null;
-            /** Iv High 52W */
-            iv_high_52w?: string | null;
-            /** Rv */
-            rv?: string | null;
-            /** Rv Low 52W */
-            rv_low_52w?: string | null;
-            /** Rv High 52W */
-            rv_high_52w?: string | null;
-            /** Iv Rank 1Y */
-            iv_rank_1y?: string | null;
-            /** Iv Percentile 30D */
-            iv_percentile_30d?: string | null;
             /** Implied Move 30D Perc */
             implied_move_30d_perc?: string | null;
+            /** Iv */
+            iv?: string | null;
+            /** Iv High 52W */
+            iv_high_52w?: string | null;
+            /** Iv Low 52W */
+            iv_low_52w?: string | null;
+            /** Iv Percentile 30D */
+            iv_percentile_30d?: string | null;
+            /** Iv Rank */
+            iv_rank?: string | null;
+            /** Iv Rank 1Y */
+            iv_rank_1y?: string | null;
+            /** Rv */
+            rv?: string | null;
+            /** Rv High 52W */
+            rv_high_52w?: string | null;
+            /** Rv Low 52W */
+            rv_low_52w?: string | null;
             /** Skew 25D */
             skew_25d?: string | null;
             /**
@@ -7451,8 +7500,6 @@ export interface components {
         };
         /** VolatilitySeriesResponse */
         VolatilitySeriesResponse: {
-            /** Ticker */
-            ticker: string;
             /**
              * As Of
              * Format: date
@@ -7460,44 +7507,6 @@ export interface components {
             as_of: string;
             /** Backfill Status */
             backfill_status: string;
-            header: components["schemas"]["VolHeaderBlock"];
-            /**
-             * Term Structure
-             * @default []
-             */
-            term_structure: components["schemas"]["TermStructureExpiryRow"][];
-            /**
-             * Smile
-             * @default []
-             */
-            smile: components["schemas"]["SmileExpiryCurve"][];
-            /**
-             * Hv Iv History
-             * @default []
-             */
-            hv_iv_history: components["schemas"]["IvHvPoint"][];
-            /**
-             * @default {
-             *       "bins": []
-             *     }
-             */
-            iv_percentile_distribution: components["schemas"]["IvPercentileDistribution"];
-            /**
-             * Iv Of Iv
-             * @default []
-             */
-            iv_of_iv: components["schemas"]["IvOfIvPoint"][];
-            /**
-             * Rv Spy Corr
-             * @default []
-             */
-            rv_spy_corr: components["schemas"]["RvCorrPoint"][];
-            /**
-             * @default {
-             *       "points": []
-             *     }
-             */
-            regime_quadrant: components["schemas"]["RegimeQuadrantBlock"];
             /**
              * Divergence
              * @default []
@@ -7508,6 +7517,48 @@ export interface components {
              * @default
              */
             divergence_headline: string;
+            header: components["schemas"]["VolHeaderBlock"];
+            /**
+             * Hv Iv History
+             * @default []
+             */
+            hv_iv_history: components["schemas"]["IvHvPoint"][];
+            /**
+             * Iv Of Iv
+             * @default []
+             */
+            iv_of_iv: components["schemas"]["IvOfIvPoint"][];
+            /**
+             * @default {
+             *       "bins": []
+             *     }
+             */
+            iv_percentile_distribution: components["schemas"]["IvPercentileDistribution"];
+            /**
+             * @default {
+             *       "points": []
+             *     }
+             */
+            regime_quadrant: components["schemas"]["RegimeQuadrantBlock"];
+            /**
+             * Rv Spy Corr
+             * @default []
+             */
+            rv_spy_corr: components["schemas"]["RvCorrPoint"][];
+            /**
+             * Smile
+             * @default []
+             */
+            smile: components["schemas"]["SmileExpiryCurve"][];
+            /** Spot */
+            spot?: string | null;
+            /**
+             * Term Structure
+             * @default []
+             */
+            term_structure: components["schemas"]["TermStructureExpiryRow"][];
+            /** Ticker */
+            ticker: string;
             /**
              * Vrp Spread
              * @default []
@@ -7518,8 +7569,6 @@ export interface components {
              * @default
              */
             vrp_spread_headline: string;
-            /** Spot */
-            spot?: string | null;
         };
         /** VrpDailyPoint */
         VrpDailyPoint: {
@@ -7535,12 +7584,28 @@ export interface components {
         };
         /** WatchlistCard */
         WatchlistCard: {
-            /** Ticker */
-            ticker: string;
-            /** Sector */
-            sector: string;
+            /** Aggression Pct */
+            aggression_pct?: string | null;
+            /** Aum */
+            aum?: string | null;
+            gamma: components["schemas"]["GammaBlock"];
+            /** Iv Atm */
+            iv_atm?: string | null;
+            /** Iv Rank */
+            iv_rank?: string | null;
+            /** Market Cap */
+            market_cap?: string | null;
             /** Pinned */
             pinned: boolean;
+            positioning: components["schemas"]["PositioningBlock"];
+            queue?: components["schemas"]["QueueStatus"] | null;
+            returns: components["schemas"]["ReturnsBlock"];
+            /** Scanned At */
+            scanned_at?: string | null;
+            /** Sector */
+            sector: string;
+            setup: components["schemas"]["SetupBlock"];
+            skew: components["schemas"]["SkewBlock"];
             /** Sort Rank */
             sort_rank: number;
             /** Spot */
@@ -7549,31 +7614,11 @@ export interface components {
             spot_quoted_at?: string | null;
             /** Spot Source */
             spot_source?: string | null;
-            /** Scanned At */
-            scanned_at?: string | null;
-            /** Iv Atm */
-            iv_atm?: string | null;
-            /** Iv Rank */
-            iv_rank?: string | null;
-            /** Market Cap */
-            market_cap?: string | null;
-            /** Aum */
-            aum?: string | null;
-            setup: components["schemas"]["SetupBlock"];
-            /** Aggression Pct */
-            aggression_pct?: string | null;
-            returns: components["schemas"]["ReturnsBlock"];
-            gamma: components["schemas"]["GammaBlock"];
-            skew: components["schemas"]["SkewBlock"];
-            positioning: components["schemas"]["PositioningBlock"];
-            queue?: components["schemas"]["QueueStatus"] | null;
+            /** Ticker */
+            ticker: string;
         };
         /** WatchlistMutation */
         WatchlistMutation: {
-            /** Ticker */
-            ticker: string;
-            /** Sector */
-            sector: string;
             /** Notes */
             notes?: string | null;
             /**
@@ -7581,32 +7626,36 @@ export interface components {
              * @default false
              */
             pinned: boolean;
+            /** Sector */
+            sector: string;
             /**
              * Sort Rank
              * @default 0
              */
             sort_rank: number;
+            /** Ticker */
+            ticker: string;
         };
         /** WatchlistPatch */
         WatchlistPatch: {
-            /** Sector */
-            sector?: string | null;
             /** Notes */
             notes?: string | null;
             /** Pinned */
             pinned?: boolean | null;
+            /** Sector */
+            sector?: string | null;
             /** Sort Rank */
             sort_rank?: number | null;
         };
         /** WatchlistResponse */
         WatchlistResponse: {
-            /** Scanned At Min */
-            scanned_at_min?: string | null;
+            queue?: components["schemas"]["QueueSummary"];
             /** Scanned At Max */
             scanned_at_max?: string | null;
+            /** Scanned At Min */
+            scanned_at_min?: string | null;
             /** Scheduler Lag Seconds */
             scheduler_lag_seconds?: number | null;
-            queue?: components["schemas"]["QueueSummary"];
             /** Tickers */
             tickers: components["schemas"]["WatchlistCard"][];
         };
@@ -7616,14 +7665,14 @@ export interface components {
          *     writes spot every ~1s; this projection avoids the full dashboard join.
          */
         WatchlistSpot: {
-            /** Ticker */
-            ticker: string;
             /** Spot */
             spot?: string | null;
             /** Spot Quoted At */
             spot_quoted_at?: string | null;
             /** Spot Source */
             spot_source?: string | null;
+            /** Ticker */
+            ticker: string;
         };
         /** WatchlistSpotsResponse */
         WatchlistSpotsResponse: {
@@ -7632,21 +7681,21 @@ export interface components {
         };
         /** WorkerHealth */
         WorkerHealth: {
+            /** Heartbeat Name */
+            heartbeat_name: string;
+            /** Index */
+            index: number;
             /** Label */
             label: string;
+            /** Lag Seconds */
+            lag_seconds?: number | null;
+            /** Last Beat At */
+            last_beat_at?: string | null;
             /**
              * Role
              * @enum {string}
              */
             role: "uw" | "massive" | "ai";
-            /** Index */
-            index: number;
-            /** Heartbeat Name */
-            heartbeat_name: string;
-            /** Lag Seconds */
-            lag_seconds?: number | null;
-            /** Last Beat At */
-            last_beat_at?: string | null;
         };
         /**
          * WsConsumerHealth
@@ -7663,43 +7712,43 @@ export interface components {
          *     displays under the row.
          */
         WsConsumerHealth: {
+            /** Active Source */
+            active_source?: string | null;
+            /** Connection Started At */
+            connection_started_at?: string | null;
             /** Healthy */
             healthy: boolean;
-            /** Last Tick At */
-            last_tick_at?: string | null;
-            /** Last Tick Age Seconds */
-            last_tick_age_seconds?: number | null;
+            /** Last Error */
+            last_error?: string | null;
             /** Last Flush At */
             last_flush_at?: string | null;
-            /**
-             * Ticks Received
-             * @default 0
-             */
-            ticks_received: number;
+            /** Last Tick Age Seconds */
+            last_tick_age_seconds?: number | null;
+            /** Last Tick At */
+            last_tick_at?: string | null;
+            /** Reason */
+            reason?: string | null;
             /**
              * Ticks Flushed
              * @default 0
              */
             ticks_flushed: number;
-            /** Connection Started At */
-            connection_started_at?: string | null;
-            /** Last Error */
-            last_error?: string | null;
-            /** Active Source */
-            active_source?: string | null;
-            /** Reason */
-            reason?: string | null;
+            /**
+             * Ticks Received
+             * @default 0
+             */
+            ticks_received: number;
         };
         /** GexLevel */
         uw_scan__api__schemas__GexLevel: {
-            /** Strike */
-            strike?: number | null;
-            /** Gamma */
-            gamma?: number | null;
             /** Distance */
             distance?: number | null;
             /** Distance Pct */
             distance_pct?: number | null;
+            /** Gamma */
+            gamma?: number | null;
+            /** Strike */
+            strike?: number | null;
         };
         /**
          * GexLevel
@@ -7709,14 +7758,14 @@ export interface components {
          *     figure on the tile — the dollar value of dealer hedging triggered by a $1 move.
          */
         uw_scan__models__GexLevel: {
-            /** Strike */
-            strike: string;
+            /** Gamma Per Dollar */
+            gamma_per_dollar?: string | null;
             /** Net Gex */
             net_gex?: string | null;
             /** Pct From Spot */
             pct_from_spot?: string | null;
-            /** Gamma Per Dollar */
-            gamma_per_dollar?: string | null;
+            /** Strike */
+            strike: string;
         };
     };
     responses: never;
@@ -7727,6 +7776,308 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    get_cockpit_dealer_api_cockpit__ticker__dealer_get: {
+        parameters: {
+            query?: {
+                asof?: string | null;
+            };
+            header?: never;
+            path: {
+                ticker: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CockpitDealerResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_cockpit_flow_im_api_cockpit__ticker__flow_im_get: {
+        parameters: {
+            query?: {
+                asof?: string | null;
+            };
+            header?: never;
+            path: {
+                ticker: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CockpitFlowImResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_cockpit_state_api_cockpit__ticker__state_get: {
+        parameters: {
+            query?: {
+                asof?: string | null;
+            };
+            header?: never;
+            path: {
+                ticker: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CockpitStateResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_cockpit_surface_api_cockpit__ticker__surface_get: {
+        parameters: {
+            query?: {
+                asof?: string | null;
+            };
+            header?: never;
+            path: {
+                ticker: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CockpitSurfaceResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_cockpit_vrp_api_cockpit__ticker__vrp_get: {
+        parameters: {
+            query?: {
+                asof?: string | null;
+            };
+            header?: never;
+            path: {
+                ticker: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CockpitVrpResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_gauge_api_gold_gauge_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GoldGaugeResponse"];
+                };
+            };
+        };
+    };
+    get_input_series_api_gold_inputs__series_id__get: {
+        parameters: {
+            query?: {
+                from?: string | null;
+                to?: string | null;
+            };
+            header?: never;
+            path: {
+                series_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GoldInputSeriesResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_lens_api_gold_lenses__lens_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                lens_id: "structural" | "cyclical" | "valuation";
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GoldLensResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_replay_api_gold_replay_get: {
+        parameters: {
+            query: {
+                /** @description Reconstruct posture for this obs_date */
+                as_of: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GoldStateResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_state_api_gold_state_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GoldStateResponse"];
+                };
+            };
+        };
+    };
     health_api_health_get: {
         parameters: {
             query?: {
@@ -7812,13 +8163,855 @@ export interface operations {
             };
         };
     };
-    get_watchlist_api_watchlist_get: {
+    get_job_api_jobs__job_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                job_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JobStatus"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_ohlc_api_ohlc__ticker__get: {
         parameters: {
             query?: {
+                days?: number;
+            };
+            header?: never;
+            path: {
+                ticker: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OhlcRow"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    provider_usage_endpoints_api_provider_usage_endpoints_get: {
+        parameters: {
+            query?: {
+                provider?: "uw" | "massive" | "all";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProviderUsageBreakdownResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    provider_usage_requests_api_provider_usage_requests_get: {
+        parameters: {
+            query?: {
+                provider?: "uw" | "massive" | "all";
+                ticker?: string | null;
+                status_family?: ("2xx" | "3xx" | "4xx" | "5xx" | "transport_error") | null;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProviderUsageRequestsResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    provider_usage_summary_api_provider_usage_summary_get: {
+        parameters: {
+            query?: {
+                provider?: "uw" | "massive" | "all";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProviderUsageSummaryResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    provider_usage_tickers_api_provider_usage_tickers_get: {
+        parameters: {
+            query?: {
+                provider?: "uw" | "massive" | "all";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProviderUsageBreakdownResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    rates_snapshot_api_rates_snapshot_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RatesSnapshotResponse"];
+                };
+            };
+        };
+    };
+    get_regime_api_regime_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CriResponse"];
+                };
+            };
+        };
+    };
+    get_canary_latest_api_regime_canary_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CanaryLatestResponse"];
+                };
+            };
+        };
+    };
+    get_canary_history_api_regime_canary_history_get: {
+        parameters: {
+            query?: {
+                days?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CanaryHistoryResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_canary_validation_api_regime_canary_validation_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CanaryValidationResponse"];
+                };
+            };
+        };
+    };
+    get_cri_history_api_regime_cri_history_get: {
+        parameters: {
+            query?: {
+                days?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CriDailyHistoryResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_cri_intraday_api_regime_cri_intraday_get: {
+        parameters: {
+            query?: {
+                sessions?: number;
+                rth_only?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CriIntradayResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_cri_live_api_regime_cri_live_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CriLiveResponse"];
+                };
+            };
+        };
+    };
+    get_dealer_regime_api_regime_dealer_get: {
+        parameters: {
+            query: {
+                ticker: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DealerRegimeResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_gex_api_regime_gex_get: {
+        parameters: {
+            query?: {
+                ticker?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GexResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_gex_intraday_api_regime_gex_intraday_get: {
+        parameters: {
+            query?: {
+                ticker?: string;
+                sessions?: number;
+                rth_only?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GexIntradayResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    trigger_gex_scan_api_regime_gex_scan_post: {
+        parameters: {
+            query?: {
+                ticker?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_grg_api_regime_grg_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GrgResponse"];
+                };
+            };
+        };
+    };
+    trigger_grg_scan_api_regime_grg_scan_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GrgScanResponse"];
+                };
+            };
+        };
+    };
+    get_guidance_api_regime_guidance_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GuidanceResponse"];
+                };
+            };
+        };
+    };
+    get_regime_quotes_api_regime_quotes_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RegimeQuotesResponse"];
+                };
+            };
+        };
+    };
+    trigger_cri_scan_api_regime_scan_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CriScanResponse"];
+                };
+            };
+        };
+    };
+    get_validation_api_regime_validation_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationResponse"];
+                };
+            };
+        };
+    };
+    get_vcg_api_regime_vcg_get: {
+        parameters: {
+            query?: {
+                proxy?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VcgResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_vcg_validation_api_regime_vcg_validation_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VcgValidationResponse"];
+                };
+            };
+        };
+    };
+    get_vcg_history_api_regime_vcg_history_get: {
+        parameters: {
+            query?: {
+                proxy?: string;
+                days?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VcgDailyHistoryResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_vcg_intraday_api_regime_vcg_intraday_get: {
+        parameters: {
+            query?: {
+                proxy?: string;
+                sessions?: number;
+                rth_only?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VcgIntradayResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_vcg_live_api_regime_vcg_live_get: {
+        parameters: {
+            query?: {
+                proxy?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VcgLiveResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    trigger_vcg_scan_api_regime_vcg_scan_post: {
+        parameters: {
+            query?: {
+                proxy?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VcgScanResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_vol_backdrop_api_regime_vol_backdrop_get: {
+        parameters: {
+            query?: {
+                days?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VolBackdropResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_scanner_api_scanner_get: {
+        parameters: {
+            query?: {
+                tier_1_only?: boolean;
+                type_f_only?: boolean;
                 sector?: string | null;
-                /** @description e.g. 'C-bull', 'C-bear', 'F-MULTI', 'NEUTRAL' */
-                setup?: string | null;
-                fresh_within_minutes?: number | null;
+                freshness_hours?: number | null;
             };
             header?: never;
             path?: never;
@@ -7832,7 +9025,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["WatchlistResponse"];
+                    "application/json": components["schemas"]["ScannerResponse"];
                 };
             };
             /** @description Validation Error */
@@ -7846,44 +9039,11 @@ export interface operations {
             };
         };
     };
-    post_watchlist_api_watchlist_post: {
+    get_scanner_discover_api_scanner_discover_get: {
         parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["WatchlistMutation"];
+            query?: {
+                limit?: number;
             };
-        };
-        responses: {
-            /** @description Successful Response */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_watchlist_queue_api_watchlist_queue_get: {
-        parameters: {
-            query?: never;
             header?: never;
             path?: never;
             cookie?: never;
@@ -7896,84 +9056,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["QueueSummary"];
-                };
-            };
-        };
-    };
-    get_watchlist_spots_api_watchlist_spots_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["WatchlistSpotsResponse"];
-                };
-            };
-        };
-    };
-    delete_watchlist_api_watchlist__ticker__delete: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                ticker: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    patch_watchlist_api_watchlist__ticker__patch: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                ticker: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["WatchlistPatch"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["DiscoveryResponse"];
                 };
             };
             /** @description Validation Error */
@@ -8114,330 +9197,6 @@ export interface operations {
             };
         };
     };
-    get_ohlc_api_ohlc__ticker__get: {
-        parameters: {
-            query?: {
-                days?: number;
-            };
-            header?: never;
-            path: {
-                ticker: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["OhlcRow"][];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_cockpit_state_api_cockpit__ticker__state_get: {
-        parameters: {
-            query?: {
-                asof?: string | null;
-            };
-            header?: never;
-            path: {
-                ticker: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["CockpitStateResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_cockpit_dealer_api_cockpit__ticker__dealer_get: {
-        parameters: {
-            query?: {
-                asof?: string | null;
-            };
-            header?: never;
-            path: {
-                ticker: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["CockpitDealerResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_cockpit_surface_api_cockpit__ticker__surface_get: {
-        parameters: {
-            query?: {
-                asof?: string | null;
-            };
-            header?: never;
-            path: {
-                ticker: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["CockpitSurfaceResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_cockpit_flow_im_api_cockpit__ticker__flow_im_get: {
-        parameters: {
-            query?: {
-                asof?: string | null;
-            };
-            header?: never;
-            path: {
-                ticker: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["CockpitFlowImResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_cockpit_vrp_api_cockpit__ticker__vrp_get: {
-        parameters: {
-            query?: {
-                asof?: string | null;
-            };
-            header?: never;
-            path: {
-                ticker: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["CockpitVrpResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    enqueue_rescan_api_watchlist__ticker__rescan_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                ticker: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            202: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["JobStatus"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    enqueue_rescan_all_api_watchlist_rescan_all_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: {
-            content: {
-                "application/json": components["schemas"]["RescanAllRequest"] | null;
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            202: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["JobStatus"][];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_job_api_jobs__job_id__get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                job_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["JobStatus"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_volatility_series_api_stock__ticker__volatility_series_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                ticker: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["VolatilitySeriesResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
     get_skew_analysis_api_stock__ticker__skew_get: {
         parameters: {
             query?: never;
@@ -8456,133 +9215,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SkewAnalysisResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    provider_usage_summary_api_provider_usage_summary_get: {
-        parameters: {
-            query?: {
-                provider?: "uw" | "massive" | "all";
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ProviderUsageSummaryResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    provider_usage_endpoints_api_provider_usage_endpoints_get: {
-        parameters: {
-            query?: {
-                provider?: "uw" | "massive" | "all";
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ProviderUsageBreakdownResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    provider_usage_tickers_api_provider_usage_tickers_get: {
-        parameters: {
-            query?: {
-                provider?: "uw" | "massive" | "all";
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ProviderUsageBreakdownResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    provider_usage_requests_api_provider_usage_requests_get: {
-        parameters: {
-            query?: {
-                provider?: "uw" | "massive" | "all";
-                ticker?: string | null;
-                status_family?: ("2xx" | "3xx" | "4xx" | "5xx" | "transport_error") | null;
-                limit?: number;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ProviderUsageRequestsResponse"];
                 };
             };
             /** @description Validation Error */
@@ -8729,6 +9361,37 @@ export interface operations {
             };
         };
     };
+    get_volatility_series_api_stock__ticker__volatility_series_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                ticker: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VolatilitySeriesResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     get_trade_insight_priors_api_trade_insights_priors_get: {
         parameters: {
             query?: {
@@ -8764,10 +9427,13 @@ export interface operations {
             };
         };
     };
-    get_gex_api_regime_gex_get: {
+    get_watchlist_api_watchlist_get: {
         parameters: {
             query?: {
-                ticker?: string;
+                sector?: string | null;
+                /** @description e.g. 'C-bull', 'C-bear', 'F-MULTI', 'NEUTRAL' */
+                setup?: string | null;
+                fresh_within_minutes?: number | null;
             };
             header?: never;
             path?: never;
@@ -8781,7 +9447,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["GexResponse"];
+                    "application/json": components["schemas"]["WatchlistResponse"];
                 };
             };
             /** @description Validation Error */
@@ -8795,52 +9461,21 @@ export interface operations {
             };
         };
     };
-    get_gex_intraday_api_regime_gex_intraday_get: {
+    post_watchlist_api_watchlist_post: {
         parameters: {
-            query?: {
-                ticker?: string;
-                sessions?: number;
-                rth_only?: boolean;
-            };
+            query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["GexIntradayResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WatchlistMutation"];
             };
         };
-    };
-    trigger_gex_scan_api_regime_gex_scan_post: {
-        parameters: {
-            query?: {
-                ticker?: string;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
         responses: {
             /** @description Successful Response */
-            202: {
+            201: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -8861,38 +9496,7 @@ export interface operations {
             };
         };
     };
-    get_vol_backdrop_api_regime_vol_backdrop_get: {
-        parameters: {
-            query?: {
-                days?: number;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["VolBackdropResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_regime_api_regime_get: {
+    get_watchlist_queue_api_watchlist_queue_get: {
         parameters: {
             query?: never;
             header?: never;
@@ -8907,19 +9511,23 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["CriResponse"];
+                    "application/json": components["schemas"]["QueueSummary"];
                 };
             };
         };
     };
-    trigger_cri_scan_api_regime_scan_post: {
+    enqueue_rescan_all_api_watchlist_rescan_all_post: {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["RescanAllRequest"] | null;
+            };
+        };
         responses: {
             /** @description Successful Response */
             202: {
@@ -8927,29 +9535,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["CriScanResponse"];
-                };
-            };
-        };
-    };
-    get_vcg_api_regime_vcg_get: {
-        parameters: {
-            query?: {
-                proxy?: string;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["VcgResponse"];
+                    "application/json": components["schemas"]["JobStatus"][];
                 };
             };
             /** @description Validation Error */
@@ -8963,38 +9549,7 @@ export interface operations {
             };
         };
     };
-    trigger_vcg_scan_api_regime_vcg_scan_post: {
-        parameters: {
-            query?: {
-                proxy?: string;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            202: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["VcgScanResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_cri_live_api_regime_cri_live_get: {
+    get_watchlist_spots_api_watchlist_spots_get: {
         parameters: {
             query?: never;
             header?: never;
@@ -9009,249 +9564,28 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["CriLiveResponse"];
+                    "application/json": components["schemas"]["WatchlistSpotsResponse"];
                 };
             };
         };
     };
-    get_cri_intraday_api_regime_cri_intraday_get: {
-        parameters: {
-            query?: {
-                sessions?: number;
-                rth_only?: boolean;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["CriIntradayResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_cri_history_api_regime_cri_history_get: {
-        parameters: {
-            query?: {
-                days?: number;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["CriDailyHistoryResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_vcg_live_api_regime_vcg_live_get: {
-        parameters: {
-            query?: {
-                proxy?: string;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["VcgLiveResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_vcg_intraday_api_regime_vcg_intraday_get: {
-        parameters: {
-            query?: {
-                proxy?: string;
-                sessions?: number;
-                rth_only?: boolean;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["VcgIntradayResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_vcg_history_api_regime_vcg_history_get: {
-        parameters: {
-            query?: {
-                proxy?: string;
-                days?: number;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["VcgDailyHistoryResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_grg_api_regime_grg_get: {
+    delete_watchlist_api_watchlist__ticker__delete: {
         parameters: {
             query?: never;
             header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["GrgResponse"];
-                };
-            };
-        };
-    };
-    trigger_grg_scan_api_regime_grg_scan_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            202: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["GrgScanResponse"];
-                };
-            };
-        };
-    };
-    get_regime_quotes_api_regime_quotes_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RegimeQuotesResponse"];
-                };
-            };
-        };
-    };
-    get_dealer_regime_api_regime_dealer_get: {
-        parameters: {
-            query: {
+            path: {
                 ticker: string;
             };
-            header?: never;
-            path?: never;
             cookie?: never;
         };
         requestBody?: never;
         responses: {
             /** @description Successful Response */
-            200: {
+            204: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content: {
-                    "application/json": components["schemas"]["DealerRegimeResponse"];
-                };
+                content?: never;
             };
             /** @description Validation Error */
             422: {
@@ -9264,221 +9598,20 @@ export interface operations {
             };
         };
     };
-    get_canary_latest_api_regime_canary_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["CanaryLatestResponse"];
-                };
-            };
-        };
-    };
-    get_canary_history_api_regime_canary_history_get: {
-        parameters: {
-            query?: {
-                days?: number;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["CanaryHistoryResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_canary_validation_api_regime_canary_validation_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["CanaryValidationResponse"];
-                };
-            };
-        };
-    };
-    get_guidance_api_regime_guidance_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["GuidanceResponse"];
-                };
-            };
-        };
-    };
-    get_validation_api_regime_validation_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ValidationResponse"];
-                };
-            };
-        };
-    };
-    get_vcg_validation_api_regime_vcg_validation_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["VcgValidationResponse"];
-                };
-            };
-        };
-    };
-    get_gauge_api_gold_gauge_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["GoldGaugeResponse"];
-                };
-            };
-        };
-    };
-    get_input_series_api_gold_inputs__series_id__get: {
-        parameters: {
-            query?: {
-                from?: string | null;
-                to?: string | null;
-            };
-            header?: never;
-            path: {
-                series_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["GoldInputSeriesResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_state_api_gold_state_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["GoldStateResponse"];
-                };
-            };
-        };
-    };
-    get_lens_api_gold_lenses__lens_id__get: {
+    patch_watchlist_api_watchlist__ticker__patch: {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                lens_id: "structural" | "cyclical" | "valuation";
+                ticker: string;
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WatchlistPatch"];
+            };
+        };
         responses: {
             /** @description Successful Response */
             200: {
@@ -9486,7 +9619,9 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["GoldLensResponse"];
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
                 };
             };
             /** @description Validation Error */
@@ -9500,110 +9635,24 @@ export interface operations {
             };
         };
     };
-    get_replay_api_gold_replay_get: {
-        parameters: {
-            query: {
-                /** @description Reconstruct posture for this obs_date */
-                as_of: string;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["GoldStateResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    rates_snapshot_api_rates_snapshot_get: {
+    enqueue_rescan_api_watchlist__ticker__rescan_post: {
         parameters: {
             query?: never;
             header?: never;
-            path?: never;
+            path: {
+                ticker: string;
+            };
             cookie?: never;
         };
         requestBody?: never;
         responses: {
             /** @description Successful Response */
-            200: {
+            202: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["RatesSnapshotResponse"];
-                };
-            };
-        };
-    };
-    get_scanner_api_scanner_get: {
-        parameters: {
-            query?: {
-                tier_1_only?: boolean;
-                type_f_only?: boolean;
-                sector?: string | null;
-                freshness_hours?: number | null;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ScannerResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_scanner_discover_api_scanner_discover_get: {
-        parameters: {
-            query?: {
-                limit?: number;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["DiscoveryResponse"];
+                    "application/json": components["schemas"]["JobStatus"];
                 };
             };
             /** @description Validation Error */

@@ -50,6 +50,7 @@ from uw_scan.worker.jobs.positioning_jobs import positioning_refresh_once
 from uw_scan.worker.jobs.rates_jobs import rates_fred_ingest_job
 from uw_scan.worker.jobs.rescan_loop import rescan_tick
 from uw_scan.worker.jobs.skew_analytics import nightly_skew_analytics_rollup
+from uw_scan.worker.jobs.skew_swing_greeks import skew_swing_greeks_refresh
 from uw_scan.worker.jobs.trade_insight_outcome_backfill import (
     trade_insight_outcome_backfill_once,
 )
@@ -164,6 +165,20 @@ def _should_schedule_rates_fred_ingest(settings: Settings) -> bool:
 
 
 def _should_schedule_pipeline_benchmark(settings: Settings) -> bool:
+    role = settings.worker_role.lower()
+    return role == "all" or (role == "uw" and settings.worker_index == 0)
+
+
+def _should_schedule_skew_swing_greeks(settings: Settings) -> bool:
+    """Exactly one process owns the swing-greeks refresh.
+
+    It is a UW-bound watchlist loop with no advisory lock (unlike the cockpit
+    snapshot, which single-flights via pg_try_advisory_lock). _is_primary_worker is
+    true for index-0 of EVERY role (uw-0, massive-0, ai-*-0), so scheduling it there
+    would run it N times -> duplicate UW /greeks spend (429 risk) + racing
+    delete-then-insert on skew_swing_greeks. Pin to uw-0 (the UW role), following the
+    rates-FRED / pipeline-benchmark precedent.
+    """
     role = settings.worker_role.lower()
     return role == "all" or (role == "uw" and settings.worker_index == 0)
 
@@ -452,6 +467,18 @@ def main() -> int:
             ) as uw:
                 with _repo(settings) as repo:
                     cockpit_daily_snapshot(repo=repo, client=uw, settings=settings)
+
+    def _skew_swing_greeks_refresh() -> None:
+        # ET market date (not host-local) so a non-ET host doesn't stamp +1 day.
+        market_date = datetime.now(ZoneInfo(settings.rth_tz)).date()
+        with _external_api_recorder(settings) as recorder:
+            with _uw_client(
+                settings,
+                telemetry_recorder=recorder,
+                job_name="skew_swing_greeks",
+            ) as uw:
+                with _repo(settings) as repo:
+                    skew_swing_greeks_refresh(repo=repo, client=uw, today=market_date)
 
     def _trade_insights_ai_tick_any() -> None:
         trade_insights_ai_tick(settings, provider_filter=None)
@@ -829,6 +856,20 @@ def main() -> int:
                 id="cockpit_daily_snapshot",
                 name="Cockpit 6-dim matrix daily snapshot",
             )
+            # Skew swing-DTE greeks at 17:30 ET — UW-bound watchlist loop, before the
+            # 18:30 skew rollup so the strike-by-delta structure detail has a fresh swing
+            # chain. Pinned to uw-0 (NOT _is_primary_worker, which is true for index-0 of
+            # every role) because it has no advisory lock: scheduling it per role-0 would
+            # run N copies -> duplicate UW spend + racing delete-then-insert.
+            if _should_schedule_skew_swing_greeks(settings):
+                sched.add_job(
+                    _skew_swing_greeks_refresh,
+                    CronTrigger.from_crontab("30 17 * * 0-4", timezone=settings.rth_tz),
+                    id="skew_swing_greeks_refresh",
+                    name="Skew swing-DTE greeks refresh",
+                    max_instances=1,
+                    coalesce=True,
+                )
             # Regime / GEX scan — refreshes gex_snapshots every N minutes.
             # Primary-uw-only to avoid duplicate UW spend across shards.
             sched.add_job(

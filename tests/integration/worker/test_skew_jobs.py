@@ -3,9 +3,11 @@
 from __future__ import annotations
 
 from datetime import date, timedelta
+from decimal import Decimal
 
 import pytest
 
+from uw_scan import models
 from uw_scan.worker.jobs.skew_analytics import (
     nightly_skew_analytics_rollup,
     skew_analytics_backfill,
@@ -62,3 +64,49 @@ def test_backfill_writes_multiple_dates(repo):
     assert written >= 1
     rows = repo.fetch_skew_analytics_history("AAPL", days=4000)
     assert len(rows) >= 1
+
+
+def test_swing_greeks_refresh_persists_singlename_and_index_etf(repo, monkeypatch):
+    import uw_scan.worker.jobs.skew_swing_greeks as job
+
+    with repo.conn.cursor() as cur:
+        cur.execute(
+            "INSERT INTO uw_scan.watchlist (ticker, sector) "
+            "VALUES ('NVDA','Tech'),('SPY','Macro') ON CONFLICT (ticker) DO NOTHING"
+        )
+    repo.conn.commit()
+    expiry = date(2026, 8, 1)
+    monkeypatch.setattr(job, "fetch_option_contracts", lambda *a, **k: [])
+    monkeypatch.setattr(job, "pick_target_expiries", lambda *a, **k: [expiry])
+    monkeypatch.setattr(
+        job,
+        "fetch_greeks",
+        lambda *a, **k: [
+            models.GreeksRow(
+                date=expiry,
+                expiry=expiry,
+                strike=Decimal("100"),
+                call_delta=Decimal("0.40"),
+                put_delta=Decimal("-0.30"),
+            )
+        ],
+    )
+    # The fixture pre-seeds the full watchlist; the stub returns one strike per
+    # non-index ticker, so n >= 1 and NVDA specifically gets persisted. Pass an
+    # explicit ET market date — the scheduler supplies datetime.now(rth_tz).date()
+    # so a non-ET host doesn't stamp +1 day (TZ fix).
+    et_date = date(2026, 7, 1)
+    n = job.skew_swing_greeks_refresh(repo=repo, client=None, today=et_date)
+    assert n >= 1
+    got = repo.fetch_latest_swing_greeks_by_strike("NVDA")
+    assert {r["strike"] for r in got} == {Decimal("100")}
+    # The passed market date stamps the rows (not host-local).
+    with repo.conn.cursor() as cur:
+        cur.execute(
+            "SELECT DISTINCT market_date FROM uw_scan.skew_swing_greeks WHERE ticker='NVDA'"
+        )
+        assert [r[0] for r in cur.fetchall()] == [et_date]
+    # SPY is an index ETF -> now INCLUDED (structure block extended to index ETFs);
+    # its directional lean is research-validated, so it earns the same expression.
+    got_spy = repo.fetch_latest_swing_greeks_by_strike("SPY")
+    assert {r["strike"] for r in got_spy} == {Decimal("100")}

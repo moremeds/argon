@@ -17,6 +17,7 @@ from uw_scan.worker.scheduler import (
     _run_rates_fred_ingest,
     _should_schedule_pipeline_benchmark,
     _should_schedule_rates_fred_ingest,
+    _should_schedule_skew_swing_greeks,
     _uw_auto_request_allowed,
     _worker_heartbeat_name,
 )
@@ -157,7 +158,9 @@ def test_rates_fred_ingest_helper_uses_unwrapped_key_and_recorder(monkeypatch) -
         calls.append(kwargs)
         kwargs["record_request"]("fred", {"params": {"series_id": "DGS10"}})
 
-    monkeypatch.setattr("uw_scan.worker.scheduler._external_api_recorder", fake_recorder)
+    monkeypatch.setattr(
+        "uw_scan.worker.scheduler._external_api_recorder", fake_recorder
+    )
     monkeypatch.setattr("uw_scan.worker.scheduler.rates_fred_ingest_job", fake_job)
 
     settings = Settings(api_key="uw", fred_api_key=SecretStr("fred-secret"))
@@ -197,6 +200,25 @@ def test_rates_fred_ingest_schedules_only_on_all_or_primary_uw_worker() -> None:
     )
     assert not _should_schedule_rates_fred_ingest(
         Settings(api_key="uw", worker_role="ai", worker_index=0, worker_count=1)
+    )
+
+
+def test_skew_swing_greeks_schedules_only_on_all_or_primary_uw_worker() -> None:
+    # Must NOT use _is_primary_worker (true for index-0 of EVERY role) — that would
+    # run the lock-less UW loop in ~5 processes (duplicate spend + racing writes).
+    assert _should_schedule_skew_swing_greeks(Settings(api_key="uw", worker_role="all"))
+    assert _should_schedule_skew_swing_greeks(
+        Settings(api_key="uw", worker_role="uw", worker_index=0, worker_count=3)
+    )
+    assert not _should_schedule_skew_swing_greeks(
+        Settings(api_key="uw", worker_role="uw", worker_index=1, worker_count=3)
+    )
+    # index-0 of other roles must be excluded (this is the bug being fixed).
+    assert not _should_schedule_skew_swing_greeks(
+        Settings(api_key="uw", worker_role="massive", worker_index=0, worker_count=1)
+    )
+    assert not _should_schedule_skew_swing_greeks(
+        Settings(api_key="uw", worker_role="ai-codex", worker_index=0, worker_count=1)
     )
 
 

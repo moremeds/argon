@@ -127,3 +127,184 @@ def test_fetch_watchlist_sector(repo):
     repo.conn.commit()
     assert repo.fetch_watchlist_sector("ZZTOP") == "Macro"
     assert repo.fetch_watchlist_sector("NOPE") is None
+
+
+def test_rv_reversion_verdict_roundtrip(repo):
+    repo.upsert_skew_rv_reversion_verdict(
+        asset_class="single_name",
+        deviation_class="CHEAP",
+        tail="put_skew",
+        verdict="REVERTS",
+        mean_drr=0.0514,
+        mean_drr_holdout=0.041,
+        n=1472,
+        n_holdout=520,
+        survives_walkforward=True,
+        survives_window_gate=True,
+        as_of=date(2026, 6, 16),
+    )
+    repo.conn.commit()
+    got = repo.get_skew_rv_reversion_verdict(
+        asset_class="single_name", deviation_class="CHEAP", tail="put_skew"
+    )
+    assert got is not None
+    assert got["verdict"] == "REVERTS"
+    assert got["survives_walkforward"] is True
+    assert got["survives_window_gate"] is True
+    # upsert is idempotent on the PK
+    repo.upsert_skew_rv_reversion_verdict(
+        asset_class="single_name",
+        deviation_class="CHEAP",
+        tail="put_skew",
+        verdict="NONE",
+        mean_drr=0.0,
+        mean_drr_holdout=0.0,
+        n=1,
+        n_holdout=0,
+        survives_walkforward=False,
+        survives_window_gate=False,
+        as_of=date(2026, 6, 16),
+    )
+    repo.conn.commit()
+    got2 = repo.get_skew_rv_reversion_verdict(
+        asset_class="single_name", deviation_class="CHEAP", tail="put_skew"
+    )
+    assert got2["verdict"] == "NONE"
+
+
+def test_swing_greeks_roundtrip(repo):
+    rows = [
+        {
+            "expiry": date(2026, 7, 18),
+            "strike": Decimal("95"),
+            "dte": 33,
+            "call_delta": Decimal("0.62"),
+            "put_delta": Decimal("-0.38"),
+        },
+        {
+            "expiry": date(2026, 7, 18),
+            "strike": Decimal("90"),
+            "dte": 33,
+            "call_delta": Decimal("0.74"),
+            "put_delta": Decimal("-0.26"),
+        },
+    ]
+    n = repo.upsert_skew_swing_greeks("QCOM", date(2026, 6, 16), rows)
+    repo.conn.commit()
+    assert n == 2
+    got = repo.fetch_latest_swing_greeks_by_strike("QCOM")
+    assert {r["strike"] for r in got} == {Decimal("95"), Decimal("90")}
+    assert all("put_delta" in r and "dte" in r for r in got)
+
+
+def test_swing_greeks_filters_dte_window_and_latest_date(repo):
+    # older date present but only the latest market_date is read; out-of-[21,60] excluded.
+    repo.upsert_skew_swing_greeks(
+        "ABCD",
+        date(2026, 6, 10),
+        [
+            {
+                "expiry": date(2026, 6, 20),
+                "strike": Decimal("50"),
+                "dte": 10,
+                "put_delta": Decimal("-0.20"),
+            }
+        ],
+    )
+    repo.upsert_skew_swing_greeks(
+        "ABCD",
+        date(2026, 6, 16),
+        [
+            {
+                "expiry": date(2026, 7, 20),
+                "strike": Decimal("95"),
+                "dte": 34,
+                "put_delta": Decimal("-0.26"),
+            },
+            {
+                "expiry": date(2026, 8, 30),
+                "strike": Decimal("80"),
+                "dte": 75,
+                "put_delta": Decimal("-0.10"),
+            },
+        ],
+    )  # 75 DTE -> out of window
+    repo.conn.commit()
+    got = repo.fetch_latest_swing_greeks_by_strike("ABCD")
+    assert {r["strike"] for r in got} == {Decimal("95")}
+
+
+def test_swing_greeks_delete_then_insert_drops_stale(repo):
+    repo.upsert_skew_swing_greeks(
+        "EFGH",
+        date(2026, 6, 16),
+        [
+            {
+                "expiry": date(2026, 7, 18),
+                "strike": Decimal("95"),
+                "dte": 33,
+                "put_delta": Decimal("-0.26"),
+            },
+            {
+                "expiry": date(2026, 7, 18),
+                "strike": Decimal("88"),
+                "dte": 33,
+                "put_delta": Decimal("-0.13"),
+            },
+        ],
+    )
+    # re-run same date with only one strike -> stale 88 dropped
+    repo.upsert_skew_swing_greeks(
+        "EFGH",
+        date(2026, 6, 16),
+        [
+            {
+                "expiry": date(2026, 7, 18),
+                "strike": Decimal("95"),
+                "dte": 33,
+                "put_delta": Decimal("-0.26"),
+            }
+        ],
+    )
+    repo.conn.commit()
+    got = repo.fetch_latest_swing_greeks_by_strike("EFGH")
+    assert {r["strike"] for r in got} == {Decimal("95")}
+
+
+def test_snapshot_persists_structure_detail_with_decimal_and_date(repo):
+    row = {
+        "ticker": "QCOM",
+        "market_date": date(2026, 6, 16),
+        "basis": "eod",
+        "deviation_class": "CHEAP",
+        "directional_lean": "BEARISH_TILT",
+        "read_summary": "x",
+        "read_json": {
+            "directional_lean": {
+                "lean": "BEARISH_TILT",
+                "structure_detail": {
+                    "kind": "put_debit_spread",
+                    "dte_target": 33,
+                    "status": "ready",
+                    "note": "defined risk",
+                    "legs": [
+                        {
+                            "action": "BUY",
+                            "right": "PUT",
+                            "strike": Decimal("95"),
+                            "target_delta": Decimal("-0.25"),
+                            "actual_delta": Decimal("-0.26"),
+                            "expiry": date(2026, 7, 18),
+                            "dte": 33,
+                        }
+                    ],
+                },
+            },
+        },
+    }
+    repo.upsert_skew_analytics_snapshots([row])  # must NOT raise on Decimal/date
+    repo.conn.commit()
+    got = repo.get_skew_analytics_latest("QCOM")
+    sd = got["read_json"]["directional_lean"]["structure_detail"]
+    assert sd["legs"][0]["strike"] == "95"  # stringified by default=str
+    assert sd["legs"][0]["expiry"] == "2026-07-18"

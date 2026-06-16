@@ -5,6 +5,7 @@ from __future__ import annotations
 import math
 
 import pytest
+
 from uw_scan.cards import skew_first_principles as sk
 
 
@@ -281,3 +282,18 @@ def test_build_read_summary_handles_raw_sign_label_form():
     )
     assert "call-skew" in read["summary_line"]
     assert "call_skew" not in read["summary_line"]
+
+
+def test_express_matches_structure_family():
+    # _express_structure is now derived from structure_family — single source, no drift.
+    assert (
+        sk._express_structure("RICH", "BEARISH_TILT")
+        == "put-debit-spread — defined risk"
+    )
+    assert (
+        sk._express_structure("CHEAP", "BULLISH_TILT")
+        == "call-debit-spread — defined risk"
+    )
+    assert sk._express_structure("NORMAL", "NEUTRAL") == ""
+    assert sk.structure_family({"lean": "NEUTRAL"}) is None
+    assert sk.structure_family({"lean": "BEARISH_TILT"})["kind"] == "put_debit_spread"

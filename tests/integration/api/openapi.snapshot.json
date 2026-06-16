@@ -13405,6 +13405,16 @@
             "default": "NEUTRAL",
             "title": "Lean",
             "type": "string"
+          },
+          "structure_detail": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SkewStructureDetail"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "title": "SkewDirectionalLean",
@@ -13660,6 +13670,121 @@
           "strike"
         ],
         "title": "SkewSmilePoint",
+        "type": "object"
+      },
+      "SkewStructureDetail": {
+        "properties": {
+          "dte_target": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dte Target"
+          },
+          "kind": {
+            "default": "",
+            "title": "Kind",
+            "type": "string"
+          },
+          "legs": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/SkewStructureLeg"
+            },
+            "title": "Legs",
+            "type": "array"
+          },
+          "note": {
+            "default": "",
+            "title": "Note",
+            "type": "string"
+          },
+          "status": {
+            "default": "ready",
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "title": "SkewStructureDetail",
+        "type": "object"
+      },
+      "SkewStructureLeg": {
+        "properties": {
+          "action": {
+            "default": "",
+            "title": "Action",
+            "type": "string"
+          },
+          "actual_delta": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Actual Delta"
+          },
+          "dte": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dte"
+          },
+          "expiry": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expiry"
+          },
+          "right": {
+            "default": "",
+            "title": "Right",
+            "type": "string"
+          },
+          "strike": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Strike"
+          },
+          "target_delta": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target Delta"
+          }
+        },
+        "title": "SkewStructureLeg",
         "type": "object"
       },
       "SmileExpiryCurve": {
