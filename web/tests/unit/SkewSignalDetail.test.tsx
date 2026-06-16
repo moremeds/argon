@@ -57,6 +57,37 @@ describe("SkewSignalDetail", () => {
     expect(screen.getByText("put-debit-spread — defined risk")).toBeTruthy();
   });
 
+  it("lifts the validated status into a right-aligned badge and splits the basis at the semicolon", () => {
+    const data = makeData({
+      read: {
+        rho_confirms: true,
+        earnings_gate: "pass",
+        directional_lean: {
+          lean: "BULLISH_TILT",
+          confidence: "high",
+          basis:
+            "validated — NORMAL single_name bucket separated +2.6%/20d " +
+            "(survived regime gate); borrow normal → edge not a borrow artifact",
+          express: "call-debit-spread — defined risk",
+        },
+        summary_bullets: [],
+      },
+    } as unknown as Partial<SkewAnalysisResponse>);
+    render(<SkewSignalDetail data={data} />);
+    // "validated" is now a standalone badge, not part of the prose basis.
+    const badge = screen.getByTestId("skew-lean-status");
+    expect(badge.textContent).toBe("validated");
+    const basis = screen.getByTestId("skew-lean-basis");
+    expect(basis.textContent).not.toContain("validated");
+    // The reason is broken into two lines at the semicolon.
+    const lines = basis.querySelectorAll("div");
+    expect(lines.length).toBe(2);
+    expect(lines[0].textContent).toContain("(survived regime gate);");
+    expect(lines[1].textContent).toBe(
+      "borrow normal → edge not a borrow artifact",
+    );
+  });
+
   it("shows NEUTRAL and NOT CONFIRMED when there is no edge", () => {
     render(
       <SkewSignalDetail
@@ -81,6 +112,8 @@ describe("SkewSignalDetail", () => {
     expect(screen.getByText("NO EDGE")).toBeTruthy();
     // Empty express renders the em-dash placeholder.
     expect(screen.getByText("—")).toBeTruthy();
+    // A NEUTRAL basis is a plain reason string — no validated badge.
+    expect(screen.queryByTestId("skew-lean-status")).toBeNull();
   });
 
   it("renders the defined-risk structure legs when status is ready", () => {

@@ -32,6 +32,24 @@ function rvLabel(cls: string): string {
   return "NO EDGE";
 }
 
+// A gated-lean basis is always "validated — <clause>; <clause>". Lift the
+// leading "validated" status into a right-aligned badge on the confidence row,
+// and break the reason at its semicolon into two readable lines. NEUTRAL bases
+// are plain reason strings (some of which contain " — "), so the badge triggers
+// only on the literal "validated — " prefix — those render as a single line.
+function parseEvidenceBasis(basis: string): {
+  status: string | null;
+  lines: string[];
+} {
+  const prefix = "validated — ";
+  if (!basis.startsWith(prefix)) return { status: null, lines: [basis] };
+  const rest = basis.slice(prefix.length).trim();
+  const semi = rest.indexOf("; ");
+  const lines =
+    semi >= 0 ? [rest.slice(0, semi + 1), rest.slice(semi + 2)] : [rest];
+  return { status: "validated", lines };
+}
+
 const labelStyle: React.CSSProperties = {
   fontFamily: "var(--font-mono)",
   fontSize: "10px",
@@ -206,6 +224,7 @@ export function SkewSignalDetail({ data }: { data: SkewAnalysisResponse }) {
   }
   const z = toNum(data.rr_z_180d);
   const pct = toNum(data.rr_pct_252d);
+  const evidence = parseEvidenceBasis(lean.basis ?? "");
 
   return (
     <div className="section" data-testid="skew-signal-detail">
@@ -298,6 +317,28 @@ export function SkewSignalDetail({ data }: { data: SkewAnalysisResponse }) {
             >
               confidence: {lean.confidence}
             </span>
+            {evidence.status ? (
+              <span
+                data-testid="skew-lean-status"
+                style={{
+                  marginLeft: "auto",
+                  flexShrink: 0,
+                  fontFamily: "var(--font-mono)",
+                  fontSize: "9px",
+                  textTransform: "uppercase",
+                  letterSpacing: "0.08em",
+                  color: "var(--positive)",
+                  background:
+                    "color-mix(in srgb, var(--positive) 14%, transparent)",
+                  border:
+                    "1px solid color-mix(in srgb, var(--positive) 40%, transparent)",
+                  borderRadius: "3px",
+                  padding: "1px 6px",
+                }}
+              >
+                {evidence.status}
+              </span>
+            ) : null}
           </div>
           <div
             style={{
@@ -310,7 +351,9 @@ export function SkewSignalDetail({ data }: { data: SkewAnalysisResponse }) {
             }}
             data-testid="skew-lean-basis"
           >
-            {lean.basis}
+            {evidence.lines.map((line, i) => (
+              <div key={i}>{line}</div>
+            ))}
           </div>
           <div
             style={{
