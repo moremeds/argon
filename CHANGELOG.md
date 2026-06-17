@@ -7,11 +7,13 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+## [0.1.1] — 2026-06-17
+
+
 ### Added
 
 - Health sidebar now shows deployed backend version in the collapsed header,
   sourced from the running process via the existing `/api/health` poll.
-
 ## [0.1.0] — 2026-06-17
 
 ### Added

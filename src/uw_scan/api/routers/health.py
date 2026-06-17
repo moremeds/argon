@@ -32,10 +32,8 @@ def _source_label(source: HealthSource) -> str:
 class HealthResponse(BaseModel):
     ok: bool
     db: str
-    # Running backend release version (repo-root VERSION file), e.g. "0.1.0".
-    # Defaulted from the module constant so every HealthResponse return site
-    # carries it without per-site wiring.
-    version: str = APP_VERSION
+    # Running backend release version (repo-root VERSION file), e.g. "0.1.1".
+    version: str
     scheduler_lag_seconds: float | None = None
     last_full_scan_at: datetime | None = None
     reason: str | None = None
@@ -284,6 +282,7 @@ def health(
         return HealthResponse(
             ok=False,
             db=f"down: {repr(e)}",
+            version=APP_VERSION,
             reason="database unreachable",
         )
 
@@ -334,6 +333,7 @@ def health(
         now_utc,
     )
     provider_fields = {
+        "version": APP_VERSION,
         "source": _source_label(source),
         "latency_p95_ms": provider_usage.latency_p95_ms,
         "http_2xx": provider_usage.http_2xx,

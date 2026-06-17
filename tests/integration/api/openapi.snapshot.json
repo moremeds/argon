@@ -7609,7 +7609,6 @@
             "title": "Uw Today"
           },
           "version": {
-            "default": "0.1.0",
             "title": "Version",
             "type": "string"
           },
@@ -7655,7 +7654,8 @@
         },
         "required": [
           "ok",
-          "db"
+          "db",
+          "version"
         ],
         "title": "HealthResponse",
         "type": "object"
