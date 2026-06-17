@@ -7,5 +7,8 @@ playwright-report/
 test-results/
 *.tsbuildinfo
 
-# Next.js generates this on every build; never commit it.
+# next-env.d.ts is a build artifact — `next dev` and `next build` write it with
+# DIFFERENT typed-routes imports, so committing it makes every production build
+# dirty the tree (blocks the mini deploy poller's clean-tree guard). The stable
+# ambient references live in next-globals.d.ts instead.
 next-env.d.ts

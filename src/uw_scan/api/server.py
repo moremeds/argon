@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 from pathlib import Path
 
 from fastapi import FastAPI
@@ -26,6 +27,8 @@ from uw_scan.api.routers import (
     watchlist,
 )
 
+logger = logging.getLogger(__name__)
+
 
 def _app_version() -> str:
     """Read the release version from the repo-root VERSION file.
@@ -35,7 +38,8 @@ def _app_version() -> str:
     """
     try:
         return (Path(__file__).resolve().parents[3] / "VERSION").read_text().strip()
-    except OSError:
+    except OSError as exc:
+        logger.warning("VERSION file unreadable; using sentinel version: %s", repr(exc))
         return "0.0.0+unknown"
 
 
