@@ -526,6 +526,18 @@ export function HealthPanel() {
           />
           <span style={{ color: "var(--text-muted)" }}>Status</span>
           <span style={valStyle}>{summary.label}</span>
+          {h?.version && (
+            <span
+              style={{
+                color: "var(--text-muted)",
+                textTransform: "none",
+                letterSpacing: 0,
+              }}
+              title={`Deployed backend version v${h.version}`}
+            >
+              v{h.version}
+            </span>
+          )}
         </span>
         <span aria-hidden="true">{collapsed ? "▸" : "▾"}</span>
       </button>
