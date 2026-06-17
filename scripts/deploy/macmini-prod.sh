@@ -44,6 +44,17 @@ git checkout "$TAG" || die "tag $TAG not found"
 COMMIT="$(git rev-parse --short HEAD)"
 say "HEAD now $COMMIT"
 
+# ---------- Tag <-> VERSION guard ----------
+# The tag must match the checked-out VERSION (allow a -prerelease suffix, e.g.
+# v0.1.0-rc1 on a VERSION=0.1.0 commit). Placed in the forward path only — the
+# rollback path below checks out PREV_TAG (which may be a bare SHA) and must not
+# trip this guard.
+FILE_VERSION="$(cat VERSION)"
+if [[ "$TAG" != "v$FILE_VERSION" && "$TAG" != "v$FILE_VERSION"-* ]]; then
+  die "tag $TAG does not match checked-out VERSION (v$FILE_VERSION)"
+fi
+say "tag/VERSION OK: $TAG (v$FILE_VERSION)"
+
 # ---------- Build ----------
 build_release() {
   step "uv sync"
@@ -87,10 +98,14 @@ check_url() {
   return 1
 }
 
-if check_url "http://127.0.0.1:8400/health" "api" \
+if check_url "http://127.0.0.1:8400/api/health" "api" \
    && check_url "http://127.0.0.1:3001"      "web"; then
   step "Deploy OK: $TAG ($COMMIT)"
   printf '%s  %s  %s  OK\n' "$(date -u +%FT%TZ)" "$TAG" "$COMMIT" >> "$REPO_ROOT/logs/deploy.log"
+  # Authoritative "what's live" marker the deploy poller reads to decide whether
+  # a newer release needs deploying. Only advanced on a *successful* deploy; a
+  # rollback leaves it pointing at the last good release.
+  printf '%s\n' "$TAG" > "$REPO_ROOT/logs/deployed_tag.txt"
   exit 0
 fi
 
@@ -103,7 +118,7 @@ while IFS= read -r label; do
   launchctl kickstart -k "gui/$UID/${label}"
 done < config/services.list
 sleep 5
-check_url "http://127.0.0.1:8400/health" "api(rollback)" || die "rollback ALSO failed — manual intervention required"
+check_url "http://127.0.0.1:8400/api/health" "api(rollback)" || die "rollback ALSO failed — manual intervention required"
 check_url "http://127.0.0.1:3001"        "web(rollback)" || die "rollback ALSO failed — manual intervention required"
 printf '%s  %s  %s  ROLLBACK→%s\n' "$(date -u +%FT%TZ)" "$TAG" "$COMMIT" "$PREV_TAG" >> "$REPO_ROOT/logs/deploy.log"
 die "deploy of $TAG failed; rolled back to $PREV_TAG"
