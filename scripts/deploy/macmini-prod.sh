@@ -49,8 +49,11 @@ build_release() {
   step "uv sync"
   uv sync --frozen --extra postgres
 
-  step "npm install"
-  (cd web && npm install --no-audit --no-fund --legacy-peer-deps)
+  step "npm ci"
+  # npm ci: reproducible install from the committed lock; never rewrites
+  # package-lock.json (npm install does, which self-dirties the tree and
+  # blocks the next deploy's dirty-guard). ci.yml already uses npm ci.
+  (cd web && npm ci --no-audit --no-fund --legacy-peer-deps)
 
   step "scripts/migrate.sh"
   bash scripts/migrate.sh

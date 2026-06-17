@@ -6,3 +6,6 @@ node_modules/
 playwright-report/
 test-results/
 *.tsbuildinfo
+
+# Next.js generates this on every build; never commit it.
+next-env.d.ts
