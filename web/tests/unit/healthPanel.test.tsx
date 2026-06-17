@@ -68,6 +68,7 @@ describe("HealthPanel", () => {
       latest_spot_quote_fetched_at: "2026-05-14T14:20:42Z",
       watchlist_size: 97,
       source: "UnusualWhales",
+      version: "0.0.0-test",
       latency_p95_ms: 88,
       http_2xx: 120,
       http_4xx: 0,
@@ -142,6 +143,7 @@ describe("HealthPanel", () => {
       latest_spot_quote_fetched_at: "2026-05-14T14:20:42Z",
       watchlist_size: 97,
       source: "UnusualWhales",
+      version: "0.0.0-test",
       latency_p95_ms: 88,
       http_2xx: 120,
       http_4xx: 0,
@@ -181,6 +183,7 @@ describe("HealthPanel", () => {
       latest_spot_quote_fetched_at: "2026-05-14T14:20:42Z",
       watchlist_size: 97,
       source: "UnusualWhales",
+      version: "0.0.0-test",
       latency_p95_ms: 88,
       http_2xx: 120,
       http_4xx: 3,
@@ -280,6 +283,7 @@ describe("HealthPanel", () => {
       latest_spot_quote_fetched_at: null,
       watchlist_size: null,
       source: "UnusualWhales",
+      version: "0.0.0-test",
       latency_p95_ms: null,
       http_2xx: null,
       http_4xx: null,
@@ -319,6 +323,7 @@ describe("HealthPanel", () => {
         latest_spot_quote_fetched_at: "2026-05-14T14:20:42Z",
         watchlist_size: 97,
         source: "UnusualWhales",
+        version: "0.0.0-test",
         latency_p95_ms: 88,
         http_2xx: 120,
         http_4xx: 3,
@@ -345,6 +350,7 @@ describe("HealthPanel", () => {
         latest_spot_quote_fetched_at: "2026-05-14T14:20:42Z",
         watchlist_size: 97,
         source: "Massive.com",
+        version: "0.0.0-test",
         latency_p95_ms: 55,
         http_2xx: 10,
         http_4xx: 0,
@@ -398,6 +404,7 @@ describe("HealthPanel", () => {
       latest_spot_quote_fetched_at: "2026-05-14T14:20:42Z",
       watchlist_size: 97,
       source: "UnusualWhales",
+      version: "0.0.0-test",
       latency_p95_ms: 88,
       http_2xx: 120,
       http_4xx: 0,
@@ -449,6 +456,7 @@ describe("HealthPanel", () => {
       latest_spot_quote_fetched_at: "2026-05-14T14:20:42Z",
       watchlist_size: 97,
       source: "UnusualWhales",
+      version: "0.0.0-test",
       latency_p95_ms: 88,
       http_2xx: 120,
       http_4xx: 0,
@@ -482,5 +490,22 @@ describe("HealthPanel", () => {
       expect(screen.queryByText("Query Coverage")).toBeNull(),
     );
     expect(window.localStorage.getItem("uw_health_collapsed")).toBe("1");
+  });
+
+  it("shows the deployed version tag in the collapsed header", async () => {
+    vi.mocked(api.health).mockResolvedValue({
+      ok: true,
+      db: "up",
+      version: "1.2.3",
+      source: "UnusualWhales",
+      throughput_window_minutes: 15,
+    });
+
+    render(<HealthPanel />);
+
+    // Tag rides the always-visible header — no need to expand the panel.
+    const toggle = await screen.findByRole("button", { name: /status/i });
+    await waitFor(() => expect(toggle.textContent).toContain("v1.2.3"));
+    expect(toggle.getAttribute("aria-expanded")).toBe("false");
   });
 });

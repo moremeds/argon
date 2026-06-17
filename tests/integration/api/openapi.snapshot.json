@@ -7608,6 +7608,11 @@
             ],
             "title": "Uw Today"
           },
+          "version": {
+            "default": "0.1.0",
+            "title": "Version",
+            "type": "string"
+          },
           "watchlist_size": {
             "anyOf": [
               {

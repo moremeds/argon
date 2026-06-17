@@ -10,6 +10,7 @@ import pytest
 import uw_scan.api.routers.health as health_router
 from uw_scan.api.routers.health import _record_health_cache_clear_for_tests, health
 from uw_scan.config import Settings
+from uw_scan.version import app_version
 
 
 @pytest.fixture(autouse=True)
@@ -30,6 +31,14 @@ def test_health_ok_when_recent_scan(client, seeded_db_with_cards):
     assert body["scheduler_lag_seconds"] is not None
     assert body["last_full_scan_at"] is not None
     assert body["worker_lag_seconds"] is not None
+
+
+def test_health_reports_deployed_version(client, seeded_db_empty_cards):
+    r = client.get("/api/health")
+    assert r.status_code == 200
+    version = r.json()["version"]
+    assert version, "version must be a non-empty string"
+    assert version == app_version()
 
 
 def test_health_uses_dedicated_worker_heartbeat(client, seeded_db_empty_cards):

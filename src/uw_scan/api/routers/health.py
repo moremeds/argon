@@ -12,11 +12,17 @@ from pydantic import BaseModel, Field
 from uw_scan.api.deps import get_repo, get_settings
 from uw_scan.config import Settings
 from uw_scan.storage.repository import Repository, provider_day_bounds
+from uw_scan.version import app_version
 from uw_scan.worker.schedule_expectations import expected_market_cron_fires_between
 
 router = APIRouter()
 
 HealthSource = Literal["uw", "massive"]
+
+# Captured once at import. Version is fixed for a process's lifetime (launchd
+# restarts the stack on deploy), so a constant is both correct and avoids
+# re-reading the VERSION file on every 5s health poll.
+APP_VERSION = app_version()
 
 
 def _source_label(source: HealthSource) -> str:
@@ -26,6 +32,10 @@ def _source_label(source: HealthSource) -> str:
 class HealthResponse(BaseModel):
     ok: bool
     db: str
+    # Running backend release version (repo-root VERSION file), e.g. "0.1.0".
+    # Defaulted from the module constant so every HealthResponse return site
+    # carries it without per-site wiring.
+    version: str = APP_VERSION
     scheduler_lag_seconds: float | None = None
     last_full_scan_at: datetime | None = None
     reason: str | None = None

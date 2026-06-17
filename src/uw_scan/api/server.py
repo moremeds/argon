@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import logging
-from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -26,25 +25,13 @@ from uw_scan.api.routers import (
     volatility,
     watchlist,
 )
+from uw_scan.version import app_version
 
 logger = logging.getLogger(__name__)
 
 
-def _app_version() -> str:
-    """Read the release version from the repo-root VERSION file.
-
-    server.py lives at src/uw_scan/api/server.py → repo root is parents[3].
-    Falls back to a sentinel if the file is missing (e.g. an odd packaging).
-    """
-    try:
-        return (Path(__file__).resolve().parents[3] / "VERSION").read_text().strip()
-    except OSError as exc:
-        logger.warning("VERSION file unreadable; using sentinel version: %s", repr(exc))
-        return "0.0.0+unknown"
-
-
 def create_app() -> FastAPI:
-    app = FastAPI(title="UW Watchlist API", version=_app_version())
+    app = FastAPI(title="UW Watchlist API", version=app_version())
     app.add_middleware(
         CORSMiddleware,
         # CORS is URL-agnostic by design: the real trust boundary is the

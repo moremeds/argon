@@ -3533,6 +3533,11 @@ export interface components {
             trade_insights_ai?: components["schemas"]["TradeInsightsAiHealth"] | null;
             /** Uw Today */
             uw_today?: number | null;
+            /**
+             * Version
+             * @default 0.1.0
+             */
+            version: string;
             /** Watchlist Size */
             watchlist_size?: number | null;
             /** Worker Lag Seconds */
