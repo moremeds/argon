@@ -41,6 +41,17 @@ cd web && npm run test            # vitest
 cd web && npm run gen:types       # regenerate types.ts after API change
 ```
 
+## Release procedure
+
+Tag-driven, launchd-native (no Docker). Cut a release with
+`scripts/release/cut.sh prepare [patch|minor|major]` (opens a release PR) → merge
+→ `scripts/release/cut.sh tag` (pushes `vX.Y.Z`). The tag fires
+`.github/workflows/release.yml` (verify → publish GitHub Release). The mini's
+`com.argon.deploy-poller` (every 120s) deploys the latest **published,
+non-prerelease** Release via `scripts/deploy/macmini-prod.sh`. Prereleases
+(`vX.Y.Z-rc1`) verify + publish but never auto-deploy. See
+`docs/runbooks/release.md`.
+
 ## Live spot WS feed (xenon primary / massive fallback)
 
 The spot WS consumer (`uw_scan.worker.massive_ws_consumer` — module name retained for plist/dev.sh compat) connects to xenon's IB realtime server as the primary live feed and falls back to massive's WS automatically. Xenon streams 24h whenever IB Gateway is connected (massive only delivers Mon–Fri 04:00–20:00 ET). Failover triggers: connect failure, `ib_connected: false` at connect, or in-session tick silence (watchdog armed only inside massive's feed window — failing over outside it buys nothing). While on massive, a probe re-tries xenon every retry interval and switches back on recovery. `watchlist_card.spot_source` / `intraday_quote.source` tag each row (`xenon_ws` | `massive.com_ws`); `/api/health` `ws_consumer.active_source` shows the live feed.
@@ -135,3 +146,5 @@ Worker roles: `ai-codex`, `ai-claude`, and `ai-deepseek` (provider-pinned, recom
 | Trade Insights AI — provider runners | `src/uw_scan/worker/jobs/trade_insights_ai_runners.py` (`AiProviderRunner` Protocol, `_format_runner_failure`, `_runner_child_env`), `trade_insights_codex_runner.py`, `trade_insights_claude_runner.py` |
 | Trade Insights AI — API + storage | `api/routers/trade_insights.py` (POST paired stubs, /latest keyed pair) + `storage/trade_insights_ai.py` (provider param on every read/write, `find_latest_*_per_provider`, `count_queued_*_by_provider`) |
 | Trade Insights AI — UI tabs | `web/components/stock/panels/TradeInsightsAiAnalysisPanel.tsx` ([Codex] [Claude] tabs, per-provider polling, state badges) |
+| Release pipeline (versioning + workflow) | `VERSION` + `CHANGELOG.md` + `scripts/release/{_lib.sh,version_sync_check.py,cut.sh}` + `.github/workflows/release.yml` |
+| Auto-deploy to the mini | `scripts/deploy/macmini-deploy-poller.sh` + `config/templates/com.argon.deploy-poller.plist.template` + `scripts/deploy/macmini-prod.sh`; runbook `docs/runbooks/release.md` |

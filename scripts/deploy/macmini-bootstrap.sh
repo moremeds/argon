@@ -110,6 +110,10 @@ brew_install "node@${ARGON_NODE_VERSION}"
 brew_install "postgresql@${ARGON_PG_VERSION}"
 brew_install "git"
 brew_install "gh"
+# coreutils provides gtimeout, which the deploy poller uses to bound its
+# `gh api` call (and the deploy itself). The live mini already has it; a fresh
+# provision would otherwise fail `gtimeout: command not found` on the first poll.
+brew_install "coreutils"
 
 # Link node@N if not already on PATH as `node`
 if ! command -v node >/dev/null 2>&1; then
@@ -361,6 +365,7 @@ render_static_plist "com.argon.api"
 render_static_plist "com.argon.web"
 render_static_plist "com.argon.massive-ws"
 render_static_plist "com.argon.backup"
+render_static_plist "com.argon.deploy-poller"
 
 # Worker plists (5 roles × 2 indices = 10)
 for role in uw massive ai-codex ai-claude ai-deepseek; do
@@ -394,6 +399,15 @@ while IFS= read -r label; do
 done < "${ARGON_HOME}/config/services.list"
 
 # Backup plist is rendered but NOT loaded here — that happens in Phase 6.
+
+# Deploy poller: rendered + loaded but kept OUT of services.list. It is the
+# thing that PERFORMS deploys (runs macmini-prod.sh), so it must never be
+# kickstarted as part of an app deploy — same exclusion rationale as the backup
+# plist. StartInterval drives it; it polls GitHub for new Releases every 120s.
+poller_plist="$HOME/Library/LaunchAgents/com.argon.deploy-poller.plist"
+launchctl unload "$poller_plist" >/dev/null 2>&1 || true
+launchctl load "$poller_plist"
+ok "loaded com.argon.deploy-poller"
 
 # ---------- Health checks ----------
 step "Health checks"

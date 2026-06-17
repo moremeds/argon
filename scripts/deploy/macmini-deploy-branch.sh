@@ -67,7 +67,7 @@ uv sync --frozen --extra postgres"
 if [[ "$SKIP_WEB" -eq 0 ]]; then
   REMOTE_CMD+="
 # All Node deps live under web/ (no root package.json).
-cd web && npm install --legacy-peer-deps --no-audit --no-fund && npm run build && cd .."
+cd web && npm ci --legacy-peer-deps --no-audit --no-fund && npm run build && cd .."
 fi
 
 REMOTE_CMD+="

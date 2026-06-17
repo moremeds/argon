@@ -1,0 +1,59 @@
+# Release runbook
+
+Argon ships to the Mac mini via a tag-driven pipeline (no Docker; launchd stack).
+
+## Cut a release
+
+1. Land your feature PRs to `main` with CHANGELOG entries under `## [Unreleased]`.
+2. `scripts/release/cut.sh prepare [patch|minor|major]` — opens a `release/vX.Y.Z`
+   PR that bumps `VERSION` + `pyproject.toml` + `web/package.json` and promotes
+   the `[Unreleased]` block to `[X.Y.Z]`.
+3. Merge that PR after CI is green.
+4. `scripts/release/cut.sh tag` (on `main`) — tags `vX.Y.Z` and pushes the tag.
+
+The tag push fires `.github/workflows/release.yml`:
+- **verify** re-runs the full suite (ruff, guardrails, unit + integration, web
+  build, `version_sync_check`) on the tagged commit.
+- **publish** cuts a GitHub Release from the matching CHANGELOG section.
+
+## Auto-deploy (the mini)
+
+`com.argon.deploy-poller` (launchd, every 120s) polls
+`gh api repos/moremeds/argon/releases/latest`. When the latest published,
+non-prerelease Release tag differs from `logs/deployed_tag.txt`, it runs
+`scripts/deploy/macmini-prod.sh <tag>` (checkout → build → migrate → kickstart →
+health-check → auto-rollback). Prereleases (`vX.Y.Z-rc1`) verify + publish a
+GitHub prerelease but are **never** auto-deployed.
+
+Logs: `logs/deploy-poller.{out,err}.log`, `logs/deploy.log`.
+State: `logs/deployed_tag.txt` (last good deploy), `logs/deploy-poller.failed_tag`
+(a release whose deploy failed + rolled back — the poller skips it until a newer
+release; clear it manually once fixed: `rm logs/deploy-poller.failed_tag`).
+
+## Manual deploys — pause the poller first
+
+The poller serializes its own ticks with `lockf`, but a hand-run
+`macmini-prod.sh` does **not** take that lock — running one while the poller fires
+could race two `git checkout`s on the same tree. Before any manual deploy, pause
+the poller, then resume it after:
+
+```bash
+launchctl unload ~/Library/LaunchAgents/com.argon.deploy-poller.plist   # pause
+scripts/deploy/macmini-prod.sh <tag>                                    # manual deploy
+launchctl load   ~/Library/LaunchAgents/com.argon.deploy-poller.plist   # resume
+```
+
+## Roll back
+
+The poller and `macmini-prod.sh` auto-roll-back on a failed health check. To
+force a rollback to a known-good release, **pause the poller** (above), then run
+on the mini: `scripts/deploy/macmini-prod.sh <previous-good-tag>` (it records that
+tag as deployed; the poller then stays put until a newer Release is published).
+Resume the poller when done.
+
+## First-time / dirty-tree note
+
+`web/next-env.d.ts` is untracked and the deploy uses `npm ci`, so the tree stays
+clean across deploys. If the poller logs `ALERT: working tree dirty`, inspect
+`git status` on the mini and resolve (e.g. `git checkout -- <file>`) — never
+`git reset --hard`.
