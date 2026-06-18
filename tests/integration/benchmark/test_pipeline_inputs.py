@@ -6,6 +6,7 @@ from decimal import Decimal
 from uw_scan.benchmark.collector import build_pipeline_benchmark_inputs
 from uw_scan.benchmark.pipeline import compute_component_scores
 from uw_scan.config import Settings
+from uw_scan.models import MarketAggregates
 
 
 def test_build_pipeline_benchmark_inputs_from_warm_store(
@@ -105,7 +106,11 @@ def _insert_finished_scan(
             (ticker, started_at, finished_at),
         )
         row = cur.fetchone()
-    return int(row[0])
+    run_id = int(row[0])
+    # A real full/scanner scan persists aggregates; the duration metric and
+    # latest_run_id both key on that to count it as a canonical run.
+    repo.set_aggregates(run_id, MarketAggregates(call_oi_total=1000))
+    return run_id
 
 
 def _insert_flow_refresh_scan(repo, ticker: str, finished_at: datetime) -> None:
