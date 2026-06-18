@@ -7,6 +7,18 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+### Fixed
+
+- Stock detail pages (Flow / Market Structure / GEX) no longer render empty
+  during US off-hours. `Repository.latest_run_id` selected the newest scan_run
+  via a hand-maintained `notes` denylist; the skew engine's `skew_swing_greeks`
+  side-channel runs were not on it and — having higher run_ids and no aggregates
+  — shadowed the real `full_scan`, blanking every ticker's detail page after
+  ~17:30 ET each day. The selector (and the `get_scan_duration_summary` health
+  metric) now key on the property the report actually needs —
+  `status='ok' AND aggregates IS NOT NULL` — so no future side-channel job can
+  re-break it. No data was lost; the fix is read-path only.
+
 ## [0.1.1] — 2026-06-17
 
 

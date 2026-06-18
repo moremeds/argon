@@ -14,6 +14,7 @@ from uw_scan.models import (
     CandidateStructure,
     FlowSnapshot,
     InsightLeg,
+    MarketAggregates,
     MarketStructure,
     SingleStockReport,
     TradeInsightsHeader,
@@ -85,6 +86,11 @@ def _client_for_settings(settings: Settings) -> TestClient:
 
 def _seed_run(repo: Repository) -> int:
     run_id = repo.insert_scan_run("TSLA")
+    # Realistic full_scan: persist aggregates so latest_run_id treats this as
+    # the canonical renderable run (see scan_runs.latest_run_id).
+    repo.set_aggregates(
+        run_id, MarketAggregates(call_oi_total=1000, iv30d=Decimal("0.30"))
+    )
     repo.finish_scan_run(run_id, status="ok")
     repo.conn.commit()
     return run_id

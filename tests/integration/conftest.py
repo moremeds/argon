@@ -31,6 +31,7 @@ import psycopg
 import pytest
 
 from uw_scan.config import Settings
+from uw_scan.models import MarketAggregates
 from uw_scan.storage.migrate_runner import apply_migrations
 from uw_scan.storage.repository import Repository
 
@@ -126,7 +127,7 @@ def _reset_to_baseline(
                 copy.write(data)
         for s, (last_value, is_called) in sequences.items():
             cur.execute(
-                f'SELECT setval(\'uw_scan."{s}"\', %s, %s)',
+                f"SELECT setval('uw_scan.\"{s}\"', %s, %s)",
                 (last_value, is_called),
             )
 
@@ -155,6 +156,11 @@ def seeded_db_with_cards(seeded_db_empty_cards) -> Repository:
     """
     repo = seeded_db_empty_cards
     run_id = repo.insert_scan_run(ticker="TSLA")
+    # A real full_scan persists its aggregates; latest_run_id keys on this to
+    # distinguish canonical runs from side-channel ones (see scan_runs.py).
+    repo.set_aggregates(
+        run_id, MarketAggregates(call_oi_total=1000, iv30d=Decimal("0.30"))
+    )
     repo.finish_scan_run(run_id, status="ok")
     repo.upsert_watchlist_card(
         ticker="TSLA",

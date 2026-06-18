@@ -17,38 +17,37 @@ class _ScanRunsMixin:
     _schema: str
 
     def latest_run_id(self, ticker: str) -> int:
-        """Return the highest *successful* full-scan run_id for `ticker`, or 0 if none.
+        """Return the most recent *renderable* full-scan run_id for `ticker`, or 0.
 
-        Excludes runs created by side-channel jobs that populate only a
-        narrow slice of tables and would otherwise shadow the actual
-        full-scan run the report assembler needs (flow_alerts, oi_change_top,
-        GEX, volatility — all keyed by run_id). Excluded:
+        Selection keys on the property the report assembler actually depends
+        on — did this run persist its ``aggregates`` payload? — rather than on
+        a hand-maintained denylist of side-channel ``notes`` strings.
 
-        - ``flow_data_refresh`` (writes options_volume_daily + option_chain only)
-        - ``positioning_refresh`` (M4 trade-framework: uw_positioning only)
-        - ``intraday_refresh`` (OI movers intraday: option_chain_oi only)
-        - ``cockpit_daily_snapshot`` (SPX/SPY/QQQ/IWM greeks/skew only)
-        - ``gex_scan_*`` (SPX/SPY index-only GEX scanner running every 5 min)
-        - ``grg_scan`` (SPY/TLT gamma-rotation gap, grg_snapshots only)
+        Side-channel jobs (``flow_data_refresh``, ``positioning_refresh``,
+        ``intraday_refresh``, ``skew_swing_greeks``, ``cockpit_daily_snapshot``,
+        ``gex_scan_*``, ``grg_scan``, …) mint a ``scan_runs`` row only to tag
+        their UW fetches by ``run_id``; they never call ``set_aggregates``, so
+        ``aggregates`` stays NULL. Only a completed full_scan
+        (``pipeline.run_single_stock``, line 388) writes it. Keying on
+        ``aggregates IS NOT NULL`` is therefore self-enforcing: a *new*
+        side-channel job is ignored automatically (no denylist entry to
+        remember), and any run that legitimately carries the detail payload is
+        eligible automatically. This replaced a per-note denylist that
+        re-broke the stock detail page three times (PRs #106, #129, and the
+        skew engine — whose ``skew_swing_greeks`` runs, having higher run_ids
+        and no denylist entry, shadowed the real full_scan and blanked every
+        ticker's detail page after ~17:30 ET each day).
 
-        Also requires ``status = 'ok'`` — a failed full-scan (e.g. UW HTTP
-        429 daily-quota hit) commits the scan_runs row with status set to
-        a ``failed: …`` string but leaves exposures/aggregates/gex_curve
-        unwritten. Without this filter the report assembler resolves to
-        the failed run and joins on a run_id that has no detail rows,
-        producing an empty stock detail page.
+        ``status = 'ok'`` still excludes failed full-scans (e.g. a UW HTTP 429
+        daily-quota hit) that commit a ``failed: …`` row with no aggregates.
         """
         with self._conn.cursor() as cur:
             cur.execute(
                 f"SELECT run_id FROM {self._schema}.scan_runs "
                 "WHERE ticker = %s "
                 "  AND status = 'ok' "
-                "  AND (notes IS DISTINCT FROM 'flow_data_refresh') "
-                "  AND (notes IS DISTINCT FROM 'positioning_refresh') "
-                "  AND (notes IS DISTINCT FROM 'intraday_refresh') "
-                "  AND (notes IS DISTINCT FROM 'cockpit_daily_snapshot') "
-                "  AND (notes IS DISTINCT FROM 'grg_scan') "
-                "  AND (notes IS NULL OR notes NOT LIKE 'gex_scan_%%') "
+                "  AND aggregates IS NOT NULL "
+                "  AND aggregates::text NOT IN ('{}', 'null') "
                 "ORDER BY run_id DESC LIMIT 1",
                 (ticker.upper(),),
             )
@@ -93,12 +92,14 @@ class _ScanRunsMixin:
                   AND finished_at IS NOT NULL
                   AND started_at IS NOT NULL
                   AND status = 'ok'
-                  AND (notes IS DISTINCT FROM 'flow_data_refresh')
-                  AND (notes IS DISTINCT FROM 'positioning_refresh')
-                  AND (notes IS DISTINCT FROM 'intraday_refresh')
-                  AND (notes IS DISTINCT FROM 'cockpit_daily_snapshot')
-                  AND (notes IS DISTINCT FROM 'discovery_scan')
-                  AND (notes IS NULL OR notes NOT LIKE 'gex_scan_%%')
+                  -- Count only canonical full scans (those that persisted their
+                  -- aggregates), the same property latest_run_id keys on. This
+                  -- replaces a per-note denylist so fast side-channel jobs
+                  -- (skew_swing_greeks, flow_data_refresh, gex_scan_*, …) never
+                  -- skew the duration metric, and no future job needs to be
+                  -- manually added to a list.
+                  AND aggregates IS NOT NULL
+                  AND aggregates::text NOT IN ('{{}}', 'null')
                 """,
                 (start, end),
             )

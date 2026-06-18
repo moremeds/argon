@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import date
 from decimal import Decimal
 
-from uw_scan.models import OptionChainPerStrikeRow, OptionsDailyRow
+from uw_scan.models import MarketAggregates, OptionChainPerStrikeRow, OptionsDailyRow
 
 
 def test_options_volume_daily_round_trip(seeded_db_empty_cards) -> None:
@@ -73,6 +73,9 @@ def test_latest_run_id_skips_flow_data_refresh_runs(seeded_db_empty_cards) -> No
     """
     repo = seeded_db_empty_cards
     full_run = repo.insert_scan_run("GOOGL", notes="full_scan")
+    repo.set_aggregates(
+        full_run, MarketAggregates(call_oi_total=1000, iv30d=Decimal("0.30"))
+    )
     repo.finish_scan_run(full_run, status="ok")
     refresh_run = repo.insert_scan_run("GOOGL", notes="flow_data_refresh")
     repo.finish_scan_run(refresh_run, status="ok")
@@ -92,6 +95,9 @@ def test_latest_run_id_skips_failed_runs(seeded_db_empty_cards) -> None:
     """
     repo = seeded_db_empty_cards
     full_run = repo.insert_scan_run("GOOGL", notes="full_scan")
+    repo.set_aggregates(
+        full_run, MarketAggregates(call_oi_total=1000, iv30d=Decimal("0.30"))
+    )
     repo.finish_scan_run(full_run, status="ok")
     failed_run = repo.insert_scan_run("GOOGL", notes="full_scan")
     repo.finish_scan_run(failed_run, status="failed: UwHTTPError('UW HTTP 429')")
@@ -109,6 +115,9 @@ def test_latest_run_id_skips_side_channel_refresh_runs(seeded_db_empty_cards) ->
     """
     repo = seeded_db_empty_cards
     full_run = repo.insert_scan_run("GOOGL", notes="full_scan")
+    repo.set_aggregates(
+        full_run, MarketAggregates(call_oi_total=1000, iv30d=Decimal("0.30"))
+    )
     repo.finish_scan_run(full_run, status="ok")
     for note in ("positioning_refresh", "intraday_refresh", "cockpit_daily_snapshot"):
         shadow = repo.insert_scan_run("GOOGL", notes=note)
