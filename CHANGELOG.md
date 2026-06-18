@@ -7,6 +7,9 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+## [0.1.2] — 2026-06-18
+
+
 ### Fixed
 
 - Stock detail pages (Flow / Market Structure / GEX) no longer render empty
@@ -18,7 +21,6 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   metric) now key on the property the report actually needs —
   `status='ok' AND aggregates IS NOT NULL` — so no future side-channel job can
   re-break it. No data was lost; the fix is read-path only.
-
 ## [0.1.1] — 2026-06-17
 
 
