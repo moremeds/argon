@@ -77,11 +77,53 @@ These are non-negotiable for institutional discipline.
 
 Probe scaffold lives at [`scripts/probe_canary_wf5.py`](../../../scripts/probe_canary_wf5.py). First-pass output answers: in WF-5, how often did `speed.state != NEUTRAL`? What was `speed.score`'s distribution? How does that compare to WF-3 (where v2 won big) and WF-1 (where v2 broke even)?
 
-Follow-up probes (queue):
+**Probe 2 — forward-return by `warning_state` bucket — completed 2026-05-28.** Script: [`scripts/probe_canary_wf5_fwd_return.py`](../../../scripts/probe_canary_wf5_fwd_return.py). Three windows × three horizons (20d / 60d / 120d).
 
-- Forward 60d return by `speed.state` bucket in WF-5 vs WF-3 — does speed *predict* anything in quiet, or is it noise that v1's additive formula happens to suppress?
-- Cross-asset signal correlations during WF-5: is speed picking up lead-lag from credit, vol-of-vol, or term structure that vol-complex misses?
-- Vol-of-vol (VVIX) percentile during WF-5 days when speed fires — is it actually "quiet" or just "stretched"?
+| Window | Horizon | Non-NONE mean | NONE mean | Welch's t |
+|---|---|---|---|---|
+| WF-5 (quiet) | 60d | **+11.4%** (BTD only) | +4.0% | **+17.16** |
+| WF-5 | 120d | **+17.5%** (BTD only) | +7.5% | +24.15 |
+| WF-3 (crisis) | 60d | +7.9% (CCA +14.9% / BTD +0.9%) | +2.6% | +4.77 |
+| WF-3 | 120d | +15.9% (CCA +23.3% / BTD +8.5%) | +5.5% | +9.25 |
+| WF-1 (baseline) | 60d | +3.3% (BTD only) | +1.2% | +2.59 |
+
+**Three findings that reshape the v2-C direction call:**
+
+1. **The "speed = early-instability detector in quiet regimes" framing was wrong.** In WF-5 `warning_state` never escalates beyond `BUY_THE_DIP_ACTIVE` (no CCA fires). When BTD fires (speed=20), forward 60d returns are +11.4% vs +4.0% baseline — t=17.16. Speed's load-bearing role in quiet regimes is **BTD activation**, which predicts strongly *positive* forward returns. v2-A's "drop speed from composite" killed the integer transition that drives BTD activation. The WF-5 -0.134 AUC regression is the cost of removing a +11.4%/60d alpha signal from composite ranking.
+
+2. **CCA fires at mean-reversion bottoms, not selloff tops.** WF-3 CCA bucket has +14.9% / 60d and +23.3% / 120d forward returns — wildly positive, consistent with [[project-vcg-forward-returns-descriptive]] (BOUNCE n=5 dominated by 2008 GFC; PANIC mean-reverts +2.88%/20d). CCA is a *post-selloff dip-buy signal*, NOT a warning of imminent selloff. **This re-confirms why AC-F3 was the wrong gate**: canonical event dates were event *onsets*, but CCA fires at the bottom of the resulting 2-month cluster. AC-F3 reformulation (per §2 below) is no longer optional — it's load-bearing.
+
+3. **Direction B (rank inversion within BUY) is now the leading v2-C candidate.** Direction A (regime-conditional weighting) requires a robust regime detector — itself a new failure surface. Direction C (convex blending) likely still suppresses BTD's quiet-regime contribution. Direction B (keep v1's composite intact, use speed only for *within-BUY ordering*) preserves BTD activation in both crisis AND quiet, and addresses the original BUY-band rank-inversion finding from the form-sweep. The probe's data supports B over A/C with the +11.4% / 60d signal as the load.
+
+**Follow-up probes (queue, updated):**
+
+- ~~Forward 60d return by `speed.state` bucket~~ — **DONE** (results above).
+- VVIX percentile during WF-5 BTD-fire days — is BTD activating at *real* dip troughs or just stretched-quiet readings? Decides whether direction B's secondary-ordering signal needs an extra vol-of-vol gate.
+- Cross-asset signal correlations during WF-5 (credit, term structure) — is BTD picking up lead-lag from non-vol-complex inputs? Diagnostic for whether v1's additive formula is accidentally capturing dispersion that v2-A removed.
+
+**Probe 3 — bootstrap random-control — completed 2026-05-28.** Script: [`scripts/probe_canary_wf5_random_control.py`](../../../scripts/probe_canary_wf5_random_control.py). K=10000 bootstrap samples of n=43 days without replacement from non-bucket pool, seed=42, per (window, bucket, horizon). Resolves the selection-on-dip caveat from probe 2.
+
+| Window | Bucket | 20td pctile / p | 60td pctile / p | 120td pctile / p |
+|---|---|---|---|---|
+| **WF-5** (quiet) | **BTD** | **100.00 / ≈0** | **100.00 / ≈0** | **100.00 / ≈0** |
+| WF-3 (crisis) | BTD | 24.83 / 0.50 | 2.73 / 0.05 | 75.84 / 0.48 |
+| WF-3 | **CCA** | **100.00 / ≈0** | **100.00 / ≈0** | **100.00 / ≈0** |
+| WF-1 (baseline) | BTD | 100.00 / ≈0 | 99.79 / 0.004 | 13.54 / 0.27 |
+
+Three findings from probe 3 that lock direction B:
+
+1. **WF-5 BTD survives the strictest within-window null at ALL horizons** (100th percentile, p ≈ 0). Null mean is +4.0% ± 0.7% / 60d; BTD's +11.4% / 60d sits ~11 standard deviations above the null mean. The +11.4%/60d alpha is real signal, not selection-on-dip. **Direction B's evidence base is empirically defensible.**
+
+2. **WF-3 BTD does NOT beat the null** (24.8 / 2.7 / 75.8 pctile). In crisis, ANY 43-day subset of the window has +1-4% / 60d forward returns driven by the COVID recovery rally; BTD's +0.9%/60d is actually *below* the null mean. **This is fine and consistent with v2-A's WF-3 win:** when vol-complex fires strongly (high tactical + structural), speed's BTD contribution adds little marginal info, so v2-A's removal of speed doesn't hurt WF-3. The regime-complementarity is exactly what direction B exploits.
+
+3. **WF-3 CCA crushes the null** at all 3 horizons (100th percentile, p ≈ 0). +14.9% / 60d and +23.3% / 120d are real GFC-style mean-reversion bounces, beyond what within-window random selection could produce. v2-A preserved this pathway (speed → 0 → vol-complex dominates → composite ranking still discriminates CCA days). This is why v2-A's WF-3 60d AUC lifted +0.087.
+
+**Regime structure (now legible):**
+- **Crisis regime (WF-3):** vol-complex + CCA carry the signal; speed's contribution is dominated by recovery-rally baseline. v2-A's "drop speed" worked here because vol-complex was already sufficient.
+- **Quiet regime (WF-5):** vol-complex is dormant (tactical=0, structural mid-range); speed-driven BTD is the alpha pathway. v2-A's "drop speed" killed this and caused the -0.134 / 60d regression.
+- **Direction B (rank inversion within BUY) preserves both** because v1's additive composite is intact for BUY-band qualification.
+
+**WF-1 BTD 120d (pctile 13.54) is an outlier worth one more probe** — at 120d horizon in 2015-2016, BTD's +2.05% sits below the null's +3.05% mean. Could be a 2015-2016 specific artifact (Brexit recovery overshoot) or a generic 120d horizon issue. Not a direction B blocker since WF-1 wasn't a regression window in v2-A, but worth understanding before the spec brainstorm locks horizon weights.
 
 ### 2. AC-F3 reformulation (gate redesign)
 
@@ -132,8 +174,12 @@ When the spec brainstorm starts (post-WF-5 probe), it should:
 | 2026-05-28 | v2-A rejected, terminal | AC-F4 + AC-F3 failed; WF-5 regression of −0.134 + 3 of 4 canonical CCA dates missed |
 | 2026-05-28 | v2-C promoted to top of queue | Speed contribution in quiet regimes confirmed empirically |
 | 2026-05-28 | Pre-spec docs first | WF-5 probe needed before direction-picking spec is written |
-| TBD | Direction picked (A / B / C) | After WF-5 probe results |
-| TBD | v2-C spec written | After direction picked + AC reformulation locked |
+| 2026-05-28 | Probe 2 done — direction B leading | Forward-return probe: BTD fires (driven by speed=20) predict +11.4% / 60d in WF-5. v2-A's regression cost = +11.4% / 60d alpha. Direction B (rank inversion within BUY) preserves BTD activation; A and C don't (or only conditionally). |
+| 2026-05-28 | CCA reframed as bottom signal | WF-3 CCA forward 60d = +14.9% (mean-reversion bounce, not warning). AC-F3 reformulation is now load-bearing, not optional. |
+| 2026-05-28 | **Probe 3 done — direction B locked** | WF-5 BTD beats random-control at 100th pctile / p≈0 across all 3 horizons. Regime structure now legible: crisis = vol-complex + CCA; quiet = BTD. Direction B preserves both pathways. |
+| TBD | WF-1 120d outlier check | BTD 120d pctile=13.54 (below null). Diagnostic before horizon weighting in v2-C spec. Not a B blocker. |
+| TBD | VVIX % during BTD-fire days probe | Optional now — direction B is locked. Would refine VVIX-gate decision in the spec, not the direction call. |
+| TBD | v2-C spec written | Next major step — direction B, AC-F1..F7 pre-committed, AC-F3 reformulated |
 
 ---
 
