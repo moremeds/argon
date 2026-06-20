@@ -87,6 +87,39 @@ class _OptionSurfaceMixin:
             )
         return len(rows)
 
+    def upsert_iv_source_validation(
+        self,
+        ticker: str,
+        market_date: _date,
+        expiry: _date,
+        strike: Decimal,
+        right: str,
+        uw_iv: Decimal | None,
+        ib_iv: Decimal | None,
+    ) -> None:
+        """Persist one IB-vs-UW IV comparison row. abs_diff is computed when both present."""
+        abs_diff = (
+            abs(uw_iv - ib_iv) if (uw_iv is not None and ib_iv is not None) else None
+        )
+        with self._conn.cursor() as cur:
+            cur.execute(
+                f"INSERT INTO {self._schema}.iv_source_validation "
+                '(ticker, market_date, expiry, strike, "right", uw_iv, ib_iv, abs_diff, inserted_at) '
+                "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, now()) "
+                'ON CONFLICT (ticker, market_date, expiry, strike, "right") DO UPDATE SET '
+                "uw_iv=EXCLUDED.uw_iv, ib_iv=EXCLUDED.ib_iv, abs_diff=EXCLUDED.abs_diff, inserted_at=now()",
+                (
+                    ticker.upper(),
+                    market_date,
+                    expiry,
+                    strike,
+                    right.upper(),
+                    uw_iv,
+                    ib_iv,
+                    abs_diff,
+                ),
+            )
+
     def fetch_option_surface_atm_strike(
         self, ticker: str, market_date: _date, expiry: _date, spot: Decimal
     ) -> dict[str, Any] | None:
