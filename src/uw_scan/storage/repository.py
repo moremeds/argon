@@ -33,6 +33,7 @@ from .health import _HealthMixin
 from .jobs import _JobsMixin
 from .market_data import _MarketDataMixin
 from .matrix_state import _MatrixStateMixin
+from .option_surface import _OptionSurfaceMixin
 from .options import _OptionsMixin
 from .pipeline_benchmark import _PipelineBenchmarkMixin
 from .positioning import _PositioningMixin
@@ -111,6 +112,7 @@ class Repository(
     _JobsMixin,
     _MarketDataMixin,
     _MatrixStateMixin,
+    _OptionSurfaceMixin,
     _OptionsMixin,
     _PipelineBenchmarkMixin,
     _PositioningMixin,
