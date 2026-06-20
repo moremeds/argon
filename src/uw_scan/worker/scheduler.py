@@ -46,6 +46,7 @@ from uw_scan.worker.jobs.option_intraday_jobs import (
     refresh_intraday_for_top_oi_movers,
 )
 from uw_scan.worker.jobs.option_surface_capture import option_surface_capture
+from uw_scan.worker.jobs.option_surface_iv_canary import option_surface_iv_canary
 from uw_scan.worker.jobs.pipeline_benchmark import pipeline_benchmark_snapshot_job
 from uw_scan.worker.jobs.positioning_jobs import positioning_refresh_once
 from uw_scan.worker.jobs.rates_jobs import rates_fred_ingest_job
@@ -499,6 +500,13 @@ def main() -> int:
                 with _repo(settings) as repo:
                     option_surface_capture(repo=repo, client=uw, today=market_date)
 
+    def _option_surface_iv_canary() -> None:
+        if not settings.option_surface_iv_canary_enabled:
+            return
+        market_date = datetime.now(ZoneInfo(settings.rth_tz)).date()
+        with _repo(settings) as repo:
+            option_surface_iv_canary(repo=repo, settings=settings, today=market_date)
+
     def _skew_swing_greeks_refresh() -> None:
         # ET market date (not host-local) so a non-ET host doesn't stamp +1 day.
         market_date = datetime.now(ZoneInfo(settings.rth_tz)).date()
@@ -920,6 +928,14 @@ def main() -> int:
                     CronTrigger.from_crontab("0 19 * * 0-4", timezone=settings.rth_tz),
                     id="option_surface_capture",
                     name="Option surface full-chain capture",
+                    max_instances=1,
+                    coalesce=True,
+                )
+                sched.add_job(
+                    _option_surface_iv_canary,
+                    CronTrigger.from_crontab("30 19 * * 0-4", timezone=settings.rth_tz),
+                    id="option_surface_iv_canary",
+                    name="Option surface IB-vs-UW IV canary",
                     max_instances=1,
                     coalesce=True,
                 )
