@@ -61,6 +61,8 @@ Set `UW_SCAN_WORKER_ROLE=uw|massive|ai|all`, `UW_SCAN_WORKER_INDEX`, and
 | `rescan_tick` | interval | 1s; user-requested rescans bypass the 8h freshness guard |
 | `daily_spy_ohlc_refresh` | cron | `30 16 * * 0-4` |
 | `nightly_vol_analytics_rollup` | cron | `0 18 * * 0-4` |
+| `option_surface_capture` | cron | `0 19 * * 0-4` (uw-0; full-chain UW /greeks → durable grid) |
+| `option_surface_iv_canary` | cron | `30 19 * * 0-4` (uw-0; ATM IB-vs-UW IV diff, WARN on drift) |
 
 Intraday spot is no longer a scheduler job — it streams from the
 WebSocket consumer in `uw_scan.worker.massive_ws_consumer` (started as
