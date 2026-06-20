@@ -3,6 +3,7 @@ from __future__ import annotations
 from decimal import Decimal
 
 import httpx
+
 from uw_scan.sources.xenon_query import fetch_ib_option_iv
 
 
@@ -64,3 +65,40 @@ def test_returns_none_on_http_error():
         )
         is None
     )
+
+
+def test_returns_none_when_body_is_not_a_dict():
+    def handler(request):
+        return httpx.Response(200, json=[{"greeks": {"impliedVol": 0.4}}])
+
+    assert (
+        fetch_ib_option_iv(
+            base_url="http://x:8421",
+            api_key=None,
+            symbol="QQQ",
+            expiry="20260717",
+            strike=600.0,
+            right="C",
+            client=_client(handler),
+        )
+        is None
+    )
+
+
+def test_sends_api_key_header_when_present():
+    seen = {}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen["key"] = request.headers.get("x-api-key")
+        return httpx.Response(200, json={"greeks": {"impliedVol": 0.3}})
+
+    fetch_ib_option_iv(
+        base_url="http://x:8421",
+        api_key="secret",
+        symbol="QQQ",
+        expiry="20260717",
+        strike=600.0,
+        right="C",
+        client=_client(handler),
+    )
+    assert seen["key"] == "secret"

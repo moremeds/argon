@@ -43,8 +43,11 @@ def fetch_ib_option_iv(
     try:
         resp = c.get(f"{base_url}/options/greeks", params=params, headers=headers)
         resp.raise_for_status()
-        greeks = (resp.json() or {}).get("greeks")
-        if not greeks or greeks.get("impliedVol") is None:
+        body = resp.json()
+        if not isinstance(body, dict):
+            return None
+        greeks = body.get("greeks")
+        if not isinstance(greeks, dict) or greeks.get("impliedVol") is None:
             return None
         return Decimal(str(greeks["impliedVol"]))
     except (httpx.HTTPError, ValueError, KeyError, InvalidOperation) as exc:
