@@ -130,8 +130,11 @@ blocks the capture). Per watchlist ticker, for the **front 2 expiries**:
 3. Diff IB `impliedVol` against the UW `call_iv`/`put_iv` at the same contract.
 4. Persist to a tiny `iv_source_validation` table (`ticker, market_date, expiry, strike,
    right, uw_iv, ib_iv, abs_diff, captured_at`).
-5. Emit a **WARN** (health surface) when the median `abs_diff` across the watchlist
-   exceeds a threshold (default **0.02** = 2 vol points; configurable).
+5. Emit a **WARN** when the median `abs_diff` across the watchlist exceeds a threshold
+   (default **0.02** = 2 vol points; configurable). **v1: this WARN is log-level only
+   (`log.warning`); every comparison is durably persisted to `iv_source_validation`. The
+   `/api/health` drift surface is deferred — the table is already populated for it, so it
+   can be added later without backfill.**
 
 ~300 xenon calls/night. Auth: `X-API-Key: $XENON_QUERY_API_KEY` (localhost bypass on the
 mini, where xenon runs); base URL via a new `XENON_QUERY_API_URL` env
@@ -189,7 +192,8 @@ nightly (post-close)
    capture leaves day-one rows intact.
 2. `option_surface_capture` writes full-chain (all expiries, all strikes) for the
    watchlist in one nightly run within the UW rate budget.
-3. `iv_source_validation` populates and a forced IV divergence raises the health WARN.
+3. `iv_source_validation` populates and a forced IV divergence raises the WARN (v1:
+   log-level; the `/api/health` panel surface for this drift is deferred future work).
 4. Both jobs honor their kill switches and degrade independently.
 
 ## Scaling (future, not built now)
