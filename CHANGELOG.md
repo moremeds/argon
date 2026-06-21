@@ -7,6 +7,18 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+### Added
+
+- VRP harvest markout (`reports/vrp_markout.py`, migration `079_vrp_harvest_verdicts`,
+  `GET /api/regime/vrp-harvest`): scores whether selling rich vol (`vrp_z ≥ +1`) earns a
+  reliable, positive premium per `(asset_class, deviation_class)` bucket. Reuses the skew
+  engine's out-of-sample discipline — time-ordered walk-forward holdout plus a per-quarter
+  catastrophic-degradation gate — over the existing `vrp_daily` panel, and excludes any
+  forward window spanning a (flow-event-reconstructed) earnings date. Verdicts
+  (`HARVEST_SELLABLE` / `NONE`) persist nightly at 18:50 ET (massive-0 worker) to
+  `vrp_harvest_verdicts`; the RICH−CHEAP spread is recorded so a flat (no-edge) result
+  stays legible.
+
 ## [0.1.2] — 2026-06-18
 
 
