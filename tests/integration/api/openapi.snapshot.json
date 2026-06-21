@@ -18792,6 +18792,120 @@
         "title": "VrpDailyPoint",
         "type": "object"
       },
+      "VrpHarvestResponse": {
+        "description": "VRP harvest markout verdicts \u2014 is rich vol sellable, by bucket (Spec B).",
+        "properties": {
+          "verdicts": {
+            "items": {
+              "$ref": "#/components/schemas/VrpHarvestVerdict"
+            },
+            "title": "Verdicts",
+            "type": "array"
+          }
+        },
+        "title": "VrpHarvestResponse",
+        "type": "object"
+      },
+      "VrpHarvestVerdict": {
+        "description": "One (asset_class, deviation_class) VRP harvest bucket verdict (Spec B).",
+        "properties": {
+          "as_of": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "As Of"
+          },
+          "asset_class": {
+            "title": "Asset Class",
+            "type": "string"
+          },
+          "confidence": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Confidence"
+          },
+          "deviation_class": {
+            "title": "Deviation Class",
+            "type": "string"
+          },
+          "mean_holdout": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mean Holdout"
+          },
+          "mean_realized_vrp": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mean Realized Vrp"
+          },
+          "n": {
+            "default": 0,
+            "title": "N",
+            "type": "integer"
+          },
+          "n_holdout": {
+            "default": 0,
+            "title": "N Holdout",
+            "type": "integer"
+          },
+          "rich_cheap_spread": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rich Cheap Spread"
+          },
+          "survives_walkforward": {
+            "default": false,
+            "title": "Survives Walkforward",
+            "type": "boolean"
+          },
+          "survives_window_gate": {
+            "default": false,
+            "title": "Survives Window Gate",
+            "type": "boolean"
+          },
+          "verdict": {
+            "title": "Verdict",
+            "type": "string"
+          }
+        },
+        "required": [
+          "asset_class",
+          "deviation_class",
+          "verdict"
+        ],
+        "title": "VrpHarvestVerdict",
+        "type": "object"
+      },
       "WatchlistCard": {
         "properties": {
           "aggression_pct": {
@@ -19427,7 +19541,7 @@
   },
   "info": {
     "title": "UW Watchlist API",
-    "version": "0.1.0"
+    "version": "0.1.2"
   },
   "openapi": "3.1.0",
   "paths": {
@@ -21340,6 +21454,28 @@
           }
         },
         "summary": "Get Vol Backdrop",
+        "tags": [
+          "regime"
+        ]
+      }
+    },
+    "/api/regime/vrp-harvest": {
+      "get": {
+        "description": "Per-bucket VRP harvest verdicts (Spec B). Read-only over the verdict\nstore written by the nightly vrp_markout job.",
+        "operationId": "get_vrp_harvest_api_regime_vrp_harvest_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VrpHarvestResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Get Vrp Harvest",
         "tags": [
           "regime"
         ]

@@ -290,6 +290,29 @@ class VolBackdropResponse(BaseModel):
     as_of: date | None = None
 
 
+class VrpHarvestVerdict(BaseModel):
+    """One (asset_class, deviation_class) VRP harvest bucket verdict (Spec B)."""
+
+    asset_class: str
+    deviation_class: str
+    verdict: str  # "HARVEST_SELLABLE" | "NONE"
+    mean_realized_vrp: float | None = None
+    mean_holdout: float | None = None
+    rich_cheap_spread: float | None = None
+    n: int = 0
+    n_holdout: int = 0
+    survives_walkforward: bool = False
+    survives_window_gate: bool = False
+    confidence: str | None = None
+    as_of: date | None = None
+
+
+class VrpHarvestResponse(BaseModel):
+    """VRP harvest markout verdicts — is rich vol sellable, by bucket (Spec B)."""
+
+    verdicts: list[VrpHarvestVerdict] = Field(default_factory=list)
+
+
 # ─── CRI (Crash Risk Indicator) ──────────────────────────────────
 
 

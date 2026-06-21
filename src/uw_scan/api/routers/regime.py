@@ -49,6 +49,8 @@ from uw_scan.api.schemas import (
     VcgResponse,
     VcgScanResponse,
     VolBackdropResponse,
+    VrpHarvestResponse,
+    VrpHarvestVerdict,
 )
 from uw_scan.cards.canary_calibration import (
     COMPOSITE_VERSION as CANARY_COMPOSITE_VERSION,
@@ -235,6 +237,16 @@ def get_vol_backdrop(
         term_structure_state=state,
         as_of=as_of,
     )
+
+
+@router.get("/vrp-harvest", response_model=VrpHarvestResponse)
+def get_vrp_harvest(
+    repo: Annotated[Repository, Depends(get_repo)],
+) -> VrpHarvestResponse:
+    """Per-bucket VRP harvest verdicts (Spec B). Read-only over the verdict
+    store written by the nightly vrp_markout job."""
+    rows = repo.fetch_vrp_harvest_verdicts()
+    return VrpHarvestResponse(verdicts=[VrpHarvestVerdict(**r) for r in rows])
 
 
 # ─── CRI (live) ──────────────────────────────────────────────────

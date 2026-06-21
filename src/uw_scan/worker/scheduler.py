@@ -59,6 +59,7 @@ from uw_scan.worker.jobs.trade_insight_outcome_backfill import (
 )
 from uw_scan.worker.jobs.trade_insights_ai import trade_insights_ai_tick
 from uw_scan.worker.jobs.vol_index_lake_sync import run_vol_index_lake_sync
+from uw_scan.worker.jobs.vrp_markout import vrp_markout_refresh
 from uw_scan.worker.volatility_jobs import (
     daily_spy_ohlc_refresh,
     nightly_vol_analytics_rollup,
@@ -428,6 +429,10 @@ def main() -> int:
     def _skew_markout_refresh() -> None:
         with _repo(settings) as repo:
             skew_markout_refresh(repo=repo)
+
+    def _vrp_markout_refresh() -> None:
+        with _repo(settings) as repo:
+            vrp_markout_refresh(repo=repo)
 
     def _flow_data_refresh() -> None:
         if not _uw_auto_request_allowed(datetime.now(ZoneInfo(settings.rth_tz))):
@@ -804,6 +809,17 @@ def main() -> int:
                 CronTrigger.from_crontab("45 18 * * 0-4", timezone=settings.rth_tz),
                 id="skew_markout_refresh",
                 name="Skew markout verdict refresh",
+                max_instances=1,
+                coalesce=True,
+            )
+            # VRP harvest markout at 18:50 ET — aligned with the skew markout
+            # (18:45). Pure compute over vrp_daily; idempotent. Scores whether
+            # selling rich vol earns a reliable premium per bucket (Spec B).
+            sched.add_job(
+                _vrp_markout_refresh,
+                CronTrigger.from_crontab("50 18 * * 0-4", timezone=settings.rth_tz),
+                id="vrp_markout_refresh",
+                name="VRP harvest markout verdict refresh",
                 max_instances=1,
                 coalesce=True,
             )
