@@ -4,9912 +4,9668 @@
  */
 
 export interface paths {
-  "/api/cockpit/{ticker}/dealer": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /** Get Cockpit Dealer */
-    get: operations["get_cockpit_dealer_api_cockpit__ticker__dealer_get"];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/cockpit/{ticker}/flow-im": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /** Get Cockpit Flow Im */
-    get: operations["get_cockpit_flow_im_api_cockpit__ticker__flow_im_get"];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/cockpit/{ticker}/state": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /** Get Cockpit State */
-    get: operations["get_cockpit_state_api_cockpit__ticker__state_get"];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/cockpit/{ticker}/surface": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /** Get Cockpit Surface */
-    get: operations["get_cockpit_surface_api_cockpit__ticker__surface_get"];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/cockpit/{ticker}/vrp": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /** Get Cockpit Vrp */
-    get: operations["get_cockpit_vrp_api_cockpit__ticker__vrp_get"];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/gold/gauge": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /** Get Gauge */
-    get: operations["get_gauge_api_gold_gauge_get"];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/gold/inputs/{series_id}": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /** Get Input Series */
-    get: operations["get_input_series_api_gold_inputs__series_id__get"];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/gold/lenses/{lens_id}": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /** Get Lens */
-    get: operations["get_lens_api_gold_lenses__lens_id__get"];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/gold/replay": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /** Get Replay */
-    get: operations["get_replay_api_gold_replay_get"];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/gold/state": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /** Get State */
-    get: operations["get_state_api_gold_state_get"];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/health": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /** Health */
-    get: operations["health_api_health_get"];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/health/benchmark/current": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /** Current Benchmark */
-    get: operations["current_benchmark_api_health_benchmark_current_get"];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/health/benchmark/history": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /** Benchmark History */
-    get: operations["benchmark_history_api_health_benchmark_history_get"];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/jobs/{job_id}": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /** Get Job */
-    get: operations["get_job_api_jobs__job_id__get"];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/ohlc/{ticker}": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /** Get Ohlc */
-    get: operations["get_ohlc_api_ohlc__ticker__get"];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/provider-usage/endpoints": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /** Provider Usage Endpoints */
-    get: operations["provider_usage_endpoints_api_provider_usage_endpoints_get"];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/provider-usage/requests": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /** Provider Usage Requests */
-    get: operations["provider_usage_requests_api_provider_usage_requests_get"];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/provider-usage/summary": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /** Provider Usage Summary */
-    get: operations["provider_usage_summary_api_provider_usage_summary_get"];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/provider-usage/tickers": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /** Provider Usage Tickers */
-    get: operations["provider_usage_tickers_api_provider_usage_tickers_get"];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/rates/snapshot": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /** Rates Snapshot */
-    get: operations["rates_snapshot_api_rates_snapshot_get"];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/regime": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /** Get Regime */
-    get: operations["get_regime_api_regime_get"];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/regime/canary": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /** Get Canary Latest */
-    get: operations["get_canary_latest_api_regime_canary_get"];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/regime/canary/history": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /** Get Canary History */
-    get: operations["get_canary_history_api_regime_canary_history_get"];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/regime/canary/validation": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /**
-     * Get Canary Validation
-     * @description v0.4 patch I4 + C6: use the existing `find_latest_run` (which already
-     *     filters on `completed_at IS NOT NULL`) and post-filter for the winning
-     *     form in summary JSON. composite_version is stringified at the DB boundary.
-     */
-    get: operations["get_canary_validation_api_regime_canary_validation_get"];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/regime/cri/history": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /** Get Cri History */
-    get: operations["get_cri_history_api_regime_cri_history_get"];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/regime/cri/intraday": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /** Get Cri Intraday */
-    get: operations["get_cri_intraday_api_regime_cri_intraday_get"];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/regime/cri/live": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /**
-     * Get Cri Live
-     * @description Request-time CRI with live quotes spliced as today's provisional
-     *     close. Does NOT persist (the 5-min regime_live_scan job owns writes).
-     *     Falls back to the latest basis='eod' snapshot when quotes are stale.
-     */
-    get: operations["get_cri_live_api_regime_cri_live_get"];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/regime/dealer": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /**
-     * Get Dealer Regime
-     * @description Per-ticker dealer Greek regime — feeds the Magnet/Gamma summary bar
-     *     and the Volatility tab regime panel. Uses the same `gather_inputs`
-     *     helper the report assembler uses so both paths see the same upstream.
-     */
-    get: operations["get_dealer_regime_api_regime_dealer_get"];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/regime/gex": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /** Get Gex */
-    get: operations["get_gex_api_regime_gex_get"];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/regime/gex/intraday": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /**
-     * Get Gex Intraday
-     * @description Last N RTH sessions of intraday gex_snapshots for ``ticker``.
-     *
-     *     Drives the intraday line chart on the GEX tab. Sessions are ET-anchored
-     *     (UTC `data_date` straddles sessions). Empty `sessions` array is a valid
-     *     response when no rows exist for the ticker.
-     */
-    get: operations["get_gex_intraday_api_regime_gex_intraday_get"];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/regime/gex/scan": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    /**
-     * Trigger Gex Scan
-     * @description Run a GEX scan synchronously against UW and persist.
-     */
-    post: operations["trigger_gex_scan_api_regime_gex_scan_post"];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/regime/grg": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /**
-     * Get Grg
-     * @description Latest GRG snapshot (self-contained: embeds 90-session history).
-     *
-     *     GRG is EOD/periodic-rescan — the worker owns UW fetches; this read is
-     *     cheap (one snapshot row). No per-request UW spend.
-     */
-    get: operations["get_grg_api_regime_grg_get"];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/regime/grg/scan": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    /**
-     * Trigger Grg Scan
-     * @description Run a GRG scan synchronously against UW and persist a snapshot.
-     */
-    post: operations["trigger_grg_scan_api_regime_grg_scan_post"];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/regime/guidance": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /** Get Guidance */
-    get: operations["get_guidance_api_regime_guidance_get"];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/regime/quotes": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /** Get Regime Quotes */
-    get: operations["get_regime_quotes_api_regime_quotes_get"];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/regime/scan": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    /**
-     * Trigger Cri Scan
-     * @description Run a CRI scan synchronously off the warm store; persist a snapshot.
-     */
-    post: operations["trigger_cri_scan_api_regime_scan_post"];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/regime/validation": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /**
-     * Get Validation
-     * @description Latest completed CRI backtest run, rendered to markdown.
-     *
-     *     Source of truth is uw_scan.regime_backtest_runs. The previous file
-     *     fallback (cri-backtest.md/.csv + oos-summary.json on disk) was removed
-     *     after the prod gate in
-     *     docs/superpowers/archive/specs/2026-05-24-regime-research-closure-design.md §10.4
-     *     was satisfied. If no completed run exists at the current
-     *     cri_scorers.COMPOSITE_VERSION, returns 503 — operators should run
-     *     scripts/backtest_cri.py to seed the table.
-     */
-    get: operations["get_validation_api_regime_validation_get"];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/regime/vcg": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /** Get Vcg */
-    get: operations["get_vcg_api_regime_vcg_get"];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/regime/vcg-validation": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /**
-     * Get Vcg Validation
-     * @description Latest completed VCG backtest run, rendered to markdown + structured.
-     *
-     *     Source of truth is uw_scan.regime_backtest_runs (migration 057). Returns
-     *     503 with an actionable message if no completed run exists at the current
-     *     vcg_scoring.COMPOSITE_VERSION — operators should run scripts/backtest_vcg.py.
-     *
-     *     Persisted JSON shape (from scripts/backtest_vcg.py):
-     *         summary.extras.named_crash_window: dict[iso_str, list[dict]] where
-     *         each inner dict has offset_d (NOT offset_days), vcg, vcg_adj, beta1,
-     *         beta2, sign_ok, interpretation, vix. Event labels live in
-     *         NAMED_CRASH_DATES, not the persisted JSON.
-     */
-    get: operations["get_vcg_validation_api_regime_vcg_validation_get"];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/regime/vcg/history": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /** Get Vcg History */
-    get: operations["get_vcg_history_api_regime_vcg_history_get"];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/regime/vcg/intraday": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /** Get Vcg Intraday */
-    get: operations["get_vcg_intraday_api_regime_vcg_intraday_get"];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/regime/vcg/live": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /** Get Vcg Live */
-    get: operations["get_vcg_live_api_regime_vcg_live_get"];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/regime/vcg/scan": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    /**
-     * Trigger Vcg Scan
-     * @description Run a VCG scan synchronously off the warm store; persist a snapshot.
-     */
-    post: operations["trigger_vcg_scan_api_regime_vcg_scan_post"];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/regime/vol-backdrop": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /** Get Vol Backdrop */
-    get: operations["get_vol_backdrop_api_regime_vol_backdrop_get"];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/regime/vrp-harvest": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /**
-     * Get Vrp Harvest
-     * @description Per-bucket VRP harvest verdicts (Spec B). Read-only over the verdict
-     *     store written by the nightly vrp_markout job.
-     */
-    get: operations["get_vrp_harvest_api_regime_vrp_harvest_get"];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/scanner": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /** Get Scanner */
-    get: operations["get_scanner_api_scanner_get"];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/scanner/discover": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /**
-     * Get Scanner Discover
-     * @description Thin read of the latest persisted discovery snapshot (compute is the job).
-     */
-    get: operations["get_scanner_discover_api_scanner_discover_get"];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/stock/{ticker}": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /** Get Stock */
-    get: operations["get_stock_api_stock__ticker__get"];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/stock/{ticker}/history": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /**
-     * Get Stock History
-     * @description Daily rollup for the Market Structure tab's history table.
-     *
-     *     One row per trading day, sorted newest-first. Today's row may have
-     *     spot=None if the post-close OHLC pull hasn't fired yet.
-     */
-    get: operations["get_stock_history_api_stock__ticker__history_get"];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/stock/{ticker}/runs": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /** List Runs */
-    get: operations["list_runs_api_stock__ticker__runs_get"];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/stock/{ticker}/runs/{run_id}": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /** Get Specific Run */
-    get: operations["get_specific_run_api_stock__ticker__runs__run_id__get"];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/stock/{ticker}/skew": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /** Get Skew Analysis */
-    get: operations["get_skew_analysis_api_stock__ticker__skew_get"];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/stock/{ticker}/trade-insights": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /** Get Trade Insights */
-    get: operations["get_trade_insights_api_stock__ticker__trade_insights_get"];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/stock/{ticker}/trade-insights/ai-analysis": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    /**
-     * Post Trade Insights Ai Analysis
-     * @description Enqueue one Trade Insights AI analysis per enabled provider.
-     *
-     *     Response contains one stub per provider with status + reused + model.
-     *     Disabled providers are omitted from the response (not included with a
-     *     'disabled' status — the UI tab handles this via /latest = null).
-     *
-     *     ``kind`` selects the lane: ``insights`` (v5.3 card) or ``blast``
-     *     (trade-blast framework prompt).
-     */
-    post: operations["post_trade_insights_ai_analysis_api_stock__ticker__trade_insights_ai_analysis_post"];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/stock/{ticker}/trade-insights/ai-analysis/latest": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /**
-     * Get Latest Trade Insights Ai Analysis
-     * @description Latest terminal-state row per provider as a keyed dict.
-     *
-     *     Returns {codex: row|null, claude: row|null, deepseek: row|null}.
-     *     Succeeded rows take priority over failed rows at the same finished_at;
-     *     failed rows are returned (with error_message populated) when no succeeded
-     *     row exists. 200 even when all are null so the UI renders the empty Run
-     *     state instead of a 404.
-     *
-     *     ``kind`` selects the lane: ``insights`` (v5.3 card) or ``blast``
-     *     (trade-blast framework prompt).
-     */
-    get: operations["get_latest_trade_insights_ai_analysis_api_stock__ticker__trade_insights_ai_analysis_latest_get"];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/stock/{ticker}/trade-insights/ai-analysis/{analysis_id}": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /** Get Trade Insights Ai Analysis */
-    get: operations["get_trade_insights_ai_analysis_api_stock__ticker__trade_insights_ai_analysis__analysis_id__get"];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/stock/{ticker}/volatility/series": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /** Get Volatility Series */
-    get: operations["get_volatility_series_api_stock__ticker__volatility_series_get"];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/trade-insights/priors": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /**
-     * Get Trade Insight Priors
-     * @description Per-provider per-archetype hit-rate priors from the outcome ledger.
-     *
-     *     Reads `trade_insight_provider_archetype_priors` (migration 055).
-     *     All filter parameters are optional; with none, returns every cohort
-     *     across every provider/version/archetype/bias/entry_state combination
-     *     that has at least one outcome row.
-     *
-     *     `hit_rate_pct` is null when the cohort has zero resolved outcomes
-     *     (everything is still pending). `sample_count` includes pending +
-     *     resolved + expired; `target_hit_count` / `invalidation_hit_count` /
-     *     `pending_count` / `expired_no_resolution_count` are the breakdown.
-     *
-     *     Returns a 200 with an empty `priors` list when no rows match —
-     *     callers should not treat empty as an error.
-     */
-    get: operations["get_trade_insight_priors_api_trade_insights_priors_get"];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/watchlist": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /** Get Watchlist */
-    get: operations["get_watchlist_api_watchlist_get"];
-    put?: never;
-    /** Post Watchlist */
-    post: operations["post_watchlist_api_watchlist_post"];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/watchlist/queue": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /**
-     * Get Watchlist Queue
-     * @description Lightweight queue snapshot for the dashboard's QueueProgress widget.
-     *
-     *     Returns only the rescan-queue summary — no card joins, no meta. Designed
-     *     for the 2.5s polling loop in QueueProgress so the dashboard doesn't
-     *     refetch the full watchlist payload every tick.
-     */
-    get: operations["get_watchlist_queue_api_watchlist_queue_get"];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/watchlist/rescan-all": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    /**
-     * Enqueue Rescan All
-     * @description Enqueue a rescan job for every active watchlist ticker.
-     */
-    post: operations["enqueue_rescan_all_api_watchlist_rescan_all_post"];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/watchlist/spots": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /**
-     * Get Watchlist Spots
-     * @description Live spot snapshot for the dashboard's LiveSpotsProvider poller.
-     *
-     *     The spot WS consumer (xenon primary / massive fallback) rewrites
-     *     watchlist_card.spot every ~1s; this projection lets the browser tick
-     *     prices without refetching the full watchlist payload (same pattern as
-     *     /watchlist/queue for QueueProgress).
-     */
-    get: operations["get_watchlist_spots_api_watchlist_spots_get"];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/watchlist/{ticker}": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    post?: never;
-    /** Delete Watchlist */
-    delete: operations["delete_watchlist_api_watchlist__ticker__delete"];
-    options?: never;
-    head?: never;
-    /** Patch Watchlist */
-    patch: operations["patch_watchlist_api_watchlist__ticker__patch"];
-    trace?: never;
-  };
-  "/api/watchlist/{ticker}/rescan": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    /** Enqueue Rescan */
-    post: operations["enqueue_rescan_api_watchlist__ticker__rescan_post"];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
+    "/api/cockpit/{ticker}/dealer": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Cockpit Dealer */
+        get: operations["get_cockpit_dealer_api_cockpit__ticker__dealer_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/cockpit/{ticker}/flow-im": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Cockpit Flow Im */
+        get: operations["get_cockpit_flow_im_api_cockpit__ticker__flow_im_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/cockpit/{ticker}/state": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Cockpit State */
+        get: operations["get_cockpit_state_api_cockpit__ticker__state_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/cockpit/{ticker}/surface": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Cockpit Surface */
+        get: operations["get_cockpit_surface_api_cockpit__ticker__surface_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/cockpit/{ticker}/vrp": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Cockpit Vrp */
+        get: operations["get_cockpit_vrp_api_cockpit__ticker__vrp_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/gold/gauge": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Gauge */
+        get: operations["get_gauge_api_gold_gauge_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/gold/inputs/{series_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Input Series */
+        get: operations["get_input_series_api_gold_inputs__series_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/gold/lenses/{lens_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Lens */
+        get: operations["get_lens_api_gold_lenses__lens_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/gold/replay": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Replay */
+        get: operations["get_replay_api_gold_replay_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/gold/state": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get State */
+        get: operations["get_state_api_gold_state_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/health": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Health */
+        get: operations["health_api_health_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/health/benchmark/current": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Current Benchmark */
+        get: operations["current_benchmark_api_health_benchmark_current_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/health/benchmark/history": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Benchmark History */
+        get: operations["benchmark_history_api_health_benchmark_history_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/jobs/{job_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Job */
+        get: operations["get_job_api_jobs__job_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/ohlc/{ticker}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Ohlc */
+        get: operations["get_ohlc_api_ohlc__ticker__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/provider-usage/endpoints": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Provider Usage Endpoints */
+        get: operations["provider_usage_endpoints_api_provider_usage_endpoints_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/provider-usage/requests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Provider Usage Requests */
+        get: operations["provider_usage_requests_api_provider_usage_requests_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/provider-usage/summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Provider Usage Summary */
+        get: operations["provider_usage_summary_api_provider_usage_summary_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/provider-usage/tickers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Provider Usage Tickers */
+        get: operations["provider_usage_tickers_api_provider_usage_tickers_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/rates/snapshot": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Rates Snapshot */
+        get: operations["rates_snapshot_api_rates_snapshot_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/regime": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Regime */
+        get: operations["get_regime_api_regime_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/regime/canary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Canary Latest */
+        get: operations["get_canary_latest_api_regime_canary_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/regime/canary/history": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Canary History */
+        get: operations["get_canary_history_api_regime_canary_history_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/regime/canary/validation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Canary Validation
+         * @description v0.4 patch I4 + C6: use the existing `find_latest_run` (which already
+         *     filters on `completed_at IS NOT NULL`) and post-filter for the winning
+         *     form in summary JSON. composite_version is stringified at the DB boundary.
+         */
+        get: operations["get_canary_validation_api_regime_canary_validation_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/regime/cri/history": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Cri History */
+        get: operations["get_cri_history_api_regime_cri_history_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/regime/cri/intraday": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Cri Intraday */
+        get: operations["get_cri_intraday_api_regime_cri_intraday_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/regime/cri/live": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Cri Live
+         * @description Request-time CRI with live quotes spliced as today's provisional
+         *     close. Does NOT persist (the 5-min regime_live_scan job owns writes).
+         *     Falls back to the latest basis='eod' snapshot when quotes are stale.
+         */
+        get: operations["get_cri_live_api_regime_cri_live_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/regime/dealer": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Dealer Regime
+         * @description Per-ticker dealer Greek regime — feeds the Magnet/Gamma summary bar
+         *     and the Volatility tab regime panel. Uses the same `gather_inputs`
+         *     helper the report assembler uses so both paths see the same upstream.
+         */
+        get: operations["get_dealer_regime_api_regime_dealer_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/regime/gex": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Gex */
+        get: operations["get_gex_api_regime_gex_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/regime/gex/intraday": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Gex Intraday
+         * @description Last N RTH sessions of intraday gex_snapshots for ``ticker``.
+         *
+         *     Drives the intraday line chart on the GEX tab. Sessions are ET-anchored
+         *     (UTC `data_date` straddles sessions). Empty `sessions` array is a valid
+         *     response when no rows exist for the ticker.
+         */
+        get: operations["get_gex_intraday_api_regime_gex_intraday_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/regime/gex/scan": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Trigger Gex Scan
+         * @description Run a GEX scan synchronously against UW and persist.
+         */
+        post: operations["trigger_gex_scan_api_regime_gex_scan_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/regime/grg": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Grg
+         * @description Latest GRG snapshot (self-contained: embeds 90-session history).
+         *
+         *     GRG is EOD/periodic-rescan — the worker owns UW fetches; this read is
+         *     cheap (one snapshot row). No per-request UW spend.
+         */
+        get: operations["get_grg_api_regime_grg_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/regime/grg/scan": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Trigger Grg Scan
+         * @description Run a GRG scan synchronously against UW and persist a snapshot.
+         */
+        post: operations["trigger_grg_scan_api_regime_grg_scan_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/regime/guidance": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Guidance */
+        get: operations["get_guidance_api_regime_guidance_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/regime/quotes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Regime Quotes */
+        get: operations["get_regime_quotes_api_regime_quotes_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/regime/scan": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Trigger Cri Scan
+         * @description Run a CRI scan synchronously off the warm store; persist a snapshot.
+         */
+        post: operations["trigger_cri_scan_api_regime_scan_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/regime/validation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Validation
+         * @description Latest completed CRI backtest run, rendered to markdown.
+         *
+         *     Source of truth is uw_scan.regime_backtest_runs. The previous file
+         *     fallback (cri-backtest.md/.csv + oos-summary.json on disk) was removed
+         *     after the prod gate in
+         *     docs/superpowers/archive/specs/2026-05-24-regime-research-closure-design.md §10.4
+         *     was satisfied. If no completed run exists at the current
+         *     cri_scorers.COMPOSITE_VERSION, returns 503 — operators should run
+         *     scripts/backtest_cri.py to seed the table.
+         */
+        get: operations["get_validation_api_regime_validation_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/regime/vcg": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Vcg */
+        get: operations["get_vcg_api_regime_vcg_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/regime/vcg-validation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Vcg Validation
+         * @description Latest completed VCG backtest run, rendered to markdown + structured.
+         *
+         *     Source of truth is uw_scan.regime_backtest_runs (migration 057). Returns
+         *     503 with an actionable message if no completed run exists at the current
+         *     vcg_scoring.COMPOSITE_VERSION — operators should run scripts/backtest_vcg.py.
+         *
+         *     Persisted JSON shape (from scripts/backtest_vcg.py):
+         *         summary.extras.named_crash_window: dict[iso_str, list[dict]] where
+         *         each inner dict has offset_d (NOT offset_days), vcg, vcg_adj, beta1,
+         *         beta2, sign_ok, interpretation, vix. Event labels live in
+         *         NAMED_CRASH_DATES, not the persisted JSON.
+         */
+        get: operations["get_vcg_validation_api_regime_vcg_validation_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/regime/vcg/history": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Vcg History */
+        get: operations["get_vcg_history_api_regime_vcg_history_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/regime/vcg/intraday": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Vcg Intraday */
+        get: operations["get_vcg_intraday_api_regime_vcg_intraday_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/regime/vcg/live": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Vcg Live */
+        get: operations["get_vcg_live_api_regime_vcg_live_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/regime/vcg/scan": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Trigger Vcg Scan
+         * @description Run a VCG scan synchronously off the warm store; persist a snapshot.
+         */
+        post: operations["trigger_vcg_scan_api_regime_vcg_scan_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/regime/vol-backdrop": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Vol Backdrop */
+        get: operations["get_vol_backdrop_api_regime_vol_backdrop_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/scanner": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Scanner */
+        get: operations["get_scanner_api_scanner_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/scanner/discover": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Scanner Discover
+         * @description Thin read of the latest persisted discovery snapshot (compute is the job).
+         */
+        get: operations["get_scanner_discover_api_scanner_discover_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/stock/{ticker}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Stock */
+        get: operations["get_stock_api_stock__ticker__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/stock/{ticker}/history": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Stock History
+         * @description Daily rollup for the Market Structure tab's history table.
+         *
+         *     One row per trading day, sorted newest-first. Today's row may have
+         *     spot=None if the post-close OHLC pull hasn't fired yet.
+         */
+        get: operations["get_stock_history_api_stock__ticker__history_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/stock/{ticker}/runs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Runs */
+        get: operations["list_runs_api_stock__ticker__runs_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/stock/{ticker}/runs/{run_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Specific Run */
+        get: operations["get_specific_run_api_stock__ticker__runs__run_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/stock/{ticker}/skew": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Skew Analysis */
+        get: operations["get_skew_analysis_api_stock__ticker__skew_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/stock/{ticker}/trade-insights": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Trade Insights */
+        get: operations["get_trade_insights_api_stock__ticker__trade_insights_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/stock/{ticker}/trade-insights/ai-analysis": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Post Trade Insights Ai Analysis
+         * @description Enqueue one Trade Insights AI analysis per enabled provider.
+         *
+         *     Response contains one stub per provider with status + reused + model.
+         *     Disabled providers are omitted from the response (not included with a
+         *     'disabled' status — the UI tab handles this via /latest = null).
+         *
+         *     ``kind`` selects the lane: ``insights`` (v5.3 card) or ``blast``
+         *     (trade-blast framework prompt).
+         */
+        post: operations["post_trade_insights_ai_analysis_api_stock__ticker__trade_insights_ai_analysis_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/stock/{ticker}/trade-insights/ai-analysis/latest": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Latest Trade Insights Ai Analysis
+         * @description Latest terminal-state row per provider as a keyed dict.
+         *
+         *     Returns {codex: row|null, claude: row|null, deepseek: row|null}.
+         *     Succeeded rows take priority over failed rows at the same finished_at;
+         *     failed rows are returned (with error_message populated) when no succeeded
+         *     row exists. 200 even when all are null so the UI renders the empty Run
+         *     state instead of a 404.
+         *
+         *     ``kind`` selects the lane: ``insights`` (v5.3 card) or ``blast``
+         *     (trade-blast framework prompt).
+         */
+        get: operations["get_latest_trade_insights_ai_analysis_api_stock__ticker__trade_insights_ai_analysis_latest_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/stock/{ticker}/trade-insights/ai-analysis/{analysis_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Trade Insights Ai Analysis */
+        get: operations["get_trade_insights_ai_analysis_api_stock__ticker__trade_insights_ai_analysis__analysis_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/stock/{ticker}/volatility/series": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Volatility Series */
+        get: operations["get_volatility_series_api_stock__ticker__volatility_series_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/trade-insights/priors": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Trade Insight Priors
+         * @description Per-provider per-archetype hit-rate priors from the outcome ledger.
+         *
+         *     Reads `trade_insight_provider_archetype_priors` (migration 055).
+         *     All filter parameters are optional; with none, returns every cohort
+         *     across every provider/version/archetype/bias/entry_state combination
+         *     that has at least one outcome row.
+         *
+         *     `hit_rate_pct` is null when the cohort has zero resolved outcomes
+         *     (everything is still pending). `sample_count` includes pending +
+         *     resolved + expired; `target_hit_count` / `invalidation_hit_count` /
+         *     `pending_count` / `expired_no_resolution_count` are the breakdown.
+         *
+         *     Returns a 200 with an empty `priors` list when no rows match —
+         *     callers should not treat empty as an error.
+         */
+        get: operations["get_trade_insight_priors_api_trade_insights_priors_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/watchlist": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Watchlist */
+        get: operations["get_watchlist_api_watchlist_get"];
+        put?: never;
+        /** Post Watchlist */
+        post: operations["post_watchlist_api_watchlist_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/watchlist/queue": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Watchlist Queue
+         * @description Lightweight queue snapshot for the dashboard's QueueProgress widget.
+         *
+         *     Returns only the rescan-queue summary — no card joins, no meta. Designed
+         *     for the 2.5s polling loop in QueueProgress so the dashboard doesn't
+         *     refetch the full watchlist payload every tick.
+         */
+        get: operations["get_watchlist_queue_api_watchlist_queue_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/watchlist/rescan-all": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Enqueue Rescan All
+         * @description Enqueue a rescan job for every active watchlist ticker.
+         */
+        post: operations["enqueue_rescan_all_api_watchlist_rescan_all_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/watchlist/spots": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Watchlist Spots
+         * @description Live spot snapshot for the dashboard's LiveSpotsProvider poller.
+         *
+         *     The spot WS consumer (xenon primary / massive fallback) rewrites
+         *     watchlist_card.spot every ~1s; this projection lets the browser tick
+         *     prices without refetching the full watchlist payload (same pattern as
+         *     /watchlist/queue for QueueProgress).
+         */
+        get: operations["get_watchlist_spots_api_watchlist_spots_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/watchlist/{ticker}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete Watchlist */
+        delete: operations["delete_watchlist_api_watchlist__ticker__delete"];
+        options?: never;
+        head?: never;
+        /** Patch Watchlist */
+        patch: operations["patch_watchlist_api_watchlist__ticker__patch"];
+        trace?: never;
+    };
+    "/api/watchlist/{ticker}/rescan": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Enqueue Rescan */
+        post: operations["enqueue_rescan_api_watchlist__ticker__rescan_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
-  schemas: {
-    /** BenchmarkCurrentResponse */
-    BenchmarkCurrentResponse: {
-      bottleneck?: components["schemas"]["BenchmarkReasonResponse"] | null;
-      /**
-       * Captured At
-       * Format: date-time
-       */
-      captured_at: string;
-      metrics: components["schemas"]["BenchmarkMetricsResponse"];
-      /** Reasons */
-      reasons?: components["schemas"]["BenchmarkReasonResponse"][];
-      /** Score */
-      score: number;
-      /**
-       * Status
-       * @enum {string}
-       */
-      status: "OK" | "DEGRADED" | "CRITICAL";
-      subscores: components["schemas"]["BenchmarkSubscoresResponse"];
-    };
-    /** BenchmarkHistoryResponse */
-    BenchmarkHistoryResponse: {
-      /** Snapshots */
-      snapshots?: components["schemas"]["BenchmarkSnapshotResponse"][];
-    };
-    /** BenchmarkMetricsResponse */
-    BenchmarkMetricsResponse: {
-      /** Failing Record Tables */
-      failing_record_tables?: string[];
-      /** Last Full Scan Age Seconds */
-      last_full_scan_age_seconds?: number | null;
-      /** Massive Worker Expected Count */
-      massive_worker_expected_count?: number | null;
-      /** Massive Worker Online Count */
-      massive_worker_online_count?: number | null;
-      /** Oldest Queue Age Seconds */
-      oldest_queue_age_seconds?: number | null;
-      /** Queue Depth */
-      queue_depth?: number | null;
-      /** Queue Drain Rate Per Minute */
-      queue_drain_rate_per_minute?: number | null;
-      /** Record Health Ok */
-      record_health_ok?: boolean | null;
-      /** Requests Per Minute */
-      requests_per_minute?: number | null;
-      /** Scan Duration Avg Seconds */
-      scan_duration_avg_seconds?: number | null;
-      /** Scan Duration P95 Seconds */
-      scan_duration_p95_seconds?: number | null;
-      /** Scanner Dead Count */
-      scanner_dead_count?: number | null;
-      /** Scanner Fresh Count */
-      scanner_fresh_count?: number | null;
-      /** Scanner Never Scanned Count */
-      scanner_never_scanned_count?: number | null;
-      /** Scanner Stale Count */
-      scanner_stale_count?: number | null;
-      /** Scheduler Heartbeat Lag Seconds */
-      scheduler_heartbeat_lag_seconds?: number | null;
-      /** Uw Http 429 */
-      uw_http_429?: number | null;
-      /** Uw Http 4Xx */
-      uw_http_4xx?: number | null;
-      /** Uw Http 5Xx */
-      uw_http_5xx?: number | null;
-      /** Uw Latency P95 Ms */
-      uw_latency_p95_ms?: number | null;
-      /** Uw Worker Expected Count */
-      uw_worker_expected_count?: number | null;
-      /** Uw Worker Online Count */
-      uw_worker_online_count?: number | null;
-      /** Watchlist Size */
-      watchlist_size?: number | null;
-      /** Ws Tick Age Seconds */
-      ws_tick_age_seconds?: number | null;
-    };
-    /** BenchmarkReasonResponse */
-    BenchmarkReasonResponse: {
-      /** Component */
-      component: string;
-      /** Message */
-      message: string;
-      /** Penalty */
-      penalty: number;
-      /**
-       * Severity
-       * @enum {string}
-       */
-      severity: "degraded" | "critical";
-    };
-    /** BenchmarkSnapshotResponse */
-    BenchmarkSnapshotResponse: {
-      /**
-       * Capture Bucket
-       * Format: date-time
-       */
-      capture_bucket: string;
-      /**
-       * Captured At
-       * Format: date-time
-       */
-      captured_at: string;
-      /** Details Jsonb */
-      details_jsonb?: {
-        [key: string]: unknown;
-      };
-      /** Id */
-      id: number;
-      metrics: components["schemas"]["BenchmarkMetricsResponse"];
-      /** Score */
-      score: number;
-      /**
-       * Status
-       * @enum {string}
-       */
-      status: "OK" | "DEGRADED" | "CRITICAL";
-      subscores: components["schemas"]["BenchmarkSubscoresResponse"];
-    };
-    /** BenchmarkSubscoresResponse */
-    BenchmarkSubscoresResponse: {
-      /** Coverage */
-      coverage: number;
-      /** Freshness */
-      freshness: number;
-      /** Persistence */
-      persistence: number;
-      /** Provider */
-      provider: number;
-      /** Throughput */
-      throughput: number;
-      /** Worker */
-      worker: number;
-    };
-    /** CanaryHistoryResponse */
-    CanaryHistoryResponse: {
-      /** Rows */
-      rows: components["schemas"]["CanaryHistoryRow"][];
-    };
-    /** CanaryHistoryRow */
-    CanaryHistoryRow: {
-      /**
-       * Band
-       * @enum {string}
-       */
-      band: "NONE" | "WATCH" | "BUY" | "STRONG_BUY";
-      /**
-       * Data Date
-       * Format: date
-       */
-      data_date: string;
-      /** Score */
-      score: number;
-      /** Speed Score */
-      speed_score: number;
-      /** Spx Close */
-      spx_close?: number | null;
-      /** Structural Score */
-      structural_score: number;
-      /** Tactical Score */
-      tactical_score: number;
-      /**
-       * Warning State
-       * @enum {string}
-       */
-      warning_state:
-        | "NONE"
-        | "CONFIRMED_CANARY_ACTIVE"
-        | "BUY_THE_DIP_ACTIVE"
-        | "BOTH_ACTIVE_AMBIGUOUS";
-    };
-    /** CanaryLatestResponse */
-    CanaryLatestResponse: {
-      /**
-       * Band
-       * @enum {string}
-       */
-      band: "NONE" | "WATCH" | "BUY" | "STRONG_BUY";
-      /** Composite Version */
-      composite_version: number;
-      /**
-       * Data Date
-       * Format: date
-       */
-      data_date: string;
-      /** Payload */
-      payload: {
-        [key: string]: unknown;
-      };
-      /** Raw Score */
-      raw_score: number;
-      /** Score */
-      score: number;
-      /**
-       * Score Form
-       * @enum {string}
-       */
-      score_form: "linear" | "convex" | "concave" | "sigmoid";
-      /** Speed Score */
-      speed_score: number;
-      /** Structural Score */
-      structural_score: number;
-      /** Tactical Score */
-      tactical_score: number;
-      /**
-       * Warning State
-       * @enum {string}
-       */
-      warning_state:
-        | "NONE"
-        | "CONFIRMED_CANARY_ACTIVE"
-        | "BUY_THE_DIP_ACTIVE"
-        | "BOTH_ACTIVE_AMBIGUOUS";
-    };
-    /** CanaryValidationResponse */
-    CanaryValidationResponse: {
-      /** Composite Version */
-      composite_version: number;
-      /** Rendered Markdown */
-      rendered_markdown: string;
-      /** Run Id */
-      run_id: number;
-      /**
-       * Score Form
-       * @enum {string}
-       */
-      score_form: "linear" | "convex" | "concave" | "sigmoid";
-      /** Summary */
-      summary: {
-        [key: string]: unknown;
-      };
-    };
-    /** CandidateStructure */
-    CandidateStructure: {
-      /**
-       * Breakevens
-       * @default []
-       */
-      breakevens: string[];
-      /**
-       * Dte Band
-       * @default
-       */
-      dte_band: string;
-      /**
-       * Edge Source
-       * @default
-       */
-      edge_source: string;
-      /**
-       * Expression Delta
-       * @default
-       */
-      expression_delta: string;
-      /** Expression Type */
-      expression_type: string;
-      /** Idea Id */
-      idea_id: string;
-      /**
-       * Legs
-       * @default []
-       */
-      legs: components["schemas"]["InsightLeg"][];
-      /** Max Loss */
-      max_loss?: string | null;
-      /** Max Profit */
-      max_profit?: string | null;
-      /** Net Credit Debit */
-      net_credit_debit?: string | null;
-      /**
-       * Profit Zone
-       * @default
-       */
-      profit_zone: string;
-      /** Rank */
-      rank: number;
-      /**
-       * Risk Flags
-       * @default []
-       */
-      risk_flags: string[];
-      /**
-       * Status
-       * @default candidate
-       */
-      status: string;
-      /** Structure */
-      structure: string;
-      /** Thesis */
-      thesis: string;
-    };
-    /** ChainFlowReadRow */
-    ChainFlowReadRow: {
-      /** Call Open Interest */
-      call_open_interest?: number | null;
-      /** Call Put Volume Ratio */
-      call_put_volume_ratio?: string | null;
-      /** Call Volume */
-      call_volume?: number | null;
-      /** Put Open Interest */
-      put_open_interest?: number | null;
-      /** Put Volume */
-      put_volume?: number | null;
-      /**
-       * Read
-       * @default
-       */
-      read: string;
-      /**
-       * Requires T1 Oi Confirmation
-       * @default false
-       */
-      requires_t1_oi_confirmation: boolean;
-      /** Strike */
-      strike: string;
-      /**
-       * Volume Oi Note
-       * @default
-       */
-      volume_oi_note: string;
-    };
-    /** ClosestLevel */
-    ClosestLevel: {
-      /** Direction */
-      direction?: ("up" | "down" | "flip") | null;
-      /** Distance Pct */
-      distance_pct: number;
-      /** Gamma */
-      gamma?: number | null;
-      /** Label */
-      label: string;
-      /**
-       * Rank Kind
-       * @default nearest
-       * @enum {string}
-       */
-      rank_kind: "nearest" | "dominant";
-      /** Role */
-      role?: ("support" | "resistance" | "accelerator" | "flip") | null;
-      /** Strike */
-      strike: number;
-    };
-    /** CockpitDealerMetrics */
-    CockpitDealerMetrics: {
-      /** Charm Regime */
-      charm_regime?:
-        | ("operative_magnet" | "broken_magnet" | "opex_vortex" | "neutral")
-        | null;
-      /** Charm Stress Override */
-      charm_stress_override?: boolean | null;
-      /** Dealer Net Charm Proxy */
-      dealer_net_charm_proxy?: string | null;
-      /** Dealer Net Vanna Proxy */
-      dealer_net_vanna_proxy?: string | null;
-      /** Directional Imbalance 3D */
-      directional_imbalance_3d?: string | null;
-      /** Flow Call Premium 3D */
-      flow_call_premium_3d?: string | null;
-      /** Flow Color Lookback 3D */
-      flow_color_lookback_3d?: ("put_heavy" | "call_heavy" | "neutral") | null;
-      /** Flow Put Premium 3D */
-      flow_put_premium_3d?: string | null;
-      /** Gamma Regime */
-      gamma_regime?: ("long_gamma" | "short_gamma" | "neutral") | null;
-      /** Iv 30D Delta 5D */
-      iv_30d_delta_5d?: string | null;
-      /** Net Gamma */
-      net_gamma?: string | null;
-      /** Net Gamma Sign */
-      net_gamma_sign?: ("positive" | "negative" | "neutral") | null;
-      /** Pin Candidate Expiry */
-      pin_candidate_expiry?: string | null;
-      /** Pin Candidate Strike */
-      pin_candidate_strike?: string | null;
-      /** Pin Distance Sigma */
-      pin_distance_sigma?: string | null;
-      /** Pin Regime Flag */
-      pin_regime_flag?: boolean | null;
-      /** Pin Source Date */
-      pin_source_date?: string | null;
-      /** Vanna Conditional Reading */
-      vanna_conditional_reading?:
-        | (
-            | "grind_up"
-            | "reverse_selloff"
-            | "reflexive_sell_pressure"
-            | "weak_noise"
-          )
-        | null;
-      /** Vanna Oi Change Bias */
-      vanna_oi_change_bias?:
-        | ("call_oi_build" | "put_oi_build" | "mixed")
-        | null;
-    };
-    /** CockpitDealerPoint */
-    CockpitDealerPoint: {
-      /** Call Charm */
-      call_charm?: string | null;
-      /** Call Vanna */
-      call_vanna?: string | null;
-      /**
-       * Expiry
-       * Format: date
-       */
-      expiry: string;
-      /** Exposure Call Charm */
-      exposure_call_charm?: string | null;
-      /** Exposure Call Vanna */
-      exposure_call_vanna?: string | null;
-      /** Exposure Put Charm */
-      exposure_put_charm?: string | null;
-      /** Exposure Put Vanna */
-      exposure_put_vanna?: string | null;
-      /** Put Charm */
-      put_charm?: string | null;
-      /** Put Vanna */
-      put_vanna?: string | null;
-      /** Strike */
-      strike: string;
-    };
-    /** CockpitDealerResponse */
-    CockpitDealerResponse: {
-      /**
-       * Market Date
-       * Format: date
-       */
-      market_date: string;
-      metrics?: components["schemas"]["CockpitDealerMetrics"];
-      /** Points */
-      points?: components["schemas"]["CockpitDealerPoint"][];
-      /** Ticker */
-      ticker: string;
-    };
-    /** CockpitFlowAlert */
-    CockpitFlowAlert: {
-      /** Aggressor Label Confidence */
-      aggressor_label_confidence?: string | null;
-      /** Alert Id */
-      alert_id: string;
-      /** Alert Rule */
-      alert_rule?: string | null;
-      /** All Opening Trades */
-      all_opening_trades?: boolean | null;
-      /** Created At */
-      created_at?: string | null;
-      /** Expiry */
-      expiry?: string | null;
-      /** Flow Footprint Label */
-      flow_footprint_label?:
-        | (
-            | "directional_whale"
-            | "hedge_flow"
-            | "dealer_hedge"
-            | "gamma_scalper"
-            | "unclassified"
-          )
-        | null;
-      /** Has Floor */
-      has_floor?: boolean | null;
-      /** Has Multileg */
-      has_multileg?: boolean | null;
-      /** Has Sweep */
-      has_sweep?: boolean | null;
-      /** Open Interest */
-      open_interest?: number | null;
-      /** Option Chain */
-      option_chain?: string | null;
-      /** Option Type */
-      option_type?: string | null;
-      /** Strike */
-      strike?: string | null;
-      /** Total Ask Side Prem */
-      total_ask_side_prem?: string | null;
-      /** Total Bid Side Prem */
-      total_bid_side_prem?: string | null;
-      /** Total Premium */
-      total_premium?: string | null;
-      /** Volume */
-      volume?: number | null;
-    };
-    /** CockpitFlowImResponse */
-    CockpitFlowImResponse: {
-      /** Alerts */
-      alerts?: components["schemas"]["CockpitFlowAlert"][];
-      /** Implied Moves */
-      implied_moves?: components["schemas"]["CockpitImPoint"][];
-      /**
-       * Market Date
-       * Format: date
-       */
-      market_date: string;
-      /** Ticker */
-      ticker: string;
-    };
-    /** CockpitImPoint */
-    CockpitImPoint: {
-      /** Days */
-      days: number;
-      /** Implied Move Expected Abs */
-      implied_move_expected_abs?: string | null;
-      /** Implied Move Perc */
-      implied_move_perc?: string | null;
-      /**
-       * Market Date
-       * Format: date
-       */
-      market_date: string;
-      /** Percentile */
-      percentile?: string | null;
-      /** Volatility */
-      volatility?: string | null;
-    };
-    /** CockpitSkewPoint */
-    CockpitSkewPoint: {
-      /** Expiry */
-      expiry?: string | null;
-      /**
-       * Market Date
-       * Format: date
-       */
-      market_date: string;
-      /** Risk Reversal */
-      risk_reversal?: string | null;
-    };
-    /** CockpitStateResponse */
-    CockpitStateResponse: {
-      freshness: components["schemas"]["MatrixSourceFreshness"];
-      state: components["schemas"]["MatrixState"];
-    };
-    /** CockpitSurfaceResponse */
-    CockpitSurfaceResponse: {
-      /**
-       * Market Date
-       * Format: date
-       */
-      market_date: string;
-      /** Skew */
-      skew?: components["schemas"]["CockpitSkewPoint"][];
-      /** Term */
-      term?: components["schemas"]["CockpitTermPoint"][];
-      /** Ticker */
-      ticker: string;
-    };
-    /** CockpitTermPoint */
-    CockpitTermPoint: {
-      /** Dte */
-      dte?: number | null;
-      /**
-       * Expiry
-       * Format: date
-       */
-      expiry: string;
-      /** Implied Move Expected Abs */
-      implied_move_expected_abs?: string | null;
-      /** Implied Move Perc */
-      implied_move_perc?: string | null;
-      /** Volatility */
-      volatility?: string | null;
-    };
-    /** CockpitVrpPoint */
-    CockpitVrpPoint: {
-      /** Iv */
-      iv?: string | null;
-      /** Iv Rank 1Y */
-      iv_rank_1y?: string | null;
-      /**
-       * Market Date
-       * Format: date
-       */
-      market_date: string;
-      /** Rv */
-      rv?: string | null;
-      /** Vrp */
-      vrp?: string | null;
-    };
-    /** CockpitVrpResponse */
-    CockpitVrpResponse: {
-      /**
-       * Market Date
-       * Format: date
-       */
-      market_date: string;
-      /** Points */
-      points?: components["schemas"]["CockpitVrpPoint"][];
-      /** Ticker */
-      ticker: string;
-    };
-    /** CrashTriggerBlock */
-    CrashTriggerBlock: {
-      conditions?: components["schemas"]["CrashTriggerConditions"];
-      /**
-       * Fired
-       * @default false
-       */
-      fired: boolean;
-      /**
-       * Triggered
-       * @default false
-       */
-      triggered: boolean;
-      values?: components["schemas"]["CrashTriggerValues"];
-    };
-    /** CrashTriggerConditions */
-    CrashTriggerConditions: {
-      /**
-       * Cor1M Gt 60
-       * @default false
-       */
-      cor1m_gt_60: boolean;
-      /**
-       * Realized Vol Gt 25
-       * @default false
-       */
-      realized_vol_gt_25: boolean;
-      /**
-       * Spx Below 100D Ma
-       * @default false
-       */
-      spx_below_100d_ma: boolean;
-    };
-    /** CrashTriggerValues */
-    CrashTriggerValues: {
-      /** Cor1M */
-      cor1m?: number | null;
-      /** Realized Vol */
-      realized_vol?: number | null;
-    };
-    /** CriBlock */
-    CriBlock: {
-      components?: components["schemas"]["CriComponents"];
-      /** Composite Version */
-      composite_version?: (1 | 2 | 3) | null;
-      /**
-       * Level
-       * @default LOW
-       * @enum {string}
-       */
-      level: "LOW" | "ELEVATED" | "HIGH" | "CRITICAL";
-      /**
-       * Score
-       * @default 0
-       */
-      score: number;
-    };
-    /**
-     * CriComponents
-     * @description Four 0-25 component scores summed into the composite 0-100.
-     */
-    CriComponents: {
-      /**
-       * Correlation
-       * @default 0
-       */
-      correlation: number;
-      /**
-       * Momentum
-       * @default 0
-       */
-      momentum: number;
-      /**
-       * Vix
-       * @default 0
-       */
-      vix: number;
-      /**
-       * Vvix
-       * @default 0
-       */
-      vvix: number;
-    };
-    /** CriDailyEntry */
-    CriDailyEntry: {
-      /** Cor1M */
-      cor1m?: number | null;
-      /** Cri Score */
-      cri_score?: number | null;
-      /**
-       * Date
-       * Format: date
-       */
-      date: string;
-      /** Realized Vol */
-      realized_vol?: number | null;
-      /** Spx */
-      spx?: number | null;
-      /** Spx Distance Pct */
-      spx_distance_pct?: number | null;
-      /** Vix */
-      vix?: number | null;
-      /** Vix3M */
-      vix3m?: number | null;
-      /** Vix Vix3M Ratio */
-      vix_vix3m_ratio?: number | null;
-      /** Vix Zscore 30D */
-      vix_zscore_30d?: number | null;
-      /** Vrp */
-      vrp?: number | null;
-      /** Vvix */
-      vvix?: number | null;
-    };
-    /** CriDailyHistoryResponse */
-    CriDailyHistoryResponse: {
-      /** Rows */
-      rows?: components["schemas"]["CriDailyEntry"][];
-    };
-    /** CriHistoryEntry */
-    CriHistoryEntry: {
-      /** Cor1M */
-      cor1m?: number | null;
-      /** Cor1M 5D Change */
-      cor1m_5d_change?: number | null;
-      /** Date */
-      date: string;
-      /** Pullback 20D Pct */
-      pullback_20d_pct?: number | null;
-      /** Realized Vol */
-      realized_vol?: number | null;
-      /** Spx Vs Ma Pct */
-      spx_vs_ma_pct?: number | null;
-      /** Spy */
-      spy?: number | null;
-      /** Vix */
-      vix?: number | null;
-      /** Vix 5D Roc */
-      vix_5d_roc?: number | null;
-      /** Vvix */
-      vvix?: number | null;
-      /** Vvix 5D Roc */
-      vvix_5d_roc?: number | null;
-    };
-    /** CriIntradayPoint */
-    CriIntradayPoint: {
-      /** Cor1M */
-      cor1m?: number | null;
-      /** Cri Score */
-      cri_score?: number | null;
-      /** Realized Vol */
-      realized_vol?: number | null;
-      /** Spx */
-      spx?: number | null;
-      /** Spx Distance Pct */
-      spx_distance_pct?: number | null;
-      /**
-       * Ts
-       * Format: date-time
-       */
-      ts: string;
-      /** Vix */
-      vix?: number | null;
-      /** Vix3M */
-      vix3m?: number | null;
-      /** Vix Vix3M Ratio */
-      vix_vix3m_ratio?: number | null;
-      /** Vix Zscore 30D */
-      vix_zscore_30d?: number | null;
-      /** Vrp */
-      vrp?: number | null;
-      /** Vvix */
-      vvix?: number | null;
-    };
-    /** CriIntradayResponse */
-    CriIntradayResponse: {
-      /** As Of */
-      as_of?: string | null;
-      /** Sessions */
-      sessions?: components["schemas"]["CriIntradaySession"][];
-    };
-    /** CriIntradaySession */
-    CriIntradaySession: {
-      /**
-       * Et Date
-       * Format: date
-       */
-      et_date: string;
-      /** Points */
-      points?: components["schemas"]["CriIntradayPoint"][];
-    };
-    /**
-     * CriLiveResponse
-     * @description CRI computed at request time with live quotes spliced as today's
-     *     provisional close. ``basis='eod'`` means the live compute wasn't
-     *     possible (stale/no quotes) and the latest persisted EOD snapshot is
-     *     being served instead.
-     */
-    CriLiveResponse: {
-      /** Active Source */
-      active_source?: string | null;
-      /**
-       * Basis
-       * @default eod
-       * @enum {string}
-       */
-      basis: "live" | "eod";
-      /** Carried Forward */
-      carried_forward?: string[];
-      /** Cor1M */
-      cor1m?: number | null;
-      /** Cor1M 5D Change */
-      cor1m_5d_change?: number | null;
-      /** Cor1M Previous Close */
-      cor1m_previous_close?: number | null;
-      crash_trigger?: components["schemas"]["CrashTriggerBlock"];
-      cri?: components["schemas"]["CriBlock"];
-      cta?: components["schemas"]["CtaBlock"];
-      /** Date */
-      date?: string | null;
-      /** History */
-      history?: components["schemas"]["CriHistoryEntry"][];
-      /** Live Quotes */
-      live_quotes?: {
-        [key: string]: components["schemas"]["RegimeLiveQuote"];
-      };
-      /** Pullback 20D Pct */
-      pullback_20d_pct?: number | null;
-      /** Realized Vol */
-      realized_vol?: number | null;
-      /**
-       * Scan Time
-       * @default
-       */
-      scan_time: string;
-      /** Spx 100D Ma */
-      spx_100d_ma?: number | null;
-      /** Spx Distance Pct */
-      spx_distance_pct?: number | null;
-      /** Spx Source */
-      spx_source?: ("SPX" | "SPY") | null;
-      /** Spy */
-      spy?: number | null;
-      /** Spy Closes */
-      spy_closes?: number[];
-      /**
-       * Status
-       * @default empty
-       * @enum {string}
-       */
-      status: "ok" | "empty";
-      /** Vix */
-      vix?: number | null;
-      /** Vix3M */
-      vix3m?: number | null;
-      /** Vix 5D Roc */
-      vix_5d_roc?: number | null;
-      /** Vix Delta 3D */
-      vix_delta_3d?: number | null;
-      /** Vix Vix3M Ratio */
-      vix_vix3m_ratio?: number | null;
-      /** Vix Zscore 30D */
-      vix_zscore_30d?: number | null;
-      /** Vrp */
-      vrp?: number | null;
-      /** Vvix */
-      vvix?: number | null;
-      /** Vvix 5D Roc */
-      vvix_5d_roc?: number | null;
-      /** Vvix Vix Ratio */
-      vvix_vix_ratio?: number | null;
-    };
-    /**
-     * CriResponse
-     * @description Crash Risk Indicator snapshot (latest scan).
-     */
-    CriResponse: {
-      /** Cor1M */
-      cor1m?: number | null;
-      /** Cor1M 5D Change */
-      cor1m_5d_change?: number | null;
-      /** Cor1M Previous Close */
-      cor1m_previous_close?: number | null;
-      crash_trigger?: components["schemas"]["CrashTriggerBlock"];
-      cri?: components["schemas"]["CriBlock"];
-      cta?: components["schemas"]["CtaBlock"];
-      /** Date */
-      date?: string | null;
-      /** History */
-      history?: components["schemas"]["CriHistoryEntry"][];
-      /** Pullback 20D Pct */
-      pullback_20d_pct?: number | null;
-      /** Realized Vol */
-      realized_vol?: number | null;
-      /**
-       * Scan Time
-       * @default
-       */
-      scan_time: string;
-      /** Spx 100D Ma */
-      spx_100d_ma?: number | null;
-      /** Spx Distance Pct */
-      spx_distance_pct?: number | null;
-      /** Spx Source */
-      spx_source?: ("SPX" | "SPY") | null;
-      /** Spy */
-      spy?: number | null;
-      /** Spy Closes */
-      spy_closes?: number[];
-      /**
-       * Status
-       * @default empty
-       * @enum {string}
-       */
-      status: "ok" | "empty";
-      /** Vix */
-      vix?: number | null;
-      /** Vix3M */
-      vix3m?: number | null;
-      /** Vix 5D Roc */
-      vix_5d_roc?: number | null;
-      /** Vix Delta 3D */
-      vix_delta_3d?: number | null;
-      /** Vix Vix3M Ratio */
-      vix_vix3m_ratio?: number | null;
-      /** Vix Zscore 30D */
-      vix_zscore_30d?: number | null;
-      /** Vrp */
-      vrp?: number | null;
-      /** Vvix */
-      vvix?: number | null;
-      /** Vvix 5D Roc */
-      vvix_5d_roc?: number | null;
-      /** Vvix Vix Ratio */
-      vvix_vix_ratio?: number | null;
-    };
-    /**
-     * CriScanResponse
-     * @description Response body for POST /api/regime/scan.
-     */
-    CriScanResponse: {
-      /** Reason */
-      reason?: string | null;
-      /** Row Id */
-      row_id?: number | null;
-      /**
-       * Scanner
-       * @default cri
-       * @constant
-       */
-      scanner: "cri";
-      /**
-       * Status
-       * @default ok
-       * @enum {string}
-       */
-      status: "ok" | "skipped";
-    };
-    /** CtaBlock */
-    CtaBlock: {
-      /** Est Selling Bn */
-      est_selling_bn?: number | null;
-      /** Exposure Pct */
-      exposure_pct?: number | null;
-      /**
-       * Forced Reduction
-       * @default false
-       */
-      forced_reduction: boolean;
-      /** Forced Reduction Pct */
-      forced_reduction_pct?: number | null;
-      /** Realized Vol */
-      realized_vol?: number | null;
-      /** Selling Usd B */
-      selling_usd_b?: number | null;
-    };
-    /**
-     * DealerRegime
-     * @description Per-ticker dealer Greek regime — attached to SingleStockReport so the
-     *     Market Structure → GEX tab can render the magnet/gamma bar without an
-     *     extra round-trip. The /regime/dealer endpoint returns the full shape for
-     *     the Volatility tab.
-     */
-    DealerRegime: {
-      /**
-       * Charm Score
-       * @default 0
-       */
-      charm_score: string;
-      /**
-       * Gamma Score
-       * @default 0
-       */
-      gamma_score: string;
-      /**
-       * Headline
-       * @default
-       */
-      headline: string;
-      /**
-       * Label
-       * @default neutral
-       */
-      label: string;
-      /** Odte Net Gex */
-      odte_net_gex?: string | null;
-      /** Odte Share Pct */
-      odte_share_pct?: string | null;
-      /** Prev Close Net Gex */
-      prev_close_net_gex?: string | null;
-      /**
-       * Score
-       * @default 0
-       */
-      score: string;
-      /**
-       * Subtitle
-       * @default
-       */
-      subtitle: string;
-      /**
-       * Vanna Score
-       * @default 0
-       */
-      vanna_score: string;
-    };
-    /** DealerRegimeResponse */
-    DealerRegimeResponse: {
-      /** Closest Levels */
-      closest_levels?: components["schemas"]["ClosestLevel"][];
-      /** Gamma Decay */
-      gamma_decay?: components["schemas"]["GammaDecayBucket"][];
-      /** Net Gex */
-      net_gex?: number | null;
-      /** Odte Gex */
-      odte_gex?: number | null;
-      /** Odte Share Pct */
-      odte_share_pct?: number | null;
-      /** Prev Close Net Gex */
-      prev_close_net_gex?: number | null;
-      /**
-       * Scan Time
-       * @default
-       */
-      scan_time: string;
-      signal?: components["schemas"]["DealerRegimeSignal"];
-      /** Spot */
-      spot?: number | null;
-      /**
-       * Status
-       * @default empty
-       * @enum {string}
-       */
-      status: "ok" | "empty";
-      /**
-       * Ticker
-       * @default
-       */
-      ticker: string;
-    };
-    /**
-     * DealerRegimeSignal
-     * @description Per-ticker dealer regime classification (Γ-driven, with V/C support).
-     */
-    DealerRegimeSignal: {
-      /**
-       * Charm Score
-       * @default 0
-       */
-      charm_score: number;
-      /**
-       * Gamma Score
-       * @default 0
-       */
-      gamma_score: number;
-      /**
-       * Headline
-       * @default
-       */
-      headline: string;
-      /**
-       * Label
-       * @default neutral
-       * @enum {string}
-       */
-      label: "amplifying" | "dampening" | "neutral";
-      /**
-       * Score
-       * @default 0
-       */
-      score: number;
-      /**
-       * Subtitle
-       * @default
-       */
-      subtitle: string;
-      /**
-       * Vanna Score
-       * @default 0
-       */
-      vanna_score: number;
-    };
-    /**
-     * DiscoveryCandidate
-     * @description Non-watchlist ticker scored by the edge-quality model (premium-free).
-     *
-     *     Replaces the prior DCF-only shape. Dark-pool direction/strength/sustained +
-     *     options↔DP confluence are surfaced per card. EIC/GEX still need a deep scan
-     *     (promote to the watchlist).
-     */
-    DiscoveryCandidate: {
-      /**
-       * Alert Count
-       * @default 0
-       */
-      alert_count: number;
-      /**
-       * Bias
-       * @enum {string}
-       */
-      bias: "bullish" | "bearish" | "neutral" | "mixed";
-      /** Bias Strength */
-      bias_strength?: ("strong" | "moderate" | "weak") | null;
-      /**
-       * Confluence
-       * @default false
-       */
-      confluence: boolean;
-      /** Direction */
-      direction?: ("long" | "short") | null;
-      /** Dp Direction */
-      dp_direction?:
-        | ("ACCUMULATION" | "DISTRIBUTION" | "NEUTRAL" | "NO_DATA")
-        | null;
-      /** Dp Status */
-      dp_status?: string | null;
-      /** Dp Strength */
-      dp_strength?: string | null;
-      /**
-       * Dp Sustained Days
-       * @default 0
-       */
-      dp_sustained_days: number;
-      /** Latest Alert At */
-      latest_alert_at?: string | null;
-      /** Score */
-      score: string;
-      /**
-       * Score Breakdown
-       * @default {}
-       */
-      score_breakdown: {
-        [key: string]: unknown;
-      };
-      /** Score Model */
-      score_model: string;
-      /** Scored At */
-      scored_at?: string | null;
-      /** Sector */
-      sector?: string | null;
-      /** Spot */
-      spot?: string | null;
-      /**
-       * Sweeps
-       * @default 0
-       */
-      sweeps: number;
-      /** Ticker */
-      ticker: string;
-      /** Vol Oi */
-      vol_oi?: string | null;
-    };
-    /** DiscoveryResponse */
-    DiscoveryResponse: {
-      /** Alerts Pulled */
-      alerts_pulled: number;
-      /** Candidates */
-      candidates: components["schemas"]["DiscoveryCandidate"][];
-      /**
-       * Earnings Unknown Dropped
-       * @default 0
-       */
-      earnings_unknown_dropped: number;
-      /**
-       * Fetched At
-       * Format: date-time
-       */
-      fetched_at: string;
-      /** Scored At */
-      scored_at?: string | null;
-      /**
-       * Source
-       * @default scanner_candidate_snapshots
-       * @constant
-       */
-      source: "scanner_candidate_snapshots";
-    };
-    /** DivergencePoint */
-    DivergencePoint: {
-      /**
-       * Date
-       * Format: date
-       */
-      date: string;
-      /** Iv Z */
-      iv_z?: string | null;
-      /** Rv Z */
-      rv_z?: string | null;
-    };
-    /**
-     * ExposuresSummaryRow
-     * @description Per-(expiry) derived summary used to drive the Vanna/Charm sub-tab
-     *     headline narrative + 4 tiles. Computed by cards/exposures.py and
-     *     persisted to uw_scan.exposures_summary.
-     */
-    ExposuresSummaryRow: {
-      /** Charm Above Sum */
-      charm_above_sum?: string | null;
-      /** Charm Below Sum */
-      charm_below_sum?: string | null;
-      /** Charm Flip */
-      charm_flip?: string | null;
-      /** Charm Headline */
-      charm_headline?: string | null;
-      /** Charm Imbalance Pct */
-      charm_imbalance_pct?: string | null;
-      /** Charm Pin Strike */
-      charm_pin_strike?: string | null;
-      /** Charm Signal Quality */
-      charm_signal_quality?: string | null;
-      /** Charm Subtitle */
-      charm_subtitle?: string | null;
-      /** Delta Shock 1Pt Iv */
-      delta_shock_1pt_iv?: string | null;
-      /** Dte */
-      dte?: number | null;
-      /**
-       * Expiry
-       * Format: date
-       */
-      expiry: string;
-      /** Net Charm */
-      net_charm?: string | null;
-      /** Net Vanna */
-      net_vanna?: string | null;
-      /** Spot */
-      spot?: string | null;
-      /** Top Vanna Strike */
-      top_vanna_strike?: string | null;
-      /** Top Vanna Value */
-      top_vanna_value?: string | null;
-      /** Vanna Flip */
-      vanna_flip?: string | null;
-      /** Vanna Headline */
-      vanna_headline?: string | null;
-      /** Vanna Regime */
-      vanna_regime?: string | null;
-      /** Vanna Subtitle */
-      vanna_subtitle?: string | null;
-    };
-    /** FlowAlert */
-    FlowAlert: {
-      /** Aggressor Label Confidence */
-      aggressor_label_confidence?: string | null;
-      /** Alert Rule */
-      alert_rule?: string | null;
-      /** All Opening Trades */
-      all_opening_trades?: boolean | null;
-      /** Created At */
-      created_at?: string | null;
-      /** Expiry */
-      expiry?: string | null;
-      /** Flow Footprint Label */
-      flow_footprint_label?:
-        | (
-            | "directional_whale"
-            | "hedge_flow"
-            | "dealer_hedge"
-            | "gamma_scalper"
-            | "unclassified"
-          )
-        | null;
-      /** Has Floor */
-      has_floor?: boolean | null;
-      /** Has Multileg */
-      has_multileg?: boolean | null;
-      /** Has Sweep */
-      has_sweep?: boolean | null;
-      /** Id */
-      id: string;
-      /** Issue Type */
-      issue_type?: string | null;
-      /** Iv End */
-      iv_end?: string | null;
-      /** Iv Start */
-      iv_start?: string | null;
-      /** Next Earnings Date */
-      next_earnings_date?: string | null;
-      /** Open Interest */
-      open_interest?: number | null;
-      /** Option Chain */
-      option_chain?: string | null;
-      /** Price */
-      price?: string | null;
-      /** Rule Id */
-      rule_id?: string | null;
-      /** Sector */
-      sector?: string | null;
-      /** Strike */
-      strike?: string | null;
-      /** Ticker */
-      ticker: string;
-      /** Total Ask Side Prem */
-      total_ask_side_prem?: string | null;
-      /** Total Bid Side Prem */
-      total_bid_side_prem?: string | null;
-      /** Total Premium */
-      total_premium?: string | null;
-      /** Total Size */
-      total_size?: number | null;
-      /** Type */
-      type?: string | null;
-      /** Underlying Price */
-      underlying_price?: string | null;
-      /** Volume */
-      volume?: number | null;
-      /** Volume Oi Ratio */
-      volume_oi_ratio?: string | null;
-    };
-    /** FlowSnapshot */
-    FlowSnapshot: {
-      /** Ask Side Premium */
-      ask_side_premium: string;
-      /** Bear Premium */
-      bear_premium: string;
-      /** Bid Side Premium */
-      bid_side_premium: string;
-      /** Bull Premium */
-      bull_premium: string;
-      /** Flow Count */
-      flow_count: number;
-      /** Flow Count 30D Avg */
-      flow_count_30d_avg?: string | null;
-      /**
-       * Flow Count 30D Days
-       * @default 0
-       */
-      flow_count_30d_days: number;
-      /**
-       * Flow Count Is Limited
-       * @default false
-       */
-      flow_count_is_limited: boolean;
-      /** Flow Count Vs 30D Avg */
-      flow_count_vs_30d_avg?: string | null;
-      /** Net Premium */
-      net_premium: string;
-      /** Ticker */
-      ticker: string;
-      /** Top Alert Rule */
-      top_alert_rule?: string | null;
-      /**
-       * Top Alerts
-       * @default []
-       */
-      top_alerts: components["schemas"]["FlowAlert"][];
-    };
-    /** GammaBlock */
-    GammaBlock: {
-      /** Expiring Date */
-      expiring_date?: string | null;
-      /** Expiring Pct */
-      expiring_pct?: string | null;
-      /** Flip Distance */
-      flip_distance?: string | null;
-      /** Flip Price */
-      flip_price?: string | null;
-      /** Max Strike */
-      max_strike?: string | null;
-      /** Per 1Pct Move */
-      per_1pct_move?: string | null;
-    };
-    /** GammaDecayBucket */
-    GammaDecayBucket: {
-      /** Dte */
-      dte: number;
-      /** Expiry */
-      expiry: string;
-      /** Gross Abs Gex */
-      gross_abs_gex?: number | null;
-      /** Gross Share Pct */
-      gross_share_pct?: number | null;
-      /** Net Gex */
-      net_gex?: number | null;
-      /** Share Pct */
-      share_pct?: number | null;
-    };
-    /** GexBias */
-    GexBias: {
-      /** Days Above Flip */
-      days_above_flip?: number | null;
-      /** Direction */
-      direction?: string | null;
-      /** Flip Migration */
-      flip_migration?: components["schemas"]["GexFlipMigrationEntry"][];
-      /** Reasons */
-      reasons?: string[];
-    };
-    /** GexBucket */
-    GexBucket: {
-      /** Call Gex */
-      call_gex?: number | null;
-      /** Net Gex */
-      net_gex?: number | null;
-      /** Pct From Spot */
-      pct_from_spot?: number | null;
-      /** Put Gex */
-      put_gex?: number | null;
-      /** Strike */
-      strike?: number | null;
-      /** Tag */
-      tag?: string | null;
-    };
-    /** GexExpectedRange */
-    GexExpectedRange: {
-      /** High */
-      high?: number | null;
-      /** Iv 1D */
-      iv_1d?: number | null;
-      /** Low */
-      low?: number | null;
-    };
-    /** GexFlipMigrationEntry */
-    GexFlipMigrationEntry: {
-      /** Date */
-      date: string;
-      /** Flip */
-      flip?: number | null;
-    };
-    /** GexHistoryEntry */
-    GexHistoryEntry: {
-      /** Atm Iv */
-      atm_iv?: number | null;
-      /** Bias */
-      bias?: string | null;
-      /** Date */
-      date: string;
-      /** Gex Flip */
-      gex_flip?: number | null;
-      /** Net Dex */
-      net_dex?: number | null;
-      /** Net Gex */
-      net_gex?: number | null;
-      /** Spot */
-      spot?: number | null;
-      /** Vol Pc */
-      vol_pc?: number | null;
-    };
-    /**
-     * GexIntradayPoint
-     * @description One row from gex_snapshots inside a single ET trading session.
-     */
-    GexIntradayPoint: {
-      /** Gex Flip */
-      gex_flip?: number | null;
-      /** Iv30D */
-      iv30d?: number | null;
-      /** Net Gex */
-      net_gex?: number | null;
-      /** Spot */
-      spot?: number | null;
-      /**
-       * Ts
-       * Format: date-time
-       */
-      ts: string;
-    };
-    /**
-     * GexIntradayResponse
-     * @description Last N RTH sessions of intraday GEX snapshots for a ticker.
-     *
-     *     Sessions are ordered oldest→newest so the chart can scan left-to-right.
-     *     Points within each session are also ASC by ``ts``.
-     */
-    GexIntradayResponse: {
-      /** As Of */
-      as_of?: string | null;
-      /** Sessions */
-      sessions?: components["schemas"]["GexIntradaySession"][];
-      /** Ticker */
-      ticker: string;
-    };
-    /** GexIntradaySession */
-    GexIntradaySession: {
-      /**
-       * Et Date
-       * Format: date
-       */
-      et_date: string;
-      /** Points */
-      points?: components["schemas"]["GexIntradayPoint"][];
-    };
-    /** GexIvData */
-    GexIvData: {
-      /** Hv30 */
-      hv30?: number | null;
-      /** Iv30D */
-      iv30d?: number | null;
-      /** Iv Rank */
-      iv_rank?: number | null;
-      /** Mq Iv30D */
-      mq_iv30d?: number | null;
-      /** Mq Iv Rank */
-      mq_iv_rank?: string | null;
-      /** Source */
-      source?: string | null;
-    };
-    /** GexLevels */
-    GexLevels: {
-      call_wall?:
-        | components["schemas"]["uw_scan__api__schemas__GexLevel"]
-        | null;
-      gex_flip?:
-        | components["schemas"]["uw_scan__api__schemas__GexLevel"]
-        | null;
-      max_accelerator?:
-        | components["schemas"]["uw_scan__api__schemas__GexLevel"]
-        | null;
-      max_magnet?:
-        | components["schemas"]["uw_scan__api__schemas__GexLevel"]
-        | null;
-      put_wall?:
-        | components["schemas"]["uw_scan__api__schemas__GexLevel"]
-        | null;
-      second_magnet?:
-        | components["schemas"]["uw_scan__api__schemas__GexLevel"]
-        | null;
-    };
-    /** GexMqLevels */
-    GexMqLevels: {
-      /** Call Resistance 0Dte */
-      call_resistance_0dte?: number | null;
-      /** Call Resistance All */
-      call_resistance_all?: number | null;
-      /** Distance To Hvl Pct */
-      distance_to_hvl_pct?: string | null;
-      /** Expected High */
-      expected_high?: number | null;
-      /** Expected Low */
-      expected_low?: number | null;
-      /** Hv30 */
-      hv30?: number | null;
-      /** Hvl */
-      hvl?: number | null;
-      /** Iv30D */
-      iv30d?: number | null;
-      /** Iv Rank */
-      iv_rank?: string | null;
-      /** Put Support 0Dte */
-      put_support_0dte?: number | null;
-      /** Put Support All */
-      put_support_all?: number | null;
-      /** Source Date */
-      source_date?: string | null;
-      /** Spot */
-      spot?: number | null;
-      /** Top Gex Strikes */
-      top_gex_strikes?: number[];
-    };
-    /** GexResponse */
-    GexResponse: {
-      /** Atm Iv */
-      atm_iv?: number | null;
-      bias?: components["schemas"]["GexBias"];
-      /** Close */
-      close?: number | null;
-      /** Data Date */
-      data_date?: string | null;
-      /** Day Change */
-      day_change?: number | null;
-      /** Day Change Pct */
-      day_change_pct?: number | null;
-      expected_range?: components["schemas"]["GexExpectedRange"];
-      /** History */
-      history?: components["schemas"]["GexHistoryEntry"][];
-      iv?: components["schemas"]["GexIvData"] | null;
-      levels?: components["schemas"]["GexLevels"];
-      /**
-       * Market Open
-       * @default false
-       */
-      market_open: boolean;
-      /** Market Time */
-      market_time?: string | null;
-      mq?: components["schemas"]["GexMqLevels"] | null;
-      /** Net Dex */
-      net_dex?: number | null;
-      /** Net Gex */
-      net_gex?: number | null;
-      /** Prev Close */
-      prev_close?: number | null;
-      /** Profile */
-      profile?: components["schemas"]["GexBucket"][];
-      /**
-       * Scan Time
-       * @default
-       */
-      scan_time: string;
-      source_delta?: components["schemas"]["GexSourceDelta"] | null;
-      /** Spot */
-      spot?: number | null;
-      /** Spot Source */
-      spot_source?: string | null;
-      /** Tape Time */
-      tape_time?: string | null;
-      /**
-       * Ticker
-       * @default SPX
-       */
-      ticker: string;
-      /** Vol Pc */
-      vol_pc?: number | null;
-    };
-    /** GexSourceDelta */
-    GexSourceDelta: {
-      call_wall_vs_resistance_0dte?:
-        | components["schemas"]["GexSourceDeltaEntry"]
-        | null;
-      call_wall_vs_resistance_all?:
-        | components["schemas"]["GexSourceDeltaEntry"]
-        | null;
-      flip_vs_hvl?: components["schemas"]["GexSourceDeltaEntry"] | null;
-      put_wall_vs_support_0dte?:
-        | components["schemas"]["GexSourceDeltaEntry"]
-        | null;
-      put_wall_vs_support_all?:
-        | components["schemas"]["GexSourceDeltaEntry"]
-        | null;
-    };
-    /** GexSourceDeltaEntry */
-    GexSourceDeltaEntry: {
-      /** Delta */
-      delta?: number | null;
-      /** Mq */
-      mq?: number | null;
-      /** Uw */
-      uw?: number | null;
-    };
-    /** GoldCbCountryHistory */
-    GoldCbCountryHistory: {
-      /** Bucket */
-      bucket: string;
-      /** Country Iso3 */
-      country_iso3: string;
-      /** Country Name */
-      country_name: string;
-      /**
-       * History
-       * @default []
-       */
-      history: components["schemas"]["GoldHistoryPoint"][];
-      /** Latest Reserves T */
-      latest_reserves_t?: string | null;
-    };
-    /** GoldCorrelationBand */
-    GoldCorrelationBand: {
-      /** Mean */
-      mean: string;
-      /** Std */
-      std: string;
-    };
-    /**
-     * GoldCorrelationHistory
-     * @description Tier 5 correlation-history panel inputs.
-     */
-    GoldCorrelationHistory: {
-      /**
-       * Gold Dfii10
-       * @default []
-       */
-      gold_dfii10: components["schemas"]["GoldCorrelationPoint"][];
-      /**
-       * Gold Dxy
-       * @default []
-       */
-      gold_dxy: components["schemas"]["GoldCorrelationPoint"][];
-      /**
-       * Gold Gpr
-       * @default []
-       */
-      gold_gpr: components["schemas"]["GoldCorrelationPoint"][];
-      pre_2022_band?: components["schemas"]["GoldCorrelationBand"] | null;
-    };
-    /** GoldCorrelationPoint */
-    GoldCorrelationPoint: {
-      /**
-       * Obs Date
-       * Format: date
-       */
-      obs_date: string;
-      /** Value */
-      value: string;
-    };
-    /** GoldCyclicalPostureModel */
-    GoldCyclicalPostureModel: {
-      /** Cpi Yoy */
-      cpi_yoy?: string | null;
-      /** Dfii10 */
-      dfii10?: string | null;
-      /** Dfii10 60D Change Bps */
-      dfii10_60d_change_bps?: string | null;
-      /** Dxy */
-      dxy?: string | null;
-      /** Dxy 60D Sigma */
-      dxy_60d_sigma?: string | null;
-      /**
-       * Factors
-       * @default {}
-       */
-      factors: {
-        [key: string]: number;
-      };
-      /** Gpr Pct 52W */
-      gpr_pct_52w?: string | null;
-      /** Gpr Value */
-      gpr_value?: string | null;
-      /** Narrative Text */
-      narrative_text: string;
-      /**
-       * Posture Chip
-       * @enum {string}
-       */
-      posture_chip:
-        | "FAVORABLE"
-        | "NEUTRAL"
-        | "STRETCHED"
-        | "SUSPENDED"
-        | "DEGRADED";
-      /** T5Yifr */
-      t5yifr?: string | null;
-      /** T5Yifr Pct 52W */
-      t5yifr_pct_52w?: string | null;
-      two_force_text: components["schemas"]["GoldTwoForceText"];
-      /** Zone Label */
-      zone_label?: string | null;
-    };
-    /**
-     * GoldDataFreshnessSource
-     * @description Per-source freshness for the Tier 1 Data Freshness card.
-     */
-    GoldDataFreshnessSource: {
-      /** Id */
-      id: string;
-      /** Last As Of */
-      last_as_of?: string | null;
-      /** Stale Seconds */
-      stale_seconds?: number | null;
-      /**
-       * Status
-       * @default ok
-       * @enum {string}
-       */
-      status: "ok" | "missing";
-    };
-    /**
-     * GoldDecompositionRow
-     * @description One row of the Tier 5 lens-decomposition bars.
-     */
-    GoldDecompositionRow: {
-      /** Contribution */
-      contribution: string;
-      /** Factor */
-      factor: string;
-      /**
-       * Lens
-       * @enum {string}
-       */
-      lens: "L1" | "L2" | "L3";
-    };
-    /** GoldGaugeResponse */
-    GoldGaugeResponse: {
-      current: components["schemas"]["GoldGaugeState"];
-      /** History 252D */
-      history_252d: components["schemas"]["GoldGaugeTimeSeriesPoint"][];
-    };
-    /** GoldGaugeState */
-    GoldGaugeState: {
-      /** Corr 126D */
-      corr_126d?: string | null;
-      /** Corr 252D */
-      corr_252d?: string | null;
-      /** Corr 252D Returns */
-      corr_252d_returns?: string | null;
-      /** Corr 504D */
-      corr_504d?: string | null;
-      /** Corr 60D */
-      corr_60d?: string | null;
-      /**
-       * State
-       * @enum {string}
-       */
-      state: "operative" | "partial" | "suspended";
-    };
-    /** GoldGaugeTimeSeriesPoint */
-    GoldGaugeTimeSeriesPoint: {
-      /** Corr 252D */
-      corr_252d: string | null;
-      /**
-       * Obs Date
-       * Format: date
-       */
-      obs_date: string;
-    };
-    /** GoldHistoryPoint */
-    GoldHistoryPoint: {
-      /**
-       * Obs Date
-       * Format: date
-       */
-      obs_date: string;
-      /** Value */
-      value: string;
-    };
-    /** GoldInputProvenance */
-    GoldInputProvenance: {
-      /**
-       * As Of
-       * Format: date-time
-       */
-      as_of: string;
-      /**
-       * Obs Date
-       * Format: date
-       */
-      obs_date: string;
-    };
-    /** GoldInputSeriesPoint */
-    GoldInputSeriesPoint: {
-      /**
-       * As Of
-       * Format: date-time
-       */
-      as_of: string;
-      /**
-       * Obs Date
-       * Format: date
-       */
-      obs_date: string;
-      /** Release Date */
-      release_date?: string | null;
-      /** Value */
-      value: string;
-    };
-    /** GoldInputSeriesResponse */
-    GoldInputSeriesResponse: {
-      /** Points */
-      points: components["schemas"]["GoldInputSeriesPoint"][];
-      /** Series Id */
-      series_id: string;
-    };
-    /**
-     * GoldLensResponse
-     * @description Detail payload for one lens (richer than the summary in GoldStateResponse).
-     */
-    GoldLensResponse: {
-      /** Detail */
-      detail: {
-        [key: string]: components["schemas"]["GoldInputSeriesPoint"][];
-      };
-      /**
-       * Lens Id
-       * @enum {string}
-       */
-      lens_id: "structural" | "cyclical" | "valuation";
-      /** Posture */
-      posture:
-        | components["schemas"]["GoldStructuralPostureModel"]
-        | components["schemas"]["GoldCyclicalPostureModel"]
-        | components["schemas"]["GoldValuationPostureModel"];
-    };
-    /**
-     * GoldSpotTile
-     * @description XAU/USD snapshot used by the Tier 1 KPI strip.
-     */
-    GoldSpotTile: {
-      /** Delta Abs */
-      delta_abs: string;
-      /** Delta Pct */
-      delta_pct: string;
-      /** High */
-      high: string;
-      /** Last */
-      last: string;
-      /** Low */
-      low: string;
-      /** Open */
-      open: string;
-    };
-    /** GoldStateResponse */
-    GoldStateResponse: {
-      /**
-       * Computed At
-       * Format: date-time
-       */
-      computed_at: string;
-      /**
-       * @default {
-       *       "gold_dfii10": [],
-       *       "gold_dxy": [],
-       *       "gold_gpr": []
-       *     }
-       */
-      correlation_history: components["schemas"]["GoldCorrelationHistory"];
-      cyclical: components["schemas"]["GoldCyclicalPostureModel"];
-      /**
-       * Data Freshness
-       * @default []
-       */
-      data_freshness: components["schemas"]["GoldDataFreshnessSource"][];
-      /**
-       * Decomposition Rows
-       * @default []
-       */
-      decomposition_rows: components["schemas"]["GoldDecompositionRow"][];
-      gauge: components["schemas"]["GoldGaugeState"];
-      /** Inputs Used */
-      inputs_used: {
-        [key: string]: components["schemas"]["GoldInputProvenance"];
-      };
-      /**
-       * Obs Date
-       * Format: date
-       */
-      obs_date: string;
-      spot: components["schemas"]["GoldSpotTile"];
-      structural: components["schemas"]["GoldStructuralPostureModel"];
-      valuation: components["schemas"]["GoldValuationPostureModel"];
-    };
-    /** GoldStructuralPostureModel */
-    GoldStructuralPostureModel: {
-      /** Cb 52W Pct */
-      cb_52w_pct?: string | null;
-      /**
-       * Cb Country History
-       * @default []
-       */
-      cb_country_history: components["schemas"]["GoldCbCountryHistory"][];
-      /** Cb Diversifier 12M Sum T */
-      cb_diversifier_12m_sum_t?: string | null;
-      /** Cb Strategic 12M Sum T */
-      cb_strategic_12m_sum_t?: string | null;
-      /** Cb Tactical 12M Sum T */
-      cb_tactical_12m_sum_t?: string | null;
-      /** Comex 20D Roc Pct */
-      comex_20d_roc_pct?: string | null;
-      /** Comex Registered Oz */
-      comex_registered_oz?: string | null;
-      /** Cot Mm 4W Change Sigma */
-      cot_mm_4w_change_sigma?: string | null;
-      /** Cot Mm Net Pct */
-      cot_mm_net_pct?: string | null;
-      /** Fx Basket Dxy Z */
-      fx_basket_dxy_z?: string | null;
-      /** Gld 30D Net Flow T */
-      gld_30d_net_flow_t?: string | null;
-      /**
-       * Gld History
-       * @default []
-       */
-      gld_history: components["schemas"]["GoldHistoryPoint"][];
-      /** Gld Holdings T */
-      gld_holdings_t?: string | null;
-      /**
-       * Gold History
-       * @default []
-       */
-      gold_history: components["schemas"]["GoldHistoryPoint"][];
-      /** Lbma 30D Momentum T */
-      lbma_30d_momentum_t?: string | null;
-      /** Narrative Text */
-      narrative_text: string;
-      /**
-       * Posture Chip
-       * @enum {string}
-       */
-      posture_chip:
-        | "FAVORABLE"
-        | "NEUTRAL"
-        | "STRETCHED"
-        | "SUSPENDED"
-        | "DEGRADED";
-      /** State Label */
-      state_label?: string | null;
-      /** Uw 25D Skew Sigma */
-      uw_25d_skew_sigma?: string | null;
-      /** Xau Cny Premium Pct */
-      xau_cny_premium_pct?: string | null;
-    };
-    /** GoldTwoForceText */
-    GoldTwoForceText: {
-      /** Discount Rate */
-      discount_rate: string;
-      /** Hedge Demand */
-      hedge_demand: string;
-    };
-    /** GoldValuationPostureModel */
-    GoldValuationPostureModel: {
-      /**
-       * Flag
-       * @enum {string}
-       */
-      flag: "Low" | "Moderate" | "High" | "Severe";
-      /** Gold M2 Ratio Percentile */
-      gold_m2_ratio_percentile?: string | null;
-      /** Gold Oil Ratio Percentile */
-      gold_oil_ratio_percentile?: string | null;
-      /** Gold Spx Ratio Percentile */
-      gold_spx_ratio_percentile?: string | null;
-      /** Narrative Text */
-      narrative_text: string;
-      /**
-       * Posture Chip
-       * @enum {string}
-       */
-      posture_chip:
-        | "FAVORABLE"
-        | "NEUTRAL"
-        | "STRETCHED"
-        | "SUSPENDED"
-        | "DEGRADED";
-      /** Real Price Percentile */
-      real_price_percentile?: string | null;
-    };
-    /** GrgAsset */
-    GrgAsset: {
-      /** Data Date */
-      data_date?: string | null;
-      /** Flip */
-      flip?: number | null;
-      /** Gamma 1D Change */
-      gamma_1d_change?: number | null;
-      /** Gamma 3D Change */
-      gamma_3d_change?: number | null;
-      /** Gamma Z */
-      gamma_z?: number | null;
-      /** Net Gamma */
-      net_gamma?: number | null;
-      /** Net Gex */
-      net_gex?: number | null;
-      /** Spot */
-      spot?: number | null;
-      /** Spot Vs Flip Pct */
-      spot_vs_flip_pct?: number | null;
-      /**
-       * State
-       * @default NEUTRAL
-       * @enum {string}
-       */
-      state: "CUSHION" | "WHIP" | "NEUTRAL";
-      /** Ticker */
-      ticker: string;
-    };
-    /** GrgAssets */
-    GrgAssets: {
-      SPY: components["schemas"]["GrgAsset"];
-      TLT: components["schemas"]["GrgAsset"];
-    };
-    /**
-     * GrgEvent
-     * @description One gate-confirmed top/bottom day (YTD history of the signal).
-     *
-     *     ``spot_vs_flip`` is deliberately absent — UW's greek-exposure history has
-     *     no per-day gamma flip, so it can't be backfilled for past events; it lives
-     *     on the live SPY/TLT cards only.
-     *
-     *     ``fwd_20d_pct`` / ``lead_sessions`` / ``extreme_gap_pct`` are the YTD
-     *     forward-return backtest: SPY's 20-session forward return after the watch,
-     *     the sessions until the adverse price extreme it preceded, and how much
-     *     further SPY moved to that extreme. They show the watch LEADS the turn.
-     */
-    GrgEvent: {
-      /** Date */
-      date: string;
-      /** Extreme Gap Pct */
-      extreme_gap_pct?: number | null;
-      /** Fwd 20D Pct */
-      fwd_20d_pct?: number | null;
-      /** Grg Z */
-      grg_z?: number | null;
-      /** Lead Sessions */
-      lead_sessions?: number | null;
-      /**
-       * Pair State
-       * @default NEUTRAL
-       */
-      pair_state: string;
-      /** Spy Net Gamma */
-      spy_net_gamma?: number | null;
-      /** Tier */
-      tier?: number | null;
-      /** Tlt Net Gamma */
-      tlt_net_gamma?: number | null;
-    };
-    /** GrgEventSideStats */
-    GrgEventSideStats: {
-      /** Median Extreme Gap Pct */
-      median_extreme_gap_pct?: number | null;
-      /** Median Lead Sessions */
-      median_lead_sessions?: number | null;
-      /**
-       * N
-       * @default 0
-       */
-      n: number;
-    };
-    /**
-     * GrgEventStats
-     * @description Aggregate YTD forward-return backtest of the gate-confirmed watch events.
-     *
-     *     ``median_lead_sessions`` is the median sessions between a watch signal and
-     *     the adverse extreme it preceded; ``median_extreme_gap_pct`` is the median
-     *     further move after the signal. Together they quantify the early-warning
-     *     LEAD — GRG watch events are not coincident turn markers.
-     */
-    GrgEventStats: {
-      bottoms?: components["schemas"]["GrgEventSideStats"];
-      /**
-       * Fwd Window
-       * @default 0
-       */
-      fwd_window: number;
-      tops?: components["schemas"]["GrgEventSideStats"];
-    };
-    /** GrgEvents */
-    GrgEvents: {
-      /** Bottoms */
-      bottoms?: components["schemas"]["GrgEvent"][];
-      stats?: components["schemas"]["GrgEventStats"];
-      /** Tops */
-      tops?: components["schemas"]["GrgEvent"][];
-    };
-    /** GrgGate */
-    GrgGate: {
-      /**
-       * Copy
-       * @default
-       */
-      copy: string;
-      /** Id */
-      id: string;
-      /** Label */
-      label: string;
-      /**
-       * Status
-       * @default WATCH
-       * @enum {string}
-       */
-      status: "PASS" | "WATCH" | "FAIL";
-    };
-    /** GrgHistoryEntry */
-    GrgHistoryEntry: {
-      /** Date */
-      date: string;
-      /** Grg Z */
-      grg_z?: number | null;
-      /** Raw Spread */
-      raw_spread?: number | null;
-      /** Spy Gamma Z */
-      spy_gamma_z?: number | null;
-      /** Spy Net Gamma */
-      spy_net_gamma?: number | null;
-      /** Spy Price */
-      spy_price?: number | null;
-      /** State */
-      state?: string | null;
-      /** Tlt Gamma Z */
-      tlt_gamma_z?: number | null;
-      /** Tlt Net Gamma */
-      tlt_net_gamma?: number | null;
-    };
-    /**
-     * GrgResponse
-     * @description Gamma Rotation Gap snapshot (latest scan). Self-contained: embeds the
-     *     YTD history (z-scored over the full ≈1Y fetched series).
-     */
-    GrgResponse: {
-      assets?: components["schemas"]["GrgAssets"] | null;
-      /**
-       * Basis
-       * @default eod
-       * @enum {string}
-       */
-      basis: "live" | "eod";
-      /** Data Date */
-      data_date?: string | null;
-      events?: components["schemas"]["GrgEvents"];
-      /** Gates */
-      gates?: components["schemas"]["GrgGate"][];
-      /** History */
-      history?: components["schemas"]["GrgHistoryEntry"][];
-      /**
-       * Lookback Days
-       * @default 0
-       */
-      lookback_days: number;
-      /**
-       * Market Open
-       * @default false
-       */
-      market_open: boolean;
-      /**
-       * Scan Time
-       * @default
-       */
-      scan_time: string;
-      signal?: components["schemas"]["GrgSignal"];
-      /**
-       * Source
-       * @default Unusual Whales
-       */
-      source: string;
-      /**
-       * Status
-       * @default empty
-       * @enum {string}
-       */
-      status: "ok" | "empty";
-      top_bottom?: components["schemas"]["GrgTopBottom"];
-      /**
-       * Z Window
-       * @default 63
-       */
-      z_window: number;
-    };
-    /**
-     * GrgScanResponse
-     * @description Response body for POST /api/regime/grg/scan.
-     */
-    GrgScanResponse: {
-      /** Reason */
-      reason?: string | null;
-      /** Row Id */
-      row_id?: number | null;
-      /**
-       * Scanner
-       * @default grg
-       * @constant
-       */
-      scanner: "grg";
-      /**
-       * Status
-       * @default ok
-       * @enum {string}
-       */
-      status: "ok" | "skipped";
-    };
-    /** GrgSignal */
-    GrgSignal: {
-      /**
-       * Bottom Score
-       * @default 0
-       */
-      bottom_score: number;
-      /**
-       * Bottom Watch
-       * @default false
-       */
-      bottom_watch: boolean;
-      /** Grg Z */
-      grg_z?: number | null;
-      /**
-       * Interpretation
-       * @default NORMAL
-       * @enum {string}
-       */
-      interpretation:
-        | "TOP_WATCH"
-        | "BOTTOM_WATCH"
-        | "RISK_ON"
-        | "RISK_OFF"
-        | "DUAL_WHIP"
-        | "CUSHION"
-        | "NORMAL";
-      /** Raw Spread */
-      raw_spread?: number | null;
-      /** Spy 3D Gamma Change */
-      spy_3d_gamma_change?: number | null;
-      /** Spy Gamma Z */
-      spy_gamma_z?: number | null;
-      /**
-       * State
-       * @default NEUTRAL
-       * @enum {string}
-       */
-      state:
-        | "RISK_ON_DIVERGENCE"
-        | "RISK_OFF_DIVERGENCE"
-        | "DUAL_CUSHION"
-        | "DUAL_WHIP"
-        | "NEUTRAL";
-      /**
-       * State Label
-       * @default Neutral
-       */
-      state_label: string;
-      /**
-       * Summary
-       * @default
-       */
-      summary: string;
-      /** Tier */
-      tier?: number | null;
-      /** Tlt 3D Gamma Change */
-      tlt_3d_gamma_change?: number | null;
-      /** Tlt Gamma Z */
-      tlt_gamma_z?: number | null;
-      /**
-       * Top Score
-       * @default 0
-       */
-      top_score: number;
-      /**
-       * Top Watch
-       * @default false
-       */
-      top_watch: boolean;
-    };
-    /** GrgTopBottom */
-    GrgTopBottom: {
-      bottom?: components["schemas"]["GrgTopBottomSide"];
-      top?: components["schemas"]["GrgTopBottomSide"];
-    };
-    /** GrgTopBottomSide */
-    GrgTopBottomSide: {
-      /**
-       * Active
-       * @default false
-       */
-      active: boolean;
-      /**
-       * Copy
-       * @default
-       */
-      copy: string;
-    };
-    /** GuidanceResponse */
-    GuidanceResponse: {
-      /** Body Md */
-      body_md: string;
-      /** Matched Condition */
-      matched_condition: string;
-      /**
-       * Posture
-       * @enum {string}
-       */
-      posture: "opportunistic" | "neutral" | "cautious" | "defensive";
-      /** State */
-      state: string;
-    };
-    /** HTTPValidationError */
-    HTTPValidationError: {
-      /** Detail */
-      detail?: components["schemas"]["ValidationError"][];
-    };
-    /** HealthResponse */
-    HealthResponse: {
-      /** Avg Scan Duration Seconds */
-      avg_scan_duration_seconds?: number | null;
-      /** Cache Hit Pct */
-      cache_hit_pct?: number | null;
-      /** Db */
-      db: string;
-      /** Http 2Xx */
-      http_2xx?: number | null;
-      /** Http 429 */
-      http_429?: number | null;
-      /** Http 4Xx */
-      http_4xx?: number | null;
-      /** Http 5Xx */
-      http_5xx?: number | null;
-      /** Last Full Scan At */
-      last_full_scan_at?: string | null;
-      /** Latency P95 Ms */
-      latency_p95_ms?: number | null;
-      /** Latest Spot Quote At */
-      latest_spot_quote_at?: string | null;
-      /** Latest Spot Quote Fetched At */
-      latest_spot_quote_fetched_at?: string | null;
-      /** Ok */
-      ok: boolean;
-      /** Queue Drain Rate Per Minute */
-      queue_drain_rate_per_minute?: number | null;
-      /** Reason */
-      reason?: string | null;
-      /** Record Health */
-      record_health?: components["schemas"]["RecordHealthCheck"][];
-      /** Record Health Ok */
-      record_health_ok?: boolean | null;
-      /** Requests Per Minute */
-      requests_per_minute?: number | null;
-      /** Rescan Heartbeat Lag Seconds */
-      rescan_heartbeat_lag_seconds?: number | null;
-      /** Scheduler Heartbeat Lag Seconds */
-      scheduler_heartbeat_lag_seconds?: number | null;
-      /** Scheduler Heartbeat Name */
-      scheduler_heartbeat_name?: string | null;
-      /** Scheduler Lag Seconds */
-      scheduler_lag_seconds?: number | null;
-      /**
-       * Source
-       * @default UnusualWhales
-       */
-      source: string;
-      /** Spot Quote Lag Seconds */
-      spot_quote_lag_seconds?: number | null;
-      /** Spot Refresh Heartbeat Lag Seconds */
-      spot_refresh_heartbeat_lag_seconds?: number | null;
-      /**
-       * Throughput Window Minutes
-       * @default 0
-       */
-      throughput_window_minutes: number;
-      trade_insights_ai?: components["schemas"]["TradeInsightsAiHealth"] | null;
-      /** Uw Today */
-      uw_today?: number | null;
-      /** Version */
-      version: string;
-      /** Watchlist Size */
-      watchlist_size?: number | null;
-      /** Worker Lag Seconds */
-      worker_lag_seconds?: number | null;
-      /** Workers */
-      workers?: components["schemas"]["WorkerHealth"][];
-      ws_consumer?: components["schemas"]["WsConsumerHealth"] | null;
-    };
-    /** InsightBadge */
-    InsightBadge: {
-      /** Code */
-      code: string;
-      /** Label */
-      label: string;
-      /**
-       * Severity
-       * @default info
-       */
-      severity: string;
-    };
-    /** InsightLeg */
-    InsightLeg: {
-      /**
-       * Expiry
-       * Format: date
-       */
-      expiry: string;
-      /** Mid */
-      mid?: string | null;
-      /** Option Right */
-      option_right: string;
-      /** Option Symbol */
-      option_symbol: string;
-      /** Side */
-      side: string;
-      /** Strike */
-      strike: string;
-    };
-    /** InsightSignalRow */
-    InsightSignalRow: {
-      /**
-       * Conflicts
-       * @default []
-       */
-      conflicts: string[];
-      /**
-       * Evidence
-       * @default []
-       */
-      evidence: string[];
-      /** Lens */
-      lens: string;
-      /** Read */
-      read: string;
-    };
-    /** InsightsSynthesis */
-    InsightsSynthesis: {
-      /**
-       * Avoid
-       * @default []
-       */
-      avoid: string[];
-      /** Best Risk Reward Idea Id */
-      best_risk_reward_idea_id?: string | null;
-      /**
-       * Dominant Story
-       * @default
-       */
-      dominant_story: string;
-      /** Preferred Idea Id */
-      preferred_idea_id?: string | null;
-      /**
-       * Required Before Sizing
-       * @default []
-       */
-      required_before_sizing: string[];
-    };
-    /** IvHistogramBin */
-    IvHistogramBin: {
-      /** Count */
-      count: number;
-      /** Hi */
-      hi: string;
-      /** Lo */
-      lo: string;
-    };
-    /** IvHvPoint */
-    IvHvPoint: {
-      /**
-       * Date
-       * Format: date
-       */
-      date: string;
-      /** Iv */
-      iv?: string | null;
-      /** Rv */
-      rv?: string | null;
-    };
-    /** IvOfIvPoint */
-    IvOfIvPoint: {
-      /**
-       * Date
-       * Format: date
-       */
-      date: string;
-      /** Iv */
-      iv?: string | null;
-      /** Iv Of Iv 20 */
-      iv_of_iv_20?: string | null;
-    };
-    /** IvPercentileDistribution */
-    IvPercentileDistribution: {
-      /**
-       * Bins
-       * @default []
-       */
-      bins: components["schemas"]["IvHistogramBin"][];
-      /** Current Iv */
-      current_iv?: string | null;
-      /** Current Pctile */
-      current_pctile?: string | null;
-    };
-    /** JobStatus */
-    JobStatus: {
-      /** Error */
-      error?: string | null;
-      /** Finished At */
-      finished_at?: string | null;
-      /** Job Id */
-      job_id: string;
-      /**
-       * Requested At
-       * Format: date-time
-       */
-      requested_at: string;
-      /** Run Id */
-      run_id?: number | null;
-      /** Started At */
-      started_at?: string | null;
-      /**
-       * Status
-       * @enum {string}
-       */
-      status: "queued" | "running" | "done" | "failed";
-    };
-    /**
-     * MarketAggregates
-     * @description Per-ticker aggregate fields sourced from the bulk-screener endpoint.
-     *
-     *     Populated by pipeline.run_single_stock alongside the existing per-section
-     *     sub-models. Feeds the watchlist card POSITIONING and SKEW blocks.
-     */
-    MarketAggregates: {
-      /** Aum */
-      aum?: string | null;
-      /** Call Oi Total */
-      call_oi_total?: number | null;
-      /** Call Volume Ask Side */
-      call_volume_ask_side?: number | null;
-      /** Call Volume Bid Side */
-      call_volume_bid_side?: number | null;
-      /** Call Volume Total */
-      call_volume_total?: number | null;
-      /** Iv30D */
-      iv30d?: string | null;
-      /** Market Cap */
-      market_cap?: string | null;
-      /** Pcr Oi */
-      pcr_oi?: string | null;
-      /** Pcr Vol */
-      pcr_vol?: string | null;
-      /** Put Oi Total */
-      put_oi_total?: number | null;
-      /** Put Volume Ask Side */
-      put_volume_ask_side?: number | null;
-      /** Put Volume Bid Side */
-      put_volume_bid_side?: number | null;
-      /** Put Volume Total */
-      put_volume_total?: number | null;
-    };
-    /** MarketStructure */
-    MarketStructure: {
-      /** Max Pain */
-      max_pain?: string | null;
-      /** Nearest Expiry */
-      nearest_expiry?: string | null;
-      /** Net Gex */
-      net_gex?: string | null;
-      /** Spot */
-      spot?: string | null;
-      /**
-       * Top Call Oi Strikes
-       * @default []
-       */
-      top_call_oi_strikes: string[];
-      /**
-       * Top Put Oi Strikes
-       * @default []
-       */
-      top_put_oi_strikes: string[];
-      /** Total Call Dex Oi */
-      total_call_dex_oi?: string | null;
-      /** Total Call Gex */
-      total_call_gex?: string | null;
-      /** Total Put Dex Oi */
-      total_put_dex_oi?: string | null;
-      /** Total Put Gex */
-      total_put_gex?: string | null;
-    };
-    /**
-     * MarketStructureLevels
-     * @description Derived strike-level reference points used by the Market Structure tab.
-     *
-     *     Conventions follow FlashAlpha / SpotGamma:
-     *       - gex_flip: lowest strike where running cumulative net_gex flips sign
-     *       - call_wall: strike with largest call-side gamma (typically above spot)
-     *       - put_wall: strike with largest put-side gamma magnitude (typically below spot)
-     *       - max_magnet: strike with largest positive net_gex above spot (pulls price up)
-     *       - second_magnet: strike with second-largest positive net_gex above spot
-     *       - max_accel: strike with most-negative net_gex below the flip (movement accelerator)
-     */
-    MarketStructureLevels: {
-      call_wall?: components["schemas"]["uw_scan__models__GexLevel"] | null;
-      gex_flip?: components["schemas"]["uw_scan__models__GexLevel"] | null;
-      max_accel?: components["schemas"]["uw_scan__models__GexLevel"] | null;
-      max_magnet?: components["schemas"]["uw_scan__models__GexLevel"] | null;
-      put_wall?: components["schemas"]["uw_scan__models__GexLevel"] | null;
-      second_magnet?: components["schemas"]["uw_scan__models__GexLevel"] | null;
-    };
-    /** MatrixSourceFreshness */
-    MatrixSourceFreshness: {
-      /** Im Vrp */
-      im_vrp?: string | null;
-      /** Oi */
-      oi?: string | null;
-      /** Skew */
-      skew?: string | null;
-      /** Term */
-      term?: string | null;
-      /** Vanna Charm */
-      vanna_charm?: string | null;
-      /** Vrp Rv */
-      vrp_rv?: string | null;
-    };
-    /** MatrixState */
-    MatrixState: {
-      /** Atm Straddle Mid */
-      atm_straddle_mid?: string | null;
-      /** Back Iv */
-      back_iv?: string | null;
-      /** Charm Regime */
-      charm_regime?:
-        | ("operative_magnet" | "broken_magnet" | "opex_vortex" | "neutral")
-        | null;
-      /**
-       * Charm State
-       * @enum {string}
-       */
-      charm_state: "vol_up" | "vol_down" | "neutral" | "stale";
-      /**
-       * Charm Stress Override
-       * @default false
-       */
-      charm_stress_override: boolean;
-      /** Cluster Coverage Ok */
-      cluster_coverage_ok: boolean;
-      /**
-       * Consistency Tier
-       * @enum {string}
-       */
-      consistency_tier:
-        | "strict"
-        | "strong"
-        | "weak"
-        | "no_trade"
-        | "insufficient_data";
-      /** Directional Imbalance 3D */
-      directional_imbalance_3d?: string | null;
-      /**
-       * Flow State
-       * @enum {string}
-       */
-      flow_state: "vol_up" | "vol_down" | "neutral" | "stale";
-      /** Front Back Spread */
-      front_back_spread?: string | null;
-      /** Front Iv */
-      front_iv?: string | null;
-      /** Full Curve Slope Pct */
-      full_curve_slope_pct?: string | null;
-      /**
-       * Im State
-       * @enum {string}
-       */
-      im_state: "vol_up" | "vol_down" | "neutral" | "stale";
-      /** Implied Move Event Percentile */
-      implied_move_event_percentile?: string | null;
-      /** Implied Move Expected Abs */
-      implied_move_expected_abs?: string | null;
-      /** Implied Move Pct */
-      implied_move_pct?: string | null;
-      /** Iv Atm 30D */
-      iv_atm_30d?: string | null;
-      /**
-       * Market Date
-       * Format: date
-       */
-      market_date: string;
-      /** Pin Distance Sigma */
-      pin_distance_sigma?: string | null;
-      /** Rv 30D */
-      rv_30d?: string | null;
-      /** Single Point Bump Pct */
-      single_point_bump_pct?: string | null;
-      /** Skew 25D 5D Change */
-      skew_25d_5d_change?: string | null;
-      /** Skew 25D Zscore 180D */
-      skew_25d_zscore_180d?: string | null;
-      /** Skew Regime */
-      skew_regime?:
-        | ("smirk" | "accelerated" | "crash_smile" | "neutral")
-        | null;
-      /**
-       * Skew State
-       * @enum {string}
-       */
-      skew_state: "vol_up" | "vol_down" | "neutral" | "stale";
-      /** Skew Term Structure */
-      skew_term_structure?: string | null;
-      /** Term Classification */
-      term_classification?:
-        | ("contango" | "event_back" | "liquidity_back" | "mixed")
-        | null;
-      /** Term Johnson Slope Pc1 */
-      term_johnson_slope_pc1?: string | null;
-      /**
-       * Term State
-       * @enum {string}
-       */
-      term_state: "vol_up" | "vol_down" | "neutral" | "stale";
-      /**
-       * Threshold Version
-       * @default 1
-       */
-      threshold_version: number;
-      /** Ticker */
-      ticker: string;
-      /** Vanna Conditional Reading */
-      vanna_conditional_reading?:
-        | (
-            | "grind_up"
-            | "reverse_selloff"
-            | "reflexive_sell_pressure"
-            | "weak_noise"
-          )
-        | null;
-      /** Vanna Oi Change Bias */
-      vanna_oi_change_bias?:
-        | ("call_oi_build" | "put_oi_build" | "mixed")
-        | null;
-      /**
-       * Vanna State
-       * @enum {string}
-       */
-      vanna_state: "vol_up" | "vol_down" | "neutral" | "stale";
-      /** Vrp */
-      vrp?: string | null;
-      /**
-       * Vrp Sign Flip Aligned Days
-       * @default 0
-       */
-      vrp_sign_flip_aligned_days: number;
-      /**
-       * Vrp Sign Flip Status
-       * @default insufficient_history
-       */
-      vrp_sign_flip_status: boolean | "insufficient_history";
-      /**
-       * Vrp State
-       * @enum {string}
-       */
-      vrp_state: "vol_up" | "vol_down" | "neutral" | "stale";
-      /** Vrp Zscore 252D */
-      vrp_zscore_252d?: string | null;
-      /** Vrp Zscore 60D */
-      vrp_zscore_60d?: string | null;
-    };
-    /** MaxPainRow */
-    MaxPainRow: {
-      /** Close */
-      close?: string | null;
-      /**
-       * Expiry
-       * Format: date
-       */
-      expiry: string;
-      /** Max Pain */
-      max_pain?: string | null;
-      /** Next Lower Strike */
-      next_lower_strike?: string | null;
-      /** Next Upper Strike */
-      next_upper_strike?: string | null;
-      /** Open */
-      open?: string | null;
-    };
-    /** OhlcRow */
-    OhlcRow: {
-      /** Close */
-      close: string;
-      /**
-       * Date
-       * Format: date
-       */
-      date: string;
-      /** High */
-      high?: string | null;
-      /** Low */
-      low?: string | null;
-      /** Open */
-      open?: string | null;
-      /** Volume */
-      volume?: number | null;
-    };
-    /** OiChangeRow */
-    OiChangeRow: {
-      /** Ask Volume */
-      ask_volume?: number | null;
-      /** Avg Price */
-      avg_price?: string | null;
-      /** Bid Volume */
-      bid_volume?: number | null;
-      /** Curr Date */
-      curr_date?: string | null;
-      /** Curr Oi */
-      curr_oi?: number | null;
-      /** Days Of Oi Increases */
-      days_of_oi_increases?: number | null;
-      /** Days Of Vol Greater Than Oi */
-      days_of_vol_greater_than_oi?: number | null;
-      /** Last Ask */
-      last_ask?: string | null;
-      /** Last Bid */
-      last_bid?: string | null;
-      /** Last Date */
-      last_date?: string | null;
-      /** Last Fill */
-      last_fill?: string | null;
-      /** Last Oi */
-      last_oi?: number | null;
-      /** Mid Volume */
-      mid_volume?: number | null;
-      /** No Side Volume */
-      no_side_volume?: number | null;
-      /** Oi Change */
-      oi_change?: string | null;
-      /** Oi Diff Plain */
-      oi_diff_plain?: number | null;
-      /** Option Symbol */
-      option_symbol: string;
-      /** Percentage Of Total */
-      percentage_of_total?: string | null;
-      /** Prev Ask Volume */
-      prev_ask_volume?: number | null;
-      /** Prev Bid Volume */
-      prev_bid_volume?: number | null;
-      /** Prev Mid Volume */
-      prev_mid_volume?: number | null;
-      /** Prev Multi Leg Volume */
-      prev_multi_leg_volume?: number | null;
-      /** Prev Neutral Volume */
-      prev_neutral_volume?: number | null;
-      /** Prev Stock Multi Leg Volume */
-      prev_stock_multi_leg_volume?: number | null;
-      /** Prev Total Premium */
-      prev_total_premium?: string | null;
-      /** Rnk */
-      rnk?: number | null;
-      /** Trades */
-      trades?: number | null;
-      /** Underlying Symbol */
-      underlying_symbol: string;
-      /** Volume */
-      volume?: number | null;
-    };
-    /** OosLabel */
-    OosLabel: {
-      /** Definition */
-      definition: string;
-      /** Name */
-      name: string;
-    };
-    /** OosScore */
-    OosScore: {
-      /** Auc Dd10 */
-      auc_dd10?: number | null;
-      /** Auc Dd5 */
-      auc_dd5?: number | null;
-      /** Auc Vix30 */
-      auc_vix30?: number | null;
-      /** Model */
-      model: string;
-    };
-    /** OosSummary */
-    OosSummary: {
-      /** As Of */
-      as_of: string;
-      /** Interpretation */
-      interpretation: string;
-      /** Labels */
-      labels: components["schemas"]["OosLabel"][];
-      /** Method */
-      method: string;
-      /** Notebook */
-      notebook: string;
-      /** Scores */
-      scores: components["schemas"]["OosScore"][];
-    };
-    /**
-     * OptionChainPerStrikeRow
-     * @description Aggregated (expiry, strike) snapshot — both volume and OI in one row.
-     *
-     *     Backs both strike-profile charts (Volume and OI variants).
-     */
-    OptionChainPerStrikeRow: {
-      /** Call Oi */
-      call_oi?: number | null;
-      /** Call Volume */
-      call_volume?: number | null;
-      /**
-       * Expiry
-       * Format: date
-       */
-      expiry: string;
-      /** Put Oi */
-      put_oi?: number | null;
-      /** Put Volume */
-      put_volume?: number | null;
-      /** Strike */
-      strike: string;
-    };
-    /**
-     * OptionIntradayProfile
-     * @description Derived per-contract intraday tape view for the OI movers table.
-     *
-     *     Built by ``cards.intraday_profile.derive_intraday_profile`` from persisted
-     *     :class:`OptionContractIntradayBucket` rows. Volume here is side-aggregated
-     *     (ask + bid + mid + multi). The 12-point sparkline is a fixed-length
-     *     downsample so the UI renders a stable width regardless of how many
-     *     minute bars the contract actually had.
-     */
-    OptionIntradayProfile: {
-      /** First Trade Time */
-      first_trade_time?: string | null;
-      /** Last Trade Time */
-      last_trade_time?: string | null;
-      /** Option Symbol */
-      option_symbol: string;
-      /** Peak Window End */
-      peak_window_end?: string | null;
-      /** Peak Window Share Pct */
-      peak_window_share_pct?: string | null;
-      /** Peak Window Start */
-      peak_window_start?: string | null;
-      /**
-       * Sparkline
-       * @default []
-       */
-      sparkline: number[];
-      /**
-       * Total Volume
-       * @default 0
-       */
-      total_volume: number;
-      /**
-       * Trade Date
-       * Format: date
-       */
-      trade_date: string;
-    };
-    /**
-     * OptionsDailyRow
-     * @description One row per trading day from UW /options-volume.
-     *
-     *     ``bullish_premium`` here is whole-tape (UW), distinct from the
-     *     alert-scoped :class:`FlowSnapshot.bull_premium`. Do not cross-plot.
-     */
-    OptionsDailyRow: {
-      /** Avg 30 Day Call Volume */
-      avg_30_day_call_volume?: string | null;
-      /** Avg 30 Day Put Volume */
-      avg_30_day_put_volume?: string | null;
-      /** Avg 3 Day Call Volume */
-      avg_3_day_call_volume?: string | null;
-      /** Avg 3 Day Put Volume */
-      avg_3_day_put_volume?: string | null;
-      /** Avg 7 Day Call Volume */
-      avg_7_day_call_volume?: string | null;
-      /** Avg 7 Day Put Volume */
-      avg_7_day_put_volume?: string | null;
-      /** Bearish Premium */
-      bearish_premium?: string | null;
-      /** Bullish Premium */
-      bullish_premium?: string | null;
-      /** Call Open Interest */
-      call_open_interest?: number | null;
-      /** Call Premium */
-      call_premium?: string | null;
-      /** Call Volume */
-      call_volume?: number | null;
-      /** Call Volume Ask Side */
-      call_volume_ask_side?: number | null;
-      /** Call Volume Bid Side */
-      call_volume_bid_side?: number | null;
-      /**
-       * Date
-       * Format: date
-       */
-      date: string;
-      /** Net Call Premium */
-      net_call_premium?: string | null;
-      /** Net Put Premium */
-      net_put_premium?: string | null;
-      /** Put Open Interest */
-      put_open_interest?: number | null;
-      /** Put Premium */
-      put_premium?: string | null;
-      /** Put Volume */
-      put_volume?: number | null;
-      /** Put Volume Ask Side */
-      put_volume_ask_side?: number | null;
-      /** Put Volume Bid Side */
-      put_volume_bid_side?: number | null;
-    };
-    /** PositioningBlock */
-    PositioningBlock: {
-      /** Call Oi */
-      call_oi?: number | null;
-      /** Pcr Delta 30D */
-      pcr_delta_30d?: string | null;
-      /** Pcr Oi */
-      pcr_oi?: string | null;
-      /** Pcr Vol */
-      pcr_vol?: string | null;
-      /** Put Oi */
-      put_oi?: number | null;
-    };
-    /** ProviderUsageBreakdownResponse */
-    ProviderUsageBreakdownResponse: {
-      /**
-       * Provider Day End
-       * Format: date-time
-       */
-      provider_day_end: string;
-      /**
-       * Provider Day Start
-       * Format: date-time
-       */
-      provider_day_start: string;
-      /** Rows */
-      rows: components["schemas"]["ProviderUsageBreakdownRow"][];
-    };
-    /** ProviderUsageBreakdownRow */
-    ProviderUsageBreakdownRow: {
-      /** Http 2Xx */
-      http_2xx: number;
-      /** Http 3Xx */
-      http_3xx: number;
-      /** Http 4Xx */
-      http_4xx: number;
-      /** Http 5Xx */
-      http_5xx: number;
-      /** Key */
-      key: string | null;
-      /** Latency P95 Ms */
-      latency_p95_ms: number | null;
-      /** Total Requests */
-      total_requests: number;
-      /** Transport Errors */
-      transport_errors: number;
-    };
-    /** ProviderUsageRequestRow */
-    ProviderUsageRequestRow: {
-      /** Attempt */
-      attempt: number;
-      /** Endpoint Key */
-      endpoint_key: string;
-      /** Error Message */
-      error_message: string | null;
-      /** Job Name */
-      job_name: string | null;
-      /** Latency Ms */
-      latency_ms: number;
-      /** Method */
-      method: string;
-      /** Official Daily Count */
-      official_daily_count: number | null;
-      /** Official Daily Limit */
-      official_daily_limit: number | null;
-      /** Official Minute Remaining */
-      official_minute_remaining: number | null;
-      /** Official Minute Reset */
-      official_minute_reset: string | null;
-      /** Params */
-      params: {
-        [key: string]: unknown;
-      };
-      /** Path */
-      path: string;
-      /** Provider */
-      provider: string;
-      /** Provider Request Id */
-      provider_request_id: string | null;
-      /**
-       * Request Finished At
-       * Format: date-time
-       */
-      request_finished_at: string;
-      /** Request Id */
-      request_id: number;
-      /**
-       * Request Started At
-       * Format: date-time
-       */
-      request_started_at: string;
-      /** Run Id */
-      run_id: number | null;
-      /** Status Code */
-      status_code: number | null;
-      /** Status Family */
-      status_family: string;
-      /** Ticker */
-      ticker: string | null;
-    };
-    /** ProviderUsageRequestsResponse */
-    ProviderUsageRequestsResponse: {
-      /** Limit */
-      limit: number;
-      /**
-       * Provider Day End
-       * Format: date-time
-       */
-      provider_day_end: string;
-      /**
-       * Provider Day Start
-       * Format: date-time
-       */
-      provider_day_start: string;
-      /** Rows */
-      rows: components["schemas"]["ProviderUsageRequestRow"][];
-    };
-    /** ProviderUsageSummaryResponse */
-    ProviderUsageSummaryResponse: {
-      /** Http 2Xx */
-      http_2xx: number;
-      /** Http 3Xx */
-      http_3xx: number;
-      /** Http 4Xx */
-      http_4xx: number;
-      /** Http 5Xx */
-      http_5xx: number;
-      /** Latency P95 Ms */
-      latency_p95_ms: number | null;
-      /**
-       * Provider Day End
-       * Format: date-time
-       */
-      provider_day_end: string;
-      /**
-       * Provider Day Start
-       * Format: date-time
-       */
-      provider_day_start: string;
-      /** Total Requests */
-      total_requests: number;
-      /** Transport Errors */
-      transport_errors: number;
-      /** Uw Latest Daily Count */
-      uw_latest_daily_count: number | null;
-      /** Uw Latest Daily Limit */
-      uw_latest_daily_limit: number | null;
-    };
-    /** QueueStatus */
-    QueueStatus: {
-      /** Job Id */
-      job_id: string;
-      /** Queue Position */
-      queue_position: number;
-      /**
-       * Requested At
-       * Format: date-time
-       */
-      requested_at: string;
-      /** Started At */
-      started_at?: string | null;
-      /**
-       * Status
-       * @enum {string}
-       */
-      status: "queued" | "running" | "done" | "failed";
-    };
-    /** QueueSummary */
-    QueueSummary: {
-      /** Oldest Requested At */
-      oldest_requested_at?: string | null;
-      /**
-       * Queued
-       * @default 0
-       */
-      queued: number;
-      /**
-       * Running
-       * @default 0
-       */
-      running: number;
-      /**
-       * Total
-       * @default 0
-       */
-      total: number;
-    };
-    /** RatesCrossMarketPanel */
-    RatesCrossMarketPanel: {
-      /** Rows */
-      rows?: components["schemas"]["RatesSummaryTile"][];
-      /**
-       * Status
-       * @default partial
-       * @enum {string}
-       */
-      status: "ok" | "missing" | "partial" | "stale";
-    };
-    /** RatesCurvePoint */
-    RatesCurvePoint: {
-      /** Delta 1D Bps */
-      delta_1d_bps?: number | null;
-      /** Delta 1M Bps */
-      delta_1m_bps?: number | null;
-      /** Delta 1W Bps */
-      delta_1w_bps?: number | null;
-      /** Obs Date */
-      obs_date?: string | null;
-      /** Series Id */
-      series_id: string;
-      /**
-       * Status
-       * @default ok
-       * @enum {string}
-       */
-      status: "ok" | "missing" | "partial" | "stale";
-      /** Tenor */
-      tenor: string;
-      /** Value */
-      value?: number | null;
-    };
-    /** RatesCurveSection */
-    RatesCurveSection: {
-      /** Points */
-      points?: components["schemas"]["RatesCurvePoint"][];
-      /** Slopes */
-      slopes?: components["schemas"]["RatesSlopeMetric"][];
-    };
-    /** RatesDecomposition */
-    RatesDecomposition: {
-      /** Attribution */
-      attribution?: components["schemas"]["RatesDecompositionAttribution"][];
-      /** Breakeven 10Y */
-      breakeven_10y?: number | null;
-      /** Clarida Model Date */
-      clarida_model_date?: string | null;
-      /** Expected Short Inflation 10Y */
-      expected_short_inflation_10y?: number | null;
-      /** Expected Short Real Rate 10Y */
-      expected_short_real_rate_10y?: number | null;
-      /** Forward Inflation 5Y5Y */
-      forward_inflation_5y5y?: number | null;
-      /** Fred Model Residual 10Y */
-      fred_model_residual_10y?: number | null;
-      /** Inflation Risk Premium 10Y */
-      inflation_risk_premium_10y?: number | null;
-      /** Model Nominal 10Y */
-      model_nominal_10y?: number | null;
-      /** Model Real Yield 10Y */
-      model_real_yield_10y?: number | null;
-      /** Model Source */
-      model_source?: string | null;
-      /** Model Url */
-      model_url?: string | null;
-      /** Nominal 10Y */
-      nominal_10y?: number | null;
-      /** Real 10Y */
-      real_10y?: number | null;
-      /** Real Term Premium 10Y */
-      real_term_premium_10y?: number | null;
-      /**
-       * Status
-       * @default partial
-       * @enum {string}
-       */
-      status: "ok" | "missing" | "partial" | "stale";
-      /** Term Forward Compensation */
-      term_forward_compensation?: number | null;
-    };
-    /** RatesDecompositionAttribution */
-    RatesDecompositionAttribution: {
-      /** Breakeven 10Y Bps */
-      breakeven_10y_bps?: number | null;
-      /** Driver */
-      driver?: string | null;
-      /** Expected Short Inflation Bps */
-      expected_short_inflation_bps?: number | null;
-      /** Expected Short Real Bps */
-      expected_short_real_bps?: number | null;
-      /** Fred Model Residual Bps */
-      fred_model_residual_bps?: number | null;
-      /** Inflation Risk Premium Bps */
-      inflation_risk_premium_bps?: number | null;
-      /** Model Nominal 10Y Bps */
-      model_nominal_10y_bps?: number | null;
-      /** Nominal 10Y Bps */
-      nominal_10y_bps?: number | null;
-      /** Real 10Y Bps */
-      real_10y_bps?: number | null;
-      /** Real Term Premium Bps */
-      real_term_premium_bps?: number | null;
-      /** Residual Bps */
-      residual_bps?: number | null;
-      /**
-       * Status
-       * @default partial
-       * @enum {string}
-       */
-      status: "ok" | "missing" | "partial" | "stale";
-      /**
-       * Window
-       * @enum {string}
-       */
-      window: "1D" | "1W" | "1M" | "YTD";
-    };
-    /** RatesEventItem */
-    RatesEventItem: {
-      /** Event Date */
-      event_date?: string | null;
-      /**
-       * Importance
-       * @default medium
-       * @enum {string}
-       */
-      importance: "low" | "medium" | "high";
-      /** Label */
-      label: string;
-      /** Source */
-      source?: string | null;
-      /**
-       * Status
-       * @default missing
-       * @enum {string}
-       */
-      status: "ok" | "missing" | "partial" | "stale";
-    };
-    /** RatesPolicyMeeting */
-    RatesPolicyMeeting: {
-      /** Action */
-      action?: string | null;
-      /** Event Date */
-      event_date?: string | null;
-      /** Event End Date */
-      event_end_date?: string | null;
-      /** Label */
-      label: string;
-      /** Source Url */
-      source_url?: string | null;
-      /**
-       * Status
-       * @default partial
-       * @enum {string}
-       */
-      status: "ok" | "missing" | "partial" | "stale";
-      /** Vote Split */
-      vote_split?: string | null;
-    };
-    /** RatesPolicyPanel */
-    RatesPolicyPanel: {
-      /** Effr */
-      effr?: number | null;
-      /** Implied Path */
-      implied_path?: components["schemas"]["RatesPolicyPathPoint"][];
-      last_meeting?: components["schemas"]["RatesPolicyMeeting"] | null;
-      /** Path Read */
-      path_read?: string | null;
-      /** Plumbing */
-      plumbing?: components["schemas"]["RatesPolicyPlumbingMetric"][];
-      /** Plumbing Read */
-      plumbing_read?: string | null;
-      /** Policy Read */
-      policy_read?: string | null;
-      /** Sofr */
-      sofr?: number | null;
-      /**
-       * Status
-       * @default partial
-       * @enum {string}
-       */
-      status: "ok" | "missing" | "partial" | "stale";
-      /** Target Lower */
-      target_lower?: number | null;
-      /** Target Range */
-      target_range?: string | null;
-      /** Target Upper */
-      target_upper?: number | null;
-    };
-    /** RatesPolicyPathPoint */
-    RatesPolicyPathPoint: {
-      /** Label */
-      label: string;
-      /**
-       * Meeting Date
-       * Format: date
-       */
-      meeting_date: string;
-      /** Probability */
-      probability?: number | null;
-      /** Source */
-      source?: string | null;
-      /**
-       * Stance
-       * @default UNKNOWN
-       * @enum {string}
-       */
-      stance: "CUT" | "HOLD" | "HIKE" | "UNKNOWN";
-      /**
-       * Status
-       * @default partial
-       * @enum {string}
-       */
-      status: "ok" | "missing" | "partial" | "stale";
-      /** Target Range */
-      target_range?: string | null;
-    };
-    /** RatesPolicyPlumbingMetric */
-    RatesPolicyPlumbingMetric: {
-      /** Label */
-      label: string;
-      /** Qualifier */
-      qualifier?: string | null;
-      /**
-       * Status
-       * @default partial
-       * @enum {string}
-       */
-      status: "ok" | "missing" | "partial" | "stale";
-      /**
-       * Unit
-       * @default
-       */
-      unit: string;
-      /** Value */
-      value?: number | null;
-    };
-    /** RatesPositioningPanel */
-    RatesPositioningPanel: {
-      /** Details */
-      details?: components["schemas"]["RatesPositioningRow"][];
-      /** Positioning Read */
-      positioning_read?: string | null;
-      /** Rows */
-      rows?: components["schemas"]["RatesSummaryTile"][];
-      /**
-       * Status
-       * @default missing
-       * @enum {string}
-       */
-      status: "ok" | "missing" | "partial" | "stale";
-    };
-    /** RatesPositioningRow */
-    RatesPositioningRow: {
-      /** Asset Mgr Net */
-      asset_mgr_net?: number | null;
-      /** Asset Mgr Net Pct Oi */
-      asset_mgr_net_pct_oi?: number | null;
-      /** Contract Code */
-      contract_code: string;
-      /** Contract Name */
-      contract_name: string;
-      /** Dealer Net */
-      dealer_net?: number | null;
-      /** Dealer Net Pct Oi */
-      dealer_net_pct_oi?: number | null;
-      /** Lev Money Net */
-      lev_money_net?: number | null;
-      /** Lev Money Net Pct Oi */
-      lev_money_net_pct_oi?: number | null;
-      /** Obs Date */
-      obs_date?: string | null;
-      /** Open Interest */
-      open_interest?: number | null;
-      /** Release Date */
-      release_date?: string | null;
-      /** Source Url */
-      source_url?: string | null;
-      /**
-       * Status
-       * @default ok
-       * @enum {string}
-       */
-      status: "ok" | "missing" | "partial" | "stale";
-      /** Tenor Bucket */
-      tenor_bucket: string;
-    };
-    /** RatesScorecard */
-    RatesScorecard: {
-      /** Composite Score */
-      composite_score?: number | null;
-      /** Curve Score */
-      curve_score?: number | null;
-      /**
-       * Curve Stance
-       * @default NEUTRAL
-       * @enum {string}
-       */
-      curve_stance: "STEEP" | "FLAT" | "NEUTRAL";
-      /**
-       * Duration Stance
-       * @default NEUTRAL
-       * @enum {string}
-       */
-      duration_stance: "BUY" | "SELL" | "NEUTRAL";
-      /** Groups */
-      groups?: components["schemas"]["RatesScorecardGroup"][];
-    };
-    /** RatesScorecardFactor */
-    RatesScorecardFactor: {
-      /** Label */
-      label: string;
-      /** Score */
-      score?: number | null;
-      /** Source */
-      source?: string | null;
-      /**
-       * Status
-       * @default ok
-       * @enum {string}
-       */
-      status: "ok" | "missing" | "partial" | "stale";
-      /** Value */
-      value?: string | null;
-    };
-    /** RatesScorecardGroup */
-    RatesScorecardGroup: {
-      /** Factors */
-      factors?: components["schemas"]["RatesScorecardFactor"][];
-      /** Id */
-      id: string;
-      /** Label */
-      label: string;
-      /** Score */
-      score?: number | null;
-      /**
-       * Status
-       * @default ok
-       * @enum {string}
-       */
-      status: "ok" | "missing" | "partial" | "stale";
-      /** Weight */
-      weight: number;
-    };
-    /** RatesSlopeMetric */
-    RatesSlopeMetric: {
-      /** Label */
-      label: string;
-      /**
-       * Status
-       * @default ok
-       * @enum {string}
-       */
-      status: "ok" | "missing" | "partial" | "stale";
-      /** Value Bps */
-      value_bps?: number | null;
-    };
-    /** RatesSnapshotResponse */
-    RatesSnapshotResponse: {
-      /**
-       * As Of
-       * Format: date
-       */
-      as_of: string;
-      /**
-       * Computed At
-       * Format: date-time
-       */
-      computed_at: string;
-      cross_market?: components["schemas"]["RatesCrossMarketPanel"];
-      curve?: components["schemas"]["RatesCurveSection"];
-      decomposition?: components["schemas"]["RatesDecomposition"];
-      /** Events */
-      events?: components["schemas"]["RatesEventItem"][];
-      policy?: components["schemas"]["RatesPolicyPanel"];
-      positioning?: components["schemas"]["RatesPositioningPanel"];
-      scorecard?: components["schemas"]["RatesScorecard"];
-      /** Source Freshness */
-      source_freshness?: components["schemas"]["RatesSourceFreshness"][];
-      /** Summary */
-      summary?: components["schemas"]["RatesSummaryTile"][];
-      supply?: components["schemas"]["RatesSupplyPanel"];
-      synthesis: components["schemas"]["RatesSynthesisPanel"];
-    };
-    /** RatesSourceFreshness */
-    RatesSourceFreshness: {
-      /** Id */
-      id: string;
-      /** Label */
-      label: string;
-      /** Last Seen At */
-      last_seen_at?: string | null;
-      /** Latest Obs Date */
-      latest_obs_date?: string | null;
-      /**
-       * Status
-       * @default missing
-       * @enum {string}
-       */
-      status: "ok" | "missing" | "partial" | "stale";
-    };
-    /** RatesSummaryTile */
-    RatesSummaryTile: {
-      /** Delta 1D */
-      delta_1d?: number | null;
-      /** Label */
-      label: string;
-      /**
-       * Status
-       * @default ok
-       * @enum {string}
-       */
-      status: "ok" | "missing" | "partial" | "stale";
-      /**
-       * Unit
-       * @default
-       */
-      unit: string;
-      /** Value */
-      value?: number | null;
-    };
-    /** RatesSupplyAuctionRow */
-    RatesSupplyAuctionRow: {
-      /**
-       * Auction Date
-       * Format: date
-       */
-      auction_date: string;
-      /** Bid To Cover */
-      bid_to_cover?: number | null;
-      /** Cusip */
-      cusip: string;
-      /** Direct Bidder Pct */
-      direct_bidder_pct?: number | null;
-      /** High Rate */
-      high_rate?: number | null;
-      /** Indirect Bidder Pct */
-      indirect_bidder_pct?: number | null;
-      /** Issue Date */
-      issue_date?: string | null;
-      /** Offering Amount */
-      offering_amount?: number | null;
-      /** Primary Dealer Pct */
-      primary_dealer_pct?: number | null;
-      /** Security Term */
-      security_term: string;
-      /** Security Type */
-      security_type: string;
-      /** Source Url */
-      source_url?: string | null;
-      /**
-       * Status
-       * @default ok
-       * @enum {string}
-       */
-      status: "ok" | "missing" | "partial" | "stale";
-      /** Tail Indicator */
-      tail_indicator?: string | null;
-    };
-    /** RatesSupplyPanel */
-    RatesSupplyPanel: {
-      /** Auctions */
-      auctions?: components["schemas"]["RatesSummaryTile"][];
-      /** Fiscal */
-      fiscal?: components["schemas"]["RatesSummaryTile"][];
-      /** Notes */
-      notes?: string[];
-      /** Recent Auctions */
-      recent_auctions?: components["schemas"]["RatesSupplyAuctionRow"][];
-      /**
-       * Status
-       * @default missing
-       * @enum {string}
-       */
-      status: "ok" | "missing" | "partial" | "stale";
-      /** Supply Read */
-      supply_read?: string | null;
-    };
-    /** RatesSynthesisPanel */
-    RatesSynthesisPanel: {
-      /** Curve View */
-      curve_view: string;
-      /** Duration View */
-      duration_view: string;
-      /** Risks */
-      risks?: string[];
-    };
-    /** RecordHealthCheck */
-    RecordHealthCheck: {
-      /** Actual Rows */
-      actual_rows: number;
-      /** Actual Tickers */
-      actual_tickers: number;
-      /** Expected Min Rows */
-      expected_min_rows: number;
-      /** Expected Min Tickers */
-      expected_min_tickers: number;
-      /** Expected Tickers */
-      expected_tickers: number;
-      /** Latest At */
-      latest_at?: string | null;
-      /** Ok */
-      ok: boolean;
-      /** Table */
-      table: string;
-      /**
-       * Window Start
-       * Format: date-time
-       */
-      window_start: string;
-    };
-    /**
-     * RegimeLiveQuote
-     * @description One live WS quote echoed by the live endpoints / quotes strip.
-     */
-    RegimeLiveQuote: {
-      /** Price */
-      price: number;
-      /**
-       * Quoted At
-       * Format: date-time
-       */
-      quoted_at: string;
-      /** Source */
-      source?: string | null;
-    };
-    /** RegimeQuadrantBlock */
-    RegimeQuadrantBlock: {
-      /** Cutoff Corr */
-      cutoff_corr?: string | null;
-      latest?: components["schemas"]["RegimeQuadrantLatest"] | null;
-      /**
-       * Points
-       * @default []
-       */
-      points: components["schemas"]["RegimeQuadrantPoint"][];
-    };
-    /** RegimeQuadrantLatest */
-    RegimeQuadrantLatest: {
-      /**
-       * Date
-       * Format: date
-       */
-      date: string;
-      /** Rvol Pctile */
-      rvol_pctile?: string | null;
-      /** Spy Corr 21 */
-      spy_corr_21?: string | null;
-      /**
-       * State
-       * @default
-       */
-      state: string;
-    };
-    /** RegimeQuadrantPoint */
-    RegimeQuadrantPoint: {
-      /**
-       * Date
-       * Format: date
-       */
-      date: string;
-      /** Rvol Pctile */
-      rvol_pctile?: string | null;
-      /** Spy Corr 21 */
-      spy_corr_21?: string | null;
-    };
-    /**
-     * RegimeQuotesResponse
-     * @description Lightweight live-quote projection for the regime header strip.
-     */
-    RegimeQuotesResponse: {
-      /** Active Source */
-      active_source?: string | null;
-      /** As Of */
-      as_of?: string | null;
-      /**
-       * Fresh Within Seconds
-       * @default 900
-       */
-      fresh_within_seconds: number;
-      /** Quotes */
-      quotes?: {
-        [key: string]: components["schemas"]["RegimeLiveQuote"];
-      };
-    };
-    /** RescanAllRequest */
-    RescanAllRequest: {
-      /**
-       * Confirmed
-       * @default false
-       */
-      confirmed: boolean;
-    };
-    /**
-     * ReturnsBlock
-     * @description Wire shape: d1 / w1 / d30. No aliases — FastAPI would otherwise serialize
-     *     them as JSON keys and break the frontend contract.
-     */
-    ReturnsBlock: {
-      /** D1 */
-      d1?: string | null;
-      /** D30 */
-      d30?: string | null;
-      /** W1 */
-      w1?: string | null;
-    };
-    /** RvCorrPoint */
-    RvCorrPoint: {
-      /**
-       * Date
-       * Format: date
-       */
-      date: string;
-      /** Rv */
-      rv?: string | null;
-      /** Spy Corr 21 */
-      spy_corr_21?: string | null;
-    };
-    /** ScannerCandidate */
-    ScannerCandidate: {
-      /**
-       * Bias
-       * @enum {string}
-       */
-      bias: "bullish" | "bearish" | "neutral" | "mixed";
-      /** Bias Strength */
-      bias_strength?: ("strong" | "moderate" | "weak") | null;
-      /** Confluence Score */
-      confluence_score: string;
-      /** Context Flags */
-      context_flags: components["schemas"]["ScannerContextFlag"][];
-      /** Final Score */
-      final_score: string;
-      gates: components["schemas"]["ScannerGatesStatus"];
-      /** Hits */
-      hits: components["schemas"]["ScannerSignalHit"][];
-      /** Is Type F */
-      is_type_f: boolean;
-      /** Raw Score */
-      raw_score: string;
-      /**
-       * Scanned At
-       * Format: date-time
-       */
-      scanned_at: string;
-      /**
-       * Setup
-       * @enum {string}
-       */
-      setup: "ready" | "caution" | "blocked";
-      /** Setup Reason */
-      setup_reason?: string | null;
-      /** Spot */
-      spot: string | null;
-      /** Ticker */
-      ticker: string;
-    };
-    /** ScannerContextFlag */
-    ScannerContextFlag: {
-      /** Label */
-      label: string;
-      /**
-       * Layer
-       * @constant
-       */
-      layer: "pcr_sentiment";
-      /** Value */
-      value: string | null;
-    };
-    /** ScannerGatedTicker */
-    ScannerGatedTicker: {
-      /** Blocking Chip */
-      blocking_chip?: ("SUSPENDED" | "DEGRADED") | null;
-      /**
-       * Reason
-       * @enum {string}
-       */
-      reason: "regime_block" | "stale_scan";
-      /** Scanned At */
-      scanned_at: string | null;
-      /** Ticker */
-      ticker: string;
-    };
-    /** ScannerGatesStatus */
-    ScannerGatesStatus: {
-      /**
-       * Earnings
-       * @enum {string}
-       */
-      earnings: "pass" | "block";
-      /**
-       * Liquidity
-       * @enum {string}
-       */
-      liquidity: "pass" | "block";
-      /**
-       * Regime
-       * @enum {string}
-       */
-      regime: "pass" | "block";
-    };
-    /** ScannerResponse */
-    ScannerResponse: {
-      /** Candidates */
-      candidates: components["schemas"]["ScannerCandidate"][];
-      /** Candidates With Hits */
-      candidates_with_hits: number;
-      /** Gated */
-      gated: components["schemas"]["ScannerGatedTicker"][];
-      /**
-       * Generated At
-       * Format: date-time
-       */
-      generated_at: string;
-      /** Scanned Universe Size */
-      scanned_universe_size: number;
-    };
-    /** ScannerSignalHit */
-    ScannerSignalHit: {
-      /** Evidence */
-      evidence: {
-        [key: string]: unknown;
-      };
-      /**
-       * Freshness
-       * @enum {string}
-       */
-      freshness: "live" | "stale" | "unavailable";
-      /** Score */
-      score: string;
-      /**
-       * Signal Type
-       * @enum {string}
-       */
-      signal_type:
-        | "deep_conviction_flow"
-        | "dark_pool_accumulation"
-        | "earnings_iv_crush"
-        | "gex_pinning";
-      /**
-       * Tier
-       * @enum {integer}
-       */
-      tier: 1 | 2;
-    };
-    /** SetupBlock */
-    SetupBlock: {
-      /** Direction */
-      direction?: string | null;
-      /** Score */
-      score?: string | null;
-      /** Type */
-      type?: string | null;
-    };
-    /** SetupClassification */
-    SetupClassification: {
-      /**
-       * Confirmations
-       * @default []
-       */
-      confirmations: string[];
-      /** Direction */
-      direction: string;
-      /** Label */
-      label: string;
-      /**
-       * Notes
-       * @default
-       */
-      notes: string;
-      /** Score */
-      score: string;
-      /** Setup Type */
-      setup_type: string;
-      /**
-       * Warnings
-       * @default []
-       */
-      warnings: string[];
-    };
-    /** ShortDataRow */
-    ShortDataRow: {
-      /** Fee Rate */
-      fee_rate?: string | null;
-      /** Name */
-      name?: string | null;
-      /** Rebate Rate */
-      rebate_rate?: string | null;
-      /** Short Shares Available */
-      short_shares_available?: number | null;
-      /** Symbol */
-      symbol: string;
-      /**
-       * Timestamp
-       * Format: date-time
-       */
-      timestamp: string;
-    };
-    /** SingleStockReport */
-    SingleStockReport: {
-      aggregates?: components["schemas"]["MarketAggregates"] | null;
-      /** Dark Pool Notional */
-      dark_pool_notional?: string | null;
-      /**
-       * Dark Pool Print Count
-       * @default 0
-       */
-      dark_pool_print_count: number;
-      dealer_regime?: components["schemas"]["DealerRegime"] | null;
-      /**
-       * Exposures Summary
-       * @default []
-       */
-      exposures_summary: components["schemas"]["ExposuresSummaryRow"][];
-      flow: components["schemas"]["FlowSnapshot"];
-      /**
-       * Generated At
-       * Format: date-time
-       */
-      generated_at: string;
-      market_structure: components["schemas"]["MarketStructure"];
-      market_structure_levels?:
-        | components["schemas"]["MarketStructureLevels"]
-        | null;
-      /**
-       * Max Pain Rows
-       * @default []
-       */
-      max_pain_rows: components["schemas"]["MaxPainRow"][];
-      /** Next Earnings Date */
-      next_earnings_date?: string | null;
-      /**
-       * Oi Change Intraday Profiles
-       * @default []
-       */
-      oi_change_intraday_profiles: components["schemas"]["OptionIntradayProfile"][];
-      /**
-       * Oi Change Top
-       * @default []
-       */
-      oi_change_top: components["schemas"]["OiChangeRow"][];
-      /**
-       * Option Chain Per Strike
-       * @default []
-       */
-      option_chain_per_strike: components["schemas"]["OptionChainPerStrikeRow"][];
-      /**
-       * Options Timeline
-       * @default []
-       */
-      options_timeline: components["schemas"]["OptionsDailyRow"][];
-      /** Run Id */
-      run_id: number;
-      setup?: components["schemas"]["SetupClassification"] | null;
-      short_data?: components["schemas"]["ShortDataRow"] | null;
-      /**
-       * Short Int Note
-       * @default n/a (UW endpoint does not expose %)
-       */
-      short_int_note: string;
-      /** Spot Quoted At */
-      spot_quoted_at?: string | null;
-      /** Spot Source */
-      spot_source?: string | null;
-      /**
-       * Strike Exposures
-       * @default []
-       */
-      strike_exposures: components["schemas"]["StrikeExposureRow"][];
-      /**
-       * Strike Gex Curve
-       * @default []
-       */
-      strike_gex_curve: components["schemas"]["StrikeGexBucket"][];
-      /** Ticker */
-      ticker: string;
-      volatility: components["schemas"]["VolatilityProfile"];
-      vrp: components["schemas"]["VRPAssessment"];
-    };
-    /** SkewAnalysisResponse */
-    SkewAnalysisResponse: {
-      /**
-       * As Of
-       * Format: date
-       */
-      as_of: string;
-      /**
-       * Asset Class
-       * @default single_name
-       */
-      asset_class: string;
-      /** Back Rr */
-      back_rr?: string | null;
-      /**
-       * Backfill Status
-       * @default ready
-       */
-      backfill_status: string;
-      /** Borrow Fee Rate */
-      borrow_fee_rate?: string | null;
-      /**
-       * Borrow Flag
-       * @default unknown
-       */
-      borrow_flag: string;
-      /**
-       * Class Expected Sign
-       * @default mixed
-       */
-      class_expected_sign: string;
-      /** Days To Cover */
-      days_to_cover?: string | null;
-      /**
-       * Deviation Class
-       * @default NORMAL
-       */
-      deviation_class: string;
-      /**
-       * Directional Lean
-       * @default NEUTRAL
-       */
-      directional_lean: string;
-      /**
-       * Drive Class
-       * @default STRUCTURAL
-       */
-      drive_class: string;
-      /**
-       * Earnings Gate
-       * @default unknown
-       */
-      earnings_gate: string;
-      /** Front Rr */
-      front_rr?: string | null;
-      /**
-       * History
-       * @default []
-       */
-      history: components["schemas"]["SkewHistoryPoint"][];
-      /**
-       * Lean Basis
-       * @default
-       */
-      lean_basis: string;
-      /**
-       * Lean Confidence
-       * @default low
-       */
-      lean_confidence: string;
-      /**
-       * @default {
-       *       "borrow_context": "",
-       *       "class_context": "",
-       *       "deviation_class": "",
-       *       "directional_lean": {
-       *         "basis": "",
-       *         "confidence": "low",
-       *         "express": "",
-       *         "lean": "NEUTRAL"
-       *       },
-       *       "drive": "",
-       *       "earnings_gate": "",
-       *       "rho_confirms": false,
-       *       "summary_bullets": [],
-       *       "summary_line": "",
-       *       "tail": ""
-       *     }
-       */
-      read: components["schemas"]["SkewRead"];
-      /**
-       * Regime
-       * @default UNKNOWN
-       */
-      regime: string;
-      /**
-       * Rho Series
-       * @default []
-       */
-      rho_series: components["schemas"]["SkewRhoPoint"][];
-      /** Rho Sign */
-      rho_sign?: number | null;
-      /** Rho Spotvol 21D */
-      rho_spotvol_21d?: string | null;
-      /** Rho Spotvol 63D */
-      rho_spotvol_63d?: string | null;
-      /** Rr 25D */
-      rr_25d?: string | null;
-      /** Rr Pct 252D */
-      rr_pct_252d?: string | null;
-      /** Rr Z 180D */
-      rr_z_180d?: string | null;
-      /**
-       * Skew Term Class
-       * @default flat
-       */
-      skew_term_class: string;
-      /**
-       * Smile
-       * @default []
-       */
-      smile: components["schemas"]["SkewSmileExpiryCurve"][];
-      /** Spot */
-      spot?: string | null;
-      /**
-       * Term Structure
-       * @default []
-       */
-      term_structure: components["schemas"]["SkewExpiryPoint"][];
-      /** Ticker */
-      ticker: string;
-    };
-    /** SkewBlock */
-    SkewBlock: {
-      /** Rr25D 30Dte */
-      rr25d_30dte?: string | null;
-    };
-    /** SkewDirectionalLean */
-    SkewDirectionalLean: {
-      /**
-       * Basis
-       * @default
-       */
-      basis: string;
-      /**
-       * Confidence
-       * @default low
-       */
-      confidence: string;
-      /**
-       * Express
-       * @default
-       */
-      express: string;
-      /**
-       * Lean
-       * @default NEUTRAL
-       */
-      lean: string;
-      structure_detail?: components["schemas"]["SkewStructureDetail"] | null;
-    };
-    /** SkewExpiryPoint */
-    SkewExpiryPoint: {
-      /** Dte */
-      dte?: number | null;
-      /**
-       * Expiry
-       * Format: date
-       */
-      expiry: string;
-      /** Rr */
-      rr?: string | null;
-    };
-    /** SkewHistoryPoint */
-    SkewHistoryPoint: {
-      /**
-       * Date
-       * Format: date
-       */
-      date: string;
-      /** Pct */
-      pct?: string | null;
-      /** Rr */
-      rr?: string | null;
-      /** Z */
-      z?: string | null;
-    };
-    /** SkewRead */
-    SkewRead: {
-      /**
-       * Borrow Context
-       * @default
-       */
-      borrow_context: string;
-      /**
-       * Class Context
-       * @default
-       */
-      class_context: string;
-      /**
-       * Deviation Class
-       * @default
-       */
-      deviation_class: string;
-      /**
-       * @default {
-       *       "basis": "",
-       *       "confidence": "low",
-       *       "express": "",
-       *       "lean": "NEUTRAL"
-       *     }
-       */
-      directional_lean: components["schemas"]["SkewDirectionalLean"];
-      /**
-       * Drive
-       * @default
-       */
-      drive: string;
-      /**
-       * Earnings Gate
-       * @default
-       */
-      earnings_gate: string;
-      /** Rho */
-      rho?: string | null;
-      /**
-       * Rho Confirms
-       * @default false
-       */
-      rho_confirms: boolean;
-      /**
-       * Summary Bullets
-       * @default []
-       */
-      summary_bullets: components["schemas"]["SkewReadBullet"][];
-      /**
-       * Summary Line
-       * @default
-       */
-      summary_line: string;
-      /**
-       * Tail
-       * @default
-       */
-      tail: string;
-    };
-    /** SkewReadBullet */
-    SkewReadBullet: {
-      /**
-       * Body
-       * @default
-       */
-      body: string;
-      /**
-       * Label
-       * @default
-       */
-      label: string;
-    };
-    /** SkewRhoPoint */
-    SkewRhoPoint: {
-      /**
-       * Date
-       * Format: date
-       */
-      date: string;
-      /** Rho */
-      rho?: string | null;
-    };
-    /** SkewSmileExpiryCurve */
-    SkewSmileExpiryCurve: {
-      /**
-       * Expiry
-       * Format: date
-       */
-      expiry: string;
-      /**
-       * Points
-       * @default []
-       */
-      points: components["schemas"]["SkewSmilePoint"][];
-    };
-    /** SkewSmilePoint */
-    SkewSmilePoint: {
-      /** Iv */
-      iv?: string | null;
-      /** Strike */
-      strike: string;
-    };
-    /** SkewStructureDetail */
-    SkewStructureDetail: {
-      /** Dte Target */
-      dte_target?: number | null;
-      /**
-       * Kind
-       * @default
-       */
-      kind: string;
-      /**
-       * Legs
-       * @default []
-       */
-      legs: components["schemas"]["SkewStructureLeg"][];
-      /**
-       * Note
-       * @default
-       */
-      note: string;
-      /**
-       * Status
-       * @default ready
-       */
-      status: string;
-    };
-    /** SkewStructureLeg */
-    SkewStructureLeg: {
-      /**
-       * Action
-       * @default
-       */
-      action: string;
-      /** Actual Delta */
-      actual_delta?: string | null;
-      /** Dte */
-      dte?: number | null;
-      /** Expiry */
-      expiry?: string | null;
-      /**
-       * Right
-       * @default
-       */
-      right: string;
-      /** Strike */
-      strike?: string | null;
-      /** Target Delta */
-      target_delta?: string | null;
-    };
-    /** SmileExpiryCurve */
-    SmileExpiryCurve: {
-      /**
-       * Expiry
-       * Format: date
-       */
-      expiry: string;
-      /**
-       * Points
-       * @default []
-       */
-      points: components["schemas"]["SmilePoint"][];
-    };
-    /** SmilePoint */
-    SmilePoint: {
-      /** Iv */
-      iv?: string | null;
-      /** Strike */
-      strike: string;
-    };
-    /** SourceReconciliation */
-    SourceReconciliation: {
-      /**
-       * Decision
-       * @default Use deterministic data only where source agreement is understood.
-       */
-      decision: string;
-      /**
-       * Headline
-       * @default Source reconciliation unavailable
-       */
-      headline: string;
-      /** Primary Iv Source */
-      primary_iv_source?: string | null;
-      /** Relative Shape Source */
-      relative_shape_source?: string | null;
-      /**
-       * Rows
-       * @default []
-       */
-      rows: components["schemas"]["SourceReconciliationRow"][];
-      /**
-       * Status
-       * @default UNKNOWN
-       */
-      status: string;
-    };
-    /** SourceReconciliationRow */
-    SourceReconciliationRow: {
-      /**
-       * Decision
-       * @default
-       */
-      decision: string;
-      /**
-       * Iv Agreement
-       * @default
-       */
-      iv_agreement: string;
-      /** Iv Diff */
-      iv_diff?: string | null;
-      /**
-       * Price Agreement
-       * @default
-       */
-      price_agreement: string;
-      /** Source A Call Iv */
-      source_a_call_iv?: string | null;
-      /** Source B Call Iv */
-      source_b_call_iv?: string | null;
-      /** Source Pair */
-      source_pair: string;
-      /** Strike */
-      strike?: string | null;
-    };
-    /** StockHistoryResponse */
-    StockHistoryResponse: {
-      /**
-       * Rows
-       * @default []
-       */
-      rows: components["schemas"]["StockHistoryRow"][];
-      /** Ticker */
-      ticker: string;
-    };
-    /**
-     * StockHistoryRow
-     * @description One per-trading-day rollup of a ticker's market structure.
-     *
-     *     Built from the latest successful scan_run on that date. spot comes from
-     *     daily_ohlc.close so it's a stable end-of-day reference (NULL for the
-     *     current trading day until the OHLC pull fires post-close).
-     */
-    StockHistoryRow: {
-      /**
-       * Bias
-       * @default NEUTRAL
-       */
-      bias: string;
-      /** Gex Flip */
-      gex_flip?: string | null;
-      /** Iv30D */
-      iv30d?: string | null;
-      /**
-       * Market Date
-       * Format: date
-       */
-      market_date: string;
-      /** Net Dex */
-      net_dex?: string | null;
-      /** Net Gex */
-      net_gex?: string | null;
-      /** Pcr Vol */
-      pcr_vol?: string | null;
-      /** Spot */
-      spot?: string | null;
-    };
-    /**
-     * StrikeExposureRow
-     * @description One per-(expiry, strike) raw row from exposures_by_expiry_strike,
-     *     carrying the call/put split for vanna and charm so the FE can render
-     *     Net + Call/Put curves without an extra fetch.
-     */
-    StrikeExposureRow: {
-      /** Call Charm */
-      call_charm?: string | null;
-      /** Call Vanna */
-      call_vanna?: string | null;
-      /** Dte */
-      dte?: number | null;
-      /**
-       * Expiry
-       * Format: date
-       */
-      expiry: string;
-      /** Put Charm */
-      put_charm?: string | null;
-      /** Put Vanna */
-      put_vanna?: string | null;
-      /** Strike */
-      strike: string;
-    };
-    /**
-     * StrikeGexBucket
-     * @description One row of the per-strike, per-expiry GEX curve persisted on each scan run.
-     */
-    StrikeGexBucket: {
-      /** Call Gex */
-      call_gex?: string | null;
-      /**
-       * Expiry
-       * Format: date
-       */
-      expiry: string;
-      /** Net Gex */
-      net_gex?: string | null;
-      /** Put Gex */
-      put_gex?: string | null;
-      /** Strike */
-      strike: string;
-    };
-    /** TermMoveRow */
-    TermMoveRow: {
-      /** Atm Straddle */
-      atm_straddle?: string | null;
-      /** Daily Implied Move Perc */
-      daily_implied_move_perc?: string | null;
-      /** Dte */
-      dte?: number | null;
-      /**
-       * Expiry
-       * Format: date
-       */
-      expiry: string;
-      /** Implied Move Perc */
-      implied_move_perc?: string | null;
-      /**
-       * Read
-       * @default
-       */
-      read: string;
-    };
-    /** TermStructureExpiryRow */
-    TermStructureExpiryRow: {
-      /**
-       * By Strike
-       * @default {}
-       */
-      by_strike: {
-        [key: string]: string;
-      };
-      /** Dte */
-      dte?: number | null;
-      /**
-       * Expiry
-       * Format: date
-       */
-      expiry: string;
-      /**
-       * Strikes
-       * @default {}
-       */
-      strikes: {
-        [key: string]: string;
-      };
-    };
-    /** TradeFramework */
-    TradeFramework: {
-      best_setup: components["schemas"]["TradeFrameworkBestSetup"];
-      /** Bottom Line */
-      bottom_line: string;
-      /** Candidates */
-      candidates?: components["schemas"]["TradeFrameworkCandidate"][];
-      catalyst: components["schemas"]["TradeFrameworkCatalyst"];
-      confluence: components["schemas"]["TradeFrameworkConfluence"];
-      conviction: components["schemas"]["TradeFrameworkConviction"];
-      gamma: components["schemas"]["TradeFrameworkGamma"];
-      header: components["schemas"]["TradeFrameworkHeader"];
-      /** Pitfalls */
-      pitfalls?: components["schemas"]["TradeFrameworkPitfall"][];
-      three_axis: components["schemas"]["TradeFrameworkThreeAxis"];
-      /** What Changes */
-      what_changes?: components["schemas"]["TradeFrameworkWhatChanges"][];
-    };
-    /** TradeFrameworkAsymmetry */
-    TradeFrameworkAsymmetry: {
-      /** Prose */
-      prose: string;
-      /** Rule On */
-      rule_on: boolean;
-      /**
-       * Structure Family
-       * @enum {string}
-       */
-      structure_family: "directional_defined_risk" | "pin_vega";
-    };
-    /** TradeFrameworkBestSetup */
-    TradeFrameworkBestSetup: {
-      /** Cost */
-      cost?: string | null;
-      /** Invalidation */
-      invalidation: string;
-      /** Legs */
-      legs?: string[];
-      /** Max Risk */
-      max_risk?: string | null;
-      /** Rationale */
-      rationale: string;
-      /** Structure */
-      structure: string;
-      /**
-       * Why Not Alternatives
-       * @default
-       */
-      why_not_alternatives: string;
-    };
-    /** TradeFrameworkCandidate */
-    TradeFrameworkCandidate: {
-      /** Debit Credit */
-      debit_credit?: string | null;
-      /** Defined Risk */
-      defined_risk: boolean;
-      /** Legs */
-      legs?: string[];
-      /** Name */
-      name: string;
-      /** Net Delta */
-      net_delta?: string | null;
-      /** Net Vega */
-      net_vega?: string | null;
-      /** Pnl Base */
-      pnl_base?: string | null;
-      /** Pnl Bear */
-      pnl_bear?: string | null;
-      /** Pnl Bull */
-      pnl_bull?: string | null;
-    };
-    /** TradeFrameworkCatalyst */
-    TradeFrameworkCatalyst: {
-      /** Dte To Er */
-      dte_to_er?: number | null;
-      /**
-       * Handling
-       * @enum {string}
-       */
-      handling:
-        | "no_conflict"
-        | "exit_before_print"
-        | "stand_aside"
-        | "hold_through_leaps";
-      /** Implied Move */
-      implied_move?: string | null;
-      /** Next Er Date */
-      next_er_date?: string | null;
-      /** Prose */
-      prose: string;
-    };
-    /** TradeFrameworkConfluence */
-    TradeFrameworkConfluence: {
-      /** Aligned */
-      aligned: boolean;
-      /**
-       * Prose
-       * @default
-       */
-      prose: string;
-      /** Signals */
-      signals?: components["schemas"]["TradeFrameworkSignal"][];
-    };
-    /** TradeFrameworkConviction */
-    TradeFrameworkConviction: {
-      /** Factors */
-      factors: components["schemas"]["TradeFrameworkFactor"][];
-      /**
-       * Prose
-       * @default
-       */
-      prose: string;
-      /** Score */
-      score: number;
-    };
-    /** TradeFrameworkDirection */
-    TradeFrameworkDirection: {
-      /** Prose */
-      prose: string;
-      /**
-       * Verdict
-       * @enum {string}
-       */
-      verdict: "bull" | "bear" | "neutral";
-    };
-    /** TradeFrameworkFactor */
-    TradeFrameworkFactor: {
-      /** Name */
-      name: string;
-      /**
-       * Note
-       * @default
-       */
-      note: string;
-      /**
-       * Status
-       * @enum {string}
-       */
-      status: "yes" | "no" | "na";
-    };
-    /** TradeFrameworkGamma */
-    TradeFrameworkGamma: {
-      /** Call Wall */
-      call_wall?: string | null;
-      /** Flip Strike */
-      flip_strike?: string | null;
-      /** Prose */
-      prose: string;
-      /** Put Wall */
-      put_wall?: string | null;
-      /**
-       * Regime
-       * @enum {string}
-       */
-      regime: "short" | "long";
-    };
-    /** TradeFrameworkHeader */
-    TradeFrameworkHeader: {
-      /** Conviction N */
-      conviction_n: number;
-      /**
-       * Position Type
-       * @enum {string}
-       */
-      position_type: "swing" | "leaps" | "stand_aside";
-      /** Spot */
-      spot?: string | null;
-      /** Thesis One Liner */
-      thesis_one_liner: string;
-    };
-    /** TradeFrameworkPitfall */
-    TradeFrameworkPitfall: {
-      /** Id */
-      id: string;
-      /**
-       * Note
-       * @default
-       */
-      note: string;
-      /** Title */
-      title: string;
-      /** Triggered */
-      triggered: boolean;
-    };
-    /** TradeFrameworkSignal */
-    TradeFrameworkSignal: {
-      /** Direction */
-      direction: string;
-      /** Name */
-      name: string;
-    };
-    /** TradeFrameworkThreeAxis */
-    TradeFrameworkThreeAxis: {
-      asymmetry: components["schemas"]["TradeFrameworkAsymmetry"];
-      direction: components["schemas"]["TradeFrameworkDirection"];
-      vega: components["schemas"]["TradeFrameworkVega"];
-    };
-    /** TradeFrameworkVega */
-    TradeFrameworkVega: {
-      /** Ivr */
-      ivr?: string | null;
-      /** Prose */
-      prose: string;
-      /**
-       * Regime
-       * @enum {string}
-       */
-      regime: "event_iv" | "demand_iv" | "low_iv";
-      /** Term Slope */
-      term_slope?: string | null;
-    };
-    /** TradeFrameworkWhatChanges */
-    TradeFrameworkWhatChanges: {
-      /** Effect */
-      effect: string;
-      /** Signal */
-      signal: string;
-    };
-    /**
-     * TradeInsightAiAnalysisEnqueueResponse
-     * @description POST response — one stub per enabled provider.
-     */
-    TradeInsightAiAnalysisEnqueueResponse: {
-      /** Analyses */
-      analyses: components["schemas"]["TradeInsightAiAnalysisStub"][];
-    };
-    /** TradeInsightAiAnalysisRequest */
-    TradeInsightAiAnalysisRequest: {
-      /**
-       * Force Rerun
-       * @default false
-       */
-      force_rerun: boolean;
-      /** Providers */
-      providers?: ("codex" | "claude" | "deepseek")[] | null;
-    };
-    /** TradeInsightAiAnalysisResponse */
-    TradeInsightAiAnalysisResponse: {
-      /**
-       * Analysis Id
-       * Format: uuid
-       */
-      analysis_id: string;
-      /** Analysis Input Hash */
-      analysis_input_hash: string;
-      /** Error Message */
-      error_message?: string | null;
-      /** Finished At */
-      finished_at?: string | null;
-      /** Markdown */
-      markdown?: string | null;
-      /** Model */
-      model: string;
-      outcome?: components["schemas"]["TradeInsightAiOutcome"] | null;
-      /** Produced At */
-      produced_at?: string | null;
-      /** Prompt Version */
-      prompt_version: string;
-      /**
-       * Provider
-       * @default codex
-       * @enum {string}
-       */
-      provider: "codex" | "claude" | "deepseek";
-      /**
-       * Requested At
-       * Format: date-time
-       */
-      requested_at: string;
-      /**
-       * Reused
-       * @default false
-       */
-      reused: boolean;
-      /** Run Id */
-      run_id: number;
-      /** Started At */
-      started_at?: string | null;
-      /**
-       * Status
-       * @enum {string}
-       */
-      status: "queued" | "running" | "succeeded" | "failed";
-      /** Ticker */
-      ticker: string;
-      /** Trade Insights Input Hash */
-      trade_insights_input_hash: string;
-    };
-    /**
-     * TradeInsightAiAnalysisStub
-     * @description Lightweight stub returned by POST when enqueueing per-provider rows.
-     */
-    TradeInsightAiAnalysisStub: {
-      /**
-       * Analysis Id
-       * Format: uuid
-       */
-      analysis_id: string;
-      /** Model */
-      model: string;
-      /**
-       * Provider
-       * @enum {string}
-       */
-      provider: "codex" | "claude" | "deepseek";
-      /** Reused */
-      reused: boolean;
-      /**
-       * Status
-       * @enum {string}
-       */
-      status: "queued" | "running" | "succeeded" | "failed";
-    };
-    /**
-     * TradeInsightAiAntiPin
-     * @description v5.2: structured anti-pin score + scope tag.
-     *
-     *     invoked=False means anti-pin is not the thesis (e.g. structural break
-     *     or trend continuation). The validator's conviction cap (cap at C when
-     *     2/4 hold, anti-pin doesn't fire when ≤1/4) ONLY applies when
-     *     invoked=True. This closes the v5.1 issue where Claude scored 1/4 on
-     *     NVDA but correctly chose downside_break — anti-pin scoring should
-     *     have been informational only, not a conviction blocker.
-     */
-    TradeInsightAiAntiPin: {
-      /**
-       * Cap Reason
-       * @default
-       */
-      cap_reason: string;
-      /** Conditions Met */
-      conditions_met?: string[];
-      /**
-       * Conviction Cap Applied
-       * @default false
-       */
-      conviction_cap_applied: boolean;
-      /**
-       * Direction
-       * @default none
-       * @enum {string}
-       */
-      direction: "upside" | "downside" | "none";
-      /**
-       * Invoked
-       * @default false
-       */
-      invoked: boolean;
-      /**
-       * Max Score
-       * @default 4
-       */
-      max_score: number;
-      /**
-       * Score
-       * @default 0
-       */
-      score: number;
-    };
-    /** TradeInsightAiBestExpression */
-    TradeInsightAiBestExpression: {
-      /** Caveats */
-      caveats?: string[];
-      /** Idea Id */
-      idea_id: string;
-      /** Risk Flags Observed */
-      risk_flags_observed?: string[];
-      /** Role */
-      role: string;
-      /** Status Observed */
-      status_observed: string;
-      /** Structure */
-      structure: string;
-      /** Why */
-      why: string;
-    };
-    /** TradeInsightAiConflict */
-    TradeInsightAiConflict: {
-      /** Affected Idea Ids */
-      affected_idea_ids?: string[];
-      /** Description */
-      description: string;
-      /** Lens */
-      lens: string;
-      /** Severity */
-      severity: string;
-    };
-    /** TradeInsightAiDominantRead */
-    TradeInsightAiDominantRead: {
-      /** Confidence Commentary */
-      confidence_commentary: string;
-      /** Data Quality Commentary */
-      data_quality_commentary: string;
-      /** Headline */
-      headline: string;
-      /** Summary */
-      summary: string;
-    };
-    /** TradeInsightAiGuardrails */
-    TradeInsightAiGuardrails: {
-      /** No Executable Recommendations */
-      no_executable_recommendations: boolean;
-      /** Risk Flags Preserved */
-      risk_flags_preserved: boolean;
-      /** Statuses Preserved */
-      statuses_preserved: boolean;
-    };
-    /** TradeInsightAiHeadline */
-    TradeInsightAiHeadline: {
-      /** Conviction */
-      conviction: string;
-      /** Conviction Label */
-      conviction_label: string;
-      /**
-       * Directional Bias
-       * @enum {string}
-       */
-      directional_bias: "LONG_DELTA" | "SHORT_DELTA" | "WAIT";
-      /**
-       * Dte Band
-       * @enum {string}
-       */
-      dte_band: "momentum" | "standard" | "trend";
-      /**
-       * Entry State
-       * @enum {string}
-       */
-      entry_state: "ACTIVE" | "CONDITIONAL" | "NO_ENTRY";
-      /** Primary Risk */
-      primary_risk: string;
-      /** Score */
-      score: number;
-      /**
-       * Score Scale
-       * @default 100
-       */
-      score_scale: number;
-      /**
-       * Stance
-       * @enum {string}
-       */
-      stance: "bullish" | "bearish" | "neutral" | "mixed" | "wait";
-      /** Stance Label */
-      stance_label: string;
-      /**
-       * Thesis Archetype
-       * @default data_insufficient
-       * @enum {string}
-       */
-      thesis_archetype:
-        | "resistance_rejection"
-        | "support_breakdown"
-        | "breakout_continuation"
-        | "pin_no_trade"
-        | "data_insufficient";
-      /** Title */
-      title: string;
-      /** Top Reason */
-      top_reason: string;
-      /**
-       * Trade Intent
-       * @enum {string}
-       */
-      trade_intent: "directional_swing" | "range_income";
-      /**
-       * Underlying Path
-       * @enum {string}
-       */
-      underlying_path:
-        | "bullish_continuation"
-        | "bearish_rejection"
-        | "downside_break"
-        | "pinned_no_directional_entry"
-        | "data_insufficient";
-      /** Watch Trigger */
-      watch_trigger: string;
-    };
-    /** TradeInsightAiHighlight */
-    TradeInsightAiHighlight: {
-      /** Label */
-      label: string;
-      /**
-       * Note
-       * @default
-       */
-      note: string;
-      /** Source Path */
-      source_path?: string | null;
-      /** Value */
-      value: string;
-    };
-    /**
-     * TradeInsightAiLatestPair
-     * @description GET /latest response — null per provider when no succeeded row exists.
-     *
-     *     v5.2: provider_consensus is computed at read time by comparing the
-     *     two providers' headline fields whenever both have succeeded. The
-     *     UI surfaces consensus_grade + actionable_disagreement above the
-     *     [Codex] [Claude] tabs as a quality signal.
-     *
-     *     v5.3 (deepseek-decoupling, 2026-05-28): adds the deepseek slot.
-     *     DeepSeek surfaces in /latest but DOES NOT participate in
-     *     provider_consensus — that remains a 2-way codex-vs-claude comparison
-     *     (see _compute_provider_consensus docstring for the scope decision).
-     *     The UI still renders only [Codex] [Claude] tabs; the deepseek field
-     *     is queued + persisted today and ignored by the frontend until a
-     *     follow-up PR adds a [DeepSeek] tab.
-     */
-    TradeInsightAiLatestPair: {
-      claude?: components["schemas"]["TradeInsightAiAnalysisResponse"] | null;
-      codex?: components["schemas"]["TradeInsightAiAnalysisResponse"] | null;
-      /** Current Prompt Label */
-      current_prompt_label?: string | null;
-      /** Current Prompt Version */
-      current_prompt_version: string;
-      deepseek?: components["schemas"]["TradeInsightAiAnalysisResponse"] | null;
-      provider_consensus?: components["schemas"]["TradeInsightAiProviderConsensus"];
-    };
-    /** TradeInsightAiLevel */
-    TradeInsightAiLevel: {
-      /**
-       * Importance
-       * @default normal
-       */
-      importance: string;
-      /** Kind */
-      kind: string;
-      /**
-       * Note
-       * @default
-       */
-      note: string;
-      /** Price */
-      price: string;
-      /** Source Path */
-      source_path?: string | null;
-      /** Value */
-      value: string;
-    };
-    /** TradeInsightAiMetricCard */
-    TradeInsightAiMetricCard: {
-      /** Label */
-      label: string;
-      /**
-       * Note
-       * @default
-       */
-      note: string;
-      /** Source Path */
-      source_path?: string | null;
-      /**
-       * Tone
-       * @default neutral
-       */
-      tone: string;
-      /** Value */
-      value: string;
-    };
-    /**
-     * TradeInsightAiOptionLeg
-     * @description v5.3: one leg of a defined-risk option expression.
-     *
-     *     Replaces v5.2's implicit "trigger_level + long_leg_role + short_leg_role"
-     *     coupling with explicit, validator-checkable leg geometry. The
-     *     legs-strategy-match validator enforces, e.g., that a bear_put_spread
-     *     has exactly one long put + one short put with long.strike > short.strike
-     *     and matching expiry. The legs-align-triggers validator enforces that
-     *     the long leg's strike is within tolerance of entry_trigger.level OR
-     *     thesis_trigger.level — making "is the actual long-put strike 215 or
-     *     220?" a falsifiable claim against the model output.
-     *
-     *     No naked shorts: per project safety policy, credit-spread families
-     *     must always include the long protective leg. The validator rejects
-     *     a single-leg short.
-     */
-    TradeInsightAiOptionLeg: {
-      /**
-       * Expiry
-       * Format: date
-       */
-      expiry: string;
-      /**
-       * Option Type
-       * @enum {string}
-       */
-      option_type: "call" | "put";
-      /**
-       * Side
-       * @enum {string}
-       */
-      side: "long" | "short";
-      /** Strike */
-      strike: string;
-    };
-    /** TradeInsightAiOutcome */
-    TradeInsightAiOutcome: {
-      /**
-       * Analysis Produced At
-       * Format: date-time
-       */
-      analysis_produced_at: string;
-      anti_pin?: components["schemas"]["TradeInsightAiAntiPin"];
-      /** Best Expressions */
-      best_expressions?: components["schemas"]["TradeInsightAiBestExpression"][];
-      /** Conflicts */
-      conflicts?: components["schemas"]["TradeInsightAiConflict"][];
-      dominant_read: components["schemas"]["TradeInsightAiDominantRead"];
-      entry_trigger?: components["schemas"]["TradeInsightAiTriggerComponent"];
-      framework?: components["schemas"]["TradeFramework"] | null;
-      guardrails: components["schemas"]["TradeInsightAiGuardrails"];
-      headline: components["schemas"]["TradeInsightAiHeadline"];
-      invalidation?: components["schemas"]["TradeInsightAiTriggerComponent"];
-      /** Metric Cards */
-      metric_cards: components["schemas"]["TradeInsightAiMetricCard"][];
-      /** Missing Data */
-      missing_data?: string[];
-      preferred_expression?:
-        | components["schemas"]["TradeInsightAiPreferredExpression"]
-        | null;
-      /** Rejected Ideas */
-      rejected_ideas?: components["schemas"]["TradeInsightAiRejectedIdea"][];
-      rendering: components["schemas"]["TradeInsightAiRendering"];
-      /** Required Checks */
-      required_checks?: components["schemas"]["TradeInsightAiRequiredCheck"][];
-      /** Scenario Cards */
-      scenario_cards: components["schemas"]["TradeInsightAiScenarioCard"][];
-      /** Schema Version */
-      schema_version: string;
-      /** Score Breakdown */
-      score_breakdown: components["schemas"]["TradeInsightAiScoreBreakdown"][];
-      section_cards: components["schemas"]["TradeInsightAiSectionCards"];
-      snapshot: components["schemas"]["TradeInsightAiSnapshotMeta"];
-      target_feasibility?: components["schemas"]["TradeInsightAiTargetFeasibility"];
-      thesis_trigger?: components["schemas"]["TradeInsightAiTriggerComponent"];
-      /** Ticker */
-      ticker: string;
-      trigger_evidence?: components["schemas"]["TradeInsightAiTriggerEvidence"];
-      /** Underlying Price */
-      underlying_price?: string | null;
-      vrp_assessment?:
-        | components["schemas"]["TradeInsightAiVrpAssessment"]
-        | null;
-    };
-    /** TradeInsightAiPreferredExpression */
-    TradeInsightAiPreferredExpression: {
-      /**
-       * Estimated Entry
-       * @default
-       */
-      estimated_entry: string;
-      /** Idea Id */
-      idea_id: string;
-      /** Legs */
-      legs?: components["schemas"]["TradeInsightAiOptionLeg"][];
-      /** Management Notes */
-      management_notes?: string[];
-      /**
-       * Max Loss Observed
-       * @default
-       */
-      max_loss_observed: string;
-      /**
-       * Max Profit Observed
-       * @default
-       */
-      max_profit_observed: string;
-      /**
-       * Reward Risk
-       * @default
-       */
-      reward_risk: string;
-      /** Risk Flags Observed */
-      risk_flags_observed?: string[];
-      /** Status Observed */
-      status_observed: string;
-      strike_role?: components["schemas"]["TradeInsightAiStrikeRole"];
-      /** Structure */
-      structure: string;
-      /**
-       * Subtitle
-       * @default
-       */
-      subtitle: string;
-      /** Title */
-      title: string;
-      /** Why */
-      why: string;
-    };
-    /**
-     * TradeInsightAiPriorRow
-     * @description One row from the trade_insight_provider_archetype_priors view.
-     *
-     *     Surfaced by /api/trade-insights/priors. `hit_rate_pct` is computed
-     *     over RESOLVED outcomes only (excludes pending + expired_no_resolution)
-     *     so an all-pending cohort doesn't appear as a 0% hit rate. NULL when
-     *     no outcomes have resolved yet.
-     */
-    TradeInsightAiPriorRow: {
-      /** Directional Bias */
-      directional_bias?: string | null;
-      /** Entry State */
-      entry_state?: string | null;
-      /** Expired No Resolution Count */
-      expired_no_resolution_count: number;
-      /** Hit Rate Pct */
-      hit_rate_pct?: string | null;
-      /** Invalidation Hit Count */
-      invalidation_hit_count: number;
-      /** Median Days To Resolution */
-      median_days_to_resolution?: string | null;
-      /** Pending Count */
-      pending_count: number;
-      /** Prompt Version */
-      prompt_version: string;
-      /**
-       * Provider
-       * @enum {string}
-       */
-      provider: "codex" | "claude" | "deepseek";
-      /** Sample Count */
-      sample_count: number;
-      /** Target Hit Count */
-      target_hit_count: number;
-      /** Thesis Archetype */
-      thesis_archetype?: string | null;
-    };
-    /**
-     * TradeInsightAiPriorsResponse
-     * @description Wrapper so the endpoint can grow filter metadata + a `priors` list
-     *     without a breaking change.
-     */
-    TradeInsightAiPriorsResponse: {
-      /** Priors */
-      priors?: components["schemas"]["TradeInsightAiPriorRow"][];
-    };
-    /**
-     * TradeInsightAiProviderConsensus
-     * @description v5.2: cross-provider agreement signal computed at GET /latest time.
-     *
-     *     Not stored per row — derived by comparing the two providers' headline
-     *     fields whenever both have a succeeded row. Surfaces actionable
-     *     disagreement to the operator (e.g. "ACTIVE vs CONDITIONAL depends on
-     *     whether the latest daily close cleared 215").
-     */
-    TradeInsightAiProviderConsensus: {
-      /**
-       * Actionable Disagreement
-       * @default
-       */
-      actionable_disagreement: string;
-      /**
-       * Bias Agreement
-       * @default false
-       */
-      bias_agreement: boolean;
-      /**
-       * Consensus Grade
-       * @default missing
-       * @enum {string}
-       */
-      consensus_grade: "full" | "partial" | "divergent" | "missing";
-      /**
-       * Dte Band Agreement
-       * @default false
-       */
-      dte_band_agreement: boolean;
-      /**
-       * Entry State Agreement
-       * @default false
-       */
-      entry_state_agreement: boolean;
-      /**
-       * Path Agreement
-       * @default false
-       */
-      path_agreement: boolean;
-      /**
-       * Structure Agreement
-       * @default false
-       */
-      structure_agreement: boolean;
-    };
-    /** TradeInsightAiRejectedIdea */
-    TradeInsightAiRejectedIdea: {
-      /** Idea Id */
-      idea_id: string;
-      /** Reason */
-      reason: string;
-      /** Structure */
-      structure: string;
-    };
-    /** TradeInsightAiRendering */
-    TradeInsightAiRendering: {
-      /** Card Order */
-      card_order?: string[];
-      /** Disclaimer */
-      disclaimer: string;
-    };
-    /** TradeInsightAiRequiredCheck */
-    TradeInsightAiRequiredCheck: {
-      /**
-       * Blocks Sizing
-       * @default true
-       */
-      blocks_sizing: boolean;
-      /** Check */
-      check: string;
-      /** Reason */
-      reason: string;
-      /**
-       * Source
-       * @default
-       */
-      source: string;
-    };
-    /** TradeInsightAiScenarioCard */
-    TradeInsightAiScenarioCard: {
-      /** Case */
-      case: ("upside" | "base" | "downside") | string;
-      /** Description */
-      description: string;
-      /** Title */
-      title: string;
-      /**
-       * Tone
-       * @default neutral
-       */
-      tone: string;
-    };
-    /** TradeInsightAiScoreBreakdown */
-    TradeInsightAiScoreBreakdown: {
-      /** Max Score */
-      max_score: number;
-      /** Score */
-      score: number;
-      /** Section */
-      section: string;
-      /** Summary */
-      summary: string;
-    };
-    /** TradeInsightAiSectionCard */
-    TradeInsightAiSectionCard: {
-      /**
-       * Data Quality
-       * @default unknown
-       */
-      data_quality: string;
-      /** Highlights */
-      highlights?: components["schemas"]["TradeInsightAiHighlight"][];
-      /** Levels */
-      levels?: components["schemas"]["TradeInsightAiLevel"][];
-      /** Max Score */
-      max_score?: number | null;
-      /** Score */
-      score?: number | null;
-      /** Summary */
-      summary: string;
-      /** Title */
-      title: string;
-    };
-    /** TradeInsightAiSectionCards */
-    TradeInsightAiSectionCards: {
-      flow_positioning: components["schemas"]["TradeInsightAiSectionCard"];
-      market_structure: components["schemas"]["TradeInsightAiSectionCard"];
-      volatility: components["schemas"]["TradeInsightAiSectionCard"];
-    };
-    /** TradeInsightAiSnapshotMeta */
-    TradeInsightAiSnapshotMeta: {
-      /** Analysis Input Hash */
-      analysis_input_hash: string;
-      /** Data As Of */
-      data_as_of?: string | null;
-      /**
-       * Freshness Label
-       * @default unknown
-       */
-      freshness_label: string;
-      /** Run Id */
-      run_id: number;
-      /** Source Notes */
-      source_notes?: string[];
-      /** Trade Insights Input Hash */
-      trade_insights_input_hash: string;
-    };
-    /**
-     * TradeInsightAiStrikeRole
-     * @description v5.2: explicit market-structure roles + Decimal-strict price levels.
-     *
-     *     Levels were strings in v5.1; that let Claude emit nested dicts which
-     *     Pydantic silently stringified and rendered as JSON literals in the UI.
-     *     v5.2 coerces to Decimal via a pre-validator that knows how to extract
-     *     the strike key from a dict.
-     *
-     *     Source paths are optional but encouraged so the UI can attribute each
-     *     level to a specific key in the deterministic payload.
-     */
-    TradeInsightAiStrikeRole: {
-      /** Invalid Level */
-      invalid_level?: string | null;
-      /**
-       * Invalid Source Path
-       * @default
-       */
-      invalid_source_path: string;
-      /**
-       * Long Leg Role
-       * @default n/a
-       * @enum {string}
-       */
-      long_leg_role:
-        | "trigger_level"
-        | "support_reclaim"
-        | "atm_delta_anchor"
-        | "deep_itm_proxy"
-        | "n/a";
-      /**
-       * Short Leg Role
-       * @default n/a
-       * @enum {string}
-       */
-      short_leg_role:
-        | "target_level"
-        | "next_call_wall"
-        | "second_magnet"
-        | "next_put_wall"
-        | "next_downside_target"
-        | "n/a";
-      /** Target Level */
-      target_level?: string | null;
-      /**
-       * Target Source Path
-       * @default
-       */
-      target_source_path: string;
-      /** Trigger Level */
-      trigger_level?: string | null;
-      /**
-       * Trigger Source Path
-       * @default
-       */
-      trigger_source_path: string;
-    };
-    /**
-     * TradeInsightAiTargetFeasibility
-     * @description v5.2: target-distance vs expected-move sanity layer.
-     *
-     *     Optional — when expected_move data is missing from the payload the
-     *     feasibility is 'missing' and the validator does not block. When
-     *     present, this surfaces whether the target is realistic within the
-     *     5-10 session hold.
-     */
-    TradeInsightAiTargetFeasibility: {
-      /** Distance To Target Pct */
-      distance_to_target_pct?: string | null;
-      /**
-       * Expected Move Available
-       * @default false
-       */
-      expected_move_available: boolean;
-      /**
-       * Expected Move Source Path
-       * @default
-       */
-      expected_move_source_path: string;
-      /**
-       * Feasibility
-       * @default missing
-       * @enum {string}
-       */
-      feasibility: "inside_expected_move" | "outside_expected_move" | "missing";
-    };
-    /**
-     * TradeInsightAiTriggerComponent
-     * @description v5.3: a single point on the trade's state machine.
-     *
-     *     The v5.2 schema overloaded `trigger_level` across two distinct
-     *     semantics (NVDA Codex emitted 220 as "broken wall — already fired",
-     *     Claude emitted 215 as "continuation entry — not yet fired"), which
-     *     is why providers split on ENTRY_STATE despite agreeing on archetype
-     *     and direction. v5.3 decomposes that into three required components —
-     *     `thesis_trigger`, `entry_trigger`, `invalidation` — each carrying its
-     *     own level, semantic meaning, and `fired` boolean evaluated against
-     *     actual daily-close evidence. ENTRY_STATE becomes a mechanical
-     *     function of the trigger booleans rather than a model judgment.
-     *
-     *     Both `thesis_trigger` and `entry_trigger` may share the same level
-     *     when the trade plan treats the broken wall as both the thesis
-     *     confirmation AND the entry signal — but their `meaning` strings
-     *     must differ, and their `fired` booleans are evaluated independently
-     *     against their own evidence rules.
-     */
-    TradeInsightAiTriggerComponent: {
-      /** Evidence Close */
-      evidence_close?: string | null;
-      /** Evidence Date */
-      evidence_date?: string | null;
-      /**
-       * Fired
-       * @default false
-       */
-      fired: boolean;
-      /** Level */
-      level?: string | null;
-      /**
-       * Meaning
-       * @default
-       */
-      meaning: string;
-      /**
-       * Source Path
-       * @default
-       */
-      source_path: string;
-    };
-    /**
-     * TradeInsightAiTriggerEvidence
-     * @description v5.2: payload-proven trigger fire evidence.
-     *
-     *     The deterministic ACTIVE_TRIGGER_EVIDENCE_RULE check uses these fields
-     *     to verify that entry_state=ACTIVE is justified by an actual completed
-     *     daily close in the payload — not by intraday spot or model inference.
-     *
-     *     trigger_fired=False is the default; the lenient coercer fills this in
-     *     by reading the latest completed stock_history row and comparing its
-     *     close to strike_role.trigger_level.
-     *
-     *     When trigger_fired=False but the model emitted entry_state=ACTIVE,
-     *     the validator rejects (or auto-downgrades) to CONDITIONAL.
-     */
-    TradeInsightAiTriggerEvidence: {
-      /** Evidence Close */
-      evidence_close?: string | null;
-      /** Evidence Close Date */
-      evidence_close_date?: string | null;
-      /**
-       * Source Path
-       * @default
-       */
-      source_path: string;
-      /**
-       * Trigger Fired
-       * @default false
-       */
-      trigger_fired: boolean;
-      /** Trigger Level */
-      trigger_level?: string | null;
-      /**
-       * Trigger Type
-       * @default unknown
-       * @enum {string}
-       */
-      trigger_type: "daily_close" | "two_session_hold" | "unknown";
-    };
-    /** TradeInsightAiVrpAssessment */
-    TradeInsightAiVrpAssessment: {
-      /** Metrics */
-      metrics?: components["schemas"]["TradeInsightAiMetricCard"][];
-      /** Reason */
-      reason: string;
-      /** Signal */
-      signal: string;
-      /** Summary */
-      summary: string;
-      /** Title */
-      title: string;
-    };
-    /** TradeInsightsAiHealth */
-    TradeInsightsAiHealth: {
-      claude: components["schemas"]["TradeInsightsAiProviderHealth"];
-      codex: components["schemas"]["TradeInsightsAiProviderHealth"];
-      deepseek: components["schemas"]["TradeInsightsAiProviderHealth"];
-    };
-    /**
-     * TradeInsightsAiProviderHealth
-     * @description Per-provider AI worker pool status.
-     */
-    TradeInsightsAiProviderHealth: {
-      /** Last Beat At */
-      last_beat_at?: string | null;
-      /** Queued Depth */
-      queued_depth: number;
-      /** Workers Expected */
-      workers_expected: number;
-      /** Workers Healthy */
-      workers_healthy: number;
-    };
-    /** TradeInsightsHeader */
-    TradeInsightsHeader: {
-      /**
-       * Badges
-       * @default []
-       */
-      badges: components["schemas"]["InsightBadge"][];
-      /**
-       * Confidence Label
-       * @default LOW
-       */
-      confidence_label: string;
-      /**
-       * Data Quality Label
-       * @default INSUFFICIENT
-       */
-      data_quality_label: string;
-      /**
-       * Dominant Bias
-       * @default NEUTRAL
-       */
-      dominant_bias: string;
-      /**
-       * Idea Count
-       * @default 0
-       */
-      idea_count: number;
-      /** Preferred Idea Id */
-      preferred_idea_id?: string | null;
-      /**
-       * Primary Setup
-       * @default NO_CLEAR_SETUP
-       */
-      primary_setup: string;
-    };
-    /** TradeInsightsResponse */
-    TradeInsightsResponse: {
-      /** As Of */
-      as_of?: string | null;
-      /**
-       * Candidate Structures
-       * @default []
-       */
-      candidate_structures: components["schemas"]["CandidateStructure"][];
-      /**
-       * Flow Table
-       * @default []
-       */
-      flow_table: components["schemas"]["ChainFlowReadRow"][];
-      header: components["schemas"]["TradeInsightsHeader"];
-      /**
-       * Mode
-       * @default research
-       */
-      mode: string;
-      /**
-       * Signal Stack
-       * @default []
-       */
-      signal_stack: components["schemas"]["InsightSignalRow"][];
-      /**
-       * @default {
-       *       "decision": "Use deterministic data only where source agreement is understood.",
-       *       "headline": "Source reconciliation unavailable",
-       *       "rows": [],
-       *       "status": "UNKNOWN"
-       *     }
-       */
-      source_reconciliation: components["schemas"]["SourceReconciliation"];
-      /**
-       * @default {
-       *       "avoid": [],
-       *       "dominant_story": "",
-       *       "required_before_sizing": []
-       *     }
-       */
-      synthesis: components["schemas"]["InsightsSynthesis"];
-      /**
-       * Term Structure Table
-       * @default []
-       */
-      term_structure_table: components["schemas"]["TermMoveRow"][];
-      /** Ticker */
-      ticker: string;
-    };
-    /** VRPAssessment */
-    VRPAssessment: {
-      /** Note */
-      note: string;
-      /** Signal */
-      signal: string;
-      /** Vrp */
-      vrp?: string | null;
-    };
-    /** ValidationError */
-    ValidationError: {
-      /** Context */
-      ctx?: Record<string, never>;
-      /** Input */
-      input?: unknown;
-      /** Location */
-      loc: (string | number)[];
-      /** Message */
-      msg: string;
-      /** Error Type */
-      type: string;
-    };
-    /**
-     * ValidationResponse
-     * @description Combined warm-store backtest + OOS notebook summary.
-     */
-    ValidationResponse: {
-      /** Backtest Csv Rows */
-      backtest_csv_rows: number;
-      /** Backtest Md */
-      backtest_md: string;
-      oos?: components["schemas"]["OosSummary"] | null;
-    };
-    /** VcgAttribution */
-    VcgAttribution: {
-      /**
-       * Model Implied
-       * @default 0
-       */
-      model_implied: number;
-      /**
-       * Vix Component
-       * @default 0
-       */
-      vix_component: number;
-      /**
-       * Vix Pct
-       * @default 0
-       */
-      vix_pct: number;
-      /**
-       * Vvix Component
-       * @default 0
-       */
-      vvix_component: number;
-      /**
-       * Vvix Pct
-       * @default 0
-       */
-      vvix_pct: number;
-    };
-    /** VcgDailyEntry */
-    VcgDailyEntry: {
-      /** Beta1 */
-      beta1?: number | null;
-      /** Beta2 */
-      beta2?: number | null;
-      /** Credit 5D Return Pct */
-      credit_5d_return_pct?: number | null;
-      /** Credit Price */
-      credit_price?: number | null;
-      /**
-       * Date
-       * Format: date
-       */
-      date: string;
-      /** Residual */
-      residual?: number | null;
-      /** Vcg */
-      vcg?: number | null;
-      /** Vcg Adj */
-      vcg_adj?: number | null;
-      /** Vix */
-      vix?: number | null;
-      /** Vvix */
-      vvix?: number | null;
-    };
-    /** VcgDailyHistoryResponse */
-    VcgDailyHistoryResponse: {
-      /**
-       * Credit Proxy
-       * @default HYG
-       */
-      credit_proxy: string;
-      /** Rows */
-      rows?: components["schemas"]["VcgDailyEntry"][];
-    };
-    /** VcgHistoryEntry */
-    VcgHistoryEntry: {
-      /** Beta1 */
-      beta1?: number | null;
-      /** Beta2 */
-      beta2?: number | null;
-      /**
-       * Bounce
-       * @default 0
-       */
-      bounce: number;
-      /**
-       * Credit
-       * @default 0
-       */
-      credit: number;
-      /** Date */
-      date: string;
-      /**
-       * Edr
-       * @default 0
-       */
-      edr: number;
-      /** Residual */
-      residual?: number | null;
-      /**
-       * Ro
-       * @default 0
-       */
-      ro: number;
-      /** Tier */
-      tier?: number | null;
-      /** Vcg */
-      vcg?: number | null;
-      /** Vcg Adj */
-      vcg_adj?: number | null;
-      /**
-       * Vix
-       * @default 0
-       */
-      vix: number;
-      /**
-       * Vvix
-       * @default 0
-       */
-      vvix: number;
-    };
-    /** VcgInterpretationCount */
-    VcgInterpretationCount: {
-      /** Interpretation */
-      interpretation: string;
-      /** N */
-      n: number;
-      /** Pct */
-      pct: number;
-    };
-    /** VcgIntradayPoint */
-    VcgIntradayPoint: {
-      /** Beta1 */
-      beta1?: number | null;
-      /** Beta2 */
-      beta2?: number | null;
-      /** Credit 5D Return Pct */
-      credit_5d_return_pct?: number | null;
-      /** Credit Price */
-      credit_price?: number | null;
-      /** Residual */
-      residual?: number | null;
-      /**
-       * Ts
-       * Format: date-time
-       */
-      ts: string;
-      /** Vcg */
-      vcg?: number | null;
-      /** Vcg Adj */
-      vcg_adj?: number | null;
-      /** Vix */
-      vix?: number | null;
-      /** Vvix */
-      vvix?: number | null;
-    };
-    /** VcgIntradayResponse */
-    VcgIntradayResponse: {
-      /** As Of */
-      as_of?: string | null;
-      /**
-       * Credit Proxy
-       * @default HYG
-       */
-      credit_proxy: string;
-      /** Sessions */
-      sessions?: components["schemas"]["VcgIntradaySession"][];
-    };
-    /** VcgIntradaySession */
-    VcgIntradaySession: {
-      /**
-       * Et Date
-       * Format: date
-       */
-      et_date: string;
-      /** Points */
-      points?: components["schemas"]["VcgIntradayPoint"][];
-    };
-    /** VcgLiveResponse */
-    VcgLiveResponse: {
-      /** Active Source */
-      active_source?: string | null;
-      /**
-       * Basis
-       * @default eod
-       * @enum {string}
-       */
-      basis: "live" | "eod";
-      /** Carried Forward */
-      carried_forward?: string[];
-      /**
-       * Credit Proxy
-       * @default HYG
-       */
-      credit_proxy: string;
-      /** Date */
-      date?: string | null;
-      /** History */
-      history?: components["schemas"]["VcgHistoryEntry"][];
-      /** Live Quotes */
-      live_quotes?: {
-        [key: string]: components["schemas"]["RegimeLiveQuote"];
-      };
-      /**
-       * Scan Time
-       * @default
-       */
-      scan_time: string;
-      signal?: components["schemas"]["VcgSignal"];
-      /**
-       * Status
-       * @default empty
-       * @enum {string}
-       */
-      status: "ok" | "empty";
-    };
-    /** VcgNamedCrashEvent */
-    VcgNamedCrashEvent: {
-      /** Date */
-      date: string;
-      /** Label */
-      label: string;
-      /** Offsets */
-      offsets: components["schemas"]["VcgNamedCrashOffset"][];
-    };
-    /**
-     * VcgNamedCrashOffset
-     * @description One row of the ±5d named-crash window for a single event.
-     */
-    VcgNamedCrashOffset: {
-      /** Beta1 */
-      beta1?: number | null;
-      /** Beta2 */
-      beta2?: number | null;
-      /** Interpretation */
-      interpretation?: string | null;
-      /** Offset Days */
-      offset_days: number;
-      /** Sign Ok */
-      sign_ok?: boolean | null;
-      /** Vcg */
-      vcg?: number | null;
-      /** Vcg Adj */
-      vcg_adj?: number | null;
-    };
-    /**
-     * VcgResponse
-     * @description Volatility-Credit Gap snapshot (latest scan).
-     */
-    VcgResponse: {
-      /**
-       * Credit Proxy
-       * @default HYG
-       */
-      credit_proxy: string;
-      /** Date */
-      date?: string | null;
-      /** History */
-      history?: components["schemas"]["VcgHistoryEntry"][];
-      /**
-       * Scan Time
-       * @default
-       */
-      scan_time: string;
-      signal?: components["schemas"]["VcgSignal"];
-      /**
-       * Status
-       * @default empty
-       * @enum {string}
-       */
-      status: "ok" | "empty";
-    };
-    /**
-     * VcgScanResponse
-     * @description Response body for POST /api/regime/vcg/scan.
-     */
-    VcgScanResponse: {
-      /**
-       * Proxy
-       * @default HYG
-       */
-      proxy: string;
-      /** Reason */
-      reason?: string | null;
-      /** Row Id */
-      row_id?: number | null;
-      /**
-       * Scanner
-       * @default vcg
-       * @constant
-       */
-      scanner: "vcg";
-      /**
-       * Status
-       * @default ok
-       * @enum {string}
-       */
-      status: "ok" | "skipped";
-    };
-    /** VcgSignal */
-    VcgSignal: {
-      /** Alpha */
-      alpha?: number | null;
-      attribution?: components["schemas"]["VcgAttribution"];
-      /** Beta1 Vvix */
-      beta1_vvix?: number | null;
-      /** Beta2 Vix */
-      beta2_vix?: number | null;
-      /**
-       * Bounce
-       * @default 0
-       */
-      bounce: number;
-      /**
-       * Credit 5D Return Pct
-       * @default 0
-       */
-      credit_5d_return_pct: number;
-      /**
-       * Credit Price
-       * @default 0
-       */
-      credit_price: number;
-      /**
-       * Edr
-       * @default 0
-       */
-      edr: number;
-      /**
-       * Interpretation
-       * @default NORMAL
-       * @enum {string}
-       */
-      interpretation:
-        | "RISK_OFF"
-        | "EDR"
-        | "WATCH"
-        | "BOUNCE"
-        | "NORMAL"
-        | "SUPPRESSED"
-        | "PANIC"
-        | "INSUFFICIENT_DATA";
-      /**
-       * Pi Panic
-       * @default 0
-       */
-      pi_panic: number;
-      /**
-       * Regime
-       * @default DIVERGENCE
-       * @enum {string}
-       */
-      regime: "PANIC" | "TRANSITION" | "DIVERGENCE";
-      /** Residual */
-      residual?: number | null;
-      /**
-       * Ro
-       * @default 0
-       */
-      ro: number;
-      /**
-       * Sign Ok
-       * @default true
-       */
-      sign_ok: boolean;
-      /**
-       * Sign Suppressed
-       * @default false
-       */
-      sign_suppressed: boolean;
-      /** Tier */
-      tier?: number | null;
-      /** Vcg */
-      vcg?: number | null;
-      /** Vcg Adj */
-      vcg_adj?: number | null;
-      /**
-       * Vix
-       * @default 0
-       */
-      vix: number;
-      /**
-       * Vix Percentile Rank
-       * @description VIX level's 252-day rolling percentile rank (strict_lt tie rule). Used by the v2 absolute-vol-stress override gate. None during the 252-bar warmup or for v=1 payloads.
-       */
-      vix_percentile_rank?: number | null;
-      /**
-       * Vvix
-       * @default 0
-       */
-      vvix: number;
-      /**
-       * Vvix Percentile Rank
-       * @description VVIX level's 252-day rolling percentile rank (strict_lt tie rule). Used by the v2 absolute-vol-stress override gate.
-       */
-      vvix_percentile_rank?: number | null;
-      /**
-       * Vvix Severity
-       * @default moderate
-       * @enum {string}
-       */
-      vvix_severity: "extreme" | "elevated" | "moderate";
-    };
-    /**
-     * VcgStressHistoryEntry
-     * @description One daily row from the VCG backtest whose interpretation is a
-     *     stress level (PANIC / RISK_OFF / EDR). Drives the all-time stress
-     *     history table on the /regime VCG sub-tab.
-     */
-    VcgStressHistoryEntry: {
-      /** Date */
-      date: string;
-      /** Fwd 20D Pct */
-      fwd_20d_pct?: number | null;
-      /** Fwd 5D Pct */
-      fwd_5d_pct?: number | null;
-      /** Fwd 60D Pct */
-      fwd_60d_pct?: number | null;
-      /**
-       * Interpretation
-       * @enum {string}
-       */
-      interpretation: "PANIC" | "RISK_OFF" | "EDR";
-      /** Pi Panic */
-      pi_panic?: number | null;
-      /** Score */
-      score?: number | null;
-      /** Sign Ok */
-      sign_ok?: boolean | null;
-      /** Vcg Adj */
-      vcg_adj?: number | null;
-      /** Vix */
-      vix?: number | null;
-      /** Vix Percentile Rank */
-      vix_percentile_rank?: number | null;
-      /** Vvix */
-      vvix?: number | null;
-      /** Vvix Percentile Rank */
-      vvix_percentile_rank?: number | null;
-    };
-    /**
-     * VcgStressHistorySummary
-     * @description Aggregate forward-return stats for the stress_history table.
-     */
-    VcgStressHistorySummary: {
-      /** By Interpretation */
-      by_interpretation: components["schemas"]["VcgStressHistorySummaryRow"][];
-    };
-    /**
-     * VcgStressHistorySummaryRow
-     * @description Per-interpretation aggregate of realized forward SPX returns
-     *     across all stress days in the backtest run.
-     */
-    VcgStressHistorySummaryRow: {
-      /**
-       * Interpretation
-       * @enum {string}
-       */
-      interpretation: "PANIC" | "RISK_OFF" | "EDR";
-      /** Mean Fwd 20D Pct */
-      mean_fwd_20d_pct?: number | null;
-      /** Mean Fwd 5D Pct */
-      mean_fwd_5d_pct?: number | null;
-      /** Mean Fwd 60D Pct */
-      mean_fwd_60d_pct?: number | null;
-      /** N */
-      n: number;
-      /** Winrate 20D Pct */
-      winrate_20d_pct?: number | null;
-      /** Winrate 60D Pct */
-      winrate_60d_pct?: number | null;
-    };
-    /**
-     * VcgValidationResponse
-     * @description Latest completed VCG backtest run rendered + structured.
-     */
-    VcgValidationResponse: {
-      /** Backtest Md */
-      backtest_md: string;
-      /** Composite Version */
-      composite_version: string;
-      /** Credit Proxy */
-      credit_proxy: string;
-      /** Interpretation Distribution */
-      interpretation_distribution: components["schemas"]["VcgInterpretationCount"][];
-      /** N Days */
-      n_days: number;
-      /** Named Crash Window */
-      named_crash_window: components["schemas"]["VcgNamedCrashEvent"][];
-      /**
-       * Stress History
-       * @default []
-       */
-      stress_history: components["schemas"]["VcgStressHistoryEntry"][];
-      stress_history_summary?:
-        | components["schemas"]["VcgStressHistorySummary"]
-        | null;
-    };
-    /** VolBackdropPoint */
-    VolBackdropPoint: {
-      /** Close */
-      close: number;
-      /**
-       * Date
-       * Format: date
-       */
-      date: string;
-    };
-    /**
-     * VolBackdropResponse
-     * @description Vol-complex time series + VIX term-structure (regime page header strip).
-     */
-    VolBackdropResponse: {
-      /** As Of */
-      as_of?: string | null;
-      /** Series */
-      series?: {
-        [key: string]: components["schemas"]["VolBackdropPoint"][];
-      };
-      /** Term Structure Ratio */
-      term_structure_ratio?: number | null;
-      /** Term Structure State */
-      term_structure_state?: string | null;
-    };
-    /**
-     * VrpHarvestResponse
-     * @description VRP harvest markout verdicts — is rich vol sellable, by bucket (Spec B).
-     */
-    VrpHarvestResponse: {
-      /** Verdicts */
-      verdicts?: components["schemas"]["VrpHarvestVerdict"][];
-    };
-    /**
-     * VrpHarvestVerdict
-     * @description One (asset_class, deviation_class) VRP harvest bucket verdict (Spec B).
-     */
-    VrpHarvestVerdict: {
-      /** Asset Class */
-      asset_class: string;
-      /** Deviation Class */
-      deviation_class: string;
-      /** Verdict */
-      verdict: string;
-      /** Mean Realized Vrp */
-      mean_realized_vrp?: number | null;
-      /** Mean Holdout */
-      mean_holdout?: number | null;
-      /** Rich Cheap Spread */
-      rich_cheap_spread?: number | null;
-      /**
-       * N
-       * @default 0
-       */
-      n: number;
-      /**
-       * N Holdout
-       * @default 0
-       */
-      n_holdout: number;
-      /**
-       * Survives Walkforward
-       * @default false
-       */
-      survives_walkforward: boolean;
-      /**
-       * Survives Window Gate
-       * @default false
-       */
-      survives_window_gate: boolean;
-      /** Confidence */
-      confidence?: string | null;
-      /** As Of */
-      as_of?: string | null;
-    };
-    /** VolHeaderBlock */
-    VolHeaderBlock: {
-      /** Implied Move 30D Perc */
-      implied_move_30d_perc?: string | null;
-      /** Iv */
-      iv?: string | null;
-      /** Iv High 52W */
-      iv_high_52w?: string | null;
-      /** Iv Low 52W */
-      iv_low_52w?: string | null;
-      /** Iv Percentile 30D */
-      iv_percentile_30d?: string | null;
-      /** Iv Rank */
-      iv_rank?: string | null;
-      /** Iv Rank 1Y */
-      iv_rank_1y?: string | null;
-      /** Rv */
-      rv?: string | null;
-      /** Rv High 52W */
-      rv_high_52w?: string | null;
-      /** Rv Low 52W */
-      rv_low_52w?: string | null;
-      /** Skew 25D */
-      skew_25d?: string | null;
-      /** Vrp */
-      vrp?: string | null;
-      /**
-       * Vrp Note
-       * @default
-       */
-      vrp_note: string;
-      /**
-       * Vrp Signal
-       * @default
-       */
-      vrp_signal: string;
-    };
-    /** VolatilityProfile */
-    VolatilityProfile: {
-      /** Implied Move 30D Perc */
-      implied_move_30d_perc?: string | null;
-      /** Iv */
-      iv?: string | null;
-      /** Iv High 52W */
-      iv_high_52w?: string | null;
-      /** Iv Low 52W */
-      iv_low_52w?: string | null;
-      /** Iv Percentile 30D */
-      iv_percentile_30d?: string | null;
-      /** Iv Rank */
-      iv_rank?: string | null;
-      /** Iv Rank 1Y */
-      iv_rank_1y?: string | null;
-      /** Rv */
-      rv?: string | null;
-      /** Rv High 52W */
-      rv_high_52w?: string | null;
-      /** Rv Low 52W */
-      rv_low_52w?: string | null;
-      /** Skew 25D */
-      skew_25d?: string | null;
-      /**
-       * Term Dte To Iv
-       * @default []
-       */
-      term_dte_to_iv: [number, string][];
-    };
-    /** VolatilitySeriesResponse */
-    VolatilitySeriesResponse: {
-      /**
-       * As Of
-       * Format: date
-       */
-      as_of: string;
-      /** Backfill Status */
-      backfill_status: string;
-      /**
-       * Divergence
-       * @default []
-       */
-      divergence: components["schemas"]["DivergencePoint"][];
-      /**
-       * Divergence Headline
-       * @default
-       */
-      divergence_headline: string;
-      header: components["schemas"]["VolHeaderBlock"];
-      /**
-       * Hv Iv History
-       * @default []
-       */
-      hv_iv_history: components["schemas"]["IvHvPoint"][];
-      /**
-       * Iv Of Iv
-       * @default []
-       */
-      iv_of_iv: components["schemas"]["IvOfIvPoint"][];
-      /**
-       * @default {
-       *       "bins": []
-       *     }
-       */
-      iv_percentile_distribution: components["schemas"]["IvPercentileDistribution"];
-      /**
-       * @default {
-       *       "points": []
-       *     }
-       */
-      regime_quadrant: components["schemas"]["RegimeQuadrantBlock"];
-      /**
-       * Rv Spy Corr
-       * @default []
-       */
-      rv_spy_corr: components["schemas"]["RvCorrPoint"][];
-      /**
-       * Smile
-       * @default []
-       */
-      smile: components["schemas"]["SmileExpiryCurve"][];
-      /** Spot */
-      spot?: string | null;
-      /**
-       * Term Structure
-       * @default []
-       */
-      term_structure: components["schemas"]["TermStructureExpiryRow"][];
-      /** Ticker */
-      ticker: string;
-      /**
-       * Vrp Spread
-       * @default []
-       */
-      vrp_spread: components["schemas"]["VrpDailyPoint"][];
-      /**
-       * Vrp Spread Headline
-       * @default
-       */
-      vrp_spread_headline: string;
-    };
-    /** VrpDailyPoint */
-    VrpDailyPoint: {
-      /**
-       * Date
-       * Format: date
-       */
-      date: string;
-      /** Vrp */
-      vrp?: string | null;
-      /** Vrp Z 20 */
-      vrp_z_20?: string | null;
-    };
-    /** WatchlistCard */
-    WatchlistCard: {
-      /** Aggression Pct */
-      aggression_pct?: string | null;
-      /** Aum */
-      aum?: string | null;
-      gamma: components["schemas"]["GammaBlock"];
-      /** Iv Atm */
-      iv_atm?: string | null;
-      /** Iv Rank */
-      iv_rank?: string | null;
-      /** Market Cap */
-      market_cap?: string | null;
-      /** Pinned */
-      pinned: boolean;
-      positioning: components["schemas"]["PositioningBlock"];
-      queue?: components["schemas"]["QueueStatus"] | null;
-      returns: components["schemas"]["ReturnsBlock"];
-      /** Scanned At */
-      scanned_at?: string | null;
-      /** Sector */
-      sector: string;
-      setup: components["schemas"]["SetupBlock"];
-      skew: components["schemas"]["SkewBlock"];
-      /** Sort Rank */
-      sort_rank: number;
-      /** Spot */
-      spot?: string | null;
-      /** Spot Quoted At */
-      spot_quoted_at?: string | null;
-      /** Spot Source */
-      spot_source?: string | null;
-      /** Ticker */
-      ticker: string;
-    };
-    /** WatchlistMutation */
-    WatchlistMutation: {
-      /** Notes */
-      notes?: string | null;
-      /**
-       * Pinned
-       * @default false
-       */
-      pinned: boolean;
-      /** Sector */
-      sector: string;
-      /**
-       * Sort Rank
-       * @default 0
-       */
-      sort_rank: number;
-      /** Ticker */
-      ticker: string;
-    };
-    /** WatchlistPatch */
-    WatchlistPatch: {
-      /** Notes */
-      notes?: string | null;
-      /** Pinned */
-      pinned?: boolean | null;
-      /** Sector */
-      sector?: string | null;
-      /** Sort Rank */
-      sort_rank?: number | null;
-    };
-    /** WatchlistResponse */
-    WatchlistResponse: {
-      queue?: components["schemas"]["QueueSummary"];
-      /** Scanned At Max */
-      scanned_at_max?: string | null;
-      /** Scanned At Min */
-      scanned_at_min?: string | null;
-      /** Scheduler Lag Seconds */
-      scheduler_lag_seconds?: number | null;
-      /** Tickers */
-      tickers: components["schemas"]["WatchlistCard"][];
-    };
-    /**
-     * WatchlistSpot
-     * @description Lightweight live-spot row for the browser poller — the WS consumer
-     *     writes spot every ~1s; this projection avoids the full dashboard join.
-     */
-    WatchlistSpot: {
-      /** Spot */
-      spot?: string | null;
-      /** Spot Quoted At */
-      spot_quoted_at?: string | null;
-      /** Spot Source */
-      spot_source?: string | null;
-      /** Ticker */
-      ticker: string;
-    };
-    /** WatchlistSpotsResponse */
-    WatchlistSpotsResponse: {
-      /** Spots */
-      spots?: components["schemas"]["WatchlistSpot"][];
-    };
-    /** WorkerHealth */
-    WorkerHealth: {
-      /** Heartbeat Name */
-      heartbeat_name: string;
-      /** Index */
-      index: number;
-      /** Label */
-      label: string;
-      /** Lag Seconds */
-      lag_seconds?: number | null;
-      /** Last Beat At */
-      last_beat_at?: string | null;
-      /**
-       * Role
-       * @enum {string}
-       */
-      role: "uw" | "massive" | "ai";
-    };
-    /**
-     * WsConsumerHealth
-     * @description Spot WS consumer status (xenon primary / massive fallback), surfaced
-     *     for the HealthPanel.
-     *
-     *     ``healthy`` is true when:
-     *       * the market is closed (no ticks are expected), OR
-     *       * ``last_flush_at`` is within ``massive_ws_heartbeat_stale_after_seconds``.
-     *
-     *     ``active_source`` tells which feed the consumer is connected to —
-     *     ``"xenon_ws"`` (primary) or ``"massive.com_ws"`` (fallback); ``None``
-     *     before the first connection. ``reason`` carries the short label the UI
-     *     displays under the row.
-     */
-    WsConsumerHealth: {
-      /** Active Source */
-      active_source?: string | null;
-      /** Connection Started At */
-      connection_started_at?: string | null;
-      /** Healthy */
-      healthy: boolean;
-      /** Last Error */
-      last_error?: string | null;
-      /** Last Flush At */
-      last_flush_at?: string | null;
-      /** Last Tick Age Seconds */
-      last_tick_age_seconds?: number | null;
-      /** Last Tick At */
-      last_tick_at?: string | null;
-      /** Reason */
-      reason?: string | null;
-      /**
-       * Ticks Flushed
-       * @default 0
-       */
-      ticks_flushed: number;
-      /**
-       * Ticks Received
-       * @default 0
-       */
-      ticks_received: number;
-    };
-    /** GexLevel */
-    uw_scan__api__schemas__GexLevel: {
-      /** Distance */
-      distance?: number | null;
-      /** Distance Pct */
-      distance_pct?: number | null;
-      /** Gamma */
-      gamma?: number | null;
-      /** Strike */
-      strike?: number | null;
-    };
-    /**
-     * GexLevel
-     * @description One labeled level on the GEX curve (e.g. CALL WALL, PUT WALL, MAX MAGNET).
-     *
-     *     `gamma_per_dollar` is the per-strike net_gex used as the "$N per $1" sensitivity
-     *     figure on the tile — the dollar value of dealer hedging triggered by a $1 move.
-     */
-    uw_scan__models__GexLevel: {
-      /** Gamma Per Dollar */
-      gamma_per_dollar?: string | null;
-      /** Net Gex */
-      net_gex?: string | null;
-      /** Pct From Spot */
-      pct_from_spot?: string | null;
-      /** Strike */
-      strike: string;
-    };
-  };
-  responses: never;
-  parameters: never;
-  requestBodies: never;
-  headers: never;
-  pathItems: never;
+    schemas: {
+        /** BenchmarkCurrentResponse */
+        BenchmarkCurrentResponse: {
+            bottleneck?: components["schemas"]["BenchmarkReasonResponse"] | null;
+            /**
+             * Captured At
+             * Format: date-time
+             */
+            captured_at: string;
+            metrics: components["schemas"]["BenchmarkMetricsResponse"];
+            /** Reasons */
+            reasons?: components["schemas"]["BenchmarkReasonResponse"][];
+            /** Score */
+            score: number;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "OK" | "DEGRADED" | "CRITICAL";
+            subscores: components["schemas"]["BenchmarkSubscoresResponse"];
+        };
+        /** BenchmarkHistoryResponse */
+        BenchmarkHistoryResponse: {
+            /** Snapshots */
+            snapshots?: components["schemas"]["BenchmarkSnapshotResponse"][];
+        };
+        /** BenchmarkMetricsResponse */
+        BenchmarkMetricsResponse: {
+            /** Failing Record Tables */
+            failing_record_tables?: string[];
+            /** Last Full Scan Age Seconds */
+            last_full_scan_age_seconds?: number | null;
+            /** Massive Worker Expected Count */
+            massive_worker_expected_count?: number | null;
+            /** Massive Worker Online Count */
+            massive_worker_online_count?: number | null;
+            /** Oldest Queue Age Seconds */
+            oldest_queue_age_seconds?: number | null;
+            /** Queue Depth */
+            queue_depth?: number | null;
+            /** Queue Drain Rate Per Minute */
+            queue_drain_rate_per_minute?: number | null;
+            /** Record Health Ok */
+            record_health_ok?: boolean | null;
+            /** Requests Per Minute */
+            requests_per_minute?: number | null;
+            /** Scan Duration Avg Seconds */
+            scan_duration_avg_seconds?: number | null;
+            /** Scan Duration P95 Seconds */
+            scan_duration_p95_seconds?: number | null;
+            /** Scanner Dead Count */
+            scanner_dead_count?: number | null;
+            /** Scanner Fresh Count */
+            scanner_fresh_count?: number | null;
+            /** Scanner Never Scanned Count */
+            scanner_never_scanned_count?: number | null;
+            /** Scanner Stale Count */
+            scanner_stale_count?: number | null;
+            /** Scheduler Heartbeat Lag Seconds */
+            scheduler_heartbeat_lag_seconds?: number | null;
+            /** Uw Http 429 */
+            uw_http_429?: number | null;
+            /** Uw Http 4Xx */
+            uw_http_4xx?: number | null;
+            /** Uw Http 5Xx */
+            uw_http_5xx?: number | null;
+            /** Uw Latency P95 Ms */
+            uw_latency_p95_ms?: number | null;
+            /** Uw Worker Expected Count */
+            uw_worker_expected_count?: number | null;
+            /** Uw Worker Online Count */
+            uw_worker_online_count?: number | null;
+            /** Watchlist Size */
+            watchlist_size?: number | null;
+            /** Ws Tick Age Seconds */
+            ws_tick_age_seconds?: number | null;
+        };
+        /** BenchmarkReasonResponse */
+        BenchmarkReasonResponse: {
+            /** Component */
+            component: string;
+            /** Message */
+            message: string;
+            /** Penalty */
+            penalty: number;
+            /**
+             * Severity
+             * @enum {string}
+             */
+            severity: "degraded" | "critical";
+        };
+        /** BenchmarkSnapshotResponse */
+        BenchmarkSnapshotResponse: {
+            /**
+             * Capture Bucket
+             * Format: date-time
+             */
+            capture_bucket: string;
+            /**
+             * Captured At
+             * Format: date-time
+             */
+            captured_at: string;
+            /** Details Jsonb */
+            details_jsonb?: {
+                [key: string]: unknown;
+            };
+            /** Id */
+            id: number;
+            metrics: components["schemas"]["BenchmarkMetricsResponse"];
+            /** Score */
+            score: number;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "OK" | "DEGRADED" | "CRITICAL";
+            subscores: components["schemas"]["BenchmarkSubscoresResponse"];
+        };
+        /** BenchmarkSubscoresResponse */
+        BenchmarkSubscoresResponse: {
+            /** Coverage */
+            coverage: number;
+            /** Freshness */
+            freshness: number;
+            /** Persistence */
+            persistence: number;
+            /** Provider */
+            provider: number;
+            /** Throughput */
+            throughput: number;
+            /** Worker */
+            worker: number;
+        };
+        /** CanaryHistoryResponse */
+        CanaryHistoryResponse: {
+            /** Rows */
+            rows: components["schemas"]["CanaryHistoryRow"][];
+        };
+        /** CanaryHistoryRow */
+        CanaryHistoryRow: {
+            /**
+             * Band
+             * @enum {string}
+             */
+            band: "NONE" | "WATCH" | "BUY" | "STRONG_BUY";
+            /**
+             * Data Date
+             * Format: date
+             */
+            data_date: string;
+            /** Score */
+            score: number;
+            /** Speed Score */
+            speed_score: number;
+            /** Spx Close */
+            spx_close?: number | null;
+            /** Structural Score */
+            structural_score: number;
+            /** Tactical Score */
+            tactical_score: number;
+            /**
+             * Warning State
+             * @enum {string}
+             */
+            warning_state: "NONE" | "CONFIRMED_CANARY_ACTIVE" | "BUY_THE_DIP_ACTIVE" | "BOTH_ACTIVE_AMBIGUOUS";
+        };
+        /** CanaryLatestResponse */
+        CanaryLatestResponse: {
+            /**
+             * Band
+             * @enum {string}
+             */
+            band: "NONE" | "WATCH" | "BUY" | "STRONG_BUY";
+            /** Composite Version */
+            composite_version: number;
+            /**
+             * Data Date
+             * Format: date
+             */
+            data_date: string;
+            /** Payload */
+            payload: {
+                [key: string]: unknown;
+            };
+            /** Raw Score */
+            raw_score: number;
+            /** Score */
+            score: number;
+            /**
+             * Score Form
+             * @enum {string}
+             */
+            score_form: "linear" | "convex" | "concave" | "sigmoid";
+            /** Speed Score */
+            speed_score: number;
+            /** Structural Score */
+            structural_score: number;
+            /** Tactical Score */
+            tactical_score: number;
+            /**
+             * Warning State
+             * @enum {string}
+             */
+            warning_state: "NONE" | "CONFIRMED_CANARY_ACTIVE" | "BUY_THE_DIP_ACTIVE" | "BOTH_ACTIVE_AMBIGUOUS";
+        };
+        /** CanaryValidationResponse */
+        CanaryValidationResponse: {
+            /** Composite Version */
+            composite_version: number;
+            /** Rendered Markdown */
+            rendered_markdown: string;
+            /** Run Id */
+            run_id: number;
+            /**
+             * Score Form
+             * @enum {string}
+             */
+            score_form: "linear" | "convex" | "concave" | "sigmoid";
+            /** Summary */
+            summary: {
+                [key: string]: unknown;
+            };
+        };
+        /** CandidateStructure */
+        CandidateStructure: {
+            /**
+             * Breakevens
+             * @default []
+             */
+            breakevens: string[];
+            /**
+             * Dte Band
+             * @default
+             */
+            dte_band: string;
+            /**
+             * Edge Source
+             * @default
+             */
+            edge_source: string;
+            /**
+             * Expression Delta
+             * @default
+             */
+            expression_delta: string;
+            /** Expression Type */
+            expression_type: string;
+            /** Idea Id */
+            idea_id: string;
+            /**
+             * Legs
+             * @default []
+             */
+            legs: components["schemas"]["InsightLeg"][];
+            /** Max Loss */
+            max_loss?: string | null;
+            /** Max Profit */
+            max_profit?: string | null;
+            /** Net Credit Debit */
+            net_credit_debit?: string | null;
+            /**
+             * Profit Zone
+             * @default
+             */
+            profit_zone: string;
+            /** Rank */
+            rank: number;
+            /**
+             * Risk Flags
+             * @default []
+             */
+            risk_flags: string[];
+            /**
+             * Status
+             * @default candidate
+             */
+            status: string;
+            /** Structure */
+            structure: string;
+            /** Thesis */
+            thesis: string;
+        };
+        /** ChainFlowReadRow */
+        ChainFlowReadRow: {
+            /** Call Open Interest */
+            call_open_interest?: number | null;
+            /** Call Put Volume Ratio */
+            call_put_volume_ratio?: string | null;
+            /** Call Volume */
+            call_volume?: number | null;
+            /** Put Open Interest */
+            put_open_interest?: number | null;
+            /** Put Volume */
+            put_volume?: number | null;
+            /**
+             * Read
+             * @default
+             */
+            read: string;
+            /**
+             * Requires T1 Oi Confirmation
+             * @default false
+             */
+            requires_t1_oi_confirmation: boolean;
+            /** Strike */
+            strike: string;
+            /**
+             * Volume Oi Note
+             * @default
+             */
+            volume_oi_note: string;
+        };
+        /** ClosestLevel */
+        ClosestLevel: {
+            /** Direction */
+            direction?: ("up" | "down" | "flip") | null;
+            /** Distance Pct */
+            distance_pct: number;
+            /** Gamma */
+            gamma?: number | null;
+            /** Label */
+            label: string;
+            /**
+             * Rank Kind
+             * @default nearest
+             * @enum {string}
+             */
+            rank_kind: "nearest" | "dominant";
+            /** Role */
+            role?: ("support" | "resistance" | "accelerator" | "flip") | null;
+            /** Strike */
+            strike: number;
+        };
+        /** CockpitDealerMetrics */
+        CockpitDealerMetrics: {
+            /** Charm Regime */
+            charm_regime?: ("operative_magnet" | "broken_magnet" | "opex_vortex" | "neutral") | null;
+            /** Charm Stress Override */
+            charm_stress_override?: boolean | null;
+            /** Dealer Net Charm Proxy */
+            dealer_net_charm_proxy?: string | null;
+            /** Dealer Net Vanna Proxy */
+            dealer_net_vanna_proxy?: string | null;
+            /** Directional Imbalance 3D */
+            directional_imbalance_3d?: string | null;
+            /** Flow Call Premium 3D */
+            flow_call_premium_3d?: string | null;
+            /** Flow Color Lookback 3D */
+            flow_color_lookback_3d?: ("put_heavy" | "call_heavy" | "neutral") | null;
+            /** Flow Put Premium 3D */
+            flow_put_premium_3d?: string | null;
+            /** Gamma Regime */
+            gamma_regime?: ("long_gamma" | "short_gamma" | "neutral") | null;
+            /** Iv 30D Delta 5D */
+            iv_30d_delta_5d?: string | null;
+            /** Net Gamma */
+            net_gamma?: string | null;
+            /** Net Gamma Sign */
+            net_gamma_sign?: ("positive" | "negative" | "neutral") | null;
+            /** Pin Candidate Expiry */
+            pin_candidate_expiry?: string | null;
+            /** Pin Candidate Strike */
+            pin_candidate_strike?: string | null;
+            /** Pin Distance Sigma */
+            pin_distance_sigma?: string | null;
+            /** Pin Regime Flag */
+            pin_regime_flag?: boolean | null;
+            /** Pin Source Date */
+            pin_source_date?: string | null;
+            /** Vanna Conditional Reading */
+            vanna_conditional_reading?: ("grind_up" | "reverse_selloff" | "reflexive_sell_pressure" | "weak_noise") | null;
+            /** Vanna Oi Change Bias */
+            vanna_oi_change_bias?: ("call_oi_build" | "put_oi_build" | "mixed") | null;
+        };
+        /** CockpitDealerPoint */
+        CockpitDealerPoint: {
+            /** Call Charm */
+            call_charm?: string | null;
+            /** Call Vanna */
+            call_vanna?: string | null;
+            /**
+             * Expiry
+             * Format: date
+             */
+            expiry: string;
+            /** Exposure Call Charm */
+            exposure_call_charm?: string | null;
+            /** Exposure Call Vanna */
+            exposure_call_vanna?: string | null;
+            /** Exposure Put Charm */
+            exposure_put_charm?: string | null;
+            /** Exposure Put Vanna */
+            exposure_put_vanna?: string | null;
+            /** Put Charm */
+            put_charm?: string | null;
+            /** Put Vanna */
+            put_vanna?: string | null;
+            /** Strike */
+            strike: string;
+        };
+        /** CockpitDealerResponse */
+        CockpitDealerResponse: {
+            /**
+             * Market Date
+             * Format: date
+             */
+            market_date: string;
+            metrics?: components["schemas"]["CockpitDealerMetrics"];
+            /** Points */
+            points?: components["schemas"]["CockpitDealerPoint"][];
+            /** Ticker */
+            ticker: string;
+        };
+        /** CockpitFlowAlert */
+        CockpitFlowAlert: {
+            /** Aggressor Label Confidence */
+            aggressor_label_confidence?: string | null;
+            /** Alert Id */
+            alert_id: string;
+            /** Alert Rule */
+            alert_rule?: string | null;
+            /** All Opening Trades */
+            all_opening_trades?: boolean | null;
+            /** Created At */
+            created_at?: string | null;
+            /** Expiry */
+            expiry?: string | null;
+            /** Flow Footprint Label */
+            flow_footprint_label?: ("directional_whale" | "hedge_flow" | "dealer_hedge" | "gamma_scalper" | "unclassified") | null;
+            /** Has Floor */
+            has_floor?: boolean | null;
+            /** Has Multileg */
+            has_multileg?: boolean | null;
+            /** Has Sweep */
+            has_sweep?: boolean | null;
+            /** Open Interest */
+            open_interest?: number | null;
+            /** Option Chain */
+            option_chain?: string | null;
+            /** Option Type */
+            option_type?: string | null;
+            /** Strike */
+            strike?: string | null;
+            /** Total Ask Side Prem */
+            total_ask_side_prem?: string | null;
+            /** Total Bid Side Prem */
+            total_bid_side_prem?: string | null;
+            /** Total Premium */
+            total_premium?: string | null;
+            /** Volume */
+            volume?: number | null;
+        };
+        /** CockpitFlowImResponse */
+        CockpitFlowImResponse: {
+            /** Alerts */
+            alerts?: components["schemas"]["CockpitFlowAlert"][];
+            /** Implied Moves */
+            implied_moves?: components["schemas"]["CockpitImPoint"][];
+            /**
+             * Market Date
+             * Format: date
+             */
+            market_date: string;
+            /** Ticker */
+            ticker: string;
+        };
+        /** CockpitImPoint */
+        CockpitImPoint: {
+            /** Days */
+            days: number;
+            /** Implied Move Expected Abs */
+            implied_move_expected_abs?: string | null;
+            /** Implied Move Perc */
+            implied_move_perc?: string | null;
+            /**
+             * Market Date
+             * Format: date
+             */
+            market_date: string;
+            /** Percentile */
+            percentile?: string | null;
+            /** Volatility */
+            volatility?: string | null;
+        };
+        /** CockpitSkewPoint */
+        CockpitSkewPoint: {
+            /** Expiry */
+            expiry?: string | null;
+            /**
+             * Market Date
+             * Format: date
+             */
+            market_date: string;
+            /** Risk Reversal */
+            risk_reversal?: string | null;
+        };
+        /** CockpitStateResponse */
+        CockpitStateResponse: {
+            freshness: components["schemas"]["MatrixSourceFreshness"];
+            state: components["schemas"]["MatrixState"];
+        };
+        /** CockpitSurfaceResponse */
+        CockpitSurfaceResponse: {
+            /**
+             * Market Date
+             * Format: date
+             */
+            market_date: string;
+            /** Skew */
+            skew?: components["schemas"]["CockpitSkewPoint"][];
+            /** Term */
+            term?: components["schemas"]["CockpitTermPoint"][];
+            /** Ticker */
+            ticker: string;
+        };
+        /** CockpitTermPoint */
+        CockpitTermPoint: {
+            /** Dte */
+            dte?: number | null;
+            /**
+             * Expiry
+             * Format: date
+             */
+            expiry: string;
+            /** Implied Move Expected Abs */
+            implied_move_expected_abs?: string | null;
+            /** Implied Move Perc */
+            implied_move_perc?: string | null;
+            /** Volatility */
+            volatility?: string | null;
+        };
+        /** CockpitVrpPoint */
+        CockpitVrpPoint: {
+            /** Iv */
+            iv?: string | null;
+            /** Iv Rank 1Y */
+            iv_rank_1y?: string | null;
+            /**
+             * Market Date
+             * Format: date
+             */
+            market_date: string;
+            /** Rv */
+            rv?: string | null;
+            /** Vrp */
+            vrp?: string | null;
+        };
+        /** CockpitVrpResponse */
+        CockpitVrpResponse: {
+            /**
+             * Market Date
+             * Format: date
+             */
+            market_date: string;
+            /** Points */
+            points?: components["schemas"]["CockpitVrpPoint"][];
+            /** Ticker */
+            ticker: string;
+        };
+        /** CrashTriggerBlock */
+        CrashTriggerBlock: {
+            conditions?: components["schemas"]["CrashTriggerConditions"];
+            /**
+             * Fired
+             * @default false
+             */
+            fired: boolean;
+            /**
+             * Triggered
+             * @default false
+             */
+            triggered: boolean;
+            values?: components["schemas"]["CrashTriggerValues"];
+        };
+        /** CrashTriggerConditions */
+        CrashTriggerConditions: {
+            /**
+             * Cor1M Gt 60
+             * @default false
+             */
+            cor1m_gt_60: boolean;
+            /**
+             * Realized Vol Gt 25
+             * @default false
+             */
+            realized_vol_gt_25: boolean;
+            /**
+             * Spx Below 100D Ma
+             * @default false
+             */
+            spx_below_100d_ma: boolean;
+        };
+        /** CrashTriggerValues */
+        CrashTriggerValues: {
+            /** Cor1M */
+            cor1m?: number | null;
+            /** Realized Vol */
+            realized_vol?: number | null;
+        };
+        /** CriBlock */
+        CriBlock: {
+            components?: components["schemas"]["CriComponents"];
+            /** Composite Version */
+            composite_version?: (1 | 2 | 3) | null;
+            /**
+             * Level
+             * @default LOW
+             * @enum {string}
+             */
+            level: "LOW" | "ELEVATED" | "HIGH" | "CRITICAL";
+            /**
+             * Score
+             * @default 0
+             */
+            score: number;
+        };
+        /**
+         * CriComponents
+         * @description Four 0-25 component scores summed into the composite 0-100.
+         */
+        CriComponents: {
+            /**
+             * Correlation
+             * @default 0
+             */
+            correlation: number;
+            /**
+             * Momentum
+             * @default 0
+             */
+            momentum: number;
+            /**
+             * Vix
+             * @default 0
+             */
+            vix: number;
+            /**
+             * Vvix
+             * @default 0
+             */
+            vvix: number;
+        };
+        /** CriDailyEntry */
+        CriDailyEntry: {
+            /** Cor1M */
+            cor1m?: number | null;
+            /** Cri Score */
+            cri_score?: number | null;
+            /**
+             * Date
+             * Format: date
+             */
+            date: string;
+            /** Realized Vol */
+            realized_vol?: number | null;
+            /** Spx */
+            spx?: number | null;
+            /** Spx Distance Pct */
+            spx_distance_pct?: number | null;
+            /** Vix */
+            vix?: number | null;
+            /** Vix3M */
+            vix3m?: number | null;
+            /** Vix Vix3M Ratio */
+            vix_vix3m_ratio?: number | null;
+            /** Vix Zscore 30D */
+            vix_zscore_30d?: number | null;
+            /** Vrp */
+            vrp?: number | null;
+            /** Vvix */
+            vvix?: number | null;
+        };
+        /** CriDailyHistoryResponse */
+        CriDailyHistoryResponse: {
+            /** Rows */
+            rows?: components["schemas"]["CriDailyEntry"][];
+        };
+        /** CriHistoryEntry */
+        CriHistoryEntry: {
+            /** Cor1M */
+            cor1m?: number | null;
+            /** Cor1M 5D Change */
+            cor1m_5d_change?: number | null;
+            /** Date */
+            date: string;
+            /** Pullback 20D Pct */
+            pullback_20d_pct?: number | null;
+            /** Realized Vol */
+            realized_vol?: number | null;
+            /** Spx Vs Ma Pct */
+            spx_vs_ma_pct?: number | null;
+            /** Spy */
+            spy?: number | null;
+            /** Vix */
+            vix?: number | null;
+            /** Vix 5D Roc */
+            vix_5d_roc?: number | null;
+            /** Vvix */
+            vvix?: number | null;
+            /** Vvix 5D Roc */
+            vvix_5d_roc?: number | null;
+        };
+        /** CriIntradayPoint */
+        CriIntradayPoint: {
+            /** Cor1M */
+            cor1m?: number | null;
+            /** Cri Score */
+            cri_score?: number | null;
+            /** Realized Vol */
+            realized_vol?: number | null;
+            /** Spx */
+            spx?: number | null;
+            /** Spx Distance Pct */
+            spx_distance_pct?: number | null;
+            /**
+             * Ts
+             * Format: date-time
+             */
+            ts: string;
+            /** Vix */
+            vix?: number | null;
+            /** Vix3M */
+            vix3m?: number | null;
+            /** Vix Vix3M Ratio */
+            vix_vix3m_ratio?: number | null;
+            /** Vix Zscore 30D */
+            vix_zscore_30d?: number | null;
+            /** Vrp */
+            vrp?: number | null;
+            /** Vvix */
+            vvix?: number | null;
+        };
+        /** CriIntradayResponse */
+        CriIntradayResponse: {
+            /** As Of */
+            as_of?: string | null;
+            /** Sessions */
+            sessions?: components["schemas"]["CriIntradaySession"][];
+        };
+        /** CriIntradaySession */
+        CriIntradaySession: {
+            /**
+             * Et Date
+             * Format: date
+             */
+            et_date: string;
+            /** Points */
+            points?: components["schemas"]["CriIntradayPoint"][];
+        };
+        /**
+         * CriLiveResponse
+         * @description CRI computed at request time with live quotes spliced as today's
+         *     provisional close. ``basis='eod'`` means the live compute wasn't
+         *     possible (stale/no quotes) and the latest persisted EOD snapshot is
+         *     being served instead.
+         */
+        CriLiveResponse: {
+            /** Active Source */
+            active_source?: string | null;
+            /**
+             * Basis
+             * @default eod
+             * @enum {string}
+             */
+            basis: "live" | "eod";
+            /** Carried Forward */
+            carried_forward?: string[];
+            /** Cor1M */
+            cor1m?: number | null;
+            /** Cor1M 5D Change */
+            cor1m_5d_change?: number | null;
+            /** Cor1M Previous Close */
+            cor1m_previous_close?: number | null;
+            crash_trigger?: components["schemas"]["CrashTriggerBlock"];
+            cri?: components["schemas"]["CriBlock"];
+            cta?: components["schemas"]["CtaBlock"];
+            /** Date */
+            date?: string | null;
+            /** History */
+            history?: components["schemas"]["CriHistoryEntry"][];
+            /** Live Quotes */
+            live_quotes?: {
+                [key: string]: components["schemas"]["RegimeLiveQuote"];
+            };
+            /** Pullback 20D Pct */
+            pullback_20d_pct?: number | null;
+            /** Realized Vol */
+            realized_vol?: number | null;
+            /**
+             * Scan Time
+             * @default
+             */
+            scan_time: string;
+            /** Spx 100D Ma */
+            spx_100d_ma?: number | null;
+            /** Spx Distance Pct */
+            spx_distance_pct?: number | null;
+            /** Spx Source */
+            spx_source?: ("SPX" | "SPY") | null;
+            /** Spy */
+            spy?: number | null;
+            /** Spy Closes */
+            spy_closes?: number[];
+            /**
+             * Status
+             * @default empty
+             * @enum {string}
+             */
+            status: "ok" | "empty";
+            /** Vix */
+            vix?: number | null;
+            /** Vix3M */
+            vix3m?: number | null;
+            /** Vix 5D Roc */
+            vix_5d_roc?: number | null;
+            /** Vix Delta 3D */
+            vix_delta_3d?: number | null;
+            /** Vix Vix3M Ratio */
+            vix_vix3m_ratio?: number | null;
+            /** Vix Zscore 30D */
+            vix_zscore_30d?: number | null;
+            /** Vrp */
+            vrp?: number | null;
+            /** Vvix */
+            vvix?: number | null;
+            /** Vvix 5D Roc */
+            vvix_5d_roc?: number | null;
+            /** Vvix Vix Ratio */
+            vvix_vix_ratio?: number | null;
+        };
+        /**
+         * CriResponse
+         * @description Crash Risk Indicator snapshot (latest scan).
+         */
+        CriResponse: {
+            /** Cor1M */
+            cor1m?: number | null;
+            /** Cor1M 5D Change */
+            cor1m_5d_change?: number | null;
+            /** Cor1M Previous Close */
+            cor1m_previous_close?: number | null;
+            crash_trigger?: components["schemas"]["CrashTriggerBlock"];
+            cri?: components["schemas"]["CriBlock"];
+            cta?: components["schemas"]["CtaBlock"];
+            /** Date */
+            date?: string | null;
+            /** History */
+            history?: components["schemas"]["CriHistoryEntry"][];
+            /** Pullback 20D Pct */
+            pullback_20d_pct?: number | null;
+            /** Realized Vol */
+            realized_vol?: number | null;
+            /**
+             * Scan Time
+             * @default
+             */
+            scan_time: string;
+            /** Spx 100D Ma */
+            spx_100d_ma?: number | null;
+            /** Spx Distance Pct */
+            spx_distance_pct?: number | null;
+            /** Spx Source */
+            spx_source?: ("SPX" | "SPY") | null;
+            /** Spy */
+            spy?: number | null;
+            /** Spy Closes */
+            spy_closes?: number[];
+            /**
+             * Status
+             * @default empty
+             * @enum {string}
+             */
+            status: "ok" | "empty";
+            /** Vix */
+            vix?: number | null;
+            /** Vix3M */
+            vix3m?: number | null;
+            /** Vix 5D Roc */
+            vix_5d_roc?: number | null;
+            /** Vix Delta 3D */
+            vix_delta_3d?: number | null;
+            /** Vix Vix3M Ratio */
+            vix_vix3m_ratio?: number | null;
+            /** Vix Zscore 30D */
+            vix_zscore_30d?: number | null;
+            /** Vrp */
+            vrp?: number | null;
+            /** Vvix */
+            vvix?: number | null;
+            /** Vvix 5D Roc */
+            vvix_5d_roc?: number | null;
+            /** Vvix Vix Ratio */
+            vvix_vix_ratio?: number | null;
+        };
+        /**
+         * CriScanResponse
+         * @description Response body for POST /api/regime/scan.
+         */
+        CriScanResponse: {
+            /** Reason */
+            reason?: string | null;
+            /** Row Id */
+            row_id?: number | null;
+            /**
+             * Scanner
+             * @default cri
+             * @constant
+             */
+            scanner: "cri";
+            /**
+             * Status
+             * @default ok
+             * @enum {string}
+             */
+            status: "ok" | "skipped";
+        };
+        /** CtaBlock */
+        CtaBlock: {
+            /** Est Selling Bn */
+            est_selling_bn?: number | null;
+            /** Exposure Pct */
+            exposure_pct?: number | null;
+            /**
+             * Forced Reduction
+             * @default false
+             */
+            forced_reduction: boolean;
+            /** Forced Reduction Pct */
+            forced_reduction_pct?: number | null;
+            /** Realized Vol */
+            realized_vol?: number | null;
+            /** Selling Usd B */
+            selling_usd_b?: number | null;
+        };
+        /**
+         * DealerRegime
+         * @description Per-ticker dealer Greek regime — attached to SingleStockReport so the
+         *     Market Structure → GEX tab can render the magnet/gamma bar without an
+         *     extra round-trip. The /regime/dealer endpoint returns the full shape for
+         *     the Volatility tab.
+         */
+        DealerRegime: {
+            /**
+             * Charm Score
+             * @default 0
+             */
+            charm_score: string;
+            /**
+             * Gamma Score
+             * @default 0
+             */
+            gamma_score: string;
+            /**
+             * Headline
+             * @default
+             */
+            headline: string;
+            /**
+             * Label
+             * @default neutral
+             */
+            label: string;
+            /** Odte Net Gex */
+            odte_net_gex?: string | null;
+            /** Odte Share Pct */
+            odte_share_pct?: string | null;
+            /** Prev Close Net Gex */
+            prev_close_net_gex?: string | null;
+            /**
+             * Score
+             * @default 0
+             */
+            score: string;
+            /**
+             * Subtitle
+             * @default
+             */
+            subtitle: string;
+            /**
+             * Vanna Score
+             * @default 0
+             */
+            vanna_score: string;
+        };
+        /** DealerRegimeResponse */
+        DealerRegimeResponse: {
+            /** Closest Levels */
+            closest_levels?: components["schemas"]["ClosestLevel"][];
+            /** Gamma Decay */
+            gamma_decay?: components["schemas"]["GammaDecayBucket"][];
+            /** Net Gex */
+            net_gex?: number | null;
+            /** Odte Gex */
+            odte_gex?: number | null;
+            /** Odte Share Pct */
+            odte_share_pct?: number | null;
+            /** Prev Close Net Gex */
+            prev_close_net_gex?: number | null;
+            /**
+             * Scan Time
+             * @default
+             */
+            scan_time: string;
+            signal?: components["schemas"]["DealerRegimeSignal"];
+            /** Spot */
+            spot?: number | null;
+            /**
+             * Status
+             * @default empty
+             * @enum {string}
+             */
+            status: "ok" | "empty";
+            /**
+             * Ticker
+             * @default
+             */
+            ticker: string;
+        };
+        /**
+         * DealerRegimeSignal
+         * @description Per-ticker dealer regime classification (Γ-driven, with V/C support).
+         */
+        DealerRegimeSignal: {
+            /**
+             * Charm Score
+             * @default 0
+             */
+            charm_score: number;
+            /**
+             * Gamma Score
+             * @default 0
+             */
+            gamma_score: number;
+            /**
+             * Headline
+             * @default
+             */
+            headline: string;
+            /**
+             * Label
+             * @default neutral
+             * @enum {string}
+             */
+            label: "amplifying" | "dampening" | "neutral";
+            /**
+             * Score
+             * @default 0
+             */
+            score: number;
+            /**
+             * Subtitle
+             * @default
+             */
+            subtitle: string;
+            /**
+             * Vanna Score
+             * @default 0
+             */
+            vanna_score: number;
+        };
+        /**
+         * DiscoveryCandidate
+         * @description Non-watchlist ticker scored by the edge-quality model (premium-free).
+         *
+         *     Replaces the prior DCF-only shape. Dark-pool direction/strength/sustained +
+         *     options↔DP confluence are surfaced per card. EIC/GEX still need a deep scan
+         *     (promote to the watchlist).
+         */
+        DiscoveryCandidate: {
+            /**
+             * Alert Count
+             * @default 0
+             */
+            alert_count: number;
+            /**
+             * Bias
+             * @enum {string}
+             */
+            bias: "bullish" | "bearish" | "neutral" | "mixed";
+            /** Bias Strength */
+            bias_strength?: ("strong" | "moderate" | "weak") | null;
+            /**
+             * Confluence
+             * @default false
+             */
+            confluence: boolean;
+            /** Direction */
+            direction?: ("long" | "short") | null;
+            /** Dp Direction */
+            dp_direction?: ("ACCUMULATION" | "DISTRIBUTION" | "NEUTRAL" | "NO_DATA") | null;
+            /** Dp Status */
+            dp_status?: string | null;
+            /** Dp Strength */
+            dp_strength?: string | null;
+            /**
+             * Dp Sustained Days
+             * @default 0
+             */
+            dp_sustained_days: number;
+            /** Latest Alert At */
+            latest_alert_at?: string | null;
+            /** Score */
+            score: string;
+            /**
+             * Score Breakdown
+             * @default {}
+             */
+            score_breakdown: {
+                [key: string]: unknown;
+            };
+            /** Score Model */
+            score_model: string;
+            /** Scored At */
+            scored_at?: string | null;
+            /** Sector */
+            sector?: string | null;
+            /** Spot */
+            spot?: string | null;
+            /**
+             * Sweeps
+             * @default 0
+             */
+            sweeps: number;
+            /** Ticker */
+            ticker: string;
+            /** Vol Oi */
+            vol_oi?: string | null;
+        };
+        /** DiscoveryResponse */
+        DiscoveryResponse: {
+            /** Alerts Pulled */
+            alerts_pulled: number;
+            /** Candidates */
+            candidates: components["schemas"]["DiscoveryCandidate"][];
+            /**
+             * Earnings Unknown Dropped
+             * @default 0
+             */
+            earnings_unknown_dropped: number;
+            /**
+             * Fetched At
+             * Format: date-time
+             */
+            fetched_at: string;
+            /** Scored At */
+            scored_at?: string | null;
+            /**
+             * Source
+             * @default scanner_candidate_snapshots
+             * @constant
+             */
+            source: "scanner_candidate_snapshots";
+        };
+        /** DivergencePoint */
+        DivergencePoint: {
+            /**
+             * Date
+             * Format: date
+             */
+            date: string;
+            /** Iv Z */
+            iv_z?: string | null;
+            /** Rv Z */
+            rv_z?: string | null;
+        };
+        /**
+         * ExposuresSummaryRow
+         * @description Per-(expiry) derived summary used to drive the Vanna/Charm sub-tab
+         *     headline narrative + 4 tiles. Computed by cards/exposures.py and
+         *     persisted to uw_scan.exposures_summary.
+         */
+        ExposuresSummaryRow: {
+            /** Charm Above Sum */
+            charm_above_sum?: string | null;
+            /** Charm Below Sum */
+            charm_below_sum?: string | null;
+            /** Charm Flip */
+            charm_flip?: string | null;
+            /** Charm Headline */
+            charm_headline?: string | null;
+            /** Charm Imbalance Pct */
+            charm_imbalance_pct?: string | null;
+            /** Charm Pin Strike */
+            charm_pin_strike?: string | null;
+            /** Charm Signal Quality */
+            charm_signal_quality?: string | null;
+            /** Charm Subtitle */
+            charm_subtitle?: string | null;
+            /** Delta Shock 1Pt Iv */
+            delta_shock_1pt_iv?: string | null;
+            /** Dte */
+            dte?: number | null;
+            /**
+             * Expiry
+             * Format: date
+             */
+            expiry: string;
+            /** Net Charm */
+            net_charm?: string | null;
+            /** Net Vanna */
+            net_vanna?: string | null;
+            /** Spot */
+            spot?: string | null;
+            /** Top Vanna Strike */
+            top_vanna_strike?: string | null;
+            /** Top Vanna Value */
+            top_vanna_value?: string | null;
+            /** Vanna Flip */
+            vanna_flip?: string | null;
+            /** Vanna Headline */
+            vanna_headline?: string | null;
+            /** Vanna Regime */
+            vanna_regime?: string | null;
+            /** Vanna Subtitle */
+            vanna_subtitle?: string | null;
+        };
+        /** FlowAlert */
+        FlowAlert: {
+            /** Aggressor Label Confidence */
+            aggressor_label_confidence?: string | null;
+            /** Alert Rule */
+            alert_rule?: string | null;
+            /** All Opening Trades */
+            all_opening_trades?: boolean | null;
+            /** Created At */
+            created_at?: string | null;
+            /** Expiry */
+            expiry?: string | null;
+            /** Flow Footprint Label */
+            flow_footprint_label?: ("directional_whale" | "hedge_flow" | "dealer_hedge" | "gamma_scalper" | "unclassified") | null;
+            /** Has Floor */
+            has_floor?: boolean | null;
+            /** Has Multileg */
+            has_multileg?: boolean | null;
+            /** Has Sweep */
+            has_sweep?: boolean | null;
+            /** Id */
+            id: string;
+            /** Issue Type */
+            issue_type?: string | null;
+            /** Iv End */
+            iv_end?: string | null;
+            /** Iv Start */
+            iv_start?: string | null;
+            /** Next Earnings Date */
+            next_earnings_date?: string | null;
+            /** Open Interest */
+            open_interest?: number | null;
+            /** Option Chain */
+            option_chain?: string | null;
+            /** Price */
+            price?: string | null;
+            /** Rule Id */
+            rule_id?: string | null;
+            /** Sector */
+            sector?: string | null;
+            /** Strike */
+            strike?: string | null;
+            /** Ticker */
+            ticker: string;
+            /** Total Ask Side Prem */
+            total_ask_side_prem?: string | null;
+            /** Total Bid Side Prem */
+            total_bid_side_prem?: string | null;
+            /** Total Premium */
+            total_premium?: string | null;
+            /** Total Size */
+            total_size?: number | null;
+            /** Type */
+            type?: string | null;
+            /** Underlying Price */
+            underlying_price?: string | null;
+            /** Volume */
+            volume?: number | null;
+            /** Volume Oi Ratio */
+            volume_oi_ratio?: string | null;
+        };
+        /** FlowSnapshot */
+        FlowSnapshot: {
+            /** Ask Side Premium */
+            ask_side_premium: string;
+            /** Bear Premium */
+            bear_premium: string;
+            /** Bid Side Premium */
+            bid_side_premium: string;
+            /** Bull Premium */
+            bull_premium: string;
+            /** Flow Count */
+            flow_count: number;
+            /** Flow Count 30D Avg */
+            flow_count_30d_avg?: string | null;
+            /**
+             * Flow Count 30D Days
+             * @default 0
+             */
+            flow_count_30d_days: number;
+            /**
+             * Flow Count Is Limited
+             * @default false
+             */
+            flow_count_is_limited: boolean;
+            /** Flow Count Vs 30D Avg */
+            flow_count_vs_30d_avg?: string | null;
+            /** Net Premium */
+            net_premium: string;
+            /** Ticker */
+            ticker: string;
+            /** Top Alert Rule */
+            top_alert_rule?: string | null;
+            /**
+             * Top Alerts
+             * @default []
+             */
+            top_alerts: components["schemas"]["FlowAlert"][];
+        };
+        /** GammaBlock */
+        GammaBlock: {
+            /** Expiring Date */
+            expiring_date?: string | null;
+            /** Expiring Pct */
+            expiring_pct?: string | null;
+            /** Flip Distance */
+            flip_distance?: string | null;
+            /** Flip Price */
+            flip_price?: string | null;
+            /** Max Strike */
+            max_strike?: string | null;
+            /** Per 1Pct Move */
+            per_1pct_move?: string | null;
+        };
+        /** GammaDecayBucket */
+        GammaDecayBucket: {
+            /** Dte */
+            dte: number;
+            /** Expiry */
+            expiry: string;
+            /** Gross Abs Gex */
+            gross_abs_gex?: number | null;
+            /** Gross Share Pct */
+            gross_share_pct?: number | null;
+            /** Net Gex */
+            net_gex?: number | null;
+            /** Share Pct */
+            share_pct?: number | null;
+        };
+        /** GexBias */
+        GexBias: {
+            /** Days Above Flip */
+            days_above_flip?: number | null;
+            /** Direction */
+            direction?: string | null;
+            /** Flip Migration */
+            flip_migration?: components["schemas"]["GexFlipMigrationEntry"][];
+            /** Reasons */
+            reasons?: string[];
+        };
+        /** GexBucket */
+        GexBucket: {
+            /** Call Gex */
+            call_gex?: number | null;
+            /** Net Gex */
+            net_gex?: number | null;
+            /** Pct From Spot */
+            pct_from_spot?: number | null;
+            /** Put Gex */
+            put_gex?: number | null;
+            /** Strike */
+            strike?: number | null;
+            /** Tag */
+            tag?: string | null;
+        };
+        /** GexExpectedRange */
+        GexExpectedRange: {
+            /** High */
+            high?: number | null;
+            /** Iv 1D */
+            iv_1d?: number | null;
+            /** Low */
+            low?: number | null;
+        };
+        /** GexFlipMigrationEntry */
+        GexFlipMigrationEntry: {
+            /** Date */
+            date: string;
+            /** Flip */
+            flip?: number | null;
+        };
+        /** GexHistoryEntry */
+        GexHistoryEntry: {
+            /** Atm Iv */
+            atm_iv?: number | null;
+            /** Bias */
+            bias?: string | null;
+            /** Date */
+            date: string;
+            /** Gex Flip */
+            gex_flip?: number | null;
+            /** Net Dex */
+            net_dex?: number | null;
+            /** Net Gex */
+            net_gex?: number | null;
+            /** Spot */
+            spot?: number | null;
+            /** Vol Pc */
+            vol_pc?: number | null;
+        };
+        /**
+         * GexIntradayPoint
+         * @description One row from gex_snapshots inside a single ET trading session.
+         */
+        GexIntradayPoint: {
+            /** Gex Flip */
+            gex_flip?: number | null;
+            /** Iv30D */
+            iv30d?: number | null;
+            /** Net Gex */
+            net_gex?: number | null;
+            /** Spot */
+            spot?: number | null;
+            /**
+             * Ts
+             * Format: date-time
+             */
+            ts: string;
+        };
+        /**
+         * GexIntradayResponse
+         * @description Last N RTH sessions of intraday GEX snapshots for a ticker.
+         *
+         *     Sessions are ordered oldest→newest so the chart can scan left-to-right.
+         *     Points within each session are also ASC by ``ts``.
+         */
+        GexIntradayResponse: {
+            /** As Of */
+            as_of?: string | null;
+            /** Sessions */
+            sessions?: components["schemas"]["GexIntradaySession"][];
+            /** Ticker */
+            ticker: string;
+        };
+        /** GexIntradaySession */
+        GexIntradaySession: {
+            /**
+             * Et Date
+             * Format: date
+             */
+            et_date: string;
+            /** Points */
+            points?: components["schemas"]["GexIntradayPoint"][];
+        };
+        /** GexIvData */
+        GexIvData: {
+            /** Hv30 */
+            hv30?: number | null;
+            /** Iv30D */
+            iv30d?: number | null;
+            /** Iv Rank */
+            iv_rank?: number | null;
+            /** Mq Iv30D */
+            mq_iv30d?: number | null;
+            /** Mq Iv Rank */
+            mq_iv_rank?: string | null;
+            /** Source */
+            source?: string | null;
+        };
+        /** GexLevels */
+        GexLevels: {
+            call_wall?: components["schemas"]["uw_scan__api__schemas__GexLevel"] | null;
+            gex_flip?: components["schemas"]["uw_scan__api__schemas__GexLevel"] | null;
+            max_accelerator?: components["schemas"]["uw_scan__api__schemas__GexLevel"] | null;
+            max_magnet?: components["schemas"]["uw_scan__api__schemas__GexLevel"] | null;
+            put_wall?: components["schemas"]["uw_scan__api__schemas__GexLevel"] | null;
+            second_magnet?: components["schemas"]["uw_scan__api__schemas__GexLevel"] | null;
+        };
+        /** GexMqLevels */
+        GexMqLevels: {
+            /** Call Resistance 0Dte */
+            call_resistance_0dte?: number | null;
+            /** Call Resistance All */
+            call_resistance_all?: number | null;
+            /** Distance To Hvl Pct */
+            distance_to_hvl_pct?: string | null;
+            /** Expected High */
+            expected_high?: number | null;
+            /** Expected Low */
+            expected_low?: number | null;
+            /** Hv30 */
+            hv30?: number | null;
+            /** Hvl */
+            hvl?: number | null;
+            /** Iv30D */
+            iv30d?: number | null;
+            /** Iv Rank */
+            iv_rank?: string | null;
+            /** Put Support 0Dte */
+            put_support_0dte?: number | null;
+            /** Put Support All */
+            put_support_all?: number | null;
+            /** Source Date */
+            source_date?: string | null;
+            /** Spot */
+            spot?: number | null;
+            /** Top Gex Strikes */
+            top_gex_strikes?: number[];
+        };
+        /** GexResponse */
+        GexResponse: {
+            /** Atm Iv */
+            atm_iv?: number | null;
+            bias?: components["schemas"]["GexBias"];
+            /** Close */
+            close?: number | null;
+            /** Data Date */
+            data_date?: string | null;
+            /** Day Change */
+            day_change?: number | null;
+            /** Day Change Pct */
+            day_change_pct?: number | null;
+            expected_range?: components["schemas"]["GexExpectedRange"];
+            /** History */
+            history?: components["schemas"]["GexHistoryEntry"][];
+            iv?: components["schemas"]["GexIvData"] | null;
+            levels?: components["schemas"]["GexLevels"];
+            /**
+             * Market Open
+             * @default false
+             */
+            market_open: boolean;
+            /** Market Time */
+            market_time?: string | null;
+            mq?: components["schemas"]["GexMqLevels"] | null;
+            /** Net Dex */
+            net_dex?: number | null;
+            /** Net Gex */
+            net_gex?: number | null;
+            /** Prev Close */
+            prev_close?: number | null;
+            /** Profile */
+            profile?: components["schemas"]["GexBucket"][];
+            /**
+             * Scan Time
+             * @default
+             */
+            scan_time: string;
+            source_delta?: components["schemas"]["GexSourceDelta"] | null;
+            /** Spot */
+            spot?: number | null;
+            /** Spot Source */
+            spot_source?: string | null;
+            /** Tape Time */
+            tape_time?: string | null;
+            /**
+             * Ticker
+             * @default SPX
+             */
+            ticker: string;
+            /** Vol Pc */
+            vol_pc?: number | null;
+        };
+        /** GexSourceDelta */
+        GexSourceDelta: {
+            call_wall_vs_resistance_0dte?: components["schemas"]["GexSourceDeltaEntry"] | null;
+            call_wall_vs_resistance_all?: components["schemas"]["GexSourceDeltaEntry"] | null;
+            flip_vs_hvl?: components["schemas"]["GexSourceDeltaEntry"] | null;
+            put_wall_vs_support_0dte?: components["schemas"]["GexSourceDeltaEntry"] | null;
+            put_wall_vs_support_all?: components["schemas"]["GexSourceDeltaEntry"] | null;
+        };
+        /** GexSourceDeltaEntry */
+        GexSourceDeltaEntry: {
+            /** Delta */
+            delta?: number | null;
+            /** Mq */
+            mq?: number | null;
+            /** Uw */
+            uw?: number | null;
+        };
+        /** GoldCbCountryHistory */
+        GoldCbCountryHistory: {
+            /** Bucket */
+            bucket: string;
+            /** Country Iso3 */
+            country_iso3: string;
+            /** Country Name */
+            country_name: string;
+            /**
+             * History
+             * @default []
+             */
+            history: components["schemas"]["GoldHistoryPoint"][];
+            /** Latest Reserves T */
+            latest_reserves_t?: string | null;
+        };
+        /** GoldCorrelationBand */
+        GoldCorrelationBand: {
+            /** Mean */
+            mean: string;
+            /** Std */
+            std: string;
+        };
+        /**
+         * GoldCorrelationHistory
+         * @description Tier 5 correlation-history panel inputs.
+         */
+        GoldCorrelationHistory: {
+            /**
+             * Gold Dfii10
+             * @default []
+             */
+            gold_dfii10: components["schemas"]["GoldCorrelationPoint"][];
+            /**
+             * Gold Dxy
+             * @default []
+             */
+            gold_dxy: components["schemas"]["GoldCorrelationPoint"][];
+            /**
+             * Gold Gpr
+             * @default []
+             */
+            gold_gpr: components["schemas"]["GoldCorrelationPoint"][];
+            pre_2022_band?: components["schemas"]["GoldCorrelationBand"] | null;
+        };
+        /** GoldCorrelationPoint */
+        GoldCorrelationPoint: {
+            /**
+             * Obs Date
+             * Format: date
+             */
+            obs_date: string;
+            /** Value */
+            value: string;
+        };
+        /** GoldCyclicalPostureModel */
+        GoldCyclicalPostureModel: {
+            /** Cpi Yoy */
+            cpi_yoy?: string | null;
+            /** Dfii10 */
+            dfii10?: string | null;
+            /** Dfii10 60D Change Bps */
+            dfii10_60d_change_bps?: string | null;
+            /** Dxy */
+            dxy?: string | null;
+            /** Dxy 60D Sigma */
+            dxy_60d_sigma?: string | null;
+            /**
+             * Factors
+             * @default {}
+             */
+            factors: {
+                [key: string]: number;
+            };
+            /** Gpr Pct 52W */
+            gpr_pct_52w?: string | null;
+            /** Gpr Value */
+            gpr_value?: string | null;
+            /** Narrative Text */
+            narrative_text: string;
+            /**
+             * Posture Chip
+             * @enum {string}
+             */
+            posture_chip: "FAVORABLE" | "NEUTRAL" | "STRETCHED" | "SUSPENDED" | "DEGRADED";
+            /** T5Yifr */
+            t5yifr?: string | null;
+            /** T5Yifr Pct 52W */
+            t5yifr_pct_52w?: string | null;
+            two_force_text: components["schemas"]["GoldTwoForceText"];
+            /** Zone Label */
+            zone_label?: string | null;
+        };
+        /**
+         * GoldDataFreshnessSource
+         * @description Per-source freshness for the Tier 1 Data Freshness card.
+         */
+        GoldDataFreshnessSource: {
+            /** Id */
+            id: string;
+            /** Last As Of */
+            last_as_of?: string | null;
+            /** Stale Seconds */
+            stale_seconds?: number | null;
+            /**
+             * Status
+             * @default ok
+             * @enum {string}
+             */
+            status: "ok" | "missing";
+        };
+        /**
+         * GoldDecompositionRow
+         * @description One row of the Tier 5 lens-decomposition bars.
+         */
+        GoldDecompositionRow: {
+            /** Contribution */
+            contribution: string;
+            /** Factor */
+            factor: string;
+            /**
+             * Lens
+             * @enum {string}
+             */
+            lens: "L1" | "L2" | "L3";
+        };
+        /** GoldGaugeResponse */
+        GoldGaugeResponse: {
+            current: components["schemas"]["GoldGaugeState"];
+            /** History 252D */
+            history_252d: components["schemas"]["GoldGaugeTimeSeriesPoint"][];
+        };
+        /** GoldGaugeState */
+        GoldGaugeState: {
+            /** Corr 126D */
+            corr_126d?: string | null;
+            /** Corr 252D */
+            corr_252d?: string | null;
+            /** Corr 252D Returns */
+            corr_252d_returns?: string | null;
+            /** Corr 504D */
+            corr_504d?: string | null;
+            /** Corr 60D */
+            corr_60d?: string | null;
+            /**
+             * State
+             * @enum {string}
+             */
+            state: "operative" | "partial" | "suspended";
+        };
+        /** GoldGaugeTimeSeriesPoint */
+        GoldGaugeTimeSeriesPoint: {
+            /** Corr 252D */
+            corr_252d: string | null;
+            /**
+             * Obs Date
+             * Format: date
+             */
+            obs_date: string;
+        };
+        /** GoldHistoryPoint */
+        GoldHistoryPoint: {
+            /**
+             * Obs Date
+             * Format: date
+             */
+            obs_date: string;
+            /** Value */
+            value: string;
+        };
+        /** GoldInputProvenance */
+        GoldInputProvenance: {
+            /**
+             * As Of
+             * Format: date-time
+             */
+            as_of: string;
+            /**
+             * Obs Date
+             * Format: date
+             */
+            obs_date: string;
+        };
+        /** GoldInputSeriesPoint */
+        GoldInputSeriesPoint: {
+            /**
+             * As Of
+             * Format: date-time
+             */
+            as_of: string;
+            /**
+             * Obs Date
+             * Format: date
+             */
+            obs_date: string;
+            /** Release Date */
+            release_date?: string | null;
+            /** Value */
+            value: string;
+        };
+        /** GoldInputSeriesResponse */
+        GoldInputSeriesResponse: {
+            /** Points */
+            points: components["schemas"]["GoldInputSeriesPoint"][];
+            /** Series Id */
+            series_id: string;
+        };
+        /**
+         * GoldLensResponse
+         * @description Detail payload for one lens (richer than the summary in GoldStateResponse).
+         */
+        GoldLensResponse: {
+            /** Detail */
+            detail: {
+                [key: string]: components["schemas"]["GoldInputSeriesPoint"][];
+            };
+            /**
+             * Lens Id
+             * @enum {string}
+             */
+            lens_id: "structural" | "cyclical" | "valuation";
+            /** Posture */
+            posture: components["schemas"]["GoldStructuralPostureModel"] | components["schemas"]["GoldCyclicalPostureModel"] | components["schemas"]["GoldValuationPostureModel"];
+        };
+        /**
+         * GoldSpotTile
+         * @description XAU/USD snapshot used by the Tier 1 KPI strip.
+         */
+        GoldSpotTile: {
+            /** Delta Abs */
+            delta_abs: string;
+            /** Delta Pct */
+            delta_pct: string;
+            /** High */
+            high: string;
+            /** Last */
+            last: string;
+            /** Low */
+            low: string;
+            /** Open */
+            open: string;
+        };
+        /** GoldStateResponse */
+        GoldStateResponse: {
+            /**
+             * Computed At
+             * Format: date-time
+             */
+            computed_at: string;
+            /**
+             * @default {
+             *       "gold_dfii10": [],
+             *       "gold_dxy": [],
+             *       "gold_gpr": []
+             *     }
+             */
+            correlation_history: components["schemas"]["GoldCorrelationHistory"];
+            cyclical: components["schemas"]["GoldCyclicalPostureModel"];
+            /**
+             * Data Freshness
+             * @default []
+             */
+            data_freshness: components["schemas"]["GoldDataFreshnessSource"][];
+            /**
+             * Decomposition Rows
+             * @default []
+             */
+            decomposition_rows: components["schemas"]["GoldDecompositionRow"][];
+            gauge: components["schemas"]["GoldGaugeState"];
+            /** Inputs Used */
+            inputs_used: {
+                [key: string]: components["schemas"]["GoldInputProvenance"];
+            };
+            /**
+             * Obs Date
+             * Format: date
+             */
+            obs_date: string;
+            spot: components["schemas"]["GoldSpotTile"];
+            structural: components["schemas"]["GoldStructuralPostureModel"];
+            valuation: components["schemas"]["GoldValuationPostureModel"];
+        };
+        /** GoldStructuralPostureModel */
+        GoldStructuralPostureModel: {
+            /** Cb 52W Pct */
+            cb_52w_pct?: string | null;
+            /**
+             * Cb Country History
+             * @default []
+             */
+            cb_country_history: components["schemas"]["GoldCbCountryHistory"][];
+            /** Cb Diversifier 12M Sum T */
+            cb_diversifier_12m_sum_t?: string | null;
+            /** Cb Strategic 12M Sum T */
+            cb_strategic_12m_sum_t?: string | null;
+            /** Cb Tactical 12M Sum T */
+            cb_tactical_12m_sum_t?: string | null;
+            /** Comex 20D Roc Pct */
+            comex_20d_roc_pct?: string | null;
+            /** Comex Registered Oz */
+            comex_registered_oz?: string | null;
+            /** Cot Mm 4W Change Sigma */
+            cot_mm_4w_change_sigma?: string | null;
+            /** Cot Mm Net Pct */
+            cot_mm_net_pct?: string | null;
+            /** Fx Basket Dxy Z */
+            fx_basket_dxy_z?: string | null;
+            /** Gld 30D Net Flow T */
+            gld_30d_net_flow_t?: string | null;
+            /**
+             * Gld History
+             * @default []
+             */
+            gld_history: components["schemas"]["GoldHistoryPoint"][];
+            /** Gld Holdings T */
+            gld_holdings_t?: string | null;
+            /**
+             * Gold History
+             * @default []
+             */
+            gold_history: components["schemas"]["GoldHistoryPoint"][];
+            /** Lbma 30D Momentum T */
+            lbma_30d_momentum_t?: string | null;
+            /** Narrative Text */
+            narrative_text: string;
+            /**
+             * Posture Chip
+             * @enum {string}
+             */
+            posture_chip: "FAVORABLE" | "NEUTRAL" | "STRETCHED" | "SUSPENDED" | "DEGRADED";
+            /** State Label */
+            state_label?: string | null;
+            /** Uw 25D Skew Sigma */
+            uw_25d_skew_sigma?: string | null;
+            /** Xau Cny Premium Pct */
+            xau_cny_premium_pct?: string | null;
+        };
+        /** GoldTwoForceText */
+        GoldTwoForceText: {
+            /** Discount Rate */
+            discount_rate: string;
+            /** Hedge Demand */
+            hedge_demand: string;
+        };
+        /** GoldValuationPostureModel */
+        GoldValuationPostureModel: {
+            /**
+             * Flag
+             * @enum {string}
+             */
+            flag: "Low" | "Moderate" | "High" | "Severe";
+            /** Gold M2 Ratio Percentile */
+            gold_m2_ratio_percentile?: string | null;
+            /** Gold Oil Ratio Percentile */
+            gold_oil_ratio_percentile?: string | null;
+            /** Gold Spx Ratio Percentile */
+            gold_spx_ratio_percentile?: string | null;
+            /** Narrative Text */
+            narrative_text: string;
+            /**
+             * Posture Chip
+             * @enum {string}
+             */
+            posture_chip: "FAVORABLE" | "NEUTRAL" | "STRETCHED" | "SUSPENDED" | "DEGRADED";
+            /** Real Price Percentile */
+            real_price_percentile?: string | null;
+        };
+        /** GrgAsset */
+        GrgAsset: {
+            /** Data Date */
+            data_date?: string | null;
+            /** Flip */
+            flip?: number | null;
+            /** Gamma 1D Change */
+            gamma_1d_change?: number | null;
+            /** Gamma 3D Change */
+            gamma_3d_change?: number | null;
+            /** Gamma Z */
+            gamma_z?: number | null;
+            /** Net Gamma */
+            net_gamma?: number | null;
+            /** Net Gex */
+            net_gex?: number | null;
+            /** Spot */
+            spot?: number | null;
+            /** Spot Vs Flip Pct */
+            spot_vs_flip_pct?: number | null;
+            /**
+             * State
+             * @default NEUTRAL
+             * @enum {string}
+             */
+            state: "CUSHION" | "WHIP" | "NEUTRAL";
+            /** Ticker */
+            ticker: string;
+        };
+        /** GrgAssets */
+        GrgAssets: {
+            SPY: components["schemas"]["GrgAsset"];
+            TLT: components["schemas"]["GrgAsset"];
+        };
+        /**
+         * GrgEvent
+         * @description One gate-confirmed top/bottom day (YTD history of the signal).
+         *
+         *     ``spot_vs_flip`` is deliberately absent — UW's greek-exposure history has
+         *     no per-day gamma flip, so it can't be backfilled for past events; it lives
+         *     on the live SPY/TLT cards only.
+         *
+         *     ``fwd_20d_pct`` / ``lead_sessions`` / ``extreme_gap_pct`` are the YTD
+         *     forward-return backtest: SPY's 20-session forward return after the watch,
+         *     the sessions until the adverse price extreme it preceded, and how much
+         *     further SPY moved to that extreme. They show the watch LEADS the turn.
+         */
+        GrgEvent: {
+            /** Date */
+            date: string;
+            /** Extreme Gap Pct */
+            extreme_gap_pct?: number | null;
+            /** Fwd 20D Pct */
+            fwd_20d_pct?: number | null;
+            /** Grg Z */
+            grg_z?: number | null;
+            /** Lead Sessions */
+            lead_sessions?: number | null;
+            /**
+             * Pair State
+             * @default NEUTRAL
+             */
+            pair_state: string;
+            /** Spy Net Gamma */
+            spy_net_gamma?: number | null;
+            /** Tier */
+            tier?: number | null;
+            /** Tlt Net Gamma */
+            tlt_net_gamma?: number | null;
+        };
+        /** GrgEventSideStats */
+        GrgEventSideStats: {
+            /** Median Extreme Gap Pct */
+            median_extreme_gap_pct?: number | null;
+            /** Median Lead Sessions */
+            median_lead_sessions?: number | null;
+            /**
+             * N
+             * @default 0
+             */
+            n: number;
+        };
+        /**
+         * GrgEventStats
+         * @description Aggregate YTD forward-return backtest of the gate-confirmed watch events.
+         *
+         *     ``median_lead_sessions`` is the median sessions between a watch signal and
+         *     the adverse extreme it preceded; ``median_extreme_gap_pct`` is the median
+         *     further move after the signal. Together they quantify the early-warning
+         *     LEAD — GRG watch events are not coincident turn markers.
+         */
+        GrgEventStats: {
+            bottoms?: components["schemas"]["GrgEventSideStats"];
+            /**
+             * Fwd Window
+             * @default 0
+             */
+            fwd_window: number;
+            tops?: components["schemas"]["GrgEventSideStats"];
+        };
+        /** GrgEvents */
+        GrgEvents: {
+            /** Bottoms */
+            bottoms?: components["schemas"]["GrgEvent"][];
+            stats?: components["schemas"]["GrgEventStats"];
+            /** Tops */
+            tops?: components["schemas"]["GrgEvent"][];
+        };
+        /** GrgGate */
+        GrgGate: {
+            /**
+             * Copy
+             * @default
+             */
+            copy: string;
+            /** Id */
+            id: string;
+            /** Label */
+            label: string;
+            /**
+             * Status
+             * @default WATCH
+             * @enum {string}
+             */
+            status: "PASS" | "WATCH" | "FAIL";
+        };
+        /** GrgHistoryEntry */
+        GrgHistoryEntry: {
+            /** Date */
+            date: string;
+            /** Grg Z */
+            grg_z?: number | null;
+            /** Raw Spread */
+            raw_spread?: number | null;
+            /** Spy Gamma Z */
+            spy_gamma_z?: number | null;
+            /** Spy Net Gamma */
+            spy_net_gamma?: number | null;
+            /** Spy Price */
+            spy_price?: number | null;
+            /** State */
+            state?: string | null;
+            /** Tlt Gamma Z */
+            tlt_gamma_z?: number | null;
+            /** Tlt Net Gamma */
+            tlt_net_gamma?: number | null;
+        };
+        /**
+         * GrgResponse
+         * @description Gamma Rotation Gap snapshot (latest scan). Self-contained: embeds the
+         *     YTD history (z-scored over the full ≈1Y fetched series).
+         */
+        GrgResponse: {
+            assets?: components["schemas"]["GrgAssets"] | null;
+            /**
+             * Basis
+             * @default eod
+             * @enum {string}
+             */
+            basis: "live" | "eod";
+            /** Data Date */
+            data_date?: string | null;
+            events?: components["schemas"]["GrgEvents"];
+            /** Gates */
+            gates?: components["schemas"]["GrgGate"][];
+            /** History */
+            history?: components["schemas"]["GrgHistoryEntry"][];
+            /**
+             * Lookback Days
+             * @default 0
+             */
+            lookback_days: number;
+            /**
+             * Market Open
+             * @default false
+             */
+            market_open: boolean;
+            /**
+             * Scan Time
+             * @default
+             */
+            scan_time: string;
+            signal?: components["schemas"]["GrgSignal"];
+            /**
+             * Source
+             * @default Unusual Whales
+             */
+            source: string;
+            /**
+             * Status
+             * @default empty
+             * @enum {string}
+             */
+            status: "ok" | "empty";
+            top_bottom?: components["schemas"]["GrgTopBottom"];
+            /**
+             * Z Window
+             * @default 63
+             */
+            z_window: number;
+        };
+        /**
+         * GrgScanResponse
+         * @description Response body for POST /api/regime/grg/scan.
+         */
+        GrgScanResponse: {
+            /** Reason */
+            reason?: string | null;
+            /** Row Id */
+            row_id?: number | null;
+            /**
+             * Scanner
+             * @default grg
+             * @constant
+             */
+            scanner: "grg";
+            /**
+             * Status
+             * @default ok
+             * @enum {string}
+             */
+            status: "ok" | "skipped";
+        };
+        /** GrgSignal */
+        GrgSignal: {
+            /**
+             * Bottom Score
+             * @default 0
+             */
+            bottom_score: number;
+            /**
+             * Bottom Watch
+             * @default false
+             */
+            bottom_watch: boolean;
+            /** Grg Z */
+            grg_z?: number | null;
+            /**
+             * Interpretation
+             * @default NORMAL
+             * @enum {string}
+             */
+            interpretation: "TOP_WATCH" | "BOTTOM_WATCH" | "RISK_ON" | "RISK_OFF" | "DUAL_WHIP" | "CUSHION" | "NORMAL";
+            /** Raw Spread */
+            raw_spread?: number | null;
+            /** Spy 3D Gamma Change */
+            spy_3d_gamma_change?: number | null;
+            /** Spy Gamma Z */
+            spy_gamma_z?: number | null;
+            /**
+             * State
+             * @default NEUTRAL
+             * @enum {string}
+             */
+            state: "RISK_ON_DIVERGENCE" | "RISK_OFF_DIVERGENCE" | "DUAL_CUSHION" | "DUAL_WHIP" | "NEUTRAL";
+            /**
+             * State Label
+             * @default Neutral
+             */
+            state_label: string;
+            /**
+             * Summary
+             * @default
+             */
+            summary: string;
+            /** Tier */
+            tier?: number | null;
+            /** Tlt 3D Gamma Change */
+            tlt_3d_gamma_change?: number | null;
+            /** Tlt Gamma Z */
+            tlt_gamma_z?: number | null;
+            /**
+             * Top Score
+             * @default 0
+             */
+            top_score: number;
+            /**
+             * Top Watch
+             * @default false
+             */
+            top_watch: boolean;
+        };
+        /** GrgTopBottom */
+        GrgTopBottom: {
+            bottom?: components["schemas"]["GrgTopBottomSide"];
+            top?: components["schemas"]["GrgTopBottomSide"];
+        };
+        /** GrgTopBottomSide */
+        GrgTopBottomSide: {
+            /**
+             * Active
+             * @default false
+             */
+            active: boolean;
+            /**
+             * Copy
+             * @default
+             */
+            copy: string;
+        };
+        /** GuidanceResponse */
+        GuidanceResponse: {
+            /** Body Md */
+            body_md: string;
+            /** Matched Condition */
+            matched_condition: string;
+            /**
+             * Posture
+             * @enum {string}
+             */
+            posture: "opportunistic" | "neutral" | "cautious" | "defensive";
+            /** State */
+            state: string;
+        };
+        /** HTTPValidationError */
+        HTTPValidationError: {
+            /** Detail */
+            detail?: components["schemas"]["ValidationError"][];
+        };
+        /** HealthResponse */
+        HealthResponse: {
+            /** Avg Scan Duration Seconds */
+            avg_scan_duration_seconds?: number | null;
+            /** Cache Hit Pct */
+            cache_hit_pct?: number | null;
+            /** Db */
+            db: string;
+            /** Http 2Xx */
+            http_2xx?: number | null;
+            /** Http 429 */
+            http_429?: number | null;
+            /** Http 4Xx */
+            http_4xx?: number | null;
+            /** Http 5Xx */
+            http_5xx?: number | null;
+            /** Last Full Scan At */
+            last_full_scan_at?: string | null;
+            /** Latency P95 Ms */
+            latency_p95_ms?: number | null;
+            /** Latest Spot Quote At */
+            latest_spot_quote_at?: string | null;
+            /** Latest Spot Quote Fetched At */
+            latest_spot_quote_fetched_at?: string | null;
+            /** Ok */
+            ok: boolean;
+            /** Queue Drain Rate Per Minute */
+            queue_drain_rate_per_minute?: number | null;
+            /** Reason */
+            reason?: string | null;
+            /** Record Health */
+            record_health?: components["schemas"]["RecordHealthCheck"][];
+            /** Record Health Ok */
+            record_health_ok?: boolean | null;
+            /** Requests Per Minute */
+            requests_per_minute?: number | null;
+            /** Rescan Heartbeat Lag Seconds */
+            rescan_heartbeat_lag_seconds?: number | null;
+            /** Scheduler Heartbeat Lag Seconds */
+            scheduler_heartbeat_lag_seconds?: number | null;
+            /** Scheduler Heartbeat Name */
+            scheduler_heartbeat_name?: string | null;
+            /** Scheduler Lag Seconds */
+            scheduler_lag_seconds?: number | null;
+            /**
+             * Source
+             * @default UnusualWhales
+             */
+            source: string;
+            /** Spot Quote Lag Seconds */
+            spot_quote_lag_seconds?: number | null;
+            /** Spot Refresh Heartbeat Lag Seconds */
+            spot_refresh_heartbeat_lag_seconds?: number | null;
+            /**
+             * Throughput Window Minutes
+             * @default 0
+             */
+            throughput_window_minutes: number;
+            trade_insights_ai?: components["schemas"]["TradeInsightsAiHealth"] | null;
+            /** Uw Today */
+            uw_today?: number | null;
+            /** Version */
+            version: string;
+            /** Watchlist Size */
+            watchlist_size?: number | null;
+            /** Worker Lag Seconds */
+            worker_lag_seconds?: number | null;
+            /** Workers */
+            workers?: components["schemas"]["WorkerHealth"][];
+            ws_consumer?: components["schemas"]["WsConsumerHealth"] | null;
+        };
+        /** InsightBadge */
+        InsightBadge: {
+            /** Code */
+            code: string;
+            /** Label */
+            label: string;
+            /**
+             * Severity
+             * @default info
+             */
+            severity: string;
+        };
+        /** InsightLeg */
+        InsightLeg: {
+            /**
+             * Expiry
+             * Format: date
+             */
+            expiry: string;
+            /** Mid */
+            mid?: string | null;
+            /** Option Right */
+            option_right: string;
+            /** Option Symbol */
+            option_symbol: string;
+            /** Side */
+            side: string;
+            /** Strike */
+            strike: string;
+        };
+        /** InsightSignalRow */
+        InsightSignalRow: {
+            /**
+             * Conflicts
+             * @default []
+             */
+            conflicts: string[];
+            /**
+             * Evidence
+             * @default []
+             */
+            evidence: string[];
+            /** Lens */
+            lens: string;
+            /** Read */
+            read: string;
+        };
+        /** InsightsSynthesis */
+        InsightsSynthesis: {
+            /**
+             * Avoid
+             * @default []
+             */
+            avoid: string[];
+            /** Best Risk Reward Idea Id */
+            best_risk_reward_idea_id?: string | null;
+            /**
+             * Dominant Story
+             * @default
+             */
+            dominant_story: string;
+            /** Preferred Idea Id */
+            preferred_idea_id?: string | null;
+            /**
+             * Required Before Sizing
+             * @default []
+             */
+            required_before_sizing: string[];
+        };
+        /** IvHistogramBin */
+        IvHistogramBin: {
+            /** Count */
+            count: number;
+            /** Hi */
+            hi: string;
+            /** Lo */
+            lo: string;
+        };
+        /** IvHvPoint */
+        IvHvPoint: {
+            /**
+             * Date
+             * Format: date
+             */
+            date: string;
+            /** Iv */
+            iv?: string | null;
+            /** Rv */
+            rv?: string | null;
+        };
+        /** IvOfIvPoint */
+        IvOfIvPoint: {
+            /**
+             * Date
+             * Format: date
+             */
+            date: string;
+            /** Iv */
+            iv?: string | null;
+            /** Iv Of Iv 20 */
+            iv_of_iv_20?: string | null;
+        };
+        /** IvPercentileDistribution */
+        IvPercentileDistribution: {
+            /**
+             * Bins
+             * @default []
+             */
+            bins: components["schemas"]["IvHistogramBin"][];
+            /** Current Iv */
+            current_iv?: string | null;
+            /** Current Pctile */
+            current_pctile?: string | null;
+        };
+        /** JobStatus */
+        JobStatus: {
+            /** Error */
+            error?: string | null;
+            /** Finished At */
+            finished_at?: string | null;
+            /** Job Id */
+            job_id: string;
+            /**
+             * Requested At
+             * Format: date-time
+             */
+            requested_at: string;
+            /** Run Id */
+            run_id?: number | null;
+            /** Started At */
+            started_at?: string | null;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "queued" | "running" | "done" | "failed";
+        };
+        /**
+         * MarketAggregates
+         * @description Per-ticker aggregate fields sourced from the bulk-screener endpoint.
+         *
+         *     Populated by pipeline.run_single_stock alongside the existing per-section
+         *     sub-models. Feeds the watchlist card POSITIONING and SKEW blocks.
+         */
+        MarketAggregates: {
+            /** Aum */
+            aum?: string | null;
+            /** Call Oi Total */
+            call_oi_total?: number | null;
+            /** Call Volume Ask Side */
+            call_volume_ask_side?: number | null;
+            /** Call Volume Bid Side */
+            call_volume_bid_side?: number | null;
+            /** Call Volume Total */
+            call_volume_total?: number | null;
+            /** Iv30D */
+            iv30d?: string | null;
+            /** Market Cap */
+            market_cap?: string | null;
+            /** Pcr Oi */
+            pcr_oi?: string | null;
+            /** Pcr Vol */
+            pcr_vol?: string | null;
+            /** Put Oi Total */
+            put_oi_total?: number | null;
+            /** Put Volume Ask Side */
+            put_volume_ask_side?: number | null;
+            /** Put Volume Bid Side */
+            put_volume_bid_side?: number | null;
+            /** Put Volume Total */
+            put_volume_total?: number | null;
+        };
+        /** MarketStructure */
+        MarketStructure: {
+            /** Max Pain */
+            max_pain?: string | null;
+            /** Nearest Expiry */
+            nearest_expiry?: string | null;
+            /** Net Gex */
+            net_gex?: string | null;
+            /** Spot */
+            spot?: string | null;
+            /**
+             * Top Call Oi Strikes
+             * @default []
+             */
+            top_call_oi_strikes: string[];
+            /**
+             * Top Put Oi Strikes
+             * @default []
+             */
+            top_put_oi_strikes: string[];
+            /** Total Call Dex Oi */
+            total_call_dex_oi?: string | null;
+            /** Total Call Gex */
+            total_call_gex?: string | null;
+            /** Total Put Dex Oi */
+            total_put_dex_oi?: string | null;
+            /** Total Put Gex */
+            total_put_gex?: string | null;
+        };
+        /**
+         * MarketStructureLevels
+         * @description Derived strike-level reference points used by the Market Structure tab.
+         *
+         *     Conventions follow FlashAlpha / SpotGamma:
+         *       - gex_flip: lowest strike where running cumulative net_gex flips sign
+         *       - call_wall: strike with largest call-side gamma (typically above spot)
+         *       - put_wall: strike with largest put-side gamma magnitude (typically below spot)
+         *       - max_magnet: strike with largest positive net_gex above spot (pulls price up)
+         *       - second_magnet: strike with second-largest positive net_gex above spot
+         *       - max_accel: strike with most-negative net_gex below the flip (movement accelerator)
+         */
+        MarketStructureLevels: {
+            call_wall?: components["schemas"]["uw_scan__models__GexLevel"] | null;
+            gex_flip?: components["schemas"]["uw_scan__models__GexLevel"] | null;
+            max_accel?: components["schemas"]["uw_scan__models__GexLevel"] | null;
+            max_magnet?: components["schemas"]["uw_scan__models__GexLevel"] | null;
+            put_wall?: components["schemas"]["uw_scan__models__GexLevel"] | null;
+            second_magnet?: components["schemas"]["uw_scan__models__GexLevel"] | null;
+        };
+        /** MatrixSourceFreshness */
+        MatrixSourceFreshness: {
+            /** Im Vrp */
+            im_vrp?: string | null;
+            /** Oi */
+            oi?: string | null;
+            /** Skew */
+            skew?: string | null;
+            /** Term */
+            term?: string | null;
+            /** Vanna Charm */
+            vanna_charm?: string | null;
+            /** Vrp Rv */
+            vrp_rv?: string | null;
+        };
+        /** MatrixState */
+        MatrixState: {
+            /** Atm Straddle Mid */
+            atm_straddle_mid?: string | null;
+            /** Back Iv */
+            back_iv?: string | null;
+            /** Charm Regime */
+            charm_regime?: ("operative_magnet" | "broken_magnet" | "opex_vortex" | "neutral") | null;
+            /**
+             * Charm State
+             * @enum {string}
+             */
+            charm_state: "vol_up" | "vol_down" | "neutral" | "stale";
+            /**
+             * Charm Stress Override
+             * @default false
+             */
+            charm_stress_override: boolean;
+            /** Cluster Coverage Ok */
+            cluster_coverage_ok: boolean;
+            /**
+             * Consistency Tier
+             * @enum {string}
+             */
+            consistency_tier: "strict" | "strong" | "weak" | "no_trade" | "insufficient_data";
+            /** Directional Imbalance 3D */
+            directional_imbalance_3d?: string | null;
+            /**
+             * Flow State
+             * @enum {string}
+             */
+            flow_state: "vol_up" | "vol_down" | "neutral" | "stale";
+            /** Front Back Spread */
+            front_back_spread?: string | null;
+            /** Front Iv */
+            front_iv?: string | null;
+            /** Full Curve Slope Pct */
+            full_curve_slope_pct?: string | null;
+            /**
+             * Im State
+             * @enum {string}
+             */
+            im_state: "vol_up" | "vol_down" | "neutral" | "stale";
+            /** Implied Move Event Percentile */
+            implied_move_event_percentile?: string | null;
+            /** Implied Move Expected Abs */
+            implied_move_expected_abs?: string | null;
+            /** Implied Move Pct */
+            implied_move_pct?: string | null;
+            /** Iv Atm 30D */
+            iv_atm_30d?: string | null;
+            /**
+             * Market Date
+             * Format: date
+             */
+            market_date: string;
+            /** Pin Distance Sigma */
+            pin_distance_sigma?: string | null;
+            /** Rv 30D */
+            rv_30d?: string | null;
+            /** Single Point Bump Pct */
+            single_point_bump_pct?: string | null;
+            /** Skew 25D 5D Change */
+            skew_25d_5d_change?: string | null;
+            /** Skew 25D Zscore 180D */
+            skew_25d_zscore_180d?: string | null;
+            /** Skew Regime */
+            skew_regime?: ("smirk" | "accelerated" | "crash_smile" | "neutral") | null;
+            /**
+             * Skew State
+             * @enum {string}
+             */
+            skew_state: "vol_up" | "vol_down" | "neutral" | "stale";
+            /** Skew Term Structure */
+            skew_term_structure?: string | null;
+            /** Term Classification */
+            term_classification?: ("contango" | "event_back" | "liquidity_back" | "mixed") | null;
+            /** Term Johnson Slope Pc1 */
+            term_johnson_slope_pc1?: string | null;
+            /**
+             * Term State
+             * @enum {string}
+             */
+            term_state: "vol_up" | "vol_down" | "neutral" | "stale";
+            /**
+             * Threshold Version
+             * @default 1
+             */
+            threshold_version: number;
+            /** Ticker */
+            ticker: string;
+            /** Vanna Conditional Reading */
+            vanna_conditional_reading?: ("grind_up" | "reverse_selloff" | "reflexive_sell_pressure" | "weak_noise") | null;
+            /** Vanna Oi Change Bias */
+            vanna_oi_change_bias?: ("call_oi_build" | "put_oi_build" | "mixed") | null;
+            /**
+             * Vanna State
+             * @enum {string}
+             */
+            vanna_state: "vol_up" | "vol_down" | "neutral" | "stale";
+            /** Vrp */
+            vrp?: string | null;
+            /**
+             * Vrp Sign Flip Aligned Days
+             * @default 0
+             */
+            vrp_sign_flip_aligned_days: number;
+            /**
+             * Vrp Sign Flip Status
+             * @default insufficient_history
+             */
+            vrp_sign_flip_status: boolean | "insufficient_history";
+            /**
+             * Vrp State
+             * @enum {string}
+             */
+            vrp_state: "vol_up" | "vol_down" | "neutral" | "stale";
+            /** Vrp Zscore 252D */
+            vrp_zscore_252d?: string | null;
+            /** Vrp Zscore 60D */
+            vrp_zscore_60d?: string | null;
+        };
+        /** MaxPainRow */
+        MaxPainRow: {
+            /** Close */
+            close?: string | null;
+            /**
+             * Expiry
+             * Format: date
+             */
+            expiry: string;
+            /** Max Pain */
+            max_pain?: string | null;
+            /** Next Lower Strike */
+            next_lower_strike?: string | null;
+            /** Next Upper Strike */
+            next_upper_strike?: string | null;
+            /** Open */
+            open?: string | null;
+        };
+        /** OhlcRow */
+        OhlcRow: {
+            /** Close */
+            close: string;
+            /**
+             * Date
+             * Format: date
+             */
+            date: string;
+            /** High */
+            high?: string | null;
+            /** Low */
+            low?: string | null;
+            /** Open */
+            open?: string | null;
+            /** Volume */
+            volume?: number | null;
+        };
+        /** OiChangeRow */
+        OiChangeRow: {
+            /** Ask Volume */
+            ask_volume?: number | null;
+            /** Avg Price */
+            avg_price?: string | null;
+            /** Bid Volume */
+            bid_volume?: number | null;
+            /** Curr Date */
+            curr_date?: string | null;
+            /** Curr Oi */
+            curr_oi?: number | null;
+            /** Days Of Oi Increases */
+            days_of_oi_increases?: number | null;
+            /** Days Of Vol Greater Than Oi */
+            days_of_vol_greater_than_oi?: number | null;
+            /** Last Ask */
+            last_ask?: string | null;
+            /** Last Bid */
+            last_bid?: string | null;
+            /** Last Date */
+            last_date?: string | null;
+            /** Last Fill */
+            last_fill?: string | null;
+            /** Last Oi */
+            last_oi?: number | null;
+            /** Mid Volume */
+            mid_volume?: number | null;
+            /** No Side Volume */
+            no_side_volume?: number | null;
+            /** Oi Change */
+            oi_change?: string | null;
+            /** Oi Diff Plain */
+            oi_diff_plain?: number | null;
+            /** Option Symbol */
+            option_symbol: string;
+            /** Percentage Of Total */
+            percentage_of_total?: string | null;
+            /** Prev Ask Volume */
+            prev_ask_volume?: number | null;
+            /** Prev Bid Volume */
+            prev_bid_volume?: number | null;
+            /** Prev Mid Volume */
+            prev_mid_volume?: number | null;
+            /** Prev Multi Leg Volume */
+            prev_multi_leg_volume?: number | null;
+            /** Prev Neutral Volume */
+            prev_neutral_volume?: number | null;
+            /** Prev Stock Multi Leg Volume */
+            prev_stock_multi_leg_volume?: number | null;
+            /** Prev Total Premium */
+            prev_total_premium?: string | null;
+            /** Rnk */
+            rnk?: number | null;
+            /** Trades */
+            trades?: number | null;
+            /** Underlying Symbol */
+            underlying_symbol: string;
+            /** Volume */
+            volume?: number | null;
+        };
+        /** OosLabel */
+        OosLabel: {
+            /** Definition */
+            definition: string;
+            /** Name */
+            name: string;
+        };
+        /** OosScore */
+        OosScore: {
+            /** Auc Dd10 */
+            auc_dd10?: number | null;
+            /** Auc Dd5 */
+            auc_dd5?: number | null;
+            /** Auc Vix30 */
+            auc_vix30?: number | null;
+            /** Model */
+            model: string;
+        };
+        /** OosSummary */
+        OosSummary: {
+            /** As Of */
+            as_of: string;
+            /** Interpretation */
+            interpretation: string;
+            /** Labels */
+            labels: components["schemas"]["OosLabel"][];
+            /** Method */
+            method: string;
+            /** Notebook */
+            notebook: string;
+            /** Scores */
+            scores: components["schemas"]["OosScore"][];
+        };
+        /**
+         * OptionChainPerStrikeRow
+         * @description Aggregated (expiry, strike) snapshot — both volume and OI in one row.
+         *
+         *     Backs both strike-profile charts (Volume and OI variants).
+         */
+        OptionChainPerStrikeRow: {
+            /** Call Oi */
+            call_oi?: number | null;
+            /** Call Volume */
+            call_volume?: number | null;
+            /**
+             * Expiry
+             * Format: date
+             */
+            expiry: string;
+            /** Put Oi */
+            put_oi?: number | null;
+            /** Put Volume */
+            put_volume?: number | null;
+            /** Strike */
+            strike: string;
+        };
+        /**
+         * OptionIntradayProfile
+         * @description Derived per-contract intraday tape view for the OI movers table.
+         *
+         *     Built by ``cards.intraday_profile.derive_intraday_profile`` from persisted
+         *     :class:`OptionContractIntradayBucket` rows. Volume here is side-aggregated
+         *     (ask + bid + mid + multi). The 12-point sparkline is a fixed-length
+         *     downsample so the UI renders a stable width regardless of how many
+         *     minute bars the contract actually had.
+         */
+        OptionIntradayProfile: {
+            /** First Trade Time */
+            first_trade_time?: string | null;
+            /** Last Trade Time */
+            last_trade_time?: string | null;
+            /** Option Symbol */
+            option_symbol: string;
+            /** Peak Window End */
+            peak_window_end?: string | null;
+            /** Peak Window Share Pct */
+            peak_window_share_pct?: string | null;
+            /** Peak Window Start */
+            peak_window_start?: string | null;
+            /**
+             * Sparkline
+             * @default []
+             */
+            sparkline: number[];
+            /**
+             * Total Volume
+             * @default 0
+             */
+            total_volume: number;
+            /**
+             * Trade Date
+             * Format: date
+             */
+            trade_date: string;
+        };
+        /**
+         * OptionsDailyRow
+         * @description One row per trading day from UW /options-volume.
+         *
+         *     ``bullish_premium`` here is whole-tape (UW), distinct from the
+         *     alert-scoped :class:`FlowSnapshot.bull_premium`. Do not cross-plot.
+         */
+        OptionsDailyRow: {
+            /** Avg 30 Day Call Volume */
+            avg_30_day_call_volume?: string | null;
+            /** Avg 30 Day Put Volume */
+            avg_30_day_put_volume?: string | null;
+            /** Avg 3 Day Call Volume */
+            avg_3_day_call_volume?: string | null;
+            /** Avg 3 Day Put Volume */
+            avg_3_day_put_volume?: string | null;
+            /** Avg 7 Day Call Volume */
+            avg_7_day_call_volume?: string | null;
+            /** Avg 7 Day Put Volume */
+            avg_7_day_put_volume?: string | null;
+            /** Bearish Premium */
+            bearish_premium?: string | null;
+            /** Bullish Premium */
+            bullish_premium?: string | null;
+            /** Call Open Interest */
+            call_open_interest?: number | null;
+            /** Call Premium */
+            call_premium?: string | null;
+            /** Call Volume */
+            call_volume?: number | null;
+            /** Call Volume Ask Side */
+            call_volume_ask_side?: number | null;
+            /** Call Volume Bid Side */
+            call_volume_bid_side?: number | null;
+            /**
+             * Date
+             * Format: date
+             */
+            date: string;
+            /** Net Call Premium */
+            net_call_premium?: string | null;
+            /** Net Put Premium */
+            net_put_premium?: string | null;
+            /** Put Open Interest */
+            put_open_interest?: number | null;
+            /** Put Premium */
+            put_premium?: string | null;
+            /** Put Volume */
+            put_volume?: number | null;
+            /** Put Volume Ask Side */
+            put_volume_ask_side?: number | null;
+            /** Put Volume Bid Side */
+            put_volume_bid_side?: number | null;
+        };
+        /** PositioningBlock */
+        PositioningBlock: {
+            /** Call Oi */
+            call_oi?: number | null;
+            /** Pcr Delta 30D */
+            pcr_delta_30d?: string | null;
+            /** Pcr Oi */
+            pcr_oi?: string | null;
+            /** Pcr Vol */
+            pcr_vol?: string | null;
+            /** Put Oi */
+            put_oi?: number | null;
+        };
+        /** ProviderUsageBreakdownResponse */
+        ProviderUsageBreakdownResponse: {
+            /**
+             * Provider Day End
+             * Format: date-time
+             */
+            provider_day_end: string;
+            /**
+             * Provider Day Start
+             * Format: date-time
+             */
+            provider_day_start: string;
+            /** Rows */
+            rows: components["schemas"]["ProviderUsageBreakdownRow"][];
+        };
+        /** ProviderUsageBreakdownRow */
+        ProviderUsageBreakdownRow: {
+            /** Http 2Xx */
+            http_2xx: number;
+            /** Http 3Xx */
+            http_3xx: number;
+            /** Http 4Xx */
+            http_4xx: number;
+            /** Http 5Xx */
+            http_5xx: number;
+            /** Key */
+            key: string | null;
+            /** Latency P95 Ms */
+            latency_p95_ms: number | null;
+            /** Total Requests */
+            total_requests: number;
+            /** Transport Errors */
+            transport_errors: number;
+        };
+        /** ProviderUsageRequestRow */
+        ProviderUsageRequestRow: {
+            /** Attempt */
+            attempt: number;
+            /** Endpoint Key */
+            endpoint_key: string;
+            /** Error Message */
+            error_message: string | null;
+            /** Job Name */
+            job_name: string | null;
+            /** Latency Ms */
+            latency_ms: number;
+            /** Method */
+            method: string;
+            /** Official Daily Count */
+            official_daily_count: number | null;
+            /** Official Daily Limit */
+            official_daily_limit: number | null;
+            /** Official Minute Remaining */
+            official_minute_remaining: number | null;
+            /** Official Minute Reset */
+            official_minute_reset: string | null;
+            /** Params */
+            params: {
+                [key: string]: unknown;
+            };
+            /** Path */
+            path: string;
+            /** Provider */
+            provider: string;
+            /** Provider Request Id */
+            provider_request_id: string | null;
+            /**
+             * Request Finished At
+             * Format: date-time
+             */
+            request_finished_at: string;
+            /** Request Id */
+            request_id: number;
+            /**
+             * Request Started At
+             * Format: date-time
+             */
+            request_started_at: string;
+            /** Run Id */
+            run_id: number | null;
+            /** Status Code */
+            status_code: number | null;
+            /** Status Family */
+            status_family: string;
+            /** Ticker */
+            ticker: string | null;
+        };
+        /** ProviderUsageRequestsResponse */
+        ProviderUsageRequestsResponse: {
+            /** Limit */
+            limit: number;
+            /**
+             * Provider Day End
+             * Format: date-time
+             */
+            provider_day_end: string;
+            /**
+             * Provider Day Start
+             * Format: date-time
+             */
+            provider_day_start: string;
+            /** Rows */
+            rows: components["schemas"]["ProviderUsageRequestRow"][];
+        };
+        /** ProviderUsageSummaryResponse */
+        ProviderUsageSummaryResponse: {
+            /** Http 2Xx */
+            http_2xx: number;
+            /** Http 3Xx */
+            http_3xx: number;
+            /** Http 4Xx */
+            http_4xx: number;
+            /** Http 5Xx */
+            http_5xx: number;
+            /** Latency P95 Ms */
+            latency_p95_ms: number | null;
+            /**
+             * Provider Day End
+             * Format: date-time
+             */
+            provider_day_end: string;
+            /**
+             * Provider Day Start
+             * Format: date-time
+             */
+            provider_day_start: string;
+            /** Total Requests */
+            total_requests: number;
+            /** Transport Errors */
+            transport_errors: number;
+            /** Uw Latest Daily Count */
+            uw_latest_daily_count: number | null;
+            /** Uw Latest Daily Limit */
+            uw_latest_daily_limit: number | null;
+        };
+        /** QueueStatus */
+        QueueStatus: {
+            /** Job Id */
+            job_id: string;
+            /** Queue Position */
+            queue_position: number;
+            /**
+             * Requested At
+             * Format: date-time
+             */
+            requested_at: string;
+            /** Started At */
+            started_at?: string | null;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "queued" | "running" | "done" | "failed";
+        };
+        /** QueueSummary */
+        QueueSummary: {
+            /** Oldest Requested At */
+            oldest_requested_at?: string | null;
+            /**
+             * Queued
+             * @default 0
+             */
+            queued: number;
+            /**
+             * Running
+             * @default 0
+             */
+            running: number;
+            /**
+             * Total
+             * @default 0
+             */
+            total: number;
+        };
+        /** RatesCrossMarketPanel */
+        RatesCrossMarketPanel: {
+            /** Rows */
+            rows?: components["schemas"]["RatesSummaryTile"][];
+            /**
+             * Status
+             * @default partial
+             * @enum {string}
+             */
+            status: "ok" | "missing" | "partial" | "stale";
+        };
+        /** RatesCurvePoint */
+        RatesCurvePoint: {
+            /** Delta 1D Bps */
+            delta_1d_bps?: number | null;
+            /** Delta 1M Bps */
+            delta_1m_bps?: number | null;
+            /** Delta 1W Bps */
+            delta_1w_bps?: number | null;
+            /** Obs Date */
+            obs_date?: string | null;
+            /** Series Id */
+            series_id: string;
+            /**
+             * Status
+             * @default ok
+             * @enum {string}
+             */
+            status: "ok" | "missing" | "partial" | "stale";
+            /** Tenor */
+            tenor: string;
+            /** Value */
+            value?: number | null;
+        };
+        /** RatesCurveSection */
+        RatesCurveSection: {
+            /** Points */
+            points?: components["schemas"]["RatesCurvePoint"][];
+            /** Slopes */
+            slopes?: components["schemas"]["RatesSlopeMetric"][];
+        };
+        /** RatesDecomposition */
+        RatesDecomposition: {
+            /** Attribution */
+            attribution?: components["schemas"]["RatesDecompositionAttribution"][];
+            /** Breakeven 10Y */
+            breakeven_10y?: number | null;
+            /** Clarida Model Date */
+            clarida_model_date?: string | null;
+            /** Expected Short Inflation 10Y */
+            expected_short_inflation_10y?: number | null;
+            /** Expected Short Real Rate 10Y */
+            expected_short_real_rate_10y?: number | null;
+            /** Forward Inflation 5Y5Y */
+            forward_inflation_5y5y?: number | null;
+            /** Fred Model Residual 10Y */
+            fred_model_residual_10y?: number | null;
+            /** Inflation Risk Premium 10Y */
+            inflation_risk_premium_10y?: number | null;
+            /** Model Nominal 10Y */
+            model_nominal_10y?: number | null;
+            /** Model Real Yield 10Y */
+            model_real_yield_10y?: number | null;
+            /** Model Source */
+            model_source?: string | null;
+            /** Model Url */
+            model_url?: string | null;
+            /** Nominal 10Y */
+            nominal_10y?: number | null;
+            /** Real 10Y */
+            real_10y?: number | null;
+            /** Real Term Premium 10Y */
+            real_term_premium_10y?: number | null;
+            /**
+             * Status
+             * @default partial
+             * @enum {string}
+             */
+            status: "ok" | "missing" | "partial" | "stale";
+            /** Term Forward Compensation */
+            term_forward_compensation?: number | null;
+        };
+        /** RatesDecompositionAttribution */
+        RatesDecompositionAttribution: {
+            /** Breakeven 10Y Bps */
+            breakeven_10y_bps?: number | null;
+            /** Driver */
+            driver?: string | null;
+            /** Expected Short Inflation Bps */
+            expected_short_inflation_bps?: number | null;
+            /** Expected Short Real Bps */
+            expected_short_real_bps?: number | null;
+            /** Fred Model Residual Bps */
+            fred_model_residual_bps?: number | null;
+            /** Inflation Risk Premium Bps */
+            inflation_risk_premium_bps?: number | null;
+            /** Model Nominal 10Y Bps */
+            model_nominal_10y_bps?: number | null;
+            /** Nominal 10Y Bps */
+            nominal_10y_bps?: number | null;
+            /** Real 10Y Bps */
+            real_10y_bps?: number | null;
+            /** Real Term Premium Bps */
+            real_term_premium_bps?: number | null;
+            /** Residual Bps */
+            residual_bps?: number | null;
+            /**
+             * Status
+             * @default partial
+             * @enum {string}
+             */
+            status: "ok" | "missing" | "partial" | "stale";
+            /**
+             * Window
+             * @enum {string}
+             */
+            window: "1D" | "1W" | "1M" | "YTD";
+        };
+        /** RatesEventItem */
+        RatesEventItem: {
+            /** Event Date */
+            event_date?: string | null;
+            /**
+             * Importance
+             * @default medium
+             * @enum {string}
+             */
+            importance: "low" | "medium" | "high";
+            /** Label */
+            label: string;
+            /** Source */
+            source?: string | null;
+            /**
+             * Status
+             * @default missing
+             * @enum {string}
+             */
+            status: "ok" | "missing" | "partial" | "stale";
+        };
+        /** RatesPolicyMeeting */
+        RatesPolicyMeeting: {
+            /** Action */
+            action?: string | null;
+            /** Event Date */
+            event_date?: string | null;
+            /** Event End Date */
+            event_end_date?: string | null;
+            /** Label */
+            label: string;
+            /** Source Url */
+            source_url?: string | null;
+            /**
+             * Status
+             * @default partial
+             * @enum {string}
+             */
+            status: "ok" | "missing" | "partial" | "stale";
+            /** Vote Split */
+            vote_split?: string | null;
+        };
+        /** RatesPolicyPanel */
+        RatesPolicyPanel: {
+            /** Effr */
+            effr?: number | null;
+            /** Implied Path */
+            implied_path?: components["schemas"]["RatesPolicyPathPoint"][];
+            last_meeting?: components["schemas"]["RatesPolicyMeeting"] | null;
+            /** Path Read */
+            path_read?: string | null;
+            /** Plumbing */
+            plumbing?: components["schemas"]["RatesPolicyPlumbingMetric"][];
+            /** Plumbing Read */
+            plumbing_read?: string | null;
+            /** Policy Read */
+            policy_read?: string | null;
+            /** Sofr */
+            sofr?: number | null;
+            /**
+             * Status
+             * @default partial
+             * @enum {string}
+             */
+            status: "ok" | "missing" | "partial" | "stale";
+            /** Target Lower */
+            target_lower?: number | null;
+            /** Target Range */
+            target_range?: string | null;
+            /** Target Upper */
+            target_upper?: number | null;
+        };
+        /** RatesPolicyPathPoint */
+        RatesPolicyPathPoint: {
+            /** Label */
+            label: string;
+            /**
+             * Meeting Date
+             * Format: date
+             */
+            meeting_date: string;
+            /** Probability */
+            probability?: number | null;
+            /** Source */
+            source?: string | null;
+            /**
+             * Stance
+             * @default UNKNOWN
+             * @enum {string}
+             */
+            stance: "CUT" | "HOLD" | "HIKE" | "UNKNOWN";
+            /**
+             * Status
+             * @default partial
+             * @enum {string}
+             */
+            status: "ok" | "missing" | "partial" | "stale";
+            /** Target Range */
+            target_range?: string | null;
+        };
+        /** RatesPolicyPlumbingMetric */
+        RatesPolicyPlumbingMetric: {
+            /** Label */
+            label: string;
+            /** Qualifier */
+            qualifier?: string | null;
+            /**
+             * Status
+             * @default partial
+             * @enum {string}
+             */
+            status: "ok" | "missing" | "partial" | "stale";
+            /**
+             * Unit
+             * @default
+             */
+            unit: string;
+            /** Value */
+            value?: number | null;
+        };
+        /** RatesPositioningPanel */
+        RatesPositioningPanel: {
+            /** Details */
+            details?: components["schemas"]["RatesPositioningRow"][];
+            /** Positioning Read */
+            positioning_read?: string | null;
+            /** Rows */
+            rows?: components["schemas"]["RatesSummaryTile"][];
+            /**
+             * Status
+             * @default missing
+             * @enum {string}
+             */
+            status: "ok" | "missing" | "partial" | "stale";
+        };
+        /** RatesPositioningRow */
+        RatesPositioningRow: {
+            /** Asset Mgr Net */
+            asset_mgr_net?: number | null;
+            /** Asset Mgr Net Pct Oi */
+            asset_mgr_net_pct_oi?: number | null;
+            /** Contract Code */
+            contract_code: string;
+            /** Contract Name */
+            contract_name: string;
+            /** Dealer Net */
+            dealer_net?: number | null;
+            /** Dealer Net Pct Oi */
+            dealer_net_pct_oi?: number | null;
+            /** Lev Money Net */
+            lev_money_net?: number | null;
+            /** Lev Money Net Pct Oi */
+            lev_money_net_pct_oi?: number | null;
+            /** Obs Date */
+            obs_date?: string | null;
+            /** Open Interest */
+            open_interest?: number | null;
+            /** Release Date */
+            release_date?: string | null;
+            /** Source Url */
+            source_url?: string | null;
+            /**
+             * Status
+             * @default ok
+             * @enum {string}
+             */
+            status: "ok" | "missing" | "partial" | "stale";
+            /** Tenor Bucket */
+            tenor_bucket: string;
+        };
+        /** RatesScorecard */
+        RatesScorecard: {
+            /** Composite Score */
+            composite_score?: number | null;
+            /** Curve Score */
+            curve_score?: number | null;
+            /**
+             * Curve Stance
+             * @default NEUTRAL
+             * @enum {string}
+             */
+            curve_stance: "STEEP" | "FLAT" | "NEUTRAL";
+            /**
+             * Duration Stance
+             * @default NEUTRAL
+             * @enum {string}
+             */
+            duration_stance: "BUY" | "SELL" | "NEUTRAL";
+            /** Groups */
+            groups?: components["schemas"]["RatesScorecardGroup"][];
+        };
+        /** RatesScorecardFactor */
+        RatesScorecardFactor: {
+            /** Label */
+            label: string;
+            /** Score */
+            score?: number | null;
+            /** Source */
+            source?: string | null;
+            /**
+             * Status
+             * @default ok
+             * @enum {string}
+             */
+            status: "ok" | "missing" | "partial" | "stale";
+            /** Value */
+            value?: string | null;
+        };
+        /** RatesScorecardGroup */
+        RatesScorecardGroup: {
+            /** Factors */
+            factors?: components["schemas"]["RatesScorecardFactor"][];
+            /** Id */
+            id: string;
+            /** Label */
+            label: string;
+            /** Score */
+            score?: number | null;
+            /**
+             * Status
+             * @default ok
+             * @enum {string}
+             */
+            status: "ok" | "missing" | "partial" | "stale";
+            /** Weight */
+            weight: number;
+        };
+        /** RatesSlopeMetric */
+        RatesSlopeMetric: {
+            /** Label */
+            label: string;
+            /**
+             * Status
+             * @default ok
+             * @enum {string}
+             */
+            status: "ok" | "missing" | "partial" | "stale";
+            /** Value Bps */
+            value_bps?: number | null;
+        };
+        /** RatesSnapshotResponse */
+        RatesSnapshotResponse: {
+            /**
+             * As Of
+             * Format: date
+             */
+            as_of: string;
+            /**
+             * Computed At
+             * Format: date-time
+             */
+            computed_at: string;
+            cross_market?: components["schemas"]["RatesCrossMarketPanel"];
+            curve?: components["schemas"]["RatesCurveSection"];
+            decomposition?: components["schemas"]["RatesDecomposition"];
+            /** Events */
+            events?: components["schemas"]["RatesEventItem"][];
+            policy?: components["schemas"]["RatesPolicyPanel"];
+            positioning?: components["schemas"]["RatesPositioningPanel"];
+            scorecard?: components["schemas"]["RatesScorecard"];
+            /** Source Freshness */
+            source_freshness?: components["schemas"]["RatesSourceFreshness"][];
+            /** Summary */
+            summary?: components["schemas"]["RatesSummaryTile"][];
+            supply?: components["schemas"]["RatesSupplyPanel"];
+            synthesis: components["schemas"]["RatesSynthesisPanel"];
+        };
+        /** RatesSourceFreshness */
+        RatesSourceFreshness: {
+            /** Id */
+            id: string;
+            /** Label */
+            label: string;
+            /** Last Seen At */
+            last_seen_at?: string | null;
+            /** Latest Obs Date */
+            latest_obs_date?: string | null;
+            /**
+             * Status
+             * @default missing
+             * @enum {string}
+             */
+            status: "ok" | "missing" | "partial" | "stale";
+        };
+        /** RatesSummaryTile */
+        RatesSummaryTile: {
+            /** Delta 1D */
+            delta_1d?: number | null;
+            /** Label */
+            label: string;
+            /**
+             * Status
+             * @default ok
+             * @enum {string}
+             */
+            status: "ok" | "missing" | "partial" | "stale";
+            /**
+             * Unit
+             * @default
+             */
+            unit: string;
+            /** Value */
+            value?: number | null;
+        };
+        /** RatesSupplyAuctionRow */
+        RatesSupplyAuctionRow: {
+            /**
+             * Auction Date
+             * Format: date
+             */
+            auction_date: string;
+            /** Bid To Cover */
+            bid_to_cover?: number | null;
+            /** Cusip */
+            cusip: string;
+            /** Direct Bidder Pct */
+            direct_bidder_pct?: number | null;
+            /** High Rate */
+            high_rate?: number | null;
+            /** Indirect Bidder Pct */
+            indirect_bidder_pct?: number | null;
+            /** Issue Date */
+            issue_date?: string | null;
+            /** Offering Amount */
+            offering_amount?: number | null;
+            /** Primary Dealer Pct */
+            primary_dealer_pct?: number | null;
+            /** Security Term */
+            security_term: string;
+            /** Security Type */
+            security_type: string;
+            /** Source Url */
+            source_url?: string | null;
+            /**
+             * Status
+             * @default ok
+             * @enum {string}
+             */
+            status: "ok" | "missing" | "partial" | "stale";
+            /** Tail Indicator */
+            tail_indicator?: string | null;
+        };
+        /** RatesSupplyPanel */
+        RatesSupplyPanel: {
+            /** Auctions */
+            auctions?: components["schemas"]["RatesSummaryTile"][];
+            /** Fiscal */
+            fiscal?: components["schemas"]["RatesSummaryTile"][];
+            /** Notes */
+            notes?: string[];
+            /** Recent Auctions */
+            recent_auctions?: components["schemas"]["RatesSupplyAuctionRow"][];
+            /**
+             * Status
+             * @default missing
+             * @enum {string}
+             */
+            status: "ok" | "missing" | "partial" | "stale";
+            /** Supply Read */
+            supply_read?: string | null;
+        };
+        /** RatesSynthesisPanel */
+        RatesSynthesisPanel: {
+            /** Curve View */
+            curve_view: string;
+            /** Duration View */
+            duration_view: string;
+            /** Risks */
+            risks?: string[];
+        };
+        /** RecordHealthCheck */
+        RecordHealthCheck: {
+            /** Actual Rows */
+            actual_rows: number;
+            /** Actual Tickers */
+            actual_tickers: number;
+            /** Expected Min Rows */
+            expected_min_rows: number;
+            /** Expected Min Tickers */
+            expected_min_tickers: number;
+            /** Expected Tickers */
+            expected_tickers: number;
+            /** Latest At */
+            latest_at?: string | null;
+            /** Ok */
+            ok: boolean;
+            /** Table */
+            table: string;
+            /**
+             * Window Start
+             * Format: date-time
+             */
+            window_start: string;
+        };
+        /**
+         * RegimeLiveQuote
+         * @description One live WS quote echoed by the live endpoints / quotes strip.
+         */
+        RegimeLiveQuote: {
+            /** Price */
+            price: number;
+            /**
+             * Quoted At
+             * Format: date-time
+             */
+            quoted_at: string;
+            /** Source */
+            source?: string | null;
+        };
+        /** RegimeQuadrantBlock */
+        RegimeQuadrantBlock: {
+            /** Cutoff Corr */
+            cutoff_corr?: string | null;
+            latest?: components["schemas"]["RegimeQuadrantLatest"] | null;
+            /**
+             * Points
+             * @default []
+             */
+            points: components["schemas"]["RegimeQuadrantPoint"][];
+        };
+        /** RegimeQuadrantLatest */
+        RegimeQuadrantLatest: {
+            /**
+             * Date
+             * Format: date
+             */
+            date: string;
+            /** Rvol Pctile */
+            rvol_pctile?: string | null;
+            /** Spy Corr 21 */
+            spy_corr_21?: string | null;
+            /**
+             * State
+             * @default
+             */
+            state: string;
+        };
+        /** RegimeQuadrantPoint */
+        RegimeQuadrantPoint: {
+            /**
+             * Date
+             * Format: date
+             */
+            date: string;
+            /** Rvol Pctile */
+            rvol_pctile?: string | null;
+            /** Spy Corr 21 */
+            spy_corr_21?: string | null;
+        };
+        /**
+         * RegimeQuotesResponse
+         * @description Lightweight live-quote projection for the regime header strip.
+         */
+        RegimeQuotesResponse: {
+            /** Active Source */
+            active_source?: string | null;
+            /** As Of */
+            as_of?: string | null;
+            /**
+             * Fresh Within Seconds
+             * @default 900
+             */
+            fresh_within_seconds: number;
+            /** Quotes */
+            quotes?: {
+                [key: string]: components["schemas"]["RegimeLiveQuote"];
+            };
+        };
+        /** RescanAllRequest */
+        RescanAllRequest: {
+            /**
+             * Confirmed
+             * @default false
+             */
+            confirmed: boolean;
+        };
+        /**
+         * ReturnsBlock
+         * @description Wire shape: d1 / w1 / d30. No aliases — FastAPI would otherwise serialize
+         *     them as JSON keys and break the frontend contract.
+         */
+        ReturnsBlock: {
+            /** D1 */
+            d1?: string | null;
+            /** D30 */
+            d30?: string | null;
+            /** W1 */
+            w1?: string | null;
+        };
+        /** RvCorrPoint */
+        RvCorrPoint: {
+            /**
+             * Date
+             * Format: date
+             */
+            date: string;
+            /** Rv */
+            rv?: string | null;
+            /** Spy Corr 21 */
+            spy_corr_21?: string | null;
+        };
+        /** ScannerCandidate */
+        ScannerCandidate: {
+            /**
+             * Bias
+             * @enum {string}
+             */
+            bias: "bullish" | "bearish" | "neutral" | "mixed";
+            /** Bias Strength */
+            bias_strength?: ("strong" | "moderate" | "weak") | null;
+            /** Confluence Score */
+            confluence_score: string;
+            /** Context Flags */
+            context_flags: components["schemas"]["ScannerContextFlag"][];
+            /** Final Score */
+            final_score: string;
+            gates: components["schemas"]["ScannerGatesStatus"];
+            /** Hits */
+            hits: components["schemas"]["ScannerSignalHit"][];
+            /** Is Type F */
+            is_type_f: boolean;
+            /** Raw Score */
+            raw_score: string;
+            /**
+             * Scanned At
+             * Format: date-time
+             */
+            scanned_at: string;
+            /**
+             * Setup
+             * @enum {string}
+             */
+            setup: "ready" | "caution" | "blocked";
+            /** Setup Reason */
+            setup_reason?: string | null;
+            /** Spot */
+            spot: string | null;
+            /** Ticker */
+            ticker: string;
+        };
+        /** ScannerContextFlag */
+        ScannerContextFlag: {
+            /** Label */
+            label: string;
+            /**
+             * Layer
+             * @constant
+             */
+            layer: "pcr_sentiment";
+            /** Value */
+            value: string | null;
+        };
+        /** ScannerGatedTicker */
+        ScannerGatedTicker: {
+            /** Blocking Chip */
+            blocking_chip?: ("SUSPENDED" | "DEGRADED") | null;
+            /**
+             * Reason
+             * @enum {string}
+             */
+            reason: "regime_block" | "stale_scan";
+            /** Scanned At */
+            scanned_at: string | null;
+            /** Ticker */
+            ticker: string;
+        };
+        /** ScannerGatesStatus */
+        ScannerGatesStatus: {
+            /**
+             * Earnings
+             * @enum {string}
+             */
+            earnings: "pass" | "block";
+            /**
+             * Liquidity
+             * @enum {string}
+             */
+            liquidity: "pass" | "block";
+            /**
+             * Regime
+             * @enum {string}
+             */
+            regime: "pass" | "block";
+        };
+        /** ScannerResponse */
+        ScannerResponse: {
+            /** Candidates */
+            candidates: components["schemas"]["ScannerCandidate"][];
+            /** Candidates With Hits */
+            candidates_with_hits: number;
+            /** Gated */
+            gated: components["schemas"]["ScannerGatedTicker"][];
+            /**
+             * Generated At
+             * Format: date-time
+             */
+            generated_at: string;
+            /** Scanned Universe Size */
+            scanned_universe_size: number;
+        };
+        /** ScannerSignalHit */
+        ScannerSignalHit: {
+            /** Evidence */
+            evidence: {
+                [key: string]: unknown;
+            };
+            /**
+             * Freshness
+             * @enum {string}
+             */
+            freshness: "live" | "stale" | "unavailable";
+            /** Score */
+            score: string;
+            /**
+             * Signal Type
+             * @enum {string}
+             */
+            signal_type: "deep_conviction_flow" | "dark_pool_accumulation" | "earnings_iv_crush" | "gex_pinning";
+            /**
+             * Tier
+             * @enum {integer}
+             */
+            tier: 1 | 2;
+        };
+        /** SetupBlock */
+        SetupBlock: {
+            /** Direction */
+            direction?: string | null;
+            /** Score */
+            score?: string | null;
+            /** Type */
+            type?: string | null;
+        };
+        /** SetupClassification */
+        SetupClassification: {
+            /**
+             * Confirmations
+             * @default []
+             */
+            confirmations: string[];
+            /** Direction */
+            direction: string;
+            /** Label */
+            label: string;
+            /**
+             * Notes
+             * @default
+             */
+            notes: string;
+            /** Score */
+            score: string;
+            /** Setup Type */
+            setup_type: string;
+            /**
+             * Warnings
+             * @default []
+             */
+            warnings: string[];
+        };
+        /** ShortDataRow */
+        ShortDataRow: {
+            /** Fee Rate */
+            fee_rate?: string | null;
+            /** Name */
+            name?: string | null;
+            /** Rebate Rate */
+            rebate_rate?: string | null;
+            /** Short Shares Available */
+            short_shares_available?: number | null;
+            /** Symbol */
+            symbol: string;
+            /**
+             * Timestamp
+             * Format: date-time
+             */
+            timestamp: string;
+        };
+        /** SingleStockReport */
+        SingleStockReport: {
+            aggregates?: components["schemas"]["MarketAggregates"] | null;
+            /** Dark Pool Notional */
+            dark_pool_notional?: string | null;
+            /**
+             * Dark Pool Print Count
+             * @default 0
+             */
+            dark_pool_print_count: number;
+            dealer_regime?: components["schemas"]["DealerRegime"] | null;
+            /**
+             * Exposures Summary
+             * @default []
+             */
+            exposures_summary: components["schemas"]["ExposuresSummaryRow"][];
+            flow: components["schemas"]["FlowSnapshot"];
+            /**
+             * Generated At
+             * Format: date-time
+             */
+            generated_at: string;
+            market_structure: components["schemas"]["MarketStructure"];
+            market_structure_levels?: components["schemas"]["MarketStructureLevels"] | null;
+            /**
+             * Max Pain Rows
+             * @default []
+             */
+            max_pain_rows: components["schemas"]["MaxPainRow"][];
+            /** Next Earnings Date */
+            next_earnings_date?: string | null;
+            /**
+             * Oi Change Intraday Profiles
+             * @default []
+             */
+            oi_change_intraday_profiles: components["schemas"]["OptionIntradayProfile"][];
+            /**
+             * Oi Change Top
+             * @default []
+             */
+            oi_change_top: components["schemas"]["OiChangeRow"][];
+            /**
+             * Option Chain Per Strike
+             * @default []
+             */
+            option_chain_per_strike: components["schemas"]["OptionChainPerStrikeRow"][];
+            /**
+             * Options Timeline
+             * @default []
+             */
+            options_timeline: components["schemas"]["OptionsDailyRow"][];
+            /** Run Id */
+            run_id: number;
+            setup?: components["schemas"]["SetupClassification"] | null;
+            short_data?: components["schemas"]["ShortDataRow"] | null;
+            /**
+             * Short Int Note
+             * @default n/a (UW endpoint does not expose %)
+             */
+            short_int_note: string;
+            /** Spot Quoted At */
+            spot_quoted_at?: string | null;
+            /** Spot Source */
+            spot_source?: string | null;
+            /**
+             * Strike Exposures
+             * @default []
+             */
+            strike_exposures: components["schemas"]["StrikeExposureRow"][];
+            /**
+             * Strike Gex Curve
+             * @default []
+             */
+            strike_gex_curve: components["schemas"]["StrikeGexBucket"][];
+            /** Ticker */
+            ticker: string;
+            volatility: components["schemas"]["VolatilityProfile"];
+            vrp: components["schemas"]["VRPAssessment"];
+        };
+        /** SkewAnalysisResponse */
+        SkewAnalysisResponse: {
+            /**
+             * As Of
+             * Format: date
+             */
+            as_of: string;
+            /**
+             * Asset Class
+             * @default single_name
+             */
+            asset_class: string;
+            /** Back Rr */
+            back_rr?: string | null;
+            /**
+             * Backfill Status
+             * @default ready
+             */
+            backfill_status: string;
+            /** Borrow Fee Rate */
+            borrow_fee_rate?: string | null;
+            /**
+             * Borrow Flag
+             * @default unknown
+             */
+            borrow_flag: string;
+            /**
+             * Class Expected Sign
+             * @default mixed
+             */
+            class_expected_sign: string;
+            /** Days To Cover */
+            days_to_cover?: string | null;
+            /**
+             * Deviation Class
+             * @default NORMAL
+             */
+            deviation_class: string;
+            /**
+             * Directional Lean
+             * @default NEUTRAL
+             */
+            directional_lean: string;
+            /**
+             * Drive Class
+             * @default STRUCTURAL
+             */
+            drive_class: string;
+            /**
+             * Earnings Gate
+             * @default unknown
+             */
+            earnings_gate: string;
+            /** Front Rr */
+            front_rr?: string | null;
+            /**
+             * History
+             * @default []
+             */
+            history: components["schemas"]["SkewHistoryPoint"][];
+            /**
+             * Lean Basis
+             * @default
+             */
+            lean_basis: string;
+            /**
+             * Lean Confidence
+             * @default low
+             */
+            lean_confidence: string;
+            /**
+             * @default {
+             *       "borrow_context": "",
+             *       "class_context": "",
+             *       "deviation_class": "",
+             *       "directional_lean": {
+             *         "basis": "",
+             *         "confidence": "low",
+             *         "express": "",
+             *         "lean": "NEUTRAL"
+             *       },
+             *       "drive": "",
+             *       "earnings_gate": "",
+             *       "rho_confirms": false,
+             *       "summary_bullets": [],
+             *       "summary_line": "",
+             *       "tail": ""
+             *     }
+             */
+            read: components["schemas"]["SkewRead"];
+            /**
+             * Regime
+             * @default UNKNOWN
+             */
+            regime: string;
+            /**
+             * Rho Series
+             * @default []
+             */
+            rho_series: components["schemas"]["SkewRhoPoint"][];
+            /** Rho Sign */
+            rho_sign?: number | null;
+            /** Rho Spotvol 21D */
+            rho_spotvol_21d?: string | null;
+            /** Rho Spotvol 63D */
+            rho_spotvol_63d?: string | null;
+            /** Rr 25D */
+            rr_25d?: string | null;
+            /** Rr Pct 252D */
+            rr_pct_252d?: string | null;
+            /** Rr Z 180D */
+            rr_z_180d?: string | null;
+            /**
+             * Skew Term Class
+             * @default flat
+             */
+            skew_term_class: string;
+            /**
+             * Smile
+             * @default []
+             */
+            smile: components["schemas"]["SkewSmileExpiryCurve"][];
+            /** Spot */
+            spot?: string | null;
+            /**
+             * Term Structure
+             * @default []
+             */
+            term_structure: components["schemas"]["SkewExpiryPoint"][];
+            /** Ticker */
+            ticker: string;
+        };
+        /** SkewBlock */
+        SkewBlock: {
+            /** Rr25D 30Dte */
+            rr25d_30dte?: string | null;
+        };
+        /** SkewDirectionalLean */
+        SkewDirectionalLean: {
+            /**
+             * Basis
+             * @default
+             */
+            basis: string;
+            /**
+             * Confidence
+             * @default low
+             */
+            confidence: string;
+            /**
+             * Express
+             * @default
+             */
+            express: string;
+            /**
+             * Lean
+             * @default NEUTRAL
+             */
+            lean: string;
+            structure_detail?: components["schemas"]["SkewStructureDetail"] | null;
+        };
+        /** SkewExpiryPoint */
+        SkewExpiryPoint: {
+            /** Dte */
+            dte?: number | null;
+            /**
+             * Expiry
+             * Format: date
+             */
+            expiry: string;
+            /** Rr */
+            rr?: string | null;
+        };
+        /** SkewHistoryPoint */
+        SkewHistoryPoint: {
+            /**
+             * Date
+             * Format: date
+             */
+            date: string;
+            /** Pct */
+            pct?: string | null;
+            /** Rr */
+            rr?: string | null;
+            /** Z */
+            z?: string | null;
+        };
+        /** SkewRead */
+        SkewRead: {
+            /**
+             * Borrow Context
+             * @default
+             */
+            borrow_context: string;
+            /**
+             * Class Context
+             * @default
+             */
+            class_context: string;
+            /**
+             * Deviation Class
+             * @default
+             */
+            deviation_class: string;
+            /**
+             * @default {
+             *       "basis": "",
+             *       "confidence": "low",
+             *       "express": "",
+             *       "lean": "NEUTRAL"
+             *     }
+             */
+            directional_lean: components["schemas"]["SkewDirectionalLean"];
+            /**
+             * Drive
+             * @default
+             */
+            drive: string;
+            /**
+             * Earnings Gate
+             * @default
+             */
+            earnings_gate: string;
+            /** Rho */
+            rho?: string | null;
+            /**
+             * Rho Confirms
+             * @default false
+             */
+            rho_confirms: boolean;
+            /**
+             * Summary Bullets
+             * @default []
+             */
+            summary_bullets: components["schemas"]["SkewReadBullet"][];
+            /**
+             * Summary Line
+             * @default
+             */
+            summary_line: string;
+            /**
+             * Tail
+             * @default
+             */
+            tail: string;
+        };
+        /** SkewReadBullet */
+        SkewReadBullet: {
+            /**
+             * Body
+             * @default
+             */
+            body: string;
+            /**
+             * Label
+             * @default
+             */
+            label: string;
+        };
+        /** SkewRhoPoint */
+        SkewRhoPoint: {
+            /**
+             * Date
+             * Format: date
+             */
+            date: string;
+            /** Rho */
+            rho?: string | null;
+        };
+        /** SkewSmileExpiryCurve */
+        SkewSmileExpiryCurve: {
+            /**
+             * Expiry
+             * Format: date
+             */
+            expiry: string;
+            /**
+             * Points
+             * @default []
+             */
+            points: components["schemas"]["SkewSmilePoint"][];
+        };
+        /** SkewSmilePoint */
+        SkewSmilePoint: {
+            /** Iv */
+            iv?: string | null;
+            /** Strike */
+            strike: string;
+        };
+        /** SkewStructureDetail */
+        SkewStructureDetail: {
+            /** Dte Target */
+            dte_target?: number | null;
+            /**
+             * Kind
+             * @default
+             */
+            kind: string;
+            /**
+             * Legs
+             * @default []
+             */
+            legs: components["schemas"]["SkewStructureLeg"][];
+            /**
+             * Note
+             * @default
+             */
+            note: string;
+            /**
+             * Status
+             * @default ready
+             */
+            status: string;
+        };
+        /** SkewStructureLeg */
+        SkewStructureLeg: {
+            /**
+             * Action
+             * @default
+             */
+            action: string;
+            /** Actual Delta */
+            actual_delta?: string | null;
+            /** Dte */
+            dte?: number | null;
+            /** Expiry */
+            expiry?: string | null;
+            /**
+             * Right
+             * @default
+             */
+            right: string;
+            /** Strike */
+            strike?: string | null;
+            /** Target Delta */
+            target_delta?: string | null;
+        };
+        /** SmileExpiryCurve */
+        SmileExpiryCurve: {
+            /**
+             * Expiry
+             * Format: date
+             */
+            expiry: string;
+            /**
+             * Points
+             * @default []
+             */
+            points: components["schemas"]["SmilePoint"][];
+        };
+        /** SmilePoint */
+        SmilePoint: {
+            /** Iv */
+            iv?: string | null;
+            /** Strike */
+            strike: string;
+        };
+        /** SourceReconciliation */
+        SourceReconciliation: {
+            /**
+             * Decision
+             * @default Use deterministic data only where source agreement is understood.
+             */
+            decision: string;
+            /**
+             * Headline
+             * @default Source reconciliation unavailable
+             */
+            headline: string;
+            /** Primary Iv Source */
+            primary_iv_source?: string | null;
+            /** Relative Shape Source */
+            relative_shape_source?: string | null;
+            /**
+             * Rows
+             * @default []
+             */
+            rows: components["schemas"]["SourceReconciliationRow"][];
+            /**
+             * Status
+             * @default UNKNOWN
+             */
+            status: string;
+        };
+        /** SourceReconciliationRow */
+        SourceReconciliationRow: {
+            /**
+             * Decision
+             * @default
+             */
+            decision: string;
+            /**
+             * Iv Agreement
+             * @default
+             */
+            iv_agreement: string;
+            /** Iv Diff */
+            iv_diff?: string | null;
+            /**
+             * Price Agreement
+             * @default
+             */
+            price_agreement: string;
+            /** Source A Call Iv */
+            source_a_call_iv?: string | null;
+            /** Source B Call Iv */
+            source_b_call_iv?: string | null;
+            /** Source Pair */
+            source_pair: string;
+            /** Strike */
+            strike?: string | null;
+        };
+        /** StockHistoryResponse */
+        StockHistoryResponse: {
+            /**
+             * Rows
+             * @default []
+             */
+            rows: components["schemas"]["StockHistoryRow"][];
+            /** Ticker */
+            ticker: string;
+        };
+        /**
+         * StockHistoryRow
+         * @description One per-trading-day rollup of a ticker's market structure.
+         *
+         *     Built from the latest successful scan_run on that date. spot comes from
+         *     daily_ohlc.close so it's a stable end-of-day reference (NULL for the
+         *     current trading day until the OHLC pull fires post-close).
+         */
+        StockHistoryRow: {
+            /**
+             * Bias
+             * @default NEUTRAL
+             */
+            bias: string;
+            /** Gex Flip */
+            gex_flip?: string | null;
+            /** Iv30D */
+            iv30d?: string | null;
+            /**
+             * Market Date
+             * Format: date
+             */
+            market_date: string;
+            /** Net Dex */
+            net_dex?: string | null;
+            /** Net Gex */
+            net_gex?: string | null;
+            /** Pcr Vol */
+            pcr_vol?: string | null;
+            /** Spot */
+            spot?: string | null;
+        };
+        /**
+         * StrikeExposureRow
+         * @description One per-(expiry, strike) raw row from exposures_by_expiry_strike,
+         *     carrying the call/put split for vanna and charm so the FE can render
+         *     Net + Call/Put curves without an extra fetch.
+         */
+        StrikeExposureRow: {
+            /** Call Charm */
+            call_charm?: string | null;
+            /** Call Vanna */
+            call_vanna?: string | null;
+            /** Dte */
+            dte?: number | null;
+            /**
+             * Expiry
+             * Format: date
+             */
+            expiry: string;
+            /** Put Charm */
+            put_charm?: string | null;
+            /** Put Vanna */
+            put_vanna?: string | null;
+            /** Strike */
+            strike: string;
+        };
+        /**
+         * StrikeGexBucket
+         * @description One row of the per-strike, per-expiry GEX curve persisted on each scan run.
+         */
+        StrikeGexBucket: {
+            /** Call Gex */
+            call_gex?: string | null;
+            /**
+             * Expiry
+             * Format: date
+             */
+            expiry: string;
+            /** Net Gex */
+            net_gex?: string | null;
+            /** Put Gex */
+            put_gex?: string | null;
+            /** Strike */
+            strike: string;
+        };
+        /** TermMoveRow */
+        TermMoveRow: {
+            /** Atm Straddle */
+            atm_straddle?: string | null;
+            /** Daily Implied Move Perc */
+            daily_implied_move_perc?: string | null;
+            /** Dte */
+            dte?: number | null;
+            /**
+             * Expiry
+             * Format: date
+             */
+            expiry: string;
+            /** Implied Move Perc */
+            implied_move_perc?: string | null;
+            /**
+             * Read
+             * @default
+             */
+            read: string;
+        };
+        /** TermStructureExpiryRow */
+        TermStructureExpiryRow: {
+            /**
+             * By Strike
+             * @default {}
+             */
+            by_strike: {
+                [key: string]: string;
+            };
+            /** Dte */
+            dte?: number | null;
+            /**
+             * Expiry
+             * Format: date
+             */
+            expiry: string;
+            /**
+             * Strikes
+             * @default {}
+             */
+            strikes: {
+                [key: string]: string;
+            };
+        };
+        /** TradeFramework */
+        TradeFramework: {
+            best_setup: components["schemas"]["TradeFrameworkBestSetup"];
+            /** Bottom Line */
+            bottom_line: string;
+            /** Candidates */
+            candidates?: components["schemas"]["TradeFrameworkCandidate"][];
+            catalyst: components["schemas"]["TradeFrameworkCatalyst"];
+            confluence: components["schemas"]["TradeFrameworkConfluence"];
+            conviction: components["schemas"]["TradeFrameworkConviction"];
+            gamma: components["schemas"]["TradeFrameworkGamma"];
+            header: components["schemas"]["TradeFrameworkHeader"];
+            /** Pitfalls */
+            pitfalls?: components["schemas"]["TradeFrameworkPitfall"][];
+            three_axis: components["schemas"]["TradeFrameworkThreeAxis"];
+            /** What Changes */
+            what_changes?: components["schemas"]["TradeFrameworkWhatChanges"][];
+        };
+        /** TradeFrameworkAsymmetry */
+        TradeFrameworkAsymmetry: {
+            /** Prose */
+            prose: string;
+            /** Rule On */
+            rule_on: boolean;
+            /**
+             * Structure Family
+             * @enum {string}
+             */
+            structure_family: "directional_defined_risk" | "pin_vega";
+        };
+        /** TradeFrameworkBestSetup */
+        TradeFrameworkBestSetup: {
+            /** Cost */
+            cost?: string | null;
+            /** Invalidation */
+            invalidation: string;
+            /** Legs */
+            legs?: string[];
+            /** Max Risk */
+            max_risk?: string | null;
+            /** Rationale */
+            rationale: string;
+            /** Structure */
+            structure: string;
+            /**
+             * Why Not Alternatives
+             * @default
+             */
+            why_not_alternatives: string;
+        };
+        /** TradeFrameworkCandidate */
+        TradeFrameworkCandidate: {
+            /** Debit Credit */
+            debit_credit?: string | null;
+            /** Defined Risk */
+            defined_risk: boolean;
+            /** Legs */
+            legs?: string[];
+            /** Name */
+            name: string;
+            /** Net Delta */
+            net_delta?: string | null;
+            /** Net Vega */
+            net_vega?: string | null;
+            /** Pnl Base */
+            pnl_base?: string | null;
+            /** Pnl Bear */
+            pnl_bear?: string | null;
+            /** Pnl Bull */
+            pnl_bull?: string | null;
+        };
+        /** TradeFrameworkCatalyst */
+        TradeFrameworkCatalyst: {
+            /** Dte To Er */
+            dte_to_er?: number | null;
+            /**
+             * Handling
+             * @enum {string}
+             */
+            handling: "no_conflict" | "exit_before_print" | "stand_aside" | "hold_through_leaps";
+            /** Implied Move */
+            implied_move?: string | null;
+            /** Next Er Date */
+            next_er_date?: string | null;
+            /** Prose */
+            prose: string;
+        };
+        /** TradeFrameworkConfluence */
+        TradeFrameworkConfluence: {
+            /** Aligned */
+            aligned: boolean;
+            /**
+             * Prose
+             * @default
+             */
+            prose: string;
+            /** Signals */
+            signals?: components["schemas"]["TradeFrameworkSignal"][];
+        };
+        /** TradeFrameworkConviction */
+        TradeFrameworkConviction: {
+            /** Factors */
+            factors: components["schemas"]["TradeFrameworkFactor"][];
+            /**
+             * Prose
+             * @default
+             */
+            prose: string;
+            /** Score */
+            score: number;
+        };
+        /** TradeFrameworkDirection */
+        TradeFrameworkDirection: {
+            /** Prose */
+            prose: string;
+            /**
+             * Verdict
+             * @enum {string}
+             */
+            verdict: "bull" | "bear" | "neutral";
+        };
+        /** TradeFrameworkFactor */
+        TradeFrameworkFactor: {
+            /** Name */
+            name: string;
+            /**
+             * Note
+             * @default
+             */
+            note: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "yes" | "no" | "na";
+        };
+        /** TradeFrameworkGamma */
+        TradeFrameworkGamma: {
+            /** Call Wall */
+            call_wall?: string | null;
+            /** Flip Strike */
+            flip_strike?: string | null;
+            /** Prose */
+            prose: string;
+            /** Put Wall */
+            put_wall?: string | null;
+            /**
+             * Regime
+             * @enum {string}
+             */
+            regime: "short" | "long";
+        };
+        /** TradeFrameworkHeader */
+        TradeFrameworkHeader: {
+            /** Conviction N */
+            conviction_n: number;
+            /**
+             * Position Type
+             * @enum {string}
+             */
+            position_type: "swing" | "leaps" | "stand_aside";
+            /** Spot */
+            spot?: string | null;
+            /** Thesis One Liner */
+            thesis_one_liner: string;
+        };
+        /** TradeFrameworkPitfall */
+        TradeFrameworkPitfall: {
+            /** Id */
+            id: string;
+            /**
+             * Note
+             * @default
+             */
+            note: string;
+            /** Title */
+            title: string;
+            /** Triggered */
+            triggered: boolean;
+        };
+        /** TradeFrameworkSignal */
+        TradeFrameworkSignal: {
+            /** Direction */
+            direction: string;
+            /** Name */
+            name: string;
+        };
+        /** TradeFrameworkThreeAxis */
+        TradeFrameworkThreeAxis: {
+            asymmetry: components["schemas"]["TradeFrameworkAsymmetry"];
+            direction: components["schemas"]["TradeFrameworkDirection"];
+            vega: components["schemas"]["TradeFrameworkVega"];
+        };
+        /** TradeFrameworkVega */
+        TradeFrameworkVega: {
+            /** Ivr */
+            ivr?: string | null;
+            /** Prose */
+            prose: string;
+            /**
+             * Regime
+             * @enum {string}
+             */
+            regime: "event_iv" | "demand_iv" | "low_iv";
+            /** Term Slope */
+            term_slope?: string | null;
+        };
+        /** TradeFrameworkWhatChanges */
+        TradeFrameworkWhatChanges: {
+            /** Effect */
+            effect: string;
+            /** Signal */
+            signal: string;
+        };
+        /**
+         * TradeInsightAiAnalysisEnqueueResponse
+         * @description POST response — one stub per enabled provider.
+         */
+        TradeInsightAiAnalysisEnqueueResponse: {
+            /** Analyses */
+            analyses: components["schemas"]["TradeInsightAiAnalysisStub"][];
+        };
+        /** TradeInsightAiAnalysisRequest */
+        TradeInsightAiAnalysisRequest: {
+            /**
+             * Force Rerun
+             * @default false
+             */
+            force_rerun: boolean;
+            /** Providers */
+            providers?: ("codex" | "claude" | "deepseek")[] | null;
+        };
+        /** TradeInsightAiAnalysisResponse */
+        TradeInsightAiAnalysisResponse: {
+            /**
+             * Analysis Id
+             * Format: uuid
+             */
+            analysis_id: string;
+            /** Analysis Input Hash */
+            analysis_input_hash: string;
+            /** Error Message */
+            error_message?: string | null;
+            /** Finished At */
+            finished_at?: string | null;
+            /** Markdown */
+            markdown?: string | null;
+            /** Model */
+            model: string;
+            outcome?: components["schemas"]["TradeInsightAiOutcome"] | null;
+            /** Produced At */
+            produced_at?: string | null;
+            /** Prompt Version */
+            prompt_version: string;
+            /**
+             * Provider
+             * @default codex
+             * @enum {string}
+             */
+            provider: "codex" | "claude" | "deepseek";
+            /**
+             * Requested At
+             * Format: date-time
+             */
+            requested_at: string;
+            /**
+             * Reused
+             * @default false
+             */
+            reused: boolean;
+            /** Run Id */
+            run_id: number;
+            /** Started At */
+            started_at?: string | null;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "queued" | "running" | "succeeded" | "failed";
+            /** Ticker */
+            ticker: string;
+            /** Trade Insights Input Hash */
+            trade_insights_input_hash: string;
+        };
+        /**
+         * TradeInsightAiAnalysisStub
+         * @description Lightweight stub returned by POST when enqueueing per-provider rows.
+         */
+        TradeInsightAiAnalysisStub: {
+            /**
+             * Analysis Id
+             * Format: uuid
+             */
+            analysis_id: string;
+            /** Model */
+            model: string;
+            /**
+             * Provider
+             * @enum {string}
+             */
+            provider: "codex" | "claude" | "deepseek";
+            /** Reused */
+            reused: boolean;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "queued" | "running" | "succeeded" | "failed";
+        };
+        /**
+         * TradeInsightAiAntiPin
+         * @description v5.2: structured anti-pin score + scope tag.
+         *
+         *     invoked=False means anti-pin is not the thesis (e.g. structural break
+         *     or trend continuation). The validator's conviction cap (cap at C when
+         *     2/4 hold, anti-pin doesn't fire when ≤1/4) ONLY applies when
+         *     invoked=True. This closes the v5.1 issue where Claude scored 1/4 on
+         *     NVDA but correctly chose downside_break — anti-pin scoring should
+         *     have been informational only, not a conviction blocker.
+         */
+        TradeInsightAiAntiPin: {
+            /**
+             * Cap Reason
+             * @default
+             */
+            cap_reason: string;
+            /** Conditions Met */
+            conditions_met?: string[];
+            /**
+             * Conviction Cap Applied
+             * @default false
+             */
+            conviction_cap_applied: boolean;
+            /**
+             * Direction
+             * @default none
+             * @enum {string}
+             */
+            direction: "upside" | "downside" | "none";
+            /**
+             * Invoked
+             * @default false
+             */
+            invoked: boolean;
+            /**
+             * Max Score
+             * @default 4
+             */
+            max_score: number;
+            /**
+             * Score
+             * @default 0
+             */
+            score: number;
+        };
+        /** TradeInsightAiBestExpression */
+        TradeInsightAiBestExpression: {
+            /** Caveats */
+            caveats?: string[];
+            /** Idea Id */
+            idea_id: string;
+            /** Risk Flags Observed */
+            risk_flags_observed?: string[];
+            /** Role */
+            role: string;
+            /** Status Observed */
+            status_observed: string;
+            /** Structure */
+            structure: string;
+            /** Why */
+            why: string;
+        };
+        /** TradeInsightAiConflict */
+        TradeInsightAiConflict: {
+            /** Affected Idea Ids */
+            affected_idea_ids?: string[];
+            /** Description */
+            description: string;
+            /** Lens */
+            lens: string;
+            /** Severity */
+            severity: string;
+        };
+        /** TradeInsightAiDominantRead */
+        TradeInsightAiDominantRead: {
+            /** Confidence Commentary */
+            confidence_commentary: string;
+            /** Data Quality Commentary */
+            data_quality_commentary: string;
+            /** Headline */
+            headline: string;
+            /** Summary */
+            summary: string;
+        };
+        /** TradeInsightAiGuardrails */
+        TradeInsightAiGuardrails: {
+            /** No Executable Recommendations */
+            no_executable_recommendations: boolean;
+            /** Risk Flags Preserved */
+            risk_flags_preserved: boolean;
+            /** Statuses Preserved */
+            statuses_preserved: boolean;
+        };
+        /** TradeInsightAiHeadline */
+        TradeInsightAiHeadline: {
+            /** Conviction */
+            conviction: string;
+            /** Conviction Label */
+            conviction_label: string;
+            /**
+             * Directional Bias
+             * @enum {string}
+             */
+            directional_bias: "LONG_DELTA" | "SHORT_DELTA" | "WAIT";
+            /**
+             * Dte Band
+             * @enum {string}
+             */
+            dte_band: "momentum" | "standard" | "trend";
+            /**
+             * Entry State
+             * @enum {string}
+             */
+            entry_state: "ACTIVE" | "CONDITIONAL" | "NO_ENTRY";
+            /** Primary Risk */
+            primary_risk: string;
+            /** Score */
+            score: number;
+            /**
+             * Score Scale
+             * @default 100
+             */
+            score_scale: number;
+            /**
+             * Stance
+             * @enum {string}
+             */
+            stance: "bullish" | "bearish" | "neutral" | "mixed" | "wait";
+            /** Stance Label */
+            stance_label: string;
+            /**
+             * Thesis Archetype
+             * @default data_insufficient
+             * @enum {string}
+             */
+            thesis_archetype: "resistance_rejection" | "support_breakdown" | "breakout_continuation" | "pin_no_trade" | "data_insufficient";
+            /** Title */
+            title: string;
+            /** Top Reason */
+            top_reason: string;
+            /**
+             * Trade Intent
+             * @enum {string}
+             */
+            trade_intent: "directional_swing" | "range_income";
+            /**
+             * Underlying Path
+             * @enum {string}
+             */
+            underlying_path: "bullish_continuation" | "bearish_rejection" | "downside_break" | "pinned_no_directional_entry" | "data_insufficient";
+            /** Watch Trigger */
+            watch_trigger: string;
+        };
+        /** TradeInsightAiHighlight */
+        TradeInsightAiHighlight: {
+            /** Label */
+            label: string;
+            /**
+             * Note
+             * @default
+             */
+            note: string;
+            /** Source Path */
+            source_path?: string | null;
+            /** Value */
+            value: string;
+        };
+        /**
+         * TradeInsightAiLatestPair
+         * @description GET /latest response — null per provider when no succeeded row exists.
+         *
+         *     v5.2: provider_consensus is computed at read time by comparing the
+         *     two providers' headline fields whenever both have succeeded. The
+         *     UI surfaces consensus_grade + actionable_disagreement above the
+         *     [Codex] [Claude] tabs as a quality signal.
+         *
+         *     v5.3 (deepseek-decoupling, 2026-05-28): adds the deepseek slot.
+         *     DeepSeek surfaces in /latest but DOES NOT participate in
+         *     provider_consensus — that remains a 2-way codex-vs-claude comparison
+         *     (see _compute_provider_consensus docstring for the scope decision).
+         *     The UI still renders only [Codex] [Claude] tabs; the deepseek field
+         *     is queued + persisted today and ignored by the frontend until a
+         *     follow-up PR adds a [DeepSeek] tab.
+         */
+        TradeInsightAiLatestPair: {
+            claude?: components["schemas"]["TradeInsightAiAnalysisResponse"] | null;
+            codex?: components["schemas"]["TradeInsightAiAnalysisResponse"] | null;
+            /** Current Prompt Label */
+            current_prompt_label?: string | null;
+            /** Current Prompt Version */
+            current_prompt_version: string;
+            deepseek?: components["schemas"]["TradeInsightAiAnalysisResponse"] | null;
+            provider_consensus?: components["schemas"]["TradeInsightAiProviderConsensus"];
+        };
+        /** TradeInsightAiLevel */
+        TradeInsightAiLevel: {
+            /**
+             * Importance
+             * @default normal
+             */
+            importance: string;
+            /** Kind */
+            kind: string;
+            /**
+             * Note
+             * @default
+             */
+            note: string;
+            /** Price */
+            price: string;
+            /** Source Path */
+            source_path?: string | null;
+            /** Value */
+            value: string;
+        };
+        /** TradeInsightAiMetricCard */
+        TradeInsightAiMetricCard: {
+            /** Label */
+            label: string;
+            /**
+             * Note
+             * @default
+             */
+            note: string;
+            /** Source Path */
+            source_path?: string | null;
+            /**
+             * Tone
+             * @default neutral
+             */
+            tone: string;
+            /** Value */
+            value: string;
+        };
+        /**
+         * TradeInsightAiOptionLeg
+         * @description v5.3: one leg of a defined-risk option expression.
+         *
+         *     Replaces v5.2's implicit "trigger_level + long_leg_role + short_leg_role"
+         *     coupling with explicit, validator-checkable leg geometry. The
+         *     legs-strategy-match validator enforces, e.g., that a bear_put_spread
+         *     has exactly one long put + one short put with long.strike > short.strike
+         *     and matching expiry. The legs-align-triggers validator enforces that
+         *     the long leg's strike is within tolerance of entry_trigger.level OR
+         *     thesis_trigger.level — making "is the actual long-put strike 215 or
+         *     220?" a falsifiable claim against the model output.
+         *
+         *     No naked shorts: per project safety policy, credit-spread families
+         *     must always include the long protective leg. The validator rejects
+         *     a single-leg short.
+         */
+        TradeInsightAiOptionLeg: {
+            /**
+             * Expiry
+             * Format: date
+             */
+            expiry: string;
+            /**
+             * Option Type
+             * @enum {string}
+             */
+            option_type: "call" | "put";
+            /**
+             * Side
+             * @enum {string}
+             */
+            side: "long" | "short";
+            /** Strike */
+            strike: string;
+        };
+        /** TradeInsightAiOutcome */
+        TradeInsightAiOutcome: {
+            /**
+             * Analysis Produced At
+             * Format: date-time
+             */
+            analysis_produced_at: string;
+            anti_pin?: components["schemas"]["TradeInsightAiAntiPin"];
+            /** Best Expressions */
+            best_expressions?: components["schemas"]["TradeInsightAiBestExpression"][];
+            /** Conflicts */
+            conflicts?: components["schemas"]["TradeInsightAiConflict"][];
+            dominant_read: components["schemas"]["TradeInsightAiDominantRead"];
+            entry_trigger?: components["schemas"]["TradeInsightAiTriggerComponent"];
+            framework?: components["schemas"]["TradeFramework"] | null;
+            guardrails: components["schemas"]["TradeInsightAiGuardrails"];
+            headline: components["schemas"]["TradeInsightAiHeadline"];
+            invalidation?: components["schemas"]["TradeInsightAiTriggerComponent"];
+            /** Metric Cards */
+            metric_cards: components["schemas"]["TradeInsightAiMetricCard"][];
+            /** Missing Data */
+            missing_data?: string[];
+            preferred_expression?: components["schemas"]["TradeInsightAiPreferredExpression"] | null;
+            /** Rejected Ideas */
+            rejected_ideas?: components["schemas"]["TradeInsightAiRejectedIdea"][];
+            rendering: components["schemas"]["TradeInsightAiRendering"];
+            /** Required Checks */
+            required_checks?: components["schemas"]["TradeInsightAiRequiredCheck"][];
+            /** Scenario Cards */
+            scenario_cards: components["schemas"]["TradeInsightAiScenarioCard"][];
+            /** Schema Version */
+            schema_version: string;
+            /** Score Breakdown */
+            score_breakdown: components["schemas"]["TradeInsightAiScoreBreakdown"][];
+            section_cards: components["schemas"]["TradeInsightAiSectionCards"];
+            snapshot: components["schemas"]["TradeInsightAiSnapshotMeta"];
+            target_feasibility?: components["schemas"]["TradeInsightAiTargetFeasibility"];
+            thesis_trigger?: components["schemas"]["TradeInsightAiTriggerComponent"];
+            /** Ticker */
+            ticker: string;
+            trigger_evidence?: components["schemas"]["TradeInsightAiTriggerEvidence"];
+            /** Underlying Price */
+            underlying_price?: string | null;
+            vrp_assessment?: components["schemas"]["TradeInsightAiVrpAssessment"] | null;
+        };
+        /** TradeInsightAiPreferredExpression */
+        TradeInsightAiPreferredExpression: {
+            /**
+             * Estimated Entry
+             * @default
+             */
+            estimated_entry: string;
+            /** Idea Id */
+            idea_id: string;
+            /** Legs */
+            legs?: components["schemas"]["TradeInsightAiOptionLeg"][];
+            /** Management Notes */
+            management_notes?: string[];
+            /**
+             * Max Loss Observed
+             * @default
+             */
+            max_loss_observed: string;
+            /**
+             * Max Profit Observed
+             * @default
+             */
+            max_profit_observed: string;
+            /**
+             * Reward Risk
+             * @default
+             */
+            reward_risk: string;
+            /** Risk Flags Observed */
+            risk_flags_observed?: string[];
+            /** Status Observed */
+            status_observed: string;
+            strike_role?: components["schemas"]["TradeInsightAiStrikeRole"];
+            /** Structure */
+            structure: string;
+            /**
+             * Subtitle
+             * @default
+             */
+            subtitle: string;
+            /** Title */
+            title: string;
+            /** Why */
+            why: string;
+        };
+        /**
+         * TradeInsightAiPriorRow
+         * @description One row from the trade_insight_provider_archetype_priors view.
+         *
+         *     Surfaced by /api/trade-insights/priors. `hit_rate_pct` is computed
+         *     over RESOLVED outcomes only (excludes pending + expired_no_resolution)
+         *     so an all-pending cohort doesn't appear as a 0% hit rate. NULL when
+         *     no outcomes have resolved yet.
+         */
+        TradeInsightAiPriorRow: {
+            /** Directional Bias */
+            directional_bias?: string | null;
+            /** Entry State */
+            entry_state?: string | null;
+            /** Expired No Resolution Count */
+            expired_no_resolution_count: number;
+            /** Hit Rate Pct */
+            hit_rate_pct?: string | null;
+            /** Invalidation Hit Count */
+            invalidation_hit_count: number;
+            /** Median Days To Resolution */
+            median_days_to_resolution?: string | null;
+            /** Pending Count */
+            pending_count: number;
+            /** Prompt Version */
+            prompt_version: string;
+            /**
+             * Provider
+             * @enum {string}
+             */
+            provider: "codex" | "claude" | "deepseek";
+            /** Sample Count */
+            sample_count: number;
+            /** Target Hit Count */
+            target_hit_count: number;
+            /** Thesis Archetype */
+            thesis_archetype?: string | null;
+        };
+        /**
+         * TradeInsightAiPriorsResponse
+         * @description Wrapper so the endpoint can grow filter metadata + a `priors` list
+         *     without a breaking change.
+         */
+        TradeInsightAiPriorsResponse: {
+            /** Priors */
+            priors?: components["schemas"]["TradeInsightAiPriorRow"][];
+        };
+        /**
+         * TradeInsightAiProviderConsensus
+         * @description v5.2: cross-provider agreement signal computed at GET /latest time.
+         *
+         *     Not stored per row — derived by comparing the two providers' headline
+         *     fields whenever both have a succeeded row. Surfaces actionable
+         *     disagreement to the operator (e.g. "ACTIVE vs CONDITIONAL depends on
+         *     whether the latest daily close cleared 215").
+         */
+        TradeInsightAiProviderConsensus: {
+            /**
+             * Actionable Disagreement
+             * @default
+             */
+            actionable_disagreement: string;
+            /**
+             * Bias Agreement
+             * @default false
+             */
+            bias_agreement: boolean;
+            /**
+             * Consensus Grade
+             * @default missing
+             * @enum {string}
+             */
+            consensus_grade: "full" | "partial" | "divergent" | "missing";
+            /**
+             * Dte Band Agreement
+             * @default false
+             */
+            dte_band_agreement: boolean;
+            /**
+             * Entry State Agreement
+             * @default false
+             */
+            entry_state_agreement: boolean;
+            /**
+             * Path Agreement
+             * @default false
+             */
+            path_agreement: boolean;
+            /**
+             * Structure Agreement
+             * @default false
+             */
+            structure_agreement: boolean;
+        };
+        /** TradeInsightAiRejectedIdea */
+        TradeInsightAiRejectedIdea: {
+            /** Idea Id */
+            idea_id: string;
+            /** Reason */
+            reason: string;
+            /** Structure */
+            structure: string;
+        };
+        /** TradeInsightAiRendering */
+        TradeInsightAiRendering: {
+            /** Card Order */
+            card_order?: string[];
+            /** Disclaimer */
+            disclaimer: string;
+        };
+        /** TradeInsightAiRequiredCheck */
+        TradeInsightAiRequiredCheck: {
+            /**
+             * Blocks Sizing
+             * @default true
+             */
+            blocks_sizing: boolean;
+            /** Check */
+            check: string;
+            /** Reason */
+            reason: string;
+            /**
+             * Source
+             * @default
+             */
+            source: string;
+        };
+        /** TradeInsightAiScenarioCard */
+        TradeInsightAiScenarioCard: {
+            /** Case */
+            case: ("upside" | "base" | "downside") | string;
+            /** Description */
+            description: string;
+            /** Title */
+            title: string;
+            /**
+             * Tone
+             * @default neutral
+             */
+            tone: string;
+        };
+        /** TradeInsightAiScoreBreakdown */
+        TradeInsightAiScoreBreakdown: {
+            /** Max Score */
+            max_score: number;
+            /** Score */
+            score: number;
+            /** Section */
+            section: string;
+            /** Summary */
+            summary: string;
+        };
+        /** TradeInsightAiSectionCard */
+        TradeInsightAiSectionCard: {
+            /**
+             * Data Quality
+             * @default unknown
+             */
+            data_quality: string;
+            /** Highlights */
+            highlights?: components["schemas"]["TradeInsightAiHighlight"][];
+            /** Levels */
+            levels?: components["schemas"]["TradeInsightAiLevel"][];
+            /** Max Score */
+            max_score?: number | null;
+            /** Score */
+            score?: number | null;
+            /** Summary */
+            summary: string;
+            /** Title */
+            title: string;
+        };
+        /** TradeInsightAiSectionCards */
+        TradeInsightAiSectionCards: {
+            flow_positioning: components["schemas"]["TradeInsightAiSectionCard"];
+            market_structure: components["schemas"]["TradeInsightAiSectionCard"];
+            volatility: components["schemas"]["TradeInsightAiSectionCard"];
+        };
+        /** TradeInsightAiSnapshotMeta */
+        TradeInsightAiSnapshotMeta: {
+            /** Analysis Input Hash */
+            analysis_input_hash: string;
+            /** Data As Of */
+            data_as_of?: string | null;
+            /**
+             * Freshness Label
+             * @default unknown
+             */
+            freshness_label: string;
+            /** Run Id */
+            run_id: number;
+            /** Source Notes */
+            source_notes?: string[];
+            /** Trade Insights Input Hash */
+            trade_insights_input_hash: string;
+        };
+        /**
+         * TradeInsightAiStrikeRole
+         * @description v5.2: explicit market-structure roles + Decimal-strict price levels.
+         *
+         *     Levels were strings in v5.1; that let Claude emit nested dicts which
+         *     Pydantic silently stringified and rendered as JSON literals in the UI.
+         *     v5.2 coerces to Decimal via a pre-validator that knows how to extract
+         *     the strike key from a dict.
+         *
+         *     Source paths are optional but encouraged so the UI can attribute each
+         *     level to a specific key in the deterministic payload.
+         */
+        TradeInsightAiStrikeRole: {
+            /** Invalid Level */
+            invalid_level?: string | null;
+            /**
+             * Invalid Source Path
+             * @default
+             */
+            invalid_source_path: string;
+            /**
+             * Long Leg Role
+             * @default n/a
+             * @enum {string}
+             */
+            long_leg_role: "trigger_level" | "support_reclaim" | "atm_delta_anchor" | "deep_itm_proxy" | "n/a";
+            /**
+             * Short Leg Role
+             * @default n/a
+             * @enum {string}
+             */
+            short_leg_role: "target_level" | "next_call_wall" | "second_magnet" | "next_put_wall" | "next_downside_target" | "n/a";
+            /** Target Level */
+            target_level?: string | null;
+            /**
+             * Target Source Path
+             * @default
+             */
+            target_source_path: string;
+            /** Trigger Level */
+            trigger_level?: string | null;
+            /**
+             * Trigger Source Path
+             * @default
+             */
+            trigger_source_path: string;
+        };
+        /**
+         * TradeInsightAiTargetFeasibility
+         * @description v5.2: target-distance vs expected-move sanity layer.
+         *
+         *     Optional — when expected_move data is missing from the payload the
+         *     feasibility is 'missing' and the validator does not block. When
+         *     present, this surfaces whether the target is realistic within the
+         *     5-10 session hold.
+         */
+        TradeInsightAiTargetFeasibility: {
+            /** Distance To Target Pct */
+            distance_to_target_pct?: string | null;
+            /**
+             * Expected Move Available
+             * @default false
+             */
+            expected_move_available: boolean;
+            /**
+             * Expected Move Source Path
+             * @default
+             */
+            expected_move_source_path: string;
+            /**
+             * Feasibility
+             * @default missing
+             * @enum {string}
+             */
+            feasibility: "inside_expected_move" | "outside_expected_move" | "missing";
+        };
+        /**
+         * TradeInsightAiTriggerComponent
+         * @description v5.3: a single point on the trade's state machine.
+         *
+         *     The v5.2 schema overloaded `trigger_level` across two distinct
+         *     semantics (NVDA Codex emitted 220 as "broken wall — already fired",
+         *     Claude emitted 215 as "continuation entry — not yet fired"), which
+         *     is why providers split on ENTRY_STATE despite agreeing on archetype
+         *     and direction. v5.3 decomposes that into three required components —
+         *     `thesis_trigger`, `entry_trigger`, `invalidation` — each carrying its
+         *     own level, semantic meaning, and `fired` boolean evaluated against
+         *     actual daily-close evidence. ENTRY_STATE becomes a mechanical
+         *     function of the trigger booleans rather than a model judgment.
+         *
+         *     Both `thesis_trigger` and `entry_trigger` may share the same level
+         *     when the trade plan treats the broken wall as both the thesis
+         *     confirmation AND the entry signal — but their `meaning` strings
+         *     must differ, and their `fired` booleans are evaluated independently
+         *     against their own evidence rules.
+         */
+        TradeInsightAiTriggerComponent: {
+            /** Evidence Close */
+            evidence_close?: string | null;
+            /** Evidence Date */
+            evidence_date?: string | null;
+            /**
+             * Fired
+             * @default false
+             */
+            fired: boolean;
+            /** Level */
+            level?: string | null;
+            /**
+             * Meaning
+             * @default
+             */
+            meaning: string;
+            /**
+             * Source Path
+             * @default
+             */
+            source_path: string;
+        };
+        /**
+         * TradeInsightAiTriggerEvidence
+         * @description v5.2: payload-proven trigger fire evidence.
+         *
+         *     The deterministic ACTIVE_TRIGGER_EVIDENCE_RULE check uses these fields
+         *     to verify that entry_state=ACTIVE is justified by an actual completed
+         *     daily close in the payload — not by intraday spot or model inference.
+         *
+         *     trigger_fired=False is the default; the lenient coercer fills this in
+         *     by reading the latest completed stock_history row and comparing its
+         *     close to strike_role.trigger_level.
+         *
+         *     When trigger_fired=False but the model emitted entry_state=ACTIVE,
+         *     the validator rejects (or auto-downgrades) to CONDITIONAL.
+         */
+        TradeInsightAiTriggerEvidence: {
+            /** Evidence Close */
+            evidence_close?: string | null;
+            /** Evidence Close Date */
+            evidence_close_date?: string | null;
+            /**
+             * Source Path
+             * @default
+             */
+            source_path: string;
+            /**
+             * Trigger Fired
+             * @default false
+             */
+            trigger_fired: boolean;
+            /** Trigger Level */
+            trigger_level?: string | null;
+            /**
+             * Trigger Type
+             * @default unknown
+             * @enum {string}
+             */
+            trigger_type: "daily_close" | "two_session_hold" | "unknown";
+        };
+        /** TradeInsightAiVrpAssessment */
+        TradeInsightAiVrpAssessment: {
+            /** Metrics */
+            metrics?: components["schemas"]["TradeInsightAiMetricCard"][];
+            /** Reason */
+            reason: string;
+            /** Signal */
+            signal: string;
+            /** Summary */
+            summary: string;
+            /** Title */
+            title: string;
+        };
+        /** TradeInsightsAiHealth */
+        TradeInsightsAiHealth: {
+            claude: components["schemas"]["TradeInsightsAiProviderHealth"];
+            codex: components["schemas"]["TradeInsightsAiProviderHealth"];
+            deepseek: components["schemas"]["TradeInsightsAiProviderHealth"];
+        };
+        /**
+         * TradeInsightsAiProviderHealth
+         * @description Per-provider AI worker pool status.
+         */
+        TradeInsightsAiProviderHealth: {
+            /** Last Beat At */
+            last_beat_at?: string | null;
+            /** Queued Depth */
+            queued_depth: number;
+            /** Workers Expected */
+            workers_expected: number;
+            /** Workers Healthy */
+            workers_healthy: number;
+        };
+        /** TradeInsightsHeader */
+        TradeInsightsHeader: {
+            /**
+             * Badges
+             * @default []
+             */
+            badges: components["schemas"]["InsightBadge"][];
+            /**
+             * Confidence Label
+             * @default LOW
+             */
+            confidence_label: string;
+            /**
+             * Data Quality Label
+             * @default INSUFFICIENT
+             */
+            data_quality_label: string;
+            /**
+             * Dominant Bias
+             * @default NEUTRAL
+             */
+            dominant_bias: string;
+            /**
+             * Idea Count
+             * @default 0
+             */
+            idea_count: number;
+            /** Preferred Idea Id */
+            preferred_idea_id?: string | null;
+            /**
+             * Primary Setup
+             * @default NO_CLEAR_SETUP
+             */
+            primary_setup: string;
+        };
+        /** TradeInsightsResponse */
+        TradeInsightsResponse: {
+            /** As Of */
+            as_of?: string | null;
+            /**
+             * Candidate Structures
+             * @default []
+             */
+            candidate_structures: components["schemas"]["CandidateStructure"][];
+            /**
+             * Flow Table
+             * @default []
+             */
+            flow_table: components["schemas"]["ChainFlowReadRow"][];
+            header: components["schemas"]["TradeInsightsHeader"];
+            /**
+             * Mode
+             * @default research
+             */
+            mode: string;
+            /**
+             * Signal Stack
+             * @default []
+             */
+            signal_stack: components["schemas"]["InsightSignalRow"][];
+            /**
+             * @default {
+             *       "decision": "Use deterministic data only where source agreement is understood.",
+             *       "headline": "Source reconciliation unavailable",
+             *       "rows": [],
+             *       "status": "UNKNOWN"
+             *     }
+             */
+            source_reconciliation: components["schemas"]["SourceReconciliation"];
+            /**
+             * @default {
+             *       "avoid": [],
+             *       "dominant_story": "",
+             *       "required_before_sizing": []
+             *     }
+             */
+            synthesis: components["schemas"]["InsightsSynthesis"];
+            /**
+             * Term Structure Table
+             * @default []
+             */
+            term_structure_table: components["schemas"]["TermMoveRow"][];
+            /** Ticker */
+            ticker: string;
+        };
+        /** VRPAssessment */
+        VRPAssessment: {
+            /** Note */
+            note: string;
+            /** Signal */
+            signal: string;
+            /** Vrp */
+            vrp?: string | null;
+        };
+        /** ValidationError */
+        ValidationError: {
+            /** Context */
+            ctx?: Record<string, never>;
+            /** Input */
+            input?: unknown;
+            /** Location */
+            loc: (string | number)[];
+            /** Message */
+            msg: string;
+            /** Error Type */
+            type: string;
+        };
+        /**
+         * ValidationResponse
+         * @description Combined warm-store backtest + OOS notebook summary.
+         */
+        ValidationResponse: {
+            /** Backtest Csv Rows */
+            backtest_csv_rows: number;
+            /** Backtest Md */
+            backtest_md: string;
+            oos?: components["schemas"]["OosSummary"] | null;
+        };
+        /** VcgAttribution */
+        VcgAttribution: {
+            /**
+             * Model Implied
+             * @default 0
+             */
+            model_implied: number;
+            /**
+             * Vix Component
+             * @default 0
+             */
+            vix_component: number;
+            /**
+             * Vix Pct
+             * @default 0
+             */
+            vix_pct: number;
+            /**
+             * Vvix Component
+             * @default 0
+             */
+            vvix_component: number;
+            /**
+             * Vvix Pct
+             * @default 0
+             */
+            vvix_pct: number;
+        };
+        /** VcgDailyEntry */
+        VcgDailyEntry: {
+            /** Beta1 */
+            beta1?: number | null;
+            /** Beta2 */
+            beta2?: number | null;
+            /** Credit 5D Return Pct */
+            credit_5d_return_pct?: number | null;
+            /** Credit Price */
+            credit_price?: number | null;
+            /**
+             * Date
+             * Format: date
+             */
+            date: string;
+            /** Residual */
+            residual?: number | null;
+            /** Vcg */
+            vcg?: number | null;
+            /** Vcg Adj */
+            vcg_adj?: number | null;
+            /** Vix */
+            vix?: number | null;
+            /** Vvix */
+            vvix?: number | null;
+        };
+        /** VcgDailyHistoryResponse */
+        VcgDailyHistoryResponse: {
+            /**
+             * Credit Proxy
+             * @default HYG
+             */
+            credit_proxy: string;
+            /** Rows */
+            rows?: components["schemas"]["VcgDailyEntry"][];
+        };
+        /** VcgHistoryEntry */
+        VcgHistoryEntry: {
+            /** Beta1 */
+            beta1?: number | null;
+            /** Beta2 */
+            beta2?: number | null;
+            /**
+             * Bounce
+             * @default 0
+             */
+            bounce: number;
+            /**
+             * Credit
+             * @default 0
+             */
+            credit: number;
+            /** Date */
+            date: string;
+            /**
+             * Edr
+             * @default 0
+             */
+            edr: number;
+            /** Residual */
+            residual?: number | null;
+            /**
+             * Ro
+             * @default 0
+             */
+            ro: number;
+            /** Tier */
+            tier?: number | null;
+            /** Vcg */
+            vcg?: number | null;
+            /** Vcg Adj */
+            vcg_adj?: number | null;
+            /**
+             * Vix
+             * @default 0
+             */
+            vix: number;
+            /**
+             * Vvix
+             * @default 0
+             */
+            vvix: number;
+        };
+        /** VcgInterpretationCount */
+        VcgInterpretationCount: {
+            /** Interpretation */
+            interpretation: string;
+            /** N */
+            n: number;
+            /** Pct */
+            pct: number;
+        };
+        /** VcgIntradayPoint */
+        VcgIntradayPoint: {
+            /** Beta1 */
+            beta1?: number | null;
+            /** Beta2 */
+            beta2?: number | null;
+            /** Credit 5D Return Pct */
+            credit_5d_return_pct?: number | null;
+            /** Credit Price */
+            credit_price?: number | null;
+            /** Residual */
+            residual?: number | null;
+            /**
+             * Ts
+             * Format: date-time
+             */
+            ts: string;
+            /** Vcg */
+            vcg?: number | null;
+            /** Vcg Adj */
+            vcg_adj?: number | null;
+            /** Vix */
+            vix?: number | null;
+            /** Vvix */
+            vvix?: number | null;
+        };
+        /** VcgIntradayResponse */
+        VcgIntradayResponse: {
+            /** As Of */
+            as_of?: string | null;
+            /**
+             * Credit Proxy
+             * @default HYG
+             */
+            credit_proxy: string;
+            /** Sessions */
+            sessions?: components["schemas"]["VcgIntradaySession"][];
+        };
+        /** VcgIntradaySession */
+        VcgIntradaySession: {
+            /**
+             * Et Date
+             * Format: date
+             */
+            et_date: string;
+            /** Points */
+            points?: components["schemas"]["VcgIntradayPoint"][];
+        };
+        /** VcgLiveResponse */
+        VcgLiveResponse: {
+            /** Active Source */
+            active_source?: string | null;
+            /**
+             * Basis
+             * @default eod
+             * @enum {string}
+             */
+            basis: "live" | "eod";
+            /** Carried Forward */
+            carried_forward?: string[];
+            /**
+             * Credit Proxy
+             * @default HYG
+             */
+            credit_proxy: string;
+            /** Date */
+            date?: string | null;
+            /** History */
+            history?: components["schemas"]["VcgHistoryEntry"][];
+            /** Live Quotes */
+            live_quotes?: {
+                [key: string]: components["schemas"]["RegimeLiveQuote"];
+            };
+            /**
+             * Scan Time
+             * @default
+             */
+            scan_time: string;
+            signal?: components["schemas"]["VcgSignal"];
+            /**
+             * Status
+             * @default empty
+             * @enum {string}
+             */
+            status: "ok" | "empty";
+        };
+        /** VcgNamedCrashEvent */
+        VcgNamedCrashEvent: {
+            /** Date */
+            date: string;
+            /** Label */
+            label: string;
+            /** Offsets */
+            offsets: components["schemas"]["VcgNamedCrashOffset"][];
+        };
+        /**
+         * VcgNamedCrashOffset
+         * @description One row of the ±5d named-crash window for a single event.
+         */
+        VcgNamedCrashOffset: {
+            /** Beta1 */
+            beta1?: number | null;
+            /** Beta2 */
+            beta2?: number | null;
+            /** Interpretation */
+            interpretation?: string | null;
+            /** Offset Days */
+            offset_days: number;
+            /** Sign Ok */
+            sign_ok?: boolean | null;
+            /** Vcg */
+            vcg?: number | null;
+            /** Vcg Adj */
+            vcg_adj?: number | null;
+        };
+        /**
+         * VcgResponse
+         * @description Volatility-Credit Gap snapshot (latest scan).
+         */
+        VcgResponse: {
+            /**
+             * Credit Proxy
+             * @default HYG
+             */
+            credit_proxy: string;
+            /** Date */
+            date?: string | null;
+            /** History */
+            history?: components["schemas"]["VcgHistoryEntry"][];
+            /**
+             * Scan Time
+             * @default
+             */
+            scan_time: string;
+            signal?: components["schemas"]["VcgSignal"];
+            /**
+             * Status
+             * @default empty
+             * @enum {string}
+             */
+            status: "ok" | "empty";
+        };
+        /**
+         * VcgScanResponse
+         * @description Response body for POST /api/regime/vcg/scan.
+         */
+        VcgScanResponse: {
+            /**
+             * Proxy
+             * @default HYG
+             */
+            proxy: string;
+            /** Reason */
+            reason?: string | null;
+            /** Row Id */
+            row_id?: number | null;
+            /**
+             * Scanner
+             * @default vcg
+             * @constant
+             */
+            scanner: "vcg";
+            /**
+             * Status
+             * @default ok
+             * @enum {string}
+             */
+            status: "ok" | "skipped";
+        };
+        /** VcgSignal */
+        VcgSignal: {
+            /** Alpha */
+            alpha?: number | null;
+            attribution?: components["schemas"]["VcgAttribution"];
+            /** Beta1 Vvix */
+            beta1_vvix?: number | null;
+            /** Beta2 Vix */
+            beta2_vix?: number | null;
+            /**
+             * Bounce
+             * @default 0
+             */
+            bounce: number;
+            /**
+             * Credit 5D Return Pct
+             * @default 0
+             */
+            credit_5d_return_pct: number;
+            /**
+             * Credit Price
+             * @default 0
+             */
+            credit_price: number;
+            /**
+             * Edr
+             * @default 0
+             */
+            edr: number;
+            /**
+             * Interpretation
+             * @default NORMAL
+             * @enum {string}
+             */
+            interpretation: "RISK_OFF" | "EDR" | "WATCH" | "BOUNCE" | "NORMAL" | "SUPPRESSED" | "PANIC" | "INSUFFICIENT_DATA";
+            /**
+             * Pi Panic
+             * @default 0
+             */
+            pi_panic: number;
+            /**
+             * Regime
+             * @default DIVERGENCE
+             * @enum {string}
+             */
+            regime: "PANIC" | "TRANSITION" | "DIVERGENCE";
+            /** Residual */
+            residual?: number | null;
+            /**
+             * Ro
+             * @default 0
+             */
+            ro: number;
+            /**
+             * Sign Ok
+             * @default true
+             */
+            sign_ok: boolean;
+            /**
+             * Sign Suppressed
+             * @default false
+             */
+            sign_suppressed: boolean;
+            /** Tier */
+            tier?: number | null;
+            /** Vcg */
+            vcg?: number | null;
+            /** Vcg Adj */
+            vcg_adj?: number | null;
+            /**
+             * Vix
+             * @default 0
+             */
+            vix: number;
+            /**
+             * Vix Percentile Rank
+             * @description VIX level's 252-day rolling percentile rank (strict_lt tie rule). Used by the v2 absolute-vol-stress override gate. None during the 252-bar warmup or for v=1 payloads.
+             */
+            vix_percentile_rank?: number | null;
+            /**
+             * Vvix
+             * @default 0
+             */
+            vvix: number;
+            /**
+             * Vvix Percentile Rank
+             * @description VVIX level's 252-day rolling percentile rank (strict_lt tie rule). Used by the v2 absolute-vol-stress override gate.
+             */
+            vvix_percentile_rank?: number | null;
+            /**
+             * Vvix Severity
+             * @default moderate
+             * @enum {string}
+             */
+            vvix_severity: "extreme" | "elevated" | "moderate";
+        };
+        /**
+         * VcgStressHistoryEntry
+         * @description One daily row from the VCG backtest whose interpretation is a
+         *     stress level (PANIC / RISK_OFF / EDR). Drives the all-time stress
+         *     history table on the /regime VCG sub-tab.
+         */
+        VcgStressHistoryEntry: {
+            /** Date */
+            date: string;
+            /** Fwd 20D Pct */
+            fwd_20d_pct?: number | null;
+            /** Fwd 5D Pct */
+            fwd_5d_pct?: number | null;
+            /** Fwd 60D Pct */
+            fwd_60d_pct?: number | null;
+            /**
+             * Interpretation
+             * @enum {string}
+             */
+            interpretation: "PANIC" | "RISK_OFF" | "EDR";
+            /** Pi Panic */
+            pi_panic?: number | null;
+            /** Score */
+            score?: number | null;
+            /** Sign Ok */
+            sign_ok?: boolean | null;
+            /** Vcg Adj */
+            vcg_adj?: number | null;
+            /** Vix */
+            vix?: number | null;
+            /** Vix Percentile Rank */
+            vix_percentile_rank?: number | null;
+            /** Vvix */
+            vvix?: number | null;
+            /** Vvix Percentile Rank */
+            vvix_percentile_rank?: number | null;
+        };
+        /**
+         * VcgStressHistorySummary
+         * @description Aggregate forward-return stats for the stress_history table.
+         */
+        VcgStressHistorySummary: {
+            /** By Interpretation */
+            by_interpretation: components["schemas"]["VcgStressHistorySummaryRow"][];
+        };
+        /**
+         * VcgStressHistorySummaryRow
+         * @description Per-interpretation aggregate of realized forward SPX returns
+         *     across all stress days in the backtest run.
+         */
+        VcgStressHistorySummaryRow: {
+            /**
+             * Interpretation
+             * @enum {string}
+             */
+            interpretation: "PANIC" | "RISK_OFF" | "EDR";
+            /** Mean Fwd 20D Pct */
+            mean_fwd_20d_pct?: number | null;
+            /** Mean Fwd 5D Pct */
+            mean_fwd_5d_pct?: number | null;
+            /** Mean Fwd 60D Pct */
+            mean_fwd_60d_pct?: number | null;
+            /** N */
+            n: number;
+            /** Winrate 20D Pct */
+            winrate_20d_pct?: number | null;
+            /** Winrate 60D Pct */
+            winrate_60d_pct?: number | null;
+        };
+        /**
+         * VcgValidationResponse
+         * @description Latest completed VCG backtest run rendered + structured.
+         */
+        VcgValidationResponse: {
+            /** Backtest Md */
+            backtest_md: string;
+            /** Composite Version */
+            composite_version: string;
+            /** Credit Proxy */
+            credit_proxy: string;
+            /** Interpretation Distribution */
+            interpretation_distribution: components["schemas"]["VcgInterpretationCount"][];
+            /** N Days */
+            n_days: number;
+            /** Named Crash Window */
+            named_crash_window: components["schemas"]["VcgNamedCrashEvent"][];
+            /**
+             * Stress History
+             * @default []
+             */
+            stress_history: components["schemas"]["VcgStressHistoryEntry"][];
+            stress_history_summary?: components["schemas"]["VcgStressHistorySummary"] | null;
+        };
+        /** VolBackdropPoint */
+        VolBackdropPoint: {
+            /** Close */
+            close: number;
+            /**
+             * Date
+             * Format: date
+             */
+            date: string;
+        };
+        /**
+         * VolBackdropResponse
+         * @description Vol-complex time series + VIX term-structure (regime page header strip).
+         */
+        VolBackdropResponse: {
+            /** As Of */
+            as_of?: string | null;
+            /** Series */
+            series?: {
+                [key: string]: components["schemas"]["VolBackdropPoint"][];
+            };
+            /** Term Structure Ratio */
+            term_structure_ratio?: number | null;
+            /** Term Structure State */
+            term_structure_state?: string | null;
+        };
+        /** VolHeaderBlock */
+        VolHeaderBlock: {
+            /** Implied Move 30D Perc */
+            implied_move_30d_perc?: string | null;
+            /** Iv */
+            iv?: string | null;
+            /** Iv High 52W */
+            iv_high_52w?: string | null;
+            /** Iv Low 52W */
+            iv_low_52w?: string | null;
+            /** Iv Percentile 30D */
+            iv_percentile_30d?: string | null;
+            /** Iv Rank */
+            iv_rank?: string | null;
+            /** Iv Rank 1Y */
+            iv_rank_1y?: string | null;
+            /** Rv */
+            rv?: string | null;
+            /** Rv High 52W */
+            rv_high_52w?: string | null;
+            /** Rv Low 52W */
+            rv_low_52w?: string | null;
+            /** Skew 25D */
+            skew_25d?: string | null;
+            /** Vrp */
+            vrp?: string | null;
+            /**
+             * Vrp Note
+             * @default
+             */
+            vrp_note: string;
+            /**
+             * Vrp Signal
+             * @default
+             */
+            vrp_signal: string;
+        };
+        /** VolatilityProfile */
+        VolatilityProfile: {
+            /** Implied Move 30D Perc */
+            implied_move_30d_perc?: string | null;
+            /** Iv */
+            iv?: string | null;
+            /** Iv High 52W */
+            iv_high_52w?: string | null;
+            /** Iv Low 52W */
+            iv_low_52w?: string | null;
+            /** Iv Percentile 30D */
+            iv_percentile_30d?: string | null;
+            /** Iv Rank */
+            iv_rank?: string | null;
+            /** Iv Rank 1Y */
+            iv_rank_1y?: string | null;
+            /** Rv */
+            rv?: string | null;
+            /** Rv High 52W */
+            rv_high_52w?: string | null;
+            /** Rv Low 52W */
+            rv_low_52w?: string | null;
+            /** Skew 25D */
+            skew_25d?: string | null;
+            /**
+             * Term Dte To Iv
+             * @default []
+             */
+            term_dte_to_iv: [
+                number,
+                string
+            ][];
+        };
+        /** VolatilitySeriesResponse */
+        VolatilitySeriesResponse: {
+            /**
+             * As Of
+             * Format: date
+             */
+            as_of: string;
+            /** Backfill Status */
+            backfill_status: string;
+            /**
+             * Divergence
+             * @default []
+             */
+            divergence: components["schemas"]["DivergencePoint"][];
+            /**
+             * Divergence Headline
+             * @default
+             */
+            divergence_headline: string;
+            header: components["schemas"]["VolHeaderBlock"];
+            /**
+             * Hv Iv History
+             * @default []
+             */
+            hv_iv_history: components["schemas"]["IvHvPoint"][];
+            /**
+             * Iv Of Iv
+             * @default []
+             */
+            iv_of_iv: components["schemas"]["IvOfIvPoint"][];
+            /**
+             * @default {
+             *       "bins": []
+             *     }
+             */
+            iv_percentile_distribution: components["schemas"]["IvPercentileDistribution"];
+            /**
+             * @default {
+             *       "points": []
+             *     }
+             */
+            regime_quadrant: components["schemas"]["RegimeQuadrantBlock"];
+            /**
+             * Rv Spy Corr
+             * @default []
+             */
+            rv_spy_corr: components["schemas"]["RvCorrPoint"][];
+            /**
+             * Smile
+             * @default []
+             */
+            smile: components["schemas"]["SmileExpiryCurve"][];
+            /** Spot */
+            spot?: string | null;
+            /**
+             * Term Structure
+             * @default []
+             */
+            term_structure: components["schemas"]["TermStructureExpiryRow"][];
+            /** Ticker */
+            ticker: string;
+            /**
+             * Vrp Spread
+             * @default []
+             */
+            vrp_spread: components["schemas"]["VrpDailyPoint"][];
+            /**
+             * Vrp Spread Headline
+             * @default
+             */
+            vrp_spread_headline: string;
+        };
+        /** VrpDailyPoint */
+        VrpDailyPoint: {
+            /**
+             * Date
+             * Format: date
+             */
+            date: string;
+            /** Vrp */
+            vrp?: string | null;
+            /** Vrp Z 20 */
+            vrp_z_20?: string | null;
+        };
+        /** WatchlistCard */
+        WatchlistCard: {
+            /** Aggression Pct */
+            aggression_pct?: string | null;
+            /** Aum */
+            aum?: string | null;
+            gamma: components["schemas"]["GammaBlock"];
+            /** Iv Atm */
+            iv_atm?: string | null;
+            /** Iv Rank */
+            iv_rank?: string | null;
+            /** Market Cap */
+            market_cap?: string | null;
+            /** Pinned */
+            pinned: boolean;
+            positioning: components["schemas"]["PositioningBlock"];
+            queue?: components["schemas"]["QueueStatus"] | null;
+            returns: components["schemas"]["ReturnsBlock"];
+            /** Scanned At */
+            scanned_at?: string | null;
+            /** Sector */
+            sector: string;
+            setup: components["schemas"]["SetupBlock"];
+            skew: components["schemas"]["SkewBlock"];
+            /** Sort Rank */
+            sort_rank: number;
+            /** Spot */
+            spot?: string | null;
+            /** Spot Quoted At */
+            spot_quoted_at?: string | null;
+            /** Spot Source */
+            spot_source?: string | null;
+            /** Ticker */
+            ticker: string;
+        };
+        /** WatchlistMutation */
+        WatchlistMutation: {
+            /** Notes */
+            notes?: string | null;
+            /**
+             * Pinned
+             * @default false
+             */
+            pinned: boolean;
+            /** Sector */
+            sector: string;
+            /**
+             * Sort Rank
+             * @default 0
+             */
+            sort_rank: number;
+            /** Ticker */
+            ticker: string;
+        };
+        /** WatchlistPatch */
+        WatchlistPatch: {
+            /** Notes */
+            notes?: string | null;
+            /** Pinned */
+            pinned?: boolean | null;
+            /** Sector */
+            sector?: string | null;
+            /** Sort Rank */
+            sort_rank?: number | null;
+        };
+        /** WatchlistResponse */
+        WatchlistResponse: {
+            queue?: components["schemas"]["QueueSummary"];
+            /** Scanned At Max */
+            scanned_at_max?: string | null;
+            /** Scanned At Min */
+            scanned_at_min?: string | null;
+            /** Scheduler Lag Seconds */
+            scheduler_lag_seconds?: number | null;
+            /** Tickers */
+            tickers: components["schemas"]["WatchlistCard"][];
+        };
+        /**
+         * WatchlistSpot
+         * @description Lightweight live-spot row for the browser poller — the WS consumer
+         *     writes spot every ~1s; this projection avoids the full dashboard join.
+         */
+        WatchlistSpot: {
+            /** Spot */
+            spot?: string | null;
+            /** Spot Quoted At */
+            spot_quoted_at?: string | null;
+            /** Spot Source */
+            spot_source?: string | null;
+            /** Ticker */
+            ticker: string;
+        };
+        /** WatchlistSpotsResponse */
+        WatchlistSpotsResponse: {
+            /** Spots */
+            spots?: components["schemas"]["WatchlistSpot"][];
+        };
+        /** WorkerHealth */
+        WorkerHealth: {
+            /** Heartbeat Name */
+            heartbeat_name: string;
+            /** Index */
+            index: number;
+            /** Label */
+            label: string;
+            /** Lag Seconds */
+            lag_seconds?: number | null;
+            /** Last Beat At */
+            last_beat_at?: string | null;
+            /**
+             * Role
+             * @enum {string}
+             */
+            role: "uw" | "massive" | "ai";
+        };
+        /**
+         * WsConsumerHealth
+         * @description Spot WS consumer status (xenon primary / massive fallback), surfaced
+         *     for the HealthPanel.
+         *
+         *     ``healthy`` is true when:
+         *       * the market is closed (no ticks are expected), OR
+         *       * ``last_flush_at`` is within ``massive_ws_heartbeat_stale_after_seconds``.
+         *
+         *     ``active_source`` tells which feed the consumer is connected to —
+         *     ``"xenon_ws"`` (primary) or ``"massive.com_ws"`` (fallback); ``None``
+         *     before the first connection. ``reason`` carries the short label the UI
+         *     displays under the row.
+         */
+        WsConsumerHealth: {
+            /** Active Source */
+            active_source?: string | null;
+            /** Connection Started At */
+            connection_started_at?: string | null;
+            /** Healthy */
+            healthy: boolean;
+            /** Last Error */
+            last_error?: string | null;
+            /** Last Flush At */
+            last_flush_at?: string | null;
+            /** Last Tick Age Seconds */
+            last_tick_age_seconds?: number | null;
+            /** Last Tick At */
+            last_tick_at?: string | null;
+            /** Reason */
+            reason?: string | null;
+            /**
+             * Ticks Flushed
+             * @default 0
+             */
+            ticks_flushed: number;
+            /**
+             * Ticks Received
+             * @default 0
+             */
+            ticks_received: number;
+        };
+        /** GexLevel */
+        uw_scan__api__schemas__GexLevel: {
+            /** Distance */
+            distance?: number | null;
+            /** Distance Pct */
+            distance_pct?: number | null;
+            /** Gamma */
+            gamma?: number | null;
+            /** Strike */
+            strike?: number | null;
+        };
+        /**
+         * GexLevel
+         * @description One labeled level on the GEX curve (e.g. CALL WALL, PUT WALL, MAX MAGNET).
+         *
+         *     `gamma_per_dollar` is the per-strike net_gex used as the "$N per $1" sensitivity
+         *     figure on the tile — the dollar value of dealer hedging triggered by a $1 move.
+         */
+        uw_scan__models__GexLevel: {
+            /** Gamma Per Dollar */
+            gamma_per_dollar?: string | null;
+            /** Net Gex */
+            net_gex?: string | null;
+            /** Pct From Spot */
+            pct_from_spot?: string | null;
+            /** Strike */
+            strike: string;
+        };
+    };
+    responses: never;
+    parameters: never;
+    requestBodies: never;
+    headers: never;
+    pathItems: never;
 }
 export type $defs = Record<string, never>;
 export interface operations {
-  get_cockpit_dealer_api_cockpit__ticker__dealer_get: {
-    parameters: {
-      query?: {
-        asof?: string | null;
-      };
-      header?: never;
-      path: {
-        ticker: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["CockpitDealerResponse"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  get_cockpit_flow_im_api_cockpit__ticker__flow_im_get: {
-    parameters: {
-      query?: {
-        asof?: string | null;
-      };
-      header?: never;
-      path: {
-        ticker: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["CockpitFlowImResponse"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  get_cockpit_state_api_cockpit__ticker__state_get: {
-    parameters: {
-      query?: {
-        asof?: string | null;
-      };
-      header?: never;
-      path: {
-        ticker: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["CockpitStateResponse"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  get_cockpit_surface_api_cockpit__ticker__surface_get: {
-    parameters: {
-      query?: {
-        asof?: string | null;
-      };
-      header?: never;
-      path: {
-        ticker: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["CockpitSurfaceResponse"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  get_cockpit_vrp_api_cockpit__ticker__vrp_get: {
-    parameters: {
-      query?: {
-        asof?: string | null;
-      };
-      header?: never;
-      path: {
-        ticker: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["CockpitVrpResponse"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  get_gauge_api_gold_gauge_get: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["GoldGaugeResponse"];
-        };
-      };
-    };
-  };
-  get_input_series_api_gold_inputs__series_id__get: {
-    parameters: {
-      query?: {
-        from?: string | null;
-        to?: string | null;
-      };
-      header?: never;
-      path: {
-        series_id: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["GoldInputSeriesResponse"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  get_lens_api_gold_lenses__lens_id__get: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        lens_id: "structural" | "cyclical" | "valuation";
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["GoldLensResponse"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  get_replay_api_gold_replay_get: {
-    parameters: {
-      query: {
-        /** @description Reconstruct posture for this obs_date */
-        as_of: string;
-      };
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["GoldStateResponse"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  get_state_api_gold_state_get: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["GoldStateResponse"];
-        };
-      };
-    };
-  };
-  health_api_health_get: {
-    parameters: {
-      query?: {
-        source?: "uw" | "massive";
-        record_window_hours?: number | null;
-        record_min_coverage?: number;
-        record_tables?: string | null;
-      };
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HealthResponse"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  current_benchmark_api_health_benchmark_current_get: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["BenchmarkCurrentResponse"];
-        };
-      };
-    };
-  };
-  benchmark_history_api_health_benchmark_history_get: {
-    parameters: {
-      query?: {
-        hours?: number;
-      };
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["BenchmarkHistoryResponse"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  get_job_api_jobs__job_id__get: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        job_id: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["JobStatus"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  get_ohlc_api_ohlc__ticker__get: {
-    parameters: {
-      query?: {
-        days?: number;
-      };
-      header?: never;
-      path: {
-        ticker: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["OhlcRow"][];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  provider_usage_endpoints_api_provider_usage_endpoints_get: {
-    parameters: {
-      query?: {
-        provider?: "uw" | "massive" | "all";
-      };
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["ProviderUsageBreakdownResponse"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  provider_usage_requests_api_provider_usage_requests_get: {
-    parameters: {
-      query?: {
-        provider?: "uw" | "massive" | "all";
-        ticker?: string | null;
-        status_family?:
-          | ("2xx" | "3xx" | "4xx" | "5xx" | "transport_error")
-          | null;
-        limit?: number;
-      };
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["ProviderUsageRequestsResponse"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  provider_usage_summary_api_provider_usage_summary_get: {
-    parameters: {
-      query?: {
-        provider?: "uw" | "massive" | "all";
-      };
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["ProviderUsageSummaryResponse"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  provider_usage_tickers_api_provider_usage_tickers_get: {
-    parameters: {
-      query?: {
-        provider?: "uw" | "massive" | "all";
-      };
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["ProviderUsageBreakdownResponse"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  rates_snapshot_api_rates_snapshot_get: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["RatesSnapshotResponse"];
-        };
-      };
-    };
-  };
-  get_regime_api_regime_get: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["CriResponse"];
-        };
-      };
-    };
-  };
-  get_canary_latest_api_regime_canary_get: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["CanaryLatestResponse"];
-        };
-      };
-    };
-  };
-  get_canary_history_api_regime_canary_history_get: {
-    parameters: {
-      query?: {
-        days?: number;
-      };
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["CanaryHistoryResponse"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  get_canary_validation_api_regime_canary_validation_get: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["CanaryValidationResponse"];
-        };
-      };
-    };
-  };
-  get_cri_history_api_regime_cri_history_get: {
-    parameters: {
-      query?: {
-        days?: number;
-      };
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["CriDailyHistoryResponse"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  get_cri_intraday_api_regime_cri_intraday_get: {
-    parameters: {
-      query?: {
-        sessions?: number;
-        rth_only?: boolean;
-      };
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["CriIntradayResponse"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  get_cri_live_api_regime_cri_live_get: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["CriLiveResponse"];
-        };
-      };
-    };
-  };
-  get_dealer_regime_api_regime_dealer_get: {
-    parameters: {
-      query: {
-        ticker: string;
-      };
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["DealerRegimeResponse"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  get_gex_api_regime_gex_get: {
-    parameters: {
-      query?: {
-        ticker?: string;
-      };
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["GexResponse"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  get_gex_intraday_api_regime_gex_intraday_get: {
-    parameters: {
-      query?: {
-        ticker?: string;
-        sessions?: number;
-        rth_only?: boolean;
-      };
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["GexIntradayResponse"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  trigger_gex_scan_api_regime_gex_scan_post: {
-    parameters: {
-      query?: {
-        ticker?: string;
-      };
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      202: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": {
-            [key: string]: unknown;
-          };
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  get_grg_api_regime_grg_get: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["GrgResponse"];
-        };
-      };
-    };
-  };
-  trigger_grg_scan_api_regime_grg_scan_post: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      202: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["GrgScanResponse"];
-        };
-      };
-    };
-  };
-  get_guidance_api_regime_guidance_get: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["GuidanceResponse"];
-        };
-      };
-    };
-  };
-  get_regime_quotes_api_regime_quotes_get: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["RegimeQuotesResponse"];
-        };
-      };
-    };
-  };
-  trigger_cri_scan_api_regime_scan_post: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      202: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["CriScanResponse"];
-        };
-      };
-    };
-  };
-  get_validation_api_regime_validation_get: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["ValidationResponse"];
-        };
-      };
-    };
-  };
-  get_vcg_api_regime_vcg_get: {
-    parameters: {
-      query?: {
-        proxy?: string;
-      };
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["VcgResponse"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  get_vcg_validation_api_regime_vcg_validation_get: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["VcgValidationResponse"];
-        };
-      };
-    };
-  };
-  get_vcg_history_api_regime_vcg_history_get: {
-    parameters: {
-      query?: {
-        proxy?: string;
-        days?: number;
-      };
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["VcgDailyHistoryResponse"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  get_vcg_intraday_api_regime_vcg_intraday_get: {
-    parameters: {
-      query?: {
-        proxy?: string;
-        sessions?: number;
-        rth_only?: boolean;
-      };
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["VcgIntradayResponse"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  get_vcg_live_api_regime_vcg_live_get: {
-    parameters: {
-      query?: {
-        proxy?: string;
-      };
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["VcgLiveResponse"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  trigger_vcg_scan_api_regime_vcg_scan_post: {
-    parameters: {
-      query?: {
-        proxy?: string;
-      };
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      202: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["VcgScanResponse"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  get_vol_backdrop_api_regime_vol_backdrop_get: {
-    parameters: {
-      query?: {
-        days?: number;
-      };
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["VolBackdropResponse"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  get_vrp_harvest_api_regime_vrp_harvest_get: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["VrpHarvestResponse"];
-        };
-      };
-    };
-  };
-  get_scanner_api_scanner_get: {
-    parameters: {
-      query?: {
-        tier_1_only?: boolean;
-        type_f_only?: boolean;
-        sector?: string | null;
-        freshness_hours?: number | null;
-      };
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["ScannerResponse"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  get_scanner_discover_api_scanner_discover_get: {
-    parameters: {
-      query?: {
-        limit?: number;
-      };
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["DiscoveryResponse"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  get_stock_api_stock__ticker__get: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        ticker: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["SingleStockReport"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  get_stock_history_api_stock__ticker__history_get: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        ticker: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["StockHistoryResponse"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  list_runs_api_stock__ticker__runs_get: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        ticker: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": {
-            [key: string]: unknown;
-          }[];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  get_specific_run_api_stock__ticker__runs__run_id__get: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        ticker: string;
-        run_id: number;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["SingleStockReport"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  get_skew_analysis_api_stock__ticker__skew_get: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        ticker: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["SkewAnalysisResponse"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  get_trade_insights_api_stock__ticker__trade_insights_get: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        ticker: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["TradeInsightsResponse"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  post_trade_insights_ai_analysis_api_stock__ticker__trade_insights_ai_analysis_post: {
-    parameters: {
-      query?: {
-        kind?: "insights" | "blast";
-      };
-      header?: never;
-      path: {
-        ticker: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: {
-      content: {
-        "application/json":
-          | components["schemas"]["TradeInsightAiAnalysisRequest"]
-          | null;
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      202: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["TradeInsightAiAnalysisEnqueueResponse"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  get_latest_trade_insights_ai_analysis_api_stock__ticker__trade_insights_ai_analysis_latest_get: {
-    parameters: {
-      query?: {
-        kind?: "insights" | "blast";
-      };
-      header?: never;
-      path: {
-        ticker: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["TradeInsightAiLatestPair"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  get_trade_insights_ai_analysis_api_stock__ticker__trade_insights_ai_analysis__analysis_id__get: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        ticker: string;
-        analysis_id: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["TradeInsightAiAnalysisResponse"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  get_volatility_series_api_stock__ticker__volatility_series_get: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        ticker: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["VolatilitySeriesResponse"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  get_trade_insight_priors_api_trade_insights_priors_get: {
-    parameters: {
-      query?: {
-        provider?: string | null;
-        prompt_version?: string | null;
-        archetype?: string | null;
-        bias?: string | null;
-        entry_state?: string | null;
-      };
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["TradeInsightAiPriorsResponse"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  get_watchlist_api_watchlist_get: {
-    parameters: {
-      query?: {
-        sector?: string | null;
-        /** @description e.g. 'C-bull', 'C-bear', 'F-MULTI', 'NEUTRAL' */
-        setup?: string | null;
-        fresh_within_minutes?: number | null;
-      };
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["WatchlistResponse"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  post_watchlist_api_watchlist_post: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["WatchlistMutation"];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      201: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": {
-            [key: string]: unknown;
-          };
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  get_watchlist_queue_api_watchlist_queue_get: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["QueueSummary"];
-        };
-      };
-    };
-  };
-  enqueue_rescan_all_api_watchlist_rescan_all_post: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: {
-      content: {
-        "application/json": components["schemas"]["RescanAllRequest"] | null;
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      202: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["JobStatus"][];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  get_watchlist_spots_api_watchlist_spots_get: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["WatchlistSpotsResponse"];
-        };
-      };
-    };
-  };
-  delete_watchlist_api_watchlist__ticker__delete: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        ticker: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      204: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  patch_watchlist_api_watchlist__ticker__patch: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        ticker: string;
-      };
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["WatchlistPatch"];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": {
-            [key: string]: unknown;
-          };
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  enqueue_rescan_api_watchlist__ticker__rescan_post: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        ticker: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      202: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["JobStatus"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
+    get_cockpit_dealer_api_cockpit__ticker__dealer_get: {
+        parameters: {
+            query?: {
+                asof?: string | null;
+            };
+            header?: never;
+            path: {
+                ticker: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CockpitDealerResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_cockpit_flow_im_api_cockpit__ticker__flow_im_get: {
+        parameters: {
+            query?: {
+                asof?: string | null;
+            };
+            header?: never;
+            path: {
+                ticker: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CockpitFlowImResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_cockpit_state_api_cockpit__ticker__state_get: {
+        parameters: {
+            query?: {
+                asof?: string | null;
+            };
+            header?: never;
+            path: {
+                ticker: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CockpitStateResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_cockpit_surface_api_cockpit__ticker__surface_get: {
+        parameters: {
+            query?: {
+                asof?: string | null;
+            };
+            header?: never;
+            path: {
+                ticker: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CockpitSurfaceResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_cockpit_vrp_api_cockpit__ticker__vrp_get: {
+        parameters: {
+            query?: {
+                asof?: string | null;
+            };
+            header?: never;
+            path: {
+                ticker: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CockpitVrpResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_gauge_api_gold_gauge_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GoldGaugeResponse"];
+                };
+            };
+        };
+    };
+    get_input_series_api_gold_inputs__series_id__get: {
+        parameters: {
+            query?: {
+                from?: string | null;
+                to?: string | null;
+            };
+            header?: never;
+            path: {
+                series_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GoldInputSeriesResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_lens_api_gold_lenses__lens_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                lens_id: "structural" | "cyclical" | "valuation";
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GoldLensResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_replay_api_gold_replay_get: {
+        parameters: {
+            query: {
+                /** @description Reconstruct posture for this obs_date */
+                as_of: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GoldStateResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_state_api_gold_state_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GoldStateResponse"];
+                };
+            };
+        };
+    };
+    health_api_health_get: {
+        parameters: {
+            query?: {
+                source?: "uw" | "massive";
+                record_window_hours?: number | null;
+                record_min_coverage?: number;
+                record_tables?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HealthResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    current_benchmark_api_health_benchmark_current_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BenchmarkCurrentResponse"];
+                };
+            };
+        };
+    };
+    benchmark_history_api_health_benchmark_history_get: {
+        parameters: {
+            query?: {
+                hours?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BenchmarkHistoryResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_job_api_jobs__job_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                job_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JobStatus"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_ohlc_api_ohlc__ticker__get: {
+        parameters: {
+            query?: {
+                days?: number;
+            };
+            header?: never;
+            path: {
+                ticker: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OhlcRow"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    provider_usage_endpoints_api_provider_usage_endpoints_get: {
+        parameters: {
+            query?: {
+                provider?: "uw" | "massive" | "all";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProviderUsageBreakdownResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    provider_usage_requests_api_provider_usage_requests_get: {
+        parameters: {
+            query?: {
+                provider?: "uw" | "massive" | "all";
+                ticker?: string | null;
+                status_family?: ("2xx" | "3xx" | "4xx" | "5xx" | "transport_error") | null;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProviderUsageRequestsResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    provider_usage_summary_api_provider_usage_summary_get: {
+        parameters: {
+            query?: {
+                provider?: "uw" | "massive" | "all";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProviderUsageSummaryResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    provider_usage_tickers_api_provider_usage_tickers_get: {
+        parameters: {
+            query?: {
+                provider?: "uw" | "massive" | "all";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProviderUsageBreakdownResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    rates_snapshot_api_rates_snapshot_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RatesSnapshotResponse"];
+                };
+            };
+        };
+    };
+    get_regime_api_regime_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CriResponse"];
+                };
+            };
+        };
+    };
+    get_canary_latest_api_regime_canary_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CanaryLatestResponse"];
+                };
+            };
+        };
+    };
+    get_canary_history_api_regime_canary_history_get: {
+        parameters: {
+            query?: {
+                days?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CanaryHistoryResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_canary_validation_api_regime_canary_validation_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CanaryValidationResponse"];
+                };
+            };
+        };
+    };
+    get_cri_history_api_regime_cri_history_get: {
+        parameters: {
+            query?: {
+                days?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CriDailyHistoryResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_cri_intraday_api_regime_cri_intraday_get: {
+        parameters: {
+            query?: {
+                sessions?: number;
+                rth_only?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CriIntradayResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_cri_live_api_regime_cri_live_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CriLiveResponse"];
+                };
+            };
+        };
+    };
+    get_dealer_regime_api_regime_dealer_get: {
+        parameters: {
+            query: {
+                ticker: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DealerRegimeResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_gex_api_regime_gex_get: {
+        parameters: {
+            query?: {
+                ticker?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GexResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_gex_intraday_api_regime_gex_intraday_get: {
+        parameters: {
+            query?: {
+                ticker?: string;
+                sessions?: number;
+                rth_only?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GexIntradayResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    trigger_gex_scan_api_regime_gex_scan_post: {
+        parameters: {
+            query?: {
+                ticker?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_grg_api_regime_grg_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GrgResponse"];
+                };
+            };
+        };
+    };
+    trigger_grg_scan_api_regime_grg_scan_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GrgScanResponse"];
+                };
+            };
+        };
+    };
+    get_guidance_api_regime_guidance_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GuidanceResponse"];
+                };
+            };
+        };
+    };
+    get_regime_quotes_api_regime_quotes_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RegimeQuotesResponse"];
+                };
+            };
+        };
+    };
+    trigger_cri_scan_api_regime_scan_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CriScanResponse"];
+                };
+            };
+        };
+    };
+    get_validation_api_regime_validation_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationResponse"];
+                };
+            };
+        };
+    };
+    get_vcg_api_regime_vcg_get: {
+        parameters: {
+            query?: {
+                proxy?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VcgResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_vcg_validation_api_regime_vcg_validation_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VcgValidationResponse"];
+                };
+            };
+        };
+    };
+    get_vcg_history_api_regime_vcg_history_get: {
+        parameters: {
+            query?: {
+                proxy?: string;
+                days?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VcgDailyHistoryResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_vcg_intraday_api_regime_vcg_intraday_get: {
+        parameters: {
+            query?: {
+                proxy?: string;
+                sessions?: number;
+                rth_only?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VcgIntradayResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_vcg_live_api_regime_vcg_live_get: {
+        parameters: {
+            query?: {
+                proxy?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VcgLiveResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    trigger_vcg_scan_api_regime_vcg_scan_post: {
+        parameters: {
+            query?: {
+                proxy?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VcgScanResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_vol_backdrop_api_regime_vol_backdrop_get: {
+        parameters: {
+            query?: {
+                days?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VolBackdropResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_scanner_api_scanner_get: {
+        parameters: {
+            query?: {
+                tier_1_only?: boolean;
+                type_f_only?: boolean;
+                sector?: string | null;
+                freshness_hours?: number | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ScannerResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_scanner_discover_api_scanner_discover_get: {
+        parameters: {
+            query?: {
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DiscoveryResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_stock_api_stock__ticker__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                ticker: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SingleStockReport"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_stock_history_api_stock__ticker__history_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                ticker: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StockHistoryResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_runs_api_stock__ticker__runs_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                ticker: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    }[];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_specific_run_api_stock__ticker__runs__run_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                ticker: string;
+                run_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SingleStockReport"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_skew_analysis_api_stock__ticker__skew_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                ticker: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SkewAnalysisResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_trade_insights_api_stock__ticker__trade_insights_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                ticker: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TradeInsightsResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    post_trade_insights_ai_analysis_api_stock__ticker__trade_insights_ai_analysis_post: {
+        parameters: {
+            query?: {
+                kind?: "insights" | "blast";
+            };
+            header?: never;
+            path: {
+                ticker: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["TradeInsightAiAnalysisRequest"] | null;
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TradeInsightAiAnalysisEnqueueResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_latest_trade_insights_ai_analysis_api_stock__ticker__trade_insights_ai_analysis_latest_get: {
+        parameters: {
+            query?: {
+                kind?: "insights" | "blast";
+            };
+            header?: never;
+            path: {
+                ticker: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TradeInsightAiLatestPair"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_trade_insights_ai_analysis_api_stock__ticker__trade_insights_ai_analysis__analysis_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                ticker: string;
+                analysis_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TradeInsightAiAnalysisResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_volatility_series_api_stock__ticker__volatility_series_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                ticker: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VolatilitySeriesResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_trade_insight_priors_api_trade_insights_priors_get: {
+        parameters: {
+            query?: {
+                provider?: string | null;
+                prompt_version?: string | null;
+                archetype?: string | null;
+                bias?: string | null;
+                entry_state?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TradeInsightAiPriorsResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_watchlist_api_watchlist_get: {
+        parameters: {
+            query?: {
+                sector?: string | null;
+                /** @description e.g. 'C-bull', 'C-bear', 'F-MULTI', 'NEUTRAL' */
+                setup?: string | null;
+                fresh_within_minutes?: number | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WatchlistResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    post_watchlist_api_watchlist_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WatchlistMutation"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_watchlist_queue_api_watchlist_queue_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["QueueSummary"];
+                };
+            };
+        };
+    };
+    enqueue_rescan_all_api_watchlist_rescan_all_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["RescanAllRequest"] | null;
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JobStatus"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_watchlist_spots_api_watchlist_spots_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WatchlistSpotsResponse"];
+                };
+            };
+        };
+    };
+    delete_watchlist_api_watchlist__ticker__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                ticker: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    patch_watchlist_api_watchlist__ticker__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                ticker: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WatchlistPatch"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    enqueue_rescan_api_watchlist__ticker__rescan_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                ticker: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JobStatus"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
 }
