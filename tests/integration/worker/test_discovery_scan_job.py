@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import date, datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal
 
 from uw_scan.models import DarkPoolPrint, FlowAlert
@@ -57,7 +57,10 @@ def test_discovery_scan_persists_snapshots_and_dp(seeded_db_empty_cards, monkeyp
             DarkPoolPrint(
                 ticker=ticker,
                 tracking_id=abs(hash((ticker, i))) % 1_000_000,
-                executed_at=datetime(2026, 6, 15, 13, i, tzinfo=timezone.utc),
+                # Relative to NOW so the prints always fall inside
+                # fetch_dark_pool_window's 5-day rolling window (was a fixed
+                # 2026-06-15 date-bomb that broke once the calendar passed it).
+                executed_at=datetime.now(timezone.utc) - timedelta(minutes=i),
                 price=Decimal("10.00"),
                 size=5000,
                 premium=Decimal("50000"),
