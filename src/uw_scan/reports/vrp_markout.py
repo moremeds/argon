@@ -13,12 +13,15 @@ trading-day forward read — is reimplemented here (small, pure, self-contained)
 
 from __future__ import annotations
 
+import logging
 from collections import defaultdict
 from datetime import date as _date
+from typing import Any
 
-# (Tasks 3 and 4 append more imports — defaultdict, logging, typing.Any, and the
-# asset-class/Repository imports — each in the task that first uses them, so every
-# task's commit stays lint-clean.)
+from uw_scan.cards.skew_first_principles import asset_class_baseline
+from uw_scan.storage.repository import Repository
+
+log = logging.getLogger(__name__)
 
 # --- Signal thresholds (spec §Signal) -------------------------------------
 RICH_Z = 1.0
@@ -172,3 +175,102 @@ def _walkforward_harvest(
         "survives_walkforward": survives_wf,
         "survives_window_gate": survives_window,
     }
+
+
+def _all_vrp_tickers(repo: Repository) -> list[str]:
+    with repo.conn.cursor() as cur:
+        cur.execute(
+            f"SELECT DISTINCT ticker FROM {repo._schema}.vrp_daily ORDER BY ticker"
+        )
+        return [r[0] for r in cur.fetchall()]
+
+
+def _load_vrp_series(repo: Repository, ticker: str) -> list[dict]:
+    sql = (
+        "SELECT market_date, iv, rv, vrp_z_20 "
+        f"FROM {repo._schema}.vrp_daily WHERE ticker = %s ORDER BY market_date ASC"
+    )
+    with repo.conn.cursor() as cur:
+        cur.execute(sql, (ticker,))
+        cols = [d.name for d in cur.description or []]
+        return [dict(zip(cols, row, strict=False)) for row in cur.fetchall()]
+
+
+def run_vrp_markout(*, repo: Repository, min_n: int = MIN_N) -> dict[str, Any]:
+    """Score the realized VRP harvest per (asset_class, deviation_class) bucket
+    and FULLY REWRITE vrp_harvest_verdicts (prior rows are cleared in the same
+    transaction, so a bucket that loses all data never keeps serving a stale
+    verdict). Idempotent. Read-only over vrp_daily + flow_events; writes verdicts.
+    The decision consumer keys on the RICH bucket, but all buckets are scored and
+    recorded so a flat (no-edge) result stays legible via mean_realized_vrp /
+    rich_cheap_spread (spec §Verdict, kill criteria)."""
+    today = _date.today()
+    tickers = _all_vrp_tickers(repo)
+
+    by_bucket: dict[tuple[str, str], list[dict]] = defaultdict(list)
+    scored_tickers = 0
+    for ticker in tickers:
+        rows = _load_vrp_series(repo, ticker)
+        if not rows:
+            continue
+        sector = repo.fetch_watchlist_sector(ticker)
+        asset_class = asset_class_baseline(ticker, sector=sector)["asset_class"]
+        earnings = repo.fetch_known_earnings_dates(ticker)
+        # AC2 safeguard (design-decision note 1): a single_name with no
+        # reconstructed earnings calendar cannot have its (t, t+20] earnings
+        # windows excluded → it must NOT contribute (an unexcluded earnings
+        # window inflates the harvest and would manufacture a false SELLABLE).
+        # index_macro / sector_etf / credit legitimately have no earnings.
+        if asset_class == "single_name" and not earnings:
+            log.warning(
+                "vrp_markout: skipping single_name %s — no earnings coverage "
+                "to honor the (t, t+20] exclusion",
+                ticker,
+            )
+            continue
+        scored_tickers += 1
+        for o in _harvest_obs(rows, earnings=earnings):
+            by_bucket[(asset_class, o["deviation_class"])].append(o)
+
+    scored: dict[tuple[str, str], dict] = {
+        key: _walkforward_harvest(obs, min_n=min_n) for key, obs in by_bucket.items()
+    }
+
+    # rich_cheap_spread per asset class = mean(RICH) - mean(CHEAP); None if either
+    # bucket is absent. Means are descriptive (computed for any n >= 1), so the
+    # spread stays legible even for sub-min_n buckets. Attached to every bucket
+    # row of the asset class.
+    spread_by_ac: dict[str, float | None] = {}
+    for ac in {ac for (ac, _dev) in by_bucket}:
+        rich = scored.get((ac, "RICH"), {}).get("mean_realized_vrp")
+        cheap = scored.get((ac, "CHEAP"), {}).get("mean_realized_vrp")
+        spread_by_ac[ac] = (
+            rich - cheap if rich is not None and cheap is not None else None
+        )
+
+    written = 0
+    # Full rewrite: clear prior verdicts first, atomically with the re-inserts
+    # (single commit at the end) so readers never see a partial set.
+    with repo.conn.cursor() as cur:
+        cur.execute(f"DELETE FROM {repo._schema}.vrp_harvest_verdicts")
+    for (ac, dev), s in scored.items():
+        survives_wf = bool(s["survives_walkforward"])
+        survives_gate = bool(s["survives_window_gate"])
+        verdict = "HARVEST_SELLABLE" if (survives_wf and survives_gate) else "NONE"
+        repo.upsert_vrp_harvest_verdict(
+            asset_class=ac,
+            deviation_class=dev,
+            verdict=verdict,
+            mean_realized_vrp=s["mean_realized_vrp"],
+            mean_holdout=s["mean_holdout"],
+            rich_cheap_spread=spread_by_ac.get(ac),
+            n=s["n"],
+            n_holdout=s["n_holdout"],
+            survives_walkforward=survives_wf,
+            survives_window_gate=survives_gate,
+            confidence="med" if verdict == "HARVEST_SELLABLE" else None,
+            as_of=today,
+        )
+        written += 1
+    repo.conn.commit()
+    return {"buckets_written": written, "tickers": scored_tickers}
