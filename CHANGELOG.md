@@ -7,6 +7,9 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+## [0.2.0] — 2026-06-21
+
+
 ### Added
 
 - VRP harvest markout (`reports/vrp_markout.py`, migration `079_vrp_harvest_verdicts`,
@@ -18,7 +21,6 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   (`HARVEST_SELLABLE` / `NONE`) persist nightly at 18:50 ET (massive-0 worker) to
   `vrp_harvest_verdicts`; the RICH−CHEAP spread is recorded so a flat (no-edge) result
   stays legible.
-
 ## [0.1.2] — 2026-06-18
 
 
