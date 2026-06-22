@@ -25,6 +25,7 @@ left out of this slice.
 
 from __future__ import annotations
 
+import logging
 from collections import defaultdict
 from dataclasses import dataclass
 from datetime import date as _date
@@ -35,6 +36,8 @@ from typing import Any
 from uw_scan.reports.vrp_macro_drawdown import _Loaded, load_index_vol
 from uw_scan.reports.vrp_macro_harvest import _settle
 from uw_scan.reports.vrp_structure import CostModel, build_bull_put_spread
+
+log = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
@@ -156,7 +159,8 @@ def backtest_laddered(
                 short_delta=cfg.short_delta,
                 wing_delta=cfg.wing_delta,
             )
-        except ValueError:
+        except ValueError as exc:  # degenerate strikes — skip this rung
+            log.debug("bull-put-spread build skipped on %s: %s", d, repr(exc))
             continue
         _net, ror, _breached, exit_date, _spot = _settle(
             st, pi, cfg.hold_days, adj, iv_map, r, cost=cost, contracts=1
