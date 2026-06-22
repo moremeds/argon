@@ -1,4 +1,8 @@
-import type { paths } from "./types";
+import type { components, paths } from "./types";
+
+type VrpCandidatesResponse = components["schemas"]["VrpCandidatesResponse"];
+type VrpBacktestResponse = components["schemas"]["VrpBacktestResponse"];
+type VrpPaperResponse = components["schemas"]["VrpPaperResponse"];
 
 // URL-agnostic base. In the browser, use a relative URL so requests go back
 // through whatever origin served the page (Tailnet IP, MagicDNS, Cloudflare
@@ -277,6 +281,14 @@ export const api = {
     ),
   regimeVcg: (): Promise<RegimeVcgResponse> =>
     _fetch<RegimeVcgResponse>(`/api/regime/vcg`),
+  vrpCandidates: (): Promise<VrpCandidatesResponse> =>
+    _fetch<VrpCandidatesResponse>(`/api/vrp/candidates`),
+  vrpBacktest: (holdDays?: number): Promise<VrpBacktestResponse> =>
+    _fetch<VrpBacktestResponse>(
+      `/api/vrp/backtest${holdDays != null ? `?hold_days=${holdDays}` : ""}`,
+    ),
+  vrpPaper: (): Promise<VrpPaperResponse> =>
+    _fetch<VrpPaperResponse>(`/api/vrp/paper`),
 };
 
 export type {
