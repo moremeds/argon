@@ -71,6 +71,7 @@ from .skew import _SkewMixin
 from .trade_insights_ai import _TradeInsightsAiMixin
 from .volatility_raw import _VolatilityRawMixin
 from .volatility_v2 import _VolatilityV2Mixin
+from .vrp_macro_signal import _VrpMacroSignalMixin
 from .vrp_markout import _VrpMarkoutMixin
 from .vrp_research import _VrpResearchMixin
 from .vrp_trading import _VrpTradingMixin
@@ -127,6 +128,7 @@ class Repository(
     _TradeInsightsAiMixin,
     _VolatilityRawMixin,
     _VolatilityV2Mixin,
+    _VrpMacroSignalMixin,
     _VrpMarkoutMixin,
     _VrpResearchMixin,
     _VrpTradingMixin,
