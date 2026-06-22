@@ -16,9 +16,14 @@ from __future__ import annotations
 import logging
 from collections import defaultdict
 from datetime import date as _date
+from datetime import timedelta
 from typing import Any
 
 from uw_scan.cards.skew_first_principles import asset_class_baseline
+from uw_scan.reports.vrp_markout_core import (
+    apply_split_adjustment,
+    forward_realized_vol,
+)
 from uw_scan.storage.repository import Repository
 
 log = logging.getLogger(__name__)
@@ -51,19 +56,75 @@ def _earnings_in_window(t: _date, end: _date, earnings: set[_date]) -> bool:
     return any(t < e <= end for e in earnings)
 
 
-def _harvest_obs(rows: list[dict], *, earnings: set[_date]) -> list[dict]:
+def _events_overlap(t: _date, end: _date, events: list[tuple[_date, int]]) -> bool:
+    """True if any earnings event's [e - buffer_days, e] interval overlaps the
+    forward window (t, end] (research expansion item 3). The buffer covers the
+    announcement that precedes a filing date; flow-sourced events carry buffer 0
+    and reduce to the (t, end] test."""
+    for e, buffer in events:
+        if e > t and (e - timedelta(days=buffer)) <= end:
+            return True
+    return False
+
+
+def _adjusted_forward_rv_fn(adj: list[tuple[_date, float]], horizon: int = HORIZON):
+    """Build a forward_fn(ordered_rows, i) -> (end_date, exact_rv) | None for
+    _harvest_obs, computing the EXACT corp-action-adjusted realized vol over the
+    [t, t+horizon] holding window from the price series (research expansion item
+    1). Maps each anchor's date to the price-series index (no positional
+    assumption between vrp_daily and the price series); skips anchors whose date
+    is absent from the price series."""
+    idx = {d: k for k, (d, _v) in enumerate(adj)}
+
+    def forward_fn(ordered_rows: list[dict], i: int):
+        pi = idx.get(ordered_rows[i]["market_date"])
+        if pi is None:
+            return None
+        rv = forward_realized_vol(adj, pi, horizon)
+        if rv is None:
+            return None
+        return (adj[pi + horizon][0], rv)
+
+    return forward_fn
+
+
+def _default_forward_fn(ordered_rows: list[dict], i: int):
+    """Default forward read: rv at the EXACT i+HORIZON row (positional). Returns
+    (end_date, rv) | None. Preserves the original harvest behavior + its tests."""
+    j = i + HORIZON
+    if j >= len(ordered_rows):
+        return None  # no forward target yet
+    fwd = ordered_rows[j]
+    if fwd["rv"] is None:
+        return None  # exact t+20 RV missing → cannot score this anchor
+    return (fwd["market_date"], float(fwd["rv"]))
+
+
+def _harvest_obs(
+    rows: list[dict],
+    *,
+    earnings: set[_date] | None = None,
+    events: list[tuple[_date, int]] | None = None,
+    forward_fn=None,
+) -> list[dict]:
     """Build realized-VRP observations for one ticker.
 
-    rows: vrp_daily rows [{market_date, iv, rv, vrp_z_20}], any order. There is
-    one row per trading day, so the EXACT 20th trading day forward is the row at
-    position i + HORIZON in the date-sorted list (positional — NOT a non-null-RV
-    skip; an interior null RV must not shift the target).
-    realized_VRP(t) = iv(t) - rv(t+20). Drops an anchor when: its signal or iv is
-    null, there is no i+HORIZON row yet (recent tail), the exact t+20 row's rv is
-    null, or an earnings date falls in (t, t+20]. Values may be Decimal — coerced
-    to float."""
+    rows: vrp_daily rows [{market_date, iv, rv, vrp_z_20}], any order (one row
+    per trading day). realized_VRP(t) = iv(t) - RV_forward(t).
+
+    DEFAULT behavior (no injection): RV_forward(t) = rv at the EXACT i+HORIZON
+    row (positional — an interior null RV must not shift the target), and the
+    earnings exclusion uses the `earnings` set with (t, end] semantics. This
+    preserves the original behavior and its unit tests.
+
+    PRODUCTION injection (research expansion items 1 & 3):
+      forward_fn(ordered_rows, i) -> (end_date, rv) | None — exact corp-action-
+        adjusted forward RV from the price series (None drops the anchor).
+      events: list of (event_date, buffer_days) — buffered earnings exclusion;
+        takes precedence over `earnings` when provided.
+    Values may be Decimal — coerced to float."""
     ordered = sorted(rows, key=lambda r: r["market_date"])
-    n = len(ordered)
+    fwd_read = forward_fn if forward_fn is not None else _default_forward_fn
     obs: list[dict] = []
     for i, r in enumerate(ordered):
         t = r["market_date"]
@@ -74,19 +135,20 @@ def _harvest_obs(rows: list[dict], *, earnings: set[_date]) -> list[dict]:
         dev = _deviation_class(None if r["vrp_z_20"] is None else float(r["vrp_z_20"]))
         if dev is None or r["iv"] is None:
             continue
-        j = i + HORIZON
-        if j >= n:
-            continue  # no forward target yet
-        fwd = ordered[j]
-        if fwd["rv"] is None:
-            continue  # exact t+20 RV missing → cannot score this anchor
-        if _earnings_in_window(t, fwd["market_date"], earnings):
+        fwd = fwd_read(ordered, i)
+        if fwd is None:
+            continue
+        end_date, fwd_rv = fwd
+        if events is not None:
+            if _events_overlap(t, end_date, events):
+                continue
+        elif earnings is not None and _earnings_in_window(t, end_date, earnings):
             continue
         obs.append(
             {
                 "market_date": t,
                 "deviation_class": dev,
-                "realized_vrp": float(r["iv"]) - float(fwd["rv"]),
+                "realized_vrp": float(r["iv"]) - fwd_rv,
             }
         )
     return obs
@@ -215,21 +277,33 @@ def run_vrp_markout(*, repo: Repository, min_n: int = MIN_N) -> dict[str, Any]:
             continue
         sector = repo.fetch_watchlist_sector(ticker)
         asset_class = asset_class_baseline(ticker, sector=sector)["asset_class"]
-        earnings = repo.fetch_known_earnings_dates(ticker)
-        # AC2 safeguard (design-decision note 1): a single_name with no
-        # reconstructed earnings calendar cannot have its (t, t+20] earnings
-        # windows excluded → it must NOT contribute (an unexcluded earnings
-        # window inflates the harvest and would manufacture a false SELLABLE).
+        # item 3: historical earnings calendar (massive filing_date ∪ flow_events
+        # next_earnings_date). The single_name no-earnings skip-guard keys on its
+        # truthiness; the buffered events feed the actual (t, t+HORIZON] exclusion.
+        # A single_name with no calendar cannot honor the exclusion → must NOT
+        # contribute (an unexcluded earnings window would manufacture SELLABLE).
         # index_macro / sector_etf / credit legitimately have no earnings.
-        if asset_class == "single_name" and not earnings:
+        earnings_cal = repo.fetch_historical_earnings_dates(ticker)
+        if asset_class == "single_name" and not earnings_cal:
             log.warning(
                 "vrp_markout: skipping single_name %s — no earnings coverage "
-                "to honor the (t, t+20] exclusion",
+                "to honor the (t, t+HORIZON] exclusion",
                 ticker,
             )
             continue
         scored_tickers += 1
-        for o in _harvest_obs(rows, earnings=earnings):
+        # item 1: exact corp-action-adjusted forward RV from the price series.
+        # Falls back to the UW vrp_daily.rv read (forward_fn=None) when a ticker
+        # has NO price coverage — a degraded, v1-equivalent path. In production
+        # every vrp_daily ticker is derived from realized_volatility_history, so
+        # the exact path is the one that runs; the fallback only guards edge
+        # cases (and keeps the rv-seeded unit/integration fixtures meaningful).
+        adj = apply_split_adjustment(
+            repo.fetch_price_series(ticker), repo.fetch_corporate_actions(ticker)
+        )
+        forward_fn = _adjusted_forward_rv_fn(adj) if adj else None
+        events = repo.fetch_earnings_events(ticker)
+        for o in _harvest_obs(rows, events=events, forward_fn=forward_fn):
             by_bucket[(asset_class, o["deviation_class"])].append(o)
 
     scored: dict[tuple[str, str], dict] = {
