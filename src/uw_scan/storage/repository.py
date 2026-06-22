@@ -14,6 +14,7 @@ from ._base import _BaseMixin
 from ._helpers import provider_day_bounds, redact_params, status_family_for
 from .audit import _AuditMixin
 from .cockpit import _CockpitMixin
+from .corporate_actions import _CorporateActionsMixin
 from .external_api import _ExternalApiMixin
 from .fetchers import _FetchersMixin
 
@@ -101,6 +102,7 @@ __all__ = [
 class Repository(
     _AuditMixin,
     _CockpitMixin,
+    _CorporateActionsMixin,
     _ExternalApiMixin,
     _FetchersMixin,
     _FlowMixin,
