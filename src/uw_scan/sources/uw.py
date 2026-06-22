@@ -222,6 +222,7 @@ def fetch_greek_exposure_by_expiry(
     repo: Repository,
     run_id: int,
     ticker: str,
+    date: str | None = None,
 ) -> list[GreekExposureByExpiryRow]:
     """Fetch /api/stock/{ticker}/greek-exposure/expiry — all expiries in one call.
 
@@ -236,6 +237,7 @@ def fetch_greek_exposure_by_expiry(
         run_id,
         EndpointSlug.GREEK_EXPOSURE_BY_EXPIRY,
         ticker,
+        params={"date": date} if date is not None else None,
     )
     return normalize.normalize_greek_exposure_by_expiry(body)
 
@@ -338,15 +340,12 @@ def fetch_greeks(
     run_id: int,
     ticker: str,
     expiry: str,
+    date: str | None = None,
 ) -> list[GreeksRow]:
-    body = _fetch_json(
-        client,
-        repo,
-        run_id,
-        EndpointSlug.GREEKS,
-        ticker,
-        params={"expiry": expiry},
-    )
+    params: dict[str, Any] = {"expiry": expiry}
+    if date is not None:
+        params["date"] = date
+    body = _fetch_json(client, repo, run_id, EndpointSlug.GREEKS, ticker, params=params)
     return normalize.normalize_greeks(body)
 
 
