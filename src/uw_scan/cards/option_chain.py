@@ -51,25 +51,6 @@ def pick_target_expiries(
     return sorted(picked)
 
 
-def list_all_expiries(
-    contracts: Iterable[OptionContractRow], *, today: date
-) -> list[date]:
-    """Every distinct expiry >= today present in the contracts list, sorted ASC.
-
-    Full-chain analogue of ``pick_target_expiries`` (which collapses to the nearest
-    expiry per target DTE). Used by the option-surface capture job to walk the whole
-    chain. Reuses the same OCC parsing.
-    """
-    return sorted(
-        {
-            parsed[0]
-            for c in contracts
-            if (parsed := _parse_occ(c.option_symbol)) is not None
-            and parsed[0] >= today
-        }
-    )
-
-
 def _parse_occ(symbol: str) -> tuple[date, str, Decimal] | None:
     m = _OCC_RE.match(symbol)
     if not m:

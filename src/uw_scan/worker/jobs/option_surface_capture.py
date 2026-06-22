@@ -17,13 +17,10 @@ import logging
 from datetime import date as _date
 
 from uw_scan.api.client import UwClient
-from uw_scan.cards.option_chain import list_all_expiries
-from uw_scan.sources.uw import fetch_greeks, fetch_option_contracts
+from uw_scan.sources.uw import fetch_greek_exposure_by_expiry, fetch_greeks
 from uw_scan.storage.repository import Repository
 
 log = logging.getLogger(__name__)
-
-_CONTRACTS_LIMIT = 2000  # full chain — wider than the swing job's 500
 
 
 def option_surface_capture(
@@ -42,10 +39,11 @@ def option_surface_capture(
         ticker = card.ticker
         try:
             run_id = repo.insert_scan_run(ticker, notes="option_surface_capture")
-            contracts = fetch_option_contracts(
-                client, repo, run_id, ticker, limit=_CONTRACTS_LIMIT
-            )
-            expiries = list_all_expiries(contracts, today=today)
+            # Enumerate the FULL term structure from greek-exposure/expiry (one row
+            # per listed expiry). NOT /option-contracts — UW caps that at the 500
+            # highest-VOLUME contracts, dropping long-dated expiries (SPX 28/53 missing).
+            gex_by_expiry = fetch_greek_exposure_by_expiry(client, repo, run_id, ticker)
+            expiries = sorted({r.expiry for r in gex_by_expiry if r.expiry >= today})
             rows: list[dict] = []
             for expiry in expiries:
                 for r in fetch_greeks(client, repo, run_id, ticker, expiry.isoformat()):
