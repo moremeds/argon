@@ -257,5 +257,14 @@ a free return/cushion dial — 0.30Δ/0.35Δ raise base return at ~equal Sharpe 
 - Iron condor remains the all-weather candidate pending real-fill confirmation of its
   call side.
 
-**Next:** promote the vrp-z sizing + DTE≈30 winner into the engine as the default; build
-the real-fill **NBBO recorder** (the only remaining gap to live trading).
+**Promoted to engine (done).** `reports/vrp_macro_signal.py` makes the winner
+first-class, tested code: `WINNER` is the canonical default (Δ0.25/0.125, 30-day
+hold, weekly, `ramp+`), `backtest_laddered()` reproduces the headline cell
+bit-for-bit (SPX Sharpe 1.6524, maxDD −0.7960, n=522 on the 20-yr series), and
+`current_macro_signal()` emits the weekly TRADE/SKIP + strikes readout. It is
+engine/library only — not yet scheduled or persisted.
+
+**Next:** wire `current_macro_signal` to a job + `vrp_macro_signal_daily` table +
+API/UI so the weekly readout lands without running Python (a live 5-min variant on
+the regime-live WS pattern is feasible — VIX ticks live, RV20/vrp-distribution are
+EOD); build the real-fill **NBBO recorder** (the only remaining gap to live trading).

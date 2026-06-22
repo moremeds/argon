@@ -116,7 +116,7 @@ def _build_loaded(
                 w = vrp_hist[-z_window:]
                 sd = pstdev(w)
                 z = (vrp - fmean(w)) / sd if sd > 0 else None
-        rows.append({"market_date": d, "iv": iv, "vrp_z_20": z})
+        rows.append({"market_date": d, "iv": iv, "rv": rv, "vrp": vrp, "vrp_z_20": z})
     return _Loaded(adj=adj, pidx=pidx, rows=rows, events=[])
 
 
