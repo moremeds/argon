@@ -62,8 +62,15 @@ def corporate_actions_refresh_once(
                     event_date=d["ex_dividend_date"],
                     cash_amount=d.get("cash_amount"),
                 )
+            # Persist per-ticker: the scheduler's _repo() closes the connection
+            # without committing (psycopg rolls back on close), so an uncommitted
+            # ingest would silently leave corporate_actions empty.
+            repo.conn.commit()
             completed += 1
         except Exception as exc:  # noqa: BLE001
+            # Recover the aborted transaction so one bad ticker does not poison
+            # every subsequent ticker (InFailedSqlTransaction).
+            repo.conn.rollback()
             logger.exception(
                 "corporate_actions_refresh failed for %s: %s", ticker, repr(exc)
             )

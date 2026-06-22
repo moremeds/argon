@@ -27,7 +27,10 @@ def test_ingest_writes_events(seeded_db_empty_cards, monkeypatch):
         repo, "list_active_watchlist", lambda: [SimpleNamespace(ticker="NVDA")]
     )
     n = corporate_actions_refresh_once(repo, _FakeProvider())
-    repo.conn.commit()
+    # Regression guard: the function MUST commit its own writes (the scheduler's
+    # _repo closes the connection without committing). Roll back here — if the
+    # ingest left work uncommitted, this discards it and the assert below fails.
+    repo.conn.rollback()
     assert n == 1
     rows = repo.fetch_corporate_actions("NVDA")
     assert {r["event_type"] for r in rows} == {"split", "dividend"}
