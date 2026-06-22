@@ -7,6 +7,9 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+## [0.2.3] — 2026-06-22
+
+
 ### Fixed
 
 - Release pipeline no longer wedges the mac-mini auto-deploy on `uv.lock` drift.
@@ -18,7 +21,6 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   `uv run` on any host rewrote that one line, dirtied the tree, and the deploy
   poller refused every deploy — silently pinning prod to the last-deployed
   release (the mini sat on v0.1.2 for 4 days while v0.2.0–v0.2.2 published).
-
 ## [0.2.2] — 2026-06-22
 
 
