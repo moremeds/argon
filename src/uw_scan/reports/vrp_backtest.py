@@ -23,7 +23,11 @@ from datetime import date as _date
 from statistics import median
 from typing import Any
 
-from uw_scan.cards.skew_first_principles import asset_class_baseline
+from uw_scan.reports.vrp_gate import (
+    passes_gate,
+    sellable_asset_classes,
+    sellable_single_name_sectors,
+)
 from uw_scan.reports.vrp_markout import RICH_Z, _events_overlap, _load_vrp_series
 from uw_scan.reports.vrp_markout_core import HOLDOUT_FRAC, apply_split_adjustment
 from uw_scan.reports.vrp_structure import (
@@ -127,15 +131,45 @@ def backtest_ticker(
                 in_holdout=False,
             )
         )
-    # flag the latest HOLDOUT_FRAC of trades by entry_date as the honest holdout
+    return flag_holdout(trades)
+
+
+def flag_holdout(trades: list[TradeResult]) -> list[TradeResult]:
+    """Tag the latest HOLDOUT_FRAC of trades (by entry_date) as the honest holdout.
+
+    Returns a fresh list with `in_holdout` set; the input is not mutated. Recompute
+    this whenever the trade SET changes (e.g. after entry-spacing) so the holdout
+    headline reflects the trades you would actually have taken.
+    """
     n = len(trades)
-    if n:
-        cut = int(round(n * (1.0 - HOLDOUT_FRAC)))
-        trades = [
-            TradeResult(**{**t.__dict__, "in_holdout": i >= cut})
-            for i, t in enumerate(sorted(trades, key=lambda x: x.entry_date))
-        ]
-    return trades
+    if not n:
+        return list(trades)
+    cut = int(round(n * (1.0 - HOLDOUT_FRAC)))
+    return [
+        TradeResult(**{**t.__dict__, "in_holdout": i >= cut})
+        for i, t in enumerate(sorted(trades, key=lambda x: x.entry_date))
+    ]
+
+
+def select_non_overlapping(trades: list[TradeResult]) -> list[TradeResult]:
+    """Entry-spacing: keep only the trades you could hold one-at-a-time per name.
+
+    The naive backtest opens a condor on EVERY RICH day, so a name that stays rich
+    for weeks contributes dozens of overlapping positions — inflating trade counts
+    and total P&L into something untradeable. This greedy "trade only when flat"
+    pass walks the candidate trades by entry_date and keeps one only if it opens
+    strictly AFTER the prior kept trade's expiry. The result is a realistic
+    sequential equity curve for a single name (positions across DIFFERENT names may
+    still overlap — that is a real portfolio of condors). Holdout flags are
+    recomputed on the surviving set.
+    """
+    kept: list[TradeResult] = []
+    last_expiry: _date | None = None
+    for t in sorted(trades, key=lambda x: x.entry_date):
+        if last_expiry is None or t.entry_date > last_expiry:
+            kept.append(t)
+            last_expiry = t.expiry_date
+    return flag_holdout(kept)
 
 
 def summarize(trades: list[TradeResult], *, scope: str) -> dict[str, Any]:
@@ -170,13 +204,8 @@ def summarize(trades: list[TradeResult], *, scope: str) -> dict[str, Any]:
     }
 
 
-def _sellable_sectors(repo) -> set[str]:
-    """Sectors whose RICH single-name bucket is HARVEST_SELLABLE (the gate)."""
-    out: set[str] = set()
-    for r in repo.fetch_vrp_harvest_by_sector():
-        if r["deviation_class"] == "RICH" and r["verdict"] == "HARVEST_SELLABLE":
-            out.add(r["sector"])
-    return out
+# Historical name kept for the research notebook's import.
+_sellable_sectors = sellable_single_name_sectors
 
 
 def run_vrp_backtest(*, repo, settings, hold_days: int | None = None) -> dict[str, Any]:
@@ -188,24 +217,22 @@ def run_vrp_backtest(*, repo, settings, hold_days: int | None = None) -> dict[st
         settings.vrp_slippage_min,
         round_trip=settings.vrp_cost_round_trip,
     )
-    sellable = _sellable_sectors(repo)
+    sellable_sectors = sellable_single_name_sectors(repo)
+    sellable_classes = sellable_asset_classes(repo, hold_days=hd)
     repo.clear_vrp_backtest_results()
     repo.clear_vrp_backtest_trades()
-    by_sector: dict[str, list[TradeResult]] = defaultdict(list)
+    by_bucket: dict[str, list[TradeResult]] = defaultdict(list)
     n_units = 0
     for ticker in repo.fetch_distinct_vrp_tickers():
-        sector = repo.fetch_watchlist_sector(ticker)
-        ac = asset_class_baseline(ticker, sector=sector)["asset_class"]
-        # v1 gate: ONLY the validated single-name-by-sector edge is tradable.
-        # index_macro / sector_etf / credit have no studied sector bucket → skip.
-        if ac != "single_name":
-            continue
-        if (sector or "unknown") not in sellable:
-            continue
-        # ISSUE-6: a single name with no earnings calendar cannot honor the
-        # (entry, expiry] earnings exclusion → would manufacture a SELLABLE edge.
-        # Mirrors run_vrp_markout's single_name skip-guard.
-        if not repo.fetch_historical_earnings_dates(ticker):
+        # Gate: single_name → sellable sector + earnings calendar;
+        # index_macro/sector_etf/credit → sellable asset-class at this horizon.
+        gate = passes_gate(
+            repo,
+            ticker,
+            sellable_sectors=sellable_sectors,
+            sellable_classes=sellable_classes,
+        )
+        if gate is None:
             continue
         try:
             trades = backtest_ticker(
@@ -248,19 +275,23 @@ def run_vrp_backtest(*, repo, settings, hold_days: int | None = None) -> dict[st
                         **summarize(trades, scope=scope),
                     )
             n_units += 1
-            if sector:
-                by_sector[sector].extend(trades)
+            by_bucket[gate.bucket_key].extend(trades)
         except Exception as exc:  # noqa: BLE001
             log.exception("vrp_backtest ticker %s failed: %s", ticker, repr(exc))
     with repo.conn.transaction():
-        for sector, trades in by_sector.items():
+        for bucket, trades in by_bucket.items():
             for scope in ("full", "holdout"):
                 repo.upsert_vrp_backtest_result(
                     unit_type="bucket",
-                    unit_key=sector,
+                    unit_key=bucket,
                     hold_days=hd,
                     as_of=today,
                     **summarize(trades, scope=scope),
                 )
     repo.conn.commit()
-    return {"units": n_units, "hold_days": hd, "sellable_sectors": sorted(sellable)}
+    return {
+        "units": n_units,
+        "hold_days": hd,
+        "sellable_sectors": sorted(sellable_sectors),
+        "sellable_classes": sorted(sellable_classes),
+    }

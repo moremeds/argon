@@ -12,7 +12,11 @@ from datetime import date as _date
 from datetime import timedelta
 from typing import Any
 
-from uw_scan.cards.skew_first_principles import asset_class_baseline
+from uw_scan.reports.vrp_gate import (
+    passes_gate,
+    sellable_asset_classes,
+    sellable_single_name_sectors,
+)
 from uw_scan.reports.vrp_markout import RICH_Z, _events_overlap, _load_vrp_series
 from uw_scan.reports.vrp_markout_core import apply_split_adjustment
 from uw_scan.reports.vrp_structure import CostModel, build_iron_condor
@@ -20,19 +24,12 @@ from uw_scan.reports.vrp_structure import CostModel, build_iron_condor
 log = logging.getLogger(__name__)
 
 
-def _sellable_sectors(repo) -> set[str]:
-    return {
-        r["sector"]
-        for r in repo.fetch_vrp_harvest_by_sector()
-        if r["deviation_class"] == "RICH" and r["verdict"] == "HARVEST_SELLABLE"
-    }
-
-
 def run_vrp_candidates(*, repo, settings, as_of: _date | None = None) -> dict[str, Any]:
     today = as_of or _date.today()
     hd = settings.vrp_hold_days
     t_years = hd / 252.0
-    sellable = _sellable_sectors(repo)
+    sellable_sectors = sellable_single_name_sectors(repo)
+    sellable_classes = sellable_asset_classes(repo, hold_days=hd)
     cost = CostModel(
         settings.vrp_cost_per_contract,
         settings.vrp_slippage_frac,
@@ -55,14 +52,16 @@ def run_vrp_candidates(*, repo, settings, as_of: _date | None = None) -> dict[st
             z, iv = latest["vrp_z_20"], latest["iv"]
             if z is None or iv is None or float(iv) <= 0 or float(z) < RICH_Z:
                 continue  # iv<=0 → degenerate condor; skip
-            sector = repo.fetch_watchlist_sector(ticker)
-            ac = asset_class_baseline(ticker, sector=sector)["asset_class"]
-            if ac != "single_name":  # v1: single-name-by-sector edge only
-                continue
-            if (sector or "unknown") not in sellable:
-                continue
-            # ISSUE-6: can't honor the earnings exclusion without a calendar → don't emit
-            if not repo.fetch_historical_earnings_dates(ticker):
+            # Gate: single_name → sellable sector + earnings calendar;
+            # index_macro/sector_etf/credit → sellable asset-class at this horizon
+            # (macro carries no earnings landmine, so no calendar requirement).
+            gate = passes_gate(
+                repo,
+                ticker,
+                sellable_sectors=sellable_sectors,
+                sellable_classes=sellable_classes,
+            )
+            if gate is None:
                 continue
             # spot = adjusted close on the SIGNAL date (entry), not the series tail
             adj = apply_split_adjustment(
@@ -85,9 +84,6 @@ def run_vrp_candidates(*, repo, settings, as_of: _date | None = None) -> dict[st
                 short_delta=settings.vrp_short_delta,
                 wing_delta=settings.vrp_wing_delta,
             )
-            verdict = (
-                "HARVEST_SELLABLE"  # passed the single-name + SELLABLE-sector gate
-            )
             repo.upsert_vrp_candidate(
                 ticker=ticker,
                 as_of=today,
@@ -105,8 +101,8 @@ def run_vrp_candidates(*, repo, settings, as_of: _date | None = None) -> dict[st
                 put_width=ic.put_width,
                 call_width=ic.call_width,
                 entry_cost=cost.total(ic.leg_premiums, 1),
-                bucket_sector=sector,
-                bucket_verdict=verdict,
+                bucket_sector=gate.bucket_key,
+                bucket_verdict=gate.verdict,
                 earnings_clear=True,
                 contracts=1,
             )

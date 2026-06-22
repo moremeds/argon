@@ -91,3 +91,45 @@ def test_non_sellable_sector_is_excluded(seeded_db_empty_cards, monkeypatch):
     )
     rows = {(r["unit_key"], r["scope"]) for r in repo.fetch_vrp_backtest_results(20)}
     assert ("EXCL", "full") not in rows  # excluded by the SELLABLE-sector gate
+
+
+def _seed_quiet_rich_index(repo, ticker="SPX"):
+    """Index/macro name: high IV, flat realized path, and NO earnings calendar."""
+    start = date(2024, 1, 1)
+    with repo.conn.cursor() as cur:
+        for i in range(80):
+            d = start + timedelta(days=i)
+            cur.execute(
+                "INSERT INTO uw_scan.vrp_daily(ticker,market_date,iv,rv,vrp,vrp_z_20) "
+                "VALUES (%s,%s,%s,%s,%s,%s) ON CONFLICT DO NOTHING",
+                (ticker, d, 0.60, 0.10, 0.50, 2.0),
+            )
+            cur.execute(
+                "INSERT INTO uw_scan.realized_volatility_history(ticker,market_date,price) "
+                "VALUES (%s,%s,%s) ON CONFLICT DO NOTHING",
+                (ticker, d, 100.0),
+            )
+    repo.conn.commit()
+
+
+def test_macro_index_admitted_via_asset_class_gate(seeded_db_empty_cards):
+    """SPX (index_macro) with NO earnings calendar is admitted through the
+    asset-class multihorizon gate and aggregates into an 'index_macro' bucket."""
+    repo = seeded_db_empty_cards
+    _seed_quiet_rich_index(repo, "SPX")
+    repo.upsert_vrp_harvest_multihorizon(
+        asset_class="index_macro",
+        deviation_class="RICH",
+        horizon=20,
+        verdict="HARVEST_SELLABLE",
+        mean_realized_vrp=0.05,
+        n=350,
+    )
+    repo.conn.commit()
+    out = run_vrp_backtest(
+        repo=repo, settings=Settings(api_key=SecretStr("test")), hold_days=20
+    )
+    assert "index_macro" in out["sellable_classes"]
+    rows = {(r["unit_key"], r["scope"]) for r in repo.fetch_vrp_backtest_results(20)}
+    assert ("SPX", "full") in rows  # admitted despite NO earnings calendar
+    assert ("index_macro", "full") in rows  # bucket keyed by asset_class
