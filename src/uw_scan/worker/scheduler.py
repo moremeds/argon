@@ -25,6 +25,7 @@ from uw_scan.sources.ohlc import MassiveOhlcProvider
 from uw_scan.storage.provider_usage import ExternalApiRequestRecorder
 from uw_scan.storage.repository import Repository
 from uw_scan.worker.jobs.cockpit_daily_snapshot import cockpit_daily_snapshot
+from uw_scan.worker.jobs.corporate_actions_jobs import corporate_actions_refresh_once
 from uw_scan.worker.jobs.credit_etf_lake_sync import run_credit_etf_lake_sync
 from uw_scan.worker.jobs.flow_data_refresh import flow_data_refresh
 from uw_scan.worker.jobs.full_scan import full_scan_once
@@ -60,6 +61,7 @@ from uw_scan.worker.jobs.trade_insight_outcome_backfill import (
 from uw_scan.worker.jobs.trade_insights_ai import trade_insights_ai_tick
 from uw_scan.worker.jobs.vol_index_lake_sync import run_vol_index_lake_sync
 from uw_scan.worker.jobs.vrp_markout import vrp_markout_refresh
+from uw_scan.worker.jobs.vrp_research_jobs import vrp_research_refresh
 from uw_scan.worker.volatility_jobs import (
     daily_spy_ohlc_refresh,
     nightly_vol_analytics_rollup,
@@ -433,6 +435,24 @@ def main() -> int:
     def _vrp_markout_refresh() -> None:
         with _repo(settings) as repo:
             vrp_markout_refresh(repo=repo)
+
+    def _corporate_actions_refresh() -> None:
+        provider = _fundamentals_provider(settings)
+        if provider is None:
+            logger.warning(
+                "MASSIVE_API_KEY not set; skipping corporate-actions refresh"
+            )
+            return
+        try:
+            with _repo(settings) as repo:
+                n = corporate_actions_refresh_once(repo, provider)
+                logger.info("corporate_actions_refresh ingested %d tickers", n)
+        finally:
+            provider.close()
+
+    def _vrp_research_refresh() -> None:
+        with _repo(settings) as repo:
+            vrp_research_refresh(repo=repo)
 
     def _flow_data_refresh() -> None:
         if not _uw_auto_request_allowed(datetime.now(ZoneInfo(settings.rth_tz))):
@@ -820,6 +840,28 @@ def main() -> int:
                 CronTrigger.from_crontab("50 18 * * 0-4", timezone=settings.rth_tz),
                 id="vrp_markout_refresh",
                 name="VRP harvest markout verdict refresh",
+                max_instances=1,
+                coalesce=True,
+            )
+            # Corporate-actions ingestion at 17:35 ET — after the 17:30 OHLC pull,
+            # before the research compute. Ingests split/dividend history (massive)
+            # over the vrp_daily ∪ watchlist universe for exact-RV adjustment.
+            sched.add_job(
+                _corporate_actions_refresh,
+                CronTrigger.from_crontab("35 17 * * 0-4", timezone=settings.rth_tz),
+                id="corporate_actions_refresh",
+                name="Corporate-actions ingestion",
+                max_instances=1,
+                coalesce=True,
+            )
+            # VRP research expansion at 19:10 ET — AFTER the 19:00 fundamentals
+            # refresh (the filing_date earnings leg) so the calendar is fresh.
+            # Pure compute over the warm store; idempotent (full-rewrite per run).
+            sched.add_job(
+                _vrp_research_refresh,
+                CronTrigger.from_crontab("10 19 * * 0-4", timezone=settings.rth_tz),
+                id="vrp_research_refresh",
+                name="VRP research expansion (validation/sector/horizon/directional/ΔVRP)",
                 max_instances=1,
                 coalesce=True,
             )
