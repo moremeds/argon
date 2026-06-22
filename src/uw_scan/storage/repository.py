@@ -72,6 +72,7 @@ from .trade_insights_ai import _TradeInsightsAiMixin
 from .volatility_raw import _VolatilityRawMixin
 from .volatility_v2 import _VolatilityV2Mixin
 from .vrp_markout import _VrpMarkoutMixin
+from .vrp_research import _VrpResearchMixin
 from .watchlist import _WatchlistMixin
 from .ws_consumer_state import _WsConsumerStateMixin
 
@@ -126,6 +127,7 @@ class Repository(
     _VolatilityRawMixin,
     _VolatilityV2Mixin,
     _VrpMarkoutMixin,
+    _VrpResearchMixin,
     _WatchlistMixin,
     _WsConsumerStateMixin,
     _BaseMixin,
