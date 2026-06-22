@@ -102,6 +102,7 @@ Worker roles: `ai-codex`, `ai-claude`, and `ai-deepseek` (provider-pinned, recom
 
 - **uv only** — `uv run pytest`, never `pytest` directly
 - **Persist analytical results to Postgres** — vol/scan/regime outputs land in tables, never in-memory-only
+- **Persist every research/backtest trace before the process exits** — any sweep, backtest, or parameter search must save its *full* result set (every config + every metric, not just the headline) to a durable artifact: a Postgres table for productionized signals, or a committed file/notebook under `docs/research/` for exploratory runs. stdout-only is data loss — a number you can't reproduce from a saved trace did not happen. Always record the exact reproduce command (script path + args/seed). This rule exists because a believed-but-unsaved "Sharpe ~2.0" cost a day chasing a figure that the saved trace later proved was never real (the true headline is 1.65)
 - **No naked shorts** in any strategy/trade-plan code — defined-risk only
 - **Data source priority**: IB → UW → FMP → massive (OHLC). Yahoo is banned
 - **Massive WS bypasses system proxies** — `MassiveWsClient` passes `proxy=None` to `websockets.connect`; the market-data stream must never inherit macOS SOCKS/HTTP proxy settings (`python-socks` is not installed, so an inherited proxy kills every connect). The configured feed is ~15-min delayed, so WS-consumer health keys on `last_flush_at` (is the consumer alive?), not tick event time
@@ -138,6 +139,7 @@ Worker roles: `ai-codex`, `ai-claude`, and `ai-deepseek` (provider-pinned, recom
 | Scanner (detectors + ranking + discovery) | `src/uw_scan/scanner/` (pipeline, signals, ranking, discovery, gates, context) + `api/routers/scanner.py` + `web/app/scanner/page.tsx` |
 | Regime indicators (CRI / GEX / VCG) | `src/uw_scan/scanners/{cri,gex,vcg}.py` + `api/routers/regime.py` + `web/app/regime/page.tsx` + `web/components/regime/*` |
 | Regime live CRI/VCG (WS quotes) | `src/uw_scan/scanners/live_quotes.py` + `scanners/{cri,vcg}.py` `run_live` + `worker/jobs/regime_live.py` + `api/routers/regime.py` (`/cri/live` etc.) + `web/components/regime/MultiPanelGrid.tsx` |
+| VRP harvest markout (is rich vol sellable) | `src/uw_scan/reports/vrp_markout.py` + `storage/vrp_markout.py` + `worker/jobs/vrp_markout.py` + `api/routers/regime.py` (`/vrp-harvest`) + migration `079`; nightly 18:50 ET (massive-0); spec `docs/superpowers/specs/2026-06-19-vrp-harvest-markout-design.md` |
 | Gold Compass — code | `api/routers/gold.py` + `storage/gold_etf.py` + `worker/jobs/gold_jobs.py` + `sources/{fred,gpr,lbma,comex,etf_holdings,uw_gold_options,cftc_cot,wgc_etf,wgc_cb}.py` + `web/app/gold/page.tsx` (+ `gold/replay/[date]/`) + `web/components/gold/*` |
 | Gold Compass — research / sources docs | `docs/research/gold-sdf-framework/CLAUDE.md` (3-lens model, status vs. shipped, deferred sources) + `src/uw_scan/sources/CLAUDE.md` (per-source status + failure modes) |
 | Index dealer cockpit (SPX/SPY/QQQ/IWM) | `api/routers/cockpit.py` + `web/app/cockpit/[ticker]/page.tsx` |

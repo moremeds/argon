@@ -290,6 +290,66 @@ class VolBackdropResponse(BaseModel):
     as_of: date | None = None
 
 
+class VrpHarvestVerdict(BaseModel):
+    """One (asset_class, deviation_class) VRP harvest bucket verdict (Spec B)."""
+
+    asset_class: str
+    deviation_class: str
+    verdict: str  # "HARVEST_SELLABLE" | "NONE"
+    mean_realized_vrp: float | None = None
+    mean_holdout: float | None = None
+    rich_cheap_spread: float | None = None
+    n: int = 0
+    n_holdout: int = 0
+    survives_walkforward: bool = False
+    survives_window_gate: bool = False
+    confidence: str | None = None
+    as_of: date | None = None
+
+
+class VrpHarvestResponse(BaseModel):
+    """VRP harvest markout verdicts — is rich vol sellable, by bucket (Spec B)."""
+
+    verdicts: list[VrpHarvestVerdict] = Field(default_factory=list)
+
+
+class VrpMacroSignalRow(BaseModel):
+    """Latest VRP macro short-vol signal for one index. action=TRADE iff weight>0
+    (ramp+ vrp-z sizing); strikes/credit/max_loss are flat-vol modeled (conservative
+    floor — real put skew pays more). Compare `as_of` to `snapshot_date` for staleness:
+    `as_of` is the vol-data date, `snapshot_date` is when the job ran."""
+
+    name: str
+    snapshot_date: date
+    as_of: date
+    spot: float
+    iv: float
+    rv20: float | None = None
+    vrp: float | None = None
+    vrp_z: float | None = None
+    weight: float
+    action: str  # "TRADE" | "SKIP"
+    short_put: float | None = None
+    long_put: float | None = None
+    put_width: float | None = None
+    credit: float | None = None
+    max_loss: float | None = None
+    hold_days: int
+    short_delta: float
+    wing_delta: float
+    bt_n: int | None = None
+    bt_sharpe: float | None = None
+    bt_maxdd: float | None = None
+    bt_annror: float | None = None
+    bt_calmar: float | None = None
+
+
+class VrpMacroSignalResponse(BaseModel):
+    """Latest VRP macro short-vol signal per tracked index (one row each)."""
+
+    signals: list[VrpMacroSignalRow] = Field(default_factory=list)
+
+
 # ─── CRI (Crash Risk Indicator) ──────────────────────────────────
 
 

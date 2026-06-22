@@ -27,11 +27,15 @@ jobs:
           enable-cache: true
           cache-dependency-glob: uv.lock
 
+      # Runs BEFORE `uv sync` on purpose: `uv sync` auto-repairs uv.lock's editable
+      # self-version to match pyproject, which would mask a stale committed lock. We
+      # want CI to fail on the committed state. version_sync_check is stdlib-only, so
+      # system python3 (no uv) reads the lock exactly as committed.
+      - name: Version sync check (committed lock, pre-sync)
+        run: python3 scripts/release/version_sync_check.py
+
       - name: Sync deps
         run: uv sync --extra postgres
-
-      - name: Version sync check
-        run: uv run python scripts/release/version_sync_check.py
 
       - name: Ruff
         run: uv run ruff check src/ tests/ scripts/

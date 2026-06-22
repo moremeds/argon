@@ -221,6 +221,14 @@ from .volatility import (
     VolStatsRow,
     VrpDailyPoint,
 )
+from .vrp import (
+    VrpBacktestResponse,
+    VrpBacktestRow,
+    VrpCandidateRow,
+    VrpCandidatesResponse,
+    VrpPaperPositionRow,
+    VrpPaperResponse,
+)
 
 __all__ = [
     "_UwBase",
@@ -301,6 +309,12 @@ __all__ = [
     "RegimeQuadrantBlock",
     "DivergencePoint",
     "VrpDailyPoint",
+    "VrpCandidateRow",
+    "VrpCandidatesResponse",
+    "VrpBacktestRow",
+    "VrpBacktestResponse",
+    "VrpPaperPositionRow",
+    "VrpPaperResponse",
     "VolatilitySeriesResponse",
     "SkewHistoryPoint",
     "SkewRhoPoint",

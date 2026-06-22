@@ -25,6 +25,7 @@ from uw_scan.sources.ohlc import MassiveOhlcProvider
 from uw_scan.storage.provider_usage import ExternalApiRequestRecorder
 from uw_scan.storage.repository import Repository
 from uw_scan.worker.jobs.cockpit_daily_snapshot import cockpit_daily_snapshot
+from uw_scan.worker.jobs.corporate_actions_jobs import corporate_actions_refresh_once
 from uw_scan.worker.jobs.credit_etf_lake_sync import run_credit_etf_lake_sync
 from uw_scan.worker.jobs.flow_data_refresh import flow_data_refresh
 from uw_scan.worker.jobs.full_scan import full_scan_once
@@ -61,6 +62,15 @@ from uw_scan.worker.jobs.trade_insight_outcome_backfill import (
 )
 from uw_scan.worker.jobs.trade_insights_ai import trade_insights_ai_tick
 from uw_scan.worker.jobs.vol_index_lake_sync import run_vol_index_lake_sync
+from uw_scan.worker.jobs.vrp_macro_signal import vrp_macro_signal_refresh
+from uw_scan.worker.jobs.vrp_markout import vrp_markout_refresh
+from uw_scan.worker.jobs.vrp_research_jobs import vrp_research_refresh
+from uw_scan.worker.jobs.vrp_trading_jobs import (
+    vrp_backtest_refresh,
+    vrp_candidates_refresh,
+    vrp_paper_mark,
+    vrp_paper_open,
+)
 from uw_scan.worker.volatility_jobs import (
     daily_spy_ohlc_refresh,
     nightly_vol_analytics_rollup,
@@ -441,6 +451,48 @@ def main() -> int:
     def _skew_markout_refresh() -> None:
         with _repo(settings) as repo:
             skew_markout_refresh(repo=repo)
+
+    def _vrp_markout_refresh() -> None:
+        with _repo(settings) as repo:
+            vrp_markout_refresh(repo=repo)
+
+    def _vrp_macro_signal_refresh() -> None:
+        with _repo(settings) as repo:
+            vrp_macro_signal_refresh(repo=repo, settings=settings)
+
+    def _corporate_actions_refresh() -> None:
+        provider = _fundamentals_provider(settings)
+        if provider is None:
+            logger.warning(
+                "MASSIVE_API_KEY not set; skipping corporate-actions refresh"
+            )
+            return
+        try:
+            with _repo(settings) as repo:
+                n = corporate_actions_refresh_once(repo, provider)
+                logger.info("corporate_actions_refresh ingested %d tickers", n)
+        finally:
+            provider.close()
+
+    def _vrp_research_refresh() -> None:
+        with _repo(settings) as repo:
+            vrp_research_refresh(repo=repo)
+
+    def _vrp_candidates_refresh() -> None:
+        with _repo(settings) as repo:
+            vrp_candidates_refresh(repo=repo, settings=settings)
+
+    def _vrp_paper_open() -> None:
+        with _repo(settings) as repo:
+            vrp_paper_open(repo=repo, settings=settings)
+
+    def _vrp_paper_mark() -> None:
+        with _repo(settings) as repo:
+            vrp_paper_mark(repo=repo, settings=settings)
+
+    def _vrp_backtest_refresh() -> None:
+        with _repo(settings) as repo:
+            vrp_backtest_refresh(repo=repo, settings=settings)
 
     def _flow_data_refresh() -> None:
         if not _uw_auto_request_allowed(datetime.now(ZoneInfo(settings.rth_tz))):
@@ -839,6 +891,73 @@ def main() -> int:
                 max_instances=1,
                 coalesce=True,
             )
+            # VRP harvest markout at 18:50 ET — aligned with the skew markout
+            # (18:45). Pure compute over vrp_daily; idempotent. Scores whether
+            # selling rich vol earns a reliable premium per bucket (Spec B).
+            sched.add_job(
+                _vrp_markout_refresh,
+                CronTrigger.from_crontab("50 18 * * 0-4", timezone=settings.rth_tz),
+                id="vrp_markout_refresh",
+                name="VRP harvest markout verdict refresh",
+                max_instances=1,
+                coalesce=True,
+            )
+            # Corporate-actions ingestion at 17:35 ET — after the 17:30 OHLC pull,
+            # before the research compute. Ingests split/dividend history (massive)
+            # over the vrp_daily ∪ watchlist universe for exact-RV adjustment.
+            sched.add_job(
+                _corporate_actions_refresh,
+                CronTrigger.from_crontab("35 17 * * 0-4", timezone=settings.rth_tz),
+                id="corporate_actions_refresh",
+                name="Corporate-actions ingestion",
+                max_instances=1,
+                coalesce=True,
+            )
+            # VRP research expansion at 19:10 ET — AFTER the 19:00 fundamentals
+            # refresh (the filing_date earnings leg) so the calendar is fresh.
+            # Pure compute over the warm store; idempotent (full-rewrite per run).
+            sched.add_job(
+                _vrp_research_refresh,
+                CronTrigger.from_crontab("10 19 * * 0-4", timezone=settings.rth_tz),
+                id="vrp_research_refresh",
+                name="VRP research expansion (validation/sector/horizon/directional/ΔVRP)",
+                max_instances=1,
+                coalesce=True,
+            )
+            # VRP tradable layer (plan 2026-06-22) — all AFTER vrp_research (19:10)
+            # so the SELLABLE-sector gate is fresh. massive-0 / primary, weekdays ET.
+            sched.add_job(
+                _vrp_candidates_refresh,
+                CronTrigger.from_crontab("25 19 * * 0-4", timezone=settings.rth_tz),
+                id="vrp_candidates_refresh",
+                name="VRP iron-condor candidate emit",
+                max_instances=1,
+                coalesce=True,
+            )
+            sched.add_job(
+                _vrp_paper_open,
+                CronTrigger.from_crontab("30 19 * * 0-4", timezone=settings.rth_tz),
+                id="vrp_paper_open",
+                name="VRP paper-ledger open",
+                max_instances=1,
+                coalesce=True,
+            )
+            sched.add_job(
+                _vrp_paper_mark,
+                CronTrigger.from_crontab("40 19 * * 0-4", timezone=settings.rth_tz),
+                id="vrp_paper_mark",
+                name="VRP paper-ledger mark/close",
+                max_instances=1,
+                coalesce=True,
+            )
+            sched.add_job(
+                _vrp_backtest_refresh,
+                CronTrigger.from_crontab("0 20 * * 6", timezone=settings.rth_tz),
+                id="vrp_backtest_refresh",
+                name="VRP condor backtest (weekly)",
+                max_instances=1,
+                coalesce=True,
+            )
             # M9 v5.3 outcome ledger — runs nightly at 17:00 ET, right after
             # the 17:30 OHLC pull would have updated daily_ohlc. Scores
             # outcomes from forward-looking closes; idempotent re-runs are
@@ -1068,6 +1187,18 @@ def main() -> int:
             CronTrigger(hour=3, minute=15, timezone=settings.rth_tz),
             id="vol_index_lake_sync",
             name="Vol-complex parquet lake sync",
+            max_instances=1,
+            coalesce=True,
+        )
+        # VRP macro short-vol signal at 03:45 ET — AFTER vol_index_lake_sync
+        # (03:15) so it reads the freshest synced EOD vol. Computes the weekly
+        # bull-put-spread readout + full-history backtest headline per name and
+        # persists the daily snapshot. Pure DB-read math; idempotent.
+        sched.add_job(
+            _vrp_macro_signal_refresh,
+            CronTrigger.from_crontab("45 3 * * 0-4", timezone=settings.rth_tz),
+            id="vrp_macro_signal_refresh",
+            name="VRP macro short-vol signal refresh",
             max_instances=1,
             coalesce=True,
         )
