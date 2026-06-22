@@ -291,6 +291,18 @@ class Settings(BaseModel):
     r2_bucket: str | None = None
     r2_endpoint_override: str | None = None
 
+    # --- VRP tradable iron-condor + backtest (plan 2026-06-22) ----------------
+    # hold is in TRADING days to stay unit-consistent with the harvest measurement
+    # (HORIZON=20). t_years = hold_days / 252 feeds Black-Scholes.
+    vrp_hold_days: int = 20
+    vrp_short_delta: float = 0.16  # short put/call strike target |delta|
+    vrp_wing_delta: float = 0.08  # long wing strike target |delta|
+    vrp_risk_free_rate: float = 0.04  # flat r for BS; tiny effect at short DTE
+    vrp_cost_per_contract: float = 0.65  # commission per leg per side
+    vrp_slippage_frac: float = 0.01  # half-spread as fraction of leg mid
+    vrp_slippage_min: float = 0.05  # half-spread floor per leg (price points)
+    vrp_cost_round_trip: bool = True  # charge open + close (conservative)
+
     @property
     def ws_spot_enabled(self) -> bool:
         """True when ANY WS feed owns intraday spot.
@@ -318,6 +330,14 @@ class Settings(BaseModel):
             raise ValueError(
                 f"scanner edge-quality weights must sum to 100, got {total}"
             )
+        return self
+
+    @model_validator(mode="after")
+    def _check_vrp(self) -> "Settings":
+        if not (0.0 < self.vrp_wing_delta < self.vrp_short_delta < 0.5):
+            raise ValueError("require 0 < vrp_wing_delta < vrp_short_delta < 0.5")
+        if self.vrp_hold_days <= 0:
+            raise ValueError("vrp_hold_days must be positive")
         return self
 
     @classmethod
@@ -644,6 +664,20 @@ class Settings(BaseModel):
                 if (_r2_ep := os.environ.get("R2_ENDPOINT_OVERRIDE", "").strip())
                 else None
             ),
+            vrp_hold_days=int(os.environ.get("UW_SCAN_VRP_HOLD_DAYS", "20")),
+            vrp_short_delta=float(os.environ.get("UW_SCAN_VRP_SHORT_DELTA", "0.16")),
+            vrp_wing_delta=float(os.environ.get("UW_SCAN_VRP_WING_DELTA", "0.08")),
+            vrp_risk_free_rate=float(
+                os.environ.get("UW_SCAN_VRP_RISK_FREE_RATE", "0.04")
+            ),
+            vrp_cost_per_contract=float(
+                os.environ.get("UW_SCAN_VRP_COST_PER_CONTRACT", "0.65")
+            ),
+            vrp_slippage_frac=float(
+                os.environ.get("UW_SCAN_VRP_SLIPPAGE_FRAC", "0.01")
+            ),
+            vrp_slippage_min=float(os.environ.get("UW_SCAN_VRP_SLIPPAGE_MIN", "0.05")),
+            vrp_cost_round_trip=_env_bool("UW_SCAN_VRP_COST_ROUND_TRIP", True),
         )
 
     def db_dsn(self) -> str:

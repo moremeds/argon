@@ -64,6 +64,10 @@ Set `UW_SCAN_WORKER_ROLE=uw|massive|ai|all`, `UW_SCAN_WORKER_INDEX`, and
 | `vrp_markout_refresh` | cron | `50 18 * * 0-4` (massive-0; VRP harvest verdicts over vrp_daily) |
 | `corporate_actions_refresh` | cron | `35 17 * * 0-4` (massive-0; split/dividend history for exact-RV adjustment) |
 | `vrp_research_refresh` | cron | `10 19 * * 0-4` (massive-0; RV validation + sector/horizon/directional/ΔVRP — runs after the 19:00 fundamentals refresh) |
+| `vrp_candidates_refresh` | cron | `25 19 * * 0-4` (massive-0; per-ticker iron-condor candidates, after vrp_research so the SELLABLE gate is fresh) |
+| `vrp_paper_open` | cron | `30 19 * * 0-4` (massive-0; open paper positions for today's candidates) |
+| `vrp_paper_mark` | cron | `40 19 * * 0-4` (massive-0; mark/close open paper positions, net of modeled cost) |
+| `vrp_backtest_refresh` | cron | `0 20 * * 6` (massive-0; weekly full-universe model-repriced condor backtest) |
 
 Intraday spot is no longer a scheduler job — it streams from the
 WebSocket consumer in `uw_scan.worker.massive_ws_consumer` (started as

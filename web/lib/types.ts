@@ -7573,6 +7573,145 @@ export interface components {
             vrp_spread_headline: string;
         };
         /** VrpDailyPoint */
+        VrpBacktestResponse: {
+            /** Results */
+            results: components["schemas"]["VrpBacktestRow"][];
+            /**
+             * Disclaimer
+             * @default Flat-vol modeled credit (skew ignored): direction is faithful, absolute credit is approximate. Paper/backtest only — not executed.
+             */
+            disclaimer: string;
+        };
+        VrpBacktestRow: {
+            /** Unit Type */
+            unit_type: string;
+            /** Unit Key */
+            unit_key: string;
+            /** Hold Days */
+            hold_days: number;
+            /** Scope */
+            scope: string;
+            /** N Trades */
+            n_trades: number;
+            /**
+             * N Wins
+             * @default 0
+             */
+            n_wins: number;
+            /** Win Rate */
+            win_rate?: string | null;
+            /** Mean Net */
+            mean_net?: string | null;
+            /** Median Net */
+            median_net?: string | null;
+            /** Total Net */
+            total_net?: string | null;
+            /** Mean Return On Risk */
+            mean_return_on_risk?: string | null;
+            /** Breach Rate */
+            breach_rate?: string | null;
+            /** Mean Credit */
+            mean_credit?: string | null;
+        };
+        VrpCandidateRow: {
+            /** Ticker */
+            ticker: string;
+            /**
+             * As Of
+             * Format: date
+             */
+            as_of: string;
+            /** Structure */
+            structure: string;
+            /** Spot */
+            spot?: string | null;
+            /** Iv */
+            iv?: string | null;
+            /** Vrp Z */
+            vrp_z?: string | null;
+            /** Hold Days */
+            hold_days: number;
+            /** Short Put */
+            short_put?: string | null;
+            /** Long Put */
+            long_put?: string | null;
+            /** Short Call */
+            short_call?: string | null;
+            /** Long Call */
+            long_call?: string | null;
+            /** Entry Credit */
+            entry_credit?: string | null;
+            /** Max Loss */
+            max_loss?: string | null;
+            /** Bucket Sector */
+            bucket_sector?: string | null;
+            /** Bucket Verdict */
+            bucket_verdict?: string | null;
+            /** Earnings Clear */
+            earnings_clear: boolean;
+            /** Contracts */
+            contracts: number;
+        };
+        VrpCandidatesResponse: {
+            /** Candidates */
+            candidates: components["schemas"]["VrpCandidateRow"][];
+            /**
+             * Disclaimer
+             * @default Flat-vol modeled credit (skew ignored): direction is faithful, absolute credit is approximate. Paper/backtest only — not executed.
+             */
+            disclaimer: string;
+        };
+        VrpPaperPositionRow: {
+            /** Position Id */
+            position_id: number;
+            /** Ticker */
+            ticker: string;
+            /**
+             * Opened On
+             * Format: date
+             */
+            opened_on: string;
+            /**
+             * Expiry On
+             * Format: date
+             */
+            expiry_on: string;
+            /** Hold Days */
+            hold_days: number;
+            /** Contracts */
+            contracts: number;
+            /** Short Put */
+            short_put?: string | null;
+            /** Long Put */
+            long_put?: string | null;
+            /** Short Call */
+            short_call?: string | null;
+            /** Long Call */
+            long_call?: string | null;
+            /** Status */
+            status: string;
+            /** Entry Credit */
+            entry_credit?: string | null;
+            /** Max Loss */
+            max_loss?: string | null;
+            /** Unrealized Pnl */
+            unrealized_pnl?: string | null;
+            /** Realized Pnl */
+            realized_pnl?: string | null;
+            /** Mark Source */
+            mark_source: string;
+        };
+        VrpPaperResponse: {
+            /** Positions */
+            positions: components["schemas"]["VrpPaperPositionRow"][];
+            /** Total Realized Pnl */
+            total_realized_pnl?: string | null;
+            /**
+             * Disclaimer
+             * @default Flat-vol modeled credit (skew ignored): direction is faithful, absolute credit is approximate. Paper/backtest only — not executed.
+             */
+            disclaimer: string;
+        };
         VrpDailyPoint: {
             /**
              * Date

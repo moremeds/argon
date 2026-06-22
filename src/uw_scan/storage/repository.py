@@ -73,6 +73,7 @@ from .volatility_raw import _VolatilityRawMixin
 from .volatility_v2 import _VolatilityV2Mixin
 from .vrp_markout import _VrpMarkoutMixin
 from .vrp_research import _VrpResearchMixin
+from .vrp_trading import _VrpTradingMixin
 from .watchlist import _WatchlistMixin
 from .ws_consumer_state import _WsConsumerStateMixin
 
@@ -128,6 +129,7 @@ class Repository(
     _VolatilityV2Mixin,
     _VrpMarkoutMixin,
     _VrpResearchMixin,
+    _VrpTradingMixin,
     _WatchlistMixin,
     _WsConsumerStateMixin,
     _BaseMixin,
