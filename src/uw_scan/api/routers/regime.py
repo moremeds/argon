@@ -51,6 +51,8 @@ from uw_scan.api.schemas import (
     VolBackdropResponse,
     VrpHarvestResponse,
     VrpHarvestVerdict,
+    VrpMacroSignalResponse,
+    VrpMacroSignalRow,
 )
 from uw_scan.cards.canary_calibration import (
     COMPOSITE_VERSION as CANARY_COMPOSITE_VERSION,
@@ -247,6 +249,16 @@ def get_vrp_harvest(
     store written by the nightly vrp_markout job."""
     rows = repo.fetch_vrp_harvest_verdicts()
     return VrpHarvestResponse(verdicts=[VrpHarvestVerdict(**r) for r in rows])
+
+
+@router.get("/vrp-macro-signal", response_model=VrpMacroSignalResponse)
+def get_vrp_macro_signal(
+    repo: Annotated[Repository, Depends(get_repo)],
+) -> VrpMacroSignalResponse:
+    """Latest VRP macro short-vol signal per index (SPX/QQQ/IWM). Read-only over
+    the daily snapshot written by the nightly vrp_macro_signal_refresh job."""
+    rows = repo.fetch_latest_vrp_macro_signals()
+    return VrpMacroSignalResponse(signals=[VrpMacroSignalRow(**r) for r in rows])
 
 
 # ─── CRI (live) ──────────────────────────────────────────────────

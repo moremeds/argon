@@ -102,6 +102,7 @@ Worker roles: `ai-codex`, `ai-claude`, and `ai-deepseek` (provider-pinned, recom
 
 - **uv only** — `uv run pytest`, never `pytest` directly
 - **Persist analytical results to Postgres** — vol/scan/regime outputs land in tables, never in-memory-only
+- **Persist every research/backtest trace before the process exits** — any sweep, backtest, or parameter search must save its *full* result set (every config + every metric, not just the headline) to a durable artifact: a Postgres table for productionized signals, or a committed file/notebook under `docs/research/` for exploratory runs. stdout-only is data loss — a number you can't reproduce from a saved trace did not happen. Always record the exact reproduce command (script path + args/seed). This rule exists because a believed-but-unsaved "Sharpe ~2.0" cost a day chasing a figure that the saved trace later proved was never real (the true headline is 1.65)
 - **No naked shorts** in any strategy/trade-plan code — defined-risk only
 - **Data source priority**: IB → UW → FMP → massive (OHLC). Yahoo is banned
 - **Massive WS bypasses system proxies** — `MassiveWsClient` passes `proxy=None` to `websockets.connect`; the market-data stream must never inherit macOS SOCKS/HTTP proxy settings (`python-socks` is not installed, so an inherited proxy kills every connect). The configured feed is ~15-min delayed, so WS-consumer health keys on `last_flush_at` (is the consumer alive?), not tick event time

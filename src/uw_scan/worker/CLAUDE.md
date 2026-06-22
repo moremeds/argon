@@ -68,6 +68,7 @@ Set `UW_SCAN_WORKER_ROLE=uw|massive|ai|all`, `UW_SCAN_WORKER_INDEX`, and
 | `vrp_paper_open` | cron | `30 19 * * 0-4` (massive-0; open paper positions for today's candidates) |
 | `vrp_paper_mark` | cron | `40 19 * * 0-4` (massive-0; mark/close open paper positions, net of modeled cost) |
 | `vrp_backtest_refresh` | cron | `0 20 * * 6` (massive-0; weekly full-universe model-repriced condor backtest) |
+| `vrp_macro_signal_refresh` | cron | `45 3 * * 0-4` (massive-0; daily VRP macro short-vol signal snapshot — runs after `vol_index_lake_sync` at 03:15 so it reads the freshest EOD vol) |
 
 Intraday spot is no longer a scheduler job — it streams from the
 WebSocket consumer in `uw_scan.worker.massive_ws_consumer` (started as
