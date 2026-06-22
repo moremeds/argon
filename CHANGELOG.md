@@ -7,6 +7,18 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+### Fixed
+
+- Release pipeline no longer wedges the mac-mini auto-deploy on `uv.lock` drift.
+  `cut.sh prepare` now re-locks `uv.lock` so its editable self-version tracks the
+  version bump and commits it with the release, and `version_sync_check` (run via
+  system `python3` before `uv sync` in CI, so a stale committed lock can't be
+  auto-repaired and hidden) fails the build if the lock self-version ever drifts
+  from `VERSION` again. Previously the committed lock lagged the bump; the first
+  `uv run` on any host rewrote that one line, dirtied the tree, and the deploy
+  poller refused every deploy — silently pinning prod to the last-deployed
+  release (the mini sat on v0.1.2 for 4 days while v0.2.0–v0.2.2 published).
+
 ## [0.2.2] — 2026-06-22
 
 
