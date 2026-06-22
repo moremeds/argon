@@ -62,6 +62,12 @@ from uw_scan.worker.jobs.trade_insights_ai import trade_insights_ai_tick
 from uw_scan.worker.jobs.vol_index_lake_sync import run_vol_index_lake_sync
 from uw_scan.worker.jobs.vrp_markout import vrp_markout_refresh
 from uw_scan.worker.jobs.vrp_research_jobs import vrp_research_refresh
+from uw_scan.worker.jobs.vrp_trading_jobs import (
+    vrp_backtest_refresh,
+    vrp_candidates_refresh,
+    vrp_paper_mark,
+    vrp_paper_open,
+)
 from uw_scan.worker.volatility_jobs import (
     daily_spy_ohlc_refresh,
     nightly_vol_analytics_rollup,
@@ -453,6 +459,22 @@ def main() -> int:
     def _vrp_research_refresh() -> None:
         with _repo(settings) as repo:
             vrp_research_refresh(repo=repo)
+
+    def _vrp_candidates_refresh() -> None:
+        with _repo(settings) as repo:
+            vrp_candidates_refresh(repo=repo, settings=settings)
+
+    def _vrp_paper_open() -> None:
+        with _repo(settings) as repo:
+            vrp_paper_open(repo=repo, settings=settings)
+
+    def _vrp_paper_mark() -> None:
+        with _repo(settings) as repo:
+            vrp_paper_mark(repo=repo, settings=settings)
+
+    def _vrp_backtest_refresh() -> None:
+        with _repo(settings) as repo:
+            vrp_backtest_refresh(repo=repo, settings=settings)
 
     def _flow_data_refresh() -> None:
         if not _uw_auto_request_allowed(datetime.now(ZoneInfo(settings.rth_tz))):
@@ -862,6 +884,40 @@ def main() -> int:
                 CronTrigger.from_crontab("10 19 * * 0-4", timezone=settings.rth_tz),
                 id="vrp_research_refresh",
                 name="VRP research expansion (validation/sector/horizon/directional/ΔVRP)",
+                max_instances=1,
+                coalesce=True,
+            )
+            # VRP tradable layer (plan 2026-06-22) — all AFTER vrp_research (19:10)
+            # so the SELLABLE-sector gate is fresh. massive-0 / primary, weekdays ET.
+            sched.add_job(
+                _vrp_candidates_refresh,
+                CronTrigger.from_crontab("25 19 * * 0-4", timezone=settings.rth_tz),
+                id="vrp_candidates_refresh",
+                name="VRP iron-condor candidate emit",
+                max_instances=1,
+                coalesce=True,
+            )
+            sched.add_job(
+                _vrp_paper_open,
+                CronTrigger.from_crontab("30 19 * * 0-4", timezone=settings.rth_tz),
+                id="vrp_paper_open",
+                name="VRP paper-ledger open",
+                max_instances=1,
+                coalesce=True,
+            )
+            sched.add_job(
+                _vrp_paper_mark,
+                CronTrigger.from_crontab("40 19 * * 0-4", timezone=settings.rth_tz),
+                id="vrp_paper_mark",
+                name="VRP paper-ledger mark/close",
+                max_instances=1,
+                coalesce=True,
+            )
+            sched.add_job(
+                _vrp_backtest_refresh,
+                CronTrigger.from_crontab("0 20 * * 6", timezone=settings.rth_tz),
+                id="vrp_backtest_refresh",
+                name="VRP condor backtest (weekly)",
                 max_instances=1,
                 coalesce=True,
             )
