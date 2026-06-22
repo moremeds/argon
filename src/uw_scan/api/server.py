@@ -23,6 +23,7 @@ from uw_scan.api.routers import (
     stock,
     trade_insights,
     volatility,
+    vrp,
     watchlist,
 )
 from uw_scan.version import app_version
@@ -62,6 +63,7 @@ def create_app() -> FastAPI:
     app.include_router(gold.router, prefix="/api", tags=["gold"])
     app.include_router(rates.router, prefix="/api", tags=["rates"])
     app.include_router(scanner.router, prefix="/api", tags=["scanner"])
+    app.include_router(vrp.router, prefix="/api", tags=["vrp"])
     return app
 
 

@@ -18754,6 +18754,339 @@
         "title": "VolatilitySeriesResponse",
         "type": "object"
       },
+      "VrpBacktestResponse": {
+        "properties": {
+          "disclaimer": {
+            "default": "Flat-vol modeled credit (skew ignored): direction is faithful, absolute credit is approximate. Paper/backtest only \u2014 not executed.",
+            "title": "Disclaimer",
+            "type": "string"
+          },
+          "results": {
+            "items": {
+              "$ref": "#/components/schemas/VrpBacktestRow"
+            },
+            "title": "Results",
+            "type": "array"
+          }
+        },
+        "required": [
+          "results"
+        ],
+        "title": "VrpBacktestResponse",
+        "type": "object"
+      },
+      "VrpBacktestRow": {
+        "properties": {
+          "breach_rate": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Breach Rate"
+          },
+          "hold_days": {
+            "title": "Hold Days",
+            "type": "integer"
+          },
+          "mean_credit": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mean Credit"
+          },
+          "mean_net": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mean Net"
+          },
+          "mean_return_on_risk": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mean Return On Risk"
+          },
+          "median_net": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Median Net"
+          },
+          "n_trades": {
+            "title": "N Trades",
+            "type": "integer"
+          },
+          "n_wins": {
+            "default": 0,
+            "title": "N Wins",
+            "type": "integer"
+          },
+          "scope": {
+            "title": "Scope",
+            "type": "string"
+          },
+          "total_net": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Total Net"
+          },
+          "unit_key": {
+            "title": "Unit Key",
+            "type": "string"
+          },
+          "unit_type": {
+            "title": "Unit Type",
+            "type": "string"
+          },
+          "win_rate": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Win Rate"
+          }
+        },
+        "required": [
+          "unit_type",
+          "unit_key",
+          "hold_days",
+          "scope",
+          "n_trades"
+        ],
+        "title": "VrpBacktestRow",
+        "type": "object"
+      },
+      "VrpCandidateRow": {
+        "properties": {
+          "as_of": {
+            "format": "date",
+            "title": "As Of",
+            "type": "string"
+          },
+          "bucket_sector": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Bucket Sector"
+          },
+          "bucket_verdict": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Bucket Verdict"
+          },
+          "contracts": {
+            "title": "Contracts",
+            "type": "integer"
+          },
+          "earnings_clear": {
+            "title": "Earnings Clear",
+            "type": "boolean"
+          },
+          "entry_credit": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Entry Credit"
+          },
+          "hold_days": {
+            "title": "Hold Days",
+            "type": "integer"
+          },
+          "iv": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Iv"
+          },
+          "long_call": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Long Call"
+          },
+          "long_put": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Long Put"
+          },
+          "max_loss": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Loss"
+          },
+          "short_call": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Short Call"
+          },
+          "short_put": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Short Put"
+          },
+          "spot": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Spot"
+          },
+          "structure": {
+            "title": "Structure",
+            "type": "string"
+          },
+          "ticker": {
+            "title": "Ticker",
+            "type": "string"
+          },
+          "vrp_z": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vrp Z"
+          }
+        },
+        "required": [
+          "ticker",
+          "as_of",
+          "structure",
+          "hold_days",
+          "earnings_clear",
+          "contracts"
+        ],
+        "title": "VrpCandidateRow",
+        "type": "object"
+      },
+      "VrpCandidatesResponse": {
+        "properties": {
+          "candidates": {
+            "items": {
+              "$ref": "#/components/schemas/VrpCandidateRow"
+            },
+            "title": "Candidates",
+            "type": "array"
+          },
+          "disclaimer": {
+            "default": "Flat-vol modeled credit (skew ignored): direction is faithful, absolute credit is approximate. Paper/backtest only \u2014 not executed.",
+            "title": "Disclaimer",
+            "type": "string"
+          }
+        },
+        "required": [
+          "candidates"
+        ],
+        "title": "VrpCandidatesResponse",
+        "type": "object"
+      },
       "VrpDailyPoint": {
         "properties": {
           "date": {
@@ -18904,6 +19237,185 @@
           "verdict"
         ],
         "title": "VrpHarvestVerdict",
+        "type": "object"
+      },
+      "VrpPaperPositionRow": {
+        "properties": {
+          "contracts": {
+            "title": "Contracts",
+            "type": "integer"
+          },
+          "entry_credit": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Entry Credit"
+          },
+          "expiry_on": {
+            "format": "date",
+            "title": "Expiry On",
+            "type": "string"
+          },
+          "hold_days": {
+            "title": "Hold Days",
+            "type": "integer"
+          },
+          "long_call": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Long Call"
+          },
+          "long_put": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Long Put"
+          },
+          "mark_source": {
+            "title": "Mark Source",
+            "type": "string"
+          },
+          "max_loss": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Loss"
+          },
+          "opened_on": {
+            "format": "date",
+            "title": "Opened On",
+            "type": "string"
+          },
+          "position_id": {
+            "title": "Position Id",
+            "type": "integer"
+          },
+          "realized_pnl": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Realized Pnl"
+          },
+          "short_call": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Short Call"
+          },
+          "short_put": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Short Put"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "ticker": {
+            "title": "Ticker",
+            "type": "string"
+          },
+          "unrealized_pnl": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Unrealized Pnl"
+          }
+        },
+        "required": [
+          "position_id",
+          "ticker",
+          "opened_on",
+          "expiry_on",
+          "hold_days",
+          "contracts",
+          "status",
+          "mark_source"
+        ],
+        "title": "VrpPaperPositionRow",
+        "type": "object"
+      },
+      "VrpPaperResponse": {
+        "properties": {
+          "disclaimer": {
+            "default": "Flat-vol modeled credit (skew ignored): direction is faithful, absolute credit is approximate. Paper/backtest only \u2014 not executed.",
+            "title": "Disclaimer",
+            "type": "string"
+          },
+          "positions": {
+            "items": {
+              "$ref": "#/components/schemas/VrpPaperPositionRow"
+            },
+            "title": "Positions",
+            "type": "array"
+          },
+          "total_realized_pnl": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Total Realized Pnl"
+          }
+        },
+        "required": [
+          "positions"
+        ],
+        "title": "VrpPaperResponse",
         "type": "object"
       },
       "WatchlistCard": {
@@ -19541,7 +20053,7 @@
   },
   "info": {
     "title": "UW Watchlist API",
-    "version": "0.1.2"
+    "version": "0.2.0"
   },
   "openapi": "3.1.0",
   "paths": {
@@ -22217,6 +22729,125 @@
         "summary": "Get Trade Insight Priors",
         "tags": [
           "trade-insights"
+        ]
+      }
+    },
+    "/api/vrp/backtest": {
+      "get": {
+        "operationId": "get_vrp_backtest_api_vrp_backtest_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "hold_days",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Hold Days"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VrpBacktestResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Vrp Backtest",
+        "tags": [
+          "vrp"
+        ]
+      }
+    },
+    "/api/vrp/candidates": {
+      "get": {
+        "operationId": "get_vrp_candidates_api_vrp_candidates_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VrpCandidatesResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Get Vrp Candidates",
+        "tags": [
+          "vrp"
+        ]
+      }
+    },
+    "/api/vrp/paper": {
+      "get": {
+        "operationId": "get_vrp_paper_api_vrp_paper_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VrpPaperResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Vrp Paper",
+        "tags": [
+          "vrp"
         ]
       }
     },
