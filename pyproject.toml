@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "uw-scan"
-version = "0.2.1"
+version = "0.2.2"
 description = "Streamlit opportunity scanner for Unusual Whales data"
 requires-python = ">=3.11"
 dependencies = [
