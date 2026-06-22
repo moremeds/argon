@@ -60,6 +60,7 @@ from uw_scan.worker.jobs.trade_insight_outcome_backfill import (
 )
 from uw_scan.worker.jobs.trade_insights_ai import trade_insights_ai_tick
 from uw_scan.worker.jobs.vol_index_lake_sync import run_vol_index_lake_sync
+from uw_scan.worker.jobs.vrp_macro_signal import vrp_macro_signal_refresh
 from uw_scan.worker.jobs.vrp_markout import vrp_markout_refresh
 from uw_scan.worker.jobs.vrp_research_jobs import vrp_research_refresh
 from uw_scan.worker.jobs.vrp_trading_jobs import (
@@ -441,6 +442,10 @@ def main() -> int:
     def _vrp_markout_refresh() -> None:
         with _repo(settings) as repo:
             vrp_markout_refresh(repo=repo)
+
+    def _vrp_macro_signal_refresh() -> None:
+        with _repo(settings) as repo:
+            vrp_macro_signal_refresh(repo=repo, settings=settings)
 
     def _corporate_actions_refresh() -> None:
         provider = _fundamentals_provider(settings)
@@ -1133,6 +1138,18 @@ def main() -> int:
             CronTrigger(hour=3, minute=15, timezone=settings.rth_tz),
             id="vol_index_lake_sync",
             name="Vol-complex parquet lake sync",
+            max_instances=1,
+            coalesce=True,
+        )
+        # VRP macro short-vol signal at 03:45 ET — AFTER vol_index_lake_sync
+        # (03:15) so it reads the freshest synced EOD vol. Computes the weekly
+        # bull-put-spread readout + full-history backtest headline per name and
+        # persists the daily snapshot. Pure DB-read math; idempotent.
+        sched.add_job(
+            _vrp_macro_signal_refresh,
+            CronTrigger.from_crontab("45 3 * * 0-4", timezone=settings.rth_tz),
+            id="vrp_macro_signal_refresh",
+            name="VRP macro short-vol signal refresh",
             max_instances=1,
             coalesce=True,
         )
