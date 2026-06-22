@@ -70,6 +70,22 @@ class IronCondor:
     max_loss: float
     leg_premiums: tuple[float, float, float, float]  # sp, lp, sc, lc (per share)
 
+    def expiry_pnl(self, S_T: float) -> float:
+        return condor_expiry_pnl(self, S_T)
+
+    def breached(self, S_T: float) -> bool:
+        return S_T < self.short_put or S_T > self.short_call
+
+    def value(self, S: float, T: float, r: float, sigma: float) -> float:
+        """Cost-to-close now (mark). At T<=0 bs_price returns intrinsic, so this
+        equals the expiry loss → credit − value(S,0) == expiry_pnl(S)."""
+        return (
+            bs_price(S, self.short_put, T, r, sigma, is_call=False)
+            - bs_price(S, self.long_put, T, r, sigma, is_call=False)
+            + bs_price(S, self.short_call, T, r, sigma, is_call=True)
+            - bs_price(S, self.long_call, T, r, sigma, is_call=True)
+        )
+
 
 def build_iron_condor(
     S: float, sigma: float, T: float, r: float, *, short_delta: float, wing_delta: float
@@ -116,21 +132,100 @@ def condor_expiry_pnl(condor: IronCondor, S_T: float) -> float:
 
 
 @dataclass(frozen=True)
+class BullPutSpread:
+    """Defined-risk bullish short-vol: sell short_put, buy lower long_put. One
+    breach side (downside). Capped loss = put_width − credit."""
+
+    short_put: float
+    long_put: float
+    credit: float
+    put_width: float
+    max_loss: float
+    leg_premiums: tuple[float, float]  # sp, lp (per share)
+
+    def expiry_pnl(self, S_T: float) -> float:
+        put_loss = max(0.0, self.short_put - S_T) - max(0.0, self.long_put - S_T)
+        return self.credit - put_loss
+
+    def breached(self, S_T: float) -> bool:
+        return S_T < self.short_put
+
+    def value(self, S: float, T: float, r: float, sigma: float) -> float:
+        return bs_price(S, self.short_put, T, r, sigma, is_call=False) - bs_price(
+            S, self.long_put, T, r, sigma, is_call=False
+        )
+
+
+def build_bull_put_spread(
+    S: float, sigma: float, T: float, r: float, *, short_delta: float, wing_delta: float
+) -> BullPutSpread:
+    if S <= 0 or sigma <= 0 or T <= 0:
+        raise ValueError(
+            f"build_bull_put_spread needs S,sigma,T > 0 (got {S},{sigma},{T})"
+        )
+    if not (0.0 < wing_delta < short_delta < 0.5):
+        raise ValueError("require 0 < wing_delta < short_delta < 0.5")
+    sp = strike_for_delta(S, T, r, sigma, short_delta, is_call=False)
+    lp = strike_for_delta(S, T, r, sigma, wing_delta, is_call=False)
+    sp_p = bs_price(S, sp, T, r, sigma, is_call=False)
+    lp_p = bs_price(S, lp, T, r, sigma, is_call=False)
+    credit = sp_p - lp_p
+    put_width = sp - lp
+    return BullPutSpread(sp, lp, credit, put_width, put_width - credit, (sp_p, lp_p))
+
+
+@dataclass(frozen=True)
+class CashSecuredPut:
+    """Defined-risk bullish short-vol: sell short_put, hold cash. No wing → more
+    credit but loss runs to the strike. Capital at risk = strike·100 (max_loss =
+    strike − credit, the assignment-to-zero floor)."""
+
+    short_put: float
+    credit: float
+    max_loss: float  # short_put − credit (stock assigned and falls to 0)
+    leg_premiums: tuple[float]  # (sp,)
+
+    def expiry_pnl(self, S_T: float) -> float:
+        return self.credit - max(0.0, self.short_put - S_T)
+
+    def breached(self, S_T: float) -> bool:
+        return S_T < self.short_put
+
+    def value(self, S: float, T: float, r: float, sigma: float) -> float:
+        return bs_price(S, self.short_put, T, r, sigma, is_call=False)
+
+
+def build_cash_secured_put(
+    S: float, sigma: float, T: float, r: float, *, short_delta: float
+) -> CashSecuredPut:
+    if S <= 0 or sigma <= 0 or T <= 0:
+        raise ValueError(
+            f"build_cash_secured_put needs S,sigma,T > 0 (got {S},{sigma},{T})"
+        )
+    if not (0.0 < short_delta < 0.5):
+        raise ValueError("require 0 < short_delta < 0.5")
+    sp = strike_for_delta(S, T, r, sigma, short_delta, is_call=False)
+    sp_p = bs_price(S, sp, T, r, sigma, is_call=False)
+    return CashSecuredPut(sp, sp_p, sp - sp_p, (sp_p,))
+
+
+@dataclass(frozen=True)
 class CostModel:
     per_contract: float  # commission per leg per side
     slippage_frac: float  # half-spread as fraction of leg mid
     slippage_min: float  # half-spread floor per leg (price points)
     round_trip: bool = True
-    n_legs: int = 4
+    n_legs: int = 4  # legacy default; commission now scales to len(leg_premiums)
     multiplier: int = 100
 
     def total(self, leg_premiums: tuple[float, ...], contracts: int) -> float:
         """Dollar cost: per-leg half-spread (max of floor and frac·mid) + commission,
-        ×(2 if round_trip)·contracts. Slippage is in price points → ×multiplier."""
+        ×(2 if round_trip)·contracts. Slippage is in price points → ×multiplier.
+        Commission scales to the actual leg count (condor=4, put-spread=2, CSP=1)."""
         sides = 2 if self.round_trip else 1
         slip_pts = sum(
             max(self.slippage_min, self.slippage_frac * abs(p)) for p in leg_premiums
         )
         slip_dollars = slip_pts * self.multiplier * contracts * sides
-        commission = self.per_contract * self.n_legs * contracts * sides
+        commission = self.per_contract * len(leg_premiums) * contracts * sides
         return slip_dollars + commission

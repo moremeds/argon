@@ -102,6 +102,24 @@ class _VrpTradingMixin:
             (hold_days,),
         )
 
+    # ── macro short-vol sweep (research) ─────────────────────────────────────
+    def clear_vrp_macro_sweep_results(self) -> None:
+        with self._conn.cursor() as cur:
+            cur.execute(f"DELETE FROM {self._schema}.vrp_macro_sweep_results")
+
+    def upsert_vrp_macro_sweep_result(self, **row: Any) -> None:
+        self._vt_upsert(
+            "vrp_macro_sweep_results",
+            ("ticker", "structure", "gate", "short_delta", "hold_days", "scope"),
+            row,
+        )
+
+    def fetch_vrp_macro_sweep_results(self) -> list[dict[str, Any]]:
+        return self._vt_fetch(
+            f"SELECT * FROM {self._schema}.vrp_macro_sweep_results "
+            "ORDER BY ticker, structure, gate, short_delta, hold_days, scope"
+        )
+
     # ── paper ledger ─────────────────────────────────────────────────────────
     def open_vrp_paper_position(self, **row: Any) -> int | None:
         cols = list(row.keys())
