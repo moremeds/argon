@@ -290,6 +290,12 @@ class Settings(BaseModel):
     r2_secret_access_key: SecretStr | None = None
     r2_bucket: str | None = None
     r2_endpoint_override: str | None = None
+    # Option surface capture (durable full-chain IV/greeks grid) + IB-vs-UW IV canary
+    option_surface_capture_enabled: bool = True
+    option_surface_iv_canary_enabled: bool = True
+    option_surface_iv_canary_warn_threshold: float = 0.02
+    xenon_query_api_url: str = "http://127.0.0.1:8421"
+    xenon_query_api_key: SecretStr | None = None
 
     # --- VRP tradable iron-condor + backtest (plan 2026-06-22) ----------------
     # hold is in TRADING days to stay unit-consistent with the harvest measurement
@@ -662,6 +668,23 @@ class Settings(BaseModel):
             r2_endpoint_override=(
                 _r2_ep
                 if (_r2_ep := os.environ.get("R2_ENDPOINT_OVERRIDE", "").strip())
+                else None
+            ),
+            option_surface_capture_enabled=_env_bool(
+                "OPTION_SURFACE_CAPTURE_ENABLED", True
+            ),
+            option_surface_iv_canary_enabled=_env_bool(
+                "OPTION_SURFACE_IV_CANARY_ENABLED", True
+            ),
+            option_surface_iv_canary_warn_threshold=float(
+                os.environ.get("OPTION_SURFACE_IV_CANARY_WARN_THRESHOLD", "0.02")
+            ),
+            xenon_query_api_url=os.environ.get(
+                "XENON_QUERY_API_URL", "http://127.0.0.1:8421"
+            ),
+            xenon_query_api_key=(
+                SecretStr(v)
+                if (v := os.environ.get("XENON_QUERY_API_KEY", "").strip())
                 else None
             ),
             vrp_hold_days=int(os.environ.get("UW_SCAN_VRP_HOLD_DAYS", "20")),

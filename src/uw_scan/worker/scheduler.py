@@ -46,6 +46,8 @@ from uw_scan.worker.jobs.ohlc_pull import ohlc_pull_once
 from uw_scan.worker.jobs.option_intraday_jobs import (
     refresh_intraday_for_top_oi_movers,
 )
+from uw_scan.worker.jobs.option_surface_capture import option_surface_capture
+from uw_scan.worker.jobs.option_surface_iv_canary import option_surface_iv_canary
 from uw_scan.worker.jobs.pipeline_benchmark import pipeline_benchmark_snapshot_job
 from uw_scan.worker.jobs.positioning_jobs import positioning_refresh_once
 from uw_scan.worker.jobs.rates_jobs import rates_fred_ingest_job
@@ -178,6 +180,17 @@ def _should_schedule_rates_fred_ingest(settings: Settings) -> bool:
 
 
 def _should_schedule_pipeline_benchmark(settings: Settings) -> bool:
+    role = settings.worker_role.lower()
+    return role == "all" or (role == "uw" and settings.worker_index == 0)
+
+
+def _should_schedule_option_surface_capture(settings: Settings) -> bool:
+    """Exactly one process owns the nightly full-chain surface capture.
+
+    A UW-bound watchlist loop with no advisory lock; scheduling it on every role's
+    index-0 would multiply UW /greeks spend (429 risk) and race upserts. Pin to uw-0,
+    following the skew_swing / rates-FRED precedent.
+    """
     role = settings.worker_role.lower()
     return role == "all" or (role == "uw" and settings.worker_index == 0)
 
@@ -526,6 +539,25 @@ def main() -> int:
             ) as uw:
                 with _repo(settings) as repo:
                     cockpit_daily_snapshot(repo=repo, client=uw, settings=settings)
+
+    def _option_surface_capture() -> None:
+        if not settings.option_surface_capture_enabled:
+            return
+        # ET market date (not host-local) so a non-ET host doesn't stamp +1 day.
+        market_date = datetime.now(ZoneInfo(settings.rth_tz)).date()
+        with _external_api_recorder(settings) as recorder:
+            with _uw_client(
+                settings, telemetry_recorder=recorder, job_name="option_surface_capture"
+            ) as uw:
+                with _repo(settings) as repo:
+                    option_surface_capture(repo=repo, client=uw, today=market_date)
+
+    def _option_surface_iv_canary() -> None:
+        if not settings.option_surface_iv_canary_enabled:
+            return
+        market_date = datetime.now(ZoneInfo(settings.rth_tz)).date()
+        with _repo(settings) as repo:
+            option_surface_iv_canary(repo=repo, settings=settings, today=market_date)
 
     def _skew_swing_greeks_refresh() -> None:
         # ET market date (not host-local) so a non-ET host doesn't stamp +1 day.
@@ -1006,6 +1038,23 @@ def main() -> int:
                     CronTrigger.from_crontab("30 17 * * 0-4", timezone=settings.rth_tz),
                     id="skew_swing_greeks_refresh",
                     name="Skew swing-DTE greeks refresh",
+                    max_instances=1,
+                    coalesce=True,
+                )
+            if _should_schedule_option_surface_capture(settings):
+                sched.add_job(
+                    _option_surface_capture,
+                    CronTrigger.from_crontab("0 19 * * 0-4", timezone=settings.rth_tz),
+                    id="option_surface_capture",
+                    name="Option surface full-chain capture",
+                    max_instances=1,
+                    coalesce=True,
+                )
+                sched.add_job(
+                    _option_surface_iv_canary,
+                    CronTrigger.from_crontab("30 19 * * 0-4", timezone=settings.rth_tz),
+                    id="option_surface_iv_canary",
+                    name="Option surface IB-vs-UW IV canary",
                     max_instances=1,
                     coalesce=True,
                 )
