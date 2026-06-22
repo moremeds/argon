@@ -87,9 +87,17 @@ assert updated != text, "CHANGELOG rewrite produced no change"
 open(path, "w").write(updated)
 PY
 
+  # Re-lock so uv.lock's editable self-version matches the bumped pyproject. Without
+  # this the committed lock lags (lock says $current, pyproject says $next); the first
+  # `uv run` on any host then rewrites that one line, dirtying the tree, and the
+  # mac-mini deploy poller refuses to deploy on a dirty tree — silently wedging prod on
+  # the last-deployed release. version_sync_check (below, and pre-sync in CI) enforces
+  # the match. See docs/runbooks/release.md.
+  uv lock
+
   uv run python scripts/release/version_sync_check.py || die "version_sync_check failed after bump"
 
-  git add VERSION pyproject.toml web/package.json CHANGELOG.md
+  git add VERSION pyproject.toml web/package.json CHANGELOG.md uv.lock
   git commit -m "release: v$next"
   git push -u origin "$branch"
   gh pr create --base main --head "$branch" \

@@ -6,8 +6,9 @@ Argon ships to the Mac mini via a tag-driven pipeline (no Docker; launchd stack)
 
 1. Land your feature PRs to `main` with CHANGELOG entries under `## [Unreleased]`.
 2. `scripts/release/cut.sh prepare [patch|minor|major]` — opens a `release/vX.Y.Z`
-   PR that bumps `VERSION` + `pyproject.toml` + `web/package.json` and promotes
-   the `[Unreleased]` block to `[X.Y.Z]`.
+   PR that bumps `VERSION` + `pyproject.toml` + `web/package.json`, re-locks
+   `uv.lock` (so its editable self-version tracks the bump), and promotes the
+   `[Unreleased]` block to `[X.Y.Z]`.
 3. Merge that PR after CI is green.
 4. `scripts/release/cut.sh tag` (on `main`) — tags `vX.Y.Z` and pushes the tag.
 
@@ -57,3 +58,14 @@ Resume the poller when done.
 clean across deploys. If the poller logs `ALERT: working tree dirty`, inspect
 `git status` on the mini and resolve (e.g. `git checkout -- <file>`) — never
 `git reset --hard`.
+
+Historically the recurring cause was `uv.lock`: `cut.sh` bumped the version files
+but never re-locked, so the committed lock's editable self-version lagged
+`VERSION`. The first `uv run` on the mini rewrote that one line, the tree went
+dirty, and the poller refused every deploy — silently pinning prod to the
+last-deployed release. `cut.sh prepare` now runs `uv lock` and commits it, and
+`version_sync_check` (run pre-`uv sync` in CI, so a stale committed lock can't be
+auto-repaired and hidden) fails the build if the lock self-version ever drifts
+from `VERSION` again. If you still see a dirty `uv.lock` on the mini, it means an
+out-of-band `uv` invocation re-resolved deps — `git checkout -- uv.lock` and
+investigate why the committed lock disagreed with the installed environment.
