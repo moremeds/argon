@@ -7,6 +7,21 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+## [0.3.0] — 2026-06-23
+
+
+### Added
+
+- Option-surface capture: a nightly, forward-accumulating per-strike IV/greeks
+  grid for every watchlist ticker (`option_surface_grid_daily`, migration 077),
+  plus an ATM IB-vs-UW IV canary (`iv_source_validation`, migration 078). New
+  `option_surface_capture` job (19:00 ET) and `option_surface_iv_canary` job
+  (19:30 ET) on the uw-0 worker, Mon–Fri. Enumerates the full term structure via
+  `greek-exposure/expiry` — not `/option-contracts`, which UW silently caps at
+  500 contracts by volume and so drops long-dated expiries (measured: SPX 28/53
+  missing). One `/greeks` call per expiry, idempotent upsert, per-ticker failure
+  isolation. The surface only accrues forward: UW returns 403 for per-strike
+  history beyond ~30 trading days, so every uncaptured night is permanently lost.
 ## [0.2.3] — 2026-06-22
 
 
