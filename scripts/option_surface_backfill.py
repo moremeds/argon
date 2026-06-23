@@ -32,6 +32,13 @@ def main() -> None:
         default=30,
         help="trading days to look back (default 30)",
     )
+    p.add_argument(
+        "--end-date",
+        type=lambda s: __import__("datetime").date.fromisoformat(s),
+        default=None,
+        metavar="YYYY-MM-DD",
+        help="stop after this date (inclusive); useful to preserve daily UW quota",
+    )
     args = p.parse_args()
 
     settings = Settings.from_env()
@@ -51,7 +58,9 @@ def main() -> None:
             timeout=settings.request_timeout_seconds,
             job_name="option_surface_backfill",
         )
-        n = option_surface_backfill(repo=repo, client=client, days_back=args.days_back)
+        n = option_surface_backfill(
+            repo=repo, client=client, days_back=args.days_back, end_date=args.end_date
+        )
 
     log.info("done: %d rows written", n)
 
