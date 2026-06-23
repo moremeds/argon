@@ -9,6 +9,10 @@ from uw_scan.reports.vrp_robustness import (
     bear_start_study,
     buy_and_hold,
     equity_curve_metrics,
+    mc_block_bootstrap,
+    mc_config_perturb,
+    mc_entry_jitter,
+    mc_random_start,
     min_viable_capital,
     monthly_equity,
     weekday_sweep,
@@ -108,3 +112,91 @@ def test_bear_start_study_returns_summary_and_path():
     # long-form path drives the full-lived-experience chart
     assert path and path[0]["start"] == date(2015, 6, 1)
     assert {"start", "year", "month", "equity", "drawdown_pct"} <= set(path[0])
+
+
+def test_mc_entry_jitter_deterministic_and_shaped():
+    ld = _spx_loaded(spot=5000.0, iv=0.20, z=1.0, n=400)
+    cfg = CapitalConfig(
+        capital=1_000_000_000.0,
+        base_risk_pct=0.05,
+        overlay_mult=0.0,
+        rich_threshold=99.0,
+        names=("SPX",),
+    )
+    a = mc_entry_jitter(ld, _settings(), cfg, 0.04, n_trials=20, jitter=2, seed=11)
+    b = mc_entry_jitter(ld, _settings(), cfg, 0.04, n_trials=20, jitter=2, seed=11)
+    assert a == b
+    assert a["n_trials"] == 20 and "p5" in a and "p95" in a and a["seed"] == 11
+
+
+def test_mc_block_bootstrap_ci_ordered():
+    vals = [0.02, -0.01, 0.03, 0.00, 0.015, -0.02, 0.025, 0.01] * 12
+    out = mc_block_bootstrap(vals, n_trials=500, mean_block=6.0, seed=3)
+    assert out["p5"] <= out["median"] <= out["p95"]
+
+
+def test_mc_random_start_deterministic():
+    ld = _spx_loaded(spot=5000.0, iv=0.20, z=1.0, n=600)
+    cfg = CapitalConfig(
+        capital=1_000_000_000.0,
+        base_risk_pct=0.05,
+        overlay_mult=0.0,
+        rich_threshold=99.0,
+        names=("SPX",),
+    )
+    a = mc_random_start(ld, _settings(), cfg, 0.04, n_trials=15, seed=5)
+    b = mc_random_start(ld, _settings(), cfg, 0.04, n_trials=15, seed=5)
+    assert a == b
+
+
+def test_mc_random_start_window_bounds_sampled_starts():
+    # the bear-extension (#5): every sampled start must fall inside [min_start, max_start]
+    ld = _spx_loaded(spot=5000.0, iv=0.20, z=1.0, n=600)  # 2020-01 .. ~2022-04
+    cfg = CapitalConfig(
+        capital=1_000_000_000.0,
+        base_risk_pct=0.05,
+        overlay_mult=0.0,
+        rich_threshold=99.0,
+        names=("SPX",),
+    )
+    lo, hi = date(2020, 6, 1), date(2021, 1, 1)
+    w = mc_random_start(
+        ld,
+        _settings(),
+        cfg,
+        0.04,
+        n_trials=10,
+        seed=5,
+        min_start=lo,
+        max_start=hi,
+        min_tail_months=6,
+    )
+    assert w == mc_random_start(
+        ld,
+        _settings(),
+        cfg,
+        0.04,
+        n_trials=10,
+        seed=5,
+        min_start=lo,
+        max_start=hi,
+        min_tail_months=6,
+    )
+    assert w["trials"]
+    assert all(
+        lo <= date.fromisoformat(t["param"].split("=", 1)[1]) <= hi for t in w["trials"]
+    )
+
+
+def test_mc_config_perturb_deterministic():
+    ld = _spx_loaded(spot=5000.0, iv=0.20, z=1.0, n=400)
+    cfg = CapitalConfig(
+        capital=1_000_000_000.0,
+        base_risk_pct=0.05,
+        overlay_mult=0.0,
+        rich_threshold=99.0,
+        names=("SPX",),
+    )
+    a = mc_config_perturb(ld, _settings(), cfg, 0.04, n_trials=15, seed=9)
+    b = mc_config_perturb(ld, _settings(), cfg, 0.04, n_trials=15, seed=9)
+    assert a == b

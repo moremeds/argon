@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import dataclasses
 import math
+import random
 from datetime import date as _date
 from statistics import fmean, pstdev
 from typing import Any
@@ -21,10 +22,9 @@ from uw_scan.reports.vrp_capital_account import (
     account_metrics,
     simulate_account,
 )
+from uw_scan.reports.vrp_macro_signal import MacroSignalConfig
 from uw_scan.reports.vrp_structure import build_bull_put_spread
 
-# NOTE: Task 6 EXTENDS this import block (via Edit, never inline) to add `random`
-# and MacroSignalConfig.
 CONTRACT_MULTIPLIER = 100
 
 
@@ -297,3 +297,189 @@ def bear_start_study(
                 }
             )
     return summary, path_rows
+
+
+def _dist(
+    values: list[float], n_trials: int, seed: int, *, metric: str = "sharpe"
+) -> dict:
+    clean = [v for v in values if v is not None and not math.isnan(v)]
+    return {
+        "metric": metric,
+        "n_trials": n_trials,
+        "seed": seed,
+        "n_valid": len(clean),
+        "mean": fmean(clean) if clean else float("nan"),
+        "median": _pct(clean, 0.5),
+        "p5": _pct(clean, 0.05),
+        "p95": _pct(clean, 0.95),
+    }
+
+
+def _project(m: dict, metric: str) -> float:
+    """Bridge the *_excess key names: account_metrics emits cagr_excess/ann_return_excess;
+    the geometric path emits plain cagr/ann_return. sharpe/maxdd_pct exist in both."""
+    if metric in m:
+        return m[metric]
+    return m.get(f"{metric}_excess", float("nan"))
+
+
+def _metric_of(res, cfg, rf: float, *, metric: str) -> float:
+    m = (
+        equity_curve_metrics(monthly_equity(res, cfg.capital), cfg.capital, rf)
+        if cfg.compounding
+        else account_metrics(res, cfg, rf)
+    )
+    return _project(m, metric)
+
+
+def mc_entry_jitter(
+    loaded,
+    settings,
+    capcfg: CapitalConfig,
+    rf: float,
+    *,
+    n_trials: int = 200,
+    jitter: int = 2,
+    seed: int = 0,
+    metric: str = "sharpe",
+) -> dict:
+    """Distribution of `metric` over n_trials, each a different jitter_seed so every entry
+    day wiggles ± jitter trading days. Per-trial records returned under 'trials'."""
+    name = capcfg.names[0]
+    trials: list[dict] = []
+    for t in range(n_trials):
+        js = seed * 100003 + t
+        cfg = dataclasses.replace(capcfg, entry_jitter=jitter, jitter_seed=js)
+        v = _metric_of(
+            simulate_account({name: loaded}, settings, cfg), cfg, rf, metric=metric
+        )
+        trials.append({"trial": t, "value": v, "param": f"jitter_seed={js}"})
+    return {
+        **_dist([x["value"] for x in trials], n_trials, seed, metric=metric),
+        "trials": trials,
+    }
+
+
+def mc_block_bootstrap(
+    monthly_values,
+    *,
+    n_trials: int = 1000,
+    mean_block: float = 6.0,
+    seed: int = 0,
+    rf: float = 0.04,
+) -> dict:
+    """Stationary (Politis-Romano) bootstrap of a monthly return series → annualised Sharpe
+    distribution. Block length ~ Geometric(1/mean_block); wraps circularly. Feed the
+    ZERO-FILLED contiguous series so the distribution centres on the reported base Sharpe."""
+    if mean_block <= 0:
+        raise ValueError("mean_block must be > 0")
+    series = [v for v in monthly_values if v is not None and not math.isnan(v)]
+    n = len(series)
+    rng = random.Random(seed)
+    p = 1.0 / mean_block
+    trials: list[dict] = []
+    if n >= 2:
+        for t in range(n_trials):
+            sample: list[float] = []
+            while len(sample) < n:
+                i = rng.randrange(n)
+                while len(sample) < n:
+                    sample.append(series[i % n])
+                    i += 1
+                    if rng.random() < p:
+                        break
+            sd = pstdev(sample) if len(sample) > 1 else 0.0
+            sh = fmean(sample) / sd * math.sqrt(12) if sd > 0 else float("nan")
+            trials.append(
+                {"trial": t, "value": sh, "param": f"mean_block={mean_block}"}
+            )
+    return {
+        **_dist(
+            [x["value"] for x in trials], n_trials, seed, metric="sharpe_bootstrap"
+        ),
+        "trials": trials,
+    }
+
+
+def mc_random_start(
+    loaded,
+    settings,
+    capcfg: CapitalConfig,
+    rf: float,
+    *,
+    n_trials: int = 200,
+    min_tail_months: int = 24,
+    seed: int = 0,
+    metric: str = "sharpe",
+    min_start: _date | None = None,
+    max_start: _date | None = None,
+) -> dict:
+    """Distribution of `metric` over n_trials random start dates (each leaving >= min_tail_months
+    of data). Pass min_start/max_start to restrict sampling to a window — e.g. a bear regime,
+    which is the design's #5 ('randomised entry points, extension of the bear-market case')."""
+    name = capcfg.names[0]
+    lo_d = min_start or _date.min
+    hi_d = max_start or _date.max
+    all_dates = [d for d, _ in loaded.adj]
+    tail = min_tail_months * 21
+    # eligible starts: inside [min_start, max_start] AND leaving >= tail trading days of
+    # FORWARD data in the full series. Measuring the tail against the data end (not the
+    # window) keeps GFC-windowed starts near the 2009 bottom eligible — the whole point of #5.
+    eligible = [
+        d
+        for i, d in enumerate(all_dates)
+        if lo_d <= d <= hi_d and i < len(all_dates) - tail
+    ]
+    rng = random.Random(seed)
+    trials: list[dict] = []
+    if eligible:
+        for t in range(n_trials):
+            start = eligible[rng.randrange(len(eligible))]
+            cfg = dataclasses.replace(capcfg, min_date=start)
+            v = _metric_of(
+                simulate_account({name: loaded}, settings, cfg), cfg, rf, metric=metric
+            )
+            trials.append({"trial": t, "value": v, "param": f"start={start}"})
+    return {
+        **_dist([x["value"] for x in trials], n_trials, seed, metric=metric),
+        "trials": trials,
+    }
+
+
+def mc_config_perturb(
+    loaded,
+    settings,
+    capcfg: CapitalConfig,
+    rf: float,
+    *,
+    n_trials: int = 200,
+    seed: int = 0,
+    metric: str = "sharpe",
+) -> dict:
+    """Distribution of `metric` over random perturbations of the tuned knobs
+    (short_delta∈[0.20,0.30], hold∈[20,40], ramp_full_z∈[0.3,0.7]). Attacks overfit."""
+    name = capcfg.names[0]
+    rng = random.Random(seed)
+    trials: list[dict] = []
+    for t in range(n_trials):
+        sd_ = round(rng.uniform(0.20, 0.30), 4)
+        hd = rng.randint(20, 40)
+        rz = round(rng.uniform(0.30, 0.70), 4)
+        cfg = dataclasses.replace(
+            capcfg,
+            base_cfg=MacroSignalConfig(short_delta=sd_, hold_days=hd, ramp_full_z=rz),
+        )
+        v = _metric_of(
+            simulate_account({name: loaded}, settings, cfg), cfg, rf, metric=metric
+        )
+        trials.append(
+            {
+                "trial": t,
+                "value": v,
+                "param": f"short_delta={sd_};hold={hd};ramp_full_z={rz}",
+            }
+        )
+    return {
+        **_dist([x["value"] for x in trials], n_trials, seed, metric=metric),
+        "trials": trials,
+    }
