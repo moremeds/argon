@@ -528,3 +528,64 @@ all came from **late-May/early-June 2008 entries when VIX was only 17–18** —
 | `docs/research/vrp/vrp-backtest-iteration-4-findings.ipynb` | executed findings notebook (4 figures) |
 | `docs/research/vrp/vrp-backtest-iteration-4-findings.html` | **rendered standalone HTML report** |
 | `tests/unit/reports/test_vrp_robustness.py` | 12 unit tests |
+
+### Iteration-4 interpretation & take (2026-06-23 review)
+
+Re-reading the committed traces, the natural headline — *"the WINNER is still the WINNER on
+all metrics"* — is **half right, and the wrong half is the instructive one.**
+
+**1 · The base is NOT metric-dominant.** On the $143k floor account the staggered tranche
+beats the base on Sharpe (**1.705 vs 1.680**), excess return (0.611 vs 0.541), win-rate
+(91.3% vs 91.1%) and breach-rate (10.6% vs 11.3%). The base wins **exactly one** metric:
+max drawdown (**−90% vs −118% of starting capital**). But that one metric is *solvency* — a
+−118% drawdown means the worst-case loss exceeds the entire stake (a 2008 margin-call/ruin
+event), not a number you trade through. So the correct reading is **not** "base dominates"; it
+is *"every alternative buys marginal Sharpe with leverage, and the leverage pushes the GFC
+tail past ruin — the base is the only variant that survives."* Same keep-the-base conclusion,
+but it is a **risk** argument, not a return argument.
+
+**2 · The headline Sharpe is a favourable-corner estimate.** Two independent MC drivers say so:
+`entry_jitter` mean **1.385** (the realised 1.68 sits ~0.3 above the average nearby-calendar
+Sharpe — the exact weekly stride is mildly *lucky*), and `config_perturb` mean **1.371** with
+**p95 = 1.643** — i.e. the tuned WINNER config beats ~95% of its own neighbourhood, a textbook
+mild-overfit signature. The honest **de-rated forward expectation under timing + config
+uncertainty is ≈1.4, floor (p5) ≈1.05** — not 1.65/1.68. Still ~2× SPY buy-and-hold (0.62) and
+positive in the 5th percentile, so the edge is real; just stop quoting the favourable corner.
+The block-bootstrap median (1.671 ≈ baseline) is the one test confirming the central path is
+genuine, not a single-history fluke.
+
+**3 · What genuinely held up.** (a) *Don't pin a weekday* — the unpinned 5-day stride (1.68)
+beats every single-weekday pin (best Tue 1.587). (b) *Extra position = exposure, not edge* —
+both overlay and tranche deploy more capital into the same signal; risk-adjusted they add no
+alpha and breach the ruin line. (c) *Robust to when you start* — `random_start` p5 1.60,
+`random_start_bear` p5 1.62; entering at a bear top earns +150–184% over 36m.
+
+**4 · The take.** Iteration 4 did **not** dethrone the WINNER — but it did not crown it on
+merit either. The binding constraint is **utilisation, not entry config**: the −90%→−118%
+drawdown is a 2008-GFC-at-full-utilisation artifact the annualised monthly Sharpe completely
+masks (post-GFC bear starts cap drawdown at ~50%). The lever that matters is **sizing for the
+−100% GFC path — cap utilisation, hold dry powder** — not which day you enter or whether you
+stack a tranche. Practically: *keep the base config for its tail survivability, size it for the
+GFC path, and carry ≈1.4 (floor ≈1.05) as the honest forward Sharpe, pre-committing to print
+below 1.68 out-of-sample.* The interesting result of this iteration is a sober one — the gains
+are in risk control, and there is no free entry-timing or stacking trick to be had.
+
+### Open question — does a kill switch help? (hypothesis, **UNTESTED**)
+
+Asked 2026-06-23: would adding a kill switch lower both Sharpe *and* max DD? **Prediction only —
+no backtest run yet; do not cite as a result.** The naive "both down" tradeoff is likely wrong,
+and the answer is entirely design-dependent. The fill log's load-bearing fact: the catastrophic
+2008 breaches came from **late-May/June entries at VIX 17–18** (rich vs trailing year, but low
+*absolute* vol), *before* the plunge. Hence three archetypes give three different answers:
+
+| Switch design | Predicted Sharpe | Predicted max DD | Why |
+|---|---|---|---|
+| **High-VIX entry cap** (skip if VIX > X) | **↓** | **≈ unchanged** | Trips *after* the low-VIX pre-crash entries already locked the loss; also locks out the richest post-crash harvest (worst of both) |
+| **Realised-drawdown circuit breaker** (halt after −X% from peak) | **↓ (likely)** | **↓** | Cuts the tail by design, but for mean-reverting short-vol it switches off into the richest re-entry — self-inflicted sell-low/buy-high on participation |
+| **Vol-FLOOR entry gate** (require VIX > X — *don't sell cheap vol*) | **ambiguous** | **↓** | The only one targeting the actual cause: skips the low-absolute-vol-before-crash entries; but also forgoes years of calm-regime premium |
+
+Deeper point: a kill switch acts on the *symptom* (drawdown / vol level), whereas the cause is
+*utilisation*. Reducing per-trade size scales the whole tail down **uniformly** without the
+timing-whipsaw cost of chopping participation in and out — which is why §4's take favours sizing
+over a switch. To settle it empirically: add the three gates as flags and re-run
+`vrp_robustness_run.py`; compare Sharpe / maxDD / total-return vs the base. Not yet built.
