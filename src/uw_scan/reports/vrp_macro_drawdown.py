@@ -47,6 +47,12 @@ INDEX_SPECS: dict[str, dict] = {
         "spot_symbol": "IWM",
         "start": _date(2009, 1, 1),
     },
+    "SPY": {
+        "vol": "VIX",
+        "spot_source": "lake",
+        "spot_symbol": "SPY",
+        "start": _date(2006, 1, 1),
+    },
 }
 
 
