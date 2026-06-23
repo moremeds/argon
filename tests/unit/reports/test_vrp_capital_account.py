@@ -406,3 +406,93 @@ def test_entry_jitter_zero_matches_plain_stride():
     assert [
         r.entry_date for r in simulate_account({"SPX": ld}, _settings(), plain).rungs
     ] == [r.entry_date for r in simulate_account({"SPX": ld}, _settings(), jit0).rungs]
+
+
+# --- Task 3 (iter4): staggered extra tranche ------------------------------
+def test_extra_tranche_adds_staggered_rungs_when_rich():
+    # z=1.0 >= rich_threshold 1.0 everywhere → every base week spawns a +2-day extra
+    ld = _synthetic_loaded(spot=100.0, iv=0.30, z=1.0, n=200)
+    plain = CapitalConfig(
+        capital=1_000_000_000.0,
+        base_risk_pct=0.05,
+        overlay_mult=0.0,
+        rich_threshold=1.0,
+        names=("SPX",),
+    )
+    extra = CapitalConfig(
+        capital=1_000_000_000.0,
+        base_risk_pct=0.05,
+        overlay_mult=0.0,
+        rich_threshold=1.0,
+        names=("SPX",),
+        extra_tranche=True,
+        extra_tranche_stagger=2,
+    )
+    rp = simulate_account({"SPX": ld}, _settings(), plain)
+    rx = simulate_account({"SPX": ld}, _settings(), extra)
+    assert len(rx.rungs) > len(rp.rungs)
+    # extra entries land 2 trading days off the weekly stride → some not in the base set
+    base_dates = {r.entry_date for r in rp.rungs}
+    assert any(r.entry_date not in base_dates for r in rx.rungs)
+
+
+def test_extra_tranche_silent_when_never_rich():
+    # z=0.2 < rich_threshold 1.0 → no extra fires; identical to plain
+    ld = _synthetic_loaded(spot=100.0, iv=0.30, z=0.2, n=200)
+    plain = CapitalConfig(
+        capital=1_000_000_000.0,
+        base_risk_pct=0.05,
+        overlay_mult=0.0,
+        rich_threshold=1.0,
+        names=("SPX",),
+    )
+    extra = CapitalConfig(
+        capital=1_000_000_000.0,
+        base_risk_pct=0.05,
+        overlay_mult=0.0,
+        rich_threshold=1.0,
+        names=("SPX",),
+        extra_tranche=True,
+    )
+    rp = simulate_account({"SPX": ld}, _settings(), plain)
+    rx = simulate_account({"SPX": ld}, _settings(), extra)
+    assert [r.entry_date for r in rp.rungs] == [r.entry_date for r in rx.rungs]
+
+
+def test_all_iter4_flags_off_matches_legacy_defaults():
+    # Golden reconciliation: the six new flags at their DEFAULTS must be a pure no-op.
+    # Same fixture as test_simulate_single_name_opens_weekly_rungs (which pins len==10).
+    ld = _synthetic_loaded(spot=400.0, iv=0.20, z=0.3)
+    default = CapitalConfig(
+        capital=50_000.0, base_risk_pct=0.05, rich_threshold=1.0, names=("SPY",)
+    )
+    explicit = CapitalConfig(
+        capital=50_000.0,
+        base_risk_pct=0.05,
+        rich_threshold=1.0,
+        names=("SPY",),
+        compounding=False,
+        entry_weekday=None,
+        entry_jitter=0,
+        extra_tranche=False,
+        extra_tranche_stagger=2,
+    )
+    a = simulate_account({"SPY": ld}, _settings(), default)
+    b = simulate_account({"SPY": ld}, _settings(), explicit)
+    assert a.rungs == b.rungs  # Rung is a frozen dataclass → value equality
+    assert a.monthly_excess == b.monthly_excess
+    assert a.util_by_date == b.util_by_date
+    assert (
+        a.n_desired_rungs,
+        a.n_skipped_rungs,
+        a.contracts_desired_total,
+        a.contracts_filled_total,
+        a.span,
+    ) == (
+        b.n_desired_rungs,
+        b.n_skipped_rungs,
+        b.contracts_desired_total,
+        b.contracts_filled_total,
+        b.span,
+    )
+    assert len(a.rungs) == 10  # legacy invariant still holds

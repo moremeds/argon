@@ -199,11 +199,22 @@ def simulate_account(
     candidates: list[tuple[_date, str, int]] = []
     for nm in capcfg.names:
         ld = loadeds[nm]
+        hi = max(0, len(ld.adj) - hold)
         for pi in _entry_indices(ld, hold, capcfg, nm):
             d = ld.adj[pi][0]
             if capcfg.min_date and d < capcfg.min_date:
                 continue
             candidates.append((d, nm, pi))
+            # staggered extra tranche: rich base week → a second entry `stagger` days
+            # later, sized by its OWN entry-day signal in the main loop (distinct from the
+            # same-day contract overlay, which acts via overlay_mult instead).
+            if capcfg.extra_tranche:
+                zb = z_maps[nm].get(d)
+                pe = pi + capcfg.extra_tranche_stagger
+                if zb is not None and zb >= capcfg.rich_threshold and pe < hi:
+                    de = ld.adj[pe][0]
+                    if not (capcfg.min_date and de < capcfg.min_date):
+                        candidates.append((de, nm, pe))
     candidates.sort(key=lambda c: (c[0], (name_pos[c[1]] + c[0].toordinal()) % k_names))
 
     # 2. simulate
