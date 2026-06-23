@@ -151,6 +151,38 @@ sweet-spot conclusion does not depend on the modeled skew shape:
   3–6% net and "better-than-stock" claim require the **20–40% leverage we excluded**
   (no-naked-shorts, defined-risk) plus richer real-world skew than this conservative model.
 
+## Why the Sharpe is small (≈0.1–0.4)
+
+The low Sharpe is structural, not a bug. Five compounding reasons:
+
+1. **The rf cancels → Sharpe measures the premium harvest *alone*.** Collateral earns 4%
+   risk-free (credited to NAV) and the Sharpe hurdle subtracts the same 4%, so they cancel
+   exactly: `Sharpe ≈ mean(daily premium P&L) / std(daily premium P&L) × √252`. Total return
+   is ~3.6–5.4%, of which ~4% is just T-bills, leaving **~0.5–1.4%/yr of genuine harvest
+   above cash** — a tiny numerator. The rf *level* never distorts the ratio; the small Sharpe
+   honestly reflects a thin harvest relative to its own (tail-heavy) volatility.
+2. **Cash-securing is capital-inefficient.** 100% of the strike is locked up to earn that
+   thin premium. This is exactly the inefficiency GOAS removes with 20–40% margin — the same
+   harvest on 2.5–5× less capital is how its marketed 3–6% net works. We excluded leverage
+   (no-naked-shorts), so this is the unlevered floor.
+3. **Sharpe is the wrong lens for short-vol.** The return stream is left-skewed: many small
+   wins (86–99% win-rate) punctuated by rare large losses (COVID regime Sharpe −0.75 to
+   −1.6). Std-dev penalizes those downside tails like upside, inflating the denominator. On
+   drawdown the strategy looks far better — maxDD −14% to −22% vs buy-hold's **−56.5%**.
+4. **Fees eat a large fraction of a thin edge.** At 0% fee the 15Δ/21d cell scores 0.329
+   (≈ buy-hold 0.339); 1% fee + weekly turnover cost drops it to 0.115 (§3). When the edge
+   above cash is ~1–2%, a 1% fee is half of it. Published CBOE-PUT Sharpes are gross of fees.
+5. **Conservative pricing + a crash-heavy window.** The constant-slope modeled skew (low-vol
+   2026 anchor) understates crisis put richness → less income → lower numerator (a floor),
+   and 2006–2026 is unusually tail-heavy (2008/2020/2022) vs the longer, calmer CBOE-PUT
+   history.
+
+**Bottom line:** the strategy is *capital-inefficient unlevered*, not edge-free — near
+buy-hold risk-adjusted return gross, at a third of the drawdown, with a ~95% win-rate. The
+low net Sharpe is what full cash collateral + 1% fees + a tail-penalizing metric produce.
+GOAS's whole proposition is to fix the capital inefficiency with leverage — the lever our
+defined-risk constraint deliberately removed.
+
 ## Caveats
 
 - **Modeled skew**: constant slope calibrated to one 2026-05-05 quote, applied across 20y —
