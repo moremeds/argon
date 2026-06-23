@@ -505,6 +505,17 @@ quantifies (survives, p5 1.05).
 ÷ *initial* capital, so it exceeds 1.0 (e.g. 466×) as equity grows — read it as
 leverage-vs-start, not a cap breach.
 
+### Actual fills (`iter4-trade-log.csv`, 470 real trades — engine-faithful)
+
+The full per-trade log (date, spot, VIX, vrp_z, strikes, credit, contracts, expiry, settlement,
+breach, net P&L) reconciles to the base case exactly (470 fills, 91.1% win, 11.3% breach,
++$1.47M total). **The lesson is in the 2008 breaches:** the three big losses (−$22k/−$25k/−$20k)
+all came from **late-May/early-June 2008 entries when VIX was only 17–18** — `vrp_z` was positive
+(rich *vs trailing year*) but **absolute** vol was low, right before the summer plunge. Selling
+"rich-vs-trailing" does not protect against a low-absolute-vol regime that then cracks; 2022
+(entries at VIX 25–32) was net positive. Contracts shrink 5–8 (2008, SPX ~1300) → 1–2 (2022, SPX
+~4000) — the capital-intensity finding made concrete. Reproduce: `scripts/research/vrp_trade_log.py`.
+
 ### Iteration-4 artifacts
 
 | Path | What |
@@ -512,5 +523,8 @@ leverage-vs-start, not a cap breach.
 | `src/uw_scan/reports/vrp_robustness.py` | min-capital, buy-hold, geometric metrics, weekday/bear/MC drivers |
 | `scripts/research/vrp_robustness_run.py` | runner (writes the 7 CSVs) |
 | `docs/research/vrp/iter4-*.csv` | full traces (per-config + per-trial) |
+| `scripts/research/vrp_trade_log.py` + `docs/research/vrp/iter4-trade-log.csv` | 470 real per-trade fills |
+| `scripts/_build_vrp_iter4_notebook.py` | rich notebook builder (narrative + charts + HTML tables + fills) |
 | `docs/research/vrp/vrp-backtest-iteration-4-findings.ipynb` | executed findings notebook (4 figures) |
+| `docs/research/vrp/vrp-backtest-iteration-4-findings.html` | **rendered standalone HTML report** |
 | `tests/unit/reports/test_vrp_robustness.py` | 12 unit tests |
