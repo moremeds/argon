@@ -77,7 +77,8 @@ def min_viable_capital(
                 short_delta=short_delta,
                 wing_delta=short_delta * wing_frac,
             )
-        except ValueError:
+        except ValueError as exc:  # noqa: BLE001 — pricing miss on this date, skip
+            _ = repr(exc)
             continue
         mlpc = st.max_loss * CONTRACT_MULTIPLIER
         if first_mlpc is None:
