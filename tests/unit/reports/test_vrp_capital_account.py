@@ -351,3 +351,58 @@ def test_compounding_grows_position_after_wins():
     rc = simulate_account({"SPX": ld}, _settings(), comp)
     assert rc.rungs[-1].contracts >= rb.rungs[-1].contracts
     assert sum(r.contracts for r in rc.rungs) > sum(r.contracts for r in rb.rungs)
+
+
+# --- Task 2 (iter4): weekday + jitter -------------------------------------
+def test_entry_weekday_filters_to_one_weekday():
+    ld = _synthetic_loaded(spot=100.0, iv=0.30, z=1.0, n=200)
+    cfg = CapitalConfig(
+        capital=1_000_000_000.0,
+        base_risk_pct=0.05,
+        overlay_mult=0.0,
+        rich_threshold=99.0,
+        names=("SPX",),
+        entry_weekday=2,  # Wednesday
+    )
+    res = simulate_account({"SPX": ld}, _settings(), cfg)
+    assert res.rungs
+    assert all(r.entry_date.weekday() == 2 for r in res.rungs)
+
+
+def test_entry_jitter_is_deterministic_for_a_seed():
+    ld = _synthetic_loaded(spot=100.0, iv=0.30, z=1.0, n=200)
+    cfg = CapitalConfig(
+        capital=1_000_000_000.0,
+        base_risk_pct=0.05,
+        overlay_mult=0.0,
+        rich_threshold=99.0,
+        names=("SPX",),
+        entry_jitter=2,
+        jitter_seed=7,
+    )
+    a = simulate_account({"SPX": ld}, _settings(), cfg)
+    b = simulate_account({"SPX": ld}, _settings(), cfg)
+    assert [r.entry_date for r in a.rungs] == [r.entry_date for r in b.rungs]
+
+
+def test_entry_jitter_zero_matches_plain_stride():
+    ld = _synthetic_loaded(spot=100.0, iv=0.30, z=1.0, n=200)
+    plain = CapitalConfig(
+        capital=1_000_000_000.0,
+        base_risk_pct=0.05,
+        overlay_mult=0.0,
+        rich_threshold=99.0,
+        names=("SPX",),
+    )
+    jit0 = CapitalConfig(
+        capital=1_000_000_000.0,
+        base_risk_pct=0.05,
+        overlay_mult=0.0,
+        rich_threshold=99.0,
+        names=("SPX",),
+        entry_jitter=0,
+        jitter_seed=7,
+    )
+    assert [
+        r.entry_date for r in simulate_account({"SPX": ld}, _settings(), plain).rungs
+    ] == [r.entry_date for r in simulate_account({"SPX": ld}, _settings(), jit0).rungs]

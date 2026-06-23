@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import logging
 import math
+import random as _random
 from collections import defaultdict
 from dataclasses import dataclass
 from datetime import date as _date
@@ -130,6 +131,36 @@ class AccountResult:
     span: tuple[_date, _date]
 
 
+def _entry_indices(ld, hold: int, capcfg: CapitalConfig, nm: str) -> list[int]:
+    """Trading-day entry indices for one name. entry_weekday set → every day of that
+    weekday (≈weekly spacing); else the cfg.cadence stride. entry_jitter>0 shifts each
+    index by a deterministic per-(seed,name,index) offset in [-jitter, +jitter], clamped,
+    and de-duplicated (colliding shifts must not double-open one day)."""
+    n = len(ld.adj)
+    hi = max(0, n - hold)
+    if capcfg.entry_weekday is not None:
+        idxs = [
+            pi for pi in range(hi) if ld.adj[pi][0].weekday() == capcfg.entry_weekday
+        ]
+    else:
+        idxs = list(range(0, hi, capcfg.base_cfg.cadence))
+    if capcfg.entry_jitter > 0 and hi > 0:
+        # random.Random accepts only None/int/float/str/bytes/bytearray — a tuple seed
+        # raises TypeError, so build a stable STRING key per (seed, name, index).
+        seen: set[int] = set()
+        out: list[int] = []
+        for pi in idxs:
+            off = _random.Random(f"{capcfg.jitter_seed}:{nm}:{pi}").randint(
+                -capcfg.entry_jitter, capcfg.entry_jitter
+            )
+            j = min(hi - 1, max(0, pi + off))
+            if j not in seen:  # de-dup: colliding shifts would double-open one day
+                seen.add(j)
+                out.append(j)
+        idxs = sorted(out)
+    return idxs
+
+
 def _cost_model(settings) -> CostModel:
     return CostModel(
         settings.vrp_cost_per_contract,
@@ -168,8 +199,7 @@ def simulate_account(
     candidates: list[tuple[_date, str, int]] = []
     for nm in capcfg.names:
         ld = loadeds[nm]
-        n = len(ld.adj)
-        for pi in range(0, max(0, n - hold), cfg.cadence):
+        for pi in _entry_indices(ld, hold, capcfg, nm):
             d = ld.adj[pi][0]
             if capcfg.min_date and d < capcfg.min_date:
                 continue
