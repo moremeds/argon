@@ -7,6 +7,9 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+## [0.3.1] — 2026-06-23
+
+
 ### Added
 
 - VRP backtest iteration 4 (research): robustness suite on the SPX macro short-vol
@@ -52,6 +55,7 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   alternate-schema partition); without the guard `load_index_vol("SPY")` raised
   `TypeError` on the `d >= start` comparison. No-op for symbols with clean dates
   (QQQ/IWM).
+
 
 ## [0.3.0] — 2026-06-23
 

@@ -102,11 +102,17 @@ def option_surface_capture(
 
 
 def option_surface_backfill(
-    *, repo: Repository, client: UwClient, days_back: int = 30
+    *,
+    repo: Repository,
+    client: UwClient,
+    days_back: int = 30,
+    end_date: _date | None = None,
 ) -> int:
     """Fill option_surface_grid_daily for recent past weekdays not yet captured.
 
     Skips any market_date that already has rows in the table (idempotent).
+    end_date (inclusive) caps which dates are processed — useful to avoid burning
+    the full daily UW quota when planning a follow-up run.
     UW 403s beyond ~30 trading days; individual ticker/expiry 403s are logged and skipped.
     Returns total rows written.
     """
@@ -121,13 +127,15 @@ def option_surface_backfill(
             dates.append(d)
         d -= timedelta(days=1)
     dates.reverse()
+    if end_date is not None:
+        dates = [d for d in dates if d <= end_date]
 
     written = 0
     for market_date in dates:
         date_iso = market_date.isoformat()
         with repo.conn.cursor() as cur:
             cur.execute(
-                "SELECT 1 FROM option_surface_grid_daily WHERE market_date=%s LIMIT 1",
+                f"SELECT 1 FROM {repo._schema}.option_surface_grid_daily WHERE market_date=%s LIMIT 1",
                 (market_date,),
             )
             if cur.fetchone():
