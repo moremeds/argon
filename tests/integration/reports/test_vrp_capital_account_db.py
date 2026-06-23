@@ -33,6 +33,14 @@ def repo_settings():
         pytest.skip("needs UW_SCAN_DB_HOST/NAME pointing at a vol_index_daily DB")
     settings = Settings.from_env()
     conn = psycopg.connect(settings.db_dsn())
+    with conn.cursor() as cur:
+        cur.execute(
+            "SELECT 1 FROM information_schema.tables "
+            "WHERE table_schema='uw_scan' AND table_name='vol_index_daily'"
+        )
+        if not cur.fetchone():
+            conn.close()
+            pytest.skip("vol_index_daily not available — run on a DB with real data")
     try:
         yield Repository(conn, schema=settings.db_schema), settings
     finally:
