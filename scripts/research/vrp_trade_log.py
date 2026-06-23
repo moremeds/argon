@@ -5,7 +5,7 @@ schedule, same sizing + capital cap, same `_settle` settlement — but records e
 rung's full detail: entry day, spot, VIX, vrp_z, the two strikes, credit, max-loss,
 contracts, margin, exit day, settlement spot, breach, net P&L, ROR.
 
-Writes the full log to docs/research/vrp/iter4-trade-log.csv and prints the 2008 (GFC) and
+Writes the full log to docs/research/vrp/_iterations/iter4-trade-log.csv and prints the 2008 (GFC) and
 2022 (bear) windows. Real data only (SPX+VIX from vol_index_daily). No synthetic values.
 
 Run (MacBook local):
@@ -36,7 +36,7 @@ from uw_scan.reports.vrp_macro_signal import size_weight
 from uw_scan.reports.vrp_structure import build_bull_put_spread
 from uw_scan.storage.repository import Repository
 
-OUT = pathlib.Path("docs/research/vrp/iter4-trade-log.csv")
+OUT = pathlib.Path("docs/research/vrp/_iterations/iter4-trade-log.csv")
 # the iteration-4 base case: $143k trade-throughout account, 20% risk/spread, SPX-only,
 # non-compounding, no overlay/tranche (matches base_noncomp / baseline_iter3_spx).
 CAPCFG = CapitalConfig(

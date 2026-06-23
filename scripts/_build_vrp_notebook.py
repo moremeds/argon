@@ -71,7 +71,7 @@ import pathlib
 import sys
 
 # Make `uw_scan` importable whether run from the repo root (nbconvert) or from
-# docs/research/vrp/ (jupyter lab) — walk up to the dir holding pyproject.toml.
+# docs/research/vrp/_iterations/ (jupyter lab) — walk up to the dir holding pyproject.toml.
 _here = pathlib.Path.cwd()
 for _p in (_here, *_here.parents):
     if (_p / "pyproject.toml").exists():
@@ -469,6 +469,6 @@ path and adding a portfolio concurrent-position cap remain prerequisites either 
 )
 
 nb.cells = cells
-out = "docs/research/vrp/vrp-tradable-condor-findings.ipynb"
+out = "docs/research/vrp/_iterations/vrp-tradable-condor-findings.ipynb"
 nbf.write(nb, out)
 print("wrote", out, "with", len(cells), "cells")

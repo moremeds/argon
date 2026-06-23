@@ -4,7 +4,7 @@
 Invariant (locked by spec §15): zero database queries between the start of
 the per-cell loop and report assembly. All data is batch-loaded upfront.
 
-Produces docs/research/regime/vcg-composite-validation-2026-05-26.md with:
+Produces docs/research/regime/_iterations/vcg-composite-validation-2026-05-26.md with:
   1. Methodology recap (explicit gate aggregation language)
   2. Data coverage (per-benchmark bar counts, used/dropped)
   3. Per-period results matrix
@@ -732,7 +732,7 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--out",
-        default="docs/research/regime/vcg-composite-validation-2026-05-26.md",
+        default="docs/research/regime/_iterations/vcg-composite-validation-2026-05-26.md",
     )
     args = parser.parse_args()
     logging.basicConfig(

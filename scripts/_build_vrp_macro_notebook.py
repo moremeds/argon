@@ -220,6 +220,6 @@ help, not hurt.
 )
 
 nb.cells = cells
-out = "docs/research/vrp/macro-short-vol-findings.ipynb"
+out = "docs/research/vrp/_iterations/macro-short-vol-findings.ipynb"
 nbf.write(nb, out)
 print("wrote", out, "with", len(cells), "cells")

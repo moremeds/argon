@@ -24,7 +24,7 @@ Usage:
 Output is human-readable + TSV-parseable. Not persisted to DB — just stdout.
 
 Spec context: docs/research/regime/canary-5yr-executive-summary.md §14
-Decision context: docs/research/regime/canary-v2c-design-notes.md
+Decision context: docs/research/regime/_iterations/canary-v2c-design-notes.md
 """
 
 from __future__ import annotations
