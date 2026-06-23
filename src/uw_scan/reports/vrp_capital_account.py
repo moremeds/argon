@@ -22,6 +22,8 @@ import math
 from collections import defaultdict
 from dataclasses import dataclass
 from datetime import date as _date
+from math import sqrt
+from statistics import fmean, pstdev
 
 from uw_scan.reports.vrp_macro_drawdown import _Loaded
 from uw_scan.reports.vrp_macro_harvest import _settle
@@ -243,3 +245,79 @@ def simulate_account(
         contracts_filled_total=filled_tot,
         span=span,
     )
+
+
+def _contiguous_monthly(monthly: dict[tuple[int, int], float]) -> list[float]:
+    """Zero-fill the contiguous (year, month) span — matches vrp_macro_signal._sharpe_maxdd."""
+    if not monthly:
+        return []
+    yms = sorted(monthly)
+    (y0, m0), (y1, m1) = yms[0], yms[-1]
+    series: list[float] = []
+    y, m = y0, m0
+    while (y, m) <= (y1, m1):
+        series.append(monthly.get((y, m), 0.0))
+        m += 1
+        if m == 13:
+            y, m = y + 1, 1
+    return series
+
+
+def account_metrics(res: AccountResult, capcfg: CapitalConfig, rf: float) -> dict:
+    """Headline metrics on the $50k account. Excess = P&L only (rf earned on the cash);
+    gross = excess + rf. See plan Task 4 formula reference."""
+    series = _contiguous_monthly(res.monthly_excess)
+    n_rungs = len(res.rungs)
+    sd = pstdev(series) if len(series) > 1 else 0.0
+    mean_m = fmean(series) if series else 0.0
+    sharpe = (mean_m / sd * sqrt(12)) if sd > 0 else float("nan")
+    # max drawdown on the cumulative dollar P&L curve
+    cum = peak = mdd = 0.0
+    for x in series:
+        cum += x * capcfg.capital
+        peak = max(peak, cum)
+        mdd = min(mdd, cum - peak)
+    util_vals = [u for _, u in res.util_by_date]
+    # years basis = the return-accrual window (zero-filled month span / 12), so the
+    # arithmetic and geometric annualisations share one consistent horizon (Gemini-4).
+    years = len(series) / 12.0 if series else 0.0
+    total_excess = sum(res.monthly_excess.values())
+
+    def _cagr(total: float, yrs: float) -> float:
+        base = 1.0 + total
+        return base ** (1.0 / yrs) - 1.0 if (yrs > 0 and base > 0) else float("nan")
+
+    # excess CAGR = geometric-equivalent of the cumulative option harvest on the constant
+    # base; gross adds rf compounding on the cash sleeve over the same horizon.
+    cagr_excess = _cagr(total_excess, years)
+    gross_total = ((1.0 + rf) ** years - 1.0 + total_excess) if years > 0 else 0.0
+    cagr_gross = _cagr(gross_total, years)
+    return {
+        "n_rungs": n_rungs,
+        "n_skipped_rungs": res.n_skipped_rungs,
+        "skip_rate": (res.n_skipped_rungs / res.n_desired_rungs)
+        if res.n_desired_rungs
+        else 0.0,
+        "contracts_desired_total": res.contracts_desired_total,
+        "contracts_filled_total": res.contracts_filled_total,
+        "fill_rate": (res.contracts_filled_total / res.contracts_desired_total)
+        if res.contracts_desired_total
+        else 0.0,
+        "total_return_excess": total_excess,
+        "years": years,
+        "ann_return_excess": mean_m * 12,  # arithmetic (mean monthly × 12)
+        "ann_return_gross": mean_m * 12 + rf,  # arithmetic + rf on cash
+        "cagr_excess": cagr_excess,  # geometric-equivalent harvest
+        "cagr_gross": cagr_gross,  # geometric, rf-compounded cash + harvest
+        "sharpe": sharpe,
+        "maxdd_dollars": mdd,
+        "maxdd_pct": mdd / capcfg.capital if capcfg.capital else 0.0,
+        "util_mean": fmean(util_vals) if util_vals else 0.0,
+        "util_peak": max(util_vals) if util_vals else 0.0,
+        "win_rate": (sum(1 for r_ in res.rungs if r_.net_pnl > 0) / n_rungs)
+        if n_rungs
+        else 0.0,
+        "breach_rate": (sum(1 for r_ in res.rungs if r_.breached) / n_rungs)
+        if n_rungs
+        else 0.0,
+    }

@@ -207,3 +207,116 @@ def test_simulate_respects_capcfg_names_ignores_extra_loadeds():
     )
     res = simulate_account({"SPY": spy, "ZZZ": extra}, _settings(), cfg)
     assert {r.name for r in res.rungs} == {"SPY"}  # ZZZ ignored despite being passed
+
+
+# --- Task 4: account_metrics -----------------------------------------------
+from uw_scan.reports.vrp_capital_account import Rung, account_metrics
+
+
+def test_account_metrics_handcomputed_returns():
+    # two months: +1% then -0.5% of $50k → mean 0.25%/mo → ann excess 3%, gross 7% (rf 4%)
+    res = AccountResult(
+        rungs=[
+            Rung("SPY", date(2020, 1, 6), date(2020, 1, 31), 1, 1000.0, 500.0, False),
+            Rung("SPY", date(2020, 2, 3), date(2020, 2, 28), 1, 1000.0, -250.0, True),
+        ],
+        monthly_excess={(2020, 1): 0.01, (2020, 2): -0.005},
+        util_by_date=[(date(2020, 1, 6), 0.02), (date(2020, 1, 7), 0.04)],
+        n_desired_rungs=2,
+        n_skipped_rungs=0,
+        contracts_desired_total=2,
+        contracts_filled_total=2,
+        span=(date(2020, 1, 6), date(2020, 2, 28)),
+    )
+    m = account_metrics(res, CapitalConfig(capital=50_000.0), rf=0.04)
+    assert m["n_rungs"] == 2
+    assert abs(m["ann_return_excess"] - 0.03) < 1e-9  # 0.0025 * 12
+    assert abs(m["ann_return_gross"] - 0.07) < 1e-9
+    assert abs(m["total_return_excess"] - 0.005) < 1e-9
+    assert abs(m["win_rate"] - 0.5) < 1e-9
+    assert abs(m["breach_rate"] - 0.5) < 1e-9
+    assert abs(m["util_peak"] - 0.04) < 1e-9
+    assert abs(m["util_mean"] - 0.03) < 1e-9
+
+
+def test_account_metrics_maxdd_dollars():
+    # +$1000 then -$1500 of P&L on $50k → peak +0.02, trough +0.02-0.03 → maxdd -0.03*50000 = -1500
+    res = AccountResult(
+        rungs=[
+            Rung("SPY", date(2020, 1, 6), date(2020, 1, 31), 1, 1000.0, 1000.0, False)
+        ],
+        monthly_excess={(2020, 1): 0.02, (2020, 2): -0.03},
+        util_by_date=[],
+        n_desired_rungs=1,
+        n_skipped_rungs=0,
+        contracts_desired_total=1,
+        contracts_filled_total=1,
+        span=(date(2020, 1, 6), date(2020, 2, 28)),
+    )
+    m = account_metrics(res, CapitalConfig(capital=50_000.0), rf=0.04)
+    assert abs(m["maxdd_dollars"] + 1500.0) < 1e-6
+    assert abs(m["maxdd_pct"] + 0.03) < 1e-9
+
+
+def test_account_metrics_cagr_geometric():
+    # series [+1%, -0.5%] over 2 months → years=2/12, total_excess=0.005.
+    # cagr_excess = 1.005^(12/2) - 1; gross adds rf-compounded cash over 1/6 year.
+    res = AccountResult(
+        rungs=[
+            Rung("SPY", date(2020, 1, 6), date(2020, 1, 31), 1, 1000.0, 500.0, False)
+        ],
+        monthly_excess={(2020, 1): 0.01, (2020, 2): -0.005},
+        util_by_date=[],
+        n_desired_rungs=2,
+        n_skipped_rungs=0,
+        contracts_desired_total=2,
+        contracts_filled_total=2,
+        span=(date(2020, 1, 6), date(2020, 2, 28)),
+    )
+    m = account_metrics(res, CapitalConfig(capital=50_000.0), rf=0.04)
+    assert abs(m["years"] - 2 / 12) < 1e-12
+    assert abs(m["cagr_excess"] - (1.005 ** (12 / 2) - 1)) < 1e-9
+    gross_total = (1.04) ** (2 / 12) - 1 + 0.005
+    assert abs(m["cagr_gross"] - ((1 + gross_total) ** (12 / 2) - 1)) < 1e-9
+
+
+def test_account_metrics_skip_and_fill_rates():
+    res = AccountResult(
+        rungs=[
+            Rung("SPY", date(2020, 1, 6), date(2020, 1, 31), 1, 1000.0, 10.0, False)
+        ],
+        monthly_excess={(2020, 1): 0.0002},
+        util_by_date=[(date(2020, 1, 6), 0.02)],
+        n_desired_rungs=4,
+        n_skipped_rungs=1,
+        contracts_desired_total=10,
+        contracts_filled_total=6,
+        span=(date(2020, 1, 6), date(2020, 1, 31)),
+    )
+    m = account_metrics(res, CapitalConfig(capital=50_000.0), rf=0.04)
+    assert abs(m["skip_rate"] - 0.25) < 1e-9
+    assert abs(m["fill_rate"] - 0.6) < 1e-9
+
+
+def test_account_metrics_zero_fills_gap_months():
+    # Jan +2%, (Feb empty), Mar +2% → contiguous series [0.02, 0.0, 0.02] over 3 months.
+    # mean = 0.0133.. → ann excess 0.16; the empty Feb must be zero-filled, not dropped,
+    # or Sharpe/maxDD would be wrong.
+    res = AccountResult(
+        rungs=[
+            Rung("SPY", date(2020, 1, 6), date(2020, 1, 31), 1, 1000.0, 1000.0, False)
+        ],
+        monthly_excess={(2020, 1): 0.02, (2020, 3): 0.02},
+        util_by_date=[],
+        n_desired_rungs=2,
+        n_skipped_rungs=0,
+        contracts_desired_total=2,
+        contracts_filled_total=2,
+        span=(date(2020, 1, 6), date(2020, 3, 31)),
+    )
+    m = account_metrics(res, CapitalConfig(capital=50_000.0), rf=0.04)
+    assert (
+        abs(m["ann_return_excess"] - (0.04 / 3 * 12)) < 1e-9
+    )  # mean of [.02,0,.02]=.0133*12
+    assert abs(m["total_return_excess"] - 0.04) < 1e-9
+    assert m["maxdd_dollars"] <= 0.0  # monotone-up curve → no drawdown
