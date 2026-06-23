@@ -81,6 +81,7 @@ def simulate_putwrite(loaded: _Loaded, cfg: GoasConfig) -> PutWriteResult:
     slots = max(1, round(cfg.dte_days / cfg.cadence_days))
     collateral_per_put = cfg.capital / slots
     t_years = cfg.dte_days / 252.0
+    daily_rf = cfg.r / 252.0  # cash collateral (cash-secured) earns the risk-free
 
     # open positions: list of dicts with expiry_index, strike, credit, contracts.
     # Two ledgers: realized_gross (pre-cost) and realized_cost (transaction costs).
@@ -174,8 +175,13 @@ def simulate_putwrite(loaded: _Loaded, cfg: GoasConfig) -> PutWriteResult:
             else:
                 val = max(0.0, p["strike"] - S)
             unrealized += (p["credit"] - val) * mult * p["contracts"]
-        nav_gross = cfg.capital + realized_gross + unrealized
-        nav_costed = cfg.capital + realized_gross - realized_cost + unrealized
+        # cash-secured collateral earns the risk-free (CBOE PUT-index convention):
+        # without it a ~3% premium harvest is penalized vs a 4% rf it actually earns.
+        collateral = (
+            cfg.capital * (1.0 + daily_rf) ** i
+        )  # i=0 → capital (no day-0 interest)
+        nav_gross = collateral + realized_gross + unrealized
+        nav_costed = collateral + realized_gross - realized_cost + unrealized
         curve_gross.append((d, nav_gross))
         curve_costed.append((d, nav_costed))
 

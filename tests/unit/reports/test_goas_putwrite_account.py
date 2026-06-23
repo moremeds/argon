@@ -85,7 +85,8 @@ def test_deterministic():
 def test_no_entry_day_premium_frontload():
     # fair-value marking ⇒ at entry the open put marks ≈ credit, so unrealized ≈ 0
     # and NAV does NOT jump by the full premium on day 0. cadence > n_days ⇒ a single
-    # entry at i=0 to isolate the behavior.
+    # entry at i=0 to isolate the behavior. r=0 removes collateral interest so the
+    # endpoint equals capital + full credit exactly.
     loaded = _flat_loaded(120, spot=100.0, iv=0.18)
     cfg = GoasConfig(
         short_delta=0.15,
@@ -93,6 +94,7 @@ def test_no_entry_day_premium_frontload():
         cadence_days=200,
         capital=1_000_000.0,
         cost=ZERO_COST,
+        r=0.0,
     )
     res = simulate_putwrite(loaded, cfg)
     assert len(res.trades) == 1
