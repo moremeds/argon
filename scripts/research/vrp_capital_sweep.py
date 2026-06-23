@@ -13,7 +13,7 @@ logged). Idle cash earns rf (4%) → reported P&L is excess; gross = excess + rf
 Pricing/loaders are REUSED unchanged (flat-vol BS; VIX/VXN/RVX + equity lake). Flat-vol
 ignores skew → the put-spread credit is a conservative floor (real fills ≥ modeled).
 
-Persists the FULL result set to docs/research/vrp/capital-sweep-results.csv (every config
+Persists the FULL result set to docs/research/vrp/_iterations/capital-sweep-results.csv (every config
 × every metric). Deterministic — no RNG.
 
 Run (MacBook local, reads option_wizard_local + the lake):
@@ -51,7 +51,7 @@ SWEEP_BASE_RISK_PCT = (0.03, 0.05, 0.08, 0.10)
 SWEEP_OVERLAY_MULT = (1.0, 2.0)
 SWEEP_RICH_THRESHOLD = (0.5, 1.0, 1.5)
 
-OUT_CSV = pathlib.Path("docs/research/vrp/capital-sweep-results.csv")
+OUT_CSV = pathlib.Path("docs/research/vrp/_iterations/capital-sweep-results.csv")
 
 _FIELDS = [
     "base_risk_pct",

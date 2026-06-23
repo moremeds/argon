@@ -1,7 +1,7 @@
 """Macro short-vol signal — the promoted winner config + its laddered/sized
 backtest + a current-week readout for (manual or automated) execution.
 
-The 20-yr SPX+VIX sweep (docs/research/vrp/macro-short-vol-verdict.md, reproduced
+The 20-yr SPX+VIX sweep (docs/research/vrp/_iterations/macro-short-vol-verdict.md, reproduced
 by scripts/_vrp_macro_param_sweep.py) found the dominant lever is **sizing by how
 rich vol is**, not the structure or the entry-spacing. The winner:
 

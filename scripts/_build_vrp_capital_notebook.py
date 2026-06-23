@@ -1,5 +1,5 @@
-"""Builder for docs/research/vrp/macro-capital-utilisation-findings.ipynb — the clean,
-chart-rich findings notebook. Reads the committed CSVs in docs/research/vrp/:
+"""Builder for docs/research/vrp/_iterations/macro-capital-utilisation-findings.ipynb — the clean,
+chart-rich findings notebook. Reads the committed CSVs in docs/research/vrp/_iterations/:
   - capital-sweep-results.csv          (3-name 28-config $50k sweep, local data)
   - base-case-mini-sweep-2026-06-23.csv (SPX/SPY single-name $50k, mini fresh data)
   - equity-series-2026-06-23.csv        (monthly equity: non-comp / comp / buy-hold SPY)
@@ -15,7 +15,7 @@ from __future__ import annotations
 import json
 import pathlib
 
-OUT = pathlib.Path("docs/research/vrp/macro-capital-utilisation-findings.ipynb")
+OUT = pathlib.Path("docs/research/vrp/_iterations/macro-capital-utilisation-findings.ipynb")
 
 
 def _md(text: str) -> dict:

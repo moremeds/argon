@@ -55,7 +55,7 @@ from uw_scan.reports.vrp_robustness import (
 )
 from uw_scan.storage.repository import Repository
 
-OUT = pathlib.Path("docs/research/vrp/")
+OUT = pathlib.Path("docs/research/vrp/_iterations/")
 SEED = 20260623
 BEAR_STARTS = (date(2015, 8, 1), date(2018, 9, 20), date(2020, 2, 19), date(2022, 1, 3))
 FLOOR_RISK_PCT = 0.20  # one SPX spread ~ this fraction of the floor account

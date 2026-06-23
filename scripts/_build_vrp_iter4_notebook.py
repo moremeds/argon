@@ -1,4 +1,4 @@
-"""Build docs/research/vrp/vrp-backtest-iteration-4-findings.ipynb from the iter4-*.csv
+"""Build docs/research/vrp/_iterations/vrp-backtest-iteration-4-findings.ipynb from the iter4-*.csv
 full traces (written by scripts/research/vrp_robustness_run.py + vrp_trade_log.py).
 
 A rich, self-contained findings report: narrative + matplotlib charts + data-driven HTML
@@ -7,9 +7,9 @@ tables + the real per-trade fill log. Mirrors scripts/_build_vrp_capital_noteboo
 Build + execute + export HTML:
   uv run --group research python scripts/_build_vrp_iter4_notebook.py
   uv run --group research jupyter nbconvert --to notebook --execute --inplace \
-    docs/research/vrp/vrp-backtest-iteration-4-findings.ipynb
+    docs/research/vrp/_iterations/vrp-backtest-iteration-4-findings.ipynb
   uv run --group research jupyter nbconvert --to html \
-    docs/research/vrp/vrp-backtest-iteration-4-findings.ipynb
+    docs/research/vrp/_iterations/vrp-backtest-iteration-4-findings.ipynb
 
 Run from the repo root.
 """
@@ -20,7 +20,7 @@ import pathlib
 
 import nbformat
 
-OUT = pathlib.Path("docs/research/vrp/vrp-backtest-iteration-4-findings.ipynb")
+OUT = pathlib.Path("docs/research/vrp/_iterations/vrp-backtest-iteration-4-findings.ipynb")
 
 SETUP = '''\
 import csv
@@ -29,7 +29,7 @@ import pathlib
 import matplotlib.pyplot as plt
 from IPython.display import HTML, display
 
-DATA = next(p for p in [pathlib.Path("docs/research/vrp"), pathlib.Path(".")]
+DATA = next(p for p in [pathlib.Path("docs/research/vrp/_iterations/_iterations"), pathlib.Path(".")]
             if (p / "iter4-mc.csv").exists())
 
 
@@ -216,7 +216,7 @@ vrp-z sizing — each benchmarked against the <b>iteration-3 SPX base case</b> a
 (`mean(monthly return) / std(monthly return) × √12`) unless a column says otherwise.
 Data: SPX + VIX (`vol_index_daily`, 2006→2026-05), SPY spot from the lake.
 **Reproduce:** `uv run python scripts/research/vrp_robustness_run.py` (SEED=20260623),
-`scripts/research/vrp_trade_log.py` for the fills. Full traces: `docs/research/vrp/iter4-*.csv`.
+`scripts/research/vrp_trade_log.py` for the fills. Full traces: `docs/research/vrp/_iterations/iter4-*.csv`.
 
 **The strategy, exactly.** *Entry:* every 5 trading days, only when `vrp_z > 0` (vol rich vs its
 trailing-252 baseline); size `w = clamp(vrp_z/0.5, 0, 1)`. Sell the 0.25Δ put, buy the 0.125Δ put

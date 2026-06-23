@@ -8,7 +8,7 @@ hold-to-expiry, entry-spaced (one position per name at a time), honest holdout.
 Summary persisted to vrp_macro_sweep_results.
 
 The single-name iron condor did NOT clear costs + the breach tail
-(docs/research/vrp/single-name-condor-verdict.md). This asks whether matching the
+(docs/research/vrp/_iterations/single-name-condor-verdict.md). This asks whether matching the
 structure to a directional view, on the tighter-spread macro names where the VRP is
 well-sampled and durable, changes that.
 """

@@ -1,4 +1,4 @@
-"""Reproduces the parameter-sweep numbers in docs/research/vrp/macro-short-vol-verdict.md
+"""Reproduces the parameter-sweep numbers in docs/research/vrp/_iterations/macro-short-vol-verdict.md
 (sections "Experiment results", "Does it extend to QQQ/IWM", "Deployable entry/exit
 signal"). Research scaffolding — not wired into the worker/API.
 
