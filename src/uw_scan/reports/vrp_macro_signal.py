@@ -277,3 +277,98 @@ def current_macro_signal(
         put_width=st.put_width,
         **common,
     )
+
+
+def current_macro_signal_live(
+    repo,
+    settings,
+    name: str = "SPX",
+    cfg: MacroSignalConfig = WINNER,
+    *,
+    live_spot: float,
+    live_iv: float,
+    as_of: _date | None = None,
+    lake_root=None,
+) -> MacroSignal:
+    """Live variant of `current_macro_signal`: spot/iv come from an intraday quote
+    (index spot + VIX/100), while rv20 and the trailing-252d vrp distribution are the
+    latest EOD values. vrp_z is recomputed as the EOD path does — population z-score of
+    `live_iv - rv20` against the trailing 252 EOD vrp values (matching
+    vrp_macro_drawdown._build_loaded: fmean/pstdev, z_window=252).
+
+    Convention (codex-review ISSUE-1): the z-window is the trailing-252 EOD vrp ending at
+    the latest EOD row and does NOT include live_vrp itself. This (a) is well-defined
+    whether or not today's EOD bar exists and (b) reproduces the EOD vrp_z exactly when
+    live_iv == eod_iv (the live<->eod invariant)."""
+    # Guard bad ticks (zero/negative VIX or spot). The EOD path skips rows with iv<=0;
+    # do the same here. Raising ValueError lets the endpoint fall back to EOD and the
+    # worker's per-leg try/except skip — never feed a garbage iv into build_bull_put_spread.
+    if live_iv <= 0 or live_spot <= 0:
+        raise ValueError(
+            f"{name}: non-positive live quote (spot={live_spot}, iv={live_iv})"
+        )
+    loaded = load_index_vol(repo, name, lake_root=lake_root)
+    # latest EOD row with a usable rv (rv is None for the first rv_window days);
+    # capture its index directly — do NOT use list.index() (rows are dicts → ambiguous).
+    eod = None
+    eod_idx = -1
+    n = len(loaded.rows)
+    for back, row in enumerate(reversed(loaded.rows)):
+        if as_of is not None and row["market_date"] > as_of:
+            continue
+        if row.get("rv") is not None:
+            eod = row
+            eod_idx = n - 1 - back
+            break
+    if eod is None:
+        raise ValueError(f"no usable {name} rv row on or before {as_of or 'latest'}")
+    rv20 = float(eod["rv"])
+    live_vrp = live_iv - rv20
+    hist = [r["vrp"] for r in loaded.rows[: eod_idx + 1] if r["vrp"] is not None]
+    z: float | None = None
+    if len(hist) >= 252:
+        w_ = hist[-252:]
+        sd = pstdev(w_)
+        z = (live_vrp - fmean(w_)) / sd if sd > 0 else None
+    weight = size_weight(z, cfg)  # size_weight returns 0.0 when z is None
+    common = dict(
+        name=name,
+        as_of=eod["market_date"],
+        spot=live_spot,
+        iv=live_iv,
+        rv20=rv20,
+        vrp=live_vrp,
+        vrp_z=z,
+        hold_days=cfg.hold_days,
+        short_delta=cfg.short_delta,
+        wing_delta=cfg.wing_delta,
+    )
+    if weight <= 0:
+        return MacroSignal(
+            weight=0.0,
+            action="SKIP",
+            short_put=None,
+            long_put=None,
+            credit=None,
+            max_loss=None,
+            put_width=None,
+            **common,
+        )
+    st = build_bull_put_spread(
+        live_spot,
+        live_iv,
+        cfg.hold_days / 252.0,
+        settings.vrp_risk_free_rate,
+        short_delta=cfg.short_delta,
+        wing_delta=cfg.wing_delta,
+    )
+    return MacroSignal(
+        weight=weight,
+        action="TRADE",
+        short_put=st.short_put,
+        long_put=st.long_put,
+        credit=st.credit,
+        max_loss=st.max_loss,
+        put_width=st.put_width,
+        **common,
+    )
