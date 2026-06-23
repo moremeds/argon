@@ -47,6 +47,14 @@ INDEX_SPECS: dict[str, dict] = {
         "spot_symbol": "IWM",
         "start": _date(2009, 1, 1),
     },
+    # RUT (the actual Russell 2000 index) lives in the lake's volatility dir, not
+    # the equity dir and not vol_index_daily. Paired with RVX (from 2009-09).
+    "RUT": {
+        "vol": "RVX",
+        "spot_source": "volatility_lake",
+        "spot_symbol": "RUT",
+        "start": _date(2009, 1, 1),
+    },
     "SPY": {
         "vol": "VIX",
         "spot_source": "lake",
@@ -88,6 +96,31 @@ def _lake_spot(
     # partition mixed in); the non-null rows are the clean daily series. Guard
     # `d is not None` so those junk rows are skipped — a no-op for symbols whose
     # lake data has no null dates (QQQ/IWM).
+    return {
+        d: float(c)
+        for d, c in zip(dts, cls, strict=False)
+        if c is not None and d is not None and d >= start
+    }
+
+
+def _volatility_lake_close(
+    symbol: str, lake_root: pathlib.Path, start: _date
+) -> dict[_date, float]:
+    """Close series from the lake's volatility dir (RUT/RVX/SPX index levels).
+    Reads the explicit 1d.parquet — the dir carries a .meta.json sidecar that
+    breaks pyarrow's directory-dataset reader."""
+    import pyarrow.parquet as pq
+
+    path = (
+        lake_root
+        / "bronze"
+        / "asset_class=volatility"
+        / f"symbol={symbol}"
+        / "1d.parquet"
+    )
+    table = pq.read_table(str(path), columns=["trade_date", "close"])
+    dts = table.column("trade_date").to_pylist()
+    cls = table.column("close").to_pylist()
     return {
         d: float(c)
         for d, c in zip(dts, cls, strict=False)
@@ -144,6 +177,10 @@ def load_index_vol(
     vol = _vol_index_close(repo, spec["vol"], start)
     if spec["spot_source"] == "vol_index":
         spot = _vol_index_close(repo, spec["spot_symbol"], start)
+    elif spec["spot_source"] == "volatility_lake":
+        spot = _volatility_lake_close(
+            spec["spot_symbol"], lake_root or _default_lake_root(), start
+        )
     else:
         spot = _lake_spot(spec["spot_symbol"], lake_root or _default_lake_root(), start)
     return _build_loaded(spot, vol, rv_window=rv_window, z_window=z_window)
