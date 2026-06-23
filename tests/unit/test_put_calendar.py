@@ -73,6 +73,22 @@ def test_simulate_runs_and_reports_finite_sharpe():
     assert m["short_itm_rate"] is not None
 
 
+def test_decoupled_mode_runs_and_legs_sum_to_combined():
+    # Iteration 2: decoupled long-held put + independent short roll. The per-leg
+    # decomposition must reconcile — short total + long total == combined total.
+    loaded = _flat_then_drop_loaded(n=60, drop_day=30)
+    m = simulate(
+        loaded,
+        CalendarConfig(
+            mode="decoupled", long_dte=45, min_residual_days=21, front_vol_mult=1.2
+        ),
+        COST,
+    )
+    assert m["n_days"] > 0
+    combined_total = sum(m["daily_ret"])
+    assert m["short_leg_total"] + m["long_leg_total"] == pytest.approx(combined_total)
+
+
 def test_richer_front_vol_raises_the_premium_collected():
     # The edge lever, isolated at a FIXED strike: a higher front_vol_mult must
     # price the daily short richer. (In the full sim the strike re-anchors with

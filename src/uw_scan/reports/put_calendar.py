@@ -69,7 +69,12 @@ class CalendarConfig:
     long_dte: int = 30  # trading days to the long-leg expiry
     short_delta: float = 0.20  # OTM put delta the short leg is struck at
     long_delta: float = 0.20  # diagonal long-leg delta (ignored if calendar)
-    mode: str = "calendar"  # 'calendar' (same strike) | 'diagonal'
+    # 'calendar'  : same strike, short pinned to the (near-money) long strike.
+    # 'diagonal'  : long lifted to its own long_delta strike; short re-struck daily.
+    # 'decoupled' : iteration 2 — long held at the near-money anchor (like calendar)
+    #               but typically long_dte; short re-struck daily off its own delta,
+    #               capped at the long strike. The two legs are NOT a unit.
+    mode: str = "calendar"
     front_vol_mult: float = 1.0  # THE edge knob: front IV vs RVX
     long_vol_mult: float = 1.0  # long IV vs RVX
     skew_k: float = 0.5  # put-skew steepness, applied to both legs
@@ -79,8 +84,8 @@ class CalendarConfig:
     def __post_init__(self) -> None:
         if self.front_dte not in (0, 1):
             raise ValueError("front_dte must be 0 or 1")
-        if self.mode not in ("calendar", "diagonal"):
-            raise ValueError("mode must be 'calendar' or 'diagonal'")
+        if self.mode not in ("calendar", "diagonal", "decoupled"):
+            raise ValueError("mode must be 'calendar', 'diagonal' or 'decoupled'")
         if self.long_dte <= self.min_residual_days:
             raise ValueError("long_dte must exceed min_residual_days")
 
@@ -120,6 +125,8 @@ def simulate(
 
     mult = cost.multiplier * contracts
     daily_ret: list[float] = []  # one entry per settled day, across all cycles
+    short_ret: list[float] = []  # decomposed: short-leg-only daily return
+    long_ret: list[float] = []  # decomposed: long-leg-only daily return
     daily_dt: list[_date] = []
     short_itm = 0
     short_count = 0
@@ -148,8 +155,8 @@ def simulate(
         K_short_anchor = strike_for_delta(
             S0, front_T, cfg.r, v0 * cfg.front_vol_mult, cfg.short_delta, is_call=False
         )
-        if cfg.mode == "calendar":
-            K_long = K_short_anchor
+        if cfg.mode in ("calendar", "decoupled"):
+            K_long = K_short_anchor  # near-money; decoupled just holds it longer
         else:
             K_long = strike_for_delta(
                 S0, T_long, cfg.r, v0 * cfg.long_vol_mult, cfg.long_delta, is_call=False
@@ -185,15 +192,19 @@ def simulate(
             if payoff > 0:
                 short_itm += 1
 
-            # cost: write one short leg/day; +long leg on open & close days
-            legs = (pend_prem,)
-            cost_today = (
-                cost.total(legs, contracts) / 2.0
-            )  # one round-turn for the daily short
-            if j == cycle_start + 1:
-                cost_today += cost.total((long_open,), contracts) / 2.0  # long entry
-            pnl = (long_change + short_pnl) * mult - cost_today
-            daily_ret.append(pnl / capital)
+            # Cost split per leg (one slippage side each: the short is written &
+            # cash-settles at expiry → no closing trade; long entry charged once).
+            short_cost = cost.total((pend_prem,), contracts) / 2.0
+            long_cost = (
+                cost.total((long_open,), contracts) / 2.0
+                if j == cycle_start + 1
+                else 0.0
+            )
+            short_pnl_d = short_pnl * mult - short_cost
+            long_pnl_d = long_change * mult - long_cost
+            short_ret.append(short_pnl_d / capital)
+            long_ret.append(long_pnl_d / capital)
+            daily_ret.append((short_pnl_d + long_pnl_d) / capital)
             daily_dt.append(dates[j])
 
             prev_long = long_now
@@ -206,7 +217,15 @@ def simulate(
         i = j  # next cycle starts where this one ended
 
     return _metrics(
-        daily_ret, daily_dt, premiums, long_decays, short_itm, short_count, cfg
+        daily_ret,
+        daily_dt,
+        premiums,
+        long_decays,
+        short_itm,
+        short_count,
+        cfg,
+        short_ret=short_ret,
+        long_ret=long_ret,
     )
 
 
@@ -235,6 +254,9 @@ def _metrics(
     short_itm: int,
     short_count: int,
     cfg: CalendarConfig,
+    *,
+    short_ret: list[float] | None = None,
+    long_ret: list[float] | None = None,
 ) -> dict:
     if not daily_ret:
         return {"n_days": 0, "sharpe": None}
@@ -259,6 +281,22 @@ def _metrics(
         if len(v) > 1 and pstdev(v) > 0
     }
     worst_year = min(year_sharpe.values()) if year_sharpe else None
+
+    # Per-leg decomposition ("treat them not as a group"): is the short income
+    # stream actually financing the long hedge's carry?
+    def _leg(series: list[float] | None) -> dict:
+        if not series:
+            return {"sharpe": None, "ann_return": None, "total": None}
+        m = fmean(series)
+        s = pstdev(series) if len(series) > 1 else 0.0
+        return {
+            "sharpe": (m / s * math.sqrt(TRADING_DAYS)) if s > 0 else None,
+            "ann_return": m * TRADING_DAYS,
+            "total": sum(series),
+        }
+
+    short_leg = _leg(short_ret)
+    long_leg = _leg(long_ret)
     return {
         "n_days": len(daily_ret),
         "start": daily_dt[0],
@@ -277,6 +315,11 @@ def _metrics(
         else None,
         "worst_year_sharpe": worst_year,
         "year_sharpe": year_sharpe,
+        "short_leg_sharpe": short_leg["sharpe"],
+        "short_leg_ann_return": short_leg["ann_return"],
+        "short_leg_total": short_leg["total"],
+        "long_leg_ann_return": long_leg["ann_return"],
+        "long_leg_total": long_leg["total"],
         "daily_ret": daily_ret,
         "daily_dt": daily_dt,
     }

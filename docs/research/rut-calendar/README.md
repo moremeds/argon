@@ -1,8 +1,13 @@
 # RUT put-calendar study — sell 0/1DTE put, buy a longer-dated put
 
-**Date:** 2026-06-23 · **Branch:** `feat/rut-diagonal-strategy` · **Status:** complete, verdict below
+**Date:** 2026-06-23 · **Branch:** `feat/rut-diagonal-strategy`
 
-## TL;DR verdict
+- **Iteration 1** (coupled daily put calendar) → **not a standalone edge** (below).
+- **Iteration 2** (hold the long longer + decouple the legs) → **materially better; a
+  marginal, regime-sensitive edge** worth a live front-IV check. See
+  [Iteration 2](#iteration-2--hold-the-long-leg-longer-decouple-the-legs).
+
+## TL;DR verdict (iteration 1)
 
 **Not a legitimate standalone edge.** `[COMPUTED, HIGH]` Under any *realistic joint*
 assumption (front 1-day put IV not wildly above RVX **and** non-trivial bid/ask on
@@ -51,6 +56,60 @@ If you want a tradable RUT short-vol structure, this isn't it as a standalone. S
    ~20-delta put IV vs RVX. If it persistently clears ~1.2× RVX, the calendar's front
    premium may be real — but that needs observed chains (UW tier permitting), and the
    bid/ask wall remains.
+
+## Iteration 2 — hold the long leg longer, decouple the legs
+
+**Change:** stop treating short+long as one calendar. The long put becomes a
+**longer-dated standing hedge** (held for quarters, rolled at 21 DTE); the short is an
+**independent daily 1DTE OTM roll**, re-struck to its own delta off current spot and
+capped at the long strike (still defined-risk). `mode="decoupled"` in the engine, with
+**per-leg P&L decomposition** so we can see whether the short income finances the long
+carry. Hypotheses: (a) longer long ⇒ lower daily theta carry + far fewer rolls ⇒ lower
+breakeven & smaller drawdown; (b) longer long ⇒ more vega held ⇒ vol-decline drag.
+
+**Result — materially better, but a marginal & regime-sensitive edge:** `[COMPUTED]`
+
+| metric (RUT, `ld=60, sd=0.30, 1DTE`, roll long @21 DTE) | iteration 1 (`ld30` calendar) | iteration 2 |
+|---|---|---|
+| long-leg carry | −4.2 %/yr | **−1.5 %/yr** (→ −0.7 % at `ld252`) |
+| breakeven `front_vol_mult` | ~1.16 | **~1.05–1.09** (`sd=0.30`) |
+| maxDD @ `fvm=1.10`, 5 % slip | near-ruin | **−11 %** |
+| Sharpe @ `fvm=1.10`, 5 % slip | −0.52 | **+0.43** (positive through 10 % slip: +0.09) |
+| stress-year mean Sharpe | negative | **+0.6** (the standing put pays in crashes) |
+| **holdout** (train <2019 / test ≥2019) | — | **IS +0.45 / OOS +0.38** (consistent) |
+
+Hypothesis (a) **confirmed** — the decomposition shows the long carry collapsing with
+tenor, which is the entire improvement. The short income stream alone runs +1.0–1.5
+Sharpe at `fvm=1.10`. Drawdowns shrink from ruin to ~−10 %.
+
+**The honest caveats — why it's "marginal," not "yes":** `[INFERRED, MED]`
+1. **Still pivots on the unobservable.** At `fvm=1.0` (front = RVX) it's flat-to-negative.
+   The +0.38 OOS needs `fvm ≥ ~1.10` (front 1d ~30Δ puts ≥10 % richer than 30d RVX). The
+   live front-IV measurement remains the deciding test.
+2. **The OOS positivity leans on 2020.** IWM holdout is IS −0.03 / **OOS +0.41** — the OOS
+   window (2019–26) contains COVID, where the *long hedge paid off*. So part of the "edge"
+   is a tail-hedge payoff, not pure carry (consistent with the short-vol-carry framing).
+   RUT is cleaner (IS+ and OOS+ both), IWM is IS≈0/OOS+ — agreement is *directional, not
+   tight*.
+3. **+0.38 OOS is modest** — an overlay-grade edge at best, not a standalone star, and not
+   yet walk-forward-clean (single split, no rolling windows).
+4. **Cost wall lowered, not removed** — the daily-short slippage still bites; survives to
+   ~10 % half-spread only because the gross edge is now bigger.
+
+**Verdict:** iteration 2 turns a clear "no" into **"a marginal, structurally-sound edge —
+worth a live front-IV confirmation and a clean walk-forward before risking capital."** The
+candidate config: **RUT, decoupled, long_dte ≈ 45–120, short_delta ≈ 0.30, 1DTE short
+rolled daily, long rolled at 21 DTE.**
+
+Trace: `iter2_sweep_{rut,iwm}.csv`, `iter2_cost_{rut,iwm}.csv`, `iter2_holdout_{rut,iwm}.csv`.
+Reproduce: `uv run python scripts/research/rut_calendar_iter2.py RUT` (and `IWM`).
+
+### Iteration 3 candidates (not built)
+- **Roll the short less often** (weekly, not daily) — the one lever that directly attacks
+  the remaining cost wall.
+- **Front-richness gate** — only sell when the term-structure/skew is demonstrably rich;
+  needs observed front IV (so blocked on the same capture).
+- **Clean walk-forward** (rolling windows) + a model-repriced check once real chains exist.
 
 ## What was tested
 
