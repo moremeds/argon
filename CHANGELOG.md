@@ -7,6 +7,31 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+### Added
+
+- GOAS put-write delta sweep (research): a self-contained study finding the short-put
+  **delta + tenor sweet spot** for the Goldman Options Advisory Strategy (systematic
+  always-on OTM index put-writing). Three new `reports/` modules —
+  `goas_putwrite_pricing.py` (a parametric downside-skew layer `iv(K)=atm·(1−slope·ln(K/S))`
+  calibrated to GOAS's one published quote: 2026-05-05 SPY 96.2%-strike / 0.700%-premium →
+  slope 2.693, with flat-vol as the conservative floor), `goas_putwrite_account.py` (a
+  laddered, defined-risk **cash-secured** put-write NAV book — held to expiry, intrinsic
+  settlement, fair-value daily marks, collateral earning the risk-free per CBOE PUT-index
+  convention — plus `curve_metrics`/`putwrite_metrics` and a SPY buy-hold benchmark), and
+  `goas_putwrite_sweep.py` (delta×tenor×pricing×fee sweep with regime slices and a
+  per-regime catastrophe-gated ranking; management fee modeled as a downstream NAV drag,
+  copying GOAS's own fee framing). Runner `scripts/research/goas_putwrite_run.py` reads SPY+VIX
+  daily closes directly from the market-warehouse lake (2006→, ~20.4y, no Postgres/network)
+  and writes five full-trace artifacts + a master findings note under
+  `docs/research/goas-putwrite/`. Headlines: gross Sharpe rises monotonically with delta but
+  short (21d) weekly writing fails catastrophically in fast crashes (COVID Sharpe −1.6) — the
+  binding constraint is **tenor, not delta**; net-of-1%-fee gated sweet spot is **0.30Δ/63d**
+  (Sharpe 0.147), conservative pick **0.15Δ/63d** (Sharpe 0.108, maxDD −14%, 95% win-rate).
+  Every unlevered cash-secured cell trails SPY buy-hold risk-adjusted (best 0.15 vs 0.34) but
+  at 2–4× smaller drawdown — the premium harvest above cash is only ~0.5–1.4%/yr, so GOAS's
+  3–6% net target requires the 20–40% leverage this defined-risk study excludes. Reproduce:
+  `uv run python scripts/research/goas_putwrite_run.py`.
+
 ## [0.3.1] — 2026-06-23
 
 
