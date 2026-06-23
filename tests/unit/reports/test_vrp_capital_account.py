@@ -1,7 +1,16 @@
 import math
-from datetime import date
+from datetime import date, timedelta
+from types import SimpleNamespace
 
-from uw_scan.reports.vrp_macro_drawdown import INDEX_SPECS
+from uw_scan.reports.vrp_capital_account import (
+    AccountResult,
+    CapitalConfig,
+    Rung,
+    account_metrics,
+    desired_contracts,
+    simulate_account,
+)
+from uw_scan.reports.vrp_macro_drawdown import INDEX_SPECS, _Loaded
 
 
 def test_spy_in_index_specs():
@@ -13,9 +22,6 @@ def test_spy_in_index_specs():
 
 
 # --- Task 2: desired_contracts ---------------------------------------------
-from uw_scan.reports.vrp_capital_account import CapitalConfig, desired_contracts
-
-
 def test_desired_contracts_base_floor_no_overlay():
     # w=1 full base, 5% of $50k = $2500 risk; mlpc=$1000 → floor(2.5)=2 base, z below threshold → 0 overlay
     cfg = CapitalConfig(base_risk_pct=0.05, overlay_mult=1.0, rich_threshold=1.0)
@@ -66,13 +72,6 @@ def test_desired_contracts_no_overlay_without_base():
 
 
 # --- Task 3: simulate_account ----------------------------------------------
-from datetime import timedelta
-from types import SimpleNamespace
-
-from uw_scan.reports.vrp_capital_account import AccountResult, simulate_account
-from uw_scan.reports.vrp_macro_drawdown import _Loaded
-
-
 def _settings():
     # real config defaults, frozen here so the unit test needs no env/DB
     return SimpleNamespace(
@@ -210,9 +209,6 @@ def test_simulate_respects_capcfg_names_ignores_extra_loadeds():
 
 
 # --- Task 4: account_metrics -----------------------------------------------
-from uw_scan.reports.vrp_capital_account import Rung, account_metrics
-
-
 def test_account_metrics_handcomputed_returns():
     # two months: +1% then -0.5% of $50k → mean 0.25%/mo → ann excess 3%, gross 7% (rf 4%)
     res = AccountResult(
