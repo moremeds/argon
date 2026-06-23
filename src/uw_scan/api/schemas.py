@@ -350,6 +350,18 @@ class VrpMacroSignalResponse(BaseModel):
     signals: list[VrpMacroSignalRow] = Field(default_factory=list)
 
 
+class VrpMacroSignalLiveResponse(BaseModel):
+    """Live (intraday) VRP macro short-vol signal for SPX. `basis='live'` when computed
+    from fresh quotes; `basis='eod'` when it falls back to the latest nightly snapshot.
+    `signal` carries the same fields as the EOD row (bt_* may be NULL on the live path)."""
+
+    status: str = "ok"
+    basis: Literal["live", "eod"] = "eod"
+    signal: VrpMacroSignalRow | None = None
+    live_quotes: dict[str, RegimeLiveQuote] = Field(default_factory=dict)
+    active_source: str | None = None
+
+
 # ─── CRI (Crash Risk Indicator) ──────────────────────────────────
 
 

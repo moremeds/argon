@@ -51,6 +51,7 @@ from uw_scan.api.schemas import (
     VolBackdropResponse,
     VrpHarvestResponse,
     VrpHarvestVerdict,
+    VrpMacroSignalLiveResponse,
     VrpMacroSignalResponse,
     VrpMacroSignalRow,
 )
@@ -59,6 +60,7 @@ from uw_scan.cards.canary_calibration import (
 )
 from uw_scan.cards.dealer_regime import compute_dealer_regime, gather_inputs
 from uw_scan.config import Settings
+from uw_scan.reports.vrp_macro_signal import WINNER, current_macro_signal_live
 from uw_scan.scanners import cri as cri_scanner
 from uw_scan.scanners import gex as gex_scanner
 from uw_scan.scanners import grg as grg_scanner
@@ -259,6 +261,86 @@ def get_vrp_macro_signal(
     the daily snapshot written by the nightly vrp_macro_signal_refresh job."""
     rows = repo.fetch_latest_vrp_macro_signals()
     return VrpMacroSignalResponse(signals=[VrpMacroSignalRow(**r) for r in rows])
+
+
+@router.get("/vrp-macro-signal/live", response_model=VrpMacroSignalLiveResponse)
+def get_vrp_macro_signal_live(
+    repo: Annotated[Repository, Depends(get_repo)],
+    settings: Annotated[Settings, Depends(get_settings)],
+) -> VrpMacroSignalLiveResponse:
+    """Live SPX VRP macro short-vol signal: intraday VIX -> live vrp_z (rv20/distribution
+    from EOD). Falls back to the latest nightly basis='eod' snapshot when quotes are
+    stale. Mirrors /cri/live; does not persist (the 5-min job does that)."""
+    today_et = datetime.now(
+        ZoneInfo(settings.rth_tz)
+    ).date()  # match the worker's ET date
+    quotes = load_live_quotes(
+        repo,
+        settings.regime_ws_symbols,
+        max_age_seconds=settings.regime_live_quote_max_age_seconds,
+    )
+    spx_q, vix_q = quotes.get("SPX"), quotes.get("VIX")
+    if spx_q is not None and vix_q is not None:
+        try:
+            sig = current_macro_signal_live(
+                repo,
+                settings,
+                "SPX",
+                WINNER,
+                live_spot=float(spx_q.price),
+                live_iv=float(vix_q.price) / 100.0,
+            )
+        except ValueError:
+            sig = None
+        if sig is not None:
+            # merge the static backtest headline from the latest EOD row, if present
+            eod_rows = repo.fetch_latest_vrp_macro_signals(["SPX"], basis="eod")
+            bt = eod_rows[0] if eod_rows else {}
+            row = VrpMacroSignalRow(
+                name=sig.name,
+                snapshot_date=today_et,
+                as_of=sig.as_of,
+                spot=sig.spot,
+                iv=sig.iv,
+                rv20=sig.rv20,
+                vrp=sig.vrp,
+                vrp_z=sig.vrp_z,
+                weight=sig.weight,
+                action=sig.action,
+                short_put=sig.short_put,
+                long_put=sig.long_put,
+                put_width=sig.put_width,
+                credit=sig.credit,
+                max_loss=sig.max_loss,
+                hold_days=sig.hold_days,
+                short_delta=sig.short_delta,
+                wing_delta=sig.wing_delta,
+                bt_n=bt.get("bt_n"),
+                bt_sharpe=bt.get("bt_sharpe"),
+                bt_maxdd=bt.get("bt_maxdd"),
+                bt_annror=bt.get("bt_annror"),
+                bt_calmar=bt.get("bt_calmar"),
+            )
+            return VrpMacroSignalLiveResponse(
+                basis="live",
+                signal=row,
+                live_quotes={
+                    s: RegimeLiveQuote(
+                        price=float(q.price), quoted_at=q.quoted_at, source=q.source
+                    )
+                    for s, q in (("SPX", spx_q), ("VIX", vix_q))
+                },
+                active_source=_active_ws_source(repo),
+            )
+    eod_rows = repo.fetch_latest_vrp_macro_signals(["SPX"], basis="eod")
+    if not eod_rows:
+        return VrpMacroSignalLiveResponse(basis="eod", signal=None)
+    return VrpMacroSignalLiveResponse(
+        basis="eod",
+        signal=VrpMacroSignalRow(
+            **{k: eod_rows[0].get(k) for k in VrpMacroSignalRow.model_fields}
+        ),
+    )
 
 
 # ─── CRI (live) ──────────────────────────────────────────────────
