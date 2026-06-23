@@ -33,6 +33,17 @@ def repo_settings():
         pytest.skip("needs UW_SCAN_DB_HOST/NAME pointing at a vol_index_daily DB")
     settings = Settings.from_env()
     conn = psycopg.connect(settings.db_dsn())
+    # Real-data checks: read the lake-synced vol_index_daily on a persistent DB
+    # (local dev / mini). CI points UW_SCAN_DB_NAME at an empty option_wizard_local
+    # with no migrations or data, so probe for the table and skip cleanly when
+    # absent rather than erroring on UndefinedTable.
+    qualified = f"{settings.db_schema}.vol_index_daily"
+    with conn.cursor() as cur:
+        cur.execute("SELECT to_regclass(%s)", (qualified,))
+        table_exists = cur.fetchone()[0] is not None
+    if not table_exists:
+        conn.close()
+        pytest.skip(f"{qualified} absent — needs a lake-populated DB (CI skips)")
     try:
         yield Repository(conn, schema=settings.db_schema), settings
     finally:
