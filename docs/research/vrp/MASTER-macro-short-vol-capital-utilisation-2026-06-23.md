@@ -269,6 +269,42 @@ accounting artifact, **not** "you lost more than your account": no single drawdo
 exceeded ~11% of peak equity. The honest risk statement for the recommended **SPY @ brp
 0.20** is **≈ −$40k absolute (−80% of the $50k base, −9% of peak equity).**
 
+### 2.9 Equity curve
+
+Account equity = **$50,000 + cumulative monthly excess P&L** (dollars). Near-linear, not
+exponential, because sizing is **non-compounding** (each rung risks `base_risk_pct ×` the
+*original* $50k, not grown equity). Terminal equity over 2009 → 2026-06 (mini): **SPY brp
+0.20 ≈ $490k**, SPX brp 0.20 ≈ $355k, SPX brp 0.32 ≈ $647k.
+
+![Equity curves — WINNER base case, $50k account, mini data](equity-curves-2026-06-23.svg)
+
+ASCII fallback (recommended **SPY @ brp 0.20**, 2009 → 2026-06; the flat/down stretches are
+the drawdowns quantified in §2.8):
+
+```
+$ 490k |                                                                       *
+$ 457k |                                                                    *** 
+$ 425k |                                                               ******   
+$ 392k |                                                            ****        
+$ 359k |                                                      ** ***            
+$ 327k |                                                   **** *               
+$ 294k |                                                ****                    
+$ 261k |                                      **    *****                       
+$ 229k |                                ***************                         
+$ 196k |                           ** ***                                       
+$ 163k |                    **********                                          
+$ 131k |               ******                                                   
+$  98k |        ********                                                        
+$  65k |  *********                                                             
+$  33k |***                                                                     
+$   0k |*                                                                       
+      +------------------------------------------------------------------------
+       2009                                                            2026
+```
+
+Source SVG: `docs/research/vrp/equity-curves-2026-06-23.svg` (hand-rolled, no chart library —
+matches repo convention). Reproduce: rerun the equity-curve builder against the mini.
+
 ---
 
 ## 3. FINDINGS
@@ -326,6 +362,7 @@ top Sharpe. Gate stays ramp+ (idle when vol cheap — as it is right now). Drop 
 | `docs/research/vrp/macro-capital-utilisation-verdict.md` | 3-name verdict |
 | `docs/research/vrp/macro-capital-utilisation-findings.ipynb` | Findings notebook |
 | `docs/research/vrp/base-case-mini-run-summary-2026-06-23.md` | Mini run summary |
+| `docs/research/vrp/equity-curves-2026-06-23.svg` | Equity curves (SPY/SPX, hand-rolled SVG) |
 | `docs/research/vrp/MASTER-macro-short-vol-capital-utilisation-2026-06-23.md` | **This document** |
 | `tests/unit/reports/test_vrp_capital_account.py` | 19 unit tests |
 | `tests/integration/reports/test_vrp_capital_account_db.py` | 2 DB-gated tests (incl. reconciliation) |
