@@ -1,6 +1,10 @@
 # RUT put-calendar study — sell 0/1DTE put, buy a longer-dated put
 
 **Date:** 2026-06-23 · **Branch:** `feat/rut-diagonal-strategy`
+**Status: TABLED 2026-06-23** — even the improved iteration 2 is only a marginal,
+regime-sensitive, assumption-dependent edge. Not pursued further. Merged for the record
+(reusable two-expiry engine + RUT lake wiring + full traces). Revisit only if a real
+RUT(W) front-IV vs RVX measurement shows the front persistently ≥ ~1.10× RVX.
 
 - **Iteration 1** (coupled daily put calendar) → **not a standalone edge** (below).
 - **Iteration 2** (hold the long longer + decouple the legs) → **materially better; a
