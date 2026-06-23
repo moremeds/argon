@@ -7,6 +7,9 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+## [0.3.1] — 2026-06-23
+
+
 ### Added
 
 - Option-surface historical backfill: `option_surface_backfill` function and
@@ -15,7 +18,6 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   `/greeks` both accept an optional `date=` param (now forwarded by the fetchers);
   dates already in the table are skipped. Run promptly after first deploy — UW
   403s beyond ~30 trading days.
-
 ## [0.3.0] — 2026-06-23
 
 
