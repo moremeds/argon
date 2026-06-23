@@ -298,6 +298,39 @@ bets sit on right before the crashes that kill short vol. **Sub-linear scaling o
 dollar risk cap is the only safe middle ground** — full equity-proportional compounding is a
 ruin machine.
 
+### 2.11 Compounding sweet spot — where to STOP (SPX, the preferred vehicle)
+
+**Why SPX, not SPY:** for held-to-expiry defined-risk vol selling SPX is the better
+instrument — cash-settled, European (no early assignment), §1256 60/40 tax, deepest
+liquidity, and it *is* the 1.65-Sharpe sleeve. SPY was only a granularity crutch on a small
+account, and compounding fixes that (the ~$15.7k SPX lump shrinks as a % as equity grows).
+
+**Policy:** compound (size off current equity) **up to a cap $C, then freeze** the dollar bet
+— "always risk X% of a growing book" (ruin-prone) → "risk a fixed $ once grown" (safe). The
+all-history maxDD is **cap-invariant** (−63.6%) because the worst drawdown is the 2009 GFC at
+the *start* (equity ≈ $50k, before any cap binds) — so the honest risk metric is the
+**forward (2011+) drawdown**, which the cap actually controls. SPX 0.32, worst single month
+**−45.7%**:
+
+| stop-compound cap | terminal | CAGR | maxDD (all-history) | maxDD (forward, 2011+) |
+|---|---|---|---|---|
+| non-comp ($50k) | $0.63M | 15.7% | −63.6% | −5.1% |
+| $100k | $1.18M | 20.0% | −63.6% | −5.7% |
+| **$200k (4×)** | **$2.21M** | **24.4%** | −63.6% | **−7.1%** |
+| **$400k (8×)** | **$4.12M** | **29.0%** | −63.6% | **−10.5%** |
+| $1M | $9.32M | 35.2% | −63.6% | −10.5% |
+| full compounding | $1.82B | 83.3% | −63.6% | −39.5% |
+
+**Verdict: stop compounding around 4–8× ($200k–$400k).** That captures most of the uplift
+(CAGR 15.7% → 24–29%) while keeping the *forward* drawdown bounded (−7% to −10%). Beyond ~$1M
+you pay steeply in forward risk for diminishing CAGR; full compounding's $1.8B / 83% is a
+capacity fantasy + ruin. **Practical step (in SPX contracts):** one spread ≈ $15.7k margin —
+start ~3 contracts at $50k, **add 1 contract per ~$16k of equity gained, stop adding at
+~12–25 contracts (~$200k–$400k)**, then hold size and let cash accumulate. (Caveat: the
+forward-DD read is benign partly because the 2009 GFC tail is front-loaded out of the
+post-2011 window and 2008 is excluded entirely — a future vol spike at high equity is the
+residual risk the cap exists to bound.)
+
 ---
 
 ## 3. FINDINGS
@@ -327,10 +360,13 @@ ruin machine.
 8. **Arithmetic ≫ geometric** — best 3-name cell prints 60.5% arithmetic but only 15.3%
    geometric CAGR. The CAGR is the deployable number; the arithmetic is a per-month-risk rate.
 
-**Recommended deployable (if at all):** **SPY @ base_risk_pct ≈ 0.20** (Sharpe 1.56, CAGR
-~15%, ~0 skips, util 0.49, ~28 entries/yr), non-compounding or sub-linear, gate ramp+ (idle
-when vol cheap — as right now). Drop IWM. **Size it as a risk-adjusted / diversifying sleeve,
-not expecting it to beat buy-and-hold on raw return.**
+**Recommended deployable:** **SPX** (not SPY — cash-settled, §1256, the true 1.65 sleeve) at
+base_risk_pct ≈ **0.20–0.32**, **sub-linear compounding capped at ~$200k–$400k (4–8×)**, gate
+ramp+ (idle when vol cheap — live signal right now is SKIP, vrp_z −1.95). Drop IWM. Add ~1 SPX
+contract (~$15.7k) per ~$16k of equity gained, stop at the cap. Over 2009–26 the conservative
+version roughly matches buy-and-hold on raw return; the aggressive SPX 0.32 beats it but with
+a far deeper tail (−64% vs −25%). Treat it as a risk-adjusted sleeve, sized to a drawdown you
+can survive.
 
 ---
 

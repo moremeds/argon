@@ -158,6 +158,63 @@ display(ovl[["base_risk_pct","overlay_mult","rich_threshold","cagr_gross","ann_r
              "sharpe","maxdd_pct","util_mean","skip_rate","fill_rate"]].head(12).round(3).reset_index(drop=True))
 """
 
+# --- Compounding sweet-spot policy (SPX): compound up to a cap $C, then FREEZE bet size. ---
+SWEET_SETUP = """\
+CAP0 = 50_000.0
+def rets(col):                       # monthly return on the $50k base, recovered from the non-comp curve
+    return np.diff(np.concatenate([[CAP0], eq[col].values])) / CAP0
+def cap_path(r, C):                  # equity path: size each month off min(equity, C) -> stop compounding at $C
+    e = CAP0; out = [CAP0]
+    for x in r:
+        e = e + min(e, C) / CAP0 * x * CAP0
+        out.append(e)
+    return np.array(out)
+def mdd(c):       return float((c / np.maximum.accumulate(c) - 1).min())
+def mdd_from(c, y0):                  # drawdown ignoring the 2009-2010 startup -> the FORWARD risk
+    i = int(np.argmax(eq.year.values >= y0)) + 1
+    seg = c[i:]; return float((seg / np.maximum.accumulate(seg) - 1).min())
+
+VEH = "spx032_noncomp"               # SPX is the vol-selling vehicle (cash-settled, European, §1256)
+r = rets(VEH); n = len(r)
+CAPS = [("non-comp", CAP0), ("$100k", 100e3), ("$200k", 200e3), ("$400k", 400e3),
+        ("$1M", 1e6), ("$5M", 5e6), ("full comp", 1e18)]
+rows = []
+for lbl, C in CAPS:
+    c = cap_path(r, C); cagr = (c[-1] / CAP0) ** (12 / n) - 1
+    rows.append({"cap": lbl, "terminal_$": c[-1], "CAGR": cagr,
+                 "maxDD_all": mdd(c), "maxDD_fwd_2011+": mdd_from(c, 2011)})
+capdf = pd.DataFrame(rows)
+print(f"SPX 0.32 — worst single MONTH: {r.min()*100:.1f}%  (the per-trade tail you compound INTO)")
+display(capdf.assign(**{"terminal_$": capdf["terminal_$"].round(0),
+        "CAGR": (capdf.CAGR*100).round(1), "maxDD_all": (capdf.maxDD_all*100).round(1),
+        "maxDD_fwd_2011+": (capdf["maxDD_fwd_2011+"]*100).round(1)}))
+"""
+
+SWEET_CHART = """\
+fig, axs = plt.subplots(1, 2, figsize=(13, 5))
+# (a) equity under a few caps, log scale
+T = eq.year + (eq.month - 1) / 12.0
+for lbl, C in [("non-comp", CAP0), ("cap $200k", 200e3), ("cap $1M", 1e6), ("full comp", 1e18)]:
+    axs[0].plot(T, cap_path(r, C)[1:], lw=1.9, label=lbl)
+axs[0].set_yscale("log"); axs[0].yaxis.set_major_formatter(DOLLARS)
+axs[0].set_title("SPX 0.32 equity under compounding caps (log)")
+axs[0].set_xlabel("year"); axs[0].set_ylabel("equity (log)"); axs[0].legend(loc="upper left")
+# (b) the SWEET SPOT: CAGR vs FORWARD drawdown as the cap rises
+x = range(len(capdf))
+axs[1].plot(x, capdf.CAGR, "o-", color="#2ca02c", label="CAGR (left)")
+axs[1].set_ylabel("CAGR", color="#2ca02c"); axs[1].yaxis.set_major_formatter(PCT)
+axb = axs[1].twinx()
+axb.plot(x, -capdf["maxDD_fwd_2011+"], "s--", color="#d62728", label="forward |maxDD| (right)")
+axb.set_ylabel("forward |maxDD| (2011+)", color="#d62728"); axb.yaxis.set_major_formatter(PCT)
+axs[1].set_xticks(list(x)); axs[1].set_xticklabels(capdf.cap, rotation=30)
+axs[1].axvspan(2 - 0.4, 3 + 0.4, color="#ffd", alpha=0.5)  # highlight $200k-$400k sweet spot
+axs[1].set_title("Sweet spot: CAGR climbs, forward DD bounded — until you over-compound")
+axs[1].set_xlabel("stop-compounding cap")
+fig.tight_layout(); plt.show()
+print("Sweet spot ~ cap $200k-$400k (4-8x): CAGR 24-29% with FORWARD drawdown still -7% to -10%.")
+print("Full compounding buys 83% CAGR on paper but -40% forward DD (and the $1.8B terminal is a capacity fantasy).")
+"""
+
 
 def main() -> None:
     cells = [
@@ -165,8 +222,9 @@ def main() -> None:
             "# Macro Short-Vol — Two-Layer $50k Capital-Utilisation Study\n\n"
             "Base = deployed **WINNER** (ramp+ vrp-z-sized bull put spread, 0.25Δ/0.125Δ, 30d hold, "
             "weekly, held to expiry; capital-blind Sharpe ≈**1.65**). This notebook renders the $50k "
-            "dollar-account reality: equity vs buy-and-hold, the **compounding** question, drawdowns, "
-            "and the base_risk_pct / overlay frontiers.\n\n"
+            "dollar-account reality: equity vs buy-and-hold, the **compounding** question and its **sweet spot** "
+            "(where to stop compounding, on **SPX** — the preferred vol-selling vehicle), drawdowns, and the "
+            "base_risk_pct / overlay frontiers.\n\n"
             "Data (all committed in this dir): `capital-sweep-results.csv` (3-name, local), "
             "`base-case-mini-sweep-2026-06-23.csv` (SPX/SPY, mini fresh data through 2026-06-18), "
             "`equity-series-2026-06-23.csv` (monthly equity curves). Reproduce: "
@@ -203,14 +261,42 @@ def main() -> None:
         ),
         _code(DRAWDOWN),
         _md(
-            "## 4. base_risk_pct frontier — the master dial (single-name SPX & SPY)\n\n"
+            "## 4. Compounding sweet spot — *where to STOP compounding* (SPX)\n\n"
+            "**Why SPX, not SPY:** for held-to-expiry defined-risk vol selling, SPX is the better instrument — "
+            "cash-settled, European (no early assignment), §1256 60/40 tax, deepest options liquidity, and it "
+            "*is* the 1.65-Sharpe sleeve. SPY was only a granularity crutch on a small account — and compounding "
+            "**fixes** that (as equity grows, the ~$15.7k SPX lump becomes a small %).\n\n"
+            "**The policy:** compound (size each rung off *current* equity) **up to a cap $C**, then freeze the "
+            "dollar bet size. This converts the strategy from 'always risk X% of a growing equity' (ruin-prone) "
+            "to 'risk a fixed dollar amount once you've grown' (safe). Below: a sweep of caps from $50k "
+            "(non-compounding) to ∞ (full).\n\n"
+            "**Read the FORWARD drawdown, not the all-history one.** The all-history maxDD is **cap-invariant** "
+            "(~-64% for SPX 0.32) because the worst drawdown is the **2009 GFC at the start**, when equity ≈ $50k "
+            "*before any cap binds*. That hides the real compounding risk. The **forward (2011+) drawdown** — what "
+            "a cap actually controls — grows steadily with the cap and is the honest risk metric.\n"
+        ),
+        _code(SWEET_SETUP),
+        _code(SWEET_CHART),
+        _md(
+            "**Verdict — stop compounding around 4–8× ($200k–$400k).** That captures most of the compounding "
+            "uplift (SPX 0.32: CAGR **15.7% → 24–29%**) while keeping the **forward** drawdown bounded "
+            "(**-7% to -10%**). Beyond ~$1M you pay steeply in forward drawdown (-20% to -40%) for diminishing "
+            "CAGR, and full compounding's $1.8B / 83% CAGR is a capacity fantasy + ruin risk.\n\n"
+            "**A good 'step' to compound (practical, in SPX contracts):** one SPX spread ≈ **$15.7k margin**. "
+            "Start ~3 contracts at $50k; **add 1 contract per ~$16k of equity gained**, and **stop adding once "
+            "you reach ~12–25 contracts (~$200k–$400k equity)** — then hold that size and let cash accumulate. "
+            "Re-baseline the cap upward only deliberately, never automatically. This is sub-linear compounding: "
+            "grow into the edge, then lock the dollar risk.\n"
+        ),
+        _md(
+            "## 5. base_risk_pct frontier — the master dial (single-name SPX & SPY)\n\n"
             "`base_risk_pct` sets per-rung risk → drives utilisation, skip-rate, and the return/drawdown "
             "trade-off. **SPY @ 0.20** (Sharpe 1.56, ~0 skips) is the granular recommendation; **SPX** is "
             "lumpier (~31%/contract) but reaches higher Sharpe at the cost of deeper early drawdowns.\n"
         ),
         _code(FRONTIER),
         _md(
-            "## 5. The 3-name book (SPY+QQQ+IWM) — why diversifying *hurts*\n\n"
+            "## 6. The 3-name book (SPY+QQQ+IWM) — why diversifying *hurts*\n\n"
             "The 28-config sweep's Sharpe ceiling is ~1.0-1.18, **below single-name SPX 1.83**, because "
             "QQQ (1.01) and especially **IWM (0.44, -128% maxDD)** dilute the S&P sleeve. The overlay lifts "
             "raw return but not Sharpe (leverage, not edge). **Single-name S&P wins; drop IWM.**\n"
@@ -227,11 +313,16 @@ def main() -> None:
             "3. **Compounding is a trap:** mathematically 14%→55% CAGR ($490k→$100M), but -64% drawdowns, "
             "finite capacity, and short-vol tail risk make full equity-scaling a ruin machine. Sub-linear "
             "scaling / a fixed dollar risk cap is the only safe middle ground.\n"
-            "4. **Single-name S&P beats the 3-name blend** (IWM is the drag). base_risk_pct is the real lever; "
+            "4. **Compounding sweet spot:** compound SPX up to **~$200k–$400k (4–8×) then freeze** the dollar bet "
+            "(SPX 0.32: CAGR 15.7%→24–29%, forward DD -7% to -10%). Full compounding (83% CAGR / $1.8B) is a "
+            "capacity fantasy + ruin. Practical step: +1 SPX contract (~$15.7k) per ~$16k equity, stop at the cap.\n"
+            "5. **Single-name S&P beats the 3-name blend** (IWM is the drag). base_risk_pct is the real lever; "
             "the overlay is leverage, not edge.\n"
-            "5. **Recommended (if deployed):** SPY @ base_risk_pct ≈ 0.20, non-compounding (or sub-linear), gate "
-            "ramp+ (idle when vol cheap — as it is now: live signal SKIP, vrp_z -1.95). Size it as a "
-            "risk-adjusted/diversifying sleeve, not expecting it to beat buy-and-hold on raw return.\n"
+            "6. **Recommended:** **SPX** (not SPY) — cash-settled, §1256, the true 1.65 sleeve — at base_risk_pct "
+            "≈ 0.20–0.32, **sub-linear compounding capped at ~$200k–$400k**, gate ramp+ (idle when vol cheap — "
+            "live signal right now is SKIP, vrp_z -1.95). Treat it as a risk-adjusted sleeve; over 2009-26 the "
+            "conservative version roughly matches buy-and-hold on raw return, the aggressive (SPX 0.32) beats it "
+            "but with a far deeper tail.\n"
         ),
     ]
     nb = {
