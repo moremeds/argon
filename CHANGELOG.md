@@ -9,12 +9,49 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ### Added
 
+- VRP backtest iteration 4 (research): robustness suite on the SPX macro short-vol
+  WINNER — `reports/vrp_robustness.py` (min viable capital, SPY buy-and-hold benchmark,
+  geometric compounding metrics, weekday sweep, bear-start study, and a seeded
+  Monte-Carlo suite: entry-timing jitter, stationary block bootstrap, randomized
+  start incl. a GFC-windowed variant, config perturbation) plus six backward-compatible
+  flags on the `vrp_capital_account` ledger (compounding, entry-weekday, entry-jitter,
+  staggered extra tranche) that reconcile byte-for-byte to the iteration-3 path when off.
+  Runner `scripts/research/vrp_robustness_run.py` writes seven `iter4-*.csv` full traces
+  (per-config + per-trial Monte-Carlo + long-form bear-start equity path); findings in
+  `docs/research/vrp/vrp-backtest-iteration-4-findings.ipynb` + an Iteration-4 section of
+  the master report. Every experiment benchmarked against the iteration-3 SPX base case
+  and SPY buy-and-hold. Headlines: the staggered extra tranche marginally beats the base
+  (Sharpe 1.71 vs 1.68) while the contract overlay is exposure-not-edge; entry weekday
+  matters modestly (1.33–1.53, all below the 1.65 stride); starting at a bear top still
+  earns +150–180% over 36m; and config-perturbation p5 Sharpe 1.05 shows the result is
+  not a knife-edge overfit. SPX vol-selling is six-figure-capital (one spread's max-loss
+  rises ~15× to ~$28k by 2026).
+- VRP capital-utilisation backtest (research): new `reports/vrp_capital_account.py`
+  — a single shared **$50k cash-account ledger** (`CapitalConfig`,
+  `desired_contracts`, `simulate_account`, `account_metrics`) that *reuses* the
+  validated macro short-vol `WINNER` engine to measure annualised return, capital
+  utilisation, skip/fill rates, Sharpe and max-drawdown on a real dollar account
+  (integer contracts floored to a risk-% of capital, capital-capped with logged
+  skips). Reconciles exactly with `backtest_laddered` (Δ Sharpe 0.000). Adds SPY
+  to macro `INDEX_SPECS`, a sweep runner (`scripts/research/vrp_capital_sweep.py`)
+  with full-trace CSVs, and an executed findings notebook + verdict/master report
+  under `docs/research/vrp/` (single-name SPX beats the 3-name blend; the overlay
+  is leverage not edge; compounding sweet spot ≈ stop at 4–8×). New `research`
+  dependency group (matplotlib/nbconvert/ipykernel) for the notebook only.
 - Option-surface historical backfill: `option_surface_backfill` function and
   `scripts/option_surface_backfill.py` runner seed `option_surface_grid_daily`
   for up to 30 past trading days in one shot. UW `/greek-exposure/expiry` and
   `/greeks` both accept an optional `date=` param (now forwarded by the fetchers);
   dates already in the table are skipped. Run promptly after first deploy — UW
   403s beyond ~30 trading days.
+
+### Fixed
+
+- `reports/vrp_macro_drawdown._lake_spot` now skips lake rows with a null
+  `trade_date`. SPY's equity-lake parquet carries ~73% null-date rows (an
+  alternate-schema partition); without the guard `load_index_vol("SPY")` raised
+  `TypeError` on the `d >= start` comparison. No-op for symbols with clean dates
+  (QQQ/IWM).
 
 ## [0.3.0] — 2026-06-23
 
