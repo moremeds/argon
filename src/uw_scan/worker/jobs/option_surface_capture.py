@@ -127,7 +127,7 @@ def option_surface_backfill(
         date_iso = market_date.isoformat()
         with repo.conn.cursor() as cur:
             cur.execute(
-                "SELECT 1 FROM option_surface_grid_daily WHERE market_date=%s LIMIT 1",
+                f"SELECT 1 FROM {repo._schema}.option_surface_grid_daily WHERE market_date=%s LIMIT 1",
                 (market_date,),
             )
             if cur.fetchone():
