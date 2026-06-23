@@ -84,10 +84,14 @@ def _lake_spot(
     table = ds.dataset(str(path)).to_table(columns=["trade_date", "close"])
     dts = table.column("trade_date").to_pylist()
     cls = table.column("close").to_pylist()
+    # SPY's lake parquet carries ~73% null-trade_date rows (an alternate-schema
+    # partition mixed in); the non-null rows are the clean daily series. Guard
+    # `d is not None` so those junk rows are skipped — a no-op for symbols whose
+    # lake data has no null dates (QQQ/IWM).
     return {
         d: float(c)
         for d, c in zip(dts, cls, strict=False)
-        if c is not None and d >= start
+        if c is not None and d is not None and d >= start
     }
 
 
