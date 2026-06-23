@@ -9,12 +9,32 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ### Added
 
+- VRP capital-utilisation backtest (research): new `reports/vrp_capital_account.py`
+  — a single shared **$50k cash-account ledger** (`CapitalConfig`,
+  `desired_contracts`, `simulate_account`, `account_metrics`) that *reuses* the
+  validated macro short-vol `WINNER` engine to measure annualised return, capital
+  utilisation, skip/fill rates, Sharpe and max-drawdown on a real dollar account
+  (integer contracts floored to a risk-% of capital, capital-capped with logged
+  skips). Reconciles exactly with `backtest_laddered` (Δ Sharpe 0.000). Adds SPY
+  to macro `INDEX_SPECS`, a sweep runner (`scripts/research/vrp_capital_sweep.py`)
+  with full-trace CSVs, and an executed findings notebook + verdict/master report
+  under `docs/research/vrp/` (single-name SPX beats the 3-name blend; the overlay
+  is leverage not edge; compounding sweet spot ≈ stop at 4–8×). New `research`
+  dependency group (matplotlib/nbconvert/ipykernel) for the notebook only.
 - Option-surface historical backfill: `option_surface_backfill` function and
   `scripts/option_surface_backfill.py` runner seed `option_surface_grid_daily`
   for up to 30 past trading days in one shot. UW `/greek-exposure/expiry` and
   `/greeks` both accept an optional `date=` param (now forwarded by the fetchers);
   dates already in the table are skipped. Run promptly after first deploy — UW
   403s beyond ~30 trading days.
+
+### Fixed
+
+- `reports/vrp_macro_drawdown._lake_spot` now skips lake rows with a null
+  `trade_date`. SPY's equity-lake parquet carries ~73% null-date rows (an
+  alternate-schema partition); without the guard `load_index_vol("SPY")` raised
+  `TypeError` on the `d >= start` comparison. No-op for symbols with clean dates
+  (QQQ/IWM).
 
 ## [0.3.0] — 2026-06-23
 
