@@ -408,3 +408,109 @@ can survive.
 | `tests/unit/reports/test_vrp_capital_account.py` | 19 unit tests |
 | `tests/integration/reports/test_vrp_capital_account_db.py` | 2 DB-gated tests (incl. reconciliation) |
 | `docs/research/vrp/macro-short-vol-verdict.md` | Prior PR #150 verdict (the 1.65 winner origin) |
+
+---
+
+## Iteration 4 — Robustness (2026-06-23)
+
+Five stress-tests of the deployed WINNER, **SPX-only**, each benchmarked against two fixed
+references: the **iteration-3 SPX base case** (Sharpe **1.68**, CAGR 13.6%) and **SPY
+buy-and-hold** (Sharpe **0.62**, CAGR 8.8%). The base-case arm reconciles to the
+iteration-3 baseline exactly (both 1.680). Engine: six backward-compatible flags on
+`simulate_account` (compounding, entry-weekday, entry-jitter, staggered tranche) +
+`reports/vrp_robustness.py`. Full traces in `docs/research/vrp/iter4-*.csv`.
+**Reproduce:** `uv run python scripts/research/vrp_robustness_run.py` (SEED=20260623; data
+SPX+VIX `vol_index_daily` 2006→, SPY spot from the lake; ran on `option_wizard_local`).
+
+### 0 · Smallest starting capital — two answers
+
+SPX bull-put-spread max-loss **rises ~15× over 2007→2026** with spot (`$1,819` → `$28,408`),
+so "smallest to start" and "smallest to run the strategy" are different numbers:
+
+| | max-loss/contract | floor @ 20%-risk/spread |
+|---|---|---|
+| Smallest to **start** (cheapest 2007 spread) | $1,819 | **$10k** |
+| Smallest to trade **throughout** (afford the recent spread) | $28,408 | **$143k** |
+
+The $10k start-floor goes **dormant by ~2015** (can't afford a single spread once spot
+rises), so all dollar experiments use the **$143k trade-throughout account**. *This is the
+honest headline: defined-risk SPX vol-selling is a six-figure-capital strategy.* (`iter4-min-capital.csv`.)
+
+### 1 · Extra position when rich — exposure, not edge (`iter4-extra-position.csv`)
+
+| Variant (floor $143k account) | Sharpe | CAGR | maxDD %cap |
+|---|---|---|---|
+| base — non-comp | **1.680** | 13.6% | −90% |
+| +contract overlay — non-comp | 1.668 | 14.3% | −117% |
+| +staggered tranche — non-comp | **1.705** | 14.3% | −118% |
+| base — **compounding** | 1.457 | **57.0%** | (util_peak 466×) |
+
+The staggered second entry marginally *improves* Sharpe (1.705 vs 1.680); the same-day
+contract overlay marginally *hurts* it (1.668) and deepens the drawdown. Both add exposure
+without adding risk-adjusted edge. Compounding lifts CAGR to ~57% but amplifies drawdown
+proportionally (the iteration-3 "fantasy"). Note the dollar account's deep −90% maxDD: at
+~100% utilisation through 2008 the fully-deployed short-vol book is near-wipeout tail risk —
+far worse than the capital-blind −25/−41% because utilisation amplifies it.
+
+### 2 · Entry weekday matters modestly (`iter4-weekday.csv`, uncapped clean-signal basis)
+
+| Mon | Tue | Wed | Thu | Fri | 5-day stride |
+|---|---|---|---|---|---|
+| 1.40 | **1.53** | 1.35 | 1.42 | 1.33 | **1.65** |
+
+Single-weekday Sharpes cluster 1.33–1.53 — Tuesday best, Friday worst — but **all sit below
+the natural 5-day stride (1.65)**. So the entry day has a modest effect (~0.2 Sharpe spread)
+and committing to a fixed weekday is slightly worse than the stride, but the edge stays
+robustly positive (>1.3) on every weekday.
+
+### 3 · Bear-market start — rich vol → strong recovery harvest (`iter4-bear-start{,-path}.csv`)
+
+| Start | n | Sharpe | +6m | +12m | +36m |
+|---|---|---|---|---|---|
+| 2015-08 | 260 | 1.87 | +17% | +65% | +182% |
+| 2018-09 | 184 | 1.92 | +11% | +31% | +155% |
+| 2020-02 | 146 | 2.58 | +35% | +100% | +167% |
+| 2022-01 | 100 | 2.35 | +7% | +16% | +184% |
+
+Starting the strategy **at** a bear-market top does **not** hurt — every start delivers
++150–180% over 36 months at Sharpe 1.9–2.6, *better* than the full-history base. Selling
+into the elevated post-shock vol harvests rich premium on the recovery. Full lived equity
+paths in `iter4-bear-start-path.csv`.
+
+### 4 · Monte-Carlo robustness (`iter4-mc.csv` + `iter4-mc-trials.csv`, uncapped, SEED=20260623)
+
+| Driver | mean | p5 | p95 |
+|---|---|---|---|
+| entry-timing jitter (±2 days) | 1.38 | 1.19 | 1.60 |
+| stationary block bootstrap | 1.72 | 1.05 | 2.54 |
+| randomised start (full history) | 2.00 | 1.60 | 2.73 |
+| randomised start (GFC window — #5) | 1.75 | 1.62 | 2.02 |
+| **config perturbation** (overfit test) | 1.37 | **1.05** | 1.64 |
+
+The headline: **config-perturbation p5 = 1.05** — jittering the tuned knobs (short_delta
+0.20–0.30, hold 20–40, ramp_full_z 0.3–0.7) keeps Sharpe above 1.0, so the result is **not a
+knife-edge overfit**. Entry-timing jitter (p5 1.19) and the bootstrap CI (p5 1.05) corroborate.
+The GFC-windowed random-start (1.75) is the #5 bear-extension — entering short-vol *during*
+2007–2009 still clears Sharpe 1.6+.
+
+### Look-ahead audit
+
+Every input to the entry decision is known at the entry-day close: `vrp_z` (trailing-252
+z-score), `rv` (trailing-20 realized vol), IV (contemporaneous VIX). Settlement walks the
+realized forward path — the *outcome* of a decision already made, not an input. The only
+forward-looking risk is **in-sample config selection**, which §4's config-perturbation
+quantifies (survives, p5 1.05).
+
+**Caveat — compounding `util_peak` > 1:** for compounding rows `util_peak` is deployed margin
+÷ *initial* capital, so it exceeds 1.0 (e.g. 466×) as equity grows — read it as
+leverage-vs-start, not a cap breach.
+
+### Iteration-4 artifacts
+
+| Path | What |
+|---|---|
+| `src/uw_scan/reports/vrp_robustness.py` | min-capital, buy-hold, geometric metrics, weekday/bear/MC drivers |
+| `scripts/research/vrp_robustness_run.py` | runner (writes the 7 CSVs) |
+| `docs/research/vrp/iter4-*.csv` | full traces (per-config + per-trial) |
+| `docs/research/vrp/vrp-backtest-iteration-4-findings.ipynb` | executed findings notebook (4 figures) |
+| `tests/unit/reports/test_vrp_robustness.py` | 12 unit tests |

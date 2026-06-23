@@ -9,6 +9,23 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ### Added
 
+- VRP backtest iteration 4 (research): robustness suite on the SPX macro short-vol
+  WINNER — `reports/vrp_robustness.py` (min viable capital, SPY buy-and-hold benchmark,
+  geometric compounding metrics, weekday sweep, bear-start study, and a seeded
+  Monte-Carlo suite: entry-timing jitter, stationary block bootstrap, randomized
+  start incl. a GFC-windowed variant, config perturbation) plus six backward-compatible
+  flags on the `vrp_capital_account` ledger (compounding, entry-weekday, entry-jitter,
+  staggered extra tranche) that reconcile byte-for-byte to the iteration-3 path when off.
+  Runner `scripts/research/vrp_robustness_run.py` writes seven `iter4-*.csv` full traces
+  (per-config + per-trial Monte-Carlo + long-form bear-start equity path); findings in
+  `docs/research/vrp/vrp-backtest-iteration-4-findings.ipynb` + an Iteration-4 section of
+  the master report. Every experiment benchmarked against the iteration-3 SPX base case
+  and SPY buy-and-hold. Headlines: the staggered extra tranche marginally beats the base
+  (Sharpe 1.71 vs 1.68) while the contract overlay is exposure-not-edge; entry weekday
+  matters modestly (1.33–1.53, all below the 1.65 stride); starting at a bear top still
+  earns +150–180% over 36m; and config-perturbation p5 Sharpe 1.05 shows the result is
+  not a knife-edge overfit. SPX vol-selling is six-figure-capital (one spread's max-loss
+  rises ~15× to ~$28k by 2026).
 - VRP capital-utilisation backtest (research): new `reports/vrp_capital_account.py`
   — a single shared **$50k cash-account ledger** (`CapitalConfig`,
   `desired_contracts`, `simulate_account`, `account_metrics`) that *reuses* the
