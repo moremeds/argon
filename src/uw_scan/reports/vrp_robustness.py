@@ -10,15 +10,21 @@ No new deps — stdlib statistics + random only. Every result returns a dict the
 
 from __future__ import annotations
 
+import dataclasses
 import math
 from datetime import date as _date
 from statistics import fmean, pstdev
 from typing import Any
 
+from uw_scan.reports.vrp_capital_account import (
+    CapitalConfig,
+    account_metrics,
+    simulate_account,
+)
 from uw_scan.reports.vrp_structure import build_bull_put_spread
 
-# NOTE: Tasks 5 and 6 EXTEND this import block (via Edit, never inline) to add
-# `dataclasses`, the vrp_capital_account symbols, `random`, and MacroSignalConfig.
+# NOTE: Task 6 EXTENDS this import block (via Edit, never inline) to add `random`
+# and MacroSignalConfig.
 CONTRACT_MULTIPLIER = 100
 
 
@@ -211,3 +217,83 @@ def equity_curve_metrics(equity_points, capital: float, rf: float) -> dict:
         "maxdd_pct": mdd / capital if capital else 0.0,
         "years": years,
     }
+
+
+def weekday_sweep(loaded, settings, capcfg: CapitalConfig, rf: float) -> list[dict]:
+    """Run the ledger with entries forced to each weekday (Mon..Fri) and to the default
+    stride. SPX-only: loadeds = {capcfg.names[0]: loaded}. Returns account_metrics per."""
+    name = capcfg.names[0]
+    rows: list[dict] = []
+    for label in (0, 1, 2, 3, 4, "stride"):
+        wd = None if label == "stride" else label
+        cfg = dataclasses.replace(capcfg, entry_weekday=wd)
+        res = simulate_account({name: loaded}, settings, cfg)
+        rows.append({"entry_weekday": label, **account_metrics(res, cfg, rf)})
+    return rows
+
+
+def _window_metrics(equity_points, capital: float, n_months: int) -> dict:
+    pts = equity_points[:n_months]
+    if not pts:
+        return {"ret": float("nan"), "maxdd_pct": float("nan")}
+    peak = capital
+    mdd = 0.0
+    for _ym, e in pts:
+        peak = max(peak, e)
+        mdd = min(mdd, e - peak)
+    return {
+        "ret": pts[-1][1] / capital - 1.0,
+        "maxdd_pct": mdd / capital if capital else 0.0,
+    }
+
+
+def bear_start_study(
+    loaded,
+    settings,
+    capcfg: CapitalConfig,
+    rf: float,
+    *,
+    starts,
+    windows_months: tuple[int, ...] = (6, 12, 36),
+) -> tuple[list[dict], list[dict]]:
+    """For each bear start: (summary_rows, path_rows). summary = full-path metrics
+    (geometric if capcfg.compounding else linear) + fixed forward-window return & maxDD;
+    path = long-form month-end equity + drawdown for charting the full lived experience."""
+    name = capcfg.names[0]
+    summary: list[dict] = []
+    path_rows: list[dict] = []
+    for start in starts:
+        cfg = dataclasses.replace(capcfg, min_date=start)
+        res = simulate_account({name: loaded}, settings, cfg)
+        eqpts = monthly_equity(res, cfg.capital)
+        full = (
+            equity_curve_metrics(eqpts, cfg.capital, rf)
+            if cfg.compounding
+            else account_metrics(res, cfg, rf)
+        )
+        row: dict[str, Any] = {
+            "start": start,
+            "n_rungs": len(res.rungs),
+            "sharpe": full.get("sharpe"),
+            # account_metrics emits cagr_excess; equity_curve_metrics emits cagr
+            "cagr": full.get("cagr", full.get("cagr_excess")),
+            "maxdd_pct": full.get("maxdd_pct"),
+        }
+        for w in windows_months:
+            wm = _window_metrics(eqpts, cfg.capital, w)
+            row[f"ret_{w}m"] = wm["ret"]
+            row[f"maxdd_{w}m_pct"] = wm["maxdd_pct"]
+        summary.append(row)
+        peak = cfg.capital
+        for (yy, mm), e in eqpts:
+            peak = max(peak, e)
+            path_rows.append(
+                {
+                    "start": start,
+                    "year": yy,
+                    "month": mm,
+                    "equity": e,
+                    "drawdown_pct": (e - peak) / cfg.capital if cfg.capital else 0.0,
+                }
+            )
+    return summary, path_rows

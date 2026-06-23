@@ -2,13 +2,16 @@ import math
 from datetime import date, timedelta
 from types import SimpleNamespace
 
+from uw_scan.reports.vrp_capital_account import CapitalConfig
 from uw_scan.reports.vrp_macro_drawdown import _Loaded
 from uw_scan.reports.vrp_robustness import (
     _pct,
+    bear_start_study,
     buy_and_hold,
     equity_curve_metrics,
     min_viable_capital,
     monthly_equity,
+    weekday_sweep,
 )
 
 
@@ -70,3 +73,38 @@ def test_equity_curve_metrics_geometric_return():
 
 def test_pct_basic():
     assert _pct([1, 2, 3, 4, 5], 0.5) == 3
+
+
+def test_weekday_sweep_has_six_rows():
+    ld = _spx_loaded(spot=5000.0, iv=0.20, z=1.0, n=300)
+    cfg = CapitalConfig(
+        capital=1_000_000_000.0,
+        base_risk_pct=0.05,
+        overlay_mult=0.0,
+        rich_threshold=99.0,
+        names=("SPX",),
+    )
+    rows = weekday_sweep(ld, _settings(), cfg, 0.04)
+    labels = {r["entry_weekday"] for r in rows}
+    assert labels == {0, 1, 2, 3, 4, "stride"}
+
+
+def test_bear_start_study_returns_summary_and_path():
+    ld = _spx_loaded(spot=5000.0, iv=0.20, z=1.0, n=400, start=date(2015, 1, 1))
+    cfg = CapitalConfig(
+        capital=1_000_000_000.0,
+        base_risk_pct=0.05,
+        overlay_mult=0.0,
+        rich_threshold=99.0,
+        names=("SPX",),
+    )
+    summary, path = bear_start_study(
+        ld, _settings(), cfg, 0.04, starts=(date(2015, 6, 1),), windows_months=(6, 12)
+    )
+    assert len(summary) == 1
+    r = summary[0]
+    assert "ret_6m" in r and "maxdd_6m_pct" in r and "ret_12m" in r
+    assert r["start"] == date(2015, 6, 1)
+    # long-form path drives the full-lived-experience chart
+    assert path and path[0]["start"] == date(2015, 6, 1)
+    assert {"start", "year", "month", "equity", "drawdown_pct"} <= set(path[0])
