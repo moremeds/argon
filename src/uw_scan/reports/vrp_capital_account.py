@@ -48,10 +48,34 @@ class CapitalConfig:
     names: tuple[str, ...] = ("SPY", "QQQ", "IWM")
     min_date: _date | None = None
     base_cfg: MacroSignalConfig = WINNER
+    # iter4 robustness flags — all default to the current (iteration-3) behavior
+    compounding: bool = False  # size each entry off realised equity, not fixed capital
+    entry_weekday: int | None = None  # 0=Mon..4=Fri; None = 5-trading-day stride
+    entry_jitter: int = 0  # ± trading-day jitter per entry; 0 = none
+    jitter_seed: int = 0  # seeds the deterministic per-entry jitter
+    extra_tranche: bool = False  # staggered second entry on rich weeks
+    extra_tranche_stagger: int = (
+        2  # trading days after base entry for the extra tranche
+    )
+
+    def __post_init__(self) -> None:
+        # loud guards: a negative stagger would index backward / wrap, a negative jitter
+        # is nonsense. Validation-only — safe on a frozen dataclass.
+        if self.extra_tranche and self.extra_tranche_stagger < 1:
+            raise ValueError(
+                "extra_tranche_stagger must be >= 1 when extra_tranche is on"
+            )
+        if self.entry_jitter < 0:
+            raise ValueError("entry_jitter must be >= 0")
 
 
 def desired_contracts(
-    w: float, z: float | None, max_loss_per_contract: float, capcfg: CapitalConfig
+    w: float,
+    z: float | None,
+    max_loss_per_contract: float,
+    capcfg: CapitalConfig,
+    *,
+    sizing_capital: float | None = None,
 ) -> tuple[int, int]:
     """(base, overlay) integer contract counts before the shared-capital cap.
 
@@ -64,13 +88,12 @@ def desired_contracts(
     This prevents a degenerate "overlay-only, no base" trade when base floors to 0 but
     overlay_mult rounds up (e.g. base_risk_pct=0.03 on SPY at $1.6k margin, overlay_mult=2).
     """
+    cap = capcfg.capital if sizing_capital is None else sizing_capital
     if max_loss_per_contract <= 0:
         return 0, 0
     base = 0
     if w > 0:
-        base = math.floor(
-            w * capcfg.base_risk_pct * capcfg.capital / max_loss_per_contract
-        )
+        base = math.floor(w * capcfg.base_risk_pct * cap / max_loss_per_contract)
     overlay = 0
     if (
         base >= 1
@@ -79,10 +102,7 @@ def desired_contracts(
         and capcfg.overlay_mult > 0
     ):
         overlay = math.floor(
-            capcfg.overlay_mult
-            * capcfg.base_risk_pct
-            * capcfg.capital
-            / max_loss_per_contract
+            capcfg.overlay_mult * capcfg.base_risk_pct * cap / max_loss_per_contract
         )
     return base, overlay
 
@@ -183,7 +203,18 @@ def simulate_account(
             log.debug("bull-put build skipped %s %s: %s", nm, d, repr(exc))
             continue
         mlpc = st.max_loss * CONTRACT_MULTIPLIER
-        base_d, overlay_d = desired_contracts(w, z, mlpc, capcfg)
+        # compounding sizes off realised equity (capital + net of rungs already exited
+        # on/before this entry date — no look-ahead; a rung's P&L is realised at exit).
+        if capcfg.compounding:
+            realised = capcfg.capital + sum(
+                rg.net_pnl for rg in rungs if rg.exit_date <= d
+            )
+            sizing_cap = max(0.0, realised)
+        else:
+            sizing_cap = capcfg.capital
+        base_d, overlay_d = desired_contracts(
+            w, z, mlpc, capcfg, sizing_capital=sizing_cap
+        )
         total_d = base_d + overlay_d
         if total_d <= 0:
             continue
@@ -191,7 +222,7 @@ def simulate_account(
         desired_tot += total_d
         exit_date = ld.adj[pi + hold][0]
         deployed = sum(m for (_e, xd, m) in opened if xd > d)
-        available = capcfg.capital - deployed
+        available = sizing_cap - deployed
         affordable = math.floor(available / mlpc) if mlpc > 0 else 0
         actual = min(total_d, max(0, affordable))
         if actual <= 0:

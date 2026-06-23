@@ -316,3 +316,38 @@ def test_account_metrics_zero_fills_gap_months():
     )  # mean of [.02,0,.02]=.0133*12
     assert abs(m["total_return_excess"] - 0.04) < 1e-9
     assert m["maxdd_dollars"] <= 0.0  # monotone-up curve → no drawdown
+
+
+# --- Task 1 (iter4): compounding ------------------------------------------
+def test_desired_contracts_sizing_capital_overrides_capital():
+    # base sized off sizing_capital, not capcfg.capital: 5% of $100k / $1000 = floor(5)=5
+    cfg = CapitalConfig(capital=50_000.0, base_risk_pct=0.05, rich_threshold=1.0)
+    base, _ = desired_contracts(1.0, 0.4, 1000.0, cfg, sizing_capital=100_000.0)
+    assert base == 5
+
+
+def test_compounding_grows_position_after_wins():
+    # A flat, always-winning synthetic SPX: equity rises → compounding sizes bigger
+    # later rungs than the fixed-capital book. 5% risk × ~6 concurrent rungs ≈ 30% util,
+    # so no capital cap — the only thing that grows later rungs is compounding.
+    ld = _synthetic_loaded(spot=100.0, iv=0.30, z=1.0, n=300)
+    base = CapitalConfig(
+        capital=50_000.0,
+        base_risk_pct=0.05,
+        overlay_mult=0.0,
+        rich_threshold=99.0,
+        names=("SPX",),
+        compounding=False,
+    )
+    comp = CapitalConfig(
+        capital=50_000.0,
+        base_risk_pct=0.05,
+        overlay_mult=0.0,
+        rich_threshold=99.0,
+        names=("SPX",),
+        compounding=True,
+    )
+    rb = simulate_account({"SPX": ld}, _settings(), base)
+    rc = simulate_account({"SPX": ld}, _settings(), comp)
+    assert rc.rungs[-1].contracts >= rb.rungs[-1].contracts
+    assert sum(r.contracts for r in rc.rungs) > sum(r.contracts for r in rb.rungs)
