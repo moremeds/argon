@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from datetime import date
+from datetime import date as _date
 from decimal import Decimal
 
 import uw_scan.worker.jobs.option_surface_capture as job
@@ -9,20 +10,24 @@ from uw_scan.models import GreekExposureByExpiryRow, GreeksRow
 
 
 def _stub_sources(monkeypatch, *, raise_for: str | None = None):
-    def fake_gex_by_expiry(client, repo, run_id, ticker):
+    def fake_gex_by_expiry(client, repo, run_id, ticker, date=None):  # noqa: ARG001
         # Full term structure — one row per listed expiry (no volume cap).
         return [
-            GreekExposureByExpiryRow(date=date(2026, 6, 19), expiry=date(2026, 7, 17)),
-            GreekExposureByExpiryRow(date=date(2026, 6, 19), expiry=date(2026, 8, 21)),
+            GreekExposureByExpiryRow(
+                date=_date(2026, 6, 19), expiry=_date(2026, 7, 17)
+            ),
+            GreekExposureByExpiryRow(
+                date=_date(2026, 6, 19), expiry=_date(2026, 8, 21)
+            ),
         ]
 
-    def fake_greeks(client, repo, run_id, ticker, expiry_iso):
+    def fake_greeks(client, repo, run_id, ticker, expiry_iso, date=None):  # noqa: ARG001
         if raise_for is not None and ticker == raise_for:
             raise RuntimeError("boom")
-        e = date.fromisoformat(expiry_iso)
+        e = _date.fromisoformat(expiry_iso)
         return [
             GreeksRow(
-                date=date(2026, 6, 19),
+                date=_date(2026, 6, 19),
                 expiry=e,
                 strike=Decimal("250"),
                 call_volatility=Decimal("0.50"),

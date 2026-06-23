@@ -7,6 +7,15 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+### Added
+
+- Option-surface historical backfill: `option_surface_backfill` function and
+  `scripts/option_surface_backfill.py` runner seed `option_surface_grid_daily`
+  for up to 30 past trading days in one shot. UW `/greek-exposure/expiry` and
+  `/greeks` both accept an optional `date=` param (now forwarded by the fetchers);
+  dates already in the table are skipped. Run promptly after first deploy — UW
+  403s beyond ~30 trading days.
+
 ## [0.3.0] — 2026-06-23
 
 
