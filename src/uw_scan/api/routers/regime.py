@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 from datetime import datetime, timezone
 from typing import Annotated
 from zoneinfo import ZoneInfo
@@ -74,6 +75,8 @@ from uw_scan.storage.regime_backtest_repository import RegimeBacktestRepository
 from uw_scan.storage.repository import Repository
 from uw_scan.storage.vcg_snapshot_repository import VcgSnapshotRepository
 from uw_scan.storage.vol_index_repository import VolIndexRepository
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/regime")
 
@@ -290,7 +293,10 @@ def get_vrp_macro_signal_live(
                 live_spot=float(spx_q.price),
                 live_iv=float(vix_q.price) / 100.0,
             )
-        except ValueError:
+        except ValueError as exc:
+            logger.debug(
+                "vrp live recompute failed; falling back to EOD: %s", repr(exc)
+            )
             sig = None
         if sig is not None:
             # merge the static backtest headline from the latest EOD row, if present
