@@ -235,75 +235,68 @@ IWM/QQQ dilution. The overlay lifts raw return but Sharpe stays flat (leverage, 
 **action = SKIP**. Vol cheap → gate shut → stand aside. Live proof the base case is a
 rich-vol harvester, not an always-on seller.
 
-### 2.8 Max drawdown — both senses
+### 2.8 Max drawdown — both senses (they are DIFFERENT events)
 
-**Three drawdown conventions (don't confuse them):**
-1. **maxDD $ (absolute):** worst peak-to-trough drop of the cumulative dollar P&L curve.
-2. **maxDD % of $50k base:** convention #1 ÷ the constant $50,000 starting capital. This is
-   what the result tables report. It **can exceed −100%** because the account banks large
-   cumulative gains on a *non-compounding* base, so a dollar drawdown can be larger than the
-   original $50k while still being a small fraction of the equity peak it fell from.
-3. **maxDD % of peak equity:** convention #1 ÷ the highest banked equity before the trough —
-   the "how much of your money at the time did you give back" number. This is the small one.
+Two honest numbers, measured on the equity curve **anchored at the $50,000 funding point**:
+1. **maxDD $ (absolute):** the largest peak-to-trough **dollar** drop in equity.
+2. **maxDD % of peak equity:** the largest **percentage** peak-to-trough, vs the running peak.
 
-| Config | maxDD $ (abs) | maxDD % of $50k | peak equity $ | maxDD % of peak |
-|---|---|---|---|---|
-| **SPX direct, brp 0.20** | **−$28,565** | −57.1% | $304,636 | **−9.4%** |
-| SPX direct, brp 0.32 | −$39,291 | −78.6% | $596,716 | −6.6% |
-| SPX direct, brp 0.50 | −$38,081 | −76.2% | $748,458 | −5.1% |
-| **SPY direct, brp 0.20** | **−$40,028** | −80.1% | $440,109 | **−9.1%** |
-| SPY direct, brp 0.10 | −$22,672 | −45.3% | $211,100 | −10.7% |
-| SPY direct, brp 0.35 | −$42,476 | −85.0% | $598,354 | −7.1% |
-| SPY direct, brp 0.50 | −$47,545 | −95.1% | $670,768 | −7.1% |
-| 3-name base-only, brp 0.03 | −$20,018 | −40.0% | — | — |
-| 3-name base-only, brp 0.10 | −$42,191 | −84.4% | — | — |
-| 3-name best-Sharpe (0.05/×2/1.5) | −$34,595 | −69.2% | — | — |
-| 3-name max-return (0.10/×2/0.5) | −$50,591 | −101.2% | — | — |
+These usually occur in **different years**: the biggest *percentage* hit is the **2009 GFC
+start** (the strategy sold puts into the crash, equity ≈ $50k → trough), while the biggest
+*dollar* hit comes later at higher equity (2018/2025). The earlier-quoted "−9% of peak"
+was wrong — it divided by the *terminal* peak, not the *running* peak at the drawdown.
 
-**Reading it:** in absolute dollars the worst peak-to-trough on a $50k account ranges
-**−$20k to −$51k** depending on aggressiveness. As a fraction of the $50k base that's −40%
-to −101%. But as a fraction of the *equity you actually had at the peak*, every config's
-drawdown is only **−5% to −11%** — because the strategy banks $200k–$750k of cumulative P&L
-over 17 years before the worst drawdown hits. The −101% headline is a constant-base
-accounting artifact, **not** "you lost more than your account": no single drawdown ever
-exceeded ~11% of peak equity. The honest risk statement for the recommended **SPY @ brp
-0.20** is **≈ −$40k absolute (−80% of the $50k base, −9% of peak equity).**
+| Config | maxDD $ (abs) [when] | as % of $50k base | maxDD % of peak [when] |
+|---|---|---|---|
+| **SPX direct, brp 0.20** | −$28,565 [2018-11] | −57.1% | **−49.8%** [2009-03] |
+| SPX direct, brp 0.32 | −$39,291 [2009-03] | −78.6% | **−78.6%** [2009-03] |
+| SPX direct, brp 0.50 | −$38,081 [2009-03] | −76.2% | −76.2% [2009-03] |
+| SPY direct, brp 0.10 | −$22,672 [2018-11] | −45.3% | **−18.4%** [2009-03] |
+| **SPY direct, brp 0.20** | −$40,028 [2018-11] | −80.1% | **−41.0%** [2009-03] |
+| SPY direct, brp 0.35 | −$42,476 [2025-04] | −85.0% | −49.4% [2009-02] |
+| SPY direct, brp 0.50 | −$47,545 | −95.1% | −70.6% [2009] |
+| 3-name max-return (0.10/×2/0.5) | −$50,591 | −101.2% of base | (single-name only) |
 
-### 2.9 Equity curve
+**Honest risk statement for the recommended SPY @ brp 0.20:** worst drawdown **≈ −41% of
+capital** (March-2009 GFC, $50k → ~$29.5k) in percentage terms, or **≈ −$40,000 absolute**
+(Nov-2018) in dollar terms. SPX at brp 0.32 is far worse early: **−78.6%** in March 2009.
+The **% of $50k base** column can exceed −100% (the 3-name max cell) only because the
+*dollar* drawdown is divided by the constant non-compounding base, not by peak equity — but
+the genuine peak-relative drawdowns above (−18% to −79%) are the real risk.
 
-Account equity = **$50,000 + cumulative monthly excess P&L** (dollars). Near-linear, not
-exponential, because sizing is **non-compounding** (each rung risks `base_risk_pct ×` the
-*original* $50k, not grown equity). Terminal equity over 2009 → 2026-06 (mini): **SPY brp
-0.20 ≈ $490k**, SPX brp 0.20 ≈ $355k, SPX brp 0.32 ≈ $647k.
+### 2.9 Equity curve & buy-and-hold benchmark — see the notebook
 
-![Equity curves — WINNER base case, $50k account, mini data](equity-curves-2026-06-23.svg)
+Clean matplotlib charts (equity vs buy-hold, the compounding question, underwater drawdowns,
+the frontiers) live in **`macro-capital-utilisation-findings.ipynb`** (executed, charts
+embedded). Headline numbers, 2009 → 2026-06 (mini), $50k start:
 
-ASCII fallback (recommended **SPY @ brp 0.20**, 2009 → 2026-06; the flat/down stretches are
-the drawdowns quantified in §2.8):
+| Curve | terminal equity | CAGR | maxDD % of peak |
+|---|---|---|---|
+| **Short-vol SPY 0.20 (non-compounding)** | $490,109 | 14.1% | −41.0% (2009 GFC) |
+| Buy & hold SPY (price only) | $499,912 | 14.2% | **−24.8%** (2022) |
+| Short-vol SPY 0.20 (COMPOUNDING, §below) | $100,254,353 | 55.1% | −64.0% (2018) |
 
-```
-$ 490k |                                                                       *
-$ 457k |                                                                    *** 
-$ 425k |                                                               ******   
-$ 392k |                                                            ****        
-$ 359k |                                                      ** ***            
-$ 327k |                                                   **** *               
-$ 294k |                                                ****                    
-$ 261k |                                      **    *****                       
-$ 229k |                                ***************                         
-$ 196k |                           ** ***                                       
-$ 163k |                    **********                                          
-$ 131k |               ******                                                   
-$  98k |        ********                                                        
-$  65k |  *********                                                             
-$  33k |***                                                                     
-$   0k |*                                                                       
-      +------------------------------------------------------------------------
-       2009                                                            2026
-```
+**The humbling read:** the non-compounding short-vol book ≈ buy-and-hold SPY on total return
+($490k vs $500k), and on a *fair* basis (buy-hold + ~1.8%/yr dividends vs short-vol + rf on
+~half-idle cash) buy-hold likely **wins** on raw return — while also having a **shallower**
+max drawdown (−25% vs −41%). The short-vol edge is the **smoother monthly ride** (Sharpe
+~1.56 vs ~0.7) and **capital efficiency** (~half the $50k sits free), **not** raw return or
+drawdown. Its real role is a diversifier/overlay, not a standalone return engine. (Window is
+the 2009–2026 bull market, which flatters buy-hold, and excludes 2008.)
 
-Source SVG: `docs/research/vrp/equity-curves-2026-06-23.svg` (hand-rolled, no chart library —
-matches repo convention). Reproduce: rerun the equity-curve builder against the mini.
+### 2.10 The compounding question — "increase risk as equity grows"
+
+Today every rung risks `base_risk_pct ×` the **original $50k**, forever → non-compounding →
+equity grows ~linearly and banked P&L sits in cash. If you instead size each rung off
+**current equity**, returns compound geometrically (return-on-risk is scale-invariant ⇒
+compounding = cumprod of the same monthly returns). On paper $490k → **$100M** (CAGR
+14%→55%). **This is a fantasy:** (1) **capacity** — you cannot scale SPY put-spread size to
+$100M at backtest prices; (2) **tail/ruin** — the compounding maxDD deepens to **−64% of
+peak** (Nov-2018), with the same dynamic that took XIV / Feb-2018 "Volmageddon" to zero, and
+this **excludes 2008**. Sizing *into* a short-vol book as equity grows means your biggest
+bets sit on right before the crashes that kill short vol. **Sub-linear scaling or a fixed
+dollar risk cap is the only safe middle ground** — full equity-proportional compounding is a
+ruin machine.
 
 ---
 
@@ -314,19 +307,30 @@ matches repo convention). Reproduce: rerun the equity-curve builder against the 
 2. **Tradeable on $50k two ways, both single-name S&P:** SPX direct (Sharpe 1.4–2.0, lumpy
    at ~31%/contract, ~19 entries/yr) or SPY direct (Sharpe 1.43–1.63, granular, ~27/yr, no
    silent gaps).
-3. **Do NOT dilute into a 3-name book.** Adding QQQ (1.01) and especially IWM (0.438, −128%
+3. **It does NOT beat buy-and-hold SPY (the humbling finding):** over 2009–2026 the
+   non-compounding SPY 0.20 book ($490k, 14.1% CAGR, −41% maxDD) ≈ buy-hold SPY ($500k,
+   14.2%, **−25% maxDD**) on total return — and on a fair basis (buy-hold + dividends vs
+   short-vol + rf on idle cash) buy-hold likely **wins** on raw return, with a **shallower**
+   drawdown. The edge is the smoother monthly ride (Sharpe ~1.56 vs ~0.7) + capital
+   efficiency (half the $50k free), so its real role is a **diversifier/overlay**, not a
+   standalone return engine. (Bull-market window flatters buy-hold; excludes 2008.)
+4. **Compounding is a ruin trap:** sizing off current equity turns 14%→55% CAGR on paper
+   ($490k→$100M) but deepens maxDD to −64% and is un-realisable (capacity + short-vol tail).
+   Sub-linear scaling / a fixed dollar risk cap is the only safe middle ground.
+5. **Do NOT dilute into a 3-name book.** Adding QQQ (1.01) and especially IWM (0.438, −128%
    maxDD) drags the blend to ~1.0 Sharpe. Single-name S&P wins decisively.
-4. **base_risk_pct is the only real lever** — it trades CAGR for drawdown and skip-rate.
+6. **base_risk_pct is the only real lever** — it trades CAGR for drawdown and skip-rate.
    util_mean caps ~0.7 because the ramp+ gate forces idle cash in cheap vol (the cost of the edge).
-5. **The overlay is leverage, not edge** — lifts raw return strictly in proportion to extra
+7. **The overlay is leverage, not edge** — lifts raw return strictly in proportion to extra
    risk; Sharpe flat. Only a tight gate (rich_threshold 1.5) nudges risk-adjusted return
    (3-name best Sharpe 1.18 at 0.05/×2/1.5).
-6. **Arithmetic ≫ geometric** — best 3-name cell prints 60.5% arithmetic but only 15.3%
+8. **Arithmetic ≫ geometric** — best 3-name cell prints 60.5% arithmetic but only 15.3%
    geometric CAGR. The CAGR is the deployable number; the arithmetic is a per-month-risk rate.
 
-**Recommended deployable:** **SPY @ base_risk_pct ≈ 0.20** (Sharpe 1.56, CAGR ~15%, ~0 skips,
-util 0.49, ~28 entries/yr) for granularity, or **SPX @ 0.20–0.32** if you accept the lump for
-top Sharpe. Gate stays ramp+ (idle when vol cheap — as it is right now). Drop IWM entirely.
+**Recommended deployable (if at all):** **SPY @ base_risk_pct ≈ 0.20** (Sharpe 1.56, CAGR
+~15%, ~0 skips, util 0.49, ~28 entries/yr), non-compounding or sub-linear, gate ramp+ (idle
+when vol cheap — as right now). Drop IWM. **Size it as a risk-adjusted / diversifying sleeve,
+not expecting it to beat buy-and-hold on raw return.**
 
 ---
 
@@ -358,11 +362,12 @@ top Sharpe. Gate stays ramp+ (idle when vol cheap — as it is right now). Drop 
 | `src/uw_scan/reports/vrp_macro_drawdown.py` | +SPY in INDEX_SPECS; +`_lake_spot` null-date guard |
 | `scripts/research/vrp_capital_sweep.py` | 3-name 28-config sweep runner + reconciliation |
 | `docs/research/vrp/capital-sweep-results.csv` | 3-name full trace (28 configs × 23 metrics) |
-| `docs/research/vrp/base-case-mini-sweep-2026-06-23.csv` | Mini base-case run: SPX/SPY $50k + capital-blind |
+| `docs/research/vrp/base-case-mini-sweep-2026-06-23.csv` | Mini base-case run: SPX/SPY $50k (incl. maxDD) |
+| `docs/research/vrp/equity-series-2026-06-23.csv` | Monthly equity: non-comp / compounding / buy-hold SPY |
+| `docs/research/vrp/macro-capital-utilisation-findings.ipynb` | **Findings notebook (clean matplotlib charts, executed)** |
+| `scripts/_build_vrp_capital_notebook.py` | Notebook builder (reads the CSVs above) |
 | `docs/research/vrp/macro-capital-utilisation-verdict.md` | 3-name verdict |
-| `docs/research/vrp/macro-capital-utilisation-findings.ipynb` | Findings notebook |
 | `docs/research/vrp/base-case-mini-run-summary-2026-06-23.md` | Mini run summary |
-| `docs/research/vrp/equity-curves-2026-06-23.svg` | Equity curves (SPY/SPX, hand-rolled SVG) |
 | `docs/research/vrp/MASTER-macro-short-vol-capital-utilisation-2026-06-23.md` | **This document** |
 | `tests/unit/reports/test_vrp_capital_account.py` | 19 unit tests |
 | `tests/integration/reports/test_vrp_capital_account_db.py` | 2 DB-gated tests (incl. reconciliation) |
