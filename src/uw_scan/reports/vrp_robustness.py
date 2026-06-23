@@ -11,6 +11,7 @@ No new deps — stdlib statistics + random only. Every result returns a dict the
 from __future__ import annotations
 
 import dataclasses
+import logging
 import math
 import random
 from datetime import date as _date
@@ -24,6 +25,8 @@ from uw_scan.reports.vrp_capital_account import (
 )
 from uw_scan.reports.vrp_macro_signal import MacroSignalConfig
 from uw_scan.reports.vrp_structure import build_bull_put_spread
+
+log = logging.getLogger(__name__)
 
 CONTRACT_MULTIPLIER = 100
 
@@ -77,7 +80,8 @@ def min_viable_capital(
                 short_delta=short_delta,
                 wing_delta=short_delta * wing_frac,
             )
-        except ValueError:
+        except ValueError as exc:  # degenerate strikes
+            log.debug("min-capital bull-put build skipped %s: %s", d, repr(exc))
             continue
         mlpc = st.max_loss * CONTRACT_MULTIPLIER
         if first_mlpc is None:
