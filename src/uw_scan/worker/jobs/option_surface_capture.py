@@ -80,6 +80,7 @@ def option_surface_capture(
     written = 0
     for card in cards:
         ticker = card.ticker
+        run_id = None
         try:
             run_id = repo.insert_scan_run(ticker, notes="option_surface_capture")
             rows = _build_ticker_rows(
@@ -97,6 +98,8 @@ def option_surface_capture(
         except Exception as exc:  # noqa: BLE001 — one bad ticker must not kill the job
             repo.conn.rollback()
             log.warning("option_surface_capture: %s skipped: %s", ticker, repr(exc))
+            if run_id is not None:
+                repo.finish_scan_run(run_id, status="failed")
     log.info("option_surface_capture wrote %d surface-grid rows", written)
     return written
 
@@ -135,15 +138,24 @@ def option_surface_backfill(
         date_iso = market_date.isoformat()
         with repo.conn.cursor() as cur:
             cur.execute(
-                f"SELECT 1 FROM {repo._schema}.option_surface_grid_daily WHERE market_date=%s LIMIT 1",
+                f"SELECT ticker FROM {repo._schema}.option_surface_grid_daily WHERE market_date=%s GROUP BY ticker",
                 (market_date,),
             )
-            if cur.fetchone():
-                log.info("backfill: %s already captured — skipping", date_iso)
-                continue
-        log.info("backfill: capturing %s (%d tickers)", date_iso, len(cards))
+            done = {row[0] for row in cur.fetchall()}
+        if len(done) >= len(cards):
+            log.info("backfill: %s fully captured — skipping", date_iso)
+            continue
+        log.info(
+            "backfill: capturing %s (%d/%d tickers remaining)",
+            date_iso,
+            len(cards) - len(done),
+            len(cards),
+        )
         for card in cards:
             ticker = card.ticker
+            if ticker.upper() in done:
+                continue
+            run_id = None
             try:
                 run_id = repo.insert_scan_run(ticker, notes="option_surface_backfill")
                 rows = _build_ticker_rows(
@@ -161,5 +173,7 @@ def option_surface_backfill(
             except Exception as exc:  # noqa: BLE001 — isolate per ticker
                 repo.conn.rollback()
                 log.warning("backfill: %s/%s skipped: %s", date_iso, ticker, repr(exc))
+                if run_id is not None:
+                    repo.finish_scan_run(run_id, status="failed")
     log.info("option_surface_backfill wrote %d rows total", written)
     return written
