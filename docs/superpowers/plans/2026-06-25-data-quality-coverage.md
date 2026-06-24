@@ -393,9 +393,15 @@ def main() -> int:
             logger.info("DRY RUN — would backfill %d tickers: %s", len(target), sorted(target))
             return 0
 
+        client = UwClient(
+            api_key=settings.api_key.get_secret_value(),  # UwClient takes api_key str, NOT settings
+            base_url=settings.base_url,
+            timeout=settings.request_timeout_seconds,
+            job_name="intraday_buckets_backfill",
+        )
         summary = refresh_intraday_for_top_oi_movers(
             repo=repo,
-            client=UwClient(settings),
+            client=client,
             settings=settings,
             ticker_filter=lambda t: t.strip().upper() in target,
         )
