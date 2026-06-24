@@ -406,6 +406,33 @@ def fetch_option_contracts_by_symbol(
     return normalize.normalize_option_contracts_by_symbol(body)
 
 
+def fetch_option_contracts_by_expiry(
+    client: UwClient,
+    repo: Repository,
+    run_id: int,
+    ticker: str,
+    expiry: str,
+) -> list[OptionContractRow]:
+    """Full option-contract chain for one expiry (``expiry`` = YYYY-MM-DD).
+
+    Uncapped for a single expiry (SPX ~270 rows < the 500 ticker-level cap that
+    bites the unfiltered list). Carries NBBO (nbbo_bid/nbbo_ask) + implied_volatility
+    per strike but NOT per-contract greeks — those are BS-computed downstream from
+    the marked IV. Strike + expiry parse from each row's OCC ``option_symbol``.
+    Used by the VRP macro entry-capture job for strike discovery + the UW NBBO
+    fallback (xenon/IB is the NBBO of record).
+    """
+    body = _fetch_json(
+        client,
+        repo,
+        run_id,
+        EndpointSlug.OPTION_CONTRACTS,
+        ticker,
+        params={"expiry": expiry},
+    )
+    return normalize.normalize_option_contracts(body)
+
+
 def fetch_option_contract_intraday(
     client: UwClient,
     repo: Repository,

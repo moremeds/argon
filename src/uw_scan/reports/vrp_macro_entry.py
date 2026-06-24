@@ -101,6 +101,7 @@ def quote_leg(
     settings: Any,
     xenon_client: Any = None,
     uw_row: dict[str, Any] | None = None,
+    try_xenon: bool = True,
 ) -> LegQuote:
     """Quote one resolved put leg: xenon/IB primary (true NBBO + IV + und_spot),
     UW fallback (delayed NBBO + IV), greeks ALWAYS BS-computed from the marked IV.
@@ -120,15 +121,21 @@ def quote_leg(
     api_key = key.get_secret_value() if key else None
     timeout_s = getattr(settings, "vrp_macro_entry_quote_timeout_s", 8.0)
 
-    xq = fetch_ib_option_quote(
-        base_url=settings.xenon_query_api_url,
-        api_key=api_key,
-        symbol="SPX",
-        expiry=expiry,
-        strike=float(strike),
-        right="P",
-        timeout_s=timeout_s,
-        client=xenon_client,
+    # try_xenon=False is the per-mark-budget escape: once a mark overruns its
+    # wall-clock budget, remaining legs quote UW-only (skip the slow IB snapshot).
+    xq = (
+        fetch_ib_option_quote(
+            base_url=settings.xenon_query_api_url,
+            api_key=api_key,
+            symbol="SPX",
+            expiry=expiry,
+            strike=float(strike),
+            right="P",
+            timeout_s=timeout_s,
+            client=xenon_client,
+        )
+        if try_xenon
+        else None
     )
     if xq is not None and (xq.get("bid") is not None or xq.get("ask") is not None):
         source = "xenon_ib"
