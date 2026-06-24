@@ -7,6 +7,9 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+## [0.3.2] — 2026-06-24
+
+
 ### Added
 
 - VRP macro **forward entry-capture & markout recorder**: records the real forward
@@ -49,7 +52,6 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   at 2–4× smaller drawdown — the premium harvest above cash is only ~0.5–1.4%/yr, so GOAS's
   3–6% net target requires the 20–40% leverage this defined-risk study excludes. Reproduce:
   `uv run python scripts/research/goas_putwrite_run.py`.
-
 ## [0.3.1] — 2026-06-23
 
 
