@@ -565,6 +565,20 @@ def main() -> int:
                         ticker_filter=None,
                     )
 
+    def _greek_exposure_rederive() -> None:
+        from uw_scan.worker.jobs.greek_exposure_rederive import greek_exposure_rederive
+
+        # ET-anchored (repo convention) — never host-local date.today(), which
+        # can pick the wrong month boundary / run_date on a non-ET host.
+        et_today = datetime.now(ZoneInfo(settings.rth_tz)).date()
+        with _repo(settings) as repo:
+            greek_exposure_rederive(
+                repo=repo,
+                settings=settings,
+                run_date=et_today,
+                since=et_today.replace(day=1),  # current-month forward each night
+            )
+
     def _cockpit_daily_snapshot() -> None:
         with _external_api_recorder(settings) as recorder:
             with _uw_client(
@@ -1053,6 +1067,17 @@ def main() -> int:
                 CronTrigger.from_crontab("0 9 * * 0-4", timezone=settings.rth_tz),
                 id="intraday_oi_refresh",
                 name="Intraday OI mover refresh",
+                max_instances=1,
+                coalesce=True,
+            )
+            # Single-name greek_exposure_daily re-derive — DB->DB (zero UW),
+            # single-flight on uw-0. Runs at 18:30 ET, after the 18:00 vol
+            # rollup, when the day's per-strike exposures are present (#179).
+            sched.add_job(
+                _greek_exposure_rederive,
+                CronTrigger.from_crontab("30 18 * * 0-4", timezone=settings.rth_tz),
+                id="greek_exposure_rederive",
+                name="Single-name greek_exposure_daily re-derive (#179)",
                 max_instances=1,
                 coalesce=True,
             )
