@@ -259,9 +259,9 @@ All artifacts live in [`_iterations/`](./_iterations/). Repro commands (write ba
 | What | Command |
 |---|---|
 | Param sweep (verifies the 1.65 numbers) | `uv run python scripts/_vrp_macro_param_sweep.py` |
-| $50k 3-name capital sweep → `capital-sweep-results.csv` | `uv run python scripts/research/vrp_capital_sweep.py` |
-| Iteration-4 robustness CSVs | `uv run python scripts/research/vrp_robustness_run.py` |
-| Full trade log → `iter4-trade-log.csv` | `uv run python scripts/research/vrp_trade_log.py` |
+| $50k 3-name capital sweep → `capital-sweep-results.csv` | `uv run python scripts/research/vrp/vrp_capital_sweep.py` |
+| Iteration-4 robustness CSVs | `uv run python scripts/research/vrp/vrp_robustness_run.py` |
+| Full trade log → `iter4-trade-log.csv` | `uv run python scripts/research/vrp/vrp_trade_log.py` |
 | Rebuild findings notebooks | `scripts/_build_vrp_*_notebook.py` |
 
 **Full detail:** [`_iterations/MASTER-macro-short-vol-capital-utilisation-2026-06-23.md`](./_iterations/MASTER-macro-short-vol-capital-utilisation-2026-06-23.md)
@@ -332,3 +332,98 @@ without dropping the cohort's other 3 legs.
 `api/routers/regime.py` (`/vrp-macro-signal/entry/{preview,capture}`) +
 `web/components/regime/MacroShortVolCard.tsx`. Plan:
 [`docs/superpowers/plans/2026-06-24-vrp-macro-entry-capture.md`](../../superpowers/plans/2026-06-24-vrp-macro-entry-capture.md).
+
+---
+
+## 8. Per-spread income & capital requirements (2026-06-24)
+
+> **Context.** What does 1 SPX bull put spread actually earn, and how much capital
+> do you need to run the full 6-slot book? Scripts in `scripts/research/vrp/` answer
+> this concretely. All numbers: WINNER config, 2007–2026, 631 entries, ramp+ gate,
+> 1% half-spread slippage + $0.65/leg commission (round-trip), SPX margin $17,500/spread
+> (live at SPX ~7,446, 2026-06-24).
+
+### 8.1 Exit variant — what you actually capture
+
+Three hold periods on the same entries (`vrp_side_by_side.py`):
+
+| Metric | 15 trd DTE exit | 15 cal DTE exit | **Hold to expiry** |
+|---|--:|--:|--:|
+| Hold duration | 15 trading days | 20 trading days | 30 trading days |
+| Avg entry credit | $1,645 | $1,645 | $1,645 |
+| **Avg captured at exit** | **$501** | **$634** | **$922** |
+| Capture ratio | 30.4% | 38.5% | **56%** |
+| Win rate | — | — | **87.8%** |
+| Breach rate (short hit) | — | — | 35.2% |
+| Avg monthly income (1 spread) | $1,450 | $1,836 | **$2,669** |
+| Best month | — | — | ~+$10,000 |
+| Worst month | — | — | −$51,319 |
+| Annual income (1 spread) | $17,400 | $22,000 | **$32,000** |
+
+**Key takeaway.** The 15-DTE early exit captures only 30% of credit because you're buying
+back both legs with ~15 trading days of vol still embedded. The strategy is designed to
+hold to expiry — the long wing's time-value decay is *the* P&L driver. Exiting early
+forfeits most of it.
+
+**Max concurrent slots.** Hold 30td ÷ cadence 5td = **6 slots max** (confirmed in backtest:
+all 6 were simultaneously open during 2007-05-16). With the ramp+ gate firing ~36% of
+weeks, *average* simultaneous open positions is 2–3.
+
+### 8.2 Capital ladder — what you need to deploy
+
+`scripts/research/vrp/vrp_capital_ladder.py` — hold to expiry, slippage included:
+
+| Capital | Contracts @ brp 0.20 | Monthly income | Annual income | CAGR | Sharpe |
+|--:|--:|--:|--:|--:|--:|
+| $60,000 | 0 ← **can't trade** | — | — | — | — |
+| $100,000 | 1 | ~$3,400 | ~$41k | 14.0% | 1.39 |
+| $143,000 | 1 | ~$3,600 | ~$43k | 14.0% | 1.39 |
+| **$200,000** | **2** | **~$6,800** | **~$82k** | **14.4%** | **1.42** |
+| $300,000 | 3 | ~$10,200 | ~$123k | 14.5% | 1.43 |
+| $400,000 | 4 | ~$13,600 | ~$163k | 14.6% | 1.43 |
+| $600,000 | 6 | ~$20,400 | ~$245k | 14.7% | 1.43 |
+
+Monthly income = `ann_return_gross × capital / 12`. Sharpe stabilises at ~1.43 above
+$143k (enough contracts to express the full signal). At **brp 0.32** you get 1 more
+contract per tier and ~0.4% higher CAGR at the cost of deeper drawdown (−79% GFC vs
+−50%). The **$143k floor** is the minimum to trade throughout as SPX grows; $60k can
+no longer afford even 1 contract at brp 0.20 with SPX at 7,400+.
+
+### 8.3 $1M case — slippage impact
+
+`scripts/research/vrp/vrp_1m_slippage.py` — what a $1M deployment looks like:
+
+| brp | Contracts/entry | Monthly | Annual | CAGR | Sharpe | Skip% |
+|--:|--:|--:|--:|--:|--:|--:|
+| **0.20 ★** | **11** | **$53,200** | **$639k** | **14.7%** | **1.72** | **0%** |
+| 0.32 | 18 | $67,100 | $805k | 16.0% | 1.65 | 11.2% |
+| 0.50 | 28 | $76,700 | $920k | 16.7% | 1.48 | 24.5% |
+
+**Slippage drag is flat 7.4% of gross** regardless of brp (~$47k/yr at brp 0.20).
+It does not worsen with scale because the per-leg cost is a fixed % of the mid-price.
+At brp 0.20 you can deploy all 11 contracts without skipping any entries (skip 0%).
+At brp 0.50 the ramp+ gate causes a 24.5% skip rate — the gate fires less frequently
+when the sizing is aggressive relative to buying power.
+
+Max margin at full 6-slot deployment: **6 × 11 × $17,500 = $1,155,000** — effectively
+100% deployed at peak. Size your account to survive a −50% drawdown before sizing for
+income (see §2.3).
+
+### 8.4 Reproduce commands
+
+```bash
+# All four scripts below; run on mini for freshest data
+BASE="UW_SCAN_DB_HOST=100.66.147.98 UW_SCAN_DB_NAME=option_wizard UW_SCAN_DB_USER=argon_app UW_SCAN_API_KEY=x"
+
+# Exit variant comparison (3 hold periods, capital scaling)
+eval $BASE uv run python scripts/research/vrp/vrp_side_by_side.py
+
+# Capital ladder ($60k → $600k, brp 0.20 / 0.32)
+eval $BASE uv run python scripts/research/vrp/vrp_capital_ladder.py
+
+# $1M case, slippage impact (brp 0.20 / 0.32 / 0.50)
+eval $BASE uv run python scripts/research/vrp/vrp_1m_slippage.py
+
+# Single spread, 15-DTE mid-hold exit (reference / curiosity)
+eval $BASE uv run python scripts/research/vrp/vrp_one_spread_15dte.py
+```
