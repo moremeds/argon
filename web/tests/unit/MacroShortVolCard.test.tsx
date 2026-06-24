@@ -40,13 +40,13 @@ vi.mock("@/lib/regime/useVrpMacroLive", () => ({
   }),
 }));
 
-import MacroShortVolSubTab from "@/components/regime/MacroShortVolSubTab";
+import MacroShortVolCard from "@/components/regime/MacroShortVolCard";
 
-describe("MacroShortVolSubTab", () => {
-  it("renders SKIP + the live vrp_z when weight is 0", () => {
-    render(<MacroShortVolSubTab />);
+describe("MacroShortVolCard", () => {
+  it("renders SKIP + the live vrp_z and weight when weight is 0", () => {
+    render(<MacroShortVolCard />);
     expect(screen.getByText(/SKIP/i)).toBeTruthy();
     expect(screen.getByText(/-1\.95/)).toBeTruthy();
-    expect(screen.getByText(/1\.65/)).toBeTruthy(); // backtest Sharpe headline
+    expect(screen.getByText(/weight 0\.00/)).toBeTruthy(); // sizing lever surfaced
   });
 });

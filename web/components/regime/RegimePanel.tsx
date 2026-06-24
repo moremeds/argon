@@ -6,18 +6,10 @@ import CanarySubTab from "./CanarySubTab";
 import CriSubTab from "./CriSubTab";
 import GexSubTab from "./GexSubTab";
 import GrgSubTab from "./GrgSubTab";
-import MacroShortVolSubTab from "./MacroShortVolSubTab";
 import ValidationTab from "./ValidationTab";
 import VcgSubTab from "./VcgSubTab";
 
-type RegimeTab =
-  | "cri"
-  | "vcg"
-  | "grg"
-  | "canary"
-  | "gex"
-  | "macro-short-vol"
-  | "validation";
+type RegimeTab = "cri" | "vcg" | "grg" | "canary" | "gex" | "validation";
 
 const TABS: { id: RegimeTab; label: string }[] = [
   { id: "gex", label: "Gamma Exposure" },
@@ -25,7 +17,6 @@ const TABS: { id: RegimeTab; label: string }[] = [
   { id: "vcg", label: "Volatility-Credit Gap" },
   { id: "grg", label: "Gamma Rotation Gap" },
   { id: "canary", label: "5% Canary" },
-  { id: "macro-short-vol", label: "Macro Short-Vol" },
   { id: "validation", label: "Validation" },
 ];
 
@@ -94,7 +85,6 @@ export default function RegimePanel({ initialTab }: { initialTab?: string }) {
       {activeTab === "vcg" && <VcgSubTab />}
       {activeTab === "grg" && <GrgSubTab />}
       {activeTab === "canary" && <CanarySubTab />}
-      {activeTab === "macro-short-vol" && <MacroShortVolSubTab />}
       {activeTab === "validation" && <ValidationTab />}
     </div>
   );

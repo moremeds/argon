@@ -12,7 +12,6 @@ const VALID_TABS = new Set([
   "vcg",
   "grg",
   "canary",
-  "macro-short-vol",
   "validation",
 ]);
 

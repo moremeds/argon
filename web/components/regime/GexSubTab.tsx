@@ -15,6 +15,8 @@ import { quoteIsFresh, useRegimeQuotes } from "@/lib/regime/useRegimeQuotes";
 import InfoTooltip from "./InfoTooltip";
 import GexProfileChart from "./GexProfileChart";
 import { HistoryChart } from "./HistoryChart";
+import MacroShortVolCard from "./MacroShortVolCard";
+import MacroShortVolSizingTable from "./MacroShortVolSizingTable";
 import { ExpectedRangeBar } from "./gex/ExpectedRangeBar";
 import { GexHistoryTable } from "./gex/GexHistoryTable";
 import { GexIntradayChart } from "./gex/GexIntradayChart";
@@ -509,10 +511,7 @@ export default function GexSubTab({ marketState }: GexSubTabProps) {
           />
         )}
 
-        {/* ── GEX Profile Chart ── */}
-        <GexProfileChart profile={liveProfile} spot={displaySpot} />
-
-        {/* ── Bottom Row: Expected Range + Bias ── */}
+        {/* ── Row: Expected Range + Bias + Macro Short-Vol ── */}
         <div className="gex-bottom-row">
           <ExpectedRangeBar data={data} />
           <div className="gex-bias-card">
@@ -542,7 +541,14 @@ export default function GexSubTab({ marketState }: GexSubTabProps) {
               </div>
             )}
           </div>
+          <MacroShortVolCard />
         </div>
+
+        {/* ── Macro Short-Vol sizing guidance (static 2006–2026 backtest) ── */}
+        <MacroShortVolSizingTable />
+
+        {/* ── GEX Profile Chart ── */}
+        <GexProfileChart profile={liveProfile} spot={displaySpot} />
 
         {/* ── 5-Session Intraday Chart (spot / flip / net_gex / iv30d) ── */}
         <GexIntradayChart data={intraday} ticker={data.ticker} />
