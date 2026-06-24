@@ -8,6 +8,7 @@ result, refreshed nightly by worker.volatility_jobs.nightly_vol_analytics_rollup
 
 from __future__ import annotations
 
+import logging
 import math
 from datetime import date as _date
 from datetime import timedelta
@@ -21,6 +22,8 @@ from uw_scan.reports.vrp_gate import (
 )
 from uw_scan.reports.vrp_macro_signal import WINNER, MacroSignalConfig, size_weight
 from uw_scan.reports.vrp_structure import build_bull_put_spread
+
+log = logging.getLogger(__name__)
 
 RICH_Z = 1.0  # vol "rich enough" to sell — matches reports.vrp_markout.RICH_Z
 # ponytail: flat r mirrors settings.vrp_risk_free_rate default (config.py:311);
@@ -39,7 +42,8 @@ def _finite(v: object) -> float | None:
         return None
     try:
         f = float(v)
-    except (TypeError, ValueError):
+    except (TypeError, ValueError) as exc:
+        log.debug("non-finite coercion skipped: %s", repr(exc))
         return None
     return f if math.isfinite(f) else None
 
@@ -126,7 +130,8 @@ def decide_short_vol(
             short_delta=cfg.short_delta,
             wing_delta=cfg.wing_delta,
         )
-    except ValueError:
+    except ValueError as exc:
+        log.debug("degenerate short-vol spread strikes: %s", repr(exc))
         return StockShortVol(
             action="SKIP",
             skip_reason="degenerate spread strikes",
