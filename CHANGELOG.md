@@ -7,6 +7,22 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+### Fixed
+
+- **`vrp_daily` silently froze for ~90% of the watchlist** (2026-05-22 onward).
+  UW's realized-volatility endpoint began returning `null` for the
+  `realized_volatility` column while `price` + `implied_volatility` stayed fresh;
+  the nightly `nightly_vol_analytics_rollup` fed the raw null RV into
+  `compute_vrp_series`, so `vrp = iv − rv` was `NaN` and `persist_vrp_daily`
+  wrote nothing (the same loop's RV-independent `stock_analytics_daily` kept
+  updating, masking the gap). The rollup now applies `_fill_rv_from_price` —
+  deriving RV from the fresh price column, the same convention the stock-page
+  read path already used — before computing VRP. Added
+  `scripts/backfill_vrp_daily.py` (pure DB→DB, zero UW calls, idempotent) to
+  recover the historical gap; one run restored `vrp_daily` from 9 → 104/104
+  active tickers fresh. Regression test added in
+  `tests/integration/worker/test_volatility_jobs.py`.
+
 ## [0.3.3] — 2026-06-24
 
 
