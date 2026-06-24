@@ -22,10 +22,11 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   `GET/POST /api/regime/vrp-macro-signal/entry/{preview,capture}`. The Macro Short-Vol
   regime card gains a strike/ETD preview panel (served from the persisted snapshot —
   zero IB, zero new UW) + a one-click Capture button; the "(gate at 0)" / "stand aside"
-  copy is dropped. Live-verified against prod IB (3/4 legs `source=xenon_ib`). Deploy
-  note: set `XENON_QUERY_API_URL`(`:8321`)+`XENON_QUERY_API_KEY` in the mini's argon
-  `.env` or the IB path silently no-ops to UW. Plan
-  `docs/superpowers/plans/2026-06-24-vrp-macro-entry-capture.md`.
+  copy is dropped. Live-verified against prod IB (3/4 legs `source=xenon_ib`). Also
+  fixes the stale `xenon_query_api_url` default (`:8421`, which was dead → silently
+  no-op'd the surface IV canary too) to the mini's authenticated `:8321`; deploy must
+  set `XENON_QUERY_API_KEY` in the mini's argon `.env` or the IB path falls back to UW.
+  Plan `docs/superpowers/plans/2026-06-24-vrp-macro-entry-capture.md`.
 - GOAS put-write delta sweep (research): a self-contained study finding the short-put
   **delta + tenor sweet spot** for the Goldman Options Advisory Strategy (systematic
   always-on OTM index put-writing). Three new `reports/` modules —

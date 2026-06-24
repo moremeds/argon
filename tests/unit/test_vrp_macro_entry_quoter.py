@@ -18,7 +18,7 @@ def settings():
     # quote_leg only reads the xenon url/key + the (Task 6) timeout; a config
     # stub is sufficient for a pure unit test (the fetcher itself is monkeypatched).
     return SimpleNamespace(
-        xenon_query_api_url="http://127.0.0.1:8421",
+        xenon_query_api_url="http://127.0.0.1:8321",
         xenon_query_api_key=None,
         vrp_macro_entry_quote_timeout_s=8.0,
     )

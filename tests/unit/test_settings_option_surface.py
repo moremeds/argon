@@ -17,5 +17,7 @@ def test_settings_reads_option_surface_flags(monkeypatch, tmp_path):
     assert s.option_surface_capture_enabled is False
     assert s.option_surface_iv_canary_enabled is True  # default
     assert s.option_surface_iv_canary_warn_threshold == 0.05
-    assert s.xenon_query_api_url == "http://127.0.0.1:8421"  # default
+    assert (
+        s.xenon_query_api_url == "http://127.0.0.1:8321"
+    )  # default (mini's authn'd localhost)
     assert s.xenon_query_api_key is None  # unset -> None

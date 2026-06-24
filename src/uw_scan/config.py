@@ -294,7 +294,11 @@ class Settings(BaseModel):
     option_surface_capture_enabled: bool = True
     option_surface_iv_canary_enabled: bool = True
     option_surface_iv_canary_warn_threshold: float = 0.02
-    xenon_query_api_url: str = "http://127.0.0.1:8421"
+    # xenon read-only query API (IB option greeks via GET /options/greeks).
+    # Default = the mini's authenticated localhost port (verified listening 2026-06-24;
+    # the old :8421 was dead → the surface canary silently no-op'd). Key REQUIRED even
+    # on localhost. MacBook dev points over Tailscale: http://100.66.147.98:8321.
+    xenon_query_api_url: str = "http://127.0.0.1:8321"
     xenon_query_api_key: SecretStr | None = None
 
     # --- VRP tradable iron-condor + backtest (plan 2026-06-22) ----------------
@@ -688,7 +692,7 @@ class Settings(BaseModel):
                 os.environ.get("OPTION_SURFACE_IV_CANARY_WARN_THRESHOLD", "0.02")
             ),
             xenon_query_api_url=os.environ.get(
-                "XENON_QUERY_API_URL", "http://127.0.0.1:8421"
+                "XENON_QUERY_API_URL", "http://127.0.0.1:8321"
             ),
             xenon_query_api_key=(
                 SecretStr(v)

@@ -316,10 +316,10 @@ with _repo(s) as repo:
 # audit which feed actually quoted each leg:
 #   SELECT source, greeks_source, count(*) FROM uw_scan.vrp_macro_entry_quote GROUP BY 1,2;
 ```
-The IB-primary path needs `XENON_QUERY_API_URL` (the mini's `http://127.0.0.1:8321`)
-+ `XENON_QUERY_API_KEY` in the **worker** env — without them every leg silently
-falls back to `source='uw'` (the never-raise quoter swallows the 401/transport
-error). The config default (`127.0.0.1:8421`) is stale; the deploy must override it.
+The IB-primary path needs `XENON_QUERY_API_KEY` in the **worker** env (the URL now
+defaults to the mini's authenticated `http://127.0.0.1:8321`) — without the key every
+leg silently falls back to `source='uw'` (the never-raise quoter swallows the 401).
+Set the key once in the mini's argon `.env` (same value as xenon's `/opt/xenon/.env`).
 
 **Live-verified 2026-06-24** (real prod IB, real `vrp_macro_entry_snapshot_once`):
 SPX 2026-08-07, 3/4 legs `source=xenon_ib` — 0.25Δ short K7100 @ 75.6/76.8 (BS
