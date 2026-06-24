@@ -53,6 +53,10 @@ def refresh_intraday_for_top_oi_movers(
     tickers_seen = 0
     contracts_done = 0
     buckets_written = 0
+    skipped_no_run = 0
+    skipped_no_movers = 0
+    contracts_empty = 0
+    contracts_error = 0
 
     try:
         cards = repo.list_watchlist_cards()
@@ -74,11 +78,13 @@ def refresh_intraday_for_top_oi_movers(
                 continue
             if not latest_run:
                 logger.debug("intraday_refresh: %s has no completed run yet", ticker)
+                skipped_no_run += 1
                 continue
 
             top_rows = repo.fetch_oi_change_top(latest_run, limit=top_n)
             if not top_rows:
                 logger.debug("intraday_refresh: %s no OI movers in latest run", ticker)
+                skipped_no_movers += 1
                 continue
 
             run_id = repo.insert_scan_run(ticker, notes="intraday_refresh")
@@ -99,6 +105,8 @@ def refresh_intraday_for_top_oi_movers(
                     n = intraday_repo.upsert_buckets(option_symbol, trade_date, buckets)
                     contracts_done += 1
                     buckets_written += n
+                    if n == 0:
+                        contracts_empty += 1
                     logger.info(
                         "intraday_refresh: %s %s %s buckets=%d",
                         ticker,
@@ -111,6 +119,7 @@ def refresh_intraday_for_top_oi_movers(
                 repo.conn.commit()
             except Exception as exc:
                 repo.conn.rollback()
+                contracts_error += 1
                 logger.exception("intraday_refresh: %s failed: %s", ticker, repr(exc))
     finally:
         repo.release_advisory_lock(lock_key)
@@ -119,11 +128,20 @@ def refresh_intraday_for_top_oi_movers(
         "tickers": tickers_seen,
         "contracts": contracts_done,
         "buckets": buckets_written,
+        "skipped_no_run": skipped_no_run,
+        "skipped_no_movers": skipped_no_movers,
+        "contracts_empty": contracts_empty,
+        "contracts_error": contracts_error,
     }
     logger.info(
-        "intraday_refresh complete tickers=%d contracts=%d buckets=%d",
+        "intraday_refresh complete tickers=%d contracts=%d buckets=%d "
+        "skipped_no_run=%d skipped_no_movers=%d contracts_empty=%d contracts_error=%d",
         summary["tickers"],
         summary["contracts"],
         summary["buckets"],
+        summary["skipped_no_run"],
+        summary["skipped_no_movers"],
+        summary["contracts_empty"],
+        summary["contracts_error"],
     )
     return summary

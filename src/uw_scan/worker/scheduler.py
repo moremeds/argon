@@ -551,11 +551,18 @@ def main() -> int:
                 job_name="intraday_oi_refresh",
             ) as uw:
                 with _repo(settings) as repo:
+                    # This job is registered ONLY on the primary worker (see the
+                    # _is_primary_worker guard at its add_job). A primary-only
+                    # singleton must NOT shard-filter: ticker_filter would drop
+                    # every ticker outside shard 0, so half the watchlist
+                    # (TSLA/NVDA/MSFT/GOOGL/META/AVGO ...) would be fetched by
+                    # nobody. Single-flight is already enforced by the advisory
+                    # lock inside the job — issue #180.
                     refresh_intraday_for_top_oi_movers(
                         repo=repo,
                         client=uw,
                         settings=settings,
-                        ticker_filter=ticker_filter,
+                        ticker_filter=None,
                     )
 
     def _cockpit_daily_snapshot() -> None:
