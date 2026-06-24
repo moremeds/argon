@@ -273,3 +273,62 @@ motivated the macro pivot).
 
 **Engine code (not in this folder):** `src/uw_scan/reports/vrp_macro_signal.py` (`WINNER`,
 `current_macro_signal`), `vrp_macro_drawdown.py`, `vrp_capital_account.py`.
+
+## 7. Forward entry-capture markout dataset (live, since 2026-06-24)
+
+Sections 1–6 tell you *whether* to sell vol. This dataset records *what the fill
+actually was* and *how it marks out* to expiry — the real forward NBBO + greeks of
+the SPX bull-put-spread the signal would place, tracked daily. It is the durable
+research artifact (standing rule); query it directly via SQL/notebook.
+
+**Tables** (migration `085`):
+- `vrp_macro_entry` — one cohort header per born entry (the 4 put contracts
+  bracketing the 0.25Δ short / 0.125Δ wing at the ~43-cal-DTE expiry). `origin` is
+  `auto` (one/day, idempotent per `(name, birth_date)` via a partial unique index)
+  or `button` (on-demand one-shot from the regime card; never re-snapshotted).
+- `vrp_macro_entry_quote` — the time series: every open `auto` cohort's 4 legs
+  snapshotted at **8 marks/day** (10:00–15:00 ET hourly + 15:55 EOD + 16:10
+  post-close), tapering to EOD-only after `vrp_macro_entry_taper_calendar_days`
+  (30) held, until expiry. PK `(entry_id, as_of, leg)`.
+
+**Provenance columns — filter on these:**
+- `source` ∈ `{xenon_ib, uw}` — where the **NBBO + marked IV + underlying spot**
+  came from. xenon/IB is primary (true NBBO + IV via xenon's `/options/greeks`);
+  UW is the delayed fallback (`/option-contracts?expiry=` — NBBO + IV, no greeks).
+- `greeks_source` ∈ `{bs, none}` — greeks are **always BS-computed** from the
+  marked IV (one-model consistency: IB theta is per-*day*, BS per-*year* — storing
+  source greeks would corrupt the markout series). `bs` = a real IV was present;
+  `none` = IV absent → greeks are degenerate `0.0` (filter these out). The
+  `delta/gamma/vega/theta` columns are always BS, never the source's native greeks.
+- `source_asof` — the provider's own timestamp (UW delay); null on the IB path.
+
+**Reproduce** (one real mark via the real worker path — the scheduler fires this
+8×/day on massive-0, gated by `vrp_macro_entry_capture_enabled`):
+```bash
+uv run --frozen python -c "
+from uw_scan.config import Settings
+from uw_scan.worker.scheduler import _repo
+from uw_scan.worker.jobs.vrp_macro_entry import vrp_macro_entry_snapshot_once
+s = Settings.from_env()
+with _repo(s) as repo:
+    print(vrp_macro_entry_snapshot_once(repo, s, session='rth', birth=True))
+"
+# audit which feed actually quoted each leg:
+#   SELECT source, greeks_source, count(*) FROM uw_scan.vrp_macro_entry_quote GROUP BY 1,2;
+```
+The IB-primary path needs `XENON_QUERY_API_URL` (the mini's `http://127.0.0.1:8321`)
++ `XENON_QUERY_API_KEY` in the **worker** env — without them every leg silently
+falls back to `source='uw'` (the never-raise quoter swallows the 401/transport
+error). The config default (`127.0.0.1:8421`) is stale; the deploy must override it.
+
+**Live-verified 2026-06-24** (real prod IB, real `vrp_macro_entry_snapshot_once`):
+SPX 2026-08-07, 3/4 legs `source=xenon_ib` — 0.25Δ short K7100 @ 75.6/76.8 (BS
+δ −0.247), 0.125Δ wing K6800 @ 39.1/40.1 (BS δ −0.129, IV 0.230 vs short 0.196 =
+visible put skew); the deep K6775 wing (unlisted) fell back to `uw`/`none` cleanly
+without dropping the cohort's other 3 legs.
+
+**Code:** `reports/vrp_macro_entry.py` (`resolve_entry_contracts`, `quote_leg`) +
+`worker/jobs/vrp_macro_entry.py` + `storage/vrp_macro_entry.py` +
+`api/routers/regime.py` (`/vrp-macro-signal/entry/{preview,capture}`) +
+`web/components/regime/MacroShortVolCard.tsx`. Plan:
+[`docs/superpowers/plans/2026-06-24-vrp-macro-entry-capture.md`](../../superpowers/plans/2026-06-24-vrp-macro-entry-capture.md).
