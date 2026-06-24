@@ -15,6 +15,7 @@ def test_settings_reads_option_surface_flags(monkeypatch, tmp_path):
     s = Settings.from_env(env_path=env)
 
     assert s.option_surface_capture_enabled is False
+    assert s.option_surface_backfill_days == 4  # default
     assert s.option_surface_iv_canary_enabled is True  # default
     assert s.option_surface_iv_canary_warn_threshold == 0.05
     assert (

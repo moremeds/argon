@@ -578,7 +578,12 @@ def main() -> int:
                 settings, telemetry_recorder=recorder, job_name="option_surface_capture"
             ) as uw:
                 with _repo(settings) as repo:
-                    option_surface_capture(repo=repo, client=uw, today=market_date)
+                    option_surface_capture(
+                        repo=repo,
+                        client=uw,
+                        today=market_date,
+                        backfill_days=settings.option_surface_backfill_days,
+                    )
 
     def _option_surface_iv_canary() -> None:
         if not settings.option_surface_iv_canary_enabled:

@@ -1,9 +1,10 @@
 """One-time backfill for option_surface_grid_daily.
 
 Fills per-strike IV/greeks for recent weekdays not yet captured.
-UW returns 403 beyond ~30 trading days so run this promptly after first deploy.
+UW historical data is available for ~180 calendar days. Use --days-back 130
+to capture the full window from today.
 
-Run: uv run python scripts/option_surface_backfill.py [--days-back 30]
+Run: uv run python scripts/option_surface_backfill.py [--days-back 130] [--quota-limit 20000]
 """
 
 from __future__ import annotations
@@ -29,8 +30,8 @@ def main() -> None:
     p.add_argument(
         "--days-back",
         type=int,
-        default=30,
-        help="trading days to look back (default 30)",
+        default=130,
+        help="trading days to look back (default 130, ~180 calendar days)",
     )
     p.add_argument(
         "--end-date",

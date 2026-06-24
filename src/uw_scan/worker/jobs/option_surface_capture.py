@@ -2,10 +2,9 @@
 """Full-chain option-surface capture (nightly) and one-time historical backfill.
 
 Forward-accumulates a durable per-strike IV/greeks grid for every watchlist ticker into
-option_surface_grid_daily. UW returns 403 for per-strike history beyond ~30 days, so this
-nightly capture is the only way the surface ever exists for future SVI/dislocation/
-curvature work — every uncaptured night is permanently lost. Full chain: ALL expiries,
-ALL strikes, no clip.
+option_surface_grid_daily. UW historical data is available for ~180 calendar days; after
+that the only record is what was captured nightly — every uncaptured night is permanently
+lost. Full chain: ALL expiries, ALL strikes, no clip.
 
 One UW /greeks call per (ticker, expiry). Idempotent upsert (never delete) so a partial
 re-run only adds. Per-ticker failure is isolated.
@@ -67,12 +66,19 @@ def _build_ticker_rows(
 
 
 def option_surface_capture(
-    *, repo: Repository, client: UwClient, today: _date | None = None
+    *,
+    repo: Repository,
+    client: UwClient,
+    today: _date | None = None,
+    backfill_days: int = 0,
 ) -> int:
     """Capture the full option-chain IV/greeks grid for every watchlist ticker.
 
     Returns total rows written. ``today`` is the ET market date (the scheduler passes
     ``datetime.now(rth_tz).date()`` so a non-ET host does not stamp the next day).
+    If backfill_days > 0, after today's capture the job fills that many additional
+    oldest-uncaptured trading days (up to ~180 calendar days back), skipping any date
+    already fully in the DB. Set via OPTION_SURFACE_BACKFILL_DAYS env var (default 4).
     """
     cards = repo.list_watchlist_cards()
     if today is None:
@@ -101,6 +107,13 @@ def option_surface_capture(
             if run_id is not None:
                 repo.finish_scan_run(run_id, status="failed")
     log.info("option_surface_capture wrote %d surface-grid rows", written)
+    if backfill_days > 0:
+        written += option_surface_backfill(
+            repo=repo,
+            client=client,
+            days_back=130,  # ~180 calendar days
+            max_dates=backfill_days,
+        )
     return written
 
 
@@ -108,17 +121,18 @@ def option_surface_backfill(
     *,
     repo: Repository,
     client: UwClient,
-    days_back: int = 30,
+    days_back: int = 130,
     end_date: _date | None = None,
     quota_limit: int | None = None,
+    max_dates: int | None = None,
 ) -> int:
     """Fill option_surface_grid_daily for recent past weekdays not yet captured.
 
-    Skips any market_date that already has rows in the table (idempotent).
-    end_date (inclusive) caps which dates are processed — useful to avoid burning
-    the full daily UW quota when planning a follow-up run.
+    Skips any market_date already fully captured (idempotent, per-ticker).
+    end_date (inclusive) caps which dates are processed.
     quota_limit stops after the UW daily request counter reaches that value.
-    UW 403s beyond ~30 trading days; individual ticker/expiry 403s are logged and skipped.
+    max_dates stops after N dates that needed work (already-complete dates don't count).
+    UW historical data is available for ~180 calendar days (~130 trading days).
     Returns total rows written.
     """
     today = _date.today()
@@ -136,6 +150,7 @@ def option_surface_backfill(
         dates = [d for d in dates if d <= end_date]
 
     written = 0
+    dates_filled = 0
     for market_date in dates:
         date_iso = market_date.isoformat()
         with repo.conn.cursor() as cur:
@@ -147,6 +162,10 @@ def option_surface_backfill(
         if len(done) >= len(cards):
             log.info("backfill: %s fully captured — skipping", date_iso)
             continue
+        if max_dates is not None and dates_filled >= max_dates:
+            log.info("backfill: max_dates=%d reached — stopping", max_dates)
+            return written
+        dates_filled += 1
         log.info(
             "backfill: capturing %s (%d/%d tickers remaining)",
             date_iso,
