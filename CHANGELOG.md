@@ -7,6 +7,9 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+## [0.3.4] — 2026-06-25
+
+
 ### Fixed
 
 - **`vrp_daily` silently froze for ~90% of the watchlist** (2026-05-22 onward).
@@ -22,7 +25,6 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   recover the historical gap; one run restored `vrp_daily` from 9 → 104/104
   active tickers fresh. Regression test added in
   `tests/integration/worker/test_volatility_jobs.py`.
-
 ## [0.3.3] — 2026-06-24
 
 
