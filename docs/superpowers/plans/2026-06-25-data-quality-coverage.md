@@ -623,8 +623,10 @@ Append to `src/uw_scan/storage/greek_exposure_repository.py` (inside the class).
                  WHERE r.status = 'ok'
                    AND r.aggregates IS NOT NULL
                    AND r.aggregates::text NOT IN ('{}', 'null')
-                   AND (%(ticker)s IS NULL OR e.ticker = %(ticker)s)
-                   AND (%(since)s IS NULL OR e.market_date >= %(since)s)
+                   -- ::text/::date casts required: Postgres can't infer a
+                   -- nullable param's type inside `IS NULL` (AmbiguousParameter)
+                   AND (%(ticker)s::text IS NULL OR e.ticker = %(ticker)s::text)
+                   AND (%(since)s::date IS NULL OR e.market_date >= %(since)s::date)
                  GROUP BY e.ticker, e.market_date
             )
             SELECT e.ticker,
