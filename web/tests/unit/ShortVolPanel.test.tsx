@@ -18,6 +18,7 @@ const tradeSv = {
   basis: "eod",
   action: "TRADE",
   skip_reason: null,
+  spot: "382.35",
   iv: "0.473",
   rv20: "0.40",
   vrp: "0.073",
@@ -57,6 +58,8 @@ describe("ShortVolPanel", () => {
     expect(screen.getByText("EOD · 2026-06-24")).toBeTruthy();
     // [8] the structurally-pinned weight tile is gone
     expect(screen.queryByText(/weight/i)).toBeNull();
+    // [3] modeled EOD spot basis is shown so strikes aren't read vs the live header
+    expect(screen.getByText(/spot 382\.35/)).toBeTruthy();
   });
 
   it("renders SKIP with the reason and IV/RV", () => {

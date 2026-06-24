@@ -25,7 +25,9 @@ export async function MarketStructureTab({ report }: { report: Report }) {
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: "1fr 1fr 1fr",
+          // Three-up on normal/wide; wraps to 2 then 1 on narrow viewports instead
+          // of squeezing the range bar / directional-bias content below legibility.
+          gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
           gap: 12,
         }}
       >

@@ -27,6 +27,7 @@ def test_trade_when_rich_sellable_and_earnings_clear():
     )
     assert sig.action == "TRADE"
     assert sig.skip_reason is None
+    assert sig.spot == Decimal(str(SPOT))  # modeled basis surfaced on the card
     assert sig.short_put is not None and sig.short_put < Decimal(str(SPOT))
     assert sig.long_put is not None and sig.long_put < sig.short_put
     assert sig.credit is not None and sig.credit > 0
@@ -82,7 +83,24 @@ def test_skip_when_earnings_unknown():
         next_earnings_date=None,
     )
     assert sig.action == "SKIP"
-    assert sig.skip_reason == "earnings date unavailable"
+    assert sig.skip_reason == "next earnings date unknown"
+
+
+def test_skip_when_earnings_date_is_stale():
+    # a stored next-earnings date in the past is stale, not "inside the window" —
+    # the next print already happened and the real next one is unknown.
+    sig = decide_short_vol(
+        as_of=AS_OF,
+        spot=SPOT,
+        iv=IV,
+        rv=RV,
+        vrp=0.073,
+        vrp_z_20=1.6,
+        gate_ok=True,
+        next_earnings_date=date(2026, 5, 1),  # before AS_OF
+    )
+    assert sig.action == "SKIP"
+    assert sig.skip_reason == "next earnings date stale"
 
 
 def test_macro_class_trades_without_earnings():

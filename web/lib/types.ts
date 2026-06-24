@@ -5686,6 +5686,8 @@ export interface components {
             action: string;
             /** Skip Reason */
             skip_reason?: string | null;
+            /** Spot */
+            spot?: string | null;
             /** Iv */
             iv?: string | null;
             /** Rv20 */

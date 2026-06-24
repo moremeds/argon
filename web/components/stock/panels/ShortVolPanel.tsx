@@ -1,5 +1,5 @@
 import type { components } from "@/lib/types";
-import { toNum } from "@/lib/formatters";
+import { fmtDecimal, fmtPct, toNum } from "@/lib/formatters";
 
 type Report = components["schemas"]["SingleStockReport"];
 
@@ -18,10 +18,6 @@ const labelStyle: React.CSSProperties = {
   textTransform: "uppercase",
   color: "var(--text-muted)",
 };
-
-const pct = (x: number | null) =>
-  x == null ? "—" : `${(x * 100).toFixed(1)}%`;
-const f = (x: number | null, d = 2) => (x == null ? "—" : x.toFixed(d));
 
 export function ShortVolPanel({ report }: { report: Report }) {
   const s = report.short_vol;
@@ -62,13 +58,13 @@ export function ShortVolPanel({ report }: { report: Report }) {
   // no information — vrp_z is the real richness signal.
   const reasons = trade
     ? [
-        `vrp_z ${f(toNum(s.vrp_z))}`,
-        `Sell ${f(toNum(s.short_put), 0)} / buy ${f(toNum(s.long_put), 0)} put`,
-        `Credit ${f(toNum(s.credit))} · max loss ${f(toNum(s.max_loss))} per spread`,
+        `vrp_z ${fmtDecimal(toNum(s.vrp_z), 2)}`,
+        `Sell ${fmtDecimal(toNum(s.short_put), 0)} / buy ${fmtDecimal(toNum(s.long_put), 0)} put`,
+        `Credit ${fmtDecimal(toNum(s.credit), 2)} · max loss ${fmtDecimal(toNum(s.max_loss), 2)} per spread`,
       ]
     : [
-        `vrp_z ${f(toNum(s.vrp_z))}`,
-        `IV ${pct(toNum(s.iv))} / RV20 ${pct(toNum(s.rv20))}`,
+        `vrp_z ${fmtDecimal(toNum(s.vrp_z), 2)}`,
+        `IV ${fmtPct(toNum(s.iv), 1)} / RV20 ${fmtPct(toNum(s.rv20), 1)}`,
       ];
 
   return (
@@ -109,6 +105,7 @@ export function ShortVolPanel({ report }: { report: Report }) {
       >
         Bull put spread {toNum(s.short_delta)}Δ/{toNum(s.wing_delta)}Δ · ~
         {s.hold_days}d hold
+        {toNum(s.spot) != null ? ` · spot ${fmtDecimal(toNum(s.spot), 2)}` : ""}
       </div>
     </div>
   );

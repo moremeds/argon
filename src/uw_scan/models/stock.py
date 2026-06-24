@@ -71,6 +71,7 @@ class StockShortVol(_UwBase):
     basis: str = "eod"
     action: str  # "TRADE" | "SKIP"
     skip_reason: str | None = None
+    spot: Decimal | None = None  # EOD-close basis the strikes are modeled off
     iv: Decimal | None = None
     rv20: Decimal | None = None
     vrp: Decimal | None = None

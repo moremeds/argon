@@ -15,17 +15,14 @@ from datetime import timedelta
 from decimal import Decimal
 
 from uw_scan.models import StockShortVol
-from uw_scan.reports.vrp_gate import (
-    evaluate_gate,
-    sellable_asset_classes,
-    sellable_single_name_sectors,
-)
+from uw_scan.reports.vrp_gate import evaluate_gate
 from uw_scan.reports.vrp_macro_signal import WINNER, MacroSignalConfig, size_weight
+from uw_scan.reports.vrp_markout import RICH_Z  # single source for the richness cutoff
 from uw_scan.reports.vrp_structure import build_bull_put_spread
 
 log = logging.getLogger(__name__)
 
-RICH_Z = 1.0  # vol "rich enough" to sell — matches reports.vrp_markout.RICH_Z
+# RICH_Z (vol "rich enough" to sell) is imported from vrp_markout — one threshold.
 # ponytail: flat r mirrors settings.vrp_risk_free_rate default (config.py:311);
 # tiny effect at short DTE. Thread settings here only if r ever needs to be non-default.
 RISK_FREE_RATE = 0.04
@@ -92,6 +89,7 @@ def decide_short_vol(
 
     common = dict(
         as_of=as_of,
+        spot=_dec(spot),
         iv=_dec(iv),
         rv20=_dec(rv),
         vrp=_dec(vrp),
@@ -104,7 +102,6 @@ def decide_short_vol(
     usable = iv is not None and iv > 0 and spot is not None and spot > 0
     rich = z is not None and z >= RICH_Z
     window_end = as_of + timedelta(days=HOLD_CAL_DAYS)
-    earnings_clear = next_earnings_date is not None and next_earnings_date > window_end
 
     if not usable:
         reason: str | None = "no usable IV/spot"
@@ -114,11 +111,15 @@ def decide_short_vol(
         reason = f"vol not rich (vrp_z {z:.2f} < {RICH_Z:.1f})"
     elif not gate_ok:
         # gate_skip_reason distinguishes "sector not sellable" from "no earnings
-        # calendar" — both collapse passes_gate to None, but the user needs the real one.
+        # calendar" — both collapse the gate to None, but the user needs the real one.
         reason = gate_skip_reason or "sector vol not sellable"
     elif require_earnings and next_earnings_date is None:
-        reason = "earnings date unavailable"
-    elif require_earnings and not earnings_clear:
+        reason = "next earnings date unknown"
+    elif require_earnings and next_earnings_date < as_of:
+        # A past date is stale (the print already happened, the next is unknown) — not
+        # "inside the window". Surface that honestly rather than mislabeling it.
+        reason = "next earnings date stale"
+    elif require_earnings and next_earnings_date <= window_end:
         reason = "earnings inside hold window"
     else:
         reason = None
@@ -180,12 +181,9 @@ def build_short_vol(repo, ticker: str, spot: float | None) -> StockShortVol | No
         return None
     # series is market_date DESC → the first usable row is the most recent one.
     row = next((r for r in series if _usable_iv(r)), series[0])
-    gate, gate_skip_reason = evaluate_gate(
-        repo,
-        ticker,
-        sellable_sectors=sellable_single_name_sectors(repo),
-        sellable_classes=sellable_asset_classes(repo, hold_days=WINNER.hold_days),
-    )
+    # evaluate_gate computes only the sellable table this ticker's asset class needs
+    # (single_name → by_sector; macro → multihorizon), not both — one scan per page.
+    gate, gate_skip_reason = evaluate_gate(repo, ticker, hold_days=WINNER.hold_days)
     # Only single names carry the earnings landmine; indices/ETFs don't report
     # (vrp_gate makes the same split).
     require_earnings = gate is not None and gate.asset_class == "single_name"
