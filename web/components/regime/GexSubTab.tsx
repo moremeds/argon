@@ -15,6 +15,8 @@ import { quoteIsFresh, useRegimeQuotes } from "@/lib/regime/useRegimeQuotes";
 import InfoTooltip from "./InfoTooltip";
 import GexProfileChart from "./GexProfileChart";
 import { HistoryChart } from "./HistoryChart";
+import MacroShortVolCard from "./MacroShortVolCard";
+import MacroShortVolEntryGuidance from "./MacroShortVolEntryGuidance";
 import { ExpectedRangeBar } from "./gex/ExpectedRangeBar";
 import { GexHistoryTable } from "./gex/GexHistoryTable";
 import { GexIntradayChart } from "./gex/GexIntradayChart";
@@ -509,11 +511,11 @@ export default function GexSubTab({ marketState }: GexSubTabProps) {
           />
         )}
 
-        {/* ── GEX Profile Chart ── */}
-        <GexProfileChart profile={liveProfile} spot={displaySpot} />
-
-        {/* ── Bottom Row: Expected Range + Bias ── */}
-        <div className="gex-bottom-row">
+        {/* ── Row: Expected Range (wider) + Bias + Macro Short-Vol action ── */}
+        <div
+          className="gex-bottom-row"
+          style={{ gridTemplateColumns: "1.6fr 1fr 1fr" }}
+        >
           <ExpectedRangeBar data={data} />
           <div className="gex-bias-card">
             <div className="gex-bias-title">DIRECTIONAL BIAS</div>
@@ -542,7 +544,14 @@ export default function GexSubTab({ marketState }: GexSubTabProps) {
               </div>
             )}
           </div>
+          <MacroShortVolCard />
         </div>
+
+        {/* ── Macro Short-Vol: tracked entry (smaller) + guidance (larger) ── */}
+        <MacroShortVolEntryGuidance />
+
+        {/* ── GEX Profile Chart ── */}
+        <GexProfileChart profile={liveProfile} spot={displaySpot} />
 
         {/* ── 5-Session Intraday Chart (spot / flip / net_gex / iv30d) ── */}
         <GexIntradayChart data={intraday} ticker={data.ticker} />

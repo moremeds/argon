@@ -11,8 +11,10 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime
+from zoneinfo import ZoneInfo
 
 from uw_scan.config import Settings
+from uw_scan.reports.vrp_macro_signal import WINNER, current_macro_signal_live
 from uw_scan.scanners import cri as cri_scanner
 from uw_scan.scanners import vcg as vcg_scanner
 from uw_scan.scanners.live_quotes import load_live_quotes
@@ -56,11 +58,62 @@ def regime_live_scan_once(
         logger.warning("regime_live_vcg_failed err=%s", repr(exc))
         repo.conn.rollback()
 
+    # VRP macro short-vol live (SPX only — VIX + SPX are the macro inputs in
+    # regime_ws_symbols). Isolated: a vol-data gap here never blocks cri/vcg.
+    # upsert_vrp_macro_signal does not self-commit, so commit the leg explicitly.
+    vrp_status = "skipped"
+    spx_q = quotes.get("SPX")
+    vix_q = quotes.get("VIX")
+    if spx_q is not None and vix_q is not None:
+        try:
+            sig = current_macro_signal_live(
+                repo,
+                settings,
+                "SPX",
+                WINNER,
+                live_spot=float(spx_q.price),
+                live_iv=float(vix_q.price) / 100.0,
+            )
+            repo.upsert_vrp_macro_signal(
+                name="SPX",
+                snapshot_date=datetime.now(ZoneInfo(settings.rth_tz)).date(),
+                as_of=sig.as_of,
+                spot=sig.spot,
+                iv=sig.iv,
+                rv20=sig.rv20,
+                vrp=sig.vrp,
+                vrp_z=sig.vrp_z,
+                weight=sig.weight,
+                action=sig.action,
+                short_put=sig.short_put,
+                long_put=sig.long_put,
+                put_width=sig.put_width,
+                credit=sig.credit,
+                max_loss=sig.max_loss,
+                hold_days=sig.hold_days,
+                short_delta=sig.short_delta,
+                wing_delta=sig.wing_delta,
+                bt_n=None,
+                bt_sharpe=None,
+                bt_maxdd=None,
+                bt_annror=None,
+                bt_calmar=None,
+                config=None,
+                basis="live",
+            )
+            repo.conn.commit()
+            vrp_status = "ok"
+        except Exception as exc:  # noqa: BLE001 — per-leg isolation
+            repo.conn.rollback()
+            logger.warning("regime_live_vrp_failed err=%s", repr(exc))
+            vrp_status = "failed"
+
     return {
         "status": "ok",
         "live_symbols": sorted(quotes),
         "cri": cri_payload is not None,
         "vcg": vcg_payload is not None,
+        "vrp": vrp_status,
     }
 
 

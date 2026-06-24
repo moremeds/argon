@@ -19239,6 +19239,314 @@
         "title": "VrpHarvestVerdict",
         "type": "object"
       },
+      "VrpMacroEntryCaptureResponse": {
+        "properties": {
+          "entry_id": {
+            "title": "Entry Id",
+            "type": "integer"
+          },
+          "preview": {
+            "$ref": "#/components/schemas/VrpMacroEntryPreview"
+          }
+        },
+        "required": [
+          "entry_id",
+          "preview"
+        ],
+        "title": "VrpMacroEntryCaptureResponse",
+        "type": "object"
+      },
+      "VrpMacroEntryLeg": {
+        "properties": {
+          "delta": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Delta"
+          },
+          "gamma": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Gamma"
+          },
+          "greeks_source": {
+            "enum": [
+              "bs",
+              "none"
+            ],
+            "title": "Greeks Source",
+            "type": "string"
+          },
+          "iv": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Iv"
+          },
+          "leg": {
+            "enum": [
+              "short_above",
+              "short_below",
+              "wing_above",
+              "wing_below"
+            ],
+            "title": "Leg",
+            "type": "string"
+          },
+          "nbbo_ask": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Nbbo Ask"
+          },
+          "nbbo_bid": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Nbbo Bid"
+          },
+          "source": {
+            "enum": [
+              "xenon_ib",
+              "uw",
+              "modeled"
+            ],
+            "title": "Source",
+            "type": "string"
+          },
+          "strike": {
+            "title": "Strike",
+            "type": "number"
+          },
+          "theta": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Theta"
+          },
+          "und_spot": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Und Spot"
+          },
+          "vega": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vega"
+          }
+        },
+        "required": [
+          "leg",
+          "strike",
+          "source",
+          "greeks_source"
+        ],
+        "title": "VrpMacroEntryLeg",
+        "type": "object"
+      },
+      "VrpMacroEntryPreview": {
+        "properties": {
+          "action": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Action"
+          },
+          "as_of": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "As Of"
+          },
+          "expiry": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expiry"
+          },
+          "hold_days": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Hold Days"
+          },
+          "legs": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/VrpMacroEntryLeg"
+            },
+            "title": "Legs",
+            "type": "array"
+          },
+          "modeled_credit": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Modeled Credit"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "spot": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Spot"
+          },
+          "vrp_z": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vrp Z"
+          },
+          "weight": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Weight"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "title": "VrpMacroEntryPreview",
+        "type": "object"
+      },
+      "VrpMacroSignalLiveResponse": {
+        "description": "Live (intraday) VRP macro short-vol signal for SPX. `basis='live'` when computed\nfrom fresh quotes; `basis='eod'` when it falls back to the latest nightly snapshot.\n`signal` carries the same fields as the EOD row (bt_* may be NULL on the live path).",
+        "properties": {
+          "active_source": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Active Source"
+          },
+          "basis": {
+            "default": "eod",
+            "enum": [
+              "live",
+              "eod"
+            ],
+            "title": "Basis",
+            "type": "string"
+          },
+          "live_quotes": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/RegimeLiveQuote"
+            },
+            "title": "Live Quotes",
+            "type": "object"
+          },
+          "signal": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/VrpMacroSignalRow"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "status": {
+            "default": "ok",
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "title": "VrpMacroSignalLiveResponse",
+        "type": "object"
+      },
       "VrpMacroSignalResponse": {
         "description": "Latest VRP macro short-vol signal per tracked index (one row each).",
         "properties": {
@@ -20271,7 +20579,7 @@
   },
   "info": {
     "title": "UW Watchlist API",
-    "version": "0.2.1"
+    "version": "0.3.1"
   },
   "openapi": "3.1.0",
   "paths": {
@@ -22228,6 +22536,72 @@
           }
         },
         "summary": "Get Vrp Macro Signal",
+        "tags": [
+          "regime"
+        ]
+      }
+    },
+    "/api/regime/vrp-macro-signal/entry/capture": {
+      "post": {
+        "description": "Capture the current SPX entry now (IB-primary): persists a one-shot 'button'\ncohort + its 4 legs, then returns them read back from the persisted rows.",
+        "operationId": "post_vrp_macro_entry_capture_api_regime_vrp_macro_signal_entry_capture_post",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VrpMacroEntryCaptureResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Post Vrp Macro Entry Capture",
+        "tags": [
+          "regime"
+        ]
+      }
+    },
+    "/api/regime/vrp-macro-signal/entry/preview": {
+      "get": {
+        "description": "Indicative SPX entry preview. ZERO IB, ZERO new UW, ZERO writes \u2014 browser-\npolled. Serves today's persisted auto-cohort snapshot legs if present, else\nBS-indicative 'modeled' legs off the live/EOD signal. Degrades to action=None +\nempty legs when no signal resolves (never 500).",
+        "operationId": "get_vrp_macro_entry_preview_api_regime_vrp_macro_signal_entry_preview_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VrpMacroEntryPreview"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Get Vrp Macro Entry Preview",
+        "tags": [
+          "regime"
+        ]
+      }
+    },
+    "/api/regime/vrp-macro-signal/live": {
+      "get": {
+        "description": "Live SPX VRP macro short-vol signal: intraday VIX -> live vrp_z (rv20/distribution\nfrom EOD). Falls back to the latest nightly basis='eod' snapshot when quotes are\nstale. Mirrors /cri/live; does not persist (the 5-min job does that).",
+        "operationId": "get_vrp_macro_signal_live_api_regime_vrp_macro_signal_live_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VrpMacroSignalLiveResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Get Vrp Macro Signal Live",
         "tags": [
           "regime"
         ]

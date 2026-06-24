@@ -294,7 +294,11 @@ class Settings(BaseModel):
     option_surface_capture_enabled: bool = True
     option_surface_iv_canary_enabled: bool = True
     option_surface_iv_canary_warn_threshold: float = 0.02
-    xenon_query_api_url: str = "http://127.0.0.1:8421"
+    # xenon read-only query API (IB option greeks via GET /options/greeks).
+    # Default = the mini's authenticated localhost port (verified listening 2026-06-24;
+    # the old :8421 was dead → the surface canary silently no-op'd). Key REQUIRED even
+    # on localhost. MacBook dev points over Tailscale: http://100.66.147.98:8321.
+    xenon_query_api_url: str = "http://127.0.0.1:8321"
     xenon_query_api_key: SecretStr | None = None
 
     # --- VRP tradable iron-condor + backtest (plan 2026-06-22) ----------------
@@ -308,6 +312,14 @@ class Settings(BaseModel):
     vrp_slippage_frac: float = 0.01  # half-spread as fraction of leg mid
     vrp_slippage_min: float = 0.05  # half-spread floor per leg (price points)
     vrp_cost_round_trip: bool = True  # charge open + close (conservative)
+
+    # --- VRP macro forward entry-capture (plan 2026-06-24) --------------------
+    vrp_macro_entry_capture_enabled: bool = True
+    vrp_macro_entry_taper_calendar_days: int = 30  # > this → EOD-only marks
+    vrp_macro_entry_quote_timeout_s: float = 8.0  # per-leg xenon/IB snapshot timeout
+    vrp_macro_entry_mark_budget_s: float = (
+        600.0  # per-mark wall-clock; overrun → UW-only
+    )
 
     @property
     def ws_spot_enabled(self) -> bool:
@@ -680,7 +692,7 @@ class Settings(BaseModel):
                 os.environ.get("OPTION_SURFACE_IV_CANARY_WARN_THRESHOLD", "0.02")
             ),
             xenon_query_api_url=os.environ.get(
-                "XENON_QUERY_API_URL", "http://127.0.0.1:8421"
+                "XENON_QUERY_API_URL", "http://127.0.0.1:8321"
             ),
             xenon_query_api_key=(
                 SecretStr(v)
@@ -701,6 +713,18 @@ class Settings(BaseModel):
             ),
             vrp_slippage_min=float(os.environ.get("UW_SCAN_VRP_SLIPPAGE_MIN", "0.05")),
             vrp_cost_round_trip=_env_bool("UW_SCAN_VRP_COST_ROUND_TRIP", True),
+            vrp_macro_entry_capture_enabled=_env_bool(
+                "UW_SCAN_VRP_MACRO_ENTRY_CAPTURE_ENABLED", True
+            ),
+            vrp_macro_entry_taper_calendar_days=int(
+                os.environ.get("UW_SCAN_VRP_MACRO_ENTRY_TAPER_CALENDAR_DAYS", "30")
+            ),
+            vrp_macro_entry_quote_timeout_s=float(
+                os.environ.get("UW_SCAN_VRP_MACRO_ENTRY_QUOTE_TIMEOUT_S", "8.0")
+            ),
+            vrp_macro_entry_mark_budget_s=float(
+                os.environ.get("UW_SCAN_VRP_MACRO_ENTRY_MARK_BUDGET_S", "600.0")
+            ),
         )
 
     def db_dsn(self) -> str:

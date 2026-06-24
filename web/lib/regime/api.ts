@@ -40,4 +40,10 @@ export const regimeApi = {
   canaryHistory: (days: number) =>
     `${API}/api/regime/canary/history?days=${days}`,
   canaryValidation: () => `${API}/api/regime/canary/validation`,
+  vrp_macro_signal: () => `${API}/api/regime/vrp-macro-signal`,
+  vrp_macro_signal_live: () => `${API}/api/regime/vrp-macro-signal/live`,
+  vrp_macro_entry_preview: () =>
+    `${API}/api/regime/vrp-macro-signal/entry/preview`,
+  vrp_macro_entry_capture: () =>
+    `${API}/api/regime/vrp-macro-signal/entry/capture`,
 } as const;

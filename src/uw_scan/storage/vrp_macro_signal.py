@@ -34,6 +34,7 @@ _COLUMNS = (
     "bt_annror",
     "bt_calmar",
     "config_jsonb",
+    "basis",
 )
 
 
@@ -68,20 +69,22 @@ class _VrpMacroSignalMixin:
         bt_annror: float | None,
         bt_calmar: float | None,
         config: dict[str, Any] | None,
+        basis: str = "eod",
     ) -> None:
-        """Insert/update the (name, snapshot_date) signal snapshot. Idempotent —
-        re-running the job same-day overwrites the row in place."""
+        """Insert/update the (name, snapshot_date, basis) signal snapshot. Idempotent —
+        re-running same-day same-basis overwrites the row in place. `basis='eod'` is the
+        nightly snapshot; `basis='live'` is the 5-min intraday recompute."""
         placeholders = ", ".join(["%s"] * len(_COLUMNS))
         cols = ", ".join(_COLUMNS)
         updates = ", ".join(
             f"{c} = EXCLUDED.{c}"
             for c in _COLUMNS
-            if c not in ("name", "snapshot_date")
+            if c not in ("name", "snapshot_date", "basis")
         )
         sql = (
             f"INSERT INTO {self._schema}.vrp_macro_signal_daily ({cols}) "
             f"VALUES ({placeholders}) "
-            "ON CONFLICT (name, snapshot_date) DO UPDATE SET "
+            "ON CONFLICT (name, snapshot_date, basis) DO UPDATE SET "
             f"{updates}, created_at = now()"
         )
         with self._conn.cursor() as cur:
@@ -112,20 +115,22 @@ class _VrpMacroSignalMixin:
                     bt_annror,
                     bt_calmar,
                     Jsonb(config) if config is not None else None,
+                    basis,
                 ),
             )
 
     def fetch_latest_vrp_macro_signals(
-        self, names: list[str] | None = None
+        self, names: list[str] | None = None, *, basis: str = "eod"
     ) -> list[dict[str, Any]]:
-        """Latest snapshot per name (one row each), newest first by name. Pass
-        `names` to restrict; None returns every tracked name."""
+        """Latest snapshot per name (one row each), newest first by name, filtered to
+        `basis` (default 'eod' — the nightly signal; pass 'live' for the intraday row).
+        Pass `names` to restrict; None returns every tracked name."""
         select_cols = ", ".join(_COLUMNS) + ", created_at"
-        where = ""
-        params: tuple[Any, ...] = ()
+        where = "WHERE basis = %s "
+        params: tuple[Any, ...] = (basis,)
         if names:
-            where = "WHERE name = ANY(%s) "
-            params = ([n.upper() for n in names],)
+            where += "AND name = ANY(%s) "
+            params = (basis, [n.upper() for n in names])
         sql = (
             f"SELECT DISTINCT ON (name) {select_cols} "
             f"FROM {self._schema}.vrp_macro_signal_daily "

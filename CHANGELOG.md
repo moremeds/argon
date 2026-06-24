@@ -9,6 +9,24 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ### Added
 
+- VRP macro **forward entry-capture & markout recorder**: records the real forward
+  NBBO + greeks of the SPX bull-put-spread the Macro Short-Vol signal would place,
+  tracked daily to expiry. A daily-born `auto` cohort (the 4 put contracts bracketing
+  the 0.25Δ short / 0.125Δ wing at ~43-cal-DTE) is snapshotted **8×/day** (10:00–15:00
+  ET hourly + 15:55 EOD + 16:10 post-close), tapering to EOD-only after 30 calendar
+  days. Each leg quotes **xenon/IB-primary** (true NBBO + IV) → **UW fallback** →
+  **greeks always BS-computed** from the marked IV (one-model: IB theta is per-day, BS
+  per-year — never mixed). New table pair (`vrp_macro_entry` + `vrp_macro_entry_quote`,
+  migration `085`), `reports/vrp_macro_entry.py`, `worker/jobs/vrp_macro_entry.py`
+  (massive-0, gated by `vrp_macro_entry_capture_enabled`), and
+  `GET/POST /api/regime/vrp-macro-signal/entry/{preview,capture}`. The Macro Short-Vol
+  regime card gains a strike/ETD preview panel (served from the persisted snapshot —
+  zero IB, zero new UW) + a one-click Capture button; the "(gate at 0)" / "stand aside"
+  copy is dropped. Live-verified against prod IB (3/4 legs `source=xenon_ib`). Also
+  fixes the stale `xenon_query_api_url` default (`:8421`, which was dead → silently
+  no-op'd the surface IV canary too) to the mini's authenticated `:8321`; deploy must
+  set `XENON_QUERY_API_KEY` in the mini's argon `.env` or the IB path falls back to UW.
+  Plan `docs/superpowers/plans/2026-06-24-vrp-macro-entry-capture.md`.
 - GOAS put-write delta sweep (research): a self-contained study finding the short-put
   **delta + tenor sweet spot** for the Goldman Options Advisory Strategy (systematic
   always-on OTM index put-writing). Three new `reports/` modules —

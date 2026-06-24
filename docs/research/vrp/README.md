@@ -26,7 +26,16 @@ verdicts live there). Reproduce commands are listed at the bottom.
 | **Hold / exit** | **30 trading days (≈ 43 cal. days)**, held to expiry, settled at intrinsic. No profit-take, no stop — the long wing is the defined-risk floor |
 | **Pricing (backtest)** | Flat-vol Black–Scholes (skew ignored → modeled put-spread credit is a **conservative floor**; real fills ≥ modeled) |
 | **Δ knob** | 0.25Δ is the top-Sharpe, widest-cushion cell; 0.30/0.35Δ raise base return at ~equal Sharpe (a free return/cushion dial) |
-| **Rejected** | 50% profit-take (hurts Sharpe 0.92→0.76), DTE=7 (flat-30d-IV artifact), CSP (ROR≈0), always-on (the gate beats it everywhere), IWM sleeve (drags) |
+| **Rejected** | **DTE=20** (the superseded original anchor — 0.92 vs DTE30's 1.07), 50% profit-take (hurts Sharpe 0.92→0.76), DTE=7 (flat-30d-IV artifact), CSP (ROR≈0), always-on (the gate beats it everywhere), IWM sleeve (drags) |
+
+**Why 30 trading days, not 20.** [COMPUTED — `_iterations/macro-short-vol-verdict.md`] The
+original hypothesis was an always-on **20-DTE** seller (Sharpe 0.92). The delta×DTE sweep then
+promoted **~30 trading days (≈6 weeks, 40–45 calendar DTE)** as the sweet spot — *higher* Sharpe
+**and** *shallower* drawdown than 20 (Δ0.25: DTE20 0.92 / maxDD −4.22 → DTE30 1.07 / −2.34).
+DTE=7 screens highest of all but is a flat-30d-VIX pricing artifact; with constant-maturity 30d
+VIX the clean band is DTE≈20–30, and 30 wins it. Neither later iteration (capital-utilisation,
+robustness §2.5) re-opened this — both run hold=30. So "hold to expiry, ~30 trading days" is the
+settled answer; **20-DTE is the rejected predecessor, not the target.**
 
 **Live signal as of 2026-06-18 (mini): SKIP** — spot 7501, vrp_z **−1.95**, weight 0.00.
 Vol is cheap, the gate is shut → stand aside. Confirms it's a rich-vol harvester, not an
@@ -94,6 +103,58 @@ vrp-z gate *rescues* it from 0.27)**, **IWM 0.41 (−128% maxDD, choppy small-ca
 SPX+QQQ blends to ≈1.6 at little cost (QQQ is a genuine second sleeve); adding IWM drags the
 book to ~1.0. **Single-name S&P wins; drop IWM.**
 
+### 2.5 Iteration-4 robustness — is the edge overfit? (no)
+
+Two iterations followed the WINNER and stress-tested it; this section folds both in. Each driver
+re-runs (or resamples) the backtest hundreds of times — cells are the resulting **Sharpe
+distribution** (`iter4-mc.csv`, SEED 20260623). Baseline = the iteration-3 SPX **$-account**,
+weekly-stride **1.68** (the capital-blind laddered headline is **1.65** — §2.1; same engine,
+different normalisation, do not conflate).
+
+| Stress test | p5 | median | p95 |
+|---|--:|--:|--:|
+| Config-perturb (Δ 0.20–0.30, hold 20–40d, ramp_z 0.3–0.7) | **1.05** | 1.39 | 1.64 |
+| Entry-day jitter | 1.19 | 1.37 | 1.60 |
+| Block-bootstrap (resample monthly returns) | 1.05 | 1.67 | 2.54 |
+| Random start year | 1.60 | 1.97 | 2.73 |
+| Random start *inside* the 2007–09 GFC | 1.62 | 1.65 | 2.02 |
+| SPY buy-and-hold (benchmark) | — | 0.62 | — |
+
+- **Not a knife-edge config.** Perturbing the tuned knobs (incl. hold 20–40d) holds Sharpe at
+  **p5 1.05**; every distribution sits far above SPY buy-hold (0.62). The edge survives the config
+  search that produced it — it is not an artifact of the exact winner cell.
+- **Entry weekday is second-order — Tuesday best, but don't pin it.** Single-weekday Sharpes span
+  **1.33 (Fri) → 1.53 (Tue)**, *all below* the natural 5-day stride (**1.65**). Tuesday is the best
+  fixed day, but committing to any one weekday is slightly *worse* than letting the weekly cadence
+  diversify day-of-week exposure. Edge stays >1.3 every day → **keep the weekly stride; Tuesday only
+  matters if you must pin a day.**
+- **Starting at a bear-market top *helps*.** Every post-shock start beats full history (Sharpe
+  **1.87–2.58 vs 1.68**, +150–180% over 36 months) — selling elevated post-crash vol harvests the
+  richest premium on the recovery. (The entry-day drawdown risk below still applies if you are
+  *already* positioned when the shock hits.)
+- **"Extra set when rich" is leverage, not edge — two independent tests agree.** Iteration-4
+  (single $143k account): the same-day **contract overlay** marginally *hurts* Sharpe (1.668 vs
+  1.680), the **staggered tranche** barely helps (1.705), both deepen drawdown ~$40k.
+  Capital-utilisation ($50k, SPY/QQQ/IWM): the overlay lifts gross return 0.474→0.605 but Sharpe is
+  flat-to-down (1.06→1.05) and maxDD blows **past total capital** (−1.012 of $50k). Only a
+  *tightly-gated* overlay (rich_threshold ≥1.5, fires rarely) nudges Sharpe up (1.06→1.18).
+  **`base_risk_pct` is the only real lever; skip the overlay.**
+- **The real risk is utilisation, not the signal.** At 20%/spread × ~6 concurrent rungs the book
+  runs ~100% deployed (`util_peak` 1.00), so 2008 takes a **−90% drawdown on the base and >−100%
+  on the extra-position arms** (a brief ruin event) — the capital-blind Sharpe completely hides
+  this. Size **≤ ~16%/spread** to stay under the cap.
+- **Capital reality — a six-figure strategy.** SPX spread max-loss rises **~15× over 2007→2026**
+  with spot; the honest *trade-throughout* account is **~$143k at 20% risk** (a $10k-start book goes
+  dormant by ~2015, unable to afford a modern spread). SPY (~$1.7k/spread) is the small-account vehicle.
+- **Compounding vs non-compounding.** Non-compounding (fixed % of the *original* capital) is the
+  honest book. Compounding lifts CAGR to ~57% but *lowers* Sharpe (1.68→1.46) and scales the dollar
+  drawdown to the (enormous) equity — a ruin mirage (see §3 for the safe sub-linear cap).
+- **The 2008 breach lesson.** The three big losses (of **470 fills, 91.1% win, 11.3% breach,
+  +$1.47M** total) were **late-May/early-June 2008 entries at VIX 17–18** — vrp_z was positive (rich
+  vs the trailing year) but **absolute** vol was low, right before the summer plunge. Selling
+  "rich-vs-trailing" does **not** protect against a low-absolute-vol regime that then cracks — the
+  direct case for the regime kill-switch (§5.3).
+
 ---
 
 ## 3. Equity curve vs buy-and-hold
@@ -127,7 +188,9 @@ and is un-realisable (SPY put-spread capacity won't scale to $100M). The safe mi
 ## 4. Conclusion
 
 1. **Real, drawdown-robust edge** — clears its breakeven over 20 years including 2008/2020/2022;
-   the conservative flat-vol model *understates* the put-spread credit.
+   the conservative flat-vol model *understates* the put-spread credit. **Monte-Carlo-robust**
+   (Sharpe p5 **1.05** under config/timing perturbation — §2.5), not a single overfit cell.
+   Settled structure: **~30-trading-day** hold (DTE20 was the rejected predecessor, §1).
 2. **Tradeable on $50k two ways, both single-name S&P:** SPX direct (best Sharpe 1.4–2.0, lumpy
    at ~31%/contract, ~19 entries/yr) or **SPY direct** (Sharpe 1.43–1.63, granular, ~27/yr — the
    pragmatic small-account vehicle).
@@ -135,7 +198,9 @@ and is un-realisable (SPY put-spread capacity won't scale to $100M). The safe mi
    as a **risk-adjusted sleeve / diversifier**, sized to a drawdown you can survive — not a
    standalone return engine.
 4. **`base_risk_pct` is the only real lever** (trades CAGR for drawdown + skip-rate). The "extra
-   set when very rich" overlay is **leverage, not edge** (Sharpe flat).
+   set when very rich" overlay is **leverage, not edge** (Sharpe flat — confirmed by two
+   independent tests, §2.5). The binding constraint is **utilisation**: size ≤ ~16%/spread or the
+   2008 cap breach turns into ruin.
 5. **Recommended deployable:** SPX at `base_risk_pct ≈ 0.20–0.32`, sub-linear compounding capped at
    ~$200k–$400k, gate `ramp+`, **drop IWM**. Or SPY @ 0.20 for granularity on a small account.
 
@@ -208,3 +273,62 @@ motivated the macro pivot).
 
 **Engine code (not in this folder):** `src/uw_scan/reports/vrp_macro_signal.py` (`WINNER`,
 `current_macro_signal`), `vrp_macro_drawdown.py`, `vrp_capital_account.py`.
+
+## 7. Forward entry-capture markout dataset (live, since 2026-06-24)
+
+Sections 1–6 tell you *whether* to sell vol. This dataset records *what the fill
+actually was* and *how it marks out* to expiry — the real forward NBBO + greeks of
+the SPX bull-put-spread the signal would place, tracked daily. It is the durable
+research artifact (standing rule); query it directly via SQL/notebook.
+
+**Tables** (migration `085`):
+- `vrp_macro_entry` — one cohort header per born entry (the 4 put contracts
+  bracketing the 0.25Δ short / 0.125Δ wing at the ~43-cal-DTE expiry). `origin` is
+  `auto` (one/day, idempotent per `(name, birth_date)` via a partial unique index)
+  or `button` (on-demand one-shot from the regime card; never re-snapshotted).
+- `vrp_macro_entry_quote` — the time series: every open `auto` cohort's 4 legs
+  snapshotted at **8 marks/day** (10:00–15:00 ET hourly + 15:55 EOD + 16:10
+  post-close), tapering to EOD-only after `vrp_macro_entry_taper_calendar_days`
+  (30) held, until expiry. PK `(entry_id, as_of, leg)`.
+
+**Provenance columns — filter on these:**
+- `source` ∈ `{xenon_ib, uw}` — where the **NBBO + marked IV + underlying spot**
+  came from. xenon/IB is primary (true NBBO + IV via xenon's `/options/greeks`);
+  UW is the delayed fallback (`/option-contracts?expiry=` — NBBO + IV, no greeks).
+- `greeks_source` ∈ `{bs, none}` — greeks are **always BS-computed** from the
+  marked IV (one-model consistency: IB theta is per-*day*, BS per-*year* — storing
+  source greeks would corrupt the markout series). `bs` = a real IV was present;
+  `none` = IV absent → greeks are degenerate `0.0` (filter these out). The
+  `delta/gamma/vega/theta` columns are always BS, never the source's native greeks.
+- `source_asof` — the provider's own timestamp (UW delay); null on the IB path.
+
+**Reproduce** (one real mark via the real worker path — the scheduler fires this
+8×/day on massive-0, gated by `vrp_macro_entry_capture_enabled`):
+```bash
+uv run --frozen python -c "
+from uw_scan.config import Settings
+from uw_scan.worker.scheduler import _repo
+from uw_scan.worker.jobs.vrp_macro_entry import vrp_macro_entry_snapshot_once
+s = Settings.from_env()
+with _repo(s) as repo:
+    print(vrp_macro_entry_snapshot_once(repo, s, session='rth', birth=True))
+"
+# audit which feed actually quoted each leg:
+#   SELECT source, greeks_source, count(*) FROM uw_scan.vrp_macro_entry_quote GROUP BY 1,2;
+```
+The IB-primary path needs `XENON_QUERY_API_KEY` in the **worker** env (the URL now
+defaults to the mini's authenticated `http://127.0.0.1:8321`) — without the key every
+leg silently falls back to `source='uw'` (the never-raise quoter swallows the 401).
+Set the key once in the mini's argon `.env` (same value as xenon's `/opt/xenon/.env`).
+
+**Live-verified 2026-06-24** (real prod IB, real `vrp_macro_entry_snapshot_once`):
+SPX 2026-08-07, 3/4 legs `source=xenon_ib` — 0.25Δ short K7100 @ 75.6/76.8 (BS
+δ −0.247), 0.125Δ wing K6800 @ 39.1/40.1 (BS δ −0.129, IV 0.230 vs short 0.196 =
+visible put skew); the deep K6775 wing (unlisted) fell back to `uw`/`none` cleanly
+without dropping the cohort's other 3 legs.
+
+**Code:** `reports/vrp_macro_entry.py` (`resolve_entry_contracts`, `quote_leg`) +
+`worker/jobs/vrp_macro_entry.py` + `storage/vrp_macro_entry.py` +
+`api/routers/regime.py` (`/vrp-macro-signal/entry/{preview,capture}`) +
+`web/components/regime/MacroShortVolCard.tsx`. Plan:
+[`docs/superpowers/plans/2026-06-24-vrp-macro-entry-capture.md`](../../superpowers/plans/2026-06-24-vrp-macro-entry-capture.md).

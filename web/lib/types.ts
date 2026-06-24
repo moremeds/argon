@@ -7723,6 +7723,166 @@ export interface components {
             /** Vrp Z 20 */
             vrp_z_20?: string | null;
         };
+        VrpMacroEntryCaptureResponse: {
+            /** Entry Id */
+            entry_id: number;
+            preview: components["schemas"]["VrpMacroEntryPreview"];
+        };
+        VrpMacroEntryLeg: {
+            /**
+             * Leg
+             * @enum {string}
+             */
+            leg: "short_above" | "short_below" | "wing_above" | "wing_below";
+            /** Strike */
+            strike: number;
+            /** Nbbo Bid */
+            nbbo_bid?: number | null;
+            /** Nbbo Ask */
+            nbbo_ask?: number | null;
+            /** Iv */
+            iv?: number | null;
+            /** Delta */
+            delta?: number | null;
+            /** Gamma */
+            gamma?: number | null;
+            /** Vega */
+            vega?: number | null;
+            /** Theta */
+            theta?: number | null;
+            /** Und Spot */
+            und_spot?: number | null;
+            /**
+             * Source
+             * @enum {string}
+             */
+            source: "xenon_ib" | "uw" | "modeled";
+            /**
+             * Greeks Source
+             * @enum {string}
+             */
+            greeks_source: "bs" | "none";
+        };
+        VrpMacroEntryPreview: {
+            /** Name */
+            name: string;
+            /** As Of */
+            as_of?: string | null;
+            /** Spot */
+            spot?: number | null;
+            /** Expiry */
+            expiry?: string | null;
+            /** Hold Days */
+            hold_days?: number | null;
+            /** Action */
+            action?: string | null;
+            /** Vrp Z */
+            vrp_z?: number | null;
+            /** Weight */
+            weight?: number | null;
+            /** Modeled Credit */
+            modeled_credit?: number | null;
+            /**
+             * Legs
+             * @default []
+             */
+            legs: components["schemas"]["VrpMacroEntryLeg"][];
+        };
+        /**
+         * VrpMacroSignalLiveResponse
+         * @description Live (intraday) VRP macro short-vol signal for SPX. `basis='live'` when computed
+         *     from fresh quotes; `basis='eod'` when it falls back to the latest nightly snapshot.
+         *     `signal` carries the same fields as the EOD row (bt_* may be NULL on the live path).
+         */
+        VrpMacroSignalLiveResponse: {
+            /**
+             * Status
+             * @default ok
+             */
+            status: string;
+            /**
+             * Basis
+             * @default eod
+             * @enum {string}
+             */
+            basis: "live" | "eod";
+            signal?: components["schemas"]["VrpMacroSignalRow"] | null;
+            /** Live Quotes */
+            live_quotes?: {
+                [key: string]: components["schemas"]["RegimeLiveQuote"];
+            };
+            /** Active Source */
+            active_source?: string | null;
+        };
+        /**
+         * VrpMacroSignalResponse
+         * @description Latest VRP macro short-vol signal per tracked index (one row each).
+         */
+        VrpMacroSignalResponse: {
+            /** Signals */
+            signals?: components["schemas"]["VrpMacroSignalRow"][];
+        };
+        /**
+         * VrpMacroSignalRow
+         * @description Latest VRP macro short-vol signal for one index. action=TRADE iff weight>0
+         *     (ramp+ vrp-z sizing); strikes/credit/max_loss are flat-vol modeled (conservative
+         *     floor — real put skew pays more). Compare `as_of` to `snapshot_date` for staleness:
+         *     `as_of` is the vol-data date, `snapshot_date` is when the job ran.
+         */
+        VrpMacroSignalRow: {
+            /** Name */
+            name: string;
+            /**
+             * Snapshot Date
+             * Format: date
+             */
+            snapshot_date: string;
+            /**
+             * As Of
+             * Format: date
+             */
+            as_of: string;
+            /** Spot */
+            spot: number;
+            /** Iv */
+            iv: number;
+            /** Rv20 */
+            rv20?: number | null;
+            /** Vrp */
+            vrp?: number | null;
+            /** Vrp Z */
+            vrp_z?: number | null;
+            /** Weight */
+            weight: number;
+            /** Action */
+            action: string;
+            /** Short Put */
+            short_put?: number | null;
+            /** Long Put */
+            long_put?: number | null;
+            /** Put Width */
+            put_width?: number | null;
+            /** Credit */
+            credit?: number | null;
+            /** Max Loss */
+            max_loss?: number | null;
+            /** Hold Days */
+            hold_days: number;
+            /** Short Delta */
+            short_delta: number;
+            /** Wing Delta */
+            wing_delta: number;
+            /** Bt N */
+            bt_n?: number | null;
+            /** Bt Sharpe */
+            bt_sharpe?: number | null;
+            /** Bt Maxdd */
+            bt_maxdd?: number | null;
+            /** Bt Annror */
+            bt_annror?: number | null;
+            /** Bt Calmar */
+            bt_calmar?: number | null;
+        };
         /** WatchlistCard */
         WatchlistCard: {
             /** Aggression Pct */

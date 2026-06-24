@@ -62,6 +62,7 @@ from uw_scan.worker.jobs.trade_insight_outcome_backfill import (
 )
 from uw_scan.worker.jobs.trade_insights_ai import trade_insights_ai_tick
 from uw_scan.worker.jobs.vol_index_lake_sync import run_vol_index_lake_sync
+from uw_scan.worker.jobs.vrp_macro_entry import vrp_macro_entry_snapshot_once
 from uw_scan.worker.jobs.vrp_macro_signal import vrp_macro_signal_refresh
 from uw_scan.worker.jobs.vrp_markout import vrp_markout_refresh
 from uw_scan.worker.jobs.vrp_research_jobs import vrp_research_refresh
@@ -193,6 +194,19 @@ def _should_schedule_option_surface_capture(settings: Settings) -> bool:
     """
     role = settings.worker_role.lower()
     return role == "all" or (role == "uw" and settings.worker_index == 0)
+
+
+def _should_schedule_vrp_macro_entry(settings: Settings) -> bool:
+    """Exactly one process owns the 8x/day VRP entry-capture marks.
+
+    Each mark drives UW chain calls + serial xenon/IB snapshots + DB upserts;
+    scheduling on every index-0 process would duplicate the load (UW 429 risk,
+    redundant IB lines). Pin to massive-0 (or 'all'), gated by the capture flag.
+    """
+    if not settings.vrp_macro_entry_capture_enabled:
+        return False
+    role = settings.worker_role.lower()
+    return role == "all" or (role == "massive" and settings.worker_index == 0)
 
 
 def _should_schedule_skew_swing_greeks(settings: Settings) -> bool:
@@ -459,6 +473,20 @@ def main() -> int:
     def _vrp_macro_signal_refresh() -> None:
         with _repo(settings) as repo:
             vrp_macro_signal_refresh(repo=repo, settings=settings)
+
+    def _vrp_macro_entry_rth() -> None:
+        with _repo(settings) as repo:
+            vrp_macro_entry_snapshot_once(repo, settings, session="rth", birth=True)
+
+    def _vrp_macro_entry_eod() -> None:
+        with _repo(settings) as repo:
+            vrp_macro_entry_snapshot_once(repo, settings, session="eod", birth=True)
+
+    def _vrp_macro_entry_postclose() -> None:
+        with _repo(settings) as repo:
+            vrp_macro_entry_snapshot_once(
+                repo, settings, session="postclose", birth=False
+            )
 
     def _corporate_actions_refresh() -> None:
         provider = _fundamentals_provider(settings)
@@ -1177,6 +1205,38 @@ def main() -> int:
             max_instances=1,
             coalesce=True,
             misfire_grace_time=max(30, settings.trade_insights_ai_poll_seconds * 5),
+        )
+
+    if _should_schedule_vrp_macro_entry(settings):
+        # VRP macro forward entry-capture: 8 marks/day (10:00-15:00 hourly RTH +
+        # 15:55 EOD + 16:10 post-close ET). RTH/EOD marks birth today's auto cohort
+        # (idempotent via the partial unique index — a missed 10:00 still births at
+        # 11:00, the recorded born_at shows which mark won); post-close never births
+        # (a post-close-only cohort can't be marked intraday and would skew the
+        # stride dataset). max_instances=1 + coalesce so a slow mark can't stack.
+        sched.add_job(
+            _vrp_macro_entry_rth,
+            CronTrigger.from_crontab("0 10-15 * * 0-4", timezone=settings.rth_tz),
+            id="vrp_macro_entry_rth",
+            name="VRP macro entry-capture (RTH marks, birth)",
+            max_instances=1,
+            coalesce=True,
+        )
+        sched.add_job(
+            _vrp_macro_entry_eod,
+            CronTrigger.from_crontab("55 15 * * 0-4", timezone=settings.rth_tz),
+            id="vrp_macro_entry_eod",
+            name="VRP macro entry-capture (EOD mark, last-resort birth)",
+            max_instances=1,
+            coalesce=True,
+        )
+        sched.add_job(
+            _vrp_macro_entry_postclose,
+            CronTrigger.from_crontab("10 16 * * 0-4", timezone=settings.rth_tz),
+            id="vrp_macro_entry_postclose",
+            name="VRP macro entry-capture (post-close mark)",
+            max_instances=1,
+            coalesce=True,
         )
 
     if _is_primary_worker(settings):
