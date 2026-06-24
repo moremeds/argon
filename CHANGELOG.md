@@ -7,6 +7,9 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+## [0.3.3] — 2026-06-24
+
+
 ### Added
 
 - Per-stock **Short-Vol card** on the stock page's Market Structure tab — the
@@ -25,7 +28,6 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   `reports/stock_short_vol.py`, `StockShortVol` model + `SingleStockReport.short_vol`,
   and `web/components/stock/panels/ShortVolPanel.tsx`. EOD basis (modeled off the
   EOD-close spot). Plan `docs/superpowers/plans/2026-06-24-stock-short-vol-card.md`.
-
 ## [0.3.2] — 2026-06-24
 
 
