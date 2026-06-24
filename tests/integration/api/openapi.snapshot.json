@@ -13047,6 +13047,16 @@
             "title": "Short Int Note",
             "type": "string"
           },
+          "short_vol": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/StockShortVol"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "spot_quoted_at": {
             "anyOf": [
               {
@@ -14078,6 +14088,191 @@
           "market_date"
         ],
         "title": "StockHistoryRow",
+        "type": "object"
+      },
+      "StockShortVol": {
+        "description": "Per-ticker short-vol (sell-premium) readout for the Market Structure tab \u2014\nthe single-name sibling of the SPX MacroSignal. EOD basis (latest vrp_daily row).\naction=TRADE only when vol is rich (vrp_z_20 >= 1.0) AND the ticker's sector is in\nthe sellable set AND earnings are clear of the hold window; else SKIP with a reason.\nStrikes/credit/max_loss are flat-vol modeled (conservative floor).",
+        "properties": {
+          "action": {
+            "title": "Action",
+            "type": "string"
+          },
+          "as_of": {
+            "format": "date",
+            "title": "As Of",
+            "type": "string"
+          },
+          "basis": {
+            "default": "eod",
+            "title": "Basis",
+            "type": "string"
+          },
+          "credit": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Credit"
+          },
+          "hold_days": {
+            "title": "Hold Days",
+            "type": "integer"
+          },
+          "iv": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Iv"
+          },
+          "long_put": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Long Put"
+          },
+          "max_loss": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Loss"
+          },
+          "put_width": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Put Width"
+          },
+          "rv20": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rv20"
+          },
+          "short_delta": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Short Delta",
+            "type": "string"
+          },
+          "short_put": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Short Put"
+          },
+          "skip_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Skip Reason"
+          },
+          "spot": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Spot"
+          },
+          "vrp": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vrp"
+          },
+          "vrp_z": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vrp Z"
+          },
+          "weight": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Weight"
+          },
+          "wing_delta": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Wing Delta",
+            "type": "string"
+          }
+        },
+        "required": [
+          "as_of",
+          "action",
+          "hold_days",
+          "short_delta",
+          "wing_delta"
+        ],
+        "title": "StockShortVol",
         "type": "object"
       },
       "StrikeExposureRow": {
@@ -20579,7 +20774,7 @@
   },
   "info": {
     "title": "UW Watchlist API",
-    "version": "0.3.1"
+    "version": "0.3.2"
   },
   "openapi": "3.1.0",
   "paths": {

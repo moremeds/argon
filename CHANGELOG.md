@@ -7,6 +7,25 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+### Added
+
+- Per-stock **Short-Vol card** on the stock page's Market Structure tab — the
+  single-name sibling of the SPX Macro Short-Vol card, placed third on the
+  Directional-Bias row. A TRADE/SKIP sell-premium readout derived at read time from
+  the latest persisted `vrp_daily` row (no new endpoint, job, or migration): TRADE
+  only when vol is rich (`vrp_z_20 ≥ 1.0`), the ticker's sector is in the sellable
+  set (`vrp_gate`), and a known next-earnings date is clear of the ~45-day hold
+  window; otherwise SKIP with a reason (`vol not rich` / `sector vol not sellable` /
+  `earnings inside hold window` / `earnings date unavailable`). On TRADE it models the
+  same flat-vol bull put spread (0.25Δ short / 0.125Δ wing, ~30-day hold) as the macro
+  signal, reusing `size_weight` + `build_bull_put_spread`; macro/ETF classes skip the
+  earnings gate (they don't report), mirroring `vrp_gate`'s asset-class split.
+  Non-finite `vrp_z_20` (short-history NaN) is normalized away, and the build is
+  wrapped so the card can never take down the stock page. New
+  `reports/stock_short_vol.py`, `StockShortVol` model + `SingleStockReport.short_vol`,
+  and `web/components/stock/panels/ShortVolPanel.tsx`. EOD basis (modeled off the
+  EOD-close spot). Plan `docs/superpowers/plans/2026-06-24-stock-short-vol-card.md`.
+
 ## [0.3.2] — 2026-06-24
 
 

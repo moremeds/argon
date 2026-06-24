@@ -155,6 +155,7 @@ Worker roles: `ai-codex`, `ai-claude`, and `ai-deepseek` (provider-pinned, recom
 | Gold Compass — research / sources docs | `docs/research/gold-sdf-framework/CLAUDE.md` (3-lens model, status vs. shipped, deferred sources) + `src/uw_scan/sources/CLAUDE.md` (per-source status + failure modes) |
 | Index dealer cockpit (SPX/SPY/QQQ/IWM) | `api/routers/cockpit.py` + `web/app/cockpit/[ticker]/page.tsx` |
 | Stock detail page | `web/app/stock/[ticker]/page.tsx` + `components/stock/tabs/*` |
+| Per-stock short-vol card (single-name sibling of macro short-vol) | `reports/stock_short_vol.py` (`decide_short_vol`/`build_short_vol`) + `models/stock.py` (`StockShortVol`, `SingleStockReport.short_vol`) + `web/components/stock/panels/ShortVolPanel.tsx` + `web/components/stock/tabs/MarketStructureTab.tsx`; read-time reshape of `vrp_daily` gated by `reports/vrp_gate.py`; plan `docs/superpowers/plans/2026-06-24-stock-short-vol-card.md` |
 | Watchlist landing | `web/app/page.tsx` + `components/watchlist/CardGrid.tsx` |
 | Trade Insights AI — orchestration | `src/uw_scan/worker/jobs/trade_insights_ai.py` (claim → dispatch → persist; RUNNERS registry, `provider_filter` param, per-provider heartbeats) |
 | Trade Insights AI — provider runners | `src/uw_scan/worker/jobs/trade_insights_ai_runners.py` (`AiProviderRunner` Protocol, `_format_runner_failure`, `_runner_child_env`), `trade_insights_codex_runner.py`, `trade_insights_claude_runner.py` |

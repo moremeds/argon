@@ -3,6 +3,7 @@ import { api } from "@/lib/api";
 import { GexLevelTiles } from "../panels/GexLevelTiles";
 import { ExpectedRangeBar } from "../panels/ExpectedRangeBar";
 import { DirectionalBiasPanel } from "../panels/DirectionalBiasPanel";
+import { ShortVolPanel } from "../panels/ShortVolPanel";
 import { MarketStructureHistoryTable } from "../panels/MarketStructureHistoryTable";
 import { GreekSubTabs } from "../panels/greeks/GreekSubTabs";
 import { MaxPainTable } from "../panels/MaxPainTable";
@@ -24,12 +25,15 @@ export async function MarketStructureTab({ report }: { report: Report }) {
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: "1fr 1fr",
+          // Three-up on normal/wide; wraps to 2 then 1 on narrow viewports instead
+          // of squeezing the range bar / directional-bias content below legibility.
+          gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
           gap: 12,
         }}
       >
         <ExpectedRangeBar report={report} />
         <DirectionalBiasPanel report={report} history={historyRows} />
+        <ShortVolPanel report={report} />
       </div>
       <GreekSubTabs report={report} />
       <MarketStructureHistoryTable rows={historyRows} />

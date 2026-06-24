@@ -56,6 +56,54 @@ def sellable_asset_classes(repo, *, hold_days: int) -> set[str]:
     return out
 
 
+# Gate-out reasons (display text for consumers that surface *why* a ticker is
+# excluded — e.g. the per-stock short-vol card). passes_gate itself drops these.
+GATE_SKIP_SECTOR = "sector vol not sellable"
+GATE_SKIP_NO_EARNINGS_CALENDAR = "no earnings calendar"
+
+
+def evaluate_gate(
+    repo,
+    ticker: str,
+    *,
+    sellable_sectors: set[str] | None = None,
+    sellable_classes: set[str] | None = None,
+    hold_days: int | None = None,
+) -> tuple[GateResult | None, str | None]:
+    """Gate a ticker, returning (result, reason). result is the GateResult for an
+    admissible ticker (reason None); otherwise result is None and reason is the
+    GATE_SKIP_* cause. Single source of truth — passes_gate delegates here.
+
+    Batch callers (backtest, candidate emitter) pass the pre-computed sellable sets.
+    A single-ticker caller can omit them: only the one table the ticker's asset class
+    needs is scanned, lazily (single_name → by_sector; macro → multihorizon at
+    hold_days). Omitting hold_days for an un-provided macro set excludes macro
+    conservatively (no horizon to match)."""
+    sector = repo.fetch_watchlist_sector(ticker)
+    ac = asset_class_baseline(ticker, sector=sector)["asset_class"]
+    if ac == "single_name":
+        if sellable_sectors is None:
+            sellable_sectors = sellable_single_name_sectors(repo)
+        key = sector or "unknown"
+        if key not in sellable_sectors:
+            return None, GATE_SKIP_SECTOR
+        # No earnings calendar → can't honor the (entry, expiry] exclusion → skip,
+        # else we'd manufacture a SELLABLE edge by ignoring earnings risk.
+        if not repo.fetch_historical_earnings_dates(ticker):
+            return None, GATE_SKIP_NO_EARNINGS_CALENDAR
+        return GateResult(asset_class=ac, bucket_key=key), None
+    # macro / sector_etf / credit: gated on the per-asset-class multihorizon verdict.
+    if sellable_classes is None:
+        sellable_classes = (
+            sellable_asset_classes(repo, hold_days=hold_days)
+            if hold_days is not None
+            else set()
+        )
+    if ac not in sellable_classes:
+        return None, GATE_SKIP_SECTOR
+    return GateResult(asset_class=ac, bucket_key=ac), None
+
+
 def passes_gate(
     repo,
     ticker: str,
@@ -64,18 +112,10 @@ def passes_gate(
     sellable_classes: set[str],
 ) -> GateResult | None:
     """Return the GateResult for an admissible ticker, or None if it is gated out."""
-    sector = repo.fetch_watchlist_sector(ticker)
-    ac = asset_class_baseline(ticker, sector=sector)["asset_class"]
-    if ac == "single_name":
-        key = sector or "unknown"
-        if key not in sellable_sectors:
-            return None
-        # No earnings calendar → can't honor the (entry, expiry] exclusion → skip,
-        # else we'd manufacture a SELLABLE edge by ignoring earnings risk.
-        if not repo.fetch_historical_earnings_dates(ticker):
-            return None
-        return GateResult(asset_class=ac, bucket_key=key)
-    # macro / sector_etf / credit: gated on the per-asset-class multihorizon verdict.
-    if ac not in sellable_classes:
-        return None
-    return GateResult(asset_class=ac, bucket_key=ac)
+    result, _ = evaluate_gate(
+        repo,
+        ticker,
+        sellable_sectors=sellable_sectors,
+        sellable_classes=sellable_classes,
+    )
+    return result

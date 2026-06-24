@@ -60,6 +60,33 @@ class VRPAssessment(_UwBase):
     note: str
 
 
+class StockShortVol(_UwBase):
+    """Per-ticker short-vol (sell-premium) readout for the Market Structure tab —
+    the single-name sibling of the SPX MacroSignal. EOD basis (latest vrp_daily row).
+    action=TRADE only when vol is rich (vrp_z_20 >= 1.0) AND the ticker's sector is in
+    the sellable set AND earnings are clear of the hold window; else SKIP with a reason.
+    Strikes/credit/max_loss are flat-vol modeled (conservative floor)."""
+
+    as_of: _date
+    basis: str = "eod"
+    action: str  # "TRADE" | "SKIP"
+    skip_reason: str | None = None
+    spot: Decimal | None = None  # EOD-close basis the strikes are modeled off
+    iv: Decimal | None = None
+    rv20: Decimal | None = None
+    vrp: Decimal | None = None
+    vrp_z: Decimal | None = None
+    weight: Decimal | None = None
+    short_put: Decimal | None = None
+    long_put: Decimal | None = None
+    put_width: Decimal | None = None
+    credit: Decimal | None = None
+    max_loss: Decimal | None = None
+    hold_days: int
+    short_delta: Decimal
+    wing_delta: Decimal
+
+
 class StockHistoryRow(_UwBase):
     """One per-trading-day rollup of a ticker's market structure.
 
@@ -94,6 +121,9 @@ class SingleStockReport(_UwBase):
     volatility: VolatilityProfile
     flow: FlowSnapshot
     vrp: VRPAssessment
+    # Single-name short-vol readout (sell-premium TRADE/SKIP + modeled spread).
+    # Derived at read time from the latest vrp_daily row; None when no history.
+    short_vol: StockShortVol | None = None
     setup: SetupClassification | None = None
     dark_pool_notional: Decimal | None = None
     dark_pool_print_count: int = 0
@@ -125,6 +155,7 @@ _preserve_public_module(
     MarketStructure,
     VolatilityProfile,
     VRPAssessment,
+    StockShortVol,
     StockHistoryRow,
     StockHistoryResponse,
     SingleStockReport,
