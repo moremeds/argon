@@ -292,6 +292,7 @@ class Settings(BaseModel):
     r2_endpoint_override: str | None = None
     # Option surface capture (durable full-chain IV/greeks grid) + IB-vs-UW IV canary
     option_surface_capture_enabled: bool = True
+    option_surface_backfill_days: int = 4
     option_surface_iv_canary_enabled: bool = True
     option_surface_iv_canary_warn_threshold: float = 0.02
     xenon_query_api_url: str = "http://127.0.0.1:8421"
@@ -672,6 +673,9 @@ class Settings(BaseModel):
             ),
             option_surface_capture_enabled=_env_bool(
                 "OPTION_SURFACE_CAPTURE_ENABLED", True
+            ),
+            option_surface_backfill_days=int(
+                os.environ.get("OPTION_SURFACE_BACKFILL_DAYS", "4")
             ),
             option_surface_iv_canary_enabled=_env_bool(
                 "OPTION_SURFACE_IV_CANARY_ENABLED", True
