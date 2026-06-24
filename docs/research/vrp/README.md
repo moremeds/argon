@@ -26,7 +26,16 @@ verdicts live there). Reproduce commands are listed at the bottom.
 | **Hold / exit** | **30 trading days (≈ 43 cal. days)**, held to expiry, settled at intrinsic. No profit-take, no stop — the long wing is the defined-risk floor |
 | **Pricing (backtest)** | Flat-vol Black–Scholes (skew ignored → modeled put-spread credit is a **conservative floor**; real fills ≥ modeled) |
 | **Δ knob** | 0.25Δ is the top-Sharpe, widest-cushion cell; 0.30/0.35Δ raise base return at ~equal Sharpe (a free return/cushion dial) |
-| **Rejected** | 50% profit-take (hurts Sharpe 0.92→0.76), DTE=7 (flat-30d-IV artifact), CSP (ROR≈0), always-on (the gate beats it everywhere), IWM sleeve (drags) |
+| **Rejected** | **DTE=20** (the superseded original anchor — 0.92 vs DTE30's 1.07), 50% profit-take (hurts Sharpe 0.92→0.76), DTE=7 (flat-30d-IV artifact), CSP (ROR≈0), always-on (the gate beats it everywhere), IWM sleeve (drags) |
+
+**Why 30 trading days, not 20.** [COMPUTED — `_iterations/macro-short-vol-verdict.md`] The
+original hypothesis was an always-on **20-DTE** seller (Sharpe 0.92). The delta×DTE sweep then
+promoted **~30 trading days (≈6 weeks, 40–45 calendar DTE)** as the sweet spot — *higher* Sharpe
+**and** *shallower* drawdown than 20 (Δ0.25: DTE20 0.92 / maxDD −4.22 → DTE30 1.07 / −2.34).
+DTE=7 screens highest of all but is a flat-30d-VIX pricing artifact; with constant-maturity 30d
+VIX the clean band is DTE≈20–30, and 30 wins it. Neither later iteration (capital-utilisation,
+robustness §2.5) re-opened this — both run hold=30. So "hold to expiry, ~30 trading days" is the
+settled answer; **20-DTE is the rejected predecessor, not the target.**
 
 **Live signal as of 2026-06-18 (mini): SKIP** — spot 7501, vrp_z **−1.95**, weight 0.00.
 Vol is cheap, the gate is shut → stand aside. Confirms it's a rich-vol harvester, not an
@@ -94,6 +103,58 @@ vrp-z gate *rescues* it from 0.27)**, **IWM 0.41 (−128% maxDD, choppy small-ca
 SPX+QQQ blends to ≈1.6 at little cost (QQQ is a genuine second sleeve); adding IWM drags the
 book to ~1.0. **Single-name S&P wins; drop IWM.**
 
+### 2.5 Iteration-4 robustness — is the edge overfit? (no)
+
+Two iterations followed the WINNER and stress-tested it; this section folds both in. Each driver
+re-runs (or resamples) the backtest hundreds of times — cells are the resulting **Sharpe
+distribution** (`iter4-mc.csv`, SEED 20260623). Baseline = the iteration-3 SPX **$-account**,
+weekly-stride **1.68** (the capital-blind laddered headline is **1.65** — §2.1; same engine,
+different normalisation, do not conflate).
+
+| Stress test | p5 | median | p95 |
+|---|--:|--:|--:|
+| Config-perturb (Δ 0.20–0.30, hold 20–40d, ramp_z 0.3–0.7) | **1.05** | 1.39 | 1.64 |
+| Entry-day jitter | 1.19 | 1.37 | 1.60 |
+| Block-bootstrap (resample monthly returns) | 1.05 | 1.67 | 2.54 |
+| Random start year | 1.60 | 1.97 | 2.73 |
+| Random start *inside* the 2007–09 GFC | 1.62 | 1.65 | 2.02 |
+| SPY buy-and-hold (benchmark) | — | 0.62 | — |
+
+- **Not a knife-edge config.** Perturbing the tuned knobs (incl. hold 20–40d) holds Sharpe at
+  **p5 1.05**; every distribution sits far above SPY buy-hold (0.62). The edge survives the config
+  search that produced it — it is not an artifact of the exact winner cell.
+- **Entry weekday is second-order — Tuesday best, but don't pin it.** Single-weekday Sharpes span
+  **1.33 (Fri) → 1.53 (Tue)**, *all below* the natural 5-day stride (**1.65**). Tuesday is the best
+  fixed day, but committing to any one weekday is slightly *worse* than letting the weekly cadence
+  diversify day-of-week exposure. Edge stays >1.3 every day → **keep the weekly stride; Tuesday only
+  matters if you must pin a day.**
+- **Starting at a bear-market top *helps*.** Every post-shock start beats full history (Sharpe
+  **1.87–2.58 vs 1.68**, +150–180% over 36 months) — selling elevated post-crash vol harvests the
+  richest premium on the recovery. (The entry-day drawdown risk below still applies if you are
+  *already* positioned when the shock hits.)
+- **"Extra set when rich" is leverage, not edge — two independent tests agree.** Iteration-4
+  (single $143k account): the same-day **contract overlay** marginally *hurts* Sharpe (1.668 vs
+  1.680), the **staggered tranche** barely helps (1.705), both deepen drawdown ~$40k.
+  Capital-utilisation ($50k, SPY/QQQ/IWM): the overlay lifts gross return 0.474→0.605 but Sharpe is
+  flat-to-down (1.06→1.05) and maxDD blows **past total capital** (−1.012 of $50k). Only a
+  *tightly-gated* overlay (rich_threshold ≥1.5, fires rarely) nudges Sharpe up (1.06→1.18).
+  **`base_risk_pct` is the only real lever; skip the overlay.**
+- **The real risk is utilisation, not the signal.** At 20%/spread × ~6 concurrent rungs the book
+  runs ~100% deployed (`util_peak` 1.00), so 2008 takes a **−90% drawdown on the base and >−100%
+  on the extra-position arms** (a brief ruin event) — the capital-blind Sharpe completely hides
+  this. Size **≤ ~16%/spread** to stay under the cap.
+- **Capital reality — a six-figure strategy.** SPX spread max-loss rises **~15× over 2007→2026**
+  with spot; the honest *trade-throughout* account is **~$143k at 20% risk** (a $10k-start book goes
+  dormant by ~2015, unable to afford a modern spread). SPY (~$1.7k/spread) is the small-account vehicle.
+- **Compounding vs non-compounding.** Non-compounding (fixed % of the *original* capital) is the
+  honest book. Compounding lifts CAGR to ~57% but *lowers* Sharpe (1.68→1.46) and scales the dollar
+  drawdown to the (enormous) equity — a ruin mirage (see §3 for the safe sub-linear cap).
+- **The 2008 breach lesson.** The three big losses (of **470 fills, 91.1% win, 11.3% breach,
+  +$1.47M** total) were **late-May/early-June 2008 entries at VIX 17–18** — vrp_z was positive (rich
+  vs the trailing year) but **absolute** vol was low, right before the summer plunge. Selling
+  "rich-vs-trailing" does **not** protect against a low-absolute-vol regime that then cracks — the
+  direct case for the regime kill-switch (§5.3).
+
 ---
 
 ## 3. Equity curve vs buy-and-hold
@@ -127,7 +188,9 @@ and is un-realisable (SPY put-spread capacity won't scale to $100M). The safe mi
 ## 4. Conclusion
 
 1. **Real, drawdown-robust edge** — clears its breakeven over 20 years including 2008/2020/2022;
-   the conservative flat-vol model *understates* the put-spread credit.
+   the conservative flat-vol model *understates* the put-spread credit. **Monte-Carlo-robust**
+   (Sharpe p5 **1.05** under config/timing perturbation — §2.5), not a single overfit cell.
+   Settled structure: **~30-trading-day** hold (DTE20 was the rejected predecessor, §1).
 2. **Tradeable on $50k two ways, both single-name S&P:** SPX direct (best Sharpe 1.4–2.0, lumpy
    at ~31%/contract, ~19 entries/yr) or **SPY direct** (Sharpe 1.43–1.63, granular, ~27/yr — the
    pragmatic small-account vehicle).
@@ -135,7 +198,9 @@ and is un-realisable (SPY put-spread capacity won't scale to $100M). The safe mi
    as a **risk-adjusted sleeve / diversifier**, sized to a drawdown you can survive — not a
    standalone return engine.
 4. **`base_risk_pct` is the only real lever** (trades CAGR for drawdown + skip-rate). The "extra
-   set when very rich" overlay is **leverage, not edge** (Sharpe flat).
+   set when very rich" overlay is **leverage, not edge** (Sharpe flat — confirmed by two
+   independent tests, §2.5). The binding constraint is **utilisation**: size ≤ ~16%/spread or the
+   2008 cap breach turns into ruin.
 5. **Recommended deployable:** SPX at `base_risk_pct ≈ 0.20–0.32`, sub-linear compounding capped at
    ~$200k–$400k, gate `ramp+`, **drop IWM**. Or SPY @ 0.20 for granularity on a small account.
 
