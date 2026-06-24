@@ -25,6 +25,9 @@ const f = (x: number | null, d = 2) => (x == null ? "—" : x.toFixed(d));
 
 export function ShortVolPanel({ report }: { report: Report }) {
   const s = report.short_vol;
+  // Show the row's actual date so a stale vrp_daily read (pipeline gap) is visible,
+  // rather than a hardcoded badge that looks identically fresh.
+  const badge = s ? `EOD · ${s.as_of}` : "EOD SNAPSHOT";
 
   const header = (
     <div
@@ -37,7 +40,7 @@ export function ShortVolPanel({ report }: { report: Report }) {
     >
       <span style={labelStyle}>SHORT-VOL · {report.ticker}</span>
       <span style={{ ...labelStyle, fontSize: 9, letterSpacing: 0.5 }}>
-        EOD SNAPSHOT
+        {badge}
       </span>
     </div>
   );
@@ -55,14 +58,16 @@ export function ShortVolPanel({ report }: { report: Report }) {
 
   const trade = s.action === "TRADE";
   const color = trade ? "var(--positive)" : "var(--text-muted)";
+  // weight is structurally pinned (1.0 on every TRADE, 0 on every SKIP), so it carries
+  // no information — vrp_z is the real richness signal.
   const reasons = trade
     ? [
-        `vrp_z ${f(toNum(s.vrp_z))} · weight ${f(toNum(s.weight))} (size)`,
+        `vrp_z ${f(toNum(s.vrp_z))}`,
         `Sell ${f(toNum(s.short_put), 0)} / buy ${f(toNum(s.long_put), 0)} put`,
         `Credit ${f(toNum(s.credit))} · max loss ${f(toNum(s.max_loss))} per spread`,
       ]
     : [
-        `vrp_z ${f(toNum(s.vrp_z))} · weight ${f(toNum(s.weight))}`,
+        `vrp_z ${f(toNum(s.vrp_z))}`,
         `IV ${pct(toNum(s.iv))} / RV20 ${pct(toNum(s.rv20))}`,
       ];
 

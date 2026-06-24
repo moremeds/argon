@@ -16,7 +16,7 @@ from decimal import Decimal
 
 from uw_scan.models import StockShortVol
 from uw_scan.reports.vrp_gate import (
-    passes_gate,
+    evaluate_gate,
     sellable_asset_classes,
     sellable_single_name_sectors,
 )
@@ -54,6 +54,12 @@ def _dec(v: float | None) -> Decimal | None:
     return Decimal(str(v))
 
 
+def _usable_iv(row: dict) -> bool:
+    """The walk-back predicate: a row is usable when its iv is finite and positive."""
+    iv = _finite(row.get("iv"))
+    return iv is not None and iv > 0
+
+
 def decide_short_vol(
     *,
     as_of: _date,
@@ -64,6 +70,7 @@ def decide_short_vol(
     vrp_z_20: float | None,
     gate_ok: bool,
     next_earnings_date: _date | None,
+    gate_skip_reason: str | None = None,
     require_earnings: bool = True,
     risk_free_rate: float = RISK_FREE_RATE,
     cfg: MacroSignalConfig = WINNER,
@@ -106,7 +113,9 @@ def decide_short_vol(
     elif not rich:
         reason = f"vol not rich (vrp_z {z:.2f} < {RICH_Z:.1f})"
     elif not gate_ok:
-        reason = "sector vol not sellable"
+        # gate_skip_reason distinguishes "sector not sellable" from "no earnings
+        # calendar" — both collapse passes_gate to None, but the user needs the real one.
+        reason = gate_skip_reason or "sector vol not sellable"
     elif require_earnings and next_earnings_date is None:
         reason = "earnings date unavailable"
     elif require_earnings and not earnings_clear:
@@ -153,19 +162,25 @@ def decide_short_vol(
 
 
 def build_short_vol(repo, ticker: str, spot: float | None) -> StockShortVol | None:
-    """I/O wrapper: read the latest vrp_daily row, the sellable gate, and a reliable
-    next-earnings date, then decide. Returns None when the ticker has no vrp_daily
-    history (new/illiquid name).
+    """I/O wrapper: read the most recent usable vrp_daily row, the sellable gate, and
+    a reliable next-earnings date, then decide. Returns None when the ticker has no
+    vrp_daily history (new/illiquid name).
+
+    The latest row can carry a NULL iv on a day the deriver had no data, so we walk
+    back to the most recent row with a usable IV (mirrors the macro sibling) rather
+    than going dead on a single bad day. as_of then reflects the row actually used,
+    so a stale read surfaces honestly on the card.
 
     Earnings come from repo.fetch_latest_next_earnings_date (most-recent reported
     next-earnings across flow_events) — more reliable than the report's
     current-top-alert promotion, which is often None even for names that report.
     """
-    series = repo.fetch_vrp_daily_series(ticker, limit=1)
+    series = repo.fetch_vrp_daily_series(ticker, limit=7)
     if not series:
         return None
-    row = series[0]
-    gate = passes_gate(
+    # series is market_date DESC → the first usable row is the most recent one.
+    row = next((r for r in series if _usable_iv(r)), series[0])
+    gate, gate_skip_reason = evaluate_gate(
         repo,
         ticker,
         sellable_sectors=sellable_single_name_sectors(repo),
@@ -183,5 +198,6 @@ def build_short_vol(repo, ticker: str, spot: float | None) -> StockShortVol | No
         vrp_z_20=row.get("vrp_z_20"),
         gate_ok=gate is not None,
         next_earnings_date=repo.fetch_latest_next_earnings_date(ticker),
+        gate_skip_reason=gate_skip_reason,
         require_earnings=require_earnings,
     )

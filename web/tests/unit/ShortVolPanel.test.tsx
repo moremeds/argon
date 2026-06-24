@@ -53,6 +53,10 @@ describe("ShortVolPanel", () => {
     expect(
       screen.getByText(/Bull put spread 0\.25Δ\/0\.125Δ · ~30d hold/),
     ).toBeTruthy();
+    // [5] as_of surfaces in the badge so a stale row is visible
+    expect(screen.getByText("EOD · 2026-06-24")).toBeTruthy();
+    // [8] the structurally-pinned weight tile is gone
+    expect(screen.queryByText(/weight/i)).toBeNull();
   });
 
   it("renders SKIP with the reason and IV/RV", () => {

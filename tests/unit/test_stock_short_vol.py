@@ -150,15 +150,42 @@ def test_skip_and_no_decimal_nan_when_z_nonfinite():
     assert sig.vrp_z is None and sig.vrp is None
 
 
+def test_skip_uses_gate_skip_reason_when_provided():
+    # "no earnings calendar" must not masquerade as "sector vol not sellable".
+    sig = decide_short_vol(
+        as_of=AS_OF,
+        spot=SPOT,
+        iv=IV,
+        rv=RV,
+        vrp=0.073,
+        vrp_z_20=1.6,
+        gate_ok=False,
+        gate_skip_reason="no earnings calendar",
+        next_earnings_date=CLEAR_EARNINGS,
+    )
+    assert sig.action == "SKIP"
+    assert sig.skip_reason == "no earnings calendar"
+
+
 class _StubRepo:
-    def __init__(self, series):
+    def __init__(self, series, *, sellable_sector=None, has_earnings_calendar=False):
         self._series = series
+        self._sellable_sector = sellable_sector
+        self._has_earnings = has_earnings_calendar
 
     def fetch_vrp_daily_series(self, ticker, *, limit=60):
         return self._series
 
     def fetch_vrp_harvest_by_sector(self):
-        return []
+        if self._sellable_sector is None:
+            return []
+        return [
+            {
+                "sector": self._sellable_sector,
+                "deviation_class": "RICH",
+                "verdict": "HARVEST_SELLABLE",
+            }
+        ]
 
     def fetch_vrp_harvest_multihorizon(self):
         return []
@@ -167,19 +194,52 @@ class _StubRepo:
         return "Technology"
 
     def fetch_historical_earnings_dates(self, ticker):
-        return set()
+        return {date(2026, 1, 15)} if self._has_earnings else set()
 
     def fetch_latest_next_earnings_date(self, ticker):
         return CLEAR_EARNINGS
+
+
+def _row(d, iv=IV):
+    return {"market_date": d, "iv": iv, "rv": RV, "vrp": 0.073, "vrp_z_20": 1.6}
 
 
 def test_build_returns_none_without_history():
     assert build_short_vol(_StubRepo([]), "TSLA", SPOT) is None
 
 
-def test_build_skips_when_gate_blocks():
-    series = [{"market_date": AS_OF, "iv": IV, "rv": RV, "vrp": 0.073, "vrp_z_20": 1.6}]
-    sig = build_short_vol(_StubRepo(series), "TSLA", SPOT)
-    # empty sellable sets → single_name gate returns None → SKIP
+def test_build_skips_when_sector_not_sellable():
+    sig = build_short_vol(_StubRepo([_row(AS_OF)]), "TSLA", SPOT)
+    # empty sellable sets → single_name gate returns None → SKIP with the sector reason
     assert sig is not None and sig.action == "SKIP"
     assert sig.skip_reason == "sector vol not sellable"
+
+
+def test_build_skips_with_no_earnings_calendar_reason():
+    # sellable sector but no historical earnings → distinct, honest reason (not "sector")
+    repo = _StubRepo([_row(AS_OF)], sellable_sector="Technology")
+    sig = build_short_vol(repo, "TSLA", SPOT)
+    assert sig is not None and sig.action == "SKIP"
+    assert sig.skip_reason == "no earnings calendar"
+
+
+def test_build_trades_through_real_gate_path():
+    # sellable sector + earnings calendar + clear next print → populated TRADE row.
+    repo = _StubRepo(
+        [_row(AS_OF)], sellable_sector="Technology", has_earnings_calendar=True
+    )
+    sig = build_short_vol(repo, "TSLA", SPOT)
+    assert sig is not None and sig.action == "TRADE"
+    assert sig.short_put is not None and sig.long_put is not None
+    assert sig.as_of == AS_OF
+
+
+def test_build_walks_back_past_null_iv_latest_row():
+    # newest row has NULL iv; the card must use the most recent usable row, not go dead.
+    newer, older = date(2026, 6, 24), date(2026, 6, 23)
+    series = [_row(newer, iv=None), _row(older, iv=IV)]  # DESC, like the real query
+    repo = _StubRepo(series, sellable_sector="Technology", has_earnings_calendar=True)
+    sig = build_short_vol(repo, "TSLA", SPOT)
+    assert sig is not None and sig.action == "TRADE"  # did NOT skip "no usable IV/spot"
+    assert sig.as_of == older  # as_of reflects the row actually used
+    assert sig.iv == Decimal(str(IV))
