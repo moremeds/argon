@@ -309,6 +309,14 @@ class Settings(BaseModel):
     vrp_slippage_min: float = 0.05  # half-spread floor per leg (price points)
     vrp_cost_round_trip: bool = True  # charge open + close (conservative)
 
+    # --- VRP macro forward entry-capture (plan 2026-06-24) --------------------
+    vrp_macro_entry_capture_enabled: bool = True
+    vrp_macro_entry_taper_calendar_days: int = 30  # > this → EOD-only marks
+    vrp_macro_entry_quote_timeout_s: float = 8.0  # per-leg xenon/IB snapshot timeout
+    vrp_macro_entry_mark_budget_s: float = (
+        600.0  # per-mark wall-clock; overrun → UW-only
+    )
+
     @property
     def ws_spot_enabled(self) -> bool:
         """True when ANY WS feed owns intraday spot.
@@ -701,6 +709,18 @@ class Settings(BaseModel):
             ),
             vrp_slippage_min=float(os.environ.get("UW_SCAN_VRP_SLIPPAGE_MIN", "0.05")),
             vrp_cost_round_trip=_env_bool("UW_SCAN_VRP_COST_ROUND_TRIP", True),
+            vrp_macro_entry_capture_enabled=_env_bool(
+                "UW_SCAN_VRP_MACRO_ENTRY_CAPTURE_ENABLED", True
+            ),
+            vrp_macro_entry_taper_calendar_days=int(
+                os.environ.get("UW_SCAN_VRP_MACRO_ENTRY_TAPER_CALENDAR_DAYS", "30")
+            ),
+            vrp_macro_entry_quote_timeout_s=float(
+                os.environ.get("UW_SCAN_VRP_MACRO_ENTRY_QUOTE_TIMEOUT_S", "8.0")
+            ),
+            vrp_macro_entry_mark_budget_s=float(
+                os.environ.get("UW_SCAN_VRP_MACRO_ENTRY_MARK_BUDGET_S", "600.0")
+            ),
         )
 
     def db_dsn(self) -> str:
