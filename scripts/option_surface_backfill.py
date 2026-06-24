@@ -39,6 +39,13 @@ def main() -> None:
         metavar="YYYY-MM-DD",
         help="stop after this date (inclusive); useful to preserve daily UW quota",
     )
+    p.add_argument(
+        "--quota-limit",
+        type=int,
+        default=None,
+        metavar="N",
+        help="stop when UW daily request count reaches N (e.g. 20000)",
+    )
     args = p.parse_args()
 
     settings = Settings.from_env()
@@ -59,7 +66,11 @@ def main() -> None:
             job_name="option_surface_backfill",
         )
         n = option_surface_backfill(
-            repo=repo, client=client, days_back=args.days_back, end_date=args.end_date
+            repo=repo,
+            client=client,
+            days_back=args.days_back,
+            end_date=args.end_date,
+            quota_limit=args.quota_limit,
         )
 
     log.info("done: %d rows written", n)

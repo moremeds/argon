@@ -110,12 +110,14 @@ def option_surface_backfill(
     client: UwClient,
     days_back: int = 30,
     end_date: _date | None = None,
+    quota_limit: int | None = None,
 ) -> int:
     """Fill option_surface_grid_daily for recent past weekdays not yet captured.
 
     Skips any market_date that already has rows in the table (idempotent).
     end_date (inclusive) caps which dates are processed — useful to avoid burning
     the full daily UW quota when planning a follow-up run.
+    quota_limit stops after the UW daily request counter reaches that value.
     UW 403s beyond ~30 trading days; individual ticker/expiry 403s are logged and skipped.
     Returns total rows written.
     """
@@ -155,6 +157,12 @@ def option_surface_backfill(
             ticker = card.ticker
             if ticker.upper() in done:
                 continue
+            if (
+                quota_limit is not None
+                and (client.rate_limit.daily_count or 0) >= quota_limit
+            ):
+                log.info("backfill: quota_limit=%d reached — stopping", quota_limit)
+                return written
             run_id = None
             try:
                 run_id = repo.insert_scan_run(ticker, notes="option_surface_backfill")
