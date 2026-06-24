@@ -5189,6 +5189,7 @@ export interface components {
              * @default n/a (UW endpoint does not expose %)
              */
             short_int_note: string;
+            short_vol?: components["schemas"]["StockShortVol"] | null;
             /** Spot Quoted At */
             spot_quoted_at?: string | null;
             /** Spot Source */
@@ -5661,6 +5662,56 @@ export interface components {
             pcr_vol?: string | null;
             /** Spot */
             spot?: string | null;
+        };
+        /**
+         * StockShortVol
+         * @description Per-ticker short-vol (sell-premium) readout for the Market Structure tab —
+         *     the single-name sibling of the SPX MacroSignal. EOD basis (latest vrp_daily row).
+         *     action=TRADE only when vol is rich (vrp_z_20 >= 1.0) AND the ticker's sector is in
+         *     the sellable set AND earnings are clear of the hold window; else SKIP with a reason.
+         *     Strikes/credit/max_loss are flat-vol modeled (conservative floor).
+         */
+        StockShortVol: {
+            /**
+             * As Of
+             * Format: date
+             */
+            as_of: string;
+            /**
+             * Basis
+             * @default eod
+             */
+            basis: string;
+            /** Action */
+            action: string;
+            /** Skip Reason */
+            skip_reason?: string | null;
+            /** Iv */
+            iv?: string | null;
+            /** Rv20 */
+            rv20?: string | null;
+            /** Vrp */
+            vrp?: string | null;
+            /** Vrp Z */
+            vrp_z?: string | null;
+            /** Weight */
+            weight?: string | null;
+            /** Short Put */
+            short_put?: string | null;
+            /** Long Put */
+            long_put?: string | null;
+            /** Put Width */
+            put_width?: string | null;
+            /** Credit */
+            credit?: string | null;
+            /** Max Loss */
+            max_loss?: string | null;
+            /** Hold Days */
+            hold_days: number;
+            /** Short Delta */
+            short_delta: string;
+            /** Wing Delta */
+            wing_delta: string;
         };
         /**
          * StrikeExposureRow

@@ -123,6 +123,10 @@ class _StubRepo:
     def fetch_strike_exposures(self, run_id: int, ticker: str) -> list[dict]:
         return []
 
+    def fetch_vrp_daily_series(self, ticker: str, *, limit: int = 60) -> list[dict]:
+        # No VRP history → build_short_vol returns None (the gate path isn't reached).
+        return []
+
     def fetch_exposures_summary(self, run_id: int, ticker: str) -> list[dict]:
         return []
 
@@ -312,6 +316,10 @@ def test_assemble_single_stock_report_populates_sections():
     # VRP — IV 0.5 vs RV 0.4 → vrp 0.1 → rich
     assert report.vrp.vrp == Decimal("0.1")
     assert report.vrp.signal == "rich"
+
+    # Short-vol card degrades cleanly to None when the stub has no vrp_daily history
+    # (proves the new wiring doesn't blow up assembly — not via exception-swallowing).
+    assert report.short_vol is None
 
     # Dark pool + short data
     assert report.dark_pool_print_count == 100

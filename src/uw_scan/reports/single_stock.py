@@ -5,6 +5,7 @@ Pure function: reads from Repository (already-persisted tables), never the live 
 
 from __future__ import annotations
 
+import logging
 from datetime import UTC, datetime
 from datetime import date as _date
 from decimal import Decimal
@@ -30,6 +31,9 @@ from ..models import (
 )
 from ..storage.option_intraday_repository import OptionIntradayBucketRepository
 from ..storage.repository import Repository
+from .stock_short_vol import build_short_vol
+
+logger = logging.getLogger(__name__)
 
 # How many of the top OI movers (post-notional sort) we derive an intraday
 # tape profile for. Matches the OiMoversTable.tsx slice() cap on the UI.
@@ -406,6 +410,21 @@ def assemble_single_stock_report(
         None,
     )
 
+    # Per-ticker short-vol readout (sell-premium TRADE/SKIP + modeled spread).
+    # Modeled off the EOD-close market_structure.spot (consistent with the EOD
+    # vrp_daily as_of + the card's "EOD SNAPSHOT" label); the router's
+    # _with_latest_spot only patches the header display spot, not this card.
+    # Non-critical — never let it take down the page (cf. pipeline.py:94).
+    try:
+        short_vol = build_short_vol(
+            repo,
+            ticker,
+            float(market_structure.spot) if market_structure.spot is not None else None,
+        )
+    except Exception as exc:  # noqa: BLE001 — short-vol card is non-critical; never break the page
+        logger.warning("short_vol build failed for %s: %s", ticker, repr(exc))
+        short_vol = None
+
     # Dealer regime — same gather_inputs helper the /regime/dealer endpoint
     # uses, so both paths share one source of truth.
     dr_inputs = gather_inputs(repo, ticker=ticker)
@@ -466,5 +485,6 @@ def assemble_single_stock_report(
         strike_exposures=strike_exposures,
         exposures_summary=exposures_summary,
         next_earnings_date=next_earnings_date,
+        short_vol=short_vol,
         dealer_regime=dealer_regime_model,
     )
