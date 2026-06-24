@@ -154,6 +154,26 @@ class _VrpMacroEntryMixin:
         with self._conn.cursor() as cur:
             cur.executemany(sql, params)
 
+    def fetch_vrp_macro_entry(self, entry_id: int) -> dict[str, Any] | None:
+        """One cohort header by id (any origin) — the 4 strikes surface under the
+        short leg-names. Used by the capture endpoint to read back a button cohort
+        (which fetch_open_vrp_macro_entries excludes)."""
+        sql = (
+            "SELECT entry_id, name, birth_date, born_at, origin, expiry, hold_days, "
+            "spot_at_birth, iv_at_birth, vrp_z_at_birth, weight_at_birth, "
+            "action_at_birth, short_delta, wing_delta, "
+            "short_strike_above AS short_above, short_strike_below AS short_below, "
+            "wing_strike_above AS wing_above, wing_strike_below AS wing_below "
+            f"FROM {self._schema}.vrp_macro_entry WHERE entry_id = %s"
+        )
+        with self._conn.cursor() as cur:
+            cur.execute(sql, (entry_id,))
+            row = cur.fetchone()
+            if row is None:
+                return None
+            cols = [d.name for d in cur.description or []]
+            return dict(zip(cols, row, strict=False))
+
     def fetch_vrp_macro_entry_quotes(self, entry_id: int) -> list[dict[str, Any]]:
         sql = (
             f"SELECT {', '.join(_QUOTE_COLS)}, captured_at "

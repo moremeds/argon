@@ -7723,6 +7723,71 @@ export interface components {
             /** Vrp Z 20 */
             vrp_z_20?: string | null;
         };
+        VrpMacroEntryCaptureResponse: {
+            /** Entry Id */
+            entry_id: number;
+            preview: components["schemas"]["VrpMacroEntryPreview"];
+        };
+        VrpMacroEntryLeg: {
+            /**
+             * Leg
+             * @enum {string}
+             */
+            leg: "short_above" | "short_below" | "wing_above" | "wing_below";
+            /** Strike */
+            strike: number;
+            /** Nbbo Bid */
+            nbbo_bid?: number | null;
+            /** Nbbo Ask */
+            nbbo_ask?: number | null;
+            /** Iv */
+            iv?: number | null;
+            /** Delta */
+            delta?: number | null;
+            /** Gamma */
+            gamma?: number | null;
+            /** Vega */
+            vega?: number | null;
+            /** Theta */
+            theta?: number | null;
+            /** Und Spot */
+            und_spot?: number | null;
+            /**
+             * Source
+             * @enum {string}
+             */
+            source: "xenon_ib" | "uw" | "modeled";
+            /**
+             * Greeks Source
+             * @enum {string}
+             */
+            greeks_source: "bs" | "none";
+        };
+        VrpMacroEntryPreview: {
+            /** Name */
+            name: string;
+            /** As Of */
+            as_of?: string | null;
+            /** Spot */
+            spot?: number | null;
+            /** Expiry */
+            expiry?: string | null;
+            /** Hold Days */
+            hold_days?: number | null;
+            /** Action */
+            action?: string | null;
+            /** Vrp Z */
+            vrp_z?: number | null;
+            /** Weight */
+            weight?: number | null;
+            /** Modeled Credit */
+            modeled_credit?: number | null;
+            /**
+             * Legs
+             * @default []
+             */
+            legs: components["schemas"]["VrpMacroEntryLeg"][];
+        };
         /**
          * VrpMacroSignalLiveResponse
          * @description Live (intraday) VRP macro short-vol signal for SPX. `basis='live'` when computed

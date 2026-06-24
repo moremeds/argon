@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Annotated
 from zoneinfo import ZoneInfo
 
@@ -16,6 +16,11 @@ from uw_scan.api.models.canary import (
     CanaryHistoryRow,
     CanaryLatestResponse,
     CanaryValidationResponse,
+)
+from uw_scan.api.models.vrp_macro_entry import (
+    VrpMacroEntryCaptureResponse,
+    VrpMacroEntryLeg,
+    VrpMacroEntryPreview,
 )
 from uw_scan.api.schemas import (
     EMPTY_CRI_RESPONSE,
@@ -61,7 +66,19 @@ from uw_scan.cards.canary_calibration import (
 )
 from uw_scan.cards.dealer_regime import compute_dealer_regime, gather_inputs
 from uw_scan.config import Settings
-from uw_scan.reports.vrp_macro_signal import WINNER, current_macro_signal_live
+from uw_scan.reports.vrp_macro_entry import resolve_entry_contracts
+from uw_scan.reports.vrp_macro_signal import (
+    WINNER,
+    current_macro_signal,
+    current_macro_signal_live,
+)
+from uw_scan.reports.vrp_structure import (
+    bs_delta,
+    bs_gamma,
+    bs_price,
+    bs_theta,
+    bs_vega,
+)
 from uw_scan.scanners import cri as cri_scanner
 from uw_scan.scanners import gex as gex_scanner
 from uw_scan.scanners import grg as grg_scanner
@@ -75,6 +92,7 @@ from uw_scan.storage.regime_backtest_repository import RegimeBacktestRepository
 from uw_scan.storage.repository import Repository
 from uw_scan.storage.vcg_snapshot_repository import VcgSnapshotRepository
 from uw_scan.storage.vol_index_repository import VolIndexRepository
+from uw_scan.worker.jobs.vrp_macro_entry import capture_entry_now
 
 logger = logging.getLogger(__name__)
 
@@ -347,6 +365,222 @@ def get_vrp_macro_signal_live(
             **{k: eod_rows[0].get(k) for k in VrpMacroSignalRow.model_fields}
         ),
     )
+
+
+# ─── VRP macro entry-capture preview + capture ───────────────────
+
+_PREVIEW_LEG_ORDER = ("short_above", "short_below", "wing_above", "wing_below")
+
+
+def _f(v: object) -> float | None:
+    return float(v) if v is not None else None  # type: ignore[arg-type]
+
+
+def _live_or_eod_macro_signal(repo: Repository, settings: Settings):
+    """Live SPX macro signal if SPX+VIX quotes are fresh, else the EOD signal,
+    else None. Reads DB only — ZERO UW, ZERO IB, ZERO writes (preview is
+    browser-polled; a fetcher call would write an audit row per poll)."""
+    quotes = load_live_quotes(
+        repo,
+        settings.regime_ws_symbols,
+        max_age_seconds=settings.regime_live_quote_max_age_seconds,
+    )
+    spx, vix = quotes.get("SPX"), quotes.get("VIX")
+    if spx is not None and vix is not None:
+        try:
+            return current_macro_signal_live(
+                repo,
+                settings,
+                "SPX",
+                WINNER,
+                live_spot=float(spx.price),
+                live_iv=float(vix.price) / 100.0,
+            )
+        except ValueError as exc:
+            logger.debug("vrp preview live signal failed: %s", repr(exc))
+    try:
+        return current_macro_signal(repo, settings, "SPX")
+    except ValueError as exc:
+        logger.debug("vrp preview eod signal failed: %s", repr(exc))
+        return None
+
+
+def _persisted_preview_legs(quotes: list[dict]) -> list[VrpMacroEntryLeg]:
+    """Latest-as_of snapshot legs of a persisted cohort, ordered."""
+    if not quotes:
+        return []
+    latest = max(q["as_of"] for q in quotes)
+    by_leg = {q["leg"]: q for q in quotes if q["as_of"] == latest}
+    legs: list[VrpMacroEntryLeg] = []
+    for name in _PREVIEW_LEG_ORDER:
+        q = by_leg.get(name)
+        if q is None:
+            continue
+        legs.append(
+            VrpMacroEntryLeg(
+                leg=name,
+                strike=float(q["strike"]),
+                nbbo_bid=_f(q["nbbo_bid"]),
+                nbbo_ask=_f(q["nbbo_ask"]),
+                iv=_f(q["iv"]),
+                delta=_f(q["delta"]),
+                gamma=_f(q["gamma"]),
+                vega=_f(q["vega"]),
+                theta=_f(q["theta"]),
+                und_spot=_f(q["und_spot"]),
+                source=q["source"],
+                greeks_source=q["greeks_source"],
+            )
+        )
+    return legs
+
+
+def _bs_indicative_legs(sig, settings: Settings) -> list[VrpMacroEntryLeg]:
+    """Pre-birth BS-indicative legs off a synthetic 5-pt SPX grid (ZERO UW)."""
+    spot, sigma = float(sig.spot), float(sig.iv)
+    t_years = sig.hold_days / 252.0
+    r = settings.vrp_risk_free_rate
+    base = round(spot / 5.0) * 5.0
+    grid = sorted(
+        {base - 5.0 * i for i in range(1, 600)} | {base + 5.0 * i for i in range(0, 20)}
+    )
+    grid = [g for g in grid if g > 0]
+    ec = resolve_entry_contracts(
+        spot=spot,
+        sigma=sigma,
+        T=t_years,
+        r=r,
+        listed_strikes=grid,
+        short_delta=sig.short_delta,
+        wing_delta=sig.wing_delta,
+    )
+    legs: list[VrpMacroEntryLeg] = []
+    for name, strike in (
+        ("short_above", ec.short_above),
+        ("short_below", ec.short_below),
+        ("wing_above", ec.wing_above),
+        ("wing_below", ec.wing_below),
+    ):
+        price = bs_price(spot, strike, t_years, r, sigma, is_call=False)
+        legs.append(
+            VrpMacroEntryLeg(
+                leg=name,
+                strike=strike,
+                nbbo_bid=price,
+                nbbo_ask=price,
+                iv=sigma,
+                delta=bs_delta(spot, strike, t_years, r, sigma, is_call=False),
+                gamma=bs_gamma(spot, strike, t_years, r, sigma),
+                vega=bs_vega(spot, strike, t_years, r, sigma),
+                theta=bs_theta(spot, strike, t_years, r, sigma, is_call=False),
+                und_spot=spot,
+                source="modeled",
+                greeks_source="bs",
+            )
+        )
+    return legs
+
+
+def _leg_mid(leg: VrpMacroEntryLeg) -> float | None:
+    if leg.nbbo_bid is not None and leg.nbbo_ask is not None:
+        return (leg.nbbo_bid + leg.nbbo_ask) / 2.0
+    return None
+
+
+def _modeled_credit(legs: list[VrpMacroEntryLeg]) -> float | None:
+    """short-leg mid − wing-leg mid using the consistent 'above' bracket (the
+    continuous-strike MacroSignal.credit won't match the snapped legs)."""
+    by = {leg.leg: leg for leg in legs}
+    s, w = by.get("short_above"), by.get("wing_above")
+    if s is None or w is None:
+        return None
+    sm, wm = _leg_mid(s), _leg_mid(w)
+    if sm is None or wm is None:
+        return None
+    return sm - wm
+
+
+@router.get("/vrp-macro-signal/entry/preview", response_model=VrpMacroEntryPreview)
+def get_vrp_macro_entry_preview(
+    repo: Annotated[Repository, Depends(get_repo)],
+    settings: Annotated[Settings, Depends(get_settings)],
+) -> VrpMacroEntryPreview:
+    """Indicative SPX entry preview. ZERO IB, ZERO new UW, ZERO writes — browser-
+    polled. Serves today's persisted auto-cohort snapshot legs if present, else
+    BS-indicative 'modeled' legs off the live/EOD signal. Degrades to action=None +
+    empty legs when no signal resolves (never 500)."""
+    today_et = datetime.now(ZoneInfo(settings.rth_tz)).date()
+    sig = _live_or_eod_macro_signal(repo, settings)
+    today_cohort = next(
+        (
+            c
+            for c in repo.fetch_open_vrp_macro_entries("SPX", today_et)
+            if c["birth_date"] == today_et
+        ),
+        None,
+    )
+    if today_cohort is not None:
+        quotes = repo.fetch_vrp_macro_entry_quotes(today_cohort["entry_id"])
+        legs = _persisted_preview_legs(quotes)
+        return VrpMacroEntryPreview(
+            name="SPX",
+            as_of=max((q["as_of"] for q in quotes), default=None),
+            spot=float(sig.spot) if sig else _f(today_cohort["spot_at_birth"]),
+            expiry=today_cohort["expiry"],
+            hold_days=today_cohort["hold_days"],
+            action=sig.action if sig else today_cohort["action_at_birth"],
+            vrp_z=(
+                float(sig.vrp_z)
+                if sig and sig.vrp_z is not None
+                else _f(today_cohort["vrp_z_at_birth"])
+            ),
+            weight=float(sig.weight) if sig else _f(today_cohort["weight_at_birth"]),
+            modeled_credit=_modeled_credit(legs),
+            legs=legs,
+        )
+    if sig is None:
+        return VrpMacroEntryPreview(name="SPX", legs=[])
+    legs = _bs_indicative_legs(sig, settings)
+    return VrpMacroEntryPreview(
+        name="SPX",
+        as_of=None,
+        spot=float(sig.spot),
+        expiry=today_et + timedelta(days=43),  # indicative ETD pre-birth
+        hold_days=sig.hold_days,
+        action=sig.action,
+        vrp_z=float(sig.vrp_z) if sig.vrp_z is not None else None,
+        weight=float(sig.weight),
+        modeled_credit=_modeled_credit(legs),
+        legs=legs,
+    )
+
+
+@router.post(
+    "/vrp-macro-signal/entry/capture", response_model=VrpMacroEntryCaptureResponse
+)
+def post_vrp_macro_entry_capture(
+    repo: Annotated[Repository, Depends(get_repo)],
+    settings: Annotated[Settings, Depends(get_settings)],
+) -> VrpMacroEntryCaptureResponse:
+    """Capture the current SPX entry now (IB-primary): persists a one-shot 'button'
+    cohort + its 4 legs, then returns them read back from the persisted rows."""
+    entry_id = capture_entry_now(repo, settings)
+    header = repo.fetch_vrp_macro_entry(entry_id)
+    quotes = repo.fetch_vrp_macro_entry_quotes(entry_id)
+    legs = _persisted_preview_legs(quotes)
+    preview = VrpMacroEntryPreview(
+        name="SPX",
+        as_of=max((q["as_of"] for q in quotes), default=None),
+        spot=_f(header["spot_at_birth"]) if header else None,
+        expiry=header["expiry"] if header else None,
+        hold_days=header["hold_days"] if header else None,
+        action=header["action_at_birth"] if header else None,
+        vrp_z=_f(header["vrp_z_at_birth"]) if header else None,
+        weight=_f(header["weight_at_birth"]) if header else None,
+        modeled_credit=_modeled_credit(legs),
+        legs=legs,
+    )
+    return VrpMacroEntryCaptureResponse(entry_id=entry_id, preview=preview)
 
 
 # ─── CRI (live) ──────────────────────────────────────────────────
