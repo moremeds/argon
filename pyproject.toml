@@ -36,6 +36,11 @@ dev = [
   "pytest-postgresql>=6",
   "ruff>=0.5",
   "pytest-asyncio>=0.24,<1.0",
+  # Integration suite is sharded by recorded per-test duration (pytest-split) and
+  # parallelised within each shard across cores (pytest-xdist). See tests/integration
+  # conftest per-worker DB isolation + .github/workflows/ci.yml.
+  "pytest-xdist>=3.6",
+  "pytest-split>=0.9",
 ]
 # Notebook/plotting tooling for docs/research/*.ipynb (not needed by the app/worker).
 research = [

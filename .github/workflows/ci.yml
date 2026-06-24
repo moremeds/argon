@@ -115,50 +115,21 @@ jobs:
           PGPASSWORD=postgres psql -h 127.0.0.1 -U postgres -d postgres -c "CREATE DATABASE option_wizard_local"
           PGPASSWORD=postgres psql -h 127.0.0.1 -U postgres -d postgres -c "CREATE DATABASE option_wizard_test"
 
-      - name: Verify integration shard candidates match pytest collection
+      - name: Integration tests (duration-sharded, parallel within shard)
+        # pytest-split distributes tests across the 4 shards by recorded per-test
+        # duration (.test_durations); pytest-xdist (-n auto) parallelises each shard
+        # across the runner's cores. Every test still runs — coverage is unchanged,
+        # the split is purely about balancing wall-clock. Each xdist worker gets its
+        # own option_wizard_test_gwN database (created on demand by the integration
+        # conftest's pytest_configure). The live E2E (tests/integration/test_pipeline_e2e.py)
+        # is auto-skipped because UW_SCAN_API_KEY is not set on CI.
         shell: bash
         run: |
           set -euo pipefail
-          uv run pytest --collect-only -q tests/integration/ \
-            | grep '^tests/' \
-            | sed 's/::.*//' \
-            | sort -u > /tmp/pytest-collected-files.txt
-          find tests/integration -type f \( -name 'test_*.py' -o -name '*_test.py' \) \
-            | sort > /tmp/shard-candidate-files.txt
-          diff -u /tmp/pytest-collected-files.txt /tmp/shard-candidate-files.txt
-
-      - name: Select integration shard
-        id: shard
-        shell: bash
-        run: |
-          set -euo pipefail
-          mapfile -t files < <(find tests/integration -type f \( -name 'test_*.py' -o -name '*_test.py' \) | sort)
-          selected=()
-          for i in "${!files[@]}"; do
-            if (( i % ${{ matrix.total-shards }} == ${{ matrix.shard }} - 1 )); then
-              selected+=("${files[$i]}")
-            fi
-          done
-
-          if (( ${#selected[@]} == 0 )); then
-            echo "No tests selected for shard ${{ matrix.shard }}"
-            exit 1
-          fi
-
-          printf '%s\n' "${selected[@]}" > /tmp/integration-shard.txt
-          {
-            echo 'files<<EOF'
-            printf '%s\n' "${selected[@]}"
-            echo 'EOF'
-          } >> "$GITHUB_OUTPUT"
-
-      - name: Integration tests (no live API)
-        # The live E2E (tests/integration/test_pipeline_e2e.py) is auto-skipped because UW_SCAN_API_KEY is not set on CI.
-        shell: bash
-        run: |
-          set -euo pipefail
-          mapfile -t shard_files < /tmp/integration-shard.txt
-          uv run pytest "${shard_files[@]}" -v
+          uv run pytest tests/integration/ \
+            --splits "${{ matrix.total-shards }}" --group "${{ matrix.shard }}" \
+            --durations-path .test_durations \
+            -n auto
 
   python:
     name: lint + unit + integration

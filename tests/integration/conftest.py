@@ -38,6 +38,40 @@ from uw_scan.storage.repository import Repository
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
 
+def pytest_configure(config: pytest.Config) -> None:
+    """Give each pytest-xdist worker its own test database.
+
+    Workers run in parallel processes and every test resets the shared `uw_scan`
+    schema, so they would clobber each other. A per-worker SCHEMA can't isolate them
+    either — migrations hardcode `SET search_path TO uw_scan` — so each worker gets its
+    own DATABASE. We mutate the UW_SCAN_TEST_DB_NAME env var (rather than one fixture)
+    so EVERY test-DB reader inherits the gwN name: this conftest, api/conftest, and the
+    ~20 recorder/job/storage tests that read os.environ['UW_SCAN_TEST_DB_NAME'] directly.
+    No-op without xdist (single worker → base DB, unchanged behaviour).
+    """
+    worker = os.environ.get("PYTEST_XDIST_WORKER")
+    base = os.environ.get("UW_SCAN_TEST_DB_NAME")
+    if not worker or not base or base.endswith(f"_{worker}"):
+        return
+    per_worker = f"{base}_{worker}"
+    os.environ["UW_SCAN_TEST_DB_NAME"] = per_worker
+    _create_worker_db(per_worker)
+
+
+def _create_worker_db(name: str) -> None:
+    """CREATE DATABASE <name> if absent (no-op when it exists). Needs CREATEDB — CI's
+    postgres superuser and a local superuser both have it. The identifier is
+    interpolated (Postgres can't parameterise a database name) but is derived from a
+    fixed env value + the xdist worker id, never user input."""
+    os.environ.setdefault("UW_SCAN_API_KEY", "test-dummy-not-used-by-db-tests")
+    maint = Settings.from_env().model_copy(update={"db_name": "postgres"})
+    with psycopg.connect(maint.db_dsn(), autocommit=True) as conn:
+        with conn.cursor() as cur:
+            cur.execute("SELECT 1 FROM pg_database WHERE datname = %s", (name,))
+            if cur.fetchone() is None:
+                cur.execute(f'CREATE DATABASE "{name}"')
+
+
 def _test_settings() -> Settings:
     test_db = os.environ.get("UW_SCAN_TEST_DB_NAME")
     if not test_db:
@@ -58,6 +92,9 @@ def _migrated_settings() -> Settings:
     session instead of once per test. ``seeded_db_empty_cards`` below
     delivers per-test isolation via TRUNCATE+COPY against the snapshot
     captured in ``_baseline_snapshot``.
+
+    Under xdist each worker runs its own session against its own gwN database
+    (set up by ``pytest_configure``), so this migrates once per worker.
     """
     settings = _test_settings()
     with psycopg.connect(settings.db_dsn(), autocommit=True) as conn:
