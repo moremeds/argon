@@ -23,10 +23,8 @@ Reproduce (local):
 
 from __future__ import annotations
 
-import os
 import sys
 from collections import defaultdict
-from datetime import date as _date
 from statistics import mean, pstdev
 
 import psycopg
@@ -148,19 +146,19 @@ def run(repo: Repository, settings: Settings) -> None:
     wins = sum(1 for c in captures if c > 0)
 
     print(f"\n{'=' * 62}")
-    print(f"  VRP 1-SPREAD · 15-DTE EXIT — SPX BULL PUT SPREAD")
+    print("  VRP 1-SPREAD · 15-DTE EXIT — SPX BULL PUT SPREAD")
     print(f"  {entries[0]['entry_date']} → {entries[-1]['entry_date']}")
     print(f"{'=' * 62}")
 
-    print(f"\n── CAPITAL / MARGIN ─────────────────────────────────────────")
+    print("\n── CAPITAL / MARGIN ─────────────────────────────────────────")
     print(f"  Margin per spread (avg)  : ${mean(margins):>9,.0f}")
     print(
         f"  Margin per spread (max)  : ${max(margins):>9,.0f}   ← size your account to this"
     )
     print(f"  Margin per spread (min)  : ${min(margins):>9,.0f}   ← cheap-market low")
-    print(f"  (margin = max_loss × 100; scales with SPX level)")
+    print("  (margin = max_loss × 100; scales with SPX level)")
 
-    print(f"\n── PER-TRADE PREMIUM ────────────────────────────────────────")
+    print("\n── PER-TRADE PREMIUM ────────────────────────────────────────")
     print(
         f"  Avg entry credit         : ${mean(credits):>9,.0f}   (full hold-to-expiry value)"
     )
@@ -177,7 +175,7 @@ def run(repo: Repository, settings: Settings) -> None:
         f"  Trades in breach at exit : {sum(1 for e in entries if e['breached']):<4}  / {len(entries)}"
     )
 
-    print(f"\n── MONTHLY INCOME (1 spread at a time) ─────────────────────")
+    print("\n── MONTHLY INCOME (1 spread at a time) ─────────────────────")
     print(f"  Avg trades / month       : {len(entries) / len(monthly):>8.1f}")
     print(f"  Avg monthly income       : ${mean(monthly_totals):>9,.0f}")
     print(
@@ -190,7 +188,7 @@ def run(repo: Repository, settings: Settings) -> None:
         f"  Months with loss         : {sum(1 for m in monthly_totals if m < 0):<4}  / {len(monthly_totals)}"
     )
 
-    print(f"\n── ANNUALISED ────────────────────────────────────────────────")
+    print("\n── ANNUALISED ────────────────────────────────────────────────")
     avg_margin = mean(margins)
     ann_income = mean(monthly_totals) * 12
     print(f"  Annual income (avg)      : ${ann_income:>9,.0f}")
@@ -198,7 +196,7 @@ def run(repo: Repository, settings: Settings) -> None:
         f"  Return on avg margin     : {ann_income / avg_margin * 100:>8.1f}%   per year"
     )
 
-    print(f"\n── LAST 10 TRADES ────────────────────────────────────────────")
+    print("\n── LAST 10 TRADES ────────────────────────────────────────────")
     print(
         f"  {'Entry':>10}  {'Exit':>10}  {'SPX':>7}  {'VIX':>5}  "
         f"{'z':>5}  {'Credit':>7}  {'Captured':>8}  {'Breach':>6}"

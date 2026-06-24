@@ -13,7 +13,6 @@ from __future__ import annotations
 
 import math
 import sys
-from statistics import mean
 
 import psycopg
 
@@ -24,7 +23,6 @@ from uw_scan.reports.vrp_capital_account import (
     simulate_account,
 )
 from uw_scan.reports.vrp_macro_drawdown import load_index_vol
-from uw_scan.reports.vrp_macro_signal import WINNER
 from uw_scan.storage.repository import Repository
 
 # Capital levels to test
@@ -71,9 +69,9 @@ def main() -> None:
 
     # ── Header ───────────────────────────────────────────────────────────────
     print(f"\n{'=' * 78}")
-    print(f"  VRP CAPITAL LADDER — SPX BULL PUT SPREAD · HOLD TO EXPIRY · RAMP+ GATE")
-    print(f"  Strategy: sell 0.25Δ put + buy 0.125Δ wing · ~45 cal DTE entry · weekly")
-    print(f"  Data: SPX+VIX 2006-2026 (19 yr, 2008 included)")
+    print("  VRP CAPITAL LADDER — SPX BULL PUT SPREAD · HOLD TO EXPIRY · RAMP+ GATE")
+    print("  Strategy: sell 0.25Δ put + buy 0.125Δ wing · ~45 cal DTE entry · weekly")
+    print("  Data: SPX+VIX 2006-2026 (19 yr, 2008 included)")
     print(f"  Live margin (today, SPX ~7,100): ${CURRENT_MARGIN:,} per spread")
     print(f"{'=' * 78}")
 
@@ -119,19 +117,19 @@ def main() -> None:
 
     # ── Honest risk section ──────────────────────────────────────────────────
     print(f"\n{'=' * 78}")
-    print(f"  RISK ANCHORS (from 2006-2026 history)")
+    print("  RISK ANCHORS (from 2006-2026 history)")
     print(f"{'─' * 78}")
-    print(f"  Worst drawdown     : −50% of capital  (2009 GFC, brp 0.20)")
-    print(f"                       −79% of capital  (2009 GFC, brp 0.32)")
+    print("  Worst drawdown     : −50% of capital  (2009 GFC, brp 0.20)")
+    print("                       −79% of capital  (2009 GFC, brp 0.32)")
     print(
-        f"  Worst single month : see monthly std-dev — can lose 2–4 months in 1 event"
+        "  Worst single month : see monthly std-dev — can lose 2–4 months in 1 event"
     )
-    print(f"  Rule: size your account to SURVIVE −50% before sizing for income")
+    print("  Rule: size your account to SURVIVE −50% before sizing for income")
     print(
-        f"        → minimum safe capital for brp 0.20: $100k (−50% = −$50k; still solvent)"
+        "        → minimum safe capital for brp 0.20: $100k (−50% = −$50k; still solvent)"
     )
     print(
-        f"        → minimum safe capital for brp 0.32: $143k (can afford 1 spread always)"
+        "        → minimum safe capital for brp 0.32: $143k (can afford 1 spread always)"
     )
 
     # ── Contracts-now table ──────────────────────────────────────────────────
@@ -147,8 +145,8 @@ def main() -> None:
         c32 = contracts_at_entry(capital, 0.32, CURRENT_MARGIN)
         print(f"  ${capital:>9,}   {c20:>10}   {c32:>10}")
 
-    print(f"\n  Max slots open simultaneously: 6  (hold 30td ÷ cadence 5td)")
-    print(f"  But gate fires ~36% of weeks → avg 2-3 open at once in rich-vol")
+    print("\n  Max slots open simultaneously: 6  (hold 30td ÷ cadence 5td)")
+    print("  But gate fires ~36% of weeks → avg 2-3 open at once in rich-vol")
     print(
         f"  Capital to fund ALL 6 slots at today's margin: 6 × ${CURRENT_MARGIN:,} = ${6 * CURRENT_MARGIN:,}"
     )

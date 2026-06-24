@@ -76,8 +76,8 @@ def main() -> None:
     conn.close()
 
     print(f"\n{'=' * 74}")
-    print(f"  VRP @ $1,000,000 — SPX BULL PUT SPREAD · HOLD TO EXPIRY")
-    print(f"  Slippage: 1% half-spread per leg + $0.65/leg commission (round-trip)")
+    print("  VRP @ $1,000,000 — SPX BULL PUT SPREAD · HOLD TO EXPIRY")
+    print("  Slippage: 1% half-spread per leg + $0.65/leg commission (round-trip)")
     print(f"  Live margin today: ${CURRENT_MARGIN:,}/spread  |  Data: 2006-2026 (19yr)")
     print(f"{'=' * 74}")
 
@@ -150,7 +150,7 @@ def main() -> None:
 
     # ── Summary table ────────────────────────────────────────────────────────
     print(f"\n{'=' * 74}")
-    print(f"  SUMMARY — $1,000,000 · WITH SLIPPAGE (deployable numbers)")
+    print("  SUMMARY — $1,000,000 · WITH SLIPPAGE (deployable numbers)")
     print(f"{'─' * 74}")
     print(
         f"  {'brp':>6}  {'Contracts':>10}  {'Monthly':>12}  {'Annual':>10}  "
@@ -172,12 +172,12 @@ def main() -> None:
             f"{r.get('maxdd_pct', 0) * 100:>7.1f}%  {r.get('skip_rate', 0) * 100:>5.1f}%{tag}"
         )
 
-    print(f"\n  Max simultaneous slots: 6  (hold 30td ÷ cadence 5td)")
+    print("\n  Max simultaneous slots: 6  (hold 30td ÷ cadence 5td)")
     print(
         f"  Max margin at once:  6 × {rows[BRPS[0]]['contracts']} contracts × ${CURRENT_MARGIN:,}"
     )
-    print(f"  MaxDD warning: numbers are vs $1M starting capital (non-compounding);")
-    print(f"  forward (post-2011) maxDD is far smaller — worst ≈ -10% (see MASTER doc)")
+    print("  MaxDD warning: numbers are vs $1M starting capital (non-compounding);")
+    print("  forward (post-2011) maxDD is far smaller — worst ≈ -10% (see MASTER doc)")
     print(f"{'=' * 74}\n")
 
 

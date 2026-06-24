@@ -163,7 +163,7 @@ def main() -> None:
 
     # ── Header ───────────────────────────────────────────────────────────────
     W = 16
-    labels = [l for l, _ in EXITS]
+    labels = [lbl for lbl, _ in EXITS]
     sep = "─" * (14 + W * 3)
 
     def row(name, fmt, *vals):
@@ -183,57 +183,65 @@ def main() -> None:
     print(
         f"  VRP — SPX BULL PUT SPREAD · 1 CONTRACT · {results[labels[0]]['n_trades']} entries (19yr)"
     )
-    print(f"  Entry: ~45 cal DTE (30 trading days) | Ramp+ VRP-z gate")
+    print("  Entry: ~45 cal DTE (30 trading days) | Ramp+ VRP-z gate")
     print(f"{'=' * 62}")
     print(f"  {'':30}{'15 trd DTE':>{W}}{'15 cal DTE':>{W}}{'To expiry':>{W}}")
     print(f"  {'':30}{'(hold 15td)':>{W}}{'(hold 20td)':>{W}}{'(hold 30td)':>{W}}")
     print(f"  {sep}")
 
-    m = {l: results[l] for l in labels}
+    m = {lbl: results[lbl] for lbl in labels}
     print(f"\n  {'CAPITAL':}")
-    row("Avg margin / spread", fmt_usd, *[fmt_usd(m[l]["avg_margin"]) for l in labels])
+    row(
+        "Avg margin / spread",
+        fmt_usd,
+        *[fmt_usd(m[lbl]["avg_margin"]) for lbl in labels],
+    )
     row(
         "Max margin (today~$7.4k SPX)",
         fmt_usd,
-        *[fmt_usd(m[l]["max_margin"]) for l in labels],
+        *[fmt_usd(m[lbl]["max_margin"]) for lbl in labels],
     )
 
     print(f"\n  {'PER-TRADE':}")
-    row("Avg entry credit", fmt_usd, *[fmt_usd(m[l]["avg_credit"]) for l in labels])
+    row("Avg entry credit", fmt_usd, *[fmt_usd(m[lbl]["avg_credit"]) for lbl in labels])
     row(
         "Avg captured at exit",
         fmt_usd,
-        *[fmt_usd(m[l]["avg_captured"]) for l in labels],
+        *[fmt_usd(m[lbl]["avg_captured"]) for lbl in labels],
     )
-    row("Capture ratio", fmt_pct, *[fmt_pct(m[l]["capture_pct"]) for l in labels])
-    row("Win rate", fmt_pct, *[fmt_pct(m[l]["win_rate"]) for l in labels])
-    row("Breach rate", fmt_pct, *[fmt_pct(m[l]["breach_rate"]) for l in labels])
+    row("Capture ratio", fmt_pct, *[fmt_pct(m[lbl]["capture_pct"]) for lbl in labels])
+    row("Win rate", fmt_pct, *[fmt_pct(m[lbl]["win_rate"]) for lbl in labels])
+    row("Breach rate", fmt_pct, *[fmt_pct(m[lbl]["breach_rate"]) for lbl in labels])
 
     print(f"\n  {'MONTHLY INCOME (1 spread)':}")
-    row("Trades / month", fmt_n, *[fmt_n(m[l]["trades_per_mo"]) for l in labels])
-    row("Avg monthly income", fmt_usd, *[fmt_usd(m[l]["avg_monthly"]) for l in labels])
+    row("Trades / month", fmt_n, *[fmt_n(m[lbl]["trades_per_mo"]) for lbl in labels])
+    row(
+        "Avg monthly income",
+        fmt_usd,
+        *[fmt_usd(m[lbl]["avg_monthly"]) for lbl in labels],
+    )
     row(
         "Median monthly income",
         fmt_usd,
-        *[fmt_usd(m[l]["med_monthly"]) for l in labels],
+        *[fmt_usd(m[lbl]["med_monthly"]) for lbl in labels],
     )
-    row("Best month", fmt_usd, *[fmt_usd(m[l]["best_month"]) for l in labels])
-    row("Worst month", fmt_usd, *[fmt_usd(m[l]["worst_month"]) for l in labels])
-    row("Monthly std-dev", fmt_usd, *[fmt_usd(m[l]["std_monthly"]) for l in labels])
+    row("Best month", fmt_usd, *[fmt_usd(m[lbl]["best_month"]) for lbl in labels])
+    row("Worst month", fmt_usd, *[fmt_usd(m[lbl]["worst_month"]) for lbl in labels])
+    row("Monthly std-dev", fmt_usd, *[fmt_usd(m[lbl]["std_monthly"]) for lbl in labels])
     row(
         "Loss months",
         fmt_n,
-        *[f"{m[l]['loss_months']:>9.0f}/{m[l]['n_months']}" for l in labels],
+        *[f"{m[lbl]['loss_months']:>9.0f}/{m[lbl]['n_months']}" for lbl in labels],
     )
-    row("Annual income", fmt_usd, *[fmt_usd(m[l]["ann_income"]) for l in labels])
+    row("Annual income", fmt_usd, *[fmt_usd(m[lbl]["ann_income"]) for lbl in labels])
 
     # ── Capital scaling ──────────────────────────────────────────────────────
     # Concurrent spreads = how many weekly entries can overlap.
     # For expiry hold (30td / cadence 5) max overlap ≈ 6; for 15td exit ≈ 3; 20td exit ≈ 4.
     # Capital at N spreads = N × max_margin (conservative: size for worst-case simultaneous margin).
     print(f"\n{'=' * 62}")
-    print(f'  CAPITAL SCALING — "To expiry" variant (WINNER as designed)')
-    print(f"  Max overlap ≈ 6 slots (hold 30td / cadence 5td)")
+    print('  CAPITAL SCALING — "To expiry" variant (WINNER as designed)')
+    print("  Max overlap ≈ 6 slots (hold 30td / cadence 5td)")
     print(f"{'=' * 62}")
     print(
         f"  {'Spreads':>8}  {'Capital needed':>16}  {'Avg monthly':>12}  {'Annual':>10}  {'Note':}"
@@ -256,8 +264,8 @@ def main() -> None:
         )
 
     print(f"\n  Margin per spread (today's SPX): max ${max_m:,.0f}")
-    print(f"  Note: margin scales with SPX level — add 30% buffer vs today's figure")
-    print(f"  Live vrp_z signal (2026-06-18): −1.95 → SKIP (no new entries now)")
+    print("  Note: margin scales with SPX level — add 30% buffer vs today's figure")
+    print("  Live vrp_z signal (2026-06-18): −1.95 → SKIP (no new entries now)")
     print(f"{'=' * 62}\n")
 
 
