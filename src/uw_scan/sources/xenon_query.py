@@ -63,3 +63,63 @@ def fetch_ib_option_iv(
     finally:
         if own:
             c.close()
+
+
+def fetch_ib_option_quote(
+    *,
+    base_url: str,
+    api_key: str | None,
+    symbol: str,
+    expiry: str,
+    strike: float,
+    right: str,
+    timeout_s: float = 8.0,
+    client: httpx.Client | None = None,
+) -> dict | None:
+    """NBBO + marked IV + underlying spot for one option via GET /options/greeks.
+
+    Returns ``{"bid", "ask", "iv", "und_spot"}`` — any value ``None`` when IB
+    omitted it (greeks object may itself be JSON ``null`` for an illiquid
+    contract, still HTTP 200 → iv/und_spot None). The native delta/gamma/vega/
+    theta in the response are intentionally NOT consumed: greeks are BS-computed
+    downstream from the marked IV for one-model consistency (IB theta is per-day,
+    BS per-year — mixing units would corrupt the markout series). Returns ``None``
+    only on transport failure — mirrors ``fetch_ib_option_iv``'s never-raise
+    contract so the snapshot job falls back to UW instead of crashing.
+    """
+    headers = {"X-API-Key": api_key} if api_key else {}
+    params = {
+        "symbol": symbol.upper(),
+        "expiry": expiry,
+        "strike": strike,
+        "right": right.upper(),
+    }
+    own = client is None
+    c = client or httpx.Client(timeout=timeout_s)
+    try:
+        resp = c.get(f"{base_url}/options/greeks", params=params, headers=headers)
+        resp.raise_for_status()
+        body = resp.json()
+        if not isinstance(body, dict):
+            return None
+        greeks = body.get("greeks")
+        greeks = greeks if isinstance(greeks, dict) else {}
+        return {
+            "bid": body.get("bid"),
+            "ask": body.get("ask"),
+            "iv": greeks.get("impliedVol"),
+            "und_spot": greeks.get("undPrice"),
+        }
+    except (httpx.HTTPError, ValueError, KeyError) as exc:
+        log.warning(
+            "xenon quote fetch failed for %s %s %s%s: %s",
+            symbol,
+            expiry,
+            strike,
+            right,
+            repr(exc),
+        )
+        return None
+    finally:
+        if own:
+            c.close()
