@@ -78,6 +78,12 @@ def _enforce_db_isolation(db_host: str, db_name: str) -> None:
     allowed = _HOST_DB_RULES.get(db_host)
     if allowed is None or db_name in allowed:
         return
+    # pytest-xdist gives each worker its own per-worker test DB
+    # (option_wizard_test_gw0, option_wizard_test_gw1, …). These are the same
+    # isolated test tier as option_wizard_test — wiped per fixture, never prod — so
+    # allow the prefix wherever the bare test DB is allowed.
+    if "option_wizard_test" in allowed and db_name.startswith("option_wizard_test_"):
+        return
     if _env_bool("UW_SCAN_ALLOW_DB_MISMATCH"):
         logger.warning(
             "DB isolation override active: host=%s db_name=%s "
