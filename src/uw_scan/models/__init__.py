@@ -129,6 +129,7 @@ from .stock import (
     SingleStockReport,
     StockHistoryResponse,
     StockHistoryRow,
+    StockShortVol,
     VolatilityProfile,
     VRPAssessment,
 )
@@ -294,6 +295,7 @@ __all__ = [
     "DealerRegime",
     "StockHistoryRow",
     "StockHistoryResponse",
+    "StockShortVol",
     "SingleStockReport",
     "VolHeaderBlock",
     "TermStructureExpiryRow",
