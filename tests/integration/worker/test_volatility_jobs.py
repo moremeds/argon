@@ -84,3 +84,35 @@ def test_nightly_vol_analytics_rollup_persists_for_watchlist_tickers(
     assert len(vrp) > 0
     stock_an = repo.fetch_stock_analytics_series("TSLA", limit=100)
     assert len(stock_an) > 0
+
+
+def test_nightly_vol_analytics_rollup_fills_rv_when_uw_rv_null(
+    seeded_db_with_cards,
+):
+    """Regression: UW's realized_volatility column trails for weeks (stored
+    NULL). That made vrp = iv - rv NaN and silently froze vrp_daily for ~90% of
+    the watchlist (2026-05-22 onward). The rollup must fill RV from the fresh
+    price column so vrp_daily is still written."""
+    repo = seeded_db_with_cards
+
+    today = date.today()
+    base = today - timedelta(days=60)
+    # IV + price present, but realized_volatility is NULL — the UW gap condition.
+    rv_rows = [
+        RealizedVolRow(
+            date=base + timedelta(days=i),
+            price=Decimal(str(100 + i * 0.3)),
+            implied_volatility=Decimal("0.50"),
+            realized_volatility=None,
+        )
+        for i in range(60)
+    ]
+    repo.upsert_realized_vol_rows("TSLA", rv_rows)
+    repo.conn.commit()
+
+    nightly_vol_analytics_rollup(repo=repo)
+
+    vrp = repo.fetch_vrp_daily_series("TSLA", limit=100)
+    assert len(vrp) > 0, (
+        "vrp_daily must populate even when UW realized_volatility is NULL"
+    )

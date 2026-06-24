@@ -48,6 +48,7 @@ def nightly_vol_analytics_rollup(*, repo: Repository) -> None:
     spy_history = repo.fetch_index_ohlc_series("SPY")
     # Inline import — avoids circular at module load (worker → reports → worker).
     from uw_scan.reports.volatility_series import (
+        _fill_rv_from_price,
         persist_stock_analytics,
         persist_vrp_daily,
     )
@@ -56,6 +57,11 @@ def nightly_vol_analytics_rollup(*, repo: Repository) -> None:
         rv_history = repo.fetch_realized_vol_history(ticker, days=365)
         if not rv_history:
             continue
+        # UW's realized_volatility column trails by weeks (null since ~2026-05-22),
+        # which made vrp = iv - rv NaN and silently froze vrp_daily for ~90% of the
+        # watchlist. Fill RV from the fresh price column — same convention the report
+        # read-path (volatility_series) already uses — before deriving VRP.
+        rv_history = _fill_rv_from_price(rv_history)
         vrp_df = vol_series.compute_vrp_series(rv_history)
         iv_of_iv_df = vol_series.compute_iv_of_iv(rv_history)
         rvol_df = vol_series.compute_rvol_and_percentile(
