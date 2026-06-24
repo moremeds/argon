@@ -47,6 +47,37 @@ def bs_delta(
     return _N.cdf(d1) if is_call else _N.cdf(d1) - 1.0
 
 
+def bs_gamma(S: float, K: float, T: float, r: float, sigma: float) -> float:
+    """d²price/dS² (call==put). Degenerate (T<=0 or sigma<=0 or S<=0) → 0."""
+    if T <= 0 or sigma <= 0 or S <= 0:
+        return 0.0
+    d1 = _d1(S, K, T, r, sigma)
+    return _N.pdf(d1) / (S * sigma * math.sqrt(T))
+
+
+def bs_vega(S: float, K: float, T: float, r: float, sigma: float) -> float:
+    """dprice/dsigma per 1.00 vol (call==put). Divide by 100 for per-1%."""
+    if T <= 0 or sigma <= 0 or S <= 0:
+        return 0.0
+    d1 = _d1(S, K, T, r, sigma)
+    return S * _N.pdf(d1) * math.sqrt(T)
+
+
+def bs_theta(
+    S: float, K: float, T: float, r: float, sigma: float, *, is_call: bool
+) -> float:
+    """dprice/dt per YEAR (negative for long options). Divide by 365 for per-day."""
+    if T <= 0 or sigma <= 0 or S <= 0:
+        return 0.0
+    d1 = _d1(S, K, T, r, sigma)
+    d2 = d1 - sigma * math.sqrt(T)
+    term1 = -(S * _N.pdf(d1) * sigma) / (2.0 * math.sqrt(T))
+    disc = math.exp(-r * T)
+    if is_call:
+        return term1 - r * K * disc * _N.cdf(d2)
+    return term1 + r * K * disc * _N.cdf(-d2)
+
+
 def strike_for_delta(
     S: float, T: float, r: float, sigma: float, target_delta: float, *, is_call: bool
 ) -> float:
