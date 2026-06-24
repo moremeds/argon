@@ -63,15 +63,18 @@ const note: React.CSSProperties = {
   lineHeight: 1.5,
 };
 
+const FOOTNOTES = [
+  "† 0.32's 1.98 is partly a capital-cap-as-quality-filter artifact (in-sample fragile); robust read is 0.20 → 1.43",
+  "Recommended deploy: base_risk_pct ≈ 0.20–0.32 (green)",
+  "util_mean caps ~0.7 — the ramp+ gate idles cash in cheap vol",
+  "Worst drawdown ≈ −50% of capital (2009 GFC)",
+];
+
 export default function MacroShortVolSizingTable() {
   return (
     <div className="gex-range-container">
       <div className="gex-range-title">
-        MACRO SHORT-VOL — SIZING GUIDANCE · SPX DIRECT (2006–2026 BACKTEST)
-      </div>
-      <div style={{ ...note, marginBottom: 8 }}>
-        $50k cash account · one spread ≈ $15.7k margin ≈ 31% of $50k ·
-        base_risk_pct = fraction of $50k a full-size rung risks
+        GUIDANCE · SPX DIRECT (2006–2026 BACKTEST)
       </div>
       <div className="gex-history-table-wrap">
         <table className="gex-history-table">
@@ -116,13 +119,21 @@ export default function MacroShortVolSizingTable() {
           </tbody>
         </table>
       </div>
-      <div style={{ ...note, marginTop: 8 }}>
-        † SPX 0.32&apos;s 1.98 is partly a capital-cap-as-quality-filter
-        artifact (in-sample fragile); the robust read is 0.20 → 1.43.
-        Recommended deploy: base_risk_pct ≈ 0.20–0.32 (green). util_mean caps
-        ~0.7 — the ramp+ gate idles cash in cheap vol. Worst drawdown ≈ −50% of
-        capital (2009 GFC).
-      </div>
+      <ul
+        style={{
+          ...note,
+          marginTop: 10,
+          marginBottom: 0,
+          paddingLeft: 16,
+          listStyle: "disc",
+        }}
+      >
+        {FOOTNOTES.map((t, i) => (
+          <li key={i} style={{ marginBottom: 2 }}>
+            {t}
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }

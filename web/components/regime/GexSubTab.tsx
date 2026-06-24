@@ -16,7 +16,7 @@ import InfoTooltip from "./InfoTooltip";
 import GexProfileChart from "./GexProfileChart";
 import { HistoryChart } from "./HistoryChart";
 import MacroShortVolCard from "./MacroShortVolCard";
-import MacroShortVolSizingTable from "./MacroShortVolSizingTable";
+import MacroShortVolEntryGuidance from "./MacroShortVolEntryGuidance";
 import { ExpectedRangeBar } from "./gex/ExpectedRangeBar";
 import { GexHistoryTable } from "./gex/GexHistoryTable";
 import { GexIntradayChart } from "./gex/GexIntradayChart";
@@ -511,8 +511,11 @@ export default function GexSubTab({ marketState }: GexSubTabProps) {
           />
         )}
 
-        {/* ── Row: Expected Range + Bias + Macro Short-Vol ── */}
-        <div className="gex-bottom-row">
+        {/* ── Row: Expected Range (wider) + Bias + Macro Short-Vol action ── */}
+        <div
+          className="gex-bottom-row"
+          style={{ gridTemplateColumns: "1.6fr 1fr 1fr" }}
+        >
           <ExpectedRangeBar data={data} />
           <div className="gex-bias-card">
             <div className="gex-bias-title">DIRECTIONAL BIAS</div>
@@ -544,8 +547,8 @@ export default function GexSubTab({ marketState }: GexSubTabProps) {
           <MacroShortVolCard />
         </div>
 
-        {/* ── Macro Short-Vol sizing guidance (static 2006–2026 backtest) ── */}
-        <MacroShortVolSizingTable />
+        {/* ── Macro Short-Vol: tracked entry (smaller) + guidance (larger) ── */}
+        <MacroShortVolEntryGuidance />
 
         {/* ── GEX Profile Chart ── */}
         <GexProfileChart profile={liveProfile} spot={displaySpot} />
