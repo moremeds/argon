@@ -433,6 +433,20 @@ git commit -m "feat(intraday): one-shot backfill for #180-missed tickers (budget
 
 ## Workstream B — #179 single-name `greek_exposure_daily` re-derive
 
+> **IMPLEMENTATION NOTE (pivoted during execution — 2026-06-25).** The DB→DB
+> per-strike re-derive below was BUILT and then DROPPED: its validation step
+> (Task B1's `compare_to_stored`) ran against real data and showed the
+> per-strike sum is **20–134% off** UW's full-chain aggregate for SPY/TLT — a
+> partial-chain proxy, not a faithful reconstruction. Per the user's decision,
+> B was reworked to **fetch UW's aggregate `/greek-exposure` history per
+> single-name ticker** (the same basis the indices use), reusing
+> `scanners/gex.fetch_aggregate_gex` + `GreekExposureDailyRepository.upsert_rows`.
+> Shipped: `worker/jobs/greek_exposure_daily_refresh.py` (18:30 ET, uw-0,
+> ~1 UW call/ticker) + `scripts/backfill/greek_exposure_daily_refresh_backfill.py`.
+> The per-strike methods, migration `086`, and the validation table were
+> removed. The tasks below are retained as the original design record; the
+> validation step is exactly what caught the bad basis and justified the pivot.
+
 ### Task B1: Validation table migration + re-derive/validate repository methods
 
 **Files:**
