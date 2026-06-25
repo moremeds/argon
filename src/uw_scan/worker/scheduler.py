@@ -565,19 +565,24 @@ def main() -> int:
                         ticker_filter=None,
                     )
 
-    def _greek_exposure_rederive() -> None:
-        from uw_scan.worker.jobs.greek_exposure_rederive import greek_exposure_rederive
+    def _greek_exposure_daily_refresh() -> None:
+        # Single-name daily GEX/DEX from UW's aggregate /greek-exposure history
+        # (#179) — same authoritative basis the indices use. One UW call per
+        # single-name ticker; single-flight via the job's advisory lock.
+        from uw_scan.worker.jobs.greek_exposure_daily_refresh import (
+            greek_exposure_daily_refresh,
+        )
 
-        # ET-anchored (repo convention) — never host-local date.today(), which
-        # can pick the wrong month boundary / run_date on a non-ET host.
-        et_today = datetime.now(ZoneInfo(settings.rth_tz)).date()
-        with _repo(settings) as repo:
-            greek_exposure_rederive(
-                repo=repo,
-                settings=settings,
-                run_date=et_today,
-                since=et_today.replace(day=1),  # current-month forward each night
-            )
+        with _external_api_recorder(settings) as recorder:
+            with _uw_client(
+                settings,
+                telemetry_recorder=recorder,
+                job_name="greek_exposure_daily_refresh",
+            ) as uw:
+                with _repo(settings) as repo:
+                    greek_exposure_daily_refresh(
+                        repo=repo, client=uw, settings=settings
+                    )
 
     def _cockpit_daily_snapshot() -> None:
         with _external_api_recorder(settings) as recorder:
@@ -1070,14 +1075,15 @@ def main() -> int:
                 max_instances=1,
                 coalesce=True,
             )
-            # Single-name greek_exposure_daily re-derive — DB->DB (zero UW),
-            # single-flight on uw-0. Runs at 18:30 ET, after the 18:00 vol
-            # rollup, when the day's per-strike exposures are present (#179).
+            # Single-name greek_exposure_daily refresh — UW aggregate
+            # /greek-exposure history (~1 call/ticker), single-flight on uw-0.
+            # Runs at 18:30 ET, inside the UW flow window, after the 18:00 vol
+            # rollup (#179).
             sched.add_job(
-                _greek_exposure_rederive,
+                _greek_exposure_daily_refresh,
                 CronTrigger.from_crontab("30 18 * * 0-4", timezone=settings.rth_tz),
-                id="greek_exposure_rederive",
-                name="Single-name greek_exposure_daily re-derive (#179)",
+                id="greek_exposure_daily_refresh",
+                name="Single-name greek_exposure_daily refresh (#179)",
                 max_instances=1,
                 coalesce=True,
             )
