@@ -7,6 +7,9 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+## [0.3.6] — 2026-06-25
+
+
 ### Fixed
 
 - **Macro short-vol "Tracked entry" showed fabricated strikes/mids.** Pre-birth
@@ -36,7 +39,6 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   missed, rather than skipping birth. As part of this, `_uw_chain_strikes` now
   closes its `scan_runs` row as `failed` on a UW error instead of leaving it stuck
   in `running` (the visible side-symptom of the original bug).
-
 ## [0.3.5] — 2026-06-25
 
 
