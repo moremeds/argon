@@ -7337,6 +7337,112 @@
         "title": "HTTPValidationError",
         "type": "object"
       },
+      "HealthFreshness": {
+        "description": "Per-table data-date freshness block surfaced on /api/health.",
+        "properties": {
+          "as_of": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "As Of"
+          },
+          "frozen": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Frozen",
+            "type": "array"
+          },
+          "tables": {
+            "items": {
+              "$ref": "#/components/schemas/HealthFreshnessRow"
+            },
+            "title": "Tables",
+            "type": "array"
+          }
+        },
+        "title": "HealthFreshness",
+        "type": "object"
+      },
+      "HealthFreshnessRow": {
+        "description": "One curated table's data-date freshness (see reports/data_freshness).",
+        "properties": {
+          "coverage_pct": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Coverage Pct"
+          },
+          "covered_count": {
+            "title": "Covered Count",
+            "type": "integer"
+          },
+          "date_col": {
+            "title": "Date Col",
+            "type": "string"
+          },
+          "days_stale": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Days Stale"
+          },
+          "expected_count": {
+            "title": "Expected Count",
+            "type": "integer"
+          },
+          "frozen": {
+            "title": "Frozen",
+            "type": "boolean"
+          },
+          "max_data_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Data Date"
+          },
+          "scope": {
+            "title": "Scope",
+            "type": "string"
+          },
+          "table_name": {
+            "title": "Table Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "table_name",
+          "date_col",
+          "scope",
+          "expected_count",
+          "covered_count",
+          "frozen"
+        ],
+        "title": "HealthFreshnessRow",
+        "type": "object"
+      },
       "HealthResponse": {
         "properties": {
           "avg_scan_duration_seconds": {
@@ -7364,6 +7470,16 @@
           "db": {
             "title": "Db",
             "type": "string"
+          },
+          "freshness": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/HealthFreshness"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "http_2xx": {
             "anyOf": [
@@ -20774,7 +20890,7 @@
   },
   "info": {
     "title": "UW Watchlist API",
-    "version": "0.3.2"
+    "version": "0.3.4"
   },
   "openapi": "3.1.0",
   "paths": {

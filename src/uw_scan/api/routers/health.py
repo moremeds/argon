@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
 from typing import Annotated, Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -66,6 +66,29 @@ class HealthResponse(BaseModel):
     workers: list["WorkerHealth"] = Field(default_factory=list)
     ws_consumer: "WsConsumerHealth | None" = None
     trade_insights_ai: "TradeInsightsAiHealth | None" = None
+    freshness: "HealthFreshness | None" = None
+
+
+class HealthFreshnessRow(BaseModel):
+    """One curated table's data-date freshness (see reports/data_freshness)."""
+
+    table_name: str
+    date_col: str
+    scope: str
+    expected_count: int
+    covered_count: int
+    coverage_pct: float | None = None
+    max_data_date: date | None = None
+    days_stale: int | None = None
+    frozen: bool
+
+
+class HealthFreshness(BaseModel):
+    """Per-table data-date freshness block surfaced on /api/health."""
+
+    as_of: date | None = None
+    frozen: list[str] = Field(default_factory=list)
+    tables: list[HealthFreshnessRow] = Field(default_factory=list)
 
 
 class TradeInsightsAiProviderHealth(BaseModel):
@@ -286,6 +309,28 @@ def health(
             reason="database unreachable",
         )
 
+    # Freshness block — built once here, after the DB-up check, and passed to
+    # EVERY DB-up return below (incl. the degraded "no scans"/"coverage low"
+    # paths), so the operator surface never disappears exactly when health is
+    # already degraded.
+    from uw_scan.storage.data_freshness_repository import DataFreshnessRepository
+
+    _fr_rows = DataFreshnessRepository(
+        repo.conn, schema=settings.db_schema
+    ).latest_snapshot()
+    _as_of = None
+    with repo.conn.cursor() as _cur:
+        _cur.execute(
+            f"SELECT MAX(run_date) FROM {settings.db_schema}.data_freshness_snapshots"
+        )
+        _row = _cur.fetchone()
+        _as_of = _row[0] if _row else None
+    freshness = HealthFreshness(
+        as_of=_as_of,
+        frozen=[r["table_name"] for r in _fr_rows if r["frozen"]],
+        tables=[HealthFreshnessRow(**r) for r in _fr_rows],
+    )
+
     # Sidebar fields — always populated when DB is up so the panel renders
     # correctly even before the first full scan has fired.
     now_utc = datetime.now(timezone.utc)
@@ -490,6 +535,7 @@ def health(
             **provider_fields,
             **heartbeat_fields,
             **record_fields,
+            freshness=freshness,
         )
 
     lag = (now_utc - last_scan).total_seconds()
@@ -511,6 +557,7 @@ def health(
             **provider_fields,
             **heartbeat_fields,
             **record_fields,
+            freshness=freshness,
         )
 
     if record_reason is not None:
@@ -524,6 +571,7 @@ def health(
             **provider_fields,
             **heartbeat_fields,
             **record_fields,
+            freshness=freshness,
         )
 
     return HealthResponse(
@@ -535,4 +583,5 @@ def health(
         **provider_fields,
         **heartbeat_fields,
         **record_fields,
+        freshness=freshness,
     )
