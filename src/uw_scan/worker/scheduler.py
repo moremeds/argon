@@ -62,7 +62,10 @@ from uw_scan.worker.jobs.trade_insight_outcome_backfill import (
 )
 from uw_scan.worker.jobs.trade_insights_ai import trade_insights_ai_tick
 from uw_scan.worker.jobs.vol_index_lake_sync import run_vol_index_lake_sync
-from uw_scan.worker.jobs.vrp_macro_entry import vrp_macro_entry_snapshot_once
+from uw_scan.worker.jobs.vrp_macro_entry import (
+    vrp_macro_entry_grid_refresh,
+    vrp_macro_entry_snapshot_once,
+)
 from uw_scan.worker.jobs.vrp_macro_signal import vrp_macro_signal_refresh
 from uw_scan.worker.jobs.vrp_markout import vrp_markout_refresh
 from uw_scan.worker.jobs.vrp_research_jobs import vrp_research_refresh
@@ -487,6 +490,10 @@ def main() -> int:
             vrp_macro_entry_snapshot_once(
                 repo, settings, session="postclose", birth=False
             )
+
+    def _vrp_macro_entry_grid_refresh() -> None:
+        with _repo(settings) as repo:
+            vrp_macro_entry_grid_refresh(repo, settings)
 
     def _corporate_actions_refresh() -> None:
         provider = _fundamentals_provider(settings)
@@ -1300,6 +1307,19 @@ def main() -> int:
             CronTrigger.from_crontab("10 16 * * 0-4", timezone=settings.rth_tz),
             id="vrp_macro_entry_postclose",
             name="VRP macro entry-capture (post-close mark)",
+            max_instances=1,
+            coalesce=True,
+        )
+        # Nightly strike-grid cache @ 03:50 ET — fresh UW budget (after the 00:00
+        # UTC reset, before the always-on stack exhausts it ~08:00 ET). Enumerates
+        # SPX's listed strikes for the ~43-DTE expiry so the RTH birth reads the
+        # cache and makes ZERO UW calls. Sits right after vrp_macro_signal_refresh
+        # (03:45) in the nightly regime cluster.
+        sched.add_job(
+            _vrp_macro_entry_grid_refresh,
+            CronTrigger.from_crontab("50 3 * * 0-4", timezone=settings.rth_tz),
+            id="vrp_macro_entry_grid_refresh",
+            name="VRP macro entry-capture (nightly strike-grid cache)",
             max_instances=1,
             coalesce=True,
         )
