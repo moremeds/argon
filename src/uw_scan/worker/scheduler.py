@@ -584,6 +584,17 @@ def main() -> int:
                         repo=repo, client=uw, settings=settings
                     )
 
+    def _data_freshness_monitor() -> None:
+        # Per-table data-date freshness audit (#prevention) — DB-only, zero UW.
+        from uw_scan.worker.jobs.data_freshness_monitor import data_freshness_monitor
+
+        with _repo(settings) as repo:
+            data_freshness_monitor(
+                repo=repo,
+                settings=settings,
+                today=datetime.now(ZoneInfo(settings.rth_tz)).date(),
+            )
+
     def _cockpit_daily_snapshot() -> None:
         with _external_api_recorder(settings) as recorder:
             with _uw_client(
@@ -1084,6 +1095,17 @@ def main() -> int:
                 CronTrigger.from_crontab("30 18 * * 0-4", timezone=settings.rth_tz),
                 id="greek_exposure_daily_refresh",
                 name="Single-name greek_exposure_daily refresh (#179)",
+                max_instances=1,
+                coalesce=True,
+            )
+            # Data-date freshness monitor (#prevention) — DB-only audit at
+            # 21:00 ET, after all nightly writers have run, so it sees the
+            # freshest data each day.
+            sched.add_job(
+                _data_freshness_monitor,
+                CronTrigger.from_crontab("0 21 * * 0-4", timezone=settings.rth_tz),
+                id="data_freshness_monitor",
+                name="Data-date freshness monitor (prevention)",
                 max_instances=1,
                 coalesce=True,
             )
