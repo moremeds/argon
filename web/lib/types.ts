@@ -7809,7 +7809,7 @@ export interface components {
              * Source
              * @enum {string}
              */
-            source: "xenon_ib" | "uw" | "modeled";
+            source: "xenon_ib" | "uw";
             /**
              * Greeks Source
              * @enum {string}

@@ -12,9 +12,10 @@ from typing import Literal
 from pydantic import BaseModel
 
 LegName = Literal["short_above", "short_below", "wing_above", "wing_below"]
-# Persisted quote rows are xenon_ib|uw; the preview adds 'modeled' (BS-indicative,
-# pre-birth) — never written to vrp_macro_entry_quote.
-LegSource = Literal["xenon_ib", "uw", "modeled"]
+# Every leg's NBBO is real: xenon/IB-primary, UW fallback. There is no synthetic
+# source — the preview serves persisted legs or none (a fake quote is worse than
+# no quote), so 'modeled' is intentionally NOT a permitted source.
+LegSource = Literal["xenon_ib", "uw"]
 GreeksSource = Literal["bs", "none"]
 
 

@@ -1,7 +1,7 @@
 """/regime/vrp-macro-signal/entry — preview (no IB / no UW) + capture (IB).
 
-Preview serves persisted cohort legs or BS-indicative 'modeled' legs; it must
-make zero UW/IB calls (asserted by raising in those fetchers). Capture stubs the
+Preview serves persisted cohort legs or empty legs (never a fabricated grid); it
+must make zero UW/IB calls (asserted by raising in those fetchers). Capture stubs the
 job's UW + quote seams so no network, and asserts a one-shot button cohort + 4
 quote rows persist.
 """
@@ -111,9 +111,12 @@ def test_preview_serves_persisted_cohort_without_uw_or_ib(
     assert eid > 0
 
 
-def test_preview_pre_birth_returns_modeled_legs(
+def test_preview_pre_birth_returns_no_legs(
     client: TestClient, seeded_db_empty_cards, monkeypatch
 ):
+    """Pre-birth (no cohort today) the preview serves the real signal context but
+    ZERO legs — never a fabricated indicative strike grid. A synthetic strike/mid
+    is worse than none, so the card shows 'No entry preview yet' + 'ETD —'."""
     _seed_spx_vix_varied(
         seeded_db_empty_cards
     )  # EOD vol so current_macro_signal resolves
@@ -130,14 +133,10 @@ def test_preview_pre_birth_returns_modeled_legs(
     res = client.get("/api/regime/vrp-macro-signal/entry/preview")
     assert res.status_code == 200
     body = res.json()
-    assert len(body["legs"]) == 4
-    assert all(
-        leg["source"] == "modeled" and leg["greeks_source"] == "bs"
-        for leg in body["legs"]
-    )
-    # bull-put-spread ordering: wing strikes strictly below short strikes
-    by = {leg["leg"]: leg for leg in body["legs"]}
-    assert by["wing_above"]["strike"] < by["short_below"]["strike"]
+    assert body["legs"] == []  # no fabricated legs
+    assert body["expiry"] is None  # no fabricated ETD pre-birth
+    assert body["modeled_credit"] is None
+    assert body["action"] in {"TRADE", "SKIP"}  # real signal context still served
 
 
 def _fake_quote_leg(

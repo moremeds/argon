@@ -19645,8 +19645,7 @@
           "source": {
             "enum": [
               "xenon_ib",
-              "uw",
-              "modeled"
+              "uw"
             ],
             "title": "Source",
             "type": "string"
@@ -22876,7 +22875,7 @@
     },
     "/api/regime/vrp-macro-signal/entry/preview": {
       "get": {
-        "description": "Indicative SPX entry preview. ZERO IB, ZERO new UW, ZERO writes \u2014 browser-\npolled. Serves today's persisted auto-cohort snapshot legs if present, else\nBS-indicative 'modeled' legs off the live/EOD signal. Degrades to action=None +\nempty legs when no signal resolves (never 500).",
+        "description": "SPX entry preview. ZERO IB, ZERO new UW, ZERO writes \u2014 browser-polled.\nServes today's persisted auto-cohort snapshot legs (real strikes + NBBO) if\npresent, else empty legs \u2014 never a fabricated indicative grid (a synthetic\nstrike/mid is worse than none). Degrades to action=None + empty legs when no\nsignal resolves (never 500).",
         "operationId": "get_vrp_macro_entry_preview_api_regime_vrp_macro_signal_entry_preview_get",
         "responses": {
           "200": {
