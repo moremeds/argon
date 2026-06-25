@@ -47,6 +47,13 @@ def main() -> None:
         metavar="N",
         help="stop when UW daily request count reaches N (e.g. 20000)",
     )
+    p.add_argument(
+        "--max-dates",
+        type=int,
+        default=None,
+        metavar="N",
+        help="stop after filling N dates (e.g. 4 to mirror the nightly backfill budget)",
+    )
     args = p.parse_args()
 
     settings = Settings.from_env()
@@ -72,6 +79,7 @@ def main() -> None:
             days_back=args.days_back,
             end_date=args.end_date,
             quota_limit=args.quota_limit,
+            max_dates=args.max_dates,
         )
 
     log.info("done: %d rows written", n)

@@ -9,6 +9,16 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ### Fixed
 
+- **Macro short-vol "Tracked entry" showed fabricated strikes/mids.** Pre-birth
+  (no cohort captured today), the entry preview fell back to `_bs_indicative_legs`
+  — a synthetic 5-pt SPX strike grid (e.g. 7095/7090, which aren't listed strikes)
+  priced with flat-vol Black-Scholes, rendered in the card as if they were market
+  quotes. A fake number is worse than none. Removed the synthetic path entirely:
+  the `/vrp-macro-signal/entry/preview` endpoint now serves persisted-cohort legs
+  (real strikes + NBBO) or **empty legs** with no fabricated ETD — the card shows
+  "No entry preview yet" / "ETD —" until a real cohort exists. Pairs with the
+  grid-cache fix below, which is what lets a real cohort actually get born.
+
 - **VRP macro entry-capture never persisted** — the daily SPX auto-birth
   (`_birth_auto`) enumerated the listed strike grid via two live UW calls inside
   the 10:00–15:00 ET birth crons, but the UW daily quota is reliably exhausted by

@@ -86,7 +86,7 @@ class LegQuote:
     vega: float
     theta: float
     und_spot: Any
-    source: str  # 'xenon_ib' | 'uw'  (preview adds 'modeled', never persisted)
+    source: str  # 'xenon_ib' | 'uw'  (always a real NBBO; never synthetic)
     greeks_source: str  # 'bs' | 'none'
     source_asof: Any
 

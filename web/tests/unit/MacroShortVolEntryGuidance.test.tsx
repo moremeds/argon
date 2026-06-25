@@ -1,100 +1,113 @@
 /* @vitest-environment jsdom */
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
+// Mutable holders so individual tests can swap the hook payloads (default =
+// a persisted cohort with real legs; the empty-pre-birth test overrides them).
+const h = vi.hoisted(() => ({
+  live: null as unknown,
+  preview: null as unknown,
+}));
 
 vi.mock("@/lib/regime/useVrpMacroLive", () => ({
-  useVrpMacroLive: () => ({
-    data: {
-      status: "ok",
-      basis: "eod",
-      active_source: null,
-      live_quotes: {},
-      signal: {
-        name: "SPX",
-        snapshot_date: "2026-06-24",
-        as_of: "2026-06-23",
-        spot: 7500,
-        iv: 0.16,
-        rv20: 0.12,
-        vrp: 0.04,
-        vrp_z: -1.95,
-        weight: 0,
-        action: "SKIP",
-        short_put: null,
-        long_put: null,
-        put_width: null,
-        credit: null,
-        max_loss: null,
-        hold_days: 30,
-        short_delta: 0.25,
-        wing_delta: 0.125,
-      },
-    },
-    loading: false,
-    error: null,
-  }),
+  useVrpMacroLive: () => ({ data: h.live, loading: false, error: null }),
 }));
 
 vi.mock("@/lib/regime/useVrpMacroEntryPreview", () => ({
   useVrpMacroEntryPreview: () => ({
-    data: {
-      name: "SPX",
-      as_of: null,
-      spot: 7500,
-      expiry: "2026-08-07",
-      hold_days: 30,
-      action: "SKIP",
-      vrp_z: -1.95,
-      weight: 0,
-      modeled_credit: 30,
-      legs: [
-        {
-          leg: "short_above",
-          strike: 6900,
-          nbbo_bid: 40,
-          nbbo_ask: 41,
-          delta: -0.25,
-          source: "modeled",
-          greeks_source: "bs",
-        },
-        {
-          leg: "short_below",
-          strike: 6890,
-          nbbo_bid: 39,
-          nbbo_ask: 40,
-          delta: -0.255,
-          source: "modeled",
-          greeks_source: "bs",
-        },
-        {
-          leg: "wing_above",
-          strike: 6600,
-          nbbo_bid: 20,
-          nbbo_ask: 21,
-          delta: -0.125,
-          source: "modeled",
-          greeks_source: "bs",
-        },
-        {
-          // deepest-OTM wing: no NBBO from IB or UW, so no IV could be marked
-          // and greeks were never computed (the real "unquoted" shape)
-          leg: "wing_below",
-          strike: 6590,
-          nbbo_bid: null,
-          nbbo_ask: null,
-          iv: null,
-          delta: 0,
-          source: "uw",
-          greeks_source: "none",
-        },
-      ],
-    },
+    data: h.preview,
     loading: false,
     error: null,
   }),
 }));
 
 import MacroShortVolEntryGuidance from "@/components/regime/MacroShortVolEntryGuidance";
+
+const liveSkip = {
+  status: "ok",
+  basis: "eod",
+  active_source: null,
+  live_quotes: {},
+  signal: {
+    name: "SPX",
+    snapshot_date: "2026-06-24",
+    as_of: "2026-06-23",
+    spot: 7500,
+    iv: 0.16,
+    rv20: 0.12,
+    vrp: 0.04,
+    vrp_z: -1.95,
+    weight: 0,
+    action: "SKIP",
+    short_put: null,
+    long_put: null,
+    put_width: null,
+    credit: null,
+    max_loss: null,
+    hold_days: 30,
+    short_delta: 0.25,
+    wing_delta: 0.125,
+  },
+};
+
+// A persisted cohort: real legs (xenon_ib/uw), never the deleted "modeled" source.
+const previewWithLegs = {
+  name: "SPX",
+  as_of: "2026-06-24T14:00:00Z",
+  spot: 7500,
+  expiry: "2026-08-07",
+  hold_days: 30,
+  action: "SKIP",
+  vrp_z: -1.95,
+  weight: 0,
+  modeled_credit: 30,
+  legs: [
+    {
+      leg: "short_above",
+      strike: 6900,
+      nbbo_bid: 40,
+      nbbo_ask: 41,
+      delta: -0.25,
+      source: "xenon_ib",
+      greeks_source: "bs",
+    },
+    {
+      leg: "short_below",
+      strike: 6890,
+      nbbo_bid: 39,
+      nbbo_ask: 40,
+      delta: -0.255,
+      source: "xenon_ib",
+      greeks_source: "bs",
+    },
+    {
+      leg: "wing_above",
+      strike: 6600,
+      nbbo_bid: 20,
+      nbbo_ask: 21,
+      delta: -0.125,
+      source: "xenon_ib",
+      greeks_source: "bs",
+    },
+    {
+      // deepest-OTM wing: no NBBO from IB or UW, so no IV could be marked
+      // and greeks were never computed (the real "unquoted" shape)
+      leg: "wing_below",
+      strike: 6590,
+      nbbo_bid: null,
+      nbbo_ask: null,
+      iv: null,
+      delta: 0,
+      source: "uw",
+      greeks_source: "none",
+    },
+  ],
+};
+
+beforeEach(() => {
+  h.live = liveSkip;
+  h.preview = previewWithLegs;
+});
 
 afterEach(() => {
   vi.restoreAllMocks();
@@ -139,6 +152,32 @@ describe("MacroShortVolEntryGuidance", () => {
     expect(note.textContent).toContain("27.0k");
     expect(note.textContent).toContain("45% of $60k");
     expect(note.textContent).toContain("brp 0.50: 1");
+  });
+
+  it("pre-birth (no cohort): shows the empty state, no fabricated legs/ETD/sizing", () => {
+    // Real signal still resolves, but no cohort exists yet → the preview serves
+    // empty legs + null ETD. The card must NOT invent strikes/mids or a sizing
+    // line (a fake number is worse than none).
+    h.preview = {
+      name: "SPX",
+      as_of: null,
+      spot: 7500,
+      expiry: null,
+      hold_days: 30,
+      action: "SKIP",
+      vrp_z: -1.95,
+      weight: 0,
+      modeled_credit: null,
+      legs: [],
+    };
+    render(<MacroShortVolEntryGuidance />);
+    expect(screen.getByText("No entry preview yet.")).toBeTruthy();
+    expect(screen.getByText(/ETD\s+—/)).toBeTruthy();
+    // no fabricated leg rows (the guidance backtest table still renders, so
+    // assert on the entry-leg rows specifically, not "any table")
+    expect(screen.queryByTestId("entry-leg-short_above")).toBeNull();
+    expect(screen.queryByTestId("entry-leg-wing_below")).toBeNull();
+    expect(screen.queryByTestId("macro-shortvol-unit-sizing")).toBeNull();
   });
 
   it("POSTs to capture on click and shows the captured badge", async () => {
