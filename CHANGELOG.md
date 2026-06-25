@@ -7,6 +7,43 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+### Fixed
+
+- **#180 — `option_intraday_buckets` covered only ~half the watchlist.** The
+  intraday OI-mover refresh is registered on the primary UW worker only, but it
+  still passed the per-worker crc32 shard filter — so ~55 shard-1 tickers
+  (TSLA/NVDA/MSFT/GOOGL/META/AVGO …) were fetched by nobody and their stock-page
+  TAPE column stayed permanently blank. The job now covers the full watchlist
+  (`ticker_filter=None`; single-flight is already enforced by its advisory
+  lock), and emits per-outcome counters (`skipped_no_run`, `skipped_no_movers`,
+  `contracts_empty`, `contracts_error`) so a future coverage gap self-reports.
+  One-shot backfill: `scripts/backfill/intraday_buckets_backfill.py`
+  (budget-gated) — `--missing` auto-targets the blank set, and `--since` sweeps
+  the full per-session history (`backfill_intraday_history`, distinct advisory
+  lock) bounded by our recorded `oi_change_events` sessions, not just the latest
+  run. Roughly doubles this job's daily UW calls; `UwClient` throttle/retry
+  absorbs transient 429s.
+- **#179 — single-name `greek_exposure_daily` froze at 2026-05-20.** It is
+  index-only by design (the regime GEX scan only covers `gex_scan_tickers`); the
+  100 single-name rows were a one-off backfill tail with no recurring writer. A
+  new nightly job (`greek_exposure_daily_refresh`, 18:30 ET, uw-0) fetches UW's
+  aggregate `/greek-exposure` history per single-name ticker — the SAME
+  authoritative basis the indices use. (A DB→DB per-strike sum was tried first
+  but validation showed it 20–134% off the aggregate — a partial-chain proxy —
+  so it was dropped.) Backfill:
+  `scripts/backfill/greek_exposure_daily_refresh_backfill.py` (UW, `--confirm`).
+
+### Added
+
+- **Data-date freshness monitor (prevention).** A nightly job
+  (`data_freshness_monitor`, 21:00 ET) records, per curated per-ticker table,
+  the newest **data date** + scope-aware active-watchlist coverage into
+  `data_freshness_snapshots`, flags freezes, WARN-logs, and surfaces a
+  `freshness` block on `/api/health` (all DB-up returns). Complements
+  `list_record_health`, which keys on write-timestamps and skips no-timestamp
+  tables (e.g. `greek_exposure_daily`) — the blind spot that let the vrp/greek
+  freezes slip for five weeks. Migration `087`.
+
 ## [0.3.4] — 2026-06-25
 
 

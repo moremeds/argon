@@ -551,12 +551,49 @@ def main() -> int:
                 job_name="intraday_oi_refresh",
             ) as uw:
                 with _repo(settings) as repo:
+                    # This job is registered ONLY on the primary worker (see the
+                    # _is_primary_worker guard at its add_job). A primary-only
+                    # singleton must NOT shard-filter: ticker_filter would drop
+                    # every ticker outside shard 0, so half the watchlist
+                    # (TSLA/NVDA/MSFT/GOOGL/META/AVGO ...) would be fetched by
+                    # nobody. Single-flight is already enforced by the advisory
+                    # lock inside the job — issue #180.
                     refresh_intraday_for_top_oi_movers(
                         repo=repo,
                         client=uw,
                         settings=settings,
-                        ticker_filter=ticker_filter,
+                        ticker_filter=None,
                     )
+
+    def _greek_exposure_daily_refresh() -> None:
+        # Single-name daily GEX/DEX from UW's aggregate /greek-exposure history
+        # (#179) — same authoritative basis the indices use. One UW call per
+        # single-name ticker; single-flight via the job's advisory lock.
+        from uw_scan.worker.jobs.greek_exposure_daily_refresh import (
+            greek_exposure_daily_refresh,
+        )
+
+        with _external_api_recorder(settings) as recorder:
+            with _uw_client(
+                settings,
+                telemetry_recorder=recorder,
+                job_name="greek_exposure_daily_refresh",
+            ) as uw:
+                with _repo(settings) as repo:
+                    greek_exposure_daily_refresh(
+                        repo=repo, client=uw, settings=settings
+                    )
+
+    def _data_freshness_monitor() -> None:
+        # Per-table data-date freshness audit (#prevention) — DB-only, zero UW.
+        from uw_scan.worker.jobs.data_freshness_monitor import data_freshness_monitor
+
+        with _repo(settings) as repo:
+            data_freshness_monitor(
+                repo=repo,
+                settings=settings,
+                today=datetime.now(ZoneInfo(settings.rth_tz)).date(),
+            )
 
     def _cockpit_daily_snapshot() -> None:
         with _external_api_recorder(settings) as recorder:
@@ -1046,6 +1083,29 @@ def main() -> int:
                 CronTrigger.from_crontab("0 9 * * 0-4", timezone=settings.rth_tz),
                 id="intraday_oi_refresh",
                 name="Intraday OI mover refresh",
+                max_instances=1,
+                coalesce=True,
+            )
+            # Single-name greek_exposure_daily refresh — UW aggregate
+            # /greek-exposure history (~1 call/ticker), single-flight on uw-0.
+            # Runs at 18:30 ET, inside the UW flow window, after the 18:00 vol
+            # rollup (#179).
+            sched.add_job(
+                _greek_exposure_daily_refresh,
+                CronTrigger.from_crontab("30 18 * * 0-4", timezone=settings.rth_tz),
+                id="greek_exposure_daily_refresh",
+                name="Single-name greek_exposure_daily refresh (#179)",
+                max_instances=1,
+                coalesce=True,
+            )
+            # Data-date freshness monitor (#prevention) — DB-only audit at
+            # 21:00 ET, after all nightly writers have run, so it sees the
+            # freshest data each day.
+            sched.add_job(
+                _data_freshness_monitor,
+                CronTrigger.from_crontab("0 21 * * 0-4", timezone=settings.rth_tz),
+                id="data_freshness_monitor",
+                name="Data-date freshness monitor (prevention)",
                 max_instances=1,
                 coalesce=True,
             )
