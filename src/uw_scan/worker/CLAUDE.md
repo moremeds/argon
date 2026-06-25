@@ -73,6 +73,7 @@ Set `UW_SCAN_WORKER_ROLE=uw|massive|ai|all`, `UW_SCAN_WORKER_INDEX`, and
 | `vrp_macro_signal_refresh` | cron | `45 3 * * 0-4` (massive-0; daily VRP macro short-vol signal snapshot — runs after `vol_index_lake_sync` at 03:15 so it reads the freshest EOD vol) |
 | `greek_exposure_daily_refresh` | cron | `30 18 * * 0-4` (uw-0; single-name daily GEX/DEX from UW aggregate `/greek-exposure`, ~1 call/ticker, #179) |
 | `data_freshness_monitor` | cron | `0 21 * * 0-4` (uw-0; DB-only per-table data-date freshness audit → `data_freshness_snapshots` + `/api/health`) |
+| `vrp_macro_entry_grid_refresh` | cron | `50 3 * * 0-4` (massive-0; caches SPX's real UW-listed ~43-DTE strike grid into `vrp_macro_entry_grid` so the RTH entry-capture birth makes zero UW calls — runs after `vrp_macro_signal_refresh` at 03:45, in the fresh-UW-budget window) |
 
 Intraday spot is no longer a scheduler job — it streams from the
 WebSocket consumer in `uw_scan.worker.massive_ws_consumer` (started as

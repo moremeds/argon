@@ -10,6 +10,7 @@ _ENTRY_IDS = {
     "vrp_macro_entry_rth",
     "vrp_macro_entry_eod",
     "vrp_macro_entry_postclose",
+    "vrp_macro_entry_grid_refresh",
 }
 
 
@@ -34,7 +35,9 @@ def _registered_jobs(monkeypatch, **env) -> dict[str, dict]:
 
         def add_job(self, *_a, **kwargs) -> None:
             if kwargs.get("id"):
-                jobs[kwargs["id"]] = kwargs
+                entry = dict(kwargs)
+                entry["_trigger"] = _a[1] if len(_a) > 1 else None
+                jobs[kwargs["id"]] = entry
 
         def start(self) -> None:
             raise _StopStart
@@ -108,3 +111,15 @@ def test_jobs_absent_when_disabled(monkeypatch):
         UW_SCAN_VRP_MACRO_ENTRY_CAPTURE_ENABLED="false",
     )
     assert _ENTRY_IDS.isdisjoint(set(jobs))
+
+
+def test_grid_refresh_fires_pre_market(monkeypatch):
+    jobs = _registered_jobs(
+        monkeypatch,
+        UW_SCAN_WORKER_ROLE="massive",
+        UW_SCAN_WORKER_INDEX="0",
+        UW_SCAN_WORKER_COUNT="1",
+    )
+    trig = str(jobs["vrp_macro_entry_grid_refresh"]["_trigger"])
+    # CronTrigger repr looks like: cron[minute='50', hour='3', ...]
+    assert "hour='3'" in trig and "minute='50'" in trig

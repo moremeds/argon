@@ -64,17 +64,24 @@ def _session_for(now: datetime) -> str:
 
 
 def _uw_chain_strikes(
-    repo: Repository, settings: Settings, symbol: str, on_date: _date
+    repo: Repository,
+    settings: Settings,
+    symbol: str,
+    on_date: _date,
+    *,
+    run_notes: str = "vrp_macro_entry_birth",
 ) -> tuple[_date, list[float]]:
     """(chosen_expiry, sorted listed PUT strikes) for the listed expiry nearest
     ``on_date + ~43cal``. Enumerates expiries via greek-exposure/expiry, then
     pulls the chosen expiry's contracts (strikes parsed from each OCC symbol).
-    Audit-first UW calls under their own scan_run."""
+    Audit-first UW calls under their own scan_run; the run is closed (failed) on
+    error so a UW blip can't leave a stuck 'running' row (the original-bug symptom)."""
     client = UwClient(
         api_key=settings.api_key.get_secret_value(), job_name="vrp_macro_entry"
     )
+    run_id: int | None = None
     try:
-        run_id = repo.insert_scan_run(symbol, notes="vrp_macro_entry_birth")
+        run_id = repo.insert_scan_run(symbol, notes=run_notes)
         gex = fetch_greek_exposure_by_expiry(client, repo, run_id, symbol)
         expiries = sorted({r.expiry for r in gex if r.expiry > on_date})
         if not expiries:
@@ -95,8 +102,54 @@ def _uw_chain_strikes(
         repo.finish_scan_run(run_id, status="ok")
         repo.conn.commit()
         return chosen, sorted(strikes)
+    except Exception as exc:
+        # Roll back the aborted tx, then close the (already-committed) run so it
+        # can't dangle in 'running'. Re-raise so callers see the original failure.
+        repo.conn.rollback()
+        if run_id is not None:
+            try:
+                repo.finish_scan_run(run_id, status=f"failed: {exc!r}"[:400])
+                repo.conn.commit()
+            except Exception as close_exc:  # never mask the original error
+                logger.debug("scan_run close failed: %s", repr(close_exc))
+                repo.conn.rollback()
+        raise
     finally:
         client.close()
+
+
+def vrp_macro_entry_grid_refresh(
+    repo: Repository, settings: Settings, *, now: datetime | None = None
+) -> dict:
+    """Nightly fresh-UW-budget job: enumerate SPX's listed-strike grid for the
+    ~43-DTE expiry and cache it, so the RTH birth path needs ZERO UW.
+
+    Runs at 03:50 ET — after the 00:00 UTC daily-quota reset and well before the
+    always-on stack exhausts the budget (~08:00 ET) and the 10:00 ET birth crons.
+    Idempotent: upserts on (name, for_date)."""
+    now = now or datetime.now(_ET)
+    on_date = now.astimezone(_ET).date()
+    chosen_expiry, strikes = _uw_chain_strikes(
+        repo, settings, "SPX", on_date, run_notes="vrp_macro_entry_grid_refresh"
+    )
+    if not strikes:
+        # Never overwrite a good cached grid with an empty one — leave the prior
+        # day's real grid in place for the stale-fallback to reuse.
+        logger.warning(
+            "vrp_macro_entry_grid_refresh_skipped reason=empty_grid expiry=%s",
+            chosen_expiry,
+        )
+        return {"chosen_expiry": chosen_expiry, "strikes": 0}
+    repo.upsert_vrp_macro_entry_grid(
+        name="SPX", for_date=on_date, chosen_expiry=chosen_expiry, strikes=strikes
+    )
+    repo.conn.commit()
+    logger.info(
+        "vrp_macro_entry_grid_refresh name=SPX expiry=%s strikes=%d",
+        chosen_expiry,
+        len(strikes),
+    )
+    return {"chosen_expiry": chosen_expiry, "strikes": len(strikes)}
 
 
 def _uw_leg_nbbo(
@@ -185,9 +238,11 @@ def _insert_cohort(repo, sig, *, origin, on_date, now, chosen_expiry, ec) -> int
 
 
 def _birth_auto(repo: Repository, settings: Settings, *, on_date, now, rfr) -> int:
-    """Birth today's auto cohort iff fresh SPX+VIX quotes resolve the live signal.
-    No EOD fallback for birth (codex ISSUE-3): a holiday/WS-gap day would birth off
-    a stale close and pollute the daily stride — let the next mark retry instead."""
+    """Birth today's auto cohort iff fresh SPX+VIX quotes resolve the live signal
+    AND a cached strike grid exists. No EOD fallback for birth (codex ISSUE-3): a
+    holiday/WS-gap day would birth off a stale close and pollute the daily stride.
+    The grid comes from the nightly vrp_macro_entry_grid_refresh cache — birth makes
+    ZERO UW calls, so an exhausted daily budget can no longer abort it."""
     quotes = load_live_quotes(
         repo,
         ["SPX", "VIX"],
@@ -198,6 +253,10 @@ def _birth_auto(repo: Repository, settings: Settings, *, on_date, now, rfr) -> i
     if spx is None or vix is None:
         logger.info("vrp_macro_entry_birth_skipped reason=no_fresh_quote")
         return 0
+    grid = repo.fetch_vrp_macro_entry_grid("SPX", on_date)
+    if grid is None:
+        logger.warning("vrp_macro_entry_birth_skipped reason=no_cached_grid")
+        return 0
     sig = current_macro_signal_live(
         repo,
         settings,
@@ -206,7 +265,8 @@ def _birth_auto(repo: Repository, settings: Settings, *, on_date, now, rfr) -> i
         live_spot=float(spx.price),
         live_iv=float(vix.price) / 100.0,
     )
-    chosen_expiry, strikes = _uw_chain_strikes(repo, settings, "SPX", on_date)
+    chosen_expiry = grid["chosen_expiry"]
+    strikes = [float(s) for s in grid["strikes"]]
     ec = _resolve_legs(
         sig, on_date=on_date, chosen_expiry=chosen_expiry, strikes=strikes, rfr=rfr
     )
@@ -410,7 +470,14 @@ def capture_entry_now(
     else:
         sig = current_macro_signal(repo, settings, "SPX")
         und = sig.spot
-    chosen_expiry, strikes = _uw_chain_strikes(repo, settings, "SPX", on_date)
+    grid = repo.fetch_vrp_macro_entry_grid("SPX", on_date)
+    if grid is not None:
+        chosen_expiry = grid["chosen_expiry"]
+        strikes = [float(s) for s in grid["strikes"]]
+    else:
+        # cold cache (e.g. day-1 post-deploy) — button is a user action, so a live
+        # UW enumeration here is acceptable (unlike the unattended auto birth).
+        chosen_expiry, strikes = _uw_chain_strikes(repo, settings, "SPX", on_date)
     ec = _resolve_legs(
         sig, on_date=on_date, chosen_expiry=chosen_expiry, strikes=strikes, rfr=rfr
     )

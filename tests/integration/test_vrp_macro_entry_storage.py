@@ -77,3 +77,71 @@ def test_insert_quotes_upsert(seeded_db_empty_cards: Repository):
     repo.insert_vrp_macro_entry_quotes([{**q, "nbbo_bid": 11.5}])  # same PK -> update
     got = repo.fetch_vrp_macro_entry_quotes(eid)
     assert len(got) == 1 and float(got[0]["nbbo_bid"]) == 11.5
+
+
+def test_grid_cache_upsert_and_fetch(seeded_db_empty_cards: Repository):
+    repo = seeded_db_empty_cards
+    repo.upsert_vrp_macro_entry_grid(
+        name="SPX",
+        for_date=date(2026, 6, 24),
+        chosen_expiry=date(2026, 8, 6),
+        strikes=[6865.0, 6870.0, 7085.0, 7090.0],
+    )
+    # same (name, for_date) overwrites
+    repo.upsert_vrp_macro_entry_grid(
+        name="SPX",
+        for_date=date(2026, 6, 24),
+        chosen_expiry=date(2026, 8, 6),
+        strikes=[6860.0, 6865.0, 7085.0, 7090.0, 7095.0],
+    )
+    got = repo.fetch_vrp_macro_entry_grid("SPX", date(2026, 6, 24))
+    assert got is not None
+    assert got["chosen_expiry"] == date(2026, 8, 6)
+    assert [float(s) for s in got["strikes"]] == [
+        6860.0,
+        6865.0,
+        7085.0,
+        7090.0,
+        7095.0,
+    ]
+
+
+def test_grid_cache_stale_fallback_and_expiry_guard(seeded_db_empty_cards: Repository):
+    repo = seeded_db_empty_cards
+    # a grid cached two days earlier, expiry still open
+    repo.upsert_vrp_macro_entry_grid(
+        name="SPX",
+        for_date=date(2026, 6, 22),
+        chosen_expiry=date(2026, 8, 4),
+        strikes=[6865.0, 7090.0],
+    )
+    # asking 2 days later (within the 4-day staleness window) reuses the prior grid
+    got = repo.fetch_vrp_macro_entry_grid("SPX", date(2026, 6, 24))
+    assert got is not None and got["for_date"] == date(2026, 6, 22)
+    # but a grid older than the staleness bound is NOT reused (would birth too-near
+    # an expiry vs the intended ~43 DTE) → skip, don't persist an off-strategy cohort
+    assert repo.fetch_vrp_macro_entry_grid("SPX", date(2026, 6, 27)) is None
+    # never reuse a grid whose chosen expiry has already passed
+    assert repo.fetch_vrp_macro_entry_grid("SPX", date(2026, 8, 5)) is None
+    # cold cache for an unknown name → None
+    assert repo.fetch_vrp_macro_entry_grid("QQQ", date(2026, 6, 24)) is None
+
+
+def test_grid_cache_rejects_empty_strikes(seeded_db_empty_cards: Repository):
+    import psycopg
+
+    repo = seeded_db_empty_cards
+    # the DB CHECK forbids an empty grid (a useless row that would shadow the
+    # stale-fallback and break birth's leg resolution)
+    try:
+        repo.upsert_vrp_macro_entry_grid(
+            name="SPX",
+            for_date=date(2026, 6, 24),
+            chosen_expiry=date(2026, 8, 6),
+            strikes=[],
+        )
+        raised = False
+    except psycopg.errors.CheckViolation:
+        repo.conn.rollback()
+        raised = True
+    assert raised
