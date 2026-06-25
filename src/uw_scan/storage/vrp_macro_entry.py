@@ -8,6 +8,7 @@ cohorts, each snapshotted 8x/day. See migration 085 + the entry-capture plan.
 from __future__ import annotations
 
 from datetime import date as _date
+from datetime import timedelta
 from typing import Any
 
 import psycopg
@@ -153,6 +154,59 @@ class _VrpMacroEntryMixin:
         params = [tuple(r.get(c) for c in _QUOTE_COLS) for r in rows]
         with self._conn.cursor() as cur:
             cur.executemany(sql, params)
+
+    def upsert_vrp_macro_entry_grid(
+        self,
+        *,
+        name: str,
+        for_date: _date,
+        chosen_expiry: _date,
+        strikes: list[float],
+    ) -> None:
+        """Cache the day's real UW-listed strike grid for the ~43-DTE expiry.
+
+        The RTH birth path reads this instead of calling UW, which 429s once the
+        daily budget is spent (reliably before the 10:00 ET birth cron). Idempotent
+        upsert on (name, for_date) — a restart re-fetch overwrites in place."""
+        sql = (
+            f"INSERT INTO {self._schema}.vrp_macro_entry_grid "
+            "(name, for_date, chosen_expiry, strikes) VALUES (%s, %s, %s, %s) "
+            "ON CONFLICT (name, for_date) DO UPDATE SET "
+            "chosen_expiry = EXCLUDED.chosen_expiry, strikes = EXCLUDED.strikes, "
+            "fetched_at = now()"
+        )
+        with self._conn.cursor() as cur:
+            cur.execute(sql, (name, for_date, chosen_expiry, list(strikes)))
+
+    def fetch_vrp_macro_entry_grid(
+        self, name: str, for_date: _date, *, max_staleness_days: int = 4
+    ) -> dict[str, Any] | None:
+        """Most-recent cached grid in the window [for_date - max_staleness_days,
+        for_date] whose chosen expiry is still in the future. Returns
+        {for_date, chosen_expiry, strikes, fetched_at} (strikes = list[Decimal])
+        or None if the cache is cold / only holds too-old or expired grids.
+
+        Why the staleness bound: the strategy births at ~43 calendar DTE. A single
+        missed nightly refresh should reuse yesterday's REAL grid (its chosen expiry
+        is only ~1 day nearer — fine), but a grid many days old would birth a
+        materially-nearer-DTE cohort (e.g. a 43-DTE grid reused at 5 DTE). Beyond
+        the bound we'd rather skip birth (logged) than persist an off-strategy
+        cohort. ``chosen_expiry > for_date`` additionally rejects an already-expired
+        cached expiry within the window."""
+        sql = (
+            "SELECT for_date, chosen_expiry, strikes, fetched_at "
+            f"FROM {self._schema}.vrp_macro_entry_grid "
+            "WHERE name = %s AND for_date BETWEEN %s AND %s AND chosen_expiry > %s "
+            "ORDER BY for_date DESC LIMIT 1"
+        )
+        oldest = for_date - timedelta(days=max_staleness_days)
+        with self._conn.cursor() as cur:
+            cur.execute(sql, (name, oldest, for_date, for_date))
+            row = cur.fetchone()
+            if row is None:
+                return None
+            cols = [d.name for d in cur.description or []]
+            return dict(zip(cols, row, strict=False))
 
     def fetch_vrp_macro_entry(self, entry_id: int) -> dict[str, Any] | None:
         """One cohort header by id (any origin) — the 4 strikes surface under the
