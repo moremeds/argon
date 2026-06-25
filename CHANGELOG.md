@@ -7,6 +7,26 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+### Fixed
+
+- **VRP macro entry-capture never persisted** — the daily SPX auto-birth
+  (`_birth_auto`) enumerated the listed strike grid via two live UW calls inside
+  the 10:00–15:00 ET birth crons, but the UW daily quota is reliably exhausted by
+  ~08:00 ET, so every birth 429'd and aborted (`vrp_macro_entry` /
+  `vrp_macro_entry_quote` stayed empty; the preview card silently fell back to the
+  BS-`modeled` indicative legs). Added a nightly `vrp_macro_entry_grid_refresh`
+  job (03:50 ET, massive-0, when the UW budget is fresh) that caches the real
+  UW-listed expiry + put strikes into a new `vrp_macro_entry_grid` table
+  (migration 088). The unattended auto-birth now reads that cache and makes **zero
+  UW calls**, so an exhausted daily quota can no longer abort it; the on-demand
+  Capture button reads the same cache (UW-free whenever the cache is warm, i.e.
+  after the first nightly refresh — a cold-cache click still falls back to a live
+  UW lookup). The cache read reuses the most-recent prior day's real grid (within
+  a 4-day staleness bound, chosen expiry still open) if a nightly refresh is
+  missed, rather than skipping birth. As part of this, `_uw_chain_strikes` now
+  closes its `scan_runs` row as `failed` on a UW error instead of leaving it stuck
+  in `running` (the visible side-symptom of the original bug).
+
 ## [0.3.5] — 2026-06-25
 
 
