@@ -7,6 +7,9 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+## [0.3.5] — 2026-06-25
+
+
 ### Fixed
 
 - **#180 — `option_intraday_buckets` covered only ~half the watchlist.** The
@@ -43,7 +46,6 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   `list_record_health`, which keys on write-timestamps and skips no-timestamp
   tables (e.g. `greek_exposure_daily`) — the blind spot that let the vrp/greek
   freezes slip for five weeks. Migration `087`.
-
 ## [0.3.4] — 2026-06-25
 
 
