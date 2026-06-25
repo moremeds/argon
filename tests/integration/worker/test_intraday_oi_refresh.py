@@ -6,7 +6,10 @@ from decimal import Decimal
 from types import SimpleNamespace
 
 from uw_scan.models import MarketAggregates
-from uw_scan.worker.jobs.option_intraday_jobs import refresh_intraday_for_top_oi_movers
+from uw_scan.worker.jobs.option_intraday_jobs import (
+    backfill_intraday_history,
+    refresh_intraday_for_top_oi_movers,
+)
 
 
 def _shard(ticker: str, count: int = 2) -> int:
@@ -94,3 +97,39 @@ def test_unfiltered_job_covers_both_shards(seeded_db_empty_cards, monkeypatch):
         "contracts_error",
     ):
         assert key in summary
+
+
+def test_backfill_history_sweeps_window_sessions(seeded_db_empty_cards, monkeypatch):
+    """backfill_intraday_history fetches EVERY mover session inside [since, until]
+    (not just the latest run) and excludes sessions outside the window."""
+    repo = seeded_db_empty_cards
+    _seed_ticker_with_movers(repo, "AAPL", date(2026, 6, 15))  # out of window
+    _seed_ticker_with_movers(repo, "AAPL", date(2026, 6, 22))
+    _seed_ticker_with_movers(repo, "AAPL", date(2026, 6, 23))
+
+    attempted: list[tuple[str, str]] = []
+
+    def _fake_fetch(client, r, run_id, option_symbol, date_str):
+        attempted.append((option_symbol, date_str))
+        return []
+
+    monkeypatch.setattr(
+        "uw_scan.worker.jobs.option_intraday_jobs.fetch_option_contract_intraday",
+        _fake_fetch,
+    )
+
+    settings = SimpleNamespace(db_schema=repo._schema)
+    summary = backfill_intraday_history(
+        repo=repo,
+        client=_FakeUw(),
+        settings=settings,
+        tickers=["AAPL"],
+        since=date(2026, 6, 22),
+        until=date(2026, 6, 23),
+    )
+
+    # Both in-window sessions swept; the 2026-06-15 session is excluded.
+    assert {d for _, d in attempted} == {"2026-06-22", "2026-06-23"}
+    assert summary["tickers"] == 1
+    assert summary["sessions"] == 2
+    assert summary["errors"] == 0

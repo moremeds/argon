@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Callable
+from datetime import date
 
 from uw_scan.api.client import UwClient
 from uw_scan.config import Settings
@@ -28,6 +29,7 @@ from uw_scan.storage.repository import Repository
 logger = logging.getLogger(__name__)
 
 INTRADAY_REFRESH_LOCK = 91502  # mnemonic: migration 049 + slot 02
+INTRADAY_BACKFILL_LOCK = 91504  # operator historical sweep; distinct from daily 91502
 DEFAULT_TOP_N = 10
 
 
@@ -143,5 +145,108 @@ def refresh_intraday_for_top_oi_movers(
         summary["skipped_no_movers"],
         summary["contracts_empty"],
         summary["contracts_error"],
+    )
+    return summary
+
+
+def backfill_intraday_history(
+    *,
+    repo: Repository,
+    client: UwClient,
+    settings: Settings,
+    tickers: list[str],
+    since: date,
+    until: date,
+    top_n: int = DEFAULT_TOP_N,
+    lock_key: int = INTRADAY_BACKFILL_LOCK,
+) -> dict[str, int]:
+    """Operator one-shot: sweep intraday buckets for ``tickers`` across EVERY
+    OI-mover session in ``[since, until]``.
+
+    The daily ``refresh_intraday_for_top_oi_movers`` only fetches the latest
+    run's session. This recovers history for tickers the #180 shard bug skipped,
+    bounded by our own ``oi_change_events`` history (we can only fetch the tape
+    for sessions whose movers we recorded) and UW's intraday retention. Per
+    ``(ticker, session)`` transaction commits on success, rolls back on failure.
+    Idempotent (upsert). Uses a distinct advisory lock so it never blocks the
+    daily job.
+    """
+    if not repo.try_advisory_lock(lock_key):
+        logger.info("intraday_backfill: lock held; skipping")
+        return {"tickers": 0, "sessions": 0, "contracts": 0, "buckets": 0, "errors": 0}
+
+    intraday_repo = OptionIntradayBucketRepository(repo.conn, schema=settings.db_schema)
+    schema = settings.db_schema
+    tickers_done = 0
+    sessions_done = 0
+    contracts_done = 0
+    buckets_written = 0
+    errors = 0
+
+    try:
+        for ticker in sorted({t.strip().upper() for t in tickers if t.strip()}):
+            with repo.conn.cursor() as cur:
+                cur.execute(
+                    f"SELECT DISTINCT curr_date FROM {schema}.oi_change_events "
+                    "WHERE underlying_symbol = %s AND curr_date BETWEEN %s AND %s "
+                    "ORDER BY curr_date",
+                    (ticker, since, until),
+                )
+                sessions = [r[0] for r in cur.fetchall()]
+            if not sessions:
+                logger.info("intraday_backfill: %s no mover sessions in window", ticker)
+                continue
+            tickers_done += 1
+
+            for sess in sessions:
+                # Top-N movers for this (ticker, session) — same notional ordering
+                # the daily job's fetch_oi_change_top uses.
+                with repo.conn.cursor() as cur:
+                    cur.execute(
+                        f"SELECT option_symbol FROM {schema}.oi_change_events "
+                        "WHERE underlying_symbol = %s AND curr_date = %s "
+                        "ORDER BY (COALESCE(volume, 0) * COALESCE(avg_price, 0)) "
+                        "DESC NULLS LAST, rnk ASC LIMIT %s",
+                        (ticker, sess, top_n),
+                    )
+                    movers = [r[0] for r in cur.fetchall()]
+                if not movers:
+                    continue
+
+                run_id = repo.insert_scan_run(ticker, notes="intraday_backfill")
+                try:
+                    for option_symbol in movers:
+                        buckets = fetch_option_contract_intraday(
+                            client, repo, run_id, option_symbol, sess.isoformat()
+                        )
+                        n = intraday_repo.upsert_buckets(option_symbol, sess, buckets)
+                        contracts_done += 1
+                        buckets_written += n
+                    repo.finish_scan_run(run_id, status="ok")
+                    repo.conn.commit()
+                    sessions_done += 1
+                except Exception as exc:  # noqa: BLE001
+                    repo.conn.rollback()
+                    errors += 1
+                    logger.warning(
+                        "intraday_backfill: %s %s failed: %s", ticker, sess, repr(exc)
+                    )
+    finally:
+        repo.release_advisory_lock(lock_key)
+
+    summary = {
+        "tickers": tickers_done,
+        "sessions": sessions_done,
+        "contracts": contracts_done,
+        "buckets": buckets_written,
+        "errors": errors,
+    }
+    logger.info(
+        "intraday_backfill complete tickers=%d sessions=%d contracts=%d buckets=%d errors=%d",
+        summary["tickers"],
+        summary["sessions"],
+        summary["contracts"],
+        summary["buckets"],
+        summary["errors"],
     )
     return summary

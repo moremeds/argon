@@ -18,8 +18,11 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   lock), and emits per-outcome counters (`skipped_no_run`, `skipped_no_movers`,
   `contracts_empty`, `contracts_error`) so a future coverage gap self-reports.
   One-shot backfill: `scripts/backfill/intraday_buckets_backfill.py`
-  (budget-gated). Roughly doubles this job's daily UW calls; `UwClient`
-  throttle/retry absorbs transient 429s.
+  (budget-gated) — `--missing` auto-targets the blank set, and `--since` sweeps
+  the full per-session history (`backfill_intraday_history`, distinct advisory
+  lock) bounded by our recorded `oi_change_events` sessions, not just the latest
+  run. Roughly doubles this job's daily UW calls; `UwClient` throttle/retry
+  absorbs transient 429s.
 - **#179 — single-name `greek_exposure_daily` froze at 2026-05-20.** It is
   index-only by design (the regime GEX scan only covers `gex_scan_tickers`); the
   100 single-name rows were a one-off backfill tail with no recurring writer. A
