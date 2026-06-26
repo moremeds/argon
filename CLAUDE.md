@@ -142,8 +142,10 @@ Worker roles: `ai-codex`, `ai-claude`, and `ai-deepseek` (provider-pinned, recom
 | Option surface capture (durable full-chain IV grid) + IB canary | `src/uw_scan/worker/jobs/option_surface_capture.py` + `worker/jobs/option_surface_iv_canary.py` + `storage/option_surface.py` + `sources/xenon_query.py` + migrations `077`/`078` (grid + `iv_source_validation`; jobs at 19:00/19:30 ET weekdays, uw-0); spec `docs/superpowers/specs/2026-06-19-option-surface-capture-design.md` |
 | Live spot WS feed (xenon primary / massive fallback) | `src/uw_scan/sources/{xenon_ws,massive_ws}.py` + `worker/massive_ws_consumer.py` + `worker/ws_db_writer.py`; active feed: `/api/health` `ws_consumer.active_source` |
 | UW endpoints (integrated) | `src/uw_scan/api/endpoints.py` + `sources/uw.py` |
-| UW API reference (full surface) | `docs/uw-samples/unusual_whales_api.md` (human-readable) + `docs/uw-samples/unusual_whales_api_spec.yaml` (OpenAPI) — consult before adding any new UW fetcher |
+| UW API reference (standard tier) | `docs/uw-samples/unusual_whales_api.md` — integrated endpoints, untapped-but-accessible endpoints with signal-priority ranking, backfill notes. Consult before adding any new UW fetcher. Audit baseline: 140 accessible / 30 integrated (2026-05-15). |
+| UW API reference (gated tiers) | `docs/uw-samples/unusual_whales_advanced_tier.md` — Advanced+ / Premium / Enterprise gated endpoints. Do not add fetchers for these without upgrading. |
 | UW sample payloads | `docs/uw-samples/*.json` — real responses for each integrated endpoint, with `_shape-summary.md` |
+| UW capability audit (machine-readable) | `docs/uw-samples/uw_api_capability_audit.json` + `uw_api_capability_audit.md` — full 177-operation matrix with live probe results, backfill classification, response shapes |
 | Volatility derivers | `src/uw_scan/cards/vol_series.py`, `reports/volatility_series.py` |
 | Scanner (detectors + ranking + discovery) | `src/uw_scan/scanner/` (pipeline, signals, ranking, discovery, gates, context) + `api/routers/scanner.py` + `web/app/scanner/page.tsx` |
 | Regime indicators (CRI / GEX / VCG) | `src/uw_scan/scanners/{cri,gex,vcg}.py` + `api/routers/regime.py` + `web/app/regime/page.tsx` + `web/components/regime/*` |
