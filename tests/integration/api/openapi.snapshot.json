@@ -19593,6 +19593,7 @@
           },
           "greeks_source": {
             "enum": [
+              "ib",
               "bs",
               "none"
             ],

@@ -19,6 +19,12 @@ from .vrp_structure import bs_delta, bs_gamma, bs_theta, bs_vega, strike_for_del
 
 _ET = ZoneInfo("America/New_York")
 
+# IB modelGreeks → argon's BS column convention. IB reports vega per 1% (0.01)
+# vol move and theta per calendar day; argon stores bs_vega (per 1.00 vol) and
+# bs_theta (per year), so scale IB's to match. delta/gamma need no scaling.
+_IB_VEGA_TO_BS = 100.0  # per-1% → per-100% vol
+_IB_THETA_TO_BS = 365.0  # per-day → per-year
+
 
 @dataclass(frozen=True)
 class EntryContracts:
@@ -87,7 +93,7 @@ class LegQuote:
     theta: float
     und_spot: Any
     source: str  # 'xenon_ib' | 'uw'  (always a real NBBO; never synthetic)
-    greeks_source: str  # 'bs' | 'none'
+    greeks_source: str  # 'ib' | 'bs' | 'none'
     source_asof: Any
 
 
@@ -103,15 +109,18 @@ def quote_leg(
     uw_row: dict[str, Any] | None = None,
     try_xenon: bool = True,
 ) -> LegQuote:
-    """Quote one resolved put leg: xenon/IB primary (true NBBO + IV + und_spot),
-    UW fallback (delayed NBBO + IV), greeks ALWAYS BS-computed from the marked IV.
+    """Quote one resolved put leg: xenon/IB primary (true NBBO + IV + und_spot +
+    native greeks), UW fallback (delayed NBBO + IV). Greeks: IB-native primary,
+    BS-from-IV backup, then nulls.
 
     ``expiry`` is YYYYMMDD; ``as_of`` is tz-aware. T is computed from expiry vs the
     **as_of ET date** (never wall-clock) so replays/late marks are deterministic.
-    Native source greeks are never stored — IB theta is per-day, BS per-year, and
-    bump conventions differ, so mixing them across marks would corrupt the markout
-    series (one-model rule). ``greeks_source='bs'`` when a real IV is present, else
-    ``'none'`` (greeks 0.0). ``source`` tags only the NBBO+IV+und_spot provenance.
+    IB greeks are rescaled to argon's BS column convention — vega ×100 (IB per-1%
+    vol → bs_vega per-100%) and theta ×365 (IB per-day → bs_theta per-year); delta
+    and gamma already share BS conventions. ``greeks_source`` is ``'ib'`` when IB
+    returns a full greek set, ``'bs'`` when only a real IV is present (UW legs, or
+    IB without greeks), else ``'none'`` (greeks 0.0). ``source`` tags the
+    NBBO+IV+und_spot provenance independently of ``greeks_source``.
     """
     exp_date = datetime.strptime(expiry, "%Y%m%d").date()
     as_of_date = as_of.astimezone(_ET).date()
@@ -156,7 +165,24 @@ def quote_leg(
         und = underlying_spot
         source_asof = None
 
-    if iv is not None and float(iv) > 0:
+    # Greeks: IB-native primary (reflects IB's live surface), BS-from-IV backup,
+    # then nulls. IB reports vega per-1% vol and theta per-day; rescale to argon's
+    # bs_vega (per-100%) / bs_theta (per-year) column convention so IB and BS legs
+    # share one unit. delta/gamma already match BS conventions (put delta -1..0).
+    ib = (
+        xq
+        if source == "xenon_ib"
+        and xq is not None
+        and all(xq.get(g) is not None for g in ("delta", "gamma", "vega", "theta"))
+        else None
+    )
+    if ib is not None:
+        delta = float(ib["delta"])
+        gamma = float(ib["gamma"])
+        vega = float(ib["vega"]) * _IB_VEGA_TO_BS
+        theta = float(ib["theta"]) * _IB_THETA_TO_BS
+        greeks_source = "ib"
+    elif iv is not None and float(iv) > 0:
         sig = float(iv)
         s = float(und) if und is not None else float(underlying_spot)
         k = float(strike)
