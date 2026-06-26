@@ -7,11 +7,12 @@ On normalizer failure raises `NormalizationError` (no silent skipping).
 from __future__ import annotations
 
 import logging
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
+from decimal import Decimal, InvalidOperation
 from typing import Any
 
 from .. import normalize
-from ..api.client import UwClient
+from ..api.client import UwClient, UwHTTPError
 from ..api.endpoints import EndpointSlug, build_path
 from ..models import (
     BulkScreenerRow,
@@ -618,3 +619,59 @@ def fetch_earnings_history(
 ) -> dict:
     body = _fetch_json(client, repo, run_id, EndpointSlug.EARNINGS, ticker)
     return normalize.normalize_earnings_history(body)
+
+
+def fetch_market_tide(
+    client: UwClient,
+    repo: Repository,
+    run_id: int,
+    trading_date: date | None = None,
+) -> list[dict]:
+    """Market-wide 5-min options tide for one session (defaults to today).
+
+    Returns the full intraday series in a single call — 81-82 bars 09:30→16:10
+    ET for a complete RTH session. Each parsed bar carries the UW bar timestamp,
+    the session date, and the net call/put premium + net volume for that bucket.
+    Raises NormalizationError on a missing field rather than silently skipping a
+    bar (the chart/backfill must know if UW changed shape).
+    """
+    params: dict[str, Any] = {}
+    if trading_date is not None:
+        params["date"] = trading_date.isoformat()
+    try:
+        body = _fetch_json(
+            client, repo, run_id, EndpointSlug.MARKET_TIDE, None, params=params or None
+        )
+    except UwHTTPError as exc:
+        # Pre-open / not-yet-published sessions return 400 — no data, not an
+        # error. The client already recorded the 400 in telemetry.
+        if exc.status_code == 400:
+            logger.info("market-tide: 400 (no data yet) date=%s", trading_date)
+            return []
+        raise
+    rows = body.get("data") if isinstance(body, dict) else None
+    if not isinstance(rows, list):
+        raise normalize.NormalizationError(
+            f"market-tide: expected 'data' list, got {type(rows).__name__}"
+        )
+    out: list[dict] = []
+    for r in rows:
+        try:
+            out.append(
+                {
+                    "ts": datetime.fromisoformat(r["timestamp"]),
+                    "data_date": date.fromisoformat(r["date"]),
+                    "net_call_premium": Decimal(str(r["net_call_premium"])),
+                    "net_put_premium": Decimal(str(r["net_put_premium"])),
+                    "net_volume": (
+                        int(r["net_volume"])
+                        if r.get("net_volume") is not None
+                        else None
+                    ),
+                }
+            )
+        except (KeyError, ValueError, TypeError, InvalidOperation) as exc:
+            raise normalize.NormalizationError(
+                f"market-tide: malformed bar {r!r}"
+            ) from exc
+    return out

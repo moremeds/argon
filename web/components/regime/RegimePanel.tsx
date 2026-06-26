@@ -6,12 +6,21 @@ import CanarySubTab from "./CanarySubTab";
 import CriSubTab from "./CriSubTab";
 import GexSubTab from "./GexSubTab";
 import GrgSubTab from "./GrgSubTab";
+import MarketTideSubTab from "./MarketTideSubTab";
 import ValidationTab from "./ValidationTab";
 import VcgSubTab from "./VcgSubTab";
 
-type RegimeTab = "cri" | "vcg" | "grg" | "canary" | "gex" | "validation";
+type RegimeTab =
+  | "tide"
+  | "cri"
+  | "vcg"
+  | "grg"
+  | "canary"
+  | "gex"
+  | "validation";
 
 const TABS: { id: RegimeTab; label: string }[] = [
+  { id: "tide", label: "Market Tide" },
   { id: "gex", label: "Gamma Exposure" },
   { id: "cri", label: "Crash Risk Index" },
   { id: "vcg", label: "Volatility-Credit Gap" },
@@ -80,6 +89,7 @@ export default function RegimePanel({ initialTab }: { initialTab?: string }) {
           </button>
         ))}
       </div>
+      {activeTab === "tide" && <MarketTideSubTab marketState={marketState} />}
       {activeTab === "gex" && <GexSubTab marketState={marketState} />}
       {activeTab === "cri" && <CriSubTab />}
       {activeTab === "vcg" && <VcgSubTab />}

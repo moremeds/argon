@@ -19,6 +19,8 @@ export const regimeApi = {
     `${API}/api/regime/gex/intraday?ticker=${encodeURIComponent(ticker)}&sessions=${sessions}`,
   gex_scan: (ticker: string) =>
     `${API}/api/regime/gex/scan?ticker=${encodeURIComponent(ticker)}`,
+  market_tide: (sessions: number = 5) =>
+    `${API}/api/regime/market-tide?sessions=${sessions}`,
   cri_live: () => `${API}/api/regime/cri/live`,
   cri_intraday: (sessions: number = 5) =>
     `${API}/api/regime/cri/intraday?sessions=${sessions}`,

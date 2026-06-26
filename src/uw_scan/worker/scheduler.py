@@ -199,6 +199,20 @@ def _should_schedule_option_surface_capture(settings: Settings) -> bool:
     return role == "all" or (role == "uw" and settings.worker_index == 0)
 
 
+def _should_schedule_market_tide_capture(settings: Settings) -> bool:
+    """Exactly one process owns the 5-min market-tide capture.
+
+    UW-bound + appends a row per bar with no advisory lock; scheduling on every
+    role's index-0 (_is_primary_worker matches uw-0/massive-0/ai-0) would
+    multiply UW spend + race upserts. Pin to uw-0, gated by the capture flag —
+    follows the option-surface / skew-swing precedent.
+    """
+    if not settings.market_tide_capture_enabled:
+        return False
+    role = settings.worker_role.lower()
+    return role == "all" or (role == "uw" and settings.worker_index == 0)
+
+
 def _should_schedule_vrp_macro_entry(settings: Settings) -> bool:
     """Exactly one process owns the 8x/day VRP entry-capture marks.
 
@@ -800,6 +814,31 @@ def main() -> int:
                                 repr(exc),
                             )
 
+    def _regime_market_tide_scan() -> None:
+        # Weekday gate — UW market-tide is only published during sessions.
+        if datetime.now(ZoneInfo(settings.rth_tz)).weekday() >= 5:
+            logger.info("regime_market_tide_scan_skipped_weekend")
+            return
+        from uw_scan.scanners import market_tide as market_tide_scanner
+
+        with _external_api_recorder(settings) as recorder:
+            with _uw_client(
+                settings,
+                telemetry_recorder=recorder,
+                job_name="regime_market_tide_scan",
+            ) as uw:
+                with _repo(settings) as repo:
+                    try:
+                        n = market_tide_scanner.run(
+                            uw, repo, spot_ticker=settings.market_tide_spot_ticker
+                        )
+                        logger.info("regime_market_tide_scan_tick bars=%s", n)
+                    except Exception as exc:
+                        logger.warning(
+                            "regime_market_tide_scan_failed err=%s", repr(exc)
+                        )
+                        repo.conn.rollback()
+
     def _regime_grg_scan() -> None:
         # Gamma Rotation Gap. UW-bound: fetches SPY/TLT greek-exposure history,
         # reads SPY/TLT flip+spot from gex_snapshots, persists grg_snapshots.
@@ -1168,6 +1207,24 @@ def main() -> int:
                 max_instances=1,
                 coalesce=True,
             )
+            # Market-tide capture — market-wide net call/put premium, 5-min
+            # bars through RTH. UW-bound + per-tick row writes; pinned to uw-0
+            # via its own helper (NOT the looser _is_primary_worker gate) to
+            # avoid duplicate UW spend, and behind the capture kill switch.
+            if _should_schedule_market_tide_capture(settings):
+                sched.add_job(
+                    _regime_market_tide_scan,
+                    CronTrigger(
+                        minute="*/5",
+                        hour="9-16",
+                        day_of_week="mon-fri",
+                        timezone=settings.rth_tz,
+                    ),
+                    id="regime_market_tide_scan",
+                    name="Regime market-tide capture (UW)",
+                    max_instances=1,
+                    coalesce=True,
+                )
             # Regime / GRG scan — SPY/TLT cross-asset gamma divergence.
             # UW-bound; every 15 min through RTH + post-close settlement
             # (UW greek-exposure updates after the close). Primary-uw-only.

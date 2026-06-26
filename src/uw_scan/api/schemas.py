@@ -281,6 +281,40 @@ class GexIntradayResponse(BaseModel):
     as_of: datetime | None = None
 
 
+class MarketTidePoint(BaseModel):
+    """One 5-min market-tide bar inside a session. Premium fields are the
+    market-wide net call/put premium for that bucket; `spot` is the live index
+    price captured at that tick (null for backfilled history)."""
+
+    ts: datetime
+    net_call_premium: float | None = None
+    net_put_premium: float | None = None
+    net_volume: int | None = None
+    spot: float | None = None
+
+    _coerce_floats = field_validator(
+        "net_call_premium", "net_put_premium", "spot", mode="before"
+    )(_to_float)
+
+
+class MarketTideSession(BaseModel):
+    date: date
+    points: list[MarketTidePoint] = Field(default_factory=list)
+
+
+class MarketTideResponse(BaseModel):
+    """Last N sessions of market-wide options tide for the regime Market Tide tab.
+
+    Sessions ordered oldest→newest; points within each session ASC by ``ts``.
+    Empty `sessions` is a valid response when no rows exist yet.
+    """
+
+    sessions: list[MarketTideSession] = Field(default_factory=list)
+    spot_ticker: str | None = None
+    as_of: datetime | None = None
+    market_open: bool = False
+
+
 class VolBackdropResponse(BaseModel):
     """Vol-complex time series + VIX term-structure (regime page header strip)."""
 

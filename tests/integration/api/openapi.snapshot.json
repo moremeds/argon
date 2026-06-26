@@ -8486,6 +8486,128 @@
         "title": "MarketStructureLevels",
         "type": "object"
       },
+      "MarketTidePoint": {
+        "description": "One 5-min market-tide bar inside a session. Premium fields are the\nmarket-wide net call/put premium for that bucket; `spot` is the live index\nprice captured at that tick (null for backfilled history).",
+        "properties": {
+          "net_call_premium": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Net Call Premium"
+          },
+          "net_put_premium": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Net Put Premium"
+          },
+          "net_volume": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Net Volume"
+          },
+          "spot": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Spot"
+          },
+          "ts": {
+            "format": "date-time",
+            "title": "Ts",
+            "type": "string"
+          }
+        },
+        "required": [
+          "ts"
+        ],
+        "title": "MarketTidePoint",
+        "type": "object"
+      },
+      "MarketTideResponse": {
+        "description": "Last N sessions of market-wide options tide for the regime Market Tide tab.\n\nSessions ordered oldest\u2192newest; points within each session ASC by ``ts``.\nEmpty `sessions` is a valid response when no rows exist yet.",
+        "properties": {
+          "as_of": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "As Of"
+          },
+          "market_open": {
+            "default": false,
+            "title": "Market Open",
+            "type": "boolean"
+          },
+          "sessions": {
+            "items": {
+              "$ref": "#/components/schemas/MarketTideSession"
+            },
+            "title": "Sessions",
+            "type": "array"
+          },
+          "spot_ticker": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Spot Ticker"
+          }
+        },
+        "title": "MarketTideResponse",
+        "type": "object"
+      },
+      "MarketTideSession": {
+        "properties": {
+          "date": {
+            "format": "date",
+            "title": "Date",
+            "type": "string"
+          },
+          "points": {
+            "items": {
+              "$ref": "#/components/schemas/MarketTidePoint"
+            },
+            "title": "Points",
+            "type": "array"
+          }
+        },
+        "required": [
+          "date"
+        ],
+        "title": "MarketTideSession",
+        "type": "object"
+      },
       "MatrixSourceFreshness": {
         "properties": {
           "im_vrp": {
@@ -20890,7 +21012,7 @@
   },
   "info": {
     "title": "UW Watchlist API",
-    "version": "0.3.4"
+    "version": "0.3.6"
   },
   "openapi": "3.1.0",
   "paths": {
@@ -22420,6 +22542,52 @@
         "summary": "Get Guidance",
         "tags": [
           "regime",
+          "regime"
+        ]
+      }
+    },
+    "/api/regime/market-tide": {
+      "get": {
+        "description": "Last N sessions of market-wide 5-min net options premium + live spot.\n\nReads market_tide_snapshots (worker-captured intraday + backfilled history).\nDrives the regime Market Tide tab. Empty `sessions` is a valid response.",
+        "operationId": "get_market_tide_api_regime_market_tide_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "sessions",
+            "required": false,
+            "schema": {
+              "default": 5,
+              "maximum": 30,
+              "minimum": 1,
+              "title": "Sessions",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MarketTideResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Market Tide",
+        "tags": [
           "regime"
         ]
       }

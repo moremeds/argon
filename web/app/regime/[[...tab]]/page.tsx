@@ -7,6 +7,7 @@ export const metadata = {
 };
 
 const VALID_TABS = new Set([
+  "tide",
   "gex",
   "cri",
   "vcg",

@@ -45,6 +45,8 @@ from uw_scan.api.schemas import (
     GexResponse,
     GrgResponse,
     GrgScanResponse,
+    MarketTideResponse,
+    MarketTideSession,
     RegimeLiveQuote,
     RegimeQuotesResponse,
     VcgDailyEntry,
@@ -193,6 +195,35 @@ def get_gex_intraday(
         ticker=t,
         sessions=payload_sessions,
         as_of=last_ts,
+    )
+
+
+@router.get("/market-tide", response_model=MarketTideResponse)
+def get_market_tide(
+    repo: Annotated[Repository, Depends(get_repo)],
+    settings: Annotated[Settings, Depends(get_settings)],
+    sessions: int = Query(5, ge=1, le=30),
+) -> MarketTideResponse:
+    """Last N sessions of market-wide 5-min net options premium + live spot.
+
+    Reads market_tide_snapshots (worker-captured intraday + backfilled history).
+    Drives the regime Market Tide tab. Empty `sessions` is a valid response.
+    """
+    from uw_scan.storage.market_tide_snapshot_repository import (
+        MarketTideSnapshotRepository,
+    )
+
+    tide_repo = MarketTideSnapshotRepository(repo.conn, schema=repo._schema)
+    raw = tide_repo.fetch_sessions(sessions=sessions)
+    payload_sessions = [MarketTideSession.model_validate(s) for s in raw]
+    last_ts = None
+    if payload_sessions and payload_sessions[-1].points:
+        last_ts = payload_sessions[-1].points[-1].ts
+    return MarketTideResponse(
+        sessions=payload_sessions,
+        spot_ticker=settings.market_tide_spot_ticker,
+        as_of=last_ts,
+        market_open=_is_market_open_now(),
     )
 
 
