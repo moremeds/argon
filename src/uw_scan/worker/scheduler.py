@@ -84,6 +84,11 @@ logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
 )
+# Suppress APScheduler's per-execution bookkeeping ("Running job…" / "executed
+# successfully") — these fire every second per worker (heartbeat + rescan_tick)
+# and flood concurrently→Warp at ~12–26 lines/sec, saturating the render loop.
+# WARNING still surfaces missed-firing, executor overload, and error events.
+logging.getLogger("apscheduler").setLevel(logging.WARNING)
 logger = logging.getLogger("uw_scan.worker")
 RESCAN_WORKER_CONCURRENCY = 2
 # Each regime scan tick checks the last N trading days for missing snapshots

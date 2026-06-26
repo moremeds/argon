@@ -58,7 +58,25 @@ fi
 # Shared count exports so the API process can enumerate worker rows in the
 # health panel. AI workers use FOR UPDATE SKIP LOCKED on the analysis queue,
 # so 2 instances safely process distinct tickers in parallel.
-COUNTS="UW_SCAN_UW_WORKER_COUNT=2 UW_SCAN_MASSIVE_WORKER_COUNT=2 UW_SCAN_AI_WORKER_COUNT=2 TRADE_INSIGHTS_AI_CODEX_WORKER_COUNT=2 TRADE_INSIGHTS_AI_CLAUDE_WORKER_COUNT=2"
+#
+# Footprint: the FULL stack is 13 concurrent processes — next dev (webpack,
+# explicit --webpack flag required: Next.js 16.2+ defaults to Turbopack which
+# spawns 20+ parallel PostCSS workers on first CSS compilation and saturates
+# all CPU cores, crashing WindowServer via WATCHDOG starvation),
+# uvicorn --reload, 2x uw, 2x massive, 6x ai, and the WS consumer. The 6 AI
+# workers idle on an empty local analysis queue, yet each can spawn a
+# 200-500 MB AI-CLI subprocess the instant a row is queued; combined with
+# the APScheduler log flood (~26 lines/sec), that startup spike can thrash
+# a loaded laptop.
+# So the AI workers are OFF by default for local dev (they're pure waste unless
+# you're exercising Trade Insights AI). Set DEV_FULL=1 to run the full stack.
+DEV_FULL="${DEV_FULL:-0}"
+if [[ "$DEV_FULL" == "1" ]]; then
+  AI_COUNTS="UW_SCAN_AI_WORKER_COUNT=2 TRADE_INSIGHTS_AI_CODEX_WORKER_COUNT=2 TRADE_INSIGHTS_AI_CLAUDE_WORKER_COUNT=2"
+else
+  AI_COUNTS="UW_SCAN_AI_WORKER_COUNT=0 TRADE_INSIGHTS_AI_CODEX_WORKER_COUNT=0 TRADE_INSIGHTS_AI_CLAUDE_WORKER_COUNT=0"
+fi
+COUNTS="UW_SCAN_UW_WORKER_COUNT=2 UW_SCAN_MASSIVE_WORKER_COUNT=2 $AI_COUNTS"
 # Single source of truth for WS-pipeline mode. Exported to API + every worker
 # so scheduler closures (full_scan / rescan) see the same value (R6 — without
 # this the UW workers would still write UW-derived spot over the WS values).
@@ -68,19 +86,38 @@ COUNTS="UW_SCAN_UW_WORKER_COUNT=2 UW_SCAN_MASSIVE_WORKER_COUNT=2 UW_SCAN_AI_WORK
 # remote xenon (e.g. the mini) via XENON_WS_URL in .env.local.
 WS="MASSIVE_WS_ENABLED=true XENON_WS_ENABLED=${XENON_WS_ENABLED:-true}"
 
+# Base stack (always): web, API, 2x uw, 2x massive.
+names=(next api uw-0 uw-1 massive-0 massive-1)
+colors=(cyan green yellow magenta blue white)
+cmds=(
+  "cd web && npx next dev --port 3001 --webpack"
+  "sleep 15 && $COUNTS $WS uv run uvicorn uw_scan.api.server:app --host 127.0.0.1 --port 8400 --reload --reload-dir src"
+  "sleep 20 && $COUNTS $WS UW_SCAN_WORKER_ROLE=uw UW_SCAN_WORKER_INDEX=0 UW_SCAN_WORKER_COUNT=2 uv run python -m uw_scan.worker.scheduler"
+  "sleep 22 && $COUNTS $WS UW_SCAN_WORKER_ROLE=uw UW_SCAN_WORKER_INDEX=1 UW_SCAN_WORKER_COUNT=2 uv run python -m uw_scan.worker.scheduler"
+  "sleep 24 && $COUNTS $WS UW_SCAN_WORKER_ROLE=massive UW_SCAN_WORKER_INDEX=0 UW_SCAN_WORKER_COUNT=2 uv run python -m uw_scan.worker.scheduler"
+  "sleep 26 && $COUNTS $WS UW_SCAN_WORKER_ROLE=massive UW_SCAN_WORKER_INDEX=1 UW_SCAN_WORKER_COUNT=2 uv run python -m uw_scan.worker.scheduler"
+)
+
+# AI workers (opt-in via DEV_FULL=1).
+if [[ "$DEV_FULL" == "1" ]]; then
+  names+=(ai-codex-0 ai-codex-1 ai-claude-0 ai-claude-1 ai-deepseek-0 ai-deepseek-1)
+  colors+=(red red gray gray brightMagenta brightMagenta)
+  cmds+=(
+    "$COUNTS $WS UW_SCAN_WORKER_ROLE=ai-codex    UW_SCAN_WORKER_INDEX=0 UW_SCAN_WORKER_COUNT=2 uv run python -m uw_scan.worker.scheduler"
+    "$COUNTS $WS UW_SCAN_WORKER_ROLE=ai-codex    UW_SCAN_WORKER_INDEX=1 UW_SCAN_WORKER_COUNT=2 uv run python -m uw_scan.worker.scheduler"
+    "$COUNTS $WS UW_SCAN_WORKER_ROLE=ai-claude   UW_SCAN_WORKER_INDEX=0 UW_SCAN_WORKER_COUNT=2 uv run python -m uw_scan.worker.scheduler"
+    "$COUNTS $WS UW_SCAN_WORKER_ROLE=ai-claude   UW_SCAN_WORKER_INDEX=1 UW_SCAN_WORKER_COUNT=2 uv run python -m uw_scan.worker.scheduler"
+    "$COUNTS $WS UW_SCAN_WORKER_ROLE=ai-deepseek UW_SCAN_WORKER_INDEX=0 UW_SCAN_WORKER_COUNT=2 uv run python -m uw_scan.worker.scheduler"
+    "$COUNTS $WS UW_SCAN_WORKER_ROLE=ai-deepseek UW_SCAN_WORKER_INDEX=1 UW_SCAN_WORKER_COUNT=2 uv run python -m uw_scan.worker.scheduler"
+  )
+fi
+
+# WS spot consumer (always, last — matches the original tail ordering).
+names+=(massive-ws)
+colors+=(brightCyan)
+cmds+=("$COUNTS $WS uv run python -m uw_scan.worker.massive_ws_consumer")
+
 exec npx --prefix web concurrently \
-  -n next,api,uw-0,uw-1,massive-0,massive-1,ai-codex-0,ai-codex-1,ai-claude-0,ai-claude-1,ai-deepseek-0,ai-deepseek-1,massive-ws \
-  -c cyan,green,yellow,magenta,blue,white,red,red,gray,gray,brightMagenta,brightMagenta,brightCyan \
-  "cd web && npm run dev" \
-  "$COUNTS $WS uv run uvicorn uw_scan.api.server:app --host 127.0.0.1 --port 8400 --reload --reload-dir src" \
-  "$COUNTS $WS UW_SCAN_WORKER_ROLE=uw UW_SCAN_WORKER_INDEX=0 UW_SCAN_WORKER_COUNT=2 uv run python -m uw_scan.worker.scheduler" \
-  "$COUNTS $WS UW_SCAN_WORKER_ROLE=uw UW_SCAN_WORKER_INDEX=1 UW_SCAN_WORKER_COUNT=2 uv run python -m uw_scan.worker.scheduler" \
-  "$COUNTS $WS UW_SCAN_WORKER_ROLE=massive UW_SCAN_WORKER_INDEX=0 UW_SCAN_WORKER_COUNT=2 uv run python -m uw_scan.worker.scheduler" \
-  "$COUNTS $WS UW_SCAN_WORKER_ROLE=massive UW_SCAN_WORKER_INDEX=1 UW_SCAN_WORKER_COUNT=2 uv run python -m uw_scan.worker.scheduler" \
-  "$COUNTS $WS UW_SCAN_WORKER_ROLE=ai-codex    UW_SCAN_WORKER_INDEX=0 UW_SCAN_WORKER_COUNT=2 uv run python -m uw_scan.worker.scheduler" \
-  "$COUNTS $WS UW_SCAN_WORKER_ROLE=ai-codex    UW_SCAN_WORKER_INDEX=1 UW_SCAN_WORKER_COUNT=2 uv run python -m uw_scan.worker.scheduler" \
-  "$COUNTS $WS UW_SCAN_WORKER_ROLE=ai-claude   UW_SCAN_WORKER_INDEX=0 UW_SCAN_WORKER_COUNT=2 uv run python -m uw_scan.worker.scheduler" \
-  "$COUNTS $WS UW_SCAN_WORKER_ROLE=ai-claude   UW_SCAN_WORKER_INDEX=1 UW_SCAN_WORKER_COUNT=2 uv run python -m uw_scan.worker.scheduler" \
-  "$COUNTS $WS UW_SCAN_WORKER_ROLE=ai-deepseek UW_SCAN_WORKER_INDEX=0 UW_SCAN_WORKER_COUNT=2 uv run python -m uw_scan.worker.scheduler" \
-  "$COUNTS $WS UW_SCAN_WORKER_ROLE=ai-deepseek UW_SCAN_WORKER_INDEX=1 UW_SCAN_WORKER_COUNT=2 uv run python -m uw_scan.worker.scheduler" \
-  "$COUNTS $WS uv run python -m uw_scan.worker.massive_ws_consumer"
+  -n "$(IFS=,; echo "${names[*]}")" \
+  -c "$(IFS=,; echo "${colors[*]}")" \
+  "${cmds[@]}"

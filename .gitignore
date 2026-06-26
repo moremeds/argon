@@ -23,6 +23,9 @@ output/
 # Local browser/debug artifacts
 .playwright-cli/
 *.log
+
+# Runtime logs + memory flight-recorder output (scripts/dev_memwatch.sh)
+logs/
 *.dmg
 *.base64.txt
 *-base64.txt

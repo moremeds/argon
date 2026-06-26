@@ -27,6 +27,15 @@ const COLORS = {
 };
 
 const ET_TZ = "America/New_York";
+// ponytail: one formatter for the module lifetime — creating one per data point
+// (7 k+ per render) causes measurable GC pressure; Intl.DateTimeFormat carries
+// ICU locale data and timezone rule tables internally.
+const _etFmt = new Intl.DateTimeFormat("en-US", {
+  timeZone: ET_TZ,
+  hour: "2-digit",
+  minute: "2-digit",
+  hour12: false,
+});
 
 function etDateLabel(d: string): string {
   const [, m, day] = d.split("-");
@@ -35,12 +44,7 @@ function etDateLabel(d: string): string {
 
 /** ET time-of-day in minutes from midnight, from an ISO timestamp. */
 function etMinutes(ts: string): number {
-  const parts = new Intl.DateTimeFormat("en-US", {
-    timeZone: ET_TZ,
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false,
-  }).formatToParts(new Date(ts));
+  const parts = _etFmt.formatToParts(new Date(ts));
   const h = Number(parts.find((p) => p.type === "hour")?.value ?? 0);
   const min = Number(parts.find((p) => p.type === "minute")?.value ?? 0);
   return h * 60 + min;
@@ -217,7 +221,7 @@ export function MarketTideChart({ data }: { data: MarketTideData | null }) {
     if (scale == null) return "";
     return sessionRanges
       .map((s) => {
-        let sub = "";
+        const parts: string[] = [];
         let move = true;
         for (let i = s.start; i <= s.end; i++) {
           const v = accessor(flat[i]);
@@ -225,10 +229,10 @@ export function MarketTideChart({ data }: { data: MarketTideData | null }) {
             move = true;
             continue;
           }
-          sub += `${move ? "M" : "L"}${xScale(flat[i].x)},${scale(v)} `;
+          parts.push(`${move ? "M" : "L"}${xScale(flat[i].x)},${scale(v)}`);
           move = false;
         }
-        return sub.trimEnd();
+        return parts.join(" ");
       })
       .filter((sub) => sub.length > 0)
       .join(" ");

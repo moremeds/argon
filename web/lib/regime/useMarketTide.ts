@@ -24,6 +24,11 @@ export type MarketTideData = {
   market_open: boolean;
 };
 
+// Stable refs — defined once so useSyncHook's executeRequest useCallback does
+// not invalidate (and reset the poll interval) on every parent render.
+const _extractTs = (d: MarketTideData) => d.as_of;
+const _noRetry = () => false;
+
 export function useMarketTide(
   marketState: MarketState | null = null,
   sessions: number = 5,
@@ -36,8 +41,8 @@ export function useMarketTide(
     endpoint: regimeApi.market_tide(sessions),
     interval: marketState === MarketState.EXTENDED ? 300_000 : 60_000,
     hasPost: false,
-    extractTimestamp: (d: MarketTideData) => d.as_of,
-    shouldRetry: () => false,
+    extractTimestamp: _extractTs,
+    shouldRetry: _noRetry,
     retryIntervalMs: 5000,
     retryMethod: "GET" as const,
   };
