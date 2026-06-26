@@ -76,16 +76,17 @@ def fetch_ib_option_quote(
     timeout_s: float = 8.0,
     client: httpx.Client | None = None,
 ) -> dict | None:
-    """NBBO + marked IV + underlying spot for one option via GET /options/greeks.
+    """NBBO + marked IV + underlying spot + native greeks for one option via
+    GET /options/greeks.
 
-    Returns ``{"bid", "ask", "iv", "und_spot"}`` — any value ``None`` when IB
-    omitted it (greeks object may itself be JSON ``null`` for an illiquid
-    contract, still HTTP 200 → iv/und_spot None). The native delta/gamma/vega/
-    theta in the response are intentionally NOT consumed: greeks are BS-computed
-    downstream from the marked IV for one-model consistency (IB theta is per-day,
-    BS per-year — mixing units would corrupt the markout series). Returns ``None``
-    only on transport failure — mirrors ``fetch_ib_option_iv``'s never-raise
-    contract so the snapshot job falls back to UW instead of crashing.
+    Returns ``{"bid", "ask", "iv", "und_spot", "delta", "gamma", "vega",
+    "theta"}`` — any value ``None`` when IB omitted it (greeks object may itself
+    be JSON ``null`` for an illiquid contract, still HTTP 200 → every greek None).
+    IB's native delta/gamma/vega/theta are now consumed as the primary greek
+    source (BS-from-IV is the downstream backup); the caller rescales IB's
+    per-1%-vol vega and per-day theta to argon's BS column convention. Returns
+    ``None`` only on transport failure — mirrors ``fetch_ib_option_iv``'s
+    never-raise contract so the snapshot job falls back to UW instead of crashing.
     """
     headers = {"X-API-Key": api_key} if api_key else {}
     params = {
@@ -109,6 +110,10 @@ def fetch_ib_option_quote(
             "ask": body.get("ask"),
             "iv": greeks.get("impliedVol"),
             "und_spot": greeks.get("undPrice"),
+            "delta": greeks.get("delta"),
+            "gamma": greeks.get("gamma"),
+            "vega": greeks.get("vega"),
+            "theta": greeks.get("theta"),
         }
     except (httpx.HTTPError, ValueError, KeyError) as exc:
         log.warning(

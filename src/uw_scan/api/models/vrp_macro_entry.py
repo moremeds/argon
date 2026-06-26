@@ -16,7 +16,7 @@ LegName = Literal["short_above", "short_below", "wing_above", "wing_below"]
 # source — the preview serves persisted legs or none (a fake quote is worse than
 # no quote), so 'modeled' is intentionally NOT a permitted source.
 LegSource = Literal["xenon_ib", "uw"]
-GreeksSource = Literal["bs", "none"]
+GreeksSource = Literal["ib", "bs", "none"]
 
 
 class VrpMacroEntryLeg(BaseModel):

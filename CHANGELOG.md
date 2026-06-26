@@ -7,6 +7,19 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+### Changed
+
+- **VRP macro entry-capture now stores IB's native option greeks as the primary
+  source.** `xenon_query.fetch_ib_option_quote` previously discarded the
+  delta/gamma/vega/theta in the `/options/greeks` response and `quote_leg` always
+  BS-computed greeks from the marked IV. The IB-native greeks (which reflect IB's
+  live surface) are now consumed as primary, rescaled to argon's BS column
+  convention — vega ×100 (IB per-1% vol → per-100%) and theta ×365 (IB per-day →
+  per-year); delta/gamma already match. BS-from-IV remains the backup when IB
+  returns no greek set (UW-fallback legs, or IB without greeks). Adds `'ib'` to
+  the `greeks_source` tag (`VrpMacroEntryLeg.greeks_source` contract widened to
+  `ib | bs | none`).
+
 ## [0.3.6] — 2026-06-25
 
 

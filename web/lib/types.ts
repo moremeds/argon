@@ -7814,7 +7814,7 @@ export interface components {
              * Greeks Source
              * @enum {string}
              */
-            greeks_source: "bs" | "none";
+            greeks_source: "ib" | "bs" | "none";
         };
         VrpMacroEntryPreview: {
             /** Name */
