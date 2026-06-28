@@ -23,7 +23,7 @@ export default async function RegimePage({
 }) {
   const { tab } = await params;
   const first = tab?.[0];
-  const initialTab = first && VALID_TABS.has(first) ? first : "gex";
+  const initialTab = first && VALID_TABS.has(first) ? first : "tide";
   return (
     <main className="regime-page">
       <header className="regime-page-header">

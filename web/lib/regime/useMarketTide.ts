@@ -17,11 +17,25 @@ export type MarketTideSession = {
   points: MarketTidePoint[];
 };
 
+export type MarketTideSentiment = {
+  state: string; // BULLISH | BEARISH | BALANCED | WARMING_UP
+  magnitude: string; // FLAT | LEANING | STRONG
+  driver: string;
+  momentum: string;
+  spread: number | null;
+  session_slope: number | null; // $/hr
+  recent_slope: number | null; // $/hr
+  trend_strength: number | null;
+  volume_confirms: boolean | null;
+  bars: number;
+};
+
 export type MarketTideData = {
   sessions: MarketTideSession[];
   spot_ticker: string | null;
   as_of: string | null;
   market_open: boolean;
+  sentiment: MarketTideSentiment | null;
 };
 
 // Stable refs — defined once so useSyncHook's executeRequest useCallback does

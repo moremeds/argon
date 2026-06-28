@@ -32,7 +32,7 @@ const TABS: { id: RegimeTab; label: string }[] = [
 const VALID = new Set<RegimeTab>(TABS.map((t) => t.id));
 
 function coerce(tab: string | undefined): RegimeTab {
-  return tab && VALID.has(tab as RegimeTab) ? (tab as RegimeTab) : "gex";
+  return tab && VALID.has(tab as RegimeTab) ? (tab as RegimeTab) : "tide";
 }
 
 export default function RegimePanel({ initialTab }: { initialTab?: string }) {

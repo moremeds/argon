@@ -8565,6 +8565,16 @@
             "title": "Market Open",
             "type": "boolean"
           },
+          "sentiment": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/MarketTideSentiment"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "sessions": {
             "items": {
               "$ref": "#/components/schemas/MarketTideSession"
@@ -8585,6 +8595,95 @@
           }
         },
         "title": "MarketTideResponse",
+        "type": "object"
+      },
+      "MarketTideSentiment": {
+        "description": "Slope/sentiment derived from the latest session's spread S = NCP \u2212 NPP.\nSee reports/market_tide_sentiment.py for the math. Flow descriptor, not a\nprice predictor. `trend_strength` is the divergence ratio (0..1).",
+        "properties": {
+          "bars": {
+            "default": 0,
+            "title": "Bars",
+            "type": "integer"
+          },
+          "driver": {
+            "title": "Driver",
+            "type": "string"
+          },
+          "magnitude": {
+            "title": "Magnitude",
+            "type": "string"
+          },
+          "momentum": {
+            "title": "Momentum",
+            "type": "string"
+          },
+          "recent_slope": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Recent Slope"
+          },
+          "session_slope": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Session Slope"
+          },
+          "spread": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Spread"
+          },
+          "state": {
+            "title": "State",
+            "type": "string"
+          },
+          "trend_strength": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Trend Strength"
+          },
+          "volume_confirms": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Volume Confirms"
+          }
+        },
+        "required": [
+          "state",
+          "magnitude",
+          "driver",
+          "momentum"
+        ],
+        "title": "MarketTideSentiment",
         "type": "object"
       },
       "MarketTideSession": {
@@ -14757,6 +14856,90 @@
           "expiry"
         ],
         "title": "TermStructureExpiryRow",
+        "type": "object"
+      },
+      "TopNetImpactResponse": {
+        "description": "Top tickers by net option premium for one session (regime Market Tide\ntab, beside the daily chart). Rows sorted by net_premium DESC.",
+        "properties": {
+          "data_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Data Date"
+          },
+          "rows": {
+            "items": {
+              "$ref": "#/components/schemas/TopNetImpactRow"
+            },
+            "title": "Rows",
+            "type": "array"
+          }
+        },
+        "title": "TopNetImpactResponse",
+        "type": "object"
+      },
+      "TopNetImpactRow": {
+        "description": "One ticker in the market-wide net-premium ranking. `rank_change` is\nprev_rank - rank (positive = climbed since the last capture; null = new\nthis session).",
+        "properties": {
+          "net_premium": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Net Premium"
+          },
+          "prev_rank": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Prev Rank"
+          },
+          "rank": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rank"
+          },
+          "rank_change": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rank Change"
+          },
+          "ticker": {
+            "title": "Ticker",
+            "type": "string"
+          }
+        },
+        "required": [
+          "ticker"
+        ],
+        "title": "TopNetImpactRow",
         "type": "object"
       },
       "TradeFramework": {
@@ -22630,6 +22813,68 @@
           }
         },
         "summary": "Trigger Cri Scan",
+        "tags": [
+          "regime"
+        ]
+      }
+    },
+    "/api/regime/top-net-impact": {
+      "get": {
+        "description": "Top tickers by net option premium for one session (default: latest).\n\nReads top_net_impact_snapshots (worker-captured every 15 min through RTH).\nRows sorted by net_premium DESC; each carries its per-update rank_change.",
+        "operationId": "get_top_net_impact_api_regime_top_net_impact_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "date",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Date"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 40,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TopNetImpactResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Top Net Impact",
         "tags": [
           "regime"
         ]

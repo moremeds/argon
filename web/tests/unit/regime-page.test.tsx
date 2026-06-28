@@ -5,6 +5,9 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import RegimePanel from "@/components/regime/RegimePanel";
 
 // Stub the sub-tabs so this test doesn't depend on chart / fetch internals.
+vi.mock("@/components/regime/MarketTideSubTab", () => ({
+  default: () => <div data-testid="tide-subtab-stub">Tide subtab</div>,
+}));
 vi.mock("@/components/regime/GexSubTab", () => ({
   default: () => <div data-testid="gex-subtab-stub">GEX subtab</div>,
 }));
@@ -26,8 +29,11 @@ beforeEach(() => {
 });
 
 describe("RegimePanel", () => {
-  it("renders sub-tab buttons with full names, GEX active by default", () => {
+  it("renders sub-tab buttons with full names, Market Tide active by default", () => {
     render(<RegimePanel />);
+    expect(screen.getByTestId("regime-tab-tide").textContent).toBe(
+      "Market Tide",
+    );
     expect(screen.getByTestId("regime-tab-cri").textContent).toBe(
       "Crash Risk Index",
     );
@@ -40,8 +46,8 @@ describe("RegimePanel", () => {
     expect(screen.getByTestId("regime-tab-grg").textContent).toBe(
       "Gamma Rotation Gap",
     );
-    expect(screen.getByTestId("regime-tab-gex").className).toMatch(/active/);
-    expect(screen.queryByTestId("gex-subtab-stub")).not.toBeNull();
+    expect(screen.getByTestId("regime-tab-tide").className).toMatch(/active/);
+    expect(screen.queryByTestId("tide-subtab-stub")).not.toBeNull();
   });
 
   it("renders CRI subtab when CRI tab clicked", () => {

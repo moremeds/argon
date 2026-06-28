@@ -218,6 +218,15 @@ def _should_schedule_market_tide_capture(settings: Settings) -> bool:
     return role == "all" or (role == "uw" and settings.worker_index == 0)
 
 
+def _should_schedule_top_net_impact_capture(settings: Settings) -> bool:
+    """Exactly one process owns the 15-min top-net-impact capture. Same uw-0
+    pin + kill-switch as market-tide (one UW call/tick, idempotent upsert)."""
+    if not settings.top_net_impact_capture_enabled:
+        return False
+    role = settings.worker_role.lower()
+    return role == "all" or (role == "uw" and settings.worker_index == 0)
+
+
 def _should_schedule_vrp_macro_entry(settings: Settings) -> bool:
     """Exactly one process owns the 8x/day VRP entry-capture marks.
 
@@ -844,6 +853,43 @@ def main() -> int:
                         )
                         repo.conn.rollback()
 
+    def _regime_top_net_impact_scan() -> None:
+        # Weekday gate — UW top-net-impact is only published during sessions.
+        if datetime.now(ZoneInfo(settings.rth_tz)).weekday() >= 5:
+            logger.info("regime_top_net_impact_scan_skipped_weekend")
+            return
+        from uw_scan.scanners import top_net_impact as top_net_impact_scanner
+
+        with _external_api_recorder(settings) as recorder:
+            with _uw_client(
+                settings,
+                telemetry_recorder=recorder,
+                job_name="regime_top_net_impact_scan",
+            ) as uw:
+                with _repo(settings) as repo:
+                    try:
+                        n = top_net_impact_scanner.run(uw, repo)
+                        logger.info("regime_top_net_impact_scan_tick rows=%s", n)
+                    except Exception as exc:
+                        logger.warning(
+                            "regime_top_net_impact_scan_failed err=%s", repr(exc)
+                        )
+                        repo.conn.rollback()
+
+    def _market_tide_sentiment_eod() -> None:
+        # EOD slope/sentiment for the latest session — pure DB→DB reshape of
+        # the captured tide bars (no UW). Persists market_tide_sentiment_daily
+        # for the backtest history.
+        from uw_scan.worker.jobs.market_tide_sentiment import refresh_eod_sentiment
+
+        with _repo(settings) as repo:
+            try:
+                n = refresh_eod_sentiment(repo, sessions=1)
+                logger.info("market_tide_sentiment_eod_tick sessions=%s", n)
+            except Exception as exc:
+                logger.warning("market_tide_sentiment_eod_failed err=%s", repr(exc))
+                repo.conn.rollback()
+
     def _regime_grg_scan() -> None:
         # Gamma Rotation Gap. UW-bound: fetches SPY/TLT greek-exposure history,
         # reads SPY/TLT flip+spot from gex_snapshots, persists grg_snapshots.
@@ -1227,6 +1273,40 @@ def main() -> int:
                     ),
                     id="regime_market_tide_scan",
                     name="Regime market-tide capture (UW)",
+                    max_instances=1,
+                    coalesce=True,
+                )
+                # EOD tide sentiment — persist the day's slope/sentiment after
+                # the close (last bar ~16:10 ET). DB→DB, no UW. Same uw-0 pin,
+                # gated with the tide capture it depends on.
+                sched.add_job(
+                    _market_tide_sentiment_eod,
+                    CronTrigger(
+                        minute=25,
+                        hour=16,
+                        day_of_week="mon-fri",
+                        timezone=settings.rth_tz,
+                    ),
+                    id="market_tide_sentiment_eod",
+                    name="Market-tide EOD sentiment (DB)",
+                    max_instances=1,
+                    coalesce=True,
+                )
+            # Top-net-impact capture — market-wide net-premium ranking, 15-min
+            # through RTH. One UW call/tick; pinned uw-0 + kill switch, slower
+            # cadence than tide to respect UW budget (ranking barely moves in
+            # 15 min). Tracks per-update rank movement via prev_rank.
+            if _should_schedule_top_net_impact_capture(settings):
+                sched.add_job(
+                    _regime_top_net_impact_scan,
+                    CronTrigger(
+                        minute="*/15",
+                        hour="9-16",
+                        day_of_week="mon-fri",
+                        timezone=settings.rth_tz,
+                    ),
+                    id="regime_top_net_impact_scan",
+                    name="Regime top-net-impact capture (UW)",
                     max_instances=1,
                     coalesce=True,
                 )
