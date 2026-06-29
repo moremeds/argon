@@ -8486,6 +8486,227 @@
         "title": "MarketStructureLevels",
         "type": "object"
       },
+      "MarketTidePoint": {
+        "description": "One 5-min market-tide bar inside a session. Premium fields are the\nmarket-wide net call/put premium for that bucket; `spot` is the live index\nprice captured at that tick (null for backfilled history).",
+        "properties": {
+          "net_call_premium": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Net Call Premium"
+          },
+          "net_put_premium": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Net Put Premium"
+          },
+          "net_volume": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Net Volume"
+          },
+          "spot": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Spot"
+          },
+          "ts": {
+            "format": "date-time",
+            "title": "Ts",
+            "type": "string"
+          }
+        },
+        "required": [
+          "ts"
+        ],
+        "title": "MarketTidePoint",
+        "type": "object"
+      },
+      "MarketTideResponse": {
+        "description": "Last N sessions of market-wide options tide for the regime Market Tide tab.\n\nSessions ordered oldest\u2192newest; points within each session ASC by ``ts``.\nEmpty `sessions` is a valid response when no rows exist yet.",
+        "properties": {
+          "as_of": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "As Of"
+          },
+          "market_open": {
+            "default": false,
+            "title": "Market Open",
+            "type": "boolean"
+          },
+          "sentiment": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/MarketTideSentiment"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "sessions": {
+            "items": {
+              "$ref": "#/components/schemas/MarketTideSession"
+            },
+            "title": "Sessions",
+            "type": "array"
+          },
+          "spot_ticker": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Spot Ticker"
+          }
+        },
+        "title": "MarketTideResponse",
+        "type": "object"
+      },
+      "MarketTideSentiment": {
+        "description": "Slope/sentiment derived from the latest session's spread S = NCP \u2212 NPP.\nSee reports/market_tide_sentiment.py for the math. Flow descriptor, not a\nprice predictor. `trend_strength` is the divergence ratio (0..1).",
+        "properties": {
+          "bars": {
+            "default": 0,
+            "title": "Bars",
+            "type": "integer"
+          },
+          "driver": {
+            "title": "Driver",
+            "type": "string"
+          },
+          "magnitude": {
+            "title": "Magnitude",
+            "type": "string"
+          },
+          "momentum": {
+            "title": "Momentum",
+            "type": "string"
+          },
+          "recent_slope": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Recent Slope"
+          },
+          "session_slope": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Session Slope"
+          },
+          "spread": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Spread"
+          },
+          "state": {
+            "title": "State",
+            "type": "string"
+          },
+          "trend_strength": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Trend Strength"
+          },
+          "volume_confirms": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Volume Confirms"
+          }
+        },
+        "required": [
+          "state",
+          "magnitude",
+          "driver",
+          "momentum"
+        ],
+        "title": "MarketTideSentiment",
+        "type": "object"
+      },
+      "MarketTideSession": {
+        "properties": {
+          "date": {
+            "format": "date",
+            "title": "Date",
+            "type": "string"
+          },
+          "points": {
+            "items": {
+              "$ref": "#/components/schemas/MarketTidePoint"
+            },
+            "title": "Points",
+            "type": "array"
+          }
+        },
+        "required": [
+          "date"
+        ],
+        "title": "MarketTideSession",
+        "type": "object"
+      },
       "MatrixSourceFreshness": {
         "properties": {
           "im_vrp": {
@@ -14635,6 +14856,90 @@
           "expiry"
         ],
         "title": "TermStructureExpiryRow",
+        "type": "object"
+      },
+      "TopNetImpactResponse": {
+        "description": "Top tickers by net option premium for one session (regime Market Tide\ntab, beside the daily chart). Rows sorted by net_premium DESC.",
+        "properties": {
+          "data_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Data Date"
+          },
+          "rows": {
+            "items": {
+              "$ref": "#/components/schemas/TopNetImpactRow"
+            },
+            "title": "Rows",
+            "type": "array"
+          }
+        },
+        "title": "TopNetImpactResponse",
+        "type": "object"
+      },
+      "TopNetImpactRow": {
+        "description": "One ticker in the market-wide net-premium ranking. `rank_change` is\nprev_rank - rank (positive = climbed since the last capture; null = new\nthis session).",
+        "properties": {
+          "net_premium": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Net Premium"
+          },
+          "prev_rank": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Prev Rank"
+          },
+          "rank": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rank"
+          },
+          "rank_change": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rank Change"
+          },
+          "ticker": {
+            "title": "Ticker",
+            "type": "string"
+          }
+        },
+        "required": [
+          "ticker"
+        ],
+        "title": "TopNetImpactRow",
         "type": "object"
       },
       "TradeFramework": {
@@ -20890,7 +21195,7 @@
   },
   "info": {
     "title": "UW Watchlist API",
-    "version": "0.3.4"
+    "version": "0.3.6"
   },
   "openapi": "3.1.0",
   "paths": {
@@ -22424,6 +22729,52 @@
         ]
       }
     },
+    "/api/regime/market-tide": {
+      "get": {
+        "description": "Last N sessions of market-wide 5-min net options premium + live spot.\n\nReads market_tide_snapshots (worker-captured intraday + backfilled history).\nDrives the regime Market Tide tab. Empty `sessions` is a valid response.",
+        "operationId": "get_market_tide_api_regime_market_tide_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "sessions",
+            "required": false,
+            "schema": {
+              "default": 5,
+              "maximum": 30,
+              "minimum": 1,
+              "title": "Sessions",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MarketTideResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Market Tide",
+        "tags": [
+          "regime"
+        ]
+      }
+    },
     "/api/regime/quotes": {
       "get": {
         "operationId": "get_regime_quotes_api_regime_quotes_get",
@@ -22462,6 +22813,68 @@
           }
         },
         "summary": "Trigger Cri Scan",
+        "tags": [
+          "regime"
+        ]
+      }
+    },
+    "/api/regime/top-net-impact": {
+      "get": {
+        "description": "Top tickers by net option premium for one session (default: latest).\n\nReads top_net_impact_snapshots (worker-captured every 15 min through RTH).\nRows sorted by net_premium DESC; each carries its per-update rank_change.",
+        "operationId": "get_top_net_impact_api_regime_top_net_impact_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "date",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Date"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 40,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TopNetImpactResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Top Net Impact",
         "tags": [
           "regime"
         ]

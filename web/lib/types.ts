@@ -799,6 +799,29 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/regime/market-tide": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Market Tide
+         * @description Last N sessions of market-wide 5-min net options premium + live spot.
+         *
+         *     Reads market_tide_snapshots (worker-captured intraday + backfilled history).
+         *     Drives the regime Market Tide tab. Empty `sessions` is a valid response.
+         */
+        get: operations["get_market_tide_api_regime_market_tide_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/regime/vol-backdrop": {
         parameters: {
             query?: never;
@@ -2659,6 +2682,52 @@ export interface components {
             et_date: string;
             /** Points */
             points?: components["schemas"]["GexIntradayPoint"][];
+        };
+        /** MarketTidePoint */
+        MarketTidePoint: {
+            /** Net Call Premium */
+            net_call_premium?: number | null;
+            /** Net Put Premium */
+            net_put_premium?: number | null;
+            /** Net Volume */
+            net_volume?: number | null;
+            /** Spot */
+            spot?: number | null;
+            /**
+             * Ts
+             * Format: date-time
+             */
+            ts: string;
+        };
+        /**
+         * MarketTideResponse
+         * @description Last N sessions of market-wide options tide for the regime Market Tide tab.
+         *
+         *     Sessions ordered oldest→newest; points within each session ASC by ``ts``.
+         *     Empty `sessions` is a valid response when no rows exist yet.
+         */
+        MarketTideResponse: {
+            /** As Of */
+            as_of?: string | null;
+            /**
+             * Market Open
+             * @default false
+             */
+            market_open?: boolean;
+            /** Sessions */
+            sessions?: components["schemas"]["MarketTideSession"][];
+            /** Spot Ticker */
+            spot_ticker?: string | null;
+        };
+        /** MarketTideSession */
+        MarketTideSession: {
+            /**
+             * Date
+             * Format: date
+             */
+            date: string;
+            /** Points */
+            points?: components["schemas"]["MarketTidePoint"][];
         };
         /** GexIvData */
         GexIvData: {
@@ -8984,6 +9053,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["GexIntradayResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_market_tide_api_regime_market_tide_get: {
+        parameters: {
+            query?: {
+                sessions?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MarketTideResponse"];
                 };
             };
             /** @description Validation Error */

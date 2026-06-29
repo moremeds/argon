@@ -45,8 +45,13 @@ from uw_scan.api.schemas import (
     GexResponse,
     GrgResponse,
     GrgScanResponse,
+    MarketTideResponse,
+    MarketTideSentiment,
+    MarketTideSession,
     RegimeLiveQuote,
     RegimeQuotesResponse,
+    TopNetImpactResponse,
+    TopNetImpactRow,
     VcgDailyEntry,
     VcgDailyHistoryResponse,
     VcgIntradayResponse,
@@ -193,6 +198,72 @@ def get_gex_intraday(
         ticker=t,
         sessions=payload_sessions,
         as_of=last_ts,
+    )
+
+
+@router.get("/market-tide", response_model=MarketTideResponse)
+def get_market_tide(
+    repo: Annotated[Repository, Depends(get_repo)],
+    settings: Annotated[Settings, Depends(get_settings)],
+    sessions: int = Query(5, ge=1, le=30),
+) -> MarketTideResponse:
+    """Last N sessions of market-wide 5-min net options premium + live spot.
+
+    Reads market_tide_snapshots (worker-captured intraday + backfilled history).
+    Drives the regime Market Tide tab. Empty `sessions` is a valid response.
+    """
+    from uw_scan.storage.market_tide_snapshot_repository import (
+        MarketTideSnapshotRepository,
+    )
+
+    tide_repo = MarketTideSnapshotRepository(repo.conn, schema=repo._schema)
+    raw = tide_repo.fetch_sessions(sessions=sessions)
+    payload_sessions = [MarketTideSession.model_validate(s) for s in raw]
+    last_ts = None
+    sentiment = None
+    if payload_sessions and payload_sessions[-1].points:
+        last_ts = payload_sessions[-1].points[-1].ts
+        from uw_scan.reports.market_tide_sentiment import compute_sentiment
+
+        sentiment = MarketTideSentiment(
+            **compute_sentiment(payload_sessions[-1].points).to_dict()
+        )
+    return MarketTideResponse(
+        sessions=payload_sessions,
+        spot_ticker=settings.market_tide_spot_ticker,
+        as_of=last_ts,
+        market_open=_is_market_open_now(),
+        sentiment=sentiment,
+    )
+
+
+@router.get("/top-net-impact", response_model=TopNetImpactResponse)
+def get_top_net_impact(
+    repo: Annotated[Repository, Depends(get_repo)],
+    date_str: str | None = Query(None, alias="date"),
+    limit: int = Query(40, ge=1, le=100),
+) -> TopNetImpactResponse:
+    """Top tickers by net option premium for one session (default: latest).
+
+    Reads top_net_impact_snapshots (worker-captured every 15 min through RTH).
+    Rows sorted by net_premium DESC; each carries its per-update rank_change.
+    """
+    from datetime import date as _date
+
+    from uw_scan.storage.top_net_impact_repository import TopNetImpactRepository
+
+    parsed: _date | None = None
+    if date_str:
+        try:
+            parsed = _date.fromisoformat(date_str)
+        except ValueError as exc:
+            raise HTTPException(status_code=422, detail="bad date") from exc
+
+    tni_repo = TopNetImpactRepository(repo.conn, schema=repo._schema)
+    resolved, rows = tni_repo.fetch_latest(data_date=parsed, limit=limit)
+    return TopNetImpactResponse(
+        rows=[TopNetImpactRow.model_validate(r) for r in rows],
+        data_date=resolved,
     )
 
 

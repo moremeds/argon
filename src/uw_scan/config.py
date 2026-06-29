@@ -251,6 +251,13 @@ class Settings(BaseModel):
     # Regime / GEX scanner (port from xenon — ships GEX live; CRI/VCG pending)
     gex_scan_tickers: list[str] = ["SPX", "SPY", "TLT"]
     gex_scan_interval_minutes: int = 5
+    # Market-tide capture (UW /market/market-tide, ~81 calls/day at 5-min RTH).
+    # Kill switch + the index whose live spot overlays the premium chart.
+    market_tide_capture_enabled: bool = True
+    market_tide_spot_ticker: str = "SPY"
+    # Top-net-impact capture (UW /market/top-net-impact, ~32 calls/day at
+    # 15-min RTH). Kill switch for the market-wide net-premium ranking.
+    top_net_impact_capture_enabled: bool = True
     # Regime live feed — symbols the WS consumer always subscribes IN ADDITION
     # to the watchlist (indexes route via XENON_INDEX_SYMBOLS → CBOE; HYG is a
     # plain ETF symbol). Drives the live CRI/VCG compute + 5-min snapshots.
@@ -636,6 +643,17 @@ class Settings(BaseModel):
             gex_scan_interval_minutes=int(
                 os.environ.get("GEX_SCAN_INTERVAL_MINUTES", "5")
             ),
+            market_tide_capture_enabled=os.environ.get(
+                "MARKET_TIDE_CAPTURE_ENABLED", "true"
+            ).lower()
+            in ("1", "true", "yes"),
+            market_tide_spot_ticker=os.environ.get(
+                "MARKET_TIDE_SPOT_TICKER", "SPY"
+            ).upper(),
+            top_net_impact_capture_enabled=os.environ.get(
+                "TOP_NET_IMPACT_CAPTURE_ENABLED", "true"
+            ).lower()
+            in ("1", "true", "yes"),
             regime_ws_symbols=_parse_csv_env(
                 "REGIME_WS_SYMBOLS",
                 default=["VIX", "VVIX", "VIX3M", "COR1M", "SPX", "HYG"],

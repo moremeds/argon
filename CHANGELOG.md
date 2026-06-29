@@ -7,8 +7,42 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+### Added
+
+- **Market Tide tab — Top Net Impact chart with per-update rank change.** New
+  panel beside the daily tide (UW `/market/top-net-impact`): horizontal diverging
+  bars of market-wide net option premium (`net_call − net_put`) per ticker,
+  bullish/bearish split. Each capture carries `prev_rank` into the next so the
+  chart shows ▲/▼/• rank movement between updates. Captured every 15 min RTH
+  (`regime_top_net_impact_scan`, uw-0, kill switch `TOP_NET_IMPACT_CAPTURE_ENABLED`);
+  migration `090`; storage `top_net_impact_repository.py`; endpoint
+  `/api/regime/top-net-impact`.
+- **Tide slope/sentiment ("TIDE SENTIMENT").** Quantifies the UW Daily Market
+  Tide guide: spread `S = NCP − NPP`, its session + 30-min slope, divergence
+  (`trend_strength = |net displacement| / range`), driver (call/put buying/selling),
+  momentum, and net-volume confirmation. Surfaced live on `/api/regime/market-tide`
+  (`sentiment` block) + a banner in the tab. EOD-persisted per session for
+  backtesting (`market_tide_sentiment_daily`, migration `091`; nightly
+  `market_tide_sentiment_eod` @16:25 ET). `reports/market_tide_sentiment.py`.
+  Forward-return probe (`scripts/research/tide_slope_backtest.py`,
+  `docs/research/tide-slope/`) finds it **descriptive, not predictive** at the
+  daily horizon (n=120 YTD: ~50% hit, |corr| below the significance bar).
+- **Apex SPY-spot overlay for the tide chart.** `sources/apex.py` reads SPY 5-min
+  closes from the Apex bars API; `scripts/backfill/market_tide_spot_backfill.py`
+  joins them onto `market_tide_snapshots.spot` by UTC instant so the historical
+  SPY gold line renders (UW tide carries no price).
+
 ### Changed
 
+- **Market Tide tab redesigned + default regime tab.** Daily chart now follows
+  the UW layout — compact stats line (`SPY · Vol · NPP · NCP`), `Net Premiums` /
+  `Net Volume` band labels, SPY on the left axis, premium + baseline-0 volume on
+  the right, date-first time axis — wrapped (with Top Net Impact) in a single
+  titled container carrying the UW guide tooltip. Clicking **Regime** now defaults
+  to **Market Tide** (was Gamma Exposure).
+- **`market-tide` / `top-net-impact` fetchers treat UW 422 (future EST date) as
+  no-data**, like 400 — so a backfill walking from "today" (still future in ET)
+  skips cleanly instead of crashing.
 - **VRP macro entry-capture now stores IB's native option greeks as the primary
   source.** `xenon_query.fetch_ib_option_quote` previously discarded the
   delta/gamma/vega/theta in the `/options/greeks` response and `quote_leg` always

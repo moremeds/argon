@@ -43,6 +43,8 @@ class EndpointSlug(StrEnum):
     INSTITUTION_OWNERSHIP = "institution_ownership"
     INSIDER_TICKER_FLOW = "insider_ticker_flow"
     EARNINGS = "earnings"
+    MARKET_TIDE = "market_tide"
+    TOP_NET_IMPACT = "top_net_impact"
 
 
 @dataclass(frozen=True)
@@ -174,6 +176,16 @@ REGISTRY: dict[EndpointSlug, Endpoint] = {
     EndpointSlug.EARNINGS: Endpoint(
         EndpointSlug.EARNINGS,
         "/api/earnings/{ticker}",
+        (),
+    ),
+    EndpointSlug.MARKET_TIDE: Endpoint(
+        EndpointSlug.MARKET_TIDE,
+        "/api/market/market-tide",
+        (),
+    ),
+    EndpointSlug.TOP_NET_IMPACT: Endpoint(
+        EndpointSlug.TOP_NET_IMPACT,
+        "/api/market/top-net-impact",
         (),
     ),
 }
