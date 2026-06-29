@@ -9,6 +9,7 @@
 #   - Fetches and checks out the new tag
 #   - Syncs Python deps, installs web deps, builds web
 #   - Runs SQL migrations (forward-only, idempotent)
+#   - Seeds idempotent DB→DB datasets (market-tide sentiment) — no UW budget
 #   - Kickstarts all com.argon.* launchd services from config/services.list
 #   - Health-checks; if any fail, rolls back to the previous tag and re-kickstarts
 
@@ -73,6 +74,21 @@ build_release() {
   (cd web && npm run build)
 }
 build_release
+
+# ---------- One-off data seed (post-migration) ----------
+# Seed EOD market-tide sentiment for the full stored bar history so the
+# slope→forward-return backtest has data the moment the feature ships. Pure
+# DB→DB reshape of market_tide_snapshots (no UW budget spent). --if-empty makes
+# it a true one-off: it seeds only when market_tide_sentiment_daily is empty, so
+# re-running on every later release is an instant no-op; the nightly
+# _market_tide_sentiment_eod job maintains it from then on. Best-effort: a
+# failure here must NOT fail the deploy (the `if` keeps it exempt from set -e).
+step "Seed market-tide sentiment (one-off)"
+if uv run python scripts/backfill/market_tide_sentiment_backfill.py --if-empty; then
+  say "✓ sentiment seed checked"
+else
+  warn "✗ sentiment seed failed (non-fatal — nightly job will recompute)"
+fi
 
 # ---------- Kickstart services ----------
 step "Kickstart launchd services"

@@ -22,8 +22,14 @@ The tag push fires `.github/workflows/release.yml`:
 `com.argon.deploy-poller` (launchd, every 120s) polls
 `gh api repos/moremeds/argon/releases/latest`. When the latest published,
 non-prerelease Release tag differs from `logs/deployed_tag.txt`, it runs
-`scripts/deploy/macmini-prod.sh <tag>` (checkout → build → migrate → kickstart →
-health-check → auto-rollback). Prereleases (`vX.Y.Z-rc1`) verify + publish a
+`scripts/deploy/macmini-prod.sh <tag>` (checkout → build → migrate → one-off
+data seed → kickstart → health-check → auto-rollback). The seed step runs
+`scripts/backfill/market_tide_sentiment_backfill.py --if-empty` (best-effort, no
+UW budget) so the tide slope→forward-return backtest has full history the moment
+the feature ships. `--if-empty` makes it a true one-off — it seeds only when
+`market_tide_sentiment_daily` is empty, so later deploys are an instant no-op
+(drop the flag to force a full recompute, e.g. after a formula change).
+Prereleases (`vX.Y.Z-rc1`) verify + publish a
 GitHub prerelease but are **never** auto-deployed.
 
 Logs: `logs/deploy-poller.{out,err}.log`, `logs/deploy.log`.
