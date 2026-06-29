@@ -70,3 +70,20 @@ def test_balanced_split_keeps_both_extremes(seeded_db_empty_cards):
     _, rows = r.fetch_latest(data_date=_D, limit=4)
     tickers = [row["ticker"] for row in rows]
     assert tickers == ["TSLA", "LLY", "SPY", "MU"]  # sorted DESC, extremes kept
+
+
+def test_latest_capture_replaces_same_date_membership(seeded_db_empty_cards):
+    repo = seeded_db_empty_cards
+    r = TopNetImpactRepository(repo.conn, schema=repo._schema)
+
+    r.upsert_rows(_cap({"TSLA": 1, "LLY": 2, "QQQ": 3, "NVDA": 4, "SPY": 5, "MU": 6}))
+    r.upsert_rows(_cap({"LLY": 1, "SPY": 2}))
+
+    _, rows = r.fetch_latest(data_date=_D, limit=10)
+    tickers = [row["ticker"] for row in rows]
+    by = {row["ticker"]: row for row in rows}
+
+    assert tickers == ["LLY", "SPY"]
+    assert "TSLA" not in tickers
+    assert by["LLY"]["rank_change"] == 1  # ▲1 (prev 2 → 1)
+    assert by["SPY"]["rank_change"] == 3  # ▲3 (prev 5 → 2)

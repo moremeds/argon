@@ -251,7 +251,7 @@ class Settings(BaseModel):
     # Regime / GEX scanner (port from xenon — ships GEX live; CRI/VCG pending)
     gex_scan_tickers: list[str] = ["SPX", "SPY", "TLT"]
     gex_scan_interval_minutes: int = 5
-    # Market-tide capture (UW /market/market-tide, ~78 calls/day at 5-min RTH).
+    # Market-tide capture (UW /market/market-tide, ~81 calls/day at 5-min RTH).
     # Kill switch + the index whose live spot overlays the premium chart.
     market_tide_capture_enabled: bool = True
     market_tide_spot_ticker: str = "SPY"

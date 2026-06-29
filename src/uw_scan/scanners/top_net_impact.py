@@ -10,7 +10,8 @@ audit/scan-run bracket of `scanners.market_tide.run`.
 from __future__ import annotations
 
 import logging
-from datetime import date
+from datetime import date, datetime
+from zoneinfo import ZoneInfo
 
 from ..api.client import UwClient
 from ..sources import uw as uw_source
@@ -18,6 +19,7 @@ from ..storage.repository import Repository
 from ..storage.top_net_impact_repository import TopNetImpactRepository
 
 log = logging.getLogger(__name__)
+ET_TZ = ZoneInfo("America/New_York")
 
 
 def run(
@@ -35,7 +37,7 @@ def run(
         )
         # Defensive sort — never trust upstream order for the rank assignment.
         rows.sort(key=lambda r: r["net_premium"], reverse=True)
-        d = trading_date or date.today()
+        d = trading_date or datetime.now(ET_TZ).date()
         ranked = [
             {
                 "data_date": d,

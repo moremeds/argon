@@ -7,6 +7,7 @@ net premium, so re-fetching the same day overwrites the same rows (idempotent).
 
 from __future__ import annotations
 
+from collections import defaultdict
 from datetime import date
 
 from psycopg import Connection
@@ -23,10 +24,14 @@ class TopNetImpactRepository:
         """Upsert net premium + rank for each (data_date, ticker). On conflict,
         the row's existing `rank` is carried into `prev_rank` BEFORE being
         overwritten — that one move is what makes the per-update rank delta work
-        (rank_change = prev_rank - rank, computed at read). A brand-new ticker
-        gets prev_rank = NULL ("new this session")."""
+        (rank_change = prev_rank - rank, computed at read). Tickers absent from
+        the newest same-date capture are deleted so the read path reflects the
+        latest UW ranking membership instead of a union of prior captures."""
         if not rows:
             return 0
+        by_date: dict[date, set[str]] = defaultdict(set)
+        for row in rows:
+            by_date[row["data_date"]].add(str(row["ticker"]).upper())
         sql = """
             INSERT INTO top_net_impact_snapshots
                 (data_date, ticker, net_premium, rank, prev_rank)
@@ -39,6 +44,15 @@ class TopNetImpactRepository:
         """
         with self._conn.cursor() as cur:
             cur.executemany(sql, rows)
+            for data_date, tickers in by_date.items():
+                cur.execute(
+                    """
+                    DELETE FROM top_net_impact_snapshots
+                     WHERE data_date = %s
+                       AND NOT (ticker = ANY(%s))
+                    """,
+                    (data_date, list(tickers)),
+                )
         self._conn.commit()
         return len(rows)
 

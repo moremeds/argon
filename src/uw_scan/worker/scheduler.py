@@ -15,6 +15,7 @@ from zoneinfo import ZoneInfo
 import psycopg
 from apscheduler.schedulers import SchedulerNotRunningError
 from apscheduler.schedulers.blocking import BlockingScheduler
+from apscheduler.triggers.combining import OrTrigger
 from apscheduler.triggers.cron import CronTrigger
 from apscheduler.triggers.interval import IntervalTrigger
 
@@ -225,6 +226,58 @@ def _should_schedule_top_net_impact_capture(settings: Settings) -> bool:
         return False
     role = settings.worker_role.lower()
     return role == "all" or (role == "uw" and settings.worker_index == 0)
+
+
+def _market_tide_cron_trigger(settings: Settings) -> OrTrigger:
+    """09:30-16:10 ET at 5-min cadence, matching UW's useful tide bars."""
+    return OrTrigger(
+        [
+            CronTrigger(
+                minute="30-55/5",
+                hour=9,
+                day_of_week="mon-fri",
+                timezone=settings.rth_tz,
+            ),
+            CronTrigger(
+                minute="*/5",
+                hour="10-15",
+                day_of_week="mon-fri",
+                timezone=settings.rth_tz,
+            ),
+            CronTrigger(
+                minute="0,5,10",
+                hour=16,
+                day_of_week="mon-fri",
+                timezone=settings.rth_tz,
+            ),
+        ]
+    )
+
+
+def _top_net_impact_cron_trigger(settings: Settings) -> OrTrigger:
+    """09:30-16:15 ET at 15-min cadence, skipping pre-open noise."""
+    return OrTrigger(
+        [
+            CronTrigger(
+                minute="30,45",
+                hour=9,
+                day_of_week="mon-fri",
+                timezone=settings.rth_tz,
+            ),
+            CronTrigger(
+                minute="*/15",
+                hour="10-15",
+                day_of_week="mon-fri",
+                timezone=settings.rth_tz,
+            ),
+            CronTrigger(
+                minute="0,15",
+                hour=16,
+                day_of_week="mon-fri",
+                timezone=settings.rth_tz,
+            ),
+        ]
+    )
 
 
 def _should_schedule_vrp_macro_entry(settings: Settings) -> bool:
@@ -1265,12 +1318,7 @@ def main() -> int:
             if _should_schedule_market_tide_capture(settings):
                 sched.add_job(
                     _regime_market_tide_scan,
-                    CronTrigger(
-                        minute="*/5",
-                        hour="9-16",
-                        day_of_week="mon-fri",
-                        timezone=settings.rth_tz,
-                    ),
+                    _market_tide_cron_trigger(settings),
                     id="regime_market_tide_scan",
                     name="Regime market-tide capture (UW)",
                     max_instances=1,
@@ -1299,12 +1347,7 @@ def main() -> int:
             if _should_schedule_top_net_impact_capture(settings):
                 sched.add_job(
                     _regime_top_net_impact_scan,
-                    CronTrigger(
-                        minute="*/15",
-                        hour="9-16",
-                        day_of_week="mon-fri",
-                        timezone=settings.rth_tz,
-                    ),
+                    _top_net_impact_cron_trigger(settings),
                     id="regime_top_net_impact_scan",
                     name="Regime top-net-impact capture (UW)",
                     max_instances=1,
