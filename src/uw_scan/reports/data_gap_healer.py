@@ -245,7 +245,7 @@ REGISTRY: list[DatasetRegistryEntry] = [
         "strict_session",
         date_col="data_date",
         provider="db",
-        granularity="run_once",
+        granularity="run_once_lookback",
         healer_adapter="market_tide_sentiment",
         source_system="derived",
     ),
