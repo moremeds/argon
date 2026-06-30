@@ -93,7 +93,11 @@ def build_pipeline_benchmark_inputs(
         uw_http_5xx=provider_usage.http_5xx,
         requests_per_minute=throughput.requests_per_minute,
         scheduler_heartbeat_lag_seconds=(
-            (now_utc - latest_heartbeat[1]).total_seconds()
+            # Clamp: the latest heartbeat can land a hair AFTER now_utc (clock
+            # race), making the lag negative — which violates the 058 CHECK
+            # (>= 0) and drops the whole snapshot. The constraint is correct;
+            # fix the producer.
+            max(0.0, (now_utc - latest_heartbeat[1]).total_seconds())
             if latest_heartbeat is not None
             else None
         ),
@@ -121,9 +125,7 @@ def _online_worker_count(
     names = [f"worker:{role}:{index}" for index in range(max(0, expected_count))]
     heartbeats = repo.get_heartbeats(names)
     return sum(
-        1
-        for beat in heartbeats.values()
-        if now_utc - beat <= _WORKER_FRESH_WINDOW
+        1 for beat in heartbeats.values() if now_utc - beat <= _WORKER_FRESH_WINDOW
     )
 
 
@@ -135,7 +137,8 @@ def _record_health(
 ) -> tuple[bool | None, list[str]]:
     rows = repo.list_record_health(
         since=now_utc - _RECORD_WINDOW,
-        daily_since=now_utc - timedelta(hours=settings.record_health_daily_window_hours),
+        daily_since=now_utc
+        - timedelta(hours=settings.record_health_daily_window_hours),
         expected_tickers=watchlist_size,
         min_coverage=0.9,
         tables=["watchlist_card"],
