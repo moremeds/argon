@@ -7,6 +7,9 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+## [0.5.0] — 2026-06-30
+
+
 ### Added
 
 - **Data gap healer — full-coverage audit + heal + nightly backfill.** A
@@ -66,7 +69,6 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   items stuck `running`, which `claim_next_items` skips; `resume` now requeues
   them to `planned` first (heals are idempotent, so a blanket requeue is safe),
   so a backfill actually continues where it left off.
-
 ## [0.4.1] — 2026-06-30
 
 
