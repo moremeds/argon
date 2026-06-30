@@ -7,6 +7,34 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+### Added
+
+- **Data gap healer — full-coverage audit + heal + nightly backfill.** A
+  resumable, budget-aware service that accounts for **every** recorded `uw_scan`
+  table (117 datasets) and repairs safe coverage gaps. New `data_gap_*` domain
+  (`migration 092`): a dataset registry (one source of truth in
+  `reports/data_gap_healer.py`, projected to `data_gap_dataset_registry`),
+  gaps-only `data_gap_items`, resumable `data_gap_runs`, and no-data
+  `data_gap_caveats`. The exact scanner finds per-ticker/date misses by
+  set-difference SQL (zero provider calls); the heal dispatch maps each healable
+  dataset to an existing production job via one of four strategies
+  (`run_once` / `run_once_lookback` / `per_ticker_range` / `per_ticker_date`).
+  CLI `scripts/backfill/data_gap_healer.py` exposes `audit` / `execute` /
+  `resume` / `verify` / `verify-all`; every run writes a Markdown+JSON report
+  under `output/data-gap/`. **Full coverage includes macro/FRED/rates/gold**
+  (healed by re-running their idempotent ingest jobs over a lookback window).
+  A nightly job (`DATA_GAP_HEALER_ENABLED`, default off) runs at 20:00 ET — just
+  after the UW quota reset — under an advisory lock, capping **only** UW spend
+  (`DATA_GAP_HEALER_MAX_UW_CALLS`, default 20000); Massive/external are
+  uncapped. `/api/health` gains a `gap_healer` block. Policy matrix:
+  `docs/runbooks/data-gap-dataset-policy.md`; runbook:
+  `docs/runbooks/data-gap-healer.md`.
+- **Benchmark snapshots persist through a heartbeat clock race.**
+  `scheduler_heartbeat_lag_seconds` is clamped to `max(0, …)` in
+  `benchmark/collector.py` so a heartbeat landing a hair after `now_utc` no
+  longer violates the `058` `>= 0` CHECK and drops the snapshot
+  (`pipeline_benchmark_snapshots` was stuck at 0 rows).
+
 ## [0.4.1] — 2026-06-30
 
 
