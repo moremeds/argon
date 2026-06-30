@@ -36,11 +36,26 @@ def _ohlc(repo, ticker, d):
     repo.conn.commit()
 
 
+def _calendar(repo, *dates):
+    """Seed the trading-day reference (market_tide_sentiment_daily) — the sole
+    calendar source after the self-union was dropped."""
+    with repo.conn.cursor() as cur:
+        for d in dates:
+            cur.execute(
+                f"INSERT INTO {repo._schema}.market_tide_sentiment_daily "
+                "(data_date, state, magnitude, driver, momentum, bars) "
+                "VALUES (%s, 'BALANCED', 'FLAT', 'x', 'x', 1) ON CONFLICT DO NOTHING",
+                (d,),
+            )
+    repo.conn.commit()
+
+
 def test_audit_into_run_persists_run_and_items(seeded_db_empty_cards):
     repo = seeded_db_empty_cards
     cli = _load_cli()
     gap = DataGapHealerRepository(repo.conn, schema=repo._schema)
     d1, d2 = date(2026, 6, 10), date(2026, 6, 11)
+    _calendar(repo, d1, d2)
     _ohlc(repo, "AAPL", d1)
     _ohlc(repo, "AAPL", d2)
     _ohlc(repo, "NVDA", d1)  # NVDA missing d2
@@ -67,6 +82,7 @@ def test_execute_into_run_heals_with_injected_specs(seeded_db_empty_cards):
     cli = _load_cli()
     gap = DataGapHealerRepository(repo.conn, schema=repo._schema)
     d1, d2 = date(2026, 6, 10), date(2026, 6, 11)
+    _calendar(repo, d1, d2)
     _ohlc(repo, "AAPL", d1)  # AAPL has d1; missing d2. NVDA missing both.
 
     def fake_range(ctx, ticker, lo, hi):
@@ -101,7 +117,8 @@ def test_verify_run_shows_before_after(seeded_db_empty_cards):
     cli = _load_cli()
     gap = DataGapHealerRepository(repo.conn, schema=repo._schema)
     d1, d2 = date(2026, 6, 10), date(2026, 6, 11)
-    # calendar established as {d1, d2}; only NVDA@d2 is a hole within it
+    # calendar established as {d1, d2} via the reference; only NVDA@d2 is a hole
+    _calendar(repo, d1, d2)
     _ohlc(repo, "AAPL", d1)
     _ohlc(repo, "AAPL", d2)
     _ohlc(repo, "NVDA", d1)

@@ -51,6 +51,8 @@ def _entry(name: str):
 def test_strict_ticker_date_finds_missing_pairs(seeded_db_empty_cards):
     repo = seeded_db_empty_cards
     d1, d2 = date(2026, 6, 10), date(2026, 6, 11)
+    _sentiment_session(repo, d1)  # reference calendar = {d1, d2}
+    _sentiment_session(repo, d2)
     _ohlc(repo, "AAPL", d1)
     _ohlc(repo, "AAPL", d2)
     _ohlc(repo, "NVDA", d1)  # NVDA missing d2
@@ -76,6 +78,8 @@ def test_strict_ticker_date_finds_missing_pairs(seeded_db_empty_cards):
 def test_caveat_suppresses_ticker_before_listing(seeded_db_empty_cards):
     repo = seeded_db_empty_cards
     before, after = date(2026, 6, 10), date(2026, 6, 18)
+    _sentiment_session(repo, before)  # reference calendar = {before, after}
+    _sentiment_session(repo, after)
     _ohlc(repo, "AAPL", before)
     _ohlc(repo, "AAPL", after)
     # the seeded SPCX caveat ends 2026-06-16 -> SPCX excluded on/before, included after

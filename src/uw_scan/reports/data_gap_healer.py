@@ -632,10 +632,13 @@ def discover_unregistered_tables(
 
 # --- read-only coverage scanner --------------------------------------------
 
-# The canonical equity-session calendar. Coverage for a deep-history window is
-# the union of (a) dates the dataset itself already has any row for and (b) this
-# reference table where it overlaps. A session absent from BOTH is undetectable
-# without an external exchange calendar (documented limitation; v1 scope).
+# The canonical equity-session calendar. We use ONLY this clean trading-day
+# reference (market_tide_sentiment_daily: weekday-only, holiday-excluded — UW
+# emits no sentiment on closed-market days). Earlier we also self-unioned the
+# dataset's own dates, but a stray weekend/holiday price-bar in the dataset then
+# leaked that non-trading day into its own expected calendar, manufacturing a
+# full-watchlist phantom gap for every ticker missing that bar. Limitation: the
+# window cannot extend before the reference table's earliest date (YTD scope).
 _REFERENCE_CALENDAR = ("market_tide_sentiment_daily", "data_date")
 
 
@@ -660,30 +663,28 @@ def _detect_col(
 def _calendar_dates(
     conn: Connection,
     schema: str,
-    table: str,
-    date_col: str,
     start: date,
     end: date,
 ) -> list[date]:
+    """Trading-day calendar in [start, end] from the clean session reference.
+
+    No self-union: the reference (market_tide_sentiment_daily) is the sole
+    source of expected sessions, so weekends/holidays never enter. A dataset
+    row on a non-trading day no longer manufactures a phantom calendar entry.
+    """
     ref_tbl, ref_col = _REFERENCE_CALENDAR
     query = psql.SQL(
         """
-        SELECT DISTINCT d FROM (
-            SELECT {dcol} AS d FROM {tbl} WHERE {dcol} BETWEEN %s AND %s
-            UNION
-            SELECT {rcol} AS d FROM {rtbl} WHERE {rcol} BETWEEN %s AND %s
-        ) x
-        WHERE d IS NOT NULL
-        ORDER BY d
+        SELECT DISTINCT {rcol} AS d FROM {rtbl}
+         WHERE {rcol} BETWEEN %s AND %s AND {rcol} IS NOT NULL
+         ORDER BY d
         """
     ).format(
-        dcol=psql.Identifier(date_col),
-        tbl=psql.Identifier(schema, table),
         rcol=psql.Identifier(ref_col),
         rtbl=psql.Identifier(schema, ref_tbl),
     )
     with conn.cursor() as cur:
-        cur.execute(query, (start, end, start, end))
+        cur.execute(query, (start, end))
         return [r[0] for r in cur.fetchall()]
 
 
@@ -744,7 +745,7 @@ def _scan_strict_ticker_date(
     if not date_col or not tcol:
         return CoverageSummary(table, "strict_ticker_date", 0, 0, 0, ()), []
 
-    calendar = _calendar_dates(conn, schema, table, date_col, start, end)
+    calendar = _calendar_dates(conn, schema, start, end)
     eligible_by_date = {
         d: eligible_tickers_for_date(active, d, caveats) for d in calendar
     }
@@ -787,7 +788,7 @@ def _scan_strict_session(
     date_col = entry.date_col or _detect_col(conn, schema, table, _DATE_COL_PREFERENCE)
     if not date_col:
         return CoverageSummary(table, "strict_session", 0, 0, 0, ()), []
-    calendar = _calendar_dates(conn, schema, table, date_col, start, end)
+    calendar = _calendar_dates(conn, schema, start, end)
     present = _present_session_dates(conn, schema, table, date_col, start, end)
     missing_dates = [d for d in calendar if d not in present]
     items = [
