@@ -131,6 +131,28 @@ def test_sync_registry_idempotent_and_lists(seeded_db_empty_cards):
     assert osg["provider"] == "uw"
 
 
+def test_gap_healer_health_summary(seeded_db_empty_cards):
+    repo = _repo(seeded_db_empty_cards)
+    assert repo.gap_healer_health()["latest_run_id"] is None  # empty state
+
+    run_id = repo.create_run(
+        mode="execute", start_date=None, end_date=None, datasets=["daily_ohlc"]
+    )
+    repo.upsert_items(
+        run_id,
+        [
+            GapItem("daily_ohlc", "2026-06-22|A", date(2026, 6, 22), "A", 1, 0),
+            GapItem("daily_ohlc", "2026-06-23|B", date(2026, 6, 23), "B", 1, 0),
+        ],
+    )
+    h = repo.gap_healer_health()
+    assert h["latest_run_id"] == run_id
+    assert h["latest_run_status"] == "running"
+    assert h["open_by_dataset"]["daily_ohlc"] == 2
+    assert h["counts"]["planned"] == 2
+    assert h["last_verified_at"] is None
+
+
 def test_unregistered_excludes_seeded_tables(seeded_db_empty_cards):
     repo = _repo(seeded_db_empty_cards)
     repo.sync_dataset_registry(REGISTRY)

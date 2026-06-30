@@ -7443,6 +7443,91 @@
         "title": "HealthFreshnessRow",
         "type": "object"
       },
+      "HealthGapHealer": {
+        "description": "Exact gap-healer status (distinct from freshness: 'all strict gaps\nhealed?' not 'fresh enough?'). See reports/data_gap_healer.",
+        "properties": {
+          "failed": {
+            "default": 0,
+            "title": "Failed",
+            "type": "integer"
+          },
+          "healed": {
+            "default": 0,
+            "title": "Healed",
+            "type": "integer"
+          },
+          "last_verified_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Verified At"
+          },
+          "latest_run_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Latest Run At"
+          },
+          "latest_run_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Latest Run Id"
+          },
+          "latest_run_status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Latest Run Status"
+          },
+          "no_data": {
+            "default": 0,
+            "title": "No Data",
+            "type": "integer"
+          },
+          "open_by_dataset": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "title": "Open By Dataset",
+            "type": "object"
+          },
+          "open_gaps": {
+            "default": 0,
+            "title": "Open Gaps",
+            "type": "integer"
+          },
+          "skipped_budget": {
+            "default": 0,
+            "title": "Skipped Budget",
+            "type": "integer"
+          }
+        },
+        "title": "HealthGapHealer",
+        "type": "object"
+      },
       "HealthResponse": {
         "properties": {
           "avg_scan_duration_seconds": {
@@ -7475,6 +7560,16 @@
             "anyOf": [
               {
                 "$ref": "#/components/schemas/HealthFreshness"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "gap_healer": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/HealthGapHealer"
               },
               {
                 "type": "null"
@@ -21195,7 +21290,7 @@
   },
   "info": {
     "title": "UW Watchlist API",
-    "version": "0.3.6"
+    "version": "0.4.1"
   },
   "openapi": "3.1.0",
   "paths": {

@@ -283,6 +283,43 @@ class DataGapHealerRepository:
             )
             return {row[0]: row[1] for row in cur.fetchall()}
 
+    def gap_healer_health(self) -> dict:
+        """Compact status for /api/health: latest run + open gaps by dataset."""
+        run = self.latest_run()
+        if run is None:
+            return {
+                "latest_run_id": None,
+                "latest_run_status": None,
+                "latest_run_at": None,
+                "counts": {},
+                "open_by_dataset": {},
+                "last_verified_at": None,
+            }
+        run_id = run["id"]
+        with self._conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT dataset, COUNT(*)::int
+                  FROM data_gap_items
+                 WHERE run_id = %s
+                   AND status IN ('planned', 'skipped_budget', 'failed')
+                 GROUP BY dataset
+                 ORDER BY 2 DESC
+                """,
+                (run_id,),
+            )
+            open_by_dataset = {r[0]: r[1] for r in cur.fetchall()}
+            cur.execute("SELECT MAX(verified_at) FROM data_gap_items")
+            last_verified = cur.fetchone()[0]
+        return {
+            "latest_run_id": run_id,
+            "latest_run_status": run["status"],
+            "latest_run_at": run["started_at"],
+            "counts": self.count_items_by_status(run_id),
+            "open_by_dataset": open_by_dataset,
+            "last_verified_at": last_verified,
+        }
+
     # --- caveats ----------------------------------------------------------
 
     def upsert_caveat(self, cav: Caveat) -> None:

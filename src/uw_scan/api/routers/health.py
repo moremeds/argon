@@ -67,6 +67,7 @@ class HealthResponse(BaseModel):
     ws_consumer: "WsConsumerHealth | None" = None
     trade_insights_ai: "TradeInsightsAiHealth | None" = None
     freshness: "HealthFreshness | None" = None
+    gap_healer: "HealthGapHealer | None" = None
 
 
 class HealthFreshnessRow(BaseModel):
@@ -89,6 +90,22 @@ class HealthFreshness(BaseModel):
     as_of: date | None = None
     frozen: list[str] = Field(default_factory=list)
     tables: list[HealthFreshnessRow] = Field(default_factory=list)
+
+
+class HealthGapHealer(BaseModel):
+    """Exact gap-healer status (distinct from freshness: 'all strict gaps
+    healed?' not 'fresh enough?'). See reports/data_gap_healer."""
+
+    latest_run_id: int | None = None
+    latest_run_status: str | None = None
+    latest_run_at: datetime | None = None
+    healed: int = 0
+    no_data: int = 0
+    failed: int = 0
+    skipped_budget: int = 0
+    open_gaps: int = 0  # planned + skipped_budget + failed in the latest run
+    open_by_dataset: dict[str, int] = Field(default_factory=dict)
+    last_verified_at: datetime | None = None
 
 
 class TradeInsightsAiProviderHealth(BaseModel):
@@ -331,6 +348,30 @@ def health(
         tables=[HealthFreshnessRow(**r) for r in _fr_rows],
     )
 
+    # Gap-healer block — exact strict-coverage status, distinct from freshness.
+    from uw_scan.storage.data_gap_healer_repository import DataGapHealerRepository
+
+    _gh = DataGapHealerRepository(
+        repo.conn, schema=settings.db_schema
+    ).gap_healer_health()
+    _gh_counts = _gh["counts"]
+    gap_healer = HealthGapHealer(
+        latest_run_id=_gh["latest_run_id"],
+        latest_run_status=_gh["latest_run_status"],
+        latest_run_at=_gh["latest_run_at"],
+        healed=_gh_counts.get("healed", 0),
+        no_data=_gh_counts.get("no_data", 0),
+        failed=_gh_counts.get("failed", 0),
+        skipped_budget=_gh_counts.get("skipped_budget", 0),
+        open_gaps=(
+            _gh_counts.get("planned", 0)
+            + _gh_counts.get("skipped_budget", 0)
+            + _gh_counts.get("failed", 0)
+        ),
+        open_by_dataset=_gh["open_by_dataset"],
+        last_verified_at=_gh["last_verified_at"],
+    )
+
     # Sidebar fields — always populated when DB is up so the panel renders
     # correctly even before the first full scan has fired.
     now_utc = datetime.now(timezone.utc)
@@ -536,6 +577,7 @@ def health(
             **heartbeat_fields,
             **record_fields,
             freshness=freshness,
+            gap_healer=gap_healer,
         )
 
     lag = (now_utc - last_scan).total_seconds()
@@ -558,6 +600,7 @@ def health(
             **heartbeat_fields,
             **record_fields,
             freshness=freshness,
+            gap_healer=gap_healer,
         )
 
     if record_reason is not None:
@@ -572,6 +615,7 @@ def health(
             **heartbeat_fields,
             **record_fields,
             freshness=freshness,
+            gap_healer=gap_healer,
         )
 
     return HealthResponse(
@@ -584,4 +628,5 @@ def health(
         **heartbeat_fields,
         **record_fields,
         freshness=freshness,
+        gap_healer=gap_healer,
     )
