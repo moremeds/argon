@@ -37,6 +37,19 @@ def _ohlc(repo, ticker, d):
     repo.conn.commit()
 
 
+def _calendar(repo, *dates):
+    """Seed the trading-day reference — the sole calendar source post self-union."""
+    with repo.conn.cursor() as cur:
+        for d in dates:
+            cur.execute(
+                f"INSERT INTO {repo._schema}.market_tide_sentiment_daily "
+                "(data_date, state, magnitude, driver, momentum, bars) "
+                "VALUES (%s, 'BALANCED', 'FLAT', 'x', 'x', 1) ON CONFLICT DO NOTHING",
+                (d,),
+            )
+    repo.conn.commit()
+
+
 def test_verify_all_writes_evidence_and_makes_no_provider_calls(
     seeded_db_empty_cards, tmp_path
 ):
@@ -44,6 +57,7 @@ def test_verify_all_writes_evidence_and_makes_no_provider_calls(
     cli = _load_cli()
     gap = DataGapHealerRepository(repo.conn, schema=repo._schema)
     d1, d2 = date(2026, 6, 10), date(2026, 6, 11)
+    _calendar(repo, d1, d2)  # reference calendar = {d1, d2}
     _ohlc(repo, "AAPL", d1)  # AAPL missing d2 -> at least one gap
 
     as_of = date(2026, 6, 30)

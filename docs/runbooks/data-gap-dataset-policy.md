@@ -6,7 +6,7 @@ Generated from `REGISTRY` in `src/uw_scan/reports/data_gap_healer.py` (one sourc
 uv run python -c "from uw_scan.reports.data_gap_healer import render_dataset_policy_markdown as r; open('docs/runbooks/data-gap-dataset-policy.md','w').write(r())"
 ```
 
-**117 datasets** across 8 groups.
+**117 datasets** across 9 groups.
 
 ## core_watchlist
 
@@ -19,9 +19,7 @@ uv run python -c "from uw_scan.reports.data_gap_healer import render_dataset_pol
 
 | table | audit_mode | provider | granularity | adapter | freq | reason |
 |---|---|---|---|---|---|---|
-| realized_volatility_history | strict_ticker_date | db | run_once | vol_analytics_rollup | equity_session |  |
 | stock_analytics_daily | strict_ticker_date | db | run_once | vol_analytics_rollup | equity_session |  |
-| volatility_stats_history | strict_ticker_date | db | run_once | vol_analytics_rollup | equity_session |  |
 | vrp_daily | strict_ticker_date | db | run_once | vol_analytics_rollup | equity_session |  |
 
 ## gold_rates_macro
@@ -164,3 +162,10 @@ uv run python -c "from uw_scan.reports.data_gap_healer import render_dataset_pol
 | trade_insight_snapshots | freshness_only | none | none |  | liveness |  |
 | watchlist | freshness_only | none | none |  | liveness |  |
 | watchlist_card | freshness_only | none | none |  | liveness |  |
+
+## uw_volatility
+
+| table | audit_mode | provider | granularity | adapter | freq | reason |
+|---|---|---|---|---|---|---|
+| realized_volatility_history | strict_ticker_date | uw | per_ticker_range | realized_volatility | equity_session |  |
+| volatility_stats_history | strict_ticker_date | uw | per_ticker_date | volatility_stats | equity_session |  |

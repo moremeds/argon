@@ -169,6 +169,33 @@ def _run_vol_rollup(ctx: HealContext) -> int:
     return 0
 
 
+def _run_realized_volatility(ctx: HealContext, ticker: str, lo: date, hi: date) -> int:
+    # UW's /volatility/realized returns the full ~1y series in ONE call (lo/hi
+    # ignored — UW picks its own trailing window), so one call heals every
+    # date-gap for the ticker. realized_volatility_history is the foundational
+    # series the vol rollup derives vrp/stock_analytics from.
+    from uw_scan.sources.uw import fetch_realized_volatility
+
+    client = ctx.uw_client()
+    run_id = ctx.repo.insert_scan_run(ticker, notes="data_gap_healer:realized_vol")
+    rows = fetch_realized_volatility(client, ctx.repo, run_id, ticker)
+    return ctx.repo.upsert_realized_vol_rows(ticker, rows)
+
+
+def _run_volatility_stats(ctx: HealContext, ticker: str, market_date: date) -> int:
+    # UW's /volatility/stats returns ONE row per (ticker, date) via ?date=, so
+    # this is one UW call per cell — the YTD vol-stats backfill. A past date UW
+    # no longer serves verifies false and is recorded honest no_data.
+    from uw_scan.sources.uw import fetch_volatility_stats
+
+    client = ctx.uw_client()
+    run_id = ctx.repo.insert_scan_run(ticker, notes="data_gap_healer:vol_stats")
+    rows = fetch_volatility_stats(
+        client, ctx.repo, run_id, ticker, market_date=market_date
+    )
+    return ctx.repo.upsert_volatility_stats_rows(rows)
+
+
 def _run_sentiment(ctx: HealContext, lookback_days: int) -> int:
     from uw_scan.worker.jobs.market_tide_sentiment import refresh_eod_sentiment
 
@@ -248,6 +275,20 @@ HEAL_SPECS: dict[str, HealSpec] = {
     ),
     "vol_analytics_rollup": HealSpec(
         "vol_analytics_rollup", "db", "run_once", _run_vol_rollup, est_per_item=0
+    ),
+    "realized_volatility": HealSpec(
+        "realized_volatility",
+        "uw",
+        "per_ticker_range",
+        _run_realized_volatility,
+        est_per_item=1,
+    ),
+    "volatility_stats": HealSpec(
+        "volatility_stats",
+        "uw",
+        "per_ticker_date",
+        _run_volatility_stats,
+        est_per_item=1,
     ),
     "market_tide_sentiment": HealSpec(
         "market_tide_sentiment",

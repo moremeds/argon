@@ -216,24 +216,28 @@ REGISTRY: list[DatasetRegistryEntry] = [
         source_system="derived",
     ),
     DatasetRegistryEntry(
+        # UW /volatility/realized — full ~1y series in one call (NOT the rollup,
+        # which only writes vrp_daily + stock_analytics_daily).
         "realized_volatility_history",
-        "derived_volatility",
+        "uw_volatility",
         "strict_ticker_date",
         ticker_col="ticker",
-        provider="db",
-        granularity="run_once",
-        healer_adapter="vol_analytics_rollup",
-        source_system="derived",
+        provider="uw",
+        granularity="per_ticker_range",
+        healer_adapter="realized_volatility",
+        source_system="uw",
     ),
     DatasetRegistryEntry(
+        # UW /volatility/stats — one row per (ticker, date) via ?date=; the
+        # current-snapshot fetcher is why this never backfilled before May 11.
         "volatility_stats_history",
-        "derived_volatility",
+        "uw_volatility",
         "strict_ticker_date",
         ticker_col="ticker",
-        provider="db",
-        granularity="run_once",
-        healer_adapter="vol_analytics_rollup",
-        source_system="derived",
+        provider="uw",
+        granularity="per_ticker_date",
+        healer_adapter="volatility_stats",
+        source_system="uw",
     ),
     # --- regime / market-wide (session-level) ---
     DatasetRegistryEntry(
