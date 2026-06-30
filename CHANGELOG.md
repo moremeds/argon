@@ -24,6 +24,10 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   (`sentiment` block) + a banner in the tab. EOD-persisted per session for
   backtesting (`market_tide_sentiment_daily`, migration `091`; nightly
   `market_tide_sentiment_eod` @16:25 ET). `reports/market_tide_sentiment.py`.
+  `macmini-prod.sh` seeds the full stored-bar history once at deploy time
+  (`market_tide_sentiment_backfill.py --if-empty`, best-effort, no UW budget),
+  so the backtest dataset is complete the moment the feature ships; later
+  deploys skip it (seeds only when the table is empty).
   Forward-return probe (`scripts/research/tide_slope_backtest.py`,
   `docs/research/tide-slope/`) finds it **descriptive, not predictive** at the
   daily horizon (n=120 YTD: ~50% hit, |corr| below the significance bar).
