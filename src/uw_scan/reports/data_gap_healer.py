@@ -171,13 +171,10 @@ REGISTRY: list[DatasetRegistryEntry] = [
     DatasetRegistryEntry(
         "flow_alerts_daily_rollup",
         "options_chain",
-        "strict_ticker_date",
+        "freshness_only",
         ticker_col="ticker",
-        provider="db",
-        granularity="run_once",
-        healer_adapter="flow_rollup",
         source_system="derived",
-        reason="heals only from existing flow_events; pre-ingest gaps unhealable",
+        reason="derived from flow_events; heal adapter is a TODO (audit-only)",
     ),
     # --- core market data ---
     DatasetRegistryEntry(
@@ -253,23 +250,17 @@ REGISTRY: list[DatasetRegistryEntry] = [
         "market_tide_snapshots",
         "regime_marketwide",
         "strict_session",
-        provider="uw",
-        granularity="run_once",
-        healer_adapter="market_tide",
         source_system="uw",
         retention_days=1,
-        reason="UW market-tide is current-session; historical may be unavailable",
+        reason="UW market-tide is current-session; historical heal TODO (audit-only)",
     ),
     DatasetRegistryEntry(
         "top_net_impact_snapshots",
         "regime_marketwide",
         "strict_session",
-        provider="uw",
-        granularity="run_once",
-        healer_adapter="top_net_impact",
         source_system="uw",
         retention_days=1,
-        reason="UW historical endpoint may return only the current session",
+        reason="UW historical endpoint may return only current session; heal TODO",
     ),
     # --- scanner / page state (freshness) ---
     DatasetRegistryEntry(
@@ -324,6 +315,248 @@ REGISTRY: list[DatasetRegistryEntry] = [
         expected_frequency="none",
     ),
 ]
+
+
+def _entries(
+    tables: list[str], group: str, mode: AuditMode, **kw
+) -> list[DatasetRegistryEntry]:
+    return [DatasetRegistryEntry(t, group, mode, **kw) for t in tables]
+
+
+# --- full coverage (T7): every remaining temporal table classified -----------
+# Strict modes are kept only for tables we actually heal; big un-healable
+# per-ticker tables are freshness_only (the data_freshness monitor already
+# covers them) to avoid a gap-item explosion. macro/FRED/rates/gold are
+# freshness_only for audit but carry a run_once_lookback heal adapter (re-run
+# the idempotent ingest over a lookback window).
+
+REGISTRY.extend(
+    _entries(
+        [
+            "api_request_audit",
+            "external_api_requests",
+            "raw_payloads",
+            "scan_runs",
+            "jobs",
+            "worker_heartbeat",
+            "volatility_backfill_status",
+        ],
+        "operational_provenance",
+        "provenance",
+        expected_frequency="none",
+    )
+)
+
+REGISTRY.extend(
+    _entries(
+        [
+            "regime_backtest_daily",
+            "regime_backtest_runs",
+            "vrp_backtest_results",
+            "vrp_backtest_trades",
+            "vrp_paper_positions",
+            "vrp_macro_sweep_results",
+            "vrp_trade_candidates",
+            "vrp_leg_nbbo",
+            "vrp_harvest_by_sector",
+            "vrp_harvest_multihorizon",
+            "vrp_harvest_verdicts",
+            "vrp_directional_verdicts",
+            "vrp_dvrp_reversion",
+            "vrp_rv_validation",
+            "vrp_30d_settlements",
+            "vrp_macro_entry",
+            "vrp_macro_entry_grid",
+            "vrp_macro_entry_quote",
+            "vrp_macro_signal_daily",
+            "skew_directional_verdicts",
+            "skew_rv_reversion_verdicts",
+            "skew_analytics_snapshot",
+            "skew_swing_greeks",
+            "iv_source_validation",
+            "vanna_signals",
+            "charm_signals",
+        ],
+        "research_artifact",
+        "research_artifact",
+        expected_frequency="event",
+    )
+)
+
+REGISTRY.extend(
+    _entries(
+        [
+            "scan_universe",
+            "scan_results",
+            "opportunity_scores",
+            "structure_ideas",
+            "signal_hits",
+            "signal_context_flags",
+            "signal_gates",
+            "scanner_candidate_snapshots",
+            "trade_insight_snapshots",
+            "trade_insight_candidates",
+            "trade_insight_ai_analyses",
+            "trade_insight_outcomes",
+            "watchlist",
+        ],
+        "scanner_state",
+        "freshness_only",
+        expected_frequency="liveness",
+    )
+)
+
+REGISTRY.extend(
+    _entries(
+        [
+            "options_volume_daily",
+            "pcr_history",
+            "flow_events",
+            "dark_pool_events",
+            "option_contract_snapshots",
+            "option_chain_per_strike",
+            "option_surface_snapshots",
+            "iv_rank_history",
+            "iv_term_snapshots",
+            "interpolated_iv_snapshots",
+            "risk_reversal_skew_history",
+            "greeks_by_expiry_strike",
+            "exposures_by_expiry_strike",
+            "exposures_summary",
+            "oi_by_strike",
+            "oi_by_expiry",
+            "oi_change_events",
+            "max_pain_by_expiry",
+            "short_interest_snapshots",
+            "uw_positioning",
+            "massive_fundamentals",
+            "corporate_actions",
+            "iv_smile_snapshots",
+            "option_intraday_buckets",
+            "index_ohlc_daily",
+            "vol_index_daily",
+        ],
+        "options_chain",
+        "freshness_only",
+        reason="UW-retention/event-log shaped; freshness-monitored, no auto-backfill",
+    )
+)
+
+REGISTRY.extend(
+    _entries(
+        [
+            "gex_snapshots",
+            "cri_snapshots",
+            "vcg_snapshots",
+            "grg_snapshots",
+            "matrix_state_snapshots",
+            "canary_snapshots",
+        ],
+        "regime_marketwide",
+        "freshness_only",
+        reason="regime scanner output; re-derive needs historical inputs (audit-only)",
+    )
+)
+
+# Healable macro/FRED/rates/gold — freshness audit + run_once_lookback heal.
+REGISTRY.extend(
+    [
+        DatasetRegistryEntry(
+            "macro_series_daily",
+            "gold_rates_macro",
+            "freshness_only",
+            date_col="obs_date",
+            provider="external",
+            granularity="run_once_lookback",
+            healer_adapter="macro_fred",
+            source_system="fred",
+            expected_frequency="daily",
+        ),
+        DatasetRegistryEntry(
+            "macro_series_monthly",
+            "gold_rates_macro",
+            "freshness_only",
+            date_col="obs_date",
+            provider="external",
+            granularity="run_once_lookback",
+            healer_adapter="macro_fred",
+            source_system="fred",
+            expected_frequency="monthly",
+        ),
+    ]
+    + _entries(
+        [
+            "rates_observations",
+            "rates_snapshots",
+            "rates_policy_events",
+            "rates_policy_path",
+            "rates_cftc_tff_weekly",
+            "rates_treasury_auctions",
+            "rates_fiscal_debt_daily",
+        ],
+        "gold_rates_macro",
+        "freshness_only",
+        provider="external",
+        granularity="run_once_lookback",
+        healer_adapter="rates_fred",
+        source_system="fred",
+    )
+    + [
+        DatasetRegistryEntry(
+            "gold_posture_daily",
+            "gold_rates_macro",
+            "freshness_only",
+            provider="db",
+            granularity="run_once",
+            healer_adapter="gold_posture",
+            source_system="derived",
+        ),
+        DatasetRegistryEntry(
+            "uw_gold_options_daily",
+            "gold_rates_macro",
+            "freshness_only",
+            provider="uw",
+            granularity="run_once",
+            healer_adapter="gold_uw_options",
+            source_system="uw",
+        ),
+        DatasetRegistryEntry(
+            "exchange_inventory_daily",
+            "gold_rates_macro",
+            "freshness_only",
+            provider="external",
+            granularity="run_once",
+            healer_adapter="gold_comex",
+            source_system="comex",
+        ),
+        DatasetRegistryEntry(
+            "cot_gold_weekly",
+            "gold_rates_macro",
+            "freshness_only",
+            provider="external",
+            granularity="run_once",
+            healer_adapter="gold_cot",
+            source_system="cftc",
+            expected_frequency="weekly",
+        ),
+    ]
+)
+
+REGISTRY.extend(
+    _entries(
+        [
+            "etf_holdings_daily",
+            "etf_flows_daily",
+            "etf_aum_cache",
+            "wgc_etf_monthly",
+            "wgc_etf_monthly_canonical",
+            "cb_gold_reserves_monthly",
+        ],
+        "gold_rates_macro",
+        "freshness_only",
+        reason="source needs auth cookie / no historical API (audit-only)",
+    )
+)
 
 
 def registered_table_names(registry: list[DatasetRegistryEntry]) -> set[str]:

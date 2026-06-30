@@ -78,3 +78,15 @@ def test_unregistered_finds_only_unknown_temporal_tables() -> None:
 def test_unregistered_empty_when_all_present() -> None:
     sample = DatasetRegistryEntry("only_table", "g", "provenance")
     assert unregistered({"only_table"}, [sample]) == []
+
+
+def test_every_healable_entry_has_a_wired_spec() -> None:
+    # importing HEAL_SPECS is cheap: prod-job imports are lazy inside run fns
+    from uw_scan.worker.jobs.data_gap_adapters import HEAL_SPECS
+
+    for e in REGISTRY:
+        if e.granularity != "none":
+            assert e.healer_adapter in HEAL_SPECS, (
+                f"{e.table_name} dispatches via {e.healer_adapter!r} "
+                "but no HealSpec is registered"
+            )

@@ -145,6 +145,23 @@ def _run_daily_ohlc(ctx: HealContext, ticker: str, lo: date, hi: date) -> int:
     )
 
 
+def _run_greek_exposure(ctx: HealContext, ticker: str, market_date: date) -> int:
+    from uw_scan.worker.jobs.greek_exposure_daily_refresh import (
+        greek_exposure_daily_refresh,
+    )
+
+    # UW aggregate is current-snapshot only -> heals a same-day gap; a past date
+    # verifies false and is recorded no_data (provider_no_history).
+    client = ctx.uw_client()
+    greek_exposure_daily_refresh(
+        repo=ctx.repo,
+        client=client,
+        settings=ctx.settings,
+        ticker_filter=lambda t: t.upper() == ticker.upper(),
+    )
+    return 0
+
+
 def _run_vol_rollup(ctx: HealContext) -> int:
     from uw_scan.worker.volatility_jobs import nightly_vol_analytics_rollup
 
@@ -158,12 +175,76 @@ def _run_sentiment(ctx: HealContext, lookback_days: int) -> int:
     return refresh_eod_sentiment(ctx.repo, sessions=max(1, lookback_days))
 
 
+# macro/FRED/rates/gold: re-run an idempotent ingest over a lookback window.
+# These are free external sources (uncapped) except gold UW options.
+
+
+def _run_macro_fred(ctx: HealContext, lookback_days: int) -> int:
+    from uw_scan.worker.jobs.gold_jobs import gold_fred_ingest_job
+
+    gold_fred_ingest_job(dsn=ctx.settings.db_dsn(), lookback_days=lookback_days)
+    return 0
+
+
+def _run_rates_fred(ctx: HealContext, lookback_days: int) -> int:
+    from uw_scan.worker.jobs.rates_jobs import rates_fred_ingest_job
+
+    key = (
+        ctx.settings.fred_api_key.get_secret_value()
+        if ctx.settings.fred_api_key
+        else None
+    )
+    rates_fred_ingest_job(
+        dsn=ctx.settings.db_dsn(), fred_api_key=key, lookback_days=lookback_days
+    )
+    return 0
+
+
+def _run_gold_posture(ctx: HealContext) -> int:
+    from uw_scan.worker.jobs.gold_jobs import gold_posture_compute_job
+
+    gold_posture_compute_job(dsn=ctx.settings.db_dsn())
+    return 0
+
+
+def _run_gold_comex(ctx: HealContext) -> int:
+    from uw_scan.worker.jobs.gold_jobs import gold_comex_vault_ingest_job
+
+    gold_comex_vault_ingest_job(dsn=ctx.settings.db_dsn())
+    return 0
+
+
+def _run_gold_cot(ctx: HealContext) -> int:
+    from uw_scan.worker.jobs.gold_jobs import gold_cftc_cot_ingest_job
+
+    gold_cftc_cot_ingest_job(dsn=ctx.settings.db_dsn())
+    return 0
+
+
+def _run_gold_uw_options(ctx: HealContext) -> int:
+    from uw_scan.worker.jobs.gold_jobs import gold_uw_options_ingest_job
+
+    gold_uw_options_ingest_job(
+        dsn=ctx.settings.db_dsn(),
+        api_key=ctx.settings.api_key.get_secret_value(),
+        base_url=ctx.settings.base_url,
+    )
+    return 0
+
+
 HEAL_SPECS: dict[str, HealSpec] = {
     "option_surface": HealSpec(
         "option_surface", "uw", "per_ticker_date", _run_option_surface, est_per_item=20
     ),
     "daily_ohlc": HealSpec(
         "daily_ohlc", "massive", "per_ticker_range", _run_daily_ohlc, est_per_item=1
+    ),
+    "greek_exposure_daily": HealSpec(
+        "greek_exposure_daily",
+        "uw",
+        "per_ticker_date",
+        _run_greek_exposure,
+        est_per_item=1,
     ),
     "vol_analytics_rollup": HealSpec(
         "vol_analytics_rollup", "db", "run_once", _run_vol_rollup, est_per_item=0
@@ -175,7 +256,64 @@ HEAL_SPECS: dict[str, HealSpec] = {
         _run_sentiment,
         est_per_item=0,
     ),
+    "macro_fred": HealSpec(
+        "macro_fred", "external", "run_once_lookback", _run_macro_fred, est_per_item=0
+    ),
+    "rates_fred": HealSpec(
+        "rates_fred", "external", "run_once_lookback", _run_rates_fred, est_per_item=0
+    ),
+    "gold_posture": HealSpec(
+        "gold_posture", "db", "run_once", _run_gold_posture, est_per_item=0
+    ),
+    "gold_comex": HealSpec(
+        "gold_comex", "external", "run_once", _run_gold_comex, est_per_item=0
+    ),
+    "gold_cot": HealSpec(
+        "gold_cot", "external", "run_once", _run_gold_cot, est_per_item=0
+    ),
+    "gold_uw_options": HealSpec(
+        "gold_uw_options", "uw", "run_once", _run_gold_uw_options, est_per_item=50
+    ),
 }
+
+
+def run_refresh_adapters(
+    ctx: HealContext,
+    datasets: list[str],
+    *,
+    lookback_days: int,
+    specs: dict[str, HealSpec] | None = None,
+) -> dict[str, str]:
+    """Heal re-runnable (run_once/run_once_lookback) datasets by invoking their
+    ingest job directly, independent of gap items. Used by the nightly scheduler
+    for macro/FRED/rates/gold + DB-to-DB rollups (freshness_only-but-healable).
+
+    Returns {dataset: 'refreshed'|'skipped_budget'|'failed'|'no_adapter'}.
+    """
+    specs = specs if specs is not None else HEAL_SPECS
+    out: dict[str, str] = {}
+    for dataset in datasets:
+        entry = ctx.registry_by_table.get(dataset)
+        spec = (
+            specs.get(entry.healer_adapter) if entry and entry.healer_adapter else None
+        )
+        if spec is None or spec.granularity not in ("run_once", "run_once_lookback"):
+            out[dataset] = "no_adapter"
+            continue
+        if not ctx.budget.can_spend(spec.provider, spec.est_per_item):
+            out[dataset] = "skipped_budget"
+            continue
+        try:
+            if spec.granularity == "run_once_lookback":
+                spec.run(ctx, lookback_days)
+            else:
+                spec.run(ctx)
+            ctx.budget.record(spec.provider, spec.est_per_item)
+            out[dataset] = "refreshed"
+        except Exception as exc:  # noqa: BLE001
+            logger.exception("refresh failed %s: %s", dataset, repr(exc))
+            out[dataset] = "failed"
+    return out
 
 
 # --- generic verifier ------------------------------------------------------
