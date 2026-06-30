@@ -7,6 +7,15 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+### Changed
+
+- **Market Tide spot overlay uses xenon IB bars as the primary source** (Apex
+  REST is the automatic fallback). `sources/apex.py` now tries
+  `POST /historical/bars` against xenon's query API (`XENON_QUERY_API_URL` /
+  `XENON_QUERY_API_KEY`) before falling back to the Apex lake endpoint. Requires
+  xenon ≥ v0.7.3 (moremeds/xenon#169 — fixes `_bar_date_to_iso` truncating
+  intraday timestamps to date-only).
+
 ## [0.4.0] — 2026-06-30
 
 
