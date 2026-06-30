@@ -20,6 +20,7 @@ from datetime import date
 from typing import Literal
 
 from psycopg import Connection
+from psycopg import sql as psql
 
 # How coverage is measured for a dataset.
 AuditMode = Literal[
@@ -394,3 +395,229 @@ def discover_unregistered_tables(
 ) -> list[str]:
     reg = REGISTRY if registry is None else registry
     return unregistered(temporal_tables(conn, schema), reg)
+
+
+# --- read-only coverage scanner --------------------------------------------
+
+# The canonical equity-session calendar. Coverage for a deep-history window is
+# the union of (a) dates the dataset itself already has any row for and (b) this
+# reference table where it overlaps. A session absent from BOTH is undetectable
+# without an external exchange calendar (documented limitation; v1 scope).
+_REFERENCE_CALENDAR = ("market_tide_sentiment_daily", "data_date")
+
+
+def _detect_col(
+    conn: Connection, schema: str, table: str, preference: tuple[str, ...]
+) -> str | None:
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+            SELECT column_name FROM information_schema.columns
+             WHERE table_schema = %s AND table_name = %s
+            """,
+            (schema, table),
+        )
+        cols = {r[0] for r in cur.fetchall()}
+    for pref in preference:
+        if pref in cols:
+            return pref
+    return None
+
+
+def _calendar_dates(
+    conn: Connection,
+    schema: str,
+    table: str,
+    date_col: str,
+    start: date,
+    end: date,
+) -> list[date]:
+    ref_tbl, ref_col = _REFERENCE_CALENDAR
+    query = psql.SQL(
+        """
+        SELECT DISTINCT d FROM (
+            SELECT {dcol} AS d FROM {tbl} WHERE {dcol} BETWEEN %s AND %s
+            UNION
+            SELECT {rcol} AS d FROM {rtbl} WHERE {rcol} BETWEEN %s AND %s
+        ) x
+        WHERE d IS NOT NULL
+        ORDER BY d
+        """
+    ).format(
+        dcol=psql.Identifier(date_col),
+        tbl=psql.Identifier(schema, table),
+        rcol=psql.Identifier(ref_col),
+        rtbl=psql.Identifier(schema, ref_tbl),
+    )
+    with conn.cursor() as cur:
+        cur.execute(query, (start, end, start, end))
+        return [r[0] for r in cur.fetchall()]
+
+
+def _missing_ticker_date_pairs(
+    conn: Connection,
+    schema: str,
+    table: str,
+    date_col: str,
+    ticker_col: str,
+    calendar: list[date],
+    tickers: list[str],
+) -> list[tuple[date, str]]:
+    if not calendar or not tickers:
+        return []
+    query = psql.SQL(
+        """
+        SELECT cal.d, tk.t
+          FROM unnest(%s::date[]) AS cal(d)
+          CROSS JOIN unnest(%s::text[]) AS tk(t)
+          LEFT JOIN {tbl} a
+                 ON a.{dcol} = cal.d AND UPPER(a.{tcol}) = tk.t
+         WHERE a.{tcol} IS NULL
+         ORDER BY cal.d, tk.t
+        """
+    ).format(
+        tbl=psql.Identifier(schema, table),
+        dcol=psql.Identifier(date_col),
+        tcol=psql.Identifier(ticker_col),
+    )
+    with conn.cursor() as cur:
+        cur.execute(query, (calendar, tickers))
+        return [(r[0], r[1]) for r in cur.fetchall()]
+
+
+def _present_session_dates(
+    conn: Connection, schema: str, table: str, date_col: str, start: date, end: date
+) -> set[date]:
+    query = psql.SQL(
+        "SELECT DISTINCT {dcol} FROM {tbl} WHERE {dcol} BETWEEN %s AND %s"
+    ).format(dcol=psql.Identifier(date_col), tbl=psql.Identifier(schema, table))
+    with conn.cursor() as cur:
+        cur.execute(query, (start, end))
+        return {r[0] for r in cur.fetchall() if r[0] is not None}
+
+
+def _scan_strict_ticker_date(
+    conn: Connection,
+    schema: str,
+    entry: DatasetRegistryEntry,
+    active: list[str],
+    caveats: tuple[Caveat, ...] | list[Caveat],
+    start: date,
+    end: date,
+) -> tuple[CoverageSummary, list[GapItem]]:
+    table = entry.table_name
+    date_col = entry.date_col or _detect_col(conn, schema, table, _DATE_COL_PREFERENCE)
+    tcol = entry.ticker_col or _detect_col(conn, schema, table, _TICKER_COL_PREFERENCE)
+    if not date_col or not tcol:
+        return CoverageSummary(table, "strict_ticker_date", 0, 0, 0, ()), []
+
+    calendar = _calendar_dates(conn, schema, table, date_col, start, end)
+    eligible_by_date = {
+        d: eligible_tickers_for_date(active, d, caveats) for d in calendar
+    }
+    tickers = sorted({t.upper() for t in active})
+    raw = _missing_ticker_date_pairs(
+        conn, schema, table, date_col, tcol, calendar, tickers
+    )
+
+    items: list[GapItem] = []
+    gap_dates: set[date] = set()
+    for d, tk in raw:
+        if tk not in eligible_by_date.get(d, set()):
+            continue  # caveated out (e.g. SPCX pre-listing)
+        items.append(
+            GapItem(table, f"{d.isoformat()}|{tk}", d, tk, None, None, "planned")
+        )
+        gap_dates.add(d)
+
+    expected = sum(len(v) for v in eligible_by_date.values())
+    missing = len(items)
+    summary = CoverageSummary(
+        table,
+        "strict_ticker_date",
+        expected,
+        expected - missing,
+        missing,
+        tuple(sorted(gap_dates)),
+    )
+    return summary, items
+
+
+def _scan_strict_session(
+    conn: Connection,
+    schema: str,
+    entry: DatasetRegistryEntry,
+    start: date,
+    end: date,
+) -> tuple[CoverageSummary, list[GapItem]]:
+    table = entry.table_name
+    date_col = entry.date_col or _detect_col(conn, schema, table, _DATE_COL_PREFERENCE)
+    if not date_col:
+        return CoverageSummary(table, "strict_session", 0, 0, 0, ()), []
+    calendar = _calendar_dates(conn, schema, table, date_col, start, end)
+    present = _present_session_dates(conn, schema, table, date_col, start, end)
+    missing_dates = [d for d in calendar if d not in present]
+    items = [
+        GapItem(table, d.isoformat(), d, None, None, None, "planned")
+        for d in missing_dates
+    ]
+    summary = CoverageSummary(
+        table,
+        "strict_session",
+        len(calendar),
+        len(calendar) - len(missing_dates),
+        len(missing_dates),
+        tuple(missing_dates),
+    )
+    return summary, items
+
+
+def scan_dataset(
+    conn: Connection,
+    schema: str,
+    entry: DatasetRegistryEntry,
+    active: list[str],
+    caveats: tuple[Caveat, ...] | list[Caveat],
+    start: date,
+    end: date,
+) -> tuple[CoverageSummary, list[GapItem]]:
+    """Coverage + gap items for one dataset, branching on audit_mode.
+
+    Only ``strict_*`` modes produce gap items. freshness/operational/provenance/
+    research/excluded datasets are accounted for (a summary row) but never get
+    gap items here — they are not strict-coverage problems.
+    """
+    if entry.audit_mode == "strict_ticker_date":
+        return _scan_strict_ticker_date(
+            conn, schema, entry, active, caveats, start, end
+        )
+    if entry.audit_mode == "strict_session":
+        return _scan_strict_session(conn, schema, entry, start, end)
+    return CoverageSummary(entry.table_name, entry.audit_mode, 0, 0, 0, ()), []
+
+
+def audit(
+    conn: Connection,
+    schema: str,
+    registry: list[DatasetRegistryEntry],
+    active: list[str],
+    caveats: tuple[Caveat, ...] | list[Caveat],
+    start: date,
+    end: date,
+    datasets: list[str] | None = None,
+) -> tuple[list[CoverageSummary], list[GapItem]]:
+    """Read-only exact-coverage audit. Makes ZERO provider calls."""
+    wanted = set(datasets) if datasets else None
+    summaries: list[CoverageSummary] = []
+    items: list[GapItem] = []
+    for entry in registry:
+        if not entry.enabled:
+            continue
+        if wanted is not None and entry.table_name not in wanted:
+            continue
+        summary, dataset_items = scan_dataset(
+            conn, schema, entry, active, caveats, start, end
+        )
+        summaries.append(summary)
+        items.extend(dataset_items)
+    return summaries, items
