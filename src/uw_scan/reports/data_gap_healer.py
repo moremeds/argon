@@ -297,6 +297,31 @@ REGISTRY: list[DatasetRegistryEntry] = [
         "operational_state",
         expected_frequency="liveness",
     ),
+    # the healer's own bookkeeping tables (registered so discovery stays honest)
+    DatasetRegistryEntry(
+        "data_gap_runs",
+        "operational_provenance",
+        "provenance",
+        expected_frequency="none",
+    ),
+    DatasetRegistryEntry(
+        "data_gap_items",
+        "operational_provenance",
+        "provenance",
+        expected_frequency="none",
+    ),
+    DatasetRegistryEntry(
+        "data_gap_caveats",
+        "operational_provenance",
+        "provenance",
+        expected_frequency="none",
+    ),
+    DatasetRegistryEntry(
+        "data_gap_dataset_registry",
+        "operational_provenance",
+        "provenance",
+        expected_frequency="none",
+    ),
 ]
 
 
