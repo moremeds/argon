@@ -854,3 +854,45 @@ def audit(
         summaries.append(summary)
         items.extend(dataset_items)
     return summaries, items
+
+
+def render_dataset_policy_markdown(
+    registry: list[DatasetRegistryEntry] | None = None,
+) -> str:
+    """Generate the dataset-policy runbook table from the registry (one source
+    of truth). Re-run after registry changes; committed to docs/runbooks/."""
+    reg = REGISTRY if registry is None else registry
+    by_group: dict[str, list[DatasetRegistryEntry]] = {}
+    for e in reg:
+        by_group.setdefault(e.dataset_group, []).append(e)
+
+    lines = [
+        "# Data gap dataset policy",
+        "",
+        "Generated from `REGISTRY` in `src/uw_scan/reports/data_gap_healer.py` "
+        "(one source of truth). Regenerate with:",
+        "",
+        "```bash",
+        'uv run python -c "from uw_scan.reports.data_gap_healer import '
+        "render_dataset_policy_markdown as r; "
+        "open('docs/runbooks/data-gap-dataset-policy.md','w').write(r())\"",
+        "```",
+        "",
+        f"**{len(reg)} datasets** across {len(by_group)} groups.",
+        "",
+    ]
+    for group in sorted(by_group):
+        lines.append(f"## {group}")
+        lines.append("")
+        lines.append(
+            "| table | audit_mode | provider | granularity | adapter | freq | reason |"
+        )
+        lines.append("|---|---|---|---|---|---|---|")
+        for e in sorted(by_group[group], key=lambda x: x.table_name):
+            lines.append(
+                f"| {e.table_name} | {e.audit_mode} | {e.provider} | "
+                f"{e.granularity} | {e.healer_adapter or ''} | "
+                f"{e.expected_frequency} | {e.reason or ''} |"
+            )
+        lines.append("")
+    return "\n".join(lines)
