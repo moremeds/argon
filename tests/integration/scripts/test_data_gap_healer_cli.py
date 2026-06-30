@@ -141,3 +141,52 @@ def test_verify_run_shows_before_after(seeded_db_empty_cards):
     result = cli.verify_run(repo, gap, repo._schema, run_id, active=["AAPL", "NVDA"])
     assert result["before_gaps"] == before
     assert result["after_gaps"] == 0
+
+
+def test_resume_requeues_orphaned_running_items(seeded_db_empty_cards):
+    repo = seeded_db_empty_cards
+    cli = _load_cli()
+    gap = DataGapHealerRepository(repo.conn, schema=repo._schema)
+    d1, d2 = date(2026, 6, 10), date(2026, 6, 11)
+    _calendar(repo, d1, d2)
+    _ohlc(repo, "AAPL", d1)  # AAPL@d2, NVDA@d1, NVDA@d2 are gaps
+
+    run_id, _summaries, items = cli.audit_into_run(
+        repo,
+        gap,
+        repo._schema,
+        start=d1,
+        end=d2,
+        datasets=["daily_ohlc"],
+        mode="execute",
+        active=["AAPL", "NVDA"],
+    )
+    # simulate a killed run: every item stuck 'running' (claim_next_items skips it)
+    with repo.conn.cursor() as cur:
+        cur.execute(
+            f"UPDATE {repo._schema}.data_gap_items SET status='running' WHERE run_id=%s",
+            (run_id,),
+        )
+    repo.conn.commit()
+
+    def fake_range(ctx, ticker, lo, hi):
+        d = lo
+        while d <= hi:
+            _ohlc(ctx.repo, ticker, d)
+            d += timedelta(days=1)
+        return 1
+
+    specs = {
+        "daily_ohlc": HealSpec("daily_ohlc", "massive", "per_ticker_range", fake_range)
+    }
+    outcome, _budget = cli.resume_run(
+        repo,
+        gap,
+        _settings(repo),
+        run_id,
+        today=date(2026, 6, 30),
+        max_uw_calls=20000,
+        specs=specs,
+    )
+    # the orphaned 'running' items were requeued and then healed
+    assert outcome.get("healed") == len(items)

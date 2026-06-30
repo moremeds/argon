@@ -66,7 +66,24 @@ uv run python scripts/backfill/data_gap_healer.py audit --discover
 
 # Full audit + evidence artifact (output/data-gap/<date>-gap-report.{md,json})
 ... verify-all --start 2026-01-01 --json
+
+# YTD backfill of volatility_stats_history from UW (one UW call per ticker/date;
+# ~9.4k cells for a full YTD fill — resumable, so cap and roll across runs)
+... execute --datasets volatility_stats_history --start 2026-01-01 --max-uw-calls 12000 --confirm
+... resume --run-id <id> --max-uw-calls 12000   # continue after a budget cap / restart
+
+# Log watchlist add/remove deltas (added tickers are backfilled by the next audit;
+# removed tickers are logged, rows kept, and drop out of the live denominator)
+... reconcile
 ```
+
+## Calendar (trading days)
+
+The expected-session calendar is the clean `market_tide_sentiment_daily` spine
+(weekday-only, holiday-excluded) — **not** a self-union with each dataset's own
+dates. A stray weekend/holiday row in a source no longer manufactures a
+full-watchlist phantom gap. Limitation: the audit window cannot extend before
+the reference table's earliest date (currently 2026-01-02; fine for YTD).
 
 ## Caveat lifecycle (no-data exclusions)
 

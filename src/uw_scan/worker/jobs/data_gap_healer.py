@@ -184,6 +184,13 @@ def resume_run(
     max_uw_calls: int,
     specs: dict | None = None,
 ) -> tuple[dict, RequestBudget]:
+    # Recover items orphaned in 'running' by a killed/timed-out prior run, so
+    # resume actually picks up where it left off (claim skips 'running').
+    requeued = gap.requeue_running(run_id)
+    if requeued:
+        logger.info(
+            "resume run=%s requeued %d orphaned running items", run_id, requeued
+        )
     ctx = HealContext(
         repo=repo,
         gap=gap,

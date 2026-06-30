@@ -461,6 +461,21 @@ class DataGapHealerRepository:
             )
             return [r[0] for r in cur.fetchall()]
 
+    def requeue_running(self, run_id: int) -> int:
+        """Reset a run's 'running' items back to 'planned' so resume can reclaim
+        them. A killed/timed-out run leaves items stuck 'running' (claim_next_items
+        skips that status); on an explicit resume there is no live worker holding
+        them, and heals are idempotent, so a blanket requeue is safe."""
+        with self._conn.cursor() as cur:
+            cur.execute(
+                "UPDATE data_gap_items SET status = 'planned' "
+                "WHERE run_id = %s AND status = 'running'",
+                (run_id,),
+            )
+            n = cur.rowcount
+        self._conn.commit()
+        return n
+
     # --- watchlist lifecycle log (migration 093) --------------------------
 
     def record_ticker_events(

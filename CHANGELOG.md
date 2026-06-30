@@ -11,7 +11,7 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 - **Data gap healer — full-coverage audit + heal + nightly backfill.** A
   resumable, budget-aware service that accounts for **every** recorded `uw_scan`
-  table (117 datasets) and repairs safe coverage gaps. New `data_gap_*` domain
+  table (118 datasets) and repairs safe coverage gaps. New `data_gap_*` domain
   (`migration 092`): a dataset registry (one source of truth in
   `reports/data_gap_healer.py`, projected to `data_gap_dataset_registry`),
   gaps-only `data_gap_items`, resumable `data_gap_runs`, and no-data
@@ -29,11 +29,43 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   uncapped. `/api/health` gains a `gap_healer` block. Policy matrix:
   `docs/runbooks/data-gap-dataset-policy.md`; runbook:
   `docs/runbooks/data-gap-healer.md`.
+- **YTD historical backfill from UW (`/volatility/stats`, `/volatility/realized`).**
+  `realized_volatility_history` + `volatility_stats_history` are UW-sourced, not
+  derived — repointed off the rollup adapter (which only writes
+  `vrp_daily`/`stock_analytics_daily`) to dedicated heal adapters:
+  `realized_volatility` (full ~1y series, 1 call/ticker) and `volatility_stats`
+  (one row per ticker/date via `?date=`, the YTD `vol_stats` backfill — that
+  table only accumulated forward from its 2026-05-11 inception because the
+  fetcher was current-snapshot-only). `fetch_volatility_stats` gains an optional
+  `market_date` selector (current-snapshot default preserved).
+- **Watchlist ticker lifecycle log** (`migration 093`,
+  `watchlist_ticker_events`). `reconcile_watchlist_lifecycle` (run nightly + CLI
+  `reconcile`) diffs the live watchlist vs the last-known state: **added/re-added**
+  tickers are logged and backfilled by the same run's audit; **removed** tickers
+  are logged with their rows left intact (no exclusion code needed — the
+  denominator is the live watchlist, so they already drop out). Append-only, so a
+  remove→re-add cycle keeps the full history.
 - **Benchmark snapshots persist through a heartbeat clock race.**
   `scheduler_heartbeat_lag_seconds` is clamped to `max(0, …)` in
   `benchmark/collector.py` so a heartbeat landing a hair after `now_utc` no
   longer violates the `058` `>= 0` CHECK and drops the snapshot
   (`pipeline_benchmark_snapshots` was stuck at 0 rows).
+
+### Fixed
+
+- **Gap-healer trading-day calendar (kills weekend/holiday phantom gaps).**
+  `_calendar_dates` unioned the dataset's own dates with the `market_tide`
+  reference, so a stray weekend/holiday price-bar in a dataset leaked that
+  non-trading day into its own expected calendar — manufacturing a full-watchlist
+  phantom gap for every ticker missing that bar. The reference
+  (`market_tide_sentiment_daily`) is a clean trading-day spine (0 weekend/holiday
+  rows), so it is now the sole calendar. On real prod data this cut the gap count
+  25,814 → 15,021; `vrp_daily`/`realized_volatility_history`/`stock_analytics_daily`
+  collapsed from ~3,000–3,800 phantom gaps each to the 2 genuine misses each.
+- **Resume recovers items orphaned by a killed run.** A timed-out/killed run left
+  items stuck `running`, which `claim_next_items` skips; `resume` now requeues
+  them to `planned` first (heals are idempotent, so a blanket requeue is safe),
+  so a backfill actually continues where it left off.
 
 ## [0.4.1] — 2026-06-30
 
