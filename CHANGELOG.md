@@ -7,6 +7,9 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+## [0.4.0] — 2026-06-30
+
+
 ### Added
 
 - **Market Tide tab — Top Net Impact chart with per-update rank change.** New
@@ -57,7 +60,6 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   returns no greek set (UW-fallback legs, or IB without greeks). Adds `'ib'` to
   the `greeks_source` tag (`VrpMacroEntryLeg.greeks_source` contract widened to
   `ib | bs | none`).
-
 ## [0.3.6] — 2026-06-25
 
 
