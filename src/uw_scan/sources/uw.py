@@ -154,9 +154,19 @@ def fetch_iv_rank(
 
 
 def fetch_volatility_stats(
-    client: UwClient, repo: Repository, run_id: int, ticker: str
+    client: UwClient,
+    repo: Repository,
+    run_id: int,
+    ticker: str,
+    market_date: date | None = None,
 ) -> list[VolStatsRow]:
-    body = _fetch_json(client, repo, run_id, EndpointSlug.VOLATILITY_STATS, ticker)
+    # /volatility/stats is a historical-selector: ?date=YYYY-MM-DD returns the
+    # stats AS OF that session (one row). Omitting it returns the current row
+    # (the nightly path). The gap healer passes market_date to backfill history.
+    params = {"date": market_date.isoformat()} if market_date is not None else None
+    body = _fetch_json(
+        client, repo, run_id, EndpointSlug.VOLATILITY_STATS, ticker, params=params
+    )
     return normalize.normalize_volatility_stats(body)
 
 
