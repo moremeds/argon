@@ -460,3 +460,54 @@ class DataGapHealerRepository:
                 (self._schema,),
             )
             return [r[0] for r in cur.fetchall()]
+
+    # --- watchlist lifecycle log (migration 093) --------------------------
+
+    def record_ticker_events(
+        self, events: list[tuple[str, str, date, str | None]]
+    ) -> int:
+        """Append (ticker, event, event_date, note) rows. Append-only: a re-add
+        after a removal keeps both events, so the history is never erased."""
+        if not events:
+            return 0
+        with self._conn.cursor() as cur:
+            cur.executemany(
+                """
+                INSERT INTO watchlist_ticker_events
+                    (ticker, event, event_date, note)
+                VALUES (%s, %s, %s, %s)
+                """,
+                [(t.upper(), ev, d, note) for (t, ev, d, note) in events],
+            )
+        self._conn.commit()
+        return len(events)
+
+    def current_ticker_status(self) -> dict[str, str]:
+        """Latest event per ticker -> {ticker: 'added'|'removed'}."""
+        with self._conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT DISTINCT ON (ticker) ticker, event
+                  FROM watchlist_ticker_events
+                 ORDER BY ticker, id DESC
+                """
+            )
+            return {r[0]: r[1] for r in cur.fetchall()}
+
+    def list_ticker_events(
+        self, ticker: str | None = None, limit: int = 500
+    ) -> list[dict]:
+        clause = "WHERE ticker = %s" if ticker else ""
+        args: list[Any] = [ticker.upper()] if ticker else []
+        args.append(limit)
+        with self._conn.cursor() as cur:
+            cur.execute(
+                f"""
+                SELECT ticker, event, event_date, note, created_at
+                  FROM watchlist_ticker_events {clause}
+                 ORDER BY id DESC LIMIT %s
+                """,
+                args,
+            )
+            cols = [c.name for c in cur.description]
+            return [dict(zip(cols, r, strict=True)) for r in cur.fetchall()]

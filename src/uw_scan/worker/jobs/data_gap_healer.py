@@ -63,6 +63,35 @@ def active_tickers(repo: Repository, active: list[str] | None) -> list[str]:
     return [c.ticker for c in repo.list_watchlist_cards()]
 
 
+def reconcile_watchlist_lifecycle(
+    repo: Repository,
+    gap: DataGapHealerRepository,
+    today: date,
+    active: list[str] | None = None,
+) -> dict:
+    """Log watchlist add/remove deltas vs the last-known state.
+
+    - **added** (new or re-added): logged; the audit in the same run then finds
+      their missing history as gaps and heals it (that IS the backfill schedule).
+    - **removed** (gone from the watchlist): logged, rows left untouched. No
+      exclusion code needed — the denominator is the live watchlist, so a removed
+      ticker is already out of every count; the log just records when/why.
+
+    Append-only, so a remove->re-add cycle keeps both events. First run logs the
+    whole current watchlist as 'added' (the tracking baseline).
+    """
+    active_set = {t.upper() for t in active_tickers(repo, active)}
+    status = gap.current_ticker_status()
+    known_active = {t for t, ev in status.items() if ev == "added"}
+    added = sorted(active_set - known_active)
+    removed = sorted(known_active - active_set)
+    events: list[tuple[str, str, date, str | None]] = [
+        (t, "added", today, None) for t in added
+    ] + [(t, "removed", today, "absent from watchlist") for t in removed]
+    gap.record_ticker_events(events)
+    return {"added": added, "removed": removed}
+
+
 def audit_into_run(
     repo: Repository,
     gap: DataGapHealerRepository,
@@ -303,6 +332,10 @@ def _run_nightly(
         d.strip() for d in settings.data_gap_healer_datasets.split(",") if d.strip()
     ] or None
 
+    # Log watchlist add/remove deltas before the audit, so newly-added tickers
+    # are on record and the audit below backfills their history this run.
+    lifecycle = reconcile_watchlist_lifecycle(repo, gap, today)
+
     run_id, summaries, items = audit_into_run(
         repo,
         gap,
@@ -333,6 +366,7 @@ def _run_nightly(
         extra={
             "outcome": outcome,
             "refresh": refresh,
+            "lifecycle": lifecycle,
             "budget_spent": ctx.budget.as_dict(),
         },
     )
@@ -352,15 +386,18 @@ def _run_nightly(
     )
     write_evidence(evidence, out_dir, today)
     logger.info(
-        "data_gap_healer run=%s outcome=%s refresh=%s budget=%s",
+        "data_gap_healer run=%s outcome=%s refresh=%s lifecycle=+%d/-%d budget=%s",
         run_id,
         outcome,
         refresh,
+        len(lifecycle["added"]),
+        len(lifecycle["removed"]),
         ctx.budget.as_dict(),
     )
     return {
         "run_id": run_id,
         "outcome": outcome,
         "refresh": refresh,
+        "lifecycle": lifecycle,
         "budget_spent": ctx.budget.as_dict(),
     }

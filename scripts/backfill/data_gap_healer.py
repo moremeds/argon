@@ -36,6 +36,7 @@ from uw_scan.worker.jobs.data_gap_healer import (  # noqa: F401
     execute_into_run,
     finalize_run,
     per_dataset_summary,
+    reconcile_watchlist_lifecycle,
     resume_run,
     verify_all,
     verify_run,
@@ -221,6 +222,16 @@ def cmd_verify_all(args: argparse.Namespace, settings: Settings) -> int:
         repo.conn.close()
 
 
+def cmd_reconcile(args: argparse.Namespace, settings: Settings) -> int:
+    repo, gap = _open(settings)
+    try:
+        result = reconcile_watchlist_lifecycle(repo, gap, date.today())
+        print(json.dumps(result, indent=2, default=str))
+        return 0
+    finally:
+        repo.conn.close()
+
+
 def build_parser() -> argparse.ArgumentParser:
     ap = argparse.ArgumentParser(description="Argon data gap healer")
     sub = ap.add_subparsers(dest="command", required=True)
@@ -266,6 +277,11 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--json", action="store_true")
     p.add_argument("--fail-on-open-gaps", action="store_true")
     p.set_defaults(func=cmd_verify_all)
+
+    p = sub.add_parser(
+        "reconcile", help="log watchlist add/remove deltas (added -> backfilled)"
+    )
+    p.set_defaults(func=cmd_reconcile)
 
     return ap
 

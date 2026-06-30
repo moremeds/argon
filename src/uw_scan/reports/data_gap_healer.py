@@ -318,6 +318,12 @@ REGISTRY: list[DatasetRegistryEntry] = [
         "provenance",
         expected_frequency="none",
     ),
+    DatasetRegistryEntry(
+        "watchlist_ticker_events",
+        "operational_provenance",
+        "provenance",
+        expected_frequency="none",
+    ),
 ]
 
 
