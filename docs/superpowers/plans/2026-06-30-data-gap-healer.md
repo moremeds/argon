@@ -776,7 +776,7 @@ git commit -m "feat(data): add resumable gap healer cli"
 
 1. Add settings (eng-review: nightly capped backfill per intention #3; full coverage incl. macro/FRED):
    - `DATA_GAP_HEALER_ENABLED=false`            # flip true to enable the nightly backfill
-   - `DATA_GAP_HEALER_CRON_ET="0 20 * * 1-5"`   # 20:00 America/New_York, weekdays (after UW reset)
+   - `DATA_GAP_HEALER_CRON_ET="0 20 * * 0-4"`   # 20:00 America/New_York, weekdays (after UW reset)
    - `DATA_GAP_HEALER_DATASETS=""`              # empty = ALL healable datasets (full coverage); CSV to narrow
    - `DATA_GAP_HEALER_START="2026-01-01"`       # audit/heal from here to today — as much history as possible
    - `DATA_GAP_HEALER_MAX_UW_CALLS=20000`       # configurable UW request cap (the ONLY cap; massive/external uncapped)

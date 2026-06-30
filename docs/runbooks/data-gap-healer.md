@@ -35,7 +35,7 @@ after the 00:00 UTC UW quota reset — so it draws on a fresh 60k UW budget.
 | Env | Default | Meaning |
 |---|---|---|
 | `DATA_GAP_HEALER_ENABLED` | `false` | master switch |
-| `DATA_GAP_HEALER_CRON_ET` | `0 20 * * 1-5` | 20:00 America/New_York, weekdays |
+| `DATA_GAP_HEALER_CRON_ET` | `0 20 * * 0-4` | 20:00 America/New_York, weekdays |
 | `DATA_GAP_HEALER_DATASETS` | `""` (all healable) | CSV to narrow |
 | `DATA_GAP_HEALER_START` | `2026-01-01` | audit/heal from here to today (as much history as possible) |
 | `DATA_GAP_HEALER_MAX_UW_CALLS` | `20000` | **the only cap** — Massive/external are uncapped |

@@ -310,7 +310,9 @@ class Settings(BaseModel):
     option_surface_iv_canary_warn_threshold: float = 0.02
     # Nightly data gap healer (8pm ET, after UW quota reset). Only UW is capped.
     data_gap_healer_enabled: bool = False
-    data_gap_healer_cron_et: str = "0 20 * * 1-5"
+    data_gap_healer_cron_et: str = (
+        "0 20 * * 0-4"  # 20:00 ET Mon-Fri (APScheduler Mon=0)
+    )
     data_gap_healer_datasets: str = ""  # empty = all healable datasets
     data_gap_healer_start: str = "2026-01-01"
     data_gap_healer_max_uw_calls: int = 20000
@@ -727,7 +729,7 @@ class Settings(BaseModel):
             ),
             data_gap_healer_enabled=_env_bool("DATA_GAP_HEALER_ENABLED", False),
             data_gap_healer_cron_et=os.environ.get(
-                "DATA_GAP_HEALER_CRON_ET", "0 20 * * 1-5"
+                "DATA_GAP_HEALER_CRON_ET", "0 20 * * 0-4"
             ),
             data_gap_healer_datasets=os.environ.get("DATA_GAP_HEALER_DATASETS", ""),
             data_gap_healer_start=os.environ.get("DATA_GAP_HEALER_START", "2026-01-01"),
