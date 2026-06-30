@@ -384,16 +384,28 @@ def test_health_record_check_discovers_new_ticker_timestamp_tables(
         )
     repo.conn.commit()
 
-    r = client.get(
-        "/api/health?record_window_hours=8&record_tables=synthetic_endpoint_snapshots"
-    )
+    try:
+        r = client.get(
+            "/api/health?record_window_hours=8&record_tables=synthetic_endpoint_snapshots"
+        )
 
-    assert r.status_code == 200
-    body = r.json()
-    synthetic = body["record_health"][0]
-    assert synthetic["table"] == "synthetic_endpoint_snapshots"
-    assert synthetic["ok"] is True
-    assert synthetic["actual_tickers"] == repo.count_active_watchlist()
+        assert r.status_code == 200
+        body = r.json()
+        synthetic = body["record_health"][0]
+        assert synthetic["table"] == "synthetic_endpoint_snapshots"
+        assert synthetic["ok"] is True
+        assert synthetic["actual_tickers"] == repo.count_active_watchlist()
+    finally:
+        # Ad-hoc, non-migration table: the per-test baseline restore is
+        # TRUNCATE+COPY, which never DROPs it. Leaving it leaks into other tests
+        # on the same xdist worker and trips the data-gap discovery gate
+        # (test_zero_unregistered_after_full_registry, which sees an
+        # unregistered temporal table). Drop it here so the test is self-contained.
+        with repo.conn.cursor() as cur:
+            cur.execute(
+                f"DROP TABLE IF EXISTS {repo._schema}.synthetic_endpoint_snapshots"
+            )
+        repo.conn.commit()
 
 
 def test_health_daily_window_passes_nightly_table_aged_under_26h(
