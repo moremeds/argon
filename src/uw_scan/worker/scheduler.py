@@ -28,6 +28,7 @@ from uw_scan.storage.repository import Repository
 from uw_scan.worker.jobs.cockpit_daily_snapshot import cockpit_daily_snapshot
 from uw_scan.worker.jobs.corporate_actions_jobs import corporate_actions_refresh_once
 from uw_scan.worker.jobs.credit_etf_lake_sync import run_credit_etf_lake_sync
+from uw_scan.worker.jobs.data_gap_healer import data_gap_healer_job
 from uw_scan.worker.jobs.flow_data_refresh import flow_data_refresh
 from uw_scan.worker.jobs.full_scan import full_scan_once
 from uw_scan.worker.jobs.fundamentals_jobs import fundamentals_refresh_once
@@ -192,6 +193,15 @@ def _should_schedule_rates_fred_ingest(settings: Settings) -> bool:
 def _should_schedule_pipeline_benchmark(settings: Settings) -> bool:
     role = settings.worker_role.lower()
     return role == "all" or (role == "uw" and settings.worker_index == 0)
+
+
+def _should_schedule_data_gap_healer(settings: Settings) -> bool:
+    """Nightly gap healer runs on exactly one process (uw-0 or 'all'), and only
+    when enabled. Off by default until manual runs prove it safe."""
+    role = settings.worker_role.lower()
+    return settings.data_gap_healer_enabled and (
+        role == "all" or (role == "uw" and settings.worker_index == 0)
+    )
 
 
 def _should_schedule_option_surface_capture(settings: Settings) -> bool:
@@ -692,6 +702,12 @@ def main() -> int:
             ) as uw:
                 with _repo(settings) as repo:
                     cockpit_daily_snapshot(repo=repo, client=uw, settings=settings)
+
+    def _data_gap_healer() -> None:
+        if not settings.data_gap_healer_enabled:
+            return
+        today = datetime.now(ZoneInfo(settings.rth_tz)).date()
+        data_gap_healer_job(settings=settings, today=today)
 
     def _option_surface_capture() -> None:
         if not settings.option_surface_capture_enabled:
@@ -1298,6 +1314,17 @@ def main() -> int:
                     CronTrigger.from_crontab("30 19 * * 0-4", timezone=settings.rth_tz),
                     id="option_surface_iv_canary",
                     name="Option surface IB-vs-UW IV canary",
+                    max_instances=1,
+                    coalesce=True,
+                )
+            if _should_schedule_data_gap_healer(settings):
+                sched.add_job(
+                    _data_gap_healer,
+                    CronTrigger.from_crontab(
+                        settings.data_gap_healer_cron_et, timezone=settings.rth_tz
+                    ),
+                    id="data_gap_healer",
+                    name="Nightly data gap healer",
                     max_instances=1,
                     coalesce=True,
                 )
