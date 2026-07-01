@@ -152,7 +152,15 @@ def _reset_to_baseline(
     tables: list[str] = snapshot["tables"]
     dumps: dict[str, bytes] = snapshot["dumps"]
     sequences: dict[str, tuple[int, bool]] = snapshot["sequences"]
+    baseline_set = set(tables)
     with conn.cursor() as cur:
+        # Drop tables a test created that aren't in the baseline — they survive
+        # TRUNCATE CASCADE (which only follows FK chains) and would bleed into
+        # later tests inside the same xdist worker.
+        cur.execute("SELECT tablename FROM pg_tables WHERE schemaname = 'uw_scan'")
+        for (t,) in cur.fetchall():
+            if t not in baseline_set:
+                cur.execute(f'DROP TABLE IF EXISTS uw_scan."{t}" CASCADE')
         if tables:
             quoted = ", ".join(f'uw_scan."{t}"' for t in tables)
             cur.execute(f"TRUNCATE {quoted} CASCADE")
