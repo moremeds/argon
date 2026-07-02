@@ -7,6 +7,9 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+## [0.5.1] — 2026-07-02
+
+
 ### Fixed
 
 - **`gold_etf_holdings_ingest_job` used the host's local clock instead of ET.**
@@ -31,7 +34,6 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   rmdir lucide-react/dist/esm` error that blocked the first v0.5.0 deploy attempt)
   cannot stall the build step and leave the deploy script mid-way through
   `set -euo pipefail`.
-
 ## [0.5.0] — 2026-06-30
 
 
