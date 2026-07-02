@@ -29,11 +29,13 @@ import logging
 from dataclasses import asdict
 from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 import psycopg
 
 from uw_scan.api.client import UwClient
 from uw_scan.reports.gold_posture import compute_and_persist_gold_posture
+from uw_scan.sources import uw as uw_sources
 from uw_scan.sources.cftc_cot import CftcCotProvider
 from uw_scan.sources.comex import ComexProvider
 from uw_scan.sources.etf_holdings import EtfHoldingsProvider
@@ -41,13 +43,12 @@ from uw_scan.sources.fred import FredProvider
 from uw_scan.sources.gpr import GprProvider
 from uw_scan.sources.lbma import LbmaProvider
 from uw_scan.sources.ohlc import MassiveOhlcProvider
-from uw_scan.sources import uw as uw_sources
 from uw_scan.sources.uw_gold_options import (
     GOLD_OPTIONS_TICKERS,
     fetch_gold_options_snapshot,
 )
-from uw_scan.sources.wgc_etf import TROY_OZ_PER_TONNE, WgcEtfProvider
 from uw_scan.sources.wgc_cb import WgcCbProvider
+from uw_scan.sources.wgc_etf import TROY_OZ_PER_TONNE, WgcEtfProvider
 from uw_scan.storage.repository import Repository
 
 logger = logging.getLogger(__name__)
@@ -176,6 +177,7 @@ def gold_etf_holdings_ingest_job(
     wgc_workbook_path: str | None = None,
     lookback_days: int = 45,
     holdings_lookback_days: int = 400,
+    rth_tz: str = "America/New_York",
 ) -> None:
     """Daily ETF refresh (GLD/IAU/GLDM/PHYS). Schedule: 18:30 ET.
 
@@ -185,7 +187,8 @@ def gold_etf_holdings_ingest_job(
     because current entitlement only exposes recent history.
     """
     now = datetime.now(UTC)
-    holdings_start = date.today() - timedelta(days=holdings_lookback_days)
+    today_et = datetime.now(ZoneInfo(rth_tz)).date()
+    holdings_start = today_et - timedelta(days=holdings_lookback_days)
     with psycopg.connect(dsn) as conn, EtfHoldingsProvider() as etf:
         repo = Repository(conn, schema="uw_scan")
         for ticker, fetch_fn, source in [
@@ -266,8 +269,8 @@ def gold_etf_holdings_ingest_job(
         else:
             logger.info("WGC Goldhub auth/export not provided; skipping WGC ETF ingest")
         if uw_api_key:
-            start = (date.today() - timedelta(days=lookback_days)).isoformat()
-            end = date.today().isoformat()
+            start = (today_et - timedelta(days=lookback_days)).isoformat()
+            end = today_et.isoformat()
             with UwClient(
                 api_key=uw_api_key,
                 timeout=30.0,
@@ -533,13 +536,18 @@ def gold_wgc_cb_ingest_job(
         return
 
     now = datetime.now(UTC)
-    with psycopg.connect(dsn) as conn, WgcCbProvider(
-        cookie_header=wgc_goldhub_cookie,
-        workbook_path=wgc_workbook_path,
-    ) as wgc:
+    with (
+        psycopg.connect(dsn) as conn,
+        WgcCbProvider(
+            cookie_header=wgc_goldhub_cookie,
+            workbook_path=wgc_workbook_path,
+        ) as wgc,
+    ):
         repo = Repository(conn, schema="uw_scan")
         try:
-            start = date.today() - timedelta(days=lookback_days) if lookback_days else None
+            start = (
+                date.today() - timedelta(days=lookback_days) if lookback_days else None
+            )
             for row in wgc.fetch_monthly(start=start):
                 repo.insert_cb_gold_reserves_monthly(
                     country_iso3=row.country_iso3,
