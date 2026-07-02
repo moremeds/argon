@@ -65,7 +65,7 @@ build_release() {
   # npm ci: reproducible install from the committed lock; never rewrites
   # package-lock.json (npm install does, which self-dirties the tree and
   # blocks the next deploy's dirty-guard). ci.yml already uses npm ci.
-  (cd web && npm ci --no-audit --no-fund --legacy-peer-deps)
+  (cd web && rm -rf node_modules && npm ci --no-audit --no-fund --legacy-peer-deps)
 
   step "scripts/migrate.sh"
   bash scripts/migrate.sh
