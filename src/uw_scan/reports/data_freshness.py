@@ -174,6 +174,7 @@ MONITORED_TABLES: list[MonitoredTable] = [
     MonitoredTable("canary_snapshots", "watchlist", None),  # ticker-less
     # --- Tier 4: FRED/rates/gold sources not yet known to be blocked ---
     MonitoredTable("macro_series_daily", "watchlist", None),  # ticker-less
+    MonitoredTable("macro_series_monthly", "watchlist", None),  # ticker-less
     MonitoredTable("rates_observations", "watchlist", None),  # ticker-less
     MonitoredTable("rates_snapshots", "watchlist", None),  # ticker-less
     MonitoredTable("rates_policy_path", "watchlist", None),  # ticker-less
