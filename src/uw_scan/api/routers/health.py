@@ -82,6 +82,7 @@ class HealthFreshnessRow(BaseModel):
     max_data_date: date | None = None
     days_stale: int | None = None
     frozen: bool
+    consecutive_frozen_nights: int = 0
 
 
 class HealthFreshness(BaseModel):
@@ -90,6 +91,12 @@ class HealthFreshness(BaseModel):
     as_of: date | None = None
     frozen: list[str] = Field(default_factory=list)
     tables: list[HealthFreshnessRow] = Field(default_factory=list)
+    # Tables the freshness-autoheal circuit breaker has stopped retriggering
+    # (DATA_FRESHNESS_AUTOHEAL_CIRCUIT_BREAKER_NIGHTS consecutive frozen
+    # nights despite repeated heal attempts) -- a genuinely unfixable block
+    # (missing credential, licensed data source) that needs a human, not
+    # another automatic retry.
+    autoheal_circuit_broken: list[str] = Field(default_factory=list)
 
 
 class HealthGapHealer(BaseModel):
@@ -346,6 +353,13 @@ def health(
         as_of=_as_of,
         frozen=[r["table_name"] for r in _fr_rows if r["frozen"]],
         tables=[HealthFreshnessRow(**r) for r in _fr_rows],
+        autoheal_circuit_broken=[
+            r["table_name"]
+            for r in _fr_rows
+            if r["frozen"]
+            and r["consecutive_frozen_nights"]
+            >= settings.data_freshness_autoheal_circuit_breaker_nights
+        ],
     )
 
     # Gap-healer block — exact strict-coverage status, distinct from freshness.

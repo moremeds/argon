@@ -7352,6 +7352,13 @@
             ],
             "title": "As Of"
           },
+          "autoheal_circuit_broken": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Autoheal Circuit Broken",
+            "type": "array"
+          },
           "frozen": {
             "items": {
               "type": "string"
@@ -7373,6 +7380,11 @@
       "HealthFreshnessRow": {
         "description": "One curated table's data-date freshness (see reports/data_freshness).",
         "properties": {
+          "consecutive_frozen_nights": {
+            "default": 0,
+            "title": "Consecutive Frozen Nights",
+            "type": "integer"
+          },
           "coverage_pct": {
             "anyOf": [
               {
@@ -21290,7 +21302,7 @@
   },
   "info": {
     "title": "UW Watchlist API",
-    "version": "0.4.1"
+    "version": "0.5.1"
   },
   "openapi": "3.1.0",
   "paths": {
