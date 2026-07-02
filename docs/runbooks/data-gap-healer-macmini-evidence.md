@@ -74,34 +74,65 @@ row's own date refused to mark anything healed that a provider could not serve.
 Massive (uncapped) backfilled `daily_ohlc`: **3,764 healed, 101 free massive
 calls, 0 UW spend**; re-audit `missing=0`.
 
-### `volatility_stats_history` — YTD backfill (UW, in progress)
+### `volatility_stats_history` — YTD backfill (final)
 
 `volatility_stats_history` only accumulated forward from its 2026-05-11
 inception (the fetcher was current-snapshot-only). The new `volatility_stats`
 adapter + `fetch_volatility_stats(market_date=…)` backfills it from UW, one call
 per (ticker, date).
 
-- **As of 2026-06-30 06:24 ET: 6,091 / 9,397 YTD cells healed (64.8%).** Real UW
-  `iv` / `rv` / `iv_rank` for pre-inception dates (validated against live UW).
-- The remaining **3,306 cells** are deferred to the **20:00 ET nightly** (which
-  runs at the 00:00 UTC UW reset, on a fresh 60k budget, off RTH) rather than
-  spent now — the manual backfill was capped to keep **≥25k UW reserved for
-  regular trading hours** (UW was at `33,505/60,000` at capture).
+- Manual backfill (2026-06-30, runs 6+7): **7,503 / 9,397 YTD cells healed
+  (79.8%)**, capped to keep ≥25k UW reserved for RTH (UW at `33,505/60,000` at
+  cap).
+- Remaining **1,894 cells** deferred to the 20:00 ET nightly on a fresh 60k
+  budget.
+- First nightly (run 9, 2026-07-01): the 20k UW cap was fully consumed by the
+  concurrent `option_surface_grid_daily` backlog (1,735-item historical gap since
+  PR #145 deploy, ~12 UW calls/item). The 788 `volatility_stats_history` cells
+  that remained were claimed but `skipped_budget`. They carry forward to the next
+  nightly automatically (re-audited fresh each run). See "First nightly" section
+  below.
 
-## Macmini operational follow-ups (post-deploy)
+## Part 3 — First prod nightly run (run 9, 2026-07-01)
 
-After the release deploys `092`/`093` to the mini:
+Run 9 fired at 08:00 HKT (20:00 ET June 30) — the correct scheduled slot.
 
-1. **Finalize the manual backfill run** (`data_gap_runs` id=6 is left `running`
-   from the capped session) so the nightly's `_another_run_active` guard does not
-   skip — it skips while any `mode='execute'` run is `running`.
-2. **Enable the nightly:** `DATA_GAP_HEALER_ENABLED=true` in the mini `.env`,
-   then kickstart the `uw-0` worker (env is frozen at fork). The 20:00 ET run
-   then audits + heals under the 20k UW cap, which finishes the vol_stats tail
-   automatically on fresh budget.
-3. **Watch the first nightly run** — the scheduled-job path (cron + advisory lock
-   + refresh adapters + evidence write) is test-covered but had not run in prod
-   before this enable. Flip the flag back off if it misbehaves.
+```
+status:   complete
+started:  2026-07-01T08:00:00+08:00
+finished: 2026-07-01T13:01:33+08:00
+healed:         1,000
+no_data:          125
+skipped_budget: 1,727
+budget_spent.uw: 20,000  (cap hit exactly)
+```
 
-Do **not** run a UW-heavy manual `execute` while another manual UW backfill (e.g.
-the option-surface capture) is active.
+### What was healed
+
+All 1,000 healed items were `option_surface_grid_daily` (the EOD option surface
+grid from PR #145). The 20k cap was exhausted on this dataset alone — each
+(ticker, date) item requires ~12 UW calls (`/greek-exposure/expiry` + one call
+per active expiry).
+
+### Refresh adapters (all re-runnable datasets)
+
+All 15 refresh targets ran after the heal phase. One failure:
+`rates_treasury_auctions` — this is a known fragile FRED/Treasury endpoint (not
+a healer bug). One budget skip: `uw_gold_options_daily` (UW budget was at zero
+when the refresh phase ran). All others: `refreshed`.
+
+### Remaining open gaps (post-run audit)
+
+| Dataset | Missing | Notes |
+|---|---|---|
+| `option_surface_grid_daily` | 1,735 | historical backlog from Apr 20; ~12 UW/item; nightly will reduce by ~1,600/night at 20k cap |
+| `volatility_stats_history` | 788 | 1 UW/item; should close in one nightly once option_surface backlog shrinks |
+| `greek_exposure_daily` | 202 | single-name GEX backlog; a few UW/item |
+| `top_net_impact_snapshots` | 121 | session-scoped; 1 UW/call |
+| `vrp_daily` / `stock_analytics_daily` / `realized_volatility_history` | 2 each | likely genuine unhealable gaps (no source data for those dates) — seed caveats after confirming |
+
+### Watchlist lifecycle baseline
+
+First run logged all 103 active tickers as `added` — correct one-time baseline
+behaviour for a fresh `watchlist_ticker_events` table. Future nightlies log only
+diffs (new additions / removals).
