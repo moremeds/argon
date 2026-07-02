@@ -307,14 +307,6 @@ class _WatchlistMixin:
                     ) AS queue_position
                   FROM {self._schema}.jobs
                   WHERE status IN ('queued', 'running')
-                ),
-                latest_market_caps AS (
-                  SELECT DISTINCT ON (ticker)
-                    ticker,
-                    marketcap
-                  FROM {self._schema}.scan_results
-                  WHERE marketcap IS NOT NULL
-                  ORDER BY ticker, run_id DESC
                 )
                 -- The screener / etf-AUM fallbacks are LEFT JOIN LATERAL
                 -- below so they only scan payloads for the ~100 watchlist
@@ -348,7 +340,6 @@ class _WatchlistMixin:
                   c.ret_1d, c.ret_1w, c.ret_30d,
                   COALESCE(
                     sr.aggregates->>'market_cap',
-                    lmc.marketcap::text,
                     lss.market_cap
                   ) AS market_cap,
                   COALESCE(sr.aggregates->>'aum', lea.aum) AS aum,
@@ -365,7 +356,6 @@ class _WatchlistMixin:
                 FROM {self._schema}.watchlist w
                 LEFT JOIN {self._schema}.watchlist_card c ON w.ticker = c.ticker
                 LEFT JOIN {self._schema}.scan_runs sr ON c.run_id = sr.run_id
-                LEFT JOIN latest_market_caps lmc ON w.ticker = lmc.ticker
                 LEFT JOIN LATERAL (
                   SELECT p.payload_jsonb->'data'->0->>'marketcap' AS market_cap
                   FROM {self._schema}.scan_runs r
@@ -432,14 +422,6 @@ class _WatchlistMixin:
                     count(*) FILTER (WHERE status = 'running')   AS s_running,
                     min(requested_at)                            AS s_oldest
                   FROM active_jobs
-                ),
-                latest_market_caps AS (
-                  SELECT DISTINCT ON (ticker)
-                    ticker,
-                    marketcap
-                  FROM {self._schema}.scan_results
-                  WHERE marketcap IS NOT NULL
-                  ORDER BY ticker, run_id DESC
                 )
                 -- The screener / etf-AUM fallbacks are LEFT JOIN LATERAL
                 -- below (see list_watchlist_cards for the same rewrite).
@@ -470,7 +452,6 @@ class _WatchlistMixin:
                   c.ret_1d, c.ret_1w, c.ret_30d,
                   COALESCE(
                     sr.aggregates->>'market_cap',
-                    lmc.marketcap::text,
                     lss.market_cap
                   ) AS market_cap,
                   COALESCE(sr.aggregates->>'aum', lea.aum) AS aum,
@@ -488,7 +469,6 @@ class _WatchlistMixin:
                 FROM {self._schema}.watchlist w
                 LEFT JOIN {self._schema}.watchlist_card c ON w.ticker = c.ticker
                 LEFT JOIN {self._schema}.scan_runs sr ON c.run_id = sr.run_id
-                LEFT JOIN latest_market_caps lmc ON w.ticker = lmc.ticker
                 LEFT JOIN LATERAL (
                   SELECT p.payload_jsonb->'data'->0->>'marketcap' AS market_cap
                   FROM {self._schema}.scan_runs r

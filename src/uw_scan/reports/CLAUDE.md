@@ -5,7 +5,6 @@ The seam between **DB rows** and **API response models**. Routers call assembler
 ## Files
 
 - `single_stock.py` — assembles the stock detail page payload (header, GEX, flow, vol)
-- `scan.py` — assembles the watchlist scan rollup
 - `volatility_series.py` — assembles the Volatility tab v2 payload (smile, term structure, HV/IV, RV-z, IV-of-IV, VRP, regime quadrant)
 - `iv_smile_builder.py` — builds the per-expiry smile curves
 

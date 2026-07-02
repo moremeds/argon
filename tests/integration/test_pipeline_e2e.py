@@ -91,7 +91,6 @@ def test_pipeline_e2e_tsla_exit_gate(seeded_db_empty_cards, tmp_path_factory):
             "dark_pool_events": (0, None),
             "short_interest_snapshots": (1, 1),
             "opportunity_scores": (1, None),
-            "option_surface_snapshots": (0, 0),
             "oi_by_expiry": (0, 0),
         }
         failures: list[str] = []

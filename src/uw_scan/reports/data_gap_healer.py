@@ -396,10 +396,7 @@ REGISTRY.extend(
 REGISTRY.extend(
     _entries(
         [
-            "scan_universe",
-            "scan_results",
             "opportunity_scores",
-            "structure_ideas",
             "signal_hits",
             "signal_context_flags",
             "signal_gates",
@@ -425,7 +422,6 @@ REGISTRY.extend(
             "dark_pool_events",
             "option_contract_snapshots",
             "option_chain_per_strike",
-            "option_surface_snapshots",
             "iv_rank_history",
             "iv_term_snapshots",
             "interpolated_iv_snapshots",

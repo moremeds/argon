@@ -1,17 +1,8 @@
 from __future__ import annotations
 
-from datetime import date
-from decimal import Decimal
-
-from uw_scan import models
-from uw_scan.storage.scan_results import (
-    _ScanResultsMixin,
-    _scan_result_params,
-    _scan_universe_params,
-)
 from uw_scan.storage.trade_insights_ai import (
-    _TradeInsightsAiMixin,
     _trade_insight_candidate_params,
+    _TradeInsightsAiMixin,
 )
 
 
@@ -41,7 +32,7 @@ class _FakeConnection:
         return self.cursor_obj
 
 
-class _FakeRepository(_ScanResultsMixin, _TradeInsightsAiMixin):
+class _FakeRepository(_TradeInsightsAiMixin):
     def __init__(self) -> None:
         self._conn = _FakeConnection()
         self._schema = "uw_scan"
@@ -49,29 +40,6 @@ class _FakeRepository(_ScanResultsMixin, _TradeInsightsAiMixin):
     @property
     def fake_cursor(self) -> _FakeCursor:
         return self._conn.cursor_obj
-
-
-def _sample_scan_results() -> list[models.ScanTickerResult]:
-    return [
-        models.ScanTickerResult(
-            ticker="TSLA",
-            setup_type="F",
-            direction="bullish",
-            score=Decimal("8.5"),
-            net_premium=Decimal("100000"),
-            signals_present=["deep_conviction_flow"],
-            confirmations=["regime"],
-            warnings=[],
-            screener_row=models.BulkScreenerRow(
-                ticker="TSLA",
-                date=date(2026, 5, 18),
-                volatility=Decimal("0.42"),
-                bullish_premium=Decimal("120000"),
-                marketcap=Decimal("750000000000"),
-            ),
-        ),
-        models.ScanTickerResult(ticker="NVDA", score=Decimal("7.0")),
-    ]
 
 
 def _sample_candidates() -> list[dict[str, object]]:
@@ -92,24 +60,6 @@ def _sample_candidates() -> list[dict[str, object]]:
             "status": "candidate",
         },
     ]
-
-
-def test_scan_result_param_builders_preserve_shape() -> None:
-    assert _scan_universe_params(11, ["tsla", "NVDA"], "watchlist") == [
-        (11, "TSLA", "watchlist"),
-        (11, "NVDA", "watchlist"),
-    ]
-
-    params = _scan_result_params(12, _sample_scan_results())
-    assert len(params) == 2
-    first = params[0]
-    assert first[0] == 12
-    assert first[1] == "TSLA"
-    assert first[2] == date(2026, 5, 18)
-    assert first[5] == Decimal("8.5")
-    assert first[9] == Decimal("120000")
-    assert first[27] == ["deep_conviction_flow"]
-    assert first[28] == ["regime"]
 
 
 def test_trade_insight_candidate_params_preserve_shape() -> None:
@@ -134,10 +84,8 @@ def test_trade_insight_candidate_params_preserve_shape() -> None:
     assert first[12] == ["defined_risk"]
 
 
-def test_scan_and_trade_batch_writers_use_executemany() -> None:
+def test_trade_batch_writer_uses_executemany() -> None:
     repo = _FakeRepository()
-    assert repo.insert_scan_universe(31, ["tsla", "nvda"], source="watchlist") == 2
-    assert repo.insert_scan_results(32, _sample_scan_results()) == 2
     assert (
         repo.replace_trade_insight_candidates(
             snapshot_id=33,
@@ -148,6 +96,6 @@ def test_scan_and_trade_batch_writers_use_executemany() -> None:
         == 2
     )
 
-    assert len(repo.fake_cursor.executemany_calls) == 3
-    assert [len(call[1]) for call in repo.fake_cursor.executemany_calls] == [2, 2, 2]
+    assert len(repo.fake_cursor.executemany_calls) == 1
+    assert [len(call[1]) for call in repo.fake_cursor.executemany_calls] == [2]
     assert len(repo.fake_cursor.execute_calls) == 1
