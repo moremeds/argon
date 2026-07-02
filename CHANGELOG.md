@@ -9,6 +9,16 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ### Fixed
 
+- **`gold_etf_holdings_ingest_job` used the host's local clock instead of ET.**
+  `date.today()` picked up the mini's system-local date (ahead of US Eastern by
+  ~12h) to compute the UW `/etfs/{ticker}/in-outflow` date range, so on a host
+  whose local day has already rolled past midnight ET, `end_date` became a
+  "future EST date" and UW rejected every call with HTTP 422 — silently, since
+  the fetch is wrapped in a per-ticker `try/except: logger.warning`. `GLD` /
+  `IAU` / `GLDM` in/outflow data (`etf_flows_daily`) stopped refreshing as a
+  result. Now computes "today" via `datetime.now(ZoneInfo(rth_tz))`, matching
+  the ET-aware pattern already used by `flow_data_refresh`, `regime_live`,
+  `vrp_macro_signal`, and others.
 - **xdist sharding blind spot** — `_reset_to_baseline` in `tests/integration/conftest.py`
   now drops any tables the test under execution created that are not in the
   post-migration baseline snapshot, before the `TRUNCATE … CASCADE` restore.
