@@ -113,6 +113,10 @@ MONITORED_TABLES: list[MonitoredTable] = [
     #   genuinely event-sparse per ticker (most tickers have zero splits/
     #   dividends on any given day); watchlist-scope coverage would show a
     #   permanent false LOW COVERAGE warning, not a real signal.
+    #   iv_smile_snapshots -- same problem as corporate_actions but confirmed
+    #   empirically: 14 different tickers rotated through over a 14-day prod
+    #   window (only 1-3 tickers on any given day), not a fixed subset and not
+    #   the full watchlist. Signal-gated, not watchlist-wide.
     # --- Tier 1: core derived/durable tables, zero prior visibility ---
     MonitoredTable("option_surface_grid_daily", "watchlist", None),
     MonitoredTable("stock_analytics_daily", "watchlist", None),
@@ -127,16 +131,23 @@ MONITORED_TABLES: list[MonitoredTable] = [
     MonitoredTable("iv_term_snapshots", "watchlist", None),
     MonitoredTable("interpolated_iv_snapshots", "watchlist", None),
     MonitoredTable("risk_reversal_skew_history", "watchlist", None),
-    MonitoredTable("iv_smile_snapshots", "watchlist", None),
     MonitoredTable("max_pain_by_expiry", "watchlist", None),
     MonitoredTable("oi_change_events", "watchlist", None),  # ticker-less
     MonitoredTable("exposures_summary", "watchlist", None),
-    # --- Tier 3: regime scanner outputs (hourly :20/:25 scans) ---
-    MonitoredTable("gex_snapshots", "watchlist", None),
+    # --- Tier 3: regime scanner outputs (hourly :20/:25 scans). These run
+    # over a small fixed index set, not the full watchlist -- verified stable
+    # across a 14-day window against real prod data before picking each set.
+    MonitoredTable(
+        "gex_snapshots", "subset", frozenset({"SPX", "SPY", "TLT"})
+    ),  # gex_scan_tickers
     MonitoredTable("cri_snapshots", "watchlist", None),  # ticker-less
     MonitoredTable("vcg_snapshots", "watchlist", None),  # ticker-less
     MonitoredTable("grg_snapshots", "watchlist", None),  # ticker-less
-    MonitoredTable("matrix_state_snapshots", "watchlist", None),
+    MonitoredTable(
+        "matrix_state_snapshots",
+        "subset",
+        frozenset({"SPX", "SPY", "QQQ", "IWM"}),  # same cockpit set as iv_rank_history
+    ),
     MonitoredTable("canary_snapshots", "watchlist", None),  # ticker-less
     # --- Tier 4: FRED/rates/gold sources not yet known to be blocked ---
     MonitoredTable("macro_series_daily", "watchlist", None),  # ticker-less
@@ -198,7 +209,9 @@ MONITORED_TABLES: list[MonitoredTable] = [
             }
         ),
     ),
-    MonitoredTable("index_ohlc_daily", "watchlist", None),
+    # Only SPY observed over a 14-day window in prod -- not yet wired for
+    # SPX/QQQ/IWM despite the cockpit covering all four.
+    MonitoredTable("index_ohlc_daily", "subset", frozenset({"SPY"})),
     MonitoredTable(
         "rates_fiscal_debt_daily",
         "watchlist",  # ticker-less
