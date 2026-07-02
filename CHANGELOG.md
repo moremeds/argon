@@ -19,6 +19,18 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   result. Now computes "today" via `datetime.now(ZoneInfo(rth_tz))`, matching
   the ET-aware pattern already used by `flow_data_refresh`, `regime_live`,
   `vrp_macro_signal`, and others.
+- **xdist sharding blind spot** — `_reset_to_baseline` in `tests/integration/conftest.py`
+  now drops any tables the test under execution created that are not in the
+  post-migration baseline snapshot, before the `TRUNCATE … CASCADE` restore.
+  Previously, an ad-hoc `CREATE TABLE` inside a test survived across tests within
+  the same xdist worker and was only exposed by the unsharded release-verify gate
+  (which runs the full suite serially in a single DB). The fix kills the whole
+  class: drop extras → truncate baseline → copy baseline back.
+- **`macmini-prod.sh` npm ci flakiness** — `rm -rf web/node_modules` is now run
+  before `npm ci` so a partially-written `node_modules` (e.g. the `ENOTEMPTY:
+  rmdir lucide-react/dist/esm` error that blocked the first v0.5.0 deploy attempt)
+  cannot stall the build step and leave the deploy script mid-way through
+  `set -euo pipefail`.
 
 ## [0.5.0] — 2026-06-30
 
