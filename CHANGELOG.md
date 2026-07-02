@@ -7,6 +7,9 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+## [0.6.0] — 2026-07-02
+
+
 ### Added
 
 - **Gold/rates tables added to the daily freshness monitor.** `etf_flows_daily`,
@@ -80,7 +83,6 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   corresponding registry/test entries. The live Scanner page is unaffected —
   it reads `scanner_candidate_snapshots` / `signal_hits` / `signal_gates` /
   `signal_context_flags`, none of which touch these tables.
-
 ## [0.5.1] — 2026-07-02
 
 ### Fixed
