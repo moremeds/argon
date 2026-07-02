@@ -209,11 +209,32 @@ contrarian gauge, never a per-ticker forecast.** The per-name `/stock` reading s
 noisy (0-DTE `rr_25d`); the signal lives in the breadth. This is the honest home for it:
 a market-level risk-on/off thermometer and regime overlay, not a directional trade.
 
-**Untested caveat (do not overclaim):** a −0.62 coincident correlation with trailing
-returns is partly mechanical (skew *is* positioning, positioning reflects recent price).
-Whether aggregate skew-fear carries information *beyond VIX / the market's own return* is
-not tested here — the next step before treating it as a distinct gauge. Traces:
-`sentiment_leadlag.csv`, `sentiment_series.csv`.
+Traces: `sentiment_leadlag.csv`, `sentiment_series.csv`.
+
+## Does skew-fear beat VIX? — NO, it's dominated (the decisive redundancy test)
+
+`scripts/oneshot/skew_vs_vix.py`. VIX is a free, cleaner fear thermometer, so "valid
+coincident gauge" is worthless unless skew-fear adds something *beyond* VIX. The one thing
+it plausibly could: single-name **breadth** — VIX is SPX-only, so cross-sectional fear
+dispersion is information VIX literally cannot see. 283 overlapping days, VIX/VVIX/VIX3M
+from `vol_index_daily`.
+
+| test | result | reading |
+|---|---|---|
+| **A. redundancy** | net_fear vs VIX **0.635** level / 0.371 change (VVIX 0.57, VIX3M 0.64) | *not* VIX rescaled (r≠0.95) — genuinely distinct, ~40% shared variance |
+| **B. lead-lag** | Δnet_fear vs ΔVIX peaks at **k=0** (+0.371); every other lag ≈0 | purely **coincident** — skew-fear does not lead VIX, nor lag it |
+| **C.i incremental R²** | forward-20d SPY: VIX-only R²=0.132 → VIX+net_fear 0.134 (**+0.003**) | net_fear adds ~nothing to a VIX return model |
+| **C.i orthogonal corr** | non-overlap (n=14): VIX vs fwd **+0.47 (t=1.82)**; VIX-orthogonal skew_resid **+0.10 (t=0.33)** | VIX carries the contrarian signal; the skew-specific residual is noise |
+| **C.ii anticipate VIX** | skew_resid vs *future* 20d VIX change −0.07 (t=−0.25) | fear VIX hasn't priced yet: none |
+| **C.iii breadth extremes** | quintiles of VIX-orthogonal skew_resid: avg_VIX flat (~17.6–18.7 ✓), fwd20 does **not** monotonically sort (0.011 / 0.020 / 0.028 / 0.024 / 0.006) | the breadth angle — VIX's blind spot — carries no forward signal either |
+
+**Verdict: skew-fear is a real but VIX-dominated coincident echo.** It is genuinely distinct
+from VIX (r=0.64, not a rescaling), which is why it *works* as a thermometer — but the part
+that differs from VIX (including the single-name breadth VIX can't see) is noise, not signal.
+VIX itself carries the mild contrarian-at-extremes tilt (t=1.82); skew's VIX-orthogonal
+residual carries none (t=0.33). **For any regime/sentiment use, prefer VIX — skew-fear adds
+nothing on top and costs a UW pipeline to compute.** Traces: `vix_redundancy.csv`,
+`vix_leadlag.csv`, `vix_series.csv`.
 
 ## Overall verdict
 
@@ -226,17 +247,19 @@ and lowers its risk-adjusted return (Sharpe 5.81→3.25) rather than improving i
 return-chases, it doesn't add efficiency. And the momentum base it rides is itself an
 in-sample mirage (survivorship × one bull regime) — not forward-tradable.
 
-**Conclusion: don't trade the directional verdict — but there is a real non-alpha use.**
-Three durable outputs:
-1. **A valid sentiment/regime gauge** (the positive result): the *aggregate* cross-sectional
-   skew (net-fear breadth) is a smooth (autocorr 0.94), strongly coincident (−0.62 vs
-   trailing) fear thermometer with a mild contrarian tilt at extremes. Usable as a
-   market-level risk-on/off overlay — not a per-ticker forecast. Pending: incremental value
-   over VIX.
-2. **An engine defect** worth fixing — the DEVIATION pillar's `rr_25d` rides the noisy
-   nearest (often 0-DTE) expiry; a stable ~30d tenor would clean the z-score.
-3. **A research note**: skew is not orthogonal alpha to momentum in this data; filtering
-   momentum by skew concentrates rather than improves it.
+**Conclusion: don't trade the directional verdict, and don't use it as a sentiment gauge
+either — VIX already does that job better.** Two durable outputs remain:
+1. **An engine defect** worth fixing — the DEVIATION pillar's `rr_25d` rides the noisy
+   nearest (often 0-DTE) expiry; a stable ~30d tenor would clean the z-score. This is the
+   single concrete, actionable finding.
+2. **A research note** (the whole point of the exercise — three claimed uses, all negative):
+   - *directional alpha*: skew is beta + momentum; the one survivor concentrates rather than
+     improves and rides an in-sample-mirage momentum base — not tradable.
+   - *sentiment/regime gauge*: aggregate skew-fear is a valid coincident thermometer but is
+     **dominated by VIX** — genuinely distinct (r=0.64) yet its VIX-orthogonal residual,
+     including the single-name breadth VIX can't see, carries no incremental forward or
+     VIX-anticipation signal. Use VIX.
+   - *momentum filter*: skew does not add orthogonal alpha to momentum; it concentrates it.
 
 Two dormant *alpha* leads, both needing a *down*-regime the 14-month sample lacks (the
 term-slope IC on a validated tenor; a skew×`momentum-moments` fusion) — not actionable
