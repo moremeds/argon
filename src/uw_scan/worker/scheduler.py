@@ -1023,6 +1023,7 @@ def main() -> int:
                 else None
             ),
             wgc_workbook_path=settings.wgc_etf_flows_workbook_path or None,
+            rth_tz=settings.rth_tz,
         )
 
     def _gold_comex_vault_ingest() -> None:
