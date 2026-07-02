@@ -23,16 +23,12 @@ _RECORD_HEALTH_EXCLUDED_TABLES = {
     # Request logs and orchestration tables are covered by provider usage /
     # scheduler health, not per-ticker persisted data coverage.
     "external_api_requests",
-    "scan_results",
-    "scan_universe",
     # Not watchlist-scoped periodic UW source tables.
     "index_ohlc_daily",
     "opportunity_scores",
-    "structure_ideas",
     # Derived/backfill tables that do not update for every ticker each RTH window.
     "iv_smile_snapshots",
     "oi_by_expiry",
-    "option_surface_snapshots",
     "stock_analytics_daily",
     "vrp_daily",
     # Cockpit-only tables — populated for the 4 index tickers (SPX/SPY/QQQ/IWM)

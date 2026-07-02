@@ -52,8 +52,6 @@ def test_migration_creates_expected_tables(repo: Repository):
         "dark_pool_events",
         "short_interest_snapshots",
         "opportunity_scores",
-        "structure_ideas",
-        "option_surface_snapshots",
         "oi_by_expiry",
     }
     missing = required - tables
@@ -409,81 +407,6 @@ def test_opportunity_scores_persisted_with_text_array(repo: Repository):
     assert confirmations == ["dark_pool_size", "atm_call_oi_build"]
 
 
-def test_deferred_tables_present_but_empty(repo: Repository):
-    """`option_surface_snapshots` and `oi_by_expiry` exist but S1 never writes them."""
-    assert repo.count_rows("option_surface_snapshots") == 0
+def test_deferred_table_present_but_empty(repo: Repository):
+    """`oi_by_expiry` exists but S1 never writes it (deferred to a later slice)."""
     assert repo.count_rows("oi_by_expiry") == 0
-
-
-def test_s2_migration_creates_scan_tables(repo: Repository):
-    """The S2 migration adds `scan_universe` and `scan_results` to the schema."""
-    with repo.conn.cursor() as cur:
-        cur.execute(
-            "SELECT table_name FROM information_schema.tables "
-            "WHERE table_schema='uw_scan' AND table_name IN "
-            "('scan_universe','scan_results')"
-        )
-        tables = {row[0] for row in cur.fetchall()}
-    assert tables == {"scan_universe", "scan_results"}
-
-
-def test_insert_scan_universe_and_results_roundtrip(repo: Repository):
-    """Repository.insert_scan_universe + insert_scan_results persist + fetch back."""
-    run_id = repo.insert_scan_run("__FULL_SCAN__", notes="integration s2")
-    repo.insert_scan_universe(run_id, ["TSLA", "NVDA", "AAPL"])
-
-    sr_tsla = models.BulkScreenerRow(
-        ticker="TSLA",
-        date=date(2026, 5, 11),
-        sector="Consumer Cyclical",
-        net_call_premium=Decimal("100000000"),
-        net_put_premium=Decimal("0"),
-        iv_rank=Decimal("80"),
-        gex_net_change=Decimal("50000"),
-        total_open_interest=1_000_000,
-        variance_risk_premium=Decimal("-0.07"),
-    )
-    result = models.ScanTickerResult(
-        ticker="TSLA",
-        setup_type="F",
-        label="Multi-Signal Confluence",
-        direction="bull",
-        score=Decimal("4.5"),
-        net_premium=Decimal("100000000"),
-        net_call_premium=Decimal("100000000"),
-        net_put_premium=Decimal("0"),
-        iv_rank=Decimal("80"),
-        sector="Consumer Cyclical",
-        gex_net_change=Decimal("50000"),
-        variance_risk_premium=Decimal("-0.07"),
-        total_open_interest=1_000_000,
-        signals_present=["gex_oi_shift=0.05", "vrp_anomaly=-0.07"],
-        confirmations=["net premium = $100M (bull)", "iv_rank = 80"],
-        warnings=[],
-        notes="Type F",
-        screener_row=sr_tsla,
-    )
-    n = repo.insert_scan_results(run_id, [result])
-    assert n == 1
-    repo.conn.commit()
-
-    universe = repo.fetch_scan_universe(run_id)
-    assert {u["ticker"] for u in universe} == {"TSLA", "NVDA", "AAPL"}
-
-    results = repo.fetch_scan_results(run_id)
-    assert len(results) == 1
-    row = results[0]
-    assert row["ticker"] == "TSLA"
-    assert row["setup_type"] == "F"
-    assert row["direction"] == "bull"
-    assert row["signals_present"] == [
-        "gex_oi_shift=0.05",
-        "vrp_anomaly=-0.07",
-    ]
-    assert row["confirmations"] == [
-        "net premium = $100M (bull)",
-        "iv_rank = 80",
-    ]
-    assert row["sector"] == "Consumer Cyclical"
-    assert row["market_date"] == date(2026, 5, 11)
-    assert repo.latest_scan_run_id() == run_id

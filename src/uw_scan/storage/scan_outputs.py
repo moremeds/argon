@@ -1,12 +1,10 @@
-"""Scan output writes: opportunity_scores + structure_ideas."""
+"""Scan output writes: opportunity_scores."""
 
 from __future__ import annotations
 
 from decimal import Decimal
-from typing import Any
 
 import psycopg
-from psycopg.types.json import Jsonb
 
 
 class _ScanOutputsMixin:
@@ -43,28 +41,6 @@ class _ScanOutputsMixin:
                     warnings,
                     notes,
                 ),
-            )
-            row = cur.fetchone()
-        assert row is not None
-        return int(row[0])
-
-    def insert_structure_idea(
-        self,
-        run_id: int,
-        ticker: str,
-        structure: str,
-        legs: list[dict[str, Any]],
-        rationale: str,
-    ) -> int:
-        sql = (
-            f"INSERT INTO {self._schema}.structure_ideas "
-            "(run_id, ticker, structure, legs_json, rationale) "
-            "VALUES (%s, %s, %s, %s, %s) RETURNING idea_id"
-        )
-        with self._conn.cursor() as cur:
-            cur.execute(
-                sql,
-                (run_id, ticker, structure, Jsonb(legs), rationale),
             )
             row = cur.fetchone()
         assert row is not None

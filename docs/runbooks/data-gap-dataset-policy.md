@@ -6,7 +6,7 @@ Generated from `REGISTRY` in `src/uw_scan/reports/data_gap_healer.py` (one sourc
 uv run python -c "from uw_scan.reports.data_gap_healer import render_dataset_policy_markdown as r; open('docs/runbooks/data-gap-dataset-policy.md','w').write(r())"
 ```
 
-**118 datasets** across 9 groups.
+**114 datasets** across 9 groups.
 
 ## core_watchlist
 
@@ -92,7 +92,6 @@ uv run python -c "from uw_scan.reports.data_gap_healer import render_dataset_pol
 | option_contract_snapshots | freshness_only | none | none |  | equity_session | UW-retention/event-log shaped; freshness-monitored, no auto-backfill |
 | option_intraday_buckets | freshness_only | none | none |  | equity_session | UW-retention/event-log shaped; freshness-monitored, no auto-backfill |
 | option_surface_grid_daily | strict_ticker_date | uw | per_ticker_date | option_surface | equity_session |  |
-| option_surface_snapshots | freshness_only | none | none |  | equity_session | UW-retention/event-log shaped; freshness-monitored, no auto-backfill |
 | options_volume_daily | freshness_only | none | none |  | equity_session | UW-retention/event-log shaped; freshness-monitored, no auto-backfill |
 | pcr_history | freshness_only | none | none |  | equity_session | UW-retention/event-log shaped; freshness-monitored, no auto-backfill |
 | risk_reversal_skew_history | freshness_only | none | none |  | equity_session | UW-retention/event-log shaped; freshness-monitored, no auto-backfill |
@@ -150,13 +149,10 @@ uv run python -c "from uw_scan.reports.data_gap_healer import render_dataset_pol
 | table | audit_mode | provider | granularity | adapter | freq | reason |
 |---|---|---|---|---|---|---|
 | opportunity_scores | freshness_only | none | none |  | liveness |  |
-| scan_results | freshness_only | none | none |  | liveness |  |
-| scan_universe | freshness_only | none | none |  | liveness |  |
 | scanner_candidate_snapshots | freshness_only | none | none |  | liveness |  |
 | signal_context_flags | freshness_only | none | none |  | liveness |  |
 | signal_gates | freshness_only | none | none |  | liveness |  |
 | signal_hits | freshness_only | none | none |  | liveness |  |
-| structure_ideas | freshness_only | none | none |  | liveness |  |
 | trade_insight_ai_analyses | freshness_only | none | none |  | liveness |  |
 | trade_insight_candidates | freshness_only | none | none |  | liveness |  |
 | trade_insight_outcomes | freshness_only | none | none |  | liveness |  |
