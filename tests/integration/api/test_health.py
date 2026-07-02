@@ -115,6 +115,96 @@ def test_health_reports_expected_provider_workers(seeded_db_with_cards):
     assert workers["worker:massive:1"].label == "Massive 2"
 
 
+def test_health_autoheal_circuit_broken_excludes_table_without_healer_adapter(
+    seeded_db_empty_cards,
+):
+    from uw_scan.reports.data_freshness import FreshnessRow
+    from uw_scan.storage.data_freshness_repository import DataFreshnessRepository
+
+    # pcr_history has no healer_adapter in the gap-healer registry -- it can
+    # never go through an autoheal retry, so a long frozen streak here is not
+    # a "circuit breaker tripped" state, just a stale table.
+    fr = DataFreshnessRepository(seeded_db_empty_cards.conn, schema="uw_scan")
+    from datetime import date, timedelta
+
+    today = date(2026, 7, 2)
+    row = FreshnessRow(
+        "pcr_history", "date", "watchlist", 100, 0, 0.0, date(2026, 6, 1), 31, True
+    )
+    for i in range(4):
+        fr.upsert_snapshot(today - timedelta(days=i), [row])
+
+    response = health(
+        repo=seeded_db_empty_cards,
+        settings=Settings(
+            api_key="test",
+            data_freshness_autoheal_enabled=True,
+            data_freshness_autoheal_circuit_breaker_nights=3,
+        ),
+    )
+    assert "pcr_history" in response.freshness.frozen
+    assert "pcr_history" not in response.freshness.autoheal_circuit_broken
+
+
+def test_health_autoheal_circuit_broken_excludes_when_feature_disabled(
+    seeded_db_empty_cards,
+):
+    from uw_scan.reports.data_freshness import FreshnessRow
+    from uw_scan.storage.data_freshness_repository import DataFreshnessRepository
+
+    # daily_ohlc DOES have a healer_adapter, but autoheal is off (the
+    # production default) -- nothing ever ran, so nothing "tripped".
+    fr = DataFreshnessRepository(seeded_db_empty_cards.conn, schema="uw_scan")
+    from datetime import date, timedelta
+
+    today = date(2026, 7, 2)
+    row = FreshnessRow(
+        "daily_ohlc", "date", "watchlist", 100, 0, 0.0, date(2026, 6, 1), 31, True
+    )
+    for i in range(4):
+        fr.upsert_snapshot(today - timedelta(days=i), [row])
+
+    response = health(
+        repo=seeded_db_empty_cards,
+        settings=Settings(
+            api_key="test",
+            data_freshness_autoheal_enabled=False,
+            data_freshness_autoheal_circuit_breaker_nights=3,
+        ),
+    )
+    assert "daily_ohlc" in response.freshness.frozen
+    assert "daily_ohlc" not in response.freshness.autoheal_circuit_broken
+
+
+def test_health_autoheal_circuit_broken_includes_eligible_tripped_table(
+    seeded_db_empty_cards,
+):
+    from uw_scan.reports.data_freshness import FreshnessRow
+    from uw_scan.storage.data_freshness_repository import DataFreshnessRepository
+
+    # daily_ohlc has a healer_adapter AND autoheal is on AND the streak
+    # exceeds the threshold -- this is the one case the field should report.
+    fr = DataFreshnessRepository(seeded_db_empty_cards.conn, schema="uw_scan")
+    from datetime import date, timedelta
+
+    today = date(2026, 7, 2)
+    row = FreshnessRow(
+        "daily_ohlc", "date", "watchlist", 100, 0, 0.0, date(2026, 6, 1), 31, True
+    )
+    for i in range(4):
+        fr.upsert_snapshot(today - timedelta(days=i), [row])
+
+    response = health(
+        repo=seeded_db_empty_cards,
+        settings=Settings(
+            api_key="test",
+            data_freshness_autoheal_enabled=True,
+            data_freshness_autoheal_circuit_breaker_nights=3,
+        ),
+    )
+    assert "daily_ohlc" in response.freshness.autoheal_circuit_broken
+
+
 def test_repository_get_heartbeats_returns_mapping_for_present_names(
     seeded_db_empty_cards,
 ):

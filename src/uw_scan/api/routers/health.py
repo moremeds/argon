@@ -82,6 +82,7 @@ class HealthFreshnessRow(BaseModel):
     max_data_date: date | None = None
     days_stale: int | None = None
     frozen: bool
+    consecutive_frozen_nights: int = 0
 
 
 class HealthFreshness(BaseModel):
@@ -90,6 +91,12 @@ class HealthFreshness(BaseModel):
     as_of: date | None = None
     frozen: list[str] = Field(default_factory=list)
     tables: list[HealthFreshnessRow] = Field(default_factory=list)
+    # Tables the freshness-autoheal circuit breaker has stopped retriggering
+    # (DATA_FRESHNESS_AUTOHEAL_CIRCUIT_BREAKER_NIGHTS consecutive frozen
+    # nights despite repeated heal attempts) -- a genuinely unfixable block
+    # (missing credential, licensed data source) that needs a human, not
+    # another automatic retry.
+    autoheal_circuit_broken: list[str] = Field(default_factory=list)
 
 
 class HealthGapHealer(BaseModel):
@@ -330,6 +337,7 @@ def health(
     # EVERY DB-up return below (incl. the degraded "no scans"/"coverage low"
     # paths), so the operator surface never disappears exactly when health is
     # already degraded.
+    from uw_scan.reports.data_freshness import _REGISTRY_BY_NAME
     from uw_scan.storage.data_freshness_repository import DataFreshnessRepository
 
     _fr_rows = DataFreshnessRepository(
@@ -346,6 +354,23 @@ def health(
         as_of=_as_of,
         frozen=[r["table_name"] for r in _fr_rows if r["frozen"]],
         tables=[HealthFreshnessRow(**r) for r in _fr_rows],
+        # A table with no healer_adapter (e.g. wgc_etf_monthly, blocked on a
+        # missing credential) has no autoheal circuit to break -- it was
+        # never eligible to retry in the first place, regardless of how long
+        # it's been frozen. Same when the feature is off (default):
+        # nothing ever ran, so nothing tripped. Without both guards this
+        # field falsely reports "circuit broken" for tables autoheal never
+        # touched, on day one of deploy, even with the feature disabled.
+        autoheal_circuit_broken=[
+            r["table_name"]
+            for r in _fr_rows
+            if r["frozen"]
+            and settings.data_freshness_autoheal_enabled
+            and (_entry := _REGISTRY_BY_NAME.get(r["table_name"]))
+            and _entry.healer_adapter
+            and r["consecutive_frozen_nights"]
+            >= settings.data_freshness_autoheal_circuit_breaker_nights
+        ],
     )
 
     # Gap-healer block — exact strict-coverage status, distinct from freshness.

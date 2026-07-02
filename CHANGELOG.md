@@ -7,6 +7,65 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+### Added
+
+- **Gold/rates tables added to the daily freshness monitor.** `etf_flows_daily`,
+  `wgc_etf_monthly`, `cb_gold_reserves_monthly`, and `exchange_inventory_daily`
+  join `MONITORED_TABLES` (`/api/health` `freshness` block, nightly
+  `data_freshness_monitor`) — none were previously monitored, which is why
+  `etf_flows_daily`'s ~7-week silent staleness (fixed in v0.5.1) required a
+  manual investigation to catch instead of surfacing automatically.
+  `_DATE_COL_PREFERENCE` now recognizes `obs_date`/`obs_month` (the gold/rates
+  convention, distinct from the options-chain `market_date`/`trade_date`).
+  `MonitoredTable` gains a per-table `grace_days` override so monthly-cadence
+  sources (WGC releases monthly; COMEX/LBMA vault data is effectively monthly)
+  don't cry wolf under the 4-day default meant for daily options data.
+  `wgc_etf_monthly` / `cb_gold_reserves_monthly` / `exchange_inventory_daily`
+  will show `frozen=true` until someone provisions a `WGC_GOLDHUB_COOKIE` or a
+  licensed COMEX data source — that's accurate, not noise.
+- **Freshness monitor coverage expanded from 12 to 48 tables.** A follow-up
+  audit of the full 118-table data-gap registry found ~40 more genuinely
+  continuous tables with zero prior `/api/health` visibility: the durable
+  option-surface IV grid, the options-chain pipeline (greeks/IV term/skew/max
+  pain/exposures), regime scanner outputs (GEX/CRI/VCG/GRG/canary), and the
+  remaining FRED/rates/gold sources not already known to be blocked.
+  `_DATE_COL_PREFERENCE` now also recognizes `data_date` and `snapshot_date`.
+  `MonitoredTable` gains a `date_col_override` for the handful of tables with
+  a one-off column name (`auction_date`, `record_date`, `event_date`) rather
+  than growing the shared preference list with names that could collide on a
+  future table. Deliberately **not** added: `dark_pool_events`, `flow_events`,
+  `option_contract_snapshots`, `massive_fundamentals`, `short_interest_snapshots`
+  (no DATE-typed column, only TIMESTAMPTZ event/insert timestamps —
+  `compute_freshness` only handles DATE columns today) and `corporate_actions`
+  (has both a date and ticker column, but is genuinely event-sparse per ticker;
+  watchlist-scope coverage would produce a permanent false LOW COVERAGE
+  warning, not a real signal).
+- **Freshness grace periods derived from each table's real cadence, not hand
+  guesses.** `MonitoredTable.grace_days` now defaults to a lookup on the
+  gap-healer registry's `expected_frequency` (`_FREQUENCY_GRACE_DAYS`:
+  equity_session/daily → 4, weekly → 10, monthly/event → 45) instead of each
+  table separately guessing its own number — the exact class of manual
+  judgment that caused 4 real scoping bugs earlier in this same pass (see
+  "correct scope for 4 index/regime-only tables" below). Also fixes the
+  registry itself: `wgc_etf_monthly`, `cb_gold_reserves_monthly`,
+  `exchange_inventory_daily`, `rates_cftc_tff_weekly`, and
+  `rates_treasury_auctions` were defaulted to `expected_frequency=
+  "equity_session"` despite being monthly/weekly; `rates_policy_events`
+  becomes `"event"` (FOMC-driven, no fixed periodic SLA).
+- **Freshness-autoheal: a same-night retry with a circuit breaker.** A frozen
+  table with a gap-healer adapter gets one scoped retrigger the same night
+  (`DATA_FRESHNESS_AUTOHEAL_ENABLED`, off by default) — a second chance for a
+  table the 20:00 ET gap-healer left frozen from budget exhaustion or a
+  transient failure, not a substitute for that nightly job. A circuit breaker
+  (`DATA_FRESHNESS_AUTOHEAL_CIRCUIT_BREAKER_NIGHTS`, default 3 consecutive
+  frozen nights) stops retriggering a genuinely unfixable source (missing
+  credential, licensed data feed) instead of burning budget on it forever;
+  tripped tables surface on `/api/health` (`freshness.autoheal_circuit_broken`)
+  so a human knows to step in. Verified against a dry-run on real prod data:
+  of today's 3 frozen tables, 2 have no adapter at all and the third would
+  already have its circuit breaker tripped — autoheal correctly does nothing
+  for any of today's known-broken sources.
+
 ### Removed
 
 - **Dropped 4 permanently-empty legacy tables and their dead code paths**

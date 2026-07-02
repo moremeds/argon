@@ -494,10 +494,7 @@ REGISTRY.extend(
         [
             "rates_observations",
             "rates_snapshots",
-            "rates_policy_events",
             "rates_policy_path",
-            "rates_cftc_tff_weekly",
-            "rates_treasury_auctions",
             "rates_fiscal_debt_daily",
         ],
         "gold_rates_macro",
@@ -506,6 +503,33 @@ REGISTRY.extend(
         granularity="run_once_lookback",
         healer_adapter="rates_fred",
         source_system="fred",
+    )
+    + _entries(
+        # Genuinely weekly-cadence FRED series, not daily -- previously
+        # defaulted to expected_frequency="equity_session" (the dataclass
+        # default), which meant the freshness monitor's frequency-derived
+        # grace period was wrong for these regardless of any per-table
+        # override.
+        ["rates_cftc_tff_weekly", "rates_treasury_auctions"],
+        "gold_rates_macro",
+        "freshness_only",
+        provider="external",
+        granularity="run_once_lookback",
+        healer_adapter="rates_fred",
+        source_system="fred",
+        expected_frequency="weekly",
+    )
+    + _entries(
+        # FOMC-meeting-driven, ~8x/year -- genuinely event-shaped, not
+        # periodic at any fixed cadence.
+        ["rates_policy_events"],
+        "gold_rates_macro",
+        "freshness_only",
+        provider="external",
+        granularity="run_once_lookback",
+        healer_adapter="rates_fred",
+        source_system="fred",
+        expected_frequency="event",
     )
     + [
         DatasetRegistryEntry(
@@ -534,6 +558,9 @@ REGISTRY.extend(
             granularity="run_once",
             healer_adapter="gold_comex",
             source_system="comex",
+            # COMEX leg is intended daily but blocked (CME 403); LBMA leg is
+            # the only realistic contributor, on an ~monthly cadence.
+            expected_frequency="monthly",
         ),
         DatasetRegistryEntry(
             "cot_gold_weekly",
@@ -550,17 +577,20 @@ REGISTRY.extend(
 
 REGISTRY.extend(
     _entries(
-        [
-            "etf_holdings_daily",
-            "etf_flows_daily",
-            "etf_aum_cache",
-            "wgc_etf_monthly",
-            "wgc_etf_monthly_canonical",
-            "cb_gold_reserves_monthly",
-        ],
+        ["etf_holdings_daily", "etf_flows_daily", "etf_aum_cache"],
         "gold_rates_macro",
         "freshness_only",
         reason="source needs auth cookie / no historical API (audit-only)",
+    )
+    + _entries(
+        # WGC releases monthly -- previously defaulted to "equity_session",
+        # which meant a frequency-derived grace period would have been wrong
+        # even before the missing-credential block is ever fixed.
+        ["wgc_etf_monthly", "wgc_etf_monthly_canonical", "cb_gold_reserves_monthly"],
+        "gold_rates_macro",
+        "freshness_only",
+        reason="source needs auth cookie / no historical API (audit-only)",
+        expected_frequency="monthly",
     )
 )
 

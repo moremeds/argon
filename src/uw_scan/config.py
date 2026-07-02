@@ -316,6 +316,16 @@ class Settings(BaseModel):
     data_gap_healer_datasets: str = ""  # empty = all healable datasets
     data_gap_healer_start: str = "2026-01-01"
     data_gap_healer_max_uw_calls: int = 20000
+    # Freshness-monitor autoheal: a same-night "second chance" trigger for a
+    # table the 20:00 ET gap-healer left frozen (budget exhaustion / a
+    # transient failure) -- NOT a substitute for the nightly job, which
+    # already audits+heals every registered dataset. Off by default; a
+    # circuit breaker stops re-triggering a table frozen N nights running
+    # (a real, unfixable block -- missing credential, licensed data source)
+    # so it doesn't burn budget forever on something a heal can't solve.
+    data_freshness_autoheal_enabled: bool = False
+    data_freshness_autoheal_circuit_breaker_nights: int = 3
+    data_freshness_autoheal_max_uw_calls: int = 500
     # xenon read-only query API (IB option greeks via GET /options/greeks).
     # Default = the mini's authenticated localhost port (verified listening 2026-06-24;
     # the old :8421 was dead → the surface canary silently no-op'd). Key REQUIRED even
@@ -735,6 +745,15 @@ class Settings(BaseModel):
             data_gap_healer_start=os.environ.get("DATA_GAP_HEALER_START", "2026-01-01"),
             data_gap_healer_max_uw_calls=int(
                 os.environ.get("DATA_GAP_HEALER_MAX_UW_CALLS", "20000")
+            ),
+            data_freshness_autoheal_enabled=_env_bool(
+                "DATA_FRESHNESS_AUTOHEAL_ENABLED", False
+            ),
+            data_freshness_autoheal_circuit_breaker_nights=int(
+                os.environ.get("DATA_FRESHNESS_AUTOHEAL_CIRCUIT_BREAKER_NIGHTS", "3")
+            ),
+            data_freshness_autoheal_max_uw_calls=int(
+                os.environ.get("DATA_FRESHNESS_AUTOHEAL_MAX_UW_CALLS", "500")
             ),
             xenon_query_api_url=os.environ.get(
                 "XENON_QUERY_API_URL", "http://127.0.0.1:8321"

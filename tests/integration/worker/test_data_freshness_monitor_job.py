@@ -24,8 +24,11 @@ def test_monitor_persists_and_flags_frozen(seeded_db_empty_cards):
             }
         ],
     )
-    # Stub settings — the job reads only db_schema.
-    settings = SimpleNamespace(db_schema=repo._schema)
+    # Stub settings — autoheal is off, so only db_schema and the enable flag
+    # (read before short-circuiting) are needed.
+    settings = SimpleNamespace(
+        db_schema=repo._schema, data_freshness_autoheal_enabled=False
+    )
     summary = data_freshness_monitor(
         repo=repo, settings=settings, today=date(2026, 6, 25)
     )

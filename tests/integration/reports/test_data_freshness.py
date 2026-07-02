@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, datetime, timezone
+from decimal import Decimal
 
 import pytest
 
@@ -113,3 +114,134 @@ def test_ticker_less_table_is_freshness_only(seeded_db_empty_cards):
     assert r.frozen is True  # 5-weeks stale -> frozen flagged
     assert r.coverage_pct is None  # no ticker column -> no coverage
     assert r.expected_count == 0
+
+
+def _seed_etf_flow(repo, ticker, obs_date):
+    repo.insert_etf_flows_daily(
+        ticker=ticker,
+        obs_date=obs_date,
+        share_change=Decimal("0"),
+        premium_change_usd=Decimal("0"),
+        close=Decimal("100"),
+        volume=Decimal("1"),
+        as_of=datetime.now(timezone.utc),
+        source="UW",
+    )
+
+
+def test_obs_date_column_detected(seeded_db_empty_cards):
+    # etf_flows_daily uses obs_date, not one of the original _DATE_COL_PREFERENCE
+    # entries -- regression guard for the timezone-bug investigation follow-up
+    # that added etf_flows_daily/wgc_etf_monthly/cb_gold_reserves_monthly/
+    # exchange_inventory_daily monitoring.
+    repo = seeded_db_empty_cards
+    today = date(2026, 7, 2)
+    _seed_etf_flow(repo, "GLD", date(2026, 7, 1))
+    _seed_etf_flow(repo, "GLDM", date(2026, 7, 1))
+    monitored = [
+        MonitoredTable("etf_flows_daily", "subset", frozenset({"GLD", "IAU", "GLDM"}))
+    ]
+    rows = compute_freshness(
+        repo.conn, repo._schema, monitored, active_tickers=[], today=today
+    )
+    r = rows[0]
+    assert r.date_col == "obs_date"
+    assert r.max_data_date == date(2026, 7, 1)
+    assert r.frozen is False
+    # IAU has no row -> 2/3 covered, not a false "everything's fine" 100%.
+    assert r.expected_count == 3
+    assert r.covered_count == 2
+    assert r.coverage_pct == pytest.approx(2 / 3)
+
+
+def test_grace_days_derived_from_registry_frequency(seeded_db_empty_cards):
+    # wgc_etf_monthly's gap-healer registry entry declares
+    # expected_frequency="monthly" -- MonitoredTable with no explicit
+    # grace_days must derive 45 from that, not fall back to the global
+    # 4-day default meant for daily options data.
+    repo = seeded_db_empty_cards
+    today = date(2026, 7, 2)
+    with repo.conn.cursor() as cur:
+        cur.execute(
+            f"""
+            INSERT INTO {repo._schema}.wgc_etf_monthly
+                (ticker, obs_date, source_url, as_of, source)
+            VALUES ('GLD', %s, 'file:///test.xlsx', now(), 'WGC')
+            """,
+            (date(2026, 5, 31),),
+        )
+    repo.conn.commit()
+    monitored_derived = [
+        MonitoredTable("wgc_etf_monthly", "subset", frozenset({"GLD"}))
+    ]
+    monitored_explicit = [
+        MonitoredTable("wgc_etf_monthly", "subset", frozenset({"GLD"}), grace_days=4)
+    ]
+    derived_rows = compute_freshness(
+        repo.conn, repo._schema, monitored_derived, active_tickers=[], today=today
+    )
+    explicit_rows = compute_freshness(
+        repo.conn, repo._schema, monitored_explicit, active_tickers=[], today=today
+    )
+    # 32 days stale: not frozen under the registry-derived 45-day monthly
+    # grace, but an explicit per-table override still takes precedence.
+    assert derived_rows[0].days_stale == 32
+    assert derived_rows[0].frozen is False
+    assert explicit_rows[0].frozen is True
+
+
+def test_data_date_column_detected(seeded_db_empty_cards):
+    # gex_snapshots uses data_date -- not one of the original preference
+    # entries either; regression guard for the coverage-expansion pass.
+    repo = seeded_db_empty_cards
+    today = date(2026, 7, 2)
+    with repo.conn.cursor() as cur:
+        cur.execute(
+            f"""
+            INSERT INTO {repo._schema}.gex_snapshots (ticker, data_date, payload)
+            VALUES ('SPX', %s, '{{}}'::jsonb)
+            """,
+            (date(2026, 7, 1),),
+        )
+    repo.conn.commit()
+    monitored = [MonitoredTable("gex_snapshots", "watchlist", None)]
+    rows = compute_freshness(
+        repo.conn, repo._schema, monitored, active_tickers=["SPX"], today=today
+    )
+    r = rows[0]
+    assert r.date_col == "data_date"
+    assert r.max_data_date == date(2026, 7, 1)
+    assert r.frozen is False
+
+
+def test_date_col_override_bypasses_auto_detection(seeded_db_empty_cards):
+    # rates_fiscal_debt_daily's real "as of" column is record_date, which is
+    # not (and should not become) a generic _DATE_COL_PREFERENCE entry --
+    # explicit date_col_override is how a one-off column name gets used.
+    repo = seeded_db_empty_cards
+    today = date(2026, 7, 2)
+    with repo.conn.cursor() as cur:
+        cur.execute(
+            f"""
+            INSERT INTO {repo._schema}.rates_fiscal_debt_daily
+                (record_date, as_of, total_public_debt)
+            VALUES (%s, now(), 1000000)
+            """,
+            (date(2026, 6, 30),),
+        )
+    repo.conn.commit()
+    monitored = [
+        MonitoredTable(
+            "rates_fiscal_debt_daily",
+            "watchlist",
+            None,
+            date_col_override="record_date",
+        )
+    ]
+    rows = compute_freshness(
+        repo.conn, repo._schema, monitored, active_tickers=[], today=today
+    )
+    r = rows[0]
+    assert r.date_col == "record_date"
+    assert r.max_data_date == date(2026, 6, 30)
+    assert r.days_stale == 2

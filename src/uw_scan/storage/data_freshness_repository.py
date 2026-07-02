@@ -58,6 +58,48 @@ class DataFreshnessRepository:
         self._conn.commit()
         return len(params)
 
+    def consecutive_frozen_counts(self, lookback: int = 14) -> dict[str, int]:
+        """For every table with at least one snapshot in the last `lookback`
+        days, count how many of the most recent consecutive nights were
+        frozen=True (stops at the first non-frozen or missing night). Feeds
+        the autoheal circuit breaker -- a table stuck frozen for N nights
+        running despite repeated heal attempts is a real, unfixable block
+        (missing credential, licensed source), not something worth retrying
+        forever."""
+        sql = """
+            SELECT table_name, run_date, frozen
+              FROM data_freshness_snapshots
+             WHERE run_date > CURRENT_DATE - %s::int
+             ORDER BY table_name, run_date DESC
+        """
+        with self._conn.cursor() as cur:
+            cur.execute(sql, (lookback,))
+            rows = cur.fetchall()
+        counts: dict[str, int] = {}
+        current_table: str | None = None
+        prev_run_date: date | None = None
+        streak_broken = False
+        for table_name, run_date, frozen in rows:
+            if table_name != current_table:
+                current_table = table_name
+                counts[table_name] = 0
+                streak_broken = False
+                prev_run_date = None
+            if streak_broken:
+                continue
+            # A gap between two persisted nights (the monitor job didn't run,
+            # e.g. a crash or a deploy window) means the actual state through
+            # that gap is unknown, not confirmed frozen -- can't count past it.
+            if prev_run_date is not None and (prev_run_date - run_date).days > 1:
+                streak_broken = True
+                continue
+            if frozen:
+                counts[table_name] += 1
+                prev_run_date = run_date
+            else:
+                streak_broken = True
+        return counts
+
     def latest_snapshot(self) -> list[dict]:
         sql = """
             SELECT table_name, date_col, scope, expected_count, covered_count,
@@ -69,4 +111,8 @@ class DataFreshnessRepository:
         with self._conn.cursor() as cur:
             cur.execute(sql)
             cols = [c.name for c in cur.description]
-            return [dict(zip(cols, row, strict=True)) for row in cur.fetchall()]
+            rows = [dict(zip(cols, row, strict=True)) for row in cur.fetchall()]
+        streaks = self.consecutive_frozen_counts()
+        for row in rows:
+            row["consecutive_frozen_nights"] = streaks.get(row["table_name"], 0)
+        return rows

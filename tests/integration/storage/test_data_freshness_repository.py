@@ -73,3 +73,66 @@ def test_upsert_is_idempotent(seeded_db_empty_cards):
     assert len(latest) == 1
     assert latest[0]["frozen"] is False
     assert latest[0]["covered_count"] == 50
+
+
+def _row(table_name: str, frozen: bool) -> FreshnessRow:
+    return FreshnessRow(
+        table_name,
+        "market_date",
+        "watchlist",
+        100,
+        0,
+        0.0,
+        date(2026, 6, 1),
+        30,
+        frozen,
+    )
+
+
+def test_consecutive_frozen_counts_stops_at_first_healthy_night(seeded_db_empty_cards):
+    repo = seeded_db_empty_cards
+    fr = DataFreshnessRepository(repo.conn, schema=repo._schema)
+    # frozen, frozen, frozen, HEALTHY, frozen (oldest) -- streak from today
+    # backward must stop at the healthy night, not count the older frozen one.
+    fr.upsert_snapshot(date(2026, 6, 25), [_row("vrp_daily", True)])
+    fr.upsert_snapshot(date(2026, 6, 24), [_row("vrp_daily", True)])
+    fr.upsert_snapshot(date(2026, 6, 23), [_row("vrp_daily", True)])
+    fr.upsert_snapshot(date(2026, 6, 22), [_row("vrp_daily", False)])
+    fr.upsert_snapshot(date(2026, 6, 21), [_row("vrp_daily", True)])
+    counts = fr.consecutive_frozen_counts(lookback=14)
+    assert counts["vrp_daily"] == 3
+
+
+def test_consecutive_frozen_counts_zero_when_most_recent_night_healthy(
+    seeded_db_empty_cards,
+):
+    repo = seeded_db_empty_cards
+    fr = DataFreshnessRepository(repo.conn, schema=repo._schema)
+    fr.upsert_snapshot(date(2026, 6, 25), [_row("daily_ohlc", False)])
+    fr.upsert_snapshot(date(2026, 6, 24), [_row("daily_ohlc", True)])
+    counts = fr.consecutive_frozen_counts(lookback=14)
+    assert counts["daily_ohlc"] == 0
+
+
+def test_consecutive_frozen_counts_stops_at_a_missing_monitor_night(
+    seeded_db_empty_cards,
+):
+    repo = seeded_db_empty_cards
+    fr = DataFreshnessRepository(repo.conn, schema=repo._schema)
+    # frozen, frozen, [monitor didn't run on 6-23], frozen (older) -- the gap
+    # means the state through 6-23 is unknown, not confirmed frozen, so the
+    # streak must stop there rather than bridging across the missing night.
+    fr.upsert_snapshot(date(2026, 6, 25), [_row("vrp_daily", True)])
+    fr.upsert_snapshot(date(2026, 6, 24), [_row("vrp_daily", True)])
+    fr.upsert_snapshot(date(2026, 6, 22), [_row("vrp_daily", True)])
+    counts = fr.consecutive_frozen_counts(lookback=14)
+    assert counts["vrp_daily"] == 2
+
+
+def test_latest_snapshot_includes_consecutive_frozen_nights(seeded_db_empty_cards):
+    repo = seeded_db_empty_cards
+    fr = DataFreshnessRepository(repo.conn, schema=repo._schema)
+    fr.upsert_snapshot(date(2026, 6, 24), [_row("wgc_etf_monthly", True)])
+    fr.upsert_snapshot(date(2026, 6, 25), [_row("wgc_etf_monthly", True)])
+    latest = fr.latest_snapshot()
+    assert latest[0]["consecutive_frozen_nights"] == 2
