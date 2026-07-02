@@ -161,13 +161,50 @@ improvement, independent of whether the directional verdict has edge.
 
 Full traces: `richer_feature_ic.csv`, `richer_features_panel.csv`.
 
+## Deep-dive — skew as a momentum *filter*: concentrates, doesn't improve
+
+`scripts/oneshot/skew_momentum_filter.py`. The one survivor beats its momentum-decile
+peers by +3.6% (Track 1) — so does filtering a momentum portfolio by the skew condition
+improve it? Portfolio test (single names, equal-weight, market-excess, 2025-08..2026-07):
+
+| strategy | breadth (names/day) | mean excess @20d | hit | non-overlap Sharpe |
+|---|---:|---:|---:|---:|
+| MOM (top momentum quintile) | 16.5 | +8.15% | 0.83 | **5.81** |
+| MOM ∩ CHASE | 7.4 | +12.38% | 0.75 | 3.87 |
+| **MOM ∩ (NORMAL&CHASE)** | **4.0** | +13.50% | 0.70 | **3.25** |
+| NORMAL&CHASE (any momentum) | 9.2 | +5.68% | 0.70 | 1.47 |
+
+**The skew filter raises mean return (+8.15% → +13.5%, spread t=4.39) but lowers
+risk-adjusted return (Sharpe 5.81 → 3.25) and collapses breadth to ~4 names/day.** It
+concentrates the momentum book and chases return; it does not make momentum more
+efficient. As a portfolio overlay it is a *worse* risk-adjusted bet than plain momentum.
+
+**And the base momentum effect is not trustworthy.** +8.15% market-excess/20d with a
+non-overlapping Sharpe of 5.81 for plain top-quintile momentum is an in-sample mirage:
+the universe is *today's* watchlist (survivorship) and the sample is a single raging-bull
+regime (net-up, AI/semi/crypto names). This is precisely the "Sharpe ~2.0" trap — a huge
+number a saved trace later proves was regime + survivorship, not durable alpha. The
+per-quarter breakout confirms fragility: MOM_NC's 2025Q3 "+32%/20d excess" rides ~4 names
+(small-n). Horizon sweep (5d +0.8% → 40d +10.0%) just buys more momentum exposure-time,
+Sharpe peaking ~1.4–1.5.
+
+Traces: `momentum_filter_portfolios.csv`.
+
 ## Overall verdict
 
-The Skew tab's directional verdict is **not a reliable forward signal as displayed.** The
-index (QQQ) reading you screenshotted is beta with an inverted sign; the single-name
-"bear" readings are momentum; RR level at any delta has ~no IC. The one thing that
-survives every control is **single_name / NORMAL / CHASE**: a modest (+3.6%/20d,
-momentum-neutral, OOS +2.7%) *momentum-confirmation* edge — long names whose up-move is
-confirmed by a non-stretched skew. Two forward leads, both requiring more (out-of-sample)
-data that only accrues by waiting: (a) the term-slope IC, on a validated tenor; (b) the
-NORMAL/CHASE edge combined with the `momentum-moments` vol-scaler.
+**No tradable edge.** The Skew tab's directional verdict is not a reliable forward signal
+as displayed: the index (QQQ) reading is beta with an inverted sign (rawABS positive), the
+single-name "bear" readings are momentum, RR level at any delta has ~no IC. The one
+statistical survivor — **single_name / NORMAL / CHASE**, +3.6%/20d momentum-neutral — is
+real but, examined as a portfolio overlay, **concentrates momentum (breadth 16→4 names)
+and lowers its risk-adjusted return (Sharpe 5.81→3.25) rather than improving it.** It
+return-chases, it doesn't add efficiency. And the momentum base it rides is itself an
+in-sample mirage (survivorship × one bull regime) — not forward-tradable.
+
+**Conclusion: park the trade idea.** The skew directional verdict is not something to
+trade or size on. The only durable outputs are (1) an *engine defect* worth fixing — the
+DEVIATION pillar's `rr_25d` rides the noisy nearest (often 0-DTE) expiry; a stable ~30d
+tenor would clean the z-score — and (2) a research note that skew is not orthogonal alpha
+to momentum in this data. Two dormant leads, both needing a *down*-regime the 14-month
+sample lacks: the term-slope IC (on a validated tenor) and any skew×`momentum-moments`
+fusion. Neither is actionable until the sample spans a drawdown.
