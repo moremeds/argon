@@ -40,6 +40,31 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   (has both a date and ticker column, but is genuinely event-sparse per ticker;
   watchlist-scope coverage would produce a permanent false LOW COVERAGE
   warning, not a real signal).
+- **Freshness grace periods derived from each table's real cadence, not hand
+  guesses.** `MonitoredTable.grace_days` now defaults to a lookup on the
+  gap-healer registry's `expected_frequency` (`_FREQUENCY_GRACE_DAYS`:
+  equity_session/daily → 4, weekly → 10, monthly/event → 45) instead of each
+  table separately guessing its own number — the exact class of manual
+  judgment that caused 4 real scoping bugs earlier in this same pass (see
+  "correct scope for 4 index/regime-only tables" below). Also fixes the
+  registry itself: `wgc_etf_monthly`, `cb_gold_reserves_monthly`,
+  `exchange_inventory_daily`, `rates_cftc_tff_weekly`, and
+  `rates_treasury_auctions` were defaulted to `expected_frequency=
+  "equity_session"` despite being monthly/weekly; `rates_policy_events`
+  becomes `"event"` (FOMC-driven, no fixed periodic SLA).
+- **Freshness-autoheal: a same-night retry with a circuit breaker.** A frozen
+  table with a gap-healer adapter gets one scoped retrigger the same night
+  (`DATA_FRESHNESS_AUTOHEAL_ENABLED`, off by default) — a second chance for a
+  table the 20:00 ET gap-healer left frozen from budget exhaustion or a
+  transient failure, not a substitute for that nightly job. A circuit breaker
+  (`DATA_FRESHNESS_AUTOHEAL_CIRCUIT_BREAKER_NIGHTS`, default 3 consecutive
+  frozen nights) stops retriggering a genuinely unfixable source (missing
+  credential, licensed data feed) instead of burning budget on it forever;
+  tripped tables surface on `/api/health` (`freshness.autoheal_circuit_broken`)
+  so a human knows to step in. Verified against a dry-run on real prod data:
+  of today's 3 frozen tables, 2 have no adapter at all and the third would
+  already have its circuit breaker tripped — autoheal correctly does nothing
+  for any of today's known-broken sources.
 
 ### Removed
 
