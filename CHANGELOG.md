@@ -7,6 +7,23 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+### Added
+
+- **Gold/rates tables added to the daily freshness monitor.** `etf_flows_daily`,
+  `wgc_etf_monthly`, `cb_gold_reserves_monthly`, and `exchange_inventory_daily`
+  join `MONITORED_TABLES` (`/api/health` `freshness` block, nightly
+  `data_freshness_monitor`) — none were previously monitored, which is why
+  `etf_flows_daily`'s ~7-week silent staleness (fixed in v0.5.1) required a
+  manual investigation to catch instead of surfacing automatically.
+  `_DATE_COL_PREFERENCE` now recognizes `obs_date`/`obs_month` (the gold/rates
+  convention, distinct from the options-chain `market_date`/`trade_date`).
+  `MonitoredTable` gains a per-table `grace_days` override so monthly-cadence
+  sources (WGC releases monthly; COMEX/LBMA vault data is effectively monthly)
+  don't cry wolf under the 4-day default meant for daily options data.
+  `wgc_etf_monthly` / `cb_gold_reserves_monthly` / `exchange_inventory_daily`
+  will show `frozen=true` until someone provisions a `WGC_GOLDHUB_COOKIE` or a
+  licensed COMEX data source — that's accurate, not noise.
+
 ## [0.5.1] — 2026-07-02
 
 
