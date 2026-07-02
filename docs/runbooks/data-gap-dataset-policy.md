@@ -26,25 +26,25 @@ uv run python -c "from uw_scan.reports.data_gap_healer import render_dataset_pol
 
 | table | audit_mode | provider | granularity | adapter | freq | reason |
 |---|---|---|---|---|---|---|
-| cb_gold_reserves_monthly | freshness_only | none | none |  | equity_session | source needs auth cookie / no historical API (audit-only) |
+| cb_gold_reserves_monthly | freshness_only | none | none |  | monthly | source needs auth cookie / no historical API (audit-only) |
 | cot_gold_weekly | freshness_only | external | run_once | gold_cot | weekly |  |
 | etf_aum_cache | freshness_only | none | none |  | equity_session | source needs auth cookie / no historical API (audit-only) |
 | etf_flows_daily | freshness_only | none | none |  | equity_session | source needs auth cookie / no historical API (audit-only) |
 | etf_holdings_daily | freshness_only | none | none |  | equity_session | source needs auth cookie / no historical API (audit-only) |
-| exchange_inventory_daily | freshness_only | external | run_once | gold_comex | equity_session |  |
+| exchange_inventory_daily | freshness_only | external | run_once | gold_comex | monthly |  |
 | gold_posture_daily | freshness_only | db | run_once | gold_posture | equity_session |  |
 | macro_series_daily | freshness_only | external | run_once_lookback | macro_fred | daily |  |
 | macro_series_monthly | freshness_only | external | run_once_lookback | macro_fred | monthly |  |
-| rates_cftc_tff_weekly | freshness_only | external | run_once_lookback | rates_fred | equity_session |  |
+| rates_cftc_tff_weekly | freshness_only | external | run_once_lookback | rates_fred | weekly |  |
 | rates_fiscal_debt_daily | freshness_only | external | run_once_lookback | rates_fred | equity_session |  |
 | rates_observations | freshness_only | external | run_once_lookback | rates_fred | equity_session |  |
-| rates_policy_events | freshness_only | external | run_once_lookback | rates_fred | equity_session |  |
+| rates_policy_events | freshness_only | external | run_once_lookback | rates_fred | event |  |
 | rates_policy_path | freshness_only | external | run_once_lookback | rates_fred | equity_session |  |
 | rates_snapshots | freshness_only | external | run_once_lookback | rates_fred | equity_session |  |
-| rates_treasury_auctions | freshness_only | external | run_once_lookback | rates_fred | equity_session |  |
+| rates_treasury_auctions | freshness_only | external | run_once_lookback | rates_fred | weekly |  |
 | uw_gold_options_daily | freshness_only | uw | run_once | gold_uw_options | equity_session |  |
-| wgc_etf_monthly | freshness_only | none | none |  | equity_session | source needs auth cookie / no historical API (audit-only) |
-| wgc_etf_monthly_canonical | freshness_only | none | none |  | equity_session | source needs auth cookie / no historical API (audit-only) |
+| wgc_etf_monthly | freshness_only | none | none |  | monthly | source needs auth cookie / no historical API (audit-only) |
+| wgc_etf_monthly_canonical | freshness_only | none | none |  | monthly | source needs auth cookie / no historical API (audit-only) |
 
 ## operational_provenance
 

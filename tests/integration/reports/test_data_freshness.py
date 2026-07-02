@@ -154,9 +154,11 @@ def test_obs_date_column_detected(seeded_db_empty_cards):
     assert r.coverage_pct == pytest.approx(2 / 3)
 
 
-def test_per_table_grace_days_override(seeded_db_empty_cards):
-    # wgc_etf_monthly is monthly-cadence; the global 4-day default grace would
-    # always flag it frozen even when healthy. grace_days=45 must be honored.
+def test_grace_days_derived_from_registry_frequency(seeded_db_empty_cards):
+    # wgc_etf_monthly's gap-healer registry entry declares
+    # expected_frequency="monthly" -- MonitoredTable with no explicit
+    # grace_days must derive 45 from that, not fall back to the global
+    # 4-day default meant for daily options data.
     repo = seeded_db_empty_cards
     today = date(2026, 7, 2)
     with repo.conn.cursor() as cur:
@@ -169,22 +171,23 @@ def test_per_table_grace_days_override(seeded_db_empty_cards):
             (date(2026, 5, 31),),
         )
     repo.conn.commit()
-    monitored_default = [
+    monitored_derived = [
         MonitoredTable("wgc_etf_monthly", "subset", frozenset({"GLD"}))
     ]
-    monitored_relaxed = [
-        MonitoredTable("wgc_etf_monthly", "subset", frozenset({"GLD"}), grace_days=45)
+    monitored_explicit = [
+        MonitoredTable("wgc_etf_monthly", "subset", frozenset({"GLD"}), grace_days=4)
     ]
-    default_rows = compute_freshness(
-        repo.conn, repo._schema, monitored_default, active_tickers=[], today=today
+    derived_rows = compute_freshness(
+        repo.conn, repo._schema, monitored_derived, active_tickers=[], today=today
     )
-    relaxed_rows = compute_freshness(
-        repo.conn, repo._schema, monitored_relaxed, active_tickers=[], today=today
+    explicit_rows = compute_freshness(
+        repo.conn, repo._schema, monitored_explicit, active_tickers=[], today=today
     )
-    # 32 days stale: frozen under the global 4-day default, not under grace_days=45.
-    assert default_rows[0].days_stale == 32
-    assert default_rows[0].frozen is True
-    assert relaxed_rows[0].frozen is False
+    # 32 days stale: not frozen under the registry-derived 45-day monthly
+    # grace, but an explicit per-table override still takes precedence.
+    assert derived_rows[0].days_stale == 32
+    assert derived_rows[0].frozen is False
+    assert explicit_rows[0].frozen is True
 
 
 def test_data_date_column_detected(seeded_db_empty_cards):

@@ -15,6 +15,8 @@ from datetime import date
 from psycopg import Connection
 from psycopg import sql as psql
 
+from uw_scan.reports.data_gap_healer import REGISTRY as _GAP_HEALER_REGISTRY
+
 # Preference order for the data-date column, most specific first. The monitor
 # auto-detects which one a table actually has (avoids hardcoding a wrong name).
 _DATE_COL_PREFERENCE = (
@@ -30,13 +32,36 @@ _DATE_COL_PREFERENCE = (
     "date",
 )
 
+# A table's real update cadence is already classified once, as
+# expected_frequency, in the data-gap-healer's dataset registry -- the single
+# source of truth both systems should share. Deriving grace_days from it here
+# (instead of each MonitoredTable guessing its own number) is what lets the
+# monitor answer "is this data properly populated for ITS cadence", not just
+# "was something written in the last 4 days" for every table regardless of
+# how often it's actually supposed to update. event is a rough proxy: these
+# tables have no fixed periodic SLA, but 45 days is enough to catch "the
+# ingest job stopped entirely" while tolerating a genuinely long gap between
+# real-world events (e.g. FOMC meetings, ~8x/year).
+_FREQUENCY_GRACE_DAYS: dict[str, int] = {
+    "equity_session": 4,
+    "daily": 4,
+    "weekly": 10,
+    "monthly": 45,
+    "event": 45,
+}
+_REGISTRY_BY_NAME = {e.table_name: e for e in _GAP_HEALER_REGISTRY}
+
 
 @dataclass(frozen=True)
 class MonitoredTable:
     name: str
     scope: str  # 'watchlist' (denominator = active watchlist) | 'subset' (named set)
     expected_tickers: frozenset[str] | None  # required when scope == 'subset'
-    grace_days: int | None = None  # None -> inherit compute_freshness's grace_days
+    # None -> derive from the gap-healer registry's expected_frequency for
+    # this table (see _FREQUENCY_GRACE_DAYS); falls back to compute_freshness's
+    # grace_days if the table isn't registered or its frequency isn't mapped.
+    # Set explicitly only to override that derivation for a specific table.
+    grace_days: int | None = None
     date_col_override: str | None = None  # for a table with no _DATE_COL_PREFERENCE hit
 
 
@@ -89,19 +114,17 @@ MONITORED_TABLES: list[MonitoredTable] = [
         "wgc_etf_monthly",
         "subset",
         frozenset({"GLD", "IAU", "GLDM", "PHYS"}),
-        grace_days=45,  # monthly WGC release cadence
+        # grace_days derived from the registry's expected_frequency="monthly"
     ),
     MonitoredTable(
         "cb_gold_reserves_monthly",
         "watchlist",  # ticker-less (keyed by country_iso3) -> freshness-only
         None,
-        grace_days=45,  # monthly WGC CB-reserves cadence
     ),
     MonitoredTable(
         "exchange_inventory_daily",
         "watchlist",  # ticker-less (keyed by exchange) -> freshness-only
         None,
-        grace_days=45,  # LBMA leg is monthly; COMEX leg is blocked
     ),
     # --- coverage-expansion pass: every table below was previously invisible
     # to /api/health freshness. Excluded on purpose (not an oversight):
@@ -158,7 +181,6 @@ MONITORED_TABLES: list[MonitoredTable] = [
         "rates_treasury_auctions",
         "watchlist",  # ticker-less
         None,
-        grace_days=10,  # auctions cluster weekly across tenors, not daily
         date_col_override="auction_date",
     ),
     MonitoredTable("gold_posture_daily", "watchlist", None),  # ticker-less
@@ -172,13 +194,8 @@ MONITORED_TABLES: list[MonitoredTable] = [
         "subset",
         frozenset({"GLD", "IAU", "GLDM", "PHYS"}),
     ),
-    MonitoredTable(
-        "rates_cftc_tff_weekly",
-        "watchlist",
-        None,
-        grace_days=10,  # ticker-less
-    ),
-    MonitoredTable("cot_gold_weekly", "watchlist", None, grace_days=10),  # ticker-less
+    MonitoredTable("rates_cftc_tff_weekly", "watchlist", None),  # ticker-less
+    MonitoredTable("cot_gold_weekly", "watchlist", None),  # ticker-less
     # --- Lower priority: still legitimate, less critical ---
     MonitoredTable("pcr_history", "watchlist", None),
     MonitoredTable("uw_positioning", "watchlist", None),
@@ -222,7 +239,6 @@ MONITORED_TABLES: list[MonitoredTable] = [
         "rates_policy_events",
         "watchlist",  # ticker-less
         None,
-        grace_days=45,  # sparse, event-driven (FOMC meetings ~8x/year)
         date_col_override="event_date",
     ),
 ]
@@ -273,7 +289,12 @@ def compute_freshness(
     out: list[FreshnessRow] = []
     active = {t.upper() for t in active_tickers}
     for mt in monitored:
-        table_grace = mt.grace_days if mt.grace_days is not None else grace_days
+        if mt.grace_days is not None:
+            table_grace = mt.grace_days
+        else:
+            entry = _REGISTRY_BY_NAME.get(mt.name)
+            freq = entry.expected_frequency if entry is not None else None
+            table_grace = _FREQUENCY_GRACE_DAYS.get(freq, grace_days)
         date_col = mt.date_col_override or _detect_date_col(conn, schema, mt.name)
         tcol = _ticker_col(conn, schema, mt.name)
         if date_col is None:
