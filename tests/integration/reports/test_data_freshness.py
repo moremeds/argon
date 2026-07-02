@@ -185,3 +185,60 @@ def test_per_table_grace_days_override(seeded_db_empty_cards):
     assert default_rows[0].days_stale == 32
     assert default_rows[0].frozen is True
     assert relaxed_rows[0].frozen is False
+
+
+def test_data_date_column_detected(seeded_db_empty_cards):
+    # gex_snapshots uses data_date -- not one of the original preference
+    # entries either; regression guard for the coverage-expansion pass.
+    repo = seeded_db_empty_cards
+    today = date(2026, 7, 2)
+    with repo.conn.cursor() as cur:
+        cur.execute(
+            f"""
+            INSERT INTO {repo._schema}.gex_snapshots (ticker, data_date, payload)
+            VALUES ('SPX', %s, '{{}}'::jsonb)
+            """,
+            (date(2026, 7, 1),),
+        )
+    repo.conn.commit()
+    monitored = [MonitoredTable("gex_snapshots", "watchlist", None)]
+    rows = compute_freshness(
+        repo.conn, repo._schema, monitored, active_tickers=["SPX"], today=today
+    )
+    r = rows[0]
+    assert r.date_col == "data_date"
+    assert r.max_data_date == date(2026, 7, 1)
+    assert r.frozen is False
+
+
+def test_date_col_override_bypasses_auto_detection(seeded_db_empty_cards):
+    # rates_fiscal_debt_daily's real "as of" column is record_date, which is
+    # not (and should not become) a generic _DATE_COL_PREFERENCE entry --
+    # explicit date_col_override is how a one-off column name gets used.
+    repo = seeded_db_empty_cards
+    today = date(2026, 7, 2)
+    with repo.conn.cursor() as cur:
+        cur.execute(
+            f"""
+            INSERT INTO {repo._schema}.rates_fiscal_debt_daily
+                (record_date, as_of, total_public_debt)
+            VALUES (%s, now(), 1000000)
+            """,
+            (date(2026, 6, 30),),
+        )
+    repo.conn.commit()
+    monitored = [
+        MonitoredTable(
+            "rates_fiscal_debt_daily",
+            "watchlist",
+            None,
+            date_col_override="record_date",
+        )
+    ]
+    rows = compute_freshness(
+        repo.conn, repo._schema, monitored, active_tickers=[], today=today
+    )
+    r = rows[0]
+    assert r.date_col == "record_date"
+    assert r.max_data_date == date(2026, 6, 30)
+    assert r.days_stale == 2

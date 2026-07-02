@@ -25,6 +25,8 @@ _DATE_COL_PREFERENCE = (
     "as_of_date",
     "obs_date",
     "obs_month",
+    "data_date",
+    "snapshot_date",
     "date",
 )
 
@@ -35,6 +37,7 @@ class MonitoredTable:
     scope: str  # 'watchlist' (denominator = active watchlist) | 'subset' (named set)
     expected_tickers: frozenset[str] | None  # required when scope == 'subset'
     grace_days: int | None = None  # None -> inherit compute_freshness's grace_days
+    date_col_override: str | None = None  # for a table with no _DATE_COL_PREFERENCE hit
 
 
 @dataclass(frozen=True)
@@ -100,6 +103,115 @@ MONITORED_TABLES: list[MonitoredTable] = [
         None,
         grace_days=45,  # LBMA leg is monthly; COMEX leg is blocked
     ),
+    # --- coverage-expansion pass: every table below was previously invisible
+    # to /api/health freshness. Excluded on purpose (not an oversight):
+    #   dark_pool_events, flow_events, option_contract_snapshots,
+    #   massive_fundamentals, short_interest_snapshots -- no DATE-typed "as of"
+    #   column, only TIMESTAMPTZ event/insert timestamps; compute_freshness
+    #   only handles DATE columns today.
+    #   corporate_actions -- has both a date and a ticker column, but is
+    #   genuinely event-sparse per ticker (most tickers have zero splits/
+    #   dividends on any given day); watchlist-scope coverage would show a
+    #   permanent false LOW COVERAGE warning, not a real signal.
+    # --- Tier 1: core derived/durable tables, zero prior visibility ---
+    MonitoredTable("option_surface_grid_daily", "watchlist", None),
+    MonitoredTable("stock_analytics_daily", "watchlist", None),
+    MonitoredTable("realized_volatility_history", "watchlist", None),
+    MonitoredTable("volatility_stats_history", "watchlist", None),
+    MonitoredTable(
+        "market_tide_sentiment_daily", "watchlist", None
+    ),  # ticker-less; the gap-healer's own trading-day calendar spine
+    # --- Tier 2: options-chain pipeline (full_scan / option_surface_capture) ---
+    MonitoredTable("option_chain_per_strike", "watchlist", None),
+    MonitoredTable("greeks_by_expiry_strike", "watchlist", None),
+    MonitoredTable("iv_term_snapshots", "watchlist", None),
+    MonitoredTable("interpolated_iv_snapshots", "watchlist", None),
+    MonitoredTable("risk_reversal_skew_history", "watchlist", None),
+    MonitoredTable("iv_smile_snapshots", "watchlist", None),
+    MonitoredTable("max_pain_by_expiry", "watchlist", None),
+    MonitoredTable("oi_change_events", "watchlist", None),  # ticker-less
+    MonitoredTable("exposures_summary", "watchlist", None),
+    # --- Tier 3: regime scanner outputs (hourly :20/:25 scans) ---
+    MonitoredTable("gex_snapshots", "watchlist", None),
+    MonitoredTable("cri_snapshots", "watchlist", None),  # ticker-less
+    MonitoredTable("vcg_snapshots", "watchlist", None),  # ticker-less
+    MonitoredTable("grg_snapshots", "watchlist", None),  # ticker-less
+    MonitoredTable("matrix_state_snapshots", "watchlist", None),
+    MonitoredTable("canary_snapshots", "watchlist", None),  # ticker-less
+    # --- Tier 4: FRED/rates/gold sources not yet known to be blocked ---
+    MonitoredTable("macro_series_daily", "watchlist", None),  # ticker-less
+    MonitoredTable("rates_observations", "watchlist", None),  # ticker-less
+    MonitoredTable("rates_snapshots", "watchlist", None),  # ticker-less
+    MonitoredTable("rates_policy_path", "watchlist", None),  # ticker-less
+    MonitoredTable(
+        "rates_treasury_auctions",
+        "watchlist",  # ticker-less
+        None,
+        grace_days=10,  # auctions cluster weekly across tenors, not daily
+        date_col_override="auction_date",
+    ),
+    MonitoredTable("gold_posture_daily", "watchlist", None),  # ticker-less
+    MonitoredTable(
+        "uw_gold_options_daily",
+        "subset",
+        frozenset({"GLD", "GDX", "IAU"}),  # uw_gold_options.GOLD_OPTIONS_TICKERS
+    ),
+    MonitoredTable(
+        "etf_holdings_daily",
+        "subset",
+        frozenset({"GLD", "IAU", "GLDM", "PHYS"}),
+    ),
+    MonitoredTable(
+        "rates_cftc_tff_weekly",
+        "watchlist",
+        None,
+        grace_days=10,  # ticker-less
+    ),
+    MonitoredTable("cot_gold_weekly", "watchlist", None, grace_days=10),  # ticker-less
+    # --- Lower priority: still legitimate, less critical ---
+    MonitoredTable("pcr_history", "watchlist", None),
+    MonitoredTable("uw_positioning", "watchlist", None),
+    MonitoredTable(
+        "vol_index_daily",
+        "subset",
+        frozenset(
+            {
+                "VIX",
+                "VIX3M",
+                "VVIX",
+                "RVX",
+                "OVX",
+                "NDX",
+                "RUT",
+                "SPX",
+                "COR1M",
+                "COR3M",
+                "HYG",
+                "JNK",
+                "LQD",
+                "VXEEM",
+                "VXGDX",
+                "VXHYG",
+                "VXN",
+                "VXSLV",
+                "VXSMH",
+            }
+        ),
+    ),
+    MonitoredTable("index_ohlc_daily", "watchlist", None),
+    MonitoredTable(
+        "rates_fiscal_debt_daily",
+        "watchlist",  # ticker-less
+        None,
+        date_col_override="record_date",
+    ),
+    MonitoredTable(
+        "rates_policy_events",
+        "watchlist",  # ticker-less
+        None,
+        grace_days=45,  # sparse, event-driven (FOMC meetings ~8x/year)
+        date_col_override="event_date",
+    ),
 ]
 
 
@@ -149,7 +261,7 @@ def compute_freshness(
     active = {t.upper() for t in active_tickers}
     for mt in monitored:
         table_grace = mt.grace_days if mt.grace_days is not None else grace_days
-        date_col = _detect_date_col(conn, schema, mt.name)
+        date_col = mt.date_col_override or _detect_date_col(conn, schema, mt.name)
         tcol = _ticker_col(conn, schema, mt.name)
         if date_col is None:
             # No data-date column at all -> nothing this monitor can measure.

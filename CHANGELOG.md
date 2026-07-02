@@ -23,6 +23,23 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   `wgc_etf_monthly` / `cb_gold_reserves_monthly` / `exchange_inventory_daily`
   will show `frozen=true` until someone provisions a `WGC_GOLDHUB_COOKIE` or a
   licensed COMEX data source — that's accurate, not noise.
+- **Freshness monitor coverage expanded from 12 to 48 tables.** A follow-up
+  audit of the full 118-table data-gap registry found ~40 more genuinely
+  continuous tables with zero prior `/api/health` visibility: the durable
+  option-surface IV grid, the options-chain pipeline (greeks/IV term/skew/max
+  pain/exposures), regime scanner outputs (GEX/CRI/VCG/GRG/canary), and the
+  remaining FRED/rates/gold sources not already known to be blocked.
+  `_DATE_COL_PREFERENCE` now also recognizes `data_date` and `snapshot_date`.
+  `MonitoredTable` gains a `date_col_override` for the handful of tables with
+  a one-off column name (`auction_date`, `record_date`, `event_date`) rather
+  than growing the shared preference list with names that could collide on a
+  future table. Deliberately **not** added: `dark_pool_events`, `flow_events`,
+  `option_contract_snapshots`, `massive_fundamentals`, `short_interest_snapshots`
+  (no DATE-typed column, only TIMESTAMPTZ event/insert timestamps —
+  `compute_freshness` only handles DATE columns today) and `corporate_actions`
+  (has both a date and ticker column, but is genuinely event-sparse per ticker;
+  watchlist-scope coverage would produce a permanent false LOW COVERAGE
+  warning, not a real signal).
 
 ## [0.5.1] — 2026-07-02
 
