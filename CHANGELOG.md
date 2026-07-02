@@ -7,8 +7,22 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
-## [0.5.1] — 2026-07-02
+### Removed
 
+- **Dropped 4 permanently-empty legacy tables and their dead code paths**
+  (migration `094`): `option_surface_snapshots` (S1 placeholder superseded by
+  `option_surface_grid_daily`), `scan_universe` + `scan_results` (S2 full-scan
+  persistence for a since-deleted Streamlit prototype — only reachable from
+  an integration test, never from a scheduler job or the live Scanner page),
+  and `structure_ideas` (a trade-structure stub whose writer had zero
+  callers). Removed the now-dead `pipeline.run_full_scan`, `reports/scan.py`,
+  `scan_universe.py`, five `_ScanResultsMixin` methods, `insert_structure_idea`,
+  a dead marketcap-fallback join in `storage/watchlist.py`, and the
+  corresponding registry/test entries. The live Scanner page is unaffected —
+  it reads `scanner_candidate_snapshots` / `signal_hits` / `signal_gates` /
+  `signal_context_flags`, none of which touch these tables.
+
+## [0.5.1] — 2026-07-02
 
 ### Fixed
 

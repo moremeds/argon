@@ -145,10 +145,6 @@ class _ScanRunsMixin:
         with self._conn.cursor() as cur:
             cur.execute(sql_text)
 
-    # ------------------------------------------------------------------
-    # S2: scan_universe + scan_results
-    # ------------------------------------------------------------------
-
     def set_aggregates(self, run_id: int, agg: "models.MarketAggregates") -> None:
         with self._conn.cursor() as cur:
             cur.execute(

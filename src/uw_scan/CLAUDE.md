@@ -10,7 +10,6 @@ uw_scan/
 ├── models/              # Pydantic v2 row/response contracts, split by domain
 ├── normalize.py         # raw UW JSON → typed models (NormalizationError on miss)
 ├── pipeline.py          # legacy scan pipeline (still used by full_scan job)
-├── scan_universe.py     # watchlist → ticker list for the scanner
 ├── scoring.py           # numerical scoring used by the scan/cards
 ├── api/                 # FastAPI app + routers + UW HTTP client
 ├── cards/               # per-ticker analytical derivers (pure functions on rows)
