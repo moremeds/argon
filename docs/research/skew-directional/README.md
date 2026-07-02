@@ -190,6 +190,31 @@ Sharpe peaking ~1.4–1.5.
 
 Traces: `momentum_filter_portfolios.csv`.
 
+## Can it be a sentiment / trend gauge? — YES (aggregate), as a coincident thermometer
+
+`scripts/oneshot/skew_sentiment.py`. Different question from alpha: does skew reliably
+*reflect* the market's fear state and its trend? Aggregate daily over single names
+(mean `rr_z_180d`; net-fear breadth = %PANIC − %CHASE), test vs SPY. 284 days, ~75
+names/day.
+
+| property | result | reading |
+|---|---|---|
+| **persistence** | net_fear autocorr lag1 **0.94**, lag5 0.75, lag20 0.31 (mean_rrz 0.87/0.78/0.53) | smooth, trendable — cross-sectional averaging kills the single-name 0-DTE noise |
+| **coincident** | net_fear vs **trailing** 20d SPY = **−0.62** (mean_rrz −0.47) | strong, valid fear thermometer — fear high *after* the market falls |
+| **leading** | net_fear vs **forward** 20d SPY = **+0.20** (mean_rrz +0.11) | not predictive; reflects, doesn't forecast (consistent with the alpha nulls) |
+| **extremes** | top fear-quintile: trailing −1.9%, forward **+2.0%**; bottom: forward +0.3% | mild *contrarian* — extreme aggregate fear ≈ weak dip-buy, matches the VCG "PANIC mean-reverts" descriptive finding |
+
+**So skew is usable as sentiment — but only in the aggregate, and only as a coincident /
+contrarian gauge, never a per-ticker forecast.** The per-name `/stock` reading stays too
+noisy (0-DTE `rr_25d`); the signal lives in the breadth. This is the honest home for it:
+a market-level risk-on/off thermometer and regime overlay, not a directional trade.
+
+**Untested caveat (do not overclaim):** a −0.62 coincident correlation with trailing
+returns is partly mechanical (skew *is* positioning, positioning reflects recent price).
+Whether aggregate skew-fear carries information *beyond VIX / the market's own return* is
+not tested here — the next step before treating it as a distinct gauge. Traces:
+`sentiment_leadlag.csv`, `sentiment_series.csv`.
+
 ## Overall verdict
 
 **No tradable edge.** The Skew tab's directional verdict is not a reliable forward signal
@@ -201,10 +226,18 @@ and lowers its risk-adjusted return (Sharpe 5.81→3.25) rather than improving i
 return-chases, it doesn't add efficiency. And the momentum base it rides is itself an
 in-sample mirage (survivorship × one bull regime) — not forward-tradable.
 
-**Conclusion: park the trade idea.** The skew directional verdict is not something to
-trade or size on. The only durable outputs are (1) an *engine defect* worth fixing — the
-DEVIATION pillar's `rr_25d` rides the noisy nearest (often 0-DTE) expiry; a stable ~30d
-tenor would clean the z-score — and (2) a research note that skew is not orthogonal alpha
-to momentum in this data. Two dormant leads, both needing a *down*-regime the 14-month
-sample lacks: the term-slope IC (on a validated tenor) and any skew×`momentum-moments`
-fusion. Neither is actionable until the sample spans a drawdown.
+**Conclusion: don't trade the directional verdict — but there is a real non-alpha use.**
+Three durable outputs:
+1. **A valid sentiment/regime gauge** (the positive result): the *aggregate* cross-sectional
+   skew (net-fear breadth) is a smooth (autocorr 0.94), strongly coincident (−0.62 vs
+   trailing) fear thermometer with a mild contrarian tilt at extremes. Usable as a
+   market-level risk-on/off overlay — not a per-ticker forecast. Pending: incremental value
+   over VIX.
+2. **An engine defect** worth fixing — the DEVIATION pillar's `rr_25d` rides the noisy
+   nearest (often 0-DTE) expiry; a stable ~30d tenor would clean the z-score.
+3. **A research note**: skew is not orthogonal alpha to momentum in this data; filtering
+   momentum by skew concentrates rather than improves it.
+
+Two dormant *alpha* leads, both needing a *down*-regime the 14-month sample lacks (the
+term-slope IC on a validated tenor; a skew×`momentum-moments` fusion) — not actionable
+until the sample spans a drawdown.
