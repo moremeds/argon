@@ -3,6 +3,7 @@
 Design: docs/superpowers/plans/2026-07-03-backtest-walkforward-harness.md
 """
 
+from uw_scan.backtest.engine import SignalPoint, walk_forward_backtest
 from uw_scan.backtest.gates import quarter_gate, walkforward_gate
 from uw_scan.backtest.metrics import (
     additive_max_drawdown,
@@ -22,4 +23,6 @@ __all__ = [
     "time_ordered_holdout",
     "quarter_gate",
     "walkforward_gate",
+    "SignalPoint",
+    "walk_forward_backtest",
 ]
