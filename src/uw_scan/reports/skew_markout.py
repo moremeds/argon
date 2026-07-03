@@ -28,6 +28,7 @@ from collections import defaultdict
 from datetime import date as _date
 from typing import Any
 
+from uw_scan.backtest.gates import walkforward_gate
 from uw_scan.storage.repository import Repository
 
 log = logging.getLogger(__name__)
@@ -49,31 +50,11 @@ def _expected_drr_sign(deviation_class: str) -> int:
     return 0
 
 
-def _rv_survives_window_gate(obs: list[dict], overall_mean: float) -> bool:
-    """Per-calendar-quarter catastrophic-degradation gate (mirrors the directional
-    _survives_window_gate; standing rule: feedback_per_regime_catastrophic_gate).
-    Fail if ANY quarter's mean ΔRR reverses the aggregate sign with LARGER magnitude —
-    i.e. the aggregate is hiding a sub-window blowup. obs carry 'drr' + 'market_date'."""
-    if abs(overall_mean) < 1e-9:
-        return False
-    by_q: dict[tuple, list[float]] = defaultdict(list)
-    for o in obs:
-        d = o["market_date"]
-        by_q[(d.year, (d.month - 1) // 3)].append(o["drr"])
-    for vals in by_q.values():
-        if not vals:
-            continue
-        m = sum(vals) / len(vals)
-        if m * overall_mean < 0 and abs(m) > abs(overall_mean):
-            return False
-    return True
-
-
 def _rv_walkforward(obs: list[dict], expected_sign: int) -> dict:
     """obs: [{'drr': float, 'market_date': date}], any order. Returns the verdict dict.
     REVERTS requires expected sign + magnitude (full & holdout) AND the quarterly
-    catastrophic-degradation gate. Holdout = the latest RV_HOLDOUT_FRAC of obs by
-    market_date (time-ordered, no leak)."""
+    catastrophic-degradation gate. Delegates to uw_scan.backtest.gates; this
+    adapter only maps key names and the verdict string."""
     n = len(obs)
     if n < RV_MIN_N or expected_sign == 0:
         return {
@@ -85,26 +66,24 @@ def _rv_walkforward(obs: list[dict], expected_sign: int) -> dict:
             "survives_walkforward": False,
             "survives_window_gate": False,
         }
-    ordered = sorted(obs, key=lambda o: o["market_date"])
-    cut = int(round(n * (1.0 - RV_HOLDOUT_FRAC)))
-    holdout = ordered[cut:]
-    mean_full = sum(o["drr"] for o in ordered) / n
-    mean_hold = (sum(o["drr"] for o in holdout) / len(holdout)) if holdout else 0.0
-    sign_ok = (mean_full * expected_sign > 0) and (mean_hold * expected_sign > 0)
-    mag_ok = (
-        abs(mean_full) >= RV_SEP_THRESHOLD and abs(mean_hold) >= RV_HOLDOUT_THRESHOLD
+    wf = walkforward_gate(
+        obs,
+        value_key="drr",
+        min_n=RV_MIN_N,
+        threshold=RV_SEP_THRESHOLD,
+        holdout_threshold=RV_HOLDOUT_THRESHOLD,
+        holdout_frac=RV_HOLDOUT_FRAC,
+        expected_sign=expected_sign,
     )
-    survives_wf = bool(sign_ok and mag_ok)
-    survives_window = _rv_survives_window_gate(ordered, mean_full)
-    reverts = bool(survives_wf and survives_window)
+    reverts = wf["survives_walkforward"] and wf["survives_window_gate"]
     return {
         "verdict": "REVERTS" if reverts else "NONE",
-        "mean_drr": mean_full,
-        "mean_drr_holdout": mean_hold,
-        "n": n,
-        "n_holdout": len(holdout),
-        "survives_walkforward": survives_wf,
-        "survives_window_gate": survives_window,
+        "mean_drr": wf["mean"],
+        "mean_drr_holdout": wf["mean_holdout"],
+        "n": wf["n"],
+        "n_holdout": wf["n_holdout"],
+        "survives_walkforward": wf["survives_walkforward"],
+        "survives_window_gate": wf["survives_window_gate"],
     }
 
 
