@@ -23,6 +23,7 @@ from datetime import date as _date
 from statistics import median
 from typing import Any
 
+from uw_scan.backtest.splitters import holdout_cut_index
 from uw_scan.reports.vrp_gate import (
     passes_gate,
     sellable_asset_classes,
@@ -144,7 +145,7 @@ def flag_holdout(trades: list[TradeResult]) -> list[TradeResult]:
     n = len(trades)
     if not n:
         return list(trades)
-    cut = int(round(n * (1.0 - HOLDOUT_FRAC)))
+    cut = holdout_cut_index(n, HOLDOUT_FRAC)
     return [
         TradeResult(**{**t.__dict__, "in_holdout": i >= cut})
         for i, t in enumerate(sorted(trades, key=lambda x: x.entry_date))

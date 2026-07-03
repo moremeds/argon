@@ -19,6 +19,7 @@ from datetime import date as _date
 from datetime import timedelta
 from typing import Any
 
+from uw_scan.backtest.gates import quarter_gate, walkforward_gate
 from uw_scan.cards.skew_first_principles import asset_class_baseline
 from uw_scan.reports.vrp_markout_core import (
     apply_split_adjustment,
@@ -168,20 +169,9 @@ def _survives_quarter_gate(obs: list[dict], overall_mean: float) -> bool:
     feedback_per_regime_catastrophic_gate; mirrors skew_markout's window gate).
     Fail if ANY quarter's mean realized_VRP reverses the aggregate sign with
     LARGER magnitude — the aggregate is hiding a sub-window blowup. A near-zero
-    aggregate auto-fails (no stable edge to defend)."""
-    if abs(overall_mean) < 1e-9:
-        return False
-    by_q: dict[tuple[int, int], list[float]] = defaultdict(list)
-    for o in obs:
-        d = o["market_date"]
-        by_q[(d.year, (d.month - 1) // 3)].append(o["realized_vrp"])
-    for vals in by_q.values():
-        if not vals:
-            continue
-        m = sum(vals) / len(vals)
-        if m * overall_mean < 0 and abs(m) > abs(overall_mean):
-            return False
-    return True
+    aggregate auto-fails (no stable edge to defend).
+    Canonical implementation: uw_scan.backtest.gates.quarter_gate."""
+    return quarter_gate(obs, overall_mean, value_key="realized_vrp")
 
 
 def _walkforward_harvest(
@@ -202,40 +192,22 @@ def _walkforward_harvest(
     floor'). survives_window_gate is the per-quarter gate on the full sample.
     Holdout = latest HOLDOUT_FRAC of obs by market_date (time-ordered, no leak).
     obs: [{'realized_vrp': float, 'market_date': date}]."""
-    n = len(obs)
-    if n == 0:
-        return {
-            "mean_realized_vrp": None,
-            "mean_holdout": None,
-            "n": 0,
-            "n_holdout": 0,
-            "survives_walkforward": False,
-            "survives_window_gate": False,
-        }
-    ordered = sorted(obs, key=lambda o: o["market_date"])
-    cut = int(round(n * (1.0 - HOLDOUT_FRAC)))
-    holdout = ordered[cut:]
-    mean_full = sum(o["realized_vrp"] for o in ordered) / n
-    mean_hold = (
-        sum(o["realized_vrp"] for o in holdout) / len(holdout) if holdout else None
+    wf = walkforward_gate(
+        obs,
+        value_key="realized_vrp",
+        min_n=min_n,
+        threshold=threshold,
+        holdout_threshold=holdout_threshold,
+        holdout_frac=HOLDOUT_FRAC,
+        expected_sign=1,
     )
-    if n < min_n:
-        survives_wf = False
-        survives_window = False
-    else:
-        sign_ok = mean_full > 0 and mean_hold is not None and mean_hold > 0
-        mag_ok = mean_full >= threshold and (
-            mean_hold is not None and mean_hold >= holdout_threshold
-        )
-        survives_wf = bool(sign_ok and mag_ok)
-        survives_window = _survives_quarter_gate(ordered, mean_full)
     return {
-        "mean_realized_vrp": mean_full,
-        "mean_holdout": mean_hold,
-        "n": n,
-        "n_holdout": len(holdout),
-        "survives_walkforward": survives_wf,
-        "survives_window_gate": survives_window,
+        "mean_realized_vrp": wf["mean"],
+        "mean_holdout": wf["mean_holdout"],
+        "n": wf["n"],
+        "n_holdout": wf["n_holdout"],
+        "survives_walkforward": wf["survives_walkforward"],
+        "survives_window_gate": wf["survives_window_gate"],
     }
 
 

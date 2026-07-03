@@ -11,8 +11,9 @@ Design: docs/superpowers/plans/2026-06-22-vrp-research-expansion.md
 from __future__ import annotations
 
 import math
-from collections import defaultdict
 from datetime import date as _date
+
+from uw_scan.backtest.gates import quarter_gate, walkforward_gate
 
 ANNUALIZATION = math.sqrt(252.0)
 HOLDOUT_FRAC = 0.40
@@ -107,22 +108,9 @@ def forward_realized_vol(
 
 
 def survives_quarter_gate(obs: list[dict], overall_mean: float, value_key: str) -> bool:
-    """Per-calendar-quarter catastrophic-degradation gate (standing rule). Fail if
-    ANY quarter reverses the aggregate sign with LARGER magnitude. Near-zero
-    aggregate auto-fails. Generalized over value_key so every target reuses it."""
-    if abs(overall_mean) < 1e-9:
-        return False
-    by_q: dict[tuple[int, int], list[float]] = defaultdict(list)
-    for o in obs:
-        d = o["market_date"]
-        by_q[(d.year, (d.month - 1) // 3)].append(o[value_key])
-    for vals in by_q.values():
-        if not vals:
-            continue
-        m = sum(vals) / len(vals)
-        if m * overall_mean < 0 and abs(m) > abs(overall_mean):
-            return False
-    return True
+    """Per-calendar-quarter catastrophic-degradation gate (standing rule).
+    Canonical implementation: uw_scan.backtest.gates.quarter_gate."""
+    return quarter_gate(obs, overall_mean, value_key)
 
 
 def walkforward(
@@ -134,52 +122,15 @@ def walkforward(
     value_key: str = "value",
     positive_only: bool = True,
 ) -> dict:
-    """Walk-forward holdout on the mean of obs[value_key]. positive_only=True for
-    one-sided claims (harvest > 0); False for two-sided (directional tilt, ΔVRP)
-    where the magnitude floor applies to |mean| and the sign must agree between
-    full and holdout. Holdout = latest HOLDOUT_FRAC of obs by market_date (no
-    leak). Means are descriptive for any n>=1; gates require min_n."""
-    n = len(obs)
-    base = {
-        "mean": None,
-        "mean_holdout": None,
-        "n": 0,
-        "n_holdout": 0,
-        "survives_walkforward": False,
-        "survives_window_gate": False,
-    }
-    if n == 0:
-        return base
-    ordered = sorted(obs, key=lambda o: o["market_date"])
-    cut = int(round(n * (1.0 - HOLDOUT_FRAC)))
-    holdout = ordered[cut:]
-    mean_full = sum(o[value_key] for o in ordered) / n
-    mean_hold = sum(o[value_key] for o in holdout) / len(holdout) if holdout else None
-    if n < min_n:
-        return {
-            **base,
-            "mean": mean_full,
-            "mean_holdout": mean_hold,
-            "n": n,
-            "n_holdout": len(holdout),
-        }
-    if positive_only:
-        sign_ok = mean_full > 0 and mean_hold is not None and mean_hold > 0
-        mag_ok = mean_full >= threshold and (
-            mean_hold is not None and mean_hold >= holdout_threshold
-        )
-    else:
-        sign_ok = mean_hold is not None and (mean_full * mean_hold > 0)
-        mag_ok = abs(mean_full) >= threshold and (
-            mean_hold is not None and abs(mean_hold) >= holdout_threshold
-        )
-    survives_wf = bool(sign_ok and mag_ok)
-    survives_window = survives_quarter_gate(ordered, mean_full, value_key)
-    return {
-        "mean": mean_full,
-        "mean_holdout": mean_hold,
-        "n": n,
-        "n_holdout": len(holdout),
-        "survives_walkforward": survives_wf,
-        "survives_window_gate": survives_window,
-    }
+    """Walk-forward holdout on the mean of obs[value_key]. positive_only=True
+    for one-sided claims (harvest > 0); False for two-sided. Delegates to
+    uw_scan.backtest.gates.walkforward_gate (expected_sign=+1 / None)."""
+    return walkforward_gate(
+        obs,
+        value_key=value_key,
+        min_n=min_n,
+        threshold=threshold,
+        holdout_threshold=holdout_threshold,
+        holdout_frac=HOLDOUT_FRAC,
+        expected_sign=1 if positive_only else None,
+    )

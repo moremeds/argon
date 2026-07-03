@@ -13,20 +13,25 @@ priced flat-vol (VIX/100 = IV) and settled model-free at the realized close; the
 wing is the stop. vrp_z = trailing-252 z-score of (IV − RV20). Sizing rules:
   always : 1                              gate0 : 1 if z>=0 else 0
   ramp   : 1 at z>=0, linear→0 at z=-0.5  ramp+ : 0 at z<=0, linear→1 at z>=0.5
+
+The section-2 synthesis grid now runs through uw_scan.backtest.sweep.run_sweep and
+persists its full trace (every config, every metric) to backtest_sweep_results via
+migration 095.
 """
 
 from __future__ import annotations
 
 from collections import defaultdict
 from datetime import date as _date
-from math import sqrt
-from statistics import fmean, pstdev
 
 import psycopg
 
+from uw_scan.backtest.metrics import monthly_summary
+from uw_scan.backtest.sweep import run_sweep
 from uw_scan.config import Settings
 from uw_scan.reports.vrp_macro_drawdown import load_index_vol
 from uw_scan.reports.vrp_structure import CostModel, build_bull_put_spread
+from uw_scan.storage.backtest_repository import BacktestRepository
 from uw_scan.storage.repository import Repository
 
 SHORT_DELTAS = (0.10, 0.16, 0.20, 0.25, 0.30, 0.35)
@@ -45,29 +50,6 @@ def make_sizer(name: str):
     if name == "ramp+":
         return lambda z: 0.0 if z is None else min(1.0, max(0.0, z / 0.5))
     raise ValueError(name)
-
-
-def _sharpe_maxdd(monthly: dict) -> tuple[float, float, float]:
-    """Zero-fill the contiguous month span; return (annualized Sharpe, maxDD on the
-    cumulative curve, annualized mean return)."""
-    if not monthly:
-        return float("nan"), 0.0, 0.0
-    yms = sorted(monthly)
-    (y0, m0), (y1, m1) = yms[0], yms[-1]
-    series, y, m = [], y0, m0
-    while (y, m) <= (y1, m1):
-        series.append(monthly.get((y, m), 0.0))
-        m += 1
-        if m == 13:
-            y, m = y + 1, 1
-    sd = pstdev(series)
-    sharpe = fmean(series) / sd * sqrt(12) if sd > 0 else float("nan")
-    cum = peak = mdd = 0.0
-    for x in series:
-        cum += x
-        peak = max(peak, cum)
-        mdd = min(mdd, cum - peak)
-    return sharpe, mdd, fmean(series) * 12
 
 
 def build_ctx(repo, settings, name: str):
@@ -130,7 +112,8 @@ def run_cfg(
         nrung += 1
         last_exit = pi + hold_days
     monthly = {k: v / max_slots for k, v in by_month.items()}
-    sh, dd, ar = _sharpe_maxdd(monthly)
+    s = monthly_summary(monthly)
+    sh, dd, ar = s["sharpe"], s["maxdd"], s["annror"]
     return dict(
         n=nrung,
         sharpe=sh,
@@ -167,20 +150,61 @@ def main() -> None:
                 f"{sd:>5.2f} {hd:>4} {o['n']:>4} {o['sharpe']:>7.2f} {o['maxdd']:>7.2f} {o['annror']:>+8.3f}"
             )
 
-    # 2) synthesis grid (weekly ladder x vrp-z sizing) — the lever
+    # 2) synthesis grid (weekly ladder x vrp-z sizing) — the lever, persisted (migration 095)
     print("\n=== synthesis: weekly ladder x vrp-z sizing (SPX, full history) ===")
     print(
         f"{'Δ':>5} {'DTE':>4} {'sizing':>7} {'n':>5} {'SHARPE':>7} {'maxDD':>7} {'Calmar':>7}"
     )
+    configs = [
+        {"short_delta": sd, "hold_days": hd, "sizing": sizing}
+        for sd in (0.25, 0.30, 0.35)
+        for hd in (20, 30)
+        for sizing in ("always", "gate0", "ramp", "ramp+")
+    ]
+
+    def run_one(cfg):
+        o = run_cfg(
+            spx,
+            short_delta=cfg["short_delta"],
+            hold_days=cfg["hold_days"],
+            cadence=5,
+            sizing=cfg["sizing"],
+        )
+        return {
+            "metrics": {k: o[k] for k in ("sharpe", "maxdd", "annror", "calmar")},
+            "n_trades": o["n"],
+            "_o": o,
+        }
+
+    bt_repo = BacktestRepository(conn, schema=settings.db_schema)
+    sweep_out = run_sweep(
+        configs,
+        run_one,
+        repo=bt_repo,
+        strategy="vrp_macro_bull_put_spread",
+        reproduce_cmd=(
+            "UW_SCAN_DB_HOST=127.0.0.1 UW_SCAN_DB_NAME=option_wizard_local "
+            "UW_SCAN_DB_USER=chenxi UW_SCAN_API_KEY=x "
+            "uv run python scripts/_vrp_macro_param_sweep.py"
+        ),
+        params_grid={
+            "short_delta": [0.25, 0.30, 0.35],
+            "hold_days": [20, 30],
+            "sizing": ["always", "gate0", "ramp", "ramp+"],
+        },
+        data_start=spx[0][0][0],
+        data_end=spx[0][-1][0],
+        notes="section-2 synthesis grid; sections 1/3 remain print-only",
+    )
     grid = []
-    for sd in (0.25, 0.30, 0.35):
-        for hd in (20, 30):
-            for sizing in ("always", "gate0", "ramp", "ramp+"):
-                o = run_cfg(spx, short_delta=sd, hold_days=hd, cadence=5, sizing=sizing)
-                grid.append((sd, hd, sizing, o))
-                print(
-                    f"{sd:>5.2f} {hd:>4} {sizing:>7} {o['n']:>5} {o['sharpe']:>7.2f} {o['maxdd']:>7.2f} {o['calmar']:>7.2f}"
-                )
+    for r in sweep_out["results"]:
+        cfg, o = r["config"], r["_o"]
+        grid.append((cfg["short_delta"], cfg["hold_days"], cfg["sizing"], o))
+        print(
+            f"{cfg['short_delta']:>5.2f} {cfg['hold_days']:>4} {cfg['sizing']:>7} "
+            f"{o['n']:>5} {o['sharpe']:>7.2f} {o['maxdd']:>7.2f} {o['calmar']:>7.2f}"
+        )
+    print(f"(persisted run_id={sweep_out['run_id']} -> uw_scan.backtest_sweep_results)")
     grid.sort(
         key=lambda x: x[3]["sharpe"] if x[3]["sharpe"] == x[3]["sharpe"] else -9,
         reverse=True,
@@ -220,7 +244,8 @@ def main() -> None:
         port = {
             k: sum(series[nm].get(k, 0.0) for nm in names) / len(names) for k in keys
         }
-        sh, dd, ar = _sharpe_maxdd(port)
+        s = monthly_summary(port)
+        sh, dd, ar = s["sharpe"], s["maxdd"], s["annror"]
         print(
             f"  portfolio {'+'.join(names):12s}: Sharpe {sh:.2f}  maxDD {dd:+.2f}  Calmar {(ar / abs(dd)) if dd < 0 else 0:.2f}"
         )
