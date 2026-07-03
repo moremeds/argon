@@ -23,6 +23,11 @@ from uw_scan.api.client import UwClient
 from uw_scan.config import Settings
 from uw_scan.sources.lake_resolver import resolve_lake_root
 from uw_scan.sources.ohlc import MassiveOhlcProvider
+from uw_scan.sources.uw_budget import (
+    limits_from_settings,
+    may_spend,
+    read_snapshot,
+)
 from uw_scan.storage.provider_usage import ExternalApiRequestRecorder
 from uw_scan.storage.repository import Repository
 from uw_scan.worker.jobs.cockpit_daily_snapshot import cockpit_daily_snapshot
@@ -31,6 +36,7 @@ from uw_scan.worker.jobs.credit_etf_lake_sync import run_credit_etf_lake_sync
 from uw_scan.worker.jobs.data_gap_healer import data_gap_healer_job
 from uw_scan.worker.jobs.flow_data_refresh import flow_data_refresh
 from uw_scan.worker.jobs.full_scan import full_scan_once
+from uw_scan.worker.jobs.full_scan_hot import full_scan_hot_once
 from uw_scan.worker.jobs.fundamentals_jobs import fundamentals_refresh_once
 from uw_scan.worker.jobs.gold_jobs import (
     gold_cftc_cot_ingest_job,
@@ -93,6 +99,35 @@ logging.basicConfig(
 logging.getLogger("apscheduler").setLevel(logging.WARNING)
 logger = logging.getLogger("uw_scan.worker")
 RESCAN_WORKER_CONCURRENCY = 2
+# Measured full_scan fan-out: ~17 UW endpoints per ticker per refresh. Used to
+# translate remaining live budget into a per-pass ticker cap.
+FULL_SCAN_CALLS_PER_TICKER = 17
+
+
+def _live_max_tickers(
+    settings: Settings, repo, *, shard_divisor: int = 1
+) -> int | None:
+    """Per-pass ticker cap from the UW budget governor's remaining live budget.
+
+    Returns None when the governor is disabled (no cap). Returns 0 when the live
+    pool or the account-wide guard is exhausted (scan nothing). ``shard_divisor``
+    splits the remaining budget across sharded uw workers so N workers don't each
+    spend the full remainder (the account guard is the hard backstop regardless).
+    """
+    if not settings.uw_budget_governor_enabled:
+        return None
+    snap = read_snapshot(repo.conn, settings.db_schema)
+    limits = limits_from_settings(settings)
+    if not may_spend("live", snap, limits):
+        return 0
+    remaining = limits.live_ceiling - snap.live_spent
+    if snap.account_count is not None:
+        remaining = min(remaining, limits.total_guard - snap.account_count)
+    remaining = max(0, remaining)
+    divisor = max(1, shard_divisor)
+    return remaining // FULL_SCAN_CALLS_PER_TICKER // divisor
+
+
 # Each regime scan tick checks the last N trading days for missing snapshots
 # and fills them. 7 days is enough to ride out a long-weekend outage on the
 # primary worker without growing the per-tick work unboundedly. Match this
@@ -469,6 +504,14 @@ def main() -> int:
                     # XENON_WS_ENABLED) we tell the storage layer to gate the
                     # spot triple + return triple in the ON CONFLICT branch so
                     # full_scan can't clobber WS values.
+                    # Budget governor: cap this pass at the remaining live
+                    # budget (divided across sharded uw workers), hot-first.
+                    max_tickers = _live_max_tickers(
+                        settings, repo, shard_divisor=settings.worker_count
+                    )
+                    if max_tickers == 0:
+                        logger.info("full_scan skipped: live UW budget exhausted")
+                        return
                     n = full_scan_once(
                         repo,
                         uw,
@@ -478,8 +521,27 @@ def main() -> int:
                             hours=settings.full_scan_stale_after_hours
                         ),
                         preserve_spot=settings.ws_spot_enabled,
+                        max_tickers=max_tickers,
                     )
                     logger.info("full_scan completed %d tickers", n)
+
+    def _full_scan_hot() -> None:
+        with _external_api_recorder(settings) as recorder:
+            with _uw_client(
+                settings, telemetry_recorder=recorder, job_name="full_scan_hot"
+            ) as uw:
+                with _repo(settings) as repo:
+                    # Primary-uw-only singleton (no shard divisor). Hot tickers
+                    # arrive hot-first; the governor caps overflow past budget.
+                    max_tickers = _live_max_tickers(settings, repo)
+                    full_scan_hot_once(
+                        repo,
+                        uw,
+                        _NoOhlc(),
+                        stale_minutes=settings.full_scan_hot_stale_minutes,
+                        preserve_spot=settings.ws_spot_enabled,
+                        max_tickers=max_tickers,
+                    )
 
     def _positioning_refresh() -> None:
         with _external_api_recorder(settings) as recorder:
@@ -1253,6 +1315,20 @@ def main() -> int:
                 max_instances=1,
                 coalesce=True,
             )
+            # Hot-subset full_scan — tight-freshness intraday refresh of the
+            # UI-flagged `hot` tickers. Primary-uw-only (no shard) so ≤25 hot
+            # names aren't scanned N times; live budget pool, governor-capped.
+            if settings.full_scan_hot_enabled:
+                sched.add_job(
+                    _full_scan_hot,
+                    CronTrigger.from_crontab(
+                        settings.full_scan_hot_cron, timezone=settings.rth_tz
+                    ),
+                    id="full_scan_hot",
+                    name="Hot-subset full_scan (fast lane)",
+                    max_instances=1,
+                    coalesce=True,
+                )
             # Single-name greek_exposure_daily refresh — UW aggregate
             # /greek-exposure history (~1 call/ticker), single-flight on uw-0.
             # Runs at 18:30 ET, inside the UW flow window, after the 18:00 vol
