@@ -7,6 +7,9 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+## [0.7.0] — 2026-07-04
+
+
 ### Added
 
 - **UW daily-budget governor + RTH cadence scale-up** (targets ~70k live / ~25k
@@ -65,7 +68,6 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   the real worker path, R2-primary for EOD/backfill, workers-don't-hot-reload).
   `AGENTS.md` is now a symlink to `CLAUDE.md` (its two unique lines — worktree
   location rule, `unusual_whales_api_spec.yaml` pointer — were merged in first).
-
 ## [0.6.0] — 2026-07-02
 
 
