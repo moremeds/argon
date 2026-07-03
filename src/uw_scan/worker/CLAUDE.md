@@ -2,12 +2,11 @@
 
 ## Files
 
-- `scheduler.py` — `BlockingScheduler` entrypoint (`python -m uw_scan.worker.scheduler`)
-- `jobs/full_scan.py` — full UW scan over the watchlist
-- `jobs/ohlc_pull.py` — daily OHLC pull from massive
-- `jobs/rescan_loop.py` — drains the `jobs` table for ad-hoc rescans (1s interval)
-- `jobs/spot_refresh.py` — intraday spot price refresh
+- `scheduler.py` — `BlockingScheduler` entrypoint (`python -m uw_scan.worker.scheduler`). **The authoritative job wiring** — `jobs/` has ~38 modules; read `scheduler.py` for what actually runs, when, and on which worker role.
+- `jobs/full_scan.py` / `jobs/ohlc_pull.py` / `jobs/rescan_loop.py` — the core scan/OHLC/rescan trio; the rest of `jobs/` is per-feature (gold, rates, regime, skew, vrp_*, option_surface_*, data_freshness/gap, trade_insights_ai*, …)
 - `volatility_jobs.py` — `daily_spy_ohlc_refresh`, `nightly_vol_analytics_rollup` (Volatility tab v2)
+- `massive_ws_consumer.py` + `ws_tick_buffer.py` + `ws_db_writer.py` — the standalone spot WS consumer process (see below)
+- `market_session.py`, `schedule_expectations.py`, `gold_warmup.py` — session-window helpers, health-panel schedule expectations, gold cache warmup
 
 ## Worker roles
 
@@ -92,6 +91,7 @@ its own process by `scripts/dev.sh`). Toggle via `MASSIVE_WS_ENABLED`
 - **Idempotent.** A job that runs twice in a minute (e.g., after a restart) must produce the same DB state.
 - **No business logic in `scheduler.py`** — it just wires triggers to functions. Heavy lifting lives in `jobs/*.py` and `volatility_jobs.py`.
 - **Signals: SIGTERM/SIGINT** trigger `sched.shutdown(wait=False)` then `sys.exit(0)`. Don't introduce blocking cleanup.
+- **Workers don't hot-reload.** uvicorn `--reload` refreshes only the API process; APScheduler workers keep running the module they imported at fork. If an edit "doesn't take effect", first run `/bin/ps -axww -o pid,etime,command | grep uw_scan` and compare `etime` to your edit time — restart the `concurrently` parent (`bash scripts/dev.sh`), not individual workers. Also check for duplicate `concurrently` parents (two = two competing dev stacks). Same applies to env rotation (`DEEPSEEK_API_KEY`, `XENON_*`, …): env is frozen at fork.
 
 ## Provider concurrency model
 

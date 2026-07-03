@@ -121,12 +121,16 @@ Worker roles: `ai-codex`, `ai-claude`, and `ai-deepseek` (provider-pinned, recom
 - **Always open a PR before merging to main.** `git push origin main` is forbidden
 - **Branch names** default to type prefixes: `feat/` for features, `fix/` for bug fixes, `chore/` for maintenance, and `misc/` for other work. Do not default to a `codex/` prefix
 - **Never add `Co-Authored-By: Claude` trailers** to commits
+- **CHANGELOG rides the feature PR.** Add the `[Unreleased]` entry on the feature branch BEFORE merging — code, tests, docs, and changelog in one PR. Only the `cut.sh prepare` version-bump PR is legitimately separate
+- **Worktrees live in `.worktrees/<branch-slug>/`** — the project-root `.worktrees/` directory is the only canonical location (already gitignored). When done, `git worktree remove <path>` — stale worktrees holding `main` block `git checkout main` in the primary repo
+- **Smoke tests run the real worker path** — API enqueue → DB row → worker claims → DB result → web UI renders. Never a one-off `/tmp` script calling the function directly; the user validates via the web page. If the worker predates your edit, restart the stack first (APScheduler doesn't hot-reload)
+- **R2 lake is primary for EOD/backfill reads** (new backtest/backfill code reads R2 parquet via `sources/lake.py`, falls back to the local mirror); Postgres warm store stays the API request-time read path. Outputs still persist to Postgres
 - **Migrations are idempotent** (`IF NOT EXISTS`, `ON CONFLICT DO NOTHING`). No tracking table — re-running is a no-op
 - **Live API tests** are marked `live` and need `UW_SCAN_API_KEY`; default `pytest` excludes them
 - **Screenshots and browser artifacts** go under `output/playwright/` with descriptive names. Do not create ad hoc screenshots, logs, snapshots, or downloaded browser artifacts in the repo root; keep them in `output/playwright/` so cleanup and review evidence stay manageable
 - **Module size budget** — target <500 lines per Python file; at 1000+ lines stop adding methods and propose a split first. `repository.py` reached 5000+ lines because the line was never drawn — don't repeat. Split by domain seam (one module per cohesive set of methods), not by technical layer. Cite this rule in any PR that grows a file past 1000 lines without a split plan
 - **API model refactors preserve contract identity** — `src/uw_scan/models/` may be split by domain, but `from uw_scan.models import X`, `models.__all__`, Pydantic field/default/config surfaces, and OpenAPI component names must stay stable unless the PR is explicitly an API contract change. When moving Pydantic models out of the package root, preserve public model `__module__` metadata and run the export, field-surface, and OpenAPI snapshot checks before review
-- **AGENTS.md** still lives at the root for Codex; keep both files in sync when policy changes
+- **AGENTS.md is a symlink to this file** (for Codex). Edit CLAUDE.md only; never materialize AGENTS.md as a separate file
 
 ## Where to look first
 
@@ -142,7 +146,7 @@ Worker roles: `ai-codex`, `ai-claude`, and `ai-deepseek` (provider-pinned, recom
 | Option surface capture (durable full-chain IV grid) + IB canary | `src/uw_scan/worker/jobs/option_surface_capture.py` + `worker/jobs/option_surface_iv_canary.py` + `storage/option_surface.py` + `sources/xenon_query.py` + migrations `077`/`078` (grid + `iv_source_validation`; jobs at 19:00/19:30 ET weekdays, uw-0); spec `docs/superpowers/specs/2026-06-19-option-surface-capture-design.md` |
 | Live spot WS feed (xenon primary / massive fallback) | `src/uw_scan/sources/{xenon_ws,massive_ws}.py` + `worker/massive_ws_consumer.py` + `worker/ws_db_writer.py`; active feed: `/api/health` `ws_consumer.active_source` |
 | UW endpoints (integrated) | `src/uw_scan/api/endpoints.py` + `sources/uw.py` |
-| UW API reference (standard tier) | `docs/uw-samples/unusual_whales_api.md` — integrated endpoints, untapped-but-accessible endpoints with signal-priority ranking, backfill notes. Consult before adding any new UW fetcher. Audit baseline: 140 accessible / 30 integrated (2026-05-15). |
+| UW API reference (standard tier) | `docs/uw-samples/unusual_whales_api.md` (human-readable) + `docs/uw-samples/unusual_whales_api_spec.yaml` (OpenAPI) — integrated endpoints, untapped-but-accessible endpoints with signal-priority ranking, backfill notes. Consult before adding any new UW fetcher. Audit baseline: 140 accessible / 30 integrated (2026-05-15). |
 | UW API reference (gated tiers) | `docs/uw-samples/unusual_whales_advanced_tier.md` — Advanced+ / Premium / Enterprise gated endpoints. Do not add fetchers for these without upgrading. |
 | UW sample payloads | `docs/uw-samples/*.json` — real responses for each integrated endpoint, with `_shape-summary.md` |
 | UW capability audit (machine-readable) | `docs/uw-samples/uw_api_capability_audit.json` + `uw_api_capability_audit.md` — full 177-operation matrix with live probe results, backfill classification, response shapes |

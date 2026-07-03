@@ -1,15 +1,20 @@
 # web/components — React components
 
-## Three subtrees
+## Eight subtrees
 
 ```
 components/
-├── shared/        # cross-page chrome: Sidebar, HealthPanel, RescanButton, ScanAllButton
+├── shared/        # cross-page chrome: AppShell, Sidebar, HealthPanel, QueueProgress, Rescan/ScanAll buttons
 ├── watchlist/     # landing-page card grid (TickerCard, FilterBar, CardGrid, blocks/badges)
-└── stock/         # per-ticker detail page
-    ├── DetailHeader.tsx, TabBar.tsx
-    ├── tabs/      # one client component per tab (FlowTab, VolatilityTabClient, etc.)
-    └── panels/    # the actual chart / tile components consumed by tabs
+├── stock/         # per-ticker detail page
+│   ├── DetailHeader.tsx, TabBar.tsx
+│   ├── tabs/      # one client component per tab (FlowTab, VolatilityTab, SkewTab, etc.)
+│   └── panels/    # the actual chart / tile components consumed by tabs
+├── regime/        # /regime subtabs (MultiPanelGrid, CRI/VCG/GEX/Canary/GRG/MarketTide/MacroShortVol)
+├── gold/          # /gold cockpit tiers
+├── rates/         # /rates panels
+├── scanner/       # /scanner candidates + discovery
+└── vrp/           # /vrp panels
 ```
 
 ## Conventions

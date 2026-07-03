@@ -7,16 +7,20 @@ tests/
 ├── unit/           # pure-function tests, no DB, no network
 ├── integration/    # real Postgres via pytest-postgresql
 │   ├── api/        # FastAPI endpoint tests
+│   ├── benchmark/  # pipeline benchmark harness
 │   ├── cards/      # deriver integration
+│   ├── deploy/     # deploy-script guards
+│   ├── e2e/        # cross-layer end-to-end
+│   ├── regime/     # CRI/VCG/Canary incl. OOS gates
 │   ├── reports/    # report assembly w/ DB
+│   ├── scanner/    # detector/ranking pipeline
+│   ├── scripts/    # scripts/ entrypoint tests
 │   ├── sources/    # UW client w/ recorded fixtures
 │   ├── storage/    # Repository against a real schema
 │   └── worker/     # job runners end-to-end
-└── live/           # hits the real UW API; needs UW_SCAN_API_KEY
-    └── test_uw_smoke.py
-```
-
-Standalone module-level tests (`test_smile_trim.py`, `test_fill_rv_from_price.py`, etc.) live in the repo root next to `tests/` and are picked up via `pytest.ini_options.testpaths = ["tests"]` plus the `pythonpath = ["src", "."]` setting — but new tests should go inside the tree above.
+├── live/           # hits the real UW API; needs UW_SCAN_API_KEY
+│   └── test_uw_smoke.py, test_flow_tab_live.py
+└── test_*.py       # a few legacy standalone module tests (test_smile_trim.py, test_fill_rv_from_price.py) — new tests go in the tree above
 
 ## Rules
 
