@@ -13,6 +13,7 @@ from uw_scan.backtest.metrics import (
     zero_filled_monthly,
 )
 from uw_scan.backtest.splitters import time_ordered_holdout
+from uw_scan.backtest.sweep import json_safe, run_sweep
 
 __all__ = [
     "additive_max_drawdown",
@@ -25,4 +26,6 @@ __all__ = [
     "walkforward_gate",
     "SignalPoint",
     "walk_forward_backtest",
+    "json_safe",
+    "run_sweep",
 ]
