@@ -20,6 +20,7 @@ import psycopg
 
 from uw_scan.api.client import UwClient
 from uw_scan.config import Settings
+from uw_scan.storage.provider_usage import ExternalApiRequestRecorder
 from uw_scan.storage.repository import Repository
 from uw_scan.worker.jobs.greek_exposure_daily_refresh import (
     greek_exposure_daily_refresh,
@@ -48,11 +49,15 @@ def main() -> int:
     ticker_filter = (lambda t: t.strip().upper() in keep) if keep else None
 
     repo = Repository(psycopg.connect(settings.db_dsn()), schema=settings.db_schema)
+    # Telemetry recorder → backfill UW spend visible to the budget governor
+    # (research pool), Phase 0.
+    recorder = ExternalApiRequestRecorder(settings.db_dsn(), schema=settings.db_schema)
     try:
         client = UwClient(
             api_key=settings.api_key.get_secret_value(),
             base_url=settings.base_url,
             timeout=settings.request_timeout_seconds,
+            telemetry_recorder=recorder,
             job_name="greek_exposure_daily_refresh_backfill",
         )
         summary = greek_exposure_daily_refresh(
@@ -61,6 +66,7 @@ def main() -> int:
         logger.info("backfill complete: %s", summary)
         return 0
     finally:
+        recorder.close()
         repo.conn.close()
 
 

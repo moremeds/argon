@@ -55,7 +55,8 @@ Set `UW_SCAN_WORKER_ROLE=uw|massive|ai|all`, `UW_SCAN_WORKER_INDEX`, and
 
 | Job | Trigger | Default |
 |---|---|---|
-| `full_scan` | cron | `0 5-16 * * 0-4`; scans only missing cards or cards older than 8h |
+| `full_scan` | cron | `full_scan_crons` (premarket+open+RTH :00/:30+close); scans stale cards only, `full_scan_stale_after_hours` (0.33≈20min), **budget-governor `max_tickers` cap, hot-first** |
+| `full_scan_hot` | cron | `*/5 9-16 * * 0-4` (uw-0; tight-freshness refresh of UI-flagged `hot` tickers; live budget pool, governor-capped) |
 | `ohlc_pull` | cron | `30 17 * * 0-4` |
 | `rescan_tick` | interval | 1s; user-requested rescans bypass the 8h freshness guard |
 | `daily_spy_ohlc_refresh` | cron | `30 16 * * 0-4` |
@@ -88,6 +89,7 @@ its own process by `scripts/dev.sh`). Toggle via `MASSIVE_WS_ENABLED`
 - **APScheduler weekdays are Monday=0.** Use `0-4` for Monday-Friday crons.
 - **Automatic UW scan freshness guard.** Full scan only queries tickers with no persisted card data or card data older than 8 hours. User-requested rescans always run.
 - **UW flow refresh window is weekdays 5:00am-7:59pm ET.** Flow-tab refresh skips outside that window.
+- **UW daily-budget governor.** The shared 120k account counter (resets 20:00 ET / 00:00 UTC) is split into a `live` pool (`full_scan`, `full_scan_hot`, `rescan_tick`) and a `research` pool (everything else incl. `*_backfill`). `_live_max_tickers` caps `full_scan`/`full_scan_hot` at the remaining live budget (hot-first, ÷worker_count for shards); `_research_budget_ok` gates research jobs. The account-wide `official_daily_count` header is the hard `total_guard`. Tune via `UW_{LIVE,RESEARCH}_DAILY_CEILING` / `UW_TOTAL_DAILY_GUARD`; disable with `UW_BUDGET_GOVERNOR_ENABLED=false`. See `sources/uw_budget.py`.
 - **Idempotent.** A job that runs twice in a minute (e.g., after a restart) must produce the same DB state.
 - **No business logic in `scheduler.py`** — it just wires triggers to functions. Heavy lifting lives in `jobs/*.py` and `volatility_jobs.py`.
 - **Signals: SIGTERM/SIGINT** trigger `sched.shutdown(wait=False)` then `sys.exit(0)`. Don't introduce blocking cleanup.

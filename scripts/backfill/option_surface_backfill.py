@@ -24,6 +24,7 @@ import psycopg
 from uw_scan.api.client import UwClient
 from uw_scan.config import Settings
 from uw_scan.sources.uw import fetch_greek_exposure_by_expiry
+from uw_scan.storage.provider_usage import ExternalApiRequestRecorder
 from uw_scan.storage.repository import Repository
 from uw_scan.worker.jobs.option_surface_capture import option_surface_backfill
 
@@ -31,11 +32,14 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(mess
 log = logging.getLogger("surface_backfill")
 
 
-def _client(s: Settings) -> UwClient:
+def _client(
+    s: Settings, recorder: ExternalApiRequestRecorder | None = None
+) -> UwClient:
     return UwClient(
         api_key=s.api_key.get_secret_value(),
         base_url=s.base_url,
         timeout=s.request_timeout_seconds,
+        telemetry_recorder=recorder,
         job_name="option_surface_backfill",
     )
 
@@ -57,7 +61,10 @@ def main() -> int:
 
     s = Settings.from_env()
     repo = Repository(psycopg.connect(s.db_dsn()), schema=s.db_schema)
-    client = _client(s)
+    # Telemetry recorder → backfill UW spend visible to the budget governor
+    # (research pool), Phase 0.
+    recorder = ExternalApiRequestRecorder(s.db_dsn(), schema=s.db_schema)
+    client = _client(s, recorder)
     try:
         # Pre-flight: one probe call to read the server-side daily budget.
         cards = repo.list_watchlist_cards()
@@ -103,6 +110,7 @@ def main() -> int:
         log.info("DONE — wrote %d surface-grid rows", written)
         return 0
     finally:
+        recorder.close()
         repo.conn.close()
 
 

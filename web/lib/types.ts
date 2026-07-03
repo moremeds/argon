@@ -8012,6 +8012,11 @@ export interface components {
             /** Aum */
             aum?: string | null;
             gamma: components["schemas"]["GammaBlock"];
+            /**
+             * Hot
+             * @default false
+             */
+            hot: boolean;
             /** Iv Atm */
             iv_atm?: string | null;
             /** Iv Rank */
@@ -8061,6 +8066,8 @@ export interface components {
         };
         /** WatchlistPatch */
         WatchlistPatch: {
+            /** Hot */
+            hot?: boolean | null;
             /** Notes */
             notes?: string | null;
             /** Pinned */
@@ -8072,6 +8079,16 @@ export interface components {
         };
         /** WatchlistResponse */
         WatchlistResponse: {
+            /**
+             * Hot Count
+             * @default 0
+             */
+            hot_count: number;
+            /**
+             * Hot Max
+             * @default 0
+             */
+            hot_max: number;
             queue?: components["schemas"]["QueueSummary"];
             /** Scanned At Max */
             scanned_at_max?: string | null;

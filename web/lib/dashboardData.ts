@@ -10,6 +10,8 @@ const emptyWatchlist: WatchlistResponse = {
     running: 0,
     oldest_requested_at: null,
   },
+  hot_count: 0,
+  hot_max: 0,
   tickers: [],
 };
 

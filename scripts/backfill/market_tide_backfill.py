@@ -23,6 +23,7 @@ import psycopg
 from uw_scan.api.client import UwClient
 from uw_scan.config import Settings
 from uw_scan.scanners import market_tide as market_tide_scanner
+from uw_scan.storage.provider_usage import ExternalApiRequestRecorder
 from uw_scan.storage.repository import Repository
 
 logging.basicConfig(level=logging.INFO)
@@ -49,6 +50,9 @@ def main() -> int:
         return 0
 
     repo = Repository(psycopg.connect(settings.db_dsn()), schema=settings.db_schema)
+    # Route through the telemetry recorder so backfill UW spend is visible to the
+    # budget governor (research pool) — Phase 0 of the UW budget rework.
+    recorder = ExternalApiRequestRecorder(settings.db_dsn(), schema=settings.db_schema)
     filled = 0
     attempted = 0
     try:
@@ -56,6 +60,7 @@ def main() -> int:
             api_key=settings.api_key.get_secret_value(),
             base_url=settings.base_url,
             timeout=settings.request_timeout_seconds,
+            telemetry_recorder=recorder,
             job_name="market_tide_backfill",
         )
         d = date.today()
@@ -84,6 +89,7 @@ def main() -> int:
         )
         return 0
     finally:
+        recorder.close()
         repo.conn.close()
 
 

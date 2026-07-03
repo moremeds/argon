@@ -114,6 +114,7 @@ class _WatchlistMixin:
         sector: str | None = None,
         notes: str | None = None,
         pinned: bool | None = None,
+        hot: bool | None = None,
         sort_rank: int | None = None,
     ) -> None:
         sets: list[str] = []
@@ -122,6 +123,7 @@ class _WatchlistMixin:
             ("sector", sector),
             ("notes", notes),
             ("pinned", pinned),
+            ("hot", hot),
             ("sort_rank", sort_rank),
         ):
             if val is not None:
@@ -136,6 +138,25 @@ class _WatchlistMixin:
                 vals,
             )
         self._conn.commit()
+
+    def list_hot_tickers(self) -> list[str]:
+        """Active tickers flagged `hot` (the fast-cadence full_scan subset)."""
+        with self._conn.cursor() as cur:
+            cur.execute(
+                f"SELECT ticker FROM {self._schema}.watchlist "
+                "WHERE hot IS TRUE AND removed_at IS NULL ORDER BY sort_rank, ticker"
+            )
+            return [r[0] for r in cur.fetchall()]
+
+    def count_hot_tickers(self) -> int:
+        """Count of active hot tickers (drives the UI hot-slots meter)."""
+        with self._conn.cursor() as cur:
+            cur.execute(
+                f"SELECT COUNT(*) FROM {self._schema}.watchlist "
+                "WHERE hot IS TRUE AND removed_at IS NULL"
+            )
+            row = cur.fetchone()
+            return int(row[0]) if row else 0
 
     # ---- watchlist_card ----
 
@@ -314,7 +335,7 @@ class _WatchlistMixin:
                 -- form tripped the planner into a parallel seq scan over
                 -- 2.6 GB of raw_payloads (9.4 s on the watchlist endpoint).
                 SELECT
-                  w.ticker, w.sector, w.pinned, w.sort_rank,
+                  w.ticker, w.sector, w.pinned, w.hot, w.sort_rank,
                   c.run_id, c.scanned_at,
                   CASE
                     WHEN q.price IS NOT NULL
@@ -383,7 +404,7 @@ class _WatchlistMixin:
                 LEFT JOIN {self._schema}.intraday_quote q ON w.ticker = q.ticker
                 LEFT JOIN active_jobs j ON w.ticker = j.ticker
                 WHERE w.removed_at IS NULL
-                ORDER BY w.pinned DESC, w.sort_rank, w.ticker
+                ORDER BY w.hot DESC, w.pinned DESC, w.sort_rank, w.ticker
                 """
             )
             return [
@@ -426,7 +447,7 @@ class _WatchlistMixin:
                 -- The screener / etf-AUM fallbacks are LEFT JOIN LATERAL
                 -- below (see list_watchlist_cards for the same rewrite).
                 SELECT
-                  w.ticker, w.sector, w.pinned, w.sort_rank,
+                  w.ticker, w.sector, w.pinned, w.hot, w.sort_rank,
                   c.run_id, c.scanned_at,
                   CASE
                     WHEN q.price IS NOT NULL
@@ -497,7 +518,7 @@ class _WatchlistMixin:
                 LEFT JOIN active_jobs j ON w.ticker = j.ticker
                 CROSS JOIN summary sm
                 WHERE w.removed_at IS NULL
-                ORDER BY w.pinned DESC, w.sort_rank, w.ticker
+                ORDER BY w.hot DESC, w.pinned DESC, w.sort_rank, w.ticker
                 """
             )
             all_rows = cur.fetchall()

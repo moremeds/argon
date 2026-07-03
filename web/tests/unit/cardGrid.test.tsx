@@ -12,6 +12,7 @@ vi.mock("@/components/watchlist/TickerCard", () => ({
 
 const baseCard = {
   pinned: false,
+  hot: false,
   spot: null,
   spot_quoted_at: null,
   spot_source: null,
@@ -66,6 +67,8 @@ describe("CardGrid", () => {
           scanned_at_max: null,
           scheduler_lag_seconds: null,
           queue: { total: 0, queued: 0, running: 0, oldest_requested_at: null },
+          hot_count: 0,
+          hot_max: 0,
           tickers: [
             card("UNH", "Healthcare", 0, "500"),
             card("HUT", "NeoCloud", 0, "4"),
@@ -113,6 +116,8 @@ describe("CardGrid", () => {
           scanned_at_max: null,
           scheduler_lag_seconds: null,
           queue: { total: 0, queued: 0, running: 0, oldest_requested_at: null },
+          hot_count: 0,
+          hot_max: 0,
           tickers: [
             { ...card("AAPL", "M7", 201, "3000"), pinned: false },
             { ...card("TSLA", "M7", 206, "900"), pinned: true },
@@ -139,6 +144,8 @@ describe("CardGrid", () => {
           scanned_at_max: null,
           scheduler_lag_seconds: null,
           queue: { total: 0, queued: 0, running: 0, oldest_requested_at: null },
+          hot_count: 0,
+          hot_max: 0,
           tickers: [
             // sort_rank says Banks first (400 < 420), but Healthcare has the
             // bigger member by size (500B vs 1B) so the new ordering puts it
@@ -166,6 +173,8 @@ describe("CardGrid", () => {
           scanned_at_max: null,
           scheduler_lag_seconds: null,
           queue: { total: 0, queued: 0, running: 0, oldest_requested_at: null },
+          hot_count: 0,
+          hot_max: 0,
           tickers: [
             card("ZZZ", "Beta", 100, null),
             card("AAA", "Beta", 100, null),

@@ -6,7 +6,7 @@ from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, Query
 
-from uw_scan.api.deps import get_repo
+from uw_scan.api.deps import get_repo, get_settings
 from uw_scan.api.schemas import (
     GammaBlock,
     PositioningBlock,
@@ -22,6 +22,7 @@ from uw_scan.api.schemas import (
     WatchlistSpot,
     WatchlistSpotsResponse,
 )
+from uw_scan.config import Settings
 from uw_scan.storage.repository import Repository, WatchlistCardRow
 
 router = APIRouter()
@@ -42,6 +43,7 @@ def _card_to_response(row: WatchlistCardRow) -> WatchlistCard:
         ticker=row.ticker,
         sector=row.sector,
         pinned=row.pinned,
+        hot=bool(row.hot),
         sort_rank=row.sort_rank,
         spot=row.spot,
         spot_quoted_at=row.spot_quoted_at,
@@ -87,6 +89,7 @@ def get_watchlist(
     ),
     fresh_within_minutes: int | None = Query(None, ge=1),
     repo: Repository = Depends(get_repo),
+    settings: Settings = Depends(get_settings),
 ) -> WatchlistResponse:
     rows, queue = repo.list_watchlist_cards_with_queue_summary()
     cutoff = (
@@ -126,6 +129,9 @@ def get_watchlist(
         out.append(_card_to_response(r))
 
     scanned_times = [c.scanned_at for c in out if c.scanned_at is not None]
+    # Hot-slots meter reflects ALL flagged tickers (pre sector/setup filter) so
+    # the "N / max" count is stable regardless of the current grid filter.
+    hot_count = sum(1 for r in rows if bool(r.hot))
     return WatchlistResponse(
         scanned_at_min=min(scanned_times, default=None),
         scanned_at_max=max(scanned_times, default=None),
@@ -136,6 +142,8 @@ def get_watchlist(
             running=queue.running,
             oldest_requested_at=queue.oldest_requested_at,
         ),
+        hot_count=hot_count,
+        hot_max=settings.full_scan_hot_max_tickers,
         tickers=out,
     )
 
@@ -212,6 +220,7 @@ def patch_watchlist(
         sector=body.sector,
         notes=body.notes,
         pinned=body.pinned,
+        hot=body.hot,
         sort_rank=body.sort_rank,
     )
     return {"ok": True, "ticker": ticker.upper()}
