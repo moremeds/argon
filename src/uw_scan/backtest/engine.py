@@ -9,7 +9,7 @@ decision. That keying is the whole no-lookahead guarantee.
 The engine is scalar return-space on purpose: multi-leg options structures
 (condors, spreads) are priced by strategy code into forward_returns; the trade
 record carries the origin's signal payload for the trace. Pure logic — no DB,
-no network, no numpy. Reference shape: radon scripts/backtest/engine.py.
+no network. Reference shape: radon scripts/backtest/engine.py.
 """
 
 from __future__ import annotations

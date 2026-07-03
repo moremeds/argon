@@ -2,8 +2,8 @@
 
 The **single home** for the compute primitives every strategy backtest shares:
 the replay engine, the OOS discipline gates, the performance metrics, and the
-parameter-sweep runner. Pure logic — **no DB, no network, no numpy** (the sweep
-runner takes an injected `repo`; nothing else touches storage). Design:
+parameter-sweep runner. Pure logic — **no DB, no network** (the sweep runner
+takes an injected `repo`; nothing else touches storage). Design:
 `docs/superpowers/plans/2026-07-03-backtest-walkforward-harness.md`.
 
 ## What lives here
