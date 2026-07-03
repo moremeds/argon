@@ -264,6 +264,7 @@ export const api = {
       sector: string;
       notes: string;
       pinned: boolean;
+      hot: boolean;
       sort_rank: number;
     }>,
   ): Promise<{ ok: boolean; ticker: string }> =>

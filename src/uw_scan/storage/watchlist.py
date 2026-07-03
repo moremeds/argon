@@ -114,6 +114,7 @@ class _WatchlistMixin:
         sector: str | None = None,
         notes: str | None = None,
         pinned: bool | None = None,
+        hot: bool | None = None,
         sort_rank: int | None = None,
     ) -> None:
         sets: list[str] = []
@@ -122,6 +123,7 @@ class _WatchlistMixin:
             ("sector", sector),
             ("notes", notes),
             ("pinned", pinned),
+            ("hot", hot),
             ("sort_rank", sort_rank),
         ):
             if val is not None:

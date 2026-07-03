@@ -53,6 +53,7 @@ const card = {
   ticker: "TSLA",
   sector: "Technology",
   pinned: false,
+  hot: false,
   sort_rank: 0,
   spot: "445.12",
   spot_quoted_at: "2026-05-14T00:54:48Z",

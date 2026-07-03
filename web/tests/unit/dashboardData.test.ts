@@ -25,6 +25,8 @@ describe("loadDashboardData", () => {
       scanned_at_max: null,
       scheduler_lag_seconds: null,
       queue: { total: 0, queued: 0, running: 0, oldest_requested_at: null },
+      hot_count: 0,
+      hot_max: 0,
       tickers: [],
     };
     vi.mocked(api.watchlist).mockResolvedValueOnce(payload);

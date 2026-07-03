@@ -59,6 +59,7 @@ class WatchlistCard(BaseModel):
     ticker: str
     sector: str
     pinned: bool
+    hot: bool = False
     sort_rank: int
 
     spot: Decimal | None = None
@@ -94,6 +95,11 @@ class WatchlistResponse(BaseModel):
     scanned_at_max: datetime | None = None
     scheduler_lag_seconds: float | None = None
     queue: QueueSummary = Field(default_factory=QueueSummary)
+    # Hot-slots meter: how many tickers are flagged `hot` vs the soft cap the
+    # budget governor targets. The UI shows "N / max"; flagging past max is
+    # allowed but the overflow waits for budget.
+    hot_count: int = 0
+    hot_max: int = 0
     tickers: list[WatchlistCard]
 
 
@@ -109,6 +115,7 @@ class WatchlistPatch(BaseModel):
     sector: str | None = None
     notes: str | None = None
     pinned: bool | None = None
+    hot: bool | None = None
     sort_rank: int | None = None
 
 
