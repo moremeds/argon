@@ -135,6 +135,12 @@ class Settings(BaseModel):
     # (cold tickers skipped) rather than 429-storming. Hot tickers get a much
     # tighter cadence via the separate hot-subset job below.
     full_scan_stale_after_hours: float = 0.33
+    # Grace period for the health "expected full scans missed" liveness alarm.
+    # Decoupled from card freshness on purpose: the budget governor may
+    # deliberately throttle/skip full_scan under UW-budget pressure, which ages
+    # last_scan without meaning the scheduler is dead. Keep this loose (~1h) so
+    # the alarm signals a genuinely stuck worker, not a governed skip.
+    health_full_scan_missed_grace_hours: float = 1.0
     # Sliding-window for the per-table coverage check on tables that only
     # update once per day (cockpit + nightly vol rollup). Anything below
     # 24h would always alert on those tables; 26h gives a small grace gap.
@@ -488,6 +494,9 @@ class Settings(BaseModel):
             # schedule.
             full_scan_stale_after_hours=float(
                 os.environ.get("UW_SCAN_FULL_SCAN_STALE_HOURS", "0.33")
+            ),
+            health_full_scan_missed_grace_hours=float(
+                os.environ.get("UW_SCAN_HEALTH_FULL_SCAN_MISSED_GRACE_HOURS", "1.0")
             ),
             ohlc_pull_cron=os.environ.get("UW_SCAN_OHLC_PULL_CRON", "30 17 * * 0-4"),
             positioning_refresh_cron=os.environ.get(

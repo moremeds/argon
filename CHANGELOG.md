@@ -7,8 +7,52 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+### Added
+
+- **UW daily-budget governor + RTH cadence scale-up** (targets ~70k live / ~25k
+  research under the shared 120k account cap). New `sources/uw_budget.py` reads
+  today's UW spend from `external_api_requests`, splits jobs into a `live` pool
+  (`full_scan`, `full_scan_hot`, `rescan_tick`) and a `research` pool (everything
+  else incl. `*_backfill`), and enforces per-pool ceilings plus an account-wide
+  total guard (from the `official_daily_count` header, which also sees
+  un-instrumented consumers). Under budget pressure `full_scan` scans hot-first
+  and drops the cold tail (`max_tickers` cap) instead of 429-storming; research
+  jobs yield first. Env: `UW_BUDGET_GOVERNOR_ENABLED`, `UW_LIVE_DAILY_CEILING`
+  (80000), `UW_RESEARCH_DAILY_CEILING` (30000), `UW_TOTAL_DAILY_GUARD` (105000),
+  `UW_DAILY_LIMIT` (120000).
+- **Hot-subset fast lane** — a per-ticker `hot` flag (migration 096, UI toggle
+  mirroring the pin: `HotButton` + watchlist hot-slots meter). Hot tickers get a
+  tight-freshness intraday `full_scan` (`full_scan_hot` job, `*/5 9-16` ET,
+  primary-uw-only, governor-capped). Env: `FULL_SCAN_HOT_ENABLED`,
+  `FULL_SCAN_HOT_CRON`, `FULL_SCAN_HOT_STALE_MINUTES`, `FULL_SCAN_HOT_MAX_TICKERS`.
+- **Intraday GEX research series** — `regime_gex_scan` expanded from the
+  SPX/SPY/TLT core to the index family + M7 and moved to a split RTH-fast
+  (`*/2`) / off-hours-slow (`*/15`) weekday cadence, building the append-only
+  intraday GEX/DEX series UW only serves at EOD. Env:
+  `GEX_SCAN_RTH_INTERVAL_MINUTES`, `GEX_SCAN_OFFHOURS_INTERVAL_MINUTES`,
+  `GEX_SCAN_TICKERS`.
+
+
+- Unified backtest harness `src/uw_scan/backtest/` (no-lookahead replay engine,
+  time-ordered holdout splitter, walkforward+quarter OOS gates, legacy-convention
+  metrics, persist-as-you-go sweep runner) + migration 095
+  (`backtest_sweep_runs`/`backtest_sweep_results`). `skew_markout`, `vrp_markout`,
+  `vrp_markout_core`, and `vrp_backtest` gate/holdout logic is now fully
+  deduplicated onto it (behavior-identical) — no private copies remain;
+  `scripts/_vrp_macro_param_sweep.py` synthesis grid now persists its full trace.
+
 ### Changed
 
+- `full_scan_stale_after_hours` is now a float defaulting to **0.33** (~20-min
+  watchlist freshness, was int `1`). `UW_SCAN_FULL_SCAN_STALE_HOURS` accepts
+  fractional hours. The health "expected full scans missed" liveness alarm is
+  now decoupled from card freshness onto its own grace knob
+  (`health_full_scan_missed_grace_hours`, default 1.0h) so a governed
+  throttle/skip no longer false-alarms as a dead scheduler.
+- Backfill scripts (`market_tide`, `greek_exposure_daily_refresh`,
+  `intraday_buckets`, `option_surface`) now route UW calls through
+  `ExternalApiRequestRecorder`, so their spend is attributed to the research
+  pool and visible to the governor (Phase 0).
 - **CLAUDE.md refresh + AGENTS.md deduplication.** All 14 in-repo CLAUDE.md
   files audited against the current tree and de-staled (api routers 6→17,
   cards/reports rewritten as domain-group maps, worker's dead
@@ -18,16 +62,6 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   the real worker path, R2-primary for EOD/backfill, workers-don't-hot-reload).
   `AGENTS.md` is now a symlink to `CLAUDE.md` (its two unique lines — worktree
   location rule, `unusual_whales_api_spec.yaml` pointer — were merged in first).
-
-### Added
-
-- Unified backtest harness `src/uw_scan/backtest/` (no-lookahead replay engine,
-  time-ordered holdout splitter, walkforward+quarter OOS gates, legacy-convention
-  metrics, persist-as-you-go sweep runner) + migration 095
-  (`backtest_sweep_runs`/`backtest_sweep_results`). `skew_markout`, `vrp_markout`,
-  `vrp_markout_core`, and `vrp_backtest` gate/holdout logic is now fully
-  deduplicated onto it (behavior-identical) — no private copies remain;
-  `scripts/_vrp_macro_param_sweep.py` synthesis grid now persists its full trace.
 
 ## [0.6.0] — 2026-07-02
 
