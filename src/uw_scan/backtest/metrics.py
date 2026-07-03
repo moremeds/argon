@@ -1,7 +1,8 @@
 """Performance-metric primitives for the backtest harness.
 
 Pure functions over per-period SIMPLE returns (0.01 == +1%). Population std
-(ddof=0) everywhere — matches scripts/_vrp_macro_param_sweep.py::_sharpe_maxdd,
+(ddof=0) everywhere — these reproduce the numbers of the sweep's former
+_sharpe_maxdd (now removed; _vrp_macro_param_sweep imports monthly_summary),
 whose saved trace (docs/research/vrp/) is the reproduction target. Degenerate
 inputs return nan/0.0 rather than raising so sweep summaries stay serializable.
 Drawdown is on the ADDITIVE cumulative curve (ROR units), not compounded —
@@ -43,7 +44,7 @@ def hit_rate(returns: Sequence[float]) -> float:
 
 def zero_filled_monthly(monthly: Mapping[tuple[int, int], float]) -> list[float]:
     """Contiguous (year, month)-keyed span, missing months as 0.0 — exact port
-    of the span logic in _sharpe_maxdd (a month with no exits is a flat month,
+    of the span logic in the former _sharpe_maxdd (a month with no exits is a flat month,
     not a skipped one; skipping would overstate Sharpe)."""
     if not monthly:
         return []
@@ -60,7 +61,7 @@ def zero_filled_monthly(monthly: Mapping[tuple[int, int], float]) -> list[float]
 
 
 def monthly_summary(monthly: Mapping[tuple[int, int], float]) -> dict:
-    """Drop-in replacement for _vrp_macro_param_sweep._sharpe_maxdd.
+    """Drop-in replacement for the sweep's former _sharpe_maxdd (now removed).
     Returns {'sharpe', 'maxdd', 'annror'} over the zero-filled monthly series."""
     series = zero_filled_monthly(monthly)
     if not series:
