@@ -1,6 +1,7 @@
-"""OOS discipline gates — the single home for logic previously duplicated in
-reports/skew_markout.py (_rv_walkforward/_rv_survives_window_gate) and
-reports/vrp_markout_core.py (walkforward/survives_quarter_gate).
+"""OOS discipline gates — the single home for the walk-forward holdout and the
+per-quarter catastrophic-degradation gate. Strategy modules (skew_markout,
+vrp_markout, vrp_markout_core, vrp_backtest) delegate here rather than keeping
+private copies.
 
 quarter_gate is the standing per-window catastrophic-degradation rule
 (feedback_per_regime_catastrophic_gate): an aggregate that hides a sub-window

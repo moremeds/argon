@@ -12,13 +12,20 @@ from typing import Callable, Iterable, TypeVar
 T = TypeVar("T")
 
 
+def holdout_cut_index(n: int, frac: float) -> int:
+    """First index of a time-ordered holdout of the latest `frac`:
+    int(round(n * (1 - frac))). The single source of the legacy cut rounding;
+    do not change it."""
+    return int(round(n * (1.0 - frac)))
+
+
 def time_ordered_holdout(
     items: Iterable[T], *, key: Callable[[T], object], frac: float
 ) -> tuple[list[T], list[T]]:
     """Sort ascending by key; return (ordered, holdout) where holdout is the
-    latest tail. Cut index is int(round(n * (1 - frac))) — the EXACT boundary
-    of the two legacy gate implementations (skew_markout, vrp_markout_core);
-    do not change the rounding."""
+    latest tail. Cut index is holdout_cut_index(n, frac) = int(round(n*(1-frac)))
+    — the exact legacy boundary shared by every gate/holdout consumer; do not
+    change the rounding."""
     ordered = sorted(items, key=key)
-    cut = int(round(len(ordered) * (1.0 - frac)))
+    cut = holdout_cut_index(len(ordered), frac)
     return ordered, ordered[cut:]

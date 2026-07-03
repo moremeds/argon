@@ -28,7 +28,7 @@ from collections import defaultdict
 from datetime import date as _date
 from typing import Any
 
-from uw_scan.backtest.gates import walkforward_gate
+from uw_scan.backtest.gates import quarter_gate, walkforward_gate
 from uw_scan.storage.repository import Repository
 
 log = logging.getLogger(__name__)
@@ -186,7 +186,7 @@ def run_skew_markout(
         clean = [o for o in obs if o["clean"]]
         n = len(clean)
         sep = sum(o["fwd"] for o in clean) / n if n else 0.0
-        survives = _survives_window_gate(clean, sep)
+        survives = quarter_gate(clean, sep, value_key="fwd")
         material = n >= min_n and abs(sep) >= sep_threshold and survives
         if material and sep < 0:
             verdict = "TRADABLE_BEAR"
@@ -251,27 +251,6 @@ def run_skew_markout(
         "mean_reversion": mean_reversion,  # PRIMARY hypothesis, descriptive
         "rv_reversion": rv_report,  # PRIMARY hypothesis, now gated + walk-forward
     }
-
-
-def _survives_window_gate(clean: list[dict], overall_sep: float) -> bool:
-    """Per-TIME-WINDOW catastrophic-degradation gate (memory:
-    feedback_per_regime_catastrophic_gate). Partition the bucket's borrow-clean
-    obs by CALENDAR QUARTER; fail if any quarter reverses the aggregate sign with
-    LARGER magnitude — i.e. the aggregate is hiding a sub-window blowup. (Keying
-    by regime would be a no-op since the bucket is already single-regime.)"""
-    if abs(overall_sep) < 1e-9:
-        return False
-    by_q: dict[tuple, list[float]] = defaultdict(list)
-    for o in clean:
-        d = o["market_date"]
-        by_q[(d.year, (d.month - 1) // 3)].append(o["fwd"])
-    for vals in by_q.values():
-        if not vals:
-            continue
-        m = sum(vals) / len(vals)
-        if m * overall_sep < 0 and abs(m) > abs(overall_sep):
-            return False
-    return True
 
 
 def _all_snapshots(repo: Repository) -> list[dict[str, Any]]:

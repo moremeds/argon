@@ -12,8 +12,9 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 - Unified backtest harness `src/uw_scan/backtest/` (no-lookahead replay engine,
   time-ordered holdout splitter, walkforward+quarter OOS gates, legacy-convention
   metrics, persist-as-you-go sweep runner) + migration 095
-  (`backtest_sweep_runs`/`backtest_sweep_results`). `skew_markout` and
-  `vrp_markout_core` gate logic deduplicated onto it (behavior-identical);
+  (`backtest_sweep_runs`/`backtest_sweep_results`). `skew_markout`, `vrp_markout`,
+  `vrp_markout_core`, and `vrp_backtest` gate/holdout logic is now fully
+  deduplicated onto it (behavior-identical) — no private copies remain;
   `scripts/_vrp_macro_param_sweep.py` synthesis grid now persists its full trace.
 
 ## [0.6.0] — 2026-07-02

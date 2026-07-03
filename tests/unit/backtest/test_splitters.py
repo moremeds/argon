@@ -32,3 +32,12 @@ def test_sorts_by_key_ascending():
 
 def test_empty():
     assert time_ordered_holdout([], key=lambda o: o, frac=0.40) == ([], [])
+
+
+def test_holdout_cut_index_matches_legacy_rounding():
+    from uw_scan.backtest.splitters import holdout_cut_index
+
+    assert holdout_cut_index(0, 0.40) == 0
+    assert holdout_cut_index(10, 0.40) == 6
+    assert holdout_cut_index(5, 0.40) == 3  # round(3.0)=3
+    assert holdout_cut_index(7, 0.40) == 4  # round(4.2)=4

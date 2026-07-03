@@ -12,7 +12,7 @@ from uw_scan.backtest.metrics import (
     monthly_summary,
     zero_filled_monthly,
 )
-from uw_scan.backtest.splitters import time_ordered_holdout
+from uw_scan.backtest.splitters import holdout_cut_index, time_ordered_holdout
 from uw_scan.backtest.sweep import json_safe, run_sweep
 
 __all__ = [
@@ -22,6 +22,7 @@ __all__ = [
     "monthly_summary",
     "zero_filled_monthly",
     "time_ordered_holdout",
+    "holdout_cut_index",
     "quarter_gate",
     "walkforward_gate",
     "SignalPoint",
