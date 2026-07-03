@@ -366,6 +366,8 @@ REGISTRY.extend(
             "vrp_backtest_trades",
             "vrp_paper_positions",
             "vrp_macro_sweep_results",
+            "backtest_sweep_runs",
+            "backtest_sweep_results",
             "vrp_trade_candidates",
             "vrp_leg_nbbo",
             "vrp_harvest_by_sector",
