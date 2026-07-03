@@ -157,5 +157,6 @@ Worker roles: `ai-codex`, `ai-claude`, and `ai-deepseek` (provider-pinned, recom
 | Stock detail page | `web/app/stock/[ticker]/page.tsx` + `components/stock/tabs/*` |
 | Per-stock short-vol card (single-name sibling of macro short-vol) | `reports/stock_short_vol.py` (`decide_short_vol`/`build_short_vol`) + `models/stock.py` (`StockShortVol`, `SingleStockReport.short_vol`) + `web/components/stock/panels/ShortVolPanel.tsx` + `web/components/stock/tabs/MarketStructureTab.tsx`; read-time reshape of `vrp_daily` gated by `reports/vrp_gate.py`; plan `docs/superpowers/plans/2026-06-24-stock-short-vol-card.md` |
 | Watchlist landing | `web/app/page.tsx` + `components/watchlist/CardGrid.tsx` |
+| Backtest harness (engine/gates/metrics/sweep) | `src/uw_scan/backtest/` + `storage/backtest_repository.py` + migration `095`; consumers: `reports/{skew_markout,vrp_markout_core}.py`, `scripts/_vrp_macro_param_sweep.py`; plan `docs/superpowers/plans/2026-07-03-backtest-walkforward-harness.md` |
 | Release pipeline (versioning + workflow) | `VERSION` + `CHANGELOG.md` + `scripts/release/{_lib.sh,version_sync_check.py,cut.sh}` + `.github/workflows/release.yml` |
 | Auto-deploy to the mini | `scripts/deploy/macmini-deploy-poller.sh` + `config/templates/com.argon.deploy-poller.plist.template` + `scripts/deploy/macmini-prod.sh`; runbook `docs/runbooks/release.md` |

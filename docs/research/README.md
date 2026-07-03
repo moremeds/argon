@@ -22,3 +22,4 @@ This index pulls together the research work that is ready to browse from the
 | [Skew DTE Verification](options-signals/2026-05-12-skew-dte-verification.md) | Confirms that the existing `volatility.skew_25d` is nearest-expiry skew, not 30-DTE skew. |
 | [Vol-Neutral Mean Reversion](options-signals/2026-05-13-vol-neutral-mean-reversion-strategy-research.md) | Maps Volatility Tab v2 features to future defined-risk volatility and mean-reversion research. |
 | [Setup Classifier Evidence](options-signals/2026-05-15-setup-classifier-evidence.md) | Documents why signed option flow drives setup direction while IV rank is retained as context instead of a hard directional gate. |
+| [Radon Feature Probe](2026-07-03-radon-feature-probe.md) | Full-repo pass over sibling project radon; 5 ranked feature candidates for argon (SVI vol-surface fit, walk-forward backtest harness, alert rules engine, Polymarket divergence, order-book microstructure) with fit/lift notes. |
