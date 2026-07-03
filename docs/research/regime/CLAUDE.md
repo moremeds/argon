@@ -4,7 +4,7 @@
 
 - `cri-methodology.md` — **source of truth** for CRI math, calibration, and design decisions. Read this before changing any threshold in `src/uw_scan/cards/cri_scorers.py`.
 - `vcg-methodology.md` — **source of truth** for VCG math, calibration, and design decisions. Read this before changing any threshold in `src/uw_scan/cards/vcg_scoring.py`.
-- `canary-methodology.md` — **source of truth** for 5% Canary math, calibration, and design decisions. Read this before changing any threshold in `canary-calibration-v1.json` or `src/uw_scan/cards/canary_scoring.py`. Anchored on Thrasher (2023, NAAIM) plus five literature-backed vol-complex signals.
+- `canary-methodology.md` — **source of truth** for 5% Canary math, calibration, and design decisions. Read this before changing any threshold in the `canary-calibration-v*.json` files (v1 and v2 both exist; the code constant in `canary_calibration.py` decides which is live) or `src/uw_scan/cards/canary_scoring.py`. Anchored on Thrasher (2023, NAAIM) plus five literature-backed vol-complex signals.
 - `cri-validation.ipynb` — out-of-sample walk-forward validation against 20 years of CBOE vol-complex data. Section 9 is the honest accuracy breakdown.
 - `closure-2026-05-24.md` — closure memo for the regime-research workspace with SQL cookbook for the DB-backed backtest tables.
 

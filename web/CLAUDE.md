@@ -15,11 +15,16 @@ Argon dark theme, terminal aesthetic. Mono labels uppercase, hand-rolled SVG cha
 ```
 web/
 ├── app/                 # Next.js App Router (pages, layouts, RSC)
-├── components/          # React components
-│   ├── shared/          # Sidebar, HealthPanel, RescanButton, ScanAllButton
+├── components/          # React components — 8 subtrees
+│   ├── shared/          # cross-page chrome: AppShell, Sidebar, HealthPanel, QueueProgress, Rescan/ScanAll buttons
 │   ├── watchlist/       # CardGrid + TickerCard + filters
-│   └── stock/           # Detail page tabs + panels
-├── lib/                 # api.ts, formatters, types.ts (generated)
+│   ├── stock/           # Detail page tabs + panels
+│   ├── regime/          # /regime subtab components (CRI, VCG, GEX, Canary, GRG, MacroShortVol, …)
+│   ├── gold/            # /gold GOLD COMPASS cockpit
+│   ├── rates/           # /rates panels
+│   ├── scanner/         # /scanner candidates + discovery
+│   └── vrp/             # /vrp panels
+├── lib/                 # api.ts, formatters, types.ts (generated), svgChart.ts, regime/, dashboardData, freshness, occ
 └── tests/               # unit (vitest) + e2e (playwright)
 ```
 

@@ -12,10 +12,15 @@ uw_scan/
 ├── pipeline.py          # legacy scan pipeline (still used by full_scan job)
 ├── scoring.py           # numerical scoring used by the scan/cards
 ├── api/                 # FastAPI app + routers + UW HTTP client
+├── backtest/            # walk-forward backtest harness (own CLAUDE.md)
+├── benchmark/           # pipeline benchmark harness
 ├── cards/               # per-ticker analytical derivers (pure functions on rows)
+├── rates/               # US-rates domain (curve, policy, positioning, supply)
 ├── reports/             # report assemblers (stitch DB rows → response models)
-├── sources/             # external clients (uw.py, ohlc.py)
-├── storage/             # Repository + SQL migrations
+├── scanner/             # detector/ranking/discovery pipeline (feeds /scanner)
+├── scanners/            # market-wide indicator scanners (cri, vcg, gex, grg, canary, …)
+├── sources/             # external clients (uw.py, ohlc.py, xenon_*, lake, gold, rates)
+├── storage/             # Repository + standalone repositories + SQL migrations
 └── worker/              # APScheduler + job functions
 ```
 

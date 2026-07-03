@@ -6,9 +6,10 @@
 - `_base.py` — `_BaseMixin` (Repository `__init__` + `conn` property). MUST be LAST in MRO.
 - `_helpers.py` — pure utility functions (`_d`, `_nullable_int/float`, `provider_day_bounds`, `redact_params`, `status_family_for`).
 - `rows.py` — frozen `@dataclass` row types + `WatchlistCardRow`.
-- `audit.py` / `flow.py` / `health.py` / `jobs.py` / `market_data.py` / `scan_outputs.py` — per-domain mixins extracted in PR-1.
-- `cockpit.py` / `external_api.py` / `fetchers.py` / `gex.py` / `gold.py` / `matrix_state.py` / `options.py` / `scan_results.py` / `scan_runs.py` / `trade_insights_ai.py` / `volatility_raw.py` / `volatility_v2.py` / `watchlist.py` — per-domain mixins extracted in PR-2.
+- `<domain>.py` — ~30 per-domain mixins composed into `Repository` (audit, flow, gex, gold, options, skew, vrp_*, …). The import block in `repository.py` is the authoritative list.
+- `*_repository.py` — **standalone repositories** NOT composed into `Repository` (e.g. `backtest_repository`, `data_freshness_repository`, `data_gap_healer_repository`, the `*_snapshot_repository` family, `signals_repository`, `vol_index_repository`, `ws_consumer_state`, …). This is the preferred shape for new domains — see "Adding a new domain" below.
 - `provider_usage.py` — `ExternalApiRequestRecorder` (out-of-band telemetry writer). Not part of `Repository`.
+- `migrate_runner.py` — in-process migration applier used by tests.
 - `migrations/*.sql` — applied lexically by `scripts/migrate.sh`
 
 ## Mixin pattern (post-2026-05-16 PR-1 split)
@@ -17,12 +18,7 @@
 
 ```python
 class Repository(
-    _AuditMixin, _CockpitMixin, _ExternalApiMixin, _FetchersMixin,
-    _FlowMixin, _GexMixin, _GoldMixin, _GoldEtfMixin,
-    _HealthMixin, _JobsMixin, _MarketDataMixin, _MatrixStateMixin,
-    _OptionsMixin, _ScanOutputsMixin, _ScanResultsMixin, _ScanRunsMixin,
-    _TradeInsightsAiMixin, _VolatilityRawMixin, _VolatilityV2Mixin,
-    _WatchlistMixin,
+    _AuditMixin, _CockpitMixin, ..., _WatchlistMixin,   # ~30 domain mixins — see repository.py
     _BaseMixin,  # MUST be last — owns __init__ and the conn property
 ):
     # New methods go in the appropriate mixin file, NOT here.
@@ -35,7 +31,7 @@ Conventions for the mixin pattern:
 - **`from __future__ import annotations`** at top of every storage file.
 - **No `__init__` on domain mixins.** Only `_BaseMixin` defines it; Python's MRO calls only the leftmost class's `__init__`, so any other mixin defining one would break construction.
 - **Type hints for `self._conn` and `self._schema`** as class-level annotations (`_conn: psycopg.Connection`). Values are set by `_BaseMixin.__init__` at runtime.
-- **Adding a new domain** → new file `<domain>.py` + `_<Domain>Mixin` class + add to `repository.py`'s import block and inheritance list (above `_BaseMixin`).
+- **Adding a new domain** → prefer a **standalone** `storage/<domain>_repository.py` class from method one (standing feedback rule — never grow `repository.py`). Only add a `_<Domain>Mixin` when existing `Repository` callers genuinely need the methods on the shared instance; then add it to `repository.py`'s import block and inheritance list (above `_BaseMixin`).
 - **Adding a new row dataclass** → goes in `rows.py`; re-export from `repository.py`'s `from .rows import (...)` block and `__all__`.
 - **Adding a new pure helper** → goes in `_helpers.py`; if externally importable, also re-export from `repository.py`.
 - **Backward compat**: callers' `from uw_scan.storage.repository import X` paths MUST keep working — all moved names are explicitly re-exported.
@@ -58,7 +54,7 @@ Conventions for the mixin pattern:
   - `ON CONFLICT DO NOTHING` for seeds
 - **Header every file** with `SET search_path TO uw_scan, public;`
 - **Re-running on a migrated DB is a no-op.** Test this locally before committing.
-- New migration → next lexical number (`015_…`). Don't renumber existing files.
+- New migration → next lexical number (currently in the `09x_…` range). Don't renumber existing files.
 
 ## When the schema changes
 

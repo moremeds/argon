@@ -7,6 +7,18 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+### Changed
+
+- **CLAUDE.md refresh + AGENTS.md deduplication.** All 14 in-repo CLAUDE.md
+  files audited against the current tree and de-staled (api routers 6→17,
+  cards/reports rewritten as domain-group maps, worker's dead
+  `jobs/spot_refresh.py` entry removed, web stock `[tab]/` router + `/rates`
+  `/vrp` routes documented, tests layout corrected). Four standing rules
+  promoted from session memory (CHANGELOG-rides-the-feature-PR, smoke tests via
+  the real worker path, R2-primary for EOD/backfill, workers-don't-hot-reload).
+  `AGENTS.md` is now a symlink to `CLAUDE.md` (its two unique lines — worktree
+  location rule, `unusual_whales_api_spec.yaml` pointer — were merged in first).
+
 ### Added
 
 - Unified backtest harness `src/uw_scan/backtest/` (no-lookahead replay engine,

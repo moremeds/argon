@@ -2,11 +2,14 @@
 
 The seam between **DB rows** and **API response models**. Routers call assemblers; assemblers call the repository + cards; cards return derived numbers; the assembler stitches everything into a `Volatility…Response` / `SingleStock…Response`.
 
-## Files
+## Domains (~40 modules — `ls` the directory; the groups below are the map)
 
-- `single_stock.py` — assembles the stock detail page payload (header, GEX, flow, vol)
-- `volatility_series.py` — assembles the Volatility tab v2 payload (smile, term structure, HV/IV, RV-z, IV-of-IV, VRP, regime quadrant)
-- `iv_smile_builder.py` — builds the per-expiry smile curves
+- **Stock page** — `single_stock.py` (detail-page payload: header, GEX, flow, vol), `volatility_series.py` (Volatility tab v2: smile, term structure, HV/IV, RV-z, IV-of-IV, VRP, regime quadrant), `iv_smile_builder.py`, `stock_short_vol.py`
+- **VRP family** — `vrp_backtest, vrp_candidates, vrp_capital_account, vrp_directional, vrp_gate, vrp_harvest_axes, vrp_macro_signal, vrp_macro_entry, vrp_markout(_core), vrp_robustness, vrp_rv_validation, vrp_structure`
+- **Skew** — `skew_analytics.py`, `skew_markout.py`
+- **Regime backtests** — `regime_backtest_report, regime_canary_*, regime_classification_report, regime_vcg_backtest_report`
+- **Data health** — `data_freshness.py`, `data_gap_healer.py`, `data_gap_evidence.py`
+- **Other** — `gold_posture`, `goas_putwrite_*`, `put_calendar`, `market_tide_sentiment`, plus subpackages `trade_blast/`, `trade_insights_ai/`, `_shared_validation/`
 
 ## Rules
 

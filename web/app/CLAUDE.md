@@ -8,11 +8,14 @@ app/
 ├── page.tsx              # / — Dashboard / watchlist landing (RSC, force-dynamic)
 ├── stock/[ticker]/       # Per-ticker detail page
 │   ├── layout.tsx        # Header + TabBar
-│   └── page.tsx          # Tab router (Tables | Vol | Flow | TradePlan | Market Structure)
+│   ├── page.tsx          # redirect() → /stock/<T>/market-structure
+│   └── [tab]/page.tsx    # Tab router: market-structure | volatility | skew | flow | trade-insights | trade-plan (trade-plan renders the AI FrameworkTab; the deterministic TradePlanTab is retired)
 ├── scanner/              # /scanner — detector candidates + discovery (force-dynamic)
-├── regime/               # /regime — CRI + VCG + GEX (market-wide, ported from xenon)
+├── regime/[[...tab]]/    # /regime — CRI, VCG, GEX, Canary, GRG, MarketTide, MacroShortVol subtabs
 ├── gold/                 # /gold — GOLD COMPASS five-tier cockpit
 │   └── replay/[date]/    # /gold/replay/<YYYY-MM-DD> — historical posture
+├── rates/                # /rates — US rates cockpit
+├── vrp/                  # /vrp — VRP research panels
 ├── cockpit/[ticker]/     # /cockpit/<SPX|SPY|QQQ|IWM> — index dealer state research
 ├── watchlist/            # /watchlist (currently a thin variant of /)
 └── admin/                # /admin — health + scheduler controls

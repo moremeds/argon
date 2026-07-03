@@ -11,12 +11,13 @@ Don't conflate them.
 
 ## Files
 
-- `server.py` — app factory, mounts `health|watchlist|stock|ohlc|jobs|volatility` under `/api`
+- `server.py` — app factory, mounts 17 routers under `/api`: `health, benchmark, watchlist, stock, ohlc, cockpit, jobs, volatility, skew, provider_usage, trade_insights, regime, regime_validation, gold, rates, scanner, vrp` (the `include_router` block in `server.py` is authoritative)
 - `client.py` — `UwClient(httpx)` with retry/throttle; one entry per UW endpoint
 - `endpoints.py` — `EndpointSlug` enum + `build_path()` — the only place UW URL paths live
 - `deps.py` — FastAPI dependencies (DB session, settings)
 - `schemas.py` — request/response shapes specific to our HTTP surface (not the DB models)
-- `routers/{health,watchlist,stock,ohlc,jobs,volatility}.py` — read-only over the warm store
+- `models/` — router-local request/response models too niche for `uw_scan.models` (canary, regime_validation, scanner, vrp_macro_entry, watchlist)
+- `routers/*.py` — read-only over the warm store; one file per router listed above
 
 ## Rules
 
