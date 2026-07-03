@@ -3,6 +3,7 @@
 Design: docs/superpowers/plans/2026-07-03-backtest-walkforward-harness.md
 """
 
+from uw_scan.backtest.gates import quarter_gate, walkforward_gate
 from uw_scan.backtest.metrics import (
     additive_max_drawdown,
     annualized_sharpe,
@@ -19,4 +20,6 @@ __all__ = [
     "monthly_summary",
     "zero_filled_monthly",
     "time_ordered_holdout",
+    "quarter_gate",
+    "walkforward_gate",
 ]
