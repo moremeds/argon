@@ -128,6 +128,14 @@ def _live_max_tickers(
     return remaining // FULL_SCAN_CALLS_PER_TICKER // divisor
 
 
+def _research_budget_ok(settings: Settings, repo) -> bool:
+    """True if a research-pool job may still spend UW budget this tick."""
+    if not settings.uw_budget_governor_enabled:
+        return True
+    snap = read_snapshot(repo.conn, settings.db_schema)
+    return may_spend("research", snap, limits_from_settings(settings))
+
+
 # Each regime scan tick checks the last N trading days for missing snapshots
 # and fills them. 7 days is enough to ride out a long-weekend outage on the
 # primary worker without growing the per-tick work unboundedly. Match this
@@ -271,6 +279,31 @@ def _should_schedule_top_net_impact_capture(settings: Settings) -> bool:
         return False
     role = settings.worker_role.lower()
     return role == "all" or (role == "uw" and settings.worker_index == 0)
+
+
+def _gex_cron_trigger(settings: Settings) -> OrTrigger:
+    """Intraday GEX cadence: tight during RTH (9-16 ET), slow off-hours; weekdays
+    only. US options don't trade off-hours (GEX ~static) or on weekends, so the
+    append-only intraday series is captured densely only where dealer positioning
+    actually moves. Research budget pool."""
+    rth = settings.gex_scan_rth_interval_minutes
+    off = settings.gex_scan_offhours_interval_minutes
+    return OrTrigger(
+        [
+            CronTrigger(
+                minute=f"*/{rth}",
+                hour="9-16",
+                day_of_week="mon-fri",
+                timezone=settings.rth_tz,
+            ),
+            CronTrigger(
+                minute=f"*/{off}",
+                hour="0-8,17-23",
+                day_of_week="mon-fri",
+                timezone=settings.rth_tz,
+            ),
+        ]
+    )
 
 
 def _market_tide_cron_trigger(settings: Settings) -> OrTrigger:
@@ -949,6 +982,11 @@ def main() -> int:
                 settings, telemetry_recorder=recorder, job_name="regime_gex_scan"
             ) as uw:
                 with _repo(settings) as repo:
+                    if not _research_budget_ok(settings, repo):
+                        logger.info(
+                            "regime_gex_scan skipped: research UW budget exhausted"
+                        )
+                        return
                     for ticker in settings.gex_scan_tickers:
                         try:
                             gex_scanner.run(uw, repo, ticker=ticker)
@@ -1405,11 +1443,12 @@ def main() -> int:
                     max_instances=1,
                     coalesce=True,
                 )
-            # Regime / GEX scan — refreshes gex_snapshots every N minutes.
-            # Primary-uw-only to avoid duplicate UW spend across shards.
+            # Regime / GEX scan — append-only intraday GEX/DEX series over the
+            # expanded ticker set. Split RTH-fast / off-hours-slow cadence
+            # (weekdays only). Primary-uw-only; research budget pool.
             sched.add_job(
                 _regime_gex_scan,
-                IntervalTrigger(minutes=settings.gex_scan_interval_minutes),
+                _gex_cron_trigger(settings),
                 id="regime_gex_scan",
                 name="Regime GEX scan (UW)",
                 max_instances=1,
