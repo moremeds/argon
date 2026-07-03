@@ -604,6 +604,52 @@ class _OptionsMixin:
             cur.executemany(sql, params)
         return len(rows)
 
+    def replace_oi_change_rows_for_date(
+        self, run_id: int, rows: Iterable[models.OiChangeRow]
+    ) -> int:
+        """Replace target historical OI-change ticker/date slices.
+
+        Normal scan ingestion can store duplicate ticker/date/contract rows
+        across scan runs for audit history. Historical backfill instead wants a
+        resumable final-state slice, so it deletes only the incoming ticker/date
+        keys before inserting the new run's rows.
+        """
+
+        rows = list(rows)
+        if not rows:
+            return 0
+        keys = sorted(
+            {
+                (r.underlying_symbol.upper(), r.curr_date)
+                for r in rows
+                if r.curr_date is not None
+            }
+        )
+        if not keys:
+            return 0
+        sql = (
+            f"INSERT INTO {self._schema}.oi_change_events "
+            "(run_id, underlying_symbol, option_symbol, curr_date, last_date, "
+            " curr_oi, last_oi, oi_diff_plain, oi_change, volume, trades, "
+            " avg_price, last_fill, days_of_oi_increases, days_of_vol_greater_than_oi, "
+            " percentage_of_total, rnk, "
+            " prev_ask_volume, prev_bid_volume, prev_mid_volume, prev_neutral_volume, "
+            " prev_multi_leg_volume, prev_stock_multi_leg_volume, "
+            " prev_total_premium, last_ask, last_bid) "
+            "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, "
+            "        %s, %s, %s, %s, %s, %s, %s, %s, %s) "
+            "ON CONFLICT (run_id, option_symbol) DO NOTHING"
+        )
+        params = _oi_change_params(run_id, rows)
+        with self._conn.cursor() as cur:
+            cur.executemany(
+                f"DELETE FROM {self._schema}.oi_change_events "
+                "WHERE underlying_symbol = %s AND curr_date = %s",
+                keys,
+            )
+            cur.executemany(sql, params)
+        return len(rows)
+
     def insert_max_pain_rows(
         self,
         run_id: int,

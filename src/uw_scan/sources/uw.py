@@ -426,16 +426,30 @@ def fetch_greeks(
 
 
 def fetch_oi_per_strike(
-    client: UwClient, repo: Repository, run_id: int, ticker: str
+    client: UwClient,
+    repo: Repository,
+    run_id: int,
+    ticker: str,
+    market_date: date | None = None,
 ) -> list[OiPerStrikeRow]:
-    body = _fetch_json(client, repo, run_id, EndpointSlug.OI_PER_STRIKE, ticker)
+    params = {"date": market_date.isoformat()} if market_date is not None else None
+    body = _fetch_json(
+        client, repo, run_id, EndpointSlug.OI_PER_STRIKE, ticker, params=params
+    )
     return normalize.normalize_oi_per_strike(body)
 
 
 def fetch_oi_change(
-    client: UwClient, repo: Repository, run_id: int, ticker: str
+    client: UwClient,
+    repo: Repository,
+    run_id: int,
+    ticker: str,
+    market_date: date | None = None,
 ) -> list[OiChangeRow]:
-    body = _fetch_json(client, repo, run_id, EndpointSlug.OI_CHANGE, ticker)
+    params = {"date": market_date.isoformat()} if market_date is not None else None
+    body = _fetch_json(
+        client, repo, run_id, EndpointSlug.OI_CHANGE, ticker, params=params
+    )
     return normalize.normalize_oi_change(body)
 
 
