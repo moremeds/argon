@@ -127,11 +127,14 @@ class Settings(BaseModel):
         "0 16 * * 0-4",  # 4pm close
         "30 16 * * 0-4",  # 4:30pm last scan
     ]
-    # Skip tickers refreshed within this many hours during full_scan. With a
-    # 30-min cron over the 6h RTH window, 1h freshness gives ~6 batches/day
-    # which uses ~85% of the 20k/day UW operator budget while keeping data
-    # at most 1h stale. Coverage alert (8h window, 90% tickers) needs <=4.
-    full_scan_stale_after_hours: int = 1
+    # Skip tickers refreshed within this many hours during full_scan (full
+    # watchlist pass). Fractional allowed: 0.33 ≈ 20-min freshness. With the
+    # 30-min crons over RTH, 0.33h means each cron fires a real full-watchlist
+    # refresh (~1,757 UW calls) — the fresh-cards "70k" setting. The budget
+    # governor caps total spend, so an aggressive value degrades gracefully
+    # (cold tickers skipped) rather than 429-storming. Hot tickers get a much
+    # tighter cadence via the separate hot-subset job below.
+    full_scan_stale_after_hours: float = 0.33
     # Sliding-window for the per-table coverage check on tables that only
     # update once per day (cockpit + nightly vol rollup). Anything below
     # 24h would always alert on those tables; 26h gives a small grace gap.
@@ -248,9 +251,54 @@ class Settings(BaseModel):
     # Offset off the top-of-hour so discovery doesn't contend with full_scan
     # (cron `0 5-16`). Covers ~09:15–16:45 ET (RTH + post-close settle).
     scanner_discover_scan_cron: str = "15,45 9-16 * * 0-4"
-    # Regime / GEX scanner (port from xenon — ships GEX live; CRI/VCG pending)
-    gex_scan_tickers: list[str] = ["SPX", "SPY", "TLT"]
+    # Regime / GEX scanner (port from xenon — ships GEX live; CRI/VCG pending).
+    # Expanded from the SPX/SPY/TLT core to the index family + M7 so the
+    # append-only intraday GEX/DEX series (gex_snapshots) covers the names that
+    # actually move dealer positioning intraday. UW serves GEX history only at
+    # EOD, so the intraday evolution is buildable *only* by live capture —
+    # spend research budget here. Override with UW_SCAN_GEX_SCAN_TICKERS.
+    gex_scan_tickers: list[str] = [
+        "SPX",
+        "SPY",
+        "QQQ",
+        "IWM",
+        "TLT",
+        "NVDA",
+        "AAPL",
+        "MSFT",
+        "AMZN",
+        "META",
+        "GOOGL",
+        "TSLA",
+    ]
+    # Legacy single 24/7 cadence (kept for compat / the health panel). The live
+    # scheduler now uses the split RTH/off-hours cadence below.
     gex_scan_interval_minutes: int = 5
+    # Split intraday GEX cadence: tight during RTH (genuinely new data each
+    # tick), slow off-hours (US options don't trade → GEX is ~static). Weekends
+    # are skipped entirely by the trigger. Research pool under the governor.
+    gex_scan_rth_interval_minutes: int = 2
+    gex_scan_offhours_interval_minutes: int = 15
+    # ---- UW daily budget governor (shared 120k account counter) ----
+    # The account-wide daily counter (resets 00:00 UTC / 20:00 ET). Live jobs
+    # (full_scan, hot subset) get priority up to `live_ceiling`; research jobs
+    # (intraday GEX, tide, backfill) yield first at `research_ceiling`; the
+    # `total_guard` keeps a safety margin below the hard `daily_limit`.
+    uw_budget_governor_enabled: bool = True
+    uw_daily_limit: int = 120000
+    uw_live_daily_ceiling: int = 80000
+    uw_research_daily_ceiling: int = 30000
+    uw_total_daily_guard: int = 105000
+    # ---- Hot-subset full_scan (UI-toggled fast lane) ----
+    # Tickers flagged `hot` in the watchlist get a tight-freshness intraday
+    # refresh on this cron. `hot_stale_minutes` < cron interval so every fire
+    # does real work; `hot_max_tickers` is the soft cap the UI meter shows (the
+    # governor enforces it — flagging more than this just means the overflow
+    # waits for budget).
+    full_scan_hot_enabled: bool = True
+    full_scan_hot_cron: str = "*/5 9-16 * * 0-4"
+    full_scan_hot_stale_minutes: int = 4
+    full_scan_hot_max_tickers: int = 25
     # Market-tide capture (UW /market/market-tide, ~81 calls/day at 5-min RTH).
     # Kill switch + the index whose live spot overlays the premium chart.
     market_tide_capture_enabled: bool = True
@@ -438,8 +486,8 @@ class Settings(BaseModel):
             # because cron expressions contain spaces (CSV parsing is fragile).
             # Override by editing the Settings default if you need a different
             # schedule.
-            full_scan_stale_after_hours=int(
-                os.environ.get("UW_SCAN_FULL_SCAN_STALE_HOURS", "1")
+            full_scan_stale_after_hours=float(
+                os.environ.get("UW_SCAN_FULL_SCAN_STALE_HOURS", "0.33")
             ),
             ohlc_pull_cron=os.environ.get("UW_SCAN_OHLC_PULL_CRON", "30 17 * * 0-4"),
             positioning_refresh_cron=os.environ.get(
@@ -656,10 +704,51 @@ class Settings(BaseModel):
                 "SCANNER_DISCOVER_SCAN_CRON", "15,45 9-16 * * 0-4"
             ),
             gex_scan_tickers=_parse_csv_env(
-                "GEX_SCAN_TICKERS", default=["SPX", "SPY", "TLT"]
+                "GEX_SCAN_TICKERS",
+                default=[
+                    "SPX",
+                    "SPY",
+                    "QQQ",
+                    "IWM",
+                    "TLT",
+                    "NVDA",
+                    "AAPL",
+                    "MSFT",
+                    "AMZN",
+                    "META",
+                    "GOOGL",
+                    "TSLA",
+                ],
             ),
             gex_scan_interval_minutes=int(
                 os.environ.get("GEX_SCAN_INTERVAL_MINUTES", "5")
+            ),
+            gex_scan_rth_interval_minutes=int(
+                os.environ.get("GEX_SCAN_RTH_INTERVAL_MINUTES", "2")
+            ),
+            gex_scan_offhours_interval_minutes=int(
+                os.environ.get("GEX_SCAN_OFFHOURS_INTERVAL_MINUTES", "15")
+            ),
+            uw_budget_governor_enabled=os.environ.get(
+                "UW_BUDGET_GOVERNOR_ENABLED", "true"
+            ).lower()
+            in ("1", "true", "yes"),
+            uw_daily_limit=int(os.environ.get("UW_DAILY_LIMIT", "120000")),
+            uw_live_daily_ceiling=int(os.environ.get("UW_LIVE_DAILY_CEILING", "80000")),
+            uw_research_daily_ceiling=int(
+                os.environ.get("UW_RESEARCH_DAILY_CEILING", "30000")
+            ),
+            uw_total_daily_guard=int(os.environ.get("UW_TOTAL_DAILY_GUARD", "105000")),
+            full_scan_hot_enabled=os.environ.get(
+                "FULL_SCAN_HOT_ENABLED", "true"
+            ).lower()
+            in ("1", "true", "yes"),
+            full_scan_hot_cron=os.environ.get("FULL_SCAN_HOT_CRON", "*/5 9-16 * * 0-4"),
+            full_scan_hot_stale_minutes=int(
+                os.environ.get("FULL_SCAN_HOT_STALE_MINUTES", "4")
+            ),
+            full_scan_hot_max_tickers=int(
+                os.environ.get("FULL_SCAN_HOT_MAX_TICKERS", "25")
             ),
             market_tide_capture_enabled=os.environ.get(
                 "MARKET_TIDE_CAPTURE_ENABLED", "true"
