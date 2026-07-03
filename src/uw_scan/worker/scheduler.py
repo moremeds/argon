@@ -129,7 +129,20 @@ def _live_max_tickers(
 
 
 def _research_budget_ok(settings: Settings, repo) -> bool:
-    """True if a research-pool job may still spend UW budget this tick."""
+    """True if a research-pool job may still spend UW budget this tick.
+
+    Deliberately NOT applied to two classes of research job:
+    - ``rescan_tick`` — explicit user-requested rescans keep priority (silently
+      no-op'ing a click is bad UX); they're low-volume and self-limit via UW's
+      429 past the hard account cap anyway.
+    - the post-RTH durable nightly captures (``option_surface_capture``,
+      ``greek_exposure_daily_refresh``, discovery) — they run at 18:30-19:00 ET,
+      after the live RTH scans are done and near the 20:00 ET budget reset, so
+      they don't contend with live; gating them on the shared research ceiling
+      would risk starving high-value durable data. Only the recurring *intraday*
+      research spenders (``regime_gex_scan``, ``regime_market_tide_scan``) gate
+      here — and gex is the dominant one, so RTH research is effectively bounded.
+    """
     if not settings.uw_budget_governor_enabled:
         return True
     snap = read_snapshot(repo.conn, settings.db_schema)
@@ -565,8 +578,16 @@ def main() -> int:
             ) as uw:
                 with _repo(settings) as repo:
                     # Primary-uw-only singleton (no shard divisor). Hot tickers
-                    # arrive hot-first; the governor caps overflow past budget.
-                    max_tickers = _live_max_tickers(settings, repo)
+                    # arrive hot-first; cap at the configured hot-slot count
+                    # (the UI meter's "N / max") AND the governor's remaining
+                    # live budget, whichever is tighter. If a user flags more
+                    # than full_scan_hot_max_tickers, only the top slots (by
+                    # sort_rank) get the fast lane.
+                    budget_cap = _live_max_tickers(settings, repo)
+                    hot_max = settings.full_scan_hot_max_tickers
+                    max_tickers = (
+                        hot_max if budget_cap is None else min(budget_cap, hot_max)
+                    )
                     full_scan_hot_once(
                         repo,
                         uw,
@@ -1011,6 +1032,11 @@ def main() -> int:
                 job_name="regime_market_tide_scan",
             ) as uw:
                 with _repo(settings) as repo:
+                    if not _research_budget_ok(settings, repo):
+                        logger.info(
+                            "regime_market_tide_scan skipped: research UW budget exhausted"
+                        )
+                        return
                     try:
                         n = market_tide_scanner.run(
                             uw, repo, spot_ticker=settings.market_tide_spot_ticker

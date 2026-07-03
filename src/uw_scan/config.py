@@ -277,9 +277,6 @@ class Settings(BaseModel):
         "GOOGL",
         "TSLA",
     ]
-    # Legacy single 24/7 cadence (kept for compat / the health panel). The live
-    # scheduler now uses the split RTH/off-hours cadence below.
-    gex_scan_interval_minutes: int = 5
     # Split intraday GEX cadence: tight during RTH (genuinely new data each
     # tick), slow off-hours (US options don't trade → GEX is ~static). Weekends
     # are skipped entirely by the trigger. Research pool under the governor.
@@ -728,9 +725,6 @@ class Settings(BaseModel):
                     "GOOGL",
                     "TSLA",
                 ],
-            ),
-            gex_scan_interval_minutes=int(
-                os.environ.get("GEX_SCAN_INTERVAL_MINUTES", "5")
             ),
             gex_scan_rth_interval_minutes=int(
                 os.environ.get("GEX_SCAN_RTH_INTERVAL_MINUTES", "2")

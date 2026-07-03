@@ -46,7 +46,7 @@ def build_pipeline_benchmark_inputs(
     )
     last_scan = repo.get_last_full_scan_finished_at()
     next_stale_at = (
-        last_scan + timedelta(hours=settings.full_scan_stale_after_hours)
+        last_scan + timedelta(hours=settings.health_full_scan_missed_grace_hours)
         if last_scan is not None
         else None
     )

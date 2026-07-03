@@ -87,3 +87,54 @@ def test_full_scan_respects_ticker_filter() -> None:
     assert completed == 0
     run_single_stock.assert_called_once()
     assert run_single_stock.call_args.args[0] == "MSFT"
+
+
+def _four_stale_cards() -> list[SimpleNamespace]:
+    # hot-first order is applied by the repo SQL; here they arrive pre-ordered.
+    return [
+        SimpleNamespace(ticker=t, scanned_at=None)
+        for t in ("AAPL", "MSFT", "NVDA", "TSLA")
+    ]
+
+
+def test_full_scan_max_tickers_caps_the_cold_tail() -> None:
+    """The governor's core promise: with a budget cap, only the first N stale
+    tickers are scanned and the rest are dropped (not 429-stormed)."""
+    repo = MagicMock()
+    repo.list_watchlist_cards.return_value = _four_stale_cards()
+
+    with patch(
+        "uw_scan.worker.jobs.full_scan.run_single_stock",
+        side_effect=RuntimeError("counted then swallowed"),
+    ) as run_single_stock:
+        full_scan_once(repo, MagicMock(), MagicMock(), max_tickers=2)
+
+    # first two (AAPL, MSFT) scanned; NVDA/TSLA cold tail dropped.
+    assert run_single_stock.call_count == 2
+    assert [c.args[0] for c in run_single_stock.call_args_list] == ["AAPL", "MSFT"]
+
+
+def test_full_scan_max_tickers_none_means_no_cap() -> None:
+    repo = MagicMock()
+    repo.list_watchlist_cards.return_value = _four_stale_cards()
+
+    with patch(
+        "uw_scan.worker.jobs.full_scan.run_single_stock",
+        side_effect=RuntimeError("counted then swallowed"),
+    ) as run_single_stock:
+        full_scan_once(repo, MagicMock(), MagicMock(), max_tickers=None)
+
+    assert run_single_stock.call_count == 4
+
+
+def test_full_scan_max_tickers_zero_scans_nothing() -> None:
+    repo = MagicMock()
+    repo.list_watchlist_cards.return_value = _four_stale_cards()
+
+    with patch(
+        "uw_scan.worker.jobs.full_scan.run_single_stock",
+        side_effect=RuntimeError("should never be called"),
+    ) as run_single_stock:
+        full_scan_once(repo, MagicMock(), MagicMock(), max_tickers=0)
+
+    run_single_stock.assert_not_called()

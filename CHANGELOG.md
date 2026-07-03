@@ -47,8 +47,11 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   watchlist freshness, was int `1`). `UW_SCAN_FULL_SCAN_STALE_HOURS` accepts
   fractional hours. The health "expected full scans missed" liveness alarm is
   now decoupled from card freshness onto its own grace knob
-  (`health_full_scan_missed_grace_hours`, default 1.0h) so a governed
-  throttle/skip no longer false-alarms as a dead scheduler.
+  (`health_full_scan_missed_grace_hours`, default 1.0h) so a transient
+  governor-driven skip no longer false-alarms; sustained live-budget starvation
+  (>1h) still alarms, as it should. The benchmark coverage gate
+  (`benchmark/collector.py`, same `>=2` missed-scan threshold) shares the knob so
+  the two "missed scans" signals stay consistent.
 - Backfill scripts (`market_tide`, `greek_exposure_daily_refresh`,
   `intraday_buckets`, `option_surface`) now route UW calls through
   `ExternalApiRequestRecorder`, so their spend is attributed to the research

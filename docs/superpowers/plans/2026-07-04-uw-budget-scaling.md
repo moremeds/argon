@@ -68,6 +68,15 @@ comes from gex_snapshots (this job), not full_scan.
   is the hard cap and catches this well below 120k.
 - Backfill scripts are now *visible* to the governor but don't self-throttle —
   they're run deliberately. The guard still protects the live stack from them.
+- Research-pool gating is applied only to the recurring *intraday* UW jobs
+  (`regime_gex_scan` — the dominant research spender — and
+  `regime_market_tide_scan`). The post-RTH durable nightly captures
+  (`option_surface_capture`, `greek_exposure_daily_refresh`, discovery) are
+  deliberately exempt: they run 18:30-19:00 ET, after live RTH scans finish and
+  near the 20:00 ET reset, so they don't contend with live, and gating them on
+  the shared 30k research ceiling would risk starving high-value durable data.
+  `rescan_tick` is likewise exempt (explicit user action; self-limits via UW 429
+  past the hard cap). See the docstring on `_research_budget_ok`.
 
 ## Reproduce the measurements
 
