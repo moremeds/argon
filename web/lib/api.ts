@@ -232,6 +232,7 @@ export const api = {
   health: (
     source: HealthSource = "uw",
     options: HealthOptions = {},
+    init?: RequestInit,
   ): Promise<HealthResponse> => {
     const params = new URLSearchParams({ source: source ?? "uw" });
     if (options.recordWindowHours != null) {
@@ -240,7 +241,7 @@ export const api = {
     if (options.recordMinCoverage != null) {
       params.set("record_min_coverage", String(options.recordMinCoverage));
     }
-    return _fetch<HealthResponse>(`/api/health?${params.toString()}`);
+    return _fetch<HealthResponse>(`/api/health?${params.toString()}`, init);
   },
   healthBenchmarkCurrent: (): Promise<BenchmarkCurrentResponse> =>
     _fetch<BenchmarkCurrentResponse>("/api/health/benchmark/current"),

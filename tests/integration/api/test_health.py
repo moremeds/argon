@@ -20,6 +20,17 @@ def clear_record_health_cache():
     _record_health_cache_clear_for_tests()
 
 
+@pytest.fixture(autouse=True)
+def _force_record_scans_expected(monkeypatch):
+    """Record coverage is now market-calendar aware: it only runs when a
+    full-scan cron was due in the window. Default the gate to 'scans expected'
+    so the coverage tests are deterministic regardless of the wall-clock a CI
+    run lands on. The dedicated market-closed test overrides this to False."""
+    monkeypatch.setattr(
+        health_router, "_record_window_scans_expected", lambda *a, **k: True
+    )
+
+
 def test_health_ok_when_recent_scan(client, seeded_db_with_cards):
     seeded_db_with_cards.upsert_heartbeat("worker")
 
@@ -369,6 +380,29 @@ def test_health_record_check_alerts_on_low_recent_ticker_coverage(
         card_check["expected_tickers"] == seeded_db_with_cards.count_active_watchlist()
     )
     assert card_check["ok"] is False
+
+
+def test_health_record_check_skips_when_market_closed(
+    client, seeded_db_with_cards, monkeypatch
+):
+    # Same low-coverage seed as the ALERT test, but no full-scan cron was due in
+    # the window (weekend / holiday / overnight). No coverage is expected, so the
+    # check must read healthy and skip the per-table scan — not flash ALERT.
+    monkeypatch.setattr(
+        health_router, "_record_window_scans_expected", lambda *a, **k: False
+    )
+    seeded_db_with_cards.upsert_heartbeat("worker")
+
+    r = client.get(
+        "/api/health?record_window_hours=8&record_min_coverage=0.9"
+        "&record_tables=watchlist_card"
+    )
+
+    assert r.status_code == 200
+    body = r.json()
+    assert body["record_health_ok"] is True
+    assert body["record_health"] == []
+    assert "record coverage below expected" not in (body["reason"] or "")
 
 
 def test_health_record_check_passes_when_selected_table_covers_watchlist(
