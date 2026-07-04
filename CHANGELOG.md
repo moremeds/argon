@@ -7,18 +7,6 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
-### Changed
-
-- **CLAUDE.md refresh + AGENTS.md deduplication.** All 14 in-repo CLAUDE.md
-  files audited against the current tree and de-staled (api routers 6→17,
-  cards/reports rewritten as domain-group maps, worker's dead
-  `jobs/spot_refresh.py` entry removed, web stock `[tab]/` router + `/rates`
-  `/vrp` routes documented, tests layout corrected). Four standing rules
-  promoted from session memory (CHANGELOG-rides-the-feature-PR, smoke tests via
-  the real worker path, R2-primary for EOD/backfill, workers-don't-hot-reload).
-  `AGENTS.md` is now a symlink to `CLAUDE.md` (its two unique lines — worktree
-  location rule, `unusual_whales_api_spec.yaml` pointer — were merged in first).
-
 ### Added
 
 - **SVI surface-fit feasibility + residual edge test (research spike).**
@@ -28,9 +16,74 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   `docs/research/svi-surface-fit/`: raw-SVI fits liquid smiles to <0.5 vol-pt residual,
   arb-free, but the fitted-vs-marked residual — while a genuine mean-reverting signal
   (autocorr 0.56) — carries **no taker edge** (~\$0.18/contract, below one option
-  commission). Do not build the signal layer. Adds `scipy` + `matplotlib` (research-only
-  deps). Also surfaced: the mini's IB canary (`iv_source_validation`) has never captured
-  an IB IV (0/1026 rows) — the `XENON_QUERY_API_KEY` silent-401 fallback.
+  commission). Do not build the signal layer. Adds `scipy` (main dep, needed by the tested
+  fit); figs use matplotlib from the existing `research` dep-group. Also surfaced: the
+  mini's IB canary (`iv_source_validation`) has never captured an IB IV (0/1026 rows) —
+  the `XENON_QUERY_API_KEY` silent-401 fallback.
+
+## [0.7.1] — 2026-07-04
+
+
+### Fixed
+
+- **HealthPanel "API OFFLINE" flicker.** The sidebar rapidly toggled `API
+  OFFLINE` / everything `UNKNOWN` even while the API was up. Root cause: the
+  `/api/health` record-coverage ("Query Coverage") scan costs ~15–20s cold but
+  its cache TTL was only 15s, so a fresh 20s query fired on nearly every 5s
+  poll, stacking on one DB and blowing the browser fetch timeout. Two changes:
+  (1) `_RECORD_HEALTH_CACHE_TTL_SECONDS` 15→120 so the expensive scan runs at
+  most once every 2 min; (2) the poll now caps each request at an 8s timeout and
+  keeps the last-good snapshot on a transient miss, only showing `OFFLINE` after
+  3 consecutive failures (a real outage) instead of flickering on one slow poll.
+  Polls are serialized (next scheduled only after the current settles) so an 8s
+  timeout under a 5s interval can't overlap and let a stale timed-out poll
+  corrupt the consecutive-failure count.
+- **HealthPanel "Query Coverage" permanently ALERT.** The record-coverage check
+  auto-discovered every ticker+timestamp table and expected ~90% watchlist
+  coverage in an 8h window, with no market-calendar awareness — so it flashed
+  ALERT every weekend/holiday/overnight (no scans run → 0 rows) and, during RTH,
+  for sparse/research tables that structurally never reach 90% coverage. Now:
+  (1) the check is market-calendar aware — when no full-scan cron was due in the
+  window it reads healthy and skips the per-table scan (mirrors the WS-consumer
+  relaxation); (2) the structurally-sparse candidate / research / unusual-activity
+  tables (`signal_hits`, `scanner_candidate_snapshots`, `vrp_trade_candidates`,
+  `vrp_paper_positions`, `vrp_backtest_trades`, `vrp_macro_sweep_results`,
+  `corporate_actions`, `iv_source_validation`, `short_interest_snapshots`,
+  `flow_events`, `dark_pool_events`, `oi_change_events`) are excluded — the
+  event tables insert nothing for a ticker with no events, so they never reach
+  90% coverage (but `signal_gates` is kept — it is written once per scanned
+  ticker, so its coverage is a real scanner-persistence signal); (3) the nightly
+  `option_surface_grid_daily` / `flow_alerts_daily_rollup` tables use the 24h
+  window instead of 8h.
+## [0.7.0] — 2026-07-04
+
+
+### Added
+
+- **UW daily-budget governor + RTH cadence scale-up** (targets ~70k live / ~25k
+  research under the shared 120k account cap). New `sources/uw_budget.py` reads
+  today's UW spend from `external_api_requests`, splits jobs into a `live` pool
+  (`full_scan`, `full_scan_hot`, `rescan_tick`) and a `research` pool (everything
+  else incl. `*_backfill`), and enforces per-pool ceilings plus an account-wide
+  total guard (from the `official_daily_count` header, which also sees
+  un-instrumented consumers). Under budget pressure `full_scan` scans hot-first
+  and drops the cold tail (`max_tickers` cap) instead of 429-storming; research
+  jobs yield first. Env: `UW_BUDGET_GOVERNOR_ENABLED`, `UW_LIVE_DAILY_CEILING`
+  (80000), `UW_RESEARCH_DAILY_CEILING` (30000), `UW_TOTAL_DAILY_GUARD` (105000),
+  `UW_DAILY_LIMIT` (120000).
+- **Hot-subset fast lane** — a per-ticker `hot` flag (migration 096, UI toggle
+  mirroring the pin: `HotButton` + watchlist hot-slots meter). Hot tickers get a
+  tight-freshness intraday `full_scan` (`full_scan_hot` job, `*/5 9-16` ET,
+  primary-uw-only, governor-capped). Env: `FULL_SCAN_HOT_ENABLED`,
+  `FULL_SCAN_HOT_CRON`, `FULL_SCAN_HOT_STALE_MINUTES`, `FULL_SCAN_HOT_MAX_TICKERS`.
+- **Intraday GEX research series** — `regime_gex_scan` expanded from the
+  SPX/SPY/TLT core to the index family + M7 and moved to a split RTH-fast
+  (`*/2`) / off-hours-slow (`*/15`) weekday cadence, building the append-only
+  intraday GEX/DEX series UW only serves at EOD. Env:
+  `GEX_SCAN_RTH_INTERVAL_MINUTES`, `GEX_SCAN_OFFHOURS_INTERVAL_MINUTES`,
+  `GEX_SCAN_TICKERS`.
+
+
 - Unified backtest harness `src/uw_scan/backtest/` (no-lookahead replay engine,
   time-ordered holdout splitter, walkforward+quarter OOS gates, legacy-convention
   metrics, persist-as-you-go sweep runner) + migration 095
@@ -39,6 +92,30 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   deduplicated onto it (behavior-identical) — no private copies remain;
   `scripts/_vrp_macro_param_sweep.py` synthesis grid now persists its full trace.
 
+### Changed
+
+- `full_scan_stale_after_hours` is now a float defaulting to **0.33** (~20-min
+  watchlist freshness, was int `1`). `UW_SCAN_FULL_SCAN_STALE_HOURS` accepts
+  fractional hours. The health "expected full scans missed" liveness alarm is
+  now decoupled from card freshness onto its own grace knob
+  (`health_full_scan_missed_grace_hours`, default 1.0h) so a transient
+  governor-driven skip no longer false-alarms; sustained live-budget starvation
+  (>1h) still alarms, as it should. The benchmark coverage gate
+  (`benchmark/collector.py`, same `>=2` missed-scan threshold) shares the knob so
+  the two "missed scans" signals stay consistent.
+- Backfill scripts (`market_tide`, `greek_exposure_daily_refresh`,
+  `intraday_buckets`, `option_surface`) now route UW calls through
+  `ExternalApiRequestRecorder`, so their spend is attributed to the research
+  pool and visible to the governor (Phase 0).
+- **CLAUDE.md refresh + AGENTS.md deduplication.** All 14 in-repo CLAUDE.md
+  files audited against the current tree and de-staled (api routers 6→17,
+  cards/reports rewritten as domain-group maps, worker's dead
+  `jobs/spot_refresh.py` entry removed, web stock `[tab]/` router + `/rates`
+  `/vrp` routes documented, tests layout corrected). Four standing rules
+  promoted from session memory (CHANGELOG-rides-the-feature-PR, smoke tests via
+  the real worker path, R2-primary for EOD/backfill, workers-don't-hot-reload).
+  `AGENTS.md` is now a symlink to `CLAUDE.md` (its two unique lines — worktree
+  location rule, `unusual_whales_api_spec.yaml` pointer — were merged in first).
 ## [0.6.0] — 2026-07-02
 
 

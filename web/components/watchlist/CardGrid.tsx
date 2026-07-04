@@ -1,3 +1,4 @@
+import { Flame } from "lucide-react";
 import type { components } from "@/lib/types";
 import { toNum } from "@/lib/formatters";
 import { PRIORITY_SECTORS } from "./sectorGroups";
@@ -77,10 +78,38 @@ export function CardGrid({ data }: { data: WatchlistResponse }) {
       sectorA.localeCompare(sectorB),
   );
 
+  const hotCount = data.hot_count ?? 0;
+  const hotMax = data.hot_max ?? 0;
+  const hotOver = hotMax > 0 && hotCount > hotMax;
+
   return (
     // One grid-wide poller: every TickerCard reads its live spot from this
     // provider's context instead of each card polling on its own.
     <LiveSpotsProvider>
+      {hotMax > 0 && (
+        <div
+          title={
+            hotOver
+              ? "More hot tickers than the budget fast-lane covers — overflow waits for UW budget"
+              : "Hot tickers on the fast-lane intraday refresh"
+          }
+          style={{
+            fontFamily: "var(--font-mono)",
+            fontSize: 11,
+            letterSpacing: 1.5,
+            textTransform: "uppercase",
+            color: hotOver ? "var(--warning)" : "var(--text-muted)",
+            marginBottom: 16,
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 6,
+          }}
+        >
+          <Flame size={12} fill="currentColor" />
+          Hot {hotCount} / {hotMax}
+          {hotOver ? " · overflow queued" : ""}
+        </div>
+      )}
       {groupedEntries.map(([sector, tickers]) => (
         <section key={sector} style={{ marginBottom: 28 }}>
           <h2

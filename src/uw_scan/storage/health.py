@@ -42,6 +42,33 @@ _RECORD_HEALTH_EXCLUDED_TABLES = {
     # flag row. Even at full coverage this caps around 50-60% of the
     # watchlist — a watchlist-wide threshold will never apply.
     "signal_context_flags",
+    # Signal-gated / candidate / research / event tables. Auto-discovery picks
+    # these up (they carry a ticker + write-timestamp) but none of them ever
+    # covers ~90% of the watchlist, so a watchlist-wide coverage threshold reads
+    # a permanent false ALERT. Data-date freshness for the ones that matter is
+    # tracked by the (calendar-aware, curated) freshness monitor instead —
+    # reports/data_freshness.MONITORED_TABLES.
+    # NB: signal_gates is deliberately NOT here — run_single_stock writes one
+    # gate-audit row per scanned ticker (scanner/pipeline.upsert_gate), so it IS
+    # dense per-scan and its coverage is a real scanner-persistence signal.
+    "signal_hits",  # only firing signals (per emission, not per ticker)
+    "scanner_candidate_snapshots",  # only scan candidates, not the watchlist
+    "vrp_trade_candidates",  # candidate subset (~14/93)
+    "vrp_paper_positions",  # open paper positions only (~40/93)
+    "vrp_backtest_trades",  # research backtest output
+    "vrp_macro_sweep_results",  # research parameter sweep output
+    "corporate_actions",  # only tickers with an action on the day
+    "iv_source_validation",  # IB-vs-model canary, a handful of tickers
+    "short_interest_snapshots",  # biweekly settlement cadence, never daily-dense
+    # Unusual-activity event tables: the writer inserts nothing for a ticker
+    # with no events in the scan window (`if not rows: return 0`), and these are
+    # subset-by-definition (unusual flow / dark-pool prints / OI movers), so they
+    # never reach ~90% watchlist coverage even during RTH. (Distinct from the
+    # option greeks/IV/max-pain tables, which get rows for every optionable
+    # ticker and so stay in the check.)
+    "flow_events",  # only tickers with an unusual-flow alert
+    "dark_pool_events",  # only tickers with dark-pool prints in the window
+    "oi_change_events",  # only OI-mover tickers
 }
 
 # Watchlist-wide tables populated once per day (nightly vol rollup at
@@ -55,6 +82,10 @@ _RECORD_HEALTH_DAILY_TABLES = {
     # daily snapshots
     "risk_reversal_skew_history",
     "oi_by_strike",
+    # Nightly captures — the 8h window can never see them, so they must use the
+    # 24h window or they read a permanent ALERT on trading days too.
+    "option_surface_grid_daily",  # nightly option-surface grid (19:00 ET)
+    "flow_alerts_daily_rollup",  # once-per-day flow-alert rollup
 }
 
 

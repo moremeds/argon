@@ -2616,14 +2616,13 @@ wheels = [
 
 [[package]]
 name = "uw-scan"
-version = "0.6.0"
+version = "0.7.1"
 source = { editable = "." }
 dependencies = [
     { name = "apscheduler" },
     { name = "beautifulsoup4" },
     { name = "fastapi" },
     { name = "httpx" },
-    { name = "matplotlib" },
     { name = "openpyxl" },
     { name = "pandas" },
     { name = "playwright" },
@@ -2666,7 +2665,6 @@ requires-dist = [
     { name = "beautifulsoup4", specifier = ">=4.14.3" },
     { name = "fastapi", specifier = ">=0.117,<1.0" },
     { name = "httpx", specifier = ">=0.27,<1.0" },
-    { name = "matplotlib", specifier = ">=3.11.0" },
     { name = "openpyxl", specifier = ">=3.1.5" },
     { name = "pandas", specifier = ">=2.2" },
     { name = "playwright", specifier = ">=1.44" },

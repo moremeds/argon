@@ -241,6 +241,7 @@ class WatchlistCardRow:
             "ticker",
             "sector",
             "pinned",
+            "hot",
             "sort_rank",
             # card metadata
             "run_id",

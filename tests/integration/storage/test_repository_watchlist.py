@@ -244,3 +244,22 @@ def test_list_watchlist_cards_with_queue_summary_empty_watchlist_active_jobs(rep
     assert summary.queued == 2
     assert summary.running == 0
     assert summary.oldest_requested_at is not None
+
+
+def test_hot_flag_patch_and_listing(repo):
+    repo.add_watchlist_ticker(ticker="HOTA", sector="ETF", notes="t")
+    repo.add_watchlist_ticker(ticker="HOTB", sector="ETF", notes="t")
+    # default not hot
+    assert repo.count_hot_tickers() == 0
+    assert repo.list_hot_tickers() == []
+    # flag one hot via the patch path
+    repo.patch_watchlist_ticker("HOTA", hot=True)
+    assert repo.list_hot_tickers() == ["HOTA"]
+    assert repo.count_hot_tickers() == 1
+    # unflag
+    repo.patch_watchlist_ticker("HOTA", hot=False)
+    assert repo.count_hot_tickers() == 0
+    # soft-deleted hot tickers drop out of the count
+    repo.patch_watchlist_ticker("HOTB", hot=True)
+    repo.soft_delete_watchlist_ticker("HOTB")
+    assert repo.count_hot_tickers() == 0

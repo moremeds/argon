@@ -16,7 +16,6 @@ import logging
 from collections import defaultdict
 from pathlib import Path
 
-import matplotlib.pyplot as plt
 import numpy as np
 import psycopg
 
@@ -225,8 +224,20 @@ def main() -> int:
 
 
 def render_figs(overlay_rows: list[dict], out_dir: Path, max_figs: int = 8) -> None:
-    """One marked-vs-fit PNG per ticker (latest date's ~30d smile), capped at max_figs."""
+    """One marked-vs-fit PNG per ticker (latest date's ~30d smile), capped at max_figs.
+
+    matplotlib is a research-only dep (not in the app/worker env). Import it lazily so
+    the probe still produces its CSV traces under a bare `uv run`; PNGs need the group:
+    `uv run --group research python -m scripts.research.svi_surface_fit_probe`.
+    """
     if not overlay_rows:
+        return
+    try:
+        import matplotlib.pyplot as plt
+    except ImportError:
+        logger.info(
+            "figs skipped: matplotlib absent (rerun with `uv run --group research`)"
+        )
         return
     plt.switch_backend("Agg")  # headless: render to file, no display
     groups: dict = defaultdict(list)

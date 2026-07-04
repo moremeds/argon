@@ -177,7 +177,14 @@ class RecordHealthCheck(BaseModel):
     ok: bool
 
 
-_RECORD_HEALTH_CACHE_TTL_SECONDS = 15.0
+# The per-table record-health scan (COUNT/COUNT DISTINCT/MAX over a sliding
+# window across every discovered table) costs ~15-20s cold. The TTL MUST exceed
+# that runtime — at 15s the cache expired before it could ever serve warm, so a
+# fresh 20s query fired on nearly every 5s HealthPanel poll, stacking concurrent
+# scans on one DB and blowing the browser fetch timeout (the "API OFFLINE"
+# flicker). Coverage is a slow-moving daily-window signal; 2min staleness is
+# fine. ponytail: single-flight/stale-while-revalidate if this still stalls.
+_RECORD_HEALTH_CACHE_TTL_SECONDS = 120.0
 _RecordHealthCacheKey = tuple[
     tuple[str, ...] | None,
     float,
@@ -231,6 +238,28 @@ def _record_health_cache_set(
 
 def _record_health_cache_clear_for_tests() -> None:
     _record_health_cache.clear()
+
+
+def _record_window_scans_expected(
+    settings: Settings,
+    *,
+    now_utc: datetime,
+    record_window_hours: float | None,
+) -> bool:
+    """True when >=1 full-scan cron was scheduled to fire within the record
+    window. When False (weekend / holiday / overnight) no fresh coverage is
+    expected, so record health should read healthy rather than ALERT. Extracted
+    from the handler so tests can force the market session deterministically,
+    independent of the wall-clock a CI run happens to land on."""
+    if record_window_hours is None:
+        return False
+    fires = expected_market_cron_fires_between(
+        settings.full_scan_crons,
+        settings.rth_tz,
+        start_utc=now_utc - timedelta(hours=record_window_hours),
+        end_utc=now_utc,
+    )
+    return bool(fires)
 
 
 def _parse_record_tables(record_tables: str | None) -> list[str] | None:
@@ -536,7 +565,17 @@ def health(
     }
     record_fields = {"record_health_ok": None, "record_health": []}
     record_reason = None
-    if record_window_hours is not None:
+    # Market-calendar aware: coverage is only expected when scans were due. If no
+    # full-scan cron was scheduled to fire within the record window (weekend,
+    # holiday, overnight), an empty window is healthy — not an ALERT. Mirrors the
+    # WS-consumer's in-session relaxation, and skips the expensive per-table scan
+    # when there is nothing to verify.
+    record_scans_expected = _record_window_scans_expected(
+        settings, now_utc=now_utc, record_window_hours=record_window_hours
+    )
+    if record_window_hours is not None and not record_scans_expected:
+        record_fields = {"record_health_ok": True, "record_health": []}
+    elif record_window_hours is not None:
         selected_tables = _parse_record_tables(record_tables)
         cache_key: _RecordHealthCacheKey = (
             tuple(selected_tables) if selected_tables is not None else None,
@@ -606,7 +645,9 @@ def health(
         )
 
     lag = (now_utc - last_scan).total_seconds()
-    next_stale_at = last_scan + timedelta(hours=settings.full_scan_stale_after_hours)
+    next_stale_at = last_scan + timedelta(
+        hours=settings.health_full_scan_missed_grace_hours
+    )
     missed_full_scans = expected_market_cron_fires_between(
         settings.full_scan_crons,
         settings.rth_tz,

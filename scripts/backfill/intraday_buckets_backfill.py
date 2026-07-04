@@ -32,6 +32,7 @@ import psycopg
 
 from uw_scan.api.client import UwClient
 from uw_scan.config import Settings
+from uw_scan.storage.provider_usage import ExternalApiRequestRecorder
 from uw_scan.storage.repository import Repository
 from uw_scan.worker.jobs.option_intraday_jobs import (
     backfill_intraday_history,
@@ -42,11 +43,14 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("intraday_backfill")
 
 
-def _client(settings: Settings) -> UwClient:
+def _client(
+    settings: Settings, recorder: ExternalApiRequestRecorder | None = None
+) -> UwClient:
     return UwClient(
         api_key=settings.api_key.get_secret_value(),
         base_url=settings.base_url,
         timeout=settings.request_timeout_seconds,
+        telemetry_recorder=recorder,
         job_name="intraday_buckets_backfill",
     )
 
@@ -91,6 +95,9 @@ def main() -> int:
         Settings.from_env()
     )  # plain BaseModel: bare Settings() lacks required api_key
     repo = Repository(psycopg.connect(settings.db_dsn()), schema=settings.db_schema)
+    # Telemetry recorder → backfill UW spend visible to the budget governor
+    # (research pool), Phase 0.
+    recorder = ExternalApiRequestRecorder(settings.db_dsn(), schema=settings.db_schema)
     try:
         if args.all:
             target = sorted({c.ticker.upper() for c in repo.list_watchlist_cards()})
@@ -118,7 +125,7 @@ def main() -> int:
                 return 0
             summary = backfill_intraday_history(
                 repo=repo,
-                client=_client(settings),
+                client=_client(settings, recorder),
                 settings=settings,
                 tickers=target,
                 since=since,
@@ -144,6 +151,7 @@ def main() -> int:
         logger.info("backfill complete: %s", summary)
         return 0
     finally:
+        recorder.close()
         repo.conn.close()
 
 

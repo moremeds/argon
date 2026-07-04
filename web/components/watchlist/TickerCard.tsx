@@ -18,6 +18,7 @@ import {
 import { bucketFreshness } from "@/lib/freshness";
 import { RescanButton } from "@/components/shared/RescanButton";
 import { PinButton } from "./PinButton";
+import { HotButton } from "./HotButton";
 import { useLiveSpot } from "./LiveSpotsProvider";
 
 type Card = components["schemas"]["WatchlistCard"];
@@ -232,6 +233,7 @@ export function TickerCard({ card, sparkline = [] }: Props) {
           )}
         </div>
         <div style={{ display: "flex", alignItems: "center" }}>
+          <HotButton ticker={card.ticker} hot={card.hot ?? false} />
           <PinButton ticker={card.ticker} pinned={card.pinned} />
           <RescanButton ticker={card.ticker} initialJob={card.queue ?? null} />
         </div>

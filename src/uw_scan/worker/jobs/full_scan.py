@@ -38,6 +38,7 @@ def full_scan_once(
     stale_after: timedelta = DEFAULT_STALE_AFTER,
     ticker_filter: Callable[[str], bool] | None = None,
     preserve_spot: bool = False,
+    max_tickers: int | None = None,
 ) -> int:
     """Run UW deep scans only for active tickers missing data or older than max age.
 
@@ -46,10 +47,18 @@ def full_scan_once(
     analytical field, but its UW-derived spot / spot_quoted_at / spot_source
     and the intraday return triple are suppressed by the storage layer so
     the WS-canonical values are never clobbered (A13).
+
+    ``max_tickers`` caps how many stale tickers this pass will scan — the
+    scheduler sets it from the UW budget governor's remaining live budget so
+    that under budget pressure the pass covers the highest-priority names and
+    skips the cold tail instead of 429-storming. Tickers arrive hot-first
+    (``list_watchlist_cards`` orders ``hot DESC, pinned DESC``), so the cap
+    drops the least important names first.
     """
     _ = ohlc_provider  # currently OHLC is pulled separately; reserved for future
     current = now or datetime.now(timezone.utc)
     completed = 0
+    scanned = 0
     for w in repo.list_watchlist_cards():
         if ticker_filter is not None and not ticker_filter(w.ticker):
             logger.debug("full_scan skipped %s outside this worker shard", w.ticker)
@@ -57,6 +66,13 @@ def full_scan_once(
         if not _is_missing_or_stale(w.scanned_at, now=current, stale_after=stale_after):
             logger.debug("full_scan skipped fresh persisted data for %s", w.ticker)
             continue
+        if max_tickers is not None and scanned >= max_tickers:
+            logger.info(
+                "full_scan budget cap reached (%d tickers); skipping cold tail",
+                max_tickers,
+            )
+            break
+        scanned += 1
         try:
             report = run_single_stock(w.ticker, uw_client, repo)
             history = repo.list_daily_ohlc(w.ticker, limit=40)
