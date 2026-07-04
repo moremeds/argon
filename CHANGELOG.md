@@ -7,6 +7,9 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+## [0.7.1] — 2026-07-04
+
+
 ### Fixed
 
 - **HealthPanel "API OFFLINE" flicker.** The sidebar rapidly toggled `API
@@ -38,7 +41,6 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   ticker, so its coverage is a real scanner-persistence signal); (3) the nightly
   `option_surface_grid_daily` / `flow_alerts_daily_rollup` tables use the 24h
   window instead of 8h.
-
 ## [0.7.0] — 2026-07-04
 
 
