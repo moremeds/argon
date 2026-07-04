@@ -3,6 +3,12 @@
 **Question:** can raw-SVI fit argon's banked UW IV grid cleanly and arb-free enough
 that the fitted-vs-marked residual is a trustworthy mispricing signal?
 
+> **The fit is trustworthy — but the residual is NOT a tradable edge.** See
+> [`residual-edge-test.md`](./residual-edge-test.md): the residual mean-reverts (real
+> signal) yet the realizable, after-cost edge is ~\$0.18/contract — smaller than one
+> option commission. A market-maker's edge, not a taker's. This gate is a green light to
+> *understand* the surface, not to build a trade.
+
 **Verdict: PASS (liquid names) / gate on liquidity.** On the six liquid underliers the
 raw-SVI fit is sub-half-a-vol-point (RMSE p50 **0.47**, p90 **0.81**, max **1.02** vol
 pts; 178/180 fits under 1 vol pt) and **100% butterfly-arb-free** — the residual there
