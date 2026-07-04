@@ -21,6 +21,16 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ### Added
 
+- **SVI surface-fit feasibility + residual edge test (research spike).**
+  `scripts/research/svi_fit.py` — pure raw-SVI (Gatheral) smile fit + butterfly/calendar
+  no-arb diagnostics + delta-forward anchor, unit-tested (`tests/unit/test_svi_fit.py`) —
+  plus two read-only probes over `option_surface_grid_daily`. Verdict in
+  `docs/research/svi-surface-fit/`: raw-SVI fits liquid smiles to <0.5 vol-pt residual,
+  arb-free, but the fitted-vs-marked residual — while a genuine mean-reverting signal
+  (autocorr 0.56) — carries **no taker edge** (~\$0.18/contract, below one option
+  commission). Do not build the signal layer. Adds `scipy` + `matplotlib` (research-only
+  deps). Also surfaced: the mini's IB canary (`iv_source_validation`) has never captured
+  an IB IV (0/1026 rows) — the `XENON_QUERY_API_KEY` silent-401 fallback.
 - Unified backtest harness `src/uw_scan/backtest/` (no-lookahead replay engine,
   time-ordered holdout splitter, walkforward+quarter OOS gates, legacy-convention
   metrics, persist-as-you-go sweep runner) + migration 095
