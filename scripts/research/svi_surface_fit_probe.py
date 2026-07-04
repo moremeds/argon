@@ -6,7 +6,7 @@ violation rates; writes full traces. ZERO UW/IB calls.
 Reproduce:
   UW_SCAN_DB_HOST=100.66.147.98 UW_SCAN_DB_NAME=option_wizard \
   UW_SCAN_ALLOW_DB_MISMATCH=1 \
-  uv run python scripts/research/svi_surface_fit_probe.py
+  uv run python -m scripts.research.svi_surface_fit_probe
 """
 
 from __future__ import annotations
