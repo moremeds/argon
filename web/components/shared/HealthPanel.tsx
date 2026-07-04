@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { api } from "@/lib/api";
 import { fmtDateTimeWithZone } from "@/lib/formatters";
 import type { components } from "@/lib/types";
@@ -10,6 +10,8 @@ type WorkerHealth = NonNullable<Health["workers"]>[number];
 type ProviderSource = "uw" | "massive";
 type PanelView = "status" | "benchmark";
 
+const HEALTH_FETCH_TIMEOUT_MS = 8000;
+const HEALTH_FAILURE_LIMIT = 3;
 const HEARTBEAT_HEALTHY_LAG_S = 5;
 const SPOT_REFRESH_HEALTHY_LAG_S = 660;
 const RECORD_WINDOW_HOURS = 8;
@@ -382,24 +384,50 @@ export function HealthPanel() {
     setCollapsed(readStoredCollapsed());
   }, []);
 
+  // A single slow/failed poll must NOT blank the whole panel to OFFLINE —
+  // the record-health query can occasionally exceed the timeout even when the
+  // API is fine. Keep the last-good snapshot until FAILURE_LIMIT consecutive
+  // misses (a genuine outage), and cap each poll at HEALTH_FETCH_TIMEOUT_MS so
+  // a real outage is detected promptly instead of hanging. Polls are SERIALIZED
+  // (schedule the next only after the current settles) rather than a fixed
+  // interval: with an 8s timeout under a 5s interval, requests would overlap and
+  // an older timed-out poll could bump the failure counter after a newer poll
+  // already succeeded — muddying the "consecutive" count and re-introducing a
+  // false OFFLINE while the API is healthy.
+  const failuresRef = useRef(0);
   useEffect(() => {
     let cancelled = false;
-    const fetchOnce = async () => {
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    failuresRef.current = 0;
+    const scheduleNext = () => {
+      if (!cancelled) timer = setTimeout(runPoll, 5000);
+    };
+    const runPoll = async () => {
       try {
-        const r = await api.health(source, {
-          recordMinCoverage: RECORD_MIN_COVERAGE,
-          recordWindowHours: RECORD_WINDOW_HOURS,
-        });
-        if (!cancelled) setH(r);
+        const r = await api.health(
+          source,
+          {
+            recordMinCoverage: RECORD_MIN_COVERAGE,
+            recordWindowHours: RECORD_WINDOW_HOURS,
+          },
+          { signal: AbortSignal.timeout(HEALTH_FETCH_TIMEOUT_MS) },
+        );
+        if (cancelled) return;
+        failuresRef.current = 0;
+        setH(r);
       } catch {
-        if (!cancelled) setH(null);
+        if (cancelled) return;
+        failuresRef.current += 1;
+        if (failuresRef.current >= HEALTH_FAILURE_LIMIT) setH(null);
+        // else: keep the last-good snapshot — this was a transient slow poll.
+      } finally {
+        if (!cancelled) scheduleNext();
       }
     };
-    fetchOnce();
-    const t = setInterval(fetchOnce, 5000);
+    runPoll();
     return () => {
       cancelled = true;
-      clearInterval(t);
+      if (timer !== undefined) clearTimeout(timer);
     };
   }, [source]);
 

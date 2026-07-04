@@ -7,6 +7,38 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+### Fixed
+
+- **HealthPanel "API OFFLINE" flicker.** The sidebar rapidly toggled `API
+  OFFLINE` / everything `UNKNOWN` even while the API was up. Root cause: the
+  `/api/health` record-coverage ("Query Coverage") scan costs ~15–20s cold but
+  its cache TTL was only 15s, so a fresh 20s query fired on nearly every 5s
+  poll, stacking on one DB and blowing the browser fetch timeout. Two changes:
+  (1) `_RECORD_HEALTH_CACHE_TTL_SECONDS` 15→120 so the expensive scan runs at
+  most once every 2 min; (2) the poll now caps each request at an 8s timeout and
+  keeps the last-good snapshot on a transient miss, only showing `OFFLINE` after
+  3 consecutive failures (a real outage) instead of flickering on one slow poll.
+  Polls are serialized (next scheduled only after the current settles) so an 8s
+  timeout under a 5s interval can't overlap and let a stale timed-out poll
+  corrupt the consecutive-failure count.
+- **HealthPanel "Query Coverage" permanently ALERT.** The record-coverage check
+  auto-discovered every ticker+timestamp table and expected ~90% watchlist
+  coverage in an 8h window, with no market-calendar awareness — so it flashed
+  ALERT every weekend/holiday/overnight (no scans run → 0 rows) and, during RTH,
+  for sparse/research tables that structurally never reach 90% coverage. Now:
+  (1) the check is market-calendar aware — when no full-scan cron was due in the
+  window it reads healthy and skips the per-table scan (mirrors the WS-consumer
+  relaxation); (2) the structurally-sparse candidate / research / unusual-activity
+  tables (`signal_hits`, `scanner_candidate_snapshots`, `vrp_trade_candidates`,
+  `vrp_paper_positions`, `vrp_backtest_trades`, `vrp_macro_sweep_results`,
+  `corporate_actions`, `iv_source_validation`, `short_interest_snapshots`,
+  `flow_events`, `dark_pool_events`, `oi_change_events`) are excluded — the
+  event tables insert nothing for a ticker with no events, so they never reach
+  90% coverage (but `signal_gates` is kept — it is written once per scanned
+  ticker, so its coverage is a real scanner-persistence signal); (3) the nightly
+  `option_surface_grid_daily` / `flow_alerts_daily_rollup` tables use the 24h
+  window instead of 8h.
+
 ## [0.7.0] — 2026-07-04
 
 

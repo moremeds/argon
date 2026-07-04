@@ -1,9 +1,11 @@
 import {
+  act,
   cleanup,
   fireEvent,
   render,
   screen,
   waitFor,
+  within,
 } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -49,6 +51,9 @@ describe("HealthPanel", () => {
     cleanup();
     vi.clearAllMocks();
     vi.unstubAllGlobals();
+    // Guard against a fake-timer test leaking into the real-timer tests that
+    // rely on testing-library's waitFor.
+    vi.useRealTimers();
   });
 
   it("opens a benchmark view from the expanded panel and fetches lazily", async () => {
@@ -266,6 +271,69 @@ describe("HealthPanel", () => {
     expect(screen.getByText("1")).toBeTruthy();
   });
 
+  it("keeps the last-good status on a transient failed poll, then goes OFFLINE after repeated failures", async () => {
+    vi.useFakeTimers();
+    const good = {
+      ok: true,
+      db: "up",
+      scheduler_lag_seconds: 12,
+      last_full_scan_at: "2026-05-14T14:20:42Z",
+      reason: null,
+      worker_lag_seconds: 1,
+      scheduler_heartbeat_lag_seconds: 1,
+      scheduler_heartbeat_name: "worker",
+      rescan_heartbeat_lag_seconds: 8,
+      spot_refresh_heartbeat_lag_seconds: 240,
+      spot_quote_lag_seconds: 60,
+      latest_spot_quote_at: "2026-05-14T14:19:42Z",
+      latest_spot_quote_fetched_at: "2026-05-14T14:20:42Z",
+      watchlist_size: 97,
+      source: "UnusualWhales",
+      version: "0.0.0-test",
+      latency_p95_ms: 88,
+      http_2xx: 120,
+      http_4xx: 3,
+      http_5xx: 1,
+      uw_today: 40,
+      cache_hit_pct: null,
+      throughput_window_minutes: 15,
+      requests_per_minute: 12.4,
+      http_429: 2,
+      avg_scan_duration_seconds: 125,
+      queue_drain_rate_per_minute: 1.6,
+      record_health_ok: true,
+      record_health: [],
+      workers: [],
+    };
+    vi.mocked(api.health)
+      .mockResolvedValueOnce(good)
+      .mockRejectedValue(new Error("timeout"));
+
+    render(<HealthPanel />);
+    fireEvent.click(screen.getByRole("button", { name: /status/i }));
+    // Flush the initial (successful) poll. State updates from the resolved
+    // fetch must settle inside act(), so advance timers within act().
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
+    });
+    const apiRow = () => screen.getByText("API").parentElement as HTMLElement;
+    expect(within(apiRow()).getByText("ONLINE")).toBeTruthy();
+
+    // Poll #1 fails — panel must keep the last-good ONLINE, not flicker OFFLINE.
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(5000);
+    });
+    expect(within(apiRow()).getByText("ONLINE")).toBeTruthy();
+
+    // Polls #2 and #3 fail — three consecutive misses is a real outage.
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(10000);
+    });
+    expect(within(apiRow()).getByText("OFFLINE")).toBeTruthy();
+
+    vi.useRealTimers();
+  });
+
   it("keeps dashes for missing metrics", async () => {
     vi.mocked(api.health).mockResolvedValue({
       ok: false,
@@ -366,20 +434,28 @@ describe("HealthPanel", () => {
     await expandPanel();
 
     await waitFor(() =>
-      expect(api.health).toHaveBeenCalledWith("uw", {
-        recordMinCoverage: 0.9,
-        recordWindowHours: 8,
-      }),
+      expect(api.health).toHaveBeenCalledWith(
+        "uw",
+        {
+          recordMinCoverage: 0.9,
+          recordWindowHours: 8,
+        },
+        expect.objectContaining({ signal: expect.any(AbortSignal) }),
+      ),
     );
     fireEvent.change(screen.getByRole("combobox", { name: "Source" }), {
       target: { value: "massive" },
     });
 
     await waitFor(() =>
-      expect(api.health).toHaveBeenCalledWith("massive", {
-        recordMinCoverage: 0.9,
-        recordWindowHours: 8,
-      }),
+      expect(api.health).toHaveBeenCalledWith(
+        "massive",
+        {
+          recordMinCoverage: 0.9,
+          recordWindowHours: 8,
+        },
+        expect.objectContaining({ signal: expect.any(AbortSignal) }),
+      ),
     );
     expect(screen.getByText("Massive.com")).toBeTruthy();
     expect(screen.getByText("55ms")).toBeTruthy();
