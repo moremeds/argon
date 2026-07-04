@@ -1,12 +1,14 @@
 from datetime import date
 
 import numpy as np
+
 from scripts.research.svi_fit import (
     SVIParams,
     build_smile,
     butterfly_g,
     calendar_violations,
     fit_raw_svi,
+    forward_from_delta,
     raw_svi_total_variance,
     rmse_vol_points,
 )
@@ -43,6 +45,16 @@ def test_build_smile_uses_otm_wings():
         abs(iv[0] - 0.30) < 1e-12 and abs(iv[1] - 0.22) < 1e-12
     )  # put wing, call wing
     assert abs(k[0] - np.log(0.9)) < 1e-12
+
+
+def test_forward_from_delta_recovers_atm_and_falls_back():
+    # call_delta 0.5 sits exactly between K=100 (0.55) and K=102 (0.45) -> F=101
+    strikes = [96, 98, 100, 102, 104]
+    cdelta = [0.75, 0.65, 0.55, 0.45, 0.35]
+    assert abs(forward_from_delta(strikes, cdelta) - 101.0) < 1e-9
+    # no 0.5 crossing (all deep ITM) -> fallback
+    assert forward_from_delta([100, 101], [0.9, 0.85], fallback=100.5) == 100.5
+    assert forward_from_delta([100, 101], [0.9, 0.85]) is None
 
 
 def test_calendar_violations_flags_decreasing_variance():

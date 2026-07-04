@@ -124,6 +124,25 @@ def build_smile(
     return k, iv, iv * iv * t_years, t_years, np.array(strikes_used, float)
 
 
+def forward_from_delta(
+    strikes, call_deltas, fallback: float | None = None
+) -> float | None:
+    """Forward proxy = strike where call_delta crosses 0.5 (linear interp in delta).
+
+    call_delta is monotone-decreasing in strike (≈1 deep-ITM → ≈0 deep-OTM), so the
+    0.5 crossing is the ~ATM-forward. This is the textbook SVI anchor and works on the
+    ~96% of grid rows that carry greeks but no `underlying_spot`. Returns `fallback`
+    (e.g. a real spot) when there is no clean 0.5 crossing, or None if none given.
+    """
+    pairs = sorted(
+        (float(k), float(d)) for k, d in zip(strikes, call_deltas) if d is not None
+    )
+    for (k0, d0), (k1, d1) in zip(pairs, pairs[1:]):
+        if (d0 - 0.5) * (d1 - 0.5) <= 0.0 and d0 != d1:
+            return k0 + (d0 - 0.5) / (d0 - d1) * (k1 - k0)
+    return float(fallback) if fallback is not None else None
+
+
 def calendar_violations(fitted_by_expiry, ref_k: float = 0.0) -> int:
     """Count expiries where total variance at ref_k DROPS vs the prior (shorter) one."""
     items = sorted(fitted_by_expiry, key=lambda x: x[1])  # by t_years
