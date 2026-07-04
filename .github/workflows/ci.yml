@@ -43,6 +43,9 @@ jobs:
       - name: AST except handler check (Guardrail 2)
         run: uv run python scripts/_lint_except.py src
 
+      - name: No Yahoo Finance (CLAUDE.md standing rule)
+        run: uv run python scripts/check_no_yahoo.py
+
       - name: Guardrail greps (3, 5, 9)
         run: |
           set -e
