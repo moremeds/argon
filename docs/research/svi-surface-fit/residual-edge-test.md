@@ -75,11 +75,13 @@ historical IB-vs-UW disagreement series yet to characterize the mark floor. The 
 (URL defaults to `:8321`) and the canary's IB path returns a live quote when called there.
 The pre-restart canary workers had frozen a stale, pre-key env at fork (the fork-freeze the
 root CLAUDE.md warns about); the **Jul 4 worker restart** already picked up the key, so the
-check should start populating from its next weekday run. Corroborating evidence that the
-*tail* is noise: **MU's grid is corrupt** — its ATM strike sits at ~1015 (Micron does not
-trade near \$1000), and every one of the largest liquid "standoffs" in the feasibility
-overlay was MU. The biggest residuals are data errors, not alpha. **Next:** let the
-restarted canary bank a few days of IB-vs-UW diffs, then this cross-check runs on real data.
+check should start populating from its next weekday run. Note on the *tail*: the largest
+liquid "standoffs" in the feasibility overlay were MU — **not** a data error (checked: MU
+trades ~\$975 in this period, IB `undPrice` \$973.3 and argon's WS feed \$975.6 both agree
+with the grid's ~\$983; MU is simply a genuinely wild ~90–100% IV name). So the tail is real
+high-vol residual, not corruption — but it still doesn't clear costs (the realized harvest
+plateaus ~0.22–0.28 vp regardless of signal size). **Next:** let the restarted canary bank a
+few days of IB-vs-UW diffs, then this cross-check runs on real data.
 
 ## Bottom line
 
