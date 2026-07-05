@@ -18,8 +18,10 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   (autocorr 0.56) — carries **no taker edge** (~\$0.18/contract, below one option
   commission). Do not build the signal layer. Adds `scipy` (main dep, needed by the tested
   fit); figs use matplotlib from the existing `research` dep-group. Also surfaced: the
-  mini's IB canary (`iv_source_validation`) has never captured an IB IV (0/1026 rows) —
-  the `XENON_QUERY_API_KEY` silent-401 fallback.
+  mini's IB canary (`iv_source_validation`) had captured no IB IV (0/1026 rows) through
+  07-02 — a stale pre-key env frozen at worker fork, not a missing key (the mini's argon
+  `.env` has `XENON_QUERY_API_KEY`); the Jul 4 worker restart already picked up the key,
+  so the canary should self-heal on its next weekday run.
 
 ## [0.7.1] — 2026-07-04
 

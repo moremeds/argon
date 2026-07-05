@@ -66,17 +66,20 @@ mispricing on a liquid option is worth pennies; per-contract taker costs are the
   fading a rich strike is a naked short; the defined-risk version needs ≥2 legs, ≥2× cost.
 - **QQQ / single names** — spread alone (≥0.34 vp) meets or exceeds the edge. Dead outright.
 
-### 3. Mark-noise cross-check — **not measurable from banked data**
+### 3. Mark-noise cross-check — **no banked data yet (canary self-heals)**
 
 `iv_source_validation` has 1,026 rows but **every `abs_diff` is NULL**: the IB-vs-UW canary
-has been recording UW IV with no IB side — the silent-401 failure the root CLAUDE.md warns
-about (`XENON_QUERY_API_KEY` unset on the mini → the never-raise client swallows the 401).
-So there is no historical IB-vs-UW IV disagreement series to characterize the mark floor.
-Corroborating evidence that the *tail* is noise: **MU's grid is corrupt** — its ATM strike
-sits at ~1015 (Micron does not trade near \$1000), and every one of the largest liquid
-"standoffs" in the feasibility overlay was MU. The biggest residuals are data errors, not
-alpha. **Fix:** set `XENON_QUERY_API_KEY` on the mini so the canary populates, then this
-check runs on real banked data.
+recorded UW IV with no IB side for its whole life so far (2026-06-22→07-02), so there is no
+historical IB-vs-UW disagreement series yet to characterize the mark floor. The cause is
+**not** a missing key — verified on the mini, its argon `.env` holds `XENON_QUERY_API_KEY`
+(URL defaults to `:8321`) and the canary's IB path returns a live quote when called there.
+The pre-restart canary workers had frozen a stale, pre-key env at fork (the fork-freeze the
+root CLAUDE.md warns about); the **Jul 4 worker restart** already picked up the key, so the
+check should start populating from its next weekday run. Corroborating evidence that the
+*tail* is noise: **MU's grid is corrupt** — its ATM strike sits at ~1015 (Micron does not
+trade near \$1000), and every one of the largest liquid "standoffs" in the feasibility
+overlay was MU. The biggest residuals are data errors, not alpha. **Next:** let the
+restarted canary bank a few days of IB-vs-UW diffs, then this cross-check runs on real data.
 
 ## Bottom line
 
