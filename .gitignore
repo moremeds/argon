@@ -38,3 +38,6 @@ docs/**/archive/
 
 # Reference papers dropped into docs/research/ root — keep on disk, don't commit
 docs/research/*.pdf
+
+# Large reproducible OHLC caches from research backtests — regenerate, don't commit
+ohlc_cache.pkl

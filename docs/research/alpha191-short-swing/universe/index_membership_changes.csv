@@ -1,0 +1,1182 @@
+index,date,action,ticker,security,reason
+sp500,"June 30, 2026",removed,CAG,Conagra Brands,Market capitalization change.
+sp500,"June 29, 2026",added,HONA,Honeywell Aerospace,S&P 500 constituent Honeywell spun off Honeywell Aerospace.
+sp500,"June 22, 2026",added,MRVL,Marvell Technology,Market capitalization change.
+sp500,"June 22, 2026",removed,POOL,Pool Corporation,Market capitalization change.
+sp500,"June 22, 2026",added,FLEX,Flex Ltd.,Market capitalization change.
+sp500,"June 22, 2026",removed,CPB,Campbell's,Market capitalization change.
+sp500,"June 2, 2026",removed,EPAM,EPAM Systems,Market capitalization change.
+sp500,"June 1, 2026",added,FDXF,FedEx Freight,S&P 500 & 100 constituent FedEx Corp. spun off FedEx Freight Holding.
+sp500,"May 7, 2026",added,VEEV,Veeva Systems,Devon Energy Corp. acquired Coterra Energy.
+sp500,"May 7, 2026",removed,CTRA,Coterra Energy,Devon Energy Corp. acquired Coterra Energy.
+sp500,"April 9, 2026",added,CASY,Casey's,Blackstone Inc. and TPG Inc. acquired Hologic.
+sp500,"April 9, 2026",removed,HOLX,Hologic,Blackstone Inc. and TPG Inc. acquired Hologic.
+sp500,"March 23, 2026",added,VRT,Vertiv,Market capitalization change.
+sp500,"March 23, 2026",removed,MTCH,Match Group,Market capitalization change.
+sp500,"March 23, 2026",added,LITE,Lumentum,Market capitalization change.
+sp500,"March 23, 2026",removed,MOH,Molina Healthcare,Market capitalization change.
+sp500,"March 23, 2026",added,COHR,Coherent Corp.,Market capitalization change.
+sp500,"March 23, 2026",removed,LW,Lamb Weston,Market capitalization change.
+sp500,"March 23, 2026",added,SATS,EchoStar,Market capitalization change.
+sp500,"March 23, 2026",removed,PAYC,Paycom,Market capitalization change.
+sp500,"February 9, 2026",added,CIEN,Ciena,Thoma Bravo L.P. acquired Dayforce.
+sp500,"February 9, 2026",removed,DAY,Dayforce,Thoma Bravo L.P. acquired Dayforce.
+sp500,"December 22, 2025",added,CRH,CRH,Market capitalization change.
+sp500,"December 22, 2025",removed,LKQ,LKQ Corporation,Market capitalization change.
+sp500,"December 22, 2025",added,CVNA,Carvana,Market capitalization change.
+sp500,"December 22, 2025",removed,SOLS,Solstice Advanced Materials,Market capitalization change.
+sp500,"December 22, 2025",added,FIX,Comfort Systems USA,Market capitalization change.
+sp500,"December 22, 2025",removed,MHK,Mohawk Industries,Market capitalization change.
+sp500,"December 11, 2025",added,ARES,Ares Management,Mars Inc. acquired Kellanova.
+sp500,"December 11, 2025",removed,K,Kellanova,Mars Inc. acquired Kellanova.
+sp500,"November 28, 2025",added,SNDK,Sandisk,Omnicom Group Inc. acquired (The) Interpublic Group.
+sp500,"November 28, 2025",removed,IPG,Interpublic Group,Omnicom Group Inc. acquired (The) Interpublic Group.
+sp500,"November 4, 2025",removed,EMN,Eastman Chemical Co.,Market capitalization change.
+sp500,"November 3, 2025",added,Q,Qnity Electronics,"S&P 500 constituent Dupont de Nemours, Inc. spun off Qnity Electronics."
+sp500,"October 31, 2025",removed,KMX,CarMax,Market capitalization change.
+sp500,"October 30, 2025",added,SOLS,Solstice Advanced Materials,S&P 500 and S&P 100 constituent Honeywell International Inc. spun off Solstice Advanced Materials.
+sp500,"September 22, 2025",added,EME,Emcor,Market capitalization change.
+sp500,"September 22, 2025",removed,ENPH,Enphase Energy,Market capitalization change.
+sp500,"September 22, 2025",added,HOOD,Robinhood Markets,Market capitalization change.
+sp500,"September 22, 2025",removed,CZR,Caesars Entertainment,Market capitalization change.
+sp500,"September 22, 2025",added,APP,AppLovin,Market capitalization change.
+sp500,"September 22, 2025",removed,MKTX,MarketAxess,Market capitalization change.
+sp500,"August 28, 2025",added,IBKR,Interactive Brokers,Sycamore Partners acquired Walgreen Boots Alliance.
+sp500,"August 28, 2025",removed,WBA,Walgreens Boots Alliance,Sycamore Partners acquired Walgreen Boots Alliance.
+sp500,"July 23, 2025",added,XYZ,"Block, Inc.",S&P 500 and S&P 100 constituent Chevron Corp. acquired Hess Corporation
+sp500,"July 23, 2025",removed,HES,Hess Corporation,S&P 500 and S&P 100 constituent Chevron Corp. acquired Hess Corporation
+sp500,"July 18, 2025",added,TTD,Trade Desk (The),S&P 500 constituent Synopsys Inc. acquired Ansys.
+sp500,"July 18, 2025",removed,ANSS,Ansys,S&P 500 constituent Synopsys Inc. acquired Ansys.
+sp500,"July 9, 2025",added,DDOG,Datadog,S&P 500 constituent Hewlett Packard Enterprise Co. acquired Juniper Networks.
+sp500,"July 9, 2025",removed,JNPR,Juniper Networks,S&P 500 constituent Hewlett Packard Enterprise Co. acquired Juniper Networks.
+sp500,"May 19, 2025",added,COIN,Coinbase,S&P 500 constituent Capital One Financial Corp. acquired Discover Financial Services.
+sp500,"May 19, 2025",removed,DFS,Discover Financial,S&P 500 constituent Capital One Financial Corp. acquired Discover Financial Services.
+sp500,"March 24, 2025",added,DASH,DoorDash,Market capitalization change.
+sp500,"March 24, 2025",removed,BWA,BorgWarner,Market capitalization change.
+sp500,"March 24, 2025",added,TKO,TKO Group Holdings,Market capitalization change.
+sp500,"March 24, 2025",removed,TFX,Teleflex,Market capitalization change.
+sp500,"March 24, 2025",added,WSM,"Williams-Sonoma, Inc.",Market capitalization change.
+sp500,"March 24, 2025",removed,CE,Celanese,Market capitalization change.
+sp500,"March 24, 2025",added,EXE,Expand Energy,Market capitalization change.
+sp500,"March 24, 2025",removed,FMC,FMC Corporation,Market capitalization change.
+sp500,"December 23, 2024",added,APO,Apollo Global Management,Market capitalization change.
+sp500,"December 23, 2024",removed,QRVO,Qorvo,Market capitalization change.
+sp500,"December 23, 2024",added,WDAY,"Workday, Inc.",Market capitalization change.
+sp500,"December 23, 2024",removed,AMTM,Amentum,Market capitalization change.
+sp500,"December 23, 2024",added,LII,Lennox International,Novo Holdings A/S acquired Catalent.
+sp500,"December 23, 2024",removed,CTLT,Catalent,Novo Holdings A/S acquired Catalent.
+sp500,"November 26, 2024",added,TPL,Texas Pacific Land Corporation,S&P 500 & 100 constituent ConocoPhillips acquired Marathon Oil.
+sp500,"November 26, 2024",removed,MRO,Marathon Oil,S&P 500 & 100 constituent ConocoPhillips acquired Marathon Oil.
+sp500,"October 1, 2024",removed,BBWI,"Bath & Body Works, Inc.",Market capitalization change.
+sp500,"September 30, 2024",added,AMTM,Amentum,"S&P 500 constituent Jacobs Solutions spun off its Critical Mission Solutions and Cyber Intelligence business, which merged with private Amentum to create newly publicly traded Amentum Holdings."
+sp500,"September 23, 2024",added,PLTR,Palantir Technologies,Market capitalization change.
+sp500,"September 23, 2024",removed,AAL,American Airlines Group,Market capitalization change.
+sp500,"September 23, 2024",added,DELL,Dell Technologies,Market capitalization change.
+sp500,"September 23, 2024",removed,ETSY,Etsy,Market capitalization change.
+sp500,"September 23, 2024",added,ERIE,Erie Indemnity,Market capitalization change.
+sp500,"September 23, 2024",removed,BIO,Bio-Rad Laboratories,Market capitalization change.
+sp500,"June 24, 2024",added,KKR,KKR,Market capitalization change.
+sp500,"June 24, 2024",removed,RHI,Robert Half,Market capitalization change.
+sp500,"June 24, 2024",added,CRWD,CrowdStrike,Market capitalization change.
+sp500,"June 24, 2024",removed,CMA,Comerica,Market capitalization change.
+sp500,"June 24, 2024",added,GDDY,GoDaddy,Market capitalization change.
+sp500,"June 24, 2024",removed,ILMN,"Illumina, Inc.",Market capitalization change.
+sp500,"May 8, 2024",added,VST,Vistra,S&P 500 and S&P 100 constituent ExxonMobil acquired Pioneer Natural Resources.
+sp500,"May 8, 2024",removed,PXD,Pioneer Natural Resources,S&P 500 and S&P 100 constituent ExxonMobil acquired Pioneer Natural Resources.
+sp500,"April 3, 2024",removed,XRAY,Dentsply Sirona,Market capitalization change.
+sp500,"April 3, 2024",removed,VFC,VF Corporation,Market capitalization change.
+sp500,"April 2, 2024",added,GEV,GE Vernova,S&P 500 and 100 constituent General Electric Corp. spun off GE Vernova.
+sp500,"April 1, 2024",added,SOLV,Solventum,S&P 500 and 100 constituent 3M Co. spun off Solventum.
+sp500,"March 18, 2024",added,SMCI,Supermicro,Market capitalization change.
+sp500,"March 18, 2024",removed,WHR,Whirlpool Corporation,Market capitalization change.
+sp500,"March 18, 2024",added,DECK,Deckers Brands,Market capitalization change.
+sp500,"March 18, 2024",removed,ZION,Zions Bancorporation,Market capitalization change.
+sp500,"December 18, 2023",added,UBER,Uber,Market capitalization change.
+sp500,"December 18, 2023",removed,SEE,Sealed Air,Market capitalization change.
+sp500,"December 18, 2023",added,JBL,Jabil,Market capitalization change.
+sp500,"December 18, 2023",removed,ALK,Alaska Air Group,Market capitalization change.
+sp500,"December 18, 2023",added,BLDR,Builders FirstSource,Market capitalization change.
+sp500,"December 18, 2023",removed,SEDG,SolarEdge,Market capitalization change.
+sp500,"October 18, 2023",added,HUBB,Hubbell,Market capitalization change.
+sp500,"October 18, 2023",removed,OGN,Organon & Co.,Market capitalization change.
+sp500,"October 18, 2023",added,LULU,Lululemon Athletica,Microsoft acquired Activision Blizzard.
+sp500,"October 18, 2023",removed,ATVI,Activision Blizzard,Microsoft acquired Activision Blizzard.
+sp500,"October 3, 2023",removed,DXC,DXC Technology,Market capitalization change.
+sp500,"October 2, 2023",added,VLTO,Veralto,S&P 500 and S&P 100 constituent Danaher Corporation spun off Veralto.
+sp500,"September 18, 2023",added,BX,Blackstone,Market capitalization change.
+sp500,"September 18, 2023",removed,LNC,Lincoln National Corporation,Market capitalization change.
+sp500,"September 18, 2023",added,ABNB,Airbnb,Market capitalization change.
+sp500,"September 18, 2023",removed,NWL,Newell Brands,Market capitalization change.
+sp500,"August 25, 2023",added,KVUE,Kenvue,S&P 500 and S&P 100 constituent Johnson & Johnson offered to exchange the shares of Kenvue held for shares of Johnson & Johnson in a split-off exchange offer.
+sp500,"August 25, 2023",removed,AAP,Advance Auto Parts,S&P 500 and S&P 100 constituent Johnson & Johnson offered to exchange the shares of Kenvue held for shares of Johnson & Johnson in a split-off exchange offer.
+sp500,"July 10, 2023",added,EG,Everest Group,Everest Re Group renamed to Everest Group and changed its ticker symbol from RE to EG
+sp500,"July 10, 2023",removed,RE,Everest Re Group,Everest Re Group renamed to Everest Group and changed its ticker symbol from RE to EG
+sp500,"June 20, 2023",added,PANW,Palo Alto Networks,Market capitalization change.
+sp500,"June 20, 2023",removed,DISH,Dish Network,Market capitalization change.
+sp500,"May 4, 2023",added,AXON,Axon Enterprise,The Federal Deposit Insurance Corporation (FDIC) placed First Republic Bank into FDIC Receivership.
+sp500,"May 4, 2023",removed,FRC,First Republic Bank,The Federal Deposit Insurance Corporation (FDIC) placed First Republic Bank into FDIC Receivership.
+sp500,"March 20, 2023",added,FICO,Fair Isaac,Market capitalization change.
+sp500,"March 20, 2023",removed,LUMN,Lumen Technologies,Market capitalization change.
+sp500,"March 15, 2023",added,BG,Bunge Global,The FDIC placed Signature Bank into FDIC Receivership.
+sp500,"March 15, 2023",removed,SBNY,Signature Bank,The FDIC placed Signature Bank into FDIC Receivership.
+sp500,"March 15, 2023",added,PODD,Insulet,"The FDIC placed SVB's main subsidiary, Silicon Valley Bank, into receivership."
+sp500,"March 15, 2023",removed,SIVB,SVB Financial Group,"The FDIC placed SVB's main subsidiary, Silicon Valley Bank, into receivership."
+sp500,"January 5, 2023",removed,VNO,Vornado Realty Trust,Market capitalization change.
+sp500,"January 4, 2023",added,GEHC,GE HealthCare,S&P 500 constituent General Electric spun off GE HealthCare.
+sp500,"December 22, 2022",added,STLD,Steel Dynamics,S&P 500 constituent Johnson & Johnson acquired Abiomed.
+sp500,"December 22, 2022",removed,ABMD,Abiomed,S&P 500 constituent Johnson & Johnson acquired Abiomed.
+sp500,"December 19, 2022",added,FSLR,First Solar,Market capitalization change.
+sp500,"December 19, 2022",removed,FBHS,Fortune Brands Home & Security,Market capitalization change.
+sp500,"December 19, 2022",removed,MBC,MasterBrand,Market capitalization change.
+sp500,"December 15, 2022",added,MBC,MasterBrand,S&P 500 constituent Fortune Brands Home & Security spun off MasterBrand.
+sp500,"November 1, 2022",added,ACGL,Arch Capital Group,Elon Musk acquired Twitter.
+sp500,"November 1, 2022",removed,TWTR,Twitter,Elon Musk acquired Twitter.
+sp500,"October 12, 2022",added,TRGP,Targa Resources,Elliot Management Corp acquired Nielsen Holdings.
+sp500,"October 12, 2022",removed,NLSN,Nielsen Holdings,Elliot Management Corp acquired Nielsen Holdings.
+sp500,"October 3, 2022",added,PCG,PG&E,Vista Equity Partners acquired Citrix Systems.
+sp500,"October 3, 2022",removed,CTXS,Citrix Systems,Vista Equity Partners acquired Citrix Systems.
+sp500,"October 3, 2022",added,EQT,EQT Corporation,S&P 500 constituent Prologis Inc. acquired Duke Realty.
+sp500,"October 3, 2022",removed,DRE,Duke Realty,S&P 500 constituent Prologis Inc. acquired Duke Realty.
+sp500,"September 19, 2022",added,CSGP,CoStar Group,Market capitalization change.
+sp500,"September 19, 2022",removed,PVH,PVH,Market capitalization change.
+sp500,"September 19, 2022",added,INVH,Invitation Homes,Market capitalization change.
+sp500,"September 19, 2022",removed,PENN,Penn Entertainment,Market capitalization change.
+sp500,"June 21, 2022",removed,UA,Under Armour (Class C),Market capitalization change.
+sp500,"June 21, 2022",added,KDP,Keurig Dr Pepper,Market capitalization change.
+sp500,"June 21, 2022",removed,UAA,Under Armour (Class A),Market capitalization change.
+sp500,"June 21, 2022",added,ON,ON Semiconductor,Market capitalization change.
+sp500,"June 21, 2022",removed,IPGP,IPG Photonics,Market capitalization change.
+sp500,"June 8, 2022",added,VICI,Vici Properties,S&P 500 constituent Oracle Corp. acquired Cerner.
+sp500,"June 8, 2022",removed,CERN,Cerner,S&P 500 constituent Oracle Corp. acquired Cerner.
+sp500,"April 11, 2022",added,WBD,Warner Bros. Discovery,WarnerMedia and Discovery merge to create Warner Bros. Discovery.
+sp500,"April 11, 2022",removed,DISCA,"Discovery, Inc.",WarnerMedia and Discovery merge to create Warner Bros. Discovery.
+sp500,"April 11, 2022",removed,DISCK,"Discovery, Inc.",WarnerMedia and Discovery merge to create Warner Bros. Discovery.
+sp500,"April 4, 2022",added,CPT,Camden Property Trust,S&P 500 constituent M&T Bank Corp. acquired People's United Financial.
+sp500,"April 4, 2022",removed,PBCT,People's United Financial,S&P 500 constituent M&T Bank Corp. acquired People's United Financial.
+sp500,"March 2, 2022",added,MOH,Molina Healthcare,S&P 500 constituent S&P Global Inc. acquired IHS Markit.
+sp500,"March 2, 2022",removed,INFO,IHS Markit,S&P 500 constituent S&P Global Inc. acquired IHS Markit.
+sp500,"February 15, 2022",added,NDSN,Nordson Corporation,S&P 500 constituent Advanced Micro Devices acquired Xilinx.
+sp500,"February 15, 2022",removed,XLNX,Xilinx,S&P 500 constituent Advanced Micro Devices acquired Xilinx.
+sp500,"February 3, 2022",removed,GPS,Gap,Market capitalization change.
+sp500,"February 2, 2022",added,CEG,Constellation Energy,S&P 500 and 100 constituent Exelon Corp. spun off Constellation Energy.
+sp500,"December 20, 2021",added,SBNY,Signature Bank,Market capitalization change.
+sp500,"December 20, 2021",removed,LEG,Leggett & Platt,Market capitalization change.
+sp500,"December 20, 2021",added,SEDG,SolarEdge,Market capitalization change.
+sp500,"December 20, 2021",removed,HBI,Hanesbrands,Market capitalization change.
+sp500,"December 20, 2021",added,FDS,FactSet,Market capitalization change.
+sp500,"December 20, 2021",removed,WU,Western Union,Market capitalization change.
+sp500,"December 14, 2021",added,EPAM,EPAM Systems,Canadian Pacific acquired Kansas City Southern.
+sp500,"December 14, 2021",removed,KSU,Kansas City Southern,Canadian Pacific acquired Kansas City Southern.
+sp500,"September 20, 2021",added,MTCH,Match Group,Market capitalization change.
+sp500,"September 20, 2021",removed,PRGO,Perrigo,Market capitalization change.
+sp500,"September 20, 2021",added,CDAY,Ceridian,Market capitalization change.
+sp500,"September 20, 2021",removed,UNM,Unum,Market capitalization change.
+sp500,"September 20, 2021",added,BRO,Brown & Brown,Market capitalization change.
+sp500,"September 20, 2021",removed,NOV,Nov,Market capitalization change.
+sp500,"August 30, 2021",added,TECH,Bio-Techne,S&P 500 constituent Analog Devices acquired Maxim Integrated Products.
+sp500,"August 30, 2021",removed,MXIM,Maxim Integrated,S&P 500 constituent Analog Devices acquired Maxim Integrated Products.
+sp500,"July 21, 2021",added,MRNA,Moderna,AstraZeneca acquired Alexion Pharmaceuticals.
+sp500,"July 21, 2021",removed,ALXN,Alexion Pharmaceuticals,AstraZeneca acquired Alexion Pharmaceuticals.
+sp500,"June 4, 2021",removed,HFC,HollyFrontier,Market capitalization change.
+sp500,"June 3, 2021",added,OGN,Organon & Co.,S&P 500/100 constituent Merck & Co. spun off Organon.
+sp500,"May 14, 2021",added,CRL,Charles River Laboratories,S&P 500 constituent Teledyne Technologies acquired FLIR Systems.
+sp500,"May 14, 2021",removed,FLIR,FLIR Systems,S&P 500 constituent Teledyne Technologies acquired FLIR Systems.
+sp500,"April 20, 2021",added,PTC,PTC,Siemens Healthineers acquired Varian Medical Systems.
+sp500,"April 20, 2021",removed,VAR,Varian Medical Systems,Siemens Healthineers acquired Varian Medical Systems.
+sp500,"March 22, 2021",added,NXPI,NXP,Market capitalization change.
+sp500,"March 22, 2021",removed,FLS,Flowserve,Market capitalization change.
+sp500,"March 22, 2021",added,PENN,Penn National Gaming,Market capitalization change.
+sp500,"March 22, 2021",removed,SLG,SL Green Realty,Market capitalization change.
+sp500,"March 22, 2021",added,GNRC,Generac Holdings,Market capitalization change.
+sp500,"March 22, 2021",removed,XRX,Xerox,Market capitalization change.
+sp500,"March 22, 2021",added,CZR,Caesars Entertainment,Market capitalization change.
+sp500,"March 22, 2021",removed,VNT,Vontier,Market capitalization change.
+sp500,"February 12, 2021",added,MPWR,Monolithic Power Systems,TechnipFMC was removed from the S&P 500 in anticipation of its announced spin-off of Technip Energies.
+sp500,"February 12, 2021",removed,FTI,TechnipFMC,TechnipFMC was removed from the S&P 500 in anticipation of its announced spin-off of Technip Energies.
+sp500,"January 21, 2021",added,TRMB,Trimble,S&P 500/100 constituent ConocoPhillips acquired Concho Resources.
+sp500,"January 21, 2021",removed,CXO,Concho Resources,S&P 500/100 constituent ConocoPhillips acquired Concho Resources.
+sp500,"January 7, 2021",added,ENPH,Enphase Energy,LVMH Moet Hennessy-Louis Vuitton SE acquired Tiffany & Co.
+sp500,"January 7, 2021",removed,TIF,Tiffany & Co,LVMH Moet Hennessy-Louis Vuitton SE acquired Tiffany & Co.
+sp500,"December 21, 2020",added,TSLA,Tesla,Apartment Investment and Management (Aimco) spun off Apartment Income REIT.
+sp500,"December 21, 2020",removed,AIV,Apartment Investment & Management,Apartment Investment and Management (Aimco) spun off Apartment Income REIT.
+sp500,"October 12, 2020",removed,NBL,Noble Energy,Chevron acquired Noble Energy.
+sp500,"October 9, 2020",added,VNT,Vontier,S&P 500 constituent Fortive spun off Vontier.
+sp500,"October 7, 2020",added,POOL,Pool Corporation,Morgan Stanley acquired E*Trade.
+sp500,"October 7, 2020",removed,ETFC,E-Trade,Morgan Stanley acquired E*Trade.
+sp500,"September 21, 2020",added,ETSY,Etsy,Market capitalization change.
+sp500,"September 21, 2020",removed,HRB,H&R Block,Market capitalization change.
+sp500,"September 21, 2020",added,TER,Teradyne,Market capitalization change.
+sp500,"September 21, 2020",removed,COTY,Coty,Market capitalization change.
+sp500,"September 21, 2020",added,CTLT,Catalent,Market capitalization change.
+sp500,"September 21, 2020",removed,KSS,Kohl's,Market capitalization change.
+sp500,"June 22, 2020",added,BIO,Bio-Rad Laboratories,Market capitalization change.
+sp500,"June 22, 2020",removed,ADS,Alliance Data Systems,Market capitalization change.
+sp500,"June 22, 2020",added,TDY,Teledyne,Market capitalization change.
+sp500,"June 22, 2020",removed,HOG,Harley-Davidson,Market capitalization change.
+sp500,"June 22, 2020",added,TYL,Tyler Technologies,Market capitalization change.
+sp500,"June 22, 2020",removed,JWN,Nordstrom,Market capitalization change.
+sp500,"May 22, 2020",added,WST,West Pharmaceutical Services,Market capitalization change.
+sp500,"May 22, 2020",removed,HP,Helmerich & Payne,Market capitalization change.
+sp500,"May 12, 2020",added,DPZ,Domino's Pizza,Market capitalization change.
+sp500,"May 12, 2020",removed,CPRI,Capri Holdings,Market capitalization change.
+sp500,"May 12, 2020",added,DXCM,Dexcom,Allergan acquired by AbbVie.
+sp500,"May 12, 2020",removed,AGN,Allergan,Allergan acquired by AbbVie.
+sp500,"April 6, 2020",removed,M,Macy's,Market capitalization change.
+sp500,"April 6, 2020",removed,RTN,Raytheon Company,United Technologies spun off Otis and Carrier and acquired Raytheon Company.
+sp500,"April 3, 2020",added,OTIS,Otis Worldwide,United Technologies spun off Otis and Carrier and acquired Raytheon Company.
+sp500,"April 3, 2020",added,CARR,Carrier,United Technologies spun off Otis and Carrier and acquired Raytheon Company.
+sp500,"April 1, 2020",added,HWM,Howmet Aerospace,Arconic separated into 2 companies - Howmet remained on the index.
+sp500,"April 1, 2020",removed,ARNC,Arconic,Arconic separated into 2 companies - Howmet remained on the index.
+sp500,"March 2, 2020",added,IR,Ingersoll Rand,"Gardner Denver acquired Ingersoll Rand's industrial businesses then changed its name to the ""new"" Ingersoll Rand Inc."
+sp500,"March 2, 2020",removed,XEC,Cimarex Energy,"Gardner Denver acquired Ingersoll Rand's industrial businesses then changed its name to the ""new"" Ingersoll Rand Inc."
+sp500,"January 28, 2020",added,PAYC,Paycom,S&P 500 constituent Centene Corp. (NYSE: CNC) acquired Wellcare Health Plans.
+sp500,"January 28, 2020",removed,WCG,WellCare,S&P 500 constituent Centene Corp. (NYSE: CNC) acquired Wellcare Health Plans.
+sp500,"December 23, 2019",added,LYV,Live Nation Entertainment,Market capitalization change.
+sp500,"December 23, 2019",removed,AMG,Affiliated Managers Group,Market capitalization change.
+sp500,"December 23, 2019",added,ZBRA,Zebra Technologies,Market capitalization change.
+sp500,"December 23, 2019",removed,TRIP,TripAdvisor,Market capitalization change.
+sp500,"December 23, 2019",added,STE,Steris,Market capitalization change.
+sp500,"December 23, 2019",removed,MAC,Macerich,Market capitalization change.
+sp500,"December 9, 2019",added,ODFL,Old Dominion Freight Line,BB&T acquired SunTrust to form Truist Financial.
+sp500,"December 9, 2019",removed,STI,SunTrust Banks,BB&T acquired SunTrust to form Truist Financial.
+sp500,"December 5, 2019",added,WRB,W. R. Berkley Corporation,CBS acquired Viacom to form ViacomCBS.
+sp500,"December 5, 2019",removed,VIAB,Viacom,CBS acquired Viacom to form ViacomCBS.
+sp500,"November 21, 2019",added,NOW,ServiceNow,Bristol-Myers Squibb (NYSE:BMY) acquired Celgene.
+sp500,"November 21, 2019",removed,CELG,Celgene,Bristol-Myers Squibb (NYSE:BMY) acquired Celgene.
+sp500,"October 3, 2019",added,LVS,Las Vegas Sands,Market capitalization change.
+sp500,"October 3, 2019",removed,NKTR,Nektar Therapeutics,Market capitalization change.
+sp500,"September 26, 2019",added,NVR,NVR,JEF spun off SPB.
+sp500,"September 26, 2019",removed,JEF,Jefferies Financial Group,JEF spun off SPB.
+sp500,"September 23, 2019",added,CDW,CDW Corporation,S&P 500 constituent Global Payments (NYSE: GPN) acquired TSS.
+sp500,"September 23, 2019",removed,TSS,TSYS,S&P 500 constituent Global Payments (NYSE: GPN) acquired TSS.
+sp500,"August 9, 2019",added,LDOS,Leidos,S&P 500 & 100 constituent Occidental Petroleum Corp. (NYSE:OXY) acquired Anadarko Petroleum.
+sp500,"August 9, 2019",removed,APC,Anadarko Petroleum,S&P 500 & 100 constituent Occidental Petroleum Corp. (NYSE:OXY) acquired Anadarko Petroleum.
+sp500,"August 9, 2019",added,IEX,IDEX Corporation,Market capitalization change.
+sp500,"August 9, 2019",removed,FL,Foot Locker,Market capitalization change.
+sp500,"July 15, 2019",added,TMUS,T-Mobile US,S&P 500 & 100 constituent IBM acquired Red Hat.
+sp500,"July 15, 2019",removed,RHT,Red Hat,S&P 500 & 100 constituent IBM acquired Red Hat.
+sp500,"July 1, 2019",added,MKTX,MarketAxess,L3 purchased by Harris Corporation
+sp500,"July 1, 2019",removed,LLL,L3 Technologies,L3 purchased by Harris Corporation
+sp500,"June 11, 2019",added,AMCR,Amcor,BMS changed to AMCR post merger with Amcor; subsequently renamed to Amcor
+sp500,"June 11, 2019",removed,BMS,Bemis,BMS changed to AMCR post merger with Amcor; subsequently renamed to Amcor
+sp500,"June 7, 2019",added,BMS,Bemis,Pending merger of Bemis and Amcor; Bemis treated as the surviving entity.
+sp500,"June 7, 2019",removed,MAT,Mattel,Pending merger of Bemis and Amcor; Bemis treated as the surviving entity.
+sp500,"June 3, 2019",added,DD,DuPont,DWDP changed to DD after spinning off Corteva.
+sp500,"June 3, 2019",removed,DWDP,DuPont,DWDP changed to DD after spinning off Corteva.
+sp500,"June 3, 2019",added,CTVA,Corteva,CTVA spun off from DWDP (which then changed symbol to DD)
+sp500,"June 3, 2019",removed,FLR,Fluor Corporation,CTVA spun off from DWDP (which then changed symbol to DD)
+sp500,"April 2, 2019",added,DOW,Dow,DOW spun off from DWDP
+sp500,"April 2, 2019",removed,BHF,Brighthouse Financial,DOW spun off from DWDP
+sp500,"March 19, 2019",added,FOXA,Fox Corporation,21st Century Fox merged with Disney and some parts spun off as Fox Corporation.
+sp500,"March 19, 2019",removed,FOXA,21st Century Fox,21st Century Fox merged with Disney and some parts spun off as Fox Corporation.
+sp500,"March 19, 2019",added,FOX,Fox Corporation,21st Century Fox merged with Disney and some parts spun off as Fox Corporation.
+sp500,"March 19, 2019",removed,FOX,21st Century Fox,21st Century Fox merged with Disney and some parts spun off as Fox Corporation.
+sp500,"February 27, 2019",added,WAB,Wabtec,WAB acquired GE transportation business
+sp500,"February 27, 2019",removed,GT,The Goodyear Tire & Rubber Company,WAB acquired GE transportation business
+sp500,"February 15, 2019",added,ATO,Atmos Energy,ECA acquired NFX
+sp500,"February 15, 2019",removed,NFX,Newfield Exploration,ECA acquired NFX
+sp500,"January 18, 2019",added,TFX,Teleflex,PCG filed for bankruptcy
+sp500,"January 18, 2019",removed,PCG,Pacific Gas & Electric Company,PCG filed for bankruptcy
+sp500,"January 2, 2019",added,FRC,First Republic Bank,Dominion Energy acquired SCANA Corporation
+sp500,"January 2, 2019",removed,SCG,SCANA,Dominion Energy acquired SCANA Corporation
+sp500,"December 24, 2018",added,CE,Celanese,S&P 500 constituent Cigna (NYSE: CI) acquired ESRX
+sp500,"December 24, 2018",removed,ESRX,Express Scripts,S&P 500 constituent Cigna (NYSE: CI) acquired ESRX
+sp500,"December 3, 2018",added,LW,Lamb Weston,UTX acquired COL
+sp500,"December 3, 2018",removed,COL,Rockwell Collins,UTX acquired COL
+sp500,"December 3, 2018",added,MXIM,Maxim Integrated,CVS acquired Aetna
+sp500,"December 3, 2018",removed,AET,Aetna,CVS acquired Aetna
+sp500,"December 3, 2018",added,FANG,Diamondback Energy,Market Capitalization change
+sp500,"December 3, 2018",removed,SRCL,Stericycle,Market Capitalization change
+sp500,"November 13, 2018",added,JKHY,Jack Henry & Associates,EQT spun off ETRN
+sp500,"November 13, 2018",removed,EQT,EQT Corporation,EQT spun off ETRN
+sp500,"November 6, 2018",added,KEYS,Keysight,CA acquired by Broadcom.
+sp500,"November 6, 2018",removed,CA,CA Technologies,CA acquired by Broadcom.
+sp500,"October 11, 2018",added,FTNT,Fortinet,KKR.
+sp500,"October 11, 2018",removed,EVHC,Envision Healthcare,KKR.
+sp500,"October 1, 2018",added,ROL,Rollins,ANDV acquired by Marathon Petroleum.
+sp500,"October 1, 2018",removed,ANDV,Andeavor,ANDV acquired by Marathon Petroleum.
+sp500,"September 14, 2018",added,WCG,WellCare,XL acquired by Axa.
+sp500,"September 14, 2018",removed,XL,XL Group,XL acquired by Axa.
+sp500,"August 28, 2018",added,ANET,Arista Networks,GGP acquired by Brookfield Property Partners.
+sp500,"August 28, 2018",removed,GGP,GGP,GGP acquired by Brookfield Property Partners.
+sp500,"July 2, 2018",added,CPRT,Copart,DPS acquired by Keurig Green Mountain.
+sp500,"July 2, 2018",removed,DPS,Dr Pepper Snapple Group,DPS acquired by Keurig Green Mountain.
+sp500,"June 20, 2018",added,FLT,FleetCor Technologies,AT&T acquired Time Warner.
+sp500,"June 20, 2018",removed,TWX,Time Warner,AT&T acquired Time Warner.
+sp500,"June 18, 2018",added,BR,Broadridge Financial Solutions,Market capitalization change.
+sp500,"June 18, 2018",removed,RRC,Range Resources,Market capitalization change.
+sp500,"June 18, 2018",added,HFC,HollyFrontier,Market capitalization change.
+sp500,"June 18, 2018",removed,AYI,Acuity Brands,Market capitalization change.
+sp500,"June 7, 2018",added,TWTR,Twitter,Bayer acquired Monsanto.
+sp500,"June 7, 2018",removed,MON,Monsanto,Bayer acquired Monsanto.
+sp500,"June 5, 2018",added,EVRG,Evergy,Westar Energy (NYSE: WR) acquired Great Plains Energy (NYSE: GXP) and changed name to Evergy.
+sp500,"June 5, 2018",removed,NAVI,Navient,Westar Energy (NYSE: WR) acquired Great Plains Energy (NYSE: GXP) and changed name to Evergy.
+sp500,"May 31, 2018",added,ABMD,Abiomed,Wyndham Worldwide spun off Wyndham Hotels & Resorts (NYSE:WH).
+sp500,"May 31, 2018",removed,WYN,Wyndham Worldwide,Wyndham Worldwide spun off Wyndham Hotels & Resorts (NYSE:WH).
+sp500,"April 4, 2018",added,MSCI,MSCI,S&P 500 constituent General Dynamics (NYSE: GD) acquired CSRA.
+sp500,"April 4, 2018",removed,CSRA,CSRA,S&P 500 constituent General Dynamics (NYSE: GD) acquired CSRA.
+sp500,"March 19, 2018",added,TTWO,Take-Two Interactive,Market capitalization change.
+sp500,"March 19, 2018",removed,SIG,Signet Jewelers,Market capitalization change.
+sp500,"March 19, 2018",added,SIVB,SVB Financial Group,Market capitalization change.
+sp500,"March 19, 2018",removed,PDCO,Patterson Companies,Market capitalization change.
+sp500,"March 19, 2018",added,NKTR,Nektar Therapeutics,Market capitalization change.
+sp500,"March 19, 2018",removed,CHK,Chesapeake Energy,Market capitalization change.
+sp500,"March 7, 2018",added,IPGP,IPG Photonics,Discovery Communications acquired SNI.
+sp500,"March 7, 2018",removed,SNI,Scripps Networks Interactive,Discovery Communications acquired SNI.
+sp500,"January 3, 2018",added,HII,Huntington Ingalls Industries,Becton Dickinson acquired BCR.
+sp500,"January 3, 2018",removed,BCR,CR Bard,Becton Dickinson acquired BCR.
+sp500,"October 13, 2017",added,NCLH,Norwegian Cruise Line Holdings,CenturyLink acquired LVLT.
+sp500,"October 13, 2017",removed,LVLT,Level 3 Communications,CenturyLink acquired LVLT.
+sp500,"September 18, 2017",added,CDNS,Cadence Design Systems,Sycamore Partners acquired Staples.
+sp500,"September 18, 2017",removed,SPLS,Staples,Sycamore Partners acquired Staples.
+sp500,"September 1, 2017",added,DWDP,DuPont,The Dow Chemical Company renamed to DowDuPont Inc. and ticker changed from DOW to DWDP after acquiring DuPont.
+sp500,"September 1, 2017",removed,DOW,Dow Chemical Company,The Dow Chemical Company renamed to DowDuPont Inc. and ticker changed from DOW to DWDP after acquiring DuPont.
+sp500,"September 1, 2017",added,SBAC,SBA Communications,The Dow Chemical Company acquired DuPont.
+sp500,"September 1, 2017",removed,DD,DuPont,The Dow Chemical Company acquired DuPont.
+sp500,"August 29, 2017",added,Q,QuintilesIMS,Amazon acquired Whole Foods Market.
+sp500,"August 29, 2017",removed,WFM,Whole Foods Market,Amazon acquired Whole Foods Market.
+sp500,"August 8, 2017",added,BHF,Brighthouse Financial,"BHF replaced AN, MET spun off BHF"
+sp500,"August 8, 2017",removed,AN,AutoNation,"BHF replaced AN, MET spun off BHF"
+sp500,"July 26, 2017",added,DRE,Duke Realty Corp,Market capitalization change.
+sp500,"July 26, 2017",removed,RIG,Transocean,Market capitalization change.
+sp500,"July 26, 2017",added,AOS,A. O. Smith,Market capitalization change.
+sp500,"July 26, 2017",removed,BBBY,Bed Bath & Beyond,Market capitalization change.
+sp500,"July 26, 2017",added,PKG,Packaging Corporation of America,Market capitalization change.
+sp500,"July 26, 2017",removed,MUR,Murphy Oil,Market capitalization change.
+sp500,"July 26, 2017",added,RMD,ResMed,Market capitalization change.
+sp500,"July 26, 2017",removed,MNK,Mallinckrodt,Market capitalization change.
+sp500,"July 26, 2017",added,MGM,MGM Resorts International,British American Tobacco (NYSE MKT:BTI) acquired Reynolds American.
+sp500,"July 26, 2017",removed,RAI,Reynolds American,British American Tobacco (NYSE MKT:BTI) acquired Reynolds American.
+sp500,"July 7, 2017",added,BKR,Baker Hughes,Baker Hughes merged with GE Oil & Gas to form new company.
+sp500,"July 7, 2017",removed,BHI,Baker Hughes,Baker Hughes merged with GE Oil & Gas to form new company.
+sp500,"June 19, 2017",added,HLT,Hilton,VZ acquired YHOO operations; remainder of YHOO converted to closed-end company known as Altaba.
+sp500,"June 19, 2017",removed,YHOO,Yahoo!,VZ acquired YHOO operations; remainder of YHOO converted to closed-end company known as Altaba.
+sp500,"June 19, 2017",added,ALGN,Align Technology,Market capitalization changes.
+sp500,"June 19, 2017",removed,TDC,Teradata,Market capitalization changes.
+sp500,"June 19, 2017",added,ANSS,Ansys,Market capitalization changes.
+sp500,"June 19, 2017",removed,R,Ryder System,Market capitalization changes.
+sp500,"June 19, 2017",added,RE,Everest Re,Reckitt Benckiser acquired Mead Johnson Nutrition.
+sp500,"June 19, 2017",removed,MJN,Mead Johnson,Reckitt Benckiser acquired Mead Johnson Nutrition.
+sp500,"June 2, 2017",added,INFO,IHS Markit,TGNA spins off Cars.com
+sp500,"June 2, 2017",removed,TGNA,Tegna,TGNA spins off Cars.com
+sp500,"April 5, 2017",added,IT,Gartner,IT acquiring CEB
+sp500,"April 5, 2017",removed,DNB,Dun & Bradstreet,IT acquiring CEB
+sp500,"April 4, 2017",added,DXC,DXC Technology,"HPE spins off Everett, merged with CSC to form DXC"
+sp500,"April 4, 2017",removed,SWN,Southwestern Energy,"HPE spins off Everett, merged with CSC to form DXC"
+sp500,"March 20, 2017",added,AMD,Advanced Micro Devices,Market capitalization change.
+sp500,"March 20, 2017",removed,URBN,Urban Outfitters,Market capitalization change.
+sp500,"March 20, 2017",added,RJF,Raymond James Financial,Market capitalization change.
+sp500,"March 20, 2017",removed,FTR,Frontier Communications,Market capitalization change.
+sp500,"March 20, 2017",added,ARE,Alexandria Real Estate Equities,Market capitalization change.
+sp500,"March 20, 2017",removed,FSLR,First Solar,Market capitalization change.
+sp500,"March 16, 2017",added,SNPS,Synopsys,Samsung Electronics acquired Harman International Industries.
+sp500,"March 16, 2017",removed,HAR,Harman International,Samsung Electronics acquired Harman International Industries.
+sp500,"March 13, 2017",added,DISH,Dish Network,S&P 500 constituent Analog Devices (NASD:ADI) acquired Linear Technology.
+sp500,"March 13, 2017",removed,LLTC,Linear Technology,S&P 500 constituent Analog Devices (NASD:ADI) acquired Linear Technology.
+sp500,"March 2, 2017",added,REG,Regency Centers,REG acquires EQY
+sp500,"March 2, 2017",removed,ENDP,Endo International,REG acquires EQY
+sp500,"March 1, 2017",added,CBOE,Cboe Holdings,CBOE acquires BATS
+sp500,"March 1, 2017",removed,PBI,Pitney Bowes,CBOE acquires BATS
+sp500,"February 28, 2017",added,INCY,Incyte,SE acquired by ENB
+sp500,"February 28, 2017",removed,SE,Spectra Energy,SE acquired by ENB
+sp500,"January 5, 2017",added,IDXX,Idexx Laboratories,S&P 100 & 500 constituent Abbott Laboratories (NYSE:ABT) acquired St. Jude Medical.
+sp500,"January 5, 2017",removed,STJ,St Jude Medical,S&P 100 & 500 constituent Abbott Laboratories (NYSE:ABT) acquired St. Jude Medical.
+sp500,"December 2, 2016",added,MAA,Mid-America Apartments,Market capitalization change.
+sp500,"December 2, 2016",removed,OI,Owens-Illinois,Market capitalization change.
+sp500,"December 2, 2016",added,EVHC,Envision Healthcare,Market capitalization change.
+sp500,"December 2, 2016",removed,LM,Legg Mason,Market capitalization change.
+sp500,"November 1, 2016",added,ARNC,Arconic,AA spins off ARNC
+sp500,"November 1, 2016",removed,AA,Alcoa,AA spins off ARNC
+sp500,"September 30, 2016",added,COTY,Coty,COTY replaces DO
+sp500,"September 30, 2016",removed,DO,Diamond Offshore Drilling,COTY replaces DO
+sp500,"September 22, 2016",added,COO,The Cooper Companies,MAR acquires HOT
+sp500,"September 22, 2016",removed,HOT,Starwood,MAR acquires HOT
+sp500,"September 8, 2016",added,CHTR,Charter Communications,Dell acquires EMC
+sp500,"September 8, 2016",removed,EMC,EMC Corporation,Dell acquires EMC
+sp500,"September 6, 2016",added,MTD,Mettler Toledo,TYC acquires JCI (and retains JCI ticker).
+sp500,"September 6, 2016",removed,TYC,Tyco International,TYC acquires JCI (and retains JCI ticker).
+sp500,"July 5, 2016",added,FTV,Fortive Corp,CPGX acquired by TRP
+sp500,"July 5, 2016",removed,CPGX,Columbia Pipeline Group,CPGX acquired by TRP
+sp500,"July 1, 2016",added,LNT,Alliant Energy Corp,GAS acquired by SO
+sp500,"July 1, 2016",removed,GAS,AGL Resources,GAS acquired by SO
+sp500,"July 1, 2016",added,ALB,Albemarle Corporation,TE acquired by EMA
+sp500,"July 1, 2016",removed,TE,TECO Energy,TE acquired by EMA
+sp500,"June 22, 2016",added,FBHS,Fortune Brands Home & Security,CVC acquired by Altice NV
+sp500,"June 22, 2016",removed,CVC,Cablevision Systems,CVC acquired by Altice NV
+sp500,"June 3, 2016",added,TDG,TransDigm Group,SHPG acquiring BXLT
+sp500,"June 3, 2016",removed,BXLT,Baxalta,SHPG acquiring BXLT
+sp500,"May 31, 2016",added,AJG,Arthur J. Gallagher & Co.,CCE merging with European bottlers
+sp500,"May 31, 2016",removed,CCE,Coca-Cola Enterprises,CCE merging with European bottlers
+sp500,"May 23, 2016",added,LKQ,LKQ Corporation,ARG acquired by Air Liquide
+sp500,"May 23, 2016",removed,ARG,Airgas,ARG acquired by Air Liquide
+sp500,"May 18, 2016",added,DLR,Digital Realty,TWC acquired by CHTR
+sp500,"May 18, 2016",removed,TWC,Time Warner Cable,TWC acquired by CHTR
+sp500,"May 13, 2016",added,ALK,Alaska Air Group,SNDK acquired by WDC
+sp500,"May 13, 2016",removed,SNDK,SanDisk,SNDK acquired by WDC
+sp500,"May 3, 2016",added,AYI,Acuity Brands,ADT acquired by APO
+sp500,"May 3, 2016",removed,ADT,ADT,ADT acquired by APO
+sp500,"April 25, 2016",added,GPN,Global Payments,Global Payments is acquiring Heartland Payment Systems
+sp500,"April 25, 2016",removed,GME,GameStop,Global Payments is acquiring Heartland Payment Systems
+sp500,"April 18, 2016",added,ULTA,Ulta Beauty,Ulta replaces Tenet
+sp500,"April 18, 2016",removed,THC,Tenet Healthcare,Ulta replaces Tenet
+sp500,"April 8, 2016",added,UA,Under Armour (Class C),Under Armour distribution of second class of stock
+sp500,"April 4, 2016",added,FL,Foot Locker,Schlumberger acquired Cameron
+sp500,"April 4, 2016",removed,CAM,Cameron International,Schlumberger acquired Cameron
+sp500,"March 30, 2016",added,HOLX,Hologic,Exelon acquired Pepco.
+sp500,"March 30, 2016",removed,POM,Pepco Holdings,Exelon acquired Pepco.
+sp500,"March 30, 2016",added,CNC,Centene Corporation,Centene acquired Health Net.
+sp500,"March 30, 2016",removed,ESV,Ensco,Centene acquired Health Net.
+sp500,"March 7, 2016",added,UDR,UDR,JAB Holding Company acquired Keurig Green Mountain
+sp500,"March 7, 2016",removed,GMCR,Keurig Green Mountain,JAB Holding Company acquired Keurig Green Mountain
+sp500,"March 4, 2016",added,AWK,American Water Works,AWK replaces CNX
+sp500,"March 4, 2016",removed,CNX,Consol Energy,AWK replaces CNX
+sp500,"February 22, 2016",added,CXO,Concho Resources,PCL taken over by WY
+sp500,"February 22, 2016",removed,PCL,Plum Creek Timber,PCL taken over by WY
+sp500,"February 1, 2016",added,CFG,Citizens,CFG replaces PCP
+sp500,"February 1, 2016",removed,PCP,Precision Castparts Corporation,CFG replaces PCP
+sp500,"February 1, 2016",added,FRT,Federal Realty Investment Trust,FRT replaces BRCM
+sp500,"February 1, 2016",removed,BRCM,Broadcom Corporation,FRT replaces BRCM
+sp500,"January 19, 2016",added,EXR,Extra Space Storage,"EXR replaces ACE as ACE Ltd acquires Chubb and retains the CB ticker, giving up ACE"
+sp500,"January 19, 2016",removed,ACE,Chubb,"EXR replaces ACE as ACE Ltd acquires Chubb and retains the CB ticker, giving up ACE"
+sp500,"January 5, 2016",added,WLTW,Willis Towers Watson,WSH merges with TW (and renames to WLTW)
+sp500,"January 5, 2016",removed,FOSL,Fossil Group,WSH merges with TW (and renames to WLTW)
+sp500,"December 29, 2015",added,CHD,Church & Dwight,ALTR taken over by INTC
+sp500,"December 29, 2015",removed,ALTR,Altera,ALTR taken over by INTC
+sp500,"December 15, 2015",removed,CMCSK,Comcast K Corp,CMCSK shares no longer listed
+sp500,"December 1, 2015",added,CSRA,CSRA,CSC spins off CSRA
+sp500,"December 1, 2015",removed,CSC,Computer Sciences Corporation,CSC spins off CSRA
+sp500,"November 19, 2015",added,ILMN,Illumina,Sigma-Aldrich acquired by Merck KGaA (MKGAY)
+sp500,"November 19, 2015",removed,SIAL,Sigma-Aldrich,Sigma-Aldrich acquired by Merck KGaA (MKGAY)
+sp500,"November 18, 2015",added,SYF,Synchrony Financial,GE spinning off Synchrony Financial
+sp500,"November 18, 2015",removed,GNW,Genworth Financial,GE spinning off Synchrony Financial
+sp500,"November 2, 2015",added,HPE,Hewlett Packard Enterprise,HPQ spins off HPE
+sp500,"November 2, 2015",removed,HCBK,Hudson City Bancorp,HPQ spins off HPE
+sp500,"October 7, 2015",added,VRSK,Verisk Analytics,Market capitalization change.
+sp500,"October 7, 2015",removed,JOY,Joy Global,Market capitalization change.
+sp500,"September 18, 2015",added,CMCSK,Comcast Class K Special,Share class methodology change
+sp500,"September 18, 2015",added,FOX,Twenty-First Century Fox Class B,Share class methodology change
+sp500,"September 18, 2015",added,NWS,News Corporation Class B,Share class methodology change
+sp500,"September 2, 2015",added,UAL,United Continental Holdings,Hospira taken over
+sp500,"September 2, 2015",removed,HSP,Hospira,Hospira taken over
+sp500,"August 28, 2015",added,ATVI,Activision Blizzard,Pall taken over
+sp500,"August 28, 2015",removed,PLL,Pall Corporation,Pall taken over
+sp500,"July 29, 2015",added,SIG,Signet Jewelers,DirecTV acquired by AT&T.
+sp500,"July 29, 2015",removed,DTV,DirecTV,DirecTV acquired by AT&T.
+sp500,"July 20, 2015",added,PYPL,PayPal,PayPal Spun off by eBay
+sp500,"July 20, 2015",removed,NE,Noble Corporation,PayPal Spun off by eBay
+sp500,"July 8, 2015",added,AAP,Advance Auto Parts,Family Dollar acquired.
+sp500,"July 8, 2015",removed,FDO,Family Dollar,Family Dollar acquired.
+sp500,"July 6, 2015",added,KHC,Kraft Heinz,Kraft merger with Heinz.
+sp500,"July 6, 2015",removed,KRFT,Kraft Foods,Kraft merger with Heinz.
+sp500,"July 2, 2015",added,CPGX,Columbia Pipeline Group,Spin off of Columbia Pipeline.
+sp500,"July 2, 2015",removed,ATI,Allegheny Technologies,Spin off of Columbia Pipeline.
+sp500,"July 1, 2015",added,JBHT,J.B. Hunt,Integrys taken over.
+sp500,"July 1, 2015",removed,TEG,Integrys Energy Group,Integrys taken over.
+sp500,"July 1, 2015",added,BXLT,Baxalta,Baxalta spun off by Baxter.
+sp500,"July 1, 2015",removed,QEP,QEP Resources,Baxalta spun off by Baxter.
+sp500,"June 11, 2015",added,QRVO,Qorvo,Lorillard gets acquired.
+sp500,"June 11, 2015",removed,LO,Lorillard Tobacco Company,Lorillard gets acquired.
+sp500,"April 7, 2015",added,O,Realty Income Corporation,Market capitalization change.
+sp500,"April 7, 2015",removed,WIN,Windstream Communications,Market capitalization change.
+sp500,"March 23, 2015",added,AAL,American Airlines Group,Allergan acquired by Actavis (and changed name to Allergan).
+sp500,"March 23, 2015",removed,AGN,Allergan,Allergan acquired by Actavis (and changed name to Allergan).
+sp500,"March 23, 2015",added,EQIX,Equinix,Market Capitalization Changes.
+sp500,"March 23, 2015",removed,DNR,Denbury Resources,Market Capitalization Changes.
+sp500,"March 23, 2015",added,SLG,SL Green Realty,Market Capitalization Changes.
+sp500,"March 23, 2015",removed,NBR,Nabors Industries,Market Capitalization Changes.
+sp500,"March 23, 2015",added,HBI,Hanesbrands,Market Capitalization Changes.
+sp500,"March 23, 2015",removed,AVP,Avon Products,Market Capitalization Changes.
+sp500,"March 18, 2015",added,HSIC,Henry Schein,Carefusion acquired by Becton Dickinson
+sp500,"March 18, 2015",removed,CFN,Carefusion,Carefusion acquired by Becton Dickinson
+sp500,"March 12, 2015",added,SWKS,Skyworks,PetSmart acquired by private equity consortium
+sp500,"March 12, 2015",removed,PETM,PetSmart,PetSmart acquired by private equity consortium
+sp500,"January 27, 2015",added,HCA,HCA Holdings,Safeway acquired by private equity consortium
+sp500,"January 27, 2015",removed,SWY,Safeway,Safeway acquired by private equity consortium
+sp500,"January 27, 2015",added,ENDP,Endo International,Covidien acquired by Medtronic
+sp500,"January 27, 2015",removed,COV,Covidien,Covidien acquired by Medtronic
+sp500,"December 5, 2014",added,RCL,Royal Caribbean Cruises,Market cap changes
+sp500,"December 5, 2014",removed,BMS,Bemis Company,Market cap changes
+sp500,"November 5, 2014",added,LVLT,Level 3 Communications,Market cap changes
+sp500,"November 5, 2014",removed,JBL,Jabil Circuit,Market cap changes
+sp500,"September 20, 2014",added,URI,United Rentals,Market cap changes
+sp500,"September 20, 2014",removed,BTU,Peabody Energy,Market cap changes
+sp500,"September 20, 2014",added,UHS,Universal Health Services,Market cap changes
+sp500,"September 20, 2014",removed,GHC,Graham Holdings,Market cap changes
+sp500,"August 18, 2014",added,MNK,Mallinckrodt,Market cap changes
+sp500,"August 18, 2014",removed,RDC,Rowan Companies,Market cap changes
+sp500,"August 6, 2014",added,DISCK,Discovery Communications,Class C share distribution
+sp500,"July 2, 2014",added,MLM,Martin Marietta,Market capitalization changes
+sp500,"July 2, 2014",removed,X,United States Steel,Market capitalization changes
+sp500,"July 1, 2014",added,AMG,Affiliated Managers Group,Actavis acquires Forest Laboratories
+sp500,"July 1, 2014",removed,FRX,Forest Laboratories,Actavis acquires Forest Laboratories
+sp500,"June 20, 2014",added,XEC,Cimarex Energy,Market capitalization changes
+sp500,"June 20, 2014",removed,IGT,International Game Technology,Market capitalization changes
+sp500,"May 8, 2014",added,AVGO,Avago Technologies,Avago acquires LSI
+sp500,"May 8, 2014",removed,LSI,LSI Corporation,Avago acquires LSI
+sp500,"May 1, 2014",added,UA,Under Armour,Beam acquired by Suntory
+sp500,"May 1, 2014",removed,BEAM,Suntory Global Spirits,Beam acquired by Suntory
+sp500,"May 1, 2014",added,NAVI,Navient,Navient Spun off from SLM
+sp500,"May 1, 2014",removed,SLM,SLM Corporation,Navient Spun off from SLM
+sp500,"April 3, 2014",added,GOOGL,Google,Google Class C share distribution
+sp500,"April 2, 2014",added,ESS,Essex Property Trust,Market capitalization changes
+sp500,"April 2, 2014",removed,CLF,Cliffs Natural Resources,Market capitalization changes
+sp500,"March 21, 2014",added,GMCR,Keurig Green Mountain,Market capitalization changes
+sp500,"March 21, 2014",removed,WPX,WPX Energy,Market capitalization changes
+sp500,"January 24, 2014",added,TSCO,Tractor Supply,Life Technologies acquired by Thermo Fisher Scientific Inc
+sp500,"January 24, 2014",removed,LIFE,Life Technologies,Life Technologies acquired by Thermo Fisher Scientific Inc
+sp500,"December 23, 2013",added,ADS,Alliance Data Systems,Market capitalization changes.
+sp500,"December 23, 2013",removed,ANF,Abercrombie & Fitch,Market capitalization changes.
+sp500,"December 23, 2013",added,MHK,Mohawk Industries,Market capitalization changes.
+sp500,"December 23, 2013",removed,JDSU,JDS Uniphase,Market capitalization changes.
+sp500,"December 23, 2013",added,FB,Facebook,Market capitalization changes.
+sp500,"December 23, 2013",removed,TER,Teradyne,Market capitalization changes.
+sp500,"December 10, 2013",added,GGP,General Growth Properties,MOLX acquired by Koch Industries.
+sp500,"December 10, 2013",removed,MOLX,Molex,MOLX acquired by Koch Industries.
+sp500,"December 2, 2013",added,ALLE,Allegion,Allegion spun off by Ingersoll Rand.
+sp500,"December 2, 2013",removed,JCP,JCPenney,Allegion spun off by Ingersoll Rand.
+sp500,"November 13, 2013",added,KORS,Michael Kors,ICE Exchange acquired NYSE Euronext.
+sp500,"November 13, 2013",removed,NYX,NYSE Euronext,ICE Exchange acquired NYSE Euronext.
+sp500,"October 29, 2013",added,RIG,Transocean,Founder Michael Dell and Silver Lake Partners acquired Dell.
+sp500,"October 29, 2013",removed,DELL,Dell,Founder Michael Dell and Silver Lake Partners acquired Dell.
+sp500,"September 20, 2013",added,VRTX,Vertex Pharmaceuticals,Market capitalization change.
+sp500,"September 20, 2013",removed,AMD,Advanced Micro Devices,Market capitalization change.
+sp500,"September 20, 2013",added,AME,Ametek,Market capitalization change.
+sp500,"September 20, 2013",removed,SAI,SAIC,Market capitalization change.
+sp500,"September 10, 2013",added,DAL,Delta Air Lines,BMC taken private by consortium
+sp500,"September 10, 2013",removed,BMC,BMC Software,BMC taken private by consortium
+sp500,"July 8, 2013",added,NLSN,Nielsen Holdings,Softbank consortium purchase results in public float below 50%
+sp500,"July 8, 2013",removed,S,Sprint Nextel,Softbank consortium purchase results in public float below 50%
+sp500,"July 1, 2013",added,NWSA,21st Century Fox,Apollo Group's market cap more representative of a mid-cap
+sp500,"July 1, 2013",removed,APOL,Apollo Education Group,Apollo Group's market cap more representative of a mid-cap
+sp500,"June 21, 2013",added,ZTS,Zoetis,Zoetis spun off by Pfizer
+sp500,"June 21, 2013",removed,FHN,First Horizon,Zoetis spun off by Pfizer
+sp500,"June 6, 2013",added,GM,General Motors,HNZ acquired by consortium
+sp500,"June 6, 2013",removed,HNZ,Heinz,HNZ acquired by consortium
+sp500,"May 23, 2013",added,KSU,Kansas City Southern,DF too small after spinoff of White Wave Foods
+sp500,"May 23, 2013",removed,DF,Dean Foods,DF too small after spinoff of White Wave Foods
+sp500,"May 8, 2013",added,MAC,Macerich,Acquired by Aetna (AET)
+sp500,"May 8, 2013",removed,CVH,Coventry Health Care,Acquired by Aetna (AET)
+sp500,"April 30, 2013",added,REGN,Regeneron Pharmaceuticals,A majority of MetroPCS was acquired by T-Mobile
+sp500,"April 30, 2013",removed,PCS,MetroPCS,A majority of MetroPCS was acquired by T-Mobile
+sp500,"February 15, 2013",added,PVH,PVH,Market capitalization changes
+sp500,"February 15, 2013",removed,BIG,Big Lots,Market capitalization changes
+sp500,"January 2, 2013",added,ABBV,AbbVie,ABBV spun off from Abbott Labs (ABT)
+sp500,"January 2, 2013",removed,FII,Federated Investors,ABBV spun off from Abbott Labs (ABT)
+sp500,"December 21, 2012",added,DLPH,Delphi Automotive,TIE acquired by Precision Cast Parts (PCP)
+sp500,"December 21, 2012",removed,TIE,Titanium Metals,TIE acquired by Precision Cast Parts (PCP)
+sp500,"December 11, 2012",added,GRMN,Garmin,Market capitalization changes
+sp500,"December 11, 2012",removed,RRD,RR Donnelley,Market capitalization changes
+sp500,"December 3, 2012",added,DG,Dollar General,url=http://www.standardandpoors.com/indices/articles/en/us/?assetID=1245343856827
+sp500,"December 3, 2012",removed,CBE,Cooper Industries,url=http://www.standardandpoors.com/indices/articles/en/us/?assetID=1245343856827
+sp500,"October 10, 2012",added,PETM,PetSmart,url=http://www.standardandpoors.com/indices/articles/en/us/?assetID=1245341391586
+sp500,"October 10, 2012",removed,SUN,Sunoco,url=http://www.standardandpoors.com/indices/articles/en/us/?assetID=1245341391586
+sp500,"October 2, 2012",added,KRFT,Kraft Foods,url=http://www.standardandpoors.com/indices/articles/en/us/?assetID=1245341064105
+sp500,"October 2, 2012",removed,ANR,Alpha Natural Resources,url=http://www.standardandpoors.com/indices/articles/en/us/?assetID=1245341064105
+sp500,"October 2, 2012",added,MDLZ,Mondelez,url=https://www.mondelezinternational.com/investors/stock/spin-off-information/
+sp500,"October 2, 2012",removed,KFT,Kraft Foods,url=https://www.mondelezinternational.com/investors/stock/spin-off-information/
+sp500,"October 1, 2012",added,ADT,ADT,Tyco spun off ADT
+sp500,"October 1, 2012",removed,LXK,Lexmark,Tyco spun off ADT
+sp500,"October 1, 2012",added,PNR,Pentair,Tyco spin-off merged w/Pentair
+sp500,"October 1, 2012",removed,DV,DeVry,Tyco spin-off merged w/Pentair
+sp500,"September 5, 2012",added,LYB,LyondellBasell,SHLD below public float threshold
+sp500,"September 5, 2012",removed,SHLD,Sears Holdings,SHLD below public float threshold
+sp500,"July 31, 2012",added,ESV,Ensco,title=Ensco plc Set to Join the S&P 500
+sp500,"July 31, 2012",removed,GR,Goodrich Corporation,title=Ensco plc Set to Join the S&P 500
+sp500,"July 2, 2012",added,STX,Seagate Technology,Acquired by Duke Energy (DUK)
+sp500,"July 2, 2012",removed,PGN,Progress Energy,Acquired by Duke Energy (DUK)
+sp500,"June 29, 2012",added,MNST,Monster Beverage,Split up of Sara Lee
+sp500,"June 29, 2012",removed,SLE,Sara Lee Corporation,Split up of Sara Lee
+sp500,"June 5, 2012",added,LRCX,Lam Research,Acquired by Lam Research (LRCX)
+sp500,"June 5, 2012",removed,NVLS,Novellus Systems,Acquired by Lam Research (LRCX)
+sp500,"May 21, 2012",added,ALXN,Alexion Pharmaceuticals,url=http://www.standardandpoors.com/indices/articles/en/us/?assetID=1245333940244
+sp500,"May 21, 2012",removed,MMI,Motorola Mobility,url=http://www.standardandpoors.com/indices/articles/en/us/?assetID=1245333940244
+sp500,"May 17, 2012",added,KMI,Kinder Morgan,url=http://www.standardandpoors.com/indices/articles/en/us/?assetID=1245333799368
+sp500,"May 17, 2012",removed,EP,El Paso Corporation,url=http://www.standardandpoors.com/indices/articles/en/us/?assetID=1245333799368
+sp500,"April 23, 2012",added,PSX,Phillips 66,url=http://www.standardandpoors.com/indices/articles/en/us/?assetID=1245332433562
+sp500,"April 23, 2012",removed,SVU,Supervalu,url=http://www.standardandpoors.com/indices/articles/en/us/?assetID=1245332433562
+sp500,"April 3, 2012",added,FOSL,Fossil,url=http://www.standardandpoors.com/indices/articles/en/us/?assetID=1245331425034
+sp500,"April 3, 2012",removed,MHS,Medco Health Solutions,url=http://www.standardandpoors.com/indices/articles/en/us/?assetID=1245331425034
+sp500,"March 13, 2012",added,CCI,Crown Castle,url=http://www.standardandpoors.com/indices/articles/en/us/?assetID=1245330177323
+sp500,"March 13, 2012",removed,CEG,Constellation Energy Group,url=http://www.standardandpoors.com/indices/articles/en/us/?assetID=1245330177323
+sp500,"December 31, 2011",added,WPX,WPX Energy,Market capitalization changes
+sp500,"December 31, 2011",removed,CPWR,Compuware,Market capitalization changes
+sp500,"December 20, 2011",added,TRIP,TripAdvisor,Expedia spun off TripAdvisor.
+sp500,"December 20, 2011",removed,TLAB,Tellabs,Expedia spun off TripAdvisor.
+sp500,"December 16, 2011",added,BWA,BorgWarner,Market capitalization changes
+sp500,"December 16, 2011",removed,AKS,AK Steel,Market capitalization changes
+sp500,"December 16, 2011",added,PRGO,Perrigo,Market capitalization changes
+sp500,"December 16, 2011",removed,MWW,Monster Worldwide,Market capitalization changes
+sp500,"December 16, 2011",added,DLTR,Dollar Tree,Market capitalization changes
+sp500,"December 16, 2011",removed,WFR,MEMC Electronic Materials,Market capitalization changes
+sp500,"December 12, 2011",added,GAS,AGL Resources.,"Nicor acquired by AGL, which retained the GAS ticker."
+sp500,"December 12, 2011",removed,GAS,Nicor Gas,"Nicor acquired by AGL, which retained the GAS ticker."
+sp500,"November 18, 2011",added,CBE,Cooper Industries,Janus Capital Group's market capitalization is less than $1.2 billion<br /> and is no longer representative of the large cap market space.
+sp500,"November 18, 2011",removed,JNS,Janus Capital Group,Janus Capital Group's market capitalization is less than $1.2 billion<br /> and is no longer representative of the large cap market space.
+sp500,"October 31, 2011",added,XYL,Xylem,Spun off from ITT Corp.
+sp500,"October 31, 2011",removed,ITT,ITT,Spun off from ITT Corp.
+sp500,"October 14, 2011",added,TEL,TE Connectivity,Acquired by Teva Pharmaceutical Industries (TEVA).
+sp500,"October 14, 2011",removed,CEPH,Cephalon,Acquired by Teva Pharmaceutical Industries (TEVA).
+sp500,"September 23, 2011",added,MOS,The Mosaic Company,Acquired by Texas Instruments (TXN).
+sp500,"September 23, 2011",removed,NSM,National Semiconductor,Acquired by Texas Instruments (TXN).
+sp500,"July 5, 2011",added,ACN,Accenture,Marshall & Iisley is being bought by Bank of Montreal
+sp500,"July 5, 2011",removed,MI,Marshall & Ilsley,Marshall & Iisley is being bought by Bank of Montreal
+sp500,"June 30, 2011",added,MPC,Marathon Oil,Market capitalization adjustments.
+sp500,"June 30, 2011",removed,RSH,RadioShack,Market capitalization adjustments.
+sp500,"June 1, 2011",added,ANR,Alpha Natural Resources,Alpha Natural Resources acquired Massey Energy.
+sp500,"June 1, 2011",removed,MEE,Massey Energy,Alpha Natural Resources acquired Massey Energy.
+sp500,"April 27, 2011",added,CMG,Chipotle Mexican Grill,Acquired by private equity firms.
+sp500,"April 27, 2011",removed,NOVL,Novell,Acquired by private equity firms.
+sp500,"April 1, 2011",added,BLK,BlackRock,Acquired by Sanofi Aventis (SNY)
+sp500,"April 1, 2011",removed,GENZ,Genzyme,Acquired by Sanofi Aventis (SNY)
+sp500,"March 31, 2011",added,EW,Edwards Lifesciences,Acquired by CenturyLink
+sp500,"March 31, 2011",removed,Q,Qwest Communications,Acquired by CenturyLink
+sp500,"February 28, 2011",added,COV,Covidien,Acquired by Intel
+sp500,"February 28, 2011",removed,MFE,McAfee,Acquired by Intel
+sp500,"February 25, 2011",added,JOYG,Joy Global,Acquired by First Energy (FE).
+sp500,"February 25, 2011",removed,AYE,Allegheny Energy,Acquired by First Energy (FE).
+sp500,"January 3, 2011",added,MMI,Motorola Mobility,S&P constituent Motorola spun off Motorola Mobility.
+sp500,"January 3, 2011",removed,MDP,Meredith Corp,S&P constituent Motorola spun off Motorola Mobility.
+sp500,"December 17, 2010",added,CVC,Cablevision,Acquired by Pfizer.
+sp500,"December 17, 2010",removed,KG,King Pharmaceuticals,Acquired by Pfizer.
+sp500,"December 17, 2010",added,FFIV,F5 Networks,Market Cap changes.
+sp500,"December 17, 2010",removed,EK,Eastman Kodak,Market Cap changes.
+sp500,"December 17, 2010",added,NFLX,Netflix,Market Cap changes.
+sp500,"December 17, 2010",removed,ODP,Office Depot,Market Cap changes.
+sp500,"December 17, 2010",added,NFX,Newfield Exploration,Market Cap changes.
+sp500,"December 17, 2010",removed,NYT,The New York Times Company,Market Cap changes.
+sp500,"November 17, 2010",added,IR,Ingersoll-Rand,Reynolds Group Holdings acquired Pactiv.
+sp500,"November 17, 2010",removed,PTV,Pactiv,Reynolds Group Holdings acquired Pactiv.
+sp500,"August 26, 2010",added,TYC,Tyco International,Acquired by Schlumberger (SLB)
+sp500,"August 26, 2010",removed,SII,Smith International,Acquired by Schlumberger (SLB)
+sp500,"July 14, 2010",added,CB,Chubb,Acquired by Merck KGaA (MKGAY)
+sp500,"July 14, 2010",removed,MIL,Millipore,Acquired by Merck KGaA (MKGAY)
+sp500,"June 30, 2010",added,QEP,QEP Resources,"Company split. QEP retained, but ticker changed."
+sp500,"June 30, 2010",removed,STR,Questar,"Company split. QEP retained, but ticker changed."
+sp500,"June 28, 2010",added,KMX,CarMax,Acquired by ExxonMobil
+sp500,"June 28, 2010",removed,XTO,XTO Energy,Acquired by ExxonMobil
+sp500,"April 29, 2010",added,CERN,Cerner,Acquired by Baker Hughes
+sp500,"April 29, 2010",removed,BJS,BJ Services,Acquired by Baker Hughes
+sp500,"February 26, 2010",added,HP,Helmerich & Payne,Taken private
+sp500,"February 26, 2010",removed,RX,IMS Health,Taken private
+sp500,"December 18, 2009",added,V,Visa,Market capitalization change.
+sp500,"December 18, 2009",removed,CIEN,Ciena,Market capitalization change.
+sp500,"December 18, 2009",added,MJN,Mead Johnson Nutrition,Market capitalization change.
+sp500,"December 18, 2009",removed,DYN,Dynegy,Market capitalization change.
+sp500,"December 18, 2009",added,CLF,Cliffs Natural Resources,Market capitalization change.
+sp500,"December 18, 2009",removed,KBH,KB Home,Market capitalization change.
+sp500,"December 18, 2009",added,SAI,SAIC,Market capitalization change.
+sp500,"December 18, 2009",removed,CVG,Convergys,Market capitalization change.
+sp500,"December 18, 2009",added,ROST,Ross Stores,Market capitalization change.
+sp500,"December 18, 2009",removed,MBI,MBIA,Market capitalization change.
+sp500,"November 3, 2009",added,PCLN,Priceline.com,Acquired by Merck & Co. (MRK)
+sp500,"November 3, 2009",removed,SGP,Schering-Plough,Acquired by Merck & Co. (MRK)
+sp500,"September 28, 2009",added,ARG,Airgas,Redomesticated to Ireland
+sp500,"September 28, 2009",removed,CBE,Cooper Industries,Redomesticated to Ireland
+sp500,"August 19, 2009",added,FMC,FMC Corporation,Centex acquired by Pulte Homes.
+sp500,"August 19, 2009",removed,CTX,Centex Corp.,Centex acquired by Pulte Homes.
+sp500,"June 29, 2009",added,PCS,MetroPCS,PCS replaced TEL.
+sp500,"June 25, 2009",removed,TEL,TE Connectivity,"Tyco Electronics left the index because it was reincorporating in Switzerland, making it ineligible for inclusion."
+sp500,"June 5, 2009",added,FTI,FMC Technologies,"Covidien moved its place of incorporation to Ireland, making it ineligible for inclusion in the index."
+sp500,"June 5, 2009",removed,COV,Covidien,"Covidien moved its place of incorporation to Ireland, making it ineligible for inclusion in the index."
+sp500,"March 3, 2009",added,HRL,Hormel Foods,Capitalization rebalance.
+sp500,"March 3, 2009",removed,ACAS,American Capital,Capitalization rebalance.
+sp500,"March 3, 2009",added,VTR,Ventas,Capitalization rebalance.
+sp500,"March 3, 2009",removed,JNY,Jones Apparel Group,Capitalization rebalance.
+sp500,"December 31, 2008",added,OI,Owens-Illinois,Wachovia Bank acquired by Wells Fargo.
+sp500,"December 31, 2008",removed,WB,Wachovia Bank,Wachovia Bank acquired by Wells Fargo.
+sp500,"September 16, 2008",added,HRS,Harris Corporation,filed for bankruptcy.
+sp500,"September 16, 2008",removed,LEH,Lehman Brothers,filed for bankruptcy.
+sp500,"September 12, 2008",added,CRM,Salesforce,Capitalization rebalance.
+sp500,"September 12, 2008",removed,FRE,Freddie Mac,Capitalization rebalance.
+sp500,"September 12, 2008",added,FAST,Fastenal,Capitalization rebalance.
+sp500,"September 12, 2008",removed,FNM,Fannie Mae,Capitalization rebalance.
+sp500,"July 1, 2008",added,AKS,AK Steel,Ak Steel replaced Countrywide Financial.
+sp500,"July 1, 2008",removed,CFC,Countrywide Financial Corp,Ak Steel replaced Countrywide Financial.
+sp500,"June 23, 2008",added,COG,Cabot Oil & Gas,Market capitalization change.
+sp500,"June 23, 2008",removed,BC,Brunswick,Market capitalization change.
+sp500,"June 23, 2008",added,MEE,Massey Energy,Market capitalization change.
+sp500,"June 23, 2008",removed,OMX,OfficeMax,Market capitalization change.
+sp500,"June 10, 2008",added,LO,Lorillard Tobacco Company,Market Value Decline
+sp500,"June 10, 2008",removed,ABK,Ambac Financial,Market Value Decline
+sp500,"December 20, 2007",added,RRC,Range Resources,Taken private
+sp500,"December 20, 2007",removed,TRB,Tribune Media,Taken private
+sp500,"December 13, 2007",added,GME,GameStop,Acquired by News Corporation
+sp500,"December 13, 2007",removed,DJ,Dow Jones,Acquired by News Corporation
+sp500,"October 26, 2007",added,JEC,Jacobs Engineering Group,Taken private
+sp500,"October 26, 2007",removed,AV,Avaya,Taken private
+sp500,"October 2, 2007",added,EXPE,Expedia,Solectron acquired by Flextronics.
+sp500,"October 2, 2007",removed,SLR,Solectron,Solectron acquired by Flextronics.
+sp500,"October 1, 2007",added,TDC,Teradata,Teradata spun off by NCR Corporation.
+sp500,"October 1, 2007",removed,NCR,NCR Corporation,Teradata spun off by NCR Corporation.
+sp500,"September 27, 2007",added,TSO,Tesoro Corporation,MXIM delisted from NASDAQ exchange.
+sp500,"September 27, 2007",removed,MXIM,Maxim Integrated Products,MXIM delisted from NASDAQ exchange.
+sp500,"September 26, 2007",added,ICE,Intercontinental Exchange,KKR.
+sp500,"September 26, 2007",removed,FDC,First Data,KKR.
+sp500,"August 24, 2007",added,LUK,Leucadia National,Acquired by National Grid plc
+sp500,"August 24, 2007",removed,KSE,KeySpan,Acquired by National Grid plc
+sp500,"July 2, 2007",added,DFS,Discover Financial,Discover Financial Services debuts on New York Stock Exchange.
+sp500,"July 2, 2007",removed,ADCT,ADC Telecommunications,Discover Financial Services debuts on New York Stock Exchange.
+sp500,"March 30, 2007",added,KFT,Kraft Foods,Taken Private
+sp500,"March 30, 2007",removed,TSG,Sabre Corporation,Taken Private
+sp500,"January 10, 2007",added,AVB,AvalonBay Communities,Acquired by Motorola
+sp500,"January 10, 2007",removed,SBL,Symbol Technologies,Acquired by Motorola
+sp500,"June 2, 2006",added,JNPR,Juniper Networks,Albertsons acquired by SuperValu and CVS Corp.
+sp500,"June 2, 2006",removed,ABS,Albertsons,Albertsons acquired by SuperValu and CVS Corp.
+sp500,"November 18, 2005",added,AMZN,Amazon,SBC Communications
+sp500,"November 18, 2005",removed,T,AT&T Corporation,SBC Communications
+sp500,"July 1, 2005",added,STZ,Constellation Brands,Acquired by Crompton Corp.
+sp500,"July 1, 2005",removed,GLK,Great Lakes Chemical,Acquired by Crompton Corp.
+sp500,"September 25, 2003",added,ESRX,Express Scripts,Taken private
+sp500,"September 25, 2003",removed,QTRN,Quintiles Transnational,Taken private
+sp500,"December 5, 2000",added,INTU,Intuit,Market Cap changes.
+sp500,"December 5, 2000",removed,BS,Bethlehem Steel,Market Cap changes.
+sp500,"December 5, 2000",added,SBL,Symbol Technologies,Market Cap changes.
+sp500,"December 5, 2000",removed,OI,Owens-Illinois,Market Cap changes.
+sp500,"December 5, 2000",added,AYE,Allegheny Energy,Market Cap changes.
+sp500,"December 5, 2000",removed,GRA,WR Grace,Market Cap changes.
+sp500,"December 5, 2000",added,ABK,Ambac Financial,Market Cap changes.
+sp500,"December 5, 2000",removed,CCK,Crown Holdings,Market Cap changes.
+sp500,"July 27, 2000",added,JDSU,JDS Uniphase,Market Cap change.
+sp500,"July 27, 2000",removed,RAD,Rite Aid,Market Cap change.
+sp500,"June 12, 2000",added,CVG,Convergys,Tribune Co. acquired Times Mirror.
+sp500,"June 12, 2000",removed,TMC,Times Mirror,Tribune Co. acquired Times Mirror.
+sp500,"June 7, 2000",added,SBUX,Starbucks,Siemens AG acquired Shared Medical Systems.
+sp500,"June 7, 2000",removed,SMS,Shared Medical Systems,Siemens AG acquired Shared Medical Systems.
+sp500,"December 8, 1999",added,YHOO,Yahoo!,Market capitalization change.
+sp500,"December 8, 1999",removed,LDW,Laidlaw,Market capitalization change.
+sp500,"June 9, 1999",added,WLP,Wellpoint,Harnischfeger filed for bankruptcy.
+sp500,"June 9, 1999",removed,HPH,Harnischfeger Industries,Harnischfeger filed for bankruptcy.
+sp500,"April 12, 1999",added,ACT,Actavis,Actavis plc (NYSE:ACT) added to S&P 500
+sp500,"December 11, 1998",added,FSR,Firstar,BP purchased Amoco.
+sp500,"December 11, 1998",removed,AN,Amoco,BP purchased Amoco.
+sp500,"December 11, 1998",added,CCL,Carnival Corporation,Berkshire Hathaway purchased General Re.
+sp500,"December 11, 1998",removed,GRN,General Re,Berkshire Hathaway purchased General Re.
+sp500,"December 11, 1998",added,CPWR,Compuware,AIG purchased SunAmerica.
+sp500,"December 11, 1998",removed,SUN,SunAmerica,AIG purchased SunAmerica.
+sp500,"June 17, 1997",added,CCR,Countrywide Credit Industries,AIG acquired USLife.
+sp500,"June 17, 1997",removed,USL,USLife,AIG acquired USLife.
+sp500,"September 30, 1994",added,NCC,National City,McKesson sold PCS Health Services to Eli Lilly.
+sp500,"September 30, 1994",removed,MCK,McKesson,McKesson sold PCS Health Services to Eli Lilly.
+sp500,"July 1, 1976",added,BUD,Anheuser Busch,"Major restructuring of S&P 500 to have fewer industrials and utilities, and more financial companies to add ""new strength and breadth"""
+sp500,"July 1, 1976",removed,HNG,Houston Natural Gas,"Major restructuring of S&P 500 to have fewer industrials and utilities, and more financial companies to add ""new strength and breadth"""
+sp500,"July 1, 1976",added,DIS,The Walt Disney Company,"Major restructuring of S&P 500 to have fewer industrials and utilities, and more financial companies to add ""new strength and breadth"""
+sp500,"July 1, 1976",removed,AYE,Allegheny Energy,"Major restructuring of S&P 500 to have fewer industrials and utilities, and more financial companies to add ""new strength and breadth"""
+ndx100,"June 22, 2026",added,ALAB,Astera Labs,Quarterly index reconstitution. Nasdaq-100 moved to a regular quarterly rebalancing schedule.
+ndx100,"June 22, 2026",removed,CHTR,Charter Communications,Quarterly index reconstitution. Nasdaq-100 moved to a regular quarterly rebalancing schedule.
+ndx100,"June 22, 2026",added,CRWV,CoreWeave,Quarterly index reconstitution. Nasdaq-100 moved to a regular quarterly rebalancing schedule.
+ndx100,"June 22, 2026",removed,CTSH,Cognizant,Quarterly index reconstitution. Nasdaq-100 moved to a regular quarterly rebalancing schedule.
+ndx100,"June 22, 2026",added,NBIS,Nebius Group,Quarterly index reconstitution. Nasdaq-100 moved to a regular quarterly rebalancing schedule.
+ndx100,"June 22, 2026",removed,INSM,Insmed Incorporated,Quarterly index reconstitution. Nasdaq-100 moved to a regular quarterly rebalancing schedule.
+ndx100,"June 22, 2026",added,RKLB,Rocket Lab,Quarterly index reconstitution. Nasdaq-100 moved to a regular quarterly rebalancing schedule.
+ndx100,"June 22, 2026",removed,VRSK,Verisk Analytics,Quarterly index reconstitution. Nasdaq-100 moved to a regular quarterly rebalancing schedule.
+ndx100,"June 22, 2026",added,TER,Teradyne,Quarterly index reconstitution. Nasdaq-100 moved to a regular quarterly rebalancing schedule.
+ndx100,"June 22, 2026",removed,ZS,Zscaler,Quarterly index reconstitution. Nasdaq-100 moved to a regular quarterly rebalancing schedule.
+ndx100,"May 18, 2026",added,LITE,Lumentum,CoStar did not meet the minimum monthly weight requirements.
+ndx100,"May 18, 2026",removed,CSGP,CoStar Group,CoStar did not meet the minimum monthly weight requirements.
+ndx100,"April 20, 2026",added,SNDK,Sandisk,Atlassian did not meet the minimum monthly weight requirements.
+ndx100,"April 20, 2026",removed,TEAM,Atlassian,Atlassian did not meet the minimum monthly weight requirements.
+ndx100,"January 20, 2026",added,WMT,Walmart,NASDAQ and replaced AstraZeneca in the index. AstraZeneca was preparing to transfer its listing from Nasdaq to the NYSE.
+ndx100,"January 20, 2026",removed,AZN,AstraZeneca,NASDAQ and replaced AstraZeneca in the index. AstraZeneca was preparing to transfer its listing from Nasdaq to the NYSE.
+ndx100,"January 9, 2026",removed,VSNT,Versant,Versant did not meet the minimum monthly weight requirements.
+ndx100,"January 5, 2026",added,VSNT,Versant,Versant was spun off from Comcast.
+ndx100,"December 22, 2025",added,ALNY,Alnylam Pharmaceuticals,Annual index reconstitution.
+ndx100,"December 22, 2025",removed,BIIB,Biogen,Annual index reconstitution.
+ndx100,"December 22, 2025",added,FER,Ferrovial SE,Annual index reconstitution.
+ndx100,"December 22, 2025",removed,CDW,CDW Corporation,Annual index reconstitution.
+ndx100,"December 22, 2025",added,INSM,Insmed Incorporated,Annual index reconstitution.
+ndx100,"December 22, 2025",removed,GFS,GlobalFoundries,Annual index reconstitution.
+ndx100,"December 22, 2025",added,MPWR,Monolithic Power Systems,Annual index reconstitution.
+ndx100,"December 22, 2025",removed,LULU,Lululemon Athletica,Annual index reconstitution.
+ndx100,"December 22, 2025",added,STX,Seagate Technology Holdings,Annual index reconstitution.
+ndx100,"December 22, 2025",removed,ON,ON Semiconductor,Annual index reconstitution.
+ndx100,"December 22, 2025",added,WDC,Western Digital,Annual index reconstitution.
+ndx100,"December 22, 2025",removed,TTD,Trade Desk (The),Annual index reconstitution.
+ndx100,"November 6, 2025",removed,SOLS,Solstice Advanced Materials,Solstice Advanced Materials did not meet the minimum monthly weight requirements.
+ndx100,"October 30, 2025",added,SOLS,Solstice Advanced Materials,Solstice Advanced Materials was spun off from Honeywell.
+ndx100,"July 28, 2025",added,TRI,Thomson Reuters,NASDAQ and replaced Ansys in the index.
+ndx100,"July 17, 2025",removed,ANSS,Ansys,Ansys was acquired by Synopsys.
+ndx100,"May 19, 2025",added,SHOP,Shopify,MongoDB did not meet the minimum monthly weight requirements.
+ndx100,"May 19, 2025",removed,MDB,MongoDB,MongoDB did not meet the minimum monthly weight requirements.
+ndx100,"December 23, 2024",added,PLTR,Palantir Technologies,Annual index reconstitution.
+ndx100,"December 23, 2024",removed,ILMN,Ilumina,Annual index reconstitution.
+ndx100,"December 23, 2024",added,MSTR,MicroStrategy,Annual index reconstitution.
+ndx100,"December 23, 2024",removed,MRNA,Moderna,Annual index reconstitution.
+ndx100,"December 23, 2024",added,AXON,Axon Enterprise,Annual index reconstitution.
+ndx100,"December 23, 2024",removed,SMCI,Supermicro,Annual index reconstitution.
+ndx100,"November 18, 2024",added,APP,AppLovin,Dollar Tree did not meet the minimum monthly weight requirements.
+ndx100,"November 18, 2024",removed,DLTR,Dollar Tree,Dollar Tree did not meet the minimum monthly weight requirements.
+ndx100,"July 22, 2024",added,SMCI,Supermicro,WBA did not meet the minimum monthly weight requirements.
+ndx100,"July 22, 2024",removed,WBA,Walgreens Boots Alliance,WBA did not meet the minimum monthly weight requirements.
+ndx100,"June 24, 2024",added,ARM,Arm Holdings,Sirius XM did not meet the minimum monthly weight requirements.
+ndx100,"June 24, 2024",removed,SIRI,SiriusXM,Sirius XM did not meet the minimum monthly weight requirements.
+ndx100,"March 18, 2024",added,LIN,Linde,Splunk was acquired by Cisco.
+ndx100,"March 18, 2024",removed,SPLK,Splunk,Splunk was acquired by Cisco.
+ndx100,"December 18, 2023",added,CDW,CDW,Annual index reconstitution.
+ndx100,"December 18, 2023",removed,ALGN,Align Technology,Annual index reconstitution.
+ndx100,"December 18, 2023",added,CCEP,Coca-Cola Europacific Partners,Annual index reconstitution.
+ndx100,"December 18, 2023",removed,EBAY,EBay,Annual index reconstitution.
+ndx100,"December 18, 2023",added,DASH,DoorDash,Annual index reconstitution.
+ndx100,"December 18, 2023",removed,ENPH,Enphase Energy,Annual index reconstitution.
+ndx100,"December 18, 2023",added,MDB,MongoDB,Annual index reconstitution.
+ndx100,"December 18, 2023",removed,JD,JD.com,Annual index reconstitution.
+ndx100,"December 18, 2023",added,ROP,Roper Technologies,Annual index reconstitution.
+ndx100,"December 18, 2023",removed,LCID,Lucid Group,Annual index reconstitution.
+ndx100,"December 18, 2023",added,SPLK,Splunk,Annual index reconstitution.
+ndx100,"December 18, 2023",removed,ZM,Zoom Video Communications,Annual index reconstitution.
+ndx100,"December 14, 2023",added,TTWO,Take-Two Interactive,Seagen merged with Pfizer.
+ndx100,"December 14, 2023",removed,SGEN,Seagen Inc.,Seagen merged with Pfizer.
+ndx100,"July 17, 2023",added,TTD,The Trade Desk,Activision Blizzard was acquired by Microsoft.
+ndx100,"July 17, 2023",removed,ATVI,Activision Blizzard,Activision Blizzard was acquired by Microsoft.
+ndx100,"June 20, 2023",added,ON,Onsemi,Rivian did not meet the minimum monthly weight requirements.
+ndx100,"June 20, 2023",removed,RIVN,Rivian Automotive,Rivian did not meet the minimum monthly weight requirements.
+ndx100,"June 7, 2023",added,GEHC,GE HealthCare,NYSE.
+ndx100,"June 7, 2023",removed,FI,Fiserv,NYSE.
+ndx100,"December 19, 2022",added,CSGP,CoStar Group,Annual index reconstitution.
+ndx100,"December 19, 2022",removed,VRSN,VeriSign,Annual index reconstitution.
+ndx100,"December 19, 2022",added,RIVN,Rivian Automotive,Annual index reconstitution.
+ndx100,"December 19, 2022",removed,SWKS,Skyworks,Annual index reconstitution.
+ndx100,"December 19, 2022",removed,NTES,NetEase,Annual index reconstitution.
+ndx100,"December 19, 2022",added,WBD,Warner Bros. Discovery,Annual index reconstitution.
+ndx100,"December 19, 2022",removed,SPLK,Splunk,Annual index reconstitution.
+ndx100,"December 19, 2022",added,GFS,GlobalFoundries,Annual index reconstitution.
+ndx100,"December 19, 2022",removed,BIDU,Baidu,Annual index reconstitution.
+ndx100,"December 19, 2022",added,BKR,Baker Hughes,Annual index reconstitution.
+ndx100,"December 19, 2022",removed,MTCH,Match Group,Annual index reconstitution.
+ndx100,"December 19, 2022",added,FANG,Diamondback Energy,Annual index reconstitution.
+ndx100,"December 19, 2022",removed,DOCU,DocuSign,Annual index reconstitution.
+ndx100,"November 21, 2022",added,ENPH,Enphase Energy,Okta did not meet the minimum monthly weight requirements.
+ndx100,"November 21, 2022",removed,OKTA,Okta,Okta did not meet the minimum monthly weight requirements.
+ndx100,"February 22, 2022",added,AZN,AstraZeneca,AMD.
+ndx100,"February 22, 2022",removed,XLNX,Xilinx,AMD.
+ndx100,"February 2, 2022",added,CEG,Constellation Energy,Component member Exelon spun off Constellation Energy.
+ndx100,"January 24, 2022",added,ODFL,Old Dominion Freight Line,Peloton did not meet the minimum monthly weight requirements.
+ndx100,"January 24, 2022",removed,PTON,Peloton,Peloton did not meet the minimum monthly weight requirements.
+ndx100,"December 20, 2021",added,ABNB,Airbnb,Annual index reconstitution.
+ndx100,"December 20, 2021",removed,CDW,CDW,Annual index reconstitution.
+ndx100,"December 20, 2021",added,FTNT,Fortinet,Annual index reconstitution.
+ndx100,"December 20, 2021",removed,FOXA,Fox Corporation,Annual index reconstitution.
+ndx100,"December 20, 2021",removed,FOX,Fox Corporation,Annual index reconstitution.
+ndx100,"December 20, 2021",added,PANW,Palo Alto Networks,Annual index reconstitution. Cerner was acquired by Oracle Corporation and rebranded as Oracle Health.
+ndx100,"December 20, 2021",removed,CERN,Cerner,Annual index reconstitution. Cerner was acquired by Oracle Corporation and rebranded as Oracle Health.
+ndx100,"December 20, 2021",added,LCID,Lucid Group,Annual index reconstitution.
+ndx100,"December 20, 2021",removed,CHKP,Check Point,Annual index reconstitution.
+ndx100,"December 20, 2021",added,ZS,Zscaler,Annual index reconstitution.
+ndx100,"December 20, 2021",removed,TCOM,Trip.com,Annual index reconstitution.
+ndx100,"December 20, 2021",added,DDOG,Datadog,Annual index reconstitution.
+ndx100,"December 20, 2021",removed,INCY,Incyte,Annual index reconstitution.
+ndx100,"August 26, 2021",added,CRWD,Crowdstrike,Maxim Integrated Products was acquired by Analog Devices.
+ndx100,"August 26, 2021",removed,MXIM,Maxim Integrated Products,Maxim Integrated Products was acquired by Analog Devices.
+ndx100,"July 21, 2021",added,HON,Honeywell,Alexion Pharmaceuticals was acquired by AstraZeneca.
+ndx100,"July 21, 2021",removed,ALXN,Alexion Pharmaceuticals,Alexion Pharmaceuticals was acquired by AstraZeneca.
+ndx100,"December 21, 2020",added,AEP,American Electric Power,Annual index reconstitution.
+ndx100,"December 21, 2020",removed,BMRN,BioMarin Pharmaceutical,Annual index reconstitution.
+ndx100,"December 21, 2020",added,MRVL,Marvell Technology,Annual index reconstitution.
+ndx100,"December 21, 2020",removed,CTXS,Citrix Systems,Annual index reconstitution.
+ndx100,"December 21, 2020",added,MTCH,Match Group,Annual index reconstitution.
+ndx100,"December 21, 2020",removed,EXPE,Expedia,Annual index reconstitution.
+ndx100,"December 21, 2020",added,OKTA,Okta,Annual index reconstitution.
+ndx100,"December 21, 2020",removed,LBTYA,Liberty Global,Annual index reconstitution.
+ndx100,"December 21, 2020",removed,LBTYK,Liberty Global,Annual index reconstitution.
+ndx100,"December 21, 2020",added,PTON,Peloton,Annual index reconstitution.
+ndx100,"December 21, 2020",removed,TTWO,Take-Two Interactive,Annual index reconstitution.
+ndx100,"December 21, 2020",added,TEAM,Atlassian,Annual index reconstitution.
+ndx100,"December 21, 2020",removed,ULTA,Ulta Beauty,Annual index reconstitution.
+ndx100,"October 19, 2020",added,KDP,Keurig Dr Pepper,Western Digital did not meet the minimum monthly weight requirements.
+ndx100,"October 19, 2020",removed,WDC,Western Digital,Western Digital did not meet the minimum monthly weight requirements.
+ndx100,"August 24, 2020",added,PDD,Pinduoduo,NetApp did not meet the minimum monthly weight requirements.
+ndx100,"August 24, 2020",removed,NTAP,NetApp,NetApp did not meet the minimum monthly weight requirements.
+ndx100,"July 20, 2020",added,MRNA,Moderna,CoStar did not meet the minimum monthly weight requirements.
+ndx100,"July 20, 2020",removed,CSGP,CoStar Group,CoStar did not meet the minimum monthly weight requirements.
+ndx100,"June 22, 2020",added,DOCU,DocuSign,United Airlines did not meet the minimum monthly weight requirements.
+ndx100,"June 22, 2020",removed,UAL,United Airlines Holdings,United Airlines did not meet the minimum monthly weight requirements.
+ndx100,"April 30, 2020",added,ZM,Zoom Video Communications,WTW did not meet the minimum monthly weight requirements.
+ndx100,"April 30, 2020",removed,WTW,Willis Towers Watson,WTW did not meet the minimum monthly weight requirements.
+ndx100,"April 20, 2020",added,DXCM,Dexcom,American Airlines did not meet the minimum monthly weight requirements.
+ndx100,"April 20, 2020",removed,AAL,American Airlines,American Airlines did not meet the minimum monthly weight requirements.
+ndx100,"December 23, 2019",added,ANSS,Ansys,Annual index reconstitution.
+ndx100,"December 23, 2019",removed,HAS,Hasbro,Annual index reconstitution.
+ndx100,"December 23, 2019",added,CDW,CDW,Annual index reconstitution.
+ndx100,"December 23, 2019",removed,HSIC,Henry Schein,Annual index reconstitution.
+ndx100,"December 23, 2019",added,CPRT,Copart,Annual index reconstitution.
+ndx100,"December 23, 2019",removed,JBHT,J.B. Hunt,Annual index reconstitution.
+ndx100,"December 23, 2019",added,CSGP,CoStar Group,Annual index reconstitution.
+ndx100,"December 23, 2019",removed,MYL,Mylan,Annual index reconstitution.
+ndx100,"December 23, 2019",added,SGEN,Seattle Genetics,Annual index reconstitution.
+ndx100,"December 23, 2019",removed,NLOK,NortonLifeLock,Annual index reconstitution.
+ndx100,"December 23, 2019",added,SPLK,Splunk,Annual index reconstitution.
+ndx100,"December 23, 2019",removed,WYNN,Wynn Resorts,Annual index reconstitution.
+ndx100,"November 21, 2019",added,EXC,Exelon,Celgene was acquired by Bristol Myers Squibb.
+ndx100,"November 21, 2019",removed,CELG,Celgene,Celgene was acquired by Bristol Myers Squibb.
+ndx100,"March 19, 2019",added,FOXA,Fox Corporation Class A,"Two classes of stock of Fox Corporation replaced the two classes of stock of 21st Century Fox, which was acquired by The Walt Disney Company."
+ndx100,"March 19, 2019",removed,FOXA,21st Century Fox Class A,"Two classes of stock of Fox Corporation replaced the two classes of stock of 21st Century Fox, which was acquired by The Walt Disney Company."
+ndx100,"March 19, 2019",added,FOX,Fox Corporation Class B,"Two classes of stock of Fox Corporation replaced the two classes of stock of 21st Century Fox, which was acquired by The Walt Disney Company."
+ndx100,"March 19, 2019",removed,FOX,21st Century Fox Class B,"Two classes of stock of Fox Corporation replaced the two classes of stock of 21st Century Fox, which was acquired by The Walt Disney Company."
+ndx100,"December 24, 2018",added,AMD,Advanced Micro Devices,Annual index reconstitution.
+ndx100,"December 24, 2018",removed,ESRX,Express Scripts,Annual index reconstitution.
+ndx100,"December 24, 2018",added,LULU,lululemon Athletica,Annual index reconstitution.
+ndx100,"December 24, 2018",removed,HOLX,Hologic,Annual index reconstitution.
+ndx100,"December 24, 2018",added,NTAP,NetApp,Annual index reconstitution.
+ndx100,"December 24, 2018",removed,QRTEA,Qurate Retail,Annual index reconstitution.
+ndx100,"December 24, 2018",added,UAL,United Continental Holdings,Annual index reconstitution.
+ndx100,"December 24, 2018",removed,SHPG,Shire PLC,Annual index reconstitution.
+ndx100,"December 24, 2018",added,VRSN,Verisign,Annual index reconstitution.
+ndx100,"December 24, 2018",removed,STX,Seagate Technology,Annual index reconstitution.
+ndx100,"December 24, 2018",added,WTW,Willis Towers Watson,Annual index reconstitution.
+ndx100,"December 24, 2018",removed,VOD,Vodafone,Annual index reconstitution.
+ndx100,"November 19, 2018",added,XEL,Xcel Energy,Dentsply Sirona did not meet the minimum monthly weight requirements.
+ndx100,"November 19, 2018",removed,XRAY,Dentsply Sirona,Dentsply Sirona did not meet the minimum monthly weight requirements.
+ndx100,"November 5, 2018",added,NXPI,NXP Semiconductors,NXP Semiconductors rejoined the index following its failed acquisition by Qualcomm. CA Inc. merged with Broadcom.
+ndx100,"November 5, 2018",removed,CA,CA Inc.,NXP Semiconductors rejoined the index following its failed acquisition by Qualcomm. CA Inc. merged with Broadcom.
+ndx100,"July 23, 2018",added,PEP,PepsiCo,Dish Network did not meet the minimum monthly weight requirement.
+ndx100,"July 23, 2018",removed,DISH,Dish Network,Dish Network did not meet the minimum monthly weight requirement.
+ndx100,"December 18, 2017",added,ASML,ASML Holding,Annual index reconstitution.
+ndx100,"December 18, 2017",removed,AKAM,Akamai Technologies,Annual index reconstitution.
+ndx100,"December 18, 2017",added,CDNS,Cadence Design Systems,Annual index reconstitution.
+ndx100,"December 18, 2017",removed,DISCA,Discovery Communications Series A,Annual index reconstitution.
+ndx100,"December 18, 2017",removed,DISCK,Discovery Communications Series C,Annual index reconstitution.
+ndx100,"December 18, 2017",added,SNPS,Synopsys,Annual index reconstitution.
+ndx100,"December 18, 2017",removed,NCLH,Norwegian Cruise Line Holdings,Annual index reconstitution.
+ndx100,"December 18, 2017",added,TTWO,Take-Two Interactive,Annual index reconstitution.
+ndx100,"December 18, 2017",removed,TSCO,Tractor Supply,Annual index reconstitution.
+ndx100,"December 18, 2017",added,WDAY,Workday,Annual index reconstitution.
+ndx100,"December 18, 2017",removed,VIAB,Viacom,Annual index reconstitution.
+ndx100,"October 23, 2017",added,ALGN,Align Technology,Mattel did not meet the minimum monthly weight requirements.
+ndx100,"October 23, 2017",removed,MAT,Mattel,Mattel did not meet the minimum monthly weight requirements.
+ndx100,"June 19, 2017",added,MELI,MercadoLibre,Yahoo! Inc. was acquired by Verizon and subsequently converted to a closed-end fund.
+ndx100,"June 19, 2017",removed,YHOO,Yahoo! Inc.,Yahoo! Inc. was acquired by Verizon and subsequently converted to a closed-end fund.
+ndx100,"April 24, 2017",added,WYNN,Wynn Resorts,TripAdvisor did not meet the minimum monthly weight requirements.
+ndx100,"April 24, 2017",removed,TRIP,TripAdvisor,TripAdvisor did not meet the minimum monthly weight requirements.
+ndx100,"March 20, 2017",added,IDXX,Idexx Laboratories,"SBA converted into a real estate investment trust, making it ineligible for inclusion in the Nasdaq-100, but it became eligible for inclusion in the Nasdaq Financial-100."
+ndx100,"March 20, 2017",removed,SBAC,SBA Communications,"SBA converted into a real estate investment trust, making it ineligible for inclusion in the Nasdaq-100, but it became eligible for inclusion in the Nasdaq Financial-100."
+ndx100,"February 7, 2017",added,JBHT,J.B. Hunt,NXP was in the process of merging with Qualcomm.
+ndx100,"February 7, 2017",removed,NXPI,NXP Semiconductors,NXP was in the process of merging with Qualcomm.
+ndx100,"December 19, 2016",added,CTAS,Cintas,Annual index reconstitution.
+ndx100,"December 19, 2016",removed,BBBY,Bed Bath & Beyond,Annual index reconstitution.
+ndx100,"December 19, 2016",added,HAS,Hasbro,Annual index reconstitution.
+ndx100,"December 19, 2016",removed,NTAP,NetApp,Annual index reconstitution.
+ndx100,"December 19, 2016",added,HOLX,Hologic,Annual index reconstitution.
+ndx100,"December 19, 2016",removed,SRCL,Stericycle,Annual index reconstitution.
+ndx100,"December 19, 2016",added,KLAC,KLA-Tencor,Annual index reconstitution.
+ndx100,"December 19, 2016",removed,WFM,Whole Foods Market,Annual index reconstitution.
+ndx100,"October 19, 2016",added,SHPG,Shire PLC,Linear Technology did not meet the minimum monthly weight requirements.
+ndx100,"October 19, 2016",removed,LLTC,Linear Technology,Linear Technology did not meet the minimum monthly weight requirements.
+ndx100,"July 18, 2016",added,MCHP,Microchip Technology,Endo International did not meet the minimum monthly weight requirements.
+ndx100,"July 18, 2016",removed,ENDP,Endo International,Endo International did not meet the minimum monthly weight requirements.
+ndx100,"June 20, 2016",added,XRAY,Dentsply Sirona,Liberty Media did not meet the minimum monthly weight requirements.
+ndx100,"June 20, 2016",removed,LMCA,Liberty Media,Liberty Media did not meet the minimum monthly weight requirements.
+ndx100,"June 20, 2016",removed,LMCK,Liberty Media,Liberty Media did not meet the minimum monthly weight requirements.
+ndx100,"June 20, 2016",removed,BATRA,Liberty Media,Liberty Media did not meet the minimum monthly weight requirements.
+ndx100,"June 20, 2016",removed,BATRK,Liberty Media,Liberty Media did not meet the minimum monthly weight requirements.
+ndx100,"April 18, 2016",added,BATRA,Liberty Media,Liberty Media established two tracking stocks to follow the performance of its investment in the Atlanta Braves.
+ndx100,"April 18, 2016",added,BATRK,Liberty Media,Liberty Media established two tracking stocks to follow the performance of its investment in the Atlanta Braves.
+ndx100,"March 16, 2016",added,NTES,NetEase,SanDisk was acquired by Western Digital.
+ndx100,"March 16, 2016",removed,SNDK,SanDisk,SanDisk was acquired by Western Digital.
+ndx100,"February 16, 2016",added,CSX,CSX Corporation,KLA-Tencor did not meet the minimum monthly weight requirements.
+ndx100,"February 16, 2016",removed,KLAC,KLA-Tencor,KLA-Tencor did not meet the minimum monthly weight requirements.
+ndx100,"February 1, 2016",added,AVGO,Broadcom,Avago Technologies changed its name to Broadcom. Former ticker BRCM retired.
+ndx100,"December 21, 2015",added,TCOM,Ctrip,Annual index reconstitution.
+ndx100,"December 21, 2015",removed,CHRW,C. H. Robinson Worldwide,Annual index reconstitution.
+ndx100,"December 21, 2015",added,ENDP,Endo International,Annual index reconstitution.
+ndx100,"December 21, 2015",removed,EXPD,Expeditors International,Annual index reconstitution.
+ndx100,"December 21, 2015",added,EXPE,Expedia Group,Annual index reconstitution.
+ndx100,"December 21, 2015",removed,GMCR,Keurig Green Mountain,Annual index reconstitution.
+ndx100,"December 21, 2015",added,MXIM,Maxim Integrated Products,Annual index reconstitution.
+ndx100,"December 21, 2015",removed,GRMN,Garmin,Annual index reconstitution.
+ndx100,"December 21, 2015",added,NCLH,Norwegian Cruise Line,Annual index reconstitution.
+ndx100,"December 21, 2015",removed,SPLS,Staples,Annual index reconstitution.
+ndx100,"December 21, 2015",added,TMUS,T-Mobile US,Annual index reconstitution.
+ndx100,"December 21, 2015",removed,VIP,VimpelCom,Annual index reconstitution.
+ndx100,"December 21, 2015",added,ULTA,Ulta Beauty,Annual index reconstitution.
+ndx100,"December 21, 2015",removed,WYNN,Wynn Resorts,Annual index reconstitution.
+ndx100,"December 21, 2015",removed,LILA,Liberty Latin America Class A,Liberty Media tracking stocks were removed from the index.
+ndx100,"December 21, 2015",removed,LILAK,Liberty Latin America Class C,Liberty Media tracking stocks were removed from the index.
+ndx100,"November 11, 2015",added,PYPL,PayPal,Broadcom was in the process of merging with Avago.
+ndx100,"November 11, 2015",removed,AVGO,Broadcom Corporation,Broadcom was in the process of merging with Avago.
+ndx100,"October 7, 2015",added,INCY,Incyte,Altera merged with Intel.
+ndx100,"October 7, 2015",removed,ALTR,Altera,Altera merged with Intel.
+ndx100,"August 3, 2015",added,SWKS,Skyworks Solutions,Skyworks Solutions replaced Sigma-Aldrich in the index.
+ndx100,"July 31, 2015",removed,SIAL,Sigma-Aldrich,Sigma-Aldrich was acquired by Merck KGaA.
+ndx100,"July 29, 2015",added,JD,JD.com,JD.com replaced Catamaran Corporation in the index.
+ndx100,"July 27, 2015",added,BMRN,BioMarin Pharmaceutical,BioMarin replaced DirecTV in the index.
+ndx100,"July 24, 2015",removed,DTV,DirecTV,DirecTV was acquired by AT&T.
+ndx100,"July 24, 2015",removed,CTRX,Catamaran Corporation,Catamaran Corporation went private.
+ndx100,"July 2, 2015",added,KHC,Kraft Heinz,"Kraft Foods merged with Heinz, becoming Kraft Heinz"
+ndx100,"July 2, 2015",removed,KRFT,Kraft Foods,"Kraft Foods merged with Heinz, becoming Kraft Heinz"
+ndx100,"July 2, 2015",added,LILA,Liberty Latin America Class A,"Liberty Interactive created two new tracking stocks, tracking the company's interests in Latin America."
+ndx100,"July 2, 2015",added,LILAK,Liberty Latin America Class C,"Liberty Interactive created two new tracking stocks, tracking the company's interests in Latin America."
+ndx100,"March 23, 2015",added,WBA,Walgreens Boots Alliance,"Equinix converted into a real estate investment trust, making it ineligible for inclusion in the Nasdaq-100, but it became eligible for inclusion in the Nasdaq Financial-100."
+ndx100,"March 23, 2015",removed,EQIX,Equinix,"Equinix converted into a real estate investment trust, making it ineligible for inclusion in the Nasdaq-100, but it became eligible for inclusion in the Nasdaq Financial-100."
+ndx100,"December 22, 2014",added,AAL,American Airlines Group,Annual index reconstitution.
+ndx100,"December 22, 2014",removed,EXPE,Expedia Group,Annual index reconstitution.
+ndx100,"December 22, 2014",added,EA,Electronic Arts,Annual index reconstitution.
+ndx100,"December 22, 2014",removed,FFIV,F5 Networks,Annual index reconstitution.
+ndx100,"December 22, 2014",added,LRCX,Lam Research,Annual index reconstitution.
+ndx100,"December 22, 2014",removed,MXIM,Maxim Integrated Products,Annual index reconstitution.
+ndx100,"December 22, 2014",added,CMCSA,Comcast Corporation Class A,NASDAQ revised the index methodology allowing multiple share classes of index participants to be included.
+ndx100,"December 22, 2014",added,FOX,"Twenty-First Century Fox, Inc. Class B",NASDAQ revised the index methodology allowing multiple share classes of index participants to be included.
+ndx100,"December 22, 2014",added,LBTYK,Liberty Global PLC,NASDAQ revised the index methodology allowing multiple share classes of index participants to be included.
+ndx100,"April 3, 2014",added,GOOG,Google Class C,Class C common stock of Google was added to the index as a result of Google's stock split.
+ndx100,"December 23, 2013",added,DISH,DISH Network Corporation,Annual index reconstitution.
+ndx100,"December 23, 2013",removed,FOSL,Fossil Group,Annual index reconstitution.
+ndx100,"December 23, 2013",added,ILMN,Illumina,Annual index reconstitution.
+ndx100,"December 23, 2013",removed,MCHP,Microchip Technology,Annual index reconstitution.
+ndx100,"December 23, 2013",added,NXPI,NXP Semiconductors,Annual index reconstitution.
+ndx100,"December 23, 2013",removed,NUAN,Nuance Communications,Annual index reconstitution.
+ndx100,"December 23, 2013",added,TRIP,TripAdvisor,Annual index reconstitution.
+ndx100,"December 23, 2013",removed,SHLD,Sears Holdings,Annual index reconstitution.
+ndx100,"December 23, 2013",added,TSCO,Tractor Supply Company,Annual index reconstitution.
+ndx100,"December 23, 2013",removed,XRAY,Dentsply,Annual index reconstitution.
+ndx100,"November 18, 2013",added,MAR,Marriott International,Randgold Resources did not meet the minimum monthly weight requirements.
+ndx100,"November 18, 2013",removed,GOLD,Randgold Resources,Randgold Resources did not meet the minimum monthly weight requirements.
+ndx100,"October 29, 2013",added,VIP,VimpelCom,Dell Inc. was taken private.
+ndx100,"October 29, 2013",removed,DELL,Dell,Dell Inc. was taken private.
+ndx100,"August 22, 2013",added,GMCR,Green Mountain Coffee Roasters,Life Technologies was in the process of merging with Thermo Fisher Scientific.
+ndx100,"August 22, 2013",removed,LIFE,Life Technologies,Life Technologies was in the process of merging with Thermo Fisher Scientific.
+ndx100,"July 25, 2013",added,CHTR,Charter Communications,BMC Software was taken private.
+ndx100,"July 25, 2013",removed,BMC,BMC Software,BMC Software was taken private.
+ndx100,"July 15, 2013",added,TSLA,Tesla Motors,Oracle transferred its listing from NASDAQ to NYSE.
+ndx100,"July 15, 2013",removed,ORCL,Oracle,Oracle transferred its listing from NASDAQ to NYSE.
+ndx100,"June 6, 2013",added,NFLX,Netflix,Perrigo transferred its listing from NASDAQ to NYSE.
+ndx100,"June 6, 2013",removed,PRGO,Perrigo,Perrigo transferred its listing from NASDAQ to NYSE.
+ndx100,"June 5, 2013",added,LMCA,Liberty Media,Virgin Media merged with Liberty Media.
+ndx100,"June 5, 2013",removed,VMED,Virgin Media,Virgin Media merged with Liberty Media.
+ndx100,"March 18, 2013",added,KRFT,Kraft Foods,Starz did not meet the minimum monthly weight requirements.
+ndx100,"March 18, 2013",removed,STRZA,Starz,Starz did not meet the minimum monthly weight requirements.
+ndx100,"January 15, 2013",added,STRZA,Starz,Starz replaced Liberty Media after a spinoff.
+ndx100,"January 15, 2013",removed,LMCA,Liberty Media,Starz replaced Liberty Media after a spinoff.
+ndx100,"December 24, 2012",added,ADI,Analog Devices,Annual index reconstitution.
+ndx100,"December 24, 2012",removed,APOL,Apollo Group,Annual index reconstitution.
+ndx100,"December 24, 2012",added,CTRX,Catamaran Corporation,Annual index reconstitution.
+ndx100,"December 24, 2012",removed,EA,Electronic Arts,Annual index reconstitution.
+ndx100,"December 24, 2012",added,DISCA,Discovery Communications,Annual index reconstitution.
+ndx100,"December 24, 2012",removed,FLEX,Flextronics,Annual index reconstitution.
+ndx100,"December 24, 2012",added,EQIX,Equinix,Annual index reconstitution.
+ndx100,"December 24, 2012",removed,GMCR,Green Mountain Coffee Roasters,Annual index reconstitution.
+ndx100,"December 24, 2012",added,LBTYA,Liberty Global,Annual index reconstitution.
+ndx100,"December 24, 2012",removed,LRCX,Lam Research,Annual index reconstitution.
+ndx100,"December 24, 2012",added,LMCA,Liberty Media,Annual index reconstitution.
+ndx100,"December 24, 2012",removed,MRVL,Marvell Technology Group,Annual index reconstitution.
+ndx100,"December 24, 2012",added,REGN,Regeneron Pharmaceuticals,Annual index reconstitution.
+ndx100,"December 24, 2012",removed,NFLX,Netflix,Annual index reconstitution.
+ndx100,"December 24, 2012",added,SBAC,SBA Communications,Annual index reconstitution.
+ndx100,"December 24, 2012",removed,RIMM,Research in Motion,Annual index reconstitution.
+ndx100,"December 24, 2012",added,VRSK,Verisk Analytics,Annual index reconstitution.
+ndx100,"December 24, 2012",removed,VRSN,VeriSign,Annual index reconstitution.
+ndx100,"December 24, 2012",added,WDC,Western Digital,Annual index reconstitution.
+ndx100,"December 24, 2012",removed,WCRX,Warner Chilcott,Annual index reconstitution.
+ndx100,"December 12, 2012",added,META,"Facebook, Inc.",Infosys transferred its listing from NASDAQ to NYSE.
+ndx100,"December 12, 2012",removed,INFY,Infosys,Infosys transferred its listing from NASDAQ to NYSE.
+ndx100,"July 23, 2012",added,KFT,Kraft Foods,Ctrip did not meet the minimum monthly weight requirements.
+ndx100,"July 23, 2012",removed,TCOM,Ctrip,Ctrip did not meet the minimum monthly weight requirements.
+ndx100,"May 30, 2012",added,VIAB,Viacom,Teva transferred its listing from NASDAQ to NYSE.
+ndx100,"May 30, 2012",removed,TEVA,Teva Pharmaceutical Industries,Teva transferred its listing from NASDAQ to NYSE.
+ndx100,"April 23, 2012",added,TXN,Texas Instruments,First Solar did not meet the minimum monthly weight requirements.
+ndx100,"April 23, 2012",removed,FSLR,First Solar,First Solar did not meet the minimum monthly weight requirements.
+ndx100,"December 19, 2011",added,AVGO,Avago Technologies,Annual index reconstitution.
+ndx100,"December 19, 2011",removed,FLIR,FLIR Systems,Annual index reconstitution.
+ndx100,"December 19, 2011",added,FOSL,Fossil Group,Annual index reconstitution.
+ndx100,"December 19, 2011",removed,ILMN,Illumina,Annual index reconstitution.
+ndx100,"December 19, 2011",added,MNST,Hansen Natural,Annual index reconstitution.
+ndx100,"December 19, 2011",removed,NIHD,NII Holdings,Annual index reconstitution.
+ndx100,"December 19, 2011",added,NUAN,Nuance Communications,Annual index reconstitution.
+ndx100,"December 19, 2011",removed,QGEN,Qiagen,Annual index reconstitution.
+ndx100,"December 19, 2011",added,GOLD,Randgold Resources,Annual index reconstitution.
+ndx100,"December 19, 2011",removed,URBN,Urban Outfitters,Annual index reconstitution.
+ndx100,"December 6, 2011",added,PRGO,Perrigo,Joy Global transferred its listing from NASDAQ to NYSE.
+ndx100,"December 6, 2011",removed,JOYG,Joy Global,Joy Global transferred its listing from NASDAQ to NYSE.
+ndx100,"July 15, 2011",added,SIRI,Sirius XM Radio,Cephalon was acquired by Teva Pharmaceutical Industries.
+ndx100,"July 15, 2011",removed,CEPH,Cephalon,Cephalon was acquired by Teva Pharmaceutical Industries.
+ndx100,"May 27, 2011",added,GMCR,Green Mountain Coffee Roasters,"Millicom consolidated its primary listing to NASDAQ OMX Stockholm, withdrawing the NASDAQ US listing."
+ndx100,"May 27, 2011",removed,MICC,Millicom International Cellular,"Millicom consolidated its primary listing to NASDAQ OMX Stockholm, withdrawing the NASDAQ US listing."
+ndx100,"April 4, 2011",added,ALXN,Alexion Pharmaceuticals,Genzyme was acquired by Sanofi-Aventis.
+ndx100,"April 4, 2011",removed,GENZ,Genzyme,Genzyme was acquired by Sanofi-Aventis.
+ndx100,"December 20, 2010",added,AKAM,Akamai Technologies,Annual index reconstitution.
+ndx100,"December 20, 2010",removed,CTAS,Cintas,Annual index reconstitution.
+ndx100,"December 20, 2010",added,TCOM,Ctrip,Annual index reconstitution.
+ndx100,"December 20, 2010",removed,DISH,Dish Network,Annual index reconstitution.
+ndx100,"December 20, 2010",added,DLTR,Dollar Tree,Annual index reconstitution.
+ndx100,"December 20, 2010",removed,FWLT,Foster Wheeler,Annual index reconstitution.
+ndx100,"December 20, 2010",added,FFIV,F5 Networks,Annual index reconstitution.
+ndx100,"December 20, 2010",removed,HOLX,Hologic,Annual index reconstitution.
+ndx100,"December 20, 2010",added,MU,Micron Technology,Annual index reconstitution.
+ndx100,"December 20, 2010",removed,JBHT,J. B. Hunt,Annual index reconstitution.
+ndx100,"December 20, 2010",added,NFLX,Netflix,Annual index reconstitution.
+ndx100,"December 20, 2010",removed,LOGI,Logitech,Annual index reconstitution.
+ndx100,"December 20, 2010",added,WFM,Whole Foods Market,Annual index reconstitution.
+ndx100,"December 20, 2010",removed,PDCO,Patterson Companies,Annual index reconstitution.
+ndx100,"December 21, 2009",added,VOD,Vodafone,Annual index reconstitution.
+ndx100,"December 21, 2009",removed,AKAM,Akamai Technologies,Annual index reconstitution.
+ndx100,"December 21, 2009",added,MAT,Mattel,Annual index reconstitution.
+ndx100,"December 21, 2009",removed,HANS,Hansen Natural,Annual index reconstitution.
+ndx100,"December 21, 2009",added,BMC,BMC Software,Annual index reconstitution.
+ndx100,"December 21, 2009",removed,IACI,IAC/InterActiveCorp,Annual index reconstitution.
+ndx100,"December 21, 2009",added,MYL,Mylan,Annual index reconstitution.
+ndx100,"December 21, 2009",removed,LBTYA,Liberty Global,Annual index reconstitution.
+ndx100,"December 21, 2009",added,QGEN,Qiagen,Annual index reconstitution.
+ndx100,"December 21, 2009",removed,PPDI,Pharmaceutical Product Development,Annual index reconstitution.
+ndx100,"December 21, 2009",added,SNDK,SanDisk,Annual index reconstitution.
+ndx100,"December 21, 2009",removed,RYAAY,Ryanair,Annual index reconstitution.
+ndx100,"December 21, 2009",added,VMED,Virgin Media,Annual index reconstitution.
+ndx100,"December 21, 2009",removed,STLD,Steel Dynamics,Annual index reconstitution.
+ndx100,"October 29, 2009",added,PCLN,Priceline.com,Joy Global transferred its listing from NASDAQ to NYSE.
+ndx100,"October 29, 2009",removed,JNPR,Juniper Networks,Joy Global transferred its listing from NASDAQ to NYSE.
+ndx100,"July 17, 2009",added,CERN,Cerner,Oracle.
+ndx100,"July 17, 2009",removed,JAVA,Sun Microsystems,Oracle.
+ndx100,"January 20, 2009",added,NWSA,News Corporation,Focus Media did not meet the minimum monthly weight requirements.
+ndx100,"January 20, 2009",removed,FMCN,Focus Media Holding,Focus Media did not meet the minimum monthly weight requirements.
+ndx100,"December 22, 2008",added,ADP,Automatic Data Processing,Annual index reconstitution.
+ndx100,"December 22, 2008",removed,AMLN,Amylin Pharmaceuticals,Annual index reconstitution.
+ndx100,"December 22, 2008",added,FSLR,First Solar,Annual index reconstitution.
+ndx100,"December 22, 2008",removed,CDNS,Cadence Design Systems,Annual index reconstitution.
+ndx100,"December 22, 2008",added,LIFE,Life Technologies,Annual index reconstitution.
+ndx100,"December 22, 2008",removed,DISCA,Discovery Communications,Annual index reconstitution.
+ndx100,"December 22, 2008",added,ROST,Ross Stores,Annual index reconstitution.
+ndx100,"December 22, 2008",removed,LAMR,Lamar Advertising Company,Annual index reconstitution.
+ndx100,"December 22, 2008",added,MXIM,Maxim Integrated Products,Annual index reconstitution.
+ndx100,"December 22, 2008",removed,LEAP,Leap Wireless International,Annual index reconstitution.
+ndx100,"December 22, 2008",added,ILMN,Illumina,Annual index reconstitution.
+ndx100,"December 22, 2008",removed,LVLT,Level 3 Communications,Annual index reconstitution.
+ndx100,"December 22, 2008",added,PPDI,Pharmaceutical Product Development,Annual index reconstitution.
+ndx100,"December 22, 2008",removed,PETM,PetSmart,Annual index reconstitution.
+ndx100,"December 22, 2008",added,ORLY,O'Reilly Auto Parts,Annual index reconstitution.
+ndx100,"December 22, 2008",removed,SIRI,Sirius XM Radio,Annual index reconstitution.
+ndx100,"December 22, 2008",added,URBN,Urban Outfitters,Annual index reconstitution.
+ndx100,"December 22, 2008",removed,SNDK,SanDisk,Annual index reconstitution.
+ndx100,"December 22, 2008",added,JBHT,J. B. Hunt,Annual index reconstitution.
+ndx100,"December 22, 2008",removed,VMED,Virgin Media,Annual index reconstitution.
+ndx100,"December 22, 2008",added,WCRX,Warner Chilcott,Annual index reconstitution.
+ndx100,"December 22, 2008",removed,WFMI,Whole Foods Market,Annual index reconstitution.
+ndx100,"November 10, 2008",added,STX,Seagate Technology,Monster did not meet the minimum monthly weighting requirements.
+ndx100,"November 10, 2008",removed,MNST,Monster Worldwide,Monster did not meet the minimum monthly weighting requirements.
+ndx100,"July 21, 2008",added,FLIR,FLIR Systems,UAL did not meet the minimum monthly weighting requirements.
+ndx100,"July 21, 2008",removed,UAUA,UAL Corporation,UAL did not meet the minimum monthly weighting requirements.
+ndx100,"May 19, 2008",added,CA,CA Technologies,Tellabs did not meet the minimum monthly weighting requirements.
+ndx100,"May 19, 2008",removed,TLAB,Tellabs,Tellabs did not meet the minimum monthly weighting requirements.
+ndx100,"April 30, 2008",added,DTV,DirecTV,BEA Systems was acquired by Oracle.
+ndx100,"April 30, 2008",removed,BEAS,BEA Systems,BEA Systems was acquired by Oracle.
+ndx100,"December 24, 2007",added,HOLX,Hologic,Annual index reconstitution.
+ndx100,"December 24, 2007",removed,ERIC,LM Ericsson,Annual index reconstitution.
+ndx100,"December 24, 2007",added,FMCN,Focus Media,Annual index reconstitution.
+ndx100,"December 24, 2007",removed,PTEN,Patterson-UTI Energy,Annual index reconstitution.
+ndx100,"December 24, 2007",added,HANS,Hansen Natural,Annual index reconstitution.
+ndx100,"December 24, 2007",removed,ROST,Ross Stores,Annual index reconstitution.
+ndx100,"December 24, 2007",added,STLD,Steel Dynamics,Annual index reconstitution.
+ndx100,"December 24, 2007",removed,SEPR,Sepracor,Annual index reconstitution.
+ndx100,"December 24, 2007",added,SRCL,Stericycle,Annual index reconstitution.
+ndx100,"December 24, 2007",removed,XMSR,XM Satellite Radio,Annual index reconstitution.
+ndx100,"December 4, 2007",added,BIDU,"Baidu.com, Inc.",CheckFree was acquired by Fiserv.
+ndx100,"December 4, 2007",removed,CKFR,CheckFree Corporation,CheckFree was acquired by Fiserv.
+ndx100,"October 8, 2007",added,LEAP,Leap Wireless International,CDW was taken private.
+ndx100,"October 8, 2007",removed,CDWC,CDW Corporation,CDW was taken private.
+ndx100,"August 27, 2007",added,VMED,Virgin Media,NTL Incorporated was merged into Virgin Media.
+ndx100,"August 27, 2007",removed,NLTI,NTL Incorporated,NTL Incorporated was merged into Virgin Media.
+ndx100,"July 12, 2007",added,FWLT,Foster Wheeler,Biomet was taken private.
+ndx100,"July 12, 2007",removed,BMET,Biomet,Biomet was taken private.
+ndx100,"June 1, 2007",added,CEPH,Cephalon,MedImmune was acquired by AstraZeneca.
+ndx100,"June 1, 2007",removed,MEDI,MedImmune,MedImmune was acquired by AstraZeneca.
+ndx100,"March 8, 2007",added,UAUA,UAL Corporation,American Eagle Outfitters transferred its listing from NASDAQ to NYSE.
+ndx100,"March 8, 2007",removed,AEOS,American Eagle Outfitters,American Eagle Outfitters transferred its listing from NASDAQ to NYSE.
+ndx100,"February 14, 2007",added,RYAAY,Ryanair,APC was acquired by Schneider Electric.
+ndx100,"February 14, 2007",removed,APCC,American Power Conversion,APC was acquired by Schneider Electric.
+ndx100,"February 1, 2007",added,LOGI,Logitech,Comverse did not meet the minimum monthly weighting requirements.
+ndx100,"February 1, 2007",removed,CMVT,Comverse Technology,Comverse did not meet the minimum monthly weighting requirements.
