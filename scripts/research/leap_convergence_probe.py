@@ -173,6 +173,8 @@ def main() -> int:
                     fwd = iv_on(cur, ticker, expiry, strike, tdates[j])
                     if fwd is None:
                         continue
+                    c0, c1 = closes.get(mdate), closes.get(tdates[j])
+                    fwd_ret = (c1 / c0 - 1.0) if c0 and c1 else None
                     obs.append(
                         {
                             "ticker": ticker,
@@ -188,6 +190,9 @@ def main() -> int:
                             "gap": round(gap, 5),
                             "horizon": h,
                             "iv_fwd": fwd,
+                            "fwd_ret": (
+                                round(fwd_ret, 5) if fwd_ret is not None else None
+                            ),
                             # HELD-CONTRACT mark change (tradable) on the fixed strike — not
                             # the interpolated-ATM convergence. As spot drifts this mixes vol
                             # repricing with moneyness migration; that's the real held P&L.
@@ -282,6 +287,20 @@ def _summary_and_metrics(obs: list[dict]) -> None:
             ctrl["hv_only"],
             ctrl["gap"] - ctrl["neg_iv"],
         )
+        # DELTA-EDGE: does the gap predict forward SPOT RETURN cross-sectionally? Within-date
+        # ranking is market-neutral by construction, so a positive IC = real directional alpha,
+        # not beta. diff_harvest at a threshold = flagged names' excess return vs same-date peers.
+        sn_ret = [
+            {"market_date": o["market_date"], "gap": o["gap"], "d_iv": o["fwd_ret"]}
+            for o in sn_all
+            if o["fwd_ret"] is not None
+        ]
+        de_ic = cross_sectional_ic(sn_ret, 0.0)["mean_ic"] if sn_ret else float("nan")
+        logger.info(
+            "h=%d DELTA-EDGE single-name FM_IC(gap vs fwd_return)=%.3f (market-neutral)",
+            h,
+            de_ic,
+        )
         for thr in THRESHOLDS:
             m = stage1_metrics(gaps, d_ivs, thr)  # confounded pooled (secondary)
             fm = cross_sectional_ic(sub, thr)  # pooled FM
@@ -304,6 +323,8 @@ def _summary_and_metrics(obs: list[dict]) -> None:
                 ctrl_ic_gap=ctrl["gap"],
                 ctrl_ic_neg_iv=ctrl["neg_iv"],
                 ctrl_ic_hv_only=ctrl["hv_only"],
+                de_ic_ret=de_ic,
+                de_excess_ret=cross_sectional_ic(sn_ret, thr)["mean_diff_harvest"],
             )
             metric_rows.append(m)
             logger.info(
@@ -320,6 +341,13 @@ def _summary_and_metrics(obs: list[dict]) -> None:
                 fm_etf["mean_ic"],
                 fm["mean_diff_harvest"],
             )
+        sweep = " ".join(
+            f"{thr:.2f}:{cross_sectional_ic(sn_ret, thr)['mean_diff_harvest']:+.4f}"
+            for thr in THRESHOLDS
+        )
+        logger.info(
+            "h=%d SWEET-SPOT flagged market-excess fwd_return by gap thr | %s", h, sweep
+        )
     _write_csv(OUT / "convergence_metrics.csv", metric_rows)
 
 

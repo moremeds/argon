@@ -54,6 +54,39 @@ looking huge before decomposition is the same trap each time — here $52–152/
 that is 85% a directional bet. The one validated edge in this stack remains *macro* VRP
 short-vol (SPX bull-put, Sharpe ~1.65), not single-name vol timing.
 
+## Addendum — is the *delta* an edge? (momentum, not alpha; no clean sweet spot)
+
+The delta P&L was 82–88% of gross and won 67–83% of the time, so the obvious next question is:
+forget vega — is buying the LEAP a good *directional* entry? Test: FM cross-sectional IC of
+the entry gap vs **forward spot return** (within-date ranking is market-neutral by
+construction, so a positive IC is directional alpha, not beta). Trace: `gap_observations.csv`
+(`fwd_ret` col), `convergence_metrics.csv` (`de_ic_ret`, `de_excess_ret`).
+
+| horizon | IC(gap vs fwd return) | leave-one-out IC range | corr(gap, HV20) |
+|---|---|---|---|
+| 20d | **0.346** | 0.28–0.43 (robust) | 0.67 |
+| 40d | **0.381** | 0.30–0.51 (robust) | 0.72 |
+
+The relationship is real and survives dropping any single ticker — high-gap names beat their
+same-date peers. **But it is cross-sectional momentum, not a tradable LEAP sweet spot:**
+
+1. **It's momentum.** `corr(gap, HV20) ≈ 0.7`: the gap is wide *because realized vol is high*
+   — these are names that just moved a lot, and in a bull tape they kept rising. That's the
+   momentum factor (already parked in this stack: Barroso–Santa-Clara risk-managed momentum;
+   dark-pool lead-lag = mostly beta), not surface mispricing.
+2. **The extreme "sweet spot" is 2 names.** The market-excess forward return by gap threshold
+   looks spectacular (20d: +15.6%→+31.1% across thr 0.10→0.25; 40d: +41%→+55%), but at
+   gap≥0.20 the flagged set is only **AMD + SNDK**, and **SNDK alone (+65%/+84%)** drives it.
+   Not a rule — one Sandisk run.
+3. **One regime.** Prices *and* vol rose all sample. Momentum inverts in corrections, and a
+   LEAP is leveraged → the reversal is a blowup.
+4. **The signals conflict.** Momentum points at high-realized-vol names, which carry **high IV
+   (expensive)**. The cheap-vol LEAP entry and the momentum LEAP entry are opposite trades.
+
+**Delta verdict:** there is a directional signal, but it is *momentum/beta*, regime-untested,
+and its headline "sweet spot" is a 2-name artifact. A LEAP entry rule built on it is a
+leveraged momentum bet to be sized and risk-managed as one — not a gap threshold to trust.
+
 ## Load-bearing caveats
 - **Single regime** (2025-12-26 → 2026-07-02): prices *and* vol rose. That inflates both the
   delta P&L (up-market) and the raw vega harvest (up-vol). A falling-vol regime would likely
