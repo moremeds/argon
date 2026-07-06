@@ -22,6 +22,19 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   07-02 — a stale pre-key env frozen at worker fork, not a missing key (the mini's argon
   `.env` has `XENON_QUERY_API_KEY`); the Jul 4 worker restart already picked up the key,
   so the canary should self-heal on its next weekday run.
+- **LEAP vega-alpha feasibility (research spike).** Tested radon's "cheap LEAP" thesis
+  (HV20/HV60 − LEAP ATM IV wide ⇒ long-vega alpha) on 6 months of banked
+  `option_surface_grid_daily` + apex daily bars. `scripts/research/leap_vega_alpha.py` —
+  pure lib (realized vol, interpolated-δ ATM IV, entry gap, pooled + Fama-MacBeth
+  cross-sectional metrics), unit-tested (`tests/unit/test_leap_vega_alpha.py`, 10 tests) —
+  plus two read-only probes (convergence + P&L). Verdict in `docs/research/leap-vega-alpha/`:
+  **NO tradable vega edge.** Stage 1 shows a real cross-sectional relationship (single-name
+  FM IC 0.34/0.43), but Stage 2 decomposes the flagged "cheap LEAP" P&L as **82–88% delta**
+  (a directional bet on high-vol names in an up-market); the delta-hedged, theta-net vega
+  edge is **0.6–0.7 vol points — below the 1–5 vp ATM-LEAP round-trip spread**. Greek units
+  calibrated empirically (grid `call_vega` is per-1%-vol, `call_theta` per-day — the
+  CLAUDE.md "vega ×100" note is wrong for this table). Matches argon's prior: single-name
+  surface geometry carries no taker edge (cf. skew #208, SVI #219). Zero UW/IB calls.
 
 ## [0.7.1] — 2026-07-04
 
