@@ -101,12 +101,23 @@ done < config/services.list
 # ---------- Health checks ----------
 step "Health checks"
 sleep 5
+# check_url URL NAME [JQ_FILTER]
+# Reachability check by default. With JQ_FILTER, the body must also satisfy it —
+# needed because /api/health returns HTTP 200 even when ok=false (db down, missed
+# scans, record-coverage collapse), so a plain -fsS gate can never trip rollback.
 check_url() {
-  local url="$1" name="$2"
+  local url="$1" name="$2" filter="${3:-}"
   for _ in {1..30}; do
-    if curl -fsS --max-time 2 "$url" >/dev/null 2>&1; then
-      say "✓ $name $url"
-      return 0
+    if [[ -z "$filter" ]]; then
+      if curl -fsS --max-time 2 "$url" >/dev/null 2>&1; then
+        say "✓ $name $url"
+        return 0
+      fi
+    else
+      if curl -fsS --max-time 2 "$url" 2>/dev/null | jq -e "$filter" >/dev/null 2>&1; then
+        say "✓ $name $url"
+        return 0
+      fi
     fi
     sleep 1
   done
@@ -114,7 +125,7 @@ check_url() {
   return 1
 }
 
-if check_url "http://127.0.0.1:8400/api/health" "api" \
+if check_url "http://127.0.0.1:8400/api/health" "api" '.ok == true' \
    && check_url "http://127.0.0.1:3001"      "web"; then
   step "Deploy OK: $TAG ($COMMIT)"
   printf '%s  %s  %s  OK\n' "$(date -u +%FT%TZ)" "$TAG" "$COMMIT" >> "$REPO_ROOT/logs/deploy.log"
@@ -134,7 +145,7 @@ while IFS= read -r label; do
   launchctl kickstart -k "gui/$UID/${label}"
 done < config/services.list
 sleep 5
-check_url "http://127.0.0.1:8400/api/health" "api(rollback)" || die "rollback ALSO failed — manual intervention required"
+check_url "http://127.0.0.1:8400/api/health" "api(rollback)" '.ok == true' || die "rollback ALSO failed — manual intervention required"
 check_url "http://127.0.0.1:3001"        "web(rollback)" || die "rollback ALSO failed — manual intervention required"
 printf '%s  %s  %s  ROLLBACK→%s\n' "$(date -u +%FT%TZ)" "$TAG" "$COMMIT" "$PREV_TAG" >> "$REPO_ROOT/logs/deploy.log"
 die "deploy of $TAG failed; rolled back to $PREV_TAG"
