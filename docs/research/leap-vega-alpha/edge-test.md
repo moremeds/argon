@@ -83,9 +83,24 @@ same-date peers. **But it is cross-sectional momentum, not a tradable LEAP sweet
 4. **The signals conflict.** Momentum points at high-realized-vol names, which carry **high IV
    (expensive)**. The cheap-vol LEAP entry and the momentum LEAP entry are opposite trades.
 
-**Delta verdict:** there is a directional signal, but it is *momentum/beta*, regime-untested,
-and its headline "sweet spot" is a 2-name artifact. A LEAP entry rule built on it is a
-leveraged momentum bet to be sized and risk-managed as one — not a gap threshold to trust.
+**Sector test (the decider): the signal is entirely semiconductors.** Split the single-name
+FM IC(gap vs fwd_return) by sector:
+
+| horizon | ALL (10) | SEMIS-only (5) | NON-SEMIS (5) | mean fwd_ret semis / non |
+|---|---|---|---|---|
+| 20d | 0.346 | 0.450 | **0.031** | +20.0% / +0.9% |
+| 40d | 0.381 | 0.651 | **−0.028** | +47.1% / +2.8% |
+
+Outside semis (AAPL, TSLA, META, GOOGL, GS) the gap predicts **nothing** (IC ≈ 0), and
+non-semis high-gap names returned +0.9%/+2.8% — market beta, zero excess. The whole "delta
+edge" is the **semis/AI rally of H1 2026** (AMD, SNDK, NVDA, MU, SMH, SOXX). The earlier
+leave-one-*ticker*-out robustness was a mirage: dropping one semi leaves four others; drop the
+whole *sector* and it vanishes.
+
+**Delta verdict: NO strategy.** It is not momentum-the-factor — it is one sector's single
+realized uptrend over one regime, wearing a cross-sectional-signal costume. "Buy the gap" =
+"be long semis in early 2026," a backtest of hindsight. No tradable LEAP entry rule, gap-based
+or otherwise, survives this data.
 
 ## Load-bearing caveats
 - **Single regime** (2025-12-26 → 2026-07-02): prices *and* vol rose. That inflates both the
