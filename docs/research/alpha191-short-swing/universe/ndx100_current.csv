@@ -1,0 +1,102 @@
+ticker,company,icb_industry,icb_subsector
+ADBE,Adobe Inc.,Technology,Software
+AMD,Advanced Micro Devices,Technology,Semiconductors
+ABNB,Airbnb,Consumer Discretionary,Diversified Commercial Services
+ALNY,Alnylam Pharmaceuticals,Health Care,Biotechnology
+GOOGL,Alphabet Inc. (Class A),Technology,Software
+GOOG,Alphabet Inc. (Class C),Technology,Software
+AMZN,Amazon,Consumer Discretionary,Catalog/Specialty Distribution
+AEP,American Electric Power,Utilities,Electric Utilities
+AMGN,Amgen,Health Care,Biotechnology
+ADI,Analog Devices,Technology,Semiconductors
+AAPL,Apple Inc.,Technology,Computer Hardware
+AMAT,Applied Materials,Technology,Semiconductors
+APP,AppLovin,Technology,Software
+ARM,Arm Holdings,Technology,Semiconductors
+ASML,ASML Holding,Technology,Industrial Machinery
+ALAB,Astera Labs,Technology,Semiconductors
+ADSK,Autodesk,Technology,Software
+ADP,Automatic Data Processing,Industrials,Diversified Commercial Services
+AXON,Axon Enterprise,Industrials,Ordnance & Accessories
+BKR,Baker Hughes,Energy,Oil Equipment & Services
+BKNG,Booking Holdings,Consumer Discretionary,Transportation Services
+AVGO,Broadcom,Technology,Semiconductors
+CDNS,Cadence Design Systems,Technology,Software
+CTAS,Cintas,Industrials,Garments & Clothing
+CSCO,Cisco,Telecommunications,Computer Communications Equipment
+CCEP,Coca-Cola Europacific Partners,Consumer Staples,Soft Drinks
+CMCSA,Comcast,Telecommunications,Cable & Other Pay Television Services
+CEG,Constellation Energy,Utilities,Electric Utilities
+CPRT,Copart,Consumer Discretionary,Retail
+CRWV,CoreWeave,Technology,Computer Services
+COST,Costco,Consumer Discretionary,Department/Specialty Retail Stores
+CRWD,CrowdStrike,Technology,Software
+CSX,CSX Corporation,Industrials,Railroads
+DDOG,Datadog,Technology,Software
+DXCM,DexCom,Health Care,Medical/Dental Instruments
+FANG,Diamondback Energy,Energy,Oil & Gas Production
+DASH,DoorDash,Technology,Software
+EA,Electronic Arts,Consumer Discretionary,Miscellaneous Amusement & Recreation Services
+EXC,Exelon,Utilities,Power Generation
+FAST,Fastenal,Industrials,Construction & Materials
+FER,Ferrovial,Industrials,"Military, Government, Technical"
+FTNT,Fortinet,Technology,Computer Peripheral Equipment
+GEHC,GE HealthCare,Health Care,Medical Electronics
+GILD,Gilead Sciences,Health Care,Biotechnology
+HON,Honeywell Technologies,Industrials,Aerospace
+IDXX,Idexx Laboratories,Health Care,Biotechnology
+INTC,Intel,Technology,Semiconductors
+INTU,Intuit,Technology,Computer Software
+ISRG,Intuitive Surgical,Health Care,Industrial Specialties
+KDP,Keurig Dr Pepper,Consumer Staples,Soft Drinks
+KLAC,KLA Corporation,Technology,Electronic Components
+KHC,Kraft Heinz,Consumer Staples,Packaged Foods
+LRCX,Lam Research,Technology,Industrial Machinery
+LIN,Linde plc,Basic Materials,Major Chemicals
+LITE,Lumentum,Technology,Communication Equipment
+MAR,Marriott International,Consumer Discretionary,Hotels/Resorts
+MRVL,Marvell Technology,Technology,Semiconductors
+MELI,Mercado Libre,Consumer Discretionary,Catalog/Specialty Distribution
+META,Meta Platforms,Technology,Software
+MCHP,Microchip Technology,Technology,Semiconductors
+MU,Micron Technology,Technology,Semiconductors
+MSFT,Microsoft,Technology,Software
+MSTR,MicroStrategy,Technology,Software
+MDLZ,Mondelez International,Consumer Staples,Packaged Foods
+MPWR,Monolithic Power Systems,Technology,Semiconductors
+MNST,Monster Beverage,Consumer Staples,Soft Drinks
+NBIS,Nebius Group,Technology,Computer Services
+NFLX,"Netflix, Inc.",Consumer Discretionary,Consumer Electronics
+NVDA,Nvidia,Technology,Semiconductors
+NXPI,NXP Semiconductors,Technology,Semiconductors
+ORLY,O'Reilly Automotive,Consumer Discretionary,Specialty Retailers
+ODFL,Old Dominion Freight Line,Industrials,Trucking
+PCAR,Paccar,Consumer Discretionary,Motor Vehicles
+PLTR,Palantir Technologies,Technology,Software
+PANW,Palo Alto Networks,Technology,Computer Peripheral Equipment
+PAYX,Paychex,Industrials,Diversified Commercial Services
+PYPL,PayPal,Industrials,Diversified Commercial Services
+PDD,PDD Holdings,Technology,EDP Services
+PEP,PepsiCo,Consumer Staples,Soft Drinks
+QCOM,Qualcomm,Technology,Semiconductors
+REGN,Regeneron Pharmaceuticals,Health Care,Biotechnology
+RKLB,Rocket Lab,Industrials,Aerospace
+ROP,Roper Technologies,Technology,Software
+ROST,Ross Stores,Consumer Discretionary,Clothing/Shoe/Accessory Stores
+SNDK,Sandisk,Technology,Electronic Components
+STX,Seagate Technology,Technology,Electronic Components
+SHOP,Shopify,Technology,Software
+SBUX,Starbucks,Consumer Discretionary,Restaurants
+SNPS,Synopsys,Technology,Software
+TMUS,T-Mobile US,Telecommunications,Telecommunications Services
+TTWO,Take-Two Interactive,Consumer Discretionary,Miscellaneous Amusement & Recreation Services
+TER,Teradyne,Technology,Semiconductors
+TSLA,"Tesla, Inc.",Consumer Discretionary,Automobiles & Parts
+TXN,Texas Instruments,Technology,Semiconductors
+TRI,Thomson Reuters,Technology,Software
+VRTX,Vertex Pharmaceuticals,Health Care,Biotechnology
+WMT,Walmart,Consumer Discretionary,Department/Specialty Retail Stores
+WBD,Warner Bros. Discovery,Consumer Discretionary,Entertainment
+WDC,Western Digital,Technology,Electronic Components
+WDAY,"Workday, Inc.",Technology,Software
+XEL,Xcel Energy,Utilities,Conventional Electricity

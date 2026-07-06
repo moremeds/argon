@@ -1,0 +1,2101 @@
+{{short description|Large cap index within the NASDAQ exchange}}
+{{Redirect|NDX}}
+{{Use mdy dates|date=April 2024}}
+{{Infobox Index
+|name         = Nasdaq-100
+|logo         =
+|image        = NASDAQ-100-1985to2015.svg
+|caption      = Nasdaq-100 Index from 1985 to 2015
+|foundation   = {{start date and age|1985|1|31}}
+|operator     = [[Nasdaq, Inc.]]
+|exchanges    = [[Nasdaq]]
+|symbol       = ^NDX or NDX
+|constituents = 101 (June 5, 2026)<ref>{{cite web |date=June 5, 2026 |title=Overview for NDX |url=https://indexes.nasdaqomx.com/Index/Overview/NDX |website=Nasdaq Global Indexes |publisher=Nasdaq, Inc. |access-date=2026-06-06 }}</ref>
+|cap_level    = [[Market capitalization#Market cap terms|Large-cap]]
+|mcap         = {{US$|33.70&nbsp;trillion|link=yes}}{{citation needed|date=June 2026}}<br />(as of December 10, 2025)
+|weighting    = [[Capitalization-weighted index|Free-float capitalization-weighted]]
+|related      = [[Nasdaq Financial-100]]
+|homepage     = {{URL|nasdaq.com/nasdaq-100}}
+}}
+
+The '''Nasdaq-100''' ([[ticker symbol]]: '''NDX''')<ref>{{Cite web |title=NASDAQ-100 (NDX)|url=https://www.nasdaq.com/market-activity/index/ndx|website=[[Nasdaq]]}}</ref> is a [[stock market index]] made up of equity securities issued by 100 of the largest non-financial companies listed on the [[Nasdaq]] stock exchange. It is a modified [[capitalization-weighted index]]. The stocks' weights in the index are based on their [[market capitalization]]s, with certain rules capping the influence of the largest components. It is limited to companies from a single exchange, and it does not have any financial companies. The financial companies are in a separate index, the [[Nasdaq Financial-100]].
+
+==History==
+The Nasdaq-100 was launched on January 31, 1985, by the Nasdaq.<ref>{{cite web | url=https://www.nasdaq.com/articles/10-fun-facts-about-the-nasdaq-100-index-2018-08-03-0 | title=10 Fun Facts about the Nasdaq-100 Index | publisher=[[Nasdaq]]}}</ref> It created two indices: the Nasdaq-100, which consists of [[Industrial sector|industrial]], [[technology]], [[retail]], [[telecommunication]], [[biotechnology]], [[health care]], [[transportation]], [[Mass media|media]] and [[tertiary sector of the economy|service]] companies, and the [[Nasdaq Financial-100]], which consists of [[Bank|banking companies]], [[Insurance company|insurance firms]], [[brokerage firm]]s, and [[mortgage loan]] companies.
+
+The base price of the index was initially set at 250, but when it closed near 800 on December 31, 1993, the base was reset at 125 the following trading day, leaving the halved Nasdaq-100 price below that of the more commonly known [[Nasdaq Composite]]. The first annual adjustments were made in 1993 in advance of options on the index that would trade at the [[Chicago Board Options Exchange]] in 1994. Foreign companies were first admitted to the Nasdaq-100 in January 1998, but had higher standards to meet before they could be added. Those standards were relaxed in 2002, while standards for domestic firms were raised, ensuring that all companies met the same standards.
+
+== Selection criteria ==
+The Nasdaq has set a series of standards which companies must meet to be indexed. Those standards include:
+* Being listed exclusively on Nasdaq in either the Global Select or Global Market tiers.
+* Being publicly offered on an established American market for at least three months.
+* Having average daily volume of 200,000 shares.
+* Being current in regards to quarterly and annual reports.
+* Not being in [[bankruptcy]] proceedings.
+
+Additionally, since 2014, companies with multiple classes of stock are allowed to have multiple classes included in the index, provided they meet Nasdaq's criteria. Prior to 2014, companies were limited to one class of stock in the index (usually the one with the larger market capitalization).<ref name=":15" />
+
+The index publicly announces all changes, regardless of when they occur, via [[press releases]] at least five business days before the change takes place.
+
+==Performance==
+===Price history and milestones===
+The index set highs above the 4,700 level at the peak of the [[dot-com bubble]] in 2000, but fell 78% during the [[stock market downturn of 2002]].<ref>{{cite news | url=https://www.nasdaq.com/articles/3-lessons-investors-tech-bubble-2015-02-11 | title=3 Lessons for Investors From the Tech Bubble |first=James K. | last=Glassman | work=[[Kiplinger's Personal Finance]] | publisher=[[Nasdaq]] | date=February 11, 2015}}</ref>
+
+Amid [[quantitative easing]] (QE) from the [[Federal Reserve]] and optimism that the [[2008 financial crisis]] was ending, the index embarked on a volatile four-year climb higher, closing above 3,000 on May 15, 2013, for the first time since November 15, 2000. By October 18, 2013, with GOOG passing $1,000 per share for the first time, the index had made a closing high of 3,353.88 and intraday high of 3,355.63, its highest levels since the [[2000 United States elections]] and more than triple the 2008 low.{{citation needed|date=February 2026}}
+
+===Record values===
+{| class="wikitable"
+|-
+! Category
+! colspan="2" |All-Time Highs<ref>{{Cite web | title=NASDAQ 100 (^NDX) Stock Price, Quote, History & News | url=https://finance.yahoo.com/quote/%5ENDX/history?p=%5ENDX | publisher=[[Yahoo! Finance]] |access-date=August 12, 2025}}</ref>
+|-
+| Closing || 30,660.60 || Tuesday, June 2, 2026
+|-
+| Intraday || 30,762.20 || Wednesday, June 3, 2026
+|}
+
+===List of 1,000-point milestones by number of trading days===
+
+{| class="wikitable"
+! Milestone<ref name="nasdaqmilestones">{{Cite news |last=DeCambre |first=Mark  | title=Nasdaq Composite's record rally takes it to fastest 1,000-point milestone in 20 years | url=https://www.marketwatch.com/story/nasdaq-composites-record-rally-takes-it-toward-fastest-1000-point-milestone-in-20-years-2020-08-03 | work=[[MarketWatch]] | date=August 6, 2020}}</ref>{{Obsolete source|reason=Source is from August 6, 2020, but half of the entries in the table are from later than that.|date=July 2025}}<br /><small>(closing)</small>
+! Date of Record (closing)<ref name="nasdaqmilestones" />
+! Trading Days<ref name="nasdaqmilestones" />
+|-
+| 1,000 || July 8, 1997 || 3,143
+|-
+| 2,000 || January 11, 1999 || 381
+|-
+| 3,000 || November 18, 1999 || 217
+|-
+| 4,000 || February 8, 2000 || 55
+|-
+| 5,000 || January 6, 2017 || 4,255
+|-
+| 6,000 || September 13, 2017 || 172
+|-
+| 7,000 || January 26, 2018 || 93
+|-
+| 8,000 || July 24, 2019  || 374
+|-
+| 9,000 || January 13, 2020 || 119
+|-
+| 10,000 || June 10, 2020 || 103
+|-
+| 11,000 || August 3, 2020 || 37
+|-
+| 12,000 || August 31, 2020 || 20
+|-
+| 13,000 || January 8, 2021 || 90
+|-
+| 14,000 || April 15, 2021 || 66
+|-
+| 15,000 || July 23, 2021 || 69
+|-
+| 16,000 || November 3, 2021 || 72
+|-
+| 17,000 || January 19, 2024 || 554
+|-
+| 18,000 || February 22, 2024 || 23
+|-
+| 19,000 || June 5, 2024 || 72
+|-
+| 20,000 || July 2, 2024 || 18
+|-
+| 21,000 || November 7, 2024 || 90
+|-
+| 22,000 || December 16, 2024 || 26
+|-
+| 23,000 || July 17, 2025 || 144
+|-
+| 24,000 || September 12, 2025 || 40
+|-
+|25,000
+|October 8, 2025
+|18
+|-
+|26,000
+|October 28, 2025
+|14
+|-
+|27,000
+|April 24, 2026
+|122
+|-
+|28,000
+|May 5, 2026
+|7
+|-
+|29,000
+|May 8, 2026
+|3
+|-
+|30,000
+|May 26, 2026
+|11
+|}
+
+===List of 10,000-point milestones by number of trading days===
+
+{| class="wikitable"
+! Milestone<ref name="nasdaqmilestones"/>{{Obsolete source|reason=Source is from August 6, 2020, but half of the entries in the table are from later than that.|date=July 2025}}<br /><small>(closing)</small>
+! Date of Record (closing)<ref name="nasdaqmilestones" />
+! Trading Days<ref name="nasdaqmilestones" />
+|-
+| 10,000 || June 10, 2020 || 8,912
+|-
+| 20,000 || July 2, 2024 || 1,021
+|-
+| 30,000 || May 26, 2026 || 475
+|}
+
+===Annual returns===
+The following table shows the annual development of the Nasdaq-100 since 1985.<ref>{{Cite web | title=NASDAQ 100 (^NDX) historical data | url=https://finance.yahoo.com/quote/%5ENDX/history/ | publisher=[[Yahoo! Finance]]}}</ref>
+{| class="wikitable" style="text-align:right;"
+|-
+! Year
+! Closing level
+! Change in Index<br />in Points
+! Change in Index<br />in %
+|-
+| 1985 || 132.29 || ||
+|-
+| 1986 || 141.41 || 9.12 || 6.89
+|-
+| 1987 || 156.25 || 14.84 || 10.49
+|-
+| 1988 || 177.41 || 21.16 || 13.54
+|-
+| 1989 || 223.84 || 46.43 || 26.17
+|-
+| 1990 || 200.53 || −23.31 || style="color:red" | −10.41
+|-
+| 1991 || 330.86 || 130.33 || 64.99
+|-
+| 1992 || 360.19 || 29.33 || 8.86
+|-
+| 1993 || 398.28 || 38.09 || 10.57
+|-
+| 1994 || 404.27 || 5.99 || 1.50
+|-
+| 1995 || 576.23 || 171.96 || 42.54
+|-
+| 1996 || 821.36 || 245.13 || 42.54
+|-
+| 1997 || 990.80 || 169.44 || 20.63
+|-
+| 1998 || 1,836.01 || 845.21 || 85.31
+|-
+| 1999 || 3,707.83 || 1,871.81 || 101.95
+|-
+| 2000 || 2,341.70 || −1,366.13 || style="color:red" | −36.84
+|-
+| 2001 || 1,577.05 || −764.65 || style="color:red" | −32.65
+|-
+| 2002 || 984.36 || −592.69 || style="color:red" | −37.58
+|-
+| 2003 || 1,467.92 || 483.56 || 49.12
+|-
+| 2004 || 1,621.12 || 153.20 || 10.44
+|-
+| 2005 || 1,645.20 || 24.08 || 1.49
+|-
+| 2006 || 1,756.90 || 111.70 || 6.79
+|-
+| 2007 || 2,084.93 || 328.03 || 18.67
+|-
+| 2008 || 1,211.65 || −873.28 || style="color:red" | −41.89
+|-
+| 2009 || 1,860.31 || 648.66 || 53.54
+|-
+| 2010 || 2,217.86 || 357.55 || 19.22
+|-
+| 2011 || 2,277.83 || 59.97 || 2.70
+|-
+| 2012 || 2,660.93 || 383.10 || 16.82
+|-
+| 2013 || 3,592.00 || 931.07 || 34.99
+|-
+| 2014 || 4,236.28 || 644.28 || 17.94
+|-
+| 2015 || 4,593.27 || 356.99 || 8.43
+|-
+| 2016 || 4,863.62 || 270.35 || 5.89
+|-
+| 2017 || 6,396.42 || 1,532.80 || 31.52
+|-
+| 2018 || 6,329.96 || −66.46 || style="color:red" | −1.04
+|-
+| 2019 || 8,733.07 || 2,403.11 || 37.96
+|-
+| 2020 || 12,888.28 || 4,155.21 || 47.58
+|-
+| 2021 || 16,320.08 || 3,431.80 || 26.63
+|-
+| 2022 || 10,939.76 || −5,380.32 || style="color:red" | −32.97
+|-
+| 2023 || 16,825.93 || 5,886.17 || 53.81
+|-
+| 2024 || 21,012.17 || 4,186.24 || 24.88
+|-
+| 2025 || 25,249.85 || 4,237.68 || 20.17
+|}
+
+==Differences from Nasdaq Composite index==
+The Nasdaq-100 is frequently confused with the [[Nasdaq Composite]] Index. The latter index (often referred to simply as the Nasdaq) includes the stock of every company that is listed on Nasdaq (more than 2,500 altogether).<ref>{{cite web|url=https://www.investopedia.com/terms/n/nasdaqcompositeindex.asp |title=Nasdaq Composite Index: What It Measures and Why It Matters |website=Investopedia |date=15 August 2025}}</ref>
+
+The Nasdaq-100 is a modified [[capitalization-weighted index]]. This particular methodology was created in 1998 in advance of the creation of the Nasdaq-100 Index Trust, which holds portions of all Nasdaq-100 firms. The new methodology allowed Nasdaq to reduce the influence of the largest companies and to allow for more diversification. However, the weights of the stocks were not changed after that, which led to more problems. In May 2011, Nasdaq did a major rebalance of the index to bring it closer to market-cap weighting.{{Citation needed|date=February 2018}}
+
+The index is rebalanced quarterly only if:
+* One company is worth 24% of the index.
+* Companies with a weighting of at least 4.5% make up 48% or more of the index.
+
+The index is rebalanced annually, after the quarterly rebalancing, only if:
+* One company is worth 15% of the index.
+* The five largest companies by market capitalizations have weights of 40% or more of the index.<ref>{{Cite web|title=NASDAQ 100 Index Methodology|url=https://indexes.nasdaq.com/docs/Methodology_NDX.pdf|website=[[NASDAQ]]}}</ref>
+
+==Differences from other indices==
+In addition to its almost complete lack of financial companies, the Nasdaq-100 includes seven companies incorporated outside the United States. Although the S&P 500 Index includes non-U.S. companies, the Dow Jones Industrial Average has never included foreign companies.{{Citation needed|date=February 2018}}
+
+{{As of|2026|7}}, the index's eleven companies [[incorporation (business)|incorporated]] in foreign countries are as follows:{{cn|date=July 2026}}
+* Canada: [[Shopify]], [[Thomson Reuters]]
+* Cayman Islands: [[Pinduoduo|PDD Holdings]]
+* Ireland: [[Linde plc]], [[Seagate Technology]]
+* The Netherlands: [[ASML Holding]], [[Ferrovial]], [[Nebius Group]], [[NXP Semiconductors]]
+* United Kingdom: [[Arm Holdings]], [[Coca-Cola Europacific Partners]]
+
+==Related indices==
+In 2006, Nasdaq created a "farm team" index, the Nasdaq Q-50, representing the next fifty stocks in line to enter the Nasdaq-100. With some exceptions, most stocks that are added to the index come up through the Q-50. In 2011, Nasdaq created the NASDAQ-500 to track the 500 largest stocks on Nasdaq, and the Nasdaq-400, tracking those stocks not included in the Nasdaq-100.{{Citation needed|date=February 2018}}
+
+Nasdaq has also divided the 100 into two distinct sub-indices; the Nasdaq-100 Tech follows those components who service the tech sector, and the Nasdaq-100 Ex-Tech, which follows those components that are not considered tech companies. The latter index includes noted [[Electronic commerce|e-commerce]] companies [[Amazon.com]] and [[eBay]], which are classified as retailers.{{Citation needed|date=February 2018}}
+
+==Investing in the Nasdaq-100==
+The [[Invesco QQQ]], an [[exchange-traded fund]] (ETF) sponsored and overseen since March 21, 2007, by [[Invesco]], trades under the ticker {{NASDAQ|QQQ}}. It was formerly called Nasdaq-100 Trust Series 1. On December 1, 2004, it was moved from the [[American Stock Exchange]], where it had the symbol QQQ, to the [[Nasdaq]], and given the new ticker symbol QQQQ, sometimes called the "quad Qs" by traders. On March 23, 2011, Nasdaq changed its symbol back to QQQ.<ref>{{Cite news |last=Phillips |first=Matt |date=March 23, 2011 |title=Q: Why Did QQQQ drop a Q to Become QQQ? |url=https://www.wsj.com/articles/BL-MB-33578 |url-access=subscription |work=[[The Wall Street Journal]]}}</ref> Retail buy and hold investors might prefer to purchase Invesco's similar Nasdaq: QQQM, or "QQQ Mini" which has a lower fee structure, but lacks the liquidity that high-frequency traders need in the traditional QQQ product.<ref>{{Cite web |date=August 19, 2021 |title=For Long-Term Investors, a QQQ-to-QQQM Switch May Make Sense |url=https://www.nasdaq.com/articles/for-long-term-investors-a-qqq-to-qqqm-switch-may-make-sense-2021-08-19 |access-date=June 8, 2023 |website=Nasdaq.com: For Long-Term Investors, a QQQ-to-QQQM Switch May Make Sense}}</ref>
+
+QQQ is one of the most actively traded ETFs in the United States.<ref>{{cite news |last=Killa |first=Sweta |date=September 26, 2019 |title=Guide to 10 Most-Heavily Traded ETFs |url=https://www.yahoo.com/entertainment/guide-10-most-heavily-traded-150003490.html |via=[[Yahoo! Finance]]}}</ref>
+
+The Nasdaq-100 is often abbreviated as NDX, NDQ, NAS100, or US100, in the [[derivatives market]]s. Its corresponding [[futures contract]]s are traded on the [[Chicago Mercantile Exchange]]. The regular futures are denoted by the [[Reuters Instrument Code]] ND, and the smaller ''E-mini'' version uses the code NQ. Both are among the most heavily traded futures at the exchange.<ref>{{cite news |date=November 18, 2021 |title=Most Active Futures |url=https://www.barchart.com/futures/most-active/all?orderBy=volume&orderDir=desc |via=[[barchart]]}}</ref>
+
+==Current components==<!-- NASDAQ uses ICB officially as its industry/sector classification system. Please refer to the stock details in the NASDAQ website for the exact sector and industry classification for component changes. -->
+{| class="wikitable sortable" id="constituents"
+|-
+! Ticker !! Company !! [[Industry Classification Benchmark|ICB]] Industry<ref name=":23">{{Cite web |date=September 1, 2020 |title=Nasdaq Migration to New ICB Codes for NQGI Family Sector Indexes and Nasdaq Composite Index (COMP) & Notice Plan for Remaining Indexes |url=https://indexes.nasdaqomx.com/docs/Nasdaq_Migration_ICB_COMP_NQGI.FINAL_Mapping.pdf |website=NASDAQ}}</ref>!! [[Industry Classification Benchmark|ICB]] Subsector<ref name=":23" />
+|-
+| ADBE || [[Adobe Inc.]] || Technology || Software
+|-
+| AMD || [[AMD|Advanced Micro Devices]] || Technology || Semiconductors
+|-
+| ABNB || [[Airbnb]] || Consumer Discretionary || Diversified Commercial Services
+|-
+| ALNY || [[Alnylam Pharmaceuticals]] || Health Care || Biotechnology
+|-
+| GOOGL || [[Alphabet Inc.]] (Class A) || Technology || Software
+|-
+| GOOG || [[Alphabet Inc.]] (Class C) || Technology || Software
+|-
+| AMZN || [[Amazon (company)|Amazon]] || Consumer Discretionary || Catalog/Specialty Distribution
+|-
+| AEP || [[American Electric Power]] || Utilities || Electric Utilities
+|-
+| AMGN || [[Amgen]] || Health Care || Biotechnology
+|-
+| ADI || [[Analog Devices]] || Technology || Semiconductors
+|-
+| AAPL || [[Apple Inc.]] || Technology || Computer Hardware
+|-
+| AMAT || [[Applied Materials]] || Technology || Semiconductors
+|-
+| APP || [[AppLovin]] || Technology || Software
+|-
+| ARM || [[Arm Holdings]] || Technology || Semiconductors
+|-
+| ASML || [[ASML Holding]] || Technology || Industrial Machinery
+|-
+| ALAB || [[Astera Labs]] || Technology || Semiconductors
+|-
+| ADSK || [[Autodesk]] || Technology || Software
+|-
+| ADP || [[ADP (company)|Automatic Data Processing]] || Industrials || Diversified Commercial Services
+|-
+| AXON || [[Axon Enterprise]] || Industrials || Ordnance & Accessories
+|-
+| BKR || [[Baker Hughes]] || Energy || Oil Equipment & Services
+|-
+| BKNG || [[Booking Holdings]] || Consumer Discretionary || Transportation Services
+|-
+| AVGO || [[Broadcom]] || Technology || Semiconductors
+|-
+| CDNS || [[Cadence Design Systems]] || Technology || Software
+|-
+| CTAS || [[Cintas]] || Industrials || Garments & Clothing
+|-
+| CSCO || [[Cisco]] || Telecommunications || Computer Communications Equipment
+|-
+| CCEP || [[Coca-Cola Europacific Partners]] || Consumer Staples || Soft Drinks
+|-
+| CMCSA || [[Comcast]] || Telecommunications || Cable & Other Pay Television Services
+|-
+| CEG || [[Constellation Energy]] || Utilities || Electric Utilities
+|-
+| CPRT || [[Copart]] || Consumer Discretionary || Retail
+|-
+| CRWV || [[CoreWeave]] || Technology || Computer Services
+|-
+| COST || [[Costco]] || Consumer Discretionary || Department/Specialty Retail Stores
+|-
+| CRWD || [[CrowdStrike]] || Technology || Software
+|-
+| CSX || [[CSX Corporation]] || Industrials || Railroads
+|-
+| DDOG || [[Datadog]] || Technology || Software
+|-
+| DXCM || [[DexCom]] || Health Care || Medical/Dental Instruments
+|-
+| FANG || [[Diamondback Energy]] || Energy || Oil & Gas Production
+|-
+| DASH || [[DoorDash]] || Technology || Software
+|-
+| EA || [[Electronic Arts]] || Consumer Discretionary || Miscellaneous Amusement & Recreation Services
+|-
+| EXC || [[Exelon]] || Utilities || Power Generation
+|-
+| FAST || [[Fastenal]] || Industrials || Construction & Materials
+|-
+| FER || [[Ferrovial]] || Industrials|| Military, Government, Technical
+|-
+| FTNT || [[Fortinet]] || Technology || Computer Peripheral Equipment
+|-
+| GEHC || [[GE HealthCare]] || Health Care || Medical Electronics
+|-
+| GILD || [[Gilead Sciences]] || Health Care || Biotechnology
+|-
+| HON || [[Honeywell|Honeywell Technologies]] || Industrials || Aerospace
+|-
+| IDXX || [[Idexx Laboratories]] || Health Care || Biotechnology
+|-
+| INTC || [[Intel]] || Technology || Semiconductors
+|-
+| INTU || [[Intuit]] || Technology || Computer Software
+|-
+| ISRG || [[Intuitive Surgical]] || Health Care || Industrial Specialties
+|-
+| KDP || [[Keurig Dr Pepper]] || Consumer Staples || Soft Drinks
+|-
+| KLAC || [[KLA Corporation]] || Technology || Electronic Components
+|-
+| KHC || [[Kraft Heinz]] || Consumer Staples || Packaged Foods
+|-
+| LRCX || [[Lam Research]] || Technology || Industrial Machinery
+|-
+| LIN || [[Linde plc]] || Basic Materials || Major Chemicals
+|-
+| LITE || [[Lumentum]] || Technology || Communication Equipment
+|-
+| MAR || [[Marriott International]] || Consumer Discretionary || Hotels/Resorts
+|-
+| MRVL || [[Marvell Technology]] || Technology || Semiconductors
+|-
+| MELI || [[Mercado Libre]] || Consumer Discretionary || Catalog/Specialty Distribution
+|-
+| META || [[Meta Platforms]] || Technology || Software
+|-
+| MCHP || [[Microchip Technology]] || Technology || Semiconductors
+|-
+| MU || [[Micron Technology]] || Technology || Semiconductors
+|-
+| MSFT || [[Microsoft]] || Technology || Software
+|-
+| MSTR || [[MicroStrategy]] || Technology || Software
+|-
+| MDLZ || [[Mondelez International]] || Consumer Staples || Packaged Foods
+|-
+| MPWR || [[Monolithic Power Systems]] || Technology || Semiconductors
+|-
+| MNST || [[Monster Beverage]] || Consumer Staples || Soft Drinks
+|-
+| NBIS || [[Nebius Group]] || Technology || Computer Services
+|-
+| NFLX || [[Netflix, Inc.]] || Consumer Discretionary || Consumer Electronics
+|-
+| NVDA || [[Nvidia]] || Technology || Semiconductors
+|-
+| NXPI || [[NXP Semiconductors]] || Technology || Semiconductors
+|-
+| ORLY || [[O'Reilly Automotive]] || Consumer Discretionary || Specialty Retailers
+|-
+| ODFL || [[Old Dominion Freight Line]] || Industrials || Trucking
+|-
+| PCAR || [[Paccar]] || Consumer Discretionary || Motor Vehicles
+|-
+| PLTR || [[Palantir Technologies]] || Technology || Software
+|-
+| PANW || [[Palo Alto Networks]] || Technology || Computer Peripheral Equipment
+|-
+| PAYX || [[Paychex]] || Industrials || Diversified Commercial Services
+|-
+| PYPL || [[PayPal]] || Industrials || Diversified Commercial Services
+|-
+| PDD || [[Pinduoduo|PDD Holdings]] || Technology || EDP Services
+|-
+| PEP || [[PepsiCo]] || Consumer Staples || Soft Drinks
+|-
+| QCOM || [[Qualcomm]] || Technology || Semiconductors
+|-
+| REGN || [[Regeneron Pharmaceuticals]] || Health Care || Biotechnology
+|-
+| RKLB || [[Rocket Lab]] || Industrials || Aerospace
+|-
+| ROP || [[Roper Technologies]] || Technology || Software
+|-
+| ROST || [[Ross Stores]] || Consumer Discretionary || Clothing/Shoe/Accessory Stores
+|-
+| SNDK || [[Sandisk]] || Technology || Electronic Components
+|-
+| STX || [[Seagate Technology]] || Technology || Electronic Components
+|-
+| SHOP || [[Shopify]] || Technology || Software
+|-
+| SBUX || [[Starbucks]] || Consumer Discretionary || Restaurants
+|-
+| SNPS || [[Synopsys]] || Technology || Software
+|-
+| TMUS || [[T-Mobile US]] || Telecommunications || Telecommunications Services
+|-
+| TTWO || [[Take-Two Interactive]] || Consumer Discretionary || Miscellaneous Amusement & Recreation Services
+|-
+| TER || [[Teradyne]] || Technology || Semiconductors
+|-
+| TSLA || [[Tesla, Inc.]] || Consumer Discretionary || Automobiles & Parts
+|-
+| TXN || [[Texas Instruments]] || Technology || Semiconductors
+|-
+| TRI || [[Thomson Reuters]] || Technology || Software
+|-
+| VRTX || [[Vertex Pharmaceuticals]] || Health Care || Biotechnology
+|-
+| WMT || [[Walmart]] || Consumer Discretionary || Department/Specialty Retail Stores
+|-
+| WBD || [[Warner Bros. Discovery]] || Consumer Discretionary || Entertainment
+|-
+| WDC || [[Western Digital]] || Technology || Electronic Components
+|-
+| WDAY || [[Workday, Inc.]] || Technology || Software
+|-
+| XEL || [[Xcel Energy]] || Utilities || Conventional Electricity
+|}
+''An up-to-date list is available in the [[#External links|External links]] section.''
+
+==Component changes==
+===Historical components===
+As of January 2026, 532 companies have been, or will be, components of the index. Of these, only four, Apple, Costco (through its merger in 1993 with [[Price Club]], with Costco, as a separate entity, not becoming a component until at least 1989), Intel and PACCAR, have been components, continuously, since the first dissemination of the index in 1985. Two other current components, KLA Corporation and Micron Technology, were also components when the index started, but have been removed from the index over time for various reasons.<ref>{{Cite web |title=Daily Stock Market Overview, Data Updates, Reports & News |url=https://www.nasdaq.com/home |publisher=[[Nasdaq]]}}</ref>
+
+{| class="wikitable sortable" id="changes"
+! rowspan="2" data-sort-type="date" |Date
+! colspan="2" |Added
+! colspan="2" |Removed
+! rowspan="2" |Reason
+|-
+!Ticker
+!Security
+!Ticker
+!Security
+|-
+|June 22, 2026
+|ALAB
+|[[Astera Labs]]
+|CHTR
+|[[Charter Communications]]
+|Quarterly index reconstitution.<ref name=":25">{{Cite web |date=2026-06-11 |title=Nasdaq-100 Index® June 2026 Quarterly Changes |url=https://ir.nasdaq.com/news-releases/news-release-details/nasdaq-100-indexr-june-2026-quarterly-changes |access-date=2026-06-23 |website=Nasdaq}}</ref> Nasdaq-100 moved to a regular quarterly rebalancing schedule.<ref name=":26">{{Cite web |title=Nasdaq-100 Index® Methodology Changes: Frequently Asked Questions |url=https://indexes.nasdaqomx.com/docs/2026_May_NDX_Changes_FAQ.pdf |date=May 2026 |access-date=2026-06-23 |website=Nasdaq Global Indexes |publisher=Nasdaq, Inc.}}</ref><ref name=":27">{{Cite web |title=Nasdaq‑100 Index® Methodology Update: Why Now, and What It Means |url=https://www.nasdaq.com/newsroom/nasdaq100-index-methodology-update-why-now |date=May 8, 2026 |access-date=2026-02-23 |website=Nasdaq}}</ref>
+|-
+|June 22, 2026
+|CRWV
+|[[CoreWeave]]
+|CTSH
+|[[Cognizant]]
+|Quarterly index reconstitution.<ref name=":25" /> Nasdaq-100 moved to a regular quarterly rebalancing schedule.<ref name=":26" /><ref name=":27" />
+|-
+|June 22, 2026
+|NBIS
+|[[Nebius Group]]
+|INSM
+|Insmed Incorporated
+|Quarterly index reconstitution.<ref name=":25" /> Nasdaq-100 moved to a regular quarterly rebalancing schedule.<ref name=":26" /><ref name=":27" />
+|-
+|June 22, 2026
+|RKLB
+|[[Rocket Lab]]
+|VRSK
+|[[Verisk Analytics]]
+|Quarterly index reconstitution.<ref name=":25" /> Nasdaq-100 moved to a regular quarterly rebalancing schedule.<ref name=":26" /><ref name=":27" />
+|-
+|June 22, 2026
+|TER
+|[[Teradyne]]
+|ZS
+|[[Zscaler]]
+|Quarterly index reconstitution.<ref name=":25" /> Nasdaq-100 moved to a regular quarterly rebalancing schedule.<ref name=":26" /><ref name=":27" />
+|-
+|May 18, 2026
+|LITE
+|[[Lumentum]]
+|CSGP
+|[[CoStar Group]]
+|[[CoStar Group|CoStar]] did not meet the minimum monthly weight requirements.<ref>{{cite web|url=https://ir.nasdaq.com/news-releases/news-release-details/lumentum-holdings-inc-join-nasdaq-100-indexr-beginning-may-18|title=Lumentum Holdings Inc. to Join the Nasdaq-100 Index Beginning May 18, 2026|website=Ir.nasdaq.com|access-date=June 9, 2026}}</ref>
+|-
+|April 20, 2026
+|SNDK
+|[[Sandisk]]
+|TEAM
+|[[Atlassian]]
+|[[Atlassian]] did not meet the minimum monthly weight requirements.<ref>{{cite web|url=https://ir.nasdaq.com/news-releases/news-release-details/sandisk-corporation-join-nasdaq-100-indexr-beginning-april-20 |title=Sandisk Corporation to Join the Nasdaq-100 Index Beginning April 20, 2026|website=Ir.nasdaq.com|access-date=June 9, 2026}}</ref>
+|-
+|January 20, 2026
+|WMT
+|[[Walmart]]
+|AZN
+|[[AstraZeneca]]
+|[[Walmart]] transferred its listing from [[New York Stock Exchange|NYSE]] to [[Nasdaq|NASDAQ]] and replaced AstraZeneca in the index. AstraZeneca was preparing to transfer its listing from Nasdaq to the NYSE.<ref>{{Cite news |title=Walmart To Join Nasdaq 100 on Jan. 20 as AstraZeneca Exits |url=https://finance.yahoo.com/news/walmart-join-nasdaq-100-jan-020910743.html |archive-url=http://web.archive.org/web/20260112160031/https://finance.yahoo.com/news/walmart-join-nasdaq-100-jan-020910743.html |archive-date=2026-01-12 |access-date=2026-01-16 |work=Yahoo Finance |language=en-US}}</ref><ref>{{cite web|url=https://ir.nasdaq.com/news-releases/news-release-details/walmart-inc-join-nasdaq-100-indexr-beginning-january-20th-2026 |title=Walmart Inc. to Join the Nasdaq-100 Index Beginning January 20th, 2026|website=Ir.nasdaq.com|access-date=June 9, 2026}}</ref>
+|-
+|January 9, 2026
+|
+|
+|VSNT
+|[[Versant]]
+|Versant did not meet the minimum monthly weight requirements.<ref>{{Cite web |last=IQ |first=S&P Capital |date=2026-01-13 |title=Versant Media Group, Inc.(NasdaqGS:VSNT) dropped from NASDAQ-100 Index|url=https://www.marketscreener.com/news/versant-media-group-inc-nasdaqgs-vsnt-dropped-from-nasdaq-100-index-ce7e58d8df80f42c |access-date=2026-01-16 |website=Marketscreener.com |language=en-US}}</ref>
+|-
+|January 5, 2026
+|VSNT
+|[[Versant]]
+|
+|
+|[[Versant]] was spun off from [[Comcast]].<ref>{{Cite web |last=IQ |first=S&P Capital |date=2026-01-05 |title=Versant Media Group, Inc.(NasdaqGS:VSNT) added to NASDAQ-100 Index |url=https://www.marketscreener.com/news/versant-media-group-inc-nasdaqgs-vsnt-added-to-nasdaq-100-index-ce7e59dfd888f52d |access-date=2026-01-16 |website=Marketscreener.com |language=en-US}}</ref><ref>{{Cite news |title=VERSANT Begins Trading on Nasdaq Today as Independent Company Following Completion of Comcast Spin-Off |url=https://finance.yahoo.com/news/versant-begins-trading-nasdaq-today-123000548.html |archive-url=http://web.archive.org/web/20260116052215/https://finance.yahoo.com/news/versant-begins-trading-nasdaq-today-123000548.html |archive-date=2026-01-16 |access-date=2026-01-16 |work=Yahoo Finance |language=en-US}}</ref>
+|-
+|December 22, 2025
+|ALNY
+|[[Alnylam Pharmaceuticals]]
+|BIIB
+|[[Biogen]]
+|Annual index reconstitution.<ref name=":24">{{Cite web |date=2025-12-13 |title=Annual Changes to the Nasdaq-100 Index |url=https://www.nasdaq.com/press-release/annual-changes-nasdaq-100-indexr-2025-12-13 |access-date=2025-12-13 |website=Nasdaq Inc.}}</ref>
+|-
+|December 22, 2025
+|FER
+|[[Ferrovial|Ferrovial SE]]
+|CDW
+|[[CDW Corporation]]
+|Annual index reconstitution.<ref name=":24" />
+|-
+|December 22, 2025
+|INSM
+|Insmed Incorporated
+|GFS
+|[[GlobalFoundries]]
+|Annual index reconstitution.<ref name=":24" />
+|-
+|December 22, 2025
+|MPWR
+|[[Monolithic Power Systems]]
+|LULU
+|[[Lululemon|Lululemon Athletica]]
+|Annual index reconstitution.<ref name=":24" />
+|-
+|December 22, 2025
+|STX
+|[[Seagate Technology Holdings]]
+|ON
+|[[ON Semiconductor]]
+|Annual index reconstitution.<ref name=":24" />
+|-
+|December 22, 2025
+|WDC
+|[[Western Digital]]
+|TTD
+|[[The Trade Desk|Trade Desk (The)]]
+|Annual index reconstitution.<ref name=":24" />
+|-
+|November 6, 2025
+|
+|
+|SOLS
+|[[Solstice Advanced Materials]]
+|Solstice Advanced Materials did not meet the minimum monthly weight requirements.<ref>{{Cite web |last=IQ |first=S&P Capital |date=2025-11-07 |title=Solstice Advanced Materials, Inc.(NasdaqGS:SOLS) dropped from NASDAQ-100 Index|url=https://www.marketscreener.com/news/solstice-advanced-materials-inc-nasdaqgs-sols-dropped-from-nasdaq-100-index-ce7d5fd8d980f625 |access-date=2025-12-10 |website=Marketscreener.com |language=en-US}}</ref>
+|-
+|October 30, 2025
+|SOLS
+|[[Solstice Advanced Materials]]
+|
+|
+|[[Solstice Advanced Materials]] was spun off from [[Honeywell]].<ref>{{cite web |title=Solstice Advanced Materials (SOLS) Is Up 6.5% After Nasdaq Debut and Index Inclusion - What's Changed |url=https://finance.yahoo.com/news/solstice-advanced-materials-sols-6-192146374.html |website=Yahoo! Finance. |publisher=Simply wallSt |access-date=1 November 2025}}</ref>
+|-
+|July 28, 2025
+|TRI
+|[[Thomson Reuters]]
+|
+|
+|[[Thomson Reuters]] transferred its listing from [[New York Stock Exchange|NYSE]] to [[Nasdaq|NASDAQ]] and replaced Ansys in the index.<ref>{{cite web |title=Thompson Reuters Corp to Join the Nasdaq-100 Index beginning July 28, 2025 |url=https://finance.yahoo.com/news/thomson-reuters-corp-join-nasdaq-000000856.html |website=Yahoo! Finance |publisher=GlobeNewswire |access-date=19 July 2025}}</ref>
+|-
+|July 17, 2025
+|
+|
+|ANSS
+|[[Ansys]]
+|Ansys was acquired by [[Synopsys]].
+|-
+|May 19, 2025
+|SHOP
+|[[Shopify]]
+|MDB
+|[[MongoDB Inc.|MongoDB]]
+|MongoDB did not meet the minimum monthly weight requirements.<ref>{{cite web |title=Shopify Inc. Added to Nasdaq-100 Index and Related Indices, Replacing MongoDB, Inc. |url=https://www.nasdaq.com/articles/shopify-inc-added-nasdaq-100-index-and-related-indices-replacing-mongodb-inc |access-date=12 May 2025 |website=NASDAQ}}</ref>
+|-
+|December 23, 2024
+|PLTR
+|[[Palantir Technologies]]
+|ILMN
+|[[Illumina, Inc.|Ilumina]]
+|Annual index reconstitution.<ref name=":0">{{cite news |last1= |first1= |date=December 13, 2024 |title=Nasdaq Announces Annual Reconstitution of the Nasdaq-100 Index, Adding Palantir, MicroStrategy, and Axon |url=https://www.nasdaq.com/articles/nasdaq-announces-annual-reconstitution-nasdaq-100-index-adding-palantir-microstrategy-and |work=NASDAQ}}</ref>
+|-
+|December 23, 2024
+|MSTR
+|[[MicroStrategy]]
+|MRNA
+|[[Moderna]]
+|Annual index reconstitution.<ref name=":0" />
+|-
+|December 23, 2024
+|AXON
+|[[Axon Enterprise]]
+|SMCI
+|[[Supermicro]]
+|Annual index reconstitution.<ref name=":0" />
+|-
+|November 18, 2024
+|APP
+|[[AppLovin]]
+|DLTR
+|[[Dollar Tree]]
+|Dollar Tree did not meet the minimum monthly weight requirements.<ref>{{cite news |date=8 November 2024 |title=AppLovin To Join Nasdaq 100, Replacing Dollar Tree |url=https://ir.nasdaq.com/news-releases/news-release-details/applovin-corporation-join-nasdaq-100-indexr-beginning-november |access-date=15 November 2024 |publisher=NASDAQ}}</ref>
+|-
+|July 22, 2024
+|SMCI
+|[[Supermicro]]
+|WBA
+|[[Walgreens Boots Alliance]]
+|WBA did not meet the minimum monthly weight requirements.<ref>{{Cite web|url=https://finance.yahoo.com/news/super-micro-computer-inc-join-000000353.html|title=Super Micro Computer Inc. to Join the Nasdaq-100 Index® Beginning July 22, 2024|website=Finance.yahoo.com|access-date=June 9, 2026}}</ref>
+|-
+|June 24, 2024
+|ARM
+|[[Arm Holdings]]
+|SIRI
+|[[SiriusXM]]
+|Sirius XM did not meet the minimum monthly weight requirements.<ref>{{cite news |last1=Bary |first1=Emily |date=June 14, 2024 |title=Arm's latest bit of good news? Respect from a high-profile index. |url=https://www.marketwatch.com/story/arms-latest-bit-of-good-news-respect-from-a-high-profile-index-f0687f62 |access-date=14 June 2024 |publisher=Marketwatch}}</ref><ref>{{cite news |date=June 13, 2024 |title=ARM HOLDINGS PLC TO JOIN THE NASDAQ-100 INDEX® BEGINNING JUNE 24, 2024 |url=https://ir.nasdaq.com/news-releases/news-release-details/arm-holdings-plc-join-nasdaq-100-indexr-beginning-june-24-2024 |access-date=June 27, 2024 |publisher=Nasdaq}}</ref>
+|-
+|March 18, 2024
+|LIN
+|[[Linde plc|Linde]]
+|SPLK
+|[[Splunk]]
+|Splunk was acquired by [[Cisco]].<ref>{{cite news |date=March 8, 2024 |title=Linde plc to Join the Nasdaq-100 Index® Beginning March 18, 2024 |url=https://ir.nasdaq.com/news-releases/news-release-details/linde-plc-join-nasdaq-100-indexr-beginning-march-18-2024 |access-date=March 18, 2024 |publisher=Nasdaq}}</ref>
+|-
+|December 18, 2023
+|CDW
+|[[CDW]]
+|ALGN
+|[[Align Technology]]
+|Annual index reconstitution.<ref name=":1">{{cite news |title=Annual Changes to the Nasdaq-100 Index |url=https://finance.yahoo.com/news/annual-changes-nasdaq-100-index-010000080.html |access-date=December 9, 2023 |publisher=Nasdaq |agency=Globe Newswire}}</ref>
+|-
+|December 18, 2023
+|CCEP
+|[[Coca-Cola Europacific Partners]]
+|EBAY
+|[[EBay]]
+|Annual index reconstitution.<ref name=":1" />
+|-
+|December 18, 2023
+|DASH
+|[[DoorDash]]
+|ENPH
+|[[Enphase Energy]]
+|Annual index reconstitution.<ref name=":1" />
+|-
+|December 18, 2023
+|MDB
+|[[MongoDB Inc.|MongoDB]]
+|JD
+|[[JD.com]]
+|Annual index reconstitution.<ref name=":1" />
+|-
+|December 18, 2023
+|ROP
+|[[Roper Technologies]]
+|LCID
+|[[Lucid Motors|Lucid Group]]
+|Annual index reconstitution.<ref name=":1" />
+|-
+|December 18, 2023
+|SPLK
+|[[Splunk]]
+|ZM
+|[[Zoom Communications|Zoom Video Communications]]
+|Annual index reconstitution.<ref name=":1" />
+|-
+|December 14, 2023
+|TTWO
+|[[Take-Two Interactive]]
+|SGEN
+|[[Seagen|Seagen Inc.]]
+|Seagen merged with [[Pfizer]].<ref>{{cite news |title=Take-Two Interactive Software to join the Nasdaq-100 on December 18 |url=https://finance.yahoo.com/video/two-interactive-join-nasdaq-100-173732337.html |access-date=December 15, 2023}}</ref>
+|-
+|July 17, 2023
+|TTD
+|[[The Trade Desk]]
+|ATVI
+|[[Activision Blizzard]]
+|[[Activision Blizzard]] was acquired by [[Microsoft]].<ref>{{cite web |last=Yin-Poole |first=Wesley |date=July 13, 2023 |title=Microsoft Deal Could Close Soon With Activision Blizzard Set to Leave Stock Exchange |url=https://www.ign.com/articles/microsoft-deal-could-close-soon-with-activision-blizzard-set-to-leave-stock-exchange |website=[[IGN]]}}</ref>
+|-
+|June 20, 2023
+|ON
+|[[Onsemi]]
+|RIVN
+|[[Rivian|Rivian Automotive]]
+|Rivian did not meet the minimum monthly weight requirements.<ref>{{cite web |last=Bhattacharya |first=Ananya |date=June 14, 2023 |title=Nasdaq is officially dropping Rivian for an auto industry chip maker |url=https://qz.com/nasdaq-is-officially-dropping-rivian-for-an-auto-indust-1850537619 |work=[[Quartz (publication)|Quartz]]}}</ref>
+|-
+|June 7, 2023
+|GEHC
+|[[GE HealthCare]]
+|FI
+|[[Fiserv]]
+|[[Fiserv]] transferred its listing from [[Nasdaq|NASDAQ]] to the [[New York Stock Exchange|NYSE]].<ref>{{cite news |date=May 30, 2023 |title=GE HealthCare Technologies Inc. to join the Nasdaq-100 Index, beginning June 7, 2023 |url=https://finance.yahoo.com/news/ge-healthcare-technologies-inc-join-000000473.html |access-date=June 7, 2023 |publisher=Yahoo! Finance |agency=GlobeNewswire}}</ref>
+|-
+|December 19, 2022
+|CSGP
+|[[CoStar Group]]
+|VRSN
+|[[Verisign|VeriSign]]
+|Annual index reconstitution.<ref name=":2">{{cite web |title=Annual changes to the Nasdaq-100 Index |url=https://ir.nasdaq.com/news-releases/news-release-details/annual-changes-nasdaq-100-index-10 |access-date=December 10, 2022 |website=NASDAQ |publisher=}}</ref>
+|-
+|December 19, 2022
+|RIVN
+|[[Rivian Automotive]]
+|SWKS
+|[[Skyworks Solutions|Skyworks]]
+|Annual index reconstitution.<ref name=":2" />
+|-
+|December 19, 2022
+|
+|
+|NTES
+|NetEase
+|Annual index reconstitution.<ref name=":2" />
+|-
+|December 19, 2022
+|WBD
+|[[Warner Bros. Discovery]]
+|SPLK
+|[[Splunk]]
+|Annual index reconstitution.<ref name=":2" />
+|-
+
+|December 19, 2022
+|GFS
+|[[GlobalFoundries]]
+|BIDU
+|[[Baidu]]
+|Annual index reconstitution.<ref name=":2" />
+|-
+|December 19, 2022
+|BKR
+|[[Baker Hughes]]
+|MTCH
+|[[Match Group]]
+|Annual index reconstitution.<ref name=":2" />
+|-
+|December 19, 2022
+|FANG
+|[[Diamondback Energy]]
+|DOCU
+|[[Docusign|DocuSign]]
+|Annual index reconstitution.<ref name=":2" />
+|-
+|November 21, 2022
+|ENPH
+|[[Enphase Energy]]
+|OKTA
+|[[Okta Inc.|Okta]]
+|Okta did not meet the minimum monthly weight requirements.<ref>{{cite news |date=November 12, 2022 |title=Enphase Energy, Inc. to Join the NASDAQ-100 Index Beginning November 21, 2022 |url=https://finance.yahoo.com/news/enphase-energy-inc-join-nasdaq-010000363.html |access-date=November 12, 2022 |publisher=Yahoo! Finance |agency=Globe Newswire}}</ref>
+|-
+|February 22, 2022
+|AZN
+|[[AstraZeneca]]
+|XLNX
+|[[Xilinx]]
+|[[Xilinx]] was acquired by [[Advanced Micro Devices|AMD]].<ref>{{cite press release |date=February 10, 2022 |title=AstraZeneca PLC – ADR to Join the NASDAQ-100 Index Beginning February 22, 2022 |url=https://ir.nasdaq.com/news-releases/news-release-details/astrazeneca-plc-adr-join-nasdaq-100-index-beginning-february-22 |location=New York |publisher=Nasdaq, Inc. |agency=Globe Newswire |access-date=2026-06-22 }}</ref>
+|-
+|February 2, 2022
+|CEG
+|[[Constellation Energy]]
+|
+|
+|Component member [[Exelon]] spun off [[Constellation Energy]].<ref>{{cite web |title=Constellation Energy Corp. Joined the NASDAQ-100 Index on February 2, 2022. |url=https://finance.yahoo.com/news/constellation-energy-corp-joined-nasdaq-010000704.html |access-date=February 4, 2022 |website=Yahoo! Finance}}</ref>
+|-
+|January 24, 2022
+|ODFL
+|[[Old Dominion Freight Line]]
+|PTON
+|[[Peloton Interactive|Peloton]]
+|Peloton did not meet the minimum monthly weight requirements.<ref>{{Cite web |date=January 13, 2022 |title=Old Dominion Freight Line, Inc. to Join the NASDAQ-100 Index Beginning January 24, 2022 |url=https://www.nasdaq.com/press-release/old-dominion-freight-line-inc.-to-join-the-nasdaq-100-index-beginning-january-24-2022 |website=[[Nasdaq]]}}</ref>
+|-
+|December 20, 2021
+|ABNB
+|[[Airbnb]]
+|CDW
+|[[CDW]]
+|Annual index reconstitution.<ref name=":3">{{cite news |title=Annual Changes to the NASDAQ-100 Index |url=https://greenstocknews.com/news/nasdaq/lcid/annual-changes-to-the-nasdaq-100-index |access-date=December 11, 2021 |publisher=Greenstocknews.com}}</ref>
+|-
+|December 20, 2021
+|FTNT
+|[[Fortinet]]
+|FOXA
+|[[Fox Corporation]]
+|Annual index reconstitution.<ref name=":3" />
+|-
+|December 20, 2021
+|
+|
+|FOX
+|[[Fox Corporation]]
+|Annual index reconstitution.<ref name=":3" />
+|-
+|December 20, 2021
+|PANW
+|[[Palo Alto Networks]]
+|CERN
+|[[Oracle Health|Cerner]]
+|Annual index reconstitution. Cerner was acquired by [[Oracle Corporation]] and rebranded as Oracle Health.<ref name=":3" />
+|-
+|December 20, 2021
+|LCID
+|[[Lucid Motors|Lucid Group]]
+|CHKP
+|[[Check Point]]
+|Annual index reconstitution.<ref name=":3" />
+|-
+|December 20, 2021
+|ZS
+|[[Zscaler]]
+|TCOM
+|[[Trip.com]]
+|Annual index reconstitution.<ref name=":3" />
+|-
+|December 20, 2021
+|DDOG
+|[[Datadog]]
+|INCY
+|[[Incyte]]
+|Annual index reconstitution.<ref name=":3" />
+|-
+|August 26, 2021
+|CRWD
+|[[Crowdstrike]]
+|MXIM
+|[[Maxim Integrated|Maxim Integrated Products]]
+|Maxim Integrated Products was acquired by [[Analog Devices]].<ref>{{cite press release |title=CrowdStrike Holdings, Inc. to Join the NASDAQ-100 Index Beginning August 26, 2021 |date=August 24, 2021 |publisher=GlobeNewswire |url=https://www.globenewswire.com/news-release/2021/08/24/2285158/0/en/CrowdStrike-Holdings-Inc-to-Join-the-NASDAQ-100-Index-Beginning-August-26-2021.html |access-date=August 24, 2021 |website=GlobeNewswire}}</ref>
+|-
+|July 21, 2021
+|HON
+|[[Honeywell]] 
+|ALXN
+|[[Alexion Pharmaceuticals]]
+|Alexion Pharmaceuticals was acquired by [[AstraZeneca]].<ref>{{cite press release |title=Honeywell International Inc. to Join the NASDAQ-100 Index Beginning July 21, 2021 |date=July 14, 2021 |publisher=[[GlobeNewswire]] |url=https://www.globenewswire.com/news-release/2021/07/15/2263173/6948/en/Honeywell-International-Inc-to-Join-the-NASDAQ-100-Index-Beginning-July-21-2021.html}}</ref>
+|-
+|December 21, 2020
+|AEP
+|[[American Electric Power]]
+|BMRN
+|[[BioMarin Pharmaceutical]]
+|Annual index reconstitution.<ref name=":4">{{cite press release |title=Annual Changes to the Nasdaq-100 Index |date=December 11, 2020 |publisher=[[Nasdaq]] |url=https://www.nasdaq.com/press-release/annual-changes-to-the-nasdaq-100-index-2020-12-11}}</ref>
+|-
+|December 21, 2020
+|MRVL
+|[[Marvell Technology Group|Marvell Technology]]
+|CTXS
+|[[Citrix Systems]]
+|Annual index reconstitution.<ref name=":4" />
+|-
+|December 21, 2020
+|MTCH
+|[[Match Group]]
+|EXPE
+|[[Expedia Group|Expedia]]
+|Annual index reconstitution.<ref name=":4" />
+|-
+|December 21, 2020
+|OKTA
+|[[Okta, Inc.|Okta]]
+|LBTYA
+|[[Liberty Global]]
+|Annual index reconstitution.<ref name=":4" />
+|-
+|December 21, 2020
+|
+|
+|LBTYK
+|[[Liberty Global]]
+|Annual index reconstitution.<ref name=":4" />
+|-
+|December 21, 2020
+|PTON
+|[[Peloton Interactive|Peloton]]
+|TTWO
+|[[Take-Two Interactive]]
+|Annual index reconstitution.<ref name=":4" />
+|-
+|December 21, 2020
+|TEAM
+|[[Atlassian]]
+|ULTA
+|[[Ulta Beauty]]
+|Annual index reconstitution.<ref name=":4" />
+|-
+|October 19, 2020
+|KDP
+|[[Keurig Dr Pepper]]
+|WDC
+|[[Western Digital]]
+|Western Digital did not meet the minimum monthly weight requirements.<ref>{{cite press release |title=Keurig Dr Pepper to Join the NASDAQ-100 Index Beginning October 19, 2020. |date=October 10, 2020 |publisher=[[GlobeNewswire]] |url=https://www.globenewswire.com/news-release/2020/10/10/2106521/0/en/Keurig-Dr-Pepper-Inc-to-Join-the-NASDAQ-100-Index-Beginning-October-19-2020.html}}</ref>
+|-
+|August 24, 2020
+|PDD
+|[[Pinduoduo]] 
+|NTAP
+|[[NetApp]]
+|NetApp did not meet the minimum monthly weight requirements.<ref>{{Cite press release |title=Pinduoduo, Inc. to join the NASDAQ-100 Index beginning August 24, 2020 |date=August 14, 2020 |publisher=[[Nasdaq]] |url=https://www.nasdaq.com/press-release/pinduoduo-inc.-to-join-the-nasdaq-100-index-beginning-august-24-2020-2020-08-14}}</ref>
+|-
+|July 20, 2020
+|MRNA
+|[[Moderna]]
+|CSGP
+|[[CoStar Group]]
+|CoStar did not meet the minimum monthly weight requirements.<ref>{{Cite press release |title=Moderna, Inc. to Join the NASDAQ-100 Index Beginning July 20, 2020 |date=July 13, 2020 |publisher=[[Nasdaq]] |url=https://www.nasdaq.com/press-release/moderna-inc.-to-join-the-nasdaq-100-index-beginning-july-20-2020-2020-07-13}}</ref>
+|-
+|June 22, 2020
+|DOCU
+|[[DocuSign]]
+|UAL
+|[[United Airlines Holdings]]
+|United Airlines did not meet the minimum monthly weight requirements.<ref>{{Cite press release |title=DocuSign, Inc. to Join the NASDAQ-100 Index Beginning June 22, 2020 |date=June 12, 2020 |publisher=[[Nasdaq]] |url=https://www.nasdaq.com/press-release/docusign-inc.-to-join-the-nasdaq-100-index-beginning-june-22-2020-2020-06-12}}</ref>
+|-
+|April 30, 2020
+|ZM
+|[[Zoom Video Communications]]
+|WTW
+|[[Willis Towers Watson]]
+|WTW did not meet the minimum monthly weight requirements.<ref>{{Cite press release |title=Zoom Video Communications, Inc. to Join the NASDAQ-100 Index Beginning April 30, 2020 |date=April 23, 2020 |publisher=[[Nasdaq]] |url=https://www.nasdaq.com/press-release/zoom-video-communications-inc.-to-join-the-nasdaq-100-index-beginning-april-30-2020}}</ref> 
+|-
+|April 20, 2020
+|DXCM
+|[[Dexcom]]
+|AAL
+|[[American Airlines Group|American Airlines]]
+|American Airlines did not meet the minimum monthly weight requirements.<ref>{{Cite press release |title=Dexcom, inc. to join the NASDAQ-100 Index beginning April 20, 2020 |date=April 10, 2020 |publisher=[[Nasdaq]] |url=https://www.nasdaq.com/press-release/dexcom-inc.-to-join-the-nasdaq-100-index-beginning-april-20-2020-2020-04-10}}</ref>
+|-
+|December 23, 2019
+|ANSS
+|[[Ansys]]
+|HAS
+|[[Hasbro]]
+|Annual index reconstitution.<ref name=":5">{{Cite press release |title=Annual Changes to the NASDAQ-100 Index |date=December 13, 2019 |publisher=[[GlobeNewswire]] |url=https://www.globenewswire.com/news-release/2019/12/14/1960629/0/en/Annual-Changes-to-the-NASDAQ-100-Index.html}}</ref>
+|-
+|December 23, 2019
+|CDW
+|[[CDW]]
+|HSIC
+|[[Henry Schein]]
+|Annual index reconstitution.<ref name=":5" />
+|-
+|December 23, 2019
+|CPRT
+|[[Copart]]
+|JBHT
+|[[J.B. Hunt]]
+|Annual index reconstitution.<ref name=":5" />
+|-
+|December 23, 2019
+|CSGP
+|[[CoStar Group]]
+|MYL
+|[[Mylan]]
+|Annual index reconstitution.<ref name=":5" />
+|-
+|December 23, 2019
+|SGEN
+|[[Seattle Genetics]] 
+|NLOK
+|[[Gen Digital|NortonLifeLock]]
+|Annual index reconstitution.<ref name=":5" />
+|-
+|December 23, 2019
+|SPLK
+|[[Splunk]]
+|WYNN
+|[[Wynn Resorts]]
+|Annual index reconstitution.<ref name=":5" />
+|-
+|November 21, 2019
+|EXC
+|[[Exelon]]
+|CELG
+|[[Celgene]]
+|[[Celgene]] was acquired by [[Bristol Myers Squibb]].<ref>{{Cite press release |title=Exelon Corporation to join the NASDAQ-100 index on November 21, 2019 |date=November 18, 2019 |publisher=[[Nasdaq]] |url=https://www.nasdaq.com/press-release/exelon-corporation-to-join-the-nasdaq-100-index-beginning-november-21-2019-2019-11-18}}</ref> 
+|-
+|March 19, 2019
+|FOXA
+|[[Fox Corporation]] Class A
+|FOXA
+|[[21st Century Fox]] Class A
+
+|Two classes of stock of [[Fox Corporation]] replaced the two classes of stock of [[21st Century Fox]], which was acquired by [[The Walt Disney Company]].<ref name=":6">{{Cite web |date=March 15, 2019 |title=FTSE Russell: Twenty-First Century Fox (US): Demerger of Fox Corporation and Acquisition by Walt Disney (US) |url=https://research.ftserussell.com/products/index-notices/home/getnotice?id=2592308 |website=FTSE Russell Research}}</ref>
+|-
+|March 19, 2019
+|FOX
+|[[Fox Corporation]] Class B
+|FOX
+|[[21st Century Fox]] Class B
+
+|Two classes of stock of [[Fox Corporation]] replaced the two classes of stock of [[21st Century Fox]], which was acquired by [[The Walt Disney Company]].<ref name=":6" />
+|-
+|December 24, 2018
+|AMD
+|[[Advanced Micro Devices]]
+|ESRX
+|[[Express Scripts]]
+|Annual index reconstitution.<ref name=":7">{{Cite press release |title=Annual Changes to the NASDAQ-100 Index |date=December 15, 2018 |publisher=[[Nasdaq]] |url=https://www.nasdaq.com/about/press-center/annual-changes-nasdaq-100-index-0}}</ref>
+|-
+|December 24, 2018
+|LULU
+|[[lululemon Athletica]]
+|HOLX
+|[[Hologic]]
+|Annual index reconstitution.<ref name=":7" />
+|-
+|December 24, 2018
+|NTAP
+|[[NetApp]]
+|QRTEA
+|[[Qurate Retail]]
+|Annual index reconstitution.<ref name=":7" />
+|-
+|December 24, 2018
+|UAL
+|[[United Airlines Holdings|United Continental Holdings]]
+|SHPG
+|[[Shire Plc|Shire PLC]]
+|Annual index reconstitution.<ref name=":7" />
+|-
+|December 24, 2018
+|VRSN
+|[[Verisign]]
+|STX
+|[[Seagate Technology]]
+|Annual index reconstitution.<ref name=":7" />
+|-
+|December 24, 2018
+|WTW
+|[[Willis Towers Watson]]
+|VOD
+|[[Vodafone]]
+|Annual index reconstitution.<ref name=":7" />
+|-
+|November 19, 2018
+|XEL
+|[[Xcel Energy]]
+|XRAY
+|[[Dentsply Sirona]]
+|Dentsply Sirona did not meet the minimum monthly weight requirements.<ref>{{Cite press release |title=Xcel Energy Inc. to join the Nasdaq-100 Index beginning November 19, 2018 |date=November 10, 2018 |publisher=[[Nasdaq]] |url=https://www.nasdaq.com/about/press-center/xcel-energy-inc-join-nasdaq-100-index-beginning-november-19-2018}}</ref> 
+|-
+|November 5, 2018
+|NXPI
+|[[NXP Semiconductors]]
+|CA
+|[[CA Inc.]]
+|NXP Semiconductors rejoined the index following its failed acquisition by [[Qualcomm]]. CA Inc. merged with [[Broadcom]].
+|-
+|July 23, 2018
+|PEP
+|[[PepsiCo]]
+|DISH
+|[[Dish Network]]
+|Dish Network did not meet the minimum monthly weight requirement.<ref>{{Cite press release |title=PepsiCo, Inc. to Join the NASDAQ-100 Index Beginning July 23rd, 2018 |date=July 17, 2018 |publisher=[[Nasdaq]] |url=https://www.nasdaq.com/about/press-center/pepsico-inc-join-nasdaq-100-index-beginning-july-23-2018}}</ref> 
+|-
+|December 18, 2017
+|ASML
+|[[ASML Holding]]
+|AKAM
+|[[Akamai|Akamai Technologies]]
+|Annual index reconstitution.<ref name=":8">{{Cite press release |title=Annual Changes to the Nasdaq-100 Index |date=December 9, 2017 |publisher=[[Nasdaq]] |url=https://www.nasdaq.com/about/press-center/annual-changes-nasdaq-100-index-2}}</ref>
+|-
+|December 18, 2017
+|CDNS
+|[[Cadence Design Systems]]
+|DISCA
+|[[Discovery Communications]] Series A
+|Annual index reconstitution.<ref name=":8" />
+|-
+|December 18, 2017
+|
+|
+|DISCK
+|[[Discovery Communications]] Series C
+|Annual index reconstitution.<ref name=":8" />
+|-
+|December 18, 2017
+|SNPS
+|[[Synopsys]]
+|NCLH
+|[[Norwegian Cruise Line Holdings]]
+|Annual index reconstitution.<ref name=":8" />
+Norwegian Cruise Line was dropped due to transferring its listing from [[Nasdaq|NASDAQ]] to the [[New York Stock Exchange|NYSE]].<ref>{{cite web |date=8 December 2017 |title=Norwegian Cruise Line Holdings leaving Nasdaq for NYSE |url=https://www.travelweekly.com/Cruise-Travel/Norwegian-Cruise-Line-Holdings-leaving-Nasdaq-for-NYSE}}</ref>
+|-
+|December 18, 2017
+|TTWO
+|[[Take-Two Interactive]]
+|TSCO
+|[[Tractor Supply Company|Tractor Supply]]
+|Annual index reconstitution.<ref name=":8" />
+|-
+|December 18, 2017
+|WDAY
+|[[Workday, Inc|Workday]]
+|VIAB
+|[[Viacom (2005–2019)|Viacom]]
+|Annual index reconstitution.<ref name=":8" />
+|-
+|October 23, 2017
+|ALGN
+|[[Align Technology]]
+|MAT
+|[[Mattel]]
+|Mattel did not meet the minimum monthly weight requirements.<ref>{{Cite press release |title=Align Technology, Inc. to join the NASDAQ-100 Index on October 23, 2017 |date=October 13, 2017 |publisher=[[Nasdaq]] |url=https://ir.nasdaq.com/news-releases/news-release-details/align-technology-inc-join-nasdaq-100-index-beginning-october-23}}</ref>
+|-
+|June 19, 2017
+|MELI
+|[[MercadoLibre]]
+|YHOO
+|[[Yahoo! Inc. (1995–2017)|Yahoo! Inc.]]
+|Yahoo! Inc. was acquired by [[Verizon]] and subsequently converted to a closed-end fund.<ref>{{Cite press release |title=MercadoLibre, Inc. to Join the NASDAQ-100 Index Beginning June 19, 2017 |date=June 10, 2017 |publisher=[[Nasdaq]] |url=https://www.nasdaq.com/about/press-center/mercadolibre-inc-join-nasdaq-100-index-beginning-june-19-2017}}</ref>
+|-
+|April 24, 2017
+|WYNN
+|[[Wynn Resorts]]
+|TRIP
+|[[TripAdvisor]]
+|TripAdvisor did not meet the minimum monthly weight requirements.<ref>{{Cite press release |title=Wynn Resorts, Limited to Join the NASDAQ-100 Index Beginning April 24, 2017 |date=April 13, 2017 |publisher=[[GlobeNewswire]] |url=https://globenewswire.com/news-release/2017/04/14/960377/0/en/Wynn-Resorts-Limited-to-Join-the-NASDAQ-100-Index-Beginning-April-24-2017.html}}</ref>
+|-
+|March 20, 2017
+|IDXX
+|[[Idexx Laboratories]]
+|SBAC
+|[[SBA Communications]]
+|SBA converted into a [[real estate investment trust]], making it ineligible for inclusion in the Nasdaq-100, but it became eligible for inclusion in the [[Nasdaq Financial-100]].<ref name=":9">{{Cite press release |title=IDEXX Laboratories, Inc. to Join the NASDAQ-100 Index Beginning March 20, 2017 |date=March 10, 2017 |publisher=[[Nasdaq]] |url=https://ir.nasdaq.com/news-releases/news-release-details/idexx-laboratories-inc-join-nasdaq-100-index-beginning-march-20}}</ref>
+|-
+|February 7, 2017
+|JBHT
+|[[J.B. Hunt]]
+|NXPI
+|[[NXP Semiconductors]]
+|NXP was in the process of merging with Qualcomm.<ref>{{Cite press release |title=J.B. HUNT TRANSPORT SERVICES, INC. TO JOIN THE NASDAQ-100 INDEX BEGINNING FEBRUARY 7, 2017 |date=January 30, 2017 |publisher=[[Nasdaq]] |url=https://ir.nasdaq.com/news-and-events/press-releases?ReleaseID=1009669}}</ref>
+|-
+|December 19, 2016
+|CTAS
+|[[Cintas]]
+|BBBY
+|[[Bed Bath & Beyond (1987–2023)|Bed Bath & Beyond]]
+|Annual index reconstitution.<ref name=":10">{{Cite press release |title=Annual Changes to the Nasdaq-100 Index |date=December 9, 2016 |publisher=[[Nasdaq]] |url=https://ir.nasdaq.com/news-releases/news-release-details/annual-changes-nasdaq-100-index-5}}</ref>
+|-
+|December 19, 2016
+|HAS
+|[[Hasbro]]
+|NTAP
+|[[NetApp]]
+|Annual index reconstitution.<ref name=":10" />
+|-
+|December 19, 2016
+|HOLX
+|[[Hologic]]
+|SRCL
+|[[Stericycle]] 
+|Annual index reconstitution.<ref name=":10" />
+|-
+|December 19, 2016
+|KLAC
+|[[KLA-Tencor]]
+|WFM
+|[[Whole Foods Market]] 
+|Annual index reconstitution.<ref name=":10" />
+|-
+|October 19, 2016
+|SHPG
+|[[Shire Plc|Shire PLC]]
+|LLTC
+|[[Linear Technology]] 
+|Linear Technology did not meet the minimum monthly weight requirements.<ref>{{cite web |date=October 11, 2016 |title=Shire plc to become a component of NASDAQ-100 index |url=https://www.reuters.com/article/idUKFWN1CH13D |website=[[Reuters]]}}</ref> 
+|-
+|July 18, 2016
+|MCHP
+|[[Microchip Technology]]
+|ENDP
+|[[Endo International]]
+|Endo International did not meet the minimum monthly weight requirements.<ref>{{cite web |date=July 9, 2016 |title=Microchip Technology Incorporated to Join the NASDAQ-100 Index Beginning July 18, 2016 |url=https://www.nasdaq.com/about/press-center/microchip-technology-incorporated-join-nasdaq-100-index-beginning-july-18-2016 |website=[[Nasdaq]]}}</ref> 
+|-
+|June 20, 2016
+|XRAY
+|[[Dentsply Sirona]]
+|LMCA
+|[[Liberty Media]]
+|Liberty Media did not meet the minimum monthly weight requirements.<ref name=":11">{{Cite press release |title=DENTSPLY SIRONA Inc. to join the Nasdaq-100 Index Beginning June 20, 2016 |date=June 10, 2016 |publisher=[[Nasdaq]] |url=https://ir.nasdaq.com/news-releases/news-release-details/dentsply-sirona-inc-join-nasdaq-100-index-beginning-june-20-2016}}</ref>
+|-
+|June 20, 2016
+|
+|
+|LMCK
+|[[Liberty Media]]
+|Liberty Media did not meet the minimum monthly weight requirements.<ref name=":11" />
+|-
+|June 20, 2016
+|
+|
+|BATRA
+|[[Liberty Media]]
+|Liberty Media did not meet the minimum monthly weight requirements.<ref name=":11" />
+|-
+|June 20, 2016
+|
+|
+|BATRK
+|[[Liberty Media]]
+|Liberty Media did not meet the minimum monthly weight requirements.<ref name=":11" />
+|-
+|April 18, 2016
+|BATRA
+|[[Liberty Media]]
+|
+|
+|[[Liberty Media]] established two tracking stocks to follow the performance of its investment in the [[Atlanta Braves]].<ref name=":12">{{cite web |last=Ozanian |first=Mike |date=April 19, 2016 |title=John Malone's Atlanta Braves Stock Tanks On Opening Day |url=https://www.forbes.com/sites/mikeozanian/2016/04/19/john-malones-atlanta-braves-stock-tanks-on-opening-day/?sh=52da46b55412 |work=[[Forbes]]}}</ref> 
+|-
+|April 18, 2016
+|BATRK
+|[[Liberty Media]]
+|
+|
+|[[Liberty Media]] established two tracking stocks to follow the performance of its investment in the [[Atlanta Braves]].<ref name=":12" /> 
+|-
+|March 16, 2016
+|NTES
+|[[NetEase]]
+|SNDK
+|[[Sandisk|SanDisk]]
+|SanDisk was acquired by [[Western Digital]].<ref>{{Cite press release |title=NetEase, Inc. to Join the NASDAQ-100 Index Beginning March 16, 2016 |date=March 9, 2016 |publisher=[[Nasdaq]] |url=https://www.nasdaq.com/about/press-center/netease-inc-join-nasdaq-100-index-beginning-march-16-2016}}</ref>
+|-
+|February 16, 2016
+|CSX
+|[[CSX Corporation]]
+|KLAC
+|[[KLA-Tencor]]
+|KLA-Tencor did not meet the minimum monthly weight requirements.<ref>{{Cite press release |title=CSX Corporation to Join the NASDAQ-100 Index on February 22, 2016 |date=February 12, 2016 |publisher=[[Nasdaq]] |url=https://ir.nasdaq.com/news-releases/news-release-details/csx-corporation-join-nasdaq-100-index-beginning-february-22-2016}}</ref>
+|-
+|February 1, 2016
+|AVGO
+|[[Broadcom]]
+|
+|
+|Avago Technologies changed its name to [[Broadcom]].<ref>{{Cite web |title=Avago To Acquire Rival Firm Broadcom For $37 Billion |url=http://www.techtimes.com/articles/56450/20150529/avago-to-acquire-rival-firm-broadcom-for-37-billion-should-qualcomm-worry.htm |access-date=September 3, 2020 |website=TechTimes.com}}</ref> Former ticker BRCM retired. 
+|-
+|December 21, 2015
+|TCOM
+|[[Ctrip]]
+|CHRW
+|[[C. H. Robinson Worldwide]]
+|Annual index reconstitution.<ref name=":13">{{Cite press release |title=Annual Changes to the NASDAQ-100 Index |date=December 11, 2015 |publisher=[[Nasdaq]] |url=https://ir.nasdaq.com/news-releases/news-release-details/annual-changes-nasdaq-100-index-4}}</ref>
+|-
+|December 21, 2015
+|ENDP
+|[[Endo International]]
+|EXPD
+|[[Expeditors International]]
+|Annual index reconstitution.<ref name=":13" />
+|-
+|December 21, 2015
+|EXPE
+|[[Expedia Group]]
+|GMCR
+|[[Keurig Green Mountain]]
+|Annual index reconstitution.<ref name=":13" />
+|-
+|December 21, 2015
+|MXIM
+|[[Maxim Integrated Products]]
+|GRMN
+|[[Garmin]]
+|Annual index reconstitution.<ref name=":13" />
+|-
+|December 21, 2015
+|NCLH
+|[[Norwegian Cruise Line]]
+|SPLS
+|[[Staples Inc|Staples]]
+|Annual index reconstitution.<ref name=":13" />
+|-
+|December 21, 2015
+|TMUS
+|[[T-Mobile US]]
+|VIP
+|[[VimpelCom]]
+|Annual index reconstitution.<ref name=":13" />
+|-
+|December 21, 2015
+|ULTA
+|[[Ulta Beauty]]
+|WYNN
+|[[Wynn Resorts]]
+|Annual index reconstitution.<ref name=":13" />
+|-
+|December 21, 2015
+|
+|
+|LILA
+|Liberty Latin America Class A
+|[[Liberty Media]] tracking stocks were removed from the index.<ref name=":13" />
+|-
+|December 21, 2015
+|
+|
+|LILAK
+|Liberty Latin America Class C
+|[[Liberty Media]] tracking stocks were removed from the index.<ref name=":13" />
+|-
+|November 11, 2015
+|PYPL
+|[[PayPal]]
+|AVGO
+|[[Broadcom Corporation]]
+|[[Broadcom]] was in the process of merging with Avago.<ref>{{Cite press release |title=Paypal Holdings, Inc. to Join the NASDAQ-100 Index Beginning November 11, 2015 |date=November 3, 2015 |publisher=[[Nasdaq]] |url=https://ir.nasdaq.com/news-releases/news-release-details/paypal-holdings-inc-join-nasdaq-100-index-beginning-november-11}}</ref>
+|-
+|October 7, 2015
+|INCY
+|[[Incyte]]
+|ALTR
+|[[Altera]]
+|[[Altera]] merged with Intel.<ref>{{Cite press release |title=Incyte Corporation to Join Nasdaq-100 Index on October 7, 2015 |date=September 29, 2015 |publisher=[[Nasdaq]] |url=https://ir.nasdaq.com/news-releases/news-release-details/incyte-corporation-join-nasdaq-100-index-beginning-october-7}}</ref> 
+|-
+|August 3, 2015
+|SWKS
+|[[Skyworks Solutions]]
+|
+|
+|[[Skyworks Solutions]] replaced Sigma-Aldrich in the index.<ref>{{cite web |date=July 29, 2015 |title=Skyworks Solutions, Inc. to Join the NASDAQ-100 Index Beginning August 3, 2015 |url=https://www.globenewswire.com/news-release/2015/07/30/756184/0/en/Skyworks-Solutions-Inc-to-Join-the-NASDAQ-100-Index-Beginning-August-3-2015.html |website=[[Globe Newswire]]}}</ref>
+|-
+|July 31, 2015
+|
+|
+|SIAL
+|[[Sigma-Aldrich]]
+|[[Sigma-Aldrich]] was acquired by [[Merck KGaA]].
+|-
+|July 29, 2015
+|JD
+|[[JD.com]]
+|
+|
+|JD.com replaced Catamaran Corporation in the index.<ref>{{Cite web |date=July 23, 2015 |title=JD.com, Inc. to Join the NASDAQ-100 Index Beginning July 29, 2015 |url=https://ir.nasdaq.com/news-releases/news-release-details/jdcom-inc-join-nasdaq-100-index-beginning-july-29-2015 |website=Nasdaq}}</ref>
+|-
+|July 27, 2015
+|BMRN
+|[[BioMarin Pharmaceutical]]
+|
+|
+|BioMarin replaced DirecTV in the index.<ref>{{Cite web |last= |first= |date=2015-07-27 |title=BioMarin Joins the NASDAQ-100 Index |url=https://www.globenewswire.com/news-release/2015/07/27/755186/18475/en/BioMarin-Joins-the-NASDAQ-100-Index.html |access-date=2025-06-04 |website=GlobeNewswire News Room}}</ref>
+|-
+|July 24, 2015
+|
+|
+|DTV
+|[[DirecTV]]
+|[[DirecTV]] was acquired by [[AT&T]].<ref>{{Cite news |last=Selyukh |first=Alina |date=2015-07-24 |title=AT&T, DirecTV complete merger to form biggest pay-TV company |url=https://www.reuters.com/article/technology/att-directv-complete-merger-to-form-biggest-pay-tv-company-idUSKCN0PY26L/ |access-date=2025-06-04 |work=Reuters}}</ref>
+|-
+|July 24, 2015
+|
+|
+|CTRX
+|[[Catamaran Corporation]]
+|Catamaran Corporation went private.<ref>{{Cite web |date=July 23, 2015 |title=Catamaran Corporation to be Removed From the NASDAQ-100 Index Beginning July 24, 2015 |url=https://ir.nasdaq.com/news-releases/news-release-details/catamaran-corporation-be-removed-nasdaq-100-index-beginning-july |website=Nasdaq}}</ref>
+|-
+|July 2, 2015
+|KHC
+|[[Kraft Heinz]]
+|KRFT
+|[[Kraft Foods]]
+|Kraft Foods merged with [[Heinz]], becoming [[Kraft Heinz]]
+|-
+|July 2, 2015
+|LILA
+|Liberty Latin America Class A
+|
+|
+|[[Liberty Interactive]] created two new tracking stocks, tracking the company's interests in Latin America.<ref name=":14">{{Cite web |date=July 1, 2015 |title=Liberty Global Launches LiLAC Tracking Stock |url=https://www.libertyglobal.com/pdf/press-release/Liberty-Global-LiLAC-Launch-FINAL.pdf}}</ref>
+|-
+|July 2, 2015
+|LILAK
+|Liberty Latin America Class C
+|
+|
+|[[Liberty Interactive]] created two new tracking stocks, tracking the company's interests in Latin America.<ref name=":14" />
+|-
+|March 23, 2015
+|WBA
+|[[Walgreens Boots Alliance]]
+|EQIX
+|[[Equinix]]
+|Equinix converted into a [[real estate investment trust]], making it ineligible for inclusion in the Nasdaq-100, but it became eligible for inclusion in the [[Nasdaq Financial-100]].<ref>{{Cite web |date=March 13, 2015 |title=Walgreens Boots Alliance, Inc. to Join the NASDAQ-100 Index Beginning March 23, 2015 |url=https://ir.nasdaq.com/news-releases/news-release-details/walgreens-boots-alliance-inc-join-nasdaq-100-index-beginning |website=Nasdaq}}</ref>
+|-
+|December 22, 2014
+|AAL
+|[[American Airlines Group]]
+|EXPE
+|[[Expedia Group]]
+|Annual index reconstitution.<ref name=":15">{{Cite press release |title=Annual Changes to the Nasdaq-100 Index |date=December 12, 2014 |publisher=[[Nasdaq]] |url=http://ir.nasdaq.com/releasedetail.cfm?releaseid=887518}}</ref>
+|-
+|December 22, 2014
+|EA
+|[[Electronic Arts]] 
+|FFIV
+|[[F5 Networks]]
+|Annual index reconstitution.<ref name=":15" />
+|-
+|December 22, 2014
+|LRCX
+|[[Lam Research]] 
+|MXIM
+|[[Maxim Integrated Products]]
+|Annual index reconstitution.<ref name=":15" />
+|-
+|December 22, 2014
+|CMCSA
+|[[Comcast]] Corporation Class A
+|
+|
+|[[Nasdaq|NASDAQ]] revised the index methodology allowing multiple share classes of index participants to be included.<ref name=":15" />
+|-
+|December 22, 2014
+|FOX
+|Twenty-First Century Fox, Inc. Class B
+|
+|
+|[[Nasdaq|NASDAQ]] revised the index methodology allowing multiple share classes of index participants to be included.<ref name=":15" />
+|-
+|December 22, 2014
+|LBTYK
+|Liberty Global PLC
+Class C
+|
+|
+|[[Nasdaq|NASDAQ]] revised the index methodology allowing multiple share classes of index participants to be included.<ref name=":15" />
+|-
+|April 3, 2014
+|GOOG
+|Google Class C
+|
+|
+|Class C common stock of [[Google]] was added to the index as a result of Google's stock split.<ref>{{Cite news |last=Hals |first=Tom |date=2013-06-17 |title=Google settlement clears way for new Class C stock |url=https://www.reuters.com/article/technology/google-settlement-clears-way-for-new-class-c-stock-idUSBRE95G0MU/ |access-date=2025-06-06 |work=Reuters}}</ref>
+|-
+|December 23, 2013
+|DISH
+|[[DISH Network Corporation]]
+|FOSL
+|[[Fossil Group]]
+|Annual index reconstitution.<ref name=":16">{{Cite press release |title=Annual Changes to the NASDAQ-100 Index |date=December 14, 2013 |publisher=[[GlobeNewswire]] |url=http://www.globenewswire.com/news-release/2013/12/14/596871/10061456/en/Annual-Changes-to-the-NASDAQ-100-Index.html}}</ref>
+|-
+|December 23, 2013
+|ILMN
+|[[Illumina (company)|Illumina]]
+|MCHP
+|[[Microchip Technology]]
+|Annual index reconstitution.<ref name=":16" />
+|-
+|December 23, 2013
+|NXPI
+|[[NXP Semiconductors]] 
+|NUAN
+|[[Nuance Communications]]
+|Annual index reconstitution.<ref name=":16" />
+|-
+|December 23, 2013
+|TRIP
+|[[TripAdvisor]]
+|SHLD
+|[[Sears Holdings]] 
+|Annual index reconstitution.<ref name=":16" />
+|-
+|December 23, 2013
+|TSCO
+|[[Tractor Supply Company]]
+|XRAY
+|[[Dentsply]]
+|Annual index reconstitution.<ref name=":16" />
+|-
+|November 18, 2013
+|MAR
+|[[Marriott International]]
+|GOLD
+|[[Randgold Resources]]
+|Randgold Resources did not meet the minimum monthly weight requirements.<ref>{{Cite press release |title=Marriott International to Join the NASDAQ-100 Index Beginning November 18, 2013 |date=Mar 25, 2025 |url=https://www.nasdaq.com/about/press-center/marriott-international-join-nasdaq-100-index-beginning-november-18-2013}}</ref>
+|-
+|October 29, 2013
+|VIP
+|[[VimpelCom]]
+|DELL
+|[[Dell]]
+|Dell Inc. was taken private.<ref>{{Cite news |date=2013-10-29 |title=Dell seals $24.9 billion buyout, delisting Tuesday |url=https://www.reuters.com/article/technology/dell-seals-249-billion-buyout-delisting-tuesday-idUSBRE99S0VQ/ |access-date=2025-06-06 |work=Reuters}}</ref>
+|-
+|August 22, 2013
+|GMCR
+|[[Green Mountain Coffee Roasters]]
+|LIFE
+|[[Life Technologies (Thermo Fisher Scientific)|Life Technologies]]
+|Life Technologies was in the process of merging with Thermo Fisher Scientific.<ref>{{cite web|url=https://ir.nasdaq.com/news-releases/news-release-details/green-mountain-coffee-roasters-inc-join-nasdaq-100-index-0|title=Green Mountain Coffee Roasters, Inc. to Join the NASDAQ-100 Index Beginning August 22, 2013|website=Ir.nasdaq.com|access-date=June 9, 2026}}</ref> 
+|-
+|July 25, 2013
+|CHTR
+|[[Charter Communications]]
+|BMC
+|[[BMC Software]]
+|[[BMC Software]] was taken private.
+|-
+|July 15, 2013
+|TSLA
+|[[Tesla Inc|Tesla Motors]]
+|ORCL
+|[[Oracle Corporation|Oracle]]
+|Oracle transferred its listing from NASDAQ to NYSE.<ref>{{Cite web |date=July 9, 2013 |title=Tesla Motors, Inc. to Join the NASDAQ-100 Index Beginning July 15, 2013 |url=https://www.nasdaq.com/about/press-center/tesla-motors-inc-join-nasdaq-100-index-beginning-july-15-2013 |website=Nasdaq}}</ref>
+|-
+|June 6, 2013
+|NFLX
+|[[Netflix]]
+|PRGO
+|[[Perrigo]]
+|Perrigo transferred its listing from NASDAQ to NYSE.<ref>{{Cite web |date=May 31, 2013 |title=Netflix, Inc. to Join the NASDAQ-100 Index Beginning June 6, 2013 |url=https://www.nasdaq.com/about/press-center/netflix-inc-join-nasdaq-100-index-beginning-june-6-2013 |website=Nasdaq}}</ref>
+|-
+|June 5, 2013
+|LMCA
+|[[Liberty Media]] 
+|VMED
+|[[Virgin Media]]
+|[[Virgin Media]] merged with [[Liberty Media]].<ref>{{Cite web |date=May 29, 2013 |title=Liberty Media Corporation to Join the NASDAQ-100 Index Beginning June 5, 2013 |url=https://ir.nasdaq.com/news-releases/news-release-details/liberty-media-corporation-join-nasdaq-100-index-beginning-june-5 |website=Nasdaq}}</ref>
+|-
+|March 18, 2013
+|KRFT
+|[[Kraft Foods]]
+|STRZA
+|[[Starz Inc.|Starz]]
+|Starz did not meet the minimum monthly weight requirements.<ref>{{Cite press release |title=KRAFT FOODS INC. TO JOIN THE NASDAQ-100 INDEX BEGINNING JULY 23, 2012 |date=July 13, 2012 |publisher=[[Nasdaq]] |url=https://ir.nasdaq.com/news-releases/news-release-details/kraft-foods-inc-join-nasdaq-100-index-beginning-july-23-2012}}</ref>
+|-
+|January 15, 2013
+|STRZA
+|[[Starz Inc.|Starz]]
+|LMCA
+|[[Liberty Media]] 
+|[[Starz Inc.|Starz]] replaced [[Liberty Media]] after a spinoff.<ref>{{Cite news |date=January 15, 2013 |title=Liberty Media Spins-off Starz |url=https://finance.yahoo.com/news/liberty-media-spins-off-starz-135852048.html |work=Yahoo! Finance}}</ref>
+|-
+|December 24, 2012
+|ADI
+|[[Analog Devices]] 
+|APOL
+|[[Apollo Group]]
+|Annual index reconstitution.<ref name=":17">{{Cite news |date=December 14, 2012 |title=Annual Changes to the NASDAQ-100 Index |url=https://ir.nasdaq.com/news-releases/news-release-details/annual-changes-nasdaq-100-index-1 |access-date= |work=Nasdaq}}</ref>
+|-
+|December 24, 2012
+|CTRX
+|[[Catamaran Corporation]]
+|EA
+|[[Electronic Arts]]
+|Annual index reconstitution.<ref name=":17" />
+|-
+|December 24, 2012
+|DISCA
+|[[Discovery Communications]]
+|FLEX
+|[[Flextronics]]
+|Annual index reconstitution.<ref name=":17" />
+|-
+|December 24, 2012
+|EQIX
+|[[Equinix]]
+|GMCR
+|[[Green Mountain Coffee Roasters]]
+|Annual index reconstitution.<ref name=":17" />
+|-
+|December 24, 2012
+|LBTYA
+|[[Liberty Global]]
+|LRCX
+|[[Lam Research]]
+|Annual index reconstitution.<ref name=":17" />
+|-
+|December 24, 2012
+|LMCA
+|[[Liberty Media]]
+|MRVL
+|[[Marvell Technology Group]]
+|Annual index reconstitution.<ref name=":17" />
+|-
+|December 24, 2012
+|REGN
+|[[Regeneron Pharmaceuticals]]
+|NFLX
+|[[Netflix]]
+|Annual index reconstitution.<ref name=":17" />
+|-
+|December 24, 2012
+|SBAC
+|[[SBA Communications]] 
+|RIMM
+|[[Research in Motion]]
+|Annual index reconstitution.<ref name=":17" />
+|-
+|December 24, 2012
+|VRSK
+|[[Verisk Analytics]] 
+|VRSN
+|[[VeriSign]]
+|Annual index reconstitution.<ref name=":17" />
+|-
+|December 24, 2012
+|WDC
+|[[Western Digital]]
+|WCRX
+|[[Warner Chilcott]]
+|Annual index reconstitution.<ref name=":17" />
+|-
+|December 12, 2012
+|META
+|[[Meta Platforms|Facebook, Inc.]]
+|INFY
+|[[Infosys]]
+|Infosys transferred its listing from NASDAQ to NYSE.<ref>{{Cite web |last= |first= |date=2012-12-05 |title=Facebook, Inc. to Join the NASDAQ-100 Index Beginning December 12, 2012 |url=https://www.globenewswire.com/news-release/2012/12/05/509523/6948/en/Facebook-Inc-to-Join-the-NASDAQ-100-Index-Beginning-December-12-2012.html |access-date=2025-06-20 |website=GlobeNewswire News Room}}</ref>
+|-
+|July 23, 2012
+|KFT
+|[[Kraft Foods Inc.|Kraft Foods]]
+|TCOM
+|[[Ctrip]]
+|Ctrip did not meet the minimum monthly weight requirements.<ref>{{Cite web |date=July 13, 2012 |title=Kraft Foods Inc. to Join the NASDAQ-100 Index Beginning July 23, 2012 |url=https://ir.nasdaq.com/news-releases/news-release-details/kraft-foods-inc-join-nasdaq-100-index-beginning-july-23-2012 |access-date=June 21, 2025 |website=Nasdaq}}</ref>
+|-
+|May 30, 2012
+|VIAB
+|[[Viacom (2005–present)|Viacom]]
+|TEVA
+|[[Teva Pharmaceutical Industries]]
+|Teva transferred its listing from NASDAQ to NYSE.<ref>{{Cite web |date=May 23, 2012 |title=Viacom Inc. to Join the NASDAQ-100 Index Beginning May 30, 2012 |url=https://ir.nasdaq.com/news-releases/news-release-details/viacom-inc-join-nasdaq-100-index-beginning-may-30-2012 |access-date=June 21, 2025 |website=Nasdaq}}</ref>
+|-
+|April 23, 2012
+|TXN
+|[[Texas Instruments]]
+|FSLR
+|[[First Solar]]
+|First Solar did not meet the minimum monthly weight requirements.<ref>{{Cite web |last= |first= |date=2012-04-14 |title=Texas Instruments Incorporated to Join the NASDAQ-100 Index Beginning April 23, 2012 |url=https://www.globenewswire.com/news-release/2012/04/14/473206/6948/en/Texas-Instruments-Incorporated-to-Join-the-NASDAQ-100-Index-Beginning-April-23-2012.html |access-date=2025-06-20 |website=GlobeNewswire News Room}}</ref>
+|-
+|December 19, 2011
+|AVGO
+|[[Broadcom|Avago Technologies]]
+|FLIR
+|[[FLIR Systems]]
+|Annual index reconstitution.<ref name=":18">{{Cite press release |title=Annual Changes to the NASDAQ-100 Index |date=December 9, 2011 |publisher=[[Nasdaq]] |url=https://ir.nasdaq.com/news-releases/news-release-details/annual-changes-nasdaq-100-index-0}}</ref>
+|-
+|December 19, 2011
+|FOSL
+|[[Fossil Group]]
+|ILMN
+|[[Illumina (company)|Illumina]]
+|Annual index reconstitution.<ref name=":18" />
+|-
+|December 19, 2011
+|MNST
+|[[Monster Beverage|Hansen Natural]]
+|NIHD
+|[[NII Holdings]]
+|Annual index reconstitution.<ref name=":18" />
+|-
+|December 19, 2011
+|NUAN
+|[[Nuance Communications]] 
+|QGEN
+|[[Qiagen]]
+|Annual index reconstitution.<ref name=":18" />
+|-
+|December 19, 2011
+|GOLD
+|[[Randgold Resources]]
+|URBN
+|[[Urban Outfitters]]
+|Annual index reconstitution.<ref name=":18" />
+|-
+|December 6, 2011
+|PRGO
+|[[Perrigo]] 
+|JOYG
+|[[Joy Global]]
+|Joy Global transferred its listing from NASDAQ to NYSE.<ref>{{Cite press release |title=Perrigo Company to Join the NASDAQ-100 Index Beginning December 6, 2011 |date=December 1, 2011 |publisher=[[Globe Newswire]] |url=https://www.globenewswire.com/fr/news-release/2011/12/02/462856/6948/en/Perrigo-Company-to-Join-the-NASDAQ-100-Index-Beginning-December-6-2011.html}}</ref> 
+|-
+|July 15, 2011
+|SIRI
+|[[Sirius XM Radio]]
+|CEPH
+|[[Cephalon (company)|Cephalon]]
+|Cephalon was acquired by [[Teva Pharmaceutical Industries]].<ref>{{Cite web |date=July 8, 2011 |title=Sirius XM Radio Inc. to Join the NASDAQ-100 Index Beginning July 15, 2011 |url=https://ir.nasdaq.com/news-releases/news-release-details/sirius-xm-radio-inc-join-nasdaq-100-index-beginning-july-15-2011 |access-date=June 21, 2025 |website=Nasdaq}}</ref>
+|-
+|May 27, 2011
+|GMCR
+|[[Green Mountain Coffee Roasters]]
+|MICC
+|[[Millicom International Cellular]]
+|Millicom consolidated its primary listing to NASDAQ OMX Stockholm, withdrawing the NASDAQ US listing.<ref>{{Cite web |date=2011-05-21 |title=Green Mountain Coffee Roasters, Inc. to Join the NASDAQ-100 Index Beginning May 27, 2011 |url=https://www.nbcnews.com/id/wbna43116732 |access-date=2025-06-21 |website=NBC News}}</ref><ref>{{Cite web |last=S.A |first=Millicom International Cellular |date=2011-04-19 |title=TO CONSOLIDATE ITS LISTING ON NASDAQ OMX STOCKHOLM |url=https://www.globenewswire.com/news-release/2011/04/19/211298/0/en/TO-CONSOLIDATE-ITS-LISTING-ON-NASDAQ-OMX-STOCKHOLM.html |access-date=2025-06-21 |website=GlobeNewswire News Room}}</ref>
+|-
+|April 4, 2011
+|ALXN
+|[[Alexion Pharmaceuticals]]
+|GENZ
+|[[Genzyme]]
+|Genzyme was acquired by [[Sanofi-Aventis]].<ref>{{Cite web |date=2011-03-30 |title=Alexion Pharmaceuticals, Inc. to Join the NASDAQ-100 Index Beginning April 4, 2011 |url=https://www.nbcnews.com/id/wbna42330659 |access-date=2025-06-21 |website=NBC News}}</ref>
+|-
+|December 20, 2010
+|AKAM
+|[[Akamai Technologies]]
+|CTAS
+|[[Cintas]]
+|Annual index reconstitution.<ref name=":19">{{Cite press release |title=Annual Changes to the NASDAQ-100 Index |date=December 10, 2010 |publisher=[[Nasdaq]] |url=https://ir.nasdaq.com/news-releases/news-release-details/annual-changes-nasdaq-100-index}}</ref>
+|-
+|December 20, 2010
+|TCOM
+|[[Ctrip]]
+|DISH
+|[[Dish Network]]
+|Annual index reconstitution.<ref name=":19" />
+|-
+|December 20, 2010
+|DLTR
+|[[Dollar Tree]]
+|FWLT
+|[[Foster Wheeler]]
+|Annual index reconstitution.<ref name=":19" />
+|-
+|December 20, 2010
+|FFIV
+|[[F5 Networks]]
+|HOLX
+|[[Hologic]]
+|Annual index reconstitution.<ref name=":19" />
+|-
+|December 20, 2010
+|MU
+|[[Micron Technology]]
+|JBHT
+|[[J. B. Hunt]]
+|Annual index reconstitution.<ref name=":19" />
+|-
+|December 20, 2010
+|NFLX
+|[[Netflix]]
+|LOGI
+|[[Logitech]]
+|Annual index reconstitution.<ref name=":19" />
+|-
+|December 20, 2010
+|WFM
+|[[Whole Foods Market]]
+|PDCO
+|[[Patterson Companies]]
+|Annual index reconstitution.<ref name=":19" />
+|-
+|December 21, 2009
+|VOD
+|[[Vodafone]]
+|AKAM
+|[[Akamai Technologies]]
+|Annual index reconstitution.<ref name=":20">{{Cite news |date=December 11, 2009 |title=NASDAQ Announces the Annual Re-Ranking of the NASDAQ-100 Index |url=https://ir.nasdaq.com/news-releases/news-release-details/nasdaq-announces-annual-re-ranking-nasdaq-100-index-3 |website=Nasdaq}}</ref>
+|-
+|December 21, 2009
+|MAT
+|[[Mattel]]
+|HANS
+|[[Hansen Natural]]
+|Annual index reconstitution.<ref name=":20" />
+|-
+|December 21, 2009
+|BMC
+|[[BMC Software]]
+|IACI
+|[[IAC/InterActiveCorp]] 
+|Annual index reconstitution.<ref name=":20" />
+|-
+|December 21, 2009
+|MYL
+|[[Mylan]]
+|LBTYA
+|[[Liberty Global]]
+Class A
+|Annual index reconstitution.<ref name=":20" />
+|-
+|December 21, 2009
+|QGEN
+|[[Qiagen]]
+|PPDI
+|[[Pharmaceutical Product Development]]
+|Annual index reconstitution.<ref name=":20" />
+|-
+|December 21, 2009
+|SNDK
+|[[SanDisk]]
+|RYAAY
+|[[Ryanair]]
+|Annual index reconstitution.<ref name=":20" />
+|-
+|December 21, 2009
+|VMED
+|[[Virgin Media]]
+|STLD
+|[[Steel Dynamics]]
+|Annual index reconstitution.<ref name=":20" />
+|-
+|October 29, 2009
+|PCLN
+|[[Priceline.com]]
+|JNPR
+|[[Juniper Networks]]
+|Joy Global transferred its listing from NASDAQ to NYSE.<ref>{{Cite press release |title=Priceline.com Incorporated to Join the Nasdaq-100 Index Beginning October 29, 2009 |date=October 22, 2009 |publisher=[[Nasdaq]] |url=https://ir.nasdaq.com/news-releases/news-release-details/pricelinecom-incorporated-join-nasdaq-100-index-beginning}}</ref>
+|-
+|July 17, 2009
+|CERN
+|[[Cerner]]
+|JAVA
+|[[Sun Microsystems]]
+|Sun Microsystems was acquired by [[Oracle Corporation|Oracle]].<ref>{{Cite web |date=Jul 10, 2009 |title=Cerner Corporation to Join the NASDAQ-100 Index Beginning July 17, 2009 |url=https://ir.nasdaq.com/news-releases/news-release-details/cerner-corporation-join-nasdaq-100-index-beginning-july-17-2009 |website=Nasdaq}}</ref>
+|-
+|January 20, 2009
+|NWSA
+|[[News Corporation]]
+Class A
+|FMCN
+|[[Focus Media Holding]]
+|Focus Media did not meet the minimum monthly weight requirements.<ref>{{Cite press release |title=NEWS CORPORATION TO JOIN THE NASDAQ-100 INDEX BEGINNING JANUARY 20, 2009 |date=January 12, 2009 |publisher=[[Nasdaq]] |url=https://ir.nasdaq.com/news-releases/news-release-details/news-corporation-join-nasdaq-100-index-beginning-january-20-2009}}</ref> 
+|-
+|December 22, 2008
+|ADP
+|[[Automatic Data Processing]]
+|AMLN
+|[[Amylin Pharmaceuticals]]
+|Annual index reconstitution.<ref name=":21">{{Cite press release |title=NASDAQ ANNOUNCES THE ANNUAL RE-RANKING OF THE NASDAQ-100 INDEX |date=December 12, 2008 |publisher=[[Nasdaq]] |url=https://ir.nasdaq.com/news-releases/news-release-details/nasdaq-announces-annual-re-ranking-nasdaq-100-index-2}}</ref>
+|-
+|December 22, 2008
+|FSLR
+|[[First Solar]]
+|CDNS
+|[[Cadence Design Systems]]
+|Annual index reconstitution.<ref name=":21" />
+|-
+|December 22, 2008
+|LIFE
+|[[Life Technologies (Thermo Fisher Scientific)|Life Technologies]]
+|DISCA
+|[[Discovery Communications]]
+Class A
+|Annual index reconstitution.<ref name=":21" />
+|-
+|December 22, 2008
+|ROST
+|[[Ross Stores]]
+|LAMR
+|[[Lamar Advertising Company]]
+|Annual index reconstitution.<ref name=":21" />
+|-
+|December 22, 2008
+|MXIM
+|[[Maxim Integrated Products]]
+|LEAP
+|[[Leap Wireless International]]
+|Annual index reconstitution.<ref name=":21" />
+|-
+|December 22, 2008
+|ILMN
+|[[Illumina (company)|Illumina]]
+|LVLT
+|[[Level 3 Communications]]
+|Annual index reconstitution.<ref name=":21" />
+|-
+|December 22, 2008
+|PPDI
+|[[Pharmaceutical Product Development]]
+|PETM
+|[[PetSmart]]
+|Annual index reconstitution.<ref name=":21" />
+|-
+|December 22, 2008
+|ORLY
+|[[O'Reilly Auto Parts]]
+|SIRI
+|[[Sirius XM Radio]]
+|Annual index reconstitution.<ref name=":21" />
+|-
+|December 22, 2008
+|URBN
+|[[Urban Outfitters]]
+|SNDK
+|[[SanDisk]]
+|Annual index reconstitution.<ref name=":21" />
+|-
+|December 22, 2008
+|JBHT
+|[[J. B. Hunt]]
+|VMED
+|[[Virgin Media]]
+|Annual index reconstitution.<ref name=":21" />
+|-
+|December 22, 2008
+|WCRX
+|[[Warner Chilcott]]
+|WFMI
+|[[Whole Foods Market]]
+|Annual index reconstitution.<ref name=":21" />
+|-
+|November 10, 2008
+|STX
+|[[Seagate Technology]]
+|MNST
+|[[Monster Worldwide]]
+|Monster did not meet the minimum monthly weighting requirements.<ref>{{Cite press release |title=Seagate Technology to Join the NASDAQ-100 Index Beginning November 10, 2008 |date=November 3, 2008 |publisher=[[GlobeNewswire]] |url=https://www.globenewswire.com/fr/news-release/2008/11/04/387654/6948/en/Seagate-Technology-to-Join-the-NASDAQ-100-Index-Beginning-November-10-2008.html}}</ref> 
+|-
+|July 21, 2008
+|FLIR
+|[[FLIR Systems]]
+|UAUA
+|[[UAL Corporation]]
+|UAL did not meet the minimum monthly weighting requirements.<ref>{{Cite press release |title=FLIR Systems, Inc. to Join the NASDAQ-100 Index Beginning July 21, 2008 |date=July 14, 2008 |publisher=[[Globe Newswire]] |url=https://www.globenewswire.com/news-release/2008/07/15/381295/146336/en/FLIR-Systems-Inc-to-Join-the-NASDAQ-100-Index-Beginning-July-21-2008.html}}</ref> 
+|-
+|May 19, 2008
+|CA
+|[[CA Technologies]]
+|TLAB
+|[[Tellabs]] 
+|Tellabs did not meet the minimum monthly weighting requirements.<ref>{{Cite press release |title=CA, Inc. to Join the NASDAQ-100 Index Beginning May 19, 2008 |date=May 12, 2008 |publisher=[[GlobeNewswire]] |url=https://www.globenewswire.com/fr/news-release/2008/05/13/378195/142560/en/CA-Inc-to-Join-the-NASDAQ-100-Index-Beginning-May-19-2008.html}}</ref> 
+|-
+|April 30, 2008
+|DTV
+|[[DirecTV]]
+|BEAS
+|[[BEA Systems]] 
+|BEA Systems was acquired by Oracle.<ref>{{Cite press release |title=The DIRECTV Group, Inc. to Join the NASDAQ-100 Index Beginning April 30, 2008 |date=April 22, 2008 |publisher=[[GlobeNewswire]] |url=https://www.globenewswire.com/news-release/2008/04/23/376810/6948/en/The-DIRECTV-Group-Inc-to-Join-the-NASDAQ-100-Index-Beginning-April-30-2008.html}}</ref>
+|-
+|December 24, 2007
+|HOLX
+|[[Hologic]]
+|ERIC
+|[[LM Ericsson]]
+|Annual index reconstitution.<ref name=":22">{{Cite web |date=Dec 14, 2007 |title=NASDAQ Announces the Annual Re-Ranking of the NASDAQ-100 Index |url=https://ir.nasdaq.com/news-releases/news-release-details/nasdaq-announces-annual-re-ranking-nasdaq-100-index-1 |website=Nasdaq}}</ref>
+|-
+|December 24, 2007
+|FMCN
+|[[Focus Media]]
+|PTEN
+|[[Patterson-UTI Energy]]
+|Annual index reconstitution.<ref name=":22" />
+|-
+|December 24, 2007
+|HANS
+|[[Hansen Natural]]
+|ROST
+|[[Ross Stores]]
+|Annual index reconstitution.<ref name=":22" />
+|-
+|December 24, 2007
+|STLD
+|[[Steel Dynamics]]
+|SEPR
+|[[Sepracor]]
+|Annual index reconstitution.<ref name=":22" />
+|-
+|December 24, 2007
+|SRCL
+|[[Stericycle]]
+|XMSR
+|[[XM Satellite Radio]]
+|Annual index reconstitution.<ref name=":22" />
+|-
+|December 4, 2007
+|BIDU
+|[[Baidu.com|Baidu.com, Inc.]]
+|CKFR
+|[[CheckFree|CheckFree Corporation]]
+|CheckFree was acquired by [[Fiserv]].<ref>{{Cite web |date=Dec 4, 2007 |title=Baidu.com, Inc. to Join the NASDAQ-100 Index Beginning December 4, 2007 |url=https://ir.nasdaq.com/news-releases/news-release-details/baiducom-inc-join-nasdaq-100-index-beginning-december-4-2007 |website=Nasdaq}}</ref>
+|-
+|October 8, 2007
+|LEAP
+|[[Leap Wireless International]]
+|CDWC
+|[[CDW Corporation]]
+|CDW was taken private.<ref>{{Cite web |last= |first= |date=2007-10-03 |title=Leap Wireless International, Inc. to Join the NASDAQ-100 Index Beginning October 8, 2007 |url=https://www.globenewswire.com/news-release/2007/10/03/366533/6948/en/Leap-Wireless-International-Inc-to-Join-the-NASDAQ-100-Index-Beginning-October-8-2007.html |access-date=2025-06-23 |website=GlobeNewswire News Room |language=en-us}}</ref>
+|-
+|August 27, 2007
+|VMED
+|[[Virgin Media]]
+|NLTI
+|[[NTL Incorporated]]
+|NTL Incorporated was merged into Virgin Media.<ref>{{Cite web |date= |title=Ntl Inc : NTL Completes Acquisition of Virgin Mobile |url=https://www.marketscreener.com/quote/stock/VIRGIN-MEDIA-INC-4898/news/Ntl-Inc-NTL-Completes-Acquisition-of-Virgin-Mobile-217673/ |access-date=2025-06-23 |website=Marketscreener.com |language=en-US}}</ref>
+|-
+|July 12, 2007
+|FWLT
+|[[Foster Wheeler]]
+|BMET
+|[[Biomet]]
+|Biomet was taken private.<ref>{{Cite web |title=Foster Wheeler, Ltd. to Join the NASDAQ-100 Index Beginning July 12, 2007 |url=https://www.nasdaq.com/about/press-center/foster-wheeler-ltd-join-nasdaq-100-index-beginning-july-12-2007 |archive-url=https://web.archive.org/web/20210616111544/https://www.nasdaq.com/about/press-center/foster-wheeler-ltd-join-nasdaq-100-index-beginning-july-12-2007 |archive-date=2021-06-16 |access-date=2025-06-23 |website=Nasdaq.com |language=en}}</ref>
+|-
+|June 1, 2007
+|CEPH
+|[[Cephalon (company)|Cephalon]]
+|MEDI
+|[[MedImmune]]
+|MedImmune was acquired by [[AstraZeneca]].<ref>{{Cite web |date=2007-05-31 |title=Cephalon, Inc. to Join the NASDAQ-100 Index Beginning June 1, 2007 |url=https://www.globenewswire.com/news-release/2007/05/31/360625/6948/en/Cephalon-Inc-to-Join-the-NASDAQ-100-Index-Beginning-June-1-2007.html |access-date=2025-06-23 |website=GlobeNewswire News Room |language=en-us}}</ref>
+|-
+|March 8, 2007
+|UAUA
+|[[UAL Corporation]]
+|AEOS
+|[[American Eagle Outfitters]]
+|American Eagle Outfitters transferred its listing from NASDAQ to NYSE.<ref>{{Cite web |date=2007-02-06 |title=American Eagle Outfitters Plans NYSE Listing |url=https://www.sec.gov/Archives/edgar/data/919012/000091901207000008/nyse8kexhibit.htm |website=Sec.gov}}</ref><ref>{{Cite web |title=UAL Corporation to Join the NASDAQ-100 Index Beginning March 8, 2007 |url=https://www.nasdaq.com/about/press-center/ual-corporation-join-nasdaq-100-index-beginning-march-8-2007 |archive-url=https://web.archive.org/web/20210621224415/https://www.nasdaq.com/about/press-center/ual-corporation-join-nasdaq-100-index-beginning-march-8-2007 |archive-date=2021-06-21 |access-date=2025-06-23 |website=Nasdaq.com |language=en}}</ref>
+|-
+|February 14, 2007
+|RYAAY
+|[[Ryanair]]
+|APCC
+|[[American Power Conversion]]
+|APC was acquired by [[Schneider Electric]].<ref>{{Cite web |date=2007-02-12 |title=Ryanair Holdings plc to Join the NASDAQ-100 Index Beginning February 14, 2007 |url=https://www.globenewswire.com/news-release/2007/02/12/354997/6948/en/Ryanair-Holdings-plc-to-Join-the-NASDAQ-100-Index-Beginning-February-14-2007.html |access-date=2025-06-23 |website=GlobeNewswire.com|language=en-us}}</ref>
+|-
+|February 1, 2007
+|LOGI
+|[[Logitech]]
+|CMVT
+|[[Comverse Technology]]
+|Comverse did not meet the minimum monthly weighting requirements.<ref>{{Cite web |date=2007-01-31 |title=Logitech International SA to Join the NASDAQ-100 Index Beginning February 1, 2007 |url=https://ir.nasdaq.com/news-releases/news-release-details/logitech-international-sa-join-nasdaq-100-index-beginning |website=Nasdaq}}</ref>
+|}
+
+==References==
+{{Reflist}}
+
+==External links==
+* {{official website|https://www.nasdaq.com/nasdaq-100}}
+* [https://www.nasdaq.com/market-activity/quotes/Nasdaq-100-Index-Components Components]
+* [https://www.nasdaq.com/market-activity/indexes Nasdaq Stock Market Indices]
+
+{{Nasdaq-100}}
+{{Nasdaqomx}}{{Stock Market Indices}}{{Stock market indexes}}
+{{North and South American Stock market indices}}
+
+[[Category:1985 establishments in the United States]]
+[[Category:American stock market indices]]
+[[Category:Nasdaq]]
+[[Category:Companies in the Nasdaq-100| ]]
