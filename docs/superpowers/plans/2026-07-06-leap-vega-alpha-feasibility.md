@@ -15,6 +15,11 @@
 - **DB isolation env** — all DB-touching commands run with `UW_SCAN_DB_HOST=100.66.147.98 UW_SCAN_DB_NAME=option_wizard UW_SCAN_ALLOW_DB_MISMATCH=1` (mini, prodlike). `Settings.from_env()` requires a `UW_SCAN_API_KEY` present via `.env`/`.env.local` — copy both from the main checkout (gitignored) into the worktree before running; the key only satisfies a config presence guard (no UW calls made).
 - **Persist every trace** — full result set (every config × every metric) lands as committed CSVs under `docs/research/leap-vega-alpha/`, plus the exact reproduce command in the verdict doc. stdout-only is data loss.
 - **Single-regime caveat is load-bearing** — history is ~6 months / one regime (2025-12-26 → 2026-07-02, 129 dates). The verdict doc must state up front that this validates a short-horizon proxy, **not** hold-to-expiry harvest, and a Stage-1 pass is a "wait for more history" green light, not a deploy signal.
+- **Methodology hygiene (primary metric is cross-sectional, not pooled)** — three traps this plan must not fall into, all consequences of 6-month/single-regime data:
+  1. **Regime-drift + ticker-identity confound.** If IV generally rose over the sample, *every* contract's forward ΔIV skews positive → pooled `hit_rate > 0.5` and positive pooled `rank_ic` appear for **any** signal, including noise. **The primary metric is therefore a Fama-MacBeth cross-sectional IC**: within each (entry date, horizon) cohort, correlate gap vs forward ΔIV across names, then average across dates. The common vol move cancels within-date. But FM still does **not** neutralize *persistent ticker/asset-class identity* (a name that always carries a wide gap and whose IV always rises) — so the gate runs on a **single-name-only** panel, with a **leave-one-ticker-out** floor (`loo_min_ic_sn`, signal must survive dropping any one ticker) and ETFs reported **separately** (ETF IV/HV/VRP dynamics differ structurally). Pooled and ETF metrics are context, never the gate.
+  2. **Overlapping-window autocorrelation.** 129 daily entries each with a 20/40-day forward window means consecutive observations share ~95% of their forward path and near-identical gaps → pooled `n` is inflated ~20–40×; effective sample is tiny. Mitigations: (a) the Fama-MacBeth framing treats each date as one observation; (b) report the FM t-stat over dates (autocorrelation across the overlapping dates still inflates it — state this explicitly, do not claim significance the data can't support); (c) a **non-overlapping sensitivity** run (entries spaced ≥ h apart per contract) is the honest sample-size floor.
+  3. **No look-ahead.** HV is computed through the entry date's close; IV is the entry date's EOD snapshot (capture job runs 19:00 ET, after close); forward IV is entry+h EOD. All three are EOD-consistent — no future data leaks. Keep it that way.
+- **The gate is exact, single-name, and non-overlap-binding** — a threshold **passes** (for a given horizon) iff, on the **single-name** panel, all four hold: `fm_ic_sn > 0`; its non-overlapping counterpart `fm_ic_sn_nonoverlap > 0` (**the binding significance** — near-independent dates; the overlapping FM t is autocorrelation-inflated and stays descriptive only); `loo_min_ic_sn > 0`; and `fm_mean_diff_harvest > 0`. **Signal** = ≥3 of the 4 thresholds pass in **each** horizon. **Stage 2** then uses the *lowest* threshold that passes in both horizons; if none, no Stage 2. Pooled hit-rate/rank-IC and the ETF panel are context, never the gate. (Newey-West/block-bootstrap over the overlapping IC series is the significance upgrade path if this ever productionizes — out of scope for a spike, where the non-overlap run is the honest floor.)
 - **No observed NBBO** — the grid carries IV + greeks but no bid/ask, and no historical LEAP NBBO exists. Stage 2 cost is therefore **modeled via break-even**, never a fabricated observed spread.
 - **Units decimal** — grid `call_iv`/`put_iv` are decimal (e.g. `0.177`). HV is computed decimal (`0.30` = 30%). Gap thresholds are decimal: {0.10, 0.15, 0.20, 0.25}. Report vol points = decimal × 100.
 - **Greek convention** — per repo CLAUDE.md the grid stores IB-native greeks rescaled to BS convention (**vega ×100** = per 1.00 decimal-vol move; **theta ×365** = per calendar year). Stage 2 must verify this empirically against one contract before trusting the P&L decomposition (see Task 5, Step 1).
@@ -28,8 +33,8 @@
 
 | File | Responsibility |
 |---|---|
-| `scripts/research/leap_vega_alpha.py` (create) | Pure library: `realized_vol`, `atm_iv`, `entry_gap`, `stage1_metrics`. No I/O. Unit-tested. |
-| `tests/unit/test_leap_vega_alpha.py` (create) | Unit tests for the four pure functions. |
+| `scripts/research/leap_vega_alpha.py` (create) | Pure library: `realized_vol`, `atm_iv`, `entry_gap`, `stage1_metrics` (pooled, confounded), `cross_sectional_ic` (Fama-MacBeth, primary). No I/O. Unit-tested. |
+| `tests/unit/test_leap_vega_alpha.py` (create) | Unit tests for the five pure functions. |
 | `scripts/research/leap_convergence_probe.py` (create) | Stage 1 runner: DB + apex → per-(ticker,expiry,date) gap + forward ΔIV; writes traces; prints summary; makes the kill decision. |
 | `scripts/research/leap_pnl_probe.py` (create, GATED) | Stage 2 runner: forward P&L decomposition + break-even spread. Only built if Stage 1 lives. |
 | `docs/research/leap-vega-alpha/README.md` (create) | Stage 1 verdict (convergence gate). |
@@ -83,8 +88,8 @@ Expected: FAIL with `ModuleNotFoundError` / `ImportError: cannot import name 're
 # scripts/research/leap_vega_alpha.py
 """Pure library for the LEAP vega-alpha feasibility spike (read-only research).
 
-realized_vol / atm_iv / entry_gap / stage1_metrics — no I/O, unit-tested.
-Consumed by scripts/research/leap_convergence_probe.py (Stage 1) and
+realized_vol / atm_iv / entry_gap / stage1_metrics / cross_sectional_ic — no I/O,
+unit-tested. Consumed by scripts/research/leap_convergence_probe.py (Stage 1) and
 leap_pnl_probe.py (Stage 2). Reuses forward_from_delta from svi_fit.
 """
 
@@ -127,7 +132,7 @@ git commit -m "feat(leap): realized-vol utility for vega-alpha spike"
 **Interfaces:**
 - Consumes: `realized_vol` (Task 1); `forward_from_delta` from `scripts.research.svi_fit`.
 - Produces:
-  - `atm_iv(rows: list[dict]) -> float | None` — IV at the money. `rows` each have `strike`, `call_iv`, `call_delta`. Picks the strike whose `call_delta` is nearest 0.5 and returns its `call_iv`; `None` if no usable row.
+  - `atm_iv(rows: list[dict], max_delta_dist: float = 0.10) -> float | None` — IV at the money, **linearly interpolated at `call_delta == 0.5`** (consistent with the SVI `forward_from_delta` anchor — avoids strike-grid jitter on coarse LEAP chains). Falls back to the nearest-0.5-delta strike's `call_iv` only when no bracketing pair straddles 0.5, and returns `None` if that nearest delta is farther than `max_delta_dist` from 0.5. `rows` each have `strike`, `call_iv`, `call_delta`.
   - `entry_gap(hv20: float | None, hv60: float | None, atm: float | None) -> float | None` — `max(hv20, hv60) - atm`; `None` if `atm` is None or both HVs are None.
 
 - [ ] **Step 1: Write the failing test**
@@ -137,13 +142,23 @@ git commit -m "feat(leap): realized-vol utility for vega-alpha spike"
 from scripts.research.leap_vega_alpha import atm_iv, entry_gap
 
 
-def test_atm_iv_picks_nearest_half_delta():
+def test_atm_iv_interpolates_at_half_delta():
     rows = [
-        {"strike": 90.0, "call_iv": 0.40, "call_delta": 0.80},
-        {"strike": 100.0, "call_iv": 0.30, "call_delta": 0.52},  # nearest 0.5
-        {"strike": 110.0, "call_iv": 0.35, "call_delta": 0.20},
+        {"strike": 95.0, "call_iv": 0.32, "call_delta": 0.55},
+        {"strike": 105.0, "call_iv": 0.30, "call_delta": 0.45},
+        {"strike": 130.0, "call_iv": 0.50, "call_delta": 0.10},
     ]
-    assert atm_iv(rows) == pytest.approx(0.30)
+    # linear interp between (δ0.45, iv0.30) and (δ0.55, iv0.32) at δ=0.5 -> 0.31
+    assert atm_iv(rows) == pytest.approx(0.31, abs=1e-6)
+
+
+def test_atm_iv_rejects_far_from_half_delta():
+    # no strike brackets 0.5 and the nearest (δ0.30) is >0.10 away -> None
+    rows = [
+        {"strike": 120.0, "call_iv": 0.40, "call_delta": 0.30},
+        {"strike": 140.0, "call_iv": 0.50, "call_delta": 0.15},
+    ]
+    assert atm_iv(rows) is None
 
 
 def test_atm_iv_none_when_no_delta():
@@ -169,16 +184,25 @@ Expected: FAIL with `ImportError: cannot import name 'atm_iv'`.
 # append to scripts/research/leap_vega_alpha.py
 
 
-def atm_iv(rows: list[dict]) -> float | None:
-    """IV at the strike whose call_delta is nearest 0.5 (ATM proxy)."""
-    usable = [
-        r for r in rows
+def atm_iv(rows: list[dict], max_delta_dist: float = 0.10) -> float | None:
+    """ATM IV linearly interpolated at call_delta==0.5 (matches forward_from_delta).
+
+    Interpolation kills the strike-grid jitter that a nearest-strike pick suffers on
+    coarse LEAP chains. Falls back to the nearest-0.5-delta strike only when no pair
+    brackets 0.5, and returns None if that nearest delta is > max_delta_dist away.
+    """
+    pts = sorted(
+        (float(r["call_delta"]), float(r["call_iv"]))
+        for r in rows
         if r.get("call_delta") is not None and r.get("call_iv") is not None
-    ]
-    if not usable:
+    )
+    if not pts:
         return None
-    best = min(usable, key=lambda r: abs(float(r["call_delta"]) - 0.5))
-    return float(best["call_iv"])
+    for (d0, iv0), (d1, iv1) in zip(pts, pts[1:]):  # bracket 0.5 -> interp in delta
+        if (d0 - 0.5) * (d1 - 0.5) <= 0.0 and d0 != d1:
+            return iv0 + (0.5 - d0) / (d1 - d0) * (iv1 - iv0)
+    d_near, iv_near = min(pts, key=lambda p: abs(p[0] - 0.5))
+    return iv_near if abs(d_near - 0.5) <= max_delta_dist else None
 
 
 def entry_gap(hv20: float | None, hv60: float | None, atm: float | None) -> float | None:
@@ -194,7 +218,7 @@ def entry_gap(hv20: float | None, hv60: float | None, atm: float | None) -> floa
 - [ ] **Step 4: Run test to verify it passes**
 
 Run: `uv run pytest tests/unit/test_leap_vega_alpha.py -v`
-Expected: 6 passed.
+Expected: 7 passed.
 
 - [ ] **Step 5: Commit**
 
@@ -218,7 +242,8 @@ git commit -m "feat(leap): ATM-IV extractor + entry-gap"
   - `baseline_mean_div` = mean ΔIV over all pairs (unconditional control),
   - flagged = subset with `gap >= threshold`,
   - `hit_rate` = fraction of flagged with `d_iv > 0`.
-  NaNs where a stat is undefined (e.g. `flagged_n == 0`).
+  NaNs where a stat is undefined (e.g. `flagged_n == 0`). **This is the confounded pooled secondary metric** — regime drift inflates `rank_ic`/`hit_rate` (see Global Constraints). Reported for context, not for the gate.
+- Produces: `cross_sectional_ic(records: Sequence[dict], threshold: float) -> dict` — the **primary** Fama-MacBeth metric. `records` each have `market_date`, `gap`, `d_iv` (caller pre-filters to one horizon). Groups by `market_date`; per date computes cross-sectional Spearman(gap, d_iv) across names and the within-date differential harvest (mean `d_iv` of flagged minus that date's cross-sectional mean `d_iv`); averages across dates. Returns `{"n_dates": int, "mean_ic": float, "ic_t_stat": float, "mean_diff_harvest": float}` with `ic_t_stat = mean_ic / (std_ic / sqrt(n_dates))`. **Autocorrelation across the overlapping dates still inflates this t — the verdict doc must say so; treat |t|≥2 as necessary-not-sufficient.**
 
 - [ ] **Step 1: Write the failing test**
 
@@ -243,6 +268,24 @@ def test_stage1_metrics_no_flagged():
     m = stage1_metrics([0.01, 0.02], [0.0, 0.0], threshold=0.15)
     assert m["flagged_n"] == 0
     assert np.isnan(m["hit_rate"])
+
+
+def test_cross_sectional_ic_within_date():
+    from scripts.research.leap_vega_alpha import cross_sectional_ic
+    # Two dates; within EACH date gap-rank matches ΔIV-rank -> per-date IC=1.
+    # A whole-sample positive drift would NOT change this (that's the point).
+    recs = [
+        {"market_date": "2026-01-05", "gap": 0.05, "d_iv": 0.00},
+        {"market_date": "2026-01-05", "gap": 0.20, "d_iv": 0.03},
+        {"market_date": "2026-01-05", "gap": 0.30, "d_iv": 0.05},
+        {"market_date": "2026-01-06", "gap": 0.02, "d_iv": -0.01},
+        {"market_date": "2026-01-06", "gap": 0.18, "d_iv": 0.02},
+        {"market_date": "2026-01-06", "gap": 0.25, "d_iv": 0.04},
+    ]
+    m = cross_sectional_ic(recs, threshold=0.15)
+    assert m["n_dates"] == 2
+    assert m["mean_ic"] == pytest.approx(1.0)
+    assert m["mean_diff_harvest"] > 0   # flagged names beat their same-date peers
 ```
 
 - [ ] **Step 2: Run test to verify it fails**
@@ -273,12 +316,44 @@ def stage1_metrics(gaps, d_ivs, threshold: float) -> dict:
         "flagged_mean_div": float(d[flagged].mean()) if fn else float("nan"),
         "hit_rate": float((d[flagged] > 0).mean()) if fn else float("nan"),
     }
+
+
+def cross_sectional_ic(records, threshold: float) -> dict:
+    """Fama-MacBeth primary metric: per-date cross-sectional IC + within-date
+    differential harvest, averaged across dates. Cancels the regime-common IV move."""
+    from collections import defaultdict
+
+    by_date: dict = defaultdict(list)
+    for r in records:
+        by_date[r["market_date"]].append(r)
+    ics, diffs = [], []
+    for recs in by_date.values():
+        g = np.array([x["gap"] for x in recs], dtype=float)
+        d = np.array([x["d_iv"] for x in recs], dtype=float)
+        if g.size >= 2 and np.std(g) > 0 and np.std(d) > 0:
+            ics.append(float(spearmanr(g, d).statistic))
+        flagged = g >= threshold
+        if flagged.any():
+            diffs.append(float(d[flagged].mean() - d.mean()))  # demeaned within date
+    ic = np.array(ics, dtype=float)
+    df = np.array(diffs, dtype=float)
+    t = (
+        float(ic.mean() / (ic.std(ddof=1) / np.sqrt(ic.size)))
+        if ic.size >= 2 and ic.std(ddof=1) > 0
+        else float("nan")
+    )
+    return {
+        "n_dates": int(ic.size),
+        "mean_ic": float(ic.mean()) if ic.size else float("nan"),
+        "ic_t_stat": t,
+        "mean_diff_harvest": float(df.mean()) if df.size else float("nan"),
+    }
 ```
 
 - [ ] **Step 4: Run test to verify it passes**
 
 Run: `uv run pytest tests/unit/test_leap_vega_alpha.py -v`
-Expected: 8 passed.
+Expected: 10 passed.
 
 - [ ] **Step 5: Commit**
 
@@ -307,7 +382,9 @@ git commit -m "feat(leap): Stage-1 convergence metrics (rank-IC + flagged stats)
 - **ATM contract:** per (ticker, expiry, entry date) load grid rows, clip to `call_delta ∈ [0.05, 0.95]` (reuse the SVI delta band — kills junk deep-wing marks), pick the ATM strike via `atm_iv` and record that exact strike. Forward ΔIV = same (ticker, expiry, strike)'s `call_iv` at entry+h minus at entry.
 - **HV:** fetch each ticker's daily closes once from apex `/bars/{ticker}?timeframe=1d&start=<entry_min-100d>&end=<entry_max>`; compute `realized_vol(closes_up_to_entry, 20)` and `(…, 60)` as of each entry date. apex history predates the surface window, so HV60 is available even for early entries.
 - **Sanity gates that must print (fail loud, don't silently proceed):** (a) HV and IV both decimal and in a plausible band (0.05–3.0); (b) forward ΔIV distribution not degenerate (std > 0); (c) ≥ 200 aligned (entry, h) pairs or the run is under-powered — log it.
-- **Kill decision:** for each `h` and threshold in {0.10,0.15,0.20,0.25}, print `stage1_metrics`. Signal = flagged `hit_rate` materially > 0.5 **and** positive `rank_ic` **and** `flagged_mean_div > baseline_mean_div`, consistently across thresholds. Otherwise the gate FAILS → write the negative README, do **not** proceed to Stage 2.
+- **Kill decision:** apply the exact gate from Global Constraints ("The gate is exact, single-name, and non-overlap-binding"). One line: on the **single-name** panel a threshold passes iff `fm_ic_sn > 0 AND fm_ic_sn_nonoverlap > 0 AND loo_min_ic_sn > 0 AND fm_mean_diff_harvest > 0`; **signal** = ≥3/4 thresholds pass in **each** horizon; **Stage 2** uses the lowest threshold passing in both horizons. Pooled/ETF/hit-rate columns are printed for context only. Fail → negative README, no Stage 2.
+- **Non-overlap is computed inline, not re-run:** `fm_ic_sn_nonoverlap` (single-name entries with `entry_idx % h == 0`, so no two share a forward window) is the **binding** significance number in the gate above. The overlapping single-name FM t (`fm_t_sn`) is descriptive only — autocorrelation-inflated.
+- **HV data-consistency guard (codex #9):** apex `/bars` closes and the grid IV come from different vendors. Document whether apex closes are split/dividend-adjusted in the verdict, and drop any HV window containing a `|1-day log-return| > 0.35` (a likely unadjusted split artifact) — log how many entries this removes.
 
 - [ ] **Step 1: Write the probe runner**
 
@@ -335,7 +412,13 @@ import httpx
 import numpy as np
 import psycopg
 
-from scripts.research.leap_vega_alpha import atm_iv, entry_gap, realized_vol, stage1_metrics
+from scripts.research.leap_vega_alpha import (
+    atm_iv,
+    cross_sectional_ic,
+    entry_gap,
+    realized_vol,
+    stage1_metrics,
+)
 from uw_scan.config import Settings
 
 logger = logging.getLogger("leap_probe")
@@ -347,6 +430,9 @@ DTE_FLOOR = 365
 HORIZONS = [20, 40]
 THRESHOLDS = [0.10, 0.15, 0.20, 0.25]
 DELTA_BAND = (0.05, 0.95)
+# Asset-class tag for the panel split: ETF IV/HV/VRP dynamics differ structurally from
+# single names, so a pooled cross-section can let asset class manufacture the IC.
+ETFS = {"SPY", "QQQ", "IWM", "DIA", "SMH", "XLK", "XLF", "XLE", "TLT", "HYG", "GLD"}
 APEX = "http://100.66.147.98:8322"
 OUT = Path("docs/research/leap-vega-alpha")
 
@@ -371,6 +457,10 @@ def apex_closes(ticker: str, start: dt.date, end: dt.date) -> dict[dt.date, floa
 
 def hv_asof(closes_by_date: dict[dt.date, float], asof: dt.date, window: int) -> float | None:
     series = [c for d, c in sorted(closes_by_date.items()) if d <= asof]
+    if len(series) >= window + 1:
+        tail = np.asarray(series[-(window + 1):], dtype=float)
+        if float(np.max(np.abs(np.diff(np.log(tail))))) > 0.35:
+            return None  # likely unadjusted split in the window (codex #9 guard)
     return realized_vol(series, window)
 
 
@@ -446,10 +536,13 @@ def main() -> int:
                 if expiry is None:
                     continue
                 rows = atm_rows(cur, ticker, mdate, expiry)
-                atm = atm_iv(rows)
+                atm = atm_iv(rows)                       # interpolated 50-delta -> the GAP (cheapness)
                 if atm is None:
                     continue
-                strike = min(rows, key=lambda r: abs(r["call_delta"] - 0.5))["strike"]
+                held = min(rows, key=lambda r: abs(r["call_delta"] - 0.5))
+                if abs(held["call_delta"] - 0.5) > 0.10 or held["call_iv"] is None:
+                    continue                             # coarse grid: no strike near ATM
+                strike, entry_iv_fixed = held["strike"], float(held["call_iv"])
                 hv20 = hv_asof(closes, mdate, 20)
                 hv60 = hv_asof(closes, mdate, 60)
                 gap = entry_gap(hv20, hv60, atm)
@@ -463,10 +556,15 @@ def main() -> int:
                     if fwd is None:
                         continue
                     obs.append(dict(
-                        ticker=ticker, market_date=mdate, expiry=expiry, strike=strike,
+                        ticker=ticker,
+                        asset_class=("etf" if ticker in ETFS else "single_name"),
+                        market_date=mdate, expiry=expiry, strike=strike,
                         dte=(expiry - mdate).days, hv20=hv20, hv60=hv60, atm_iv=atm,
-                        gap=round(gap, 5), horizon=h, iv_fwd=fwd,
-                        d_iv=round(fwd - atm, 5),
+                        entry_iv_fixed=entry_iv_fixed, gap=round(gap, 5), horizon=h, iv_fwd=fwd,
+                        # HELD-CONTRACT mark change (tradable) on the fixed strike — NOT the
+                        # interpolated-ATM convergence. As spot drifts this mixes vol repricing
+                        # with moneyness migration; that's the real P&L of holding the contract.
+                        d_iv=round(fwd - entry_iv_fixed, 5), entry_idx=i,
                     ))
     _write_csv(OUT / "gap_observations.csv", obs)
     _summary_and_metrics(obs)
@@ -482,6 +580,20 @@ def _write_csv(path: Path, rows: list[dict]) -> None:
         w.writeheader()
         w.writerows(rows)
     logger.info("wrote %s (%d rows)", path, len(rows))
+
+
+def _loo_min_ic(rows: list[dict], thr: float) -> float:
+    """Min single-name FM mean_ic after dropping each ticker once — kills the case
+    where one ticker's persistent gap/ΔIV pattern carries the whole signal."""
+    tickers = sorted({o["ticker"] for o in rows})
+    if len(tickers) < 3:
+        return float("nan")
+    vals = [
+        cross_sectional_ic([o for o in rows if o["ticker"] != tk], thr)["mean_ic"]
+        for tk in tickers
+    ]
+    vals = [v for v in vals if not np.isnan(v)]
+    return float(min(vals)) if vals else float("nan")
 
 
 def _summary_and_metrics(obs: list[dict]) -> None:
@@ -501,14 +613,31 @@ def _summary_and_metrics(obs: list[dict]) -> None:
             logger.info("WARN h=%d: degenerate ΔIV (std=0)", h)
         if len(sub) < 200:
             logger.info("WARN h=%d: only %d pairs (<200) — under-powered", h, len(sub))
+        sn_all = [o for o in sub if o["asset_class"] == "single_name"]
+        etf_all = [o for o in sub if o["asset_class"] == "etf"]
         for thr in THRESHOLDS:
-            m = stage1_metrics(gaps, d_ivs, thr)
-            m.update(horizon=h, threshold=thr)
+            m = stage1_metrics(gaps, d_ivs, thr)           # confounded pooled (secondary)
+            fm = cross_sectional_ic(sub, thr)              # pooled FM
+            fm_sn = cross_sectional_ic(sn_all, thr)        # single-name FM = the GATED panel
+            fm_etf = cross_sectional_ic(etf_all, thr)      # ETF FM (context only)
+            # non-overlap on single names = the BINDING significance (near-independent dates)
+            sn_nonov = [o for o in sn_all if o["entry_idx"] % h == 0]
+            fm_sn_no = cross_sectional_ic(sn_nonov, thr)
+            loo = _loo_min_ic(sn_all, thr)                 # drop-one-ticker robustness (min IC)
+            m.update(
+                horizon=h, threshold=thr,
+                **{f"fm_{k}": v for k, v in fm.items()},
+                fm_ic_sn=fm_sn["mean_ic"], fm_t_sn=fm_sn["ic_t_stat"],
+                fm_ic_sn_nonoverlap=fm_sn_no["mean_ic"], fm_nd_sn_nonoverlap=fm_sn_no["n_dates"],
+                fm_ic_etf=fm_etf["mean_ic"], loo_min_ic_sn=loo,
+            )
             metric_rows.append(m)
             logger.info(
-                "h=%d thr=%.2f  n=%d rankIC=%.3f base_dIV=%.4f  flagged=%d hit=%.3f mean_dIV=%.4f",
-                h, thr, m["n"], m["rank_ic"], m["baseline_mean_div"],
-                m["flagged_n"], m["hit_rate"], m["flagged_mean_div"],
+                "h=%d thr=%.2f | POOLED fm_ic=%.3f | SINGLE-NAME fm_ic=%.3f(t=%.2f) "
+                "nonoverlap_ic=%.3f(nd=%d) loo_min=%.3f | ETF fm_ic=%.3f | diff_harvest=%.4f",
+                h, thr, fm["mean_ic"], fm_sn["mean_ic"], fm_sn["ic_t_stat"],
+                fm_sn_no["mean_ic"], fm_sn_no["n_dates"], loo, fm_etf["mean_ic"],
+                fm["mean_diff_harvest"],
             )
     _write_csv(OUT / "convergence_metrics.csv", metric_rows)
 
@@ -528,7 +657,7 @@ Expected: panel printed; `wrote docs/research/leap-vega-alpha/gap_observations.c
 
 - [ ] **Step 3: Verify the evidence critically**
 
-Read `convergence_metrics.csv`. Confirm: (a) `n` ≥ 200 per horizon (else note under-power in the verdict); (b) IVs were in-band (no WARN); (c) ΔIV not degenerate. Then apply the kill decision: is flagged `hit_rate` materially > 0.5 with positive `rank_ic` and `flagged_mean_div > baseline_mean_div`, consistently across thresholds?
+Read `convergence_metrics.csv`. Confirm: (a) `fm_nd_sn_nonoverlap` ≥ 20 and pooled `n` ≥ 200 per horizon (else note under-power in the verdict); (b) IVs were in-band (no WARN); (c) ΔIV not degenerate. Then apply the exact gate on the **single-name** columns: does a threshold satisfy `fm_ic_sn > 0 AND fm_ic_sn_nonoverlap > 0 AND loo_min_ic_sn > 0 AND fm_mean_diff_harvest > 0`, and do ≥3/4 thresholds pass in **each** horizon? Pooled `hit_rate`/`rank_ic` and the ETF columns are context only — never let a regime-lifted pooled stat override a null single-name/non-overlap metric.
 
 - [ ] **Step 4: Write the Stage-1 verdict**
 
@@ -611,8 +740,15 @@ logger = logging.getLogger("leap_pnl")
 logging.basicConfig(level=logging.INFO, format="%(message)s")
 
 OUT = Path("docs/research/leap-vega-alpha")
-FLAG_THRESHOLD = 0.15  # set to the Stage-1 threshold that showed signal
-VEGA_PER = 100.0       # set from Task 5 Step 1: decimal-vol move covered by call_vega
+# The LOWEST gap threshold that PASSED the Stage-1 gate in BOTH horizons (per the exact
+# gate rule). Read it off convergence_metrics.csv — do not hardcode a guess. 0.15 is a
+# placeholder to be overwritten once Stage 1 has run.
+FLAG_THRESHOLD = 0.15
+# $ per unit call_vega per 1.0 decimal-vol move; set from Task 5 Step 1 calibration
+# (1.0 if grid vega is per-1.0-vol [BS ×100 convention]; 100.0 if per-1%-vol).
+# Affects ONLY the $ vega/delta/theta attribution — NOT the verdict. The break-even
+# spread is in vol points and cancels vega, so the cost verdict needs no calibration.
+VEGA_SCALE = 1.0
 
 
 def _greeks(cur, ticker, expiry, strike, mdate):
@@ -666,17 +802,21 @@ def main() -> int:
             d_iv = g1["iv"] - g0["iv"]
             d_s = closes[m1] - closes[m0]
             d_t = (m1 - m0).days / 365.0
-            pnl_vega = g0["vega"] * d_iv * (VEGA_PER / 100.0)  # to per-1%-consistent $ if needed
-            pnl_delta = g0["delta"] * d_s
+            pnl_vega = g0["vega"] * d_iv * VEGA_SCALE   # $ attribution (units per Step 1)
+            pnl_delta = g0["delta"] * d_s               # directional noise — hedged, not harvested
             pnl_theta = g0["theta"] * d_t
             gross = pnl_vega + pnl_delta + pnl_theta
             pnl_rows.append(dict(
-                ticker=tk, market_date=m0, expiry=exp, strike=strike, horizon=h,
+                ticker=tk, asset_class=r.get("asset_class"),
+                market_date=m0, expiry=exp, strike=strike, horizon=h,
                 gap=r["gap"], d_iv=round(d_iv, 5), d_s=round(d_s, 4),
                 pnl_vega=round(pnl_vega, 4), pnl_delta=round(pnl_delta, 4),
                 pnl_theta=round(pnl_theta, 4), gross=round(gross, 4),
                 vega=g0["vega"],
-                breakeven_spread_vp=round(abs(pnl_vega) / g0["vega"] * 100.0, 4) if g0["vega"] else None,
+                # Vega edge in VOL POINTS (long vega -> harvest = +ΔIV). Break-even round-trip
+                # spread = |harvest|; vega cancels, so this is the vega-unit-free cost verdict.
+                harvest_vp=round(d_iv * 100.0, 4),
+                breakeven_spread_vp=round(abs(d_iv) * 100.0, 4),
             ))
     _write(pnl_rows)
     return 0
@@ -694,9 +834,11 @@ def _write(rows: list[dict]) -> None:
     vega_pnl = np.array([r["pnl_vega"] for r in rows])
     logger.info("flagged=%d  mean gross $=%.3f  mean vega-P&L $=%.3f  win%%=%.1f",
                 len(rows), gross.mean(), vega_pnl.mean(), 100 * (gross > 0).mean())
-    be = np.array([r["breakeven_spread_vp"] for r in rows if r["breakeven_spread_vp"] is not None])
-    logger.info("median break-even spread = %.2f vol pts (compare to realistic LEAP spread 1-3+ vp)",
-                float(np.median(be)))
+    harv = np.array([r["harvest_vp"] for r in rows])  # signed; the long-vega expected edge
+    logger.info("mean signed vega harvest = %.2f vp | median |break-even spread| = %.2f vp",
+                float(harv.mean()), float(np.median(np.abs(harv))))
+    logger.info("VERDICT: harvest must clear a realistic ATM-LEAP round-trip spread of ~1-5 vp "
+                "(mega-cap ~1 vp; off-the-top names 2-5 vp)")
 
 
 if __name__ == "__main__":
@@ -714,7 +856,7 @@ Expected: `pnl_metrics.csv` written; a mean gross $, mean vega-P&L $, win %, and
 
 - [ ] **Step 4: Write the Stage-2 verdict**
 
-Write `docs/research/leap-vega-alpha/edge-test.md`: the greek-unit finding (Step 1), the P&L decomposition table, the break-even spread vs realistic LEAP spread (1–3+ vol points — cite that ATM LEAP spreads are wide), and the taker verdict. Mirror the merged SVI `residual-edge-test.md`. State the single-regime caveat and that vega-P&L, not delta, must be the edge (delta is directional noise to be hedged, not harvested).
+Write `docs/research/leap-vega-alpha/edge-test.md`: the greek-unit finding (Step 1), the P&L decomposition table, and the taker verdict. The cost comparison is **mean signed vega harvest (vp) vs a realistic ATM-LEAP round-trip spread of ~1–5 vol points** (web-verified: mega-cap ATM LEAP spreads ≈ $0.10–0.50 ≈ ~1 vp; off-the-top names $1–5 ≈ 2–5 vp). Note that this headline verdict is **already derivable from Stage 1** (flagged `fm_mean_diff_harvest`×100 vs spread); Stage 2 adds the delta/theta attribution and confirms **vega, not direction, is the edge** (delta P&L is directional noise to be hedged, not harvested). **Verdict rule (codex #10):** to call it tradable the mean signed harvest must clear a **conservative 5 vp** stress; report the 1/2/5 vp sensitivity and bucket the harvest by asset class (ETF vs single-name), since spreads/liquidity differ by contract. Mirror the merged SVI `residual-edge-test.md`. Lead with the single-regime caveat.
 
 - [ ] **Step 5: Commit**
 
@@ -742,7 +884,7 @@ Under `## [Unreleased]` → `### Added` in `CHANGELOG.md`, add one line:
 - [ ] **Step 2: Run the full unit suite once more**
 
 Run: `uv run pytest tests/unit/test_leap_vega_alpha.py -v`
-Expected: all pass (8 tests).
+Expected: all pass (10 tests).
 
 - [ ] **Step 3: Commit**
 
@@ -756,9 +898,10 @@ git commit -m "docs(leap): changelog entry + verdict cross-links"
 ## Self-Review (completed during authoring)
 
 - **Spec coverage:** convergence gate (Tasks 1–4), gated P&L (Task 5), verdict docs + traces (Tasks 4–6), single-regime caveat (Global Constraints + verdict steps), break-even cost model (Task 5). All design points map to a task.
-- **Placeholder scan:** the only intentional fill-ins are run-output values (metrics, verdict direction, `VEGA_PER`/`FLAG_THRESHOLD` set from Stage-1/greek-unit findings) — these are results-from-real-runs, not design placeholders, and each is flagged at its step.
-- **Type consistency:** `realized_vol`/`atm_iv`/`entry_gap`/`stage1_metrics` signatures are used identically in the probes; `atm_iv` and the probe's `strike` selection use the same nearest-0.5-delta rule.
+- **Placeholder scan:** the only intentional fill-ins are run-output values (metrics, verdict direction, `VEGA_SCALE`/`FLAG_THRESHOLD` set from Stage-1/greek-unit findings) — these are results-from-real-runs, not design placeholders, and each is flagged at its step.
+- **Type consistency:** `realized_vol`/`atm_iv`/`entry_gap`/`stage1_metrics`/`cross_sectional_ic` signatures are used identically in the probes; `atm_iv` interpolates at δ=0.5 for the *gap*, while the probe tracks the *held strike's own* IV forward for ΔIV (the two are deliberately distinct — cheapness vs tradable mark).
 - **Reuse:** `forward_from_delta` available from the merged `svi_fit.py`; delta band `(0.05, 0.95)` carried over verbatim; verdict docs mirror the SVI spike structure.
+- **Review-cycle hardening (2026-07-06):** primary metric is Fama-MacBeth cross-sectional IC on a single-name-only panel with a leave-one-ticker-out floor and an inline non-overlap binding-significance run; ETFs reported separately; ATM IV interpolated; held-contract ΔIV; break-even decoupled from greek units; HV split-artifact guard. Applied from Pass-1 self-review + codex tribunal.
 
 ## Reproduce (whole spike)
 
