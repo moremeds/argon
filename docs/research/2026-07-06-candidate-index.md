@@ -7,7 +7,7 @@ A probe sweep (4 agents: code-health, underused-data/alpha, web-gaps, ops/reliab
 | 0 | Quant Technicals tab (sigmoid fit, MA kinematics, return-dist, enhanced RSI/MACD) | new page | M–L | `../superpowers/specs/2026-07-06-quant-technicals-page-design.md` | user's idea, designed |
 | 1 | Deploy-gate fix + ops-hardening (alerting, R2 staleness, job-failure agg, per-job budget) | ops/reliability | S→M | `../superpowers/specs/2026-07-06-candidate-ops-hardening.md` | **do #1 first** |
 | 2 | Dealer charm/vanna per-strike positioning + term-structure slope | alpha | M | `2026-07-06-candidate-charm-vanna-positioning.md` | unvalidated; start banking history now |
-| 3 | GEX regime-persistence (long/short-gamma buckets, flip velocity) | alpha | S–M | `2026-07-06-candidate-gex-regime-persistence.md` | unvalidated; **has power today — test first** |
+| 3 | GEX regime-persistence (long/short-gamma buckets, flip velocity) | alpha | S–M | `2026-07-06-candidate-gex-regime-persistence.md` | **TESTED 2026-07-07 → weak+confounded, DON'T build.** Result: `2026-07-06-gex-regime-persistence-result.md` |
 | 4 | /stock/{ticker} perf (N+1 batch, conn pool, report cache) | perf | S+M+S | `../superpowers/specs/2026-07-06-candidate-stock-page-perf.md` | biggest latency win |
 | 5 | Backtest explorer + provider-usage + benchmark dashboards | new pages | M | `../superpowers/specs/2026-07-06-candidate-observability-dashboards.md` | 3 built-but-unwired backends |
 

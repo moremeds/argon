@@ -1,0 +1,158 @@
+[
+  {
+    "ticker": "SPY",
+    "n_sessions": 32,
+    "n_usable": 31,
+    "date_range": [
+      "2026-05-18",
+      "2026-07-02"
+    ],
+    "regime_persistence": {
+      "abs_fwd_ret": {
+        "short_gamma": {
+          "n": 20,
+          "mean": 0.008200373418198532,
+          "median": 0.0060345314790064,
+          "std": 0.007059624940250277
+        },
+        "long_gamma": {
+          "n": 11,
+          "mean": 0.005028643628370491,
+          "median": 0.005516616475228497,
+          "std": 0.0033482950027821684
+        },
+        "diff_short_minus_long": 0.0031717297898280405,
+        "boot95_ci_diff": [
+          -0.0004560982453878362,
+          0.006985612262462531
+        ],
+        "mann_whitney_p": 0.4089613420368745
+      },
+      "fwd_range_pct": {
+        "short_gamma": {
+          "n": 20,
+          "mean": 0.01393856511144197,
+          "median": 0.011643834762198126,
+          "std": 0.00691832818143809
+        },
+        "long_gamma": {
+          "n": 11,
+          "mean": 0.007332505003444115,
+          "median": 0.006885474676461556,
+          "std": 0.003495956988576622
+        }
+      },
+      "signed_fwd_ret": {
+        "short_gamma": {
+          "n": 20,
+          "mean": 0.0005949104673765804,
+          "median": 0.0017143875647026574,
+          "std": 0.010804189466623888
+        },
+        "long_gamma": {
+          "n": 11,
+          "mean": -0.0002053170039106272,
+          "median": 0.0013578717008992935,
+          "std": 0.00603789541932554
+        }
+      },
+      "reversal_rate": {
+        "short_gamma": 0.5263157894736842,
+        "long_gamma": 0.5454545454545454,
+        "note": "higher = more mean-reversion; hypothesis: long>short"
+      }
+    },
+    "flip_velocity": {
+      "abs_migration_pre_regime_flip": {
+        "n": 5,
+        "mean": 0.005374633697664921,
+        "median": 0.006704569834799399,
+        "std": 0.0026873686118583195
+      },
+      "abs_migration_baseline": {
+        "n": 25,
+        "mean": 0.00321579264769847,
+        "median": 0.0,
+        "std": 0.004291323540607592
+      }
+    }
+  },
+  {
+    "ticker": "TLT",
+    "n_sessions": 13,
+    "n_usable": 12,
+    "date_range": [
+      "2026-06-15",
+      "2026-07-02"
+    ],
+    "regime_persistence": {
+      "abs_fwd_ret": {
+        "short_gamma": {
+          "n": 1,
+          "mean": 0.00011693171188020823,
+          "median": 0.00011693171188020823,
+          "std": 0.0
+        },
+        "long_gamma": {
+          "n": 11,
+          "mean": 0.005293425492708756,
+          "median": 0.0048650527047375824,
+          "std": 0.00470422370010893
+        },
+        "diff_short_minus_long": -0.0051764937808285475,
+        "boot95_ci_diff": [
+          -0.008100520801426465,
+          -0.0025428313844415183
+        ],
+        "mann_whitney_p": null
+      },
+      "fwd_range_pct": {
+        "short_gamma": {
+          "n": 1,
+          "mean": 0.004794200187090699,
+          "median": 0.004794200187090699,
+          "std": 0.0
+        },
+        "long_gamma": {
+          "n": 11,
+          "mean": 0.005191619453684752,
+          "median": 0.004234688036634245,
+          "std": 0.0017842770590943303
+        }
+      },
+      "signed_fwd_ret": {
+        "short_gamma": {
+          "n": 1,
+          "mean": -0.00011693171188020823,
+          "median": -0.00011693171188020823,
+          "std": 0.0
+        },
+        "long_gamma": {
+          "n": 11,
+          "mean": -0.00018726760986937323,
+          "median": 0.0010302197802198876,
+          "std": 0.0070791952162529955
+        }
+      },
+      "reversal_rate": {
+        "short_gamma": 0.0,
+        "long_gamma": 0.5,
+        "note": "higher = more mean-reversion; hypothesis: long>short"
+      }
+    },
+    "flip_velocity": {
+      "abs_migration_pre_regime_flip": {
+        "n": 1,
+        "mean": 0.0,
+        "median": 0.0,
+        "std": 0.0
+      },
+      "abs_migration_baseline": {
+        "n": 10,
+        "mean": 0.0011435105774728416,
+        "median": 0.0,
+        "std": 0.003430531732418525
+      }
+    }
+  }
+]
