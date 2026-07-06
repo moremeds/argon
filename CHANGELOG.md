@@ -19,6 +19,22 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ### Added
 
+- **Flow vs RV−IV falsification — do UW-native flow signals survive residualization? (#227, research spike).**
+  `scripts/research/flow_vs_rviv_verdict.py` — residualizes a 3-day aggressor
+  premium-imbalance signal (+ dealer net vanna / net charm) cross-sectionally against
+  RV−IV, then decile-sorts forward 1d/5d stock returns on the RESIDUAL vs a
+  matched-window RV−IV benchmark, gross and net of cost. **Verdict: NEGATIVE
+  (coverage-limited but directionally clean).** On the fair matched-day benchmark, plain
+  RV−IV does as well (1d: ~122 vs ~128 bps, a tie) or dwarfs the flow residual (5d: ~826
+  vs ~340 bps); scattered |t|~2–3 cells are sign-inconsistent across horizons/signals and
+  of implausible magnitude — small-sample noise on ~11–21 non-contiguous days, not a
+  distinct tradable axis. Goyal–Saretto's collapse-to-RV−IV extends to aggressor flow and
+  vanna/charm. Local `option_wizard_local` window: flow_events 114 tickers × 31 days
+  (2026-05-12..07-07, two multi-day gaps); exposures_summary 115 × 22 days. Full trace in
+  `docs/research/2026-07-07-flow-vs-rviv-verdict.{result.md,summary.json,daily_ls.csv}`.
+  Re-run on the mini's fuller history before over-trusting the tie at 1d. Read-only, no
+  migration.
+
 - **SVI surface-fit feasibility + residual edge test (research spike).**
   `scripts/research/svi_fit.py` — pure raw-SVI (Gatheral) smile fit + butterfly/calendar
   no-arb diagnostics + delta-forward anchor, unit-tested (`tests/unit/test_svi_fit.py`) —
