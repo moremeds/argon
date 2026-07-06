@@ -7,6 +7,16 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+### Fixed
+
+- **Deploy health-gate now checks `ok`, not just reachability.**
+  `scripts/deploy/macmini-prod.sh` gated deploy success (and auto-rollback) on
+  `curl -fsS` against `/api/health` — but that endpoint returns HTTP 200 in every
+  branch, including `ok=false` (db down, missed scans, record-coverage collapse), so
+  a broken release passed the gate clean and rollback never fired. `check_url` now
+  takes an optional jq filter; the api gate and the post-rollback verify both require
+  `.ok == true`. (jq already a deploy dep via `macmini-deploy-poller.sh`.)
+
 ### Added
 
 - **SVI surface-fit feasibility + residual edge test (research spike).**
