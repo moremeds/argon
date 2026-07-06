@@ -230,6 +230,12 @@ from .vrp import (
     VrpPaperPositionRow,
     VrpPaperResponse,
 )
+from .vrp_lifecycle import (
+    VrpMacroPositionDetail,
+    VrpMacroPositionPnlPoint,
+    VrpMacroPositionRow,
+    VrpMacroPositionsResponse,
+)
 
 __all__ = [
     "_UwBase",
@@ -317,6 +323,10 @@ __all__ = [
     "VrpBacktestResponse",
     "VrpPaperPositionRow",
     "VrpPaperResponse",
+    "VrpMacroPositionRow",
+    "VrpMacroPositionsResponse",
+    "VrpMacroPositionPnlPoint",
+    "VrpMacroPositionDetail",
     "VolatilitySeriesResponse",
     "SkewHistoryPoint",
     "SkewRhoPoint",
