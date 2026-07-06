@@ -1,0 +1,279 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>LEAP Vega-Alpha — Feasibility Verdict</title>
+<style>
+  :root {
+    --paper: #f6f4ef; --ink: #1b2029; --slate: #5c6672; --line: #ded9cf;
+    --card: #fffefb; --brass: #a9781f; --brass-soft: #c0902f;
+    --vega: #2f6f7e; --delta: #a8482f; --theta: #8a8577; --good: #3f7a4b;
+    --shadow: 0 1px 2px rgba(20,24,30,.06), 0 8px 24px rgba(20,24,30,.05);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --paper: #12151b; --ink: #e8e6df; --slate: #9aa2ad; --line: #2a2f39;
+      --card: #171b22; --brass: #d3a441; --brass-soft: #e0b45a;
+      --vega: #5aa6b6; --delta: #d2694a; --theta: #9a958a; --good: #6bb178;
+      --shadow: 0 1px 2px rgba(0,0,0,.3), 0 10px 30px rgba(0,0,0,.35);
+    }
+  }
+  :root[data-theme="light"] {
+    --paper: #f6f4ef; --ink: #1b2029; --slate: #5c6672; --line: #ded9cf;
+    --card: #fffefb; --brass: #a9781f; --brass-soft: #c0902f;
+    --vega: #2f6f7e; --delta: #a8482f; --theta: #8a8577; --good: #3f7a4b;
+    --shadow: 0 1px 2px rgba(20,24,30,.06), 0 8px 24px rgba(20,24,30,.05);
+  }
+  :root[data-theme="dark"] {
+    --paper: #12151b; --ink: #e8e6df; --slate: #9aa2ad; --line: #2a2f39;
+    --card: #171b22; --brass: #d3a441; --brass-soft: #e0b45a;
+    --vega: #5aa6b6; --delta: #d2694a; --theta: #9a958a; --good: #6bb178;
+    --shadow: 0 1px 2px rgba(0,0,0,.3), 0 10px 30px rgba(0,0,0,.35);
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--paper); color: var(--ink);
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    line-height: 1.55; -webkit-font-smoothing: antialiased;
+  }
+  .mono { font-family: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, monospace;
+    font-variant-numeric: tabular-nums; }
+  .wrap { max-width: 860px; margin: 0 auto; padding: clamp(28px, 5vw, 64px) clamp(20px, 5vw, 40px) 80px; }
+
+  .eyebrow { font: 600 12px/1 ui-monospace, monospace; letter-spacing: .16em;
+    text-transform: uppercase; color: var(--brass); display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+  .eyebrow .dot { width: 4px; height: 4px; border-radius: 50%; background: var(--slate); opacity: .6; }
+  .eyebrow span:not(.dot) { color: var(--slate); }
+  .eyebrow .lead { color: var(--brass); }
+
+  h1 { font-size: clamp(34px, 6.5vw, 60px); line-height: 1.02; letter-spacing: -.025em;
+    font-weight: 800; text-wrap: balance; margin: 20px 0 0; }
+  h1 .no { color: var(--delta); }
+  .lede { font-size: clamp(16px, 2.4vw, 19px); color: var(--slate); max-width: 62ch;
+    margin: 16px 0 0; }
+  .lede b { color: var(--ink); font-weight: 600; }
+
+  .rule { height: 1px; background: var(--line); border: 0; margin: 36px 0; }
+
+  .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-top: 34px; }
+  @media (max-width: 620px) { .stats { grid-template-columns: 1fr; } }
+  .stat { background: var(--card); border: 1px solid var(--line); border-radius: 12px;
+    padding: 18px 18px 16px; box-shadow: var(--shadow); position: relative; overflow: hidden; }
+  .stat::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: var(--accent, var(--brass)); }
+  .stat .k { font: 700 30px/1 ui-monospace, monospace; font-variant-numeric: tabular-nums;
+    letter-spacing: -.02em; color: var(--accent, var(--ink)); }
+  .stat .l { font-size: 12.5px; color: var(--slate); margin-top: 8px; line-height: 1.4; }
+  .stat.delta { --accent: var(--delta); }
+  .stat.edge { --accent: var(--brass); }
+  .stat.cost { --accent: var(--vega); }
+
+  h2 { font-size: 13px; letter-spacing: .14em; text-transform: uppercase; color: var(--slate);
+    font-weight: 700; margin: 0 0 18px; }
+  section { margin-top: 44px; }
+
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 14px;
+    padding: 22px clamp(16px, 3vw, 26px); box-shadow: var(--shadow); }
+
+  /* decomposition bars */
+  .decomp-row { margin: 0 0 20px; }
+  .decomp-row:last-child { margin-bottom: 4px; }
+  .decomp-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px; }
+  .decomp-head .h { font-weight: 700; font-size: 14px; }
+  .decomp-head .g { font-size: 12.5px; color: var(--slate); }
+  .bar { display: flex; height: 30px; border-radius: 7px; overflow: hidden; background: var(--line); }
+  .seg { display: flex; align-items: center; justify-content: center; color: #fff;
+    font: 600 12px/1 ui-monospace, monospace; min-width: 0; white-space: nowrap; }
+  .seg.d { background: var(--delta); }
+  .seg.v { background: var(--vega); }
+  .seg.t { background: var(--theta); }
+  .legend { display: flex; gap: 18px; flex-wrap: wrap; margin-top: 16px; font-size: 12.5px; color: var(--slate); }
+  .legend i { display: inline-block; width: 11px; height: 11px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; }
+  .caption { font-size: 13px; color: var(--slate); margin: 16px 0 0; }
+  .caption b { color: var(--ink); font-weight: 600; }
+
+  /* edge vs spread number line */
+  .line-wrap { padding: 8px 4px 4px; }
+  .scale { position: relative; height: 66px; margin-top: 10px; }
+  .track { position: absolute; left: 0; right: 0; top: 30px; height: 8px; border-radius: 4px;
+    background: linear-gradient(90deg, var(--card), var(--line)); border: 1px solid var(--line); }
+  .spread-band { position: absolute; top: 26px; height: 16px; border-radius: 4px;
+    background: repeating-linear-gradient(45deg, color-mix(in srgb, var(--delta) 22%, transparent) 0 6px, transparent 6px 12px);
+    border: 1px dashed color-mix(in srgb, var(--delta) 55%, transparent); }
+  .edge-bar { position: absolute; top: 22px; height: 24px; border-radius: 5px; background: var(--brass);
+    box-shadow: var(--shadow); }
+  .tick { position: absolute; top: 44px; font: 600 11px/1 ui-monospace, monospace; color: var(--slate);
+    transform: translateX(-50%); }
+  .mark { position: absolute; top: -2px; font: 700 11px/1 ui-monospace, monospace; transform: translateX(-50%); white-space: nowrap; }
+  .mark.edge { color: var(--brass); }
+  .mark.spread { color: var(--delta); }
+
+  /* two-stage narrative */
+  .stages { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  @media (max-width: 620px) { .stages { grid-template-columns: 1fr; } }
+  .stage { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 20px; box-shadow: var(--shadow); }
+  .stage .tag { font: 700 11px/1 ui-monospace, monospace; letter-spacing: .1em; text-transform: uppercase; }
+  .stage.s1 .tag { color: var(--vega); }
+  .stage.s2 .tag { color: var(--delta); }
+  .stage h3 { font-size: 17px; margin: 10px 0 8px; letter-spacing: -.01em; }
+  .stage p { font-size: 13.5px; color: var(--slate); margin: 0; }
+  .stage p b { color: var(--ink); font-weight: 600; }
+  .stage .num { font-family: ui-monospace, monospace; font-variant-numeric: tabular-nums; color: var(--ink); }
+
+  ul.caveats { list-style: none; padding: 0; margin: 0; display: grid; gap: 12px; }
+  ul.caveats li { display: flex; gap: 12px; font-size: 14px; color: var(--slate); }
+  ul.caveats li b { color: var(--ink); font-weight: 600; }
+  ul.caveats .n { flex: none; font: 700 12px/1.5 ui-monospace, monospace; color: var(--brass);
+    border: 1px solid var(--line); border-radius: 6px; width: 24px; height: 24px;
+    display: grid; place-items: center; }
+
+  footer { margin-top: 52px; padding-top: 22px; border-top: 1px solid var(--line);
+    font-size: 12.5px; color: var(--slate); }
+  footer code { font-family: ui-monospace, monospace; font-size: 11.5px; color: var(--ink);
+    background: color-mix(in srgb, var(--slate) 12%, transparent); padding: 2px 6px; border-radius: 5px;
+    display: inline-block; word-break: break-all; }
+  footer .row { margin-top: 12px; }
+  .prov { display: flex; gap: 8px 20px; flex-wrap: wrap; margin-top: 6px; }
+  .prov b { color: var(--ink); font-weight: 600; }
+  a { color: var(--brass); }
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow">
+      <span class="lead">LEAP Vega-Alpha</span><span class="dot"></span>
+      <span>Feasibility spike</span><span class="dot"></span>
+      <span>argon · 2026-07-06</span><span class="dot"></span>
+      <span>read-only · zero UW/IB calls</span>
+    </div>
+    <h1>The "cheap LEAP" edge is <span class="no">not vega</span> — it's a directional bet.</h1>
+    <p class="lede">Tested radon's thesis: when realized vol (HV20/HV60) sits well above a
+      long-dated option's implied vol, buying the LEAP is supposed to harvest <b>forward-vol
+      mispricing</b>. On 6 months of banked surface data it doesn't. The signal is real, but the
+      money in it is <b>82–88% delta</b> — a leveraged long on high-vol names in an up-market.
+      The isolated vega edge loses to theta before it ever reaches the spread.</p>
+  </header>
+
+  <div class="stats">
+    <div class="stat delta">
+      <div class="k">82–88%</div>
+      <div class="l">of gross P&amp;L is <b>delta</b> (direction), not vega. The "edge" is beta.</div>
+    </div>
+    <div class="stat edge">
+      <div class="k">0.6–0.7<span style="font-size:15px"> vp</span></div>
+      <div class="l">delta-hedged, theta-net <b>vega edge</b>, in vol points. That's the whole prize.</div>
+    </div>
+    <div class="stat cost">
+      <div class="k">1–5<span style="font-size:15px"> vp</span></div>
+      <div class="l">realistic ATM-LEAP <b>round-trip spread</b>. The edge sits below the floor.</div>
+    </div>
+  </div>
+
+  <section>
+    <h2>Where the P&amp;L actually comes from</h2>
+    <div class="card">
+      <div class="decomp-row">
+        <div class="decomp-head">
+          <span class="h">20-day hold</span>
+          <span class="g mono">gross $52.14 / share · n=98</span>
+        </div>
+        <div class="bar" role="img" aria-label="20-day: delta 82%, theta 8%, vega 9%">
+          <div class="seg d" style="flex:0 0 82.4%">delta 82%</div>
+          <div class="seg t" style="flex:0 0 8.2%"></div>
+          <div class="seg v" style="flex:0 0 9.4%">vega 9%</div>
+        </div>
+      </div>
+      <div class="decomp-row">
+        <div class="decomp-head">
+          <span class="h">40-day hold</span>
+          <span class="g mono">gross $151.72 / share · n=75</span>
+        </div>
+        <div class="bar" role="img" aria-label="40-day: delta 88%, theta 6%, vega 6%">
+          <div class="seg d" style="flex:0 0 88.0%">delta 88%</div>
+          <div class="seg t" style="flex:0 0 5.5%"></div>
+          <div class="seg v" style="flex:0 0 6.5%">vega 6%</div>
+        </div>
+      </div>
+      <div class="legend">
+        <span><i style="background:var(--delta)"></i>delta — spot moved (direction)</span>
+        <span><i style="background:var(--vega)"></i>vega — the vol repricing we're testing</span>
+        <span><i style="background:var(--theta)"></i>theta — time decay (drag)</span>
+      </div>
+      <p class="caption">Split of the per-share P&amp;L on the held contract, share of absolute
+        contribution. The gross number looks spectacular precisely because it's <b>directional
+        leverage</b> — high-realized-vol names (NVDA, MU, TSLA…) simply rose. Hedge the delta and
+        the thesis has to stand on the thin vega slice, which theta already halves.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2>The isolated vega edge vs. the cost floor</h2>
+    <div class="card line-wrap">
+      <div class="scale" role="img" aria-label="Net vega edge 0.6 to 0.7 vol points sits below the 1 to 5 vol point spread band">
+        <!-- scale 0..6 vp -->
+        <div class="track"></div>
+        <div class="spread-band" style="left:16.7%; right:0;"></div>
+        <span class="mark spread" style="left:16.7%">spread floor 1 vp →</span>
+        <div class="edge-bar" style="left:0; width:11.7%;"></div>
+        <span class="mark edge" style="left:5.8%; top:52px">net edge 0.6–0.7 vp</span>
+        <span class="tick" style="left:0">0</span>
+        <span class="tick" style="left:16.7%">1</span>
+        <span class="tick" style="left:33.3%">2</span>
+        <span class="tick" style="left:50%">3</span>
+        <span class="tick" style="left:83.3%">5 vp</span>
+      </div>
+      <p class="caption">Vol points, delta-hedged and net of theta. The vega you harvest
+        (ΔIV +3.2 / +5.7 vp raw) is real, but a long LEAP bleeds ≈−3.8 / −7.0 vp of theta over
+        the same hold, leaving <b>0.6–0.7 vp</b>. You then cross a <b>1–5 vp</b> round-trip
+        spread twice. The edge never clears the tightest plausible cost.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2>How the two stages read</h2>
+    <div class="stages">
+      <div class="stage s1">
+        <span class="tag">Stage 1 · signal</span>
+        <h3>There <em>is</em> a real relationship</h3>
+        <p>Fama-MacBeth cross-sectional IC <span class="num">0.34 / 0.43</span> (20d / 40d,
+          single-name). The mechanical mean-reversion null is <b>rejected</b> — IC(−IV) is
+          <span class="num">−0.14</span>, not positive — and HV alone forecasts forward IV
+          (<span class="num">+0.25</span>). Not noise, not an artifact.</p>
+      </div>
+      <div class="stage s2">
+        <span class="tag">Stage 2 · kill</span>
+        <h3>…but it isn't paid as vega</h3>
+        <p>Decompose the held-contract P&amp;L and <b>82–88% is delta</b>. The clean, hedged
+          vega edge nets <span class="num">0.6–0.7 vp</span> after theta — under the spread.
+          "IV moves" ≠ "you get paid." A market bet dressed as vol-alpha.</p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>What keeps this honest</h2>
+    <ul class="caveats">
+      <li><span class="n">1</span><span><b>One regime, and a kind one.</b> Dec 2025 → Jul 2026:
+        prices <em>and</em> vol rose, inflating both the delta P&amp;L and the raw vega harvest.
+        A falling-vol tape would likely push even the 0.6–0.7 vp net negative.</span></li>
+      <li><span class="n">2</span><span><b>Thin independent evidence.</b> The strong t-stats
+        (13–24) are autocorrelation-inflated; the non-overlapping sample is only
+        <span class="mono">3–6</span> independent dates. The point estimates are positive; the
+        significance is weak.</span></li>
+      <li><span class="n">3</span><span><b>Units were measured, not assumed.</b> Grid
+        <span class="mono">call_vega</span> is per-1%-vol and <span class="mono">call_theta</span>
+        per-day (the CLAUDE.md "vega ×100" note is wrong for this table) — checked against a real
+        AAPL contract before trusting the split.</span></li>
+    </ul>
+  </section>
+
+  <footer>
+    <div class="prov">
+      <span><b>Data:</b> option_surface_grid_daily + apex bars · 129 dates · 13 tickers ·
+        2,531 obs (Stage 1) / 173 flagged (Stage 2)</span>
+    </div>
+    <div class="prov" style="margin-top:8px">
+      <span><b>Verdict &amp; traces:</b> docs/research/leap-vega-alpha/ (README + edge-test + 3 CSVs)</span>
+      <span><b>Prior:</b> matches skew #208 &amp; SVI #219 — single-name surface geometry = no taker edge; the validated edge is macro VRP (Sharpe ~1.65)</span>
+    </div>
+    <div class="row">Reproduce · <code>uv run python -m scripts.research.leap_convergence_probe</code>
+      &nbsp; <code>uv run python -m scripts.research.leap_pnl_probe</code></div>
+  </footer>
+</div>
+</head><body></body></html>
