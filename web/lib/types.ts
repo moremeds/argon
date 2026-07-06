@@ -259,6 +259,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/positioning/screener": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Positioning Screener */
+        get: operations["get_positioning_screener_api_positioning_screener_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/positioning/{ticker}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Positioning */
+        get: operations["get_positioning_api_positioning__ticker__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/provider-usage/endpoints": {
         parameters: {
             query?: never;
@@ -4228,6 +4262,153 @@ export interface components {
             pcr_vol?: string | null;
             /** Put Oi */
             put_oi?: number | null;
+        };
+        /** PositioningScreenerResponse */
+        PositioningScreenerResponse: {
+            /**
+             * Rows
+             * @default []
+             */
+            rows: components["schemas"]["PositioningScreenerRow"][];
+            /**
+             * Generated At
+             * Format: date-time
+             */
+            generated_at: string;
+            /** As Of */
+            as_of?: string | null;
+        };
+        /**
+         * PositioningScreenerRow
+         * @description Compact per-ticker row for the watchlist positioning screener.
+         */
+        PositioningScreenerRow: {
+            /** Ticker */
+            ticker: string;
+            /** Snapshot Date */
+            snapshot_date?: string | null;
+            /** Spot */
+            spot?: string | null;
+            /** Si Pct Float */
+            si_pct_float?: string | null;
+            /** Si Days To Cover */
+            si_days_to_cover?: string | null;
+            /** Si Fee Rate */
+            si_fee_rate?: string | null;
+            /** Squeeze Score */
+            squeeze_score?: number | null;
+            /**
+             * Squeeze Label
+             * @default unknown
+             */
+            squeeze_label: string;
+            /** Insider Net Flow */
+            insider_net_flow?: string | null;
+            /**
+             * Insider Tilt
+             * @default unknown
+             */
+            insider_tilt: string;
+            /** Analyst Implied Upside Pct */
+            analyst_implied_upside_pct?: string | null;
+            /** Er Positive Base Rate */
+            er_positive_base_rate?: string | null;
+            /** Days To Next Er */
+            days_to_next_er?: number | null;
+        };
+        /**
+         * PositioningSignals
+         * @description Derived signal labels computed at read time from the banked columns.
+         */
+        PositioningSignals: {
+            /** Squeeze Score */
+            squeeze_score?: number | null;
+            /**
+             * Squeeze Label
+             * @default unknown
+             */
+            squeeze_label: string;
+            /**
+             * Insider Tilt
+             * @default unknown
+             */
+            insider_tilt: string;
+            /** Analyst Implied Upside Pct */
+            analyst_implied_upside_pct?: string | null;
+            /** Analyst Rating Skew */
+            analyst_rating_skew?: string | null;
+            /** Er Positive Base Rate */
+            er_positive_base_rate?: string | null;
+            /** Days To Next Er */
+            days_to_next_er?: number | null;
+        };
+        /**
+         * PositioningSnapshot
+         * @description Full per-ticker positioning snapshot for the stock-page card.
+         */
+        PositioningSnapshot: {
+            /** Ticker */
+            ticker: string;
+            /**
+             * Available
+             * @default true
+             */
+            available: boolean;
+            /** Snapshot Date */
+            snapshot_date?: string | null;
+            /** Spot */
+            spot?: string | null;
+            /** Si Pct Float */
+            si_pct_float?: string | null;
+            /** Si Short Interest */
+            si_short_interest?: string | null;
+            /** Si Total Float */
+            si_total_float?: string | null;
+            /** Si Days To Cover */
+            si_days_to_cover?: string | null;
+            /** Si Shares Available */
+            si_shares_available?: string | null;
+            /** Si Fee Rate */
+            si_fee_rate?: string | null;
+            /** Si Rebate Rate */
+            si_rebate_rate?: string | null;
+            /** Si Market Date */
+            si_market_date?: string | null;
+            /** Analyst Buy */
+            analyst_buy?: number | null;
+            /** Analyst Hold */
+            analyst_hold?: number | null;
+            /** Analyst Sell */
+            analyst_sell?: number | null;
+            /** Analyst Target Avg */
+            analyst_target_avg?: string | null;
+            /** Analyst Target Hi */
+            analyst_target_hi?: string | null;
+            /** Analyst Target Lo */
+            analyst_target_lo?: string | null;
+            /** Inst Holder Count */
+            inst_holder_count?: number | null;
+            /** Inst Total Value */
+            inst_total_value?: string | null;
+            /** Insider Buy Volume */
+            insider_buy_volume?: string | null;
+            /** Insider Sell Volume */
+            insider_sell_volume?: string | null;
+            /** Insider Net Flow */
+            insider_net_flow?: string | null;
+            /** Earn Reactions Positive */
+            earn_reactions_positive?: number | null;
+            /** Earn Reactions Total */
+            earn_reactions_total?: number | null;
+            /** Next Er Date */
+            next_er_date?: string | null;
+            /**
+             * @default {
+             *       "squeeze_label": "unknown",
+             *       "insider_tilt": "unknown"
+             *     }
+             */
+            signals: components["schemas"]["PositioningSignals"];
         };
         /** ProviderUsageBreakdownResponse */
         ProviderUsageBreakdownResponse: {
@@ -8654,6 +8835,57 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["OhlcRow"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_positioning_screener_api_positioning_screener_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PositioningScreenerResponse"];
+                };
+            };
+        };
+    };
+    get_positioning_api_positioning__ticker__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                ticker: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PositioningSnapshot"];
                 };
             };
             /** @description Validation Error */

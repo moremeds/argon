@@ -4,6 +4,7 @@ import { usePathname } from "next/navigation";
 import {
   Activity,
   Coins,
+  Crosshair,
   LayoutDashboard,
   Radar,
   ScanLine,
@@ -15,6 +16,7 @@ import styles from "./AppShell.module.css";
 const NAV = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
   { href: "/scanner", label: "Scanner", icon: ScanLine },
+  { href: "/positioning", label: "Positioning", icon: Crosshair },
   { href: "/cockpit/SPY", label: "Cockpit", icon: Radar },
   { href: "/regime", label: "Regime", icon: Activity },
   { href: "/gold", label: "Gold", icon: Coins },

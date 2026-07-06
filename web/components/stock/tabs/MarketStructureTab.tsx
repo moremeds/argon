@@ -4,6 +4,7 @@ import { GexLevelTiles } from "../panels/GexLevelTiles";
 import { ExpectedRangeBar } from "../panels/ExpectedRangeBar";
 import { DirectionalBiasPanel } from "../panels/DirectionalBiasPanel";
 import { ShortVolPanel } from "../panels/ShortVolPanel";
+import { PositioningPanel } from "../panels/PositioningPanel";
 import { MarketStructureHistoryTable } from "../panels/MarketStructureHistoryTable";
 import { GreekSubTabs } from "../panels/greeks/GreekSubTabs";
 import { MaxPainTable } from "../panels/MaxPainTable";
@@ -17,6 +18,13 @@ export async function MarketStructureTab({ report }: { report: Report }) {
     historyRows = h.rows;
   } catch {
     historyRows = [];
+  }
+
+  let positioning: components["schemas"]["PositioningSnapshot"] | null = null;
+  try {
+    positioning = await api.positioning(report.ticker);
+  } catch {
+    positioning = null;
   }
 
   return (
@@ -34,6 +42,7 @@ export async function MarketStructureTab({ report }: { report: Report }) {
         <ExpectedRangeBar report={report} />
         <DirectionalBiasPanel report={report} history={historyRows} />
         <ShortVolPanel report={report} />
+        {positioning ? <PositioningPanel data={positioning} /> : null}
       </div>
       <GreekSubTabs report={report} />
       <MarketStructureHistoryTable rows={historyRows} />

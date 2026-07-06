@@ -19,6 +19,23 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ### Added
 
+- **Positioning intelligence — surface `uw_positioning` (card + screener).**
+  The daily-banked `uw_positioning` snapshot (short interest / %float / days-to-cover /
+  borrow fee, analyst counts + targets, institutional counts/value, insider net flow,
+  earnings-reaction base rate, next ER date) previously had exactly one reader (the
+  trade-blast LLM prompt) and no endpoint, panel, or screener. Now exposed read-only:
+  `GET /api/positioning/{ticker}` (full snapshot + derived signals) and
+  `GET /api/positioning/screener` (one row per watchlist ticker, sorted by squeeze
+  risk). Derived signals (computed at read time in `reports/positioning.py`): squeeze
+  score/label (si_pct_float × days-to-cover × borrow-fee tiers), insider net-flow tilt,
+  analyst implied upside vs spot, analyst rating skew, pre-ER positive-reaction base
+  rate, days-to-next-ER. Web: a Positioning card on the stock page's Market Structure
+  tab + a `/positioning` screener table (new sidebar entry). **Zero new UW fetch** —
+  everything reads the existing warm store. Storage read queries live in
+  `storage/positioning.py` (`list_uw_positioning_latest`); models in
+  `models/positioning.py`. Follow-ups deferred: parsing the discarded 13F/insider
+  `raw_jsonb` detail, a borrow-fee *spike*-vs-baseline signal (needs a rolling read),
+  and any cross-sectional alpha signal (this is a surfacing task, not an alpha probe).
 - **SVI surface-fit feasibility + residual edge test (research spike).**
   `scripts/research/svi_fit.py` — pure raw-SVI (Gatheral) smile fit + butterfly/calendar
   no-arb diagnostics + delta-forward anchor, unit-tested (`tests/unit/test_svi_fit.py`) —
