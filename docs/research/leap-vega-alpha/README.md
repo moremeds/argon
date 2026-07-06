@@ -4,6 +4,12 @@
 long-dated option's ATM IV is a wide positive gap ⇒ the market underprices forward vol ⇒
 buying the LEAP is long-vega alpha?
 
+> **Final answer: NO tradable vega edge.** Stage 1 (below) shows a real cross-sectional
+> relationship, but Stage 2 ([`edge-test.md`](./edge-test.md)) decomposes it and finds it is
+> **82–88% delta** (a directional bet on high-vol names in an up-market); the isolated,
+> delta-hedged, theta-net vega edge is **0.6–0.7 vp — below the ATM-LEAP round-trip spread.**
+> A market/beta bet dressed as vol-alpha, not a taker edge.
+
 > **Read this first — the ceiling.** History is **~6 months, one regime** (2025-12-26 →
 > 2026-07-02, 129 dates; IV *rose* over the window). This validates a short-horizon
 > cross-sectional proxy, **not** hold-to-expiry harvest. A Stage-1 pass is a "worth pricing
