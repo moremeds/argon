@@ -7,6 +7,25 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+### Added
+
+- **UW same-day fetch dedupe memo (issue #225).** The shared UW daily budget is
+  exhausted by ~08:00 ET partly because 6+ jobs (option_surface_capture,
+  cockpit_daily_snapshot, flow_data_refresh, skew_swing_greeks, vrp_macro_entry,
+  full_scan pipeline) independently re-fetch identical slow-moving per-ticker data
+  every day. The budget governor gates *spend* but does not *dedupe*. New
+  Postgres-backed memo (`uw_fetch_memo`, migration `099`; `storage/uw_fetch_memo.py`)
+  keyed `(ticker, endpoint, as_of_date)` is consulted in `sources/uw.py` BEFORE the
+  live call: the first same-day caller of `fetch_option_contracts` /
+  `fetch_greek_exposure_by_expiry` spends budget and stores the raw payload; every
+  same-day caller after reads it back (a budget SAVE, recorded on the row's
+  `hit_count` + `last_hit_at`). TTL = same trading day (a row for today is a hit;
+  stale dates are ignored and prunable). DB-backed rather than in-process because the
+  jobs run in separate worker processes. Only the two slow-moving endpoints are
+  wrapped — intraday/live feeds (spot, flow alerts) stay fresh — and both fetchers
+  take a `force_refresh=True` kwarg to bypass. The historical-`date` path of
+  `fetch_greek_exposure_by_expiry` is never memoized.
+
 ### Fixed
 
 - **Deploy health-gate now checks `ok`, not just reachability.**
