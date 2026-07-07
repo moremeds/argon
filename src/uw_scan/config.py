@@ -197,6 +197,9 @@ class Settings(BaseModel):
     trade_insights_ai_timeout_seconds: float = 300.0
     trade_insights_ai_max_output_bytes: int = 262144
     trade_insights_ai_poll_seconds: int = 3
+    # Ops alert sink — one webhook (Discord/Pushover-compatible JSON POST).
+    # Empty = no-op (send_alert returns False without a call).
+    ops_alert_webhook_url: str = ""
     # Trade Insights AI Claude provider (alongside Codex)
     trade_insights_ai_claude_enabled: bool = True
     trade_insights_ai_claude_model: str = ""

@@ -541,6 +541,16 @@ def _handle_job_event(event) -> None:
             repo = JobFailuresRepository(conn)
             if getattr(event, "exception", None) is not None:
                 repo.record_failure(event.job_id, str(event.exception))
+                streak = next(
+                    (s for s in repo.list_streaks() if s.job_name == event.job_id), None
+                )
+                if streak and streak.consecutive in (3, 10):
+                    from uw_scan.alerts import send_alert
+
+                    send_alert(
+                        f"job {event.job_id} failing",
+                        f"{streak.consecutive} consecutive; last: {streak.last_error[:200]}",
+                    )
             else:
                 repo.record_success(event.job_id)
             conn.commit()
