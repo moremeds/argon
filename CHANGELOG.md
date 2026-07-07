@@ -7,6 +7,22 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+### Added
+
+- **Ops-hardening: detection + alerting layer (C12 Track A).** Three pieces that
+  make the ops surface observable before the Docker/Watchtower cutover (Track B).
+  (1) **Job-failure streaks** — a new `job_failures` table (migration `100`) plus
+  an APScheduler `EVENT_JOB_ERROR`/`EVENT_JOB_EXECUTED` listener records per-job
+  consecutive-failure streaks (reset on success); surfaced on `GET /api/health`
+  as `job_failures`. (2) **Per-job UW budget attribution** — the external-API
+  breakdown now groups by `job_name` too, exposed at `GET /provider-usage/jobs`.
+  (3) **Webhook alert sink** — a single never-raising `send_alert(title, message)`
+  (`src/uw_scan/alerts.py`, `OPS_ALERT_WEBHOOK_URL` / `ops_alert_webhook_url`)
+  fires on a failure streak reaching 3 (then 10) and once/day at the account-wide
+  UW budget wall. Alerting is fire-and-forget and can never crash the scheduler or
+  the budget governor. R2 lake-staleness monitoring (ops-hardening spec §3) is
+  intentionally out of scope.
+
 ## [0.7.2] — 2026-07-07
 
 
