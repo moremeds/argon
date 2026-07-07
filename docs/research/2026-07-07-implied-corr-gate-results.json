@@ -1,0 +1,367 @@
+{
+  "meta": {
+    "hypothesis": "implied-corr richness (COR1M) improves SPX short-vol edge",
+    "measure": "CBOE COR1M implied correlation index (vol_index_daily)",
+    "pnl": "bull put spread short_delta=0.25 wing=0.125 hold=20d flat-vol VIX/100",
+    "window": [
+      "2007-01-04",
+      "2026-04-30"
+    ],
+    "n_trades_weekly": 4861,
+    "n_trades_nonoverlap": 244,
+    "cost_model": [
+      0.65,
+      0.01,
+      0.05
+    ]
+  },
+  "cor_z_monotonicity_weekly": {
+    "buckets": [
+      {
+        "bucket": 0,
+        "z_lo": -3.557,
+        "z_hi": -1.042,
+        "n": 972,
+        "mean_net": 0.06676,
+        "std": 0.3784,
+        "t": 5.5
+      },
+      {
+        "bucket": 1,
+        "z_lo": -1.042,
+        "z_hi": -0.519,
+        "n": 972,
+        "mean_net": 0.04655,
+        "std": 0.4189,
+        "t": 3.464
+      },
+      {
+        "bucket": 2,
+        "z_lo": -0.519,
+        "z_hi": 0.095,
+        "n": 973,
+        "mean_net": 0.08467,
+        "std": 0.37636,
+        "t": 7.017
+      },
+      {
+        "bucket": 3,
+        "z_lo": 0.095,
+        "z_hi": 0.966,
+        "n": 971,
+        "mean_net": 0.12633,
+        "std": 0.3261,
+        "t": 12.071
+      },
+      {
+        "bucket": 4,
+        "z_lo": 0.966,
+        "z_hi": 7.142,
+        "n": 973,
+        "mean_net": 0.09307,
+        "std": 0.38282,
+        "t": 7.584
+      }
+    ],
+    "spearman_rho": 0.8,
+    "spearman_p": 0.104,
+    "trade_ols": {
+      "n": 4861,
+      "r2": 0.0034,
+      "intercept": 0.08437,
+      "cor_z": {
+        "coef": 0.01855,
+        "t": 4.097
+      }
+    }
+  },
+  "cor_z_monotonicity_nonoverlap": {
+    "buckets": [
+      {
+        "bucket": 0,
+        "z_lo": -3.004,
+        "z_hi": -1.044,
+        "n": 49,
+        "mean_net": 0.0545,
+        "std": 0.37298,
+        "t": 1.023
+      },
+      {
+        "bucket": 1,
+        "z_lo": -1.044,
+        "z_hi": -0.519,
+        "n": 49,
+        "mean_net": 0.02442,
+        "std": 0.42475,
+        "t": 0.402
+      },
+      {
+        "bucket": 2,
+        "z_lo": -0.519,
+        "z_hi": 0.037,
+        "n": 48,
+        "mean_net": 0.08256,
+        "std": 0.38315,
+        "t": 1.493
+      },
+      {
+        "bucket": 3,
+        "z_lo": 0.037,
+        "z_hi": 1.003,
+        "n": 49,
+        "mean_net": 0.15683,
+        "std": 0.30251,
+        "t": 3.629
+      },
+      {
+        "bucket": 4,
+        "z_lo": 1.003,
+        "z_hi": 3.8,
+        "n": 49,
+        "mean_net": 0.08077,
+        "std": 0.41715,
+        "t": 1.355
+      }
+    ],
+    "spearman_rho": 0.6,
+    "spearman_p": 0.285,
+    "trade_ols": {
+      "n": 244,
+      "r2": 0.0083,
+      "intercept": 0.08098,
+      "cor_z": {
+        "coef": 0.0291,
+        "t": 1.423
+      }
+    }
+  },
+  "confound_correlations": {
+    "pearson_cor_z_vix_z": 0.801,
+    "pearson_cor_z_vrp_z": -0.09
+  },
+  "multivariate_ols_weekly": {
+    "n": 4841,
+    "r2": 0.0142,
+    "intercept": 0.08748,
+    "cor_z": {
+      "coef": 0.056425,
+      "t": 7.435
+    },
+    "vrp_z": {
+      "coef": 0.021374,
+      "t": 4.564
+    },
+    "vix_z": {
+      "coef": -0.039265,
+      "t": -5.902
+    }
+  },
+  "multivariate_ols_nonoverlap": {
+    "n": 243,
+    "r2": 0.0135,
+    "intercept": 0.08235,
+    "cor_z": {
+      "coef": 0.048797,
+      "t": 1.451
+    },
+    "vrp_z": {
+      "coef": 0.018693,
+      "t": 0.846
+    },
+    "vix_z": {
+      "coef": -0.019419,
+      "t": -0.631
+    }
+  },
+  "double_sort_vrpz_x_corz": {
+    "vrp_tercile_0": {
+      "vrp_z_range": [
+        -7.49,
+        -0.28
+      ],
+      "n": 1614,
+      "high_cor_mean_net": 0.07303,
+      "low_cor_mean_net": 0.0571,
+      "high_minus_low": 0.01593
+    },
+    "vrp_tercile_1": {
+      "vrp_z_range": [
+        -0.28,
+        0.47
+      ],
+      "n": 1613,
+      "high_cor_mean_net": 0.10479,
+      "low_cor_mean_net": 0.04465,
+      "high_minus_low": 0.06014
+    },
+    "vrp_tercile_2": {
+      "vrp_z_range": [
+        0.47,
+        7.9
+      ],
+      "n": 1614,
+      "high_cor_mean_net": 0.12993,
+      "low_cor_mean_net": 0.09036,
+      "high_minus_low": 0.03957
+    }
+  },
+  "yearly_by_cor_sign": {
+    "2007": {
+      "n_hi_cor": 193,
+      "mean_hi": 0.0337,
+      "n_lo_cor": 57,
+      "mean_lo": -0.2531
+    },
+    "2008": {
+      "n_hi_cor": 129,
+      "mean_hi": 0.0635,
+      "n_lo_cor": 124,
+      "mean_lo": -0.2598
+    },
+    "2009": {
+      "n_hi_cor": 118,
+      "mean_hi": 0.0883,
+      "n_lo_cor": 134,
+      "mean_lo": 0.2168
+    },
+    "2010": {
+      "n_hi_cor": 152,
+      "mean_hi": 0.1631,
+      "n_lo_cor": 100,
+      "mean_lo": -0.0637
+    },
+    "2011": {
+      "n_hi_cor": 137,
+      "mean_hi": 0.1585,
+      "n_lo_cor": 115,
+      "mean_lo": -0.0727
+    },
+    "2012": {
+      "n_hi_cor": 35,
+      "mean_hi": 0.2356,
+      "n_lo_cor": 215,
+      "mean_lo": 0.105
+    },
+    "2013": {
+      "n_hi_cor": 69,
+      "mean_hi": 0.2291,
+      "n_lo_cor": 183,
+      "mean_lo": 0.1368
+    },
+    "2014": {
+      "n_hi_cor": 122,
+      "mean_hi": 0.1932,
+      "n_lo_cor": 130,
+      "mean_lo": 0.0602
+    },
+    "2015": {
+      "n_hi_cor": 140,
+      "mean_hi": 0.0803,
+      "n_lo_cor": 112,
+      "mean_lo": -0.016
+    },
+    "2016": {
+      "n_hi_cor": 103,
+      "mean_hi": 0.2162,
+      "n_lo_cor": 149,
+      "mean_lo": 0.1713
+    },
+    "2017": {
+      "n_hi_cor": 23,
+      "mean_hi": 0.2266,
+      "n_lo_cor": 228,
+      "mean_lo": 0.2168
+    },
+    "2018": {
+      "n_hi_cor": 156,
+      "mean_hi": 0.0302,
+      "n_lo_cor": 95,
+      "mean_lo": -0.2455
+    },
+    "2019": {
+      "n_hi_cor": 131,
+      "mean_hi": 0.1909,
+      "n_lo_cor": 121,
+      "mean_lo": 0.0404
+    },
+    "2020": {
+      "n_hi_cor": 110,
+      "mean_hi": 0.0651,
+      "n_lo_cor": 143,
+      "mean_lo": 0.1154
+    },
+    "2021": {
+      "n_hi_cor": 53,
+      "mean_hi": 0.2265,
+      "n_lo_cor": 199,
+      "mean_lo": 0.1639
+    },
+    "2022": {
+      "n_hi_cor": 219,
+      "mean_hi": -0.0629,
+      "n_lo_cor": 32,
+      "mean_lo": -0.4567
+    },
+    "2023": {
+      "n_hi_cor": 13,
+      "mean_hi": 0.2381,
+      "n_lo_cor": 237,
+      "mean_lo": 0.1055
+    },
+    "2024": {
+      "n_hi_cor": 43,
+      "mean_hi": 0.2356,
+      "n_lo_cor": 209,
+      "mean_lo": 0.1159
+    },
+    "2025": {
+      "n_hi_cor": 99,
+      "mean_hi": 0.0737,
+      "n_lo_cor": 151,
+      "mean_lo": 0.1323
+    },
+    "2026": {
+      "n_hi_cor": 26,
+      "mean_hi": 0.1726,
+      "n_lo_cor": 56,
+      "mean_lo": 0.1091
+    }
+  },
+  "sharpe_by_cor_sizer_nonoverlap": {
+    "always": {
+      "sharpe": 0.732,
+      "maxdd": -3.1102,
+      "annror": 1.0072,
+      "n_trades": 244
+    },
+    "cor_gate0": {
+      "sharpe": 0.748,
+      "maxdd": -2.0632,
+      "annror": 0.6273,
+      "n_trades": 101
+    },
+    "cor_ramp+": {
+      "sharpe": 0.652,
+      "maxdd": -2.0741,
+      "annror": 0.5125,
+      "n_trades": 101
+    },
+    "cor_inverse_gate": {
+      "sharpe": 0.363,
+      "maxdd": -4.0991,
+      "annror": 0.388,
+      "n_trades": 143
+    }
+  },
+  "top10_dispersion_proxy_crosscheck": {
+    "n_days": 286,
+    "window": [
+      "2025-05-13",
+      "2026-07-02"
+    ],
+    "proxy_mean_rho": 0.0662,
+    "pearson_proxy_vs_COR1M": 0.91,
+    "pearson_n": 263,
+    "note": "equal-weight top-10, sigma_I=SPY IV; validates COR1M ~ issue proxy"
+  }
+}
