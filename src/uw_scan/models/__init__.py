@@ -73,6 +73,12 @@ from .options import (
     OptionIntradayProfile,
     OptionsDailyRow,
 )
+from .positioning import (
+    PositioningScreenerResponse,
+    PositioningScreenerRow,
+    PositioningSignals,
+    PositioningSnapshot,
+)
 from .rates import (
     RatesCrossMarketPanel,
     RatesCurvePoint,
@@ -444,4 +450,8 @@ __all__ = [
     "RatesSynthesisPanel",
     "RatesSourceFreshness",
     "RatesSnapshotResponse",
+    "PositioningSignals",
+    "PositioningSnapshot",
+    "PositioningScreenerRow",
+    "PositioningScreenerResponse",
 ]

@@ -324,6 +324,15 @@ REGISTRY: list[DatasetRegistryEntry] = [
         "provenance",
         expected_frequency="none",
     ),
+    # Ephemeral same-day UW fetch dedupe cache (#225): rows live one trading day
+    # and are pruned; there is nothing to backfill or heal.
+    DatasetRegistryEntry(
+        "uw_fetch_memo",
+        "operational_provenance",
+        "excluded",
+        expected_frequency="none",
+        reason="ephemeral same-day fetch dedupe cache; pruned daily, nothing to backfill/heal",
+    ),
 ]
 
 

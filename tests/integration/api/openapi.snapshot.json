@@ -3168,7 +3168,7 @@
         "type": "object"
       },
       "DealerRegime": {
-        "description": "Per-ticker dealer Greek regime — attached to SingleStockReport so the\nMarket Structure → GEX tab can render the magnet/gamma bar without an\nextra round-trip. The /regime/dealer endpoint returns the full shape for\nthe Volatility tab.",
+        "description": "Per-ticker dealer Greek regime \u2014 attached to SingleStockReport so the\nMarket Structure \u2192 GEX tab can render the magnet/gamma bar without an\nextra round-trip. The /regime/dealer endpoint returns the full shape for\nthe Volatility tab.",
         "properties": {
           "charm_score": {
             "default": "0",
@@ -3347,7 +3347,7 @@
         "type": "object"
       },
       "DealerRegimeSignal": {
-        "description": "Per-ticker dealer regime classification (Γ-driven, with V/C support).",
+        "description": "Per-ticker dealer regime classification (\u0393-driven, with V/C support).",
         "properties": {
           "charm_score": {
             "default": 0.0,
@@ -3394,7 +3394,7 @@
         "type": "object"
       },
       "DiscoveryCandidate": {
-        "description": "Non-watchlist ticker scored by the edge-quality model (premium-free).\n\nReplaces the prior DCF-only shape. Dark-pool direction/strength/sustained +\noptions↔DP confluence are surfaced per card. EIC/GEX still need a deep scan\n(promote to the watchlist).",
+        "description": "Non-watchlist ticker scored by the edge-quality model (premium-free).\n\nReplaces the prior DCF-only shape. Dark-pool direction/strength/sustained +\noptions\u2194DP confluence are surfaced per card. EIC/GEX still need a deep scan\n(promote to the watchlist).",
         "properties": {
           "alert_count": {
             "default": 0,
@@ -4812,7 +4812,7 @@
         "type": "object"
       },
       "GexIntradayResponse": {
-        "description": "Last N RTH sessions of intraday GEX snapshots for a ticker.\n\nSessions are ordered oldest→newest so the chart can scan left-to-right.\nPoints within each session are also ASC by ``ts``.",
+        "description": "Last N RTH sessions of intraday GEX snapshots for a ticker.\n\nSessions are ordered oldest\u2192newest so the chart can scan left-to-right.\nPoints within each session are also ASC by ``ts``.",
         "properties": {
           "as_of": {
             "anyOf": [
@@ -6682,7 +6682,7 @@
         "type": "object"
       },
       "GrgEvent": {
-        "description": "One gate-confirmed top/bottom day (YTD history of the signal).\n\n``spot_vs_flip`` is deliberately absent — UW's greek-exposure history has\nno per-day gamma flip, so it can't be backfilled for past events; it lives\non the live SPY/TLT cards only.\n\n``fwd_20d_pct`` / ``lead_sessions`` / ``extreme_gap_pct`` are the YTD\nforward-return backtest: SPY's 20-session forward return after the watch,\nthe sessions until the adverse price extreme it preceded, and how much\nfurther SPY moved to that extreme. They show the watch LEADS the turn.",
+        "description": "One gate-confirmed top/bottom day (YTD history of the signal).\n\n``spot_vs_flip`` is deliberately absent \u2014 UW's greek-exposure history has\nno per-day gamma flip, so it can't be backfilled for past events; it lives\non the live SPY/TLT cards only.\n\n``fwd_20d_pct`` / ``lead_sessions`` / ``extreme_gap_pct`` are the YTD\nforward-return backtest: SPY's 20-session forward return after the watch,\nthe sessions until the adverse price extreme it preceded, and how much\nfurther SPY moved to that extreme. They show the watch LEADS the turn.",
         "properties": {
           "date": {
             "title": "Date",
@@ -6811,7 +6811,7 @@
         "type": "object"
       },
       "GrgEventStats": {
-        "description": "Aggregate YTD forward-return backtest of the gate-confirmed watch events.\n\n``median_lead_sessions`` is the median sessions between a watch signal and\nthe adverse extreme it preceded; ``median_extreme_gap_pct`` is the median\nfurther move after the signal. Together they quantify the early-warning\nLEAD — GRG watch events are not coincident turn markers.",
+        "description": "Aggregate YTD forward-return backtest of the gate-confirmed watch events.\n\n``median_lead_sessions`` is the median sessions between a watch signal and\nthe adverse extreme it preceded; ``median_extreme_gap_pct`` is the median\nfurther move after the signal. Together they quantify the early-warning\nLEAD \u2014 GRG watch events are not coincident turn markers.",
         "properties": {
           "bottoms": {
             "$ref": "#/components/schemas/GrgEventSideStats"
@@ -6986,7 +6986,7 @@
         "type": "object"
       },
       "GrgResponse": {
-        "description": "Gamma Rotation Gap snapshot (latest scan). Self-contained: embeds the\nYTD history (z-scored over the full ≈1Y fetched series).",
+        "description": "Gamma Rotation Gap snapshot (latest scan). Self-contained: embeds the\nYTD history (z-scored over the full \u22481Y fetched series).",
         "properties": {
           "assets": {
             "anyOf": [
@@ -8653,7 +8653,7 @@
         "type": "object"
       },
       "MarketTideResponse": {
-        "description": "Last N sessions of market-wide options tide for the regime Market Tide tab.\n\nSessions ordered oldest→newest; points within each session ASC by ``ts``.\nEmpty `sessions` is a valid response when no rows exist yet.",
+        "description": "Last N sessions of market-wide options tide for the regime Market Tide tab.\n\nSessions ordered oldest\u2192newest; points within each session ASC by ``ts``.\nEmpty `sessions` is a valid response when no rows exist yet.",
         "properties": {
           "as_of": {
             "anyOf": [
@@ -8705,7 +8705,7 @@
         "type": "object"
       },
       "MarketTideSentiment": {
-        "description": "Slope/sentiment derived from the latest session's spread S = NCP − NPP.\nSee reports/market_tide_sentiment.py for the math. Flow descriptor, not a\nprice predictor. `trend_strength` is the divergence ratio (0..1).",
+        "description": "Slope/sentiment derived from the latest session's spread S = NCP \u2212 NPP.\nSee reports/market_tide_sentiment.py for the math. Flow descriptor, not a\nprice predictor. `trend_strength` is the divergence ratio (0..1).",
         "properties": {
           "bars": {
             "default": 0,
@@ -9931,7 +9931,7 @@
         "type": "object"
       },
       "OptionChainPerStrikeRow": {
-        "description": "Aggregated (expiry, strike) snapshot — both volume and OI in one row.\n\nBacks both strike-profile charts (Volume and OI variants).",
+        "description": "Aggregated (expiry, strike) snapshot \u2014 both volume and OI in one row.\n\nBacks both strike-profile charts (Volume and OI variants).",
         "properties": {
           "call_oi": {
             "anyOf": [
@@ -10397,6 +10397,565 @@
           }
         },
         "title": "PositioningBlock",
+        "type": "object"
+      },
+      "PositioningScreenerResponse": {
+        "properties": {
+          "as_of": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "As Of"
+          },
+          "generated_at": {
+            "format": "date-time",
+            "title": "Generated At",
+            "type": "string"
+          },
+          "rows": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/PositioningScreenerRow"
+            },
+            "title": "Rows",
+            "type": "array"
+          }
+        },
+        "required": [
+          "generated_at"
+        ],
+        "title": "PositioningScreenerResponse",
+        "type": "object"
+      },
+      "PositioningScreenerRow": {
+        "description": "Compact per-ticker row for the watchlist positioning screener.",
+        "properties": {
+          "analyst_implied_upside_pct": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Analyst Implied Upside Pct"
+          },
+          "days_to_next_er": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Days To Next Er"
+          },
+          "er_positive_base_rate": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Er Positive Base Rate"
+          },
+          "insider_net_flow": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Insider Net Flow"
+          },
+          "insider_tilt": {
+            "default": "unknown",
+            "title": "Insider Tilt",
+            "type": "string"
+          },
+          "si_days_to_cover": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Si Days To Cover"
+          },
+          "si_fee_rate": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Si Fee Rate"
+          },
+          "si_pct_float": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Si Pct Float"
+          },
+          "snapshot_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Snapshot Date"
+          },
+          "spot": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Spot"
+          },
+          "squeeze_label": {
+            "default": "unknown",
+            "title": "Squeeze Label",
+            "type": "string"
+          },
+          "squeeze_score": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Squeeze Score"
+          },
+          "ticker": {
+            "title": "Ticker",
+            "type": "string"
+          }
+        },
+        "required": [
+          "ticker"
+        ],
+        "title": "PositioningScreenerRow",
+        "type": "object"
+      },
+      "PositioningSignals": {
+        "description": "Derived signal labels computed at read time from the banked columns.",
+        "properties": {
+          "analyst_implied_upside_pct": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Analyst Implied Upside Pct"
+          },
+          "analyst_rating_skew": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Analyst Rating Skew"
+          },
+          "days_to_next_er": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Days To Next Er"
+          },
+          "er_positive_base_rate": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Er Positive Base Rate"
+          },
+          "insider_tilt": {
+            "default": "unknown",
+            "title": "Insider Tilt",
+            "type": "string"
+          },
+          "squeeze_label": {
+            "default": "unknown",
+            "title": "Squeeze Label",
+            "type": "string"
+          },
+          "squeeze_score": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Squeeze Score"
+          }
+        },
+        "title": "PositioningSignals",
+        "type": "object"
+      },
+      "PositioningSnapshot": {
+        "description": "Full per-ticker positioning snapshot for the stock-page card.",
+        "properties": {
+          "analyst_buy": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Analyst Buy"
+          },
+          "analyst_hold": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Analyst Hold"
+          },
+          "analyst_sell": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Analyst Sell"
+          },
+          "analyst_target_avg": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Analyst Target Avg"
+          },
+          "analyst_target_hi": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Analyst Target Hi"
+          },
+          "analyst_target_lo": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Analyst Target Lo"
+          },
+          "available": {
+            "default": true,
+            "title": "Available",
+            "type": "boolean"
+          },
+          "earn_reactions_positive": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Earn Reactions Positive"
+          },
+          "earn_reactions_total": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Earn Reactions Total"
+          },
+          "insider_buy_volume": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Insider Buy Volume"
+          },
+          "insider_net_flow": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Insider Net Flow"
+          },
+          "insider_sell_volume": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Insider Sell Volume"
+          },
+          "inst_holder_count": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Inst Holder Count"
+          },
+          "inst_total_value": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Inst Total Value"
+          },
+          "next_er_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Er Date"
+          },
+          "si_days_to_cover": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Si Days To Cover"
+          },
+          "si_fee_rate": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Si Fee Rate"
+          },
+          "si_market_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Si Market Date"
+          },
+          "si_pct_float": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Si Pct Float"
+          },
+          "si_rebate_rate": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Si Rebate Rate"
+          },
+          "si_shares_available": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Si Shares Available"
+          },
+          "si_short_interest": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Si Short Interest"
+          },
+          "si_total_float": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Si Total Float"
+          },
+          "signals": {
+            "$ref": "#/components/schemas/PositioningSignals",
+            "default": {
+              "insider_tilt": "unknown",
+              "squeeze_label": "unknown"
+            }
+          },
+          "snapshot_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Snapshot Date"
+          },
+          "spot": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Spot"
+          },
+          "ticker": {
+            "title": "Ticker",
+            "type": "string"
+          }
+        },
+        "required": [
+          "ticker"
+        ],
+        "title": "PositioningSnapshot",
         "type": "object"
       },
       "ProviderUsageBreakdownResponse": {
@@ -12777,7 +13336,7 @@
         "type": "object"
       },
       "ReturnsBlock": {
-        "description": "Wire shape: d1 / w1 / d30. No aliases — FastAPI would otherwise serialize\nthem as JSON keys and break the frontend contract.",
+        "description": "Wire shape: d1 / w1 / d30. No aliases \u2014 FastAPI would otherwise serialize\nthem as JSON keys and break the frontend contract.",
         "properties": {
           "d1": {
             "anyOf": [
@@ -14535,7 +15094,7 @@
         "type": "object"
       },
       "StockShortVol": {
-        "description": "Per-ticker short-vol (sell-premium) readout for the Market Structure tab —\nthe single-name sibling of the SPX MacroSignal. EOD basis (latest vrp_daily row).\naction=TRADE only when vol is rich (vrp_z_20 >= 1.0) AND the ticker's sector is in\nthe sellable set AND earnings are clear of the hold window; else SKIP with a reason.\nStrikes/credit/max_loss are flat-vol modeled (conservative floor).",
+        "description": "Per-ticker short-vol (sell-premium) readout for the Market Structure tab \u2014\nthe single-name sibling of the SPX MacroSignal. EOD basis (latest vrp_daily row).\naction=TRADE only when vol is rich (vrp_z_20 >= 1.0) AND the ticker's sector is in\nthe sellable set AND earnings are clear of the hold window; else SKIP with a reason.\nStrikes/credit/max_loss are flat-vol modeled (conservative floor).",
         "properties": {
           "action": {
             "title": "Action",
@@ -15700,7 +16259,7 @@
       },
       "TradeInsightAiAnalysisEnqueueResponse": {
         "additionalProperties": false,
-        "description": "POST response — one stub per enabled provider.",
+        "description": "POST response \u2014 one stub per enabled provider.",
         "properties": {
           "analyses": {
             "items": {
@@ -15941,7 +16500,7 @@
       },
       "TradeInsightAiAntiPin": {
         "additionalProperties": false,
-        "description": "v5.2: structured anti-pin score + scope tag.\n\ninvoked=False means anti-pin is not the thesis (e.g. structural break\nor trend continuation). The validator's conviction cap (cap at C when\n2/4 hold, anti-pin doesn't fire when ≤1/4) ONLY applies when\ninvoked=True. This closes the v5.1 issue where Claude scored 1/4 on\nNVDA but correctly chose downside_break — anti-pin scoring should\nhave been informational only, not a conviction blocker.",
+        "description": "v5.2: structured anti-pin score + scope tag.\n\ninvoked=False means anti-pin is not the thesis (e.g. structural break\nor trend continuation). The validator's conviction cap (cap at C when\n2/4 hold, anti-pin doesn't fire when \u22641/4) ONLY applies when\ninvoked=True. This closes the v5.1 issue where Claude scored 1/4 on\nNVDA but correctly chose downside_break \u2014 anti-pin scoring should\nhave been informational only, not a conviction blocker.",
         "properties": {
           "cap_reason": {
             "default": "",
@@ -16287,7 +16846,7 @@
       },
       "TradeInsightAiLatestPair": {
         "additionalProperties": false,
-        "description": "GET /latest response — null per provider when no succeeded row exists.\n\nv5.2: provider_consensus is computed at read time by comparing the\ntwo providers' headline fields whenever both have succeeded. The\nUI surfaces consensus_grade + actionable_disagreement above the\n[Codex] [Claude] tabs as a quality signal.\n\nv5.3 (deepseek-decoupling, 2026-05-28): adds the deepseek slot.\nDeepSeek surfaces in /latest but DOES NOT participate in\nprovider_consensus — that remains a 2-way codex-vs-claude comparison\n(see _compute_provider_consensus docstring for the scope decision).\nThe UI still renders only [Codex] [Claude] tabs; the deepseek field\nis queued + persisted today and ignored by the frontend until a\nfollow-up PR adds a [DeepSeek] tab.",
+        "description": "GET /latest response \u2014 null per provider when no succeeded row exists.\n\nv5.2: provider_consensus is computed at read time by comparing the\ntwo providers' headline fields whenever both have succeeded. The\nUI surfaces consensus_grade + actionable_disagreement above the\n[Codex] [Claude] tabs as a quality signal.\n\nv5.3 (deepseek-decoupling, 2026-05-28): adds the deepseek slot.\nDeepSeek surfaces in /latest but DOES NOT participate in\nprovider_consensus \u2014 that remains a 2-way codex-vs-claude comparison\n(see _compute_provider_consensus docstring for the scope decision).\nThe UI still renders only [Codex] [Claude] tabs; the deepseek field\nis queued + persisted today and ignored by the frontend until a\nfollow-up PR adds a [DeepSeek] tab.",
         "properties": {
           "claude": {
             "anyOf": [
@@ -16431,7 +16990,7 @@
       },
       "TradeInsightAiOptionLeg": {
         "additionalProperties": false,
-        "description": "v5.3: one leg of a defined-risk option expression.\n\nReplaces v5.2's implicit \"trigger_level + long_leg_role + short_leg_role\"\ncoupling with explicit, validator-checkable leg geometry. The\nlegs-strategy-match validator enforces, e.g., that a bear_put_spread\nhas exactly one long put + one short put with long.strike > short.strike\nand matching expiry. The legs-align-triggers validator enforces that\nthe long leg's strike is within tolerance of entry_trigger.level OR\nthesis_trigger.level — making \"is the actual long-put strike 215 or\n220?\" a falsifiable claim against the model output.\n\nNo naked shorts: per project safety policy, credit-spread families\nmust always include the long protective leg. The validator rejects\na single-leg short.",
+        "description": "v5.3: one leg of a defined-risk option expression.\n\nReplaces v5.2's implicit \"trigger_level + long_leg_role + short_leg_role\"\ncoupling with explicit, validator-checkable leg geometry. The\nlegs-strategy-match validator enforces, e.g., that a bear_put_spread\nhas exactly one long put + one short put with long.strike > short.strike\nand matching expiry. The legs-align-triggers validator enforces that\nthe long leg's strike is within tolerance of entry_trigger.level OR\nthesis_trigger.level \u2014 making \"is the actual long-put strike 215 or\n220?\" a falsifiable claim against the model output.\n\nNo naked shorts: per project safety policy, credit-spread families\nmust always include the long protective leg. The validator rejects\na single-leg short.",
         "properties": {
           "expiry": {
             "format": "date",
@@ -16843,7 +17402,7 @@
       },
       "TradeInsightAiProviderConsensus": {
         "additionalProperties": false,
-        "description": "v5.2: cross-provider agreement signal computed at GET /latest time.\n\nNot stored per row — derived by comparing the two providers' headline\nfields whenever both have a succeeded row. Surfaces actionable\ndisagreement to the operator (e.g. \"ACTIVE vs CONDITIONAL depends on\nwhether the latest daily close cleared 215\").",
+        "description": "v5.2: cross-provider agreement signal computed at GET /latest time.\n\nNot stored per row \u2014 derived by comparing the two providers' headline\nfields whenever both have a succeeded row. Surfaces actionable\ndisagreement to the operator (e.g. \"ACTIVE vs CONDITIONAL depends on\nwhether the latest daily close cleared 215\").",
         "properties": {
           "actionable_disagreement": {
             "default": "",
@@ -17248,7 +17807,7 @@
       },
       "TradeInsightAiTargetFeasibility": {
         "additionalProperties": false,
-        "description": "v5.2: target-distance vs expected-move sanity layer.\n\nOptional — when expected_move data is missing from the payload the\nfeasibility is 'missing' and the validator does not block. When\npresent, this surfaces whether the target is realistic within the\n5-10 session hold.",
+        "description": "v5.2: target-distance vs expected-move sanity layer.\n\nOptional \u2014 when expected_move data is missing from the payload the\nfeasibility is 'missing' and the validator does not block. When\npresent, this surfaces whether the target is realistic within the\n5-10 session hold.",
         "properties": {
           "distance_to_target_pct": {
             "anyOf": [
@@ -17288,7 +17847,7 @@
       },
       "TradeInsightAiTriggerComponent": {
         "additionalProperties": false,
-        "description": "v5.3: a single point on the trade's state machine.\n\nThe v5.2 schema overloaded `trigger_level` across two distinct\nsemantics (NVDA Codex emitted 220 as \"broken wall — already fired\",\nClaude emitted 215 as \"continuation entry — not yet fired\"), which\nis why providers split on ENTRY_STATE despite agreeing on archetype\nand direction. v5.3 decomposes that into three required components —\n`thesis_trigger`, `entry_trigger`, `invalidation` — each carrying its\nown level, semantic meaning, and `fired` boolean evaluated against\nactual daily-close evidence. ENTRY_STATE becomes a mechanical\nfunction of the trigger booleans rather than a model judgment.\n\nBoth `thesis_trigger` and `entry_trigger` may share the same level\nwhen the trade plan treats the broken wall as both the thesis\nconfirmation AND the entry signal — but their `meaning` strings\nmust differ, and their `fired` booleans are evaluated independently\nagainst their own evidence rules.",
+        "description": "v5.3: a single point on the trade's state machine.\n\nThe v5.2 schema overloaded `trigger_level` across two distinct\nsemantics (NVDA Codex emitted 220 as \"broken wall \u2014 already fired\",\nClaude emitted 215 as \"continuation entry \u2014 not yet fired\"), which\nis why providers split on ENTRY_STATE despite agreeing on archetype\nand direction. v5.3 decomposes that into three required components \u2014\n`thesis_trigger`, `entry_trigger`, `invalidation` \u2014 each carrying its\nown level, semantic meaning, and `fired` boolean evaluated against\nactual daily-close evidence. ENTRY_STATE becomes a mechanical\nfunction of the trigger booleans rather than a model judgment.\n\nBoth `thesis_trigger` and `entry_trigger` may share the same level\nwhen the trade plan treats the broken wall as both the thesis\nconfirmation AND the entry signal \u2014 but their `meaning` strings\nmust differ, and their `fired` booleans are evaluated independently\nagainst their own evidence rules.",
         "properties": {
           "evidence_close": {
             "anyOf": [
@@ -17347,7 +17906,7 @@
       },
       "TradeInsightAiTriggerEvidence": {
         "additionalProperties": false,
-        "description": "v5.2: payload-proven trigger fire evidence.\n\nThe deterministic ACTIVE_TRIGGER_EVIDENCE_RULE check uses these fields\nto verify that entry_state=ACTIVE is justified by an actual completed\ndaily close in the payload — not by intraday spot or model inference.\n\ntrigger_fired=False is the default; the lenient coercer fills this in\nby reading the latest completed stock_history row and comparing its\nclose to strike_role.trigger_level.\n\nWhen trigger_fired=False but the model emitted entry_state=ACTIVE,\nthe validator rejects (or auto-downgrades) to CONDITIONAL.",
+        "description": "v5.2: payload-proven trigger fire evidence.\n\nThe deterministic ACTIVE_TRIGGER_EVIDENCE_RULE check uses these fields\nto verify that entry_state=ACTIVE is justified by an actual completed\ndaily close in the payload \u2014 not by intraday spot or model inference.\n\ntrigger_fired=False is the default; the lenient coercer fills this in\nby reading the latest completed stock_history row and comparing its\nclose to strike_role.trigger_level.\n\nWhen trigger_fired=False but the model emitted entry_state=ACTIVE,\nthe validator rejects (or auto-downgrades) to CONDITIONAL.",
         "properties": {
           "evidence_close": {
             "anyOf": [
@@ -18298,7 +18857,7 @@
         "type": "object"
       },
       "VcgNamedCrashOffset": {
-        "description": "One row of the ±5d named-crash window for a single event.",
+        "description": "One row of the \u00b15d named-crash window for a single event.",
         "properties": {
           "beta1": {
             "anyOf": [
@@ -19480,7 +20039,7 @@
       "VrpBacktestResponse": {
         "properties": {
           "disclaimer": {
-            "default": "Flat-vol modeled credit (skew ignored): direction is faithful, absolute credit is approximate. Paper/backtest only — not executed.",
+            "default": "Flat-vol modeled credit (skew ignored): direction is faithful, absolute credit is approximate. Paper/backtest only \u2014 not executed.",
             "title": "Disclaimer",
             "type": "string"
           },
@@ -19799,7 +20358,7 @@
             "type": "array"
           },
           "disclaimer": {
-            "default": "Flat-vol modeled credit (skew ignored): direction is faithful, absolute credit is approximate. Paper/backtest only — not executed.",
+            "default": "Flat-vol modeled credit (skew ignored): direction is faithful, absolute credit is approximate. Paper/backtest only \u2014 not executed.",
             "title": "Disclaimer",
             "type": "string"
           }
@@ -19849,7 +20408,7 @@
         "type": "object"
       },
       "VrpHarvestResponse": {
-        "description": "VRP harvest markout verdicts — is rich vol sellable, by bucket (Spec B).",
+        "description": "VRP harvest markout verdicts \u2014 is rich vol sellable, by bucket (Spec B).",
         "properties": {
           "verdicts": {
             "items": {
@@ -20224,7 +20783,7 @@
       "VrpMacroPositionDetail": {
         "properties": {
           "disclaimer": {
-            "default": "Modeled P&L from persisted NBBO mids of the short_above/wing_above bull-put bracket, in option points for one 1-lot spread (×100 for SPX dollars). Paper/backtest only — not executed.",
+            "default": "Modeled P&L from persisted NBBO mids of the short_above/wing_above bull-put bracket, in option points for one 1-lot spread (\u00d7100 for SPX dollars). Paper/backtest only \u2014 not executed.",
             "title": "Disclaimer",
             "type": "string"
           },
@@ -20531,7 +21090,7 @@
       "VrpMacroPositionsResponse": {
         "properties": {
           "disclaimer": {
-            "default": "Modeled P&L from persisted NBBO mids of the short_above/wing_above bull-put bracket, in option points for one 1-lot spread (×100 for SPX dollars). Paper/backtest only — not executed.",
+            "default": "Modeled P&L from persisted NBBO mids of the short_above/wing_above bull-put bracket, in option points for one 1-lot spread (\u00d7100 for SPX dollars). Paper/backtest only \u2014 not executed.",
             "title": "Disclaimer",
             "type": "string"
           },
@@ -20630,7 +21189,7 @@
         "type": "object"
       },
       "VrpMacroSignalRow": {
-        "description": "Latest VRP macro short-vol signal for one index. action=TRADE iff weight>0\n(ramp+ vrp-z sizing); strikes/credit/max_loss are flat-vol modeled (conservative\nfloor — real put skew pays more). Compare `as_of` to `snapshot_date` for staleness:\n`as_of` is the vol-data date, `snapshot_date` is when the job ran.",
+        "description": "Latest VRP macro short-vol signal for one index. action=TRADE iff weight>0\n(ramp+ vrp-z sizing); strikes/credit/max_loss are flat-vol modeled (conservative\nfloor \u2014 real put skew pays more). Compare `as_of` to `snapshot_date` for staleness:\n`as_of` is the vol-data date, `snapshot_date` is when the job ran.",
         "properties": {
           "action": {
             "title": "Action",
@@ -20982,7 +21541,7 @@
       "VrpPaperResponse": {
         "properties": {
           "disclaimer": {
-            "default": "Flat-vol modeled credit (skew ignored): direction is faithful, absolute credit is approximate. Paper/backtest only — not executed.",
+            "default": "Flat-vol modeled credit (skew ignored): direction is faithful, absolute credit is approximate. Paper/backtest only \u2014 not executed.",
             "title": "Disclaimer",
             "type": "string"
           },
@@ -21347,7 +21906,7 @@
         "type": "object"
       },
       "WatchlistSpot": {
-        "description": "Lightweight live-spot row for the browser poller — the WS consumer\nwrites spot every ~1s; this projection avoids the full dashboard join.",
+        "description": "Lightweight live-spot row for the browser poller \u2014 the WS consumer\nwrites spot every ~1s; this projection avoids the full dashboard join.",
         "properties": {
           "spot": {
             "anyOf": [
@@ -21465,7 +22024,7 @@
         "type": "object"
       },
       "WsConsumerHealth": {
-        "description": "Spot WS consumer status (xenon primary / massive fallback), surfaced\nfor the HealthPanel.\n\n``healthy`` is true when:\n  * the market is closed (no ticks are expected), OR\n  * ``last_flush_at`` is within ``massive_ws_heartbeat_stale_after_seconds``.\n\n``active_source`` tells which feed the consumer is connected to —\n``\"xenon_ws\"`` (primary) or ``\"massive.com_ws\"`` (fallback); ``None``\nbefore the first connection. ``reason`` carries the short label the UI\ndisplays under the row.",
+        "description": "Spot WS consumer status (xenon primary / massive fallback), surfaced\nfor the HealthPanel.\n\n``healthy`` is true when:\n  * the market is closed (no ticks are expected), OR\n  * ``last_flush_at`` is within ``massive_ws_heartbeat_stale_after_seconds``.\n\n``active_source`` tells which feed the consumer is connected to \u2014\n``\"xenon_ws\"`` (primary) or ``\"massive.com_ws\"`` (fallback); ``None``\nbefore the first connection. ``reason`` carries the short label the UI\ndisplays under the row.",
         "properties": {
           "active_source": {
             "anyOf": [
@@ -21619,7 +22178,7 @@
         "type": "object"
       },
       "uw_scan__models__GexLevel": {
-        "description": "One labeled level on the GEX curve (e.g. CALL WALL, PUT WALL, MAX MAGNET).\n\n`gamma_per_dollar` is the per-strike net_gex used as the \"$N per $1\" sensitivity\nfigure on the tile — the dollar value of dealer hedging triggered by a $1 move.",
+        "description": "One labeled level on the GEX curve (e.g. CALL WALL, PUT WALL, MAX MAGNET).\n\n`gamma_per_dollar` is the per-strike net_gex used as the \"$N per $1\" sensitivity\nfigure on the tile \u2014 the dollar value of dealer hedging triggered by a $1 move.",
         "properties": {
           "gamma_per_dollar": {
             "anyOf": [
@@ -22446,6 +23005,69 @@
         ]
       }
     },
+    "/api/positioning/screener": {
+      "get": {
+        "operationId": "get_positioning_screener_api_positioning_screener_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PositioningScreenerResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Get Positioning Screener",
+        "tags": [
+          "positioning"
+        ]
+      }
+    },
+    "/api/positioning/{ticker}": {
+      "get": {
+        "operationId": "get_positioning_api_positioning__ticker__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "ticker",
+            "required": true,
+            "schema": {
+              "title": "Ticker",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PositioningSnapshot"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Positioning",
+        "tags": [
+          "positioning"
+        ]
+      }
+    },
     "/api/positions": {
       "get": {
         "description": "All VRP-macro cohorts as a portfolio (newest first). Empty when none captured.",
@@ -23048,7 +23670,7 @@
     },
     "/api/regime/dealer": {
       "get": {
-        "description": "Per-ticker dealer Greek regime — feeds the Magnet/Gamma summary bar\nand the Volatility tab regime panel. Uses the same `gather_inputs`\nhelper the report assembler uses so both paths see the same upstream.",
+        "description": "Per-ticker dealer Greek regime \u2014 feeds the Magnet/Gamma summary bar\nand the Volatility tab regime panel. Uses the same `gather_inputs`\nhelper the report assembler uses so both paths see the same upstream.",
         "operationId": "get_dealer_regime_api_regime_dealer_get",
         "parameters": [
           {
@@ -23248,7 +23870,7 @@
     },
     "/api/regime/grg": {
       "get": {
-        "description": "Latest GRG snapshot (self-contained: embeds 90-session history).\n\nGRG is EOD/periodic-rescan — the worker owns UW fetches; this read is\ncheap (one snapshot row). No per-request UW spend.",
+        "description": "Latest GRG snapshot (self-contained: embeds 90-session history).\n\nGRG is EOD/periodic-rescan \u2014 the worker owns UW fetches; this read is\ncheap (one snapshot row). No per-request UW spend.",
         "operationId": "get_grg_api_regime_grg_get",
         "responses": {
           "200": {
@@ -23465,7 +24087,7 @@
     },
     "/api/regime/validation": {
       "get": {
-        "description": "Latest completed CRI backtest run, rendered to markdown.\n\nSource of truth is uw_scan.regime_backtest_runs. The previous file\nfallback (cri-backtest.md/.csv + oos-summary.json on disk) was removed\nafter the prod gate in\ndocs/superpowers/archive/specs/2026-05-24-regime-research-closure-design.md §10.4\nwas satisfied. If no completed run exists at the current\ncri_scorers.COMPOSITE_VERSION, returns 503 — operators should run\nscripts/backtest_cri.py to seed the table.",
+        "description": "Latest completed CRI backtest run, rendered to markdown.\n\nSource of truth is uw_scan.regime_backtest_runs. The previous file\nfallback (cri-backtest.md/.csv + oos-summary.json on disk) was removed\nafter the prod gate in\ndocs/superpowers/archive/specs/2026-05-24-regime-research-closure-design.md \u00a710.4\nwas satisfied. If no completed run exists at the current\ncri_scorers.COMPOSITE_VERSION, returns 503 \u2014 operators should run\nscripts/backtest_cri.py to seed the table.",
         "operationId": "get_validation_api_regime_validation_get",
         "responses": {
           "200": {
@@ -23531,7 +24153,7 @@
     },
     "/api/regime/vcg-validation": {
       "get": {
-        "description": "Latest completed VCG backtest run, rendered to markdown + structured.\n\nSource of truth is uw_scan.regime_backtest_runs (migration 057). Returns\n503 with an actionable message if no completed run exists at the current\nvcg_scoring.COMPOSITE_VERSION — operators should run scripts/backtest_vcg.py.\n\nPersisted JSON shape (from scripts/backtest_vcg.py):\n    summary.extras.named_crash_window: dict[iso_str, list[dict]] where\n    each inner dict has offset_d (NOT offset_days), vcg, vcg_adj, beta1,\n    beta2, sign_ok, interpretation, vix. Event labels live in\n    NAMED_CRASH_DATES, not the persisted JSON.",
+        "description": "Latest completed VCG backtest run, rendered to markdown + structured.\n\nSource of truth is uw_scan.regime_backtest_runs (migration 057). Returns\n503 with an actionable message if no completed run exists at the current\nvcg_scoring.COMPOSITE_VERSION \u2014 operators should run scripts/backtest_vcg.py.\n\nPersisted JSON shape (from scripts/backtest_vcg.py):\n    summary.extras.named_crash_window: dict[iso_str, list[dict]] where\n    each inner dict has offset_d (NOT offset_days), vcg, vcg_adj, beta1,\n    beta2, sign_ok, interpretation, vix. Event labels live in\n    NAMED_CRASH_DATES, not the persisted JSON.",
         "operationId": "get_vcg_validation_api_regime_vcg_validation_get",
         "responses": {
           "200": {
@@ -23872,7 +24494,7 @@
     },
     "/api/regime/vrp-macro-signal/entry/preview": {
       "get": {
-        "description": "SPX entry preview. ZERO IB, ZERO new UW, ZERO writes — browser-polled.\nServes today's persisted auto-cohort snapshot legs (real strikes + NBBO) if\npresent, else empty legs — never a fabricated indicative grid (a synthetic\nstrike/mid is worse than none). Degrades to action=None + empty legs when no\nsignal resolves (never 500).",
+        "description": "SPX entry preview. ZERO IB, ZERO new UW, ZERO writes \u2014 browser-polled.\nServes today's persisted auto-cohort snapshot legs (real strikes + NBBO) if\npresent, else empty legs \u2014 never a fabricated indicative grid (a synthetic\nstrike/mid is worse than none). Degrades to action=None + empty legs when no\nsignal resolves (never 500).",
         "operationId": "get_vrp_macro_entry_preview_api_regime_vrp_macro_signal_entry_preview_get",
         "responses": {
           "200": {
@@ -24316,7 +24938,7 @@
     },
     "/api/stock/{ticker}/trade-insights/ai-analysis": {
       "post": {
-        "description": "Enqueue one Trade Insights AI analysis per enabled provider.\n\nResponse contains one stub per provider with status + reused + model.\nDisabled providers are omitted from the response (not included with a\n'disabled' status — the UI tab handles this via /latest = null).\n\n``kind`` selects the lane: ``insights`` (v5.3 card) or ``blast``\n(trade-blast framework prompt).",
+        "description": "Enqueue one Trade Insights AI analysis per enabled provider.\n\nResponse contains one stub per provider with status + reused + model.\nDisabled providers are omitted from the response (not included with a\n'disabled' status \u2014 the UI tab handles this via /latest = null).\n\n``kind`` selects the lane: ``insights`` (v5.3 card) or ``blast``\n(trade-blast framework prompt).",
         "operationId": "post_trade_insights_ai_analysis_api_stock__ticker__trade_insights_ai_analysis_post",
         "parameters": [
           {
@@ -24541,7 +25163,7 @@
     },
     "/api/trade-insights/priors": {
       "get": {
-        "description": "Per-provider per-archetype hit-rate priors from the outcome ledger.\n\nReads `trade_insight_provider_archetype_priors` (migration 055).\nAll filter parameters are optional; with none, returns every cohort\nacross every provider/version/archetype/bias/entry_state combination\nthat has at least one outcome row.\n\n`hit_rate_pct` is null when the cohort has zero resolved outcomes\n(everything is still pending). `sample_count` includes pending +\nresolved + expired; `target_hit_count` / `invalidation_hit_count` /\n`pending_count` / `expired_no_resolution_count` are the breakdown.\n\nReturns a 200 with an empty `priors` list when no rows match —\ncallers should not treat empty as an error.",
+        "description": "Per-provider per-archetype hit-rate priors from the outcome ledger.\n\nReads `trade_insight_provider_archetype_priors` (migration 055).\nAll filter parameters are optional; with none, returns every cohort\nacross every provider/version/archetype/bias/entry_state combination\nthat has at least one outcome row.\n\n`hit_rate_pct` is null when the cohort has zero resolved outcomes\n(everything is still pending). `sample_count` includes pending +\nresolved + expired; `target_hit_count` / `invalidation_hit_count` /\n`pending_count` / `expired_no_resolution_count` are the breakdown.\n\nReturns a 200 with an empty `priors` list when no rows match \u2014\ncallers should not treat empty as an error.",
         "operationId": "get_trade_insight_priors_api_trade_insights_priors_get",
         "parameters": [
           {
@@ -24899,7 +25521,7 @@
     },
     "/api/watchlist/queue": {
       "get": {
-        "description": "Lightweight queue snapshot for the dashboard's QueueProgress widget.\n\nReturns only the rescan-queue summary — no card joins, no meta. Designed\nfor the 2.5s polling loop in QueueProgress so the dashboard doesn't\nrefetch the full watchlist payload every tick.",
+        "description": "Lightweight queue snapshot for the dashboard's QueueProgress widget.\n\nReturns only the rescan-queue summary \u2014 no card joins, no meta. Designed\nfor the 2.5s polling loop in QueueProgress so the dashboard doesn't\nrefetch the full watchlist payload every tick.",
         "operationId": "get_watchlist_queue_api_watchlist_queue_get",
         "responses": {
           "200": {

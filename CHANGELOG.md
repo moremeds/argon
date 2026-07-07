@@ -7,6 +7,25 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+### Added
+
+- **UW same-day fetch dedupe memo (issue #225).** The shared UW daily budget is
+  exhausted by ~08:00 ET partly because 6+ jobs (option_surface_capture,
+  cockpit_daily_snapshot, flow_data_refresh, skew_swing_greeks, vrp_macro_entry,
+  full_scan pipeline) independently re-fetch identical slow-moving per-ticker data
+  every day. The budget governor gates *spend* but does not *dedupe*. New
+  Postgres-backed memo (`uw_fetch_memo`, migration `099`; `storage/uw_fetch_memo.py`)
+  keyed `(ticker, endpoint, as_of_date)` is consulted in `sources/uw.py` BEFORE the
+  live call: the first same-day caller of `fetch_option_contracts` /
+  `fetch_greek_exposure_by_expiry` spends budget and stores the raw payload; every
+  same-day caller after reads it back (a budget SAVE, recorded on the row's
+  `hit_count` + `last_hit_at`). TTL = same trading day (a row for today is a hit;
+  stale dates are ignored and prunable). DB-backed rather than in-process because the
+  jobs run in separate worker processes. Only the two slow-moving endpoints are
+  wrapped — intraday/live feeds (spot, flow alerts) stay fresh — and both fetchers
+  take a `force_refresh=True` kwarg to bypass. The historical-`date` path of
+  `fetch_greek_exposure_by_expiry` is never memoized.
+
 ### Fixed
 
 - **Deploy health-gate now checks `ok`, not just reachability.**
@@ -34,6 +53,23 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   `docs/research/2026-07-07-flow-vs-rviv-verdict.{result.md,summary.json,daily_ls.csv}`.
   Re-run on the mini's fuller history before over-trusting the tie at 1d. Read-only, no
   migration.
+- **Positioning intelligence — surface `uw_positioning` (card + screener).**
+  The daily-banked `uw_positioning` snapshot (short interest / %float / days-to-cover /
+  borrow fee, analyst counts + targets, institutional counts/value, insider net flow,
+  earnings-reaction base rate, next ER date) previously had exactly one reader (the
+  trade-blast LLM prompt) and no endpoint, panel, or screener. Now exposed read-only:
+  `GET /api/positioning/{ticker}` (full snapshot + derived signals) and
+  `GET /api/positioning/screener` (one row per watchlist ticker, sorted by squeeze
+  risk). Derived signals (computed at read time in `reports/positioning.py`): squeeze
+  score/label (si_pct_float × days-to-cover × borrow-fee tiers), insider net-flow tilt,
+  analyst implied upside vs spot, analyst rating skew, pre-ER positive-reaction base
+  rate, days-to-next-ER. Web: a Positioning card on the stock page's Market Structure
+  tab + a `/positioning` screener table (new sidebar entry). **Zero new UW fetch** —
+  everything reads the existing warm store. Storage read queries live in
+  `storage/positioning.py` (`list_uw_positioning_latest`); models in
+  `models/positioning.py`. Follow-ups deferred: parsing the discarded 13F/insider
+  `raw_jsonb` detail, a borrow-fee *spike*-vs-baseline signal (needs a rolling read),
+  and any cross-sectional alpha signal (this is a surfacing task, not an alpha probe).
 - **Trade-lifecycle layer: VRP-macro entry-capture cohorts read back as a portfolio (#223).**
   The validated VRP-macro edge captures entries into `vrp_macro_entry` (8 marks/day ×
   30 cal-days per cohort) but nothing read them back. New `/api/positions` (list) and
