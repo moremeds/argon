@@ -141,6 +141,23 @@ def provider_usage_tickers(
 
 
 @router.get(
+    "/provider-usage/jobs",
+    response_model=ProviderUsageBreakdownResponse,
+)
+def provider_usage_jobs(
+    provider: ProviderParam = "all",
+    repo: Repository = Depends(get_repo),
+) -> ProviderUsageBreakdownResponse:
+    start, end = provider_day_bounds()
+    rows = repo.list_external_api_job_usage(_provider_filter(provider), start, end)
+    return ProviderUsageBreakdownResponse(
+        provider_day_start=start,
+        provider_day_end=end,
+        rows=[ProviderUsageBreakdownRow(**row.__dict__) for row in rows],
+    )
+
+
+@router.get(
     "/provider-usage/requests",
     response_model=ProviderUsageRequestsResponse,
 )

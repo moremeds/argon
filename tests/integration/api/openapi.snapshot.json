@@ -23258,6 +23258,54 @@
         ]
       }
     },
+    "/api/provider-usage/jobs": {
+      "get": {
+        "operationId": "provider_usage_jobs_api_provider_usage_jobs_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "provider",
+            "required": false,
+            "schema": {
+              "default": "all",
+              "enum": [
+                "uw",
+                "massive",
+                "all"
+              ],
+              "title": "Provider",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProviderUsageBreakdownResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Provider Usage Jobs",
+        "tags": [
+          "provider-usage"
+        ]
+      }
+    },
     "/api/provider-usage/requests": {
       "get": {
         "operationId": "provider_usage_requests_api_provider_usage_requests_get",

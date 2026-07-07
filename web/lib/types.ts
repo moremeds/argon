@@ -310,6 +310,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/provider-usage/jobs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Provider Usage Jobs */
+        get: operations["provider_usage_jobs_api_provider_usage_jobs_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/provider-usage/requests": {
         parameters: {
             query?: never;
@@ -9018,6 +9035,37 @@ export interface operations {
         };
     };
     provider_usage_endpoints_api_provider_usage_endpoints_get: {
+        parameters: {
+            query?: {
+                provider?: "uw" | "massive" | "all";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProviderUsageBreakdownResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    provider_usage_jobs_api_provider_usage_jobs_get: {
         parameters: {
             query?: {
                 provider?: "uw" | "massive" | "all";

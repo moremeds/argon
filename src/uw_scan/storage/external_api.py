@@ -234,10 +234,17 @@ class _ExternalApiMixin:
             "ticker", provider=provider, start=start, end=end
         )
 
+    def list_external_api_job_usage(
+        self, provider: str | None, start: datetime, end: datetime
+    ) -> list[ExternalApiBreakdownRow]:
+        return self._list_external_api_breakdown(
+            "job_name", provider=provider, start=start, end=end
+        )
+
     def _list_external_api_breakdown(
         self, column: str, *, provider: str | None, start: datetime, end: datetime
     ) -> list[ExternalApiBreakdownRow]:
-        if column not in {"endpoint_key", "ticker"}:
+        if column not in {"endpoint_key", "ticker", "job_name"}:
             raise ValueError(f"unsupported external API breakdown: {column}")
         provider_filter = None if provider in (None, "all") else provider
         sql = (
