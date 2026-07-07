@@ -24,6 +24,9 @@ def _registered_job_ids(monkeypatch, **env) -> set[str]:
         def __init__(self, *_a, **_k) -> None:
             pass
 
+        def add_listener(self, *_a, **_k) -> None:
+            pass
+
         def add_job(self, *_a, **kwargs) -> None:
             ids.append(kwargs.get("id"))
 
