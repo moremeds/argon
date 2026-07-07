@@ -36,6 +36,18 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   `models/positioning.py`. Follow-ups deferred: parsing the discarded 13F/insider
   `raw_jsonb` detail, a borrow-fee *spike*-vs-baseline signal (needs a rolling read),
   and any cross-sectional alpha signal (this is a surfacing task, not an alpha probe).
+- **Implied-correlation / dispersion richness gate — falsified (research spike, #226).**
+  `scripts/research/implied_corr_gate.py` tests whether implied-correlation richness is a
+  second, near-orthogonal axis on top of the validated VRP-macro short-vol edge. Uses the
+  real CBOE **COR1M** implied-correlation index (`vol_index_daily`, 2007–2026, n=244
+  non-overlapping SPX bull-put-spread trades) and reuses the validated
+  `build_bull_put_spread` P&L + `backtest.metrics` machinery — no reinvented backtest math.
+  Verdict in `docs/research/2026-07-07-implied-corr-gate.md`: **NEGATIVE, do not build**
+  (MED). Short-vol P&L is **not monotone** in COR-z (inverted-U, top bucket reverts,
+  Spearman p=0.29); COR-z is **~80% collinear with VIX-z** and insignificant (t=1.45) on
+  independent trades once vrp-z/VIX-z are controlled; a COR-z gate gives no Sharpe gain
+  (0.732→0.748) and halves return. The issue's equal-weight top-10 dispersion proxy tracks
+  COR1M at pearson 0.91, validating COR1M as the measure. Read-only; no schema change.
 - **SVI surface-fit feasibility + residual edge test (research spike).**
   `scripts/research/svi_fit.py` — pure raw-SVI (Gatheral) smile fit + butterfly/calendar
   no-arb diagnostics + delta-forward anchor, unit-tested (`tests/unit/test_svi_fit.py`) —
