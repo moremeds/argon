@@ -7,6 +7,9 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+## [0.7.2] — 2026-07-07
+
+
 ### Added
 
 - **UW same-day fetch dedupe memo (issue #225).** The shared UW daily budget is
@@ -133,7 +136,6 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   calibrated empirically (grid `call_vega` is per-1%-vol, `call_theta` per-day — the
   CLAUDE.md "vega ×100" note is wrong for this table). Matches argon's prior: single-name
   surface geometry carries no taker edge (cf. skew #208, SVI #219). Zero UW/IB calls.
-
 ## [0.7.1] — 2026-07-04
 
 
