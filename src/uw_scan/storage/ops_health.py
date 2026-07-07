@@ -1,7 +1,8 @@
 """Ops-hardening health state: job-failure streaks.
 
-New domain module (see CLAUDE.md 'Never extend repository.py'). Assembled into
-Repository only for re-export compatibility, never with query methods added here.
+New domain module (see CLAUDE.md 'Never extend repository.py') — a standalone
+repository used by direct import (health route, scheduler listener), NOT added
+to the assembled `Repository`.
 """
 
 from __future__ import annotations
@@ -41,6 +42,11 @@ class JobFailuresRepository:
         self._conn = conn
 
     def record_failure(self, job_name: str, error: str) -> None:
+        # Streak is keyed by job_name only, so it is an aggregate across sharded
+        # worker processes (e.g. full_scan on uw-0 and uw-1 share one row): a
+        # success on any shard resets it. Good enough for systemic failures (all
+        # shards fail → streak climbs); a shard-specific failure that another
+        # shard's success keeps resetting won't alert — accepted for v1.
         with self._conn.cursor() as cur:
             cur.execute(
                 f"""
