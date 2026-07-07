@@ -84,6 +84,8 @@ type RegimeGexResponse = Json<"/api/regime/gex", "get">;
 type RegimeDealerResponse = Json<"/api/regime/dealer", "get">;
 type RegimeVcgResponse = Json<"/api/regime/vcg", "get">;
 type RatesSnapshotResponse = Json<"/api/rates/snapshot", "get">;
+type PositioningSnapshot = Json<"/api/positioning/{ticker}", "get">;
+type PositioningScreenerResponse = Json<"/api/positioning/screener", "get">;
 
 async function _fetch<T>(
   path: string,
@@ -189,6 +191,10 @@ export const api = {
   },
   scannerDiscover: (limit = 20): Promise<ScannerDiscoverResponse> =>
     _fetch<ScannerDiscoverResponse>(`/api/scanner/discover?limit=${limit}`),
+  positioning: (ticker: string): Promise<PositioningSnapshot> =>
+    _fetch<PositioningSnapshot>(`/api/positioning/${ticker}`),
+  positioningScreener: (): Promise<PositioningScreenerResponse> =>
+    _fetch<PositioningScreenerResponse>(`/api/positioning/screener`),
   ratesSnapshot: (): Promise<RatesSnapshotResponse | null> =>
     _fetch<RatesSnapshotResponse | null>(`/api/rates/snapshot`, undefined, {
       allow404: true,

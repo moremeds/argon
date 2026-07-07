@@ -127,3 +127,23 @@ class _PositioningMixin:
         with self._conn.cursor(row_factory=dict_row) as cur:
             cur.execute(sql, (ticker.upper(),))
             return cur.fetchone()
+
+    def list_uw_positioning_latest(self) -> list[dict[str, Any]]:
+        """Latest positioning snapshot per active-watchlist ticker.
+
+        One row per watchlist ticker (newest ``snapshot_date``), with the
+        dashboard card's delayed ``spot`` joined on for implied-upside math.
+        Read-only; feeds the positioning screener. The (ticker, snapshot_date)
+        primary key backs the DISTINCT ON efficiently.
+        """
+        sql = (
+            "SELECT DISTINCT ON (p.ticker) p.*, c.spot "
+            f"FROM {self._schema}.uw_positioning p "
+            f"JOIN {self._schema}.watchlist w "
+            "  ON w.ticker = p.ticker AND w.removed_at IS NULL "
+            f"LEFT JOIN {self._schema}.watchlist_card c ON c.ticker = p.ticker "
+            "ORDER BY p.ticker, p.snapshot_date DESC"
+        )
+        with self._conn.cursor(row_factory=dict_row) as cur:
+            cur.execute(sql)
+            return list(cur.fetchall())
