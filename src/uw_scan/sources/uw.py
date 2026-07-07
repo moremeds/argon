@@ -10,6 +10,7 @@ import logging
 from datetime import UTC, date, datetime
 from decimal import Decimal, InvalidOperation
 from typing import Any
+from zoneinfo import ZoneInfo
 
 from .. import normalize
 from ..api.client import UwClient, UwHTTPError
@@ -39,8 +40,52 @@ from ..models import (
     VolStatsRow,
 )
 from ..storage.repository import Repository
+from ..storage.uw_fetch_memo import UwFetchMemoRepository
 
 logger = logging.getLogger(__name__)
+
+_ET = ZoneInfo("America/New_York")
+
+# Stable per-fetcher memo labels. NOT the raw endpoint slug: fetch_option_contracts
+# and fetch_option_contracts_by_expiry share the OPTION_CONTRACTS slug but return
+# different-shaped data, so the memo must distinguish them by caller intent.
+_MEMO_OPTION_CONTRACTS = "option_contracts"
+_MEMO_GREEK_EXPOSURE_BY_EXPIRY = "greek_exposure_by_expiry"
+
+
+def _memoized_fetch_json(
+    client: UwClient,
+    repo: Repository,
+    run_id: int,
+    slug: EndpointSlug,
+    ticker: str,
+    params: dict[str, Any] | None,
+    *,
+    endpoint_label: str,
+    force_refresh: bool,
+) -> dict:
+    """Same-day dedupe wrapper around `_fetch_json` (issue #225).
+
+    Consults the `(ticker, endpoint_label, ET-today)` memo BEFORE the live call.
+    A HIT reuses the stored payload (a budget SAVE, recorded on the memo row);
+    a MISS spends budget then stores the payload for later same-day callers.
+    `force_refresh=True` bypasses the read but still refreshes the stored row.
+    """
+    as_of = datetime.now(_ET).date()
+    memo = UwFetchMemoRepository(repo.conn, schema=repo._schema)
+    if not force_refresh:
+        cached = memo.get(ticker, endpoint_label, as_of)
+        if cached is not None:
+            logger.info(
+                "uw_fetch_memo HIT %s/%s %s — budget SAVE (no UW spend)",
+                ticker,
+                endpoint_label,
+                as_of.isoformat(),
+            )
+            return cached
+    body = _fetch_json(client, repo, run_id, slug, ticker, params=params)
+    memo.put(ticker, endpoint_label, as_of, body)
+    return body
 
 
 def _persist_audit(
@@ -234,6 +279,8 @@ def fetch_greek_exposure_by_expiry(
     run_id: int,
     ticker: str,
     date: str | None = None,
+    *,
+    force_refresh: bool = False,
 ) -> list[GreekExposureByExpiryRow]:
     """Fetch /api/stock/{ticker}/greek-exposure/expiry — all expiries in one call.
 
@@ -241,14 +288,32 @@ def fetch_greek_exposure_by_expiry(
     put_charm, call_delta, put_delta, call_gex, put_gex, dte). No strike-level
     granularity. Used to populate the multi-expiry Vanna/Charm dropdown without
     incurring N × greek-exposure/strike-expiry calls.
+
+    The current-day path (`date is None`) is same-day memoized (issue #225) —
+    several jobs re-fetch this identical per-ticker aggregate each day. An
+    explicit historical `date` selector bypasses the memo (it targets a specific
+    past session, not today's slow-moving snapshot). `force_refresh=True` forces
+    a fresh UW call on the current-day path.
     """
-    body = _fetch_json(
+    if date is not None:
+        body = _fetch_json(
+            client,
+            repo,
+            run_id,
+            EndpointSlug.GREEK_EXPOSURE_BY_EXPIRY,
+            ticker,
+            params={"date": date},
+        )
+        return normalize.normalize_greek_exposure_by_expiry(body)
+    body = _memoized_fetch_json(
         client,
         repo,
         run_id,
         EndpointSlug.GREEK_EXPOSURE_BY_EXPIRY,
         ticker,
-        params={"date": date} if date is not None else None,
+        None,
+        endpoint_label=_MEMO_GREEK_EXPOSURE_BY_EXPIRY,
+        force_refresh=force_refresh,
     )
     return normalize.normalize_greek_exposure_by_expiry(body)
 
@@ -387,14 +452,21 @@ def fetch_option_contracts(
     run_id: int,
     ticker: str,
     limit: int = 500,
+    *,
+    force_refresh: bool = False,
 ) -> list[OptionContractRow]:
-    body = _fetch_json(
+    # Slow-moving ticker-level chain — same-day memoized (issue #225). Multiple
+    # jobs re-fetch this identical list per day; the first spends budget, the
+    # rest reuse it. `force_refresh=True` forces a fresh UW call.
+    body = _memoized_fetch_json(
         client,
         repo,
         run_id,
         EndpointSlug.OPTION_CONTRACTS,
         ticker,
-        params={"limit": limit},
+        {"limit": limit},
+        endpoint_label=_MEMO_OPTION_CONTRACTS,
+        force_refresh=force_refresh,
     )
     return normalize.normalize_option_contracts(body)
 
