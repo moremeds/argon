@@ -28,6 +28,16 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ### Fixed
 
+- **Market Tide tab froze mid-session when the shared UW account hit its guard.**
+  `_regime_market_tide_scan` was budget-gated via `_research_budget_ok`, which
+  returns False once the account-wide `official_daily_count` crosses
+  `uw_total_daily_guard` (105k) — a threshold the shared UW key crosses most days
+  by mid-morning (co-tenant + always-on stack). So the 5-min tide capture stopped
+  appending bars (frozen at the prior session) even though it costs just **1 UW
+  call/tick (~78/day)** — spot comes from the WS DB table, not UW. Dropped the gate
+  to match its identical-cost sibling `regime_top_net_impact_scan` (never gated).
+  Expensive intraday research (`regime_gex_scan`, ~4k calls/day) stays gated.
+
 - **Deploy health-gate now checks `ok`, not just reachability.**
   `scripts/deploy/macmini-prod.sh` gated deploy success (and auto-rollback) on
   `curl -fsS` against `/api/health` — but that endpoint returns HTTP 200 in every

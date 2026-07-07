@@ -139,9 +139,12 @@ def _research_budget_ok(settings: Settings, repo) -> bool:
       ``greek_exposure_daily_refresh``, discovery) — they run at 18:30-19:00 ET,
       after the live RTH scans are done and near the 20:00 ET budget reset, so
       they don't contend with live; gating them on the shared research ceiling
-      would risk starving high-value durable data. Only the recurring *intraday*
-      research spenders (``regime_gex_scan``, ``regime_market_tide_scan``) gate
-      here — and gex is the dominant one, so RTH research is effectively bounded.
+      would risk starving high-value durable data. Among the recurring *intraday*
+      research spenders, only ``regime_gex_scan`` (the dominant one, ~4k
+      calls/day) gates here, so RTH research is effectively bounded.
+      ``regime_market_tide_scan`` is deliberately NOT gated: at ~78 calls/day
+      it's too cheap to be worth freezing the whole Market Tide tab when the
+      shared UW key crosses the guard (matches ``regime_top_net_impact_scan``).
     """
     if not settings.uw_budget_governor_enabled:
         return True
@@ -1032,11 +1035,12 @@ def main() -> int:
                 job_name="regime_market_tide_scan",
             ) as uw:
                 with _repo(settings) as repo:
-                    if not _research_budget_ok(settings, repo):
-                        logger.info(
-                            "regime_market_tide_scan skipped: research UW budget exhausted"
-                        )
-                        return
+                    # NOT budget-gated: one UW call per 5-min tick (~78/day) —
+                    # spot comes from the WS DB table, not UW. Matches its
+                    # identical-cost sibling _regime_top_net_impact_scan. Gating
+                    # it behind the account-wide total_guard froze the whole
+                    # Market Tide tab whenever the shared UW key crossed 105k
+                    # mid-session; the ~78 calls it saves aren't worth that.
                     try:
                         n = market_tide_scanner.run(
                             uw, repo, spot_ticker=settings.market_tide_spot_ticker
