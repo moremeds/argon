@@ -19,6 +19,21 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ### Added
 
+- **Trade-lifecycle layer: VRP-macro entry-capture cohorts read back as a portfolio (#223).**
+  The validated VRP-macro edge captures entries into `vrp_macro_entry` (8 marks/day ×
+  30 cal-days per cohort) but nothing read them back. New `/api/positions` (list) and
+  `/api/positions/{entry_id}` (per-cohort P&L curve) endpoints surface every cohort
+  (auto + button, open + expired) with its entry credit, latest mark, running unrealized
+  P&L, return-on-risk, and DTE/expiry status — all modeled from the persisted
+  short_above/wing_above bull-put mids (a missing NBBO side yields a null credit, never a
+  fabricated number). New web **Positions** page (`/positions`, sidebar entry) renders the
+  portfolio table with an expandable hand-rolled-SVG P&L curve per cohort. Pure read: two
+  new storage queries on `storage/vrp_macro_entry.py`, a pure `reports/vrp_lifecycle.py`
+  assembler, and `models/vrp_lifecycle.py` contract models — no new tables/migration.
+  Reproduce/verify: `UW_SCAN_DB_USER=<superuser> UW_SCAN_DB_HOST=127.0.0.1
+  UW_SCAN_TEST_DB_NAME=option_wizard_test_wt1 UW_SCAN_ALLOW_DB_MISMATCH=1 uv run pytest
+  tests/unit/test_vrp_lifecycle_report.py tests/integration/storage/test_vrp_macro_entry_lifecycle.py
+  tests/integration/api/test_positions_api.py` + `cd web && npx vitest run tests/unit/PositionsPanel.test.tsx`.
 - **Implied-correlation / dispersion richness gate — falsified (research spike, #226).**
   `scripts/research/implied_corr_gate.py` tests whether implied-correlation richness is a
   second, near-orthogonal axis on top of the validated VRP-macro short-vol edge. Uses the
