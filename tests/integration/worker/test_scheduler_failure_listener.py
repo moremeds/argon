@@ -30,3 +30,28 @@ def test_error_event_records_streak(repo, monkeypatch):
         SimpleNamespace(job_id="full_scan", exception=RuntimeError("boom"))
     )
     assert JobFailuresRepository(repo.conn).list_streaks()[0].job_name == "full_scan"
+
+
+def test_alert_fires_only_on_third_consecutive_failure(repo, monkeypatch):
+    # send_alert is imported inside _handle_job_event at call time
+    # (`from uw_scan.alerts import send_alert`), so the spy must patch the
+    # source module, not the scheduler module.
+    dsn = repo.conn.info.dsn
+    monkeypatch.setattr(
+        scheduler, "_ops_conn", lambda: psycopg.connect(dsn, autocommit=True)
+    )
+    calls = []
+    monkeypatch.setattr(
+        "uw_scan.alerts.send_alert", lambda *a, **k: calls.append((a, k))
+    )
+
+    for _ in range(3):
+        scheduler._handle_job_event(
+            SimpleNamespace(job_id="full_scan", exception=RuntimeError("boom"))
+        )
+
+    assert len(calls) == 1
+    args, kwargs = calls[0]
+    joined = " ".join(str(x) for x in (*args, *kwargs.values()))
+    assert "full_scan" in joined
+    assert "3" in joined

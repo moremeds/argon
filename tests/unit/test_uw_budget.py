@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from uw_scan.sources import uw_budget
 from uw_scan.sources.uw_budget import (
     BudgetLimits,
     BudgetSnapshot,
@@ -88,3 +89,22 @@ def test_bucket_spend_sums_by_pool() -> None:
     assert snap.live_spent == 10_000  # full_scan + hot
     assert snap.research_spent == 43_010  # gex + backfill + None
     assert snap.account_count == 100_010  # max header
+
+
+def test_total_guard_alerts_once_per_day(monkeypatch) -> None:
+    # send_alert is imported inside may_spend at call time
+    # (`from uw_scan.alerts import send_alert`), so the spy must patch the
+    # source module, not uw_budget.
+    monkeypatch.setattr(uw_budget, "_alerted_today", None)
+    calls = []
+    monkeypatch.setattr(
+        "uw_scan.alerts.send_alert", lambda *a, **k: calls.append((a, k))
+    )
+    snap = BudgetSnapshot(
+        live_spent=10_000, research_spent=5_000, account_count=105_000
+    )
+
+    assert may_spend("live", snap, LIMITS) is False
+    assert may_spend("live", snap, LIMITS) is False
+
+    assert len(calls) == 1
