@@ -68,6 +68,7 @@ class HealthResponse(BaseModel):
     trade_insights_ai: "TradeInsightsAiHealth | None" = None
     freshness: "HealthFreshness | None" = None
     gap_healer: "HealthGapHealer | None" = None
+    job_failures: list["JobFailureStreak"] = Field(default_factory=list)
 
 
 class HealthFreshnessRow(BaseModel):
@@ -113,6 +114,15 @@ class HealthGapHealer(BaseModel):
     open_gaps: int = 0  # planned + skipped_budget + failed in the latest run
     open_by_dataset: dict[str, int] = Field(default_factory=dict)
     last_verified_at: datetime | None = None
+
+
+class JobFailureStreak(BaseModel):
+    """One job's current consecutive-failure streak (see storage/ops_health)."""
+
+    job_name: str
+    consecutive: int
+    last_error: str
+    last_failed_at: datetime
 
 
 class TradeInsightsAiProviderHealth(BaseModel):
@@ -426,6 +436,22 @@ def health(
         last_verified_at=_gh["last_verified_at"],
     )
 
+    # Job-failure streak block — consecutive-failure counts per job (see
+    # storage/ops_health), surfaced alongside gap_healer/freshness so an
+    # operator sees a stuck job without tailing logs.
+    from uw_scan.storage.ops_health import JobFailuresRepository
+
+    _streaks = JobFailuresRepository(repo.conn).list_streaks(min_streak=1)
+    job_failures = [
+        JobFailureStreak(
+            job_name=s.job_name,
+            consecutive=s.consecutive,
+            last_error=s.last_error,
+            last_failed_at=s.last_failed_at,
+        )
+        for s in _streaks
+    ]
+
     # Sidebar fields — always populated when DB is up so the panel renders
     # correctly even before the first full scan has fired.
     now_utc = datetime.now(timezone.utc)
@@ -642,6 +668,7 @@ def health(
             **record_fields,
             freshness=freshness,
             gap_healer=gap_healer,
+            job_failures=job_failures,
         )
 
     lag = (now_utc - last_scan).total_seconds()
@@ -667,6 +694,7 @@ def health(
             **record_fields,
             freshness=freshness,
             gap_healer=gap_healer,
+            job_failures=job_failures,
         )
 
     if record_reason is not None:
@@ -682,6 +710,7 @@ def health(
             **record_fields,
             freshness=freshness,
             gap_healer=gap_healer,
+            job_failures=job_failures,
         )
 
     return HealthResponse(
@@ -695,4 +724,5 @@ def health(
         **record_fields,
         freshness=freshness,
         gap_healer=gap_healer,
+        job_failures=job_failures,
     )

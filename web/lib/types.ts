@@ -3591,6 +3591,8 @@ export interface components {
             http_4xx?: number | null;
             /** Http 5Xx */
             http_5xx?: number | null;
+            /** Job Failures */
+            job_failures?: components["schemas"]["JobFailureStreak"][];
             /** Last Full Scan At */
             last_full_scan_at?: string | null;
             /** Latency P95 Ms */
@@ -3759,6 +3761,23 @@ export interface components {
             current_iv?: string | null;
             /** Current Pctile */
             current_pctile?: string | null;
+        };
+        /**
+         * JobFailureStreak
+         * @description One job's current consecutive-failure streak (see storage/ops_health).
+         */
+        JobFailureStreak: {
+            /** Consecutive */
+            consecutive: number;
+            /** Job Name */
+            job_name: string;
+            /** Last Error */
+            last_error: string;
+            /**
+             * Last Failed At
+             * Format: date-time
+             */
+            last_failed_at: string;
         };
         /** JobStatus */
         JobStatus: {
