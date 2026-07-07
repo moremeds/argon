@@ -239,6 +239,82 @@ class _VrpMacroEntryMixin:
             cols = [d.name for d in cur.description or []]
             return [dict(zip(cols, row, strict=False)) for row in cur.fetchall()]
 
+    def list_vrp_macro_entry_lifecycle(
+        self,
+        *,
+        name: str | None = None,
+        entry_id: int | None = None,
+        limit: int = 200,
+    ) -> list[dict[str, Any]]:
+        """Every cohort (auto + button, open + expired) with its first ("entry")
+        and latest mark for the traded 'above' bracket, plus a mark count.
+
+        Pure read. The report layer computes entry credit / current value / P&L
+        from the returned mids so the SQL stays a thin projection. The strategy
+        trades the short_above / wing_above legs (see reports/vrp_macro_entry
+        ``_modeled_credit``); a leg mid is NULL when either NBBO side is missing,
+        which propagates to a NULL credit rather than a fabricated number.
+        """
+        sql = (
+            "WITH marks AS ("
+            "  SELECT entry_id, as_of,"
+            "    max((nbbo_bid + nbbo_ask) / 2.0) FILTER (WHERE leg = 'short_above') AS short_mid,"
+            "    max((nbbo_bid + nbbo_ask) / 2.0) FILTER (WHERE leg = 'wing_above')  AS wing_mid,"
+            "    max(und_spot) FILTER (WHERE leg = 'short_above') AS und_spot"
+            f"  FROM {self._schema}.vrp_macro_entry_quote"
+            "  WHERE leg IN ('short_above', 'wing_above')"
+            "  GROUP BY entry_id, as_of"
+            "),"
+            "first_mark AS ("
+            "  SELECT DISTINCT ON (entry_id) entry_id, as_of, short_mid, wing_mid, und_spot"
+            "  FROM marks ORDER BY entry_id, as_of ASC"
+            "),"
+            "last_mark AS ("
+            "  SELECT DISTINCT ON (entry_id) entry_id, as_of, short_mid, wing_mid, und_spot"
+            "  FROM marks ORDER BY entry_id, as_of DESC"
+            "),"
+            "mark_counts AS (SELECT entry_id, count(*) AS n_marks FROM marks GROUP BY entry_id)"
+            " SELECT e.entry_id, e.name, e.birth_date, e.born_at, e.origin, e.expiry,"
+            "   e.hold_days, e.spot_at_birth, e.iv_at_birth, e.vrp_z_at_birth,"
+            "   e.weight_at_birth, e.action_at_birth,"
+            "   e.short_strike_above, e.short_strike_below,"
+            "   e.wing_strike_above, e.wing_strike_below,"
+            "   fm.as_of AS first_as_of, fm.short_mid AS entry_short_mid,"
+            "   fm.wing_mid AS entry_wing_mid,"
+            "   lm.as_of AS last_as_of, lm.short_mid AS last_short_mid,"
+            "   lm.wing_mid AS last_wing_mid, lm.und_spot AS last_spot,"
+            "   COALESCE(mc.n_marks, 0) AS n_marks"
+            f" FROM {self._schema}.vrp_macro_entry e"
+            " LEFT JOIN first_mark fm ON fm.entry_id = e.entry_id"
+            " LEFT JOIN last_mark lm ON lm.entry_id = e.entry_id"
+            " LEFT JOIN mark_counts mc ON mc.entry_id = e.entry_id"
+            " WHERE (%(name)s::text IS NULL OR e.name = %(name)s::text)"
+            "   AND (%(entry_id)s::bigint IS NULL OR e.entry_id = %(entry_id)s::bigint)"
+            " ORDER BY e.born_at DESC LIMIT %(limit)s"
+        )
+        with self._conn.cursor() as cur:
+            cur.execute(sql, {"name": name, "entry_id": entry_id, "limit": limit})
+            cols = [d.name for d in cur.description or []]
+            return [dict(zip(cols, row, strict=False)) for row in cur.fetchall()]
+
+    def fetch_vrp_macro_entry_pnl_series(self, entry_id: int) -> list[dict[str, Any]]:
+        """Per-mark short_above / wing_above mids + spot for one cohort, oldest
+        first — the report layer folds these into a running P&L curve. Pure read."""
+        sql = (
+            "SELECT as_of,"
+            "  max((nbbo_bid + nbbo_ask) / 2.0) FILTER (WHERE leg = 'short_above') AS short_mid,"
+            "  max((nbbo_bid + nbbo_ask) / 2.0) FILTER (WHERE leg = 'wing_above')  AS wing_mid,"
+            "  max(und_spot) FILTER (WHERE leg = 'short_above') AS und_spot,"
+            "  max(session) AS session"
+            f" FROM {self._schema}.vrp_macro_entry_quote"
+            " WHERE entry_id = %s AND leg IN ('short_above', 'wing_above')"
+            " GROUP BY as_of ORDER BY as_of ASC"
+        )
+        with self._conn.cursor() as cur:
+            cur.execute(sql, (entry_id,))
+            cols = [d.name for d in cur.description or []]
+            return [dict(zip(cols, row, strict=False)) for row in cur.fetchall()]
+
     def list_vrp_macro_entries(
         self, name: str, limit: int = 50
     ) -> list[dict[str, Any]]:

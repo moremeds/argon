@@ -7834,6 +7834,105 @@ export interface components {
              */
             disclaimer: string;
         };
+        VrpMacroPositionRow: {
+            /** Entry Id */
+            entry_id: number;
+            /** Name */
+            name: string;
+            /** Origin */
+            origin: string;
+            /**
+             * Birth Date
+             * Format: date
+             */
+            birth_date: string;
+            /**
+             * Born At
+             * Format: date-time
+             */
+            born_at: string;
+            /**
+             * Expiry
+             * Format: date
+             */
+            expiry: string;
+            /** Hold Days */
+            hold_days: number;
+            /** Action At Birth */
+            action_at_birth?: string | null;
+            /** Vrp Z At Birth */
+            vrp_z_at_birth?: string | null;
+            /** Weight At Birth */
+            weight_at_birth?: string | null;
+            /** Spot At Birth */
+            spot_at_birth?: string | null;
+            /** Short Strike */
+            short_strike: string;
+            /** Wing Strike */
+            wing_strike: string;
+            /** Width */
+            width?: string | null;
+            /** Status */
+            status: string;
+            /** Dte */
+            dte: number;
+            /** Days Held */
+            days_held: number;
+            /** N Marks */
+            n_marks: number;
+            /** Entry Credit */
+            entry_credit?: string | null;
+            /** Current Value */
+            current_value?: string | null;
+            /** Unrealized Pnl */
+            unrealized_pnl?: string | null;
+            /** Max Loss */
+            max_loss?: string | null;
+            /** Return On Risk */
+            return_on_risk?: string | null;
+            /** Last Mark At */
+            last_mark_at?: string | null;
+            /** Last Spot */
+            last_spot?: string | null;
+        };
+        VrpMacroPositionsResponse: {
+            /** Positions */
+            positions: components["schemas"]["VrpMacroPositionRow"][];
+            /** Open Count */
+            open_count: number;
+            /** Total Unrealized Pnl */
+            total_unrealized_pnl?: string | null;
+            /**
+             * Disclaimer
+             * @default Modeled P&L from persisted NBBO mids of the short_above/wing_above bull-put bracket, in option points for one 1-lot spread (×100 for SPX dollars). Paper/backtest only — not executed.
+             */
+            disclaimer: string;
+        };
+        VrpMacroPositionPnlPoint: {
+            /**
+             * As Of
+             * Format: date-time
+             */
+            as_of: string;
+            /** Session */
+            session?: string | null;
+            /** Spot */
+            spot?: string | null;
+            /** Current Value */
+            current_value?: string | null;
+            /** Unrealized Pnl */
+            unrealized_pnl?: string | null;
+        };
+        VrpMacroPositionDetail: {
+            position: components["schemas"]["VrpMacroPositionRow"];
+            /** Pnl Series */
+            pnl_series: components["schemas"]["VrpMacroPositionPnlPoint"][];
+            /**
+             * Disclaimer
+             * @default Modeled P&L from persisted NBBO mids of the short_above/wing_above bull-put bracket, in option points for one 1-lot spread (×100 for SPX dollars). Paper/backtest only — not executed.
+             */
+            disclaimer: string;
+        };
         VrpDailyPoint: {
             /**
              * Date
