@@ -14,11 +14,8 @@ from uw_scan.api.routers import (
     health,
     jobs,
     ohlc,
-<<<<<<< HEAD
     positioning,
-=======
     positions,
->>>>>>> origin/main
     provider_usage,
     rates,
     regime,
