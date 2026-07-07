@@ -6,7 +6,7 @@ Generated from `REGISTRY` in `src/uw_scan/reports/data_gap_healer.py` (one sourc
 uv run python -c "from uw_scan.reports.data_gap_healer import render_dataset_policy_markdown as r; open('docs/runbooks/data-gap-dataset-policy.md','w').write(r())"
 ```
 
-**117 datasets** across 9 groups.
+**118 datasets** across 9 groups.
 
 ## core_watchlist
 
@@ -57,6 +57,7 @@ uv run python -c "from uw_scan.reports.data_gap_healer import render_dataset_pol
 | data_gap_items | provenance | none | none |  | none |  |
 | data_gap_runs | provenance | none | none |  | none |  |
 | external_api_requests | provenance | none | none |  | none |  |
+| job_failures | excluded | none | none |  | none | live per-job failure-streak state; scheduler-maintained, nothing to backfill/heal |
 | jobs | provenance | none | none |  | none |  |
 | pipeline_benchmark_snapshots | provenance | none | none |  | none |  |
 | raw_payloads | provenance | none | none |  | none |  |
