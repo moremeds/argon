@@ -554,10 +554,11 @@ def _handle_job_event(event) -> None:
             else:
                 repo.record_success(event.job_id)
             conn.commit()
-    except Exception:  # ops telemetry must never crash the scheduler
+    except Exception as exc:  # ops telemetry must never crash the scheduler
         logger.warning(
-            "job-failure listener could not record event for %s",
+            "job-failure listener could not record event for %s: %s",
             getattr(event, "job_id", "?"),
+            repr(exc),
             exc_info=True,
         )
 

@@ -33,6 +33,6 @@ def send_alert(title: str, message: str) -> bool:
             url, json={"content": f"**[argon] {title}**\n{message}"}, timeout=5.0
         )
         return 200 <= resp.status_code < 300
-    except Exception:  # alerting must never take down the caller
-        logger.warning("ops alert POST failed", exc_info=True)
+    except Exception as exc:  # alerting must never take down the caller
+        logger.warning("ops alert POST failed: %s", repr(exc), exc_info=True)
         return False
