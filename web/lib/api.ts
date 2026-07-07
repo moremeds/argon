@@ -3,6 +3,9 @@ import type { components, paths } from "./types";
 type VrpCandidatesResponse = components["schemas"]["VrpCandidatesResponse"];
 type VrpBacktestResponse = components["schemas"]["VrpBacktestResponse"];
 type VrpPaperResponse = components["schemas"]["VrpPaperResponse"];
+type VrpMacroPositionsResponse =
+  components["schemas"]["VrpMacroPositionsResponse"];
+type VrpMacroPositionDetail = components["schemas"]["VrpMacroPositionDetail"];
 
 // URL-agnostic base. In the browser, use a relative URL so requests go back
 // through whatever origin served the page (Tailnet IP, MagicDNS, Cloudflare
@@ -297,6 +300,10 @@ export const api = {
     ),
   vrpPaper: (): Promise<VrpPaperResponse> =>
     _fetch<VrpPaperResponse>(`/api/vrp/paper`),
+  positions: (): Promise<VrpMacroPositionsResponse> =>
+    _fetch<VrpMacroPositionsResponse>(`/api/positions`),
+  positionDetail: (entryId: number): Promise<VrpMacroPositionDetail> =>
+    _fetch<VrpMacroPositionDetail>(`/api/positions/${entryId}`),
 };
 
 export type {

@@ -9,6 +9,7 @@ import {
   Radar,
   ScanLine,
   TrendingUp,
+  Wallet,
 } from "lucide-react";
 import { HealthPanel } from "./HealthPanel";
 import styles from "./AppShell.module.css";
@@ -19,6 +20,7 @@ const NAV = [
   { href: "/positioning", label: "Positioning", icon: Crosshair },
   { href: "/cockpit/SPY", label: "Cockpit", icon: Radar },
   { href: "/regime", label: "Regime", icon: Activity },
+  { href: "/positions", label: "Positions", icon: Wallet },
   { href: "/gold", label: "Gold", icon: Coins },
   { href: "/rates", label: "Rates", icon: TrendingUp },
 ];

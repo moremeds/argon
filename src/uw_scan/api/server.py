@@ -14,7 +14,11 @@ from uw_scan.api.routers import (
     health,
     jobs,
     ohlc,
+<<<<<<< HEAD
     positioning,
+=======
+    positions,
+>>>>>>> origin/main
     provider_usage,
     rates,
     regime,
@@ -66,6 +70,7 @@ def create_app() -> FastAPI:
     app.include_router(scanner.router, prefix="/api", tags=["scanner"])
     app.include_router(positioning.router, prefix="/api", tags=["positioning"])
     app.include_router(vrp.router, prefix="/api", tags=["vrp"])
+    app.include_router(positions.router, prefix="/api", tags=["positions"])
     return app
 
 
