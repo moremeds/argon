@@ -1,9 +1,17 @@
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, timedelta
 
 from uw_scan.reports.data_freshness import FreshnessRow
 from uw_scan.storage.data_freshness_repository import DataFreshnessRepository
+
+
+def _night(n: int) -> date:
+    """N calendar days before today. `consecutive_frozen_counts` filters on
+    `run_date > CURRENT_DATE - lookback`, so these tests MUST anchor their
+    snapshot dates to today — hardcoded absolute dates silently drift out of
+    the lookback window as the calendar advances and the streak miscounts."""
+    return date.today() - timedelta(days=n)
 
 
 def test_upsert_and_latest(seeded_db_empty_cards):
@@ -94,11 +102,11 @@ def test_consecutive_frozen_counts_stops_at_first_healthy_night(seeded_db_empty_
     fr = DataFreshnessRepository(repo.conn, schema=repo._schema)
     # frozen, frozen, frozen, HEALTHY, frozen (oldest) -- streak from today
     # backward must stop at the healthy night, not count the older frozen one.
-    fr.upsert_snapshot(date(2026, 6, 25), [_row("vrp_daily", True)])
-    fr.upsert_snapshot(date(2026, 6, 24), [_row("vrp_daily", True)])
-    fr.upsert_snapshot(date(2026, 6, 23), [_row("vrp_daily", True)])
-    fr.upsert_snapshot(date(2026, 6, 22), [_row("vrp_daily", False)])
-    fr.upsert_snapshot(date(2026, 6, 21), [_row("vrp_daily", True)])
+    fr.upsert_snapshot(_night(1), [_row("vrp_daily", True)])
+    fr.upsert_snapshot(_night(2), [_row("vrp_daily", True)])
+    fr.upsert_snapshot(_night(3), [_row("vrp_daily", True)])
+    fr.upsert_snapshot(_night(4), [_row("vrp_daily", False)])
+    fr.upsert_snapshot(_night(5), [_row("vrp_daily", True)])
     counts = fr.consecutive_frozen_counts(lookback=14)
     assert counts["vrp_daily"] == 3
 
@@ -108,8 +116,8 @@ def test_consecutive_frozen_counts_zero_when_most_recent_night_healthy(
 ):
     repo = seeded_db_empty_cards
     fr = DataFreshnessRepository(repo.conn, schema=repo._schema)
-    fr.upsert_snapshot(date(2026, 6, 25), [_row("daily_ohlc", False)])
-    fr.upsert_snapshot(date(2026, 6, 24), [_row("daily_ohlc", True)])
+    fr.upsert_snapshot(_night(1), [_row("daily_ohlc", False)])
+    fr.upsert_snapshot(_night(2), [_row("daily_ohlc", True)])
     counts = fr.consecutive_frozen_counts(lookback=14)
     assert counts["daily_ohlc"] == 0
 
@@ -119,12 +127,12 @@ def test_consecutive_frozen_counts_stops_at_a_missing_monitor_night(
 ):
     repo = seeded_db_empty_cards
     fr = DataFreshnessRepository(repo.conn, schema=repo._schema)
-    # frozen, frozen, [monitor didn't run on 6-23], frozen (older) -- the gap
-    # means the state through 6-23 is unknown, not confirmed frozen, so the
+    # frozen, frozen, [monitor didn't run on night 3], frozen (older) -- the gap
+    # means the state through night 3 is unknown, not confirmed frozen, so the
     # streak must stop there rather than bridging across the missing night.
-    fr.upsert_snapshot(date(2026, 6, 25), [_row("vrp_daily", True)])
-    fr.upsert_snapshot(date(2026, 6, 24), [_row("vrp_daily", True)])
-    fr.upsert_snapshot(date(2026, 6, 22), [_row("vrp_daily", True)])
+    fr.upsert_snapshot(_night(1), [_row("vrp_daily", True)])
+    fr.upsert_snapshot(_night(2), [_row("vrp_daily", True)])
+    fr.upsert_snapshot(_night(4), [_row("vrp_daily", True)])
     counts = fr.consecutive_frozen_counts(lookback=14)
     assert counts["vrp_daily"] == 2
 
@@ -132,7 +140,7 @@ def test_consecutive_frozen_counts_stops_at_a_missing_monitor_night(
 def test_latest_snapshot_includes_consecutive_frozen_nights(seeded_db_empty_cards):
     repo = seeded_db_empty_cards
     fr = DataFreshnessRepository(repo.conn, schema=repo._schema)
-    fr.upsert_snapshot(date(2026, 6, 24), [_row("wgc_etf_monthly", True)])
-    fr.upsert_snapshot(date(2026, 6, 25), [_row("wgc_etf_monthly", True)])
+    fr.upsert_snapshot(_night(2), [_row("wgc_etf_monthly", True)])
+    fr.upsert_snapshot(_night(1), [_row("wgc_etf_monthly", True)])
     latest = fr.latest_snapshot()
     assert latest[0]["consecutive_frozen_nights"] == 2
