@@ -7,6 +7,18 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+### Fixed
+
+- **Docker web image: client-side `/api/*` rewrite baked the wrong target.**
+  `next.config.mjs` `rewrites()` is evaluated at *build* time, so the CI-built
+  `argon-web` image froze the `localhost:8400` fallback into its standalone
+  server — every browser `/api/*` call 500'd in-container (SSR was unaffected,
+  masking it). `docker/web.Dockerfile` now sets `ARG NEXT_INTERNAL_API_BASE=`
+  `http://api:8400` before `next build` so the rewrite bakes the compose
+  service name; the launchd (non-Docker) build still bakes its correct
+  co-located `localhost` default. Runbook Phase 2 gains an explicit
+  web→api rewrite check (SSR page codes pass even when this path is broken).
+
 ## [0.9.0] — 2026-07-08
 
 
