@@ -10,7 +10,7 @@ import pandas as pd
 from psycopg import Connection
 from psycopg.types.json import Jsonb
 
-_SERIES_COLS = (
+_CORE_COLS = (
     "as_of",
     "close",
     "sma20",
@@ -24,13 +24,32 @@ _SERIES_COLS = (
     "macd_hist_atr",
     "rs_ratio",
 )
+# Derived per-session metrics stored as a JSONB blob per row (migration 102).
+_METRIC_COLS = (
+    "rv20",
+    "rv20_z",
+    "vol_of_vol",
+    "skew60",
+    "kurt60",
+    "jerk20",
+    "rsi_z",
+    "rsi_slope5",
+    "macd_slope3",
+    "kin_slope20",
+    "kin_slope50",
+    "kin_slope200",
+    "alignment",
+)
+_SERIES_COLS = _CORE_COLS  # back-compat alias
 
 
 def series_records(df: pd.DataFrame) -> list[dict]:
-    """DataFrame from build_technical_series -> JSON/SQL-safe dicts
-    (NaN/inf -> None, numpy scalars -> python)."""
+    """DataFrame from build_technical_series -> JSON/SQL-safe dicts (NaN/inf ->
+    None, numpy scalars -> python). Includes core columns plus the derived
+    metric columns (packed into a metrics JSONB on upsert)."""
+    cols = [c for c in (*_CORE_COLS, *_METRIC_COLS) if c in df.columns]
     records: list[dict] = []
-    for rec in df[list(_SERIES_COLS)].to_dict(orient="records"):
+    for rec in df[cols].to_dict(orient="records"):
         clean: dict[str, Any] = {}
         for k, v in rec.items():
             if v is None or (isinstance(v, float) and not math.isfinite(v)):
@@ -60,17 +79,21 @@ class TechnicalsRepository:
     def upsert_series(self, ticker: str, rows: list[dict]) -> int:
         if not rows:
             return 0
-        params = [{**r, "ticker": ticker.upper()} for r in rows]
+        params = []
+        for r in rows:
+            metrics = {k: r.get(k) for k in _METRIC_COLS if k in r}
+            core = {k: r.get(k) for k in _CORE_COLS}
+            params.append({**core, "ticker": ticker.upper(), "metrics": Jsonb(metrics)})
         sql = """
             INSERT INTO technical_daily
                 (ticker, as_of, close, sma20, sma50, sma200, z_vs_200dma,
                  z_band, sma200_slope_ann, slope_regime, rsi14,
-                 macd_hist_atr, rs_ratio)
+                 macd_hist_atr, rs_ratio, metrics)
             VALUES
                 (%(ticker)s, %(as_of)s, %(close)s, %(sma20)s, %(sma50)s,
                  %(sma200)s, %(z_vs_200dma)s, %(z_band)s,
                  %(sma200_slope_ann)s, %(slope_regime)s, %(rsi14)s,
-                 %(macd_hist_atr)s, %(rs_ratio)s)
+                 %(macd_hist_atr)s, %(rs_ratio)s, %(metrics)s)
             ON CONFLICT (ticker, as_of) DO UPDATE SET
                 close            = EXCLUDED.close,
                 sma20            = EXCLUDED.sma20,
@@ -83,6 +106,7 @@ class TechnicalsRepository:
                 rsi14            = EXCLUDED.rsi14,
                 macd_hist_atr    = EXCLUDED.macd_hist_atr,
                 rs_ratio         = EXCLUDED.rs_ratio,
+                metrics          = EXCLUDED.metrics,
                 inserted_at      = now()
         """
         with self._conn.cursor() as cur:
@@ -112,7 +136,7 @@ class TechnicalsRepository:
             SELECT * FROM (
                 SELECT as_of, close, sma20, sma50, sma200, z_vs_200dma, z_band,
                        sma200_slope_ann, slope_regime, rsi14, macd_hist_atr,
-                       rs_ratio, detail, forward_returns
+                       rs_ratio, metrics, detail, forward_returns
                   FROM technical_daily
                  WHERE ticker = %s
                  ORDER BY as_of DESC

@@ -11,6 +11,26 @@ from uw_scan.models import (
 from uw_scan.storage.repository import Repository
 from uw_scan.storage.technicals_repository import TechnicalsRepository
 
+# Metric keys the series row accepts (guards against a stray JSONB key breaking
+# TechnicalsSeriesRow construction).
+_METRIC_FIELDS = frozenset(
+    {
+        "rv20",
+        "rv20_z",
+        "vol_of_vol",
+        "skew60",
+        "kurt60",
+        "jerk20",
+        "rsi_z",
+        "rsi_slope5",
+        "macd_slope3",
+        "kin_slope20",
+        "kin_slope50",
+        "kin_slope200",
+        "alignment",
+    }
+)
+
 
 def assemble_technicals(
     ticker: str, repo: Repository, *, schema: str = "uw_scan"
@@ -32,6 +52,9 @@ def assemble_technicals(
             rsi14=r["rsi14"],
             macd_hist_atr=r["macd_hist_atr"],
             rs_ratio=r["rs_ratio"],
+            **{
+                k: v for k, v in (r.get("metrics") or {}).items() if k in _METRIC_FIELDS
+            },
         )
         for r in trepo.fetch_series(t)
     ]

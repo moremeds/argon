@@ -15676,6 +15676,17 @@
       },
       "TechnicalsSeriesRow": {
         "properties": {
+          "alignment": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Alignment"
+          },
           "as_of": {
             "format": "date",
             "title": "As Of",
@@ -15692,6 +15703,61 @@
             ],
             "title": "Close"
           },
+          "jerk20": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Jerk20"
+          },
+          "kin_slope20": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Kin Slope20"
+          },
+          "kin_slope200": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Kin Slope200"
+          },
+          "kin_slope50": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Kin Slope50"
+          },
+          "kurt60": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Kurt60"
+          },
           "macd_hist_atr": {
             "anyOf": [
               {
@@ -15702,6 +15768,17 @@
               }
             ],
             "title": "Macd Hist Atr"
+          },
+          "macd_slope3": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Macd Slope3"
           },
           "rs_ratio": {
             "anyOf": [
@@ -15724,6 +15801,61 @@
               }
             ],
             "title": "Rsi14"
+          },
+          "rsi_slope5": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rsi Slope5"
+          },
+          "rsi_z": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rsi Z"
+          },
+          "rv20": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rv20"
+          },
+          "rv20_z": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rv20 Z"
+          },
+          "skew60": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Skew60"
           },
           "sma20": {
             "anyOf": [
@@ -15757,6 +15889,17 @@
               }
             ],
             "title": "Sma50"
+          },
+          "vol_of_vol": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vol Of Vol"
           },
           "z": {
             "anyOf": [

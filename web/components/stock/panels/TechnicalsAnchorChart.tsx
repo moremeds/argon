@@ -5,10 +5,11 @@ import {
   pathFromNullablePoints,
 } from "@/lib/svgChart";
 import { AnalyticalSeriesPanel } from "./AnalyticalSeriesPanel";
+import { ChartDateAxis } from "./ChartDateAxis";
 
 const W = 760;
-const H = 280;
-const PAD = { l: 8, r: 8, t: 8, b: 8 };
+const H = 296;
+const PAD = { l: 8, r: 8, t: 8, b: 22 };
 
 type Row = TechnicalsResponse["series"][number];
 
@@ -144,6 +145,11 @@ export function TechnicalsAnchorChart({ data }: { data: TechnicalsResponse }) {
           fill="none"
           stroke="var(--text-primary)"
           strokeWidth={1.5}
+        />
+        <ChartDateAxis
+          dates={series.map((r: Row) => r.as_of)}
+          x={x}
+          y={H - 5}
         />
       </svg>
       <Legend />

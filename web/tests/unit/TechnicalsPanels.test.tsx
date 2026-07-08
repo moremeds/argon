@@ -40,20 +40,21 @@ const base = {
       win_rate: 0.55,
     },
   ],
-} as never;
+};
 
 describe("TechnicalsKpiStrip", () => {
   it("renders band + regime labels without NaN", () => {
-    const { container } = render(<TechnicalsKpiStrip data={base} />);
+    const { container } = render(<TechnicalsKpiStrip data={base as never} />);
     expect(screen.getByText("STRETCHED HIGH")).toBeDefined();
     expect(screen.getByText("STRONG UPTREND")).toBeDefined();
     expect(container.textContent).not.toContain("NaN");
   });
 
   it("null header fields render as dashes, not NaN", () => {
+    const b = base as { header: Record<string, unknown> };
     const empty = {
       ...base,
-      header: { ...base.header, z: null, composite: null },
+      header: { ...b.header, z: null, composite: null },
     } as never;
     const { container } = render(<TechnicalsKpiStrip data={empty} />);
     expect(container.textContent).not.toContain("NaN");
@@ -62,7 +63,7 @@ describe("TechnicalsKpiStrip", () => {
 
 describe("ForwardReturnTable", () => {
   it("highlights the current band row and renders counts", () => {
-    const { container } = render(<ForwardReturnTable data={base} />);
+    const { container } = render(<ForwardReturnTable data={base as never} />);
     expect(screen.getByText("STRETCHED HIGH")).toBeDefined();
     expect(screen.getByText("33")).toBeDefined();
     expect(container.textContent).not.toContain("NaN");

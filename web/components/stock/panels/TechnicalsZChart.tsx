@@ -5,10 +5,11 @@ import {
   pathFromNullablePoints,
 } from "@/lib/svgChart";
 import { AnalyticalSeriesPanel } from "./AnalyticalSeriesPanel";
+import { ChartDateAxis } from "./ChartDateAxis";
 
 const W = 760;
-const H = 220;
-const PAD = { l: 28, r: 8, t: 8, b: 8 };
+const H = 236;
+const PAD = { l: 28, r: 8, t: 8, b: 22 };
 
 export function TechnicalsZChart({ data }: { data: TechnicalsResponse }) {
   const series = data.series ?? [];
@@ -90,6 +91,7 @@ export function TechnicalsZChart({ data }: { data: TechnicalsResponse }) {
           stroke="var(--accent-vivid)"
           strokeWidth={1.5}
         />
+        <ChartDateAxis dates={series.map((r) => r.as_of)} x={x} y={H - 5} />
       </svg>
     </AnalyticalSeriesPanel>
   );

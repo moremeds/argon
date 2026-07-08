@@ -6496,6 +6496,32 @@ export interface components {
             macd_hist_atr?: number | null;
             /** Rs Ratio */
             rs_ratio?: number | null;
+            /** Rv20 */
+            rv20?: number | null;
+            /** Rv20 Z */
+            rv20_z?: number | null;
+            /** Vol Of Vol */
+            vol_of_vol?: number | null;
+            /** Skew60 */
+            skew60?: number | null;
+            /** Kurt60 */
+            kurt60?: number | null;
+            /** Jerk20 */
+            jerk20?: number | null;
+            /** Rsi Z */
+            rsi_z?: number | null;
+            /** Rsi Slope5 */
+            rsi_slope5?: number | null;
+            /** Macd Slope3 */
+            macd_slope3?: number | null;
+            /** Kin Slope20 */
+            kin_slope20?: number | null;
+            /** Kin Slope50 */
+            kin_slope50?: number | null;
+            /** Kin Slope200 */
+            kin_slope200?: number | null;
+            /** Alignment */
+            alignment?: number | null;
         };
         /** TermMoveRow */
         TermMoveRow: {

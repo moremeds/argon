@@ -58,6 +58,44 @@ def _lastf(s: pd.Series) -> float | None:
     return v if math.isfinite(v) else None
 
 
+# Derived per-session metrics stored (as a JSONB blob) on every technical_daily
+# row so each detail tile can render its own history. Sigmoid is deliberately
+# excluded — a curve_fit per row is too expensive to backfill across the
+# watchlist, so it stays a latest-only readout.
+SERIES_METRIC_COLS: tuple[str, ...] = (
+    "rv20",
+    "rv20_z",
+    "vol_of_vol",
+    "skew60",
+    "kurt60",
+    "jerk20",
+    "rsi_z",
+    "rsi_slope5",
+    "macd_slope3",
+    "kin_slope20",
+    "kin_slope50",
+    "kin_slope200",
+    "alignment",
+)
+
+
+def _rolling_z(s: pd.Series, window: int = 252, min_periods: int = 126) -> pd.Series:
+    mu = s.rolling(window, min_periods=min_periods).mean()
+    sd = s.rolling(window, min_periods=min_periods).std()
+    return (s - mu) / sd.replace(0.0, np.nan)
+
+
+def _rolling_ols_slope(s: pd.Series, w: int = 10) -> pd.Series:
+    """Vectorized rolling OLS slope via a fixed centered-x weight vector —
+    slope = Σ (x-x̄)(y-ȳ) / Σ (x-x̄)² over the trailing `w`-bar window."""
+    x = np.arange(w, dtype=float)
+    xc = x - x.mean()
+    denom = float(np.sum(xc * xc)) or 1.0
+    return s.rolling(w).apply(
+        lambda y: float(np.dot(xc, y - np.mean(y)) / denom), raw=True
+    )
+
+
 def bars_frame(bars: list[dict]) -> pd.DataFrame:
     """Coerce an apex /bars payload (time = ISO-8601 UTC string) into a
     sorted, deduped daily frame with an ``as_of`` date column."""
@@ -449,6 +487,7 @@ def build_technical_series(
                 "slope_regime",
                 "rsi14",
                 "macd_hist_atr",
+                *SERIES_METRIC_COLS,
                 "rs_ratio",
             ]
         )
@@ -463,6 +502,29 @@ def build_technical_series(
     out["slope_regime"] = out["sma200_slope_ann"].map(slope_regime)
     out["rsi14"] = rsi14(close)
     out["macd_hist_atr"] = macd_hist(close) / atr14(df).replace(0.0, np.nan)
+
+    # Derived per-session metric history (mirrors the latest-only derivers so
+    # each detail tile can sparkline its own past). All vectorized/cheap.
+    rets = close.pct_change()
+    rv20 = rets.rolling(20).std() * math.sqrt(252)
+    out["rv20"] = rv20
+    out["rv20_z"] = _rolling_z(rv20)
+    out["vol_of_vol"] = rv20.diff().rolling(60).std()
+    out["skew60"] = rets.rolling(60).skew()
+    out["kurt60"] = rets.rolling(60).kurt()
+    out["jerk20"] = rets.diff().rolling(20).std()
+    out["rsi_z"] = _rolling_z(out["rsi14"])
+    out["rsi_slope5"] = out["rsi14"].diff(5) / 5.0
+    out["macd_slope3"] = out["macd_hist_atr"].diff(3) / 3.0
+    atr = atr14(df).replace(0.0, np.nan)
+    for n in (20, 50, 200):
+        out[f"kin_slope{n}"] = _rolling_ols_slope(close.rolling(n).mean()) / atr
+    out["alignment"] = (
+        np.sign(close - out["sma20"]).fillna(0.0)
+        + np.sign(out["sma20"] - out["sma50"]).fillna(0.0)
+        + np.sign(out["sma50"] - out["sma200"]).fillna(0.0)
+    )
+
     if spy_bars:
         spy = bars_frame(spy_bars)[["as_of", "close"]].rename(
             columns={"close": "close_spy"}

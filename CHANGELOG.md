@@ -10,6 +10,7 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 ### Added
 
 - Technicals tab on `/stock/[ticker]` (index 1, after Market Structure): KPI stat-strip, price/MA/±1.5σ anchor chart, z-vs-200DMA history, forward-return-by-z-band table with current-band highlight, MA-kinematics / sigmoid / distribution / RSI / MACD / SPY-RS panels. Client island off the SingleStockReport hot path.
+- Technicals detail tiles now show per-metric change history: every rolling derived metric (return distribution moments, RSI z/slope, MACD slope, MA-kinematics slopes, alignment) is persisted per session (`technical_daily.metrics` JSONB, migration 102) and rendered as a sparkline in its tile; the anchor and z-score charts gained a date axis. Sigmoid stays latest-only (per-request curve fit).
 - Technicals backend: `technical_daily` warm store (migration 101), pure derivers in `cards/technicals.py` (z-vs-200DMA + bands, MA kinematics, sigmoid trend-maturity with beats-linear guard, return distribution, RSI/MACD enhanced, SPY relative strength, forward-return-by-z-band table), `GET /api/stock/{ticker}/technicals`, nightly `technical_daily_refresh` (apex daily bars, massive-0 18:40 ET, `UW_SCAN_TECHNICALS_REFRESH_ENABLED`).
 
 ### Changed
@@ -126,10 +127,10 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 ### Added
 
 - **UW same-day fetch dedupe memo (issue #225).** The shared UW daily budget is
-  exhausted by ~08:00 ET partly because 6+ jobs (option_surface_capture,
+  exhausted by ~08:00 ET partly because 6+ jobs (option*surface_capture,
   cockpit_daily_snapshot, flow_data_refresh, skew_swing_greeks, vrp_macro_entry,
   full_scan pipeline) independently re-fetch identical slow-moving per-ticker data
-  every day. The budget governor gates _spend_ but does not _dedupe_. New
+  every day. The budget governor gates \_spend* but does not _dedupe_. New
   Postgres-backed memo (`uw_fetch_memo`, migration `099`; `storage/uw_fetch_memo.py`)
   keyed `(ticker, endpoint, as_of_date)` is consulted in `sources/uw.py` BEFORE the
   live call: the first same-day caller of `fetch_option_contracts` /
@@ -187,14 +188,14 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   `GET /api/positioning/{ticker}` (full snapshot + derived signals) and
   `GET /api/positioning/screener` (one row per watchlist ticker, sorted by squeeze
   risk). Derived signals (computed at read time in `reports/positioning.py`): squeeze
-  score/label (si_pct_float × days-to-cover × borrow-fee tiers), insider net-flow tilt,
+  score/label (si*pct_float × days-to-cover × borrow-fee tiers), insider net-flow tilt,
   analyst implied upside vs spot, analyst rating skew, pre-ER positive-reaction base
   rate, days-to-next-ER. Web: a Positioning card on the stock page's Market Structure
   tab + a `/positioning` screener table (new sidebar entry). **Zero new UW fetch** —
   everything reads the existing warm store. Storage read queries live in
   `storage/positioning.py` (`list_uw_positioning_latest`); models in
   `models/positioning.py`. Follow-ups deferred: parsing the discarded 13F/insider
-  `raw_jsonb` detail, a borrow-fee _spike_-vs-baseline signal (needs a rolling read),
+  `raw_jsonb` detail, a borrow-fee \_spike*-vs-baseline signal (needs a rolling read),
   and any cross-sectional alpha signal (this is a surfacing task, not an alpha probe).
 - **Trade-lifecycle layer: VRP-macro entry-capture cohorts read back as a portfolio (#223).**
   The validated VRP-macro edge captures entries into `vrp_macro_entry` (8 marks/day ×

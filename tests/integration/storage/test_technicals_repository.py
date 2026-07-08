@@ -21,7 +21,30 @@ def _row(d: date, close: float, z: float | None = None) -> dict:
         "rsi14": 55.0,
         "macd_hist_atr": 0.1,
         "rs_ratio": 1.0,
+        # derived metric columns -> packed into metrics JSONB on upsert
+        "rv20": 0.3,
+        "rv20_z": -0.4,
+        "vol_of_vol": 0.02,
+        "skew60": 0.1,
+        "kurt60": 0.05,
+        "jerk20": 0.03,
+        "rsi_z": -1.1,
+        "rsi_slope5": 0.75,
+        "macd_slope3": 0.026,
+        "kin_slope20": -0.15,
+        "kin_slope50": -0.01,
+        "kin_slope200": 0.017,
+        "alignment": -1,
     }
+
+
+def test_metrics_roundtrip(seeded_db_empty_cards):
+    trepo = TechnicalsRepository(seeded_db_empty_cards.conn)
+    trepo.upsert_series("NVDA", [_row(date(2026, 7, 7), 100.0, 0.2)])
+    got = trepo.fetch_series("NVDA")[-1]
+    assert got["metrics"]["rv20"] == 0.3
+    assert got["metrics"]["alignment"] == -1
+    assert got["metrics"]["kin_slope200"] == 0.017
 
 
 def test_upsert_fetch_roundtrip_and_idempotency(seeded_db_empty_cards):

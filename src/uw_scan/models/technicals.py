@@ -29,6 +29,21 @@ class TechnicalsSeriesRow(_UwBase):
     rsi14: float | None = None
     macd_hist_atr: float | None = None
     rs_ratio: float | None = None
+    # Derived per-session metric history (from the metrics JSONB) so each
+    # detail tile can sparkline its own past. Sigmoid stays latest-only.
+    rv20: float | None = None
+    rv20_z: float | None = None
+    vol_of_vol: float | None = None
+    skew60: float | None = None
+    kurt60: float | None = None
+    jerk20: float | None = None
+    rsi_z: float | None = None
+    rsi_slope5: float | None = None
+    macd_slope3: float | None = None
+    kin_slope20: float | None = None
+    kin_slope50: float | None = None
+    kin_slope200: float | None = None
+    alignment: float | None = None
 
 
 class ForwardReturnBandRow(_UwBase):

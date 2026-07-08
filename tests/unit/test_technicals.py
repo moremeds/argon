@@ -228,6 +228,24 @@ def test_build_technical_snapshot_full():
         "slope_regime",
         "rsi14",
         "macd_hist_atr",
+        "rv20",
+        "rv20_z",
+        "vol_of_vol",
+        "skew60",
+        "kurt60",
+        "jerk20",
+        "rsi_z",
+        "rsi_slope5",
+        "macd_slope3",
+        "kin_slope20",
+        "kin_slope50",
+        "kin_slope200",
+        "alignment",
         "rs_ratio",
     ]
     assert len(series) == 500
+    # Derived metric history is populated and finite on a long series.
+    last = series.iloc[-1]
+    for col in ("rv20", "rv20_z", "skew60", "kurt60", "rsi_z", "kin_slope200"):
+        assert math.isfinite(float(last[col])), col
+    assert last["alignment"] in {-3, -2, -1, 0, 1, 2, 3}
