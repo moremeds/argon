@@ -371,6 +371,8 @@ class Settings(BaseModel):
     option_surface_backfill_days: int = 4
     option_surface_iv_canary_enabled: bool = True
     option_surface_iv_canary_warn_threshold: float = 0.02
+    # Nightly technicals refresh (apex daily bars -> technical_daily, massive-0 18:40 ET).
+    technicals_refresh_enabled: bool = True
     # Nightly data gap healer (8pm ET, after UW quota reset). Only UW is capped.
     data_gap_healer_enabled: bool = False
     data_gap_healer_cron_et: str = (
@@ -841,6 +843,9 @@ class Settings(BaseModel):
             ),
             option_surface_iv_canary_warn_threshold=float(
                 os.environ.get("OPTION_SURFACE_IV_CANARY_WARN_THRESHOLD", "0.02")
+            ),
+            technicals_refresh_enabled=_env_bool(
+                "UW_SCAN_TECHNICALS_REFRESH_ENABLED", True
             ),
             data_gap_healer_enabled=_env_bool("DATA_GAP_HEALER_ENABLED", False),
             data_gap_healer_cron_et=os.environ.get(
