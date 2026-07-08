@@ -43,14 +43,17 @@ cd web && npm run gen:types       # regenerate types.ts after API change
 
 ## Release procedure
 
-Tag-driven, launchd-native (no Docker). Cut a release with
+Tag-driven, Docker on the mini (launchd retired 2026-07-08). Cut a release with
 `scripts/release/cut.sh prepare [patch|minor|major]` (opens a release PR) → merge
 → `scripts/release/cut.sh tag` (pushes `vX.Y.Z`). The tag fires
-`.github/workflows/release.yml` (verify → publish GitHub Release). The mini's
-`com.argon.deploy-poller` (every 120s) deploys the latest **published,
-non-prerelease** Release via `scripts/deploy/macmini-prod.sh`. Prereleases
-(`vX.Y.Z-rc1`) verify + publish but never auto-deploy. See
-`docs/runbooks/release.md`.
+`.github/workflows/release.yml` (verify → publish GitHub Release + `ghcr-push`
+builds/pushes the `argon-app`/`argon-web` images; `:latest` floats only for final,
+non-prerelease tags). The mini runs argon from `/opt/argon/compose.yml`; the
+engine-wide Watchtower in `/opt/xenon/compose.yml` auto-deploys the new `:latest`
+images. Prereleases (`vX.Y.Z-rc1`) never float `:latest`, so Watchtower never
+auto-deploys an rc. Schema changes apply out-of-band via the profile-gated
+migrator. Current path: `docs/runbooks/docker-deploy.md`; the superseded launchd
+`deploy-poller`/`macmini-prod.sh` path stays documented in `docs/runbooks/release.md`.
 
 ## Live spot WS feed (xenon primary / massive fallback)
 

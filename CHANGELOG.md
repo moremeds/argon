@@ -7,6 +7,27 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+### Changed
+
+- **Docker migration — cutover complete (Phase 2) + launchd retired (Phase 3).**
+  argon now runs in Docker on the mini (`/opt/argon/compose.yml`); the 14 launchd
+  app plists are moved to `/opt/argon/retired-launchd-plists/` (only
+  `com.argon.backup` stays host-native), and deploys flow through the engine-wide
+  Watchtower instead of the launchd `deploy-poller`/`macmini-prod.sh` path. Updated
+  `docs/runbooks/docker-deploy.md` (status → complete, rollback path) and the
+  CLAUDE.md release procedure. Rollback restores the plists from the retired dir.
+
+### Fixed
+
+- **Docker web healthcheck triggered a recurring `transformAlgorithm` error.**
+  The compose web healthcheck used `wget --spider` (a HEAD request); a HEAD against
+  the streaming SSR landing page makes Next.js 16 on Node 22 wire a response
+  `TransformStream` with no body, logging a caught, non-fatal
+  `controller[kState].transformAlgorithm is not a function` every 30s. Switched the
+  healthcheck to a full GET (`wget -qO /dev/null`), which drains the body → zero
+  such errors (verified live). Real user GETs were never affected. Also corrected
+  the compose header container count (12 → 10).
+
 ## [0.9.1] — 2026-07-08
 
 
