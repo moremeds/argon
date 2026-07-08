@@ -95,6 +95,13 @@ curl -s http://127.0.0.1:8400/api/health | jq '{version, db, active: .ws_consume
 #   want: version == deployed tag, db == "up", active_source == "xenon_ws"
 # 4. Verify SSR renders data (catches the NEXT_INTERNAL_API_BASE regression):
 for p in / /gold /regime /stock/AAPL; do curl -sfo /dev/null -w "%{http_code} $p\n" http://127.0.0.1:3001$p; done
+# 5. Verify the CLIENT-SIDE /api/* rewrite proxies web -> api. SSR page codes
+#    (step 4) pass even when this is broken, so check it explicitly: the browser
+#    hits web:3001/api/*, which next.config rewrites to the api service. The
+#    rewrite target is BAKED at image build (ARG NEXT_INTERNAL_API_BASE in
+#    web.Dockerfile); a mis-baked image 500s here while step 4 stays green.
+curl -s http://127.0.0.1:3001/api/health | jq '{via_web_rewrite: .db, version}'
+#   want: db == "up" (NOT a 500 / HTML error page)
 ```
 
 ### Phase 3 — retire

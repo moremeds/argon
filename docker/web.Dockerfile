@@ -2,7 +2,10 @@
 # argon-web — Next.js 16 standalone. The client bundle calls relative /api/*,
 # proxied to the api service by the next.config.mjs rewrite. SSR fetches read
 # the same runtime NEXT_INTERNAL_API_BASE. argon web inlines NO NEXT_PUBLIC_*
-# values, so this image needs zero build args.
+# values — but next.config.mjs rewrites() is evaluated at BUILD time and frozen
+# into the standalone server, so the client-side /api/* proxy target is a build
+# arg (below), not runtime. Without it the rewrite bakes the localhost fallback
+# and every browser /api/* call 500s in-container.
 # Built natively on ubuntu-24.04-arm in release.yml for the arm64 mini.
 #
 # Local smoke (arm64 Docker host):
@@ -25,6 +28,12 @@ RUN npm ci --no-audit --no-fund --legacy-peer-deps
 # standalone bundle emits at /app/web/.next/standalone/server.js (server.js +
 # node_modules at the standalone root).
 COPY web/ ./
+# rewrites() bakes at build time — set the compose service-name target for the
+# client-side /api/* proxy. SSR still reads this same value from runtime env.
+# The launchd (non-Docker) build never sets this, keeping its correct localhost
+# co-located default.
+ARG NEXT_INTERNAL_API_BASE=http://api:8400
+ENV NEXT_INTERNAL_API_BASE=$NEXT_INTERNAL_API_BASE
 ENV NEXT_TELEMETRY_DISABLED=1
 RUN npx next build
 
