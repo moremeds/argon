@@ -71,6 +71,15 @@ _HOST_DB_RULES: dict[str, frozenset[str]] = {
     "100.66.147.98": frozenset({"option_wizard", "option_wizard_test"}),
     "127.0.0.1": frozenset({"option_wizard_local", "option_wizard_test"}),
     "localhost": frozenset({"option_wizard_local", "option_wizard_test"}),
+    # Docker: containers reach host-native Postgres via host.docker.internal.
+    # On the mini that host DB is prodlike `option_wizard`; local/CI Docker
+    # smoke runs target `option_wizard_local`; integration tests use the test
+    # tier. Keeping this rule meaningful means the container `.env` must NOT
+    # carry UW_SCAN_ALLOW_DB_MISMATCH=1 (which bypasses ALL isolation checks) —
+    # the clean container path is a legal pair here, no override.
+    "host.docker.internal": frozenset(
+        {"option_wizard", "option_wizard_local", "option_wizard_test"}
+    ),
 }
 
 
