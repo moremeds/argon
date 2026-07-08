@@ -184,3 +184,22 @@ def fetch_intraday_closes(
             len(closes),
         )
     return closes
+
+
+def fetch_daily_bars(ticker: str, *, timeout: float = 20.0) -> list[dict]:
+    """Full default daily-bar window from apex (500 today, 2000 once apex's
+    cap raise lands). Raw bar dicts; [] on any failure (never-raise)."""
+    url = f"{_apex_url()}/bars/{ticker.upper()}"
+    try:
+        resp = httpx.get(url, params={"timeframe": "1d"}, timeout=timeout)
+        resp.raise_for_status()
+        bars = resp.json().get("bars", [])
+    except Exception as exc:
+        logger.warning("apex daily bars fetch failed %s: %s", ticker, repr(exc))
+        return []
+    if not isinstance(bars, list):
+        logger.warning(
+            "apex daily bars malformed for %s: bars is %s", ticker, type(bars).__name__
+        )
+        return []
+    return bars

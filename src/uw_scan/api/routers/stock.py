@@ -11,15 +11,18 @@ from decimal import Decimal
 
 from fastapi import APIRouter, Depends, HTTPException
 
-from uw_scan.api.deps import get_repo
+from uw_scan.api.deps import get_repo, get_settings
 from uw_scan.cards.gex import classify_bias, find_flip_strike
+from uw_scan.config import Settings
 from uw_scan.models import (
     SingleStockReport,
     StockHistoryResponse,
     StockHistoryRow,
     StrikeGexBucket,
+    TechnicalsResponse,
 )
 from uw_scan.reports.single_stock import assemble_single_stock_report
+from uw_scan.reports.technicals import assemble_technicals
 from uw_scan.storage.repository import Repository
 
 router = APIRouter()
@@ -195,3 +198,12 @@ def _with_latest_spot(report: SingleStockReport, repo: Repository) -> SingleStoc
     report.spot_quoted_at = best_at
     report.spot_source = best_source
     return report
+
+
+@router.get("/stock/{ticker}/technicals", response_model=TechnicalsResponse)
+def get_stock_technicals(
+    ticker: str,
+    repo: Repository = Depends(get_repo),
+    settings: Settings = Depends(get_settings),
+) -> TechnicalsResponse:
+    return assemble_technicals(ticker, repo, schema=settings.db_schema)

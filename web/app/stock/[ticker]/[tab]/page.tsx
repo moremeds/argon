@@ -7,6 +7,7 @@ import { SkewTab } from "@/components/stock/tabs/SkewTab";
 import { FlowTab } from "@/components/stock/tabs/FlowTab";
 import { TradeInsightsTab } from "@/components/stock/tabs/TradeInsightsTab";
 import { FrameworkTab } from "@/components/stock/tabs/FrameworkTab";
+import { TechnicalsTab } from "@/components/stock/tabs/TechnicalsTab";
 import { isStockReportNotReadyError } from "@/lib/stockNotReady";
 
 const REPORT_TABS = {
@@ -22,6 +23,11 @@ export default async function TabPage({
   params: Promise<{ ticker: string; tab: string }>;
 }) {
   const { ticker, tab } = await params;
+  // Own client island off the SingleStockReport hot path — fetches
+  // /api/stock/{ticker}/technicals itself, never the heavy report.
+  if (tab === "technicals") {
+    return <TechnicalsTab ticker={ticker} />;
+  }
   if (tab === "trade-insights") {
     return <TradeInsightsTab ticker={ticker} />;
   }

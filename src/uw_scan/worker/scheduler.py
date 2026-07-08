@@ -67,6 +67,7 @@ from uw_scan.worker.jobs.skew_analytics import (
     skew_markout_refresh,
 )
 from uw_scan.worker.jobs.skew_swing_greeks import skew_swing_greeks_refresh
+from uw_scan.worker.jobs.technical_daily_refresh import technical_daily_refresh
 from uw_scan.worker.jobs.trade_insight_outcome_backfill import (
     trade_insight_outcome_backfill_once,
 )
@@ -716,6 +717,10 @@ def main() -> int:
         with _repo(settings) as repo:
             vrp_markout_refresh(repo=repo)
 
+    def _technical_daily_refresh() -> None:
+        with _repo(settings) as repo:
+            technical_daily_refresh(repo=repo, settings=settings)
+
     def _vrp_macro_signal_refresh() -> None:
         with _repo(settings) as repo:
             vrp_macro_signal_refresh(repo=repo, settings=settings)
@@ -1302,6 +1307,18 @@ def main() -> int:
                 max_instances=1,
                 coalesce=True,
             )
+            # Technicals daily refresh at 18:40 ET — after apex's own EOD sync and
+            # before the 18:50 vrp_markout job. apex bars cost no UW budget, so
+            # massive-0 is the right single-flight home. Idempotent; flag-gated.
+            if settings.technicals_refresh_enabled:
+                sched.add_job(
+                    _technical_daily_refresh,
+                    CronTrigger.from_crontab("40 18 * * 0-4", timezone=settings.rth_tz),
+                    id="technical_daily_refresh",
+                    name="Technicals daily refresh (apex bars -> technical_daily)",
+                    max_instances=1,
+                    coalesce=True,
+                )
             # Corporate-actions ingestion at 17:35 ET — after the 17:30 OHLC pull,
             # before the research compute. Ingests split/dividend history (massive)
             # over the vrp_daily ∪ watchlist universe for exact-RV adjustment.
