@@ -7,6 +7,9 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+## [0.10.0] — 2026-07-09
+
+
 ### Added
 
 - Technicals tab on `/stock/[ticker]` (index 1, after Market Structure): KPI stat-strip, price/MA/±1.5σ anchor chart, z-vs-200DMA history, forward-return-by-z-band table with current-band highlight, MA-kinematics / sigmoid / distribution / RSI / MACD / SPY-RS panels. Client island off the SingleStockReport hot path.
@@ -54,7 +57,6 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   healthcheck to a full GET (`wget -qO /dev/null`), which drains the body → zero
   such errors (verified live). Real user GETs were never affected. Also corrected
   the compose header container count (12 → 10).
-
 ## [0.9.1] — 2026-07-08
 
 ### Fixed
