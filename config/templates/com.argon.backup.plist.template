@@ -9,7 +9,7 @@
     <array>
         <string>/bin/bash</string>
         <string>-c</string>
-        <string>set -euo pipefail; mkdir -p __PROJECT_DIR__/data/backups; __BREW_PREFIX__/opt/postgresql@16/bin/pg_dump -Fc -h 127.0.0.1 -U argon_app option_wizard | gzip &gt; __PROJECT_DIR__/data/backups/option_wizard-$(date +\%Y\%m\%d).dump.gz; find __PROJECT_DIR__/data/backups -name 'option_wizard-*.dump.gz' -mtime +7 -delete</string>
+        <string>set -euo pipefail; BACKUP_DIR="${ARGON_BACKUP_DIR:-/Volumes/DATA_LAKE/argon/postgres-backups}"; mkdir -p "$BACKUP_DIR"; TMP="$BACKUP_DIR/option_wizard-$(date +\%Y\%m\%d).dump.gz.part"; FINAL="${TMP%.part}"; __BREW_PREFIX__/opt/postgresql@17/bin/pg_dump -Fc -h 127.0.0.1 -U argon_app option_wizard | gzip &gt; "$TMP"; mv "$TMP" "$FINAL"; find "$BACKUP_DIR" -name 'option_wizard-*.dump.gz' -mtime +7 -delete</string>
     </array>
 
     <key>WorkingDirectory</key>
