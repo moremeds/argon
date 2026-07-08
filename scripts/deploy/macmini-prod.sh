@@ -103,8 +103,17 @@ step "Health checks"
 sleep 5
 # check_url URL NAME [JQ_FILTER]
 # Reachability check by default. With JQ_FILTER, the body must also satisfy it —
-# needed because /api/health returns HTTP 200 even when ok=false (db down, missed
-# scans, record-coverage collapse), so a plain -fsS gate can never trip rollback.
+# needed because /api/health returns HTTP 200 even when the stack is broken, so a
+# plain -fsS gate can never trip rollback.
+#
+# The gate asserts SERVING LIVENESS (what a deploy controls), NOT data freshness.
+# It does NOT gate on `.ok`: `.ok` folds in `missed full scans`, which is routinely
+# false for a benign reason — UW daily-budget exhaustion legitimately SKIPS full
+# scans (see the budget governor), so the whole health goes ok=false most of the
+# trading day. Gating deploy success on `.ok` deadlocks: neither the forward gate
+# nor the rollback verify can pass, the script burns its retry budget and gtimeout
+# kills it (rc=124). Worker/scan health is monitored separately (job_failures +
+# heartbeats). So the gate checks db-up + the new VERSION actually serving.
 check_url() {
   local url="$1" name="$2" filter="${3:-}"
   for _ in {1..30}; do
@@ -125,7 +134,7 @@ check_url() {
   return 1
 }
 
-if check_url "http://127.0.0.1:8400/api/health" "api" '.ok == true' \
+if check_url "http://127.0.0.1:8400/api/health" "api" ".db == \"up\" and .version == \"$FILE_VERSION\"" \
    && check_url "http://127.0.0.1:3001"      "web"; then
   step "Deploy OK: $TAG ($COMMIT)"
   printf '%s  %s  %s  OK\n' "$(date -u +%FT%TZ)" "$TAG" "$COMMIT" >> "$REPO_ROOT/logs/deploy.log"
@@ -145,7 +154,7 @@ while IFS= read -r label; do
   launchctl kickstart -k "gui/$UID/${label}"
 done < config/services.list
 sleep 5
-check_url "http://127.0.0.1:8400/api/health" "api(rollback)" '.ok == true' || die "rollback ALSO failed — manual intervention required"
+check_url "http://127.0.0.1:8400/api/health" "api(rollback)" '.db == "up"' || die "rollback ALSO failed — manual intervention required"
 check_url "http://127.0.0.1:3001"        "web(rollback)" || die "rollback ALSO failed — manual intervention required"
 printf '%s  %s  %s  ROLLBACK→%s\n' "$(date -u +%FT%TZ)" "$TAG" "$COMMIT" "$PREV_TAG" >> "$REPO_ROOT/logs/deploy.log"
 die "deploy of $TAG failed; rolled back to $PREV_TAG"
