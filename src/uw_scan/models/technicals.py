@@ -1,0 +1,58 @@
+"""API contract models for the /stock Technicals tab."""
+
+from __future__ import annotations
+
+from datetime import date
+from typing import Any
+
+from uw_scan.models._base import _preserve_public_module, _UwBase
+
+
+class TechnicalsHeader(_UwBase):
+    price: float | None = None
+    sma200: float | None = None
+    dist_pct: float | None = None
+    z: float | None = None
+    z_band: str | None = None
+    slope_ann: float | None = None
+    slope_regime: str | None = None
+    composite: float | None = None
+
+
+class TechnicalsSeriesRow(_UwBase):
+    as_of: date
+    close: float | None = None
+    sma20: float | None = None
+    sma50: float | None = None
+    sma200: float | None = None
+    z: float | None = None
+    rsi14: float | None = None
+    macd_hist_atr: float | None = None
+    rs_ratio: float | None = None
+
+
+class ForwardReturnBandRow(_UwBase):
+    band: str
+    horizon: int
+    count: int
+    mean: float
+    median: float
+    win_rate: float
+
+
+class TechnicalsResponse(_UwBase):
+    ticker: str
+    backfill_status: str  # "ready" | "empty"
+    as_of: date | None = None
+    bars_n: int | None = None
+    header: TechnicalsHeader | None = None
+    series: list[TechnicalsSeriesRow] = []
+    detail: dict[str, Any] | None = None
+    macd_watchlist_pctile: float | None = None
+    forward_returns: list[ForwardReturnBandRow] = []
+
+
+# Preserve __module__ = "uw_scan.models" so OpenAPI component names don't drift
+_preserve_public_module(
+    TechnicalsHeader, TechnicalsSeriesRow, ForwardReturnBandRow, TechnicalsResponse
+)

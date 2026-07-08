@@ -139,6 +139,12 @@ from .stock import (
     VolatilityProfile,
     VRPAssessment,
 )
+from .technicals import (
+    ForwardReturnBandRow,
+    TechnicalsHeader,
+    TechnicalsResponse,
+    TechnicalsSeriesRow,
+)
 from .trade_insights import (
     CandidateStructure,
     ChainFlowReadRow,
@@ -309,6 +315,10 @@ __all__ = [
     "StockHistoryResponse",
     "StockShortVol",
     "SingleStockReport",
+    "TechnicalsHeader",
+    "TechnicalsSeriesRow",
+    "ForwardReturnBandRow",
+    "TechnicalsResponse",
     "VolHeaderBlock",
     "TermStructureExpiryRow",
     "SmilePoint",

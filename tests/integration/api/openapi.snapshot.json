@@ -4345,6 +4345,44 @@
         "title": "FlowSnapshot",
         "type": "object"
       },
+      "ForwardReturnBandRow": {
+        "properties": {
+          "band": {
+            "title": "Band",
+            "type": "string"
+          },
+          "count": {
+            "title": "Count",
+            "type": "integer"
+          },
+          "horizon": {
+            "title": "Horizon",
+            "type": "integer"
+          },
+          "mean": {
+            "title": "Mean",
+            "type": "number"
+          },
+          "median": {
+            "title": "Median",
+            "type": "number"
+          },
+          "win_rate": {
+            "title": "Win Rate",
+            "type": "number"
+          }
+        },
+        "required": [
+          "band",
+          "horizon",
+          "count",
+          "mean",
+          "median",
+          "win_rate"
+        ],
+        "title": "ForwardReturnBandRow",
+        "type": "object"
+      },
       "GammaBlock": {
         "properties": {
           "expiring_date": {
@@ -15452,6 +15490,292 @@
         "title": "StrikeGexBucket",
         "type": "object"
       },
+      "TechnicalsHeader": {
+        "properties": {
+          "composite": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Composite"
+          },
+          "dist_pct": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dist Pct"
+          },
+          "price": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Price"
+          },
+          "slope_ann": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Slope Ann"
+          },
+          "slope_regime": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Slope Regime"
+          },
+          "sma200": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sma200"
+          },
+          "z": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Z"
+          },
+          "z_band": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Z Band"
+          }
+        },
+        "title": "TechnicalsHeader",
+        "type": "object"
+      },
+      "TechnicalsResponse": {
+        "properties": {
+          "as_of": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "As Of"
+          },
+          "backfill_status": {
+            "title": "Backfill Status",
+            "type": "string"
+          },
+          "bars_n": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Bars N"
+          },
+          "detail": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Detail"
+          },
+          "forward_returns": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/ForwardReturnBandRow"
+            },
+            "title": "Forward Returns",
+            "type": "array"
+          },
+          "header": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TechnicalsHeader"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "macd_watchlist_pctile": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Macd Watchlist Pctile"
+          },
+          "series": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/TechnicalsSeriesRow"
+            },
+            "title": "Series",
+            "type": "array"
+          },
+          "ticker": {
+            "title": "Ticker",
+            "type": "string"
+          }
+        },
+        "required": [
+          "ticker",
+          "backfill_status"
+        ],
+        "title": "TechnicalsResponse",
+        "type": "object"
+      },
+      "TechnicalsSeriesRow": {
+        "properties": {
+          "as_of": {
+            "format": "date",
+            "title": "As Of",
+            "type": "string"
+          },
+          "close": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Close"
+          },
+          "macd_hist_atr": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Macd Hist Atr"
+          },
+          "rs_ratio": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rs Ratio"
+          },
+          "rsi14": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rsi14"
+          },
+          "sma20": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sma20"
+          },
+          "sma200": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sma200"
+          },
+          "sma50": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sma50"
+          },
+          "z": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Z"
+          }
+        },
+        "required": [
+          "as_of"
+        ],
+        "title": "TechnicalsSeriesRow",
+        "type": "object"
+      },
       "TermMoveRow": {
         "properties": {
           "atm_straddle": {
@@ -22269,7 +22593,7 @@
   },
   "info": {
     "title": "UW Watchlist API",
-    "version": "0.7.2"
+    "version": "0.9.1"
   },
   "openapi": "3.1.0",
   "paths": {
@@ -24976,6 +25300,48 @@
         "summary": "Get Skew Analysis",
         "tags": [
           "skew"
+        ]
+      }
+    },
+    "/api/stock/{ticker}/technicals": {
+      "get": {
+        "operationId": "get_stock_technicals_api_stock__ticker__technicals_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "ticker",
+            "required": true,
+            "schema": {
+              "title": "Ticker",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TechnicalsResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Stock Technicals",
+        "tags": [
+          "stock"
         ]
       }
     },
