@@ -33,6 +33,9 @@ def _registered_jobs(monkeypatch, **env) -> dict[str, dict]:
         def __init__(self, *_a, **_k) -> None:
             pass
 
+        def add_listener(self, *_a, **_k) -> None:
+            pass
+
         def add_job(self, *_a, **kwargs) -> None:
             if kwargs.get("id"):
                 entry = dict(kwargs)

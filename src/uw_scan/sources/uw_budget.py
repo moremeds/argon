@@ -19,10 +19,16 @@ from __future__ import annotations
 
 from collections.abc import Iterable
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from typing import Literal
 
 Pool = Literal["live", "research"]
+
+# In-process dedupe so the account-wide guard alerts at most once per UW
+# budget day. Keyed on the UTC date to match the account counter's 00:00 UTC
+# reset (a duplicate after a worker restart is harmless — ponytail: no
+# DB-backed alert-router needed for this).
+_alerted_today: date | None = None
 
 # Jobs that serve the web pages fresh — they get budget priority. Everything
 # else (regime/tide/gex capture, nightly snapshots, all *_backfill scripts,
@@ -69,6 +75,16 @@ def may_spend(pool: Pool, snap: BudgetSnapshot, limits: BudgetLimits) -> bool:
     # pools) to protect the last margin — this is what un-instrumented backfill
     # and any shared-key consumer can only be caught by.
     if snap.account_count is not None and snap.account_count >= limits.total_guard:
+        global _alerted_today
+        today = datetime.now(timezone.utc).date()
+        if _alerted_today != today:
+            _alerted_today = today
+            from uw_scan.alerts import send_alert
+
+            send_alert(
+                "UW budget wall hit",
+                f"account_count={snap.account_count} >= total_guard={limits.total_guard}",
+            )
         return False
     ceiling = limits.live_ceiling if pool == "live" else limits.research_ceiling
     return snap.spent_for(pool) < ceiling

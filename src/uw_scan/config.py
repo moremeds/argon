@@ -197,6 +197,9 @@ class Settings(BaseModel):
     trade_insights_ai_timeout_seconds: float = 300.0
     trade_insights_ai_max_output_bytes: int = 262144
     trade_insights_ai_poll_seconds: int = 3
+    # Ops alert sink — one webhook (Discord/Pushover-compatible JSON POST).
+    # Empty = no-op (send_alert returns False without a call).
+    ops_alert_webhook_url: str = ""
     # Trade Insights AI Claude provider (alongside Codex)
     trade_insights_ai_claude_enabled: bool = True
     trade_insights_ai_claude_model: str = ""
@@ -485,6 +488,7 @@ class Settings(BaseModel):
             base_url=os.environ.get(
                 "UW_SCAN_BASE_URL", "https://api.unusualwhales.com"
             ),
+            ops_alert_webhook_url=os.environ.get("UW_SCAN_OPS_ALERT_WEBHOOK_URL", ""),
             # full_scan_crons stays as the Pydantic default; not env-driven
             # because cron expressions contain spaces (CSV parsing is fragile).
             # Override by editing the Settings default if you need a different

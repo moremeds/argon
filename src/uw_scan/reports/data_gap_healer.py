@@ -333,6 +333,16 @@ REGISTRY: list[DatasetRegistryEntry] = [
         expected_frequency="none",
         reason="ephemeral same-day fetch dedupe cache; pruned daily, nothing to backfill/heal",
     ),
+    # Ops-hardening job-failure streaks (#C12): per-job consecutive-failure
+    # counters maintained live by the scheduler listener — not a time series,
+    # nothing to backfill or heal.
+    DatasetRegistryEntry(
+        "job_failures",
+        "operational_provenance",
+        "excluded",
+        expected_frequency="none",
+        reason="live per-job failure-streak state; scheduler-maintained, nothing to backfill/heal",
+    ),
 ]
 
 

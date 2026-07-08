@@ -7632,6 +7632,13 @@
             ],
             "title": "Http 5Xx"
           },
+          "job_failures": {
+            "items": {
+              "$ref": "#/components/schemas/JobFailureStreak"
+            },
+            "title": "Job Failures",
+            "type": "array"
+          },
           "last_full_scan_at": {
             "anyOf": [
               {
@@ -8173,6 +8180,36 @@
           }
         },
         "title": "IvPercentileDistribution",
+        "type": "object"
+      },
+      "JobFailureStreak": {
+        "description": "One job's current consecutive-failure streak (see storage/ops_health).",
+        "properties": {
+          "consecutive": {
+            "title": "Consecutive",
+            "type": "integer"
+          },
+          "job_name": {
+            "title": "Job Name",
+            "type": "string"
+          },
+          "last_error": {
+            "title": "Last Error",
+            "type": "string"
+          },
+          "last_failed_at": {
+            "format": "date-time",
+            "title": "Last Failed At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "job_name",
+          "consecutive",
+          "last_error",
+          "last_failed_at"
+        ],
+        "title": "JobFailureStreak",
         "type": "object"
       },
       "JobStatus": {
@@ -22232,7 +22269,7 @@
   },
   "info": {
     "title": "UW Watchlist API",
-    "version": "0.7.1"
+    "version": "0.7.2"
   },
   "openapi": "3.1.0",
   "paths": {
@@ -23216,6 +23253,54 @@
           }
         },
         "summary": "Provider Usage Endpoints",
+        "tags": [
+          "provider-usage"
+        ]
+      }
+    },
+    "/api/provider-usage/jobs": {
+      "get": {
+        "operationId": "provider_usage_jobs_api_provider_usage_jobs_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "provider",
+            "required": false,
+            "schema": {
+              "default": "all",
+              "enum": [
+                "uw",
+                "massive",
+                "all"
+              ],
+              "title": "Provider",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProviderUsageBreakdownResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Provider Usage Jobs",
         "tags": [
           "provider-usage"
         ]

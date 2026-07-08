@@ -13,6 +13,7 @@ from typing import Literal
 from zoneinfo import ZoneInfo
 
 import psycopg
+from apscheduler.events import EVENT_JOB_ERROR, EVENT_JOB_EXECUTED
 from apscheduler.schedulers import SchedulerNotRunningError
 from apscheduler.schedulers.blocking import BlockingScheduler
 from apscheduler.triggers.combining import OrTrigger
@@ -28,6 +29,7 @@ from uw_scan.sources.uw_budget import (
     may_spend,
     read_snapshot,
 )
+from uw_scan.storage.ops_health import _ops_conn
 from uw_scan.storage.provider_usage import ExternalApiRequestRecorder
 from uw_scan.storage.repository import Repository
 from uw_scan.worker.jobs.cockpit_daily_snapshot import cockpit_daily_snapshot
@@ -531,12 +533,43 @@ class _NoOhlc:
         pass
 
 
+def _handle_job_event(event) -> None:
+    from uw_scan.storage.ops_health import JobFailuresRepository
+
+    try:
+        with _ops_conn() as conn:
+            repo = JobFailuresRepository(conn)
+            if getattr(event, "exception", None) is not None:
+                repo.record_failure(event.job_id, str(event.exception))
+                streak = next(
+                    (s for s in repo.list_streaks() if s.job_name == event.job_id), None
+                )
+                if streak and streak.consecutive in (3, 10):
+                    from uw_scan.alerts import send_alert
+
+                    send_alert(
+                        f"job {event.job_id} failing",
+                        f"{streak.consecutive} consecutive; last: {streak.last_error[:200]}",
+                    )
+            else:
+                repo.record_success(event.job_id)
+            conn.commit()
+    except Exception as exc:  # ops telemetry must never crash the scheduler
+        logger.warning(
+            "job-failure listener could not record event for %s: %s",
+            getattr(event, "job_id", "?"),
+            repr(exc),
+            exc_info=True,
+        )
+
+
 def main() -> int:
     settings = Settings.from_env()
     _validate_worker_settings(settings)
     groups = _worker_groups(settings)
     ticker_filter = _ticker_shard_filter(settings)
     sched = BlockingScheduler(timezone=settings.rth_tz)
+    sched.add_listener(_handle_job_event, EVENT_JOB_ERROR | EVENT_JOB_EXECUTED)
 
     def _full_scan() -> None:
         with _external_api_recorder(settings) as recorder:
