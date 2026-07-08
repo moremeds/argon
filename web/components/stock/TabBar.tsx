@@ -4,6 +4,7 @@ import { usePathname } from "next/navigation";
 
 const TABS = [
   ["market-structure", "Market Structure"],
+  ["technicals", "Technicals"],
   ["volatility", "Volatility"],
   ["skew", "Skew"],
   ["flow", "Flow"],

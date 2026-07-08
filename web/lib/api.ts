@@ -21,7 +21,7 @@ type VrpMacroPositionDetail = components["schemas"]["VrpMacroPositionDetail"];
 const API =
   typeof window !== "undefined"
     ? ""
-    : process.env.NEXT_INTERNAL_API_BASE ?? "http://127.0.0.1:8400";
+    : (process.env.NEXT_INTERNAL_API_BASE ?? "http://127.0.0.1:8400");
 
 type Json<
   P extends keyof paths,
@@ -58,6 +58,7 @@ type VolatilitySeriesResponse = Json<
   "get"
 >;
 type SkewAnalysisResponse = Json<"/api/stock/{ticker}/skew", "get">;
+type TechnicalsResponse = Json<"/api/stock/{ticker}/technicals", "get">;
 type TradeInsightsResponse = Json<"/api/stock/{ticker}/trade-insights", "get">;
 // Single-row response (used by GET /{analysis_id} and as the inner type of
 // /latest). The OpenAPI shape lives under `paths[...]/{analysis_id}/get`.
@@ -130,6 +131,8 @@ export const api = {
     _fetch<VolatilitySeriesResponse>(`/api/stock/${ticker}/volatility/series`),
   skewAnalysis: (ticker: string): Promise<SkewAnalysisResponse> =>
     _fetch<SkewAnalysisResponse>(`/api/stock/${ticker}/skew`),
+  technicals: (ticker: string): Promise<TechnicalsResponse> =>
+    _fetch<TechnicalsResponse>(`/api/stock/${ticker}/technicals`),
   cockpitState: (
     ticker: string,
     asof?: string,
@@ -328,6 +331,7 @@ export type {
   TradeInsightsAiAnalysisResponse,
   TradeInsightsAiLatestPair,
   SkewAnalysisResponse,
+  TechnicalsResponse,
   TradeInsightsResponse,
   VolatilitySeriesResponse,
   WatchlistResponse,
