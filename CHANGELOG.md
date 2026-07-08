@@ -21,6 +21,26 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   cannot write removable volumes without it) plus a shape-test probe to verify it
   after OS upgrades. Config/ops only — no application code paths change.
 
+### Fixed
+
+- **Deploy health-gate no longer deadlocks on benign budget-throttled scans.**
+  The v0.7.2 change gated deploy success (and rollback verify) on `/api/health`
+  `.ok == true`. But `.ok` folds in "expected full scans missed", which is
+  routinely false for a *benign* reason — UW daily-budget exhaustion legitimately
+  **skips** full scans for most of the trading day, so the whole health reports
+  `ok=false`. With `.ok == true` required on *both* the forward gate and the
+  rollback verify, a deploy launched during a budget-throttled window can pass
+  neither: it burns its retry budget, rolls back, the rollback verify also fails,
+  and the outer `gtimeout` kills `macmini-prod.sh` (rc=124). This is exactly how
+  the v0.8.0 deploy failed and stranded the mini on v0.7.2. The gate now asserts
+  **serving liveness** — `.db == "up" and .version == "<VERSION>"` (DB reachable +
+  the newly-deployed code is the process actually answering) — and the rollback
+  verify asserts `.db == "up"`. Worker/scan health stays monitored separately
+  (C12 job-failure streaks + heartbeats); it is no longer conflated with whether a
+  build deployed correctly.
+
+## [0.8.0] — 2026-07-08
+
 
 ### Added
 
