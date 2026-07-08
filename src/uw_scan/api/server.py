@@ -3,8 +3,10 @@
 from __future__ import annotations
 
 import logging
+import os
+import time
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 
 from uw_scan.api.routers import (
@@ -32,9 +34,30 @@ from uw_scan.version import app_version
 
 logger = logging.getLogger(__name__)
 
+# Request-timing monitor for our own endpoints (distinct from api/client.py's
+# outbound UW latency). Log-only: every response carries X-Response-Time-ms;
+# requests slower than the threshold log a WARN. Set the threshold to 0 to
+# silence the warnings (the header is always added).
+# ponytail: perf_counter + one log line, no deps/tables. Surface a rolling p95
+# on /health only if we actually need dashboards.
+_SLOW_REQUEST_MS = float(os.getenv("API_SLOW_REQUEST_MS", "500"))
+
+
+async def _timing_middleware(request: Request, call_next):
+    start = time.perf_counter()
+    response = await call_next(request)
+    elapsed_ms = (time.perf_counter() - start) * 1000
+    response.headers["X-Response-Time-ms"] = str(int(elapsed_ms))
+    if _SLOW_REQUEST_MS > 0 and elapsed_ms >= _SLOW_REQUEST_MS:
+        logger.warning(
+            "slow request %s %s %.0fms", request.method, request.url.path, elapsed_ms
+        )
+    return response
+
 
 def create_app() -> FastAPI:
     app = FastAPI(title="UW Watchlist API", version=app_version())
+    app.middleware("http")(_timing_middleware)
     app.add_middleware(
         CORSMiddleware,
         # CORS is URL-agnostic by design: the real trust boundary is the

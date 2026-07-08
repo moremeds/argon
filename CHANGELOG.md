@@ -9,6 +9,26 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ### Changed
 
+- **`/stock/{ticker}` performance package — three compounding fixes on the app's
+  busiest read path.** (1) Killed an N+1: `_build_intraday_profiles` issued one
+  `option_intraday_buckets` query per top-10 OI mover (10 serial round-trips per
+  page load); new `OptionIntradayBucketRepository.fetch_buckets_batch` collapses
+  them to a single `unnest`-join query. (2) Added a per-`(ticker, run_id)` TTL
+  response cache in front of `assemble_single_stock_report` (default 20s, set
+  `SINGLE_STOCK_REPORT_CACHE_TTL_S=0` to disable) so revisits and the 2.5s
+  watchlist-spot poll don't re-derive the whole report; callers get a deep copy so
+  the header's live-spot mutation can't corrupt the cache. (3) Replaced the
+  connect-per-request path in `api/deps.py` with a process-wide
+  `psycopg_pool.ConnectionPool` (`UW_SCAN_DB_POOL_MIN`/`_MAX`, default 2/10) —
+  removes per-request TCP+auth+`SET search_path`, which matters more now that the
+  api container reaches Postgres across the Docker VM boundary. Added `psycopg`'s
+  `pool` extra.
+- **Request-timing monitor for our own endpoints.** New log-only ASGI middleware
+  tags every response with `X-Response-Time-ms` and logs a WARN when a request
+  exceeds `API_SLOW_REQUEST_MS` (default 500; 0 silences). Distinct from the
+  existing outbound-UW `latency_p95_ms`. Cache hit/miss counters exposed via
+  `report_cache_stats()`.
+
 - **Docker migration — cutover complete (Phase 2) + launchd retired (Phase 3).**
   argon now runs in Docker on the mini (`/opt/argon/compose.yml`); the 14 launchd
   app plists are moved to `/opt/argon/retired-launchd-plists/` (only

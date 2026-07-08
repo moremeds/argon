@@ -7,7 +7,7 @@ vcg_snapshot_repository.py. Does not extend Repository (per repo policy on the
 
 from __future__ import annotations
 
-from collections.abc import Iterable
+from collections.abc import Iterable, Sequence
 from datetime import date as _date
 
 from psycopg import Connection
@@ -122,3 +122,42 @@ class OptionIntradayBucketRepository:
             cur.execute(sql, (option_symbol, trade_date))
             cols = [c.name for c in cur.description]
             return [dict(zip(cols, r, strict=True)) for r in cur.fetchall()]
+
+    def fetch_buckets_batch(
+        self,
+        pairs: Sequence[tuple[str, _date]],
+    ) -> dict[tuple[str, _date], list[dict]]:
+        """Buckets for many contracts in ONE round-trip (kills the per-row N+1).
+
+        Returns a dict keyed by (option_symbol, trade_date); missing pairs are
+        simply absent (caller treats that as a zero-volume miss). Rows within
+        each key stay ordered by start_time.
+        """
+        if not pairs:
+            return {}
+        symbols = [p[0] for p in pairs]
+        dates = [p[1] for p in pairs]
+        sql = """
+            SELECT b.option_symbol, b.trade_date, b.start_time,
+                   b.open, b.high, b.low, b.close, b.avg_price,
+                   b.iv_high, b.iv_low,
+                   b.volume_ask_side, b.volume_bid_side,
+                   b.volume_mid_side, b.volume_multi,
+                   b.premium_ask_side, b.premium_bid_side,
+                   b.premium_mid_side, b.premium_no_side
+              FROM option_intraday_buckets b
+              JOIN unnest(%s::text[], %s::date[]) AS k(option_symbol, trade_date)
+                ON b.option_symbol = k.option_symbol
+               AND b.trade_date = k.trade_date
+             ORDER BY b.option_symbol, b.trade_date, b.start_time ASC
+        """
+        out: dict[tuple[str, _date], list[dict]] = {}
+        with self._conn.cursor() as cur:
+            cur.execute(sql, (symbols, dates))
+            cols = [c.name for c in cur.description]
+            for r in cur.fetchall():
+                row = dict(zip(cols, r, strict=True))
+                out.setdefault((row["option_symbol"], row["trade_date"]), []).append(
+                    row
+                )
+        return out

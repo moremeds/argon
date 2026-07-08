@@ -2,6 +2,10 @@
 
 from __future__ import annotations
 
+import os
+import threading
+import time
+from collections import OrderedDict
 from datetime import date as _date
 from decimal import Decimal
 
@@ -19,6 +23,78 @@ from uw_scan.reports.single_stock import assemble_single_stock_report
 from uw_scan.storage.repository import Repository
 
 router = APIRouter()
+
+# Response cache for the two polled stock-page endpoints. Keyed on
+# (ticker, run_id); a new scan mints a new run_id so old keys age out on their
+# own (TTL/LRU) — no explicit invalidation. Short TTL so intraday-bucket
+# refreshes (worker cadence) surface within a poll cycle. Set the TTL to 0 to
+# disable (incident escape hatch).
+# ponytail: naive TTL+LRU dict guarded by one lock — ~20 lines beats a
+# cachetools dep. Swap in cachetools.TTLCache only if we need per-key TTLs.
+_REPORT_CACHE_TTL_S = float(os.getenv("SINGLE_STOCK_REPORT_CACHE_TTL_S", "20"))
+_REPORT_CACHE_MAXSIZE = 256
+_report_cache: OrderedDict[tuple[str, int], tuple[float, SingleStockReport]] = (
+    OrderedDict()
+)
+_report_cache_lock = threading.Lock()
+
+# Cheap hit/miss counters so we can see the cache actually earning its keep.
+_report_cache_hits = 0
+_report_cache_misses = 0
+
+
+def report_cache_stats() -> dict[str, int | float]:
+    """Cumulative cache hit/miss counts + hit rate (for logging / debugging)."""
+    with _report_cache_lock:
+        hits, misses = _report_cache_hits, _report_cache_misses
+    total = hits + misses
+    return {
+        "hits": hits,
+        "misses": misses,
+        "hit_rate": round(hits / total, 3) if total else 0.0,
+    }
+
+
+def _report_cache_clear() -> None:
+    """Drop all cached reports and reset counters (used by tests for isolation)."""
+    global _report_cache_hits, _report_cache_misses
+    with _report_cache_lock:
+        _report_cache.clear()
+        _report_cache_hits = 0
+        _report_cache_misses = 0
+
+
+def _assemble_cached(ticker: str, run_id: int, repo: Repository) -> SingleStockReport:
+    """assemble_single_stock_report with a per-(ticker, run_id) TTL cache.
+
+    Always returns a deep copy so the caller (``_with_latest_spot``) can mutate
+    the report in place without corrupting the shared cache entry.
+    """
+    global _report_cache_hits, _report_cache_misses
+
+    if _REPORT_CACHE_TTL_S <= 0:
+        return assemble_single_stock_report(ticker, run_id, repo)
+
+    key = (ticker, run_id)
+    now = time.monotonic()
+    with _report_cache_lock:
+        hit = _report_cache.get(key)
+        if hit is not None:
+            expires_at, cached = hit
+            if expires_at > now:
+                _report_cache.move_to_end(key)
+                _report_cache_hits += 1
+                return cached.model_copy(deep=True)
+            _report_cache.pop(key, None)
+        _report_cache_misses += 1
+
+    report = assemble_single_stock_report(ticker, run_id, repo)
+    with _report_cache_lock:
+        _report_cache[key] = (now + _REPORT_CACHE_TTL_S, report)
+        _report_cache.move_to_end(key)
+        while len(_report_cache) > _REPORT_CACHE_MAXSIZE:
+            _report_cache.popitem(last=False)
+    return report.model_copy(deep=True)
 
 
 def _dec(v: object) -> Decimal | None:
@@ -46,7 +122,7 @@ def get_stock(ticker: str, repo: Repository = Depends(get_repo)) -> SingleStockR
     run_id = repo.latest_run_id(t)
     if run_id == 0:
         raise HTTPException(status_code=404, detail=f"no runs for {t}")
-    return _with_latest_spot(assemble_single_stock_report(t, run_id, repo), repo)
+    return _with_latest_spot(_assemble_cached(t, run_id, repo), repo)
 
 
 @router.get("/stock/{ticker}/history", response_model=StockHistoryResponse)
@@ -90,7 +166,7 @@ def list_runs(ticker: str, repo: Repository = Depends(get_repo)) -> list[dict]:
 def get_specific_run(
     ticker: str, run_id: int, repo: Repository = Depends(get_repo)
 ) -> SingleStockReport:
-    report = assemble_single_stock_report(ticker.upper(), run_id, repo)
+    report = _assemble_cached(ticker.upper(), run_id, repo)
     return _with_latest_spot(report, repo)
 
 

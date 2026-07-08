@@ -261,18 +261,19 @@ def _build_intraday_profiles(
     if not top_rows:
         return []
     intraday_repo = OptionIntradayBucketRepository(repo.conn, schema=repo._schema)
+    pairs = [
+        (row["option_symbol"], row["curr_date"])
+        for row in top_rows
+        if row.get("option_symbol") and row.get("curr_date") is not None
+    ]
+    buckets_by_key = intraday_repo.fetch_buckets_batch(pairs)
     profiles: list[OptionIntradayProfile] = []
-    for row in top_rows:
-        option_symbol = row.get("option_symbol")
-        trade_date = row.get("curr_date")
-        if not option_symbol or trade_date is None:
-            continue
-        buckets = intraday_repo.fetch_buckets(option_symbol, trade_date)
+    for option_symbol, trade_date in pairs:
         profiles.append(
             derive_intraday_profile(
                 option_symbol=option_symbol,
                 trade_date=trade_date,
-                buckets=buckets,
+                buckets=buckets_by_key.get((option_symbol, trade_date), []),
             )
         )
     return profiles
