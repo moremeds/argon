@@ -216,6 +216,18 @@ REGISTRY: list[DatasetRegistryEntry] = [
         source_system="derived",
     ),
     DatasetRegistryEntry(
+        # Technicals tab warm store: the nightly technical_daily_refresh recomputes
+        # the FULL series from apex bars and upserts idempotently, so a missing
+        # date self-heals on the next run — freshness matters, per-date backfill
+        # does not (same treatment as intraday_quote / flow_alerts_daily_rollup).
+        "technical_daily",
+        "derived_volatility",
+        "freshness_only",
+        ticker_col="ticker",
+        source_system="derived",
+        reason="full series recomputed nightly from apex bars; no per-date heal",
+    ),
+    DatasetRegistryEntry(
         # UW /volatility/realized — full ~1y series in one call (NOT the rollup,
         # which only writes vrp_daily + stock_analytics_daily).
         "realized_volatility_history",
