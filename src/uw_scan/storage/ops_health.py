@@ -21,12 +21,16 @@ def _ops_conn() -> Connection:
     Matches the house factory: workers/migrate_runner/provider_usage all do
     `psycopg.connect(settings.db_dsn(), autocommit=True)`. There is NO
     `storage.connection.connect` helper — verified 2026-07-07.
+
+    Settings MUST come from `from_env()`: `Settings` is a plain BaseModel with a
+    required `api_key`, so bare `Settings()` raises ValidationError (it never
+    reads env). Only `from_env()` builds a usable DSN from the environment.
     """
     import psycopg
 
     from uw_scan.config import Settings
 
-    return psycopg.connect(Settings().db_dsn(), autocommit=True)
+    return psycopg.connect(Settings.from_env().db_dsn(), autocommit=True)
 
 
 @dataclass(frozen=True)

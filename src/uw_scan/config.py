@@ -488,6 +488,7 @@ class Settings(BaseModel):
             base_url=os.environ.get(
                 "UW_SCAN_BASE_URL", "https://api.unusualwhales.com"
             ),
+            ops_alert_webhook_url=os.environ.get("UW_SCAN_OPS_ALERT_WEBHOOK_URL", ""),
             # full_scan_crons stays as the Pydantic default; not env-driven
             # because cron expressions contain spaces (CSV parsing is fragile).
             # Override by editing the Settings default if you need a different

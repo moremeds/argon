@@ -17,9 +17,10 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   as `job_failures`. (2) **Per-job UW budget attribution** — the external-API
   breakdown now groups by `job_name` too, exposed at `GET /provider-usage/jobs`.
   (3) **Webhook alert sink** — a single never-raising `send_alert(title, message)`
-  (`src/uw_scan/alerts.py`, `OPS_ALERT_WEBHOOK_URL` / `ops_alert_webhook_url`)
-  fires on a failure streak reaching 3 (then 10) and once/day at the account-wide
-  UW budget wall. Alerting is fire-and-forget and can never crash the scheduler or
+  (`src/uw_scan/alerts.py`) fires on a failure streak reaching 3 (then 10) and
+  once/day at the account-wide UW budget wall. **Set `UW_SCAN_OPS_ALERT_WEBHOOK_URL`
+  in the mini `.env` to enable alerts** (Discord/Pushover-compatible JSON POST);
+  unset = no-op by design. Alerting is fire-and-forget and can never crash the scheduler or
   the budget governor. R2 lake-staleness monitoring (ops-hardening spec §3) is
   intentionally out of scope.
 
