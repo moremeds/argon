@@ -12,14 +12,16 @@ type VrpMacroPositionDetail = components["schemas"]["VrpMacroPositionDetail"];
 // Tunnel, etc.) and get proxied to FastAPI by the Next.js rewrite at
 // `/api/:path*`. On the server (RSC fetches), hit FastAPI directly because
 // relative URLs have no base in a Node fetch context.
-// `||` (not `??`) so an empty NEXT_PUBLIC_API_BASE_URL — used in deploys
-// where the browser bundle should call relative paths — still falls back
-// to the server-side absolute URL during RSC rendering (Node fetch needs
-// an absolute URL).
+// Browser: "" → relative `/api/*`, routed through the next.config.mjs rewrite.
+// Server (RSC): needs an absolute URL. Read NEXT_INTERNAL_API_BASE — a *runtime*
+// (non-NEXT_PUBLIC, so not build-inlined) env, the SAME var the rewrite proxy
+// uses. Under launchd it's unset → localhost fallback; in Docker it's
+// `http://api:8400` (the compose service), never `127.0.0.1` = the container
+// itself. See docker-migration spec code change #7.
 const API =
   typeof window !== "undefined"
     ? ""
-    : process.env.NEXT_PUBLIC_API_BASE_URL || "http://127.0.0.1:8400";
+    : process.env.NEXT_INTERNAL_API_BASE ?? "http://127.0.0.1:8400";
 
 type Json<
   P extends keyof paths,
