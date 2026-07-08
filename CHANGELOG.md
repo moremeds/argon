@@ -7,6 +7,9 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+## [0.9.0] — 2026-07-08
+
+
 ### Added
 
 - **Docker migration — prep (artifacts only; no cutover yet).** Ships the pieces
@@ -25,7 +28,6 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   user-driven (`docs/runbooks/docker-deploy.md`,
   `docs/superpowers/specs/2026-07-06-docker-migration-design.md`). AI Codex/Claude
   workers are retired in phase 1 (issue #248); DeepSeek survives.
-
 ## [0.8.1] — 2026-07-08
 
 
