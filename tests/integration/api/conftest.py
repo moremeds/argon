@@ -30,6 +30,17 @@ def _test_settings() -> Settings:
     return Settings.from_env().model_copy(update={"db_name": test_db})
 
 
+@pytest.fixture(autouse=True)
+def _clear_stock_report_cache():
+    """Isolate the (ticker, run_id) response cache between tests — otherwise a
+    prior test's report could satisfy a later test reusing the same key."""
+    from uw_scan.api.routers.stock import _report_cache_clear
+
+    _report_cache_clear()
+    yield
+    _report_cache_clear()
+
+
 @pytest.fixture
 def client() -> TestClient:
     """TestClient with overrides; works without any DB seeding."""

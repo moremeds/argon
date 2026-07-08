@@ -101,3 +101,42 @@ def test_fetch_scoped_by_symbol_and_date(seeded_db_empty_cards) -> None:
     assert len(rows) == 2
     assert all(r["option_symbol"] == sym_a for r in rows)
     assert all(r["trade_date"] == day for r in rows)
+
+
+def test_fetch_buckets_batch_groups_and_orders(seeded_db_empty_cards) -> None:
+    """One round-trip for many (symbol, date) pairs; grouped by key, each
+    group ordered by start_time. This is the N+1 fix for the stock page."""
+    repo = OptionIntradayBucketRepository(
+        seeded_db_empty_cards.conn,
+        schema=seeded_db_empty_cards._schema,
+    )
+    sym_a, sym_b = "AAPL260619P00180000", "NVDA260619C00200000"
+    day = date(2026, 5, 14)
+    other_day = date(2026, 5, 15)
+
+    repo.upsert_buckets(sym_a, day, [_bucket(32), _bucket(30), _bucket(31)])
+    repo.upsert_buckets(sym_b, day, [_bucket(30)])
+    repo.upsert_buckets(sym_a, other_day, [_bucket(30)])
+
+    # Missing pair (never written) must simply be absent, not raise.
+    missing = ("TSLA260515C00450000", day)
+    result = repo.fetch_buckets_batch(
+        [(sym_a, day), (sym_b, day), (sym_a, other_day), missing]
+    )
+
+    assert set(result) == {(sym_a, day), (sym_b, day), (sym_a, other_day)}
+    assert missing not in result
+    # Same key isolation as the single-fetch path.
+    assert len(result[(sym_a, day)]) == 3
+    assert len(result[(sym_a, other_day)]) == 1
+    # Within a key, ordered ascending by start_time.
+    minutes = [r["start_time"].minute for r in result[(sym_a, day)]]
+    assert minutes == [30, 31, 32]
+
+
+def test_fetch_buckets_batch_empty_returns_empty(seeded_db_empty_cards) -> None:
+    repo = OptionIntradayBucketRepository(
+        seeded_db_empty_cards.conn,
+        schema=seeded_db_empty_cards._schema,
+    )
+    assert repo.fetch_buckets_batch([]) == {}

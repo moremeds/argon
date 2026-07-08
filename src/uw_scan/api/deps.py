@@ -2,10 +2,11 @@
 
 from __future__ import annotations
 
+import os
 from collections.abc import Generator
 from functools import lru_cache
 
-import psycopg
+from psycopg_pool import ConnectionPool
 
 from uw_scan.api.client import UwClient
 from uw_scan.config import Settings
@@ -18,13 +19,32 @@ def get_settings() -> Settings:
     return Settings.from_env()
 
 
-def get_repo() -> Generator[Repository, None, None]:
+@lru_cache(maxsize=1)
+def get_pool() -> ConnectionPool:
+    """Process-wide connection pool, opened once on first request.
+
+    Replaces the old connect-per-request path: TCP + auth + ``SET search_path``
+    were paid on every hit (including the 2.5s watchlist-spot poll). Under the
+    Docker cutover this matters more — connection setup now crosses the VM
+    boundary to host.docker.internal.
+    """
     settings = get_settings()
-    conn = psycopg.connect(settings.db_dsn())
-    try:
-        yield Repository(conn, schema=settings.db_schema)
-    finally:
-        conn.close()
+    return ConnectionPool(
+        settings.db_dsn(),
+        min_size=int(os.getenv("UW_SCAN_DB_POOL_MIN", "2")),
+        max_size=int(os.getenv("UW_SCAN_DB_POOL_MAX", "10")),
+        open=True,
+    )
+
+
+def get_repo() -> Generator[Repository, None, None]:
+    """Borrow a pooled connection for the request; return it on exit.
+
+    ``pool.connection()`` commits on clean exit / rolls back on exception, then
+    hands the connection back — Repository's own write commits are unaffected.
+    """
+    with get_pool().connection() as conn:
+        yield Repository(conn, schema=get_settings().db_schema)
 
 
 def get_uw_client() -> Generator[UwClient, None, None]:
