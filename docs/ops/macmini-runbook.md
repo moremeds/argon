@@ -43,15 +43,25 @@ Refuses if MacBook writers are listening.
 
 ## Backups
 
-- Nightly local: `com.argon.backup` (03:00) writes `data/backups/option_wizard-<date>.dump.gz`, retains 7 days.
+- Nightly local: `com.argon.backup` (03:00) writes `/Volumes/DATA_LAKE/argon/postgres-backups/option_wizard-<date>.dump.gz`, retains 7 days.
 - Weekly R2: `com.argon.backup-r2` (Sundays 04:00) uploads to `s3://${R2_BUCKET}/postgres/`.
+
+**DATA_LAKE launchd access:** macOS TCC protects removable volumes from background jobs. The `com.argon.backup` shell opens the `.part` file, so `/bin/bash` must have `kTCCServiceSystemPolicyRemovableVolumes` access for unattended backups. Verify after OS upgrades or TCC resets:
+```
+launchctl submit -l com.argon.backup-shape-test \
+  -o /tmp/argon-backup-shape.out -e /tmp/argon-backup-shape.err \
+  -- /bin/bash -lc 'set -euo pipefail; d=/Volumes/DATA_LAKE/argon/postgres-backups; t="$d/.probe-$(date +%s).dump.gz.part"; f="${t%.part}"; echo probe | gzip > "$t"; mv "$t" "$f"; gzip -t "$f"; find "$d" -name ".probe-*.dump.gz" -delete; echo ok'
+sleep 3
+cat /tmp/argon-backup-shape.out /tmp/argon-backup-shape.err
+launchctl remove com.argon.backup-shape-test 2>/dev/null || true
+```
 
 **Note on auth:** The mini's `~/.pgpass` (mode 600, populated by `macmini-bootstrap.sh`) supplies the `argon_app` password for `127.0.0.1:5432`. None of the commands below need an inline `PGPASSWORD=...`. If you need to operate from a different host or as a different user, either populate `~/.pgpass` for that user or set `PGPASSWORD` inline (the password is in `${ARGON_HOME}/.env` on the mini as `UW_SCAN_DB_PASSWORD`).
 
 Restore from local dump:
 ```
 ssh moremeds@100.66.147.98 'cd ~/projects/argon
-  latest=$(ls -1t data/backups/option_wizard-*.dump.gz | head -1)
+  latest=$(ls -1t /Volumes/DATA_LAKE/argon/postgres-backups/option_wizard-*.dump.gz | head -1)
   echo "Restoring from $latest"
   gunzip -c "$latest" \
     | pg_restore --clean --if-exists --no-owner --no-acl \

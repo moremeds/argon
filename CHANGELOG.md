@@ -7,7 +7,19 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
-## [0.8.0] — 2026-07-08
+### Changed
+
+- **Mac mini Postgres backups now target the DATA_LAKE volume, atomically, on
+  pg17.** `com.argon.backup` (and the R2 uploader) write to
+  `${ARGON_BACKUP_DIR:-/Volumes/DATA_LAKE/argon/postgres-backups}` instead of the
+  repo's `data/backups/`, dump via `postgresql@17` (matching the mini's server),
+  and write to a `.part` file renamed into place only on success so a crashed
+  `pg_dump` never leaves a truncated-but-plausible dump. `macmini-bootstrap.sh`
+  now scaffolds the mini `.env` for same-host Postgres (`UW_SCAN_DB_HOST=127.0.0.1`
+  + `UW_SCAN_ALLOW_DB_MISMATCH=1`) rather than routing over Tailscale. Runbook
+  documents the macOS TCC `RemovableVolumes` requirement (background launchd jobs
+  cannot write removable volumes without it) plus a shape-test probe to verify it
+  after OS upgrades. Config/ops only — no application code paths change.
 
 
 ### Added

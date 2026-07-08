@@ -19,8 +19,9 @@ for var in R2_ACCOUNT_ID R2_ACCESS_KEY_ID R2_SECRET_ACCESS_KEY R2_BUCKET; do
 done
 
 R2_ENDPOINT="${R2_ENDPOINT_OVERRIDE:-https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com}"
+BACKUP_DIR="${ARGON_BACKUP_DIR:-/Volumes/DATA_LAKE/argon/postgres-backups}"
 
-latest="$(ls -1t data/backups/option_wizard-*.dump.gz | head -1)"
+latest="$(ls -1t "${BACKUP_DIR}"/option_wizard-*.dump.gz | head -1)"
 [[ -n "$latest" ]] || { echo "no local backup to upload" >&2; exit 1; }
 
 echo "Uploading $latest to s3://${R2_BUCKET}/postgres/"
