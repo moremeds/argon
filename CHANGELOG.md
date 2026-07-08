@@ -9,6 +9,7 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ### Added
 
+- Technicals tab on `/stock/[ticker]` (index 1, after Market Structure): KPI stat-strip, price/MA/±1.5σ anchor chart, z-vs-200DMA history, forward-return-by-z-band table with current-band highlight, MA-kinematics / sigmoid / distribution / RSI / MACD / SPY-RS panels. Client island off the SingleStockReport hot path.
 - Technicals backend: `technical_daily` warm store (migration 101), pure derivers in `cards/technicals.py` (z-vs-200DMA + bands, MA kinematics, sigmoid trend-maturity with beats-linear guard, return distribution, RSI/MACD enhanced, SPY relative strength, forward-return-by-z-band table), `GET /api/stock/{ticker}/technicals`, nightly `technical_daily_refresh` (apex daily bars, massive-0 18:40 ET, `UW_SCAN_TECHNICALS_REFRESH_ENABLED`).
 
 ### Changed
@@ -34,11 +35,10 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [0.9.1] — 2026-07-08
 
-
 ### Fixed
 
 - **Docker web image: client-side `/api/*` rewrite baked the wrong target.**
-  `next.config.mjs` `rewrites()` is evaluated at *build* time, so the CI-built
+  `next.config.mjs` `rewrites()` is evaluated at _build_ time, so the CI-built
   `argon-web` image froze the `localhost:8400` fallback into its standalone
   server — every browser `/api/*` call 500'd in-container (SSR was unaffected,
   masking it). `docker/web.Dockerfile` now sets `ARG NEXT_INTERNAL_API_BASE=`
@@ -46,8 +46,8 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   service name; the launchd (non-Docker) build still bakes its correct
   co-located `localhost` default. Runbook Phase 2 gains an explicit
   web→api rewrite check (SSR page codes pass even when this path is broken).
-## [0.9.0] — 2026-07-08
 
+## [0.9.0] — 2026-07-08
 
 ### Added
 
@@ -67,8 +67,8 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   user-driven (`docs/runbooks/docker-deploy.md`,
   `docs/superpowers/specs/2026-07-06-docker-migration-design.md`). AI Codex/Claude
   workers are retired in phase 1 (issue #248); DeepSeek survives.
-## [0.8.1] — 2026-07-08
 
+## [0.8.1] — 2026-07-08
 
 ### Changed
 
@@ -79,19 +79,19 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   and write to a `.part` file renamed into place only on success so a crashed
   `pg_dump` never leaves a truncated-but-plausible dump. `macmini-bootstrap.sh`
   now scaffolds the mini `.env` for same-host Postgres (`UW_SCAN_DB_HOST=127.0.0.1`
-  + `UW_SCAN_ALLOW_DB_MISMATCH=1`) rather than routing over Tailscale. Runbook
-  documents the macOS TCC `RemovableVolumes` requirement (background launchd jobs
-  cannot write removable volumes without it) plus a shape-test probe to verify it
-  after OS upgrades. Config/ops only — no application code paths change.
+  - `UW_SCAN_ALLOW_DB_MISMATCH=1`) rather than routing over Tailscale. Runbook
+    documents the macOS TCC `RemovableVolumes` requirement (background launchd jobs
+    cannot write removable volumes without it) plus a shape-test probe to verify it
+    after OS upgrades. Config/ops only — no application code paths change.
 
 ### Fixed
 
 - **Deploy health-gate no longer deadlocks on benign budget-throttled scans.**
   The v0.7.2 change gated deploy success (and rollback verify) on `/api/health`
   `.ok == true`. But `.ok` folds in "expected full scans missed", which is
-  routinely false for a *benign* reason — UW daily-budget exhaustion legitimately
+  routinely false for a _benign_ reason — UW daily-budget exhaustion legitimately
   **skips** full scans for most of the trading day, so the whole health reports
-  `ok=false`. With `.ok == true` required on *both* the forward gate and the
+  `ok=false`. With `.ok == true` required on _both_ the forward gate and the
   rollback verify, a deploy launched during a budget-throttled window can pass
   neither: it burns its retry budget, rolls back, the rollback verify also fails,
   and the outer `gtimeout` kills `macmini-prod.sh` (rc=124). This is exactly how
@@ -101,8 +101,8 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   verify asserts `.db == "up"`. Worker/scan health stays monitored separately
   (C12 job-failure streaks + heartbeats); it is no longer conflated with whether a
   build deployed correctly.
-## [0.8.0] — 2026-07-08
 
+## [0.8.0] — 2026-07-08
 
 ### Added
 
@@ -120,8 +120,8 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   unset = no-op by design. Alerting is fire-and-forget and can never crash the scheduler or
   the budget governor. R2 lake-staleness monitoring (ops-hardening spec §3) is
   intentionally out of scope.
-## [0.7.2] — 2026-07-07
 
+## [0.7.2] — 2026-07-07
 
 ### Added
 
@@ -129,7 +129,7 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   exhausted by ~08:00 ET partly because 6+ jobs (option_surface_capture,
   cockpit_daily_snapshot, flow_data_refresh, skew_swing_greeks, vrp_macro_entry,
   full_scan pipeline) independently re-fetch identical slow-moving per-ticker data
-  every day. The budget governor gates *spend* but does not *dedupe*. New
+  every day. The budget governor gates _spend_ but does not _dedupe_. New
   Postgres-backed memo (`uw_fetch_memo`, migration `099`; `storage/uw_fetch_memo.py`)
   keyed `(ticker, endpoint, as_of_date)` is consulted in `sources/uw.py` BEFORE the
   live call: the first same-day caller of `fetch_option_contracts` /
@@ -194,7 +194,7 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   everything reads the existing warm store. Storage read queries live in
   `storage/positioning.py` (`list_uw_positioning_latest`); models in
   `models/positioning.py`. Follow-ups deferred: parsing the discarded 13F/insider
-  `raw_jsonb` detail, a borrow-fee *spike*-vs-baseline signal (needs a rolling read),
+  `raw_jsonb` detail, a borrow-fee _spike_-vs-baseline signal (needs a rolling read),
   and any cross-sectional alpha signal (this is a surfacing task, not an alpha probe).
 - **Trade-lifecycle layer: VRP-macro entry-capture cohorts read back as a portfolio (#223).**
   The validated VRP-macro edge captures entries into `vrp_macro_entry` (8 marks/day ×
@@ -208,9 +208,9 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   new storage queries on `storage/vrp_macro_entry.py`, a pure `reports/vrp_lifecycle.py`
   assembler, and `models/vrp_lifecycle.py` contract models — no new tables/migration.
   Reproduce/verify: `UW_SCAN_DB_USER=<superuser> UW_SCAN_DB_HOST=127.0.0.1
-  UW_SCAN_TEST_DB_NAME=option_wizard_test_wt1 UW_SCAN_ALLOW_DB_MISMATCH=1 uv run pytest
-  tests/unit/test_vrp_lifecycle_report.py tests/integration/storage/test_vrp_macro_entry_lifecycle.py
-  tests/integration/api/test_positions_api.py` + `cd web && npx vitest run tests/unit/PositionsPanel.test.tsx`.
+UW_SCAN_TEST_DB_NAME=option_wizard_test_wt1 UW_SCAN_ALLOW_DB_MISMATCH=1 uv run pytest
+tests/unit/test_vrp_lifecycle_report.py tests/integration/storage/test_vrp_macro_entry_lifecycle.py
+tests/integration/api/test_positions_api.py` + `cd web && npx vitest run tests/unit/PositionsPanel.test.tsx`.
 - **Implied-correlation / dispersion richness gate — falsified (research spike, #226).**
   `scripts/research/implied_corr_gate.py` tests whether implied-correlation richness is a
   second, near-orthogonal axis on top of the validated VRP-macro short-vol edge. Uses the
@@ -249,13 +249,13 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   calibrated empirically (grid `call_vega` is per-1%-vol, `call_theta` per-day — the
   CLAUDE.md "vega ×100" note is wrong for this table). Matches argon's prior: single-name
   surface geometry carries no taker edge (cf. skew #208, SVI #219). Zero UW/IB calls.
-## [0.7.1] — 2026-07-04
 
+## [0.7.1] — 2026-07-04
 
 ### Fixed
 
 - **HealthPanel "API OFFLINE" flicker.** The sidebar rapidly toggled `API
-  OFFLINE` / everything `UNKNOWN` even while the API was up. Root cause: the
+OFFLINE` / everything `UNKNOWN` even while the API was up. Root cause: the
   `/api/health` record-coverage ("Query Coverage") scan costs ~15–20s cold but
   its cache TTL was only 15s, so a fresh 20s query fired on nearly every 5s
   poll, stacking on one DB and blowing the browser fetch timeout. Two changes:
@@ -283,8 +283,8 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   ticker, so its coverage is a real scanner-persistence signal); (3) the nightly
   `option_surface_grid_daily` / `flow_alerts_daily_rollup` tables use the 24h
   window instead of 8h.
-## [0.7.0] — 2026-07-04
 
+## [0.7.0] — 2026-07-04
 
 ### Added
 
@@ -310,7 +310,6 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   intraday GEX/DEX series UW only serves at EOD. Env:
   `GEX_SCAN_RTH_INTERVAL_MINUTES`, `GEX_SCAN_OFFHOURS_INTERVAL_MINUTES`,
   `GEX_SCAN_TICKERS`.
-
 
 - Unified backtest harness `src/uw_scan/backtest/` (no-lookahead replay engine,
   time-ordered holdout splitter, walkforward+quarter OOS gates, legacy-convention
@@ -344,8 +343,8 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   the real worker path, R2-primary for EOD/backfill, workers-don't-hot-reload).
   `AGENTS.md` is now a symlink to `CLAUDE.md` (its two unique lines — worktree
   location rule, `unusual_whales_api_spec.yaml` pointer — were merged in first).
-## [0.6.0] — 2026-07-02
 
+## [0.6.0] — 2026-07-02
 
 ### Added
 
@@ -390,7 +389,7 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   registry itself: `wgc_etf_monthly`, `cb_gold_reserves_monthly`,
   `exchange_inventory_daily`, `rates_cftc_tff_weekly`, and
   `rates_treasury_auctions` were defaulted to `expected_frequency=
-  "equity_session"` despite being monthly/weekly; `rates_policy_events`
+"equity_session"` despite being monthly/weekly; `rates_policy_events`
   becomes `"event"` (FOMC-driven, no fixed periodic SLA).
 - **Freshness-autoheal: a same-night retry with a circuit breaker.** A frozen
   table with a gap-healer adapter gets one scoped retrigger the same night
@@ -420,6 +419,7 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   corresponding registry/test entries. The live Scanner page is unaffected —
   it reads `scanner_candidate_snapshots` / `signal_hits` / `signal_gates` /
   `signal_context_flags`, none of which touch these tables.
+
 ## [0.5.1] — 2026-07-02
 
 ### Fixed
@@ -443,11 +443,11 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   class: drop extras → truncate baseline → copy baseline back.
 - **`macmini-prod.sh` npm ci flakiness** — `rm -rf web/node_modules` is now run
   before `npm ci` so a partially-written `node_modules` (e.g. the `ENOTEMPTY:
-  rmdir lucide-react/dist/esm` error that blocked the first v0.5.0 deploy attempt)
+rmdir lucide-react/dist/esm` error that blocked the first v0.5.0 deploy attempt)
   cannot stall the build step and leave the deploy script mid-way through
   `set -euo pipefail`.
-## [0.5.0] — 2026-06-30
 
+## [0.5.0] — 2026-06-30
 
 ### Added
 
@@ -508,8 +508,8 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   items stuck `running`, which `claim_next_items` skips; `resume` now requeues
   them to `planned` first (heals are idempotent, so a blanket requeue is safe),
   so a backfill actually continues where it left off.
-## [0.4.1] — 2026-06-30
 
+## [0.4.1] — 2026-06-30
 
 ### Changed
 
@@ -519,8 +519,8 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   `XENON_QUERY_API_KEY`) before falling back to the Apex lake endpoint. Requires
   xenon ≥ v0.7.3 (moremeds/xenon#169 — fixes `_bar_date_to_iso` truncating
   intraday timestamps to date-only).
-## [0.4.0] — 2026-06-30
 
+## [0.4.0] — 2026-06-30
 
 ### Added
 
@@ -572,8 +572,8 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   returns no greek set (UW-fallback legs, or IB without greeks). Adds `'ib'` to
   the `greeks_source` tag (`VrpMacroEntryLeg.greeks_source` contract widened to
   `ib | bs | none`).
-## [0.3.6] — 2026-06-25
 
+## [0.3.6] — 2026-06-25
 
 ### Fixed
 
@@ -604,8 +604,8 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   missed, rather than skipping birth. As part of this, `_uw_chain_strikes` now
   closes its `scan_runs` row as `failed` on a UW error instead of leaving it stuck
   in `running` (the visible side-symptom of the original bug).
-## [0.3.5] — 2026-06-25
 
+## [0.3.5] — 2026-06-25
 
 ### Fixed
 
@@ -643,8 +643,8 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   `list_record_health`, which keys on write-timestamps and skips no-timestamp
   tables (e.g. `greek_exposure_daily`) — the blind spot that let the vrp/greek
   freezes slip for five weeks. Migration `087`.
-## [0.3.4] — 2026-06-25
 
+## [0.3.4] — 2026-06-25
 
 ### Fixed
 
@@ -661,8 +661,8 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   recover the historical gap; one run restored `vrp_daily` from 9 → 104/104
   active tickers fresh. Regression test added in
   `tests/integration/worker/test_volatility_jobs.py`.
-## [0.3.3] — 2026-06-24
 
+## [0.3.3] — 2026-06-24
 
 ### Added
 
@@ -682,8 +682,8 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   `reports/stock_short_vol.py`, `StockShortVol` model + `SingleStockReport.short_vol`,
   and `web/components/stock/panels/ShortVolPanel.tsx`. EOD basis (modeled off the
   EOD-close spot). Plan `docs/superpowers/plans/2026-06-24-stock-short-vol-card.md`.
-## [0.3.2] — 2026-06-24
 
+## [0.3.2] — 2026-06-24
 
 ### Added
 
@@ -727,8 +727,8 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   at 2–4× smaller drawdown — the premium harvest above cash is only ~0.5–1.4%/yr, so GOAS's
   3–6% net target requires the 20–40% leverage this defined-risk study excludes. Reproduce:
   `uv run python scripts/research/goas_putwrite_run.py`.
-## [0.3.1] — 2026-06-23
 
+## [0.3.1] — 2026-06-23
 
 ### Added
 
@@ -751,7 +751,7 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   rises ~15× to ~$28k by 2026).
 - VRP capital-utilisation backtest (research): new `reports/vrp_capital_account.py`
   — a single shared **$50k cash-account ledger** (`CapitalConfig`,
-  `desired_contracts`, `simulate_account`, `account_metrics`) that *reuses* the
+  `desired_contracts`, `simulate_account`, `account_metrics`) that _reuses_ the
   validated macro short-vol `WINNER` engine to measure annualised return, capital
   utilisation, skip/fill rates, Sharpe and max-drawdown on a real dollar account
   (integer contracts floored to a risk-% of capital, capital-capped with logged
@@ -776,9 +776,7 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   `TypeError` on the `d >= start` comparison. No-op for symbols with clean dates
   (QQQ/IWM).
 
-
 ## [0.3.0] — 2026-06-23
-
 
 ### Added
 
@@ -792,8 +790,8 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   missing). One `/greeks` call per expiry, idempotent upsert, per-ticker failure
   isolation. The surface only accrues forward: UW returns 403 for per-strike
   history beyond ~30 trading days, so every uncaptured night is permanently lost.
-## [0.2.3] — 2026-06-22
 
+## [0.2.3] — 2026-06-22
 
 ### Fixed
 
@@ -806,22 +804,22 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   `uv run` on any host rewrote that one line, dirtied the tree, and the deploy
   poller refused every deploy — silently pinning prod to the last-deployed
   release (the mini sat on v0.1.2 for 4 days while v0.2.0–v0.2.2 published).
-## [0.2.2] — 2026-06-22
 
+## [0.2.2] — 2026-06-22
 
 ### Added
 
 - VRP macro signal deploy slice: nightly persistence + read API for the promoted bull-put-spread signal shipped in 0.2.1. New `vrp_macro_signal_daily` table (migration 083), `vrp_macro_signal_refresh` job (03:45 ET, Mon–Fri, primary worker — runs SPX/QQQ/IWM weekly readout + `backtest_laddered` headline and persists one row per name per snapshot date, with per-name failure isolation), and `GET /api/regime/vrp-macro-signal` returning the latest signal per name. Closes the persist-every-research-trace gap for the VRP macro engine.
-## [0.2.1] — 2026-06-22
 
+## [0.2.1] — 2026-06-22
 
 ### Added
 
 - VRP macro signal engine (`reports/vrp_macro_signal.py`): promoted bull-put-spread winner config (Δ0.25 short, ramp+ vrp-z sizing, 30 trd-day hold) into first-class engine code with `WINNER` constant, `backtest_laddered` (SPX Sharpe 1.65 / QQQ OOS 1.00), and `current_macro_signal` weekly readout (TRADE/SKIP + modeled strikes/credit/max-loss)
 - VRP macro research expansion (`reports/vrp_{candidates,backtest,directional,harvest_axes,gate,rv_validation}.py`): corrected-measurement engine, sector/horizon/directional/ΔVRP sweep axes, per-ticker iron-condor candidates, paper ledger, model-repriced weekly backtest
 - Corporate actions refresh job (nightly 17:35 ET) for exact-RV split/dividend adjustment
-## [0.2.0] — 2026-06-21
 
+## [0.2.0] — 2026-06-21
 
 ### Added
 
@@ -834,8 +832,8 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   (`HARVEST_SELLABLE` / `NONE`) persist nightly at 18:50 ET (massive-0 worker) to
   `vrp_harvest_verdicts`; the RICH−CHEAP spread is recorded so a flat (no-edge) result
   stays legible.
-## [0.1.2] — 2026-06-18
 
+## [0.1.2] — 2026-06-18
 
 ### Fixed
 
@@ -848,13 +846,14 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   metric) now key on the property the report actually needs —
   `status='ok' AND aggregates IS NOT NULL` — so no future side-channel job can
   re-break it. No data was lost; the fix is read-path only.
-## [0.1.1] — 2026-06-17
 
+## [0.1.1] — 2026-06-17
 
 ### Added
 
 - Health sidebar now shows deployed backend version in the collapsed header,
   sourced from the running process via the existing `/api/health` poll.
+
 ## [0.1.0] — 2026-06-17
 
 ### Added
