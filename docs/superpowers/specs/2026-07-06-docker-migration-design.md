@@ -5,7 +5,7 @@
 
 ## House pattern adopted (verified from xenon/apex)
 
-- **Runtime:** Colima VM on the mini (brew service). xenon default profile is 2 CPU / 2 GiB — argon adds ~12 containers, so resize to `colima start --cpu 6 --memory 8` (xenon docs already flag OOM risk at 2 GiB with 4 containers).
+- **Runtime:** Colima VM on the mini (brew service). xenon default profile is 2 CPU / 2 GiB — argon adds ~10 services (9 long-running + a one-shot migrator), so resize to `colima start --cpu 6 --memory 8` (xenon docs already flag OOM risk at 2 GiB with 4 containers).
 - **Networking:** bridge, published ports, `extra_hosts: ["host.docker.internal:host-gateway"]` on every service. Never `127.0.0.1` for host resources ("127.0.0.1 is the container itself" — xenon runbook).
 - **Postgres:** stays host-native Homebrew. Containers reach it at `host.docker.internal:5432`, DB `option_wizard`, role `argon_app`. No data moves.
 - **Images:** built/pushed by `.github/workflows/release.yml` on `ubuntu-24.04-arm` (native arm64, no QEMU — apex pattern) to GHCR, tags `:X.Y.Z` + `:latest` (prereleases excluded from `:latest`).
@@ -37,7 +37,7 @@ All: `restart: unless-stopped`, `env_file: [/opt/argon/.env]`, `extra_hosts`, wa
 
 Healthchecks: api = `curl -f http://localhost:8400/api/health`; web = `wget --spider -q http://127.0.0.1:3001/` (explicit IPv4 — alpine resolves `localhost` to `::1` first; xenon gotcha). Workers get a lightweight process-liveness check only (no HTTP surface).
 
-**12 containers total.** Phase 1 is a lift-and-shift of the current topology; consolidating 2×uw/2×massive into fewer processes is a later optimization, not now.
+**10 services** (api + web + ws-consumer + 2×uw + 2×massive + 2×ai-deepseek = 9 long-running, plus a profile-gated one-shot migrator). Phase 1 is a lift-and-shift of the current topology; consolidating 2×uw/2×massive into fewer processes is a later optimization, not now.
 
 ## Env remaps (in `/opt/argon/.env`)
 
@@ -111,7 +111,7 @@ Mitigations:
 **Phase 1 — mini side-by-side setup** (no cutover yet):
 `colima stop && colima start --cpu 6 --memory 8` → GHCR `docker login` (same PAT approach as xenon) → create `/opt/argon/{compose.yml,.env}` → `docker-compose --profile migrate run --rm migrator` (idempotent, safe against live DB) → do **not** start app services yet.
 
-> **⚠ The Colima resize is NOT argon-local — it bounces the whole mini.** There is one shared Colima VM (verified 2026-07-08: 4 CPU / ~5.77 GiB) hosting **xenon (live IB feed), apex, and the trading-observability stack** (alloy/prometheus/grafana/loki/cadvisor). `colima stop` kills all of them simultaneously; `colima start` must bring all three back. So: **schedule this in a market-closed window** (xenon's IB feed and any live positions go dark during the bounce), and after `colima start` verify **all three stacks return healthy** (`docker ps` all `Up`/`healthy`, xenon `/api/health`, apex `:8322/health`, Grafana reachable) *before* touching argon. Current VM use is ~2.2 GiB; argon's 12 containers add ~2 GiB, so the resize to 8 GiB is required headroom, not optional — do not skip it and try to fit argon into the current 5.77 GiB.
+> **⚠ The Colima resize is NOT argon-local — it bounces the whole mini.** There is one shared Colima VM (verified 2026-07-08: 4 CPU / ~5.77 GiB) hosting **xenon (live IB feed), apex, and the trading-observability stack** (alloy/prometheus/grafana/loki/cadvisor). `colima stop` kills all of them simultaneously; `colima start` must bring all three back. So: **schedule this in a market-closed window** (xenon's IB feed and any live positions go dark during the bounce), and after `colima start` verify **all three stacks return healthy** (`docker ps` all `Up`/`healthy`, xenon `/api/health`, apex `:8322/health`, Grafana reachable) *before* touching argon. Current VM use is ~2.2 GiB; argon's ~9 long-running containers add ~2 GiB, so the resize to 8 GiB is required headroom, not optional — do not skip it and try to fit argon into the current 5.77 GiB.
 
 **Phase 2 — cutover (the double-writer moment):**
 1. `launchctl bootout gui/$UID` all `com.argon.*` app agents (api, web, massive-ws, 10 workers, deploy-poller) — **fully stopped before compose starts**; running both stacks double-writes and double-burns the UW budget (known gotcha from the xenon-WS migration).
