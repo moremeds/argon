@@ -7,6 +7,9 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+## [0.8.0] — 2026-07-08
+
+
 ### Added
 
 - **Ops-hardening: detection + alerting layer (C12 Track A).** Three pieces that
@@ -23,7 +26,6 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   unset = no-op by design. Alerting is fire-and-forget and can never crash the scheduler or
   the budget governor. R2 lake-staleness monitoring (ops-hardening spec §3) is
   intentionally out of scope.
-
 ## [0.7.2] — 2026-07-07
 
 
