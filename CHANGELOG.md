@@ -7,6 +7,25 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+### Added
+
+- **Docker migration — prep (artifacts only; no cutover yet).** Ships the pieces
+  to move the mini prod stack off launchd into Docker (xenon/apex house pattern:
+  Colima, `host.docker.internal`, host-native Postgres, GHCR images, the shared
+  engine-wide Watchtower): `docker/app.Dockerfile` + `docker/web.Dockerfile`,
+  root `docker-compose.yml` (10 services), `.dockerignore`, and a `ghcr-push`
+  matrix job in `release.yml` (builds/pushes `argon-app` + `argon-web` to GHCR on
+  every tag; `:latest` floats only for final releases). `config._HOST_DB_RULES`
+  gains a `host.docker.internal` rule so containers pass the DB-isolation
+  tripwire without the blanket override. Web SSR fetch sites now read the runtime
+  `NEXT_INTERNAL_API_BASE` (not the build-inlined `NEXT_PUBLIC_API_BASE*`) so a
+  containerized web renders against the `api` service, not itself; `next.config`
+  emits `output: 'standalone'` with `outputFileTracingRoot` pinned to `web/`.
+  **The launchd stack remains the live prod path** — cutover is phased and
+  user-driven (`docs/runbooks/docker-deploy.md`,
+  `docs/superpowers/specs/2026-07-06-docker-migration-design.md`). AI Codex/Claude
+  workers are retired in phase 1 (issue #248); DeepSeek survives.
+
 ## [0.8.1] — 2026-07-08
 
 
