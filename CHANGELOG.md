@@ -7,6 +7,9 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+## [0.8.1] — 2026-07-08
+
+
 ### Changed
 
 - **Mac mini Postgres backups now target the DATA_LAKE volume, atomically, on
@@ -38,7 +41,6 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   verify asserts `.db == "up"`. Worker/scan health stays monitored separately
   (C12 job-failure streaks + heartbeats); it is no longer conflated with whether a
   build deployed correctly.
-
 ## [0.8.0] — 2026-07-08
 
 
