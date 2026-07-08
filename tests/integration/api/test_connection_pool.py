@@ -32,7 +32,10 @@ def _pool_on_test_db(monkeypatch):
 
     deps.get_pool().close()
     deps.get_pool.cache_clear()
-    deps.get_settings.cache_clear()
+    # get_settings is monkeypatched to a plain lambda at this point; monkeypatch
+    # restores the real lru_cache function on undo (which runs after this body).
+    # Calling .cache_clear() on the lambda AttributeErrors — the next test's
+    # setup clears the restored real cache, so nothing to do here.
 
 
 def test_get_repo_reuses_pooled_connection(_pool_on_test_db) -> None:
