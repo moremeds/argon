@@ -6,9 +6,9 @@
 #   docker-compose --profile migrate run --rm migrator   # one-shot schema apply
 #   docker-compose up -d
 #
-# 12 containers: migrator (profile-gated) + api + web + ws-consumer + 2×uw +
-# 2×massive + 2×ai-deepseek. AI Codex/Claude are OFF in phase 1 (kill switches
-# in /opt/argon/.env; retired to issue #248).
+# 10 containers: 9 long-running (api + web + ws-consumer + 2×uw + 2×massive +
+# 2×ai-deepseek) plus a profile-gated one-shot migrator. AI Codex/Claude are OFF
+# in phase 1 (kill switches in /opt/argon/.env; retired to issue #248).
 #
 # host.docker.internal reaches host-native services (set the remapped URLs in
 # /opt/argon/.env): Postgres :5432, xenon WS :8765, xenon query API :8321,
@@ -82,7 +82,12 @@ services:
         condition: service_healthy
     healthcheck:
       # Explicit IPv4 — alpine busybox resolves `localhost` to ::1 first.
-      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:3001/"]
+      # Full GET (-qO /dev/null), NOT --spider: --spider sends HEAD, and a HEAD
+      # against the streaming SSR landing page makes Next.js 16 on Node 22 wire a
+      # response TransformStream with no body → recurring (caught, non-fatal)
+      # `controller[kState].transformAlgorithm is not a function` logs every 30s.
+      # A real GET drains the body and produces zero such errors (verified).
+      test: ["CMD", "wget", "-qO", "/dev/null", "http://127.0.0.1:3001/"]
       interval: 30s
       timeout: 5s
       retries: 5

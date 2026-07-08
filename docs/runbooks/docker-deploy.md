@@ -1,9 +1,10 @@
 # Docker deploy runbook (Mac mini)
 
-**Status:** artifacts shipped, cutover **not yet performed**. The live prod path
-is still the launchd stack (`docs/runbooks/release.md`). This runbook is the
-procedure for the phased cutover and for operating argon once it runs in Docker.
-Design + rationale: `docs/superpowers/specs/2026-07-06-docker-migration-design.md`.
+**Status:** **cutover complete — argon runs in Docker on the mini as of 2026-07-08.**
+The launchd app stack is retired (its 14 plists moved to
+`/opt/argon/retired-launchd-plists/`; only `com.argon.backup` stays host-native).
+This runbook remains the operating procedure and the rollback reference. Design +
+rationale: `docs/superpowers/specs/2026-07-06-docker-migration-design.md`.
 
 ## What this migration does
 
@@ -104,20 +105,27 @@ curl -s http://127.0.0.1:3001/api/health | jq '{via_web_rewrite: .db, version}'
 #   want: db == "up" (NOT a 500 / HTML error page)
 ```
 
-### Phase 3 — retire
-After ~3 clean days, remove the app plists from `~/Library/LaunchAgents` (keep
-the two `com.argon.backup*` plists — they stay host-native). Mark release.md
-launchd sections superseded then.
+### Phase 3 — retire (DONE 2026-07-08)
+The 14 launchd app plists (api, web, massive-ws, the 10 workers, deploy-poller)
+were moved out of `~/Library/LaunchAgents` into `/opt/argon/retired-launchd-plists/`
+— moving them (not just `launchctl bootout`) is what stops `RunAtLoad` from
+resurrecting them on reboot. Only `com.argon.backup` remains host-native (there
+is **one** backup plist, not two). On reboot the containers return via Docker's
+`restart: unless-stopped`, same as xenon/apex. Deploys now flow through the
+engine-wide Watchtower (new `:latest` image → auto-recreate), so the launchd
+`deploy-poller` + `macmini-prod.sh` path in `release.md` is superseded.
 
 ## Rollback (any point)
 
 ```bash
 cd /opt/argon && docker-compose down
+# Post-phase-3: move the retired plists back into the launchd scan dir first.
+mv /opt/argon/retired-launchd-plists/com.argon.*.plist ~/Library/LaunchAgents/
 for l in api web massive-ws worker-uw-0 ...; do launchctl bootstrap "gui/$(id -u)" \
   ~/Library/LaunchAgents/com.argon.$l.plist; done
 ```
-The plists stay on disk through phase 2, and Postgres never moved, so the launchd
-stack resumes from the same DB. Watchtower has **no** rollback for a bad image —
+The retired plists live in `/opt/argon/retired-launchd-plists/`, and Postgres never
+moved, so the launchd stack resumes from the same DB. Watchtower has **no** rollback for a bad image —
 pin the previous tag: `sed -i '' 's#:latest#:X.Y.Z#' /opt/argon/compose.yml &&
 docker-compose up -d`.
 
