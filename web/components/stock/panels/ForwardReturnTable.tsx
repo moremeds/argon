@@ -149,7 +149,7 @@ export function ForwardReturnTable({ data }: { data: TechnicalsResponse }) {
                         </td>
                         <td style={td}>{fmtPct(r.median)}</td>
                         <td style={{ ...td, color: winColor }}>
-                          {fmtPct(r.win_rate * 100, 0)}
+                          {fmtPct(r.win_rate, 0)}
                         </td>
                       </Fragment>
                     );

@@ -155,7 +155,10 @@ class TechnicalsRepository:
                    macd_hist_atr, rs_ratio, bars_n, detail, forward_returns
               FROM technical_daily
              WHERE ticker = %s
-             ORDER BY as_of DESC
+             -- Prefer the true computed-latest (the only row carrying detail);
+             -- a stale future row from a regressed apex window has detail=NULL
+             -- and must not shadow it.
+             ORDER BY (detail IS NOT NULL) DESC, as_of DESC
              LIMIT 1
         """
         with self._conn.cursor() as cur:

@@ -434,7 +434,7 @@ def forward_return_table(
         fwd = close.shift(-h) / close - 1.0
         for lo, hi, label in Z_BANDS:
             mask = (z >= lo) & (z < hi)
-            vals = fwd[mask].dropna()
+            vals = fwd[mask].replace([np.inf, -np.inf], np.nan).dropna()
             if len(vals) == 0:
                 continue
             rows.append(

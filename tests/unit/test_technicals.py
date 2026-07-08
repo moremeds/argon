@@ -179,6 +179,18 @@ def test_forward_return_table_empty_bands_omitted():
     assert {r["band"] for r in rows} == {"NEUTRAL"}
 
 
+def test_forward_return_table_drops_non_finite():
+    # A zero close makes fwd = shift(-h)/0 -> inf; it must not poison the stats.
+    closes = pd.Series([100.0, 0.0, 102.0, 103.0, 104.0])
+    z = pd.Series([0.0, 0.0, 0.0, 0.0, 0.0])
+    rows = forward_return_table(closes, z, horizons=(1,))
+    assert rows, "expected at least one band row"
+    for r in rows:
+        assert math.isfinite(r["mean"])
+        assert math.isfinite(r["median"])
+        assert 0.0 <= r["win_rate"] <= 1.0
+
+
 def test_relative_strength_outperforming():
     bars = [_bar(i, 100.0 * (1.002**i)) for i in range(300)]
     spy = [_bar(i, 100.0 * (1.0005**i)) for i in range(300)]
