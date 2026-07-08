@@ -7,6 +7,10 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+### Added
+
+- Technicals backend: `technical_daily` warm store (migration 101), pure derivers in `cards/technicals.py` (z-vs-200DMA + bands, MA kinematics, sigmoid trend-maturity with beats-linear guard, return distribution, RSI/MACD enhanced, SPY relative strength, forward-return-by-z-band table), `GET /api/stock/{ticker}/technicals`, nightly `technical_daily_refresh` (apex daily bars, massive-0 18:40 ET, `UW_SCAN_TECHNICALS_REFRESH_ENABLED`).
+
 ### Changed
 
 - **Docker migration — cutover complete (Phase 2) + launchd retired (Phase 3).**
