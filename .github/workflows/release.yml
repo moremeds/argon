@@ -166,3 +166,62 @@ jobs:
           draft: false
           prerelease: ${{ steps.rel.outputs.prerelease }}
           make_latest: ${{ steps.rel.outputs.prerelease == 'false' }}
+
+  ghcr-push:
+    # Build + push the two argon images (app, web) to GHCR. Native arm64 runner
+    # — free on this PUBLIC repo, and deploys target the Apple Silicon mini, so
+    # build natively (no QEMU). The mini's single engine-wide Watchtower (in
+    # /opt/xenon/compose.yml, WATCHTOWER_LABEL_ENABLE=true) auto-deploys whatever
+    # :latest points at; a prerelease tag (hyphen) must never float :latest.
+    needs: verify
+    runs-on: ubuntu-24.04-arm
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      matrix:
+        include:
+          - image: argon-app
+            dockerfile: docker/app.Dockerfile
+          - image: argon-web
+            dockerfile: docker/web.Dockerfile
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Resolve image tags
+        id: meta
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          REPO_OWNER="${GITHUB_REPOSITORY_OWNER,,}"
+          IMAGE="ghcr.io/${REPO_OWNER}/${{ matrix.image }}"
+          # Always publish the immutable version tag. Float :latest ONLY for
+          # final releases — a prerelease (hyphen, e.g. v0.9.0-rc1) must never
+          # become :latest, or the mini's Watchtower would auto-deploy it.
+          TAGS="${IMAGE}:${VERSION}"
+          if [[ "$VERSION" != *-* ]]; then
+            TAGS="${TAGS}"$'\n'"${IMAGE}:latest"
+          fi
+          {
+            echo "version=${VERSION}"
+            echo "tags<<TAGS_EOF"
+            echo "${TAGS}"
+            echo "TAGS_EOF"
+          } >> "$GITHUB_OUTPUT"
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ${{ matrix.dockerfile }}
+          platforms: linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: |
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.version=${{ steps.meta.outputs.version }}
+          cache-from: type=gha,scope=${{ matrix.image }}
+          cache-to: type=gha,scope=${{ matrix.image }},mode=max

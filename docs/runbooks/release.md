@@ -2,6 +2,14 @@
 
 Argon ships to the Mac mini via a tag-driven pipeline (no Docker; launchd stack).
 
+> **Docker migration in progress.** A Docker deploy path (Colima + GHCR +
+> Watchtower, matching xenon/apex) has landed as artifacts — Dockerfiles,
+> `docker-compose.yml`, and the `ghcr-push` job in `release.yml`. **The launchd
+> stack below is still the live prod path** until the phased cutover runs; see
+> `docs/runbooks/docker-deploy.md` and
+> `docs/superpowers/specs/2026-07-06-docker-migration-design.md`. Once cutover
+> completes (Phase 3), the launchd sections here are superseded.
+
 ## Cut a release
 
 1. Land your feature PRs to `main` with CHANGELOG entries under `## [Unreleased]`.

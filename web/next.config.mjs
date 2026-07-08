@@ -1,6 +1,21 @@
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
+
+// web/ is a standalone Next project (no repo-root package.json). Next otherwise
+// infers the workspace root from the nearest *ancestor* lockfile — on this Mac
+// that's ~/projects/package-lock.json, which nests the standalone output under
+// the full path. Pin the trace root to web/ so `output: 'standalone'` always
+// emits `.next/standalone/server.js` regardless of build host / worktree depth.
+const __dirname = dirname(fileURLToPath(import.meta.url));
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  // Emit a self-contained server bundle (web/.next/standalone/server.js) so the
+  // prod Docker image ships only the traced node_modules — no full `npm install`
+  // in the runtime layer. Required by docker/web.Dockerfile.
+  output: "standalone",
+  outputFileTracingRoot: resolve(__dirname),
   // Next 16 blocks cross-origin requests to dev resources (incl. the HMR
   // WebSocket) by default. Without this, hydration silently fails and the
   // page renders as static HTML. Add the hosts dev.sh actually serves on.

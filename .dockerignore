@@ -1,0 +1,28 @@
+# Keep the build context lean and secret-free. Both images build from the repo
+# root, so one .dockerignore covers app + web.
+.git
+.gitignore
+.worktrees
+.venv
+**/.venv
+**/node_modules
+**/.next
+**/__pycache__
+**/*.pyc
+.pytest_cache
+.ruff_cache
+.mypy_cache
+# Never bake secrets or local env into an image.
+.env
+.env.*
+!.env.example
+# Not needed at runtime.
+docs
+tests
+output
+logs
+*.log
+*.md
+!README.md
+# Local Docker artifacts.
+docker-compose.override.yml

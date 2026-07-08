@@ -1,0 +1,145 @@
+# docker-compose.yml — argon prod topology (dev/build template).
+#
+# The mini's live file is /opt/argon/compose.yml (mirrored, like apex). This
+# committed copy is the source of truth for that mirror and for local smoke:
+#   docker-compose build
+#   docker-compose --profile migrate run --rm migrator   # one-shot schema apply
+#   docker-compose up -d
+#
+# 12 containers: migrator (profile-gated) + api + web + ws-consumer + 2×uw +
+# 2×massive + 2×ai-deepseek. AI Codex/Claude are OFF in phase 1 (kill switches
+# in /opt/argon/.env; retired to issue #248).
+#
+# host.docker.internal reaches host-native services (set the remapped URLs in
+# /opt/argon/.env): Postgres :5432, xenon WS :8765, xenon query API :8321,
+# apex :8322. Never 127.0.0.1 from inside a container — that is the container
+# itself.
+#
+# The single engine-wide Watchtower in /opt/xenon/compose.yml
+# (WATCHTOWER_LABEL_ENABLE=true) auto-deploys any container carrying the enable
+# label below. Do NOT add a second Watchtower here.
+
+name: argon
+
+# GHCR image + local build context, shared by every Python service.
+x-app-image: &app-image
+  image: ghcr.io/moremeds/argon-app:latest
+  build:
+    context: .
+    dockerfile: docker/app.Dockerfile
+
+x-common: &common
+  env_file: [/opt/argon/.env]
+  restart: unless-stopped
+  extra_hosts:
+    - "host.docker.internal:host-gateway"
+  labels:
+    com.centurylinklabs.watchtower.enable: "true"
+
+services:
+  # One-shot schema apply. profiles:["migrate"] + restart:"no" → never runs on
+  # `up -d`; invoke explicitly. Runs the module directly (.venv on PATH), not
+  # the scripts/migrate.sh wrapper (which shells out to `uv run`).
+  migrator:
+    <<: [*app-image, *common]
+    profiles: ["migrate"]
+    restart: "no"
+    command: ["python", "-m", "uw_scan.storage.migrate_runner"]
+
+  api:
+    <<: [*app-image, *common]
+    command:
+      ["uvicorn", "uw_scan.api.server:app", "--host", "0.0.0.0", "--port", "8400"]
+    ports:
+      - "127.0.0.1:8400:8400"   # loopback-only publish for host health checks
+    healthcheck:
+      # HTTP-200-only — deliberately does NOT parse `.ok` (folds in
+      # budget-throttled skipped scans → routinely false during RTH). Stays
+      # green through throttle so it won't false-fail web's depends_on. The
+      # #247 serving-liveness lesson, applied to the container layer.
+      test: ["CMD", "curl", "-f", "http://localhost:8400/api/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 40s   # generous cold-start budget (launchd's 30×1s was too tight)
+
+  web:
+    image: ghcr.io/moremeds/argon-web:latest
+    build:
+      context: .
+      dockerfile: docker/web.Dockerfile
+    <<: *common
+    command: ["node", "server.js"]
+    environment:
+      # One runtime var drives BOTH the next.config rewrite (client /api/*) and
+      # the SSR fetch base (code change #7). Points at the api service, never
+      # 127.0.0.1 (= the web container itself).
+      NEXT_INTERNAL_API_BASE: http://api:8400
+    ports:
+      - "3001:3001"
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      # Explicit IPv4 — alpine busybox resolves `localhost` to ::1 first.
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:3001/"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  # Spot WS consumer (xenon primary / massive fallback). Different module from
+  # the scheduler, so no worker role/index validation applies.
+  ws-consumer:
+    <<: [*app-image, *common]
+    command: ["python", "-m", "uw_scan.worker.massive_ws_consumer"]
+
+  # APScheduler workers. Each role shards its work by (INDEX, COUNT); COUNT must
+  # equal the number of instances of that role or index-1 fails validation on
+  # boot. ponytail: no healthcheck — restart:unless-stopped + in-app
+  # job_failures/heartbeats are the worker liveness layer (no HTTP surface to probe).
+  worker-uw-0:
+    <<: [*app-image, *common]
+    command: ["python", "-m", "uw_scan.worker.scheduler"]
+    environment:
+      UW_SCAN_WORKER_ROLE: uw
+      UW_SCAN_WORKER_INDEX: "0"
+      UW_SCAN_WORKER_COUNT: "2"
+  worker-uw-1:
+    <<: [*app-image, *common]
+    command: ["python", "-m", "uw_scan.worker.scheduler"]
+    environment:
+      UW_SCAN_WORKER_ROLE: uw
+      UW_SCAN_WORKER_INDEX: "1"
+      UW_SCAN_WORKER_COUNT: "2"
+
+  worker-massive-0:
+    <<: [*app-image, *common]
+    command: ["python", "-m", "uw_scan.worker.scheduler"]
+    environment:
+      UW_SCAN_WORKER_ROLE: massive
+      UW_SCAN_WORKER_INDEX: "0"
+      UW_SCAN_WORKER_COUNT: "2"
+  worker-massive-1:
+    <<: [*app-image, *common]
+    command: ["python", "-m", "uw_scan.worker.scheduler"]
+    environment:
+      UW_SCAN_WORKER_ROLE: massive
+      UW_SCAN_WORKER_INDEX: "1"
+      UW_SCAN_WORKER_COUNT: "2"
+
+  # DeepSeek AI survives phase 1 (HTTP + DEEPSEEK_API_KEY, container-safe).
+  worker-ai-deepseek-0:
+    <<: [*app-image, *common]
+    command: ["python", "-m", "uw_scan.worker.scheduler"]
+    environment:
+      UW_SCAN_WORKER_ROLE: ai-deepseek
+      UW_SCAN_WORKER_INDEX: "0"
+      UW_SCAN_WORKER_COUNT: "2"
+  worker-ai-deepseek-1:
+    <<: [*app-image, *common]
+    command: ["python", "-m", "uw_scan.worker.scheduler"]
+    environment:
+      UW_SCAN_WORKER_ROLE: ai-deepseek
+      UW_SCAN_WORKER_INDEX: "1"
+      UW_SCAN_WORKER_COUNT: "2"

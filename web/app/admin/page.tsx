@@ -3,10 +3,10 @@ import type { components } from "@/lib/types";
 type HealthResponse = components["schemas"]["HealthResponse"];
 
 async function fetchHealth(): Promise<HealthResponse> {
-  // RSC fetch — needs an absolute URL. Use `||` so an empty
-  // NEXT_PUBLIC_API_BASE_URL (set when the bundle should call relative
-  // paths in the browser) still resolves server-side.
-  const base = process.env.NEXT_PUBLIC_API_BASE_URL || "http://127.0.0.1:8400";
+  // RSC fetch — needs an absolute URL. Read the runtime NEXT_INTERNAL_API_BASE
+  // (non-public, not build-inlined; `http://api:8400` in Docker, unset →
+  // localhost under launchd). See docker spec code change #7.
+  const base = process.env.NEXT_INTERNAL_API_BASE ?? "http://127.0.0.1:8400";
   const r = await fetch(`${base}/api/health`, { cache: "no-store" });
   return r.json();
 }

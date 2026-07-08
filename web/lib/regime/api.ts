@@ -1,12 +1,11 @@
 // URL-agnostic base. See web/lib/api.ts for rationale: browser uses a
 // relative URL routed through the Next.js `/api/:path*` rewrite; server-side
-// (RSC) hits FastAPI directly.
-// `||` (not `??`) so an empty NEXT_PUBLIC_API_BASE_URL still falls back to
-// the absolute server-side URL during RSC rendering. See web/lib/api.ts.
+// (RSC) hits FastAPI directly via the runtime NEXT_INTERNAL_API_BASE (the same
+// var the rewrite proxy reads). See web/lib/api.ts + docker spec code change #7.
 const API =
   typeof window !== "undefined"
     ? ""
-    : process.env.NEXT_PUBLIC_API_BASE_URL || "http://127.0.0.1:8400";
+    : process.env.NEXT_INTERNAL_API_BASE ?? "http://127.0.0.1:8400";
 
 export const regimeApi = {
   cri: () => `${API}/api/regime`,
