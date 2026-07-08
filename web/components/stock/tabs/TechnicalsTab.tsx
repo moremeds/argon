@@ -4,7 +4,14 @@ import { useEffect, useState } from "react";
 import { api, type TechnicalsResponse } from "@/lib/api";
 import { TechnicalsKpiStrip } from "../panels/TechnicalsKpiStrip";
 import { TechnicalsAnchorChart } from "../panels/TechnicalsAnchorChart";
-import { TechnicalsZChart } from "../panels/TechnicalsZChart";
+import {
+  TechnicalsKinematicsChart,
+  TechnicalsMacdChart,
+  TechnicalsRsChart,
+  TechnicalsRsiChart,
+  TechnicalsVolChart,
+  TechnicalsZChart,
+} from "../panels/TechnicalsOscillators";
 import { ForwardReturnTable } from "../panels/ForwardReturnTable";
 import { TechnicalsDetailPanels } from "../panels/TechnicalsDetailPanels";
 
@@ -15,9 +22,6 @@ type State = {
 };
 
 export function TechnicalsTab({ ticker }: { ticker: string }) {
-  // State is keyed to the ticker so a stale response never renders after a
-  // ticker switch, and we avoid a synchronous setState in the effect body
-  // (react-hooks/set-state-in-effect).
   const [state, setState] = useState<State>({
     ticker,
     data: null,
@@ -68,8 +72,14 @@ export function TechnicalsTab({ ticker }: { ticker: string }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
       <TechnicalsKpiStrip data={data} />
+      {/* Aligned stack: price on top, oscillators share its date axis below. */}
       <TechnicalsAnchorChart data={data} />
       <TechnicalsZChart data={data} />
+      <TechnicalsRsiChart data={data} />
+      <TechnicalsMacdChart data={data} />
+      <TechnicalsVolChart data={data} />
+      <TechnicalsKinematicsChart data={data} />
+      <TechnicalsRsChart data={data} />
       <ForwardReturnTable data={data} />
       <TechnicalsDetailPanels data={data} />
     </div>

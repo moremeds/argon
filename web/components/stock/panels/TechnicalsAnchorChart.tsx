@@ -2,14 +2,14 @@ import type { TechnicalsResponse } from "@/lib/api";
 import {
   finiteDomain,
   linearScale,
+  niceTicks,
   pathFromNullablePoints,
 } from "@/lib/svgChart";
 import { AnalyticalSeriesPanel } from "./AnalyticalSeriesPanel";
 import { ChartDateAxis } from "./ChartDateAxis";
+import { CPAD, CW, xScaleFor } from "./OscillatorChart";
 
-const W = 760;
-const H = 296;
-const PAD = { l: 8, r: 8, t: 8, b: 22 };
+const H = 320;
 
 type Row = TechnicalsResponse["series"][number];
 
@@ -72,20 +72,19 @@ export function TechnicalsAnchorChart({ data }: { data: TechnicalsResponse }) {
   }
 
   const n = series.length;
-  const x = linearScale([0, n - 1], [PAD.l, W - PAD.r]);
-  const y = linearScale([dom.lo, dom.hi], [H - PAD.b, PAD.t]);
+  const x = xScaleFor(n); // shared geometry -> columns align with the oscillators
+  const y = linearScale([dom.lo, dom.hi], [H - CPAD.b, CPAD.t]);
   const pts = (vals: Array<number | null>) =>
     vals.map((v, i) => (v == null ? null : ([x(i), y(v)] as [number, number])));
+  const yTicks = niceTicks(dom.lo, dom.hi, 5);
 
   // Envelope polygon: upper forward, lower reversed (finite spans only).
-  const upPts = upper.map((v, i) =>
-    v == null ? null : ([x(i), y(v)] as [number, number]),
-  );
-  const loPts = lower.map((v, i) =>
-    v == null ? null : ([x(i), y(v)] as [number, number]),
-  );
-  const upFin = upPts.filter((p): p is [number, number] => p != null);
-  const loFin = loPts.filter((p): p is [number, number] => p != null);
+  const upFin = upper
+    .map((v, i) => (v == null ? null : ([x(i), y(v)] as [number, number])))
+    .filter((p): p is [number, number] => p != null);
+  const loFin = lower
+    .map((v, i) => (v == null ? null : ([x(i), y(v)] as [number, number])))
+    .filter((p): p is [number, number] => p != null);
   const envPoly =
     upFin.length > 1 && loFin.length > 1
       ? "M" +
@@ -101,16 +100,39 @@ export function TechnicalsAnchorChart({ data }: { data: TechnicalsResponse }) {
   return (
     <AnalyticalSeriesPanel
       title="Price, Moving Averages & ±1.5σ Band"
-      subtitle="anchor"
+      subtitle="anchor · aligns with the panels below"
       headline={data.as_of ?? undefined}
     >
       <svg
-        viewBox={`0 0 ${W} ${H}`}
+        viewBox={`0 0 ${CW} ${H}`}
         width="100%"
         role="img"
         style={{ display: "block" }}
       >
         <title>Price with SMA20/50/200 and ±1.5σ band around the 200 DMA</title>
+        {yTicks.map((t) => (
+          <g key={t}>
+            <line
+              x1={CPAD.l}
+              x2={CW - CPAD.r}
+              y1={y(t)}
+              y2={y(t)}
+              stroke="var(--border-dim)"
+              strokeWidth={0.4}
+              strokeDasharray="2 3"
+            />
+            <text
+              x={CPAD.l - 6}
+              y={y(t) + 3}
+              fontSize={9}
+              fill="var(--text-muted)"
+              textAnchor="end"
+              fontFamily="var(--font-mono)"
+            >
+              {t.toFixed(t >= 100 ? 0 : 1)}
+            </text>
+          </g>
+        ))}
         {envPoly && (
           <path
             d={envPoly}

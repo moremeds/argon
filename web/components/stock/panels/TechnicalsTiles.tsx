@@ -1,5 +1,4 @@
 import type { CSSProperties } from "react";
-import { MetricSparkline } from "./MetricSparkline";
 
 const tileStyle: CSSProperties = {
   background: "var(--bg-panel)",
@@ -37,15 +36,11 @@ export function Tile({
   value,
   sub,
   valueColor,
-  spark,
-  sparkColor,
 }: {
   label: string;
   value: string;
   sub?: string;
   valueColor?: string;
-  spark?: Array<number | null>;
-  sparkColor?: string;
 }) {
   return (
     <div style={tileStyle}>
@@ -54,12 +49,6 @@ export function Tile({
         {value}
       </div>
       <div style={subStyle}>{sub ?? " "}</div>
-      {spark && spark.length > 1 && (
-        <MetricSparkline
-          values={spark}
-          color={sparkColor ?? "var(--accent-vivid)"}
-        />
-      )}
     </div>
   );
 }
