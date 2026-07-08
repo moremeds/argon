@@ -7,6 +7,9 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+## [0.9.1] — 2026-07-08
+
+
 ### Fixed
 
 - **Docker web image: client-side `/api/*` rewrite baked the wrong target.**
@@ -18,7 +21,6 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   service name; the launchd (non-Docker) build still bakes its correct
   co-located `localhost` default. Runbook Phase 2 gains an explicit
   web→api rewrite check (SSR page codes pass even when this path is broken).
-
 ## [0.9.0] — 2026-07-08
 
 
