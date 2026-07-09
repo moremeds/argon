@@ -136,7 +136,19 @@ docker-compose up -d`.
   xenon. One shared deploy channel for the mini; expected, not a bug.
 - **Env rotation** still needs a recreate: `docker-compose up -d --force-recreate
   <svc>` (same freeze-at-fork semantics as the launchd workers).
-- **Schema changes**: `docker-compose --profile migrate run --rm migrator`. App
-  services never self-migrate, so `up -d` is safe against the live schema.
+- **Schema changes auto-apply on deploy.** The `api` service self-migrates
+  (`migrate_runner && exec uvicorn` in its `command`) before serving, so a
+  Watchtower image update applies pending migrations automatically — closing the
+  gap where Watchtower deploys new *code* but never runs the one-shot `migrator`
+  (v0.10.0 shipped code against an un-migrated DB for ~7h). A bad migration
+  crash-loops api (healthcheck red → `web` down), which is intentional: loud
+  beats the silent partial-serving that hid the v0.10.0 gap. The `migrator`
+  profile is still valid for **first-boot bootstrap** (before api exists) and
+  explicit out-of-band applies: `docker-compose --profile migrate run --rm migrator`.
+- **`compose.yml` changes are NOT auto-deployed** — Watchtower updates images
+  only. After merging a change to the committed `docker-compose.yml` (e.g. this
+  self-migrate command), mirror it to `/opt/argon/compose.yml` on the mini and
+  `docker-compose up -d api` once to activate. Future image-only releases then
+  self-migrate through the updated command.
 - **Backups** (`com.argon.backup*`) remain host-native launchd — untouched by
   this migration.
