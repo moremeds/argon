@@ -19,6 +19,7 @@ from uw_scan.models import (
     StockHistoryResponse,
     StockHistoryRow,
     StrikeGexBucket,
+    TechnicalsLiveResponse,
     TechnicalsResponse,
 )
 from uw_scan.reports.single_stock import assemble_single_stock_report
@@ -207,3 +208,33 @@ def get_stock_technicals(
     settings: Settings = Depends(get_settings),
 ) -> TechnicalsResponse:
     return assemble_technicals(ticker, repo, schema=settings.db_schema)
+
+
+@router.get("/stock/{ticker}/technicals/live", response_model=TechnicalsLiveResponse)
+def get_stock_technicals_live(
+    ticker: str,
+    repo: Repository = Depends(get_repo),
+    settings: Settings = Depends(get_settings),
+) -> TechnicalsLiveResponse:
+    from uw_scan.storage.technical_live_repository import TechnicalLiveRepository
+
+    t = ticker.upper()
+    row = TechnicalLiveRepository(repo.conn, schema=settings.db_schema).fetch(t)
+    if row is None:
+        return TechnicalsLiveResponse(ticker=t, available=False)
+    p = row["payload"]
+    return TechnicalsLiveResponse(
+        ticker=t,
+        available=True,
+        captured_at=row["captured_at"],
+        spot=row["spot"],
+        spot_source=row["spot_source"],
+        z=p.get("z"),
+        z_band=p.get("z_band"),
+        rsi14=p.get("rsi14"),
+        rsi_z=p.get("rsi_z"),
+        dual_macd=p.get("dual_macd"),
+        rv20=p.get("rv20"),
+        kinematics=p.get("kinematics"),
+        composite=p.get("composite"),
+    )

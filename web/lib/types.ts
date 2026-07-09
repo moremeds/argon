@@ -231,6 +231,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/stock/{ticker}/technicals/live": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Stock Technicals Live */
+        get: operations["get_stock_technicals_live_api_stock__ticker__technicals_live_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/ohlc/{ticker}": {
         parameters: {
             query?: never;
@@ -6445,6 +6462,44 @@ export interface components {
             /** Composite */
             composite?: number | null;
         };
+        /**
+         * TechnicalsLiveResponse
+         * @description Latest-only live technicals head (fast-moving subset recomputed off the
+         *     WS spot). `available` is False when no fresh cache row exists — the client
+         *     then falls back to the EOD daily payload.
+         */
+        TechnicalsLiveResponse: {
+            /** Ticker */
+            ticker: string;
+            /** Available */
+            available: boolean;
+            /** Captured At */
+            captured_at?: string | null;
+            /** Spot */
+            spot?: number | null;
+            /** Spot Source */
+            spot_source?: string | null;
+            /** Z */
+            z?: number | null;
+            /** Z Band */
+            z_band?: string | null;
+            /** Rsi14 */
+            rsi14?: number | null;
+            /** Rsi Z */
+            rsi_z?: number | null;
+            /** Dual Macd */
+            dual_macd?: {
+                [key: string]: unknown;
+            } | null;
+            /** Rv20 */
+            rv20?: number | null;
+            /** Kinematics */
+            kinematics?: {
+                [key: string]: unknown;
+            } | null;
+            /** Composite */
+            composite?: number | null;
+        };
         /** TechnicalsResponse */
         TechnicalsResponse: {
             /** Ticker */
@@ -9511,6 +9566,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["TechnicalsResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_stock_technicals_live_api_stock__ticker__technicals_live_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                ticker: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TechnicalsLiveResponse"];
                 };
             };
             /** @description Validation Error */

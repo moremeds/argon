@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, datetime
 from typing import Any
 
 from uw_scan.models._base import _preserve_public_module, _UwBase
@@ -71,7 +71,31 @@ class TechnicalsResponse(_UwBase):
     forward_returns: list[ForwardReturnBandRow] = []
 
 
+class TechnicalsLiveResponse(_UwBase):
+    """Latest-only live technicals head (fast-moving subset recomputed off the
+    WS spot). `available` is False when no fresh cache row exists — the client
+    then falls back to the EOD daily payload."""
+
+    ticker: str
+    available: bool
+    captured_at: datetime | None = None
+    spot: float | None = None
+    spot_source: str | None = None
+    z: float | None = None
+    z_band: str | None = None
+    rsi14: float | None = None
+    rsi_z: float | None = None
+    dual_macd: dict[str, Any] | None = None
+    rv20: float | None = None
+    kinematics: dict[str, Any] | None = None
+    composite: float | None = None
+
+
 # Preserve __module__ = "uw_scan.models" so OpenAPI component names don't drift
 _preserve_public_module(
-    TechnicalsHeader, TechnicalsSeriesRow, ForwardReturnBandRow, TechnicalsResponse
+    TechnicalsHeader,
+    TechnicalsSeriesRow,
+    ForwardReturnBandRow,
+    TechnicalsResponse,
+    TechnicalsLiveResponse,
 )
