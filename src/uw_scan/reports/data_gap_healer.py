@@ -194,6 +194,15 @@ REGISTRY: list[DatasetRegistryEntry] = [
         ticker_col="ticker",
         expected_frequency="liveness",
     ),
+    DatasetRegistryEntry(
+        # Latest-only live-technicals cache (upsert per ticker off intraday_quote,
+        # recomputed live). Age matters, exact coverage does not — no backfill.
+        "technical_live",
+        "core_watchlist",
+        "freshness_only",
+        ticker_col="ticker",
+        expected_frequency="liveness",
+    ),
     # --- derived volatility (db-to-db) ---
     DatasetRegistryEntry(
         "vrp_daily",

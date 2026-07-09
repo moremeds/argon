@@ -7,6 +7,23 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+### Added
+
+- **Dual MACD on the Technicals tab** — replaces the single MACD histogram with a
+  contrasting long-period (55/89/34) + short-period (13/21/9) ATR-normalized dual
+  MACD and apex's tactical state machine (DIP_BUY/RALLY_SELL, trend/momentum-balance,
+  confidence). The two histograms ride the existing `metrics` JSONB; the state rides
+  the `detail` JSONB (no schema change).
+- **Live technicals coverage** — a massive-0 scheduler job (`technical_live_scan`,
+  gated by `UW_SCAN_TECHNICAL_LIVE_ENABLED`, default off) splices the live WS spot as
+  today's provisional daily close and recomputes the fast-moving technicals (z, RSI,
+  dual MACD, RV, kinematics, composite — sigmoid/forward-returns excluded) into a
+  latest-only `technical_live` cache (migration 104). The Technicals tab polls
+  `GET /stock/{ticker}/technicals/live` every 25s and overlays a LIVE/EOD head across
+  every oscillator; stale/absent falls back to the EOD daily payload.
+- **5-year technicals history** — the daily-bar fetch and warm-store read now retain
+  ~1300 sessions across every technicals series.
+
 ## [0.10.1] — 2026-07-09
 
 

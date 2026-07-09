@@ -37,7 +37,7 @@ def test_fetch_daily_bars_happy_path(monkeypatch):
     bars = apex.fetch_daily_bars("spy")
     assert bars == [{"time": "2026-07-07T00:00:00+00:00", "close": 747.71}]
     assert captured["url"].endswith("/bars/SPY")
-    assert captured["params"] == {"timeframe": "1d"}
+    assert captured["params"] == {"timeframe": "1d", "limit": 1300}
 
 
 def test_fetch_daily_bars_never_raises(monkeypatch):
