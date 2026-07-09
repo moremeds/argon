@@ -1,5 +1,6 @@
 import { render } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
+import type { TechnicalsResponse } from "@/lib/api";
 import { TechnicalsMacdChart } from "@/components/stock/panels/TechnicalsOscillators";
 
 const data = {
@@ -15,7 +16,7 @@ const data = {
       confidence: 0.72,
     },
   },
-} as any;
+} as unknown as TechnicalsResponse;
 
 describe("TechnicalsMacdChart", () => {
   it("renders the dual-MACD title and tactical badge", () => {
