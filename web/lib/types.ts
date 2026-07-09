@@ -6522,6 +6522,10 @@ export interface components {
             kin_slope200?: number | null;
             /** Alignment */
             alignment?: number | null;
+            /** Fast Macd Hist Atr */
+            fast_macd_hist_atr?: number | null;
+            /** Slow Macd Hist Atr */
+            slow_macd_hist_atr?: number | null;
         };
         /** TermMoveRow */
         TermMoveRow: {

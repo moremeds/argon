@@ -28,6 +28,8 @@ _METRIC_FIELDS = frozenset(
         "kin_slope50",
         "kin_slope200",
         "alignment",
+        "fast_macd_hist_atr",
+        "slow_macd_hist_atr",
     }
 )
 

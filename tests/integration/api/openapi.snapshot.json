@@ -15703,6 +15703,17 @@
             ],
             "title": "Close"
           },
+          "fast_macd_hist_atr": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fast Macd Hist Atr"
+          },
           "jerk20": {
             "anyOf": [
               {
@@ -15856,6 +15867,17 @@
               }
             ],
             "title": "Skew60"
+          },
+          "slow_macd_hist_atr": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Slow Macd Hist Atr"
           },
           "sma20": {
             "anyOf": [
@@ -22736,7 +22758,7 @@
   },
   "info": {
     "title": "UW Watchlist API",
-    "version": "0.9.1"
+    "version": "0.10.1"
   },
   "openapi": "3.1.0",
   "paths": {
