@@ -1,5 +1,5 @@
 import type { TechnicalsResponse } from "@/lib/api";
-import { fmtDecimal, fmtPct, fmtSigned } from "@/lib/formatters";
+import { fmtDecimal, fmtPct } from "@/lib/formatters";
 import { OscillatorChart } from "./OscillatorChart";
 
 type Row = TechnicalsResponse["series"][number];
@@ -61,18 +61,31 @@ export function TechnicalsRsiChart({ data }: { data: TechnicalsResponse }) {
 
 export function TechnicalsMacdChart({ data }: { data: TechnicalsResponse }) {
   const s = data.series ?? [];
-  const macd = data.detail?.macd as { hist_atr?: number | null } | undefined;
+  const dm = data.detail?.dual_macd as
+    | {
+        trend_state?: string;
+        tactical_signal?: string;
+        momentum_balance?: string;
+        confidence?: number | null;
+      }
+    | undefined;
+  const sig =
+    dm?.tactical_signal && dm.tactical_signal !== "NONE"
+      ? `${dm.tactical_signal} · conf ${fmtDecimal(dm.confidence ?? 0, 2)}`
+      : (dm?.trend_state ?? undefined);
   return (
     <OscillatorChart
-      title="MACD Histogram (8/17/9)"
-      subtitle="ATR-normalized"
-      headline={
-        macd?.hist_atr != null ? fmtSigned(macd.hist_atr, 3) : undefined
-      }
+      title="Dual MACD — 13/21/9 vs 55/89/34"
+      subtitle="ATR-normalized · fast vs slow"
+      headline={sig}
       dates={datesOf(s)}
-      histogram={{ values: col(s, "macd_hist_atr") }}
+      histogram={{ values: col(s, "fast_macd_hist_atr") }}
+      histogramOverlay={{
+        values: col(s, "slow_macd_hist_atr"),
+        color: "var(--accent-vol)",
+      }}
       refLines={[{ y: 0, solid: true }]}
-      explanation="MACD histogram (fast/slow/signal = 8/17/9), divided by ATR so the scale is comparable across tickers. Green bars above zero = momentum strengthening; red below = weakening. Bars shrinking toward zero warn of a momentum turn before the sign flips."
+      explanation="Two MACD histograms on one ATR-normalized scale: the wide muted bars are the slow 55/89/34 (structural trend); the sharp bars are the fast 13/21/9 (tactical timing). When the slow trend is up but the fast bars dip below zero and start curling back up, that's a DIP_BUY (mirror = RALLY_SELL). The badge shows the current tactical signal, its confidence, and the trend/momentum-balance state."
     />
   );
 }

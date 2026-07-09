@@ -40,6 +40,7 @@ export function OscillatorChart({
   dates,
   lines = [],
   histogram,
+  histogramOverlay,
   height = 160,
   yDomain,
   unit = "",
@@ -53,6 +54,7 @@ export function OscillatorChart({
   dates: Array<string | null | undefined>;
   lines?: ChartLine[];
   histogram?: { values: Array<number | null> };
+  histogramOverlay?: { values: Array<number | null>; color: string };
   height?: number;
   yDomain?: [number, number];
   unit?: string;
@@ -64,6 +66,7 @@ export function OscillatorChart({
   const allVals: Array<number | null> = [
     ...lines.flatMap((l) => l.values),
     ...(histogram?.values ?? []),
+    ...(histogramOverlay?.values ?? []),
     ...refLines.map((r) => r.y),
   ];
   const auto = finiteDomain(allVals);
@@ -157,6 +160,19 @@ export function OscillatorChart({
             )}
           </g>
         ))}
+        {histogramOverlay?.values.map((v, i) =>
+          v == null ? null : (
+            <rect
+              key={`ho${i}`}
+              x={x(i) - barW / 2}
+              y={Math.min(y(0), y(v))}
+              width={barW}
+              height={Math.max(0.5, Math.abs(y(v) - y(0)))}
+              fill={histogramOverlay.color}
+              opacity={0.45}
+            />
+          ),
+        )}
         {histogram?.values.map((v, i) =>
           v == null ? null : (
             <rect
