@@ -7,6 +7,9 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+## [0.10.1] — 2026-07-09
+
+
 ### Fixed
 
 - **Schema-bearing releases now auto-migrate on deploy.** The engine-wide
@@ -31,7 +34,6 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   auto-birth and the Capture button stay zero-extra-UW; a legacy grid without the
   IV map falls back to the old flat-vol path. To re-capture today on the corrected
   strikes, refresh the grid first (populates the IV map), then click Capture.
-
 ## [0.10.0] — 2026-07-09
 
 
