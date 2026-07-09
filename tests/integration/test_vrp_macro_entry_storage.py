@@ -104,6 +104,26 @@ def test_grid_cache_upsert_and_fetch(seeded_db_empty_cards: Repository):
         7090.0,
         7095.0,
     ]
+    # no strike_ivs passed → column is NULL (flat-vol fallback)
+    assert got["strike_ivs"] is None
+
+
+def test_grid_cache_strike_ivs_roundtrip(seeded_db_empty_cards: Repository):
+    repo = seeded_db_empty_cards
+    repo.upsert_vrp_macro_entry_grid(
+        name="SPX",
+        for_date=date(2026, 6, 24),
+        chosen_expiry=date(2026, 8, 6),
+        strikes=[6860.0, 7090.0],
+        strike_ivs={6860.0: 0.184, 7090.0: 0.152},
+    )
+    got = repo.fetch_vrp_macro_entry_grid("SPX", date(2026, 6, 24))
+    assert got is not None
+    # JSON keys come back as strings; values as floats
+    assert {float(k): v for k, v in got["strike_ivs"].items()} == {
+        6860.0: 0.184,
+        7090.0: 0.152,
+    }
 
 
 def test_grid_cache_stale_fallback_and_expiry_guard(seeded_db_empty_cards: Repository):

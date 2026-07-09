@@ -178,7 +178,7 @@ def test_capture_persists_button_cohort(
     monkeypatch.setattr(
         job,
         "_uw_chain_strikes",
-        lambda *a, **k: (date(2026, 8, 7), [500.0 + 5 * i for i in range(2000)]),
+        lambda *a, **k: (date(2026, 8, 7), [500.0 + 5 * i for i in range(2000)], {}),
     )
     monkeypatch.setattr(job, "quote_leg", _fake_quote_leg)
 

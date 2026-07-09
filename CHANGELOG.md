@@ -7,6 +7,20 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+### Fixed
+
+- **VRP macro entry-capture legs now snap to real Δ0.25/Δ0.125, not flat-vol
+  strikes.** `resolve_entry_contracts` selected strikes off a single ATM/VIX vol,
+  so SPX put skew made the recorded legs systematically too shallow (Δ~0.28 short
+  / ~0.17 wing instead of 0.25 / 0.125) — the tracked strikes sat well above the
+  legs you'd actually trade. Selection is now skew-aware: it brackets each target
+  in delta-space using each strike's *own* IV. The nightly
+  `vrp_macro_entry_grid_refresh` caches the per-strike IV map alongside the strike
+  grid (`vrp_macro_entry_grid.strike_ivs` JSONB, migration 103) so both the RTH
+  auto-birth and the Capture button stay zero-extra-UW; a legacy grid without the
+  IV map falls back to the old flat-vol path. To re-capture today on the corrected
+  strikes, refresh the grid first (populates the IV map), then click Capture.
+
 ## [0.10.0] — 2026-07-09
 
 

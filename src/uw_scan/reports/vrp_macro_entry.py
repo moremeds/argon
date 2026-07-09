@@ -1,10 +1,11 @@
 """Forward entry-capture: resolve the SPX bull-put-spread the Macro Short-Vol
 signal would place onto *listed* strikes, then quote each leg.
 
-`resolve_entry_contracts` is pure (no I/O): it maps the BS target strike for the
-0.25Δ short and 0.125Δ wing onto the nearest listed strikes that bracket each
-target. `quote_leg` (Task 4) quotes a resolved leg IB-primary / UW-fallback with
-BS-computed greeks.
+`resolve_entry_contracts` is pure (no I/O): it snaps the 0.25Δ short and 0.125Δ
+wing onto the listed strikes that bracket each target — skew-aware (bracket by
+each strike's real per-strike-IV delta) when a `strike_ivs` map is supplied, else
+the flat-vol BS target strike. `quote_leg` quotes a resolved leg IB-primary /
+UW-fallback with IB-native-or-BS greeks.
 """
 
 from __future__ import annotations
@@ -53,6 +54,43 @@ def _bracket(target: float, strikes_sorted: list[float]) -> tuple[float, float]:
     return below, above
 
 
+def _bracket_by_delta(
+    target_delta: float,
+    strikes_sorted: list[float],
+    delta_mag,
+) -> tuple[float, float]:
+    """Two listed strikes whose *real* put-delta magnitude straddles
+    ``target_delta``: (below = highest strike with |Δ| < target,
+    above = lowest strike with |Δ| > target).
+
+    A put's |Δ| rises with strike (deeper ITM ⇒ larger |Δ|); put skew lifts the
+    IV of lower strikes but does not invert that ordering, so the crossing is
+    single. ``delta_mag(k)`` returns |Δ| in [0,1] or None (strike missing an IV —
+    skipped). Same above=higher-strike/below=lower-strike semantics as
+    ``_bracket`` so ``short_above``/``wing_above`` stay the traded legs.
+
+    ponytail: assumes |Δ|(K) monotone in K. A pathological non-monotone smile
+    would bracket a rung off — acceptable; the realized delta is still recorded.
+    """
+    below: float | None = None
+    above: float | None = None
+    for k in strikes_sorted:
+        d = delta_mag(k)
+        if d is None:
+            continue
+        if d < target_delta:
+            below = k
+        elif d > target_delta:
+            above = k
+            break
+    if below is None or above is None:
+        raise ValueError(
+            f"listed strikes do not bracket delta {target_delta:.3f} "
+            f"(range {strikes_sorted[0]}..{strikes_sorted[-1]})"
+        )
+    return below, above
+
+
 def resolve_entry_contracts(
     *,
     spot: float,
@@ -62,17 +100,32 @@ def resolve_entry_contracts(
     listed_strikes: list[float],
     short_delta: float = 0.25,
     wing_delta: float = 0.125,
+    strike_ivs: dict[float, float] | None = None,
 ) -> EntryContracts:
-    """BS target strike per delta, snapped to the listed strikes that bracket it.
+    """Snap each delta target onto the listed strikes that bracket it.
 
-    Flat-vol target (skew ignored — the realized leg delta is recorded at quote
-    time). Both legs are puts (`is_call=False`). Raises ValueError if the grid
-    can't bracket a target."""
+    ``strike_ivs`` (skew-aware, preferred): compute each strike's real put-delta
+    from *its own* IV and bracket in delta-space — the legs then sit at the
+    strikes that actually carry Δ≈0.25/0.125 (SPX put skew makes a flat-vol
+    strike too shallow). Falls back to the flat-vol BS target strike when no
+    per-strike IV is supplied (cold grid / legacy row). Both legs are puts.
+    Raises ValueError if the grid can't bracket a target."""
     strikes_sorted = sorted(set(listed_strikes))
-    short_target = strike_for_delta(spot, T, r, sigma, short_delta, is_call=False)
-    wing_target = strike_for_delta(spot, T, r, sigma, wing_delta, is_call=False)
-    short_below, short_above = _bracket(short_target, strikes_sorted)
-    wing_below, wing_above = _bracket(wing_target, strikes_sorted)
+    if strike_ivs:
+
+        def _dmag(k: float) -> float | None:
+            iv = strike_ivs.get(k)
+            if iv is None or float(iv) <= 0:
+                return None
+            return -bs_delta(spot, k, T, r, float(iv), is_call=False)
+
+        short_below, short_above = _bracket_by_delta(short_delta, strikes_sorted, _dmag)
+        wing_below, wing_above = _bracket_by_delta(wing_delta, strikes_sorted, _dmag)
+    else:
+        short_target = strike_for_delta(spot, T, r, sigma, short_delta, is_call=False)
+        wing_target = strike_for_delta(spot, T, r, sigma, wing_delta, is_call=False)
+        short_below, short_above = _bracket(short_target, strikes_sorted)
+        wing_below, wing_above = _bracket(wing_target, strikes_sorted)
     return EntryContracts(
         short_above=short_above,
         short_below=short_below,
