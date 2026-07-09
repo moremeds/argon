@@ -9,6 +9,17 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ### Fixed
 
+- **Schema-bearing releases now auto-migrate on deploy.** The engine-wide
+  Watchtower deploys new *images* but never ran the profile-gated `migrator`, so
+  a release that added a table shipped code against an un-migrated DB until a
+  human remembered to apply migrations (v0.10.0's `technical_daily` was missing
+  for ~7h — api stayed green while the Technicals tab 500'd). The `api` service
+  now self-migrates (`migrate_runner && exec uvicorn`) before serving: it is the
+  single migration owner (no racing DDL across the sharded workers), never serves
+  against an un-migrated schema, and crash-loops loudly on a bad migration instead
+  of silently partial-serving. Idempotent + ~1s, so re-running every boot is free.
+  Activation is a one-time `/opt/argon/compose.yml` mirror + `up -d api` (Watchtower
+  does not deploy compose changes); future image-only releases self-migrate.
 - **VRP macro entry-capture legs now snap to real Δ0.25/Δ0.125, not flat-vol
   strikes.** `resolve_entry_contracts` selected strikes off a single ATM/VIX vol,
   so SPX put skew made the recorded legs systematically too shallow (Δ~0.28 short

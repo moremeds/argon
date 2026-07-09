@@ -40,6 +40,9 @@ services:
   # One-shot schema apply. profiles:["migrate"] + restart:"no" → never runs on
   # `up -d`; invoke explicitly. Runs the module directly (.venv on PATH), not
   # the scripts/migrate.sh wrapper (which shells out to `uv run`).
+  # NOTE: the api service now self-migrates on boot (see its command), so routine
+  # schema-bearing deploys apply automatically. This profile stays for first-boot
+  # bootstrap (before api exists) and for explicit out-of-band applies.
   migrator:
     <<: [*app-image, *common]
     profiles: ["migrate"]
@@ -48,8 +51,25 @@ services:
 
   api:
     <<: [*app-image, *common]
+    # Self-migrate before serving. Watchtower deploys the new image but never runs
+    # the one-shot `migrator`, so a schema-bearing release used to ship code against
+    # an un-migrated DB (v0.10.0: api green for 7h while a feature 500'd on a missing
+    # table). `migrate && exec uvicorn` makes api the single migration owner — it
+    # never serves against an un-migrated schema, and a bad migration crash-loops the
+    # container (healthcheck red → web down) instead of silently partial-serving.
+    # Idempotent + ~1s, so re-running every boot is free. `exec` gives uvicorn PID 1
+    # for clean SIGTERM shutdown.
+    # ponytail: only api self-migrates (single non-sharded container = no racing DDL);
+    # the 2× workers get new code from the same deploy and could touch a new table in
+    # the seconds before api finishes — tolerable (worker jobs are cron-scheduled and
+    # exception-safe), and gating workers on api-healthy is false safety because
+    # Watchtower recreate ignores depends_on ordering.
     command:
-      ["uvicorn", "uw_scan.api.server:app", "--host", "0.0.0.0", "--port", "8400"]
+      - sh
+      - -c
+      - >-
+        python -m uw_scan.storage.migrate_runner &&
+        exec uvicorn uw_scan.api.server:app --host 0.0.0.0 --port 8400
     ports:
       - "127.0.0.1:8400:8400"   # loopback-only publish for host health checks
     healthcheck:
