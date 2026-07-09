@@ -187,11 +187,13 @@ def fetch_intraday_closes(
 
 
 def fetch_daily_bars(ticker: str, *, timeout: float = 20.0) -> list[dict]:
-    """Full default daily-bar window from apex (500 today, 2000 once apex's
-    cap raise lands). Raw bar dicts; [] on any failure (never-raise)."""
+    """Deep daily-bar window from apex (~5y = 1300 sessions) for the technicals
+    series. Raw bar dicts; [] on any failure (never-raise)."""
     url = f"{_apex_url()}/bars/{ticker.upper()}"
     try:
-        resp = httpx.get(url, params={"timeframe": "1d"}, timeout=timeout)
+        resp = httpx.get(
+            url, params={"timeframe": "1d", "limit": 1300}, timeout=timeout
+        )
         resp.raise_for_status()
         bars = resp.json().get("bars", [])
     except Exception as exc:

@@ -138,7 +138,7 @@ class TechnicalsRepository:
             )
         self._conn.commit()
 
-    def fetch_series(self, ticker: str, *, limit: int = 504) -> list[dict]:
+    def fetch_series(self, ticker: str, *, limit: int = 1300) -> list[dict]:
         sql = """
             SELECT * FROM (
                 SELECT as_of, close, sma20, sma50, sma200, z_vs_200dma, z_band,
