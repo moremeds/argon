@@ -12,6 +12,7 @@ from __future__ import annotations
 import logging
 import math
 from collections.abc import Mapping
+from datetime import date
 from typing import Any
 
 import numpy as np
@@ -698,4 +699,48 @@ def build_technical_snapshot(
             rsi_z=rsi_d.get("rsi_z"),
         ),
         "forward_returns": forward_return_table(close, series["z_vs_200dma"]),
+    }
+
+
+def live_technical_snapshot(
+    df: pd.DataFrame, spot: float, *, as_of: date | None = None
+) -> dict:
+    """Splice `spot` as today's provisional daily close onto `df` (an OHLCV
+    frame from bars_frame) and recompute only the fast-moving technicals.
+    Sigmoid + forward-returns are deliberately excluded (static intraday);
+    callers carry them from the nightly detail. Pure — no I/O."""
+    prov = pd.DataFrame(
+        [
+            {
+                "as_of": as_of,
+                "open": spot,
+                "high": spot,
+                "low": spot,
+                "close": spot,
+                "volume": 0.0,
+            }
+        ]
+    )
+    d = pd.concat([df, prov], ignore_index=True)
+    close = d["close"]
+    z = _lastf(z_vs_200dma(close))
+    rsi_d = rsi_enhanced(d)
+    kin = ma_kinematics(d)
+    dist = return_distribution(close)
+    dual = dual_macd_state(dual_macd_series(d).iloc[-1])
+    macd_atr = _lastf(macd_hist(close) / atr14(d).replace(0.0, np.nan))
+    return {
+        "z": z,
+        "z_band": z_band_label(z),
+        "rsi14": rsi_d.get("rsi14"),
+        "rsi_z": rsi_d.get("rsi_z"),
+        "dual_macd": dual,
+        "rv20": dist.get("rv20"),
+        "kinematics": kin,
+        "composite": composite_score(
+            alignment=kin.get("alignment"),
+            slope_tstat_200=(kin.get("sma200") or {}).get("tstat"),
+            macd_hist_atr=macd_atr,
+            rsi_z=rsi_d.get("rsi_z"),
+        ),
     }
