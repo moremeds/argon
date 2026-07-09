@@ -11,6 +11,8 @@ from __future__ import annotations
 
 import logging
 import math
+from collections.abc import Mapping
+from typing import Any
 
 import numpy as np
 import pandas as pd
@@ -150,6 +152,105 @@ def macd_hist(
         - close.ewm(span=slow, adjust=False).mean()
     )
     return macd - macd.ewm(span=signal, adjust=False).mean()
+
+
+def _num(v: Any) -> float:
+    """Coerce to a finite float, else 0.0 (matches apex _safe_float)."""
+    if v is None:
+        return 0.0
+    try:
+        f = float(v)
+    except (TypeError, ValueError) as exc:
+        log.debug("dual_macd coercion skipped: %s", repr(exc))
+        return 0.0
+    return f if math.isfinite(f) else 0.0
+
+
+def _rolling_pctile_rank(s: pd.Series, window: int = 252) -> pd.Series:
+    """Causal rolling percentile rank (0-1) of each value within its trailing
+    `window` (ports apex _rolling_pctile_rank; needs >=2 valid points)."""
+    return s.rolling(window, min_periods=2).apply(
+        lambda w: float(np.mean(w <= w[-1])), raw=True
+    )
+
+
+def dual_macd_series(df: pd.DataFrame, *, slope_lookback: int = 3) -> pd.DataFrame:
+    """Fast (13/21/9) + slow (55/89/34) MACD histograms, each ATR(14)-normalized,
+    with slopes, fast curvature, and 252d percentile-rank magnitudes. Ports
+    apex momentum/dual_macd.py with argon's ATR normalization in place of the
+    raw x2 multiplier."""
+    close = df["close"]
+    atr = atr14(df).replace(0.0, np.nan)
+    fast = macd_hist(close, fast=13, slow=21, signal=9) / atr
+    slow = macd_hist(close, fast=55, slow=89, signal=34) / atr
+    fast_delta = fast.diff(slope_lookback)
+    slow_delta = slow.diff(slope_lookback)
+    return pd.DataFrame(
+        {
+            "fast_macd_hist_atr": fast,
+            "slow_macd_hist_atr": slow,
+            "fast_macd_delta": fast_delta,
+            "slow_macd_delta": slow_delta,
+            "fast_macd_delta2": fast_delta.diff(1),
+            "fast_macd_norm": _rolling_pctile_rank(fast.abs()),
+            "slow_macd_norm": _rolling_pctile_rank(slow.abs()),
+        },
+        index=df.index,
+    )
+
+
+def dual_macd_state(row: Mapping[str, Any], *, eps: float = 1e-3) -> dict:
+    """Trend / tactical / balance / confidence from a dual_macd_series row.
+    Direct port of apex DualMACDIndicator._get_state (override-first trend,
+    countertrend-decelerating tactical, freeze-zone balance, curvature conf)."""
+    h_slow = _num(row.get("slow_macd_hist_atr"))
+    h_fast = _num(row.get("fast_macd_hist_atr"))
+    dh_slow = _num(row.get("slow_macd_delta"))
+    dh_fast = _num(row.get("fast_macd_delta"))
+    ddh_fast = _num(row.get("fast_macd_delta2"))
+    slow_norm = _num(row.get("slow_macd_norm"))
+    fast_norm = _num(row.get("fast_macd_norm"))
+
+    if h_slow > 0 and dh_slow < 0:
+        trend = "DETERIORATING"
+    elif h_slow < 0 and dh_slow > 0:
+        trend = "IMPROVING"
+    elif h_slow > 0:
+        trend = "BULLISH"
+    else:
+        trend = "BEARISH"
+
+    tactical = "NONE"
+    if h_slow > 0 and h_fast < 0 and abs(dh_fast) > abs(dh_slow) and dh_fast >= 0:
+        tactical = "DIP_BUY"
+    elif h_slow < 0 and h_fast > 0 and abs(dh_fast) > abs(dh_slow) and dh_fast <= 0:
+        tactical = "RALLY_SELL"
+
+    if slow_norm < 0.15 and fast_norm < 0.15:
+        balance = "BALANCED"
+    elif fast_norm > slow_norm * 1.5:
+        balance = "FAST_DOMINANT"
+    elif slow_norm > fast_norm * 1.5:
+        balance = "SLOW_DOMINANT"
+    else:
+        balance = "BALANCED"
+
+    confidence = 0.0
+    if tactical == "DIP_BUY":
+        confidence = float(np.clip(ddh_fast / max(abs(h_fast), eps), 0.0, 1.0))
+    elif tactical == "RALLY_SELL":
+        confidence = float(np.clip(-ddh_fast / max(abs(h_fast), eps), 0.0, 1.0))
+
+    return {
+        "fast_hist": h_fast,
+        "slow_hist": h_slow,
+        "fast_delta": dh_fast,
+        "slow_delta": dh_slow,
+        "trend_state": trend,
+        "tactical_signal": tactical,
+        "momentum_balance": balance,
+        "confidence": confidence,
+    }
 
 
 def z_vs_200dma(close: pd.Series, z_window: int = 252) -> pd.Series:
