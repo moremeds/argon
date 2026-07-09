@@ -78,6 +78,13 @@ SERIES_METRIC_COLS: tuple[str, ...] = (
     "kin_slope50",
     "kin_slope200",
     "alignment",
+    "fast_macd_hist_atr",
+    "slow_macd_hist_atr",
+    "fast_macd_delta",
+    "slow_macd_delta",
+    "fast_macd_delta2",
+    "fast_macd_norm",
+    "slow_macd_norm",
 )
 
 
@@ -604,6 +611,10 @@ def build_technical_series(
     out["rsi14"] = rsi14(close)
     out["macd_hist_atr"] = macd_hist(close) / atr14(df).replace(0.0, np.nan)
 
+    _dm = dual_macd_series(df)
+    for col in _dm.columns:
+        out[col] = _dm[col]
+
     # Derived per-session metric history (mirrors the latest-only derivers so
     # each detail tile can sparkline its own past). All vectorized/cheap.
     rets = close.pct_change()
@@ -655,6 +666,7 @@ def build_technical_snapshot(
     sig = fit_sigmoid(close.to_numpy(dtype=float)[pivot:])
     rsi_d = rsi_enhanced(df)
     macd_d = macd_enhanced(df)
+    dual = dual_macd_state(dual_macd_series(df).iloc[-1])
     rs = relative_strength(df, bars_frame(spy_bars)) if spy_bars else None
     last = series.iloc[-1]
     px, sma200 = _lastf(close), _lastf(series["sma200"])
@@ -677,6 +689,7 @@ def build_technical_snapshot(
         "distribution": return_distribution(close),
         "rsi": rsi_d,
         "macd": macd_d,
+        "dual_macd": dual,
         "rs": rs,
         "composite": composite_score(
             alignment=kin.get("alignment"),

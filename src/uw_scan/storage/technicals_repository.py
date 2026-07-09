@@ -39,6 +39,13 @@ _METRIC_COLS = (
     "kin_slope50",
     "kin_slope200",
     "alignment",
+    "fast_macd_hist_atr",
+    "slow_macd_hist_atr",
+    "fast_macd_delta",
+    "slow_macd_delta",
+    "fast_macd_delta2",
+    "fast_macd_norm",
+    "slow_macd_norm",
 )
 _SERIES_COLS = _CORE_COLS  # back-compat alias
 

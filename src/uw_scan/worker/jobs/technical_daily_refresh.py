@@ -55,6 +55,7 @@ def technical_daily_refresh(
                     "distribution",
                     "rsi",
                     "macd",
+                    "dual_macd",
                     "rs",
                 )
             }
