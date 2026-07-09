@@ -12,6 +12,7 @@ from datetime import timedelta
 from typing import Any
 
 import psycopg
+from psycopg.types.json import Jsonb
 
 _QUOTE_COLS = (
     "entry_id",
@@ -162,21 +163,32 @@ class _VrpMacroEntryMixin:
         for_date: _date,
         chosen_expiry: _date,
         strikes: list[float],
+        strike_ivs: dict[float, float] | None = None,
     ) -> None:
         """Cache the day's real UW-listed strike grid for the ~43-DTE expiry.
 
         The RTH birth path reads this instead of calling UW, which 429s once the
         daily budget is spent (reliably before the 10:00 ET birth cron). Idempotent
-        upsert on (name, for_date) — a restart re-fetch overwrites in place."""
+        upsert on (name, for_date) — a restart re-fetch overwrites in place.
+
+        ``strike_ivs`` ({strike: iv}) drives skew-aware delta bracketing; None
+        keeps the legacy flat-vol path. JSON keys are strings — stored as-is and
+        re-floated on fetch."""
+        ivs = (
+            Jsonb({str(k): float(v) for k, v in strike_ivs.items()})
+            if strike_ivs
+            else None
+        )
         sql = (
             f"INSERT INTO {self._schema}.vrp_macro_entry_grid "
-            "(name, for_date, chosen_expiry, strikes) VALUES (%s, %s, %s, %s) "
+            "(name, for_date, chosen_expiry, strikes, strike_ivs) "
+            "VALUES (%s, %s, %s, %s, %s) "
             "ON CONFLICT (name, for_date) DO UPDATE SET "
             "chosen_expiry = EXCLUDED.chosen_expiry, strikes = EXCLUDED.strikes, "
-            "fetched_at = now()"
+            "strike_ivs = EXCLUDED.strike_ivs, fetched_at = now()"
         )
         with self._conn.cursor() as cur:
-            cur.execute(sql, (name, for_date, chosen_expiry, list(strikes)))
+            cur.execute(sql, (name, for_date, chosen_expiry, list(strikes), ivs))
 
     def fetch_vrp_macro_entry_grid(
         self, name: str, for_date: _date, *, max_staleness_days: int = 4
@@ -194,7 +206,7 @@ class _VrpMacroEntryMixin:
         cohort. ``chosen_expiry > for_date`` additionally rejects an already-expired
         cached expiry within the window."""
         sql = (
-            "SELECT for_date, chosen_expiry, strikes, fetched_at "
+            "SELECT for_date, chosen_expiry, strikes, strike_ivs, fetched_at "
             f"FROM {self._schema}.vrp_macro_entry_grid "
             "WHERE name = %s AND for_date BETWEEN %s AND %s AND chosen_expiry > %s "
             "ORDER BY for_date DESC LIMIT 1"

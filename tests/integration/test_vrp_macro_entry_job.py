@@ -30,7 +30,9 @@ def _settings() -> Settings:
 
 
 def _fake_chain(repo, settings, symbol, on_date, **_kw):
-    return _EXPIRY, _STRIKES
+    # empty IV map ⇒ flat-vol fallback in resolve_entry_contracts (keeps the
+    # existing strike assertions stable; the skew-aware path is unit-tested).
+    return _EXPIRY, _STRIKES, {}
 
 
 def _fake_quote_leg(

@@ -70,10 +70,12 @@ def _uw_chain_strikes(
     on_date: _date,
     *,
     run_notes: str = "vrp_macro_entry_birth",
-) -> tuple[_date, list[float]]:
-    """(chosen_expiry, sorted listed PUT strikes) for the listed expiry nearest
-    ``on_date + ~43cal``. Enumerates expiries via greek-exposure/expiry, then
-    pulls the chosen expiry's contracts (strikes parsed from each OCC symbol).
+) -> tuple[_date, list[float], dict[float, float]]:
+    """(chosen_expiry, sorted listed PUT strikes, {strike: iv}) for the listed
+    expiry nearest ``on_date + ~43cal``. Enumerates expiries via
+    greek-exposure/expiry, then pulls the chosen expiry's contracts (strike +
+    per-strike IV parsed from each OCC row). The IV map drives skew-aware delta
+    bracketing; strikes with no positive IV are simply absent from it.
     Audit-first UW calls under their own scan_run; the run is closed (failed) on
     error so a UW blip can't leave a stuck 'running' row (the original-bug symptom)."""
     client = UwClient(
@@ -92,16 +94,21 @@ def _uw_chain_strikes(
             client, repo, run_id, symbol, chosen.isoformat()
         )
         strikes: set[float] = set()
+        strike_ivs: dict[float, float] = {}
         for c in contracts:
             parsed = _parse_occ(c.option_symbol)
             if parsed is None:
                 continue
             exp, opt_type, strike = parsed
             if opt_type == "P" and exp == chosen:
-                strikes.add(float(strike))
+                k = float(strike)
+                strikes.add(k)
+                iv = c.implied_volatility
+                if iv is not None and float(iv) > 0:
+                    strike_ivs[k] = float(iv)
         repo.finish_scan_run(run_id, status="ok")
         repo.conn.commit()
-        return chosen, sorted(strikes)
+        return chosen, sorted(strikes), strike_ivs
     except Exception as exc:
         # Roll back the aborted tx, then close the (already-committed) run so it
         # can't dangle in 'running'. Re-raise so callers see the original failure.
@@ -129,7 +136,7 @@ def vrp_macro_entry_grid_refresh(
     Idempotent: upserts on (name, for_date)."""
     now = now or datetime.now(_ET)
     on_date = now.astimezone(_ET).date()
-    chosen_expiry, strikes = _uw_chain_strikes(
+    chosen_expiry, strikes, strike_ivs = _uw_chain_strikes(
         repo, settings, "SPX", on_date, run_notes="vrp_macro_entry_grid_refresh"
     )
     if not strikes:
@@ -141,13 +148,18 @@ def vrp_macro_entry_grid_refresh(
         )
         return {"chosen_expiry": chosen_expiry, "strikes": 0}
     repo.upsert_vrp_macro_entry_grid(
-        name="SPX", for_date=on_date, chosen_expiry=chosen_expiry, strikes=strikes
+        name="SPX",
+        for_date=on_date,
+        chosen_expiry=chosen_expiry,
+        strikes=strikes,
+        strike_ivs=strike_ivs,
     )
     repo.conn.commit()
     logger.info(
-        "vrp_macro_entry_grid_refresh name=SPX expiry=%s strikes=%d",
+        "vrp_macro_entry_grid_refresh name=SPX expiry=%s strikes=%d ivs=%d",
         chosen_expiry,
         len(strikes),
+        len(strike_ivs),
     )
     return {"chosen_expiry": chosen_expiry, "strikes": len(strikes)}
 
@@ -201,8 +213,19 @@ def _live_spot(
     return float(hit.price) if hit is not None else None
 
 
-def _resolve_legs(sig, *, on_date, chosen_expiry, strikes, rfr):
-    """resolve_entry_contracts wrapper: T from expiry vs on_date (calendar)."""
+def _grid_strike_ivs(grid: dict) -> dict[float, float] | None:
+    """Re-float the grid's JSON {str strike: iv} map (psycopg returns str keys),
+    or None for a legacy/cold grid without the column."""
+    raw = grid.get("strike_ivs")
+    if not raw:
+        return None
+    return {float(k): float(v) for k, v in raw.items()}
+
+
+def _resolve_legs(sig, *, on_date, chosen_expiry, strikes, rfr, strike_ivs=None):
+    """resolve_entry_contracts wrapper: T from expiry vs on_date (calendar).
+    ``strike_ivs`` ({strike: iv}) enables skew-aware delta bracketing; None
+    (legacy/cold grid) falls back to the flat-vol strike target."""
     T = max((chosen_expiry - on_date).days, 1) / 365.0
     return resolve_entry_contracts(
         spot=sig.spot,
@@ -212,6 +235,7 @@ def _resolve_legs(sig, *, on_date, chosen_expiry, strikes, rfr):
         listed_strikes=strikes,
         short_delta=sig.short_delta,
         wing_delta=sig.wing_delta,
+        strike_ivs=strike_ivs,
     )
 
 
@@ -268,7 +292,12 @@ def _birth_auto(repo: Repository, settings: Settings, *, on_date, now, rfr) -> i
     chosen_expiry = grid["chosen_expiry"]
     strikes = [float(s) for s in grid["strikes"]]
     ec = _resolve_legs(
-        sig, on_date=on_date, chosen_expiry=chosen_expiry, strikes=strikes, rfr=rfr
+        sig,
+        on_date=on_date,
+        chosen_expiry=chosen_expiry,
+        strikes=strikes,
+        rfr=rfr,
+        strike_ivs=_grid_strike_ivs(grid),
     )
     _insert_cohort(
         repo,
@@ -472,14 +501,28 @@ def capture_entry_now(
         und = sig.spot
     grid = repo.fetch_vrp_macro_entry_grid("SPX", on_date)
     if grid is not None:
+        # Warm cache: never hit UW (the grid exists precisely because inline-UW
+        # births 429'd daily). Skew-aware when the cached grid carries per-strike
+        # IV; a legacy grid without it falls back to flat-vol (strike_ivs=None).
+        # To force a skew-aware re-capture today, refresh the grid first so its
+        # IV map is populated, then click Capture.
         chosen_expiry = grid["chosen_expiry"]
         strikes = [float(s) for s in grid["strikes"]]
+        strike_ivs = _grid_strike_ivs(grid)
     else:
         # cold cache (e.g. day-1 post-deploy) — button is a user action, so a live
-        # UW enumeration here is acceptable (unlike the unattended auto birth).
-        chosen_expiry, strikes = _uw_chain_strikes(repo, settings, "SPX", on_date)
+        # UW enumeration here is acceptable (unlike the unattended auto birth); it
+        # also yields the IV map for skew-aware bracketing.
+        chosen_expiry, strikes, strike_ivs = _uw_chain_strikes(
+            repo, settings, "SPX", on_date
+        )
     ec = _resolve_legs(
-        sig, on_date=on_date, chosen_expiry=chosen_expiry, strikes=strikes, rfr=rfr
+        sig,
+        on_date=on_date,
+        chosen_expiry=chosen_expiry,
+        strikes=strikes,
+        rfr=rfr,
+        strike_ivs=strike_ivs,
     )
     entry_id = _insert_cohort(
         repo,
