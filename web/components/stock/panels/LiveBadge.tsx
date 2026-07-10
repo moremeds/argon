@@ -22,12 +22,15 @@ export function LiveBadge({
   captured_at,
   source,
   maxAgeSec = 900,
+  compact = false,
 }: {
   captured_at?: string | null;
   source?: string | null;
   maxAgeSec?: number;
+  compact?: boolean;
 }) {
   const { live, label } = badgeLabel(captured_at, source, maxAgeSec);
+  const text = compact ? (live ? "LIVE" : "EOD") : label;
 
   return (
     <span
@@ -51,7 +54,7 @@ export function LiveBadge({
           display: "inline-block",
         }}
       />
-      {label}
+      {text}
     </span>
   );
 }

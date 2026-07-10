@@ -1,8 +1,17 @@
-import type { TechnicalsResponse } from "@/lib/api";
+import type { TechnicalsLiveResponse, TechnicalsResponse } from "@/lib/api";
 import { fmtDecimal, fmtPct, fmtSigned } from "@/lib/formatters";
+import { LiveBadge } from "./LiveBadge";
 import { Tile } from "./TechnicalsTiles";
 
-export function TechnicalsKpiStrip({ data }: { data: TechnicalsResponse }) {
+export function TechnicalsKpiStrip({
+  data,
+  live,
+  maxAgeSec = 900,
+}: {
+  data: TechnicalsResponse;
+  live?: TechnicalsLiveResponse | null;
+  maxAgeSec?: number;
+}) {
   const h = data.header;
   const z = h?.z ?? null;
   const zColor =
@@ -26,6 +35,14 @@ export function TechnicalsKpiStrip({ data }: { data: TechnicalsResponse }) {
         label="Price"
         value={fmtDecimal(h?.price, 2)}
         sub={data.as_of ?? " "}
+        corner={
+          <LiveBadge
+            captured_at={live?.captured_at ?? null}
+            source={live?.spot_source ?? null}
+            maxAgeSec={maxAgeSec}
+            compact
+          />
+        }
       />
       <Tile
         label="200 DMA / Dist"

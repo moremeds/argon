@@ -19,6 +19,7 @@ import {
   TechnicalsZChart,
 } from "../panels/TechnicalsOscillators";
 import { ForwardReturnTable } from "../panels/ForwardReturnTable";
+import { ReturnHistogram } from "../panels/ReturnHistogram";
 import { TechnicalsDetailPanels } from "../panels/TechnicalsDetailPanels";
 
 type State = {
@@ -43,7 +44,7 @@ function isFresh(live: TechnicalsLiveResponse | null): boolean {
 // kinematics — at once) and override the latest detail readouts that drive the
 // per-panel headlines. Sigmoid / forward-returns are intentionally untouched
 // (static intraday). Returns the original data unchanged when live is stale.
-function mergeLiveHead(
+export function mergeLiveHead(
   data: TechnicalsResponse,
   live: TechnicalsLiveResponse | null,
 ): TechnicalsResponse {
@@ -81,7 +82,18 @@ function mergeLiveHead(
   detail.dual_macd = live.dual_macd ?? detail.dual_macd;
   detail.rsi = { ...(detail.rsi ?? {}), rsi14: live.rsi14 };
   detail.distribution = { ...(detail.distribution ?? {}), rv20: live.rv20 };
-  return { ...data, series, detail };
+  // Consume the live spot in the price-card header too: price, z-band, and the
+  // 200DMA distance (recomputed off the live spot). Slope / MACD-pctile are
+  // EOD-static and left alone.
+  const header = { ...(data.header ?? {}) };
+  if (live.spot != null) {
+    header.price = live.spot;
+    if (header.sma200) header.dist_pct = live.spot / header.sma200 - 1;
+  }
+  if (live.z != null) header.z = live.z;
+  if (live.z_band != null) header.z_band = live.z_band;
+  if (live.composite != null) header.composite = live.composite;
+  return { ...data, series, detail, header };
 }
 
 export function TechnicalsTab({ ticker }: { ticker: string }) {
@@ -166,13 +178,18 @@ export function TechnicalsTab({ ticker }: { ticker: string }) {
           maxAgeSec={LIVE_MAX_AGE_SEC}
         />
       </div>
-      <TechnicalsKpiStrip data={data} />
+      <TechnicalsKpiStrip
+        data={data}
+        live={liveForTicker}
+        maxAgeSec={LIVE_MAX_AGE_SEC}
+      />
       {/* Aligned stack: price on top, oscillators share its date axis below. */}
       <TechnicalsAnchorChart data={data} />
       <TechnicalsZChart data={data} />
       <TechnicalsRsiChart data={data} />
       <TechnicalsMacdChart data={data} />
       <TechnicalsVolChart data={data} />
+      <ReturnHistogram data={data} />
       <TechnicalsKinematicsChart data={data} />
       <TechnicalsRsChart data={data} />
       <ForwardReturnTable data={data} />

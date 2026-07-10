@@ -1,4 +1,4 @@
-import type { CSSProperties } from "react";
+import type { CSSProperties, ReactNode } from "react";
 
 const tileStyle: CSSProperties = {
   background: "var(--bg-panel)",
@@ -36,14 +36,19 @@ export function Tile({
   value,
   sub,
   valueColor,
+  corner,
 }: {
   label: string;
   value: string;
   sub?: string;
   valueColor?: string;
+  corner?: ReactNode;
 }) {
   return (
-    <div style={tileStyle}>
+    <div style={{ ...tileStyle, position: "relative" }}>
+      {corner != null && (
+        <div style={{ position: "absolute", top: 8, right: 10 }}>{corner}</div>
+      )}
       <div style={labelStyle}>{label}</div>
       <div style={{ ...valueStyle, color: valueColor ?? valueStyle.color }}>
         {value}
