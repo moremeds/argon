@@ -1,6 +1,6 @@
 # web — Next.js 16 frontend
 
-Argon dark theme, terminal aesthetic. Mono labels uppercase, hand-rolled SVG charts (no chart library).
+Argon dark theme, terminal aesthetic. Mono labels uppercase, hand-rolled SVG charts (no chart library, except lightweight-charts on the Technicals price pane).
 
 ## Stack
 
@@ -32,7 +32,7 @@ web/
 
 - **Server Components for data fetching.** Pages call `api.*` at render time. Push `"use client"` to the leaf interactive component, not the page.
 - **`export const dynamic = "force-dynamic"`** on pages that read `searchParams` and need to bypass the RSC Router Cache (see `app/page.tsx` — filter chip clicks).
-- **Hand-rolled SVG.** Helpers live in `lib/svgChart.ts` (`linearScale`, `finiteDomain`, `pathFromPoints`). Don't pull in `recharts` / `d3` / `visx`.
+- **Hand-rolled SVG.** Helpers live in `lib/svgChart.ts` (`linearScale`, `finiteDomain`, `pathFromPoints`). Don't pull in `recharts` / `d3` / `visx`. **One documented exception (2026-07-10):** `lightweight-charts` powers the Technicals **price pane only** (`components/stock/panels/TechnicalsPriceChart.tsx` + `lib/lwc/`); every other chart stays hand-rolled SVG.
 - **Inline styles + CSS variables** (`var(--bg-panel)`, `var(--text-muted)`, etc.) — no styled-components, no CSS-in-JS lib. Tailwind config exists but is unused for component styling.
 - **Mono label style:** 10px, letter-spacing 1.5, uppercase, `var(--text-muted)`. Value: 22px bold mono, primary color. See the `Tile` component in `components/stock/panels/VolMetricsCard.tsx` for the canonical pattern.
 - **Formatters** (`lib/formatters.ts`): `fmtPct`, `fmtSigned`, `fmtDecimal`, `toNum`. Use these — they handle null/string/number uniformly.
