@@ -25,8 +25,11 @@ function loadStoredOrder(storageKey: string): string[] {
   }
 }
 
-// ponytail: native HTML5 DnD, desktop-only; order persisted per-browser in
-// localStorage. Add dnd-kit only if touch/mobile or cross-device sync is needed.
+// ponytail: native HTML5 DnD, desktop-only; the whole row is the drag source
+// (no handle — a handle column shifted every chart out of alignment with the
+// KPI strip). Order persisted per-browser in localStorage. Native drag disables
+// text-selection inside a row; fine for a chart stack. Add dnd-kit only if
+// touch/mobile, cross-device sync, or in-panel text selection is needed.
 export function ReorderableList({
   items,
   storageKey,
@@ -74,6 +77,18 @@ export function ReorderableList({
         <div
           key={id}
           data-reorder-id={id}
+          draggable
+          onDragStart={(e) => {
+            setDraggingId(id);
+            if (e.dataTransfer) {
+              e.dataTransfer.effectAllowed = "move";
+              e.dataTransfer.setData("text/plain", id);
+            }
+          }}
+          onDragEnd={() => {
+            setDraggingId(null);
+            setOverId(null);
+          }}
           onDragOver={(e) => {
             e.preventDefault();
             if (overId !== id) setOverId(id);
@@ -85,9 +100,8 @@ export function ReorderableList({
             setOverId(null);
           }}
           style={{
-            display: "flex",
-            gap: 8,
-            alignItems: "stretch",
+            cursor: "grab",
+            minWidth: 0,
             borderTop:
               overId === id && draggingId
                 ? "2px solid var(--accent-vivid)"
@@ -95,37 +109,7 @@ export function ReorderableList({
             opacity: draggingId === id ? 0.5 : 1,
           }}
         >
-          {/* Only the handle is draggable, so buttons/text inside each chart
-              stay interactive and selectable. */}
-          <span
-            draggable
-            title="Drag to reorder"
-            aria-label="Drag to reorder"
-            onDragStart={(e) => {
-              setDraggingId(id);
-              if (e.dataTransfer) {
-                e.dataTransfer.effectAllowed = "move";
-                e.dataTransfer.setData("text/plain", id);
-              }
-            }}
-            onDragEnd={() => {
-              setDraggingId(null);
-              setOverId(null);
-            }}
-            style={{
-              cursor: "grab",
-              color: "var(--text-muted)",
-              userSelect: "none",
-              display: "flex",
-              alignItems: "center",
-              padding: "0 2px",
-              fontSize: 14,
-              lineHeight: 1,
-            }}
-          >
-            ⠿
-          </span>
-          <div style={{ flex: 1, minWidth: 0 }}>{byId.get(id)}</div>
+          {byId.get(id)}
         </div>
       ))}
     </div>

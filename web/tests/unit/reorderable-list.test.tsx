@@ -61,16 +61,28 @@ describe("ReorderableList — drag and drop", () => {
     expect(texts).toEqual(["ALPHA", "BETA", "GAMMA"]);
   });
 
-  it("reorders on drop and persists to localStorage", () => {
-    const { getAllByText, getAllByTitle } = render(
+  it("makes the whole row the drag source — no separate handle", () => {
+    const { queryByTitle, getAllByText } = render(
       <ReorderableList items={items} storageKey={KEY} />,
     );
-    const handles = getAllByTitle(/drag to reorder/i);
+    // The ⠿ handle is gone (it pushed charts out of alignment); the row itself
+    // is draggable so it stays flush with the panels above.
+    expect(queryByTitle(/drag to reorder/i)).toBeNull();
+    const row0 = getAllByText(/ALPHA/)[0].closest(
+      "[data-reorder-id]",
+    ) as HTMLElement;
+    expect(row0.getAttribute("draggable")).toBe("true");
+  });
+
+  it("reorders on drop and persists to localStorage", () => {
+    const { getAllByText } = render(
+      <ReorderableList items={items} storageKey={KEY} />,
+    );
     const rows = getAllByText(/ALPHA|BETA|GAMMA/).map(
       (n) => n.closest("[data-reorder-id]") as HTMLElement,
     );
-    // drag 'a' (handle 0) onto 'c' (row 2)
-    fireEvent.dragStart(handles[0]);
+    // drag 'a' (row 0) onto 'c' (row 2)
+    fireEvent.dragStart(rows[0]);
     fireEvent.dragOver(rows[2]);
     fireEvent.drop(rows[2]);
 

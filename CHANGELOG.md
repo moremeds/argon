@@ -45,7 +45,13 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   "how to read" guide; the Sigmoid panel charts the fitted logistic against actual
   price (the fit's `actual`/`fit` arrays are surfaced only when the fit is valid,
   else the panel stays blank); and the chart stack is reorderable by drag-and-drop,
-  with the order persisted per-browser in `localStorage`.
+  with the order persisted per-browser in `localStorage`. The reorder handle is
+  gone — the whole chart row is the drag source, so the charts stay flush-left
+  with the KPI strip instead of being nudged over by a handle gutter. The Sigmoid
+  panel's rejection message now names the clause that actually failed (fit too
+  weak vs. no better than a straight line vs. curve pointing the wrong way)
+  instead of a fixed formula that could read as the false "0.31 ≤ 0.05 + 0.05",
+  and gains a how-to-read guide explaining the S-curve, phases, and k/s/R².
 
 ## [0.10.1] — 2026-07-09
 
