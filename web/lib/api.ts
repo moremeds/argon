@@ -63,6 +63,10 @@ export type TechnicalsLiveResponse = Json<
   "/api/stock/{ticker}/technicals/live",
   "get"
 >;
+export type VwapAnchorResponse = Json<
+  "/api/stock/{ticker}/vwap-anchor",
+  "post"
+>;
 type TradeInsightsResponse = Json<"/api/stock/{ticker}/trade-insights", "get">;
 // Single-row response (used by GET /{analysis_id} and as the inner type of
 // /latest). The OpenAPI shape lives under `paths[...]/{analysis_id}/get`.
@@ -143,6 +147,16 @@ export const api = {
     _fetch<TechnicalsResponse>(`/api/stock/${ticker}/technicals/refresh`, {
       method: "POST",
     }),
+  vwapAnchorSet: (
+    ticker: string,
+    body: { anchor_date: string },
+  ): Promise<VwapAnchorResponse> =>
+    _fetch<VwapAnchorResponse>(`/api/stock/${ticker}/vwap-anchor`, {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
+  vwapAnchorClear: (ticker: string): Promise<void> =>
+    _fetch(`/api/stock/${ticker}/vwap-anchor`, { method: "DELETE" }),
   cockpitState: (
     ticker: string,
     asof?: string,
