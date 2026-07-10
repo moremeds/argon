@@ -30,6 +30,14 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   renders in place; for a watchlist ticker this also makes it eligible for the 5-min
   live overlay on the next tick. Compute-only (no watchlist mutation); thin history /
   apex-unreachable leaves the tab empty with a note.
+- **Technicals tab refinements** — the z-score chart now fills the full 5-year window
+  (fetch a warmup buffer so `z_vs_200dma`'s ~324-bar warmup falls off the front); the
+  dual-MACD chart gains a SLOW/FAST legend and draws the fast bars narrower than the
+  slow overlay; the MA-Kinematics chart is weighted by each slope's t-stat (reliable
+  trends bold, noise faded) and carries an ALIGN badge; the forward-return table
+  defaults to all horizons with per-column aligned headers; a new return-distribution
+  histogram (last 60d returns vs a normal, tails flagged) visualizes skew/kurtosis;
+  and the live spot now flows into the price-card header with a LIVE/EOD marker.
 
 ## [0.10.1] — 2026-07-09
 
