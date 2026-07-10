@@ -1005,6 +1005,17 @@ def main() -> int:
             summary = regime_live_scan_once(repo, settings)
         logger.info("regime_live_scan_tick %s", summary)
 
+    def _technical_live_scan() -> None:
+        # Weekday gate — same rationale as regime_live: a provisional close is
+        # only meaningful during the trading week.
+        if datetime.now(ZoneInfo(settings.rth_tz)).weekday() >= 5:
+            return
+        from uw_scan.worker.jobs.technical_live import technical_live_scan
+
+        with _repo(settings) as repo:
+            summary = technical_live_scan(repo, settings)
+        logger.info("technical_live_scan_tick %s", summary)
+
     def _regime_live_validation() -> None:
         from uw_scan.worker.jobs.regime_live import validate_live_close_vs_lake
 
@@ -1634,6 +1645,19 @@ def main() -> int:
             CronTrigger(hour=3, minute=40, timezone=settings.rth_tz),
             id="regime_live_validation",
             name="Regime live close vs lake validation",
+            max_instances=1,
+            coalesce=True,
+        )
+
+    if settings.technical_live_enabled and _should_schedule_regime_live(settings):
+        # Live technicals coverage — upsert-per-ticker cache off intraday_quote.
+        # Reuses the regime-live single-owner pin (massive-0); pure DB-read
+        # splice-recompute, no provider spend.
+        sched.add_job(
+            _technical_live_scan,
+            IntervalTrigger(minutes=settings.technical_live_scan_interval_minutes),
+            id="technical_live_scan",
+            name="Live technicals coverage",
             max_instances=1,
             coalesce=True,
         )

@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import type { TechnicalsResponse } from "@/lib/api";
 import {
   finiteDomain,
@@ -13,13 +14,29 @@ const H = 320;
 
 type Row = TechnicalsResponse["series"][number];
 
-export function TechnicalsAnchorChart({ data }: { data: TechnicalsResponse }) {
+export function TechnicalsAnchorChart({
+  data,
+  control,
+}: {
+  data: TechnicalsResponse;
+  // Optional control (the timeframe selector) rendered next to the date badge.
+  control?: ReactNode;
+}) {
+  // Headline = [control] [as-of date]. Passed to every return path so the
+  // selector never vanishes, even on the not-enough-history states.
+  const header: ReactNode = (
+    <span style={{ display: "inline-flex", alignItems: "center", gap: 10 }}>
+      {control}
+      <span>{data.as_of ?? ""}</span>
+    </span>
+  );
   const series = data.series ?? [];
   if (series.length < 2) {
     return (
       <AnalyticalSeriesPanel
         title="Price, Moving Averages & ±1.5σ Band"
         subtitle="anchor"
+        headline={header}
       >
         <div style={{ color: "var(--text-muted)", fontSize: 12 }}>
           Not enough history.
@@ -63,6 +80,7 @@ export function TechnicalsAnchorChart({ data }: { data: TechnicalsResponse }) {
       <AnalyticalSeriesPanel
         title="Price, Moving Averages & ±1.5σ Band"
         subtitle="anchor"
+        headline={header}
       >
         <div style={{ color: "var(--text-muted)", fontSize: 12 }}>
           Not enough finite data.
@@ -101,7 +119,7 @@ export function TechnicalsAnchorChart({ data }: { data: TechnicalsResponse }) {
     <AnalyticalSeriesPanel
       title="Price, Moving Averages & ±1.5σ Band"
       subtitle="anchor · aligns with the panels below"
-      headline={data.as_of ?? undefined}
+      headline={header}
     >
       <svg
         viewBox={`0 0 ${CW} ${H}`}

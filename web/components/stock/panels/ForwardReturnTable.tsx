@@ -10,7 +10,7 @@ type Row = TechnicalsResponse["forward_returns"][number];
 const HEADLINE_HORIZON = 40;
 
 export function ForwardReturnTable({ data }: { data: TechnicalsResponse }) {
-  const [showAll, setShowAll] = useState(false);
+  const [showAll, setShowAll] = useState(true);
   const rows = data.forward_returns ?? [];
   const currentBand = data.header?.z_band ?? null;
   const horizons = showAll ? [20, 40, 60] : [HEADLINE_HORIZON];
@@ -82,12 +82,45 @@ export function ForwardReturnTable({ data }: { data: TechnicalsResponse }) {
       <div style={{ overflowX: "auto" }}>
         <table style={{ width: "100%", borderCollapse: "collapse" }}>
           <thead>
+            {/* Row 1: horizon group label centered over its 4 columns.
+                Row 2: per-column sub-headers, right-aligned to match the data
+                cells so each label sits directly over its column. */}
             <tr>
-              <th style={{ ...th, textAlign: "left" }}>Band</th>
-              {horizons.map((hz) => (
-                <th key={hz} style={th} colSpan={4}>
-                  {hz}d — N · Mean · Med · Win%
+              <th style={{ ...th, textAlign: "left" }} rowSpan={2}>
+                Band
+              </th>
+              {horizons.map((hz, gi) => (
+                <th
+                  key={hz}
+                  style={{
+                    ...th,
+                    textAlign: "center",
+                    color: "var(--text-secondary)",
+                    borderLeft:
+                      gi > 0 ? "1px solid var(--border-dim)" : undefined,
+                  }}
+                  colSpan={4}
+                >
+                  {hz}d
                 </th>
+              ))}
+            </tr>
+            <tr>
+              {horizons.map((hz, gi) => (
+                <Fragment key={hz}>
+                  <th
+                    style={{
+                      ...th,
+                      borderLeft:
+                        gi > 0 ? "1px solid var(--border-dim)" : undefined,
+                    }}
+                  >
+                    N
+                  </th>
+                  <th style={th}>Mean</th>
+                  <th style={th}>Med</th>
+                  <th style={th}>Win%</th>
+                </Fragment>
               ))}
             </tr>
           </thead>
@@ -118,11 +151,17 @@ export function ForwardReturnTable({ data }: { data: TechnicalsResponse }) {
                   >
                     {band}
                   </td>
-                  {horizons.map((hz) => {
+                  {horizons.map((hz, gi) => {
+                    const groupBorder =
+                      gi > 0 ? "1px solid var(--border-dim)" : undefined;
                     const r = byBand.get(band)?.get(hz);
                     if (!r) {
                       return (
-                        <td key={hz} style={td} colSpan={4}>
+                        <td
+                          key={hz}
+                          style={{ ...td, borderLeft: groupBorder }}
+                          colSpan={4}
+                        >
                           —
                         </td>
                       );
@@ -135,7 +174,9 @@ export function ForwardReturnTable({ data }: { data: TechnicalsResponse }) {
                           : "var(--text-primary)";
                     return (
                       <Fragment key={hz}>
-                        <td style={td}>{r.count}</td>
+                        <td style={{ ...td, borderLeft: groupBorder }}>
+                          {r.count}
+                        </td>
                         <td
                           style={{
                             ...td,
@@ -161,8 +202,21 @@ export function ForwardReturnTable({ data }: { data: TechnicalsResponse }) {
         </table>
       </div>
       <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 8 }}>
+        <strong style={{ color: "var(--text-secondary)" }}>How to read:</strong>{" "}
+        each row is a z-band — how stretched price was vs its 200-day average.
+        For every past day the stock sat in that band, we measured its return{" "}
+        <em>N</em> trading days later. <strong>N</strong> = how many such days
+        (bigger = more reliable); <strong>Mean/Med</strong> = the average/median
+        of those forward returns; <strong>Win%</strong> = share that were
+        positive. Green mean = historically bullish from that band, red =
+        bearish. The highlighted row is the band price sits in today — read it
+        as &ldquo;last time we were here, this is what tended to happen
+        next.&rdquo;
+      </div>
+      <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 6 }}>
         N-day forward return conditioned on z-band, full available history (n=
-        {data.bars_n ?? 0} bars); bands assigned ex-ante.
+        {data.bars_n ?? 0} bars); bands assigned ex-ante. Not a forecast — past
+        conditional behavior, small-N bands especially.
       </div>
     </AnalyticalSeriesPanel>
   );

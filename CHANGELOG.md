@@ -7,13 +7,64 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
-## [0.10.1] — 2026-07-09
+### Added
 
+- **Dual MACD on the Technicals tab** — replaces the single MACD histogram with a
+  contrasting long-period (55/89/34) + short-period (13/21/9) ATR-normalized dual
+  MACD and apex's tactical state machine (DIP_BUY/RALLY_SELL, trend/momentum-balance,
+  confidence). The two histograms ride the existing `metrics` JSONB; the state rides
+  the `detail` JSONB (no schema change).
+- **Live technicals coverage** — a massive-0 scheduler job (`technical_live_scan`,
+  gated by `UW_SCAN_TECHNICAL_LIVE_ENABLED`, default off) splices the live WS spot as
+  today's provisional daily close and recomputes the fast-moving technicals (z, RSI,
+  dual MACD, RV, kinematics, composite — sigmoid/forward-returns excluded) into a
+  latest-only `technical_live` cache (migration 104). The Technicals tab polls
+  `GET /stock/{ticker}/technicals/live` every 25s and overlays a LIVE/EOD head across
+  every oscillator; stale/absent falls back to the EOD daily payload.
+- **5-year technicals history** — the daily-bar fetch and warm-store read now retain
+  ~1300 sessions across every technicals series.
+- **On-demand technicals compute** — an unavailable ticker's Technicals tab now shows
+  a "Compute now" button instead of a dead-end message. It POSTs
+  `/stock/{ticker}/technicals/refresh`, which runs the nightly refresh job scoped to
+  that one ticker (apex bars → EOD series) and returns the fresh payload so the tab
+  renders in place; for a watchlist ticker this also makes it eligible for the 5-min
+  live overlay on the next tick. Compute-only (no watchlist mutation); thin history /
+  apex-unreachable leaves the tab empty with a note.
+- **Technicals tab refinements** — the z-score chart now fills the full 5-year window
+  (fetch a warmup buffer so `z_vs_200dma`'s ~324-bar warmup falls off the front); the
+  dual-MACD chart gains a SLOW/FAST legend and draws the fast bars narrower than the
+  slow overlay; the MA-Kinematics chart is weighted by each slope's t-stat (reliable
+  trends bold, noise faded) and carries an ALIGN badge; the forward-return table
+  defaults to all horizons with per-column aligned headers; a new return-distribution
+  histogram (last 60d returns vs a normal, tails flagged) visualizes skew/kurtosis;
+  and the live spot now flows into the price-card header with a LIVE/EOD marker.
+  Follow-ups: the LIVE/EOD marker lives only in the price tile now (the duplicate
+  page-level badge is gone); the standalone Trend-Reliability panel is dropped (its
+  t-stats already live in the MA-Kinematics chart), which now also prints a
+  plain-English reading of the current slopes; the forward-return table gains a
+  "how to read" guide; the Sigmoid panel charts the fitted logistic against actual
+  price (the fit's `actual`/`fit` arrays are surfaced only when the fit is valid,
+  else the panel stays blank); and the chart stack is reorderable by drag-and-drop,
+  with the order persisted per-browser in `localStorage`. The reorder handle is
+  gone — the whole chart row is the drag source, so the charts stay flush-left
+  with the KPI strip instead of being nudged over by a handle gutter. The Sigmoid
+  panel's rejection message now names the clause that actually failed (fit too
+  weak vs. no better than a straight line vs. curve pointing the wrong way)
+  instead of a fixed formula that could read as the false "0.31 ≤ 0.05 + 0.05",
+  and gains a how-to-read guide explaining the S-curve, phases, and k/s/R². The
+  anchor price chart is now pinned at the top of the stack (out of the reorderable
+  set — it's the date-axis alignment reference) and carries a theme-styled
+  timeframe selector next to its date badge: FULL (5Y) / 1Y / YTD / 3M windows
+  every date-axis chart below at once (a pure client-side slice of the series
+  already in the payload — no extra fetch). The return-distribution panel keeps
+  its own fixed 60d sample (it's a shape, not a date-axis graph the window pans).
+
+## [0.10.1] — 2026-07-09
 
 ### Fixed
 
 - **Schema-bearing releases now auto-migrate on deploy.** The engine-wide
-  Watchtower deploys new *images* but never ran the profile-gated `migrator`, so
+  Watchtower deploys new _images_ but never ran the profile-gated `migrator`, so
   a release that added a table shipped code against an un-migrated DB until a
   human remembered to apply migrations (v0.10.0's `technical_daily` was missing
   for ~7h — api stayed green while the Technicals tab 500'd). The `api` service
@@ -28,14 +79,14 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   so SPX put skew made the recorded legs systematically too shallow (Δ~0.28 short
   / ~0.17 wing instead of 0.25 / 0.125) — the tracked strikes sat well above the
   legs you'd actually trade. Selection is now skew-aware: it brackets each target
-  in delta-space using each strike's *own* IV. The nightly
+  in delta-space using each strike's _own_ IV. The nightly
   `vrp_macro_entry_grid_refresh` caches the per-strike IV map alongside the strike
   grid (`vrp_macro_entry_grid.strike_ivs` JSONB, migration 103) so both the RTH
   auto-birth and the Capture button stay zero-extra-UW; a legacy grid without the
   IV map falls back to the old flat-vol path. To re-capture today on the corrected
   strikes, refresh the grid first (populates the IV map), then click Capture.
-## [0.10.0] — 2026-07-09
 
+## [0.10.0] — 2026-07-09
 
 ### Added
 
@@ -84,6 +135,7 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   healthcheck to a full GET (`wget -qO /dev/null`), which drains the body → zero
   such errors (verified live). Real user GETs were never affected. Also corrected
   the compose header container count (12 → 10).
+
 ## [0.9.1] — 2026-07-08
 
 ### Fixed

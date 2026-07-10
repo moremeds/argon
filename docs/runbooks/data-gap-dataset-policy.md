@@ -6,7 +6,7 @@ Generated from `REGISTRY` in `src/uw_scan/reports/data_gap_healer.py` (one sourc
 uv run python -c "from uw_scan.reports.data_gap_healer import render_dataset_policy_markdown as r; open('docs/runbooks/data-gap-dataset-policy.md','w').write(r())"
 ```
 
-**119 datasets** across 9 groups.
+**120 datasets** across 9 groups.
 
 ## core_watchlist
 
@@ -14,6 +14,7 @@ uv run python -c "from uw_scan.reports.data_gap_healer import render_dataset_pol
 |---|---|---|---|---|---|---|
 | daily_ohlc | strict_ticker_date | massive | per_ticker_range | daily_ohlc | equity_session |  |
 | intraday_quote | freshness_only | none | none |  | liveness |  |
+| technical_live | freshness_only | none | none |  | liveness |  |
 
 ## derived_volatility
 

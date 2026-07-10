@@ -373,6 +373,10 @@ class Settings(BaseModel):
     option_surface_iv_canary_warn_threshold: float = 0.02
     # Nightly technicals refresh (apex daily bars -> technical_daily, massive-0 18:40 ET).
     technicals_refresh_enabled: bool = True
+    # Live technicals coverage (WS-spot splice -> technical_live cache, massive-0).
+    technical_live_enabled: bool = False
+    technical_live_scan_interval_minutes: int = 5
+    technical_live_quote_max_age_seconds: int = 900
     # Nightly data gap healer (8pm ET, after UW quota reset). Only UW is capped.
     data_gap_healer_enabled: bool = False
     data_gap_healer_cron_et: str = (
@@ -846,6 +850,13 @@ class Settings(BaseModel):
             ),
             technicals_refresh_enabled=_env_bool(
                 "UW_SCAN_TECHNICALS_REFRESH_ENABLED", True
+            ),
+            technical_live_enabled=_env_bool("UW_SCAN_TECHNICAL_LIVE_ENABLED", False),
+            technical_live_scan_interval_minutes=int(
+                os.environ.get("TECHNICAL_LIVE_SCAN_INTERVAL_MINUTES", "5")
+            ),
+            technical_live_quote_max_age_seconds=int(
+                os.environ.get("TECHNICAL_LIVE_QUOTE_MAX_AGE_SECONDS", "900")
             ),
             data_gap_healer_enabled=_env_bool("DATA_GAP_HEALER_ENABLED", False),
             data_gap_healer_cron_et=os.environ.get(

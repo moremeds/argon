@@ -52,6 +52,21 @@ def test_refresh_writes_series_and_latest_detail(seeded_db_empty_cards, monkeypa
     assert len(trepo.fetch_series("NVDA")) == 400
 
 
+def test_refresh_warmup_buffer_fills_displayed_z(seeded_db_empty_cards, monkeypatch):
+    # With a deep-enough fetch, the displayed window (last 1300 rows) is fully
+    # warm: the first displayed z_vs_200dma is non-null (warmup fell off front).
+    repo = seeded_db_empty_cards
+    bars = _fake_bars(1650)
+    monkeypatch.setattr(
+        "uw_scan.worker.jobs.technical_daily_refresh.fetch_daily_bars",
+        lambda t, **kw: bars,
+    )
+    technical_daily_refresh(repo=repo, settings=_settings(), ticker_filter=["NVDA"])
+    rows = TechnicalsRepository(repo.conn).fetch_series("NVDA")
+    assert len(rows) == 1300  # fetch_series display cap
+    assert rows[0]["z_vs_200dma"] is not None  # first displayed row is warmed
+
+
 def test_refresh_skips_thin_history_and_survives_fetch_failure(
     seeded_db_empty_cards, monkeypatch
 ):

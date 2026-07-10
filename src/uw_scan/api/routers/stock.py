@@ -19,6 +19,7 @@ from uw_scan.models import (
     StockHistoryResponse,
     StockHistoryRow,
     StrikeGexBucket,
+    TechnicalsLiveResponse,
     TechnicalsResponse,
 )
 from uw_scan.reports.single_stock import assemble_single_stock_report
@@ -207,3 +208,77 @@ def get_stock_technicals(
     settings: Settings = Depends(get_settings),
 ) -> TechnicalsResponse:
     return assemble_technicals(ticker, repo, schema=settings.db_schema)
+
+
+@router.get("/stock/{ticker}/technicals/live", response_model=TechnicalsLiveResponse)
+def get_stock_technicals_live(
+    ticker: str,
+    repo: Repository = Depends(get_repo),
+    settings: Settings = Depends(get_settings),
+) -> TechnicalsLiveResponse:
+    from uw_scan.storage.technical_live_repository import TechnicalLiveRepository
+
+    t = ticker.upper()
+    row = TechnicalLiveRepository(repo.conn, schema=settings.db_schema).fetch(t)
+    if row is None:
+        return TechnicalsLiveResponse(ticker=t, available=False)
+    p = row["payload"]
+    return TechnicalsLiveResponse(
+        ticker=t,
+        available=True,
+        captured_at=row["captured_at"],
+        spot=row["spot"],
+        spot_source=row["spot_source"],
+        z=p.get("z"),
+        z_band=p.get("z_band"),
+        rsi14=p.get("rsi14"),
+        rsi_z=p.get("rsi_z"),
+        dual_macd=p.get("dual_macd"),
+        rv20=p.get("rv20"),
+        kinematics=p.get("kinematics"),
+        composite=p.get("composite"),
+    )
+
+
+# Session-scoped single-flight key, matching routers/volatility.py's convention.
+_TECHNICALS_REFRESH_LOCK_SQL = (
+    "('x' || substr(md5('technicals_refresh:' || %s), 1, 16))::bit(64)::bigint"
+)
+
+
+@router.post("/stock/{ticker}/technicals/refresh", response_model=TechnicalsResponse)
+def refresh_stock_technicals(
+    ticker: str,
+    repo: Repository = Depends(get_repo),
+    settings: Settings = Depends(get_settings),
+) -> TechnicalsResponse:
+    """On-demand EOD technicals compute for a ticker with no history yet.
+
+    Runs the same job the nightly refresh runs, scoped to one ticker, then
+    returns the freshly-stored series. Thin history / apex-unreachable leaves
+    ``backfill_status='empty'`` (nothing stored, nothing to render). Single-
+    flight per ticker via a session advisory lock: a concurrent compute (double
+    click, or overlap with the nightly job) returns the current state instead of
+    double-running the apex fetch + recompute.
+    """
+    # ponytail: the one deliberate write on this otherwise read-only router —
+    # user-triggered, idempotent, bounded (~2 apex fetches + pandas). Promote to
+    # a /jobs kind only if this ever needs to be async or batched.
+    from uw_scan.worker.jobs.technical_daily_refresh import technical_daily_refresh
+
+    t = ticker.upper()
+    with repo.conn.cursor() as cur:
+        cur.execute(
+            f"SELECT pg_try_advisory_lock({_TECHNICALS_REFRESH_LOCK_SQL})", (t,)
+        )
+        acquired = bool(cur.fetchone()[0])
+    if not acquired:
+        return assemble_technicals(t, repo, schema=settings.db_schema)
+    try:
+        technical_daily_refresh(repo=repo, settings=settings, ticker_filter=[t])
+        return assemble_technicals(t, repo, schema=settings.db_schema)
+    finally:
+        with repo.conn.cursor() as cur:
+            cur.execute(
+                f"SELECT pg_advisory_unlock({_TECHNICALS_REFRESH_LOCK_SQL})", (t,)
+            )

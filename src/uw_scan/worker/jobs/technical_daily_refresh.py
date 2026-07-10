@@ -55,6 +55,7 @@ def technical_daily_refresh(
                     "distribution",
                     "rsi",
                     "macd",
+                    "dual_macd",
                     "rs",
                 )
             }
@@ -67,6 +68,10 @@ def technical_daily_refresh(
             ok += 1
         except Exception as exc:
             failed += 1
+            # Clear any aborted transaction so the next ticker (and, for the
+            # on-demand endpoint, the follow-up read on this shared connection)
+            # isn't poisoned by "current transaction is aborted".
+            repo.conn.rollback()
             log.warning("technical_daily_refresh failed for %s: %s", t, repr(exc))
     summary = {
         "ok": ok,

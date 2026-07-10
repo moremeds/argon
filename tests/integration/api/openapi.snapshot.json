@@ -15584,6 +15584,149 @@
         "title": "TechnicalsHeader",
         "type": "object"
       },
+      "TechnicalsLiveResponse": {
+        "description": "Latest-only live technicals head (fast-moving subset recomputed off the\nWS spot). `available` is False when no fresh cache row exists \u2014 the client\nthen falls back to the EOD daily payload.",
+        "properties": {
+          "available": {
+            "title": "Available",
+            "type": "boolean"
+          },
+          "captured_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Captured At"
+          },
+          "composite": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Composite"
+          },
+          "dual_macd": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dual Macd"
+          },
+          "kinematics": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Kinematics"
+          },
+          "rsi14": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rsi14"
+          },
+          "rsi_z": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rsi Z"
+          },
+          "rv20": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rv20"
+          },
+          "spot": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Spot"
+          },
+          "spot_source": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Spot Source"
+          },
+          "ticker": {
+            "title": "Ticker",
+            "type": "string"
+          },
+          "z": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Z"
+          },
+          "z_band": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Z Band"
+          }
+        },
+        "required": [
+          "ticker",
+          "available"
+        ],
+        "title": "TechnicalsLiveResponse",
+        "type": "object"
+      },
       "TechnicalsResponse": {
         "properties": {
           "as_of": {
@@ -15702,6 +15845,17 @@
               }
             ],
             "title": "Close"
+          },
+          "fast_macd_hist_atr": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fast Macd Hist Atr"
           },
           "jerk20": {
             "anyOf": [
@@ -15856,6 +16010,17 @@
               }
             ],
             "title": "Skew60"
+          },
+          "slow_macd_hist_atr": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Slow Macd Hist Atr"
           },
           "sma20": {
             "anyOf": [
@@ -22736,7 +22901,7 @@
   },
   "info": {
     "title": "UW Watchlist API",
-    "version": "0.9.1"
+    "version": "0.10.1"
   },
   "openapi": "3.1.0",
   "paths": {
@@ -25483,6 +25648,91 @@
           }
         },
         "summary": "Get Stock Technicals",
+        "tags": [
+          "stock"
+        ]
+      }
+    },
+    "/api/stock/{ticker}/technicals/live": {
+      "get": {
+        "operationId": "get_stock_technicals_live_api_stock__ticker__technicals_live_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "ticker",
+            "required": true,
+            "schema": {
+              "title": "Ticker",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TechnicalsLiveResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Stock Technicals Live",
+        "tags": [
+          "stock"
+        ]
+      }
+    },
+    "/api/stock/{ticker}/technicals/refresh": {
+      "post": {
+        "description": "On-demand EOD technicals compute for a ticker with no history yet.\n\nRuns the same job the nightly refresh runs, scoped to one ticker, then\nreturns the freshly-stored series. Thin history / apex-unreachable leaves\n``backfill_status='empty'`` (nothing stored, nothing to render).",
+        "operationId": "refresh_stock_technicals_api_stock__ticker__technicals_refresh_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "ticker",
+            "required": true,
+            "schema": {
+              "title": "Ticker",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TechnicalsResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Refresh Stock Technicals",
         "tags": [
           "stock"
         ]

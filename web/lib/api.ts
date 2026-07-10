@@ -59,6 +59,10 @@ type VolatilitySeriesResponse = Json<
 >;
 type SkewAnalysisResponse = Json<"/api/stock/{ticker}/skew", "get">;
 type TechnicalsResponse = Json<"/api/stock/{ticker}/technicals", "get">;
+export type TechnicalsLiveResponse = Json<
+  "/api/stock/{ticker}/technicals/live",
+  "get"
+>;
 type TradeInsightsResponse = Json<"/api/stock/{ticker}/trade-insights", "get">;
 // Single-row response (used by GET /{analysis_id} and as the inner type of
 // /latest). The OpenAPI shape lives under `paths[...]/{analysis_id}/get`.
@@ -133,6 +137,12 @@ export const api = {
     _fetch<SkewAnalysisResponse>(`/api/stock/${ticker}/skew`),
   technicals: (ticker: string): Promise<TechnicalsResponse> =>
     _fetch<TechnicalsResponse>(`/api/stock/${ticker}/technicals`),
+  technicalsLive: (ticker: string): Promise<TechnicalsLiveResponse> =>
+    _fetch<TechnicalsLiveResponse>(`/api/stock/${ticker}/technicals/live`),
+  technicalsRefresh: (ticker: string): Promise<TechnicalsResponse> =>
+    _fetch<TechnicalsResponse>(`/api/stock/${ticker}/technicals/refresh`, {
+      method: "POST",
+    }),
   cockpitState: (
     ticker: string,
     asof?: string,

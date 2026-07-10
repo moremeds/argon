@@ -142,6 +142,7 @@ from .stock import (
 from .technicals import (
     ForwardReturnBandRow,
     TechnicalsHeader,
+    TechnicalsLiveResponse,
     TechnicalsResponse,
     TechnicalsSeriesRow,
 )
@@ -319,6 +320,7 @@ __all__ = [
     "TechnicalsSeriesRow",
     "ForwardReturnBandRow",
     "TechnicalsResponse",
+    "TechnicalsLiveResponse",
     "VolHeaderBlock",
     "TermStructureExpiryRow",
     "SmilePoint",

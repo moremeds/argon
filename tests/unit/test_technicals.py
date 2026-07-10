@@ -7,7 +7,6 @@ import math
 import numpy as np
 import pandas as pd
 import pytest
-
 from uw_scan.cards.technicals import (
     Z_BANDS,
     bars_frame,
@@ -127,10 +126,25 @@ def test_fit_sigmoid_on_synthetic_s_curve():
     assert out["phase"] == "SATURATED"
 
 
+def test_fit_sigmoid_exposes_fitted_curve_when_valid():
+    # A valid fit ships the actual segment + the fitted logistic so the UI can
+    # draw actual-vs-fit (no fabrication — these are the real fitted values).
+    t = np.arange(120, dtype=float)
+    closes = 100.0 + 100.0 / (1.0 + np.exp(-0.15 * (t - 60.0)))
+    out = fit_sigmoid(closes)
+    assert out["valid"] is True
+    assert out["actual"] == pytest.approx(closes.tolist(), abs=1e-6)
+    assert len(out["fit"]) == len(closes)
+    assert out["fit"][0] < out["fit"][-1]  # monotone rising fit
+
+
 def test_fit_sigmoid_rejects_linear_series():
     closes = np.array([100.0 + 0.5 * i for i in range(120)])
     out = fit_sigmoid(closes)
     assert out["valid"] is False  # beats-linear guard: no S-curve structure
+    # nothing to chart when the fit is rejected -> UI leaves the panel blank
+    assert out.get("fit") is None
+    assert out.get("actual") is None
 
 
 def test_fit_sigmoid_too_short():
@@ -240,6 +254,13 @@ def test_build_technical_snapshot_full():
         "slope_regime",
         "rsi14",
         "macd_hist_atr",
+        "fast_macd_hist_atr",
+        "slow_macd_hist_atr",
+        "fast_macd_delta",
+        "slow_macd_delta",
+        "fast_macd_delta2",
+        "fast_macd_norm",
+        "slow_macd_norm",
         "rv20",
         "rv20_z",
         "vol_of_vol",
