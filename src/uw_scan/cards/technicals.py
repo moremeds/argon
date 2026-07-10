@@ -753,3 +753,27 @@ def live_technical_snapshot(
             rsi_z=rsi_d.get("rsi_z"),
         ),
     }
+
+
+def anchored_vwap(rows: list[Mapping[str, Any]], anchor_date: date) -> list[dict]:
+    """Anchored VWAP over per-session OHLCV rows (sorted ascending by as_of).
+
+    typical = (H+L+C)/3; vwap_i = Σ(typical·volume)/Σ(volume) over bars at or
+    after ``anchor_date``. Bars missing H/L/C or volume (or volume == 0) add
+    nothing to the sums — the prior VWAP carries forward; bars before the
+    first volume-bearing bar emit nothing.
+    """
+    pv = 0.0
+    vol = 0.0
+    out: list[dict] = []
+    for r in rows:
+        as_of = r.get("as_of")
+        if as_of is None or as_of < anchor_date:
+            continue
+        h, lo, c, v = r.get("high"), r.get("low"), r.get("close"), r.get("volume")
+        if h is not None and lo is not None and c is not None and v:
+            pv += (float(h) + float(lo) + float(c)) / 3.0 * float(v)
+            vol += float(v)
+        if vol > 0:
+            out.append({"as_of": as_of, "vwap": pv / vol})
+    return out
