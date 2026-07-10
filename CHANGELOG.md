@@ -7,6 +7,9 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+## [0.10.2] — 2026-07-10
+
+
 ### Added
 
 - **Dual MACD on the Technicals tab** — replaces the single MACD histogram with a
@@ -58,7 +61,6 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   every date-axis chart below at once (a pure client-side slice of the series
   already in the payload — no extra fetch). The return-distribution panel keeps
   its own fixed 60d sample (it's a shape, not a date-axis graph the window pans).
-
 ## [0.10.1] — 2026-07-09
 
 ### Fixed
