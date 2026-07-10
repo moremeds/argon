@@ -10,7 +10,7 @@ type Row = TechnicalsResponse["forward_returns"][number];
 const HEADLINE_HORIZON = 40;
 
 export function ForwardReturnTable({ data }: { data: TechnicalsResponse }) {
-  const [showAll, setShowAll] = useState(false);
+  const [showAll, setShowAll] = useState(true);
   const rows = data.forward_returns ?? [];
   const currentBand = data.header?.z_band ?? null;
   const horizons = showAll ? [20, 40, 60] : [HEADLINE_HORIZON];
@@ -82,12 +82,45 @@ export function ForwardReturnTable({ data }: { data: TechnicalsResponse }) {
       <div style={{ overflowX: "auto" }}>
         <table style={{ width: "100%", borderCollapse: "collapse" }}>
           <thead>
+            {/* Row 1: horizon group label centered over its 4 columns.
+                Row 2: per-column sub-headers, right-aligned to match the data
+                cells so each label sits directly over its column. */}
             <tr>
-              <th style={{ ...th, textAlign: "left" }}>Band</th>
-              {horizons.map((hz) => (
-                <th key={hz} style={th} colSpan={4}>
-                  {hz}d — N · Mean · Med · Win%
+              <th style={{ ...th, textAlign: "left" }} rowSpan={2}>
+                Band
+              </th>
+              {horizons.map((hz, gi) => (
+                <th
+                  key={hz}
+                  style={{
+                    ...th,
+                    textAlign: "center",
+                    color: "var(--text-secondary)",
+                    borderLeft:
+                      gi > 0 ? "1px solid var(--border-dim)" : undefined,
+                  }}
+                  colSpan={4}
+                >
+                  {hz}d
                 </th>
+              ))}
+            </tr>
+            <tr>
+              {horizons.map((hz, gi) => (
+                <Fragment key={hz}>
+                  <th
+                    style={{
+                      ...th,
+                      borderLeft:
+                        gi > 0 ? "1px solid var(--border-dim)" : undefined,
+                    }}
+                  >
+                    N
+                  </th>
+                  <th style={th}>Mean</th>
+                  <th style={th}>Med</th>
+                  <th style={th}>Win%</th>
+                </Fragment>
               ))}
             </tr>
           </thead>
@@ -118,11 +151,17 @@ export function ForwardReturnTable({ data }: { data: TechnicalsResponse }) {
                   >
                     {band}
                   </td>
-                  {horizons.map((hz) => {
+                  {horizons.map((hz, gi) => {
+                    const groupBorder =
+                      gi > 0 ? "1px solid var(--border-dim)" : undefined;
                     const r = byBand.get(band)?.get(hz);
                     if (!r) {
                       return (
-                        <td key={hz} style={td} colSpan={4}>
+                        <td
+                          key={hz}
+                          style={{ ...td, borderLeft: groupBorder }}
+                          colSpan={4}
+                        >
                           —
                         </td>
                       );
@@ -135,7 +174,9 @@ export function ForwardReturnTable({ data }: { data: TechnicalsResponse }) {
                           : "var(--text-primary)";
                     return (
                       <Fragment key={hz}>
-                        <td style={td}>{r.count}</td>
+                        <td style={{ ...td, borderLeft: groupBorder }}>
+                          {r.count}
+                        </td>
                         <td
                           style={{
                             ...td,

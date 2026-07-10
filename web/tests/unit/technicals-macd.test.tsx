@@ -29,4 +29,10 @@ describe("TechnicalsMacdChart", () => {
     // in the explanatory prose, so match the badge's signal+confidence shape).
     expect(getByText(/DIP_BUY · conf/)).toBeTruthy();
   });
+
+  it("labels which histogram is the slow/structural vs fast/tactical trend", () => {
+    const { getByText } = render(<TechnicalsMacdChart data={data} />);
+    expect(getByText(/SLOW 55\/89\/34 · structural/i)).toBeTruthy();
+    expect(getByText(/FAST 13\/21\/9 · tactical/i)).toBeTruthy();
+  });
 });
