@@ -53,18 +53,18 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   instead of a fixed formula that could read as the false "0.31 ≤ 0.05 + 0.05",
   and gains a how-to-read guide explaining the S-curve, phases, and k/s/R². The
   anchor price chart is now pinned at the top of the stack (out of the reorderable
-  set — it's the date-axis alignment reference) and carries a timeframe selector
-  next to its date badge: FULL (5Y) / YTD / 3M / MTD windows every date-axis chart
-  below at once (a pure client-side slice of the series already in the payload —
-  no extra fetch).
+  set — it's the date-axis alignment reference) and carries a theme-styled
+  timeframe selector next to its date badge: FULL (5Y) / 1Y / YTD / 3M windows
+  every date-axis chart below at once (a pure client-side slice of the series
+  already in the payload — no extra fetch). The return-distribution panel keeps
+  its own fixed 60d sample (it's a shape, not a date-axis graph the window pans).
 
 ## [0.10.1] — 2026-07-09
-
 
 ### Fixed
 
 - **Schema-bearing releases now auto-migrate on deploy.** The engine-wide
-  Watchtower deploys new *images* but never ran the profile-gated `migrator`, so
+  Watchtower deploys new _images_ but never ran the profile-gated `migrator`, so
   a release that added a table shipped code against an un-migrated DB until a
   human remembered to apply migrations (v0.10.0's `technical_daily` was missing
   for ~7h — api stayed green while the Technicals tab 500'd). The `api` service
@@ -79,14 +79,14 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   so SPX put skew made the recorded legs systematically too shallow (Δ~0.28 short
   / ~0.17 wing instead of 0.25 / 0.125) — the tracked strikes sat well above the
   legs you'd actually trade. Selection is now skew-aware: it brackets each target
-  in delta-space using each strike's *own* IV. The nightly
+  in delta-space using each strike's _own_ IV. The nightly
   `vrp_macro_entry_grid_refresh` caches the per-strike IV map alongside the strike
   grid (`vrp_macro_entry_grid.strike_ivs` JSONB, migration 103) so both the RTH
   auto-birth and the Capture button stay zero-extra-UW; a legacy grid without the
   IV map falls back to the old flat-vol path. To re-capture today on the corrected
   strikes, refresh the grid first (populates the IV map), then click Capture.
-## [0.10.0] — 2026-07-09
 
+## [0.10.0] — 2026-07-09
 
 ### Added
 
@@ -135,6 +135,7 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   healthcheck to a full GET (`wget -qO /dev/null`), which drains the body → zero
   such errors (verified live). Real user GETs were never affected. Also corrected
   the compose header container count (12 → 10).
+
 ## [0.9.1] — 2026-07-08
 
 ### Fixed

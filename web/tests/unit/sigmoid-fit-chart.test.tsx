@@ -77,4 +77,12 @@ describe("sigmoidRejectReason", () => {
   it("reports missing history when R² is absent", () => {
     expect(sigmoidRejectReason(null, null)).toMatch(/not enough/i);
   });
+
+  it("stays generic (no false k-clause blame) when r2_linear is null", () => {
+    // r2_sig ≥ 0.80 but the beats-linear clause is unevaluable — must NOT assert
+    // the curve "bends the wrong way", which we can't confirm.
+    const r = sigmoidRejectReason(0.9, null);
+    expect(r).not.toMatch(/wrong way/i);
+    expect(r).toMatch(/doesn't clear the bar|plain trend/i);
+  });
 });

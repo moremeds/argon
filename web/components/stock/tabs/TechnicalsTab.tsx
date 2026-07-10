@@ -28,13 +28,13 @@ type State = {
   error: string | null;
 };
 
-export type Timeframe = "full" | "ytd" | "3m" | "mtd";
+export type Timeframe = "full" | "1y" | "ytd" | "3m";
 
 const TIMEFRAME_OPTIONS: { value: Timeframe; label: string }[] = [
   { value: "full", label: "FULL (5Y)" },
+  { value: "1y", label: "1Y" },
   { value: "ytd", label: "YTD" },
   { value: "3m", label: "3M" },
-  { value: "mtd", label: "MTD" },
 ];
 
 // Window the daily series to a timeframe. Anchored on the LAST bar's date (not
@@ -49,13 +49,23 @@ export function sliceSeriesByTimeframe<T extends { as_of?: string | null }>(
   timeframe: Timeframe,
 ): T[] {
   if (timeframe === "full" || series.length === 0) return series;
-  const last = series[series.length - 1]?.as_of;
+  // Anchor on the last row that actually has a date — not blindly the last row,
+  // which could be a spliced head with a null as_of (would else fall back to the
+  // unsliced full series and silently ignore the selector).
+  let last: string | null | undefined;
+  for (let i = series.length - 1; i >= 0; i--) {
+    if (series[i]?.as_of) {
+      last = series[i]!.as_of;
+      break;
+    }
+  }
   if (!last) return series;
   let cutoff: string;
   if (timeframe === "ytd") {
     cutoff = `${last.slice(0, 4)}-01-01`;
-  } else if (timeframe === "mtd") {
-    cutoff = `${last.slice(0, 7)}-01`;
+  } else if (timeframe === "1y") {
+    // Same day, previous year — MM-DD carried verbatim (no month arithmetic).
+    cutoff = `${Number(last.slice(0, 4)) - 1}${last.slice(4)}`;
   } else {
     const [y, m] = last.split("-").map(Number);
     const months = y * 12 + (m - 1) - 3; // 3 calendar months back, in month-space
@@ -73,29 +83,65 @@ function TimeframeSelect({
   value: Timeframe;
   onChange: (t: Timeframe) => void;
 }) {
+  // Native <select> with the OS chrome stripped (appearance:none) + a themed
+  // caret, so the closed control matches the Argon terminal look.
+  // ponytail: the opened option list is still OS-rendered — fully theming it
+  // needs a custom listbox widget, not worth it for a 4-item picker.
   return (
-    <select
-      aria-label="Chart timeframe"
-      value={value}
-      onChange={(e) => onChange(e.target.value as Timeframe)}
+    <span
       style={{
-        fontFamily: "var(--font-mono)",
-        fontSize: 11,
-        letterSpacing: 1,
-        color: "var(--text-secondary)",
-        background: "var(--bg-panel)",
-        border: "1px solid var(--border-dim)",
-        borderRadius: 4,
-        padding: "2px 6px",
-        cursor: "pointer",
+        position: "relative",
+        display: "inline-flex",
+        alignItems: "center",
       }}
     >
-      {TIMEFRAME_OPTIONS.map((o) => (
-        <option key={o.value} value={o.value}>
-          {o.label}
-        </option>
-      ))}
-    </select>
+      <select
+        aria-label="Chart timeframe"
+        value={value}
+        onChange={(e) => onChange(e.target.value as Timeframe)}
+        style={{
+          appearance: "none",
+          WebkitAppearance: "none",
+          MozAppearance: "none",
+          fontFamily: "var(--font-mono)",
+          fontSize: 11,
+          letterSpacing: 1,
+          textTransform: "uppercase",
+          color: "var(--text-secondary)",
+          background: "var(--bg-panel-raised)",
+          border: "1px solid var(--border-dim)",
+          borderRadius: 4,
+          padding: "3px 20px 3px 8px",
+          cursor: "pointer",
+          outline: "none",
+        }}
+      >
+        {TIMEFRAME_OPTIONS.map((o) => (
+          <option
+            key={o.value}
+            value={o.value}
+            style={{
+              background: "var(--bg-panel)",
+              color: "var(--text-primary)",
+            }}
+          >
+            {o.label}
+          </option>
+        ))}
+      </select>
+      <span
+        aria-hidden
+        style={{
+          position: "absolute",
+          right: 7,
+          fontSize: 7,
+          color: "var(--text-muted)",
+          pointerEvents: "none",
+        }}
+      >
+        ▼
+      </span>
+    </span>
   );
 }
 
@@ -259,7 +305,9 @@ export function TechnicalsTab({ ticker }: { ticker: string }) {
     { id: "rsi", node: <TechnicalsRsiChart data={view} /> },
     { id: "macd", node: <TechnicalsMacdChart data={view} /> },
     { id: "vol", node: <TechnicalsVolChart data={view} /> },
-    { id: "return-hist", node: <ReturnHistogram data={view} /> },
+    // The return distribution is a shape over its own fixed 60d sample, not a
+    // date-axis graph the timeframe should pan — keep it on full data.
+    { id: "return-hist", node: <ReturnHistogram data={data} /> },
     { id: "kinematics", node: <TechnicalsKinematicsChart data={view} /> },
     { id: "rs", node: <TechnicalsRsChart data={view} /> },
     { id: "forward-returns", node: <ForwardReturnTable data={view} /> },

@@ -74,7 +74,11 @@ export function sigmoidRejectReason(
     return "not enough clean history since the last pivot to fit a curve";
   if (r2Sig < 0.8)
     return `the move is too choppy for a clean S-curve — the fit explains only ${pct(r2Sig)} of it (an S-curve needs ≥ 80%)`;
-  if (r2Lin != null && r2Sig < r2Lin + 0.05)
+  // Without r2_linear we can't tell the beats-linear clause from the k clause —
+  // so don't assert either; stay generic rather than blame the wrong one.
+  if (r2Lin == null)
+    return "the S-curve doesn't clear the bar over a plain trend line";
+  if (r2Sig < r2Lin + 0.05)
     return `a straight line already explains it about as well (S-curve ${pct(r2Sig)} vs linear ${pct(r2Lin)}) — the trend is roughly linear, not an S`;
   return "the fitted curve bends the wrong way (decelerating into the pivot)";
 }
