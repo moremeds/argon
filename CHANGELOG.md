@@ -51,7 +51,12 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   panel's rejection message now names the clause that actually failed (fit too
   weak vs. no better than a straight line vs. curve pointing the wrong way)
   instead of a fixed formula that could read as the false "0.31 ≤ 0.05 + 0.05",
-  and gains a how-to-read guide explaining the S-curve, phases, and k/s/R².
+  and gains a how-to-read guide explaining the S-curve, phases, and k/s/R². The
+  anchor price chart is now pinned at the top of the stack (out of the reorderable
+  set — it's the date-axis alignment reference) and carries a timeframe selector
+  next to its date badge: FULL (5Y) / YTD / 3M / MTD windows every date-axis chart
+  below at once (a pure client-side slice of the series already in the payload —
+  no extra fetch).
 
 ## [0.10.1] — 2026-07-09
 

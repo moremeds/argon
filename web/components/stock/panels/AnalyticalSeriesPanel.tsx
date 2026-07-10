@@ -8,7 +8,7 @@ export function AnalyticalSeriesPanel({
 }: {
   title: string;
   subtitle?: string;
-  headline?: string;
+  headline?: ReactNode;
   children: ReactNode;
 }) {
   return (

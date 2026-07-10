@@ -28,6 +28,77 @@ type State = {
   error: string | null;
 };
 
+export type Timeframe = "full" | "ytd" | "3m" | "mtd";
+
+const TIMEFRAME_OPTIONS: { value: Timeframe; label: string }[] = [
+  { value: "full", label: "FULL (5Y)" },
+  { value: "ytd", label: "YTD" },
+  { value: "3m", label: "3M" },
+  { value: "mtd", label: "MTD" },
+];
+
+// Window the daily series to a timeframe. Anchored on the LAST bar's date (not
+// wall-clock now) so a stale/weekend payload never yields an empty window. ISO
+// date strings compare lexically === chronologically, so the cutoff is a plain
+// string >= test — no Date parsing, no timezone. 'full' returns the input as-is.
+// ponytail: 3m month-end anchors (e.g. -3mo of the 31st) land on a non-existent
+// day and drop a day or two at the boundary — invisible on a chart, not worth
+// clamping.
+export function sliceSeriesByTimeframe<T extends { as_of?: string | null }>(
+  series: T[],
+  timeframe: Timeframe,
+): T[] {
+  if (timeframe === "full" || series.length === 0) return series;
+  const last = series[series.length - 1]?.as_of;
+  if (!last) return series;
+  let cutoff: string;
+  if (timeframe === "ytd") {
+    cutoff = `${last.slice(0, 4)}-01-01`;
+  } else if (timeframe === "mtd") {
+    cutoff = `${last.slice(0, 7)}-01`;
+  } else {
+    const [y, m] = last.split("-").map(Number);
+    const months = y * 12 + (m - 1) - 3; // 3 calendar months back, in month-space
+    const cy = Math.floor(months / 12);
+    const cm = (months % 12) + 1;
+    cutoff = `${cy}-${String(cm).padStart(2, "0")}-${last.slice(8, 10)}`;
+  }
+  return series.filter((r) => (r.as_of ?? "") >= cutoff);
+}
+
+function TimeframeSelect({
+  value,
+  onChange,
+}: {
+  value: Timeframe;
+  onChange: (t: Timeframe) => void;
+}) {
+  return (
+    <select
+      aria-label="Chart timeframe"
+      value={value}
+      onChange={(e) => onChange(e.target.value as Timeframe)}
+      style={{
+        fontFamily: "var(--font-mono)",
+        fontSize: 11,
+        letterSpacing: 1,
+        color: "var(--text-secondary)",
+        background: "var(--bg-panel)",
+        border: "1px solid var(--border-dim)",
+        borderRadius: 4,
+        padding: "2px 6px",
+        cursor: "pointer",
+      }}
+    >
+      {TIMEFRAME_OPTIONS.map((o) => (
+        <option key={o.value} value={o.value}>
+          {o.label}
+        </option>
+      ))}
+    </select>
+  );
+}
+
 // Client-side freshness gate — mirrors the server's default
 // TECHNICAL_LIVE_QUOTE_MAX_AGE_SECONDS (900). Beyond this the live head is
 // dropped and the EOD daily payload stands.
@@ -103,6 +174,7 @@ export function TechnicalsTab({ ticker }: { ticker: string }) {
     error: null,
   });
   const [live, setLive] = useState<TechnicalsLiveResponse | null>(null);
+  const [timeframe, setTimeframe] = useState<Timeframe>("full");
 
   useEffect(() => {
     let cancelled = false;
@@ -145,6 +217,8 @@ export function TechnicalsTab({ ticker }: { ticker: string }) {
   const error = ready ? state.error : null;
   const baseData = ready ? state.data : null;
   const liveForTicker = live?.ticker === ticker ? live : null;
+  // Full merged payload drives header chrome; the charts below get a windowed
+  // view (same rows, sliced by the timeframe selector).
   const data = baseData ? mergeLiveHead(baseData, liveForTicker) : null;
 
   if (error) {
@@ -169,32 +243,46 @@ export function TechnicalsTab({ ticker }: { ticker: string }) {
       />
     );
   }
-  // Reorderable chart stack. The KPI strip stays pinned as header chrome; the
-  // charts below can be dragged into any order (persisted per-browser).
+  // Windowed view of the daily series — every date-axis chart re-ranges to the
+  // selected timeframe. Detail/forward-return panels read latest-only fields, so
+  // slicing leaves them unchanged (correct — they're not date-axis graphs).
+  const view: TechnicalsResponse = {
+    ...data,
+    series: sliceSeriesByTimeframe(data.series ?? [], timeframe),
+  };
+
+  // The anchor (price) chart is PINNED at the top — it carries the timeframe
+  // selector and its date axis is the alignment reference, so it never moves.
+  // The oscillator/detail stack below stays reorderable (persisted per-browser).
   const chartItems: ReorderItem[] = [
-    { id: "anchor", node: <TechnicalsAnchorChart data={data} /> },
-    { id: "z", node: <TechnicalsZChart data={data} /> },
-    { id: "rsi", node: <TechnicalsRsiChart data={data} /> },
-    { id: "macd", node: <TechnicalsMacdChart data={data} /> },
-    { id: "vol", node: <TechnicalsVolChart data={data} /> },
-    { id: "return-hist", node: <ReturnHistogram data={data} /> },
-    { id: "kinematics", node: <TechnicalsKinematicsChart data={data} /> },
-    { id: "rs", node: <TechnicalsRsChart data={data} /> },
-    { id: "forward-returns", node: <ForwardReturnTable data={data} /> },
-    { id: "detail", node: <TechnicalsDetailPanels data={data} /> },
+    { id: "z", node: <TechnicalsZChart data={view} /> },
+    { id: "rsi", node: <TechnicalsRsiChart data={view} /> },
+    { id: "macd", node: <TechnicalsMacdChart data={view} /> },
+    { id: "vol", node: <TechnicalsVolChart data={view} /> },
+    { id: "return-hist", node: <ReturnHistogram data={view} /> },
+    { id: "kinematics", node: <TechnicalsKinematicsChart data={view} /> },
+    { id: "rs", node: <TechnicalsRsChart data={view} /> },
+    { id: "forward-returns", node: <ForwardReturnTable data={view} /> },
+    { id: "detail", node: <TechnicalsDetailPanels data={view} /> },
   ];
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
       {/* The LIVE/EOD marker lives in the Price tile (see TechnicalsKpiStrip) —
-          no separate page-level badge. */}
+          no separate page-level badge. KPI strip stays on full data. */}
       <TechnicalsKpiStrip
         data={data}
         live={liveForTicker}
         maxAgeSec={LIVE_MAX_AGE_SEC}
       />
-      {/* Aligned stack: price on top, oscillators share its date axis below.
-          Drag the ⠿ handle on any chart to reorder. */}
+      {/* Pinned anchor: timeframe selector sits next to the date; the whole
+          stack below re-ranges to it. */}
+      <TechnicalsAnchorChart
+        data={view}
+        control={<TimeframeSelect value={timeframe} onChange={setTimeframe} />}
+      />
+      {/* Aligned stack: oscillators share the anchor's date axis. Drag any row
+          to reorder. */}
       <ReorderableList items={chartItems} storageKey="technicals:chartOrder" />
     </div>
   );
