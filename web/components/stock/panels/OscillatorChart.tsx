@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import {
   finiteDomain,
   linearScale,
@@ -48,10 +49,11 @@ export function OscillatorChart({
   unit = "",
   refLines = [],
   zones = [],
+  shadeBelowZero = false,
 }: {
   title: string;
   subtitle?: string;
-  headline?: string;
+  headline?: ReactNode;
   explanation?: string;
   dates: Array<string | null | undefined>;
   lines?: ChartLine[];
@@ -66,6 +68,9 @@ export function OscillatorChart({
   unit?: string;
   refLines?: RefLine[];
   zones?: Zone[];
+  // Tint everything below the y=0 line (a "downtrend zone"): where a slope
+  // dips under zero it's falling. Domain-independent — clamps to the plot.
+  shadeBelowZero?: boolean;
 }) {
   const H = height;
   const n = dates.length;
@@ -91,6 +96,8 @@ export function OscillatorChart({
   const y = linearScale([dom.lo - pad, dom.hi + pad], [H - CPAD.b, CPAD.t]);
   const ticks = niceTicks(dom.lo, dom.hi, 4);
   const barW = Math.max(1, ((CW - CPAD.l - CPAD.r) / Math.max(1, n)) * 0.85);
+  const floorY = H - CPAD.b;
+  const zeroY = Math.max(CPAD.t, Math.min(floorY, y(0)));
 
   return (
     <AnalyticalSeriesPanel
@@ -105,6 +112,16 @@ export function OscillatorChart({
         style={{ display: "block" }}
       >
         <title>{title}</title>
+        {shadeBelowZero && floorY > zeroY && (
+          <rect
+            x={CPAD.l}
+            y={zeroY}
+            width={CW - CPAD.r - CPAD.l}
+            height={floorY - zeroY}
+            fill="var(--negative)"
+            opacity={0.08}
+          />
+        )}
         {zones.map((z, i) => (
           <rect
             key={`z${i}`}

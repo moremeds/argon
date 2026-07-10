@@ -278,7 +278,7 @@ export function TechnicalsTab({ ticker }: { ticker: string }) {
     error: null,
   });
   const [live, setLive] = useState<TechnicalsLiveResponse | null>(null);
-  const [timeframe, setTimeframe] = useState<Timeframe>("full");
+  const [timeframe, setTimeframe] = useState<Timeframe>("1y");
 
   useEffect(() => {
     let cancelled = false;
@@ -359,14 +359,14 @@ export function TechnicalsTab({ ticker }: { ticker: string }) {
   // selector and its date axis is the alignment reference, so it never moves.
   // The oscillator/detail stack below stays reorderable (persisted per-browser).
   const chartItems: ReorderItem[] = [
+    { id: "macd", node: <TechnicalsMacdChart data={view} /> },
+    { id: "kinematics", node: <TechnicalsKinematicsChart data={view} /> },
     { id: "z", node: <TechnicalsZChart data={view} /> },
     { id: "rsi", node: <TechnicalsRsiChart data={view} /> },
-    { id: "macd", node: <TechnicalsMacdChart data={view} /> },
     { id: "vol", node: <TechnicalsVolChart data={view} /> },
     // The return distribution is a shape over its own fixed 60d sample, not a
     // date-axis graph the timeframe should pan — keep it on full data.
     { id: "return-hist", node: <ReturnHistogram data={data} /> },
-    { id: "kinematics", node: <TechnicalsKinematicsChart data={view} /> },
     { id: "rs", node: <TechnicalsRsChart data={view} /> },
     { id: "forward-returns", node: <ForwardReturnTable data={view} /> },
     { id: "detail", node: <TechnicalsDetailPanels data={view} /> },
@@ -389,7 +389,13 @@ export function TechnicalsTab({ ticker }: { ticker: string }) {
       />
       {/* Aligned stack: oscillators share the anchor's date axis. Drag any row
           to reorder. */}
-      <ReorderableList items={chartItems} storageKey="technicals:chartOrder" />
+      {/* key bumped to :v2 so the new macd-first / kinematics-second default
+          supersedes any order saved under the original key (the reorder
+          feature is <1 day old — no meaningful saved arrangements to preserve). */}
+      <ReorderableList
+        items={chartItems}
+        storageKey="technicals:chartOrder:v2"
+      />
     </div>
   );
 }
