@@ -7,6 +7,9 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+## [0.10.3] — 2026-07-10
+
+
 ### Changed
 
 - **Technicals tab UI refinements** — the chart timeframe now defaults to **1Y**
@@ -22,7 +25,6 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   `MIXED ALIGN 0/3` (muted) — instead of a sign-agnostic `ALIGN ±n/3`, so a
   bearish stack reads red at a glance (`OscillatorChart`'s `headline` widened to
   `ReactNode` to carry the colored label).
-
 ## [0.10.2] — 2026-07-10
 
 ### Added
