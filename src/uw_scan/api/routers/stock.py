@@ -240,6 +240,12 @@ def get_stock_technicals_live(
     )
 
 
+# Session-scoped single-flight key, matching routers/volatility.py's convention.
+_TECHNICALS_REFRESH_LOCK_SQL = (
+    "('x' || substr(md5('technicals_refresh:' || %s), 1, 16))::bit(64)::bigint"
+)
+
+
 @router.post("/stock/{ticker}/technicals/refresh", response_model=TechnicalsResponse)
 def refresh_stock_technicals(
     ticker: str,
@@ -250,7 +256,10 @@ def refresh_stock_technicals(
 
     Runs the same job the nightly refresh runs, scoped to one ticker, then
     returns the freshly-stored series. Thin history / apex-unreachable leaves
-    ``backfill_status='empty'`` (nothing stored, nothing to render).
+    ``backfill_status='empty'`` (nothing stored, nothing to render). Single-
+    flight per ticker via a session advisory lock: a concurrent compute (double
+    click, or overlap with the nightly job) returns the current state instead of
+    double-running the apex fetch + recompute.
     """
     # ponytail: the one deliberate write on this otherwise read-only router —
     # user-triggered, idempotent, bounded (~2 apex fetches + pandas). Promote to
@@ -258,5 +267,18 @@ def refresh_stock_technicals(
     from uw_scan.worker.jobs.technical_daily_refresh import technical_daily_refresh
 
     t = ticker.upper()
-    technical_daily_refresh(repo=repo, settings=settings, ticker_filter=[t])
-    return assemble_technicals(t, repo, schema=settings.db_schema)
+    with repo.conn.cursor() as cur:
+        cur.execute(
+            f"SELECT pg_try_advisory_lock({_TECHNICALS_REFRESH_LOCK_SQL})", (t,)
+        )
+        acquired = bool(cur.fetchone()[0])
+    if not acquired:
+        return assemble_technicals(t, repo, schema=settings.db_schema)
+    try:
+        technical_daily_refresh(repo=repo, settings=settings, ticker_filter=[t])
+        return assemble_technicals(t, repo, schema=settings.db_schema)
+    finally:
+        with repo.conn.cursor() as cur:
+            cur.execute(
+                f"SELECT pg_advisory_unlock({_TECHNICALS_REFRESH_LOCK_SQL})", (t,)
+            )

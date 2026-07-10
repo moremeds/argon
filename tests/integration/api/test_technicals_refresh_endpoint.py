@@ -63,3 +63,49 @@ def test_refresh_endpoint_thin_history_stays_empty(
 
     assert resp.status_code == 200
     assert resp.json()["backfill_status"] == "empty"
+
+
+def test_refresh_endpoint_survives_midjob_write_failure(
+    client, seeded_db_empty_cards, monkeypatch
+):
+    # If the detail write raises AFTER upsert_series has committed, the per-ticker
+    # except must rollback so the shared request connection isn't left in an
+    # aborted-transaction state — otherwise the follow-up read 500s.
+    from uw_scan.storage.technicals_repository import TechnicalsRepository
+
+    monkeypatch.setattr(tdr_mod, "fetch_daily_bars", lambda t, **k: _ramp_bars())
+
+    def boom(self, *a, **k):
+        # A real mid-statement DB error aborts the psycopg transaction (unlike a
+        # plain Python raise, which leaves the connection usable).
+        with self._conn.cursor() as cur:
+            cur.execute("SELECT 1 / 0")
+
+    monkeypatch.setattr(TechnicalsRepository, "set_latest_detail", boom)
+    resp = client.post("/api/stock/IWM/technicals/refresh")
+
+    assert resp.status_code == 200  # graceful, not a 500 from an aborted txn
+
+
+_LOCK_SQL = "('x' || substr(md5('technicals_refresh:' || %s), 1, 16))::bit(64)::bigint"
+
+
+def test_refresh_endpoint_single_flight(client, seeded_db_empty_cards, monkeypatch):
+    # A concurrent compute for the same ticker (lock held on another session)
+    # must short-circuit — no duplicate apex fetch / redundant recompute.
+    called: list[str] = []
+    monkeypatch.setattr(
+        tdr_mod, "fetch_daily_bars", lambda t, **k: called.append(t) or _ramp_bars()
+    )
+    conn = seeded_db_empty_cards.conn
+    with conn.cursor() as cur:
+        cur.execute(f"SELECT pg_try_advisory_lock({_LOCK_SQL})", ("IWM",))
+        assert cur.fetchone()[0] is True
+    try:
+        resp = client.post("/api/stock/IWM/technicals/refresh")
+        assert resp.status_code == 200
+        assert resp.json()["backfill_status"] == "empty"  # did not recompute
+        assert called == []  # technical_daily_refresh never ran
+    finally:
+        with conn.cursor() as cur:
+            cur.execute(f"SELECT pg_advisory_unlock({_LOCK_SQL})", ("IWM",))

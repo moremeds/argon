@@ -7,6 +7,7 @@ from __future__ import annotations
 import logging
 from datetime import datetime, timezone
 from typing import Any
+from zoneinfo import ZoneInfo
 
 import pandas as pd
 
@@ -30,6 +31,7 @@ def technical_live_scan(
 ) -> dict[str, Any]:
     now = now or datetime.now(timezone.utc)
     max_age = settings.technical_live_quote_max_age_seconds
+    today_et = now.astimezone(ZoneInfo(settings.rth_tz)).date()
     trepo = TechnicalsRepository(repo.conn, schema=settings.db_schema)
     live = TechnicalLiveRepository(repo.conn, schema=settings.db_schema)
 
@@ -47,6 +49,10 @@ def technical_live_scan(
                 skipped_stale += 1
                 continue
             rows = trepo.fetch_series(t)
+            # If the nightly already wrote today's EOD row, drop it: the live
+            # spot IS today's provisional bar, so keeping both double-counts the
+            # session (distorts z / RSI / MACD until the next nightly).
+            rows = [r for r in rows if r["as_of"] != today_et]
             if len(rows) < _MIN_BARS:
                 skipped_thin += 1
                 continue
