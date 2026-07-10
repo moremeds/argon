@@ -39,4 +39,10 @@ describe("TechnicalsKinematicsChart (blended trend)", () => {
     expect(getByText(/SMA200.*276/)).toBeTruthy(); // 275.6 -> t 276
     expect(getByText(/SMA50.*1\.1/)).toBeTruthy();
   });
+
+  it("adds a plain-English reading of the current slopes", () => {
+    // sma20 +14.2 & sma200 +275.6 are significant & rising; sma50 weak.
+    const { getByText } = render(<TechnicalsKinematicsChart data={data} />);
+    expect(getByText(/Reading:.*rising.*uptrend/i)).toBeTruthy();
+  });
 });

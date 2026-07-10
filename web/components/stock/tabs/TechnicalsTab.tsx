@@ -9,7 +9,6 @@ import {
 import { TechnicalsKpiStrip } from "../panels/TechnicalsKpiStrip";
 import { TechnicalsAnchorChart } from "../panels/TechnicalsAnchorChart";
 import { TechnicalsEmptyState } from "../panels/TechnicalsEmptyState";
-import { LiveBadge } from "../panels/LiveBadge";
 import {
   TechnicalsKinematicsChart,
   TechnicalsMacdChart,
@@ -21,6 +20,7 @@ import {
 import { ForwardReturnTable } from "../panels/ForwardReturnTable";
 import { ReturnHistogram } from "../panels/ReturnHistogram";
 import { TechnicalsDetailPanels } from "../panels/TechnicalsDetailPanels";
+import { ReorderableList, type ReorderItem } from "../panels/ReorderableList";
 
 type State = {
   ticker: string;
@@ -169,31 +169,33 @@ export function TechnicalsTab({ ticker }: { ticker: string }) {
       />
     );
   }
+  // Reorderable chart stack. The KPI strip stays pinned as header chrome; the
+  // charts below can be dragged into any order (persisted per-browser).
+  const chartItems: ReorderItem[] = [
+    { id: "anchor", node: <TechnicalsAnchorChart data={data} /> },
+    { id: "z", node: <TechnicalsZChart data={data} /> },
+    { id: "rsi", node: <TechnicalsRsiChart data={data} /> },
+    { id: "macd", node: <TechnicalsMacdChart data={data} /> },
+    { id: "vol", node: <TechnicalsVolChart data={data} /> },
+    { id: "return-hist", node: <ReturnHistogram data={data} /> },
+    { id: "kinematics", node: <TechnicalsKinematicsChart data={data} /> },
+    { id: "rs", node: <TechnicalsRsChart data={data} /> },
+    { id: "forward-returns", node: <ForwardReturnTable data={data} /> },
+    { id: "detail", node: <TechnicalsDetailPanels data={data} /> },
+  ];
+
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-      <div style={{ display: "flex", justifyContent: "flex-end" }}>
-        <LiveBadge
-          captured_at={liveForTicker?.captured_at ?? null}
-          source={liveForTicker?.spot_source ?? null}
-          maxAgeSec={LIVE_MAX_AGE_SEC}
-        />
-      </div>
+      {/* The LIVE/EOD marker lives in the Price tile (see TechnicalsKpiStrip) —
+          no separate page-level badge. */}
       <TechnicalsKpiStrip
         data={data}
         live={liveForTicker}
         maxAgeSec={LIVE_MAX_AGE_SEC}
       />
-      {/* Aligned stack: price on top, oscillators share its date axis below. */}
-      <TechnicalsAnchorChart data={data} />
-      <TechnicalsZChart data={data} />
-      <TechnicalsRsiChart data={data} />
-      <TechnicalsMacdChart data={data} />
-      <TechnicalsVolChart data={data} />
-      <ReturnHistogram data={data} />
-      <TechnicalsKinematicsChart data={data} />
-      <TechnicalsRsChart data={data} />
-      <ForwardReturnTable data={data} />
-      <TechnicalsDetailPanels data={data} />
+      {/* Aligned stack: price on top, oscillators share its date axis below.
+          Drag the ⠿ handle on any chart to reorder. */}
+      <ReorderableList items={chartItems} storageKey="technicals:chartOrder" />
     </div>
   );
 }

@@ -38,6 +38,14 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   defaults to all horizons with per-column aligned headers; a new return-distribution
   histogram (last 60d returns vs a normal, tails flagged) visualizes skew/kurtosis;
   and the live spot now flows into the price-card header with a LIVE/EOD marker.
+  Follow-ups: the LIVE/EOD marker lives only in the price tile now (the duplicate
+  page-level badge is gone); the standalone Trend-Reliability panel is dropped (its
+  t-stats already live in the MA-Kinematics chart), which now also prints a
+  plain-English reading of the current slopes; the forward-return table gains a
+  "how to read" guide; the Sigmoid panel charts the fitted logistic against actual
+  price (the fit's `actual`/`fit` arrays are surfaced only when the fit is valid,
+  else the panel stays blank); and the chart stack is reorderable by drag-and-drop,
+  with the order persisted per-browser in `localStorage`.
 
 ## [0.10.1] — 2026-07-09
 

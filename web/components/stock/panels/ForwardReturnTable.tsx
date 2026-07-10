@@ -202,8 +202,21 @@ export function ForwardReturnTable({ data }: { data: TechnicalsResponse }) {
         </table>
       </div>
       <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 8 }}>
+        <strong style={{ color: "var(--text-secondary)" }}>How to read:</strong>{" "}
+        each row is a z-band — how stretched price was vs its 200-day average.
+        For every past day the stock sat in that band, we measured its return{" "}
+        <em>N</em> trading days later. <strong>N</strong> = how many such days
+        (bigger = more reliable); <strong>Mean/Med</strong> = the average/median
+        of those forward returns; <strong>Win%</strong> = share that were
+        positive. Green mean = historically bullish from that band, red =
+        bearish. The highlighted row is the band price sits in today — read it
+        as &ldquo;last time we were here, this is what tended to happen
+        next.&rdquo;
+      </div>
+      <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 6 }}>
         N-day forward return conditioned on z-band, full available history (n=
-        {data.bars_n ?? 0} bars); bands assigned ex-ante.
+        {data.bars_n ?? 0} bars); bands assigned ex-ante. Not a forecast — past
+        conditional behavior, small-N bands especially.
       </div>
     </AnalyticalSeriesPanel>
   );

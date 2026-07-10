@@ -76,6 +76,10 @@ export type TechDetail = {
     s?: number | null;
     r2_sigmoid?: number | null;
     r2_linear?: number | null;
+    // Present only when valid: the price segment since the last pivot and the
+    // fitted logistic over it (same length), so the panel can chart the fit.
+    actual?: number[] | null;
+    fit?: number[] | null;
   } | null;
   distribution?: {
     rv20?: number | null;

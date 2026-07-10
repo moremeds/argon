@@ -423,6 +423,11 @@ def fit_sigmoid(closes: np.ndarray) -> dict:
     out.update({"r2_sigmoid": r2_sig, "k": kk, "s": s})
     if r2_sig >= 0.80 and r2_sig >= r2_lin + 0.05 and kk > 0:
         out["valid"] = True
+        # Ship the actual segment + fitted logistic so the UI can chart the
+        # per-request fit (only when valid — a rejected fit has nothing honest
+        # to draw). Kept as plain lists (JSONB-friendly, small: <=126 points).
+        out["actual"] = closes.tolist()
+        out["fit"] = fit.tolist()
         if s < -2.0:
             out["phase"] = "EARLY"
         elif s < 0.0:

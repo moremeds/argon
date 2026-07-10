@@ -44,7 +44,14 @@ describe("ForwardReturnTable", () => {
 
   it("renders per-column aligned sub-headers over each horizon group", () => {
     const { getAllByText } = render(<ForwardReturnTable data={data} />);
-    expect(getAllByText("N").length).toBe(3); // one N column per horizon
-    expect(getAllByText(/^Win%$/i).length).toBe(3);
+    // Scope to <th> so the how-to-read prose ("N = how many…", "Win% = …")
+    // isn't miscounted as a column header.
+    expect(getAllByText("N", { selector: "th" }).length).toBe(3);
+    expect(getAllByText(/^Win%$/i, { selector: "th" }).length).toBe(3);
+  });
+
+  it("explains how to read the table", () => {
+    const { getByText } = render(<ForwardReturnTable data={data} />);
+    expect(getByText(/How to read:/i)).toBeTruthy();
   });
 });
