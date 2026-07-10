@@ -591,7 +591,11 @@ def build_technical_series(
         return pd.DataFrame(
             columns=[
                 "as_of",
+                "open",
+                "high",
+                "low",
                 "close",
+                "volume",
                 "sma20",
                 "sma50",
                 "sma200",
@@ -606,7 +610,7 @@ def build_technical_series(
             ]
         )
     close = df["close"]
-    out = df[["as_of", "close"]].copy()
+    out = df[["as_of", "open", "high", "low", "close", "volume"]].copy()
     out["sma20"] = close.rolling(20).mean()
     out["sma50"] = close.rolling(50).mean()
     out["sma200"] = close.rolling(200).mean()

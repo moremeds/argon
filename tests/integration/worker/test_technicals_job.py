@@ -87,3 +87,19 @@ def test_refresh_skips_thin_history_and_survives_fetch_failure(
     assert result["failed"] == 1  # BOOM logged, loop continued
     assert result["skipped_thin"] >= 1  # 100 bars < 210 floor
     assert TechnicalsRepository(repo.conn).fetch_latest("NVDA") is None
+
+
+def test_refresh_persists_ohlcv(seeded_db_empty_cards, monkeypatch):
+    repo = seeded_db_empty_cards
+    bars = _fake_bars(400)
+    monkeypatch.setattr(
+        "uw_scan.worker.jobs.technical_daily_refresh.fetch_daily_bars",
+        lambda t, **kw: bars,
+    )
+    technical_daily_refresh(repo=repo, settings=_settings(), ticker_filter=["NVDA"])
+    trepo = TechnicalsRepository(repo.conn)
+    series = trepo.fetch_series("NVDA")
+    assert len(series) == 400
+    last = series[-1]
+    for k in ("open", "high", "low", "volume"):
+        assert last[k] is not None, f"{k} not persisted by the refresh job"

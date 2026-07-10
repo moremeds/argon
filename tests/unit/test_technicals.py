@@ -7,6 +7,7 @@ import math
 import numpy as np
 import pandas as pd
 import pytest
+
 from uw_scan.cards.technicals import (
     Z_BANDS,
     bars_frame,
@@ -49,6 +50,18 @@ def test_bars_frame_sorts_dedupes_and_dates():
 
 def test_bars_frame_empty():
     assert bars_frame([]).empty
+
+
+def test_build_technical_series_carries_ohlcv():
+    # _bar sets open=close, high=close+spread, low=close-spread, volume=1000.
+    bars = [_bar(d, 100.0 + d, spread=2.0) for d in range(10)]
+    out = build_technical_series(bars)
+    for col in ("open", "high", "low", "volume"):
+        assert col in out.columns, f"{col} missing from series frame"
+    assert out["open"].iloc[0] == 100.0
+    assert out["high"].iloc[-1] == 111.0  # close 109 + spread 2
+    assert out["low"].iloc[0] == 98.0  # close 100 - spread 2
+    assert out["volume"].iloc[-1] == 1000
 
 
 def test_z_band_label_boundaries():
@@ -244,7 +257,11 @@ def test_build_technical_snapshot_full():
     series = build_technical_series(bars, spy)
     assert list(series.columns) == [
         "as_of",
+        "open",
+        "high",
+        "low",
         "close",
+        "volume",
         "sma20",
         "sma50",
         "sma200",
