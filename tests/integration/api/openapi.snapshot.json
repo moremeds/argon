@@ -15808,6 +15808,16 @@
           "ticker": {
             "title": "Ticker",
             "type": "string"
+          },
+          "vwap_anchor": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TechnicalsVwapAnchor"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "required": [
@@ -15856,6 +15866,17 @@
               }
             ],
             "title": "Fast Macd Hist Atr"
+          },
+          "high": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "High"
           },
           "jerk20": {
             "anyOf": [
@@ -15912,6 +15933,17 @@
             ],
             "title": "Kurt60"
           },
+          "low": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Low"
+          },
           "macd_hist_atr": {
             "anyOf": [
               {
@@ -15933,6 +15965,17 @@
               }
             ],
             "title": "Macd Slope3"
+          },
+          "open": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Open"
           },
           "rs_ratio": {
             "anyOf": [
@@ -16066,6 +16109,17 @@
             ],
             "title": "Vol Of Vol"
           },
+          "volume": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Volume"
+          },
           "z": {
             "anyOf": [
               {
@@ -16082,6 +16136,29 @@
           "as_of"
         ],
         "title": "TechnicalsSeriesRow",
+        "type": "object"
+      },
+      "TechnicalsVwapAnchor": {
+        "description": "User-set anchored VWAP: the anchor bar + the series from it forward.",
+        "properties": {
+          "anchor_date": {
+            "format": "date",
+            "title": "Anchor Date",
+            "type": "string"
+          },
+          "series": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/VwapPoint"
+            },
+            "title": "Series",
+            "type": "array"
+          }
+        },
+        "required": [
+          "anchor_date"
+        ],
+        "title": "TechnicalsVwapAnchor",
         "type": "object"
       },
       "TermMoveRow": {
@@ -22240,6 +22317,39 @@
         "title": "VrpPaperResponse",
         "type": "object"
       },
+      "VwapAnchorRequest": {
+        "properties": {
+          "anchor_date": {
+            "format": "date",
+            "title": "Anchor Date",
+            "type": "string"
+          }
+        },
+        "required": [
+          "anchor_date"
+        ],
+        "title": "VwapAnchorRequest",
+        "type": "object"
+      },
+      "VwapPoint": {
+        "properties": {
+          "as_of": {
+            "format": "date",
+            "title": "As Of",
+            "type": "string"
+          },
+          "vwap": {
+            "title": "Vwap",
+            "type": "number"
+          }
+        },
+        "required": [
+          "as_of",
+          "vwap"
+        ],
+        "title": "VwapPoint",
+        "type": "object"
+      },
       "WatchlistCard": {
         "properties": {
           "aggression_pct": {
@@ -22901,7 +23011,7 @@
   },
   "info": {
     "title": "UW Watchlist API",
-    "version": "0.10.1"
+    "version": "0.10.3"
   },
   "openapi": "3.1.0",
   "paths": {
@@ -25697,7 +25807,7 @@
     },
     "/api/stock/{ticker}/technicals/refresh": {
       "post": {
-        "description": "On-demand EOD technicals compute for a ticker with no history yet.\n\nRuns the same job the nightly refresh runs, scoped to one ticker, then\nreturns the freshly-stored series. Thin history / apex-unreachable leaves\n``backfill_status='empty'`` (nothing stored, nothing to render).",
+        "description": "On-demand EOD technicals compute for a ticker with no history yet.\n\nRuns the same job the nightly refresh runs, scoped to one ticker, then\nreturns the freshly-stored series. Thin history / apex-unreachable leaves\n``backfill_status='empty'`` (nothing stored, nothing to render). Single-\nflight per ticker via a session advisory lock: a concurrent compute (double\nclick, or overlap with the nightly job) returns the current state instead of\ndouble-running the apex fetch + recompute.",
         "operationId": "refresh_stock_technicals_api_stock__ticker__technicals_refresh_post",
         "parameters": [
           {
@@ -26002,6 +26112,93 @@
         "summary": "Get Volatility Series",
         "tags": [
           "volatility"
+        ]
+      }
+    },
+    "/api/stock/{ticker}/vwap-anchor": {
+      "delete": {
+        "description": "Clear the persisted VWAP anchor (idempotent).",
+        "operationId": "clear_vwap_anchor_api_stock__ticker__vwap_anchor_delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "ticker",
+            "required": true,
+            "schema": {
+              "title": "Ticker",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Clear Vwap Anchor",
+        "tags": [
+          "stock"
+        ]
+      },
+      "post": {
+        "description": "Persist a user-clicked VWAP anchor and return the computed series.\n\nA sanctioned write on this otherwise read-only router (precedent:\n/technicals/refresh). Pure DB read + O(n) math + one upsert \u2014 no external\nfetch, so no single-flight lock is needed.",
+        "operationId": "set_vwap_anchor_api_stock__ticker__vwap_anchor_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "ticker",
+            "required": true,
+            "schema": {
+              "title": "Ticker",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VwapAnchorRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TechnicalsVwapAnchor"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Set Vwap Anchor",
+        "tags": [
+          "stock"
         ]
       }
     },

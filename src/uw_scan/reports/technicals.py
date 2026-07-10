@@ -2,13 +2,19 @@
 
 from __future__ import annotations
 
+from uw_scan.cards.technicals import anchored_vwap
 from uw_scan.models import (
     ForwardReturnBandRow,
     TechnicalsHeader,
     TechnicalsResponse,
     TechnicalsSeriesRow,
+    TechnicalsVwapAnchor,
+    VwapPoint,
 )
 from uw_scan.storage.repository import Repository
+from uw_scan.storage.technical_vwap_anchor_repository import (
+    TechnicalVwapAnchorRepository,
+)
 from uw_scan.storage.technicals_repository import TechnicalsRepository
 
 # Metric keys the series row accepts (guards against a stray JSONB key breaking
@@ -46,7 +52,11 @@ def assemble_technicals(
     series = [
         TechnicalsSeriesRow(
             as_of=r["as_of"],
+            open=r["open"],
+            high=r["high"],
+            low=r["low"],
             close=r["close"],
+            volume=r["volume"],
             sma20=r["sma20"],
             sma50=r["sma50"],
             sma200=r["sma200"],
@@ -71,6 +81,7 @@ def assemble_technicals(
         composite=detail.get("composite"),
     )
     pctile = _macd_watchlist_pctile(trepo, t, latest["macd_hist_atr"])
+    vwap_anchor = _load_vwap_anchor(t, repo, schema=schema, series=series)
     return TechnicalsResponse(
         ticker=t,
         backfill_status="ready",
@@ -83,6 +94,43 @@ def assemble_technicals(
         forward_returns=[
             ForwardReturnBandRow(**row) for row in (latest.get("forward_returns") or [])
         ],
+        vwap_anchor=vwap_anchor,
+    )
+
+
+def _load_vwap_anchor(
+    ticker: str,
+    repo: Repository,
+    *,
+    schema: str,
+    series: list[TechnicalsSeriesRow],
+) -> TechnicalsVwapAnchor | None:
+    row = TechnicalVwapAnchorRepository(repo.conn, schema=schema).get(ticker)
+    if row is None:
+        return None
+    anchor = row["anchor_date"]
+    # Recompute over the live series when OHLCV is present so the line extends
+    # to the newest bar; fall back to the stored snapshot otherwise.
+    rows = [
+        {
+            "as_of": r.as_of,
+            "high": r.high,
+            "low": r.low,
+            "close": r.close,
+            "volume": r.volume,
+        }
+        for r in series
+    ]
+    points = anchored_vwap(rows, anchor)
+    if points:
+        return TechnicalsVwapAnchor(
+            anchor_date=anchor,
+            series=[VwapPoint(as_of=p["as_of"], vwap=p["vwap"]) for p in points],
+        )
+    snap = row["vwap_snapshot"] or []
+    return TechnicalsVwapAnchor(
+        anchor_date=anchor,
+        series=[VwapPoint(as_of=p["as_of"], vwap=p["vwap"]) for p in snap],
     )
 
 

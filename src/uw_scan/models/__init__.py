@@ -145,6 +145,9 @@ from .technicals import (
     TechnicalsLiveResponse,
     TechnicalsResponse,
     TechnicalsSeriesRow,
+    TechnicalsVwapAnchor,
+    VwapAnchorRequest,
+    VwapPoint,
 )
 from .trade_insights import (
     CandidateStructure,
@@ -321,6 +324,9 @@ __all__ = [
     "ForwardReturnBandRow",
     "TechnicalsResponse",
     "TechnicalsLiveResponse",
+    "VwapPoint",
+    "TechnicalsVwapAnchor",
+    "VwapAnchorRequest",
     "VolHeaderBlock",
     "TermStructureExpiryRow",
     "SmilePoint",

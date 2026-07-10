@@ -21,7 +21,11 @@ class TechnicalsHeader(_UwBase):
 
 class TechnicalsSeriesRow(_UwBase):
     as_of: date
+    open: float | None = None
+    high: float | None = None
+    low: float | None = None
     close: float | None = None
+    volume: int | None = None
     sma20: float | None = None
     sma50: float | None = None
     sma200: float | None = None
@@ -59,6 +63,22 @@ class ForwardReturnBandRow(_UwBase):
     win_rate: float
 
 
+class VwapPoint(_UwBase):
+    as_of: date
+    vwap: float
+
+
+class TechnicalsVwapAnchor(_UwBase):
+    """User-set anchored VWAP: the anchor bar + the series from it forward."""
+
+    anchor_date: date
+    series: list[VwapPoint] = []
+
+
+class VwapAnchorRequest(_UwBase):
+    anchor_date: date
+
+
 class TechnicalsResponse(_UwBase):
     ticker: str
     backfill_status: str  # "ready" | "empty"
@@ -69,6 +89,7 @@ class TechnicalsResponse(_UwBase):
     detail: dict[str, Any] | None = None
     macd_watchlist_pctile: float | None = None
     forward_returns: list[ForwardReturnBandRow] = []
+    vwap_anchor: TechnicalsVwapAnchor | None = None
 
 
 class TechnicalsLiveResponse(_UwBase):
@@ -96,6 +117,9 @@ _preserve_public_module(
     TechnicalsHeader,
     TechnicalsSeriesRow,
     ForwardReturnBandRow,
+    VwapPoint,
+    TechnicalsVwapAnchor,
+    VwapAnchorRequest,
     TechnicalsResponse,
     TechnicalsLiveResponse,
 )
