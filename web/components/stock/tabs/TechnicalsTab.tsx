@@ -7,7 +7,7 @@ import {
   type TechnicalsResponse,
 } from "@/lib/api";
 import { TechnicalsKpiStrip } from "../panels/TechnicalsKpiStrip";
-import { TechnicalsAnchorChart } from "../panels/TechnicalsAnchorChart";
+import { TechnicalsPriceChart } from "../panels/TechnicalsPriceChart";
 import { TechnicalsEmptyState } from "../panels/TechnicalsEmptyState";
 import {
   TechnicalsKinematicsChart,
@@ -317,6 +317,33 @@ export function TechnicalsTab({ ticker }: { ticker: string }) {
     };
   }, [ticker]);
 
+  // Auto-fill once per mount+ticker: rows predating migration 105 have null
+  // OHLCV, so the price pane can only draw a close line. The per-ticker refresh
+  // rewrites the ticker's full history from apex bars (candles + volume). Keyed
+  // off the BASE payload — the live head never carries OHLCV, so merging it in
+  // would misjudge the gap.
+  const autoFilled = useRef<string | null>(null);
+  useEffect(() => {
+    const base = state.ticker === ticker ? state.data : null;
+    if (!base || base.backfill_status !== "ready") return;
+    const s = base.series ?? [];
+    const last = s[s.length - 1];
+    if (!last || last.open != null) return;
+    if (autoFilled.current === ticker) return;
+    autoFilled.current = ticker;
+    api
+      .technicalsRefresh(ticker)
+      .then((fresh) => {
+        setState((cur) =>
+          cur.ticker === ticker ? { ticker, data: fresh, error: null } : cur,
+        );
+      })
+      .catch(() => {
+        // Non-fatal: the pane degrades to the close line until the next
+        // nightly refresh fills OHLCV.
+      });
+  }, [state, ticker]);
+
   const ready = state.ticker === ticker;
   const error = ready ? state.error : null;
   const baseData = ready ? state.data : null;
@@ -383,7 +410,7 @@ export function TechnicalsTab({ ticker }: { ticker: string }) {
       />
       {/* Pinned anchor: timeframe selector sits next to the date; the whole
           stack below re-ranges to it. */}
-      <TechnicalsAnchorChart
+      <TechnicalsPriceChart
         data={view}
         control={<TimeframeSelect value={timeframe} onChange={setTimeframe} />}
       />
