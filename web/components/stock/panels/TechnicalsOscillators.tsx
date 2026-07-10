@@ -168,8 +168,25 @@ export function TechnicalsKinematicsChart({
     t == null
       ? name
       : `${name} · t ${Math.abs(t) >= 10 ? t.toFixed(0) : t.toFixed(1)}`;
+  // Alignment badge: label the direction (BULL/BEAR/MIXED) and color it by sign
+  // so a bearish stack reads red at a glance — |a| shows how many of the 3 MAs
+  // are stacked that way.
   const a = kin.alignment;
-  const badge = a == null ? undefined : `ALIGN ${a > 0 ? "+" : ""}${a}/3`;
+  const badge =
+    a == null ? undefined : (
+      <span
+        style={{
+          color:
+            a > 0
+              ? "var(--positive)"
+              : a < 0
+                ? "var(--negative)"
+                : "var(--text-muted)",
+        }}
+      >
+        {a > 0 ? "BULL" : a < 0 ? "BEAR" : "MIXED"} ALIGN {Math.abs(a)}/3
+      </span>
+    );
   return (
     <OscillatorChart
       title="MA Kinematics — slope of each average"
@@ -197,7 +214,8 @@ export function TechnicalsKinematicsChart({
         },
       ]}
       refLines={[{ y: 0, solid: true }]}
-      explanation={`${reading ? reading + " " : ""}Slope (per-day rise/fall) of each moving average, divided by ATR so it reads as 'ATRs per day'. Each line is weighted by its slope t-stat: bold/solid = statistically reliable (|t| ≥ 2), faded = likely noise. The ALIGN badge counts how many of the three MAs are stacked in bullish order (−3…+3). Read direction + reliability + stack in one glance.`}
+      shadeBelowZero
+      explanation={`${reading ? reading + " " : ""}Slope (per-day rise/fall) of each moving average, divided by ATR so it reads as 'ATRs per day'. Each line is weighted by its slope t-stat: bold/solid = statistically reliable (|t| ≥ 2), faded = likely noise. The red band below the zero line is the downtrend zone — wherever a slope dips into it, that average is falling. The ALIGN badge counts how many of the three MAs are stacked in bullish order (−3…+3). Read direction + reliability + stack in one glance.`}
     />
   );
 }

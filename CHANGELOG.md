@@ -7,8 +7,23 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
-## [0.10.2] — 2026-07-10
+### Changed
 
+- **Technicals tab UI refinements** — the chart timeframe now defaults to **1Y**
+  (was FULL/5Y); the reorderable stack now defaults to **dual MACD first,
+  MA-Kinematics second** (the saved-order localStorage key is bumped to `:v2` so
+  the new default supersedes any order saved under the original key); and the
+  MA-Kinematics chart now tints the **below-zero region as a downtrend zone**
+  (a subtle red band from the y=0 line to the plot floor via a new
+  `shadeBelowZero` prop on `OscillatorChart`) so any moving-average slope dipping
+  under zero reads as falling at a glance — line colors and t-stat weighting
+  unchanged. The MA-Kinematics **alignment badge** now names the direction and
+  colors by sign — `BULL ALIGN n/3` (green), `BEAR ALIGN n/3` (red), or
+  `MIXED ALIGN 0/3` (muted) — instead of a sign-agnostic `ALIGN ±n/3`, so a
+  bearish stack reads red at a glance (`OscillatorChart`'s `headline` widened to
+  `ReactNode` to carry the colored label).
+
+## [0.10.2] — 2026-07-10
 
 ### Added
 
@@ -61,6 +76,7 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   every date-axis chart below at once (a pure client-side slice of the series
   already in the payload — no extra fetch). The return-distribution panel keeps
   its own fixed 60d sample (it's a shape, not a date-axis graph the window pans).
+
 ## [0.10.1] — 2026-07-09
 
 ### Fixed
