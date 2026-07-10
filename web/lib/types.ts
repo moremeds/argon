@@ -263,10 +263,41 @@ export interface paths {
          *
          *     Runs the same job the nightly refresh runs, scoped to one ticker, then
          *     returns the freshly-stored series. Thin history / apex-unreachable leaves
-         *     ``backfill_status='empty'`` (nothing stored, nothing to render).
+         *     ``backfill_status='empty'`` (nothing stored, nothing to render). Single-
+         *     flight per ticker via a session advisory lock: a concurrent compute (double
+         *     click, or overlap with the nightly job) returns the current state instead of
+         *     double-running the apex fetch + recompute.
          */
         post: operations["refresh_stock_technicals_api_stock__ticker__technicals_refresh_post"];
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/stock/{ticker}/vwap-anchor": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Set Vwap Anchor
+         * @description Persist a user-clicked VWAP anchor and return the computed series.
+         *
+         *     A sanctioned write on this otherwise read-only router (precedent:
+         *     /technicals/refresh). Pure DB read + O(n) math + one upsert — no external
+         *     fetch, so no single-flight lock is needed.
+         */
+        post: operations["set_vwap_anchor_api_stock__ticker__vwap_anchor_post"];
+        /**
+         * Clear Vwap Anchor
+         * @description Clear the persisted VWAP anchor (idempotent).
+         */
+        delete: operations["clear_vwap_anchor_api_stock__ticker__vwap_anchor_delete"];
         options?: never;
         head?: never;
         patch?: never;
@@ -6551,6 +6582,7 @@ export interface components {
              * @default []
              */
             forward_returns: components["schemas"]["ForwardReturnBandRow"][];
+            vwap_anchor?: components["schemas"]["TechnicalsVwapAnchor"] | null;
         };
         /** TechnicalsSeriesRow */
         TechnicalsSeriesRow: {
@@ -6559,8 +6591,16 @@ export interface components {
              * Format: date
              */
             as_of: string;
+            /** Open */
+            open?: number | null;
+            /** High */
+            high?: number | null;
+            /** Low */
+            low?: number | null;
             /** Close */
             close?: number | null;
+            /** Volume */
+            volume?: number | null;
             /** Sma20 */
             sma20?: number | null;
             /** Sma50 */
@@ -6605,6 +6645,22 @@ export interface components {
             fast_macd_hist_atr?: number | null;
             /** Slow Macd Hist Atr */
             slow_macd_hist_atr?: number | null;
+        };
+        /**
+         * TechnicalsVwapAnchor
+         * @description User-set anchored VWAP: the anchor bar + the series from it forward.
+         */
+        TechnicalsVwapAnchor: {
+            /**
+             * Anchor Date
+             * Format: date
+             */
+            anchor_date: string;
+            /**
+             * Series
+             * @default []
+             */
+            series: components["schemas"]["VwapPoint"][];
         };
         /** TermMoveRow */
         TermMoveRow: {
@@ -8974,6 +9030,24 @@ export interface components {
              */
             disclaimer: string;
         };
+        /** VwapAnchorRequest */
+        VwapAnchorRequest: {
+            /**
+             * Anchor Date
+             * Format: date
+             */
+            anchor_date: string;
+        };
+        /** VwapPoint */
+        VwapPoint: {
+            /**
+             * As Of
+             * Format: date
+             */
+            as_of: string;
+            /** Vwap */
+            vwap: number;
+        };
         /** WatchlistCard */
         WatchlistCard: {
             /** Ticker */
@@ -9653,6 +9727,70 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["TechnicalsResponse"];
                 };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    set_vwap_anchor_api_stock__ticker__vwap_anchor_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                ticker: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["VwapAnchorRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TechnicalsVwapAnchor"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    clear_vwap_anchor_api_stock__ticker__vwap_anchor_delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                ticker: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Validation Error */
             422: {
