@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 import {
   api,
   type TechnicalsLiveResponse,
@@ -76,72 +76,130 @@ export function sliceSeriesByTimeframe<T extends { as_of?: string | null }>(
   return series.filter((r) => (r.as_of ?? "") >= cutoff);
 }
 
-function TimeframeSelect({
+const TIMEFRAME_TEXT: CSSProperties = {
+  fontFamily: "var(--font-mono)",
+  fontSize: 11,
+  letterSpacing: 1,
+  textTransform: "uppercase",
+};
+
+// Custom dropdown, NOT a native <select>: a native option popup can't be themed
+// cross-browser, so both the closed control AND the open list are hand-rolled to
+// match the Argon terminal look. ponytail: minimal combobox — button + absolutely
+// positioned list, outside-click + Escape to close; no arrow-key nav for 4 static
+// items (add roving tabindex only if the list grows).
+export function TimeframeSelect({
   value,
   onChange,
 }: {
   value: Timeframe;
   onChange: (t: Timeframe) => void;
 }) {
-  // Native <select> with the OS chrome stripped (appearance:none) + a themed
-  // caret, so the closed control matches the Argon terminal look.
-  // ponytail: the opened option list is still OS-rendered — fully theming it
-  // needs a custom listbox widget, not worth it for a 4-item picker.
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  const current =
+    TIMEFRAME_OPTIONS.find((o) => o.value === value) ?? TIMEFRAME_OPTIONS[0];
+
+  useEffect(() => {
+    if (!open) return;
+    const onDoc = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node))
+        setOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setOpen(false);
+    };
+    document.addEventListener("mousedown", onDoc);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDoc);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
+
   return (
-    <span
-      style={{
-        position: "relative",
-        display: "inline-flex",
-        alignItems: "center",
-      }}
-    >
-      <select
+    <div ref={ref} style={{ position: "relative" }}>
+      <button
+        type="button"
+        aria-haspopup="listbox"
+        aria-expanded={open}
         aria-label="Chart timeframe"
-        value={value}
-        onChange={(e) => onChange(e.target.value as Timeframe)}
+        onClick={() => setOpen((o) => !o)}
         style={{
-          appearance: "none",
-          WebkitAppearance: "none",
-          MozAppearance: "none",
-          fontFamily: "var(--font-mono)",
-          fontSize: 11,
-          letterSpacing: 1,
-          textTransform: "uppercase",
+          ...TIMEFRAME_TEXT,
+          display: "inline-flex",
+          alignItems: "center",
+          gap: 6,
           color: "var(--text-secondary)",
           background: "var(--bg-panel-raised)",
           border: "1px solid var(--border-dim)",
           borderRadius: 4,
-          padding: "3px 20px 3px 8px",
+          padding: "3px 8px",
           cursor: "pointer",
           outline: "none",
         }}
       >
-        {TIMEFRAME_OPTIONS.map((o) => (
-          <option
-            key={o.value}
-            value={o.value}
-            style={{
-              background: "var(--bg-panel)",
-              color: "var(--text-primary)",
-            }}
-          >
-            {o.label}
-          </option>
-        ))}
-      </select>
-      <span
-        aria-hidden
-        style={{
-          position: "absolute",
-          right: 7,
-          fontSize: 7,
-          color: "var(--text-muted)",
-          pointerEvents: "none",
-        }}
-      >
-        ▼
-      </span>
-    </span>
+        {current.label}
+        <span aria-hidden style={{ fontSize: 7, color: "var(--text-muted)" }}>
+          ▼
+        </span>
+      </button>
+      {open && (
+        <ul
+          role="listbox"
+          style={{
+            position: "absolute",
+            top: "calc(100% + 4px)",
+            right: 0,
+            margin: 0,
+            padding: 4,
+            listStyle: "none",
+            minWidth: "100%",
+            background: "var(--bg-panel-raised)",
+            border: "1px solid var(--border-dim)",
+            borderRadius: 4,
+            boxShadow: "0 6px 20px rgba(0, 0, 0, 0.45)",
+            zIndex: 30,
+          }}
+        >
+          {TIMEFRAME_OPTIONS.map((o) => {
+            const selected = o.value === value;
+            return (
+              <li
+                key={o.value}
+                role="option"
+                aria-selected={selected}
+                onClick={() => {
+                  onChange(o.value);
+                  setOpen(false);
+                }}
+                onMouseEnter={(e) => {
+                  if (!selected)
+                    e.currentTarget.style.background = "var(--bg-hover)";
+                }}
+                onMouseLeave={(e) => {
+                  if (!selected)
+                    e.currentTarget.style.background = "transparent";
+                }}
+                style={{
+                  ...TIMEFRAME_TEXT,
+                  padding: "4px 10px",
+                  borderRadius: 3,
+                  cursor: "pointer",
+                  whiteSpace: "nowrap",
+                  color: selected
+                    ? "var(--accent-vivid)"
+                    : "var(--text-secondary)",
+                  background: selected ? "var(--bg-hover)" : "transparent",
+                }}
+              >
+                {o.label}
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </div>
   );
 }
 

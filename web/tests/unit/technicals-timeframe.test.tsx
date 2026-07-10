@@ -1,7 +1,9 @@
 /* @vitest-environment jsdom */
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import { fireEvent, render } from "@testing-library/react";
 import {
   sliceSeriesByTimeframe,
+  TimeframeSelect,
   type Timeframe,
 } from "@/components/stock/tabs/TechnicalsTab";
 
@@ -80,5 +82,31 @@ describe("sliceSeriesByTimeframe", () => {
     expect(
       sliceSeriesByTimeframe(withNullHead, "3m").map((r) => r.as_of),
     ).toEqual(["2026-05-10", "2026-07-02", "2026-07-09"]);
+  });
+});
+
+describe("TimeframeSelect (custom themed dropdown)", () => {
+  it("is not a native <select> and renders its own themed option list", () => {
+    const { container, getByRole, queryAllByRole } = render(
+      <TimeframeSelect value="full" onChange={() => {}} />,
+    );
+    // The native control (whose popup can't be themed) is gone.
+    expect(container.querySelector("select")).toBeNull();
+    // Closed: the list isn't in the DOM yet.
+    expect(queryAllByRole("option")).toHaveLength(0);
+    fireEvent.click(getByRole("button", { name: /chart timeframe/i }));
+    // Open: all four options, hand-rendered so they can carry theme styles.
+    expect(queryAllByRole("option")).toHaveLength(4);
+  });
+
+  it("calls onChange with the picked timeframe and closes the list", () => {
+    const onChange = vi.fn();
+    const { getByRole, getByText, queryAllByRole } = render(
+      <TimeframeSelect value="full" onChange={onChange} />,
+    );
+    fireEvent.click(getByRole("button", { name: /chart timeframe/i }));
+    fireEvent.click(getByText("3M"));
+    expect(onChange).toHaveBeenCalledWith("3m");
+    expect(queryAllByRole("option")).toHaveLength(0);
   });
 });
