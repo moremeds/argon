@@ -139,6 +139,10 @@ export const api = {
     _fetch<TechnicalsResponse>(`/api/stock/${ticker}/technicals`),
   technicalsLive: (ticker: string): Promise<TechnicalsLiveResponse> =>
     _fetch<TechnicalsLiveResponse>(`/api/stock/${ticker}/technicals/live`),
+  technicalsRefresh: (ticker: string): Promise<TechnicalsResponse> =>
+    _fetch<TechnicalsResponse>(`/api/stock/${ticker}/technicals/refresh`, {
+      method: "POST",
+    }),
   cockpitState: (
     ticker: string,
     asof?: string,

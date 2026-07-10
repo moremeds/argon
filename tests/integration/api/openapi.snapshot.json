@@ -25695,6 +25695,49 @@
         ]
       }
     },
+    "/api/stock/{ticker}/technicals/refresh": {
+      "post": {
+        "description": "On-demand EOD technicals compute for a ticker with no history yet.\n\nRuns the same job the nightly refresh runs, scoped to one ticker, then\nreturns the freshly-stored series. Thin history / apex-unreachable leaves\n``backfill_status='empty'`` (nothing stored, nothing to render).",
+        "operationId": "refresh_stock_technicals_api_stock__ticker__technicals_refresh_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "ticker",
+            "required": true,
+            "schema": {
+              "title": "Ticker",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TechnicalsResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Refresh Stock Technicals",
+        "tags": [
+          "stock"
+        ]
+      }
+    },
     "/api/stock/{ticker}/trade-insights": {
       "get": {
         "operationId": "get_trade_insights_api_stock__ticker__trade_insights_get",

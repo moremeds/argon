@@ -238,3 +238,25 @@ def get_stock_technicals_live(
         kinematics=p.get("kinematics"),
         composite=p.get("composite"),
     )
+
+
+@router.post("/stock/{ticker}/technicals/refresh", response_model=TechnicalsResponse)
+def refresh_stock_technicals(
+    ticker: str,
+    repo: Repository = Depends(get_repo),
+    settings: Settings = Depends(get_settings),
+) -> TechnicalsResponse:
+    """On-demand EOD technicals compute for a ticker with no history yet.
+
+    Runs the same job the nightly refresh runs, scoped to one ticker, then
+    returns the freshly-stored series. Thin history / apex-unreachable leaves
+    ``backfill_status='empty'`` (nothing stored, nothing to render).
+    """
+    # ponytail: the one deliberate write on this otherwise read-only router —
+    # user-triggered, idempotent, bounded (~2 apex fetches + pandas). Promote to
+    # a /jobs kind only if this ever needs to be async or batched.
+    from uw_scan.worker.jobs.technical_daily_refresh import technical_daily_refresh
+
+    t = ticker.upper()
+    technical_daily_refresh(repo=repo, settings=settings, ticker_filter=[t])
+    return assemble_technicals(t, repo, schema=settings.db_schema)

@@ -248,6 +248,30 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/stock/{ticker}/technicals/refresh": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Refresh Stock Technicals
+         * @description On-demand EOD technicals compute for a ticker with no history yet.
+         *
+         *     Runs the same job the nightly refresh runs, scoped to one ticker, then
+         *     returns the freshly-stored series. Thin history / apex-unreachable leaves
+         *     ``backfill_status='empty'`` (nothing stored, nothing to render).
+         */
+        post: operations["refresh_stock_technicals_api_stock__ticker__technicals_refresh_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/ohlc/{ticker}": {
         parameters: {
             query?: never;
@@ -9597,6 +9621,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["TechnicalsLiveResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    refresh_stock_technicals_api_stock__ticker__technicals_refresh_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                ticker: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TechnicalsResponse"];
                 };
             };
             /** @description Validation Error */

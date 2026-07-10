@@ -8,6 +8,7 @@ import {
 } from "@/lib/api";
 import { TechnicalsKpiStrip } from "../panels/TechnicalsKpiStrip";
 import { TechnicalsAnchorChart } from "../panels/TechnicalsAnchorChart";
+import { TechnicalsEmptyState } from "../panels/TechnicalsEmptyState";
 import { LiveBadge } from "../panels/LiveBadge";
 import {
   TechnicalsKinematicsChart,
@@ -150,10 +151,10 @@ export function TechnicalsTab({ ticker }: { ticker: string }) {
   }
   if (data.backfill_status === "empty") {
     return (
-      <div style={{ color: "var(--text-muted)", padding: 16 }}>
-        No technicals history for {ticker} yet — populated by the nightly
-        refresh (or run scripts/backfill/technicals_refresh_backfill.py).
-      </div>
+      <TechnicalsEmptyState
+        ticker={ticker}
+        onComputed={(fresh) => setState({ ticker, data: fresh, error: null })}
+      />
     );
   }
   return (

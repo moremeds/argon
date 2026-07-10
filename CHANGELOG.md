@@ -23,6 +23,13 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   every oscillator; stale/absent falls back to the EOD daily payload.
 - **5-year technicals history** — the daily-bar fetch and warm-store read now retain
   ~1300 sessions across every technicals series.
+- **On-demand technicals compute** — an unavailable ticker's Technicals tab now shows
+  a "Compute now" button instead of a dead-end message. It POSTs
+  `/stock/{ticker}/technicals/refresh`, which runs the nightly refresh job scoped to
+  that one ticker (apex bars → EOD series) and returns the fresh payload so the tab
+  renders in place; for a watchlist ticker this also makes it eligible for the 5-min
+  live overlay on the next tick. Compute-only (no watchlist mutation); thin history /
+  apex-unreachable leaves the tab empty with a note.
 
 ## [0.10.1] — 2026-07-09
 
