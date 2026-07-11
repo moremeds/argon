@@ -7,6 +7,13 @@ import type {
 } from "lightweight-charts";
 import type { TechnicalsResponse } from "@/lib/api";
 import type { BandPoint } from "@/lib/lwc/bandsIndicator";
+import {
+  bollinger,
+  ema,
+  lowestInWindow,
+  prevCloseUp,
+  volumeMa,
+} from "@/lib/indicators";
 
 export type SeriesRow = TechnicalsResponse["series"][number];
 
@@ -71,16 +78,37 @@ export function toSmaLineData(
   });
 }
 
+// MarketSmith volume treatment: direction by PREVIOUS close (not bar
+// direction), optional graying of lowest-in-window bars, optional display cap
+// (2×MA truncation) — the hover readout still shows the true volume.
 export function toVolumeData(
   rows: readonly SeriesRow[],
   upColor: string,
   downColor: string,
+  opts?: {
+    lowColor?: string;
+    lowWindow?: number;
+    truncateAt?: readonly (number | null)[];
+  },
 ): (HistogramData<Time> | WhitespaceData<Time>)[] {
-  return rows.map((r) => {
+  const up = prevCloseUp(rows);
+  const low = opts?.lowColor
+    ? lowestInWindow(
+        rows.map((r) => r.volume),
+        opts.lowWindow ?? 10,
+      )
+    : null;
+  return rows.map((r, i) => {
     const t = r.as_of as Time;
     if (r.volume == null) return { time: t };
-    const up = r.open == null || r.close == null || r.close >= r.open;
-    return { time: t, value: r.volume, color: up ? upColor : downColor };
+    const cap = opts?.truncateAt?.[i];
+    const value = cap != null ? Math.min(r.volume, cap) : r.volume;
+    const color = low?.[i]
+      ? (opts!.lowColor as string)
+      : (up[i] ?? true)
+        ? upColor
+        : downColor;
+    return { time: t, value, color };
   });
 }
 
@@ -98,4 +126,55 @@ export function toBandData(rows: readonly SeriesRow[]): BandPoint[] {
     }
   }
   return out;
+}
+
+export function toEmaLineData(
+  rows: readonly SeriesRow[],
+  period: number,
+): (LineData<Time> | WhitespaceData<Time>)[] {
+  const e = ema(
+    rows.map((r) => r.close),
+    period,
+  );
+  return rows.map((r, i) =>
+    e[i] == null
+      ? { time: r.as_of as Time }
+      : { time: r.as_of as Time, value: e[i] as number },
+  );
+}
+
+export function toBollingerBandData(
+  rows: readonly SeriesRow[],
+  period = 20,
+  mult = 2,
+): BandPoint[] {
+  const bb = bollinger(
+    rows.map((r) => r.close),
+    period,
+    mult,
+  );
+  const out: BandPoint[] = [];
+  rows.forEach((r, i) => {
+    const u = bb.upper[i];
+    const l = bb.lower[i];
+    if (u != null && l != null) {
+      out.push({ time: r.as_of as Time, upper: u, lower: l });
+    }
+  });
+  return out;
+}
+
+export function toVolumeMaData(
+  rows: readonly SeriesRow[],
+  period = 50,
+): (LineData<Time> | WhitespaceData<Time>)[] {
+  const ma = volumeMa(
+    rows.map((r) => r.volume),
+    period,
+  );
+  return rows.map((r, i) =>
+    ma[i] == null
+      ? { time: r.as_of as Time }
+      : { time: r.as_of as Time, value: ma[i] as number },
+  );
 }

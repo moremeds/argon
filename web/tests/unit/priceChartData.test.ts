@@ -2,9 +2,13 @@ import { describe, expect, it } from "vitest";
 import {
   hasOhlcv,
   toBandData,
+  toBollingerBandData,
   toCandleData,
+  toEmaLineData,
   toVolumeData,
+  toVolumeMaData,
 } from "@/lib/priceChartData";
+import { SPY_BARS } from "./fixtures/spyBars";
 
 const full = {
   as_of: "2026-07-06",
@@ -46,7 +50,10 @@ describe("priceChartData", () => {
     expect(c).toEqual({ time: "2026-07-08" });
   });
 
-  it("toVolumeData colors by candle direction, whitespace when null", () => {
+  it("toVolumeData colors by previous close, whitespace when null", () => {
+    // idx0 full: no prev close -> close>=open fallback (9.5>=9) -> UP
+    // idx1 down: prev close 9.5, close 9 -> 9>=9.5 false -> DN
+    // idx2 closeOnly: no volume -> whitespace
     const down = { ...full, as_of: "2026-07-09", open: 10, close: 9 };
     const [a, b, c] = toVolumeData(
       [full, down, closeOnly] as never[],
@@ -67,5 +74,45 @@ describe("priceChartData", () => {
     expect(
       toBandData([{ as_of: "x", close: 110, sma200: 100, z: 0 }] as never[]),
     ).toEqual([]);
+  });
+});
+
+describe("toVolumeData (prev-close coloring)", () => {
+  const rows = SPY_BARS.map((b) => ({ ...b }));
+  it("colors 2026-07-08 as DOWN despite a green candle (close < prev close)", () => {
+    const out = toVolumeData(rows, "#0f0", "#f00");
+    const bar = out[67] as { color?: string };
+    expect(rows[67].as_of).toBe("2026-07-08");
+    expect(bar.color).toBe("#f00");
+  });
+  it("grays lowest-in-10 bars when lowColor is given", () => {
+    const out = toVolumeData(rows, "#0f0", "#f00", { lowColor: "#888" });
+    const idx = rows.findIndex((r) => r.as_of === "2026-07-09");
+    expect((out[idx] as { color?: string }).color).toBe("#888");
+  });
+  it("caps displayed value at truncateAt while keeping time alignment", () => {
+    const cap = rows.map(() => 50_000_000 as number | null);
+    const out = toVolumeData(rows, "#0f0", "#f00", { truncateAt: cap });
+    expect((out[0] as { value?: number }).value).toBe(50_000_000); // 152.5M capped
+  });
+});
+
+describe("toEmaLineData / toBollingerBandData / toVolumeMaData", () => {
+  const rows = SPY_BARS.map((b) => ({ ...b }));
+  it("ema5 last point matches the frozen pandas value", () => {
+    const out = toEmaLineData(rows, 5);
+    const last = out[out.length - 1] as { value?: number };
+    expect(last.value).toBeCloseTo(750.2677023210776, 8);
+  });
+  it("bollinger emits only converged points with frozen bounds at the tail", () => {
+    const bb = toBollingerBandData(rows);
+    expect(bb.length).toBe(SPY_BARS.length - 19); // first 19 bars warmup
+    expect(bb[bb.length - 1].upper).toBeCloseTo(758.1623930384142, 6);
+    expect(bb[bb.length - 1].lower).toBeCloseTo(729.4606069615859, 6);
+  });
+  it("volume MA50 last point matches the frozen pandas value", () => {
+    const out = toVolumeMaData(rows, 50);
+    const last = out[out.length - 1] as { value?: number };
+    expect(last.value).toBeCloseTo(53919783.64, 2);
   });
 });
