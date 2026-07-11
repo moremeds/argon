@@ -148,6 +148,13 @@ describe("toEmaLineData / toBollingerBandData / toVolumeMaData", () => {
     expect(bb[bb.length - 1].upper).toBeCloseTo(758.1623930384142, 6);
     expect(bb[bb.length - 1].lower).toBeCloseTo(729.4606069615859, 6);
   });
+  it("skips degenerate zero-width Bollinger points", () => {
+    const rows = Array.from({ length: 20 }, (_, i) => ({
+      as_of: `2026-01-${String(i + 1).padStart(2, "0")}`,
+      close: 100,
+    }));
+    expect(toBollingerBandData(rows)).toEqual([]);
+  });
   it("volume MA50 last point matches the frozen pandas value", () => {
     const out = toVolumeMaData(rows, 50);
     const last = out[out.length - 1] as { value?: number };

@@ -189,7 +189,7 @@ export function toBollingerBandData(
   rows.forEach((r, i) => {
     const u = bb.upper[i];
     const l = bb.lower[i];
-    if (u != null && l != null) {
+    if (u != null && l != null && u > l) {
       out.push({ time: r.as_of as Time, upper: u, lower: l });
     }
   });

@@ -587,7 +587,17 @@ export function TechnicalsPriceChart({
   const lastBarDate = rows[rows.length - 1]?.as_of ?? data.as_of ?? "";
 
   const header: ReactNode = (
-    <span style={{ display: "inline-flex", alignItems: "center", gap: 10 }}>
+    <span
+      data-testid="technicals-chart-controls"
+      style={{
+        display: "inline-flex",
+        flexWrap: "wrap",
+        justifyContent: "flex-end",
+        alignItems: "center",
+        gap: 10,
+        maxWidth: "100%",
+      }}
+    >
       {anchor && (
         <button
           type="button"
@@ -643,6 +653,7 @@ export function TechnicalsPriceChart({
       </span>
       <button
         type="button"
+        aria-label="Reset zoom and jump to latest bar"
         onClick={() => {
           const h = handlesRef.current;
           if (h) resetView(h, rows.length);
@@ -693,18 +704,25 @@ export function TechnicalsPriceChart({
       headline={header}
     >
       <div style={{ position: "relative" }}>
-        <div ref={containerRef} style={{ width: "100%", height: H }} />
+        <div
+          ref={containerRef}
+          data-testid="technicals-price-chart"
+          data-volume-ma={candleMode ? VOL_MA_PERIOD : undefined}
+          style={{ width: "100%", height: H }}
+        />
         <div
           ref={readoutRef}
           style={{
             position: "absolute",
             top: 4,
             left: 8,
+            right: 8,
             fontFamily: "var(--font-mono)",
             fontSize: 10,
             color: "var(--text-secondary)",
             pointerEvents: "none",
-            whiteSpace: "pre",
+            whiteSpace: "normal",
+            overflowWrap: "anywhere",
           }}
         />
       </div>

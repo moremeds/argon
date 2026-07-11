@@ -30,6 +30,17 @@ describe("AnalyticalSeriesPanel", () => {
     expect(screen.getByText("+0.83σ")).toBeDefined();
     expect(screen.getByTestId("chart")).toBeDefined();
   });
+
+  it("keeps headline controls in the header and lets them wrap in place", () => {
+    render(
+      <AnalyticalSeriesPanel title="Price" headline={<button>RESET</button>}>
+        <svg data-testid="chart" />
+      </AnalyticalSeriesPanel>,
+    );
+    const header = screen.getByText("Price").parentElement?.parentElement;
+    expect(header?.style.flexWrap).toBe("wrap");
+    expect(screen.getByRole("button", { name: "RESET" })).toBeDefined();
+  });
 });
 
 describe("VolMetricsCard", () => {

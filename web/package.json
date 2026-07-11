@@ -12,6 +12,7 @@
     "gen:types": "openapi-typescript http://127.0.0.1:8400/openapi.json -o lib/types.ts",
     "test": "vitest run",
     "test:e2e": "playwright test",
+    "test:e2e:technicals": "playwright test --config playwright.technicals.config.ts",
     "lint:gold-copy": "node scripts/lint-gold-copy.mjs"
   },
   "dependencies": {
