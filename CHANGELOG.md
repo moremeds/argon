@@ -7,6 +7,9 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+## [0.10.5] — 2026-07-12
+
+
 - Technicals price pane: MarketSmith volume treatment (previous-close coloring,
   volume MA50 line, HVE/HV1 peak labels, volume buzz readout) and a small
   SMA·σ ⇄ EMA·BB overlay toggle (SMA20/50/200 + ±1.5σ band ⇄ EMA5/20/50 +
@@ -26,7 +29,6 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   1px — it opens at the latest bars at full width and scrolls horizontally into
   history, with a Reset button in the header to snap back to fit-and-latest.
   Frontend-only.
-
 ## [0.10.4] — 2026-07-11
 
 - Technicals price pane migrated to lightweight-charts: candlesticks + volume overlay + filled ±1.5σ band + click-to-anchor VWAP persisted per ticker. `technical_daily` now stores OHLCV (rides the nightly full-recompute; per-ticker auto-fill on first page open), new `technical_vwap_anchor` table, `POST/DELETE /api/stock/{ticker}/vwap-anchor`. The pane is taller (460px), the SMA lines are bolder, and the anchored VWAP now draws in a high-contrast sky blue (`--accent-cool`) at 3px so it reads clearly against the candles/SMAs. The header date follows the newest bar actually plotted, so the live head's forming bar drives it to today rather than pinning to the previous-business-day apex EOD date. Today's forming bar is now a **real intraday candle**: the live technicals job accumulates the session's open/high/low/close from the WS spot it already consumes (open = first fresh print of the ET session, high/low = running extremes, close = latest spot) and serves it as `forming_ohlc` on `/technicals/live`, so today draws as a genuine candle that fills in as the session runs and settles into the EOD bar at close — instead of the zero-range doji that hid on the price line. Every value is a real observed print (no fabricated open); at a frozen/closed market the bar is correctly flat. To guard against an unstable primary (xenon) feed, the live job cross-checks the forming candle against massive's ~15-min-delayed today bar every 15 minutes and heals a divergent read to massive (`source='massive.com'`, `stale=true`) — a **range-containment** test (a delayed close must sit inside the live `[low, high]`), which is robust to the 15-min lag where a naive close-vs-close check would false-positive on normal drift. The live oscillators (ATR-normalized MACD, kinematics) now recompute against the stored OHLC rather than close-only bars, so they line up with the settled daily series. (#256)
