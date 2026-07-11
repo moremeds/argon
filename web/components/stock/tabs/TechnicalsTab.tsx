@@ -455,6 +455,7 @@ export function TechnicalsTab({ ticker }: { ticker: string }) {
           stack below re-ranges to it. */}
       <TechnicalsPriceChart
         data={view}
+        fullRows={data.series ?? []}
         control={<TimeframeSelect value={timeframe} onChange={setTimeframe} />}
       />
       {/* Aligned stack: oscillators share the anchor's date axis. Drag any row

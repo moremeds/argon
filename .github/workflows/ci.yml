@@ -185,3 +185,11 @@ jobs:
       - name: Build
         working-directory: web
         run: npm run build
+
+      - name: Install Playwright Chromium
+        working-directory: web
+        run: npx playwright install --with-deps chromium
+
+      - name: Technicals browser regression
+        working-directory: web
+        run: npm run test:e2e:technicals

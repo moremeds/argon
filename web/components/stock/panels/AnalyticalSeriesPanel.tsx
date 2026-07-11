@@ -24,8 +24,11 @@ export function AnalyticalSeriesPanel({
       <div
         style={{
           display: "flex",
+          flexWrap: "wrap",
           justifyContent: "space-between",
           alignItems: "baseline",
+          columnGap: 12,
+          rowGap: 6,
           marginBottom: subtitle || headline ? 4 : 12,
         }}
       >
@@ -59,6 +62,7 @@ export function AnalyticalSeriesPanel({
               fontSize: 16,
               color: "var(--accent-bg)",
               fontWeight: 600,
+              minWidth: 0,
             }}
           >
             {headline}
