@@ -125,6 +125,56 @@ def bars_frame(bars: list[dict]) -> pd.DataFrame:
     )
 
 
+def _opt_float(v: Any) -> float | None:
+    if v is None:
+        return None
+    try:
+        return float(v)
+    except (TypeError, ValueError) as exc:
+        log.debug("ohlc overlay coercion skipped: %s", repr(exc))
+        return None
+
+
+def overlay_recent_ohlc(apex_bars: list[dict], recent: list[Any]) -> list[dict]:
+    """Overlay a recent, more-trusted daily OHLCV source (massive ``daily_ohlc``,
+    a ~40-session rolling window) onto apex daily bars — recent wins per session.
+
+    apex is the deep-history spine but lags a session and occasionally ships a
+    corrupt bar (e.g. a partial-session volume ~1/7 of normal). ``recent`` rows
+    (``DailyOhlcRow`` — duck-typed on .date/.open/.high/.low/.close/.volume) are
+    appended in the apex bar shape; downstream ``bars_frame`` dedups by session
+    date keeping the LAST occurrence, so a recent row supersedes the apex bar for
+    the same date and a recent-only date (one apex still lags on) is added.
+    Dates older than the recent window keep apex untouched. Pure — the caller
+    does the DB read and degrades to apex on failure.
+
+    ponytail: leans on bars_frame's existing keep='last' dedup instead of a
+    separate index/merge. Date alignment assumes apex and massive stamp the same
+    session within one UTC calendar date (both pass through bars_frame's
+    identical to_datetime(utc).dt.date) — a systematic skew would surface as
+    adjacent duplicate dates on the chart, not a silent overwrite.
+    """
+    if not recent:
+        return apex_bars
+    overlay: list[dict] = []
+    for r in recent:
+        d = getattr(r, "date", None)
+        c = getattr(r, "close", None)
+        if d is None or c is None:
+            continue
+        overlay.append(
+            {
+                "time": f"{d.isoformat()}T00:00:00Z",
+                "open": _opt_float(getattr(r, "open", None)),
+                "high": _opt_float(getattr(r, "high", None)),
+                "low": _opt_float(getattr(r, "low", None)),
+                "close": _opt_float(c),
+                "volume": _opt_float(getattr(r, "volume", None)),
+            }
+        )
+    return [*apex_bars, *overlay]
+
+
 def atr14(df: pd.DataFrame) -> pd.Series:
     """Wilder ATR(14)."""
     prev_close = df["close"].shift(1)

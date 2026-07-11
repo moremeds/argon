@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import math
+from datetime import date as _date
+from types import SimpleNamespace
 
 import numpy as np
 import pandas as pd
@@ -18,6 +20,7 @@ from uw_scan.cards.technicals import (
     forward_return_table,
     last_pivot_index,
     ma_kinematics,
+    overlay_recent_ohlc,
     relative_strength,
     rsi14,
     slope_regime,
@@ -299,3 +302,45 @@ def test_build_technical_snapshot_full():
     for col in ("rv20", "rv20_z", "skew60", "kurt60", "rsi_z", "kin_slope200"):
         assert math.isfinite(float(last[col])), col
     assert last["alignment"] in {-3, -2, -1, 0, 1, 2, 3}
+
+
+def _apex_bar(day_iso: str, close: float, *, volume: int, spread: float = 1.0) -> dict:
+    """Apex-shape daily bar keyed on an ISO session date."""
+    return {
+        "time": f"{day_iso}T00:00:00Z",
+        "open": close,
+        "high": close + spread,
+        "low": close - spread,
+        "close": close,
+        "volume": volume,
+    }
+
+
+def _ohlc_row(d: _date, close: float, volume: int) -> SimpleNamespace:
+    """Duck-typed DailyOhlcRow (.date/.open/.high/.low/.close/.volume)."""
+    return SimpleNamespace(
+        date=d, open=close - 0.5, high=close + 1.0, low=close - 1.0,
+        close=close, volume=volume,
+    )
+
+
+def test_overlay_recent_ohlc_recent_wins_and_fills_lag():
+    # apex spine lags a session (stops at 07-09) AND ships a corrupt 07-09 volume.
+    apex = [
+        _apex_bar("2026-07-08", 100.0, volume=40_000_000),
+        _apex_bar("2026-07-09", 101.0, volume=6_000_000),  # corrupt: ~1/7 of normal
+    ]
+    recent = [  # massive daily_ohlc window
+        _ohlc_row(_date(2026, 7, 9), 101.0, 42_000_000),   # corrects the volume
+        _ohlc_row(_date(2026, 7, 10), 102.0, 41_000_000),  # fills the bar apex lacks
+    ]
+    df = bars_frame(overlay_recent_ohlc(apex, recent))
+    assert [str(d) for d in df["as_of"]] == ["2026-07-08", "2026-07-09", "2026-07-10"]
+    row_0709 = df[df["as_of"].astype(str) == "2026-07-09"].iloc[0]
+    assert row_0709["volume"] == 42_000_000  # massive supersedes corrupt apex vol
+    assert str(df.iloc[-1]["as_of"]) == "2026-07-10"  # missing Friday now present
+
+
+def test_overlay_recent_ohlc_empty_recent_is_noop():
+    apex = [_apex_bar("2026-07-08", 100.0, volume=1000)]
+    assert overlay_recent_ohlc(apex, []) is apex

@@ -7,7 +7,7 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
-- Technicals price pane migrated to lightweight-charts: candlesticks + volume overlay + filled ±1.5σ band + click-to-anchor VWAP persisted per ticker. `technical_daily` now stores OHLCV (rides the nightly full-recompute; per-ticker auto-fill on first page open), new `technical_vwap_anchor` table, `POST/DELETE /api/stock/{ticker}/vwap-anchor`. (#256)
+- Technicals price pane migrated to lightweight-charts: candlesticks + volume overlay + filled ±1.5σ band + click-to-anchor VWAP persisted per ticker. `technical_daily` now stores OHLCV (rides the nightly full-recompute; per-ticker auto-fill on first page open), new `technical_vwap_anchor` table, `POST/DELETE /api/stock/{ticker}/vwap-anchor`. The pane is taller (460px), the SMA lines are bolder, and the anchored VWAP now draws in a high-contrast sky blue (`--accent-cool`) at 3px so it reads clearly against the candles/SMAs. The header date follows the newest bar actually plotted, so the live head's forming bar drives it to today rather than pinning to the previous-business-day apex EOD date. Today's forming bar carries only the live spot (no intraday O/H/L exists), so it plots as a zero-range doji that hid on the price line — it now gets a live dot marker so today is findable at any zoom without fabricating an open/high/low. (#256)
 
 ## [0.10.3] — 2026-07-10
 

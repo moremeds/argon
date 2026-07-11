@@ -214,6 +214,17 @@ function isFresh(live: TechnicalsLiveResponse | null): boolean {
   return Number.isFinite(age) && age <= LIVE_MAX_AGE_SEC;
 }
 
+// The live capture's US trading-session date, in ET — NOT the UTC date. A
+// capture at e.g. 21:00 ET Friday is already Saturday in UTC, so slicing the
+// UTC ISO string (`.slice(0,10)`) would date today's live bar to a non-trading
+// Saturday. The ET calendar date keeps it on the real session (Friday) until
+// ET midnight. `en-CA` renders YYYY-MM-DD, matching the series' as_of format.
+export function etSessionDate(iso: string): string {
+  return new Date(iso).toLocaleDateString("en-CA", {
+    timeZone: "America/New_York",
+  });
+}
+
 // Splice the live reading onto the daily payload: append one series row (which
 // moves the last point of EVERY oscillator chart — z, RSI, dual MACD, RV,
 // kinematics — at once) and override the latest detail readouts that drive the
@@ -230,7 +241,11 @@ export function mergeLiveHead(
   >;
   const dm = (live.dual_macd ?? {}) as Record<string, number | null>;
   // isFresh() guarantees captured_at is present.
-  const asOf = live.captured_at!.slice(0, 10);
+  // ET trading-session date, NOT the raw ISO slice: on a machine set to a
+  // non-ET zone (e.g. HK), captured_at is +08:00, so slicing would date the
+  // live bar to the wrong calendar day (Saturday for a Friday session). isFresh
+  // guarantees captured_at is present.
+  const asOf = etSessionDate(live.captured_at!);
   const liveRow = {
     as_of: asOf,
     close: live.spot ?? null,
@@ -246,11 +261,19 @@ export function mergeLiveHead(
     slow_macd_hist_atr: dm.slow_hist ?? null,
   };
   const series = [...(data.series ?? [])];
-  // Replace the last row if the live capture is same-day, else append.
+  // The live reading is TODAY's provisional bar. A SETTLED bar (one carrying
+  // real OHLC, open != null) is final — its close/high/low must never be moved
+  // by a live tick, even when the capture's UTC date coincides with it (an
+  // after-hours capture, or the ET-evening → next-UTC-day date rollover). So:
+  // refresh a prior *provisional* head (close-only, open == null) in place;
+  // else append a strictly-newer provisional bar; else leave the settled series
+  // untouched (the price tile still reflects live via the header path below).
+  // This is the "keep the 7/9 EOD bar intact" fix — apex lags a day, so the
+  // last EOD bar is a closed prior session, not today's forming candle.
   const last = series[series.length - 1];
-  if (last && asOf && last.as_of === asOf) {
+  if (last && last.as_of === asOf && last.open == null) {
     series[series.length - 1] = { ...last, ...liveRow };
-  } else {
+  } else if (!last?.as_of || asOf > last.as_of) {
     series.push(liveRow as (typeof series)[number]);
   }
   const detail = { ...(data.detail ?? {}) };
@@ -268,7 +291,12 @@ export function mergeLiveHead(
   if (live.z != null) header.z = live.z;
   if (live.z_band != null) header.z_band = live.z_band;
   if (live.composite != null) header.composite = live.composite;
-  return { ...data, series, detail, header };
+  // Advance the payload date to the live ET session when the head is newer, so
+  // the Price tile reads today's session date (7/10) instead of the stale EOD
+  // as_of (7/09) it would otherwise show beside a live price. Only ever forward
+  // (lexical ISO compare) — never rewind past a settled EOD date.
+  const nextAsOf = !data.as_of || asOf > data.as_of ? asOf : data.as_of;
+  return { ...data, as_of: nextAsOf, series, detail, header };
 }
 
 export function TechnicalsTab({ ticker }: { ticker: string }) {

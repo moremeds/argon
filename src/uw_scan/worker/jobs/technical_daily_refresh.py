@@ -6,13 +6,39 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-from uw_scan.cards.technicals import build_technical_series, build_technical_snapshot
+from uw_scan.cards.technicals import (
+    build_technical_series,
+    build_technical_snapshot,
+    overlay_recent_ohlc,
+)
 from uw_scan.config import Settings
 from uw_scan.sources.apex import fetch_daily_bars
 from uw_scan.storage.repository import Repository
 from uw_scan.storage.technicals_repository import TechnicalsRepository, series_records
 
 log = logging.getLogger(__name__)
+
+# The recent, more-trusted daily-OHLCV overlay window. ohlc_pull stores ~40
+# sessions of massive.com daily_ohlc; 60 covers the full stored window with
+# slack. Older dates than this fall through to apex's deep history untouched.
+_OHLC_OVERLAY_LIMIT = 60
+
+
+def _recent_ohlc(repo: Repository, ticker: str) -> list:
+    """The recent massive daily_ohlc window for `ticker`, [] on any failure.
+
+    Never-raise + rollback so a daily_ohlc read hiccup degrades the ticker to
+    apex-only instead of failing (or poisoning) the whole refresh loop."""
+    try:
+        return repo.list_daily_ohlc(ticker.upper(), limit=_OHLC_OVERLAY_LIMIT)
+    except Exception as exc:
+        repo.conn.rollback()
+        log.debug(
+            "technical_daily_refresh: daily_ohlc read failed for %s: %s",
+            ticker,
+            repr(exc),
+        )
+        return []
 
 
 def technical_daily_refresh(
@@ -27,12 +53,18 @@ def technical_daily_refresh(
     else:
         watch = sorted({c.ticker.upper() for c in repo.list_watchlist_cards()})
     tickers = sorted(set(watch) | {"SPY"})  # SPY = RS benchmark, always refreshed
-    spy_bars = fetch_daily_bars("SPY")
+    # SPY reconciled once: it is both a displayed ticker and the RS benchmark, so
+    # the ratio's two legs share the same corrected close series.
+    spy_bars = overlay_recent_ohlc(fetch_daily_bars("SPY"), _recent_ohlc(repo, "SPY"))
     ok = skipped_thin = failed = 0
     for t in tickers:
         try:
-            bars = spy_bars if t == "SPY" else fetch_daily_bars(t)
-            bench = spy_bars if t != "SPY" else None
+            if t == "SPY":
+                bars = spy_bars
+                bench = None
+            else:
+                bars = overlay_recent_ohlc(fetch_daily_bars(t), _recent_ohlc(repo, t))
+                bench = spy_bars
             snap = build_technical_snapshot(bars, bench)
             if snap is None:
                 skipped_thin += 1
