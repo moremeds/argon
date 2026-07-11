@@ -56,7 +56,8 @@ def _due_for_massive(prior_val: dict | None, now: datetime) -> bool:
         return True
     try:
         last = datetime.fromisoformat(checked)
-    except (TypeError, ValueError):
+    except (TypeError, ValueError) as exc:
+        log.debug("massive check clock parse failed (%r): %s", checked, repr(exc))
         return True
     return (now - last) >= _MASSIVE_CHECK_INTERVAL
 
