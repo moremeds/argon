@@ -78,9 +78,36 @@ export function toSmaLineData(
   });
 }
 
+// Highlight the EXTREMES of volume, not the magnitude. Opacity is U-shaped in
+// "buzz" (volume ÷ its volume-MA): bars in line with their MA recede to a muted
+// baseline, while both tails — an extreme-high blowoff AND an extreme-low
+// dry-up — saturate to full opacity so they pop off the chart. The low tail is
+// intentionally steeper (full highlight by ≤0.4×MA vs ≥2×MA on the high side):
+// a quiet bar is short and easy to miss, so we make light volume shout. Hue
+// always stays the bar's up/down red/green — never gray.
+function alphaFromBuzz(vol: number, ma: number | null | undefined): number {
+  if (ma == null || ma <= 0) return 0.6; // warmup: no MA yet → muted baseline
+  const buzz = vol / ma;
+  const extremeness =
+    buzz >= 1
+      ? Math.min(1, buzz - 1) // full highlight at ≥2×MA
+      : Math.min(1, (1 - buzz) / 0.6); // full highlight at ≤0.4×MA (steeper)
+  return 0.5 + extremeness * 0.5; // muted 0.5 → extreme 1.0
+}
+
+// 0..1 alpha → 2-digit hex, appended to a #RRGGBB color to form a canvas-legal
+// #RRGGBBAA. Assumes 6-digit-hex base colors (the Argon CSS vars are).
+function alphaHex(a: number): string {
+  return Math.round(Math.max(0, Math.min(1, a)) * 255)
+    .toString(16)
+    .padStart(2, "0");
+}
+
 // MarketSmith volume treatment: direction by PREVIOUS close (not bar
 // direction), optional graying of lowest-in-window bars, optional display cap
-// (2×MA truncation) — the hover readout still shows the true volume.
+// (2×MA truncation) — the hover readout still shows the true volume. When a
+// `magnitude` array (the volume MA) is supplied, each bar's opacity scales with
+// its volume/MA ratio so larger volume → deeper shade of its hue.
 export function toVolumeData(
   rows: readonly SeriesRow[],
   upColor: string,
@@ -89,6 +116,7 @@ export function toVolumeData(
     lowColor?: string;
     lowWindow?: number;
     truncateAt?: readonly (number | null)[];
+    magnitude?: readonly (number | null)[];
   },
 ): (HistogramData<Time> | WhitespaceData<Time>)[] {
   const up = prevCloseUp(rows);
@@ -103,11 +131,15 @@ export function toVolumeData(
     if (r.volume == null) return { time: t };
     const cap = opts?.truncateAt?.[i];
     const value = cap != null ? Math.min(r.volume, cap) : r.volume;
-    const color = low?.[i]
+    const base = low?.[i]
       ? (opts!.lowColor as string)
       : (up[i] ?? true)
         ? upColor
         : downColor;
+    // Buzz uses the TRUE volume, never the truncated display value.
+    const color = opts?.magnitude
+      ? base + alphaHex(alphaFromBuzz(r.volume, opts.magnitude[i]))
+      : base;
     return { time: t, value, color };
   });
 }

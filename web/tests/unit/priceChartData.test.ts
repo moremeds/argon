@@ -8,6 +8,7 @@ import {
   toVolumeData,
   toVolumeMaData,
 } from "@/lib/priceChartData";
+import { VOLUME_MARKER_OPTIONS } from "@/components/stock/panels/TechnicalsPriceChart";
 import { SPY_BARS } from "./fixtures/spyBars";
 
 const full = {
@@ -94,6 +95,43 @@ describe("toVolumeData (prev-close coloring)", () => {
     const cap = rows.map(() => 50_000_000 as number | null);
     const out = toVolumeData(rows, "#0f0", "#f00", { truncateAt: cap });
     expect((out[0] as { value?: number }).value).toBe(50_000_000); // 152.5M capped
+  });
+});
+
+describe("toVolumeData (extreme-highlight shading)", () => {
+  const alphaOf = (c?: string) => parseInt((c ?? "").slice(7, 9), 16);
+  // Three up-days (green), MA=100. buzz 2.0 (extreme high), 1.0 (in line with
+  // MA — normal), 0.5 (extreme low). Both tails should pop over the normal bar.
+  const rows = [
+    { as_of: "2026-01-02", open: 1, high: 2, low: 1, close: 2, volume: 200 },
+    { as_of: "2026-01-05", open: 1, high: 2, low: 1, close: 2, volume: 100 },
+    { as_of: "2026-01-06", open: 1, high: 2, low: 1, close: 2, volume: 50 },
+  ];
+
+  it("highlights both tails: extreme-high and extreme-low pop over a normal bar", () => {
+    const out = toVolumeData(rows as never[], "#00ff00", "#ff0000", {
+      magnitude: [100, 100, 100],
+    });
+    const [hi, mid, lo] = out.map((p) =>
+      alphaOf((p as { color?: string }).color),
+    );
+    for (const p of out) {
+      expect((p as { color?: string }).color?.slice(0, 7)).toBe("#00ff00"); // hue preserved
+    }
+    expect(hi).toBe(255); // ≥2×MA → fully opaque
+    expect(hi).toBeGreaterThan(mid); // extreme high pops over the normal bar
+    expect(lo).toBeGreaterThan(mid); // extreme LOW pops over the normal bar too
+  });
+
+  it("omits the alpha suffix entirely when no magnitude is given", () => {
+    const out = toVolumeData(rows as never[], "#00ff00", "#ff0000");
+    expect((out[0] as { color?: string }).color).toBe("#00ff00"); // 6-digit, no AA
+  });
+});
+
+describe("volume annotation scaling", () => {
+  it("does not let hover labels change the volume scale", () => {
+    expect(VOLUME_MARKER_OPTIONS).toEqual({ autoScale: false });
   });
 });
 

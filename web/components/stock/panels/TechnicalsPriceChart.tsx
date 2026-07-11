@@ -10,10 +10,12 @@ import {
   HistogramSeries,
   LineSeries,
   LineStyle,
+  type AutoscaleInfo,
   type IChartApi,
   type ISeriesApi,
   type ISeriesMarkersPluginApi,
   type MouseEventParams,
+  type SeriesMarker,
   type Time,
 } from "lightweight-charts";
 import { api, type TechnicalsResponse } from "@/lib/api";
@@ -117,6 +119,28 @@ type ChartHandles = {
   volMarkers: ISeriesMarkersPluginApi<Time> | null;
 };
 
+const READABLE_BAR_PX = 6; // min bar width before we scroll instead of squish
+
+// Hover-only below-bar labels must not participate in autoscaling. The default
+// marker behavior reserves bottom margin as soon as a label appears, which
+// lifts and compresses the entire volume histogram while moving the crosshair.
+export const VOLUME_MARKER_OPTIONS = { autoScale: false } as const;
+
+// Snap the view back to a readable default. If the whole range fits at a
+// readable bar width, fit it edge-to-edge. Otherwise (e.g. FULL = 5y) fitContent
+// would squish bars to ~1px — instead pin a readable bar width and scroll to the
+// newest bars, leaving the rest to scroll left.
+function resetView(h: ChartHandles, barCount: number) {
+  const ts = h.chart.timeScale();
+  const width = ts.width();
+  if (width > 0 && barCount * READABLE_BAR_PX > width) {
+    ts.applyOptions({ barSpacing: READABLE_BAR_PX });
+    ts.scrollToPosition(0, false); // newest bar at the right edge
+  } else {
+    ts.fitContent();
+  }
+}
+
 export function TechnicalsPriceChart({
   data,
   fullRows,
@@ -154,6 +178,11 @@ export function TechnicalsPriceChart({
   // as_of → volume MA50 lookup, rebuilt each data pass; read by the hover/leave
   // readout (a ref so the once-subscribed callback sees the latest map).
   const volMaByTimeRef = useRef<Map<string, number>>(new Map());
+  // Always-on volume markers (HVE/HV1) vs. the low-vol −NN% labels, which are
+  // revealed only for the hovered bar. Refs so the once-subscribed crosshair
+  // callback sees the latest sets after a live-poll data pass.
+  const baseVolMarkersRef = useRef<SeriesMarker<Time>[]>([]);
+  const lowVolByTimeRef = useRef<Map<string, SeriesMarker<Time>>>(new Map());
   const [anchor, setAnchor] = useState<Anchor | null>(() =>
     anchorFromServer(data.vwap_anchor),
   );
@@ -203,7 +232,18 @@ export function TechnicalsPriceChart({
         vertLine: { color: muted, labelBackgroundColor: borderDim },
         horzLine: { color: muted, labelBackgroundColor: borderDim },
       },
-      timeScale: { borderColor: borderDim, timeVisible: false },
+      timeScale: {
+        borderColor: borderDim,
+        timeVisible: false,
+        // Last bar pinned to the right edge (no right-side slack). Bars keep a
+        // readable minimum width: a long window (FULL) overflows and scrolls
+        // horizontally rather than being squished to 1px — the Reset button
+        // snaps back to fit-and-latest.
+        rightOffset: 0,
+        fixLeftEdge: true,
+        fixRightEdge: true,
+        minBarSpacing: 4,
+      },
       rightPriceScale: { borderColor: borderDim },
     });
 
@@ -230,10 +270,10 @@ export function TechnicalsPriceChart({
           priceLineVisible: true,
           crosshairMarkerVisible: true,
         });
-    // Keep candles clear of the volume band at the bottom.
+    // Keep candles clear of the (taller) volume band at the bottom.
     price
       .priceScale()
-      .applyOptions({ scaleMargins: { top: 0.08, bottom: 0.25 } });
+      .applyOptions({ scaleMargins: { top: 0.08, bottom: 0.35 } });
 
     let volume: ISeriesApi<"Histogram"> | null = null;
     if (candleMode) {
@@ -242,10 +282,22 @@ export function TechnicalsPriceChart({
         priceScaleId: "", // overlay: no left/right axis
         priceLineVisible: false,
         lastValueVisible: false,
+        base: 0,
+        // Overlay scales autoscale to the data range, which lifts the zero line
+        // off the pane floor and leaves the bars floating. Pin the range bottom
+        // to 0 so every bar sits ON the floor.
+        autoscaleInfoProvider: (orig: () => AutoscaleInfo | null) => {
+          const res = orig();
+          if (!res?.priceRange) return res;
+          return {
+            ...res,
+            priceRange: { minValue: 0, maxValue: res.priceRange.maxValue },
+          };
+        },
       });
       volume
         .priceScale()
-        .applyOptions({ scaleMargins: { top: 0.78, bottom: 0 } });
+        .applyOptions({ scaleMargins: { top: 0.68, bottom: 0 } });
     }
 
     // Volume MA + HVE/HV1 & low-vol markers ride the volume overlay scale.
@@ -262,8 +314,8 @@ export function TechnicalsPriceChart({
       });
       volMa
         .priceScale()
-        .applyOptions({ scaleMargins: { top: 0.78, bottom: 0 } });
-      volMarkers = createSeriesMarkers(volume, []);
+        .applyOptions({ scaleMargins: { top: 0.68, bottom: 0 } });
+      volMarkers = createSeriesMarkers(volume, [], VOLUME_MARKER_OPTIONS);
     }
 
     // Three MA lines, refilled per mode (SMA20/50/200 or EMA5/20/50). Same
@@ -354,11 +406,32 @@ export function TechnicalsPriceChart({
           )
         : "";
     };
+    // Low-vol −NN% labels are hidden by default; reveal only the hovered bar's,
+    // merged into the always-on HVE/HV1 base. Diffed against the last shown bar
+    // so setMarkers doesn't fire on every crosshair pixel move.
+    let lastLowTime: string | null = null;
+    const setHoverMarkers = (t: string | null) => {
+      if (!volMarkers) return;
+      const key = t && lowVolByTimeRef.current.has(t) ? t : null;
+      if (key === lastLowTime) return;
+      lastLowTime = key;
+      if (!key) {
+        volMarkers.setMarkers(baseVolMarkersRef.current);
+        return;
+      }
+      const low = lowVolByTimeRef.current.get(key) as SeriesMarker<Time>;
+      volMarkers.setMarkers(
+        [...baseVolMarkersRef.current, low].sort((a, b) =>
+          String(a.time).localeCompare(String(b.time)),
+        ),
+      );
+    };
     const onMove = (param: MouseEventParams<Time>) => {
       const out = readoutRef.current;
       if (!out) return;
       if (!param.point || param.time === undefined) {
         restoreLastReadout();
+        setHoverMarkers(null);
         return;
       }
       const bar = param.seriesData.get(price) as
@@ -372,6 +445,7 @@ export function TechnicalsPriceChart({
         | undefined;
       if (!bar) {
         restoreLastReadout();
+        setHoverMarkers(null);
         return;
       }
       const t = String(param.time);
@@ -382,6 +456,7 @@ export function TechnicalsPriceChart({
         row?.volume,
         volMaByTimeRef.current.get(t),
       );
+      setHoverMarkers(t);
     };
     chart.subscribeCrosshairMove(onMove);
 
@@ -412,8 +487,11 @@ export function TechnicalsPriceChart({
       );
       h.volume?.setData(
         cut(
-          toVolumeData(full, `${positive}59`, `${negative}59`, {
-            lowColor: cssVar("--text-muted"),
+          toVolumeData(full, positive, negative, {
+            // Every bar keeps its up/down hue; magnitude alone drives intensity
+            // (no separate gray "lowest-in-window" category — it muddied the
+            // quiet bars once the buzz opacity was also applied).
+            magnitude: volMaFull, // opacity scales with volume/MA (buzz)
             truncateAt: TRUNCATE_VOLUME_AT_2X_MA
               ? volMaFull.map((m) => (m == null ? null : 2 * m))
               : undefined,
@@ -422,18 +500,25 @@ export function TechnicalsPriceChart({
       );
       h.volMa?.setData(cut(toVolumeMaData(full, VOL_MA_PERIOD)));
       if (h.volMarkers) {
-        const markers = [
-          ...highVolMarkers(full, { color: cssVar("--text-secondary") }),
-          ...lowVolMarkers(full, volMaFull, {
-            thresholdPct: LOW_VOL_THRESHOLD_PCT,
-            color: cssVar("--text-muted"),
-          }),
-        ]
+        // HVE/HV1 stay pinned; the low-vol −NN% labels move to a by-time map so
+        // onMove can reveal just the hovered bar's (they overlap illegibly when
+        // all shown at once).
+        const base = highVolMarkers(full, { color: cssVar("--text-secondary") })
           .filter((m) => m.time >= firstAsOf)
-          .sort((a, b) => (a.time < b.time ? -1 : a.time > b.time ? 1 : 0));
-        h.volMarkers.setMarkers(
-          markers.map((m) => ({ ...m, time: m.time as Time })),
+          .sort((a, b) => (a.time < b.time ? -1 : a.time > b.time ? 1 : 0))
+          .map((m) => ({ ...m, time: m.time as Time }));
+        baseVolMarkersRef.current = base;
+        lowVolByTimeRef.current = new Map(
+          lowVolMarkers(full, volMaFull, {
+            thresholdPct: LOW_VOL_THRESHOLD_PCT,
+            // Bright text — this label is revealed one-at-a-time on hover, so it
+            // must read clearly; --text-muted was invisible on the dark pane.
+            color: cssVar("--text-primary"),
+          })
+            .filter((m) => m.time >= firstAsOf)
+            .map((m) => [m.time, { ...m, time: m.time as Time }]),
         );
+        h.volMarkers.setMarkers(base);
       }
       volMaByTimeRef.current = new Map(
         full.flatMap((r, i) =>
@@ -467,7 +552,7 @@ export function TechnicalsPriceChart({
     const fitKey = `${ticker}:${candleMode}:${firstAsOf}`;
     if (fitKey !== fitKeyRef.current) {
       fitKeyRef.current = fitKey;
-      h.chart.timeScale().fitContent();
+      resetView(h, rows.length);
     }
     // Default (no hover) readout: the last bar's line with buzz.
     const lastRow = rows[rows.length - 1];
@@ -556,6 +641,27 @@ export function TechnicalsPriceChart({
           </button>
         ))}
       </span>
+      <button
+        type="button"
+        onClick={() => {
+          const h = handlesRef.current;
+          if (h) resetView(h, rows.length);
+        }}
+        title="Reset zoom — fit and jump to the latest bar"
+        style={{
+          fontFamily: "var(--font-mono)",
+          fontSize: 10,
+          letterSpacing: 1,
+          color: "var(--text-muted)",
+          background: "transparent",
+          border: "1px solid var(--border-dim)",
+          borderRadius: 4,
+          padding: "2px 7px",
+          cursor: "pointer",
+        }}
+      >
+        ⟲ RESET
+      </button>
       {control}
       <span>{lastBarDate}</span>
     </span>
