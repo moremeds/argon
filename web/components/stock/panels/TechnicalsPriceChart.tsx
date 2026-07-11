@@ -5,12 +5,14 @@ import {
   CandlestickSeries,
   ColorType,
   createChart,
+  createSeriesMarkers,
   CrosshairMode,
   HistogramSeries,
   LineSeries,
   LineStyle,
   type IChartApi,
   type ISeriesApi,
+  type ISeriesMarkersPluginApi,
   type MouseEventParams,
   type Time,
 } from "lightweight-charts";
@@ -25,8 +27,15 @@ import {
   toEmaLineData,
   toSmaLineData,
   toVolumeData,
+  toVolumeMaData,
   type SeriesRow,
 } from "@/lib/priceChartData";
+import {
+  fmtVolCompact,
+  highVolMarkers,
+  lowVolMarkers,
+  volumeMa,
+} from "@/lib/indicators";
 import { BandsIndicator } from "@/lib/lwc/bandsIndicator";
 import { AnalyticalSeriesPanel } from "./AnalyticalSeriesPanel";
 
@@ -53,6 +62,35 @@ function cssVar(name: string): string {
   return v || "#888888";
 }
 
+// MarketSmith knobs — constants, not UI (trim candidates after live review).
+const VOL_MA_PERIOD = 50;
+const LOW_VOL_THRESHOLD_PCT = -25;
+const TRUNCATE_VOLUME_AT_2X_MA = false; // MarketSmith display style; readout shows true vol
+
+// One readout line for both hover and the default last-bar state: OHLC (or
+// close) + volume buzz (V + ×MA50 when an MA value exists for the bar).
+function readoutLine(
+  time: string,
+  bar: {
+    open?: number;
+    high?: number;
+    low?: number;
+    close?: number;
+    value?: number;
+  },
+  vol: number | null | undefined,
+  volMa: number | undefined,
+): string {
+  const f = (x?: number) => (x == null ? "–" : x.toFixed(2));
+  const buzz =
+    vol != null
+      ? `  V ${fmtVolCompact(vol)}${volMa ? ` · ${(vol / volMa).toFixed(2)}×MA50` : ""}`
+      : "";
+  return bar.open != null
+    ? `${time}  O ${f(bar.open)} H ${f(bar.high)} L ${f(bar.low)} C ${f(bar.close)}${buzz}`
+    : `${time}  C ${f(bar.value)}${buzz}`;
+}
+
 type Anchor = {
   anchorDate: string;
   series: { time: string; value: number }[];
@@ -75,6 +113,8 @@ type ChartHandles = {
   mas: Record<"fast" | "mid" | "slow", ISeriesApi<"Line">>;
   vwap: ISeriesApi<"Line">;
   bands: BandsIndicator;
+  volMa: ISeriesApi<"Line"> | null;
+  volMarkers: ISeriesMarkersPluginApi<Time> | null;
 };
 
 export function TechnicalsPriceChart({
@@ -111,6 +151,9 @@ export function TechnicalsPriceChart({
   // a poll append doesn't re-subscribe). Synced in an effect, not in render.
   const rowsRef = useRef<SeriesRow[]>(rows);
   const fitKeyRef = useRef("");
+  // as_of → volume MA50 lookup, rebuilt each data pass; read by the hover/leave
+  // readout (a ref so the once-subscribed callback sees the latest map).
+  const volMaByTimeRef = useRef<Map<string, number>>(new Map());
   const [anchor, setAnchor] = useState<Anchor | null>(() =>
     anchorFromServer(data.vwap_anchor),
   );
@@ -205,6 +248,24 @@ export function TechnicalsPriceChart({
         .applyOptions({ scaleMargins: { top: 0.78, bottom: 0 } });
     }
 
+    // Volume MA + HVE/HV1 & low-vol markers ride the volume overlay scale.
+    let volMa: ISeriesApi<"Line"> | null = null;
+    let volMarkers: ISeriesMarkersPluginApi<Time> | null = null;
+    if (candleMode && volume) {
+      volMa = chart.addSeries(LineSeries, {
+        color: cssVar("--warning"),
+        priceScaleId: "", // same overlay scale as the volume histogram
+        lineWidth: 1,
+        priceLineVisible: false,
+        lastValueVisible: false,
+        crosshairMarkerVisible: false,
+      });
+      volMa
+        .priceScale()
+        .applyOptions({ scaleMargins: { top: 0.78, bottom: 0 } });
+      volMarkers = createSeriesMarkers(volume, []);
+    }
+
     // Three MA lines, refilled per mode (SMA20/50/200 or EMA5/20/50). Same
     // colors/weights in both modes — fast → --accent-warm, mid → --accent-vol,
     // slow → --accent-vivid.
@@ -235,7 +296,16 @@ export function TechnicalsPriceChart({
     });
     price.attachPrimitive(bands);
 
-    handlesRef.current = { chart, price, volume, mas, vwap, bands };
+    handlesRef.current = {
+      chart,
+      price,
+      volume,
+      mas,
+      vwap,
+      bands,
+      volMa,
+      volMarkers,
+    };
     fitKeyRef.current = ""; // force a fitContent on the first data pass
 
     // Click-to-anchor VWAP (candle mode only — needs H/L/C + volume).
@@ -262,12 +332,33 @@ export function TechnicalsPriceChart({
     };
     chart.subscribeClick(onClick);
 
-    // Hover readout (date · OHLC · volume) — direct DOM write, no re-render.
+    // Hover readout (date · OHLC · volume · ×MA50) — direct DOM write. Volume
+    // is read from rowsRef (the TRUE value), never the possibly-truncated
+    // histogram. Crosshair-leave restores the last-bar line, not empty.
+    const restoreLastReadout = () => {
+      const out = readoutRef.current;
+      if (!out) return;
+      const last = rowsRef.current[rowsRef.current.length - 1];
+      out.textContent = last?.as_of
+        ? readoutLine(
+            last.as_of,
+            {
+              open: last.open ?? undefined,
+              high: last.high ?? undefined,
+              low: last.low ?? undefined,
+              close: last.close ?? undefined,
+              value: last.close ?? undefined,
+            },
+            last.volume,
+            volMaByTimeRef.current.get(last.as_of),
+          )
+        : "";
+    };
     const onMove = (param: MouseEventParams<Time>) => {
       const out = readoutRef.current;
       if (!out) return;
       if (!param.point || param.time === undefined) {
-        out.textContent = "";
+        restoreLastReadout();
         return;
       }
       const bar = param.seriesData.get(price) as
@@ -279,21 +370,18 @@ export function TechnicalsPriceChart({
             value?: number;
           }
         | undefined;
-      const vol = volume
-        ? (param.seriesData.get(volume) as { value?: number } | undefined)
-        : undefined;
       if (!bar) {
-        out.textContent = "";
+        restoreLastReadout();
         return;
       }
-      const f = (x?: number) => (x == null ? "–" : x.toFixed(2));
-      out.textContent =
-        bar.open != null
-          ? `${param.time}  O ${f(bar.open)} H ${f(bar.high)} L ${f(bar.low)} C ${f(bar.close)}` +
-            (vol?.value != null
-              ? `  V ${Intl.NumberFormat("en-US").format(vol.value)}`
-              : "")
-          : `${param.time}  C ${f(bar.value)}`;
+      const t = String(param.time);
+      const row = rowsRef.current.find((r) => r.as_of === t);
+      out.textContent = readoutLine(
+        t,
+        bar,
+        row?.volume,
+        volMaByTimeRef.current.get(t),
+      );
     };
     chart.subscribeCrosshairMove(onMove);
 
@@ -318,11 +406,40 @@ export function TechnicalsPriceChart({
       a.filter((p) => String(p.time) >= firstAsOf);
     if (candleMode) {
       (h.price as ISeriesApi<"Candlestick">).setData(toCandleData(rows));
+      const volMaFull = volumeMa(
+        full.map((r) => r.volume),
+        VOL_MA_PERIOD,
+      );
       h.volume?.setData(
         cut(
           toVolumeData(full, `${positive}59`, `${negative}59`, {
             lowColor: cssVar("--text-muted"),
+            truncateAt: TRUNCATE_VOLUME_AT_2X_MA
+              ? volMaFull.map((m) => (m == null ? null : 2 * m))
+              : undefined,
           }),
+        ),
+      );
+      h.volMa?.setData(cut(toVolumeMaData(full, VOL_MA_PERIOD)));
+      if (h.volMarkers) {
+        const markers = [
+          ...highVolMarkers(full, { color: cssVar("--text-secondary") }),
+          ...lowVolMarkers(full, volMaFull, {
+            thresholdPct: LOW_VOL_THRESHOLD_PCT,
+            color: cssVar("--text-muted"),
+          }),
+        ]
+          .filter((m) => m.time >= firstAsOf)
+          .sort((a, b) => (a.time < b.time ? -1 : a.time > b.time ? 1 : 0));
+        h.volMarkers.setMarkers(
+          markers.map((m) => ({ ...m, time: m.time as Time })),
+        );
+      }
+      volMaByTimeRef.current = new Map(
+        full.flatMap((r, i) =>
+          volMaFull[i] != null && r.as_of
+            ? [[r.as_of, volMaFull[i] as number] as [string, number]]
+            : [],
         ),
       );
     } else {
@@ -351,6 +468,22 @@ export function TechnicalsPriceChart({
     if (fitKey !== fitKeyRef.current) {
       fitKeyRef.current = fitKey;
       h.chart.timeScale().fitContent();
+    }
+    // Default (no hover) readout: the last bar's line with buzz.
+    const lastRow = rows[rows.length - 1];
+    if (readoutRef.current && lastRow?.as_of) {
+      readoutRef.current.textContent = readoutLine(
+        lastRow.as_of,
+        {
+          open: lastRow.open ?? undefined,
+          high: lastRow.high ?? undefined,
+          low: lastRow.low ?? undefined,
+          close: lastRow.close ?? undefined,
+          value: lastRow.close ?? undefined,
+        },
+        lastRow.volume,
+        volMaByTimeRef.current.get(lastRow.as_of),
+      );
     }
   }, [rows, full, ticker, candleMode, anchor, mode]);
 
