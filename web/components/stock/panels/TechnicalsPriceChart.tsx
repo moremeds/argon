@@ -19,8 +19,10 @@ import { anchoredVwap } from "@/lib/vwap";
 import {
   hasOhlcv,
   toBandData,
+  toBollingerBandData,
   toCandleData,
   toCloseLineData,
+  toEmaLineData,
   toSmaLineData,
   toVolumeData,
   type SeriesRow,
@@ -29,6 +31,19 @@ import { BandsIndicator } from "@/lib/lwc/bandsIndicator";
 import { AnalyticalSeriesPanel } from "./AnalyticalSeriesPanel";
 
 const H = 460;
+
+type OverlayMode = "sma" | "ema";
+const OVERLAY_MODE_KEY = "technicals:priceOverlayMode";
+
+// ReorderableList.tsx pattern: lazy init + try/catch; client-only component
+// so no hydration mismatch.
+function loadOverlayMode(): OverlayMode {
+  try {
+    return localStorage.getItem(OVERLAY_MODE_KEY) === "ema" ? "ema" : "sma";
+  } catch {
+    return "sma";
+  }
+}
 
 // Canvas needs concrete colors — resolve the Argon CSS variables at mount.
 function cssVar(name: string): string {
@@ -57,21 +72,36 @@ type ChartHandles = {
   chart: IChartApi;
   price: ISeriesApi<"Candlestick"> | ISeriesApi<"Line">;
   volume: ISeriesApi<"Histogram"> | null;
-  smas: Record<"sma20" | "sma50" | "sma200", ISeriesApi<"Line">>;
+  mas: Record<"fast" | "mid" | "slow", ISeriesApi<"Line">>;
   vwap: ISeriesApi<"Line">;
   bands: BandsIndicator;
 };
 
 export function TechnicalsPriceChart({
   data,
+  fullRows,
   control,
 }: {
   data: TechnicalsResponse;
+  fullRows?: SeriesRow[];
   control?: ReactNode;
 }) {
   const rows = useMemo(() => (data.series ?? []) as SeriesRow[], [data.series]);
+  // Unwindowed history for client-side indicators (EMA/BB/vol-MA/markers need
+  // pre-window warmup); the caller passes the full series, defaulting to the
+  // visible rows for back-compat.
+  const full = useMemo(() => fullRows ?? rows, [fullRows, rows]);
   const ticker = data.ticker;
   const candleMode = hasOhlcv(rows);
+  const [mode, setMode] = useState<OverlayMode>(loadOverlayMode);
+  const setModePersist = (m: OverlayMode) => {
+    setMode(m);
+    try {
+      localStorage.setItem(OVERLAY_MODE_KEY, m);
+    } catch {
+      /* storage unavailable */
+    }
+  };
 
   const containerRef = useRef<HTMLDivElement>(null);
   const readoutRef = useRef<HTMLDivElement>(null);
@@ -175,16 +205,19 @@ export function TechnicalsPriceChart({
         .applyOptions({ scaleMargins: { top: 0.78, bottom: 0 } });
     }
 
-    const smas = {
-      sma20: chart.addSeries(LineSeries, {
+    // Three MA lines, refilled per mode (SMA20/50/200 or EMA5/20/50). Same
+    // colors/weights in both modes — fast → --accent-warm, mid → --accent-vol,
+    // slow → --accent-vivid.
+    const mas = {
+      fast: chart.addSeries(LineSeries, {
         color: cssVar("--accent-warm"),
         ...lineOpts,
       }),
-      sma50: chart.addSeries(LineSeries, {
+      mid: chart.addSeries(LineSeries, {
         color: cssVar("--accent-vol"),
         ...lineOpts,
       }),
-      sma200: chart.addSeries(LineSeries, {
+      slow: chart.addSeries(LineSeries, {
         color: cssVar("--accent-vivid"),
         ...lineOpts,
       }),
@@ -202,7 +235,7 @@ export function TechnicalsPriceChart({
     });
     price.attachPrimitive(bands);
 
-    handlesRef.current = { chart, price, volume, smas, vwap, bands };
+    handlesRef.current = { chart, price, volume, mas, vwap, bands };
     fitKeyRef.current = ""; // force a fitContent on the first data pass
 
     // Click-to-anchor VWAP (candle mode only — needs H/L/C + volume).
@@ -278,17 +311,34 @@ export function TechnicalsPriceChart({
     if (!h) return;
     const positive = cssVar("--positive");
     const negative = cssVar("--negative");
+    const firstAsOf = rows[0]?.as_of ?? "";
+    // Indicators are computed over `full` (converged warmup) then sliced to the
+    // visible window's left edge.
+    const cut = <T extends { time: Time }>(a: T[]): T[] =>
+      a.filter((p) => String(p.time) >= firstAsOf);
     if (candleMode) {
       (h.price as ISeriesApi<"Candlestick">).setData(toCandleData(rows));
-      h.volume?.setData(toVolumeData(rows, `${positive}59`, `${negative}59`));
+      h.volume?.setData(
+        cut(
+          toVolumeData(full, `${positive}59`, `${negative}59`, {
+            lowColor: cssVar("--text-muted"),
+          }),
+        ),
+      );
     } else {
       (h.price as ISeriesApi<"Line">).setData(toCloseLineData(rows));
     }
-    h.smas.sma20.setData(toSmaLineData(rows, "sma20"));
-    h.smas.sma50.setData(toSmaLineData(rows, "sma50"));
-    h.smas.sma200.setData(toSmaLineData(rows, "sma200"));
-    h.bands.setBandData(toBandData(rows));
-    const firstAsOf = rows[0]?.as_of ?? "";
+    if (mode === "sma") {
+      h.mas.fast.setData(toSmaLineData(rows, "sma20"));
+      h.mas.mid.setData(toSmaLineData(rows, "sma50"));
+      h.mas.slow.setData(toSmaLineData(rows, "sma200"));
+      h.bands.setBandData(toBandData(rows));
+    } else {
+      h.mas.fast.setData(cut(toEmaLineData(full, 5)));
+      h.mas.mid.setData(cut(toEmaLineData(full, 20)));
+      h.mas.slow.setData(cut(toEmaLineData(full, 50)));
+      h.bands.setBandData(cut(toBollingerBandData(full)));
+    }
     const visVwap = anchor
       ? anchor.series.filter((p) => p.time >= firstAsOf)
       : [];
@@ -302,7 +352,7 @@ export function TechnicalsPriceChart({
       fitKeyRef.current = fitKey;
       h.chart.timeScale().fitContent();
     }
-  }, [rows, ticker, candleMode, anchor]);
+  }, [rows, full, ticker, candleMode, anchor, mode]);
 
   const clearAnchor = () => {
     setAnchor(null);
@@ -340,18 +390,52 @@ export function TechnicalsPriceChart({
           VWAP ⚓ {anchor.anchorDate} ✕
         </button>
       )}
+      <span
+        role="group"
+        aria-label="Overlay mode"
+        style={{ display: "inline-flex", gap: 0 }}
+      >
+        {(
+          [
+            ["sma", "SMA·σ"],
+            ["ema", "EMA·BB"],
+          ] as const
+        ).map(([m, label]) => (
+          <button
+            key={m}
+            type="button"
+            onClick={() => setModePersist(m)}
+            aria-pressed={mode === m}
+            style={{
+              fontFamily: "var(--font-mono)",
+              fontSize: 10,
+              letterSpacing: 1,
+              color: mode === m ? "var(--text-primary)" : "var(--text-muted)",
+              background: mode === m ? "var(--bg-panel-raised)" : "transparent",
+              border: "1px solid var(--border-dim)",
+              borderRadius: m === "sma" ? "4px 0 0 4px" : "0 4px 4px 0",
+              marginLeft: m === "ema" ? -1 : 0,
+              padding: "2px 7px",
+              cursor: "pointer",
+            }}
+          >
+            {label}
+          </button>
+        ))}
+      </span>
       {control}
       <span>{lastBarDate}</span>
     </span>
   );
 
+  const title =
+    mode === "sma"
+      ? "Price, Moving Averages & ±1.5σ Band"
+      : "Price, EMAs & Bollinger Bands";
+
   if (rows.length < 2) {
     return (
-      <AnalyticalSeriesPanel
-        title="Price, Moving Averages & ±1.5σ Band"
-        subtitle="anchor"
-        headline={header}
-      >
+      <AnalyticalSeriesPanel title={title} subtitle="anchor" headline={header}>
         <div style={{ color: "var(--text-muted)", fontSize: 12 }}>
           Not enough history.
         </div>
@@ -361,7 +445,7 @@ export function TechnicalsPriceChart({
 
   return (
     <AnalyticalSeriesPanel
-      title="Price, Moving Averages & ±1.5σ Band"
+      title={title}
       subtitle={
         candleMode
           ? "candles · volume · click a bar to anchor VWAP"
@@ -390,12 +474,12 @@ export function TechnicalsPriceChart({
           {err}
         </div>
       )}
-      <Legend showVwap={anchor != null} />
+      <Legend mode={mode} showVwap={anchor != null} />
     </AnalyticalSeriesPanel>
   );
 }
 
-function Legend({ showVwap }: { showVwap: boolean }) {
+function Legend({ mode, showVwap }: { mode: OverlayMode; showVwap: boolean }) {
   const item = (color: string, label: string) => (
     <span
       key={label}
@@ -417,12 +501,16 @@ function Legend({ showVwap }: { showVwap: boolean }) {
       <span style={{ fontSize: 10, color: "var(--text-muted)" }}>{label}</span>
     </span>
   );
+  const labels =
+    mode === "sma"
+      ? (["SMA20", "SMA50", "SMA200"] as const)
+      : (["EMA5", "EMA20", "EMA50"] as const);
   return (
     <div style={{ marginTop: 6 }}>
       {item("var(--text-primary)", "PRICE")}
-      {item("var(--accent-warm)", "SMA20")}
-      {item("var(--accent-vol)", "SMA50")}
-      {item("var(--accent-vivid)", "SMA200")}
+      {item("var(--accent-warm)", labels[0])}
+      {item("var(--accent-vol)", labels[1])}
+      {item("var(--accent-vivid)", labels[2])}
       {showVwap && item("var(--accent-cool)", "VWAP ⚓")}
     </div>
   );
