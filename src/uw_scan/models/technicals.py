@@ -21,7 +21,11 @@ class TechnicalsHeader(_UwBase):
 
 class TechnicalsSeriesRow(_UwBase):
     as_of: date
+    open: float | None = None
+    high: float | None = None
+    low: float | None = None
     close: float | None = None
+    volume: int | None = None
     sma20: float | None = None
     sma50: float | None = None
     sma200: float | None = None
@@ -59,6 +63,22 @@ class ForwardReturnBandRow(_UwBase):
     win_rate: float
 
 
+class VwapPoint(_UwBase):
+    as_of: date
+    vwap: float
+
+
+class TechnicalsVwapAnchor(_UwBase):
+    """User-set anchored VWAP: the anchor bar + the series from it forward."""
+
+    anchor_date: date
+    series: list[VwapPoint] = []
+
+
+class VwapAnchorRequest(_UwBase):
+    anchor_date: date
+
+
 class TechnicalsResponse(_UwBase):
     ticker: str
     backfill_status: str  # "ready" | "empty"
@@ -69,6 +89,23 @@ class TechnicalsResponse(_UwBase):
     detail: dict[str, Any] | None = None
     macd_watchlist_pctile: float | None = None
     forward_returns: list[ForwardReturnBandRow] = []
+    vwap_anchor: TechnicalsVwapAnchor | None = None
+
+
+class FormingOhlc(_UwBase):
+    """Today's provisional session candle, accumulated live from the WS spot:
+    open = first fresh spot of the ET session, high/low = running extremes,
+    close = latest spot. Lets the chart draw a real forming candle instead of a
+    zero-range doji. `source` tags the feed; when the massive cross-check heals a
+    bad xenon read, `source` becomes the massive feed and `stale` flips True."""
+
+    session_date: date
+    open: float
+    high: float
+    low: float
+    close: float
+    source: str | None = None
+    stale: bool = False
 
 
 class TechnicalsLiveResponse(_UwBase):
@@ -81,6 +118,7 @@ class TechnicalsLiveResponse(_UwBase):
     captured_at: datetime | None = None
     spot: float | None = None
     spot_source: str | None = None
+    forming_ohlc: FormingOhlc | None = None
     z: float | None = None
     z_band: str | None = None
     rsi14: float | None = None
@@ -96,6 +134,10 @@ _preserve_public_module(
     TechnicalsHeader,
     TechnicalsSeriesRow,
     ForwardReturnBandRow,
+    VwapPoint,
+    TechnicalsVwapAnchor,
+    VwapAnchorRequest,
     TechnicalsResponse,
+    FormingOhlc,
     TechnicalsLiveResponse,
 )

@@ -140,11 +140,15 @@ from .stock import (
     VRPAssessment,
 )
 from .technicals import (
+    FormingOhlc,
     ForwardReturnBandRow,
     TechnicalsHeader,
     TechnicalsLiveResponse,
     TechnicalsResponse,
     TechnicalsSeriesRow,
+    TechnicalsVwapAnchor,
+    VwapAnchorRequest,
+    VwapPoint,
 )
 from .trade_insights import (
     CandidateStructure,
@@ -320,7 +324,11 @@ __all__ = [
     "TechnicalsSeriesRow",
     "ForwardReturnBandRow",
     "TechnicalsResponse",
+    "FormingOhlc",
     "TechnicalsLiveResponse",
+    "VwapPoint",
+    "TechnicalsVwapAnchor",
+    "VwapAnchorRequest",
     "VolHeaderBlock",
     "TermStructureExpiryRow",
     "SmilePoint",

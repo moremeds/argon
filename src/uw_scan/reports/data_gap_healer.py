@@ -203,6 +203,16 @@ REGISTRY: list[DatasetRegistryEntry] = [
         ticker_col="ticker",
         expected_frequency="liveness",
     ),
+    DatasetRegistryEntry(
+        # User-set VWAP anchor for the Technicals price pane (one row per
+        # ticker, written only on user click). No cadence to audit.
+        "technical_vwap_anchor",
+        "core_watchlist",
+        "excluded",
+        ticker_col="ticker",
+        expected_frequency="none",
+        reason="user-triggered anchor state; written only on click, no expected cadence",
+    ),
     # --- derived volatility (db-to-db) ---
     DatasetRegistryEntry(
         "vrp_daily",

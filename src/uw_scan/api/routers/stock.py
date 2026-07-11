@@ -21,6 +21,9 @@ from uw_scan.models import (
     StrikeGexBucket,
     TechnicalsLiveResponse,
     TechnicalsResponse,
+    TechnicalsVwapAnchor,
+    VwapAnchorRequest,
+    VwapPoint,
 )
 from uw_scan.reports.single_stock import assemble_single_stock_report
 from uw_scan.reports.technicals import assemble_technicals
@@ -229,6 +232,7 @@ def get_stock_technicals_live(
         captured_at=row["captured_at"],
         spot=row["spot"],
         spot_source=row["spot_source"],
+        forming_ohlc=p.get("forming_ohlc"),
         z=p.get("z"),
         z_band=p.get("z_band"),
         rsi14=p.get("rsi14"),
@@ -282,3 +286,55 @@ def refresh_stock_technicals(
             cur.execute(
                 f"SELECT pg_advisory_unlock({_TECHNICALS_REFRESH_LOCK_SQL})", (t,)
             )
+
+
+@router.post("/stock/{ticker}/vwap-anchor", response_model=TechnicalsVwapAnchor)
+def set_vwap_anchor(
+    ticker: str,
+    body: VwapAnchorRequest,
+    repo: Repository = Depends(get_repo),
+    settings: Settings = Depends(get_settings),
+) -> TechnicalsVwapAnchor:
+    """Persist a user-clicked VWAP anchor and return the computed series.
+
+    A sanctioned write on this otherwise read-only router (precedent:
+    /technicals/refresh). Pure DB read + O(n) math + one upsert — no external
+    fetch, so no single-flight lock is needed.
+    """
+    from uw_scan.cards.technicals import anchored_vwap
+    from uw_scan.storage.technical_vwap_anchor_repository import (
+        TechnicalVwapAnchorRepository,
+    )
+    from uw_scan.storage.technicals_repository import TechnicalsRepository
+
+    t = ticker.upper()
+    rows = TechnicalsRepository(repo.conn, schema=settings.db_schema).fetch_series(t)
+    if not any(r["as_of"] == body.anchor_date for r in rows):
+        raise HTTPException(400, f"{body.anchor_date} is not a stored bar for {t}")
+    points = anchored_vwap(rows, body.anchor_date)
+    if not points:
+        raise HTTPException(400, f"no OHLCV at/after {body.anchor_date} for {t}")
+    snapshot = [{"as_of": p["as_of"].isoformat(), "vwap": p["vwap"]} for p in points]
+    TechnicalVwapAnchorRepository(repo.conn, schema=settings.db_schema).upsert(
+        t, body.anchor_date, snapshot
+    )
+    return TechnicalsVwapAnchor(
+        anchor_date=body.anchor_date,
+        series=[VwapPoint(as_of=p["as_of"], vwap=p["vwap"]) for p in points],
+    )
+
+
+@router.delete("/stock/{ticker}/vwap-anchor", status_code=204)
+def clear_vwap_anchor(
+    ticker: str,
+    repo: Repository = Depends(get_repo),
+    settings: Settings = Depends(get_settings),
+) -> None:
+    """Clear the persisted VWAP anchor (idempotent)."""
+    from uw_scan.storage.technical_vwap_anchor_repository import (
+        TechnicalVwapAnchorRepository,
+    )
+
+    TechnicalVwapAnchorRepository(repo.conn, schema=settings.db_schema).delete(
+        ticker.upper()
+    )

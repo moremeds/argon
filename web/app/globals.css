@@ -61,6 +61,9 @@
   --accent-vol: #8b5cf6;
   --accent-warm: #f5a623;
   --accent-vivid: #d946a8;
+  /* High-contrast sky blue reserved for the anchored-VWAP line — distinct from
+     the amber/purple/pink SMAs and the teal/red candles so it reads clearly. */
+  --accent-cool: #38bdf8;
 }
 
 [data-theme="light"] {

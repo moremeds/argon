@@ -105,3 +105,39 @@ def test_fetch_latest_macd_all(seeded_db_empty_cards):
     )
     rows = trepo.fetch_latest_macd_all()
     assert {r["ticker"] for r in rows} >= {"AAA", "BBB"}
+
+
+def test_upsert_and_fetch_ohlcv_roundtrip(seeded_db_empty_cards):
+    repo = seeded_db_empty_cards
+    trepo = TechnicalsRepository(repo.conn)
+    rows = [
+        {
+            "as_of": date(2026, 7, 6),
+            "open": 99.5,
+            "high": 101.0,
+            "low": 98.0,
+            "close": 100.0,
+            "volume": 1_234_567.0,  # float in, int out (BIGINT column)
+        },
+        {
+            "as_of": date(2026, 7, 7),
+            "open": 100.2,
+            "high": 103.0,
+            "low": 100.0,
+            "close": 102.5,
+            "volume": 2_000_000,
+        },
+    ]
+    assert trepo.upsert_series("NVDA", rows) == 2
+    got = trepo.fetch_series("NVDA")
+    assert got[0]["open"] == 99.5
+    assert got[0]["volume"] == 1_234_567
+    assert isinstance(got[0]["volume"], int)
+    assert got[1]["high"] == 103.0
+    latest = trepo.fetch_latest("NVDA")
+    assert latest["low"] == 100.0
+    assert latest["volume"] == 2_000_000
+    # re-upsert with changed OHLCV must overwrite (ON CONFLICT set-list)
+    rows[1]["high"] = 104.0
+    trepo.upsert_series("NVDA", rows)
+    assert trepo.fetch_series("NVDA")[1]["high"] == 104.0

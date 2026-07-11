@@ -1,7 +1,11 @@
 import { render } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import type { TechnicalsLiveResponse, TechnicalsResponse } from "@/lib/api";
-import { mergeLiveHead } from "@/components/stock/tabs/TechnicalsTab";
+import {
+  etSessionDate,
+  mergeLiveHead,
+} from "@/components/stock/tabs/TechnicalsTab";
+import { toCandleData } from "@/lib/priceChartData";
 import { TechnicalsKpiStrip } from "@/components/stock/panels/TechnicalsKpiStrip";
 
 function freshLive(over: Partial<TechnicalsLiveResponse> = {}) {
@@ -39,12 +43,121 @@ describe("mergeLiveHead — price-card header", () => {
     expect(m.header?.dist_pct).toBeCloseTo(105 / 90 - 1, 6);
   });
 
+  it("advances the payload date to the live ET session when fresh", () => {
+    // base as_of is 2026-07-09 (a settled prior session); a fresh live head
+    // dates to today's ET session, which the Price tile must show.
+    const today = etSessionDate(new Date().toISOString());
+    const m = mergeLiveHead(base, freshLive());
+    expect(m.as_of).toBe(today);
+    expect(m.as_of! >= "2026-07-09").toBe(true); // only ever forward
+  });
+
+  it("leaves the EOD date when live is stale/absent", () => {
+    const stale = freshLive({
+      captured_at: new Date(Date.now() - 3_600_000).toISOString(),
+    });
+    expect(mergeLiveHead(base, stale).as_of).toBe("2026-07-09");
+    expect(mergeLiveHead(base, null).as_of).toBe("2026-07-09");
+  });
+
   it("leaves the EOD header untouched when live is stale/absent", () => {
     const stale = freshLive({
       captured_at: new Date(Date.now() - 3_600_000).toISOString(),
     });
     expect(mergeLiveHead(base, stale).header?.price).toBe(100);
     expect(mergeLiveHead(base, null).header?.price).toBe(100);
+  });
+});
+
+// The chart's last-value price line always sits on the newest bar's close, so
+// for it to track live the merged series head must carry the live spot as its
+// close — then toCandleData renders that head as a flat candle at spot.
+describe("mergeLiveHead — series head drives the live price line", () => {
+  it("appends a live bar at the live spot for a new session", () => {
+    const m = mergeLiveHead(base, freshLive({ spot: 105 }));
+    const last = (m.series ?? []).at(-1)!;
+    expect(last.close).toBe(105);
+    const candle = toCandleData(m.series ?? []).at(-1) as { close?: number };
+    expect(candle.close).toBe(105); // price line lands on the live spot
+  });
+
+  it("builds a REAL forming candle from forming_ohlc (not a doji)", () => {
+    const today = etSessionDate(new Date().toISOString());
+    const m = mergeLiveHead(
+      base,
+      freshLive({
+        spot: 105,
+        forming_ohlc: {
+          session_date: today,
+          open: 100,
+          high: 108,
+          low: 99,
+          close: 105,
+          source: "xenon_ws",
+          stale: false,
+        },
+      }),
+    );
+    const last = (m.series ?? []).at(-1)!;
+    expect(last.open).toBe(100);
+    expect(last.high).toBe(108);
+    expect(last.low).toBe(99);
+    expect(last.close).toBe(105);
+    const candle = toCandleData(m.series ?? []).at(-1) as {
+      open: number;
+      high: number;
+      low: number;
+    };
+    // a real candle has range (high > low) — unlike the old zero-range doji
+    expect(candle.high).toBeGreaterThan(candle.low);
+    expect(candle.open).toBe(100);
+  });
+
+  it("ignores a forming_ohlc from a different session (weekend/stale guard)", () => {
+    const today = etSessionDate(new Date().toISOString());
+    const m = mergeLiveHead(
+      base,
+      freshLive({
+        spot: 105,
+        forming_ohlc: {
+          session_date: "2020-01-02", // not today's ET session
+          open: 1,
+          high: 2,
+          low: 0.5,
+          close: 1.5,
+          source: "xenon_ws",
+          stale: false,
+        },
+      }),
+    );
+    const last = (m.series ?? []).at(-1)!;
+    // falls back to a close-only head at the live spot — yesterday's phantom
+    // range must not paint onto today.
+    expect(last.close).toBe(105);
+    expect(last.open == null).toBe(true);
+    expect(last.as_of).toBe(today);
+  });
+
+  it("refreshes a provisional (close-only) same-day head with the live spot", () => {
+    const today = etSessionDate(new Date().toISOString());
+    const provisional = {
+      ...base,
+      series: [{ as_of: today, close: 100 }], // open == null -> provisional head
+    } as unknown as TechnicalsResponse;
+    const m = mergeLiveHead(provisional, freshLive({ spot: 107 }));
+    expect((m.series ?? []).length).toBe(1); // refreshed in place, not appended
+    expect((m.series ?? []).at(-1)!.close).toBe(107);
+  });
+
+  it("never clobbers a SETTLED same-day bar's close (keeps EOD intact)", () => {
+    const today = etSessionDate(new Date().toISOString());
+    const settled = {
+      ...base,
+      series: [{ as_of: today, open: 99, high: 101, low: 98, close: 100 }],
+    } as unknown as TechnicalsResponse;
+    const m = mergeLiveHead(settled, freshLive({ spot: 107 }));
+    expect((m.series ?? []).length).toBe(1);
+    expect((m.series ?? []).at(-1)!.close).toBe(100); // settled close untouched
   });
 });
 

@@ -12,7 +12,11 @@ from psycopg.types.json import Jsonb
 
 _CORE_COLS = (
     "as_of",
+    "open",
+    "high",
+    "low",
     "close",
+    "volume",
     "sma20",
     "sma50",
     "sma200",
@@ -90,19 +94,27 @@ class TechnicalsRepository:
         for r in rows:
             metrics = {k: r.get(k) for k in _METRIC_COLS if k in r}
             core = {k: r.get(k) for k in _CORE_COLS}
+            if core.get("volume") is not None:
+                core["volume"] = int(
+                    round(core["volume"])
+                )  # BIGINT col; pandas float64
             params.append({**core, "ticker": ticker.upper(), "metrics": Jsonb(metrics)})
         sql = """
             INSERT INTO technical_daily
-                (ticker, as_of, close, sma20, sma50, sma200, z_vs_200dma,
-                 z_band, sma200_slope_ann, slope_regime, rsi14,
-                 macd_hist_atr, rs_ratio, metrics)
+                (ticker, as_of, open, high, low, close, volume, sma20, sma50,
+                 sma200, z_vs_200dma, z_band, sma200_slope_ann, slope_regime,
+                 rsi14, macd_hist_atr, rs_ratio, metrics)
             VALUES
-                (%(ticker)s, %(as_of)s, %(close)s, %(sma20)s, %(sma50)s,
-                 %(sma200)s, %(z_vs_200dma)s, %(z_band)s,
-                 %(sma200_slope_ann)s, %(slope_regime)s, %(rsi14)s,
+                (%(ticker)s, %(as_of)s, %(open)s, %(high)s, %(low)s, %(close)s,
+                 %(volume)s, %(sma20)s, %(sma50)s, %(sma200)s, %(z_vs_200dma)s,
+                 %(z_band)s, %(sma200_slope_ann)s, %(slope_regime)s, %(rsi14)s,
                  %(macd_hist_atr)s, %(rs_ratio)s, %(metrics)s)
             ON CONFLICT (ticker, as_of) DO UPDATE SET
+                open             = EXCLUDED.open,
+                high             = EXCLUDED.high,
+                low              = EXCLUDED.low,
                 close            = EXCLUDED.close,
+                volume           = EXCLUDED.volume,
                 sma20            = EXCLUDED.sma20,
                 sma50            = EXCLUDED.sma50,
                 sma200           = EXCLUDED.sma200,
@@ -141,9 +153,10 @@ class TechnicalsRepository:
     def fetch_series(self, ticker: str, *, limit: int = 1300) -> list[dict]:
         sql = """
             SELECT * FROM (
-                SELECT as_of, close, sma20, sma50, sma200, z_vs_200dma, z_band,
-                       sma200_slope_ann, slope_regime, rsi14, macd_hist_atr,
-                       rs_ratio, metrics, detail, forward_returns
+                SELECT as_of, open, high, low, close, volume, sma20, sma50,
+                       sma200, z_vs_200dma, z_band, sma200_slope_ann,
+                       slope_regime, rsi14, macd_hist_atr, rs_ratio, metrics,
+                       detail, forward_returns
                   FROM technical_daily
                  WHERE ticker = %s
                  ORDER BY as_of DESC
@@ -157,9 +170,10 @@ class TechnicalsRepository:
 
     def fetch_latest(self, ticker: str) -> dict | None:
         sql = """
-            SELECT ticker, as_of, close, sma20, sma50, sma200, z_vs_200dma,
-                   z_band, sma200_slope_ann, slope_regime, rsi14,
-                   macd_hist_atr, rs_ratio, bars_n, detail, forward_returns
+            SELECT ticker, as_of, open, high, low, close, volume, sma20, sma50,
+                   sma200, z_vs_200dma, z_band, sma200_slope_ann, slope_regime,
+                   rsi14, macd_hist_atr, rs_ratio, bars_n, detail,
+                   forward_returns
               FROM technical_daily
              WHERE ticker = %s
              -- Prefer the true computed-latest (the only row carrying detail);

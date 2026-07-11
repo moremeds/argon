@@ -3,12 +3,16 @@
 from __future__ import annotations
 
 import math
+from datetime import date as _date
+from types import SimpleNamespace
 
 import numpy as np
 import pandas as pd
 import pytest
+
 from uw_scan.cards.technicals import (
     Z_BANDS,
+    accumulate_forming_ohlc,
     bars_frame,
     build_technical_series,
     build_technical_snapshot,
@@ -17,6 +21,8 @@ from uw_scan.cards.technicals import (
     forward_return_table,
     last_pivot_index,
     ma_kinematics,
+    overlay_recent_ohlc,
+    reconcile_forming_with_massive,
     relative_strength,
     rsi14,
     slope_regime,
@@ -49,6 +55,18 @@ def test_bars_frame_sorts_dedupes_and_dates():
 
 def test_bars_frame_empty():
     assert bars_frame([]).empty
+
+
+def test_build_technical_series_carries_ohlcv():
+    # _bar sets open=close, high=close+spread, low=close-spread, volume=1000.
+    bars = [_bar(d, 100.0 + d, spread=2.0) for d in range(10)]
+    out = build_technical_series(bars)
+    for col in ("open", "high", "low", "volume"):
+        assert col in out.columns, f"{col} missing from series frame"
+    assert out["open"].iloc[0] == 100.0
+    assert out["high"].iloc[-1] == 111.0  # close 109 + spread 2
+    assert out["low"].iloc[0] == 98.0  # close 100 - spread 2
+    assert out["volume"].iloc[-1] == 1000
 
 
 def test_z_band_label_boundaries():
@@ -244,7 +262,11 @@ def test_build_technical_snapshot_full():
     series = build_technical_series(bars, spy)
     assert list(series.columns) == [
         "as_of",
+        "open",
+        "high",
+        "low",
         "close",
+        "volume",
         "sma20",
         "sma50",
         "sma200",
@@ -282,3 +304,155 @@ def test_build_technical_snapshot_full():
     for col in ("rv20", "rv20_z", "skew60", "kurt60", "rsi_z", "kin_slope200"):
         assert math.isfinite(float(last[col])), col
     assert last["alignment"] in {-3, -2, -1, 0, 1, 2, 3}
+
+
+def _apex_bar(day_iso: str, close: float, *, volume: int, spread: float = 1.0) -> dict:
+    """Apex-shape daily bar keyed on an ISO session date."""
+    return {
+        "time": f"{day_iso}T00:00:00Z",
+        "open": close,
+        "high": close + spread,
+        "low": close - spread,
+        "close": close,
+        "volume": volume,
+    }
+
+
+def _ohlc_row(d: _date, close: float, volume: int) -> SimpleNamespace:
+    """Duck-typed DailyOhlcRow (.date/.open/.high/.low/.close/.volume)."""
+    return SimpleNamespace(
+        date=d,
+        open=close - 0.5,
+        high=close + 1.0,
+        low=close - 1.0,
+        close=close,
+        volume=volume,
+    )
+
+
+def test_overlay_recent_ohlc_recent_wins_and_fills_lag():
+    # apex spine lags a session (stops at 07-09) AND ships a corrupt 07-09 volume.
+    apex = [
+        _apex_bar("2026-07-08", 100.0, volume=40_000_000),
+        _apex_bar("2026-07-09", 101.0, volume=6_000_000),  # corrupt: ~1/7 of normal
+    ]
+    recent = [  # massive daily_ohlc window
+        _ohlc_row(_date(2026, 7, 9), 101.0, 42_000_000),  # corrects the volume
+        _ohlc_row(_date(2026, 7, 10), 102.0, 41_000_000),  # fills the bar apex lacks
+    ]
+    df = bars_frame(overlay_recent_ohlc(apex, recent))
+    assert [str(d) for d in df["as_of"]] == ["2026-07-08", "2026-07-09", "2026-07-10"]
+    row_0709 = df[df["as_of"].astype(str) == "2026-07-09"].iloc[0]
+    assert row_0709["volume"] == 42_000_000  # massive supersedes corrupt apex vol
+    assert str(df.iloc[-1]["as_of"]) == "2026-07-10"  # missing Friday now present
+
+
+def test_overlay_recent_ohlc_empty_recent_is_noop():
+    apex = [_apex_bar("2026-07-08", 100.0, volume=1000)]
+    assert overlay_recent_ohlc(apex, []) is apex
+
+
+def test_accumulate_forming_ohlc_new_session_seeds_from_price():
+    fo = accumulate_forming_ohlc(None, 100.0, _date(2026, 7, 10), "xenon_ws")
+    assert fo == {
+        "session_date": "2026-07-10",
+        "open": 100.0,
+        "high": 100.0,
+        "low": 100.0,
+        "close": 100.0,
+        "source": "xenon_ws",
+        "stale": False,
+    }
+
+
+def test_accumulate_forming_ohlc_rolls_extremes_and_holds_open():
+    d = _date(2026, 7, 10)
+    fo = accumulate_forming_ohlc(None, 100.0, d, "xenon_ws")  # open
+    fo = accumulate_forming_ohlc(fo, 103.0, d, "xenon_ws")  # new high
+    fo = accumulate_forming_ohlc(fo, 98.0, d, "xenon_ws")  # new low
+    fo = accumulate_forming_ohlc(fo, 101.0, d, "xenon_ws")  # inside range
+    assert fo["open"] == 100.0  # first print of the session, held
+    assert fo["high"] == 103.0
+    assert fo["low"] == 98.0
+    assert fo["close"] == 101.0  # latest spot
+    # candle invariant: low <= open/close <= high
+    assert fo["low"] <= fo["open"] <= fo["high"]
+    assert fo["low"] <= fo["close"] <= fo["high"]
+
+
+def test_accumulate_forming_ohlc_resets_on_new_session():
+    prior = accumulate_forming_ohlc(None, 100.0, _date(2026, 7, 9), "xenon_ws")
+    prior = accumulate_forming_ohlc(prior, 110.0, _date(2026, 7, 9), "xenon_ws")
+    fresh = accumulate_forming_ohlc(prior, 50.0, _date(2026, 7, 10), "xenon_ws")
+    # yesterday's 110 high must NOT bleed into today's candle
+    assert fresh == {
+        "session_date": "2026-07-10",
+        "open": 50.0,
+        "high": 50.0,
+        "low": 50.0,
+        "close": 50.0,
+        "source": "xenon_ws",
+        "stale": False,
+    }
+
+
+def _forming(o, h, low, c, sd="2026-07-10", source="xenon_ws"):
+    return {
+        "session_date": sd,
+        "open": o,
+        "high": h,
+        "low": low,
+        "close": c,
+        "source": source,
+        "stale": False,
+    }
+
+
+def test_reconcile_massive_within_range_keeps_xenon():
+    f = _forming(400, 410, 398, 409)
+    m = {"open": 401, "high": 409, "low": 399, "close": 405}  # 405 in [398,410]
+    out, v = reconcile_forming_with_massive(f, m, "t", 50.0)
+    assert out is f  # xenon candle passes through unchanged
+    assert v["healed"] is False
+    assert v["out_of_range_bps"] == 0.0
+    assert v["massive_close"] == 405.0
+
+
+def test_reconcile_is_delay_robust_on_a_trending_market():
+    # xenon live close 410 (now); massive close 405 is 15-min-delayed but still
+    # inside xenon's [398,410] range -> healthy, even though close != close.
+    f = _forming(400, 410, 398, 410)
+    m = {"open": 400, "high": 406, "low": 399, "close": 405}
+    out, v = reconcile_forming_with_massive(f, m, "t", 50.0)
+    assert v["healed"] is False
+    assert out is f
+
+
+def test_reconcile_frozen_feed_heals_to_massive():
+    # xenon stuck at 405 (zero-range); real price moved, massive close 412 is
+    # outside the live range -> heal to massive's independent bar.
+    f = _forming(405, 405, 405, 405)
+    m = {"open": 406, "high": 413, "low": 405, "close": 412}
+    out, v = reconcile_forming_with_massive(f, m, "t", 50.0)
+    assert v["healed"] is True
+    assert out["source"] == "massive.com"
+    assert out["stale"] is True
+    assert out["close"] == 412.0
+    assert out["session_date"] == "2026-07-10"  # preserved through the heal
+    assert v["out_of_range_bps"] and v["out_of_range_bps"] > 0
+
+
+def test_reconcile_no_massive_data_keeps_xenon():
+    f = _forming(400, 410, 398, 409)
+    out, v = reconcile_forming_with_massive(f, None, "t", 50.0)
+    assert out is f and v["healed"] is False and v["massive_close"] is None
+    out2, v2 = reconcile_forming_with_massive(f, {"close": None}, "t", 50.0)
+    assert out2 is f and v2["healed"] is False
+
+
+def test_reconcile_no_live_range_heals_from_massive():
+    out, v = reconcile_forming_with_massive(
+        None, {"open": 1, "high": 2, "low": 0.5, "close": 1.5}, "t", 50.0
+    )
+    assert v["healed"] is True
+    assert out["close"] == 1.5 and out["source"] == "massive.com"

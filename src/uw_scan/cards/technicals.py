@@ -125,6 +125,165 @@ def bars_frame(bars: list[dict]) -> pd.DataFrame:
     )
 
 
+def _opt_float(v: Any) -> float | None:
+    if v is None:
+        return None
+    try:
+        return float(v)
+    except (TypeError, ValueError) as exc:
+        log.debug("ohlc overlay coercion skipped: %s", repr(exc))
+        return None
+
+
+def overlay_recent_ohlc(apex_bars: list[dict], recent: list[Any]) -> list[dict]:
+    """Overlay a recent, more-trusted daily OHLCV source (massive ``daily_ohlc``,
+    a ~40-session rolling window) onto apex daily bars — recent wins per session.
+
+    apex is the deep-history spine but lags a session and occasionally ships a
+    corrupt bar (e.g. a partial-session volume ~1/7 of normal). ``recent`` rows
+    (``DailyOhlcRow`` — duck-typed on .date/.open/.high/.low/.close/.volume) are
+    appended in the apex bar shape; downstream ``bars_frame`` dedups by session
+    date keeping the LAST occurrence, so a recent row supersedes the apex bar for
+    the same date and a recent-only date (one apex still lags on) is added.
+    Dates older than the recent window keep apex untouched. Pure — the caller
+    does the DB read and degrades to apex on failure.
+
+    ponytail: leans on bars_frame's existing keep='last' dedup instead of a
+    separate index/merge. Date alignment assumes apex and massive stamp the same
+    session within one UTC calendar date (both pass through bars_frame's
+    identical to_datetime(utc).dt.date) — a systematic skew would surface as
+    adjacent duplicate dates on the chart, not a silent overwrite.
+    """
+    if not recent:
+        return apex_bars
+    overlay: list[dict] = []
+    for r in recent:
+        d = getattr(r, "date", None)
+        c = getattr(r, "close", None)
+        if d is None or c is None:
+            continue
+        overlay.append(
+            {
+                "time": f"{d.isoformat()}T00:00:00Z",
+                "open": _opt_float(getattr(r, "open", None)),
+                "high": _opt_float(getattr(r, "high", None)),
+                "low": _opt_float(getattr(r, "low", None)),
+                "close": _opt_float(c),
+                "volume": _opt_float(getattr(r, "volume", None)),
+            }
+        )
+    return [*apex_bars, *overlay]
+
+
+def accumulate_forming_ohlc(
+    prior: Mapping[str, Any] | None,
+    price: float,
+    session_date: date,
+    source: str | None,
+) -> dict:
+    """Roll today's provisional session candle forward from the live spot.
+
+    open = first fresh spot of the ET session; high/low = running extremes;
+    close = latest spot. A session-date change resets (new trading day). Pure —
+    the caller reads the prior candle from ``technical_live.payload`` and writes
+    the returned one back, so the accumulation survives worker restarts.
+
+    ponytail: high/low are only as fine as the caller's sampling cadence (~5
+    min), so a spike between samples can be missed — every value is still a real
+    observed print, and the settled EOD candle supersedes this at close. A
+    massive cross-check (M2) heals a divergent/stale xenon read; it flips
+    ``stale`` and rewrites ``source`` but leaves this accumulation shape intact.
+    """
+    d = session_date.isoformat()
+    if prior is None or prior.get("session_date") != d:
+        o = h = lo = price
+    else:
+        o = float(prior["open"])
+        h = max(float(prior["high"]), price)
+        lo = min(float(prior["low"]), price)
+    return {
+        "session_date": d,
+        "open": o,
+        "high": h,
+        "low": lo,
+        "close": price,
+        "source": source,
+        "stale": False,
+    }
+
+
+def _massive_forming(
+    massive: Mapping[str, float | None], mclose: float, session_date: Any
+) -> dict:
+    """Build a forming candle from massive's delayed today bar (heal target)."""
+
+    def _f(key: str) -> float:
+        v = massive.get(key)
+        return float(v) if v is not None else mclose
+
+    return {
+        "session_date": session_date,
+        "open": _f("open"),
+        "high": _f("high"),
+        "low": _f("low"),
+        "close": mclose,
+        "source": "massive.com",
+        "stale": True,
+    }
+
+
+def reconcile_forming_with_massive(
+    forming: Mapping[str, Any] | None,
+    massive: Mapping[str, float | None] | None,
+    now_iso: str,
+    tol_bps: float,
+) -> tuple[dict | None, dict]:
+    """Cross-check the xenon-accumulated forming candle against massive's
+    delayed today bar; heal to massive when the live feed looks unstable.
+
+    Delay-robust by design (massive is ~15-min delayed): a delayed close is a
+    price the live session already traded *through*, so a healthy live
+    ``[low, high]`` must bracket it. We therefore test **range containment**, not
+    close-vs-close — the latter would false-positive on any 15-min drift. If
+    massive's close falls outside the live range (widened by ``tol_bps`` for
+    timing/rounding), the live feed missed real price action and is judged
+    unstable: the bar is healed to massive's independent OHLC (source
+    'massive.com', stale=True). Returns ``(forming_to_store, verdict)``.
+
+    ponytail: a bad live *high/low* spike that inflates the range (hiding a real
+    move inside it) is not caught — the frozen/drifted-away feed is the failure
+    this targets. A loop that (re)started mid-session may briefly flag until the
+    live range grows to include the delayed price; it self-heals next session.
+    """
+    verdict: dict[str, Any] = {
+        "checked_at": now_iso,
+        "massive_close": None,
+        "out_of_range_bps": None,
+        "healed": False,
+    }
+    mclose = None if massive is None else massive.get("close")
+    if mclose is None:
+        return forming, verdict  # no massive data -> keep xenon, nothing to check
+    mclose = float(mclose)
+    verdict["massive_close"] = mclose
+    session_date = (forming or {}).get("session_date")
+    hi = (forming or {}).get("high")
+    lo = (forming or {}).get("low")
+    if hi is None or lo is None:
+        # no live range to validate against -> heal from massive
+        verdict["healed"] = True
+        return _massive_forming(massive, mclose, session_date), verdict
+    hi_f, lo_f = float(hi), float(lo)
+    tol = tol_bps / 1e4
+    if lo_f * (1 - tol) <= mclose <= hi_f * (1 + tol):
+        verdict["out_of_range_bps"] = 0.0
+        return forming, verdict  # live range brackets the delayed price -> healthy
+    dist = mclose - hi_f * (1 + tol) if mclose > hi_f else lo_f * (1 - tol) - mclose
+    verdict["out_of_range_bps"] = dist / mclose * 1e4 if mclose else None
+    verdict["healed"] = True
+    return _massive_forming(massive, mclose, session_date), verdict
+
+
 def atr14(df: pd.DataFrame) -> pd.Series:
     """Wilder ATR(14)."""
     prev_close = df["close"].shift(1)
@@ -591,7 +750,11 @@ def build_technical_series(
         return pd.DataFrame(
             columns=[
                 "as_of",
+                "open",
+                "high",
+                "low",
                 "close",
+                "volume",
                 "sma20",
                 "sma50",
                 "sma200",
@@ -606,7 +769,7 @@ def build_technical_series(
             ]
         )
     close = df["close"]
-    out = df[["as_of", "close"]].copy()
+    out = df[["as_of", "open", "high", "low", "close", "volume"]].copy()
     out["sma20"] = close.rolling(20).mean()
     out["sma50"] = close.rolling(50).mean()
     out["sma200"] = close.rolling(200).mean()
@@ -749,3 +912,27 @@ def live_technical_snapshot(
             rsi_z=rsi_d.get("rsi_z"),
         ),
     }
+
+
+def anchored_vwap(rows: list[Mapping[str, Any]], anchor_date: date) -> list[dict]:
+    """Anchored VWAP over per-session OHLCV rows (sorted ascending by as_of).
+
+    typical = (H+L+C)/3; vwap_i = Σ(typical·volume)/Σ(volume) over bars at or
+    after ``anchor_date``. Bars missing H/L/C or volume (or volume == 0) add
+    nothing to the sums — the prior VWAP carries forward; bars before the
+    first volume-bearing bar emit nothing.
+    """
+    pv = 0.0
+    vol = 0.0
+    out: list[dict] = []
+    for r in rows:
+        as_of = r.get("as_of")
+        if as_of is None or as_of < anchor_date:
+            continue
+        h, lo, c, v = r.get("high"), r.get("low"), r.get("close"), r.get("volume")
+        if h is not None and lo is not None and c is not None and v:
+            pv += (float(h) + float(lo) + float(c)) / 3.0 * float(v)
+            vol += float(v)
+        if vol > 0:
+            out.append({"as_of": as_of, "vwap": pv / vol})
+    return out
