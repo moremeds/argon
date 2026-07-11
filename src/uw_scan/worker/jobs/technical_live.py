@@ -71,7 +71,10 @@ def _massive_today_ohlc(
     except Exception as exc:  # noqa: BLE001
         log.debug("massive today fetch failed %s: %s", ticker, repr(exc))
         return None
-    bar = next((b for b in bars if b.date == session_date), bars[-1] if bars else None)
+    # Strict date match only — never fall back to bars[-1]: cross-checking (and
+    # potentially healing) today's candle against a stale prior-session bar would
+    # be worse than skipping the check.
+    bar = next((b for b in bars if b.date == session_date), None)
     if bar is None:
         return None
 
@@ -122,19 +125,21 @@ def technical_live_scan(
                 skipped_thin += 1
                 continue
             # fetch_series returns ascending (oldest->newest) — the shape the
-            # live splice needs. Close-only history: no OHLC in technical_daily,
-            # so O/H/L reuse close (matching live_technical_snapshot's
-            # provisional-bar convention; ATR over close-only slightly
-            # understates true range for the live head — documented tradeoff).
+            # live splice needs. Use the real stored OHLCV now that technical_daily
+            # carries it (migration 105) so live ATR / ATR-normalized MACD /
+            # kinematics match the settled daily series; fall back to close for
+            # any pre-migration row that hasn't been recomputed yet.
             df = pd.DataFrame(
                 [
                     {
                         "as_of": r["as_of"],
-                        "open": r["close"],
-                        "high": r["close"],
-                        "low": r["close"],
+                        "open": r["open"] if r["open"] is not None else r["close"],
+                        "high": r["high"] if r["high"] is not None else r["close"],
+                        "low": r["low"] if r["low"] is not None else r["close"],
                         "close": r["close"],
-                        "volume": 0.0,
+                        "volume": float(r["volume"])
+                        if r["volume"] is not None
+                        else 0.0,
                     }
                     for r in rows
                 ]

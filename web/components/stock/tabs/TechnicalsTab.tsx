@@ -211,7 +211,10 @@ const LIVE_MAX_AGE_SEC = 900;
 function isFresh(live: TechnicalsLiveResponse | null): boolean {
   if (!live?.available || !live.captured_at) return false;
   const age = (Date.now() - new Date(live.captured_at).getTime()) / 1000;
-  return Number.isFinite(age) && age <= LIVE_MAX_AGE_SEC;
+  // age >= 0 rejects a future-dated capture (server/client clock skew or a bad
+  // row): a negative age would otherwise pass the upper bound and pin a stale
+  // live head for as long as it stays in the future.
+  return Number.isFinite(age) && age >= 0 && age <= LIVE_MAX_AGE_SEC;
 }
 
 // The live capture's US trading-session date, in ET — NOT the UTC date. A

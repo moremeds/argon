@@ -18,9 +18,13 @@ const closeOnly = { as_of: "2026-07-07", close: 9.8 };
 const empty = { as_of: "2026-07-08" };
 
 describe("priceChartData", () => {
-  it("hasOhlcv detects any OHLC-bearing row", () => {
-    expect(hasOhlcv([full, closeOnly])).toBe(true);
+  it("hasOhlcv requires a majority of rows to carry OHLC", () => {
+    expect(hasOhlcv([full, closeOnly])).toBe(true); // 50% -> candle mode
     expect(hasOhlcv([closeOnly, empty])).toBe(false);
+    // one OHLC forming head on a close-only history stays in LINE mode, so the
+    // history doesn't render as a wall of flat dojis before backfill lands.
+    expect(hasOhlcv([closeOnly, closeOnly, full])).toBe(false);
+    expect(hasOhlcv([])).toBe(false);
   });
 
   it("toCandleData: full candle / flat tick for close-only / whitespace", () => {

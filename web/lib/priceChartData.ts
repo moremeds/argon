@@ -10,8 +10,16 @@ import type { BandPoint } from "@/lib/lwc/bandsIndicator";
 
 export type SeriesRow = TechnicalsResponse["series"][number];
 
+// Candle mode only when the BULK of history carries OHLC — a majority test, not
+// `some`. Otherwise a single OHLC row (e.g. the live forming head appended onto a
+// not-yet-backfilled close-only history) would flip the whole chart to candle
+// mode and render every close-only bar as a flat doji until the backfill lands.
 export function hasOhlcv(rows: readonly SeriesRow[]): boolean {
-  return rows.some((r) => r.open != null && r.high != null && r.low != null);
+  if (rows.length === 0) return false;
+  const withOhlc = rows.filter(
+    (r) => r.open != null && r.high != null && r.low != null,
+  ).length;
+  return withOhlc >= rows.length / 2;
 }
 
 export function toCandleData(
