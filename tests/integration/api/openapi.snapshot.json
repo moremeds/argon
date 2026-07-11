@@ -4345,6 +4345,57 @@
         "title": "FlowSnapshot",
         "type": "object"
       },
+      "FormingOhlc": {
+        "description": "Today's provisional session candle, accumulated live from the WS spot:\nopen = first fresh spot of the ET session, high/low = running extremes,\nclose = latest spot. Lets the chart draw a real forming candle instead of a\nzero-range doji. `source` tags the feed; when the massive cross-check heals a\nbad xenon read, `source` becomes the massive feed and `stale` flips True.",
+        "properties": {
+          "close": {
+            "title": "Close",
+            "type": "number"
+          },
+          "high": {
+            "title": "High",
+            "type": "number"
+          },
+          "low": {
+            "title": "Low",
+            "type": "number"
+          },
+          "open": {
+            "title": "Open",
+            "type": "number"
+          },
+          "session_date": {
+            "format": "date",
+            "title": "Session Date",
+            "type": "string"
+          },
+          "source": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source"
+          },
+          "stale": {
+            "default": false,
+            "title": "Stale",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "session_date",
+          "open",
+          "high",
+          "low",
+          "close"
+        ],
+        "title": "FormingOhlc",
+        "type": "object"
+      },
       "ForwardReturnBandRow": {
         "properties": {
           "band": {
@@ -15625,6 +15676,16 @@
               }
             ],
             "title": "Dual Macd"
+          },
+          "forming_ohlc": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/FormingOhlc"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "kinematics": {
             "anyOf": [

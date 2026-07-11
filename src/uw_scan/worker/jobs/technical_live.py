@@ -11,7 +11,10 @@ from zoneinfo import ZoneInfo
 
 import pandas as pd
 
-from uw_scan.cards.technicals import live_technical_snapshot
+from uw_scan.cards.technicals import (
+    accumulate_forming_ohlc,
+    live_technical_snapshot,
+)
 from uw_scan.config import Settings
 from uw_scan.storage.repository import Repository
 from uw_scan.storage.technical_live_repository import TechnicalLiveRepository
@@ -75,6 +78,15 @@ def technical_live_scan(
                 ]
             )
             payload = live_technical_snapshot(df, float(q.price))
+            # Accumulate today's provisional session candle from the live spot
+            # so the chart draws a real forming bar (open/high/low/close), not a
+            # zero-range doji. Read the prior candle back so open + running
+            # extremes survive across job runs (and worker restarts).
+            prior = live.fetch(t)
+            prior_forming = (prior or {}).get("payload", {}).get("forming_ohlc")
+            payload["forming_ohlc"] = accumulate_forming_ohlc(
+                prior_forming, float(q.price), today_et, q.source
+            )
             live.upsert(t, q.quoted_at, float(q.price), q.source, payload)
             ok += 1
         except Exception as exc:

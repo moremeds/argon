@@ -246,9 +246,21 @@ export function mergeLiveHead(
   // live bar to the wrong calendar day (Saturday for a Friday session). isFresh
   // guarantees captured_at is present.
   const asOf = etSessionDate(live.captured_at!);
+  // When the live job has accumulated today's session OHLC, draw a REAL forming
+  // candle (open/high/low/close) instead of a close-only doji that hides on the
+  // price line. Guard on the forming candle's own session_date matching today's
+  // ET session so a stale row (weekend / after-hours) can't paint yesterday's
+  // range onto today; fall back to the close-only spot when it's absent.
+  const fo =
+    live.forming_ohlc && live.forming_ohlc.session_date === asOf
+      ? live.forming_ohlc
+      : null;
   const liveRow = {
     as_of: asOf,
-    close: live.spot ?? null,
+    open: fo?.open ?? null,
+    high: fo?.high ?? null,
+    low: fo?.low ?? null,
+    close: fo?.close ?? live.spot ?? null,
     z: live.z ?? null,
     z_band: live.z_band ?? null,
     rsi14: live.rsi14 ?? null,

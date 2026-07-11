@@ -81,6 +81,63 @@ describe("mergeLiveHead — series head drives the live price line", () => {
     expect(candle.close).toBe(105); // price line lands on the live spot
   });
 
+  it("builds a REAL forming candle from forming_ohlc (not a doji)", () => {
+    const today = etSessionDate(new Date().toISOString());
+    const m = mergeLiveHead(
+      base,
+      freshLive({
+        spot: 105,
+        forming_ohlc: {
+          session_date: today,
+          open: 100,
+          high: 108,
+          low: 99,
+          close: 105,
+          source: "xenon_ws",
+          stale: false,
+        },
+      }),
+    );
+    const last = (m.series ?? []).at(-1)!;
+    expect(last.open).toBe(100);
+    expect(last.high).toBe(108);
+    expect(last.low).toBe(99);
+    expect(last.close).toBe(105);
+    const candle = toCandleData(m.series ?? []).at(-1) as {
+      open: number;
+      high: number;
+      low: number;
+    };
+    // a real candle has range (high > low) — unlike the old zero-range doji
+    expect(candle.high).toBeGreaterThan(candle.low);
+    expect(candle.open).toBe(100);
+  });
+
+  it("ignores a forming_ohlc from a different session (weekend/stale guard)", () => {
+    const today = etSessionDate(new Date().toISOString());
+    const m = mergeLiveHead(
+      base,
+      freshLive({
+        spot: 105,
+        forming_ohlc: {
+          session_date: "2020-01-02", // not today's ET session
+          open: 1,
+          high: 2,
+          low: 0.5,
+          close: 1.5,
+          source: "xenon_ws",
+          stale: false,
+        },
+      }),
+    );
+    const last = (m.series ?? []).at(-1)!;
+    // falls back to a close-only head at the live spot — yesterday's phantom
+    // range must not paint onto today.
+    expect(last.close).toBe(105);
+    expect(last.open == null).toBe(true);
+    expect(last.as_of).toBe(today);
+  });
+
   it("refreshes a provisional (close-only) same-day head with the live spot", () => {
     const today = etSessionDate(new Date().toISOString());
     const provisional = {

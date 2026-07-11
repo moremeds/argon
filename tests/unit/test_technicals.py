@@ -12,6 +12,7 @@ import pytest
 
 from uw_scan.cards.technicals import (
     Z_BANDS,
+    accumulate_forming_ohlc,
     bars_frame,
     build_technical_series,
     build_technical_snapshot,
@@ -319,8 +320,12 @@ def _apex_bar(day_iso: str, close: float, *, volume: int, spread: float = 1.0) -
 def _ohlc_row(d: _date, close: float, volume: int) -> SimpleNamespace:
     """Duck-typed DailyOhlcRow (.date/.open/.high/.low/.close/.volume)."""
     return SimpleNamespace(
-        date=d, open=close - 0.5, high=close + 1.0, low=close - 1.0,
-        close=close, volume=volume,
+        date=d,
+        open=close - 0.5,
+        high=close + 1.0,
+        low=close - 1.0,
+        close=close,
+        volume=volume,
     )
 
 
@@ -331,7 +336,7 @@ def test_overlay_recent_ohlc_recent_wins_and_fills_lag():
         _apex_bar("2026-07-09", 101.0, volume=6_000_000),  # corrupt: ~1/7 of normal
     ]
     recent = [  # massive daily_ohlc window
-        _ohlc_row(_date(2026, 7, 9), 101.0, 42_000_000),   # corrects the volume
+        _ohlc_row(_date(2026, 7, 9), 101.0, 42_000_000),  # corrects the volume
         _ohlc_row(_date(2026, 7, 10), 102.0, 41_000_000),  # fills the bar apex lacks
     ]
     df = bars_frame(overlay_recent_ohlc(apex, recent))
@@ -344,3 +349,47 @@ def test_overlay_recent_ohlc_recent_wins_and_fills_lag():
 def test_overlay_recent_ohlc_empty_recent_is_noop():
     apex = [_apex_bar("2026-07-08", 100.0, volume=1000)]
     assert overlay_recent_ohlc(apex, []) is apex
+
+
+def test_accumulate_forming_ohlc_new_session_seeds_from_price():
+    fo = accumulate_forming_ohlc(None, 100.0, _date(2026, 7, 10), "xenon_ws")
+    assert fo == {
+        "session_date": "2026-07-10",
+        "open": 100.0,
+        "high": 100.0,
+        "low": 100.0,
+        "close": 100.0,
+        "source": "xenon_ws",
+        "stale": False,
+    }
+
+
+def test_accumulate_forming_ohlc_rolls_extremes_and_holds_open():
+    d = _date(2026, 7, 10)
+    fo = accumulate_forming_ohlc(None, 100.0, d, "xenon_ws")  # open
+    fo = accumulate_forming_ohlc(fo, 103.0, d, "xenon_ws")  # new high
+    fo = accumulate_forming_ohlc(fo, 98.0, d, "xenon_ws")  # new low
+    fo = accumulate_forming_ohlc(fo, 101.0, d, "xenon_ws")  # inside range
+    assert fo["open"] == 100.0  # first print of the session, held
+    assert fo["high"] == 103.0
+    assert fo["low"] == 98.0
+    assert fo["close"] == 101.0  # latest spot
+    # candle invariant: low <= open/close <= high
+    assert fo["low"] <= fo["open"] <= fo["high"]
+    assert fo["low"] <= fo["close"] <= fo["high"]
+
+
+def test_accumulate_forming_ohlc_resets_on_new_session():
+    prior = accumulate_forming_ohlc(None, 100.0, _date(2026, 7, 9), "xenon_ws")
+    prior = accumulate_forming_ohlc(prior, 110.0, _date(2026, 7, 9), "xenon_ws")
+    fresh = accumulate_forming_ohlc(prior, 50.0, _date(2026, 7, 10), "xenon_ws")
+    # yesterday's 110 high must NOT bleed into today's candle
+    assert fresh == {
+        "session_date": "2026-07-10",
+        "open": 50.0,
+        "high": 50.0,
+        "low": 50.0,
+        "close": 50.0,
+        "source": "xenon_ws",
+        "stale": False,
+    }

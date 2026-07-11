@@ -5,16 +5,13 @@ import {
   CandlestickSeries,
   ColorType,
   createChart,
-  createSeriesMarkers,
   CrosshairMode,
   HistogramSeries,
   LineSeries,
   LineStyle,
   type IChartApi,
   type ISeriesApi,
-  type ISeriesMarkersPluginApi,
   type MouseEventParams,
-  type SeriesMarker,
   type Time,
 } from "lightweight-charts";
 import { api, type TechnicalsResponse } from "@/lib/api";
@@ -63,7 +60,6 @@ type ChartHandles = {
   smas: Record<"sma20" | "sma50" | "sma200", ISeriesApi<"Line">>;
   vwap: ISeriesApi<"Line">;
   bands: BandsIndicator;
-  liveMarker: ISeriesMarkersPluginApi<Time>;
 };
 
 export function TechnicalsPriceChart({
@@ -205,21 +201,8 @@ export function TechnicalsPriceChart({
       lineWidth: 1,
     });
     price.attachPrimitive(bands);
-    // Today's forming bar is a close-only head (we only have the live spot, no
-    // intraday O/H/L), so it plots as a zero-range doji — a 1px tick that hides
-    // on the last-value price line. A marker on that bar makes "today, live"
-    // findable without fabricating an open/high/low we don't have.
-    const liveMarker = createSeriesMarkers(price, []);
 
-    handlesRef.current = {
-      chart,
-      price,
-      volume,
-      smas,
-      vwap,
-      bands,
-      liveMarker,
-    };
+    handlesRef.current = { chart, price, volume, smas, vwap, bands };
     fitKeyRef.current = ""; // force a fitContent on the first data pass
 
     // Click-to-anchor VWAP (candle mode only — needs H/L/C + volume).
@@ -312,23 +295,6 @@ export function TechnicalsPriceChart({
     h.vwap.setData(
       visVwap.map((p) => ({ time: p.time as Time, value: p.value })),
     );
-    // Mark today's provisional (close-only) head so the live forming bar is
-    // findable even as a zero-range doji. Candle mode only — the close-line
-    // head already shows via its own last-price line and crosshair marker.
-    const head = rows[rows.length - 1];
-    const isProvisionalHead =
-      candleMode && head?.close != null && head.open == null;
-    const markers: SeriesMarker<Time>[] = isProvisionalHead
-      ? [
-          {
-            time: head.as_of as Time,
-            position: "inBar",
-            color: cssVar("--positive"),
-            shape: "circle",
-          },
-        ]
-      : [];
-    h.liveMarker.setMarkers(markers);
     // Fit on ticker or window-start change only — a live head append (length
     // change, same first bar) must not reset the user's zoom.
     const fitKey = `${ticker}:${candleMode}:${firstAsOf}`;

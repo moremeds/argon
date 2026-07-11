@@ -2911,6 +2911,36 @@ export interface components {
              */
             top_alerts: components["schemas"]["FlowAlert"][];
         };
+        /**
+         * FormingOhlc
+         * @description Today's provisional session candle, accumulated live from the WS spot:
+         *     open = first fresh spot of the ET session, high/low = running extremes,
+         *     close = latest spot. Lets the chart draw a real forming candle instead of a
+         *     zero-range doji. `source` tags the feed; when the massive cross-check heals a
+         *     bad xenon read, `source` becomes the massive feed and `stale` flips True.
+         */
+        FormingOhlc: {
+            /**
+             * Session Date
+             * Format: date
+             */
+            session_date: string;
+            /** Open */
+            open: number;
+            /** High */
+            high: number;
+            /** Low */
+            low: number;
+            /** Close */
+            close: number;
+            /** Source */
+            source?: string | null;
+            /**
+             * Stale
+             * @default false
+             */
+            stale: boolean;
+        };
         /** ForwardReturnBandRow */
         ForwardReturnBandRow: {
             /** Band */
@@ -6534,6 +6564,7 @@ export interface components {
             spot?: number | null;
             /** Spot Source */
             spot_source?: string | null;
+            forming_ohlc?: components["schemas"]["FormingOhlc"] | null;
             /** Z */
             z?: number | null;
             /** Z Band */

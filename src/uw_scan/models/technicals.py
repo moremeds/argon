@@ -92,6 +92,22 @@ class TechnicalsResponse(_UwBase):
     vwap_anchor: TechnicalsVwapAnchor | None = None
 
 
+class FormingOhlc(_UwBase):
+    """Today's provisional session candle, accumulated live from the WS spot:
+    open = first fresh spot of the ET session, high/low = running extremes,
+    close = latest spot. Lets the chart draw a real forming candle instead of a
+    zero-range doji. `source` tags the feed; when the massive cross-check heals a
+    bad xenon read, `source` becomes the massive feed and `stale` flips True."""
+
+    session_date: date
+    open: float
+    high: float
+    low: float
+    close: float
+    source: str | None = None
+    stale: bool = False
+
+
 class TechnicalsLiveResponse(_UwBase):
     """Latest-only live technicals head (fast-moving subset recomputed off the
     WS spot). `available` is False when no fresh cache row exists — the client
@@ -102,6 +118,7 @@ class TechnicalsLiveResponse(_UwBase):
     captured_at: datetime | None = None
     spot: float | None = None
     spot_source: str | None = None
+    forming_ohlc: FormingOhlc | None = None
     z: float | None = None
     z_band: str | None = None
     rsi14: float | None = None
@@ -121,5 +138,6 @@ _preserve_public_module(
     TechnicalsVwapAnchor,
     VwapAnchorRequest,
     TechnicalsResponse,
+    FormingOhlc,
     TechnicalsLiveResponse,
 )

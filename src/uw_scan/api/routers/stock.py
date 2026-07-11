@@ -232,6 +232,7 @@ def get_stock_technicals_live(
         captured_at=row["captured_at"],
         spot=row["spot"],
         spot_source=row["spot_source"],
+        forming_ohlc=p.get("forming_ohlc"),
         z=p.get("z"),
         z_band=p.get("z_band"),
         rsi14=p.get("rsi14"),

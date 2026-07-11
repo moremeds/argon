@@ -175,6 +175,43 @@ def overlay_recent_ohlc(apex_bars: list[dict], recent: list[Any]) -> list[dict]:
     return [*apex_bars, *overlay]
 
 
+def accumulate_forming_ohlc(
+    prior: Mapping[str, Any] | None,
+    price: float,
+    session_date: date,
+    source: str | None,
+) -> dict:
+    """Roll today's provisional session candle forward from the live spot.
+
+    open = first fresh spot of the ET session; high/low = running extremes;
+    close = latest spot. A session-date change resets (new trading day). Pure —
+    the caller reads the prior candle from ``technical_live.payload`` and writes
+    the returned one back, so the accumulation survives worker restarts.
+
+    ponytail: high/low are only as fine as the caller's sampling cadence (~5
+    min), so a spike between samples can be missed — every value is still a real
+    observed print, and the settled EOD candle supersedes this at close. A
+    massive cross-check (M2) heals a divergent/stale xenon read; it flips
+    ``stale`` and rewrites ``source`` but leaves this accumulation shape intact.
+    """
+    d = session_date.isoformat()
+    if prior is None or prior.get("session_date") != d:
+        o = h = lo = price
+    else:
+        o = float(prior["open"])
+        h = max(float(prior["high"]), price)
+        lo = min(float(prior["low"]), price)
+    return {
+        "session_date": d,
+        "open": o,
+        "high": h,
+        "low": lo,
+        "close": price,
+        "source": source,
+        "stale": False,
+    }
+
+
 def atr14(df: pd.DataFrame) -> pd.Series:
     """Wilder ATR(14)."""
     prev_close = df["close"].shift(1)

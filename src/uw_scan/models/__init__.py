@@ -140,6 +140,7 @@ from .stock import (
     VRPAssessment,
 )
 from .technicals import (
+    FormingOhlc,
     ForwardReturnBandRow,
     TechnicalsHeader,
     TechnicalsLiveResponse,
@@ -323,6 +324,7 @@ __all__ = [
     "TechnicalsSeriesRow",
     "ForwardReturnBandRow",
     "TechnicalsResponse",
+    "FormingOhlc",
     "TechnicalsLiveResponse",
     "VwapPoint",
     "TechnicalsVwapAnchor",
