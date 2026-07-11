@@ -7,6 +7,12 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+- Technicals price pane: MarketSmith volume treatment (previous-close coloring,
+  volume MA50 line, low-relative-volume graying and −% labels, HVE/HV1 peak
+  labels, volume buzz readout) and a small SMA·σ ⇄ EMA·BB overlay toggle
+  (SMA20/50/200 + ±1.5σ band ⇄ EMA5/20/50 + Bollinger 20,2), computed
+  client-side over the full series. Frontend-only.
+
 ## [0.10.4] — 2026-07-11
 
 
