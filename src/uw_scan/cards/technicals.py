@@ -212,6 +212,78 @@ def accumulate_forming_ohlc(
     }
 
 
+def _massive_forming(
+    massive: Mapping[str, float | None], mclose: float, session_date: Any
+) -> dict:
+    """Build a forming candle from massive's delayed today bar (heal target)."""
+
+    def _f(key: str) -> float:
+        v = massive.get(key)
+        return float(v) if v is not None else mclose
+
+    return {
+        "session_date": session_date,
+        "open": _f("open"),
+        "high": _f("high"),
+        "low": _f("low"),
+        "close": mclose,
+        "source": "massive.com",
+        "stale": True,
+    }
+
+
+def reconcile_forming_with_massive(
+    forming: Mapping[str, Any] | None,
+    massive: Mapping[str, float | None] | None,
+    now_iso: str,
+    tol_bps: float,
+) -> tuple[dict | None, dict]:
+    """Cross-check the xenon-accumulated forming candle against massive's
+    delayed today bar; heal to massive when the live feed looks unstable.
+
+    Delay-robust by design (massive is ~15-min delayed): a delayed close is a
+    price the live session already traded *through*, so a healthy live
+    ``[low, high]`` must bracket it. We therefore test **range containment**, not
+    close-vs-close — the latter would false-positive on any 15-min drift. If
+    massive's close falls outside the live range (widened by ``tol_bps`` for
+    timing/rounding), the live feed missed real price action and is judged
+    unstable: the bar is healed to massive's independent OHLC (source
+    'massive.com', stale=True). Returns ``(forming_to_store, verdict)``.
+
+    ponytail: a bad live *high/low* spike that inflates the range (hiding a real
+    move inside it) is not caught — the frozen/drifted-away feed is the failure
+    this targets. A loop that (re)started mid-session may briefly flag until the
+    live range grows to include the delayed price; it self-heals next session.
+    """
+    verdict: dict[str, Any] = {
+        "checked_at": now_iso,
+        "massive_close": None,
+        "out_of_range_bps": None,
+        "healed": False,
+    }
+    mclose = None if massive is None else massive.get("close")
+    if mclose is None:
+        return forming, verdict  # no massive data -> keep xenon, nothing to check
+    mclose = float(mclose)
+    verdict["massive_close"] = mclose
+    session_date = (forming or {}).get("session_date")
+    hi = (forming or {}).get("high")
+    lo = (forming or {}).get("low")
+    if hi is None or lo is None:
+        # no live range to validate against -> heal from massive
+        verdict["healed"] = True
+        return _massive_forming(massive, mclose, session_date), verdict
+    hi_f, lo_f = float(hi), float(lo)
+    tol = tol_bps / 1e4
+    if lo_f * (1 - tol) <= mclose <= hi_f * (1 + tol):
+        verdict["out_of_range_bps"] = 0.0
+        return forming, verdict  # live range brackets the delayed price -> healthy
+    dist = mclose - hi_f * (1 + tol) if mclose > hi_f else lo_f * (1 - tol) - mclose
+    verdict["out_of_range_bps"] = dist / mclose * 1e4 if mclose else None
+    verdict["healed"] = True
+    return _massive_forming(massive, mclose, session_date), verdict
+
+
 def atr14(df: pd.DataFrame) -> pd.Series:
     """Wilder ATR(14)."""
     prev_close = df["close"].shift(1)

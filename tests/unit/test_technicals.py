@@ -22,6 +22,7 @@ from uw_scan.cards.technicals import (
     last_pivot_index,
     ma_kinematics,
     overlay_recent_ohlc,
+    reconcile_forming_with_massive,
     relative_strength,
     rsi14,
     slope_regime,
@@ -393,3 +394,65 @@ def test_accumulate_forming_ohlc_resets_on_new_session():
         "source": "xenon_ws",
         "stale": False,
     }
+
+
+def _forming(o, h, low, c, sd="2026-07-10", source="xenon_ws"):
+    return {
+        "session_date": sd,
+        "open": o,
+        "high": h,
+        "low": low,
+        "close": c,
+        "source": source,
+        "stale": False,
+    }
+
+
+def test_reconcile_massive_within_range_keeps_xenon():
+    f = _forming(400, 410, 398, 409)
+    m = {"open": 401, "high": 409, "low": 399, "close": 405}  # 405 in [398,410]
+    out, v = reconcile_forming_with_massive(f, m, "t", 50.0)
+    assert out is f  # xenon candle passes through unchanged
+    assert v["healed"] is False
+    assert v["out_of_range_bps"] == 0.0
+    assert v["massive_close"] == 405.0
+
+
+def test_reconcile_is_delay_robust_on_a_trending_market():
+    # xenon live close 410 (now); massive close 405 is 15-min-delayed but still
+    # inside xenon's [398,410] range -> healthy, even though close != close.
+    f = _forming(400, 410, 398, 410)
+    m = {"open": 400, "high": 406, "low": 399, "close": 405}
+    out, v = reconcile_forming_with_massive(f, m, "t", 50.0)
+    assert v["healed"] is False
+    assert out is f
+
+
+def test_reconcile_frozen_feed_heals_to_massive():
+    # xenon stuck at 405 (zero-range); real price moved, massive close 412 is
+    # outside the live range -> heal to massive's independent bar.
+    f = _forming(405, 405, 405, 405)
+    m = {"open": 406, "high": 413, "low": 405, "close": 412}
+    out, v = reconcile_forming_with_massive(f, m, "t", 50.0)
+    assert v["healed"] is True
+    assert out["source"] == "massive.com"
+    assert out["stale"] is True
+    assert out["close"] == 412.0
+    assert out["session_date"] == "2026-07-10"  # preserved through the heal
+    assert v["out_of_range_bps"] and v["out_of_range_bps"] > 0
+
+
+def test_reconcile_no_massive_data_keeps_xenon():
+    f = _forming(400, 410, 398, 409)
+    out, v = reconcile_forming_with_massive(f, None, "t", 50.0)
+    assert out is f and v["healed"] is False and v["massive_close"] is None
+    out2, v2 = reconcile_forming_with_massive(f, {"close": None}, "t", 50.0)
+    assert out2 is f and v2["healed"] is False
+
+
+def test_reconcile_no_live_range_heals_from_massive():
+    out, v = reconcile_forming_with_massive(
+        None, {"open": 1, "high": 2, "low": 0.5, "close": 1.5}, "t", 50.0
+    )
+    assert v["healed"] is True
+    assert out["close"] == 1.5 and out["source"] == "massive.com"
