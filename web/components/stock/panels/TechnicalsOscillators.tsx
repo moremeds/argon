@@ -59,40 +59,8 @@ export function TechnicalsRsiChart({ data }: { data: TechnicalsResponse }) {
   );
 }
 
-export function TechnicalsMacdChart({ data }: { data: TechnicalsResponse }) {
-  const s = data.series ?? [];
-  const dm = data.detail?.dual_macd as
-    | {
-        trend_state?: string;
-        tactical_signal?: string;
-        momentum_balance?: string;
-        confidence?: number | null;
-      }
-    | undefined;
-  const sig =
-    dm?.tactical_signal && dm.tactical_signal !== "NONE"
-      ? `${dm.tactical_signal} · conf ${fmtDecimal(dm.confidence ?? 0, 2)}`
-      : (dm?.trend_state ?? undefined);
-  return (
-    <OscillatorChart
-      title="Dual MACD — 13/21/9 vs 55/89/34"
-      subtitle="ATR-normalized · fast vs slow"
-      headline={sig}
-      dates={datesOf(s)}
-      histogram={{
-        values: col(s, "fast_macd_hist_atr"),
-        label: "FAST 13/21/9 · tactical (short)",
-      }}
-      histogramOverlay={{
-        values: col(s, "slow_macd_hist_atr"),
-        color: "var(--accent-vol)",
-        label: "SLOW 55/89/34 · structural (long)",
-      }}
-      refLines={[{ y: 0, solid: true }]}
-      explanation="Two MACD histograms on one ATR-normalized scale: the wide muted bars are the slow 55/89/34 (structural trend); the sharp bars are the fast 13/21/9 (tactical timing). When the slow trend is up but the fast bars dip below zero and start curling back up, that's a DIP_BUY (mirror = RALLY_SELL). The badge shows the current tactical signal, its confidence, and the trend/momentum-balance state."
-    />
-  );
-}
+// Dual MACD moved into the price chart as a native lightweight-charts sub-pane
+// (pixel-aligned + scroll-locked with the candles) — see TechnicalsPriceChart.
 
 export function TechnicalsVolChart({ data }: { data: TechnicalsResponse }) {
   const s = data.series ?? [];

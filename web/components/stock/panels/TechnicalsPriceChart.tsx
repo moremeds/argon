@@ -19,6 +19,7 @@ import {
   type Time,
 } from "lightweight-charts";
 import { api, type TechnicalsResponse } from "@/lib/api";
+import { fmtDecimal } from "@/lib/formatters";
 import { anchoredVwap } from "@/lib/vwap";
 import {
   hasOhlcv,
@@ -42,6 +43,9 @@ import { BandsIndicator } from "@/lib/lwc/bandsIndicator";
 import { AnalyticalSeriesPanel } from "./AnalyticalSeriesPanel";
 
 const H = 460;
+// Dual-MACD sub-pane rides below price in the SAME chart instance — one shared
+// time scale gives locked scroll + pixel-perfect x-alignment for free (v5 panes).
+const MACD_H = 150;
 
 type OverlayMode = "sma" | "ema";
 const OVERLAY_MODE_KEY = "technicals:priceOverlayMode";
@@ -62,6 +66,44 @@ function cssVar(name: string): string {
     .getPropertyValue(name)
     .trim();
   return v || "#888888";
+}
+
+// Dual-MACD badge for the sub-pane: the tactical signal (or trend state) plus a
+// directional color. Backend trend_state ∈ {BULLISH, BEARISH, DETERIORATING,
+// IMPROVING} (cards/technicals.py dual_macd_state). Clean bull/bear → full
+// green/red; the two transitional states color by their structure sign but at a
+// dimmed shade — DETERIORATING = bull cooling (dim green), IMPROVING = bear
+// recovering (dim red) — so "in transition" reads distinctly from a clean trend.
+type DualMacdDetail = {
+  trend_state?: string;
+  tactical_signal?: string;
+  confidence?: number | null;
+};
+// ponytail: color-mix dims a token toward muted — no per-shade CSS var needed.
+const dim = (token: string) =>
+  `color-mix(in srgb, ${token} 55%, var(--text-muted))`;
+export function macdSignal(
+  dm: DualMacdDetail | undefined,
+): { text: string; color: string } | null {
+  if (!dm) return null;
+  const hasTactical = !!dm.tactical_signal && dm.tactical_signal !== "NONE";
+  const text = hasTactical
+    ? `${dm.tactical_signal} · conf ${fmtDecimal(dm.confidence, 2)}`
+    : dm.trend_state;
+  if (!text) return null;
+  const key = (
+    hasTactical ? dm.tactical_signal! : dm.trend_state!
+  ).toUpperCase();
+  const color = /DETERIORATING/.test(key)
+    ? dim("var(--positive)") // bull structure, weakening
+    : /IMPROVING/.test(key)
+      ? dim("var(--negative)") // bear structure, recovering
+      : /BULL|DIP_BUY|\bUP\b|LONG/.test(key)
+        ? "var(--positive)"
+        : /BEAR|RALLY_SELL|DOWN|SHORT/.test(key)
+          ? "var(--negative)"
+          : "var(--text-muted)";
+  return { text, color };
 }
 
 // MarketSmith knobs — constants, not UI (trim candidates after live review).
@@ -117,6 +159,8 @@ type ChartHandles = {
   bands: BandsIndicator;
   volMa: ISeriesApi<"Line"> | null;
   volMarkers: ISeriesMarkersPluginApi<Time> | null;
+  macdSlow: ISeriesApi<"Histogram">;
+  macdFast: ISeriesApi<"Histogram">;
 };
 
 const READABLE_BAR_PX = 6; // min bar width before we scroll instead of squish
@@ -222,6 +266,9 @@ export function TechnicalsPriceChart({
         textColor: muted,
         fontFamily: "IBM Plex Mono, monospace",
         fontSize: 10,
+        // Sub-pane separator matches the panel chrome; resize disabled so the
+        // MACD badge overlay stays anchored to a fixed y.
+        panes: { separatorColor: borderDim, enableResize: false },
       },
       grid: {
         vertLines: { color: borderDim, style: LineStyle.Dotted },
@@ -348,6 +395,49 @@ export function TechnicalsPriceChart({
     });
     price.attachPrimitive(bands);
 
+    // Dual MACD in pane index 1 (below price). Two histograms sharing one price
+    // scale: the slow 55/89/34 is the structural background (accent-vol, ~50%
+    // alpha) drawn first; the fast 13/21/9 is the sharp tactical bar on top, its
+    // per-bar color green/red by sign. LWC histograms are full-column width, so
+    // z-order + alpha (not the SVG's nested widths) separates the two.
+    const macdSlow = chart.addSeries(
+      HistogramSeries,
+      {
+        color: `${cssVar("--accent-vol")}80`,
+        base: 0,
+        priceLineVisible: false,
+        lastValueVisible: false,
+      },
+      1,
+    );
+    const macdFast = chart.addSeries(
+      HistogramSeries,
+      {
+        color: positive, // overridden per-bar in setData
+        base: 0,
+        priceLineVisible: false,
+        lastValueVisible: false,
+      },
+      1,
+    );
+    // Both MACD series share pane 1's right scale — tighten its margins.
+    macdFast
+      .priceScale()
+      .applyOptions({ scaleMargins: { top: 0.12, bottom: 0.12 } });
+    // Zero reference line — LWC histograms draw no axis, so a faint dotted 0
+    // restores the "how far from zero / where's the crossing" read.
+    macdSlow.createPriceLine({
+      price: 0,
+      color: borderDim,
+      lineWidth: 1,
+      lineStyle: LineStyle.Dotted,
+      axisLabelVisible: false,
+    });
+    // Ratio split: price pane keeps ~H, MACD rides a short ~MACD_H pane below.
+    const panes = chart.panes();
+    panes[0]?.setStretchFactor(H);
+    panes[1]?.setStretchFactor(MACD_H);
+
     handlesRef.current = {
       chart,
       price,
@@ -357,6 +447,8 @@ export function TechnicalsPriceChart({
       bands,
       volMa,
       volMarkers,
+      macdSlow,
+      macdFast,
     };
     fitKeyRef.current = ""; // force a fitContent on the first data pass
 
@@ -547,6 +639,29 @@ export function TechnicalsPriceChart({
     h.vwap.setData(
       visVwap.map((p) => ({ time: p.time as Time, value: p.value })),
     );
+    // Dual MACD sub-pane. Slow drawn first (structural background), fast on top
+    // colored by sign. Both share the visible window so their bars line up with
+    // the candles above them (one time scale).
+    h.macdSlow.setData(
+      rows.flatMap((r) =>
+        r.as_of != null && r.slow_macd_hist_atr != null
+          ? [{ time: r.as_of as Time, value: r.slow_macd_hist_atr }]
+          : [],
+      ),
+    );
+    h.macdFast.setData(
+      rows.flatMap((r) =>
+        r.as_of != null && r.fast_macd_hist_atr != null
+          ? [
+              {
+                time: r.as_of as Time,
+                value: r.fast_macd_hist_atr,
+                color: r.fast_macd_hist_atr >= 0 ? positive : negative,
+              },
+            ]
+          : [],
+      ),
+    );
     // Fit on ticker or window-start change only — a live head append (length
     // change, same first bar) must not reset the user's zoom.
     const fitKey = `${ticker}:${candleMode}:${firstAsOf}`;
@@ -678,6 +793,8 @@ export function TechnicalsPriceChart({
     </span>
   );
 
+  const macd = macdSignal(data.detail?.dual_macd as DualMacdDetail | undefined);
+
   const title =
     mode === "sma"
       ? "Price, Moving Averages & ±1.5σ Band"
@@ -708,7 +825,7 @@ export function TechnicalsPriceChart({
           ref={containerRef}
           data-testid="technicals-price-chart"
           data-volume-ma={candleMode ? VOL_MA_PERIOD : undefined}
-          style={{ width: "100%", height: H }}
+          style={{ width: "100%", height: H + MACD_H }}
         />
         <div
           ref={readoutRef}
@@ -732,6 +849,22 @@ export function TechnicalsPriceChart({
         </div>
       )}
       <Legend mode={mode} showVwap={anchor != null} />
+      <MacdLegend signal={macd} />
+      <div
+        style={{
+          fontSize: 11,
+          color: "var(--text-muted)",
+          marginTop: 8,
+          lineHeight: 1.55,
+        }}
+      >
+        Two MACD histograms on one ATR-normalized scale: the wide muted bars are
+        the slow 55/89/34 (structural trend); the sharp bars are the fast
+        13/21/9 (tactical timing). When the slow trend is up but the fast bars
+        dip below zero and start curling back up, that&apos;s a DIP_BUY (mirror
+        = RALLY_SELL). The badge shows the current tactical signal, its
+        confidence, and the trend/momentum-balance state.
+      </div>
     </AnalyticalSeriesPanel>
   );
 }
@@ -769,6 +902,69 @@ function Legend({ mode, showVwap }: { mode: OverlayMode; showVwap: boolean }) {
       {item("var(--accent-vol)", labels[1])}
       {item("var(--accent-vivid)", labels[2])}
       {showVwap && item("var(--accent-cool)", "VWAP ⚓")}
+    </div>
+  );
+}
+
+// MACD sub-pane legend: wide muted slow (structural) + split green/red fast
+// (tactical), with the directional signal badge right-aligned. Mirrors the
+// retired OscillatorChart swatches.
+export function MacdLegend({
+  signal,
+}: {
+  signal: { text: string; color: string } | null;
+}) {
+  return (
+    <div
+      style={{
+        marginTop: 4,
+        display: "flex",
+        gap: 16,
+        alignItems: "center",
+      }}
+    >
+      <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
+        <span
+          style={{
+            width: 14,
+            height: 9,
+            background: "var(--accent-vol)",
+            opacity: 0.5,
+            display: "inline-block",
+            borderRadius: 1,
+          }}
+        />
+        <span style={{ fontSize: 10, color: "var(--text-muted)" }}>
+          SLOW 55/89/34 · structural
+        </span>
+      </span>
+      <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
+        <span
+          style={{ display: "inline-flex", width: 8, height: 9 }}
+          aria-hidden
+        >
+          <span style={{ flex: 1, background: "var(--positive)" }} />
+          <span style={{ flex: 1, background: "var(--negative)" }} />
+        </span>
+        <span style={{ fontSize: 10, color: "var(--text-muted)" }}>
+          FAST 13/21/9 · tactical
+        </span>
+      </span>
+      {signal && (
+        <span
+          data-testid="technicals-macd-signal"
+          style={{
+            marginLeft: "auto",
+            fontFamily: "var(--font-mono)",
+            fontSize: 11,
+            letterSpacing: 1,
+            fontWeight: 700,
+            color: signal.color,
+          }}
+        >
+          {signal.text.toUpperCase()}
+        </span>
+      )}
     </div>
   );
 }
