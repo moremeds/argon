@@ -7,6 +7,14 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+- Docs: `docs/masterplan/` — cross-stack vision & blockers review plus the
+  per-component master plan (goal ladder Stage 1–4, gaps, open decisions
+  D-A..D-E, Stage-1 attack order) for the livewire/signal-lab/apex/argon/xenon
+  desk. `CLAUDE.md` gains a condensed "Mission" section (stack role, ladder,
+  Stage-1 minimal deliverable = signal→alert pipeline, invariants) with the
+  verified option-surface history facts (grid spans 2025-12-26→present under
+  UW's ~180-day window).
+
 ## [0.10.6] — 2026-07-12
 
 

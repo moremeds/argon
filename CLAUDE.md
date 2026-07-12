@@ -2,6 +2,24 @@
 
 Guidance for Claude Code working in this repo. Subdirectory `CLAUDE.md` files cover layer-specific rules.
 
+## Mission
+
+Argon is the options/flow analytics cockpit of a five-repo personal quant desk:
+livewire (data lake) → signal-lab (gated research) → apex (signal engine) →
+**argon** (analytics/decision surface) → xenon (broker terminal, human executes).
+Full vision, blockers, and rationale: `docs/masterplan/2026-07-12-stack-vision-blockers-review.md`; actionable per-component plan: `docs/masterplan/2026-07-12-stack-master-plan.md`.
+
+Goal ladder (adopted 2026-07-12; each stage's exit criteria gate the next stage's risk-bearing work):
+
+1. **Trustworthy foundation** *(current)* — honest data (corporate-action-adjusted prices in livewire), safe order path (xenon), durable options-surface accrual, ops/health patrol agent. **Minimal deliverable: signal→alert pipeline** — alert bar < trade bar, so ship alerts on existing signals (VRP macro state flips, CRI/VCG regime transitions, ops staleness) without waiting for a promoted signal.
+2. **Self-tending desk** — agent harness runs research/maintenance loops; execution-realism gate added to signal-lab promotion; first promoted signal with a live shadow record.
+3. **Proposal desk** *(aim, not commitment)* — agents stage sized, defined-risk order proposals; the operator disposes with one click.
+4. **Mandate-based autonomy** *(ceiling)* — size-capped, revocable standing mandates for strategies with long live records. Full autonomy is explicitly NOT the goal.
+
+Invariants at every stage: defined-risk only / no naked shorts; every mutating agent action routes through a gate; persist everything to durable storage.
+
+Argon's Stage-1 lane: options analytics + surface capture (`option_surface_grid_daily` spans 2025-12-26→present under UW's ~180-day window, accrues forward-only — every uncaptured night is lost) + the alert pipeline v1. Research aim: the options/vol/flow surface is the desk's structural-advantage hunting ground — prefer it over crowded daily equity technicals.
+
 ## What this is
 
 Per-ticker options analytics, watchlist-driven. Three processes share a single Postgres:
