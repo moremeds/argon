@@ -19,6 +19,7 @@ import {
   type Time,
 } from "lightweight-charts";
 import { api, type TechnicalsResponse } from "@/lib/api";
+import { fmtDecimal } from "@/lib/formatters";
 import { anchoredVwap } from "@/lib/vwap";
 import {
   hasOhlcv,
@@ -68,29 +69,40 @@ function cssVar(name: string): string {
 }
 
 // Dual-MACD badge for the sub-pane: the tactical signal (or trend state) plus a
-// directional color — bearish family → red, bullish family → green.
+// directional color. Backend trend_state ∈ {BULLISH, BEARISH, DETERIORATING,
+// IMPROVING} (cards/technicals.py dual_macd_state). Clean bull/bear → full
+// green/red; the two transitional states color by their structure sign but at a
+// dimmed shade — DETERIORATING = bull cooling (dim green), IMPROVING = bear
+// recovering (dim red) — so "in transition" reads distinctly from a clean trend.
 type DualMacdDetail = {
   trend_state?: string;
   tactical_signal?: string;
   confidence?: number | null;
 };
+// ponytail: color-mix dims a token toward muted — no per-shade CSS var needed.
+const dim = (token: string) =>
+  `color-mix(in srgb, ${token} 55%, var(--text-muted))`;
 export function macdSignal(
   dm: DualMacdDetail | undefined,
 ): { text: string; color: string } | null {
   if (!dm) return null;
   const hasTactical = !!dm.tactical_signal && dm.tactical_signal !== "NONE";
   const text = hasTactical
-    ? `${dm.tactical_signal} · conf ${(dm.confidence ?? 0).toFixed(2)}`
+    ? `${dm.tactical_signal} · conf ${fmtDecimal(dm.confidence, 2)}`
     : dm.trend_state;
   if (!text) return null;
   const key = (
     hasTactical ? dm.tactical_signal! : dm.trend_state!
   ).toUpperCase();
-  const color = /BULL|DIP_BUY|\bUP\b|LONG/.test(key)
-    ? "var(--positive)"
-    : /BEAR|RALLY_SELL|DOWN|SHORT/.test(key)
-      ? "var(--negative)"
-      : "var(--text-muted)";
+  const color = /DETERIORATING/.test(key)
+    ? dim("var(--positive)") // bull structure, weakening
+    : /IMPROVING/.test(key)
+      ? dim("var(--negative)") // bear structure, recovering
+      : /BULL|DIP_BUY|\bUP\b|LONG/.test(key)
+        ? "var(--positive)"
+        : /BEAR|RALLY_SELL|DOWN|SHORT/.test(key)
+          ? "var(--negative)"
+          : "var(--text-muted)";
   return { text, color };
 }
 
@@ -821,22 +833,6 @@ export function TechnicalsPriceChart({
             overflowWrap: "anywhere",
           }}
         />
-        {/* MACD sub-pane header: caption left, directional signal right. Anchored
-            just below the price pane (resize disabled → fixed y). */}
-        <div
-          style={{
-            position: "absolute",
-            top: H + 6,
-            left: 8,
-            fontFamily: "var(--font-mono)",
-            fontSize: 10,
-            letterSpacing: 1,
-            color: "var(--text-muted)",
-            pointerEvents: "none",
-          }}
-        >
-          DUAL MACD · 13/21/9 <span style={{ opacity: 0.5 }}>vs</span> 55/89/34
-        </div>
       </div>
       {err && (
         <div style={{ color: "var(--negative)", fontSize: 11, marginTop: 6 }}>
@@ -889,7 +885,7 @@ function Legend({ mode, showVwap }: { mode: OverlayMode; showVwap: boolean }) {
 // MACD sub-pane legend: wide muted slow (structural) + split green/red fast
 // (tactical), with the directional signal badge right-aligned. Mirrors the
 // retired OscillatorChart swatches.
-function MacdLegend({
+export function MacdLegend({
   signal,
 }: {
   signal: { text: string; color: string } | null;

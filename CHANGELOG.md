@@ -13,11 +13,15 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   bars are pixel-aligned under the candles and scroll/zoom is locked to price by
   construction (no cross-chart sync). The slow 55/89/34 renders as the muted
   structural background with the fast 13/21/9 tactical bars (green up / red down)
-  layered on top. The pane's directional signal badge is now colored — bearish
-  family (BEARISH / RALLY_SELL) → red, bullish family (BULLISH / DIP_BUY) → green.
-  MACD is no longer a reorderable row in the oscillator stack (it's pinned to the
-  price chart); the retired `TechnicalsMacdChart` SVG component and its render
-  test are replaced by a unit test on the `macdSignal` color classifier.
+  layered on top. The pane's directional signal badge is now colored across the
+  full `trend_state` vocabulary: clean BULLISH / DIP_BUY → green, BEARISH /
+  RALLY_SELL → red, and the two transitional states color by structure sign at a
+  dimmed shade — DETERIORATING (bull cooling) → dim green, IMPROVING (bear
+  recovering) → dim red — so "in transition" reads distinctly from a clean trend
+  rather than falling through to neutral grey. MACD is no longer a reorderable
+  row in the oscillator stack (it's pinned to the price chart); the retired
+  `TechnicalsMacdChart` SVG component and its render test are replaced by unit
+  tests on the `macdSignal` classifier and the `MacdLegend` row.
 
 ## [0.10.5] — 2026-07-12
 
