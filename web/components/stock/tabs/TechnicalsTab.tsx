@@ -11,7 +11,6 @@ import { TechnicalsPriceChart } from "../panels/TechnicalsPriceChart";
 import { TechnicalsEmptyState } from "../panels/TechnicalsEmptyState";
 import {
   TechnicalsKinematicsChart,
-  TechnicalsMacdChart,
   TechnicalsRsChart,
   TechnicalsRsiChart,
   TechnicalsVolChart,
@@ -428,8 +427,9 @@ export function TechnicalsTab({ ticker }: { ticker: string }) {
   // The anchor (price) chart is PINNED at the top — it carries the timeframe
   // selector and its date axis is the alignment reference, so it never moves.
   // The oscillator/detail stack below stays reorderable (persisted per-browser).
+  // MACD moved into the price chart as a native sub-pane (locked scroll +
+  // pixel-aligned with candles); it's no longer a reorderable oscillator row.
   const chartItems: ReorderItem[] = [
-    { id: "macd", node: <TechnicalsMacdChart data={view} /> },
     { id: "kinematics", node: <TechnicalsKinematicsChart data={view} /> },
     { id: "z", node: <TechnicalsZChart data={view} /> },
     { id: "rsi", node: <TechnicalsRsiChart data={view} /> },
@@ -459,10 +459,9 @@ export function TechnicalsTab({ ticker }: { ticker: string }) {
         control={<TimeframeSelect value={timeframe} onChange={setTimeframe} />}
       />
       {/* Aligned stack: oscillators share the anchor's date axis. Drag any row
-          to reorder. */}
-      {/* key bumped to :v2 so the new macd-first / kinematics-second default
-          supersedes any order saved under the original key (the reorder
-          feature is <1 day old — no meaningful saved arrangements to preserve). */}
+          to reorder. MACD is no longer here — it's a sub-pane of the price
+          chart above; reconcileOrder drops the stale "macd" id from any saved
+          :v2 order, so the key stays. */}
       <ReorderableList
         items={chartItems}
         storageKey="technicals:chartOrder:v2"

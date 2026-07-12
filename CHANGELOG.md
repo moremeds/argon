@@ -7,6 +7,18 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+- Technicals Dual MACD is now a native lightweight-charts sub-pane of the price
+  chart (pane index 1) instead of a standalone hand-rolled SVG oscillator. It
+  shares the price chart's single time scale and right-gutter, so the histogram
+  bars are pixel-aligned under the candles and scroll/zoom is locked to price by
+  construction (no cross-chart sync). The slow 55/89/34 renders as the muted
+  structural background with the fast 13/21/9 tactical bars (green up / red down)
+  layered on top. The pane's directional signal badge is now colored — bearish
+  family (BEARISH / RALLY_SELL) → red, bullish family (BULLISH / DIP_BUY) → green.
+  MACD is no longer a reorderable row in the oscillator stack (it's pinned to the
+  price chart); the retired `TechnicalsMacdChart` SVG component and its render
+  test are replaced by a unit test on the `macdSignal` color classifier.
+
 ## [0.10.5] — 2026-07-12
 
 

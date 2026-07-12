@@ -1,38 +1,46 @@
-import { render } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
-import type { TechnicalsResponse } from "@/lib/api";
-import { TechnicalsMacdChart } from "@/components/stock/panels/TechnicalsOscillators";
+import { macdSignal } from "@/components/stock/panels/TechnicalsPriceChart";
 
-const data = {
-  series: [
-    { as_of: "2026-07-08", fast_macd_hist_atr: -0.4, slow_macd_hist_atr: 0.8 },
-    { as_of: "2026-07-09", fast_macd_hist_atr: -0.2, slow_macd_hist_atr: 0.9 },
-  ],
-  detail: {
-    dual_macd: {
-      trend_state: "BULLISH",
-      tactical_signal: "DIP_BUY",
-      momentum_balance: "FAST_DOMINANT",
-      confidence: 0.72,
-    },
-  },
-} as unknown as TechnicalsResponse;
-
-describe("TechnicalsMacdChart", () => {
-  it("renders the dual-MACD title and tactical badge", () => {
-    const { getAllByText, getByText } = render(
-      <TechnicalsMacdChart data={data} />,
+// Dual MACD now renders as a lightweight-charts sub-pane inside the price chart
+// (canvas — not jsdom-renderable), so we test the pure signal/color classifier
+// that drives the pane's directional badge: bearish → red, bullish → green.
+describe("macdSignal", () => {
+  it("bullish trend → positive/green, bearish trend → negative/red", () => {
+    expect(macdSignal({ trend_state: "BULLISH" })?.color).toBe(
+      "var(--positive)",
     );
-    // Title renders in both the panel header and the SVG <title>.
-    expect(getAllByText(/Dual MACD/i).length).toBeGreaterThan(0);
-    // Badge headline is uniquely "DIP_BUY · conf 0.72" (DIP_BUY also appears
-    // in the explanatory prose, so match the badge's signal+confidence shape).
-    expect(getByText(/DIP_BUY · conf/)).toBeTruthy();
+    expect(macdSignal({ trend_state: "BEARISH" })?.color).toBe(
+      "var(--negative)",
+    );
   });
 
-  it("labels which histogram is the slow/structural vs fast/tactical trend", () => {
-    const { getByText } = render(<TechnicalsMacdChart data={data} />);
-    expect(getByText(/SLOW 55\/89\/34 · structural/i)).toBeTruthy();
-    expect(getByText(/FAST 13\/21\/9 · tactical/i)).toBeTruthy();
+  it("tactical signal wins over trend_state and carries confidence", () => {
+    const s = macdSignal({
+      trend_state: "BEARISH",
+      tactical_signal: "DIP_BUY",
+      confidence: 0.72,
+    });
+    expect(s?.text).toBe("DIP_BUY · conf 0.72");
+    expect(s?.color).toBe("var(--positive)"); // DIP_BUY is a bullish action
+  });
+
+  it("RALLY_SELL is bearish → red; NONE falls back to trend_state", () => {
+    expect(
+      macdSignal({ tactical_signal: "RALLY_SELL", confidence: 0.5 })?.color,
+    ).toBe("var(--negative)");
+    const s = macdSignal({ tactical_signal: "NONE", trend_state: "BULLISH" });
+    expect(s?.text).toBe("BULLISH");
+    expect(s?.color).toBe("var(--positive)");
+  });
+
+  it("returns null when there is no signal at all", () => {
+    expect(macdSignal(undefined)).toBeNull();
+    expect(macdSignal({})).toBeNull();
+  });
+
+  it("unclassifiable trend → muted (neither green nor red)", () => {
+    expect(macdSignal({ trend_state: "NEUTRAL" })?.color).toBe(
+      "var(--text-muted)",
+    );
   });
 });
