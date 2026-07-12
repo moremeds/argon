@@ -424,6 +424,15 @@ export function TechnicalsPriceChart({
     macdFast
       .priceScale()
       .applyOptions({ scaleMargins: { top: 0.12, bottom: 0.12 } });
+    // Zero reference line — LWC histograms draw no axis, so a faint dotted 0
+    // restores the "how far from zero / where's the crossing" read.
+    macdSlow.createPriceLine({
+      price: 0,
+      color: borderDim,
+      lineWidth: 1,
+      lineStyle: LineStyle.Dotted,
+      axisLabelVisible: false,
+    });
     // Ratio split: price pane keeps ~H, MACD rides a short ~MACD_H pane below.
     const panes = chart.panes();
     panes[0]?.setStretchFactor(H);
@@ -841,6 +850,21 @@ export function TechnicalsPriceChart({
       )}
       <Legend mode={mode} showVwap={anchor != null} />
       <MacdLegend signal={macd} />
+      <div
+        style={{
+          fontSize: 11,
+          color: "var(--text-muted)",
+          marginTop: 8,
+          lineHeight: 1.55,
+        }}
+      >
+        Two MACD histograms on one ATR-normalized scale: the wide muted bars are
+        the slow 55/89/34 (structural trend); the sharp bars are the fast
+        13/21/9 (tactical timing). When the slow trend is up but the fast bars
+        dip below zero and start curling back up, that&apos;s a DIP_BUY (mirror
+        = RALLY_SELL). The badge shows the current tactical signal, its
+        confidence, and the trend/momentum-balance state.
+      </div>
     </AnalyticalSeriesPanel>
   );
 }
