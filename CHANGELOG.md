@@ -7,6 +7,9 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+## [0.10.6] — 2026-07-12
+
+
 - Technicals Dual MACD is now a native lightweight-charts sub-pane of the price
   chart (pane index 1) instead of a standalone hand-rolled SVG oscillator. It
   shares the price chart's single time scale and right-gutter, so the histogram
@@ -24,7 +27,6 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   longer a reorderable row in the oscillator stack (it's pinned to the price
   chart); the retired `TechnicalsMacdChart` SVG component and its render test are
   replaced by unit tests on the `macdSignal` classifier and the `MacdLegend` row.
-
 ## [0.10.5] — 2026-07-12
 
 - Technicals price pane: MarketSmith volume treatment (previous-close coloring,
