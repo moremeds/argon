@@ -59,7 +59,7 @@ def _autoheal_frozen_tables(
     scoped heal or trip the circuit breaker. Returns what happened per table
     so it can be logged and surfaced on /api/health."""
     fresh_repo = DataFreshnessRepository(repo.conn, schema=settings.db_schema)
-    streaks = fresh_repo.consecutive_frozen_counts()
+    streaks = fresh_repo.consecutive_frozen_counts(as_of=today)
     gap = DataGapHealerRepository(repo.conn, schema=settings.db_schema)
 
     healed: list[str] = []

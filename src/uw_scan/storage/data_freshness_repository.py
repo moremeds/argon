@@ -58,22 +58,30 @@ class DataFreshnessRepository:
         self._conn.commit()
         return len(params)
 
-    def consecutive_frozen_counts(self, lookback: int = 14) -> dict[str, int]:
+    def consecutive_frozen_counts(
+        self, lookback: int = 14, as_of: date | None = None
+    ) -> dict[str, int]:
         """For every table with at least one snapshot in the last `lookback`
         days, count how many of the most recent consecutive nights were
         frozen=True (stops at the first non-frozen or missing night). Feeds
         the autoheal circuit breaker -- a table stuck frozen for N nights
         running despite repeated heal attempts is a real, unfixable block
         (missing credential, licensed source), not something worth retrying
-        forever."""
+        forever.
+
+        `as_of` anchors the lookback window; None means the DB clock. The
+        monitor job passes its injected `today` -- anchoring on CURRENT_DATE
+        there silently shrank the counted streak whenever the caller's day
+        differed from the wall clock (which is exactly what pinned-date tests
+        do), so the breaker under-counted and retriggered."""
         sql = """
             SELECT table_name, run_date, frozen
               FROM data_freshness_snapshots
-             WHERE run_date > CURRENT_DATE - %s::int
+             WHERE run_date > COALESCE(%s, CURRENT_DATE) - %s::int
              ORDER BY table_name, run_date DESC
         """
         with self._conn.cursor() as cur:
-            cur.execute(sql, (lookback,))
+            cur.execute(sql, (as_of, lookback))
             rows = cur.fetchall()
         counts: dict[str, int] = {}
         current_table: str | None = None
