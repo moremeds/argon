@@ -45,6 +45,7 @@ export type Zhongshu = {
   zg: number; // upper edge = min(high) of the three forming strokes
   zd: number; // lower edge = max(low)
   confirmed: boolean; // false while the trailing pivot is still extending
+  level?: 1 | 2;
 };
 
 export type BspKind = "1B" | "2B" | "3B" | "1S" | "2S" | "3S";
@@ -171,15 +172,25 @@ function macdHist(closes: readonly number[]): number[] {
   return dif.map((v, i) => v - (dea[i] as number));
 }
 
-type Leg = {
+export type VertexPt = {
+  time: string;
+  price: number;
+  kind: "top" | "bottom";
+  rawIdx: number; // raw-bar index of the vertex extreme (MACD-area bounds)
+  confirmed: boolean;
+};
+
+export type Leg = {
   hi: number;
   lo: number;
   up: boolean;
   a: number; // start vertex index
   b: number; // end vertex index
+  rawA: number;
+  rawB: number;
 };
 
-type Pivot = {
+export type Pivot = {
   firstLeg: number;
   lastLeg: number; // last leg still inside [zd, zg]
   exitLeg: number | null; // first leg fully outside (null while extending)
@@ -187,6 +198,112 @@ type Pivot = {
   zg: number;
   zd: number;
 };
+
+export function buildLegs(pts: readonly VertexPt[]): Leg[] {
+  const legs: Leg[] = [];
+  for (let i = 0; i + 1 < pts.length; i++) {
+    legs.push({
+      hi: Math.max(pts[i].price, pts[i + 1].price),
+      lo: Math.min(pts[i].price, pts[i + 1].price),
+      up: pts[i + 1].kind === "top",
+      a: i,
+      b: i + 1,
+      rawA: pts[i].rawIdx,
+      rawB: pts[i + 1].rawIdx,
+    });
+  }
+  return legs;
+}
+
+export function buildPivots(legs: readonly Leg[]): Pivot[] {
+  const pivots: Pivot[] = [];
+  let i = 0;
+  while (i <= legs.length - 3) {
+    const trio = legs.slice(i, i + 3);
+    const zd = Math.max(...trio.map((l) => l.lo));
+    const zg = Math.min(...trio.map((l) => l.hi));
+    if (zg <= zd) {
+      i++;
+      continue;
+    }
+    let lastLeg = i + 2;
+    let exitLeg: number | null = null;
+    let exitUp = false;
+    for (let j = i + 3; j < legs.length; j++) {
+      if (legs[j].lo > zg || legs[j].hi < zd) {
+        exitLeg = j;
+        exitUp = legs[j].lo > zg;
+        break;
+      }
+      lastLeg = j;
+    }
+    pivots.push({ firstLeg: i, lastLeg, exitLeg, exitUp, zg, zd });
+    i = exitLeg ?? legs.length; // the exit leg can seed the next structure
+  }
+  return pivots;
+}
+
+export function pivotsToZhongshus(
+  pivots: readonly Pivot[],
+  legs: readonly Leg[],
+  pts: readonly VertexPt[],
+): Zhongshu[] {
+  return pivots.map((p) => ({
+    start: pts[legs[p.firstLeg].a].time,
+    end: pts[legs[p.lastLeg].b].time,
+    zg: p.zg,
+    zd: p.zd,
+    confirmed: p.exitLeg != null,
+  }));
+}
+
+export function markPoints(
+  pts: readonly VertexPt[],
+  legs: readonly Leg[],
+  pivots: readonly Pivot[],
+  legArea: (l: Leg) => number,
+): BuySellPoint[] {
+  const points: BuySellPoint[] = [];
+  const mark = (kind: BspKind, vIdx: number) => {
+    const v = pts[vIdx];
+    points.push({ time: v.time, price: v.price, kind, confirmed: v.confirmed });
+  };
+  pivots.forEach((p, k) => {
+    if (p.exitLeg != null) {
+      const pull = legs[p.exitLeg + 1];
+      if (pull && p.exitUp && pull.lo > p.zg) mark("3B", pull.b);
+      if (pull && !p.exitUp && pull.hi < p.zd) mark("3S", pull.b);
+    }
+    const prev = pivots[k - 1];
+    if (!prev || prev.exitLeg == null || p.exitLeg == null) return;
+    const connect = legs[prev.exitLeg];
+    const exit = legs[p.exitLeg];
+    const rising = p.zd > prev.zg && connect.up && exit.up;
+    const falling = p.zg < prev.zd && !connect.up && !exit.up;
+    const newExtreme = rising
+      ? pts[exit.b].price > pts[connect.b].price
+      : pts[exit.b].price < pts[connect.b].price;
+    if (
+      (rising || falling) &&
+      newExtreme &&
+      legArea(exit) < DIVERGENCE_RATE * legArea(connect)
+    ) {
+      const first = rising ? ("1S" as const) : ("1B" as const);
+      mark(first, exit.b);
+      const retest = pts[exit.b + 2];
+      if (retest && retest.kind === pts[exit.b].kind) {
+        if (first === "1B" && retest.price > pts[exit.b].price) {
+          mark("2B", exit.b + 2);
+        }
+        if (first === "1S" && retest.price < pts[exit.b].price) {
+          mark("2S", exit.b + 2);
+        }
+      }
+    }
+  });
+  points.sort((a, b) => a.time.localeCompare(b.time));
+  return points;
+}
 
 export function computeChanlun(bars: readonly ChanlunBar[]): ChanlunResult {
   if (bars.length < 10) return { vertices: [], zhongshus: [], points: [] };
@@ -238,105 +355,26 @@ export function computeChanlun(bars: readonly ChanlunBar[]): ChanlunResult {
     confirmed: i < confirmedCount,
   }));
 
-  // 中枢 — overlap of 3 consecutive strokes: [zd, zg] = [max(lo), min(hi)];
-  // extends while later strokes still touch the zone, ends at the first
-  // stroke fully outside. The trailing zone (never exited) stays unconfirmed.
-  const legs: Leg[] = [];
-  for (let i = 0; i + 1 < eps.length; i++) {
-    legs.push({
-      hi: Math.max(eps[i].price, eps[i + 1].price),
-      lo: Math.min(eps[i].price, eps[i + 1].price),
-      up: eps[i + 1].kind === "top",
-      a: i,
-      b: i + 1,
-    });
-  }
-  const pivots: Pivot[] = [];
-  let i = 0;
-  while (i <= legs.length - 3) {
-    const trio = legs.slice(i, i + 3);
-    const zd = Math.max(...trio.map((l) => l.lo));
-    const zg = Math.min(...trio.map((l) => l.hi));
-    if (zg <= zd) {
-      i++;
-      continue;
-    }
-    let lastLeg = i + 2;
-    let exitLeg: number | null = null;
-    let exitUp = false;
-    for (let j = i + 3; j < legs.length; j++) {
-      if (legs[j].lo > zg || legs[j].hi < zd) {
-        exitLeg = j;
-        exitUp = legs[j].lo > zg;
-        break;
-      }
-      lastLeg = j;
-    }
-    pivots.push({ firstLeg: i, lastLeg, exitLeg, exitUp, zg, zd });
-    i = exitLeg ?? legs.length; // the exit leg can seed the next structure
-  }
-  const zhongshus: Zhongshu[] = pivots.map((p) => ({
-    start: vertices[legs[p.firstLeg].a].time,
-    end: vertices[legs[p.lastLeg].b].time,
-    zg: p.zg,
-    zd: p.zd,
-    confirmed: p.exitLeg != null,
+  const pts: VertexPt[] = eps.map((f, i) => ({
+    time: bars[f.rawIdx].time,
+    price: f.price,
+    kind: f.kind,
+    rawIdx: f.rawIdx,
+    confirmed: i < confirmedCount,
   }));
+  const legs = buildLegs(pts);
+  const pivots = buildPivots(legs);
+  const zhongshus = pivotsToZhongshus(pivots, legs, pts);
 
-  // 买卖点. Leg momentum = Σ|MACD hist| over the leg's raw bars (area proxy).
   const hist = macdHist(bars.map((b) => b.close));
   const legArea = (l: Leg): number => {
     let s = 0;
-    for (let r = eps[l.a].rawIdx + 1; r <= eps[l.b].rawIdx; r++) {
+    for (let r = l.rawA + 1; r <= l.rawB; r++) {
       s += Math.abs(hist[r]);
     }
     return s;
   };
-  const points: BuySellPoint[] = [];
-  const mark = (kind: BspKind, vIdx: number) => {
-    const v = vertices[vIdx];
-    points.push({ time: v.time, price: v.price, kind, confirmed: v.confirmed });
-  };
-  pivots.forEach((p, k) => {
-    // 3B/3S: the pullback after leaving the pivot fails to re-enter [zd, zg].
-    if (p.exitLeg != null) {
-      const pull = legs[p.exitLeg + 1];
-      if (pull && p.exitUp && pull.lo > p.zg) mark("3B", pull.b);
-      if (pull && !p.exitUp && pull.hi < p.zd) mark("3S", pull.b);
-    }
-    // 1B/1S: trend (two non-overlapping pivots) whose final exit leg makes a
-    // new extreme on weaker MACD area than the connecting leg between pivots
-    // (趋势背驰). The connecting leg IS the previous pivot's exit leg.
-    const prev = pivots[k - 1];
-    if (!prev || prev.exitLeg == null || p.exitLeg == null) return;
-    const connect = legs[prev.exitLeg];
-    const exit = legs[p.exitLeg];
-    const rising = p.zd > prev.zg && connect.up && exit.up;
-    const falling = p.zg < prev.zd && !connect.up && !exit.up;
-    const newExtreme = rising
-      ? eps[exit.b].price > eps[connect.b].price
-      : eps[exit.b].price < eps[connect.b].price;
-    if (
-      (rising || falling) &&
-      newExtreme &&
-      legArea(exit) < DIVERGENCE_RATE * legArea(connect)
-    ) {
-      const first = rising ? ("1S" as const) : ("1B" as const);
-      mark(first, exit.b);
-      // 2B/2S: the first retest after the reversal leg holds the 1st-class
-      // extreme (no new low after 1B / no new high after 1S).
-      const retest = eps[exit.b + 2];
-      if (retest && retest.kind === eps[exit.b].kind) {
-        if (first === "1B" && retest.price > eps[exit.b].price) {
-          mark("2B", exit.b + 2);
-        }
-        if (first === "1S" && retest.price < eps[exit.b].price) {
-          mark("2S", exit.b + 2);
-        }
-      }
-    }
-  });
-  points.sort((a, b) => a.time.localeCompare(b.time));
+  const points = markPoints(pts, legs, pivots, legArea);
 
   return { vertices, zhongshus, points };
 }
