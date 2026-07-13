@@ -7,6 +7,15 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+- Fix: the data-freshness autoheal circuit breaker now counts frozen-night
+  streaks anchored on the job's injected `today` instead of the DB wall clock
+  (`consecutive_frozen_counts(as_of=...)`). The `CURRENT_DATE` anchor silently
+  shrank the counted streak whenever the caller's day differed from the wall
+  clock — surfaced as a date-rolling CI time bomb in
+  `test_autoheal_circuit_breaker_stops_retriggering` (green until 2026-07-13,
+  deterministic failure after). `/api/health`'s streak enrichment keeps the
+  wall-clock default.
+
 - Docs: `docs/masterplan/` — cross-stack vision & blockers review plus the
   per-component master plan (goal ladder Stage 1–4, gaps, open decisions
   D-A..D-E, Stage-1 attack order) for the livewire/signal-lab/apex/argon/xenon
