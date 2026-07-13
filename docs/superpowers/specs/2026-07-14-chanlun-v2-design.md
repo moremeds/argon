@@ -144,7 +144,10 @@ entry point keeps the chart component simple:
   the segment continues.
 - **Invariants** (vitest, on the frozen fixture):
   - v1 outputs byte-identical after the §1.2 refactor
-  - segments alternate; each **confirmed** segment spans ≥3 strokes
+  - segments alternate (the first vertex pair is exempt — chan.py's
+    `start_bi.idx == 0` exception: the series boundary can cut
+    mid-structure, so the start vertex's kind may match the first
+    segment end's); each **confirmed** segment spans ≥3 strokes
     (provisional tail segments may be shorter, matching chan.py
     `is_sure=False` semantics); endpoints ⊂ stroke vertices
   - confirmed-prefix holds for `segVertices` (provisional only at the tail)
