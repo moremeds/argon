@@ -7,6 +7,19 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+- Technicals price chart gains a 缠论 (Chanlun) overlay behind a header toggle
+  (next to the SMA·σ/EMA·BB segmented control, localStorage-persisted):
+  笔 stroke polylines (solid confirmed / dashed provisional tail), 中枢 pivot
+  rectangles [ZD, ZG] (dashed border while extending), and 三类买卖点 markers
+  (1B/2B/3B green, 1S/2S/3S red, "?" suffix on provisional points), all drawn
+  on the lightweight-charts price pane. Structure is computed client-side in
+  `web/lib/chanlun.ts` (包含处理 → 分型 → 新笔-style 笔 → bi-level 中枢 →
+  buy/sell points gated by MACD-area 背驰; 线段 deliberately deferred),
+  matching the EMA/Bollinger client-side-indicator precedent. 中枢 rectangles
+  render via a new custom series primitive (`web/lib/lwc/chanlunZhongshu.ts`).
+  Research + v1 design: `docs/research/2026-07-14-chanlun-tv-view-research.md`;
+  unit tests run against a frozen real AAPL daily fixture (2026-01-02→07-10).
+
 - Fix: the data-freshness autoheal circuit breaker now counts frozen-night
   streaks anchored on the job's injected `today` instead of the DB wall clock
   (`consecutive_frozen_counts(as_of=...)`). The `CURRENT_DATE` anchor silently
@@ -26,7 +39,6 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [0.10.6] — 2026-07-12
 
-
 - Technicals Dual MACD is now a native lightweight-charts sub-pane of the price
   chart (pane index 1) instead of a standalone hand-rolled SVG oscillator. It
   shares the price chart's single time scale and right-gutter, so the histogram
@@ -44,6 +56,7 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   longer a reorderable row in the oscillator stack (it's pinned to the price
   chart); the retired `TechnicalsMacdChart` SVG component and its render test are
   replaced by unit tests on the `macdSignal` classifier and the `MacdLegend` row.
+
 ## [0.10.5] — 2026-07-12
 
 - Technicals price pane: MarketSmith volume treatment (previous-close coloring,

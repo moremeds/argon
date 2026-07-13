@@ -40,6 +40,8 @@ import {
   volumeMa,
 } from "@/lib/indicators";
 import { BandsIndicator } from "@/lib/lwc/bandsIndicator";
+import { ChanlunZhongshu } from "@/lib/lwc/chanlunZhongshu";
+import { computeChanlun, type ChanlunBar } from "@/lib/chanlun";
 import { AnalyticalSeriesPanel } from "./AnalyticalSeriesPanel";
 
 const H = 460;
@@ -49,6 +51,7 @@ const MACD_H = 150;
 
 type OverlayMode = "sma" | "ema";
 const OVERLAY_MODE_KEY = "technicals:priceOverlayMode";
+const CHANLUN_KEY = "technicals:chanlun";
 
 // ReorderableList.tsx pattern: lazy init + try/catch; client-only component
 // so no hydration mismatch.
@@ -57,6 +60,14 @@ function loadOverlayMode(): OverlayMode {
     return localStorage.getItem(OVERLAY_MODE_KEY) === "ema" ? "ema" : "sma";
   } catch {
     return "sma";
+  }
+}
+
+function loadChanlun(): boolean {
+  try {
+    return localStorage.getItem(CHANLUN_KEY) === "1";
+  } catch {
+    return false;
   }
 }
 
@@ -161,6 +172,10 @@ type ChartHandles = {
   volMarkers: ISeriesMarkersPluginApi<Time> | null;
   macdSlow: ISeriesApi<"Histogram">;
   macdFast: ISeriesApi<"Histogram">;
+  biSolid: ISeriesApi<"Line">;
+  biDashed: ISeriesApi<"Line">;
+  clZs: ChanlunZhongshu;
+  clMarkers: ISeriesMarkersPluginApi<Time>;
 };
 
 const READABLE_BAR_PX = 6; // min bar width before we scroll instead of squish
@@ -210,6 +225,26 @@ export function TechnicalsPriceChart({
       /* storage unavailable */
     }
   };
+  const [chanlunOn, setChanlunOn] = useState<boolean>(loadChanlun);
+  const setChanlunPersist = (on: boolean) => {
+    setChanlunOn(on);
+    try {
+      localStorage.setItem(CHANLUN_KEY, on ? "1" : "0");
+    } catch {
+      /* storage unavailable */
+    }
+  };
+  // Chanlun geometry over the FULL history (window-cut in the data pass, like
+  // the other client-side indicators). Pure + deterministic, so memo on rows.
+  const chanlunGeo = useMemo(() => {
+    if (!chanlunOn || !candleMode) return null;
+    const bars: ChanlunBar[] = full.flatMap((r) =>
+      r.as_of != null && r.high != null && r.low != null && r.close != null
+        ? [{ time: r.as_of, high: r.high, low: r.low, close: r.close }]
+        : [],
+    );
+    return computeChanlun(bars);
+  }, [full, chanlunOn, candleMode]);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const readoutRef = useRef<HTMLDivElement>(null);
@@ -395,6 +430,29 @@ export function TechnicalsPriceChart({
     });
     price.attachPrimitive(bands);
 
+    // Chanlun overlay: 笔 polylines (solid confirmed / dashed provisional
+    // tail), 中枢 rectangles (custom primitive), 买卖点 markers on the price
+    // series (the volume markers own the volume series). Created always, fed
+    // empty data while the toggle is off — the toggle must not rebuild the
+    // chart.
+    const clColor = cssVar("--text-secondary");
+    const biLineOpts = { ...lineOpts, lineWidth: 1 as const };
+    const biSolid = chart.addSeries(LineSeries, {
+      color: clColor,
+      ...biLineOpts,
+    });
+    const biDashed = chart.addSeries(LineSeries, {
+      color: clColor,
+      lineStyle: LineStyle.Dashed,
+      ...biLineOpts,
+    });
+    const clZs = new ChanlunZhongshu({
+      fillColor: `${cssVar("--accent-cool")}14`, // ~8% alpha fill
+      borderColor: `${cssVar("--accent-cool")}80`,
+    });
+    price.attachPrimitive(clZs);
+    const clMarkers = createSeriesMarkers(price, []);
+
     // Dual MACD in pane index 1 (below price). Two histograms sharing one price
     // scale: the slow 55/89/34 is the structural background (accent-vol, ~50%
     // alpha) drawn first; the fast 13/21/9 is the sharp tactical bar on top, its
@@ -449,6 +507,10 @@ export function TechnicalsPriceChart({
       volMarkers,
       macdSlow,
       macdFast,
+      biSolid,
+      biDashed,
+      clZs,
+      clMarkers,
     };
     fitKeyRef.current = ""; // force a fitContent on the first data pass
 
@@ -662,6 +724,53 @@ export function TechnicalsPriceChart({
           : [],
       ),
     );
+    // Chanlun overlay: geometry precomputed over `full`, cut to the window
+    // here. The dashed tail restarts at the last confirmed vertex so the two
+    // polylines connect.
+    if (chanlunGeo) {
+      const vs = chanlunGeo.vertices.filter((v) => v.time >= firstAsOf);
+      const firstProv = vs.findIndex((v) => !v.confirmed);
+      const solid = firstProv === -1 ? vs : vs.slice(0, firstProv);
+      const dashed =
+        firstProv === -1 ? [] : vs.slice(Math.max(0, firstProv - 1));
+      h.biSolid.setData(
+        solid.map((v) => ({ time: v.time as Time, value: v.price })),
+      );
+      h.biDashed.setData(
+        dashed.map((v) => ({ time: v.time as Time, value: v.price })),
+      );
+      h.clZs.setRects(
+        chanlunGeo.zhongshus
+          .filter((z) => z.end >= firstAsOf)
+          .map((z) => ({
+            start: (z.start >= firstAsOf ? z.start : firstAsOf) as Time,
+            end: z.end as Time,
+            zg: z.zg,
+            zd: z.zd,
+            confirmed: z.confirmed,
+          })),
+      );
+      h.clMarkers.setMarkers(
+        chanlunGeo.points
+          .filter((p) => p.time >= firstAsOf)
+          .map((p) => {
+            const buy = p.kind.endsWith("B");
+            return {
+              time: p.time as Time,
+              position: buy ? ("belowBar" as const) : ("aboveBar" as const),
+              shape: buy ? ("arrowUp" as const) : ("arrowDown" as const),
+              color: buy ? positive : negative,
+              text: p.confirmed ? p.kind : `${p.kind}?`,
+              size: 1,
+            };
+          }),
+      );
+    } else {
+      h.biSolid.setData([]);
+      h.biDashed.setData([]);
+      h.clZs.setRects([]);
+      h.clMarkers.setMarkers([]);
+    }
     // Fit on ticker or window-start change only — a live head append (length
     // change, same first bar) must not reset the user's zoom.
     const fitKey = `${ticker}:${candleMode}:${firstAsOf}`;
@@ -685,7 +794,7 @@ export function TechnicalsPriceChart({
         volMaByTimeRef.current.get(lastRow.as_of),
       );
     }
-  }, [rows, full, ticker, candleMode, anchor, mode]);
+  }, [rows, full, ticker, candleMode, anchor, mode, chanlunGeo]);
 
   const clearAnchor = () => {
     setAnchor(null);
@@ -766,6 +875,28 @@ export function TechnicalsPriceChart({
           </button>
         ))}
       </span>
+      {candleMode && (
+        <button
+          type="button"
+          onClick={() => setChanlunPersist(!chanlunOn)}
+          aria-pressed={chanlunOn}
+          data-testid="chanlun-toggle"
+          title="缠论 overlay — 笔 · 中枢 · 买卖点"
+          style={{
+            fontFamily: "var(--font-mono)",
+            fontSize: 10,
+            letterSpacing: 1,
+            color: chanlunOn ? "var(--text-primary)" : "var(--text-muted)",
+            background: chanlunOn ? "var(--bg-panel-raised)" : "transparent",
+            border: "1px solid var(--border-dim)",
+            borderRadius: 4,
+            padding: "2px 7px",
+            cursor: "pointer",
+          }}
+        >
+          缠论
+        </button>
+      )}
       <button
         type="button"
         aria-label="Reset zoom and jump to latest bar"
@@ -848,7 +979,28 @@ export function TechnicalsPriceChart({
           {err}
         </div>
       )}
-      <Legend mode={mode} showVwap={anchor != null} />
+      <Legend
+        mode={mode}
+        showVwap={anchor != null}
+        showChanlun={chanlunOn && candleMode}
+      />
+      {chanlunOn && candleMode && (
+        <div
+          style={{
+            fontSize: 11,
+            color: "var(--text-muted)",
+            marginTop: 6,
+            lineHeight: 1.55,
+          }}
+        >
+          缠论: gray polyline = 笔 (dashed tail = still forming), boxes = 中枢
+          [ZD, ZG] (dashed border = extending), markers = 买卖点 — green
+          1B/2B/3B buys, red 1S/2S/3S sells, &quot;?&quot; = provisional and may
+          be erased. 1st class = trend + MACD-area 背驰; 3rd class = pullback
+          holds outside the 中枢. Structures on the trailing edge repaint by
+          design — decisions belong on confirmed marks only.
+        </div>
+      )}
       <MacdLegend signal={macd} />
       <div
         style={{
@@ -869,7 +1021,15 @@ export function TechnicalsPriceChart({
   );
 }
 
-function Legend({ mode, showVwap }: { mode: OverlayMode; showVwap: boolean }) {
+function Legend({
+  mode,
+  showVwap,
+  showChanlun,
+}: {
+  mode: OverlayMode;
+  showVwap: boolean;
+  showChanlun: boolean;
+}) {
   const item = (color: string, label: string) => (
     <span
       key={label}
@@ -902,6 +1062,7 @@ function Legend({ mode, showVwap }: { mode: OverlayMode; showVwap: boolean }) {
       {item("var(--accent-vol)", labels[1])}
       {item("var(--accent-vivid)", labels[2])}
       {showVwap && item("var(--accent-cool)", "VWAP ⚓")}
+      {showChanlun && item("var(--text-secondary)", "缠论 笔·中枢·买卖点")}
     </div>
   );
 }
