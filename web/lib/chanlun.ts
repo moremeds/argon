@@ -445,7 +445,7 @@ export function resampleWeekly(bars: readonly ChanlunBar[]): ChanlunBar[] {
 /** 区间套: a confirmed daily point resonates when a same-side confirmed
  * weekly point exists with weekly-vertex time ≤ daily time ≤ end of the
  * weekly point's following leg (spec §1.4). */
-function markResonance(
+export function markResonance(
   points: readonly BuySellPoint[],
   weekly: ChanlunResult,
   lastBarTime: string,
