@@ -96,5 +96,114 @@ alerts, Python port, per-user rule config (the 新笔-style rule is a code const
 ## 5. Reproduce
 
 - X thread fetch: `opencli twitter thread https://x.com/crblandet/status/2075468060115312652`
-- Verification of the view: vitest `web/lib/__tests__/chanlun.test.ts` (frozen real-ticker
+- Verification of the view: vitest `web/tests/lib/chanlun.test.ts` (frozen real-ticker
   OHLC fixture) + browser screenshot under `output/playwright/`.
+
+## 6. v2 addendum — 线段/段级中枢/中枢升级/区间套 (2026-07-14)
+
+### 6a. Scope shipped
+
+Complete the TradingView-style 缠论 chart view: add 线段 (segments),
+段级中枢 + 段级买卖点, pragmatic 中枢升级 (zone merging), and weekly×daily
+区间套 resonance. All client-side, same precedent as v1. The Python/alert
+port stays deferred (separate workstream, not this spec).
+
+Out of scope: 线段-recursion beyond one level (多级别联立 on the same
+timeframe); textbook 九段升级 recursion (a documented pragmatic merge ships
+instead); intraday levels (argon has no intraday bar store); Python
+port / alert pipeline integration; any backend, API, or DB change (pure
+`web/` feature).
+
+### 6b. chan.py extraction summary
+
+Mechanics extracted 2026-07-14 from `Vespa314/chan.py` source —
+`Seg/SegListChan.py`, `Seg/EigenFX.py`, `Seg/Eigen.py`,
+`Combiner/KLine_Combiner.py` (fetched 2026-07-14).
+
+**Algorithm reference** (verbatim from the v2 implementation plan, Task 3):
+
+1. An UP segment terminates when its DOWN strokes (the feature sequence) form a TOP fractal after direction-aware inclusion merging; DOWN segment is the mirror (UP strokes → BOTTOM fractal).
+2. Feature elements 1–2 inclusion-merge along the **segment** direction; element 3 merges along the **local pairwise** direction. Element 2 is formed with `exclude_included=true` (an engulfing stroke starts a NEW element); element 3 merges with `exclude_included=false` (an engulfing stroke MERGES).
+3. `allow_top_equal` (+1 for up segments, −1 for down) makes equal highs (top) / equal lows (bottom) not merge, and the fractal condition permits the tie.
+4. `actual_break` gates the fractal: the counter-move must genuinely break past element 2's last stroke — or, at the data tail, the fractal is accepted but flagged provisional (`actualBreakFlag=false`, sticky per detector instance).
+5. Termination: **case 1** (no 缺口 between elements 1 and 2, where gap = element 1 entirely below/above element 2) → segment ends immediately at the peak vertex of element 2. **case 2** (gap) → `findRevertFx`: the next segment's counter strokes (starting at peak+2, stepping by 2) must themselves form a valid fractal via the same machinery (recursive); data running out first → provisional. chan.py's threshold-break rejection was removed upstream (issue #272) — `canBeEnd` returns only `true | null`, never false. Do not add a threshold rule.
+6. A rejected fractal (`reset()`) drops the detector's first stroke and replays the rest — the segment continues toward its true extreme.
+7. There is NO explicit "first 3 strokes must overlap" gate — do not add one. A **confirmed** segment spans ≥3 strokes (`is_sure=false` otherwise). First-segment direction: whichever detector accumulates a 2nd element first (with rollback if it loses it), not first-fractal.
+8. Batch simplifications (we recompute from scratch every render, chan.py is incremental): no `do_init` rebuild, no `used_to_be_sure`; stroke "sure" = both endpoint vertices `confirmed`; leftover strokes collect into provisional tail segments by the peak method.
+
+**Oracle examples** (abstract algorithm-geometry traces, NOT market data —
+hand-traced through the chan.py mechanics above; verbatim from
+`web/tests/lib/chanlunSeg.test.ts`):
+
+- **A: case-1 immediate termination.** Vertices `0→10→6→12→8→11→4`: up
+  segment ends at 12 (V3), no gap. Expected boundaries (price):
+  `[0, 12, 4]`; confirmed: `[true, true, false]`.
+- **B: case-2 gap confirmed by the next segment's own fractal.** Vertices
+  `0→10→8→20→15→18→5→9→3→7→4→11`: gap top at 20 confirmed; the down segment
+  to 3 (V8) also confirms; tail up to 11 provisional. Expected boundaries:
+  `[0, 20, 3, 11]`; confirmed: `[true, true, true, false]`.
+- **C: case-2 gap unconfirmed at the tail → provisional.** Example B
+  truncated before the reverse fractal completes: vertices
+  `0→10→8→20→15→18→5→9`. The second boundary is still `20`, but the whole
+  chain is provisional (every vertex `confirmed: false`).
+- **D: reset() continuation — premature top rejected, true top found.**
+  Vertices `0→10→6→14→9→18→12→16→4`: the 14-top fractal fails (feature
+  sequence still rising); the detector resets and the segment runs to 18
+  (case 1). Expected boundaries: `[0, 18, 4]`; confirmed:
+  `[true, true, false]`.
+
+### 6c. Batch-port deviations from chan.py
+
+- **No incremental `do_init`.** chan.py recomputes segment state
+  incrementally as new bars stream in (`used_to_be_sure` caches prior
+  confirmations); argon recomputes `buildSegments` from scratch on every
+  render, so that machinery is unnecessary and was dropped.
+- **Stroke "sure" = both vertices confirmed.** The batch analog of
+  `is_used_to_be_sure`: a stroke is treated as settled once its two
+  endpoint vertices are `confirmed` (v1's stroke-confirmation contract),
+  rather than chan.py's incremental confirmation tracking.
+- **Peak-method tail collection.** Leftover strokes beyond the last
+  confirmed segment collect into alternating provisional segments running
+  to each side's extreme vertex (`collect_left`, batch/display form) —
+  not chan.py's incremental append-as-you-go.
+- **Pragmatic envelope 中枢升级, not textbook 九段升级.** Consecutive
+  same-level zhongshus whose `[zd, zg]` ranges overlap merge into one
+  level-2 zone spanning both in time, with price envelope
+  `[min(zd), max(zg)]`. The textbook 九段升级 recursion (nine-segment
+  pivot-of-pivots construction) is explicitly out of scope; merging is
+  transitive by construction (3+ consecutive overlapping zones collapse to
+  one level-2 zone).
+- **Resonance window rule (spec §1.4).** A confirmed daily 买卖点 `p` is
+  resonant iff a same-side (B/S) confirmed weekly point `q` exists with
+  `q.time ≤ p.time ≤ endOf(q's following weekly leg)` (the following leg's
+  end-vertex time; if `q` is the last weekly vertex, the window extends to
+  the last bar). Provisional points on either level never resonate.
+
+### 6d. Reproduce
+
+```bash
+cd web && npm run test -- tests/lib/chanlunSeg.test.ts tests/lib/chanlunFull.test.ts
+```
+
+### 6e. 买卖点 exit-leg semantics fix + 顶背离/底背离 markers (post-review, 2026-07-14)
+
+Shipped v2 produced **zero** 买卖点 on real data (AAPL/NVDA, 1300 bars each).
+Root cause: `buildPivots`' exit leg ("first leg fully outside [zd, zg]") is
+structurally **always the counter-direction pullback** — a trend-direction
+leg fully above zg would need its start vertex above zg, making the previous
+leg fully outside first — while `markPoints` assumed it was the breakout
+leg. Every downstream gate (3B/3S pull-leg opposition, 1B/1S same-direction
+connect/exit) was unsatisfiable. The original oracles passed because their
+fixtures were geometrically impossible (a "bottom" priced above an adjacent
+"top"), validating `markPoints` against inputs the real pipeline can never
+emit. Fix: 3B/3S mark on the exit leg's own end vertex; 1B/1S compare the
+breakout legs (`exitLeg - 1`). New oracles enforce a realism invariant
+(every top above its adjacent bottoms) plus real-data non-vacuity
+assertions. Measured density post-fix: AAPL 11×3B/3S + 2×1S, NVDA 15 + 3
+over 5y — MACD gate filters 8 candidates → 3 on NVDA (non-vacuous).
+
+Added 顶背离/底背离 chart annotations (笔-level): legs `i` and `i+2` are
+always same-direction; flag the later one when it extends past the earlier
+one's extreme on MACD area < 0.9×. Amber dots, annotation-only (买卖点
+gating unchanged). Spot-check: 底背离 fired at AAPL 2022-10-13 (bear-market
+low) and 2025-04-08 (tariff-crash low); 顶背离 at 2022-01-04 (pre-bear ATH).

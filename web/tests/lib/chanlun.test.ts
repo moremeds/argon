@@ -116,6 +116,7 @@ describe("computeChanlun on real AAPL 2026H1 daily bars", () => {
       vertices: [],
       zhongshus: [],
       points: [],
+      divergences: [],
     });
   });
 });

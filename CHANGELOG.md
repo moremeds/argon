@@ -7,6 +7,26 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+### Added
+
+- Chanlun v2 on the technicals price chart: 线段 (chan.py feature-sequence
+  port, both termination cases), 段级中枢 + 段级买卖点, pragmatic 中枢升级
+  (consecutive overlapping zones merge to level-2 envelopes), and weekly×daily
+  区间套 resonance (★ on confirmed daily 买卖点 with a confirmed weekly
+  witness). Compute stays client-side (`web/lib/chanlunSeg.ts`,
+  `computeChanlunFull`); the 中枢 primitive is reused unmodified.
+
+- Fix: 买卖点 now actually fire on real data — `markPoints` assumed the
+  中枢 exit leg was the breakout leg, but `buildPivots`' "first leg fully
+  outside" is structurally always the counter-direction pullback, so every
+  1B/1S/2B/2S/3B/3S gate was unsatisfiable (zero marks on AAPL/NVDA; the
+  old oracles passed only on geometrically impossible fixtures). 3B/3S now
+  mark the exit leg's own end vertex; 1B/1S compare breakout legs
+  (`exitLeg − 1`). Also adds 顶背离/底背离 amber-dot annotations (a 笔
+  extending past the prior same-direction 笔's extreme on weaker MACD
+  area). New realistic-geometry oracles + real-data non-vacuity tests;
+  post-fix write-up in §6e of the chanlun research doc.
+
 - Fix: `/api/health`'s freshness block now anchors `consecutive_frozen_nights`
   on the snapshot's own newest `run_date` instead of the DB wall clock —
   `latest_snapshot()` was the last bare `consecutive_frozen_counts()` caller

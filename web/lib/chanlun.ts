@@ -10,6 +10,7 @@
 // endpoint can still move, the forming counter-leg tracks the running
 // extreme) — consumers must render them dashed/"?" and never alert off them.
 import { ema } from "@/lib/indicators";
+import { buildSegments, type SegVertex } from "@/lib/chanlunSeg";
 
 export type ChanlunBar = {
   time: string; // 'yyyy-mm-dd'
@@ -45,6 +46,7 @@ export type Zhongshu = {
   zg: number; // upper edge = min(high) of the three forming strokes
   zd: number; // lower edge = max(low)
   confirmed: boolean; // false while the trailing pivot is still extending
+  level?: 1 | 2;
 };
 
 export type BspKind = "1B" | "2B" | "3B" | "1S" | "2S" | "3S";
@@ -54,12 +56,23 @@ export type BuySellPoint = {
   price: number;
   kind: BspKind;
   confirmed: boolean;
+  resonant?: boolean;
+};
+
+/** 顶背离 (kind "top") / 底背离 (kind "bottom") — a 笔 pushing to a new
+ * extreme past the previous same-direction 笔 on weaker MACD area. */
+export type DivergenceMark = {
+  time: string;
+  price: number;
+  kind: "top" | "bottom";
+  confirmed: boolean;
 };
 
 export type ChanlunResult = {
   vertices: BiVertex[];
   zhongshus: Zhongshu[];
   points: BuySellPoint[];
+  divergences: DivergenceMark[];
 };
 
 // 新笔-style stroke rule: fractal midpoints ≥4 merged candles apart, so the
@@ -171,15 +184,25 @@ function macdHist(closes: readonly number[]): number[] {
   return dif.map((v, i) => v - (dea[i] as number));
 }
 
-type Leg = {
+export type VertexPt = {
+  time: string;
+  price: number;
+  kind: "top" | "bottom";
+  rawIdx: number; // raw-bar index of the vertex extreme (MACD-area bounds)
+  confirmed: boolean;
+};
+
+export type Leg = {
   hi: number;
   lo: number;
   up: boolean;
   a: number; // start vertex index
   b: number; // end vertex index
+  rawA: number;
+  rawB: number;
 };
 
-type Pivot = {
+export type Pivot = {
   firstLeg: number;
   lastLeg: number; // last leg still inside [zd, zg]
   exitLeg: number | null; // first leg fully outside (null while extending)
@@ -188,11 +211,191 @@ type Pivot = {
   zd: number;
 };
 
+export function buildLegs(pts: readonly VertexPt[]): Leg[] {
+  const legs: Leg[] = [];
+  for (let i = 0; i + 1 < pts.length; i++) {
+    legs.push({
+      hi: Math.max(pts[i].price, pts[i + 1].price),
+      lo: Math.min(pts[i].price, pts[i + 1].price),
+      up: pts[i + 1].kind === "top",
+      a: i,
+      b: i + 1,
+      rawA: pts[i].rawIdx,
+      rawB: pts[i + 1].rawIdx,
+    });
+  }
+  return legs;
+}
+
+// 中枢 — overlap of 3 consecutive strokes: [zd, zg] = [max(lo), min(hi)];
+// extends while later strokes still touch the zone, ends at the first
+// stroke fully outside. The trailing zone (never exited) stays unconfirmed.
+export function buildPivots(legs: readonly Leg[]): Pivot[] {
+  const pivots: Pivot[] = [];
+  let i = 0;
+  while (i <= legs.length - 3) {
+    const trio = legs.slice(i, i + 3);
+    const zd = Math.max(...trio.map((l) => l.lo));
+    const zg = Math.min(...trio.map((l) => l.hi));
+    if (zg <= zd) {
+      i++;
+      continue;
+    }
+    let lastLeg = i + 2;
+    let exitLeg: number | null = null;
+    let exitUp = false;
+    for (let j = i + 3; j < legs.length; j++) {
+      if (legs[j].lo > zg || legs[j].hi < zd) {
+        exitLeg = j;
+        exitUp = legs[j].lo > zg;
+        break;
+      }
+      lastLeg = j;
+    }
+    pivots.push({ firstLeg: i, lastLeg, exitLeg, exitUp, zg, zd });
+    i = exitLeg ?? legs.length; // the exit leg can seed the next structure
+  }
+  return pivots;
+}
+
+export function pivotsToZhongshus(
+  pivots: readonly Pivot[],
+  legs: readonly Leg[],
+  pts: readonly VertexPt[],
+): Zhongshu[] {
+  return pivots.map((p) => ({
+    start: pts[legs[p.firstLeg].a].time,
+    end: pts[legs[p.lastLeg].b].time,
+    zg: p.zg,
+    zd: p.zd,
+    confirmed: p.exitLeg != null,
+  }));
+}
+
+/** 中枢升级 (pragmatic): consecutive same-level zones whose [zd, zg] ranges
+ * overlap merge into one level-2 zone spanning both in time, with the price
+ * ENVELOPE [min(zd), max(zg)]. Documented deviation — textbook 九段升级
+ * recursion is out of scope (spec §1.3). Transitive by construction. */
+export function mergeOverlappingZhongshus(zs: readonly Zhongshu[]): Zhongshu[] {
+  const out: Zhongshu[] = [];
+  for (const z of zs) {
+    const last = out[out.length - 1];
+    if (last && Math.max(last.zd, z.zd) < Math.min(last.zg, z.zg)) {
+      last.zg = Math.max(last.zg, z.zg);
+      last.zd = Math.min(last.zd, z.zd);
+      last.end = z.end;
+      last.confirmed = last.confirmed && z.confirmed;
+      last.level = 2;
+    } else {
+      out.push({ ...z, level: z.level ?? 1 });
+    }
+  }
+  return out;
+}
+
+export function markPoints(
+  pts: readonly VertexPt[],
+  legs: readonly Leg[],
+  pivots: readonly Pivot[],
+  legArea: (l: Leg) => number,
+): BuySellPoint[] {
+  const points: BuySellPoint[] = [];
+  const mark = (kind: BspKind, vIdx: number) => {
+    const v = pts[vIdx];
+    points.push({ time: v.time, price: v.price, kind, confirmed: v.confirmed });
+  };
+  pivots.forEach((p, k) => {
+    // 3B/3S: the exit leg IS the pullback. buildPivots' "first leg fully
+    // outside [zd, zg]" is structurally always the counter-direction leg:
+    // a trend-direction leg fully above zg would need its start (a bottom
+    // vertex) above zg, which would make the PREVIOUS leg fully outside
+    // first. So the exit leg leaves the zone and fails to re-enter — its
+    // end vertex is the third-class point (its lo > zg / hi < zd already
+    // holds by the exit condition). The direction guard keeps a buy off a
+    // top vertex for degenerate inputs.
+    if (p.exitLeg != null) {
+      const exitL = legs[p.exitLeg];
+      if (p.exitUp && !exitL.up) mark("3B", exitL.b);
+      if (!p.exitUp && exitL.up) mark("3S", exitL.b);
+    }
+    // 1B/1S: trend (two non-overlapping pivots) whose final BREAKOUT leg —
+    // the trend-direction leg just before the counter-direction exit leg —
+    // makes a new extreme on weaker MACD area than the previous pivot's
+    // breakout leg (趋势背驰).
+    const prev = pivots[k - 1];
+    if (!prev || prev.exitLeg == null || p.exitLeg == null) return;
+    const connect = legs[prev.exitLeg - 1];
+    const exit = legs[p.exitLeg - 1];
+    const rising = p.zd > prev.zg && connect.up && exit.up;
+    const falling = p.zg < prev.zd && !connect.up && !exit.up;
+    const newExtreme = rising
+      ? pts[exit.b].price > pts[connect.b].price
+      : pts[exit.b].price < pts[connect.b].price;
+    if (
+      (rising || falling) &&
+      newExtreme &&
+      legArea(exit) < DIVERGENCE_RATE * legArea(connect)
+    ) {
+      const first = rising ? ("1S" as const) : ("1B" as const);
+      mark(first, exit.b);
+      // 2B/2S: the first retest after the reversal leg holds the 1st-class
+      // extreme (no new low after 1B / no new high after 1S).
+      const retest = pts[exit.b + 2];
+      if (retest && retest.kind === pts[exit.b].kind) {
+        if (first === "1B" && retest.price > pts[exit.b].price) {
+          mark("2B", exit.b + 2);
+        }
+        if (first === "1S" && retest.price < pts[exit.b].price) {
+          mark("2S", exit.b + 2);
+        }
+      }
+    }
+  });
+  points.sort((a, b) => a.time.localeCompare(b.time));
+  return points;
+}
+
+/** 顶背离/底背离 on 笔: legs i and i+2 are always same-direction (directions
+ * alternate); flag the later one when it pushes past the earlier one's
+ * extreme on weaker MACD area. Chart annotation only — 买卖点 gating uses
+ * the pivot-anchored 趋势背驰 in markPoints. */
+export function markDivergences(
+  pts: readonly VertexPt[],
+  legs: readonly Leg[],
+  legArea: (l: Leg) => number,
+): DivergenceMark[] {
+  const out: DivergenceMark[] = [];
+  for (let i = 0; i + 2 < legs.length; i++) {
+    const a = legs[i];
+    const b = legs[i + 2];
+    const extended = b.up
+      ? pts[b.b].price > pts[a.b].price
+      : pts[b.b].price < pts[a.b].price;
+    if (extended && legArea(b) < DIVERGENCE_RATE * legArea(a)) {
+      const v = pts[b.b];
+      out.push({
+        time: v.time,
+        price: v.price,
+        kind: v.kind,
+        confirmed: v.confirmed,
+      });
+    }
+  }
+  return out;
+}
+
+const EMPTY_RESULT: ChanlunResult = {
+  vertices: [],
+  zhongshus: [],
+  points: [],
+  divergences: [],
+};
+
 export function computeChanlun(bars: readonly ChanlunBar[]): ChanlunResult {
-  if (bars.length < 10) return { vertices: [], zhongshus: [], points: [] };
+  if (bars.length < 10) return { ...EMPTY_RESULT };
   const m = mergeInclusions(bars);
   const eps = buildEndpoints(findFractals(m));
-  if (eps.length === 0) return { vertices: [], zhongshus: [], points: [] };
+  if (eps.length === 0) return { ...EMPTY_RESULT };
 
   // Provisional tail. The last endpoint is replaceable; two live adjustments:
   // (a) if the running same-direction extreme after it already exceeds it,
@@ -238,105 +441,134 @@ export function computeChanlun(bars: readonly ChanlunBar[]): ChanlunResult {
     confirmed: i < confirmedCount,
   }));
 
-  // 中枢 — overlap of 3 consecutive strokes: [zd, zg] = [max(lo), min(hi)];
-  // extends while later strokes still touch the zone, ends at the first
-  // stroke fully outside. The trailing zone (never exited) stays unconfirmed.
-  const legs: Leg[] = [];
-  for (let i = 0; i + 1 < eps.length; i++) {
-    legs.push({
-      hi: Math.max(eps[i].price, eps[i + 1].price),
-      lo: Math.min(eps[i].price, eps[i + 1].price),
-      up: eps[i + 1].kind === "top",
-      a: i,
-      b: i + 1,
-    });
-  }
-  const pivots: Pivot[] = [];
-  let i = 0;
-  while (i <= legs.length - 3) {
-    const trio = legs.slice(i, i + 3);
-    const zd = Math.max(...trio.map((l) => l.lo));
-    const zg = Math.min(...trio.map((l) => l.hi));
-    if (zg <= zd) {
-      i++;
-      continue;
-    }
-    let lastLeg = i + 2;
-    let exitLeg: number | null = null;
-    let exitUp = false;
-    for (let j = i + 3; j < legs.length; j++) {
-      if (legs[j].lo > zg || legs[j].hi < zd) {
-        exitLeg = j;
-        exitUp = legs[j].lo > zg;
-        break;
-      }
-      lastLeg = j;
-    }
-    pivots.push({ firstLeg: i, lastLeg, exitLeg, exitUp, zg, zd });
-    i = exitLeg ?? legs.length; // the exit leg can seed the next structure
-  }
-  const zhongshus: Zhongshu[] = pivots.map((p) => ({
-    start: vertices[legs[p.firstLeg].a].time,
-    end: vertices[legs[p.lastLeg].b].time,
-    zg: p.zg,
-    zd: p.zd,
-    confirmed: p.exitLeg != null,
+  const pts: VertexPt[] = eps.map((f, i) => ({
+    time: bars[f.rawIdx].time,
+    price: f.price,
+    kind: f.kind,
+    rawIdx: f.rawIdx,
+    confirmed: i < confirmedCount,
   }));
+  const legs = buildLegs(pts);
+  const pivots = buildPivots(legs);
+  const zhongshus = pivotsToZhongshus(pivots, legs, pts);
 
   // 买卖点. Leg momentum = Σ|MACD hist| over the leg's raw bars (area proxy).
   const hist = macdHist(bars.map((b) => b.close));
   const legArea = (l: Leg): number => {
     let s = 0;
-    for (let r = eps[l.a].rawIdx + 1; r <= eps[l.b].rawIdx; r++) {
+    for (let r = l.rawA + 1; r <= l.rawB; r++) {
       s += Math.abs(hist[r]);
     }
     return s;
   };
-  const points: BuySellPoint[] = [];
-  const mark = (kind: BspKind, vIdx: number) => {
-    const v = vertices[vIdx];
-    points.push({ time: v.time, price: v.price, kind, confirmed: v.confirmed });
-  };
-  pivots.forEach((p, k) => {
-    // 3B/3S: the pullback after leaving the pivot fails to re-enter [zd, zg].
-    if (p.exitLeg != null) {
-      const pull = legs[p.exitLeg + 1];
-      if (pull && p.exitUp && pull.lo > p.zg) mark("3B", pull.b);
-      if (pull && !p.exitUp && pull.hi < p.zd) mark("3S", pull.b);
-    }
-    // 1B/1S: trend (two non-overlapping pivots) whose final exit leg makes a
-    // new extreme on weaker MACD area than the connecting leg between pivots
-    // (趋势背驰). The connecting leg IS the previous pivot's exit leg.
-    const prev = pivots[k - 1];
-    if (!prev || prev.exitLeg == null || p.exitLeg == null) return;
-    const connect = legs[prev.exitLeg];
-    const exit = legs[p.exitLeg];
-    const rising = p.zd > prev.zg && connect.up && exit.up;
-    const falling = p.zg < prev.zd && !connect.up && !exit.up;
-    const newExtreme = rising
-      ? eps[exit.b].price > eps[connect.b].price
-      : eps[exit.b].price < eps[connect.b].price;
-    if (
-      (rising || falling) &&
-      newExtreme &&
-      legArea(exit) < DIVERGENCE_RATE * legArea(connect)
-    ) {
-      const first = rising ? ("1S" as const) : ("1B" as const);
-      mark(first, exit.b);
-      // 2B/2S: the first retest after the reversal leg holds the 1st-class
-      // extreme (no new low after 1B / no new high after 1S).
-      const retest = eps[exit.b + 2];
-      if (retest && retest.kind === eps[exit.b].kind) {
-        if (first === "1B" && retest.price > eps[exit.b].price) {
-          mark("2B", exit.b + 2);
-        }
-        if (first === "1S" && retest.price < eps[exit.b].price) {
-          mark("2S", exit.b + 2);
-        }
-      }
-    }
-  });
-  points.sort((a, b) => a.time.localeCompare(b.time));
+  const points = markPoints(pts, legs, pivots, legArea);
+  const divergences = markDivergences(pts, legs, legArea);
 
-  return { vertices, zhongshus, points };
+  return { vertices, zhongshus, points, divergences };
+}
+
+/** Group daily bars into calendar weeks (Monday key): high=max, low=min,
+ * close=last, time=last session of the week. */
+export function resampleWeekly(bars: readonly ChanlunBar[]): ChanlunBar[] {
+  const monday = (t: string): string => {
+    const d = new Date(`${t}T00:00:00Z`);
+    d.setUTCDate(d.getUTCDate() - ((d.getUTCDay() + 6) % 7));
+    return d.toISOString().slice(0, 10);
+  };
+  const out: ChanlunBar[] = [];
+  let key = "";
+  for (const b of bars) {
+    const k = monday(b.time);
+    if (!out.length || k !== key) {
+      key = k;
+      out.push({ ...b });
+      continue;
+    }
+    const last = out[out.length - 1];
+    last.high = Math.max(last.high, b.high);
+    last.low = Math.min(last.low, b.low);
+    last.close = b.close;
+    last.time = b.time;
+  }
+  return out;
+}
+
+/** 区间套: a confirmed daily point resonates when a same-side confirmed
+ * weekly point exists with weekly-vertex time ≤ daily time ≤ end of the
+ * weekly point's following leg (spec §1.4). */
+export function markResonance(
+  points: readonly BuySellPoint[],
+  weekly: ChanlunResult,
+  lastBarTime: string,
+): BuySellPoint[] {
+  const windows = weekly.points
+    .filter((q) => q.confirmed)
+    .map((q) => {
+      const vi = weekly.vertices.findIndex(
+        (v) => v.time === q.time && v.price === q.price,
+      );
+      const to =
+        vi >= 0 && vi + 1 < weekly.vertices.length
+          ? weekly.vertices[vi + 1].time
+          : lastBarTime;
+      return { side: q.kind.endsWith("B") ? "B" : "S", from: q.time, to };
+    });
+  if (!windows.length) return [...points];
+  return points.map((p) => {
+    const side = p.kind.endsWith("B") ? "B" : "S";
+    const hit =
+      p.confirmed &&
+      windows.some(
+        (w) => w.side === side && p.time >= w.from && p.time <= w.to,
+      );
+    return hit ? { ...p, resonant: true } : p;
+  });
+}
+
+export type ChanlunFullResult = ChanlunResult & {
+  segVertices: SegVertex[];
+  segZhongshus: Zhongshu[];
+  segPoints: BuySellPoint[];
+};
+
+/** v1 result + segment-level structures. 段级 legs reuse the level-generic
+ * pivot/BSP core; MACD-area 背驰 sums over the same raw-bar histogram, just
+ * across segment spans. */
+export function computeChanlunFull(
+  bars: readonly ChanlunBar[],
+): ChanlunFullResult {
+  const daily = computeChanlun(bars);
+  const segVertices = buildSegments(daily.vertices);
+  const idxByTime = new Map(bars.map((b, i) => [b.time, i]));
+  const segPts: VertexPt[] = segVertices.map((v) => ({
+    time: v.time,
+    price: v.price,
+    kind: v.kind,
+    rawIdx: idxByTime.get(v.time) ?? 0,
+    confirmed: v.confirmed,
+  }));
+  const hist = macdHist(bars.map((b) => b.close));
+  const legArea = (l: Leg): number => {
+    let s = 0;
+    for (let r = l.rawA + 1; r <= l.rawB; r++) {
+      s += Math.abs(hist[r]);
+    }
+    return s;
+  };
+  const segLegs = buildLegs(segPts);
+  const segPivots = buildPivots(segLegs);
+  const weekly = computeChanlun(resampleWeekly(bars));
+  const points = markResonance(
+    daily.points,
+    weekly,
+    bars[bars.length - 1]?.time ?? "",
+  );
+  return {
+    ...daily,
+    points,
+    zhongshus: mergeOverlappingZhongshus(daily.zhongshus),
+    segVertices,
+    segZhongshus: pivotsToZhongshus(segPivots, segLegs, segPts),
+    segPoints: markPoints(segPts, segLegs, segPivots, legArea),
+  };
 }

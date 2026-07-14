@@ -41,7 +41,12 @@ import {
 } from "@/lib/indicators";
 import { BandsIndicator } from "@/lib/lwc/bandsIndicator";
 import { ChanlunZhongshu } from "@/lib/lwc/chanlunZhongshu";
-import { computeChanlun, type ChanlunBar } from "@/lib/chanlun";
+import {
+  computeChanlunFull,
+  type BuySellPoint,
+  type ChanlunBar,
+  type Zhongshu,
+} from "@/lib/chanlun";
 import { AnalyticalSeriesPanel } from "./AnalyticalSeriesPanel";
 
 const H = 460;
@@ -176,6 +181,9 @@ type ChartHandles = {
   biDashed: ISeriesApi<"Line">;
   clZs: ChanlunZhongshu;
   clMarkers: ISeriesMarkersPluginApi<Time>;
+  segSolid: ISeriesApi<"Line">;
+  segDashed: ISeriesApi<"Line">;
+  segZs: ChanlunZhongshu;
 };
 
 const READABLE_BAR_PX = 6; // min bar width before we scroll instead of squish
@@ -243,7 +251,7 @@ export function TechnicalsPriceChart({
         ? [{ time: r.as_of, high: r.high, low: r.low, close: r.close }]
         : [],
     );
-    return computeChanlun(bars);
+    return computeChanlunFull(bars);
   }, [full, chanlunOn, candleMode]);
 
   const containerRef = useRef<HTMLDivElement>(null);
@@ -453,6 +461,25 @@ export function TechnicalsPriceChart({
     price.attachPrimitive(clZs);
     const clMarkers = createSeriesMarkers(price, []);
 
+    // 线段 layer: thicker amber polylines + a second zhongshu-primitive
+    // instance for 段级中枢 (the primitive takes per-instance options; it is
+    // deliberately NOT edited — spec §2).
+    const segColor = cssVar("--accent-warm");
+    const segSolid = chart.addSeries(LineSeries, {
+      color: segColor,
+      ...lineOpts, // lineWidth 2 — deliberately thicker than the 笔 lines
+    });
+    const segDashed = chart.addSeries(LineSeries, {
+      color: segColor,
+      lineStyle: LineStyle.Dashed,
+      ...lineOpts,
+    });
+    const segZs = new ChanlunZhongshu({
+      fillColor: `${segColor}10`, // ~6% alpha — fainter than the 笔级 fill
+      borderColor: `${segColor}66`,
+    });
+    price.attachPrimitive(segZs);
+
     // Dual MACD in pane index 1 (below price). Two histograms sharing one price
     // scale: the slow 55/89/34 is the structural background (accent-vol, ~50%
     // alpha) drawn first; the fast 13/21/9 is the sharp tactical bar on top, its
@@ -511,6 +538,9 @@ export function TechnicalsPriceChart({
       biDashed,
       clZs,
       clMarkers,
+      segSolid,
+      segDashed,
+      segZs,
     };
     fitKeyRef.current = ""; // force a fitContent on the first data pass
 
@@ -728,19 +758,34 @@ export function TechnicalsPriceChart({
     // here. The dashed tail restarts at the last confirmed vertex so the two
     // polylines connect.
     if (chanlunGeo) {
-      const vs = chanlunGeo.vertices.filter((v) => v.time >= firstAsOf);
-      const firstProv = vs.findIndex((v) => !v.confirmed);
-      const solid = firstProv === -1 ? vs : vs.slice(0, firstProv);
-      const dashed =
-        firstProv === -1 ? [] : vs.slice(Math.max(0, firstProv - 1));
-      h.biSolid.setData(
-        solid.map((v) => ({ time: v.time as Time, value: v.price })),
+      const polyline = (
+        vs: { time: string; price: number; confirmed: boolean }[],
+        solidSeries: ISeriesApi<"Line">,
+        dashedSeries: ISeriesApi<"Line">,
+      ) => {
+        const firstProv = vs.findIndex((v) => !v.confirmed);
+        const solid = firstProv === -1 ? vs : vs.slice(0, firstProv);
+        const dashed =
+          firstProv === -1 ? [] : vs.slice(Math.max(0, firstProv - 1));
+        solidSeries.setData(
+          solid.map((v) => ({ time: v.time as Time, value: v.price })),
+        );
+        dashedSeries.setData(
+          dashed.map((v) => ({ time: v.time as Time, value: v.price })),
+        );
+      };
+      polyline(
+        chanlunGeo.vertices.filter((v) => v.time >= firstAsOf),
+        h.biSolid,
+        h.biDashed,
       );
-      h.biDashed.setData(
-        dashed.map((v) => ({ time: v.time as Time, value: v.price })),
+      polyline(
+        chanlunGeo.segVertices.filter((v) => v.time >= firstAsOf),
+        h.segSolid,
+        h.segDashed,
       );
-      h.clZs.setRects(
-        chanlunGeo.zhongshus
+      const rects = (zs: Zhongshu[]) =>
+        zs
           .filter((z) => z.end >= firstAsOf)
           .map((z) => ({
             start: (z.start >= firstAsOf ? z.start : firstAsOf) as Time,
@@ -748,27 +793,51 @@ export function TechnicalsPriceChart({
             zg: z.zg,
             zd: z.zd,
             confirmed: z.confirmed,
-          })),
-      );
+          }));
+      h.clZs.setRects(rects(chanlunGeo.zhongshus));
+      h.segZs.setRects(rects(chanlunGeo.segZhongshus));
+      const marker = (p: BuySellPoint, prefix: string, size: number) => {
+        const buy = p.kind.endsWith("B");
+        return {
+          time: p.time as Time,
+          position: buy ? ("belowBar" as const) : ("aboveBar" as const),
+          shape: buy ? ("arrowUp" as const) : ("arrowDown" as const),
+          color: buy ? positive : negative,
+          text: `${prefix}${p.kind}${p.confirmed ? "" : "?"}${p.resonant ? "★" : ""}`,
+          size,
+        };
+      };
+      const divColor = cssVar("--accent-warm");
       h.clMarkers.setMarkers(
-        chanlunGeo.points
-          .filter((p) => p.time >= firstAsOf)
-          .map((p) => {
-            const buy = p.kind.endsWith("B");
-            return {
-              time: p.time as Time,
-              position: buy ? ("belowBar" as const) : ("aboveBar" as const),
-              shape: buy ? ("arrowUp" as const) : ("arrowDown" as const),
-              color: buy ? positive : negative,
-              text: p.confirmed ? p.kind : `${p.kind}?`,
+        [
+          ...chanlunGeo.points
+            .filter((p) => p.time >= firstAsOf)
+            .map((p) => marker(p, "", 1)),
+          ...chanlunGeo.segPoints
+            .filter((p) => p.time >= firstAsOf)
+            .map((p) => marker(p, "段", 2)),
+          ...chanlunGeo.divergences
+            .filter((d) => d.time >= firstAsOf)
+            .map((d) => ({
+              time: d.time as Time,
+              position:
+                d.kind === "top"
+                  ? ("aboveBar" as const)
+                  : ("belowBar" as const),
+              shape: "circle" as const,
+              color: divColor,
+              text: `${d.kind === "top" ? "顶背离" : "底背离"}${d.confirmed ? "" : "?"}`,
               size: 1,
-            };
-          }),
+            })),
+        ].sort((a, b) => String(a.time).localeCompare(String(b.time))),
       );
     } else {
       h.biSolid.setData([]);
       h.biDashed.setData([]);
+      h.segSolid.setData([]);
+      h.segDashed.setData([]);
       h.clZs.setRects([]);
+      h.segZs.setRects([]);
       h.clMarkers.setMarkers([]);
     }
     // Fit on ticker or window-start change only — a live head append (length
@@ -997,8 +1066,12 @@ export function TechnicalsPriceChart({
           [ZD, ZG] (dashed border = extending), markers = 买卖点 — green
           1B/2B/3B buys, red 1S/2S/3S sells, &quot;?&quot; = provisional and may
           be erased. 1st class = trend + MACD-area 背驰; 3rd class = pullback
-          holds outside the 中枢. Structures on the trailing edge repaint by
-          design — decisions belong on confirmed marks only.
+          holds outside the 中枢. Amber dots = 顶背离/底背离 (new extreme vs the
+          prior same-direction 笔 on weaker MACD area — annotation, not a
+          signal). Structures on the trailing edge repaint by design — decisions
+          belong on confirmed marks only. Amber thick lines = 线段 (segments)
+          with amber 段级中枢 boxes; 段-prefixed markers = segment-level 买卖点;
+          ★ = weekly×daily 区间套 resonance (both levels confirmed).
         </div>
       )}
       <MacdLegend signal={macd} />
@@ -1063,6 +1136,7 @@ function Legend({
       {item("var(--accent-vivid)", labels[2])}
       {showVwap && item("var(--accent-cool)", "VWAP ⚓")}
       {showChanlun && item("var(--text-secondary)", "缠论 笔·中枢·买卖点")}
+      {showChanlun && item("var(--accent-warm)", "线段·段级中枢")}
     </div>
   );
 }
