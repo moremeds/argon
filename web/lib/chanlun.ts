@@ -261,6 +261,27 @@ export function pivotsToZhongshus(
   }));
 }
 
+/** 中枢升级 (pragmatic): consecutive same-level zones whose [zd, zg] ranges
+ * overlap merge into one level-2 zone spanning both in time, with the price
+ * ENVELOPE [min(zd), max(zg)]. Documented deviation — textbook 九段升级
+ * recursion is out of scope (spec §1.3). Transitive by construction. */
+export function mergeOverlappingZhongshus(zs: readonly Zhongshu[]): Zhongshu[] {
+  const out: Zhongshu[] = [];
+  for (const z of zs) {
+    const last = out[out.length - 1];
+    if (last && Math.max(last.zd, z.zd) < Math.min(last.zg, z.zg)) {
+      last.zg = Math.max(last.zg, z.zg);
+      last.zd = Math.min(last.zd, z.zd);
+      last.end = z.end;
+      last.confirmed = last.confirmed && z.confirmed;
+      last.level = 2;
+    } else {
+      out.push({ ...z, level: z.level ?? 1 });
+    }
+  }
+  return out;
+}
+
 export function markPoints(
   pts: readonly VertexPt[],
   legs: readonly Leg[],
@@ -428,6 +449,7 @@ export function computeChanlunFull(
   const segPivots = buildPivots(segLegs);
   return {
     ...daily,
+    zhongshus: mergeOverlappingZhongshus(daily.zhongshus),
     segVertices,
     segZhongshus: pivotsToZhongshus(segPivots, segLegs, segPts),
     segPoints: markPoints(segPts, segLegs, segPivots, legArea),

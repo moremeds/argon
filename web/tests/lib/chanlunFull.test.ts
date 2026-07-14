@@ -3,7 +3,9 @@ import { describe, expect, it } from "vitest";
 import {
   computeChanlun,
   computeChanlunFull,
+  mergeOverlappingZhongshus,
   type ChanlunBar,
+  type Zhongshu,
 } from "@/lib/chanlun";
 import { AAPL_DAILY_2Y } from "../unit/fixtures/aaplDaily2y";
 
@@ -60,5 +62,60 @@ describe("computeChanlunFull — segment level", () => {
 
   it("is deterministic", () => {
     expect(computeChanlunFull(bars2y)).toEqual(full);
+  });
+});
+
+describe("mergeOverlappingZhongshus", () => {
+  // Abstract zone geometry (not market data).
+  const z = (start: string, end: string, zd: number, zg: number): Zhongshu => ({
+    start,
+    end,
+    zd,
+    zg,
+    confirmed: true,
+  });
+
+  it("merges consecutive price-overlapping zones into a level-2 envelope", () => {
+    const out = mergeOverlappingZhongshus([
+      z("2020-01-01", "2020-01-10", 10, 20),
+      z("2020-01-11", "2020-01-20", 15, 25),
+      z("2020-02-01", "2020-02-10", 40, 50),
+    ]);
+    expect(out).toHaveLength(2);
+    expect(out[0]).toMatchObject({
+      start: "2020-01-01",
+      end: "2020-01-20",
+      zd: 10,
+      zg: 25,
+      level: 2,
+    });
+    expect(out[1].level).toBe(1);
+  });
+
+  it("merging is transitive across 3 overlapping zones", () => {
+    const out = mergeOverlappingZhongshus([
+      z("2020-01-01", "2020-01-10", 10, 20),
+      z("2020-01-11", "2020-01-20", 15, 25),
+      z("2020-01-21", "2020-01-30", 22, 30),
+    ]);
+    expect(out).toHaveLength(1);
+    expect(out[0]).toMatchObject({ zd: 10, zg: 30, level: 2 });
+  });
+
+  it("touching-but-not-overlapping zones do not merge", () => {
+    const out = mergeOverlappingZhongshus([
+      z("2020-01-01", "2020-01-10", 10, 20),
+      z("2020-01-11", "2020-01-20", 20, 30), // shares only the edge
+    ]);
+    expect(out).toHaveLength(2);
+  });
+
+  it("computeChanlunFull zhongshus contain no surviving overlap", () => {
+    const zs = computeChanlunFull(bars2y).zhongshus;
+    for (let i = 1; i < zs.length; i++) {
+      const overlap =
+        Math.max(zs[i - 1].zd, zs[i].zd) < Math.min(zs[i - 1].zg, zs[i].zg);
+      expect(overlap, `zones ${i - 1}/${i} still overlap`).toBe(false);
+    }
   });
 });
