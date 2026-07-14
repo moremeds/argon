@@ -807,6 +807,7 @@ export function TechnicalsPriceChart({
           size,
         };
       };
+      const divColor = cssVar("--accent-warm");
       h.clMarkers.setMarkers(
         [
           ...chanlunGeo.points
@@ -815,6 +816,19 @@ export function TechnicalsPriceChart({
           ...chanlunGeo.segPoints
             .filter((p) => p.time >= firstAsOf)
             .map((p) => marker(p, "段", 2)),
+          ...chanlunGeo.divergences
+            .filter((d) => d.time >= firstAsOf)
+            .map((d) => ({
+              time: d.time as Time,
+              position:
+                d.kind === "top"
+                  ? ("aboveBar" as const)
+                  : ("belowBar" as const),
+              shape: "circle" as const,
+              color: divColor,
+              text: `${d.kind === "top" ? "顶背离" : "底背离"}${d.confirmed ? "" : "?"}`,
+              size: 1,
+            })),
         ].sort((a, b) => String(a.time).localeCompare(String(b.time))),
       );
     } else {
@@ -1052,11 +1066,12 @@ export function TechnicalsPriceChart({
           [ZD, ZG] (dashed border = extending), markers = 买卖点 — green
           1B/2B/3B buys, red 1S/2S/3S sells, &quot;?&quot; = provisional and may
           be erased. 1st class = trend + MACD-area 背驰; 3rd class = pullback
-          holds outside the 中枢. Structures on the trailing edge repaint by
-          design — decisions belong on confirmed marks only. Amber thick lines =
-          线段 (segments) with amber 段级中枢 boxes; 段-prefixed markers =
-          segment-level 买卖点; ★ = weekly×daily 区间套 resonance (both levels
-          confirmed).
+          holds outside the 中枢. Amber dots = 顶背离/底背离 (new extreme vs the
+          prior same-direction 笔 on weaker MACD area — annotation, not a
+          signal). Structures on the trailing edge repaint by design — decisions
+          belong on confirmed marks only. Amber thick lines = 线段 (segments)
+          with amber 段级中枢 boxes; 段-prefixed markers = segment-level 买卖点;
+          ★ = weekly×daily 区间套 resonance (both levels confirmed).
         </div>
       )}
       <MacdLegend signal={macd} />

@@ -1,8 +1,65 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`computeChanlun v1 output identity > is byte-stable across the v2 refactor (never run vitest -u) 1`] = `
+exports[`computeChanlun output identity > is byte-stable (never run vitest -u) 1`] = `
 {
-  "points": [],
+  "divergences": [
+    {
+      "confirmed": true,
+      "kind": "top",
+      "price": 233.09,
+      "time": "2024-09-20",
+    },
+    {
+      "confirmed": true,
+      "kind": "top",
+      "price": 237.49,
+      "time": "2024-10-15",
+    },
+    {
+      "confirmed": true,
+      "kind": "bottom",
+      "price": 169.2101,
+      "time": "2025-04-08",
+    },
+    {
+      "confirmed": true,
+      "kind": "top",
+      "price": 277.32,
+      "time": "2025-10-31",
+    },
+    {
+      "confirmed": true,
+      "kind": "top",
+      "price": 288.62,
+      "time": "2025-12-03",
+    },
+  ],
+  "points": [
+    {
+      "confirmed": true,
+      "kind": "3S",
+      "price": 214.56,
+      "time": "2025-05-01",
+    },
+    {
+      "confirmed": true,
+      "kind": "3B",
+      "price": 225.95,
+      "time": "2025-09-10",
+    },
+    {
+      "confirmed": true,
+      "kind": "1S",
+      "price": 277.32,
+      "time": "2025-10-31",
+    },
+    {
+      "confirmed": true,
+      "kind": "3B",
+      "price": 265.32,
+      "time": "2025-11-18",
+    },
+  ],
   "vertices": [
     {
       "confirmed": true,

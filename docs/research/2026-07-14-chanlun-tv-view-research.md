@@ -184,3 +184,26 @@ hand-traced through the chan.py mechanics above; verbatim from
 ```bash
 cd web && npm run test -- tests/lib/chanlunSeg.test.ts tests/lib/chanlunFull.test.ts
 ```
+
+### 6e. 买卖点 exit-leg semantics fix + 顶背离/底背离 markers (post-review, 2026-07-14)
+
+Shipped v2 produced **zero** 买卖点 on real data (AAPL/NVDA, 1300 bars each).
+Root cause: `buildPivots`' exit leg ("first leg fully outside [zd, zg]") is
+structurally **always the counter-direction pullback** — a trend-direction
+leg fully above zg would need its start vertex above zg, making the previous
+leg fully outside first — while `markPoints` assumed it was the breakout
+leg. Every downstream gate (3B/3S pull-leg opposition, 1B/1S same-direction
+connect/exit) was unsatisfiable. The original oracles passed because their
+fixtures were geometrically impossible (a "bottom" priced above an adjacent
+"top"), validating `markPoints` against inputs the real pipeline can never
+emit. Fix: 3B/3S mark on the exit leg's own end vertex; 1B/1S compare the
+breakout legs (`exitLeg - 1`). New oracles enforce a realism invariant
+(every top above its adjacent bottoms) plus real-data non-vacuity
+assertions. Measured density post-fix: AAPL 11×3B/3S + 2×1S, NVDA 15 + 3
+over 5y — MACD gate filters 8 candidates → 3 on NVDA (non-vacuous).
+
+Added 顶背离/底背离 chart annotations (笔-level): legs `i` and `i+2` are
+always same-direction; flag the later one when it extends past the earlier
+one's extreme on MACD area < 0.9×. Amber dots, annotation-only (买卖点
+gating unchanged). Spot-check: 底背离 fired at AAPL 2022-10-13 (bear-market
+low) and 2025-04-08 (tariff-crash low); 顶背离 at 2022-01-04 (pre-bear ATH).

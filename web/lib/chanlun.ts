@@ -59,10 +59,20 @@ export type BuySellPoint = {
   resonant?: boolean;
 };
 
+/** 顶背离 (kind "top") / 底背离 (kind "bottom") — a 笔 pushing to a new
+ * extreme past the previous same-direction 笔 on weaker MACD area. */
+export type DivergenceMark = {
+  time: string;
+  price: number;
+  kind: "top" | "bottom";
+  confirmed: boolean;
+};
+
 export type ChanlunResult = {
   vertices: BiVertex[];
   zhongshus: Zhongshu[];
   points: BuySellPoint[];
+  divergences: DivergenceMark[];
 };
 
 // 新笔-style stroke rule: fractal midpoints ≥4 merged candles apart, so the
@@ -295,23 +305,27 @@ export function markPoints(
     points.push({ time: v.time, price: v.price, kind, confirmed: v.confirmed });
   };
   pivots.forEach((p, k) => {
-    // 3B/3S: the pullback after leaving the pivot fails to re-enter [zd, zg].
-    // The pull leg must run AGAINST the exit direction (a down pullback after
-    // an upward exit) — "fully outside" alone can also match a counter-
-    // direction leg riding above/below the zone, which would put a buy
-    // marker on a top vertex (bug surfaced by the 500-bar fixture).
+    // 3B/3S: the exit leg IS the pullback. buildPivots' "first leg fully
+    // outside [zd, zg]" is structurally always the counter-direction leg:
+    // a trend-direction leg fully above zg would need its start (a bottom
+    // vertex) above zg, which would make the PREVIOUS leg fully outside
+    // first. So the exit leg leaves the zone and fails to re-enter — its
+    // end vertex is the third-class point (its lo > zg / hi < zd already
+    // holds by the exit condition). The direction guard keeps a buy off a
+    // top vertex for degenerate inputs.
     if (p.exitLeg != null) {
-      const pull = legs[p.exitLeg + 1];
-      if (pull && p.exitUp && !pull.up && pull.lo > p.zg) mark("3B", pull.b);
-      if (pull && !p.exitUp && pull.up && pull.hi < p.zd) mark("3S", pull.b);
+      const exitL = legs[p.exitLeg];
+      if (p.exitUp && !exitL.up) mark("3B", exitL.b);
+      if (!p.exitUp && exitL.up) mark("3S", exitL.b);
     }
-    // 1B/1S: trend (two non-overlapping pivots) whose final exit leg makes a
-    // new extreme on weaker MACD area than the connecting leg between pivots
-    // (趋势背驰). The connecting leg IS the previous pivot's exit leg.
+    // 1B/1S: trend (two non-overlapping pivots) whose final BREAKOUT leg —
+    // the trend-direction leg just before the counter-direction exit leg —
+    // makes a new extreme on weaker MACD area than the previous pivot's
+    // breakout leg (趋势背驰).
     const prev = pivots[k - 1];
     if (!prev || prev.exitLeg == null || p.exitLeg == null) return;
-    const connect = legs[prev.exitLeg];
-    const exit = legs[p.exitLeg];
+    const connect = legs[prev.exitLeg - 1];
+    const exit = legs[p.exitLeg - 1];
     const rising = p.zd > prev.zg && connect.up && exit.up;
     const falling = p.zg < prev.zd && !connect.up && !exit.up;
     const newExtreme = rising
@@ -341,11 +355,47 @@ export function markPoints(
   return points;
 }
 
+/** 顶背离/底背离 on 笔: legs i and i+2 are always same-direction (directions
+ * alternate); flag the later one when it pushes past the earlier one's
+ * extreme on weaker MACD area. Chart annotation only — 买卖点 gating uses
+ * the pivot-anchored 趋势背驰 in markPoints. */
+export function markDivergences(
+  pts: readonly VertexPt[],
+  legs: readonly Leg[],
+  legArea: (l: Leg) => number,
+): DivergenceMark[] {
+  const out: DivergenceMark[] = [];
+  for (let i = 0; i + 2 < legs.length; i++) {
+    const a = legs[i];
+    const b = legs[i + 2];
+    const extended = b.up
+      ? pts[b.b].price > pts[a.b].price
+      : pts[b.b].price < pts[a.b].price;
+    if (extended && legArea(b) < DIVERGENCE_RATE * legArea(a)) {
+      const v = pts[b.b];
+      out.push({
+        time: v.time,
+        price: v.price,
+        kind: v.kind,
+        confirmed: v.confirmed,
+      });
+    }
+  }
+  return out;
+}
+
+const EMPTY_RESULT: ChanlunResult = {
+  vertices: [],
+  zhongshus: [],
+  points: [],
+  divergences: [],
+};
+
 export function computeChanlun(bars: readonly ChanlunBar[]): ChanlunResult {
-  if (bars.length < 10) return { vertices: [], zhongshus: [], points: [] };
+  if (bars.length < 10) return { ...EMPTY_RESULT };
   const m = mergeInclusions(bars);
   const eps = buildEndpoints(findFractals(m));
-  if (eps.length === 0) return { vertices: [], zhongshus: [], points: [] };
+  if (eps.length === 0) return { ...EMPTY_RESULT };
 
   // Provisional tail. The last endpoint is replaceable; two live adjustments:
   // (a) if the running same-direction extreme after it already exceeds it,
@@ -412,8 +462,9 @@ export function computeChanlun(bars: readonly ChanlunBar[]): ChanlunResult {
     return s;
   };
   const points = markPoints(pts, legs, pivots, legArea);
+  const divergences = markDivergences(pts, legs, legArea);
 
-  return { vertices, zhongshus, points };
+  return { vertices, zhongshus, points, divergences };
 }
 
 /** Group daily bars into calendar weeks (Monday key): high=max, low=min,

@@ -5,6 +5,7 @@ import {
   buildPivots,
   computeChanlun,
   computeChanlunFull,
+  markDivergences,
   markPoints,
   markResonance,
   mergeOverlappingZhongshus,
@@ -12,6 +13,7 @@ import {
   type BuySellPoint,
   type ChanlunBar,
   type ChanlunResult,
+  type Leg,
   type VertexPt,
   type Zhongshu,
 } from "@/lib/chanlun";
@@ -24,8 +26,12 @@ const bars2y: ChanlunBar[] = AAPL_DAILY_2Y.map((b) => ({
   close: b.close,
 }));
 
-describe("computeChanlun v1 output identity", () => {
-  it("is byte-stable across the v2 refactor (never run vitest -u)", () => {
+describe("computeChanlun output identity", () => {
+  // Sanctioned re-baselines only — never a routine `vitest -u`. History:
+  // (1) 3B/3S side fix (points-only delta, Task 4); (2) exit-leg semantics
+  // fix + divergences field (points/divergences-only delta; vertices and
+  // zhongshus byte-identical, verified by diff).
+  it("is byte-stable (never run vitest -u)", () => {
     expect(computeChanlun(bars2y)).toMatchSnapshot();
   });
 });
@@ -197,135 +203,135 @@ describe("区间套 resonance", () => {
   });
 });
 
-describe("markPoints — 3B/3S side-correctness oracle", () => {
-  // Abstract geometric fixtures (not market data) — 6-vertex sequences hand
+describe("markPoints / markDivergences — realistic-geometry oracles", () => {
+  // Abstract geometric fixtures (not market data) — vertex sequences hand
   // constructed to feed buildLegs/buildPivots directly, bypassing fractal
-  // derivation. Each proves the pull leg must OPPOSE the pivot's exit
-  // direction (regression lock for commit d6992c8): "fully outside" alone
-  // is not enough, since a counter-direction leg riding above/below the
-  // zone can also match, which would put a buy marker on a top vertex.
-  const legArea = () => 1; // 3B/3S don't use divergence — constant is fine.
+  // derivation. Unlike the retired d6992c8 oracles, these satisfy the
+  // invariant real fractal chains always have (each top above its adjacent
+  // bottoms) — the old fixtures put a "bottom" above a "top", validating
+  // markPoints against inputs the real pipeline can never produce, which
+  // hid the fact that buildPivots' exit leg is ALWAYS the counter-direction
+  // pullback (zero BSPs on real data).
+  const v = (i: number, price: number, kind: "top" | "bottom"): VertexPt => ({
+    time: `2020-01-${String(i + 1).padStart(2, "0")}`,
+    price,
+    kind,
+    rawIdx: i,
+    confirmed: true,
+  });
+  const alternating = (
+    prices: number[],
+    firstKind: "top" | "bottom",
+  ): VertexPt[] =>
+    prices.map((p, i) =>
+      v(i, p, i % 2 === 0 ? firstKind : firstKind === "top" ? "bottom" : "top"),
+    );
+  // Realism lock: every top strictly above both neighbors (and mirror) —
+  // the invariant fractal-derived vertex chains always satisfy.
+  const realistic = (pts: VertexPt[]): boolean =>
+    pts.every((p, i) => {
+      const n = pts[i + 1];
+      return !n || (p.kind === "top" ? p.price > n.price : p.price < n.price);
+    });
+  const flatArea = () => 1;
 
-  it("3B fires on the pullback's end vertex, which is a bottom", () => {
-    // Trio (v0..v3) forms a pivot [zd=100, zg=150]. Leg v3->v4 exits fully
-    // above zg (200,210 both > 150) -> exitUp=true. The pull leg v4->v5
-    // opposes that exit (a down leg, 210->160) and stays fully above zg
-    // (160 > 150), so it marks 3B at v5 — which must be a bottom vertex.
-    const pts: VertexPt[] = [
-      {
-        time: "2020-01-01",
-        price: 100,
-        kind: "top",
-        rawIdx: 0,
-        confirmed: true,
-      },
-      {
-        time: "2020-01-02",
-        price: 150,
-        kind: "bottom",
-        rawIdx: 1,
-        confirmed: true,
-      },
-      {
-        time: "2020-01-03",
-        price: 90,
-        kind: "top",
-        rawIdx: 2,
-        confirmed: true,
-      },
-      {
-        time: "2020-01-04",
-        price: 200,
-        kind: "bottom",
-        rawIdx: 3,
-        confirmed: true,
-      },
-      {
-        time: "2020-01-05",
-        price: 210,
-        kind: "top",
-        rawIdx: 4,
-        confirmed: true,
-      },
-      {
-        time: "2020-01-06",
-        price: 160,
-        kind: "bottom",
-        rawIdx: 5,
-        confirmed: true,
-      },
-    ];
+  it("3B fires on the exit leg's end vertex (the pullback low above zg)", () => {
+    // Trio L0-L2 forms zone [105, 148]; L3/L4 still touch it; the breakout
+    // leg L4 (112->200) STRADDLES the zone, so the first leg fully outside
+    // is L5 (200->160), the down pullback holding above zg -> 3B at v6.
+    const pts = alternating([100, 150, 105, 148, 112, 200, 160, 210], "bottom");
+    expect(realistic(pts)).toBe(true);
     const legs = buildLegs(pts);
     const pivots = buildPivots(legs);
     expect(pivots).toEqual([
-      { firstLeg: 0, lastLeg: 2, exitLeg: 3, exitUp: true, zg: 150, zd: 100 },
+      { firstLeg: 0, lastLeg: 4, exitLeg: 5, exitUp: true, zg: 148, zd: 105 },
     ]);
-    const points = markPoints(pts, legs, pivots, legArea);
+    const points = markPoints(pts, legs, pivots, flatArea);
     expect(points).toEqual([
-      { time: "2020-01-06", price: 160, kind: "3B", confirmed: true },
+      { time: "2020-01-07", price: 160, kind: "3B", confirmed: true },
     ]);
-    expect(pts[5].kind).toBe("bottom");
+    expect(pts[6].kind).toBe("bottom");
   });
 
-  it("3S fires on the pullback's end vertex, which is a top", () => {
-    // Mirror of the 3B fixture: pivot [zd=160, zg=210]. Leg v3->v4 exits
-    // fully below zd (110,100 both < 160) -> exitUp=false. The pull leg
-    // v4->v5 opposes that exit (an up leg, 100->150) and stays fully below
-    // zd (150 < 160), so it marks 3S at v5 — which must be a top vertex.
-    const pts: VertexPt[] = [
-      {
-        time: "2020-01-01",
-        price: 210,
-        kind: "bottom",
-        rawIdx: 0,
-        confirmed: true,
-      },
-      {
-        time: "2020-01-02",
-        price: 160,
-        kind: "top",
-        rawIdx: 1,
-        confirmed: true,
-      },
-      {
-        time: "2020-01-03",
-        price: 220,
-        kind: "bottom",
-        rawIdx: 2,
-        confirmed: true,
-      },
-      {
-        time: "2020-01-04",
-        price: 110,
-        kind: "top",
-        rawIdx: 3,
-        confirmed: true,
-      },
-      {
-        time: "2020-01-05",
-        price: 100,
-        kind: "bottom",
-        rawIdx: 4,
-        confirmed: true,
-      },
-      {
-        time: "2020-01-06",
-        price: 150,
-        kind: "top",
-        rawIdx: 5,
-        confirmed: true,
-      },
-    ];
+  it("3S fires on the exit leg's end vertex (the pullback high below zd)", () => {
+    const pts = alternating([210, 160, 205, 162, 198, 110, 148, 100], "top");
+    expect(realistic(pts)).toBe(true);
     const legs = buildLegs(pts);
     const pivots = buildPivots(legs);
     expect(pivots).toEqual([
-      { firstLeg: 0, lastLeg: 2, exitLeg: 3, exitUp: false, zg: 210, zd: 160 },
+      { firstLeg: 0, lastLeg: 4, exitLeg: 5, exitUp: false, zg: 205, zd: 162 },
     ]);
+    const points = markPoints(pts, legs, pivots, flatArea);
+    expect(points).toEqual([
+      { time: "2020-01-07", price: 148, kind: "3S", confirmed: true },
+    ]);
+    expect(pts[6].kind).toBe("top");
+  });
+
+  it("1B/2B fire on a two-pivot downtrend with MACD-area 背驰", () => {
+    // Two non-overlapping pivots A [182, 200] and B [145, 168] (B.zg <
+    // A.zd). Breakout legs (the leg BEFORE each counter-direction exit
+    // leg): L4 (198->140) leaves A, L8 (168->120) leaves B on a new low.
+    // legArea makes L8 weaker than L4 (1 vs 10) -> 趋势背驰 -> 1B at v9.
+    // The first retest v11 (125) holds above the 1B low (120) -> 2B.
+    const pts = alternating(
+      [210, 180, 200, 182, 198, 140, 170, 145, 168, 120, 138, 125],
+      "top",
+    );
+    expect(realistic(pts)).toBe(true);
+    const legs = buildLegs(pts);
+    const pivots = buildPivots(legs);
+    expect(pivots).toEqual([
+      { firstLeg: 0, lastLeg: 4, exitLeg: 5, exitUp: false, zg: 200, zd: 182 },
+      { firstLeg: 5, lastLeg: 8, exitLeg: 9, exitUp: false, zg: 168, zd: 145 },
+    ]);
+    const legArea = (l: Leg) => (l.a === 8 ? 1 : 10);
     const points = markPoints(pts, legs, pivots, legArea);
     expect(points).toEqual([
-      { time: "2020-01-06", price: 150, kind: "3S", confirmed: true },
+      { time: "2020-01-07", price: 170, kind: "3S", confirmed: true },
+      { time: "2020-01-10", price: 120, kind: "1B", confirmed: true },
+      { time: "2020-01-11", price: 138, kind: "3S", confirmed: true },
+      { time: "2020-01-12", price: 125, kind: "2B", confirmed: true },
     ]);
-    expect(pts[5].kind).toBe("top");
+  });
+
+  it("底背离 marks the weaker new low; flat MACD area marks nothing", () => {
+    const pts = alternating(
+      [210, 180, 200, 182, 198, 140, 170, 145, 168, 120, 138, 125],
+      "top",
+    );
+    const legs = buildLegs(pts);
+    // L8 (168->120) makes a lower low than L6 (170->145) on area 1 vs 10.
+    const legArea = (l: Leg) => (l.a === 8 ? 1 : 10);
+    expect(markDivergences(pts, legs, legArea)).toEqual([
+      { time: "2020-01-10", price: 120, kind: "bottom", confirmed: true },
+    ]);
+    // Equal leg areas -> ratio 1 >= 0.9 -> no divergence anywhere.
+    expect(markDivergences(pts, legs, flatArea)).toEqual([]);
+  });
+
+  it("顶背离 marks the weaker new high", () => {
+    const pts = alternating([100, 150, 105, 148, 112, 200, 160, 210], "bottom");
+    const legs = buildLegs(pts);
+    // L4 (112->200) tops L2's high (148) on area 1 vs L2's 10.
+    const legArea = (l: Leg) => (l.a === 4 ? 1 : 10);
+    expect(markDivergences(pts, legs, legArea)).toEqual([
+      { time: "2020-01-06", price: 200, kind: "top", confirmed: true },
+    ]);
+  });
+});
+
+describe("real-data non-vacuity — the frozen AAPL 2y fixture", () => {
+  // Guards against the zero-BSP regression class: gates so strict (or leg
+  // identities so wrong) that real data never produces a single mark. Exact
+  // values are locked by the snapshot; these document that the pipeline is
+  // live at all.
+  const r = computeChanlun(bars2y);
+  it("produces at least one buy/sell point", () => {
+    expect(r.points.length).toBeGreaterThan(0);
+  });
+  it("produces at least one divergence mark", () => {
+    expect(r.divergences.length).toBeGreaterThan(0);
   });
 });
 
@@ -338,6 +344,7 @@ describe("markResonance — positive case", () => {
     ],
     zhongshus: [],
     points: [{ time: "2020-03-01", price: 40, kind: "1B", confirmed: true }],
+    divergences: [],
   };
   const lastBarTime = "2020-04-01";
 
