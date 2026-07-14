@@ -56,6 +56,7 @@ export type BuySellPoint = {
   price: number;
   kind: BspKind;
   confirmed: boolean;
+  resonant?: boolean;
 };
 
 export type ChanlunResult = {
@@ -415,6 +416,64 @@ export function computeChanlun(bars: readonly ChanlunBar[]): ChanlunResult {
   return { vertices, zhongshus, points };
 }
 
+/** Group daily bars into calendar weeks (Monday key): high=max, low=min,
+ * close=last, time=last session of the week. */
+export function resampleWeekly(bars: readonly ChanlunBar[]): ChanlunBar[] {
+  const monday = (t: string): string => {
+    const d = new Date(`${t}T00:00:00Z`);
+    d.setUTCDate(d.getUTCDate() - ((d.getUTCDay() + 6) % 7));
+    return d.toISOString().slice(0, 10);
+  };
+  const out: ChanlunBar[] = [];
+  let key = "";
+  for (const b of bars) {
+    const k = monday(b.time);
+    if (!out.length || k !== key) {
+      key = k;
+      out.push({ ...b });
+      continue;
+    }
+    const last = out[out.length - 1];
+    last.high = Math.max(last.high, b.high);
+    last.low = Math.min(last.low, b.low);
+    last.close = b.close;
+    last.time = b.time;
+  }
+  return out;
+}
+
+/** 区间套: a confirmed daily point resonates when a same-side confirmed
+ * weekly point exists with weekly-vertex time ≤ daily time ≤ end of the
+ * weekly point's following leg (spec §1.4). */
+function markResonance(
+  points: readonly BuySellPoint[],
+  weekly: ChanlunResult,
+  lastBarTime: string,
+): BuySellPoint[] {
+  const windows = weekly.points
+    .filter((q) => q.confirmed)
+    .map((q) => {
+      const vi = weekly.vertices.findIndex(
+        (v) => v.time === q.time && v.price === q.price,
+      );
+      const to =
+        vi >= 0 && vi + 1 < weekly.vertices.length
+          ? weekly.vertices[vi + 1].time
+          : lastBarTime;
+      return { side: q.kind.endsWith("B") ? "B" : "S", from: q.time, to };
+    });
+  if (!windows.length) return [...points];
+  return points.map((p) => {
+    const side = p.kind.endsWith("B") ? "B" : "S";
+    const hit =
+      p.confirmed &&
+      windows.some(
+        (w) => w.side === side && p.time >= w.from && p.time <= w.to,
+      );
+    return hit ? { ...p, resonant: true } : p;
+  });
+}
+
 export type ChanlunFullResult = ChanlunResult & {
   segVertices: SegVertex[];
   segZhongshus: Zhongshu[];
@@ -447,8 +506,15 @@ export function computeChanlunFull(
   };
   const segLegs = buildLegs(segPts);
   const segPivots = buildPivots(segLegs);
+  const weekly = computeChanlun(resampleWeekly(bars));
+  const points = markResonance(
+    daily.points,
+    weekly,
+    bars[bars.length - 1]?.time ?? "",
+  );
   return {
     ...daily,
+    points,
     zhongshus: mergeOverlappingZhongshus(daily.zhongshus),
     segVertices,
     segZhongshus: pivotsToZhongshus(segPivots, segLegs, segPts),

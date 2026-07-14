@@ -4,6 +4,7 @@ import {
   computeChanlun,
   computeChanlunFull,
   mergeOverlappingZhongshus,
+  resampleWeekly,
   type ChanlunBar,
   type Zhongshu,
 } from "@/lib/chanlun";
@@ -116,6 +117,75 @@ describe("mergeOverlappingZhongshus", () => {
       const overlap =
         Math.max(zs[i - 1].zd, zs[i].zd) < Math.min(zs[i - 1].zg, zs[i].zg);
       expect(overlap, `zones ${i - 1}/${i} still overlap`).toBe(false);
+    }
+  });
+});
+
+describe("resampleWeekly", () => {
+  const weekly = resampleWeekly(bars2y);
+
+  it("conserves OHLC per calendar week", () => {
+    // Recompute each weekly bar from the daily bars sharing its week and
+    // compare — max(high), min(low), last close, last session time.
+    const monday = (t: string) => {
+      const d = new Date(`${t}T00:00:00Z`);
+      d.setUTCDate(d.getUTCDate() - ((d.getUTCDay() + 6) % 7));
+      return d.toISOString().slice(0, 10);
+    };
+    const groups = new Map<string, typeof bars2y>();
+    for (const b of bars2y) {
+      const k = monday(b.time);
+      groups.set(k, [...(groups.get(k) ?? []), b]);
+    }
+    expect(weekly.length).toBe(groups.size);
+    for (const w of weekly) {
+      const g = groups.get(monday(w.time))!;
+      expect(w.high).toBe(Math.max(...g.map((b) => b.high)));
+      expect(w.low).toBe(Math.min(...g.map((b) => b.low)));
+      expect(w.close).toBe(g[g.length - 1].close);
+      expect(w.time).toBe(g[g.length - 1].time);
+    }
+  });
+
+  it("week keys strictly increase", () => {
+    for (let i = 1; i < weekly.length; i++) {
+      expect(weekly[i].time.localeCompare(weekly[i - 1].time)).toBeGreaterThan(
+        0,
+      );
+    }
+  });
+});
+
+describe("区间套 resonance", () => {
+  const full = computeChanlunFull(bars2y);
+
+  it("resonant points are confirmed daily points with a confirmed weekly witness", () => {
+    const weekly = computeChanlun(resampleWeekly(bars2y));
+    const lastBar = bars2y[bars2y.length - 1].time;
+    for (const p of full.points) {
+      if (!p.resonant) continue;
+      expect(p.confirmed).toBe(true);
+      const side = p.kind.endsWith("B") ? "B" : "S";
+      const witness = weekly.points.some((q) => {
+        if (!q.confirmed || (q.kind.endsWith("B") ? "B" : "S") !== side) {
+          return false;
+        }
+        const vi = weekly.vertices.findIndex(
+          (v) => v.time === q.time && v.price === q.price,
+        );
+        const to =
+          vi >= 0 && vi + 1 < weekly.vertices.length
+            ? weekly.vertices[vi + 1].time
+            : lastBar;
+        return p.time >= q.time && p.time <= to;
+      });
+      expect(witness, `no weekly witness for ${p.kind}@${p.time}`).toBe(true);
+    }
+  });
+
+  it("non-resonant and provisional points never carry the flag", () => {
+    for (const p of full.points) {
+      if (!p.confirmed) expect(p.resonant).toBeUndefined();
     }
   });
 });
